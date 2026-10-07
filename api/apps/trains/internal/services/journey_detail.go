@@ -92,6 +92,7 @@ func (s *JourneyDetailService) buildLeg(
 
 	tripUpdate, hasTripUpdate := snapshot.CallFor(ref.TripShortName, date)
 	cancelled := hasTripUpdate && tripUpdate.State == models.DelayCancelled
+	live := overlayCalls(stopTimes, tripUpdate.StopCalls, date)
 
 	return models.LegDetail{
 		TripShortName:  ref.TripShortName,
@@ -99,12 +100,14 @@ func (s *JourneyDetailService) buildLeg(
 		Headsign:       active.TripHeadsign,
 		Cancelled:      cancelled,
 		Stops: buildStopDetails(
-			pattern, stopByID(stops), tripUpdate.StopCalls, cancelled, date, ref,
+			pattern, stopByID(stops), live[boardIdx:alightIdx+1], cancelled, date, ref,
 		),
 		Alerts: alertsForLeg(snapshot.Alerts, active, stopIDsOf(pattern)),
 	}, nil
 }
 
+// buildStopDetails renders pattern; calls, when non-nil, holds pattern's
+// effective live calls index for index (see overlayCalls).
 func buildStopDetails(
 	pattern []models.StopTime,
 	stops map[string]models.Stop,
@@ -113,11 +116,6 @@ func buildStopDetails(
 	date time.Time,
 	ref LegRef,
 ) []models.StopDetail {
-	callBySeq := make(map[int]models.StopCall, len(calls))
-	for _, c := range calls {
-		callBySeq[c.StopSequence] = c
-	}
-
 	details := make([]models.StopDetail, len(pattern))
 	for i, st := range pattern {
 		info := stops[st.StopID]
@@ -134,7 +132,11 @@ func buildStopDetails(
 			IsBoardStop:        st.StopID == ref.BoardStopID,
 			IsAlightStop:       st.StopID == ref.AlightStopID,
 		}
-		applyLiveState(&d, callBySeq[st.StopSequence], cancelled)
+		var call models.StopCall
+		if calls != nil {
+			call = calls[i]
+		}
+		applyLiveState(&d, call, cancelled)
 		details[i] = d
 	}
 	return details

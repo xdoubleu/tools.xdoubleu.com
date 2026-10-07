@@ -207,3 +207,32 @@ func TestDecodeTripUpdates_NoTimestamp(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, trips["trip-1"].Timestamp.IsZero())
 }
+
+// TestDecodeTripUpdates_TimesOnly: a SCHEDULED call with only absolute times
+// keeps them for the overlay, which compares them against the timetable.
+func TestDecodeTripUpdates_TimesOnly(t *testing.T) {
+	const at = int64(1791349200)
+	//nolint:exhaustruct //only the fields under test are set
+	msg := newFeedMessage(&gtfs.FeedEntity{
+		Id: ptr("e1"),
+		TripUpdate: &gtfs.TripUpdate{
+			Trip: &gtfs.TripDescriptor{TripId: ptr("trip-1")},
+			StopTimeUpdate: []*gtfs.TripUpdate_StopTimeUpdate{
+				{
+					StopId:    ptr("stop-1"),
+					Arrival:   &gtfs.TripUpdate_StopTimeEvent{Time: ptr(at)},
+					Departure: &gtfs.TripUpdate_StopTimeEvent{Time: ptr(at + 60)},
+				},
+			},
+		},
+	})
+
+	trips, err := decodeTripUpdates(marshalFeed(t, msg))
+	require.NoError(t, err)
+	call := trips["trip-1"].StopCalls[0]
+	assert.Equal(t, models.DelayUnknown, call.State)
+	require.NotNil(t, call.ArrivalTime)
+	assert.Equal(t, at, call.ArrivalTime.Unix())
+	require.NotNil(t, call.DepartureTime)
+	assert.Equal(t, at+60, call.DepartureTime.Unix())
+}

@@ -271,14 +271,42 @@ func TestCorrelateTripUpdates(t *testing.T) {
 	}
 	shortNames := map[string]string{"rt-a": "IC100", "rt-b": "IC200"}
 
-	trips, unresolved := correlateTripUpdates(raw, shortNames, "20240401")
+	trips, counts := correlateTripUpdates(raw, shortNames, "20240401")
 
-	assert.Equal(t, 1, unresolved)
+	assert.Equal(t, 1, counts.unresolved)
+	assert.Zero(t, counts.duplicates)
 	require.Len(t, trips, 2)
 	_, hasDated := trips[models.TripKey{ShortName: "IC100", Date: "20240301"}]
 	assert.True(t, hasDated, "a dated update keeps its own start_date")
 	_, hasFallback := trips[models.TripKey{ShortName: "IC200", Date: "20240401"}]
 	assert.True(t, hasFallback, "an undated update takes the fallback date")
+}
+
+// TestCorrelateTripUpdates_DuplicateKeyKeepsRichestUpdate: two realtime trips
+// resolving to one (short name, date) keep the one with more stop calls,
+// whatever the map order, and count the other.
+func TestCorrelateTripUpdates_DuplicateKeyKeepsRichestUpdate(t *testing.T) {
+	//nolint:exhaustruct //only StopID identifies a call here
+	calls := []models.StopCall{{StopID: "A"}, {StopID: "B"}}
+	raw := map[string]models.TripUpdate{
+		//nolint:exhaustruct //only the fields under test are set
+		"rt-short": {TripID: "rt-short", StartDate: "20240301", StopCalls: calls[:1]},
+		//nolint:exhaustruct //only the fields under test are set
+		"rt-long": {TripID: "rt-long", StartDate: "20240301", StopCalls: calls},
+		//nolint:exhaustruct //only the fields under test are set
+		"rt-tie": {TripID: "rt-tie", StartDate: "20240301", StopCalls: calls},
+	}
+	shortNames := map[string]string{
+		"rt-short": "IC100", "rt-long": "IC100", "rt-tie": "IC100",
+	}
+
+	for range 20 {
+		trips, counts := correlateTripUpdates(raw, shortNames, "20240401")
+		require.Len(t, trips, 1)
+		assert.Equal(t, 2, counts.duplicates)
+		kept := trips[models.TripKey{ShortName: "IC100", Date: "20240301"}]
+		assert.Equal(t, "rt-long", kept.TripID)
+	}
 }
 
 func TestIsBackoffable(t *testing.T) {

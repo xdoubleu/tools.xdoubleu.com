@@ -201,6 +201,60 @@ message DeleteSavedCommuteRequest {
 
 message DeleteSavedCommuteResponse {}
 
+// GetRealtimeTripRequest names a train running today (Europe/Brussels).
+message GetRealtimeTripRequest {
+  // Empty returns only the snapshot summary.
+  string trip_short_name = 1;
+}
+
+// RealtimeStopUpdate is one stop_time_update exactly as decoded from GTFS-RT.
+message RealtimeStopUpdate {
+  string stop_id = 1;
+  // 0 when the feed omits it.
+  int32 stop_sequence = 2;
+  // Same values as StopCall.status.
+  string status = 3;
+  // Seconds, positive = late; absent when unpublished.
+  optional int32 arrival_delay = 4;
+  optional int32 departure_delay = 5;
+  // RFC3339 absolute times, when published.
+  string arrival_time = 6;
+  string departure_time = 7;
+}
+
+// PlannedStop is one static stop_time of the trip journey detail resolves.
+message PlannedStop {
+  string stop_id = 1;
+  int32 stop_sequence = 2;
+}
+
+// GetRealtimeTripResponse is a diagnostic view of the in-memory realtime
+// snapshot, which is replaced every poll and never persisted.
+message GetRealtimeTripResponse {
+  // RFC3339 time of the last successful poll; empty before the first.
+  string fetched_at = 1;
+  int32 trip_count = 2;
+  // Realtime trips with no matching static trip.
+  int32 unresolved_trip_count = 3;
+  // Realtime trips dropped because another one had the same short name and
+  // service date.
+  int32 duplicate_trip_count = 4;
+  int32 alert_count = 5;
+  // Stop updates across the whole snapshot, counted by status.
+  map<string, int32> stop_update_statuses = 6;
+  // Whether trip_short_name is in today's snapshot.
+  bool found = 7;
+  // The realtime trip_id, for diagnostics only.
+  string trip_id = 8;
+  string start_date = 9;
+  // Trip-level status: "on_time" or "cancelled".
+  string status = 10;
+  repeated RealtimeStopUpdate stop_updates = 11;
+  // The static trip journey detail overlays it on; empty when none runs today.
+  string planned_trip_id = 12;
+  repeated PlannedStop planned_stops = 13;
+}
+
 service TrainService {
   rpc SearchJourneys(SearchJourneysRequest) returns (SearchJourneysResponse);
   rpc SearchStations(SearchStationsRequest) returns (SearchStationsResponse);
@@ -208,6 +262,8 @@ service TrainService {
   // GetJourneyDetail fetches a searched journey's live state and ensures its
   // /trains/api/journeys/live websocket topic exists.
   rpc GetJourneyDetail(GetJourneyDetailRequest) returns (GetJourneyDetailResponse);
+  // GetRealtimeTrip exposes the raw realtime snapshot for one train.
+  rpc GetRealtimeTrip(GetRealtimeTripRequest) returns (GetRealtimeTripResponse);
   // Saved-commute CRUD, scoped to the signed-in user.
   rpc ListSavedCommutes(ListSavedCommutesRequest) returns (ListSavedCommutesResponse);
   rpc CreateSavedCommute(CreateSavedCommuteRequest) returns (CreateSavedCommuteResponse);

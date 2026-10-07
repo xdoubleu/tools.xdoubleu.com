@@ -75,7 +75,7 @@ func (s *RealtimeService) Poll(ctx context.Context) error {
 		return err
 	}
 
-	trips, unresolved, err := s.resolveTripUpdates(ctx, rawTrips)
+	trips, counts, err := s.resolveTripUpdates(ctx, rawTrips)
 	if err != nil {
 		if isBackoffable(err) {
 			s.logger.Warn(
@@ -87,10 +87,10 @@ func (s *RealtimeService) Poll(ctx context.Context) error {
 		}
 		return err
 	}
-	if unresolved > 0 {
+	if counts.unresolved > 0 {
 		s.logger.Warn(
 			"trains: realtime trip updates without a matching static trip",
-			"unresolved", unresolved,
+			"unresolved", counts.unresolved,
 			"total", len(rawTrips),
 		)
 	}
@@ -116,7 +116,8 @@ func (s *RealtimeService) Poll(ctx context.Context) error {
 	s.mu.Lock()
 	s.snapshot = models.Snapshot{
 		Trips:               trips,
-		UnresolvedTripCount: unresolved,
+		UnresolvedTripCount: counts.unresolved,
+		DuplicateTripCount:  counts.duplicates,
 		Alerts:              alerts,
 		FetchedAt:           time.Now(),
 	}
@@ -140,47 +141,69 @@ func (s *RealtimeService) fetchTripUpdates(
 	return decodeTripUpdates(res.Body)
 }
 
-// resolveTripUpdates re-keys trip updates by (trip_short_name, service date),
-// returning the count with no static match as a drift metric.
+// correlationCounts are the trip updates correlateTripUpdates left out.
+type correlationCounts struct {
+	// unresolved have no static match, a drift metric.
+	unresolved int
+	// duplicates lost to another update with the same TripKey.
+	duplicates int
+}
+
+// resolveTripUpdates re-keys trip updates by (trip_short_name, service date).
 func (s *RealtimeService) resolveTripUpdates(
 	ctx context.Context, raw map[string]models.TripUpdate,
-) (map[models.TripKey]models.TripUpdate, int, error) {
+) (map[models.TripKey]models.TripUpdate, correlationCounts, error) {
 	ids := make([]string, 0, len(raw))
 	for id := range raw {
 		ids = append(ids, id)
 	}
 	shortNames, err := s.resolver.ShortNamesByTripIDs(ctx, ids)
 	if err != nil {
-		return nil, 0, err
+		return nil, correlationCounts{}, err
 	}
 
 	fallbackDate := time.Now().In(brusselsLoc).Format("20060102")
-	trips, unresolved := correlateTripUpdates(raw, shortNames, fallbackDate)
-	return trips, unresolved, nil
+	trips, counts := correlateTripUpdates(raw, shortNames, fallbackDate)
+	return trips, counts, nil
 }
 
 // correlateTripUpdates is resolveTripUpdates' pure core; fallbackDate dates
-// updates the feed left undated.
+// updates the feed left undated. Of updates sharing a TripKey it keeps the one
+// with the most stop calls, then the lowest trip_id, so the pick is stable.
 func correlateTripUpdates(
 	raw map[string]models.TripUpdate,
 	shortNames map[string]string,
 	fallbackDate string,
-) (map[models.TripKey]models.TripUpdate, int) {
+) (map[models.TripKey]models.TripUpdate, correlationCounts) {
 	trips := make(map[models.TripKey]models.TripUpdate, len(raw))
-	unresolved := 0
+	var counts correlationCounts
 	for tripID, tu := range raw {
 		shortName, ok := shortNames[tripID]
 		if !ok {
-			unresolved++
+			counts.unresolved++
 			continue
 		}
 		date := tu.StartDate
 		if date == "" {
 			date = fallbackDate
 		}
-		trips[models.TripKey{ShortName: shortName, Date: date}] = tu
+		key := models.TripKey{ShortName: shortName, Date: date}
+		if kept, dup := trips[key]; dup {
+			counts.duplicates++
+			if !preferTripUpdate(tu, kept) {
+				continue
+			}
+		}
+		trips[key] = tu
 	}
-	return trips, unresolved
+	return trips, counts
+}
+
+func preferTripUpdate(candidate, kept models.TripUpdate) bool {
+	if len(candidate.StopCalls) != len(kept.StopCalls) {
+		return len(candidate.StopCalls) > len(kept.StopCalls)
+	}
+	return candidate.TripID < kept.TripID
 }
 
 func (s *RealtimeService) fetchAlerts(ctx context.Context) ([]models.Alert, error) {

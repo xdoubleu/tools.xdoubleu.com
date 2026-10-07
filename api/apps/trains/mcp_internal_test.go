@@ -82,6 +82,12 @@ func TestMCPTools(t *testing.T) {
 		mcpGetJourneyDetailArgs{JourneyID: "!!not-valid!!"},
 	)
 	require.Error(t, err)
+
+	// Before any poll the snapshot is empty, and says so.
+	msg, err = h.mcpGetRealtimeTrip(ctx, mcpGetRealtimeTripArgs{TripShortName: "IC1234"})
+	require.NoError(t, err)
+	assert.NotContains(t, mcpJSON(t, msg), "fetchedAt",
+		"no poll yet: fetched_at stays empty")
 }
 
 // TestMCPTools_RequireAppAccess rejects a caller without trains access.

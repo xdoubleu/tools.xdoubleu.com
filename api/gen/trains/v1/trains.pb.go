@@ -1634,6 +1634,353 @@ func (*DeleteSavedCommuteResponse) Descriptor() ([]byte, []int) {
 	return file_trains_v1_trains_proto_rawDescGZIP(), []int{25}
 }
 
+// GetRealtimeTripRequest names a train running today (Europe/Brussels).
+type GetRealtimeTripRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty returns only the snapshot summary.
+	TripShortName string `protobuf:"bytes,1,opt,name=trip_short_name,json=tripShortName,proto3" json:"trip_short_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRealtimeTripRequest) Reset() {
+	*x = GetRealtimeTripRequest{}
+	mi := &file_trains_v1_trains_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRealtimeTripRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRealtimeTripRequest) ProtoMessage() {}
+
+func (x *GetRealtimeTripRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRealtimeTripRequest.ProtoReflect.Descriptor instead.
+func (*GetRealtimeTripRequest) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *GetRealtimeTripRequest) GetTripShortName() string {
+	if x != nil {
+		return x.TripShortName
+	}
+	return ""
+}
+
+// RealtimeStopUpdate is one stop_time_update exactly as decoded from GTFS-RT.
+type RealtimeStopUpdate struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	StopId string                 `protobuf:"bytes,1,opt,name=stop_id,json=stopId,proto3" json:"stop_id,omitempty"`
+	// 0 when the feed omits it.
+	StopSequence int32 `protobuf:"varint,2,opt,name=stop_sequence,json=stopSequence,proto3" json:"stop_sequence,omitempty"`
+	// Same values as StopCall.status.
+	Status string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	// Seconds, positive = late; absent when unpublished.
+	ArrivalDelay   *int32 `protobuf:"varint,4,opt,name=arrival_delay,json=arrivalDelay,proto3,oneof" json:"arrival_delay,omitempty"`
+	DepartureDelay *int32 `protobuf:"varint,5,opt,name=departure_delay,json=departureDelay,proto3,oneof" json:"departure_delay,omitempty"`
+	// RFC3339 absolute times, when published.
+	ArrivalTime   string `protobuf:"bytes,6,opt,name=arrival_time,json=arrivalTime,proto3" json:"arrival_time,omitempty"`
+	DepartureTime string `protobuf:"bytes,7,opt,name=departure_time,json=departureTime,proto3" json:"departure_time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RealtimeStopUpdate) Reset() {
+	*x = RealtimeStopUpdate{}
+	mi := &file_trains_v1_trains_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RealtimeStopUpdate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RealtimeStopUpdate) ProtoMessage() {}
+
+func (x *RealtimeStopUpdate) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RealtimeStopUpdate.ProtoReflect.Descriptor instead.
+func (*RealtimeStopUpdate) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *RealtimeStopUpdate) GetStopId() string {
+	if x != nil {
+		return x.StopId
+	}
+	return ""
+}
+
+func (x *RealtimeStopUpdate) GetStopSequence() int32 {
+	if x != nil {
+		return x.StopSequence
+	}
+	return 0
+}
+
+func (x *RealtimeStopUpdate) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *RealtimeStopUpdate) GetArrivalDelay() int32 {
+	if x != nil && x.ArrivalDelay != nil {
+		return *x.ArrivalDelay
+	}
+	return 0
+}
+
+func (x *RealtimeStopUpdate) GetDepartureDelay() int32 {
+	if x != nil && x.DepartureDelay != nil {
+		return *x.DepartureDelay
+	}
+	return 0
+}
+
+func (x *RealtimeStopUpdate) GetArrivalTime() string {
+	if x != nil {
+		return x.ArrivalTime
+	}
+	return ""
+}
+
+func (x *RealtimeStopUpdate) GetDepartureTime() string {
+	if x != nil {
+		return x.DepartureTime
+	}
+	return ""
+}
+
+// PlannedStop is one static stop_time of the trip journey detail resolves.
+type PlannedStop struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StopId        string                 `protobuf:"bytes,1,opt,name=stop_id,json=stopId,proto3" json:"stop_id,omitempty"`
+	StopSequence  int32                  `protobuf:"varint,2,opt,name=stop_sequence,json=stopSequence,proto3" json:"stop_sequence,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlannedStop) Reset() {
+	*x = PlannedStop{}
+	mi := &file_trains_v1_trains_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlannedStop) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlannedStop) ProtoMessage() {}
+
+func (x *PlannedStop) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlannedStop.ProtoReflect.Descriptor instead.
+func (*PlannedStop) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *PlannedStop) GetStopId() string {
+	if x != nil {
+		return x.StopId
+	}
+	return ""
+}
+
+func (x *PlannedStop) GetStopSequence() int32 {
+	if x != nil {
+		return x.StopSequence
+	}
+	return 0
+}
+
+// GetRealtimeTripResponse is a diagnostic view of the in-memory realtime
+// snapshot, which is replaced every poll and never persisted.
+type GetRealtimeTripResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// RFC3339 time of the last successful poll; empty before the first.
+	FetchedAt string `protobuf:"bytes,1,opt,name=fetched_at,json=fetchedAt,proto3" json:"fetched_at,omitempty"`
+	TripCount int32  `protobuf:"varint,2,opt,name=trip_count,json=tripCount,proto3" json:"trip_count,omitempty"`
+	// Realtime trips with no matching static trip.
+	UnresolvedTripCount int32 `protobuf:"varint,3,opt,name=unresolved_trip_count,json=unresolvedTripCount,proto3" json:"unresolved_trip_count,omitempty"`
+	// Realtime trips dropped because another one had the same short name and
+	// service date.
+	DuplicateTripCount int32 `protobuf:"varint,4,opt,name=duplicate_trip_count,json=duplicateTripCount,proto3" json:"duplicate_trip_count,omitempty"`
+	AlertCount         int32 `protobuf:"varint,5,opt,name=alert_count,json=alertCount,proto3" json:"alert_count,omitempty"`
+	// Stop updates across the whole snapshot, counted by status.
+	StopUpdateStatuses map[string]int32 `protobuf:"bytes,6,rep,name=stop_update_statuses,json=stopUpdateStatuses,proto3" json:"stop_update_statuses,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	// Whether trip_short_name is in today's snapshot.
+	Found bool `protobuf:"varint,7,opt,name=found,proto3" json:"found,omitempty"`
+	// The realtime trip_id, for diagnostics only.
+	TripId    string `protobuf:"bytes,8,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
+	StartDate string `protobuf:"bytes,9,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	// Trip-level status: "on_time" or "cancelled".
+	Status      string                `protobuf:"bytes,10,opt,name=status,proto3" json:"status,omitempty"`
+	StopUpdates []*RealtimeStopUpdate `protobuf:"bytes,11,rep,name=stop_updates,json=stopUpdates,proto3" json:"stop_updates,omitempty"`
+	// The static trip journey detail overlays it on; empty when none runs today.
+	PlannedTripId string         `protobuf:"bytes,12,opt,name=planned_trip_id,json=plannedTripId,proto3" json:"planned_trip_id,omitempty"`
+	PlannedStops  []*PlannedStop `protobuf:"bytes,13,rep,name=planned_stops,json=plannedStops,proto3" json:"planned_stops,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRealtimeTripResponse) Reset() {
+	*x = GetRealtimeTripResponse{}
+	mi := &file_trains_v1_trains_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRealtimeTripResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRealtimeTripResponse) ProtoMessage() {}
+
+func (x *GetRealtimeTripResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRealtimeTripResponse.ProtoReflect.Descriptor instead.
+func (*GetRealtimeTripResponse) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *GetRealtimeTripResponse) GetFetchedAt() string {
+	if x != nil {
+		return x.FetchedAt
+	}
+	return ""
+}
+
+func (x *GetRealtimeTripResponse) GetTripCount() int32 {
+	if x != nil {
+		return x.TripCount
+	}
+	return 0
+}
+
+func (x *GetRealtimeTripResponse) GetUnresolvedTripCount() int32 {
+	if x != nil {
+		return x.UnresolvedTripCount
+	}
+	return 0
+}
+
+func (x *GetRealtimeTripResponse) GetDuplicateTripCount() int32 {
+	if x != nil {
+		return x.DuplicateTripCount
+	}
+	return 0
+}
+
+func (x *GetRealtimeTripResponse) GetAlertCount() int32 {
+	if x != nil {
+		return x.AlertCount
+	}
+	return 0
+}
+
+func (x *GetRealtimeTripResponse) GetStopUpdateStatuses() map[string]int32 {
+	if x != nil {
+		return x.StopUpdateStatuses
+	}
+	return nil
+}
+
+func (x *GetRealtimeTripResponse) GetFound() bool {
+	if x != nil {
+		return x.Found
+	}
+	return false
+}
+
+func (x *GetRealtimeTripResponse) GetTripId() string {
+	if x != nil {
+		return x.TripId
+	}
+	return ""
+}
+
+func (x *GetRealtimeTripResponse) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
+	}
+	return ""
+}
+
+func (x *GetRealtimeTripResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *GetRealtimeTripResponse) GetStopUpdates() []*RealtimeStopUpdate {
+	if x != nil {
+		return x.StopUpdates
+	}
+	return nil
+}
+
+func (x *GetRealtimeTripResponse) GetPlannedTripId() string {
+	if x != nil {
+		return x.PlannedTripId
+	}
+	return ""
+}
+
+func (x *GetRealtimeTripResponse) GetPlannedStops() []*PlannedStop {
+	if x != nil {
+		return x.PlannedStops
+	}
+	return nil
+}
+
 var File_trains_v1_trains_proto protoreflect.FileDescriptor
 
 const file_trains_v1_trains_proto_rawDesc = "" +
@@ -1751,12 +2098,50 @@ const file_trains_v1_trains_proto_rawDesc = "" +
 	"\rsaved_commute\x18\x01 \x01(\v2\x17.trains.v1.SavedCommuteR\fsavedCommute\"+\n" +
 	"\x19DeleteSavedCommuteRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x1c\n" +
-	"\x1aDeleteSavedCommuteResponse2\xf0\x05\n" +
+	"\x1aDeleteSavedCommuteResponse\"@\n" +
+	"\x16GetRealtimeTripRequest\x12&\n" +
+	"\x0ftrip_short_name\x18\x01 \x01(\tR\rtripShortName\"\xb2\x02\n" +
+	"\x12RealtimeStopUpdate\x12\x17\n" +
+	"\astop_id\x18\x01 \x01(\tR\x06stopId\x12#\n" +
+	"\rstop_sequence\x18\x02 \x01(\x05R\fstopSequence\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12(\n" +
+	"\rarrival_delay\x18\x04 \x01(\x05H\x00R\farrivalDelay\x88\x01\x01\x12,\n" +
+	"\x0fdeparture_delay\x18\x05 \x01(\x05H\x01R\x0edepartureDelay\x88\x01\x01\x12!\n" +
+	"\farrival_time\x18\x06 \x01(\tR\varrivalTime\x12%\n" +
+	"\x0edeparture_time\x18\a \x01(\tR\rdepartureTimeB\x10\n" +
+	"\x0e_arrival_delayB\x12\n" +
+	"\x10_departure_delay\"K\n" +
+	"\vPlannedStop\x12\x17\n" +
+	"\astop_id\x18\x01 \x01(\tR\x06stopId\x12#\n" +
+	"\rstop_sequence\x18\x02 \x01(\x05R\fstopSequence\"\xa0\x05\n" +
+	"\x17GetRealtimeTripResponse\x12\x1d\n" +
+	"\n" +
+	"fetched_at\x18\x01 \x01(\tR\tfetchedAt\x12\x1d\n" +
+	"\n" +
+	"trip_count\x18\x02 \x01(\x05R\ttripCount\x122\n" +
+	"\x15unresolved_trip_count\x18\x03 \x01(\x05R\x13unresolvedTripCount\x120\n" +
+	"\x14duplicate_trip_count\x18\x04 \x01(\x05R\x12duplicateTripCount\x12\x1f\n" +
+	"\valert_count\x18\x05 \x01(\x05R\n" +
+	"alertCount\x12l\n" +
+	"\x14stop_update_statuses\x18\x06 \x03(\v2:.trains.v1.GetRealtimeTripResponse.StopUpdateStatusesEntryR\x12stopUpdateStatuses\x12\x14\n" +
+	"\x05found\x18\a \x01(\bR\x05found\x12\x17\n" +
+	"\atrip_id\x18\b \x01(\tR\x06tripId\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\t \x01(\tR\tstartDate\x12\x16\n" +
+	"\x06status\x18\n" +
+	" \x01(\tR\x06status\x12@\n" +
+	"\fstop_updates\x18\v \x03(\v2\x1d.trains.v1.RealtimeStopUpdateR\vstopUpdates\x12&\n" +
+	"\x0fplanned_trip_id\x18\f \x01(\tR\rplannedTripId\x12;\n" +
+	"\rplanned_stops\x18\r \x03(\v2\x16.trains.v1.PlannedStopR\fplannedStops\x1aE\n" +
+	"\x17StopUpdateStatusesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x012\xca\x06\n" +
 	"\fTrainService\x12U\n" +
 	"\x0eSearchJourneys\x12 .trains.v1.SearchJourneysRequest\x1a!.trains.v1.SearchJourneysResponse\x12U\n" +
 	"\x0eSearchStations\x12 .trains.v1.SearchStationsRequest\x1a!.trains.v1.SearchStationsResponse\x12L\n" +
 	"\vGetFeedInfo\x12\x1d.trains.v1.GetFeedInfoRequest\x1a\x1e.trains.v1.GetFeedInfoResponse\x12[\n" +
-	"\x10GetJourneyDetail\x12\".trains.v1.GetJourneyDetailRequest\x1a#.trains.v1.GetJourneyDetailResponse\x12^\n" +
+	"\x10GetJourneyDetail\x12\".trains.v1.GetJourneyDetailRequest\x1a#.trains.v1.GetJourneyDetailResponse\x12X\n" +
+	"\x0fGetRealtimeTrip\x12!.trains.v1.GetRealtimeTripRequest\x1a\".trains.v1.GetRealtimeTripResponse\x12^\n" +
 	"\x11ListSavedCommutes\x12#.trains.v1.ListSavedCommutesRequest\x1a$.trains.v1.ListSavedCommutesResponse\x12a\n" +
 	"\x12CreateSavedCommute\x12$.trains.v1.CreateSavedCommuteRequest\x1a%.trains.v1.CreateSavedCommuteResponse\x12a\n" +
 	"\x12UpdateSavedCommute\x12$.trains.v1.UpdateSavedCommuteRequest\x1a%.trains.v1.UpdateSavedCommuteResponse\x12a\n" +
@@ -1774,7 +2159,7 @@ func file_trains_v1_trains_proto_rawDescGZIP() []byte {
 	return file_trains_v1_trains_proto_rawDescData
 }
 
-var file_trains_v1_trains_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_trains_v1_trains_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_trains_v1_trains_proto_goTypes = []any{
 	(*Leg)(nil),                        // 0: trains.v1.Leg
 	(*Journey)(nil),                    // 1: trains.v1.Journey
@@ -1802,6 +2187,11 @@ var file_trains_v1_trains_proto_goTypes = []any{
 	(*UpdateSavedCommuteResponse)(nil), // 23: trains.v1.UpdateSavedCommuteResponse
 	(*DeleteSavedCommuteRequest)(nil),  // 24: trains.v1.DeleteSavedCommuteRequest
 	(*DeleteSavedCommuteResponse)(nil), // 25: trains.v1.DeleteSavedCommuteResponse
+	(*GetRealtimeTripRequest)(nil),     // 26: trains.v1.GetRealtimeTripRequest
+	(*RealtimeStopUpdate)(nil),         // 27: trains.v1.RealtimeStopUpdate
+	(*PlannedStop)(nil),                // 28: trains.v1.PlannedStop
+	(*GetRealtimeTripResponse)(nil),    // 29: trains.v1.GetRealtimeTripResponse
+	nil,                                // 30: trains.v1.GetRealtimeTripResponse.StopUpdateStatusesEntry
 }
 var file_trains_v1_trains_proto_depIdxs = []int32{
 	0,  // 0: trains.v1.Journey.legs:type_name -> trains.v1.Leg
@@ -1819,27 +2209,32 @@ var file_trains_v1_trains_proto_depIdxs = []int32{
 	17, // 12: trains.v1.ListSavedCommutesResponse.saved_commutes:type_name -> trains.v1.SavedCommute
 	17, // 13: trains.v1.CreateSavedCommuteResponse.saved_commute:type_name -> trains.v1.SavedCommute
 	17, // 14: trains.v1.UpdateSavedCommuteResponse.saved_commute:type_name -> trains.v1.SavedCommute
-	9,  // 15: trains.v1.TrainService.SearchJourneys:input_type -> trains.v1.SearchJourneysRequest
-	12, // 16: trains.v1.TrainService.SearchStations:input_type -> trains.v1.SearchStationsRequest
-	14, // 17: trains.v1.TrainService.GetFeedInfo:input_type -> trains.v1.GetFeedInfoRequest
-	7,  // 18: trains.v1.TrainService.GetJourneyDetail:input_type -> trains.v1.GetJourneyDetailRequest
-	18, // 19: trains.v1.TrainService.ListSavedCommutes:input_type -> trains.v1.ListSavedCommutesRequest
-	20, // 20: trains.v1.TrainService.CreateSavedCommute:input_type -> trains.v1.CreateSavedCommuteRequest
-	22, // 21: trains.v1.TrainService.UpdateSavedCommute:input_type -> trains.v1.UpdateSavedCommuteRequest
-	24, // 22: trains.v1.TrainService.DeleteSavedCommute:input_type -> trains.v1.DeleteSavedCommuteRequest
-	10, // 23: trains.v1.TrainService.SearchJourneys:output_type -> trains.v1.SearchJourneysResponse
-	13, // 24: trains.v1.TrainService.SearchStations:output_type -> trains.v1.SearchStationsResponse
-	15, // 25: trains.v1.TrainService.GetFeedInfo:output_type -> trains.v1.GetFeedInfoResponse
-	8,  // 26: trains.v1.TrainService.GetJourneyDetail:output_type -> trains.v1.GetJourneyDetailResponse
-	19, // 27: trains.v1.TrainService.ListSavedCommutes:output_type -> trains.v1.ListSavedCommutesResponse
-	21, // 28: trains.v1.TrainService.CreateSavedCommute:output_type -> trains.v1.CreateSavedCommuteResponse
-	23, // 29: trains.v1.TrainService.UpdateSavedCommute:output_type -> trains.v1.UpdateSavedCommuteResponse
-	25, // 30: trains.v1.TrainService.DeleteSavedCommute:output_type -> trains.v1.DeleteSavedCommuteResponse
-	23, // [23:31] is the sub-list for method output_type
-	15, // [15:23] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	30, // 15: trains.v1.GetRealtimeTripResponse.stop_update_statuses:type_name -> trains.v1.GetRealtimeTripResponse.StopUpdateStatusesEntry
+	27, // 16: trains.v1.GetRealtimeTripResponse.stop_updates:type_name -> trains.v1.RealtimeStopUpdate
+	28, // 17: trains.v1.GetRealtimeTripResponse.planned_stops:type_name -> trains.v1.PlannedStop
+	9,  // 18: trains.v1.TrainService.SearchJourneys:input_type -> trains.v1.SearchJourneysRequest
+	12, // 19: trains.v1.TrainService.SearchStations:input_type -> trains.v1.SearchStationsRequest
+	14, // 20: trains.v1.TrainService.GetFeedInfo:input_type -> trains.v1.GetFeedInfoRequest
+	7,  // 21: trains.v1.TrainService.GetJourneyDetail:input_type -> trains.v1.GetJourneyDetailRequest
+	26, // 22: trains.v1.TrainService.GetRealtimeTrip:input_type -> trains.v1.GetRealtimeTripRequest
+	18, // 23: trains.v1.TrainService.ListSavedCommutes:input_type -> trains.v1.ListSavedCommutesRequest
+	20, // 24: trains.v1.TrainService.CreateSavedCommute:input_type -> trains.v1.CreateSavedCommuteRequest
+	22, // 25: trains.v1.TrainService.UpdateSavedCommute:input_type -> trains.v1.UpdateSavedCommuteRequest
+	24, // 26: trains.v1.TrainService.DeleteSavedCommute:input_type -> trains.v1.DeleteSavedCommuteRequest
+	10, // 27: trains.v1.TrainService.SearchJourneys:output_type -> trains.v1.SearchJourneysResponse
+	13, // 28: trains.v1.TrainService.SearchStations:output_type -> trains.v1.SearchStationsResponse
+	15, // 29: trains.v1.TrainService.GetFeedInfo:output_type -> trains.v1.GetFeedInfoResponse
+	8,  // 30: trains.v1.TrainService.GetJourneyDetail:output_type -> trains.v1.GetJourneyDetailResponse
+	29, // 31: trains.v1.TrainService.GetRealtimeTrip:output_type -> trains.v1.GetRealtimeTripResponse
+	19, // 32: trains.v1.TrainService.ListSavedCommutes:output_type -> trains.v1.ListSavedCommutesResponse
+	21, // 33: trains.v1.TrainService.CreateSavedCommute:output_type -> trains.v1.CreateSavedCommuteResponse
+	23, // 34: trains.v1.TrainService.UpdateSavedCommute:output_type -> trains.v1.UpdateSavedCommuteResponse
+	25, // 35: trains.v1.TrainService.DeleteSavedCommute:output_type -> trains.v1.DeleteSavedCommuteResponse
+	27, // [27:36] is the sub-list for method output_type
+	18, // [18:27] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_trains_v1_trains_proto_init() }
@@ -1847,13 +2242,14 @@ func file_trains_v1_trains_proto_init() {
 	if File_trains_v1_trains_proto != nil {
 		return
 	}
+	file_trains_v1_trains_proto_msgTypes[27].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_trains_v1_trains_proto_rawDesc), len(file_trains_v1_trains_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   26,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

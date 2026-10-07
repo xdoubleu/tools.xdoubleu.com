@@ -59,6 +59,8 @@ func decodeStopCall(stu *gtfs.TripUpdate_StopTimeUpdate) models.StopCall {
 		State:          models.DelayUnknown,
 		ArrivalDelay:   nil,
 		DepartureDelay: nil,
+		ArrivalTime:    nil,
+		DepartureTime:  nil,
 	}
 
 	switch stu.GetScheduleRelationship() {
@@ -74,16 +76,10 @@ func decodeStopCall(stu *gtfs.TripUpdate_StopTimeUpdate) models.StopCall {
 
 	call.ArrivalDelay = stopEventDelay(stu.GetArrival())
 	call.DepartureDelay = stopEventDelay(stu.GetDeparture())
+	call.ArrivalTime = stopEventTime(stu.GetArrival())
+	call.DepartureTime = stopEventTime(stu.GetDeparture())
 
-	switch {
-	case call.ArrivalDelay == nil && call.DepartureDelay == nil:
-		call.State = models.DelayUnknown
-	case (call.ArrivalDelay != nil && *call.ArrivalDelay != 0) ||
-		(call.DepartureDelay != nil && *call.DepartureDelay != 0):
-		call.State = models.DelayDelayed
-	default:
-		call.State = models.DelayOnTime
-	}
+	call.State = stateForDelays(call.ArrivalDelay, call.DepartureDelay)
 	return call
 }
 
@@ -93,6 +89,14 @@ func stopEventDelay(ev *gtfs.TripUpdate_StopTimeEvent) *int {
 	}
 	delay := int(ev.GetDelay())
 	return &delay
+}
+
+func stopEventTime(ev *gtfs.TripUpdate_StopTimeEvent) *time.Time {
+	if ev == nil || ev.Time == nil {
+		return nil
+	}
+	t := time.Unix(ev.GetTime(), 0).UTC()
+	return &t
 }
 
 // decodeAlerts parses a GTFS-RT alert FeedMessage into the domain model.

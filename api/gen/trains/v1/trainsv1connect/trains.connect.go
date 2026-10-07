@@ -45,6 +45,9 @@ const (
 	// TrainServiceGetJourneyDetailProcedure is the fully-qualified name of the TrainService's
 	// GetJourneyDetail RPC.
 	TrainServiceGetJourneyDetailProcedure = "/trains.v1.TrainService/GetJourneyDetail"
+	// TrainServiceGetRealtimeTripProcedure is the fully-qualified name of the TrainService's
+	// GetRealtimeTrip RPC.
+	TrainServiceGetRealtimeTripProcedure = "/trains.v1.TrainService/GetRealtimeTrip"
 	// TrainServiceListSavedCommutesProcedure is the fully-qualified name of the TrainService's
 	// ListSavedCommutes RPC.
 	TrainServiceListSavedCommutesProcedure = "/trains.v1.TrainService/ListSavedCommutes"
@@ -67,6 +70,8 @@ type TrainServiceClient interface {
 	// GetJourneyDetail fetches a searched journey's live state and ensures its
 	// /trains/api/journeys/live websocket topic exists.
 	GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error)
+	// GetRealtimeTrip exposes the raw realtime snapshot for one train.
+	GetRealtimeTrip(context.Context, *connect.Request[v1.GetRealtimeTripRequest]) (*connect.Response[v1.GetRealtimeTripResponse], error)
 	// Saved-commute CRUD, scoped to the signed-in user.
 	ListSavedCommutes(context.Context, *connect.Request[v1.ListSavedCommutesRequest]) (*connect.Response[v1.ListSavedCommutesResponse], error)
 	CreateSavedCommute(context.Context, *connect.Request[v1.CreateSavedCommuteRequest]) (*connect.Response[v1.CreateSavedCommuteResponse], error)
@@ -109,6 +114,12 @@ func NewTrainServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(trainServiceMethods.ByName("GetJourneyDetail")),
 			connect.WithClientOptions(opts...),
 		),
+		getRealtimeTrip: connect.NewClient[v1.GetRealtimeTripRequest, v1.GetRealtimeTripResponse](
+			httpClient,
+			baseURL+TrainServiceGetRealtimeTripProcedure,
+			connect.WithSchema(trainServiceMethods.ByName("GetRealtimeTrip")),
+			connect.WithClientOptions(opts...),
+		),
 		listSavedCommutes: connect.NewClient[v1.ListSavedCommutesRequest, v1.ListSavedCommutesResponse](
 			httpClient,
 			baseURL+TrainServiceListSavedCommutesProcedure,
@@ -142,6 +153,7 @@ type trainServiceClient struct {
 	searchStations     *connect.Client[v1.SearchStationsRequest, v1.SearchStationsResponse]
 	getFeedInfo        *connect.Client[v1.GetFeedInfoRequest, v1.GetFeedInfoResponse]
 	getJourneyDetail   *connect.Client[v1.GetJourneyDetailRequest, v1.GetJourneyDetailResponse]
+	getRealtimeTrip    *connect.Client[v1.GetRealtimeTripRequest, v1.GetRealtimeTripResponse]
 	listSavedCommutes  *connect.Client[v1.ListSavedCommutesRequest, v1.ListSavedCommutesResponse]
 	createSavedCommute *connect.Client[v1.CreateSavedCommuteRequest, v1.CreateSavedCommuteResponse]
 	updateSavedCommute *connect.Client[v1.UpdateSavedCommuteRequest, v1.UpdateSavedCommuteResponse]
@@ -166,6 +178,11 @@ func (c *trainServiceClient) GetFeedInfo(ctx context.Context, req *connect.Reque
 // GetJourneyDetail calls trains.v1.TrainService.GetJourneyDetail.
 func (c *trainServiceClient) GetJourneyDetail(ctx context.Context, req *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error) {
 	return c.getJourneyDetail.CallUnary(ctx, req)
+}
+
+// GetRealtimeTrip calls trains.v1.TrainService.GetRealtimeTrip.
+func (c *trainServiceClient) GetRealtimeTrip(ctx context.Context, req *connect.Request[v1.GetRealtimeTripRequest]) (*connect.Response[v1.GetRealtimeTripResponse], error) {
+	return c.getRealtimeTrip.CallUnary(ctx, req)
 }
 
 // ListSavedCommutes calls trains.v1.TrainService.ListSavedCommutes.
@@ -196,6 +213,8 @@ type TrainServiceHandler interface {
 	// GetJourneyDetail fetches a searched journey's live state and ensures its
 	// /trains/api/journeys/live websocket topic exists.
 	GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error)
+	// GetRealtimeTrip exposes the raw realtime snapshot for one train.
+	GetRealtimeTrip(context.Context, *connect.Request[v1.GetRealtimeTripRequest]) (*connect.Response[v1.GetRealtimeTripResponse], error)
 	// Saved-commute CRUD, scoped to the signed-in user.
 	ListSavedCommutes(context.Context, *connect.Request[v1.ListSavedCommutesRequest]) (*connect.Response[v1.ListSavedCommutesResponse], error)
 	CreateSavedCommute(context.Context, *connect.Request[v1.CreateSavedCommuteRequest]) (*connect.Response[v1.CreateSavedCommuteResponse], error)
@@ -234,6 +253,12 @@ func NewTrainServiceHandler(svc TrainServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(trainServiceMethods.ByName("GetJourneyDetail")),
 		connect.WithHandlerOptions(opts...),
 	)
+	trainServiceGetRealtimeTripHandler := connect.NewUnaryHandler(
+		TrainServiceGetRealtimeTripProcedure,
+		svc.GetRealtimeTrip,
+		connect.WithSchema(trainServiceMethods.ByName("GetRealtimeTrip")),
+		connect.WithHandlerOptions(opts...),
+	)
 	trainServiceListSavedCommutesHandler := connect.NewUnaryHandler(
 		TrainServiceListSavedCommutesProcedure,
 		svc.ListSavedCommutes,
@@ -268,6 +293,8 @@ func NewTrainServiceHandler(svc TrainServiceHandler, opts ...connect.HandlerOpti
 			trainServiceGetFeedInfoHandler.ServeHTTP(w, r)
 		case TrainServiceGetJourneyDetailProcedure:
 			trainServiceGetJourneyDetailHandler.ServeHTTP(w, r)
+		case TrainServiceGetRealtimeTripProcedure:
+			trainServiceGetRealtimeTripHandler.ServeHTTP(w, r)
 		case TrainServiceListSavedCommutesProcedure:
 			trainServiceListSavedCommutesHandler.ServeHTTP(w, r)
 		case TrainServiceCreateSavedCommuteProcedure:
@@ -299,6 +326,10 @@ func (UnimplementedTrainServiceHandler) GetFeedInfo(context.Context, *connect.Re
 
 func (UnimplementedTrainServiceHandler) GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.GetJourneyDetail is not implemented"))
+}
+
+func (UnimplementedTrainServiceHandler) GetRealtimeTrip(context.Context, *connect.Request[v1.GetRealtimeTripRequest]) (*connect.Response[v1.GetRealtimeTripResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.GetRealtimeTrip is not implemented"))
 }
 
 func (UnimplementedTrainServiceHandler) ListSavedCommutes(context.Context, *connect.Request[v1.ListSavedCommutesRequest]) (*connect.Response[v1.ListSavedCommutesResponse], error) {
