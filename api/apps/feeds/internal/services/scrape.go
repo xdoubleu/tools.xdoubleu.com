@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/net/html"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
@@ -573,6 +574,7 @@ func (s *FeedService) ingestDiscoveredLinks(
 ) int {
 	guids := make([]string, 0, len(links))
 	byGUID := make(map[string]discoveredLink, len(links))
+	seenTitles := make(map[string]bool, len(links))
 	for _, link := range links {
 		canonical, err := canonicalURL(link.URL)
 		if err != nil {
@@ -580,6 +582,12 @@ func (s *FeedService) ingestDiscoveredLinks(
 		}
 		if _, exists := byGUID[canonical]; exists {
 			continue
+		}
+		if key := titleKey(link.Title); key != "" {
+			if seenTitles[key] {
+				continue
+			}
+			seenTitles[key] = true
 		}
 		guids = append(guids, canonical)
 		byGUID[canonical] = link
@@ -594,6 +602,7 @@ func (s *FeedService) ingestDiscoveredLinks(
 	s.backfillCategories(ctx, feed.ID, guids, newGUIDs, func(guid string) []string {
 		return byGUID[guid].Categories
 	})
+	newGUIDs = s.dropKnownTitles(ctx, feed.ID, newGUIDs, byGUID)
 	rules := s.pollFilterRules(ctx, feed, newGUIDs)
 
 	ingested := 0
@@ -609,6 +618,41 @@ func (s *FeedService) ingestDiscoveredLinks(
 		}
 	}
 	return ingested
+}
+
+// titleKey normalizes a post title for duplicate detection; sites republish
+// one post under several URLs (e.g. /blog/x and /resources/articles/x).
+func titleKey(title string) string {
+	return strings.ToLower(strings.TrimSpace(title))
+}
+
+// dropKnownTitles removes guids whose anchor title already belongs to a stored
+// item of the feed under a different URL. On lookup failure it keeps them.
+func (s *FeedService) dropKnownTitles(
+	ctx context.Context,
+	feedID uuid.UUID,
+	guids []string,
+	byGUID map[string]discoveredLink,
+) []string {
+	keys := make([]string, 0, len(guids))
+	for _, guid := range guids {
+		if key := titleKey(byGUID[guid].Title); key != "" {
+			keys = append(keys, key)
+		}
+	}
+	known, err := s.items.ExistingTitles(ctx, feedID, keys)
+	if err != nil {
+		s.logger.WarnContext(ctx, "scrape feed title filter failed",
+			"feedID", feedID, "error", err)
+		return guids
+	}
+	kept := make([]string, 0, len(guids))
+	for _, guid := range guids {
+		if !known[titleKey(byGUID[guid].Title)] {
+			kept = append(kept, guid)
+		}
+	}
+	return kept
 }
 
 // ingestDiscoveredLink fetches and extracts one post, titled by its anchor

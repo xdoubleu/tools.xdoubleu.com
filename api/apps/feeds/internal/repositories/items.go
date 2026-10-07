@@ -119,6 +119,40 @@ func (repo *ItemsRepository) FilterNewGUIDs(
 	return out, nil
 }
 
+// ExistingTitles returns the lowercased, trimmed titles from titles that a
+// feeds.items row in the feed already has. Callers pass normalized titles.
+func (repo *ItemsRepository) ExistingTitles(
+	ctx context.Context,
+	feedID uuid.UUID,
+	titles []string,
+) (map[string]bool, error) {
+	out := map[string]bool{}
+	if len(titles) == 0 {
+		return out, nil
+	}
+	rows, err := repo.db.Query(ctx, `
+		SELECT DISTINCT lower(btrim(title))
+		FROM feeds.items
+		WHERE feed_id = $1 AND lower(btrim(title)) = ANY($2::text[])
+	`, feedID, titles)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var t string
+		if scanErr := rows.Scan(&t); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		out[t] = true
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return out, nil
+}
+
 // Insert stores an item, or an error row with ingest_error set. A duplicate
 // (feed_id, guid) re-opens the existing item instead: polling pre-filters
 // seen guids, so this only happens when an email is resent on purpose.

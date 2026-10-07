@@ -554,6 +554,59 @@ func TestCreateFeed_Scrape_DedupesByCanonicalURL(t *testing.T) {
 	assert.Equal(t, 1, count, "the two utm-tagged hrefs should dedupe to one item")
 }
 
+func TestScrape_DedupesSameTitleUnderDifferentURLs(t *testing.T) {
+	base := uniqueBlogBase()
+	indexURL := base + "/blog-title-dup"
+	const title = "One post republished under two paths"
+	blogURL := base + "/blog/one-post"
+	resURL := base + "/resources/articles/one-post"
+	mockWebFetch.SetHTML(blogURL, articlePageHTML("One Post"))
+	mockWebFetch.SetHTML(resURL, articlePageHTML("One Post"))
+	mockWebFetch.SetHTML(indexURL, blogIndexHTMLTwoLinks(
+		blogURL, title, resURL, title,
+	))
+
+	client := newFeedsClient(t)
+	created, err := client.CreateFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.CreateFeedRequest{
+			Url:  indexURL,
+			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
+		}),
+	)
+	require.NoError(t, err)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
+
+	countItems := func() int {
+		items, listErr := client.ListFeedItems(
+			context.Background(),
+			connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		)
+		require.NoError(t, listErr)
+		n := 0
+		for _, item := range items.Msg.Items {
+			if item.FeedId == created.Msg.Feed.Id {
+				n++
+			}
+		}
+		return n
+	}
+	assert.Equal(t, 1, countItems(), "same title in one batch dedupes")
+
+	// A later poll that only exposes the other URL must not re-add the post.
+	otherURL := base + "/archive/one-post"
+	mockWebFetch.SetHTML(otherURL, articlePageHTML("One Post"))
+	mockWebFetch.SetHTML(indexURL, blogIndexHTMLTwoLinks(
+		blogURL, title, otherURL, "  "+strings.ToUpper(title)+" ",
+	))
+	_, err = client.RefreshFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, 1, countItems(), "known title under a new URL is skipped")
+}
+
 func TestCreateFeed_Scrape_CapsItemsPerPoll(t *testing.T) {
 	base := uniqueBlogBase()
 	indexURL := base + "/blog-cap"
