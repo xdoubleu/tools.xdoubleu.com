@@ -92,7 +92,7 @@ export default function MovieTitleClient({ id }: { id: string }) {
           <TitleStatus entry={entry} seasons={data.seasons} />
           <MovieRating entry={entry} />
           {entry.mediaType === 'series' ? (
-            <SeasonChecklist entryId={entry.id} seasons={data.seasons} />
+            <SeasonChecklist entryId={entry.id} status={entry.status} seasons={data.seasons} />
           ) : (
             <MovieWatches entry={entry} />
           )}

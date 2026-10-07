@@ -135,7 +135,9 @@ type BacklogEntry struct {
 	AddedAt   string   `protobuf:"bytes,13,opt,name=added_at,json=addedAt,proto3" json:"added_at,omitempty"`
 	UpdatedAt string   `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// 1-5 stars; unset when unrated.
-	Rating        *int32 `protobuf:"varint,15,opt,name=rating,proto3,oneof" json:"rating,omitempty"`
+	Rating *int32 `protobuf:"varint,15,opt,name=rating,proto3,oneof" json:"rating,omitempty"`
+	// A watched series with an aired season not yet ticked.
+	HasNewSeason  bool `protobuf:"varint,16,opt,name=has_new_season,json=hasNewSeason,proto3" json:"has_new_season,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -273,6 +275,13 @@ func (x *BacklogEntry) GetRating() int32 {
 		return *x.Rating
 	}
 	return 0
+}
+
+func (x *BacklogEntry) GetHasNewSeason() bool {
+	if x != nil {
+		return x.HasNewSeason
+	}
+	return false
 }
 
 type SearchTitlesRequest struct {
@@ -769,9 +778,11 @@ type ListBacklogRequest struct {
 	MediaType string `protobuf:"bytes,2,opt,name=media_type,json=mediaType,proto3" json:"media_type,omitempty"`
 	// "added" (default, newest first), "title", "release" (newest first) or
 	// "rating" (highest first, unrated last).
-	Sort          string `protobuf:"bytes,3,opt,name=sort,proto3" json:"sort,omitempty"`
-	Limit         int32  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
-	Offset        int32  `protobuf:"varint,5,opt,name=offset,proto3" json:"offset,omitempty"`
+	Sort   string `protobuf:"bytes,3,opt,name=sort,proto3" json:"sort,omitempty"`
+	Limit  int32  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset int32  `protobuf:"varint,5,opt,name=offset,proto3" json:"offset,omitempty"`
+	// Only entries with has_new_season.
+	NewSeason     bool `protobuf:"varint,6,opt,name=new_season,json=newSeason,proto3" json:"new_season,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -839,6 +850,13 @@ func (x *ListBacklogRequest) GetOffset() int32 {
 		return x.Offset
 	}
 	return 0
+}
+
+func (x *ListBacklogRequest) GetNewSeason() bool {
+	if x != nil {
+		return x.NewSeason
+	}
+	return false
 }
 
 type ListBacklogResponse struct {
@@ -1570,7 +1588,7 @@ const file_movies_v1_movies_proto_rawDesc = "" +
 	"\vposter_path\x18\x06 \x01(\tR\n" +
 	"posterPath\x12\x1b\n" +
 	"\x06status\x18\a \x01(\tH\x00R\x06status\x88\x01\x01B\t\n" +
-	"\a_status\"\xec\x03\n" +
+	"\a_status\"\x92\x04\n" +
 	"\fBacklogEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -1591,7 +1609,8 @@ const file_movies_v1_movies_proto_rawDesc = "" +
 	"\badded_at\x18\r \x01(\tR\aaddedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\x0e \x01(\tR\tupdatedAt\x12\x1b\n" +
-	"\x06rating\x18\x0f \x01(\x05H\x02R\x06rating\x88\x01\x01B\n" +
+	"\x06rating\x18\x0f \x01(\x05H\x02R\x06rating\x88\x01\x01\x12$\n" +
+	"\x0ehas_new_season\x18\x10 \x01(\bR\fhasNewSeasonB\n" +
 	"\n" +
 	"\b_runtimeB\x0f\n" +
 	"\r_season_countB\t\n" +
@@ -1622,14 +1641,16 @@ const file_movies_v1_movies_proto_rawDesc = "" +
 	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\"$\n" +
 	"\x12RemoveTitleRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x15\n" +
-	"\x13RemoveTitleResponse\"\x8d\x01\n" +
+	"\x13RemoveTitleResponse\"\xac\x01\n" +
 	"\x12ListBacklogRequest\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1d\n" +
 	"\n" +
 	"media_type\x18\x02 \x01(\tR\tmediaType\x12\x12\n" +
 	"\x04sort\x18\x03 \x01(\tR\x04sort\x12\x14\n" +
 	"\x05limit\x18\x04 \x01(\x05R\x05limit\x12\x16\n" +
-	"\x06offset\x18\x05 \x01(\x05R\x06offset\"c\n" +
+	"\x06offset\x18\x05 \x01(\x05R\x06offset\x12\x1d\n" +
+	"\n" +
+	"new_season\x18\x06 \x01(\bR\tnewSeason\"c\n" +
 	"\x13ListBacklogResponse\x121\n" +
 	"\aentries\x18\x01 \x03(\v2\x17.movies.v1.BacklogEntryR\aentries\x12\x19\n" +
 	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"\xa9\x01\n" +

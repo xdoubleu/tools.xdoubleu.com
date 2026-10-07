@@ -7,6 +7,7 @@ import { usePaginatedList } from '@/hooks/usePaginatedList'
 import {
   type BacklogFilter,
   DEFAULT_BACKLOG_FILTER,
+  NEW_SEASONS,
   STATUSES,
   STATUS_LABELS,
   mediaTypeLabel,
@@ -16,6 +17,7 @@ import {
 import MoviePoster from '@/components/movies/MoviePoster'
 import StatusSelect from '@/components/movies/StatusSelect'
 import WatchedWhenDialog from '@/components/movies/WatchedWhenDialog'
+import { Badge } from '@/components/ui/badge'
 import { Field } from '@/components/ui/field'
 import { RatingStars } from '@/components/ui/rating-stars'
 import { LinkCard } from '@/components/ui/link-card'
@@ -24,9 +26,13 @@ import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { Select } from '@/components/ui/select'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
+// "New seasons" narrows Watched, so it sits right after it.
 const STATUS_TABS = [
   { value: '', label: 'All statuses' },
-  ...STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))
+  ...STATUSES.flatMap((s) => [
+    { value: s, label: STATUS_LABELS[s] },
+    ...(s === 'watched' ? [{ value: NEW_SEASONS, label: 'New seasons' }] : [])
+  ])
 ]
 
 const TYPE_TABS = [
@@ -105,7 +111,10 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
             </>
           )}
         </p>
-        {entry.rating !== undefined && <RatingStars value={entry.rating} />}
+        <div className="flex flex-wrap items-center gap-2">
+          {entry.hasNewSeason && <Badge variant="warn">New season</Badge>}
+          {entry.rating !== undefined && <RatingStars value={entry.rating} />}
+        </div>
         {failed && <p className="text-xs text-danger">Couldn&apos;t update status. Try again.</p>}
       </div>
     </LinkCard>

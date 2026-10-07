@@ -167,7 +167,17 @@ func TestSetSeasonWatched_UnknownSeasonOrEntry(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, code(err))
 }
 
+// forgetSeasons deletes a series' catalog seasons, as before seasons existed.
+func forgetSeasons(t *testing.T, tmdbID int64) {
+	t.Helper()
+	_, err := testDB.Exec(context.Background(), `
+		DELETE FROM movies.seasons s USING movies.titles t
+		WHERE s.title_id = t.id AND t.tmdb_id = $1`, tmdbID)
+	require.NoError(t, err)
+}
+
 func TestGetTitle_LoadsMissingSeasonsOnce(t *testing.T) {
+	forgetSeasons(t, 70523)
 	old := newClient(t, userID, seasonlessTMDB{fakeTMDB{}})
 	e := add(t, old, "series", 70523, "want")
 	assert.Empty(t, getTitle(t, old, e.Id).Seasons)
@@ -183,6 +193,7 @@ func TestGetTitle_LoadsMissingSeasonsOnce(t *testing.T) {
 // A series marked watched before its seasons were stored keeps its status:
 // the first season load ticks its aired seasons, dated unknown.
 func TestGetTitle_LoadingSeasonsOfAWatchedSeriesTicksThem(t *testing.T) {
+	forgetSeasons(t, 136315)
 	old := newClient(t, userID, seasonlessTMDB{fakeTMDB{}})
 	e := add(t, old, "series", 136315, "watched")
 

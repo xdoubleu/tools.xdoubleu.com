@@ -1,4 +1,7 @@
 import {
+  NEW_SEASONS,
+  backlogRequest,
+  isNewSeason,
   isUnreleased,
   mediaTypeLabel,
   posterUrl,
@@ -39,5 +42,42 @@ describe('movies format helpers', () => {
     expect(todayISO(new Date(2026, 0, 5))).toBe('2026-01-05')
     expect(watchDay(new Date(2026, 9, 7, 12).toISOString())).toBe('2026-10-07')
     expect(watchDay('')).toBe('')
+  })
+})
+
+describe('backlogRequest', () => {
+  it('passes a stored status through', () => {
+    expect(backlogRequest({ status: 'watched', mediaType: 'series', sort: 'title' })).toEqual({
+      status: 'watched',
+      mediaType: 'series',
+      sort: 'title',
+      newSeason: false
+    })
+  })
+
+  it('turns the New seasons tab into the new-season filter', () => {
+    expect(backlogRequest({ status: NEW_SEASONS, mediaType: '', sort: 'added' })).toEqual({
+      status: '',
+      mediaType: '',
+      sort: 'added',
+      newSeason: true
+    })
+  })
+})
+
+describe('isNewSeason', () => {
+  const season = { number: 2, aired: true, watchedAt: [] as string[] }
+
+  it('is an aired, counted, unticked season of a watched series', () => {
+    expect(isNewSeason('watched', season)).toBe(true)
+  })
+
+  it.each([
+    ['not watched', 'watching', season],
+    ['specials', 'watched', { ...season, number: 0 }],
+    ['unaired', 'watched', { ...season, aired: false }],
+    ['ticked', 'watched', { ...season, watchedAt: [''] }]
+  ])('is not when %s', (_name, status, s) => {
+    expect(isNewSeason(status, s)).toBe(false)
   })
 })

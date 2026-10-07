@@ -57,7 +57,21 @@ describe('useMoviesBacklog', () => {
       ['/movies/backlog', 'want', 'movie', 'title'],
       expect.any(Function)
     )
-    expect(mockClient.listBacklog).toHaveBeenCalledWith({ ...filter, limit: 50 })
+    expect(mockClient.listBacklog).toHaveBeenCalledWith({ ...filter, newSeason: false, limit: 50 })
+  })
+
+  it('asks for new seasons on the New seasons tab', () => {
+    renderHook(() => useMoviesBacklog({ ...filter, status: 'new' }))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      ['/movies/backlog', 'new', 'movie', 'title'],
+      expect.any(Function)
+    )
+    expect(mockClient.listBacklog).toHaveBeenCalledWith({
+      ...filter,
+      status: '',
+      newSeason: true,
+      limit: 50
+    })
   })
 })
 
@@ -65,18 +79,24 @@ describe('useFetchMoviesBacklogPage', () => {
   it('fetches a page at an offset', async () => {
     const { result } = renderHook(() => useFetchMoviesBacklogPage(filter))
     await expect(result.current(50)).resolves.toEqual({ items: [{ id: 'e-1' }], hasMore: true })
-    expect(mockClient.listBacklog).toHaveBeenCalledWith({ ...filter, limit: 50, offset: 50 })
+    expect(mockClient.listBacklog).toHaveBeenCalledWith({
+      ...filter,
+      newSeason: false,
+      limit: 50,
+      offset: 50
+    })
   })
 
   it('follows filter changes', async () => {
     const { result, rerender } = renderHook((f: typeof filter) => useFetchMoviesBacklogPage(f), {
       initialProps: filter
     })
-    rerender({ ...filter, status: 'dropped' })
+    rerender({ ...filter, status: 'new' })
     await result.current(0)
     expect(mockClient.listBacklog).toHaveBeenLastCalledWith({
       ...filter,
-      status: 'dropped',
+      status: '',
+      newSeason: true,
       limit: 50,
       offset: 0
     })

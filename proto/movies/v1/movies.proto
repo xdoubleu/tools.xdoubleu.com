@@ -37,6 +37,8 @@ message BacklogEntry {
   string updated_at = 14;
   // 1-5 stars; unset when unrated.
   optional int32 rating = 15;
+  // A watched series with an aired season not yet ticked.
+  bool has_new_season = 16;
 }
 
 message SearchTitlesRequest { string query = 1; }
@@ -82,6 +84,8 @@ message ListBacklogRequest {
   string sort = 3;
   int32 limit = 4;
   int32 offset = 5;
+  // Only entries with has_new_season.
+  bool new_season = 6;
 }
 message ListBacklogResponse {
   repeated BacklogEntry entries = 1;

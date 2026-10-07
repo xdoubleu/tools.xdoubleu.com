@@ -127,6 +127,7 @@ func (h *moviesConnectHandler) ListBacklog(
 		Status:    req.Msg.Status,
 		MediaType: req.Msg.MediaType,
 		Sort:      req.Msg.Sort,
+		NewSeason: req.Msg.NewSeason,
 		Limit:     req.Msg.Limit,
 		Offset:    req.Msg.Offset,
 	})

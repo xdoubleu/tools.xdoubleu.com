@@ -9,12 +9,13 @@ import type {
   SearchTitlesResponse
 } from '@/lib/gen/movies/v1/movies_pb'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
-import type { BacklogFilter } from '@/lib/movies/format'
+import { backlogRequest, type BacklogFilter } from '@/lib/movies/format'
 
-export function useMoviesBacklog({ status, mediaType, sort }: BacklogFilter) {
+export function useMoviesBacklog(filter: BacklogFilter) {
   const client = createServiceClient(MoviesService)
+  const { status, mediaType, sort } = filter
   return useSWR<ListBacklogResponse, Error>(swrKeys.moviesBacklog(status, mediaType, sort), () =>
-    client.listBacklog({ status, mediaType, sort, limit: DEFAULT_PAGE_SIZE })
+    client.listBacklog({ ...backlogRequest(filter), limit: DEFAULT_PAGE_SIZE })
   )
 }
 
@@ -24,7 +25,11 @@ export function useFetchMoviesBacklogPage({ status, mediaType, sort }: BacklogFi
   return useCallback(
     (offset: number) =>
       client
-        .listBacklog({ status, mediaType, sort, limit: DEFAULT_PAGE_SIZE, offset })
+        .listBacklog({
+          ...backlogRequest({ status, mediaType, sort }),
+          limit: DEFAULT_PAGE_SIZE,
+          offset
+        })
         .then((r) => ({ items: r.entries, hasMore: r.hasMore })),
     [client, status, mediaType, sort]
   )

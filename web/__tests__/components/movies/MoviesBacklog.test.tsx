@@ -67,6 +67,22 @@ describe('MoviesBacklog filters', () => {
     expect(last()?.mediaType).toBe('')
   })
 
+  it('offers New seasons right after Watched', () => {
+    mockBacklog({ data: page([]) })
+    render(<MoviesBacklog />)
+    const tabs = screen.getAllByRole('tab').map((t) => t.textContent)
+    expect(tabs.slice(0, 6)).toEqual([
+      'All statuses',
+      'Want',
+      'Watching',
+      'Watched',
+      'New seasons',
+      'Dropped'
+    ])
+    fireEvent.click(screen.getByRole('tab', { name: 'New seasons' }))
+    expect(jest.mocked(useMoviesBacklog).mock.lastCall?.[0].status).toBe('new')
+  })
+
   it('sorts by rating', () => {
     mockBacklog({ data: page([]) })
     render(<MoviesBacklog />)
@@ -83,6 +99,17 @@ describe('MoviesBacklog rows', () => {
     const metas = screen.getAllByText(/^Movie/, { selector: 'p' })
     expect(metas.map((p) => p.textContent)).toEqual(['Movie · 1999', 'Movie'])
     expect(screen.getByLabelText('Status of The Matrix')).toHaveAttribute('id', 'status-e-1')
+  })
+
+  it('badges a series with a new season', () => {
+    const caughtUp = create(BacklogEntrySchema, { ...matrix, hasNewSeason: false })
+    const behind = create(BacklogEntrySchema, { ...avatar, hasNewSeason: true })
+    mockBacklog({ data: page([caughtUp, behind]) })
+    render(<MoviesBacklog />)
+    const [first, second] = screen.getAllByRole('link')
+    expect(first).not.toHaveTextContent('New season')
+    expect(second).toHaveTextContent('New season')
+    expect(screen.queryByRole('img', { name: 'No rating' })).not.toBeInTheDocument()
   })
 
   it('shows a rating read-only, and nothing when unrated', () => {

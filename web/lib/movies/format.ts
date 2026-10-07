@@ -9,6 +9,23 @@ export interface BacklogFilter {
 
 export const DEFAULT_BACKLOG_FILTER: BacklogFilter = { status: '', mediaType: '', sort: 'added' }
 
+/** Status tab for watched series with a new season; not a stored status. */
+export const NEW_SEASONS = 'new'
+
+/** The ListBacklog request fields for a filter. */
+export function backlogRequest({ status, mediaType, sort }: BacklogFilter) {
+  const newSeason = status === NEW_SEASONS
+  return { status: newSeason ? '' : status, mediaType, sort, newSeason }
+}
+
+/** A season a watched series hasn't caught up on: aired, counted, unticked. */
+export function isNewSeason(
+  status: string,
+  season: { number: number; aired: boolean; watchedAt: string[] }
+): boolean {
+  return status === 'watched' && season.number > 0 && season.aired && season.watchedAt.length === 0
+}
+
 export const STATUS_LABELS: Record<Status, string> = {
   want: 'Want',
   watching: 'Watching',

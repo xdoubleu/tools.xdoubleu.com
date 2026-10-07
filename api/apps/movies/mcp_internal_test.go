@@ -39,7 +39,8 @@ func TestMCPTools(t *testing.T) {
 	)
 
 	msg, err := h.mcpListBacklog(ctx, mcpListBacklogArgs{
-		Status: "want", MediaType: "", Sort: "title", Limit: 5, Offset: 0,
+		Status: "want", MediaType: "", Sort: "title", NewSeason: false, Limit: 5,
+		Offset: 0,
 	})
 	require.NoError(t, err)
 	resp, ok := msg.(*moviesv1.ListBacklogResponse)
