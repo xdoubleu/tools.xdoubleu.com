@@ -139,8 +139,8 @@ tools/mutation:
 # package); --diff further scopes mutants to changed lines. gremlins matches
 # `git diff` paths to package-relative mutant paths, so it runs from the
 # package dir with diff.relative (and diff.context=0: it undercounts
-# multi-block hunks); check_mutation_skips_go.py fails if a changed line's
-# mutant is still SKIPPED. Serial because test packages share Postgres
+# multi-block hunks); check_mutation_report_go.py fails if a changed line's
+# mutant is still SKIPPED and lists NOT COVERED ones. Serial because test packages share Postgres
 # schemas. .gremlins.yaml excludes gen/ and *_mock.go.
 test/mutation/diff: tools/mutation
 	@pkgs=$$(python3 ../tools/diff_packages_go.py); \
@@ -157,7 +157,7 @@ test/mutation/diff: tools/mutation
 				GIT_CONFIG_KEY_1=diff.context GIT_CONFIG_VALUE_1=0 \
 				gremlins unleash --diff origin/main --workers 1 \
 					--output "$$report" "$$PWD") && \
-			python3 ../tools/check_mutation_skips_go.py "$$pkg" "$$report" || status=1; \
+			python3 ../tools/check_mutation_report_go.py "$$pkg" "$$report" || status=1; \
 		done; \
 		rm -f "$$report"; \
 		exit $$status; \
