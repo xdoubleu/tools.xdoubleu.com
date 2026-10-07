@@ -113,6 +113,12 @@ linters:
           deny:
             - pkg: tools.xdoubleu.com/apps/mealplans/internal
               desc: apps/mealplans/internal is private to the mealplans app
+        apps-movies-internal:
+          files:
+            - "!**/apps/movies/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/movies/internal
+              desc: apps/movies/internal is private to the movies app
         apps-recipes-internal:
           files:
             - "!**/apps/recipes/**"

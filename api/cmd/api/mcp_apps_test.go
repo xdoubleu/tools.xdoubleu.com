@@ -56,6 +56,8 @@ var appsToolNames = []string{
 	"learningpaths_get_progress", "learningpaths_get_todoist_status",
 	"learningpaths_create_path", "learningpaths_update_path",
 	"learningpaths_record_progress",
+	// movies (3)
+	"movies_search_titles", "movies_list_backlog", "movies_get_title",
 	// observability (20, admin-gated)
 	"get_job_stats", "get_automated_actions", "record_action",
 	"get_usage_stats", "get_storage_stats", "get_database_stats",
@@ -346,6 +348,8 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 		"learningpaths_get_path":                  map[string]any{"id": uid},
 		"learningpaths_get_progress":              map[string]any{"id": uid},
 		"learningpaths_get_todoist_status":        map[string]any{"id": uid},
+		"movies_search_titles":                    map[string]any{"query": "x"},
+		"movies_get_title":                        map[string]any{"id": uid},
 		"learningpaths_update_path": map[string]any{
 			"id": uid, "title": "t",
 		},
