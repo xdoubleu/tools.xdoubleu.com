@@ -77,3 +77,20 @@ func TestMatchStations_ExcludesPlatformsAndFiltersByQuery(t *testing.T) {
 	assert.Len(t, got, 1)
 	assert.Equal(t, "gs:nmbssncb:S1", got[0].StopID)
 }
+
+func TestMatchStations_SortsByDutchName(t *testing.T) {
+	stops := []models.Stop{
+		mkStop("1", "Leuven", "Louvain", "Louvain / Leuven", stationLocationType, "1"),
+		mkStop("2", "Bergen", "Mons", "Mons / Bergen", stationLocationType, "2"),
+		mkStop("3", "Brugge", "Bruges", "Bruges / Brugge", stationLocationType, "3"),
+		mkStop("4", "aalst", "Alost", "Alost / aalst", stationLocationType, "4"),
+	}
+
+	got := matchStations(stops, "")
+
+	ids := make([]string, 0, len(got))
+	for _, s := range got {
+		ids = append(ids, s.StopID)
+	}
+	assert.Equal(t, []string{"4", "2", "3", "1"}, ids)
+}
