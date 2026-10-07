@@ -62,6 +62,20 @@ describe('useFetchMoviesBacklogPage', () => {
     await expect(result.current(50)).resolves.toEqual({ items: [{ id: 'e-1' }], hasMore: true })
     expect(mockClient.listBacklog).toHaveBeenCalledWith({ ...filter, limit: 50, offset: 50 })
   })
+
+  it('follows filter changes', async () => {
+    const { result, rerender } = renderHook((f: typeof filter) => useFetchMoviesBacklogPage(f), {
+      initialProps: filter
+    })
+    rerender({ ...filter, status: 'dropped' })
+    await result.current(0)
+    expect(mockClient.listBacklog).toHaveBeenLastCalledWith({
+      ...filter,
+      status: 'dropped',
+      limit: 50,
+      offset: 0
+    })
+  })
 })
 
 describe('useMovieSearch', () => {
@@ -70,6 +84,11 @@ describe('useMovieSearch', () => {
     expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function), {
       keepPreviousData: true
     })
+  })
+
+  it('searches from two characters', () => {
+    renderHook(() => useMovieSearch('ab'))
+    expect(mockClient.searchTitles).toHaveBeenCalledWith({ query: 'ab' })
   })
 
   it('searches the trimmed query', () => {

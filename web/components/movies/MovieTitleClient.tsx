@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Code, ConnectError } from '@connectrpc/connect'
 import { useMovieTitle, useMoviesActions } from '@/hooks/useMovies'
 import { mediaTypeLabel, releaseLabel, todayISO, watchDateLabel } from '@/lib/movies/format'
 import MoviePoster from '@/components/movies/MoviePoster'
@@ -27,7 +28,9 @@ export default function MovieTitleClient({ id }: { id: string }) {
   const breadcrumb = [{ label: 'Movies & Series', href: '/movies' }]
 
   if (isLoading && !data) return <LoadingState label="title" />
-  if (error || !data?.entry) {
+  // Other failed revalidations (e.g. offline) keep showing the loaded data.
+  const removed = ConnectError.from(error).code === Code.NotFound
+  if (removed || !data?.entry) {
     return (
       <PageContainer>
         <PageHeader title="Movies & Series" breadcrumb={breadcrumb} />
@@ -113,6 +116,7 @@ export default function MovieTitleClient({ id }: { id: string }) {
               <p className="text-sm text-subtle">Watched</p>
               <ul className="text-sm">
                 {entry.watchedAt.map((w, i) => (
+                  // Stryker disable next-line StringLiteral: React keys aren't observable.
                   <li key={`${w}-${i}`} suppressHydrationWarning>
                     {watchDateLabel(w)}
                   </li>

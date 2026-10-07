@@ -3,13 +3,18 @@ import { render, screen } from '@testing-library/react'
 
 const fetchOrNull = jest.fn()
 const swrFallback = jest.fn()
+const serverClient = { listBacklog: jest.fn(), getTitle: jest.fn() }
 
 jest.mock('@/lib/server/client', () => ({
-  createServerClient: jest.fn(async () => ({}))
+  createServerClient: jest.fn(async () => serverClient)
 }))
 
+// Runs the fetch so the request arguments are checked.
 jest.mock('@/lib/server/fetchers', () => ({
-  fetchOrNull: (fn: () => Promise<unknown>) => fetchOrNull(fn)
+  fetchOrNull: async (fn: () => Promise<unknown>) => {
+    await fn()
+    return fetchOrNull(fn)
+  }
 }))
 
 jest.mock('@/components/SWRFallback', () => ({
@@ -41,6 +46,12 @@ describe('MoviesPage', () => {
     fetchOrNull.mockResolvedValue(backlog)
     render(await MoviesPage())
     expect(screen.getByTestId('movies-client')).toBeInTheDocument()
+    expect(serverClient.listBacklog).toHaveBeenCalledWith({
+      status: '',
+      mediaType: '',
+      sort: 'added',
+      limit: 50
+    })
     expect(swrFallback).toHaveBeenCalledWith(
       expect.objectContaining({ keyed: [[['/movies/backlog', '', '', 'added'], backlog]] })
     )
@@ -59,6 +70,7 @@ describe('MovieTitlePage', () => {
     fetchOrNull.mockResolvedValue(title)
     render(await MovieTitlePage({ params: Promise.resolve({ id: 't-1' }) }))
     expect(screen.getByTestId('title-client')).toHaveTextContent('t-1')
+    expect(serverClient.getTitle).toHaveBeenCalledWith({ id: 't-1' })
     expect(swrFallback).toHaveBeenCalledWith(
       expect.objectContaining({ fallback: { '/movies/title/t-1': title } })
     )

@@ -1,6 +1,7 @@
 import React from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
+import { Code, ConnectError } from '@connectrpc/connect'
 
 const mockSetStatus = jest.fn()
 const mockRemove = jest.fn()
@@ -135,5 +136,95 @@ describe('MovieTitleClient', () => {
     mockTitle({ error: new Error('nope') })
     rerender(<MovieTitleClient id="e-1" />)
     expect(screen.getByText('Failed to load title.')).toBeInTheDocument()
+    // Heading plus the breadcrumb's current page.
+    expect(screen.getAllByText('Movies & Series')).toHaveLength(2)
+
+    mockTitle({})
+    rerender(<MovieTitleClient id="e-1" />)
+    expect(screen.getByText('Failed to load title.')).toBeInTheDocument()
+  })
+
+  it('keeps showing loaded data when revalidation fails', () => {
+    mockTitle({ data: spirited, error: new Error('offline') })
+    render(<MovieTitleClient id="e-1" />)
+    expect(screen.getByRole('heading', { name: 'Spirited Away' })).toBeInTheDocument()
+  })
+
+  it('stops showing a title removed elsewhere', () => {
+    mockTitle({ data: spirited, error: new ConnectError('gone', Code.NotFound) })
+    render(<MovieTitleClient id="e-1" />)
+    expect(screen.getByText('Failed to load title.')).toBeInTheDocument()
+  })
+
+  it('links back and names the title in the breadcrumb and dialog', () => {
+    mockTitle({ data: spirited })
+    render(<MovieTitleClient id="e-1" />)
+    expect(screen.getByRole('link', { name: 'Movies & Series' })).toHaveAttribute('href', '/movies')
+    expect(screen.getAllByText('Spirited Away')).toHaveLength(2)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove from backlog' }))
+    expect(screen.getByText('Remove Spirited Away?')).toBeInTheDocument()
+    expect(screen.queryByText(/Couldn.t remove/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Couldn.t update status/)).not.toBeInTheDocument()
+  })
+
+  it('leaves out what a bare series lacks', () => {
+    mockTitle({
+      data: create(GetTitleResponseSchema, {
+        entry: create(BacklogEntrySchema, {
+          id: 'e-3',
+          mediaType: 'series',
+          title: 'Dark',
+          originalTitle: 'Dark',
+          seasonCount: 3,
+          status: 'want'
+        })
+      })
+    })
+    const { container } = render(<MovieTitleClient id="e-3" />)
+    expect(screen.getByText('Series · 3 seasons')).toBeInTheDocument()
+    // Heading and breadcrumb only: an identical original title isn't repeated.
+    expect(screen.getAllByText('Dark')).toHaveLength(2)
+    expect(container.querySelector('div.flex-wrap.gap-2')).toBeNull()
+    expect(container.querySelector('p.text-sm:empty')).toBeNull()
+  })
+
+  it('locks the status while saving and clears an old error on success', async () => {
+    mockTitle({ data: spirited })
+    render(<MovieTitleClient id="e-1" />)
+    const select = () => screen.getByLabelText('Status')
+    expect(select()).toBeEnabled()
+
+    mockSetStatus.mockRejectedValueOnce(new Error('nope'))
+    await act(async () => fireEvent.change(select(), { target: { value: 'want' } }))
+    expect(screen.getByText(/Couldn.t update status/)).toBeInTheDocument()
+    expect(select()).toBeEnabled()
+
+    let resolve!: () => void
+    mockSetStatus.mockReturnValueOnce(new Promise<void>((res) => (resolve = res)))
+    fireEvent.change(select(), { target: { value: 'want' } })
+    expect(select()).toBeDisabled()
+    expect(screen.queryByText(/Couldn.t update status/)).not.toBeInTheDocument()
+    await act(async () => resolve())
+    expect(select()).toBeEnabled()
+  })
+
+  it('shows removing progress and clears an old error on retry', async () => {
+    mockTitle({ data: spirited })
+    render(<MovieTitleClient id="e-1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Remove from backlog' }))
+
+    mockRemove.mockRejectedValueOnce(new Error('nope'))
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Remove' })))
+    expect(screen.getByText(/Couldn.t remove/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument()
+
+    let resolve!: () => void
+    mockRemove.mockReturnValueOnce(new Promise<void>((res) => (resolve = res)))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    expect(screen.getByRole('button', { name: 'Removing…' })).toBeInTheDocument()
+    expect(screen.queryByText(/Couldn.t remove/)).not.toBeInTheDocument()
+    await act(async () => resolve())
+    expect(mockPush).toHaveBeenCalledWith('/movies')
   })
 })

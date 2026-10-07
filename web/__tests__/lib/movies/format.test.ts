@@ -10,7 +10,12 @@ import {
 
 describe('movies format helpers', () => {
   it('labels statuses and media types', () => {
-    expect(statusLabel('watched')).toBe('Watched')
+    expect(['want', 'watching', 'watched', 'dropped'].map(statusLabel)).toEqual([
+      'Want',
+      'Watching',
+      'Watched',
+      'Dropped'
+    ])
     expect(statusLabel('unknown')).toBe('unknown')
     expect(mediaTypeLabel('series')).toBe('Series')
     expect(mediaTypeLabel('movie')).toBe('Movie')
@@ -27,6 +32,7 @@ describe('movies format helpers', () => {
     expect(releaseLabel('2027-05-01', '2026-10-07')).toBe('Releases 2027-05-01')
     expect(releaseLabel('', '2026-10-07')).toBe('')
     expect(isUnreleased('', '2026-10-07')).toBe(false)
+    expect(releaseLabel('2026-10-07', '2026-10-07')).toBe('2026')
   })
 
   it('formats dates in local time', () => {

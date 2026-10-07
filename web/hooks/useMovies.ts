@@ -1,5 +1,5 @@
 import useSWR, { useSWRConfig } from 'swr'
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
 import { MoviesService } from '@/lib/gen/movies/v1/movies_pb'
@@ -19,7 +19,8 @@ export function useMoviesBacklog({ status, mediaType, sort }: BacklogFilter) {
 }
 
 export function useFetchMoviesBacklogPage({ status, mediaType, sort }: BacklogFilter) {
-  const client = useMemo(() => createServiceClient(MoviesService), [])
+  // createServiceClient caches per service, so client is stable.
+  const client = createServiceClient(MoviesService)
   return useCallback(
     (offset: number) =>
       client
