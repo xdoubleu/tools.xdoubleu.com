@@ -34,7 +34,7 @@ func NewStationsService(repos *repositories.Repositories) *StationsService {
 }
 
 // SearchStations returns up to maxStationResults stations whose name in any
-// language contains query (case-insensitive), sorted by French name.
+// language contains query (case-insensitive), sorted by Dutch name.
 func (s *StationsService) SearchStations(
 	ctx context.Context, query string,
 ) ([]Station, error) {
@@ -85,7 +85,11 @@ func matchStations(stops []models.Stop, query string) []Station {
 	matches = append(matches, noUIC...)
 
 	sort.Slice(matches, func(i, j int) bool {
-		return matches[i].NameFR < matches[j].NameFR
+		ni, nj := strings.ToLower(matches[i].NameNL), strings.ToLower(matches[j].NameNL)
+		if ni != nj {
+			return ni < nj
+		}
+		return matches[i].StopID < matches[j].StopID
 	})
 	if len(matches) > maxStationResults {
 		matches = matches[:maxStationResults]

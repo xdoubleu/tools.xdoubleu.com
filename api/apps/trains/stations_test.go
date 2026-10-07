@@ -69,7 +69,7 @@ func TestStationsService_SearchStations(t *testing.T) {
 	})
 
 	t.Run(
-		"case-insensitive substring match against the French name",
+		"case-insensitive substring match against any name",
 		func(t *testing.T) {
 			stations, err := testApp.Services.Stations.SearchStations(ctx, "rav")
 			require.NoError(t, err)
