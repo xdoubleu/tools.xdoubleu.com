@@ -11,14 +11,24 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// UpsertSeasons writes a series' catalog seasons; the watch columns of
-// seasons are ignored.
+// UpsertSeasons makes a series' catalog seasons match seasons, deleting the
+// ones no longer listed; the watch columns of seasons are ignored. Users'
+// watches of a deleted season are kept, hidden until it returns.
 func (r *MoviesRepository) UpsertSeasons(
 	ctx context.Context,
 	titleID uuid.UUID,
 	seasons []models.Season,
 ) error {
+	numbers := make([]int, len(seasons))
+	for i, s := range seasons {
+		numbers[i] = s.Number
+	}
 	batch := &pgx.Batch{} //nolint:exhaustruct //QueuedQueries populated via Queue()
+	batch.Queue(`
+		DELETE FROM movies.seasons
+		WHERE title_id = $1 AND season_number <> ALL($2)`,
+		titleID, numbers,
+	)
 	for _, s := range seasons {
 		batch.Queue(`
 			INSERT INTO movies.seasons

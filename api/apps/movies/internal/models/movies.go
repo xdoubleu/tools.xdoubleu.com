@@ -41,6 +41,9 @@ type Entry struct {
 	UserID string
 	Title  Title
 	Status string
+	// HasNewSeason is set on a watched series with an aired, unticked
+	// season.
+	HasNewSeason bool
 	// Rating is 1-5 stars, nil when unrated; any status can keep one.
 	Rating    *int
 	WatchedAt []*time.Time
@@ -54,6 +57,8 @@ type ListFilter struct {
 	Status    string
 	MediaType string
 	Sort      string
+	// NewSeason keeps only entries with HasNewSeason.
+	NewSeason bool
 	Limit     int32
 	Offset    int32
 }

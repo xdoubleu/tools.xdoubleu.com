@@ -110,6 +110,7 @@ func protoEntry(e *models.Entry) *moviesv1.BacklogEntry {
 		AddedAt:       e.AddedAt.Format(time.RFC3339),
 		UpdatedAt:     e.UpdatedAt.Format(time.RFC3339),
 		Rating:        optionalInt32(e.Rating),
+		HasNewSeason:  e.HasNewSeason,
 	}
 }
 

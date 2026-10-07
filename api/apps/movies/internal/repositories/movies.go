@@ -16,11 +16,24 @@ type MoviesRepository struct {
 	db postgres.DB
 }
 
+// hasNewSeason is a watched series with an aired, unticked counted season.
+const hasNewSeason = `(ut.status = 'watched' AND EXISTS (
+	SELECT 1 FROM movies.seasons s
+	WHERE s.title_id = ut.title_id AND s.season_number > 0
+		AND s.air_date <= current_date
+		AND NOT EXISTS (
+			SELECT 1 FROM movies.user_seasons us
+			WHERE us.user_title_id = ut.id
+				AND us.season_number = s.season_number
+				AND cardinality(us.watched_at) > 0
+		)
+))`
+
 // entryColumns excludes t.overview, which only GetEntry reads.
-const entryColumns = `ut.id, ut.user_id, ut.status, ut.rating, ut.watched_at,
-	ut.added_at, ut.updated_at, t.id, t.media_type, t.tmdb_id, t.title,
-	t.original_title, t.release_date, t.poster_path, t.genres, t.runtime,
-	t.season_count`
+const entryColumns = `ut.id, ut.user_id, ut.status, ` + hasNewSeason + `,
+	ut.rating, ut.watched_at, ut.added_at, ut.updated_at, t.id, t.media_type,
+	t.tmdb_id, t.title, t.original_title, t.release_date, t.poster_path,
+	t.genres, t.runtime, t.season_count`
 
 //nolint:gochecknoglobals // fixed lookup of whitelisted ORDER BY clauses
 var orderBy = map[string]string{
@@ -33,7 +46,8 @@ var orderBy = map[string]string{
 func scanEntry(row pgx.Row, extra ...any) (*models.Entry, error) {
 	var e models.Entry
 	dest := []any{
-		&e.ID, &e.UserID, &e.Status, &e.Rating, &e.WatchedAt, &e.AddedAt, &e.UpdatedAt,
+		&e.ID, &e.UserID, &e.Status, &e.HasNewSeason, &e.Rating, &e.WatchedAt,
+		&e.AddedAt, &e.UpdatedAt,
 		&e.Title.ID, &e.Title.MediaType, &e.Title.TMDBID, &e.Title.Title,
 		&e.Title.OriginalTitle, &e.Title.ReleaseDate, &e.Title.PosterPath,
 		&e.Title.Genres, &e.Title.Runtime, &e.Title.SeasonCount,
@@ -216,9 +230,10 @@ func (r *MoviesRepository) ListEntries(
 		WHERE ut.user_id = $1
 			AND ($2 = '' OR ut.status = $2)
 			AND ($3 = '' OR t.media_type = $3)
+			AND (NOT $6 OR `+hasNewSeason+`)
 		ORDER BY `+order+`
 		LIMIT $4 OFFSET $5`,
-		userID, f.Status, f.MediaType, sqlLimit, f.Offset,
+		userID, f.Status, f.MediaType, sqlLimit, f.Offset, f.NewSeason,
 	)
 	if err != nil {
 		return nil, false, err

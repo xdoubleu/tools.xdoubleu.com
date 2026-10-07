@@ -91,6 +91,22 @@ var catalog = []tmdb.Title{
 		},
 	},
 	{
+		MediaType: tmdb.MediaTypeSeries, TMDBID: 95396, Title: "Severance",
+		OriginalTitle: "Severance", ReleaseDate: date("2022-02-18"), PosterPath: "",
+		Overview: "", Genres: nil, Runtime: nil, SeasonCount: intPtr(1),
+		Seasons: []tmdb.Season{
+			{Number: 1, Name: "Season 1", AirDate: date("2022-02-18"), EpisodeCount: 9},
+		},
+	},
+	{
+		MediaType: tmdb.MediaTypeSeries, TMDBID: 83867, Title: "Andor",
+		OriginalTitle: "Andor", ReleaseDate: date("2022-09-21"), PosterPath: "",
+		Overview: "", Genres: nil, Runtime: nil, SeasonCount: intPtr(1),
+		Seasons: []tmdb.Season{
+			{Number: 1, Name: "Season 1", AirDate: date("2022-09-21"), EpisodeCount: 12},
+		},
+	},
+	{
 		MediaType: tmdb.MediaTypeMovie, TMDBID: 999, Title: "Avatar 5",
 		OriginalTitle: "Avatar 5", ReleaseDate: nil, PosterPath: "",
 		Overview: "", Genres: nil, Runtime: nil, SeasonCount: nil, Seasons: nil,

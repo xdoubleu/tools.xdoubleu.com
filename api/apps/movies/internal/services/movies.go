@@ -58,6 +58,8 @@ type moviesStore interface {
 	SetWatchedAt(
 		ctx context.Context, userID string, entryID uuid.UUID, watchedAt []*time.Time,
 	) error
+	DeleteOrphanTitles(ctx context.Context) (int64, error)
+	DueTitles(ctx context.Context) ([]models.TitleKey, error)
 }
 
 type MovieService struct {
@@ -147,13 +149,7 @@ func (s *MovieService) Add(
 		return nil, ErrNotConfigured
 	}
 
-	var t *tmdb.Title
-	var err error
-	if mediaType == tmdb.MediaTypeMovie {
-		t, err = s.tmdb.GetMovie(ctx, tmdbID)
-	} else {
-		t, err = s.tmdb.GetSeries(ctx, tmdbID)
-	}
+	t, err := s.fetch(ctx, models.TitleKey{MediaType: mediaType, TMDBID: tmdbID})
 	if errors.Is(err, tmdb.ErrNotFound) {
 		return nil, database.ErrResourceNotFound
 	}
@@ -174,6 +170,16 @@ func (s *MovieService) Add(
 		return entry, err
 	}
 	return s.markSeriesWatched(ctx, userID, entry, unknownDate)
+}
+
+func (s *MovieService) fetch(
+	ctx context.Context,
+	k models.TitleKey,
+) (*tmdb.Title, error) {
+	if k.MediaType == tmdb.MediaTypeMovie {
+		return s.tmdb.GetMovie(ctx, k.TMDBID)
+	}
+	return s.tmdb.GetSeries(ctx, k.TMDBID)
 }
 
 func (s *MovieService) storeTitle(
