@@ -41,6 +41,33 @@ message BacklogEntry {
   bool has_new_season = 16;
 }
 
+message GetStatsRequest {}
+message MonthWatches {
+  // YYYY-MM, in Europe/Brussels.
+  string month = 1;
+  int32 movies = 2;
+  int32 seasons = 3;
+}
+message GenreCount {
+  string genre = 1;
+  int32 count = 2;
+}
+// A title counts as watched once it has any watch: a movie watch, or a
+// ticked season (specials excluded).
+message GetStatsResponse {
+  // This month and the 11 before it, oldest first; dated watches only,
+  // rewatches included.
+  repeated MonthWatches months = 1;
+  // Top 10 across watched titles, each title once.
+  repeated GenreCount genres = 2;
+  // Rated titles per star; index 0 is 1 star.
+  repeated int32 ratings = 3;
+  int32 movies_watched = 4;
+  // Series whose status is watched.
+  int32 series_watched = 5;
+  int32 seasons_watched = 6;
+}
+
 message SearchTitlesRequest { string query = 1; }
 message SearchTitlesResponse { repeated SearchResult results = 1; }
 
@@ -168,6 +195,7 @@ service MoviesService {
   rpc RemoveTitle(RemoveTitleRequest) returns (RemoveTitleResponse);
   rpc ListBacklog(ListBacklogRequest) returns (ListBacklogResponse);
   rpc GetTitle(GetTitleRequest) returns (GetTitleResponse);
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
   rpc SetSeasonWatched(SetSeasonWatchedRequest) returns (SetSeasonWatchedResponse);
   rpc AddWatchDate(AddWatchDateRequest) returns (AddWatchDateResponse);
   rpc EditWatchDate(EditWatchDateRequest) returns (EditWatchDateResponse);
