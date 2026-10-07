@@ -44,6 +44,18 @@ func (a *Movies) RegisterMCPTools(srv *mcp.Server) {
 		h.mcpListBacklog)
 	mcptools.AddReadTool(srv, mcpAppName, "movies_get_title",
 		"A single backlog entry including the TMDB overview.", h.mcpGetTitle)
+	mcptools.AddReadTool(srv, mcpAppName, "movies_get_stats",
+		"The user's watching stats: dated watches per month (last 12, "+
+			"Europe/Brussels), top genres, rating distribution and totals.",
+		h.mcpGetStats)
+}
+
+func (h *moviesConnectHandler) mcpGetStats(
+	ctx context.Context, _ mcptools.NoArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.GetStats(ctx, connect.NewRequest(
+		&moviesv1.GetStatsRequest{},
+	)))
 }
 
 func (h *moviesConnectHandler) mcpSearchTitles(

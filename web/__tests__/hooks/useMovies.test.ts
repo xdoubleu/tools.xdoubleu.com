@@ -14,6 +14,7 @@ const mockClient = {
   listBacklog: jest.fn().mockResolvedValue({ entries: [{ id: 'e-1' }], hasMore: true }),
   searchTitles: jest.fn().mockResolvedValue({ results: [] }),
   getTitle: jest.fn().mockResolvedValue({}),
+  getStats: jest.fn().mockResolvedValue({}),
   addTitle: jest.fn().mockResolvedValue({ entry: { id: 'e-2' } }),
   setStatus: jest.fn().mockResolvedValue({}),
   removeTitle: jest.fn().mockResolvedValue({}),
@@ -32,6 +33,7 @@ import useSWR from 'swr'
 import {
   useFetchMoviesBacklogPage,
   useMovieSearch,
+  useMovieStats,
   useMovieTitle,
   useMoviesActions,
   useMoviesBacklog
@@ -122,6 +124,14 @@ describe('useMovieSearch', () => {
       keepPreviousData: true
     })
     expect(mockClient.searchTitles).toHaveBeenCalledWith({ query: 'dune' })
+  })
+})
+
+describe('useMovieStats', () => {
+  it('fetches the stats', () => {
+    renderHook(() => useMovieStats())
+    expect(mockUseSWR).toHaveBeenCalledWith('/movies/stats', expect.any(Function))
+    expect(mockClient.getStats).toHaveBeenCalledWith({})
   })
 })
 

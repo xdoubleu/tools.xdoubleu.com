@@ -58,6 +58,7 @@ type moviesStore interface {
 	SetWatchedAt(
 		ctx context.Context, userID string, entryID uuid.UUID, watchedAt []*time.Time,
 	) error
+	Stats(ctx context.Context, userID string) (*models.Stats, error)
 	DeleteOrphanTitles(ctx context.Context) (int64, error)
 	DueTitles(ctx context.Context) ([]models.TitleKey, error)
 }
@@ -293,4 +294,11 @@ func (s *MovieService) List(
 		return nil, false, badRequest("sort must be added, title, release or rating")
 	}
 	return s.repo.ListEntries(ctx, userID, f)
+}
+
+func (s *MovieService) Stats(
+	ctx context.Context,
+	userID string,
+) (*models.Stats, error) {
+	return s.repo.Stats(ctx, userID)
 }

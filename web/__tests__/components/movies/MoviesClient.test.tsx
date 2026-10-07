@@ -83,6 +83,12 @@ beforeEach(() => {
 })
 
 describe('MoviesClient backlog', () => {
+  it('links to the stats page', () => {
+    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [], hasMore: false }) })
+    render(<MoviesClient />)
+    expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute('href', '/movies/stats')
+  })
+
   it('lists entries with poster, type and release info', () => {
     mockBacklog({
       data: create(ListBacklogResponseSchema, { entries: [matrix, avatar], hasMore: false })
