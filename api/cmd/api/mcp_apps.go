@@ -201,13 +201,13 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.failingPullRequests(ctx)
 		})
-	addObsTool(srv, "get_workflow_runs",
+	addObsToolWithDefaults(srv, "get_workflow_runs",
 		"Recent pull-request and push (main branch) GitHub Actions workflow "+
 			"runs, with duration for each completed run.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.workflowRuns(ctx), nil
 		})
-	addObsTool(srv, "get_security_alerts",
+	addObsToolWithDefaults(srv, "get_security_alerts",
 		"Open GitHub security alerts: Dependabot (dependencies), code "+
 			"scanning (CodeQL/SARIF findings), and secret scanning (leaked "+
 			"credentials). Dependabot alerts carry advisory_id and "+
@@ -225,8 +225,9 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.oauthConnections(ctx)
 		})
-	addObsTool(srv, "get_sentry_issues",
-		"Unresolved Sentry issues for the project.",
+	addObsToolWithDefaults(srv, "get_sentry_issues",
+		"Unresolved Sentry issues for the project. An empty issues list means "+
+			"none.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.sentryIssues(ctx), nil
 		})
@@ -288,7 +289,7 @@ func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 		})
 	registerPromQueryMCPTool(srv, h.app)
 	registerGrafanaAlertsMCPTool(srv, h.app)
-	addObsTool(srv, "get_project_issues_by_status",
+	addObsToolWithDefaults(srv, "get_project_issues_by_status",
 		"Open issues on the configured repository owner's GitHub Projects "+
 			"(v2) board whose Status column matches the given name (e.g. "+
 			"\"Ready\"). The generic GitHub MCP server can't resolve custom "+
