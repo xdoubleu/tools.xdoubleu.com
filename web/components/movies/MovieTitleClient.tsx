@@ -4,14 +4,15 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Code, ConnectError } from '@connectrpc/connect'
 import { useMovieTitle, useMoviesActions } from '@/hooks/useMovies'
-import { mediaTypeLabel, releaseLabel, todayISO, watchDateLabel } from '@/lib/movies/format'
+import { mediaTypeLabel, releaseLabel, todayISO } from '@/lib/movies/format'
 import MoviePoster from '@/components/movies/MoviePoster'
-import StatusSelect from '@/components/movies/StatusSelect'
+import MovieWatches from '@/components/movies/MovieWatches'
+import SeasonChecklist from '@/components/movies/SeasonChecklist'
+import TitleStatus from '@/components/movies/TitleStatus'
 import TmdbAttribution from '@/components/movies/TmdbAttribution'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/dialog'
-import { Field } from '@/components/ui/field'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
@@ -19,11 +20,10 @@ import { ErrorState, LoadingState } from '@/components/ui/states'
 export default function MovieTitleClient({ id }: { id: string }) {
   const router = useRouter()
   const { data, error, isLoading } = useMovieTitle(id)
-  const { setStatus, remove } = useMoviesActions()
-  const [pending, setPending] = useState(false)
+  const { remove } = useMoviesActions()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [removing, setRemoving] = useState(false)
-  const [failed, setFailed] = useState<'status' | 'remove' | null>(null)
+  const [removeFailed, setRemoveFailed] = useState(false)
 
   const breadcrumb = [{ label: 'Movies & Series', href: '/movies' }]
 
@@ -48,26 +48,14 @@ export default function MovieTitleClient({ id }: { id: string }) {
     entry.seasonCount ? `${entry.seasonCount} season${entry.seasonCount === 1 ? '' : 's'}` : ''
   ].filter(Boolean)
 
-  const change = async (status: string) => {
-    setPending(true)
-    setFailed(null)
-    try {
-      await setStatus(entry.id, status)
-    } catch {
-      setFailed('status')
-    } finally {
-      setPending(false)
-    }
-  }
-
   const confirmRemove = async () => {
     setRemoving(true)
-    setFailed(null)
+    setRemoveFailed(false)
     try {
       await remove(entry.id)
       router.push('/movies')
     } catch {
-      setFailed('remove')
+      setRemoveFailed(true)
     } finally {
       setRemoving(false)
     }
@@ -100,29 +88,11 @@ export default function MovieTitleClient({ id }: { id: string }) {
             </div>
           )}
           {data.overview && <p className="text-sm">{data.overview}</p>}
-          <Field label="Status" htmlFor="movie-status" className="max-w-xs">
-            <StatusSelect
-              id="movie-status"
-              value={entry.status}
-              disabled={pending}
-              onChange={(s) => void change(s)}
-            />
-          </Field>
-          {failed === 'status' && (
-            <p className="text-sm text-danger">Couldn&apos;t update status. Try again.</p>
-          )}
-          {entry.watchedAt.length > 0 && (
-            <div>
-              <p className="text-sm text-subtle">Watched</p>
-              <ul className="text-sm">
-                {entry.watchedAt.map((w, i) => (
-                  // Stryker disable next-line StringLiteral: React keys aren't observable.
-                  <li key={`${w}-${i}`} suppressHydrationWarning>
-                    {watchDateLabel(w)}
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <TitleStatus entry={entry} seasons={data.seasons} />
+          {entry.mediaType === 'series' ? (
+            <SeasonChecklist entryId={entry.id} seasons={data.seasons} />
+          ) : (
+            <MovieWatches entry={entry} />
           )}
           <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
             Remove from backlog
@@ -140,9 +110,7 @@ export default function MovieTitleClient({ id }: { id: string }) {
         pending={removing}
         onConfirm={() => void confirmRemove()}
       >
-        {failed === 'remove' && (
-          <p className="text-sm text-danger">Couldn&apos;t remove. Try again.</p>
-        )}
+        {removeFailed && <p className="text-sm text-danger">Couldn&apos;t remove. Try again.</p>}
       </ConfirmDialog>
       <TmdbAttribution />
     </PageContainer>

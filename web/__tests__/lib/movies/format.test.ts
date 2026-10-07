@@ -5,7 +5,8 @@ import {
   releaseLabel,
   statusLabel,
   todayISO,
-  watchDateLabel
+  watchDateLabel,
+  watchDay
 } from '@/lib/movies/format'
 
 describe('movies format helpers', () => {
@@ -39,5 +40,7 @@ describe('movies format helpers', () => {
     expect(todayISO(new Date(2026, 0, 5))).toBe('2026-01-05')
     expect(watchDateLabel(new Date(2026, 9, 7, 12).toISOString())).toBe('2026-10-07')
     expect(watchDateLabel('')).toBe('Date unknown')
+    expect(watchDay(new Date(2026, 9, 7, 12).toISOString())).toBe('2026-10-07')
+    expect(watchDay('')).toBe('')
   })
 })

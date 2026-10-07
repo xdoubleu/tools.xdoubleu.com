@@ -16,7 +16,11 @@ const mockClient = {
   getTitle: jest.fn().mockResolvedValue({}),
   addTitle: jest.fn().mockResolvedValue({ entry: { id: 'e-2' } }),
   setStatus: jest.fn().mockResolvedValue({}),
-  removeTitle: jest.fn().mockResolvedValue({})
+  removeTitle: jest.fn().mockResolvedValue({}),
+  setSeasonWatched: jest.fn().mockResolvedValue({}),
+  addWatchDate: jest.fn().mockResolvedValue({}),
+  editWatchDate: jest.fn().mockResolvedValue({}),
+  removeWatchDate: jest.fn().mockResolvedValue({})
 }
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => mockClient)
@@ -119,16 +123,63 @@ describe('useMoviesActions', () => {
     expect(mockClient.addTitle).toHaveBeenCalledWith({
       mediaType: 'movie',
       tmdbId: 603n,
-      status: 'want'
+      status: 'want',
+      unknownDate: false
+    })
+    await result.current.add('series', 1n, 'watched', true)
+    expect(mockClient.addTitle).toHaveBeenLastCalledWith({
+      mediaType: 'series',
+      tmdbId: 1n,
+      status: 'watched',
+      unknownDate: true
     })
     await result.current.setStatus('e-2', 'watched')
-    expect(mockClient.setStatus).toHaveBeenCalledWith({ id: 'e-2', status: 'watched' })
+    expect(mockClient.setStatus).toHaveBeenCalledWith({
+      id: 'e-2',
+      status: 'watched',
+      unknownDate: false
+    })
+    await result.current.setStatus('e-2', 'watched', true)
+    expect(mockClient.setStatus).toHaveBeenLastCalledWith({
+      id: 'e-2',
+      status: 'watched',
+      unknownDate: true
+    })
     expect(revalidated).toEqual([['/movies/backlog', '', '', 'added'], '/movies/title/x'])
     await result.current.remove('x')
     expect(mockClient.removeTitle).toHaveBeenCalledWith({ id: 'x' })
 
-    expect(mockMutate).toHaveBeenCalledTimes(3)
+    expect(mockMutate).toHaveBeenCalledTimes(5)
     // The removed title itself is not revalidated.
     expect(revalidated).toEqual([['/movies/backlog', '', '', 'added']])
+  })
+
+  it('writes seasons and watch dates, then revalidates', async () => {
+    const { result } = renderHook(() => useMoviesActions())
+
+    await result.current.setSeasonWatched('e-1', 2, true)
+    expect(mockClient.setSeasonWatched).toHaveBeenCalledWith({
+      id: 'e-1',
+      seasonNumber: 2,
+      watched: true,
+      unknownDate: false
+    })
+    await result.current.addWatchDate('e-1', 2, '')
+    expect(mockClient.addWatchDate).toHaveBeenCalledWith({ id: 'e-1', seasonNumber: 2, date: '' })
+    await result.current.editWatchDate('e-1', undefined, 1, '2020-01-02')
+    expect(mockClient.editWatchDate).toHaveBeenCalledWith({
+      id: 'e-1',
+      seasonNumber: undefined,
+      index: 1,
+      date: '2020-01-02'
+    })
+    await result.current.removeWatchDate('e-1', 3, 0)
+    expect(mockClient.removeWatchDate).toHaveBeenCalledWith({
+      id: 'e-1',
+      seasonNumber: 3,
+      index: 0
+    })
+    expect(mockMutate).toHaveBeenCalledTimes(4)
+    expect(revalidated).toEqual([['/movies/backlog', '', '', 'added'], '/movies/title/x'])
   })
 })

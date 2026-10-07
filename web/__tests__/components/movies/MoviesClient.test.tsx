@@ -115,7 +115,7 @@ describe('MoviesClient backlog', () => {
     fireEvent.change(screen.getByLabelText('Status of The Matrix'), {
       target: { value: 'watched' }
     })
-    await waitFor(() => expect(mockSetStatus).toHaveBeenCalledWith('e-1', 'watched'))
+    await waitFor(() => expect(mockSetStatus).toHaveBeenCalledWith('e-1', 'watched', false))
     // Held even though the (unrefetched) entry still says "want".
     await waitFor(() =>
       expect(screen.getByLabelText('Status of The Matrix')).toHaveValue('watched')
@@ -243,17 +243,31 @@ describe('MoviesClient search', () => {
     expect(screen.getByText('Watched', { selector: 'span' })).toBeInTheDocument()
   })
 
-  it.each([
-    ['Want', 'want'],
-    ['Watched', 'watched']
-  ])('adds with %s', async (label, status) => {
+  it('adds a series as wanted in one tap', async () => {
     mockAdd.mockResolvedValue({})
     mockSearch({ data: results })
     render(<MoviesClient />)
     search('br')
 
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: label })))
-    expect(mockAdd).toHaveBeenCalledWith('series', 1396n, status)
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Want' })))
+    expect(mockAdd).toHaveBeenCalledWith('series', 1396n, 'want', false)
+  })
+
+  it.each([
+    ['Today', false],
+    ['A while ago', true]
+  ])('asks when a watched series was seen: %s', async (choice, unknownDate) => {
+    mockAdd.mockResolvedValue({})
+    mockSearch({ data: results })
+    render(<MoviesClient />)
+    search('br')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Watched' }))
+    expect(mockAdd).not.toHaveBeenCalled()
+    expect(screen.getByText('When did you watch Breaking Bad?')).toBeInTheDocument()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: choice })))
+    expect(mockAdd).toHaveBeenCalledWith('series', 1396n, 'watched', unknownDate)
+    expect(screen.queryByText('When did you watch Breaking Bad?')).not.toBeInTheDocument()
   })
 
   it('reports a failed add', async () => {

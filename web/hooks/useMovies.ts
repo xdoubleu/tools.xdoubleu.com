@@ -59,20 +59,50 @@ export function useMoviesActions() {
   const { mutate } = useSWRConfig()
   const refresh = (except?: string) => mutate((key) => key !== except && isMoviesKey(key))
 
+  // unknownDate dates new watches unknown instead of now; for a series marked
+  // watched, that is every aired season it ticks.
   return {
-    add: async (mediaType: string, tmdbId: bigint, status: 'want' | 'watched') => {
-      const res = await client.addTitle({ mediaType, tmdbId, status })
+    add: async (
+      mediaType: string,
+      tmdbId: bigint,
+      status: 'want' | 'watched',
+      unknownDate = false
+    ) => {
+      const res = await client.addTitle({ mediaType, tmdbId, status, unknownDate })
       await refresh()
       return res.entry
     },
-    setStatus: async (id: string, status: string) => {
-      await client.setStatus({ id, status })
+    setStatus: async (id: string, status: string, unknownDate = false) => {
+      await client.setStatus({ id, status, unknownDate })
       await refresh()
     },
     remove: async (id: string) => {
       await client.removeTitle({ id })
       // The removed title would only revalidate to NotFound.
       await refresh(swrKeys.moviesTitle(id))
+    },
+    setSeasonWatched: async (id: string, seasonNumber: number, watched: boolean) => {
+      await client.setSeasonWatched({ id, seasonNumber, watched, unknownDate: false })
+      await refresh()
+    },
+    // seasonNumber undefined targets the entry's own watches (movies); date
+    // is YYYY-MM-DD or '' for unknown.
+    addWatchDate: async (id: string, seasonNumber: number | undefined, date: string) => {
+      await client.addWatchDate({ id, seasonNumber, date })
+      await refresh()
+    },
+    editWatchDate: async (
+      id: string,
+      seasonNumber: number | undefined,
+      index: number,
+      date: string
+    ) => {
+      await client.editWatchDate({ id, seasonNumber, index, date })
+      await refresh()
+    },
+    removeWatchDate: async (id: string, seasonNumber: number | undefined, index: number) => {
+      await client.removeWatchDate({ id, seasonNumber, index })
+      await refresh()
     }
   }
 }

@@ -61,7 +61,7 @@ describe('MovieSearchResults', () => {
     const add = deferred()
     mockAdd.mockReturnValueOnce(add.promise)
     fireEvent.click(screen.getAllByRole('button', { name: label })[0])
-    expect(mockAdd).toHaveBeenCalledWith('movie', 438631n, status)
+    expect(mockAdd).toHaveBeenCalledWith('movie', 438631n, status, false)
     expect(row).toHaveTextContent('Adding…')
     buttons().forEach((b) => expect(b).toBeDisabled())
 

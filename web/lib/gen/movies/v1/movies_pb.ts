@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file movies/v1/movies.proto.
  */
 export const file_movies_v1_movies: GenFile = /*@__PURE__*/
-  fileDesc("ChZtb3ZpZXMvdjEvbW92aWVzLnByb3RvEgltb3ZpZXMudjEipQEKDFNlYXJjaFJlc3VsdBISCgptZWRpYV90eXBlGAEgASgJEg8KB3RtZGJfaWQYAiABKAMSDQoFdGl0bGUYAyABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBCABKAkSFAoMcmVsZWFzZV9kYXRlGAUgASgJEhMKC3Bvc3Rlcl9wYXRoGAYgASgJEhMKBnN0YXR1cxgHIAEoCUgAiAEBQgkKB19zdGF0dXMiuQIKDEJhY2tsb2dFbnRyeRIKCgJpZBgBIAEoCRISCgptZWRpYV90eXBlGAIgASgJEg8KB3RtZGJfaWQYAyABKAMSDQoFdGl0bGUYBCABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBSABKAkSFAoMcmVsZWFzZV9kYXRlGAYgASgJEhMKC3Bvc3Rlcl9wYXRoGAcgASgJEg4KBmdlbnJlcxgIIAMoCRIUCgdydW50aW1lGAkgASgFSACIAQESGQoMc2Vhc29uX2NvdW50GAogASgFSAGIAQESDgoGc3RhdHVzGAsgASgJEhIKCndhdGNoZWRfYXQYDCADKAkSEAoIYWRkZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCUIKCghfcnVudGltZUIPCg1fc2Vhc29uX2NvdW50IiQKE1NlYXJjaFRpdGxlc1JlcXVlc3QSDQoFcXVlcnkYASABKAkiQAoUU2VhcmNoVGl0bGVzUmVzcG9uc2USKAoHcmVzdWx0cxgBIAMoCzIXLm1vdmllcy52MS5TZWFyY2hSZXN1bHQiRgoPQWRkVGl0bGVSZXF1ZXN0EhIKCm1lZGlhX3R5cGUYASABKAkSDwoHdG1kYl9pZBgCIAEoAxIOCgZzdGF0dXMYAyABKAkiOgoQQWRkVGl0bGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkiLgoQU2V0U3RhdHVzUmVxdWVzdBIKCgJpZBgBIAEoCRIOCgZzdGF0dXMYAiABKAkiOwoRU2V0U3RhdHVzUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5IiAKElJlbW92ZVRpdGxlUmVxdWVzdBIKCgJpZBgBIAEoCSIVChNSZW1vdmVUaXRsZVJlc3BvbnNlImUKEkxpc3RCYWNrbG9nUmVxdWVzdBIOCgZzdGF0dXMYASABKAkSEgoKbWVkaWFfdHlwZRgCIAEoCRIMCgRzb3J0GAMgASgJEg0KBWxpbWl0GAQgASgFEg4KBm9mZnNldBgFIAEoBSJRChNMaXN0QmFja2xvZ1Jlc3BvbnNlEigKB2VudHJpZXMYASADKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EhAKCGhhc19tb3JlGAIgASgIIh0KD0dldFRpdGxlUmVxdWVzdBIKCgJpZBgBIAEoCSJMChBHZXRUaXRsZVJlc3BvbnNlEiYKBWVudHJ5GAEgASgLMhcubW92aWVzLnYxLkJhY2tsb2dFbnRyeRIQCghvdmVydmlldxgCIAEoCTLOAwoNTW92aWVzU2VydmljZRJPCgxTZWFyY2hUaXRsZXMSHi5tb3ZpZXMudjEuU2VhcmNoVGl0bGVzUmVxdWVzdBofLm1vdmllcy52MS5TZWFyY2hUaXRsZXNSZXNwb25zZRJDCghBZGRUaXRsZRIaLm1vdmllcy52MS5BZGRUaXRsZVJlcXVlc3QaGy5tb3ZpZXMudjEuQWRkVGl0bGVSZXNwb25zZRJGCglTZXRTdGF0dXMSGy5tb3ZpZXMudjEuU2V0U3RhdHVzUmVxdWVzdBocLm1vdmllcy52MS5TZXRTdGF0dXNSZXNwb25zZRJMCgtSZW1vdmVUaXRsZRIdLm1vdmllcy52MS5SZW1vdmVUaXRsZVJlcXVlc3QaHi5tb3ZpZXMudjEuUmVtb3ZlVGl0bGVSZXNwb25zZRJMCgtMaXN0QmFja2xvZxIdLm1vdmllcy52MS5MaXN0QmFja2xvZ1JlcXVlc3QaHi5tb3ZpZXMudjEuTGlzdEJhY2tsb2dSZXNwb25zZRJDCghHZXRUaXRsZRIaLm1vdmllcy52MS5HZXRUaXRsZVJlcXVlc3QaGy5tb3ZpZXMudjEuR2V0VGl0bGVSZXNwb25zZUIrWil0b29scy54ZG91YmxldS5jb20vZ2VuL21vdmllcy92MTttb3ZpZXN2MWIGcHJvdG8z");
+  fileDesc("ChZtb3ZpZXMvdjEvbW92aWVzLnByb3RvEgltb3ZpZXMudjEipQEKDFNlYXJjaFJlc3VsdBISCgptZWRpYV90eXBlGAEgASgJEg8KB3RtZGJfaWQYAiABKAMSDQoFdGl0bGUYAyABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBCABKAkSFAoMcmVsZWFzZV9kYXRlGAUgASgJEhMKC3Bvc3Rlcl9wYXRoGAYgASgJEhMKBnN0YXR1cxgHIAEoCUgAiAEBQgkKB19zdGF0dXMiuQIKDEJhY2tsb2dFbnRyeRIKCgJpZBgBIAEoCRISCgptZWRpYV90eXBlGAIgASgJEg8KB3RtZGJfaWQYAyABKAMSDQoFdGl0bGUYBCABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBSABKAkSFAoMcmVsZWFzZV9kYXRlGAYgASgJEhMKC3Bvc3Rlcl9wYXRoGAcgASgJEg4KBmdlbnJlcxgIIAMoCRIUCgdydW50aW1lGAkgASgFSACIAQESGQoMc2Vhc29uX2NvdW50GAogASgFSAGIAQESDgoGc3RhdHVzGAsgASgJEhIKCndhdGNoZWRfYXQYDCADKAkSEAoIYWRkZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCUIKCghfcnVudGltZUIPCg1fc2Vhc29uX2NvdW50IiQKE1NlYXJjaFRpdGxlc1JlcXVlc3QSDQoFcXVlcnkYASABKAkiQAoUU2VhcmNoVGl0bGVzUmVzcG9uc2USKAoHcmVzdWx0cxgBIAMoCzIXLm1vdmllcy52MS5TZWFyY2hSZXN1bHQiXAoPQWRkVGl0bGVSZXF1ZXN0EhIKCm1lZGlhX3R5cGUYASABKAkSDwoHdG1kYl9pZBgCIAEoAxIOCgZzdGF0dXMYAyABKAkSFAoMdW5rbm93bl9kYXRlGAQgASgIIjoKEEFkZFRpdGxlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5IkQKEFNldFN0YXR1c1JlcXVlc3QSCgoCaWQYASABKAkSDgoGc3RhdHVzGAIgASgJEhQKDHVua25vd25fZGF0ZRgDIAEoCCI7ChFTZXRTdGF0dXNSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkiIAoSUmVtb3ZlVGl0bGVSZXF1ZXN0EgoKAmlkGAEgASgJIhUKE1JlbW92ZVRpdGxlUmVzcG9uc2UiZQoSTGlzdEJhY2tsb2dSZXF1ZXN0Eg4KBnN0YXR1cxgBIAEoCRISCgptZWRpYV90eXBlGAIgASgJEgwKBHNvcnQYAyABKAkSDQoFbGltaXQYBCABKAUSDgoGb2Zmc2V0GAUgASgFIlEKE0xpc3RCYWNrbG9nUmVzcG9uc2USKAoHZW50cmllcxgBIAMoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSEAoIaGFzX21vcmUYAiABKAgicgoGU2Vhc29uEg4KBm51bWJlchgBIAEoBRIMCgRuYW1lGAIgASgJEhAKCGFpcl9kYXRlGAMgASgJEhUKDWVwaXNvZGVfY291bnQYBCABKAUSEgoKd2F0Y2hlZF9hdBgFIAMoCRINCgVhaXJlZBgGIAEoCCIdCg9HZXRUaXRsZVJlcXVlc3QSCgoCaWQYASABKAkicAoQR2V0VGl0bGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSEAoIb3ZlcnZpZXcYAiABKAkSIgoHc2Vhc29ucxgDIAMoCzIRLm1vdmllcy52MS5TZWFzb24iYwoXU2V0U2Vhc29uV2F0Y2hlZFJlcXVlc3QSCgoCaWQYASABKAkSFQoNc2Vhc29uX251bWJlchgCIAEoBRIPCgd3YXRjaGVkGAMgASgIEhQKDHVua25vd25fZGF0ZRgEIAEoCCJmChhTZXRTZWFzb25XYXRjaGVkUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uIl0KE0FkZFdhdGNoRGF0ZVJlcXVlc3QSCgoCaWQYASABKAkSGgoNc2Vhc29uX251bWJlchgCIAEoBUgAiAEBEgwKBGRhdGUYAyABKAlCEAoOX3NlYXNvbl9udW1iZXIiYgoUQWRkV2F0Y2hEYXRlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uIm0KFEVkaXRXYXRjaERhdGVSZXF1ZXN0EgoKAmlkGAEgASgJEhoKDXNlYXNvbl9udW1iZXIYAiABKAVIAIgBARINCgVpbmRleBgDIAEoBRIMCgRkYXRlGAQgASgJQhAKDl9zZWFzb25fbnVtYmVyImMKFUVkaXRXYXRjaERhdGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSIgoHc2Vhc29ucxgCIAMoCzIRLm1vdmllcy52MS5TZWFzb24iYQoWUmVtb3ZlV2F0Y2hEYXRlUmVxdWVzdBIKCgJpZBgBIAEoCRIaCg1zZWFzb25fbnVtYmVyGAIgASgFSACIAQESDQoFaW5kZXgYAyABKAVCEAoOX3NlYXNvbl9udW1iZXIiZQoXUmVtb3ZlV2F0Y2hEYXRlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uMqoGCg1Nb3ZpZXNTZXJ2aWNlEk8KDFNlYXJjaFRpdGxlcxIeLm1vdmllcy52MS5TZWFyY2hUaXRsZXNSZXF1ZXN0Gh8ubW92aWVzLnYxLlNlYXJjaFRpdGxlc1Jlc3BvbnNlEkMKCEFkZFRpdGxlEhoubW92aWVzLnYxLkFkZFRpdGxlUmVxdWVzdBobLm1vdmllcy52MS5BZGRUaXRsZVJlc3BvbnNlEkYKCVNldFN0YXR1cxIbLm1vdmllcy52MS5TZXRTdGF0dXNSZXF1ZXN0GhwubW92aWVzLnYxLlNldFN0YXR1c1Jlc3BvbnNlEkwKC1JlbW92ZVRpdGxlEh0ubW92aWVzLnYxLlJlbW92ZVRpdGxlUmVxdWVzdBoeLm1vdmllcy52MS5SZW1vdmVUaXRsZVJlc3BvbnNlEkwKC0xpc3RCYWNrbG9nEh0ubW92aWVzLnYxLkxpc3RCYWNrbG9nUmVxdWVzdBoeLm1vdmllcy52MS5MaXN0QmFja2xvZ1Jlc3BvbnNlEkMKCEdldFRpdGxlEhoubW92aWVzLnYxLkdldFRpdGxlUmVxdWVzdBobLm1vdmllcy52MS5HZXRUaXRsZVJlc3BvbnNlElsKEFNldFNlYXNvbldhdGNoZWQSIi5tb3ZpZXMudjEuU2V0U2Vhc29uV2F0Y2hlZFJlcXVlc3QaIy5tb3ZpZXMudjEuU2V0U2Vhc29uV2F0Y2hlZFJlc3BvbnNlEk8KDEFkZFdhdGNoRGF0ZRIeLm1vdmllcy52MS5BZGRXYXRjaERhdGVSZXF1ZXN0Gh8ubW92aWVzLnYxLkFkZFdhdGNoRGF0ZVJlc3BvbnNlElIKDUVkaXRXYXRjaERhdGUSHy5tb3ZpZXMudjEuRWRpdFdhdGNoRGF0ZVJlcXVlc3QaIC5tb3ZpZXMudjEuRWRpdFdhdGNoRGF0ZVJlc3BvbnNlElgKD1JlbW92ZVdhdGNoRGF0ZRIhLm1vdmllcy52MS5SZW1vdmVXYXRjaERhdGVSZXF1ZXN0GiIubW92aWVzLnYxLlJlbW92ZVdhdGNoRGF0ZVJlc3BvbnNlQitaKXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vbW92aWVzL3YxO21vdmllc3YxYgZwcm90bzM");
 
 /**
  * @generated from message movies.v1.SearchResult
@@ -205,6 +205,14 @@ export type AddTitleRequest = Message<"movies.v1.AddTitleRequest"> & {
    * @generated from field: string status = 3;
    */
   status: string;
+
+  /**
+   * Date new watches unknown instead of now: the movie's, or each aired
+   * season's when a series is added as watched.
+   *
+   * @generated from field: bool unknown_date = 4;
+   */
+  unknownDate: boolean;
 };
 
 /**
@@ -244,6 +252,14 @@ export type SetStatusRequest = Message<"movies.v1.SetStatusRequest"> & {
    * @generated from field: string status = 2;
    */
   status: string;
+
+  /**
+   * As AddTitleRequest.unknown_date; "watched" on a series ticks its aired
+   * seasons.
+   *
+   * @generated from field: bool unknown_date = 3;
+   */
+  unknownDate: boolean;
 };
 
 /**
@@ -366,6 +382,56 @@ export const ListBacklogResponseSchema: GenMessage<ListBacklogResponse> = /*@__P
   messageDesc(file_movies_v1_movies, 11);
 
 /**
+ * A series season; number 0 is TMDB's "Specials", which never counts toward
+ * the series status.
+ *
+ * @generated from message movies.v1.Season
+ */
+export type Season = Message<"movies.v1.Season"> & {
+  /**
+   * @generated from field: int32 number = 1;
+   */
+  number: number;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * YYYY-MM-DD; empty when TMDB has no date.
+   *
+   * @generated from field: string air_date = 3;
+   */
+  airDate: string;
+
+  /**
+   * @generated from field: int32 episode_count = 4;
+   */
+  episodeCount: number;
+
+  /**
+   * RFC3339; an empty string is a watch with an unknown date. Ticked when
+   * non-empty.
+   *
+   * @generated from field: repeated string watched_at = 5;
+   */
+  watchedAt: string[];
+
+  /**
+   * @generated from field: bool aired = 6;
+   */
+  aired: boolean;
+};
+
+/**
+ * Describes the message movies.v1.Season.
+ * Use `create(SeasonSchema)` to create a new message.
+ */
+export const SeasonSchema: GenMessage<Season> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 12);
+
+/**
  * @generated from message movies.v1.GetTitleRequest
  */
 export type GetTitleRequest = Message<"movies.v1.GetTitleRequest"> & {
@@ -380,7 +446,7 @@ export type GetTitleRequest = Message<"movies.v1.GetTitleRequest"> & {
  * Use `create(GetTitleRequestSchema)` to create a new message.
  */
 export const GetTitleRequestSchema: GenMessage<GetTitleRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 12);
+  messageDesc(file_movies_v1_movies, 13);
 
 /**
  * @generated from message movies.v1.GetTitleResponse
@@ -395,6 +461,13 @@ export type GetTitleResponse = Message<"movies.v1.GetTitleResponse"> & {
    * @generated from field: string overview = 2;
    */
   overview: string;
+
+  /**
+   * Series only, in season order.
+   *
+   * @generated from field: repeated movies.v1.Season seasons = 3;
+   */
+  seasons: Season[];
 };
 
 /**
@@ -402,7 +475,219 @@ export type GetTitleResponse = Message<"movies.v1.GetTitleResponse"> & {
  * Use `create(GetTitleResponseSchema)` to create a new message.
  */
 export const GetTitleResponseSchema: GenMessage<GetTitleResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 13);
+  messageDesc(file_movies_v1_movies, 14);
+
+/**
+ * Ticking adds one watch (now, or unknown); unticking clears the season's
+ * watches. Either re-derives the series status unless it is dropped.
+ *
+ * @generated from message movies.v1.SetSeasonWatchedRequest
+ */
+export type SetSeasonWatchedRequest = Message<"movies.v1.SetSeasonWatchedRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: int32 season_number = 2;
+   */
+  seasonNumber: number;
+
+  /**
+   * @generated from field: bool watched = 3;
+   */
+  watched: boolean;
+
+  /**
+   * @generated from field: bool unknown_date = 4;
+   */
+  unknownDate: boolean;
+};
+
+/**
+ * Describes the message movies.v1.SetSeasonWatchedRequest.
+ * Use `create(SetSeasonWatchedRequestSchema)` to create a new message.
+ */
+export const SetSeasonWatchedRequestSchema: GenMessage<SetSeasonWatchedRequest> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 15);
+
+/**
+ * @generated from message movies.v1.SetSeasonWatchedResponse
+ */
+export type SetSeasonWatchedResponse = Message<"movies.v1.SetSeasonWatchedResponse"> & {
+  /**
+   * @generated from field: movies.v1.BacklogEntry entry = 1;
+   */
+  entry?: BacklogEntry | undefined;
+
+  /**
+   * @generated from field: repeated movies.v1.Season seasons = 2;
+   */
+  seasons: Season[];
+};
+
+/**
+ * Describes the message movies.v1.SetSeasonWatchedResponse.
+ * Use `create(SetSeasonWatchedResponseSchema)` to create a new message.
+ */
+export const SetSeasonWatchedResponseSchema: GenMessage<SetSeasonWatchedResponse> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 16);
+
+/**
+ * Watch-date edits target the entry's own watches (movies) or, with
+ * season_number set, a season's. date is YYYY-MM-DD; empty means unknown.
+ *
+ * @generated from message movies.v1.AddWatchDateRequest
+ */
+export type AddWatchDateRequest = Message<"movies.v1.AddWatchDateRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: optional int32 season_number = 2;
+   */
+  seasonNumber?: number | undefined;
+
+  /**
+   * @generated from field: string date = 3;
+   */
+  date: string;
+};
+
+/**
+ * Describes the message movies.v1.AddWatchDateRequest.
+ * Use `create(AddWatchDateRequestSchema)` to create a new message.
+ */
+export const AddWatchDateRequestSchema: GenMessage<AddWatchDateRequest> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 17);
+
+/**
+ * @generated from message movies.v1.AddWatchDateResponse
+ */
+export type AddWatchDateResponse = Message<"movies.v1.AddWatchDateResponse"> & {
+  /**
+   * @generated from field: movies.v1.BacklogEntry entry = 1;
+   */
+  entry?: BacklogEntry | undefined;
+
+  /**
+   * @generated from field: repeated movies.v1.Season seasons = 2;
+   */
+  seasons: Season[];
+};
+
+/**
+ * Describes the message movies.v1.AddWatchDateResponse.
+ * Use `create(AddWatchDateResponseSchema)` to create a new message.
+ */
+export const AddWatchDateResponseSchema: GenMessage<AddWatchDateResponse> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 18);
+
+/**
+ * @generated from message movies.v1.EditWatchDateRequest
+ */
+export type EditWatchDateRequest = Message<"movies.v1.EditWatchDateRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: optional int32 season_number = 2;
+   */
+  seasonNumber?: number | undefined;
+
+  /**
+   * @generated from field: int32 index = 3;
+   */
+  index: number;
+
+  /**
+   * @generated from field: string date = 4;
+   */
+  date: string;
+};
+
+/**
+ * Describes the message movies.v1.EditWatchDateRequest.
+ * Use `create(EditWatchDateRequestSchema)` to create a new message.
+ */
+export const EditWatchDateRequestSchema: GenMessage<EditWatchDateRequest> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 19);
+
+/**
+ * @generated from message movies.v1.EditWatchDateResponse
+ */
+export type EditWatchDateResponse = Message<"movies.v1.EditWatchDateResponse"> & {
+  /**
+   * @generated from field: movies.v1.BacklogEntry entry = 1;
+   */
+  entry?: BacklogEntry | undefined;
+
+  /**
+   * @generated from field: repeated movies.v1.Season seasons = 2;
+   */
+  seasons: Season[];
+};
+
+/**
+ * Describes the message movies.v1.EditWatchDateResponse.
+ * Use `create(EditWatchDateResponseSchema)` to create a new message.
+ */
+export const EditWatchDateResponseSchema: GenMessage<EditWatchDateResponse> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 20);
+
+/**
+ * @generated from message movies.v1.RemoveWatchDateRequest
+ */
+export type RemoveWatchDateRequest = Message<"movies.v1.RemoveWatchDateRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: optional int32 season_number = 2;
+   */
+  seasonNumber?: number | undefined;
+
+  /**
+   * @generated from field: int32 index = 3;
+   */
+  index: number;
+};
+
+/**
+ * Describes the message movies.v1.RemoveWatchDateRequest.
+ * Use `create(RemoveWatchDateRequestSchema)` to create a new message.
+ */
+export const RemoveWatchDateRequestSchema: GenMessage<RemoveWatchDateRequest> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 21);
+
+/**
+ * @generated from message movies.v1.RemoveWatchDateResponse
+ */
+export type RemoveWatchDateResponse = Message<"movies.v1.RemoveWatchDateResponse"> & {
+  /**
+   * @generated from field: movies.v1.BacklogEntry entry = 1;
+   */
+  entry?: BacklogEntry | undefined;
+
+  /**
+   * @generated from field: repeated movies.v1.Season seasons = 2;
+   */
+  seasons: Season[];
+};
+
+/**
+ * Describes the message movies.v1.RemoveWatchDateResponse.
+ * Use `create(RemoveWatchDateResponseSchema)` to create a new message.
+ */
+export const RemoveWatchDateResponseSchema: GenMessage<RemoveWatchDateResponse> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 22);
 
 /**
  * @generated from service movies.v1.MoviesService
@@ -455,6 +740,38 @@ export const MoviesService: GenService<{
     methodKind: "unary";
     input: typeof GetTitleRequestSchema;
     output: typeof GetTitleResponseSchema;
+  },
+  /**
+   * @generated from rpc movies.v1.MoviesService.SetSeasonWatched
+   */
+  setSeasonWatched: {
+    methodKind: "unary";
+    input: typeof SetSeasonWatchedRequestSchema;
+    output: typeof SetSeasonWatchedResponseSchema;
+  },
+  /**
+   * @generated from rpc movies.v1.MoviesService.AddWatchDate
+   */
+  addWatchDate: {
+    methodKind: "unary";
+    input: typeof AddWatchDateRequestSchema;
+    output: typeof AddWatchDateResponseSchema;
+  },
+  /**
+   * @generated from rpc movies.v1.MoviesService.EditWatchDate
+   */
+  editWatchDate: {
+    methodKind: "unary";
+    input: typeof EditWatchDateRequestSchema;
+    output: typeof EditWatchDateResponseSchema;
+  },
+  /**
+   * @generated from rpc movies.v1.MoviesService.RemoveWatchDate
+   */
+  removeWatchDate: {
+    methodKind: "unary";
+    input: typeof RemoveWatchDateRequestSchema;
+    output: typeof RemoveWatchDateResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_movies_v1_movies, 0);
