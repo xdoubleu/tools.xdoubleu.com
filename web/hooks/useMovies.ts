@@ -4,6 +4,7 @@ import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
 import { MoviesService } from '@/lib/gen/movies/v1/movies_pb'
 import type {
+  GetStatsResponse,
   GetTitleResponse,
   ListBacklogResponse,
   SearchTitlesResponse
@@ -44,6 +45,11 @@ export function useMovieSearch(query: string) {
     () => client.searchTitles({ query: trimmed }),
     { keepPreviousData: true }
   )
+}
+
+export function useMovieStats() {
+  const client = createServiceClient(MoviesService)
+  return useSWR<GetStatsResponse, Error>(swrKeys.moviesStats, () => client.getStats({}))
 }
 
 export function useMovieTitle(id: string) {

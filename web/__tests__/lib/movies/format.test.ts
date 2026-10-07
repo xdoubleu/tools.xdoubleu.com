@@ -4,6 +4,7 @@ import {
   isNewSeason,
   isUnreleased,
   mediaTypeLabel,
+  monthLabel,
   posterUrl,
   releaseLabel,
   statusLabel,
@@ -79,5 +80,14 @@ describe('isNewSeason', () => {
     ['ticked', 'watched', { ...season, watchedAt: [''] }]
   ])('is not when %s', (_name, status, s) => {
     expect(isNewSeason(status, s)).toBe(false)
+  })
+})
+
+describe('monthLabel', () => {
+  it.each([
+    ['2026-01', 'Jan 26'],
+    ['2025-12', 'Dec 25']
+  ])('labels %s as %s', (month, label) => {
+    expect(monthLabel(month)).toBe(label)
   })
 })

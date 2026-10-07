@@ -92,6 +92,7 @@ export const swrKeys = {
     ['/movies/backlog', status, mediaType, sort] as const,
   moviesSearch: (query: string) => ['/movies/search', query] as const,
   moviesTitle: (id: string) => `/movies/title/${id}`,
+  moviesStats: '/movies/stats',
 
   shoppingList: (ownerUserId: string) => `/shoppinglist?owner=${ownerUserId}`,
   shoppingListExport: (planId: string, excludedGroups: readonly string[]) =>

@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 
 const fetchOrNull = jest.fn()
 const swrFallback = jest.fn()
-const serverClient = { listBacklog: jest.fn(), getTitle: jest.fn() }
+const serverClient = { listBacklog: jest.fn(), getTitle: jest.fn(), getStats: jest.fn() }
 
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => serverClient)
@@ -35,7 +35,13 @@ jest.mock('@/components/movies/MovieTitleClient', () => ({
   default: ({ id }: { id: string }) => <div data-testid="title-client">{id}</div>
 }))
 
+jest.mock('@/components/movies/MoviesStatsClient', () => ({
+  __esModule: true,
+  default: () => <div data-testid="stats-client" />
+}))
+
 import MoviesPage from '@/app/movies/page'
+import MoviesStatsPage from '@/app/movies/stats/page'
 import MovieTitlePage from '@/app/movies/[id]/page'
 
 beforeEach(() => jest.clearAllMocks())
@@ -79,6 +85,26 @@ describe('MovieTitlePage', () => {
   it('renders without seeding when the fetch fails', async () => {
     fetchOrNull.mockResolvedValue(null)
     render(await MovieTitlePage({ params: Promise.resolve({ id: 't-1' }) }))
+    expect(swrFallback).toHaveBeenCalledWith(expect.objectContaining({ fallback: {} }))
+  })
+})
+
+describe('MoviesStatsPage', () => {
+  it('seeds the stats key under a breadcrumb back to the backlog', async () => {
+    const stats = { months: [] }
+    fetchOrNull.mockResolvedValue(stats)
+    render(await MoviesStatsPage())
+    expect(screen.getByTestId('stats-client')).toBeInTheDocument()
+    expect(serverClient.getStats).toHaveBeenCalledWith({})
+    expect(swrFallback).toHaveBeenCalledWith(
+      expect.objectContaining({ fallback: { '/movies/stats': stats } })
+    )
+    expect(screen.getByRole('link', { name: 'Movies & Series' })).toHaveAttribute('href', '/movies')
+  })
+
+  it('renders without seeding when the fetch fails', async () => {
+    fetchOrNull.mockResolvedValue(null)
+    render(await MoviesStatsPage())
     expect(swrFallback).toHaveBeenCalledWith(expect.objectContaining({ fallback: {} }))
   })
 })
