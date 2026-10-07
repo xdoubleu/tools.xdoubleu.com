@@ -76,6 +76,11 @@ export function useMoviesActions() {
       await client.setStatus({ id, status, unknownDate })
       await refresh()
     },
+    // rating is 1-5, or 0 to clear.
+    setRating: async (id: string, rating: number) => {
+      await client.setRating({ id, rating: rating > 0 ? rating : undefined })
+      await refresh()
+    },
     remove: async (id: string) => {
       await client.removeTitle({ id })
       // The removed title would only revalidate to NotFound.

@@ -376,6 +376,19 @@ Also accepts: `Omit<
   'type' | 'name' | 'checked' | 'onChange'
 >`
 
+### `rating-stars.tsx` — client component
+
+#### `RatingStars`
+
+Five-star rating; an image when read-only, star buttons otherwise.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `value` | `number` | yes | 1–5 stars; 0 is unrated. |
+| `onChange` | `(value: number) => void` |  | Omit for a read-only display. Clicking the current rating passes 0 (clear). |
+| `disabled` | `boolean` |  |  |
+| `size` | `'sm' \| 'md'` |  | Glyph size: "sm" (default) for cards, "md" for detail pages. Interactive stars are 44px targets on phones. |
+
 ### `section-card.tsx`
 
 #### `SectionCard`

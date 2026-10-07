@@ -21,7 +21,7 @@ type mcpSearchArgs struct {
 type mcpListBacklogArgs struct {
 	Status    string `json:"status,omitempty"     jsonschema:"want, watching, watched or dropped; empty for all"`
 	MediaType string `json:"media_type,omitempty" jsonschema:"movie or series; empty for both"`
-	Sort      string `json:"sort,omitempty"       jsonschema:"added (default), title or release"`
+	Sort      string `json:"sort,omitempty"       jsonschema:"added (default), title, release or rating"`
 	Limit     int32  `json:"limit,omitempty"      jsonschema:"max entries, default 50"`
 	Offset    int32  `json:"offset,omitempty"     jsonschema:"pagination offset"`
 }
@@ -38,7 +38,7 @@ func (a *Movies) RegisterMCPTools(srv *mcp.Server) {
 		"Search TMDB for movies and series. Results already in the user's "+
 			"backlog carry their status.", h.mcpSearchTitles)
 	mcptools.AddReadTool(srv, mcpAppName, "movies_list_backlog",
-		"The user's movies & series backlog with status and watch dates. "+
+		"The user's movies & series backlog with status, rating and watch dates. "+
 			"Page with limit/offset while has_more is true.", h.mcpListBacklog)
 	mcptools.AddReadTool(srv, mcpAppName, "movies_get_title",
 		"A single backlog entry including the TMDB overview.", h.mcpGetTitle)

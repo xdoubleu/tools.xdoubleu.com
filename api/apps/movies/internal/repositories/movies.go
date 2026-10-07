@@ -17,7 +17,7 @@ type MoviesRepository struct {
 }
 
 // entryColumns excludes t.overview, which only GetEntry reads.
-const entryColumns = `ut.id, ut.user_id, ut.status, ut.watched_at,
+const entryColumns = `ut.id, ut.user_id, ut.status, ut.rating, ut.watched_at,
 	ut.added_at, ut.updated_at, t.id, t.media_type, t.tmdb_id, t.title,
 	t.original_title, t.release_date, t.poster_path, t.genres, t.runtime,
 	t.season_count`
@@ -27,12 +27,13 @@ var orderBy = map[string]string{
 	models.SortAdded:   "ut.added_at DESC, ut.id",
 	models.SortTitle:   "lower(t.title), ut.id",
 	models.SortRelease: "t.release_date DESC NULLS LAST, ut.id",
+	models.SortRating:  "ut.rating DESC NULLS LAST, ut.added_at DESC, ut.id",
 }
 
 func scanEntry(row pgx.Row, extra ...any) (*models.Entry, error) {
 	var e models.Entry
 	dest := []any{
-		&e.ID, &e.UserID, &e.Status, &e.WatchedAt, &e.AddedAt, &e.UpdatedAt,
+		&e.ID, &e.UserID, &e.Status, &e.Rating, &e.WatchedAt, &e.AddedAt, &e.UpdatedAt,
 		&e.Title.ID, &e.Title.MediaType, &e.Title.TMDBID, &e.Title.Title,
 		&e.Title.OriginalTitle, &e.Title.ReleaseDate, &e.Title.PosterPath,
 		&e.Title.Genres, &e.Title.Runtime, &e.Title.SeasonCount,
@@ -126,6 +127,27 @@ func (r *MoviesRepository) SetStatus(
 		FROM movies.titles t
 		WHERE ut.id = $1 AND ut.user_id = $2 AND t.id = ut.title_id`,
 		id, userID, status, unknownDate,
+	)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return database.ErrResourceNotFound
+	}
+	return nil
+}
+
+// SetRating stores the entry's rating; nil clears it.
+func (r *MoviesRepository) SetRating(
+	ctx context.Context,
+	userID string,
+	id uuid.UUID,
+	rating *int,
+) error {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE movies.user_titles SET rating = $3, updated_at = now()
+		WHERE id = $1 AND user_id = $2`,
+		id, userID, rating,
 	)
 	if err != nil {
 		return err

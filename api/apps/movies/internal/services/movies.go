@@ -35,6 +35,7 @@ type moviesStore interface {
 		status string,
 		unknownDate bool,
 	) error
+	SetRating(ctx context.Context, userID string, id uuid.UUID, rating *int) error
 	DeleteEntry(ctx context.Context, userID string, id uuid.UUID) error
 	GetEntry(ctx context.Context, userID string, id uuid.UUID) (*models.Entry, error)
 	ListEntries(
@@ -218,6 +219,22 @@ func (s *MovieService) SetStatus(
 	return s.markSeriesWatched(ctx, userID, entry, unknownDate)
 }
 
+// SetRating rates the entry 1-5 stars; nil clears the rating.
+func (s *MovieService) SetRating(
+	ctx context.Context,
+	userID string,
+	id uuid.UUID,
+	rating *int,
+) (*models.Entry, error) {
+	if !models.IsRating(rating) {
+		return nil, badRequest("rating must be 1 to 5")
+	}
+	if err := s.repo.SetRating(ctx, userID, id, rating); err != nil {
+		return nil, err
+	}
+	return s.Get(ctx, userID, id)
+}
+
 func (s *MovieService) Remove(
 	ctx context.Context,
 	userID string,
@@ -264,9 +281,10 @@ func (s *MovieService) List(
 		return nil, false, badRequest("media_type must be movie or series")
 	}
 	switch f.Sort {
-	case "", models.SortAdded, models.SortTitle, models.SortRelease:
+	case "", models.SortAdded, models.SortTitle, models.SortRelease,
+		models.SortRating:
 	default:
-		return nil, false, badRequest("sort must be added, title or release")
+		return nil, false, badRequest("sort must be added, title, release or rating")
 	}
 	return s.repo.ListEntries(ctx, userID, f)
 }

@@ -75,6 +75,26 @@ func (h *moviesConnectHandler) SetStatus(
 	}), nil
 }
 
+func (h *moviesConnectHandler) SetRating(
+	ctx context.Context,
+	req *connect.Request[moviesv1.SetRatingRequest],
+) (*connect.Response[moviesv1.SetRatingResponse], error) {
+	uid, id, err := target(ctx, req.Msg.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	entry, err := h.app.services.Movies.SetRating(
+		ctx, uid, id, optionalInt(req.Msg.Rating),
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return connect.NewResponse(&moviesv1.SetRatingResponse{
+		Entry: protoEntry(entry),
+	}), nil
+}
+
 func (h *moviesConnectHandler) RemoveTitle(
 	ctx context.Context,
 	req *connect.Request[moviesv1.RemoveTitleRequest],

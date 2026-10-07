@@ -66,6 +66,14 @@ describe('MoviesBacklog filters', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'All types' }))
     expect(last()?.mediaType).toBe('')
   })
+
+  it('sorts by rating', () => {
+    mockBacklog({ data: page([]) })
+    render(<MoviesBacklog />)
+    fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'rating' } })
+    expect(jest.mocked(useMoviesBacklog).mock.lastCall?.[0].sort).toBe('rating')
+    expect(screen.getByRole('option', { name: 'Rating' })).toBeInTheDocument()
+  })
 })
 
 describe('MoviesBacklog rows', () => {
@@ -75,6 +83,15 @@ describe('MoviesBacklog rows', () => {
     const metas = screen.getAllByText(/^Movie/, { selector: 'p' })
     expect(metas.map((p) => p.textContent)).toEqual(['Movie · 1999', 'Movie'])
     expect(screen.getByLabelText('Status of The Matrix')).toHaveAttribute('id', 'status-e-1')
+  })
+
+  it('shows a rating read-only, and nothing when unrated', () => {
+    const rated = create(BacklogEntrySchema, { ...matrix, rating: 4 })
+    mockBacklog({ data: page([rated, avatar]) })
+    render(<MoviesBacklog />)
+    expect(screen.getByRole('img', { name: '4 out of 5 stars' })).toBeInTheDocument()
+    expect(screen.getAllByRole('img', { name: /stars|No rating/ })).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: /^Rate/ })).not.toBeInTheDocument()
   })
 
   it('disables the status while saving and clears an old error on success', async () => {
