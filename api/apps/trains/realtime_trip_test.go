@@ -122,6 +122,10 @@ func TestGetRealtimeTrip_Handler_SummaryOnlyWithoutTrainNumber(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, int32(1), resp.Msg.GetTripCount())
+	assert.Equal(t, int32(1), resp.Msg.GetFeedEntityCount())
+	assert.Equal(t, int32(1), resp.Msg.GetFeedTripUpdateCount())
+	assert.Zero(t, resp.Msg.GetFeedWithoutTripIdCount())
+	assert.Equal(t, []string{"IC900"}, resp.Msg.GetSnapshotTripShortNames())
 	assert.False(t, resp.Msg.GetFound())
 	assert.Empty(t, resp.Msg.GetStatus())
 	assert.Empty(t, resp.Msg.GetPlannedTripId())

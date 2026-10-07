@@ -83,6 +83,17 @@ type TripKey struct {
 	Date      string
 }
 
+// FeedStats counts what the trip-update feed held before trips were resolved.
+type FeedStats struct {
+	// Entities is every entity in the feed.
+	Entities int
+	// TripUpdates is the entities carrying a trip update.
+	TripUpdates int
+	// WithoutTripID is trip updates with an empty trip_id, which collapse into
+	// one map entry on decode and never resolve.
+	WithoutTripID int
+}
+
 // Snapshot is the in-memory realtime state, replaced on every poll.
 type Snapshot struct {
 	// Trips is keyed by (trip_short_name, service date).
@@ -93,6 +104,7 @@ type Snapshot struct {
 	// DuplicateTripCount counts trip updates dropped because another one had
 	// the same TripKey.
 	DuplicateTripCount int
+	Feed               FeedStats
 	Alerts             []Alert
 	FetchedAt          time.Time
 }

@@ -253,6 +253,14 @@ message GetRealtimeTripResponse {
   // The static trip journey detail overlays it on; empty when none runs today.
   string planned_trip_id = 12;
   repeated PlannedStop planned_stops = 13;
+  // Entities in the raw trip-update feed, before trips are resolved.
+  int32 feed_entity_count = 14;
+  // Feed entities carrying a trip update.
+  int32 feed_trip_update_count = 15;
+  // Trip updates with an empty trip_id, which cannot resolve.
+  int32 feed_without_trip_id_count = 16;
+  // Train numbers in today's snapshot, sorted.
+  repeated string snapshot_trip_short_names = 17;
 }
 
 service TrainService {

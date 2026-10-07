@@ -69,6 +69,11 @@ func (h *trainsConnectHandler) GetRealtimeTrip(
 		StopUpdates:         updates,
 		PlannedTripId:       view.PlannedTripID,
 		PlannedStops:        planned,
+
+		FeedEntityCount:        count32(snap.Feed.Entities),
+		FeedTripUpdateCount:    count32(snap.Feed.TripUpdates),
+		FeedWithoutTripIdCount: count32(snap.Feed.WithoutTripID),
+		SnapshotTripShortNames: view.SnapshotShortNames,
 	}), nil
 }
 

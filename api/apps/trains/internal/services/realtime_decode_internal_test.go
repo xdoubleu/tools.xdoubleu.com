@@ -44,7 +44,7 @@ func TestDecodeTripUpdates_FullCancellation(t *testing.T) {
 		},
 	})
 
-	trips, err := decodeTripUpdates(marshalFeed(t, msg))
+	trips, _, err := decodeTripUpdates(marshalFeed(t, msg))
 	require.NoError(t, err)
 	require.Contains(t, trips, "trip-1")
 	assert.Equal(t, models.DelayCancelled, trips["trip-1"].State)
@@ -67,7 +67,7 @@ func TestDecodeTripUpdates_PartialCancellation(t *testing.T) {
 		},
 	})
 
-	trips, err := decodeTripUpdates(marshalFeed(t, msg))
+	trips, _, err := decodeTripUpdates(marshalFeed(t, msg))
 	require.NoError(t, err)
 	trip := trips["trip-1"]
 	assert.Equal(t, models.DelayOnTime, trip.State)
@@ -91,7 +91,7 @@ func TestDecodeTripUpdates_NoData(t *testing.T) {
 		},
 	})
 
-	trips, err := decodeTripUpdates(marshalFeed(t, msg))
+	trips, _, err := decodeTripUpdates(marshalFeed(t, msg))
 	require.NoError(t, err)
 	call := trips["trip-1"].StopCalls[0]
 	assert.Equal(t, models.DelayUnknown, call.State)
@@ -120,7 +120,7 @@ func TestDecodeTripUpdates_DelayedAndOnTime(t *testing.T) {
 		},
 	})
 
-	trips, err := decodeTripUpdates(marshalFeed(t, msg))
+	trips, _, err := decodeTripUpdates(marshalFeed(t, msg))
 	require.NoError(t, err)
 	calls := trips["trip-1"].StopCalls
 	require.Len(t, calls, 2)
@@ -168,7 +168,7 @@ func TestDecodeAlerts(t *testing.T) {
 }
 
 func TestDecodeTripUpdates_MalformedBody(t *testing.T) {
-	_, err := decodeTripUpdates([]byte{0xff, 0xff, 0xff})
+	_, _, err := decodeTripUpdates([]byte{0xff, 0xff, 0xff})
 	require.Error(t, err)
 }
 
@@ -186,7 +186,7 @@ func TestDecodeTripUpdates_ScheduledWithNoEvents(t *testing.T) {
 		},
 	})
 
-	trips, err := decodeTripUpdates(marshalFeed(t, msg))
+	trips, _, err := decodeTripUpdates(marshalFeed(t, msg))
 	require.NoError(t, err)
 	trip := trips["trip-1"]
 	assert.Equal(t, models.DelayUnknown, trip.StopCalls[0].State)
@@ -203,7 +203,7 @@ func TestDecodeTripUpdates_NoTimestamp(t *testing.T) {
 		},
 	})
 
-	trips, err := decodeTripUpdates(marshalFeed(t, msg))
+	trips, _, err := decodeTripUpdates(marshalFeed(t, msg))
 	require.NoError(t, err)
 	assert.True(t, trips["trip-1"].Timestamp.IsZero())
 }
@@ -227,7 +227,7 @@ func TestDecodeTripUpdates_TimesOnly(t *testing.T) {
 		},
 	})
 
-	trips, err := decodeTripUpdates(marshalFeed(t, msg))
+	trips, _, err := decodeTripUpdates(marshalFeed(t, msg))
 	require.NoError(t, err)
 	call := trips["trip-1"].StopCalls[0]
 	assert.Equal(t, models.DelayUnknown, call.State)
@@ -235,4 +235,32 @@ func TestDecodeTripUpdates_TimesOnly(t *testing.T) {
 	assert.Equal(t, at, call.ArrivalTime.Unix())
 	require.NotNil(t, call.DepartureTime)
 	assert.Equal(t, at+60, call.DepartureTime.Unix())
+}
+
+// TestDecodeTripUpdates_FeedStats counts entities the decode cannot key.
+func TestDecodeTripUpdates_FeedStats(t *testing.T) {
+	//nolint:exhaustruct //only the fields under test are set
+	msg := newFeedMessage(
+		&gtfs.FeedEntity{
+			Id: ptr("e1"),
+			TripUpdate: &gtfs.TripUpdate{
+				Trip: &gtfs.TripDescriptor{TripId: ptr("trip-1")},
+			},
+		},
+		&gtfs.FeedEntity{
+			Id: ptr("e2"),
+			TripUpdate: &gtfs.TripUpdate{
+				Trip: &gtfs.TripDescriptor{},
+			},
+		},
+		&gtfs.FeedEntity{Id: ptr("e3")},
+	)
+
+	_, stats, err := decodeTripUpdates(marshalFeed(t, msg))
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		models.FeedStats{Entities: 3, TripUpdates: 2, WithoutTripID: 1},
+		stats,
+	)
 }

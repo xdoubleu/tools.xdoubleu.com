@@ -10,22 +10,36 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// decodeTripUpdates parses a GTFS-RT trip-update feed, keyed by raw trip_id.
-func decodeTripUpdates(body []byte) (map[string]models.TripUpdate, error) {
+// decodeTripUpdates parses a GTFS-RT trip-update feed, keyed by raw trip_id,
+// and counts what the feed held so entities lost on decode stay visible.
+func decodeTripUpdates(
+	body []byte,
+) (map[string]models.TripUpdate, models.FeedStats, error) {
 	var msg gtfs.FeedMessage
 	if err := proto.Unmarshal(body, &msg); err != nil {
-		return nil, fmt.Errorf("trains: decode trip-update feed: %w", err)
+		return nil, models.FeedStats{}, fmt.Errorf(
+			"trains: decode trip-update feed: %w", err,
+		)
 	}
 
+	stats := models.FeedStats{
+		Entities:      len(msg.GetEntity()),
+		TripUpdates:   0,
+		WithoutTripID: 0,
+	}
 	result := make(map[string]models.TripUpdate, len(msg.GetEntity()))
 	for _, entity := range msg.GetEntity() {
 		tu := entity.GetTripUpdate()
 		if tu == nil {
 			continue
 		}
+		stats.TripUpdates++
 
 		trip := tu.GetTrip()
 		tripID := trip.GetTripId()
+		if tripID == "" {
+			stats.WithoutTripID++
+		}
 
 		state := models.DelayOnTime
 		if trip.GetScheduleRelationship() == gtfs.TripDescriptor_CANCELED {
@@ -47,7 +61,7 @@ func decodeTripUpdates(body []byte) (map[string]models.TripUpdate, error) {
 			Timestamp: unixSecondsOrZero(tu.Timestamp),
 		}
 	}
-	return result, nil
+	return result, stats, nil
 }
 
 // decodeStopCall: SKIPPED is a partial cancellation, NO_DATA/UNSCHEDULED mean
