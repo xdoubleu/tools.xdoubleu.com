@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
@@ -13,8 +14,10 @@ type RealtimeTripView struct {
 	Snapshot models.Snapshot
 	// StopCallStates counts every stop call in the snapshot by state.
 	StopCallStates map[string]int
-	Found          bool
-	Trip           models.TripUpdate
+	// SnapshotShortNames are today's train numbers in the snapshot, sorted.
+	SnapshotShortNames []string
+	Found              bool
+	Trip               models.TripUpdate
 	// PlannedTripID is empty when no static trip runs the train today.
 	PlannedTripID string
 	PlannedStops  []models.StopTime
@@ -34,6 +37,13 @@ func (s *JourneyDetailService) RealtimeTrip(
 	}
 	//nolint:exhaustruct //trip fields are filled below when shortName is set
 	view := RealtimeTripView{Snapshot: snapshot, StopCallStates: states}
+	day := serviceDateOf(now).Format("20060102")
+	for key := range snapshot.Trips {
+		if key.Date == day {
+			view.SnapshotShortNames = append(view.SnapshotShortNames, key.ShortName)
+		}
+	}
+	sort.Strings(view.SnapshotShortNames)
 	if shortName == "" {
 		return view, nil
 	}

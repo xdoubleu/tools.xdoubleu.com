@@ -1856,8 +1856,16 @@ type GetRealtimeTripResponse struct {
 	// The static trip journey detail overlays it on; empty when none runs today.
 	PlannedTripId string         `protobuf:"bytes,12,opt,name=planned_trip_id,json=plannedTripId,proto3" json:"planned_trip_id,omitempty"`
 	PlannedStops  []*PlannedStop `protobuf:"bytes,13,rep,name=planned_stops,json=plannedStops,proto3" json:"planned_stops,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Entities in the raw trip-update feed, before trips are resolved.
+	FeedEntityCount int32 `protobuf:"varint,14,opt,name=feed_entity_count,json=feedEntityCount,proto3" json:"feed_entity_count,omitempty"`
+	// Feed entities carrying a trip update.
+	FeedTripUpdateCount int32 `protobuf:"varint,15,opt,name=feed_trip_update_count,json=feedTripUpdateCount,proto3" json:"feed_trip_update_count,omitempty"`
+	// Trip updates with an empty trip_id, which cannot resolve.
+	FeedWithoutTripIdCount int32 `protobuf:"varint,16,opt,name=feed_without_trip_id_count,json=feedWithoutTripIdCount,proto3" json:"feed_without_trip_id_count,omitempty"`
+	// Train numbers in today's snapshot, sorted.
+	SnapshotTripShortNames []string `protobuf:"bytes,17,rep,name=snapshot_trip_short_names,json=snapshotTripShortNames,proto3" json:"snapshot_trip_short_names,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetRealtimeTripResponse) Reset() {
@@ -1977,6 +1985,34 @@ func (x *GetRealtimeTripResponse) GetPlannedTripId() string {
 func (x *GetRealtimeTripResponse) GetPlannedStops() []*PlannedStop {
 	if x != nil {
 		return x.PlannedStops
+	}
+	return nil
+}
+
+func (x *GetRealtimeTripResponse) GetFeedEntityCount() int32 {
+	if x != nil {
+		return x.FeedEntityCount
+	}
+	return 0
+}
+
+func (x *GetRealtimeTripResponse) GetFeedTripUpdateCount() int32 {
+	if x != nil {
+		return x.FeedTripUpdateCount
+	}
+	return 0
+}
+
+func (x *GetRealtimeTripResponse) GetFeedWithoutTripIdCount() int32 {
+	if x != nil {
+		return x.FeedWithoutTripIdCount
+	}
+	return 0
+}
+
+func (x *GetRealtimeTripResponse) GetSnapshotTripShortNames() []string {
+	if x != nil {
+		return x.SnapshotTripShortNames
 	}
 	return nil
 }
@@ -2113,7 +2149,7 @@ const file_trains_v1_trains_proto_rawDesc = "" +
 	"\x10_departure_delay\"K\n" +
 	"\vPlannedStop\x12\x17\n" +
 	"\astop_id\x18\x01 \x01(\tR\x06stopId\x12#\n" +
-	"\rstop_sequence\x18\x02 \x01(\x05R\fstopSequence\"\xa0\x05\n" +
+	"\rstop_sequence\x18\x02 \x01(\x05R\fstopSequence\"\xf8\x06\n" +
 	"\x17GetRealtimeTripResponse\x12\x1d\n" +
 	"\n" +
 	"fetched_at\x18\x01 \x01(\tR\tfetchedAt\x12\x1d\n" +
@@ -2132,7 +2168,11 @@ const file_trains_v1_trains_proto_rawDesc = "" +
 	" \x01(\tR\x06status\x12@\n" +
 	"\fstop_updates\x18\v \x03(\v2\x1d.trains.v1.RealtimeStopUpdateR\vstopUpdates\x12&\n" +
 	"\x0fplanned_trip_id\x18\f \x01(\tR\rplannedTripId\x12;\n" +
-	"\rplanned_stops\x18\r \x03(\v2\x16.trains.v1.PlannedStopR\fplannedStops\x1aE\n" +
+	"\rplanned_stops\x18\r \x03(\v2\x16.trains.v1.PlannedStopR\fplannedStops\x12*\n" +
+	"\x11feed_entity_count\x18\x0e \x01(\x05R\x0ffeedEntityCount\x123\n" +
+	"\x16feed_trip_update_count\x18\x0f \x01(\x05R\x13feedTripUpdateCount\x12:\n" +
+	"\x1afeed_without_trip_id_count\x18\x10 \x01(\x05R\x16feedWithoutTripIdCount\x129\n" +
+	"\x19snapshot_trip_short_names\x18\x11 \x03(\tR\x16snapshotTripShortNames\x1aE\n" +
 	"\x17StopUpdateStatusesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x012\xca\x06\n" +

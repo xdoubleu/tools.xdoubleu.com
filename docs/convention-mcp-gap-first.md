@@ -55,4 +55,6 @@ working tool would have saved, often requiring direct database access.
 - **#2226** — running trains showed "No live data" with no way to tell a
   missing realtime trip from a failed stop match. `trains_get_realtime_trip`
   returns the snapshot summary plus one train's raw stop updates beside the
-  static stop_times they overlay.
+  static stop_times they overlay. It still couldn't say whether the feed
+  omits running trains or decode drops them, so it also reports raw feed
+  entity counts and the train numbers in the snapshot.

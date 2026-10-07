@@ -66,7 +66,7 @@ func (s *RealtimeService) Poll(ctx context.Context) error {
 		return nil
 	}
 
-	rawTrips, err := s.fetchTripUpdates(ctx)
+	rawTrips, feed, err := s.fetchTripUpdates(ctx)
 	if err != nil {
 		if isBackoffable(err) {
 			s.logger.Warn("trains: realtime trip-update poll backing off", "error", err)
@@ -118,6 +118,7 @@ func (s *RealtimeService) Poll(ctx context.Context) error {
 		Trips:               trips,
 		UnresolvedTripCount: counts.unresolved,
 		DuplicateTripCount:  counts.duplicates,
+		Feed:                feed,
 		Alerts:              alerts,
 		FetchedAt:           time.Now(),
 	}
@@ -133,10 +134,10 @@ func (s *RealtimeService) Poll(ctx context.Context) error {
 
 func (s *RealtimeService) fetchTripUpdates(
 	ctx context.Context,
-) (map[string]models.TripUpdate, error) {
+) (map[string]models.TripUpdate, models.FeedStats, error) {
 	res, err := s.bmc.FetchRealtime(ctx, bmc.FeedTripUpdate)
 	if err != nil {
-		return nil, err
+		return nil, models.FeedStats{}, err
 	}
 	return decodeTripUpdates(res.Body)
 }
