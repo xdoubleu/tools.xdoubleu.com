@@ -40,6 +40,8 @@ const (
 	MoviesServiceAddTitleProcedure = "/movies.v1.MoviesService/AddTitle"
 	// MoviesServiceSetStatusProcedure is the fully-qualified name of the MoviesService's SetStatus RPC.
 	MoviesServiceSetStatusProcedure = "/movies.v1.MoviesService/SetStatus"
+	// MoviesServiceSetRatingProcedure is the fully-qualified name of the MoviesService's SetRating RPC.
+	MoviesServiceSetRatingProcedure = "/movies.v1.MoviesService/SetRating"
 	// MoviesServiceRemoveTitleProcedure is the fully-qualified name of the MoviesService's RemoveTitle
 	// RPC.
 	MoviesServiceRemoveTitleProcedure = "/movies.v1.MoviesService/RemoveTitle"
@@ -67,6 +69,7 @@ type MoviesServiceClient interface {
 	SearchTitles(context.Context, *connect.Request[v1.SearchTitlesRequest]) (*connect.Response[v1.SearchTitlesResponse], error)
 	AddTitle(context.Context, *connect.Request[v1.AddTitleRequest]) (*connect.Response[v1.AddTitleResponse], error)
 	SetStatus(context.Context, *connect.Request[v1.SetStatusRequest]) (*connect.Response[v1.SetStatusResponse], error)
+	SetRating(context.Context, *connect.Request[v1.SetRatingRequest]) (*connect.Response[v1.SetRatingResponse], error)
 	RemoveTitle(context.Context, *connect.Request[v1.RemoveTitleRequest]) (*connect.Response[v1.RemoveTitleResponse], error)
 	ListBacklog(context.Context, *connect.Request[v1.ListBacklogRequest]) (*connect.Response[v1.ListBacklogResponse], error)
 	GetTitle(context.Context, *connect.Request[v1.GetTitleRequest]) (*connect.Response[v1.GetTitleResponse], error)
@@ -103,6 +106,12 @@ func NewMoviesServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			httpClient,
 			baseURL+MoviesServiceSetStatusProcedure,
 			connect.WithSchema(moviesServiceMethods.ByName("SetStatus")),
+			connect.WithClientOptions(opts...),
+		),
+		setRating: connect.NewClient[v1.SetRatingRequest, v1.SetRatingResponse](
+			httpClient,
+			baseURL+MoviesServiceSetRatingProcedure,
+			connect.WithSchema(moviesServiceMethods.ByName("SetRating")),
 			connect.WithClientOptions(opts...),
 		),
 		removeTitle: connect.NewClient[v1.RemoveTitleRequest, v1.RemoveTitleResponse](
@@ -155,6 +164,7 @@ type moviesServiceClient struct {
 	searchTitles     *connect.Client[v1.SearchTitlesRequest, v1.SearchTitlesResponse]
 	addTitle         *connect.Client[v1.AddTitleRequest, v1.AddTitleResponse]
 	setStatus        *connect.Client[v1.SetStatusRequest, v1.SetStatusResponse]
+	setRating        *connect.Client[v1.SetRatingRequest, v1.SetRatingResponse]
 	removeTitle      *connect.Client[v1.RemoveTitleRequest, v1.RemoveTitleResponse]
 	listBacklog      *connect.Client[v1.ListBacklogRequest, v1.ListBacklogResponse]
 	getTitle         *connect.Client[v1.GetTitleRequest, v1.GetTitleResponse]
@@ -177,6 +187,11 @@ func (c *moviesServiceClient) AddTitle(ctx context.Context, req *connect.Request
 // SetStatus calls movies.v1.MoviesService.SetStatus.
 func (c *moviesServiceClient) SetStatus(ctx context.Context, req *connect.Request[v1.SetStatusRequest]) (*connect.Response[v1.SetStatusResponse], error) {
 	return c.setStatus.CallUnary(ctx, req)
+}
+
+// SetRating calls movies.v1.MoviesService.SetRating.
+func (c *moviesServiceClient) SetRating(ctx context.Context, req *connect.Request[v1.SetRatingRequest]) (*connect.Response[v1.SetRatingResponse], error) {
+	return c.setRating.CallUnary(ctx, req)
 }
 
 // RemoveTitle calls movies.v1.MoviesService.RemoveTitle.
@@ -219,6 +234,7 @@ type MoviesServiceHandler interface {
 	SearchTitles(context.Context, *connect.Request[v1.SearchTitlesRequest]) (*connect.Response[v1.SearchTitlesResponse], error)
 	AddTitle(context.Context, *connect.Request[v1.AddTitleRequest]) (*connect.Response[v1.AddTitleResponse], error)
 	SetStatus(context.Context, *connect.Request[v1.SetStatusRequest]) (*connect.Response[v1.SetStatusResponse], error)
+	SetRating(context.Context, *connect.Request[v1.SetRatingRequest]) (*connect.Response[v1.SetRatingResponse], error)
 	RemoveTitle(context.Context, *connect.Request[v1.RemoveTitleRequest]) (*connect.Response[v1.RemoveTitleResponse], error)
 	ListBacklog(context.Context, *connect.Request[v1.ListBacklogRequest]) (*connect.Response[v1.ListBacklogResponse], error)
 	GetTitle(context.Context, *connect.Request[v1.GetTitleRequest]) (*connect.Response[v1.GetTitleResponse], error)
@@ -251,6 +267,12 @@ func NewMoviesServiceHandler(svc MoviesServiceHandler, opts ...connect.HandlerOp
 		MoviesServiceSetStatusProcedure,
 		svc.SetStatus,
 		connect.WithSchema(moviesServiceMethods.ByName("SetStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	moviesServiceSetRatingHandler := connect.NewUnaryHandler(
+		MoviesServiceSetRatingProcedure,
+		svc.SetRating,
+		connect.WithSchema(moviesServiceMethods.ByName("SetRating")),
 		connect.WithHandlerOptions(opts...),
 	)
 	moviesServiceRemoveTitleHandler := connect.NewUnaryHandler(
@@ -303,6 +325,8 @@ func NewMoviesServiceHandler(svc MoviesServiceHandler, opts ...connect.HandlerOp
 			moviesServiceAddTitleHandler.ServeHTTP(w, r)
 		case MoviesServiceSetStatusProcedure:
 			moviesServiceSetStatusHandler.ServeHTTP(w, r)
+		case MoviesServiceSetRatingProcedure:
+			moviesServiceSetRatingHandler.ServeHTTP(w, r)
 		case MoviesServiceRemoveTitleProcedure:
 			moviesServiceRemoveTitleHandler.ServeHTTP(w, r)
 		case MoviesServiceListBacklogProcedure:
@@ -336,6 +360,10 @@ func (UnimplementedMoviesServiceHandler) AddTitle(context.Context, *connect.Requ
 
 func (UnimplementedMoviesServiceHandler) SetStatus(context.Context, *connect.Request[v1.SetStatusRequest]) (*connect.Response[v1.SetStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.SetStatus is not implemented"))
+}
+
+func (UnimplementedMoviesServiceHandler) SetRating(context.Context, *connect.Request[v1.SetRatingRequest]) (*connect.Response[v1.SetRatingResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.SetRating is not implemented"))
 }
 
 func (UnimplementedMoviesServiceHandler) RemoveTitle(context.Context, *connect.Request[v1.RemoveTitleRequest]) (*connect.Response[v1.RemoveTitleResponse], error) {

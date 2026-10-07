@@ -15,6 +15,7 @@ const (
 	SortAdded   = "added"
 	SortTitle   = "title"
 	SortRelease = "release"
+	SortRating  = "rating"
 )
 
 // Title is a row of the shared TMDB catalog.
@@ -36,10 +37,12 @@ type Title struct {
 // with an unknown date; series keep their watches per season instead. Seasons
 // is only loaded for a single entry.
 type Entry struct {
-	ID        uuid.UUID
-	UserID    string
-	Title     Title
-	Status    string
+	ID     uuid.UUID
+	UserID string
+	Title  Title
+	Status string
+	// Rating is 1-5 stars, nil when unrated; any status can keep one.
+	Rating    *int
 	WatchedAt []*time.Time
 	AddedAt   time.Time
 	UpdatedAt time.Time
@@ -74,4 +77,9 @@ func IsStatus(s string) bool {
 		return true
 	}
 	return false
+}
+
+// IsRating reports whether r is a valid rating; nil (unrated) is.
+func IsRating(r *int) bool {
+	return r == nil || (*r >= 1 && *r <= 5)
 }

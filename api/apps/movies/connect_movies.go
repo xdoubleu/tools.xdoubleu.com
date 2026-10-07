@@ -62,7 +62,7 @@ func optionalInt32(n *int) *int32 {
 	if n == nil {
 		return nil
 	}
-	v := int32(*n) //nolint:gosec // runtimes and season counts fit in int32
+	v := int32(*n) //nolint:gosec // small counts and ratings fit in int32
 	return &v
 }
 
@@ -109,6 +109,7 @@ func protoEntry(e *models.Entry) *moviesv1.BacklogEntry {
 		WatchedAt:     watched,
 		AddedAt:       e.AddedAt.Format(time.RFC3339),
 		UpdatedAt:     e.UpdatedAt.Format(time.RFC3339),
+		Rating:        optionalInt32(e.Rating),
 	}
 }
 

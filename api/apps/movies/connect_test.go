@@ -319,7 +319,7 @@ func TestListBacklog_RejectsUnknownFilters(t *testing.T) {
 	for _, req := range []*moviesv1.ListBacklogRequest{
 		{Status: "finished"},
 		{MediaType: "book"},
-		{Sort: "rating"},
+		{Sort: "stars"},
 		{Offset: -1},
 	} {
 		_, err := c.ListBacklog(ctx, connect.NewRequest(req))

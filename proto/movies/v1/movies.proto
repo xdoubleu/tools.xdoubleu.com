@@ -35,6 +35,8 @@ message BacklogEntry {
   repeated string watched_at = 12;
   string added_at = 13;
   string updated_at = 14;
+  // 1-5 stars; unset when unrated.
+  optional int32 rating = 15;
 }
 
 message SearchTitlesRequest { string query = 1; }
@@ -60,6 +62,13 @@ message SetStatusRequest {
 }
 message SetStatusResponse { BacklogEntry entry = 1; }
 
+message SetRatingRequest {
+  string id = 1;
+  // 1-5 stars; unset clears the rating.
+  optional int32 rating = 2;
+}
+message SetRatingResponse { BacklogEntry entry = 1; }
+
 message RemoveTitleRequest { string id = 1; }
 message RemoveTitleResponse {}
 
@@ -68,7 +77,8 @@ message ListBacklogRequest {
   string status = 1;
   // Empty means both media types.
   string media_type = 2;
-  // "added" (default, newest first), "title" or "release" (newest first).
+  // "added" (default, newest first), "title", "release" (newest first) or
+  // "rating" (highest first, unrated last).
   string sort = 3;
   int32 limit = 4;
   int32 offset = 5;
@@ -150,6 +160,7 @@ service MoviesService {
   rpc SearchTitles(SearchTitlesRequest) returns (SearchTitlesResponse);
   rpc AddTitle(AddTitleRequest) returns (AddTitleResponse);
   rpc SetStatus(SetStatusRequest) returns (SetStatusResponse);
+  rpc SetRating(SetRatingRequest) returns (SetRatingResponse);
   rpc RemoveTitle(RemoveTitleRequest) returns (RemoveTitleResponse);
   rpc ListBacklog(ListBacklogRequest) returns (ListBacklogResponse);
   rpc GetTitle(GetTitleRequest) returns (GetTitleResponse);
