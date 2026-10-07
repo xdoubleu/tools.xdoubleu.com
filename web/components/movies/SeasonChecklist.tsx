@@ -50,7 +50,10 @@ function SeasonRow({ entryId, season }: { entryId: string; season: Season }) {
       </p>
       {failed && <p className="text-xs text-danger">Couldn&apos;t save. Try again.</p>}
       {ticked && (
-        <Collapsible title={`Watch dates (${season.watchedAt.length})`}>
+        <Collapsible
+          title={`Watch dates (${season.watchedAt.length})`}
+          triggerClassName="text-sm"
+        >
           <WatchDates
             idPrefix={`season-${season.number}-watch`}
             dates={season.watchedAt}
