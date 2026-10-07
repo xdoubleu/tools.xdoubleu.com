@@ -87,7 +87,11 @@ func TestGetSeries(t *testing.T) {
 		assert.Equal(t, "/tv/1396", r.URL.Path)
 		_, _ = w.Write([]byte(`{"id":1396,"name":"Breaking Bad",
 			"original_name":"Breaking Bad","first_air_date":"2008-01-20",
-			"number_of_seasons":5,"genres":[{"name":"Drama"},{"name":""}]}`))
+			"number_of_seasons":5,"genres":[{"name":"Drama"},{"name":""}],
+			"seasons":[
+				{"season_number":0,"name":"Specials","air_date":"","episode_count":9},
+				{"season_number":1,"name":"Season 1","air_date":"2008-01-20",
+				 "episode_count":7}]}`))
 	})
 
 	got, err := c.GetSeries(context.Background(), 1396)
@@ -97,6 +101,14 @@ func TestGetSeries(t *testing.T) {
 	require.NotNil(t, got.SeasonCount)
 	assert.Equal(t, 5, *got.SeasonCount)
 	assert.Nil(t, got.Runtime)
+
+	require.Len(t, got.Seasons, 2)
+	assert.Equal(t, 0, got.Seasons[0].Number)
+	assert.Nil(t, got.Seasons[0].AirDate)
+	assert.Equal(t, "Season 1", got.Seasons[1].Name)
+	assert.Equal(t, 7, got.Seasons[1].EpisodeCount)
+	require.NotNil(t, got.Seasons[1].AirDate)
+	assert.Equal(t, "2008-01-20", got.Seasons[1].AirDate.Format(time.DateOnly))
 }
 
 func TestGetMovie_ZeroRuntimeIsUnknown(t *testing.T) {

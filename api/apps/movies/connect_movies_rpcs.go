@@ -41,6 +41,7 @@ func (h *moviesConnectHandler) AddTitle(
 
 	entry, err := h.app.services.Movies.Add(
 		ctx, uid, req.Msg.MediaType, req.Msg.TmdbId, req.Msg.Status,
+		req.Msg.UnknownDate,
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -63,7 +64,9 @@ func (h *moviesConnectHandler) SetStatus(
 		return nil, err
 	}
 
-	entry, err := h.app.services.Movies.SetStatus(ctx, uid, id, req.Msg.Status)
+	entry, err := h.app.services.Movies.SetStatus(
+		ctx, uid, id, req.Msg.Status, req.Msg.UnknownDate,
+	)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -141,5 +144,6 @@ func (h *moviesConnectHandler) GetTitle(
 	return connect.NewResponse(&moviesv1.GetTitleResponse{
 		Entry:    protoEntry(entry),
 		Overview: entry.Title.Overview,
+		Seasons:  protoSeasons(entry.Seasons),
 	}), nil
 }

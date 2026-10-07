@@ -14,8 +14,8 @@ const (
 )
 
 // Title is a movie or series. ReleaseDate is the first air date for series,
-// nil when TMDB has none. Overview, Genres, Runtime and SeasonCount are only
-// set by GetMovie/GetSeries.
+// nil when TMDB has none. Overview, Genres, Runtime, SeasonCount and Seasons
+// are only set by GetMovie/GetSeries.
 type Title struct {
 	MediaType     string
 	TMDBID        int64
@@ -27,6 +27,15 @@ type Title struct {
 	Genres        []string
 	Runtime       *int
 	SeasonCount   *int
+	Seasons       []Season
+}
+
+// Season is one season of a series; Number 0 is TMDB's "Specials".
+type Season struct {
+	Number       int
+	Name         string
+	AirDate      *time.Time
+	EpisodeCount int
 }
 
 type searchResponse struct {
@@ -69,6 +78,12 @@ type seriesResponse struct {
 	Overview        string  `json:"overview"`
 	Genres          []genre `json:"genres"`
 	NumberOfSeasons int     `json:"number_of_seasons"`
+	Seasons         []struct {
+		SeasonNumber int    `json:"season_number"`
+		Name         string `json:"name"`
+		AirDate      string `json:"air_date"`
+		EpisodeCount int    `json:"episode_count"`
+	} `json:"seasons"`
 }
 
 func parseDate(s string) *time.Time {
@@ -126,10 +141,20 @@ func (r movieResponse) toTitle() Title {
 		Genres:        genreNames(r.Genres),
 		Runtime:       positive(r.Runtime),
 		SeasonCount:   nil,
+		Seasons:       nil,
 	}
 }
 
 func (r seriesResponse) toTitle() Title {
+	seasons := make([]Season, len(r.Seasons))
+	for i, s := range r.Seasons {
+		seasons[i] = Season{
+			Number:       s.SeasonNumber,
+			Name:         s.Name,
+			AirDate:      parseDate(s.AirDate),
+			EpisodeCount: s.EpisodeCount,
+		}
+	}
 	return Title{
 		MediaType:     MediaTypeSeries,
 		TMDBID:        r.ID,
@@ -141,5 +166,6 @@ func (r seriesResponse) toTitle() Title {
 		Genres:        genreNames(r.Genres),
 		Runtime:       nil,
 		SeasonCount:   positive(r.NumberOfSeasons),
+		Seasons:       seasons,
 	}
 }

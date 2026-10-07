@@ -359,7 +359,10 @@ type AddTitleRequest struct {
 	MediaType string                 `protobuf:"bytes,1,opt,name=media_type,json=mediaType,proto3" json:"media_type,omitempty"`
 	TmdbId    int64                  `protobuf:"varint,2,opt,name=tmdb_id,json=tmdbId,proto3" json:"tmdb_id,omitempty"`
 	// "want" or "watched".
-	Status        string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	Status string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	// Date new watches unknown instead of now: the movie's, or each aired
+	// season's when a series is added as watched.
+	UnknownDate   bool `protobuf:"varint,4,opt,name=unknown_date,json=unknownDate,proto3" json:"unknown_date,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -415,6 +418,13 @@ func (x *AddTitleRequest) GetStatus() string {
 	return ""
 }
 
+func (x *AddTitleRequest) GetUnknownDate() bool {
+	if x != nil {
+		return x.UnknownDate
+	}
+	return false
+}
+
 type AddTitleResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Entry         *BacklogEntry          `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
@@ -460,9 +470,12 @@ func (x *AddTitleResponse) GetEntry() *BacklogEntry {
 }
 
 type SetStatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Id     string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Status string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	// As AddTitleRequest.unknown_date; "watched" on a series ticks its aired
+	// seasons.
+	UnknownDate   bool `protobuf:"varint,3,opt,name=unknown_date,json=unknownDate,proto3" json:"unknown_date,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -509,6 +522,13 @@ func (x *SetStatusRequest) GetStatus() string {
 		return x.Status
 	}
 	return ""
+}
+
+func (x *SetStatusRequest) GetUnknownDate() bool {
+	if x != nil {
+		return x.UnknownDate
+	}
+	return false
 }
 
 type SetStatusResponse struct {
@@ -766,6 +786,95 @@ func (x *ListBacklogResponse) GetHasMore() bool {
 	return false
 }
 
+// A series season; number 0 is TMDB's "Specials", which never counts toward
+// the series status.
+type Season struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Number int32                  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
+	Name   string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// YYYY-MM-DD; empty when TMDB has no date.
+	AirDate      string `protobuf:"bytes,3,opt,name=air_date,json=airDate,proto3" json:"air_date,omitempty"`
+	EpisodeCount int32  `protobuf:"varint,4,opt,name=episode_count,json=episodeCount,proto3" json:"episode_count,omitempty"`
+	// RFC3339; an empty string is a watch with an unknown date. Ticked when
+	// non-empty.
+	WatchedAt     []string `protobuf:"bytes,5,rep,name=watched_at,json=watchedAt,proto3" json:"watched_at,omitempty"`
+	Aired         bool     `protobuf:"varint,6,opt,name=aired,proto3" json:"aired,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Season) Reset() {
+	*x = Season{}
+	mi := &file_movies_v1_movies_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Season) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Season) ProtoMessage() {}
+
+func (x *Season) ProtoReflect() protoreflect.Message {
+	mi := &file_movies_v1_movies_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Season.ProtoReflect.Descriptor instead.
+func (*Season) Descriptor() ([]byte, []int) {
+	return file_movies_v1_movies_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *Season) GetNumber() int32 {
+	if x != nil {
+		return x.Number
+	}
+	return 0
+}
+
+func (x *Season) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Season) GetAirDate() string {
+	if x != nil {
+		return x.AirDate
+	}
+	return ""
+}
+
+func (x *Season) GetEpisodeCount() int32 {
+	if x != nil {
+		return x.EpisodeCount
+	}
+	return 0
+}
+
+func (x *Season) GetWatchedAt() []string {
+	if x != nil {
+		return x.WatchedAt
+	}
+	return nil
+}
+
+func (x *Season) GetAired() bool {
+	if x != nil {
+		return x.Aired
+	}
+	return false
+}
+
 type GetTitleRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -775,7 +884,7 @@ type GetTitleRequest struct {
 
 func (x *GetTitleRequest) Reset() {
 	*x = GetTitleRequest{}
-	mi := &file_movies_v1_movies_proto_msgTypes[12]
+	mi := &file_movies_v1_movies_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -787,7 +896,7 @@ func (x *GetTitleRequest) String() string {
 func (*GetTitleRequest) ProtoMessage() {}
 
 func (x *GetTitleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_movies_v1_movies_proto_msgTypes[12]
+	mi := &file_movies_v1_movies_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -800,7 +909,7 @@ func (x *GetTitleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTitleRequest.ProtoReflect.Descriptor instead.
 func (*GetTitleRequest) Descriptor() ([]byte, []int) {
-	return file_movies_v1_movies_proto_rawDescGZIP(), []int{12}
+	return file_movies_v1_movies_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetTitleRequest) GetId() string {
@@ -811,16 +920,18 @@ func (x *GetTitleRequest) GetId() string {
 }
 
 type GetTitleResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entry         *BacklogEntry          `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
-	Overview      string                 `protobuf:"bytes,2,opt,name=overview,proto3" json:"overview,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Entry    *BacklogEntry          `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
+	Overview string                 `protobuf:"bytes,2,opt,name=overview,proto3" json:"overview,omitempty"`
+	// Series only, in season order.
+	Seasons       []*Season `protobuf:"bytes,3,rep,name=seasons,proto3" json:"seasons,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetTitleResponse) Reset() {
 	*x = GetTitleResponse{}
-	mi := &file_movies_v1_movies_proto_msgTypes[13]
+	mi := &file_movies_v1_movies_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -832,7 +943,7 @@ func (x *GetTitleResponse) String() string {
 func (*GetTitleResponse) ProtoMessage() {}
 
 func (x *GetTitleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_movies_v1_movies_proto_msgTypes[13]
+	mi := &file_movies_v1_movies_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -845,7 +956,7 @@ func (x *GetTitleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTitleResponse.ProtoReflect.Descriptor instead.
 func (*GetTitleResponse) Descriptor() ([]byte, []int) {
-	return file_movies_v1_movies_proto_rawDescGZIP(), []int{13}
+	return file_movies_v1_movies_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetTitleResponse) GetEntry() *BacklogEntry {
@@ -860,6 +971,481 @@ func (x *GetTitleResponse) GetOverview() string {
 		return x.Overview
 	}
 	return ""
+}
+
+func (x *GetTitleResponse) GetSeasons() []*Season {
+	if x != nil {
+		return x.Seasons
+	}
+	return nil
+}
+
+// Ticking adds one watch (now, or unknown); unticking clears the season's
+// watches. Either re-derives the series status unless it is dropped.
+type SetSeasonWatchedRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SeasonNumber  int32                  `protobuf:"varint,2,opt,name=season_number,json=seasonNumber,proto3" json:"season_number,omitempty"`
+	Watched       bool                   `protobuf:"varint,3,opt,name=watched,proto3" json:"watched,omitempty"`
+	UnknownDate   bool                   `protobuf:"varint,4,opt,name=unknown_date,json=unknownDate,proto3" json:"unknown_date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetSeasonWatchedRequest) Reset() {
+	*x = SetSeasonWatchedRequest{}
+	mi := &file_movies_v1_movies_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetSeasonWatchedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetSeasonWatchedRequest) ProtoMessage() {}
+
+func (x *SetSeasonWatchedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_movies_v1_movies_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetSeasonWatchedRequest.ProtoReflect.Descriptor instead.
+func (*SetSeasonWatchedRequest) Descriptor() ([]byte, []int) {
+	return file_movies_v1_movies_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *SetSeasonWatchedRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SetSeasonWatchedRequest) GetSeasonNumber() int32 {
+	if x != nil {
+		return x.SeasonNumber
+	}
+	return 0
+}
+
+func (x *SetSeasonWatchedRequest) GetWatched() bool {
+	if x != nil {
+		return x.Watched
+	}
+	return false
+}
+
+func (x *SetSeasonWatchedRequest) GetUnknownDate() bool {
+	if x != nil {
+		return x.UnknownDate
+	}
+	return false
+}
+
+type SetSeasonWatchedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entry         *BacklogEntry          `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
+	Seasons       []*Season              `protobuf:"bytes,2,rep,name=seasons,proto3" json:"seasons,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetSeasonWatchedResponse) Reset() {
+	*x = SetSeasonWatchedResponse{}
+	mi := &file_movies_v1_movies_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetSeasonWatchedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetSeasonWatchedResponse) ProtoMessage() {}
+
+func (x *SetSeasonWatchedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_movies_v1_movies_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetSeasonWatchedResponse.ProtoReflect.Descriptor instead.
+func (*SetSeasonWatchedResponse) Descriptor() ([]byte, []int) {
+	return file_movies_v1_movies_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *SetSeasonWatchedResponse) GetEntry() *BacklogEntry {
+	if x != nil {
+		return x.Entry
+	}
+	return nil
+}
+
+func (x *SetSeasonWatchedResponse) GetSeasons() []*Season {
+	if x != nil {
+		return x.Seasons
+	}
+	return nil
+}
+
+// Watch-date edits target the entry's own watches (movies) or, with
+// season_number set, a season's. date is YYYY-MM-DD; empty means unknown.
+type AddWatchDateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SeasonNumber  *int32                 `protobuf:"varint,2,opt,name=season_number,json=seasonNumber,proto3,oneof" json:"season_number,omitempty"`
+	Date          string                 `protobuf:"bytes,3,opt,name=date,proto3" json:"date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddWatchDateRequest) Reset() {
+	*x = AddWatchDateRequest{}
+	mi := &file_movies_v1_movies_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddWatchDateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddWatchDateRequest) ProtoMessage() {}
+
+func (x *AddWatchDateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_movies_v1_movies_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddWatchDateRequest.ProtoReflect.Descriptor instead.
+func (*AddWatchDateRequest) Descriptor() ([]byte, []int) {
+	return file_movies_v1_movies_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *AddWatchDateRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AddWatchDateRequest) GetSeasonNumber() int32 {
+	if x != nil && x.SeasonNumber != nil {
+		return *x.SeasonNumber
+	}
+	return 0
+}
+
+func (x *AddWatchDateRequest) GetDate() string {
+	if x != nil {
+		return x.Date
+	}
+	return ""
+}
+
+type AddWatchDateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entry         *BacklogEntry          `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
+	Seasons       []*Season              `protobuf:"bytes,2,rep,name=seasons,proto3" json:"seasons,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddWatchDateResponse) Reset() {
+	*x = AddWatchDateResponse{}
+	mi := &file_movies_v1_movies_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddWatchDateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddWatchDateResponse) ProtoMessage() {}
+
+func (x *AddWatchDateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_movies_v1_movies_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddWatchDateResponse.ProtoReflect.Descriptor instead.
+func (*AddWatchDateResponse) Descriptor() ([]byte, []int) {
+	return file_movies_v1_movies_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *AddWatchDateResponse) GetEntry() *BacklogEntry {
+	if x != nil {
+		return x.Entry
+	}
+	return nil
+}
+
+func (x *AddWatchDateResponse) GetSeasons() []*Season {
+	if x != nil {
+		return x.Seasons
+	}
+	return nil
+}
+
+type EditWatchDateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SeasonNumber  *int32                 `protobuf:"varint,2,opt,name=season_number,json=seasonNumber,proto3,oneof" json:"season_number,omitempty"`
+	Index         int32                  `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
+	Date          string                 `protobuf:"bytes,4,opt,name=date,proto3" json:"date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EditWatchDateRequest) Reset() {
+	*x = EditWatchDateRequest{}
+	mi := &file_movies_v1_movies_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EditWatchDateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EditWatchDateRequest) ProtoMessage() {}
+
+func (x *EditWatchDateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_movies_v1_movies_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EditWatchDateRequest.ProtoReflect.Descriptor instead.
+func (*EditWatchDateRequest) Descriptor() ([]byte, []int) {
+	return file_movies_v1_movies_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *EditWatchDateRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *EditWatchDateRequest) GetSeasonNumber() int32 {
+	if x != nil && x.SeasonNumber != nil {
+		return *x.SeasonNumber
+	}
+	return 0
+}
+
+func (x *EditWatchDateRequest) GetIndex() int32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *EditWatchDateRequest) GetDate() string {
+	if x != nil {
+		return x.Date
+	}
+	return ""
+}
+
+type EditWatchDateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entry         *BacklogEntry          `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
+	Seasons       []*Season              `protobuf:"bytes,2,rep,name=seasons,proto3" json:"seasons,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EditWatchDateResponse) Reset() {
+	*x = EditWatchDateResponse{}
+	mi := &file_movies_v1_movies_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EditWatchDateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EditWatchDateResponse) ProtoMessage() {}
+
+func (x *EditWatchDateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_movies_v1_movies_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EditWatchDateResponse.ProtoReflect.Descriptor instead.
+func (*EditWatchDateResponse) Descriptor() ([]byte, []int) {
+	return file_movies_v1_movies_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *EditWatchDateResponse) GetEntry() *BacklogEntry {
+	if x != nil {
+		return x.Entry
+	}
+	return nil
+}
+
+func (x *EditWatchDateResponse) GetSeasons() []*Season {
+	if x != nil {
+		return x.Seasons
+	}
+	return nil
+}
+
+type RemoveWatchDateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SeasonNumber  *int32                 `protobuf:"varint,2,opt,name=season_number,json=seasonNumber,proto3,oneof" json:"season_number,omitempty"`
+	Index         int32                  `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveWatchDateRequest) Reset() {
+	*x = RemoveWatchDateRequest{}
+	mi := &file_movies_v1_movies_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveWatchDateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveWatchDateRequest) ProtoMessage() {}
+
+func (x *RemoveWatchDateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_movies_v1_movies_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveWatchDateRequest.ProtoReflect.Descriptor instead.
+func (*RemoveWatchDateRequest) Descriptor() ([]byte, []int) {
+	return file_movies_v1_movies_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *RemoveWatchDateRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RemoveWatchDateRequest) GetSeasonNumber() int32 {
+	if x != nil && x.SeasonNumber != nil {
+		return *x.SeasonNumber
+	}
+	return 0
+}
+
+func (x *RemoveWatchDateRequest) GetIndex() int32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+type RemoveWatchDateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entry         *BacklogEntry          `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
+	Seasons       []*Season              `protobuf:"bytes,2,rep,name=seasons,proto3" json:"seasons,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveWatchDateResponse) Reset() {
+	*x = RemoveWatchDateResponse{}
+	mi := &file_movies_v1_movies_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveWatchDateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveWatchDateResponse) ProtoMessage() {}
+
+func (x *RemoveWatchDateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_movies_v1_movies_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveWatchDateResponse.ProtoReflect.Descriptor instead.
+func (*RemoveWatchDateResponse) Descriptor() ([]byte, []int) {
+	return file_movies_v1_movies_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *RemoveWatchDateResponse) GetEntry() *BacklogEntry {
+	if x != nil {
+		return x.Entry
+	}
+	return nil
+}
+
+func (x *RemoveWatchDateResponse) GetSeasons() []*Season {
+	if x != nil {
+		return x.Seasons
+	}
+	return nil
 }
 
 var File_movies_v1_movies_proto protoreflect.FileDescriptor
@@ -904,17 +1490,19 @@ const file_movies_v1_movies_proto_rawDesc = "" +
 	"\x13SearchTitlesRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\"I\n" +
 	"\x14SearchTitlesResponse\x121\n" +
-	"\aresults\x18\x01 \x03(\v2\x17.movies.v1.SearchResultR\aresults\"a\n" +
+	"\aresults\x18\x01 \x03(\v2\x17.movies.v1.SearchResultR\aresults\"\x84\x01\n" +
 	"\x0fAddTitleRequest\x12\x1d\n" +
 	"\n" +
 	"media_type\x18\x01 \x01(\tR\tmediaType\x12\x17\n" +
 	"\atmdb_id\x18\x02 \x01(\x03R\x06tmdbId\x12\x16\n" +
-	"\x06status\x18\x03 \x01(\tR\x06status\"A\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12!\n" +
+	"\funknown_date\x18\x04 \x01(\bR\vunknownDate\"A\n" +
 	"\x10AddTitleResponse\x12-\n" +
-	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\":\n" +
+	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\"]\n" +
 	"\x10SetStatusRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\"B\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\x12!\n" +
+	"\funknown_date\x18\x03 \x01(\bR\vunknownDate\"B\n" +
 	"\x11SetStatusResponse\x12-\n" +
 	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\"$\n" +
 	"\x12RemoveTitleRequest\x12\x0e\n" +
@@ -929,19 +1517,65 @@ const file_movies_v1_movies_proto_rawDesc = "" +
 	"\x06offset\x18\x05 \x01(\x05R\x06offset\"c\n" +
 	"\x13ListBacklogResponse\x121\n" +
 	"\aentries\x18\x01 \x03(\v2\x17.movies.v1.BacklogEntryR\aentries\x12\x19\n" +
-	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"!\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"\xa9\x01\n" +
+	"\x06Season\x12\x16\n" +
+	"\x06number\x18\x01 \x01(\x05R\x06number\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
+	"\bair_date\x18\x03 \x01(\tR\aairDate\x12#\n" +
+	"\repisode_count\x18\x04 \x01(\x05R\fepisodeCount\x12\x1d\n" +
+	"\n" +
+	"watched_at\x18\x05 \x03(\tR\twatchedAt\x12\x14\n" +
+	"\x05aired\x18\x06 \x01(\bR\x05aired\"!\n" +
 	"\x0fGetTitleRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"]\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x8a\x01\n" +
 	"\x10GetTitleResponse\x12-\n" +
 	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\x12\x1a\n" +
-	"\boverview\x18\x02 \x01(\tR\boverview2\xce\x03\n" +
+	"\boverview\x18\x02 \x01(\tR\boverview\x12+\n" +
+	"\aseasons\x18\x03 \x03(\v2\x11.movies.v1.SeasonR\aseasons\"\x8b\x01\n" +
+	"\x17SetSeasonWatchedRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12#\n" +
+	"\rseason_number\x18\x02 \x01(\x05R\fseasonNumber\x12\x18\n" +
+	"\awatched\x18\x03 \x01(\bR\awatched\x12!\n" +
+	"\funknown_date\x18\x04 \x01(\bR\vunknownDate\"v\n" +
+	"\x18SetSeasonWatchedResponse\x12-\n" +
+	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\x12+\n" +
+	"\aseasons\x18\x02 \x03(\v2\x11.movies.v1.SeasonR\aseasons\"u\n" +
+	"\x13AddWatchDateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12(\n" +
+	"\rseason_number\x18\x02 \x01(\x05H\x00R\fseasonNumber\x88\x01\x01\x12\x12\n" +
+	"\x04date\x18\x03 \x01(\tR\x04dateB\x10\n" +
+	"\x0e_season_number\"r\n" +
+	"\x14AddWatchDateResponse\x12-\n" +
+	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\x12+\n" +
+	"\aseasons\x18\x02 \x03(\v2\x11.movies.v1.SeasonR\aseasons\"\x8c\x01\n" +
+	"\x14EditWatchDateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12(\n" +
+	"\rseason_number\x18\x02 \x01(\x05H\x00R\fseasonNumber\x88\x01\x01\x12\x14\n" +
+	"\x05index\x18\x03 \x01(\x05R\x05index\x12\x12\n" +
+	"\x04date\x18\x04 \x01(\tR\x04dateB\x10\n" +
+	"\x0e_season_number\"s\n" +
+	"\x15EditWatchDateResponse\x12-\n" +
+	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\x12+\n" +
+	"\aseasons\x18\x02 \x03(\v2\x11.movies.v1.SeasonR\aseasons\"z\n" +
+	"\x16RemoveWatchDateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12(\n" +
+	"\rseason_number\x18\x02 \x01(\x05H\x00R\fseasonNumber\x88\x01\x01\x12\x14\n" +
+	"\x05index\x18\x03 \x01(\x05R\x05indexB\x10\n" +
+	"\x0e_season_number\"u\n" +
+	"\x17RemoveWatchDateResponse\x12-\n" +
+	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\x12+\n" +
+	"\aseasons\x18\x02 \x03(\v2\x11.movies.v1.SeasonR\aseasons2\xaa\x06\n" +
 	"\rMoviesService\x12O\n" +
 	"\fSearchTitles\x12\x1e.movies.v1.SearchTitlesRequest\x1a\x1f.movies.v1.SearchTitlesResponse\x12C\n" +
 	"\bAddTitle\x12\x1a.movies.v1.AddTitleRequest\x1a\x1b.movies.v1.AddTitleResponse\x12F\n" +
 	"\tSetStatus\x12\x1b.movies.v1.SetStatusRequest\x1a\x1c.movies.v1.SetStatusResponse\x12L\n" +
 	"\vRemoveTitle\x12\x1d.movies.v1.RemoveTitleRequest\x1a\x1e.movies.v1.RemoveTitleResponse\x12L\n" +
 	"\vListBacklog\x12\x1d.movies.v1.ListBacklogRequest\x1a\x1e.movies.v1.ListBacklogResponse\x12C\n" +
-	"\bGetTitle\x12\x1a.movies.v1.GetTitleRequest\x1a\x1b.movies.v1.GetTitleResponseB+Z)tools.xdoubleu.com/gen/movies/v1;moviesv1b\x06proto3"
+	"\bGetTitle\x12\x1a.movies.v1.GetTitleRequest\x1a\x1b.movies.v1.GetTitleResponse\x12[\n" +
+	"\x10SetSeasonWatched\x12\".movies.v1.SetSeasonWatchedRequest\x1a#.movies.v1.SetSeasonWatchedResponse\x12O\n" +
+	"\fAddWatchDate\x12\x1e.movies.v1.AddWatchDateRequest\x1a\x1f.movies.v1.AddWatchDateResponse\x12R\n" +
+	"\rEditWatchDate\x12\x1f.movies.v1.EditWatchDateRequest\x1a .movies.v1.EditWatchDateResponse\x12X\n" +
+	"\x0fRemoveWatchDate\x12!.movies.v1.RemoveWatchDateRequest\x1a\".movies.v1.RemoveWatchDateResponseB+Z)tools.xdoubleu.com/gen/movies/v1;moviesv1b\x06proto3"
 
 var (
 	file_movies_v1_movies_proto_rawDescOnce sync.Once
@@ -955,22 +1589,31 @@ func file_movies_v1_movies_proto_rawDescGZIP() []byte {
 	return file_movies_v1_movies_proto_rawDescData
 }
 
-var file_movies_v1_movies_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_movies_v1_movies_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_movies_v1_movies_proto_goTypes = []any{
-	(*SearchResult)(nil),         // 0: movies.v1.SearchResult
-	(*BacklogEntry)(nil),         // 1: movies.v1.BacklogEntry
-	(*SearchTitlesRequest)(nil),  // 2: movies.v1.SearchTitlesRequest
-	(*SearchTitlesResponse)(nil), // 3: movies.v1.SearchTitlesResponse
-	(*AddTitleRequest)(nil),      // 4: movies.v1.AddTitleRequest
-	(*AddTitleResponse)(nil),     // 5: movies.v1.AddTitleResponse
-	(*SetStatusRequest)(nil),     // 6: movies.v1.SetStatusRequest
-	(*SetStatusResponse)(nil),    // 7: movies.v1.SetStatusResponse
-	(*RemoveTitleRequest)(nil),   // 8: movies.v1.RemoveTitleRequest
-	(*RemoveTitleResponse)(nil),  // 9: movies.v1.RemoveTitleResponse
-	(*ListBacklogRequest)(nil),   // 10: movies.v1.ListBacklogRequest
-	(*ListBacklogResponse)(nil),  // 11: movies.v1.ListBacklogResponse
-	(*GetTitleRequest)(nil),      // 12: movies.v1.GetTitleRequest
-	(*GetTitleResponse)(nil),     // 13: movies.v1.GetTitleResponse
+	(*SearchResult)(nil),             // 0: movies.v1.SearchResult
+	(*BacklogEntry)(nil),             // 1: movies.v1.BacklogEntry
+	(*SearchTitlesRequest)(nil),      // 2: movies.v1.SearchTitlesRequest
+	(*SearchTitlesResponse)(nil),     // 3: movies.v1.SearchTitlesResponse
+	(*AddTitleRequest)(nil),          // 4: movies.v1.AddTitleRequest
+	(*AddTitleResponse)(nil),         // 5: movies.v1.AddTitleResponse
+	(*SetStatusRequest)(nil),         // 6: movies.v1.SetStatusRequest
+	(*SetStatusResponse)(nil),        // 7: movies.v1.SetStatusResponse
+	(*RemoveTitleRequest)(nil),       // 8: movies.v1.RemoveTitleRequest
+	(*RemoveTitleResponse)(nil),      // 9: movies.v1.RemoveTitleResponse
+	(*ListBacklogRequest)(nil),       // 10: movies.v1.ListBacklogRequest
+	(*ListBacklogResponse)(nil),      // 11: movies.v1.ListBacklogResponse
+	(*Season)(nil),                   // 12: movies.v1.Season
+	(*GetTitleRequest)(nil),          // 13: movies.v1.GetTitleRequest
+	(*GetTitleResponse)(nil),         // 14: movies.v1.GetTitleResponse
+	(*SetSeasonWatchedRequest)(nil),  // 15: movies.v1.SetSeasonWatchedRequest
+	(*SetSeasonWatchedResponse)(nil), // 16: movies.v1.SetSeasonWatchedResponse
+	(*AddWatchDateRequest)(nil),      // 17: movies.v1.AddWatchDateRequest
+	(*AddWatchDateResponse)(nil),     // 18: movies.v1.AddWatchDateResponse
+	(*EditWatchDateRequest)(nil),     // 19: movies.v1.EditWatchDateRequest
+	(*EditWatchDateResponse)(nil),    // 20: movies.v1.EditWatchDateResponse
+	(*RemoveWatchDateRequest)(nil),   // 21: movies.v1.RemoveWatchDateRequest
+	(*RemoveWatchDateResponse)(nil),  // 22: movies.v1.RemoveWatchDateResponse
 }
 var file_movies_v1_movies_proto_depIdxs = []int32{
 	0,  // 0: movies.v1.SearchTitlesResponse.results:type_name -> movies.v1.SearchResult
@@ -978,23 +1621,40 @@ var file_movies_v1_movies_proto_depIdxs = []int32{
 	1,  // 2: movies.v1.SetStatusResponse.entry:type_name -> movies.v1.BacklogEntry
 	1,  // 3: movies.v1.ListBacklogResponse.entries:type_name -> movies.v1.BacklogEntry
 	1,  // 4: movies.v1.GetTitleResponse.entry:type_name -> movies.v1.BacklogEntry
-	2,  // 5: movies.v1.MoviesService.SearchTitles:input_type -> movies.v1.SearchTitlesRequest
-	4,  // 6: movies.v1.MoviesService.AddTitle:input_type -> movies.v1.AddTitleRequest
-	6,  // 7: movies.v1.MoviesService.SetStatus:input_type -> movies.v1.SetStatusRequest
-	8,  // 8: movies.v1.MoviesService.RemoveTitle:input_type -> movies.v1.RemoveTitleRequest
-	10, // 9: movies.v1.MoviesService.ListBacklog:input_type -> movies.v1.ListBacklogRequest
-	12, // 10: movies.v1.MoviesService.GetTitle:input_type -> movies.v1.GetTitleRequest
-	3,  // 11: movies.v1.MoviesService.SearchTitles:output_type -> movies.v1.SearchTitlesResponse
-	5,  // 12: movies.v1.MoviesService.AddTitle:output_type -> movies.v1.AddTitleResponse
-	7,  // 13: movies.v1.MoviesService.SetStatus:output_type -> movies.v1.SetStatusResponse
-	9,  // 14: movies.v1.MoviesService.RemoveTitle:output_type -> movies.v1.RemoveTitleResponse
-	11, // 15: movies.v1.MoviesService.ListBacklog:output_type -> movies.v1.ListBacklogResponse
-	13, // 16: movies.v1.MoviesService.GetTitle:output_type -> movies.v1.GetTitleResponse
-	11, // [11:17] is the sub-list for method output_type
-	5,  // [5:11] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	12, // 5: movies.v1.GetTitleResponse.seasons:type_name -> movies.v1.Season
+	1,  // 6: movies.v1.SetSeasonWatchedResponse.entry:type_name -> movies.v1.BacklogEntry
+	12, // 7: movies.v1.SetSeasonWatchedResponse.seasons:type_name -> movies.v1.Season
+	1,  // 8: movies.v1.AddWatchDateResponse.entry:type_name -> movies.v1.BacklogEntry
+	12, // 9: movies.v1.AddWatchDateResponse.seasons:type_name -> movies.v1.Season
+	1,  // 10: movies.v1.EditWatchDateResponse.entry:type_name -> movies.v1.BacklogEntry
+	12, // 11: movies.v1.EditWatchDateResponse.seasons:type_name -> movies.v1.Season
+	1,  // 12: movies.v1.RemoveWatchDateResponse.entry:type_name -> movies.v1.BacklogEntry
+	12, // 13: movies.v1.RemoveWatchDateResponse.seasons:type_name -> movies.v1.Season
+	2,  // 14: movies.v1.MoviesService.SearchTitles:input_type -> movies.v1.SearchTitlesRequest
+	4,  // 15: movies.v1.MoviesService.AddTitle:input_type -> movies.v1.AddTitleRequest
+	6,  // 16: movies.v1.MoviesService.SetStatus:input_type -> movies.v1.SetStatusRequest
+	8,  // 17: movies.v1.MoviesService.RemoveTitle:input_type -> movies.v1.RemoveTitleRequest
+	10, // 18: movies.v1.MoviesService.ListBacklog:input_type -> movies.v1.ListBacklogRequest
+	13, // 19: movies.v1.MoviesService.GetTitle:input_type -> movies.v1.GetTitleRequest
+	15, // 20: movies.v1.MoviesService.SetSeasonWatched:input_type -> movies.v1.SetSeasonWatchedRequest
+	17, // 21: movies.v1.MoviesService.AddWatchDate:input_type -> movies.v1.AddWatchDateRequest
+	19, // 22: movies.v1.MoviesService.EditWatchDate:input_type -> movies.v1.EditWatchDateRequest
+	21, // 23: movies.v1.MoviesService.RemoveWatchDate:input_type -> movies.v1.RemoveWatchDateRequest
+	3,  // 24: movies.v1.MoviesService.SearchTitles:output_type -> movies.v1.SearchTitlesResponse
+	5,  // 25: movies.v1.MoviesService.AddTitle:output_type -> movies.v1.AddTitleResponse
+	7,  // 26: movies.v1.MoviesService.SetStatus:output_type -> movies.v1.SetStatusResponse
+	9,  // 27: movies.v1.MoviesService.RemoveTitle:output_type -> movies.v1.RemoveTitleResponse
+	11, // 28: movies.v1.MoviesService.ListBacklog:output_type -> movies.v1.ListBacklogResponse
+	14, // 29: movies.v1.MoviesService.GetTitle:output_type -> movies.v1.GetTitleResponse
+	16, // 30: movies.v1.MoviesService.SetSeasonWatched:output_type -> movies.v1.SetSeasonWatchedResponse
+	18, // 31: movies.v1.MoviesService.AddWatchDate:output_type -> movies.v1.AddWatchDateResponse
+	20, // 32: movies.v1.MoviesService.EditWatchDate:output_type -> movies.v1.EditWatchDateResponse
+	22, // 33: movies.v1.MoviesService.RemoveWatchDate:output_type -> movies.v1.RemoveWatchDateResponse
+	24, // [24:34] is the sub-list for method output_type
+	14, // [14:24] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_movies_v1_movies_proto_init() }
@@ -1004,13 +1664,16 @@ func file_movies_v1_movies_proto_init() {
 	}
 	file_movies_v1_movies_proto_msgTypes[0].OneofWrappers = []any{}
 	file_movies_v1_movies_proto_msgTypes[1].OneofWrappers = []any{}
+	file_movies_v1_movies_proto_msgTypes[17].OneofWrappers = []any{}
+	file_movies_v1_movies_proto_msgTypes[19].OneofWrappers = []any{}
+	file_movies_v1_movies_proto_msgTypes[21].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_movies_v1_movies_proto_rawDesc), len(file_movies_v1_movies_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

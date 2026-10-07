@@ -33,7 +33,8 @@ type Title struct {
 }
 
 // Entry is a title in one user's backlog. A nil WatchedAt element is a watch
-// with an unknown date.
+// with an unknown date; series keep their watches per season instead. Seasons
+// is only loaded for a single entry.
 type Entry struct {
 	ID        uuid.UUID
 	UserID    string
@@ -42,6 +43,7 @@ type Entry struct {
 	WatchedAt []*time.Time
 	AddedAt   time.Time
 	UpdatedAt time.Time
+	Seasons   []Season
 }
 
 // ListFilter narrows a backlog listing; empty fields match everything.

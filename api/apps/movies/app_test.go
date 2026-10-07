@@ -2,6 +2,7 @@ package movies_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -49,24 +50,41 @@ var catalog = []tmdb.Title{
 		OriginalTitle: "The Matrix", ReleaseDate: date("1999-03-30"),
 		PosterPath: "/matrix.jpg", Overview: "Neo learns the truth.",
 		Genres: []string{"Action", "Science Fiction"}, Runtime: intPtr(136),
-		SeasonCount: nil,
+		SeasonCount: nil, Seasons: nil,
 	},
 	{
 		MediaType: tmdb.MediaTypeMovie, TMDBID: 129, Title: "Spirited Away",
 		OriginalTitle: "千と千尋の神隠し", ReleaseDate: date("2001-07-20"),
 		PosterPath: "/spirited.jpg", Overview: "A girl in a spirit world.",
 		Genres: []string{"Animation"}, Runtime: intPtr(125), SeasonCount: nil,
+		Seasons: nil,
 	},
 	{
 		MediaType: tmdb.MediaTypeSeries, TMDBID: 1396, Title: "Breaking Bad",
 		OriginalTitle: "Breaking Bad", ReleaseDate: date("2008-01-20"),
 		PosterPath: "/bb.jpg", Overview: "A teacher turns cook.",
-		Genres: []string{"Drama"}, Runtime: nil, SeasonCount: intPtr(5),
+		Genres: []string{"Drama"}, Runtime: nil, SeasonCount: intPtr(4),
+		Seasons: []tmdb.Season{
+			{Number: 0, Name: "Specials", AirDate: nil, EpisodeCount: 9},
+			{Number: 1, Name: "Season 1", AirDate: date("2008-01-20"), EpisodeCount: 7},
+			{Number: 2, Name: "Season 2", AirDate: date("2009-03-08"), EpisodeCount: 13},
+			{Number: 3, Name: "Season 3", AirDate: date("2099-01-01"), EpisodeCount: 0},
+			{Number: 4, Name: "Season 4", AirDate: nil, EpisodeCount: 0},
+		},
+	},
+	{
+		MediaType: tmdb.MediaTypeSeries, TMDBID: 70523, Title: "Dark",
+		OriginalTitle: "Dark", ReleaseDate: date("2017-12-01"), PosterPath: "",
+		Overview: "", Genres: nil, Runtime: nil, SeasonCount: intPtr(2),
+		Seasons: []tmdb.Season{
+			{Number: 1, Name: "Season 1", AirDate: date("2017-12-01"), EpisodeCount: 10},
+			{Number: 2, Name: "Season 2", AirDate: date("2019-06-21"), EpisodeCount: 8},
+		},
 	},
 	{
 		MediaType: tmdb.MediaTypeMovie, TMDBID: 999, Title: "Avatar 5",
 		OriginalTitle: "Avatar 5", ReleaseDate: nil, PosterPath: "",
-		Overview: "", Genres: nil, Runtime: nil, SeasonCount: nil,
+		Overview: "", Genres: nil, Runtime: nil, SeasonCount: nil, Seasons: nil,
 	},
 }
 
@@ -75,6 +93,7 @@ func (fakeTMDB) Search(_ context.Context, query string) ([]tmdb.Title, error) {
 	for _, t := range catalog {
 		if strings.Contains(strings.ToLower(t.Title), strings.ToLower(query)) {
 			t.Overview, t.Genres, t.Runtime, t.SeasonCount = "", nil, nil, nil
+			t.Seasons = nil
 			out = append(out, t)
 		}
 	}
@@ -96,6 +115,24 @@ func (f fakeTMDB) GetMovie(_ context.Context, id int64) (*tmdb.Title, error) {
 
 func (f fakeTMDB) GetSeries(_ context.Context, id int64) (*tmdb.Title, error) {
 	return f.find(tmdb.MediaTypeSeries, id)
+}
+
+// seasonlessTMDB returns series without seasons, as a pre-seasons add did.
+type seasonlessTMDB struct{ fakeTMDB }
+
+func (f seasonlessTMDB) GetSeries(ctx context.Context, id int64) (*tmdb.Title, error) {
+	t, err := f.fakeTMDB.GetSeries(ctx, id)
+	if t != nil {
+		t.Seasons = nil
+	}
+	return t, err
+}
+
+// downTMDB fails every series lookup.
+type downTMDB struct{ fakeTMDB }
+
+func (downTMDB) GetSeries(context.Context, int64) (*tmdb.Title, error) {
+	return nil, errors.New("tmdb down")
 }
 
 func TestMain(m *testing.M) {
@@ -136,6 +173,16 @@ func newClient(
 	if err != nil {
 		t.Fatal(err)
 	}
+	return newKeepingClient(t, uid, client)
+}
+
+// newKeepingClient serves an app acting as uid without clearing its backlog.
+func newKeepingClient(
+	t *testing.T,
+	uid string,
+	client tmdb.Client,
+) moviesv1connect.MoviesServiceClient {
+	t.Helper()
 	ts := httptest.NewServer(testhelper.BuildMux(newApp(uid, client)))
 	t.Cleanup(ts.Close)
 	return moviesv1connect.NewMoviesServiceClient(http.DefaultClient, ts.URL)

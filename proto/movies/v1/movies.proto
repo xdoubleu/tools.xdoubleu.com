@@ -45,12 +45,18 @@ message AddTitleRequest {
   int64 tmdb_id = 2;
   // "want" or "watched".
   string status = 3;
+  // Date new watches unknown instead of now: the movie's, or each aired
+  // season's when a series is added as watched.
+  bool unknown_date = 4;
 }
 message AddTitleResponse { BacklogEntry entry = 1; }
 
 message SetStatusRequest {
   string id = 1;
   string status = 2;
+  // As AddTitleRequest.unknown_date; "watched" on a series ticks its aired
+  // seasons.
+  bool unknown_date = 3;
 }
 message SetStatusResponse { BacklogEntry entry = 1; }
 
@@ -72,10 +78,72 @@ message ListBacklogResponse {
   bool has_more = 2;
 }
 
+// A series season; number 0 is TMDB's "Specials", which never counts toward
+// the series status.
+message Season {
+  int32 number = 1;
+  string name = 2;
+  // YYYY-MM-DD; empty when TMDB has no date.
+  string air_date = 3;
+  int32 episode_count = 4;
+  // RFC3339; an empty string is a watch with an unknown date. Ticked when
+  // non-empty.
+  repeated string watched_at = 5;
+  bool aired = 6;
+}
+
 message GetTitleRequest { string id = 1; }
 message GetTitleResponse {
   BacklogEntry entry = 1;
   string overview = 2;
+  // Series only, in season order.
+  repeated Season seasons = 3;
+}
+
+// Ticking adds one watch (now, or unknown); unticking clears the season's
+// watches. Either re-derives the series status unless it is dropped.
+message SetSeasonWatchedRequest {
+  string id = 1;
+  int32 season_number = 2;
+  bool watched = 3;
+  bool unknown_date = 4;
+}
+message SetSeasonWatchedResponse {
+  BacklogEntry entry = 1;
+  repeated Season seasons = 2;
+}
+
+// Watch-date edits target the entry's own watches (movies) or, with
+// season_number set, a season's. date is YYYY-MM-DD; empty means unknown.
+message AddWatchDateRequest {
+  string id = 1;
+  optional int32 season_number = 2;
+  string date = 3;
+}
+message AddWatchDateResponse {
+  BacklogEntry entry = 1;
+  repeated Season seasons = 2;
+}
+
+message EditWatchDateRequest {
+  string id = 1;
+  optional int32 season_number = 2;
+  int32 index = 3;
+  string date = 4;
+}
+message EditWatchDateResponse {
+  BacklogEntry entry = 1;
+  repeated Season seasons = 2;
+}
+
+message RemoveWatchDateRequest {
+  string id = 1;
+  optional int32 season_number = 2;
+  int32 index = 3;
+}
+message RemoveWatchDateResponse {
+  BacklogEntry entry = 1;
+  repeated Season seasons = 2;
 }
 
 service MoviesService {
@@ -85,4 +153,8 @@ service MoviesService {
   rpc RemoveTitle(RemoveTitleRequest) returns (RemoveTitleResponse);
   rpc ListBacklog(ListBacklogRequest) returns (ListBacklogResponse);
   rpc GetTitle(GetTitleRequest) returns (GetTitleResponse);
+  rpc SetSeasonWatched(SetSeasonWatchedRequest) returns (SetSeasonWatchedResponse);
+  rpc AddWatchDate(AddWatchDateRequest) returns (AddWatchDateResponse);
+  rpc EditWatchDate(EditWatchDateRequest) returns (EditWatchDateResponse);
+  rpc RemoveWatchDate(RemoveWatchDateRequest) returns (RemoveWatchDateResponse);
 }

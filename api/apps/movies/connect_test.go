@@ -83,14 +83,14 @@ func TestAddTitle_WatchedMovieRecordsToday(t *testing.T) {
 	assert.Len(t, again.WatchedAt, 1)
 }
 
-func TestAddTitle_WatchedSeriesHasNoDates(t *testing.T) {
+func TestAddTitle_WatchedSeriesKeepsWatchesPerSeason(t *testing.T) {
 	c := newClient(t, userID, fakeTMDB{})
 
 	e := add(t, c, "series", 1396, "watched")
 	assert.Equal(t, "watched", e.Status)
 	assert.Empty(t, e.WatchedAt)
 	require.NotNil(t, e.SeasonCount)
-	assert.Equal(t, int32(5), *e.SeasonCount)
+	assert.Equal(t, int32(4), *e.SeasonCount)
 	assert.Nil(t, e.Runtime)
 }
 
