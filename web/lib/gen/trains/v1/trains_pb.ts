@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file trains/v1/trains.proto.
  */
 export const file_trains_v1_trains: GenFile = /*@__PURE__*/
-  fileDesc("ChZ0cmFpbnMvdjEvdHJhaW5zLnByb3RvEgl0cmFpbnMudjEihgIKA0xlZxIXCg90cmlwX3Nob3J0X25hbWUYASABKAkSGAoQcm91dGVfc2hvcnRfbmFtZRgCIAEoCRIQCghoZWFkc2lnbhgDIAEoCRIVCg1ib2FyZF9zdG9wX2lkGAQgASgJEhcKD2JvYXJkX3N0b3BfbmFtZRgFIAEoCRIWCg5ib2FyZF9wbGF0Zm9ybRgGIAEoCRISCgpib2FyZF90aW1lGAcgASgJEhYKDmFsaWdodF9zdG9wX2lkGAggASgJEhgKEGFsaWdodF9zdG9wX25hbWUYCSABKAkSFwoPYWxpZ2h0X3BsYXRmb3JtGAogASgJEhMKC2FsaWdodF90aW1lGAsgASgJInwKB0pvdXJuZXkSHAoEbGVncxgBIAMoCzIOLnRyYWlucy52MS5MZWcSFgoOZGVwYXJ0dXJlX3RpbWUYAiABKAkSFAoMYXJyaXZhbF90aW1lGAMgASgJEhEKCXRyYW5zZmVycxgEIAEoBRISCgpqb3VybmV5X2lkGAUgASgJIkIKBUFsZXJ0EgoKAmlkGAEgASgJEhMKC2hlYWRlcl90ZXh0GAIgASgJEhgKEGRlc2NyaXB0aW9uX3RleHQYAyABKAkizgEKCFN0b3BDYWxsEg8KB3N0b3BfaWQYASABKAkSEQoJc3RvcF9uYW1lGAIgASgJEhAKCHBsYXRmb3JtGAMgASgJEhkKEXNjaGVkdWxlZF9hcnJpdmFsGAQgASgJEhsKE3NjaGVkdWxlZF9kZXBhcnR1cmUYBSABKAkSDgoGc3RhdHVzGAYgASgJEhUKDWRlbGF5X3NlY29uZHMYByABKAUSFQoNaXNfYm9hcmRfc3RvcBgIIAEoCBIWCg5pc19hbGlnaHRfc3RvcBgJIAEoCCKpAQoJTGVnRGV0YWlsEhcKD3RyaXBfc2hvcnRfbmFtZRgBIAEoCRIYChByb3V0ZV9zaG9ydF9uYW1lGAIgASgJEhAKCGhlYWRzaWduGAMgASgJEhEKCWNhbmNlbGxlZBgEIAEoCBIiCgVzdG9wcxgFIAMoCzITLnRyYWlucy52MS5TdG9wQ2FsbBIgCgZhbGVydHMYBiADKAsyEC50cmFpbnMudjEuQWxlcnQiYQoSSm91cm5leUFsdGVybmF0aXZlEg4KBnJlYXNvbhgBIAEoCRIWCg5mcm9tX3N0b3BfbmFtZRgCIAEoCRIjCgdqb3VybmV5GAMgASgLMhIudHJhaW5zLnYxLkpvdXJuZXkiqQEKDUpvdXJuZXlEZXRhaWwSEgoKam91cm5leV9pZBgBIAEoCRIiCgRsZWdzGAIgAygLMhQudHJhaW5zLnYxLkxlZ0RldGFpbBIWCg5kZXBhcnR1cmVfdGltZRgDIAEoCRIUCgxhcnJpdmFsX3RpbWUYBCABKAkSMgoLYWx0ZXJuYXRpdmUYBSABKAsyHS50cmFpbnMudjEuSm91cm5leUFsdGVybmF0aXZlIi0KF0dldEpvdXJuZXlEZXRhaWxSZXF1ZXN0EhIKCmpvdXJuZXlfaWQYASABKAkiRQoYR2V0Sm91cm5leURldGFpbFJlc3BvbnNlEikKB2pvdXJuZXkYASABKAsyGC50cmFpbnMudjEuSm91cm5leURldGFpbCJtChVTZWFyY2hKb3VybmV5c1JlcXVlc3QSFgoOb3JpZ2luX3N0b3BfaWQYASABKAkSGwoTZGVzdGluYXRpb25fc3RvcF9pZBgCIAEoCRIMCgR0aW1lGAMgASgJEhEKCWFycml2ZV9ieRgEIAEoCCI+ChZTZWFyY2hKb3VybmV5c1Jlc3BvbnNlEiQKCGpvdXJuZXlzGAEgAygLMhIudHJhaW5zLnYxLkpvdXJuZXkiYwoHU3RhdGlvbhIPCgdzdG9wX2lkGAEgASgJEg8KB25hbWVfbmwYAiABKAkSDwoHbmFtZV9mchgDIAEoCRIPCgduYW1lX2VuGAQgASgJEhQKDGRpc3BsYXlfbmFtZRgFIAEoCSImChVTZWFyY2hTdGF0aW9uc1JlcXVlc3QSDQoFcXVlcnkYASABKAkiPgoWU2VhcmNoU3RhdGlvbnNSZXNwb25zZRIkCghzdGF0aW9ucxgBIAMoCzISLnRyYWlucy52MS5TdGF0aW9uIhQKEkdldEZlZWRJbmZvUmVxdWVzdCJ2ChNHZXRGZWVkSW5mb1Jlc3BvbnNlEhQKDGZlZWRfdmVyc2lvbhgBIAEoCRITCgtpbXBvcnRlZF9hdBgCIAEoCRI0Cgx0cmFuc2xhdGlvbnMYAyABKAsyHi50cmFpbnMudjEuVHJhbnNsYXRpb25Db3ZlcmFnZSKSAQoTVHJhbnNsYXRpb25Db3ZlcmFnZRIbChN0cmFuc2xhdGVkX3N0b3BzX25sGAEgASgFEhsKE3RyYW5zbGF0ZWRfc3RvcHNfZnIYAiABKAUSGwoTdHJhbnNsYXRlZF9zdG9wc19lbhgDIAEoBRIMCgRyb3dzGAQgASgFEhYKDnJvd3NfdW5tYXRjaGVkGAUgASgFIogBCgxTYXZlZENvbW11dGUSCgoCaWQYASABKAkSDQoFbGFiZWwYAiABKAkSIgoGb3JpZ2luGAMgASgLMhIudHJhaW5zLnYxLlN0YXRpb24SJwoLZGVzdGluYXRpb24YBCABKAsyEi50cmFpbnMudjEuU3RhdGlvbhIQCghwb3NpdGlvbhgFIAEoBSIaChhMaXN0U2F2ZWRDb21tdXRlc1JlcXVlc3QiTAoZTGlzdFNhdmVkQ29tbXV0ZXNSZXNwb25zZRIvCg5zYXZlZF9jb21tdXRlcxgBIAMoCzIXLnRyYWlucy52MS5TYXZlZENvbW11dGUiXwoZQ3JlYXRlU2F2ZWRDb21tdXRlUmVxdWVzdBINCgVsYWJlbBgBIAEoCRIWCg5vcmlnaW5fc3RvcF9pZBgCIAEoCRIbChNkZXN0aW5hdGlvbl9zdG9wX2lkGAMgASgJIkwKGkNyZWF0ZVNhdmVkQ29tbXV0ZVJlc3BvbnNlEi4KDXNhdmVkX2NvbW11dGUYASABKAsyFy50cmFpbnMudjEuU2F2ZWRDb21tdXRlIkgKGVVwZGF0ZVNhdmVkQ29tbXV0ZVJlcXVlc3QSCgoCaWQYASABKAkSDQoFbGFiZWwYAiABKAkSEAoIcG9zaXRpb24YAyABKAUiTAoaVXBkYXRlU2F2ZWRDb21tdXRlUmVzcG9uc2USLgoNc2F2ZWRfY29tbXV0ZRgBIAEoCzIXLnRyYWlucy52MS5TYXZlZENvbW11dGUiJwoZRGVsZXRlU2F2ZWRDb21tdXRlUmVxdWVzdBIKCgJpZBgBIAEoCSIcChpEZWxldGVTYXZlZENvbW11dGVSZXNwb25zZTLwBQoMVHJhaW5TZXJ2aWNlElUKDlNlYXJjaEpvdXJuZXlzEiAudHJhaW5zLnYxLlNlYXJjaEpvdXJuZXlzUmVxdWVzdBohLnRyYWlucy52MS5TZWFyY2hKb3VybmV5c1Jlc3BvbnNlElUKDlNlYXJjaFN0YXRpb25zEiAudHJhaW5zLnYxLlNlYXJjaFN0YXRpb25zUmVxdWVzdBohLnRyYWlucy52MS5TZWFyY2hTdGF0aW9uc1Jlc3BvbnNlEkwKC0dldEZlZWRJbmZvEh0udHJhaW5zLnYxLkdldEZlZWRJbmZvUmVxdWVzdBoeLnRyYWlucy52MS5HZXRGZWVkSW5mb1Jlc3BvbnNlElsKEEdldEpvdXJuZXlEZXRhaWwSIi50cmFpbnMudjEuR2V0Sm91cm5leURldGFpbFJlcXVlc3QaIy50cmFpbnMudjEuR2V0Sm91cm5leURldGFpbFJlc3BvbnNlEl4KEUxpc3RTYXZlZENvbW11dGVzEiMudHJhaW5zLnYxLkxpc3RTYXZlZENvbW11dGVzUmVxdWVzdBokLnRyYWlucy52MS5MaXN0U2F2ZWRDb21tdXRlc1Jlc3BvbnNlEmEKEkNyZWF0ZVNhdmVkQ29tbXV0ZRIkLnRyYWlucy52MS5DcmVhdGVTYXZlZENvbW11dGVSZXF1ZXN0GiUudHJhaW5zLnYxLkNyZWF0ZVNhdmVkQ29tbXV0ZVJlc3BvbnNlEmEKElVwZGF0ZVNhdmVkQ29tbXV0ZRIkLnRyYWlucy52MS5VcGRhdGVTYXZlZENvbW11dGVSZXF1ZXN0GiUudHJhaW5zLnYxLlVwZGF0ZVNhdmVkQ29tbXV0ZVJlc3BvbnNlEmEKEkRlbGV0ZVNhdmVkQ29tbXV0ZRIkLnRyYWlucy52MS5EZWxldGVTYXZlZENvbW11dGVSZXF1ZXN0GiUudHJhaW5zLnYxLkRlbGV0ZVNhdmVkQ29tbXV0ZVJlc3BvbnNlQitaKXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vdHJhaW5zL3YxO3RyYWluc3YxYgZwcm90bzM");
+  fileDesc("ChZ0cmFpbnMvdjEvdHJhaW5zLnByb3RvEgl0cmFpbnMudjEihgIKA0xlZxIXCg90cmlwX3Nob3J0X25hbWUYASABKAkSGAoQcm91dGVfc2hvcnRfbmFtZRgCIAEoCRIQCghoZWFkc2lnbhgDIAEoCRIVCg1ib2FyZF9zdG9wX2lkGAQgASgJEhcKD2JvYXJkX3N0b3BfbmFtZRgFIAEoCRIWCg5ib2FyZF9wbGF0Zm9ybRgGIAEoCRISCgpib2FyZF90aW1lGAcgASgJEhYKDmFsaWdodF9zdG9wX2lkGAggASgJEhgKEGFsaWdodF9zdG9wX25hbWUYCSABKAkSFwoPYWxpZ2h0X3BsYXRmb3JtGAogASgJEhMKC2FsaWdodF90aW1lGAsgASgJInwKB0pvdXJuZXkSHAoEbGVncxgBIAMoCzIOLnRyYWlucy52MS5MZWcSFgoOZGVwYXJ0dXJlX3RpbWUYAiABKAkSFAoMYXJyaXZhbF90aW1lGAMgASgJEhEKCXRyYW5zZmVycxgEIAEoBRISCgpqb3VybmV5X2lkGAUgASgJIkIKBUFsZXJ0EgoKAmlkGAEgASgJEhMKC2hlYWRlcl90ZXh0GAIgASgJEhgKEGRlc2NyaXB0aW9uX3RleHQYAyABKAkizgEKCFN0b3BDYWxsEg8KB3N0b3BfaWQYASABKAkSEQoJc3RvcF9uYW1lGAIgASgJEhAKCHBsYXRmb3JtGAMgASgJEhkKEXNjaGVkdWxlZF9hcnJpdmFsGAQgASgJEhsKE3NjaGVkdWxlZF9kZXBhcnR1cmUYBSABKAkSDgoGc3RhdHVzGAYgASgJEhUKDWRlbGF5X3NlY29uZHMYByABKAUSFQoNaXNfYm9hcmRfc3RvcBgIIAEoCBIWCg5pc19hbGlnaHRfc3RvcBgJIAEoCCKpAQoJTGVnRGV0YWlsEhcKD3RyaXBfc2hvcnRfbmFtZRgBIAEoCRIYChByb3V0ZV9zaG9ydF9uYW1lGAIgASgJEhAKCGhlYWRzaWduGAMgASgJEhEKCWNhbmNlbGxlZBgEIAEoCBIiCgVzdG9wcxgFIAMoCzITLnRyYWlucy52MS5TdG9wQ2FsbBIgCgZhbGVydHMYBiADKAsyEC50cmFpbnMudjEuQWxlcnQiYQoSSm91cm5leUFsdGVybmF0aXZlEg4KBnJlYXNvbhgBIAEoCRIWCg5mcm9tX3N0b3BfbmFtZRgCIAEoCRIjCgdqb3VybmV5GAMgASgLMhIudHJhaW5zLnYxLkpvdXJuZXkiqQEKDUpvdXJuZXlEZXRhaWwSEgoKam91cm5leV9pZBgBIAEoCRIiCgRsZWdzGAIgAygLMhQudHJhaW5zLnYxLkxlZ0RldGFpbBIWCg5kZXBhcnR1cmVfdGltZRgDIAEoCRIUCgxhcnJpdmFsX3RpbWUYBCABKAkSMgoLYWx0ZXJuYXRpdmUYBSABKAsyHS50cmFpbnMudjEuSm91cm5leUFsdGVybmF0aXZlIi0KF0dldEpvdXJuZXlEZXRhaWxSZXF1ZXN0EhIKCmpvdXJuZXlfaWQYASABKAkiRQoYR2V0Sm91cm5leURldGFpbFJlc3BvbnNlEikKB2pvdXJuZXkYASABKAsyGC50cmFpbnMudjEuSm91cm5leURldGFpbCJtChVTZWFyY2hKb3VybmV5c1JlcXVlc3QSFgoOb3JpZ2luX3N0b3BfaWQYASABKAkSGwoTZGVzdGluYXRpb25fc3RvcF9pZBgCIAEoCRIMCgR0aW1lGAMgASgJEhEKCWFycml2ZV9ieRgEIAEoCCI+ChZTZWFyY2hKb3VybmV5c1Jlc3BvbnNlEiQKCGpvdXJuZXlzGAEgAygLMhIudHJhaW5zLnYxLkpvdXJuZXkiYwoHU3RhdGlvbhIPCgdzdG9wX2lkGAEgASgJEg8KB25hbWVfbmwYAiABKAkSDwoHbmFtZV9mchgDIAEoCRIPCgduYW1lX2VuGAQgASgJEhQKDGRpc3BsYXlfbmFtZRgFIAEoCSImChVTZWFyY2hTdGF0aW9uc1JlcXVlc3QSDQoFcXVlcnkYASABKAkiPgoWU2VhcmNoU3RhdGlvbnNSZXNwb25zZRIkCghzdGF0aW9ucxgBIAMoCzISLnRyYWlucy52MS5TdGF0aW9uIhQKEkdldEZlZWRJbmZvUmVxdWVzdCJ2ChNHZXRGZWVkSW5mb1Jlc3BvbnNlEhQKDGZlZWRfdmVyc2lvbhgBIAEoCRITCgtpbXBvcnRlZF9hdBgCIAEoCRI0Cgx0cmFuc2xhdGlvbnMYAyABKAsyHi50cmFpbnMudjEuVHJhbnNsYXRpb25Db3ZlcmFnZSKSAQoTVHJhbnNsYXRpb25Db3ZlcmFnZRIbChN0cmFuc2xhdGVkX3N0b3BzX25sGAEgASgFEhsKE3RyYW5zbGF0ZWRfc3RvcHNfZnIYAiABKAUSGwoTdHJhbnNsYXRlZF9zdG9wc19lbhgDIAEoBRIMCgRyb3dzGAQgASgFEhYKDnJvd3NfdW5tYXRjaGVkGAUgASgFIogBCgxTYXZlZENvbW11dGUSCgoCaWQYASABKAkSDQoFbGFiZWwYAiABKAkSIgoGb3JpZ2luGAMgASgLMhIudHJhaW5zLnYxLlN0YXRpb24SJwoLZGVzdGluYXRpb24YBCABKAsyEi50cmFpbnMudjEuU3RhdGlvbhIQCghwb3NpdGlvbhgFIAEoBSIaChhMaXN0U2F2ZWRDb21tdXRlc1JlcXVlc3QiTAoZTGlzdFNhdmVkQ29tbXV0ZXNSZXNwb25zZRIvCg5zYXZlZF9jb21tdXRlcxgBIAMoCzIXLnRyYWlucy52MS5TYXZlZENvbW11dGUiXwoZQ3JlYXRlU2F2ZWRDb21tdXRlUmVxdWVzdBINCgVsYWJlbBgBIAEoCRIWCg5vcmlnaW5fc3RvcF9pZBgCIAEoCRIbChNkZXN0aW5hdGlvbl9zdG9wX2lkGAMgASgJIkwKGkNyZWF0ZVNhdmVkQ29tbXV0ZVJlc3BvbnNlEi4KDXNhdmVkX2NvbW11dGUYASABKAsyFy50cmFpbnMudjEuU2F2ZWRDb21tdXRlIkgKGVVwZGF0ZVNhdmVkQ29tbXV0ZVJlcXVlc3QSCgoCaWQYASABKAkSDQoFbGFiZWwYAiABKAkSEAoIcG9zaXRpb24YAyABKAUiTAoaVXBkYXRlU2F2ZWRDb21tdXRlUmVzcG9uc2USLgoNc2F2ZWRfY29tbXV0ZRgBIAEoCzIXLnRyYWlucy52MS5TYXZlZENvbW11dGUiJwoZRGVsZXRlU2F2ZWRDb21tdXRlUmVxdWVzdBIKCgJpZBgBIAEoCSIcChpEZWxldGVTYXZlZENvbW11dGVSZXNwb25zZSIxChZHZXRSZWFsdGltZVRyaXBSZXF1ZXN0EhcKD3RyaXBfc2hvcnRfbmFtZRgBIAEoCSLaAQoSUmVhbHRpbWVTdG9wVXBkYXRlEg8KB3N0b3BfaWQYASABKAkSFQoNc3RvcF9zZXF1ZW5jZRgCIAEoBRIOCgZzdGF0dXMYAyABKAkSGgoNYXJyaXZhbF9kZWxheRgEIAEoBUgAiAEBEhwKD2RlcGFydHVyZV9kZWxheRgFIAEoBUgBiAEBEhQKDGFycml2YWxfdGltZRgGIAEoCRIWCg5kZXBhcnR1cmVfdGltZRgHIAEoCUIQCg5fYXJyaXZhbF9kZWxheUISChBfZGVwYXJ0dXJlX2RlbGF5IjUKC1BsYW5uZWRTdG9wEg8KB3N0b3BfaWQYASABKAkSFQoNc3RvcF9zZXF1ZW5jZRgCIAEoBSLpAwoXR2V0UmVhbHRpbWVUcmlwUmVzcG9uc2USEgoKZmV0Y2hlZF9hdBgBIAEoCRISCgp0cmlwX2NvdW50GAIgASgFEh0KFXVucmVzb2x2ZWRfdHJpcF9jb3VudBgDIAEoBRIcChRkdXBsaWNhdGVfdHJpcF9jb3VudBgEIAEoBRITCgthbGVydF9jb3VudBgFIAEoBRJYChRzdG9wX3VwZGF0ZV9zdGF0dXNlcxgGIAMoCzI6LnRyYWlucy52MS5HZXRSZWFsdGltZVRyaXBSZXNwb25zZS5TdG9wVXBkYXRlU3RhdHVzZXNFbnRyeRINCgVmb3VuZBgHIAEoCBIPCgd0cmlwX2lkGAggASgJEhIKCnN0YXJ0X2RhdGUYCSABKAkSDgoGc3RhdHVzGAogASgJEjMKDHN0b3BfdXBkYXRlcxgLIAMoCzIdLnRyYWlucy52MS5SZWFsdGltZVN0b3BVcGRhdGUSFwoPcGxhbm5lZF90cmlwX2lkGAwgASgJEi0KDXBsYW5uZWRfc3RvcHMYDSADKAsyFi50cmFpbnMudjEuUGxhbm5lZFN0b3AaOQoXU3RvcFVwZGF0ZVN0YXR1c2VzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgFOgI4ATLKBgoMVHJhaW5TZXJ2aWNlElUKDlNlYXJjaEpvdXJuZXlzEiAudHJhaW5zLnYxLlNlYXJjaEpvdXJuZXlzUmVxdWVzdBohLnRyYWlucy52MS5TZWFyY2hKb3VybmV5c1Jlc3BvbnNlElUKDlNlYXJjaFN0YXRpb25zEiAudHJhaW5zLnYxLlNlYXJjaFN0YXRpb25zUmVxdWVzdBohLnRyYWlucy52MS5TZWFyY2hTdGF0aW9uc1Jlc3BvbnNlEkwKC0dldEZlZWRJbmZvEh0udHJhaW5zLnYxLkdldEZlZWRJbmZvUmVxdWVzdBoeLnRyYWlucy52MS5HZXRGZWVkSW5mb1Jlc3BvbnNlElsKEEdldEpvdXJuZXlEZXRhaWwSIi50cmFpbnMudjEuR2V0Sm91cm5leURldGFpbFJlcXVlc3QaIy50cmFpbnMudjEuR2V0Sm91cm5leURldGFpbFJlc3BvbnNlElgKD0dldFJlYWx0aW1lVHJpcBIhLnRyYWlucy52MS5HZXRSZWFsdGltZVRyaXBSZXF1ZXN0GiIudHJhaW5zLnYxLkdldFJlYWx0aW1lVHJpcFJlc3BvbnNlEl4KEUxpc3RTYXZlZENvbW11dGVzEiMudHJhaW5zLnYxLkxpc3RTYXZlZENvbW11dGVzUmVxdWVzdBokLnRyYWlucy52MS5MaXN0U2F2ZWRDb21tdXRlc1Jlc3BvbnNlEmEKEkNyZWF0ZVNhdmVkQ29tbXV0ZRIkLnRyYWlucy52MS5DcmVhdGVTYXZlZENvbW11dGVSZXF1ZXN0GiUudHJhaW5zLnYxLkNyZWF0ZVNhdmVkQ29tbXV0ZVJlc3BvbnNlEmEKElVwZGF0ZVNhdmVkQ29tbXV0ZRIkLnRyYWlucy52MS5VcGRhdGVTYXZlZENvbW11dGVSZXF1ZXN0GiUudHJhaW5zLnYxLlVwZGF0ZVNhdmVkQ29tbXV0ZVJlc3BvbnNlEmEKEkRlbGV0ZVNhdmVkQ29tbXV0ZRIkLnRyYWlucy52MS5EZWxldGVTYXZlZENvbW11dGVSZXF1ZXN0GiUudHJhaW5zLnYxLkRlbGV0ZVNhdmVkQ29tbXV0ZVJlc3BvbnNlQitaKXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vdHJhaW5zL3YxO3RyYWluc3YxYgZwcm90bzM");
 
 /**
  * Leg is one boarded train, board to alight. trip_id churns daily and is
@@ -800,6 +800,205 @@ export const DeleteSavedCommuteResponseSchema: GenMessage<DeleteSavedCommuteResp
   messageDesc(file_trains_v1_trains, 25);
 
 /**
+ * GetRealtimeTripRequest names a train running today (Europe/Brussels).
+ *
+ * @generated from message trains.v1.GetRealtimeTripRequest
+ */
+export type GetRealtimeTripRequest = Message<"trains.v1.GetRealtimeTripRequest"> & {
+  /**
+   * Empty returns only the snapshot summary.
+   *
+   * @generated from field: string trip_short_name = 1;
+   */
+  tripShortName: string;
+};
+
+/**
+ * Describes the message trains.v1.GetRealtimeTripRequest.
+ * Use `create(GetRealtimeTripRequestSchema)` to create a new message.
+ */
+export const GetRealtimeTripRequestSchema: GenMessage<GetRealtimeTripRequest> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 26);
+
+/**
+ * RealtimeStopUpdate is one stop_time_update exactly as decoded from GTFS-RT.
+ *
+ * @generated from message trains.v1.RealtimeStopUpdate
+ */
+export type RealtimeStopUpdate = Message<"trains.v1.RealtimeStopUpdate"> & {
+  /**
+   * @generated from field: string stop_id = 1;
+   */
+  stopId: string;
+
+  /**
+   * 0 when the feed omits it.
+   *
+   * @generated from field: int32 stop_sequence = 2;
+   */
+  stopSequence: number;
+
+  /**
+   * Same values as StopCall.status.
+   *
+   * @generated from field: string status = 3;
+   */
+  status: string;
+
+  /**
+   * Seconds, positive = late; absent when unpublished.
+   *
+   * @generated from field: optional int32 arrival_delay = 4;
+   */
+  arrivalDelay?: number | undefined;
+
+  /**
+   * @generated from field: optional int32 departure_delay = 5;
+   */
+  departureDelay?: number | undefined;
+
+  /**
+   * RFC3339 absolute times, when published.
+   *
+   * @generated from field: string arrival_time = 6;
+   */
+  arrivalTime: string;
+
+  /**
+   * @generated from field: string departure_time = 7;
+   */
+  departureTime: string;
+};
+
+/**
+ * Describes the message trains.v1.RealtimeStopUpdate.
+ * Use `create(RealtimeStopUpdateSchema)` to create a new message.
+ */
+export const RealtimeStopUpdateSchema: GenMessage<RealtimeStopUpdate> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 27);
+
+/**
+ * PlannedStop is one static stop_time of the trip journey detail resolves.
+ *
+ * @generated from message trains.v1.PlannedStop
+ */
+export type PlannedStop = Message<"trains.v1.PlannedStop"> & {
+  /**
+   * @generated from field: string stop_id = 1;
+   */
+  stopId: string;
+
+  /**
+   * @generated from field: int32 stop_sequence = 2;
+   */
+  stopSequence: number;
+};
+
+/**
+ * Describes the message trains.v1.PlannedStop.
+ * Use `create(PlannedStopSchema)` to create a new message.
+ */
+export const PlannedStopSchema: GenMessage<PlannedStop> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 28);
+
+/**
+ * GetRealtimeTripResponse is a diagnostic view of the in-memory realtime
+ * snapshot, which is replaced every poll and never persisted.
+ *
+ * @generated from message trains.v1.GetRealtimeTripResponse
+ */
+export type GetRealtimeTripResponse = Message<"trains.v1.GetRealtimeTripResponse"> & {
+  /**
+   * RFC3339 time of the last successful poll; empty before the first.
+   *
+   * @generated from field: string fetched_at = 1;
+   */
+  fetchedAt: string;
+
+  /**
+   * @generated from field: int32 trip_count = 2;
+   */
+  tripCount: number;
+
+  /**
+   * Realtime trips with no matching static trip.
+   *
+   * @generated from field: int32 unresolved_trip_count = 3;
+   */
+  unresolvedTripCount: number;
+
+  /**
+   * Realtime trips dropped because another one had the same short name and
+   * service date.
+   *
+   * @generated from field: int32 duplicate_trip_count = 4;
+   */
+  duplicateTripCount: number;
+
+  /**
+   * @generated from field: int32 alert_count = 5;
+   */
+  alertCount: number;
+
+  /**
+   * Stop updates across the whole snapshot, counted by status.
+   *
+   * @generated from field: map<string, int32> stop_update_statuses = 6;
+   */
+  stopUpdateStatuses: { [key: string]: number };
+
+  /**
+   * Whether trip_short_name is in today's snapshot.
+   *
+   * @generated from field: bool found = 7;
+   */
+  found: boolean;
+
+  /**
+   * The realtime trip_id, for diagnostics only.
+   *
+   * @generated from field: string trip_id = 8;
+   */
+  tripId: string;
+
+  /**
+   * @generated from field: string start_date = 9;
+   */
+  startDate: string;
+
+  /**
+   * Trip-level status: "on_time" or "cancelled".
+   *
+   * @generated from field: string status = 10;
+   */
+  status: string;
+
+  /**
+   * @generated from field: repeated trains.v1.RealtimeStopUpdate stop_updates = 11;
+   */
+  stopUpdates: RealtimeStopUpdate[];
+
+  /**
+   * The static trip journey detail overlays it on; empty when none runs today.
+   *
+   * @generated from field: string planned_trip_id = 12;
+   */
+  plannedTripId: string;
+
+  /**
+   * @generated from field: repeated trains.v1.PlannedStop planned_stops = 13;
+   */
+  plannedStops: PlannedStop[];
+};
+
+/**
+ * Describes the message trains.v1.GetRealtimeTripResponse.
+ * Use `create(GetRealtimeTripResponseSchema)` to create a new message.
+ */
+export const GetRealtimeTripResponseSchema: GenMessage<GetRealtimeTripResponse> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 29);
+
+/**
  * @generated from service trains.v1.TrainService
  */
 export const TrainService: GenService<{
@@ -837,6 +1036,16 @@ export const TrainService: GenService<{
     methodKind: "unary";
     input: typeof GetJourneyDetailRequestSchema;
     output: typeof GetJourneyDetailResponseSchema;
+  },
+  /**
+   * GetRealtimeTrip exposes the raw realtime snapshot for one train.
+   *
+   * @generated from rpc trains.v1.TrainService.GetRealtimeTrip
+   */
+  getRealtimeTrip: {
+    methodKind: "unary";
+    input: typeof GetRealtimeTripRequestSchema;
+    output: typeof GetRealtimeTripResponseSchema;
   },
   /**
    * Saved-commute CRUD, scoped to the signed-in user.

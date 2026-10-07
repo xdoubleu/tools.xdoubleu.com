@@ -39,13 +39,16 @@ func (s DelayState) String() string {
 }
 
 // StopCall is one stop's realtime state. Delays are seconds (positive =
-// late), nil when unpublished.
+// late), nil when unpublished. A SCHEDULED call that publishes only absolute
+// times stays DelayUnknown until the overlay compares them to the timetable.
 type StopCall struct {
 	StopID         string
 	StopSequence   int
 	State          DelayState
 	ArrivalDelay   *int
 	DepartureDelay *int
+	ArrivalTime    *time.Time
+	DepartureTime  *time.Time
 }
 
 // TripUpdate is one trip's realtime state. TripID is not a stable key; Poll
@@ -87,8 +90,11 @@ type Snapshot struct {
 	// UnresolvedTripCount counts trip updates with no matching static trip; a
 	// sustained nonzero value means the feeds' trip_ids have drifted apart.
 	UnresolvedTripCount int
-	Alerts              []Alert
-	FetchedAt           time.Time
+	// DuplicateTripCount counts trip updates dropped because another one had
+	// the same TripKey.
+	DuplicateTripCount int
+	Alerts             []Alert
+	FetchedAt          time.Time
 }
 
 // CallFor returns the trip running shortName on serviceDate, which callers

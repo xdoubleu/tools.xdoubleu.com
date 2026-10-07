@@ -27,7 +27,7 @@ const (
 // come from an older version, the conditional-GET validators are dropped and
 // the feed is reimported. Bump it whenever the import writes something new
 // (a column, a file, a changed derivation).
-const ImportParserVersion = 5
+const ImportParserVersion = 6
 
 // StaticImportService fetches, validates and imports the SNCB GTFS static
 // timetable; driven daily by jobs.StaticImportJob.

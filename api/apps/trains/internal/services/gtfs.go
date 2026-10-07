@@ -323,7 +323,7 @@ func normalizeLang(v string) string {
 	}
 }
 
-// displayNameLangs is the language order buildDisplayName uses.
+// displayNameLangs is the language order buildDisplayName uses: Dutch first.
 //
 //nolint:gochecknoglobals //fixed language list, package-level by design
 var displayNameLangs = [3]string{"nl", "fr", "en"}
@@ -335,10 +335,11 @@ func isSyntheticCombined(v string) bool {
 	return strings.Contains(v, "/")
 }
 
-// buildDisplayName " / "-joins each language's genuine full name: a
-// non-synthetic translation, else the primary stop_name for the primary
-// language only. Languages without a usable translation are omitted, since
-// the raw stop_name is sometimes itself an abbreviated bilingual string.
+// buildDisplayName " / "-joins each language's genuine full name in
+// displayNameLangs order: a non-synthetic translation, else the raw stop_name
+// for the primary language only. Languages without a usable translation are
+// omitted, since the raw stop_name is sometimes itself an abbreviated
+// bilingual string.
 func buildDisplayName(primaryLang, name string, translated map[string]string) string {
 	primary := normalizeLang(primaryLang)
 	seen := make(map[string]bool, len(displayNameLangs))
@@ -350,17 +351,14 @@ func buildDisplayName(primaryLang, name string, translated map[string]string) st
 		seen[n] = true
 		parts = append(parts, n)
 	}
-	if t, ok := translated[primary]; ok && !isSyntheticCombined(t) {
-		add(t)
-	} else {
+	if primary == "" {
 		add(name)
 	}
 	for _, lang := range displayNameLangs {
-		if lang == primary {
-			continue
-		}
 		if t, ok := translated[lang]; ok && !isSyntheticCombined(t) {
 			add(t)
+		} else if lang == primary {
+			add(name)
 		}
 	}
 	return strings.Join(parts, " / ")

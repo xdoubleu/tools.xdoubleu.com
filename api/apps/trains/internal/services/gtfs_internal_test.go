@@ -175,7 +175,7 @@ func TestParseFeed_DisplayNameDedupesAbbreviatedFallback(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, "Bruxelles-Central / Brussel-Centraal", brusselsCentral.DisplayName)
+	assert.Equal(t, "Brussel-Centraal / Bruxelles-Central", brusselsCentral.DisplayName)
 	assert.NotContains(t, brusselsCentral.DisplayName, "Brsls Centr")
 	assert.NotContains(t, brusselsCentral.DisplayName, "Bxl Centr")
 }
@@ -197,7 +197,7 @@ func TestParseFeed_DisplayNameKeepsDistinctFullNames(t *testing.T) {
 			roeselare = s
 		}
 	}
-	assert.Equal(t, "Roulers / Roeselare", roeselare.DisplayName)
+	assert.Equal(t, "Roeselare / Roulers", roeselare.DisplayName)
 }
 
 // TestParseFeed_DisplayNameRejectsSyntheticCombinedTranslation: a genuine
@@ -227,11 +227,12 @@ func TestParseFeed_DisplayNameRejectsSyntheticCombinedTranslation(t *testing.T) 
 		}
 	}
 
-	assert.Equal(t, "Bruxelles-Central / Brussel-Centraal", brusselsCentral.DisplayName)
+	assert.Equal(t, "Brussel-Centraal / Bruxelles-Central", brusselsCentral.DisplayName)
 	assert.NotContains(t, brusselsCentral.DisplayName, "Brux.-/ Brus-Centr.")
 
-	assert.Equal(t, "Roulers / Roeselare", roeselare.DisplayName)
-	assert.NotContains(t, roeselare.DisplayName, "Roeselare / Roulers")
+	// Equal to the synthetic en string only because Dutch comes first; the
+	// synthetic value adds no third part.
+	assert.Equal(t, "Roeselare / Roulers", roeselare.DisplayName)
 }
 
 func TestParseFeed_TranslationCoverageIsReported(t *testing.T) {

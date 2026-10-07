@@ -33,6 +33,11 @@ type mcpGetJourneyDetailArgs struct {
 	JourneyID string `json:"journey_id" jsonschema:"id from trains_search_journeys"`
 }
 
+// mcpGetRealtimeTripArgs names a train running today.
+type mcpGetRealtimeTripArgs struct {
+	TripShortName string `json:"trip_short_name,omitempty" jsonschema:"train no."`
+}
+
 // RegisterMCPTools exposes the trains read RPCs on the apps MCP server. The
 // timetable is public, so every caller with trains access gets the same rows.
 func (a *Trains) RegisterMCPTools(srv *mcp.Server) {
@@ -62,6 +67,14 @@ func (a *Trains) RegisterMCPTools(srv *mcp.Server) {
 			"only ever reports the current state, never what it looked like "+
 			"earlier.",
 		h.mcpGetJourneyDetail)
+	mcptools.AddReadTool(srv, mcpAppName, "trains_get_realtime_trip",
+		"The in-memory GTFS-RT snapshot: when it was last polled, how many "+
+			"trips it holds, how many were unresolved or duplicate, and stop "+
+			"updates by status. With a train number, also that train's raw "+
+			"realtime stop updates today next to the static stop_times journey "+
+			"detail overlays them on — how an 'unknown' stop on a running "+
+			"train is traced to a missing trip versus a failed stop match.",
+		h.mcpGetRealtimeTrip)
 }
 
 func (h *trainsConnectHandler) mcpSearchStations(
@@ -98,5 +111,13 @@ func (h *trainsConnectHandler) mcpGetJourneyDetail(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.GetJourneyDetail(ctx, connect.NewRequest(
 		&trainsv1.GetJourneyDetailRequest{JourneyId: args.JourneyID},
+	)))
+}
+
+func (h *trainsConnectHandler) mcpGetRealtimeTrip(
+	ctx context.Context, args mcpGetRealtimeTripArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.GetRealtimeTrip(ctx, connect.NewRequest(
+		&trainsv1.GetRealtimeTripRequest{TripShortName: args.TripShortName},
 	)))
 }

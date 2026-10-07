@@ -1,7 +1,7 @@
 # Convention: fix the missing MCP tool before investigating the incident
 
 - Enforced by: nothing but review
-- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1397, #1424, #1453, #1459, #1554, #1564, #1616, #1818, #2034
+- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1397, #1424, #1453, #1459, #1554, #1564, #1616, #1818, #2034, #2226
 
 ## Rule
 
@@ -52,3 +52,7 @@ working tool would have saved, often requiring direct database access.
   protojson drops empty lists, `claude/` PRs were filtered out, and pages were
   capped at 30. It now emits defaults, matches red-pr-repair's scope, pages,
   and errors on upstream failure. **Empty must look different from broken.**
+- **#2226** — running trains showed "No live data" with no way to tell a
+  missing realtime trip from a failed stop match. `trains_get_realtime_trip`
+  returns the snapshot summary plus one train's raw stop updates beside the
+  static stop_times they overlay.
