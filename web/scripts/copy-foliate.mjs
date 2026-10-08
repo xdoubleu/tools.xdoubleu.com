@@ -5,6 +5,7 @@ import { cpSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { applyPaginatorPatch } from './foliatePaginatorPatch.mjs'
 
 const require = createRequire(import.meta.url)
 const source = dirname(require.resolve('foliate-js/view.js'))
@@ -18,6 +19,11 @@ cpSync(source, target, {
     return !/^\/(\.|tests|rollup|node_modules|package|eslint)|\.(map|html|md)$/.test(rel)
   }
 })
+// foliate-js upstream has no fix for reads of a still-loading/blank section
+// document; add the null-doc and unseeded-scroll guards so mobile doesn't crash
+// to a blank 0% page (see foliatePaginatorPatch.mjs).
+const paginatorPath = join(target, 'paginator.js')
+writeFileSync(paginatorPath, applyPaginatorPatch(readFileSync(paginatorPath, 'utf8')))
 // pdf.js's modern build calls Map#getOrInsertComputed (Chrome 145, Safari 26.2);
 // polyfill it in both the page and the worker for older browsers.
 const polyfill = `for (const C of [Map, WeakMap]) {
