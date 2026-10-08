@@ -742,9 +742,9 @@ func (s *BookService) UpdateReadingProgress(
 }
 
 // upsertReadingProgress returns the stored updated_at, nil when the write was
-// dropped. The most recently read position wins (see UpsertIfNewer). A kobo
-// update without a location, or at 0%, never lowers the stored percent:
-// devices re-report stale bookmarks (e.g. after a KEPUB re-download).
+// dropped. The most recently read position wins (see UpsertIfNewer). A write
+// with no progress — a 0% or, for a Kobo, location-less update — never lowers
+// the stored percent: those come from opens and re-downloads, not reading.
 func (s *BookService) upsertReadingProgress(
 	ctx context.Context,
 	state models.BookReadingState,
@@ -756,10 +756,20 @@ func (s *BookService) upsertReadingProgress(
 	}
 	state.Percent = max(0, min(state.Percent, models.MaxProgressPercent))
 
-	if state.Source == models.ReadingSourceKobo &&
-		(state.Location == nil || state.Percent == 0) {
-		// Any error here (including "no existing state") just means there's
-		// nothing to regress against — fall through to the upsert below.
+	// A 0% write (any source) is an open-time settle or re-open, never a real
+	// read; it must not clobber a stored position (adr-0029). Any error here
+	// (including "no existing state") just means there's nothing to regress
+	// against — fall through to the upsert below.
+	if state.Percent == 0 {
+		existing, err := s.readingState.Get(ctx, state.UserID, state.BookID)
+		if err == nil && existing.Percent > 0 {
+			return nil, nil //nolint:nilnil // nil time means the write was dropped
+		}
+	}
+
+	// A Kobo update without a location, at a lower percent, is a stale
+	// re-report too.
+	if state.Source == models.ReadingSourceKobo && state.Location == nil {
 		existing, err := s.readingState.Get(ctx, state.UserID, state.BookID)
 		if err == nil && state.Percent < existing.Percent {
 			return nil, nil //nolint:nilnil // nil time means the write was dropped

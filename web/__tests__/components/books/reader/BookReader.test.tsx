@@ -10,6 +10,10 @@ jest.mock('@/lib/books/foliate', () => ({
 
 import BookReader from '@/components/books/reader/BookReader'
 
+// foliate re-emits a relocate from its renderer, so its detail carries the
+// renderer's fraction/index.
+type FoliateRelocate = CustomEvent<{ fraction?: number; index?: number; range?: Range }>
+
 function makeView({
   toc = [],
   fixedLayout = false,
@@ -24,10 +28,25 @@ function makeView({
   const view = Object.assign(document.createElement('div'), {
     isFixedLayout: fixedLayout,
     book: undefined as { toc: FoliateTocItem[] } | undefined,
-    renderer: { setStyles: jest.fn() } as { setStyles: jest.Mock } | undefined,
+    renderer: Object.assign(new EventTarget(), {
+      setStyles: jest.fn()
+    }) as (EventTarget & { setStyles: jest.Mock }) | undefined,
     open: jest.fn(async () => {
       if (openError) throw openError
-      if (withBook) view.book = { toc }
+      if (withBook) {
+        view.book = { toc }
+        // Like foliate's view: re-emit the renderer's relocate with its
+        // fraction and index, dropping the reason.
+        view.renderer?.addEventListener?.('relocate', (e: Event) => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- foliate's relocate detail
+          const { fraction, index, range } = (e as unknown as FoliateRelocate).detail
+          view.dispatchEvent(
+            new CustomEvent('relocate', {
+              detail: { fraction, section: { current: index, total: 1 }, range }
+            })
+          )
+        })
+      }
     }),
     init: jest.fn(async () => {}),
     goTo: jest.fn(async () => {}),
@@ -66,6 +85,9 @@ async function renderReader(
 
 function relocate(view: FakeView, detail: Record<string, unknown>) {
   act(() => {
+    // A real page turn: first the renderer relocates to set the read reason,
+    // then the view's relocate carries the reported detail.
+    view.renderer?.dispatchEvent?.(new CustomEvent('relocate', { detail: { reason: 'page' } }))
     view.dispatchEvent(new CustomEvent('relocate', { detail }))
   })
 }

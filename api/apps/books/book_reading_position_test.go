@@ -155,6 +155,27 @@ func TestReadingProgress_KoboAtZeroNeverRegresses(t *testing.T) {
 	assert.Equal(t, 60, readState(t, book.ID).Percent)
 }
 
+// A newer 0% write from the web reader (an open-time settle) must not clobber
+// the stored position, or the list's percent and the resume would diverge.
+func TestReadingProgress_WebAtZeroNeverRegresses(t *testing.T) {
+	book := addUniqueBook(t)
+	seedUserBook(t, book.ID, models.StatusToRead)
+	writeProgress(t, models.BookReadingState{ //nolint:exhaustruct //optional fields
+		BookID: book.ID, Source: models.ReadingSourceWeb, Percent: 36, ReadAt: at(10),
+	})
+	writeProgress(t, models.BookReadingState{ //nolint:exhaustruct //optional fields
+		BookID: book.ID, Source: models.ReadingSourceWeb, Percent: 0, ReadAt: at(1),
+	})
+
+	state := readState(t, book.ID)
+	assert.Equal(t, 36, state.Percent)
+	ub, err := testApp.Repositories.Books.GetUserBook(
+		context.Background(), userID, book.ID,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, 36, ub.ProgressPercent)
+}
+
 func TestReadingProgress_NoReadAtUsesNow(t *testing.T) {
 	book := addUniqueBook(t)
 	writeProgress(t, models.BookReadingState{ //nolint:exhaustruct //optional fields
