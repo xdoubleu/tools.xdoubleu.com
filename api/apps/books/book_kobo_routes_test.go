@@ -1553,3 +1553,197 @@ func TestKoboMetadata_CrossUserProxied(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
+
+// TestKoboInit_ReturnsCoverImageTemplates: init advertises the cover image
+// templates the device uses to fetch our books' covers.
+func TestKoboInit_ReturnsCoverImageTemplates(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	rawToken := registerTestDevice(t, "kobo-init-cover-"+uuid.NewString())
+
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodPost, koboURL(ts, rawToken, "/v1/initialization"), nil),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var body map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	res, ok := body["Resources"].(map[string]any)
+	require.True(t, ok, "init must return Resources")
+
+	assert.Contains(t, res, "image_host")
+	assert.Contains(t, res, "image_url_template")
+	assert.Contains(t, res, "image_url_quality_template")
+
+	tpl, ok := res["image_url_template"].(string)
+	require.True(t, ok)
+	assert.Contains(t, tpl, "/books/kobo/"+rawToken+"/")
+	assert.Contains(t, tpl, "{ImageId}")
+	assert.Contains(t, tpl, "image.jpg")
+
+	qtpl, ok := res["image_url_quality_template"].(string)
+	require.True(t, ok)
+	assert.Contains(t, qtpl, "{Quality}")
+}
+
+// TestKoboLibrarySync_IncludesCoverImageId: sync metadata tells the device the
+// book's cover ImageId, the same UUID as its entitlement Id.
+func TestKoboLibrarySync_IncludesCoverImageId(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-sync-coverid-" + uuid.NewString()
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var entries []map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&entries))
+	require.Len(t, entries, 1)
+
+	ne, ok := entries[0]["NewEntitlement"].(map[string]any)
+	require.True(t, ok)
+	meta, ok := ne["BookMetadata"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, bookID.String(), meta["CoverImageId"])
+}
+
+// TestKoboMetadata_IncludesCoverImageId: the metadata endpoint carries the same
+// CoverImageId so the device's cross-check doesn't reject it.
+func TestKoboMetadata_IncludesCoverImageId(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-meta-coverid-" + uuid.NewString()
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/metadata"), nil))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var metas []map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&metas))
+	require.Len(t, metas, 1)
+	assert.Equal(t, bookID.String(), metas[0]["CoverImageId"])
+}
+
+// TestKoboCover_ServesPresignedRedirect: a kobo-sync book's cached cover is
+// served as a 302 to its presigned R2 URL, mirroring the web cover handler.
+func TestKoboCover_ServesPresignedRedirect(t *testing.T) {
+	owner := "kobo-cover-hit-" + uuid.NewString()
+	_, bookID := setupKoboSyncBook(t, owner)
+	rawToken := registerTestDevice(t, owner)
+
+	coverKey := "books/" + bookID.String() + "/cover.jpg"
+	require.NoError(t, fakeStore.Put(
+		context.Background(),
+		coverKey,
+		bytes.NewReader([]byte("img")),
+		3,
+		"image/jpeg",
+	))
+
+	mux := getRoutes()
+	req := httptest.NewRequest(http.MethodGet,
+		"/books/kobo/"+rawToken+"/"+bookID.String()+"/400/600/false/image.jpg", nil)
+	req.Header.Add("X-Forwarded-Proto", "https")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusFound, rec.Code)
+	assert.Contains(t, rec.Header().Get("Location"), coverKey)
+}
+
+// TestKoboCover_QualityTemplateMatches: the quality-bearing URL shape also hits
+// the cover handler.
+func TestKoboCover_QualityTemplateMatches(t *testing.T) {
+	owner := "kobo-cover-quality-" + uuid.NewString()
+	_, bookID := setupKoboSyncBook(t, owner)
+	rawToken := registerTestDevice(t, owner)
+
+	coverKey := "books/" + bookID.String() + "/cover.jpg"
+	require.NoError(t, fakeStore.Put(
+		context.Background(),
+		coverKey,
+		bytes.NewReader([]byte("img")),
+		3,
+		"image/jpeg",
+	))
+
+	mux := getRoutes()
+	req := httptest.NewRequest(http.MethodGet,
+		"/books/kobo/"+rawToken+"/"+bookID.String()+"/400/600/80/isGreyscale/image.jpg", nil)
+	req.Header.Add("X-Forwarded-Proto", "https")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusFound, rec.Code)
+}
+
+// TestKoboCover_UnknownBook_Returns404: a cover for a non-kobo-sync book is not
+// served to the device.
+func TestKoboCover_UnknownBook_Returns404(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	rawToken := registerTestDevice(t, "kobo-cover-unknown-"+uuid.NewString())
+
+	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
+		koboURL(ts, rawToken, "/"+uuid.NewString()+"/400/600/false/image.jpg"), nil))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
+// TestKoboCover_InvalidBookID_Returns400: a non-UUID cover id is rejected.
+func TestKoboCover_InvalidBookID_Returns400(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	rawToken := registerTestDevice(t, "kobo-cover-badid-"+uuid.NewString())
+
+	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
+		koboURL(ts, rawToken, "/not-a-uuid/400/600/false/image.jpg"), nil))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+// TestKoboCover_NoCachedCover_Returns404: a kobo-sync book with no cached cover
+// falls through to ErrCoverNotFound.
+func TestKoboCover_NoCachedCover_Returns404(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-cover-nocache-" + uuid.NewString()
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
+		koboURL(ts, rawToken, "/"+bookID.String()+"/400/600/false/image.jpg"), nil))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
+// TestKoboCover_InvalidToken_Returns401: cover requests authenticate like the
+// other Kobo routes.
+func TestKoboCover_InvalidToken_Returns401(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
+		koboURL(ts, "bad-token-cover", "/"+uuid.NewString()+"/400/600/false/image.jpg"), nil))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+}

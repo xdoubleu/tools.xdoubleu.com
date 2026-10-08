@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/internal/database"
 )
 
@@ -39,6 +40,14 @@ func (app *Books) koboRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		"GET "+base+"/v1/library/{revisionId}/file",
 		app.koboLogged(app.koboFileHandler),
+	)
+	mux.HandleFunc(
+		"GET "+base+"/{revisionId}/{width}/{height}/{greyscale}/image.jpg",
+		app.koboLogged(app.koboCoverHandler),
+	)
+	mux.HandleFunc(
+		"GET "+base+"/{revisionId}/{width}/{height}/{quality}/{greyscale}/image.jpg",
+		app.koboLogged(app.koboCoverHandler),
 	)
 	mux.HandleFunc(
 		"GET "+base+"/v1/library/{revisionId}/metadata",
@@ -118,9 +127,19 @@ func koboWriteJSON(w http.ResponseWriter, v any) {
 }
 
 type koboInitResponse struct {
-	Resources json.RawMessage `json:"Resources"`
-	Settings  koboSettings    `json:"Settings"`
-	TokenList []string        `json:"TokenList"`
+	Resources koboResources `json:"Resources"`
+	Settings  koboSettings  `json:"Settings"`
+	TokenList []string      `json:"TokenList"`
+}
+
+// koboResources advertises where the device fetches cover images; without
+// these the reader's library shows no artwork for our synced books.
+type koboResources struct {
+	ImageHost string `json:"image_host"`
+
+	ImageURLQualityTemplate string `json:"image_url_quality_template"`
+
+	ImageURLTemplate string `json:"image_url_template"`
 }
 
 type koboSettings struct {
@@ -170,6 +189,9 @@ type koboBookMetadata struct {
 	RevisionId   string            `json:"RevisionId"`
 	Language     string            `json:"Language"`
 	DownloadUrls []koboDownloadURL `json:"DownloadUrls"`
+	// CoverImageId names the image the device requests from
+	// image_url(_quality)_template; the book's own UUID, like Id.
+	CoverImageID string `json:"CoverImageId"`
 }
 
 type koboDownloadURL struct {
@@ -184,8 +206,15 @@ func (app *Books) koboInitHandler(w http.ResponseWriter, r *http.Request) {
 	if _, ok := app.koboAuth(w, r); !ok {
 		return
 	}
+	coverBase := app.koboCoverBase(r)
 	koboWriteJSON(w, koboInitResponse{
-		Resources: json.RawMessage(`{}`),
+		Resources: koboResources{
+			ImageHost: coverBase,
+			ImageURLQualityTemplate: coverBase +
+				"/{ImageId}/{width}/{height}/{Quality}/isGreyscale/image.jpg",
+			ImageURLTemplate: coverBase +
+				"/{ImageId}/{width}/{height}/false/image.jpg",
+		},
 		Settings: koboSettings{
 			SynchronizationDelay: 0,
 			TestEmailAddress:     "",
@@ -193,6 +222,24 @@ func (app *Books) koboInitHandler(w http.ResponseWriter, r *http.Request) {
 		},
 		TokenList: []string{"BookEntitlement", "BookMetadata", "BookReadingState"},
 	})
+}
+
+// koboCoverBase derives the https://…/kobo/{token} prefix used by the cover
+// image templates, by stripping the initialization path from the request. Same
+// origin rules as koboLibraryBase.
+func (app *Books) koboCoverBase(r *http.Request) string {
+	path := r.URL.Path
+	if idx := strings.Index(path, "/v1/initialization"); idx != -1 {
+		path = path[:idx]
+	}
+	if app.clients.PublicAPIBaseURL != "" {
+		return strings.TrimSuffix(app.clients.PublicAPIBaseURL, "/") + path
+	}
+	host := r.Header.Get("X-Forwarded-Host")
+	if host == "" {
+		host = r.Host
+	}
+	return "https://" + host + path
 }
 
 // koboLibrarySyncHandler handles GET /v1/library/sync, adding our kobo-sync
@@ -452,6 +499,7 @@ func buildKoboMetadata(b models.KoboSyncBook, libraryBase string) koboBookMetada
 			URL:      libraryBase + "/" + id + "/file",
 			Platform: "Generic",
 		}},
+		CoverImageID: id,
 	}
 }
 
@@ -542,6 +590,43 @@ func (app *Books) koboFileHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
 			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, result.URL, http.StatusFound)
+}
+
+// koboCoverHandler serves a kobo-sync book's cached cover as a 302 to a
+// presigned R2 URL (mirroring coverHandler), gated to the caller's own books.
+func (app *Books) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
+	userID, ok := app.koboAuth(w, r)
+	if !ok {
+		return
+	}
+
+	bookID, err := uuid.Parse(r.PathValue("revisionId"))
+	if err != nil {
+		http.Error(w, "invalid book id", http.StatusBadRequest)
+		return
+	}
+
+	if _, gErr := app.Services.Books.GetKoboSyncBook(
+		r.Context(), userID, bookID,
+	); gErr != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), coverCtxTimeout)
+	defer cancel()
+
+	result, err := app.Services.Books.GetBookCover(ctx, bookID)
+	if err != nil {
+		if errors.Is(err, services.ErrCoverNotFound) {
+			http.Error(w, "cover not found", http.StatusNotFound)
 			return
 		}
 		http.Error(w, "internal error", http.StatusInternalServerError)
