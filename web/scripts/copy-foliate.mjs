@@ -6,6 +6,7 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { applyPaginatorPatch } from './foliatePaginatorPatch.mjs'
+import { foliateContentHash } from './foliateReaderVersion.mjs'
 
 const require = createRequire(import.meta.url)
 const source = dirname(require.resolve('foliate-js/view.js'))
@@ -43,4 +44,7 @@ for (const file of ['pdf.mjs', 'pdf.worker.mjs']) {
   const path = join(target, 'vendor', 'pdfjs', file)
   writeFileSync(path, polyfill + readFileSync(path, 'utf8'))
 }
+// Name the reader's module cache after this patched content (sw.js/route.ts),
+// so any change to the served files — a pin bump or a patch — busts it.
+writeFileSync(join(target, '.reader-version'), foliateContentHash(target))
 console.log(`foliate-js copied to ${target}`)
