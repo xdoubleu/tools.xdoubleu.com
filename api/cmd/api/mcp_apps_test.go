@@ -59,6 +59,8 @@ var appsToolNames = []string{
 	// movies (5)
 	"movies_search_titles", "movies_list_backlog", "movies_get_title",
 	"movies_get_stats", "movies_get_settings",
+	// podcasts (2)
+	"podcasts_list_favourites", "podcasts_list_episodes",
 	// observability (20, admin-gated)
 	"get_job_stats", "get_automated_actions", "record_action",
 	"get_usage_stats", "get_storage_stats", "get_database_stats",
@@ -413,7 +415,7 @@ func TestAppsMCPAccessGate(t *testing.T) {
 		},
 	}
 	for _, name := range []string{
-		"books_get_library", "recipes_list_recipes",
+		"books_get_library", "recipes_list_recipes", "podcasts_list_favourites",
 		"learningpaths_get_path", "learningpaths_create_path",
 		"recipes_create_recipe",
 	} {
