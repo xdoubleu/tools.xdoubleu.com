@@ -1705,6 +1705,36 @@ func TestKoboCover_UnknownBook_Returns404(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
+// TestKoboCover_InvalidBookID_Returns400: a non-UUID cover id is rejected.
+func TestKoboCover_InvalidBookID_Returns400(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	rawToken := registerTestDevice(t, "kobo-cover-badid-"+uuid.NewString())
+
+	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
+		koboURL(ts, rawToken, "/not-a-uuid/400/600/false/image.jpg"), nil))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+// TestKoboCover_NoCachedCover_Returns404: a kobo-sync book with no cached cover
+// falls through to ErrCoverNotFound.
+func TestKoboCover_NoCachedCover_Returns404(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-cover-nocache-" + uuid.NewString()
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
+		koboURL(ts, rawToken, "/"+bookID.String()+"/400/600/false/image.jpg"), nil))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
 // TestKoboCover_InvalidToken_Returns401: cover requests authenticate like the
 // other Kobo routes.
 func TestKoboCover_InvalidToken_Returns401(t *testing.T) {
