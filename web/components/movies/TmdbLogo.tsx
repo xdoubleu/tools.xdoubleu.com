@@ -1,5 +1,5 @@
 /* eslint-disable ui/theme-tokens -- TMDB's terms forbid changing the logo's colours */
-/** Official TMDB "Alt short" logo, unmodified (themoviedb.org/about/logos-attribution). */
+/** Official TMDB "Alt short" logo, unmodified; source: themoviedb.org/about/logos-attribution. */
 export default function TmdbLogo({ className }: { className?: string }) {
   return (
     <svg
