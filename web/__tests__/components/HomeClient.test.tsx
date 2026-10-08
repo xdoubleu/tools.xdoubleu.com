@@ -46,7 +46,9 @@ describe('HomeClient', () => {
     render(<HomeClient />)
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Productivity' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Learning' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Media' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Transit' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Food' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Tools' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
@@ -290,7 +292,8 @@ describe('HomeClient', () => {
     render(<HomeClient />)
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Productivity' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Media' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Learning' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
       expect(screen.getByText('Games')).toBeInTheDocument()
       expect(screen.getByText('Books')).toBeInTheDocument()
@@ -359,7 +362,9 @@ describe('HomeClient', () => {
     render(<HomeClient />)
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Productivity' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Learning' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Media' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Transit' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Food' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Tools' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
