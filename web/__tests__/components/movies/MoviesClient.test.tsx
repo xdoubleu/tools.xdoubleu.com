@@ -163,10 +163,13 @@ describe('MoviesClient backlog', () => {
 
   it('filters to titles on my services, and marks them', () => {
     const streaming = create(BacklogEntrySchema, { ...matrix, onMyServices: true })
-    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [streaming, avatar] }) })
-    render(<MoviesClient />)
+    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [avatar] }) })
+    const { rerender } = render(<MoviesClient />)
+    expect(screen.getAllByText('On my services')).toHaveLength(1) // the chip alone
 
-    expect(screen.getAllByText('On my services')).toHaveLength(2) // chip, one row badge
+    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [streaming] }) })
+    rerender(<MoviesClient />)
+    expect(screen.getAllByText('On my services')).toHaveLength(2) // chip and row badge
     const chip = screen.getByRole('button', { name: 'On my services' })
     expect(chip).toHaveAttribute('aria-pressed', 'false')
 

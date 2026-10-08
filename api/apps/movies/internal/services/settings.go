@@ -20,9 +20,9 @@ var providersTTL = 24 * time.Hour
 func SetProvidersTTL(d time.Duration) { providersTTL = d }
 
 type providerCache struct {
-	mu        sync.Mutex
-	fetchedAt time.Time
-	list      []tmdb.RegionProvider
+	mu      sync.Mutex
+	expires time.Time
+	list    []tmdb.RegionProvider
 }
 
 // Settings returns the TMDB provider IDs of the user's streaming services.
@@ -62,7 +62,7 @@ func (s *MovieService) AvailableProviders(
 	c := &s.providers
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.list != nil && time.Since(c.fetchedAt) < providersTTL {
+	if c.list != nil && time.Now().Before(c.expires) {
 		return c.list, nil
 	}
 	list, err := s.tmdb.ListRegionProviders(ctx)
@@ -72,6 +72,6 @@ func (s *MovieService) AvailableProviders(
 		}
 		return nil, err
 	}
-	c.list, c.fetchedAt = list, time.Now()
+	c.list, c.expires = list, time.Now().Add(providersTTL)
 	return list, nil
 }

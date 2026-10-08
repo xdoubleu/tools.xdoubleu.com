@@ -1,5 +1,5 @@
 import React from 'react'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 
 const mockSetServices = jest.fn()
@@ -76,7 +76,32 @@ describe('MoviesSettingsClient', () => {
       'aria-pressed',
       'false'
     )
-    expect(screen.getByRole('link', { name: /Movies & Series/ })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByRole('navigation')).toHaveTextContent('Movies & Series/Settings')
+    expect(screen.getByRole('link', { name: 'Movies & Series' })).toHaveAttribute('href', '/movies')
+  })
+
+  it('shows a logo only for providers that have one', () => {
+    mockHooks({})
+    render(<MoviesSettingsClient />)
+
+    expect(screen.getAllByRole('presentation')).toHaveLength(1)
+    expect(
+      within(screen.getByRole('button', { name: 'Netflix' })).getByRole('presentation')
+    ).toBeInTheDocument()
+  })
+
+  it('locks the pills while saving', async () => {
+    let resolve!: () => void
+    mockSetServices.mockReturnValueOnce(new Promise<void>((r) => (resolve = r)))
+    mockHooks({})
+    render(<MoviesSettingsClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Netflix' }))
+    expect(screen.getByRole('button', { name: 'Prime Video' })).toBeDisabled()
+
+    await act(async () => resolve())
+    expect(screen.getByRole('button', { name: 'Prime Video' })).toBeEnabled()
   })
 
   it('adds a service to the picked ones', async () => {
@@ -124,8 +149,16 @@ describe('MoviesSettingsClient', () => {
     rerender(<MoviesSettingsClient />)
     expect(screen.getByRole('alert')).toBeInTheDocument()
 
-    mockHooks({ settingsError: new Error('boom') })
+    mockHooks({ settingsLoading: true, settingsError: new Error('boom') })
     rerender(<MoviesSettingsClient />)
     expect(screen.getByRole('alert')).toBeInTheDocument()
+  })
+
+  it('keeps the loaded picker when a revalidation fails', () => {
+    mockHooks({ picked: [8n], settingsError: new Error('boom') })
+    render(<MoviesSettingsClient />)
+
+    expect(screen.getByRole('button', { name: 'Netflix' })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })

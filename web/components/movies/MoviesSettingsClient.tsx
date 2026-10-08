@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import type { Provider } from '@/lib/gen/movies/v1/movies_pb'
 import { useAvailableProviders, useMovieSettings, useMoviesActions } from '@/hooks/useMovies'
 import { logoUrl } from '@/lib/movies/format'
 import TmdbAttribution from '@/components/movies/TmdbAttribution'
@@ -11,16 +12,10 @@ import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { TogglePill } from '@/components/ui/toggle-pill'
 
-/** Pick the Belgian streaming services you subscribe to. */
-export default function MoviesSettingsClient() {
-  const settings = useMovieSettings()
-  const providers = useAvailableProviders()
+function ProviderPicker({ picked, providers }: { picked: bigint[]; providers: Provider[] }) {
   const { setServices } = useMoviesActions()
   const [saving, setSaving] = useState(false)
   const [failed, setFailed] = useState(false)
-
-  const breadcrumb = [{ label: 'Movies & Series', href: '/movies' }, { label: 'Settings' }]
-  const picked = settings.data?.providerIds ?? []
 
   const toggle = async (id: bigint) => {
     setSaving(true)
@@ -34,15 +29,15 @@ export default function MoviesSettingsClient() {
     }
   }
 
-  let body
-  if ((settings.isLoading && !settings.data) || (providers.isLoading && !providers.data)) {
-    body = <LoadingState label="services" />
-  } else if (settings.error || providers.error || !providers.data) {
-    body = <ErrorState what="services" />
-  } else {
-    body = (
+  return (
+    <>
+      {failed && (
+        <Alert tone="danger" className="mb-4">
+          Couldn&apos;t save. Try again.
+        </Alert>
+      )}
       <ul aria-label="Streaming services" className="flex flex-wrap gap-2">
-        {providers.data.providers.map((p) => (
+        {providers.map((p) => (
           <li key={p.id}>
             <TogglePill
               active={picked.includes(p.id)}
@@ -67,21 +62,40 @@ export default function MoviesSettingsClient() {
           </li>
         ))}
       </ul>
+    </>
+  )
+}
+
+/** Pick the Belgian streaming services you subscribe to. */
+export default function MoviesSettingsClient() {
+  const settings = useMovieSettings()
+  const providers = useAvailableProviders()
+
+  let body
+  // A failed revalidation keeps showing the loaded picker.
+  if (!settings.data || !providers.data) {
+    body =
+      settings.error || providers.error ? (
+        <ErrorState what="services" />
+      ) : (
+        <LoadingState label="services" />
+      )
+  } else {
+    body = (
+      <ProviderPicker picked={settings.data.providerIds} providers={providers.data.providers} />
     )
   }
 
   return (
     <PageContainer>
-      <PageHeader title="Movies & Series settings" breadcrumb={breadcrumb} />
+      <PageHeader
+        title="Movies & Series settings"
+        breadcrumb={[{ label: 'Movies & Series', href: '/movies' }, { label: 'Settings' }]}
+      />
       <p className="mb-4 text-sm text-muted">
         Pick your streaming services. Titles you can watch on them without renting or buying are
         marked in your backlog and can be filtered.
       </p>
-      {failed && (
-        <Alert tone="danger" className="mb-4">
-          Couldn&apos;t save. Try again.
-        </Alert>
-      )}
       {body}
       <TmdbAttribution />
     </PageContainer>

@@ -267,17 +267,21 @@ func TestListRegionProviders_MergesMovieAndSeriesLists(t *testing.T) {
 				{"provider_id":119,"provider_name":"Prime Video","logo_path":"/p.jpg",
 				 "display_priorities":{"BE":1,"NL":4}},
 				{"provider_id":8,"provider_name":"Netflix","logo_path":"/n.jpg",
-				 "display_priorities":{"BE":3}},
+				 "display_priorities":{"BE":0}},
+				{"provider_id":312,"provider_name":"VRT MAX old","logo_path":"/v0.jpg",
+				 "display_priorities":{"BE":4}},
 				{"provider_id":2285,"provider_name":"JustWatch TV",
 				 "display_priorities":{"BE":0}},
 				{"provider_id":7,"provider_name":"Elsewhere",
 				 "display_priorities":{"NL":0}}]}`))
 		case "/watch/providers/tv":
 			_, _ = w.Write([]byte(`{"results":[
-				{"provider_id":8,"provider_name":"Netflix","logo_path":"/n.jpg",
+				{"provider_id":8,"provider_name":"Netflix TV","logo_path":"/n2.jpg",
 				 "display_priorities":{"BE":0}},
+				{"provider_id":600,"provider_name":"Tied","logo_path":"/t.jpg",
+				 "display_priorities":{"BE":1}},
 				{"provider_id":312,"provider_name":"VRT MAX","logo_path":"/v.jpg",
-				 "display_priorities":{"BE":1}}]}`))
+				 "display_priorities":{"BE":2}}]}`))
 		default:
 			t.Errorf("unexpected path %s", r.URL.Path)
 		}
@@ -288,8 +292,9 @@ func TestListRegionProviders_MergesMovieAndSeriesLists(t *testing.T) {
 	assert.Equal(t, []tmdb.RegionProvider{
 		{ID: 8, Name: "Netflix", LogoPath: "/n.jpg"},
 		{ID: 119, Name: "Prime Video", LogoPath: "/p.jpg"},
+		{ID: 600, Name: "Tied", LogoPath: "/t.jpg"},
 		{ID: 312, Name: "VRT MAX", LogoPath: "/v.jpg"},
-	}, got, "Belgian only, best priority wins, ties by ID, no JustWatch TV")
+	}, got, "Belgian only, best priority wins (first on a tie), then ID, no JustWatch")
 }
 
 func TestListRegionProviders_Error(t *testing.T) {
