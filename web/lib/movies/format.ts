@@ -5,17 +5,24 @@ export interface BacklogFilter {
   status: string
   mediaType: string
   sort: string
+  /** Only titles streaming on the user's services. */
+  onMyServices: boolean
 }
 
-export const DEFAULT_BACKLOG_FILTER: BacklogFilter = { status: '', mediaType: '', sort: 'added' }
+export const DEFAULT_BACKLOG_FILTER: BacklogFilter = {
+  status: '',
+  mediaType: '',
+  sort: 'added',
+  onMyServices: false
+}
 
 /** Status tab for watched series with a new season; not a stored status. */
 export const NEW_SEASONS = 'new'
 
 /** The ListBacklog request fields for a filter. */
-export function backlogRequest({ status, mediaType, sort }: BacklogFilter) {
+export function backlogRequest({ status, mediaType, sort, onMyServices }: BacklogFilter) {
   const newSeason = status === NEW_SEASONS
-  return { status: newSeason ? '' : status, mediaType, sort, newSeason }
+  return { status: newSeason ? '' : status, mediaType, sort, newSeason, onMyServices }
 }
 
 /** A season a watched series hasn't caught up on: aired, counted, unticked. */
@@ -42,6 +49,11 @@ export function mediaTypeLabel(mediaType: string): string {
 }
 
 /** TMDB poster URL at a fixed width; empty when the title has none. */
+/** A provider logo on TMDB's CDN. */
+export function logoUrl(logoPath: string): string {
+  return posterUrl(logoPath, 'w92')
+}
+
 export function posterUrl(posterPath: string, width: 'w92' | 'w185' | 'w342' = 'w185'): string {
   return posterPath ? `https://image.tmdb.org/t/p/${width}${posterPath}` : ''
 }

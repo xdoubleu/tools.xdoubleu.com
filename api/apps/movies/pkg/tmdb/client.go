@@ -2,6 +2,7 @@
 package tmdb
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"time"
 
@@ -45,6 +47,9 @@ type Client interface {
 	GetMovie(ctx context.Context, id int64) (*Title, error)
 	// GetSeries returns ErrNotFound for an unknown ID.
 	GetSeries(ctx context.Context, id int64) (*Title, error)
+	// ListRegionProviders returns the providers TMDB lists for Belgium for
+	// movies and series together, by display priority.
+	ListRegionProviders(ctx context.Context) ([]RegionProvider, error)
 }
 
 type client struct {
@@ -105,6 +110,32 @@ func (c client) GetSeries(ctx context.Context, id int64) (*Title, error) {
 	}
 	t := resp.toTitle()
 	return &t, nil
+}
+
+func (c client) ListRegionProviders(ctx context.Context) ([]RegionProvider, error) {
+	merged := map[int64]priorityProvider{}
+	for _, kind := range []string{"movie", "tv"} {
+		var list regionProviderList
+		err := c.get(ctx, "/watch/providers/"+kind,
+			url.Values{"watch_region": {watchRegion}}, &list)
+		if err != nil {
+			return nil, err
+		}
+		list.merge(merged)
+	}
+
+	all := make([]priorityProvider, 0, len(merged))
+	for _, p := range merged {
+		all = append(all, p)
+	}
+	slices.SortFunc(all, func(a, b priorityProvider) int {
+		return cmp.Or(cmp.Compare(a.priority, b.priority), cmp.Compare(a.ID, b.ID))
+	})
+	out := make([]RegionProvider, len(all))
+	for i, p := range all {
+		out[i] = p.RegionProvider
+	}
+	return out, nil
 }
 
 func (c client) get(

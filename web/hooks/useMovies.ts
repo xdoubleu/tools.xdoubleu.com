@@ -4,8 +4,10 @@ import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
 import { MoviesService } from '@/lib/gen/movies/v1/movies_pb'
 import type {
+  GetSettingsResponse,
   GetStatsResponse,
   GetTitleResponse,
+  ListAvailableProvidersResponse,
   ListBacklogResponse,
   SearchTitlesResponse
 } from '@/lib/gen/movies/v1/movies_pb'
@@ -14,25 +16,31 @@ import { backlogRequest, type BacklogFilter } from '@/lib/movies/format'
 
 export function useMoviesBacklog(filter: BacklogFilter) {
   const client = createServiceClient(MoviesService)
-  const { status, mediaType, sort } = filter
-  return useSWR<ListBacklogResponse, Error>(swrKeys.moviesBacklog(status, mediaType, sort), () =>
-    client.listBacklog({ ...backlogRequest(filter), limit: DEFAULT_PAGE_SIZE })
+  const { status, mediaType, sort, onMyServices } = filter
+  return useSWR<ListBacklogResponse, Error>(
+    swrKeys.moviesBacklog(status, mediaType, sort, onMyServices),
+    () => client.listBacklog({ ...backlogRequest(filter), limit: DEFAULT_PAGE_SIZE })
   )
 }
 
-export function useFetchMoviesBacklogPage({ status, mediaType, sort }: BacklogFilter) {
+export function useFetchMoviesBacklogPage({
+  status,
+  mediaType,
+  sort,
+  onMyServices
+}: BacklogFilter) {
   // createServiceClient caches per service, so client is stable.
   const client = createServiceClient(MoviesService)
   return useCallback(
     (offset: number) =>
       client
         .listBacklog({
-          ...backlogRequest({ status, mediaType, sort }),
+          ...backlogRequest({ status, mediaType, sort, onMyServices }),
           limit: DEFAULT_PAGE_SIZE,
           offset
         })
         .then((r) => ({ items: r.entries, hasMore: r.hasMore })),
-    [client, status, mediaType, sort]
+    [client, status, mediaType, sort, onMyServices]
   )
 }
 
@@ -44,6 +52,20 @@ export function useMovieSearch(query: string) {
     trimmed.length >= 2 ? swrKeys.moviesSearch(trimmed) : null,
     () => client.searchTitles({ query: trimmed }),
     { keepPreviousData: true }
+  )
+}
+
+/** The caller's streaming services, as TMDB provider IDs. */
+export function useMovieSettings() {
+  const client = createServiceClient(MoviesService)
+  return useSWR<GetSettingsResponse, Error>(swrKeys.moviesSettings, () => client.getSettings({}))
+}
+
+/** Belgian providers to pick services from. */
+export function useAvailableProviders() {
+  const client = createServiceClient(MoviesService)
+  return useSWR<ListAvailableProvidersResponse, Error>(swrKeys.moviesProviders, () =>
+    client.listAvailableProviders({})
   )
 }
 
@@ -73,6 +95,11 @@ export function useMoviesActions() {
   // unknownDate dates new watches unknown instead of now; for a series marked
   // watched, that is every aired season it ticks.
   return {
+    // Replaces the picked services; backlog flags and filters follow them.
+    setServices: async (providerIds: bigint[]) => {
+      await client.setSettings({ providerIds })
+      await refresh()
+    },
     add: async (
       mediaType: string,
       tmdbId: bigint,

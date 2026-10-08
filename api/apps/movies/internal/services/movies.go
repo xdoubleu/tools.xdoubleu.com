@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -63,6 +64,8 @@ type moviesStore interface {
 		ctx context.Context, titleID uuid.UUID, providers []models.Provider,
 	) error
 	ListProviders(ctx context.Context, titleID uuid.UUID) ([]models.Provider, error)
+	GetProviderIDs(ctx context.Context, userID string) ([]int64, error)
+	SetProviderIDs(ctx context.Context, userID string, ids []int64) error
 	DeleteOrphanTitles(ctx context.Context) (int64, error)
 	DueTitles(ctx context.Context) ([]models.TitleKey, error)
 }
@@ -70,6 +73,8 @@ type moviesStore interface {
 type MovieService struct {
 	repo moviesStore
 	tmdb tmdb.Client
+
+	providers providerCache
 }
 
 func badRequest(msg string) error {
@@ -205,6 +210,7 @@ func (s *MovieService) storeTitle(
 			LogoPath:        p.LogoPath,
 			OfferType:       p.OfferType,
 			DisplayPriority: p.DisplayPriority,
+			Mine:            false,
 		}
 	}
 	if err = s.repo.ReplaceProviders(ctx, titleID, providers); err != nil {
@@ -286,7 +292,7 @@ func (s *MovieService) Get(
 	if !entry.Title.ProvidersFetched {
 		s.backfillProviders(ctx, entry)
 	}
-	if entry.Providers, err = s.repo.ListProviders(ctx, entry.Title.ID); err != nil {
+	if err = s.loadProviders(ctx, userID, entry); err != nil {
 		return nil, err
 	}
 	if entry.Title.MediaType != tmdb.MediaTypeSeries {
@@ -345,4 +351,27 @@ func (s *MovieService) backfillProviders(ctx context.Context, entry *models.Entr
 	if _, err = s.storeTitle(ctx, *t); err == nil {
 		entry.Title.WatchLink = t.WatchLink
 	}
+}
+
+// loadProviders fills the entry's providers, marking the ones on the user's
+// services.
+func (s *MovieService) loadProviders(
+	ctx context.Context,
+	userID string,
+	entry *models.Entry,
+) error {
+	providers, err := s.repo.ListProviders(ctx, entry.Title.ID)
+	if err != nil {
+		return err
+	}
+	mine, err := s.repo.GetProviderIDs(ctx, userID)
+	if err != nil {
+		return err
+	}
+	for i, p := range providers {
+		providers[i].Mine = models.StreamsOnMyServices(p.OfferType) &&
+			slices.Contains(mine, p.ID)
+	}
+	entry.Providers = providers
+	return nil
 }

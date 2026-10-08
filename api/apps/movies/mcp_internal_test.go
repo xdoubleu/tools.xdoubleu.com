@@ -11,6 +11,7 @@ import (
 	moviesv1 "tools.xdoubleu.com/gen/movies/v1"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/mcptools"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/testhelper"
@@ -39,13 +40,19 @@ func TestMCPTools(t *testing.T) {
 	)
 
 	msg, err := h.mcpListBacklog(ctx, mcpListBacklogArgs{
-		Status: "want", MediaType: "", Sort: "title", NewSeason: false, Limit: 5,
-		Offset: 0,
+		Status: "want", MediaType: "", Sort: "title", NewSeason: false, OnMyServices: false,
+		Limit: 5, Offset: 0,
 	})
 	require.NoError(t, err)
 	resp, ok := msg.(*moviesv1.ListBacklogResponse)
 	require.True(t, ok)
 	assert.Empty(t, resp.Entries)
+
+	settings, err := h.mcpGetSettings(ctx, mcptools.NoArgs{})
+	require.NoError(t, err)
+	settingsResp, ok := settings.(*moviesv1.GetSettingsResponse)
+	require.True(t, ok)
+	assert.Empty(t, settingsResp.ProviderIds)
 
 	_, err = h.mcpSearchTitles(ctx, mcpSearchArgs{Query: "matrix"})
 	require.ErrorContains(t, err, "TMDB is not configured")

@@ -56,9 +56,9 @@ var appsToolNames = []string{
 	"learningpaths_get_progress", "learningpaths_get_todoist_status",
 	"learningpaths_create_path", "learningpaths_update_path",
 	"learningpaths_record_progress",
-	// movies (4)
+	// movies (5)
 	"movies_search_titles", "movies_list_backlog", "movies_get_title",
-	"movies_get_stats",
+	"movies_get_stats", "movies_get_settings",
 	// observability (20, admin-gated)
 	"get_job_stats", "get_automated_actions", "record_action",
 	"get_usage_stats", "get_storage_stats", "get_database_stats",

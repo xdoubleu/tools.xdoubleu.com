@@ -100,7 +100,7 @@ func protoOffers(providers []models.Provider) []*moviesv1.ProviderOffers {
 		}
 		last := out[len(out)-1]
 		last.Providers = append(last.Providers, &moviesv1.Provider{
-			Id: p.ID, Name: p.Name, LogoPath: p.LogoPath,
+			Id: p.ID, Name: p.Name, LogoPath: p.LogoPath, Mine: p.Mine,
 		})
 	}
 	return out
@@ -125,6 +125,7 @@ func protoEntry(e *models.Entry) *moviesv1.BacklogEntry {
 		UpdatedAt:     e.UpdatedAt.Format(time.RFC3339),
 		Rating:        optionalInt32(e.Rating),
 		HasNewSeason:  e.HasNewSeason,
+		OnMyServices:  e.OnMyServices,
 	}
 }
 

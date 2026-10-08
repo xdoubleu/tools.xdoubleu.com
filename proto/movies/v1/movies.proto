@@ -39,6 +39,9 @@ message BacklogEntry {
   optional int32 rating = 15;
   // A watched series with an aired season not yet ticked.
   bool has_new_season = 16;
+  // A stream, free or ad-supported provider of the title is one of the
+  // caller's services.
+  bool on_my_services = 17;
 }
 
 message GetStatsRequest {}
@@ -113,6 +116,8 @@ message ListBacklogRequest {
   int32 offset = 5;
   // Only entries with has_new_season.
   bool new_season = 6;
+  // Only entries with on_my_services.
+  bool on_my_services = 7;
 }
 message ListBacklogResponse {
   repeated BacklogEntry entries = 1;
@@ -139,6 +144,9 @@ message Provider {
   int64 id = 1;
   string name = 2;
   string logo_path = 3;
+  // In a title's offers: a stream, free or ad-supported offer on one of the
+  // caller's services.
+  bool mine = 4;
 }
 // Providers of one offer type. offer_type is "flatrate", "free", "ads",
 // "rent" or "buy".
@@ -146,6 +154,15 @@ message ProviderOffers {
   string offer_type = 1;
   repeated Provider providers = 2;
 }
+
+message GetSettingsRequest {}
+// provider_ids are TMDB provider IDs of the caller's streaming services.
+message GetSettingsResponse { repeated int64 provider_ids = 1; }
+message SetSettingsRequest { repeated int64 provider_ids = 1; }
+message SetSettingsResponse { repeated int64 provider_ids = 1; }
+message ListAvailableProvidersRequest {}
+// Belgian providers to pick from, by TMDB display priority.
+message ListAvailableProvidersResponse { repeated Provider providers = 1; }
 
 message GetTitleRequest { string id = 1; }
 message GetTitleResponse {
@@ -215,6 +232,10 @@ service MoviesService {
   rpc ListBacklog(ListBacklogRequest) returns (ListBacklogResponse);
   rpc GetTitle(GetTitleRequest) returns (GetTitleResponse);
   rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  rpc SetSettings(SetSettingsRequest) returns (SetSettingsResponse);
+  rpc ListAvailableProviders(ListAvailableProvidersRequest)
+      returns (ListAvailableProvidersResponse);
   rpc SetSeasonWatched(SetSeasonWatchedRequest) returns (SetSeasonWatchedResponse);
   rpc AddWatchDate(AddWatchDateRequest) returns (AddWatchDateResponse);
   rpc EditWatchDate(EditWatchDateRequest) returns (EditWatchDateResponse);

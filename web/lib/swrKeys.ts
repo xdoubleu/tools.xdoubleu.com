@@ -88,8 +88,10 @@ export const swrKeys = {
   learningPath: (id: string) => `/learningpaths/${id}`,
   todoistConnection: '/learningpaths/todoist-connection',
 
-  moviesBacklog: (status: string, mediaType: string, sort: string) =>
-    ['/movies/backlog', status, mediaType, sort] as const,
+  moviesBacklog: (status: string, mediaType: string, sort: string, onMyServices: boolean) =>
+    ['/movies/backlog', status, mediaType, sort, onMyServices] as const,
+  moviesSettings: '/movies/settings',
+  moviesProviders: '/movies/providers',
   moviesSearch: (query: string) => ['/movies/search', query] as const,
   moviesTitle: (id: string) => `/movies/title/${id}`,
   moviesStats: '/movies/stats',

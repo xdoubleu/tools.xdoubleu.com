@@ -19,12 +19,13 @@ type mcpSearchArgs struct {
 
 //nolint:lll // struct tags can't wrap
 type mcpListBacklogArgs struct {
-	Status    string `json:"status,omitempty"     jsonschema:"want, watching, watched or dropped; empty for all"`
-	MediaType string `json:"media_type,omitempty" jsonschema:"movie or series; empty for both"`
-	Sort      string `json:"sort,omitempty"       jsonschema:"added (default), title, release or rating"`
-	NewSeason bool   `json:"new_season,omitempty" jsonschema:"only watched series with an aired season not yet ticked"`
-	Limit     int32  `json:"limit,omitempty"      jsonschema:"max entries, default 50"`
-	Offset    int32  `json:"offset,omitempty"     jsonschema:"pagination offset"`
+	Status       string `json:"status,omitempty"         jsonschema:"want, watching, watched or dropped; empty for all"`
+	MediaType    string `json:"media_type,omitempty"     jsonschema:"movie or series; empty for both"`
+	Sort         string `json:"sort,omitempty"           jsonschema:"added (default), title, release or rating"`
+	NewSeason    bool   `json:"new_season,omitempty"     jsonschema:"only watched series with an aired season not yet ticked"`
+	OnMyServices bool   `json:"on_my_services,omitempty" jsonschema:"only titles streaming (flatrate, free or ads) on the user's services in Belgium"`
+	Limit        int32  `json:"limit,omitempty"          jsonschema:"max entries, default 50"`
+	Offset       int32  `json:"offset,omitempty"         jsonschema:"pagination offset"`
 }
 
 type mcpGetTitleArgs struct {
@@ -40,11 +41,14 @@ func (a *Movies) RegisterMCPTools(srv *mcp.Server) {
 			"backlog carry their status.", h.mcpSearchTitles)
 	mcptools.AddReadTool(srv, mcpAppName, "movies_list_backlog",
 		"The user's movies & series backlog with status, rating, watch dates and "+
-			"has_new_season. Page with limit/offset while has_more is true.",
+			"has_new_season and on_my_services. Page with limit/offset while has_more is true.",
 		h.mcpListBacklog)
 	mcptools.AddReadTool(srv, mcpAppName, "movies_get_title",
 		"A single backlog entry including the TMDB overview, seasons and where "+
 			"to watch in Belgium (providers by offer type, data by JustWatch).", h.mcpGetTitle)
+	mcptools.AddReadTool(srv, mcpAppName, "movies_get_settings",
+		"The user's streaming services as TMDB provider IDs, used by the "+
+			"on_my_services filter and flag.", h.mcpGetSettings)
 	mcptools.AddReadTool(srv, mcpAppName, "movies_get_stats",
 		"The user's watching stats: dated watches per month (last 12, "+
 			"Europe/Brussels), top genres, rating distribution and totals.",
@@ -56,6 +60,14 @@ func (h *moviesConnectHandler) mcpGetStats(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.GetStats(ctx, connect.NewRequest(
 		&moviesv1.GetStatsRequest{},
+	)))
+}
+
+func (h *moviesConnectHandler) mcpGetSettings(
+	ctx context.Context, _ mcptools.NoArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.GetSettings(ctx, connect.NewRequest(
+		&moviesv1.GetSettingsRequest{},
 	)))
 }
 
@@ -72,12 +84,13 @@ func (h *moviesConnectHandler) mcpListBacklog(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.ListBacklog(ctx, connect.NewRequest(
 		&moviesv1.ListBacklogRequest{
-			Status:    args.Status,
-			MediaType: args.MediaType,
-			Sort:      args.Sort,
-			NewSeason: args.NewSeason,
-			Limit:     args.Limit,
-			Offset:    args.Offset,
+			Status:       args.Status,
+			MediaType:    args.MediaType,
+			Sort:         args.Sort,
+			NewSeason:    args.NewSeason,
+			OnMyServices: args.OnMyServices,
+			Limit:        args.Limit,
+			Offset:       args.Offset,
 		},
 	)))
 }
