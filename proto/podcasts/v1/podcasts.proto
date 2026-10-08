@@ -1,0 +1,56 @@
+syntax = "proto3";
+package podcasts.v1;
+option go_package = "tools.xdoubleu.com/gen/podcasts/v1;podcastsv1";
+
+message SearchResult {
+  // iTunes collection ID.
+  int64 itunes_id = 1;
+  string title = 2;
+  string author = 3;
+  string artwork_url = 4;
+  // Already in the caller's favourites.
+  bool favourite = 5;
+}
+
+message Favourite {
+  string id = 1;
+  int64 itunes_id = 2;
+  string title = 3;
+  string author = 4;
+  string artwork_url = 5;
+  string apple_url = 6;
+  // RFC3339.
+  string added_at = 7;
+}
+
+message SearchShowsRequest {
+  string query = 1;
+}
+message SearchShowsResponse {
+  repeated SearchResult results = 1;
+}
+
+message ListFavouritesRequest {}
+message ListFavouritesResponse {
+  repeated Favourite favourites = 1;
+}
+
+// Adding an already-favourite show returns the existing favourite.
+message AddFavouriteRequest {
+  int64 itunes_id = 1;
+}
+message AddFavouriteResponse {
+  Favourite favourite = 1;
+}
+
+message RemoveFavouriteRequest {
+  string id = 1;
+}
+message RemoveFavouriteResponse {}
+
+service PodcastsService {
+  rpc SearchShows(SearchShowsRequest) returns (SearchShowsResponse);
+  rpc ListFavourites(ListFavouritesRequest) returns (ListFavouritesResponse);
+  rpc AddFavourite(AddFavouriteRequest) returns (AddFavouriteResponse);
+  rpc RemoveFavourite(RemoveFavouriteRequest) returns (RemoveFavouriteResponse);
+}

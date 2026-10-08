@@ -74,4 +74,10 @@ describe('UserManagementClient', () => {
 
     expect(mockMutate).toHaveBeenCalledWith('/user-management/users')
   })
+
+  it('offers podcasts access', () => {
+    mockUseUsers.mockReturnValue({ data: { users: [] }, isLoading: false, error: undefined })
+    render(<UserManagementClient />)
+    expect(screen.getByRole('columnheader', { name: 'podcasts' })).toBeInTheDocument()
+  })
 })

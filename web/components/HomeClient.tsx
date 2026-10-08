@@ -65,6 +65,12 @@ const ALL_APPS: AppLink[] = [
     href: '/movies',
     description: 'Watch backlog with TMDB search.'
   },
+  {
+    name: 'podcasts',
+    label: 'Podcasts',
+    href: '/podcasts',
+    description: 'Favourite shows, found through iTunes.'
+  },
   { name: 'recipes', label: 'Recipes', href: '/recipes/list', description: 'Recipe management' },
   {
     name: 'learningpaths',
@@ -129,7 +135,7 @@ const APP_MAP = new Map(ALL_APPS.map((a) => [a.name, a]))
 const SECTION_DEFS: { title: string; names: string[] }[] = [
   {
     title: 'Productivity',
-    names: ['games', 'books', 'feeds', 'movies', 'trains', 'learningpaths']
+    names: ['games', 'books', 'feeds', 'movies', 'podcasts', 'trains', 'learningpaths']
   },
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty'] },

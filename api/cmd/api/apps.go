@@ -15,6 +15,7 @@ import (
 	"tools.xdoubleu.com/apps/learningpaths"
 	"tools.xdoubleu.com/apps/mealplans"
 	"tools.xdoubleu.com/apps/movies"
+	"tools.xdoubleu.com/apps/podcasts"
 	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/apps/shoppinglist"
 	"tools.xdoubleu.com/apps/trains"
@@ -85,6 +86,9 @@ func NewApps(
 	)
 	// movies has no schema dependencies.
 	apps.addApp(movies.New(authService, logger, cfg, db))
+
+	// podcasts has no schema dependencies.
+	apps.addApp(podcasts.New(authService, logger, cfg, db))
 
 	return &apps, booksApp, feedsApp
 }
