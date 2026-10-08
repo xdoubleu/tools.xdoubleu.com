@@ -43,7 +43,8 @@ func (a *Movies) RegisterMCPTools(srv *mcp.Server) {
 			"has_new_season. Page with limit/offset while has_more is true.",
 		h.mcpListBacklog)
 	mcptools.AddReadTool(srv, mcpAppName, "movies_get_title",
-		"A single backlog entry including the TMDB overview.", h.mcpGetTitle)
+		"A single backlog entry including the TMDB overview, seasons and where "+
+			"to watch in Belgium (providers by offer type, data by JustWatch).", h.mcpGetTitle)
 	mcptools.AddReadTool(srv, mcpAppName, "movies_get_stats",
 		"The user's watching stats: dated watches per month (last 12, "+
 			"Europe/Brussels), top genres, rating distribution and totals.",

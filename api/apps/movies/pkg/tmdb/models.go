@@ -13,9 +13,33 @@ const (
 	MediaTypeSeries = "series"
 )
 
+// Offer types of a Provider.
+const (
+	OfferFlatrate = "flatrate"
+	OfferFree     = "free"
+	OfferAds      = "ads"
+	OfferRent     = "rent"
+	OfferBuy      = "buy"
+)
+
+// watchRegion is the only region providers are kept for.
+const watchRegion = "BE"
+
+// justWatchProviderID is TMDB's "JustWatch TV" pseudo-provider.
+const justWatchProviderID = 2285
+
+// Provider is one way to watch a title in Belgium.
+type Provider struct {
+	ID              int64
+	Name            string
+	LogoPath        string
+	OfferType       string
+	DisplayPriority int
+}
+
 // Title is a movie or series. ReleaseDate is the first air date for series,
-// nil when TMDB has none. Overview, Genres, Runtime, SeasonCount and Seasons
-// are only set by GetMovie/GetSeries.
+// nil when TMDB has none. Overview, Genres, Runtime, SeasonCount, Seasons,
+// WatchLink and Providers are only set by GetMovie/GetSeries.
 type Title struct {
 	MediaType     string
 	TMDBID        int64
@@ -28,6 +52,9 @@ type Title struct {
 	Runtime       *int
 	SeasonCount   *int
 	Seasons       []Season
+	// WatchLink is TMDB's watch page for Belgium, not a streaming service.
+	WatchLink string
+	Providers []Provider
 }
 
 // Season is one season of a series; Number 0 is TMDB's "Specials".
@@ -58,6 +85,58 @@ type genre struct {
 	Name string `json:"name"`
 }
 
+type providerEntry struct {
+	ProviderID      int64  `json:"provider_id"`
+	ProviderName    string `json:"provider_name"`
+	LogoPath        string `json:"logo_path"`
+	DisplayPriority int    `json:"display_priority"`
+}
+
+// regionProviders is one region's offers; TMDB omits the empty keys.
+type regionProviders struct {
+	Link     string          `json:"link"`
+	Flatrate []providerEntry `json:"flatrate"`
+	Free     []providerEntry `json:"free"`
+	Ads      []providerEntry `json:"ads"`
+	Rent     []providerEntry `json:"rent"`
+	Buy      []providerEntry `json:"buy"`
+}
+
+type watchProviders struct {
+	Results map[string]regionProviders `json:"results"`
+}
+
+// toProviders returns the Belgian watch link and offers, without the
+// JustWatch pseudo-provider.
+func (w watchProviders) toProviders() (string, []Provider) {
+	r := w.Results[watchRegion]
+	var out []Provider
+	for _, group := range []struct {
+		offer   string
+		entries []providerEntry
+	}{
+		{OfferFlatrate, r.Flatrate},
+		{OfferFree, r.Free},
+		{OfferAds, r.Ads},
+		{OfferRent, r.Rent},
+		{OfferBuy, r.Buy},
+	} {
+		for _, e := range group.entries {
+			if e.ProviderID == justWatchProviderID {
+				continue
+			}
+			out = append(out, Provider{
+				ID:              e.ProviderID,
+				Name:            e.ProviderName,
+				LogoPath:        e.LogoPath,
+				OfferType:       group.offer,
+				DisplayPriority: e.DisplayPriority,
+			})
+		}
+	}
+	return r.Link, out
+}
+
 type movieResponse struct {
 	ID            int64   `json:"id"`
 	Title         string  `json:"title"`
@@ -67,6 +146,8 @@ type movieResponse struct {
 	Overview      string  `json:"overview"`
 	Genres        []genre `json:"genres"`
 	Runtime       int     `json:"runtime"`
+
+	WatchProviders watchProviders `json:"watch/providers"`
 }
 
 type seriesResponse struct {
@@ -78,7 +159,9 @@ type seriesResponse struct {
 	Overview        string  `json:"overview"`
 	Genres          []genre `json:"genres"`
 	NumberOfSeasons int     `json:"number_of_seasons"`
-	Seasons         []struct {
+
+	WatchProviders watchProviders `json:"watch/providers"`
+	Seasons        []struct {
 		SeasonNumber int    `json:"season_number"`
 		Name         string `json:"name"`
 		AirDate      string `json:"air_date"`
@@ -130,6 +213,7 @@ func (r searchResult) toTitle() (Title, bool) {
 }
 
 func (r movieResponse) toTitle() Title {
+	link, providers := r.WatchProviders.toProviders()
 	return Title{
 		MediaType:     MediaTypeMovie,
 		TMDBID:        r.ID,
@@ -142,10 +226,13 @@ func (r movieResponse) toTitle() Title {
 		Runtime:       positive(r.Runtime),
 		SeasonCount:   nil,
 		Seasons:       nil,
+		WatchLink:     link,
+		Providers:     providers,
 	}
 }
 
 func (r seriesResponse) toTitle() Title {
+	link, providers := r.WatchProviders.toProviders()
 	seasons := make([]Season, len(r.Seasons))
 	for i, s := range r.Seasons {
 		seasons[i] = Season{
@@ -167,5 +254,7 @@ func (r seriesResponse) toTitle() Title {
 		Runtime:       nil,
 		SeasonCount:   positive(r.NumberOfSeasons),
 		Seasons:       seasons,
+		WatchLink:     link,
+		Providers:     providers,
 	}
 }

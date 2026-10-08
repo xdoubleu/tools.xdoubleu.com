@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file movies/v1/movies.proto.
  */
 export const file_movies_v1_movies: GenFile = /*@__PURE__*/
-  fileDesc("ChZtb3ZpZXMvdjEvbW92aWVzLnByb3RvEgltb3ZpZXMudjEipQEKDFNlYXJjaFJlc3VsdBISCgptZWRpYV90eXBlGAEgASgJEg8KB3RtZGJfaWQYAiABKAMSDQoFdGl0bGUYAyABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBCABKAkSFAoMcmVsZWFzZV9kYXRlGAUgASgJEhMKC3Bvc3Rlcl9wYXRoGAYgASgJEhMKBnN0YXR1cxgHIAEoCUgAiAEBQgkKB19zdGF0dXMi8QIKDEJhY2tsb2dFbnRyeRIKCgJpZBgBIAEoCRISCgptZWRpYV90eXBlGAIgASgJEg8KB3RtZGJfaWQYAyABKAMSDQoFdGl0bGUYBCABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBSABKAkSFAoMcmVsZWFzZV9kYXRlGAYgASgJEhMKC3Bvc3Rlcl9wYXRoGAcgASgJEg4KBmdlbnJlcxgIIAMoCRIUCgdydW50aW1lGAkgASgFSACIAQESGQoMc2Vhc29uX2NvdW50GAogASgFSAGIAQESDgoGc3RhdHVzGAsgASgJEhIKCndhdGNoZWRfYXQYDCADKAkSEAoIYWRkZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCRITCgZyYXRpbmcYDyABKAVIAogBARIWCg5oYXNfbmV3X3NlYXNvbhgQIAEoCEIKCghfcnVudGltZUIPCg1fc2Vhc29uX2NvdW50QgkKB19yYXRpbmciEQoPR2V0U3RhdHNSZXF1ZXN0Ij4KDE1vbnRoV2F0Y2hlcxINCgVtb250aBgBIAEoCRIOCgZtb3ZpZXMYAiABKAUSDwoHc2Vhc29ucxgDIAEoBSIqCgpHZW5yZUNvdW50Eg0KBWdlbnJlGAEgASgJEg0KBWNvdW50GAIgASgFIrwBChBHZXRTdGF0c1Jlc3BvbnNlEicKBm1vbnRocxgBIAMoCzIXLm1vdmllcy52MS5Nb250aFdhdGNoZXMSJQoGZ2VucmVzGAIgAygLMhUubW92aWVzLnYxLkdlbnJlQ291bnQSDwoHcmF0aW5ncxgDIAMoBRIWCg5tb3ZpZXNfd2F0Y2hlZBgEIAEoBRIWCg5zZXJpZXNfd2F0Y2hlZBgFIAEoBRIXCg9zZWFzb25zX3dhdGNoZWQYBiABKAUiJAoTU2VhcmNoVGl0bGVzUmVxdWVzdBINCgVxdWVyeRgBIAEoCSJAChRTZWFyY2hUaXRsZXNSZXNwb25zZRIoCgdyZXN1bHRzGAEgAygLMhcubW92aWVzLnYxLlNlYXJjaFJlc3VsdCJcCg9BZGRUaXRsZVJlcXVlc3QSEgoKbWVkaWFfdHlwZRgBIAEoCRIPCgd0bWRiX2lkGAIgASgDEg4KBnN0YXR1cxgDIAEoCRIUCgx1bmtub3duX2RhdGUYBCABKAgiOgoQQWRkVGl0bGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkiRAoQU2V0U3RhdHVzUmVxdWVzdBIKCgJpZBgBIAEoCRIOCgZzdGF0dXMYAiABKAkSFAoMdW5rbm93bl9kYXRlGAMgASgIIjsKEVNldFN0YXR1c1Jlc3BvbnNlEiYKBWVudHJ5GAEgASgLMhcubW92aWVzLnYxLkJhY2tsb2dFbnRyeSI+ChBTZXRSYXRpbmdSZXF1ZXN0EgoKAmlkGAEgASgJEhMKBnJhdGluZxgCIAEoBUgAiAEBQgkKB19yYXRpbmciOwoRU2V0UmF0aW5nUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5IiAKElJlbW92ZVRpdGxlUmVxdWVzdBIKCgJpZBgBIAEoCSIVChNSZW1vdmVUaXRsZVJlc3BvbnNlInkKEkxpc3RCYWNrbG9nUmVxdWVzdBIOCgZzdGF0dXMYASABKAkSEgoKbWVkaWFfdHlwZRgCIAEoCRIMCgRzb3J0GAMgASgJEg0KBWxpbWl0GAQgASgFEg4KBm9mZnNldBgFIAEoBRISCgpuZXdfc2Vhc29uGAYgASgIIlEKE0xpc3RCYWNrbG9nUmVzcG9uc2USKAoHZW50cmllcxgBIAMoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSEAoIaGFzX21vcmUYAiABKAgicgoGU2Vhc29uEg4KBm51bWJlchgBIAEoBRIMCgRuYW1lGAIgASgJEhAKCGFpcl9kYXRlGAMgASgJEhUKDWVwaXNvZGVfY291bnQYBCABKAUSEgoKd2F0Y2hlZF9hdBgFIAMoCRINCgVhaXJlZBgGIAEoCCIdCg9HZXRUaXRsZVJlcXVlc3QSCgoCaWQYASABKAkicAoQR2V0VGl0bGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSEAoIb3ZlcnZpZXcYAiABKAkSIgoHc2Vhc29ucxgDIAMoCzIRLm1vdmllcy52MS5TZWFzb24iYwoXU2V0U2Vhc29uV2F0Y2hlZFJlcXVlc3QSCgoCaWQYASABKAkSFQoNc2Vhc29uX251bWJlchgCIAEoBRIPCgd3YXRjaGVkGAMgASgIEhQKDHVua25vd25fZGF0ZRgEIAEoCCJmChhTZXRTZWFzb25XYXRjaGVkUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uIl0KE0FkZFdhdGNoRGF0ZVJlcXVlc3QSCgoCaWQYASABKAkSGgoNc2Vhc29uX251bWJlchgCIAEoBUgAiAEBEgwKBGRhdGUYAyABKAlCEAoOX3NlYXNvbl9udW1iZXIiYgoUQWRkV2F0Y2hEYXRlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uIm0KFEVkaXRXYXRjaERhdGVSZXF1ZXN0EgoKAmlkGAEgASgJEhoKDXNlYXNvbl9udW1iZXIYAiABKAVIAIgBARINCgVpbmRleBgDIAEoBRIMCgRkYXRlGAQgASgJQhAKDl9zZWFzb25fbnVtYmVyImMKFUVkaXRXYXRjaERhdGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSIgoHc2Vhc29ucxgCIAMoCzIRLm1vdmllcy52MS5TZWFzb24iYQoWUmVtb3ZlV2F0Y2hEYXRlUmVxdWVzdBIKCgJpZBgBIAEoCRIaCg1zZWFzb25fbnVtYmVyGAIgASgFSACIAQESDQoFaW5kZXgYAyABKAVCEAoOX3NlYXNvbl9udW1iZXIiZQoXUmVtb3ZlV2F0Y2hEYXRlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uMrcHCg1Nb3ZpZXNTZXJ2aWNlEk8KDFNlYXJjaFRpdGxlcxIeLm1vdmllcy52MS5TZWFyY2hUaXRsZXNSZXF1ZXN0Gh8ubW92aWVzLnYxLlNlYXJjaFRpdGxlc1Jlc3BvbnNlEkMKCEFkZFRpdGxlEhoubW92aWVzLnYxLkFkZFRpdGxlUmVxdWVzdBobLm1vdmllcy52MS5BZGRUaXRsZVJlc3BvbnNlEkYKCVNldFN0YXR1cxIbLm1vdmllcy52MS5TZXRTdGF0dXNSZXF1ZXN0GhwubW92aWVzLnYxLlNldFN0YXR1c1Jlc3BvbnNlEkYKCVNldFJhdGluZxIbLm1vdmllcy52MS5TZXRSYXRpbmdSZXF1ZXN0GhwubW92aWVzLnYxLlNldFJhdGluZ1Jlc3BvbnNlEkwKC1JlbW92ZVRpdGxlEh0ubW92aWVzLnYxLlJlbW92ZVRpdGxlUmVxdWVzdBoeLm1vdmllcy52MS5SZW1vdmVUaXRsZVJlc3BvbnNlEkwKC0xpc3RCYWNrbG9nEh0ubW92aWVzLnYxLkxpc3RCYWNrbG9nUmVxdWVzdBoeLm1vdmllcy52MS5MaXN0QmFja2xvZ1Jlc3BvbnNlEkMKCEdldFRpdGxlEhoubW92aWVzLnYxLkdldFRpdGxlUmVxdWVzdBobLm1vdmllcy52MS5HZXRUaXRsZVJlc3BvbnNlEkMKCEdldFN0YXRzEhoubW92aWVzLnYxLkdldFN0YXRzUmVxdWVzdBobLm1vdmllcy52MS5HZXRTdGF0c1Jlc3BvbnNlElsKEFNldFNlYXNvbldhdGNoZWQSIi5tb3ZpZXMudjEuU2V0U2Vhc29uV2F0Y2hlZFJlcXVlc3QaIy5tb3ZpZXMudjEuU2V0U2Vhc29uV2F0Y2hlZFJlc3BvbnNlEk8KDEFkZFdhdGNoRGF0ZRIeLm1vdmllcy52MS5BZGRXYXRjaERhdGVSZXF1ZXN0Gh8ubW92aWVzLnYxLkFkZFdhdGNoRGF0ZVJlc3BvbnNlElIKDUVkaXRXYXRjaERhdGUSHy5tb3ZpZXMudjEuRWRpdFdhdGNoRGF0ZVJlcXVlc3QaIC5tb3ZpZXMudjEuRWRpdFdhdGNoRGF0ZVJlc3BvbnNlElgKD1JlbW92ZVdhdGNoRGF0ZRIhLm1vdmllcy52MS5SZW1vdmVXYXRjaERhdGVSZXF1ZXN0GiIubW92aWVzLnYxLlJlbW92ZVdhdGNoRGF0ZVJlc3BvbnNlQitaKXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vbW92aWVzL3YxO21vdmllc3YxYgZwcm90bzM");
+  fileDesc("ChZtb3ZpZXMvdjEvbW92aWVzLnByb3RvEgltb3ZpZXMudjEipQEKDFNlYXJjaFJlc3VsdBISCgptZWRpYV90eXBlGAEgASgJEg8KB3RtZGJfaWQYAiABKAMSDQoFdGl0bGUYAyABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBCABKAkSFAoMcmVsZWFzZV9kYXRlGAUgASgJEhMKC3Bvc3Rlcl9wYXRoGAYgASgJEhMKBnN0YXR1cxgHIAEoCUgAiAEBQgkKB19zdGF0dXMi8QIKDEJhY2tsb2dFbnRyeRIKCgJpZBgBIAEoCRISCgptZWRpYV90eXBlGAIgASgJEg8KB3RtZGJfaWQYAyABKAMSDQoFdGl0bGUYBCABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBSABKAkSFAoMcmVsZWFzZV9kYXRlGAYgASgJEhMKC3Bvc3Rlcl9wYXRoGAcgASgJEg4KBmdlbnJlcxgIIAMoCRIUCgdydW50aW1lGAkgASgFSACIAQESGQoMc2Vhc29uX2NvdW50GAogASgFSAGIAQESDgoGc3RhdHVzGAsgASgJEhIKCndhdGNoZWRfYXQYDCADKAkSEAoIYWRkZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCRITCgZyYXRpbmcYDyABKAVIAogBARIWCg5oYXNfbmV3X3NlYXNvbhgQIAEoCEIKCghfcnVudGltZUIPCg1fc2Vhc29uX2NvdW50QgkKB19yYXRpbmciEQoPR2V0U3RhdHNSZXF1ZXN0Ij4KDE1vbnRoV2F0Y2hlcxINCgVtb250aBgBIAEoCRIOCgZtb3ZpZXMYAiABKAUSDwoHc2Vhc29ucxgDIAEoBSIqCgpHZW5yZUNvdW50Eg0KBWdlbnJlGAEgASgJEg0KBWNvdW50GAIgASgFIrwBChBHZXRTdGF0c1Jlc3BvbnNlEicKBm1vbnRocxgBIAMoCzIXLm1vdmllcy52MS5Nb250aFdhdGNoZXMSJQoGZ2VucmVzGAIgAygLMhUubW92aWVzLnYxLkdlbnJlQ291bnQSDwoHcmF0aW5ncxgDIAMoBRIWCg5tb3ZpZXNfd2F0Y2hlZBgEIAEoBRIWCg5zZXJpZXNfd2F0Y2hlZBgFIAEoBRIXCg9zZWFzb25zX3dhdGNoZWQYBiABKAUiJAoTU2VhcmNoVGl0bGVzUmVxdWVzdBINCgVxdWVyeRgBIAEoCSJAChRTZWFyY2hUaXRsZXNSZXNwb25zZRIoCgdyZXN1bHRzGAEgAygLMhcubW92aWVzLnYxLlNlYXJjaFJlc3VsdCJcCg9BZGRUaXRsZVJlcXVlc3QSEgoKbWVkaWFfdHlwZRgBIAEoCRIPCgd0bWRiX2lkGAIgASgDEg4KBnN0YXR1cxgDIAEoCRIUCgx1bmtub3duX2RhdGUYBCABKAgiOgoQQWRkVGl0bGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkiRAoQU2V0U3RhdHVzUmVxdWVzdBIKCgJpZBgBIAEoCRIOCgZzdGF0dXMYAiABKAkSFAoMdW5rbm93bl9kYXRlGAMgASgIIjsKEVNldFN0YXR1c1Jlc3BvbnNlEiYKBWVudHJ5GAEgASgLMhcubW92aWVzLnYxLkJhY2tsb2dFbnRyeSI+ChBTZXRSYXRpbmdSZXF1ZXN0EgoKAmlkGAEgASgJEhMKBnJhdGluZxgCIAEoBUgAiAEBQgkKB19yYXRpbmciOwoRU2V0UmF0aW5nUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5IiAKElJlbW92ZVRpdGxlUmVxdWVzdBIKCgJpZBgBIAEoCSIVChNSZW1vdmVUaXRsZVJlc3BvbnNlInkKEkxpc3RCYWNrbG9nUmVxdWVzdBIOCgZzdGF0dXMYASABKAkSEgoKbWVkaWFfdHlwZRgCIAEoCRIMCgRzb3J0GAMgASgJEg0KBWxpbWl0GAQgASgFEg4KBm9mZnNldBgFIAEoBRISCgpuZXdfc2Vhc29uGAYgASgIIlEKE0xpc3RCYWNrbG9nUmVzcG9uc2USKAoHZW50cmllcxgBIAMoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSEAoIaGFzX21vcmUYAiABKAgicgoGU2Vhc29uEg4KBm51bWJlchgBIAEoBRIMCgRuYW1lGAIgASgJEhAKCGFpcl9kYXRlGAMgASgJEhUKDWVwaXNvZGVfY291bnQYBCABKAUSEgoKd2F0Y2hlZF9hdBgFIAMoCRINCgVhaXJlZBgGIAEoCCI3CghQcm92aWRlchIKCgJpZBgBIAEoAxIMCgRuYW1lGAIgASgJEhEKCWxvZ29fcGF0aBgDIAEoCSJMCg5Qcm92aWRlck9mZmVycxISCgpvZmZlcl90eXBlGAEgASgJEiYKCXByb3ZpZGVycxgCIAMoCzITLm1vdmllcy52MS5Qcm92aWRlciIdCg9HZXRUaXRsZVJlcXVlc3QSCgoCaWQYASABKAkirwEKEEdldFRpdGxlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EhAKCG92ZXJ2aWV3GAIgASgJEiIKB3NlYXNvbnMYAyADKAsyES5tb3ZpZXMudjEuU2Vhc29uEikKBm9mZmVycxgEIAMoCzIZLm1vdmllcy52MS5Qcm92aWRlck9mZmVycxISCgp3YXRjaF9saW5rGAUgASgJImMKF1NldFNlYXNvbldhdGNoZWRSZXF1ZXN0EgoKAmlkGAEgASgJEhUKDXNlYXNvbl9udW1iZXIYAiABKAUSDwoHd2F0Y2hlZBgDIAEoCBIUCgx1bmtub3duX2RhdGUYBCABKAgiZgoYU2V0U2Vhc29uV2F0Y2hlZFJlc3BvbnNlEiYKBWVudHJ5GAEgASgLMhcubW92aWVzLnYxLkJhY2tsb2dFbnRyeRIiCgdzZWFzb25zGAIgAygLMhEubW92aWVzLnYxLlNlYXNvbiJdChNBZGRXYXRjaERhdGVSZXF1ZXN0EgoKAmlkGAEgASgJEhoKDXNlYXNvbl9udW1iZXIYAiABKAVIAIgBARIMCgRkYXRlGAMgASgJQhAKDl9zZWFzb25fbnVtYmVyImIKFEFkZFdhdGNoRGF0ZVJlc3BvbnNlEiYKBWVudHJ5GAEgASgLMhcubW92aWVzLnYxLkJhY2tsb2dFbnRyeRIiCgdzZWFzb25zGAIgAygLMhEubW92aWVzLnYxLlNlYXNvbiJtChRFZGl0V2F0Y2hEYXRlUmVxdWVzdBIKCgJpZBgBIAEoCRIaCg1zZWFzb25fbnVtYmVyGAIgASgFSACIAQESDQoFaW5kZXgYAyABKAUSDAoEZGF0ZRgEIAEoCUIQCg5fc2Vhc29uX251bWJlciJjChVFZGl0V2F0Y2hEYXRlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uImEKFlJlbW92ZVdhdGNoRGF0ZVJlcXVlc3QSCgoCaWQYASABKAkSGgoNc2Vhc29uX251bWJlchgCIAEoBUgAiAEBEg0KBWluZGV4GAMgASgFQhAKDl9zZWFzb25fbnVtYmVyImUKF1JlbW92ZVdhdGNoRGF0ZVJlc3BvbnNlEiYKBWVudHJ5GAEgASgLMhcubW92aWVzLnYxLkJhY2tsb2dFbnRyeRIiCgdzZWFzb25zGAIgAygLMhEubW92aWVzLnYxLlNlYXNvbjK3BwoNTW92aWVzU2VydmljZRJPCgxTZWFyY2hUaXRsZXMSHi5tb3ZpZXMudjEuU2VhcmNoVGl0bGVzUmVxdWVzdBofLm1vdmllcy52MS5TZWFyY2hUaXRsZXNSZXNwb25zZRJDCghBZGRUaXRsZRIaLm1vdmllcy52MS5BZGRUaXRsZVJlcXVlc3QaGy5tb3ZpZXMudjEuQWRkVGl0bGVSZXNwb25zZRJGCglTZXRTdGF0dXMSGy5tb3ZpZXMudjEuU2V0U3RhdHVzUmVxdWVzdBocLm1vdmllcy52MS5TZXRTdGF0dXNSZXNwb25zZRJGCglTZXRSYXRpbmcSGy5tb3ZpZXMudjEuU2V0UmF0aW5nUmVxdWVzdBocLm1vdmllcy52MS5TZXRSYXRpbmdSZXNwb25zZRJMCgtSZW1vdmVUaXRsZRIdLm1vdmllcy52MS5SZW1vdmVUaXRsZVJlcXVlc3QaHi5tb3ZpZXMudjEuUmVtb3ZlVGl0bGVSZXNwb25zZRJMCgtMaXN0QmFja2xvZxIdLm1vdmllcy52MS5MaXN0QmFja2xvZ1JlcXVlc3QaHi5tb3ZpZXMudjEuTGlzdEJhY2tsb2dSZXNwb25zZRJDCghHZXRUaXRsZRIaLm1vdmllcy52MS5HZXRUaXRsZVJlcXVlc3QaGy5tb3ZpZXMudjEuR2V0VGl0bGVSZXNwb25zZRJDCghHZXRTdGF0cxIaLm1vdmllcy52MS5HZXRTdGF0c1JlcXVlc3QaGy5tb3ZpZXMudjEuR2V0U3RhdHNSZXNwb25zZRJbChBTZXRTZWFzb25XYXRjaGVkEiIubW92aWVzLnYxLlNldFNlYXNvbldhdGNoZWRSZXF1ZXN0GiMubW92aWVzLnYxLlNldFNlYXNvbldhdGNoZWRSZXNwb25zZRJPCgxBZGRXYXRjaERhdGUSHi5tb3ZpZXMudjEuQWRkV2F0Y2hEYXRlUmVxdWVzdBofLm1vdmllcy52MS5BZGRXYXRjaERhdGVSZXNwb25zZRJSCg1FZGl0V2F0Y2hEYXRlEh8ubW92aWVzLnYxLkVkaXRXYXRjaERhdGVSZXF1ZXN0GiAubW92aWVzLnYxLkVkaXRXYXRjaERhdGVSZXNwb25zZRJYCg9SZW1vdmVXYXRjaERhdGUSIS5tb3ZpZXMudjEuUmVtb3ZlV2F0Y2hEYXRlUmVxdWVzdBoiLm1vdmllcy52MS5SZW1vdmVXYXRjaERhdGVSZXNwb25zZUIrWil0b29scy54ZG91YmxldS5jb20vZ2VuL21vdmllcy92MTttb3ZpZXN2MWIGcHJvdG8z");
 
 /**
  * @generated from message movies.v1.SearchResult
@@ -613,6 +613,61 @@ export const SeasonSchema: GenMessage<Season> = /*@__PURE__*/
   messageDesc(file_movies_v1_movies, 18);
 
 /**
+ * A way to watch the title in Belgium; logo_path is relative to
+ * image.tmdb.org.
+ *
+ * @generated from message movies.v1.Provider
+ */
+export type Provider = Message<"movies.v1.Provider"> & {
+  /**
+   * @generated from field: int64 id = 1;
+   */
+  id: bigint;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string logo_path = 3;
+   */
+  logoPath: string;
+};
+
+/**
+ * Describes the message movies.v1.Provider.
+ * Use `create(ProviderSchema)` to create a new message.
+ */
+export const ProviderSchema: GenMessage<Provider> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 19);
+
+/**
+ * Providers of one offer type. offer_type is "flatrate", "free", "ads",
+ * "rent" or "buy".
+ *
+ * @generated from message movies.v1.ProviderOffers
+ */
+export type ProviderOffers = Message<"movies.v1.ProviderOffers"> & {
+  /**
+   * @generated from field: string offer_type = 1;
+   */
+  offerType: string;
+
+  /**
+   * @generated from field: repeated movies.v1.Provider providers = 2;
+   */
+  providers: Provider[];
+};
+
+/**
+ * Describes the message movies.v1.ProviderOffers.
+ * Use `create(ProviderOffersSchema)` to create a new message.
+ */
+export const ProviderOffersSchema: GenMessage<ProviderOffers> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 20);
+
+/**
  * @generated from message movies.v1.GetTitleRequest
  */
 export type GetTitleRequest = Message<"movies.v1.GetTitleRequest"> & {
@@ -627,7 +682,7 @@ export type GetTitleRequest = Message<"movies.v1.GetTitleRequest"> & {
  * Use `create(GetTitleRequestSchema)` to create a new message.
  */
 export const GetTitleRequestSchema: GenMessage<GetTitleRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 19);
+  messageDesc(file_movies_v1_movies, 21);
 
 /**
  * @generated from message movies.v1.GetTitleResponse
@@ -649,6 +704,21 @@ export type GetTitleResponse = Message<"movies.v1.GetTitleResponse"> & {
    * @generated from field: repeated movies.v1.Season seasons = 3;
    */
   seasons: Season[];
+
+  /**
+   * Belgian providers grouped by offer type in that order, empty groups left
+   * out; availability data is by JustWatch.
+   *
+   * @generated from field: repeated movies.v1.ProviderOffers offers = 4;
+   */
+  offers: ProviderOffers[];
+
+  /**
+   * TMDB's watch page for the title; empty when it lists no providers.
+   *
+   * @generated from field: string watch_link = 5;
+   */
+  watchLink: string;
 };
 
 /**
@@ -656,7 +726,7 @@ export type GetTitleResponse = Message<"movies.v1.GetTitleResponse"> & {
  * Use `create(GetTitleResponseSchema)` to create a new message.
  */
 export const GetTitleResponseSchema: GenMessage<GetTitleResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 20);
+  messageDesc(file_movies_v1_movies, 22);
 
 /**
  * Ticking adds one watch (now, or unknown); unticking clears the season's
@@ -691,7 +761,7 @@ export type SetSeasonWatchedRequest = Message<"movies.v1.SetSeasonWatchedRequest
  * Use `create(SetSeasonWatchedRequestSchema)` to create a new message.
  */
 export const SetSeasonWatchedRequestSchema: GenMessage<SetSeasonWatchedRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 21);
+  messageDesc(file_movies_v1_movies, 23);
 
 /**
  * @generated from message movies.v1.SetSeasonWatchedResponse
@@ -713,7 +783,7 @@ export type SetSeasonWatchedResponse = Message<"movies.v1.SetSeasonWatchedRespon
  * Use `create(SetSeasonWatchedResponseSchema)` to create a new message.
  */
 export const SetSeasonWatchedResponseSchema: GenMessage<SetSeasonWatchedResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 22);
+  messageDesc(file_movies_v1_movies, 24);
 
 /**
  * Watch-date edits target the entry's own watches (movies) or, with
@@ -743,7 +813,7 @@ export type AddWatchDateRequest = Message<"movies.v1.AddWatchDateRequest"> & {
  * Use `create(AddWatchDateRequestSchema)` to create a new message.
  */
 export const AddWatchDateRequestSchema: GenMessage<AddWatchDateRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 23);
+  messageDesc(file_movies_v1_movies, 25);
 
 /**
  * @generated from message movies.v1.AddWatchDateResponse
@@ -765,7 +835,7 @@ export type AddWatchDateResponse = Message<"movies.v1.AddWatchDateResponse"> & {
  * Use `create(AddWatchDateResponseSchema)` to create a new message.
  */
 export const AddWatchDateResponseSchema: GenMessage<AddWatchDateResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 24);
+  messageDesc(file_movies_v1_movies, 26);
 
 /**
  * @generated from message movies.v1.EditWatchDateRequest
@@ -797,7 +867,7 @@ export type EditWatchDateRequest = Message<"movies.v1.EditWatchDateRequest"> & {
  * Use `create(EditWatchDateRequestSchema)` to create a new message.
  */
 export const EditWatchDateRequestSchema: GenMessage<EditWatchDateRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 25);
+  messageDesc(file_movies_v1_movies, 27);
 
 /**
  * @generated from message movies.v1.EditWatchDateResponse
@@ -819,7 +889,7 @@ export type EditWatchDateResponse = Message<"movies.v1.EditWatchDateResponse"> &
  * Use `create(EditWatchDateResponseSchema)` to create a new message.
  */
 export const EditWatchDateResponseSchema: GenMessage<EditWatchDateResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 26);
+  messageDesc(file_movies_v1_movies, 28);
 
 /**
  * @generated from message movies.v1.RemoveWatchDateRequest
@@ -846,7 +916,7 @@ export type RemoveWatchDateRequest = Message<"movies.v1.RemoveWatchDateRequest">
  * Use `create(RemoveWatchDateRequestSchema)` to create a new message.
  */
 export const RemoveWatchDateRequestSchema: GenMessage<RemoveWatchDateRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 27);
+  messageDesc(file_movies_v1_movies, 29);
 
 /**
  * @generated from message movies.v1.RemoveWatchDateResponse
@@ -868,7 +938,7 @@ export type RemoveWatchDateResponse = Message<"movies.v1.RemoveWatchDateResponse
  * Use `create(RemoveWatchDateResponseSchema)` to create a new message.
  */
 export const RemoveWatchDateResponseSchema: GenMessage<RemoveWatchDateResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 28);
+  messageDesc(file_movies_v1_movies, 30);
 
 /**
  * @generated from service movies.v1.MoviesService

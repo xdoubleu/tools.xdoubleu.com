@@ -92,6 +92,20 @@ func protoSeasons(seasons []models.Season) []*moviesv1.Season {
 	return out
 }
 
+func protoOffers(providers []models.Provider) []*moviesv1.ProviderOffers {
+	var out []*moviesv1.ProviderOffers
+	for _, p := range providers {
+		if n := len(out); n == 0 || out[n-1].OfferType != p.OfferType {
+			out = append(out, &moviesv1.ProviderOffers{OfferType: p.OfferType})
+		}
+		last := out[len(out)-1]
+		last.Providers = append(last.Providers, &moviesv1.Provider{
+			Id: p.ID, Name: p.Name, LogoPath: p.LogoPath,
+		})
+	}
+	return out
+}
+
 func protoEntry(e *models.Entry) *moviesv1.BacklogEntry {
 	watched := protoWatches(e.WatchedAt)
 	return &moviesv1.BacklogEntry{

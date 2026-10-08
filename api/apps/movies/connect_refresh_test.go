@@ -190,8 +190,8 @@ func TestRefresh_FetchesDueTitlesAndIsolatesFailures(t *testing.T) {
 	client := newRecordingTMDB(603, 999)
 	refresh(t, client)
 
-	assert.ElementsMatch(t, []int64{603, 129, 999, 95396}, *client.asked,
-		"stale titles, and series being watched a day after their last fetch")
+	assert.ElementsMatch(t, []int64{603, 129, 999, 1396, 95396}, *client.asked,
+		"stale titles, and wanted or watched ones a day after their last fetch")
 	assert.Equal(t, "refreshed", getTitle(t, c, spirited.Id).Overview,
 		"one title failing doesn't stop the rest")
 	assert.NotEqual(t, "refreshed", getTitle(t, c, matrix.Id).Overview)

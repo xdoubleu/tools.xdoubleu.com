@@ -10,6 +10,7 @@ import MovieWatches from '@/components/movies/MovieWatches'
 import SeasonChecklist from '@/components/movies/SeasonChecklist'
 import TitleStatus from '@/components/movies/TitleStatus'
 import MovieRating from '@/components/movies/MovieRating'
+import WhereToWatch from '@/components/movies/WhereToWatch'
 import TmdbAttribution from '@/components/movies/TmdbAttribution'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -96,6 +97,7 @@ export default function MovieTitleClient({ id }: { id: string }) {
           ) : (
             <MovieWatches entry={entry} />
           )}
+          <WhereToWatch offers={data.offers} watchLink={data.watchLink} />
           <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
             Remove from backlog
           </Button>
