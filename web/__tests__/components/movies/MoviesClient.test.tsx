@@ -102,7 +102,9 @@ describe('MoviesClient backlog', () => {
       'src',
       'https://image.tmdb.org/t/p/w92/matrix.jpg'
     )
-    expect(screen.getByText(/not endorsed or certified by TMDB/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/not endorsed, certified, or otherwise approved by TMDB/)
+    ).toBeInTheDocument()
   })
 
   it('falls back to an initial when the poster fails to load', () => {
