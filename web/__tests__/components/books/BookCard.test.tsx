@@ -141,6 +141,32 @@ describe('BookCard', () => {
     expect(screen.getByTestId('progress-editor')).toBeInTheDocument()
   })
 
+  it('links a readable book straight to the reader', () => {
+    render(<BookCard userBook={makeBook({ formats: ['epub'] })} onSaved={jest.fn()} />)
+    const read = screen.getByRole('link', { name: 'Read' })
+    expect(read).toHaveAttribute('href', '/books/ub-1/read')
+    expect(screen.getByRole('link', { name: 'Test Book' })).not.toContainElement(read)
+  })
+
+  it('labels the reader link Continue reading for an in-progress book', () => {
+    render(
+      <BookCard
+        userBook={makeBook({ status: 'currently-reading', formats: ['pdf'] })}
+        onSaved={jest.fn()}
+      />
+    )
+    expect(screen.getByRole('link', { name: 'Continue reading' })).toHaveAttribute(
+      'href',
+      '/books/ub-1/read'
+    )
+  })
+
+  it('hides the reader link when the book has no readable file', () => {
+    render(<BookCard userBook={makeBook()} onSaved={jest.fn()} />)
+    expect(screen.queryByRole('link', { name: 'Read' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Continue reading' })).not.toBeInTheDocument()
+  })
+
   it('keeps every control outside the detail link so a near-miss cannot navigate', () => {
     render(
       <BookCard
