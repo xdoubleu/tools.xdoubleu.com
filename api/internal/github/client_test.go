@@ -300,16 +300,22 @@ func TestIsTransientAPIError_Timeout(t *testing.T) {
 	assert.True(t, github.IsTransientAPIError(err))
 }
 
-func TestIsTransientAPIError_ServerError(t *testing.T) {
+// TestIsTransientAPIError_ServerErrorExhaustedRetries asserts a retry-exhausted
+// upstream 5xx is transient (logged at Warn, not Sentry) after all 4 retries.
+func TestIsTransientAPIError_ServerErrorExhaustedRetries(t *testing.T) {
+	attempts := 0
 	cleanup := buildServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
+			attempts++
 			w.WriteHeader(http.StatusBadGateway)
 		}))
 	defer cleanup()
 
 	_, err := newClient().ListFailingPullRequests(context.Background())
 	require.Error(t, err)
-	assert.False(t, github.IsTransientAPIError(err))
+	assert.Equal(t, 4, attempts, "5xx must retry up to maxAttempts")
+	assert.True(t, github.IsTransientAPIError(err))
+	assert.Contains(t, err.Error(), "github API returned 502")
 }
 
 func TestListSecurityAlerts_ReturnsAlerts(t *testing.T) {

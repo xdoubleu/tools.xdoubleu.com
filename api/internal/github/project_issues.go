@@ -261,7 +261,8 @@ func (c *client) postGraphQL(
 		if isRetryableStatus(resp.StatusCode) {
 			raw, _ := io.ReadAll(resp.Body)
 			return true, fmt.Errorf(
-				"github API returned %d: %s", resp.StatusCode, string(raw),
+				"%w: github API returned %d: %s",
+				errTransientStatus, resp.StatusCode, string(raw),
 			)
 		}
 
