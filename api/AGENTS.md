@@ -16,7 +16,7 @@ make db/reset                      # recreate the Postgres volume — shared by 
 
 ## Architecture
 
-- `NewApps` (`cmd/api/apps.go`) registers apps in a fixed order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after `games`/`books`/`feeds` (holds live references to them); `trains`/`learningpaths`/`movies` last.
+- `NewApps` (`cmd/api/apps.go`) registers apps in a fixed order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after `games`/`books`/`feeds` (holds live references to them); `trains`/`learningpaths`/`movies`/`podcasts` last.
 - `main.go` wraps the pgx pool in `postgres.NewSpanDB` for tracing spans; migrations use the raw pool.
 - `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
 - `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked sibling PRs can merge migrations out of numeric order, and this makes that self-healing instead of a startup panic.

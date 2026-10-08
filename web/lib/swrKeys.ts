@@ -96,6 +96,9 @@ export const swrKeys = {
   moviesTitle: (id: string) => `/movies/title/${id}`,
   moviesStats: '/movies/stats',
 
+  podcastsFavourites: '/podcasts/favourites',
+  podcastsSearch: (query: string) => ['/podcasts/search', query] as const,
+
   shoppingList: (ownerUserId: string) => `/shoppinglist?owner=${ownerUserId}`,
   shoppingListExport: (planId: string, excludedGroups: readonly string[]) =>
     `/shoppinglist/export/${planId}?excluded=${[...excludedGroups].sort().join(',')}`,

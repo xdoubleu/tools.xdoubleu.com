@@ -74,6 +74,8 @@ describe('HomeClient', () => {
       'href',
       '/shoppinglist'
     )
+    expect(screen.getByRole('link', { name: /Podcasts/ })).toHaveAttribute('href', '/podcasts')
+    expect(screen.getByText('Favourite shows, found through iTunes.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Settings/ })).toHaveAttribute('href', '/settings')
     expect(screen.getByRole('link', { name: /Family/ })).toHaveAttribute('href', '/family')
     expect(screen.getByRole('link', { name: /User management/ })).toHaveAttribute(

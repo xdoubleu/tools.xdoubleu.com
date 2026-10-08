@@ -13,6 +13,7 @@ const NOT_PERSISTED = [
   '/books/file',
   '/books/content',
   '/movies/search',
+  '/podcasts/search',
   '/monitoring/',
   '/user-management/'
 ]

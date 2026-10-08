@@ -9,7 +9,7 @@ The repository contract for any coding agent. Harness mechanics live in `CLAUDE.
 - `kobo-gateway/` — separate macOS-only Go module, a downloadable menu-bar helper.
 - `sentrytools/` — small Go module (slog→Sentry) pulled into `api` via a local `replace` → [adr-0009](docs/adr-0009-sentrytools-extracted-module.md).
 
-Apps: games, books, feeds, watchparty, recipes, mealplans, shoppinglist, dashboard (no schema; owns public dashboards and share tokens, reaching other apps only through their exported methods → [adr-0007](docs/adr-0007-dashboard-app-owns-public-sharing.md)), trains (SNCB GTFS static + realtime, CSA planner), learningpaths (agent-authored curricula, per-user, no family sharing), movies (TMDB-backed movies & series backlog, per-user). All are registered in `api/cmd/api/apps.go`; **migrations run in registration order**, so schema dependencies dictate the order.
+Apps: games, books, feeds, watchparty, recipes, mealplans, shoppinglist, dashboard (no schema; owns public dashboards and share tokens, reaching other apps only through their exported methods → [adr-0007](docs/adr-0007-dashboard-app-owns-public-sharing.md)), trains (SNCB GTFS static + realtime, CSA planner), learningpaths (agent-authored curricula, per-user, no family sharing), movies (TMDB-backed movies & series backlog, per-user), podcasts (per-user favourite shows found through the iTunes Search API). All are registered in `api/cmd/api/apps.go`; **migrations run in registration order**, so schema dependencies dictate the order.
 
 Shared Go code: `api/internal/`. Each app: `api/apps/<name>/internal/{models,repositories,services,jobs,helper,mocks}`, `migrations/`, optional `pkg/`.
 
