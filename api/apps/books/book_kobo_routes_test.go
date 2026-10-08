@@ -1640,11 +1640,9 @@ func TestKoboMetadata_IncludesCoverImageId(t *testing.T) {
 // TestKoboCover_ServesPresignedRedirect: a kobo-sync book's cached cover is
 // served as a 302 to its presigned R2 URL, mirroring the web cover handler.
 func TestKoboCover_ServesPresignedRedirect(t *testing.T) {
-	ts := httptest.NewServer(getRoutes())
-	t.Cleanup(ts.Close)
-
 	owner := "kobo-cover-hit-" + uuid.NewString()
-	rawToken, bookID := setupKoboSyncBook(t, owner)
+	_, bookID := setupKoboSyncBook(t, owner)
+	rawToken := registerTestDevice(t, owner)
 
 	coverKey := "books/" + bookID.String() + "/cover.jpg"
 	require.NoError(t, fakeStore.Put(
@@ -1655,24 +1653,23 @@ func TestKoboCover_ServesPresignedRedirect(t *testing.T) {
 		"image/jpeg",
 	))
 
-	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
-		koboURL(ts, rawToken, "/"+bookID.String()+"/400/600/false/image.jpg"), nil))
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusFound, resp.StatusCode)
+	mux := getRoutes()
+	req := httptest.NewRequest(http.MethodGet,
+		"/books/kobo/"+rawToken+"/"+bookID.String()+"/400/600/false/image.jpg", nil)
+	req.Header.Add("X-Forwarded-Proto", "https")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
 
-	loc := resp.Header.Get("Location")
-	assert.Contains(t, loc, coverKey)
+	require.Equal(t, http.StatusFound, rec.Code)
+	assert.Contains(t, rec.Header().Get("Location"), coverKey)
 }
 
 // TestKoboCover_QualityTemplateMatches: the quality-bearing URL shape also hits
 // the cover handler.
 func TestKoboCover_QualityTemplateMatches(t *testing.T) {
-	ts := httptest.NewServer(getRoutes())
-	t.Cleanup(ts.Close)
-
 	owner := "kobo-cover-quality-" + uuid.NewString()
-	rawToken, bookID := setupKoboSyncBook(t, owner)
+	_, bookID := setupKoboSyncBook(t, owner)
+	rawToken := registerTestDevice(t, owner)
 
 	coverKey := "books/" + bookID.String() + "/cover.jpg"
 	require.NoError(t, fakeStore.Put(
@@ -1683,11 +1680,14 @@ func TestKoboCover_QualityTemplateMatches(t *testing.T) {
 		"image/jpeg",
 	))
 
-	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
-		koboURL(ts, rawToken, "/"+bookID.String()+"/400/600/80/isGreyscale/image.jpg"), nil))
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.Equal(t, http.StatusFound, resp.StatusCode)
+	mux := getRoutes()
+	req := httptest.NewRequest(http.MethodGet,
+		"/books/kobo/"+rawToken+"/"+bookID.String()+"/400/600/80/isGreyscale/image.jpg", nil)
+	req.Header.Add("X-Forwarded-Proto", "https")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusFound, rec.Code)
 }
 
 // TestKoboCover_UnknownBook_Returns404: a cover for a non-kobo-sync book is not
