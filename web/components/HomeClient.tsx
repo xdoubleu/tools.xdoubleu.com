@@ -133,10 +133,9 @@ const ALL_APPS: AppLink[] = [
 const APP_MAP = new Map(ALL_APPS.map((a) => [a.name, a]))
 
 const SECTION_DEFS: { title: string; names: string[] }[] = [
-  {
-    title: 'Productivity',
-    names: ['games', 'books', 'feeds', 'movies', 'podcasts', 'trains', 'learningpaths']
-  },
+  { title: 'Learning', names: ['feeds', 'learningpaths'] },
+  { title: 'Media', names: ['books', 'games', 'movies', 'podcasts'] },
+  { title: 'Transit', names: ['trains'] },
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty'] },
   { title: 'Account', names: ['settings', 'family'] },
