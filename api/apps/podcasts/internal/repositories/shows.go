@@ -15,7 +15,7 @@ type ShowsRepository struct {
 }
 
 const showColumns = `id, user_id, itunes_id, title, author, artwork_url,
-	feed_url, apple_url, added_at`
+	feed_url, apple_url, added_at, etag, last_modified, fetch_error`
 
 // Add favourites a show; an existing favourite is refreshed from the latest
 // iTunes metadata and keeps its added_at.
@@ -31,6 +31,11 @@ func (r *ShowsRepository) Add(
 			title = EXCLUDED.title,
 			author = EXCLUDED.author,
 			artwork_url = EXCLUDED.artwork_url,
+			-- Validators belong to the old URL.
+			etag = CASE WHEN podcasts.shows.feed_url = EXCLUDED.feed_url
+				THEN podcasts.shows.etag END,
+			last_modified = CASE WHEN podcasts.shows.feed_url = EXCLUDED.feed_url
+				THEN podcasts.shows.last_modified END,
 			feed_url = EXCLUDED.feed_url,
 			apple_url = EXCLUDED.apple_url
 		RETURNING `+showColumns,
@@ -107,6 +112,44 @@ func (r *ShowsRepository) Remove(
 	return nil
 }
 
+// All returns every user's favourites, least recently fetched first.
+func (r *ShowsRepository) All(ctx context.Context) ([]models.Show, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT `+showColumns+`
+		FROM podcasts.shows
+		ORDER BY last_fetched_at NULLS FIRST, id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []models.Show{}
+	for rows.Next() {
+		s, scanErr := scanShow(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		out = append(out, *s)
+	}
+	return out, rows.Err()
+}
+
+// RecordFetch stores a fetch's validators and outcome; an empty fetchError
+// means it succeeded.
+func (r *ShowsRepository) RecordFetch(
+	ctx context.Context,
+	id uuid.UUID,
+	etag, lastModified *string,
+	fetchError string,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE podcasts.shows
+		SET etag = $2, last_modified = $3, fetch_error = $4,
+			last_fetched_at = now()
+		WHERE id = $1`, id, etag, lastModified, fetchError)
+	return err
+}
+
 type rowScanner interface {
 	Scan(dest ...any) error
 }
@@ -115,7 +158,8 @@ func scanShow(row rowScanner) (*models.Show, error) {
 	var s models.Show
 	err := row.Scan(
 		&s.ID, &s.UserID, &s.ITunesID, &s.Title, &s.Author, &s.ArtworkURL,
-		&s.FeedURL, &s.AppleURL, &s.AddedAt,
+		&s.FeedURL, &s.AppleURL, &s.AddedAt, &s.ETag, &s.LastModified,
+		&s.FetchError,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)

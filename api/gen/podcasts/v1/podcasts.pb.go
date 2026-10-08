@@ -108,7 +108,9 @@ type Favourite struct {
 	ArtworkUrl string                 `protobuf:"bytes,5,opt,name=artwork_url,json=artworkUrl,proto3" json:"artwork_url,omitempty"`
 	AppleUrl   string                 `protobuf:"bytes,6,opt,name=apple_url,json=appleUrl,proto3" json:"apple_url,omitempty"`
 	// RFC3339.
-	AddedAt       string `protobuf:"bytes,7,opt,name=added_at,json=addedAt,proto3" json:"added_at,omitempty"`
+	AddedAt string `protobuf:"bytes,7,opt,name=added_at,json=addedAt,proto3" json:"added_at,omitempty"`
+	// The last feed fetch's error; empty when it succeeded or hasn't run.
+	FetchError    string `protobuf:"bytes,8,opt,name=fetch_error,json=fetchError,proto3" json:"fetch_error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -188,6 +190,13 @@ func (x *Favourite) GetAppleUrl() string {
 func (x *Favourite) GetAddedAt() string {
 	if x != nil {
 		return x.AddedAt
+	}
+	return ""
+}
+
+func (x *Favourite) GetFetchError() string {
+	if x != nil {
+		return x.FetchError
 	}
 	return ""
 }
@@ -529,6 +538,246 @@ func (*RemoveFavouriteResponse) Descriptor() ([]byte, []int) {
 	return file_podcasts_v1_podcasts_proto_rawDescGZIP(), []int{9}
 }
 
+type Episode struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ShowId    string                 `protobuf:"bytes,2,opt,name=show_id,json=showId,proto3" json:"show_id,omitempty"`
+	ShowTitle string                 `protobuf:"bytes,3,opt,name=show_title,json=showTitle,proto3" json:"show_title,omitempty"`
+	// The show's artwork and Apple Podcasts page.
+	ArtworkUrl string `protobuf:"bytes,4,opt,name=artwork_url,json=artworkUrl,proto3" json:"artwork_url,omitempty"`
+	AppleUrl   string `protobuf:"bytes,5,opt,name=apple_url,json=appleUrl,proto3" json:"apple_url,omitempty"`
+	Title      string `protobuf:"bytes,6,opt,name=title,proto3" json:"title,omitempty"`
+	// Plain text, shortened.
+	Summary         string `protobuf:"bytes,7,opt,name=summary,proto3" json:"summary,omitempty"`
+	Link            string `protobuf:"bytes,8,opt,name=link,proto3" json:"link,omitempty"`
+	AudioUrl        string `protobuf:"bytes,9,opt,name=audio_url,json=audioUrl,proto3" json:"audio_url,omitempty"`
+	DurationSeconds *int32 `protobuf:"varint,10,opt,name=duration_seconds,json=durationSeconds,proto3,oneof" json:"duration_seconds,omitempty"`
+	// RFC3339; empty when the feed gave no date.
+	PublishedAt   string `protobuf:"bytes,11,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Episode) Reset() {
+	*x = Episode{}
+	mi := &file_podcasts_v1_podcasts_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Episode) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Episode) ProtoMessage() {}
+
+func (x *Episode) ProtoReflect() protoreflect.Message {
+	mi := &file_podcasts_v1_podcasts_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Episode.ProtoReflect.Descriptor instead.
+func (*Episode) Descriptor() ([]byte, []int) {
+	return file_podcasts_v1_podcasts_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *Episode) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Episode) GetShowId() string {
+	if x != nil {
+		return x.ShowId
+	}
+	return ""
+}
+
+func (x *Episode) GetShowTitle() string {
+	if x != nil {
+		return x.ShowTitle
+	}
+	return ""
+}
+
+func (x *Episode) GetArtworkUrl() string {
+	if x != nil {
+		return x.ArtworkUrl
+	}
+	return ""
+}
+
+func (x *Episode) GetAppleUrl() string {
+	if x != nil {
+		return x.AppleUrl
+	}
+	return ""
+}
+
+func (x *Episode) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *Episode) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *Episode) GetLink() string {
+	if x != nil {
+		return x.Link
+	}
+	return ""
+}
+
+func (x *Episode) GetAudioUrl() string {
+	if x != nil {
+		return x.AudioUrl
+	}
+	return ""
+}
+
+func (x *Episode) GetDurationSeconds() int32 {
+	if x != nil && x.DurationSeconds != nil {
+		return *x.DurationSeconds
+	}
+	return 0
+}
+
+func (x *Episode) GetPublishedAt() string {
+	if x != nil {
+		return x.PublishedAt
+	}
+	return ""
+}
+
+// An empty show_id lists the episodes of every favourite, newest first.
+type ListEpisodesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ShowId        string                 `protobuf:"bytes,1,opt,name=show_id,json=showId,proto3" json:"show_id,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEpisodesRequest) Reset() {
+	*x = ListEpisodesRequest{}
+	mi := &file_podcasts_v1_podcasts_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEpisodesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEpisodesRequest) ProtoMessage() {}
+
+func (x *ListEpisodesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_podcasts_v1_podcasts_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEpisodesRequest.ProtoReflect.Descriptor instead.
+func (*ListEpisodesRequest) Descriptor() ([]byte, []int) {
+	return file_podcasts_v1_podcasts_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ListEpisodesRequest) GetShowId() string {
+	if x != nil {
+		return x.ShowId
+	}
+	return ""
+}
+
+func (x *ListEpisodesRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListEpisodesRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type ListEpisodesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Episodes      []*Episode             `protobuf:"bytes,1,rep,name=episodes,proto3" json:"episodes,omitempty"`
+	HasMore       bool                   `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEpisodesResponse) Reset() {
+	*x = ListEpisodesResponse{}
+	mi := &file_podcasts_v1_podcasts_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEpisodesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEpisodesResponse) ProtoMessage() {}
+
+func (x *ListEpisodesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_podcasts_v1_podcasts_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEpisodesResponse.ProtoReflect.Descriptor instead.
+func (*ListEpisodesResponse) Descriptor() ([]byte, []int) {
+	return file_podcasts_v1_podcasts_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ListEpisodesResponse) GetEpisodes() []*Episode {
+	if x != nil {
+		return x.Episodes
+	}
+	return nil
+}
+
+func (x *ListEpisodesResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
+}
+
 var File_podcasts_v1_podcasts_proto protoreflect.FileDescriptor
 
 const file_podcasts_v1_podcasts_proto_rawDesc = "" +
@@ -540,7 +789,7 @@ const file_podcasts_v1_podcasts_proto_rawDesc = "" +
 	"\x06author\x18\x03 \x01(\tR\x06author\x12\x1f\n" +
 	"\vartwork_url\x18\x04 \x01(\tR\n" +
 	"artworkUrl\x12\x1c\n" +
-	"\tfavourite\x18\x05 \x01(\bR\tfavourite\"\xbf\x01\n" +
+	"\tfavourite\x18\x05 \x01(\bR\tfavourite\"\xe0\x01\n" +
 	"\tFavourite\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\titunes_id\x18\x02 \x01(\x03R\bitunesId\x12\x14\n" +
@@ -549,7 +798,9 @@ const file_podcasts_v1_podcasts_proto_rawDesc = "" +
 	"\vartwork_url\x18\x05 \x01(\tR\n" +
 	"artworkUrl\x12\x1b\n" +
 	"\tapple_url\x18\x06 \x01(\tR\bappleUrl\x12\x19\n" +
-	"\badded_at\x18\a \x01(\tR\aaddedAt\"*\n" +
+	"\badded_at\x18\a \x01(\tR\aaddedAt\x12\x1f\n" +
+	"\vfetch_error\x18\b \x01(\tR\n" +
+	"fetchError\"*\n" +
 	"\x12SearchShowsRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\"J\n" +
 	"\x13SearchShowsResponse\x123\n" +
@@ -565,12 +816,36 @@ const file_podcasts_v1_podcasts_proto_rawDesc = "" +
 	"\tfavourite\x18\x01 \x01(\v2\x16.podcasts.v1.FavouriteR\tfavourite\"(\n" +
 	"\x16RemoveFavouriteRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x19\n" +
-	"\x17RemoveFavouriteResponse2\xf1\x02\n" +
+	"\x17RemoveFavouriteResponse\"\xd8\x02\n" +
+	"\aEpisode\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\ashow_id\x18\x02 \x01(\tR\x06showId\x12\x1d\n" +
+	"\n" +
+	"show_title\x18\x03 \x01(\tR\tshowTitle\x12\x1f\n" +
+	"\vartwork_url\x18\x04 \x01(\tR\n" +
+	"artworkUrl\x12\x1b\n" +
+	"\tapple_url\x18\x05 \x01(\tR\bappleUrl\x12\x14\n" +
+	"\x05title\x18\x06 \x01(\tR\x05title\x12\x18\n" +
+	"\asummary\x18\a \x01(\tR\asummary\x12\x12\n" +
+	"\x04link\x18\b \x01(\tR\x04link\x12\x1b\n" +
+	"\taudio_url\x18\t \x01(\tR\baudioUrl\x12.\n" +
+	"\x10duration_seconds\x18\n" +
+	" \x01(\x05H\x00R\x0fdurationSeconds\x88\x01\x01\x12!\n" +
+	"\fpublished_at\x18\v \x01(\tR\vpublishedAtB\x13\n" +
+	"\x11_duration_seconds\"\\\n" +
+	"\x13ListEpisodesRequest\x12\x17\n" +
+	"\ashow_id\x18\x01 \x01(\tR\x06showId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"c\n" +
+	"\x14ListEpisodesResponse\x120\n" +
+	"\bepisodes\x18\x01 \x03(\v2\x14.podcasts.v1.EpisodeR\bepisodes\x12\x19\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore2\xc6\x03\n" +
 	"\x0fPodcastsService\x12P\n" +
 	"\vSearchShows\x12\x1f.podcasts.v1.SearchShowsRequest\x1a .podcasts.v1.SearchShowsResponse\x12Y\n" +
 	"\x0eListFavourites\x12\".podcasts.v1.ListFavouritesRequest\x1a#.podcasts.v1.ListFavouritesResponse\x12S\n" +
 	"\fAddFavourite\x12 .podcasts.v1.AddFavouriteRequest\x1a!.podcasts.v1.AddFavouriteResponse\x12\\\n" +
-	"\x0fRemoveFavourite\x12#.podcasts.v1.RemoveFavouriteRequest\x1a$.podcasts.v1.RemoveFavouriteResponseB/Z-tools.xdoubleu.com/gen/podcasts/v1;podcastsv1b\x06proto3"
+	"\x0fRemoveFavourite\x12#.podcasts.v1.RemoveFavouriteRequest\x1a$.podcasts.v1.RemoveFavouriteResponse\x12S\n" +
+	"\fListEpisodes\x12 .podcasts.v1.ListEpisodesRequest\x1a!.podcasts.v1.ListEpisodesResponseB/Z-tools.xdoubleu.com/gen/podcasts/v1;podcastsv1b\x06proto3"
 
 var (
 	file_podcasts_v1_podcasts_proto_rawDescOnce sync.Once
@@ -584,7 +859,7 @@ func file_podcasts_v1_podcasts_proto_rawDescGZIP() []byte {
 	return file_podcasts_v1_podcasts_proto_rawDescData
 }
 
-var file_podcasts_v1_podcasts_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_podcasts_v1_podcasts_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_podcasts_v1_podcasts_proto_goTypes = []any{
 	(*SearchResult)(nil),            // 0: podcasts.v1.SearchResult
 	(*Favourite)(nil),               // 1: podcasts.v1.Favourite
@@ -596,24 +871,30 @@ var file_podcasts_v1_podcasts_proto_goTypes = []any{
 	(*AddFavouriteResponse)(nil),    // 7: podcasts.v1.AddFavouriteResponse
 	(*RemoveFavouriteRequest)(nil),  // 8: podcasts.v1.RemoveFavouriteRequest
 	(*RemoveFavouriteResponse)(nil), // 9: podcasts.v1.RemoveFavouriteResponse
+	(*Episode)(nil),                 // 10: podcasts.v1.Episode
+	(*ListEpisodesRequest)(nil),     // 11: podcasts.v1.ListEpisodesRequest
+	(*ListEpisodesResponse)(nil),    // 12: podcasts.v1.ListEpisodesResponse
 }
 var file_podcasts_v1_podcasts_proto_depIdxs = []int32{
-	0, // 0: podcasts.v1.SearchShowsResponse.results:type_name -> podcasts.v1.SearchResult
-	1, // 1: podcasts.v1.ListFavouritesResponse.favourites:type_name -> podcasts.v1.Favourite
-	1, // 2: podcasts.v1.AddFavouriteResponse.favourite:type_name -> podcasts.v1.Favourite
-	2, // 3: podcasts.v1.PodcastsService.SearchShows:input_type -> podcasts.v1.SearchShowsRequest
-	4, // 4: podcasts.v1.PodcastsService.ListFavourites:input_type -> podcasts.v1.ListFavouritesRequest
-	6, // 5: podcasts.v1.PodcastsService.AddFavourite:input_type -> podcasts.v1.AddFavouriteRequest
-	8, // 6: podcasts.v1.PodcastsService.RemoveFavourite:input_type -> podcasts.v1.RemoveFavouriteRequest
-	3, // 7: podcasts.v1.PodcastsService.SearchShows:output_type -> podcasts.v1.SearchShowsResponse
-	5, // 8: podcasts.v1.PodcastsService.ListFavourites:output_type -> podcasts.v1.ListFavouritesResponse
-	7, // 9: podcasts.v1.PodcastsService.AddFavourite:output_type -> podcasts.v1.AddFavouriteResponse
-	9, // 10: podcasts.v1.PodcastsService.RemoveFavourite:output_type -> podcasts.v1.RemoveFavouriteResponse
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0,  // 0: podcasts.v1.SearchShowsResponse.results:type_name -> podcasts.v1.SearchResult
+	1,  // 1: podcasts.v1.ListFavouritesResponse.favourites:type_name -> podcasts.v1.Favourite
+	1,  // 2: podcasts.v1.AddFavouriteResponse.favourite:type_name -> podcasts.v1.Favourite
+	10, // 3: podcasts.v1.ListEpisodesResponse.episodes:type_name -> podcasts.v1.Episode
+	2,  // 4: podcasts.v1.PodcastsService.SearchShows:input_type -> podcasts.v1.SearchShowsRequest
+	4,  // 5: podcasts.v1.PodcastsService.ListFavourites:input_type -> podcasts.v1.ListFavouritesRequest
+	6,  // 6: podcasts.v1.PodcastsService.AddFavourite:input_type -> podcasts.v1.AddFavouriteRequest
+	8,  // 7: podcasts.v1.PodcastsService.RemoveFavourite:input_type -> podcasts.v1.RemoveFavouriteRequest
+	11, // 8: podcasts.v1.PodcastsService.ListEpisodes:input_type -> podcasts.v1.ListEpisodesRequest
+	3,  // 9: podcasts.v1.PodcastsService.SearchShows:output_type -> podcasts.v1.SearchShowsResponse
+	5,  // 10: podcasts.v1.PodcastsService.ListFavourites:output_type -> podcasts.v1.ListFavouritesResponse
+	7,  // 11: podcasts.v1.PodcastsService.AddFavourite:output_type -> podcasts.v1.AddFavouriteResponse
+	9,  // 12: podcasts.v1.PodcastsService.RemoveFavourite:output_type -> podcasts.v1.RemoveFavouriteResponse
+	12, // 13: podcasts.v1.PodcastsService.ListEpisodes:output_type -> podcasts.v1.ListEpisodesResponse
+	9,  // [9:14] is the sub-list for method output_type
+	4,  // [4:9] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_podcasts_v1_podcasts_proto_init() }
@@ -621,13 +902,14 @@ func file_podcasts_v1_podcasts_proto_init() {
 	if File_podcasts_v1_podcasts_proto != nil {
 		return
 	}
+	file_podcasts_v1_podcasts_proto_msgTypes[10].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_podcasts_v1_podcasts_proto_rawDesc), len(file_podcasts_v1_podcasts_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

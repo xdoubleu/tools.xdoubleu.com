@@ -20,7 +20,11 @@ import { FavouriteSchema, ListFavouritesResponseSchema } from '@/lib/gen/podcast
 const list = create(ListFavouritesResponseSchema, {
   favourites: [
     create(FavouriteSchema, { id: 'f-1', title: 'Hardcore History', author: 'Dan Carlin' }),
-    create(FavouriteSchema, { id: 'f-2', title: 'History of Rome' })
+    create(FavouriteSchema, {
+      id: 'f-2',
+      title: 'History of Rome',
+      fetchError: 'feed answered HTTP 404'
+    })
   ]
 })
 
@@ -43,6 +47,13 @@ describe('Favourites', () => {
     expect(screen.getByText('History of Rome')).toBeInTheDocument()
     expect([...container.querySelectorAll('p')].filter((p) => !p.textContent)).toHaveLength(0)
     expect(screen.queryByText(/Couldn.t remove/)).not.toBeInTheDocument()
+  })
+
+  it("says when a show's episodes could not be fetched", () => {
+    mockFavourites({ data: list })
+    render(<Favourites />)
+    expect(screen.getAllByText(/Episodes unavailable/)).toHaveLength(1)
+    expect(screen.getByText('Episodes unavailable: feed answered HTTP 404.')).toBeInTheDocument()
   })
 
   it('keeps listing while revalidating', () => {

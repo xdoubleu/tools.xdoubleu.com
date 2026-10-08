@@ -1,13 +1,40 @@
 import useSWR, { useSWRConfig } from 'swr'
+import { useCallback } from 'react'
 import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
 import { PodcastsService } from '@/lib/gen/podcasts/v1/podcasts_pb'
-import type { ListFavouritesResponse, SearchShowsResponse } from '@/lib/gen/podcasts/v1/podcasts_pb'
+import type {
+  ListEpisodesResponse,
+  ListFavouritesResponse,
+  SearchShowsResponse
+} from '@/lib/gen/podcasts/v1/podcasts_pb'
+import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 
 export function usePodcastFavourites() {
   const client = createServiceClient(PodcastsService)
   return useSWR<ListFavouritesResponse, Error>(swrKeys.podcastsFavourites, () =>
     client.listFavourites({})
+  )
+}
+
+/** The newest episodes across every favourite. */
+export function usePodcastEpisodes() {
+  const client = createServiceClient(PodcastsService)
+  return useSWR<ListEpisodesResponse, Error>(swrKeys.podcastsEpisodes, () =>
+    client.listEpisodes({ limit: DEFAULT_PAGE_SIZE })
+  )
+}
+
+export function useFetchPodcastEpisodesPage() {
+  // createServiceClient caches per service, so client is stable.
+  const client = createServiceClient(PodcastsService)
+  return useCallback(
+    (offset: number) =>
+      client
+        .listEpisodes({ limit: DEFAULT_PAGE_SIZE, offset })
+        .then((r) => ({ items: r.episodes, hasMore: r.hasMore })),
+    // Stryker disable next-line ArrayDeclaration: equivalent; the client is cached per service, so it never changes.
+    [client]
   )
 }
 
@@ -27,7 +54,7 @@ const isPodcastsKey = (key: unknown) => {
   return typeof path === 'string' && path.startsWith('/podcasts/')
 }
 
-/** Favourite writes; each revalidates the list and every search. */
+/** Favourite writes; each revalidates favourites, episodes and every search. */
 export function usePodcastActions() {
   const client = createServiceClient(PodcastsService)
   const { mutate } = useSWRConfig()

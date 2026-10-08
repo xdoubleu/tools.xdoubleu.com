@@ -50,6 +50,7 @@ func protoFavourite(s *models.Show) *podcastsv1.Favourite {
 		ArtworkUrl: s.ArtworkURL,
 		AppleUrl:   s.AppleURL,
 		AddedAt:    s.AddedAt.Format(time.RFC3339),
+		FetchError: s.FetchError,
 	}
 }
 
@@ -138,4 +139,50 @@ func (h *podcastsConnectHandler) RemoveFavourite(
 		return nil, mapError(err)
 	}
 	return connect.NewResponse(&podcastsv1.RemoveFavouriteResponse{}), nil
+}
+
+func protoEpisode(e *models.ListedEpisode) *podcastsv1.Episode {
+	out := &podcastsv1.Episode{
+		Id:         e.ID.String(),
+		ShowId:     e.ShowID.String(),
+		ShowTitle:  e.ShowTitle,
+		ArtworkUrl: e.ArtworkURL,
+		AppleUrl:   e.AppleURL,
+		Title:      e.Title,
+		Summary:    e.Summary,
+		Link:       e.Link,
+		AudioUrl:   e.AudioURL,
+	}
+	if e.DurationSeconds != nil {
+		d := int32(*e.DurationSeconds) //nolint:gosec // an episode is far under 68 years
+		out.DurationSeconds = &d
+	}
+	if e.PublishedAt != nil {
+		out.PublishedAt = e.PublishedAt.Format(time.RFC3339)
+	}
+	return out
+}
+
+func (h *podcastsConnectHandler) ListEpisodes(
+	ctx context.Context,
+	req *connect.Request[podcastsv1.ListEpisodesRequest],
+) (*connect.Response[podcastsv1.ListEpisodesResponse], error) {
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	episodes, more, err := h.app.services.Episodes.List(
+		ctx, uid, req.Msg.ShowId, req.Msg.Limit, req.Msg.Offset,
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	out := make([]*podcastsv1.Episode, len(episodes))
+	for i := range episodes {
+		out[i] = protoEpisode(&episodes[i])
+	}
+	return connect.NewResponse(
+		&podcastsv1.ListEpisodesResponse{Episodes: out, HasMore: more},
+	), nil
 }

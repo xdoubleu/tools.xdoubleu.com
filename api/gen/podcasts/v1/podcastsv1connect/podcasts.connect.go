@@ -45,6 +45,9 @@ const (
 	// PodcastsServiceRemoveFavouriteProcedure is the fully-qualified name of the PodcastsService's
 	// RemoveFavourite RPC.
 	PodcastsServiceRemoveFavouriteProcedure = "/podcasts.v1.PodcastsService/RemoveFavourite"
+	// PodcastsServiceListEpisodesProcedure is the fully-qualified name of the PodcastsService's
+	// ListEpisodes RPC.
+	PodcastsServiceListEpisodesProcedure = "/podcasts.v1.PodcastsService/ListEpisodes"
 )
 
 // PodcastsServiceClient is a client for the podcasts.v1.PodcastsService service.
@@ -53,6 +56,7 @@ type PodcastsServiceClient interface {
 	ListFavourites(context.Context, *connect.Request[v1.ListFavouritesRequest]) (*connect.Response[v1.ListFavouritesResponse], error)
 	AddFavourite(context.Context, *connect.Request[v1.AddFavouriteRequest]) (*connect.Response[v1.AddFavouriteResponse], error)
 	RemoveFavourite(context.Context, *connect.Request[v1.RemoveFavouriteRequest]) (*connect.Response[v1.RemoveFavouriteResponse], error)
+	ListEpisodes(context.Context, *connect.Request[v1.ListEpisodesRequest]) (*connect.Response[v1.ListEpisodesResponse], error)
 }
 
 // NewPodcastsServiceClient constructs a client for the podcasts.v1.PodcastsService service. By
@@ -90,6 +94,12 @@ func NewPodcastsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(podcastsServiceMethods.ByName("RemoveFavourite")),
 			connect.WithClientOptions(opts...),
 		),
+		listEpisodes: connect.NewClient[v1.ListEpisodesRequest, v1.ListEpisodesResponse](
+			httpClient,
+			baseURL+PodcastsServiceListEpisodesProcedure,
+			connect.WithSchema(podcastsServiceMethods.ByName("ListEpisodes")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -99,6 +109,7 @@ type podcastsServiceClient struct {
 	listFavourites  *connect.Client[v1.ListFavouritesRequest, v1.ListFavouritesResponse]
 	addFavourite    *connect.Client[v1.AddFavouriteRequest, v1.AddFavouriteResponse]
 	removeFavourite *connect.Client[v1.RemoveFavouriteRequest, v1.RemoveFavouriteResponse]
+	listEpisodes    *connect.Client[v1.ListEpisodesRequest, v1.ListEpisodesResponse]
 }
 
 // SearchShows calls podcasts.v1.PodcastsService.SearchShows.
@@ -121,12 +132,18 @@ func (c *podcastsServiceClient) RemoveFavourite(ctx context.Context, req *connec
 	return c.removeFavourite.CallUnary(ctx, req)
 }
 
+// ListEpisodes calls podcasts.v1.PodcastsService.ListEpisodes.
+func (c *podcastsServiceClient) ListEpisodes(ctx context.Context, req *connect.Request[v1.ListEpisodesRequest]) (*connect.Response[v1.ListEpisodesResponse], error) {
+	return c.listEpisodes.CallUnary(ctx, req)
+}
+
 // PodcastsServiceHandler is an implementation of the podcasts.v1.PodcastsService service.
 type PodcastsServiceHandler interface {
 	SearchShows(context.Context, *connect.Request[v1.SearchShowsRequest]) (*connect.Response[v1.SearchShowsResponse], error)
 	ListFavourites(context.Context, *connect.Request[v1.ListFavouritesRequest]) (*connect.Response[v1.ListFavouritesResponse], error)
 	AddFavourite(context.Context, *connect.Request[v1.AddFavouriteRequest]) (*connect.Response[v1.AddFavouriteResponse], error)
 	RemoveFavourite(context.Context, *connect.Request[v1.RemoveFavouriteRequest]) (*connect.Response[v1.RemoveFavouriteResponse], error)
+	ListEpisodes(context.Context, *connect.Request[v1.ListEpisodesRequest]) (*connect.Response[v1.ListEpisodesResponse], error)
 }
 
 // NewPodcastsServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -160,6 +177,12 @@ func NewPodcastsServiceHandler(svc PodcastsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(podcastsServiceMethods.ByName("RemoveFavourite")),
 		connect.WithHandlerOptions(opts...),
 	)
+	podcastsServiceListEpisodesHandler := connect.NewUnaryHandler(
+		PodcastsServiceListEpisodesProcedure,
+		svc.ListEpisodes,
+		connect.WithSchema(podcastsServiceMethods.ByName("ListEpisodes")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/podcasts.v1.PodcastsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PodcastsServiceSearchShowsProcedure:
@@ -170,6 +193,8 @@ func NewPodcastsServiceHandler(svc PodcastsServiceHandler, opts ...connect.Handl
 			podcastsServiceAddFavouriteHandler.ServeHTTP(w, r)
 		case PodcastsServiceRemoveFavouriteProcedure:
 			podcastsServiceRemoveFavouriteHandler.ServeHTTP(w, r)
+		case PodcastsServiceListEpisodesProcedure:
+			podcastsServiceListEpisodesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -193,4 +218,8 @@ func (UnimplementedPodcastsServiceHandler) AddFavourite(context.Context, *connec
 
 func (UnimplementedPodcastsServiceHandler) RemoveFavourite(context.Context, *connect.Request[v1.RemoveFavouriteRequest]) (*connect.Response[v1.RemoveFavouriteResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("podcasts.v1.PodcastsService.RemoveFavourite is not implemented"))
+}
+
+func (UnimplementedPodcastsServiceHandler) ListEpisodes(context.Context, *connect.Request[v1.ListEpisodesRequest]) (*connect.Response[v1.ListEpisodesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("podcasts.v1.PodcastsService.ListEpisodes is not implemented"))
 }
