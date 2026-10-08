@@ -19,6 +19,7 @@ import StatusSelect from '@/components/movies/StatusSelect'
 import WatchedWhenDialog from '@/components/movies/WatchedWhenDialog'
 import { Badge } from '@/components/ui/badge'
 import { Field } from '@/components/ui/field'
+import { TogglePill } from '@/components/ui/toggle-pill'
 import { RatingStars } from '@/components/ui/rating-stars'
 import { LinkCard } from '@/components/ui/link-card'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
@@ -113,6 +114,7 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
         </p>
         <div className="flex flex-wrap items-center gap-2">
           {entry.hasNewSeason && <Badge variant="warn">New season</Badge>}
+          {entry.onMyServices && <Badge variant="success">On my services</Badge>}
           {entry.rating !== undefined && <RatingStars value={entry.rating} />}
         </div>
         {failed && <p className="text-xs text-danger">Couldn&apos;t update status. Try again.</p>}
@@ -152,6 +154,11 @@ export default function MoviesBacklog() {
           value={filter.mediaType}
           options={TYPE_TABS}
           onChange={(mediaType) => setFilter((f) => ({ ...f, mediaType }))}
+        />
+        <TogglePill
+          label="On my services"
+          active={filter.onMyServices}
+          onClick={() => setFilter((f) => ({ ...f, onMyServices: !f.onMyServices }))}
         />
         <Field label="Sort" htmlFor="movies-sort" className="w-44">
           <Select

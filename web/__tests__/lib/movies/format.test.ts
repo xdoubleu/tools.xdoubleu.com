@@ -48,20 +48,31 @@ describe('movies format helpers', () => {
 
 describe('backlogRequest', () => {
   it('passes a stored status through', () => {
-    expect(backlogRequest({ status: 'watched', mediaType: 'series', sort: 'title' })).toEqual({
+    expect(
+      backlogRequest({
+        status: 'watched',
+        mediaType: 'series',
+        sort: 'title',
+        onMyServices: true
+      })
+    ).toEqual({
       status: 'watched',
       mediaType: 'series',
       sort: 'title',
-      newSeason: false
+      newSeason: false,
+      onMyServices: true
     })
   })
 
   it('turns the New seasons tab into the new-season filter', () => {
-    expect(backlogRequest({ status: NEW_SEASONS, mediaType: '', sort: 'added' })).toEqual({
+    expect(
+      backlogRequest({ status: NEW_SEASONS, mediaType: '', sort: 'added', onMyServices: false })
+    ).toEqual({
       status: '',
       mediaType: '',
       sort: 'added',
-      newSeason: true
+      newSeason: true,
+      onMyServices: false
     })
   })
 })

@@ -1,6 +1,12 @@
 import { renderHook } from '@testing-library/react'
 
-const sampleKeys = [['/movies/backlog', '', '', 'added'], '/movies/title/x', '/books', undefined]
+const sampleKeys = [
+  ['/movies/backlog', '', '', 'added', false],
+  '/movies/settings',
+  '/movies/title/x',
+  '/books',
+  undefined
+]
 let revalidated: unknown[] = []
 const mockMutate = jest.fn(async (match: (key: unknown) => boolean) => {
   revalidated = sampleKeys.filter(match)
@@ -15,6 +21,9 @@ const mockClient = {
   searchTitles: jest.fn().mockResolvedValue({ results: [] }),
   getTitle: jest.fn().mockResolvedValue({}),
   getStats: jest.fn().mockResolvedValue({}),
+  getSettings: jest.fn().mockResolvedValue({ providerIds: [] }),
+  setSettings: jest.fn().mockResolvedValue({ providerIds: [] }),
+  listAvailableProviders: jest.fn().mockResolvedValue({ providers: [] }),
   addTitle: jest.fn().mockResolvedValue({ entry: { id: 'e-2' } }),
   setStatus: jest.fn().mockResolvedValue({}),
   removeTitle: jest.fn().mockResolvedValue({}),
@@ -32,7 +41,9 @@ jest.mock('@/lib/gen/movies/v1/movies_pb', () => ({ MoviesService: {} }))
 import useSWR from 'swr'
 import {
   useFetchMoviesBacklogPage,
+  useAvailableProviders,
   useMovieSearch,
+  useMovieSettings,
   useMovieStats,
   useMovieTitle,
   useMoviesActions,
@@ -40,7 +51,7 @@ import {
 } from '@/hooks/useMovies'
 
 const mockUseSWR = jest.mocked(useSWR)
-const filter = { status: 'want', mediaType: 'movie', sort: 'title' }
+const filter = { status: 'want', mediaType: 'movie', sort: 'title', onMyServices: false }
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -56,7 +67,7 @@ describe('useMoviesBacklog', () => {
   it('keys by filter and fetches the first page', () => {
     renderHook(() => useMoviesBacklog(filter))
     expect(mockUseSWR).toHaveBeenCalledWith(
-      ['/movies/backlog', 'want', 'movie', 'title'],
+      ['/movies/backlog', 'want', 'movie', 'title', false],
       expect.any(Function)
     )
     expect(mockClient.listBacklog).toHaveBeenCalledWith({ ...filter, newSeason: false, limit: 50 })
@@ -65,7 +76,7 @@ describe('useMoviesBacklog', () => {
   it('asks for new seasons on the New seasons tab', () => {
     renderHook(() => useMoviesBacklog({ ...filter, status: 'new' }))
     expect(mockUseSWR).toHaveBeenCalledWith(
-      ['/movies/backlog', 'new', 'movie', 'title'],
+      ['/movies/backlog', 'new', 'movie', 'title', false],
       expect.any(Function)
     )
     expect(mockClient.listBacklog).toHaveBeenCalledWith({
@@ -135,6 +146,22 @@ describe('useMovieStats', () => {
   })
 })
 
+describe('useMovieSettings', () => {
+  it('fetches the picked services', () => {
+    renderHook(() => useMovieSettings())
+    expect(mockUseSWR).toHaveBeenCalledWith('/movies/settings', expect.any(Function))
+    expect(mockClient.getSettings).toHaveBeenCalledWith({})
+  })
+})
+
+describe('useAvailableProviders', () => {
+  it('fetches the Belgian providers', () => {
+    renderHook(() => useAvailableProviders())
+    expect(mockUseSWR).toHaveBeenCalledWith('/movies/providers', expect.any(Function))
+    expect(mockClient.listAvailableProviders).toHaveBeenCalledWith({})
+  })
+})
+
 describe('useMovieTitle', () => {
   it('keys by id, or null without one', () => {
     renderHook(() => useMovieTitle('t-1'))
@@ -176,13 +203,30 @@ describe('useMoviesActions', () => {
       status: 'watched',
       unknownDate: true
     })
-    expect(revalidated).toEqual([['/movies/backlog', '', '', 'added'], '/movies/title/x'])
+    expect(revalidated).toEqual([
+      ['/movies/backlog', '', '', 'added', false],
+      '/movies/settings',
+      '/movies/title/x'
+    ])
     await result.current.remove('x')
     expect(mockClient.removeTitle).toHaveBeenCalledWith({ id: 'x' })
 
     expect(mockMutate).toHaveBeenCalledTimes(5)
     // The removed title itself is not revalidated.
-    expect(revalidated).toEqual([['/movies/backlog', '', '', 'added']])
+    expect(revalidated).toEqual([['/movies/backlog', '', '', 'added', false], '/movies/settings'])
+  })
+
+  it('saves the picked services, then revalidates movies keys', async () => {
+    const { result } = renderHook(() => useMoviesActions())
+
+    await result.current.setServices([8n, 119n])
+
+    expect(mockClient.setSettings).toHaveBeenCalledWith({ providerIds: [8n, 119n] })
+    expect(revalidated).toEqual([
+      ['/movies/backlog', '', '', 'added', false],
+      '/movies/settings',
+      '/movies/title/x'
+    ])
   })
 
   it('rates and clears a rating, then revalidates', async () => {
@@ -221,6 +265,10 @@ describe('useMoviesActions', () => {
       index: 0
     })
     expect(mockMutate).toHaveBeenCalledTimes(4)
-    expect(revalidated).toEqual([['/movies/backlog', '', '', 'added'], '/movies/title/x'])
+    expect(revalidated).toEqual([
+      ['/movies/backlog', '', '', 'added', false],
+      '/movies/settings',
+      '/movies/title/x'
+    ])
   })
 })

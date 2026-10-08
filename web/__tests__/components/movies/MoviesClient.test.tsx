@@ -155,9 +155,40 @@ describe('MoviesClient backlog', () => {
     expect(jest.mocked(useMoviesBacklog)).toHaveBeenLastCalledWith({
       status: 'watched',
       mediaType: 'series',
-      sort: 'title'
+      sort: 'title',
+      onMyServices: false
     })
     expect(screen.getByText(/Nothing here yet/)).toBeInTheDocument()
+  })
+
+  it('filters to titles on my services, and marks them', () => {
+    const streaming = create(BacklogEntrySchema, { ...matrix, onMyServices: true })
+    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [avatar] }) })
+    const { rerender } = render(<MoviesClient />)
+    expect(screen.getAllByText('On my services')).toHaveLength(1) // the chip alone
+
+    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [streaming] }) })
+    rerender(<MoviesClient />)
+    expect(screen.getAllByText('On my services')).toHaveLength(2) // chip and row badge
+    const chip = screen.getByRole('button', { name: 'On my services' })
+    expect(chip).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.click(chip)
+
+    expect(chip).toHaveAttribute('aria-pressed', 'true')
+    expect(jest.mocked(useMoviesBacklog)).toHaveBeenLastCalledWith(
+      expect.objectContaining({ onMyServices: true })
+    )
+  })
+
+  it('links to the settings', () => {
+    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [] }) })
+    render(<MoviesClient />)
+
+    expect(screen.getByRole('link', { name: /Settings/ })).toHaveAttribute(
+      'href',
+      '/movies/settings'
+    )
   })
 
   it('loads more pages', async () => {

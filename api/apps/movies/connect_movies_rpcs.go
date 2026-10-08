@@ -124,12 +124,13 @@ func (h *moviesConnectHandler) ListBacklog(
 	}
 
 	entries, hasMore, err := h.app.services.Movies.List(ctx, uid, models.ListFilter{
-		Status:    req.Msg.Status,
-		MediaType: req.Msg.MediaType,
-		Sort:      req.Msg.Sort,
-		NewSeason: req.Msg.NewSeason,
-		Limit:     req.Msg.Limit,
-		Offset:    req.Msg.Offset,
+		Status:       req.Msg.Status,
+		MediaType:    req.Msg.MediaType,
+		Sort:         req.Msg.Sort,
+		NewSeason:    req.Msg.NewSeason,
+		OnMyServices: req.Msg.OnMyServices,
+		Limit:        req.Msg.Limit,
+		Offset:       req.Msg.Offset,
 	})
 	if err != nil {
 		return nil, mapError(err)

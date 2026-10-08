@@ -91,7 +91,11 @@ var catalog = []tmdb.Title{
 			{Number: 1, Name: "Season 1", AirDate: date("2017-12-01"), EpisodeCount: 10},
 			{Number: 2, Name: "Season 2", AirDate: date("2019-06-21"), EpisodeCount: 8},
 		},
-		WatchLink: "", Providers: nil,
+		WatchLink: "https://www.themoviedb.org/tv/70523/watch?locale=BE",
+		Providers: []tmdb.Provider{
+			{ID: 99, Name: "Ad TV", LogoPath: "", OfferType: tmdb.OfferAds,
+				DisplayPriority: 5},
+		},
 	},
 	{
 		MediaType: tmdb.MediaTypeSeries, TMDBID: 136315, Title: "The Bear",
@@ -148,6 +152,13 @@ func (fakeTMDB) find(mediaType string, id int64) (*tmdb.Title, error) {
 		}
 	}
 	return nil, tmdb.ErrNotFound
+}
+
+func (fakeTMDB) ListRegionProviders(context.Context) ([]tmdb.RegionProvider, error) {
+	return []tmdb.RegionProvider{
+		{ID: 8, Name: "Netflix", LogoPath: "/netflix.jpg"},
+		{ID: 119, Name: "Prime Video", LogoPath: "/prime.jpg"},
+	}, nil
 }
 
 func (f fakeTMDB) GetMovie(_ context.Context, id int64) (*tmdb.Title, error) {

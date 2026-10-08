@@ -3,7 +3,13 @@ import { render, screen } from '@testing-library/react'
 
 const fetchOrNull = jest.fn()
 const swrFallback = jest.fn()
-const serverClient = { listBacklog: jest.fn(), getTitle: jest.fn(), getStats: jest.fn() }
+const serverClient = {
+  listBacklog: jest.fn(),
+  getTitle: jest.fn(),
+  getStats: jest.fn(),
+  getSettings: jest.fn(),
+  listAvailableProviders: jest.fn()
+}
 
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => serverClient)
@@ -35,12 +41,18 @@ jest.mock('@/components/movies/MovieTitleClient', () => ({
   default: ({ id }: { id: string }) => <div data-testid="title-client">{id}</div>
 }))
 
+jest.mock('@/components/movies/MoviesSettingsClient', () => ({
+  __esModule: true,
+  default: () => <div data-testid="settings-client" />
+}))
+
 jest.mock('@/components/movies/MoviesStatsClient', () => ({
   __esModule: true,
   default: () => <div data-testid="stats-client" />
 }))
 
 import MoviesPage from '@/app/movies/page'
+import MoviesSettingsPage from '@/app/movies/settings/page'
 import MoviesStatsPage from '@/app/movies/stats/page'
 import MovieTitlePage from '@/app/movies/[id]/page'
 
@@ -56,10 +68,11 @@ describe('MoviesPage', () => {
       status: '',
       mediaType: '',
       sort: 'added',
+      onMyServices: false,
       limit: 50
     })
     expect(swrFallback).toHaveBeenCalledWith(
-      expect.objectContaining({ keyed: [[['/movies/backlog', '', '', 'added'], backlog]] })
+      expect.objectContaining({ keyed: [[['/movies/backlog', '', '', 'added', false], backlog]] })
     )
   })
 
@@ -106,6 +119,32 @@ describe('MoviesStatsPage', () => {
   it('renders without seeding when the fetch fails', async () => {
     fetchOrNull.mockResolvedValue(null)
     render(await MoviesStatsPage())
+    expect(swrFallback).toHaveBeenCalledWith(expect.objectContaining({ fallback: {} }))
+  })
+})
+
+describe('MoviesSettingsPage', () => {
+  it('seeds the settings and provider keys', async () => {
+    fetchOrNull.mockResolvedValueOnce({ providerIds: [8n] }).mockResolvedValueOnce({
+      providers: []
+    })
+    render(await MoviesSettingsPage())
+    expect(screen.getByTestId('settings-client')).toBeInTheDocument()
+    expect(serverClient.getSettings).toHaveBeenCalledWith({})
+    expect(serverClient.listAvailableProviders).toHaveBeenCalledWith({})
+    expect(swrFallback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallback: {
+          '/movies/settings': { providerIds: [8n] },
+          '/movies/providers': { providers: [] }
+        }
+      })
+    )
+  })
+
+  it('renders without seeding when the fetches fail', async () => {
+    fetchOrNull.mockResolvedValue(null)
+    render(await MoviesSettingsPage())
     expect(swrFallback).toHaveBeenCalledWith(expect.objectContaining({ fallback: {} }))
   })
 })

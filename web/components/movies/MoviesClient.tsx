@@ -7,7 +7,7 @@ import TmdbAttribution from '@/components/movies/TmdbAttribution'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { PageContainer } from '@/components/ui/page-container'
-import { PageHeader, PageHeaderLink } from '@/components/ui/page-header'
+import { PageHeader, PageHeaderLink, PageHeaderSettingsLink } from '@/components/ui/page-header'
 
 // Each search is a TMDB request; wait for typing to pause.
 const SEARCH_DEBOUNCE_MS = 300
@@ -27,7 +27,12 @@ export default function MoviesClient() {
     <PageContainer>
       <PageHeader
         title="Movies & Series"
-        actions={<PageHeaderLink href="/movies/stats">Stats</PageHeaderLink>}
+        actions={
+          <>
+            <PageHeaderLink href="/movies/stats">Stats</PageHeaderLink>
+            <PageHeaderSettingsLink href="/movies/settings" />
+          </>
+        }
       />
       <Field label="Search TMDB" htmlFor="movies-search" className="mb-6">
         <Input

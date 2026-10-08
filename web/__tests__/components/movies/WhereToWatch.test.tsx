@@ -8,7 +8,10 @@ import { ProviderOffersSchema, ProviderSchema } from '@/lib/gen/movies/v1/movies
 const offers = [
   create(ProviderOffersSchema, {
     offerType: 'flatrate',
-    providers: [create(ProviderSchema, { id: 8n, name: 'Netflix', logoPath: '/n.jpg' })]
+    providers: [
+      create(ProviderSchema, { id: 8n, name: 'Netflix', logoPath: '/n.jpg', mine: true }),
+      create(ProviderSchema, { id: 119n, name: 'Prime Video' })
+    ]
   }),
   create(ProviderOffersSchema, {
     offerType: 'rent',
@@ -28,6 +31,15 @@ describe('WhereToWatch', () => {
     )
     const rent = screen.getByRole('heading', { name: 'Rent' }).parentElement!
     expect(within(rent).getByText('Apple TV')).toBeInTheDocument()
+  })
+
+  it('marks only the providers on my services', () => {
+    render(<WhereToWatch offers={offers} watchLink="" />)
+
+    const stream = screen.getByRole('heading', { name: 'Stream' }).parentElement!
+    expect(within(stream).getAllByText('Yours')).toHaveLength(1)
+    expect(within(stream).getByText('Netflix').closest('li')).toHaveTextContent('Yours')
+    expect(within(stream).getByText('Prime Video').closest('li')).not.toHaveTextContent('Yours')
   })
 
   it('labels every offer type', () => {

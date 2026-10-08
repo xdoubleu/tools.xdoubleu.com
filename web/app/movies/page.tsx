@@ -8,16 +8,18 @@ import { DEFAULT_BACKLOG_FILTER } from '@/lib/movies/format'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 
 export default async function MoviesPage() {
-  const { status, mediaType, sort } = DEFAULT_BACKLOG_FILTER
+  const { status, mediaType, sort, onMyServices } = DEFAULT_BACKLOG_FILTER
   const client = await createServerClient(MoviesService)
   const backlog = await fetchOrNull(() =>
-    client.listBacklog({ status, mediaType, sort, limit: DEFAULT_PAGE_SIZE })
+    client.listBacklog({ status, mediaType, sort, onMyServices, limit: DEFAULT_PAGE_SIZE })
   )
 
   return (
     <SWRFallback
       fallback={{}}
-      keyed={backlog ? [[swrKeys.moviesBacklog(status, mediaType, sort), backlog]] : []}
+      keyed={
+        backlog ? [[swrKeys.moviesBacklog(status, mediaType, sort, onMyServices), backlog]] : []
+      }
     >
       <MoviesClient />
     </SWRFallback>

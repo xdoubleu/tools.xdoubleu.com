@@ -1,5 +1,6 @@
 import Image from 'next/image'
-import { posterUrl } from '@/lib/movies/format'
+import { Badge } from '@/components/ui/badge'
+import { logoUrl } from '@/lib/movies/format'
 import type { ProviderOffers } from '@/lib/gen/movies/v1/movies_pb'
 
 const OFFER_LABELS: Record<string, string> = {
@@ -15,7 +16,7 @@ interface WhereToWatchProps {
   watchLink: string
 }
 
-/** Belgian providers by offer type, logos hotlinked from TMDB; data by JustWatch. */
+/** Belgian providers by offer type, logos hotlinked from TMDB; data by JustWatch. Marks the user's services. */
 export default function WhereToWatch({ offers, watchLink }: WhereToWatchProps) {
   return (
     <section aria-labelledby="where-to-watch" className="space-y-2">
@@ -36,7 +37,7 @@ export default function WhereToWatch({ offers, watchLink }: WhereToWatchProps) {
                   <li key={p.id} className="flex items-center gap-2 text-sm">
                     {p.logoPath && (
                       <Image
-                        src={posterUrl(p.logoPath, 'w92')}
+                        src={logoUrl(p.logoPath)}
                         alt=""
                         width={32}
                         height={32}
@@ -45,6 +46,7 @@ export default function WhereToWatch({ offers, watchLink }: WhereToWatchProps) {
                       />
                     )}
                     {p.name}
+                    {p.mine && <Badge variant="success">Yours</Badge>}
                   </li>
                 ))}
               </ul>

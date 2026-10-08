@@ -18,7 +18,8 @@ func New(
 	tmdbClient tmdb.Client,
 ) *Services {
 	return &Services{
-		Auth:   authService,
+		Auth: authService,
+		//nolint:exhaustruct // the provider cache starts empty
 		Movies: &MovieService{repo: repos.Movies, tmdb: tmdbClient},
 	}
 }

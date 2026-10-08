@@ -47,6 +47,15 @@ type Provider struct {
 	LogoPath        string
 	OfferType       string
 	DisplayPriority int
+	// Mine is set on a flatrate, free or ads offer from one of the user's
+	// services.
+	Mine bool
+}
+
+// StreamsOnMyServices reports whether the offer type counts for the "on my
+// services" filter: renting and buying don't.
+func StreamsOnMyServices(offerType string) bool {
+	return offerType == "flatrate" || offerType == "free" || offerType == "ads"
 }
 
 // Entry is a title in one user's backlog. A nil WatchedAt element is a watch
@@ -60,6 +69,9 @@ type Entry struct {
 	// HasNewSeason is set on a watched series with an aired, unticked
 	// season.
 	HasNewSeason bool
+	// OnMyServices is set when a flatrate, free or ads provider of the title
+	// is one of the user's services.
+	OnMyServices bool
 	// Rating is 1-5 stars, nil when unrated; any status can keep one.
 	Rating    *int
 	WatchedAt []*time.Time
@@ -77,8 +89,10 @@ type ListFilter struct {
 	Sort      string
 	// NewSeason keeps only entries with HasNewSeason.
 	NewSeason bool
-	Limit     int32
-	Offset    int32
+	// OnMyServices keeps only entries with OnMyServices.
+	OnMyServices bool
+	Limit        int32
+	Offset       int32
 }
 
 // SearchResult is a TMDB match; Status is set when it is already in the

@@ -52,6 +52,15 @@ const (
 	MoviesServiceGetTitleProcedure = "/movies.v1.MoviesService/GetTitle"
 	// MoviesServiceGetStatsProcedure is the fully-qualified name of the MoviesService's GetStats RPC.
 	MoviesServiceGetStatsProcedure = "/movies.v1.MoviesService/GetStats"
+	// MoviesServiceGetSettingsProcedure is the fully-qualified name of the MoviesService's GetSettings
+	// RPC.
+	MoviesServiceGetSettingsProcedure = "/movies.v1.MoviesService/GetSettings"
+	// MoviesServiceSetSettingsProcedure is the fully-qualified name of the MoviesService's SetSettings
+	// RPC.
+	MoviesServiceSetSettingsProcedure = "/movies.v1.MoviesService/SetSettings"
+	// MoviesServiceListAvailableProvidersProcedure is the fully-qualified name of the MoviesService's
+	// ListAvailableProviders RPC.
+	MoviesServiceListAvailableProvidersProcedure = "/movies.v1.MoviesService/ListAvailableProviders"
 	// MoviesServiceSetSeasonWatchedProcedure is the fully-qualified name of the MoviesService's
 	// SetSeasonWatched RPC.
 	MoviesServiceSetSeasonWatchedProcedure = "/movies.v1.MoviesService/SetSeasonWatched"
@@ -76,6 +85,9 @@ type MoviesServiceClient interface {
 	ListBacklog(context.Context, *connect.Request[v1.ListBacklogRequest]) (*connect.Response[v1.ListBacklogResponse], error)
 	GetTitle(context.Context, *connect.Request[v1.GetTitleRequest]) (*connect.Response[v1.GetTitleResponse], error)
 	GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error)
+	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
+	SetSettings(context.Context, *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error)
+	ListAvailableProviders(context.Context, *connect.Request[v1.ListAvailableProvidersRequest]) (*connect.Response[v1.ListAvailableProvidersResponse], error)
 	SetSeasonWatched(context.Context, *connect.Request[v1.SetSeasonWatchedRequest]) (*connect.Response[v1.SetSeasonWatchedResponse], error)
 	AddWatchDate(context.Context, *connect.Request[v1.AddWatchDateRequest]) (*connect.Response[v1.AddWatchDateResponse], error)
 	EditWatchDate(context.Context, *connect.Request[v1.EditWatchDateRequest]) (*connect.Response[v1.EditWatchDateResponse], error)
@@ -141,6 +153,24 @@ func NewMoviesServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(moviesServiceMethods.ByName("GetStats")),
 			connect.WithClientOptions(opts...),
 		),
+		getSettings: connect.NewClient[v1.GetSettingsRequest, v1.GetSettingsResponse](
+			httpClient,
+			baseURL+MoviesServiceGetSettingsProcedure,
+			connect.WithSchema(moviesServiceMethods.ByName("GetSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		setSettings: connect.NewClient[v1.SetSettingsRequest, v1.SetSettingsResponse](
+			httpClient,
+			baseURL+MoviesServiceSetSettingsProcedure,
+			connect.WithSchema(moviesServiceMethods.ByName("SetSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		listAvailableProviders: connect.NewClient[v1.ListAvailableProvidersRequest, v1.ListAvailableProvidersResponse](
+			httpClient,
+			baseURL+MoviesServiceListAvailableProvidersProcedure,
+			connect.WithSchema(moviesServiceMethods.ByName("ListAvailableProviders")),
+			connect.WithClientOptions(opts...),
+		),
 		setSeasonWatched: connect.NewClient[v1.SetSeasonWatchedRequest, v1.SetSeasonWatchedResponse](
 			httpClient,
 			baseURL+MoviesServiceSetSeasonWatchedProcedure,
@@ -170,18 +200,21 @@ func NewMoviesServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 
 // moviesServiceClient implements MoviesServiceClient.
 type moviesServiceClient struct {
-	searchTitles     *connect.Client[v1.SearchTitlesRequest, v1.SearchTitlesResponse]
-	addTitle         *connect.Client[v1.AddTitleRequest, v1.AddTitleResponse]
-	setStatus        *connect.Client[v1.SetStatusRequest, v1.SetStatusResponse]
-	setRating        *connect.Client[v1.SetRatingRequest, v1.SetRatingResponse]
-	removeTitle      *connect.Client[v1.RemoveTitleRequest, v1.RemoveTitleResponse]
-	listBacklog      *connect.Client[v1.ListBacklogRequest, v1.ListBacklogResponse]
-	getTitle         *connect.Client[v1.GetTitleRequest, v1.GetTitleResponse]
-	getStats         *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
-	setSeasonWatched *connect.Client[v1.SetSeasonWatchedRequest, v1.SetSeasonWatchedResponse]
-	addWatchDate     *connect.Client[v1.AddWatchDateRequest, v1.AddWatchDateResponse]
-	editWatchDate    *connect.Client[v1.EditWatchDateRequest, v1.EditWatchDateResponse]
-	removeWatchDate  *connect.Client[v1.RemoveWatchDateRequest, v1.RemoveWatchDateResponse]
+	searchTitles           *connect.Client[v1.SearchTitlesRequest, v1.SearchTitlesResponse]
+	addTitle               *connect.Client[v1.AddTitleRequest, v1.AddTitleResponse]
+	setStatus              *connect.Client[v1.SetStatusRequest, v1.SetStatusResponse]
+	setRating              *connect.Client[v1.SetRatingRequest, v1.SetRatingResponse]
+	removeTitle            *connect.Client[v1.RemoveTitleRequest, v1.RemoveTitleResponse]
+	listBacklog            *connect.Client[v1.ListBacklogRequest, v1.ListBacklogResponse]
+	getTitle               *connect.Client[v1.GetTitleRequest, v1.GetTitleResponse]
+	getStats               *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
+	getSettings            *connect.Client[v1.GetSettingsRequest, v1.GetSettingsResponse]
+	setSettings            *connect.Client[v1.SetSettingsRequest, v1.SetSettingsResponse]
+	listAvailableProviders *connect.Client[v1.ListAvailableProvidersRequest, v1.ListAvailableProvidersResponse]
+	setSeasonWatched       *connect.Client[v1.SetSeasonWatchedRequest, v1.SetSeasonWatchedResponse]
+	addWatchDate           *connect.Client[v1.AddWatchDateRequest, v1.AddWatchDateResponse]
+	editWatchDate          *connect.Client[v1.EditWatchDateRequest, v1.EditWatchDateResponse]
+	removeWatchDate        *connect.Client[v1.RemoveWatchDateRequest, v1.RemoveWatchDateResponse]
 }
 
 // SearchTitles calls movies.v1.MoviesService.SearchTitles.
@@ -224,6 +257,21 @@ func (c *moviesServiceClient) GetStats(ctx context.Context, req *connect.Request
 	return c.getStats.CallUnary(ctx, req)
 }
 
+// GetSettings calls movies.v1.MoviesService.GetSettings.
+func (c *moviesServiceClient) GetSettings(ctx context.Context, req *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error) {
+	return c.getSettings.CallUnary(ctx, req)
+}
+
+// SetSettings calls movies.v1.MoviesService.SetSettings.
+func (c *moviesServiceClient) SetSettings(ctx context.Context, req *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error) {
+	return c.setSettings.CallUnary(ctx, req)
+}
+
+// ListAvailableProviders calls movies.v1.MoviesService.ListAvailableProviders.
+func (c *moviesServiceClient) ListAvailableProviders(ctx context.Context, req *connect.Request[v1.ListAvailableProvidersRequest]) (*connect.Response[v1.ListAvailableProvidersResponse], error) {
+	return c.listAvailableProviders.CallUnary(ctx, req)
+}
+
 // SetSeasonWatched calls movies.v1.MoviesService.SetSeasonWatched.
 func (c *moviesServiceClient) SetSeasonWatched(ctx context.Context, req *connect.Request[v1.SetSeasonWatchedRequest]) (*connect.Response[v1.SetSeasonWatchedResponse], error) {
 	return c.setSeasonWatched.CallUnary(ctx, req)
@@ -254,6 +302,9 @@ type MoviesServiceHandler interface {
 	ListBacklog(context.Context, *connect.Request[v1.ListBacklogRequest]) (*connect.Response[v1.ListBacklogResponse], error)
 	GetTitle(context.Context, *connect.Request[v1.GetTitleRequest]) (*connect.Response[v1.GetTitleResponse], error)
 	GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error)
+	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
+	SetSettings(context.Context, *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error)
+	ListAvailableProviders(context.Context, *connect.Request[v1.ListAvailableProvidersRequest]) (*connect.Response[v1.ListAvailableProvidersResponse], error)
 	SetSeasonWatched(context.Context, *connect.Request[v1.SetSeasonWatchedRequest]) (*connect.Response[v1.SetSeasonWatchedResponse], error)
 	AddWatchDate(context.Context, *connect.Request[v1.AddWatchDateRequest]) (*connect.Response[v1.AddWatchDateResponse], error)
 	EditWatchDate(context.Context, *connect.Request[v1.EditWatchDateRequest]) (*connect.Response[v1.EditWatchDateResponse], error)
@@ -315,6 +366,24 @@ func NewMoviesServiceHandler(svc MoviesServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(moviesServiceMethods.ByName("GetStats")),
 		connect.WithHandlerOptions(opts...),
 	)
+	moviesServiceGetSettingsHandler := connect.NewUnaryHandler(
+		MoviesServiceGetSettingsProcedure,
+		svc.GetSettings,
+		connect.WithSchema(moviesServiceMethods.ByName("GetSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	moviesServiceSetSettingsHandler := connect.NewUnaryHandler(
+		MoviesServiceSetSettingsProcedure,
+		svc.SetSettings,
+		connect.WithSchema(moviesServiceMethods.ByName("SetSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	moviesServiceListAvailableProvidersHandler := connect.NewUnaryHandler(
+		MoviesServiceListAvailableProvidersProcedure,
+		svc.ListAvailableProviders,
+		connect.WithSchema(moviesServiceMethods.ByName("ListAvailableProviders")),
+		connect.WithHandlerOptions(opts...),
+	)
 	moviesServiceSetSeasonWatchedHandler := connect.NewUnaryHandler(
 		MoviesServiceSetSeasonWatchedProcedure,
 		svc.SetSeasonWatched,
@@ -357,6 +426,12 @@ func NewMoviesServiceHandler(svc MoviesServiceHandler, opts ...connect.HandlerOp
 			moviesServiceGetTitleHandler.ServeHTTP(w, r)
 		case MoviesServiceGetStatsProcedure:
 			moviesServiceGetStatsHandler.ServeHTTP(w, r)
+		case MoviesServiceGetSettingsProcedure:
+			moviesServiceGetSettingsHandler.ServeHTTP(w, r)
+		case MoviesServiceSetSettingsProcedure:
+			moviesServiceSetSettingsHandler.ServeHTTP(w, r)
+		case MoviesServiceListAvailableProvidersProcedure:
+			moviesServiceListAvailableProvidersHandler.ServeHTTP(w, r)
 		case MoviesServiceSetSeasonWatchedProcedure:
 			moviesServiceSetSeasonWatchedHandler.ServeHTTP(w, r)
 		case MoviesServiceAddWatchDateProcedure:
@@ -404,6 +479,18 @@ func (UnimplementedMoviesServiceHandler) GetTitle(context.Context, *connect.Requ
 
 func (UnimplementedMoviesServiceHandler) GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.GetStats is not implemented"))
+}
+
+func (UnimplementedMoviesServiceHandler) GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.GetSettings is not implemented"))
+}
+
+func (UnimplementedMoviesServiceHandler) SetSettings(context.Context, *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.SetSettings is not implemented"))
+}
+
+func (UnimplementedMoviesServiceHandler) ListAvailableProviders(context.Context, *connect.Request[v1.ListAvailableProvidersRequest]) (*connect.Response[v1.ListAvailableProvidersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.ListAvailableProviders is not implemented"))
 }
 
 func (UnimplementedMoviesServiceHandler) SetSeasonWatched(context.Context, *connect.Request[v1.SetSeasonWatchedRequest]) (*connect.Response[v1.SetSeasonWatchedResponse], error) {
