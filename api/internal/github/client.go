@@ -37,6 +37,11 @@ const statusCompleted = "completed"
 // errNotFound marks a 404 so getAllowingNotFound can tolerate it.
 var errNotFound = errors.New("github: not found")
 
+// errTransientStatus marks a retryable upstream 5xx/429 that exhausted its
+// retries; IsTransientAPIError treats it as transient so collectors log it
+// at Warn instead of Error→Sentry.
+var errTransientStatus = errors.New("github: transient upstream status")
+
 const (
 	maxAttempts = 4
 	// cacheTTL keeps the dashboard off GitHub's rate limit.
@@ -518,7 +523,8 @@ func (c *client) get(ctx context.Context, endpoint, token string, dst any) error
 		if isRetryableStatus(resp.StatusCode) {
 			raw, _ := io.ReadAll(resp.Body)
 			return true, fmt.Errorf(
-				"github API returned %d: %s", resp.StatusCode, string(raw),
+				"%w: github API returned %d: %s",
+				errTransientStatus, resp.StatusCode, string(raw),
 			)
 		}
 
@@ -570,7 +576,8 @@ func (c *client) patch(ctx context.Context, endpoint, token, body string) error 
 		if isRetryableStatus(resp.StatusCode) {
 			raw, _ := io.ReadAll(resp.Body)
 			return true, fmt.Errorf(
-				"github API returned %d: %s", resp.StatusCode, string(raw),
+				"%w: github API returned %d: %s",
+				errTransientStatus, resp.StatusCode, string(raw),
 			)
 		}
 
@@ -643,9 +650,10 @@ func isRetryableStatus(status int) bool {
 		(status >= http.StatusInternalServerError && status < 600)
 }
 
-// IsTransientAPIError reports whether err is a self-healing timeout.
+// IsTransientAPIError reports whether err is self-healing: a timeout, or a
+// retryable upstream 5xx/429 that exhausted its retries.
 func IsTransientAPIError(err error) bool {
-	return isTransientErr(err)
+	return errors.Is(err, errTransientStatus) || isTransientErr(err)
 }
 
 func isTransientErr(err error) bool {
