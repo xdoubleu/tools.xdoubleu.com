@@ -48,6 +48,11 @@ export function mediaTypeLabel(mediaType: string): string {
   return mediaType === 'series' ? 'Series' : 'Movie'
 }
 
+/** The name to show: the original title, falling back to the localized one. */
+export function titleName(t: { title: string; originalTitle: string }): string {
+  return t.originalTitle || t.title
+}
+
 /** TMDB poster URL at a fixed width; empty when the title has none. */
 /** A provider logo on TMDB's CDN. */
 export function logoUrl(logoPath: string): string {

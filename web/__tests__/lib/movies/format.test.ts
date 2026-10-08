@@ -8,6 +8,7 @@ import {
   posterUrl,
   releaseLabel,
   statusLabel,
+  titleName,
   todayISO,
   watchDay
 } from '@/lib/movies/format'
@@ -43,6 +44,17 @@ describe('movies format helpers', () => {
     expect(todayISO(new Date(2026, 0, 5))).toBe('2026-01-05')
     expect(watchDay(new Date(2026, 9, 7, 12).toISOString())).toBe('2026-10-07')
     expect(watchDay('')).toBe('')
+  })
+})
+
+describe('titleName', () => {
+  it('prefers the original title', () => {
+    expect(titleName({ title: 'Uncles', originalTitle: 'Nonkels' })).toBe('Nonkels')
+    expect(titleName({ title: 'Home Grown', originalTitle: 'Eigen Kweek' })).toBe('Eigen Kweek')
+  })
+
+  it('falls back to the localized title when there is no original', () => {
+    expect(titleName({ title: 'Dune', originalTitle: '' })).toBe('Dune')
   })
 })
 

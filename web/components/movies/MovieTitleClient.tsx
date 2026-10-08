@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Code, ConnectError } from '@connectrpc/connect'
 import { useMovieTitle, useMoviesActions } from '@/hooks/useMovies'
-import { mediaTypeLabel, releaseLabel, todayISO } from '@/lib/movies/format'
+import { mediaTypeLabel, releaseLabel, titleName, todayISO } from '@/lib/movies/format'
 import MoviePoster from '@/components/movies/MoviePoster'
 import MovieWatches from '@/components/movies/MovieWatches'
 import SeasonChecklist from '@/components/movies/SeasonChecklist'
@@ -43,6 +43,7 @@ export default function MovieTitleClient({ id }: { id: string }) {
 
   const entry = data.entry
   const release = releaseLabel(entry.releaseDate, todayISO())
+  const displayed = titleName(entry)
   const facts = [
     mediaTypeLabel(entry.mediaType),
     release,
@@ -66,16 +67,12 @@ export default function MovieTitleClient({ id }: { id: string }) {
   return (
     <PageContainer>
       <PageHeader
-        title={entry.title}
-        breadcrumb={[...breadcrumb, { label: entry.title }]}
-        description={
-          entry.originalTitle && entry.originalTitle !== entry.title
-            ? entry.originalTitle
-            : undefined
-        }
+        title={displayed}
+        breadcrumb={[...breadcrumb, { label: displayed }]}
+        description={entry.title !== displayed ? entry.title : undefined}
       />
       <div className="flex flex-col gap-6 sm:flex-row">
-        <MoviePoster posterPath={entry.posterPath} title={entry.title} size="lg" />
+        <MoviePoster posterPath={entry.posterPath} title={displayed} size="lg" />
         <div className="min-w-0 flex-1 space-y-4">
           <p className="text-sm text-muted" suppressHydrationWarning>
             {facts.join(' · ')}
@@ -106,7 +103,7 @@ export default function MovieTitleClient({ id }: { id: string }) {
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title={`Remove ${entry.title}?`}
+        title={`Remove ${displayed}?`}
         description="Its status and watch dates are deleted."
         confirmLabel="Remove"
         pendingLabel="Removing…"
