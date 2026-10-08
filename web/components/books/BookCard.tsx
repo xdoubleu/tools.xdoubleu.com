@@ -1,6 +1,7 @@
 'use client'
 
 import { useId, useState } from 'react'
+import Link from 'next/link'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import BookCover from '@/components/books/BookCover'
 import BookProgressEditor from '@/components/books/BookProgressEditor'
@@ -13,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LinkCard } from '@/components/ui/link-card'
 import { displayTags } from '@/lib/books/bookShelves'
+import { readerFormats } from '@/lib/books/readerSettings'
 
 interface BookCardProps {
   userBook: UserBook
@@ -41,6 +43,7 @@ export default function BookCard({
     : `/books/${userBook.id}`
   const tags = displayTags(userBook.tags)
   const canPeek = showDescriptionToggle && book.description !== ''
+  const canRead = readerFormats(userBook.formats).length > 0
 
   return (
     <LinkCard
@@ -49,6 +52,13 @@ export default function BookCard({
       linkClassName="flex items-start gap-3"
       actions={
         <div className="w-full min-w-0 space-y-2">
+          {canRead && (
+            <Button asChild variant="default" className="w-full" size="sm">
+              <Link href={`/books/${userBook.id}/read`}>
+                {isReading ? 'Continue reading' : 'Read'}
+              </Link>
+            </Button>
+          )}
           {isRead && (
             <div className="flex items-center gap-2">
               <BookRatingStars userBook={userBook} readOnly />

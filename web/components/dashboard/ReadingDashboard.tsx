@@ -27,6 +27,9 @@ function ReadingBookCard({ userBook }: { userBook: UserBook }) {
       linkClassName="flex gap-3 p-4"
       actions={
         <>
+          <Button asChild variant="default" className="w-full">
+            <Link href={`/books/${userBook.id}/read`}>Continue reading</Link>
+          </Button>
           <BookProgressEditor
             userBook={userBook}
             actions={

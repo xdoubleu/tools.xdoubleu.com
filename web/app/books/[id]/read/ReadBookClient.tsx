@@ -125,6 +125,13 @@ export default function ReadBookClient({ id }: { id: string }) {
     choose(next)
   }
 
+  const close = () => {
+    // A direct reader entry (card/dashboard) adds a history entry, so go back
+    // where the book was opened from; a deep link falls back to the page.
+    if (window.history.length > 1) router.back()
+    else router.push(`/books/${id}`)
+  }
+
   if (error && !userBook) {
     return (
       <Fallback id={id}>
@@ -196,7 +203,7 @@ export default function ReadBookClient({ id }: { id: string }) {
       key={format}
       file={file}
       title={userBook.book?.title ?? 'Book'}
-      onClose={() => router.push(`/books/${id}`)}
+      onClose={close}
       onRelocate={onRelocate}
       initialPosition={resume}
       format={{ value: choice!, original, onChange: switchTo }}

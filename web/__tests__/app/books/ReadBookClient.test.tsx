@@ -17,6 +17,7 @@ const mockTranslate = jest.fn()
 const mockUseKEPUBConversion = jest.fn()
 const mockUseReaderChoice = jest.fn()
 const mockRouterPush = jest.fn()
+const mockRouterBack = jest.fn()
 let mockSearchParams = new URLSearchParams()
 
 jest.mock('@/hooks/useBooks', () => ({
@@ -48,7 +49,7 @@ jest.mock('@/hooks/useReadingState', () => ({
 }))
 
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockRouterPush }),
+  useRouter: () => ({ push: mockRouterPush, back: mockRouterBack }),
   useSearchParams: () => mockSearchParams
 }))
 
@@ -216,10 +217,19 @@ describe('ReadBookClient', () => {
     expect(screen.getByTestId('reader')).toHaveAttribute('data-file', 'book-1.epub')
   })
 
-  it('returns to the book page on close', async () => {
+  it('returns to the book page on close when there is no prior history', async () => {
+    Object.defineProperty(window.history, 'length', { configurable: true, value: 1 })
     render(<ReadBookClient id="ub-1" />)
     fireEvent.click(await screen.findByRole('button', { name: 'Close reader' }))
     expect(mockRouterPush).toHaveBeenCalledWith('/books/ub-1')
+  })
+
+  it('goes back to where the reader was opened from when there is prior history', async () => {
+    Object.defineProperty(window.history, 'length', { configurable: true, value: 3 })
+    render(<ReadBookClient id="ub-1" />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Close reader' }))
+    expect(mockRouterBack).toHaveBeenCalled()
+    expect(mockRouterPush).not.toHaveBeenCalled()
   })
 
   it('resumes at the freshly read position, not the cached one', async () => {

@@ -119,6 +119,18 @@ describe('ReadingDashboard', () => {
     expect(container.querySelector('a[href="/books/1"]')).toBeInTheDocument()
   })
 
+  it('links a Continue reading button straight to the reader', () => {
+    mockLibrary()
+    const { container } = render(<ReadingDashboard />)
+    expect(screen.getByRole('link', { name: 'Continue reading' })).toHaveAttribute(
+      'href',
+      '/books/1/read'
+    )
+    expect(container.querySelector('a[href="/books/1"]')).not.toContainElement(
+      screen.getByRole('link', { name: 'Continue reading' })
+    )
+  })
+
   it('opens the progress sheet from a visible button outside the card link', async () => {
     mockLibrary()
     const { container } = render(<ReadingDashboard />)
