@@ -159,6 +159,7 @@ func TestReadingProgress_KoboAtZeroNeverRegresses(t *testing.T) {
 // the stored position, or the list's percent and the resume would diverge.
 func TestReadingProgress_WebAtZeroNeverRegresses(t *testing.T) {
 	book := addUniqueBook(t)
+	seedUserBook(t, book.ID, models.StatusToRead)
 	writeProgress(t, models.BookReadingState{ //nolint:exhaustruct //optional fields
 		BookID: book.ID, Source: models.ReadingSourceWeb, Percent: 36, ReadAt: at(10),
 	})
