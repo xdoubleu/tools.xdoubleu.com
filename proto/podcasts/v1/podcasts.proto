@@ -21,6 +21,8 @@ message Favourite {
   string apple_url = 6;
   // RFC3339.
   string added_at = 7;
+  // The last feed fetch's error; empty when it succeeded or hasn't run.
+  string fetch_error = 8;
 }
 
 message SearchShowsRequest {
@@ -48,9 +50,38 @@ message RemoveFavouriteRequest {
 }
 message RemoveFavouriteResponse {}
 
+message Episode {
+  string id = 1;
+  string show_id = 2;
+  string show_title = 3;
+  // The show's artwork and Apple Podcasts page.
+  string artwork_url = 4;
+  string apple_url = 5;
+  string title = 6;
+  // Plain text, shortened.
+  string summary = 7;
+  string link = 8;
+  string audio_url = 9;
+  optional int32 duration_seconds = 10;
+  // RFC3339; empty when the feed gave no date.
+  string published_at = 11;
+}
+
+// An empty show_id lists the episodes of every favourite, newest first.
+message ListEpisodesRequest {
+  string show_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message ListEpisodesResponse {
+  repeated Episode episodes = 1;
+  bool has_more = 2;
+}
+
 service PodcastsService {
   rpc SearchShows(SearchShowsRequest) returns (SearchShowsResponse);
   rpc ListFavourites(ListFavouritesRequest) returns (ListFavouritesResponse);
   rpc AddFavourite(AddFavouriteRequest) returns (AddFavouriteResponse);
   rpc RemoveFavourite(RemoveFavouriteRequest) returns (RemoveFavouriteResponse);
+  rpc ListEpisodes(ListEpisodesRequest) returns (ListEpisodesResponse);
 }

@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 
 const fetchOrNull = jest.fn()
 const swrFallback = jest.fn()
-const serverClient = { listFavourites: jest.fn() }
+const serverClient = { listFavourites: jest.fn(), listEpisodes: jest.fn() }
 
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => serverClient)
@@ -19,7 +19,7 @@ jest.mock('@/lib/server/fetchers', () => ({
 
 jest.mock('@/components/SWRFallback', () => ({
   __esModule: true,
-  default: (props: { children: React.ReactNode; keyed?: unknown }) => {
+  default: (props: { children: React.ReactNode; fallback?: unknown }) => {
     swrFallback(props)
     return <>{props.children}</>
   }
@@ -35,20 +35,33 @@ import PodcastsPage from '@/app/podcasts/page'
 beforeEach(() => jest.clearAllMocks())
 
 describe('PodcastsPage', () => {
-  it('seeds the favourites key', async () => {
+  it('seeds the favourites and episodes keys', async () => {
     const favourites = { favourites: [] }
-    fetchOrNull.mockResolvedValue(favourites)
+    const episodes = { episodes: [] }
+    fetchOrNull.mockResolvedValueOnce(favourites).mockResolvedValueOnce(episodes)
     render(await PodcastsPage())
     expect(screen.getByTestId('podcasts-client')).toBeInTheDocument()
     expect(serverClient.listFavourites).toHaveBeenCalledWith({})
+    expect(serverClient.listEpisodes).toHaveBeenCalledWith({ limit: 50 })
     expect(swrFallback).toHaveBeenCalledWith(
-      expect.objectContaining({ keyed: [['/podcasts/favourites', favourites]] })
+      expect.objectContaining({
+        fallback: { '/podcasts/favourites': favourites, '/podcasts/episodes': episodes }
+      })
     )
   })
 
-  it('renders without seeding when the fetch fails', async () => {
+  it('seeds only what loaded', async () => {
+    const episodes = { episodes: [] }
+    fetchOrNull.mockResolvedValueOnce(null).mockResolvedValueOnce(episodes)
+    render(await PodcastsPage())
+    expect(swrFallback).toHaveBeenCalledWith(
+      expect.objectContaining({ fallback: { '/podcasts/episodes': episodes } })
+    )
+  })
+
+  it('renders without seeding when both fetches fail', async () => {
     fetchOrNull.mockResolvedValue(null)
     render(await PodcastsPage())
-    expect(swrFallback).toHaveBeenCalledWith(expect.objectContaining({ keyed: [] }))
+    expect(swrFallback).toHaveBeenCalledWith(expect.objectContaining({ fallback: {} }))
   })
 })

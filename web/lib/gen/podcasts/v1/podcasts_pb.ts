@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file podcasts/v1/podcasts.proto.
  */
 export const file_podcasts_v1_podcasts: GenFile = /*@__PURE__*/
-  fileDesc("Chpwb2RjYXN0cy92MS9wb2RjYXN0cy5wcm90bxILcG9kY2FzdHMudjEiaAoMU2VhcmNoUmVzdWx0EhEKCWl0dW5lc19pZBgBIAEoAxINCgV0aXRsZRgCIAEoCRIOCgZhdXRob3IYAyABKAkSEwoLYXJ0d29ya191cmwYBCABKAkSEQoJZmF2b3VyaXRlGAUgASgIIoMBCglGYXZvdXJpdGUSCgoCaWQYASABKAkSEQoJaXR1bmVzX2lkGAIgASgDEg0KBXRpdGxlGAMgASgJEg4KBmF1dGhvchgEIAEoCRITCgthcnR3b3JrX3VybBgFIAEoCRIRCglhcHBsZV91cmwYBiABKAkSEAoIYWRkZWRfYXQYByABKAkiIwoSU2VhcmNoU2hvd3NSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJIkEKE1NlYXJjaFNob3dzUmVzcG9uc2USKgoHcmVzdWx0cxgBIAMoCzIZLnBvZGNhc3RzLnYxLlNlYXJjaFJlc3VsdCIXChVMaXN0RmF2b3VyaXRlc1JlcXVlc3QiRAoWTGlzdEZhdm91cml0ZXNSZXNwb25zZRIqCgpmYXZvdXJpdGVzGAEgAygLMhYucG9kY2FzdHMudjEuRmF2b3VyaXRlIigKE0FkZEZhdm91cml0ZVJlcXVlc3QSEQoJaXR1bmVzX2lkGAEgASgDIkEKFEFkZEZhdm91cml0ZVJlc3BvbnNlEikKCWZhdm91cml0ZRgBIAEoCzIWLnBvZGNhc3RzLnYxLkZhdm91cml0ZSIkChZSZW1vdmVGYXZvdXJpdGVSZXF1ZXN0EgoKAmlkGAEgASgJIhkKF1JlbW92ZUZhdm91cml0ZVJlc3BvbnNlMvECCg9Qb2RjYXN0c1NlcnZpY2USUAoLU2VhcmNoU2hvd3MSHy5wb2RjYXN0cy52MS5TZWFyY2hTaG93c1JlcXVlc3QaIC5wb2RjYXN0cy52MS5TZWFyY2hTaG93c1Jlc3BvbnNlElkKDkxpc3RGYXZvdXJpdGVzEiIucG9kY2FzdHMudjEuTGlzdEZhdm91cml0ZXNSZXF1ZXN0GiMucG9kY2FzdHMudjEuTGlzdEZhdm91cml0ZXNSZXNwb25zZRJTCgxBZGRGYXZvdXJpdGUSIC5wb2RjYXN0cy52MS5BZGRGYXZvdXJpdGVSZXF1ZXN0GiEucG9kY2FzdHMudjEuQWRkRmF2b3VyaXRlUmVzcG9uc2USXAoPUmVtb3ZlRmF2b3VyaXRlEiMucG9kY2FzdHMudjEuUmVtb3ZlRmF2b3VyaXRlUmVxdWVzdBokLnBvZGNhc3RzLnYxLlJlbW92ZUZhdm91cml0ZVJlc3BvbnNlQi9aLXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vcG9kY2FzdHMvdjE7cG9kY2FzdHN2MWIGcHJvdG8z");
+  fileDesc("Chpwb2RjYXN0cy92MS9wb2RjYXN0cy5wcm90bxILcG9kY2FzdHMudjEiaAoMU2VhcmNoUmVzdWx0EhEKCWl0dW5lc19pZBgBIAEoAxINCgV0aXRsZRgCIAEoCRIOCgZhdXRob3IYAyABKAkSEwoLYXJ0d29ya191cmwYBCABKAkSEQoJZmF2b3VyaXRlGAUgASgIIpgBCglGYXZvdXJpdGUSCgoCaWQYASABKAkSEQoJaXR1bmVzX2lkGAIgASgDEg0KBXRpdGxlGAMgASgJEg4KBmF1dGhvchgEIAEoCRITCgthcnR3b3JrX3VybBgFIAEoCRIRCglhcHBsZV91cmwYBiABKAkSEAoIYWRkZWRfYXQYByABKAkSEwoLZmV0Y2hfZXJyb3IYCCABKAkiIwoSU2VhcmNoU2hvd3NSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJIkEKE1NlYXJjaFNob3dzUmVzcG9uc2USKgoHcmVzdWx0cxgBIAMoCzIZLnBvZGNhc3RzLnYxLlNlYXJjaFJlc3VsdCIXChVMaXN0RmF2b3VyaXRlc1JlcXVlc3QiRAoWTGlzdEZhdm91cml0ZXNSZXNwb25zZRIqCgpmYXZvdXJpdGVzGAEgAygLMhYucG9kY2FzdHMudjEuRmF2b3VyaXRlIigKE0FkZEZhdm91cml0ZVJlcXVlc3QSEQoJaXR1bmVzX2lkGAEgASgDIkEKFEFkZEZhdm91cml0ZVJlc3BvbnNlEikKCWZhdm91cml0ZRgBIAEoCzIWLnBvZGNhc3RzLnYxLkZhdm91cml0ZSIkChZSZW1vdmVGYXZvdXJpdGVSZXF1ZXN0EgoKAmlkGAEgASgJIhkKF1JlbW92ZUZhdm91cml0ZVJlc3BvbnNlIu0BCgdFcGlzb2RlEgoKAmlkGAEgASgJEg8KB3Nob3dfaWQYAiABKAkSEgoKc2hvd190aXRsZRgDIAEoCRITCgthcnR3b3JrX3VybBgEIAEoCRIRCglhcHBsZV91cmwYBSABKAkSDQoFdGl0bGUYBiABKAkSDwoHc3VtbWFyeRgHIAEoCRIMCgRsaW5rGAggASgJEhEKCWF1ZGlvX3VybBgJIAEoCRIdChBkdXJhdGlvbl9zZWNvbmRzGAogASgFSACIAQESFAoMcHVibGlzaGVkX2F0GAsgASgJQhMKEV9kdXJhdGlvbl9zZWNvbmRzIkUKE0xpc3RFcGlzb2Rlc1JlcXVlc3QSDwoHc2hvd19pZBgBIAEoCRINCgVsaW1pdBgCIAEoBRIOCgZvZmZzZXQYAyABKAUiUAoUTGlzdEVwaXNvZGVzUmVzcG9uc2USJgoIZXBpc29kZXMYASADKAsyFC5wb2RjYXN0cy52MS5FcGlzb2RlEhAKCGhhc19tb3JlGAIgASgIMsYDCg9Qb2RjYXN0c1NlcnZpY2USUAoLU2VhcmNoU2hvd3MSHy5wb2RjYXN0cy52MS5TZWFyY2hTaG93c1JlcXVlc3QaIC5wb2RjYXN0cy52MS5TZWFyY2hTaG93c1Jlc3BvbnNlElkKDkxpc3RGYXZvdXJpdGVzEiIucG9kY2FzdHMudjEuTGlzdEZhdm91cml0ZXNSZXF1ZXN0GiMucG9kY2FzdHMudjEuTGlzdEZhdm91cml0ZXNSZXNwb25zZRJTCgxBZGRGYXZvdXJpdGUSIC5wb2RjYXN0cy52MS5BZGRGYXZvdXJpdGVSZXF1ZXN0GiEucG9kY2FzdHMudjEuQWRkRmF2b3VyaXRlUmVzcG9uc2USXAoPUmVtb3ZlRmF2b3VyaXRlEiMucG9kY2FzdHMudjEuUmVtb3ZlRmF2b3VyaXRlUmVxdWVzdBokLnBvZGNhc3RzLnYxLlJlbW92ZUZhdm91cml0ZVJlc3BvbnNlElMKDExpc3RFcGlzb2RlcxIgLnBvZGNhc3RzLnYxLkxpc3RFcGlzb2Rlc1JlcXVlc3QaIS5wb2RjYXN0cy52MS5MaXN0RXBpc29kZXNSZXNwb25zZUIvWi10b29scy54ZG91YmxldS5jb20vZ2VuL3BvZGNhc3RzL3YxO3BvZGNhc3RzdjFiBnByb3RvMw");
 
 /**
  * @generated from message podcasts.v1.SearchResult
@@ -93,6 +93,13 @@ export type Favourite = Message<"podcasts.v1.Favourite"> & {
    * @generated from field: string added_at = 7;
    */
   addedAt: string;
+
+  /**
+   * The last feed fetch's error; empty when it succeeded or hasn't run.
+   *
+   * @generated from field: string fetch_error = 8;
+   */
+  fetchError: string;
 };
 
 /**
@@ -233,6 +240,130 @@ export const RemoveFavouriteResponseSchema: GenMessage<RemoveFavouriteResponse> 
   messageDesc(file_podcasts_v1_podcasts, 9);
 
 /**
+ * @generated from message podcasts.v1.Episode
+ */
+export type Episode = Message<"podcasts.v1.Episode"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string show_id = 2;
+   */
+  showId: string;
+
+  /**
+   * @generated from field: string show_title = 3;
+   */
+  showTitle: string;
+
+  /**
+   * The show's artwork and Apple Podcasts page.
+   *
+   * @generated from field: string artwork_url = 4;
+   */
+  artworkUrl: string;
+
+  /**
+   * @generated from field: string apple_url = 5;
+   */
+  appleUrl: string;
+
+  /**
+   * @generated from field: string title = 6;
+   */
+  title: string;
+
+  /**
+   * Plain text, shortened.
+   *
+   * @generated from field: string summary = 7;
+   */
+  summary: string;
+
+  /**
+   * @generated from field: string link = 8;
+   */
+  link: string;
+
+  /**
+   * @generated from field: string audio_url = 9;
+   */
+  audioUrl: string;
+
+  /**
+   * @generated from field: optional int32 duration_seconds = 10;
+   */
+  durationSeconds?: number | undefined;
+
+  /**
+   * RFC3339; empty when the feed gave no date.
+   *
+   * @generated from field: string published_at = 11;
+   */
+  publishedAt: string;
+};
+
+/**
+ * Describes the message podcasts.v1.Episode.
+ * Use `create(EpisodeSchema)` to create a new message.
+ */
+export const EpisodeSchema: GenMessage<Episode> = /*@__PURE__*/
+  messageDesc(file_podcasts_v1_podcasts, 10);
+
+/**
+ * An empty show_id lists the episodes of every favourite, newest first.
+ *
+ * @generated from message podcasts.v1.ListEpisodesRequest
+ */
+export type ListEpisodesRequest = Message<"podcasts.v1.ListEpisodesRequest"> & {
+  /**
+   * @generated from field: string show_id = 1;
+   */
+  showId: string;
+
+  /**
+   * @generated from field: int32 limit = 2;
+   */
+  limit: number;
+
+  /**
+   * @generated from field: int32 offset = 3;
+   */
+  offset: number;
+};
+
+/**
+ * Describes the message podcasts.v1.ListEpisodesRequest.
+ * Use `create(ListEpisodesRequestSchema)` to create a new message.
+ */
+export const ListEpisodesRequestSchema: GenMessage<ListEpisodesRequest> = /*@__PURE__*/
+  messageDesc(file_podcasts_v1_podcasts, 11);
+
+/**
+ * @generated from message podcasts.v1.ListEpisodesResponse
+ */
+export type ListEpisodesResponse = Message<"podcasts.v1.ListEpisodesResponse"> & {
+  /**
+   * @generated from field: repeated podcasts.v1.Episode episodes = 1;
+   */
+  episodes: Episode[];
+
+  /**
+   * @generated from field: bool has_more = 2;
+   */
+  hasMore: boolean;
+};
+
+/**
+ * Describes the message podcasts.v1.ListEpisodesResponse.
+ * Use `create(ListEpisodesResponseSchema)` to create a new message.
+ */
+export const ListEpisodesResponseSchema: GenMessage<ListEpisodesResponse> = /*@__PURE__*/
+  messageDesc(file_podcasts_v1_podcasts, 12);
+
+/**
  * @generated from service podcasts.v1.PodcastsService
  */
 export const PodcastsService: GenService<{
@@ -267,6 +398,14 @@ export const PodcastsService: GenService<{
     methodKind: "unary";
     input: typeof RemoveFavouriteRequestSchema;
     output: typeof RemoveFavouriteResponseSchema;
+  },
+  /**
+   * @generated from rpc podcasts.v1.PodcastsService.ListEpisodes
+   */
+  listEpisodes: {
+    methodKind: "unary";
+    input: typeof ListEpisodesRequestSchema;
+    output: typeof ListEpisodesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_podcasts_v1_podcasts, 0);
