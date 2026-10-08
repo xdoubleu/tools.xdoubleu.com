@@ -55,17 +55,14 @@ export default function WhereToWatch({ offers, watchLink }: WhereToWatchProps) {
       <p className="text-xs text-muted">
         Streaming availability data by JustWatch.
         {watchLink && (
-          <>
-            {' '}
-            <a
-              href={watchLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center underline"
-            >
-              See all on TMDB
-            </a>
-          </>
+          <a
+            href={watchLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-1 inline-flex min-h-11 items-center underline"
+          >
+            See all on TMDB
+          </a>
         )}
       </p>
     </section>

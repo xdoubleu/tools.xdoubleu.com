@@ -97,7 +97,7 @@ export default function MovieTitleClient({ id }: { id: string }) {
           ) : (
             <MovieWatches entry={entry} />
           )}
-          <WhereToWatch offers={data.offers} watchLink={data.watchLink} />
+          <WhereToWatch offers={data.offers ?? []} watchLink={data.watchLink} />
           <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
             Remove from backlog
           </Button>

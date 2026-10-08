@@ -67,9 +67,9 @@ func (r *MoviesRepository) UpsertTitle(
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO movies.titles (media_type, tmdb_id, title, original_title,
 			release_date, poster_path, overview, genres, runtime, season_count,
-			watch_link)
+			watch_link, providers_fetched_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, '{}'::text[]), $9, $10,
-			$11)
+			$11, now())
 		ON CONFLICT (media_type, tmdb_id) DO UPDATE SET
 			title = EXCLUDED.title,
 			original_title = EXCLUDED.original_title,
@@ -80,6 +80,7 @@ func (r *MoviesRepository) UpsertTitle(
 			runtime = EXCLUDED.runtime,
 			season_count = EXCLUDED.season_count,
 			watch_link = EXCLUDED.watch_link,
+			providers_fetched_at = EXCLUDED.providers_fetched_at,
 			fetched_at = now()
 		RETURNING id`,
 		t.MediaType, t.TMDBID, t.Title, t.OriginalTitle, t.ReleaseDate,
@@ -201,17 +202,20 @@ func (r *MoviesRepository) GetEntry(
 	id uuid.UUID,
 ) (*models.Entry, error) {
 	var overview, watchLink string
+	var providersFetched bool
 	e, err := scanEntry(r.db.QueryRow(ctx, `
-		SELECT `+entryColumns+`, t.overview, t.watch_link
+		SELECT `+entryColumns+`, t.overview, t.watch_link,
+				t.providers_fetched_at IS NOT NULL
 		FROM movies.user_titles ut
 		JOIN movies.titles t ON t.id = ut.title_id
 		WHERE ut.id = $1 AND ut.user_id = $2`,
 		id, userID,
-	), &overview, &watchLink)
+	), &overview, &watchLink, &providersFetched)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
 	e.Title.Overview, e.Title.WatchLink = overview, watchLink
+	e.Title.ProvidersFetched = providersFetched
 	return e, nil
 }
 

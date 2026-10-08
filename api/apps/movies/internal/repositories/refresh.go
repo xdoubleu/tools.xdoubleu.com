@@ -64,17 +64,26 @@ func (r *MoviesRepository) ReplaceProviders(
 	titleID uuid.UUID,
 	providers []models.Provider,
 ) error {
+	n := len(providers)
+	offers, ids := make([]string, n), make([]int64, n)
+	names, logos, priorities := make([]string, n), make([]string, n), make([]int32, n)
+	for i, p := range providers {
+		offers[i], ids[i], names[i], logos[i] = p.OfferType, p.ID, p.Name, p.LogoPath
+		priorities[i] = int32(p.DisplayPriority) //nolint:gosec // small priorities
+	}
+
 	batch := &pgx.Batch{} //nolint:exhaustruct //QueuedQueries populated via Queue()
 	batch.Queue(`DELETE FROM movies.title_providers WHERE title_id = $1`, titleID)
-	for _, p := range providers {
-		batch.Queue(`
-			INSERT INTO movies.title_providers (title_id, offer_type, provider_id,
-				provider_name, logo_path, display_priority)
-			VALUES ($1, $2, $3, $4, $5, $6)
-			ON CONFLICT DO NOTHING`,
-			titleID, p.OfferType, p.ID, p.Name, p.LogoPath, p.DisplayPriority,
-		)
-	}
+	batch.Queue(`
+		INSERT INTO movies.title_providers (title_id, offer_type, provider_id,
+			provider_name, logo_path, display_priority)
+		SELECT $1, offer_type, provider_id, provider_name, logo_path,
+			display_priority
+		FROM unnest($2::text[], $3::bigint[], $4::text[], $5::text[], $6::int[])
+			AS p(offer_type, provider_id, provider_name, logo_path, display_priority)
+		ON CONFLICT DO NOTHING`,
+		titleID, offers, ids, names, logos, priorities,
+	)
 	return r.db.SendBatch(ctx, batch).Close()
 }
 

@@ -4,6 +4,11 @@
 ALTER TABLE movies.titles
 ADD COLUMN IF NOT EXISTS watch_link TEXT NOT NULL DEFAULT '';
 
+-- NULL until the title's providers were first fetched; titles stored before
+-- this column existed are backfilled on first open.
+ALTER TABLE movies.titles
+ADD COLUMN IF NOT EXISTS providers_fetched_at TIMESTAMPTZ;
+
 -- Belgian watch providers per title (not per season), replaced on every
 -- TMDB fetch of the title.
 CREATE TABLE IF NOT EXISTS movies.title_providers (
@@ -23,5 +28,6 @@ CREATE TABLE IF NOT EXISTS movies.title_providers (
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE IF EXISTS movies.title_providers;
+ALTER TABLE movies.titles DROP COLUMN IF EXISTS providers_fetched_at;
 ALTER TABLE movies.titles DROP COLUMN IF EXISTS watch_link;
 -- +goose StatementEnd

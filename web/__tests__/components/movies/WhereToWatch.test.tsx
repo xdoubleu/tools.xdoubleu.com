@@ -24,10 +24,28 @@ describe('WhereToWatch', () => {
     expect(within(stream).getByText('Netflix')).toBeInTheDocument()
     expect(within(stream).getByRole('presentation')).toHaveAttribute(
       'src',
-      expect.stringContaining('image.tmdb.org')
+      expect.stringContaining('image.tmdb.org/t/p/w92/n.jpg')
     )
     const rent = screen.getByRole('heading', { name: 'Rent' }).parentElement!
     expect(within(rent).getByText('Apple TV')).toBeInTheDocument()
+  })
+
+  it('labels every offer type', () => {
+    const all = ['flatrate', 'free', 'ads', 'rent', 'buy'].map((offerType) =>
+      create(ProviderOffersSchema, {
+        offerType,
+        providers: [create(ProviderSchema, { id: 1n, name: `via ${offerType}` })]
+      })
+    )
+    render(<WhereToWatch offers={all} watchLink="" />)
+
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      'Stream',
+      'Free',
+      'With ads',
+      'Rent',
+      'Buy'
+    ])
   })
 
   it('credits JustWatch and links to the TMDB watch page', () => {

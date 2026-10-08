@@ -89,3 +89,39 @@ func TestRefresh_LeavesProvidersOfFinishedTitlesForThirtyDays(t *testing.T) {
 	assert.Equal(t, map[string][]string{"flatrate": {"Disney Plus"}},
 		offerNames(getTitle(t, c, e.Id)))
 }
+
+// legacy makes a title look stored before providers were fetched.
+func legacy(t *testing.T, tmdbID int64) {
+	t.Helper()
+	_, err := testDB.Exec(context.Background(), `
+		DELETE FROM movies.title_providers WHERE title_id IN
+			(SELECT id FROM movies.titles WHERE tmdb_id = $1)`, tmdbID)
+	require.NoError(t, err)
+	_, err = testDB.Exec(context.Background(), `
+		UPDATE movies.titles SET providers_fetched_at = NULL, watch_link = ''
+		WHERE tmdb_id = $1`, tmdbID)
+	require.NoError(t, err)
+}
+
+func TestGetTitle_BackfillsProvidersOfLegacyTitles(t *testing.T) {
+	c := newClient(t, userID, fakeTMDB{})
+	e := add(t, c, "movie", 603, "watched")
+	legacy(t, 603)
+
+	got := getTitle(t, c, e.Id)
+
+	assert.Contains(t, offerNames(got), "flatrate")
+	assert.NotEmpty(t, got.WatchLink)
+}
+
+func TestGetTitle_RetriesBackfillAfterTMDBFailure(t *testing.T) {
+	c := newClient(t, userID, fakeTMDB{})
+	e := add(t, c, "movie", 603, "watched")
+	legacy(t, 603)
+
+	down := newKeepingClient(t, userID, newRecordingTMDB(603, 0))
+	assert.Empty(t, getTitle(t, down, e.Id).Offers, "TMDB down doesn't fail the read")
+
+	assert.Contains(t, offerNames(getTitle(t, c, e.Id)), "flatrate",
+		"the next read retries")
+}

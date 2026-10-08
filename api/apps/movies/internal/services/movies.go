@@ -82,18 +82,19 @@ func isMediaType(s string) bool {
 
 func fromTMDB(t tmdb.Title) models.Title {
 	return models.Title{
-		ID:            uuid.Nil,
-		MediaType:     t.MediaType,
-		TMDBID:        t.TMDBID,
-		Title:         t.Title,
-		OriginalTitle: t.OriginalTitle,
-		ReleaseDate:   t.ReleaseDate,
-		PosterPath:    t.PosterPath,
-		Overview:      t.Overview,
-		Genres:        t.Genres,
-		Runtime:       t.Runtime,
-		SeasonCount:   t.SeasonCount,
-		WatchLink:     t.WatchLink,
+		ID:               uuid.Nil,
+		MediaType:        t.MediaType,
+		TMDBID:           t.TMDBID,
+		Title:            t.Title,
+		OriginalTitle:    t.OriginalTitle,
+		ReleaseDate:      t.ReleaseDate,
+		PosterPath:       t.PosterPath,
+		Overview:         t.Overview,
+		Genres:           t.Genres,
+		Runtime:          t.Runtime,
+		SeasonCount:      t.SeasonCount,
+		WatchLink:        t.WatchLink,
+		ProvidersFetched: true,
 	}
 }
 
@@ -198,7 +199,13 @@ func (s *MovieService) storeTitle(
 	}
 	providers := make([]models.Provider, len(t.Providers))
 	for i, p := range t.Providers {
-		providers[i] = models.Provider(p)
+		providers[i] = models.Provider{
+			ID:              p.ID,
+			Name:            p.Name,
+			LogoPath:        p.LogoPath,
+			OfferType:       p.OfferType,
+			DisplayPriority: p.DisplayPriority,
+		}
 	}
 	if err = s.repo.ReplaceProviders(ctx, titleID, providers); err != nil {
 		return titleID, err
@@ -276,6 +283,9 @@ func (s *MovieService) Get(
 	if err != nil {
 		return nil, err
 	}
+	if !entry.Title.ProvidersFetched {
+		s.backfillProviders(ctx, entry)
+	}
 	if entry.Providers, err = s.repo.ListProviders(ctx, entry.Title.ID); err != nil {
 		return nil, err
 	}
@@ -319,4 +329,20 @@ func (s *MovieService) Stats(
 	userID string,
 ) (*models.Stats, error) {
 	return s.repo.Stats(ctx, userID)
+}
+
+// backfillProviders fetches a title stored before providers were. A TMDB
+// failure leaves them unfetched so the next read retries.
+func (s *MovieService) backfillProviders(ctx context.Context, entry *models.Entry) {
+	if s.tmdb == nil {
+		return
+	}
+	k := models.TitleKey{MediaType: entry.Title.MediaType, TMDBID: entry.Title.TMDBID}
+	t, err := s.fetch(ctx, k)
+	if err != nil {
+		return
+	}
+	if _, err = s.storeTitle(ctx, *t); err == nil {
+		entry.Title.WatchLink = t.WatchLink
+	}
 }
