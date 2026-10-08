@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { BacklogEntry, Season } from '@/lib/gen/movies/v1/movies_pb'
 import { useMoviesActions } from '@/hooks/useMovies'
+import { titleName } from '@/lib/movies/format'
 import StatusSelect from '@/components/movies/StatusSelect'
 import WatchedWhenDialog from '@/components/movies/WatchedWhenDialog'
 import { Field } from '@/components/ui/field'
@@ -55,7 +56,7 @@ export default function TitleStatus({
       <WatchedWhenDialog
         open={asking}
         onOpenChange={setAsking}
-        title={entry.title}
+        title={titleName(entry)}
         pending={pending}
         onChoose={(unknownDate) => void change('watched', unknownDate)}
       />

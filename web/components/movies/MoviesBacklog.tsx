@@ -12,6 +12,7 @@ import {
   STATUS_LABELS,
   mediaTypeLabel,
   releaseLabel,
+  titleName,
   todayISO
 } from '@/lib/movies/format'
 import MoviePoster from '@/components/movies/MoviePoster'
@@ -52,6 +53,7 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
   const [asking, setAsking] = useState(false)
   const status = saved?.from === entry.status ? saved.to : entry.status
   const release = releaseLabel(entry.releaseDate, today)
+  const displayed = titleName(entry)
 
   const change = async (next: string, unknownDate = false) => {
     setPending(true)
@@ -85,7 +87,7 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
         <>
           <StatusSelect
             id={`status-${entry.id}`}
-            aria-label={`Status of ${entry.title}`}
+            aria-label={`Status of ${displayed}`}
             value={status}
             disabled={pending}
             onChange={select}
@@ -93,16 +95,16 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
           <WatchedWhenDialog
             open={asking}
             onOpenChange={setAsking}
-            title={entry.title}
+            title={displayed}
             pending={pending}
             onChoose={(unknownDate) => void change('watched', unknownDate)}
           />
         </>
       }
     >
-      <MoviePoster posterPath={entry.posterPath} title={entry.title} />
+      <MoviePoster posterPath={entry.posterPath} title={displayed} />
       <div className="min-w-0">
-        <p className="break-words font-medium">{entry.title}</p>
+        <p className="break-words font-medium">{displayed}</p>
         <p className="text-xs text-muted">
           {mediaTypeLabel(entry.mediaType)}
           {release && (

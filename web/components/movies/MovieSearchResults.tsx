@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Code, ConnectError } from '@connectrpc/connect'
 import type { SearchResult } from '@/lib/gen/movies/v1/movies_pb'
 import { useMovieSearch, useMoviesActions } from '@/hooks/useMovies'
-import { mediaTypeLabel, releaseLabel, statusLabel, todayISO } from '@/lib/movies/format'
+import { mediaTypeLabel, releaseLabel, statusLabel, titleName, todayISO } from '@/lib/movies/format'
 import MoviePoster from '@/components/movies/MoviePoster'
 import WatchedWhenDialog from '@/components/movies/WatchedWhenDialog'
 import { Alert } from '@/components/ui/alert'
@@ -48,12 +48,13 @@ function SearchResultRow({ result, today }: { result: SearchResult; today: strin
   }
 
   const release = releaseLabel(result.releaseDate, today)
+  const displayed = titleName(result)
 
   return (
     <Card variant="inset" className="flex flex-wrap items-center gap-3">
-      <MoviePoster posterPath={result.posterPath} title={result.title} />
+      <MoviePoster posterPath={result.posterPath} title={displayed} />
       <div className="min-w-0 flex-1">
-        <p className="break-words font-medium">{result.title}</p>
+        <p className="break-words font-medium">{displayed}</p>
         <p className="text-xs text-muted">
           {mediaTypeLabel(result.mediaType)}
           {release && (
@@ -84,7 +85,7 @@ function SearchResultRow({ result, today }: { result: SearchResult; today: strin
       <WatchedWhenDialog
         open={asking}
         onOpenChange={setAsking}
-        title={result.title}
+        title={displayed}
         pending={pending !== null}
         onChoose={(unknownDate) => void quickAdd('watched', unknownDate)}
       />

@@ -62,8 +62,8 @@ describe('MovieTitleClient', () => {
     mockTitle({ data: spirited })
     render(<MovieTitleClient id="e-1" />)
 
-    expect(screen.getByRole('heading', { name: 'Spirited Away' })).toBeInTheDocument()
-    expect(screen.getByText('千と千尋の神隠し')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '千と千尋の神隠し' })).toBeInTheDocument()
+    expect(screen.getByText('Spirited Away')).toBeInTheDocument()
     expect(screen.getByText('Movie · 2001 · 125 min')).toBeInTheDocument()
     expect(screen.getByText('Fantasy')).toBeInTheDocument()
     expect(screen.getByText('A girl in a spirit world.')).toBeInTheDocument()
@@ -153,7 +153,7 @@ describe('MovieTitleClient', () => {
   it('keeps showing loaded data when revalidation fails', () => {
     mockTitle({ data: spirited, error: new Error('offline') })
     render(<MovieTitleClient id="e-1" />)
-    expect(screen.getByRole('heading', { name: 'Spirited Away' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '千と千尋の神隠し' })).toBeInTheDocument()
   })
 
   it('stops showing a title removed elsewhere', () => {
@@ -166,10 +166,10 @@ describe('MovieTitleClient', () => {
     mockTitle({ data: spirited })
     render(<MovieTitleClient id="e-1" />)
     expect(screen.getByRole('link', { name: 'Movies & Series' })).toHaveAttribute('href', '/movies')
-    expect(screen.getAllByText('Spirited Away')).toHaveLength(2)
+    expect(screen.getAllByText('千と千尋の神隠し')).toHaveLength(2)
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove from backlog' }))
-    expect(screen.getByText('Remove Spirited Away?')).toBeInTheDocument()
+    expect(screen.getByText('Remove 千と千尋の神隠し?')).toBeInTheDocument()
     expect(screen.queryByText(/Couldn.t remove/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Couldn.t update status/)).not.toBeInTheDocument()
   })
