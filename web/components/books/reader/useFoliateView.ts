@@ -54,6 +54,10 @@ const TURNS: Record<PageTurn, (view: FoliateView) => unknown> = {
   right: (view) => view.goRight()
 }
 
+// The relocate reasons foliate emits for an actual page turn. Seeking to a
+// position, opening, reflowing and settling all use other reasons (or none).
+const READ_REASONS = new Set(['snap', 'page', 'scroll'])
+
 const KEY_TURNS: Partial<Record<string, PageTurn>> = { ArrowLeft: 'left', ArrowRight: 'right' }
 
 function turn(view: FoliateView, direction: PageTurn | null | undefined) {
@@ -142,9 +146,11 @@ export function useFoliateView(
         v.addEventListener('relocate', (e) => {
           const next = toLocation(e.detail)
           setLocation(next)
-          // An 'anchor' relocate is a reflow (resize, image load, styles)
-          // around the same spot, not reading.
-          if (!opened || reason === 'anchor') return
+          // Only a real page turn is reading. The relocates emitted while a
+          // book opens, seeks to its saved position or re-settles around the
+          // same spot use other reasons (or none) and could otherwise be
+          // saved at the wrong place (a 0% start on open, adr-0029).
+          if (!opened || !reason || !READ_REASONS.has(reason)) return
           const position = positionAt(v.book?.sections, next.section, e.detail.range)
           onRelocateRef.current?.({ ...next, position })
         })

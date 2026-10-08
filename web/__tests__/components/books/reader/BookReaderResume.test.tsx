@@ -13,18 +13,33 @@ import BookReader from '@/components/books/reader/BookReader'
 const EPUB_SECTIONS: ReaderSection[] = [{ id: 'OEBPS/cover.xhtml' }, { id: 'OEBPS/ch1.xhtml' }]
 const PDF_SECTIONS: ReaderSection[] = [{ id: 0 }, { id: 1 }, { id: 2 }]
 
+// foliate re-emits a relocate from its renderer, so its detail carries the
+// renderer's fraction/index.
+type FoliateRelocate = CustomEvent<{ fraction?: number; index?: number; range?: Range }>
+
 function makeView(sections: ReaderSection[] = EPUB_SECTIONS) {
   const view = Object.assign(document.createElement('div'), {
     isFixedLayout: typeof sections[0]?.id === 'number',
     book: undefined as { toc: never[]; sections: ReaderSection[] } | undefined,
-    renderer: {
+    renderer: Object.assign(new EventTarget(), {
       setStyles: jest.fn(),
       goTo: jest.fn<Promise<void>, [{ index: number; anchor?: (doc: Document) => Range }]>(
         async () => {}
       )
-    },
+    }),
     open: jest.fn(async () => {
       view.book = { toc: [], sections }
+      // Like foliate's view: re-emit the renderer's relocate, carrying its
+      // fraction and index rather than a reason.
+      view.renderer?.addEventListener?.('relocate', (e: Event) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- foliate's relocate detail
+        const { fraction, index, range } = (e as unknown as FoliateRelocate).detail
+        view.dispatchEvent(
+          new CustomEvent('relocate', {
+            detail: { fraction, section: { current: index, total: sections.length }, range }
+          })
+        )
+      })
     }),
     init: jest.fn(async () => {}),
     goTo: jest.fn(async () => {}),
@@ -38,9 +53,18 @@ function makeView(sections: ReaderSection[] = EPUB_SECTIONS) {
 
 type FakeView = ReturnType<typeof makeView>
 
-function relocate(view: FakeView, detail: Record<string, unknown>) {
+// A genuine page turn: the renderer relocates with a read reason, which the
+// capture listener and the view's re-emit turn into a reported location.
+function pageTurn(
+  view: FakeView,
+  { index = 0, fraction = 0.5, range }: { index?: number; fraction?: number; range?: Range }
+) {
   act(() => {
-    view.dispatchEvent(new CustomEvent('relocate', { detail }))
+    ;(view.renderer as EventTarget).dispatchEvent(
+      new CustomEvent('relocate', {
+        detail: { reason: 'page', index, fraction, range }
+      })
+    )
   })
 }
 
@@ -124,13 +148,30 @@ describe('BookReader resume', () => {
     doc.body.innerHTML = '<p>Call me Ishmael.</p>'
     const range = doc.createRange()
     range.setStart(doc.querySelector('p')!.firstChild!, 8)
-    relocate(view, { fraction: 0.45, section: { current: 1, total: 2 }, range })
+    pageTurn(view, { index: 1, fraction: 0.45, range })
     expect(onRelocate).toHaveBeenCalledWith(
       expect.objectContaining({
         fraction: 0.45,
         position: { href: 'OEBPS/ch1.xhtml', offset: 8 }
       })
     )
+  })
+
+  it('does not report an open settle, so opening never saves a 0% position', async () => {
+    const view = makeView()
+    const onRelocate = await renderReader(view)
+    // The reader can still be settling at the start after it has opened; a
+    // raw relocate and a seek ('navigation') relocate both precede the first
+    // real page turn and must not reach onRelocate (which saves the position).
+    ;(view.renderer as EventTarget).dispatchEvent(
+      new CustomEvent('relocate', {
+        detail: { reason: 'navigation', index: 0, fraction: 0 }
+      })
+    )
+    act(() => {
+      view.dispatchEvent(new CustomEvent('relocate', { detail: { fraction: 0 } }))
+    })
+    expect(onRelocate).not.toHaveBeenCalled()
   })
 
   it('does not report a reflow around the same spot', async () => {
@@ -159,15 +200,14 @@ describe('BookReader resume', () => {
   it('reports PDF pages as positions', async () => {
     const view = makeView(PDF_SECTIONS)
     const onRelocate = await renderReader(view)
-    relocate(view, { fraction: 0.5, section: { current: 1, total: 3 } })
+    pageTurn(view, { index: 1, fraction: 0.5 })
     expect(onRelocate).toHaveBeenCalledWith(expect.objectContaining({ position: { page: 2 } }))
   })
 
   it('reports no position for a book without sections', async () => {
-    const view = makeView()
-    view.open.mockImplementation(async () => {})
+    const view = makeView([])
     const onRelocate = await renderReader(view)
-    relocate(view, { fraction: 0.2 })
+    pageTurn(view, { fraction: 0.2 })
     expect(onRelocate).toHaveBeenCalledWith(expect.objectContaining({ position: undefined }))
   })
 
