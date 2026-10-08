@@ -39,7 +39,18 @@ question.
    - **Skip issues needing a `.github/workflows/` change** (the routine App
      deliberately lacks the Workflows permission, so the push is rejected;
      `docs/spec-agent-routines-on-actions.md`). Leave them for a human.
-   - List each skipped issue with its reason in the summary.
+   - **Defer a `bug` whose only remaining step is an app-gated production
+     diagnostic.** A `bug` whose plan says "check production and only then fix
+     if the tool shows a cause", but whose check needs an app MCP tool the
+     service role can't reach (routines authenticate as `service` —
+     observability-only, no user data,
+     [adr-0025](docs/adr-0025-machine-client-credentials-service-role.md)),
+     can't be completed here.
+     Comment on the issue explaining that the required diagnostic is gated
+     behind an app the service role can't reach (so a human can run it), and
+     skip without dispatching a subagent.
+   - List each skipped issue with its reason (including a deferred
+     app-gated diagnostic) in the summary.
 
 2. **Overlap:** note in each affected prompt when two issues touch the same
    files, but keep one subagent and one PR per issue.
