@@ -62,6 +62,11 @@ func New(token string) Client {
 	}
 }
 
+// withProviders returns the details together with the watch providers.
+func withProviders() url.Values {
+	return url.Values{"append_to_response": {"watch/providers"}}
+}
+
 func (c client) Search(ctx context.Context, query string) ([]Title, error) {
 	var resp searchResponse
 	err := c.get(ctx, "/search/multi", url.Values{
@@ -84,7 +89,8 @@ func (c client) Search(ctx context.Context, query string) ([]Title, error) {
 
 func (c client) GetMovie(ctx context.Context, id int64) (*Title, error) {
 	var resp movieResponse
-	if err := c.get(ctx, "/movie/"+strconv.FormatInt(id, 10), nil, &resp); err != nil {
+	err := c.get(ctx, "/movie/"+strconv.FormatInt(id, 10), withProviders(), &resp)
+	if err != nil {
 		return nil, err
 	}
 	t := resp.toTitle()
@@ -93,7 +99,8 @@ func (c client) GetMovie(ctx context.Context, id int64) (*Title, error) {
 
 func (c client) GetSeries(ctx context.Context, id int64) (*Title, error) {
 	var resp seriesResponse
-	if err := c.get(ctx, "/tv/"+strconv.FormatInt(id, 10), nil, &resp); err != nil {
+	err := c.get(ctx, "/tv/"+strconv.FormatInt(id, 10), withProviders(), &resp)
+	if err != nil {
 		return nil, err
 	}
 	t := resp.toTitle()

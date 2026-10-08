@@ -133,12 +133,31 @@ message Season {
   bool aired = 6;
 }
 
+// A way to watch the title in Belgium; logo_path is relative to
+// image.tmdb.org.
+message Provider {
+  int64 id = 1;
+  string name = 2;
+  string logo_path = 3;
+}
+// Providers of one offer type. offer_type is "flatrate", "free", "ads",
+// "rent" or "buy".
+message ProviderOffers {
+  string offer_type = 1;
+  repeated Provider providers = 2;
+}
+
 message GetTitleRequest { string id = 1; }
 message GetTitleResponse {
   BacklogEntry entry = 1;
   string overview = 2;
   // Series only, in season order.
   repeated Season seasons = 3;
+  // Belgian providers grouped by offer type in that order, empty groups left
+  // out; availability data is by JustWatch.
+  repeated ProviderOffers offers = 4;
+  // TMDB's watch page for the title; empty when it lists no providers.
+  string watch_link = 5;
 }
 
 // Ticking adds one watch (now, or unknown); unticking clears the season's

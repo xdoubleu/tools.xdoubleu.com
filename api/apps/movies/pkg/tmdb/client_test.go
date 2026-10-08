@@ -196,3 +196,64 @@ func TestGet_CanceledContext(t *testing.T) {
 	_, err := c.GetMovie(ctx, 1)
 	require.ErrorIs(t, err, context.Canceled)
 }
+
+func TestGetMovie_BelgianProviders(t *testing.T) {
+	c := serve(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "watch/providers", r.URL.Query().Get("append_to_response"))
+		_, _ = w.Write([]byte(`{"id":603,"title":"The Matrix",
+			"watch/providers":{"results":{
+				"US":{"link":"https://example.com/us",
+					"flatrate":[{"provider_id":1,"provider_name":"US only"}]},
+				"BE":{"link":"https://www.themoviedb.org/movie/603/watch?locale=BE",
+					"flatrate":[
+						{"provider_id":2285,"provider_name":"JustWatch TV"},
+						{"provider_id":8,"provider_name":"Netflix",
+						 "logo_path":"/n.jpg","display_priority":0}],
+					"rent":[{"provider_id":350,"provider_name":"Apple TV",
+						"logo_path":"/a.jpg","display_priority":2}]}}}}`))
+	})
+
+	got, err := c.GetMovie(context.Background(), 603)
+	require.NoError(t, err)
+	assert.Equal(t, "https://www.themoviedb.org/movie/603/watch?locale=BE",
+		got.WatchLink)
+	assert.Equal(t, []tmdb.Provider{
+		{ID: 8, Name: "Netflix", LogoPath: "/n.jpg",
+			OfferType: tmdb.OfferFlatrate, DisplayPriority: 0},
+		{ID: 350, Name: "Apple TV", LogoPath: "/a.jpg",
+			OfferType: tmdb.OfferRent, DisplayPriority: 2},
+	}, got.Providers, "BE only, omitted offer keys are fine, no JustWatch TV")
+}
+
+func TestGetSeries_FreeAndAdsOffers(t *testing.T) {
+	c := serve(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/tv/1396", r.URL.Path)
+		_, _ = w.Write([]byte(`{"id":1396,"name":"Breaking Bad",
+			"watch/providers":{"results":{"BE":{"link":"l",
+				"free":[{"provider_id":1,"provider_name":"Free TV"}],
+				"ads":[{"provider_id":2,"provider_name":"Ad TV"}],
+				"buy":[{"provider_id":3,"provider_name":"Shop"}]}}}}`))
+	})
+
+	got, err := c.GetSeries(context.Background(), 1396)
+	require.NoError(t, err)
+	offers := make([]string, len(got.Providers))
+	for i, p := range got.Providers {
+		offers[i] = p.OfferType
+	}
+	assert.Equal(t, []string{
+		tmdb.OfferFree, tmdb.OfferAds, tmdb.OfferBuy,
+	}, offers)
+}
+
+func TestGetMovie_NoBelgianProviders(t *testing.T) {
+	c := serve(t, func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"id":1,"title":"Obscure",
+			"watch/providers":{"results":{}}}`))
+	})
+
+	got, err := c.GetMovie(context.Background(), 1)
+	require.NoError(t, err)
+	assert.Empty(t, got.WatchLink)
+	assert.Empty(t, got.Providers)
+}

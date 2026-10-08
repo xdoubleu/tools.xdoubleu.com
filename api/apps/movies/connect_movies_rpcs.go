@@ -163,8 +163,10 @@ func (h *moviesConnectHandler) GetTitle(
 		return nil, mapError(err)
 	}
 	return connect.NewResponse(&moviesv1.GetTitleResponse{
-		Entry:    protoEntry(entry),
-		Overview: entry.Title.Overview,
-		Seasons:  protoSeasons(entry.Seasons),
+		Entry:     protoEntry(entry),
+		Overview:  entry.Title.Overview,
+		Seasons:   protoSeasons(entry.Seasons),
+		Offers:    protoOffers(entry.Providers),
+		WatchLink: entry.Title.WatchLink,
 	}), nil
 }

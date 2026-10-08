@@ -59,6 +59,10 @@ type moviesStore interface {
 		ctx context.Context, userID string, entryID uuid.UUID, watchedAt []*time.Time,
 	) error
 	Stats(ctx context.Context, userID string) (*models.Stats, error)
+	ReplaceProviders(
+		ctx context.Context, titleID uuid.UUID, providers []models.Provider,
+	) error
+	ListProviders(ctx context.Context, titleID uuid.UUID) ([]models.Provider, error)
 	DeleteOrphanTitles(ctx context.Context) (int64, error)
 	DueTitles(ctx context.Context) ([]models.TitleKey, error)
 }
@@ -78,17 +82,19 @@ func isMediaType(s string) bool {
 
 func fromTMDB(t tmdb.Title) models.Title {
 	return models.Title{
-		ID:            uuid.Nil,
-		MediaType:     t.MediaType,
-		TMDBID:        t.TMDBID,
-		Title:         t.Title,
-		OriginalTitle: t.OriginalTitle,
-		ReleaseDate:   t.ReleaseDate,
-		PosterPath:    t.PosterPath,
-		Overview:      t.Overview,
-		Genres:        t.Genres,
-		Runtime:       t.Runtime,
-		SeasonCount:   t.SeasonCount,
+		ID:               uuid.Nil,
+		MediaType:        t.MediaType,
+		TMDBID:           t.TMDBID,
+		Title:            t.Title,
+		OriginalTitle:    t.OriginalTitle,
+		ReleaseDate:      t.ReleaseDate,
+		PosterPath:       t.PosterPath,
+		Overview:         t.Overview,
+		Genres:           t.Genres,
+		Runtime:          t.Runtime,
+		SeasonCount:      t.SeasonCount,
+		WatchLink:        t.WatchLink,
+		ProvidersFetched: true,
 	}
 }
 
@@ -188,8 +194,24 @@ func (s *MovieService) storeTitle(
 	t tmdb.Title,
 ) (uuid.UUID, error) {
 	titleID, err := s.repo.UpsertTitle(ctx, fromTMDB(t))
-	if err != nil || len(t.Seasons) == 0 {
+	if err != nil {
 		return titleID, err
+	}
+	providers := make([]models.Provider, len(t.Providers))
+	for i, p := range t.Providers {
+		providers[i] = models.Provider{
+			ID:              p.ID,
+			Name:            p.Name,
+			LogoPath:        p.LogoPath,
+			OfferType:       p.OfferType,
+			DisplayPriority: p.DisplayPriority,
+		}
+	}
+	if err = s.repo.ReplaceProviders(ctx, titleID, providers); err != nil {
+		return titleID, err
+	}
+	if len(t.Seasons) == 0 {
+		return titleID, nil
 	}
 	seasons := make([]models.Season, len(t.Seasons))
 	for i, ts := range t.Seasons {
@@ -250,8 +272,8 @@ func (s *MovieService) Remove(
 	return s.repo.DeleteEntry(ctx, userID, id)
 }
 
-// Get returns the entry with its seasons, loading a series' seasons from
-// TMDB the first time they are missing.
+// Get returns the entry with its Belgian providers and, for a series, its
+// seasons, loading them from TMDB the first time they are missing.
 func (s *MovieService) Get(
 	ctx context.Context,
 	userID string,
@@ -259,6 +281,12 @@ func (s *MovieService) Get(
 ) (*models.Entry, error) {
 	entry, err := s.repo.GetEntry(ctx, userID, id)
 	if err != nil {
+		return nil, err
+	}
+	if !entry.Title.ProvidersFetched {
+		s.backfillProviders(ctx, entry)
+	}
+	if entry.Providers, err = s.repo.ListProviders(ctx, entry.Title.ID); err != nil {
 		return nil, err
 	}
 	if entry.Title.MediaType != tmdb.MediaTypeSeries {
@@ -301,4 +329,20 @@ func (s *MovieService) Stats(
 	userID string,
 ) (*models.Stats, error) {
 	return s.repo.Stats(ctx, userID)
+}
+
+// backfillProviders fetches a title stored before providers were. A TMDB
+// failure leaves them unfetched so the next read retries.
+func (s *MovieService) backfillProviders(ctx context.Context, entry *models.Entry) {
+	if s.tmdb == nil {
+		return
+	}
+	k := models.TitleKey{MediaType: entry.Title.MediaType, TMDBID: entry.Title.TMDBID}
+	t, err := s.fetch(ctx, k)
+	if err != nil {
+		return
+	}
+	if _, err = s.storeTitle(ctx, *t); err == nil {
+		entry.Title.WatchLink = t.WatchLink
+	}
 }

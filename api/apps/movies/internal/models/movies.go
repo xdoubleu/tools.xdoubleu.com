@@ -31,6 +31,22 @@ type Title struct {
 	Genres        []string
 	Runtime       *int
 	SeasonCount   *int
+	// WatchLink is TMDB's watch page for Belgium; only loaded for a single
+	// entry.
+	WatchLink string
+	// ProvidersFetched is false for titles stored before providers were
+	// fetched; only loaded for a single entry.
+	ProvidersFetched bool
+}
+
+// Provider is one way to watch a title in Belgium. OfferType is flatrate,
+// free, ads, rent or buy.
+type Provider struct {
+	ID              int64
+	Name            string
+	LogoPath        string
+	OfferType       string
+	DisplayPriority int
 }
 
 // Entry is a title in one user's backlog. A nil WatchedAt element is a watch
@@ -50,6 +66,8 @@ type Entry struct {
 	AddedAt   time.Time
 	UpdatedAt time.Time
 	Seasons   []Season
+	// Providers is only loaded for a single entry.
+	Providers []Provider
 }
 
 // ListFilter narrows a backlog listing; empty fields match everything.

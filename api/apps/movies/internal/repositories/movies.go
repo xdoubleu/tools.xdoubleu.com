@@ -66,8 +66,10 @@ func (r *MoviesRepository) UpsertTitle(
 	var id uuid.UUID
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO movies.titles (media_type, tmdb_id, title, original_title,
-			release_date, poster_path, overview, genres, runtime, season_count)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, '{}'::text[]), $9, $10)
+			release_date, poster_path, overview, genres, runtime, season_count,
+			watch_link, providers_fetched_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, '{}'::text[]), $9, $10,
+			$11, now())
 		ON CONFLICT (media_type, tmdb_id) DO UPDATE SET
 			title = EXCLUDED.title,
 			original_title = EXCLUDED.original_title,
@@ -77,10 +79,12 @@ func (r *MoviesRepository) UpsertTitle(
 			genres = EXCLUDED.genres,
 			runtime = EXCLUDED.runtime,
 			season_count = EXCLUDED.season_count,
+			watch_link = EXCLUDED.watch_link,
+			providers_fetched_at = EXCLUDED.providers_fetched_at,
 			fetched_at = now()
 		RETURNING id`,
 		t.MediaType, t.TMDBID, t.Title, t.OriginalTitle, t.ReleaseDate,
-		t.PosterPath, t.Overview, t.Genres, t.Runtime, t.SeasonCount,
+		t.PosterPath, t.Overview, t.Genres, t.Runtime, t.SeasonCount, t.WatchLink,
 	).Scan(&id)
 	return id, err
 }
@@ -190,25 +194,28 @@ func (r *MoviesRepository) DeleteEntry(
 	return nil
 }
 
-// GetEntry returns the entry with the title's overview filled in. Another
-// user's entry reads as not found.
+// GetEntry returns the entry with the title's overview and watch link filled
+// in. Another user's entry reads as not found.
 func (r *MoviesRepository) GetEntry(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
 ) (*models.Entry, error) {
-	var overview string
+	var overview, watchLink string
+	var providersFetched bool
 	e, err := scanEntry(r.db.QueryRow(ctx, `
-		SELECT `+entryColumns+`, t.overview
+		SELECT `+entryColumns+`, t.overview, t.watch_link,
+				t.providers_fetched_at IS NOT NULL
 		FROM movies.user_titles ut
 		JOIN movies.titles t ON t.id = ut.title_id
 		WHERE ut.id = $1 AND ut.user_id = $2`,
 		id, userID,
-	), &overview)
+	), &overview, &watchLink, &providersFetched)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
-	e.Title.Overview = overview
+	e.Title.Overview, e.Title.WatchLink = overview, watchLink
+	e.Title.ProvidersFetched = providersFetched
 	return e, nil
 }
 
