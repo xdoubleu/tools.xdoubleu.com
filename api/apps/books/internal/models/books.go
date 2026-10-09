@@ -17,6 +17,7 @@ const (
 const (
 	TagOwnPhysical   = "own-physical"
 	TagOwnDigital    = "own-digital"
+	TagOwnBol        = "own-bol"
 	TagFavourite     = "favourite"
 	TagKoboSync      = "kobo-sync"
 	TagKoboFormatPDF = "kobo-format-pdf"
@@ -32,7 +33,7 @@ const MaxProgressPercent = 100
 
 // IsSpecialTag reports whether a tag has reserved UI treatment (ownership, favourite).
 func IsSpecialTag(t string) bool {
-	return t == TagOwnPhysical || t == TagOwnDigital || t == TagFavourite
+	return t == TagOwnPhysical || t == TagOwnDigital || t == TagOwnBol || t == TagFavourite
 }
 
 type Book struct {

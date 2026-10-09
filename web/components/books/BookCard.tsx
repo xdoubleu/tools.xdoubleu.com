@@ -97,6 +97,7 @@ export default function BookCard({
           <Badge variant="secondary" className="capitalize">
             {userBook.status.replace(/-/g, ' ')}
           </Badge>
+          {userBook.tags.includes('own-bol') && <Badge variant="secondary">bol.com</Badge>}
           <OfflineBookBadge bookId={userBook.bookId} />
           {tags.length > 0 && (
             <span className="min-w-0 truncate text-xs text-muted">{tags.join(', ')}</span>

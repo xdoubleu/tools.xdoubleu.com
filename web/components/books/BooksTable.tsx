@@ -31,10 +31,10 @@ const PAGE_SIZE = 20
 
 function applyFilters(books: UserBook[], filters: LibraryFilters): UserBook[] {
   return books.filter((ub) => {
-    if (
-      filters.ownership.size > 0 &&
-      ![...filters.ownership].some((tag) => ub.tags.includes(tag))
-    ) {
+    // own-bol is a kind of digital ownership, so it also matches the Digital filter.
+    const owned = new Set(ub.tags)
+    if (owned.has('own-bol')) owned.add('own-digital')
+    if (filters.ownership.size > 0 && ![...filters.ownership].some((tag) => owned.has(tag))) {
       return false
     }
     if (filters.format.size > 0 && ![...filters.format].some((fmt) => ub.formats.includes(fmt))) {

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import type { ColumnKey, BookColumn } from '@/components/books/booksTableColumns'
 
 export interface LibraryFilters {
-  /** Special ownership tags: 'own-physical' | 'own-digital'. */
+  /** Special ownership tags: 'own-physical' | 'own-digital' | 'own-bol'. */
   ownership: Set<string>
   /** Format strings from UserBook.formats: 'pdf' | 'epub'. */
   format: Set<string>
@@ -95,6 +95,12 @@ export default function BooksTableToolbar({
                 label="Digital"
                 checked={filters.ownership.has('own-digital')}
                 onChange={() => onToggleOwnership('own-digital')}
+              />
+              <Checkbox
+                id="filter-own-bol"
+                label="bol.com"
+                checked={filters.ownership.has('own-bol')}
+                onChange={() => onToggleOwnership('own-bol')}
               />
             </div>
           </div>

@@ -133,6 +133,11 @@ describe('DuplicateBookSummary', () => {
     expect(screen.getByText('Digital')).toBeInTheDocument()
   })
 
+  it('renders bol.com badge when own-bol tag is set', () => {
+    render(<DuplicateBookSummary ub={makeUB({ tags: ['own-bol'] })} />)
+    expect(screen.getByText('bol.com')).toBeInTheDocument()
+  })
+
   it('renders status badge', () => {
     render(<DuplicateBookSummary ub={makeUB({ status: 'currently-reading' })} />)
     expect(screen.getByText('currently-reading')).toBeInTheDocument()

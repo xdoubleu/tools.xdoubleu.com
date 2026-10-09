@@ -63,6 +63,10 @@ describe('defaultProgressMode', () => {
     expect(defaultProgressMode(userBook({ tags: ['own-digital'] }))).toBe(PROGRESS_MODE_PERCENT)
   })
 
+  it('defaults to percent for bol.com-only books', () => {
+    expect(defaultProgressMode(userBook({ tags: ['own-bol'] }))).toBe(PROGRESS_MODE_PERCENT)
+  })
+
   it('defaults to pages for physical books', () => {
     expect(defaultProgressMode(userBook({ tags: ['own-physical'] }))).toBe(PROGRESS_MODE_PAGES)
   })

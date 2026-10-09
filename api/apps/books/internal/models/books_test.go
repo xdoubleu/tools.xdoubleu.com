@@ -11,6 +11,7 @@ import (
 func TestIsSpecialTag(t *testing.T) {
 	assert.True(t, models.IsSpecialTag(models.TagOwnPhysical))
 	assert.True(t, models.IsSpecialTag(models.TagOwnDigital))
+	assert.True(t, models.IsSpecialTag(models.TagOwnBol))
 	assert.True(t, models.IsSpecialTag(models.TagFavourite))
 	assert.False(t, models.IsSpecialTag("classics"))
 	assert.False(t, models.IsSpecialTag(""))
@@ -50,6 +51,7 @@ func TestUserBook_DisplayTags_AllSpecial(t *testing.T) {
 		Tags: []string{
 			models.TagOwnPhysical,
 			models.TagOwnDigital,
+			models.TagOwnBol,
 			models.TagFavourite,
 		},
 	}

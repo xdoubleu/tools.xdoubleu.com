@@ -16,6 +16,7 @@ export const SPECIAL_TAGS = new Set([
   'favourite',
   'own-physical',
   'own-digital',
+  'own-bol',
   'kobo-sync',
   'kobo-format-pdf'
 ])

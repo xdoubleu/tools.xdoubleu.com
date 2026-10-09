@@ -465,6 +465,49 @@ describe('BooksTable', () => {
       expect(screen.queryByText('No Physical')).not.toBeInTheDocument()
     })
 
+    it('counts own-bol books as Digital when the Digital filter is selected', () => {
+      const books = [
+        makeBook('1', 'Bol Book', 'A', { tags: ['own-bol'] }),
+        makeBook('2', 'Not Digital', 'B', { tags: ['own-physical'] })
+      ]
+      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Digital' }))
+
+      expect(withinTable().getByText('Bol Book')).toBeInTheDocument()
+      expect(screen.queryByText('Not Digital')).not.toBeInTheDocument()
+    })
+
+    it('filters to books with own-bol tag when bol.com is selected', () => {
+      const books = [
+        makeBook('1', 'Bol Book', 'A', { tags: ['own-bol'] }),
+        makeBook('2', 'Other', 'B', { tags: ['own-digital'] })
+      ]
+      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'bol.com' }))
+
+      expect(withinTable().getByText('Bol Book')).toBeInTheDocument()
+      expect(screen.queryByText('Other')).not.toBeInTheDocument()
+    })
+
+    it('shows a book that matches any selected ownership filter', () => {
+      const books = [
+        makeBook('1', 'Physical Book', 'A', { tags: ['own-physical'] }),
+        makeBook('2', 'Other', 'B', { tags: [] })
+      ]
+      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'bol.com' }))
+
+      expect(withinTable().getByText('Physical Book')).toBeInTheDocument()
+      expect(screen.queryByText('Other')).not.toBeInTheDocument()
+    })
+
     it('filters to books with epub format when EPUB is selected', () => {
       const books = [
         makeBook('1', 'Epub Book', 'A', { formats: ['epub'] }),

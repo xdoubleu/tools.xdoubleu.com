@@ -19,6 +19,7 @@ describe('SPECIAL_TAGS', () => {
     expect(SPECIAL_TAGS.has('favourite')).toBe(true)
     expect(SPECIAL_TAGS.has('own-physical')).toBe(true)
     expect(SPECIAL_TAGS.has('own-digital')).toBe(true)
+    expect(SPECIAL_TAGS.has('own-bol')).toBe(true)
     expect(SPECIAL_TAGS.has('kobo-sync')).toBe(true)
     expect(SPECIAL_TAGS.has('kobo-format-pdf')).toBe(true)
   })
@@ -84,7 +85,7 @@ describe('isBuiltInShelfId', () => {
 
 describe('displayTags', () => {
   it('filters out all special tags', () => {
-    const input = ['favourite', 'own-physical', 'own-digital', 'fantasy', 'sci-fi']
+    const input = ['favourite', 'own-physical', 'own-digital', 'own-bol', 'fantasy', 'sci-fi']
     expect(displayTags(input)).toEqual(['fantasy', 'sci-fi'])
   })
 
