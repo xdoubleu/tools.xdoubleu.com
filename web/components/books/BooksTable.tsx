@@ -34,10 +34,7 @@ function applyFilters(books: UserBook[], filters: LibraryFilters): UserBook[] {
     // own-bol is a kind of digital ownership, so it also matches the Digital filter.
     const owned = new Set(ub.tags)
     if (owned.has('own-bol')) owned.add('own-digital')
-    if (
-      filters.ownership.size > 0 &&
-      ![...filters.ownership].some((tag) => owned.has(tag))
-    ) {
+    if (filters.ownership.size > 0 && ![...filters.ownership].some((tag) => owned.has(tag))) {
       return false
     }
     if (filters.format.size > 0 && ![...filters.format].some((fmt) => ub.formats.includes(fmt))) {
