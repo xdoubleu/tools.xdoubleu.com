@@ -31,6 +31,10 @@ var koboUpstreamClient = &http.Client{Timeout: koboUpstreamTimeout}
 // store so firmware updates, purchases and auth keep working.
 func (app *Books) koboRoutes(prefix string, mux *http.ServeMux) {
 	base := "/" + prefix + "/kobo/{token}"
+	// The device fetches initialization with GET; serving POST too is harmless.
+	mux.HandleFunc(
+		"GET "+base+"/v1/initialization", app.koboLogged(app.koboInitHandler),
+	)
 	mux.HandleFunc(
 		"POST "+base+"/v1/initialization", app.koboLogged(app.koboInitHandler),
 	)
