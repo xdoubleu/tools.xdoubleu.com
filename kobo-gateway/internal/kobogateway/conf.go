@@ -12,6 +12,15 @@ const (
 	// DefaultKoboEndpoint is the stock Kobo store endpoint that ships with
 	// every Kobo device.
 	DefaultKoboEndpoint = "https://storeapi.kobo.com"
+
+	// featureSettingsSection holds the keys behind the device's
+	// Sleep and Power Off options.
+	featureSettingsSection = "FeatureSettings"
+
+	// ShowBookCoverKey and FullscreenCoverStretchKey make the current book's
+	// cover fill the sleep screen instead of "Sleeping".
+	ShowBookCoverKey          = "ShowBookCover"
+	FullscreenCoverStretchKey = "FullscreenCoverStretch"
 )
 
 // KV is a single key=value entry inside a conf section.
@@ -110,6 +119,62 @@ func (c *Conf) SetAPIEndpoint(endpoint string) string {
 	setKey(&c.Sections[idx], targetKey, endpoint)
 
 	return original
+}
+
+// SetFeatureSetting sets key in [FeatureSettings], returning the previous
+// value (mirrors SetAPIEndpoint).
+func (c *Conf) SetFeatureSetting(key, value string) string {
+	original := c.featureSetting(key)
+
+	idx := c.sectionIndex(featureSettingsSection)
+	if idx < 0 {
+		c.Sections = append(
+			c.Sections,
+			Section{Name: featureSettingsSection, Keys: nil},
+		)
+		idx = len(c.Sections) - 1
+	}
+	setKey(&c.Sections[idx], key, value)
+
+	return original
+}
+
+// featureSetting returns key's current [FeatureSettings] value.
+func (c *Conf) featureSetting(key string) string {
+	idx := c.sectionIndex(featureSettingsSection)
+	if idx < 0 {
+		return ""
+	}
+
+	for _, kv := range c.Sections[idx].Keys {
+		if kv.Key == key {
+			return kv.Value
+		}
+	}
+
+	return ""
+}
+
+// RemoveFeatureSetting deletes key from [FeatureSettings], dropping the
+// section once it holds no keys.
+func (c *Conf) RemoveFeatureSetting(key string) {
+	idx := c.sectionIndex(featureSettingsSection)
+	if idx < 0 {
+		return
+	}
+
+	keys := c.Sections[idx].Keys
+	kept := keys[:0]
+	for _, kv := range keys {
+		if kv.Key != key {
+			kept = append(kept, kv)
+		}
+	}
+	c.Sections[idx].Keys = kept
+
+	if len(kept) == 0 {
+		c.Sections = append(c.Sections[:idx], c.Sections[idx+1:]...)
+	}
 }
 
 func (c *Conf) sectionIndex(name string) int {

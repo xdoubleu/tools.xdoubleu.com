@@ -200,7 +200,7 @@ func (s *Server) configureHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	original, err := s.setEndpoint(kobo, req.SyncURL)
+	original, err := s.configure(kobo, req.SyncURL)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 
@@ -237,7 +237,7 @@ func (s *Server) revertHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = s.setEndpoint(kobo, req.TargetEndpoint); err != nil {
+	if _, err = s.revert(kobo, req.TargetEndpoint); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 
 		return
@@ -308,13 +308,35 @@ func (s *Server) resolveKobo(volumePath string) (Kobo, int, error) {
 	}
 }
 
-func (s *Server) setEndpoint(kobo Kobo, endpoint string) (string, error) {
+// configure points the Kobo at endpoint and turns on the full-screen sleep
+// cover so the current book's cover shows instead of "Sleeping".
+func (s *Server) configure(kobo Kobo, endpoint string) (string, error) {
 	conf, err := readConfFile(kobo.VolumePath)
 	if err != nil {
 		return "", err
 	}
 
 	original := conf.SetAPIEndpoint(endpoint)
+	conf.SetFeatureSetting(ShowBookCoverKey, "true")
+	conf.SetFeatureSetting(FullscreenCoverStretchKey, "true")
+	if err = writeConfFile(kobo.VolumePath, conf); err != nil {
+		return "", err
+	}
+
+	return original, nil
+}
+
+// revert points the Kobo back at endpoint and clears the sleep-cover settings
+// configure added.
+func (s *Server) revert(kobo Kobo, endpoint string) (string, error) {
+	conf, err := readConfFile(kobo.VolumePath)
+	if err != nil {
+		return "", err
+	}
+
+	original := conf.SetAPIEndpoint(endpoint)
+	conf.RemoveFeatureSetting(ShowBookCoverKey)
+	conf.RemoveFeatureSetting(FullscreenCoverStretchKey)
 	if err = writeConfFile(kobo.VolumePath, conf); err != nil {
 		return "", err
 	}

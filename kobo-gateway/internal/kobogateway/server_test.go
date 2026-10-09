@@ -257,6 +257,12 @@ func TestConfigure(t *testing.T) {
 		"https://tools.xdoubleu.com/books/kobo/TOKEN",
 		conf.APIEndpoint(),
 	)
+	// Configuring enables the full-screen sleep cover.
+	assert.Contains(
+		t,
+		string(raw),
+		"[FeatureSettings]\nShowBookCover=true\nFullscreenCoverStretch=true",
+	)
 
 	// The atomic write must not leave its temp sibling behind.
 	_, err = os.Stat(filepath.Join(
@@ -371,7 +377,7 @@ func TestRevert(t *testing.T) {
 		"https://storeapi.kobo.com",
 		"https://tools.xdoubleu.com/books/kobo/TOKEN",
 		1,
-	)
+	) + "\n\n[FeatureSettings]\nShowBookCover=true\nFullscreenCoverStretch=true"
 	volumePath := makeKoboVolume(t, root, "KOBOeReader", patched, "S1")
 	handler := newTestServer(root, nil).Handler()
 

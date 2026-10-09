@@ -127,3 +127,68 @@ func TestSetAPIEndpointRevert(t *testing.T) {
 
 	assert.Equal(t, sampleConf, conf.Serialize())
 }
+
+func TestSetFeatureSettingAppendsSection(t *testing.T) {
+	conf := kobogateway.ParseConf(sampleConf)
+
+	assert.Equal(t, "", conf.SetFeatureSetting(
+		kobogateway.ShowBookCoverKey, "true",
+	))
+	conf.SetFeatureSetting(kobogateway.FullscreenCoverStretchKey, "true")
+
+	assert.Equal(
+		t,
+		sampleConf+"\n\n[FeatureSettings]\nShowBookCover=true\n"+
+			"FullscreenCoverStretch=true",
+		conf.Serialize(),
+	)
+}
+
+func TestSetFeatureSettingOverwrites(t *testing.T) {
+	conf := kobogateway.ParseConf(
+		"[FeatureSettings]\nShowBookCover=false\nOther=1",
+	)
+
+	assert.Equal(t, "false", conf.SetFeatureSetting(
+		kobogateway.ShowBookCoverKey, "true",
+	))
+	// The value changes in place; unrelated keys survive.
+	assert.Equal(
+		t,
+		"[FeatureSettings]\nShowBookCover=true\nOther=1",
+		conf.Serialize(),
+	)
+}
+
+func TestRemoveFeatureSetting(t *testing.T) {
+	conf := kobogateway.ParseConf(
+		"[FeatureSettings]\nShowBookCover=true\nFullscreenCoverStretch=true",
+	)
+
+	conf.RemoveFeatureSetting(kobogateway.FullscreenCoverStretchKey)
+
+	assert.Equal(
+		t,
+		"[FeatureSettings]\nShowBookCover=true",
+		conf.Serialize(),
+	)
+}
+
+func TestRemoveFeatureSettingDropsEmptySection(t *testing.T) {
+	conf := kobogateway.ParseConf(
+		"[FeatureSettings]\nShowBookCover=true\nFullscreenCoverStretch=true",
+	)
+
+	conf.RemoveFeatureSetting(kobogateway.ShowBookCoverKey)
+	conf.RemoveFeatureSetting(kobogateway.FullscreenCoverStretchKey)
+
+	assert.Equal(t, "", conf.Serialize())
+}
+
+func TestRemoveFeatureSettingAbsent(t *testing.T) {
+	conf := kobogateway.ParseConf(sampleConf)
+
+	conf.RemoveFeatureSetting(kobogateway.ShowBookCoverKey)
+
+	assert.Equal(t, sampleConf, conf.Serialize())
+}
