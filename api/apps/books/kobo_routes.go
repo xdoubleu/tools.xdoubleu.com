@@ -668,6 +668,9 @@ func (app *Books) koboFileHandler(w http.ResponseWriter, r *http.Request) {
 
 // koboCoverHandler serves a kobo-sync book's cached cover as a 302 to a
 // presigned R2 URL (mirroring coverHandler), gated to the caller's own books.
+// The cached image is our single highest-resolution cover, so a full-screen
+// sleep request gets the best available image regardless of the requested
+// dimensions; quality stays bounded by the source cover (never upscaled).
 func (app *Books) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := app.koboAuth(w, r)
 	if !ok {
@@ -699,6 +702,11 @@ func (app *Books) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
+
+	// Let the device cache the presigned redirect across syncs (the URL is
+	// valid for 24 h, well inside the cache window).
+	w.Header().
+		Set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400")
 
 	http.Redirect(w, r, result.URL, http.StatusFound)
 }

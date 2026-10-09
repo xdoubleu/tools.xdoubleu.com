@@ -1765,6 +1765,12 @@ func TestKoboCover_ServesPresignedRedirect(t *testing.T) {
 
 	require.Equal(t, http.StatusFound, rec.Code)
 	assert.Contains(t, rec.Header().Get("Location"), coverKey)
+	// The device caches the redirect across syncs.
+	assert.Equal(
+		t,
+		"public, max-age=3600, stale-while-revalidate=86400",
+		rec.Header().Get("Cache-Control"),
+	)
 }
 
 // TestKoboCover_QualityTemplateMatches: the quality-bearing URL shape also hits
