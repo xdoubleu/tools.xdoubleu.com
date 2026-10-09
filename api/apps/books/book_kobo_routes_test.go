@@ -477,6 +477,11 @@ func TestKoboInit_ValidToken_ReturnsInitData(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
+	// The x-kobo-apitoken header proves the store handshake to the firmware;
+	// without it the device treats init as incomplete and never advances to
+	// /v1/library/sync.
+	assert.Equal(t, "e30=", resp.Header.Get("x-kobo-apitoken"))
+
 	var body map[string]any
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
 	assert.Contains(t, body, "TokenList")
@@ -1682,6 +1687,9 @@ func TestKoboInit_GetMethod_ReturnsCoverImageTemplates(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	// GET init must also carry the handshake header the firmware requires.
+	assert.Equal(t, "e30=", resp.Header.Get("x-kobo-apitoken"))
 
 	var body map[string]any
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
