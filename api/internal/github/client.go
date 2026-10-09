@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"slices"
@@ -650,8 +651,8 @@ func isRetryableStatus(status int) bool {
 		(status >= http.StatusInternalServerError && status < 600)
 }
 
-// IsTransientAPIError reports whether err is self-healing: a timeout, or a
-// retryable upstream 5xx/429 that exhausted its retries.
+// IsTransientAPIError reports whether err is self-healing: a timeout, a DNS
+// lookup failure, or a retryable upstream 5xx/429 that exhausted its retries.
 func IsTransientAPIError(err error) bool {
 	return errors.Is(err, errTransientStatus) || isTransientErr(err)
 }
@@ -664,8 +665,10 @@ func isTransientErr(err error) bool {
 		return true
 	}
 	var urlErr *url.Error
-	if errors.As(err, &urlErr) {
-		return urlErr.Timeout()
+	if errors.As(err, &urlErr) && urlErr.Timeout() {
+		return true
 	}
-	return false
+	// DNS lookup failures (e.g. a flaky Docker resolver) are transient.
+	var dnsErr *net.DNSError
+	return errors.As(err, &dnsErr)
 }
