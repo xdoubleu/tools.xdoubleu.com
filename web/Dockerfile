@@ -37,13 +37,9 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/public/foliate-js ./public/foliate-js
 
 # Standalone only serves public/ next to server.js. build-web.yml stages the
-# kobo-gateway downloads here before `docker build`.
-COPY public/downloads/kobo-gateway-darwin-arm64 \
-     ./public/downloads/kobo-gateway-darwin-arm64
-COPY public/downloads/kobo-gateway-darwin-arm64.sig \
-     ./public/downloads/kobo-gateway-darwin-arm64.sig
-COPY public/downloads/kobo-gateway.dmg \
-     ./public/downloads/kobo-gateway.dmg
+# kobo-gateway downloads here before `docker build`; the .sig is present only
+# on signed (main) builds, so copy the whole directory.
+COPY public/downloads/ ./public/downloads/
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
