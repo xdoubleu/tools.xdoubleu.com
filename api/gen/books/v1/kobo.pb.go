@@ -108,14 +108,17 @@ func (x *KoboDevice) GetLoggingEnabled() bool {
 // KoboLogEntry is one captured device request/response pair, held in memory
 // while debug logging is on.
 type KoboLogEntry struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Time          string                 `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
-	Method        string                 `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
-	Path          string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
-	Query         string                 `protobuf:"bytes,4,opt,name=query,proto3" json:"query,omitempty"`
-	RequestBody   string                 `protobuf:"bytes,5,opt,name=request_body,json=requestBody,proto3" json:"request_body,omitempty"`
-	Status        int32                  `protobuf:"varint,6,opt,name=status,proto3" json:"status,omitempty"`
-	ResponseBody  string                 `protobuf:"bytes,7,opt,name=response_body,json=responseBody,proto3" json:"response_body,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Time         string                 `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
+	Method       string                 `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
+	Path         string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
+	Query        string                 `protobuf:"bytes,4,opt,name=query,proto3" json:"query,omitempty"`
+	RequestBody  string                 `protobuf:"bytes,5,opt,name=request_body,json=requestBody,proto3" json:"request_body,omitempty"`
+	Status       int32                  `protobuf:"varint,6,opt,name=status,proto3" json:"status,omitempty"`
+	ResponseBody string                 `protobuf:"bytes,7,opt,name=response_body,json=responseBody,proto3" json:"response_body,omitempty"`
+	// notes describes the upstream store merge outcome for diagnostics (e.g. a
+	// 401 because no Authorization was forwarded); never contains credentials.
+	Notes         string `protobuf:"bytes,8,opt,name=notes,proto3" json:"notes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -195,6 +198,13 @@ func (x *KoboLogEntry) GetStatus() int32 {
 func (x *KoboLogEntry) GetResponseBody() string {
 	if x != nil {
 		return x.ResponseBody
+	}
+	return ""
+}
+
+func (x *KoboLogEntry) GetNotes() string {
+	if x != nil {
+		return x.Notes
 	}
 	return ""
 }
@@ -821,7 +831,7 @@ const file_books_v1_kobo_proto_rawDesc = "" +
 	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12 \n" +
 	"\flast_seen_at\x18\x05 \x01(\tR\n" +
 	"lastSeenAt\x12'\n" +
-	"\x0flogging_enabled\x18\x06 \x01(\bR\x0eloggingEnabled\"\xc4\x01\n" +
+	"\x0flogging_enabled\x18\x06 \x01(\bR\x0eloggingEnabled\"\xda\x01\n" +
 	"\fKoboLogEntry\x12\x12\n" +
 	"\x04time\x18\x01 \x01(\tR\x04time\x12\x16\n" +
 	"\x06method\x18\x02 \x01(\tR\x06method\x12\x12\n" +
@@ -829,7 +839,8 @@ const file_books_v1_kobo_proto_rawDesc = "" +
 	"\x05query\x18\x04 \x01(\tR\x05query\x12!\n" +
 	"\frequest_body\x18\x05 \x01(\tR\vrequestBody\x12\x16\n" +
 	"\x06status\x18\x06 \x01(\x05R\x06status\x12#\n" +
-	"\rresponse_body\x18\a \x01(\tR\fresponseBody\"0\n" +
+	"\rresponse_body\x18\a \x01(\tR\fresponseBody\x12\x14\n" +
+	"\x05notes\x18\b \x01(\tR\x05notes\"0\n" +
 	"\x15EnableKoboSyncRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\";\n" +
 	"\x16EnableKoboSyncResponse\x12!\n" +

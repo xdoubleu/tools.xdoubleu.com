@@ -241,6 +241,7 @@ func TestConnectGetKoboDeviceLogs_InvalidUTF8ResponseBody(t *testing.T) {
 		Time: time.Now(), Method: "GET", Path: "/x", Query: "",
 		RequestBody: "", Status: 200,
 		ResponseBody: string([]byte{0xff, 0xfe, 0x00}),
+		Notes:        "",
 	})
 
 	req := connect.NewRequest(&booksv1.GetKoboDeviceLogsRequest{Id: deviceID})
@@ -260,7 +261,7 @@ func TestConnectClearKoboDeviceLogs_Empties(t *testing.T) {
 	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
 	testApp.Services.KoboLog.Append(deviceID, services.KoboLogEntry{
 		Time: time.Now(), Method: "GET", Path: "/x", Query: "",
-		RequestBody: "", Status: 200, ResponseBody: "",
+		RequestBody: "", Status: 200, ResponseBody: "", Notes: "",
 	})
 	require.NotEmpty(t, testApp.Services.KoboLog.List(deviceID))
 

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -148,6 +149,8 @@ func TestKoboLibrarySync_MergesUpstreamItems(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "upstream item must appear in merged sync response")
+	assert.Empty(t, resp.Header.Get("x-kobo-upstream"),
+		"a successful upstream merge must not set a note header")
 }
 
 // TestKoboProxy_UpstreamDown_ReturnsBadGateway checks the 502 when upstream is down.
@@ -205,6 +208,71 @@ func TestKoboLibrarySync_UpstreamNon200_FallsBackToOurBooks(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "our book must appear even when upstream returns non-200")
+	note := resp.Header.Get("x-kobo-upstream")
+	assert.Contains(t, note, "upstream 500",
+		"the failed upstream status must surface on the response header")
+	assert.Contains(t, note, "no Authorization",
+		"the note must report no auth was forwarded when the device sends none")
+}
+
+// TestKoboLibrarySync_ForwardsAuthorization checks the device's store auth is
+// forwarded to the upstream store on the merge call.
+func TestKoboLibrarySync_ForwardsAuthorization(t *testing.T) {
+	var gotAuth string
+	upstream := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			gotAuth = r.Header.Get("Authorization")
+			w.WriteHeader(http.StatusOK)
+		}),
+	)
+	t.Cleanup(upstream.Close)
+
+	rawToken := registerTestDevice(t, "kobo-upstream-auth-"+uuid.NewString())
+
+	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
+	t.Cleanup(ts.Close)
+
+	req := koboReq(t, http.MethodGet,
+		koboURL(ts, rawToken, "/v1/library/sync"), nil)
+	req.Header.Set("Authorization", "Bearer device-user-key")
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "Bearer device-user-key", gotAuth,
+		"the device's store auth must reach the upstream store")
+}
+
+// TestKoboLibrarySync_UpstreamFailure_NotesDebugLog checks a failed upstream
+// store sync is recorded on the device debug-log entry, not just dropped.
+func TestKoboLibrarySync_UpstreamFailure_NotesDebugLog(t *testing.T) {
+	ts := httptest.NewServer(getRoutes()) // empty upstream base ⇒ merge fails
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-upstream-note-" + uuid.NewString()
+	rawToken, deviceID := registerDeviceReturningID(t, owner)
+	testApp.Services.KoboLog.SetEnabled(deviceID, true)
+	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
+
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	// The append happens after the response is written; poll.
+	require.Eventually(t, func() bool {
+		for _, e := range testApp.Services.KoboLog.List(deviceID) {
+			if e.Method == http.MethodGet &&
+				strings.HasSuffix(e.Path, "/v1/library/sync") {
+				return strings.Contains(e.Notes, "upstream")
+			}
+		}
+		return false
+	}, time.Second, 10*time.Millisecond,
+		"upstream failure must be recorded in the device debug log")
 }
 
 // TestKoboLibrarySync_ForwardsSyncToken checks x-kobo-sync headers are forwarded.

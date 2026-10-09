@@ -21,6 +21,9 @@ message KoboLogEntry {
   string request_body = 5;
   int32 status = 6;
   string response_body = 7;
+  // notes describes the upstream store merge outcome for diagnostics (e.g. a
+  // 401 because no Authorization was forwarded); never contains credentials.
+  string notes = 8;
 }
 
 message EnableKoboSyncRequest { string book_id = 1; }
