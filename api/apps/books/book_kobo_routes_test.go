@@ -1645,6 +1645,15 @@ func TestKoboInit_ReturnsCoverImageTemplates(t *testing.T) {
 	assert.Contains(t, res, "image_host")
 	assert.Contains(t, res, "image_url_template")
 	assert.Contains(t, res, "image_url_quality_template")
+	// The firmware needs the library endpoints here to advance past
+	// initialization to /v1/library/sync; omitting them stalls the sync.
+	assert.Contains(t, res, "library_sync")
+	assert.Contains(t, res, "library_metadata")
+	assert.Contains(t, res, "reading_state")
+
+	syncURL, ok := res["library_sync"].(string)
+	require.True(t, ok)
+	assert.Contains(t, syncURL, "/books/kobo/"+rawToken+"/v1/library/sync")
 
 	tpl, ok := res["image_url_template"].(string)
 	require.True(t, ok)
