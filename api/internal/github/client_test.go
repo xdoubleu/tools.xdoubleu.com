@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -316,6 +318,36 @@ func TestIsTransientAPIError_ServerErrorExhaustedRetries(t *testing.T) {
 	assert.Equal(t, 4, attempts, "5xx must retry up to maxAttempts")
 	assert.True(t, github.IsTransientAPIError(err))
 	assert.Contains(t, err.Error(), "github API returned 502")
+}
+
+// TestIsTransientAPIError_DNSError asserts a DNS lookup failure — the shape
+// seen in production as `*url.Error` wrapping Docker's flaky 127.0.0.11
+// resolver — is transient (logged at Warn, not Sentry).
+func TestIsTransientAPIError_DNSError(t *testing.T) {
+	dnsErr := &net.DNSError{ //nolint:exhaustruct // irrelevant fields left zero
+		Err:  "server misbehaving",
+		Name: "api.github.com",
+	}
+	opErr := &net.OpError{ //nolint:exhaustruct // Source/Addr left zero
+		Op:  "dial",
+		Net: "tcp",
+		Err: dnsErr,
+	}
+	err := &url.Error{Op: "Get", URL: realBaseURL, Err: opErr}
+
+	assert.True(t, github.IsTransientAPIError(err))
+}
+
+// TestIsTransientAPIError_URLErrorTimeout asserts a *url.Error whose wrapped
+// net.Error reports Timeout() is transient via that branch, not the DNS one.
+func TestIsTransientAPIError_URLErrorTimeout(t *testing.T) {
+	dnsErr := &net.DNSError{ //nolint:exhaustruct // other fields irrelevant
+		Err:       "i/o timeout",
+		IsTimeout: true,
+	}
+	err := &url.Error{Op: "Get", URL: realBaseURL, Err: dnsErr}
+
+	assert.True(t, github.IsTransientAPIError(err))
 }
 
 func TestListSecurityAlerts_ReturnsAlerts(t *testing.T) {
