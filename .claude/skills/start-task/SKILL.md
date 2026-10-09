@@ -35,7 +35,9 @@ Reset in place: confirm `git status --porcelain` is clean (else `git stash
 push -u -m <tag>`), then `git fetch origin main && git checkout -B
 <new-branch> origin/main`.
 
-**OpenCode only:** after creating the worktree, re-point the session with
+**OpenCode only:** create the worktree under `<repo>/.claude/worktrees/` (the
+`PreToolUse` edit guard only accepts edits there — a worktree at a sibling
+path gets the first edit rejected), then re-point the session with
 `tools.opencode.session_move` before the first edit. If it refuses a second
 re-point, apply changes there with `git apply` from the current session.
 
