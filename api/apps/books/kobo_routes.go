@@ -137,14 +137,22 @@ type koboInitResponse struct {
 	TokenList []string      `json:"TokenList"`
 }
 
-// koboResources advertises where the device fetches cover images; without
-// these the reader's library shows no artwork for our synced books.
+// koboResources advertises the cover image templates and library endpoints
+// the device uses during sync. The library_* keys are required for the
+// firmware to advance past initialization to /v1/library/sync; omitting them
+// stalls the sync (see Calibre-Web's HandleInitRequest).
 type koboResources struct {
 	ImageHost string `json:"image_host"`
 
 	ImageURLQualityTemplate string `json:"image_url_quality_template"`
 
 	ImageURLTemplate string `json:"image_url_template"`
+
+	LibrarySync string `json:"library_sync"`
+
+	LibraryMetadata string `json:"library_metadata"`
+
+	ReadingState string `json:"reading_state"`
 }
 
 type koboSettings struct {
@@ -212,6 +220,9 @@ func (app *Books) koboInitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	coverBase := app.koboCoverBase(r)
+	// For init the request path is /v1/initialization (not /v1/library/...), so
+	// koboLibraryBase can't strip it; derive the library prefix from coverBase.
+	libraryBase := coverBase + "/v1/library"
 	koboWriteJSON(w, koboInitResponse{
 		Resources: koboResources{
 			ImageHost: coverBase,
@@ -219,6 +230,9 @@ func (app *Books) koboInitHandler(w http.ResponseWriter, r *http.Request) {
 				"/{ImageId}/{width}/{height}/{Quality}/isGreyscale/image.jpg",
 			ImageURLTemplate: coverBase +
 				"/{ImageId}/{width}/{height}/false/image.jpg",
+			LibrarySync:     libraryBase + "/sync",
+			LibraryMetadata: libraryBase + "/{Ids}/metadata",
+			ReadingState:    libraryBase + "/{Ids}/state",
 		},
 		Settings: koboSettings{
 			SynchronizationDelay: 0,
