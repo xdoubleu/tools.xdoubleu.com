@@ -116,21 +116,23 @@ run:
 debug:
 	dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient ./cmd/api
 
+# TZ=UTC: tests assert UTC timestamps (movies watch dates) while pgx scans
+# TIMESTAMPTZ into time.Local; CI hosts are UTC, so pin it locally too.
 test:
-	go test -p 1 ./...
+	TZ=UTC go test -p 1 ./...
 
 test/v:
-	go test -p 1 ./... -v
+	TZ=UTC go test -p 1 ./... -v
 
 test/race:
-	go test -p 1 ./... -race -v
+	TZ=UTC go test -p 1 ./... -race -v
 
 # Converts PDFs in testdata/pdf.local/ (gitignored) to EPUB for manual review.
 pdf/check:
 	go test ./apps/books/internal/services/... -run TestPDFCheck -v -count=1
 
 test/pprof:
-	go test -p 1 ./... -cpuprofile cpu.prof -memprofile mem.prof -bench ./cmd/api
+	TZ=UTC go test -p 1 ./... -cpuprofile cpu.prof -memprofile mem.prof -bench ./cmd/api
 
 tools/mutation:
 	go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
@@ -172,7 +174,7 @@ COVERAGE ?= coverage.out
 
 # -count=1: a cached package result would leave stale blocks in the profile.
 test/cov/report:
-	go test -p 1 -count=1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=$(COVERAGE).tmp
+	TZ=UTC go test -p 1 -count=1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=$(COVERAGE).tmp
 	cat $(COVERAGE).tmp | grep -v "_mock.go" | grep -v "/gen/" > $(COVERAGE).filtered
 	echo "mode: set" > $(COVERAGE)
 	# -coverpkg makes other binaries emit count=0 duplicates that Codecov doesn't
