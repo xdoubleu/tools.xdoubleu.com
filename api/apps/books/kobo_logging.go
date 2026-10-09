@@ -24,11 +24,25 @@ type koboLogHolder struct {
 	reqBody  bytes.Buffer
 	respBody bytes.Buffer
 	status   int
+	notes    string
 }
 
 func koboLogHolderFrom(ctx context.Context) *koboLogHolder {
 	h, _ := ctx.Value(koboLogCtxKey{}).(*koboLogHolder)
 	return h
+}
+
+// koboSetUpstreamNote records the upstream store outcome for a request on its
+// debug-log entry and as an x-kobo-upstream response header, making a
+// silently-dropped store merge failure visible. An empty note is a no-op.
+func koboSetUpstreamNote(r *http.Request, w http.ResponseWriter, note string) {
+	if note == "" {
+		return
+	}
+	if holder := koboLogHolderFrom(r.Context()); holder != nil {
+		holder.notes = note
+	}
+	w.Header().Set("x-kobo-upstream", note)
 }
 
 func capWrite(buf *bytes.Buffer, p []byte) {
@@ -110,6 +124,7 @@ func (app *Books) koboLogged(next http.HandlerFunc) http.HandlerFunc {
 				RequestBody:  holder.reqBody.String(),
 				Status:       holder.status,
 				ResponseBody: holder.respBody.String(),
+				Notes:        holder.notes,
 			})
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -267,12 +268,11 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	// The upstream fetch overlaps the span translation's wait.
-	var upstreamItems []json.RawMessage
-	var upstreamHdrs http.Header
+	var upstream koboUpstream
 	upstreamDone := make(chan struct{})
 	go func() {
 		defer close(upstreamDone)
-		upstreamItems, upstreamHdrs = app.koboFetchUpstreamSync(r)
+		upstream = app.koboFetchUpstreamSync(r)
 	}()
 
 	held, pending, err := app.koboSyncSpans(
@@ -302,6 +302,12 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 
 	<-upstreamDone
 
+	if upstream.note != "" {
+		koboSetUpstreamNote(r, w, upstream.note)
+		app.Logger.Warn("kobo upstream store sync failed",
+			"device_id", deviceID, "note", upstream.note)
+	}
+
 	// Last before responding: this marks the states as delivered.
 	stateEntries, err := app.koboChangedReadingStates(
 		r.Context(), deviceID, books, stateByBook, held, pending,
@@ -312,12 +318,12 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	for _, hdr := range []string{"x-kobo-sync", "x-kobo-sync-token"} {
-		if v := upstreamHdrs.Get(hdr); v != "" {
+		if v := upstream.hdrs.Get(hdr); v != "" {
 			w.Header().Set(hdr, v)
 		}
 	}
 
-	all := append(upstreamItems, ourEntries...) //nolint:gocritic // intentional
+	all := append(upstream.items, ourEntries...) //nolint:gocritic // intentional
 	all = append(all, stateEntries...)
 	all = append(all, removalEntries...)
 	if all == nil {
@@ -414,10 +420,13 @@ func (app *Books) koboProxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	proxyReq.Header = r.Header.Clone()
+	koboForwardAuth(proxyReq.Header, r.Header)
 
 	//nolint:gosec // intentional proxy to upstream Kobo store
 	resp, err := koboUpstreamClient.Do(proxyReq)
 	if err != nil {
+		koboSetUpstreamNote(r, w, "upstream: "+err.Error())
+		app.Logger.Warn("kobo upstream proxy failed", "err", err)
 		http.Error(w, "upstream unavailable", http.StatusBadGateway)
 		return
 	}
@@ -428,14 +437,49 @@ func (app *Books) koboProxyHandler(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add(k, v)
 		}
 	}
+	if resp.StatusCode >= http.StatusBadRequest {
+		koboSetUpstreamNote(r, w, koboUpstreamNote(resp.StatusCode, r.Header))
+	}
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
 }
 
-// koboFetchUpstreamSync returns upstream sync items (nil on error) and headers.
+// koboUpstream holds a merged-upstream sync result and a diagnostic note about
+// how the store call went. note is empty on success; on failure it carries the
+// upstream HTTP status (or error) and whether the device's Authorization was
+// present to forward — never the credential value.
+type koboUpstream struct {
+	items []json.RawMessage
+	hdrs  http.Header
+	note  string
+}
+
+// koboForwardAuth copies the device's store credential from the arriving
+// request onto the upstream call. Kobo identifies its account to the real
+// store through the Authorization header on the device request; with none to
+// forward the store answers 401 and the merge silently empties.
+func koboForwardAuth(dst, src http.Header) {
+	if v := src.Get("Authorization"); v != "" {
+		dst.Set("Authorization", v)
+	}
+}
+
+// koboUpstreamNote is the diagnostic for a failed upstream store call: the
+// status and whether an Authorization header was present to forward.
+func koboUpstreamNote(status int, src http.Header) string {
+	auth := "Authorization forwarded"
+	if src.Get("Authorization") == "" {
+		auth = "no Authorization forwarded"
+	}
+	return fmt.Sprintf("upstream %d (%s)", status, auth)
+}
+
+// koboFetchUpstreamSync returns upstream sync items (empty on failure) and
+// headers, with a diagnostic note for the Kobo debug log when the store call
+// fails or is unauthenticated.
 func (app *Books) koboFetchUpstreamSync(
 	r *http.Request,
-) ([]json.RawMessage, http.Header) {
+) koboUpstream {
 	targetURL := app.clients.KoboStoreBaseURL + "/v1/library/sync"
 	if r.URL.RawQuery != "" {
 		targetURL += "?" + r.URL.RawQuery
@@ -446,27 +490,32 @@ func (app *Books) koboFetchUpstreamSync(
 		r.Context(), http.MethodGet, targetURL, nil,
 	)
 	if err != nil {
-		return nil, nil
+		//nolint:exhaustruct // failure: items/hdrs stay nil
+		return koboUpstream{note: "upstream: build request failed"}
 	}
 	req.Header = r.Header.Clone()
+	koboForwardAuth(req.Header, r.Header)
 
 	//nolint:gosec // intentional call to upstream Kobo store
 	resp, err := koboUpstreamClient.Do(req)
 	if err != nil {
-		return nil, nil
+		//nolint:exhaustruct // failure: items/hdrs stay nil
+		return koboUpstream{note: "upstream: " + err.Error()}
 	}
 	defer resp.Body.Close()
 
 	hdrs := resp.Header.Clone()
 	if resp.StatusCode != http.StatusOK {
-		return nil, hdrs
+		//nolint:exhaustruct // failure: items stay nil
+		return koboUpstream{hdrs: hdrs, note: koboUpstreamNote(resp.StatusCode, r.Header)}
 	}
 
 	var items []json.RawMessage
 	if decErr := json.NewDecoder(resp.Body).Decode(&items); decErr != nil {
-		return nil, hdrs
+		//nolint:exhaustruct // failure: items stay nil
+		return koboUpstream{hdrs: hdrs, note: "upstream: decode failed"}
 	}
-	return items, hdrs
+	return koboUpstream{items: items, hdrs: hdrs, note: ""}
 }
 
 // startKEPUBRegeneration regenerates a stale KEPUB in a detached goroutine:

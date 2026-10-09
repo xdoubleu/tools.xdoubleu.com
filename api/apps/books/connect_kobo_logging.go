@@ -109,5 +109,6 @@ func koboLogEntryProto(e services.KoboLogEntry) *booksv1.KoboLogEntry {
 		RequestBody:  strings.ToValidUTF8(e.RequestBody, "�"),
 		Status:       int32(e.Status), //nolint:gosec // HTTP status fits int32
 		ResponseBody: strings.ToValidUTF8(e.ResponseBody, "�"),
+		Notes:        e.Notes,
 	}
 }

@@ -20,6 +20,7 @@ func logEntry(method, path string) KoboLogEntry {
 		RequestBody:  "",
 		Status:       0,
 		ResponseBody: "",
+		Notes:        "",
 	}
 }
 

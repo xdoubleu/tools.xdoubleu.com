@@ -18,6 +18,9 @@ type KoboLogEntry struct {
 	RequestBody  string
 	Status       int
 	ResponseBody string
+	// Notes describes an upstream store merge outcome for diagnostics; never
+	// contains credentials.
+	Notes string
 }
 
 // KoboLogStore holds, purely in process memory, which Kobo devices have debug
