@@ -119,7 +119,7 @@ func TestGetSourceStats_Admin_CountsUnique(t *testing.T) {
 	before := getSourceStats(t, client)
 
 	id := uuid.New()
-	addTestBookWithISBN(t, "SourceStatsUniqueBook", isbnFromUUID(id))
+	addTestBookWithISBN(t, "SourceStatsUniqueBook"+id.String()[:8], isbnFromUUID(id))
 	afterAdd := getSourceStats(t, client)
 	assert.Equal(t, before.TotalBooks+1, afterAdd.TotalBooks)
 	assert.Equal(t, before.NeverScanned+1, afterAdd.NeverScanned,
@@ -151,7 +151,7 @@ func TestGetSourceStats_Admin_CountsOverlap(t *testing.T) {
 	before := getSourceStats(t, client)
 
 	id := uuid.New()
-	addTestBookWithISBN(t, "SourceStatsOverlapBook", isbnFromUUID(id))
+	addTestBookWithISBN(t, "SourceStatsOverlapBook"+id.String()[:8], isbnFromUUID(id))
 
 	_, err := adminApp.Services.Books.BuildResyncProposals(
 		context.Background(),
@@ -178,7 +178,7 @@ func TestGetSourceStats_Admin_CountsMissed(t *testing.T) {
 	before := getSourceStats(t, client)
 
 	id := uuid.New()
-	addTestBookWithISBN(t, "SourceStatsMissedBook", isbnFromUUID(id))
+	addTestBookWithISBN(t, "SourceStatsMissedBook"+id.String()[:8], isbnFromUUID(id))
 
 	_, err := adminApp.Services.Books.BuildResyncProposals(
 		context.Background(),
@@ -259,7 +259,7 @@ func TestListBooksInExactSources_Admin_ReturnsOnlyUniqueBook(t *testing.T) {
 	client, adminApp := newAdminBooksTestClientWithMockSources(t)
 
 	id := uuid.New()
-	title := "SourceUniqueBooksTestBook"
+	title := "SourceUniqueBooksTestBook" + id.String()[:8]
 	addTestBookWithISBN(t, title, isbnFromUUID(id))
 
 	_, err := adminApp.Services.Books.BuildResyncProposals(
@@ -296,7 +296,7 @@ func TestListBooksInExactSources_Admin_ReturnsOverlapBook(t *testing.T) {
 	client, adminApp := newAdminBooksTestClientWithTwoSources(t)
 
 	id := uuid.New()
-	title := "SourceOverlapBooksTestBook"
+	title := "SourceOverlapBooksTestBook" + id.String()[:8]
 	addTestBookWithISBN(t, title, isbnFromUUID(id))
 
 	_, err := adminApp.Services.Books.BuildResyncProposals(
