@@ -40,6 +40,8 @@ COPY --from=builder /app/public/foliate-js ./public/foliate-js
 # kobo-gateway downloads here before `docker build`.
 COPY public/downloads/kobo-gateway-darwin-arm64 \
      ./public/downloads/kobo-gateway-darwin-arm64
+COPY public/downloads/kobo-gateway-darwin-arm64.sig \
+     ./public/downloads/kobo-gateway-darwin-arm64.sig
 COPY public/downloads/kobo-gateway.dmg \
      ./public/downloads/kobo-gateway.dmg
 
