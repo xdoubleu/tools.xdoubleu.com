@@ -3,6 +3,7 @@ package books
 import (
 	"context"
 	"crypto/sha256"
+	_ "embed"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -132,27 +133,26 @@ func koboWriteJSON(w http.ResponseWriter, v any) {
 }
 
 type koboInitResponse struct {
-	Resources koboResources `json:"Resources"`
-	Settings  koboSettings  `json:"Settings"`
-	TokenList []string      `json:"TokenList"`
+	Resources map[string]any `json:"Resources"`
+	Settings  koboSettings   `json:"Settings"`
+	TokenList []string       `json:"TokenList"`
 }
 
-// koboResources advertises the cover image templates and library endpoints
-// the device uses during sync. The library_* keys are required for the
-// firmware to advance past initialization to /v1/library/sync; omitting them
-// stalls the sync (see Calibre-Web's HandleInitRequest).
-type koboResources struct {
-	ImageHost string `json:"image_host"`
+//go:embed kobo_resources.json
+var koboCatalogJSON []byte
 
-	ImageURLQualityTemplate string `json:"image_url_quality_template"`
-
-	ImageURLTemplate string `json:"image_url_template"`
-
-	LibrarySync string `json:"library_sync"`
-
-	LibraryMetadata string `json:"library_metadata"`
-
-	ReadingState string `json:"reading_state"`
+// koboCatalog is the full Kobo onestore resource catalog, decoded once from
+// kobo_resources.json. The payload mirrors Calibre-Web's NATIVE_KOBO_RESOURCES:
+// the firmware reads every key from /v1/initialization, and a truncated set
+// (like the six keys #2298 served) returns 200 on init but never advances the
+// device to /v1/library/sync. Keys we own are overridden in koboInitHandler to
+// point at our endpoints; the rest keep the upstream Kobo store URLs (proxied).
+func koboCatalog() map[string]any {
+	var c map[string]any
+	if err := json.Unmarshal(koboCatalogJSON, &c); err != nil {
+		panic("kobo_resources.json: " + err.Error())
+	}
+	return c
 }
 
 type koboSettings struct {
@@ -227,17 +227,21 @@ func (app *Books) koboInitHandler(w http.ResponseWriter, r *http.Request) {
 	// For init the request path is /v1/initialization (not /v1/library/...), so
 	// koboLibraryBase can't strip it; derive the library prefix from coverBase.
 	libraryBase := coverBase + "/v1/library"
+
+	// Start from the full catalog, then point the keys we own at us (covers and
+	// the library endpoints). The rest keep the upstream Kobo store URLs.
+	resources := koboCatalog()
+	resources["image_host"] = coverBase
+	resources["image_url_quality_template"] = coverBase +
+		"/{ImageId}/{width}/{height}/{Quality}/isGreyscale/image.jpg"
+	resources["image_url_template"] = coverBase +
+		"/{ImageId}/{width}/{height}/false/image.jpg"
+	resources["library_sync"] = libraryBase + "/sync"
+	resources["library_metadata"] = libraryBase + "/{Ids}/metadata"
+	resources["reading_state"] = libraryBase + "/{Ids}/state"
+
 	koboWriteJSON(w, koboInitResponse{
-		Resources: koboResources{
-			ImageHost: coverBase,
-			ImageURLQualityTemplate: coverBase +
-				"/{ImageId}/{width}/{height}/{Quality}/isGreyscale/image.jpg",
-			ImageURLTemplate: coverBase +
-				"/{ImageId}/{width}/{height}/false/image.jpg",
-			LibrarySync:     libraryBase + "/sync",
-			LibraryMetadata: libraryBase + "/{Ids}/metadata",
-			ReadingState:    libraryBase + "/{Ids}/state",
-		},
+		Resources: resources,
 		Settings: koboSettings{
 			SynchronizationDelay: 0,
 			TestEmailAddress:     "",

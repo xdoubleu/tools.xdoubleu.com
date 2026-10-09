@@ -486,6 +486,33 @@ func TestKoboInit_ValidToken_ReturnsInitData(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
 	assert.Contains(t, body, "TokenList")
 	assert.Contains(t, body, "Settings")
+
+	res, ok := body["Resources"].(map[string]any)
+	require.True(t, ok, "init must return Resources")
+
+	// The owned keys point at our cover/library endpoints, not the upstream
+	// store; the firmware must reach our /v1/library/sync to get our books.
+	pathPrefix := "/books/kobo/" + rawToken
+	for _, owned := range []string{
+		"image_host", "image_url_template",
+		"image_url_quality_template", "library_sync",
+		"library_metadata", "reading_state",
+	} {
+		v, isStr := res[owned].(string)
+		require.Truef(t, isStr, "Resource %s must be a string", owned)
+		assert.Containsf(t, v, pathPrefix, "Resource %s must point at us", owned)
+		assert.NotContainsf(t, v, "storeapi.kobo.com",
+			"Resource %s must not point at the upstream store", owned)
+	}
+
+	// Spot-check the rest of the catalog so a future truncation (the #2327
+	// regression) fails here: catalog-only keys the firmware reads are present.
+	for _, key := range []string{
+		"library_book", "library_items", "oauth_host",
+		"reading_services_host", "products", "store_host",
+	} {
+		assert.Containsf(t, res, key, "catalog key %s must be present", key)
+	}
 }
 
 func TestKoboLibrarySync_EmptyLibrary(t *testing.T) {
