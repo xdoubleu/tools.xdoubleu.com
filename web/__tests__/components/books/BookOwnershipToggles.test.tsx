@@ -87,6 +87,19 @@ describe('BookOwnershipToggles', () => {
     )
   })
 
+  it('optimistically presses the bol.com chip when toggled on', async () => {
+    render(<BookOwnershipToggles userBook={makeBook()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /bol\.com/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /bol\.com/i })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      )
+    })
+  })
+
   it('toggles own-physical on when clicked from off', async () => {
     render(<BookOwnershipToggles userBook={makeBook()} />)
 
