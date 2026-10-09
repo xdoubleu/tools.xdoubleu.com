@@ -683,6 +683,12 @@ func (s *BookService) EnableKoboSync(
 	if err := s.ensureTag(ctx, userID, bookID, models.TagKoboSync); err != nil {
 		return err
 	}
+	// Warm the cover now so the device's first cover fetch is a fast R2 hit
+	// instead of a blocking live fetch during its update phase.
+	if _, err := s.EnsureCoverCached(ctx, bookID); err != nil {
+		s.logger.Warn("failed to warm kobo book cover",
+			"bookID", bookID, "err", err)
+	}
 	return s.books.DeleteKoboRemoval(ctx, userID, bookID)
 }
 

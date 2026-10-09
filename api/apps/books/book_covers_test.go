@@ -274,3 +274,132 @@ func TestAddToLibrary_CoverFetchFailure_DoesNotBlockAdd(t *testing.T) {
 	_, cached := store.GetContent(coverKey)
 	assert.False(t, cached, "no cover should be cached when the fetch fails")
 }
+
+// TestEnsureCoverCached_AlreadyCached: an R2 hit returns true without a fetch.
+func TestEnsureCoverCached_AlreadyCached(t *testing.T) {
+	ub := addTestBook(t, "EnsureCachedHitBook")
+	app, store := buildCoverApp(t)
+	coverKey := "books/" + ub.BookID.String() + "/cover.jpg"
+	require.NoError(t, store.Put(
+		context.Background(), coverKey,
+		bytes.NewReader([]byte("img")), 3, "image/jpeg",
+	))
+
+	ok, err := app.Services.Books.EnsureCoverCached(context.Background(), ub.BookID)
+	require.NoError(t, err)
+	assert.True(t, ok)
+}
+
+// TestEnsureCoverCached_CachesMissing: a CoverURL without an R2 object is fetched.
+func TestEnsureCoverCached_CachesMissing(t *testing.T) {
+	imgServer := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "image/jpeg")
+			_, _ = w.Write([]byte("\xff\xd8\xffwarm-cover"))
+		},
+	))
+	defer imgServer.Close()
+
+	app, store := buildCoverApp(t)
+	ub, err := app.Services.Books.AddToLibrary(
+		context.Background(),
+		userID,
+		services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
+			Source:   "manual",
+			Title:    "EnsureCachedMissBook",
+			Authors:  []string{"Test Author"},
+			CoverURL: imgServer.URL,
+		},
+		"to-read",
+		[]string{},
+	)
+	require.NoError(t, err)
+
+	coverKey := "books/" + ub.BookID.String() + "/cover.jpg"
+	require.NoError(t, store.Delete(context.Background(), coverKey))
+	_, cached := store.GetContent(coverKey)
+	require.False(t, cached, "precondition: cover should be missing")
+
+	ok, err := app.Services.Books.EnsureCoverCached(context.Background(), ub.BookID)
+	require.NoError(t, err)
+	assert.True(t, ok)
+	_, cached = store.GetContent(coverKey)
+	assert.True(t, cached, "cover should be cached after EnsureCoverCached")
+}
+
+// TestEnsureCoverCached_NoCoverReturnsFalse: a book with no cover URL is a no-op.
+func TestEnsureCoverCached_NoCoverReturnsFalse(t *testing.T) {
+	ub := addTestBookNoISBN(t, "EnsureCachedNoCoverBook")
+	app, _ := buildCoverApp(t)
+
+	ok, err := app.Services.Books.EnsureCoverCached(context.Background(), ub.BookID)
+	require.NoError(t, err)
+	assert.False(t, ok)
+}
+
+// TestEnableKoboSync_CoverFetchFailure_StillEnables: a cover that fails to
+// warm must not block enabling kobo-sync.
+func TestEnableKoboSync_CoverFetchFailure_StillEnables(t *testing.T) {
+	app, store := buildCoverApp(t)
+	ub, err := app.Services.Books.AddToLibrary(
+		context.Background(),
+		userID,
+		services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
+			Source:   "manual",
+			Title:    "EnableWarmFailBook",
+			Authors:  []string{"Test Author"},
+			CoverURL: "http://127.0.0.1:1/unreachable.jpg",
+		},
+		"to-read",
+		[]string{},
+	)
+	require.NoError(t, err)
+
+	require.NoError(t, app.Services.Books.EnableKoboSync(
+		context.Background(), userID, ub.BookID,
+	))
+
+	coverKey := "books/" + ub.BookID.String() + "/cover.jpg"
+	_, cached := store.GetContent(coverKey)
+	assert.False(t, cached,
+		"a cover that fails to warm must not block enabling kobo-sync")
+}
+
+// TestEnableKoboSync_WarmsCover: enabling kobo-sync caches the book's cover so
+// the device's first cover fetch is a fast R2 hit.
+func TestEnableKoboSync_WarmsCover(t *testing.T) {
+	imgServer := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "image/jpeg")
+			_, _ = w.Write([]byte("\xff\xd8\xffenable-warm"))
+		},
+	))
+	defer imgServer.Close()
+
+	app, store := buildCoverApp(t)
+	ub, err := app.Services.Books.AddToLibrary(
+		context.Background(),
+		userID,
+		services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
+			Source:   "manual",
+			Title:    "EnableWarmBook",
+			Authors:  []string{"Test Author"},
+			CoverURL: imgServer.URL,
+		},
+		"to-read",
+		[]string{},
+	)
+	require.NoError(t, err)
+
+	coverKey := "books/" + ub.BookID.String() + "/cover.jpg"
+	require.NoError(t, store.Delete(context.Background(), coverKey))
+	_, cached := store.GetContent(coverKey)
+	require.False(t, cached, "precondition: cover removed from cache")
+
+	require.NoError(t, app.Services.Books.EnableKoboSync(
+		context.Background(), userID, ub.BookID,
+	))
+
+	_, cached = store.GetContent(coverKey)
+	assert.True(t, cached, "enabling kobo-sync must warm the book's cover")
+}
