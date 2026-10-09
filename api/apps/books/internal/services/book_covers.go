@@ -87,6 +87,33 @@ func (s *BookService) presignCover(
 	}, nil
 }
 
+// EnsureCoverCached caches bookID's cover in R2 when it isn't already there,
+// returning whether it is now cached. A book with no cover URL is not an
+// error, just (false, nil). Callers warm covers ahead of requests that must
+// not block on a live fetch (e.g. a Kobo device's cover fetch during sync).
+func (s *BookService) EnsureCoverCached(
+	ctx context.Context,
+	bookID uuid.UUID,
+) (bool, error) {
+	if exists, err := s.objectStore.Exists(ctx, bookCoverKey(bookID)); err != nil {
+		return false, fmt.Errorf("check cover cache: %w", err)
+	} else if exists {
+		return true, nil
+	}
+
+	book, err := s.books.GetBookByID(ctx, bookID)
+	if err != nil {
+		return false, err
+	}
+	if book.CoverURL == nil || *book.CoverURL == "" {
+		return false, nil
+	}
+	if cacheErr := s.cacheCoverFromURL(ctx, bookID, *book.CoverURL); cacheErr != nil {
+		return false, cacheErr
+	}
+	return true, nil
+}
+
 // cacheCoverFromURL stores coverURL's image as bookID's cover, so the read
 // path never needs a live fetch. Callers log errors; a cover failure never
 // blocks the write.

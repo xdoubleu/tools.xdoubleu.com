@@ -601,6 +601,49 @@ func TestKoboLibrarySync_ReadyKEPUBIncluded(t *testing.T) {
 	assert.Contains(t, dlURL, bookID.String()+"/file")
 }
 
+// TestKoboLibrarySync_WarmsCovers: a device sync background-warms its books'
+// covers so the device's subsequent cover fetches are fast R2 hits instead of
+// blocking live fetches during its update phase.
+func TestKoboLibrarySync_WarmsCovers(t *testing.T) {
+	imgServer := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "image/jpeg")
+			_, _ = w.Write([]byte("\xff\xd8\xffwarmed-cover"))
+		},
+	))
+	defer imgServer.Close()
+
+	owner := "kobo-warm-cover-" + uuid.NewString()
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	_, err := testDB.Exec(context.Background(),
+		`UPDATE books.books SET cover_url = $1 WHERE id = $2`,
+		imgServer.URL, bookID,
+	)
+	require.NoError(t, err)
+
+	coverKey := "books/" + bookID.String() + "/cover.jpg"
+	require.NoError(t, fakeStore.Delete(context.Background(), coverKey))
+	_, cached := fakeStore.GetContent(coverKey)
+	require.False(t, cached, "precondition: cover should not be cached yet")
+
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+	)
+	require.NoError(t, err)
+	resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	require.Eventually(t, func() bool {
+		_, ok := fakeStore.GetContent(coverKey)
+		return ok
+	}, 5*time.Second, 50*time.Millisecond,
+		"sync must warm the kobo-sync book's cover into R2")
+}
+
 // TestKoboLibrarySync_StaleKEPUB_TriggersRegeneration: sync regenerates a KEPUB
 // from an older converter version.
 func TestKoboLibrarySync_StaleKEPUB_TriggersRegeneration(t *testing.T) {

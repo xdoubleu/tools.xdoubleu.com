@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -283,6 +284,11 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// Warm covers in the background (detached so a slow source never stalls
+	// the sync) so the device's subsequent cover fetches during its update
+	// phase are fast R2 hits instead of blocking live fetches.
+	go app.warmKoboCovers(context.WithoutCancel(r.Context()), books)
+
 	stateByBook, err := app.Services.Books.ListReadingStates(r.Context(), userID)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -354,6 +360,36 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		all = []json.RawMessage{}
 	}
 	koboWriteJSON(w, all)
+}
+
+// warmKoboCovers caches every book's cover so the device's per-cover fetches
+// during its update phase are fast R2 hits. Bounded concurrency; a missing
+// cover or a failed fetch is logged and skipped, never fatal.
+func (app *Books) warmKoboCovers(
+	ctx context.Context,
+	books []models.KoboSyncBook,
+) {
+	const warmConcurrency = 4
+
+	ids := make(chan uuid.UUID)
+	var wg sync.WaitGroup
+	for i := 0; i < warmConcurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for id := range ids {
+				if _, err := app.Services.Books.EnsureCoverCached(ctx, id); err != nil {
+					app.Logger.Warn("failed to warm kobo cover",
+						"bookID", id, "err", err)
+				}
+			}
+		}()
+	}
+	for _, b := range books {
+		ids <- b.BookID
+	}
+	close(ids)
+	wg.Wait()
 }
 
 // buildKoboSyncEntry builds one book's entitlement. RevisionId stays the bare
