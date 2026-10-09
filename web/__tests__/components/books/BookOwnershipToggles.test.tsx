@@ -55,6 +55,38 @@ describe('BookOwnershipToggles', () => {
     expect(screen.queryByRole('button', { name: /digital/i })).not.toBeInTheDocument()
   })
 
+  it('always renders bol.com chip', () => {
+    render(<BookOwnershipToggles userBook={makeBook()} />)
+    expect(screen.getByRole('button', { name: /bol\.com/i })).toBeInTheDocument()
+  })
+
+  it('toggles own-bol on when clicked from off', async () => {
+    render(<BookOwnershipToggles userBook={makeBook()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /bol\.com/i }))
+
+    await waitFor(() => {
+      expect(mockSetBookTag).toHaveBeenCalledWith('book-1', 'own-bol', true)
+    })
+    expect(mockMutate).toHaveBeenCalledWith('/books')
+  })
+
+  it('bol.com chip is pressed when own-bol tag present', () => {
+    render(<BookOwnershipToggles userBook={makeBook(['own-bol'])} />)
+    expect(screen.getByRole('button', { name: /bol\.com/i })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+  })
+
+  it('bol.com chip is not pressed when own-bol tag absent', () => {
+    render(<BookOwnershipToggles userBook={makeBook()} />)
+    expect(screen.getByRole('button', { name: /bol\.com/i })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    )
+  })
+
   it('toggles own-physical on when clicked from off', async () => {
     render(<BookOwnershipToggles userBook={makeBook()} />)
 

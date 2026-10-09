@@ -22,16 +22,17 @@ export default function BookOwnershipToggles({
   hideLabel
 }: BookOwnershipTogglesProps) {
   const [ownPhysical, setOwnPhysical] = useState(userBook.tags.includes('own-physical'))
+  const [ownBol, setOwnBol] = useState(userBook.tags.includes('own-bol'))
   const setBookTag = useSetBookTag()
 
-  const handleToggle = async (current: boolean) => {
-    setOwnPhysical(!current)
+  const handleToggle = async (tag: string, current: boolean, setState: (v: boolean) => void) => {
+    setState(!current)
     try {
-      await setBookTag(userBook.bookId, 'own-physical', !current)
+      await setBookTag(userBook.bookId, tag, !current)
       mutate(swrKeys.books)
       onSaved?.()
     } catch {
-      setOwnPhysical(current)
+      setState(current)
     }
   }
 
@@ -49,7 +50,12 @@ export default function BookOwnershipToggles({
         <TogglePill
           label="Physical"
           active={ownPhysical}
-          onClick={() => handleToggle(ownPhysical)}
+          onClick={() => handleToggle('own-physical', ownPhysical, setOwnPhysical)}
+        />
+        <TogglePill
+          label="bol.com"
+          active={ownBol}
+          onClick={() => handleToggle('own-bol', ownBol, setOwnBol)}
         />
         {hasPdf && <Badge variant="default">PDF</Badge>}
         {hasEpub && <Badge variant="default">EPUB</Badge>}

@@ -126,6 +126,11 @@ describe('BookCard', () => {
     expect(screen.getByText('Digital')).toBeInTheDocument()
   })
 
+  it('shows bol.com badge when own-bol tag present', () => {
+    render(<BookCard userBook={makeBook({ tags: ['own-bol'] })} onSaved={jest.fn()} />)
+    expect(screen.getByText('bol.com')).toBeInTheDocument()
+  })
+
   it('shows PDF badge when formats includes pdf', () => {
     render(<BookCard userBook={makeBook({ formats: ['pdf'] })} onSaved={jest.fn()} />)
     expect(screen.getByText('PDF')).toBeInTheDocument()
