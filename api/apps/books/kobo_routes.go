@@ -219,6 +219,10 @@ func (app *Books) koboInitHandler(w http.ResponseWriter, r *http.Request) {
 	if _, ok := app.koboAuth(w, r); !ok {
 		return
 	}
+	// The x-kobo-apitoken header proves the store handshake to the firmware;
+	// without it the device treats init as incomplete and never advances to
+	// /v1/library/sync. Set before koboWriteJSON writes the response.
+	w.Header().Set("x-kobo-apitoken", "e30=")
 	coverBase := app.koboCoverBase(r)
 	// For init the request path is /v1/initialization (not /v1/library/...), so
 	// koboLibraryBase can't strip it; derive the library prefix from coverBase.
