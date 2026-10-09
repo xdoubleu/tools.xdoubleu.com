@@ -1589,6 +1589,32 @@ func TestKoboInit_ReturnsCoverImageTemplates(t *testing.T) {
 	assert.Contains(t, qtpl, "{Quality}")
 }
 
+// TestKoboInit_GetMethod_ReturnsCoverImageTemplates: the Kobo device fetches
+// /v1/initialization with GET (POST is never used), so GET must return our
+// Resources or the device never learns the cover image templates and shows no
+// covers.
+func TestKoboInit_GetMethod_ReturnsCoverImageTemplates(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	rawToken := registerTestDevice(t, "kobo-init-get-cover-"+uuid.NewString())
+
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/initialization"), nil),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var body map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	res, ok := body["Resources"].(map[string]any)
+	require.True(t, ok, "GET init must return Resources")
+	assert.Contains(t, res, "image_host")
+	assert.Contains(t, res, "image_url_template")
+	assert.Contains(t, res, "image_url_quality_template")
+}
+
 // TestKoboLibrarySync_IncludesCoverImageId: sync metadata tells the device the
 // book's cover ImageId, the same UUID as its entitlement Id.
 func TestKoboLibrarySync_IncludesCoverImageId(t *testing.T) {
