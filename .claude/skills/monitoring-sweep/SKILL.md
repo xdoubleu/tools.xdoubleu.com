@@ -7,8 +7,7 @@ description: Sweep the /monitoring Issues page for every currently-open problem 
 
 Work through everything `/monitoring`
 (`web/components/monitoring/ObservabilityClient.tsx`) reports as non-zero via
-isolated subagents. This session only triages and dispatches; diagnosing
-root causes belongs in a subagent.
+isolated subagents; this session only triages and dispatches.
 
 ## Modes
 
@@ -26,7 +25,7 @@ The invoking prompt states the mode; default to interactive.
 
 0. **Open the run record:** `record_action(mode: "open", trigger_source:
    "schedule"` (unattended) / `"manual"` (interactive), `routine_name:
-   "nightly-maintenance-sweep")` before pulling data. Keep the returned `id`.
+   "nightly-maintenance-sweep")` before pulling data. Keep `id`.
    Skip under the workflow (step 9).
 
 1. **Pull every data source, MCP-only.**
@@ -51,7 +50,8 @@ The invoking prompt states the mode; default to interactive.
 2. **Sentry resolution backstop** (inline; independent of page
    counts):
    - `gh issue list --state closed --search "closed:>=<~14 days back>"
-     --json number,title,body,closedAt,url` (no MCP tool).
+     --limit 200 --json number,title,body,closedAt,url` (no MCP tool; covers
+     the full 14-day window — raise if exceeded).
    - For each body containing `https://xdoubleu.sentry.io/issues/<id>/`,
      check the id against step 1's unresolved list (don't re-fetch).
    - `resolve_sentry_issue(issue_id)` only on evidence the fix shipped and
@@ -77,7 +77,7 @@ The invoking prompt states the mode; default to interactive.
 
    **Self-correcting rule:** a signal lacking context, or a false positive,
    is never skipped silently — file/update an issue proposing a concrete
-   `rules.yml` change (threshold, label, annotation) that would have made it
+   `rules.yml` change (threshold, label, annotation) that would make it
    actionable, naming the signal.
 
 5. **Dispatch one `Agent` per workstream, in parallel, `isolation:
@@ -105,7 +105,6 @@ The invoking prompt states the mode; default to interactive.
 
 6. **Wait** without spin-polling (notifications arrive per agent).
    Unattended: stay open until every workstream reports.
-
 7. **New sub-skill?** Extract a well-defined recurring workstream into
    `.claude/skills/<name>/`; unattended runs only note the idea.
 
