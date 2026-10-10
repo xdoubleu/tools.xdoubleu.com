@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -736,7 +737,8 @@ func (app *Books) koboFileHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // koboCoverHandler serves a kobo-sync book's cached cover as a 302 to a
-// presigned R2 URL (mirroring coverHandler), gated to the caller's own books.
+// presigned R2 URL (mirroring coverHandler); any other image id redirects to
+// the Kobo CDN.
 // The cached image is our single highest-resolution cover, so a full-screen
 // sleep request gets the best available image regardless of the requested
 // dimensions; quality stays bounded by the source cover (never upscaled).
@@ -746,16 +748,22 @@ func (app *Books) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The image templates route every cover here, so store-bought books' ids
+	// (anything not one of our kobo-sync books) go to the Kobo CDN.
 	bookID, err := uuid.Parse(r.PathValue("revisionId"))
 	if err != nil {
-		http.Error(w, "invalid book id", http.StatusBadRequest)
+		http.Redirect(w, r, koboUpstreamCoverURL(r), http.StatusFound)
 		return
 	}
 
 	if _, gErr := app.Services.Books.GetKoboSyncBook(
 		r.Context(), userID, bookID,
 	); gErr != nil {
-		http.Error(w, "not found", http.StatusNotFound)
+		if errors.Is(gErr, database.ErrResourceNotFound) {
+			http.Redirect(w, r, koboUpstreamCoverURL(r), http.StatusFound)
+			return
+		}
+		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
@@ -778,6 +786,28 @@ func (app *Books) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
 		Set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400")
 
 	http.Redirect(w, r, result.URL, http.StatusFound)
+}
+
+// koboUpstreamCoverURL fills the store catalog's image template with the
+// request's image id and dimensions.
+func koboUpstreamCoverURL(r *http.Request) string {
+	catalog := koboCatalog()
+	tpl, _ := catalog["image_url_template"].(string)
+	quality := r.PathValue("quality")
+	if quality != "" {
+		tpl, _ = catalog["image_url_quality_template"].(string)
+	}
+	greyscale := "false"
+	if r.PathValue("greyscale") == "true" {
+		greyscale = "true"
+	}
+	return strings.NewReplacer(
+		"{ImageId}", url.PathEscape(r.PathValue("revisionId")),
+		"{Width}", url.PathEscape(r.PathValue("width")),
+		"{Height}", url.PathEscape(r.PathValue("height")),
+		"{Quality}", url.PathEscape(quality),
+		"{IsGreyscale}", greyscale,
+	).Replace(tpl)
 }
 
 // koboLibraryBase derives the https://…/kobo/{token}/v1/library prefix.
