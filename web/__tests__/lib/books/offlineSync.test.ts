@@ -13,7 +13,6 @@ import {
   preferredBookFormat,
   syncOfflineBooks
 } from '@/lib/books/offlineSync'
-import { saveReaderChoice } from '@/lib/books/readerChoice'
 
 const mockDownload = jest.fn<Promise<unknown>, [BookFileRef]>()
 const mockDelete = jest.fn()
@@ -77,28 +76,8 @@ describe('preferredBookFormat', () => {
     expect(preferredBookFormat(book('b', { formats: ['pdf'] }))).toBe('pdf')
   })
 
-  it('reads the KEPUB when this device chose it', () => {
-    saveReaderChoice('a', 'kepub')
-    expect(preferredBookFormat(book('a', { formats: ['epub'] }))).toBe('kepub')
-  })
-
   it('has no format for a book without an EPUB or PDF', () => {
     expect(preferredBookFormat(book('a', { formats: [] }))).toBeNull()
-    saveReaderChoice('a', 'kepub')
-    expect(preferredBookFormat(book('a', { formats: [] }))).toBeNull()
-  })
-
-  it('without a choice, keeps to a stored file opened through ?format=', () => {
-    const both = book('a', { formats: ['epub', 'pdf'] })
-    expect(preferredBookFormat(both, new Set(['pdf']))).toBe('pdf')
-    expect(preferredBookFormat(both, new Set(['kepub']))).toBe('kepub')
-    expect(preferredBookFormat(both, new Set(['kepub', 'epub']))).toBe('epub')
-    expect(preferredBookFormat(both, new Set(['mobi']))).toBe('epub')
-  })
-
-  it('follows a stored choice over the stored files', () => {
-    saveReaderChoice('a', 'original')
-    expect(preferredBookFormat(book('a', { formats: ['epub'] }), new Set(['kepub']))).toBe('epub')
   })
 })
 
@@ -115,25 +94,17 @@ describe('planOfflineBooks', () => {
     expect(plan.evictions).toEqual([])
   })
 
-  it('skips books with no reader file or no ready preferred file', () => {
-    saveReaderChoice('unconverted', 'kepub')
+  it('skips books with no reader file or no ready original file', () => {
     const plan = planOfflineBooks(
       library({
         reading: [
           book('no-file', { formats: [], fileVersions: {} }),
-          book('unconverted'),
           book('unknown', { fileVersions: {} })
         ]
       }),
       []
     )
     expect(plan.downloads).toEqual([])
-  })
-
-  it('keeps a stored KEPUB, without downloading, while it is being reconverted', () => {
-    saveReaderChoice('rc', 'kepub')
-    const plan = planOfflineBooks(library({ reading: [book('rc')] }), [stored('rc', 'kepub', 'k1')])
-    expect(plan).toEqual({ downloads: [], evictions: [] })
   })
 
   it('only downloads currently-reading books', () => {
@@ -172,49 +143,14 @@ describe('planOfflineBooks', () => {
     expect(plan.evictions).toEqual([])
   })
 
-  it('drops the original once the chosen KEPUB is stored', () => {
-    saveReaderChoice('k', 'kepub')
-    const ub = book('k', { fileVersions: { epub: 'e', kepub: 'k' } })
-    expect(planOfflineBooks(library({ reading: [ub] }), [stored('k', 'epub', 'e')])).toEqual({
-      downloads: [{ bookId: 'k', format: 'kepub', version: 'k', readerPath: '/books/ub-k/read' }],
-      evictions: []
-    })
-    expect(
-      planOfflineBooks(library({ reading: [ub] }), [
-        stored('k', 'epub', 'e'),
-        stored('k', 'kepub', 'k')
-      ]).evictions
-    ).toEqual([{ bookId: 'k', format: 'epub' }])
-  })
-
-  it('drops the KEPUB once the original is stored again, keeping other originals', () => {
-    saveReaderChoice('o', 'original')
+  it('drops any stored KEPUB, keeping the originals', () => {
     const ub = book('o', { formats: ['epub', 'pdf'], fileVersions: { epub: 'e', pdf: 'p' } })
     const plan = planOfflineBooks(library({ reading: [ub] }), [
       stored('o', 'epub', 'e'),
       stored('o', 'pdf', 'p'),
       stored('o', 'kepub', 'k')
     ])
-    expect(plan.evictions).toEqual([{ bookId: 'o', format: 'kepub' }])
-  })
-
-  it('keeps a KEPUB opened through ?format= on a PDF-only book, refreshing it', () => {
-    const ub = book('pk', { formats: ['pdf'], fileVersions: { pdf: 'p', kepub: 'k2' } })
-    expect(planOfflineBooks(library({ reading: [ub] }), [stored('pk', 'kepub', 'k1')])).toEqual({
-      downloads: [
-        { bookId: 'pk', format: 'kepub', version: 'k2', readerPath: '/books/ub-pk/read' }
-      ],
-      evictions: []
-    })
-  })
-
-  it('never drops a format without a stored choice', () => {
-    const ub = book('n', { formats: ['epub', 'pdf'], fileVersions: { epub: 'e', pdf: 'p' } })
-    const plan = planOfflineBooks(library({ reading: [ub] }), [
-      stored('n', 'epub', 'e'),
-      stored('n', 'kepub', 'k')
-    ])
-    expect(plan).toEqual({ downloads: [], evictions: [] })
+    expect(plan).toEqual({ downloads: [], evictions: [{ bookId: 'o', format: 'kepub' }] })
   })
 })
 
@@ -367,15 +303,12 @@ describe('syncOfflineBooks', () => {
     }
   })
 
-  it('evicts the old format after downloading the newly chosen one', async () => {
-    saveReaderChoice('sw', 'kepub')
+  it('evicts a stored KEPUB while syncing', async () => {
     const ub = book('sw', { fileVersions: { epub: 'e', kepub: 'k' } })
-    mockList
-      .mockResolvedValueOnce([stored('sw', 'epub', 'e')])
-      .mockResolvedValue([stored('sw', 'epub', 'e'), stored('sw', 'kepub', 'k')])
+    mockList.mockResolvedValue([stored('sw', 'epub', 'e'), stored('sw', 'kepub', 'k')])
     await syncOfflineBooks(library({ reading: [ub] }), { gapMs: 0 })
-    expect(mockDownload).toHaveBeenCalledWith({ bookId: 'sw', format: 'kepub', version: 'k' })
-    expect(mockDelete).toHaveBeenCalledWith('sw', 'epub')
+    expect(mockDelete).toHaveBeenCalledWith('sw', 'kepub')
+    expect(mockDownload).not.toHaveBeenCalled()
   })
 
   it('does not warm the reader modules once every stored book is evicted', async () => {
@@ -389,16 +322,6 @@ describe('syncOfflineBooks', () => {
     await syncOfflineBooks(library({ wishlist: [book('kept', { status: 'to-read' })] }), {
       gapMs: 0
     })
-    expect(mockWarm).toHaveBeenCalled()
-  })
-
-  it('warms the reader modules while a book keeps its chosen format', async () => {
-    saveReaderChoice('cf', 'kepub')
-    mockList.mockResolvedValue([stored('cf', 'epub', 'e'), stored('cf', 'kepub', 'k')])
-    const ub = book('cf', { fileVersions: { epub: 'e', kepub: 'k' } })
-    await syncOfflineBooks(library({ reading: [ub] }), { gapMs: 0 })
-    expect(mockDelete).toHaveBeenCalledWith('cf', 'epub')
-    expect(mockDownload).not.toHaveBeenCalled()
     expect(mockWarm).toHaveBeenCalled()
   })
 

@@ -14,7 +14,6 @@ import {
   sectionIndex,
   tocItems
 } from '@/lib/books/readium'
-import type { ReaderChoiceControl } from '@/lib/books/readerChoice'
 import type { ReaderResume } from '@/lib/books/readerPosition'
 import {
   READER_FONT_SIZE_DEFAULT,
@@ -34,8 +33,6 @@ interface ReadiumBookReaderProps {
   onRelocate?: (location: ReaderLocation) => void
   /** Where to open; read once. Defaults to the start. */
   initialPosition?: ReaderResume
-  /** Offers switching to the converted KEPUB (read with foliate-js). */
-  format?: ReaderChoiceControl
 }
 
 function appTheme(): ReaderTheme {
@@ -59,8 +56,7 @@ export default function ReadiumBookReader({
   title,
   onClose,
   onRelocate,
-  initialPosition,
-  format
+  initialPosition
 }: ReadiumBookReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [navigator, setNavigator] = useState<EpubNavigator | null>(null)
@@ -193,7 +189,6 @@ export default function ReadiumBookReader({
             onThemeChange={setTheme}
             fontSize={fontSize}
             onFontSizeChange={setFontSize}
-            format={format}
           />
         )
       }

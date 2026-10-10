@@ -5,7 +5,6 @@ import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import type { FoliateTocItem } from '@/lib/books/foliate'
 import { openPdf, pageOf, pdfOutline, renderPage, tocLabelForPage } from '@/lib/books/pdf'
-import type { ReaderChoiceControl } from '@/lib/books/readerChoice'
 import { resumeTarget, type ReaderResume } from '@/lib/books/readerPosition'
 import {
   READER_FONT_SIZE_DEFAULT,
@@ -28,7 +27,6 @@ interface PdfBookReaderProps {
   onRelocate?: (location: ReaderLocation) => void
   /** Where to open; read once. Defaults to the first page. */
   initialPosition?: ReaderResume
-  format?: ReaderChoiceControl
 }
 
 function appTheme(): ReaderTheme {
@@ -56,8 +54,7 @@ export default function PdfBookReader({
   title,
   onClose,
   onRelocate,
-  initialPosition,
-  format
+  initialPosition
 }: PdfBookReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -179,7 +176,6 @@ export default function PdfBookReader({
             onThemeChange={setTheme}
             fontSize={fontSize}
             onFontSizeChange={setFontSize}
-            format={format}
           />
         )
       }

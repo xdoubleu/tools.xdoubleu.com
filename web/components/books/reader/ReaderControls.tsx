@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import type { FoliateTocItem } from '@/lib/books/foliate'
-import type { ReaderChoiceControl } from '@/lib/books/readerChoice'
 import type { ReaderTheme } from '@/lib/books/readerSettings'
 import ReaderSettingsSheet from './ReaderSettingsSheet'
 import ReaderTocDrawer from './ReaderTocDrawer'
@@ -18,7 +17,6 @@ interface ReaderControlsProps {
   onThemeChange: (theme: ReaderTheme) => void
   fontSize: number
   onFontSizeChange: (fontSize: number) => void
-  format?: ReaderChoiceControl
 }
 
 /** Header controls for an opened book: the contents drawer and reading settings. */
@@ -30,8 +28,7 @@ export default function ReaderControls({
   theme,
   onThemeChange,
   fontSize,
-  onFontSizeChange,
-  format
+  onFontSizeChange
 }: ReaderControlsProps) {
   const [tocOpen, setTocOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -81,7 +78,6 @@ export default function ReaderControls({
         fontSize={fontSize}
         onFontSizeChange={onFontSizeChange}
         reflowable={reflowable}
-        format={format}
       />
     </>
   )
