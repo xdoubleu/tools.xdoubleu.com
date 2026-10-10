@@ -22,7 +22,7 @@ func putStoreState(
 	t *testing.T,
 	ts *httptest.Server,
 	rawToken, storeID string,
-	percent int,
+	percent float64,
 ) {
 	t.Helper()
 	body, err := json.Marshal(map[string]any{"ReadingStates": []map[string]any{{
@@ -100,6 +100,28 @@ func TestKoboPutState_StoreBook_RecordsMirrorOutcome(t *testing.T) {
 	assert.EqualValues(t, 0, *got.LastPercent)
 
 	eventuallyPercent(t, userID, bookID, 30)
+}
+
+// TestKoboPutState_StoreBook_FractionalPercentMirrors: progress under half a
+// percent still mirrors, as 1%.
+func TestKoboPutState_StoreBook_FractionalPercentMirrors(t *testing.T) {
+	isbn := testISBN("fraction-" + uuid.NewString())
+	title := "Fraction Book " + isbn
+	bookID := addStoreLibraryBook(t, userID, title, isbn, "Some Author")
+
+	upstream := koboStoreUpstream(t, nil, []any{
+		map[string]any{"Title": title, "Isbn": isbn},
+	})
+	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
+	t.Cleanup(ts.Close)
+	storeID := uuid.NewString()
+
+	putStoreState(t, ts, registerTestDevice(t, userID), storeID, 0.3)
+
+	got := eventuallyStoreOutcome(t, storeID, models.KoboStoreMirrored)
+	require.NotNil(t, got.LastPercent)
+	assert.EqualValues(t, 1, *got.LastPercent)
+	eventuallyPercent(t, userID, bookID, 1)
 }
 
 // TestKoboPutState_UnmatchedStoreBook_RecordsNoMatch: a store book with no

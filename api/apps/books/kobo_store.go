@@ -104,10 +104,19 @@ func (s *koboStoreState) toReading(fallbackID string) models.KoboStoreReading {
 	}
 	return models.KoboStoreReading{
 		EntitlementID: id,
-		Percent:       int(math.Round(s.CurrentBookmark.ProgressPercent)),
+		Percent:       koboStorePercent(s.CurrentBookmark.ProgressPercent),
 		Finished:      s.StatusInfo.Status == koboStatusFinished,
 		ReadAt:        parseKoboTime(s.CurrentBookmark.LastModified),
 	}
+}
+
+// koboStorePercent rounds the store's fractional percent; any positive
+// progress is at least 1, as the device shows it.
+func koboStorePercent(p float64) int {
+	if p > 0 && p < 1 {
+		return 1
+	}
+	return int(math.Round(p))
 }
 
 // koboStoreOwned reports whether an entitlement is a purchase: full access,
@@ -236,7 +245,8 @@ func (app *Books) mirrorKoboStoreState(
 	if json.Unmarshal(body, &put) != nil || len(put.ReadingStates) == 0 {
 		return
 	}
-	reading := put.ReadingStates[len(put.ReadingStates)-1].toReading(id)
+	state := put.ReadingStates[len(put.ReadingStates)-1]
+	reading := state.toReading(id)
 	reading.EntitlementID = id
 
 	outcome, err := app.Services.Books.RecordKoboStoreReading(ctx, userID, reading)
@@ -259,7 +269,9 @@ func (app *Books) mirrorKoboStoreState(
 			"entitlement_id", id, "err", err)
 	case outcome != models.KoboStoreMirrored:
 		app.Logger.InfoContext(ctx, "kobo store reading state not mirrored",
-			"entitlement_id", id, "percent", reading.Percent, "outcome", outcome)
+			"entitlement_id", id, "percent", reading.Percent, "outcome", outcome,
+			"progress_percent", state.CurrentBookmark.ProgressPercent,
+			"status", state.StatusInfo.Status)
 	}
 }
 
