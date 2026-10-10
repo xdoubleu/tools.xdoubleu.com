@@ -11,12 +11,14 @@ const mockResumeLocator = jest.fn()
 const mockLocatorToPosition = jest.fn()
 let nav: FakeNavigator | null = null
 let loadError: Error | null = null
+let loadHangs = false
 
 class FakeNavigator {
   listeners: Listeners
   initial: unknown
   load = jest.fn(async () => {
     if (loadError) throw loadError
+    if (loadHangs) await new Promise(() => {})
   })
   destroy = jest.fn(async () => {})
   submitPreferences = jest.fn(async () => {})
@@ -62,7 +64,9 @@ jest.mock('@/lib/books/readium', () => ({
   readiumPreferences: (theme: string, size: number) => ({ theme, size })
 }))
 
-import ReadiumBookReader from '@/components/books/reader/ReadiumBookReader'
+import ReadiumBookReader, {
+  READIUM_LOAD_TIMEOUT_MS
+} from '@/components/books/reader/ReadiumBookReader'
 
 const positions = [{ href: 'res/ch2.xhtml', locations: { position: 1 } }]
 
@@ -94,6 +98,7 @@ async function renderReader(props: Partial<React.ComponentProps<typeof ReadiumBo
 beforeEach(() => {
   nav = null
   loadError = null
+  loadHangs = false
   localStorage.clear()
   mockLoadPublication.mockResolvedValue({
     manifest: { toc: { items: toc } },
@@ -166,6 +171,23 @@ describe('ReadiumBookReader', () => {
     loadError = new Error('boom')
     render(<ReadiumBookReader bookId="b1" title="Dune" onClose={jest.fn()} />)
     expect(await screen.findByText(/couldn.t load|failed|error/i)).toBeInTheDocument()
+  })
+
+  it('shows an error instead of spinning when the navigator never finishes loading', async () => {
+    loadHangs = true
+    jest.useFakeTimers()
+    try {
+      render(<ReadiumBookReader bookId="b1" title="Dune" onClose={jest.fn()} />)
+      await waitFor(() => expect(nav?.load).toHaveBeenCalled())
+      expect(screen.getByText('Loading book…')).toBeInTheDocument()
+      await act(async () => {
+        jest.advanceTimersByTime(READIUM_LOAD_TIMEOUT_MS)
+      })
+      expect(screen.getByText(/couldn.t load|failed|error/i)).toBeInTheDocument()
+      expect(screen.queryByText('Loading book…')).not.toBeInTheDocument()
+    } finally {
+      jest.useRealTimers()
+    }
   })
 
   it('shows an error instead of a blank page when the book has no positions', async () => {

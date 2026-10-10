@@ -72,6 +72,10 @@ describe('middleware CSP', () => {
     expect(cspDirective('font-src')).toBe("font-src 'self' blob:")
   })
 
+  it('lets the blob: frames load in Safari, which applies the inherited frame-ancestors', () => {
+    expect(cspDirective('frame-ancestors')).toBe("frame-ancestors 'self'")
+  })
+
   it('skips static assets', () => {
     const matcher = new RegExp(`^${config.matcher[0]}$`)
     expect(matcher.test('/_next/static/chunks/a.js')).toBe(false)

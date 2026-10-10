@@ -39,6 +39,9 @@ function appTheme(): ReaderTheme {
 
 const noop = () => {}
 
+/** A navigator that hasn't opened by then never will (a frame it can't reach never settles). */
+export const READIUM_LOAD_TIMEOUT_MS = 30_000
+
 function tocLabelAt(items: ReaderTocItem[], href: string): ReaderTocItem | undefined {
   let found: ReaderTocItem | undefined
   for (const item of items) {
@@ -79,6 +82,7 @@ export default function ReadiumBookReader({
     let cancelled = false
     let created: EpubNavigator | null = null
     let opened = false
+    let loadTimer: ReturnType<typeof setTimeout> | undefined
     let onKey: (e: KeyboardEvent) => void = noop
 
     const handleLocator = async (pub: Publication, locator: Locator, items: ReaderTocItem[]) => {
@@ -140,7 +144,16 @@ export default function ReadiumBookReader({
           { preferences: prefsRef.current, defaults: {} }
         )
         created = nav
-        await nav.load()
+        await Promise.race([
+          nav.load(),
+          new Promise((_, reject) => {
+            loadTimer = setTimeout(
+              () => reject(new Error('navigator load timed out')),
+              READIUM_LOAD_TIMEOUT_MS
+            )
+          })
+        ])
+        clearTimeout(loadTimer)
         if (cancelled) return
         onKey = (e) => {
           if (e.target instanceof Element && e.target.closest('[role="dialog"]')) return
@@ -159,6 +172,7 @@ export default function ReadiumBookReader({
 
     return () => {
       cancelled = true
+      clearTimeout(loadTimer)
       window.removeEventListener('keydown', onKey)
       void created?.destroy()
     }
