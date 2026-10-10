@@ -44,49 +44,94 @@ func (s *BookService) LinkKoboStoreBooks(
 }
 
 // RecordKoboStoreReading mirrors a store book's Kobo reading state onto its
-// library match, tagging that match own-bol when the book is owned. It
-// reports whether the store book is recorded; an unmatched one is a no-op.
+// library match, tagging that match own-bol when the book is owned, and
+// records the outcome on the store book. KoboStoreUnrecorded means the store
+// book isn't recorded yet.
 func (s *BookService) RecordKoboStoreReading(
 	ctx context.Context,
 	userID string,
 	reading models.KoboStoreReading,
-) (bool, error) {
+) (models.KoboStoreOutcome, error) {
 	sb, err := s.books.GetKoboStoreBook(ctx, userID, reading.EntitlementID)
 	if errors.Is(err, database.ErrResourceNotFound) {
-		return false, nil
+		return models.KoboStoreUnrecorded, nil
 	}
 	if err != nil {
-		return false, err
+		return models.KoboStoreUnrecorded, err
 	}
 
+	if reading.Finished {
+		reading.Percent = models.MaxProgressPercent
+	}
+	outcome, err := s.mirrorKoboStoreReading(ctx, userID, *sb, reading)
+	if err != nil {
+		return outcome, err
+	}
+	return outcome, s.books.RecordKoboStoreOutcome(ctx, userID, reading, outcome)
+}
+
+func (s *BookService) mirrorKoboStoreReading(
+	ctx context.Context,
+	userID string,
+	sb models.KoboStoreBook,
+	reading models.KoboStoreReading,
+) (models.KoboStoreOutcome, error) {
 	var lib []models.UserBook
-	ub, err := s.matchKoboStoreBook(ctx, userID, *sb, &lib)
-	if err != nil || ub == nil {
-		return true, err
+	ub, err := s.matchKoboStoreBook(ctx, userID, sb, &lib)
+	if err != nil {
+		return models.KoboStoreUnrecorded, err
+	}
+	if ub == nil {
+		return models.KoboStoreNoMatch, nil
 	}
 	if *sb.Owned {
 		if err = s.tagOwnBol(ctx, userID, ub); err != nil {
-			return true, err
+			return models.KoboStoreUnrecorded, err
 		}
 	}
+	if reading.Percent <= 0 {
+		return models.KoboStoreNoProgress, nil
+	}
 
-	percent := reading.Percent
-	if reading.Finished {
-		percent = models.MaxProgressPercent
-	}
-	if percent <= 0 {
-		return true, nil
-	}
 	// Percent only: the store's bookmark doesn't address our files.
 	//nolint:exhaustruct // see above
 	state := models.BookReadingState{
 		UserID:  userID,
 		BookID:  ub.BookID,
 		Source:  models.ReadingSourceKobo,
-		Percent: percent,
+		Percent: reading.Percent,
 		ReadAt:  reading.ReadAt,
 	}
-	return true, s.UpdateReadingProgress(ctx, state)
+	updatedAt, err := s.upsertReadingProgress(ctx, state)
+	switch {
+	case err != nil:
+		return models.KoboStoreUnrecorded, err
+	case updatedAt == nil:
+		return models.KoboStoreNotNewer, nil
+	default:
+		return models.KoboStoreMirrored, nil
+	}
+}
+
+// ListKoboStoreBooks returns the user's recorded store books with their last
+// mirror outcome and current library match.
+func (s *BookService) ListKoboStoreBooks(
+	ctx context.Context,
+	userID string,
+) ([]models.KoboStoreBookStatus, error) {
+	books, err := s.books.ListKoboStoreBooks(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	var lib []models.UserBook
+	for i := range books {
+		if books[i].Match, err = s.matchKoboStoreBook(
+			ctx, userID, books[i].KoboStoreBook, &lib,
+		); err != nil {
+			return nil, err
+		}
+	}
+	return books, nil
 }
 
 // matchKoboStoreBook finds the library book for a store book by ISBN-13, else

@@ -1,7 +1,7 @@
 # Convention: fix the missing MCP tool before investigating the incident
 
 - Enforced by: nothing but review
-- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1397, #1424, #1453, #1459, #1554, #1564, #1616, #1818, #2034, #2226
+- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1397, #1424, #1453, #1459, #1554, #1564, #1616, #1818, #2034, #2226, #2365
 
 ## Rule
 
@@ -58,3 +58,8 @@ working tool would have saved, often requiring direct database access.
   static stop_times they overlay. It still couldn't say whether the feed
   omits running trains or decode drops them, so it also reports raw feed
   entity counts and the train numbers in the snapshot.
+- **#2365** — Kobo store-book progress never reached the library, with no
+  error: the mirror dropped unmatched or 0% states silently.
+  `books_list_kobo_store_books` lists each store book's library match and the
+  last mirrored percent with its outcome (`mirrored`, `no_library_match`,
+  `no_progress`, `not_newer`).

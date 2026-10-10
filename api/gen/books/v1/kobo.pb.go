@@ -235,6 +235,143 @@ func (x *KoboLogEntry) GetUpstreamHeaders() map[string]string {
 	return nil
 }
 
+// KoboStoreBook is a Kobo store (bol.com) book seen through the user's Kobo,
+// with its library match and the last reading state mirrored from it.
+type KoboStoreBook struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EntitlementId string                 `protobuf:"bytes,1,opt,name=entitlement_id,json=entitlementId,proto3" json:"entitlement_id,omitempty"`
+	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Authors       []string               `protobuf:"bytes,3,rep,name=authors,proto3" json:"authors,omitempty"`
+	Isbn13        string                 `protobuf:"bytes,4,opt,name=isbn13,proto3" json:"isbn13,omitempty"`
+	Owned         bool                   `protobuf:"varint,5,opt,name=owned,proto3" json:"owned,omitempty"`
+	// Empty when no library book matches.
+	LibraryBookId string `protobuf:"bytes,6,opt,name=library_book_id,json=libraryBookId,proto3" json:"library_book_id,omitempty"`
+	LibraryTitle  string `protobuf:"bytes,7,opt,name=library_title,json=libraryTitle,proto3" json:"library_title,omitempty"`
+	// Unset until a reading state was mirrored.
+	LastPercent *int32 `protobuf:"varint,8,opt,name=last_percent,json=lastPercent,proto3,oneof" json:"last_percent,omitempty"`
+	LastReadAt  string `protobuf:"bytes,9,opt,name=last_read_at,json=lastReadAt,proto3" json:"last_read_at,omitempty"`
+	// mirrored, no_library_match, no_progress or not_newer; empty before any.
+	LastOutcome    string `protobuf:"bytes,10,opt,name=last_outcome,json=lastOutcome,proto3" json:"last_outcome,omitempty"`
+	LastMirroredAt string `protobuf:"bytes,11,opt,name=last_mirrored_at,json=lastMirroredAt,proto3" json:"last_mirrored_at,omitempty"`
+	UpdatedAt      string `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *KoboStoreBook) Reset() {
+	*x = KoboStoreBook{}
+	mi := &file_books_v1_kobo_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KoboStoreBook) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KoboStoreBook) ProtoMessage() {}
+
+func (x *KoboStoreBook) ProtoReflect() protoreflect.Message {
+	mi := &file_books_v1_kobo_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KoboStoreBook.ProtoReflect.Descriptor instead.
+func (*KoboStoreBook) Descriptor() ([]byte, []int) {
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *KoboStoreBook) GetEntitlementId() string {
+	if x != nil {
+		return x.EntitlementId
+	}
+	return ""
+}
+
+func (x *KoboStoreBook) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *KoboStoreBook) GetAuthors() []string {
+	if x != nil {
+		return x.Authors
+	}
+	return nil
+}
+
+func (x *KoboStoreBook) GetIsbn13() string {
+	if x != nil {
+		return x.Isbn13
+	}
+	return ""
+}
+
+func (x *KoboStoreBook) GetOwned() bool {
+	if x != nil {
+		return x.Owned
+	}
+	return false
+}
+
+func (x *KoboStoreBook) GetLibraryBookId() string {
+	if x != nil {
+		return x.LibraryBookId
+	}
+	return ""
+}
+
+func (x *KoboStoreBook) GetLibraryTitle() string {
+	if x != nil {
+		return x.LibraryTitle
+	}
+	return ""
+}
+
+func (x *KoboStoreBook) GetLastPercent() int32 {
+	if x != nil && x.LastPercent != nil {
+		return *x.LastPercent
+	}
+	return 0
+}
+
+func (x *KoboStoreBook) GetLastReadAt() string {
+	if x != nil {
+		return x.LastReadAt
+	}
+	return ""
+}
+
+func (x *KoboStoreBook) GetLastOutcome() string {
+	if x != nil {
+		return x.LastOutcome
+	}
+	return ""
+}
+
+func (x *KoboStoreBook) GetLastMirroredAt() string {
+	if x != nil {
+		return x.LastMirroredAt
+	}
+	return ""
+}
+
+func (x *KoboStoreBook) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
 type EnableKoboSyncRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BookId        string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
@@ -244,7 +381,7 @@ type EnableKoboSyncRequest struct {
 
 func (x *EnableKoboSyncRequest) Reset() {
 	*x = EnableKoboSyncRequest{}
-	mi := &file_books_v1_kobo_proto_msgTypes[2]
+	mi := &file_books_v1_kobo_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -256,7 +393,7 @@ func (x *EnableKoboSyncRequest) String() string {
 func (*EnableKoboSyncRequest) ProtoMessage() {}
 
 func (x *EnableKoboSyncRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[2]
+	mi := &file_books_v1_kobo_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -269,7 +406,7 @@ func (x *EnableKoboSyncRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnableKoboSyncRequest.ProtoReflect.Descriptor instead.
 func (*EnableKoboSyncRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{2}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *EnableKoboSyncRequest) GetBookId() string {
@@ -288,7 +425,7 @@ type EnableKoboSyncResponse struct {
 
 func (x *EnableKoboSyncResponse) Reset() {
 	*x = EnableKoboSyncResponse{}
-	mi := &file_books_v1_kobo_proto_msgTypes[3]
+	mi := &file_books_v1_kobo_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -300,7 +437,7 @@ func (x *EnableKoboSyncResponse) String() string {
 func (*EnableKoboSyncResponse) ProtoMessage() {}
 
 func (x *EnableKoboSyncResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[3]
+	mi := &file_books_v1_kobo_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -313,7 +450,7 @@ func (x *EnableKoboSyncResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnableKoboSyncResponse.ProtoReflect.Descriptor instead.
 func (*EnableKoboSyncResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{3}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *EnableKoboSyncResponse) GetKepubStatus() string {
@@ -333,7 +470,7 @@ type RegisterKoboDeviceRequest struct {
 
 func (x *RegisterKoboDeviceRequest) Reset() {
 	*x = RegisterKoboDeviceRequest{}
-	mi := &file_books_v1_kobo_proto_msgTypes[4]
+	mi := &file_books_v1_kobo_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -345,7 +482,7 @@ func (x *RegisterKoboDeviceRequest) String() string {
 func (*RegisterKoboDeviceRequest) ProtoMessage() {}
 
 func (x *RegisterKoboDeviceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[4]
+	mi := &file_books_v1_kobo_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -358,7 +495,7 @@ func (x *RegisterKoboDeviceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterKoboDeviceRequest.ProtoReflect.Descriptor instead.
 func (*RegisterKoboDeviceRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{4}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *RegisterKoboDeviceRequest) GetName() string {
@@ -385,7 +522,7 @@ type RegisterKoboDeviceResponse struct {
 
 func (x *RegisterKoboDeviceResponse) Reset() {
 	*x = RegisterKoboDeviceResponse{}
-	mi := &file_books_v1_kobo_proto_msgTypes[5]
+	mi := &file_books_v1_kobo_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -397,7 +534,7 @@ func (x *RegisterKoboDeviceResponse) String() string {
 func (*RegisterKoboDeviceResponse) ProtoMessage() {}
 
 func (x *RegisterKoboDeviceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[5]
+	mi := &file_books_v1_kobo_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -410,7 +547,7 @@ func (x *RegisterKoboDeviceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterKoboDeviceResponse.ProtoReflect.Descriptor instead.
 func (*RegisterKoboDeviceResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{5}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *RegisterKoboDeviceResponse) GetDevice() *KoboDevice {
@@ -435,7 +572,7 @@ type ListKoboDevicesRequest struct {
 
 func (x *ListKoboDevicesRequest) Reset() {
 	*x = ListKoboDevicesRequest{}
-	mi := &file_books_v1_kobo_proto_msgTypes[6]
+	mi := &file_books_v1_kobo_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -447,7 +584,7 @@ func (x *ListKoboDevicesRequest) String() string {
 func (*ListKoboDevicesRequest) ProtoMessage() {}
 
 func (x *ListKoboDevicesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[6]
+	mi := &file_books_v1_kobo_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -460,7 +597,7 @@ func (x *ListKoboDevicesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListKoboDevicesRequest.ProtoReflect.Descriptor instead.
 func (*ListKoboDevicesRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{6}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{7}
 }
 
 type ListKoboDevicesResponse struct {
@@ -472,7 +609,7 @@ type ListKoboDevicesResponse struct {
 
 func (x *ListKoboDevicesResponse) Reset() {
 	*x = ListKoboDevicesResponse{}
-	mi := &file_books_v1_kobo_proto_msgTypes[7]
+	mi := &file_books_v1_kobo_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -484,7 +621,7 @@ func (x *ListKoboDevicesResponse) String() string {
 func (*ListKoboDevicesResponse) ProtoMessage() {}
 
 func (x *ListKoboDevicesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[7]
+	mi := &file_books_v1_kobo_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -497,7 +634,7 @@ func (x *ListKoboDevicesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListKoboDevicesResponse.ProtoReflect.Descriptor instead.
 func (*ListKoboDevicesResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{7}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListKoboDevicesResponse) GetDevices() []*KoboDevice {
@@ -516,7 +653,7 @@ type DisconnectKoboDeviceRequest struct {
 
 func (x *DisconnectKoboDeviceRequest) Reset() {
 	*x = DisconnectKoboDeviceRequest{}
-	mi := &file_books_v1_kobo_proto_msgTypes[8]
+	mi := &file_books_v1_kobo_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -528,7 +665,7 @@ func (x *DisconnectKoboDeviceRequest) String() string {
 func (*DisconnectKoboDeviceRequest) ProtoMessage() {}
 
 func (x *DisconnectKoboDeviceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[8]
+	mi := &file_books_v1_kobo_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -541,7 +678,7 @@ func (x *DisconnectKoboDeviceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisconnectKoboDeviceRequest.ProtoReflect.Descriptor instead.
 func (*DisconnectKoboDeviceRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{8}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *DisconnectKoboDeviceRequest) GetId() string {
@@ -559,7 +696,7 @@ type DisconnectKoboDeviceResponse struct {
 
 func (x *DisconnectKoboDeviceResponse) Reset() {
 	*x = DisconnectKoboDeviceResponse{}
-	mi := &file_books_v1_kobo_proto_msgTypes[9]
+	mi := &file_books_v1_kobo_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -571,7 +708,7 @@ func (x *DisconnectKoboDeviceResponse) String() string {
 func (*DisconnectKoboDeviceResponse) ProtoMessage() {}
 
 func (x *DisconnectKoboDeviceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[9]
+	mi := &file_books_v1_kobo_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -584,7 +721,7 @@ func (x *DisconnectKoboDeviceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisconnectKoboDeviceResponse.ProtoReflect.Descriptor instead.
 func (*DisconnectKoboDeviceResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{9}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{10}
 }
 
 type SetKoboDeviceLoggingRequest struct {
@@ -597,7 +734,7 @@ type SetKoboDeviceLoggingRequest struct {
 
 func (x *SetKoboDeviceLoggingRequest) Reset() {
 	*x = SetKoboDeviceLoggingRequest{}
-	mi := &file_books_v1_kobo_proto_msgTypes[10]
+	mi := &file_books_v1_kobo_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -609,7 +746,7 @@ func (x *SetKoboDeviceLoggingRequest) String() string {
 func (*SetKoboDeviceLoggingRequest) ProtoMessage() {}
 
 func (x *SetKoboDeviceLoggingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[10]
+	mi := &file_books_v1_kobo_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -622,7 +759,7 @@ func (x *SetKoboDeviceLoggingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetKoboDeviceLoggingRequest.ProtoReflect.Descriptor instead.
 func (*SetKoboDeviceLoggingRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{10}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SetKoboDeviceLoggingRequest) GetId() string {
@@ -647,7 +784,7 @@ type SetKoboDeviceLoggingResponse struct {
 
 func (x *SetKoboDeviceLoggingResponse) Reset() {
 	*x = SetKoboDeviceLoggingResponse{}
-	mi := &file_books_v1_kobo_proto_msgTypes[11]
+	mi := &file_books_v1_kobo_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -659,7 +796,7 @@ func (x *SetKoboDeviceLoggingResponse) String() string {
 func (*SetKoboDeviceLoggingResponse) ProtoMessage() {}
 
 func (x *SetKoboDeviceLoggingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[11]
+	mi := &file_books_v1_kobo_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -672,7 +809,7 @@ func (x *SetKoboDeviceLoggingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetKoboDeviceLoggingResponse.ProtoReflect.Descriptor instead.
 func (*SetKoboDeviceLoggingResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{11}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{12}
 }
 
 type GetKoboDeviceLogsRequest struct {
@@ -684,7 +821,7 @@ type GetKoboDeviceLogsRequest struct {
 
 func (x *GetKoboDeviceLogsRequest) Reset() {
 	*x = GetKoboDeviceLogsRequest{}
-	mi := &file_books_v1_kobo_proto_msgTypes[12]
+	mi := &file_books_v1_kobo_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -696,7 +833,7 @@ func (x *GetKoboDeviceLogsRequest) String() string {
 func (*GetKoboDeviceLogsRequest) ProtoMessage() {}
 
 func (x *GetKoboDeviceLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[12]
+	mi := &file_books_v1_kobo_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -709,7 +846,7 @@ func (x *GetKoboDeviceLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetKoboDeviceLogsRequest.ProtoReflect.Descriptor instead.
 func (*GetKoboDeviceLogsRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{12}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetKoboDeviceLogsRequest) GetId() string {
@@ -728,7 +865,7 @@ type GetKoboDeviceLogsResponse struct {
 
 func (x *GetKoboDeviceLogsResponse) Reset() {
 	*x = GetKoboDeviceLogsResponse{}
-	mi := &file_books_v1_kobo_proto_msgTypes[13]
+	mi := &file_books_v1_kobo_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -740,7 +877,7 @@ func (x *GetKoboDeviceLogsResponse) String() string {
 func (*GetKoboDeviceLogsResponse) ProtoMessage() {}
 
 func (x *GetKoboDeviceLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[13]
+	mi := &file_books_v1_kobo_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -753,12 +890,92 @@ func (x *GetKoboDeviceLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetKoboDeviceLogsResponse.ProtoReflect.Descriptor instead.
 func (*GetKoboDeviceLogsResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{13}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetKoboDeviceLogsResponse) GetEntries() []*KoboLogEntry {
 	if x != nil {
 		return x.Entries
+	}
+	return nil
+}
+
+type ListKoboStoreBooksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListKoboStoreBooksRequest) Reset() {
+	*x = ListKoboStoreBooksRequest{}
+	mi := &file_books_v1_kobo_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListKoboStoreBooksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListKoboStoreBooksRequest) ProtoMessage() {}
+
+func (x *ListKoboStoreBooksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_books_v1_kobo_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListKoboStoreBooksRequest.ProtoReflect.Descriptor instead.
+func (*ListKoboStoreBooksRequest) Descriptor() ([]byte, []int) {
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{15}
+}
+
+type ListKoboStoreBooksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Books         []*KoboStoreBook       `protobuf:"bytes,1,rep,name=books,proto3" json:"books,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListKoboStoreBooksResponse) Reset() {
+	*x = ListKoboStoreBooksResponse{}
+	mi := &file_books_v1_kobo_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListKoboStoreBooksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListKoboStoreBooksResponse) ProtoMessage() {}
+
+func (x *ListKoboStoreBooksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_books_v1_kobo_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListKoboStoreBooksResponse.ProtoReflect.Descriptor instead.
+func (*ListKoboStoreBooksResponse) Descriptor() ([]byte, []int) {
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ListKoboStoreBooksResponse) GetBooks() []*KoboStoreBook {
+	if x != nil {
+		return x.Books
 	}
 	return nil
 }
@@ -772,7 +989,7 @@ type ClearKoboDeviceLogsRequest struct {
 
 func (x *ClearKoboDeviceLogsRequest) Reset() {
 	*x = ClearKoboDeviceLogsRequest{}
-	mi := &file_books_v1_kobo_proto_msgTypes[14]
+	mi := &file_books_v1_kobo_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -784,7 +1001,7 @@ func (x *ClearKoboDeviceLogsRequest) String() string {
 func (*ClearKoboDeviceLogsRequest) ProtoMessage() {}
 
 func (x *ClearKoboDeviceLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[14]
+	mi := &file_books_v1_kobo_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -797,7 +1014,7 @@ func (x *ClearKoboDeviceLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearKoboDeviceLogsRequest.ProtoReflect.Descriptor instead.
 func (*ClearKoboDeviceLogsRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{14}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ClearKoboDeviceLogsRequest) GetId() string {
@@ -815,7 +1032,7 @@ type ClearKoboDeviceLogsResponse struct {
 
 func (x *ClearKoboDeviceLogsResponse) Reset() {
 	*x = ClearKoboDeviceLogsResponse{}
-	mi := &file_books_v1_kobo_proto_msgTypes[15]
+	mi := &file_books_v1_kobo_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -827,7 +1044,7 @@ func (x *ClearKoboDeviceLogsResponse) String() string {
 func (*ClearKoboDeviceLogsResponse) ProtoMessage() {}
 
 func (x *ClearKoboDeviceLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_kobo_proto_msgTypes[15]
+	mi := &file_books_v1_kobo_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -840,7 +1057,7 @@ func (x *ClearKoboDeviceLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClearKoboDeviceLogsResponse.ProtoReflect.Descriptor instead.
 func (*ClearKoboDeviceLogsResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_kobo_proto_rawDescGZIP(), []int{15}
+	return file_books_v1_kobo_proto_rawDescGZIP(), []int{18}
 }
 
 var File_books_v1_kobo_proto protoreflect.FileDescriptor
@@ -879,7 +1096,24 @@ const file_books_v1_kobo_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1aB\n" +
 	"\x14UpstreamHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"0\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa8\x03\n" +
+	"\rKoboStoreBook\x12%\n" +
+	"\x0eentitlement_id\x18\x01 \x01(\tR\rentitlementId\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
+	"\aauthors\x18\x03 \x03(\tR\aauthors\x12\x16\n" +
+	"\x06isbn13\x18\x04 \x01(\tR\x06isbn13\x12\x14\n" +
+	"\x05owned\x18\x05 \x01(\bR\x05owned\x12&\n" +
+	"\x0flibrary_book_id\x18\x06 \x01(\tR\rlibraryBookId\x12#\n" +
+	"\rlibrary_title\x18\a \x01(\tR\flibraryTitle\x12&\n" +
+	"\flast_percent\x18\b \x01(\x05H\x00R\vlastPercent\x88\x01\x01\x12 \n" +
+	"\flast_read_at\x18\t \x01(\tR\n" +
+	"lastReadAt\x12!\n" +
+	"\flast_outcome\x18\n" +
+	" \x01(\tR\vlastOutcome\x12(\n" +
+	"\x10last_mirrored_at\x18\v \x01(\tR\x0elastMirroredAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\f \x01(\tR\tupdatedAtB\x0f\n" +
+	"\r_last_percent\"0\n" +
 	"\x15EnableKoboSyncRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\";\n" +
 	"\x16EnableKoboSyncResponse\x12!\n" +
@@ -903,10 +1137,13 @@ const file_books_v1_kobo_proto_rawDesc = "" +
 	"\x18GetKoboDeviceLogsRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"M\n" +
 	"\x19GetKoboDeviceLogsResponse\x120\n" +
-	"\aentries\x18\x01 \x03(\v2\x16.books.v1.KoboLogEntryR\aentries\",\n" +
+	"\aentries\x18\x01 \x03(\v2\x16.books.v1.KoboLogEntryR\aentries\"\x1b\n" +
+	"\x19ListKoboStoreBooksRequest\"K\n" +
+	"\x1aListKoboStoreBooksResponse\x12-\n" +
+	"\x05books\x18\x01 \x03(\v2\x17.books.v1.KoboStoreBookR\x05books\",\n" +
 	"\x1aClearKoboDeviceLogsRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x1d\n" +
-	"\x1bClearKoboDeviceLogsResponse2\xab\x05\n" +
+	"\x1bClearKoboDeviceLogsResponse2\x8c\x06\n" +
 	"\vKoboService\x12S\n" +
 	"\x0eEnableKoboSync\x12\x1f.books.v1.EnableKoboSyncRequest\x1a .books.v1.EnableKoboSyncResponse\x12_\n" +
 	"\x12RegisterKoboDevice\x12#.books.v1.RegisterKoboDeviceRequest\x1a$.books.v1.RegisterKoboDeviceResponse\x12V\n" +
@@ -914,7 +1151,8 @@ const file_books_v1_kobo_proto_rawDesc = "" +
 	"\x14DisconnectKoboDevice\x12%.books.v1.DisconnectKoboDeviceRequest\x1a&.books.v1.DisconnectKoboDeviceResponse\x12e\n" +
 	"\x14SetKoboDeviceLogging\x12%.books.v1.SetKoboDeviceLoggingRequest\x1a&.books.v1.SetKoboDeviceLoggingResponse\x12\\\n" +
 	"\x11GetKoboDeviceLogs\x12\".books.v1.GetKoboDeviceLogsRequest\x1a#.books.v1.GetKoboDeviceLogsResponse\x12b\n" +
-	"\x13ClearKoboDeviceLogs\x12$.books.v1.ClearKoboDeviceLogsRequest\x1a%.books.v1.ClearKoboDeviceLogsResponseB)Z'tools.xdoubleu.com/gen/books/v1;booksv1b\x06proto3"
+	"\x13ClearKoboDeviceLogs\x12$.books.v1.ClearKoboDeviceLogsRequest\x1a%.books.v1.ClearKoboDeviceLogsResponse\x12_\n" +
+	"\x12ListKoboStoreBooks\x12#.books.v1.ListKoboStoreBooksRequest\x1a$.books.v1.ListKoboStoreBooksResponseB)Z'tools.xdoubleu.com/gen/books/v1;booksv1b\x06proto3"
 
 var (
 	file_books_v1_kobo_proto_rawDescOnce sync.Once
@@ -928,54 +1166,60 @@ func file_books_v1_kobo_proto_rawDescGZIP() []byte {
 	return file_books_v1_kobo_proto_rawDescData
 }
 
-var file_books_v1_kobo_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_books_v1_kobo_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_books_v1_kobo_proto_goTypes = []any{
 	(*KoboDevice)(nil),                   // 0: books.v1.KoboDevice
 	(*KoboLogEntry)(nil),                 // 1: books.v1.KoboLogEntry
-	(*EnableKoboSyncRequest)(nil),        // 2: books.v1.EnableKoboSyncRequest
-	(*EnableKoboSyncResponse)(nil),       // 3: books.v1.EnableKoboSyncResponse
-	(*RegisterKoboDeviceRequest)(nil),    // 4: books.v1.RegisterKoboDeviceRequest
-	(*RegisterKoboDeviceResponse)(nil),   // 5: books.v1.RegisterKoboDeviceResponse
-	(*ListKoboDevicesRequest)(nil),       // 6: books.v1.ListKoboDevicesRequest
-	(*ListKoboDevicesResponse)(nil),      // 7: books.v1.ListKoboDevicesResponse
-	(*DisconnectKoboDeviceRequest)(nil),  // 8: books.v1.DisconnectKoboDeviceRequest
-	(*DisconnectKoboDeviceResponse)(nil), // 9: books.v1.DisconnectKoboDeviceResponse
-	(*SetKoboDeviceLoggingRequest)(nil),  // 10: books.v1.SetKoboDeviceLoggingRequest
-	(*SetKoboDeviceLoggingResponse)(nil), // 11: books.v1.SetKoboDeviceLoggingResponse
-	(*GetKoboDeviceLogsRequest)(nil),     // 12: books.v1.GetKoboDeviceLogsRequest
-	(*GetKoboDeviceLogsResponse)(nil),    // 13: books.v1.GetKoboDeviceLogsResponse
-	(*ClearKoboDeviceLogsRequest)(nil),   // 14: books.v1.ClearKoboDeviceLogsRequest
-	(*ClearKoboDeviceLogsResponse)(nil),  // 15: books.v1.ClearKoboDeviceLogsResponse
-	nil,                                  // 16: books.v1.KoboLogEntry.RequestHeadersEntry
-	nil,                                  // 17: books.v1.KoboLogEntry.ResponseHeadersEntry
-	nil,                                  // 18: books.v1.KoboLogEntry.UpstreamHeadersEntry
+	(*KoboStoreBook)(nil),                // 2: books.v1.KoboStoreBook
+	(*EnableKoboSyncRequest)(nil),        // 3: books.v1.EnableKoboSyncRequest
+	(*EnableKoboSyncResponse)(nil),       // 4: books.v1.EnableKoboSyncResponse
+	(*RegisterKoboDeviceRequest)(nil),    // 5: books.v1.RegisterKoboDeviceRequest
+	(*RegisterKoboDeviceResponse)(nil),   // 6: books.v1.RegisterKoboDeviceResponse
+	(*ListKoboDevicesRequest)(nil),       // 7: books.v1.ListKoboDevicesRequest
+	(*ListKoboDevicesResponse)(nil),      // 8: books.v1.ListKoboDevicesResponse
+	(*DisconnectKoboDeviceRequest)(nil),  // 9: books.v1.DisconnectKoboDeviceRequest
+	(*DisconnectKoboDeviceResponse)(nil), // 10: books.v1.DisconnectKoboDeviceResponse
+	(*SetKoboDeviceLoggingRequest)(nil),  // 11: books.v1.SetKoboDeviceLoggingRequest
+	(*SetKoboDeviceLoggingResponse)(nil), // 12: books.v1.SetKoboDeviceLoggingResponse
+	(*GetKoboDeviceLogsRequest)(nil),     // 13: books.v1.GetKoboDeviceLogsRequest
+	(*GetKoboDeviceLogsResponse)(nil),    // 14: books.v1.GetKoboDeviceLogsResponse
+	(*ListKoboStoreBooksRequest)(nil),    // 15: books.v1.ListKoboStoreBooksRequest
+	(*ListKoboStoreBooksResponse)(nil),   // 16: books.v1.ListKoboStoreBooksResponse
+	(*ClearKoboDeviceLogsRequest)(nil),   // 17: books.v1.ClearKoboDeviceLogsRequest
+	(*ClearKoboDeviceLogsResponse)(nil),  // 18: books.v1.ClearKoboDeviceLogsResponse
+	nil,                                  // 19: books.v1.KoboLogEntry.RequestHeadersEntry
+	nil,                                  // 20: books.v1.KoboLogEntry.ResponseHeadersEntry
+	nil,                                  // 21: books.v1.KoboLogEntry.UpstreamHeadersEntry
 }
 var file_books_v1_kobo_proto_depIdxs = []int32{
-	16, // 0: books.v1.KoboLogEntry.request_headers:type_name -> books.v1.KoboLogEntry.RequestHeadersEntry
-	17, // 1: books.v1.KoboLogEntry.response_headers:type_name -> books.v1.KoboLogEntry.ResponseHeadersEntry
-	18, // 2: books.v1.KoboLogEntry.upstream_headers:type_name -> books.v1.KoboLogEntry.UpstreamHeadersEntry
+	19, // 0: books.v1.KoboLogEntry.request_headers:type_name -> books.v1.KoboLogEntry.RequestHeadersEntry
+	20, // 1: books.v1.KoboLogEntry.response_headers:type_name -> books.v1.KoboLogEntry.ResponseHeadersEntry
+	21, // 2: books.v1.KoboLogEntry.upstream_headers:type_name -> books.v1.KoboLogEntry.UpstreamHeadersEntry
 	0,  // 3: books.v1.RegisterKoboDeviceResponse.device:type_name -> books.v1.KoboDevice
 	0,  // 4: books.v1.ListKoboDevicesResponse.devices:type_name -> books.v1.KoboDevice
 	1,  // 5: books.v1.GetKoboDeviceLogsResponse.entries:type_name -> books.v1.KoboLogEntry
-	2,  // 6: books.v1.KoboService.EnableKoboSync:input_type -> books.v1.EnableKoboSyncRequest
-	4,  // 7: books.v1.KoboService.RegisterKoboDevice:input_type -> books.v1.RegisterKoboDeviceRequest
-	6,  // 8: books.v1.KoboService.ListKoboDevices:input_type -> books.v1.ListKoboDevicesRequest
-	8,  // 9: books.v1.KoboService.DisconnectKoboDevice:input_type -> books.v1.DisconnectKoboDeviceRequest
-	10, // 10: books.v1.KoboService.SetKoboDeviceLogging:input_type -> books.v1.SetKoboDeviceLoggingRequest
-	12, // 11: books.v1.KoboService.GetKoboDeviceLogs:input_type -> books.v1.GetKoboDeviceLogsRequest
-	14, // 12: books.v1.KoboService.ClearKoboDeviceLogs:input_type -> books.v1.ClearKoboDeviceLogsRequest
-	3,  // 13: books.v1.KoboService.EnableKoboSync:output_type -> books.v1.EnableKoboSyncResponse
-	5,  // 14: books.v1.KoboService.RegisterKoboDevice:output_type -> books.v1.RegisterKoboDeviceResponse
-	7,  // 15: books.v1.KoboService.ListKoboDevices:output_type -> books.v1.ListKoboDevicesResponse
-	9,  // 16: books.v1.KoboService.DisconnectKoboDevice:output_type -> books.v1.DisconnectKoboDeviceResponse
-	11, // 17: books.v1.KoboService.SetKoboDeviceLogging:output_type -> books.v1.SetKoboDeviceLoggingResponse
-	13, // 18: books.v1.KoboService.GetKoboDeviceLogs:output_type -> books.v1.GetKoboDeviceLogsResponse
-	15, // 19: books.v1.KoboService.ClearKoboDeviceLogs:output_type -> books.v1.ClearKoboDeviceLogsResponse
-	13, // [13:20] is the sub-list for method output_type
-	6,  // [6:13] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	2,  // 6: books.v1.ListKoboStoreBooksResponse.books:type_name -> books.v1.KoboStoreBook
+	3,  // 7: books.v1.KoboService.EnableKoboSync:input_type -> books.v1.EnableKoboSyncRequest
+	5,  // 8: books.v1.KoboService.RegisterKoboDevice:input_type -> books.v1.RegisterKoboDeviceRequest
+	7,  // 9: books.v1.KoboService.ListKoboDevices:input_type -> books.v1.ListKoboDevicesRequest
+	9,  // 10: books.v1.KoboService.DisconnectKoboDevice:input_type -> books.v1.DisconnectKoboDeviceRequest
+	11, // 11: books.v1.KoboService.SetKoboDeviceLogging:input_type -> books.v1.SetKoboDeviceLoggingRequest
+	13, // 12: books.v1.KoboService.GetKoboDeviceLogs:input_type -> books.v1.GetKoboDeviceLogsRequest
+	17, // 13: books.v1.KoboService.ClearKoboDeviceLogs:input_type -> books.v1.ClearKoboDeviceLogsRequest
+	15, // 14: books.v1.KoboService.ListKoboStoreBooks:input_type -> books.v1.ListKoboStoreBooksRequest
+	4,  // 15: books.v1.KoboService.EnableKoboSync:output_type -> books.v1.EnableKoboSyncResponse
+	6,  // 16: books.v1.KoboService.RegisterKoboDevice:output_type -> books.v1.RegisterKoboDeviceResponse
+	8,  // 17: books.v1.KoboService.ListKoboDevices:output_type -> books.v1.ListKoboDevicesResponse
+	10, // 18: books.v1.KoboService.DisconnectKoboDevice:output_type -> books.v1.DisconnectKoboDeviceResponse
+	12, // 19: books.v1.KoboService.SetKoboDeviceLogging:output_type -> books.v1.SetKoboDeviceLoggingResponse
+	14, // 20: books.v1.KoboService.GetKoboDeviceLogs:output_type -> books.v1.GetKoboDeviceLogsResponse
+	18, // 21: books.v1.KoboService.ClearKoboDeviceLogs:output_type -> books.v1.ClearKoboDeviceLogsResponse
+	16, // 22: books.v1.KoboService.ListKoboStoreBooks:output_type -> books.v1.ListKoboStoreBooksResponse
+	15, // [15:23] is the sub-list for method output_type
+	7,  // [7:15] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_books_v1_kobo_proto_init() }
@@ -983,13 +1227,14 @@ func file_books_v1_kobo_proto_init() {
 	if File_books_v1_kobo_proto != nil {
 		return
 	}
+	file_books_v1_kobo_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_books_v1_kobo_proto_rawDesc), len(file_books_v1_kobo_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

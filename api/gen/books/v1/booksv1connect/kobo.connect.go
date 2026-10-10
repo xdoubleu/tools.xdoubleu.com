@@ -54,6 +54,9 @@ const (
 	// KoboServiceClearKoboDeviceLogsProcedure is the fully-qualified name of the KoboService's
 	// ClearKoboDeviceLogs RPC.
 	KoboServiceClearKoboDeviceLogsProcedure = "/books.v1.KoboService/ClearKoboDeviceLogs"
+	// KoboServiceListKoboStoreBooksProcedure is the fully-qualified name of the KoboService's
+	// ListKoboStoreBooks RPC.
+	KoboServiceListKoboStoreBooksProcedure = "/books.v1.KoboService/ListKoboStoreBooks"
 )
 
 // KoboServiceClient is a client for the books.v1.KoboService service.
@@ -65,6 +68,7 @@ type KoboServiceClient interface {
 	SetKoboDeviceLogging(context.Context, *connect.Request[v1.SetKoboDeviceLoggingRequest]) (*connect.Response[v1.SetKoboDeviceLoggingResponse], error)
 	GetKoboDeviceLogs(context.Context, *connect.Request[v1.GetKoboDeviceLogsRequest]) (*connect.Response[v1.GetKoboDeviceLogsResponse], error)
 	ClearKoboDeviceLogs(context.Context, *connect.Request[v1.ClearKoboDeviceLogsRequest]) (*connect.Response[v1.ClearKoboDeviceLogsResponse], error)
+	ListKoboStoreBooks(context.Context, *connect.Request[v1.ListKoboStoreBooksRequest]) (*connect.Response[v1.ListKoboStoreBooksResponse], error)
 }
 
 // NewKoboServiceClient constructs a client for the books.v1.KoboService service. By default, it
@@ -120,6 +124,12 @@ func NewKoboServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(koboServiceMethods.ByName("ClearKoboDeviceLogs")),
 			connect.WithClientOptions(opts...),
 		),
+		listKoboStoreBooks: connect.NewClient[v1.ListKoboStoreBooksRequest, v1.ListKoboStoreBooksResponse](
+			httpClient,
+			baseURL+KoboServiceListKoboStoreBooksProcedure,
+			connect.WithSchema(koboServiceMethods.ByName("ListKoboStoreBooks")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -132,6 +142,7 @@ type koboServiceClient struct {
 	setKoboDeviceLogging *connect.Client[v1.SetKoboDeviceLoggingRequest, v1.SetKoboDeviceLoggingResponse]
 	getKoboDeviceLogs    *connect.Client[v1.GetKoboDeviceLogsRequest, v1.GetKoboDeviceLogsResponse]
 	clearKoboDeviceLogs  *connect.Client[v1.ClearKoboDeviceLogsRequest, v1.ClearKoboDeviceLogsResponse]
+	listKoboStoreBooks   *connect.Client[v1.ListKoboStoreBooksRequest, v1.ListKoboStoreBooksResponse]
 }
 
 // EnableKoboSync calls books.v1.KoboService.EnableKoboSync.
@@ -169,6 +180,11 @@ func (c *koboServiceClient) ClearKoboDeviceLogs(ctx context.Context, req *connec
 	return c.clearKoboDeviceLogs.CallUnary(ctx, req)
 }
 
+// ListKoboStoreBooks calls books.v1.KoboService.ListKoboStoreBooks.
+func (c *koboServiceClient) ListKoboStoreBooks(ctx context.Context, req *connect.Request[v1.ListKoboStoreBooksRequest]) (*connect.Response[v1.ListKoboStoreBooksResponse], error) {
+	return c.listKoboStoreBooks.CallUnary(ctx, req)
+}
+
 // KoboServiceHandler is an implementation of the books.v1.KoboService service.
 type KoboServiceHandler interface {
 	EnableKoboSync(context.Context, *connect.Request[v1.EnableKoboSyncRequest]) (*connect.Response[v1.EnableKoboSyncResponse], error)
@@ -178,6 +194,7 @@ type KoboServiceHandler interface {
 	SetKoboDeviceLogging(context.Context, *connect.Request[v1.SetKoboDeviceLoggingRequest]) (*connect.Response[v1.SetKoboDeviceLoggingResponse], error)
 	GetKoboDeviceLogs(context.Context, *connect.Request[v1.GetKoboDeviceLogsRequest]) (*connect.Response[v1.GetKoboDeviceLogsResponse], error)
 	ClearKoboDeviceLogs(context.Context, *connect.Request[v1.ClearKoboDeviceLogsRequest]) (*connect.Response[v1.ClearKoboDeviceLogsResponse], error)
+	ListKoboStoreBooks(context.Context, *connect.Request[v1.ListKoboStoreBooksRequest]) (*connect.Response[v1.ListKoboStoreBooksResponse], error)
 }
 
 // NewKoboServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -229,6 +246,12 @@ func NewKoboServiceHandler(svc KoboServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(koboServiceMethods.ByName("ClearKoboDeviceLogs")),
 		connect.WithHandlerOptions(opts...),
 	)
+	koboServiceListKoboStoreBooksHandler := connect.NewUnaryHandler(
+		KoboServiceListKoboStoreBooksProcedure,
+		svc.ListKoboStoreBooks,
+		connect.WithSchema(koboServiceMethods.ByName("ListKoboStoreBooks")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/books.v1.KoboService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case KoboServiceEnableKoboSyncProcedure:
@@ -245,6 +268,8 @@ func NewKoboServiceHandler(svc KoboServiceHandler, opts ...connect.HandlerOption
 			koboServiceGetKoboDeviceLogsHandler.ServeHTTP(w, r)
 		case KoboServiceClearKoboDeviceLogsProcedure:
 			koboServiceClearKoboDeviceLogsHandler.ServeHTTP(w, r)
+		case KoboServiceListKoboStoreBooksProcedure:
+			koboServiceListKoboStoreBooksHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -280,4 +305,8 @@ func (UnimplementedKoboServiceHandler) GetKoboDeviceLogs(context.Context, *conne
 
 func (UnimplementedKoboServiceHandler) ClearKoboDeviceLogs(context.Context, *connect.Request[v1.ClearKoboDeviceLogsRequest]) (*connect.Response[v1.ClearKoboDeviceLogsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.KoboService.ClearKoboDeviceLogs is not implemented"))
+}
+
+func (UnimplementedKoboServiceHandler) ListKoboStoreBooks(context.Context, *connect.Request[v1.ListKoboStoreBooksRequest]) (*connect.Response[v1.ListKoboStoreBooksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.KoboService.ListKoboStoreBooks is not implemented"))
 }

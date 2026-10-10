@@ -31,6 +31,26 @@ message KoboLogEntry {
   map<string, string> upstream_headers = 11;
 }
 
+// KoboStoreBook is a Kobo store (bol.com) book seen through the user's Kobo,
+// with its library match and the last reading state mirrored from it.
+message KoboStoreBook {
+  string entitlement_id = 1;
+  string title = 2;
+  repeated string authors = 3;
+  string isbn13 = 4;
+  bool owned = 5;
+  // Empty when no library book matches.
+  string library_book_id = 6;
+  string library_title = 7;
+  // Unset until a reading state was mirrored.
+  optional int32 last_percent = 8;
+  string last_read_at = 9;
+  // mirrored, no_library_match, no_progress or not_newer; empty before any.
+  string last_outcome = 10;
+  string last_mirrored_at = 11;
+  string updated_at = 12;
+}
+
 message EnableKoboSyncRequest { string book_id = 1; }
 message EnableKoboSyncResponse { string kepub_status = 1; }
 
@@ -58,6 +78,9 @@ message SetKoboDeviceLoggingResponse {}
 message GetKoboDeviceLogsRequest { string id = 1; }
 message GetKoboDeviceLogsResponse { repeated KoboLogEntry entries = 1; }
 
+message ListKoboStoreBooksRequest {}
+message ListKoboStoreBooksResponse { repeated KoboStoreBook books = 1; }
+
 message ClearKoboDeviceLogsRequest { string id = 1; }
 message ClearKoboDeviceLogsResponse {}
 
@@ -69,4 +92,5 @@ service KoboService {
   rpc SetKoboDeviceLogging(SetKoboDeviceLoggingRequest) returns (SetKoboDeviceLoggingResponse);
   rpc GetKoboDeviceLogs(GetKoboDeviceLogsRequest) returns (GetKoboDeviceLogsResponse);
   rpc ClearKoboDeviceLogs(ClearKoboDeviceLogsRequest) returns (ClearKoboDeviceLogsResponse);
+  rpc ListKoboStoreBooks(ListKoboStoreBooksRequest) returns (ListKoboStoreBooksResponse);
 }
