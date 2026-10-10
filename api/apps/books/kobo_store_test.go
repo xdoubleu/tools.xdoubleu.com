@@ -44,6 +44,14 @@ func TestParseKoboStoreItems(t *testing.T) {
 	assert.True(t, readings[1].Finished)
 }
 
+func TestKoboStorePercent(t *testing.T) {
+	for in, want := range map[float64]int{
+		0: 0, 0.01: 1, 0.49: 1, 0.99: 1, 1.4: 1, 12.6: 13, 100: 100,
+	} {
+		assert.Equal(t, want, koboStorePercent(in), "%v", in)
+	}
+}
+
 func TestKoboStoreOwned(t *testing.T) {
 	owned := func(ent string) bool {
 		var e koboStoreEntry
