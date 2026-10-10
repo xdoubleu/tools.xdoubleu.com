@@ -149,6 +149,19 @@ export default function ReadBookClient({ id }: { id: string }) {
       />
     )
   }
+  if (format === 'pdf' && file && resume) {
+    return (
+      <PdfBookReader
+        key={format}
+        file={file}
+        title={userBook.book?.title ?? 'Book'}
+        onClose={close}
+        onRelocate={onRelocate}
+        initialPosition={resume}
+        format={{ value: choice!, original, onChange: switchTo }}
+      />
+    )
+  }
   if (!file && fileError) {
     return (
       <Fallback id={id}>

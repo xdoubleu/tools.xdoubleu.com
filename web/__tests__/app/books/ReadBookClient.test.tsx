@@ -118,6 +118,50 @@ jest.mock('@/components/books/reader/PdfBookReader', () => ({
   )
 }))
 
+jest.mock('@/components/books/reader/PdfBookReader', () => ({
+  __esModule: true,
+  default: ({ file, title, onClose, onRelocate, initialPosition, format }: MockReaderProps) => (
+    <div
+      data-testid="reader"
+      data-file={file.name}
+      data-title={title}
+      data-initial={JSON.stringify(initialPosition)}
+      data-format={JSON.stringify(format && { value: format.value, original: format.original })}
+    >
+      <button type="button" onClick={onClose}>
+        Close reader
+      </button>
+      <button type="button" onClick={() => onRelocate({ fraction: 0.5, section: 2 })}>
+        Turn page
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onRelocate({
+            fraction: 0.1234,
+            section: 3,
+            position: { href: 'OEBPS/ch3.xhtml', offset: 42 }
+          })
+        }
+      >
+        Read on
+      </button>
+      <button
+        type="button"
+        onClick={() => onRelocate({ fraction: 0.1234, section: 2, position: { page: 3 } })}
+      >
+        Read PDF page
+      </button>
+      <button type="button" onClick={() => format?.onChange('kepub')}>
+        Use converted
+      </button>
+      <button type="button" onClick={() => format?.onChange('original')}>
+        Use original
+      </button>
+    </div>
+  )
+}))
+
 jest.mock('@/components/books/reader/ReadiumBookReader', () => ({
   __esModule: true,
   default: ({ bookId, title, onClose, onRelocate, initialPosition }: MockReaderProps) => (
