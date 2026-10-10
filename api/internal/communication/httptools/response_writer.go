@@ -32,13 +32,14 @@ func (w *responseWriter) Flush() {
 	flusher.Flush()
 }
 
+// ReadFrom uses the wrapped writer's ReadFrom when it has one, else Write.
 func (w *responseWriter) ReadFrom(r io.Reader) (int64, error) {
-	reader, ok := w.ResponseWriter.(io.ReaderFrom)
-	if !ok {
-		panic(fmt.Errorf("ResponseWriter doesn't implement io.ReaderFrom"))
+	if reader, ok := w.ResponseWriter.(io.ReaderFrom); ok {
+		return reader.ReadFrom(r)
 	}
 
-	return reader.ReadFrom(r)
+	// Hide ReadFrom so io.Copy doesn't recurse back into this method.
+	return io.Copy(struct{ io.Writer }{w.ResponseWriter}, r)
 }
 
 // NewResponseWriter returns a new [ResponseWriter].

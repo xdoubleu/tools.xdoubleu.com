@@ -62,6 +62,7 @@ const readingBook = create(UserBookSchema, {
   id: '1',
   bookId: 'book-1',
   status: 'currently-reading',
+  formats: ['epub'],
   progressMode: 'pages',
   currentPage: 100,
   book: create(BookSchema, {
@@ -129,6 +130,13 @@ describe('ReadingDashboard', () => {
     expect(container.querySelector('a[href="/books/1"]')).not.toContainElement(
       screen.getByRole('link', { name: 'Continue reading' })
     )
+  })
+
+  it('hides Continue reading for a book with no readable file', () => {
+    mockLibrary([create(UserBookSchema, { ...readingBook, formats: [] })])
+    render(<ReadingDashboard />)
+    expect(screen.getByText('Dune')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Continue reading' })).not.toBeInTheDocument()
   })
 
   it('opens the progress sheet from a visible button outside the card link', async () => {

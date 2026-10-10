@@ -98,3 +98,18 @@ func TestResponseWriterReadFrom(t *testing.T) {
 	assert.Positive(t, n)
 	assert.True(t, inner.readFrom)
 }
+
+// writeOnly hides the recorder's optional interfaces.
+type writeOnly struct{ http.ResponseWriter }
+
+func TestResponseWriterReadFromWithoutInnerReaderFrom(t *testing.T) {
+	t.Parallel()
+
+	inner := httptest.NewRecorder()
+	rw := httptools.NewResponseWriter(writeOnly{inner})
+
+	n, err := io.Copy(rw, io.LimitReader(strings.NewReader("hello"), 5))
+	require.NoError(t, err)
+	assert.Equal(t, int64(5), n)
+	assert.Equal(t, "hello", inner.Body.String())
+}

@@ -51,6 +51,25 @@ describe('webPubFetch', () => {
     expect(store.has(`${base}res/a.xhtml`)).toBe(true)
   })
 
+  it('keeps a copy even when the caller reads the body before the cache opens', async () => {
+    caches.open.mockImplementationOnce(
+      () => new Promise((resolve) => setTimeout(() => resolve(cache), 5))
+    )
+    fetchMock.mockResolvedValue(ok('x'))
+    const res = await webPubFetch(`${base}res/a.xhtml`)
+    expect(await res.text()).toBe('x')
+    await new Promise((r) => setTimeout(r, 10))
+    expect(await store.get(`${base}res/a.xhtml`)?.text()).toBe('x')
+  })
+
+  it('ignores a failed cache write', async () => {
+    cache.put.mockRejectedValueOnce(new TypeError('quota'))
+    fetchMock.mockResolvedValue(ok('x'))
+    expect(await (await webPubFetch(`${base}res/a.xhtml`)).text()).toBe('x')
+    await flush()
+    expect(store.size).toBe(0)
+  })
+
   it('does not keep failed responses or non-GET requests', async () => {
     fetchMock.mockResolvedValueOnce(new Response('no', { status: 404 }))
     await webPubFetch(`${base}res/missing`)

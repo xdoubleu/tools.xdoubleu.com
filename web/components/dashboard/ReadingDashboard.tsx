@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { LinkCard } from '@/components/ui/link-card'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { useDashboardChartState } from '@/hooks/useDashboardChartState'
+import { readerFormats } from '@/lib/books/readerSettings'
 
 function ReadingBookCard({ userBook }: { userBook: UserBook }) {
   const [completing, setCompleting] = useState(false)
@@ -27,9 +28,12 @@ function ReadingBookCard({ userBook }: { userBook: UserBook }) {
       linkClassName="flex gap-3 p-4"
       actions={
         <>
-          <Button asChild variant="default" className="w-full">
-            <Link href={`/books/${userBook.id}/read`}>Continue reading</Link>
-          </Button>
+          {/* Physical and Kobo store books have no file the web reader opens. */}
+          {readerFormats(userBook.formats).length > 0 && (
+            <Button asChild variant="default" className="w-full">
+              <Link href={`/books/${userBook.id}/read`}>Continue reading</Link>
+            </Button>
+          )}
           <BookProgressEditor
             userBook={userBook}
             actions={
