@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file books/v1/kobo.proto.
  */
 export const file_books_v1_kobo: GenFile = /*@__PURE__*/
-  fileDesc("ChNib29rcy92MS9rb2JvLnByb3RvEghib29rcy52MSJ5CgpLb2JvRGV2aWNlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDgoGc2VyaWFsGAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAkSFAoMbGFzdF9zZWVuX2F0GAUgASgJEhcKD2xvZ2dpbmdfZW5hYmxlZBgGIAEoCCKPBAoMS29ib0xvZ0VudHJ5EgwKBHRpbWUYASABKAkSDgoGbWV0aG9kGAIgASgJEgwKBHBhdGgYAyABKAkSDQoFcXVlcnkYBCABKAkSFAoMcmVxdWVzdF9ib2R5GAUgASgJEg4KBnN0YXR1cxgGIAEoBRIVCg1yZXNwb25zZV9ib2R5GAcgASgJEg0KBW5vdGVzGAggASgJEkMKD3JlcXVlc3RfaGVhZGVycxgJIAMoCzIqLmJvb2tzLnYxLktvYm9Mb2dFbnRyeS5SZXF1ZXN0SGVhZGVyc0VudHJ5EkUKEHJlc3BvbnNlX2hlYWRlcnMYCiADKAsyKy5ib29rcy52MS5Lb2JvTG9nRW50cnkuUmVzcG9uc2VIZWFkZXJzRW50cnkSRQoQdXBzdHJlYW1faGVhZGVycxgLIAMoCzIrLmJvb2tzLnYxLktvYm9Mb2dFbnRyeS5VcHN0cmVhbUhlYWRlcnNFbnRyeRo1ChNSZXF1ZXN0SGVhZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaNgoUUmVzcG9uc2VIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARo2ChRVcHN0cmVhbUhlYWRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIigKFUVuYWJsZUtvYm9TeW5jUmVxdWVzdBIPCgdib29rX2lkGAEgASgJIi4KFkVuYWJsZUtvYm9TeW5jUmVzcG9uc2USFAoMa2VwdWJfc3RhdHVzGAEgASgJIjkKGVJlZ2lzdGVyS29ib0RldmljZVJlcXVlc3QSDAoEbmFtZRgBIAEoCRIOCgZzZXJpYWwYAiABKAkiVQoaUmVnaXN0ZXJLb2JvRGV2aWNlUmVzcG9uc2USJAoGZGV2aWNlGAEgASgLMhQuYm9va3MudjEuS29ib0RldmljZRIRCglyYXdfdG9rZW4YAiABKAkiGAoWTGlzdEtvYm9EZXZpY2VzUmVxdWVzdCJAChdMaXN0S29ib0RldmljZXNSZXNwb25zZRIlCgdkZXZpY2VzGAEgAygLMhQuYm9va3MudjEuS29ib0RldmljZSIpChtEaXNjb25uZWN0S29ib0RldmljZVJlcXVlc3QSCgoCaWQYASABKAkiHgocRGlzY29ubmVjdEtvYm9EZXZpY2VSZXNwb25zZSI6ChtTZXRLb2JvRGV2aWNlTG9nZ2luZ1JlcXVlc3QSCgoCaWQYASABKAkSDwoHZW5hYmxlZBgCIAEoCCIeChxTZXRLb2JvRGV2aWNlTG9nZ2luZ1Jlc3BvbnNlIiYKGEdldEtvYm9EZXZpY2VMb2dzUmVxdWVzdBIKCgJpZBgBIAEoCSJEChlHZXRLb2JvRGV2aWNlTG9nc1Jlc3BvbnNlEicKB2VudHJpZXMYASADKAsyFi5ib29rcy52MS5Lb2JvTG9nRW50cnkiKAoaQ2xlYXJLb2JvRGV2aWNlTG9nc1JlcXVlc3QSCgoCaWQYASABKAkiHQobQ2xlYXJLb2JvRGV2aWNlTG9nc1Jlc3BvbnNlMqsFCgtLb2JvU2VydmljZRJTCg5FbmFibGVLb2JvU3luYxIfLmJvb2tzLnYxLkVuYWJsZUtvYm9TeW5jUmVxdWVzdBogLmJvb2tzLnYxLkVuYWJsZUtvYm9TeW5jUmVzcG9uc2USXwoSUmVnaXN0ZXJLb2JvRGV2aWNlEiMuYm9va3MudjEuUmVnaXN0ZXJLb2JvRGV2aWNlUmVxdWVzdBokLmJvb2tzLnYxLlJlZ2lzdGVyS29ib0RldmljZVJlc3BvbnNlElYKD0xpc3RLb2JvRGV2aWNlcxIgLmJvb2tzLnYxLkxpc3RLb2JvRGV2aWNlc1JlcXVlc3QaIS5ib29rcy52MS5MaXN0S29ib0RldmljZXNSZXNwb25zZRJlChREaXNjb25uZWN0S29ib0RldmljZRIlLmJvb2tzLnYxLkRpc2Nvbm5lY3RLb2JvRGV2aWNlUmVxdWVzdBomLmJvb2tzLnYxLkRpc2Nvbm5lY3RLb2JvRGV2aWNlUmVzcG9uc2USZQoUU2V0S29ib0RldmljZUxvZ2dpbmcSJS5ib29rcy52MS5TZXRLb2JvRGV2aWNlTG9nZ2luZ1JlcXVlc3QaJi5ib29rcy52MS5TZXRLb2JvRGV2aWNlTG9nZ2luZ1Jlc3BvbnNlElwKEUdldEtvYm9EZXZpY2VMb2dzEiIuYm9va3MudjEuR2V0S29ib0RldmljZUxvZ3NSZXF1ZXN0GiMuYm9va3MudjEuR2V0S29ib0RldmljZUxvZ3NSZXNwb25zZRJiChNDbGVhcktvYm9EZXZpY2VMb2dzEiQuYm9va3MudjEuQ2xlYXJLb2JvRGV2aWNlTG9nc1JlcXVlc3QaJS5ib29rcy52MS5DbGVhcktvYm9EZXZpY2VMb2dzUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi9ib29rcy92MTtib29rc3YxYgZwcm90bzM");
+  fileDesc("ChNib29rcy92MS9rb2JvLnByb3RvEghib29rcy52MSJ5CgpLb2JvRGV2aWNlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDgoGc2VyaWFsGAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAkSFAoMbGFzdF9zZWVuX2F0GAUgASgJEhcKD2xvZ2dpbmdfZW5hYmxlZBgGIAEoCCKPBAoMS29ib0xvZ0VudHJ5EgwKBHRpbWUYASABKAkSDgoGbWV0aG9kGAIgASgJEgwKBHBhdGgYAyABKAkSDQoFcXVlcnkYBCABKAkSFAoMcmVxdWVzdF9ib2R5GAUgASgJEg4KBnN0YXR1cxgGIAEoBRIVCg1yZXNwb25zZV9ib2R5GAcgASgJEg0KBW5vdGVzGAggASgJEkMKD3JlcXVlc3RfaGVhZGVycxgJIAMoCzIqLmJvb2tzLnYxLktvYm9Mb2dFbnRyeS5SZXF1ZXN0SGVhZGVyc0VudHJ5EkUKEHJlc3BvbnNlX2hlYWRlcnMYCiADKAsyKy5ib29rcy52MS5Lb2JvTG9nRW50cnkuUmVzcG9uc2VIZWFkZXJzRW50cnkSRQoQdXBzdHJlYW1faGVhZGVycxgLIAMoCzIrLmJvb2tzLnYxLktvYm9Mb2dFbnRyeS5VcHN0cmVhbUhlYWRlcnNFbnRyeRo1ChNSZXF1ZXN0SGVhZGVyc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaNgoUUmVzcG9uc2VIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARo2ChRVcHN0cmVhbUhlYWRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIpwCCg1Lb2JvU3RvcmVCb29rEhYKDmVudGl0bGVtZW50X2lkGAEgASgJEg0KBXRpdGxlGAIgASgJEg8KB2F1dGhvcnMYAyADKAkSDgoGaXNibjEzGAQgASgJEg0KBW93bmVkGAUgASgIEhcKD2xpYnJhcnlfYm9va19pZBgGIAEoCRIVCg1saWJyYXJ5X3RpdGxlGAcgASgJEhkKDGxhc3RfcGVyY2VudBgIIAEoBUgAiAEBEhQKDGxhc3RfcmVhZF9hdBgJIAEoCRIUCgxsYXN0X291dGNvbWUYCiABKAkSGAoQbGFzdF9taXJyb3JlZF9hdBgLIAEoCRISCgp1cGRhdGVkX2F0GAwgASgJQg8KDV9sYXN0X3BlcmNlbnQiKAoVRW5hYmxlS29ib1N5bmNSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkiLgoWRW5hYmxlS29ib1N5bmNSZXNwb25zZRIUCgxrZXB1Yl9zdGF0dXMYASABKAkiOQoZUmVnaXN0ZXJLb2JvRGV2aWNlUmVxdWVzdBIMCgRuYW1lGAEgASgJEg4KBnNlcmlhbBgCIAEoCSJVChpSZWdpc3RlcktvYm9EZXZpY2VSZXNwb25zZRIkCgZkZXZpY2UYASABKAsyFC5ib29rcy52MS5Lb2JvRGV2aWNlEhEKCXJhd190b2tlbhgCIAEoCSIYChZMaXN0S29ib0RldmljZXNSZXF1ZXN0IkAKF0xpc3RLb2JvRGV2aWNlc1Jlc3BvbnNlEiUKB2RldmljZXMYASADKAsyFC5ib29rcy52MS5Lb2JvRGV2aWNlIikKG0Rpc2Nvbm5lY3RLb2JvRGV2aWNlUmVxdWVzdBIKCgJpZBgBIAEoCSIeChxEaXNjb25uZWN0S29ib0RldmljZVJlc3BvbnNlIjoKG1NldEtvYm9EZXZpY2VMb2dnaW5nUmVxdWVzdBIKCgJpZBgBIAEoCRIPCgdlbmFibGVkGAIgASgIIh4KHFNldEtvYm9EZXZpY2VMb2dnaW5nUmVzcG9uc2UiJgoYR2V0S29ib0RldmljZUxvZ3NSZXF1ZXN0EgoKAmlkGAEgASgJIkQKGUdldEtvYm9EZXZpY2VMb2dzUmVzcG9uc2USJwoHZW50cmllcxgBIAMoCzIWLmJvb2tzLnYxLktvYm9Mb2dFbnRyeSIbChlMaXN0S29ib1N0b3JlQm9va3NSZXF1ZXN0IkQKGkxpc3RLb2JvU3RvcmVCb29rc1Jlc3BvbnNlEiYKBWJvb2tzGAEgAygLMhcuYm9va3MudjEuS29ib1N0b3JlQm9vayIoChpDbGVhcktvYm9EZXZpY2VMb2dzUmVxdWVzdBIKCgJpZBgBIAEoCSIdChtDbGVhcktvYm9EZXZpY2VMb2dzUmVzcG9uc2UyjAYKC0tvYm9TZXJ2aWNlElMKDkVuYWJsZUtvYm9TeW5jEh8uYm9va3MudjEuRW5hYmxlS29ib1N5bmNSZXF1ZXN0GiAuYm9va3MudjEuRW5hYmxlS29ib1N5bmNSZXNwb25zZRJfChJSZWdpc3RlcktvYm9EZXZpY2USIy5ib29rcy52MS5SZWdpc3RlcktvYm9EZXZpY2VSZXF1ZXN0GiQuYm9va3MudjEuUmVnaXN0ZXJLb2JvRGV2aWNlUmVzcG9uc2USVgoPTGlzdEtvYm9EZXZpY2VzEiAuYm9va3MudjEuTGlzdEtvYm9EZXZpY2VzUmVxdWVzdBohLmJvb2tzLnYxLkxpc3RLb2JvRGV2aWNlc1Jlc3BvbnNlEmUKFERpc2Nvbm5lY3RLb2JvRGV2aWNlEiUuYm9va3MudjEuRGlzY29ubmVjdEtvYm9EZXZpY2VSZXF1ZXN0GiYuYm9va3MudjEuRGlzY29ubmVjdEtvYm9EZXZpY2VSZXNwb25zZRJlChRTZXRLb2JvRGV2aWNlTG9nZ2luZxIlLmJvb2tzLnYxLlNldEtvYm9EZXZpY2VMb2dnaW5nUmVxdWVzdBomLmJvb2tzLnYxLlNldEtvYm9EZXZpY2VMb2dnaW5nUmVzcG9uc2USXAoRR2V0S29ib0RldmljZUxvZ3MSIi5ib29rcy52MS5HZXRLb2JvRGV2aWNlTG9nc1JlcXVlc3QaIy5ib29rcy52MS5HZXRLb2JvRGV2aWNlTG9nc1Jlc3BvbnNlEmIKE0NsZWFyS29ib0RldmljZUxvZ3MSJC5ib29rcy52MS5DbGVhcktvYm9EZXZpY2VMb2dzUmVxdWVzdBolLmJvb2tzLnYxLkNsZWFyS29ib0RldmljZUxvZ3NSZXNwb25zZRJfChJMaXN0S29ib1N0b3JlQm9va3MSIy5ib29rcy52MS5MaXN0S29ib1N0b3JlQm9va3NSZXF1ZXN0GiQuYm9va3MudjEuTGlzdEtvYm9TdG9yZUJvb2tzUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi9ib29rcy92MTtib29rc3YxYgZwcm90bzM");
 
 /**
  * @generated from message books.v1.KoboDevice
@@ -132,6 +132,87 @@ export const KoboLogEntrySchema: GenMessage<KoboLogEntry> = /*@__PURE__*/
   messageDesc(file_books_v1_kobo, 1);
 
 /**
+ * KoboStoreBook is a Kobo store (bol.com) book seen through the user's Kobo,
+ * with its library match and the last reading state mirrored from it.
+ *
+ * @generated from message books.v1.KoboStoreBook
+ */
+export type KoboStoreBook = Message<"books.v1.KoboStoreBook"> & {
+  /**
+   * @generated from field: string entitlement_id = 1;
+   */
+  entitlementId: string;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * @generated from field: repeated string authors = 3;
+   */
+  authors: string[];
+
+  /**
+   * @generated from field: string isbn13 = 4;
+   */
+  isbn13: string;
+
+  /**
+   * @generated from field: bool owned = 5;
+   */
+  owned: boolean;
+
+  /**
+   * Empty when no library book matches.
+   *
+   * @generated from field: string library_book_id = 6;
+   */
+  libraryBookId: string;
+
+  /**
+   * @generated from field: string library_title = 7;
+   */
+  libraryTitle: string;
+
+  /**
+   * Unset until a reading state was mirrored.
+   *
+   * @generated from field: optional int32 last_percent = 8;
+   */
+  lastPercent?: number | undefined;
+
+  /**
+   * @generated from field: string last_read_at = 9;
+   */
+  lastReadAt: string;
+
+  /**
+   * mirrored, no_library_match, no_progress or not_newer; empty before any.
+   *
+   * @generated from field: string last_outcome = 10;
+   */
+  lastOutcome: string;
+
+  /**
+   * @generated from field: string last_mirrored_at = 11;
+   */
+  lastMirroredAt: string;
+
+  /**
+   * @generated from field: string updated_at = 12;
+   */
+  updatedAt: string;
+};
+
+/**
+ * Describes the message books.v1.KoboStoreBook.
+ * Use `create(KoboStoreBookSchema)` to create a new message.
+ */
+export const KoboStoreBookSchema: GenMessage<KoboStoreBook> = /*@__PURE__*/
+  messageDesc(file_books_v1_kobo, 2);
+
+/**
  * @generated from message books.v1.EnableKoboSyncRequest
  */
 export type EnableKoboSyncRequest = Message<"books.v1.EnableKoboSyncRequest"> & {
@@ -146,7 +227,7 @@ export type EnableKoboSyncRequest = Message<"books.v1.EnableKoboSyncRequest"> & 
  * Use `create(EnableKoboSyncRequestSchema)` to create a new message.
  */
 export const EnableKoboSyncRequestSchema: GenMessage<EnableKoboSyncRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 2);
+  messageDesc(file_books_v1_kobo, 3);
 
 /**
  * @generated from message books.v1.EnableKoboSyncResponse
@@ -163,7 +244,7 @@ export type EnableKoboSyncResponse = Message<"books.v1.EnableKoboSyncResponse"> 
  * Use `create(EnableKoboSyncResponseSchema)` to create a new message.
  */
 export const EnableKoboSyncResponseSchema: GenMessage<EnableKoboSyncResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 3);
+  messageDesc(file_books_v1_kobo, 4);
 
 /**
  * @generated from message books.v1.RegisterKoboDeviceRequest
@@ -185,7 +266,7 @@ export type RegisterKoboDeviceRequest = Message<"books.v1.RegisterKoboDeviceRequ
  * Use `create(RegisterKoboDeviceRequestSchema)` to create a new message.
  */
 export const RegisterKoboDeviceRequestSchema: GenMessage<RegisterKoboDeviceRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 4);
+  messageDesc(file_books_v1_kobo, 5);
 
 /**
  * @generated from message books.v1.RegisterKoboDeviceResponse
@@ -207,7 +288,7 @@ export type RegisterKoboDeviceResponse = Message<"books.v1.RegisterKoboDeviceRes
  * Use `create(RegisterKoboDeviceResponseSchema)` to create a new message.
  */
 export const RegisterKoboDeviceResponseSchema: GenMessage<RegisterKoboDeviceResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 5);
+  messageDesc(file_books_v1_kobo, 6);
 
 /**
  * @generated from message books.v1.ListKoboDevicesRequest
@@ -220,7 +301,7 @@ export type ListKoboDevicesRequest = Message<"books.v1.ListKoboDevicesRequest"> 
  * Use `create(ListKoboDevicesRequestSchema)` to create a new message.
  */
 export const ListKoboDevicesRequestSchema: GenMessage<ListKoboDevicesRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 6);
+  messageDesc(file_books_v1_kobo, 7);
 
 /**
  * @generated from message books.v1.ListKoboDevicesResponse
@@ -237,7 +318,7 @@ export type ListKoboDevicesResponse = Message<"books.v1.ListKoboDevicesResponse"
  * Use `create(ListKoboDevicesResponseSchema)` to create a new message.
  */
 export const ListKoboDevicesResponseSchema: GenMessage<ListKoboDevicesResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 7);
+  messageDesc(file_books_v1_kobo, 8);
 
 /**
  * @generated from message books.v1.DisconnectKoboDeviceRequest
@@ -254,7 +335,7 @@ export type DisconnectKoboDeviceRequest = Message<"books.v1.DisconnectKoboDevice
  * Use `create(DisconnectKoboDeviceRequestSchema)` to create a new message.
  */
 export const DisconnectKoboDeviceRequestSchema: GenMessage<DisconnectKoboDeviceRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 8);
+  messageDesc(file_books_v1_kobo, 9);
 
 /**
  * @generated from message books.v1.DisconnectKoboDeviceResponse
@@ -267,7 +348,7 @@ export type DisconnectKoboDeviceResponse = Message<"books.v1.DisconnectKoboDevic
  * Use `create(DisconnectKoboDeviceResponseSchema)` to create a new message.
  */
 export const DisconnectKoboDeviceResponseSchema: GenMessage<DisconnectKoboDeviceResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 9);
+  messageDesc(file_books_v1_kobo, 10);
 
 /**
  * @generated from message books.v1.SetKoboDeviceLoggingRequest
@@ -289,7 +370,7 @@ export type SetKoboDeviceLoggingRequest = Message<"books.v1.SetKoboDeviceLogging
  * Use `create(SetKoboDeviceLoggingRequestSchema)` to create a new message.
  */
 export const SetKoboDeviceLoggingRequestSchema: GenMessage<SetKoboDeviceLoggingRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 10);
+  messageDesc(file_books_v1_kobo, 11);
 
 /**
  * @generated from message books.v1.SetKoboDeviceLoggingResponse
@@ -302,7 +383,7 @@ export type SetKoboDeviceLoggingResponse = Message<"books.v1.SetKoboDeviceLoggin
  * Use `create(SetKoboDeviceLoggingResponseSchema)` to create a new message.
  */
 export const SetKoboDeviceLoggingResponseSchema: GenMessage<SetKoboDeviceLoggingResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 11);
+  messageDesc(file_books_v1_kobo, 12);
 
 /**
  * @generated from message books.v1.GetKoboDeviceLogsRequest
@@ -319,7 +400,7 @@ export type GetKoboDeviceLogsRequest = Message<"books.v1.GetKoboDeviceLogsReques
  * Use `create(GetKoboDeviceLogsRequestSchema)` to create a new message.
  */
 export const GetKoboDeviceLogsRequestSchema: GenMessage<GetKoboDeviceLogsRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 12);
+  messageDesc(file_books_v1_kobo, 13);
 
 /**
  * @generated from message books.v1.GetKoboDeviceLogsResponse
@@ -336,7 +417,37 @@ export type GetKoboDeviceLogsResponse = Message<"books.v1.GetKoboDeviceLogsRespo
  * Use `create(GetKoboDeviceLogsResponseSchema)` to create a new message.
  */
 export const GetKoboDeviceLogsResponseSchema: GenMessage<GetKoboDeviceLogsResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 13);
+  messageDesc(file_books_v1_kobo, 14);
+
+/**
+ * @generated from message books.v1.ListKoboStoreBooksRequest
+ */
+export type ListKoboStoreBooksRequest = Message<"books.v1.ListKoboStoreBooksRequest"> & {
+};
+
+/**
+ * Describes the message books.v1.ListKoboStoreBooksRequest.
+ * Use `create(ListKoboStoreBooksRequestSchema)` to create a new message.
+ */
+export const ListKoboStoreBooksRequestSchema: GenMessage<ListKoboStoreBooksRequest> = /*@__PURE__*/
+  messageDesc(file_books_v1_kobo, 15);
+
+/**
+ * @generated from message books.v1.ListKoboStoreBooksResponse
+ */
+export type ListKoboStoreBooksResponse = Message<"books.v1.ListKoboStoreBooksResponse"> & {
+  /**
+   * @generated from field: repeated books.v1.KoboStoreBook books = 1;
+   */
+  books: KoboStoreBook[];
+};
+
+/**
+ * Describes the message books.v1.ListKoboStoreBooksResponse.
+ * Use `create(ListKoboStoreBooksResponseSchema)` to create a new message.
+ */
+export const ListKoboStoreBooksResponseSchema: GenMessage<ListKoboStoreBooksResponse> = /*@__PURE__*/
+  messageDesc(file_books_v1_kobo, 16);
 
 /**
  * @generated from message books.v1.ClearKoboDeviceLogsRequest
@@ -353,7 +464,7 @@ export type ClearKoboDeviceLogsRequest = Message<"books.v1.ClearKoboDeviceLogsRe
  * Use `create(ClearKoboDeviceLogsRequestSchema)` to create a new message.
  */
 export const ClearKoboDeviceLogsRequestSchema: GenMessage<ClearKoboDeviceLogsRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 14);
+  messageDesc(file_books_v1_kobo, 17);
 
 /**
  * @generated from message books.v1.ClearKoboDeviceLogsResponse
@@ -366,7 +477,7 @@ export type ClearKoboDeviceLogsResponse = Message<"books.v1.ClearKoboDeviceLogsR
  * Use `create(ClearKoboDeviceLogsResponseSchema)` to create a new message.
  */
 export const ClearKoboDeviceLogsResponseSchema: GenMessage<ClearKoboDeviceLogsResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_kobo, 15);
+  messageDesc(file_books_v1_kobo, 18);
 
 /**
  * @generated from service books.v1.KoboService
@@ -427,6 +538,14 @@ export const KoboService: GenService<{
     methodKind: "unary";
     input: typeof ClearKoboDeviceLogsRequestSchema;
     output: typeof ClearKoboDeviceLogsResponseSchema;
+  },
+  /**
+   * @generated from rpc books.v1.KoboService.ListKoboStoreBooks
+   */
+  listKoboStoreBooks: {
+    methodKind: "unary";
+    input: typeof ListKoboStoreBooksRequestSchema;
+    output: typeof ListKoboStoreBooksResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_books_v1_kobo, 0);

@@ -103,6 +103,10 @@ func registerReadingCatalogTools(srv *mcp.Server, h *booksConnectHandler) {
 	mcptools.AddReadTool(srv, mcpAppName, "books_get_kobo_device_logs",
 		"Captured request/response logs for a Kobo device.",
 		h.mcpGetKoboDeviceLogs)
+	mcptools.AddReadTool(srv, mcpAppName, "books_list_kobo_store_books",
+		"Kobo store (bol.com) books seen through the user's Kobo: library "+
+			"match, ownership, and the last reading state mirrored from the "+
+			"Kobo with its outcome.", h.mcpListKoboStoreBooks)
 }
 
 func mcpOptStr(s string) *string {
@@ -231,6 +235,14 @@ func (h *booksConnectHandler) mcpListKoboDevices(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.ListKoboDevices(ctx, connect.NewRequest(
 		&booksv1.ListKoboDevicesRequest{},
+	)))
+}
+
+func (h *booksConnectHandler) mcpListKoboStoreBooks(
+	ctx context.Context, _ mcptools.NoArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.ListKoboStoreBooks(ctx, connect.NewRequest(
+		&booksv1.ListKoboStoreBooksRequest{},
 	)))
 }
 

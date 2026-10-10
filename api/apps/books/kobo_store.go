@@ -172,7 +172,9 @@ func (app *Books) recordKoboStoreSync(
 		return
 	}
 	for _, rd := range readings {
-		if _, err := app.Services.Books.RecordKoboStoreReading(ctx, userID, rd); err != nil {
+		if _, err := app.Services.Books.RecordKoboStoreReading(
+			ctx, userID, rd,
+		); err != nil {
 			app.Logger.WarnContext(ctx, "mirroring kobo store reading state failed",
 				"entitlement_id", rd.EntitlementID, "err", err)
 		}
@@ -237,8 +239,8 @@ func (app *Books) mirrorKoboStoreState(
 	reading := put.ReadingStates[len(put.ReadingStates)-1].toReading(id)
 	reading.EntitlementID = id
 
-	found, err := app.Services.Books.RecordKoboStoreReading(ctx, userID, reading)
-	if err == nil && !found {
+	outcome, err := app.Services.Books.RecordKoboStoreReading(ctx, userID, reading)
+	if err == nil && outcome == models.KoboStoreUnrecorded {
 		var sb *models.KoboStoreBook
 		if sb, err = app.koboFetchStoreMetadata(ctx, hdr, id); err == nil {
 			err = app.Services.Books.LinkKoboStoreBooks(
@@ -246,12 +248,18 @@ func (app *Books) mirrorKoboStoreState(
 			)
 		}
 		if err == nil {
-			_, err = app.Services.Books.RecordKoboStoreReading(ctx, userID, reading)
+			outcome, err = app.Services.Books.RecordKoboStoreReading(
+				ctx, userID, reading,
+			)
 		}
 	}
-	if err != nil {
+	switch {
+	case err != nil:
 		app.Logger.WarnContext(ctx, "mirroring kobo store reading state failed",
 			"entitlement_id", id, "err", err)
+	case outcome != models.KoboStoreMirrored:
+		app.Logger.InfoContext(ctx, "kobo store reading state not mirrored",
+			"entitlement_id", id, "percent", reading.Percent, "outcome", outcome)
 	}
 }
 

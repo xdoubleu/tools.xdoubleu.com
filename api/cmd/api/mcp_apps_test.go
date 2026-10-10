@@ -27,7 +27,7 @@ var appsToolNames = []string{
 	// games (5)
 	"games_get_steam", "games_get_steam_game", "games_get_steam_distribution",
 	"games_get_recently_active_games", "games_get_integrations",
-	// books (15)
+	// books (16)
 	"books_get_library", "books_get_books_progress", "books_search_library",
 	"books_search_external", "books_get_external_book",
 	"books_get_reading_state",
@@ -35,6 +35,7 @@ var appsToolNames = []string{
 	"books_get_source_stats", "books_list_books_in_exact_sources",
 	"books_find_duplicates", "books_get_book_file", "books_get_kepub_status",
 	"books_list_kobo_devices", "books_get_kobo_device_logs",
+	"books_list_kobo_store_books",
 	// feeds (5)
 	"feeds_list_feeds", "feeds_list_items", "feeds_get_item",
 	"feeds_list_filter_rules", "feeds_get_filter_rule_suggestions",

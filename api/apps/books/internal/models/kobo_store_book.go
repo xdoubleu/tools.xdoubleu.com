@@ -20,3 +20,28 @@ type KoboStoreReading struct {
 	Finished      bool
 	ReadAt        *time.Time
 }
+
+// KoboStoreOutcome is what mirroring a store book's reading state did.
+type KoboStoreOutcome string
+
+const (
+	// KoboStoreUnrecorded: the store book isn't recorded, nothing was mirrored.
+	KoboStoreUnrecorded KoboStoreOutcome = ""
+	KoboStoreMirrored   KoboStoreOutcome = "mirrored"
+	KoboStoreNoMatch    KoboStoreOutcome = "no_library_match"
+	KoboStoreNoProgress KoboStoreOutcome = "no_progress"
+	// KoboStoreNotNewer: the library already holds a newer or further read.
+	KoboStoreNotNewer KoboStoreOutcome = "not_newer"
+)
+
+// KoboStoreBookStatus is a recorded store book with its last mirror attempt
+// and its current library match (nil when unmatched).
+type KoboStoreBookStatus struct {
+	KoboStoreBook
+	LastPercent    *int
+	LastReadAt     *time.Time
+	LastOutcome    KoboStoreOutcome
+	LastMirroredAt *time.Time
+	UpdatedAt      time.Time
+	Match          *UserBook
+}

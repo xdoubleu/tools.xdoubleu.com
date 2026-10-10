@@ -146,3 +146,61 @@ func koboDeviceProto(d models.KoboDevice) *booksv1.KoboDevice {
 		LoggingEnabled: d.LoggingEnabled,
 	}
 }
+
+func (h *booksConnectHandler) ListKoboStoreBooks(
+	ctx context.Context,
+	_ *connect.Request[booksv1.ListKoboStoreBooksRequest],
+) (*connect.Response[booksv1.ListKoboStoreBooksResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	books, err := h.app.Services.Books.ListKoboStoreBooks(ctx, user.ID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	resp := &booksv1.ListKoboStoreBooksResponse{
+		Books: make([]*booksv1.KoboStoreBook, len(books)),
+	}
+	for i, b := range books {
+		resp.Books[i] = koboStoreBookProto(b)
+	}
+	return connect.NewResponse(resp), nil
+}
+
+func koboStoreBookProto(b models.KoboStoreBookStatus) *booksv1.KoboStoreBook {
+	out := &booksv1.KoboStoreBook{
+		EntitlementId:  b.EntitlementID,
+		Title:          b.Title,
+		Authors:        b.Authors,
+		Owned:          b.Owned != nil && *b.Owned,
+		LastOutcome:    string(b.LastOutcome),
+		LastReadAt:     formatOptionalTime(b.LastReadAt),
+		LastMirroredAt: formatOptionalTime(b.LastMirroredAt),
+		UpdatedAt:      b.UpdatedAt.Format(time.RFC3339),
+	}
+	if b.ISBN13 != nil {
+		out.Isbn13 = *b.ISBN13
+	}
+	if b.LastPercent != nil {
+		p := int32(*b.LastPercent) //nolint:gosec // a 0-100 percent
+		out.LastPercent = &p
+	}
+	if b.Match != nil {
+		out.LibraryBookId = b.Match.BookID.String()
+		if b.Match.Book != nil {
+			out.LibraryTitle = b.Match.Book.Title
+		}
+	}
+	return out
+}
+
+func formatOptionalTime(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.UTC().Format(time.RFC3339)
+}
