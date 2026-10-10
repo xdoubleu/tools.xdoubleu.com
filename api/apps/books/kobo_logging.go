@@ -37,9 +37,9 @@ type koboLogHolder struct {
 //
 //nolint:gochecknoglobals // static allowlists, never mutated
 var (
-	koboLogRequestHeaders  = []string{"x-kobo-synctoken"}
+	koboLogRequestHeaders  = []string{koboHeaderSyncToken}
 	koboLogResponseHeaders = []string{
-		"x-kobo-sync", "x-kobo-sync-mode", "x-kobo-synctoken", "content-encoding",
+		koboHeaderSync, koboHeaderSyncMode, koboHeaderSyncToken, "content-encoding",
 	}
 )
 

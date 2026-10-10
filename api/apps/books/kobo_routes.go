@@ -346,17 +346,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Paging headers only travel with a merged upstream page: a "continue"
-	// without one makes the device re-request the same page forever.
-	if upstream.note == "" {
-		for _, hdr := range []string{
-			"x-kobo-sync", "x-kobo-sync-mode", "x-kobo-synctoken",
-		} {
-			if v := upstream.hdrs.Get(hdr); v != "" {
-				w.Header().Set(hdr, v)
-			}
-		}
-	}
+	koboForwardPaging(w, upstream)
 
 	all := append(upstream.items, ourEntries...) //nolint:gocritic // intentional
 	all = append(all, stateEntries...)
@@ -367,6 +357,30 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		all = []json.RawMessage{}
 	}
 	koboWriteJSON(w, all)
+}
+
+// Kobo sync paging headers.
+const (
+	koboHeaderSync     = "x-kobo-sync"
+	koboHeaderSyncMode = "x-kobo-sync-mode"
+	//nolint:gosec // a header name, not a credential
+	koboHeaderSyncToken = "x-kobo-synctoken"
+)
+
+// koboForwardPaging copies the upstream paging headers onto the response.
+// They only travel with a merged upstream page: a "continue" without one
+// makes the device re-request the same page forever.
+func koboForwardPaging(w http.ResponseWriter, upstream koboUpstream) {
+	if upstream.note != "" {
+		return
+	}
+	for _, hdr := range []string{
+		koboHeaderSync, koboHeaderSyncMode, koboHeaderSyncToken,
+	} {
+		if v := upstream.hdrs.Get(hdr); v != "" {
+			w.Header().Set(hdr, v)
+		}
+	}
 }
 
 // warmKoboCovers caches every book's cover so the device's per-cover fetches
