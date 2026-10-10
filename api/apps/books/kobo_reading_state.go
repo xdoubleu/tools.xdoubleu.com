@@ -103,16 +103,23 @@ func (app *Books) koboChangedReadingStates(
 	return entries, nil
 }
 
-// koboGetStateHandler handles GET /v1/library/{revisionId}/state.
+// koboGetStateHandler handles GET /v1/library/{revisionId}/state; a Kobo store
+// book's state is the store's.
 func (app *Books) koboGetStateHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := app.koboAuth(w, r)
 	if !ok {
 		return
 	}
 
-	bookID, err := uuid.Parse(r.PathValue("revisionId"))
+	bookID, isLibrary, err := app.koboLibraryBookID(
+		r.Context(), userID, r.PathValue("revisionId"),
+	)
 	if err != nil {
-		http.Error(w, "invalid book id", http.StatusBadRequest)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if !isLibrary {
+		app.koboProxyHandler(w, r)
 		return
 	}
 
@@ -136,16 +143,22 @@ func (app *Books) koboGetStateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // koboPutStateHandler handles PUT /v1/library/{revisionId}/state, answering
-// with the ack shape of calibre-web's HandleStateRequest.
+// with the ack shape of calibre-web's HandleStateRequest. A Kobo store book's
+// state goes to the store (koboStorePutState).
 func (app *Books) koboPutStateHandler(w http.ResponseWriter, r *http.Request) {
 	userID, deviceID, ok := app.koboAuthDevice(w, r)
 	if !ok {
 		return
 	}
 
-	bookID, err := uuid.Parse(r.PathValue("revisionId"))
+	id := r.PathValue("revisionId")
+	bookID, isLibrary, err := app.koboLibraryBookID(r.Context(), userID, id)
 	if err != nil {
-		http.Error(w, "invalid book id", http.StatusBadRequest)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if !isLibrary {
+		app.koboStorePutState(w, r, userID, id)
 		return
 	}
 
