@@ -14,6 +14,7 @@ import { useReadingProgressSaver, useReadingState } from '@/hooks/useReadingStat
 import { flattenLibrary } from '@/lib/books/bookShelves'
 import { resumeFromState, type ReaderResume } from '@/lib/books/readerPosition'
 import { pickReaderFormat } from '@/lib/books/readerSettings'
+import { isWebPubWarm } from '@/lib/books/webpubCache'
 
 // foliate-js drives the DOM directly; never render the reader on the server.
 // Stryker disable next-line all: next/dynamic options must stay an object literal.
@@ -50,6 +51,8 @@ function Fallback({ id, children }: { id: string; children: ReactNode }) {
 export default function ReadBookClient({ id }: { id: string }) {
   const router = useRouter()
   const [openedOnline] = useState(() => navigator.onLine)
+  // Offline, Readium reads the copy kept by the offline sync, if there is one.
+  const [webPubCached, setWebPubCached] = useState<boolean | null>(null)
   const requestedFormat = useSearchParams().get('format')
   const { data, error, isLoading } = useLibrary()
 
@@ -59,6 +62,10 @@ export default function ReadBookClient({ id }: { id: string }) {
   }, [data, id])
 
   const bookId = userBook?.bookId ?? null
+  useEffect(() => {
+    if (openedOnline || !bookId) return
+    void isWebPubWarm(bookId).then(setWebPubCached, () => setWebPubCached(false))
+  }, [openedOnline, bookId])
   const format = userBook ? pickReaderFormat(userBook.formats, requestedFormat) : null
   const version = (format && userBook?.fileVersions[format]) || ''
   const { file, error: fileError } = useOfflineBookFile(format ? bookId : null, format, version)
@@ -123,9 +130,17 @@ export default function ReadBookClient({ id }: { id: string }) {
       </Fallback>
     )
   }
-  // An original EPUB opens in Readium, which reads it from the API rather than
-  // the downloaded blob; offline EPUB opens still use foliate-js.
-  if (format === 'epub' && bookId && resume && openedOnline) {
+  // An original EPUB opens in Readium, which reads it from the API (or its
+  // offline copy) rather than the downloaded blob; foliate-js remains the
+  // fallback for an offline book whose copy was never made.
+  if (format === 'epub' && !openedOnline && webPubCached === null) {
+    return (
+      <Fallback id={id}>
+        <LoadingState label="book" />
+      </Fallback>
+    )
+  }
+  if (format === 'epub' && bookId && resume && (openedOnline || webPubCached)) {
     return (
       <ReadiumBookReader
         key={bookId}

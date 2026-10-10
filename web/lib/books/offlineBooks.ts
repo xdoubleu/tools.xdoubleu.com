@@ -13,6 +13,7 @@ import {
   storeGeneration,
   type StoredBookInfo
 } from '@/lib/offline/store'
+import { evictAllWebPubs, evictWebPub } from './webpubCache'
 
 export { subscribeBookFiles as subscribeStoredBooks } from '@/lib/offline/store'
 
@@ -66,12 +67,14 @@ export async function openBookFile(ref: BookFileRef): Promise<File> {
   return new File([blob], `${ref.bookId}.${ref.format}`, { type: blob.type })
 }
 
-export function deleteStoredBook(bookId: string, format: string): Promise<void> {
-  return deleteBookFile(bookId, format)
+export async function deleteStoredBook(bookId: string, format: string): Promise<void> {
+  await deleteBookFile(bookId, format)
+  if (format === 'epub') await evictWebPub(bookId).catch(() => undefined)
 }
 
-export function deleteAllStoredBooks(): Promise<void> {
-  return clearBookFiles()
+export async function deleteAllStoredBooks(): Promise<void> {
+  await clearBookFiles()
+  await evictAllWebPubs().catch(() => undefined)
 }
 
 export function listStoredBooks(): Promise<StoredBookInfo[]> {

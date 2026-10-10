@@ -12,6 +12,10 @@ const mockUseLibrary = jest.fn()
 const mockUseOfflineBookFile = jest.fn()
 const mockUseReadingState = jest.fn()
 const mockSave = jest.fn()
+const mockIsWebPubWarm = jest.fn()
+jest.mock('@/lib/books/webpubCache', () => ({
+  isWebPubWarm: (...args: unknown[]) => mockIsWebPubWarm(...args)
+}))
 const mockRouterPush = jest.fn()
 const mockRouterBack = jest.fn()
 let mockSearchParams = new URLSearchParams()
@@ -231,12 +235,36 @@ function setFreshReadingState(state: unknown, stale: unknown = { percent: 99 }) 
 }
 
 describe('ReadBookClient', () => {
-  it('falls back to the downloaded file in foliate-js when opened offline', async () => {
-    const online = jest.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false)
-    setLibrary(['epub'])
-    render(<ReadBookClient id="ub-1" />)
-    expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'book-1.epub')
-    online.mockRestore()
+  describe('opened offline', () => {
+    let online: jest.SpyInstance
+    beforeEach(() => {
+      online = jest.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false)
+    })
+    afterEach(() => online.mockRestore())
+
+    it('reads the offline copy in Readium', async () => {
+      mockIsWebPubWarm.mockResolvedValue(true)
+      render(<ReadBookClient id="ub-1" />)
+      expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'readium:book-1')
+    })
+
+    it('falls back to the downloaded file in foliate-js without an offline copy', async () => {
+      mockIsWebPubWarm.mockResolvedValue(false)
+      render(<ReadBookClient id="ub-1" />)
+      expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'book-1.epub')
+    })
+
+    it('falls back when the offline copy cannot be checked', async () => {
+      mockIsWebPubWarm.mockRejectedValue(new Error('x'))
+      render(<ReadBookClient id="ub-1" />)
+      expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'book-1.epub')
+    })
+
+    it('waits for the check', () => {
+      mockIsWebPubWarm.mockReturnValue(new Promise(() => {}))
+      render(<ReadBookClient id="ub-1" />)
+      expect(screen.queryByTestId('reader')).not.toBeInTheDocument()
+    })
   })
 
   it('opens the EPUB by default', async () => {

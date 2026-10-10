@@ -47,7 +47,11 @@ jest.mock(
   { virtual: true }
 )
 
-jest.mock('@/lib/env', () => ({ getApiUrl: () => 'https://api.test' }))
+const mockWebPubFetch = jest.fn()
+jest.mock('@/lib/books/webpubCache', () => ({
+  webPubBaseUrl: (id: string) => `https://api.test/books/api/book/${id}/webpub/`,
+  webPubFetch: (...args: unknown[]) => mockWebPubFetch(...args)
+}))
 
 interface FakeLink {
   href: string
@@ -114,29 +118,18 @@ describe('tocItems', () => {
 const response = (init: object) => init as Response
 
 describe('loadPublication', () => {
-  const realFetch = global.fetch
-  afterEach(() => {
-    global.fetch = realFetch
-  })
-
-  it('fetches the manifest with credentials', async () => {
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValue(response({ ok: true, json: () => Promise.resolve({ a: 1 }) }))
-    global.fetch = fetchMock
+  it('fetches the manifest through the offline-aware fetch', async () => {
+    mockWebPubFetch.mockResolvedValue(response({ ok: true, json: () => Promise.resolve({ a: 1 }) }))
     await loadPublication('b')
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.test/books/api/book/b/webpub/manifest.json',
-      { credentials: 'include' }
+    expect(mockWebPubFetch).toHaveBeenCalledWith(
+      'https://api.test/books/api/book/b/webpub/manifest.json'
     )
   })
 
   it('rejects on a failed request or an invalid manifest', async () => {
-    global.fetch = jest.fn().mockResolvedValueOnce(response({ ok: false, status: 404 }))
+    mockWebPubFetch.mockResolvedValueOnce(response({ ok: false, status: 404 }))
     await expect(loadPublication('b')).rejects.toThrow('404')
-    global.fetch = jest
-      .fn()
-      .mockResolvedValueOnce(response({ ok: true, json: () => Promise.resolve(null) }))
+    mockWebPubFetch.mockResolvedValueOnce(response({ ok: true, json: () => Promise.resolve(null) }))
     await expect(loadPublication('b')).rejects.toThrow('invalid manifest')
   })
 })

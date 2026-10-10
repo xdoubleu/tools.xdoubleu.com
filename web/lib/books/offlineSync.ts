@@ -9,6 +9,7 @@ import {
   type BookFileRef
 } from './offlineBooks'
 import { pickReaderFormat } from './readerSettings'
+import { isWebPubWarm, warmWebPub } from './webpubCache'
 import type { LibraryResponse, UserBook } from '@/lib/gen/books/v1/library_pb'
 import { savePageForOffline } from '@/lib/offline/session'
 import type { StoredBookInfo } from '@/lib/offline/store'
@@ -97,6 +98,15 @@ async function evict(library: LibraryResponse): Promise<StoredBookInfo[]> {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+// An EPUB stored before the offline copy existed gets one on the next sync.
+async function warmStoredEPUBs(stored: StoredBookInfo[]) {
+  for (const { bookId, format } of stored) {
+    if (format !== 'epub' || !canPrefetch()) continue
+    if (await isWebPubWarm(bookId).catch(() => true)) continue
+    await warmWebPub(bookId).catch(() => undefined)
+  }
+}
+
 async function syncOnce(library: LibraryResponse, gapMs: number) {
   const stored = await evict(library)
   const { downloads } = planOfflineBooks(library, stored)
@@ -108,6 +118,7 @@ async function syncOnce(library: LibraryResponse, gapMs: number) {
     try {
       await downloadBookFile(ref)
       downloaded++
+      if (ref.format === 'epub') await warmWebPub(ref.bookId).catch(() => undefined)
       savePageForOffline(readerPath)
     } catch {
       // Losing the connection isn't the file's fault.
@@ -117,6 +128,7 @@ async function syncOnce(library: LibraryResponse, gapMs: number) {
   }
   // Again, so a newly stored format replaces the old one.
   const remaining = await evict(library)
+  await warmStoredEPUBs(remaining)
   if (remaining.length > 0 && canPrefetch()) await warmReaderModules()
 }
 

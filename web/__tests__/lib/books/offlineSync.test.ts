@@ -28,6 +28,13 @@ jest.mock('@/lib/offline/session', () => ({
   savePageForOffline: (url: string) => mockSavePage(url)
 }))
 
+const mockWarmWebPub = jest.fn()
+const mockIsWebPubWarm = jest.fn()
+jest.mock('@/lib/books/webpubCache', () => ({
+  warmWebPub: (...args: unknown[]) => mockWarmWebPub(...args),
+  isWebPubWarm: (...args: unknown[]) => mockIsWebPubWarm(...args)
+}))
+
 const mockWarm = jest.fn()
 jest.mock('@/lib/books/foliate', () => ({
   warmReaderModules: () => mockWarm()
@@ -68,6 +75,8 @@ beforeEach(() => {
   mockList.mockResolvedValue([])
   mockDownload.mockResolvedValue(new Blob(['x']))
   mockDelete.mockResolvedValue(undefined)
+  mockWarmWebPub.mockResolvedValue(undefined)
+  mockIsWebPubWarm.mockResolvedValue(true)
 })
 
 describe('preferredBookFormat', () => {
@@ -332,5 +341,49 @@ describe('syncOfflineBooks', () => {
     mockList.mockResolvedValue([stored('w', 'epub', 'w-v1')])
     await syncOfflineBooks(library({ reading: [book('w')] }), { gapMs: 0 })
     expect(mockWarm).toHaveBeenCalled()
+  })
+
+  it('warms the offline copy of a freshly downloaded EPUB, but not of a PDF', async () => {
+    const epub = book('e')
+    const pdf = book('p', { formats: ['pdf'], fileVersions: { pdf: 'p-v1' } })
+    await syncOfflineBooks(library({ reading: [epub, pdf] }), { gapMs: 0 })
+    expect(mockWarmWebPub).toHaveBeenCalledTimes(1)
+    expect(mockWarmWebPub).toHaveBeenCalledWith('e')
+  })
+
+  it('keeps the download when warming the offline copy fails', async () => {
+    mockWarmWebPub.mockRejectedValue(new Error('x'))
+    await syncOfflineBooks(library({ reading: [book('e')] }), { gapMs: 0 })
+    expect(mockDownload).toHaveBeenCalled()
+    expect(mockSavePage).toHaveBeenCalledWith('/books/ub-e/read')
+  })
+
+  it('gives a stored EPUB without an offline copy one', async () => {
+    mockList.mockResolvedValue([stored('e', 'epub', 'e-v1'), stored('p', 'pdf', 'p-v1')])
+    mockIsWebPubWarm.mockImplementation(async (id: string) => id === 'warm')
+    await syncOfflineBooks(
+      library({
+        reading: [book('e'), book('p', { formats: ['pdf'], fileVersions: { pdf: 'p-v1' } })]
+      }),
+      { gapMs: 0 }
+    )
+    expect(mockWarmWebPub).toHaveBeenCalledTimes(1)
+    expect(mockWarmWebPub).toHaveBeenCalledWith('e')
+  })
+
+  it('leaves a stored EPUB alone when its copy exists or the check fails', async () => {
+    mockList.mockResolvedValue([stored('e', 'epub', 'e-v1')])
+    await syncOfflineBooks(library({ reading: [book('e')] }), { gapMs: 0 })
+    mockIsWebPubWarm.mockRejectedValue(new Error('x'))
+    await syncOfflineBooks(library({ reading: [book('e')] }), { gapMs: 0 })
+    expect(mockWarmWebPub).not.toHaveBeenCalled()
+  })
+
+  it('does not warm stored EPUBs while offline', async () => {
+    mockList.mockResolvedValue([stored('e', 'epub', 'e-v1')])
+    mockIsWebPubWarm.mockResolvedValue(false)
+    setOnline(false)
+    await syncOfflineBooks(library({ reading: [book('e')] }), { gapMs: 0 })
+    expect(mockWarmWebPub).not.toHaveBeenCalled()
   })
 })
