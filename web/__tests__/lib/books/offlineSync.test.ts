@@ -36,7 +36,7 @@ jest.mock('@/lib/books/webpubCache', () => ({
 }))
 
 const mockWarm = jest.fn()
-jest.mock('@/lib/books/foliate', () => ({
+jest.mock('@/lib/books/readerModules', () => ({
   warmReaderModules: () => mockWarm()
 }))
 

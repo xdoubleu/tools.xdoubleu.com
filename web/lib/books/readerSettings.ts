@@ -1,4 +1,4 @@
-// Pure helpers for the foliate-js book reader (components/books/reader/).
+// Pure helpers for the book readers (components/books/reader/).
 
 export type ReaderFormat = 'epub' | 'pdf'
 export type ReaderTheme = 'light' | 'sepia' | 'dark'

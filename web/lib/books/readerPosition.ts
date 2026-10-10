@@ -1,7 +1,7 @@
-// Format-neutral reading positions (adr-0029) and their foliate-js ranges.
-// An EPUB offset counts UTF-16 code units of the section body's textContent.
+// Format-neutral reading positions (adr-0029). An EPUB offset counts UTF-16
+// code units of the section body's textContent.
 
-/** `{href, offset}` for EPUB/KEPUB (href relative to the zip root), `{page}` (1-based) for PDF. */
+/** `{href, offset}` for an EPUB (href relative to the zip root), `{page}` (1-based) for a PDF. */
 export type ReaderPosition = { href: string; offset: number } | { page: number }
 
 /** Where to reopen a book: the stored position, else the stored percent. */
@@ -12,79 +12,21 @@ export interface ReaderResume {
   percent: number
 }
 
-/** A foliate-js section: EPUB ids are manifest hrefs, PDF ids page indexes. */
-export interface ReaderSection {
-  id: string | number
+/** Where the reader is; `section` is the spine index, or the page index for a PDF. */
+export interface ReaderLocation {
+  fraction: number
+  section: number
+  tocLabel?: string
+  tocHref?: string
+  /** Set only on locations passed to `onRelocate`. */
+  position?: ReaderPosition
 }
 
-export type ResumeTarget =
-  { index: number; anchor?: (doc: Document) => Range } | { fraction: number } | null
-
-/** Text offset of the boundary point (node, offset) within the body. */
-export function textOffsetAt(node: Node, offset: number): number {
-  const doc = node.ownerDocument
-  if (!doc?.body) return 0
-  const range = doc.createRange()
-  range.setStart(doc.body, 0)
-  range.setEnd(node, offset)
-  return range.toString().length
-}
-
-/** A collapsed range at a body text offset (at the start of a node on a boundary), clamped to the end. */
-export function rangeAtTextOffset(doc: Document, offset: number): Range {
-  const range = doc.createRange()
-  range.setStart(doc.body, 0)
-  const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT)
-  let remaining = offset
-  let last: Text | null = null
-  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- SHOW_TEXT only yields Text nodes
-    last = node as Text
-    if (remaining < last.length) {
-      range.setStart(last, remaining)
-      return range
-    }
-    remaining -= last.length
-  }
-  if (last) range.setStart(last, last.length)
-  return range
-}
-
-/** The neutral position for a relocate in section `index` starting at `range`. */
-export function positionAt(
-  sections: ReaderSection[] | undefined,
-  index: number,
-  range?: Range
-): ReaderPosition | undefined {
-  const section = sections?.[index]
-  if (!section) return undefined
-  if (typeof section.id === 'number') return { page: index + 1 }
-  const offset = range ? textOffsetAt(range.startContainer, range.startOffset) : 0
-  return { href: section.id, offset }
-}
-
-/** Where to open: a stored position that fits this file, else the percent. */
-export function resumeTarget(
-  sections: ReaderSection[] | undefined,
-  resume: ReaderResume | undefined
-): ResumeTarget {
-  for (const position of [resume?.position, resume?.alsoAt]) {
-    const target = sections && position && targetIn(sections, position)
-    if (target) return target
-  }
-  const percent = resume?.percent ?? 0
-  return percent > 0 ? { fraction: percent / 100 } : null
-}
-
-function targetIn(sections: ReaderSection[], position: ReaderPosition): ResumeTarget {
-  if ('page' in position) {
-    const index = position.page - 1
-    return typeof sections[index]?.id === 'number' ? { index } : null
-  }
-  const index = sections.findIndex((s) => s.id === position.href)
-  if (index < 0) return null
-  const { offset } = position
-  return { index, anchor: (doc) => rangeAtTextOffset(doc, offset) }
+/** A contents entry; `href` is missing on grouping entries that don't link anywhere. */
+export interface ReaderTocItem {
+  label: string
+  href?: string
+  subitems?: ReaderTocItem[]
 }
 
 /** Reads GetReadingState's state; a missing state opens at the start. */

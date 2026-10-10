@@ -2,8 +2,6 @@ node_modules/
 .next/
 out/
 coverage/
-# scripts/copy-foliate.mjs
-public/foliate-js/
 .stryker-tmp/
 reports/
 stryker.log

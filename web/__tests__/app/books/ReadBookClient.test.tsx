@@ -48,43 +48,6 @@ interface MockReaderProps {
   initialPosition: unknown
 }
 
-jest.mock('@/components/books/reader/BookReader', () => ({
-  __esModule: true,
-  default: ({ file, title, onClose, onRelocate, initialPosition }: MockReaderProps) => (
-    <div
-      data-testid="reader"
-      data-file={file.name}
-      data-title={title}
-      data-initial={JSON.stringify(initialPosition)}
-    >
-      <button type="button" onClick={onClose}>
-        Close reader
-      </button>
-      <button type="button" onClick={() => onRelocate({ fraction: 0.5, section: 2 })}>
-        Turn page
-      </button>
-      <button
-        type="button"
-        onClick={() =>
-          onRelocate({
-            fraction: 0.1234,
-            section: 3,
-            position: { href: 'OEBPS/ch3.xhtml', offset: 42 }
-          })
-        }
-      >
-        Read on
-      </button>
-      <button
-        type="button"
-        onClick={() => onRelocate({ fraction: 0.1234, section: 2, position: { page: 3 } })}
-      >
-        Read PDF page
-      </button>
-    </div>
-  )
-}))
-
 jest.mock('@/components/books/reader/PdfBookReader', () => ({
   __esModule: true,
   default: ({ file, title, onClose, onRelocate, initialPosition }: MockReaderProps) => (
@@ -248,16 +211,17 @@ describe('ReadBookClient', () => {
       expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'readium:book-1')
     })
 
-    it('falls back to the downloaded file in foliate-js without an offline copy', async () => {
+    it('says the book is unavailable without an offline copy', async () => {
       mockIsWebPubWarm.mockResolvedValue(false)
       render(<ReadBookClient id="ub-1" />)
-      expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'book-1.epub')
+      expect(await screen.findByText(/isn.t available offline/)).toBeInTheDocument()
+      expect(screen.queryByTestId('reader')).not.toBeInTheDocument()
     })
 
-    it('falls back when the offline copy cannot be checked', async () => {
+    it('says the same when the offline copy cannot be checked', async () => {
       mockIsWebPubWarm.mockRejectedValue(new Error('x'))
       render(<ReadBookClient id="ub-1" />)
-      expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'book-1.epub')
+      expect(await screen.findByText(/isn.t available offline/)).toBeInTheDocument()
     })
 
     it('waits for the check', () => {
@@ -269,7 +233,7 @@ describe('ReadBookClient', () => {
 
   it('opens the EPUB by default', async () => {
     render(<ReadBookClient id="ub-1" />)
-    expect(mockUseOfflineBookFile).toHaveBeenCalledWith('book-1', 'epub', 'v-epub')
+    expect(mockUseOfflineBookFile).toHaveBeenCalledWith(null, 'epub', 'v-epub')
     const reader = await screen.findByTestId('reader')
     expect(reader).toHaveAttribute('data-file', 'readium:book-1')
     expect(reader).toHaveAttribute('data-title', 'Dune')
@@ -305,6 +269,7 @@ describe('ReadBookClient', () => {
   })
 
   it('shows an error when the file can neither be loaded nor downloaded', () => {
+    setLibrary(['pdf'])
     mockUseOfflineBookFile.mockReturnValue({ error: new Error('boom') })
     render(<ReadBookClient id="ub-1" />)
     expect(screen.getByText('Failed to load book file.')).toBeInTheDocument()
@@ -441,6 +406,6 @@ describe('ReadBookClient', () => {
     mockSearchParams = new URLSearchParams('format=kepub')
     render(<ReadBookClient id="ub-1" />)
     expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'readium:book-1')
-    expect(mockUseOfflineBookFile).toHaveBeenCalledWith('book-1', 'epub', 'v-epub')
+    expect(mockUseOfflineBookFile).toHaveBeenCalledWith(null, 'epub', 'v-epub')
   })
 })

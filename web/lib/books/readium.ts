@@ -3,8 +3,7 @@
 // `{href, offset}` positions of adr-0029. Browser-only.
 import { HttpFetcher, Locator, LocatorLocations, Manifest, Publication } from '@readium/shared'
 import type { Link } from '@readium/shared'
-import type { FoliateTocItem } from './foliate'
-import type { ReaderPosition, ReaderResume } from './readerPosition'
+import type { ReaderPosition, ReaderResume, ReaderTocItem } from './readerPosition'
 import { webPubBaseUrl, webPubFetch } from './webpubCache'
 import { readerBackground, readerTextColors, type ReaderTheme } from './readerSettings'
 
@@ -36,7 +35,7 @@ export function readiumPreferences(theme: ReaderTheme, fontSize: number) {
 }
 
 /** The TOC in the shape the contents drawer renders. */
-export function tocItems(links: readonly Link[] | undefined): FoliateTocItem[] {
+export function tocItems(links: readonly Link[] | undefined): ReaderTocItem[] {
   return (links ?? []).map((l) => ({
     label: l.title ?? '',
     href: l.href || undefined,

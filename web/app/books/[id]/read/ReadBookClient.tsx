@@ -7,18 +7,13 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 import { ErrorState, LoadingState } from '@/components/ui/states'
-import type { ReaderLocation } from '@/components/books/reader/BookReader'
 import { useLibrary } from '@/hooks/useBooks'
 import { useOfflineBookFile } from '@/hooks/useOfflineBooks'
 import { useReadingProgressSaver, useReadingState } from '@/hooks/useReadingState'
 import { flattenLibrary } from '@/lib/books/bookShelves'
-import { resumeFromState, type ReaderResume } from '@/lib/books/readerPosition'
+import { resumeFromState, type ReaderLocation, type ReaderResume } from '@/lib/books/readerPosition'
 import { pickReaderFormat } from '@/lib/books/readerSettings'
 import { isWebPubWarm } from '@/lib/books/webpubCache'
-
-// foliate-js drives the DOM directly; never render the reader on the server.
-// Stryker disable next-line all: next/dynamic options must stay an object literal.
-const BookReader = dynamic(() => import('@/components/books/reader/BookReader'), { ssr: false })
 
 // Readium builds iframes and reads sections from the API; client-only too.
 // Stryker disable next-line all: next/dynamic options must stay an object literal.
@@ -68,7 +63,12 @@ export default function ReadBookClient({ id }: { id: string }) {
   }, [openedOnline, bookId])
   const format = userBook ? pickReaderFormat(userBook.formats, requestedFormat) : null
   const version = (format && userBook?.fileVersions[format]) || ''
-  const { file, error: fileError } = useOfflineBookFile(format ? bookId : null, format, version)
+  // Readium reads an EPUB from the API (or its offline copy); only a PDF is a file.
+  const { file, error: fileError } = useOfflineBookFile(
+    format === 'pdf' ? bookId : null,
+    format,
+    version
+  )
 
   // Resume from a read made after mounting: the SWR cache may predate this
   // session's saves or another device's. A failed read falls back to the cache.
@@ -130,38 +130,34 @@ export default function ReadBookClient({ id }: { id: string }) {
       </Fallback>
     )
   }
-  // An original EPUB opens in Readium, which reads it from the API (or its
-  // offline copy) rather than the downloaded blob; foliate-js remains the
-  // fallback for an offline book whose copy was never made.
-  if (format === 'epub' && !openedOnline && webPubCached === null) {
-    return (
+  if (format === 'epub') {
+    if (!openedOnline && webPubCached === null) {
+      return (
+        <Fallback id={id}>
+          <LoadingState label="book" />
+        </Fallback>
+      )
+    }
+    if (!openedOnline && !webPubCached) {
+      return (
+        <Fallback id={id}>
+          <p className="text-muted">This book isn&apos;t available offline yet.</p>
+        </Fallback>
+      )
+    }
+    return resume ? (
+      <ReadiumBookReader
+        key={bookId}
+        bookId={userBook.bookId}
+        title={userBook.book?.title ?? 'Book'}
+        onClose={close}
+        onRelocate={onRelocate}
+        initialPosition={resume}
+      />
+    ) : (
       <Fallback id={id}>
         <LoadingState label="book" />
       </Fallback>
-    )
-  }
-  if (format === 'epub' && bookId && resume && (openedOnline || webPubCached)) {
-    return (
-      <ReadiumBookReader
-        key={bookId}
-        bookId={bookId}
-        title={userBook.book?.title ?? 'Book'}
-        onClose={close}
-        onRelocate={onRelocate}
-        initialPosition={resume}
-      />
-    )
-  }
-  if (format === 'pdf' && file && resume) {
-    return (
-      <PdfBookReader
-        key={format}
-        file={file}
-        title={userBook.book?.title ?? 'Book'}
-        onClose={close}
-        onRelocate={onRelocate}
-        initialPosition={resume}
-      />
     )
   }
   if (!file && fileError) {
@@ -180,8 +176,8 @@ export default function ReadBookClient({ id }: { id: string }) {
   }
 
   return (
-    <BookReader
-      key={format}
+    <PdfBookReader
+      key={bookId}
       file={file}
       title={userBook.book?.title ?? 'Book'}
       onClose={close}

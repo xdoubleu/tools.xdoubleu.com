@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { EpubNavigator, EpubPreferences } from '@readium/navigator'
 import { Link, type Locator, type Publication } from '@readium/shared'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import type { FoliateTocItem } from '@/lib/books/foliate'
 import {
   loadPublication,
   locatorToPosition,
@@ -14,7 +13,7 @@ import {
   sectionIndex,
   tocItems
 } from '@/lib/books/readium'
-import type { ReaderResume } from '@/lib/books/readerPosition'
+import type { ReaderLocation, ReaderResume, ReaderTocItem } from '@/lib/books/readerPosition'
 import {
   READER_FONT_SIZE_DEFAULT,
   tapDirection,
@@ -23,7 +22,6 @@ import {
 } from '@/lib/books/readerSettings'
 import ReaderControls from './ReaderControls'
 import ReaderShell, { type ReaderStatus } from './ReaderShell'
-import type { ReaderLocation } from './useFoliateView'
 
 interface ReadiumBookReaderProps {
   bookId: string
@@ -41,8 +39,8 @@ function appTheme(): ReaderTheme {
 
 const noop = () => {}
 
-function tocLabelAt(items: FoliateTocItem[], href: string): FoliateTocItem | undefined {
-  let found: FoliateTocItem | undefined
+function tocLabelAt(items: ReaderTocItem[], href: string): ReaderTocItem | undefined {
+  let found: ReaderTocItem | undefined
   for (const item of items) {
     if (item.href?.split('#')[0] === href) found = item
     found = tocLabelAt(item.subitems ?? [], href) ?? found
@@ -60,7 +58,7 @@ export default function ReadiumBookReader({
 }: ReadiumBookReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [navigator, setNavigator] = useState<EpubNavigator | null>(null)
-  const [toc, setToc] = useState<FoliateTocItem[]>([])
+  const [toc, setToc] = useState<ReaderTocItem[]>([])
   const [status, setStatus] = useState<ReaderStatus>('loading')
   const [location, setLocation] = useState<ReaderLocation | null>(null)
   const [storedTheme, setTheme] = useLocalStorage<ReaderTheme | null>('books:reader-theme', null)
@@ -83,7 +81,7 @@ export default function ReadiumBookReader({
     let opened = false
     let onKey: (e: KeyboardEvent) => void = noop
 
-    const handleLocator = async (pub: Publication, locator: Locator, items: FoliateTocItem[]) => {
+    const handleLocator = async (pub: Publication, locator: Locator, items: ReaderTocItem[]) => {
       const entry = tocLabelAt(items, locator.href.split('#')[0]!)
       const next: ReaderLocation = {
         fraction: overallFraction(pub, locator),

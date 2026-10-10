@@ -7,7 +7,7 @@
 ## Context
 
 A book is read on a Kobo (converted KEPUB, positions are `kobo.X.Y` spans)
-and in the web reader (original EPUB or PDF, foliate-js ranges). Each device
+and in the web reader (original EPUB through Readium, or PDF). Each device
 can be offline for a while and report late. Percent alone isn't enough: the
 Kobo firmware reopens at the cover without a `Location`, and a percent lands
 on a different paragraph in each format.
@@ -17,7 +17,7 @@ on a different paragraph in each format.
 - **Neutral position.** `book_reading_state.position` stores
   `{"href","offset"}` for EPUB/KEPUB or `{"page"}` for PDF.
   - `href` is the content document path from the EPUB manifest, relative to
-    the zip root (foliate's section `id`).
+    the zip root (the Readium reading-order link, minus its `res/` prefix).
   - `offset` counts UTF-16 code units of that section's `body.textContent`
     before the position.
   - `page` is 1-based.

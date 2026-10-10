@@ -15,16 +15,15 @@ which the HTTP cache and the Cache API can't key. Next's
 ## Decision
 
 - **Service worker** (`lib/offline/serviceWorker.ts`): one self-contained
-  function that `/sw.js` serves as `(${fn})(self, enabled, readerVersion)`,
+  function that `/sw.js` serves as `(${fn})(self, enabled)`,
   so Jest tests the real logic.
   - Navigations are network-first, falling back to the last saved copy, or an
     offline page if there is none. A saved page keeps its own CSP header and
     nonce together.
   - `/_next/static` is cache-first, since it is content-hashed.
-  - `/foliate-js/` (the reader and pdf.js) is cache-first in a cache named
-    after a content hash of the runtime (written by `copy-foliate.mjs`), since
-    its URLs aren't hashed; a patch to the served files busts the cache without
-    a pin bump.
+  - An EPUB's WebPub (manifest and sections, served by the API) is kept by
+    the page in the Cache API (`tools-webpub`), network-first, and warmed by
+    the offline sync (`lib/books/webpubCache.ts`).
   - After each client-side route change, the page asks the worker to save its
     URL. These requests are throttled to once per 10 min per URL. Saving a
     page also caches the `/_next/static` assets it references.

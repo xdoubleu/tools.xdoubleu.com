@@ -1,6 +1,6 @@
 // pdf.js glue for the PDF reader. Browser-only: load it from an effect.
 import type { PDFDocumentProxy } from 'pdfjs-dist'
-import type { FoliateTocItem } from './foliate'
+import type { ReaderTocItem } from './readerPosition'
 
 const PAGE_HREF = '#page='
 
@@ -13,15 +13,16 @@ export function pageOf(href: string): number | null {
   return Number.isInteger(page) && page > 0 ? page : null
 }
 
+/** Where the pdf.js worker is served from. */
+export const pdfWorkerUrl = () =>
+  new URL('pdfjs-dist/legacy/build/pdf.worker.min.mjs', import.meta.url).toString()
+
 /** Opens a PDF from its bytes, or from a URL fetched with the session cookie. */
 export async function openPdf(
   file: Blob | string
 ): Promise<{ pdf: PDFDocumentProxy; destroy: () => Promise<void> }> {
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/legacy/build/pdf.worker.min.mjs',
-    import.meta.url
-  ).toString()
+  pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl()
   const source =
     typeof file === 'string'
       ? { url: file, withCredentials: true }
@@ -54,10 +55,7 @@ async function pageOfDest(
   return null
 }
 
-async function outlineItems(
-  pdf: PDFDocumentProxy,
-  nodes: OutlineNode[]
-): Promise<FoliateTocItem[]> {
+async function outlineItems(pdf: PDFDocumentProxy, nodes: OutlineNode[]): Promise<ReaderTocItem[]> {
   return Promise.all(
     nodes.map(async (n) => {
       const page = await pageOfDest(pdf, n.dest)
@@ -71,13 +69,13 @@ async function outlineItems(
 }
 
 /** The PDF's outline as contents entries linking to `#page=N`. */
-export async function pdfOutline(pdf: PDFDocumentProxy): Promise<FoliateTocItem[]> {
+export async function pdfOutline(pdf: PDFDocumentProxy): Promise<ReaderTocItem[]> {
   const outline = await pdf.getOutline().catch(() => null)
   return outline ? outlineItems(pdf, outline) : []
 }
 
 /** The title of the last entry at or before `page`, in document order. */
-export function tocLabelForPage(items: FoliateTocItem[], page: number): string | undefined {
+export function tocLabelForPage(items: ReaderTocItem[], page: number): string | undefined {
   let label: string | undefined
   for (const item of items) {
     const at = item.href ? pageOf(item.href) : null

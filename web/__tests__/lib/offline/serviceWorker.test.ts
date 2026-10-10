@@ -51,7 +51,7 @@ class FakeCacheStorage {
 
 type Listener = (event: SwFetchEvent & SwMessageEvent) => void
 
-function setup(enabled = true, readerVersion = 'pin1') {
+function setup(enabled = true) {
   const listeners = new Map<string, Listener>()
   const caches = new FakeCacheStorage()
   const fetch = jest.fn<Promise<Response>, [RequestInfo | URL, RequestInit?]>()
@@ -64,7 +64,7 @@ function setup(enabled = true, readerVersion = 'pin1') {
     fetch,
     addEventListener: (type: string, listener: Listener) => listeners.set(type, listener)
   }
-  serviceWorker(scope, enabled, readerVersion)
+  serviceWorker(scope, enabled)
 
   async function dispatch(type: string, extra: { request?: Request; data?: unknown } = {}) {
     const waits: Promise<unknown>[] = []
@@ -287,48 +287,14 @@ describe('serviceWorker', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('serves reader modules cache-first under the pinned version', async () => {
-    const { caches, fetch, dispatch } = setup()
-    const worker = () => ({
-      request: new Request(`${ORIGIN}/foliate-js/vendor/pdfjs/pdf.worker.mjs`)
-    })
-    fetch.mockResolvedValueOnce(new Response('worker'))
-
-    expect(await (await dispatch('fetch', worker()))?.text()).toBe('worker')
-    expect(await (await dispatch('fetch', worker()))?.text()).toBe('worker')
-    expect(fetch).toHaveBeenCalledTimes(1)
-    expect(caches.stores.get('tools-reader-pin1')?.entries.size).toBe(1)
-  })
-
-  it('does not cache a failed reader module', async () => {
-    const { caches, fetch, dispatch } = setup()
-    fetch.mockResolvedValueOnce(new Response('', { status: 404 }))
-
-    const res = await dispatch('fetch', { request: new Request(`${ORIGIN}/foliate-js/view.js`) })
-
-    expect(res?.status).toBe(404)
-    expect(caches.stores.get('tools-reader-pin1')?.entries.size).toBe(0)
-  })
-
-  it('drops reader modules of another pin on activate', async () => {
-    const { caches, dispatch } = setup(true, 'pin2')
-    await caches.open('tools-reader-pin1')
-    await caches.open('tools-reader-pin2')
-
-    await dispatch('activate')
-
-    expect(await caches.keys()).toEqual(['tools-reader-pin2'])
-  })
-
-  it('clears saved pages but keeps static assets and reader modules', async () => {
+  it('clears saved pages but keeps static assets', async () => {
     const { caches, fetch, dispatch } = setup()
     fetch.mockImplementation(async () => html())
     await caches.open('tools-static')
-    await caches.open('tools-reader-pin1')
     await dispatch('message', { data: { type: 'save-page', url: '/feeds' } })
 
     await dispatch('message', { data: { type: 'clear' } })
-    expect(await caches.keys()).toEqual(['tools-static', 'tools-reader-pin1'])
+    expect(await caches.keys()).toEqual(['tools-static'])
 
     // Nothing saved any more, so the next request fetches again.
     await dispatch('message', { data: { type: 'save-page', url: '/feeds' } })
@@ -349,8 +315,8 @@ describe('serviceWorker', () => {
 })
 
 describe('serviceWorkerScript', () => {
-  it('invokes the worker with the enabled flag and reader version', () => {
-    expect(serviceWorkerScript(true, 'abc')).toMatch(/\)\(self, true, "abc"\);\n$/)
-    expect(serviceWorkerScript(false, 'abc')).toMatch(/\)\(self, false, "abc"\);\n$/)
+  it('invokes the worker with the enabled flag', () => {
+    expect(serviceWorkerScript(true)).toMatch(/\)\(self, true\);\n$/)
+    expect(serviceWorkerScript(false)).toMatch(/\)\(self, false\);\n$/)
   })
 })
