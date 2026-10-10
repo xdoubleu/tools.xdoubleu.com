@@ -16,7 +16,6 @@ import {
   stepFontSize,
   type ReaderTheme
 } from '@/lib/books/readerSettings'
-import { readerChoiceOptions, type ReaderChoiceControl } from '@/lib/books/readerChoice'
 
 interface ReaderSettingsSheetProps {
   open: boolean
@@ -27,7 +26,6 @@ interface ReaderSettingsSheetProps {
   onFontSizeChange: (fontSize: number) => void
   /** Font size only applies to reflowable books; PDFs are fixed layout. */
   reflowable: boolean
-  format?: ReaderChoiceControl
 }
 
 export default function ReaderSettingsSheet({
@@ -37,8 +35,7 @@ export default function ReaderSettingsSheet({
   onThemeChange,
   fontSize,
   onFontSizeChange,
-  reflowable,
-  format
+  reflowable
 }: ReaderSettingsSheetProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -48,17 +45,6 @@ export default function ReaderSettingsSheet({
           <DialogClose aria-label="Close reading settings" />
         </DialogHeader>
         <div className="mt-4 space-y-5">
-          {format && (
-            <div>
-              <p className="mb-2 text-xs text-muted">Format</p>
-              <SegmentedTabs
-                aria-label="Format"
-                value={format.value}
-                onChange={format.onChange}
-                options={readerChoiceOptions(format.original)}
-              />
-            </div>
-          )}
           <div>
             <p className="mb-2 text-xs text-muted">Theme</p>
             <SegmentedTabs

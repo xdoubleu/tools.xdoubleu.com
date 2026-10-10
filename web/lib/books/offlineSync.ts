@@ -1,5 +1,5 @@
-// Keeps currently-reading books on the device in the format this device reads
-// them in, and removes stored files the library no longer needs.
+// Keeps currently-reading books on the device in their original format, and
+// removes stored files the library no longer needs.
 import { flattenLibrary } from './bookShelves'
 import { warmReaderModules } from './foliate'
 import {
@@ -8,8 +8,7 @@ import {
   listStoredBooks,
   type BookFileRef
 } from './offlineBooks'
-import { loadReaderChoice, readerFileFormat } from './readerChoice'
-import { pickReaderFormat, readerFormats } from './readerSettings'
+import { pickReaderFormat } from './readerSettings'
 import type { LibraryResponse, UserBook } from '@/lib/gen/books/v1/library_pb'
 import { savePageForOffline } from '@/lib/offline/session'
 import type { StoredBookInfo } from '@/lib/offline/store'
@@ -28,27 +27,16 @@ export interface OfflinePlan {
   evictions: { bookId: string; format: string }[]
 }
 
-/**
- * The file this device reads the book in: its stored choice as
- * `ReadBookClient` applies it, else a file already stored (one opened through
- * `?format=`, which isn't remembered), else the default original.
- */
-export function preferredBookFormat(
-  userBook: UserBook,
-  stored: ReadonlySet<string> = new Set()
-): string | null {
-  const original = pickReaderFormat(userBook.formats, null)
-  if (!original) return null
-  const choice = loadReaderChoice(userBook.bookId)
-  if (choice) return readerFileFormat(original, choice)
-  return [...readerFormats(userBook.formats), 'kepub'].find((f) => stored.has(f)) ?? original
+/** The file the reader opens for the book: its original EPUB (preferred) or PDF. */
+export function preferredBookFormat(userBook: UserBook): string | null {
+  return pickReaderFormat(userBook.formats, null)
 }
 
 /**
- * Downloads: currently-reading books whose preferred file is ready but not
+ * Downloads: currently-reading books whose original file is ready but not
  * stored at its current version. Evictions: every file of a finished book or
- * one no longer in the library, and, once the file of a book's stored
- * choice is stored, its files of the other kind (KEPUB vs original).
+ * one no longer in the library, and any stored KEPUB (the reader no longer
+ * opens one).
  */
 export function planOfflineBooks(library: LibraryResponse, stored: StoredBookInfo[]): OfflinePlan {
   const books = new Map(flattenLibrary(library).map((ub) => [ub.bookId, ub]))
@@ -63,19 +51,15 @@ export function planOfflineBooks(library: LibraryResponse, stored: StoredBookInf
   for (const [bookId, formats] of storedVersions) {
     const userBook = books.get(bookId)
     const evictAll = !userBook || userBook.status === FINISHED
-    const chosen = userBook && loadReaderChoice(bookId) ? preferredBookFormat(userBook) : null
-    // The chosen file, when it is stored.
-    const keep = [...formats.keys()].find((f) => f === chosen)
     for (const format of formats.keys()) {
-      const otherKind = keep !== undefined && (format === 'kepub') !== (keep === 'kepub')
-      if (evictAll || otherKind) evictions.push({ bookId, format })
+      if (evictAll || format === 'kepub') evictions.push({ bookId, format })
     }
   }
 
   const downloads: PlannedDownload[] = []
   for (const userBook of library.reading) {
     const storedFormats = storedVersions.get(userBook.bookId)
-    const format = preferredBookFormat(userBook, new Set(storedFormats?.keys()))
+    const format = preferredBookFormat(userBook)
     const version = format ? userBook.fileVersions[format] : undefined
     if (!format || !version || storedFormats?.get(format) === version) continue
     downloads.push({

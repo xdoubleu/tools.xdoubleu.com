@@ -524,21 +524,6 @@ describe('BookReader', () => {
     expect(screen.queryByRole('button', { name: 'Contents' })).not.toBeInTheDocument()
   })
 
-  it('switches format from the reading settings', async () => {
-    const onChange = jest.fn()
-    await renderReader(makeView(), {
-      format: { value: 'kepub', original: 'epub', onChange }
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Reading settings' }))
-    const sheet = await screen.findByRole('dialog', { name: 'Reading settings' })
-    expect(within(sheet).getByRole('tab', { name: 'Converted (KEPUB)' })).toHaveAttribute(
-      'aria-selected',
-      'true'
-    )
-    fireEvent.click(within(sheet).getByRole('tab', { name: 'Original (EPUB)' }))
-    expect(onChange).toHaveBeenCalledWith('original')
-  })
-
   it('applies the theme and font size to reflowable books', async () => {
     const view = makeView()
     await renderReader(view)
