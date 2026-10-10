@@ -53,5 +53,6 @@ func (a *Books) booksRoutes(prefix string, mux *http.ServeMux) {
 func (a *Books) Routes(prefix string, mux *http.ServeMux) {
 	a.booksRoutes(prefix, mux)
 	a.coverRoutes(prefix, mux)
+	a.webPubRoutes(prefix, mux)
 	a.koboRoutes(prefix, mux)
 }
