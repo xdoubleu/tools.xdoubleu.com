@@ -2,7 +2,6 @@ package services
 
 import (
 	"archive/zip"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -116,6 +115,10 @@ type opfDoc struct {
 		Creators    []string `xml:"creator"`
 		Languages   []string `xml:"language"`
 		Identifiers []string `xml:"identifier"`
+		Metas       []struct {
+			Name    string `xml:"name,attr"`
+			Content string `xml:"content,attr"`
+		} `xml:"meta"`
 	} `xml:"metadata"`
 	Items []opfItem `xml:"manifest>item"`
 	Spine struct {
@@ -206,16 +209,7 @@ func (s *WebPubService) openEPUB(
 	if file.Status != models.FileStatusReady {
 		return nil, database.ErrResourceNotFound
 	}
-	rc, err := s.books.objectStore.Get(ctx, file.StorageKey)
-	if err != nil {
-		return nil, fmt.Errorf("get epub: %w", err)
-	}
-	defer func() { _ = rc.Close() }()
-	data, err := io.ReadAll(rc)
-	if err != nil {
-		return nil, fmt.Errorf("read epub: %w", err)
-	}
-	return zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	return s.books.openStoredZip(ctx, file.StorageKey)
 }
 
 func buildWebPubManifest(zr *zip.Reader) (*WebPubManifest, error) {

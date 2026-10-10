@@ -1876,7 +1876,7 @@ func TestKoboInit_GetMethod_ReturnsCoverImageTemplates(t *testing.T) {
 }
 
 // TestKoboLibrarySync_IncludesCoverImageId: sync metadata tells the device the
-// book's cover ImageId, the same UUID as its entitlement Id.
+// book's cover ImageId, its entitlement Id plus the cover revision.
 func TestKoboLibrarySync_IncludesCoverImageId(t *testing.T) {
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
@@ -1899,7 +1899,7 @@ func TestKoboLibrarySync_IncludesCoverImageId(t *testing.T) {
 	require.True(t, ok)
 	meta, ok := ne["BookMetadata"].(map[string]any)
 	require.True(t, ok)
-	assert.Equal(t, bookID.String(), meta["CoverImageId"])
+	assert.Equal(t, bookID.String()+"-c1", meta["CoverImageId"])
 }
 
 // TestKoboMetadata_IncludesCoverImageId: the metadata endpoint carries the same
@@ -1920,7 +1920,7 @@ func TestKoboMetadata_IncludesCoverImageId(t *testing.T) {
 	var metas []map[string]any
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&metas))
 	require.Len(t, metas, 1)
-	assert.Equal(t, bookID.String(), metas[0]["CoverImageId"])
+	assert.Equal(t, bookID.String()+"-c1", metas[0]["CoverImageId"])
 }
 
 // TestKoboCover_ServesPresignedRedirect: a kobo-sync book's cached cover is
