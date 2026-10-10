@@ -210,7 +210,7 @@ func progressMode(t *testing.T, owner string, bookID uuid.UUID) string {
 
 // TestKoboSync_OwnedStoreBook_PercentMode: an owned store book without
 // progress moves to percent mode; page progress or a physical copy keeps
-// pages mode.
+// pages mode, and an unmatched one is skipped.
 func TestKoboSync_OwnedStoreBook_PercentMode(t *testing.T) {
 	ctx := context.Background()
 	owner := "kobo-store-mode-" + uuid.NewString()
@@ -225,7 +225,7 @@ func TestKoboSync_OwnedStoreBook_PercentMode(t *testing.T) {
 	))
 
 	var items []any
-	for _, title := range []string{"Fresh ", "Paged ", "Physical "} {
+	for _, title := range []string{"Unmatched ", "Fresh ", "Paged ", "Physical "} {
 		items = append(items, storeEntitlement(uuid.NewString(), nil,
 			map[string]any{
 				"Title": title + owner,
@@ -400,6 +400,7 @@ func TestKoboSync_StoreDBFailures_LeaveLibraryAlone(t *testing.T) {
 			failSQL: "WHERE ub.user_id = $1\n\t\tORDER BY b.title", noISBN: true,
 		},
 		"tag":           {failSQL: "SET tags = $3"},
+		"progress mode": {failSQL: "SET progress_mode = $3", wantsBol: true},
 		"store lookup":  {failSQL: "FROM books.kobo_store_books", wantsBol: true},
 		"reading match": {failSQL: "AND b.isbn13 = $2", ent: notOwned},
 	} {
