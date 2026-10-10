@@ -2,6 +2,7 @@ package books_test
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"io"
@@ -275,11 +276,14 @@ func TestKoboLibrarySync_UpstreamFailure_NotesDebugLog(t *testing.T) {
 		"upstream failure must be recorded in the device debug log")
 }
 
-// TestKoboLibrarySync_ForwardsSyncToken checks x-kobo-sync headers are forwarded.
+// TestKoboLibrarySync_ForwardsSyncToken checks the upstream paging headers
+// reach the device; without the new token it re-requests the same page forever.
 func TestKoboLibrarySync_ForwardsSyncToken(t *testing.T) {
 	upstream := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			w.Header().Set("x-kobo-sync", "continuation-abc")
+			w.Header().Set("x-kobo-sync", "continue")
+			w.Header().Set("x-kobo-sync-mode", "full")
+			w.Header().Set("x-kobo-synctoken", "token-abc")
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte("[]"))
 		}),
@@ -297,7 +301,72 @@ func TestKoboLibrarySync_ForwardsSyncToken(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, "continuation-abc", resp.Header.Get("x-kobo-sync"))
+	assert.Equal(t, "continue", resp.Header.Get("x-kobo-sync"))
+	assert.Equal(t, "full", resp.Header.Get("x-kobo-sync-mode"))
+	assert.Equal(t, "token-abc", resp.Header.Get("x-kobo-synctoken"))
+}
+
+// TestKoboLibrarySync_UpstreamFailure_DropsPagingHeaders checks a failed merge
+// sends no "continue": the device would loop on it without progress.
+func TestKoboLibrarySync_UpstreamFailure_DropsPagingHeaders(t *testing.T) {
+	upstream := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("x-kobo-sync", "continue")
+			w.Header().Set("x-kobo-synctoken", "token-abc")
+			_, _ = w.Write([]byte("not json"))
+		}),
+	)
+	t.Cleanup(upstream.Close)
+
+	rawToken := registerTestDevice(t, "kobo-sync-fail-hdrs-"+uuid.NewString())
+
+	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
+	t.Cleanup(ts.Close)
+
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Empty(t, resp.Header.Get("x-kobo-sync"))
+	assert.Empty(t, resp.Header.Get("x-kobo-synctoken"))
+}
+
+// TestKoboLibrarySync_DecodesGzipUpstream checks a gzip store response merges
+// when the device itself asked for gzip.
+func TestKoboLibrarySync_DecodesGzipUpstream(t *testing.T) {
+	const upstreamItem = `{"NewEntitlement":{"BookEntitlement":{"Id":"store-book"}}}`
+	upstream := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+				_, _ = w.Write([]byte("[" + upstreamItem + "]"))
+				return
+			}
+			w.Header().Set("Content-Encoding", "gzip")
+			gz := gzip.NewWriter(w)
+			_, _ = gz.Write([]byte("[" + upstreamItem + "]"))
+			_ = gz.Close()
+		}),
+	)
+	t.Cleanup(upstream.Close)
+
+	rawToken := registerTestDevice(t, "kobo-sync-gzip-"+uuid.NewString())
+
+	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
+	t.Cleanup(ts.Close)
+
+	req := koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil)
+	req.Header.Set("Accept-Encoding", "gzip, deflate")
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Contains(t, string(body), `"store-book"`)
 }
 
 // TestKoboLibrarySync_OurBooksPreservedWhenUpstreamDown: our books survive an outage.

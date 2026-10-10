@@ -345,9 +345,15 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	for _, hdr := range []string{"x-kobo-sync", "x-kobo-sync-token"} {
-		if v := upstream.hdrs.Get(hdr); v != "" {
-			w.Header().Set(hdr, v)
+	// Paging headers only travel with a merged upstream page: a "continue"
+	// without one makes the device re-request the same page forever.
+	if upstream.note == "" {
+		for _, hdr := range []string{
+			"x-kobo-sync", "x-kobo-sync-mode", "x-kobo-synctoken",
+		} {
+			if v := upstream.hdrs.Get(hdr); v != "" {
+				w.Header().Set(hdr, v)
+			}
 		}
 	}
 
@@ -552,6 +558,9 @@ func (app *Books) koboFetchUpstreamSync(
 		return koboUpstream{note: "upstream: build request failed"}
 	}
 	req.Header = r.Header.Clone()
+	// Go only decompresses gzip transparently when it set Accept-Encoding
+	// itself; the device's value would leave the body compressed.
+	req.Header.Del("Accept-Encoding")
 	koboForwardAuth(req.Header, r.Header)
 
 	//nolint:gosec // intentional call to upstream Kobo store
