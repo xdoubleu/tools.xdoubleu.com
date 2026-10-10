@@ -1,8 +1,10 @@
 import React from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
+type TimelineItem = { references: string[] }
 type Listeners = {
   positionChanged: (locator: unknown) => void
+  timelineItemChanged: (item: TimelineItem | undefined) => void
   tap: (e: { x: number; y: number }) => boolean
 }
 
@@ -25,6 +27,13 @@ class FakeNavigator {
   goBackward = jest.fn()
   goForward = jest.fn()
   goLink = jest.fn()
+  timeline = {
+    tocEntryFor: (item: TimelineItem) => {
+      const href = item.references[0]
+      const title = { 'res/ch1.xhtml#top': 'Chapter 1', 'res/part.xhtml': 'Part' }[href!]
+      return title ? { link: { href, title } } : undefined
+    }
+  }
   constructor(_c: HTMLElement, _p: unknown, listeners: Listeners, _pos: unknown, initial: unknown) {
     this.listeners = listeners
     this.initial = initial
@@ -210,11 +219,30 @@ describe('ReadiumBookReader', () => {
     expect(nav!.destroy).toHaveBeenCalled()
   })
 
-  it('labels the current section from the contents', async () => {
+  it('labels the section Readium reports on screen and highlights it in the contents', async () => {
     await renderReader()
     await screen.findByRole('button', { name: 'Contents' })
-    act(() => nav!.listeners.positionChanged({ href: 'res/ch1.xhtml' }))
+    act(() => nav!.listeners.timelineItemChanged({ references: ['res/part.xhtml'] }))
+    expect(await screen.findByText('Part')).toBeInTheDocument()
+    act(() => nav!.listeners.timelineItemChanged({ references: ['res/ch1.xhtml#top'] }))
     expect(await screen.findByText('Chapter 1')).toBeInTheDocument()
+    expect(screen.queryByText('Part')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Contents' }))
+    expect(await screen.findByRole('button', { name: 'Chapter 1' })).toHaveAttribute(
+      'aria-current',
+      'location'
+    )
+  })
+
+  it('clears the section label when no contents entry covers the page', async () => {
+    await renderReader()
+    await screen.findByRole('button', { name: 'Contents' })
+    act(() => nav!.listeners.timelineItemChanged({ references: ['res/ch1.xhtml#top'] }))
+    expect(await screen.findByText('Chapter 1')).toBeInTheDocument()
+    act(() => nav!.listeners.timelineItemChanged({ references: ['res/other.xhtml'] }))
+    await waitFor(() => expect(screen.queryByText('Chapter 1')).not.toBeInTheDocument())
+    act(() => nav!.listeners.timelineItemChanged(undefined))
+    expect(screen.queryByText('Chapter 1')).not.toBeInTheDocument()
   })
 
   it('ignores arrow keys while a dialog is open', async () => {

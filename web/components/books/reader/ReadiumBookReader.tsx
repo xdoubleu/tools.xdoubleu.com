@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { EpubNavigator, EpubPreferences } from '@readium/navigator'
-import { Link, type Locator, type Publication } from '@readium/shared'
+import { Link, type Locator, type Publication, type TimelineItem } from '@readium/shared'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import {
   loadPublication,
@@ -42,15 +42,6 @@ const noop = () => {}
 /** A navigator that hasn't opened by then never will (a frame it can't reach never settles). */
 export const READIUM_LOAD_TIMEOUT_MS = 30_000
 
-function tocLabelAt(items: ReaderTocItem[], href: string): ReaderTocItem | undefined {
-  let found: ReaderTocItem | undefined
-  for (const item of items) {
-    if (item.href?.split('#')[0] === href) found = item
-    found = tocLabelAt(item.subitems ?? [], href) ?? found
-  }
-  return found
-}
-
 /** Full-screen Readium reader for an original EPUB served as a WebPub. */
 export default function ReadiumBookReader({
   bookId,
@@ -64,6 +55,7 @@ export default function ReadiumBookReader({
   const [toc, setToc] = useState<ReaderTocItem[]>([])
   const [status, setStatus] = useState<ReaderStatus>('loading')
   const [location, setLocation] = useState<ReaderLocation | null>(null)
+  const [tocEntry, setTocEntry] = useState<{ label?: string; href?: string }>({})
   const [storedTheme, setTheme] = useLocalStorage<ReaderTheme | null>('books:reader-theme', null)
   const [fontSize, setFontSize] = useLocalStorage(
     'books:reader-font-size',
@@ -85,18 +77,21 @@ export default function ReadiumBookReader({
     let loadTimer: ReturnType<typeof setTimeout> | undefined
     let onKey: (e: KeyboardEvent) => void = noop
 
-    const handleLocator = async (pub: Publication, locator: Locator, items: ReaderTocItem[]) => {
-      const entry = tocLabelAt(items, locator.href.split('#')[0]!)
+    const handleLocator = async (pub: Publication, locator: Locator) => {
       const next: ReaderLocation = {
         fraction: overallFraction(pub, locator),
-        section: Math.max(0, sectionIndex(pub, locator.href)),
-        tocLabel: entry?.label,
-        tocHref: entry?.href
+        section: Math.max(0, sectionIndex(pub, locator.href))
       }
       if (!cancelled) setLocation(next)
       if (!opened) return
       const position = await locatorToPosition(pub, locator)
       if (!cancelled) onRelocateRef.current?.({ ...next, position })
+    }
+
+    // Readium picks the TOC fragment that has started on screen from the rendered layout.
+    const handleTimelineItem = (item: TimelineItem | undefined) => {
+      const link = item && created?.timeline.tocEntryFor(item)?.link
+      if (!cancelled) setTocEntry({ label: link?.title, href: link?.href })
     }
 
     void (async () => {
@@ -120,8 +115,8 @@ export default function ReadiumBookReader({
           pub,
           {
             frameLoaded: noop,
-            positionChanged: (locator) => void handleLocator(pub, locator, items),
-            timelineItemChanged: noop,
+            positionChanged: (locator) => void handleLocator(pub, locator),
+            timelineItemChanged: handleTimelineItem,
             tap: (e) => {
               const area = container.getBoundingClientRect()
               const direction = tapDirection(e.x, area.left, area.width)
@@ -191,14 +186,14 @@ export default function ReadiumBookReader({
       status={status}
       theme={theme}
       fraction={location?.fraction ?? 0}
-      tocLabel={location?.tocLabel}
+      tocLabel={tocEntry.label}
       controls={
         navigator && (
           <ReaderControls
             toc={toc}
             onGoTo={(href) => navigator.goLink(new Link({ href }), false, noop)}
             reflowable
-            currentHref={location?.tocHref}
+            currentHref={tocEntry.href}
             theme={theme}
             onThemeChange={setTheme}
             fontSize={fontSize}
