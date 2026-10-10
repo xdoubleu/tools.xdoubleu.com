@@ -40,7 +40,9 @@ export function middleware(request: NextRequest) {
     "frame-src 'self' blob:",
     // The PDF reader's pdf.js worker.
     "worker-src 'self' blob:",
-    "frame-ancestors 'none'",
+    // Not 'none': Readium's blob: frames inherit this CSP, and Safari enforces
+    // it on them. 'self' still blocks cross-origin framing.
+    "frame-ancestors 'self'",
     "base-uri 'self'",
     "form-action 'self'",
     "object-src 'none'"
