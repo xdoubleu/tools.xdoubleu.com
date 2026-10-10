@@ -33,6 +33,12 @@ const ReadiumBookReader = dynamic(() => import('@/components/books/reader/Readiu
   ssr: false
 })
 
+// pdf.js draws to a canvas and runs a worker; client-only too.
+// Stryker disable next-line all: next/dynamic options must stay an object literal.
+const PdfBookReader = dynamic(() => import('@/components/books/reader/PdfBookReader'), {
+  ssr: false
+})
+
 function Fallback({ id, children }: { id: string; children: ReactNode }) {
   return (
     <PageContainer size="narrow" className="space-y-4">
@@ -197,6 +203,19 @@ export default function ReadBookClient({ id }: { id: string }) {
       <ReadiumBookReader
         key={bookId}
         bookId={bookId}
+        title={userBook.book?.title ?? 'Book'}
+        onClose={close}
+        onRelocate={onRelocate}
+        initialPosition={resume}
+        format={{ value: choice!, original, onChange: switchTo }}
+      />
+    )
+  }
+  if (format === 'pdf' && file && resume) {
+    return (
+      <PdfBookReader
+        key={format}
+        file={file}
         title={userBook.book?.title ?? 'Book'}
         onClose={close}
         onRelocate={onRelocate}
