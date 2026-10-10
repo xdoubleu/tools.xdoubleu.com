@@ -114,6 +114,13 @@ func getRoutes() http.Handler {
 // its DB so testApp's tokens work.
 func getRoutesWithKoboUpstream(t *testing.T, upstreamURL string) http.Handler {
 	t.Helper()
+	return testhelper.BuildMux(newAppWithKoboUpstream(t, upstreamURL))
+}
+
+// newAppWithKoboUpstream builds the app behind getRoutesWithKoboUpstream, for
+// tests that also inspect its in-memory services.
+func newAppWithKoboUpstream(t *testing.T, upstreamURL string) *books.Books {
+	t.Helper()
 	clients := books.Clients{
 		UniCat:           nil,
 		Hardcover:        mocks.NewMockHardcoverClient(),
@@ -122,14 +129,13 @@ func getRoutesWithKoboUpstream(t *testing.T, upstreamURL string) http.Handler {
 		KoboStoreBaseURL: upstreamURL,
 		PublicAPIBaseURL: "",
 	}
-	app := books.NewInner(
+	return books.NewInner(
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		testCfg,
 		testDB,
 		clients,
 	)
-	return testhelper.BuildMux(app)
 }
 
 func TestGetDisplayName(t *testing.T) {

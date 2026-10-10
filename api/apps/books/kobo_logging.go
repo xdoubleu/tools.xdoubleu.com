@@ -25,6 +25,39 @@ type koboLogHolder struct {
 	respBody bytes.Buffer
 	status   int
 	notes    string
+	// wroteHeader marks respHeaders as snapshotted at the moment the
+	// response headers were sent.
+	wroteHeader     bool
+	respHeaders     map[string]string
+	upstreamHeaders map[string]string
+}
+
+// Sync paging headers safe to record on a debug-log entry. Credentials
+// (Authorization, cookies) must never be added here.
+//
+//nolint:gochecknoglobals // static allowlists, never mutated
+var (
+	koboLogRequestHeaders  = []string{"x-kobo-synctoken"}
+	koboLogResponseHeaders = []string{
+		"x-kobo-sync", "x-kobo-sync-mode", "x-kobo-synctoken", "content-encoding",
+	}
+)
+
+// koboAllowedHeaders returns the allowlisted headers present in h, keyed by
+// their lowercase name, or nil if none are.
+func koboAllowedHeaders(h http.Header, allow []string) map[string]string {
+	var out map[string]string
+	for _, name := range allow {
+		v := h.Get(name)
+		if v == "" {
+			continue
+		}
+		if out == nil {
+			out = make(map[string]string, len(allow))
+		}
+		out[name] = v
+	}
+	return out
 }
 
 func koboLogHolderFrom(ctx context.Context) *koboLogHolder {
@@ -43,6 +76,14 @@ func koboSetUpstreamNote(r *http.Request, w http.ResponseWriter, note string) {
 		holder.notes = note
 	}
 	w.Header().Set("x-kobo-upstream", note)
+}
+
+// koboSetUpstreamHeaders records the upstream store response's allowlisted
+// headers on the request's debug-log entry.
+func koboSetUpstreamHeaders(r *http.Request, h http.Header) {
+	if holder := koboLogHolderFrom(r.Context()); holder != nil {
+		holder.upstreamHeaders = koboAllowedHeaders(h, koboLogResponseHeaders)
+	}
 }
 
 func capWrite(buf *bytes.Buffer, p []byte) {
@@ -73,7 +114,7 @@ func (t *koboBodyTee) Read(p []byte) (int, error) {
 func (t *koboBodyTee) Close() error { return t.rc.Close() }
 
 // koboResponseRecorder always records the status and, while enabled, the
-// body; writes pass through unchanged.
+// body and the headers as sent; writes pass through unchanged.
 type koboResponseRecorder struct {
 	http.ResponseWriter
 	holder *koboLogHolder
@@ -81,14 +122,26 @@ type koboResponseRecorder struct {
 
 func (rec *koboResponseRecorder) WriteHeader(status int) {
 	rec.holder.status = status
+	rec.snapshotHeaders()
 	rec.ResponseWriter.WriteHeader(status)
 }
 
 func (rec *koboResponseRecorder) Write(p []byte) (int, error) {
+	rec.snapshotHeaders()
 	if rec.holder.enabled {
 		capWrite(&rec.holder.respBody, p)
 	}
 	return rec.ResponseWriter.Write(p)
+}
+
+// snapshotHeaders captures the response headers once, when they are sent;
+// later Header() changes never reach the device.
+func (rec *koboResponseRecorder) snapshotHeaders() {
+	if rec.holder.wroteHeader {
+		return
+	}
+	rec.holder.wroteHeader = true
+	rec.holder.respHeaders = koboAllowedHeaders(rec.Header(), koboLogResponseHeaders)
 }
 
 // redactKoboToken masks the token in a captured path: it is the device's live
@@ -114,6 +167,7 @@ func (app *Books) koboLogged(next http.HandlerFunc) http.HandlerFunc {
 		rec := &koboResponseRecorder{ResponseWriter: w, holder: holder}
 
 		next(rec, r)
+		rec.snapshotHeaders()
 
 		if holder.enabled && holder.deviceID != "" {
 			app.Services.KoboLog.Append(holder.deviceID, services.KoboLogEntry{
@@ -125,6 +179,11 @@ func (app *Books) koboLogged(next http.HandlerFunc) http.HandlerFunc {
 				Status:       holder.status,
 				ResponseBody: holder.respBody.String(),
 				Notes:        holder.notes,
+				RequestHeaders: koboAllowedHeaders(
+					r.Header, koboLogRequestHeaders,
+				),
+				ResponseHeaders: holder.respHeaders,
+				UpstreamHeaders: holder.upstreamHeaders,
 			})
 		}
 	}

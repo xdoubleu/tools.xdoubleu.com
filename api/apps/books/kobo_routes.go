@@ -330,6 +330,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 
 	<-upstreamDone
 
+	koboSetUpstreamHeaders(r, upstream.hdrs)
 	if upstream.note != "" {
 		koboSetUpstreamNote(r, w, upstream.note)
 		app.Logger.Warn("kobo upstream store sync failed",
@@ -496,6 +497,7 @@ func (app *Books) koboProxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
+	koboSetUpstreamHeaders(r, resp.Header)
 	for k, vs := range resp.Header {
 		for _, v := range vs {
 			w.Header().Add(k, v)

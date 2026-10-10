@@ -21,6 +21,11 @@ type KoboLogEntry struct {
 	// Notes describes an upstream store merge outcome for diagnostics; never
 	// contains credentials.
 	Notes string
+	// Header maps hold allowlisted sync headers only (lowercase keys); never
+	// credentials. UpstreamHeaders is the Kobo store's response.
+	RequestHeaders  map[string]string
+	ResponseHeaders map[string]string
+	UpstreamHeaders map[string]string
 }
 
 // KoboLogStore holds, purely in process memory, which Kobo devices have debug
