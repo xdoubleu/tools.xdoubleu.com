@@ -16,6 +16,12 @@ message Book {
   string source_url = 11;
   // True once extracted in-app content is stored.
   bool has_content = 12;
+  // Empty when the book isn't in a series.
+  string series_name = 13;
+  // Unset for an unordered entry; fractional for novellas, 0 for prequels.
+  optional double series_position = 14;
+  // The series' main-volume count per Hardcover; 0 when unknown.
+  int32 series_total = 15;
 }
 
 message UserBook {
@@ -68,6 +74,10 @@ message ExternalBookResult {
   string isbn13 = 5;
   string cover_url = 6;
   string description = 7;
+  string series_name = 8;
+  optional double series_position = 9;
+  // Main-volume count; 0 when unknown.
+  int32 series_total = 10;
 }
 
 // ReadingPosition is a format-neutral position: href + offset for EPUB/KEPUB,
@@ -127,6 +137,10 @@ message CreateBookRequest {
   string description = 8;
   bool own_physical = 9;
   bool own_digital = 10;
+  // Fills the catalog book's series only when it has none.
+  string series_name = 11;
+  optional double series_position = 12;
+  int32 series_total = 13;
 }
 message CreateBookResponse {}
 
@@ -202,6 +216,24 @@ message TranslateReadingPositionResponse { ReadingPosition position = 1; }
 message GetBookContentRequest { string book_id = 1; }
 message GetBookContentResponse { string html = 1; }
 
+// GetSeries lists a series' volumes in position order: the caller's own books
+// plus the volumes Hardcover knows that the caller doesn't have.
+message GetSeriesRequest { string name = 1; }
+message SeriesEntry {
+  optional double position = 1;
+  // Exactly one of user_book (owned) and external (missing) is set.
+  UserBook user_book = 2;
+  ExternalBookResult external = 3;
+}
+message GetSeriesResponse {
+  string name = 1;
+  // Main-volume count; 0 when unknown.
+  int32 total = 2;
+  repeated SeriesEntry entries = 3;
+  // Hardcover couldn't be asked, so missing volumes are unknown.
+  bool external_unavailable = 4;
+}
+
 message CreateShelfRequest { string name = 1; }
 message CreateShelfResponse {}
 message RenameShelfRequest { string old_name = 1; string new_name = 2; }
@@ -231,6 +263,7 @@ service LibraryService {
   rpc GetReadingState(GetReadingStateRequest) returns (GetReadingStateResponse);
   rpc TranslateReadingPosition(TranslateReadingPositionRequest) returns (TranslateReadingPositionResponse);
   rpc GetBookContent(GetBookContentRequest) returns (GetBookContentResponse);
+  rpc GetSeries(GetSeriesRequest) returns (GetSeriesResponse);
   rpc CreateShelf(CreateShelfRequest) returns (CreateShelfResponse);
   rpc RenameShelf(RenameShelfRequest) returns (RenameShelfResponse);
   rpc DeleteShelf(DeleteShelfRequest) returns (DeleteShelfResponse);

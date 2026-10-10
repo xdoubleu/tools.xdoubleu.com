@@ -54,6 +54,27 @@ describe('BooksDashboardView', () => {
     expect(screen.getByText('Read this year')).toBeInTheDocument()
   })
 
+  it('shows per-series progress only when the library has series', () => {
+    const { unmount } = renderView()
+    expect(screen.queryByText('Series')).not.toBeInTheDocument()
+    unmount()
+    const library = create(LibraryResponseSchema, {
+      finished: [
+        create(UserBookSchema, {
+          id: 'ub-9',
+          status: 'read',
+          book: create(BookSchema, { title: 'Mort', seriesName: 'Discworld', seriesTotal: 4 })
+        })
+      ]
+    })
+    renderView({ library })
+    expect(screen.getByText('Series')).toBeInTheDocument()
+    expect(screen.getByText('1 of 4 read')).toBeInTheDocument()
+    const bar = screen.getByRole('progressbar', { name: 'Discworld progress' })
+    expect(bar).toHaveAttribute('aria-valuenow', '25')
+    expect(bar.firstElementChild).toHaveStyle({ width: '25%' })
+  })
+
   it('renders the supplied reading card', () => {
     renderView()
     expect(screen.getByText('card-ub-1')).toBeInTheDocument()

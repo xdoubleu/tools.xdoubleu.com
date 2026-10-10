@@ -255,6 +255,41 @@ describe('book offline writes', () => {
     )
   })
 
+  it('applies an edited series, keeping the total only for the same series', () => {
+    const data = () =>
+      create(GetLibraryResponseSchema, {
+        library: {
+          wishlist: [
+            book('a', 'Alpha', 'to-read', {
+              book: { id: 'a', title: 'Alpha', seriesName: 'Saga', seriesTotal: 7 }
+            })
+          ]
+        }
+      })
+    const edit = (seriesName: string, seriesPosition?: number) =>
+      lib(
+        run(
+          updateBookWrite,
+          { bookId: 'a', metadata: { title: 'Alpha', seriesName, seriesPosition } },
+          data()
+        )
+      ).wishlist[0].book
+
+    expect(edit(' Saga ', 2)).toMatchObject({
+      seriesName: 'Saga',
+      seriesPosition: 2,
+      seriesTotal: 7
+    })
+    expect(edit('Other', 1)).toMatchObject({ seriesName: 'Other', seriesTotal: 0 })
+    const cleared = edit('', 3)
+    expect(cleared?.seriesName).toBe('')
+    expect(cleared?.seriesPosition).toBeUndefined()
+    const blank = edit('  ', 3)
+    expect(blank?.seriesName).toBe('')
+    expect(blank?.seriesPosition).toBeUndefined()
+    expect(blank?.seriesTotal).toBe(0)
+  })
+
   it('leaves books without catalog data alone', () => {
     const data = create(GetLibraryResponseSchema, {
       library: { wishlist: [{ bookId: 'x', status: 'to-read' }] }

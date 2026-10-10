@@ -65,6 +65,8 @@ message SourceBook {
   // 0-based ordinal among candidates of the same source; only a manual
   // override search yields more than one (up to 5).
   int32 index = 9;
+  string series_name = 10;
+  optional double series_position = 11;
 }
 
 // ResyncProposal is one catalog book differing from an external source.

@@ -26,6 +26,19 @@ func (m MockHardcoverClient) GetByISBN(
 	return &book, nil
 }
 
+// GetSeries returns the canned book as the series' only volume.
+func (m MockHardcoverClient) GetSeries(
+	_ context.Context,
+	name string,
+) (*hardcover.Series, error) {
+	total := 2
+	return &hardcover.Series{
+		Name:  name,
+		Total: &total,
+		Books: []hardcover.SeriesBook{{Position: 1, Book: hcOdysseyBook()}},
+	}, nil
+}
+
 func NewMockHardcoverClient() hardcover.Client {
 	return MockHardcoverClient{}
 }
@@ -42,6 +55,7 @@ func hcOdysseyBook() hardcover.ExternalBook {
 		CoverURL:    &cover,
 		Description: &desc,
 		PageCount:   &pages,
+		Series:      nil,
 	}
 }
 
@@ -61,6 +75,13 @@ func (m MockEmptyHardcoverClient) GetByISBN(
 	_ context.Context,
 	_ string,
 ) (*hardcover.ExternalBook, error) {
+	return nil, hardcover.ErrNotFound
+}
+
+func (m MockEmptyHardcoverClient) GetSeries(
+	_ context.Context,
+	_ string,
+) (*hardcover.Series, error) {
 	return nil, hardcover.ErrNotFound
 }
 

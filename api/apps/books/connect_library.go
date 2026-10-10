@@ -176,6 +176,16 @@ func (h *booksConnectHandler) CreateBook(
 		CoverURL:    req.Msg.CoverUrl,
 		Description: req.Msg.Description,
 	}
+	if series := seriesFromProto(
+		req.Msg.SeriesName, req.Msg.SeriesPosition,
+	); series != nil {
+		ext.SeriesName = series.Name
+		ext.SeriesPosition = series.Position
+		if req.Msg.SeriesTotal > 0 {
+			total := int(req.Msg.SeriesTotal)
+			ext.SeriesTotal = &total
+		}
+	}
 	initialTags := []string{}
 	if req.Msg.OwnPhysical {
 		initialTags = append(initialTags, models.TagOwnPhysical)

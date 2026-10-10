@@ -35,7 +35,7 @@ func protoBook(book *models.Book, coverBaseURL string) *booksv1.Book {
 		proxyURL = coverProxyURL(book.ID, coverBaseURL)
 	}
 
-	return &booksv1.Book{
+	out := &booksv1.Book{
 		Id:          book.ID.String(),
 		Title:       book.Title,
 		Authors:     book.Authors,
@@ -46,6 +46,12 @@ func protoBook(book *models.Book, coverBaseURL string) *booksv1.Book {
 		SourceUrl:   stringPtr(book.SourceURL),
 		HasContent:  book.HasContent,
 	}
+	if book.Series != nil {
+		out.SeriesName = book.Series.Name
+		out.SeriesPosition = book.Series.Position
+		out.SeriesTotal = int32FromIntPtr(book.Series.Total)
+	}
+	return out
 }
 
 // reconcileOwnDigitalTag derives the own-digital tag from actual attached
@@ -128,6 +134,10 @@ func protoExternalBook(b services.SourceProposal) *booksv1.ExternalBookResult {
 		Isbn13:      b.ISBN13,
 		CoverUrl:    b.CoverURL,
 		Description: b.Description,
+
+		SeriesName:     b.SeriesName,
+		SeriesPosition: b.SeriesPosition,
+		SeriesTotal:    int32FromIntPtr(b.SeriesTotal),
 	}
 }
 

@@ -1,11 +1,14 @@
 'use client'
 
+import Link from 'next/link'
 import { cn } from '@/lib/cn'
+import { Button } from '@/components/ui/button'
 import { MenuItem } from '@/components/ui/menu-item'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { TogglePill } from '@/components/ui/toggle-pill'
 import type { LibraryResponse } from '@/lib/gen/books/v1/library_pb'
 import { SPECIAL_TAGS, flattenLibrary, statusLabel } from '@/lib/books/bookShelves'
+import { seriesHref, type SeriesSummary } from '@/lib/books/series'
 
 export type ShelfId =
   'all' | 'favourite' | 'currently-reading' | 'to-read' | 'read' | (string & Record<never, never>)
@@ -79,6 +82,8 @@ interface LibrarySidebarProps {
   onSelectTag: (tag: string) => void
   /** Omit on read-only views (public profile) to hide shelf/tag editing. */
   onManage?: () => void
+  /** Links to each series page; omit where those pages aren't reachable. */
+  series?: SeriesSummary[]
 }
 
 function NavItem({
@@ -114,7 +119,8 @@ export default function LibrarySidebar({
   selectedTag,
   onSelectShelf,
   onSelectTag,
-  onManage
+  onManage,
+  series = []
 }: LibrarySidebarProps) {
   return (
     <>
@@ -149,6 +155,30 @@ export default function LibrarySidebar({
                 label={tag.name}
                 count={tag.count}
               />
+            ))}
+          </>
+        )}
+
+        {series.length > 0 && (
+          <>
+            <div className="my-1 h-px bg-border" />
+            <p className="px-3 py-1 text-xs font-semibold text-muted uppercase tracking-wide">
+              Series
+            </p>
+            {series.map((s) => (
+              <Button
+                key={s.name}
+                asChild
+                variant="ghost"
+                className="justify-between rounded-xl px-3 py-2 font-normal text-subtle hover:text-fg"
+              >
+                <Link href={seriesHref(s.name)}>
+                  <span className="truncate">{s.name}</span>
+                  <span className="ml-2 shrink-0 text-xs text-muted">
+                    {s.read}/{s.total}
+                  </span>
+                </Link>
+              </Button>
             ))}
           </>
         )}
@@ -194,6 +224,20 @@ export default function LibrarySidebar({
                 }
                 className="shrink-0 px-2 py-1 whitespace-nowrap"
               />
+            ))}
+          </div>
+        )}
+        {series.length > 0 && (
+          <div className="flex flex-wrap gap-2 px-1 pb-1" aria-label="Series">
+            {series.map((s) => (
+              <Button key={s.name} asChild variant="secondary" size="sm" className="max-w-full">
+                <Link href={seriesHref(s.name)}>
+                  <span className="truncate">{s.name}</span>
+                  <span className="ml-1 shrink-0 opacity-60">
+                    {s.read}/{s.total}
+                  </span>
+                </Link>
+              </Button>
             ))}
           </div>
         )}

@@ -156,6 +156,43 @@ describe('BookEditDialog', () => {
     )
   })
 
+  it('saves series name and position, trimming the name', async () => {
+    mockUpdateBook.mockResolvedValue({})
+    mockMutate.mockResolvedValue(undefined)
+    renderDialog({ book: makeBook({ seriesName: 'Discworld', seriesPosition: 4 }) })
+    expect(screen.getByLabelText('Series')).toHaveValue('Discworld')
+    expect(screen.getByLabelText('Number')).toHaveValue(4)
+
+    fireEvent.change(screen.getByLabelText('Series'), { target: { value: ' Death ' } })
+    fireEvent.change(screen.getByLabelText('Number'), { target: { value: '1.5' } })
+    fireEvent.click(screen.getByTestId('edit-book-save-btn'))
+
+    await waitFor(() =>
+      expect(mockUpdateBook).toHaveBeenCalledWith(
+        'book-1',
+        expect.objectContaining({ seriesName: 'Death', seriesPosition: 1.5 })
+      )
+    )
+  })
+
+  it('disables the number without a series and saves no position', async () => {
+    mockUpdateBook.mockResolvedValue({})
+    mockMutate.mockResolvedValue(undefined)
+    renderDialog()
+    expect(screen.getByLabelText('Number')).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('Series'), { target: { value: '   ' } })
+    expect(screen.getByLabelText('Number')).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('Series'), { target: { value: '' } })
+
+    fireEvent.click(screen.getByTestId('edit-book-save-btn'))
+    await waitFor(() =>
+      expect(mockUpdateBook).toHaveBeenCalledWith(
+        'book-1',
+        expect.objectContaining({ seriesName: '', seriesPosition: undefined })
+      )
+    )
+  })
+
   it('shows error message when save fails', async () => {
     mockUpdateBook.mockRejectedValue(new Error('network error'))
     renderDialog()

@@ -13,7 +13,8 @@ import (
 // ResyncMetadataJob scans the catalog against UniCat and Hardcover and stores
 // proposals for the admin wizard, reporting progress over the progress
 // WebSocket. It is trigger-only (no RunEvery): StartResync Arms it and
-// force-runs it; the armed guard is a second check. It never writes to books.
+// force-runs it; the armed guard is a second check. Of book metadata it only
+// fills an empty series.
 type ResyncMetadataJob struct {
 	books *services.BookService
 	ws    *progressws.Service

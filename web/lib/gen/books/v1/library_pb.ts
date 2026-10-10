@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file books/v1/library.proto.
  */
 export const file_books_v1_library: GenFile = /*@__PURE__*/
-  fileDesc("ChZib29rcy92MS9saWJyYXJ5LnByb3RvEghib29rcy52MSLaAQoEQm9vaxIKCgJpZBgBIAEoCRINCgV0aXRsZRgCIAEoCRIPCgdhdXRob3JzGAMgAygJEg4KBmlzYm4xMxgEIAEoCRIRCgljb3Zlcl91cmwYBSABKAkSEwoLZGVzY3JpcHRpb24YBiABKAkSEgoKcGFnZV9jb3VudBgHIAEoBRISCgpzb3VyY2VfdXJsGAsgASgJEhMKC2hhc19jb250ZW50GAwgASgISgQICBAJSgQICRAKSgQIChALUgZpc2JuMTBSDWV4dGVybmFsX3JlZnNSCGNhdGVnb3J5Io8DCghVc2VyQm9vaxIKCgJpZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEg8KB2Jvb2tfaWQYAyABKAkSHAoEYm9vaxgEIAEoCzIOLmJvb2tzLnYxLkJvb2sSDgoGc3RhdHVzGAUgASgJEgwKBHRhZ3MYBiADKAkSDgoGcmF0aW5nGAcgASgFEhMKC2ZpbmlzaGVkX2F0GAkgAygJEhAKCGFkZGVkX2F0GAogASgJEhIKCnVwZGF0ZWRfYXQYCyABKAkSFQoNcHJvZ3Jlc3NfbW9kZRgMIAEoCRIUCgxjdXJyZW50X3BhZ2UYDSABKAUSGAoQcHJvZ3Jlc3NfcGVyY2VudBgOIAEoBRIPCgdmb3JtYXRzGA8gAygJEjsKDWZpbGVfdmVyc2lvbnMYECADKAsyJC5ib29rcy52MS5Vc2VyQm9vay5GaWxlVmVyc2lvbnNFbnRyeRozChFGaWxlVmVyc2lvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBSgQICBAJIjwKCUJvb2tTaGVsZhIMCgRuYW1lGAEgASgJEiEKBWJvb2tzGAIgAygLMhIuYm9va3MudjEuVXNlckJvb2siswEKD0xpYnJhcnlSZXNwb25zZRIjCgdyZWFkaW5nGAEgAygLMhIuYm9va3MudjEuVXNlckJvb2sSJAoId2lzaGxpc3QYAiADKAsyEi5ib29rcy52MS5Vc2VyQm9vaxIkCghmaW5pc2hlZBgDIAMoCzISLmJvb2tzLnYxLlVzZXJCb29rEiQKB3NoZWx2ZXMYBCADKAsyEy5ib29rcy52MS5Cb29rU2hlbGZKBAgFEAZSA3JzcyJdChVCb29rc1Byb2dyZXNzUmVzcG9uc2USDgoGbGFiZWxzGAEgAygJEg4KBnZhbHVlcxgCIAMoCRISCgpkYXRlX3N0YXJ0GAMgASgJEhAKCGRhdGVfZW5kGAQgASgJIpMBChJFeHRlcm5hbEJvb2tSZXN1bHQSEAoIcHJvdmlkZXIYASABKAkSEwoLcHJvdmlkZXJfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSDwoHYXV0aG9ycxgEIAMoCRIOCgZpc2JuMTMYBSABKAkSEQoJY292ZXJfdXJsGAYgASgJEhMKC2Rlc2NyaXB0aW9uGAcgASgJIj0KD1JlYWRpbmdQb3NpdGlvbhIMCgRocmVmGAEgASgJEg4KBm9mZnNldBgCIAEoBRIMCgRwYWdlGAMgASgFIpsBChRCb29rUmVhZGluZ1N0YXRlRGF0YRIOCgZzb3VyY2UYASABKAkSDwoHcGVyY2VudBgCIAEoBRIQCghsb2NhdGlvbhgDIAEoCRISCgp1cGRhdGVkX2F0GAQgASgJEisKCHBvc2l0aW9uGAUgASgLMhkuYm9va3MudjEuUmVhZGluZ1Bvc2l0aW9uEg8KB3JlYWRfYXQYBiABKAkiEwoRR2V0TGlicmFyeVJlcXVlc3QiQAoSR2V0TGlicmFyeVJlc3BvbnNlEioKB2xpYnJhcnkYASABKAsyGS5ib29rcy52MS5MaWJyYXJ5UmVzcG9uc2UiPwoXR2V0Qm9va3NQcm9ncmVzc1JlcXVlc3QSEgoKZGF0ZV9zdGFydBgBIAEoCRIQCghkYXRlX2VuZBgCIAEoCSJNChhHZXRCb29rc1Byb2dyZXNzUmVzcG9uc2USMQoIcHJvZ3Jlc3MYASABKAsyHy5ib29rcy52MS5Cb29rc1Byb2dyZXNzUmVzcG9uc2UiRAoUU2VhcmNoTGlicmFyeVJlcXVlc3QSDQoFcXVlcnkYASABKAkSDQoFbGltaXQYAiABKAUSDgoGb2Zmc2V0GAMgASgFIkwKFVNlYXJjaExpYnJhcnlSZXNwb25zZRIhCgVib29rcxgBIAMoCzISLmJvb2tzLnYxLlVzZXJCb29rEhAKCGhhc19tb3JlGAIgASgIIiYKFVNlYXJjaEV4dGVybmFsUmVxdWVzdBINCgVxdWVyeRgBIAEoCSJHChZTZWFyY2hFeHRlcm5hbFJlc3BvbnNlEi0KB3Jlc3VsdHMYASADKAsyHC5ib29rcy52MS5FeHRlcm5hbEJvb2tSZXN1bHQiPwoWR2V0RXh0ZXJuYWxCb29rUmVxdWVzdBIQCghwcm92aWRlchgBIAEoCRITCgtwcm92aWRlcl9pZBgCIAEoCSJHChdHZXRFeHRlcm5hbEJvb2tSZXNwb25zZRIsCgZyZXN1bHQYASABKAsyHC5ib29rcy52MS5FeHRlcm5hbEJvb2tSZXN1bHQizAEKEUNyZWF0ZUJvb2tSZXF1ZXN0EhAKCHByb3ZpZGVyGAEgASgJEhMKC3Byb3ZpZGVyX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg4KBmF1dGhvchgEIAEoCRIOCgZzdGF0dXMYBSABKAkSDgoGaXNibjEzGAYgASgJEhEKCWNvdmVyX3VybBgHIAEoCRITCgtkZXNjcmlwdGlvbhgIIAEoCRIUCgxvd25fcGh5c2ljYWwYCSABKAgSEwoLb3duX2RpZ2l0YWwYCiABKAgiFAoSQ3JlYXRlQm9va1Jlc3BvbnNlImMKF1VwZGF0ZUJvb2tTdGF0dXNSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSDgoGc3RhdHVzGAIgASgJEhEKCWZhdm91cml0ZRgDIAEoCBIOCgZyYXRpbmcYBCABKAlKBAgFEAYiGgoYVXBkYXRlQm9va1N0YXR1c1Jlc3BvbnNlIjAKEFRvZ2dsZVRhZ1JlcXVlc3QSDwoHYm9va19pZBgBIAEoCRILCgN0YWcYAiABKAkiEwoRVG9nZ2xlVGFnUmVzcG9uc2UiQgoRU2V0Qm9va1RhZ1JlcXVlc3QSDwoHYm9va19pZBgBIAEoCRILCgN0YWcYAiABKAkSDwoHZW5hYmxlZBgDIAEoCCIUChJTZXRCb29rVGFnUmVzcG9uc2UiJAoRUmVtb3ZlQm9va1JlcXVlc3QSDwoHYm9va19pZBgBIAEoCSIUChJSZW1vdmVCb29rUmVzcG9uc2UiPwoXVXBkYXRlRmluaXNoZWRBdFJlcXVlc3QSDwoHYm9va19pZBgBIAEoCRITCgtmaW5pc2hlZF9hdBgCIAMoCSIaChhVcGRhdGVGaW5pc2hlZEF0UmVzcG9uc2UibwoVVXBkYXRlUHJvZ3Jlc3NSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSFQoNcHJvZ3Jlc3NfbW9kZRgCIAEoCRIUCgxjdXJyZW50X3BhZ2UYAyABKAUSGAoQcHJvZ3Jlc3NfcGVyY2VudBgEIAEoBSIYChZVcGRhdGVQcm9ncmVzc1Jlc3BvbnNlIqABChxVcGRhdGVSZWFkaW5nUHJvZ3Jlc3NSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSDgoGc291cmNlGAIgASgJEg8KB3BlcmNlbnQYAyABKAUSEAoIbG9jYXRpb24YBCABKAkSKwoIcG9zaXRpb24YBSABKAsyGS5ib29rcy52MS5SZWFkaW5nUG9zaXRpb24SDwoHcmVhZF9hdBgGIAEoCSIfCh1VcGRhdGVSZWFkaW5nUHJvZ3Jlc3NSZXNwb25zZSIpChZHZXRSZWFkaW5nU3RhdGVSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkiSAoXR2V0UmVhZGluZ1N0YXRlUmVzcG9uc2USLQoFc3RhdGUYASABKAsyHi5ib29rcy52MS5Cb29rUmVhZGluZ1N0YXRlRGF0YSJfCh9UcmFuc2xhdGVSZWFkaW5nUG9zaXRpb25SZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSKwoIcG9zaXRpb24YAiABKAsyGS5ib29rcy52MS5SZWFkaW5nUG9zaXRpb24iTwogVHJhbnNsYXRlUmVhZGluZ1Bvc2l0aW9uUmVzcG9uc2USKwoIcG9zaXRpb24YASABKAsyGS5ib29rcy52MS5SZWFkaW5nUG9zaXRpb24iKAoVR2V0Qm9va0NvbnRlbnRSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkiJgoWR2V0Qm9va0NvbnRlbnRSZXNwb25zZRIMCgRodG1sGAEgASgJIiIKEkNyZWF0ZVNoZWxmUmVxdWVzdBIMCgRuYW1lGAEgASgJIhUKE0NyZWF0ZVNoZWxmUmVzcG9uc2UiOAoSUmVuYW1lU2hlbGZSZXF1ZXN0EhAKCG9sZF9uYW1lGAEgASgJEhAKCG5ld19uYW1lGAIgASgJIiQKE1JlbmFtZVNoZWxmUmVzcG9uc2USDQoFbW92ZWQYASABKA0iNwoSRGVsZXRlU2hlbGZSZXF1ZXN0EgwKBG5hbWUYASABKAkSEwoLdGFyZ2V0X25hbWUYAiABKAkiJAoTRGVsZXRlU2hlbGZSZXNwb25zZRINCgVtb3ZlZBgBIAEoDSI2ChBSZW5hbWVUYWdSZXF1ZXN0EhAKCG9sZF9uYW1lGAEgASgJEhAKCG5ld19uYW1lGAIgASgJIiUKEVJlbmFtZVRhZ1Jlc3BvbnNlEhAKCGFmZmVjdGVkGAEgASgNIiAKEERlbGV0ZVRhZ1JlcXVlc3QSDAoEbmFtZRgBIAEoCSIlChFEZWxldGVUYWdSZXNwb25zZRIQCghhZmZlY3RlZBgBIAEoDTLZDQoOTGlicmFyeVNlcnZpY2USRwoKR2V0TGlicmFyeRIbLmJvb2tzLnYxLkdldExpYnJhcnlSZXF1ZXN0GhwuYm9va3MudjEuR2V0TGlicmFyeVJlc3BvbnNlElkKEEdldEJvb2tzUHJvZ3Jlc3MSIS5ib29rcy52MS5HZXRCb29rc1Byb2dyZXNzUmVxdWVzdBoiLmJvb2tzLnYxLkdldEJvb2tzUHJvZ3Jlc3NSZXNwb25zZRJQCg1TZWFyY2hMaWJyYXJ5Eh4uYm9va3MudjEuU2VhcmNoTGlicmFyeVJlcXVlc3QaHy5ib29rcy52MS5TZWFyY2hMaWJyYXJ5UmVzcG9uc2USUwoOU2VhcmNoRXh0ZXJuYWwSHy5ib29rcy52MS5TZWFyY2hFeHRlcm5hbFJlcXVlc3QaIC5ib29rcy52MS5TZWFyY2hFeHRlcm5hbFJlc3BvbnNlElYKD0dldEV4dGVybmFsQm9vaxIgLmJvb2tzLnYxLkdldEV4dGVybmFsQm9va1JlcXVlc3QaIS5ib29rcy52MS5HZXRFeHRlcm5hbEJvb2tSZXNwb25zZRJHCgpDcmVhdGVCb29rEhsuYm9va3MudjEuQ3JlYXRlQm9va1JlcXVlc3QaHC5ib29rcy52MS5DcmVhdGVCb29rUmVzcG9uc2USWQoQVXBkYXRlQm9va1N0YXR1cxIhLmJvb2tzLnYxLlVwZGF0ZUJvb2tTdGF0dXNSZXF1ZXN0GiIuYm9va3MudjEuVXBkYXRlQm9va1N0YXR1c1Jlc3BvbnNlElkKEFVwZGF0ZUZpbmlzaGVkQXQSIS5ib29rcy52MS5VcGRhdGVGaW5pc2hlZEF0UmVxdWVzdBoiLmJvb2tzLnYxLlVwZGF0ZUZpbmlzaGVkQXRSZXNwb25zZRJTCg5VcGRhdGVQcm9ncmVzcxIfLmJvb2tzLnYxLlVwZGF0ZVByb2dyZXNzUmVxdWVzdBogLmJvb2tzLnYxLlVwZGF0ZVByb2dyZXNzUmVzcG9uc2USRAoJVG9nZ2xlVGFnEhouYm9va3MudjEuVG9nZ2xlVGFnUmVxdWVzdBobLmJvb2tzLnYxLlRvZ2dsZVRhZ1Jlc3BvbnNlEkcKClNldEJvb2tUYWcSGy5ib29rcy52MS5TZXRCb29rVGFnUmVxdWVzdBocLmJvb2tzLnYxLlNldEJvb2tUYWdSZXNwb25zZRJHCgpSZW1vdmVCb29rEhsuYm9va3MudjEuUmVtb3ZlQm9va1JlcXVlc3QaHC5ib29rcy52MS5SZW1vdmVCb29rUmVzcG9uc2USaAoVVXBkYXRlUmVhZGluZ1Byb2dyZXNzEiYuYm9va3MudjEuVXBkYXRlUmVhZGluZ1Byb2dyZXNzUmVxdWVzdBonLmJvb2tzLnYxLlVwZGF0ZVJlYWRpbmdQcm9ncmVzc1Jlc3BvbnNlElYKD0dldFJlYWRpbmdTdGF0ZRIgLmJvb2tzLnYxLkdldFJlYWRpbmdTdGF0ZVJlcXVlc3QaIS5ib29rcy52MS5HZXRSZWFkaW5nU3RhdGVSZXNwb25zZRJxChhUcmFuc2xhdGVSZWFkaW5nUG9zaXRpb24SKS5ib29rcy52MS5UcmFuc2xhdGVSZWFkaW5nUG9zaXRpb25SZXF1ZXN0GiouYm9va3MudjEuVHJhbnNsYXRlUmVhZGluZ1Bvc2l0aW9uUmVzcG9uc2USUwoOR2V0Qm9va0NvbnRlbnQSHy5ib29rcy52MS5HZXRCb29rQ29udGVudFJlcXVlc3QaIC5ib29rcy52MS5HZXRCb29rQ29udGVudFJlc3BvbnNlEkoKC0NyZWF0ZVNoZWxmEhwuYm9va3MudjEuQ3JlYXRlU2hlbGZSZXF1ZXN0Gh0uYm9va3MudjEuQ3JlYXRlU2hlbGZSZXNwb25zZRJKCgtSZW5hbWVTaGVsZhIcLmJvb2tzLnYxLlJlbmFtZVNoZWxmUmVxdWVzdBodLmJvb2tzLnYxLlJlbmFtZVNoZWxmUmVzcG9uc2USSgoLRGVsZXRlU2hlbGYSHC5ib29rcy52MS5EZWxldGVTaGVsZlJlcXVlc3QaHS5ib29rcy52MS5EZWxldGVTaGVsZlJlc3BvbnNlEkQKCVJlbmFtZVRhZxIaLmJvb2tzLnYxLlJlbmFtZVRhZ1JlcXVlc3QaGy5ib29rcy52MS5SZW5hbWVUYWdSZXNwb25zZRJECglEZWxldGVUYWcSGi5ib29rcy52MS5EZWxldGVUYWdSZXF1ZXN0GhsuYm9va3MudjEuRGVsZXRlVGFnUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi9ib29rcy92MTtib29rc3YxYgZwcm90bzM");
+  fileDesc("ChZib29rcy92MS9saWJyYXJ5LnByb3RvEghib29rcy52MSK3AgoEQm9vaxIKCgJpZBgBIAEoCRINCgV0aXRsZRgCIAEoCRIPCgdhdXRob3JzGAMgAygJEg4KBmlzYm4xMxgEIAEoCRIRCgljb3Zlcl91cmwYBSABKAkSEwoLZGVzY3JpcHRpb24YBiABKAkSEgoKcGFnZV9jb3VudBgHIAEoBRISCgpzb3VyY2VfdXJsGAsgASgJEhMKC2hhc19jb250ZW50GAwgASgIEhMKC3Nlcmllc19uYW1lGA0gASgJEhwKD3Nlcmllc19wb3NpdGlvbhgOIAEoAUgAiAEBEhQKDHNlcmllc190b3RhbBgPIAEoBUISChBfc2VyaWVzX3Bvc2l0aW9uSgQICBAJSgQICRAKSgQIChALUgZpc2JuMTBSDWV4dGVybmFsX3JlZnNSCGNhdGVnb3J5Io8DCghVc2VyQm9vaxIKCgJpZBgBIAEoCRIPCgd1c2VyX2lkGAIgASgJEg8KB2Jvb2tfaWQYAyABKAkSHAoEYm9vaxgEIAEoCzIOLmJvb2tzLnYxLkJvb2sSDgoGc3RhdHVzGAUgASgJEgwKBHRhZ3MYBiADKAkSDgoGcmF0aW5nGAcgASgFEhMKC2ZpbmlzaGVkX2F0GAkgAygJEhAKCGFkZGVkX2F0GAogASgJEhIKCnVwZGF0ZWRfYXQYCyABKAkSFQoNcHJvZ3Jlc3NfbW9kZRgMIAEoCRIUCgxjdXJyZW50X3BhZ2UYDSABKAUSGAoQcHJvZ3Jlc3NfcGVyY2VudBgOIAEoBRIPCgdmb3JtYXRzGA8gAygJEjsKDWZpbGVfdmVyc2lvbnMYECADKAsyJC5ib29rcy52MS5Vc2VyQm9vay5GaWxlVmVyc2lvbnNFbnRyeRozChFGaWxlVmVyc2lvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBSgQICBAJIjwKCUJvb2tTaGVsZhIMCgRuYW1lGAEgASgJEiEKBWJvb2tzGAIgAygLMhIuYm9va3MudjEuVXNlckJvb2siswEKD0xpYnJhcnlSZXNwb25zZRIjCgdyZWFkaW5nGAEgAygLMhIuYm9va3MudjEuVXNlckJvb2sSJAoId2lzaGxpc3QYAiADKAsyEi5ib29rcy52MS5Vc2VyQm9vaxIkCghmaW5pc2hlZBgDIAMoCzISLmJvb2tzLnYxLlVzZXJCb29rEiQKB3NoZWx2ZXMYBCADKAsyEy5ib29rcy52MS5Cb29rU2hlbGZKBAgFEAZSA3JzcyJdChVCb29rc1Byb2dyZXNzUmVzcG9uc2USDgoGbGFiZWxzGAEgAygJEg4KBnZhbHVlcxgCIAMoCRISCgpkYXRlX3N0YXJ0GAMgASgJEhAKCGRhdGVfZW5kGAQgASgJIvABChJFeHRlcm5hbEJvb2tSZXN1bHQSEAoIcHJvdmlkZXIYASABKAkSEwoLcHJvdmlkZXJfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSDwoHYXV0aG9ycxgEIAMoCRIOCgZpc2JuMTMYBSABKAkSEQoJY292ZXJfdXJsGAYgASgJEhMKC2Rlc2NyaXB0aW9uGAcgASgJEhMKC3Nlcmllc19uYW1lGAggASgJEhwKD3Nlcmllc19wb3NpdGlvbhgJIAEoAUgAiAEBEhQKDHNlcmllc190b3RhbBgKIAEoBUISChBfc2VyaWVzX3Bvc2l0aW9uIj0KD1JlYWRpbmdQb3NpdGlvbhIMCgRocmVmGAEgASgJEg4KBm9mZnNldBgCIAEoBRIMCgRwYWdlGAMgASgFIpsBChRCb29rUmVhZGluZ1N0YXRlRGF0YRIOCgZzb3VyY2UYASABKAkSDwoHcGVyY2VudBgCIAEoBRIQCghsb2NhdGlvbhgDIAEoCRISCgp1cGRhdGVkX2F0GAQgASgJEisKCHBvc2l0aW9uGAUgASgLMhkuYm9va3MudjEuUmVhZGluZ1Bvc2l0aW9uEg8KB3JlYWRfYXQYBiABKAkiEwoRR2V0TGlicmFyeVJlcXVlc3QiQAoSR2V0TGlicmFyeVJlc3BvbnNlEioKB2xpYnJhcnkYASABKAsyGS5ib29rcy52MS5MaWJyYXJ5UmVzcG9uc2UiPwoXR2V0Qm9va3NQcm9ncmVzc1JlcXVlc3QSEgoKZGF0ZV9zdGFydBgBIAEoCRIQCghkYXRlX2VuZBgCIAEoCSJNChhHZXRCb29rc1Byb2dyZXNzUmVzcG9uc2USMQoIcHJvZ3Jlc3MYASABKAsyHy5ib29rcy52MS5Cb29rc1Byb2dyZXNzUmVzcG9uc2UiRAoUU2VhcmNoTGlicmFyeVJlcXVlc3QSDQoFcXVlcnkYASABKAkSDQoFbGltaXQYAiABKAUSDgoGb2Zmc2V0GAMgASgFIkwKFVNlYXJjaExpYnJhcnlSZXNwb25zZRIhCgVib29rcxgBIAMoCzISLmJvb2tzLnYxLlVzZXJCb29rEhAKCGhhc19tb3JlGAIgASgIIiYKFVNlYXJjaEV4dGVybmFsUmVxdWVzdBINCgVxdWVyeRgBIAEoCSJHChZTZWFyY2hFeHRlcm5hbFJlc3BvbnNlEi0KB3Jlc3VsdHMYASADKAsyHC5ib29rcy52MS5FeHRlcm5hbEJvb2tSZXN1bHQiPwoWR2V0RXh0ZXJuYWxCb29rUmVxdWVzdBIQCghwcm92aWRlchgBIAEoCRITCgtwcm92aWRlcl9pZBgCIAEoCSJHChdHZXRFeHRlcm5hbEJvb2tSZXNwb25zZRIsCgZyZXN1bHQYASABKAsyHC5ib29rcy52MS5FeHRlcm5hbEJvb2tSZXN1bHQiqQIKEUNyZWF0ZUJvb2tSZXF1ZXN0EhAKCHByb3ZpZGVyGAEgASgJEhMKC3Byb3ZpZGVyX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg4KBmF1dGhvchgEIAEoCRIOCgZzdGF0dXMYBSABKAkSDgoGaXNibjEzGAYgASgJEhEKCWNvdmVyX3VybBgHIAEoCRITCgtkZXNjcmlwdGlvbhgIIAEoCRIUCgxvd25fcGh5c2ljYWwYCSABKAgSEwoLb3duX2RpZ2l0YWwYCiABKAgSEwoLc2VyaWVzX25hbWUYCyABKAkSHAoPc2VyaWVzX3Bvc2l0aW9uGAwgASgBSACIAQESFAoMc2VyaWVzX3RvdGFsGA0gASgFQhIKEF9zZXJpZXNfcG9zaXRpb24iFAoSQ3JlYXRlQm9va1Jlc3BvbnNlImMKF1VwZGF0ZUJvb2tTdGF0dXNSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSDgoGc3RhdHVzGAIgASgJEhEKCWZhdm91cml0ZRgDIAEoCBIOCgZyYXRpbmcYBCABKAlKBAgFEAYiGgoYVXBkYXRlQm9va1N0YXR1c1Jlc3BvbnNlIjAKEFRvZ2dsZVRhZ1JlcXVlc3QSDwoHYm9va19pZBgBIAEoCRILCgN0YWcYAiABKAkiEwoRVG9nZ2xlVGFnUmVzcG9uc2UiQgoRU2V0Qm9va1RhZ1JlcXVlc3QSDwoHYm9va19pZBgBIAEoCRILCgN0YWcYAiABKAkSDwoHZW5hYmxlZBgDIAEoCCIUChJTZXRCb29rVGFnUmVzcG9uc2UiJAoRUmVtb3ZlQm9va1JlcXVlc3QSDwoHYm9va19pZBgBIAEoCSIUChJSZW1vdmVCb29rUmVzcG9uc2UiPwoXVXBkYXRlRmluaXNoZWRBdFJlcXVlc3QSDwoHYm9va19pZBgBIAEoCRITCgtmaW5pc2hlZF9hdBgCIAMoCSIaChhVcGRhdGVGaW5pc2hlZEF0UmVzcG9uc2UibwoVVXBkYXRlUHJvZ3Jlc3NSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSFQoNcHJvZ3Jlc3NfbW9kZRgCIAEoCRIUCgxjdXJyZW50X3BhZ2UYAyABKAUSGAoQcHJvZ3Jlc3NfcGVyY2VudBgEIAEoBSIYChZVcGRhdGVQcm9ncmVzc1Jlc3BvbnNlIqABChxVcGRhdGVSZWFkaW5nUHJvZ3Jlc3NSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSDgoGc291cmNlGAIgASgJEg8KB3BlcmNlbnQYAyABKAUSEAoIbG9jYXRpb24YBCABKAkSKwoIcG9zaXRpb24YBSABKAsyGS5ib29rcy52MS5SZWFkaW5nUG9zaXRpb24SDwoHcmVhZF9hdBgGIAEoCSIfCh1VcGRhdGVSZWFkaW5nUHJvZ3Jlc3NSZXNwb25zZSIpChZHZXRSZWFkaW5nU3RhdGVSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkiSAoXR2V0UmVhZGluZ1N0YXRlUmVzcG9uc2USLQoFc3RhdGUYASABKAsyHi5ib29rcy52MS5Cb29rUmVhZGluZ1N0YXRlRGF0YSJfCh9UcmFuc2xhdGVSZWFkaW5nUG9zaXRpb25SZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkSKwoIcG9zaXRpb24YAiABKAsyGS5ib29rcy52MS5SZWFkaW5nUG9zaXRpb24iTwogVHJhbnNsYXRlUmVhZGluZ1Bvc2l0aW9uUmVzcG9uc2USKwoIcG9zaXRpb24YASABKAsyGS5ib29rcy52MS5SZWFkaW5nUG9zaXRpb24iKAoVR2V0Qm9va0NvbnRlbnRSZXF1ZXN0Eg8KB2Jvb2tfaWQYASABKAkiJgoWR2V0Qm9va0NvbnRlbnRSZXNwb25zZRIMCgRodG1sGAEgASgJIiAKEEdldFNlcmllc1JlcXVlc3QSDAoEbmFtZRgBIAEoCSKIAQoLU2VyaWVzRW50cnkSFQoIcG9zaXRpb24YASABKAFIAIgBARIlCgl1c2VyX2Jvb2sYAiABKAsyEi5ib29rcy52MS5Vc2VyQm9vaxIuCghleHRlcm5hbBgDIAEoCzIcLmJvb2tzLnYxLkV4dGVybmFsQm9va1Jlc3VsdEILCglfcG9zaXRpb24idgoRR2V0U2VyaWVzUmVzcG9uc2USDAoEbmFtZRgBIAEoCRINCgV0b3RhbBgCIAEoBRImCgdlbnRyaWVzGAMgAygLMhUuYm9va3MudjEuU2VyaWVzRW50cnkSHAoUZXh0ZXJuYWxfdW5hdmFpbGFibGUYBCABKAgiIgoSQ3JlYXRlU2hlbGZSZXF1ZXN0EgwKBG5hbWUYASABKAkiFQoTQ3JlYXRlU2hlbGZSZXNwb25zZSI4ChJSZW5hbWVTaGVsZlJlcXVlc3QSEAoIb2xkX25hbWUYASABKAkSEAoIbmV3X25hbWUYAiABKAkiJAoTUmVuYW1lU2hlbGZSZXNwb25zZRINCgVtb3ZlZBgBIAEoDSI3ChJEZWxldGVTaGVsZlJlcXVlc3QSDAoEbmFtZRgBIAEoCRITCgt0YXJnZXRfbmFtZRgCIAEoCSIkChNEZWxldGVTaGVsZlJlc3BvbnNlEg0KBW1vdmVkGAEgASgNIjYKEFJlbmFtZVRhZ1JlcXVlc3QSEAoIb2xkX25hbWUYASABKAkSEAoIbmV3X25hbWUYAiABKAkiJQoRUmVuYW1lVGFnUmVzcG9uc2USEAoIYWZmZWN0ZWQYASABKA0iIAoQRGVsZXRlVGFnUmVxdWVzdBIMCgRuYW1lGAEgASgJIiUKEURlbGV0ZVRhZ1Jlc3BvbnNlEhAKCGFmZmVjdGVkGAEgASgNMp8OCg5MaWJyYXJ5U2VydmljZRJHCgpHZXRMaWJyYXJ5EhsuYm9va3MudjEuR2V0TGlicmFyeVJlcXVlc3QaHC5ib29rcy52MS5HZXRMaWJyYXJ5UmVzcG9uc2USWQoQR2V0Qm9va3NQcm9ncmVzcxIhLmJvb2tzLnYxLkdldEJvb2tzUHJvZ3Jlc3NSZXF1ZXN0GiIuYm9va3MudjEuR2V0Qm9va3NQcm9ncmVzc1Jlc3BvbnNlElAKDVNlYXJjaExpYnJhcnkSHi5ib29rcy52MS5TZWFyY2hMaWJyYXJ5UmVxdWVzdBofLmJvb2tzLnYxLlNlYXJjaExpYnJhcnlSZXNwb25zZRJTCg5TZWFyY2hFeHRlcm5hbBIfLmJvb2tzLnYxLlNlYXJjaEV4dGVybmFsUmVxdWVzdBogLmJvb2tzLnYxLlNlYXJjaEV4dGVybmFsUmVzcG9uc2USVgoPR2V0RXh0ZXJuYWxCb29rEiAuYm9va3MudjEuR2V0RXh0ZXJuYWxCb29rUmVxdWVzdBohLmJvb2tzLnYxLkdldEV4dGVybmFsQm9va1Jlc3BvbnNlEkcKCkNyZWF0ZUJvb2sSGy5ib29rcy52MS5DcmVhdGVCb29rUmVxdWVzdBocLmJvb2tzLnYxLkNyZWF0ZUJvb2tSZXNwb25zZRJZChBVcGRhdGVCb29rU3RhdHVzEiEuYm9va3MudjEuVXBkYXRlQm9va1N0YXR1c1JlcXVlc3QaIi5ib29rcy52MS5VcGRhdGVCb29rU3RhdHVzUmVzcG9uc2USWQoQVXBkYXRlRmluaXNoZWRBdBIhLmJvb2tzLnYxLlVwZGF0ZUZpbmlzaGVkQXRSZXF1ZXN0GiIuYm9va3MudjEuVXBkYXRlRmluaXNoZWRBdFJlc3BvbnNlElMKDlVwZGF0ZVByb2dyZXNzEh8uYm9va3MudjEuVXBkYXRlUHJvZ3Jlc3NSZXF1ZXN0GiAuYm9va3MudjEuVXBkYXRlUHJvZ3Jlc3NSZXNwb25zZRJECglUb2dnbGVUYWcSGi5ib29rcy52MS5Ub2dnbGVUYWdSZXF1ZXN0GhsuYm9va3MudjEuVG9nZ2xlVGFnUmVzcG9uc2USRwoKU2V0Qm9va1RhZxIbLmJvb2tzLnYxLlNldEJvb2tUYWdSZXF1ZXN0GhwuYm9va3MudjEuU2V0Qm9va1RhZ1Jlc3BvbnNlEkcKClJlbW92ZUJvb2sSGy5ib29rcy52MS5SZW1vdmVCb29rUmVxdWVzdBocLmJvb2tzLnYxLlJlbW92ZUJvb2tSZXNwb25zZRJoChVVcGRhdGVSZWFkaW5nUHJvZ3Jlc3MSJi5ib29rcy52MS5VcGRhdGVSZWFkaW5nUHJvZ3Jlc3NSZXF1ZXN0GicuYm9va3MudjEuVXBkYXRlUmVhZGluZ1Byb2dyZXNzUmVzcG9uc2USVgoPR2V0UmVhZGluZ1N0YXRlEiAuYm9va3MudjEuR2V0UmVhZGluZ1N0YXRlUmVxdWVzdBohLmJvb2tzLnYxLkdldFJlYWRpbmdTdGF0ZVJlc3BvbnNlEnEKGFRyYW5zbGF0ZVJlYWRpbmdQb3NpdGlvbhIpLmJvb2tzLnYxLlRyYW5zbGF0ZVJlYWRpbmdQb3NpdGlvblJlcXVlc3QaKi5ib29rcy52MS5UcmFuc2xhdGVSZWFkaW5nUG9zaXRpb25SZXNwb25zZRJTCg5HZXRCb29rQ29udGVudBIfLmJvb2tzLnYxLkdldEJvb2tDb250ZW50UmVxdWVzdBogLmJvb2tzLnYxLkdldEJvb2tDb250ZW50UmVzcG9uc2USRAoJR2V0U2VyaWVzEhouYm9va3MudjEuR2V0U2VyaWVzUmVxdWVzdBobLmJvb2tzLnYxLkdldFNlcmllc1Jlc3BvbnNlEkoKC0NyZWF0ZVNoZWxmEhwuYm9va3MudjEuQ3JlYXRlU2hlbGZSZXF1ZXN0Gh0uYm9va3MudjEuQ3JlYXRlU2hlbGZSZXNwb25zZRJKCgtSZW5hbWVTaGVsZhIcLmJvb2tzLnYxLlJlbmFtZVNoZWxmUmVxdWVzdBodLmJvb2tzLnYxLlJlbmFtZVNoZWxmUmVzcG9uc2USSgoLRGVsZXRlU2hlbGYSHC5ib29rcy52MS5EZWxldGVTaGVsZlJlcXVlc3QaHS5ib29rcy52MS5EZWxldGVTaGVsZlJlc3BvbnNlEkQKCVJlbmFtZVRhZxIaLmJvb2tzLnYxLlJlbmFtZVRhZ1JlcXVlc3QaGy5ib29rcy52MS5SZW5hbWVUYWdSZXNwb25zZRJECglEZWxldGVUYWcSGi5ib29rcy52MS5EZWxldGVUYWdSZXF1ZXN0GhsuYm9va3MudjEuRGVsZXRlVGFnUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi9ib29rcy92MTtib29rc3YxYgZwcm90bzM");
 
 /**
  * @generated from message books.v1.Book
@@ -64,6 +64,27 @@ export type Book = Message<"books.v1.Book"> & {
    * @generated from field: bool has_content = 12;
    */
   hasContent: boolean;
+
+  /**
+   * Empty when the book isn't in a series.
+   *
+   * @generated from field: string series_name = 13;
+   */
+  seriesName: string;
+
+  /**
+   * Unset for an unordered entry; fractional for novellas, 0 for prequels.
+   *
+   * @generated from field: optional double series_position = 14;
+   */
+  seriesPosition?: number | undefined;
+
+  /**
+   * The series' main-volume count per Hardcover; 0 when unknown.
+   *
+   * @generated from field: int32 series_total = 15;
+   */
+  seriesTotal: number;
 };
 
 /**
@@ -287,6 +308,23 @@ export type ExternalBookResult = Message<"books.v1.ExternalBookResult"> & {
    * @generated from field: string description = 7;
    */
   description: string;
+
+  /**
+   * @generated from field: string series_name = 8;
+   */
+  seriesName: string;
+
+  /**
+   * @generated from field: optional double series_position = 9;
+   */
+  seriesPosition?: number | undefined;
+
+  /**
+   * Main-volume count; 0 when unknown.
+   *
+   * @generated from field: int32 series_total = 10;
+   */
+  seriesTotal: number;
 };
 
 /**
@@ -620,6 +658,23 @@ export type CreateBookRequest = Message<"books.v1.CreateBookRequest"> & {
    * @generated from field: bool own_digital = 10;
    */
   ownDigital: boolean;
+
+  /**
+   * Fills the catalog book's series only when it has none.
+   *
+   * @generated from field: string series_name = 11;
+   */
+  seriesName: string;
+
+  /**
+   * @generated from field: optional double series_position = 12;
+   */
+  seriesPosition?: number | undefined;
+
+  /**
+   * @generated from field: int32 series_total = 13;
+   */
+  seriesTotal: number;
 };
 
 /**
@@ -1052,6 +1107,91 @@ export const GetBookContentResponseSchema: GenMessage<GetBookContentResponse> = 
   messageDesc(file_books_v1_library, 39);
 
 /**
+ * GetSeries lists a series' volumes in position order: the caller's own books
+ * plus the volumes Hardcover knows that the caller doesn't have.
+ *
+ * @generated from message books.v1.GetSeriesRequest
+ */
+export type GetSeriesRequest = Message<"books.v1.GetSeriesRequest"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message books.v1.GetSeriesRequest.
+ * Use `create(GetSeriesRequestSchema)` to create a new message.
+ */
+export const GetSeriesRequestSchema: GenMessage<GetSeriesRequest> = /*@__PURE__*/
+  messageDesc(file_books_v1_library, 40);
+
+/**
+ * @generated from message books.v1.SeriesEntry
+ */
+export type SeriesEntry = Message<"books.v1.SeriesEntry"> & {
+  /**
+   * @generated from field: optional double position = 1;
+   */
+  position?: number | undefined;
+
+  /**
+   * Exactly one of user_book (owned) and external (missing) is set.
+   *
+   * @generated from field: books.v1.UserBook user_book = 2;
+   */
+  userBook?: UserBook | undefined;
+
+  /**
+   * @generated from field: books.v1.ExternalBookResult external = 3;
+   */
+  external?: ExternalBookResult | undefined;
+};
+
+/**
+ * Describes the message books.v1.SeriesEntry.
+ * Use `create(SeriesEntrySchema)` to create a new message.
+ */
+export const SeriesEntrySchema: GenMessage<SeriesEntry> = /*@__PURE__*/
+  messageDesc(file_books_v1_library, 41);
+
+/**
+ * @generated from message books.v1.GetSeriesResponse
+ */
+export type GetSeriesResponse = Message<"books.v1.GetSeriesResponse"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * Main-volume count; 0 when unknown.
+   *
+   * @generated from field: int32 total = 2;
+   */
+  total: number;
+
+  /**
+   * @generated from field: repeated books.v1.SeriesEntry entries = 3;
+   */
+  entries: SeriesEntry[];
+
+  /**
+   * Hardcover couldn't be asked, so missing volumes are unknown.
+   *
+   * @generated from field: bool external_unavailable = 4;
+   */
+  externalUnavailable: boolean;
+};
+
+/**
+ * Describes the message books.v1.GetSeriesResponse.
+ * Use `create(GetSeriesResponseSchema)` to create a new message.
+ */
+export const GetSeriesResponseSchema: GenMessage<GetSeriesResponse> = /*@__PURE__*/
+  messageDesc(file_books_v1_library, 42);
+
+/**
  * @generated from message books.v1.CreateShelfRequest
  */
 export type CreateShelfRequest = Message<"books.v1.CreateShelfRequest"> & {
@@ -1066,7 +1206,7 @@ export type CreateShelfRequest = Message<"books.v1.CreateShelfRequest"> & {
  * Use `create(CreateShelfRequestSchema)` to create a new message.
  */
 export const CreateShelfRequestSchema: GenMessage<CreateShelfRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_library, 40);
+  messageDesc(file_books_v1_library, 43);
 
 /**
  * @generated from message books.v1.CreateShelfResponse
@@ -1079,7 +1219,7 @@ export type CreateShelfResponse = Message<"books.v1.CreateShelfResponse"> & {
  * Use `create(CreateShelfResponseSchema)` to create a new message.
  */
 export const CreateShelfResponseSchema: GenMessage<CreateShelfResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_library, 41);
+  messageDesc(file_books_v1_library, 44);
 
 /**
  * @generated from message books.v1.RenameShelfRequest
@@ -1101,7 +1241,7 @@ export type RenameShelfRequest = Message<"books.v1.RenameShelfRequest"> & {
  * Use `create(RenameShelfRequestSchema)` to create a new message.
  */
 export const RenameShelfRequestSchema: GenMessage<RenameShelfRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_library, 42);
+  messageDesc(file_books_v1_library, 45);
 
 /**
  * @generated from message books.v1.RenameShelfResponse
@@ -1118,7 +1258,7 @@ export type RenameShelfResponse = Message<"books.v1.RenameShelfResponse"> & {
  * Use `create(RenameShelfResponseSchema)` to create a new message.
  */
 export const RenameShelfResponseSchema: GenMessage<RenameShelfResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_library, 43);
+  messageDesc(file_books_v1_library, 46);
 
 /**
  * Reassign every book on `name` to `target_name`, after which `name` no longer exists.
@@ -1142,7 +1282,7 @@ export type DeleteShelfRequest = Message<"books.v1.DeleteShelfRequest"> & {
  * Use `create(DeleteShelfRequestSchema)` to create a new message.
  */
 export const DeleteShelfRequestSchema: GenMessage<DeleteShelfRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_library, 44);
+  messageDesc(file_books_v1_library, 47);
 
 /**
  * @generated from message books.v1.DeleteShelfResponse
@@ -1159,7 +1299,7 @@ export type DeleteShelfResponse = Message<"books.v1.DeleteShelfResponse"> & {
  * Use `create(DeleteShelfResponseSchema)` to create a new message.
  */
 export const DeleteShelfResponseSchema: GenMessage<DeleteShelfResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_library, 45);
+  messageDesc(file_books_v1_library, 48);
 
 /**
  * @generated from message books.v1.RenameTagRequest
@@ -1181,7 +1321,7 @@ export type RenameTagRequest = Message<"books.v1.RenameTagRequest"> & {
  * Use `create(RenameTagRequestSchema)` to create a new message.
  */
 export const RenameTagRequestSchema: GenMessage<RenameTagRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_library, 46);
+  messageDesc(file_books_v1_library, 49);
 
 /**
  * @generated from message books.v1.RenameTagResponse
@@ -1198,7 +1338,7 @@ export type RenameTagResponse = Message<"books.v1.RenameTagResponse"> & {
  * Use `create(RenameTagResponseSchema)` to create a new message.
  */
 export const RenameTagResponseSchema: GenMessage<RenameTagResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_library, 47);
+  messageDesc(file_books_v1_library, 50);
 
 /**
  * @generated from message books.v1.DeleteTagRequest
@@ -1215,7 +1355,7 @@ export type DeleteTagRequest = Message<"books.v1.DeleteTagRequest"> & {
  * Use `create(DeleteTagRequestSchema)` to create a new message.
  */
 export const DeleteTagRequestSchema: GenMessage<DeleteTagRequest> = /*@__PURE__*/
-  messageDesc(file_books_v1_library, 48);
+  messageDesc(file_books_v1_library, 51);
 
 /**
  * @generated from message books.v1.DeleteTagResponse
@@ -1232,7 +1372,7 @@ export type DeleteTagResponse = Message<"books.v1.DeleteTagResponse"> & {
  * Use `create(DeleteTagResponseSchema)` to create a new message.
  */
 export const DeleteTagResponseSchema: GenMessage<DeleteTagResponse> = /*@__PURE__*/
-  messageDesc(file_books_v1_library, 49);
+  messageDesc(file_books_v1_library, 52);
 
 /**
  * @generated from service books.v1.LibraryService
@@ -1365,6 +1505,14 @@ export const LibraryService: GenService<{
     methodKind: "unary";
     input: typeof GetBookContentRequestSchema;
     output: typeof GetBookContentResponseSchema;
+  },
+  /**
+   * @generated from rpc books.v1.LibraryService.GetSeries
+   */
+  getSeries: {
+    methodKind: "unary";
+    input: typeof GetSeriesRequestSchema;
+    output: typeof GetSeriesResponseSchema;
   },
   /**
    * @generated from rpc books.v1.LibraryService.CreateShelf

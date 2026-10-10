@@ -48,6 +48,7 @@ const isbnQuery = `query BookByISBN($isbn: String!) {
     isbn_13
     image { url }
     book {
+      id
       title
       pages
       description
@@ -67,6 +68,7 @@ const searchIDsQuery = `query SearchBookIDs($query: String!, $perPage: Int!) {
 }`
 
 // booksByIDsQuery fetches full records for searchIDsQuery's IDs.
+// books→book_series→series is three levels, the depth limit.
 const booksByIDsQuery = `query BooksByIDs($ids: [Int!]!) {
   books(where: {id: {_in: $ids}}) {
     id
@@ -77,6 +79,10 @@ const booksByIDsQuery = `query BooksByIDs($ids: [Int!]!) {
     cached_contributors
     editions(limit: 1) {
       isbn_13
+    }
+    book_series {
+      position
+      series { name primary_books_count }
     }
   }
 }`
@@ -118,7 +124,11 @@ func (c client) GetByISBN(
 		return nil, ErrNotFound
 	}
 
-	out := editionToExternalBook(resp.Data.Editions[0])
+	ed := resp.Data.Editions[0]
+	out := editionToExternalBook(ed)
+	if ed.Book != nil && ed.Book.ID != 0 {
+		out.Series = c.bookSeries(ctx, ed.Book.ID)
+	}
 	return &out, nil
 }
 
@@ -226,6 +236,7 @@ func bookToExternalBook(b book) ExternalBook {
 		url := b.CachedImage.URL
 		out.CoverURL = &url
 	}
+	out.Series = pickSeries(b.BookSeries)
 	return out
 }
 

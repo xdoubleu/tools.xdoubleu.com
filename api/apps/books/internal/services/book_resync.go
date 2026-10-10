@@ -56,6 +56,11 @@ type ResyncSource interface {
 		bookID uuid.UUID,
 	) (*repositories.ResyncProposalRow, error)
 	DeleteResyncProposal(ctx context.Context, bookID uuid.UUID) error
+	SetBookSeries(
+		ctx context.Context,
+		bookID uuid.UUID,
+		series *models.BookSeries,
+	) error
 }
 
 // SourceProposal is one candidate metadata set for a catalog book: the library's
@@ -68,11 +73,37 @@ type SourceProposal struct {
 	ISBN13      string   `json:"isbn13,omitempty"`
 	Title       string   `json:"title,omitempty"`
 	Authors     []string `json:"authors,omitempty"`
+	// Series is only ever supplied by Hardcover.
+	SeriesName     string   `json:"series_name,omitempty"`
+	SeriesPosition *float64 `json:"series_position,omitempty"`
+	SeriesTotal    *int     `json:"series_total,omitempty"`
 	// Index is the 0-based ordinal among proposals from the same Source; nonzero
 	// only for the manual override search (see topCandidates).
 	Index int `json:"index,omitempty"`
 	// Differs is computed at read time, never persisted.
 	Differs []string `json:"-"`
+}
+
+// series returns the proposal's series, or nil when it names none.
+func (p SourceProposal) series() *models.BookSeries {
+	if p.SeriesName == "" {
+		return nil
+	}
+	return &models.BookSeries{
+		Name:     p.SeriesName,
+		Position: p.SeriesPosition,
+		Total:    p.SeriesTotal,
+	}
+}
+
+// setSeries copies series onto the proposal; nil leaves it unchanged.
+func (p *SourceProposal) setSeries(series *models.BookSeries) {
+	if series == nil {
+		return
+	}
+	p.SeriesName = series.Name
+	p.SeriesPosition = series.Position
+	p.SeriesTotal = series.Total
 }
 
 // ResyncProposal pairs a catalog book with its differing source proposals.
@@ -182,7 +213,30 @@ func (s *BookService) scanBookForResync(
 	if statusErr != nil {
 		acc.addError(fmt.Errorf("book %s: record scan status: %w", book.ID, statusErr))
 	}
+	if seriesErr := s.fillEmptySeries(ctx, book, proposals); seriesErr != nil {
+		acc.addError(fmt.Errorf("book %s: fill series: %w", book.ID, seriesErr))
+	}
 	s.ensureCoverCached(ctx, book)
+}
+
+// fillEmptySeries writes a proposed series onto a book without one, directly
+// rather than as a proposal: filling an empty field loses nothing. Only an
+// exact ISBN match counts; a fuzzy search match waits for admin review.
+func (s *BookService) fillEmptySeries(
+	ctx context.Context,
+	book models.Book,
+	proposals []SourceProposal,
+) error {
+	if book.Series != nil || book.ISBN13 == nil {
+		return nil
+	}
+	isbn := normalizeISBN(*book.ISBN13)
+	for _, p := range proposals {
+		if series := p.series(); series != nil && p.ISBN13 == isbn {
+			return s.resyncSource.SetBookSeries(ctx, book.ID, series)
+		}
+	}
+	return nil
 }
 
 // ensureCoverCached backfills the R2 cover for books with a CoverURL but no
@@ -506,11 +560,7 @@ func (s *BookService) fetchHardcoverByISBN(
 		return s.fetchHardcoverBySearchFallback(ctx, logger, book)
 	}
 
-	p := newSourceProposalFromCandidate("hardcover", titleOnlyCandidate{
-		title: hcDetail.Title, authors: hcDetail.Authors, isbn13: hcDetail.ISBN13,
-		coverURL: hcDetail.CoverURL, description: hcDetail.Description,
-		pageCount: hcDetail.PageCount,
-	})
+	p := newSourceProposalFromCandidate("hardcover", hcCandidate(*hcDetail))
 	return &p, false
 }
 
@@ -758,12 +808,28 @@ func filterByAuthor(
 func hcCandidates(results []hardcover.ExternalBook) []titleOnlyCandidate {
 	out := make([]titleOnlyCandidate, len(results))
 	for i, r := range results {
-		out[i] = titleOnlyCandidate{
-			title: r.Title, authors: r.Authors, isbn13: r.ISBN13,
-			coverURL: r.CoverURL, description: r.Description, pageCount: r.PageCount,
-		}
+		out[i] = hcCandidate(r)
 	}
 	return out
+}
+
+func hcCandidate(r hardcover.ExternalBook) titleOnlyCandidate {
+	return titleOnlyCandidate{
+		title: r.Title, authors: r.Authors, isbn13: r.ISBN13,
+		coverURL: r.CoverURL, description: r.Description, pageCount: r.PageCount,
+		series: hcSeries(r.Series),
+	}
+}
+
+func hcSeries(ref *hardcover.SeriesRef) *models.BookSeries {
+	if ref == nil {
+		return nil
+	}
+	return &models.BookSeries{
+		Name:     ref.Name,
+		Position: ref.Position,
+		Total:    ref.Total,
+	}
 }
 
 func appendPicked(
@@ -808,6 +874,7 @@ func newSourceProposalFromCandidate(
 	if c.pageCount != nil {
 		p.PageCount = *c.pageCount
 	}
+	p.setSeries(c.series)
 	return p
 }
 
@@ -835,8 +902,21 @@ func computeDifferences(book models.Book, p SourceProposal) []string {
 	if p.CoverURL != "" && (book.CoverURL == nil || *book.CoverURL == "") {
 		diffs = append(diffs, "cover_url")
 	}
+	if p.SeriesName != "" && !sameSeries(book.Series, p.series()) {
+		diffs = append(diffs, "series")
+	}
 
 	return diffs
+}
+
+func sameSeries(a, b *models.BookSeries) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	if a.Name != b.Name || (a.Position == nil) != (b.Position == nil) {
+		return false
+	}
+	return a.Position == nil || *a.Position == *b.Position
 }
 
 func sameAuthorSet(a, b []string) bool {
@@ -879,6 +959,7 @@ func libraryProposal(book models.Book) SourceProposal {
 	if book.PageCount != nil {
 		p.PageCount = *book.PageCount
 	}
+	p.setSeries(book.Series)
 	return p
 }
 
@@ -962,7 +1043,7 @@ func (s *BookService) applyChosenSource(
 }
 
 // applySelectedSource replaces the book's metadata wholesale with the chosen
-// source's; isbn13 is never blanked. index relies on the provider returning
+// source's; isbn13 and series are never blanked. index relies on the provider returning
 // the same order on re-fetch as when the admin saw the candidates.
 func (s *BookService) applySelectedSource(
 	ctx context.Context,
@@ -983,11 +1064,19 @@ func (s *BookService) applySelectedSource(
 		return ErrProposalNotFound
 	}
 
-	return s.writeResyncResult(
+	err := s.writeResyncResult(
 		ctx, logger, book,
 		chosen.CoverURL, chosen.Description, chosen.PageCount, chosen.ISBN13,
 		chosen.Title, chosen.Authors, chosen.Source,
 	)
+	if err != nil {
+		return err
+	}
+	// A source without a series keeps the book's, unlike the other fields.
+	if series := chosen.series(); series != nil {
+		return s.resyncSource.SetBookSeries(ctx, book.ID, series)
+	}
+	return nil
 }
 
 // GetBookSources fetches every provider's live view of one book for the admin
@@ -1178,6 +1267,7 @@ type titleOnlyCandidate struct {
 	coverURL    *string
 	description *string
 	pageCount   *int
+	series      *models.BookSeries
 }
 
 // selectTitleOnlyMatch returns the first title match, unless two matches have

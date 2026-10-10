@@ -15,6 +15,7 @@ import AddManualBookDialog from '@/components/books/AddManualBookDialog'
 import { Button } from '@/components/ui/button'
 import { useSearchExternal } from '@/hooks/useBooks'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/books/bookShelves'
+import { buildSeriesSummaries } from '@/lib/books/series'
 
 type Selection = { kind: 'shelf'; id: ShelfId } | { kind: 'tag'; tag: string }
 
@@ -43,6 +44,7 @@ export default function BooksLibrary({
 }: BooksLibraryProps) {
   const shelves = buildShelves(library)
   const allTags = buildTags(library)
+  const seriesSummaries = buildSeriesSummaries(library)
 
   const [selection, setSelection] = useState<Selection>({ kind: 'shelf', id: 'all' })
   const [manageOpen, setManageOpen] = useState(false)
@@ -144,6 +146,7 @@ export default function BooksLibrary({
           onSelectShelf={handleSelectShelf}
           onSelectTag={handleSelectTag}
           onManage={() => setManageOpen(true)}
+          series={seriesSummaries}
         />
 
         <div className="flex-1 min-w-0">

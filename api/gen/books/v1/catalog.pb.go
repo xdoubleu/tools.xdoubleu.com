@@ -551,9 +551,11 @@ type SourceBook struct {
 	Differs []string `protobuf:"bytes,8,rep,name=differs,proto3" json:"differs,omitempty"`
 	// 0-based ordinal among candidates of the same source; only a manual
 	// override search yields more than one (up to 5).
-	Index         int32 `protobuf:"varint,9,opt,name=index,proto3" json:"index,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Index          int32    `protobuf:"varint,9,opt,name=index,proto3" json:"index,omitempty"`
+	SeriesName     string   `protobuf:"bytes,10,opt,name=series_name,json=seriesName,proto3" json:"series_name,omitempty"`
+	SeriesPosition *float64 `protobuf:"fixed64,11,opt,name=series_position,json=seriesPosition,proto3,oneof" json:"series_position,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SourceBook) Reset() {
@@ -645,6 +647,20 @@ func (x *SourceBook) GetDiffers() []string {
 func (x *SourceBook) GetIndex() int32 {
 	if x != nil {
 		return x.Index
+	}
+	return 0
+}
+
+func (x *SourceBook) GetSeriesName() string {
+	if x != nil {
+		return x.SeriesName
+	}
+	return ""
+}
+
+func (x *SourceBook) GetSeriesPosition() float64 {
+	if x != nil && x.SeriesPosition != nil {
+		return *x.SeriesPosition
 	}
 	return 0
 }
@@ -1663,7 +1679,7 @@ const file_books_v1_catalog_proto_rawDesc = "" +
 	"\x05force\x18\x01 \x01(\bR\x05force\"\x15\n" +
 	"\x13StartResyncResponse\"\x15\n" +
 	"\x13CancelResyncRequest\"\x16\n" +
-	"\x14CancelResyncResponse\"\xfa\x01\n" +
+	"\x14CancelResyncResponse\"\xdd\x02\n" +
 	"\n" +
 	"SourceBook\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12\x1b\n" +
@@ -1675,7 +1691,12 @@ const file_books_v1_catalog_proto_rawDesc = "" +
 	"\x05title\x18\x06 \x01(\tR\x05title\x12\x18\n" +
 	"\aauthors\x18\a \x03(\tR\aauthors\x12\x18\n" +
 	"\adiffers\x18\b \x03(\tR\adiffers\x12\x14\n" +
-	"\x05index\x18\t \x01(\x05R\x05index\"\x89\x01\n" +
+	"\x05index\x18\t \x01(\x05R\x05index\x12\x1f\n" +
+	"\vseries_name\x18\n" +
+	" \x01(\tR\n" +
+	"seriesName\x12,\n" +
+	"\x0fseries_position\x18\v \x01(\x01H\x00R\x0eseriesPosition\x88\x01\x01B\x12\n" +
+	"\x10_series_position\"\x89\x01\n" +
 	"\x0eResyncProposal\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12.\n" +
 	"\alibrary\x18\x02 \x01(\v2\x14.books.v1.SourceBookR\alibrary\x12.\n" +
@@ -1855,6 +1876,7 @@ func file_books_v1_catalog_proto_init() {
 	}
 	file_books_v1_library_proto_init()
 	file_books_v1_catalog_proto_msgTypes[5].OneofWrappers = []any{}
+	file_books_v1_catalog_proto_msgTypes[11].OneofWrappers = []any{}
 	file_books_v1_catalog_proto_msgTypes[21].OneofWrappers = []any{}
 	file_books_v1_catalog_proto_msgTypes[23].OneofWrappers = []any{}
 	type x struct{}

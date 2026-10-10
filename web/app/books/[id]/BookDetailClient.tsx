@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
+import { seriesHref, seriesLabel } from '@/lib/books/series'
 import { LoadingState, ErrorState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
 import { formatDate } from '@/lib/dates'
@@ -97,6 +98,13 @@ export default function BookDetailClient({ id }: { id: string }) {
                 description={book.authors.length > 0 ? book.authors.join(', ') : undefined}
                 className="mb-0"
               />
+              {book.seriesName && (
+                <Button asChild variant="link" className="mt-1 max-w-full text-sm">
+                  <Link href={seriesHref(book.seriesName)}>
+                    <span className="truncate">{seriesLabel(book)}</span>
+                  </Link>
+                </Button>
+              )}
 
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 {userBook.status === 'read' && (

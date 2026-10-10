@@ -52,6 +52,7 @@ export const swrKeys = {
   readingState: (bookId: string) => ['/books/reading-state', bookId] as const,
   externalBook: (provider: string, providerId: string) =>
     ['/books/external', provider, providerId] as const,
+  bookSeries: (name: string) => ['/books/series', name] as const,
 
   games: '/games',
   game: (gameId: number) => `/games/${gameId}`,

@@ -135,6 +135,18 @@ describe('BooksLibrary', () => {
     expect(screen.getAllByText('Neuromancer').length).toBeGreaterThan(0)
   })
 
+  it("links the library's series in the sidebar", () => {
+    const inSeries = create(UserBookSchema, {
+      id: '9',
+      status: 'read',
+      book: create(BookSchema, { title: 'Mort', authors: ['Author'], seriesName: 'Discworld' })
+    })
+    renderLibrary(makeLibrary({ finished: [inSeries] }))
+    const links = screen.getAllByRole('link', { name: /^Discworld/ })
+    expect(links.length).toBeGreaterThan(0)
+    expect(links[0]).toHaveAttribute('href', '/books/series/Discworld')
+  })
+
   it('switches to All books when clicked', () => {
     renderLibrary(makeLibrary())
     const allBtns = screen.getAllByText('All books')

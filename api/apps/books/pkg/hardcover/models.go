@@ -10,6 +10,29 @@ type ExternalBook struct {
 	// Description may contain Markdown/HTML.
 	Description *string
 	PageCount   *int
+	// Series is nil when Hardcover places the book in none.
+	Series *SeriesRef
+}
+
+// SeriesRef is a book's place in a series. Position is nil for an unordered
+// entry; Total is the series' main-volume count, when known.
+type SeriesRef struct {
+	Name     string
+	Position *float64
+	Total    *int
+}
+
+// Series is one series' volumes, one per position, in position order.
+type Series struct {
+	Name  string
+	Total *int
+	Books []SeriesBook
+}
+
+// SeriesBook is one volume of a Series.
+type SeriesBook struct {
+	Position float64
+	Book     ExternalBook
 }
 
 type graphQLRequest struct {
@@ -64,9 +87,40 @@ type book struct {
 	Pages       int          `json:"pages"`
 	Description string       `json:"description"`
 	CachedImage *cachedImage `json:"cached_image"`
-	// Editions is only selected by booksByIDsQuery (one, for its ISBN13).
+	// Editions is selected by booksByIDsQuery and seriesBooksQuery (one, for
+	// its ISBN13).
 	Editions          []edition           `json:"editions"`
 	CachedContributor []cachedContributor `json:"cached_contributors"`
+	// BookSeries is only selected by booksByIDsQuery.
+	BookSeries []bookSeries `json:"book_series"`
+}
+
+// bookSeries links a book to a series; Series or Book is set depending on
+// which side the query starts from.
+type bookSeries struct {
+	Position *float64      `json:"position"`
+	Series   *seriesRecord `json:"series"`
+	Book     *book         `json:"book"`
+}
+
+type seriesRecord struct {
+	ID                int    `json:"id"`
+	Name              string `json:"name"`
+	PrimaryBooksCount *int   `json:"primary_books_count"`
+}
+
+type bookSeriesResponse struct {
+	Data struct {
+		BookSeries []bookSeries `json:"book_series"`
+	} `json:"data"`
+	Errors []graphQLError `json:"errors"`
+}
+
+type seriesResponse struct {
+	Data struct {
+		Series []seriesRecord `json:"series"`
+	} `json:"data"`
+	Errors []graphQLError `json:"errors"`
 }
 
 type cachedImage struct {
