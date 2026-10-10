@@ -330,6 +330,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 
 	<-upstreamDone
 
+	koboSetUpstreamHeaders(r, upstream.hdrs)
 	if upstream.note != "" {
 		koboSetUpstreamNote(r, w, upstream.note)
 		app.Logger.Warn("kobo upstream store sync failed",
@@ -345,11 +346,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	for _, hdr := range []string{"x-kobo-sync", "x-kobo-sync-token"} {
-		if v := upstream.hdrs.Get(hdr); v != "" {
-			w.Header().Set(hdr, v)
-		}
-	}
+	koboForwardPaging(w, upstream)
 
 	all := append(upstream.items, ourEntries...) //nolint:gocritic // intentional
 	all = append(all, stateEntries...)
@@ -360,6 +357,30 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		all = []json.RawMessage{}
 	}
 	koboWriteJSON(w, all)
+}
+
+// Kobo sync paging headers.
+const (
+	koboHeaderSync     = "x-kobo-sync"
+	koboHeaderSyncMode = "x-kobo-sync-mode"
+	//nolint:gosec // a header name, not a credential
+	koboHeaderSyncToken = "x-kobo-synctoken"
+)
+
+// koboForwardPaging copies the upstream paging headers onto the response.
+// They only travel with a merged upstream page: a "continue" without one
+// makes the device re-request the same page forever.
+func koboForwardPaging(w http.ResponseWriter, upstream koboUpstream) {
+	if upstream.note != "" {
+		return
+	}
+	for _, hdr := range []string{
+		koboHeaderSync, koboHeaderSyncMode, koboHeaderSyncToken,
+	} {
+		if v := upstream.hdrs.Get(hdr); v != "" {
+			w.Header().Set(hdr, v)
+		}
+	}
 }
 
 // warmKoboCovers caches every book's cover so the device's per-cover fetches
@@ -490,6 +511,7 @@ func (app *Books) koboProxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
+	koboSetUpstreamHeaders(r, resp.Header)
 	for k, vs := range resp.Header {
 		for _, v := range vs {
 			w.Header().Add(k, v)
@@ -552,6 +574,9 @@ func (app *Books) koboFetchUpstreamSync(
 		return koboUpstream{note: "upstream: build request failed"}
 	}
 	req.Header = r.Header.Clone()
+	// Go only decompresses gzip transparently when it set Accept-Encoding
+	// itself; the device's value would leave the body compressed.
+	req.Header.Del("Accept-Encoding")
 	koboForwardAuth(req.Header, r.Header)
 
 	//nolint:gosec // intentional call to upstream Kobo store

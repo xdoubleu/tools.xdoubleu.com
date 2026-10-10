@@ -13,14 +13,17 @@ import (
 // every call site.
 func logEntry(method, path string) KoboLogEntry {
 	return KoboLogEntry{
-		Time:         time.Now(),
-		Method:       method,
-		Path:         path,
-		Query:        "",
-		RequestBody:  "",
-		Status:       0,
-		ResponseBody: "",
-		Notes:        "",
+		Time:            time.Now(),
+		Method:          method,
+		Path:            path,
+		Query:           "",
+		RequestBody:     "",
+		Status:          0,
+		ResponseBody:    "",
+		Notes:           "",
+		RequestHeaders:  nil,
+		ResponseHeaders: nil,
+		UpstreamHeaders: nil,
 	}
 }
 
