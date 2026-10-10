@@ -155,6 +155,9 @@ export function useFoliateView(
           onRelocateRef.current?.({ ...next, position })
         })
         v.addEventListener('load', (e) => {
+          // A PDF section has no iframe document, so its `load` carries a null
+          // doc; attach handlers only to real section documents (EPUB iframes).
+          if (!e.detail.doc) return
           attachSectionHandlers(v, e.detail.doc)
         })
         v.addEventListener('click', (e) => {

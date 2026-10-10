@@ -24,8 +24,8 @@ export interface FoliateRelocateDetail {
 
 interface FoliateViewEventMap extends HTMLElementEventMap {
   relocate: CustomEvent<FoliateRelocateDetail>
-  /** A section's document finished loading into its iframe. */
-  load: CustomEvent<{ doc: Document; index: number }>
+  /** A section's document finished loading into its iframe. PDF sections have no iframe document, so foliate emits `doc: null`. */
+  load: CustomEvent<{ doc: Document | null; index: number }>
 }
 
 /** The subset of foliate-js's `<foliate-view>` the reader uses. */

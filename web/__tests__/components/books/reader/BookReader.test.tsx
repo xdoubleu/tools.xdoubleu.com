@@ -199,6 +199,21 @@ describe('BookReader', () => {
     expect(view.goLeft).toHaveBeenCalledTimes(1)
   })
 
+  it('ignores a section load without a document instead of crashing the open', async () => {
+    // A PDF section has no iframe document, so foliate emits `load` with a
+    // null doc; attaching handlers to it must not throw (Sentry #2345).
+    const view = makeView()
+    await renderReader(view)
+    act(() => {
+      view.dispatchEvent(new CustomEvent('load', { detail: { doc: null, index: 0 } }))
+    })
+    expect(screen.queryByText('Failed to load book.')).not.toBeInTheDocument()
+    // The reader stays interactive: a later real section still turns pages.
+    const doc = loadSection(view)
+    fireEvent.click(doc.body, { clientX: 280 })
+    expect(view.goRight).toHaveBeenCalledTimes(1)
+  })
+
   it('leaves link taps to foliate-js', async () => {
     const view = makeView()
     await renderReader(view)

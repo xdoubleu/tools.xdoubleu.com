@@ -197,7 +197,8 @@ export default function ReadBookClient({ id }: { id: string }) {
     )
   }
   // An original EPUB opens in Readium, which reads it from the API rather than
-  // the downloaded blob; PDFs, KEPUBs and offline opens still use foliate-js.
+  // the downloaded blob; PDFs open in the pdf.js pager, KEPUBs and offline
+  // opens still use foliate-js.
   if (format === 'epub' && bookId && resume && openedOnline) {
     return (
       <ReadiumBookReader
