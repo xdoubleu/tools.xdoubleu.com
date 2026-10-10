@@ -133,9 +133,9 @@ describe('DuplicateBookSummary', () => {
     expect(screen.getByText('Digital')).toBeInTheDocument()
   })
 
-  it('renders bol.com badge when own-bol tag is set', () => {
+  it('renders Kobo store badge when own-bol tag is set', () => {
     render(<DuplicateBookSummary ub={makeUB({ tags: ['own-bol'] })} />)
-    expect(screen.getByText('bol.com')).toBeInTheDocument()
+    expect(screen.getByText('Kobo store')).toBeInTheDocument()
   })
 
   it('renders status badge', () => {

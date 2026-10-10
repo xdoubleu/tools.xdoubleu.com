@@ -22,19 +22,22 @@ export default function BookOwnershipToggles({
   hideLabel
 }: BookOwnershipTogglesProps) {
   const [ownPhysical, setOwnPhysical] = useState(userBook.tags.includes('own-physical'))
-  const [ownBol, setOwnBol] = useState(userBook.tags.includes('own-bol'))
   const setBookTag = useSetBookTag()
 
-  const handleToggle = async (tag: string, current: boolean, setState: (v: boolean) => void) => {
-    setState(!current)
+  const togglePhysical = async () => {
+    const current = ownPhysical
+    setOwnPhysical(!current)
     try {
-      await setBookTag(userBook.bookId, tag, !current)
+      await setBookTag(userBook.bookId, 'own-physical', !current)
       mutate(swrKeys.books)
       onSaved?.()
     } catch {
-      setState(current)
+      setOwnPhysical(current)
     }
   }
+
+  // Set by the Kobo store sync only, so it's shown but not toggleable.
+  const ownKoboStore = userBook.tags.includes('own-bol')
 
   const hasPdf = userBook.formats.includes('pdf')
   const hasEpub = userBook.formats.includes('epub')
@@ -47,16 +50,8 @@ export default function BookOwnershipToggles({
         </Label>
       )}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <TogglePill
-          label="Physical"
-          active={ownPhysical}
-          onClick={() => handleToggle('own-physical', ownPhysical, setOwnPhysical)}
-        />
-        <TogglePill
-          label="bol.com"
-          active={ownBol}
-          onClick={() => handleToggle('own-bol', ownBol, setOwnBol)}
-        />
+        <TogglePill label="Physical" active={ownPhysical} onClick={togglePhysical} />
+        {ownKoboStore && <Badge variant="secondary">Kobo store</Badge>}
         {hasPdf && <Badge variant="default">PDF</Badge>}
         {hasEpub && <Badge variant="default">EPUB</Badge>}
       </div>

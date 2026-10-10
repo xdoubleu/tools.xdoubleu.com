@@ -101,21 +101,21 @@ describe('BooksTableToolbar', () => {
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       expect(screen.getByRole('checkbox', { name: 'Physical' })).toBeInTheDocument()
       expect(screen.getByRole('checkbox', { name: 'Digital' })).toBeInTheDocument()
-      expect(screen.getByRole('checkbox', { name: 'bol.com' })).toBeInTheDocument()
+      expect(screen.getByRole('checkbox', { name: 'Kobo store' })).toBeInTheDocument()
       expect(screen.getByRole('checkbox', { name: 'PDF' })).toBeInTheDocument()
       expect(screen.getByRole('checkbox', { name: 'EPUB' })).toBeInTheDocument()
       expect(screen.getByRole('checkbox', { name: 'Synced to Kobo' })).toBeInTheDocument()
     })
 
-    it('calls onToggleOwnership with own-bol when bol.com is clicked', () => {
+    it('calls onToggleOwnership with own-bol when Kobo store is clicked', () => {
       const onToggleOwnership = jest.fn()
       renderToolbar({ onToggleOwnership })
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
-      fireEvent.click(screen.getByRole('checkbox', { name: 'bol.com' }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Kobo store' }))
       expect(onToggleOwnership).toHaveBeenCalledWith('own-bol')
     })
 
-    it('checks the bol.com checkbox when the own-bol filter is active', () => {
+    it('checks the Kobo store checkbox when the own-bol filter is active', () => {
       const activeFilters: LibraryFilters = {
         ownership: new Set(['own-bol']),
         format: new Set(),
@@ -123,7 +123,7 @@ describe('BooksTableToolbar', () => {
       }
       renderToolbar({ filters: activeFilters })
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
-      expect(screen.getByRole('checkbox', { name: 'bol.com' })).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Kobo store' })).toBeChecked()
     })
 
     it('calls onToggleOwnership with own-physical when Physical is clicked', () => {

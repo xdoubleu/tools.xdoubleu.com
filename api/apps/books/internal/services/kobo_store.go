@@ -10,7 +10,8 @@ import (
 )
 
 // LinkKoboStoreBooks records Kobo store books and tags the library match of
-// each owned one own-bol. The tag is never removed here.
+// each owned one own-bol, the Kobo store ownership tag. Only this sync sets
+// it, and it's never removed here.
 func (s *BookService) LinkKoboStoreBooks(
 	ctx context.Context,
 	userID string,
