@@ -31,12 +31,12 @@ export function middleware(request: NextRequest) {
   const csp = [
     "default-src 'self'",
     `script-src ${scriptSrc.join(' ')}`,
-    // blob:: EPUB stylesheets and fonts inside the foliate-js reader's frames.
+    // blob:: EPUB stylesheets and fonts inside the Readium reader's frames.
     "style-src 'self' 'unsafe-inline' blob:",
     "font-src 'self' blob:",
     "img-src 'self' data: blob: https:",
     `connect-src ${connectSrc.join(' ')}`,
-    // The foliate-js reader renders book sections into blob: iframes.
+    // The Readium reader renders book sections into blob: iframes.
     "frame-src 'self' blob:",
     // The PDF reader's pdf.js worker.
     "worker-src 'self' blob:",
@@ -56,6 +56,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // foliate-js: static reader modules (scripts/copy-foliate.mjs).
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|foliate-js/).*)']
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)']
 }

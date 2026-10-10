@@ -65,15 +65,16 @@ describe('middleware CSP', () => {
     )
   })
 
-  it('allows the foliate-js reader its blob: frames, stylesheets and fonts', () => {
+  it('allows the Readium reader its blob: frames, stylesheets and fonts', () => {
     expect(cspDirective('frame-src')).toBe("frame-src 'self' blob:")
+    expect(cspDirective('worker-src')).toBe("worker-src 'self' blob:")
     expect(cspDirective('style-src')).toContain('blob:')
     expect(cspDirective('font-src')).toBe("font-src 'self' blob:")
   })
 
-  it('skips the static foliate-js files', () => {
+  it('skips static assets', () => {
     const matcher = new RegExp(`^${config.matcher[0]}$`)
-    expect(matcher.test('/foliate-js/vendor/pdfjs/pdf.worker.mjs')).toBe(false)
+    expect(matcher.test('/_next/static/chunks/a.js')).toBe(false)
     expect(matcher.test('/books/ub-1/read')).toBe(true)
   })
 

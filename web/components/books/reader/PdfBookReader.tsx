@@ -3,9 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import type { FoliateTocItem } from '@/lib/books/foliate'
 import { openPdf, pageOf, pdfOutline, renderPage, tocLabelForPage } from '@/lib/books/pdf'
-import { resumeTarget, type ReaderResume } from '@/lib/books/readerPosition'
+import type { ReaderLocation, ReaderResume, ReaderTocItem } from '@/lib/books/readerPosition'
 import {
   READER_FONT_SIZE_DEFAULT,
   fixedLayoutFilter,
@@ -16,7 +15,6 @@ import {
 } from '@/lib/books/readerSettings'
 import ReaderControls from './ReaderControls'
 import ReaderShell, { type ReaderStatus } from './ReaderShell'
-import type { ReaderLocation } from './useFoliateView'
 
 interface PdfBookReaderProps {
   /** The PDF, or a URL to fetch it from. */
@@ -39,13 +37,10 @@ function fractionOf(page: number, pages: number): number {
 
 /** The page to open on: a stored page, else the stored percent. */
 function startPage(pages: number, resume: ReaderResume | undefined): number {
-  const target = resumeTarget(
-    Array.from({ length: pages }, (_, id) => ({ id })),
-    resume
-  )
-  if (target && 'index' in target) return target.index + 1
-  if (target) return Math.round(target.fraction * (pages - 1)) + 1
-  return 1
+  const stored = resume?.position
+  if (stored && 'page' in stored && stored.page >= 1 && stored.page <= pages) return stored.page
+  const percent = resume?.percent ?? 0
+  return percent > 0 ? Math.round((percent / 100) * (pages - 1)) + 1 : 1
 }
 
 /** Full-screen PDF reader: one page at a time on pdf.js, with tap zones, swipe and contents. */
@@ -59,7 +54,7 @@ export default function PdfBookReader({
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null)
-  const [toc, setToc] = useState<FoliateTocItem[]>([])
+  const [toc, setToc] = useState<ReaderTocItem[]>([])
   const [page, setPage] = useState(1)
   const [size, setSize] = useState({ width: 0, height: 0 })
   const [status, setStatus] = useState<ReaderStatus>('loading')

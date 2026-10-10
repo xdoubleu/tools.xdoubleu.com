@@ -63,7 +63,7 @@ export async function openBookFile(ref: BookFileRef): Promise<File> {
       blob = stored.blob
     }
   }
-  // foliate-js sniffs some formats by file name.
+  // pdf.js sniffs some formats by file name.
   return new File([blob], `${ref.bookId}.${ref.format}`, { type: blob.type })
 }
 

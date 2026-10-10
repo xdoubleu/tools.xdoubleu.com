@@ -26,7 +26,6 @@ export default [
       'lib/gen/**',
       '.stryker-tmp',
       'reports',
-      'public/foliate-js'
     ]
   },
   js.configs.recommended,

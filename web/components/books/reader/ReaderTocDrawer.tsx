@@ -8,13 +8,13 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { MenuItem } from '@/components/ui/menu-item'
-import type { FoliateTocItem } from '@/lib/books/foliate'
+import type { ReaderTocItem } from '@/lib/books/readerPosition'
 import { cn } from '@/lib/cn'
 
 interface ReaderTocDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  toc: FoliateTocItem[]
+  toc: ReaderTocItem[]
   currentHref?: string
   onSelect: (href: string) => void
 }
@@ -25,7 +25,7 @@ function TocList({
   currentHref,
   onSelect
 }: {
-  items: FoliateTocItem[]
+  items: ReaderTocItem[]
   depth: number
   currentHref?: string
   onSelect: (href: string) => void

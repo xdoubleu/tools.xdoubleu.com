@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import type { FoliateTocItem } from '@/lib/books/foliate'
+import type { ReaderTocItem } from '@/lib/books/readerPosition'
 import type { ReaderTheme } from '@/lib/books/readerSettings'
 import ReaderSettingsSheet from './ReaderSettingsSheet'
 import ReaderTocDrawer from './ReaderTocDrawer'
 
 interface ReaderControlsProps {
-  toc: FoliateTocItem[]
+  toc: ReaderTocItem[]
   /** Navigates to a contents entry. */
   onGoTo: (href: string) => void
   reflowable: boolean

@@ -5,12 +5,12 @@ import { createKeepaliveClient, createServiceClient } from '@/lib/client'
 import { updateReadingProgressWrite } from '@/lib/books/offlineWrites'
 import { enqueueWrite } from '@/lib/offline/outbox'
 import { swrKeys } from '@/lib/swrKeys'
+import type { ReaderLocation } from '@/lib/books/readerPosition'
 import {
   LibraryService,
   type GetReadingStateResponse,
   type UpdateReadingProgressRequestSchema
 } from '@/lib/gen/books/v1/library_pb'
-import type { ReaderLocation } from '@/components/books/reader/BookReader'
 
 /** How long reading pauses before the position is saved. */
 export const READING_SAVE_DELAY_MS = 2000

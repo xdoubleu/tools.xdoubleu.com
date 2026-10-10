@@ -1,9 +1,9 @@
 import React from 'react'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import ReaderTocDrawer from '@/components/books/reader/ReaderTocDrawer'
-import type { FoliateTocItem } from '@/lib/books/foliate'
+import type { ReaderTocItem } from '@/lib/books/readerPosition'
 
-const TOC: FoliateTocItem[] = [
+const TOC: ReaderTocItem[] = [
   { label: 'Part One', subitems: [{ label: 'Chapter 1', href: 'c1.xhtml', subitems: [] }] },
   { label: 'Epilogue', href: 'end.xhtml' }
 ]

@@ -1,7 +1,7 @@
 // Keeps currently-reading books on the device in their original format, and
 // removes stored files the library no longer needs.
 import { flattenLibrary } from './bookShelves'
-import { warmReaderModules } from './foliate'
+import { warmReaderModules } from './readerModules'
 import {
   deleteStoredBook,
   downloadBookFile,
