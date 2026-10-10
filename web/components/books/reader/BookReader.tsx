@@ -1,19 +1,17 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { ErrorState, LoadingState } from '@/components/ui/states'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import {
   READER_FONT_SIZE_DEFAULT,
   fixedLayoutFilter,
-  readerBackground,
   readerStyles,
   type ReaderTheme
 } from '@/lib/books/readerSettings'
 import type { ReaderChoiceControl } from '@/lib/books/readerChoice'
 import type { ReaderResume } from '@/lib/books/readerPosition'
 import ReaderControls from './ReaderControls'
+import ReaderShell from './ReaderShell'
 import { useFoliateView, type ReaderLocation } from './useFoliateView'
 
 export type { ReaderLocation, ReaderResume }
@@ -60,26 +58,21 @@ export default function BookReader({
     else view.renderer?.setStyles?.(readerStyles(theme, fontSize))
   }, [view, theme, fontSize])
 
-  const percent = Math.round((location?.fraction ?? 0) * 100)
-
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-bg text-fg">
-      <div className="flex shrink-0 items-center gap-2 border-b border-border bg-card px-1 pt-[var(--inset-top)]">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label="Close reader"
-          onClick={onClose}
-        >
-          <span aria-hidden="true" className="text-xl">
-            ‹
-          </span>
-        </Button>
-        <p className="min-w-0 flex-1 truncate text-sm font-medium">{title}</p>
-        {view && (
+    <ReaderShell
+      title={title}
+      onClose={onClose}
+      containerRef={containerRef}
+      status={status}
+      theme={theme}
+      fraction={location?.fraction ?? 0}
+      tocLabel={location?.tocLabel}
+      controls={
+        view && (
           <ReaderControls
-            view={view}
+            toc={view.book?.toc ?? []}
+            onGoTo={(href) => void view.goTo(href)}
+            reflowable={!view.isFixedLayout}
             currentHref={location?.tocHref}
             theme={theme}
             onThemeChange={setTheme}
@@ -87,39 +80,8 @@ export default function BookReader({
             onFontSizeChange={setFontSize}
             format={format}
           />
-        )}
-      </div>
-
-      <div
-        className="relative min-h-0 flex-1"
-        aria-busy={status !== 'ready'}
-        style={{ background: readerBackground(theme) }}
-      >
-        <div ref={containerRef} className="absolute inset-0" />
-        {status === 'loading' && (
-          <LoadingState label="book" className="absolute inset-x-0 top-1/3 text-center" />
-        )}
-        {status === 'error' && (
-          <ErrorState what="book" className="absolute inset-x-0 top-1/3 text-center" />
-        )}
-      </div>
-
-      <div className="shrink-0 border-t border-border bg-card px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-        <div
-          className="h-1 w-full overflow-hidden rounded-sm bg-surface"
-          role="progressbar"
-          aria-label="Reading progress"
-          aria-valuenow={percent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        >
-          <div className="h-full bg-accent" style={{ width: `${percent}%` }} />
-        </div>
-        <div className="mt-1 flex justify-between gap-3 text-xs text-muted">
-          <span className="min-w-0 truncate">{location?.tocLabel}</span>
-          <span className="shrink-0 tabular-nums">{percent}%</span>
-        </div>
-      </div>
-    </div>
+        )
+      }
+    />
   )
 }

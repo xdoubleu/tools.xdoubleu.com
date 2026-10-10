@@ -42,6 +42,12 @@ export function pickReaderFormat(
   return available.find((f) => f === requested) ?? available[0] ?? null
 }
 
+/** Text and link colours for a theme, for engines that take them as settings. */
+export function readerTextColors(theme: ReaderTheme): { fg: string; link: string } {
+  const { fg, link } = THEME_COLORS[theme]
+  return { fg, link }
+}
+
 export function readerBackground(theme: ReaderTheme): string {
   return THEME_COLORS[theme].bg
 }

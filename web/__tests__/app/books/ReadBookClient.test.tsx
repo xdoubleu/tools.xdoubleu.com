@@ -55,6 +55,7 @@ jest.mock('next/navigation', () => ({
 
 interface MockReaderProps {
   file: File
+  bookId: string
   title: string
   onClose: () => void
   onRelocate: (location: unknown) => void
@@ -68,6 +69,50 @@ jest.mock('@/components/books/reader/BookReader', () => ({
     <div
       data-testid="reader"
       data-file={file.name}
+      data-title={title}
+      data-initial={JSON.stringify(initialPosition)}
+      data-format={JSON.stringify(format && { value: format.value, original: format.original })}
+    >
+      <button type="button" onClick={onClose}>
+        Close reader
+      </button>
+      <button type="button" onClick={() => onRelocate({ fraction: 0.5, section: 2 })}>
+        Turn page
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onRelocate({
+            fraction: 0.1234,
+            section: 3,
+            position: { href: 'OEBPS/ch3.xhtml', offset: 42 }
+          })
+        }
+      >
+        Read on
+      </button>
+      <button
+        type="button"
+        onClick={() => onRelocate({ fraction: 0.1234, section: 2, position: { page: 3 } })}
+      >
+        Read PDF page
+      </button>
+      <button type="button" onClick={() => format?.onChange('kepub')}>
+        Use converted
+      </button>
+      <button type="button" onClick={() => format?.onChange('original')}>
+        Use original
+      </button>
+    </div>
+  )
+}))
+
+jest.mock('@/components/books/reader/ReadiumBookReader', () => ({
+  __esModule: true,
+  default: ({ bookId, title, onClose, onRelocate, initialPosition, format }: MockReaderProps) => (
+    <div
+      data-testid="reader"
+      data-file={`readium:${bookId}`}
       data-title={title}
       data-initial={JSON.stringify(initialPosition)}
       data-format={JSON.stringify(format && { value: format.value, original: format.original })}
@@ -148,11 +193,19 @@ function setFreshReadingState(state: unknown, stale: unknown = { percent: 99 }) 
 }
 
 describe('ReadBookClient', () => {
+  it('falls back to the downloaded file in foliate-js when opened offline', async () => {
+    const online = jest.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false)
+    setLibrary(['epub'])
+    render(<ReadBookClient id="ub-1" />)
+    expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'book-1.epub')
+    online.mockRestore()
+  })
+
   it('opens the EPUB by default', async () => {
     render(<ReadBookClient id="ub-1" />)
     expect(mockUseOfflineBookFile).toHaveBeenCalledWith('book-1', 'epub', 'v-epub')
     const reader = await screen.findByTestId('reader')
-    expect(reader).toHaveAttribute('data-file', 'book-1.epub')
+    expect(reader).toHaveAttribute('data-file', 'readium:book-1')
     expect(reader).toHaveAttribute('data-title', 'Dune')
   })
 
@@ -211,10 +264,10 @@ describe('ReadBookClient', () => {
 
   it('keeps the open reader when the library later fails', async () => {
     const { rerender } = render(<ReadBookClient id="ub-1" />)
-    expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'book-1.epub')
+    expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'readium:book-1')
     mockUseLibrary.mockReturnValue({ ...mockUseLibrary(), error: new Error('offline') })
     rerender(<ReadBookClient id="ub-1" />)
-    expect(screen.getByTestId('reader')).toHaveAttribute('data-file', 'book-1.epub')
+    expect(screen.getByTestId('reader')).toHaveAttribute('data-file', 'readium:book-1')
   })
 
   it('returns to the book page on close when there is no prior history', async () => {
@@ -316,7 +369,7 @@ describe('ReadBookClient', () => {
     it('opens the original and converts nothing by default', async () => {
       render(<ReadBookClient id="ub-1" />)
       const reader = await screen.findByTestId('reader')
-      expect(reader).toHaveAttribute('data-file', 'book-1.epub')
+      expect(reader).toHaveAttribute('data-file', 'readium:book-1')
       expect(reader).toHaveAttribute(
         'data-format',
         JSON.stringify({ value: 'original', original: 'epub' })
@@ -349,7 +402,7 @@ describe('ReadBookClient', () => {
       expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'book-1.kepub')
       expect(localStorage.getItem('books:reader-choice:book-1')).toBe('kepub')
       fireEvent.click(screen.getByRole('button', { name: 'Use original' }))
-      expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'book-1.epub')
+      expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'readium:book-1')
       expect(localStorage.getItem('books:reader-choice:book-1')).toBe('original')
     })
 
@@ -419,7 +472,7 @@ describe('ReadBookClient', () => {
       render(<ReadBookClient id="ub-1" />)
       expect(screen.getByRole('alert')).toHaveTextContent('Conversion failed.')
       fireEvent.click(screen.getByRole('button', { name: 'Read original' }))
-      expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'book-1.epub')
+      expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'readium:book-1')
       expect(localStorage.getItem('books:reader-choice:book-1')).toBe('original')
     })
 

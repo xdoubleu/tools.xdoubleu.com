@@ -27,6 +27,12 @@ import { pickReaderFormat } from '@/lib/books/readerSettings'
 // Stryker disable next-line all: next/dynamic options must stay an object literal.
 const BookReader = dynamic(() => import('@/components/books/reader/BookReader'), { ssr: false })
 
+// Readium builds iframes and reads sections from the API; client-only too.
+// Stryker disable next-line all: next/dynamic options must stay an object literal.
+const ReadiumBookReader = dynamic(() => import('@/components/books/reader/ReadiumBookReader'), {
+  ssr: false
+})
+
 function Fallback({ id, children }: { id: string; children: ReactNode }) {
   return (
     <PageContainer size="narrow" className="space-y-4">
@@ -39,13 +45,14 @@ function Fallback({ id, children }: { id: string; children: ReactNode }) {
 }
 
 /**
- * Opens the book's original EPUB (preferred) or PDF, or its converted KEPUB,
+ * Opens the book's original EPUB (preferred, in Readium) or PDF, or its converted KEPUB,
  * at the newest saved position; `?format=` picks one. The file is kept on the
  * device for offline reading. Page changes are saved back, and switching
  * files keeps the position.
  */
 export default function ReadBookClient({ id }: { id: string }) {
   const router = useRouter()
+  const [openedOnline] = useState(() => navigator.onLine)
   const requestedFormat = useSearchParams().get('format')
   const { data, error, isLoading } = useLibrary()
 
@@ -181,6 +188,21 @@ export default function ReadBookClient({ id }: { id: string }) {
           </Button>
         </div>
       </Fallback>
+    )
+  }
+  // An original EPUB opens in Readium, which reads it from the API rather than
+  // the downloaded blob; PDFs, KEPUBs and offline opens still use foliate-js.
+  if (format === 'epub' && bookId && resume && openedOnline) {
+    return (
+      <ReadiumBookReader
+        key={bookId}
+        bookId={bookId}
+        title={userBook.book?.title ?? 'Book'}
+        onClose={close}
+        onRelocate={onRelocate}
+        initialPosition={resume}
+        format={{ value: choice!, original, onChange: switchTo }}
+      />
     )
   }
   if (!file && fileError) {
