@@ -9,9 +9,9 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// LinkKoboStoreBooks records Kobo store books and tags the library match of
-// each owned one own-bol, the Kobo store ownership tag. Only this sync sets
-// it, and it's never removed here.
+// LinkKoboStoreBooks records Kobo store books and marks the library match of
+// each owned one (see markKoboStoreOwned). Only this sync sets own-bol, and
+// it's never removed here.
 func (s *BookService) LinkKoboStoreBooks(
 	ctx context.Context,
 	userID string,
@@ -36,7 +36,7 @@ func (s *BookService) LinkKoboStoreBooks(
 		if err != nil {
 			return err
 		}
-		if err = s.tagOwnBol(ctx, userID, ub); err != nil {
+		if err = s.markKoboStoreOwned(ctx, userID, ub); err != nil {
 			return err
 		}
 	}
@@ -44,7 +44,7 @@ func (s *BookService) LinkKoboStoreBooks(
 }
 
 // RecordKoboStoreReading mirrors a store book's Kobo reading state onto its
-// library match, tagging that match own-bol when the book is owned, and
+// library match, marking that match owned when the book is owned, and
 // records the outcome on the store book. KoboStoreUnrecorded means the store
 // book isn't recorded yet.
 func (s *BookService) RecordKoboStoreReading(
@@ -85,7 +85,7 @@ func (s *BookService) mirrorKoboStoreReading(
 		return models.KoboStoreNoMatch, nil
 	}
 	if *sb.Owned {
-		if err = s.tagOwnBol(ctx, userID, ub); err != nil {
+		if err = s.markKoboStoreOwned(ctx, userID, ub); err != nil {
 			return models.KoboStoreUnrecorded, err
 		}
 	}
@@ -167,18 +167,32 @@ func (s *BookService) matchKoboStoreBook(
 	), nil
 }
 
-// tagOwnBol adds own-bol to ub unless it's nil or already tagged.
-func (s *BookService) tagOwnBol(
+// markKoboStoreOwned tags ub own-bol and, as a store book is digital, moves
+// it to percent mode unless it has page progress or a physical copy. A nil ub
+// is a no-op.
+func (s *BookService) markKoboStoreOwned(
 	ctx context.Context,
 	userID string,
 	ub *models.UserBook,
 ) error {
-	if ub == nil || ub.HasTag(models.TagOwnBol) {
+	if ub == nil {
 		return nil
 	}
-	if err := s.setTag(ctx, userID, ub, models.TagOwnBol, true); err != nil {
+	if !ub.HasTag(models.TagOwnBol) {
+		if err := s.setTag(ctx, userID, ub, models.TagOwnBol, true); err != nil {
+			return err
+		}
+		ub.Tags = append(ub.Tags, models.TagOwnBol)
+	}
+	if ub.ProgressMode != models.ProgressModePages || ub.CurrentPage > 0 ||
+		ub.HasTag(models.TagOwnPhysical) {
+		return nil
+	}
+	if err := s.books.UpdateProgress(
+		ctx, userID, ub.BookID, models.ProgressModePercent, 0, ub.ProgressPercent,
+	); err != nil {
 		return err
 	}
-	ub.Tags = append(ub.Tags, models.TagOwnBol)
+	ub.ProgressMode = models.ProgressModePercent
 	return nil
 }

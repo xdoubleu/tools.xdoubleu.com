@@ -201,6 +201,53 @@ func TestKoboSync_OwnedStoreBook_TagsOwnBolAndMirrorsProgress(t *testing.T) {
 	assert.True(t, hasOwnBol(t, owner, bookID))
 }
 
+func progressMode(t *testing.T, owner string, bookID uuid.UUID) string {
+	t.Helper()
+	ub, err := testApp.Services.Books.GetUserBook(context.Background(), owner, bookID)
+	require.NoError(t, err)
+	return ub.ProgressMode
+}
+
+// TestKoboSync_OwnedStoreBook_PercentMode: an owned store book without
+// progress moves to percent mode; page progress or a physical copy keeps
+// pages mode, and an unmatched one is skipped.
+func TestKoboSync_OwnedStoreBook_PercentMode(t *testing.T) {
+	ctx := context.Background()
+	owner := "kobo-store-mode-" + uuid.NewString()
+	fresh := addStoreLibraryBook(t, owner, "Fresh "+owner, "", "A")
+	paged := addStoreLibraryBook(t, owner, "Paged "+owner, "", "A")
+	physical := addStoreLibraryBook(t, owner, "Physical "+owner, "", "A")
+	require.NoError(t, testApp.Services.Books.UpdateProgress(
+		ctx, owner, paged, models.ProgressModePages, 12, 0,
+	))
+	require.NoError(t, testApp.Services.Books.SetTag(
+		ctx, owner, physical, models.TagOwnPhysical, true,
+	))
+
+	var items []any
+	for _, title := range []string{"Unmatched ", "Fresh ", "Paged ", "Physical "} {
+		items = append(items, storeEntitlement(uuid.NewString(), nil,
+			map[string]any{
+				"Title": title + owner,
+				"ContributorRoles": []map[string]string{
+					{"Name": "A", "Role": "Author"},
+				},
+			}, 0))
+	}
+	upstream := koboStoreUpstream(t, items, nil)
+	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
+	t.Cleanup(ts.Close)
+
+	koboStoreSync(t, ts, registerTestDevice(t, owner))
+
+	require.Eventually(t, func() bool {
+		return hasOwnBol(t, owner, physical)
+	}, 5*time.Second, 20*time.Millisecond)
+	assert.Equal(t, models.ProgressModePercent, progressMode(t, owner, fresh))
+	assert.Equal(t, models.ProgressModePages, progressMode(t, owner, paged))
+	assert.Equal(t, models.ProgressModePages, progressMode(t, owner, physical))
+}
+
 // TestKoboSync_SubscriptionStoreBook_NotOwned: a time-limited entitlement
 // (Kobo Plus, loans) mirrors progress but isn't tagged owned.
 func TestKoboSync_SubscriptionStoreBook_NotOwned(t *testing.T) {
@@ -353,6 +400,7 @@ func TestKoboSync_StoreDBFailures_LeaveLibraryAlone(t *testing.T) {
 			failSQL: "WHERE ub.user_id = $1\n\t\tORDER BY b.title", noISBN: true,
 		},
 		"tag":           {failSQL: "SET tags = $3"},
+		"progress mode": {failSQL: "SET progress_mode = $3", wantsBol: true},
 		"store lookup":  {failSQL: "FROM books.kobo_store_books", wantsBol: true},
 		"reading match": {failSQL: "AND b.isbn13 = $2", ent: notOwned},
 	} {
