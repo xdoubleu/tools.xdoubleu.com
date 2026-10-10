@@ -25,6 +25,10 @@ func (a *Books) webPubRoutes(prefix string, mux *http.ServeMux) {
 		a.Services.Auth.AppAccess(prefix, a.webPubManifestHandler),
 	)
 	mux.Handle(
+		"GET "+base+"positions.json",
+		a.Services.Auth.AppAccess(prefix, a.webPubPositionsHandler),
+	)
+	mux.Handle(
 		"GET "+base+"res/{path...}",
 		a.Services.Auth.AppAccess(prefix, a.webPubResourceHandler),
 	)
@@ -71,6 +75,21 @@ func (a *Books) webPubManifestHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/webpub+json")
 	w.Header().Set("Cache-Control", "private, max-age=300")
 	_ = json.NewEncoder(w).Encode(m)
+}
+
+func (a *Books) webPubPositionsHandler(w http.ResponseWriter, r *http.Request) {
+	userID, bookID, ok := a.webPubRequest(w, r)
+	if !ok {
+		return
+	}
+	p, err := a.Services.WebPub.Positions(r.Context(), userID, bookID)
+	if err != nil {
+		webPubError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/vnd.readium.position-list+json")
+	w.Header().Set("Cache-Control", "private, max-age=300")
+	_ = json.NewEncoder(w).Encode(p)
 }
 
 func (a *Books) webPubResourceHandler(w http.ResponseWriter, r *http.Request) {

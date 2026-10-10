@@ -4,6 +4,7 @@ package services
 import (
 	"archive/zip"
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,6 +27,42 @@ func TestBuildWebPubManifest_ChapterEPUB(t *testing.T) {
 	assert.Equal(t, "res/"+mocks.ChapterOneHref, m.ReadingOrder[0].Href)
 	assert.Equal(t, "application/xhtml+xml", m.ReadingOrder[0].Type)
 	assert.Equal(t, "self", m.Links[0].Rel[0])
+	assert.Equal(t, "positions.json", m.Links[1].Href)
+	assert.Equal(t, "application/vnd.readium.position-list+json", m.Links[1].Type)
+}
+
+func TestBuildWebPubPositions(t *testing.T) {
+	opf := `<?xml version="1.0"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0">
+<metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>T</dc:title></metadata>
+<manifest>
+<item id="c1" href="c1.xhtml" media-type="application/xhtml+xml"/>
+<item id="c2" href="c2.xhtml" media-type="application/xhtml+xml"/>
+</manifest>
+<spine><itemref idref="c1"/><itemref idref="c2"/></spine>
+</package>`
+	zr := zipOf(t, map[string]string{
+		"META-INF/container.xml": containerXML,
+		"OEBPS/content.opf":      opf,
+		"OEBPS/c1.xhtml":         strings.Repeat("x", 2*1024+1),
+		"OEBPS/c2.xhtml":         "",
+	})
+	m, err := buildWebPubManifest(zr)
+	require.NoError(t, err)
+
+	p := buildWebPubPositions(zr, m)
+
+	assert.Equal(t, 4, p.Total, "3 for 2049 bytes, at least 1 for an empty section")
+	require.Len(t, p.Positions, 4)
+	for i, loc := range p.Positions {
+		assert.Equal(t, i+1, loc.Locations.Position)
+		assert.InDelta(t, float64(i)/4, loc.Locations.TotalProgression, 1e-9)
+	}
+	assert.Equal(t, "res/OEBPS/c1.xhtml", p.Positions[2].Href)
+	assert.Equal(t, "application/xhtml+xml", p.Positions[2].Type)
+	assert.InDelta(t, 2.0/3, p.Positions[2].Locations.Progression, 1e-9)
+	assert.Equal(t, "res/OEBPS/c2.xhtml", p.Positions[3].Href)
+	assert.Zero(t, p.Positions[3].Locations.Progression)
 }
 
 const navOPF = `<?xml version="1.0"?>

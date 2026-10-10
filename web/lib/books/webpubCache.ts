@@ -39,17 +39,23 @@ export const webPubFetch: typeof fetch = async (input, init) => {
 }
 
 interface ManifestLinks {
+  links?: { href: string }[]
   readingOrder?: { href: string }[]
   resources?: { href: string }[]
 }
 
-/** Fetches the manifest and every section and resource into the cache. */
+/** Fetches the manifest, its links (the position list), and every section and resource into the cache. */
 export async function warmWebPub(bookId: string): Promise<void> {
   const res = await webPubFetch(manifestUrl(bookId))
   if (!res.ok) throw new Error(`manifest request failed: ${res.status}`)
   const manifest = (await res.json()) as ManifestLinks // eslint-disable-line @typescript-eslint/no-unsafe-type-assertion -- our own API's manifest
-  const hrefs = [...(manifest.readingOrder ?? []), ...(manifest.resources ?? [])].map(
-    (l) => new URL(l.href, manifestUrl(bookId)).href
+  const links = [
+    ...(manifest.links ?? []),
+    ...(manifest.readingOrder ?? []),
+    ...(manifest.resources ?? [])
+  ]
+  const hrefs = [...new Set(links.map((l) => new URL(l.href, manifestUrl(bookId)).href))].filter(
+    (href) => href !== manifestUrl(bookId)
   )
   let next = 0
   await Promise.all(

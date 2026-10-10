@@ -64,6 +64,8 @@ jest.mock('@/lib/books/readium', () => ({
 
 import ReadiumBookReader from '@/components/books/reader/ReadiumBookReader'
 
+const positions = [{ href: 'res/ch2.xhtml', locations: { position: 1 } }]
+
 const toc = [
   {
     label: 'Part',
@@ -95,7 +97,7 @@ beforeEach(() => {
   localStorage.clear()
   mockLoadPublication.mockResolvedValue({
     manifest: { toc: { items: toc } },
-    positionsFromManifest: () => Promise.resolve([])
+    positionsFromManifest: () => Promise.resolve(positions)
   })
   mockResumeLocator.mockResolvedValue({ href: 'res/ch2.xhtml' })
   mockLocatorToPosition.mockResolvedValue({ href: 'ch2.xhtml', offset: 7 })
@@ -166,6 +168,16 @@ describe('ReadiumBookReader', () => {
     expect(await screen.findByText(/couldn.t load|failed|error/i)).toBeInTheDocument()
   })
 
+  it('shows an error instead of a blank page when the book has no positions', async () => {
+    mockLoadPublication.mockResolvedValue({
+      manifest: {},
+      positionsFromManifest: () => Promise.resolve([])
+    })
+    render(<ReadiumBookReader bookId="b1" title="Dune" onClose={jest.fn()} />)
+    expect(await screen.findByText(/couldn.t load|failed|error/i)).toBeInTheDocument()
+    expect(nav).toBeNull()
+  })
+
   it('closes and destroys the navigator on unmount', async () => {
     const onClose = jest.fn()
     const { unmount } = render(<ReadiumBookReader bookId="b1" title="Dune" onClose={onClose} />)
@@ -203,7 +215,7 @@ describe('ReadiumBookReader', () => {
     const { unmount } = render(<ReadiumBookReader bookId="b1" title="Dune" onClose={jest.fn()} />)
     unmount()
     await act(async () => {
-      resolve({ manifest: {}, positionsFromManifest: () => Promise.resolve([]) })
+      resolve({ manifest: {}, positionsFromManifest: () => Promise.resolve(positions) })
     })
     expect(nav).toBeNull()
   })
