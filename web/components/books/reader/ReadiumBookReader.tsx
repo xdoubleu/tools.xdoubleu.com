@@ -103,6 +103,8 @@ export default function ReadiumBookReader({
           resumeLocator(pub, initialPositionRef.current),
           pub.positionsFromManifest().catch(() => [])
         ])
+        // The navigator can't place any locator without positions and renders nothing.
+        if (positions.length === 0) throw new Error('no positions')
         if (cancelled) return
         const turn = (direction: PageTurn | null) => {
           if (direction === 'left') created?.goBackward(false, noop)

@@ -26,6 +26,9 @@ const (
 	webPubContext   = "https://readium.org/webpub-manifest/context.jsonld"
 	webPubEPUBConf  = "https://readium.org/webpub-manifest/profiles/epub"
 	mimeXHTML       = "application/xhtml+xml"
+	mimePositions   = "application/vnd.readium.position-list+json"
+	positionsHref   = "positions.json"
+	positionLength  = 1024
 	opfMediaType    = "application/oebps-package+xml"
 	maxWebPubEntry  = 100 << 20
 	resourceBaseDir = "res/"
@@ -60,6 +63,27 @@ type WebPubManifest struct {
 	ReadingOrder []WebPubLink   `json:"readingOrder"`
 	Resources    []WebPubLink   `json:"resources"`
 	TOC          []WebPubLink   `json:"toc,omitempty"`
+}
+
+// WebPubLocations places a position within its section and the whole book.
+type WebPubLocations struct {
+	Position         int     `json:"position"`
+	Progression      float64 `json:"progression"`
+	TotalProgression float64 `json:"totalProgression"`
+}
+
+// WebPubLocator is one entry of a Readium position list.
+type WebPubLocator struct {
+	Href      string          `json:"href"`
+	Type      string          `json:"type"`
+	Locations WebPubLocations `json:"locations"`
+}
+
+// WebPubPositions is a Readium position list. The EPUB navigator needs it to
+// place any locator, so a manifest without one renders nothing.
+type WebPubPositions struct {
+	Total     int             `json:"total"`
+	Positions []WebPubLocator `json:"positions"`
 }
 
 // WebPubResource is one entry streamed out of the EPUB zip.
@@ -114,6 +138,23 @@ func (s *WebPubService) Manifest(
 		return nil, err
 	}
 	return buildWebPubManifest(zr)
+}
+
+// Positions builds the position list for the user's original EPUB of bookID.
+func (s *WebPubService) Positions(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) (*WebPubPositions, error) {
+	zr, err := s.openEPUB(ctx, userID, bookID)
+	if err != nil {
+		return nil, err
+	}
+	m, err := buildWebPubManifest(zr)
+	if err != nil {
+		return nil, err
+	}
+	return buildWebPubPositions(zr, m), nil
 }
 
 // Resource opens one zip entry of the user's original EPUB.
@@ -203,6 +244,7 @@ func buildWebPubManifest(zr *zip.Reader) (*WebPubManifest, error) {
 		},
 		Links: []WebPubLink{
 			newLink("manifest.json", "application/webpub+json", "self"),
+			newLink(positionsHref, mimePositions),
 		},
 		ReadingOrder: []WebPubLink{},
 		Resources:    []WebPubLink{},
@@ -241,6 +283,38 @@ func buildWebPubManifest(zr *zip.Reader) (*WebPubManifest, error) {
 		m.TOC = ncxTOC(zr, ncxPath)
 	}
 	return m, nil
+}
+
+// buildWebPubPositions follows Readium's reflowable rule: one position per
+// positionLength uncompressed bytes of each reading-order entry, at least one.
+func buildWebPubPositions(zr *zip.Reader, m *WebPubManifest) *WebPubPositions {
+	sizes := make(map[string]uint64, len(zr.File))
+	for _, f := range zr.File {
+		sizes[f.Name] = f.UncompressedSize64
+	}
+	counts := make([]int, len(m.ReadingOrder))
+	total := 0
+	for i, link := range m.ReadingOrder {
+		size := min(sizes[strings.TrimPrefix(link.Href, resourceBaseDir)], maxWebPubEntry)
+		counts[i] = max(1, int((size+positionLength-1)/positionLength))
+		total += counts[i]
+	}
+	out := &WebPubPositions{Total: total, Positions: make([]WebPubLocator, 0, total)}
+	for i, link := range m.ReadingOrder {
+		for p := range counts[i] {
+			n := len(out.Positions)
+			out.Positions = append(out.Positions, WebPubLocator{
+				Href: link.Href,
+				Type: link.Type,
+				Locations: WebPubLocations{
+					Position:         n + 1,
+					Progression:      float64(p) / float64(counts[i]),
+					TotalProgression: float64(n) / float64(total),
+				},
+			})
+		}
+	}
+	return out
 }
 
 func findOPFPath(zr *zip.Reader) (string, error) {

@@ -30,6 +30,12 @@ func TestWebPubRoutes_ManifestAndResource(t *testing.T) {
 	assert.Contains(t, w.Body.String(), `"readingOrder"`)
 	assert.Contains(t, w.Body.String(), `"title":"Seed Book"`)
 
+	w = webPubGet(t, base+"positions.json")
+	require.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t,
+		"application/vnd.readium.position-list+json", w.Header().Get("Content-Type"))
+	assert.Contains(t, w.Body.String(), `"positions":[`)
+
 	w = webPubGet(t, base+"res/META-INF/container.xml")
 	require.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "rootfile")
@@ -45,6 +51,8 @@ func TestWebPubRoutes_NotFound(t *testing.T) {
 		webPubGet(t, base+"res/missing.xhtml").Code)
 	assert.Equal(t, http.StatusNotFound,
 		webPubGet(t, "/books/api/book/"+uuid.NewString()+"/webpub/manifest.json").Code)
+	assert.Equal(t, http.StatusNotFound,
+		webPubGet(t, "/books/api/book/"+uuid.NewString()+"/webpub/positions.json").Code)
 	assert.Equal(t, http.StatusBadRequest,
 		webPubGet(t, "/books/api/book/nope/webpub/manifest.json").Code)
 }

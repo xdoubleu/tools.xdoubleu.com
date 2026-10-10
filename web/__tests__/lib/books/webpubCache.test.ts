@@ -103,11 +103,12 @@ describe('webPubFetch', () => {
 
 describe('warmWebPub', () => {
   const manifest = JSON.stringify({
+    links: [{ href: 'manifest.json' }, { href: 'positions.json' }],
     readingOrder: [{ href: 'res/a.xhtml' }, { href: 'res/b.xhtml' }],
     resources: [{ href: 'res/c.css' }]
   })
 
-  it('caches the manifest, sections and resources', async () => {
+  it('caches the manifest, position list, sections and resources', async () => {
     fetchMock.mockImplementation(async (req: Request) =>
       req.url.endsWith('manifest.json') ? ok(manifest) : ok('body')
     )
@@ -116,11 +117,13 @@ describe('warmWebPub', () => {
     expect([...store.keys()].sort()).toEqual(
       [
         `${base}manifest.json`,
+        `${base}positions.json`,
         `${base}res/a.xhtml`,
         `${base}res/b.xhtml`,
         `${base}res/c.css`
       ].sort()
     )
+    expect(fetchMock).toHaveBeenCalledTimes(5)
     await expect(isWebPubWarm('b1')).resolves.toBe(true)
     await expect(isWebPubWarm('other')).resolves.toBe(false)
   })
