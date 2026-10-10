@@ -118,9 +118,14 @@ type KoboLogEntry struct {
 	ResponseBody string                 `protobuf:"bytes,7,opt,name=response_body,json=responseBody,proto3" json:"response_body,omitempty"`
 	// notes describes the upstream store merge outcome for diagnostics (e.g. a
 	// 401 because no Authorization was forwarded); never contains credentials.
-	Notes         string `protobuf:"bytes,8,opt,name=notes,proto3" json:"notes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Notes string `protobuf:"bytes,8,opt,name=notes,proto3" json:"notes,omitempty"`
+	// Allowlisted sync headers only (lowercase keys); never credentials.
+	RequestHeaders  map[string]string `protobuf:"bytes,9,rep,name=request_headers,json=requestHeaders,proto3" json:"request_headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	ResponseHeaders map[string]string `protobuf:"bytes,10,rep,name=response_headers,json=responseHeaders,proto3" json:"response_headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// upstream_headers is the Kobo store's response, before any rewriting.
+	UpstreamHeaders map[string]string `protobuf:"bytes,11,rep,name=upstream_headers,json=upstreamHeaders,proto3" json:"upstream_headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *KoboLogEntry) Reset() {
@@ -207,6 +212,27 @@ func (x *KoboLogEntry) GetNotes() string {
 		return x.Notes
 	}
 	return ""
+}
+
+func (x *KoboLogEntry) GetRequestHeaders() map[string]string {
+	if x != nil {
+		return x.RequestHeaders
+	}
+	return nil
+}
+
+func (x *KoboLogEntry) GetResponseHeaders() map[string]string {
+	if x != nil {
+		return x.ResponseHeaders
+	}
+	return nil
+}
+
+func (x *KoboLogEntry) GetUpstreamHeaders() map[string]string {
+	if x != nil {
+		return x.UpstreamHeaders
+	}
+	return nil
 }
 
 type EnableKoboSyncRequest struct {
@@ -831,7 +857,7 @@ const file_books_v1_kobo_proto_rawDesc = "" +
 	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12 \n" +
 	"\flast_seen_at\x18\x05 \x01(\tR\n" +
 	"lastSeenAt\x12'\n" +
-	"\x0flogging_enabled\x18\x06 \x01(\bR\x0eloggingEnabled\"\xda\x01\n" +
+	"\x0flogging_enabled\x18\x06 \x01(\bR\x0eloggingEnabled\"\xaa\x05\n" +
 	"\fKoboLogEntry\x12\x12\n" +
 	"\x04time\x18\x01 \x01(\tR\x04time\x12\x16\n" +
 	"\x06method\x18\x02 \x01(\tR\x06method\x12\x12\n" +
@@ -840,7 +866,20 @@ const file_books_v1_kobo_proto_rawDesc = "" +
 	"\frequest_body\x18\x05 \x01(\tR\vrequestBody\x12\x16\n" +
 	"\x06status\x18\x06 \x01(\x05R\x06status\x12#\n" +
 	"\rresponse_body\x18\a \x01(\tR\fresponseBody\x12\x14\n" +
-	"\x05notes\x18\b \x01(\tR\x05notes\"0\n" +
+	"\x05notes\x18\b \x01(\tR\x05notes\x12S\n" +
+	"\x0frequest_headers\x18\t \x03(\v2*.books.v1.KoboLogEntry.RequestHeadersEntryR\x0erequestHeaders\x12V\n" +
+	"\x10response_headers\x18\n" +
+	" \x03(\v2+.books.v1.KoboLogEntry.ResponseHeadersEntryR\x0fresponseHeaders\x12V\n" +
+	"\x10upstream_headers\x18\v \x03(\v2+.books.v1.KoboLogEntry.UpstreamHeadersEntryR\x0fupstreamHeaders\x1aA\n" +
+	"\x13RequestHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1aB\n" +
+	"\x14ResponseHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1aB\n" +
+	"\x14UpstreamHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"0\n" +
 	"\x15EnableKoboSyncRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\";\n" +
 	"\x16EnableKoboSyncResponse\x12!\n" +
@@ -889,7 +928,7 @@ func file_books_v1_kobo_proto_rawDescGZIP() []byte {
 	return file_books_v1_kobo_proto_rawDescData
 }
 
-var file_books_v1_kobo_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_books_v1_kobo_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_books_v1_kobo_proto_goTypes = []any{
 	(*KoboDevice)(nil),                   // 0: books.v1.KoboDevice
 	(*KoboLogEntry)(nil),                 // 1: books.v1.KoboLogEntry
@@ -907,30 +946,36 @@ var file_books_v1_kobo_proto_goTypes = []any{
 	(*GetKoboDeviceLogsResponse)(nil),    // 13: books.v1.GetKoboDeviceLogsResponse
 	(*ClearKoboDeviceLogsRequest)(nil),   // 14: books.v1.ClearKoboDeviceLogsRequest
 	(*ClearKoboDeviceLogsResponse)(nil),  // 15: books.v1.ClearKoboDeviceLogsResponse
+	nil,                                  // 16: books.v1.KoboLogEntry.RequestHeadersEntry
+	nil,                                  // 17: books.v1.KoboLogEntry.ResponseHeadersEntry
+	nil,                                  // 18: books.v1.KoboLogEntry.UpstreamHeadersEntry
 }
 var file_books_v1_kobo_proto_depIdxs = []int32{
-	0,  // 0: books.v1.RegisterKoboDeviceResponse.device:type_name -> books.v1.KoboDevice
-	0,  // 1: books.v1.ListKoboDevicesResponse.devices:type_name -> books.v1.KoboDevice
-	1,  // 2: books.v1.GetKoboDeviceLogsResponse.entries:type_name -> books.v1.KoboLogEntry
-	2,  // 3: books.v1.KoboService.EnableKoboSync:input_type -> books.v1.EnableKoboSyncRequest
-	4,  // 4: books.v1.KoboService.RegisterKoboDevice:input_type -> books.v1.RegisterKoboDeviceRequest
-	6,  // 5: books.v1.KoboService.ListKoboDevices:input_type -> books.v1.ListKoboDevicesRequest
-	8,  // 6: books.v1.KoboService.DisconnectKoboDevice:input_type -> books.v1.DisconnectKoboDeviceRequest
-	10, // 7: books.v1.KoboService.SetKoboDeviceLogging:input_type -> books.v1.SetKoboDeviceLoggingRequest
-	12, // 8: books.v1.KoboService.GetKoboDeviceLogs:input_type -> books.v1.GetKoboDeviceLogsRequest
-	14, // 9: books.v1.KoboService.ClearKoboDeviceLogs:input_type -> books.v1.ClearKoboDeviceLogsRequest
-	3,  // 10: books.v1.KoboService.EnableKoboSync:output_type -> books.v1.EnableKoboSyncResponse
-	5,  // 11: books.v1.KoboService.RegisterKoboDevice:output_type -> books.v1.RegisterKoboDeviceResponse
-	7,  // 12: books.v1.KoboService.ListKoboDevices:output_type -> books.v1.ListKoboDevicesResponse
-	9,  // 13: books.v1.KoboService.DisconnectKoboDevice:output_type -> books.v1.DisconnectKoboDeviceResponse
-	11, // 14: books.v1.KoboService.SetKoboDeviceLogging:output_type -> books.v1.SetKoboDeviceLoggingResponse
-	13, // 15: books.v1.KoboService.GetKoboDeviceLogs:output_type -> books.v1.GetKoboDeviceLogsResponse
-	15, // 16: books.v1.KoboService.ClearKoboDeviceLogs:output_type -> books.v1.ClearKoboDeviceLogsResponse
-	10, // [10:17] is the sub-list for method output_type
-	3,  // [3:10] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	16, // 0: books.v1.KoboLogEntry.request_headers:type_name -> books.v1.KoboLogEntry.RequestHeadersEntry
+	17, // 1: books.v1.KoboLogEntry.response_headers:type_name -> books.v1.KoboLogEntry.ResponseHeadersEntry
+	18, // 2: books.v1.KoboLogEntry.upstream_headers:type_name -> books.v1.KoboLogEntry.UpstreamHeadersEntry
+	0,  // 3: books.v1.RegisterKoboDeviceResponse.device:type_name -> books.v1.KoboDevice
+	0,  // 4: books.v1.ListKoboDevicesResponse.devices:type_name -> books.v1.KoboDevice
+	1,  // 5: books.v1.GetKoboDeviceLogsResponse.entries:type_name -> books.v1.KoboLogEntry
+	2,  // 6: books.v1.KoboService.EnableKoboSync:input_type -> books.v1.EnableKoboSyncRequest
+	4,  // 7: books.v1.KoboService.RegisterKoboDevice:input_type -> books.v1.RegisterKoboDeviceRequest
+	6,  // 8: books.v1.KoboService.ListKoboDevices:input_type -> books.v1.ListKoboDevicesRequest
+	8,  // 9: books.v1.KoboService.DisconnectKoboDevice:input_type -> books.v1.DisconnectKoboDeviceRequest
+	10, // 10: books.v1.KoboService.SetKoboDeviceLogging:input_type -> books.v1.SetKoboDeviceLoggingRequest
+	12, // 11: books.v1.KoboService.GetKoboDeviceLogs:input_type -> books.v1.GetKoboDeviceLogsRequest
+	14, // 12: books.v1.KoboService.ClearKoboDeviceLogs:input_type -> books.v1.ClearKoboDeviceLogsRequest
+	3,  // 13: books.v1.KoboService.EnableKoboSync:output_type -> books.v1.EnableKoboSyncResponse
+	5,  // 14: books.v1.KoboService.RegisterKoboDevice:output_type -> books.v1.RegisterKoboDeviceResponse
+	7,  // 15: books.v1.KoboService.ListKoboDevices:output_type -> books.v1.ListKoboDevicesResponse
+	9,  // 16: books.v1.KoboService.DisconnectKoboDevice:output_type -> books.v1.DisconnectKoboDeviceResponse
+	11, // 17: books.v1.KoboService.SetKoboDeviceLogging:output_type -> books.v1.SetKoboDeviceLoggingResponse
+	13, // 18: books.v1.KoboService.GetKoboDeviceLogs:output_type -> books.v1.GetKoboDeviceLogsResponse
+	15, // 19: books.v1.KoboService.ClearKoboDeviceLogs:output_type -> books.v1.ClearKoboDeviceLogsResponse
+	13, // [13:20] is the sub-list for method output_type
+	6,  // [6:13] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_books_v1_kobo_proto_init() }
@@ -944,7 +989,7 @@ func file_books_v1_kobo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_books_v1_kobo_proto_rawDesc), len(file_books_v1_kobo_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

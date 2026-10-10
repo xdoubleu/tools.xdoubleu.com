@@ -110,5 +110,20 @@ func koboLogEntryProto(e services.KoboLogEntry) *booksv1.KoboLogEntry {
 		Status:       int32(e.Status), //nolint:gosec // HTTP status fits int32
 		ResponseBody: strings.ToValidUTF8(e.ResponseBody, "�"),
 		Notes:        e.Notes,
+		// Header values are proxied from the device and upstream verbatim.
+		RequestHeaders:  validUTF8Map(e.RequestHeaders),
+		ResponseHeaders: validUTF8Map(e.ResponseHeaders),
+		UpstreamHeaders: validUTF8Map(e.UpstreamHeaders),
 	}
+}
+
+func validUTF8Map(m map[string]string) map[string]string {
+	if m == nil {
+		return nil
+	}
+	out := make(map[string]string, len(m))
+	for k, v := range m {
+		out[k] = strings.ToValidUTF8(v, "�")
+	}
+	return out
 }

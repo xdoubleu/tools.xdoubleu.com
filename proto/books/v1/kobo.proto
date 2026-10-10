@@ -24,6 +24,11 @@ message KoboLogEntry {
   // notes describes the upstream store merge outcome for diagnostics (e.g. a
   // 401 because no Authorization was forwarded); never contains credentials.
   string notes = 8;
+  // Allowlisted sync headers only (lowercase keys); never credentials.
+  map<string, string> request_headers = 9;
+  map<string, string> response_headers = 10;
+  // upstream_headers is the Kobo store's response, before any rewriting.
+  map<string, string> upstream_headers = 11;
 }
 
 message EnableKoboSyncRequest { string book_id = 1; }

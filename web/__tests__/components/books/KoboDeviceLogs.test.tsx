@@ -59,6 +59,28 @@ it('renders captured entries with method, path, status and bodies', () => {
   expect(screen.getByText(entry.responseBody)).toBeInTheDocument()
 })
 
+it('renders captured sync headers per section', () => {
+  mockUseKoboDeviceLogs.mockReturnValue({
+    data: {
+      entries: [
+        {
+          ...entry,
+          requestHeaders: { 'x-kobo-synctoken': 'device-token' },
+          responseHeaders: { 'x-kobo-sync': 'continue' },
+          upstreamHeaders: {}
+        }
+      ]
+    },
+    isLoading: false,
+    mutate: mockMutate
+  })
+  render(<KoboDeviceLogs deviceId="dev-1" />)
+  expect(screen.getByText('Request headers:')).toBeInTheDocument()
+  expect(screen.getByText('x-kobo-synctoken: device-token')).toBeInTheDocument()
+  expect(screen.getByText('x-kobo-sync: continue')).toBeInTheDocument()
+  expect(screen.queryByText('Upstream headers:')).not.toBeInTheDocument()
+})
+
 it('clears logs and revalidates on Clear', async () => {
   mockUseKoboDeviceLogs.mockReturnValue({
     data: { entries: [entry] },

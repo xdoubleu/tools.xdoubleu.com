@@ -16,6 +16,29 @@ function formatLogTime(time: string): string {
   return d.toLocaleString()
 }
 
+function HeaderSection({
+  label,
+  headers
+}: {
+  label: string
+  headers: Record<string, string> | undefined
+}) {
+  const rows = Object.entries(headers ?? {})
+  if (rows.length === 0) return null
+  return (
+    <div className="mt-1">
+      <p className="text-muted">{label}:</p>
+      <ul className="font-mono">
+        {rows.map(([name, value]) => (
+          <li key={name} className="break-all">
+            {name}: {value}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
   const { data, isLoading, mutate } = useKoboDeviceLogs(deviceId, true)
   const clearLogs = useClearKoboDeviceLogs()
@@ -85,6 +108,9 @@ export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
                   {entry.query && (
                     <p className="mt-1 break-all font-mono text-muted">?{entry.query}</p>
                   )}
+                  <HeaderSection label="Request headers" headers={entry.requestHeaders} />
+                  <HeaderSection label="Response headers" headers={entry.responseHeaders} />
+                  <HeaderSection label="Upstream headers" headers={entry.upstreamHeaders} />
                   {entry.requestBody && (
                     <div className="mt-1 overflow-x-auto">
                       <p className="text-muted">Request:</p>
