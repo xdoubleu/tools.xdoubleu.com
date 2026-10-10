@@ -124,6 +124,9 @@ func (app *Books) koboAuthDevice(
 	return userID, deviceID, true
 }
 
+// koboAccessFull is the Accessibility of an entitlement readable in full.
+const koboAccessFull = "Full"
+
 // koboEpoch is LastModified when no server state exists. time.Now() would make
 // the firmware overwrite local progress with 0% and never PUT state.
 const koboEpoch = "1970-01-01T00:00:00Z"
@@ -348,6 +351,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	koboForwardPaging(w, upstream)
+	app.koboLinkStoreBooks(r, userID, upstream)
 
 	all := append(upstream.items, ourEntries...) //nolint:gocritic // intentional
 	all = append(all, stateEntries...)
@@ -382,6 +386,21 @@ func koboForwardPaging(w http.ResponseWriter, upstream koboUpstream) {
 			w.Header().Set(hdr, v)
 		}
 	}
+}
+
+// koboLinkStoreBooks links a merged upstream page's store books to the
+// library in the background.
+func (app *Books) koboLinkStoreBooks(
+	r *http.Request,
+	userID string,
+	upstream koboUpstream,
+) {
+	if upstream.note != "" || len(upstream.items) == 0 {
+		return
+	}
+	go app.recordKoboStoreSync(
+		context.WithoutCancel(r.Context()), userID, upstream.items,
+	)
 }
 
 // warmKoboCovers caches every book's cover so the device's per-cover fetches
@@ -439,7 +458,7 @@ func (app *Books) buildKoboSyncEntry(
 
 	entry := koboSyncEntry{
 		BookEntitlement: koboBookEntitlement{
-			Accessibility:   "Full",
+			Accessibility:   koboAccessFull,
 			ActivePeriod:    map[string]string{"From": enabled},
 			Created:         enabled,
 			CrossRevisionId: id,
@@ -649,7 +668,7 @@ func buildKoboRemovalEntry(rm models.KoboRemoval) json.RawMessage {
 	raw, _ := json.Marshal(koboChangedEntitlement{
 		ChangedEntitlement: koboSyncEntry{
 			BookEntitlement: koboBookEntitlement{
-				Accessibility:   "Full",
+				Accessibility:   koboAccessFull,
 				ActivePeriod:    map[string]string{},
 				Created:         removed,
 				CrossRevisionId: id,

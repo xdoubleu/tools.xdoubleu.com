@@ -948,30 +948,60 @@ func TestKoboFile_InvalidRevisionID(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
-func TestKoboGetState_InvalidRevisionID(t *testing.T) {
-	ts := httptest.NewServer(getRoutes())
+// TestKoboGetState_StoreBookProxied: a state id that isn't a library book is a
+// Kobo store book, whose state the store serves.
+func TestKoboGetState_StoreBookProxied(t *testing.T) {
+	var gotPath string
+	upstream := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			gotPath = r.URL.Path
+			_, _ = w.Write([]byte(`"store-state"`))
+		}),
+	)
+	t.Cleanup(upstream.Close)
+	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
 	t.Cleanup(ts.Close)
 
-	rawToken := registerTestDevice(t, "kobo-gstate-badid-"+uuid.NewString())
+	rawToken := registerTestDevice(t, "kobo-gstate-store-"+uuid.NewString())
 
 	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
 		koboURL(ts, rawToken, "/v1/library/not-a-uuid/state"), nil))
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "/v1/library/not-a-uuid/state", gotPath)
+	b, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t, `"store-state"`, string(b))
 }
 
-func TestKoboPutState_InvalidRevisionID(t *testing.T) {
-	ts := httptest.NewServer(getRoutes())
+// TestKoboPutState_StoreBookProxied: a store book's state PUT reaches the
+// store with its body.
+func TestKoboPutState_StoreBookProxied(t *testing.T) {
+	var gotBody string
+	upstream := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPut {
+				b, _ := io.ReadAll(r.Body)
+				gotBody = string(b)
+				_, _ = w.Write([]byte(`{"RequestResult":"Success"}`))
+				return
+			}
+			w.WriteHeader(http.StatusNotFound)
+		}),
+	)
+	t.Cleanup(upstream.Close)
+	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
 	t.Cleanup(ts.Close)
 
-	rawToken := registerTestDevice(t, "kobo-pstate-badid-"+uuid.NewString())
+	rawToken := registerTestDevice(t, "kobo-pstate-store-"+uuid.NewString())
 
 	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
 		koboURL(ts, rawToken, "/v1/library/not-a-uuid/state"), []byte(`{}`)))
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, `{}`, gotBody)
 }
 
 func TestKoboPutState_BadJSON(t *testing.T) {
@@ -1434,7 +1464,13 @@ func TestKoboFile_PDFFormat_RedirectsToPDF(t *testing.T) {
 }
 
 func TestKoboState_UserBCannotReadUserAState(t *testing.T) {
-	ts := httptest.NewServer(getRoutes())
+	upstream := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write([]byte(`{"CurrentBookmark":{"ContentSourceProgressPercent":0}}`))
+		}),
+	)
+	t.Cleanup(upstream.Close)
+	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
 	t.Cleanup(ts.Close)
 
 	const userA = "kobo-state-iso-user-a"
