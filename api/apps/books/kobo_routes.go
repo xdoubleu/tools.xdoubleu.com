@@ -208,7 +208,7 @@ type koboBookMetadata struct {
 	Language     string            `json:"Language"`
 	DownloadUrls []koboDownloadURL `json:"DownloadUrls"`
 	// CoverImageId names the image the device requests from
-	// image_url(_quality)_template; the book's own UUID, like Id.
+	// image_url(_quality)_template; see koboCoverImageID.
 	CoverImageID string `json:"CoverImageId"`
 }
 
@@ -291,7 +291,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 	// Warm covers in the background (detached so a slow source never stalls
 	// the sync) so the device's subsequent cover fetches during its update
 	// phase are fast R2 hits instead of blocking live fetches.
-	go app.warmKoboCovers(context.WithoutCancel(r.Context()), books)
+	go app.warmKoboCovers(context.WithoutCancel(r.Context()), userID, books)
 
 	stateByBook, err := app.Services.Books.ListReadingStates(r.Context(), userID)
 	if err != nil {
@@ -408,6 +408,7 @@ func (app *Books) koboLinkStoreBooks(
 // cover or a failed fetch is logged and skipped, never fatal.
 func (app *Books) warmKoboCovers(
 	ctx context.Context,
+	userID string,
 	books []models.KoboSyncBook,
 ) {
 	const warmConcurrency = 4
@@ -419,7 +420,8 @@ func (app *Books) warmKoboCovers(
 		go func() {
 			defer wg.Done()
 			for id := range ids {
-				if _, err := app.Services.Books.EnsureCoverCached(ctx, id); err != nil {
+				_, err := app.Services.Books.EnsureUserCoverCached(ctx, userID, id)
+				if err != nil {
 					app.Logger.Warn("failed to warm kobo cover",
 						"bookID", id, "err", err)
 				}
@@ -655,7 +657,7 @@ func buildKoboMetadata(b models.KoboSyncBook, libraryBase string) koboBookMetada
 			URL:      libraryBase + "/" + id + "/file",
 			Platform: "Generic",
 		}},
-		CoverImageID: id,
+		CoverImageID: koboCoverImageID(b.BookID),
 	}
 }
 
@@ -769,7 +771,7 @@ func (app *Books) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
 
 	// The image templates route every cover here, so store-bought books' ids
 	// (anything not one of our kobo-sync books) go to the Kobo CDN.
-	bookID, err := uuid.Parse(r.PathValue("revisionId"))
+	bookID, err := koboCoverBookID(r.PathValue("revisionId"))
 	if err != nil {
 		http.Redirect(w, r, koboUpstreamCoverURL(r), http.StatusFound)
 		return
@@ -789,7 +791,7 @@ func (app *Books) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), coverCtxTimeout)
 	defer cancel()
 
-	result, err := app.Services.Books.GetBookCover(ctx, bookID)
+	result, err := app.Services.Books.GetUserBookCover(ctx, userID, bookID)
 	if err != nil {
 		if errors.Is(err, services.ErrCoverNotFound) {
 			http.Error(w, "cover not found", http.StatusNotFound)
@@ -805,6 +807,21 @@ func (app *Books) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
 		Set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400")
 
 	http.Redirect(w, r, result.URL, http.StatusFound)
+}
+
+// koboCoverRevision is appended to our books' CoverImageId. The device caches
+// each image id's covers, misses included, so bumping it makes every device
+// fetch all cover sizes again.
+const koboCoverRevision = "-c1"
+
+func koboCoverImageID(bookID uuid.UUID) string {
+	return bookID.String() + koboCoverRevision
+}
+
+// koboCoverBookID parses an image id from koboCoverImageID, or a bare book id
+// from before the revision suffix.
+func koboCoverBookID(imageID string) (uuid.UUID, error) {
+	return uuid.Parse(strings.TrimSuffix(imageID, koboCoverRevision))
 }
 
 // koboUpstreamCoverURL fills the store catalog's image template with the
