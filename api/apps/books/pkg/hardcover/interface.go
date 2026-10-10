@@ -5,7 +5,8 @@ import (
 	"errors"
 )
 
-// ErrNotFound is returned by GetByISBN when no edition matches the given ISBN.
+// ErrNotFound is returned by GetByISBN when no edition matches the given ISBN,
+// and by GetSeries when no series has the name.
 var ErrNotFound = errors.New("hardcover: book not found")
 
 // Client is the subset of Hardcover's Hasura GraphQL API
@@ -19,4 +20,6 @@ type Client interface {
 	// GetByISBN returns the single best-matching edition for the given ISBN-13.
 	// Returns ErrNotFound when Hardcover has no matching edition.
 	GetByISBN(ctx context.Context, isbn string) (*ExternalBook, error)
+	// GetSeries returns the series with exactly this name, or ErrNotFound.
+	GetSeries(ctx context.Context, name string) (*Series, error)
 }

@@ -49,6 +49,7 @@ type BookService struct {
 	hardcover    hardcover.Client
 	resyncSource ResyncSource
 	coverClient  *http.Client
+	seriesCache  *seriesCache
 }
 
 // SearchLibrary searches the user's own library by title/author substring.
@@ -126,10 +127,7 @@ func (s *BookService) GetExternal(
 			}
 			return nil, err
 		}
-		p := newSourceProposalFromCandidate(sourceHardcover, titleOnlyCandidate{
-			title: d.Title, authors: d.Authors, isbn13: d.ISBN13,
-			coverURL: d.CoverURL, description: d.Description, pageCount: d.PageCount,
-		})
+		p := newSourceProposalFromCandidate(sourceHardcover, hcCandidate(*d))
 		return &p, nil
 	case sourceUniCat:
 		if s.uniCat == nil {
@@ -201,8 +199,14 @@ func (s *BookService) UpdateBook(
 	metadata models.Book,
 	rawCoverURL string,
 ) (*models.Book, error) {
-	if _, err := s.books.GetBookByID(ctx, bookID); err != nil {
-		return nil, err
+	existing, getErr := s.books.GetBookByID(ctx, bookID)
+	if getErr != nil {
+		return nil, getErr
+	}
+	// The cached total belongs to the series, not the edit form.
+	if metadata.Series != nil && existing.Series != nil &&
+		metadata.Series.Name == existing.Series.Name && metadata.Series.Total == nil {
+		metadata.Series.Total = existing.Series.Total
 	}
 
 	if metadata.ISBN13 != nil {
@@ -641,6 +645,9 @@ func (s *BookService) enrichByISBN(
 			ext.Description = fillStrIfEmpty(ext.Description, detail.Description)
 			ext.PageCount = fillIntIfZero(ext.PageCount, detail.PageCount)
 			ext.CoverURL = fillStrIfEmpty(ext.CoverURL, detail.CoverURL)
+			if ext.SeriesName == "" {
+				ext.setSeries(hcSeries(detail.Series))
+			}
 		}
 	}
 
@@ -705,6 +712,7 @@ func externalToBook(ext SourceProposal) models.Book {
 		Description:    description,
 		PageCount:      pageCount,
 		MetadataSource: metadataSource,
+		Series:         ext.series(),
 	}
 }
 
@@ -1174,6 +1182,7 @@ func (s *BookService) MergeBooks(
 	}
 
 	allIDs := append([]uuid.UUID{winnerBookID}, loserBookIDs...)
+	mergedSeries := s.seriesForMerge(ctx, winnerBookID, loserBookIDs)
 	affectedUsers, err := s.books.ListUserBookOwners(ctx, allIDs)
 	if err != nil {
 		return 0, nil, fmt.Errorf("list affected users: %w", err)
@@ -1235,13 +1244,10 @@ func (s *BookService) MergeBooks(
 		}
 	}
 
-	if resolvedMetadata != nil {
-		resolvedMetadata.ID = winnerBookID
-		if updateErr := s.books.UpdateBookByID(ctx, *resolvedMetadata); updateErr != nil {
-			return totalDeletedFiles, affectedUsers, fmt.Errorf(
-				"apply resolved metadata: %w", updateErr,
-			)
-		}
+	if updateErr := s.applyMergedMetadata(
+		ctx, winnerBookID, resolvedMetadata, mergedSeries,
+	); updateErr != nil {
+		return totalDeletedFiles, affectedUsers, updateErr
 	}
 	if resolvedCoverSourceBookID != nil &&
 		*resolvedCoverSourceBookID != winnerBookID {

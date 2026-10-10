@@ -48,7 +48,10 @@ export default function BookDialog({ book, onClose, onAdded }: BookDialogProps) 
         coverUrl: book.coverUrl,
         description: book.description,
         ownPhysical: false,
-        ownDigital: false
+        ownDigital: false,
+        seriesName: book.seriesName,
+        seriesPosition: book.seriesPosition,
+        seriesTotal: book.seriesTotal
       }
       await addBook(req)
       onAdded()

@@ -21,6 +21,7 @@ type ResyncProposalRow struct {
 const resyncProposalColumns = `b.id, b.title, b.authors, b.isbn13, b.cover_url,
 	b.description, b.page_count, b.source_url,
 	b.created_at, b.updated_at,
+	b.series_name, b.series_position, b.series_total,
 	b.unicat_found, b.hardcover_found,
 	b.last_resync_at, b.metadata_source,
 	rp.proposals`
@@ -28,6 +29,9 @@ const resyncProposalColumns = `b.id, b.title, b.authors, b.isbn13, b.cover_url,
 func scanResyncProposalRow(row pgx.Row) (*ResyncProposalRow, error) {
 	var out ResyncProposalRow
 	book := &out.Book
+	var seriesName *string
+	var seriesPosition *float64
+	var seriesTotal *int
 
 	err := row.Scan(
 		&book.ID,
@@ -40,6 +44,9 @@ func scanResyncProposalRow(row pgx.Row) (*ResyncProposalRow, error) {
 		&book.SourceURL,
 		&book.CreatedAt,
 		&book.UpdatedAt,
+		&seriesName,
+		&seriesPosition,
+		&seriesTotal,
 		&book.UniCatFound,
 		&book.HardcoverFound,
 		&book.LastResyncAt,
@@ -49,6 +56,7 @@ func scanResyncProposalRow(row pgx.Row) (*ResyncProposalRow, error) {
 	if err != nil {
 		return nil, err
 	}
+	book.Series = toBookSeries(seriesName, seriesPosition, seriesTotal)
 	return &out, nil
 }
 

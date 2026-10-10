@@ -33,7 +33,13 @@ type Book struct {
 	// Canonical origin URL for URL-ingested items; empty for books.
 	SourceUrl string `protobuf:"bytes,11,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
 	// True once extracted in-app content is stored.
-	HasContent    bool `protobuf:"varint,12,opt,name=has_content,json=hasContent,proto3" json:"has_content,omitempty"`
+	HasContent bool `protobuf:"varint,12,opt,name=has_content,json=hasContent,proto3" json:"has_content,omitempty"`
+	// Empty when the book isn't in a series.
+	SeriesName string `protobuf:"bytes,13,opt,name=series_name,json=seriesName,proto3" json:"series_name,omitempty"`
+	// Unset for an unordered entry; fractional for novellas, 0 for prequels.
+	SeriesPosition *float64 `protobuf:"fixed64,14,opt,name=series_position,json=seriesPosition,proto3,oneof" json:"series_position,omitempty"`
+	// The series' main-volume count per Hardcover; 0 when unknown.
+	SeriesTotal   int32 `protobuf:"varint,15,opt,name=series_total,json=seriesTotal,proto3" json:"series_total,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -129,6 +135,27 @@ func (x *Book) GetHasContent() bool {
 		return x.HasContent
 	}
 	return false
+}
+
+func (x *Book) GetSeriesName() string {
+	if x != nil {
+		return x.SeriesName
+	}
+	return ""
+}
+
+func (x *Book) GetSeriesPosition() float64 {
+	if x != nil && x.SeriesPosition != nil {
+		return *x.SeriesPosition
+	}
+	return 0
+}
+
+func (x *Book) GetSeriesTotal() int32 {
+	if x != nil {
+		return x.SeriesTotal
+	}
+	return 0
 }
 
 type UserBook struct {
@@ -478,14 +505,18 @@ func (x *BooksProgressResponse) GetDateEnd() string {
 }
 
 type ExternalBookResult struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	ProviderId    string                 `protobuf:"bytes,2,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
-	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	Authors       []string               `protobuf:"bytes,4,rep,name=authors,proto3" json:"authors,omitempty"`
-	Isbn13        string                 `protobuf:"bytes,5,opt,name=isbn13,proto3" json:"isbn13,omitempty"`
-	CoverUrl      string                 `protobuf:"bytes,6,opt,name=cover_url,json=coverUrl,proto3" json:"cover_url,omitempty"`
-	Description   string                 `protobuf:"bytes,7,opt,name=description,proto3" json:"description,omitempty"`
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Provider       string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	ProviderId     string                 `protobuf:"bytes,2,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
+	Title          string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Authors        []string               `protobuf:"bytes,4,rep,name=authors,proto3" json:"authors,omitempty"`
+	Isbn13         string                 `protobuf:"bytes,5,opt,name=isbn13,proto3" json:"isbn13,omitempty"`
+	CoverUrl       string                 `protobuf:"bytes,6,opt,name=cover_url,json=coverUrl,proto3" json:"cover_url,omitempty"`
+	Description    string                 `protobuf:"bytes,7,opt,name=description,proto3" json:"description,omitempty"`
+	SeriesName     string                 `protobuf:"bytes,8,opt,name=series_name,json=seriesName,proto3" json:"series_name,omitempty"`
+	SeriesPosition *float64               `protobuf:"fixed64,9,opt,name=series_position,json=seriesPosition,proto3,oneof" json:"series_position,omitempty"`
+	// Main-volume count; 0 when unknown.
+	SeriesTotal   int32 `protobuf:"varint,10,opt,name=series_total,json=seriesTotal,proto3" json:"series_total,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -567,6 +598,27 @@ func (x *ExternalBookResult) GetDescription() string {
 		return x.Description
 	}
 	return ""
+}
+
+func (x *ExternalBookResult) GetSeriesName() string {
+	if x != nil {
+		return x.SeriesName
+	}
+	return ""
+}
+
+func (x *ExternalBookResult) GetSeriesPosition() float64 {
+	if x != nil && x.SeriesPosition != nil {
+		return *x.SeriesPosition
+	}
+	return 0
+}
+
+func (x *ExternalBookResult) GetSeriesTotal() int32 {
+	if x != nil {
+		return x.SeriesTotal
+	}
+	return 0
 }
 
 // ReadingPosition is a format-neutral position: href + offset for EPUB/KEPUB,
@@ -1192,19 +1244,23 @@ func (x *GetExternalBookResponse) GetResult() *ExternalBookResult {
 }
 
 type CreateBookRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
-	ProviderId    string                 `protobuf:"bytes,2,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
-	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	Author        string                 `protobuf:"bytes,4,opt,name=author,proto3" json:"author,omitempty"`
-	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
-	Isbn13        string                 `protobuf:"bytes,6,opt,name=isbn13,proto3" json:"isbn13,omitempty"`
-	CoverUrl      string                 `protobuf:"bytes,7,opt,name=cover_url,json=coverUrl,proto3" json:"cover_url,omitempty"`
-	Description   string                 `protobuf:"bytes,8,opt,name=description,proto3" json:"description,omitempty"`
-	OwnPhysical   bool                   `protobuf:"varint,9,opt,name=own_physical,json=ownPhysical,proto3" json:"own_physical,omitempty"`
-	OwnDigital    bool                   `protobuf:"varint,10,opt,name=own_digital,json=ownDigital,proto3" json:"own_digital,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Provider    string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	ProviderId  string                 `protobuf:"bytes,2,opt,name=provider_id,json=providerId,proto3" json:"provider_id,omitempty"`
+	Title       string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Author      string                 `protobuf:"bytes,4,opt,name=author,proto3" json:"author,omitempty"`
+	Status      string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	Isbn13      string                 `protobuf:"bytes,6,opt,name=isbn13,proto3" json:"isbn13,omitempty"`
+	CoverUrl    string                 `protobuf:"bytes,7,opt,name=cover_url,json=coverUrl,proto3" json:"cover_url,omitempty"`
+	Description string                 `protobuf:"bytes,8,opt,name=description,proto3" json:"description,omitempty"`
+	OwnPhysical bool                   `protobuf:"varint,9,opt,name=own_physical,json=ownPhysical,proto3" json:"own_physical,omitempty"`
+	OwnDigital  bool                   `protobuf:"varint,10,opt,name=own_digital,json=ownDigital,proto3" json:"own_digital,omitempty"`
+	// Fills the catalog book's series only when it has none.
+	SeriesName     string   `protobuf:"bytes,11,opt,name=series_name,json=seriesName,proto3" json:"series_name,omitempty"`
+	SeriesPosition *float64 `protobuf:"fixed64,12,opt,name=series_position,json=seriesPosition,proto3,oneof" json:"series_position,omitempty"`
+	SeriesTotal    int32    `protobuf:"varint,13,opt,name=series_total,json=seriesTotal,proto3" json:"series_total,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateBookRequest) Reset() {
@@ -1305,6 +1361,27 @@ func (x *CreateBookRequest) GetOwnDigital() bool {
 		return x.OwnDigital
 	}
 	return false
+}
+
+func (x *CreateBookRequest) GetSeriesName() string {
+	if x != nil {
+		return x.SeriesName
+	}
+	return ""
+}
+
+func (x *CreateBookRequest) GetSeriesPosition() float64 {
+	if x != nil && x.SeriesPosition != nil {
+		return *x.SeriesPosition
+	}
+	return 0
+}
+
+func (x *CreateBookRequest) GetSeriesTotal() int32 {
+	if x != nil {
+		return x.SeriesTotal
+	}
+	return 0
 }
 
 type CreateBookResponse struct {
@@ -2306,6 +2383,183 @@ func (x *GetBookContentResponse) GetHtml() string {
 	return ""
 }
 
+// GetSeries lists a series' volumes in position order: the caller's own books
+// plus the volumes Hardcover knows that the caller doesn't have.
+type GetSeriesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSeriesRequest) Reset() {
+	*x = GetSeriesRequest{}
+	mi := &file_books_v1_library_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSeriesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSeriesRequest) ProtoMessage() {}
+
+func (x *GetSeriesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_books_v1_library_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSeriesRequest.ProtoReflect.Descriptor instead.
+func (*GetSeriesRequest) Descriptor() ([]byte, []int) {
+	return file_books_v1_library_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *GetSeriesRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type SeriesEntry struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Position *float64               `protobuf:"fixed64,1,opt,name=position,proto3,oneof" json:"position,omitempty"`
+	// Exactly one of user_book (owned) and external (missing) is set.
+	UserBook      *UserBook           `protobuf:"bytes,2,opt,name=user_book,json=userBook,proto3" json:"user_book,omitempty"`
+	External      *ExternalBookResult `protobuf:"bytes,3,opt,name=external,proto3" json:"external,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SeriesEntry) Reset() {
+	*x = SeriesEntry{}
+	mi := &file_books_v1_library_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SeriesEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SeriesEntry) ProtoMessage() {}
+
+func (x *SeriesEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_books_v1_library_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SeriesEntry.ProtoReflect.Descriptor instead.
+func (*SeriesEntry) Descriptor() ([]byte, []int) {
+	return file_books_v1_library_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *SeriesEntry) GetPosition() float64 {
+	if x != nil && x.Position != nil {
+		return *x.Position
+	}
+	return 0
+}
+
+func (x *SeriesEntry) GetUserBook() *UserBook {
+	if x != nil {
+		return x.UserBook
+	}
+	return nil
+}
+
+func (x *SeriesEntry) GetExternal() *ExternalBookResult {
+	if x != nil {
+		return x.External
+	}
+	return nil
+}
+
+type GetSeriesResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Main-volume count; 0 when unknown.
+	Total   int32          `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	Entries []*SeriesEntry `protobuf:"bytes,3,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Hardcover couldn't be asked, so missing volumes are unknown.
+	ExternalUnavailable bool `protobuf:"varint,4,opt,name=external_unavailable,json=externalUnavailable,proto3" json:"external_unavailable,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *GetSeriesResponse) Reset() {
+	*x = GetSeriesResponse{}
+	mi := &file_books_v1_library_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSeriesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSeriesResponse) ProtoMessage() {}
+
+func (x *GetSeriesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_books_v1_library_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSeriesResponse.ProtoReflect.Descriptor instead.
+func (*GetSeriesResponse) Descriptor() ([]byte, []int) {
+	return file_books_v1_library_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *GetSeriesResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *GetSeriesResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *GetSeriesResponse) GetEntries() []*SeriesEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *GetSeriesResponse) GetExternalUnavailable() bool {
+	if x != nil {
+		return x.ExternalUnavailable
+	}
+	return false
+}
+
 type CreateShelfRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -2315,7 +2569,7 @@ type CreateShelfRequest struct {
 
 func (x *CreateShelfRequest) Reset() {
 	*x = CreateShelfRequest{}
-	mi := &file_books_v1_library_proto_msgTypes[40]
+	mi := &file_books_v1_library_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2327,7 +2581,7 @@ func (x *CreateShelfRequest) String() string {
 func (*CreateShelfRequest) ProtoMessage() {}
 
 func (x *CreateShelfRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[40]
+	mi := &file_books_v1_library_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2340,7 +2594,7 @@ func (x *CreateShelfRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateShelfRequest.ProtoReflect.Descriptor instead.
 func (*CreateShelfRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{40}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *CreateShelfRequest) GetName() string {
@@ -2358,7 +2612,7 @@ type CreateShelfResponse struct {
 
 func (x *CreateShelfResponse) Reset() {
 	*x = CreateShelfResponse{}
-	mi := &file_books_v1_library_proto_msgTypes[41]
+	mi := &file_books_v1_library_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2370,7 +2624,7 @@ func (x *CreateShelfResponse) String() string {
 func (*CreateShelfResponse) ProtoMessage() {}
 
 func (x *CreateShelfResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[41]
+	mi := &file_books_v1_library_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2383,7 +2637,7 @@ func (x *CreateShelfResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateShelfResponse.ProtoReflect.Descriptor instead.
 func (*CreateShelfResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{41}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{44}
 }
 
 type RenameShelfRequest struct {
@@ -2396,7 +2650,7 @@ type RenameShelfRequest struct {
 
 func (x *RenameShelfRequest) Reset() {
 	*x = RenameShelfRequest{}
-	mi := &file_books_v1_library_proto_msgTypes[42]
+	mi := &file_books_v1_library_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2408,7 +2662,7 @@ func (x *RenameShelfRequest) String() string {
 func (*RenameShelfRequest) ProtoMessage() {}
 
 func (x *RenameShelfRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[42]
+	mi := &file_books_v1_library_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2421,7 +2675,7 @@ func (x *RenameShelfRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameShelfRequest.ProtoReflect.Descriptor instead.
 func (*RenameShelfRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{42}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *RenameShelfRequest) GetOldName() string {
@@ -2447,7 +2701,7 @@ type RenameShelfResponse struct {
 
 func (x *RenameShelfResponse) Reset() {
 	*x = RenameShelfResponse{}
-	mi := &file_books_v1_library_proto_msgTypes[43]
+	mi := &file_books_v1_library_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2459,7 +2713,7 @@ func (x *RenameShelfResponse) String() string {
 func (*RenameShelfResponse) ProtoMessage() {}
 
 func (x *RenameShelfResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[43]
+	mi := &file_books_v1_library_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2472,7 +2726,7 @@ func (x *RenameShelfResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameShelfResponse.ProtoReflect.Descriptor instead.
 func (*RenameShelfResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{43}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *RenameShelfResponse) GetMoved() uint32 {
@@ -2493,7 +2747,7 @@ type DeleteShelfRequest struct {
 
 func (x *DeleteShelfRequest) Reset() {
 	*x = DeleteShelfRequest{}
-	mi := &file_books_v1_library_proto_msgTypes[44]
+	mi := &file_books_v1_library_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2505,7 +2759,7 @@ func (x *DeleteShelfRequest) String() string {
 func (*DeleteShelfRequest) ProtoMessage() {}
 
 func (x *DeleteShelfRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[44]
+	mi := &file_books_v1_library_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2518,7 +2772,7 @@ func (x *DeleteShelfRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteShelfRequest.ProtoReflect.Descriptor instead.
 func (*DeleteShelfRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{44}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *DeleteShelfRequest) GetName() string {
@@ -2544,7 +2798,7 @@ type DeleteShelfResponse struct {
 
 func (x *DeleteShelfResponse) Reset() {
 	*x = DeleteShelfResponse{}
-	mi := &file_books_v1_library_proto_msgTypes[45]
+	mi := &file_books_v1_library_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2556,7 +2810,7 @@ func (x *DeleteShelfResponse) String() string {
 func (*DeleteShelfResponse) ProtoMessage() {}
 
 func (x *DeleteShelfResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[45]
+	mi := &file_books_v1_library_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2569,7 +2823,7 @@ func (x *DeleteShelfResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteShelfResponse.ProtoReflect.Descriptor instead.
 func (*DeleteShelfResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{45}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *DeleteShelfResponse) GetMoved() uint32 {
@@ -2589,7 +2843,7 @@ type RenameTagRequest struct {
 
 func (x *RenameTagRequest) Reset() {
 	*x = RenameTagRequest{}
-	mi := &file_books_v1_library_proto_msgTypes[46]
+	mi := &file_books_v1_library_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2601,7 +2855,7 @@ func (x *RenameTagRequest) String() string {
 func (*RenameTagRequest) ProtoMessage() {}
 
 func (x *RenameTagRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[46]
+	mi := &file_books_v1_library_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2614,7 +2868,7 @@ func (x *RenameTagRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameTagRequest.ProtoReflect.Descriptor instead.
 func (*RenameTagRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{46}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *RenameTagRequest) GetOldName() string {
@@ -2640,7 +2894,7 @@ type RenameTagResponse struct {
 
 func (x *RenameTagResponse) Reset() {
 	*x = RenameTagResponse{}
-	mi := &file_books_v1_library_proto_msgTypes[47]
+	mi := &file_books_v1_library_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2652,7 +2906,7 @@ func (x *RenameTagResponse) String() string {
 func (*RenameTagResponse) ProtoMessage() {}
 
 func (x *RenameTagResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[47]
+	mi := &file_books_v1_library_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2665,7 +2919,7 @@ func (x *RenameTagResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameTagResponse.ProtoReflect.Descriptor instead.
 func (*RenameTagResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{47}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *RenameTagResponse) GetAffected() uint32 {
@@ -2684,7 +2938,7 @@ type DeleteTagRequest struct {
 
 func (x *DeleteTagRequest) Reset() {
 	*x = DeleteTagRequest{}
-	mi := &file_books_v1_library_proto_msgTypes[48]
+	mi := &file_books_v1_library_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2696,7 +2950,7 @@ func (x *DeleteTagRequest) String() string {
 func (*DeleteTagRequest) ProtoMessage() {}
 
 func (x *DeleteTagRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[48]
+	mi := &file_books_v1_library_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2709,7 +2963,7 @@ func (x *DeleteTagRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTagRequest.ProtoReflect.Descriptor instead.
 func (*DeleteTagRequest) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{48}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *DeleteTagRequest) GetName() string {
@@ -2728,7 +2982,7 @@ type DeleteTagResponse struct {
 
 func (x *DeleteTagResponse) Reset() {
 	*x = DeleteTagResponse{}
-	mi := &file_books_v1_library_proto_msgTypes[49]
+	mi := &file_books_v1_library_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2740,7 +2994,7 @@ func (x *DeleteTagResponse) String() string {
 func (*DeleteTagResponse) ProtoMessage() {}
 
 func (x *DeleteTagResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_books_v1_library_proto_msgTypes[49]
+	mi := &file_books_v1_library_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2753,7 +3007,7 @@ func (x *DeleteTagResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTagResponse.ProtoReflect.Descriptor instead.
 func (*DeleteTagResponse) Descriptor() ([]byte, []int) {
-	return file_books_v1_library_proto_rawDescGZIP(), []int{49}
+	return file_books_v1_library_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *DeleteTagResponse) GetAffected() uint32 {
@@ -2767,7 +3021,7 @@ var File_books_v1_library_proto protoreflect.FileDescriptor
 
 const file_books_v1_library_proto_rawDesc = "" +
 	"\n" +
-	"\x16books/v1/library.proto\x12\bbooks.v1\"\xaf\x02\n" +
+	"\x16books/v1/library.proto\x12\bbooks.v1\"\xb5\x03\n" +
 	"\x04Book\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
@@ -2780,7 +3034,12 @@ const file_books_v1_library_proto_rawDesc = "" +
 	"\n" +
 	"source_url\x18\v \x01(\tR\tsourceUrl\x12\x1f\n" +
 	"\vhas_content\x18\f \x01(\bR\n" +
-	"hasContentJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
+	"hasContent\x12\x1f\n" +
+	"\vseries_name\x18\r \x01(\tR\n" +
+	"seriesName\x12,\n" +
+	"\x0fseries_position\x18\x0e \x01(\x01H\x00R\x0eseriesPosition\x88\x01\x01\x12!\n" +
+	"\fseries_total\x18\x0f \x01(\x05R\vseriesTotalB\x12\n" +
+	"\x10_series_positionJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
 	"J\x04\b\n" +
 	"\x10\vR\x06isbn10R\rexternal_refsR\bcategory\"\xae\x04\n" +
 	"\bUserBook\x12\x0e\n" +
@@ -2818,7 +3077,7 @@ const file_books_v1_library_proto_rawDesc = "" +
 	"\x06values\x18\x02 \x03(\tR\x06values\x12\x1d\n" +
 	"\n" +
 	"date_start\x18\x03 \x01(\tR\tdateStart\x12\x19\n" +
-	"\bdate_end\x18\x04 \x01(\tR\adateEnd\"\xd8\x01\n" +
+	"\bdate_end\x18\x04 \x01(\tR\adateEnd\"\xde\x02\n" +
 	"\x12ExternalBookResult\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x1f\n" +
 	"\vprovider_id\x18\x02 \x01(\tR\n" +
@@ -2827,7 +3086,13 @@ const file_books_v1_library_proto_rawDesc = "" +
 	"\aauthors\x18\x04 \x03(\tR\aauthors\x12\x16\n" +
 	"\x06isbn13\x18\x05 \x01(\tR\x06isbn13\x12\x1b\n" +
 	"\tcover_url\x18\x06 \x01(\tR\bcoverUrl\x12 \n" +
-	"\vdescription\x18\a \x01(\tR\vdescription\"Q\n" +
+	"\vdescription\x18\a \x01(\tR\vdescription\x12\x1f\n" +
+	"\vseries_name\x18\b \x01(\tR\n" +
+	"seriesName\x12,\n" +
+	"\x0fseries_position\x18\t \x01(\x01H\x00R\x0eseriesPosition\x88\x01\x01\x12!\n" +
+	"\fseries_total\x18\n" +
+	" \x01(\x05R\vseriesTotalB\x12\n" +
+	"\x10_series_position\"Q\n" +
 	"\x0fReadingPosition\x12\x12\n" +
 	"\x04href\x18\x01 \x01(\tR\x04href\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x05R\x06offset\x12\x12\n" +
@@ -2865,7 +3130,7 @@ const file_books_v1_library_proto_rawDesc = "" +
 	"\vprovider_id\x18\x02 \x01(\tR\n" +
 	"providerId\"O\n" +
 	"\x17GetExternalBookResponse\x124\n" +
-	"\x06result\x18\x01 \x01(\v2\x1c.books.v1.ExternalBookResultR\x06result\"\xb1\x02\n" +
+	"\x06result\x18\x01 \x01(\v2\x1c.books.v1.ExternalBookResultR\x06result\"\xb7\x03\n" +
 	"\x11CreateBookRequest\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x1f\n" +
 	"\vprovider_id\x18\x02 \x01(\tR\n" +
@@ -2879,7 +3144,12 @@ const file_books_v1_library_proto_rawDesc = "" +
 	"\fown_physical\x18\t \x01(\bR\vownPhysical\x12\x1f\n" +
 	"\vown_digital\x18\n" +
 	" \x01(\bR\n" +
-	"ownDigital\"\x14\n" +
+	"ownDigital\x12\x1f\n" +
+	"\vseries_name\x18\v \x01(\tR\n" +
+	"seriesName\x12,\n" +
+	"\x0fseries_position\x18\f \x01(\x01H\x00R\x0eseriesPosition\x88\x01\x01\x12!\n" +
+	"\fseries_total\x18\r \x01(\x05R\vseriesTotalB\x12\n" +
+	"\x10_series_position\"\x14\n" +
 	"\x12CreateBookResponse\"\x86\x01\n" +
 	"\x17UpdateBookStatusRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\x12\x16\n" +
@@ -2930,7 +3200,19 @@ const file_books_v1_library_proto_rawDesc = "" +
 	"\x15GetBookContentRequest\x12\x17\n" +
 	"\abook_id\x18\x01 \x01(\tR\x06bookId\",\n" +
 	"\x16GetBookContentResponse\x12\x12\n" +
-	"\x04html\x18\x01 \x01(\tR\x04html\"(\n" +
+	"\x04html\x18\x01 \x01(\tR\x04html\"&\n" +
+	"\x10GetSeriesRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\xa6\x01\n" +
+	"\vSeriesEntry\x12\x1f\n" +
+	"\bposition\x18\x01 \x01(\x01H\x00R\bposition\x88\x01\x01\x12/\n" +
+	"\tuser_book\x18\x02 \x01(\v2\x12.books.v1.UserBookR\buserBook\x128\n" +
+	"\bexternal\x18\x03 \x01(\v2\x1c.books.v1.ExternalBookResultR\bexternalB\v\n" +
+	"\t_position\"\xa1\x01\n" +
+	"\x11GetSeriesResponse\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\x12/\n" +
+	"\aentries\x18\x03 \x03(\v2\x15.books.v1.SeriesEntryR\aentries\x121\n" +
+	"\x14external_unavailable\x18\x04 \x01(\bR\x13externalUnavailable\"(\n" +
 	"\x12CreateShelfRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"\x15\n" +
 	"\x13CreateShelfResponse\"J\n" +
@@ -2953,7 +3235,7 @@ const file_books_v1_library_proto_rawDesc = "" +
 	"\x10DeleteTagRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"/\n" +
 	"\x11DeleteTagResponse\x12\x1a\n" +
-	"\baffected\x18\x01 \x01(\rR\baffected2\xd9\r\n" +
+	"\baffected\x18\x01 \x01(\rR\baffected2\x9f\x0e\n" +
 	"\x0eLibraryService\x12G\n" +
 	"\n" +
 	"GetLibrary\x12\x1b.books.v1.GetLibraryRequest\x1a\x1c.books.v1.GetLibraryResponse\x12Y\n" +
@@ -2974,7 +3256,8 @@ const file_books_v1_library_proto_rawDesc = "" +
 	"\x15UpdateReadingProgress\x12&.books.v1.UpdateReadingProgressRequest\x1a'.books.v1.UpdateReadingProgressResponse\x12V\n" +
 	"\x0fGetReadingState\x12 .books.v1.GetReadingStateRequest\x1a!.books.v1.GetReadingStateResponse\x12q\n" +
 	"\x18TranslateReadingPosition\x12).books.v1.TranslateReadingPositionRequest\x1a*.books.v1.TranslateReadingPositionResponse\x12S\n" +
-	"\x0eGetBookContent\x12\x1f.books.v1.GetBookContentRequest\x1a .books.v1.GetBookContentResponse\x12J\n" +
+	"\x0eGetBookContent\x12\x1f.books.v1.GetBookContentRequest\x1a .books.v1.GetBookContentResponse\x12D\n" +
+	"\tGetSeries\x12\x1a.books.v1.GetSeriesRequest\x1a\x1b.books.v1.GetSeriesResponse\x12J\n" +
 	"\vCreateShelf\x12\x1c.books.v1.CreateShelfRequest\x1a\x1d.books.v1.CreateShelfResponse\x12J\n" +
 	"\vRenameShelf\x12\x1c.books.v1.RenameShelfRequest\x1a\x1d.books.v1.RenameShelfResponse\x12J\n" +
 	"\vDeleteShelf\x12\x1c.books.v1.DeleteShelfRequest\x1a\x1d.books.v1.DeleteShelfResponse\x12D\n" +
@@ -2993,7 +3276,7 @@ func file_books_v1_library_proto_rawDescGZIP() []byte {
 	return file_books_v1_library_proto_rawDescData
 }
 
-var file_books_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 51)
+var file_books_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
 var file_books_v1_library_proto_goTypes = []any{
 	(*Book)(nil),                             // 0: books.v1.Book
 	(*UserBook)(nil),                         // 1: books.v1.UserBook
@@ -3035,21 +3318,24 @@ var file_books_v1_library_proto_goTypes = []any{
 	(*TranslateReadingPositionResponse)(nil), // 37: books.v1.TranslateReadingPositionResponse
 	(*GetBookContentRequest)(nil),            // 38: books.v1.GetBookContentRequest
 	(*GetBookContentResponse)(nil),           // 39: books.v1.GetBookContentResponse
-	(*CreateShelfRequest)(nil),               // 40: books.v1.CreateShelfRequest
-	(*CreateShelfResponse)(nil),              // 41: books.v1.CreateShelfResponse
-	(*RenameShelfRequest)(nil),               // 42: books.v1.RenameShelfRequest
-	(*RenameShelfResponse)(nil),              // 43: books.v1.RenameShelfResponse
-	(*DeleteShelfRequest)(nil),               // 44: books.v1.DeleteShelfRequest
-	(*DeleteShelfResponse)(nil),              // 45: books.v1.DeleteShelfResponse
-	(*RenameTagRequest)(nil),                 // 46: books.v1.RenameTagRequest
-	(*RenameTagResponse)(nil),                // 47: books.v1.RenameTagResponse
-	(*DeleteTagRequest)(nil),                 // 48: books.v1.DeleteTagRequest
-	(*DeleteTagResponse)(nil),                // 49: books.v1.DeleteTagResponse
-	nil,                                      // 50: books.v1.UserBook.FileVersionsEntry
+	(*GetSeriesRequest)(nil),                 // 40: books.v1.GetSeriesRequest
+	(*SeriesEntry)(nil),                      // 41: books.v1.SeriesEntry
+	(*GetSeriesResponse)(nil),                // 42: books.v1.GetSeriesResponse
+	(*CreateShelfRequest)(nil),               // 43: books.v1.CreateShelfRequest
+	(*CreateShelfResponse)(nil),              // 44: books.v1.CreateShelfResponse
+	(*RenameShelfRequest)(nil),               // 45: books.v1.RenameShelfRequest
+	(*RenameShelfResponse)(nil),              // 46: books.v1.RenameShelfResponse
+	(*DeleteShelfRequest)(nil),               // 47: books.v1.DeleteShelfRequest
+	(*DeleteShelfResponse)(nil),              // 48: books.v1.DeleteShelfResponse
+	(*RenameTagRequest)(nil),                 // 49: books.v1.RenameTagRequest
+	(*RenameTagResponse)(nil),                // 50: books.v1.RenameTagResponse
+	(*DeleteTagRequest)(nil),                 // 51: books.v1.DeleteTagRequest
+	(*DeleteTagResponse)(nil),                // 52: books.v1.DeleteTagResponse
+	nil,                                      // 53: books.v1.UserBook.FileVersionsEntry
 }
 var file_books_v1_library_proto_depIdxs = []int32{
 	0,  // 0: books.v1.UserBook.book:type_name -> books.v1.Book
-	50, // 1: books.v1.UserBook.file_versions:type_name -> books.v1.UserBook.FileVersionsEntry
+	53, // 1: books.v1.UserBook.file_versions:type_name -> books.v1.UserBook.FileVersionsEntry
 	1,  // 2: books.v1.BookShelf.books:type_name -> books.v1.UserBook
 	1,  // 3: books.v1.LibraryResponse.reading:type_name -> books.v1.UserBook
 	1,  // 4: books.v1.LibraryResponse.wishlist:type_name -> books.v1.UserBook
@@ -3065,53 +3351,58 @@ var file_books_v1_library_proto_depIdxs = []int32{
 	7,  // 14: books.v1.GetReadingStateResponse.state:type_name -> books.v1.BookReadingStateData
 	6,  // 15: books.v1.TranslateReadingPositionRequest.position:type_name -> books.v1.ReadingPosition
 	6,  // 16: books.v1.TranslateReadingPositionResponse.position:type_name -> books.v1.ReadingPosition
-	8,  // 17: books.v1.LibraryService.GetLibrary:input_type -> books.v1.GetLibraryRequest
-	10, // 18: books.v1.LibraryService.GetBooksProgress:input_type -> books.v1.GetBooksProgressRequest
-	12, // 19: books.v1.LibraryService.SearchLibrary:input_type -> books.v1.SearchLibraryRequest
-	14, // 20: books.v1.LibraryService.SearchExternal:input_type -> books.v1.SearchExternalRequest
-	16, // 21: books.v1.LibraryService.GetExternalBook:input_type -> books.v1.GetExternalBookRequest
-	18, // 22: books.v1.LibraryService.CreateBook:input_type -> books.v1.CreateBookRequest
-	20, // 23: books.v1.LibraryService.UpdateBookStatus:input_type -> books.v1.UpdateBookStatusRequest
-	28, // 24: books.v1.LibraryService.UpdateFinishedAt:input_type -> books.v1.UpdateFinishedAtRequest
-	30, // 25: books.v1.LibraryService.UpdateProgress:input_type -> books.v1.UpdateProgressRequest
-	22, // 26: books.v1.LibraryService.ToggleTag:input_type -> books.v1.ToggleTagRequest
-	24, // 27: books.v1.LibraryService.SetBookTag:input_type -> books.v1.SetBookTagRequest
-	26, // 28: books.v1.LibraryService.RemoveBook:input_type -> books.v1.RemoveBookRequest
-	32, // 29: books.v1.LibraryService.UpdateReadingProgress:input_type -> books.v1.UpdateReadingProgressRequest
-	34, // 30: books.v1.LibraryService.GetReadingState:input_type -> books.v1.GetReadingStateRequest
-	36, // 31: books.v1.LibraryService.TranslateReadingPosition:input_type -> books.v1.TranslateReadingPositionRequest
-	38, // 32: books.v1.LibraryService.GetBookContent:input_type -> books.v1.GetBookContentRequest
-	40, // 33: books.v1.LibraryService.CreateShelf:input_type -> books.v1.CreateShelfRequest
-	42, // 34: books.v1.LibraryService.RenameShelf:input_type -> books.v1.RenameShelfRequest
-	44, // 35: books.v1.LibraryService.DeleteShelf:input_type -> books.v1.DeleteShelfRequest
-	46, // 36: books.v1.LibraryService.RenameTag:input_type -> books.v1.RenameTagRequest
-	48, // 37: books.v1.LibraryService.DeleteTag:input_type -> books.v1.DeleteTagRequest
-	9,  // 38: books.v1.LibraryService.GetLibrary:output_type -> books.v1.GetLibraryResponse
-	11, // 39: books.v1.LibraryService.GetBooksProgress:output_type -> books.v1.GetBooksProgressResponse
-	13, // 40: books.v1.LibraryService.SearchLibrary:output_type -> books.v1.SearchLibraryResponse
-	15, // 41: books.v1.LibraryService.SearchExternal:output_type -> books.v1.SearchExternalResponse
-	17, // 42: books.v1.LibraryService.GetExternalBook:output_type -> books.v1.GetExternalBookResponse
-	19, // 43: books.v1.LibraryService.CreateBook:output_type -> books.v1.CreateBookResponse
-	21, // 44: books.v1.LibraryService.UpdateBookStatus:output_type -> books.v1.UpdateBookStatusResponse
-	29, // 45: books.v1.LibraryService.UpdateFinishedAt:output_type -> books.v1.UpdateFinishedAtResponse
-	31, // 46: books.v1.LibraryService.UpdateProgress:output_type -> books.v1.UpdateProgressResponse
-	23, // 47: books.v1.LibraryService.ToggleTag:output_type -> books.v1.ToggleTagResponse
-	25, // 48: books.v1.LibraryService.SetBookTag:output_type -> books.v1.SetBookTagResponse
-	27, // 49: books.v1.LibraryService.RemoveBook:output_type -> books.v1.RemoveBookResponse
-	33, // 50: books.v1.LibraryService.UpdateReadingProgress:output_type -> books.v1.UpdateReadingProgressResponse
-	35, // 51: books.v1.LibraryService.GetReadingState:output_type -> books.v1.GetReadingStateResponse
-	37, // 52: books.v1.LibraryService.TranslateReadingPosition:output_type -> books.v1.TranslateReadingPositionResponse
-	39, // 53: books.v1.LibraryService.GetBookContent:output_type -> books.v1.GetBookContentResponse
-	41, // 54: books.v1.LibraryService.CreateShelf:output_type -> books.v1.CreateShelfResponse
-	43, // 55: books.v1.LibraryService.RenameShelf:output_type -> books.v1.RenameShelfResponse
-	45, // 56: books.v1.LibraryService.DeleteShelf:output_type -> books.v1.DeleteShelfResponse
-	47, // 57: books.v1.LibraryService.RenameTag:output_type -> books.v1.RenameTagResponse
-	49, // 58: books.v1.LibraryService.DeleteTag:output_type -> books.v1.DeleteTagResponse
-	38, // [38:59] is the sub-list for method output_type
-	17, // [17:38] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	1,  // 17: books.v1.SeriesEntry.user_book:type_name -> books.v1.UserBook
+	5,  // 18: books.v1.SeriesEntry.external:type_name -> books.v1.ExternalBookResult
+	41, // 19: books.v1.GetSeriesResponse.entries:type_name -> books.v1.SeriesEntry
+	8,  // 20: books.v1.LibraryService.GetLibrary:input_type -> books.v1.GetLibraryRequest
+	10, // 21: books.v1.LibraryService.GetBooksProgress:input_type -> books.v1.GetBooksProgressRequest
+	12, // 22: books.v1.LibraryService.SearchLibrary:input_type -> books.v1.SearchLibraryRequest
+	14, // 23: books.v1.LibraryService.SearchExternal:input_type -> books.v1.SearchExternalRequest
+	16, // 24: books.v1.LibraryService.GetExternalBook:input_type -> books.v1.GetExternalBookRequest
+	18, // 25: books.v1.LibraryService.CreateBook:input_type -> books.v1.CreateBookRequest
+	20, // 26: books.v1.LibraryService.UpdateBookStatus:input_type -> books.v1.UpdateBookStatusRequest
+	28, // 27: books.v1.LibraryService.UpdateFinishedAt:input_type -> books.v1.UpdateFinishedAtRequest
+	30, // 28: books.v1.LibraryService.UpdateProgress:input_type -> books.v1.UpdateProgressRequest
+	22, // 29: books.v1.LibraryService.ToggleTag:input_type -> books.v1.ToggleTagRequest
+	24, // 30: books.v1.LibraryService.SetBookTag:input_type -> books.v1.SetBookTagRequest
+	26, // 31: books.v1.LibraryService.RemoveBook:input_type -> books.v1.RemoveBookRequest
+	32, // 32: books.v1.LibraryService.UpdateReadingProgress:input_type -> books.v1.UpdateReadingProgressRequest
+	34, // 33: books.v1.LibraryService.GetReadingState:input_type -> books.v1.GetReadingStateRequest
+	36, // 34: books.v1.LibraryService.TranslateReadingPosition:input_type -> books.v1.TranslateReadingPositionRequest
+	38, // 35: books.v1.LibraryService.GetBookContent:input_type -> books.v1.GetBookContentRequest
+	40, // 36: books.v1.LibraryService.GetSeries:input_type -> books.v1.GetSeriesRequest
+	43, // 37: books.v1.LibraryService.CreateShelf:input_type -> books.v1.CreateShelfRequest
+	45, // 38: books.v1.LibraryService.RenameShelf:input_type -> books.v1.RenameShelfRequest
+	47, // 39: books.v1.LibraryService.DeleteShelf:input_type -> books.v1.DeleteShelfRequest
+	49, // 40: books.v1.LibraryService.RenameTag:input_type -> books.v1.RenameTagRequest
+	51, // 41: books.v1.LibraryService.DeleteTag:input_type -> books.v1.DeleteTagRequest
+	9,  // 42: books.v1.LibraryService.GetLibrary:output_type -> books.v1.GetLibraryResponse
+	11, // 43: books.v1.LibraryService.GetBooksProgress:output_type -> books.v1.GetBooksProgressResponse
+	13, // 44: books.v1.LibraryService.SearchLibrary:output_type -> books.v1.SearchLibraryResponse
+	15, // 45: books.v1.LibraryService.SearchExternal:output_type -> books.v1.SearchExternalResponse
+	17, // 46: books.v1.LibraryService.GetExternalBook:output_type -> books.v1.GetExternalBookResponse
+	19, // 47: books.v1.LibraryService.CreateBook:output_type -> books.v1.CreateBookResponse
+	21, // 48: books.v1.LibraryService.UpdateBookStatus:output_type -> books.v1.UpdateBookStatusResponse
+	29, // 49: books.v1.LibraryService.UpdateFinishedAt:output_type -> books.v1.UpdateFinishedAtResponse
+	31, // 50: books.v1.LibraryService.UpdateProgress:output_type -> books.v1.UpdateProgressResponse
+	23, // 51: books.v1.LibraryService.ToggleTag:output_type -> books.v1.ToggleTagResponse
+	25, // 52: books.v1.LibraryService.SetBookTag:output_type -> books.v1.SetBookTagResponse
+	27, // 53: books.v1.LibraryService.RemoveBook:output_type -> books.v1.RemoveBookResponse
+	33, // 54: books.v1.LibraryService.UpdateReadingProgress:output_type -> books.v1.UpdateReadingProgressResponse
+	35, // 55: books.v1.LibraryService.GetReadingState:output_type -> books.v1.GetReadingStateResponse
+	37, // 56: books.v1.LibraryService.TranslateReadingPosition:output_type -> books.v1.TranslateReadingPositionResponse
+	39, // 57: books.v1.LibraryService.GetBookContent:output_type -> books.v1.GetBookContentResponse
+	42, // 58: books.v1.LibraryService.GetSeries:output_type -> books.v1.GetSeriesResponse
+	44, // 59: books.v1.LibraryService.CreateShelf:output_type -> books.v1.CreateShelfResponse
+	46, // 60: books.v1.LibraryService.RenameShelf:output_type -> books.v1.RenameShelfResponse
+	48, // 61: books.v1.LibraryService.DeleteShelf:output_type -> books.v1.DeleteShelfResponse
+	50, // 62: books.v1.LibraryService.RenameTag:output_type -> books.v1.RenameTagResponse
+	52, // 63: books.v1.LibraryService.DeleteTag:output_type -> books.v1.DeleteTagResponse
+	42, // [42:64] is the sub-list for method output_type
+	20, // [20:42] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_books_v1_library_proto_init() }
@@ -3119,13 +3410,17 @@ func file_books_v1_library_proto_init() {
 	if File_books_v1_library_proto != nil {
 		return
 	}
+	file_books_v1_library_proto_msgTypes[0].OneofWrappers = []any{}
+	file_books_v1_library_proto_msgTypes[5].OneofWrappers = []any{}
+	file_books_v1_library_proto_msgTypes[18].OneofWrappers = []any{}
+	file_books_v1_library_proto_msgTypes[41].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_books_v1_library_proto_rawDesc), len(file_books_v1_library_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   51,
+			NumMessages:   54,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

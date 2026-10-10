@@ -203,6 +203,7 @@ export const updateBookWrite = defineOfflineWrite({
     onBook(key, data, req.bookId, (ub) => {
       const meta = req.metadata
       if (!ub.book || !meta) return ub
+      const seriesName = meta.seriesName.trim()
       return {
         ...ub,
         book: {
@@ -213,7 +214,11 @@ export const updateBookWrite = defineOfflineWrite({
           description: meta.description,
           pageCount: meta.pageCount,
           // A new cover is fetched by the API; until then the old one shows.
-          coverUrl: meta.coverUrl ? ub.book.coverUrl : ''
+          coverUrl: meta.coverUrl ? ub.book.coverUrl : '',
+          seriesName,
+          seriesPosition: seriesName ? meta.seriesPosition : undefined,
+          // The total belongs to the series, so it survives only a same-series edit.
+          seriesTotal: seriesName === ub.book.seriesName ? ub.book.seriesTotal : 0
         }
       }
     }),

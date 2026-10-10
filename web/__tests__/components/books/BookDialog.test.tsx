@@ -95,6 +95,29 @@ describe('BookDialog', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
+  it('passes the result series through to createBook', async () => {
+    mockAddBook.mockResolvedValue(undefined)
+    const inSeries = create(ExternalBookResultSchema, {
+      ...fakeBook,
+      seriesName: 'Discworld',
+      seriesPosition: 4,
+      seriesTotal: 41
+    })
+    render(<BookDialog book={inSeries} onClose={jest.fn()} onAdded={jest.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Add Book' }))
+    await waitFor(() =>
+      expect(mockAddBook).toHaveBeenCalledWith(
+        expect.objectContaining({
+          seriesName: 'Discworld',
+          seriesPosition: 4,
+          seriesTotal: 41,
+          ownPhysical: false,
+          ownDigital: false
+        })
+      )
+    )
+  })
+
   it('calls addBook and onAdded on successful submit', async () => {
     const onAdded = jest.fn()
     const onClose = jest.fn()

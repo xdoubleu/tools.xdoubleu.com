@@ -177,6 +177,24 @@ beforeEach(() => {
 })
 
 describe('BookDetailClient', () => {
+  it('links the series with its position', () => {
+    const inSeries = create(UserBookSchema, {
+      ...mockUserBook,
+      book: create(BookSchema, { ...mockBook, seriesName: 'Dune Chronicles', seriesPosition: 1 })
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLibrary).mockReturnValue({
+      data: makeLibraryData([inSeries]),
+      isLoading: false,
+      error: undefined
+    })
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.getByRole('link', { name: 'Dune Chronicles #1' })).toHaveAttribute(
+      'href',
+      '/books/series/Dune%20Chronicles'
+    )
+  })
+
   it('shows loading state', () => {
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     jest.mocked(useLibrary).mockReturnValue({

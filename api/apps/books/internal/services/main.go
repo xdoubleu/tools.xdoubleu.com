@@ -56,6 +56,7 @@ func New(
 		hardcover:    hardcoverClient,
 		resyncSource: repositories.Books,
 		coverClient:  newCoverClient(config.Env),
+		seriesCache:  newSeriesCache(),
 	}
 
 	conversionSvc := NewConversionService(

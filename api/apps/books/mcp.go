@@ -22,6 +22,10 @@ type mcpQueryArgs struct {
 	Query string `json:"query" jsonschema:"search query"`
 }
 
+type mcpSeriesArgs struct {
+	Name string `json:"name" jsonschema:"exact series name"`
+}
+
 type mcpExternalBookArgs struct {
 	Provider   string `json:"provider"    jsonschema:"provider (unicat|hardcover)"`
 	ProviderID string `json:"provider_id" jsonschema:"provider's book id"`
@@ -75,6 +79,9 @@ func registerReadingLibraryTools(srv *mcp.Server, h *booksConnectHandler) {
 		"The latest reading position for a book: percent, neutral position "+
 			"(href+offset, page, or both for a PDF-sourced book) and when it "+
 			"was read.", h.mcpGetReadingState)
+	mcptools.AddReadTool(srv, mcpAppName, "books_get_series",
+		"A series' volumes in order: the user's books plus Hardcover volumes "+
+			"they don't have.", h.mcpGetSeries)
 }
 
 func registerReadingCatalogTools(srv *mcp.Server, h *booksConnectHandler) {
@@ -148,6 +155,14 @@ func (h *booksConnectHandler) mcpSearchExternal(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.SearchExternal(ctx, connect.NewRequest(
 		&booksv1.SearchExternalRequest{Query: args.Query},
+	)))
+}
+
+func (h *booksConnectHandler) mcpGetSeries(
+	ctx context.Context, args mcpSeriesArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.GetSeries(ctx, connect.NewRequest(
+		&booksv1.GetSeriesRequest{Name: args.Name},
 	)))
 }
 

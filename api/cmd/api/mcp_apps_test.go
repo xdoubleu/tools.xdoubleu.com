@@ -30,7 +30,7 @@ var appsToolNames = []string{
 	// books (16)
 	"books_get_library", "books_get_books_progress", "books_search_library",
 	"books_search_external", "books_get_external_book",
-	"books_get_reading_state",
+	"books_get_reading_state", "books_get_series",
 	"books_list_resync_proposals", "books_get_book_sources",
 	"books_get_source_stats", "books_list_books_in_exact_sources",
 	"books_find_duplicates", "books_get_book_file", "books_get_kepub_status",
@@ -330,6 +330,7 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 		"games_get_steam_game":    map[string]any{"game_id": 1},
 		"books_search_library":    map[string]any{"query": "x"},
 		"books_get_reading_state": map[string]any{"book_id": uid},
+		"books_get_series":        map[string]any{"name": "Discworld"},
 		"books_get_book_file": map[string]any{
 			"book_id": uid,
 			"format":  "epub",

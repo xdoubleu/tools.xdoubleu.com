@@ -13,6 +13,7 @@ import (
 // must match scanBook.
 const bookColumns = `id, title, authors, isbn13, cover_url, description,
 	page_count, source_url, created_at, updated_at,
+	series_name, series_position, series_total,
 	unicat_found, hardcover_found,
 	last_resync_at, metadata_source,
 	content_html IS NOT NULL AND content_html <> ''`
@@ -24,6 +25,7 @@ const userBookColumns = `ub.id, ub.user_id, ub.book_id, ub.status, ub.tags,
 	ub.current_page, ub.progress_percent, ub.added_at, ub.updated_at,
 	b.id, b.title, b.authors, b.isbn13, b.cover_url, b.description,
 	b.page_count, b.source_url, b.created_at, b.updated_at,
+	b.series_name, b.series_position, b.series_total,
 	b.content_html IS NOT NULL AND b.content_html <> ''`
 
 func nullTime(t time.Time) *time.Time {
@@ -33,8 +35,27 @@ func nullTime(t time.Time) *time.Time {
 	return &t
 }
 
+// toBookSeries maps the nullable series columns; no name means no series.
+func toBookSeries(name *string, position *float64, total *int) *models.BookSeries {
+	if name == nil || *name == "" {
+		return nil
+	}
+	return &models.BookSeries{Name: *name, Position: position, Total: total}
+}
+
+// seriesColumns flattens a book's series into its three column values.
+func seriesColumns(series *models.BookSeries) (*string, *float64, *int) {
+	if series == nil || series.Name == "" {
+		return nil, nil, nil
+	}
+	return &series.Name, series.Position, series.Total
+}
+
 func scanBook(row pgx.Row) (*models.Book, error) {
 	var book models.Book
+	var seriesName *string
+	var seriesPosition *float64
+	var seriesTotal *int
 
 	err := row.Scan(
 		&book.ID,
@@ -47,6 +68,9 @@ func scanBook(row pgx.Row) (*models.Book, error) {
 		&book.SourceURL,
 		&book.CreatedAt,
 		&book.UpdatedAt,
+		&seriesName,
+		&seriesPosition,
+		&seriesTotal,
 		&book.UniCatFound,
 		&book.HardcoverFound,
 		&book.LastResyncAt,
@@ -57,6 +81,7 @@ func scanBook(row pgx.Row) (*models.Book, error) {
 		return nil, err
 	}
 
+	book.Series = toBookSeries(seriesName, seriesPosition, seriesTotal)
 	return &book, nil
 }
 
@@ -64,6 +89,9 @@ func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
 	var ub models.UserBook
 	var book models.Book
 	var posJSON []byte
+	var seriesName *string
+	var seriesPosition *float64
+	var seriesTotal *int
 
 	err := rows.Scan(
 		&ub.ID,
@@ -89,11 +117,15 @@ func scanUserBookWithBook(rows pgx.Rows) (models.UserBook, error) {
 		&book.SourceURL,
 		&book.CreatedAt,
 		&book.UpdatedAt,
+		&seriesName,
+		&seriesPosition,
+		&seriesTotal,
 		&book.HasContent,
 	)
 	if err != nil {
 		return models.UserBook{}, err
 	}
+	book.Series = toBookSeries(seriesName, seriesPosition, seriesTotal)
 
 	ub.ShelfPositions = map[string]int{}
 	if len(posJSON) > 0 {

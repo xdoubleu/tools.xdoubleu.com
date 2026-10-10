@@ -62,6 +62,8 @@ type fakeBooksResync struct {
 
 	uniqueBooks    []models.Book
 	uniqueBooksErr error
+
+	seriesSet map[uuid.UUID]*models.BookSeries
 }
 
 func (f *fakeBooksResync) ListCatalogBooks(_ context.Context) ([]models.Book, error) {
@@ -162,6 +164,20 @@ func (f *fakeBooksResync) GetResyncProposal(
 	return &row, nil
 }
 
+func (f *fakeBooksResync) SetBookSeries(
+	_ context.Context,
+	bookID uuid.UUID,
+	series *models.BookSeries,
+) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.seriesSet == nil {
+		f.seriesSet = map[uuid.UUID]*models.BookSeries{}
+	}
+	f.seriesSet[bookID] = series
+	return nil
+}
+
 func (f *fakeBooksResync) DeleteResyncProposal(
 	_ context.Context,
 	bookID uuid.UUID,
@@ -215,6 +231,7 @@ type fakeHCClient struct {
 	searchResults []hardcover.ExternalBook
 	byISBN        *hardcover.ExternalBook
 	byISBNMap     map[string]*hardcover.ExternalBook
+	series        *hardcover.Series
 	err           error
 
 	mu    sync.Mutex
@@ -251,6 +268,22 @@ func (f *fakeHCClient) Search(
 	f.calls++
 	f.mu.Unlock()
 	return f.searchResults, f.err
+}
+
+func (f *fakeHCClient) GetSeries(
+	_ context.Context,
+	_ string,
+) (*hardcover.Series, error) {
+	f.mu.Lock()
+	f.calls++
+	f.mu.Unlock()
+	if f.err != nil {
+		return nil, f.err
+	}
+	if f.series == nil {
+		return nil, hardcover.ErrNotFound
+	}
+	return f.series, nil
 }
 
 // failDeleteObjectStore errors on Delete and delegates everything else.

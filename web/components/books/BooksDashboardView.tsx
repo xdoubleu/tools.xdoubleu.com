@@ -4,11 +4,13 @@ import { Fragment, type ReactNode } from 'react'
 import type { LibraryResponse, UserBook } from '@/lib/gen/books/v1/library_pb'
 import { StatTile } from '@/components/ui/stat'
 import BooksProgressChart from '@/components/books/BooksProgressChart'
+import BooksSeriesProgress from '@/components/books/BooksSeriesProgress'
 import { Field } from '@/components/ui/field'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { DateInput } from '@/components/ui/date-input'
 import { ytdProgress } from '@/lib/books/ytdProgress'
 import { statusLabel } from '@/lib/books/bookShelves'
+import { buildSeriesSummaries } from '@/lib/books/series'
 import type { DashboardChartState } from '@/hooks/useDashboardChartState'
 
 /**
@@ -31,6 +33,7 @@ export default function BooksDashboardView({
   const { view, setView, start, setStart, end, setEnd } = chart
   const reading = library.reading
   const ytd = ytdProgress(library.finished)
+  const series = buildSeriesSummaries(library)
 
   return (
     <section className="flex flex-col gap-3 lg:h-full lg:min-h-0">
@@ -60,6 +63,15 @@ export default function BooksDashboardView({
               </div>
             )}
           </div>
+
+          {series.length > 0 && (
+            <div className="flex min-h-0 flex-col lg:max-h-[40%]">
+              <h2 className="mb-2 text-base font-semibold">Series</h2>
+              <div className="min-h-0 overflow-y-auto pr-1">
+                <BooksSeriesProgress series={series} />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex min-h-0 flex-col">

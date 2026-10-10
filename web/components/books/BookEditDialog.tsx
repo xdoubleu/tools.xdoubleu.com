@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { swrKeys } from '@/lib/swrKeys'
+import { parseSeriesPosition } from '@/lib/books/series'
 
 interface BookEditDialogProps {
   book: Book
@@ -33,6 +34,10 @@ export default function BookEditDialog({ book, open, onOpenChange, onSaved }: Bo
   const [description, setDescription] = useState(book.description)
   const [pageCount, setPageCount] = useState(String(book.pageCount || ''))
   const [coverUrl, setCoverUrl] = useState(book.coverUrl)
+  const [seriesName, setSeriesName] = useState(book.seriesName)
+  const [seriesPosition, setSeriesPosition] = useState(
+    book.seriesPosition === undefined ? '' : String(book.seriesPosition)
+  )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -54,7 +59,9 @@ export default function BookEditDialog({ book, open, onOpenChange, onSaved }: Bo
         isbn13,
         description,
         pageCount: Number(pageCount) || 0,
-        coverUrl
+        coverUrl,
+        seriesName: seriesName.trim(),
+        seriesPosition: parseSeriesPosition(seriesName, seriesPosition)
       })
       await mutate(swrKeys.books)
       onOpenChange(false)
@@ -113,6 +120,29 @@ export default function BookEditDialog({ book, open, onOpenChange, onSaved }: Bo
               onChange={(e) => setPageCount(e.target.value)}
             />
           </Field>
+
+          <div className="flex gap-3">
+            <Field label="Series" htmlFor="edit-book-series" className="min-w-0 flex-1">
+              <Input
+                id="edit-book-series"
+                value={seriesName}
+                onChange={(e) => setSeriesName(e.target.value)}
+                placeholder="Not in a series"
+              />
+            </Field>
+            <Field label="Number" htmlFor="edit-book-series-position" className="w-24">
+              <Input
+                id="edit-book-series-position"
+                type="number"
+                inputMode="decimal"
+                step="any"
+                min={0}
+                disabled={!seriesName.trim()}
+                value={seriesPosition}
+                onChange={(e) => setSeriesPosition(e.target.value)}
+              />
+            </Field>
+          </div>
 
           <Field label="Cover URL" htmlFor="edit-book-cover">
             <div className="flex gap-2">

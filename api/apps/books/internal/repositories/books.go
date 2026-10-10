@@ -29,6 +29,14 @@ const catalogFillOnly = `
 		    page_count  = COALESCE(books.books.page_count, EXCLUDED.page_count),
 		    updated_at  = now()`
 
+// seriesFillOnly fills the series as a unit, only when the catalog has none.
+const seriesFillOnly = `
+		    series_position = CASE WHEN books.books.series_name IS NULL
+		        THEN EXCLUDED.series_position ELSE books.books.series_position END,
+		    series_total = CASE WHEN books.books.series_name IS NULL
+		        THEN EXCLUDED.series_total ELSE books.books.series_total END,
+		    series_name = COALESCE(books.books.series_name, EXCLUDED.series_name)`
+
 type BooksRepository struct {
 	db postgres.DB
 }
@@ -41,15 +49,17 @@ func (repo *BooksRepository) UpsertBook(
 	query := `
 		INSERT INTO books.books
 		    (title, authors, isbn13, cover_url, description, page_count,
-		     metadata_source, source_url)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		     metadata_source, source_url,
+		     series_name, series_position, series_total)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		ON CONFLICT (isbn13) WHERE isbn13 IS NOT NULL
 		DO UPDATE SET` + catalogFillOnly + `,
 		    metadata_source = COALESCE(
 		        books.books.metadata_source, EXCLUDED.metadata_source
-		    )
+		    ),` + seriesFillOnly + `
 		RETURNING ` + bookColumns
 
+	seriesName, seriesPosition, seriesTotal := seriesColumns(book.Series)
 	row := repo.db.QueryRow(ctx, query,
 		book.Title,
 		book.Authors,
@@ -59,6 +69,9 @@ func (repo *BooksRepository) UpsertBook(
 		book.PageCount,
 		book.MetadataSource,
 		book.SourceURL,
+		seriesName,
+		seriesPosition,
+		seriesTotal,
 	)
 
 	return scanBook(row)
@@ -142,10 +155,14 @@ func (repo *BooksRepository) UpdateBookByID(
 		    description   = $6,
 		    page_count    = $7,
 		    source_url    = COALESCE($8, source_url),
+		    series_name     = $9,
+		    series_position = $10,
+		    series_total    = $11,
 		    updated_at    = now()
 		WHERE id = $1
 	`
 
+	seriesName, seriesPosition, seriesTotal := seriesColumns(book.Series)
 	_, err := repo.db.Exec(ctx, query,
 		book.ID,
 		book.Title,
@@ -155,6 +172,9 @@ func (repo *BooksRepository) UpdateBookByID(
 		book.Description,
 		book.PageCount,
 		book.SourceURL,
+		seriesName,
+		seriesPosition,
+		seriesTotal,
 	)
 
 	return postgres.PgxErrorToHTTPError(err)
@@ -978,6 +998,7 @@ func (repo *BooksRepository) GetCatalogWithUserOverlay(
 		    COALESCE(ub.updated_at, b.updated_at),
 		    b.id, b.title, b.authors, b.isbn13, b.cover_url, b.description,
 		    b.page_count, b.source_url, b.created_at, b.updated_at,
+		    b.series_name, b.series_position, b.series_total,
 		    b.content_html IS NOT NULL AND b.content_html <> ''
 		FROM books.books b
 		LEFT JOIN books.user_books ub

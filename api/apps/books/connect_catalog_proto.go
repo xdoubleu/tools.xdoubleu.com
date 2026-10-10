@@ -51,6 +51,9 @@ func protoSourceProposal(p services.SourceProposal) *booksv1.SourceBook {
 		Authors:     p.Authors,
 		Differs:     p.Differs,
 		Index:       int32FromInt(p.Index),
+
+		SeriesName:     p.SeriesName,
+		SeriesPosition: p.SeriesPosition,
 	}
 }
 
@@ -101,6 +104,7 @@ func protoBookToModel(pb *booksv1.Book) *models.Book {
 		pc := int(pb.PageCount)
 		m.PageCount = &pc
 	}
+	m.Series = seriesFromProto(pb.SeriesName, pb.SeriesPosition)
 
 	return m
 }

@@ -146,6 +146,42 @@ describe('LibrarySidebar', () => {
     expect(screen.getAllByText('Currently reading').length).toBeGreaterThan(0)
   })
 
+  it('has no series section without series', () => {
+    render(
+      <LibrarySidebar
+        shelves={shelves}
+        allTags={[]}
+        selectedShelfId="all"
+        selectedTag={null}
+        onSelectShelf={jest.fn()}
+        onSelectTag={jest.fn()}
+      />
+    )
+    expect(screen.queryByText('Series')).toBeNull()
+    expect(screen.queryByLabelText('Series')).toBeNull()
+    expect(screen.queryAllByRole('link')).toHaveLength(0)
+  })
+
+  it('links each series in both layouts', () => {
+    render(
+      <LibrarySidebar
+        shelves={shelves}
+        allTags={[]}
+        selectedShelfId="all"
+        selectedTag={null}
+        onSelectShelf={jest.fn()}
+        onSelectTag={jest.fn()}
+        series={[{ name: 'Discworld', owned: 2, read: 1, total: 41 }]}
+      />
+    )
+    const links = screen.getAllByRole('link', { name: /Discworld/ })
+    expect(links).toHaveLength(2)
+    for (const link of links) {
+      expect(link).toHaveAttribute('href', '/books/series/Discworld')
+      expect(link).toHaveTextContent('1/41')
+    }
+  })
+
   it('calls onSelectShelf when a shelf button is clicked', () => {
     const onSelectShelf = jest.fn()
     render(

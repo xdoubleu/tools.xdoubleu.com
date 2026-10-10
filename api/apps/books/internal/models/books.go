@@ -60,10 +60,22 @@ type Book struct {
 	HardcoverFound *bool
 	LastResyncAt   *time.Time
 
+	// Series is nil when the book isn't known to belong to one.
+	Series *BookSeries
+
 	// MetadataSource records which source's metadata was last applied
 	// ("unicat" | "hardcover"). Nil for books whose metadata never came from a
 	// source apply (e.g. plain CSV imports).
 	MetadataSource *string
+}
+
+// BookSeries places a book in a series. Position is fractional for novellas
+// (1.5) and may be 0 for prequels; nil when the series is unordered. Total is
+// the series' main-volume count when Hardcover reported one.
+type BookSeries struct {
+	Name     string
+	Position *float64
+	Total    *int
 }
 
 // HasTag reports whether the user_book has the given tag.
