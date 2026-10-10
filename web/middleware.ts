@@ -38,6 +38,8 @@ export function middleware(request: NextRequest) {
     `connect-src ${connectSrc.join(' ')}`,
     // The foliate-js reader renders book sections into blob: iframes.
     "frame-src 'self' blob:",
+    // The PDF reader's pdf.js worker.
+    "worker-src 'self' blob:",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

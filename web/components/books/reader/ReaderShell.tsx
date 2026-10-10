@@ -16,6 +16,8 @@ interface ReaderShellProps {
   /** Overall progress, 0..1. */
   fraction: number
   tocLabel?: string
+  /** Rendered inside the reading area, for readers that draw it themselves. */
+  children?: ReactNode
 }
 
 /** Full-screen reader chrome: header, the reading area `containerRef` mounts into, progress bar. */
@@ -27,7 +29,8 @@ export default function ReaderShell({
   status,
   theme,
   fraction,
-  tocLabel
+  tocLabel,
+  children
 }: ReaderShellProps) {
   const percent = Math.round(fraction * 100)
 
@@ -54,7 +57,9 @@ export default function ReaderShell({
         aria-busy={status !== 'ready'}
         style={{ background: readerBackground(theme) }}
       >
-        <div ref={containerRef} className="absolute inset-0" />
+        <div ref={containerRef} className="absolute inset-0">
+          {children}
+        </div>
         {status === 'loading' && (
           <LoadingState label="book" className="absolute inset-x-0 top-1/3 text-center" />
         )}
