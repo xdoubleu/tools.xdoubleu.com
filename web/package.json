@@ -32,7 +32,7 @@
     "@radix-ui/react-dialog": "1.2.0",
     "@radix-ui/react-slot": "1.4.0",
     "@readium/navigator": "2.11.1",
-    "@readium/shared": "2.6.0",
+    "@readium/shared": "2.7.0",
     "@sentry/nextjs": "11.4.0",
     "clsx": "2.1.1",
     "dompurify": "3.4.16",
@@ -81,6 +81,7 @@
     "typescript-eslint": "8.71.1"
   },
   "overrides": {
+    "@readium/shared": "2.7.0",
     "nanoid": "6.0.2",
     "js-yaml": "5.4.3",
     "fast-uri": "4.2.1",
