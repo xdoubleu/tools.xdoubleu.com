@@ -5,7 +5,8 @@ go 1.26.0
 require github.com/justinas/alice v1.2.0
 
 require (
-	connectrpc.com/connect v1.20.0
+	connectrpc.com/connect v1.21.0
+	connectrpc.com/connect/v2 v2.0.0
 	github.com/MobilityData/gtfs-realtime-bindings/golang/gtfs v1.0.0
 	github.com/aws/aws-sdk-go-v2 v1.43.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.30
