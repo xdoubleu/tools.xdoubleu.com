@@ -3,30 +3,23 @@
 // `{href, offset}` positions of adr-0029. Browser-only.
 import { HttpFetcher, Locator, LocatorLocations, Manifest, Publication } from '@readium/shared'
 import type { Link } from '@readium/shared'
-import { getApiUrl } from '@/lib/env'
 import type { FoliateTocItem } from './foliate'
 import type { ReaderPosition, ReaderResume } from './readerPosition'
+import { webPubBaseUrl, webPubFetch } from './webpubCache'
 import { readerBackground, readerTextColors, type ReaderTheme } from './readerSettings'
 
 /** Resources are served under `res/<zip path>`, relative to the manifest. */
 const RESOURCE_PREFIX = 'res/'
 
-function webPubBaseUrl(bookId: string): string {
-  return `${getApiUrl()}/books/api/book/${bookId}/webpub/`
-}
-
-const withCredentials: typeof fetch = (input, init) =>
-  fetch(input, { ...init, credentials: 'include' })
-
 /** Fetches the manifest and wraps it in a Publication that reads sections over HTTP. */
 export async function loadPublication(bookId: string): Promise<Publication> {
   const base = webPubBaseUrl(bookId)
-  const res = await withCredentials(`${base}manifest.json`)
+  const res = await webPubFetch(`${base}manifest.json`)
   if (!res.ok) throw new Error(`manifest request failed: ${res.status}`)
   const manifest = Manifest.deserialize(await res.json())
   if (!manifest) throw new Error('invalid manifest')
   manifest.setSelfLink(`${base}manifest.json`)
-  return new Publication({ manifest, fetcher: new HttpFetcher(withCredentials, base) })
+  return new Publication({ manifest, fetcher: new HttpFetcher(webPubFetch, base) })
 }
 
 /** Navigator preferences for the reader's theme and font-size percent. */

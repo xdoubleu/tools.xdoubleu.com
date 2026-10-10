@@ -13,6 +13,13 @@ import {
 } from '@/lib/books/offlineBooks'
 import { clearStore, loadBookFile, loadEntry, saveBookFile, saveEntry } from '@/lib/offline/store'
 
+const mockEvictWebPub = jest.fn()
+const mockEvictAllWebPubs = jest.fn()
+jest.mock('@/lib/books/webpubCache', () => ({
+  evictWebPub: (...args: unknown[]) => mockEvictWebPub(...args),
+  evictAllWebPubs: () => mockEvictAllWebPubs()
+}))
+
 const mockGetBookFile = jest.fn()
 jest.mock('@/lib/client', () => ({
   createServiceClient: () => ({ getBookFile: mockGetBookFile })
@@ -42,6 +49,8 @@ async function store(version: string, body = 'stored') {
 
 beforeEach(async () => {
   jest.clearAllMocks()
+  mockEvictWebPub.mockResolvedValue(undefined)
+  mockEvictAllWebPubs.mockResolvedValue(undefined)
   await clearStore()
 })
 
@@ -157,6 +166,7 @@ describe('stored book management', () => {
     expect(await storedBookVersion('b1', 'kepub')).toBeNull()
 
     await deleteStoredBook('b1', 'epub')
+    expect(mockEvictWebPub).toHaveBeenCalledWith('b1')
     expect(listener).toHaveBeenCalledTimes(2)
     expect(await listStoredBooks()).toEqual([])
 
@@ -180,10 +190,30 @@ describe('stored book management', () => {
     const unsubscribe = subscribeStoredBooks(listener)
 
     await deleteAllStoredBooks()
+    expect(mockEvictAllWebPubs).toHaveBeenCalled()
 
     expect(await listStoredBooks()).toEqual([])
     expect((await loadEntry('library'))?.data).toEqual({ kept: true })
     expect(listener).toHaveBeenCalledTimes(1)
     unsubscribe()
+  })
+
+  it('keeps the offline copy of an EPUB when only another format is deleted, and survives eviction errors', async () => {
+    await saveBookFile({
+      bookId: 'b2',
+      format: 'pdf',
+      version: 'p',
+      blob: new Blob(['p']),
+      size: 1,
+      savedAt: 1
+    })
+    await deleteStoredBook('b2', 'pdf')
+    expect(mockEvictWebPub).not.toHaveBeenCalled()
+
+    await store('f1:0')
+    mockEvictWebPub.mockRejectedValue(new Error('x'))
+    mockEvictAllWebPubs.mockRejectedValue(new Error('x'))
+    await expect(deleteStoredBook('b1', 'epub')).resolves.toBeUndefined()
+    await expect(deleteAllStoredBooks()).resolves.toBeUndefined()
   })
 })
