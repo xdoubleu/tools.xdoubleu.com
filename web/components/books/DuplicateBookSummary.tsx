@@ -52,7 +52,7 @@ export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) 
 
   const hasPhysical = ub.tags.includes('own-physical')
   const hasDigital = ub.tags.includes('own-digital')
-  const hasBol = ub.tags.includes('own-bol')
+  const hasKoboStore = ub.tags.includes('own-bol')
   const hasPdf = ub.formats.includes('pdf')
   const hasEpub = ub.formats.includes('epub')
   const hasKepub = ub.formats.includes('kepub')
@@ -88,7 +88,7 @@ export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) 
           </Badge>
           {hasPhysical && <Badge variant="secondary">Physical</Badge>}
           {hasDigital && <Badge variant="default">Digital</Badge>}
-          {hasBol && <Badge variant="secondary">bol.com</Badge>}
+          {hasKoboStore && <Badge variant="secondary">Kobo store</Badge>}
           {hasPdf && <Badge variant="default">PDF</Badge>}
           {hasEpub && <Badge variant="default">EPUB</Badge>}
           {hasKepub && <Badge variant="default">KEPUB</Badge>}

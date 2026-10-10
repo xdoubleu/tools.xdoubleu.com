@@ -479,7 +479,7 @@ describe('BooksTable', () => {
       expect(screen.queryByText('Not Digital')).not.toBeInTheDocument()
     })
 
-    it('filters to books with own-bol tag when bol.com is selected', () => {
+    it('filters to books with own-bol tag when Kobo store is selected', () => {
       const books = [
         makeBook('1', 'Bol Book', 'A', { tags: ['own-bol'] }),
         makeBook('2', 'Other', 'B', { tags: ['own-digital'] })
@@ -487,7 +487,7 @@ describe('BooksTable', () => {
       render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
 
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
-      fireEvent.click(screen.getByRole('checkbox', { name: 'bol.com' }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Kobo store' }))
 
       expect(withinTable().getByText('Bol Book')).toBeInTheDocument()
       expect(screen.queryByText('Other')).not.toBeInTheDocument()
@@ -502,7 +502,7 @@ describe('BooksTable', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
-      fireEvent.click(screen.getByRole('checkbox', { name: 'bol.com' }))
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Kobo store' }))
 
       expect(withinTable().getByText('Physical Book')).toBeInTheDocument()
       expect(screen.queryByText('Other')).not.toBeInTheDocument()

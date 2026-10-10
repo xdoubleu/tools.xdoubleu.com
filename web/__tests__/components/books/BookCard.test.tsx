@@ -126,9 +126,9 @@ describe('BookCard', () => {
     expect(screen.getByText('Digital')).toBeInTheDocument()
   })
 
-  it('shows bol.com badge when own-bol tag present', () => {
+  it('shows Kobo store badge when own-bol tag present', () => {
     render(<BookCard userBook={makeBook({ tags: ['own-bol'] })} onSaved={jest.fn()} />)
-    expect(screen.getByText('bol.com')).toBeInTheDocument()
+    expect(screen.getByText('Kobo store')).toBeInTheDocument()
   })
 
   it('shows PDF badge when formats includes pdf', () => {

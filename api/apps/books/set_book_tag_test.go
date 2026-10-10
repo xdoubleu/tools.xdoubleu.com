@@ -80,3 +80,34 @@ func countTag(tags []string, tag string) int {
 	}
 	return n
 }
+
+func TestConnectTagRPCs_RejectOwnBol(t *testing.T) {
+	book := addTestBook(t, "SetTagBook3")
+	id := book.BookID.String()
+	client := newBooksTestClient(t)
+	ctx := context.Background()
+
+	err := setBookTag(t, id, models.TagOwnBol, true)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+
+	toggle := connect.NewRequest(&booksv1.ToggleTagRequest{
+		BookId: id, Tag: models.TagOwnBol,
+	})
+	toggle.Header().Set("Cookie", accessToken.String())
+	_, err = client.ToggleTag(ctx, toggle)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+
+	rename := connect.NewRequest(&booksv1.RenameTagRequest{
+		OldName: "poetry", NewName: models.TagOwnBol,
+	})
+	rename.Header().Set("Cookie", accessToken.String())
+	_, err = client.RenameTag(ctx, rename)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+
+	del := connect.NewRequest(&booksv1.DeleteTagRequest{Name: models.TagOwnBol})
+	del.Header().Set("Cookie", accessToken.String())
+	_, err = client.DeleteTag(ctx, del)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+
+	assert.NotContains(t, bookTags(t, book), models.TagOwnBol)
+}

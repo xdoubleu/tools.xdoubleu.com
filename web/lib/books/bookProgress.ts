@@ -4,7 +4,7 @@ export const PROGRESS_MODE_PAGES = 'pages'
 export const PROGRESS_MODE_PERCENT = 'percent'
 
 // defaultProgressMode: the stored mode, else percent for digital-only books
-// (no page count) and pages otherwise. A bol.com book is digital (read on a
+// (no page count) and pages otherwise. A Kobo store book is digital (read on a
 // synced Kobo), so it defaults to percent too.
 export function defaultProgressMode(userBook: UserBook): string {
   if (userBook.progressMode) return userBook.progressMode

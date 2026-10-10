@@ -26,6 +26,10 @@ import (
 // ErrExternalNotFound is returned when the provider is unavailable or has no match.
 var ErrExternalNotFound = errors.New("external book not found")
 
+// ErrDerivedTag is returned when a caller tries to change a tag only the
+// Kobo store sync sets.
+var ErrDerivedTag = errors.New("tag is set automatically and can't be changed")
+
 const externalSearchMaxCandidates = 10
 
 // Source names; "manual" marks hand-entered books with no provenance.
@@ -347,6 +351,9 @@ func (s *BookService) ToggleTag(
 	bookID uuid.UUID,
 	tag string,
 ) error {
+	if tag == models.TagOwnBol {
+		return ErrDerivedTag
+	}
 	ub, err := s.getTaggedBook(ctx, userID, bookID)
 	if err != nil {
 		return err
@@ -362,6 +369,9 @@ func (s *BookService) SetTag(
 	tag string,
 	enabled bool,
 ) error {
+	if tag == models.TagOwnBol {
+		return ErrDerivedTag
+	}
 	ub, err := s.getTaggedBook(ctx, userID, bookID)
 	if err != nil {
 		return err
@@ -501,6 +511,9 @@ func (s *BookService) RenameTag(
 	if oldName == "" || newName == "" {
 		return 0, fmt.Errorf("tag name cannot be empty")
 	}
+	if oldName == models.TagOwnBol || newName == models.TagOwnBol {
+		return 0, ErrDerivedTag
+	}
 	return s.books.RenameTag(ctx, userID, oldName, newName)
 }
 
@@ -512,6 +525,9 @@ func (s *BookService) DeleteTag(
 ) (uint32, error) {
 	if name == "" {
 		return 0, fmt.Errorf("tag name cannot be empty")
+	}
+	if name == models.TagOwnBol {
+		return 0, ErrDerivedTag
 	}
 	return s.books.DeleteTag(ctx, userID, name)
 }

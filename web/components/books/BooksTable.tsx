@@ -31,7 +31,7 @@ const PAGE_SIZE = 20
 
 function applyFilters(books: UserBook[], filters: LibraryFilters): UserBook[] {
   return books.filter((ub) => {
-    // own-bol is a kind of digital ownership, so it also matches the Digital filter.
+    // own-bol (Kobo store) is a kind of digital ownership, so it also matches the Digital filter.
     const owned = new Set(ub.tags)
     if (owned.has('own-bol')) owned.add('own-digital')
     if (filters.ownership.size > 0 && ![...filters.ownership].some((tag) => owned.has(tag))) {

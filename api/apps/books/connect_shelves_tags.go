@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
@@ -38,6 +39,9 @@ func (h *booksConnectHandler) ToggleTag(
 		)
 	}
 	err = h.app.Services.Books.ToggleTag(ctx, user.ID, bookID, req.Msg.Tag)
+	if errors.Is(err, services.ErrDerivedTag) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -71,6 +75,9 @@ func (h *booksConnectHandler) SetBookTag(
 	err = h.app.Services.Books.SetTag(
 		ctx, user.ID, bookID, req.Msg.Tag, req.Msg.Enabled,
 	)
+	if errors.Is(err, services.ErrDerivedTag) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

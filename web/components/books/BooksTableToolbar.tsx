@@ -98,7 +98,7 @@ export default function BooksTableToolbar({
               />
               <Checkbox
                 id="filter-own-bol"
-                label="bol.com"
+                label="Kobo store"
                 checked={filters.ownership.has('own-bol')}
                 onChange={() => onToggleOwnership('own-bol')}
               />
