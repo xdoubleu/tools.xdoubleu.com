@@ -33,7 +33,7 @@
     "@radix-ui/react-slot": "1.4.0",
     "@readium/navigator": "2.11.1",
     "@readium/shared": "2.7.0",
-    "@sentry/nextjs": "11.4.0",
+    "@sentry/nextjs": "11.5.0",
     "clsx": "2.1.1",
     "dompurify": "3.4.16",
     "next": "16.4.0",
