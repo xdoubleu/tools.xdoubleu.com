@@ -23,7 +23,12 @@ export const webPubFetch: typeof fetch = async (input, init) => {
   try {
     const res = await fetch(request.clone())
     if (store && isGet && res.status === 200) {
-      void store.open(CACHE).then((cache) => cache.put(request, res.clone()))
+      // Clone before the caller reads the body; a failed copy only loses offline.
+      const copy = res.clone()
+      void store
+        .open(CACHE)
+        .then((cache) => cache.put(request, copy))
+        .catch(() => {})
     }
     return res
   } catch (err) {

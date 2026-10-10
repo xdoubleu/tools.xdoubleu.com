@@ -1,12 +1,16 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/internal/middleware"
 )
 
 func TestUsageLabels(t *testing.T) {
@@ -178,4 +182,21 @@ func TestCountingResponseWriterUnwraps(t *testing.T) {
 	rec := httptest.NewRecorder()
 	w := &countingResponseWriter{ResponseWriter: rec, written: 0}
 	assert.Same(t, rec, w.Unwrap())
+}
+
+// TestUsageThenRequestDurationStreamsCopy: io.Copy from a reader without
+// WriterTo (a zip entry) streams through the usage + duration writers.
+func TestUsageThenRequestDurationStreamsCopy(t *testing.T) {
+	body := strings.Repeat("section ", 1000)
+	handler := testApp.usageMiddleware(middleware.RequestDuration()(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_, err := io.Copy(w, struct{ io.Reader }{strings.NewReader(body)})
+			assert.NoError(t, err)
+		}),
+	))
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/books/api/book/1/webpub/res/a.xhtml", nil)
+	require.NotPanics(t, func() { handler.ServeHTTP(rec, req) })
+	assert.Equal(t, body, rec.Body.String())
 }
