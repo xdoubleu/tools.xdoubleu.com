@@ -25,6 +25,7 @@ type Services struct {
 	KoboLog    *KoboLogStore
 	Ingest     *IngestService
 	WebSocket  *progressws.Service
+	WebPub     *WebPubService
 }
 
 func New(
@@ -83,6 +84,7 @@ func New(
 		Kobo:     kobo,
 		KoboLog:  koboLog,
 		Ingest:   ingestSvc,
+		WebPub:   newWebPubService(booksSvc),
 		WebSocket: progressws.NewService(
 			ctx,
 			logger,
