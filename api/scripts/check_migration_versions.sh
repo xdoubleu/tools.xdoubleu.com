@@ -8,6 +8,9 @@
 # changes run order relative to what the author tested.
 set -euo pipefail
 
+# The globs below are relative to api/; elsewhere they match nothing and pass.
+cd "$(dirname "$0")/.."
+
 status=0
 
 for dir in cmd/api/migrations apps/*/migrations; do
