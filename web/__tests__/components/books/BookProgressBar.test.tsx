@@ -75,7 +75,24 @@ describe('BookProgressBar', () => {
       progressMode: 'percent',
       progressPercent: 40,
       currentPage: 87,
-      tags: ['own-physical']
+      tags: ['own-physical'],
+      book: create(BookSchema, { pageCount: 300 })
+    })
+    render(<BookProgressBar userBook={ub} />)
+    expect(screen.getByText('40%')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['without a physical copy', [], 87],
+    ['before a page is known', ['own-physical'], 0]
+  ])('leaves the page out %s', (_, tags, currentPage) => {
+    const ub = create(UserBookSchema, {
+      progressMode: 'percent',
+      progressPercent: 40,
+      currentPage,
+      tags,
+      formats: ['epub'],
+      book: create(BookSchema, { pageCount: 300 })
     })
     render(<BookProgressBar userBook={ub} />)
     expect(screen.getByText('40%')).toBeInTheDocument()

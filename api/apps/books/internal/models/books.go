@@ -134,7 +134,7 @@ func (ub UserBook) DisplayProgressPercent() int {
 	if pageCount == nil && ub.Book != nil {
 		pageCount = ub.Book.PageCount
 	}
-	if pageCount == nil || *pageCount <= 0 {
+	if pageCount == nil || *pageCount < 1 {
 		return 0
 	}
 	ratio := float64(ub.CurrentPage) / float64(*pageCount)

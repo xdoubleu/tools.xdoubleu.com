@@ -264,16 +264,13 @@ export const updateReadingProgressWrite = defineOfflineWrite({
   keepalive: true
 })
 
-const PHYSICAL_COPY = swrKeys.physicalCopy('')[0]
-
 /** A physical copy's details, and the library's page count from them. */
 export const updatePhysicalCopyWrite = defineOfflineWrite({
   method: library.updatePhysicalCopy,
   apply: (key, data, req) => {
-    if (Array.isArray(key) && key[0] === PHYSICAL_COPY) {
-      return key[1] === req.bookId && isMessage(data, GetPhysicalCopyResponseSchema)
-        ? { ...data, copy: req.copy }
-        : data
+    if (isMessage(data, GetPhysicalCopyResponseSchema)) {
+      const own = JSON.stringify(key) === JSON.stringify(swrKeys.physicalCopy(req.bookId))
+      return own ? { ...data, copy: req.copy } : data
     }
     return onBook(key, data, req.bookId, (ub) => ({
       ...ub,

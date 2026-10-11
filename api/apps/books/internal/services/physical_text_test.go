@@ -277,3 +277,38 @@ func epub2(t *testing.T, files map[string]string, guide string) *zip.Reader {
 	}
 	return zipOf(t, all)
 }
+
+// ncxOnlyBy builds an EPUB whose NCX is found only by the spine's toc
+// attribute or only by its media type, behind a nav document with no links.
+func ncxOnlyBy(t *testing.T, byID bool) *zip.Reader {
+	t.Helper()
+	ncxItem := `<item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/>`
+	spine := `<spine>`
+	if byID {
+		ncxItem = `<item id="toc" href="toc.ncx" media-type="text/xml"/>`
+		spine = `<spine toc="toc">`
+	}
+	return zipOf(t, map[string]string{
+		"META-INF/container.xml": `<container><rootfiles><rootfile` +
+			` full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>` +
+			`</rootfiles></container>`,
+		"OEBPS/content.opf": `<package><manifest>` +
+			`<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml"` +
+			` properties="nav"/>` + ncxItem +
+			`<item id="a" href="a.xhtml" media-type="application/xhtml+xml"/>` +
+			`</manifest>` + spine + `<itemref idref="a"/></spine></package>`,
+		"OEBPS/nav.xhtml": `<html><body><p>No navs here.</p></body></html>`,
+		"OEBPS/a.xhtml":   `<html><body><p>Text.</p></body></html>`,
+		"OEBPS/toc.ncx": `<ncx><navMap><navPoint><navLabel><text>Only</text>` +
+			`</navLabel><content src="a.xhtml"/></navPoint></navMap></ncx>`,
+	})
+}
+
+func TestBuildBookText_EmptyNavFallsBackToNCX(t *testing.T) {
+	for _, byID := range []bool{true, false} {
+		bt, err := buildBookText(context.Background(), ncxOnlyBy(t, byID))
+		require.NoError(t, err)
+		require.Len(t, bt.chapters, 1, "by id: %v", byID)
+		assert.Equal(t, "Only", bt.chapters[0].title)
+	}
+}

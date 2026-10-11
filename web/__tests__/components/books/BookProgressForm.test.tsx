@@ -20,7 +20,7 @@ jest.mock('@/hooks/usePhysicalCopy', () => ({
 }))
 
 jest.mock('@/hooks/useReadingState', () => ({
-  useReadingState: () => mockReadingState
+  useReadingState: (bookId: string | null) => (bookId ? mockReadingState : { data: undefined })
 }))
 
 jest.mock('@/hooks/useBooks', () => ({
@@ -394,5 +394,35 @@ describe('BookProgressForm', () => {
       render(<BookProgressForm userBook={physicalBook()} />)
       expect(screen.queryByRole('button', { name: /Copy details/ })).not.toBeInTheDocument()
     })
+
+    it('shows no hint or details in percent mode, or before the copy loads', () => {
+      mockReadingState.data = { state: { source: 'kobo', physicalPage: 87, physicalExcerpt: '' } }
+      const { unmount } = render(
+        <BookProgressForm
+          userBook={makeBook({ tags: ['own-physical'], progressMode: 'percent' })}
+        />
+      )
+      expect(screen.queryByText(/Continue on page/)).not.toBeInTheDocument()
+      unmount()
+
+      mockPhysicalCopy.data = undefined
+      render(<BookProgressForm userBook={physicalBook()} />)
+      expect(screen.queryByText(/Continue on page/)).not.toBeInTheDocument()
+    })
+
+    it('discards edited details on cancel', () => {
+      render(<BookProgressForm userBook={physicalBook()} />)
+      fireEvent.click(screen.getByRole('button', { name: /Copy details/ }))
+      fireEvent.change(screen.getByLabelText('Pages in your copy'), { target: { value: '320' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      expect(screen.getByLabelText('Pages in your copy')).toHaveValue(200)
+    })
+  })
+
+  it('leaves the reading state alone for a book without a physical copy', async () => {
+    render(<BookProgressForm userBook={makeBook()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(mockUpdateProgress).toHaveBeenCalled())
+    expect(mockMutate).not.toHaveBeenCalledWith(['/books/reading-state', 'book-1'])
   })
 })

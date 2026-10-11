@@ -331,6 +331,12 @@ describe('book offline writes', () => {
     expect(run(updatePhysicalCopyWrite, save, copy, undefined, swrKeys.physicalCopy('x'))).toBe(
       copy
     )
+    expect(run(updatePhysicalCopyWrite, save, copy, undefined, swrKeys.readingState('b'))).toBe(
+      copy
+    )
+    expect(lib(run(updatePhysicalCopyWrite, { bookId: 'b' }, library())).reading[0]).toMatchObject({
+      physicalPageCount: 0
+    })
   })
 
   it('refetches books and registers every write', () => {

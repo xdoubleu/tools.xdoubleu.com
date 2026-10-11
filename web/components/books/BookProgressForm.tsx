@@ -148,13 +148,13 @@ export default function BookProgressForm({
         </span>
       </div>
 
-      {isPages && syncable && hint && <BookContinueHint hint={hint} onUse={setCurrentPage} />}
+      {isPages && hint && <BookContinueHint hint={hint} onUse={setCurrentPage} />}
 
-      {isPages && syncable && (
+      {isPages && physical?.syncable && (
         <BookPhysicalCopyFields
           draft={shownDraft}
-          chapters={physical?.chapters ?? []}
-          hasPrintPages={physical?.hasPrintPages ?? false}
+          chapters={physical.chapters}
+          hasPrintPages={physical.hasPrintPages}
           onChange={setDraft}
         />
       )}
