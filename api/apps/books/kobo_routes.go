@@ -456,8 +456,7 @@ func (app *Books) buildKoboSyncEntry(
 	coverID := koboCoverImageID(b.BookID)
 	isChanged := koboIsReplace(b) || koboCoverChanged(b, coverID)
 
-	if b.Format == models.FileFormatKEPUB &&
-		app.Services.Conversion.IsKEPUBStale(b.ConverterVersion) {
+	if app.Services.Conversion.IsKEPUBStale(b.ConverterVersion) {
 		app.startKEPUBRegeneration(r.Context(), userID, b.BookID)
 	}
 
@@ -646,20 +645,14 @@ func (app *Books) startKEPUBRegeneration(
 // buildKoboMetadata builds BookMetadata; shared by sync and the metadata
 // endpoint because the device cross-checks them.
 func buildKoboMetadata(b models.KoboSyncBook, libraryBase string) koboBookMetadata {
-	downloadFormat := "KEPUB"
-	contentType := "application/x-kobo-epub+zip"
-	if b.Format == models.FileFormatPDF {
-		downloadFormat = "PDF"
-		contentType = "application/pdf"
-	}
 	id := b.BookID.String()
 	return koboBookMetadata{
 		Title:       b.Title,
-		ContentType: contentType,
+		ContentType: "application/x-kobo-epub+zip",
 		RevisionId:  id,
 		Language:    "en",
 		DownloadUrls: []koboDownloadURL{{
-			Format:   downloadFormat,
+			Format:   "KEPUB",
 			Size:     b.Size,
 			URL:      libraryBase + "/" + id + "/file",
 			Platform: "Generic",
@@ -728,7 +721,7 @@ func (app *Books) koboMetadataHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // koboFileHandler handles GET /v1/library/{revisionId}/file with a 302 to a
-// presigned R2 URL; PDF when the book has the kobo-format-pdf tag, else KEPUB.
+// presigned R2 URL to the KEPUB.
 func (app *Books) koboFileHandler(w http.ResponseWriter, r *http.Request) {
 	userID, ok := app.koboAuth(w, r)
 	if !ok {
@@ -741,17 +734,9 @@ func (app *Books) koboFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	format, err := app.Services.Books.GetKoboFileFormat(r.Context(), userID, bookID)
-	if err != nil {
-		if errors.Is(err, database.ErrResourceNotFound) {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	result, err := app.Services.Books.GetBookFile(r.Context(), userID, bookID, format)
+	result, err := app.Services.Books.GetBookFile(
+		r.Context(), userID, bookID, models.FileFormatKEPUB,
+	)
 	if err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
 			http.Error(w, "not found", http.StatusNotFound)

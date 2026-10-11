@@ -209,7 +209,6 @@ export default function BookDetailClient({ id }: { id: string }) {
                   <KoboSyncToggle
                     bookId={userBook.bookId}
                     enabled={userBook.tags.includes('kobo-sync')}
-                    tags={userBook.tags}
                     onChanged={handleSaved}
                   />
                 </div>

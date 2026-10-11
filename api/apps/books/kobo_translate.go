@@ -54,9 +54,6 @@ func (app *Books) koboSyncSpans(
 	var lacking []uuid.UUID
 	replaced := make(map[uuid.UUID]bool)
 	for _, b := range books {
-		if b.Format != models.FileFormatKEPUB {
-			continue
-		}
 		replaced[b.BookID] = koboIsReplace(b)
 		if replaced[b.BookID] || services.KoboDeviceLacks(held, b.BookID, states[b.BookID]) {
 			lacking = append(lacking, b.BookID)

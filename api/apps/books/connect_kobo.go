@@ -41,12 +41,7 @@ func (h *booksConnectHandler) EnableKoboSync(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	kepubStatus, convErr := h.maybeStartKEPUBConversion(
-		ctx, user.ID, bookID, statusResult, true,
-	)
-	if convErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, convErr)
-	}
+	kepubStatus := h.maybeStartKEPUBConversion(ctx, user.ID, bookID, statusResult)
 	return connect.NewResponse(&booksv1.EnableKoboSyncResponse{
 		KepubStatus: kepubStatus,
 	}), nil

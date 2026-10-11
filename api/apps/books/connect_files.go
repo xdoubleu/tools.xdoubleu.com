@@ -53,36 +53,24 @@ func (h *booksConnectHandler) GetBookFile(
 
 // maybeStartKEPUBConversion launches EnsureKEPUB in the background when the
 // KEPUB is missing or stale and a source exists, returning
-// FileStatusConverting; otherwise kepubStatus unchanged. whenKEPUBOnly true
-// respects the raw-PDF preference; false always converts (preview).
+// FileStatusConverting; otherwise kepubStatus unchanged.
 func (h *booksConnectHandler) maybeStartKEPUBConversion(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 	statusResult *services.KEPUBStatusResult,
-	whenKEPUBOnly bool,
-) (string, error) {
+) string {
 	kepubStatus := statusResult.KepubStatus
 	hasSource := statusResult.HasEPUB || statusResult.HasPDF
 	if (kepubStatus != "" && !statusResult.KepubStale) || !hasSource {
-		return kepubStatus, nil
-	}
-
-	if whenKEPUBOnly {
-		koboFormat, err := h.app.Services.Books.GetKoboFileFormat(ctx, userID, bookID)
-		if err != nil {
-			return "", err
-		}
-		if koboFormat != models.FileFormatKEPUB {
-			return kepubStatus, nil
-		}
+		return kepubStatus
 	}
 
 	convCtx := context.WithoutCancel(ctx)
 	go func() {
 		_, _ = h.app.Services.Conversion.EnsureKEPUB(convCtx, userID, bookID)
 	}()
-	return models.FileStatusConverting, nil
+	return models.FileStatusConverting
 }
 
 func (h *booksConnectHandler) RequestKEPUBConversion(
@@ -107,14 +95,7 @@ func (h *booksConnectHandler) RequestKEPUBConversion(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	// whenKEPUBOnly=false: always convert regardless of the kobo-format-pdf tag,
-	// so the user can preview the EPUB output before deciding on a Kobo sync format.
-	kepubStatus, convErr := h.maybeStartKEPUBConversion(
-		ctx, user.ID, bookID, statusResult, false,
-	)
-	if convErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, convErr)
-	}
+	kepubStatus := h.maybeStartKEPUBConversion(ctx, user.ID, bookID, statusResult)
 	return connect.NewResponse(&booksv1.RequestKEPUBConversionResponse{
 		KepubStatus: kepubStatus,
 	}), nil

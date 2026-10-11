@@ -20,13 +20,11 @@ const (
 )
 
 // KoboSyncBook is a join result used by the Kobo sync routes: a user_book with
-// the kobo-sync tag that has a ready file in R2. Format is either "kepub" or
-// "pdf" depending on the user's per-book kobo-format-pdf tag.
+// the kobo-sync tag that has a ready KEPUB in R2.
 type KoboSyncBook struct {
 	BookID            uuid.UUID
 	Title             string
 	Authors           []string
-	Format            string
 	StorageKey        string
 	Size              int64
 	KoboSyncEnabledAt time.Time

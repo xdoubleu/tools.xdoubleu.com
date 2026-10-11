@@ -172,22 +172,6 @@ func TestKoboGetState_WebPosition_CarriesSpan(t *testing.T) {
 	assert.Equal(t, wantSpan("kobo.2.1"), bookmarkLocation(t, rs))
 }
 
-func TestKoboLibrarySync_WebPosition_PDFFormatBook_PercentOnly(t *testing.T) {
-	ts := httptest.NewServer(getRoutes())
-	t.Cleanup(ts.Close)
-
-	owner := "kobo-neutral-pdf-format-" + uuid.NewString()
-	rawToken, bookID := setupKoboChapterBook(t, owner)
-	require.NoError(t, testApp.Repositories.Books.UpdateTags(
-		context.Background(), owner, bookID,
-		[]string{models.TagKoboSync, models.TagKoboFormatPDF}, true,
-	))
-	webWrite(t, owner, bookID, secondSentence)
-
-	assert.Nil(t, bookmarkLocation(t, koboGetState(t, ts, rawToken, bookID)),
-		"a device reading the PDF gets no KEPUB span")
-}
-
 // TestSyncKoboDeviceReadingStates_PendingIsRetried: a state whose span map is
 // still building is neither sent nor marked held, so the next sync sends it.
 func TestSyncKoboDeviceReadingStates_PendingIsRetried(t *testing.T) {
