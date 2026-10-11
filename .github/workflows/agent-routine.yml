@@ -109,6 +109,17 @@ jobs:
           scripts/routine_sandbox_setup.sh "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/routine-bin" >> "$GITHUB_PATH"
 
+      # So make -C api lint/migrations runs under routine-sandbox. A venv, as
+      # the system Python is externally managed; ~/.local/bin leads its PATH.
+      # Keep the version in step with api/Makefile.
+      - name: Install sqlfluff for the sandbox
+        run: |
+          cd /
+          sudo -n -u routine-sandbox -H bash -c 'python3 -m venv ~/.local/sqlfluff \
+            && ~/.local/sqlfluff/bin/pip install -q sqlfluff==4.3.0 \
+            && mkdir -p ~/.local/bin \
+            && ln -sf ~/.local/sqlfluff/bin/sqlfluff ~/.local/bin/sqlfluff'
+
       - name: Mint MCP token (client_credentials)
         id: mcp-token
         env:

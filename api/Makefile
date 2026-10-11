@@ -25,8 +25,8 @@ tools/lint/golines:
 # --tab-len 1 matches lll, which counts a tab as one column.
 GOLINES = golines -m 88 --tab-len 1 --ignore-generated
 
-# Keep in step with Homebrew's sqlfluff (unpinnable on macOS): LT01's
-# `TEXT[]` rule differs between 3.x and 4.x.
+# Keep in step with Homebrew's sqlfluff (unpinnable on macOS), api-lint.yml and
+# agent-routine.yml: LT01's `TEXT[]` rule differs between 3.x and 4.x.
 tools/lint/sql:
 ifeq ($(UNAME_S),Darwin)
 	brew install sqlfluff
