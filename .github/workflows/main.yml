@@ -345,6 +345,23 @@ jobs:
         env:
           BASE_REF: ${{ github.event_name == 'push' && 'HEAD' || format('origin/{0}', github.base_ref) }}
 
+  # PRs merged off the same base can each pass api-lint's migration check
+  # and collide on main; goose then refuses the duplicate and the api won't
+  # start. BASE_REF=HEAD leaves only the duplicate-version check.
+  migration-versions:
+    name: Migration Versions on Main
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Check migration versions
+        run: ./scripts/check_migration_versions.sh
+        working-directory: './api'
+        env:
+          BASE_REF: HEAD
+
   ci-pass:
     needs:
       [
@@ -443,15 +460,17 @@ jobs:
 
   # The only production deploy. Runs `kamal deploy`, so the host must have been
   # bootstrapped once with `kamal setup` (infra/README.md). Waits for the build
-  # jobs and infra-apply (success-or-skipped). The concurrency group is not
-  # ref-scoped: concurrent `kamal deploy`s on one host fail on the lock or
-  # racing pulls, and cancelling mid-deploy would leave a half-applied release.
+  # jobs and infra-apply (success-or-skipped) and a passing migration-versions.
+  # The concurrency group is not ref-scoped: concurrent `kamal deploy`s on one
+  # host fail on the lock or racing pulls, and cancelling mid-deploy would leave
+  # a half-applied release.
   deploy-kamal:
-    needs: [build-api, build-web, build-grafana, infra-apply]
+    needs: [build-api, build-web, build-grafana, infra-apply, migration-versions]
     if: |
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
+      needs.migration-versions.result == 'success' &&
       (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
       (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
       (needs.build-grafana.result == 'success' || needs.build-grafana.result == 'skipped') &&
@@ -735,6 +754,7 @@ jobs:
         kobo-gateway-test,
         sentrytools-test,
         docs-lint,
+        migration-versions,
         infra-apply,
         deploy-kamal,
       ]

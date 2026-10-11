@@ -3,8 +3,8 @@
 # or if a migration added on this branch isn't numbered above every migration
 # that already existed in its directory at the branch point.
 #
-# Goose tracks applied migrations by version, so it silently skips a
-# duplicate-numbered file. An out-of-order insert doesn't collide but silently
+# goose.Up refuses a duplicate version before applying anything, so the API
+# fails at startup. An out-of-order insert doesn't collide but silently
 # changes run order relative to what the author tested.
 set -euo pipefail
 
@@ -31,7 +31,7 @@ done
 
 if [ "$status" -ne 0 ]; then
 	echo
-	echo "Goose skips a duplicate version silently — renumber the newer file."
+	echo "goose refuses duplicate versions and the API won't start — renumber the newer file."
 fi
 
 # Out-of-order check: any migration added since the branch point must have a
@@ -42,6 +42,8 @@ base_ref="${BASE_REF:-origin/main}"
 repo_prefix=$(git rev-parse --show-prefix)
 
 if merge_base=$(git merge-base "$base_ref" HEAD 2>/dev/null); then
+	out_of_order=0
+
 	for dir in cmd/api/migrations apps/*/migrations; do
 		[ -d "$dir" ] || continue
 
@@ -68,12 +70,13 @@ if merge_base=$(git merge-base "$base_ref" HEAD 2>/dev/null); then
 			if [ "$((10#$version))" -le "$((10#$base_max))" ]; then
 				echo "migration $file in $dir is numbered $version," \
 					"which is not above the existing max $base_max"
-				status=1
+				out_of_order=1
 			fi
 		done
 	done
 
-	if [ "$status" -ne 0 ]; then
+	if [ "$out_of_order" -ne 0 ]; then
+		status=1
 		echo
 		echo "A new migration must be numbered higher than every migration" \
 			"already in its directory — renumber it."
