@@ -656,7 +656,8 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 	query := `
 		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes,
 		       COALESCE(ub.kobo_sync_enabled_at, ub.added_at), bf.converter_version,
-		       ub.kobo_last_synced_converter_version
+		       ub.kobo_last_synced_converter_version,
+		       ub.kobo_last_synced_cover_image_id
 		FROM books.user_books ub
 		JOIN books.books b ON b.id = ub.book_id
 		JOIN books.book_files bf
@@ -683,6 +684,7 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 		if scanErr := rows.Scan(
 			&b.BookID, &b.Title, &b.Authors, &b.Format, &b.StorageKey, &b.Size,
 			&b.KoboSyncEnabledAt, &b.ConverterVersion, &b.LastSyncedConverterVersion,
+			&b.LastSyncedCoverImageID,
 		); scanErr != nil {
 			return nil, postgres.PgxErrorToHTTPError(scanErr)
 		}
@@ -694,20 +696,24 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 	return out, nil
 }
 
-// UpdateKoboLastSyncedConverterVersion records the converter version last sent
-// to the device.
-func (repo *BooksRepository) UpdateKoboLastSyncedConverterVersion(
+// UpdateKoboLastSynced records the converter version and CoverImageId last
+// sent to the device.
+func (repo *BooksRepository) UpdateKoboLastSynced(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 	converterVersion int16,
+	coverImageID string,
 ) error {
 	query := `
 		UPDATE books.user_books
-		SET kobo_last_synced_converter_version = $3
+		SET kobo_last_synced_converter_version = $3,
+		    kobo_last_synced_cover_image_id = $4
 		WHERE user_id = $1 AND book_id = $2
 	`
-	_, err := repo.db.Exec(ctx, query, userID, bookID, converterVersion)
+	_, err := repo.db.Exec(
+		ctx, query, userID, bookID, converterVersion, coverImageID,
+	)
 	return postgres.PgxErrorToHTTPError(err)
 }
 
@@ -1247,7 +1253,8 @@ func (repo *BooksRepository) GetKoboSyncBook(
 ) (models.KoboSyncBook, error) {
 	query := `
 		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes,
-		       bf.converter_version, ub.kobo_last_synced_converter_version
+		       bf.converter_version, ub.kobo_last_synced_converter_version,
+		       ub.kobo_last_synced_cover_image_id
 		FROM books.user_books ub
 		JOIN books.books b ON b.id = ub.book_id
 		JOIN books.book_files bf
@@ -1265,6 +1272,7 @@ func (repo *BooksRepository) GetKoboSyncBook(
 	err := repo.db.QueryRow(ctx, query, userID, bookID).Scan(
 		&b.BookID, &b.Title, &b.Authors, &b.Format, &b.StorageKey, &b.Size,
 		&b.ConverterVersion, &b.LastSyncedConverterVersion,
+		&b.LastSyncedCoverImageID,
 	)
 	if err != nil {
 		return models.KoboSyncBook{}, postgres.PgxErrorToHTTPError(err)

@@ -53,6 +53,44 @@ func TestKoboProxy_UnhandledPathProxied(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
+// TestKoboProxy_DecodesUpstreamBody: the device's Accept-Encoding isn't
+// forwarded, so a gzipped upstream body reaches the device (and the debug
+// capture) decoded.
+func TestKoboProxy_DecodesUpstreamBody(t *testing.T) {
+	var gotEncoding string
+	upstream := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			gotEncoding = r.Header.Get("Accept-Encoding")
+			w.Header().Set("Content-Encoding", "gzip")
+			gz := gzip.NewWriter(w)
+			_, _ = gz.Write([]byte(`{"Benefits":{}}`))
+			_ = gz.Close()
+		}),
+	)
+	t.Cleanup(upstream.Close)
+
+	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
+	t.Cleanup(ts.Close)
+
+	rawToken := registerTestDevice(t, "kobo-proxy-decode-"+uuid.NewString())
+
+	req := koboReq(t, http.MethodGet,
+		koboURL(ts, rawToken, "/v1/user/loyalty/benefits"), nil)
+	req.Header.Set("Accept-Encoding", "br")
+	client := &http.Client{
+		Transport: &http.Transport{DisableCompression: true},
+	}
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, "gzip", gotEncoding, "the device's br must not reach upstream")
+	assert.Empty(t, resp.Header.Get("Content-Encoding"))
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"Benefits":{}}`, string(body))
+}
+
 // TestKoboProxy_TokenStrippedFromUpstreamPath: upstream gets /v1/…, not
 // /{token}/v1/…, which the real store rejects with 401.
 func TestKoboProxy_TokenStrippedFromUpstreamPath(t *testing.T) {
@@ -841,6 +879,66 @@ func TestKoboLibrarySync_RevisionChanged_UsesChangedEntitlement(t *testing.T) {
 	_, isNewAgain := thirdEntries[0]["NewEntitlement"]
 	assert.True(t, isNewAgain,
 		"a subsequent unchanged sync must return to NewEntitlement")
+}
+
+// TestKoboLibrarySync_UnrecordedCoverImageID_UsesChangedEntitlementOnce: a
+// synced book whose CoverImageId the device never got is resent as a
+// ChangedEntitlement, since the firmware ignores metadata in a repeated
+// NewEntitlement.
+func TestKoboLibrarySync_UnrecordedCoverImageID_UsesChangedEntitlementOnce(
+	t *testing.T,
+) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-sync-cover-id-" + uuid.NewString()
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+	wantCoverID := bookID.String() + "-c1"
+
+	sync := func() map[string]any {
+		resp, err := http.DefaultClient.Do(
+			koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+		)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		var entries []map[string]any
+		require.NoError(t, json.NewDecoder(resp.Body).Decode(&entries))
+		require.Len(t, entries, 1)
+		return entries[0]
+	}
+	recorded := func() *string {
+		var id *string
+		require.NoError(t, testDB.QueryRow(context.Background(),
+			`SELECT kobo_last_synced_cover_image_id FROM books.user_books
+			 WHERE book_id = $1 AND user_id = $2`,
+			bookID, owner,
+		).Scan(&id))
+		return id
+	}
+
+	_, isNew := sync()["NewEntitlement"]
+	assert.True(t, isNew, "a first sync is a NewEntitlement")
+	require.NotNil(t, recorded())
+	assert.Equal(t, wantCoverID, *recorded())
+
+	// A book synced before the cover id was recorded.
+	_, err := testDB.Exec(context.Background(),
+		`UPDATE books.user_books SET kobo_last_synced_cover_image_id = NULL
+		 WHERE book_id = $1 AND user_id = $2`,
+		bookID, owner,
+	)
+	require.NoError(t, err)
+
+	ce, ok := sync()["ChangedEntitlement"].(map[string]any)
+	require.True(t, ok, "an unrecorded cover id must go out as ChangedEntitlement")
+	meta, ok := ce["BookMetadata"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, wantCoverID, meta["CoverImageId"])
+	require.NotNil(t, recorded())
+	assert.Equal(t, wantCoverID, *recorded())
+
+	_, isNew = sync()["NewEntitlement"]
+	assert.True(t, isNew, "once delivered, the book returns to NewEntitlement")
 }
 
 // TestKoboBackfilledConverterVersion_ThenRegeneration_UsesChangedEntitlement:

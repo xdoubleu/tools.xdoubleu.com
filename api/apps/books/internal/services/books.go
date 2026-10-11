@@ -724,16 +724,18 @@ func (s *BookService) ListKoboSyncBooks(
 	return s.books.ListKoboSyncBooks(ctx, userID)
 }
 
-// UpdateKoboLastSyncedConverterVersion records the converter version last sent
-// to the device, so the next sync can detect a regenerated file.
-func (s *BookService) UpdateKoboLastSyncedConverterVersion(
+// UpdateKoboLastSynced records the converter version and CoverImageId last
+// sent to the device, so the next sync can detect a regenerated file or a
+// new cover id.
+func (s *BookService) UpdateKoboLastSynced(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 	converterVersion int16,
+	coverImageID string,
 ) error {
-	return s.books.UpdateKoboLastSyncedConverterVersion(
-		ctx, userID, bookID, converterVersion)
+	return s.books.UpdateKoboLastSynced(
+		ctx, userID, bookID, converterVersion, coverImageID)
 }
 
 // ListKoboRemovals returns books tombstoned for removal from the user's Kobo.

@@ -439,7 +439,9 @@ func (app *Books) warmKoboCovers(
 // book UUID: the firmware keys on Id and a varying RevisionId adds a second
 // copy. A regenerated KEPUB (ConverterVersion differs from
 // LastSyncedConverterVersion) is sent as ChangedEntitlement so the device
-// invalidates its download instead of duplicating it.
+// invalidates its download instead of duplicating it. So is a CoverImageId the
+// device hasn't received: it ignores metadata in a NewEntitlement it already
+// holds.
 func (app *Books) buildKoboSyncEntry(
 	r *http.Request,
 	userID string,
@@ -451,7 +453,8 @@ func (app *Books) buildKoboSyncEntry(
 	// KoboSyncEnabledAt keeps the payload byte-identical across syncs; time.Now()
 	// makes the firmware recreate the entitlement each time (books flicker).
 	enabled := b.KoboSyncEnabledAt.UTC().Format(time.RFC3339)
-	isReplace := koboIsReplace(b)
+	coverID := koboCoverImageID(b.BookID)
+	isChanged := koboIsReplace(b) || koboCoverChanged(b, coverID)
 
 	if b.Format == models.FileFormatKEPUB &&
 		app.Services.Conversion.IsKEPUBStale(b.ConverterVersion) {
@@ -478,18 +481,19 @@ func (app *Books) buildKoboSyncEntry(
 
 	// ReadingState must be non-nil so the firmware PUTs state on progress.
 	var raw []byte
-	if isReplace {
+	if isChanged {
 		raw, _ = json.Marshal(koboChangedEntitlement{ChangedEntitlement: entry})
 	} else {
 		raw, _ = json.Marshal(koboNewEntitlement{NewEntitlement: entry})
 	}
 
 	if b.LastSyncedConverterVersion == nil ||
-		*b.LastSyncedConverterVersion != b.ConverterVersion {
-		if updErr := app.Services.Books.UpdateKoboLastSyncedConverterVersion(
-			r.Context(), userID, b.BookID, b.ConverterVersion,
+		*b.LastSyncedConverterVersion != b.ConverterVersion ||
+		b.LastSyncedCoverImageID == nil || *b.LastSyncedCoverImageID != coverID {
+		if updErr := app.Services.Books.UpdateKoboLastSynced(
+			r.Context(), userID, b.BookID, b.ConverterVersion, coverID,
 		); updErr != nil {
-			app.Logger.Error("failed to update kobo last synced converter version",
+			app.Logger.Error("failed to update kobo last synced state",
 				"error", updErr, "bookID", b.BookID)
 		}
 	}
@@ -521,6 +525,9 @@ func (app *Books) koboProxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	proxyReq.Header = r.Header.Clone()
+	// Go then decompresses gzip itself, so the device and the debug capture
+	// get plain bodies; the device's value would pass brotli through.
+	proxyReq.Header.Del("Accept-Encoding")
 	koboForwardAuth(proxyReq.Header, r.Header)
 
 	//nolint:gosec // intentional proxy to upstream Kobo store
@@ -816,6 +823,13 @@ const koboCoverRevision = "-c1"
 
 func koboCoverImageID(bookID uuid.UUID) string {
 	return bookID.String() + koboCoverRevision
+}
+
+// koboCoverChanged reports whether b was synced before under a CoverImageId
+// other than coverID; an unrecorded one counts as different.
+func koboCoverChanged(b models.KoboSyncBook, coverID string) bool {
+	return b.LastSyncedConverterVersion != nil &&
+		(b.LastSyncedCoverImageID == nil || *b.LastSyncedCoverImageID != coverID)
 }
 
 // koboCoverBookID parses an image id from koboCoverImageID, or a bare book id

@@ -33,6 +33,9 @@ type KoboSyncBook struct {
 	// LastSyncedConverterVersion is the KEPUB converter version last sent to
 	// the device for this book, nil when it has never been synced before.
 	LastSyncedConverterVersion *int16
+	// LastSyncedCoverImageID is the CoverImageId last sent to the device, nil
+	// when none was recorded.
+	LastSyncedCoverImageID *string
 }
 
 type BookFile struct {
