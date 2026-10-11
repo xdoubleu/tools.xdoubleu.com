@@ -11,6 +11,7 @@ import BookDescription from '@/components/books/BookDescription'
 import BookSourceSync from '@/components/books/BookSourceSync'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/books/bookShelves'
 import { readerFormats } from '@/lib/books/readerSettings'
+import { readSuggestionText } from '@/lib/books/readSuggestion'
 import BookProgressEditor from '@/components/books/BookProgressEditor'
 import BookRatingStars from '@/components/books/BookRatingStars'
 import BookReadDatesEditor from '@/components/books/BookReadDatesEditor'
@@ -50,6 +51,7 @@ export default function BookDetailClient({ id }: { id: string }) {
 
   const book = userBook?.book
   const readerFormatList = readerFormats(userBook?.formats ?? [])
+  const suggestion = readSuggestionText(userBook?.readSuggestion, userBook?.formats ?? [])
 
   const knownShelves = data?.library?.shelves.map((s) => s.name) ?? []
 
@@ -188,6 +190,16 @@ export default function BookDetailClient({ id }: { id: string }) {
 
               {(userBook.status === 'read' || userBook.finishedAt.length > 0) && (
                 <BookReadDatesEditor userBook={userBook} onSaved={handleSaved} />
+              )}
+
+              {suggestion && (
+                <div>
+                  <p className="text-xs text-muted mb-1">Device</p>
+                  <p className="text-sm">
+                    {suggestion.label}
+                    <span className="text-muted"> · {suggestion.detail}</span>
+                  </p>
+                </div>
               )}
 
               {/* Keyed off actual files, not the own-digital tag, which can drift. */}

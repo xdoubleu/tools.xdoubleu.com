@@ -43,6 +43,18 @@ message UserBook {
   // Format (incl. kepub) -> version of the file GetBookFile serves; changes
   // when that file is replaced or reconverted.
   map<string, string> file_versions = 16;
+  // Unset until the deciding file's figures are analysed.
+  ReadSuggestion read_suggestion = 17;
+}
+
+// ReadSuggestion recommends a format, and with it a device, from the figure
+// density of the book's PDF (else its EPUB).
+message ReadSuggestion {
+  // "pdf" (figure-heavy: iPad/laptop) or "epub" (phone/Kobo).
+  string format = 1;
+  int32 figure_count = 2;
+  // Pages the figures were counted over; estimated for an EPUB.
+  int32 pages = 3;
 }
 
 message BookShelf {

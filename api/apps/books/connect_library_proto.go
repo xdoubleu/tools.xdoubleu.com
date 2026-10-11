@@ -89,6 +89,7 @@ func protoUserBook(ub models.UserBook, coverBaseURL string) *booksv1.UserBook {
 		Tags:            reconcileOwnDigitalTag(ub.Tags, ub.Formats),
 		Formats:         ub.Formats,
 		FileVersions:    ub.FileVersions,
+		ReadSuggestion:  protoReadSuggestion(ub.ReadSuggestion),
 		Rating:          int32PtrFromInt16(ub.Rating),
 		FinishedAt:      finishedAt,
 		ProgressMode:    ub.ProgressMode,
@@ -96,6 +97,17 @@ func protoUserBook(ub models.UserBook, coverBaseURL string) *booksv1.UserBook {
 		ProgressPercent: int32FromInt(ub.ProgressPercent),
 		AddedAt:         ub.AddedAt.Format(time.RFC3339),
 		UpdatedAt:       ub.UpdatedAt.Format(time.RFC3339),
+	}
+}
+
+func protoReadSuggestion(s *models.ReadSuggestion) *booksv1.ReadSuggestion {
+	if s == nil {
+		return nil
+	}
+	return &booksv1.ReadSuggestion{
+		Format:      s.Format,
+		FigureCount: int32FromInt(s.FigureCount),
+		Pages:       int32FromInt(s.Pages),
 	}
 }
 

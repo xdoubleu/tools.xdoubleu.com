@@ -222,6 +222,71 @@ func (r *BookFilesRepository) AllStorageKeys(
 	return keys, nil
 }
 
+// CopyFigureStats fills unanalysed rows from an analysed row sharing their
+// blob (a deduplicated upload), returning the rows filled.
+func (r *BookFilesRepository) CopyFigureStats(ctx context.Context) (int64, error) {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE books.book_files f
+		SET figure_count = a.figure_count, analysed_pages = a.analysed_pages
+		FROM books.book_files a
+		WHERE f.storage_key = a.storage_key
+		  AND f.analysed_pages IS NULL
+		  AND a.analysed_pages IS NOT NULL
+	`)
+	if err != nil {
+		return 0, postgres.PgxErrorToHTTPError(err)
+	}
+	return tag.RowsAffected(), nil
+}
+
+// ListUnanalysed returns up to limit ready PDF/EPUB blobs no row has analysed
+// yet, newest first.
+func (r *BookFilesRepository) ListUnanalysed(
+	ctx context.Context,
+	limit int,
+) ([]models.FigureAnalysisTarget, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT storage_key, min(format)
+		FROM books.book_files
+		WHERE status = $1 AND format IN ($2, $3)
+		GROUP BY storage_key
+		HAVING bool_and(analysed_pages IS NULL)
+		ORDER BY max(created_at) DESC
+		LIMIT $4
+	`, models.FileStatusReady, models.FileFormatPDF, models.FileFormatEPUB, limit)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var targets []models.FigureAnalysisTarget
+	for rows.Next() {
+		var t models.FigureAnalysisTarget
+		if scanErr := rows.Scan(&t.StorageKey, &t.Format); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		targets = append(targets, t)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return targets, nil
+}
+
+// SetFigureStats records a blob's figure analysis on every row storing it.
+func (r *BookFilesRepository) SetFigureStats(
+	ctx context.Context,
+	storageKey string,
+	stats models.FigureStats,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE books.book_files
+		SET figure_count = $2, analysed_pages = $3
+		WHERE storage_key = $1
+	`, storageKey, stats.Figures, stats.Pages)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 // DeleteByUserBook removes a user's files for a single book.
 func (r *BookFilesRepository) DeleteByUserBook(
 	ctx context.Context,
@@ -382,7 +447,8 @@ func (r *BookFilesRepository) queryOne(
 }
 
 // FilesByUser returns, per book, the sorted ready formats (pdf, epub; no
-// kepub) and the version of each ready file GetByBookAndFormat serves.
+// kepub) and the version and figure analysis of each ready file
+// GetByBookAndFormat serves.
 func (r *BookFilesRepository) FilesByUser(
 	ctx context.Context,
 	userID string,
@@ -392,7 +458,8 @@ func (r *BookFilesRepository) FilesByUser(
 	query := `
 		SELECT DISTINCT ON (book_id, format)
 		    book_id, format, id, converter_version, status = 'ready',
-		    bool_or(status = 'ready') OVER (PARTITION BY book_id, format)
+		    bool_or(status = 'ready') OVER (PARTITION BY book_id, format),
+		    figure_count, analysed_pages
 		FROM books.book_files
 		WHERE user_id = $1
 		ORDER BY book_id, format, created_at
@@ -410,8 +477,10 @@ func (r *BookFilesRepository) FilesByUser(
 		var format string
 		var converterVersion int16
 		var servedReady, anyReady bool
+		var figureCount, analysedPages *int
 		if scanErr := rows.Scan(
 			&bookID, &format, &fileID, &converterVersion, &servedReady, &anyReady,
+			&figureCount, &analysedPages,
 		); scanErr != nil {
 			return nil, postgres.PgxErrorToHTTPError(scanErr)
 		}
@@ -421,6 +490,7 @@ func (r *BookFilesRepository) FilesByUser(
 				files.Versions = make(map[string]string)
 			}
 			files.Versions[format] = fmt.Sprintf("%s:%d", fileID, converterVersion)
+			files = withFigures(files, format, figureCount, analysedPages)
 		}
 		isOriginal := format == models.FileFormatPDF || format == models.FileFormatEPUB
 		if anyReady && isOriginal {
@@ -434,6 +504,23 @@ func (r *BookFilesRepository) FilesByUser(
 	}
 
 	return result, nil
+}
+
+// withFigures records an analysed file's figure stats; nil counts mean not
+// analysed yet.
+func withFigures(
+	files models.LibraryFiles, format string, figureCount, analysedPages *int,
+) models.LibraryFiles {
+	if figureCount == nil || analysedPages == nil {
+		return files
+	}
+	if files.Figures == nil {
+		files.Figures = make(map[string]models.FigureStats)
+	}
+	files.Figures[format] = models.FigureStats{
+		Figures: *figureCount, Pages: *analysedPages,
+	}
+	return files
 }
 
 // RepointAndDedup moves a user's files from fromBookID to toBookID, deleting

@@ -9,6 +9,7 @@ import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
 import BookProgressCell from '@/components/books/BookProgressCell'
 import BookShelfTagFields from '@/components/books/BookShelfTagFields'
 import BookRemoveAction from '@/components/books/BookRemoveAction'
+import ReadSuggestionBadge from '@/components/books/ReadSuggestionBadge'
 import { Popover, PopoverTrigger } from '@/components/ui/popover'
 import { displayTags, statusLabel } from '@/lib/books/bookShelves'
 import { formatDate } from '@/lib/dates'
@@ -18,6 +19,7 @@ export type ColumnKey =
   | 'title'
   | 'author'
   | 'pages'
+  | 'device'
   | 'isbn'
   | 'rating'
   | 'favourite'
@@ -182,6 +184,11 @@ export const ALL_COLUMNS: BookColumn[] = [
     renderCell: (ub) => <span className="text-sm text-muted">{ub.book?.pageCount ?? ''}</span>
   },
   {
+    key: 'device',
+    label: 'Best on',
+    renderCell: (ub) => <ReadSuggestionBadge userBook={ub} />
+  },
+  {
     key: 'isbn',
     label: 'ISBN',
     renderCell: (ub) => (
@@ -279,6 +286,7 @@ export const DEFAULT_VISIBLE_COLUMNS: ColumnKey[] = [
   'title',
   'author',
   'pages',
+  'device',
   'isbn',
   'rating',
   'favourite',

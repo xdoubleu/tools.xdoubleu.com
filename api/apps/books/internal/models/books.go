@@ -108,6 +108,7 @@ type UserBook struct {
 	Tags            []string
 	Formats         []string
 	FileVersions    map[string]string
+	ReadSuggestion  *ReadSuggestion
 	ShelfPositions  map[string]int
 	Rating          *int16
 	FinishedAt      []time.Time
