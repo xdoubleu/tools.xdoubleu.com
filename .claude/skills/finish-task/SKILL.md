@@ -26,8 +26,7 @@ without a PR, or running CI, isn't done.
 - `infra/grafana` changed: `make lint/grafana` and `make grafana/verify`.
 - Always: `make lint/docs` from the repo root must pass (rule:
   [`docs/convention-concise-docs-and-comments.md`](../../../docs/convention-concise-docs-and-comments.md)).
-- Re-read the diff; cut comment/doc text that restates the code or repeats
-  itself.
+- Re-read the diff; cut comment/doc text that restates the code.
 - `.proto` changed: `cd api && make proto/check` and `cd web && npm run
   generate:check`, commit the result.
 
@@ -38,10 +37,9 @@ without a PR, or running CI, isn't done.
 - Web: `cd web && npm run test:cov`.
 
 **Sandboxed (routine) runs:** `routine-sandbox` points `GOLANGCI_LINT_CACHE`
-and the coverage profile at the sandbox home; run lint read-only.
-`make lint/fix/*` reflows files in place; hand-apply golines/gci diffs.
-`make grafana/verify` needs Docker, unreachable here: skip it, rely on CI's
-Build Grafana job, and say so in the PR body.
+and the coverage profile at the sandbox home; run lint read-only and
+hand-apply golines/gci diffs. `make grafana/verify` needs Docker: skip it,
+rely on CI's Build Grafana job, and say so in the PR body.
 
 ## 3. Build (web changes)
 
@@ -61,6 +59,12 @@ Check the tracking issue before handing `ship-pr` a reference:
   a post-deploy step in the PR body. If unverifiable
   (third party, hardware), say so; the user's confirmation is acceptance.
 - Otherwise: closing keyword (`Fixes #123`).
+
+## 4b. Check for supersession
+
+Before opening the PR or pushing: `git fetch origin main`, diff the touched
+files against it, re-run the PR search. If deleted or already resolved, close
+as superseded, no PR.
 
 ## 5. Ship via `ship-pr`
 
@@ -104,7 +108,7 @@ feature epic is reviewed
   **every** triggered signal, each with a specific "what to double check"
   (e.g. migration: backward-compatible).
 
-Board Status edits (project #8 is personal; GitHub MCP can't write it):
+Board Status edits (project #8 is personal):
 
 ```
 gh project item-edit --id <ITEM_ID> --field-id PVTSSF_lAHOAzw7nc4BdsAmzhYLzDw \
@@ -114,9 +118,8 @@ gh project item-edit --id <ITEM_ID> --field-id PVTSSF_lAHOAzw7nc4BdsAmzhYLzDw \
 `<ITEM_ID>`: `gh project item-list 8 --owner xdoubleu --format json`,
 matched on `content.number`. Without `gh`, use the
 `updateProjectV2ItemFieldValue` mutation, or report you couldn't.
-Unattended: the routine's GitHub App token can't write this user-owned board
-(`updateProjectV2ItemFieldValue` is denied) — leave Status as-is and report
-which status edits were skipped.
+Unattended: the routine's token is denied this board — leave Status as-is and
+report the skipped edits.
 
 ## 6. Resolve linked Sentry issues once merged
 
@@ -125,16 +128,15 @@ issue, call `resolve_sentry_issue` (`issue_id` = `<id>`).
 
 ## 7. Session retro
 
-Once CI is green, always run `session-retro`. Any fix it finds ships as its
-own issue and PR, not stacked here.
+Once CI is green, run `session-retro`; its fixes ship as their own issue and PR.
 
 ## Missing skills or `gh`
 
-Check both (`command -v gh`); on the web there is neither, and the `Stop`
-hook can't confirm a PR, so opening it is on you. Say what's missing, then:
+Check both (`command -v gh`); on the web there is neither, so opening the PR is
+on you. Say what's missing:
 
 - **`ship-pr` loaded, no `gh`**: follow its "When `gh` isn't available"
   section. If auto-merge can't be armed, say so — never merge early.
 - **No `ship-pr`**: rebase on `origin/main`, push, open the PR, watch CI
   (via `mcp__github__*` if no `gh`); apply step 5 yourself.
-- **No `session-retro`**: do the analysis by hand.
+- **No `session-retro`**: analyse by hand.

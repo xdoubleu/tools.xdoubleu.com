@@ -29,11 +29,12 @@ npm ci                                  # first, in a fresh worktree
 npm run test:cov:diff                   # coverage on lines changed vs origin/main — run before pushing (matches codecov/patch)
 npm run mobile:audit -- /trains /books  # 375x667 Playwright audit; needs `npm run dev` + `npx playwright install chromium`
 npm run generate:ui-catalog             # regenerate components/ui/README.md (lint fails if stale)
+rm -f tsconfig.tsbuildinfo              # before `npx tsc --noEmit` after a lockfile change
 ```
 
 ## UI rules → [`convention-ui-standards`](../docs/convention-ui-standards.md)
 
-- **ESLint rejects raw controls and the hand-rolled forms of existing primitives** (`<h1>`, cards, banners, stretched links, loading text…) via the `ui/*` rules in `eslint-rules/`. Check [`components/ui/README.md`](components/ui/README.md) first; add a primitive rather than styling a raw element. A new class-pattern check goes into `eslint-rules/` with a RuleTester case.
+- **ESLint rejects raw controls and hand-rolled forms of existing primitives** (`<h1>`, cards, banners…) via `ui/*` rules in `eslint-rules/`. Check [`components/ui/README.md`](components/ui/README.md) first; add a primitive, not a raw element. A new class-pattern check needs a RuleTester case.
 - Merge classes with `cn()`; navigating cards use `LinkCard`, with controls in its `actions` footer.
 - Pending buttons use a present participle with the typographic `…`, never `...`.
 - Tailwind v4 CSS-first (no `tailwind.config.ts`); dark tokens key off `:root[data-theme='dark']`, owned by `lib/theme.ts`.
