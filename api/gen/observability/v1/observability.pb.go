@@ -2630,13 +2630,14 @@ func (x *LogEntry) GetAttrsJson() string {
 	return ""
 }
 
-// GetLogsRequest filters global.log_entries; empty source/min_level means
-// any.
+// GetLogsRequest filters global.log_entries; empty fields match any.
 type GetLogsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Source        string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
-	MinLevel      string                 `protobuf:"bytes,2,opt,name=min_level,json=minLevel,proto3" json:"min_level,omitempty"`
-	Since         string                 `protobuf:"bytes,3,opt,name=since,proto3" json:"since,omitempty"` // RFC3339
+	MinLevel      string                 `protobuf:"bytes,2,opt,name=min_level,json=minLevel,proto3" json:"min_level,omitempty"` // at least DEBUG < INFO < WARN < ERROR
+	Since         string                 `protobuf:"bytes,3,opt,name=since,proto3" json:"since,omitempty"`                       // RFC3339, inclusive
+	Until         string                 `protobuf:"bytes,4,opt,name=until,proto3" json:"until,omitempty"`                       // RFC3339, exclusive
+	Contains      string                 `protobuf:"bytes,5,opt,name=contains,proto3" json:"contains,omitempty"`                 // case-insensitive substring of message or attrs
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2688,6 +2689,20 @@ func (x *GetLogsRequest) GetMinLevel() string {
 func (x *GetLogsRequest) GetSince() string {
 	if x != nil {
 		return x.Since
+	}
+	return ""
+}
+
+func (x *GetLogsRequest) GetUntil() string {
+	if x != nil {
+		return x.Until
+	}
+	return ""
+}
+
+func (x *GetLogsRequest) GetContains() string {
+	if x != nil {
+		return x.Contains
 	}
 	return ""
 }
@@ -4452,11 +4467,13 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x05level\x18\x03 \x01(\tR\x05level\x12\x18\n" +
 	"\amessage\x18\x04 \x01(\tR\amessage\x12\x1d\n" +
 	"\n" +
-	"attrs_json\x18\x05 \x01(\tR\tattrsJson\"[\n" +
+	"attrs_json\x18\x05 \x01(\tR\tattrsJson\"\x8d\x01\n" +
 	"\x0eGetLogsRequest\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12\x1b\n" +
 	"\tmin_level\x18\x02 \x01(\tR\bminLevel\x12\x14\n" +
-	"\x05since\x18\x03 \x01(\tR\x05since\"G\n" +
+	"\x05since\x18\x03 \x01(\tR\x05since\x12\x14\n" +
+	"\x05until\x18\x04 \x01(\tR\x05until\x12\x1a\n" +
+	"\bcontains\x18\x05 \x01(\tR\bcontains\"G\n" +
 	"\x0fGetLogsResponse\x124\n" +
 	"\aentries\x18\x01 \x03(\v2\x1a.observability.v1.LogEntryR\aentries\"\x1a\n" +
 	"\x18GetHealthOverviewRequest\"^\n" +

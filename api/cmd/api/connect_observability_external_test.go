@@ -797,6 +797,54 @@ func TestObservabilityGetLogs_AsAdmin(t *testing.T) {
 	assert.Equal(t, "hello from a test", resp.Msg.Entries[0].Message)
 }
 
+func TestObservabilityGetLogs_Filters(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	_, err := testApp.db.Exec(
+		context.Background(), "DELETE FROM global.log_entries",
+	)
+	require.NoError(t, err)
+	_, err = testApp.db.Exec(context.Background(), `
+		INSERT INTO global.log_entries (occurred_at, source, level, message, attrs)
+		VALUES
+		  (now() - interval '2 hours', 'api', 'ERROR', 'old', '{"path":"/kobo"}'),
+		  (now() - interval '1 minute', 'api', 'ERROR', 'recent', '{"path":"/kobo"}'),
+		  (now() - interval '2 hours', 'api', 'INFO', 'quiet', '{"path":"/kobo"}'),
+		  (now() - interval '2 hours', 'api', 'ERROR', 'other', '{"path":"/metrics"}')
+	`)
+	require.NoError(t, err)
+
+	req := connect.NewRequest(&observabilityv1.GetLogsRequest{
+		MinLevel: "WARN",
+		Until:    time.Now().Add(-time.Hour).Format(time.RFC3339),
+		Contains: "/kobo",
+	})
+	setCookieOnRequest(req, accessToken)
+	resp, err := observabilityClient(t).GetLogs(context.Background(), req)
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.Entries, 1)
+	assert.Equal(t, "old", resp.Msg.Entries[0].Message)
+}
+
+func TestObservabilityGetLogs_InvalidArgument(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	for name, msg := range map[string]*observabilityv1.GetLogsRequest{
+		"since":     {Since: "yesterday"},
+		"until":     {Until: "2026-13-01"},
+		"min_level": {MinLevel: "fatal"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			req := connect.NewRequest(msg)
+			setCookieOnRequest(req, accessToken)
+			_, err := observabilityClient(t).GetLogs(context.Background(), req)
+			require.Error(t, err)
+			assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+		})
+	}
+}
+
 func TestObservabilityGetLogs_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	req := connect.NewRequest(&observabilityv1.GetLogsRequest{})

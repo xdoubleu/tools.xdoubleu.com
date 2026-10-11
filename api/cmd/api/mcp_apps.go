@@ -107,11 +107,13 @@ type promQueryArgs struct {
 	Query string `json:"query" jsonschema:"a PromQL expression, e.g. up{job='api'}"`
 }
 
-// logsArgs is the input for get_logs. Source/MinLevel empty means "any".
+// logsArgs is the input for get_logs. Empty fields match any.
 type logsArgs struct {
-	Source   string `json:"source,omitempty"    jsonschema:"api or web, optional"`
-	MinLevel string `json:"min_level,omitempty" jsonschema:"optional"`
-	Since    string `json:"since,omitempty"     jsonschema:"RFC3339, optional"`
+	Source   string `json:"source,omitempty"    jsonschema:"api, web or web-client"`
+	MinLevel string `json:"min_level,omitempty" jsonschema:"min DEBUG|INFO|WARN|ERROR"`
+	Since    string `json:"since,omitempty"     jsonschema:"RFC3339, inclusive"`
+	Until    string `json:"until,omitempty"     jsonschema:"RFC3339, exclusive"`
+	Contains string `json:"contains,omitempty"  jsonschema:"substring of message or attrs"`
 }
 
 func (app *Application) appsResourceMetadataURL() string {
@@ -275,10 +277,18 @@ func registerMutatingObservabilityMCPTools(srv *mcp.Server, h *obsConnectHandler
 // prom_query (split out for the function-length lint).
 func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 	addObsTool(srv, "get_logs",
-		"Application logs forwarded from api and web, optionally filtered by "+
-			"source/level.",
+		"Application logs forwarded from api and web, newest first, at most "+
+			"1000 per call (default: last 30 days). Filter by source, min_level "+
+			"(at least), since/until, and a contains substring over message "+
+			"and attrs; page back by passing the oldest occurred_at as until.",
 		func(ctx context.Context, a logsArgs) (proto.Message, error) {
-			return h.logs(ctx, a.Source, a.MinLevel, a.Since)
+			return h.logs(ctx, &observabilityv1.GetLogsRequest{
+				Source:   a.Source,
+				MinLevel: a.MinLevel,
+				Since:    a.Since,
+				Until:    a.Until,
+				Contains: a.Contains,
+			})
 		})
 	addObsTool(srv, "get_notification_settings",
 		"Per-source enabled/disabled state of the email notifications "+
