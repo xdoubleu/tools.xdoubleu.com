@@ -239,3 +239,26 @@ func TestPhysical_KoboFollowsPageEntry(t *testing.T) {
 	assert.Equal(t, mocks.PhysicalCh3Href, loc["Source"])
 	assert.Equal(t, "KoboSpan", loc["Type"])
 }
+
+func TestPhysical_KoboBackfillFollowsCurrentPage(t *testing.T) {
+	ctx := context.Background()
+	owner := "physical-backfill-" + uuid.NewString()
+	bookID := setupPhysicalBook(t, owner, true, true)
+	loc := models.KoboLocation{
+		Source: mocks.PhysicalCh3Href, Type: "KoboSpan", Value: "kobo.1.1",
+	}
+	svc := testApp.Services.Books
+	require.NoError(t, svc.UpdateReadingProgress(ctx,
+		models.BookReadingState{ //nolint:exhaustruct //optional fields
+			UserID: owner, BookID: bookID, Source: models.ReadingSourceKobo,
+			Percent: 70, Location: &loc.Value, KoboLocation: &loc,
+		}))
+
+	require.NoError(t, svc.SetKoboPosition(ctx, owner, bookID, loc,
+		models.ReadingPosition{Href: mocks.PhysicalCh3Href, Offset: 0, Page: 0}))
+
+	require.Eventually(t, func() bool {
+		ub, err := svc.GetUserBook(ctx, owner, bookID)
+		return err == nil && ub.CurrentPage == 5
+	}, 5*time.Second, 20*time.Millisecond)
+}
