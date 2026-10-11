@@ -23,7 +23,7 @@ func PhysicalSentence(ch, k int) string {
 	return fmt.Sprintf("Chapter %d sentence %02d is right here. ", ch, k)
 }
 
-// PhysicalEPUB is an EPUB3 with front matter and three chapters of
+// PhysicalEPUB is an EPUB3 by "Author" with front matter and three chapters of
 // PhysicalSentences sentences. Its nav has a TOC (chapter two through an
 // #c2 fragment after an epigraph) and a bodymatter landmark at chapter one.
 // With printPages, page i marks the front matter and pages 1-6 start at each
@@ -101,7 +101,8 @@ func physicalOPF(title string) string {
 	return fmt.Sprintf(`<?xml version="1.0"?>
 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id">
 <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-<dc:title>%s</dc:title><dc:identifier id="id">physical-epub</dc:identifier>
+<dc:title>%s</dc:title><dc:creator>Author</dc:creator>
+<dc:identifier id="id">physical-epub</dc:identifier>
 </metadata>
 <manifest>
 <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
