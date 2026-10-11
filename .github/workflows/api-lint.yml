@@ -23,6 +23,9 @@ jobs:
           # renovate: datasource=go depName=github.com/golangci/golangci-lint/v2/cmd/golangci-lint
           version: v2.14.0
           working-directory: ./api
+      - name: Check golines drift
+        run: make lint/golines
+        working-directory: './api'
 
   lint-sql:
     name: API SQL Lint

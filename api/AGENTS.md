@@ -7,7 +7,8 @@ make test/v | make test/race
 make test/cov/diff                 # coverage on lines changed vs origin/main (heuristic, see Testing)
 make test/cov/per-pkg              # per-package coverage, merged
 make lint/pkg PKG=apps/recipes     # lint one package
-make lint/fix/pkg PKG=apps/recipes # auto-fix one package — prefer over repo-wide lint/fix, whose golines pass reformats unrelated files
+make lint/fix/pkg PKG=apps/recipes # auto-fix one package
+make lint/golines                  # fails if golines would rewrite anything (CI runs it)
 make lint/migrations               # duplicate version (goose silently skips it) or a new one numbered below the dir's max
 make lint/kamal-secrets            # deploy-secret lists agree; deploy.grafana.yml env names must be GF_-prefixed (Grafana ignores others)
 make lint/proto-local-versions     # proto/generate/local plugin versions match buf.gen.yaml's `remote:` pins

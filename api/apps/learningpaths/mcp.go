@@ -34,7 +34,7 @@ type mcpItemArg struct {
 	//nolint:gostruct //LinkedBook is read-only, never authored
 	LinkedBookID *string `json:"linked_book_id,omitempty" jsonschema:"auto-completes item"`
 	//nolint:lll //jsonschema description
-	ExternalBook *mcpExternalBookArg `json:"external_book,omitempty" jsonschema:"book not in library, from books_search_external; added to To Learn and linked"`
+	ExternalBook *mcpExternalBookArg `json:"external_book,omitempty"  jsonschema:"book not in library, from books_search_external; added to To Learn and linked"`
 }
 
 type mcpExternalBookArg struct {

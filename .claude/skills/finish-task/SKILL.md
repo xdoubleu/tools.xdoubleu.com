@@ -17,7 +17,7 @@ without a PR, or running CI, isn't done.
 
 ## 1. Lint
 
-- API, single package: `cd api && make lint/fix/pkg PKG=apps/<pkg>` (repo-wide golines reformats other files). Multiple packages or `api/internal`:
+- API, single package: `cd api && make lint/fix/pkg PKG=apps/<pkg>`. Multiple packages or `api/internal`:
   `cd api && make lint/fix`.
 - Web: `cd web && npm run lint`.
 - kobo-gateway: `cd kobo-gateway && make lint/fix`.
