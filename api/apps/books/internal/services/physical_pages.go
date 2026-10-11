@@ -108,7 +108,8 @@ func (t *bookText) anchorPoints(c models.PhysicalCopy) []pagePoint {
 		}
 	}
 	end := pagePoint{page: c.PageCount + 1, at: t.total()}
-	if n := len(pts); n > 0 && end.page > pts[n-1].page && end.at > pts[n-1].at {
+	// pts is never empty: a dropped default means a user anchor was kept.
+	if n := len(pts); end.page > pts[n-1].page && end.at > pts[n-1].at {
 		pts = append(pts, end)
 	}
 	if len(pts) < 2 { //nolint:mnd // interpolation needs a segment
@@ -124,14 +125,15 @@ func (t *bookText) positionOfPage(
 ) (models.ReadingPosition, int, bool) {
 	var g int
 	if pts := t.arabicPages(); len(pts) > 0 {
+		// The page's own marker, else the last before it, else the first.
 		g = pts[0].at
 		for _, p := range pts {
-			if p.page == page {
-				g = p.at
-				break
+			if p.page > page {
+				continue
 			}
-			if p.page < page {
-				g = p.at
+			g = p.at
+			if p.page == page {
+				break
 			}
 		}
 	} else {
@@ -198,7 +200,7 @@ func (t *bookText) excerpt(pos models.ReadingPosition) string {
 	d := t.docs[i]
 	from := min(max(pos.Offset, 0), len(d.units))
 	to := min(len(d.units), from+4*maxExcerptRunes)
-	spaced := make([]uint16, 0, to-from+len(d.gaps))
+	var spaced []uint16
 	g := sort.SearchInts(d.gaps, from+1)
 	for at := from; at < to; at++ {
 		for g < len(d.gaps) && d.gaps[g] == at {
@@ -219,7 +221,7 @@ func (t *bookText) excerpt(pos models.ReadingPosition) string {
 		return string(text)
 	}
 	cut := string(text[:maxExcerptRunes])
-	if sp := strings.LastIndexByte(cut, ' '); sp > 0 {
+	if sp := strings.LastIndexByte(cut, ' '); sp != -1 {
 		cut = cut[:sp]
 	}
 	return cut + "…"
