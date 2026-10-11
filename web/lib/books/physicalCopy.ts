@@ -46,12 +46,16 @@ export interface ChapterOption {
   offset: number
 }
 
+/** One option per position; a part and its first chapter can share one. */
 export function chapterOptions(chapters: PhysicalChapter[]): ChapterOption[] {
-  return chapters.map((c) => {
+  const options = new Map<string, ChapterOption>()
+  for (const c of chapters) {
     const href = c.position?.href ?? ''
     const offset = c.position?.offset ?? 0
-    return { value: chapterValue(href, offset), title: c.title, href, offset }
-  })
+    const value = chapterValue(href, offset)
+    if (!options.has(value)) options.set(value, { value, title: c.title, href, offset })
+  }
+  return [...options.values()]
 }
 
 /** A new anchor at the first chapter, its page still to fill in. */

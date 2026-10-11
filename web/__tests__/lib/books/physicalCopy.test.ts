@@ -50,9 +50,11 @@ describe('physicalCopy', () => {
     const options = chapterOptions([
       create(PhysicalChapterSchema, { title: 'One', position: { href: 'a', offset: 0 } }),
       create(PhysicalChapterSchema, { title: 'Two', position: { href: 'a', offset: 40 } }),
+      create(PhysicalChapterSchema, { title: 'Two, part 1', position: { href: 'a', offset: 40 } }),
       create(PhysicalChapterSchema, { title: 'Lost' })
     ])
     expect(options.map((o) => o.value)).toEqual(['a#0', chapterValue('a', 40), '#0'])
+    expect(options[1]!.title).toBe('Two')
 
     expect(newAnchor(options)).toEqual({ page: 0, href: 'a', offset: 0 })
     expect(newAnchor([])).toEqual({ page: 0, href: '', offset: 0 })

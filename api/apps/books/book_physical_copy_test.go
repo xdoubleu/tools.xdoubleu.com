@@ -80,6 +80,22 @@ func TestPhysical_PageSaveWritesPhysicalReadingState(t *testing.T) {
 	assert.Equal(t, epubPos(mocks.PhysicalCh2Href, 0), readState(t, bookID).Position)
 }
 
+func TestPhysical_UnchangedPageKeepsTheNewerDigitalPosition(t *testing.T) {
+	client := newBooksTestClient(t)
+	bookID := setupPhysicalBook(t, userID, true, true)
+	savePage(t, client, bookID, 3, time.Now().Add(-time.Hour))
+	writeProgress(t, models.BookReadingState{ //nolint:exhaustruct //optional fields
+		BookID: bookID, Source: models.ReadingSourceWeb, Percent: 40,
+		ReadAt: at(1), Position: epubPos(mocks.PhysicalCh2Href, 5),
+	})
+
+	savePage(t, client, bookID, 3, time.Now())
+
+	state := readState(t, bookID)
+	assert.Equal(t, models.ReadingSourceWeb, state.Source)
+	assert.Equal(t, epubPos(mocks.PhysicalCh2Href, 5), state.Position)
+}
+
 func TestPhysical_PageSaveWithoutPhysicalCopyWritesNoState(t *testing.T) {
 	client := newBooksTestClient(t)
 	bookID := setupPhysicalBook(t, userID, true, false)
@@ -261,4 +277,32 @@ func TestPhysical_KoboBackfillFollowsCurrentPage(t *testing.T) {
 		ub, err := svc.GetUserBook(ctx, owner, bookID)
 		return err == nil && ub.CurrentPage == 5
 	}, 5*time.Second, 20*time.Millisecond)
+}
+
+func TestPhysical_SetPhysicalPositionOnlyFillsThatWrite(t *testing.T) {
+	ctx := context.Background()
+	bookID := setupPhysicalBook(t, userID, false, true)
+	states := testApp.Repositories.ReadingState
+	updatedAt, err := states.UpsertIfNewer(ctx,
+		models.BookReadingState{ //nolint:exhaustruct //optional fields
+			UserID: userID, BookID: bookID, Source: models.ReadingSourcePhysical,
+			Percent: 30, ReadAt: at(1),
+		})
+	require.NoError(t, err)
+	require.NotNil(t, updatedAt)
+	pos := models.ReadingPosition{Href: mocks.PhysicalCh2Href, Offset: 4, Page: 0}
+
+	require.NoError(t, states.SetPhysicalPosition(
+		ctx, userID, bookID, updatedAt.Add(-time.Second), pos, 40,
+	))
+	assert.Nil(t, readState(t, bookID).Position, "another write's")
+
+	require.NoError(
+		t,
+		states.SetPhysicalPosition(ctx, userID, bookID, *updatedAt, pos, 40),
+	)
+	got := readState(t, bookID)
+	assert.Equal(t, &pos, got.Position)
+	assert.Equal(t, 40, got.Percent)
+	assert.True(t, got.UpdatedAt.After(*updatedAt), "devices get it again")
 }

@@ -163,7 +163,7 @@ func spineDocs(pkg opfDoc, opfDir string) ([]string, map[string]int) {
 		if !isContentDoc(it.Href, it.MediaType) {
 			continue
 		}
-		doc, _ := resolveLink(path.Join(opfDir, "x"), it.Href)
+		doc := resolveHref(opfDir, it.Href)
 		if _, dup := index[doc]; dup {
 			continue
 		}

@@ -51,10 +51,23 @@ describe('BookProgressBar', () => {
       progressPercent: 40,
       currentPage: 87,
       tags: ['own-physical'],
-      formats: ['epub']
+      formats: ['epub'],
+      book: create(BookSchema, { pageCount: 300 })
     })
     render(<BookProgressBar userBook={ub} />)
     expect(screen.getByText('40% · p. ~87')).toBeInTheDocument()
+  })
+
+  it('leaves the page out without a page count to map digital positions', () => {
+    const ub = create(UserBookSchema, {
+      progressMode: 'percent',
+      progressPercent: 40,
+      currentPage: 87,
+      tags: ['own-physical'],
+      formats: ['epub']
+    })
+    render(<BookProgressBar userBook={ub} />)
+    expect(screen.getByText('40%')).toBeInTheDocument()
   })
 
   it('leaves the page out without an EPUB to sync with', () => {

@@ -36,6 +36,10 @@ type physicalCopyStore interface {
 
 type physicalStateStore interface {
 	UpsertIfNewer(ctx context.Context, state models.BookReadingState) (*time.Time, error)
+	SetPhysicalPosition(
+		ctx context.Context, userID string, bookID uuid.UUID, updatedAt time.Time,
+		pos models.ReadingPosition, percent int,
+	) error
 }
 
 // PhysicalService keeps a physical copy's page and the digital reading
@@ -133,8 +137,8 @@ func (s *PhysicalService) UpdateCopy(
 }
 
 // SyncPage writes a page entered for the physical copy as a physical reading
-// state read at readAt, so the Kobo and web reader follow it. It finishes in
-// the background when the EPUB isn't parsed within the budget.
+// state read at readAt, so the Kobo and web reader follow it. When the EPUB
+// isn't parsed within the budget, its position is filled in later.
 func (s *PhysicalService) SyncPage(
 	ctx context.Context,
 	userID string,
@@ -152,37 +156,63 @@ func (s *PhysicalService) SyncPage(
 	if err != nil || !c.Syncable {
 		return err
 	}
-	write := func(ctx context.Context, t *bookText) error {
-		pos, g, ok := t.positionOfPage(*c, page)
-		if !ok {
-			return nil
-		}
-		_, upsertErr := s.states.UpsertIfNewer(ctx, models.BookReadingState{
+	state := func(pos *models.ReadingPosition, percent int) models.BookReadingState {
+		return models.BookReadingState{
 			UserID: userID, BookID: bookID, Source: models.ReadingSourcePhysical,
-			Percent: t.percentAt(g), Location: nil, KoboLocation: nil,
-			Position: &pos, ReadAt: &readAt, UpdatedAt: time.Time{},
-		})
-		return upsertErr
+			Percent: percent, Location: nil, KoboLocation: nil,
+			Position: pos, ReadAt: &readAt, UpdatedAt: time.Time{},
+		}
 	}
 
 	t, pending := s.positions.bookText(ctx, userID, bookID, s.budget)
 	if t != nil {
-		return write(ctx, t)
+		pos, g, ok := t.positionOfPage(*c, page)
+		if !ok {
+			return nil
+		}
+		_, err = s.states.UpsertIfNewer(ctx, state(&pos, t.percentAt(g)))
+		return err
 	}
-	if pending {
-		bg := context.WithoutCancel(ctx)
-		go func() {
-			built, _ := s.positions.bookText(bg, userID, bookID, s.buildTimeout)
-			if built == nil {
-				return
-			}
-			if writeErr := write(bg, built); writeErr != nil {
-				s.logger.WarnContext(bg, "physical reading state write failed",
-					"book_id", bookID, "err", writeErr)
-			}
-		}()
+	if !pending || c.PageCount <= 0 {
+		return nil
 	}
+	// Stored now, its position filled in once the EPUB is parsed, so a digital
+	// write waiting on the same parse can't move current_page off this page.
+	updatedAt, err := s.states.UpsertIfNewer(ctx,
+		state(nil, min(page*models.MaxProgressPercent/c.PageCount,
+			models.MaxProgressPercent)))
+	if err != nil || updatedAt == nil {
+		return err
+	}
+	go s.fillPhysicalPosition(context.WithoutCancel(ctx), userID, bookID, *c, page,
+		*updatedAt)
 	return nil
+}
+
+// fillPhysicalPosition sets the position of the physical state stored at
+// updatedAt once the EPUB is parsed.
+func (s *PhysicalService) fillPhysicalPosition(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	c models.PhysicalCopy,
+	page int,
+	updatedAt time.Time,
+) {
+	t, _ := s.positions.bookText(ctx, userID, bookID, s.buildTimeout)
+	if t == nil {
+		return
+	}
+	pos, g, ok := t.positionOfPage(c, page)
+	if !ok {
+		return
+	}
+	if err := s.states.SetPhysicalPosition(
+		ctx, userID, bookID, updatedAt, pos, t.percentAt(g),
+	); err != nil {
+		s.logger.WarnContext(ctx, "physical position backfill failed",
+			"book_id", bookID, "err", err)
+	}
 }
 
 // FollowDigital sets current_page, in the background, from a web or Kobo

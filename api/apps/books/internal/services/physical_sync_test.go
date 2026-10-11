@@ -28,6 +28,7 @@ type fakePhysicalStore struct {
 	updated *models.PhysicalCopy
 	pages   chan int
 	states  []models.BookReadingState
+	filled  []models.ReadingPosition
 }
 
 func (f *fakePhysicalStore) GetPhysicalCopy(
@@ -62,6 +63,22 @@ func (f *fakePhysicalStore) UpsertIfNewer(
 	f.states = append(f.states, state)
 	now := time.Now()
 	return &now, nil
+}
+
+func (f *fakePhysicalStore) SetPhysicalPosition(
+	_ context.Context, _ string, _ uuid.UUID, _ time.Time,
+	pos models.ReadingPosition, _ int,
+) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.filled = append(f.filled, pos)
+	return nil
+}
+
+func (f *fakePhysicalStore) filledIn() []models.ReadingPosition {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]models.ReadingPosition(nil), f.filled...)
 }
 
 func (f *fakePhysicalStore) written() []models.BookReadingState {
@@ -104,7 +121,7 @@ func newPhysicalFixture(
 		copy: &models.PhysicalCopy{
 			PageCount: 99, TextStartPage: 1, Anchors: nil, Syncable: true,
 		},
-		err: nil, updated: nil, pages: make(chan int, 1), states: nil,
+		err: nil, updated: nil, pages: make(chan int, 1), states: nil, filled: nil,
 	}
 	logger := slog.New(&logRecorder{mu: sync.Mutex{}, msgs: nil})
 	positions := newPositionService(logger, files, blobs, budget)
@@ -145,18 +162,36 @@ func TestPhysicalService_SyncPageWritesPhysicalState(t *testing.T) {
 	require.Error(t, f.svc.SyncPage(context.Background(), "u", uuid.New(), 5, readAt))
 }
 
-func TestPhysicalService_SyncPageFinishesInBackground(t *testing.T) {
+func TestPhysicalService_SyncPageFillsPositionInBackground(t *testing.T) {
 	f := newPhysicalFixture(t, mocks.PhysicalEPUB("x", false), 10*time.Millisecond)
 	f.blobs.gate = make(chan struct{})
 
 	require.NoError(
 		t,
+		f.svc.SyncPage(context.Background(), "u", uuid.New(), 45, time.Now()),
+	)
+	states := f.store.written()
+	require.Len(t, states, 1, "stored at once, so a pending follow can't win")
+	assert.Nil(t, states[0].Position)
+	assert.Equal(t, 45, states[0].Percent, "page 45 of 99")
+
+	close(f.blobs.gate)
+	require.Eventually(t, func() bool { return len(f.store.filledIn()) == 1 },
+		5*time.Second, 10*time.Millisecond)
+	assert.Equal(t, mocks.PhysicalCh2Href, f.store.filledIn()[0].Href)
+}
+
+func TestPhysicalService_PendingWithoutPageCountWritesNothing(t *testing.T) {
+	f := newPhysicalFixture(t, mocks.PhysicalEPUB("x", false), 10*time.Millisecond)
+	f.blobs.gate = make(chan struct{})
+	defer close(f.blobs.gate)
+	f.store.copy.PageCount = 0
+
+	require.NoError(
+		t,
 		f.svc.SyncPage(context.Background(), "u", uuid.New(), 3, time.Now()),
 	)
-	assert.Empty(t, f.store.written(), "the EPUB is still downloading")
-	close(f.blobs.gate)
-	require.Eventually(t, func() bool { return len(f.store.written()) == 1 },
-		5*time.Second, 10*time.Millisecond)
+	assert.Empty(t, f.store.written())
 }
 
 func TestPhysicalService_FollowDigitalSetsCurrentPage(t *testing.T) {
@@ -296,6 +331,18 @@ func TestPhysicalService_DownloadFailureIsRetried(t *testing.T) {
 	f.blobs.PutAt("epub", data, time.Now())
 	view, _ = f.svc.Copy(ctx, "u", uuid.New())
 	assert.Len(t, view.Chapters, 3)
+}
+
+func TestPhysicalService_FailingDownloadStopsBeingPending(t *testing.T) {
+	f := newPhysicalFixture(t, mocks.PhysicalEPUB("x", false), time.Minute)
+	ctx := context.Background()
+	require.NoError(t, f.blobs.Delete(ctx, "epub"))
+	f.svc.positions.pendingGrace = 0
+
+	view, _ := f.svc.Copy(ctx, "u", uuid.New())
+	assert.True(t, view.Syncable, "first failure: pending")
+	view, _ = f.svc.Copy(ctx, "u", uuid.New())
+	assert.False(t, view.Syncable, "past the grace")
 }
 
 func TestPhysicalService_UpdateCopyValidates(t *testing.T) {

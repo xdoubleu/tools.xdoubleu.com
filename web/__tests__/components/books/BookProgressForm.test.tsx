@@ -349,6 +349,12 @@ describe('BookProgressForm', () => {
       expect(mockMutate).toHaveBeenCalledWith(['/books/reading-state', 'book-1'])
     })
 
+    it('leaves Enter on a button to the button', () => {
+      render(<BookProgressForm userBook={physicalBook()} />)
+      fireEvent.keyDown(screen.getByRole('button', { name: /Copy details/ }), { key: 'Enter' })
+      expect(mockUpdateProgress).not.toHaveBeenCalled()
+    })
+
     it('removes an anchor', () => {
       mockPhysicalCopy.data = {
         syncable: true,

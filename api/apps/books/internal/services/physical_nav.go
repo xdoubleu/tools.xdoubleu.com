@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
-	"path"
 	"strings"
 )
 
@@ -51,7 +50,7 @@ func readTokens(d *xml.Decoder, h tokenHandler) error {
 func readNavigation(zr *zip.Reader, pkg opfDoc, opfDir string) []navLink {
 	var ncx string
 	for _, it := range pkg.Items {
-		doc, _ := resolveLink(path.Join(opfDir, "x"), it.Href)
+		doc := resolveHref(opfDir, it.Href)
 		if hasToken(it.Properties, "nav") {
 			if links := readZipNav(zr, doc, newNavDocReader(doc)); len(links) > 0 {
 				return links

@@ -47,7 +47,8 @@ func (s *PositionService) epubText(
 }
 
 // bookText is bookID's text model, waiting up to wait for it to build. It is
-// nil when the book has no usable EPUB, or (pending) is still building.
+// nil when the book has no usable EPUB, or (pending) is still building or
+// failing retryably within the pending grace.
 func (s *PositionService) bookText(
 	ctx context.Context,
 	userID string,
@@ -73,13 +74,13 @@ func (s *PositionService) bookText(
 	defer timer.Stop()
 	select {
 	case res := <-ch:
-		t, _ := res.Val.(*bookText)
-		return usableText(t), t == nil
+		if t, _ := res.Val.(*bookText); t != nil {
+			return usableText(t), false
+		}
 	case <-timer.C:
-		return nil, true
 	case <-ctx.Done():
-		return nil, true
 	}
+	return nil, s.stillPending(key)
 }
 
 // usableText is nil for the empty model cached for a broken EPUB.
@@ -115,6 +116,7 @@ func (s *PositionService) buildText(ctx context.Context, key bookTextKey) *bookT
 		t = &bookText{docs: nil, cum: []int{0}, start: 0, printPages: nil, chapters: nil}
 	}
 	s.texts.add(key, t)
+	s.clearPending(key)
 	return t
 }
 

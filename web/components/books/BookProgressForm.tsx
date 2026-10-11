@@ -107,6 +107,8 @@ export default function BookProgressForm({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      // Buttons and selects act on Enter themselves.
+      if (!(e.target instanceof HTMLInputElement)) return
       e.preventDefault()
       void handleCommit()
     } else if (e.key === 'Escape') {

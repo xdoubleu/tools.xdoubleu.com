@@ -37,7 +37,10 @@ The catalog's page count may describe a different edition than the user's.
   - It skips the library's percent switch, because the page is already the
     library progress.
   - The Kobo and the web reader follow it through the existing translation.
-  - Past the 3 s budget, the write finishes in the background.
+  - Past the 3 s budget, it is stored at once with the page's percent, and
+    its position is filled in once the EPUB is parsed. A digital write waiting
+    on the same parse then can't move `current_page` off the entered page.
+  - A page saved unchanged isn't a new read, so it writes nothing.
 - **Digital → physical.**
   - After a web or Kobo write, or a Kobo position backfill, `current_page` is
     set in the background.
@@ -47,7 +50,7 @@ The catalog's page count may describe a different edition than the user's.
     elements spaced apart, for "Continue on page ~N".
 - **Text model.** Parsed lazily from the EPUB and kept in a 4-entry LRU,
   built the same way as span maps (slots, singleflight, empty on a broken
-  file).
+  file, pending only within the grace).
 
 ## Alternatives considered
 

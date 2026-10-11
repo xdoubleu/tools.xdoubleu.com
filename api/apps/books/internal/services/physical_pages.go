@@ -82,8 +82,8 @@ func (t *bookText) arabicPages() []pagePoint {
 
 // anchorPoints are c's pages pinned to offsets, by page and offset both
 // increasing: the text start, the user's anchors, and the end of the text
-// after the last page. A user anchor overrides a default it conflicts with;
-// any other anchor out of order is dropped.
+// after the last page. A user anchor overrides a default it conflicts with,
+// by page or by offset; any other anchor out of order is dropped.
 func (t *bookText) anchorPoints(c models.PhysicalCopy) []pagePoint {
 	if c.PageCount <= 0 {
 		return nil
@@ -99,7 +99,7 @@ func (t *bookText) anchorPoints(c models.PhysicalCopy) []pagePoint {
 	sort.SliceStable(user, func(i, j int) bool { return user[i].page < user[j].page })
 
 	pts := []pagePoint{}
-	if len(user) == 0 || user[0].page > first {
+	if len(user) == 0 || user[0].page > first && user[0].at > t.start {
 		pts = append(pts, pagePoint{page: first, at: t.start})
 	}
 	for _, p := range user {

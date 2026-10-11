@@ -116,6 +116,11 @@ func TestBookText_AnchorsPinPages(t *testing.T) {
 	c.Anchors = []models.PhysicalAnchor{{Page: 3, Href: mocks.PhysicalCh1Href, Offset: 50}}
 	assert.Equal(t, 3, bt.pageOf(c, pos(mocks.PhysicalCh1Href, 50)))
 	assert.Equal(t, 3, bt.pageOf(c, pos(mocks.PhysicalCh1Href, 0)))
+	// So does a later page pinned before the body matter starts.
+	c.Anchors = []models.PhysicalAnchor{
+		{Page: 7, Href: mocks.PhysicalFrontHref, Offset: 0},
+	}
+	assert.Equal(t, 7, bt.pageOf(c, pos(mocks.PhysicalFrontHref, 0)))
 	// One past the last page replaces the end.
 	c.Anchors = []models.PhysicalAnchor{{Page: 61, Href: mocks.PhysicalCh2Href, Offset: 0}}
 	assert.Equal(t, 60, bt.pageOf(c, pos(mocks.PhysicalCh3Href, 0)))

@@ -1,20 +1,18 @@
 import { renderHook } from '@testing-library/react'
 
-const mockMutate = jest.fn()
-jest.mock('swr', () => ({
-  __esModule: true,
-  default: jest.fn(),
-  mutate: (...args: unknown[]) => mockMutate(...args)
-}))
+jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 const mockGetPhysicalCopy = jest.fn()
-const mockUpdatePhysicalCopy = jest.fn()
 jest.mock('@/lib/client', () => ({
-  createServiceClient: () => ({
-    getPhysicalCopy: mockGetPhysicalCopy,
-    updatePhysicalCopy: mockUpdatePhysicalCopy
-  })
+  createServiceClient: () => ({ getPhysicalCopy: mockGetPhysicalCopy })
 }))
 jest.mock('@/lib/gen/books/v1/library_pb', () => ({ LibraryService: {} }))
+const mockEnqueueWrite = jest.fn()
+const mockSendWrite = jest.fn()
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: (...args: unknown[]) => mockEnqueueWrite(...args),
+  sendWrite: (...args: unknown[]) => mockSendWrite(...args)
+}))
+jest.mock('@/lib/books/offlineWrites', () => ({ updatePhysicalCopyWrite: 'write' }))
 
 import useSWR from 'swr'
 import { usePhysicalCopy, useUpdatePhysicalCopy } from '@/hooks/usePhysicalCopy'
@@ -40,15 +38,16 @@ describe('usePhysicalCopy', () => {
 })
 
 describe('useUpdatePhysicalCopy', () => {
-  it('saves the draft and revalidates the details', async () => {
-    mockUpdatePhysicalCopy.mockResolvedValue({})
+  it('saves the draft through the outbox', async () => {
+    mockEnqueueWrite.mockReturnValue('handle')
+    mockSendWrite.mockResolvedValue('sent')
     const { result } = renderHook(() => useUpdatePhysicalCopy())
     await result.current('book-1', {
       pageCount: 320,
       textStartPage: 9,
       anchors: [{ page: 87, href: 'OEBPS/ch2.xhtml', offset: 9 }]
     })
-    expect(mockUpdatePhysicalCopy).toHaveBeenCalledWith({
+    expect(mockEnqueueWrite).toHaveBeenCalledWith('write', {
       bookId: 'book-1',
       copy: {
         pageCount: 320,
@@ -56,6 +55,6 @@ describe('useUpdatePhysicalCopy', () => {
         anchors: [{ page: 87, position: { href: 'OEBPS/ch2.xhtml', offset: 9 } }]
       }
     })
-    expect(mockMutate).toHaveBeenCalledWith(swrKeys.physicalCopy('book-1'))
+    expect(mockSendWrite).toHaveBeenCalledWith('handle')
   })
 })

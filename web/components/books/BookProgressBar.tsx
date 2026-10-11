@@ -6,7 +6,10 @@ import {
   PROGRESS_MODE_PAGES
 } from '@/lib/books/bookProgress'
 
-/** Progress bar; a physical copy also read as an EPUB shows its page too. */
+/**
+ * Progress bar; a physical copy also read as an EPUB shows its page too, when
+ * a page count lets digital positions map to it.
+ */
 export default function BookProgressBar({ userBook }: { userBook: UserBook }) {
   const percent = displayProgressPercent(userBook)
   const pageCount = pageCountOf(userBook)
@@ -16,6 +19,7 @@ export default function BookProgressBar({ userBook }: { userBook: UserBook }) {
   } else if (
     ownsPhysical(userBook) &&
     userBook.formats.includes('epub') &&
+    pageCount > 0 &&
     userBook.currentPage > 0
   ) {
     label = `${percent}% · p. ~${userBook.currentPage}`
