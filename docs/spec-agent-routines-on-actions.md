@@ -48,7 +48,8 @@ run with over 3x its 14-day average requests.
 The agent ends each run with a retro. It reports blockers and concrete waste
 from that run as `routine-feedback` issues, commenting on an open match
 instead of duplicating, at most 2 per run. They never go to Ready: the owner
-triages them like any Backlog issue. They hold no log excerpts or copied
+triages them like any Backlog issue, and `ready-issues-sweep` fixes one
+only after the owner moves it to Ready. They hold no log excerpts or copied
 input text, since the inputs are untrusted.
 
 A red `main` also starts red-PR repair: `main.yml`'s `notify-main-ci-red` job
