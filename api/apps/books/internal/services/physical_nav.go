@@ -192,9 +192,9 @@ func (r *ncxReader) start(e xml.StartElement) {
 func (r *ncxReader) end(e xml.EndElement) bool {
 	switch e.Name.Local {
 	case tagNavPoint, tagPageTarget:
-		if n := len(r.labels); n > 0 {
-			r.labels, r.kinds = r.labels[:n-1], r.kinds[:n-1]
-		}
+		// The decoder only ends an element it started, so one is open.
+		n := len(r.labels) - 1
+		r.labels, r.kinds = r.labels[:n], r.kinds[:n]
 	case "text":
 		r.inText = false
 	}

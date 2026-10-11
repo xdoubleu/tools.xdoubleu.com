@@ -203,7 +203,8 @@ func TestBuildBookText_BodyMarkersWithoutPageList(t *testing.T) {
 }
 
 func TestBuildBookText_NCXAndGuide(t *testing.T) {
-	ncx := `<ncx><navMap>` +
+	ncx := `<ncx><docTitle><text>Book</text></docTitle>` +
+		`<content src="Text/a.xhtml"/><navMap>` +
 		`<navPoint><navLabel><text>Part One</text></navLabel>` +
 		`<content src="Text/b.xhtml"/>` +
 		`<navPoint><navLabel><text>Nested</text></navLabel>` +
@@ -219,7 +220,7 @@ func TestBuildBookText_NCXAndGuide(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, bt.cum[1], bt.start, "guide text reference")
-	require.Len(t, bt.chapters, 2)
+	require.Len(t, bt.chapters, 2, "the title and a stray content aren't chapters")
 	assert.Equal(t, "Nested", bt.chapters[1].title)
 	assert.Equal(t, bt.cum[1]+len("Intro."), bt.chapters[1].at)
 	assert.Equal(
@@ -311,4 +312,14 @@ func TestBuildBookText_EmptyNavFallsBackToNCX(t *testing.T) {
 		require.Len(t, bt.chapters, 1, "by id: %v", byID)
 		assert.Equal(t, "Only", bt.chapters[0].title)
 	}
+}
+
+func TestReadNavDoc_LinkTextSpansInlineMarkup(t *testing.T) {
+	r := newNavDocReader("OEBPS/nav.xhtml")
+	require.NoError(t, readTokens(newHTMLDecoder(strings.NewReader(
+		`<html><body><nav epub:type="toc"><ol><li><a href="a.xhtml">`+
+			`<span>Part</span> One</a></li></ol></nav></body></html>`,
+	)), r))
+	require.Len(t, r.result(), 1)
+	assert.Equal(t, "Part One", r.result()[0].text)
 }
