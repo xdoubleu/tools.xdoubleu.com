@@ -50,6 +50,7 @@ export const swrKeys = {
   kepubStatus: (bookId: string) => ['/books/kepub-status', bookId] as const,
   bookContent: (bookId: string) => ['/books/content', bookId] as const,
   readingState: (bookId: string) => ['/books/reading-state', bookId] as const,
+  physicalCopy: (bookId: string) => ['/books/physical-copy', bookId] as const,
   externalBook: (provider: string, providerId: string) =>
     ['/books/external', provider, providerId] as const,
   bookSeries: (name: string) => ['/books/series', name] as const,

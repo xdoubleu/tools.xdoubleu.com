@@ -32,4 +32,39 @@ describe('BookProgressBar', () => {
     render(<BookProgressBar userBook={ub} />)
     expect(screen.getByText('0%')).toBeInTheDocument()
   })
+
+  it('uses the physical copy page count', () => {
+    const ub = create(UserBookSchema, {
+      progressMode: 'pages',
+      currentPage: 50,
+      physicalPageCount: 100,
+      book: create(BookSchema, { pageCount: 300 })
+    })
+    render(<BookProgressBar userBook={ub} />)
+    expect(screen.getByText('50 / 100 pages')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50')
+  })
+
+  it('adds the physical page to a percent read digitally', () => {
+    const ub = create(UserBookSchema, {
+      progressMode: 'percent',
+      progressPercent: 40,
+      currentPage: 87,
+      tags: ['own-physical'],
+      formats: ['epub']
+    })
+    render(<BookProgressBar userBook={ub} />)
+    expect(screen.getByText('40% · p. ~87')).toBeInTheDocument()
+  })
+
+  it('leaves the page out without an EPUB to sync with', () => {
+    const ub = create(UserBookSchema, {
+      progressMode: 'percent',
+      progressPercent: 40,
+      currentPage: 87,
+      tags: ['own-physical']
+    })
+    render(<BookProgressBar userBook={ub} />)
+    expect(screen.getByText('40%')).toBeInTheDocument()
+  })
 })

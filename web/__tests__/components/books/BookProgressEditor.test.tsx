@@ -11,6 +11,15 @@ jest.mock('swr', () => ({
   mutate: (...args: unknown[]) => mockMutate(...args)
 }))
 
+jest.mock('@/hooks/usePhysicalCopy', () => ({
+  usePhysicalCopy: () => ({ data: undefined }),
+  useUpdatePhysicalCopy: () => jest.fn()
+}))
+
+jest.mock('@/hooks/useReadingState', () => ({
+  useReadingState: () => ({ data: undefined })
+}))
+
 jest.mock('@/hooks/useBooks', () => ({
   useUpdateProgress: () => mockUpdateProgress
 }))
@@ -113,7 +122,8 @@ describe('BookProgressEditor', () => {
         bookId: 'book-1',
         progressMode: 'pages',
         currentPage: 120,
-        progressPercent: 0
+        progressPercent: 0,
+        readAt: expect.any(String)
       })
     })
     expect(mockMutate).toHaveBeenCalledWith('/books')

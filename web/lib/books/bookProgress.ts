@@ -20,13 +20,22 @@ function clampPercent(p: number): number {
   return Math.round(p)
 }
 
+export function ownsPhysical(userBook: UserBook): boolean {
+  return userBook.tags.includes('own-physical')
+}
+
+/** The physical copy's page count, else the catalog's; 0 when unknown. */
+export function pageCountOf(userBook: UserBook): number {
+  return userBook.physicalPageCount || (userBook.book?.pageCount ?? 0)
+}
+
 // displayProgressPercent returns 0-100: stored percent, or current page over
 // page count (0 when unknown).
 export function displayProgressPercent(userBook: UserBook): number {
   if (userBook.progressMode === PROGRESS_MODE_PERCENT) {
     return clampPercent(userBook.progressPercent)
   }
-  const pageCount = userBook.book?.pageCount ?? 0
+  const pageCount = pageCountOf(userBook)
   if (pageCount <= 0) return 0
   return clampPercent((userBook.currentPage / pageCount) * 100)
 }
