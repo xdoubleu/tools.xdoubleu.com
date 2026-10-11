@@ -115,8 +115,11 @@ type UserBook struct {
 	ProgressMode    string
 	CurrentPage     int
 	ProgressPercent int
-	AddedAt         time.Time
-	UpdatedAt       time.Time
+	// PhysicalPageCount is the physical copy's page count; nil uses the
+	// catalog's.
+	PhysicalPageCount *int
+	AddedAt           time.Time
+	UpdatedAt         time.Time
 }
 
 // DisplayProgressPercent returns the reading progress as a 0-100 percentage. In
@@ -127,10 +130,14 @@ func (ub UserBook) DisplayProgressPercent() int {
 	if ub.ProgressMode == ProgressModePercent {
 		return clampPercent(ub.ProgressPercent)
 	}
-	if ub.Book == nil || ub.Book.PageCount == nil || *ub.Book.PageCount <= 0 {
+	pageCount := ub.PhysicalPageCount
+	if pageCount == nil && ub.Book != nil {
+		pageCount = ub.Book.PageCount
+	}
+	if pageCount == nil || *pageCount <= 0 {
 		return 0
 	}
-	ratio := float64(ub.CurrentPage) / float64(*ub.Book.PageCount)
+	ratio := float64(ub.CurrentPage) / float64(*pageCount)
 	pct := int(math.Round(ratio * float64(MaxProgressPercent)))
 	return clampPercent(pct)
 }

@@ -78,6 +78,12 @@ const (
 	// LibraryServiceTranslateReadingPositionProcedure is the fully-qualified name of the
 	// LibraryService's TranslateReadingPosition RPC.
 	LibraryServiceTranslateReadingPositionProcedure = "/books.v1.LibraryService/TranslateReadingPosition"
+	// LibraryServiceGetPhysicalCopyProcedure is the fully-qualified name of the LibraryService's
+	// GetPhysicalCopy RPC.
+	LibraryServiceGetPhysicalCopyProcedure = "/books.v1.LibraryService/GetPhysicalCopy"
+	// LibraryServiceUpdatePhysicalCopyProcedure is the fully-qualified name of the LibraryService's
+	// UpdatePhysicalCopy RPC.
+	LibraryServiceUpdatePhysicalCopyProcedure = "/books.v1.LibraryService/UpdatePhysicalCopy"
 	// LibraryServiceGetBookContentProcedure is the fully-qualified name of the LibraryService's
 	// GetBookContent RPC.
 	LibraryServiceGetBookContentProcedure = "/books.v1.LibraryService/GetBookContent"
@@ -118,6 +124,8 @@ type LibraryServiceClient interface {
 	UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error)
 	GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error)
 	TranslateReadingPosition(context.Context, *connect.Request[v1.TranslateReadingPositionRequest]) (*connect.Response[v1.TranslateReadingPositionResponse], error)
+	GetPhysicalCopy(context.Context, *connect.Request[v1.GetPhysicalCopyRequest]) (*connect.Response[v1.GetPhysicalCopyResponse], error)
+	UpdatePhysicalCopy(context.Context, *connect.Request[v1.UpdatePhysicalCopyRequest]) (*connect.Response[v1.UpdatePhysicalCopyResponse], error)
 	GetBookContent(context.Context, *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error)
 	GetSeries(context.Context, *connect.Request[v1.GetSeriesRequest]) (*connect.Response[v1.GetSeriesResponse], error)
 	CreateShelf(context.Context, *connect.Request[v1.CreateShelfRequest]) (*connect.Response[v1.CreateShelfResponse], error)
@@ -228,6 +236,18 @@ func NewLibraryServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(libraryServiceMethods.ByName("TranslateReadingPosition")),
 			connect.WithClientOptions(opts...),
 		),
+		getPhysicalCopy: connect.NewClient[v1.GetPhysicalCopyRequest, v1.GetPhysicalCopyResponse](
+			httpClient,
+			baseURL+LibraryServiceGetPhysicalCopyProcedure,
+			connect.WithSchema(libraryServiceMethods.ByName("GetPhysicalCopy")),
+			connect.WithClientOptions(opts...),
+		),
+		updatePhysicalCopy: connect.NewClient[v1.UpdatePhysicalCopyRequest, v1.UpdatePhysicalCopyResponse](
+			httpClient,
+			baseURL+LibraryServiceUpdatePhysicalCopyProcedure,
+			connect.WithSchema(libraryServiceMethods.ByName("UpdatePhysicalCopy")),
+			connect.WithClientOptions(opts...),
+		),
 		getBookContent: connect.NewClient[v1.GetBookContentRequest, v1.GetBookContentResponse](
 			httpClient,
 			baseURL+LibraryServiceGetBookContentProcedure,
@@ -290,6 +310,8 @@ type libraryServiceClient struct {
 	updateReadingProgress    *connect.Client[v1.UpdateReadingProgressRequest, v1.UpdateReadingProgressResponse]
 	getReadingState          *connect.Client[v1.GetReadingStateRequest, v1.GetReadingStateResponse]
 	translateReadingPosition *connect.Client[v1.TranslateReadingPositionRequest, v1.TranslateReadingPositionResponse]
+	getPhysicalCopy          *connect.Client[v1.GetPhysicalCopyRequest, v1.GetPhysicalCopyResponse]
+	updatePhysicalCopy       *connect.Client[v1.UpdatePhysicalCopyRequest, v1.UpdatePhysicalCopyResponse]
 	getBookContent           *connect.Client[v1.GetBookContentRequest, v1.GetBookContentResponse]
 	getSeries                *connect.Client[v1.GetSeriesRequest, v1.GetSeriesResponse]
 	createShelf              *connect.Client[v1.CreateShelfRequest, v1.CreateShelfResponse]
@@ -374,6 +396,16 @@ func (c *libraryServiceClient) TranslateReadingPosition(ctx context.Context, req
 	return c.translateReadingPosition.CallUnary(ctx, req)
 }
 
+// GetPhysicalCopy calls books.v1.LibraryService.GetPhysicalCopy.
+func (c *libraryServiceClient) GetPhysicalCopy(ctx context.Context, req *connect.Request[v1.GetPhysicalCopyRequest]) (*connect.Response[v1.GetPhysicalCopyResponse], error) {
+	return c.getPhysicalCopy.CallUnary(ctx, req)
+}
+
+// UpdatePhysicalCopy calls books.v1.LibraryService.UpdatePhysicalCopy.
+func (c *libraryServiceClient) UpdatePhysicalCopy(ctx context.Context, req *connect.Request[v1.UpdatePhysicalCopyRequest]) (*connect.Response[v1.UpdatePhysicalCopyResponse], error) {
+	return c.updatePhysicalCopy.CallUnary(ctx, req)
+}
+
 // GetBookContent calls books.v1.LibraryService.GetBookContent.
 func (c *libraryServiceClient) GetBookContent(ctx context.Context, req *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error) {
 	return c.getBookContent.CallUnary(ctx, req)
@@ -426,6 +458,8 @@ type LibraryServiceHandler interface {
 	UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error)
 	GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error)
 	TranslateReadingPosition(context.Context, *connect.Request[v1.TranslateReadingPositionRequest]) (*connect.Response[v1.TranslateReadingPositionResponse], error)
+	GetPhysicalCopy(context.Context, *connect.Request[v1.GetPhysicalCopyRequest]) (*connect.Response[v1.GetPhysicalCopyResponse], error)
+	UpdatePhysicalCopy(context.Context, *connect.Request[v1.UpdatePhysicalCopyRequest]) (*connect.Response[v1.UpdatePhysicalCopyResponse], error)
 	GetBookContent(context.Context, *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error)
 	GetSeries(context.Context, *connect.Request[v1.GetSeriesRequest]) (*connect.Response[v1.GetSeriesResponse], error)
 	CreateShelf(context.Context, *connect.Request[v1.CreateShelfRequest]) (*connect.Response[v1.CreateShelfResponse], error)
@@ -532,6 +566,18 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 		connect.WithSchema(libraryServiceMethods.ByName("TranslateReadingPosition")),
 		connect.WithHandlerOptions(opts...),
 	)
+	libraryServiceGetPhysicalCopyHandler := connect.NewUnaryHandler(
+		LibraryServiceGetPhysicalCopyProcedure,
+		svc.GetPhysicalCopy,
+		connect.WithSchema(libraryServiceMethods.ByName("GetPhysicalCopy")),
+		connect.WithHandlerOptions(opts...),
+	)
+	libraryServiceUpdatePhysicalCopyHandler := connect.NewUnaryHandler(
+		LibraryServiceUpdatePhysicalCopyProcedure,
+		svc.UpdatePhysicalCopy,
+		connect.WithSchema(libraryServiceMethods.ByName("UpdatePhysicalCopy")),
+		connect.WithHandlerOptions(opts...),
+	)
 	libraryServiceGetBookContentHandler := connect.NewUnaryHandler(
 		LibraryServiceGetBookContentProcedure,
 		svc.GetBookContent,
@@ -606,6 +652,10 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 			libraryServiceGetReadingStateHandler.ServeHTTP(w, r)
 		case LibraryServiceTranslateReadingPositionProcedure:
 			libraryServiceTranslateReadingPositionHandler.ServeHTTP(w, r)
+		case LibraryServiceGetPhysicalCopyProcedure:
+			libraryServiceGetPhysicalCopyHandler.ServeHTTP(w, r)
+		case LibraryServiceUpdatePhysicalCopyProcedure:
+			libraryServiceUpdatePhysicalCopyHandler.ServeHTTP(w, r)
 		case LibraryServiceGetBookContentProcedure:
 			libraryServiceGetBookContentHandler.ServeHTTP(w, r)
 		case LibraryServiceGetSeriesProcedure:
@@ -687,6 +737,14 @@ func (UnimplementedLibraryServiceHandler) GetReadingState(context.Context, *conn
 
 func (UnimplementedLibraryServiceHandler) TranslateReadingPosition(context.Context, *connect.Request[v1.TranslateReadingPositionRequest]) (*connect.Response[v1.TranslateReadingPositionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.TranslateReadingPosition is not implemented"))
+}
+
+func (UnimplementedLibraryServiceHandler) GetPhysicalCopy(context.Context, *connect.Request[v1.GetPhysicalCopyRequest]) (*connect.Response[v1.GetPhysicalCopyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.GetPhysicalCopy is not implemented"))
+}
+
+func (UnimplementedLibraryServiceHandler) UpdatePhysicalCopy(context.Context, *connect.Request[v1.UpdatePhysicalCopyRequest]) (*connect.Response[v1.UpdatePhysicalCopyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.UpdatePhysicalCopy is not implemented"))
 }
 
 func (UnimplementedLibraryServiceHandler) GetBookContent(context.Context, *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error) {

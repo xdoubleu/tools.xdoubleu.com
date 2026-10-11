@@ -164,24 +164,9 @@ func zipDocText(zr *zip.Reader, name string) (docText, error) {
 // epubContentDocs lists the OPF's XHTML content documents as zip-root paths,
 // with kepubify's rules for which manifest items count.
 func epubContentDocs(zr *zip.Reader) ([]string, error) {
-	var container struct {
-		RootFiles []struct {
-			FullPath  string `xml:"full-path,attr"`
-			MediaType string `xml:"media-type,attr"`
-		} `xml:"rootfiles>rootfile"`
-	}
-	if err := decodeZipXML(zr, "META-INF/container.xml", &container); err != nil {
+	opfPath, err := epubPackagePath(zr)
+	if err != nil {
 		return nil, err
-	}
-	opfPath := ""
-	for _, rf := range container.RootFiles {
-		if rf.MediaType == "application/oebps-package+xml" {
-			opfPath = rf.FullPath
-			break
-		}
-	}
-	if opfPath == "" {
-		return nil, errors.New("container.xml names no package document")
 	}
 
 	var opf struct {
@@ -190,15 +175,13 @@ func epubContentDocs(zr *zip.Reader) ([]string, error) {
 			MediaType string `xml:"media-type,attr"`
 		} `xml:"manifest>item"`
 	}
-	if err := decodeZipXML(zr, opfPath, &opf); err != nil {
+	if err = decodeZipXML(zr, opfPath, &opf); err != nil {
 		return nil, err
 	}
 
 	var docs []string
 	for _, it := range opf.Items {
-		ext := strings.ToLower(path.Ext(it.Href))
-		if it.MediaType != "application/xhtml+xml" && it.MediaType != "text/html" &&
-			ext != ".xhtml" && ext != ".html" && ext != ".htm" {
+		if !isContentDoc(it.Href, it.MediaType) {
 			continue
 		}
 		href := it.Href
@@ -208,6 +191,32 @@ func epubContentDocs(zr *zip.Reader) ([]string, error) {
 		docs = append(docs, path.Join(path.Dir(opfPath), href))
 	}
 	return docs, nil
+}
+
+// isContentDoc is kepubify's rule for which manifest items are XHTML.
+func isContentDoc(href, mediaType string) bool {
+	ext := strings.ToLower(path.Ext(href))
+	return mediaType == "application/xhtml+xml" || mediaType == "text/html" ||
+		ext == ".xhtml" || ext == ".html" || ext == ".htm"
+}
+
+// epubPackagePath is the zip-root path of the OPF that container.xml names.
+func epubPackagePath(zr *zip.Reader) (string, error) {
+	var container struct {
+		RootFiles []struct {
+			FullPath  string `xml:"full-path,attr"`
+			MediaType string `xml:"media-type,attr"`
+		} `xml:"rootfiles>rootfile"`
+	}
+	if err := decodeZipXML(zr, "META-INF/container.xml", &container); err != nil {
+		return "", err
+	}
+	for _, rf := range container.RootFiles {
+		if rf.MediaType == "application/oebps-package+xml" {
+			return rf.FullPath, nil
+		}
+	}
+	return "", errors.New("container.xml names no package document")
 }
 
 func decodeZipXML(zr *zip.Reader, name string, v any) error {
@@ -228,12 +237,7 @@ func decodeZipXML(zr *zip.Reader, name string, v any) error {
 // body.textContent: every text and CDATA node under <body>, script and style
 // included, entities resolved.
 func parseBodyText(r io.Reader) (docText, error) {
-	d := xml.NewDecoder(r)
-	d.Strict = false
-	d.AutoClose = xml.HTMLAutoClose
-	d.Entity = xml.HTMLEntity
-	d.CharsetReader = charset.NewReaderLabel
-
+	d := newHTMLDecoder(r)
 	b := &bodyTextReader{
 		dt: docText{units: nil, spans: nil, anchors: nil}, depth: 0, open: -1, openDepth: 0,
 	}
@@ -256,6 +260,16 @@ func parseBodyText(r io.Reader) (docText, error) {
 			b.text(v)
 		}
 	}
+}
+
+// newHTMLDecoder reads XHTML leniently, as browsers do.
+func newHTMLDecoder(r io.Reader) *xml.Decoder {
+	d := xml.NewDecoder(r)
+	d.Strict = false
+	d.AutoClose = xml.HTMLAutoClose
+	d.Entity = xml.HTMLEntity
+	d.CharsetReader = charset.NewReaderLabel
+	return d
 }
 
 // bodyTextReader accumulates a docText from XML tokens.

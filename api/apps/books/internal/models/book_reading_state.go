@@ -11,6 +11,8 @@ const (
 	ReadingSourceWeb    = "web"
 	ReadingSourceKobo   = "kobo"
 	ReadingSourceManual = "manual"
+	// ReadingSourcePhysical is a page entered for the physical copy.
+	ReadingSourcePhysical = "physical"
 )
 
 // KoboLocation is a Kobo bookmark position, stored as the device sent it.

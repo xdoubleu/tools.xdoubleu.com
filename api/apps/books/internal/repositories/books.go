@@ -1000,6 +1000,7 @@ func (repo *BooksRepository) GetCatalogWithUserOverlay(
 		    COALESCE(ub.progress_mode, ''),
 		    COALESCE(ub.current_page, 0),
 		    COALESCE(ub.progress_percent, 0),
+		    ub.physical_page_count,
 		    COALESCE(ub.added_at, b.created_at),
 		    COALESCE(ub.updated_at, b.updated_at),
 		    b.id, b.title, b.authors, b.isbn13, b.cover_url, b.description,
