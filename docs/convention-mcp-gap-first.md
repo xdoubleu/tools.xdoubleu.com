@@ -43,7 +43,8 @@ working tool would have saved, often requiring direct database access.
 - **#1564** — Grafana-managed alerts never appear in `ALERTS{}`.
   `get_grafana_alerts` reads the ruler API over the public URL.
 - **#1616** — the lint checks secret names, not values; a malformed
-  `OAUTH_OIDC_PRIVATE_KEY` crashed api at boot. Open.
+  `OAUTH_OIDC_PRIVATE_KEY` crashed api at boot. `deploy-kamal` now runs
+  `openssl rsa -check` on it before deploying (#2412).
 - **#1818** — a slow job measured only end to end.
   `job_phase_duration_seconds` (`job_name`, `phase`) via
   `observability.ObserveJobPhase`, plus per-step Sentry spans. **Record phase
@@ -63,3 +64,7 @@ working tool would have saved, often requiring direct database access.
   `books_list_kobo_store_books` lists each store book's library match and the
   last mirrored percent with its outcome (`mirrored`, `no_library_match`,
   `no_progress`, `not_newer`).
+- **#2412** — every api boot rejected `OAUTH_OIDC_PRIVATE_KEY`, but
+  `get_logs` showed `{"error": {}}`: the log tee marshalled `error`,
+  `LogValuer` and group attrs as empty objects. They now keep their text. The
+  cause was Kamal's env file escaping the PEM's newlines.

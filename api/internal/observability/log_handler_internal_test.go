@@ -122,3 +122,29 @@ func TestLogRepoHandler_WithGroup_PreservesInserter(t *testing.T) {
 	require.Len(t, inserter.inserted, 1)
 	assert.Equal(t, "grouped message", inserter.inserted[0].Message)
 }
+
+type redacted struct{}
+
+func (redacted) LogValue() slog.Value { return slog.StringValue("[redacted]") }
+
+func TestLogRepoHandler_Handle_ErrorAndLogValuerAttrsKeepTheirText(t *testing.T) {
+	inserter := newFakeLogInserter()
+	logger := slog.New(
+		NewLogRepoHandler(slog.NewTextHandler(&bytes.Buffer{}, nil), inserter),
+	)
+
+	logger.Error(
+		"failed",
+		"error", errors.New("not valid PEM"),
+		"secret", redacted{},
+		slog.Group("req", "error", errors.New("nested"), "status", 500),
+	)
+
+	require.Len(t, inserter.inserted, 1)
+	assert.JSONEq(
+		t,
+		`{"error":"not valid PEM","secret":"[redacted]",`+
+			`"req":{"error":"nested","status":500}}`,
+		string(inserter.inserted[0].AttrsJSON),
+	)
+}

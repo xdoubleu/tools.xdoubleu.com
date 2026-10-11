@@ -9,6 +9,7 @@ import (
 	"encoding/pem"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -52,6 +53,18 @@ func TestLoadOrGenerateOIDCKey(t *testing.T) {
 	t.Run("PKCS#1 RSA parses", func(t *testing.T) {
 		k, _, err := oauth2as.LoadOrGenerateOIDCKey(pkcs1)
 		require.NoError(t, err)
+		assert.Equal(t, rsaKey.N, k.N)
+	})
+
+	// Kamal's env file writes values with Ruby's String#dump, and Docker's
+	// --env-file passes the resulting literal \n through unchanged.
+	t.Run("PEM with Kamal-escaped newlines parses", func(t *testing.T) {
+		escaped := strings.ReplaceAll(pkcs8PEM(t, rsaKey), "\n", `\n`)
+		require.NotContains(t, escaped, "\n")
+
+		k, generated, err := oauth2as.LoadOrGenerateOIDCKey(escaped)
+		require.NoError(t, err)
+		assert.False(t, generated)
 		assert.Equal(t, rsaKey.N, k.N)
 	})
 
