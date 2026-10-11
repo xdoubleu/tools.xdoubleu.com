@@ -77,7 +77,11 @@ type physicalFixture struct {
 	files *fakeKEPUBFiles
 }
 
-func newPhysicalFixture(t *testing.T, epub []byte, budget time.Duration) *physicalFixture {
+func newPhysicalFixture(
+	t *testing.T,
+	epub []byte,
+	budget time.Duration,
+) *physicalFixture {
 	t.Helper()
 	blobs := &countingStore{
 		FakeClient: objectstore.NewFake(), gets: atomic.Int32{}, gate: nil,
@@ -87,7 +91,7 @@ func newPhysicalFixture(t *testing.T, epub []byte, budget time.Duration) *physic
 		int64(len(epub)), "application/epub+zip"))
 	files := &fakeKEPUBFiles{
 		byFormat: map[string]*models.BookFile{
-			models.FileFormatEPUB: { //nolint:exhaustruct //optional fields
+			models.FileFormatEPUB: {
 				ID: uuid.New(), Format: models.FileFormatEPUB, StorageKey: "epub",
 				Status: models.FileStatusReady,
 			},
@@ -145,7 +149,10 @@ func TestPhysicalService_SyncPageFinishesInBackground(t *testing.T) {
 	f := newPhysicalFixture(t, mocks.PhysicalEPUB("x", false), 10*time.Millisecond)
 	f.blobs.gate = make(chan struct{})
 
-	require.NoError(t, f.svc.SyncPage(context.Background(), "u", uuid.New(), 3, time.Now()))
+	require.NoError(
+		t,
+		f.svc.SyncPage(context.Background(), "u", uuid.New(), 3, time.Now()),
+	)
 	assert.Empty(t, f.store.written(), "the EPUB is still downloading")
 	close(f.blobs.gate)
 	require.Eventually(t, func() bool { return len(f.store.written()) == 1 },
@@ -155,7 +162,11 @@ func TestPhysicalService_SyncPageFinishesInBackground(t *testing.T) {
 func TestPhysicalService_FollowDigitalSetsCurrentPage(t *testing.T) {
 	f := newPhysicalFixture(t, mocks.PhysicalEPUB("x", true), time.Minute)
 	// Chapter two's page 4 starts halfway through, after its epigraph and title.
-	half := len("Epigraph.Two") + len(mocks.PhysicalSentence(1, 1))*mocks.PhysicalSentences/2
+	half := len(
+		"Epigraph.Two",
+	) + len(
+		mocks.PhysicalSentence(1, 1),
+	)*mocks.PhysicalSentences/2
 	state := models.BookReadingState{ //nolint:exhaustruct //only what's read
 		UserID: "u", BookID: uuid.New(), Source: models.ReadingSourceKobo,
 		Position: &models.ReadingPosition{Href: mocks.PhysicalCh2Href, Offset: half, Page: 0},
@@ -169,12 +180,16 @@ func TestPhysicalService_FollowDigitalSetsCurrentPage(t *testing.T) {
 		t.Fatal("current_page wasn't set")
 	}
 
-	for _, skip := range []models.BookReadingState{
-		{Source: models.ReadingSourcePhysical, Position: state.Position}, //nolint:exhaustruct //test
-		{Source: models.ReadingSourceWeb, Position: nil},                 //nolint:exhaustruct //test
-		{Source: models.ReadingSourceWeb, //nolint:exhaustruct //test
-			Position: &models.ReadingPosition{Href: "", Offset: 0, Page: 3}},
-	} {
+	//nolint:exhaustruct // only what FollowDigital reads
+	skips := []models.BookReadingState{
+		{Source: models.ReadingSourcePhysical, Position: state.Position},
+		{Source: models.ReadingSourceWeb, Position: nil},
+		{
+			Source:   models.ReadingSourceWeb,
+			Position: &models.ReadingPosition{Href: "", Offset: 0, Page: 3},
+		},
+	}
+	for _, skip := range skips {
 		f.svc.FollowDigital(context.Background(), skip, time.Now())
 	}
 	f.store.copy.Syncable = false
@@ -244,13 +259,20 @@ func TestPhysicalService_NoUsableEPUB(t *testing.T) {
 		Status: models.FileStatusReady,
 	}
 	f.files.byID[src.ID] = src
-	f.files.byFormat[models.FileFormatKEPUB] = &models.BookFile{ //nolint:exhaustruct //optional
-		ID: uuid.New(), Format: models.FileFormatKEPUB, StorageKey: "kepub",
-		Status: models.FileStatusReady, SourceFileID: &src.ID,
+	//nolint:exhaustruct // optional fields
+	f.files.byFormat[models.FileFormatKEPUB] = &models.BookFile{
+		ID:           uuid.New(),
+		Format:       models.FileFormatKEPUB,
+		StorageKey:   "kepub",
+		Status:       models.FileStatusReady,
+		SourceFileID: &src.ID,
 	}
-	f.files.byFormat[models.FileFormatEPUB] = &models.BookFile{ //nolint:exhaustruct //optional
-		ID: uuid.New(), Format: models.FileFormatEPUB, StorageKey: "epub",
-		Status: models.FileStatusReady,
+	//nolint:exhaustruct // optional fields
+	f.files.byFormat[models.FileFormatEPUB] = &models.BookFile{
+		ID:         uuid.New(),
+		Format:     models.FileFormatEPUB,
+		StorageKey: "epub",
+		Status:     models.FileStatusReady,
 	}
 	view, _ = f.svc.Copy(ctx, "u", uuid.New())
 	assert.False(t, view.Syncable, "the Kobo reads a PDF-sourced KEPUB")
@@ -287,14 +309,19 @@ func TestPhysicalService_UpdateCopyValidates(t *testing.T) {
 	assert.Equal(t, &ok, f.store.updated)
 
 	tooMany := make([]models.PhysicalAnchor, maxPhysicalAnchors+1)
-	for _, bad := range []models.PhysicalCopy{
-		{PageCount: -1},                         //nolint:exhaustruct //test
-		{PageCount: 10, TextStartPage: 200_000}, //nolint:exhaustruct //test
-		{Anchors: tooMany},                      //nolint:exhaustruct //test
-		{Anchors: []models.PhysicalAnchor{{Page: 0, Href: "a", Offset: 0}}},  //nolint:exhaustruct //test
-		{Anchors: []models.PhysicalAnchor{{Page: 3, Href: "", Offset: 0}}},   //nolint:exhaustruct //test
-		{Anchors: []models.PhysicalAnchor{{Page: 3, Href: "a", Offset: -1}}}, //nolint:exhaustruct //test
-	} {
+	anchor := func(page int, href string, offset int) []models.PhysicalAnchor {
+		return []models.PhysicalAnchor{{Page: page, Href: href, Offset: offset}}
+	}
+	//nolint:exhaustruct // each case sets only what it breaks
+	bads := []models.PhysicalCopy{
+		{PageCount: -1},
+		{PageCount: 10, TextStartPage: 200_000},
+		{Anchors: tooMany},
+		{Anchors: anchor(0, "a", 0)},
+		{Anchors: anchor(3, "", 0)},
+		{Anchors: anchor(3, "a", -1)},
+	}
+	for _, bad := range bads {
 		require.ErrorIs(t, f.svc.UpdateCopy(ctx, "u", uuid.New(), bad),
 			ErrInvalidPhysicalCopy)
 	}

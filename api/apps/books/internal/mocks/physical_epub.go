@@ -15,6 +15,9 @@ const (
 	PhysicalCh3Href   = "OEBPS/ch3.xhtml"
 	// PhysicalSentences is the sentences per chapter.
 	PhysicalSentences = 20
+	// physicalPagesPerChapter: each chapter's start and middle.
+	physicalPagesPerChapter = 2
+	physicalChapters        = 3
 )
 
 // PhysicalSentence is chapter ch's k-th sentence (1-based), including its
@@ -41,7 +44,7 @@ func PhysicalEPUB(title string, printPages bool) []byte {
 		b.WriteString(intro + "<p>")
 		for k := 1; k <= PhysicalSentences; k++ {
 			if k == PhysicalSentences/2+1 {
-				b.WriteString(marker(fmt.Sprint(2 * ch)))
+				b.WriteString(marker(fmt.Sprint(physicalPagesPerChapter * ch)))
 			}
 			b.WriteString(PhysicalSentence(ch, k))
 		}
@@ -54,20 +57,18 @@ func PhysicalEPUB(title string, printPages bool) []byte {
 		var b strings.Builder
 		b.WriteString(`<nav epub:type="page-list"><ol>` +
 			`<li><a href="front.xhtml#page_i">i</a></li>`)
-		for p := 1; p <= 6; p++ {
-			fmt.Fprintf(&b, `<li><a href="ch%d.xhtml#page_%d">%d</a></li>`, (p+1)/2, p, p)
+		for p := 1; p <= physicalPagesPerChapter*physicalChapters; p++ {
+			ch := (p + 1) / physicalPagesPerChapter
+			fmt.Fprintf(&b, `<li><a href="ch%d.xhtml#page_%d">%d</a></li>`, ch, p, p)
 		}
 		b.WriteString(`</ol></nav>`)
 		pageList = b.String()
 	}
 
 	files := []struct{ name, content string }{
-		{"mimetype", "application/epub+zip"},
-		{"META-INF/container.xml", `<?xml version="1.0"?>` +
-			`<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"` +
-			` version="1.0"><rootfiles><rootfile full-path="OEBPS/content.opf"` +
-			` media-type="application/oebps-package+xml"/></rootfiles></container>`},
-		{"OEBPS/content.opf", physicalOPF(title)},
+		{epubMimetypePath, epubMimetype},
+		{epubContainerPath, epubContainerXML},
+		{epubOPFPath, physicalOPF(title)},
 		{"OEBPS/nav.xhtml", physicalDoc(`<nav epub:type="toc"><ol>` +
 			`<li><a href="ch1.xhtml">Chapter One</a></li>` +
 			`<li><a href="ch2.xhtml#c2">Chapter  Two</a></li>` +
@@ -78,8 +79,10 @@ func PhysicalEPUB(title string, printPages bool) []byte {
 			`</ol></nav>` + pageList)},
 		{PhysicalFrontHref, physicalDoc(marker("i") + "<p>Title page. Copyright.</p>")},
 		{PhysicalCh1Href, chapter(1, marker("1"))},
-		{PhysicalCh2Href, chapter(2, marker("3")+`<p>Epigraph.</p><h1 id="c2">Two</h1>`)},
-		{PhysicalCh3Href, chapter(3, marker("5"))},
+		{PhysicalCh2Href, chapter(
+			physicalChapters-1, marker("3")+`<p>Epigraph.</p><h1 id="c2">Two</h1>`,
+		)},
+		{PhysicalCh3Href, chapter(physicalChapters, marker("5"))},
 	}
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)

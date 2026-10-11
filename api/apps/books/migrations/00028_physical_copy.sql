@@ -19,7 +19,8 @@ ADD CONSTRAINT book_reading_state_source_check CHECK (
 
 -- +goose Down
 -- +goose StatementBegin
-DELETE FROM books.book_reading_state WHERE source = 'physical';
+DELETE FROM books.book_reading_state
+WHERE source = 'physical';
 
 ALTER TABLE books.book_reading_state
 DROP CONSTRAINT book_reading_state_source_check,

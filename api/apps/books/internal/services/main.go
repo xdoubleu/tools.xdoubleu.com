@@ -59,6 +59,7 @@ func New(
 		resyncSource: repositories.Books,
 		coverClient:  newCoverClient(config.Env),
 		seriesCache:  newSeriesCache(),
+		physical:     nil, // set once the position service exists
 	}
 
 	conversionSvc := NewConversionService(

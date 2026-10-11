@@ -157,12 +157,12 @@ func (s *PhysicalService) SyncPage(
 		if !ok {
 			return nil
 		}
-		_, err := s.states.UpsertIfNewer(ctx, models.BookReadingState{
+		_, upsertErr := s.states.UpsertIfNewer(ctx, models.BookReadingState{
 			UserID: userID, BookID: bookID, Source: models.ReadingSourcePhysical,
 			Percent: t.percentAt(g), Location: nil, KoboLocation: nil,
 			Position: &pos, ReadAt: &readAt, UpdatedAt: time.Time{},
 		})
-		return err
+		return upsertErr
 	}
 
 	t, pending := s.positions.bookText(ctx, userID, bookID, s.budget)
@@ -172,11 +172,13 @@ func (s *PhysicalService) SyncPage(
 	if pending {
 		bg := context.WithoutCancel(ctx)
 		go func() {
-			if t, _ := s.positions.bookText(bg, userID, bookID, s.buildTimeout); t != nil {
-				if err := write(bg, t); err != nil {
-					s.logger.WarnContext(bg, "physical reading state write failed",
-						"book_id", bookID, "err", err)
-				}
+			built, _ := s.positions.bookText(bg, userID, bookID, s.buildTimeout)
+			if built == nil {
+				return
+			}
+			if writeErr := write(bg, built); writeErr != nil {
+				s.logger.WarnContext(bg, "physical reading state write failed",
+					"book_id", bookID, "err", writeErr)
 			}
 		}()
 	}

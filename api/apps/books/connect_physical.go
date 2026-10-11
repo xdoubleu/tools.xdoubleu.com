@@ -80,7 +80,10 @@ func (h *booksConnectHandler) UpdatePhysicalCopy(
 	return connect.NewResponse(&booksv1.UpdatePhysicalCopyResponse{}), nil
 }
 
-func physicalCopyCaller(ctx context.Context, rawBookID string) (string, uuid.UUID, error) {
+func physicalCopyCaller(
+	ctx context.Context,
+	rawBookID string,
+) (string, uuid.UUID, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return "", uuid.Nil, connect.NewError(

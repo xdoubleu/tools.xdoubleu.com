@@ -131,7 +131,7 @@ func TestBookText_ExcerptAndPercent(t *testing.T) {
 
 	long := strings.Repeat("word ", 100)
 	lt := &bookText{
-		docs:  []textDoc{{href: "a", units: []uint16(nil)}},
+		docs:  []textDoc{{href: "a", units: []uint16(nil), gaps: nil}},
 		cum:   []int{0, len(long)},
 		start: 0, printPages: nil, chapters: nil,
 	}
@@ -145,7 +145,8 @@ func TestBookText_ExcerptAndPercent(t *testing.T) {
 	assert.Equal(t, 0, bt.percentAt(0))
 	assert.Equal(t, 50, bt.percentAt(bt.total()/2))
 	assert.Equal(t, 100, bt.percentAt(bt.total()))
-	assert.Equal(t, 0, (&bookText{docs: nil, cum: []int{0}}).percentAt(0))
+	empty := &bookText{docs: nil, cum: []int{0}, start: 0, printPages: nil, chapters: nil}
+	assert.Equal(t, 0, empty.percentAt(0))
 }
 
 func TestPrintPageMarker(t *testing.T) {
@@ -162,7 +163,12 @@ func TestPrintPageMarker(t *testing.T) {
 		ok    bool
 	}{
 		{"title", el(a("epub", "type", "pagebreak"), a("", "title", "12")), "12", true},
-		{"aria", el(a("", "role", "doc-pagebreak"), a("", "aria-label", "Page 7")), "7", true},
+		{
+			"aria",
+			el(a("", "role", "doc-pagebreak"), a("", "aria-label", "Page 7")),
+			"7",
+			true,
+		},
 		{"id digits", el(a("http://www.idpf.org/2007/ops", "type", "pagebreak"),
 			a("", "id", "p034")), "034", true},
 		{"no label", el(a("epub", "type", "pagebreak"), a("", "id", "page")), "", false},
@@ -211,7 +217,11 @@ func TestBuildBookText_NCXAndGuide(t *testing.T) {
 	require.Len(t, bt.chapters, 2)
 	assert.Equal(t, "Nested", bt.chapters[1].title)
 	assert.Equal(t, bt.cum[1]+len("Intro."), bt.chapters[1].at)
-	assert.Equal(t, []printPage{{label: "7", at: bt.cum[1] + len("Intro.")}}, bt.printPages)
+	assert.Equal(
+		t,
+		[]printPage{{label: "7", at: bt.cum[1] + len("Intro.")}},
+		bt.printPages,
+	)
 }
 
 func TestBuildBookText_Broken(t *testing.T) {

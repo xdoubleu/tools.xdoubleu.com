@@ -13,6 +13,18 @@ const (
 	ChapterThreeHref = "OEBPS/Text/ch3.xhtml"
 )
 
+// The parts every test EPUB shares: its OPF is at epubOPFPath.
+const (
+	epubMimetypePath  = "mimetype"
+	epubMimetype      = "application/epub+zip"
+	epubContainerPath = "META-INF/container.xml"
+	epubOPFPath       = "OEBPS/content.opf"
+	epubContainerXML  = `<?xml version="1.0"?>` +
+		`<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"` +
+		` version="1.0"><rootfiles><rootfile full-path="OEBPS/content.opf"` +
+		` media-type="application/oebps-package+xml"/></rootfiles></container>`
+)
+
 // ChapterTwoText is ChapterTwoHref's body text; kepubify spans it as kobo.1.1
 // "Second chapter starts here. ", kobo.1.2 "It continues.", kobo.2.1
 // "Another paragraph.".
@@ -70,12 +82,9 @@ func ChapterEPUB(title, author string) []byte {
 	zw := zip.NewWriter(&buf)
 
 	files := []struct{ name, content string }{
-		{"mimetype", "application/epub+zip"},
-		{"META-INF/container.xml", `<?xml version="1.0"?>` +
-			`<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"` +
-			` version="1.0"><rootfiles><rootfile full-path="OEBPS/content.opf"` +
-			` media-type="application/oebps-package+xml"/></rootfiles></container>`},
-		{"OEBPS/content.opf", chapterOPF(title, author)},
+		{epubMimetypePath, epubMimetype},
+		{epubContainerPath, epubContainerXML},
+		{epubOPFPath, chapterOPF(title, author)},
 		{ChapterOneHref, xhtmlHead + chapterOneBody + "</html>\n"},
 		{ChapterTwoHref, xhtmlHead + "<body><p>Second chapter starts here." +
 			" It continues.</p><p>Another paragraph.</p></body>\n</html>\n"},

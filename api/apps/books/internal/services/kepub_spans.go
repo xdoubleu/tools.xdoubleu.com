@@ -185,7 +185,7 @@ func epubContentDocs(zr *zip.Reader) ([]string, error) {
 			continue
 		}
 		href := it.Href
-		if u, err := url.Parse(href); err == nil && u.Path != "" {
+		if u, parseErr := url.Parse(href); parseErr == nil && u.Path != "" {
 			href = u.Path
 		}
 		docs = append(docs, path.Join(path.Dir(opfPath), href))

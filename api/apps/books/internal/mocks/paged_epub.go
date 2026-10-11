@@ -38,12 +38,9 @@ func PagedEPUB(title, author string, intro int) []byte {
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
 	for _, f := range []struct{ name, content string }{
-		{"mimetype", "application/epub+zip"},
-		{"META-INF/container.xml", `<?xml version="1.0"?>` +
-			`<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"` +
-			` version="1.0"><rootfiles><rootfile full-path="OEBPS/content.opf"` +
-			` media-type="application/oebps-package+xml"/></rootfiles></container>`},
-		{"OEBPS/content.opf", pagedOPF(title, author)},
+		{epubMimetypePath, epubMimetype},
+		{epubContainerPath, epubContainerXML},
+		{epubOPFPath, pagedOPF(title, author)},
 		{PagedDocOne, docOne},
 		{PagedDocTwo, docTwo},
 	} {

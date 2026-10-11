@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -117,19 +118,24 @@ func (s *PositionService) buildText(ctx context.Context, key bookTextKey) *bookT
 	return t
 }
 
+// parseText downloads and parses key's EPUB; a panic counts as a broken EPUB.
 func (s *PositionService) parseText(
 	ctx context.Context,
 	key bookTextKey,
-) (t *bookText, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			t, err = nil, errors.New("epub text model build panicked")
-		}
-	}()
+) (*bookText, error) {
 	zr, err := s.openZip(ctx, key.storageKey)
 	if err != nil {
 		return nil, err
 	}
 	defer zr.close()
-	return buildBookText(ctx, &zr.zr.Reader)
+	var t *bookText
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("epub text model build panicked: %v", r)
+			}
+		}()
+		t, err = buildBookText(ctx, &zr.zr.Reader)
+	}()
+	return t, err
 }

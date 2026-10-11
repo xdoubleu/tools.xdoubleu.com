@@ -140,7 +140,10 @@ func TestPhysical_SetCurrentPageOnlyForTheLatestDigitalState(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, 77, ub.CurrentPage, "a stale digital write")
 
-	require.NoError(t, books.SetCurrentPageIfLatest(ctx, userID, bookID, 77, state.UpdatedAt))
+	require.NoError(
+		t,
+		books.SetCurrentPageIfLatest(ctx, userID, bookID, 77, state.UpdatedAt),
+	)
 	ub, err = testApp.Services.Books.GetUserBook(ctx, userID, bookID)
 	require.NoError(t, err)
 	assert.Equal(t, 77, ub.CurrentPage)
@@ -208,7 +211,10 @@ func TestPhysical_CopyErrors(t *testing.T) {
 		authed(&booksv1.GetPhysicalCopyRequest{BookId: uuid.NewString()}))
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 
-	_, err = client.GetPhysicalCopy(ctx, authed(&booksv1.GetPhysicalCopyRequest{BookId: "x"}))
+	_, err = client.GetPhysicalCopy(
+		ctx,
+		authed(&booksv1.GetPhysicalCopyRequest{BookId: "x"}),
+	)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 

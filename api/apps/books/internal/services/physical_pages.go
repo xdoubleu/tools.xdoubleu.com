@@ -197,7 +197,7 @@ func (t *bookText) excerpt(pos models.ReadingPosition) string {
 	}
 	d := t.docs[i]
 	from := min(max(pos.Offset, 0), len(d.units))
-	to := min(len(d.units), from+4*maxExcerptRunes) //nolint:mnd // whitespace slack
+	to := min(len(d.units), from+4*maxExcerptRunes)
 	spaced := make([]uint16, 0, to-from+len(d.gaps))
 	g := sort.SearchInts(d.gaps, from+1)
 	for at := from; at < to; at++ {
