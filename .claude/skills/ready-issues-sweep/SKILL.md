@@ -26,10 +26,12 @@ question.
      connection's `read:project` scope. Missing scope needs a human
      reconnect (claude.ai Settings → Connectors): file a tracking issue and
      end the run (`"failed"`), never report a false "nothing to do".
-   - **Only `bug`-labeled issues** (type labels: config `labels.types`), read
-     from each issue's `labels` in the pull.
-     Other types aren't safe to implement fully unattended; list skipped
-     issues (number + type) in the summary.
+   - **Only `bug`-labeled or `routine-feedback`-labeled issues** (type
+     labels: config `labels.types`), read from each issue's `labels` in the
+     pull. Other types aren't safe to implement fully unattended; list skipped
+     issues (number + type) in the summary. `routine-feedback` issues (filed
+     by routine retros, any type) qualify only once a human moved them to
+     Ready, like every other issue.
    - **Only trusted authors** (`docs/convention-unattended-agent-trust.md`):
      `author_association` OWNER, or `author_login` exactly
      `xdoubleu-routines[bot]`. Skip anything else (untrusted author).
