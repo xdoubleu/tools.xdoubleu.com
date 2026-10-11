@@ -140,7 +140,7 @@ func (t *bookText) positionOfPage(
 			return models.ReadingPosition{Href: "", Offset: 0, Page: 0}, 0, false
 		}
 		g = interpolate(pts, page, func(p pagePoint) int { return p.page },
-			func(p pagePoint) int { return p.at })
+			func(p pagePoint) int { return p.at }, true)
 	}
 	return t.position(g), g, true
 }
@@ -166,12 +166,13 @@ func (t *bookText) pageOf(c models.PhysicalCopy, pos models.ReadingPosition) int
 		return 0
 	}
 	return interpolate(pts, g, func(p pagePoint) int { return p.at },
-		func(p pagePoint) int { return p.page })
+		func(p pagePoint) int { return p.page }, false)
 }
 
-// interpolate maps x along pts' piecewise-linear from → to, rounding down
-// and clamping to the first point and to just before the last.
-func interpolate(pts []pagePoint, x int, from, to func(pagePoint) int) int {
+// interpolate maps x along pts' piecewise-linear from → to, clamping to the
+// first point and to just before the last. A page maps to the first offset on
+// it (up), an offset to the page it's on (down), so a page round-trips.
+func interpolate(pts []pagePoint, x int, from, to func(pagePoint) int, up bool) int {
 	last := len(pts) - 1
 	switch {
 	case x <= from(pts[0]):
@@ -181,7 +182,11 @@ func interpolate(pts []pagePoint, x int, from, to func(pagePoint) int) int {
 	}
 	i := sort.Search(last, func(i int) bool { return from(pts[i+1]) > x })
 	a, b := pts[i], pts[i+1]
-	return to(a) + (x-from(a))*(to(b)-to(a))/(from(b)-from(a))
+	num, den := (x-from(a))*(to(b)-to(a)), from(b)-from(a)
+	if up {
+		num += den - 1
+	}
+	return to(a) + num/den
 }
 
 // excerpt is the first sentence from pos, to find on the physical page.
