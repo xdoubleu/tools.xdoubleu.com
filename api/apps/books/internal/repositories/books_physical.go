@@ -24,15 +24,14 @@ func (repo *BooksRepository) GetPhysicalCopy(
 		SELECT COALESCE(ub.physical_page_count, b.page_count, 0),
 		       COALESCE(ub.physical_text_start_page, 1),
 		       ub.physical_anchors,
-		       $3 = ANY(ub.tags) AND $4 = ANY(ub.tags)
+		       $3 = ANY(ub.tags)
 		FROM books.user_books ub
 		JOIN books.books b ON b.id = ub.book_id
 		WHERE ub.user_id = $1 AND ub.book_id = $2
 	`
 	var c models.PhysicalCopy
-	err := repo.db.QueryRow(ctx, query, userID, bookID,
-		models.TagOwnPhysical, models.TagOwnDigital,
-	).Scan(&c.PageCount, &c.TextStartPage, &c.Anchors, &c.Syncable)
+	err := repo.db.QueryRow(ctx, query, userID, bookID, models.TagOwnPhysical).Scan(
+		&c.PageCount, &c.TextStartPage, &c.Anchors, &c.Syncable)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, database.ErrResourceNotFound
 	}

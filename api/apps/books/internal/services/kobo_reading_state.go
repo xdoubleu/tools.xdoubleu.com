@@ -117,5 +117,13 @@ func (s *BookService) SetKoboPosition(
 	loc models.KoboLocation,
 	pos models.ReadingPosition,
 ) error {
-	return s.readingState.SetPositionForKoboLocation(ctx, userID, bookID, loc, pos)
+	err := s.readingState.SetPositionForKoboLocation(ctx, userID, bookID, loc, pos)
+	if err != nil || s.physical == nil {
+		return err
+	}
+	state, err := s.readingState.Get(ctx, userID, bookID)
+	if err == nil && state.KoboLocation != nil && *state.KoboLocation == loc {
+		s.physical.FollowDigital(ctx, *state, state.UpdatedAt)
+	}
+	return nil
 }

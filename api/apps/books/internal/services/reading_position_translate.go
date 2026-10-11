@@ -42,6 +42,7 @@ type PositionService struct {
 	files        kepubFileStore
 	objectStore  objectstore.Client
 	cache        *spanMapCache
+	texts        *lruCache[bookTextKey, *bookText]
 	builds       singleflight.Group
 	slots        chan struct{}
 	budget       time.Duration
@@ -64,6 +65,7 @@ func newPositionService(
 		files:        files,
 		objectStore:  objectStore,
 		cache:        newSpanMapCache(spanMapCacheSize),
+		texts:        newLRUCache[bookTextKey, *bookText](bookTextCacheSize),
 		builds:       singleflight.Group{},
 		slots:        make(chan struct{}, spanMapBuildSlots),
 		budget:       budget,

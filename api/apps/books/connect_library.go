@@ -337,6 +337,16 @@ func (h *booksConnectHandler) UpdateProgress(
 			errors.New("invalid book ID"),
 		)
 	}
+	readAt := time.Now()
+	if req.Msg.ReadAt != "" {
+		readAt, err = time.Parse(time.RFC3339Nano, req.Msg.ReadAt)
+		if err != nil {
+			return nil, connect.NewError(
+				connect.CodeInvalidArgument,
+				errors.New("read_at must be RFC3339"),
+			)
+		}
+	}
 	err = h.app.Services.Books.UpdateProgress(
 		ctx,
 		user.ID,
@@ -345,6 +355,11 @@ func (h *booksConnectHandler) UpdateProgress(
 		int(req.Msg.CurrentPage),
 		int(req.Msg.ProgressPercent),
 	)
+	if err == nil && req.Msg.ProgressMode == models.ProgressModePages {
+		err = h.app.Services.Physical.SyncPage(
+			ctx, user.ID, bookID, int(req.Msg.CurrentPage), readAt,
+		)
+	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

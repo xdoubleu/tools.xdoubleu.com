@@ -79,8 +79,9 @@ func registerReadingLibraryTools(srv *mcp.Server, h *booksConnectHandler) {
 		h.mcpGetExternalBook)
 	mcptools.AddReadTool(srv, mcpAppName, "books_get_reading_state",
 		"The latest reading position for a book: percent, neutral position "+
-			"(href+offset, page, or both for a PDF-sourced book) and when it "+
-			"was read.", h.mcpGetReadingState)
+			"(href+offset, page, or both for a PDF-sourced book), when it was "+
+			"read, and for a physical copy its page and the sentence there.",
+		h.mcpGetReadingState)
 	mcptools.AddReadTool(srv, mcpAppName, "books_get_series",
 		"A series' volumes in order: the user's books plus Hardcover volumes "+
 			"they don't have.", h.mcpGetSeries)

@@ -14,6 +14,8 @@ type PhysicalCopy struct {
 	PageCount     int
 	TextStartPage int
 	Anchors       []PhysicalAnchor
-	// Syncable is true when the book is tagged own-physical and own-digital.
+	// Syncable is true when the book is tagged own-physical; it is owned
+	// digitally too once it has an EPUB, which syncing needs anyway (the
+	// own-digital tag is derived from the files).
 	Syncable bool
 }

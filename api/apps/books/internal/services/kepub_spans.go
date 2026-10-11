@@ -164,7 +164,7 @@ func zipDocText(zr *zip.Reader, name string) (docText, error) {
 // epubContentDocs lists the OPF's XHTML content documents as zip-root paths,
 // with kepubify's rules for which manifest items count.
 func epubContentDocs(zr *zip.Reader) ([]string, error) {
-	opfPath, err := epubPackagePath(zr)
+	opfPath, err := findOPFPath(zr)
 	if err != nil {
 		return nil, err
 	}
@@ -198,25 +198,6 @@ func isContentDoc(href, mediaType string) bool {
 	ext := strings.ToLower(path.Ext(href))
 	return mediaType == "application/xhtml+xml" || mediaType == "text/html" ||
 		ext == ".xhtml" || ext == ".html" || ext == ".htm"
-}
-
-// epubPackagePath is the zip-root path of the OPF that container.xml names.
-func epubPackagePath(zr *zip.Reader) (string, error) {
-	var container struct {
-		RootFiles []struct {
-			FullPath  string `xml:"full-path,attr"`
-			MediaType string `xml:"media-type,attr"`
-		} `xml:"rootfiles>rootfile"`
-	}
-	if err := decodeZipXML(zr, "META-INF/container.xml", &container); err != nil {
-		return "", err
-	}
-	for _, rf := range container.RootFiles {
-		if rf.MediaType == "application/oebps-package+xml" {
-			return rf.FullPath, nil
-		}
-	}
-	return "", errors.New("container.xml names no package document")
 }
 
 func decodeZipXML(zr *zip.Reader, name string, v any) error {

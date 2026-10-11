@@ -21,6 +21,7 @@ type Services struct {
 	Conversion *ConversionService
 	Figures    *FigureService
 	Positions  *PositionService
+	Physical   *PhysicalService
 	Progress   *ProgressService
 	Kobo       *KoboService
 	KoboLog    *KoboLogStore
@@ -75,19 +76,25 @@ func New(
 		webFetchClient,
 	)
 
+	positions := newPositionService(
+		logger, repositories.BookFiles, objectStore, translateBudget,
+	)
+	booksSvc.physical = newPhysicalService(
+		logger, repositories.Books, repositories.ReadingState, positions,
+	)
+
 	return &Services{
 		Auth:       authService,
 		Books:      booksSvc,
 		Conversion: conversionSvc,
 		Figures:    NewFigureService(logger, repositories.BookFiles, objectStore),
-		Positions: newPositionService(
-			logger, repositories.BookFiles, objectStore, translateBudget,
-		),
-		Progress: NewProgressService(repositories.Progress),
-		Kobo:     kobo,
-		KoboLog:  koboLog,
-		Ingest:   ingestSvc,
-		WebPub:   newWebPubService(booksSvc),
+		Positions:  positions,
+		Physical:   booksSvc.physical,
+		Progress:   NewProgressService(repositories.Progress),
+		Kobo:       kobo,
+		KoboLog:    koboLog,
+		Ingest:     ingestSvc,
+		WebPub:     newWebPubService(booksSvc),
 		WebSocket: progressws.NewService(
 			ctx,
 			logger,

@@ -50,6 +50,9 @@ type BookService struct {
 	resyncSource ResyncSource
 	coverClient  *http.Client
 	seriesCache  *seriesCache
+	// physical follows digital positions on a physical copy; nil in tests
+	// that build a BookService directly.
+	physical *PhysicalService
 }
 
 // SearchLibrary searches the user's own library by title/author substring.
@@ -805,6 +808,9 @@ func (s *BookService) upsertReadingProgress(
 	updatedAt, err := s.readingState.UpsertIfNewer(ctx, state)
 	if err != nil || updatedAt == nil {
 		return nil, err
+	}
+	if s.physical != nil {
+		s.physical.FollowDigital(ctx, state, *updatedAt)
 	}
 
 	// Non-zero progress promotes to-read/dropped to currently-reading.

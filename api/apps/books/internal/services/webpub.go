@@ -128,6 +128,10 @@ type opfDoc struct {
 			Linear string `xml:"linear,attr"`
 		} `xml:"itemref"`
 	} `xml:"spine"`
+	Guide []struct {
+		Type string `xml:"type,attr"`
+		Href string `xml:"href,attr"`
+	} `xml:"guide>reference"`
 }
 
 // Manifest builds the manifest for the user's original EPUB of bookID.
