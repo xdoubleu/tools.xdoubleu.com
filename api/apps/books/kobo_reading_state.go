@@ -69,6 +69,9 @@ type koboResult struct {
 // bookmark Source is the first resource rather than the reading position.
 const koboStatusFinished = "Finished"
 
+// koboStatusReading is the StatusInfo.Status of an opened, unfinished book.
+const koboStatusReading = "Reading"
+
 const koboResultSuccess = "Success"
 
 // koboChangedReadingStates builds ChangedReadingState entries for the states
@@ -249,7 +252,7 @@ func koboStatusForPercent(percent int) string {
 	case percent >= models.MaxProgressPercent:
 		return koboStatusFinished
 	case percent > 0:
-		return "Reading"
+		return koboStatusReading
 	default:
 		return "ReadyToRead"
 	}

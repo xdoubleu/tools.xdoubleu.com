@@ -140,6 +140,10 @@ func storeEntitlement(
 	for k, v := range ent {
 		e[k] = v
 	}
+	status := "Reading"
+	if percent == 0 {
+		status = "ReadyToRead"
+	}
 	return map[string]any{"NewEntitlement": map[string]any{
 		"BookEntitlement": e,
 		"BookMetadata":    meta,
@@ -149,7 +153,7 @@ func storeEntitlement(
 				"ProgressPercent": percent,
 				"LastModified":    time.Now().UTC().Format(time.RFC3339),
 			},
-			"StatusInfo": map[string]any{"Status": "Reading"},
+			"StatusInfo": map[string]any{"Status": status},
 		},
 	}}
 }
