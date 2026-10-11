@@ -67,7 +67,8 @@ func TestListProjectIssuesByStatus_ApprovalFacts(t *testing.T) {
 				 "content":{"number":1,"state":"OPEN","body":"clean",
 				            "lastEditedAt":null,
 				            "author":{"__typename":"User","login":"xdoubleu"},
-				            "authorAssociation":"OWNER","editor":null}},
+				            "authorAssociation":"OWNER","editor":null,
+				            "labels":{"nodes":[{"name":"bug"},{"name":"api"}]}}},
 				{"status":{"name":"Ready","updatedAt":"2026-09-01T10:00:00Z"},
 				 "content":{"number":2,"state":"OPEN","body":"a <!-- hidden --> b",
 				            "lastEditedAt":"2026-09-02T10:00:00Z",
@@ -100,6 +101,7 @@ func TestListProjectIssuesByStatus_ApprovalFacts(t *testing.T) {
 		time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC), issues[0].StatusUpdatedAt)
 	assert.False(t, issues[0].BodyHasHTMLComment)
 	assert.False(t, issues[0].BodyEditedAfterStatus)
+	assert.Equal(t, []string{"bug", "api"}, issues[0].Labels)
 
 	assert.Equal(t, "xdoubleu-routines[bot]", issues[1].AuthorLogin)
 	assert.True(t, issues[1].BodyHasHTMLComment)

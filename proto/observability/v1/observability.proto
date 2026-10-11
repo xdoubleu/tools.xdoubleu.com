@@ -180,6 +180,7 @@ message ProjectIssue {
   string status_updated_at = 7;   // RFC3339
   bool body_has_html_comment = 8;
   bool body_edited_after_status = 9;
+  repeated string labels = 10;
 }
 
 // GetProjectIssuesByStatusRequest finds issues on the owner's Projects (v2)

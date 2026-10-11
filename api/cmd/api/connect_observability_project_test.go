@@ -30,7 +30,8 @@ func TestObservabilityGetProjectIssuesByStatus_AsAdmin(t *testing.T) {
 				            "lastEditedAt":"2026-09-02T10:00:00Z",
 				            "author":{"__typename":"Bot","login":"app"},
 				            "authorAssociation":"CONTRIBUTOR",
-				            "editor":{"login":"app"}}}
+				            "editor":{"login":"app"},
+				            "labels":{"nodes":[{"name":"bug"}]}}}
 			]}}}}}`))
 		}))
 	t.Cleanup(srv.Close)
@@ -54,6 +55,7 @@ func TestObservabilityGetProjectIssuesByStatus_AsAdmin(t *testing.T) {
 	assert.Equal(t, "2026-09-01T10:00:00Z", is.StatusUpdatedAt)
 	assert.True(t, is.BodyHasHtmlComment)
 	assert.True(t, is.BodyEditedAfterStatus)
+	assert.Equal(t, []string{"bug"}, is.Labels)
 }
 
 func TestObservabilityGetProjectIssuesByStatus_ZeroProjectNumber(t *testing.T) {

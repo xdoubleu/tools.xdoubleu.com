@@ -1250,6 +1250,7 @@ type ProjectIssue struct {
 	StatusUpdatedAt       string                 `protobuf:"bytes,7,opt,name=status_updated_at,json=statusUpdatedAt,proto3" json:"status_updated_at,omitempty"`     // RFC3339
 	BodyHasHtmlComment    bool                   `protobuf:"varint,8,opt,name=body_has_html_comment,json=bodyHasHtmlComment,proto3" json:"body_has_html_comment,omitempty"`
 	BodyEditedAfterStatus bool                   `protobuf:"varint,9,opt,name=body_edited_after_status,json=bodyEditedAfterStatus,proto3" json:"body_edited_after_status,omitempty"`
+	Labels                []string               `protobuf:"bytes,10,rep,name=labels,proto3" json:"labels,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -1345,6 +1346,13 @@ func (x *ProjectIssue) GetBodyEditedAfterStatus() bool {
 		return x.BodyEditedAfterStatus
 	}
 	return false
+}
+
+func (x *ProjectIssue) GetLabels() []string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // GetProjectIssuesByStatusRequest finds issues on the owner's Projects (v2)
@@ -4320,7 +4328,7 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\n" +
 	"configured\x18\x02 \x01(\bR\n" +
 	"configured\x12#\n" +
-	"\rfailing_count\x18\x03 \x01(\x05R\ffailingCount\"\xd0\x02\n" +
+	"\rfailing_count\x18\x03 \x01(\x05R\ffailingCount\"\xe8\x02\n" +
 	"\fProjectIssue\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x03R\x06number\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x10\n" +
@@ -4330,7 +4338,9 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x12author_association\x18\x06 \x01(\tR\x11authorAssociation\x12*\n" +
 	"\x11status_updated_at\x18\a \x01(\tR\x0fstatusUpdatedAt\x121\n" +
 	"\x15body_has_html_comment\x18\b \x01(\bR\x12bodyHasHtmlComment\x127\n" +
-	"\x18body_edited_after_status\x18\t \x01(\bR\x15bodyEditedAfterStatus\"`\n" +
+	"\x18body_edited_after_status\x18\t \x01(\bR\x15bodyEditedAfterStatus\x12\x16\n" +
+	"\x06labels\x18\n" +
+	" \x03(\tR\x06labels\"`\n" +
 	"\x1fGetProjectIssuesByStatusRequest\x12%\n" +
 	"\x0eproject_number\x18\x01 \x01(\x05R\rprojectNumber\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\"z\n" +
