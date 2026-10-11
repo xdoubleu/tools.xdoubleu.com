@@ -100,8 +100,8 @@ on a different paragraph in each format.
 
 - Device clocks matter. A slow clock loses to reading done just before; the
   clamp stops a fast clock from pinning the position.
-- A book with no ready KEPUB, or the `kobo-format-pdf` tag, syncs percent
-  only to the Kobo.
+- The Kobo only gets KEPUBs, because its store sync doesn't download PDFs. A
+  book stays off the device until its KEPUB is ready.
 - A PDF-sourced KEPUB's `{href, offset}` (from the web reader on the KEPUB)
   is in the KEPUB's own text, so a regeneration that changes that text can
   shift it.

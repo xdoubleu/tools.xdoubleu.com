@@ -515,6 +515,22 @@ jobs:
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
         run: mkdir -p ~/.ssh && ssh-keyscan "$KAMAL_SERVER_IP" >> ~/.ssh/known_hosts
 
+      # Before either deploy, so a bad key never ships half a release; api
+      # itself only logs one and falls back to an ephemeral key.
+      - name: Validate OAUTH_OIDC_PRIVATE_KEY
+        if: needs.build-api.result == 'success'
+        env:
+          OAUTH_OIDC_PRIVATE_KEY: ${{ secrets.OAUTH_OIDC_PRIVATE_KEY }}
+        run: |
+          if [ -z "$OAUTH_OIDC_PRIVATE_KEY" ]; then
+            echo "::warning::OAUTH_OIDC_PRIVATE_KEY is unset; api will sign ID tokens with an ephemeral key"
+            exit 0
+          fi
+          if ! printf '%s\n' "$OAUTH_OIDC_PRIVATE_KEY" | openssl rsa -check -noout -passin pass: >/dev/null 2>&1; then
+            echo "::error::OAUTH_OIDC_PRIVATE_KEY is not an unencrypted RSA private key in PEM. Re-set it with: openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 | gh secret set OAUTH_OIDC_PRIVATE_KEY --env production"
+            exit 1
+          fi
+
       # Kamal evaluates config/deploy.*.yml as ERB with the env below; --version
       # is the full commit SHA the build jobs tag with.
       # web deploys first (ADR 0001): kamal-proxy needs TLS established by the

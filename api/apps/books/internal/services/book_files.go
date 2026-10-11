@@ -655,25 +655,6 @@ func (s *BookService) GetKEPUBStatus(
 	return result, nil
 }
 
-// GetKoboFileFormat returns "pdf" with the kobo-format-pdf tag, else "kepub";
-// ErrResourceNotFound when the user_book doesn't exist.
-func (s *BookService) GetKoboFileFormat(
-	ctx context.Context,
-	userID string,
-	bookID uuid.UUID,
-) (string, error) {
-	ub, err := s.books.GetUserBook(ctx, userID, bookID)
-	if err != nil {
-		return "", err
-	}
-	for _, t := range ub.Tags {
-		if t == models.TagKoboFormatPDF {
-			return models.FileFormatPDF, nil
-		}
-	}
-	return models.FileFormatKEPUB, nil
-}
-
 // EnableKoboSync idempotently adds the kobo-sync tag to the user's book.
 func (s *BookService) EnableKoboSync(
 	ctx context.Context,

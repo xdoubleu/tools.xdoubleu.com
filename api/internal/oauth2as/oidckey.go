@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"math/big"
 	"net/http"
+	"strings"
 )
 
 // oidcKeyBits is the ephemeral key size; 2048 is RS256's expected floor.
@@ -19,7 +20,9 @@ const oidcKeyBits = 2048
 
 // LoadOrGenerateOIDCKey parses pemKey (PKCS#8 or PKCS#1) or, when empty,
 // generates an ephemeral key (generated=true). Ephemeral keys invalidate ID
-// tokens on restart, so production sets OAUTH_OIDC_PRIVATE_KEY.
+// tokens on restart, so production sets OAUTH_OIDC_PRIVATE_KEY. Literal \n
+// sequences are read as newlines: Kamal's env file escapes them and Docker's
+// --env-file doesn't unescape, and a PEM never contains a backslash.
 func LoadOrGenerateOIDCKey(pemKey string) (*rsa.PrivateKey, bool, error) {
 	if pemKey == "" {
 		k, err := rsa.GenerateKey(rand.Reader, oidcKeyBits)
@@ -29,7 +32,7 @@ func LoadOrGenerateOIDCKey(pemKey string) (*rsa.PrivateKey, bool, error) {
 		return k, true, nil
 	}
 
-	block, _ := pem.Decode([]byte(pemKey))
+	block, _ := pem.Decode([]byte(strings.ReplaceAll(pemKey, `\n`, "\n")))
 	if block == nil {
 		return nil, false, errors.New(
 			"oauth2as: OAUTH_OIDC_PRIVATE_KEY is not valid PEM",

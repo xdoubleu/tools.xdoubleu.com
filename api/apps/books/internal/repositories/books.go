@@ -647,14 +647,13 @@ func (repo *BooksRepository) UpdateFinishedAt(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// ListKoboSyncBooks returns the user's kobo-sync books with a ready file:
-// "pdf" with the kobo-format-pdf tag, else "kepub".
+// ListKoboSyncBooks returns the user's kobo-sync books with a ready KEPUB.
 func (repo *BooksRepository) ListKoboSyncBooks(
 	ctx context.Context,
 	userID string,
 ) ([]models.KoboSyncBook, error) {
 	query := `
-		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes,
+		SELECT b.id, b.title, b.authors, bf.storage_key, bf.size_bytes,
 		       COALESCE(ub.kobo_sync_enabled_at, ub.added_at), bf.converter_version,
 		       ub.kobo_last_synced_converter_version,
 		       ub.kobo_last_synced_cover_image_id
@@ -664,10 +663,7 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 		    ON bf.book_id = ub.book_id
 		    AND bf.user_id = ub.user_id
 		    AND bf.status = 'ready'
-		    AND bf.format = CASE
-		        WHEN 'kobo-format-pdf' = ANY(ub.tags) THEN 'pdf'
-		        ELSE 'kepub'
-		    END
+		    AND bf.format = 'kepub'
 		WHERE ub.user_id = $1 AND 'kobo-sync' = ANY(ub.tags)
 		ORDER BY b.title
 	`
@@ -682,7 +678,7 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 	for rows.Next() {
 		var b models.KoboSyncBook
 		if scanErr := rows.Scan(
-			&b.BookID, &b.Title, &b.Authors, &b.Format, &b.StorageKey, &b.Size,
+			&b.BookID, &b.Title, &b.Authors, &b.StorageKey, &b.Size,
 			&b.KoboSyncEnabledAt, &b.ConverterVersion, &b.LastSyncedConverterVersion,
 			&b.LastSyncedCoverImageID,
 		); scanErr != nil {
@@ -1253,7 +1249,7 @@ func (repo *BooksRepository) GetKoboSyncBook(
 	bookID uuid.UUID,
 ) (models.KoboSyncBook, error) {
 	query := `
-		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes,
+		SELECT b.id, b.title, b.authors, bf.storage_key, bf.size_bytes,
 		       bf.converter_version, ub.kobo_last_synced_converter_version,
 		       ub.kobo_last_synced_cover_image_id
 		FROM books.user_books ub
@@ -1262,16 +1258,13 @@ func (repo *BooksRepository) GetKoboSyncBook(
 		    ON bf.book_id = ub.book_id
 		    AND bf.user_id = ub.user_id
 		    AND bf.status = 'ready'
-		    AND bf.format = CASE
-		        WHEN 'kobo-format-pdf' = ANY(ub.tags) THEN 'pdf'
-		        ELSE 'kepub'
-		    END
+		    AND bf.format = 'kepub'
 		WHERE ub.user_id = $1 AND ub.book_id = $2 AND 'kobo-sync' = ANY(ub.tags)
 	`
 
 	var b models.KoboSyncBook
 	err := repo.db.QueryRow(ctx, query, userID, bookID).Scan(
-		&b.BookID, &b.Title, &b.Authors, &b.Format, &b.StorageKey, &b.Size,
+		&b.BookID, &b.Title, &b.Authors, &b.StorageKey, &b.Size,
 		&b.ConverterVersion, &b.LastSyncedConverterVersion,
 		&b.LastSyncedCoverImageID,
 	)

@@ -21,7 +21,6 @@ describe('SPECIAL_TAGS', () => {
     expect(SPECIAL_TAGS.has('own-digital')).toBe(true)
     expect(SPECIAL_TAGS.has('own-bol')).toBe(true)
     expect(SPECIAL_TAGS.has('kobo-sync')).toBe(true)
-    expect(SPECIAL_TAGS.has('kobo-format-pdf')).toBe(true)
   })
 
   it('does not include user-visible tags', () => {

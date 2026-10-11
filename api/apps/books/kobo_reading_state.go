@@ -132,14 +132,9 @@ func (app *Books) koboGetStateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if state != nil {
-		format, fmtErr := app.Services.Books.GetKoboFileFormat(
-			r.Context(), userID, bookID,
-		)
-		if fmtErr == nil && format == models.FileFormatKEPUB {
-			states := map[uuid.UUID]*models.BookReadingState{bookID: state}
-			app.koboWithSpans(r.Context(), userID, []uuid.UUID{bookID}, states, nil)
-			state = states[bookID]
-		}
+		states := map[uuid.UUID]*models.BookReadingState{bookID: state}
+		app.koboWithSpans(r.Context(), userID, []uuid.UUID{bookID}, states, nil)
+		state = states[bookID]
 	}
 
 	koboWriteJSON(w, buildKoboState(bookID.String(), state))

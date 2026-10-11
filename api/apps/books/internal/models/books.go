@@ -15,12 +15,11 @@ const (
 )
 
 const (
-	TagOwnPhysical   = "own-physical"
-	TagOwnDigital    = "own-digital"
-	TagOwnBol        = "own-bol"
-	TagFavourite     = "favourite"
-	TagKoboSync      = "kobo-sync"
-	TagKoboFormatPDF = "kobo-format-pdf"
+	TagOwnPhysical = "own-physical"
+	TagOwnDigital  = "own-digital"
+	TagOwnBol      = "own-bol"
+	TagFavourite   = "favourite"
+	TagKoboSync    = "kobo-sync"
 )
 
 const (

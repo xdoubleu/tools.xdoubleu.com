@@ -504,20 +504,14 @@ func setupKoboSyncBook(t *testing.T, ownerID string) (string, uuid.UUID) {
 	return rawToken, bookID
 }
 
-// setupKoboPDFSyncBook creates a kobo-sync PDF book served as raw PDF (no
-// KEPUB row) and returns (rawToken, bookID).
-func setupKoboPDFSyncBook(t *testing.T, ownerID string) (string, uuid.UUID) {
+// setupKoboPDFOnlyBook creates a kobo-sync PDF book with no KEPUB yet and
+// returns (rawToken, bookID).
+func setupKoboPDFOnlyBook(t *testing.T, ownerID string) (string, uuid.UUID) {
 	t.Helper()
 	_, bookID := uploadFileForOwner(t, ownerID, models.FileFormatPDF)
 	require.NoError(t, testApp.Services.Books.EnableKoboSync(
 		context.Background(), ownerID, bookID,
 	))
-	err := testApp.Repositories.Books.UpdateTags(
-		context.Background(), ownerID, bookID,
-		[]string{models.TagKoboSync, models.TagKoboFormatPDF},
-		true, // has kobo-sync tag
-	)
-	require.NoError(t, err)
 	rawToken := registerTestDevice(t, ownerID)
 	return rawToken, bookID
 }
@@ -1500,13 +1494,14 @@ func TestKoboLibrarySync_ReadingStateReflectsProgress(t *testing.T) {
 		"sync manifest must reflect the device's in-progress status")
 }
 
-// TestKoboLibrarySync_PDFFormat_ServesPDF checks kobo-format-pdf advertises PDF.
-func TestKoboLibrarySync_PDFFormat_ServesPDF(t *testing.T) {
+// TestKoboLibrarySync_PDFWithoutKEPUB_NotListed: the Kobo only gets KEPUBs, so
+// a PDF waits for its conversion.
+func TestKoboLibrarySync_PDFWithoutKEPUB_NotListed(t *testing.T) {
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
 
 	owner := "kobo-pdf-sync-" + uuid.NewString()
-	rawToken, bookID := setupKoboPDFSyncBook(t, owner)
+	rawToken, _ := setupKoboPDFOnlyBook(t, owner)
 
 	resp, err := http.DefaultClient.Do(
 		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
@@ -1517,33 +1512,15 @@ func TestKoboLibrarySync_PDFFormat_ServesPDF(t *testing.T) {
 
 	var entries []map[string]any
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&entries))
-	require.Len(t, entries, 1)
-
-	ne, ok := entries[0]["NewEntitlement"].(map[string]any)
-	require.True(t, ok, "entry must be wrapped under NewEntitlement")
-
-	meta, ok := ne["BookMetadata"].(map[string]any)
-	require.True(t, ok)
-	assert.Equal(t, "application/pdf", meta["ContentType"])
-
-	dlUrls, ok := meta["DownloadUrls"].([]any)
-	require.True(t, ok)
-	require.Len(t, dlUrls, 1)
-	dl, ok := dlUrls[0].(map[string]any)
-	require.True(t, ok)
-	assert.Equal(t, "PDF", dl["Format"])
-	dlURL, ok := dl["Url"].(string)
-	require.True(t, ok)
-	assert.Contains(t, dlURL, bookID.String()+"/file")
+	assert.Empty(t, entries)
 }
 
-// TestKoboFile_PDFFormat_RedirectsToPDF checks kobo-format-pdf serves the PDF.
-func TestKoboFile_PDFFormat_RedirectsToPDF(t *testing.T) {
+func TestKoboFile_PDFWithoutKEPUB_NotFound(t *testing.T) {
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
 
 	owner := "kobo-pdf-file-" + uuid.NewString()
-	rawToken, bookID := setupKoboPDFSyncBook(t, owner)
+	rawToken, bookID := setupKoboPDFOnlyBook(t, owner)
 
 	client := &http.Client{
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
@@ -1557,8 +1534,7 @@ func TestKoboFile_PDFFormat_RedirectsToPDF(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
-	assert.Equal(t, http.StatusFound, resp.StatusCode)
-	assert.NotEmpty(t, resp.Header.Get("Location"))
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
 func TestKoboState_UserBCannotReadUserAState(t *testing.T) {
@@ -1634,32 +1610,6 @@ func TestKoboMetadata_ReturnsDownloadURL(t *testing.T) {
 	dlURL, ok := dl["Url"].(string)
 	require.True(t, ok)
 	assert.Contains(t, dlURL, bookID.String()+"/file")
-}
-
-func TestKoboMetadata_PDF(t *testing.T) {
-	ts := httptest.NewServer(getRoutes())
-	t.Cleanup(ts.Close)
-
-	const owner = "kobo-meta-pdf-user"
-	rawToken, bookID := setupKoboPDFSyncBook(t, owner)
-
-	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodGet,
-		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/metadata"), nil))
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-
-	var metas []map[string]any
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(&metas))
-	require.Len(t, metas, 1)
-
-	dl, ok := metas[0]["DownloadUrls"].([]any)
-	require.True(t, ok)
-	require.Len(t, dl, 1)
-	entry, ok := dl[0].(map[string]any)
-	require.True(t, ok)
-	assert.Equal(t, "PDF", entry["Format"])
-	assert.Equal(t, "application/pdf", metas[0]["ContentType"])
 }
 
 func TestKoboMetadata_InvalidRevisionID(t *testing.T) {
