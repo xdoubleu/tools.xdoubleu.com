@@ -69,6 +69,8 @@ jest.mock('@/lib/books/readium', () => ({
   locatorToPosition: (...a: unknown[]) => mockLocatorToPosition(...a),
   overallFraction: () => 0.25,
   sectionIndex: () => 1,
+  sectionStartEntry: (_items: unknown, href: string) =>
+    href === 'res/part.xhtml' ? { href, title: 'Part' } : undefined,
   tocItems: (items: unknown[] | undefined) => items ?? [],
   readiumPreferences: (theme: string, size: number) => ({ theme, size })
 }))
@@ -132,7 +134,7 @@ describe('ReadiumBookReader', () => {
   it('reports page turns with the neutral position, but not the opening location', async () => {
     const { onRelocate } = await renderReader()
     await screen.findByRole('button', { name: 'Contents' })
-    act(() => nav!.listeners.positionChanged({ href: 'res/ch2.xhtml' }))
+    act(() => nav!.listeners.positionChanged({ href: 'res/ch2.xhtml', locations: {} }))
     await waitFor(() => expect(onRelocate).toHaveBeenCalledTimes(1))
     expect(onRelocate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -234,6 +236,28 @@ describe('ReadiumBookReader', () => {
     )
   })
 
+  it('labels a section start with the section entry, not a subsection on the same screen', async () => {
+    await renderReader()
+    await screen.findByRole('button', { name: 'Contents' })
+    act(() => nav!.listeners.timelineItemChanged({ references: ['res/ch1.xhtml#top'] }))
+    expect(await screen.findByText('Chapter 1')).toBeInTheDocument()
+    act(() =>
+      nav!.listeners.positionChanged({
+        href: 'res/part.xhtml',
+        locations: { progression: 0 }
+      })
+    )
+    expect(await screen.findByText('Part')).toBeInTheDocument()
+    expect(screen.queryByText('Chapter 1')).not.toBeInTheDocument()
+    act(() =>
+      nav!.listeners.positionChanged({
+        href: 'res/part.xhtml',
+        locations: { progression: 0.4 }
+      })
+    )
+    expect(await screen.findByText('Chapter 1')).toBeInTheDocument()
+  })
+
   it('clears the section label when no contents entry covers the page', async () => {
     await renderReader()
     await screen.findByRole('button', { name: 'Contents' })
@@ -255,7 +279,7 @@ describe('ReadiumBookReader', () => {
 
   it('ignores page changes before the book has opened', async () => {
     const { onRelocate } = await renderReader()
-    act(() => nav!.listeners.positionChanged({ href: 'res/ch2.xhtml' }))
+    act(() => nav!.listeners.positionChanged({ href: 'res/ch2.xhtml', locations: {} }))
     expect(onRelocate).not.toHaveBeenCalled()
   })
 

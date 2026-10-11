@@ -1,3 +1,4 @@
+import type { Link } from '@readium/shared'
 import {
   clearBodyLengthCache,
   loadPublication,
@@ -6,6 +7,7 @@ import {
   readiumPreferences,
   resumeLocator,
   sectionIndex,
+  sectionStartEntry,
   tocItems
 } from '@/lib/books/readium'
 
@@ -209,5 +211,29 @@ describe('resumeLocator', () => {
   it('starts at the beginning without a position or percent', async () => {
     await expect(resumeLocator(fakePub(), undefined)).resolves.toBeUndefined()
     await expect(resumeLocator(fakePub(), { percent: 0 })).resolves.toBeUndefined()
+  })
+})
+
+describe('sectionStartEntry', () => {
+  const toc = [
+    {
+      href: 'res/ch8.xhtml',
+      title: 'Chapter 8',
+      children: { items: [{ href: 'res/ch8.xhtml#s1', title: '8.1' }] }
+    },
+    { href: 'res/ch9.xhtml#s1', title: '9.1' }
+  ]
+  const find = (href: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- partial Link fixtures
+    sectionStartEntry(toc as unknown as Link[], href)?.title
+
+  it('finds the fragment-less entry of a section', () => {
+    expect(find('res/ch8.xhtml#s1')).toBe('Chapter 8')
+    expect(find('res/ch8.xhtml')).toBe('Chapter 8')
+  })
+
+  it('is undefined when only fragments reference the section', () => {
+    expect(find('res/ch9.xhtml')).toBeUndefined()
+    expect(find('res/none.xhtml')).toBeUndefined()
   })
 })

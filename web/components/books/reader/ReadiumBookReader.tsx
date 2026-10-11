@@ -11,6 +11,7 @@ import {
   readiumPreferences,
   resumeLocator,
   sectionIndex,
+  sectionStartEntry,
   tocItems
 } from '@/lib/books/readium'
 import type { ReaderLocation, ReaderResume, ReaderTocItem } from '@/lib/books/readerPosition'
@@ -56,6 +57,7 @@ export default function ReadiumBookReader({
   const [status, setStatus] = useState<ReaderStatus>('loading')
   const [location, setLocation] = useState<ReaderLocation | null>(null)
   const [tocEntry, setTocEntry] = useState<{ label?: string; href?: string }>({})
+  const [startEntry, setStartEntry] = useState<{ label?: string; href?: string }>()
   const [storedTheme, setTheme] = useLocalStorage<ReaderTheme | null>('books:reader-theme', null)
   const [fontSize, setFontSize] = useLocalStorage(
     'books:reader-font-size',
@@ -82,7 +84,16 @@ export default function ReadiumBookReader({
         fraction: overallFraction(pub, locator),
         section: Math.max(0, sectionIndex(pub, locator.href))
       }
-      if (!cancelled) setLocation(next)
+      // On a section's first page its own entry wins over a subsection heading further down
+      // the screen.
+      const start =
+        (locator.locations.progression ?? 0) === 0
+          ? sectionStartEntry(pub.manifest.toc?.items, locator.href)
+          : undefined
+      if (!cancelled) {
+        setLocation(next)
+        setStartEntry(start && { label: start.title, href: start.href })
+      }
       if (!opened) return
       const position = await locatorToPosition(pub, locator)
       if (!cancelled) onRelocateRef.current?.({ ...next, position })
@@ -186,14 +197,14 @@ export default function ReadiumBookReader({
       status={status}
       theme={theme}
       fraction={location?.fraction ?? 0}
-      tocLabel={tocEntry.label}
+      tocLabel={(startEntry ?? tocEntry).label}
       controls={
         navigator && (
           <ReaderControls
             toc={toc}
             onGoTo={(href) => navigator.goLink(new Link({ href }), false, noop)}
             reflowable
-            currentHref={tocEntry.href}
+            currentHref={(startEntry ?? tocEntry).href}
             theme={theme}
             onThemeChange={setTheme}
             fontSize={fontSize}
