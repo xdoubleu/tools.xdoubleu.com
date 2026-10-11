@@ -73,8 +73,9 @@ func (t *bookText) hasPrintPages() bool {
 func (t *bookText) arabicPages() []pagePoint {
 	var pts []pagePoint
 	for _, p := range t.printPages {
-		if n, err := strconv.Atoi(p.label); err == nil && n > 0 {
-			pts = append(pts, pagePoint{page: n, at: p.at})
+		// 31 bits: pages are sent as int32.
+		if n, err := strconv.ParseUint(p.label, 10, 31); err == nil && n > 0 {
+			pts = append(pts, pagePoint{page: int(n), at: p.at})
 		}
 	}
 	return pts

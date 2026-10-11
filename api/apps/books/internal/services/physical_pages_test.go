@@ -27,13 +27,15 @@ func anchorAt(page int, href string, offset int) models.PhysicalAnchor {
 	return models.PhysicalAnchor{Page: page, Href: href, Offset: offset}
 }
 
-func TestBookText_ArabicPagesSkipPageZero(t *testing.T) {
+func TestBookText_ArabicPagesSkipZeroAndOutOfRange(t *testing.T) {
 	bt := &bookText{
 		docs: nil, cum: []int{0}, start: 0, chapters: nil,
 		printPages: []printPage{
 			{label: "0", at: 0},
 			{label: "x", at: 1},
 			{label: "1", at: 5},
+			{label: "99999999999", at: 9},
+			{label: "-3", at: 9},
 		},
 	}
 	assert.Equal(t, []pagePoint{{page: 1, at: 5}}, bt.arabicPages())
