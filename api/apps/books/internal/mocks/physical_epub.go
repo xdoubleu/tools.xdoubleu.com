@@ -111,7 +111,7 @@ func physicalOPF(title string) string {
 <item id="ch2" href="ch2.xhtml" media-type="application/xhtml+xml"/>
 <item id="ch3" href="ch3.xhtml" media-type="application/xhtml+xml"/>
 </manifest>
-<spine><itemref idref="front"/><itemref idref="ch1"/><itemref idref="ch2"/>` +
+<spine><itemref idref="front"/><itemref idref="ch1"/><itemref idref="ch2"/>`+
 		`<itemref idref="ch3"/></spine>
 </package>
 `, title)

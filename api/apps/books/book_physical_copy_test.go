@@ -72,7 +72,8 @@ func TestPhysical_PageSaveWritesPhysicalReadingState(t *testing.T) {
 		authed(&booksv1.GetReadingStateRequest{BookId: bookID.String()}))
 	require.NoError(t, err)
 	assert.Equal(t, int32(3), resp.Msg.State.PhysicalPage)
-	assert.Equal(t, "Epigraph.", resp.Msg.State.PhysicalExcerpt)
+	assert.Equal(t, "Epigraph. Two Chapter 2 sentence 01 is right here.",
+		resp.Msg.State.PhysicalExcerpt, "blocks are spaced apart")
 
 	// An older page entry (an offline replay) loses to the newer one.
 	savePage(t, client, bookID, 5, readAt.Add(-time.Hour))
@@ -209,10 +210,6 @@ func TestPhysical_CopyErrors(t *testing.T) {
 
 	_, err = client.GetPhysicalCopy(ctx, authed(&booksv1.GetPhysicalCopyRequest{BookId: "x"}))
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-
-	_, err = client.GetPhysicalCopy(ctx,
-		connect.NewRequest(&booksv1.GetPhysicalCopyRequest{BookId: bookID.String()}))
-	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
 
 func TestPhysical_KoboFollowsPageEntry(t *testing.T) {

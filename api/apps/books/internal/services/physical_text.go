@@ -30,6 +30,9 @@ type bookText struct {
 type textDoc struct {
 	href  string
 	units []uint16
+	// gaps are where block elements start or end, for spacing an excerpt;
+	// body.textContent runs blocks together.
+	gaps []int
 }
 
 type printPage struct {
@@ -101,7 +104,7 @@ func buildBookText(ctx context.Context, zr *zip.Reader) (*bookText, error) {
 			return nil, err
 		}
 		scans[i] = scanZipDoc(zr, href, wanted[href])
-		t.docs[i] = textDoc{href: href, units: scans[i].units}
+		t.docs[i] = textDoc{href: href, units: scans[i].units, gaps: scans[i].gaps}
 		t.cum[i+1] = t.cum[i] + len(scans[i].units)
 	}
 
@@ -352,16 +355,36 @@ func readNCX(r io.Reader, doc string) []navLink {
 	}
 }
 
-// docScan is a document's body text, the offsets of the wanted ids, and its
-// print page markers.
+// docScan is a document's body text, the offsets of the wanted ids, its
+// print page markers and its block boundaries.
 type docScan struct {
 	units  []uint16
 	ids    map[string]int
 	breaks []printPage
+	gaps   []int
+}
+
+// blockElements separate text visually though textContent runs it together.
+//
+//nolint:gochecknoglobals // constant set
+var blockElements = map[string]bool{
+	"p": true, "div": true, "h1": true, "h2": true, "h3": true, "h4": true,
+	"h5": true, "h6": true, "li": true, "br": true, "blockquote": true,
+	"section": true, "article": true, "header": true, "footer": true,
+	"aside": true, "figure": true, "figcaption": true, "pre": true,
+	"table": true, "tr": true, "td": true, "th": true, "dt": true, "dd": true,
+	"hr": true,
+}
+
+// gap records a block boundary at the current offset.
+func (s *docScan) gap() {
+	if n := len(s.gaps); n == 0 || s.gaps[n-1] != len(s.units) {
+		s.gaps = append(s.gaps, len(s.units))
+	}
 }
 
 func scanZipDoc(zr *zip.Reader, name string, wanted map[string]bool) docScan {
-	none := docScan{units: nil, ids: map[string]int{}, breaks: nil}
+	none := docScan{units: nil, ids: map[string]int{}, breaks: nil, gaps: nil}
 	f, err := zr.Open(name)
 	if err != nil {
 		return none
@@ -380,7 +403,7 @@ func scanZipDoc(zr *zip.Reader, name string, wanted map[string]bool) docScan {
 // scanBookDoc counts body text as parseBodyText does.
 func scanBookDoc(r io.Reader, wanted map[string]bool) (docScan, error) {
 	d := newHTMLDecoder(r)
-	s := docScan{units: nil, ids: map[string]int{}, breaks: nil}
+	s := docScan{units: nil, ids: map[string]int{}, breaks: nil, gaps: nil}
 	depth := 0
 	for {
 		tok, err := d.Token()
@@ -388,7 +411,7 @@ func scanBookDoc(r io.Reader, wanted map[string]bool) (docScan, error) {
 			return s, nil
 		}
 		if err != nil {
-			return docScan{units: nil, ids: map[string]int{}, breaks: nil}, err
+			return docScan{units: nil, ids: map[string]int{}, breaks: nil, gaps: nil}, err
 		}
 		switch v := tok.(type) {
 		case xml.StartElement:
@@ -404,9 +427,15 @@ func scanBookDoc(r io.Reader, wanted map[string]bool) (docScan, error) {
 			if label, ok := printPageMarker(v); ok {
 				s.breaks = append(s.breaks, printPage{label: label, at: len(s.units)})
 			}
+			if blockElements[v.Name.Local] {
+				s.gap()
+			}
 		case xml.EndElement:
 			if depth == 0 {
 				continue
+			}
+			if blockElements[v.Name.Local] {
+				s.gap()
 			}
 			depth--
 			if depth == 0 {

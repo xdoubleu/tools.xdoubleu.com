@@ -195,10 +195,19 @@ func (t *bookText) excerpt(pos models.ReadingPosition) string {
 	if i < 0 || pos.Page > 0 {
 		return ""
 	}
-	units := t.docs[i].units
-	from := min(max(pos.Offset, 0), len(units))
-	to := min(len(units), from+4*maxExcerptRunes) //nolint:mnd // whitespace slack
-	text := []rune(collapseSpace(string(utf16.Decode(units[from:to]))))
+	d := t.docs[i]
+	from := min(max(pos.Offset, 0), len(d.units))
+	to := min(len(d.units), from+4*maxExcerptRunes) //nolint:mnd // whitespace slack
+	spaced := make([]uint16, 0, to-from+len(d.gaps))
+	g := sort.SearchInts(d.gaps, from+1)
+	for at := from; at < to; at++ {
+		for g < len(d.gaps) && d.gaps[g] == at {
+			spaced = append(spaced, ' ')
+			g++
+		}
+		spaced = append(spaced, d.units[at])
+	}
+	text := []rune(collapseSpace(string(utf16.Decode(spaced))))
 	for n, r := range text {
 		if n+1 >= minSentenceRunes && strings.ContainsRune(".!?…", r) &&
 			(n+1 == len(text) || unicode.IsSpace(text[n+1])) {

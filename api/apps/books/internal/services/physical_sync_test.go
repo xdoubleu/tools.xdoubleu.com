@@ -171,7 +171,7 @@ func TestPhysicalService_FollowDigitalSetsCurrentPage(t *testing.T) {
 
 	for _, skip := range []models.BookReadingState{
 		{Source: models.ReadingSourcePhysical, Position: state.Position}, //nolint:exhaustruct //test
-		{Source: models.ReadingSourceWeb, Position: nil},                  //nolint:exhaustruct //test
+		{Source: models.ReadingSourceWeb, Position: nil},                 //nolint:exhaustruct //test
 		{Source: models.ReadingSourceWeb, //nolint:exhaustruct //test
 			Position: &models.ReadingPosition{Href: "", Offset: 0, Page: 3}},
 	} {
