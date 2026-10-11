@@ -5,8 +5,10 @@ import {
   PhysicalCopySchema
 } from '@/lib/gen/books/v1/library_pb'
 import {
-  chapterAt,
+  anchorAtChapter,
+  chapterOptions,
   chapterValue,
+  newAnchor,
   continueHint,
   copyDraft,
   savableDraft
@@ -44,13 +46,20 @@ describe('physicalCopy', () => {
     ).toEqual([{ page: 4, href: 'b', offset: 2 }])
   })
 
-  it('finds a chapter by its select value', () => {
-    const chapters = [
+  it('turns chapters into select options and anchors', () => {
+    const options = chapterOptions([
       create(PhysicalChapterSchema, { title: 'One', position: { href: 'a', offset: 0 } }),
-      create(PhysicalChapterSchema, { title: 'Two', position: { href: 'a', offset: 40 } })
-    ]
-    expect(chapterAt(chapters, chapterValue('a', 40))?.title).toBe('Two')
-    expect(chapterAt(chapters, 'b#0')).toBeUndefined()
+      create(PhysicalChapterSchema, { title: 'Two', position: { href: 'a', offset: 40 } }),
+      create(PhysicalChapterSchema, { title: 'Lost' })
+    ])
+    expect(options.map((o) => o.value)).toEqual(['a#0', chapterValue('a', 40), '#0'])
+
+    expect(newAnchor(options)).toEqual({ page: 0, href: 'a', offset: 0 })
+    expect(newAnchor([])).toEqual({ page: 0, href: '', offset: 0 })
+
+    const anchor = { page: 9, href: 'a', offset: 0 }
+    expect(anchorAtChapter(anchor, options, 'a#40')).toEqual({ page: 9, href: 'a', offset: 40 })
+    expect(anchorAtChapter(anchor, options, 'b#0')).toBe(anchor)
   })
 
   it('hints at the page only when the newest position is digital', () => {

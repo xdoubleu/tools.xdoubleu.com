@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import type { PhysicalChapter } from '@/lib/gen/books/v1/library_pb'
 import {
-  chapterAt,
+  anchorAtChapter,
+  chapterOptions,
   chapterValue,
+  newAnchor,
   type PhysicalAnchorDraft,
   type PhysicalCopyDraft
 } from '@/lib/books/physicalCopy'
@@ -33,15 +35,9 @@ export default function BookPhysicalCopyFields({
   hasPrintPages,
   onChange
 }: BookPhysicalCopyFieldsProps) {
+  const options = chapterOptions(chapters)
   const setAnchor = (i: number, anchor: PhysicalAnchorDraft) =>
     onChange({ ...draft, anchors: draft.anchors.map((a, j) => (j === i ? anchor : a)) })
-  const addAnchor = () => {
-    const first = chapters[0]?.position
-    onChange({
-      ...draft,
-      anchors: [...draft.anchors, { page: 0, href: first?.href ?? '', offset: first?.offset ?? 0 }]
-    })
-  }
 
   return (
     <Collapsible title="Copy details" triggerClassName="text-base">
@@ -81,19 +77,13 @@ export default function BookPhysicalCopyFields({
                   <Select
                     id={`anchor-chapter-${i}`}
                     value={chapterValue(anchor.href, anchor.offset)}
-                    onChange={(e) => {
-                      const pos = chapterAt(chapters, e.target.value)?.position
-                      if (pos) setAnchor(i, { ...anchor, href: pos.href, offset: pos.offset })
-                    }}
+                    onChange={(e) => setAnchor(i, anchorAtChapter(anchor, options, e.target.value))}
                   >
-                    {chapters.map((c) => {
-                      const value = chapterValue(c.position?.href ?? '', c.position?.offset ?? 0)
-                      return (
-                        <option key={value} value={value}>
-                          {c.title}
-                        </option>
-                      )
-                    })}
+                    {options.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.title}
+                      </option>
+                    ))}
                   </Select>
                 </Field>
                 <Field label="Page" htmlFor={`anchor-page-${i}`} className="w-24 shrink-0">
@@ -116,8 +106,14 @@ export default function BookPhysicalCopyFields({
                 </Button>
               </div>
             ))}
-            {chapters.length > 0 && (
-              <Button variant="secondary" size="sm" onClick={addAnchor}>
+            {options.length > 0 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() =>
+                  onChange({ ...draft, anchors: [...draft.anchors, newAnchor(options)] })
+                }
+              >
                 Add chapter anchor
               </Button>
             )}

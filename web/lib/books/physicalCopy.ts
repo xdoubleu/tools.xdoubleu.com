@@ -39,10 +39,34 @@ export function chapterValue(href: string, offset: number): string {
   return `${href}#${offset}`
 }
 
-export function chapterAt(chapters: PhysicalChapter[], value: string) {
-  return chapters.find(
-    (c) => chapterValue(c.position?.href ?? '', c.position?.offset ?? 0) === value
-  )
+export interface ChapterOption {
+  value: string
+  title: string
+  href: string
+  offset: number
+}
+
+export function chapterOptions(chapters: PhysicalChapter[]): ChapterOption[] {
+  return chapters.map((c) => {
+    const href = c.position?.href ?? ''
+    const offset = c.position?.offset ?? 0
+    return { value: chapterValue(href, offset), title: c.title, href, offset }
+  })
+}
+
+/** A new anchor at the first chapter, its page still to fill in. */
+export function newAnchor(options: ChapterOption[]): PhysicalAnchorDraft {
+  return { page: 0, href: options[0]?.href ?? '', offset: options[0]?.offset ?? 0 }
+}
+
+/** anchor moved to the chapter with select value `value`. */
+export function anchorAtChapter(
+  anchor: PhysicalAnchorDraft,
+  options: ChapterOption[],
+  value: string
+): PhysicalAnchorDraft {
+  const option = options.find((o) => o.value === value)
+  return option ? { ...anchor, href: option.href, offset: option.offset } : anchor
 }
 
 export interface ContinueHint {
