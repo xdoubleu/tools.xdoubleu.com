@@ -140,6 +140,32 @@ func TestBuildStats(t *testing.T) {
 	assert.Equal(t, "Le Guin", stats.TopCreators[0].Name)
 }
 
+func TestBuildStats_NeutralCountsOnlyAsConsumed(t *testing.T) {
+	neutral := ev(consumption.DomainGames, "Meh", time.Time{}, consumption.Neutral)
+	neutral.Tags = []string{"roguelike"}
+	neutral.Creator = "Studio"
+	stats := services.BuildStats([]consumption.Event{neutral}, time.Now())
+	games := stats.Domains[2]
+	assert.Equal(t, 1, games.Consumed)
+	assert.Zero(t, games.Positive)
+	assert.Zero(t, games.Negative)
+	assert.Empty(t, stats.TopTags)
+	assert.Empty(t, stats.TopCreators)
+}
+
+func TestBuildStats_TiedSpellingsPickTheFirstAlphabetically(t *testing.T) {
+	upper := ev(consumption.DomainBooks, "a", time.Time{}, consumption.Positive)
+	upper.Tags = []string{"Sci-Fi"}
+	lower := ev(consumption.DomainBooks, "b", time.Time{}, consumption.Positive)
+	lower.Tags = []string{"sci-fi"}
+	// Map order is random; repeat so a wrong tie-break can't pass by luck.
+	for range 20 {
+		tags := services.BuildStats([]consumption.Event{lower, upper}, time.Now()).TopTags
+		require.Len(t, tags, 1)
+		assert.Equal(t, "Sci-Fi", tags[0].Name)
+	}
+}
+
 func TestBuildStats_RanksAndCaps(t *testing.T) {
 	var events []consumption.Event
 	for i := range 20 {

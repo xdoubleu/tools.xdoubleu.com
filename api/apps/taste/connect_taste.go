@@ -86,8 +86,9 @@ func (h *tasteConnectHandler) ListEvents(
 	limit, _ := pagination.Clamp(req.Msg.Limit)
 	start := min(int(req.Msg.Offset), len(events))
 	end := min(start+limit, len(events))
-	out := make([]*tastev1.Event, 0, end-start)
-	for _, e := range events[start:end] {
+	page := events[start:end]
+	out := make([]*tastev1.Event, 0, len(page))
+	for _, e := range page {
 		out = append(out, protoEvent(e))
 	}
 	return connect.NewResponse(&tastev1.ListEventsResponse{

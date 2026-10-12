@@ -78,6 +78,9 @@ func TestEntryEvent_Movie(t *testing.T) {
 	assert.Equal(t, consumption.DomainMovies, e.Domain)
 	assert.Equal(t, "rewatched", e.Reason)
 
+	e, _ = entryEvent(entry("movie", models.StatusWatched, []*time.Time{&early}), none)
+	assert.Equal(t, "watched", e.Reason, "one watch is no rewatch")
+
 	e, ok = entryEvent(entry("movie", models.StatusDropped, nil), none)
 	assert.True(t, ok)
 	assert.True(t, e.At.IsZero(), "an unknown date stays undated")
