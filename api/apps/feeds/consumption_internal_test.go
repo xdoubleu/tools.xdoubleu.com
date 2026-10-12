@@ -28,9 +28,19 @@ func TestItemSignal(t *testing.T) {
 		signal consumption.Signal
 		reason string
 	}{
-		{"bookmarked unread", engaged(false, true, 0), consumption.StrongPositive, "bookmarked"},
+		{
+			"bookmarked unread",
+			engaged(false, true, 0),
+			consumption.StrongPositive,
+			"bookmarked",
+		},
 		{"dismissed", engaged(false, false, 0), consumption.Negative, "dismissed"},
-		{"read in full", engaged(true, false, readInFullPct), consumption.Positive, "read in full"},
+		{
+			"read in full",
+			engaged(true, false, readInFullPct),
+			consumption.Positive,
+			"read in full",
+		},
 		{"just short", engaged(true, false, readInFullPct-1), consumption.Neutral, "opened"},
 	}
 	for _, tt := range tests {

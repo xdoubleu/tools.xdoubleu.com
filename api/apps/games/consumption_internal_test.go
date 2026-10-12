@@ -24,12 +24,32 @@ func TestGameSignal(t *testing.T) {
 		reason string
 	}{
 		{"favourite", game(10, "0.00", true), consumption.StrongPositive, "favourite"},
-		{"complete", game(10, "100.00", false), consumption.StrongPositive, "every achievement"},
-		{"almost complete", game(top, "99.99", false), consumption.Positive, "among your longest played"},
-		{"bounced", game(bouncedMinutes-1, "0.00", false), consumption.Negative, "under an hour played"},
+		{
+			"complete",
+			game(10, "100.00", false),
+			consumption.StrongPositive,
+			"every achievement",
+		},
+		{
+			"almost complete",
+			game(top, "99.99", false),
+			consumption.Positive,
+			"among your longest played",
+		},
+		{
+			"bounced",
+			game(bouncedMinutes-1, "0.00", false),
+			consumption.Negative,
+			"under an hour played",
+		},
 		{"an hour", game(bouncedMinutes, "0.00", false), consumption.Neutral, "played"},
 		{"just under the top", game(top-1, "0.00", false), consumption.Neutral, "played"},
-		{"top quartile", game(top, "0.00", false), consumption.Positive, "among your longest played"},
+		{
+			"top quartile",
+			game(top, "0.00", false),
+			consumption.Positive,
+			"among your longest played",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

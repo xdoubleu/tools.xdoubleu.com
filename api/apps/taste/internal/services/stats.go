@@ -2,6 +2,7 @@ package services
 
 import (
 	"cmp"
+	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -186,11 +187,14 @@ func rank(
 	return out[:min(len(out), topN)]
 }
 
+// mostCommon returns the most used spelling, the first alphabetically on a
+// tie.
 func mostCommon(spellings map[string]int) string {
-	best, bestN := "", 0
-	for s, n := range spellings {
-		if n > bestN || (n == bestN && s < best) {
-			best, bestN = s, n
+	sorted := slices.Sorted(maps.Keys(spellings))
+	best := sorted[0]
+	for _, s := range sorted[1:] {
+		if spellings[s] > spellings[best] {
+			best = s
 		}
 	}
 	return best
