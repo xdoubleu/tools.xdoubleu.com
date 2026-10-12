@@ -68,7 +68,11 @@ describe('TasteRecommendations', () => {
       'href',
       'https://cat.example/hyperion'
     )
-    expect(within(first).getByRole('link', { name: 'via reddit.com' })).toHaveClass('min-h-11')
+    expect(within(first).getByRole('link', { name: 'via reddit.com' })).toHaveClass(
+      'min-h-11',
+      'break-all'
+    )
+    expect(within(first).getByRole('link', { name: 'Open' })).toHaveClass('min-h-11', 'min-w-11')
     expect(within(first).getByRole('link', { name: 'via b.example' })).toBeInTheDocument()
     expect(within(first).queryByRole('link', { name: 'via c.example' })).not.toBeInTheDocument()
 

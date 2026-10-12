@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { Recommendation } from '@/lib/gen/taste/v1/taste_pb'
 import { useTasteRecommendations } from '@/hooks/useTaste'
 import { DOMAINS, TRACKS, domainLabel, hostLabel, type Track } from '@/lib/taste/format'
+import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/dates'
 import PickArtwork from '@/components/taste/PickArtwork'
 import { Alert } from '@/components/ui/alert'
@@ -14,7 +15,7 @@ import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { Select } from '@/components/ui/select'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
-const linkClass = 'inline-flex min-h-11 items-center underline'
+const linkClass = 'inline-flex min-h-11 min-w-11 items-center underline'
 
 function PickRow({ pick }: { pick: Recommendation }) {
   const meta = [domainLabel(pick.domain), pick.creator, pick.year ? String(pick.year) : '']
@@ -37,7 +38,7 @@ function PickRow({ pick }: { pick: Recommendation }) {
               href={s.url}
               target="_blank"
               rel="noopener noreferrer"
-              className={linkClass}
+              className={cn(linkClass, 'break-all')}
             >
               via {hostLabel(s.url)}
             </a>
