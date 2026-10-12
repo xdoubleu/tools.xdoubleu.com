@@ -55,6 +55,12 @@ var (
 		Help: "Unresolved Sentry issues across every project the connected " +
 			"token can see.",
 	})
+	sentryUnresolvedFetchOK = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "sentry_unresolved_issues_fetch_ok",
+		Help: "1 when the last Sentry unresolved-issue fetch succeeded, 0 when " +
+			"Sentry isn't configured, the fetch failed, or none has run yet, so " +
+			"sentry_unresolved_issues is stale and its 0 can't be trusted.",
+	})
 	automatedActionOldestOpenAgeSeconds = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "automated_action_oldest_open_age_seconds",
 		Help: "Age in seconds of the longest-open global.automated_actions row " +
@@ -319,23 +325,29 @@ func (j *IssueSignalCollectorJob) collectWorkflowRuns(
 	}
 }
 
-// collectSentryIssues sets sentry_unresolved_issues. It's a gauge because
-// Grafana can't alert on the grafana-sentry-datasource Issues query directly.
+// collectSentryIssues sets sentry_unresolved_issues and records the fetch
+// outcome in sentry_unresolved_issues_fetch_ok; the count is left untouched on
+// failure, so consumers must read it only while fetch_ok is 1. It's a gauge
+// because Grafana can't alert on the grafana-sentry-datasource Issues query
+// directly.
 func (j *IssueSignalCollectorJob) collectSentryIssues(
 	ctx context.Context,
 	logger *slog.Logger,
 ) {
 	issues, err := j.sentry.ListUnresolvedIssues(ctx)
 	if errors.Is(err, sentryapi.ErrNotConfigured) {
+		sentryUnresolvedFetchOK.Set(0)
 		return
 	}
 	if err != nil {
+		sentryUnresolvedFetchOK.Set(0)
 		logAPIErr(ctx, logger,
 			"issue-signal-collector: failed to list unresolved Sentry issues",
 			err, sentryapi.IsTransientAPIError(err))
 		return
 	}
 	sentryUnresolvedIssues.Set(float64(len(issues)))
+	sentryUnresolvedFetchOK.Set(1)
 }
 
 func (j *IssueSignalCollectorJob) collectStorage(
