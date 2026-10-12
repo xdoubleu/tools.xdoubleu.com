@@ -3,6 +3,7 @@ package taste
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
@@ -76,7 +77,8 @@ func (h *tasteConnectHandler) RefreshProfile(
 	if !accepted {
 		return nil, connect.NewError(
 			connect.CodeResourceExhausted,
-			errors.New("the profile was refreshed in the last 6 hours"),
+			fmt.Errorf("the profile was refreshed in the last %s",
+				services.RefreshCooldown),
 		)
 	}
 	h.app.jobQueue.ForceRun(jobs.GenerateProfilesID)

@@ -28,8 +28,8 @@ function Sections({ sections }: { sections: ProfileSections }) {
           <section key={s.key}>
             <h3 className="text-sm font-semibold">{s.title}</h3>
             <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-subtle">
-              {sections[s.key].map((bullet) => (
-                <li key={bullet} className="break-words">
+              {sections[s.key].map((bullet, i) => (
+                <li key={`${i}:${bullet}`} className="break-words">
                   {bullet}
                 </li>
               ))}
@@ -111,13 +111,16 @@ export default function TasteProfile() {
       action={<RefreshButton waitUntil={data.nextRefreshAt} pending={data.pending} />}
     >
       <div className="space-y-4">
-        {data.lastError && <Alert tone="warn">The last refresh failed: {data.lastError}</Alert>}
+        {data.lastError && <Alert tone="warn">{data.lastError}</Alert>}
         {data.pending && <p className="text-sm text-muted">Writing your profile…</p>}
         {data.sections ? (
           <Sections sections={data.sections} />
         ) : (
           !data.pending && (
-            <p className="text-sm text-muted">No profile yet. Refresh to have one written.</p>
+            <p className="text-sm text-muted">
+              No profile yet. One is written within the hour and weekly after that; refresh to queue
+              it now.
+            </p>
           )
         )}
       </div>

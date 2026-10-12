@@ -90,10 +90,13 @@ func TestProfile_RefreshGeneratesAndRateLimits(t *testing.T) {
 	assert.Empty(t, p.NextRefreshAt)
 
 	require.NoError(t, refresh(c))
-	assert.Equal(t, connect.CodeResourceExhausted, connect.CodeOf(refresh(c)))
+	err := refresh(c)
+	assert.Equal(t, connect.CodeResourceExhausted, connect.CodeOf(err))
+	assert.ErrorContains(t, err, "refreshed in the last 6h0m0s")
 	p = getProfile(t, c)
 	assert.True(t, p.Pending)
-	next, err := time.Parse(time.RFC3339, p.NextRefreshAt)
+	var next time.Time
+	next, err = time.Parse(time.RFC3339, p.NextRefreshAt)
 	require.NoError(t, err)
 	assert.WithinDuration(t, time.Now().Add(6*time.Hour), next, time.Minute)
 
@@ -134,15 +137,11 @@ func TestProfile_FailureKeepsLastProfile(t *testing.T) {
 		UPDATE taste.profiles SET pending = true, requested_at = NULL
 		WHERE user_id = $1`, userID)
 	require.NoError(t, err)
-	llm.err = errors.New("model overloaded")
-	require.ErrorContains(
-		t,
-		a.GenerateProfilesNow(context.Background()),
-		"model overloaded",
-	)
+	llm.err = errors.New("openrouter: status 402: credit limit for key sk-123")
+	require.ErrorContains(t, a.GenerateProfilesNow(context.Background()), "status 402")
 
 	p := getProfile(t, c)
-	assert.Equal(t, "model overloaded", p.LastError)
+	assert.Equal(t, "The model service failed.", p.LastError, "details stay in logs")
 	assert.False(t, p.Pending)
 	require.NotNil(t, p.Sections, "the previous profile stays")
 
@@ -157,12 +156,12 @@ func TestProfile_InvalidAnswers(t *testing.T) {
 		a, c := profileApp(t, sharedmocks.NewMockedAdminAuthService(userID), llm)
 		require.Error(t, a.GenerateProfilesNow(context.Background()))
 		p := getProfile(t, c)
-		assert.NotEmpty(t, p.LastError)
+		assert.Equal(t, "The model's answer couldn't be read.", p.LastError)
 		assert.Nil(t, p.Sections)
 	}
 }
 
-func TestProfile_NothingConsumedIsNoFailure(t *testing.T) {
+func TestProfile_SourceFailureIsNoted(t *testing.T) {
 	_, err := testDB.Exec(context.Background(),
 		"DELETE FROM taste.profiles WHERE user_id = $1", userID)
 	require.NoError(t, err)
@@ -170,15 +169,53 @@ func TestProfile_NothingConsumedIsNoFailure(t *testing.T) {
 	cfg.OpenRouterAPIKey = "test-key"
 	llm := newLLM(profileJSON)
 	a := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
-		logging.NewNopLogger(), cfg, testDB, llm)
-
-	require.NoError(t, a.GenerateProfilesNow(context.Background()))
+		logging.NewNopLogger(), cfg, testDB, llm,
+		userSource{name: "books", events: nil, err: errors.New("db down")})
+	require.ErrorContains(t, a.GenerateProfilesNow(context.Background()), "db down")
 	assert.Empty(t, llm.requests)
 	var lastError string
 	require.NoError(t, testDB.QueryRow(context.Background(),
 		"SELECT last_error FROM taste.profiles WHERE user_id = $1", userID,
 	).Scan(&lastError))
-	assert.Equal(t, "Nothing consumed yet.", lastError)
+	assert.Equal(t, "Your history couldn't be read.", lastError)
+}
+
+func TestProfile_RefreshDuringGenerationStaysPending(t *testing.T) {
+	llm := newLLM(profileJSON)
+	a, c := profileApp(t, sharedmocks.NewMockedAdminAuthService(userID), llm)
+	llm.during = func() { assert.NoError(t, refresh(c)) }
+
+	require.NoError(t, a.GenerateProfilesNow(context.Background()))
+	p := getProfile(t, c)
+	require.NotNil(t, p.Sections)
+	assert.True(t, p.Pending, "the mid-run request still gets its own run")
+}
+
+func TestProfile_NothingConsumedClearsTheProfile(t *testing.T) {
+	llm := newLLM(profileJSON)
+	withBook, _ := profileApp(t, sharedmocks.NewMockedAdminAuthService(userID), llm)
+	require.NoError(t, withBook.GenerateProfilesNow(context.Background()))
+	_, err := testDB.Exec(context.Background(),
+		"UPDATE taste.profiles SET pending = true WHERE user_id = $1", userID)
+	require.NoError(t, err)
+
+	cfg := testCfg
+	cfg.OpenRouterAPIKey = "test-key"
+	empty := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
+		logging.NewNopLogger(), cfg, testDB, llm)
+	require.NoError(t, empty.GenerateProfilesNow(context.Background()))
+	assert.Len(t, llm.requests, 1, "no completion for an empty log")
+
+	ts := httptest.NewServer(testhelper.BuildMux(empty))
+	t.Cleanup(ts.Close)
+	c := tastev1connect.NewTasteServiceClient(http.DefaultClient, ts.URL)
+	p := getProfile(t, c)
+	assert.Nil(t, p.Sections, "no profile outlives the data it came from")
+	assert.Empty(t, p.GeneratedAt)
+	assert.Empty(t, p.Model)
+	assert.False(t, p.Pending)
+	assert.Equal(t, "There's nothing in your history to write a profile from yet.",
+		p.LastError)
 }
 
 func TestProfile_JobSkipsUsersWithoutTasteAccess(t *testing.T) {

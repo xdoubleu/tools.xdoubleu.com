@@ -58,6 +58,20 @@ describe('TasteProfile', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 
+  it('keeps repeated bullets apart', () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    mockProfile({
+      data: create(GetProfileResponseSchema, {
+        ...written,
+        sections: create(ProfileSectionsSchema, { summary: 'S', like: ['Same', 'Same'] })
+      })
+    })
+    render(<TasteProfile />)
+    expect(screen.getAllByText('Same')).toHaveLength(2)
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
   it('shows the profile sections, skipping empty ones', () => {
     mockProfile({ data: written })
     render(<TasteProfile />)
@@ -102,14 +116,14 @@ describe('TasteProfile', () => {
     mockProfile({
       data: create(GetProfileResponseSchema, {
         ...written,
-        lastError: 'model overloaded',
+        lastError: 'The model service failed.',
         nextRefreshAt: '2026-10-12T16:00:00Z'
       })
     })
     render(<TasteProfile />)
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeDisabled()
     expect(screen.getByText(/Again after/)).toBeInTheDocument()
-    expect(screen.getByText('The last refresh failed: model overloaded')).toBeInTheDocument()
+    expect(screen.getByText('The model service failed.')).toBeInTheDocument()
   })
 
   it('shows a refused refresh', async () => {

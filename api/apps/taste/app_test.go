@@ -59,11 +59,13 @@ func newLLM(content string) *fakeLLM {
 	return &fakeLLM{content: content}
 }
 
-// fakeLLM answers every completion with content, or fails with err.
+// fakeLLM answers every completion with content, or fails with err; during
+// runs while the completion is in flight.
 type fakeLLM struct {
 	mu       sync.Mutex
 	content  string
 	err      error
+	during   func()
 	requests []openrouter.Request
 }
 
@@ -73,6 +75,9 @@ func (f *fakeLLM) Complete(
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.requests = append(f.requests, req)
+	if f.during != nil {
+		f.during()
+	}
 	if f.err != nil {
 		return nil, f.err
 	}

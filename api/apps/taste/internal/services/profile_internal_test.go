@@ -23,19 +23,11 @@ func TestParseSections(t *testing.T) {
 	require.ErrorContains(t, err, "no summary")
 }
 
-func TestErrorText(t *testing.T) {
-	long := make([]byte, maxErrorLength+50)
-	for i := range long {
-		long[i] = 'x'
-	}
-	got := errorText(textError(string(long)))
-	assert.Len(t, got, maxErrorLength+len("…"))
-	assert.Equal(t, "short", errorText(textError("short")))
+func TestFailureWrapsItsError(t *testing.T) {
+	f := failure{note: "shown", err: assert.AnError}
+	assert.Equal(t, assert.AnError.Error(), f.Error())
+	assert.ErrorIs(t, f, assert.AnError)
 }
-
-type textError string
-
-func (e textError) Error() string { return string(e) }
 
 func TestProfileSchemaRequiresEverySection(t *testing.T) {
 	s := profileSchema()

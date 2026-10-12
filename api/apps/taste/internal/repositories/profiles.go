@@ -62,39 +62,63 @@ func (r *ProfilesRepository) Request(
 	return tag.RowsAffected() == 1, nil
 }
 
-// SaveGenerated stores a fresh profile and clears pending and any error.
+// keepRequestedSince keeps a profile pending when it was requested after
+// generation started ($2), so that request isn't consumed by older output.
+const keepRequestedSince = `pending = COALESCE(taste.profiles.requested_at > $2, false)`
+
+// SaveGenerated stores a profile generated from startedAt and clears any
+// error.
 func (r *ProfilesRepository) SaveGenerated(
 	ctx context.Context,
 	userID string,
 	sections models.ProfileSections,
 	model string,
-	at time.Time,
+	startedAt time.Time,
 ) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO taste.profiles
 		    (user_id, sections, model, generated_at, attempted_at)
-		VALUES ($1, $2, $3, $4, $4)
+		VALUES ($1, $3, $4, $2, $2)
 		ON CONFLICT (user_id) DO UPDATE
 		SET sections = EXCLUDED.sections, model = EXCLUDED.model,
 		    generated_at = EXCLUDED.generated_at,
-		    attempted_at = EXCLUDED.attempted_at, pending = false,
-		    last_error = ''`, userID, sections, model, at)
+		    attempted_at = EXCLUDED.attempted_at, last_error = '',
+		    `+keepRequestedSince, userID, startedAt, sections, model)
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// SaveError records a failed generation at at and clears pending, keeping
-// the previous profile.
+// SaveError notes a failed generation started at startedAt, keeping the
+// previous profile.
 func (r *ProfilesRepository) SaveError(
 	ctx context.Context,
-	userID, message string,
-	at time.Time,
+	userID, note string,
+	startedAt time.Time,
 ) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO taste.profiles (user_id, last_error, attempted_at)
-		VALUES ($1, $2, $3)
+		VALUES ($1, $3, $2)
 		ON CONFLICT (user_id) DO UPDATE
-		SET pending = false, last_error = EXCLUDED.last_error,
-		    attempted_at = EXCLUDED.attempted_at`, userID, message, at)
+		SET last_error = EXCLUDED.last_error,
+		    attempted_at = EXCLUDED.attempted_at,
+		    `+keepRequestedSince, userID, startedAt, note)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// SaveEmpty clears the profile with note when there was nothing to write it
+// from, so no profile outlives the data it came from.
+func (r *ProfilesRepository) SaveEmpty(
+	ctx context.Context,
+	userID, note string,
+	startedAt time.Time,
+) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO taste.profiles (user_id, last_error, attempted_at)
+		VALUES ($1, $3, $2)
+		ON CONFLICT (user_id) DO UPDATE
+		SET sections = NULL, model = '', generated_at = NULL,
+		    last_error = EXCLUDED.last_error,
+		    attempted_at = EXCLUDED.attempted_at,
+		    `+keepRequestedSince, userID, startedAt, note)
 	return postgres.PgxErrorToHTTPError(err)
 }
 

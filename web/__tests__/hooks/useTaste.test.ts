@@ -1,4 +1,5 @@
 import { renderHook } from '@testing-library/react'
+import { create } from '@bufbuild/protobuf'
 
 const mockMutate = jest.fn()
 jest.mock('swr', () => ({
@@ -13,11 +14,16 @@ const mockClient = {
   listEvents: jest.fn().mockResolvedValue({ events: [{ itemId: 'b1' }], hasMore: true })
 }
 jest.mock('@/lib/client', () => ({ createServiceClient: jest.fn(() => mockClient) }))
-jest.mock('@/lib/gen/taste/v1/taste_pb', () => ({ TasteService: {} }))
+jest.mock('@/lib/gen/taste/v1/taste_pb', () => ({
+  ...jest.requireActual('@/lib/gen/taste/v1/taste_pb'),
+  TasteService: {}
+}))
 
 import useSWR from 'swr'
+import { GetProfileResponseSchema } from '@/lib/gen/taste/v1/taste_pb'
 import {
   PROFILE_POLL_MS,
+  profileRefreshInterval,
   useFetchTasteEventsPage,
   useRefreshTasteProfile,
   useTasteEvents,
@@ -79,18 +85,38 @@ describe('useFetchTasteEventsPage', () => {
 })
 
 describe('useTasteProfile', () => {
-  it('fetches the profile and polls only while pending', () => {
+  it('fetches the profile, re-reading on its own schedule', () => {
     renderHook(() => useTasteProfile())
     expect(mockClient.getProfile).toHaveBeenCalledWith({})
-    const [key, , options] = mockUseSWR.mock.calls[0] as unknown as [
-      string,
-      unknown,
-      { refreshInterval: (data?: { pending: boolean }) => number }
-    ]
-    expect(key).toBe('/taste/profile')
-    expect(options.refreshInterval({ pending: true })).toBe(PROFILE_POLL_MS)
-    expect(options.refreshInterval({ pending: false })).toBe(0)
-    expect(options.refreshInterval(undefined)).toBe(0)
+    expect(mockUseSWR).toHaveBeenCalledWith('/taste/profile', expect.any(Function), {
+      refreshInterval: profileRefreshInterval
+    })
+  })
+})
+
+describe('profileRefreshInterval', () => {
+  const at = (ms: number) => new Date(Date.now() + ms).toISOString()
+  const profile = (pending: boolean, nextRefreshAt: string) =>
+    create(GetProfileResponseSchema, { pending, nextRefreshAt })
+
+  it('polls while pending', () => {
+    expect(profileRefreshInterval(profile(true, at(3_600_000)))).toBe(PROFILE_POLL_MS)
+  })
+
+  it('re-reads once the cooldown ends', () => {
+    const delay = profileRefreshInterval(profile(false, at(3_600_000)))
+    expect(delay).toBeGreaterThan(3_590_000)
+    expect(delay).toBeLessThanOrEqual(3_600_000)
+  })
+
+  it('waits at least the poll interval for a cooldown about to end', () => {
+    expect(profileRefreshInterval(profile(false, at(1_000)))).toBe(PROFILE_POLL_MS)
+    expect(profileRefreshInterval(profile(false, at(-60_000)))).toBe(PROFILE_POLL_MS)
+  })
+
+  it('stops without a cooldown or data', () => {
+    expect(profileRefreshInterval(profile(false, ''))).toBe(0)
+    expect(profileRefreshInterval(undefined)).toBe(0)
   })
 })
 

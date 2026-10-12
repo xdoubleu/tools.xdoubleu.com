@@ -38,11 +38,18 @@ export function useFetchTasteEventsPage(domain: string) {
 /** How often a pending profile is re-read until the job has written it. */
 export const PROFILE_POLL_MS = 10_000
 
-/** The taste profile, polled while a regeneration is pending. */
+/** Re-read delay: poll while pending, else re-read once the cooldown ends. */
+export function profileRefreshInterval(data: GetProfileResponse | undefined): number {
+  if (data?.pending) return PROFILE_POLL_MS
+  if (!data?.nextRefreshAt) return 0
+  return Math.max(PROFILE_POLL_MS, Date.parse(data.nextRefreshAt) - Date.now())
+}
+
+/** The taste profile, re-read while pending and when the cooldown ends. */
 export function useTasteProfile() {
   const client = createServiceClient(TasteService)
   return useSWR<GetProfileResponse, Error>(swrKeys.tasteProfile, () => client.getProfile({}), {
-    refreshInterval: (data) => (data?.pending ? PROFILE_POLL_MS : 0)
+    refreshInterval: profileRefreshInterval
   })
 }
 

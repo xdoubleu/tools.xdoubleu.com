@@ -20,7 +20,6 @@ const (
 
 	profileMaxTokens = 2000
 	maxBullets       = 6
-	maxErrorLength   = 300
 )
 
 // ErrNotConfigured means no OpenRouter key is set.
@@ -28,17 +27,18 @@ var ErrNotConfigured = openrouter.ErrNotConfigured
 
 var errNothingConsumed = errors.New("nothing consumed yet")
 
-// nothingConsumedNote is stored as the profile's last error for an empty log.
-const nothingConsumedNote = "Nothing consumed yet."
+// nothingConsumedNote is noted on the profile for an empty log.
+const nothingConsumedNote = "There's nothing in your history to write a profile from yet."
 
 type profileStore interface {
 	Get(ctx context.Context, userID string) (*models.Profile, error)
 	Request(ctx context.Context, userID string, at, notBefore time.Time) (bool, error)
 	SaveGenerated(
 		ctx context.Context, userID string, sections models.ProfileSections,
-		model string, at time.Time,
+		model string, startedAt time.Time,
 	) error
-	SaveError(ctx context.Context, userID, message string, at time.Time) error
+	SaveError(ctx context.Context, userID, note string, startedAt time.Time) error
+	SaveEmpty(ctx context.Context, userID, note string, startedAt time.Time) error
 	Due(ctx context.Context, userIDs []string, staleBefore time.Time) ([]string, error)
 }
 
@@ -93,23 +93,36 @@ func (s *ProfileService) Due(ctx context.Context, userIDs []string) ([]string, e
 	return s.profiles.Due(ctx, userIDs, s.now().Add(-ProfileMaxAge))
 }
 
+// failure pairs an error with the note the user sees; the details are only
+// returned, for the job's log.
+type failure struct {
+	note string
+	err  error
+}
+
+func (f failure) Error() string { return f.err.Error() }
+
+func (f failure) Unwrap() error { return f.err }
+
 // Generate writes userID's profile from the sources include accepts. A
-// failure is stored on the profile as well as returned; an empty log is
-// stored but isn't a failure.
+// failure is noted on the profile as well as returned; an empty log clears
+// the profile but isn't a failure.
 func (s *ProfileService) Generate(
 	ctx context.Context,
 	userID string,
 	include func(appName string) bool,
 ) error {
+	startedAt := s.now()
 	sections, model, err := s.generate(ctx, userID, include)
 	if errors.Is(err, errNothingConsumed) {
-		return s.profiles.SaveError(ctx, userID, nothingConsumedNote, s.now())
+		return s.profiles.SaveEmpty(ctx, userID, nothingConsumedNote, startedAt)
 	}
-	if err != nil {
-		saveErr := s.profiles.SaveError(ctx, userID, errorText(err), s.now())
+	var f failure
+	if errors.As(err, &f) {
+		saveErr := s.profiles.SaveError(ctx, userID, f.note, startedAt)
 		return errors.Join(err, saveErr)
 	}
-	return s.profiles.SaveGenerated(ctx, userID, *sections, model, s.now())
+	return s.profiles.SaveGenerated(ctx, userID, *sections, model, startedAt)
 }
 
 func (s *ProfileService) generate(
@@ -119,7 +132,7 @@ func (s *ProfileService) generate(
 ) (*models.ProfileSections, string, error) {
 	events, err := s.log.Events(ctx, userID, include)
 	if err != nil {
-		return nil, "", err
+		return nil, "", failure{note: "Your history couldn't be read.", err: err}
 	}
 	if len(events) == 0 {
 		return nil, "", errNothingConsumed
@@ -137,11 +150,11 @@ func (s *ProfileService) generate(
 		MaxTokens:  profileMaxTokens,
 	})
 	if err != nil {
-		return nil, "", err
+		return nil, "", failure{note: "The model service failed.", err: err}
 	}
 	sections, err := parseSections(resp.Content)
 	if err != nil {
-		return nil, "", err
+		return nil, "", failure{note: "The model's answer couldn't be read.", err: err}
 	}
 	return sections, resp.Model, nil
 }
@@ -160,14 +173,6 @@ func parseSections(content string) (*models.ProfileSections, error) {
 		*list = (*list)[:min(len(*list), maxBullets)]
 	}
 	return &sections, nil
-}
-
-func errorText(err error) string {
-	msg := err.Error()
-	if len(msg) > maxErrorLength {
-		msg = msg[:maxErrorLength] + "…"
-	}
-	return msg
 }
 
 const profileSystemPrompt = `You write a person's taste profile from their ` +
