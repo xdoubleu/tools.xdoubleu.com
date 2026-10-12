@@ -101,20 +101,21 @@ export default function TasteProfile() {
     )
   }
 
-  const written = data.generatedAt
-    ? `Written ${formatDateTime(data.generatedAt)} by ${data.model}`
-    : undefined
   return (
     <SectionCard
       title="Your taste profile"
-      description={written && <span suppressHydrationWarning>{written}</span>}
       action={<RefreshButton waitUntil={data.nextRefreshAt} pending={data.pending} />}
     >
       <div className="space-y-4">
         {data.lastError && <Alert tone="warn">{data.lastError}</Alert>}
         {data.pending && <p className="text-sm text-muted">Writing your profile…</p>}
         {data.sections ? (
-          <Sections sections={data.sections} />
+          <>
+            <Sections sections={data.sections} />
+            <p className="break-all text-xs text-muted" suppressHydrationWarning>
+              Written {formatDateTime(data.generatedAt)} by {data.model}
+            </p>
+          </>
         ) : (
           !data.pending && (
             <p className="text-sm text-muted">

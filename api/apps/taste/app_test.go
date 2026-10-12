@@ -1,8 +1,10 @@
 package taste_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -279,4 +281,17 @@ func TestSourcesNeedAppAccess(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, resp.Msg.Events, 1)
 	assert.Equal(t, "Outer Wilds", resp.Msg.Events[0].Title)
+}
+
+func TestNew_WarnsOnlyWithoutKey(t *testing.T) {
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logs, nil))
+	taste.New(sharedmocks.NewMockedAuthService(userID), logger, testCfg, testDB)
+	assert.Contains(t, logs.String(), "OPENROUTER_API_KEY not set")
+
+	logs.Reset()
+	cfg := testCfg
+	cfg.OpenRouterAPIKey = "key"
+	taste.New(sharedmocks.NewMockedAuthService(userID), logger, cfg, testDB)
+	assert.Empty(t, logs.String())
 }

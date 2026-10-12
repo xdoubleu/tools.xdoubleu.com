@@ -28,8 +28,13 @@ func TestDigest(t *testing.T) {
 		},
 		{
 			Domain: consumption.DomainGames, ItemID: "3", Title: "Bounced",
-			Creator: "", Tags: nil, At: time.Time{},
+			Creator: "", Tags: nil, At: old,
 			Signal: consumption.Negative, Reason: "under an hour played",
+		},
+		{
+			Domain: consumption.DomainGames, ItemID: "5", Title: "Hated",
+			Creator: "", Tags: nil, At: time.Time{},
+			Signal: consumption.StrongNegative, Reason: "rated 1★",
 		},
 		{
 			Domain: consumption.DomainGames, ItemID: "4", Title: "Meh",
@@ -44,8 +49,10 @@ func TestDigest(t *testing.T) {
 	assert.Contains(t, got, "## books: 2 consumed, 2 liked, 0 disliked\nLiked most:\n"+
 		"- Dune — Frank Herbert [sci-fi] (books, +2 rated 5★, 2024-10)\n"+
 		"- Okay Book (books, +1 finished, 2026-09)\n")
-	assert.Contains(t, got, "## games: 2 consumed, 0 liked, 1 disliked\n"+
-		"Disliked:\n- Bounced (games, -1 under an hour played)\n")
+	// Strongest first, though Hated is undated and Bounced dated.
+	assert.Contains(t, got, "## games: 3 consumed, 0 liked, 2 disliked\n"+
+		"Disliked:\n- Hated (games, -2 rated 1★)\n"+
+		"- Bounced (games, -1 under an hour played, 2024-10)\n")
 	assert.NotContains(t, got, "## feeds")
 	// Same date, so by title; undated events never count as recent.
 	assert.Contains(t, got, "## Last 90 days:\n- Meh (games, +0 played, 2026-09)\n"+

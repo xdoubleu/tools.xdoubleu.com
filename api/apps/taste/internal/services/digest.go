@@ -34,8 +34,8 @@ func Digest(events []consumption.Event, now time.Time) string {
 		stats := domainStats(domainEvents)[slices.Index(consumption.Domains(), d)]
 		fmt.Fprintf(&b, "\n## %s: %d consumed, %d liked, %d disliked\n",
 			d, stats.Consumed, stats.Positive, stats.Negative)
-		writeEvents(&b, "Liked most", strongest(domainEvents, 1), digestLiked)
-		writeEvents(&b, "Disliked", strongest(domainEvents, -1), digestDisliked)
+		writeEvents(&b, "Liked most", strongest(domainEvents, true), digestLiked)
+		writeEvents(&b, "Disliked", strongest(domainEvents, false), digestDisliked)
 	}
 
 	cutoff := now.Add(-recentWindow)
@@ -55,18 +55,21 @@ func tags(e consumption.Event) []string {
 	return e.Tags
 }
 
-// strongest returns events whose signal has sign's direction, strongest and
-// then newest first.
-func strongest(
-	events []consumption.Event,
-	sign consumption.Signal,
-) []consumption.Event {
+// strongest returns the liked (or else disliked) events, strongest and then
+// newest first.
+func strongest(events []consumption.Event, liked bool) []consumption.Event {
 	out := slices.DeleteFunc(slices.Clone(events), func(e consumption.Event) bool {
-		return e.Signal*sign <= 0
+		if liked {
+			return e.Signal <= consumption.Neutral
+		}
+		return e.Signal >= consumption.Neutral
 	})
 	SortNewestFirst(out)
 	slices.SortStableFunc(out, func(a, b consumption.Event) int {
-		return cmp.Compare(b.Signal*sign, a.Signal*sign)
+		if liked {
+			return cmp.Compare(b.Signal, a.Signal)
+		}
+		return cmp.Compare(a.Signal, b.Signal)
 	})
 	return out
 }
