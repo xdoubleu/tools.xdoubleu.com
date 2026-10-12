@@ -71,6 +71,10 @@ type stubLLM struct {
 	err     error
 }
 
+func answer(content string) stubLLM { return stubLLM{content: content, err: nil} }
+
+func failing(err error) stubLLM { return stubLLM{content: "", err: err} }
+
 func (s stubLLM) Complete(
 	_ context.Context, req openrouter.Request,
 ) (*openrouter.Response, error) {
@@ -110,12 +114,12 @@ var oneBook = eventsSource{events: []consumption.Event{{
 
 func TestProfileService_Request(t *testing.T) {
 	store := &memStore{accept: true} //nolint:exhaustruct // the rest start empty
-	ok, err := service(store, stubLLM{}, oneBook).Request(context.Background(), "u")
+	ok, err := service(store, answer(""), oneBook).Request(context.Background(), "u")
 	require.NoError(t, err)
 	assert.True(t, ok)
 	assert.Equal(t, clock.Add(-RefreshCooldown), store.notBefore)
 
-	unconfigured := NewProfileService(NewLogService(nil), store, stubLLM{}, "m", false)
+	unconfigured := NewProfileService(NewLogService(nil), store, answer(""), "m", false)
 	assert.False(t, unconfigured.Configured())
 	_, err = unconfigured.Request(context.Background(), "u")
 	require.ErrorIs(t, err, ErrNotConfigured)
@@ -124,7 +128,7 @@ func TestProfileService_Request(t *testing.T) {
 func TestProfileService_DueAndGet(t *testing.T) {
 	//nolint:exhaustruct // the rest start empty
 	store := &memStore{profile: &models.Profile{UserID: "u"}}
-	s := service(store, stubLLM{}, oneBook)
+	s := service(store, answer(""), oneBook)
 	assert.True(t, s.Configured())
 
 	due, err := s.Due(context.Background(), []string{"a"})
@@ -148,25 +152,23 @@ func TestProfileService_Generate(t *testing.T) {
 	}{
 		{
 			"written", oneBook,
-			stubLLM{
-				content: `{"summary": "S", "know": [], "like": [], "drifting": [], "bounce": []}`,
-			},
+			answer(`{"summary": "S", "know": [], "like": [], "drifting": [], "bounce": []}`),
 			"S|gen/model@served", "", false,
 		},
 		{
-			"empty log", eventsSource{events: nil, err: nil}, stubLLM{},
+			"empty log", eventsSource{events: nil, err: nil}, answer(""),
 			"empty", nothingConsumedNote, false,
 		},
 		{
-			"source down", eventsSource{events: nil, err: errors.New("db")}, stubLLM{},
+			"source down", eventsSource{events: nil, err: errors.New("db")}, answer(""),
 			"error", "Your history couldn't be read.", true,
 		},
 		{
-			"model down", oneBook, stubLLM{err: errors.New("503")},
+			"model down", oneBook, failing(errors.New("503")),
 			"error", "The model service failed.", true,
 		},
 		{
-			"bad answer", oneBook, stubLLM{content: `nope`},
+			"bad answer", oneBook, answer(`nope`),
 			"error", "The model's answer couldn't be read.", true,
 		},
 	}
@@ -184,7 +186,7 @@ func TestProfileService_Generate(t *testing.T) {
 
 func TestProfileService_GenerateReportsSaveFailure(t *testing.T) {
 	store := &memStore{err: errors.New("disk full")} //nolint:exhaustruct // rest empty
-	err := service(store, stubLLM{err: errors.New("503")}, oneBook).
+	err := service(store, failing(errors.New("503")), oneBook).
 		Generate(context.Background(), "u", all)
 	require.ErrorContains(t, err, "503")
 	require.ErrorContains(t, err, "disk full")
