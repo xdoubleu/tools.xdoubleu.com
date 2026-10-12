@@ -48,3 +48,19 @@ export function monthRows(months: MonthCountsLike[]): Record<string, string | nu
     return row
   })
 }
+
+export const TRACKS = [
+  { value: 'more', label: 'More of what you like' },
+  { value: 'broaden', label: 'Broaden your horizon' }
+] as const
+
+export type Track = (typeof TRACKS)[number]['value']
+
+/** The hostname of url without "www.", or url itself when it doesn't parse. */
+export function hostLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url
+  }
+}

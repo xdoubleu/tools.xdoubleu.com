@@ -9,6 +9,7 @@ jest.mock('swr', () => ({
 }))
 const mockClient = {
   getProfile: jest.fn().mockResolvedValue({}),
+  listRecommendations: jest.fn().mockResolvedValue({}),
   refreshProfile: jest.fn().mockResolvedValue({}),
   getStats: jest.fn().mockResolvedValue({}),
   listEvents: jest.fn().mockResolvedValue({ events: [{ itemId: 'b1' }], hasMore: true })
@@ -28,6 +29,7 @@ import {
   useRefreshTasteProfile,
   useTasteEvents,
   useTasteProfile,
+  useTasteRecommendations,
   useTasteStats
 } from '@/hooks/useTaste'
 
@@ -143,5 +145,19 @@ describe('useRefreshTasteProfile', () => {
     const { result } = renderHook(() => useRefreshTasteProfile())
     await expect(result.current()).rejects.toThrow('too soon')
     expect(mockMutate).not.toHaveBeenCalled()
+  })
+})
+
+describe('useTasteRecommendations', () => {
+  it('fetches a domain and track', () => {
+    renderHook(() => useTasteRecommendations('books', 'broaden'))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      ['/taste/recommendations', 'books', 'broaden'],
+      expect.any(Function)
+    )
+    expect(mockClient.listRecommendations).toHaveBeenCalledWith({
+      domain: 'books',
+      track: 'broaden'
+    })
   })
 })

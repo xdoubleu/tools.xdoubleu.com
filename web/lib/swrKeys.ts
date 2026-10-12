@@ -104,6 +104,8 @@ export const swrKeys = {
 
   tasteStats: '/taste/stats',
   tasteProfile: '/taste/profile',
+  tasteRecommendations: (domain: string, track: string) =>
+    ['/taste/recommendations', domain, track] as const,
   tasteEvents: (domain: string) => ['/taste/events', domain] as const,
 
   shoppingList: (ownerUserId: string) => `/shoppinglist?owner=${ownerUserId}`,

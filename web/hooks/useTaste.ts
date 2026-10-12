@@ -6,7 +6,8 @@ import { TasteService } from '@/lib/gen/taste/v1/taste_pb'
 import type {
   GetProfileResponse,
   GetStatsResponse,
-  ListEventsResponse
+  ListEventsResponse,
+  ListRecommendationsResponse
 } from '@/lib/gen/taste/v1/taste_pb'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 
@@ -61,4 +62,13 @@ export function useRefreshTasteProfile() {
     await client.refreshProfile({})
     await mutate(swrKeys.tasteProfile)
   }, [client, mutate])
+}
+
+/** Picks for a domain and track; '' is every domain or both tracks. */
+export function useTasteRecommendations(domain: string, track: string) {
+  const client = createServiceClient(TasteService)
+  return useSWR<ListRecommendationsResponse, Error>(
+    swrKeys.tasteRecommendations(domain, track),
+    () => client.listRecommendations({ domain, track })
+  )
 }

@@ -1,4 +1,4 @@
-import { DOMAINS, domainLabel, monthRows, signalBadge } from '@/lib/taste/format'
+import { DOMAINS, TRACKS, domainLabel, hostLabel, monthRows, signalBadge } from '@/lib/taste/format'
 
 describe('DOMAINS', () => {
   it('lists every domain in display order with its series colour', () => {
@@ -54,5 +54,22 @@ describe('monthRows', () => {
     expect(rows[0].Books).toBe(3)
     expect(rows[0].Games).toBe(0)
     expect(Object.keys(rows[1])).toHaveLength(DOMAINS.length + 1)
+  })
+})
+
+describe('TRACKS', () => {
+  it('lists more before broaden', () => {
+    expect(TRACKS).toEqual([
+      { value: 'more', label: 'More of what you like' },
+      { value: 'broaden', label: 'Broaden your horizon' }
+    ])
+  })
+})
+
+describe('hostLabel', () => {
+  it('shows the host without www., or the input when it is no URL', () => {
+    expect(hostLabel('https://www.reddit.com/r/printSF')).toBe('reddit.com')
+    expect(hostLabel('https://blog.example/post')).toBe('blog.example')
+    expect(hostLabel('not a url')).toBe('not a url')
   })
 })
