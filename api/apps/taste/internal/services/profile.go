@@ -28,7 +28,8 @@ var ErrNotConfigured = openrouter.ErrNotConfigured
 var errNothingConsumed = errors.New("nothing consumed yet")
 
 // nothingConsumedNote is noted on the profile for an empty log.
-const nothingConsumedNote = "There's nothing in your history to write a profile from yet."
+const nothingConsumedNote = "There's nothing in your history to write a " +
+	"profile from yet."
 
 type profileStore interface {
 	Get(ctx context.Context, userID string) (*models.Profile, error)

@@ -216,7 +216,6 @@ func (c parser) envBool(key string, defaultValue bool) bool {
 	return value
 }
 
-//nolint:funlen // one line per setting
 func New(logger *slog.Logger) Config {
 	var cfg Config
 
