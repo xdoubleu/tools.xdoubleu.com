@@ -122,6 +122,14 @@ func (s *FeedService) ListItems(
 	)
 }
 
+// ListEngaged returns the user's read, bookmarked or dismissed items.
+func (s *FeedService) ListEngaged(
+	ctx context.Context,
+	userID string,
+) ([]models.EngagedItem, error) {
+	return s.items.ListEngaged(ctx, userID)
+}
+
 // GetItem returns one of the user's items with its article body, which
 // ListItems omits.
 func (s *FeedService) GetItem(

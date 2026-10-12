@@ -139,3 +139,17 @@ type DayCount struct {
 	Day   time.Time
 	Count int
 }
+
+// EngagedItem is an item the user read, bookmarked or dismissed, without its
+// body.
+type EngagedItem struct {
+	ID              uuid.UUID
+	Title           string
+	FeedTitle       string
+	Categories      []string
+	PublishedAt     time.Time
+	ReadAt          *time.Time
+	Dismissed       bool
+	Bookmarked      bool
+	ReadProgressPct int
+}

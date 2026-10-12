@@ -18,6 +18,7 @@ import (
 	"tools.xdoubleu.com/apps/podcasts"
 	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/apps/shoppinglist"
+	"tools.xdoubleu.com/apps/taste"
 	"tools.xdoubleu.com/apps/trains"
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/auth"
@@ -85,10 +86,19 @@ func NewApps(
 		),
 	)
 	// movies has no schema dependencies.
-	apps.addApp(movies.New(authService, logger, cfg, db))
+	moviesApp := movies.New(authService, logger, cfg, db)
+	apps.addApp(moviesApp)
 
 	// podcasts has no schema dependencies.
-	apps.addApp(podcasts.New(authService, logger, cfg, db))
+	podcastsApp := podcasts.New(authService, logger, cfg, db)
+	apps.addApp(podcastsApp)
+
+	// taste reads every media app through its exported ListConsumption, so it
+	// follows them.
+	apps.addApp(taste.New(
+		authService, logger, cfg,
+		booksApp, feedsApp, gamesApp, moviesApp, podcastsApp,
+	))
 
 	return &apps, booksApp, feedsApp
 }

@@ -1,0 +1,78 @@
+syntax = "proto3";
+package taste.v1;
+option go_package = "tools.xdoubleu.com/gen/taste/v1;tastev1";
+
+// One consumed item. Signal is engagement normalized within its domain, from
+// -2 (strong negative) to 2 (strong positive).
+message Event {
+  // books, feeds, games, movies, series or podcasts.
+  string domain = 1;
+  // The owning app's id for the item.
+  string item_id = 2;
+  string title = 3;
+  // Author, feed or show author; empty when the domain has none.
+  string creator = 4;
+  repeated string tags = 5;
+  // RFC3339; empty when the date is unknown.
+  string at = 6;
+  int32 signal = 7;
+  // Why the item got its signal, e.g. "rated 5★".
+  string reason = 8;
+}
+
+message DomainStats {
+  string domain = 1;
+  int32 consumed = 2;
+  int32 positive = 3;
+  int32 negative = 4;
+  // RFC3339 of the latest dated event; empty without one.
+  string last_at = 5;
+}
+
+message DomainCount {
+  string domain = 1;
+  int32 count = 2;
+}
+
+message MonthCounts {
+  // YYYY-MM, in Europe/Brussels.
+  string month = 1;
+  // Domains with no events that month are omitted.
+  repeated DomainCount counts = 2;
+}
+
+// A tag or creator ranked by how many items with it got a positive signal.
+message RankedName {
+  string name = 1;
+  int32 positive = 2;
+  repeated string domains = 3;
+}
+
+message GetStatsRequest {}
+message GetStatsResponse {
+  // Every domain, in display order, including empty ones.
+  repeated DomainStats domains = 1;
+  // This month and the 11 before it, oldest first; dated events only.
+  repeated MonthCounts months = 2;
+  // Top 15 each.
+  repeated RankedName top_tags = 3;
+  repeated RankedName top_creators = 4;
+}
+
+message ListEventsRequest {
+  // Empty for every domain.
+  string domain = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message ListEventsResponse {
+  // Newest first; undated events last.
+  repeated Event events = 1;
+  bool has_more = 2;
+}
+
+// The caller's consumption log across every app; per user, never shared.
+service TasteService {
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+}
