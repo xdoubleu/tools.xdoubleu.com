@@ -593,6 +593,296 @@ func (x *ListEventsResponse) GetHasMore() bool {
 	return false
 }
 
+// The LLM-written profile; lists hold short bullets.
+type ProfileSections struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Summary string                 `protobuf:"bytes,1,opt,name=summary,proto3" json:"summary,omitempty"`
+	// What the user knows well.
+	Know []string `protobuf:"bytes,2,rep,name=know,proto3" json:"know,omitempty"`
+	// What reliably works for them.
+	Like []string `protobuf:"bytes,3,rep,name=like,proto3" json:"like,omitempty"`
+	// Where their taste moved recently.
+	Drifting []string `protobuf:"bytes,4,rep,name=drifting,proto3" json:"drifting,omitempty"`
+	// What they tend to drop or dislike.
+	Bounce        []string `protobuf:"bytes,5,rep,name=bounce,proto3" json:"bounce,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProfileSections) Reset() {
+	*x = ProfileSections{}
+	mi := &file_taste_v1_taste_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProfileSections) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProfileSections) ProtoMessage() {}
+
+func (x *ProfileSections) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProfileSections.ProtoReflect.Descriptor instead.
+func (*ProfileSections) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ProfileSections) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *ProfileSections) GetKnow() []string {
+	if x != nil {
+		return x.Know
+	}
+	return nil
+}
+
+func (x *ProfileSections) GetLike() []string {
+	if x != nil {
+		return x.Like
+	}
+	return nil
+}
+
+func (x *ProfileSections) GetDrifting() []string {
+	if x != nil {
+		return x.Drifting
+	}
+	return nil
+}
+
+func (x *ProfileSections) GetBounce() []string {
+	if x != nil {
+		return x.Bounce
+	}
+	return nil
+}
+
+type GetProfileRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProfileRequest) Reset() {
+	*x = GetProfileRequest{}
+	mi := &file_taste_v1_taste_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProfileRequest) ProtoMessage() {}
+
+func (x *GetProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProfileRequest.ProtoReflect.Descriptor instead.
+func (*GetProfileRequest) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{10}
+}
+
+type GetProfileResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// False while no OpenRouter key is set; nothing else is then filled.
+	Configured bool `protobuf:"varint,1,opt,name=configured,proto3" json:"configured,omitempty"`
+	// Unset before the first successful generation.
+	Sections *ProfileSections `protobuf:"bytes,2,opt,name=sections,proto3" json:"sections,omitempty"`
+	// The model that wrote it.
+	Model string `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`
+	// RFC3339; empty before the first generation.
+	GeneratedAt string `protobuf:"bytes,4,opt,name=generated_at,json=generatedAt,proto3" json:"generated_at,omitempty"`
+	// A regeneration is queued or running.
+	Pending bool `protobuf:"varint,5,opt,name=pending,proto3" json:"pending,omitempty"`
+	// Why the last generation failed; empty when it succeeded.
+	LastError string `protobuf:"bytes,6,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	// RFC3339 from when RefreshProfile is accepted again; empty when now.
+	NextRefreshAt string `protobuf:"bytes,7,opt,name=next_refresh_at,json=nextRefreshAt,proto3" json:"next_refresh_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetProfileResponse) Reset() {
+	*x = GetProfileResponse{}
+	mi := &file_taste_v1_taste_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetProfileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetProfileResponse) ProtoMessage() {}
+
+func (x *GetProfileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetProfileResponse.ProtoReflect.Descriptor instead.
+func (*GetProfileResponse) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetProfileResponse) GetConfigured() bool {
+	if x != nil {
+		return x.Configured
+	}
+	return false
+}
+
+func (x *GetProfileResponse) GetSections() *ProfileSections {
+	if x != nil {
+		return x.Sections
+	}
+	return nil
+}
+
+func (x *GetProfileResponse) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *GetProfileResponse) GetGeneratedAt() string {
+	if x != nil {
+		return x.GeneratedAt
+	}
+	return ""
+}
+
+func (x *GetProfileResponse) GetPending() bool {
+	if x != nil {
+		return x.Pending
+	}
+	return false
+}
+
+func (x *GetProfileResponse) GetLastError() string {
+	if x != nil {
+		return x.LastError
+	}
+	return ""
+}
+
+func (x *GetProfileResponse) GetNextRefreshAt() string {
+	if x != nil {
+		return x.NextRefreshAt
+	}
+	return ""
+}
+
+// Queues a regeneration; RESOURCE_EXHAUSTED within 6 hours of the last
+// request, FAILED_PRECONDITION without an OpenRouter key.
+type RefreshProfileRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshProfileRequest) Reset() {
+	*x = RefreshProfileRequest{}
+	mi := &file_taste_v1_taste_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshProfileRequest) ProtoMessage() {}
+
+func (x *RefreshProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshProfileRequest.ProtoReflect.Descriptor instead.
+func (*RefreshProfileRequest) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{12}
+}
+
+type RefreshProfileResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshProfileResponse) Reset() {
+	*x = RefreshProfileResponse{}
+	mi := &file_taste_v1_taste_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshProfileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshProfileResponse) ProtoMessage() {}
+
+func (x *RefreshProfileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshProfileResponse.ProtoReflect.Descriptor instead.
+func (*RefreshProfileResponse) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{13}
+}
+
 var File_taste_v1_taste_proto protoreflect.FileDescriptor
 
 const file_taste_v1_taste_proto_rawDesc = "" +
@@ -636,11 +926,34 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"\x06offset\x18\x03 \x01(\x05R\x06offset\"X\n" +
 	"\x12ListEventsResponse\x12'\n" +
 	"\x06events\x18\x01 \x03(\v2\x0f.taste.v1.EventR\x06events\x12\x19\n" +
-	"\bhas_more\x18\x02 \x01(\bR\ahasMore2\x9a\x01\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"\x87\x01\n" +
+	"\x0fProfileSections\x12\x18\n" +
+	"\asummary\x18\x01 \x01(\tR\asummary\x12\x12\n" +
+	"\x04know\x18\x02 \x03(\tR\x04know\x12\x12\n" +
+	"\x04like\x18\x03 \x03(\tR\x04like\x12\x1a\n" +
+	"\bdrifting\x18\x04 \x03(\tR\bdrifting\x12\x16\n" +
+	"\x06bounce\x18\x05 \x03(\tR\x06bounce\"\x13\n" +
+	"\x11GetProfileRequest\"\x85\x02\n" +
+	"\x12GetProfileResponse\x12\x1e\n" +
+	"\n" +
+	"configured\x18\x01 \x01(\bR\n" +
+	"configured\x125\n" +
+	"\bsections\x18\x02 \x01(\v2\x19.taste.v1.ProfileSectionsR\bsections\x12\x14\n" +
+	"\x05model\x18\x03 \x01(\tR\x05model\x12!\n" +
+	"\fgenerated_at\x18\x04 \x01(\tR\vgeneratedAt\x12\x18\n" +
+	"\apending\x18\x05 \x01(\bR\apending\x12\x1d\n" +
+	"\n" +
+	"last_error\x18\x06 \x01(\tR\tlastError\x12&\n" +
+	"\x0fnext_refresh_at\x18\a \x01(\tR\rnextRefreshAt\"\x17\n" +
+	"\x15RefreshProfileRequest\"\x18\n" +
+	"\x16RefreshProfileResponse2\xb8\x02\n" +
 	"\fTasteService\x12A\n" +
 	"\bGetStats\x12\x19.taste.v1.GetStatsRequest\x1a\x1a.taste.v1.GetStatsResponse\x12G\n" +
 	"\n" +
-	"ListEvents\x12\x1b.taste.v1.ListEventsRequest\x1a\x1c.taste.v1.ListEventsResponseB)Z'tools.xdoubleu.com/gen/taste/v1;tastev1b\x06proto3"
+	"ListEvents\x12\x1b.taste.v1.ListEventsRequest\x1a\x1c.taste.v1.ListEventsResponse\x12G\n" +
+	"\n" +
+	"GetProfile\x12\x1b.taste.v1.GetProfileRequest\x1a\x1c.taste.v1.GetProfileResponse\x12S\n" +
+	"\x0eRefreshProfile\x12\x1f.taste.v1.RefreshProfileRequest\x1a .taste.v1.RefreshProfileResponseB)Z'tools.xdoubleu.com/gen/taste/v1;tastev1b\x06proto3"
 
 var (
 	file_taste_v1_taste_proto_rawDescOnce sync.Once
@@ -654,34 +967,44 @@ func file_taste_v1_taste_proto_rawDescGZIP() []byte {
 	return file_taste_v1_taste_proto_rawDescData
 }
 
-var file_taste_v1_taste_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_taste_v1_taste_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_taste_v1_taste_proto_goTypes = []any{
-	(*Event)(nil),              // 0: taste.v1.Event
-	(*DomainStats)(nil),        // 1: taste.v1.DomainStats
-	(*DomainCount)(nil),        // 2: taste.v1.DomainCount
-	(*MonthCounts)(nil),        // 3: taste.v1.MonthCounts
-	(*RankedName)(nil),         // 4: taste.v1.RankedName
-	(*GetStatsRequest)(nil),    // 5: taste.v1.GetStatsRequest
-	(*GetStatsResponse)(nil),   // 6: taste.v1.GetStatsResponse
-	(*ListEventsRequest)(nil),  // 7: taste.v1.ListEventsRequest
-	(*ListEventsResponse)(nil), // 8: taste.v1.ListEventsResponse
+	(*Event)(nil),                  // 0: taste.v1.Event
+	(*DomainStats)(nil),            // 1: taste.v1.DomainStats
+	(*DomainCount)(nil),            // 2: taste.v1.DomainCount
+	(*MonthCounts)(nil),            // 3: taste.v1.MonthCounts
+	(*RankedName)(nil),             // 4: taste.v1.RankedName
+	(*GetStatsRequest)(nil),        // 5: taste.v1.GetStatsRequest
+	(*GetStatsResponse)(nil),       // 6: taste.v1.GetStatsResponse
+	(*ListEventsRequest)(nil),      // 7: taste.v1.ListEventsRequest
+	(*ListEventsResponse)(nil),     // 8: taste.v1.ListEventsResponse
+	(*ProfileSections)(nil),        // 9: taste.v1.ProfileSections
+	(*GetProfileRequest)(nil),      // 10: taste.v1.GetProfileRequest
+	(*GetProfileResponse)(nil),     // 11: taste.v1.GetProfileResponse
+	(*RefreshProfileRequest)(nil),  // 12: taste.v1.RefreshProfileRequest
+	(*RefreshProfileResponse)(nil), // 13: taste.v1.RefreshProfileResponse
 }
 var file_taste_v1_taste_proto_depIdxs = []int32{
-	2, // 0: taste.v1.MonthCounts.counts:type_name -> taste.v1.DomainCount
-	1, // 1: taste.v1.GetStatsResponse.domains:type_name -> taste.v1.DomainStats
-	3, // 2: taste.v1.GetStatsResponse.months:type_name -> taste.v1.MonthCounts
-	4, // 3: taste.v1.GetStatsResponse.top_tags:type_name -> taste.v1.RankedName
-	4, // 4: taste.v1.GetStatsResponse.top_creators:type_name -> taste.v1.RankedName
-	0, // 5: taste.v1.ListEventsResponse.events:type_name -> taste.v1.Event
-	5, // 6: taste.v1.TasteService.GetStats:input_type -> taste.v1.GetStatsRequest
-	7, // 7: taste.v1.TasteService.ListEvents:input_type -> taste.v1.ListEventsRequest
-	6, // 8: taste.v1.TasteService.GetStats:output_type -> taste.v1.GetStatsResponse
-	8, // 9: taste.v1.TasteService.ListEvents:output_type -> taste.v1.ListEventsResponse
-	8, // [8:10] is the sub-list for method output_type
-	6, // [6:8] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	2,  // 0: taste.v1.MonthCounts.counts:type_name -> taste.v1.DomainCount
+	1,  // 1: taste.v1.GetStatsResponse.domains:type_name -> taste.v1.DomainStats
+	3,  // 2: taste.v1.GetStatsResponse.months:type_name -> taste.v1.MonthCounts
+	4,  // 3: taste.v1.GetStatsResponse.top_tags:type_name -> taste.v1.RankedName
+	4,  // 4: taste.v1.GetStatsResponse.top_creators:type_name -> taste.v1.RankedName
+	0,  // 5: taste.v1.ListEventsResponse.events:type_name -> taste.v1.Event
+	9,  // 6: taste.v1.GetProfileResponse.sections:type_name -> taste.v1.ProfileSections
+	5,  // 7: taste.v1.TasteService.GetStats:input_type -> taste.v1.GetStatsRequest
+	7,  // 8: taste.v1.TasteService.ListEvents:input_type -> taste.v1.ListEventsRequest
+	10, // 9: taste.v1.TasteService.GetProfile:input_type -> taste.v1.GetProfileRequest
+	12, // 10: taste.v1.TasteService.RefreshProfile:input_type -> taste.v1.RefreshProfileRequest
+	6,  // 11: taste.v1.TasteService.GetStats:output_type -> taste.v1.GetStatsResponse
+	8,  // 12: taste.v1.TasteService.ListEvents:output_type -> taste.v1.ListEventsResponse
+	11, // 13: taste.v1.TasteService.GetProfile:output_type -> taste.v1.GetProfileResponse
+	13, // 14: taste.v1.TasteService.RefreshProfile:output_type -> taste.v1.RefreshProfileResponse
+	11, // [11:15] is the sub-list for method output_type
+	7,  // [7:11] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_taste_v1_taste_proto_init() }
@@ -695,7 +1018,7 @@ func file_taste_v1_taste_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_taste_v1_taste_proto_rawDesc), len(file_taste_v1_taste_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

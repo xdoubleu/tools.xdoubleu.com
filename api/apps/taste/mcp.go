@@ -35,6 +35,18 @@ func (a *Taste) RegisterMCPTools(srv *mcp.Server) {
 			"domain, creator, tags, date and a signal from -2 (strong dislike) to 2 "+
 			"(strong like) normalized within its domain, plus the reason. Page "+
 			"with limit/offset while has_more is true.", h.mcpListEvents)
+	mcptools.AddReadTool(srv, mcpAppName, "taste_get_profile",
+		"The user's LLM-written taste profile: a summary plus what they know, "+
+			"what they like, where their taste is drifting and what they bounce "+
+			"off, with when and by which model it was written.", h.mcpGetProfile)
+}
+
+func (h *tasteConnectHandler) mcpGetProfile(
+	ctx context.Context, _ mcptools.NoArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.GetProfile(ctx, connect.NewRequest(
+		&tastev1.GetProfileRequest{},
+	)))
 }
 
 func (h *tasteConnectHandler) mcpGetStats(

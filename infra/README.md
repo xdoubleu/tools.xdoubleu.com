@@ -315,6 +315,8 @@ GRAFANA_ADMIN_PASSWORD       (Grafana break-glass admin, GF_SECURITY_ADMIN_PASSW
 STEAM_API_KEY
 HARDCOVER_API_KEY
 TMDB_API_KEY
+OPENROUTER_API_KEY           (taste app LLM stages; a dedicated key with a
+                              credit limit, apart from the routines key)
 BMC_PARTNER_KEY              (SNCB GTFS feed subscription key, trains app;
                               sent as the bmc-partner-key header)
 R2_ACCOUNT_ID

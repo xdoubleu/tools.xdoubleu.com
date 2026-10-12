@@ -37,12 +37,19 @@ const (
 	TasteServiceGetStatsProcedure = "/taste.v1.TasteService/GetStats"
 	// TasteServiceListEventsProcedure is the fully-qualified name of the TasteService's ListEvents RPC.
 	TasteServiceListEventsProcedure = "/taste.v1.TasteService/ListEvents"
+	// TasteServiceGetProfileProcedure is the fully-qualified name of the TasteService's GetProfile RPC.
+	TasteServiceGetProfileProcedure = "/taste.v1.TasteService/GetProfile"
+	// TasteServiceRefreshProfileProcedure is the fully-qualified name of the TasteService's
+	// RefreshProfile RPC.
+	TasteServiceRefreshProfileProcedure = "/taste.v1.TasteService/RefreshProfile"
 )
 
 // TasteServiceClient is a client for the taste.v1.TasteService service.
 type TasteServiceClient interface {
 	GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error)
 	ListEvents(context.Context, *connect.Request[v1.ListEventsRequest]) (*connect.Response[v1.ListEventsResponse], error)
+	GetProfile(context.Context, *connect.Request[v1.GetProfileRequest]) (*connect.Response[v1.GetProfileResponse], error)
+	RefreshProfile(context.Context, *connect.Request[v1.RefreshProfileRequest]) (*connect.Response[v1.RefreshProfileResponse], error)
 }
 
 // NewTasteServiceClient constructs a client for the taste.v1.TasteService service. By default, it
@@ -68,13 +75,27 @@ func NewTasteServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(tasteServiceMethods.ByName("ListEvents")),
 			connect.WithClientOptions(opts...),
 		),
+		getProfile: connect.NewClient[v1.GetProfileRequest, v1.GetProfileResponse](
+			httpClient,
+			baseURL+TasteServiceGetProfileProcedure,
+			connect.WithSchema(tasteServiceMethods.ByName("GetProfile")),
+			connect.WithClientOptions(opts...),
+		),
+		refreshProfile: connect.NewClient[v1.RefreshProfileRequest, v1.RefreshProfileResponse](
+			httpClient,
+			baseURL+TasteServiceRefreshProfileProcedure,
+			connect.WithSchema(tasteServiceMethods.ByName("RefreshProfile")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // tasteServiceClient implements TasteServiceClient.
 type tasteServiceClient struct {
-	getStats   *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
-	listEvents *connect.Client[v1.ListEventsRequest, v1.ListEventsResponse]
+	getStats       *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
+	listEvents     *connect.Client[v1.ListEventsRequest, v1.ListEventsResponse]
+	getProfile     *connect.Client[v1.GetProfileRequest, v1.GetProfileResponse]
+	refreshProfile *connect.Client[v1.RefreshProfileRequest, v1.RefreshProfileResponse]
 }
 
 // GetStats calls taste.v1.TasteService.GetStats.
@@ -87,10 +108,22 @@ func (c *tasteServiceClient) ListEvents(ctx context.Context, req *connect.Reques
 	return c.listEvents.CallUnary(ctx, req)
 }
 
+// GetProfile calls taste.v1.TasteService.GetProfile.
+func (c *tasteServiceClient) GetProfile(ctx context.Context, req *connect.Request[v1.GetProfileRequest]) (*connect.Response[v1.GetProfileResponse], error) {
+	return c.getProfile.CallUnary(ctx, req)
+}
+
+// RefreshProfile calls taste.v1.TasteService.RefreshProfile.
+func (c *tasteServiceClient) RefreshProfile(ctx context.Context, req *connect.Request[v1.RefreshProfileRequest]) (*connect.Response[v1.RefreshProfileResponse], error) {
+	return c.refreshProfile.CallUnary(ctx, req)
+}
+
 // TasteServiceHandler is an implementation of the taste.v1.TasteService service.
 type TasteServiceHandler interface {
 	GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error)
 	ListEvents(context.Context, *connect.Request[v1.ListEventsRequest]) (*connect.Response[v1.ListEventsResponse], error)
+	GetProfile(context.Context, *connect.Request[v1.GetProfileRequest]) (*connect.Response[v1.GetProfileResponse], error)
+	RefreshProfile(context.Context, *connect.Request[v1.RefreshProfileRequest]) (*connect.Response[v1.RefreshProfileResponse], error)
 }
 
 // NewTasteServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -112,12 +145,28 @@ func NewTasteServiceHandler(svc TasteServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(tasteServiceMethods.ByName("ListEvents")),
 		connect.WithHandlerOptions(opts...),
 	)
+	tasteServiceGetProfileHandler := connect.NewUnaryHandler(
+		TasteServiceGetProfileProcedure,
+		svc.GetProfile,
+		connect.WithSchema(tasteServiceMethods.ByName("GetProfile")),
+		connect.WithHandlerOptions(opts...),
+	)
+	tasteServiceRefreshProfileHandler := connect.NewUnaryHandler(
+		TasteServiceRefreshProfileProcedure,
+		svc.RefreshProfile,
+		connect.WithSchema(tasteServiceMethods.ByName("RefreshProfile")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/taste.v1.TasteService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TasteServiceGetStatsProcedure:
 			tasteServiceGetStatsHandler.ServeHTTP(w, r)
 		case TasteServiceListEventsProcedure:
 			tasteServiceListEventsHandler.ServeHTTP(w, r)
+		case TasteServiceGetProfileProcedure:
+			tasteServiceGetProfileHandler.ServeHTTP(w, r)
+		case TasteServiceRefreshProfileProcedure:
+			tasteServiceRefreshProfileHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -133,4 +182,12 @@ func (UnimplementedTasteServiceHandler) GetStats(context.Context, *connect.Reque
 
 func (UnimplementedTasteServiceHandler) ListEvents(context.Context, *connect.Request[v1.ListEventsRequest]) (*connect.Response[v1.ListEventsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("taste.v1.TasteService.ListEvents is not implemented"))
+}
+
+func (UnimplementedTasteServiceHandler) GetProfile(context.Context, *connect.Request[v1.GetProfileRequest]) (*connect.Response[v1.GetProfileResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("taste.v1.TasteService.GetProfile is not implemented"))
+}
+
+func (UnimplementedTasteServiceHandler) RefreshProfile(context.Context, *connect.Request[v1.RefreshProfileRequest]) (*connect.Response[v1.RefreshProfileResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("taste.v1.TasteService.RefreshProfile is not implemented"))
 }

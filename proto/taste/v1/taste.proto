@@ -71,8 +71,46 @@ message ListEventsResponse {
   bool has_more = 2;
 }
 
+// The LLM-written profile; lists hold short bullets.
+message ProfileSections {
+  string summary = 1;
+  // What the user knows well.
+  repeated string know = 2;
+  // What reliably works for them.
+  repeated string like = 3;
+  // Where their taste moved recently.
+  repeated string drifting = 4;
+  // What they tend to drop or dislike.
+  repeated string bounce = 5;
+}
+
+message GetProfileRequest {}
+message GetProfileResponse {
+  // False while no OpenRouter key is set; nothing else is then filled.
+  bool configured = 1;
+  // Unset before the first successful generation.
+  ProfileSections sections = 2;
+  // The model that wrote it.
+  string model = 3;
+  // RFC3339; empty before the first generation.
+  string generated_at = 4;
+  // A regeneration is queued or running.
+  bool pending = 5;
+  // Why the last generation failed; empty when it succeeded.
+  string last_error = 6;
+  // RFC3339 from when RefreshProfile is accepted again; empty when now.
+  string next_refresh_at = 7;
+}
+
+// Queues a regeneration; RESOURCE_EXHAUSTED within 6 hours of the last
+// request, FAILED_PRECONDITION without an OpenRouter key.
+message RefreshProfileRequest {}
+message RefreshProfileResponse {}
+
 // The caller's consumption log across every app; per user, never shared.
 service TasteService {
   rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
   rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc RefreshProfile(RefreshProfileRequest) returns (RefreshProfileResponse);
 }

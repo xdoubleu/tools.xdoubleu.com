@@ -31,9 +31,10 @@ func (s staticSource) ListConsumption(
 
 func TestMCPTools(t *testing.T) {
 	const uid = "mcp-taste-user"
+	cfg := testhelper.NewTestConfig()
 	a := New(
-		sharedmocks.NewMockedAuthService(uid), logging.NewNopLogger(),
-		testhelper.NewTestConfig(),
+		sharedmocks.NewMockedAuthService(uid), logging.NewNopLogger(), cfg,
+		testhelper.ConnectTestDB(cfg.DBDsn),
 		staticSource{
 			//nolint:exhaustruct // only what the tools return
 			{Domain: consumption.DomainPodcasts, Title: "Show", At: time.Now(), Signal: 2},
@@ -64,6 +65,12 @@ func TestMCPTools(t *testing.T) {
 	require.True(t, ok)
 	require.Len(t, events.Events, 1)
 	assert.Equal(t, "Show", events.Events[0].Title)
+
+	msg, err = h.mcpGetProfile(ctx, mcptools.NoArgs{})
+	require.NoError(t, err)
+	profile, ok := msg.(*tastev1.GetProfileResponse)
+	require.True(t, ok)
+	assert.False(t, profile.Configured)
 
 	_, err = h.mcpGetStats(context.Background(), mcptools.NoArgs{})
 	require.Error(t, err)

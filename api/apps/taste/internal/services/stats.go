@@ -65,7 +65,7 @@ func BuildStats(events []consumption.Event, now time.Time) Stats {
 	return Stats{
 		Domains:     domainStats(events),
 		Months:      monthCounts(events, now),
-		TopTags:     rank(events, func(e consumption.Event) []string { return e.Tags }),
+		TopTags:     rank(events, tags),
 		TopCreators: rank(events, creators),
 	}
 }

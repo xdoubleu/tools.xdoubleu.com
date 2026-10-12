@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file taste/v1/taste.proto.
  */
 export const file_taste_v1_taste: GenFile = /*@__PURE__*/
-  fileDesc("ChR0YXN0ZS92MS90YXN0ZS5wcm90bxIIdGFzdGUudjEiggEKBUV2ZW50Eg4KBmRvbWFpbhgBIAEoCRIPCgdpdGVtX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2NyZWF0b3IYBCABKAkSDAoEdGFncxgFIAMoCRIKCgJhdBgGIAEoCRIOCgZzaWduYWwYByABKAUSDgoGcmVhc29uGAggASgJImQKC0RvbWFpblN0YXRzEg4KBmRvbWFpbhgBIAEoCRIQCghjb25zdW1lZBgCIAEoBRIQCghwb3NpdGl2ZRgDIAEoBRIQCghuZWdhdGl2ZRgEIAEoBRIPCgdsYXN0X2F0GAUgASgJIiwKC0RvbWFpbkNvdW50Eg4KBmRvbWFpbhgBIAEoCRINCgVjb3VudBgCIAEoBSJDCgtNb250aENvdW50cxINCgVtb250aBgBIAEoCRIlCgZjb3VudHMYAiADKAsyFS50YXN0ZS52MS5Eb21haW5Db3VudCI9CgpSYW5rZWROYW1lEgwKBG5hbWUYASABKAkSEAoIcG9zaXRpdmUYAiABKAUSDwoHZG9tYWlucxgDIAMoCSIRCg9HZXRTdGF0c1JlcXVlc3QitQEKEEdldFN0YXRzUmVzcG9uc2USJgoHZG9tYWlucxgBIAMoCzIVLnRhc3RlLnYxLkRvbWFpblN0YXRzEiUKBm1vbnRocxgCIAMoCzIVLnRhc3RlLnYxLk1vbnRoQ291bnRzEiYKCHRvcF90YWdzGAMgAygLMhQudGFzdGUudjEuUmFua2VkTmFtZRIqCgx0b3BfY3JlYXRvcnMYBCADKAsyFC50YXN0ZS52MS5SYW5rZWROYW1lIkIKEUxpc3RFdmVudHNSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgVsaW1pdBgCIAEoBRIOCgZvZmZzZXQYAyABKAUiRwoSTGlzdEV2ZW50c1Jlc3BvbnNlEh8KBmV2ZW50cxgBIAMoCzIPLnRhc3RlLnYxLkV2ZW50EhAKCGhhc19tb3JlGAIgASgIMpoBCgxUYXN0ZVNlcnZpY2USQQoIR2V0U3RhdHMSGS50YXN0ZS52MS5HZXRTdGF0c1JlcXVlc3QaGi50YXN0ZS52MS5HZXRTdGF0c1Jlc3BvbnNlEkcKCkxpc3RFdmVudHMSGy50YXN0ZS52MS5MaXN0RXZlbnRzUmVxdWVzdBocLnRhc3RlLnYxLkxpc3RFdmVudHNSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL3Rhc3RlL3YxO3Rhc3RldjFiBnByb3RvMw");
+  fileDesc("ChR0YXN0ZS92MS90YXN0ZS5wcm90bxIIdGFzdGUudjEiggEKBUV2ZW50Eg4KBmRvbWFpbhgBIAEoCRIPCgdpdGVtX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2NyZWF0b3IYBCABKAkSDAoEdGFncxgFIAMoCRIKCgJhdBgGIAEoCRIOCgZzaWduYWwYByABKAUSDgoGcmVhc29uGAggASgJImQKC0RvbWFpblN0YXRzEg4KBmRvbWFpbhgBIAEoCRIQCghjb25zdW1lZBgCIAEoBRIQCghwb3NpdGl2ZRgDIAEoBRIQCghuZWdhdGl2ZRgEIAEoBRIPCgdsYXN0X2F0GAUgASgJIiwKC0RvbWFpbkNvdW50Eg4KBmRvbWFpbhgBIAEoCRINCgVjb3VudBgCIAEoBSJDCgtNb250aENvdW50cxINCgVtb250aBgBIAEoCRIlCgZjb3VudHMYAiADKAsyFS50YXN0ZS52MS5Eb21haW5Db3VudCI9CgpSYW5rZWROYW1lEgwKBG5hbWUYASABKAkSEAoIcG9zaXRpdmUYAiABKAUSDwoHZG9tYWlucxgDIAMoCSIRCg9HZXRTdGF0c1JlcXVlc3QitQEKEEdldFN0YXRzUmVzcG9uc2USJgoHZG9tYWlucxgBIAMoCzIVLnRhc3RlLnYxLkRvbWFpblN0YXRzEiUKBm1vbnRocxgCIAMoCzIVLnRhc3RlLnYxLk1vbnRoQ291bnRzEiYKCHRvcF90YWdzGAMgAygLMhQudGFzdGUudjEuUmFua2VkTmFtZRIqCgx0b3BfY3JlYXRvcnMYBCADKAsyFC50YXN0ZS52MS5SYW5rZWROYW1lIkIKEUxpc3RFdmVudHNSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgVsaW1pdBgCIAEoBRIOCgZvZmZzZXQYAyABKAUiRwoSTGlzdEV2ZW50c1Jlc3BvbnNlEh8KBmV2ZW50cxgBIAMoCzIPLnRhc3RlLnYxLkV2ZW50EhAKCGhhc19tb3JlGAIgASgIImAKD1Byb2ZpbGVTZWN0aW9ucxIPCgdzdW1tYXJ5GAEgASgJEgwKBGtub3cYAiADKAkSDAoEbGlrZRgDIAMoCRIQCghkcmlmdGluZxgEIAMoCRIOCgZib3VuY2UYBSADKAkiEwoRR2V0UHJvZmlsZVJlcXVlc3QiuAEKEkdldFByb2ZpbGVSZXNwb25zZRISCgpjb25maWd1cmVkGAEgASgIEisKCHNlY3Rpb25zGAIgASgLMhkudGFzdGUudjEuUHJvZmlsZVNlY3Rpb25zEg0KBW1vZGVsGAMgASgJEhQKDGdlbmVyYXRlZF9hdBgEIAEoCRIPCgdwZW5kaW5nGAUgASgIEhIKCmxhc3RfZXJyb3IYBiABKAkSFwoPbmV4dF9yZWZyZXNoX2F0GAcgASgJIhcKFVJlZnJlc2hQcm9maWxlUmVxdWVzdCIYChZSZWZyZXNoUHJvZmlsZVJlc3BvbnNlMrgCCgxUYXN0ZVNlcnZpY2USQQoIR2V0U3RhdHMSGS50YXN0ZS52MS5HZXRTdGF0c1JlcXVlc3QaGi50YXN0ZS52MS5HZXRTdGF0c1Jlc3BvbnNlEkcKCkxpc3RFdmVudHMSGy50YXN0ZS52MS5MaXN0RXZlbnRzUmVxdWVzdBocLnRhc3RlLnYxLkxpc3RFdmVudHNSZXNwb25zZRJHCgpHZXRQcm9maWxlEhsudGFzdGUudjEuR2V0UHJvZmlsZVJlcXVlc3QaHC50YXN0ZS52MS5HZXRQcm9maWxlUmVzcG9uc2USUwoOUmVmcmVzaFByb2ZpbGUSHy50YXN0ZS52MS5SZWZyZXNoUHJvZmlsZVJlcXVlc3QaIC50YXN0ZS52MS5SZWZyZXNoUHJvZmlsZVJlc3BvbnNlQilaJ3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vdGFzdGUvdjE7dGFzdGV2MWIGcHJvdG8z");
 
 /**
  * One consumed item. Signal is engagement normalized within its domain, from
@@ -298,6 +298,156 @@ export const ListEventsResponseSchema: GenMessage<ListEventsResponse> = /*@__PUR
   messageDesc(file_taste_v1_taste, 8);
 
 /**
+ * The LLM-written profile; lists hold short bullets.
+ *
+ * @generated from message taste.v1.ProfileSections
+ */
+export type ProfileSections = Message<"taste.v1.ProfileSections"> & {
+  /**
+   * @generated from field: string summary = 1;
+   */
+  summary: string;
+
+  /**
+   * What the user knows well.
+   *
+   * @generated from field: repeated string know = 2;
+   */
+  know: string[];
+
+  /**
+   * What reliably works for them.
+   *
+   * @generated from field: repeated string like = 3;
+   */
+  like: string[];
+
+  /**
+   * Where their taste moved recently.
+   *
+   * @generated from field: repeated string drifting = 4;
+   */
+  drifting: string[];
+
+  /**
+   * What they tend to drop or dislike.
+   *
+   * @generated from field: repeated string bounce = 5;
+   */
+  bounce: string[];
+};
+
+/**
+ * Describes the message taste.v1.ProfileSections.
+ * Use `create(ProfileSectionsSchema)` to create a new message.
+ */
+export const ProfileSectionsSchema: GenMessage<ProfileSections> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 9);
+
+/**
+ * @generated from message taste.v1.GetProfileRequest
+ */
+export type GetProfileRequest = Message<"taste.v1.GetProfileRequest"> & {
+};
+
+/**
+ * Describes the message taste.v1.GetProfileRequest.
+ * Use `create(GetProfileRequestSchema)` to create a new message.
+ */
+export const GetProfileRequestSchema: GenMessage<GetProfileRequest> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 10);
+
+/**
+ * @generated from message taste.v1.GetProfileResponse
+ */
+export type GetProfileResponse = Message<"taste.v1.GetProfileResponse"> & {
+  /**
+   * False while no OpenRouter key is set; nothing else is then filled.
+   *
+   * @generated from field: bool configured = 1;
+   */
+  configured: boolean;
+
+  /**
+   * Unset before the first successful generation.
+   *
+   * @generated from field: taste.v1.ProfileSections sections = 2;
+   */
+  sections?: ProfileSections | undefined;
+
+  /**
+   * The model that wrote it.
+   *
+   * @generated from field: string model = 3;
+   */
+  model: string;
+
+  /**
+   * RFC3339; empty before the first generation.
+   *
+   * @generated from field: string generated_at = 4;
+   */
+  generatedAt: string;
+
+  /**
+   * A regeneration is queued or running.
+   *
+   * @generated from field: bool pending = 5;
+   */
+  pending: boolean;
+
+  /**
+   * Why the last generation failed; empty when it succeeded.
+   *
+   * @generated from field: string last_error = 6;
+   */
+  lastError: string;
+
+  /**
+   * RFC3339 from when RefreshProfile is accepted again; empty when now.
+   *
+   * @generated from field: string next_refresh_at = 7;
+   */
+  nextRefreshAt: string;
+};
+
+/**
+ * Describes the message taste.v1.GetProfileResponse.
+ * Use `create(GetProfileResponseSchema)` to create a new message.
+ */
+export const GetProfileResponseSchema: GenMessage<GetProfileResponse> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 11);
+
+/**
+ * Queues a regeneration; RESOURCE_EXHAUSTED within 6 hours of the last
+ * request, FAILED_PRECONDITION without an OpenRouter key.
+ *
+ * @generated from message taste.v1.RefreshProfileRequest
+ */
+export type RefreshProfileRequest = Message<"taste.v1.RefreshProfileRequest"> & {
+};
+
+/**
+ * Describes the message taste.v1.RefreshProfileRequest.
+ * Use `create(RefreshProfileRequestSchema)` to create a new message.
+ */
+export const RefreshProfileRequestSchema: GenMessage<RefreshProfileRequest> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 12);
+
+/**
+ * @generated from message taste.v1.RefreshProfileResponse
+ */
+export type RefreshProfileResponse = Message<"taste.v1.RefreshProfileResponse"> & {
+};
+
+/**
+ * Describes the message taste.v1.RefreshProfileResponse.
+ * Use `create(RefreshProfileResponseSchema)` to create a new message.
+ */
+export const RefreshProfileResponseSchema: GenMessage<RefreshProfileResponse> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 13);
+
+/**
  * The caller's consumption log across every app; per user, never shared.
  *
  * @generated from service taste.v1.TasteService
@@ -318,6 +468,22 @@ export const TasteService: GenService<{
     methodKind: "unary";
     input: typeof ListEventsRequestSchema;
     output: typeof ListEventsResponseSchema;
+  },
+  /**
+   * @generated from rpc taste.v1.TasteService.GetProfile
+   */
+  getProfile: {
+    methodKind: "unary";
+    input: typeof GetProfileRequestSchema;
+    output: typeof GetProfileResponseSchema;
+  },
+  /**
+   * @generated from rpc taste.v1.TasteService.RefreshProfile
+   */
+  refreshProfile: {
+    methodKind: "unary";
+    input: typeof RefreshProfileRequestSchema;
+    output: typeof RefreshProfileResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_taste_v1_taste, 0);
