@@ -3,6 +3,11 @@
 # /home/deploy/prometheus. Hashed into its triggers; keep it out of remote-exec.
 set -euo pipefail
 
+# Serializes with prometheus-compose.service's timer runs (below): two
+# concurrent `compose up`s can race on a container recreate.
+exec 9>.compose.lock
+flock 9
+
 # Host-specific docker gid for prometheus-compose.yml's `group_add`.
 DOCKER_GID=$(getent group docker | cut -d: -f3)
 [ -n "$DOCKER_GID" ] || { echo 'no docker group on host'; exit 1; }
@@ -19,33 +24,49 @@ grep -qxF "DOCKER_GID=$DOCKER_GID" .env 2>/dev/null || echo "DOCKER_GID=$DOCKER_
 docker compose up -d --remove-orphans
 
 # `up -d` doesn't recreate on a prometheus.yml content change, so always
-# SIGHUP to reload the config.
-docker compose kill -s HUP prometheus
+# SIGHUP to reload the config. Non-fatal: a container that isn't running has
+# nothing to reload, and failing here would make infra-apply rebuild the VPS
+# from its snapshot.
+docker compose kill -s HUP prometheus || echo 'prometheus not running; skipped config reload' >&2
 
-# A systemd unit makes the stack self-heal across reboots (unattended-upgrades
-# reboots at 04:00) and survives infra-apply no-ops: it runs `docker compose
-# up -d` idempotently on boot and retries on failure, so a stopped/removed
-# Prometheus can't leave Grafana dataless between tofu runs. Installing it here
-# (not harden.sh) keeps it coupled to the compose project this script manages.
+flock -u 9
+
+# The timer re-runs `docker compose up -d` every 2 minutes (and on boot), which
+# starts an exited or removed container whatever stopped it: a reboot
+# (unattended-upgrades reboots at 04:00), a kill, or a failed recreate.
+# Installed here (not harden.sh) to stay coupled to this compose project.
 sudo tee /etc/systemd/system/prometheus-compose.service >/dev/null <<'EOF'
 [Unit]
-Description=Prometheus compose stack (tools.xdoubleu.com metrics)
+Description=Ensure the Prometheus compose stack (tools.xdoubleu.com metrics) is up
 After=docker.service network-online.target
 Requires=docker.service
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 User=deploy
 Group=docker
 WorkingDirectory=/home/deploy/prometheus
-ExecStart=/usr/bin/docker compose up -d --remove-orphans
+ExecStart=/usr/bin/flock /home/deploy/prometheus/.compose.lock /usr/bin/docker compose up -d --remove-orphans
 Restart=on-failure
 RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
 EOF
+sudo tee /etc/systemd/system/prometheus-compose.timer >/dev/null <<'EOF'
+[Unit]
+Description=Re-ensure the Prometheus compose stack every 2 minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=2min
+
+[Install]
+WantedBy=timers.target
+EOF
 sudo systemctl daemon-reload
-sudo systemctl enable --now prometheus-compose.service
+sudo systemctl enable prometheus-compose.service
+# Restart, not start: `start` is a no-op on a unit that is still active.
+sudo systemctl restart prometheus-compose.service
+sudo systemctl enable --now prometheus-compose.timer
