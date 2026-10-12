@@ -68,6 +68,9 @@ question.
      `REOPENED` means not done, even if a PR once merged. If prior attempts
      exist, follow `start-task` step 1: record "Why attempt #N failed" and
      take a materially different approach.
+   - Under the Actions workflow, work in the shared checkout with `git
+     checkout -B <branch> origin/main`, not a worktree: the sandbox can't
+     write under `.claude/worktrees/` (`start-task`).
    - `start-task` (adopting the existing issue) → fix → ≥80% changed-line
      coverage → lint → `finish-task` (non-draft PR with `Fixes #<n>`, CI
      green).
