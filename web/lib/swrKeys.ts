@@ -1,6 +1,8 @@
 // SWR cache keys. Readers and mutate() calls must both use these: SWR
 // serializes keys, so drift silently breaks revalidation.
 
+const tasteRecommendations = '/taste/recommendations'
+
 export const swrKeys = {
   currentUser: '/auth/current-user',
   userManagementUsers: '/user-management/users',
@@ -104,8 +106,9 @@ export const swrKeys = {
 
   tasteStats: '/taste/stats',
   tasteProfile: '/taste/profile',
+  tasteRecommendationsPrefix: tasteRecommendations,
   tasteRecommendations: (domain: string, track: string) =>
-    ['/taste/recommendations', domain, track] as const,
+    [tasteRecommendations, domain, track] as const,
   tasteEvents: (domain: string) => ['/taste/events', domain] as const,
 
   shoppingList: (ownerUserId: string) => `/shoppinglist?owner=${ownerUserId}`,

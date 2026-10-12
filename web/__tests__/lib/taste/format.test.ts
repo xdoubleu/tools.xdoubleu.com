@@ -69,6 +69,7 @@ describe('TRACKS', () => {
 describe('hostLabel', () => {
   it('shows the host without www., or the input when it is no URL', () => {
     expect(hostLabel('https://www.reddit.com/r/printSF')).toBe('reddit.com')
+    expect(hostLabel('https://blog.www.example.com/x')).toBe('blog.www.example.com')
     expect(hostLabel('https://blog.example/post')).toBe('blog.example')
     expect(hostLabel('not a url')).toBe('not a url')
   })

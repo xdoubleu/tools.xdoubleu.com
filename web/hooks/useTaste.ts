@@ -66,7 +66,7 @@ export function useRefreshTasteProfile() {
 
 /** Matches every recommendations key, whatever its domain and track. */
 export function isRecommendationsKey(key: unknown): boolean {
-  return Array.isArray(key) && key[0] === swrKeys.tasteRecommendations('', '')[0]
+  return Array.isArray(key) && key[0] === swrKeys.tasteRecommendationsPrefix
 }
 
 /** Re-reads the picks once a pending profile run finishes; it writes them too. */

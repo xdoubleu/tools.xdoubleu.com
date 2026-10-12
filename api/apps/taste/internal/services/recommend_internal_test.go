@@ -268,6 +268,10 @@ func TestRecommend_EndToEnd(t *testing.T) {
 		"0 | books | more | B1 — C | because B1\n",
 	)
 	assert.Contains(t, judge.Messages[1].Content, "## Profile\nLoves SF\nLikes: l\n")
+
+	profile.Sections.Drifting = nil
+	assert.NotContains(t, generatorInput(nil, profile, nil, clock), "Drifting toward",
+		"an empty section is left out")
 }
 
 func TestRecommend_PassesPreviousPicks(t *testing.T) {

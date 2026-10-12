@@ -16,8 +16,13 @@ func TestFindSource(t *testing.T) {
 	_, err := testDB.Exec(ctx, "DELETE FROM feeds.feeds WHERE user_id = $1", uid)
 	require.NoError(t, err)
 
+	mockWebFetch.SetHTML("http://plain.example/", "<html></html>")
+	m, err := testApp.FindSource(ctx, uid, "Plain", "http://plain.example/")
+	require.NoError(t, err)
+	require.NotNil(t, m, "plain http works too")
+
 	mockWebFetch.SetHTML("https://blog.example/", "<html></html>")
-	m, err := testApp.FindSource(ctx, uid, "Example Blog", "https://blog.example/")
+	m, err = testApp.FindSource(ctx, uid, "Example Blog", "https://blog.example/")
 	require.NoError(t, err)
 	require.NotNil(t, m)
 	assert.Equal(t, "https://blog.example/", m.URL)

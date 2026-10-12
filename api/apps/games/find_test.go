@@ -48,6 +48,11 @@ func TestFindGame(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, m.Known)
 
+	m, err = testApp.FindGame(ctx, uid, "Outer Wilds - Echoes of the Eye")
+	require.NoError(t, err)
+	require.NotNil(t, m, "the first hit")
+	assert.Equal(t, "1", m.Ref)
+
 	m, err = testApp.FindGame(ctx, uid, "Hades")
 	require.NoError(t, err)
 	assert.Nil(t, m)

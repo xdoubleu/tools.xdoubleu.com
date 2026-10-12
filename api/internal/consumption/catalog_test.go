@@ -17,6 +17,8 @@ func TestSameTitle(t *testing.T) {
 		{"The Left Hand of Darkness", "Left Hand of Darkness", true},
 		{"Outer Wilds", "Outer  Wilds!", true},
 		{"Ender's Game", "Enders Game", true},
+		{"Ender’s Game", "Enders Game", true},
+		{"“Dune”", "Dune", true},
 		{"Dune", "Dune: Part Two", false},
 		{"Dune", "Dune Messiah", false},
 		{"A", "The", false},
@@ -41,6 +43,8 @@ func TestBestTitle(t *testing.T) {
 		[]string{"Severance", "Children of Time"}, "Children of Time — Book One",
 	))
 	assert.Equal(t, -1, consumption.BestTitle(titles, "Dune"))
+	assert.Equal(t, 0, consumption.BestTitle([]string{"Arrival"}, "Arrival: (2016)"))
+	assert.Equal(t, -1, consumption.BestTitle([]string{"Arrival"}, ":"))
 	assert.Equal(t, -1, consumption.BestTitle(titles, ""))
 	assert.Equal(t, -1, consumption.BestTitle(nil, "Halo"))
 }

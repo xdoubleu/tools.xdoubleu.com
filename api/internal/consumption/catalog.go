@@ -46,10 +46,13 @@ func BestTitle(titles []string, want string) int {
 
 // mainTitle is the normalized title before a subtitle separator.
 func mainTitle(title string) string {
-	if i := strings.IndexAny(title, ":(—–"); i > 0 {
-		return normalizeTitle(title[:i])
+	parts := strings.FieldsFunc(title, func(r rune) bool {
+		return strings.ContainsRune(":(—–", r)
+	})
+	if len(parts) == 0 {
+		return ""
 	}
-	return normalizeTitle(title)
+	return normalizeTitle(parts[0])
 }
 
 func normalizeTitle(title string) string {
