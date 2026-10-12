@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/podcasts/internal/models"
@@ -28,7 +28,7 @@ func userID(ctx context.Context) (string, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return "", connect.NewError(
-			connect.CodeUnauthenticated, errors.New("user not authenticated"),
+			connect.CodeUnauthenticated, "user not authenticated",
 		)
 	}
 	return user.ID, nil
@@ -36,7 +36,7 @@ func userID(ctx context.Context) (string, error) {
 
 func mapError(err error) error {
 	if errors.Is(err, services.ErrUpstream) {
-		return connect.NewError(connect.CodeUnavailable, err)
+		return connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 	return connecttools.MapError(err)
 }
@@ -56,14 +56,14 @@ func protoFavourite(s *models.Show) *podcastsv1.Favourite {
 
 func (h *podcastsConnectHandler) SearchShows(
 	ctx context.Context,
-	req *connect.Request[podcastsv1.SearchShowsRequest],
-) (*connect.Response[podcastsv1.SearchShowsResponse], error) {
+	req *podcastsv1.SearchShowsRequest,
+) (*podcastsv1.SearchShowsResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	results, err := h.app.services.Shows.Search(ctx, uid, req.Msg.Query)
+	results, err := h.app.services.Shows.Search(ctx, uid, req.Query)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -77,13 +77,13 @@ func (h *podcastsConnectHandler) SearchShows(
 			Favourite:  r.Favourite,
 		}
 	}
-	return connect.NewResponse(&podcastsv1.SearchShowsResponse{Results: out}), nil
+	return &podcastsv1.SearchShowsResponse{Results: out}, nil
 }
 
 func (h *podcastsConnectHandler) ListFavourites(
 	ctx context.Context,
-	_ *connect.Request[podcastsv1.ListFavouritesRequest],
-) (*connect.Response[podcastsv1.ListFavouritesResponse], error) {
+	_ *podcastsv1.ListFavouritesRequest,
+) (*podcastsv1.ListFavouritesResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
@@ -97,48 +97,44 @@ func (h *podcastsConnectHandler) ListFavourites(
 	for i := range shows {
 		out[i] = protoFavourite(&shows[i])
 	}
-	return connect.NewResponse(
-		&podcastsv1.ListFavouritesResponse{Favourites: out},
-	), nil
+	return &podcastsv1.ListFavouritesResponse{Favourites: out}, nil
 }
 
 func (h *podcastsConnectHandler) AddFavourite(
 	ctx context.Context,
-	req *connect.Request[podcastsv1.AddFavouriteRequest],
-) (*connect.Response[podcastsv1.AddFavouriteResponse], error) {
+	req *podcastsv1.AddFavouriteRequest,
+) (*podcastsv1.AddFavouriteResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	show, err := h.app.services.Shows.Add(ctx, uid, req.Msg.ItunesId)
+	show, err := h.app.services.Shows.Add(ctx, uid, req.ItunesId)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(
-		&podcastsv1.AddFavouriteResponse{Favourite: protoFavourite(show)},
-	), nil
+	return &podcastsv1.AddFavouriteResponse{Favourite: protoFavourite(show)}, nil
 }
 
 func (h *podcastsConnectHandler) RemoveFavourite(
 	ctx context.Context,
-	req *connect.Request[podcastsv1.RemoveFavouriteRequest],
-) (*connect.Response[podcastsv1.RemoveFavouriteResponse], error) {
+	req *podcastsv1.RemoveFavouriteRequest,
+) (*podcastsv1.RemoveFavouriteResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	id, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
 		return nil, connect.NewError(
-			connect.CodeInvalidArgument, errors.New("invalid id"),
+			connect.CodeInvalidArgument, "invalid id",
 		)
 	}
 	if err = h.app.services.Shows.Remove(ctx, uid, id); err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&podcastsv1.RemoveFavouriteResponse{}), nil
+	return &podcastsv1.RemoveFavouriteResponse{}, nil
 }
 
 func protoEpisode(e *models.ListedEpisode) *podcastsv1.Episode {
@@ -165,15 +161,15 @@ func protoEpisode(e *models.ListedEpisode) *podcastsv1.Episode {
 
 func (h *podcastsConnectHandler) ListEpisodes(
 	ctx context.Context,
-	req *connect.Request[podcastsv1.ListEpisodesRequest],
-) (*connect.Response[podcastsv1.ListEpisodesResponse], error) {
+	req *podcastsv1.ListEpisodesRequest,
+) (*podcastsv1.ListEpisodesResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	episodes, more, err := h.app.services.Episodes.List(
-		ctx, uid, req.Msg.ShowId, req.Msg.Limit, req.Msg.Offset,
+		ctx, uid, req.ShowId, req.Limit, req.Offset,
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -182,7 +178,5 @@ func (h *podcastsConnectHandler) ListEpisodes(
 	for i := range episodes {
 		out[i] = protoEpisode(&episodes[i])
 	}
-	return connect.NewResponse(
-		&podcastsv1.ListEpisodesResponse{Episodes: out, HasMore: more},
-	), nil
+	return &podcastsv1.ListEpisodesResponse{Episodes: out, HasMore: more}, nil
 }

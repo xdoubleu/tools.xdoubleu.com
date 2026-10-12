@@ -3,7 +3,7 @@ package watchparty
 import (
 	"context"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 	watchpartyv1 "tools.xdoubleu.com/gen/watchparty/v1"
@@ -24,86 +24,86 @@ func (h *roomConnectHandler) currentUser(ctx context.Context) *models.User {
 // GetRoom returns the current user's room information.
 func (h *roomConnectHandler) GetRoom(
 	ctx context.Context,
-	_ *connect.Request[watchpartyv1.GetRoomRequest],
-) (*connect.Response[watchpartyv1.GetRoomResponse], error) {
+	_ *watchpartyv1.GetRoomRequest,
+) (*watchpartyv1.GetRoomResponse, error) {
 	user := h.currentUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+		return nil, connect.NewError(connect.CodeUnauthenticated, "")
 	}
 
 	exists, roomCode, role := h.app.Services.Room.GetRoomForUser(user.ID)
-	return connect.NewResponse(&watchpartyv1.GetRoomResponse{
+	return &watchpartyv1.GetRoomResponse{
 		Room: protoRoomInfo(roomCode, exists, string(role)),
-	}), nil
+	}, nil
 }
 
 // CreateRoom creates a new room for the current user, or returns existing room.
 func (h *roomConnectHandler) CreateRoom(
 	ctx context.Context,
-	_ *connect.Request[watchpartyv1.CreateRoomRequest],
-) (*connect.Response[watchpartyv1.CreateRoomResponse], error) {
+	_ *watchpartyv1.CreateRoomRequest,
+) (*watchpartyv1.CreateRoomResponse, error) {
 	user := h.currentUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+		return nil, connect.NewError(connect.CodeUnauthenticated, "")
 	}
 
 	if inRoom, _, _ := h.app.Services.Room.GetRoomForUser(user.ID); inRoom {
 		exists, roomCode, role := h.app.Services.Room.GetRoomForUser(user.ID)
-		return connect.NewResponse(&watchpartyv1.CreateRoomResponse{
+		return &watchpartyv1.CreateRoomResponse{
 			Room: protoRoomInfo(roomCode, exists, string(role)),
-		}), nil
+		}, nil
 	}
 
 	h.app.Services.Room.CreateRoom(ctx, user.ID)
 
 	exists, roomCode, role := h.app.Services.Room.GetRoomForUser(user.ID)
-	return connect.NewResponse(&watchpartyv1.CreateRoomResponse{
+	return &watchpartyv1.CreateRoomResponse{
 		Room: protoRoomInfo(roomCode, exists, string(role)),
-	}), nil
+	}, nil
 }
 
 // JoinRoom adds the current user as a viewer to the specified room.
 func (h *roomConnectHandler) JoinRoom(
 	ctx context.Context,
-	req *connect.Request[watchpartyv1.JoinRoomRequest],
-) (*connect.Response[watchpartyv1.JoinRoomResponse], error) {
+	req *watchpartyv1.JoinRoomRequest,
+) (*watchpartyv1.JoinRoomResponse, error) {
 	user := h.currentUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+		return nil, connect.NewError(connect.CodeUnauthenticated, "")
 	}
 
-	if req.Msg.RoomCode == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, nil)
+	if req.RoomCode == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "")
 	}
 
-	if !h.app.Services.Room.RoomExists(req.Msg.RoomCode) {
-		return nil, connect.NewError(connect.CodeNotFound, nil)
+	if !h.app.Services.Room.RoomExists(req.RoomCode) {
+		return nil, connect.NewError(connect.CodeNotFound, "")
 	}
 
-	ok := h.app.Services.Room.JoinViewer(ctx, req.Msg.RoomCode, user.ID)
+	ok := h.app.Services.Room.JoinViewer(ctx, req.RoomCode, user.ID)
 	if !ok {
-		return nil, connect.NewError(connect.CodeInternal, nil)
+		return nil, connect.NewError(connect.CodeInternal, "")
 	}
 
 	exists, roomCode, role := h.app.Services.Room.GetRoomForUser(user.ID)
-	return connect.NewResponse(&watchpartyv1.JoinRoomResponse{
+	return &watchpartyv1.JoinRoomResponse{
 		Room: protoRoomInfo(roomCode, exists, string(role)),
-	}), nil
+	}, nil
 }
 
 // LeaveRoom removes the current user from their room.
 func (h *roomConnectHandler) LeaveRoom(
 	ctx context.Context,
-	_ *connect.Request[watchpartyv1.LeaveRoomRequest],
-) (*connect.Response[watchpartyv1.LeaveRoomResponse], error) {
+	_ *watchpartyv1.LeaveRoomRequest,
+) (*watchpartyv1.LeaveRoomResponse, error) {
 	user := h.currentUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
+		return nil, connect.NewError(connect.CodeUnauthenticated, "")
 	}
 
 	exists, roomCode, role := h.app.Services.Room.GetRoomForUser(user.ID)
 	if !exists {
-		return connect.NewResponse(&watchpartyv1.LeaveRoomResponse{}), nil
+		return &watchpartyv1.LeaveRoomResponse{}, nil
 	}
 
 	switch role {
@@ -113,7 +113,7 @@ func (h *roomConnectHandler) LeaveRoom(
 		h.app.Services.Room.RemoveRoom(ctx, roomCode)
 	}
 
-	return connect.NewResponse(&watchpartyv1.LeaveRoomResponse{}), nil
+	return &watchpartyv1.LeaveRoomResponse{}, nil
 }
 
 func protoRoomInfo(roomCode string, inRoom bool, role string) *watchpartyv1.RoomInfo {

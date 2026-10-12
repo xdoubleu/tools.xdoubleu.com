@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -17,13 +17,14 @@ func rate(
 	id string,
 	rating *int32,
 ) (*moviesv1.BacklogEntry, error) {
-	resp, err := c.SetRating(context.Background(), connect.NewRequest(
+	resp, err := c.SetRating(
+		context.Background(),
 		&moviesv1.SetRatingRequest{Id: id, Rating: rating},
-	))
+	)
 	if err != nil {
 		return nil, err
 	}
-	return resp.Msg.Entry, nil
+	return resp.Entry, nil
 }
 
 func stars(n int32) *int32 { return &n }
@@ -51,11 +52,12 @@ func TestSetRating_KeptAcrossStatusChanges(t *testing.T) {
 	_, err := rate(c, e.Id, stars(4))
 	require.NoError(t, err)
 
-	resp, err := c.SetStatus(context.Background(), connect.NewRequest(
+	resp, err := c.SetStatus(
+		context.Background(),
 		&moviesv1.SetStatusRequest{Id: e.Id, Status: "watching", UnknownDate: false},
-	))
+	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(4), resp.Msg.Entry.GetRating())
+	assert.Equal(t, int32(4), resp.Entry.GetRating())
 }
 
 func TestSetRating_Errors(t *testing.T) {
@@ -86,12 +88,13 @@ func TestListBacklog_SortsByRating(t *testing.T) {
 	_, err = rate(c, bb.Id, stars(5))
 	require.NoError(t, err)
 
-	resp, err := c.ListBacklog(context.Background(), connect.NewRequest(
+	resp, err := c.ListBacklog(
+		context.Background(),
 		&moviesv1.ListBacklogRequest{Sort: "rating"},
-	))
+	)
 	require.NoError(t, err)
-	titles := make([]string, len(resp.Msg.Entries))
-	for i, e := range resp.Msg.Entries {
+	titles := make([]string, len(resp.Entries))
+	for i, e := range resp.Entries {
 		titles[i] = e.Title
 	}
 	assert.Equal(t,
@@ -99,6 +102,6 @@ func TestListBacklog_SortsByRating(t *testing.T) {
 		titles,
 		"highest first; unrated last, newest added first",
 	)
-	assert.Equal(t, int32(5), resp.Msg.Entries[0].GetRating())
-	assert.Nil(t, resp.Msg.Entries[2].Rating)
+	assert.Equal(t, int32(5), resp.Entries[0].GetRating())
+	assert.Nil(t, resp.Entries[2].Rating)
 }

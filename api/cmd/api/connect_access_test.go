@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -16,7 +17,11 @@ import (
 func accessClient(t *testing.T) accessv1connect.AccessServiceClient {
 	t.Helper()
 	ts := connectServer(t)
-	return accessv1connect.NewAccessServiceClient(ts.Client(), ts.URL)
+	return accessv1connect.NewAccessServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(ts.Client(), ts.URL, connecthttp.WithReadMaxBytes(0)),
+		),
+	)
 }
 
 func TestAccessListUsers_NonAdmin(t *testing.T) {
@@ -25,9 +30,8 @@ func TestAccessListUsers_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 
 	client := accessClient(t)
-	req := connect.NewRequest(&accessv1.ListUsersRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.ListUsers(context.Background(), req)
+	req := &accessv1.ListUsersRequest{}
+	_, err := client.ListUsers(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -39,18 +43,17 @@ func TestAccessListUsers_AsAdmin(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 
 	client := accessClient(t)
-	req := connect.NewRequest(&accessv1.ListUsersRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.ListUsers(context.Background(), req)
+	req := &accessv1.ListUsersRequest{}
+	resp, err := client.ListUsers(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.NotNil(t, resp.Msg.Users)
+	assert.NotNil(t, resp.Users)
 }
 
 func TestAccessListUsers_Unauthenticated(t *testing.T) {
 	client := accessClient(t)
 	_, err := client.ListUsers(
 		context.Background(),
-		connect.NewRequest(&accessv1.ListUsersRequest{}),
+		&accessv1.ListUsersRequest{},
 	)
 	require.Error(t, err)
 }
@@ -61,14 +64,13 @@ func TestAccessSetRole_AsAdmin(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 
 	client := accessClient(t)
-	req := connect.NewRequest(&accessv1.SetRoleRequest{
+	req := &accessv1.SetRoleRequest{
 		UserId: testUserID,
 		Role:   "user",
-	})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.SetRole(context.Background(), req)
+	}
+	resp, err := client.SetRole(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.Equal(t, "user", resp.Msg.User.Role)
+	assert.Equal(t, "user", resp.User.Role)
 
 	user, err := testApp.appUsersRepo.GetByID(ctx, testUserID)
 	require.NoError(t, err)
@@ -80,12 +82,11 @@ func TestAccessSetRole_InvalidRole(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 
 	client := accessClient(t)
-	req := connect.NewRequest(&accessv1.SetRoleRequest{
+	req := &accessv1.SetRoleRequest{
 		UserId: testUserID,
 		Role:   "superuser",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.SetRole(context.Background(), req)
+	}
+	_, err := client.SetRole(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -95,11 +96,8 @@ func TestAccessSetRole_InvalidRole(t *testing.T) {
 func TestAccessSetRole_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	client := accessClient(t)
-	req := connect.NewRequest(
-		&accessv1.SetRoleRequest{UserId: testUserID, Role: "user"},
-	)
-	setCookieOnRequest(req, accessToken)
-	_, err := client.SetRole(context.Background(), req)
+	req := &accessv1.SetRoleRequest{UserId: testUserID, Role: "user"}
+	_, err := client.SetRole(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -113,26 +111,24 @@ func TestAccessSetAppAccess_GrantAndRevoke(t *testing.T) {
 
 	client := accessClient(t)
 
-	grantReq := connect.NewRequest(&accessv1.SetAppAccessRequest{
+	grantReq := &accessv1.SetAppAccessRequest{
 		UserId:  testUserID,
 		AppName: "backlog",
 		Grant:   true,
-	})
-	setCookieOnRequest(grantReq, accessToken)
-	_, err := client.SetAppAccess(context.Background(), grantReq)
+	}
+	_, err := client.SetAppAccess(withCookies(context.Background(), accessToken), grantReq)
 	require.NoError(t, err)
 
 	user, err := testApp.appUsersRepo.GetByID(ctx, testUserID)
 	require.NoError(t, err)
 	assert.Contains(t, user.AppAccess, "backlog")
 
-	revokeReq := connect.NewRequest(&accessv1.SetAppAccessRequest{
+	revokeReq := &accessv1.SetAppAccessRequest{
 		UserId:  testUserID,
 		AppName: "backlog",
 		Grant:   false,
-	})
-	setCookieOnRequest(revokeReq, accessToken)
-	_, err = client.SetAppAccess(context.Background(), revokeReq)
+	}
+	_, err = client.SetAppAccess(withCookies(context.Background(), accessToken), revokeReq)
 	require.NoError(t, err)
 
 	user2, err := testApp.appUsersRepo.GetByID(ctx, testUserID)
@@ -143,11 +139,10 @@ func TestAccessSetAppAccess_GrantAndRevoke(t *testing.T) {
 func TestAccessSetAppAccess_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	client := accessClient(t)
-	req := connect.NewRequest(&accessv1.SetAppAccessRequest{
+	req := &accessv1.SetAppAccessRequest{
 		UserId: testUserID, AppName: "backlog", Grant: true,
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.SetAppAccess(context.Background(), req)
+	}
+	_, err := client.SetAppAccess(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)

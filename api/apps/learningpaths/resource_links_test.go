@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,16 +64,16 @@ func TestCreateLearningPath_LinkedBookResolved(t *testing.T) {
 
 	resp, err := client.CreateLearningPath(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Path With Linked Book",
 			Resources: []*learningpathsv1.Resource{
 				{LinkedBookId: ptrTo(bookID.String())},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.LearningPath.Resources, 1)
-	res := resp.Msg.LearningPath.Resources[0]
+	require.Len(t, resp.LearningPath.Resources, 1)
+	res := resp.LearningPath.Resources[0]
 	assert.Equal(t, bookID.String(), res.GetLinkedBookId())
 	require.NotNil(t, res.LinkedBook)
 	assert.Equal(t, "Linked Book", res.LinkedBook.Title)
@@ -86,16 +86,16 @@ func TestCreateLearningPath_LinkedFeedItemResolved(t *testing.T) {
 
 	resp, err := client.CreateLearningPath(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Path With Linked Feed Item",
 			Resources: []*learningpathsv1.Resource{
 				{LinkedFeedItemId: ptrTo(itemID.String())},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.LearningPath.Resources, 1)
-	res := resp.Msg.LearningPath.Resources[0]
+	require.Len(t, resp.LearningPath.Resources, 1)
+	res := resp.LearningPath.Resources[0]
 	assert.Equal(t, itemID.String(), res.GetLinkedFeedItemId())
 	require.NotNil(t, res.LinkedFeedItem)
 	assert.Equal(t, "Linked Item", res.LinkedFeedItem.Title)
@@ -109,12 +109,12 @@ func TestCreateLearningPath_LinkedBookForeignOwnerRejected(t *testing.T) {
 
 	_, err := client.CreateLearningPath(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Path With Foreign Book",
 			Resources: []*learningpathsv1.Resource{
 				{LinkedBookId: ptrTo(bookID.String())},
 			},
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
@@ -127,12 +127,12 @@ func TestCreateLearningPath_LinkedFeedItemForeignOwnerRejected(t *testing.T) {
 
 	_, err := client.CreateLearningPath(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Path With Foreign Item",
 			Resources: []*learningpathsv1.Resource{
 				{LinkedFeedItemId: ptrTo(itemID.String())},
 			},
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
@@ -145,12 +145,12 @@ func TestCreateLearningPath_LinkedBookUnknownIDRejected(t *testing.T) {
 
 	_, err := client.CreateLearningPath(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Path With Unknown Book",
 			Resources: []*learningpathsv1.Resource{
 				{LinkedBookId: ptrTo(uuid.New().String())},
 			},
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
@@ -162,9 +162,9 @@ func TestUpdateLearningPath_LinkedBookForeignOwnerRejected(t *testing.T) {
 
 	createResp, err := client.CreateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Path To Update With Foreign Book",
-		}),
+		},
 	)
 	require.NoError(t, err)
 
@@ -172,13 +172,13 @@ func TestUpdateLearningPath_LinkedBookForeignOwnerRejected(t *testing.T) {
 
 	_, err = client.UpdateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.UpdateLearningPathRequest{
-			Id:    createResp.Msg.LearningPath.Id,
+		&learningpathsv1.UpdateLearningPathRequest{
+			Id:    createResp.LearningPath.Id,
 			Title: "Updated",
 			Resources: []*learningpathsv1.Resource{
 				{LinkedBookId: ptrTo(bookID.String())},
 			},
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
@@ -191,7 +191,7 @@ func TestCreateLearningPath_MalformedLinkedIDsTreatedAsAbsent(t *testing.T) {
 
 	resp, err := client.CreateLearningPath(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Path With Malformed Link IDs",
 			Resources: []*learningpathsv1.Resource{
 				{
@@ -200,11 +200,11 @@ func TestCreateLearningPath_MalformedLinkedIDsTreatedAsAbsent(t *testing.T) {
 					LinkedFeedItemId: ptrTo("also-not-a-valid-uuid"),
 				},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.LearningPath.Resources, 1)
-	res := resp.Msg.LearningPath.Resources[0]
+	require.Len(t, resp.LearningPath.Resources, 1)
+	res := resp.LearningPath.Resources[0]
 	assert.Equal(t, "still has text", res.Text)
 	assert.Nil(t, res.LinkedBookId)
 	assert.Nil(t, res.LinkedFeedItemId)

@@ -2,9 +2,8 @@ package recipes
 
 import (
 	"context"
-	"fmt"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
@@ -13,46 +12,46 @@ import (
 
 func (h *recipesConnectHandler) ListRecipes(
 	ctx context.Context,
-	req *connect.Request[recipesv1.ListRecipesRequest],
-) (*connect.Response[recipesv1.ListRecipesResponse], error) {
+	req *recipesv1.ListRecipesRequest,
+) (*recipesv1.ListRecipesResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
 	list, hasMore, err := h.app.services.Recipes.List(
-		ctx, user.ID, req.Msg.Limit, req.Msg.Offset,
+		ctx, user.ID, req.Limit, req.Offset,
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&recipesv1.ListRecipesResponse{
+	return &recipesv1.ListRecipesResponse{
 		Recipes: protoRecipes(list),
 		HasMore: hasMore,
-	}), nil
+	}, nil
 }
 
 func (h *recipesConnectHandler) GetRecipe(
 	ctx context.Context,
-	req *connect.Request[recipesv1.GetRecipeRequest],
-) (*connect.Response[recipesv1.GetRecipeResponse], error) {
+	req *recipesv1.GetRecipeRequest,
+) (*recipesv1.GetRecipeResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	id, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid recipe ID"),
+			"invalid recipe ID",
 		)
 	}
 
@@ -60,7 +59,7 @@ func (h *recipesConnectHandler) GetRecipe(
 		ctx,
 		id,
 		user.ID,
-		int(req.Msg.Servings),
+		int(req.Servings),
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -71,7 +70,7 @@ func (h *recipesConnectHandler) GetRecipe(
 		scaled[i] = protoScaledIngredient(ing.Name, ing.Amount, ing.Unit)
 	}
 
-	return connect.NewResponse(&recipesv1.GetRecipeResponse{
+	return &recipesv1.GetRecipeResponse{
 		Recipe: protoRecipe(recipe),
 		Servings: int32( //nolint:gosec // int32 safe for domain values
 			servings,
@@ -79,37 +78,37 @@ func (h *recipesConnectHandler) GetRecipe(
 		IsOwner:           recipe.UserID == user.ID,
 		ScaledIngredients: scaled,
 		CanEdit:           canEdit,
-	}), nil
+	}, nil
 }
 
 func (h *recipesConnectHandler) CreateRecipe(
 	ctx context.Context,
-	req *connect.Request[recipesv1.CreateRecipeRequest],
-) (*connect.Response[recipesv1.CreateRecipeResponse], error) {
+	req *recipesv1.CreateRecipeRequest,
+) (*recipesv1.CreateRecipeResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
 	recipe, ingredients := dtoToRecipe(
-		req.Msg.Name,
-		req.Msg.Steps,
-		req.Msg.BaseServings,
-		req.Msg.IngredientNames,
-		req.Msg.IngredientAmounts,
-		req.Msg.IngredientUnits,
-		req.Msg.IngredientGroupNames,
+		req.Name,
+		req.Steps,
+		req.BaseServings,
+		req.IngredientNames,
+		req.IngredientAmounts,
+		req.IngredientUnits,
+		req.IngredientGroupNames,
 	)
 	recipe.Ingredients = ingredients
-	recipe.IsDraft = req.Msg.IsDraft
-	if req.Msg.BatchServings != nil {
-		v := int(*req.Msg.BatchServings)
+	recipe.IsDraft = req.IsDraft
+	if req.BatchServings != nil {
+		v := int(*req.BatchServings)
 		recipe.BatchServings = &v
 	}
-	clientID, err := connecttools.ParseClientID(req.Msg.Id)
+	clientID, err := connecttools.ParseClientID(req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -120,45 +119,45 @@ func (h *recipesConnectHandler) CreateRecipe(
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&recipesv1.CreateRecipeResponse{
+	return &recipesv1.CreateRecipeResponse{
 		Recipe: protoRecipe(created),
-	}), nil
+	}, nil
 }
 
 func (h *recipesConnectHandler) UpdateRecipe(
 	ctx context.Context,
-	req *connect.Request[recipesv1.UpdateRecipeRequest],
-) (*connect.Response[recipesv1.UpdateRecipeResponse], error) {
+	req *recipesv1.UpdateRecipeRequest,
+) (*recipesv1.UpdateRecipeResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	id, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid recipe ID"),
+			"invalid recipe ID",
 		)
 	}
 
 	recipe, ingredients := dtoToRecipe(
-		req.Msg.Name,
-		req.Msg.Steps,
-		req.Msg.BaseServings,
-		req.Msg.IngredientNames,
-		req.Msg.IngredientAmounts,
-		req.Msg.IngredientUnits,
-		req.Msg.IngredientGroupNames,
+		req.Name,
+		req.Steps,
+		req.BaseServings,
+		req.IngredientNames,
+		req.IngredientAmounts,
+		req.IngredientUnits,
+		req.IngredientGroupNames,
 	)
 	recipe.ID = id
 	recipe.Ingredients = ingredients
-	recipe.IsDraft = req.Msg.IsDraft
-	if req.Msg.BatchServings != nil {
-		v := int(*req.Msg.BatchServings)
+	recipe.IsDraft = req.IsDraft
+	if req.BatchServings != nil {
+		v := int(*req.BatchServings)
 		recipe.BatchServings = &v
 	}
 
@@ -167,26 +166,26 @@ func (h *recipesConnectHandler) UpdateRecipe(
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&recipesv1.UpdateRecipeResponse{}), nil
+	return &recipesv1.UpdateRecipeResponse{}, nil
 }
 
 func (h *recipesConnectHandler) DeleteRecipe(
 	ctx context.Context,
-	req *connect.Request[recipesv1.DeleteRecipeRequest],
-) (*connect.Response[recipesv1.DeleteRecipeResponse], error) {
+	req *recipesv1.DeleteRecipeRequest,
+) (*recipesv1.DeleteRecipeResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	id, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid recipe ID"),
+			"invalid recipe ID",
 		)
 	}
 
@@ -195,5 +194,5 @@ func (h *recipesConnectHandler) DeleteRecipe(
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&recipesv1.DeleteRecipeResponse{}), nil
+	return &recipesv1.DeleteRecipeResponse{}, nil
 }

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,6 +15,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // removeBookUser is an isolated user ID to avoid collisions with other tests.
@@ -339,11 +340,11 @@ func TestConnectRemoveBook_OK(t *testing.T) {
 	})
 
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(
-		&booksv1.RemoveBookRequest{BookId: book.BookID.String()},
+	req := &booksv1.RemoveBookRequest{BookId: book.BookID.String()}
+	_, err = client.RemoveBook(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
 	)
-	req.Header().Set("Cookie", accessToken.String())
-	_, err = client.RemoveBook(context.Background(), req)
 	require.NoError(t, err)
 
 	var count int
@@ -357,9 +358,11 @@ func TestConnectRemoveBook_OK(t *testing.T) {
 
 func TestConnectRemoveBook_InvalidBookID(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.RemoveBookRequest{BookId: "not-a-uuid"})
-	req.Header().Set("Cookie", accessToken.String())
-	_, err := client.RemoveBook(context.Background(), req)
+	req := &booksv1.RemoveBookRequest{BookId: "not-a-uuid"}
+	_, err := client.RemoveBook(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }

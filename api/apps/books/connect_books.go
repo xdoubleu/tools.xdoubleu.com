@@ -2,9 +2,8 @@ package books
 
 import (
 	"context"
-	"errors"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	booksv1connect "tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/internal/constants"
@@ -31,13 +30,13 @@ func (h *booksConnectHandler) requireAdmin(
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 	if user.Role != sharedmodels.RoleAdmin {
 		return nil, connect.NewError(
 			connect.CodePermissionDenied,
-			errors.New("admin access required"),
+			"admin access required",
 		)
 	}
 	return user, nil

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
@@ -19,36 +19,36 @@ import (
 
 func (h *booksConnectHandler) GetBookFile(
 	ctx context.Context,
-	req *connect.Request[booksv1.GetBookFileRequest],
-) (*connect.Response[booksv1.GetBookFileResponse], error) {
+	req *booksv1.GetBookFileRequest,
+) (*booksv1.GetBookFileResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := uuid.Parse(req.BookId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid book ID"),
+			"invalid book ID",
 		)
 	}
 	result, err := h.app.Services.Books.GetBookFile(
-		ctx, user.ID, bookID, req.Msg.Format,
+		ctx, user.ID, bookID, req.Format,
 	)
 	if err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("not found"))
+			return nil, connect.NewError(connect.CodeNotFound, "not found")
 		}
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&booksv1.GetBookFileResponse{
+	return &booksv1.GetBookFileResponse{
 		Url:       result.URL,
 		ExpiresAt: result.ExpiresAt.Format(time.RFC3339),
 		Format:    result.Format,
-	}), nil
+	}, nil
 }
 
 // maybeStartKEPUBConversion launches EnsureKEPUB in the background when the
@@ -87,25 +87,25 @@ func (h *booksConnectHandler) maybeStartKEPUBConversion(
 
 func (h *booksConnectHandler) RequestKEPUBConversion(
 	ctx context.Context,
-	req *connect.Request[booksv1.RequestKEPUBConversionRequest],
-) (*connect.Response[booksv1.RequestKEPUBConversionResponse], error) {
+	req *booksv1.RequestKEPUBConversionRequest,
+) (*booksv1.RequestKEPUBConversionResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := uuid.Parse(req.BookId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid book ID"),
+			"invalid book ID",
 		)
 	}
 	statusResult, err := h.app.Services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	// whenKEPUBOnly=false: always convert regardless of the kobo-format-pdf tag,
 	// so the user can preview the EPUB output before deciding on a Kobo sync format.
@@ -113,34 +113,34 @@ func (h *booksConnectHandler) RequestKEPUBConversion(
 		ctx, user.ID, bookID, statusResult, false,
 	)
 	if convErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, convErr)
+		return nil, connect.NewError(connect.CodeInternal, convErr.Error()).WithCause(convErr)
 	}
-	return connect.NewResponse(&booksv1.RequestKEPUBConversionResponse{
+	return &booksv1.RequestKEPUBConversionResponse{
 		KepubStatus: kepubStatus,
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) GetKEPUBStatus(
 	ctx context.Context,
-	req *connect.Request[booksv1.GetKEPUBStatusRequest],
-) (*connect.Response[booksv1.GetKEPUBStatusResponse], error) {
+	req *booksv1.GetKEPUBStatusRequest,
+) (*booksv1.GetKEPUBStatusResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := uuid.Parse(req.BookId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid book ID"),
+			"invalid book ID",
 		)
 	}
 	result, err := h.app.Services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	// A stale KEPUB is never reported ready: reconvert it, as
 	// RequestKEPUBConversion would, so "converting" resolves.
@@ -149,87 +149,90 @@ func (h *booksConnectHandler) GetKEPUBStatus(
 		h.app.startKEPUBRegeneration(ctx, user.ID, bookID)
 		kepubStatus = models.FileStatusConverting
 	}
-	return connect.NewResponse(&booksv1.GetKEPUBStatusResponse{
+	return &booksv1.GetKEPUBStatusResponse{
 		HasEpub:     result.HasEPUB,
 		HasPdf:      result.HasPDF,
 		KepubStatus: kepubStatus,
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) CreateBookUpload(
 	ctx context.Context,
-	req *connect.Request[booksv1.CreateBookUploadRequest],
-) (*connect.Response[booksv1.CreateBookUploadResponse], error) {
+	req *booksv1.CreateBookUploadRequest,
+) (*booksv1.CreateBookUploadResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 	uploadID, url, alreadyExists, err := h.app.Services.Books.CreateUpload(
 		ctx,
 		user.ID,
-		req.Msg.Filename,
-		req.Msg.ContentType,
-		req.Msg.Size,
-		req.Msg.Checksum,
+		req.Filename,
+		req.ContentType,
+		req.Size,
+		req.Checksum,
 	)
 	if err != nil {
 		switch {
 		case errors.Is(err, services.ErrFileTooLarge):
-			return nil, connect.NewError(connect.CodeResourceExhausted, err)
+			return nil, connect.NewError(connect.CodeResourceExhausted, err.Error()).
+				WithCause(err)
 		default:
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
-	return connect.NewResponse(&booksv1.CreateBookUploadResponse{
+	return &booksv1.CreateBookUploadResponse{
 		UploadId:      uploadID,
 		Url:           url,
 		AlreadyExists: alreadyExists,
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) FinalizeBookUpload(
 	ctx context.Context,
-	req *connect.Request[booksv1.FinalizeBookUploadRequest],
-) (*connect.Response[booksv1.FinalizeBookUploadResponse], error) {
+	req *booksv1.FinalizeBookUploadRequest,
+) (*booksv1.FinalizeBookUploadResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 	result, err := h.app.Services.Books.FinalizeUpload(
 		context.WithoutCancel(ctx),
 		user.ID,
-		req.Msg.UploadId,
-		req.Msg.Filename,
-		req.Msg.ContentType,
-		req.Msg.Checksum,
-		req.Msg.TitleOverride,
-		req.Msg.AuthorOverride,
+		req.UploadId,
+		req.Filename,
+		req.ContentType,
+		req.Checksum,
+		req.TitleOverride,
+		req.AuthorOverride,
 	)
 	if err != nil {
 		switch {
 		case errors.Is(err, services.ErrInvalidFormat):
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		case errors.Is(err, services.ErrUnrecognizedBook):
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		case errors.Is(err, services.ErrInvalidUploadID):
-			return nil, connect.NewError(connect.CodePermissionDenied, err)
+			return nil, connect.NewError(connect.CodePermissionDenied, err.Error()).
+				WithCause(err)
 		case errors.Is(err, services.ErrUploadMissing):
-			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).
+				WithCause(err)
 		default:
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
-	return connect.NewResponse(&booksv1.FinalizeBookUploadResponse{
+	return &booksv1.FinalizeBookUploadResponse{
 		BookId:          result.UserBook.BookID.String(),
 		FileId:          result.BookFile.ID.String(),
 		RecognizedTitle: result.UserBook.Book.Title,
 		MatchedExisting: result.MatchedExisting,
 		Format:          result.BookFile.Format,
-	}), nil
+	}, nil
 }

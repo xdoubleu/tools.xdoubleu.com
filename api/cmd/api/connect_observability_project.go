@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/github"
@@ -15,18 +15,18 @@ import (
 // MCP server can't resolve custom fields on a user-owned board.
 func (h *obsConnectHandler) GetProjectIssuesByStatus(
 	ctx context.Context,
-	req *connect.Request[observabilityv1.GetProjectIssuesByStatusRequest],
-) (*connect.Response[observabilityv1.GetProjectIssuesByStatusResponse], error) {
+	req *observabilityv1.GetProjectIssuesByStatusRequest,
+) (*observabilityv1.GetProjectIssuesByStatusResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.projectIssuesByStatus(
-		ctx, req.Msg.GetProjectNumber(), req.Msg.GetStatus(),
+		ctx, req.GetProjectNumber(), req.GetStatus(),
 	)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // projectIssuesByStatus reports configured=false without a GitHub connection;
@@ -36,7 +36,7 @@ func (h *obsConnectHandler) projectIssuesByStatus(
 ) (*observabilityv1.GetProjectIssuesByStatusResponse, error) {
 	if projectNumber <= 0 {
 		return nil, connect.NewError(
-			connect.CodeInvalidArgument, errors.New("project_number is required"),
+			connect.CodeInvalidArgument, "project_number is required",
 		)
 	}
 	resp := &observabilityv1.GetProjectIssuesByStatusResponse{
@@ -52,10 +52,11 @@ func (h *obsConnectHandler) projectIssuesByStatus(
 		return resp, nil
 	}
 	if errors.Is(err, github.ErrInsufficientScopes) {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).
+			WithCause(err)
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 
 	protoIssues := make([]*observabilityv1.ProjectIssue, len(issues))

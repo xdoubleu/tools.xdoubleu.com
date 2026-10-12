@@ -6,7 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,17 +57,19 @@ func newAdminBooksTestClient(t *testing.T) booksTestClient {
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(adminApp))
 	t.Cleanup(ts.Close)
-	return newBooksClientFor(ts.URL, connect.WithHTTPGet())
+	return newBooksClientFor(ts.URL, connecthttp.WithHTTPGet())
 }
 
 // requireAdmin: non-admin gets PermissionDenied.
 
 func TestFindDuplicates_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.FindDuplicatesRequest{})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.FindDuplicatesRequest{}
 
-	_, err := client.FindDuplicates(context.Background(), req)
+	_, err := client.FindDuplicates(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -75,13 +78,15 @@ func TestFindDuplicates_NonAdmin_PermissionDenied(t *testing.T) {
 
 func TestMergeBooks_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.MergeBooksRequest{
+	req := &booksv1.MergeBooksRequest{
 		WinnerBookId: "00000000-0000-0000-0000-000000000001",
 		LoserBookIds: []string{"00000000-0000-0000-0000-000000000002"},
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.MergeBooks(context.Background(), req)
+	_, err := client.MergeBooks(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -90,10 +95,12 @@ func TestMergeBooks_NonAdmin_PermissionDenied(t *testing.T) {
 
 func TestStartResync_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.StartResyncRequest{})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.StartResyncRequest{}
 
-	_, err := client.StartResync(context.Background(), req)
+	_, err := client.StartResync(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -102,10 +109,12 @@ func TestStartResync_NonAdmin_PermissionDenied(t *testing.T) {
 
 func TestListResyncProposals_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.ListResyncProposalsRequest{})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.ListResyncProposalsRequest{}
 
-	_, err := client.ListResyncProposals(context.Background(), req)
+	_, err := client.ListResyncProposals(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -114,13 +123,15 @@ func TestListResyncProposals_NonAdmin_PermissionDenied(t *testing.T) {
 
 func TestApplyResyncChoice_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.ApplyResyncChoiceRequest{
+	req := &booksv1.ApplyResyncChoiceRequest{
 		BookId: "00000000-0000-0000-0000-000000000001",
 		Source: "",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.ApplyResyncChoice(context.Background(), req)
+	_, err := client.ApplyResyncChoice(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -131,23 +142,27 @@ func TestApplyResyncChoice_NonAdmin_PermissionDenied(t *testing.T) {
 // tests share the proposals table.
 func TestListResyncProposals_Admin_Success(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.ListResyncProposalsRequest{})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.ListResyncProposalsRequest{}
 
-	resp, err := client.ListResyncProposals(context.Background(), req)
+	resp, err := client.ListResyncProposals(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
 	assert.NotNil(t, resp)
 }
 
 func TestApplyResyncChoice_Admin_InvalidUUID_InvalidArgument(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.ApplyResyncChoiceRequest{
+	req := &booksv1.ApplyResyncChoiceRequest{
 		BookId: "not-a-uuid",
 		Source: "",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.ApplyResyncChoice(context.Background(), req)
+	_, err := client.ApplyResyncChoice(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -156,13 +171,15 @@ func TestApplyResyncChoice_Admin_InvalidUUID_InvalidArgument(t *testing.T) {
 
 func TestApplyResyncChoice_Admin_UnknownBook_NotFound(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.ApplyResyncChoiceRequest{
+	req := &booksv1.ApplyResyncChoiceRequest{
 		BookId: uuid.New().String(),
 		Source: "",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.ApplyResyncChoice(context.Background(), req)
+	_, err := client.ApplyResyncChoice(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -171,13 +188,15 @@ func TestApplyResyncChoice_Admin_UnknownBook_NotFound(t *testing.T) {
 
 func TestFindDuplicates_Admin_Success(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.FindDuplicatesRequest{})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.FindDuplicatesRequest{}
 
-	resp, err := client.FindDuplicates(context.Background(), req)
+	resp, err := client.FindDuplicates(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.NotNil(t, resp.Msg)
+	assert.NotNil(t, resp)
 }
 
 func TestListCatalogBooks_ReturnsAllBooks(t *testing.T) {
@@ -199,13 +218,15 @@ func TestListCatalogBooks_ReturnsAllBooks(t *testing.T) {
 
 func TestSetBookISBN_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.SetBookISBNRequest{
+	req := &booksv1.SetBookISBNRequest{
 		BookId: "00000000-0000-0000-0000-000000000001",
 		Isbn13: "9780140449112",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.SetBookISBN(context.Background(), req)
+	_, err := client.SetBookISBN(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -214,13 +235,15 @@ func TestSetBookISBN_NonAdmin_PermissionDenied(t *testing.T) {
 
 func TestSetBookISBN_InvalidUUID_InvalidArgument(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.SetBookISBNRequest{
+	req := &booksv1.SetBookISBNRequest{
 		BookId: "not-a-uuid",
 		Isbn13: "9780140449112",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.SetBookISBN(context.Background(), req)
+	_, err := client.SetBookISBN(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -230,13 +253,15 @@ func TestSetBookISBN_InvalidUUID_InvalidArgument(t *testing.T) {
 func TestSetBookISBN_InvalidISBN_InvalidArgument(t *testing.T) {
 	client := newAdminBooksTestClient(t)
 	for _, bad := range []string{"", "123", "12345678901234", "978014044911X"} {
-		req := connect.NewRequest(&booksv1.SetBookISBNRequest{
+		req := &booksv1.SetBookISBNRequest{
 			BookId: "00000000-0000-0000-0000-000000000001",
 			Isbn13: bad,
-		})
-		req.Header().Set("Cookie", accessToken.String())
+		}
 
-		_, err := client.SetBookISBN(context.Background(), req)
+		_, err := client.SetBookISBN(
+			testhelper.WithCookie(context.Background(), accessToken.String()),
+			req,
+		)
 		require.Error(t, err, "expected error for ISBN %q", bad)
 		var connErr *connect.Error
 		require.ErrorAs(t, err, &connErr)
@@ -252,13 +277,15 @@ func TestSetBookISBN_InvalidISBN_InvalidArgument(t *testing.T) {
 
 func TestSetBookISBN_UnknownBook_NotFound(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.SetBookISBNRequest{
+	req := &booksv1.SetBookISBNRequest{
 		BookId: uuid.New().String(),
 		Isbn13: "9780140449113",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.SetBookISBN(context.Background(), req)
+	_, err := client.SetBookISBN(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -270,13 +297,15 @@ func TestSetBookISBN_Success_UpdatesISBN(t *testing.T) {
 	newISBN := isbnFromUUID(ub.BookID)
 
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.SetBookISBNRequest{
+	req := &booksv1.SetBookISBNRequest{
 		BookId: ub.BookID.String(),
 		Isbn13: newISBN,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.SetBookISBN(context.Background(), req)
+	_, err := client.SetBookISBN(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
 
 	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
@@ -290,15 +319,17 @@ func TestSetBookISBN_DuplicateISBN_AlreadyExists(t *testing.T) {
 	ubB := addTestBookNoISBN(t, "SetISBNDuplicateBookB")
 
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.SetBookISBNRequest{
+	req := &booksv1.SetBookISBNRequest{
 		BookId: ubB.BookID.String(),
 		Isbn13: testISBN("SetISBNDuplicateBookA"),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
 	require.NotNil(t, ubA)
 
-	_, err := client.SetBookISBN(context.Background(), req)
+	_, err := client.SetBookISBN(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -318,13 +349,15 @@ func TestSetBookISBN_WithHyphens_NormalisedAndAccepted(t *testing.T) {
 	)
 
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.SetBookISBNRequest{
+	req := &booksv1.SetBookISBNRequest{
 		BookId: ub.BookID.String(),
 		Isbn13: hyphenated,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.SetBookISBN(context.Background(), req)
+	_, err := client.SetBookISBN(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
 
 	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
@@ -335,15 +368,17 @@ func TestSetBookISBN_WithHyphens_NormalisedAndAccepted(t *testing.T) {
 
 func TestUpdateBook_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+	req := &booksv1.UpdateBookRequest{
 		BookId: "00000000-0000-0000-0000-000000000001",
 		Metadata: &booksv1.Book{
 			Title: "New Title",
 		},
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.UpdateBook(context.Background(), req)
+	_, err := client.UpdateBook(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -352,15 +387,17 @@ func TestUpdateBook_NonAdmin_PermissionDenied(t *testing.T) {
 
 func TestUpdateBook_InvalidUUID_InvalidArgument(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+	req := &booksv1.UpdateBookRequest{
 		BookId: "not-a-uuid",
 		Metadata: &booksv1.Book{
 			Title: "New Title",
 		},
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.UpdateBook(context.Background(), req)
+	_, err := client.UpdateBook(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -371,16 +408,18 @@ func TestUpdateBook_InvalidISBN_InvalidArgument(t *testing.T) {
 	ub := addTestBookNoISBN(t, "UpdateBookInvalidISBNTest")
 
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+	req := &booksv1.UpdateBookRequest{
 		BookId: ub.BookID.String(),
 		Metadata: &booksv1.Book{
 			Title:  "New Title",
 			Isbn13: "123",
 		},
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.UpdateBook(context.Background(), req)
+	_, err := client.UpdateBook(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -389,15 +428,17 @@ func TestUpdateBook_InvalidISBN_InvalidArgument(t *testing.T) {
 
 func TestUpdateBook_UnknownBook_NotFound(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+	req := &booksv1.UpdateBookRequest{
 		BookId: uuid.New().String(),
 		Metadata: &booksv1.Book{
 			Title: "New Title",
 		},
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.UpdateBook(context.Background(), req)
+	_, err := client.UpdateBook(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -409,7 +450,7 @@ func TestUpdateBook_Success_UpdatesAllFields(t *testing.T) {
 	newISBN := isbnFromUUID(ub.BookID)
 
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+	req := &booksv1.UpdateBookRequest{
 		BookId: ub.BookID.String(),
 		Metadata: &booksv1.Book{
 			Title:       "Edited Title",
@@ -419,17 +460,19 @@ func TestUpdateBook_Success_UpdatesAllFields(t *testing.T) {
 			PageCount:   321,
 			CoverUrl:    "https://example.com/edited-cover.jpg",
 		},
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	resp, err := client.UpdateBook(context.Background(), req)
+	resp, err := client.UpdateBook(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.Book)
-	assert.Equal(t, "Edited Title", resp.Msg.Book.Title)
-	assert.Equal(t, []string{"Edited Author"}, resp.Msg.Book.Authors)
-	assert.Equal(t, newISBN, resp.Msg.Book.Isbn13)
-	assert.Equal(t, "Edited description.", resp.Msg.Book.Description)
-	assert.Equal(t, int32(321), resp.Msg.Book.PageCount)
+	require.NotNil(t, resp.Book)
+	assert.Equal(t, "Edited Title", resp.Book.Title)
+	assert.Equal(t, []string{"Edited Author"}, resp.Book.Authors)
+	assert.Equal(t, newISBN, resp.Book.Isbn13)
+	assert.Equal(t, "Edited description.", resp.Book.Description)
+	assert.Equal(t, int32(321), resp.Book.PageCount)
 
 	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
 	require.NoError(t, err)
@@ -444,16 +487,18 @@ func TestUpdateBook_EmptyCoverURL_ClearsCover(t *testing.T) {
 	ub := addTestBook(t, "UpdateBookClearCoverTest")
 
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+	req := &booksv1.UpdateBookRequest{
 		BookId: ub.BookID.String(),
 		Metadata: &booksv1.Book{
 			Title:   "UpdateBookClearCoverTest",
 			Authors: []string{"Test Author"},
 		},
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.UpdateBook(context.Background(), req)
+	_, err := client.UpdateBook(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
 
 	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
@@ -466,18 +511,20 @@ func TestUpdateBook_DuplicateISBN_AlreadyExists(t *testing.T) {
 	ubB := addTestBookNoISBN(t, "UpdateBookDuplicateISBNBookB")
 
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.UpdateBookRequest{
+	req := &booksv1.UpdateBookRequest{
 		BookId: ubB.BookID.String(),
 		Metadata: &booksv1.Book{
 			Title:  "UpdateBookDuplicateISBNBookB",
 			Isbn13: testISBN("UpdateBookDuplicateISBNBookA"),
 		},
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
 	require.NotNil(t, ubA)
 
-	_, err := client.UpdateBook(context.Background(), req)
+	_, err := client.UpdateBook(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)

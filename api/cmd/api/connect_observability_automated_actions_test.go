@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,14 +22,16 @@ func TestObservabilityOpenAutomatedAction_AsAdmin(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.OpenAutomatedActionRequest{
+	req := &observabilityv1.OpenAutomatedActionRequest{
 		TriggerSource: "schedule",
 		RoutineName:   "dependabot-triage",
-	})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.OpenAutomatedAction(context.Background(), req)
+	}
+	resp, err := client.OpenAutomatedAction(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.NoError(t, err)
-	assert.Positive(t, resp.Msg.Id)
+	assert.Positive(t, resp.Id)
 }
 
 func TestObservabilityOpenAutomatedAction_InvalidTriggerSource(t *testing.T) {
@@ -37,12 +39,14 @@ func TestObservabilityOpenAutomatedAction_InvalidTriggerSource(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.OpenAutomatedActionRequest{
+	req := &observabilityv1.OpenAutomatedActionRequest{
 		TriggerSource: "cron",
 		RoutineName:   "dependabot-triage",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.OpenAutomatedAction(context.Background(), req)
+	}
+	_, err := client.OpenAutomatedAction(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -52,12 +56,14 @@ func TestObservabilityOpenAutomatedAction_EmptyRoutineName(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.OpenAutomatedActionRequest{
+	req := &observabilityv1.OpenAutomatedActionRequest{
 		TriggerSource: "manual",
 		RoutineName:   "",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.OpenAutomatedAction(context.Background(), req)
+	}
+	_, err := client.OpenAutomatedAction(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -65,12 +71,14 @@ func TestObservabilityOpenAutomatedAction_EmptyRoutineName(t *testing.T) {
 func TestObservabilityOpenAutomatedAction_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.OpenAutomatedActionRequest{
+	req := &observabilityv1.OpenAutomatedActionRequest{
 		TriggerSource: "manual",
 		RoutineName:   "x",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.OpenAutomatedAction(context.Background(), req)
+	}
+	_, err := client.OpenAutomatedAction(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	requirePermissionDenied(t, err)
 }
 
@@ -79,33 +87,39 @@ func TestObservabilityCloseAutomatedAction_AsAdmin(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 
 	client := observabilityClient(t)
-	openReq := connect.NewRequest(&observabilityv1.OpenAutomatedActionRequest{
+	openReq := &observabilityv1.OpenAutomatedActionRequest{
 		TriggerSource: "api",
 		RoutineName:   "storage-cleanup",
-	})
-	setCookieOnRequest(openReq, accessToken)
-	openResp, err := client.OpenAutomatedAction(context.Background(), openReq)
+	}
+	openResp, err := client.OpenAutomatedAction(
+		withCookies(context.Background(), accessToken),
+		openReq,
+	)
 	require.NoError(t, err)
 
-	closeReq := connect.NewRequest(&observabilityv1.CloseAutomatedActionRequest{
-		Id:      openResp.Msg.Id,
+	closeReq := &observabilityv1.CloseAutomatedActionRequest{
+		Id:      openResp.Id,
 		Outcome: "succeeded",
 		PrUrl:   "https://github.com/o/r/pull/9",
-	})
-	setCookieOnRequest(closeReq, accessToken)
-	_, err = client.CloseAutomatedAction(context.Background(), closeReq)
+	}
+	_, err = client.CloseAutomatedAction(
+		withCookies(context.Background(), accessToken),
+		closeReq,
+	)
 	require.NoError(t, err)
 
-	listReq := connect.NewRequest(&observabilityv1.GetAutomatedActionsRequest{
+	listReq := &observabilityv1.GetAutomatedActionsRequest{
 		WindowDays: 1,
-	})
-	setCookieOnRequest(listReq, accessToken)
-	listResp, err := client.GetAutomatedActions(context.Background(), listReq)
+	}
+	listResp, err := client.GetAutomatedActions(
+		withCookies(context.Background(), accessToken),
+		listReq,
+	)
 	require.NoError(t, err)
 
 	var found *observabilityv1.AutomatedAction
-	for _, a := range listResp.Msg.Actions {
-		if a.Id == openResp.Msg.Id {
+	for _, a := range listResp.Actions {
+		if a.Id == openResp.Id {
 			found = a
 		}
 	}
@@ -120,12 +134,14 @@ func TestObservabilityCloseAutomatedAction_WithMetrics(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 
 	client := observabilityClient(t)
-	openReq := connect.NewRequest(&observabilityv1.OpenAutomatedActionRequest{
+	openReq := &observabilityv1.OpenAutomatedActionRequest{
 		TriggerSource: "ci",
 		RoutineName:   "red-pr-repair",
-	})
-	setCookieOnRequest(openReq, accessToken)
-	openResp, err := client.OpenAutomatedAction(context.Background(), openReq)
+	}
+	openResp, err := client.OpenAutomatedAction(
+		withCookies(context.Background(), accessToken),
+		openReq,
+	)
 	require.NoError(t, err)
 
 	metrics := &observabilityv1.RunMetrics{
@@ -140,25 +156,29 @@ func TestObservabilityCloseAutomatedAction_WithMetrics(t *testing.T) {
 		ToolErrors:        2,
 		RepeatedToolCalls: 1,
 	}
-	closeReq := connect.NewRequest(&observabilityv1.CloseAutomatedActionRequest{
-		Id:      openResp.Msg.Id,
+	closeReq := &observabilityv1.CloseAutomatedActionRequest{
+		Id:      openResp.Id,
 		Outcome: "no_action_needed",
 		Metrics: metrics,
-	})
-	setCookieOnRequest(closeReq, accessToken)
-	_, err = client.CloseAutomatedAction(context.Background(), closeReq)
+	}
+	_, err = client.CloseAutomatedAction(
+		withCookies(context.Background(), accessToken),
+		closeReq,
+	)
 	require.NoError(t, err)
 
-	listReq := connect.NewRequest(&observabilityv1.GetAutomatedActionsRequest{
+	listReq := &observabilityv1.GetAutomatedActionsRequest{
 		WindowDays: 1,
-	})
-	setCookieOnRequest(listReq, accessToken)
-	listResp, err := client.GetAutomatedActions(context.Background(), listReq)
+	}
+	listResp, err := client.GetAutomatedActions(
+		withCookies(context.Background(), accessToken),
+		listReq,
+	)
 	require.NoError(t, err)
 
 	var found *observabilityv1.AutomatedAction
-	for _, a := range listResp.Msg.Actions {
-		if a.Id == openResp.Msg.Id {
+	for _, a := range listResp.Actions {
+		if a.Id == openResp.Id {
 			found = a
 		}
 	}
@@ -172,13 +192,15 @@ func TestObservabilityCloseAutomatedAction_NegativeMetrics(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.CloseAutomatedActionRequest{
+	req := &observabilityv1.CloseAutomatedActionRequest{
 		Id:      1,
 		Outcome: "succeeded",
 		Metrics: &observabilityv1.RunMetrics{Requests: 3, ToolErrors: -1},
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.CloseAutomatedAction(context.Background(), req)
+	}
+	_, err := client.CloseAutomatedAction(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -188,12 +210,14 @@ func TestObservabilityCloseAutomatedAction_InvalidOutcome(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.CloseAutomatedActionRequest{
+	req := &observabilityv1.CloseAutomatedActionRequest{
 		Id:      1,
 		Outcome: "done",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.CloseAutomatedAction(context.Background(), req)
+	}
+	_, err := client.CloseAutomatedAction(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -201,23 +225,27 @@ func TestObservabilityCloseAutomatedAction_InvalidOutcome(t *testing.T) {
 func TestObservabilityCloseAutomatedAction_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.CloseAutomatedActionRequest{
+	req := &observabilityv1.CloseAutomatedActionRequest{
 		Id:      1,
 		Outcome: "succeeded",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.CloseAutomatedAction(context.Background(), req)
+	}
+	_, err := client.CloseAutomatedAction(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	requirePermissionDenied(t, err)
 }
 
 func TestObservabilityGetAutomatedActions_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.GetAutomatedActionsRequest{
+	req := &observabilityv1.GetAutomatedActionsRequest{
 		WindowDays: 7,
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.GetAutomatedActions(context.Background(), req)
+	}
+	_, err := client.GetAutomatedActions(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	requirePermissionDenied(t, err)
 }
 

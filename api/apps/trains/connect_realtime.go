@@ -4,18 +4,16 @@ import (
 	"context"
 	"time"
 
-	"connectrpc.com/connect"
-
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 )
 
 // GetRealtimeTrip exposes the realtime snapshot for one train running today.
 func (h *trainsConnectHandler) GetRealtimeTrip(
 	ctx context.Context,
-	req *connect.Request[trainsv1.GetRealtimeTripRequest],
-) (*connect.Response[trainsv1.GetRealtimeTripResponse], error) {
+	req *trainsv1.GetRealtimeTripRequest,
+) (*trainsv1.GetRealtimeTripResponse, error) {
 	view, err := h.app.Services.JourneyDetail.RealtimeTrip(
-		ctx, req.Msg.GetTripShortName(), time.Now(),
+		ctx, req.GetTripShortName(), time.Now(),
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -55,7 +53,7 @@ func (h *trainsConnectHandler) GetRealtimeTrip(
 	if view.Found {
 		tripStatus = view.Trip.State.String()
 	}
-	return connect.NewResponse(&trainsv1.GetRealtimeTripResponse{
+	return &trainsv1.GetRealtimeTripResponse{
 		FetchedAt:           fetchedAt,
 		TripCount:           count32(len(snap.Trips)),
 		UnresolvedTripCount: count32(snap.UnresolvedTripCount),
@@ -74,7 +72,7 @@ func (h *trainsConnectHandler) GetRealtimeTrip(
 		FeedTripUpdateCount:    count32(snap.Feed.TripUpdates),
 		FeedWithoutTripIdCount: count32(snap.Feed.WithoutTripID),
 		SnapshotTripShortNames: view.SnapshotShortNames,
-	}), nil
+	}, nil
 }
 
 // delay32 keeps an unpublished delay absent rather than zero.

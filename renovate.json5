@@ -80,6 +80,7 @@
       groupName: 'proto',
       matchDepNames: [
         'connectrpc.com/connect',
+        'connectrpc.com/connect/v2',
         'connectrpc/connect-go',
       ],
     },

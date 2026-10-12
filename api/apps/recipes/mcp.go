@@ -3,7 +3,6 @@ package recipes
 import (
 	"context"
 
-	"connectrpc.com/connect"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
@@ -44,15 +43,18 @@ func (a *Recipes) RegisterMCPTools(srv *mcp.Server) {
 func (h *recipesConnectHandler) mcpListRecipes(
 	ctx context.Context, args mcpListRecipesArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListRecipes(ctx, connect.NewRequest(
-		&recipesv1.ListRecipesRequest{Limit: args.Limit, Offset: args.Offset},
-	)))
+	return mcptools.Unwrap(
+		h.ListRecipes(
+			ctx,
+			&recipesv1.ListRecipesRequest{Limit: args.Limit, Offset: args.Offset},
+		),
+	)
 }
 
 func (h *recipesConnectHandler) mcpGetRecipe(
 	ctx context.Context, args mcpRecipeArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetRecipe(ctx, connect.NewRequest(
-		&recipesv1.GetRecipeRequest{Id: args.ID, Servings: args.Servings},
-	)))
+	return mcptools.Unwrap(
+		h.GetRecipe(ctx, &recipesv1.GetRecipeRequest{Id: args.ID, Servings: args.Servings}),
+	)
 }

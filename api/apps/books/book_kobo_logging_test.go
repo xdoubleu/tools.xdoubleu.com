@@ -9,7 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -165,20 +165,24 @@ func TestConnectSetKoboDeviceLogging_TogglesAndReflectsInList(t *testing.T) {
 	_, deviceID := registerDeviceReturningID(t, userID)
 	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
 
-	setReq := connect.NewRequest(&booksv1.SetKoboDeviceLoggingRequest{
+	setReq := &booksv1.SetKoboDeviceLoggingRequest{
 		Id: deviceID, Enabled: true,
-	})
-	setReq.Header().Set("Cookie", accessToken.String())
-	_, err := client.SetKoboDeviceLogging(ctx, setReq)
+	}
+	_, err := client.SetKoboDeviceLogging(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		setReq,
+	)
 	require.NoError(t, err)
 	assert.True(t, testApp.Services.KoboLog.IsEnabled(deviceID))
 
-	listReq := connect.NewRequest(&booksv1.ListKoboDevicesRequest{})
-	listReq.Header().Set("Cookie", accessToken.String())
-	listResp, err := client.ListKoboDevices(ctx, listReq)
+	listReq := &booksv1.ListKoboDevicesRequest{}
+	listResp, err := client.ListKoboDevices(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		listReq,
+	)
 	require.NoError(t, err)
 	var seen bool
-	for _, d := range listResp.Msg.Devices {
+	for _, d := range listResp.Devices {
 		if d.Id == deviceID {
 			assert.True(t, d.LoggingEnabled)
 			seen = true
@@ -193,10 +197,11 @@ func TestConnectSetKoboDeviceLogging_OtherUsersDeviceNotFound(t *testing.T) {
 
 	_, deviceID := registerDeviceReturningID(t, "kobo-log-other-"+uuid.NewString())
 
-	req := connect.NewRequest(&booksv1.SetKoboDeviceLoggingRequest{
+	req := &booksv1.SetKoboDeviceLoggingRequest{
 		Id: deviceID, Enabled: true,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 	_, err := client.SetKoboDeviceLogging(ctx, req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -221,13 +226,14 @@ func TestConnectGetKoboDeviceLogs_ReturnsEntries(t *testing.T) {
 	require.NoError(t, err)
 	resp.Body.Close()
 
-	req := connect.NewRequest(&booksv1.GetKoboDeviceLogsRequest{Id: deviceID})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.GetKoboDeviceLogsRequest{Id: deviceID}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 	logsResp, err := client.GetKoboDeviceLogs(ctx, req)
 	require.NoError(t, err)
-	require.NotEmpty(t, logsResp.Msg.Entries)
-	assert.Equal(t, http.MethodPost, logsResp.Msg.Entries[0].Method)
-	assert.NotEmpty(t, logsResp.Msg.Entries[0].ResponseBody)
+	require.NotEmpty(t, logsResp.Entries)
+	assert.Equal(t, http.MethodPost, logsResp.Entries[0].Method)
+	assert.NotEmpty(t, logsResp.Entries[0].ResponseBody)
 }
 
 func TestConnectGetKoboDeviceLogs_InvalidUTF8ResponseBody(t *testing.T) {
@@ -251,12 +257,13 @@ func TestConnectGetKoboDeviceLogs_InvalidUTF8ResponseBody(t *testing.T) {
 		},
 	})
 
-	req := connect.NewRequest(&booksv1.GetKoboDeviceLogsRequest{Id: deviceID})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.GetKoboDeviceLogsRequest{Id: deviceID}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 	logsResp, err := client.GetKoboDeviceLogs(ctx, req)
 	require.NoError(t, err)
-	require.NotEmpty(t, logsResp.Msg.Entries)
-	got := logsResp.Msg.Entries[0]
+	require.NotEmpty(t, logsResp.Entries)
+	got := logsResp.Entries[0]
 	assert.True(t, utf8.ValidString(got.ResponseBody))
 	assert.Equal(t, "continue", got.ResponseHeaders["x-kobo-sync"])
 	assert.True(t, utf8.ValidString(got.UpstreamHeaders["x-kobo-synctoken"]))
@@ -277,8 +284,9 @@ func TestConnectClearKoboDeviceLogs_Empties(t *testing.T) {
 	})
 	require.NotEmpty(t, testApp.Services.KoboLog.List(deviceID))
 
-	req := connect.NewRequest(&booksv1.ClearKoboDeviceLogsRequest{Id: deviceID})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.ClearKoboDeviceLogsRequest{Id: deviceID}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 	_, err := client.ClearKoboDeviceLogs(ctx, req)
 	require.NoError(t, err)
 
@@ -291,8 +299,9 @@ func TestConnectKoboLogging_InvalidDeviceID(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx := context.Background()
 
-	req := connect.NewRequest(&booksv1.GetKoboDeviceLogsRequest{Id: "not-a-uuid"})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.GetKoboDeviceLogsRequest{Id: "not-a-uuid"}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 	_, err := client.GetKoboDeviceLogs(ctx, req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))

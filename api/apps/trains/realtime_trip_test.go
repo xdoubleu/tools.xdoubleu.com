@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/MobilityData/gtfs-realtime-bindings/golang/gtfs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -82,11 +81,12 @@ func TestGetRealtimeTrip_Handler_ReportsRawTripAndPlannedStops(t *testing.T) {
 	pollStopIDOnlyDelay(ctx, t)
 
 	client := newTrainsTestClient(t)
-	resp, err := client.GetRealtimeTrip(ctx, connect.NewRequest(
+	resp, err := client.GetRealtimeTrip(
+		ctx,
 		&trainsv1.GetRealtimeTripRequest{TripShortName: "IC900"},
-	))
+	)
 	require.NoError(t, err)
-	msg := resp.Msg
+	msg := resp
 
 	assert.NotEmpty(t, msg.GetFetchedAt())
 	assert.Equal(t, int32(1), msg.GetTripCount())
@@ -116,19 +116,17 @@ func TestGetRealtimeTrip_Handler_SummaryOnlyWithoutTrainNumber(t *testing.T) {
 	pollStopIDOnlyDelay(ctx, t)
 
 	client := newTrainsTestClient(t)
-	resp, err := client.GetRealtimeTrip(ctx, connect.NewRequest(
-		&trainsv1.GetRealtimeTripRequest{},
-	))
+	resp, err := client.GetRealtimeTrip(ctx, &trainsv1.GetRealtimeTripRequest{})
 	require.NoError(t, err)
 
-	assert.Equal(t, int32(1), resp.Msg.GetTripCount())
-	assert.Equal(t, int32(1), resp.Msg.GetFeedEntityCount())
-	assert.Equal(t, int32(1), resp.Msg.GetFeedTripUpdateCount())
-	assert.Zero(t, resp.Msg.GetFeedWithoutTripIdCount())
-	assert.Equal(t, []string{"IC900"}, resp.Msg.GetSnapshotTripShortNames())
-	assert.False(t, resp.Msg.GetFound())
-	assert.Empty(t, resp.Msg.GetStatus())
-	assert.Empty(t, resp.Msg.GetPlannedTripId())
+	assert.Equal(t, int32(1), resp.GetTripCount())
+	assert.Equal(t, int32(1), resp.GetFeedEntityCount())
+	assert.Equal(t, int32(1), resp.GetFeedTripUpdateCount())
+	assert.Zero(t, resp.GetFeedWithoutTripIdCount())
+	assert.Equal(t, []string{"IC900"}, resp.GetSnapshotTripShortNames())
+	assert.False(t, resp.GetFound())
+	assert.Empty(t, resp.GetStatus())
+	assert.Empty(t, resp.GetPlannedTripId())
 }
 
 func TestGetRealtimeTrip_Handler_UnknownTrainIsNotFound(t *testing.T) {
@@ -136,12 +134,13 @@ func TestGetRealtimeTrip_Handler_UnknownTrainIsNotFound(t *testing.T) {
 	pollStopIDOnlyDelay(ctx, t)
 
 	client := newTrainsTestClient(t)
-	resp, err := client.GetRealtimeTrip(ctx, connect.NewRequest(
+	resp, err := client.GetRealtimeTrip(
+		ctx,
 		&trainsv1.GetRealtimeTripRequest{TripShortName: "IC-none"},
-	))
+	)
 	require.NoError(t, err)
 
-	assert.False(t, resp.Msg.GetFound())
-	assert.Empty(t, resp.Msg.GetStopUpdates())
-	assert.Empty(t, resp.Msg.GetPlannedTripId())
+	assert.False(t, resp.GetFound())
+	assert.Empty(t, resp.GetStopUpdates())
+	assert.Empty(t, resp.GetPlannedTripId())
 }

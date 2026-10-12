@@ -5,12 +5,13 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // TestConnectStartResync_Success checks an admin can start a scan.
@@ -19,8 +20,9 @@ func TestConnectStartResync_Success(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.StartResyncRequest{})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.StartResyncRequest{}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.StartResync(ctx, req)
 	require.NoError(t, err)
@@ -34,8 +36,9 @@ func TestConnectStartResync_Force(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.StartResyncRequest{Force: true})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.StartResyncRequest{Force: true}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.StartResync(ctx, req)
 	require.NoError(t, err)
@@ -108,10 +111,12 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 // TestConnectCancelResync_NonAdmin_PermissionDenied checks the admin gate.
 func TestConnectCancelResync_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.CancelResyncRequest{})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.CancelResyncRequest{}
 
-	_, err := client.CancelResync(context.Background(), req)
+	_, err := client.CancelResync(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -121,10 +126,12 @@ func TestConnectCancelResync_NonAdmin_PermissionDenied(t *testing.T) {
 // TestConnectCancelResync_Admin_NoopWhenNothingRunning checks the no-op.
 func TestConnectCancelResync_Admin_NoopWhenNothingRunning(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.CancelResyncRequest{})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.CancelResyncRequest{}
 
-	resp, err := client.CancelResync(context.Background(), req)
+	resp, err := client.CancelResync(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
 	assert.NotNil(t, resp)
 }

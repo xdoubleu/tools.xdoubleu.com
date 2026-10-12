@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/repositories"
@@ -15,16 +15,16 @@ import (
 
 func (h *obsConnectHandler) GetNotificationSettings(
 	ctx context.Context,
-	_ *connect.Request[observabilityv1.GetNotificationSettingsRequest],
-) (*connect.Response[observabilityv1.GetNotificationSettingsResponse], error) {
+	_ *observabilityv1.GetNotificationSettingsRequest,
+) (*observabilityv1.GetNotificationSettingsResponse, error) {
 	resp, err := h.notificationSettings(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	if requireAdmin(ctx) != nil {
 		resp.AdminEmail = ""
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // notificationSettings is shared by the Connect handler and MCP tool.
@@ -52,19 +52,17 @@ func (h *obsConnectHandler) notificationSettings(
 
 func (h *obsConnectHandler) UpdateNotificationSettings(
 	ctx context.Context,
-	req *connect.Request[observabilityv1.UpdateNotificationSettingsRequest],
-) (*connect.Response[observabilityv1.UpdateNotificationSettingsResponse], error) {
+	req *observabilityv1.UpdateNotificationSettingsRequest,
+) (*observabilityv1.UpdateNotificationSettingsResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
-	source := repositories.NotificationSource(req.Msg.GetSourceKey())
+	source := repositories.NotificationSource(req.GetSourceKey())
 	if err := h.app.notificationSettingsRepo.SetEnabled(
-		ctx, source, req.Msg.GetEnabled(),
+		ctx, source, req.GetEnabled(),
 	); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(
-		&observabilityv1.UpdateNotificationSettingsResponse{},
-	), nil
+	return &observabilityv1.UpdateNotificationSettingsResponse{}, nil
 }

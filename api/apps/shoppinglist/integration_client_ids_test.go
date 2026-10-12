@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,26 +19,26 @@ func TestCreateShoppingItem_ClientIDRepeatIsIdempotent(t *testing.T) {
 		Id: id, Name: "replayed", Amount: "2", Unit: "kg",
 	}
 
-	first, err := client.CreateShoppingItem(t.Context(), connect.NewRequest(req))
+	first, err := client.CreateShoppingItem(t.Context(), req)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_, _ = testDB.Exec(
 			context.Background(), "DELETE FROM shoppinglist.custom_items WHERE id = $1", id,
 		)
 	})
-	second, err := client.CreateShoppingItem(t.Context(), connect.NewRequest(req))
+	second, err := client.CreateShoppingItem(t.Context(), req)
 	require.NoError(t, err)
 
-	assert.Equal(t, id, first.Msg.Item.Id)
-	assert.Equal(t, first.Msg.Item, second.Msg.Item)
+	assert.Equal(t, id, first.Item.Id)
+	assert.Equal(t, first.Item, second.Item)
 
 	list, err := client.GetCustomList(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetCustomListRequest{}),
+		&shoppinglistv1.GetCustomListRequest{},
 	)
 	require.NoError(t, err)
 	count := 0
-	for _, item := range list.Msg.Items {
+	for _, item := range list.Items {
 		if item.Id == id {
 			count++
 		}
@@ -51,13 +51,13 @@ func TestCreateCategory_ClientIDRepeatIsIdempotent(t *testing.T) {
 	id := uuid.NewString()
 	req := &shoppinglistv1.CreateCategoryRequest{Id: id, Name: "Replayed category"}
 
-	first, err := client.CreateCategory(t.Context(), connect.NewRequest(req))
+	first, err := client.CreateCategory(t.Context(), req)
 	require.NoError(t, err)
-	second, err := client.CreateCategory(t.Context(), connect.NewRequest(req))
+	second, err := client.CreateCategory(t.Context(), req)
 	require.NoError(t, err)
 
-	assert.Equal(t, id, first.Msg.Category.Id)
-	assert.Equal(t, first.Msg.Category, second.Msg.Category)
+	assert.Equal(t, id, first.Category.Id)
+	assert.Equal(t, first.Category, second.Category)
 }
 
 func TestCreateStore_ClientIDRepeatIsIdempotent(t *testing.T) {
@@ -65,13 +65,13 @@ func TestCreateStore_ClientIDRepeatIsIdempotent(t *testing.T) {
 	id := uuid.NewString()
 	req := &shoppinglistv1.CreateStoreRequest{Id: id, Name: "Replayed store"}
 
-	first, err := client.CreateStore(t.Context(), connect.NewRequest(req))
+	first, err := client.CreateStore(t.Context(), req)
 	require.NoError(t, err)
-	second, err := client.CreateStore(t.Context(), connect.NewRequest(req))
+	second, err := client.CreateStore(t.Context(), req)
 	require.NoError(t, err)
 
-	assert.Equal(t, id, first.Msg.Store.Id)
-	assert.Equal(t, first.Msg.Store, second.Msg.Store)
+	assert.Equal(t, id, first.Store.Id)
+	assert.Equal(t, first.Store, second.Store)
 }
 
 func TestCreateStore_ClientIDOwnedByAnotherUser(t *testing.T) {
@@ -85,9 +85,9 @@ func TestCreateStore_ClientIDOwnedByAnotherUser(t *testing.T) {
 
 	_, err = client.CreateStore(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateStoreRequest{
+		&shoppinglistv1.CreateStoreRequest{
 			Id: id.String(), Name: "Mine",
-		}),
+		},
 	)
 	assertCode(t, err, connect.CodeNotFound)
 }
@@ -95,18 +95,21 @@ func TestCreateStore_ClientIDOwnedByAnotherUser(t *testing.T) {
 func TestCreate_InvalidClientID(t *testing.T) {
 	client := newShoppingClient(t)
 
-	_, err := client.CreateShoppingItem(t.Context(), connect.NewRequest(
+	_, err := client.CreateShoppingItem(
+		t.Context(),
 		&shoppinglistv1.CreateShoppingItemRequest{Id: "nope", Name: "x", Amount: "1"},
-	))
+	)
 	assertCode(t, err, connect.CodeInvalidArgument)
 
-	_, err = client.CreateCategory(t.Context(), connect.NewRequest(
+	_, err = client.CreateCategory(
+		t.Context(),
 		&shoppinglistv1.CreateCategoryRequest{Id: "nope", Name: "x"},
-	))
+	)
 	assertCode(t, err, connect.CodeInvalidArgument)
 
-	_, err = client.CreateStore(t.Context(), connect.NewRequest(
+	_, err = client.CreateStore(
+		t.Context(),
 		&shoppinglistv1.CreateStoreRequest{Id: "nope", Name: "x"},
-	))
+	)
 	assertCode(t, err, connect.CodeInvalidArgument)
 }

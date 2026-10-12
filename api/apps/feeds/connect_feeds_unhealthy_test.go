@@ -6,7 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -37,7 +38,15 @@ func newAdminFeedsClient(t *testing.T) feedsv1connect.FeedServiceClient {
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(adminApp))
 	t.Cleanup(ts.Close)
-	return feedsv1connect.NewFeedServiceClient(http.DefaultClient, ts.URL)
+	return feedsv1connect.NewFeedServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(
+				http.DefaultClient,
+				ts.URL,
+				connecthttp.WithReadMaxBytes(0),
+			),
+		),
+	)
 }
 
 func TestGetUnhealthyFeeds_NonAdmin_PermissionDenied(t *testing.T) {
@@ -45,7 +54,7 @@ func TestGetUnhealthyFeeds_NonAdmin_PermissionDenied(t *testing.T) {
 
 	_, err := client.GetUnhealthyFeeds(
 		context.Background(),
-		connect.NewRequest(&feedsv1.GetUnhealthyFeedsRequest{}),
+		&feedsv1.GetUnhealthyFeedsRequest{},
 	)
 	require.Error(t, err)
 	var connErr *connect.Error
@@ -58,8 +67,8 @@ func TestGetUnhealthyFeeds_Admin_Success(t *testing.T) {
 
 	resp, err := client.GetUnhealthyFeeds(
 		context.Background(),
-		connect.NewRequest(&feedsv1.GetUnhealthyFeedsRequest{}),
+		&feedsv1.GetUnhealthyFeedsRequest{},
 	)
 	require.NoError(t, err)
-	assert.NotNil(t, resp.Msg)
+	assert.NotNil(t, resp)
 }

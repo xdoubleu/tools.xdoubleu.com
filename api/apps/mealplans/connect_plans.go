@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
@@ -15,25 +15,25 @@ import (
 
 func (h *mealplansConnectHandler) ListPlans(
 	ctx context.Context,
-	req *connect.Request[mealplansv1.ListPlansRequest],
-) (*connect.Response[mealplansv1.ListPlansResponse], error) {
+	req *mealplansv1.ListPlansRequest,
+) (*mealplansv1.ListPlansResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
 	list, hasMore, err := h.app.services.Plans.List(
-		ctx, user.ID, req.Msg.Limit, req.Msg.Offset,
+		ctx, user.ID, req.Limit, req.Offset,
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
 	// Only an empty first page means no plans yet.
-	if len(list) == 0 && req.Msg.Offset == 0 {
+	if len(list) == 0 && req.Offset == 0 {
 		created, createErr := h.app.services.Plans.Create(
 			ctx,
 			user.ID,
@@ -48,33 +48,33 @@ func (h *mealplansConnectHandler) ListPlans(
 		list = []models.Plan{*created}
 	}
 
-	return connect.NewResponse(&mealplansv1.ListPlansResponse{
+	return &mealplansv1.ListPlansResponse{
 		Plans:   protoPlans(list),
 		HasMore: hasMore,
-	}), nil
+	}, nil
 }
 
 func (h *mealplansConnectHandler) GetPlan(
 	ctx context.Context,
-	req *connect.Request[mealplansv1.GetPlanRequest],
-) (*connect.Response[mealplansv1.GetPlanResponse], error) {
+	req *mealplansv1.GetPlanRequest,
+) (*mealplansv1.GetPlanResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	id, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid plan ID"),
+			"invalid plan ID",
 		)
 	}
 
-	offset := int(req.Msg.Offset)
+	offset := int(req.Offset)
 	plan, windowStart, windowEnd, err := h.app.services.Plans.GetWithWeek(
 		ctx, id, user.ID, offset,
 	)
@@ -82,7 +82,7 @@ func (h *mealplansConnectHandler) GetPlan(
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&mealplansv1.GetPlanResponse{
+	return &mealplansv1.GetPlanResponse{
 		Plan:        protoPlan(plan),
 		Recipes:     []*recipesv1.Recipe{},
 		IcalUrl:     h.icalURL(plan.ICalToken),
@@ -92,60 +92,60 @@ func (h *mealplansConnectHandler) GetPlan(
 		NextOffset:  int32(offset + 1), //nolint:gosec // pagination offset fits int32
 		WindowStart: windowStart.Format(time.RFC3339),
 		WindowEnd:   windowEnd.Format(time.RFC3339),
-	}), nil
+	}, nil
 }
 
 func (h *mealplansConnectHandler) UpdatePlan(
 	ctx context.Context,
-	req *connect.Request[mealplansv1.UpdatePlanRequest],
-) (*connect.Response[mealplansv1.UpdatePlanResponse], error) {
+	req *mealplansv1.UpdatePlanRequest,
+) (*mealplansv1.UpdatePlanResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	id, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid plan ID"),
+			"invalid plan ID",
 		)
 	}
 
 	plan := models.Plan{ //nolint:exhaustruct // other fields optional
 		ID:            id,
-		Name:          req.Msg.Name,
-		ICalHideSlots: req.Msg.IcalHideSlots,
-		ICalHidePast:  req.Msg.IcalHidePast,
+		Name:          req.Name,
+		ICalHideSlots: req.IcalHideSlots,
+		ICalHidePast:  req.IcalHidePast,
 	}
 
 	if err = h.app.services.Plans.Update(ctx, user.ID, plan); err != nil {
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&mealplansv1.UpdatePlanResponse{}), nil
+	return &mealplansv1.UpdatePlanResponse{}, nil
 }
 
 func (h *mealplansConnectHandler) RotateICalToken(
 	ctx context.Context,
-	req *connect.Request[mealplansv1.RotateICalTokenRequest],
-) (*connect.Response[mealplansv1.RotateICalTokenResponse], error) {
+	req *mealplansv1.RotateICalTokenRequest,
+) (*mealplansv1.RotateICalTokenResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	id, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid plan ID"),
+			"invalid plan ID",
 		)
 	}
 
@@ -154,9 +154,9 @@ func (h *mealplansConnectHandler) RotateICalToken(
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&mealplansv1.RotateICalTokenResponse{
+	return &mealplansv1.RotateICalTokenResponse{
 		IcalUrl: h.icalURL(token),
-	}), nil
+	}, nil
 }
 
 func (h *mealplansConnectHandler) icalURL(token uuid.UUID) string {

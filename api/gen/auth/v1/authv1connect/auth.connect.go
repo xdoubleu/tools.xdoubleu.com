@@ -5,449 +5,526 @@
 package authv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/auth/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// AuthServiceName is the fully-qualified name of the AuthService service.
 	AuthServiceName = "auth.v1.AuthService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// AuthServiceSignInProcedure is the fully-qualified name of the AuthService's SignIn RPC.
+	// AuthServiceSignInProcedure is the procedure name of the AuthService's SignIn RPC.
 	AuthServiceSignInProcedure = "/auth.v1.AuthService/SignIn"
-	// AuthServiceMFAEnrollProcedure is the fully-qualified name of the AuthService's MFAEnroll RPC.
+	// AuthServiceMFAEnrollProcedure is the procedure name of the AuthService's MFAEnroll RPC.
 	AuthServiceMFAEnrollProcedure = "/auth.v1.AuthService/MFAEnroll"
-	// AuthServiceMFAEnrollVerifyProcedure is the fully-qualified name of the AuthService's
-	// MFAEnrollVerify RPC.
+	// AuthServiceMFAEnrollVerifyProcedure is the procedure name of the AuthService's MFAEnrollVerify
+	// RPC.
 	AuthServiceMFAEnrollVerifyProcedure = "/auth.v1.AuthService/MFAEnrollVerify"
-	// AuthServiceMFAEnrollSkipProcedure is the fully-qualified name of the AuthService's MFAEnrollSkip
-	// RPC.
+	// AuthServiceMFAEnrollSkipProcedure is the procedure name of the AuthService's MFAEnrollSkip RPC.
 	AuthServiceMFAEnrollSkipProcedure = "/auth.v1.AuthService/MFAEnrollSkip"
-	// AuthServiceMFAChallengeProcedure is the fully-qualified name of the AuthService's MFAChallenge
-	// RPC.
+	// AuthServiceMFAChallengeProcedure is the procedure name of the AuthService's MFAChallenge RPC.
 	AuthServiceMFAChallengeProcedure = "/auth.v1.AuthService/MFAChallenge"
-	// AuthServiceMFAUnenrollProcedure is the fully-qualified name of the AuthService's MFAUnenroll RPC.
+	// AuthServiceMFAUnenrollProcedure is the procedure name of the AuthService's MFAUnenroll RPC.
 	AuthServiceMFAUnenrollProcedure = "/auth.v1.AuthService/MFAUnenroll"
-	// AuthServiceForgotPasswordProcedure is the fully-qualified name of the AuthService's
-	// ForgotPassword RPC.
+	// AuthServiceForgotPasswordProcedure is the procedure name of the AuthService's ForgotPassword RPC.
 	AuthServiceForgotPasswordProcedure = "/auth.v1.AuthService/ForgotPassword"
-	// AuthServiceExchangeTokenProcedure is the fully-qualified name of the AuthService's ExchangeToken
-	// RPC.
+	// AuthServiceExchangeTokenProcedure is the procedure name of the AuthService's ExchangeToken RPC.
 	AuthServiceExchangeTokenProcedure = "/auth.v1.AuthService/ExchangeToken"
-	// AuthServiceUpdatePasswordProcedure is the fully-qualified name of the AuthService's
-	// UpdatePassword RPC.
+	// AuthServiceUpdatePasswordProcedure is the procedure name of the AuthService's UpdatePassword RPC.
 	AuthServiceUpdatePasswordProcedure = "/auth.v1.AuthService/UpdatePassword"
-	// AuthServiceSignOutProcedure is the fully-qualified name of the AuthService's SignOut RPC.
+	// AuthServiceSignOutProcedure is the procedure name of the AuthService's SignOut RPC.
 	AuthServiceSignOutProcedure = "/auth.v1.AuthService/SignOut"
-	// AuthServiceGetCurrentUserProcedure is the fully-qualified name of the AuthService's
-	// GetCurrentUser RPC.
+	// AuthServiceGetCurrentUserProcedure is the procedure name of the AuthService's GetCurrentUser RPC.
 	AuthServiceGetCurrentUserProcedure = "/auth.v1.AuthService/GetCurrentUser"
-	// AuthServiceResetPasswordProcedure is the fully-qualified name of the AuthService's ResetPassword
-	// RPC.
+	// AuthServiceResetPasswordProcedure is the procedure name of the AuthService's ResetPassword RPC.
 	AuthServiceResetPasswordProcedure = "/auth.v1.AuthService/ResetPassword"
-	// AuthServiceRegenerateRecoveryCodesProcedure is the fully-qualified name of the AuthService's
+	// AuthServiceRegenerateRecoveryCodesProcedure is the procedure name of the AuthService's
 	// RegenerateRecoveryCodes RPC.
 	AuthServiceRegenerateRecoveryCodesProcedure = "/auth.v1.AuthService/RegenerateRecoveryCodes"
 )
 
+var (
+	authServiceSignInSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("SignIn"),
+			Procedure:  AuthServiceSignInProcedure,
+		}
+	})
+	authServiceMFAEnrollSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("MFAEnroll"),
+			Procedure:  AuthServiceMFAEnrollProcedure,
+		}
+	})
+	authServiceMFAEnrollVerifySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("MFAEnrollVerify"),
+			Procedure:  AuthServiceMFAEnrollVerifyProcedure,
+		}
+	})
+	authServiceMFAEnrollSkipSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("MFAEnrollSkip"),
+			Procedure:  AuthServiceMFAEnrollSkipProcedure,
+		}
+	})
+	authServiceMFAChallengeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("MFAChallenge"),
+			Procedure:  AuthServiceMFAChallengeProcedure,
+		}
+	})
+	authServiceMFAUnenrollSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("MFAUnenroll"),
+			Procedure:  AuthServiceMFAUnenrollProcedure,
+		}
+	})
+	authServiceForgotPasswordSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("ForgotPassword"),
+			Procedure:  AuthServiceForgotPasswordProcedure,
+		}
+	})
+	authServiceExchangeTokenSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("ExchangeToken"),
+			Procedure:  AuthServiceExchangeTokenProcedure,
+		}
+	})
+	authServiceUpdatePasswordSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("UpdatePassword"),
+			Procedure:  AuthServiceUpdatePasswordProcedure,
+		}
+	})
+	authServiceSignOutSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("SignOut"),
+			Procedure:  AuthServiceSignOutProcedure,
+		}
+	})
+	authServiceGetCurrentUserSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("GetCurrentUser"),
+			Procedure:  AuthServiceGetCurrentUserProcedure,
+		}
+	})
+	authServiceResetPasswordSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("ResetPassword"),
+			Procedure:  AuthServiceResetPasswordProcedure,
+		}
+	})
+	authServiceRegenerateRecoveryCodesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("RegenerateRecoveryCodes"),
+			Procedure:  AuthServiceRegenerateRecoveryCodesProcedure,
+		}
+	})
+)
+
 // AuthServiceClient is a client for the auth.v1.AuthService service.
 type AuthServiceClient interface {
-	SignIn(context.Context, *connect.Request[v1.SignInRequest]) (*connect.Response[v1.SignInResponse], error)
-	MFAEnroll(context.Context, *connect.Request[v1.MFAEnrollRequest]) (*connect.Response[v1.MFAEnrollResponse], error)
-	MFAEnrollVerify(context.Context, *connect.Request[v1.MFAEnrollVerifyRequest]) (*connect.Response[v1.MFAEnrollVerifyResponse], error)
-	MFAEnrollSkip(context.Context, *connect.Request[v1.MFAEnrollSkipRequest]) (*connect.Response[v1.MFAEnrollSkipResponse], error)
-	MFAChallenge(context.Context, *connect.Request[v1.MFAChallengeRequest]) (*connect.Response[v1.MFAChallengeResponse], error)
-	MFAUnenroll(context.Context, *connect.Request[v1.MFAUnenrollRequest]) (*connect.Response[v1.MFAUnenrollResponse], error)
-	ForgotPassword(context.Context, *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error)
-	ExchangeToken(context.Context, *connect.Request[v1.ExchangeTokenRequest]) (*connect.Response[v1.ExchangeTokenResponse], error)
-	UpdatePassword(context.Context, *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error)
-	SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error)
-	GetCurrentUser(context.Context, *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error)
-	ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error)
-	RegenerateRecoveryCodes(context.Context, *connect.Request[v1.RegenerateRecoveryCodesRequest]) (*connect.Response[v1.RegenerateRecoveryCodesResponse], error)
+	SignIn(context.Context, *v1.SignInRequest) (*v1.SignInResponse, error)
+	MFAEnroll(context.Context, *v1.MFAEnrollRequest) (*v1.MFAEnrollResponse, error)
+	MFAEnrollVerify(context.Context, *v1.MFAEnrollVerifyRequest) (*v1.MFAEnrollVerifyResponse, error)
+	MFAEnrollSkip(context.Context, *v1.MFAEnrollSkipRequest) (*v1.MFAEnrollSkipResponse, error)
+	MFAChallenge(context.Context, *v1.MFAChallengeRequest) (*v1.MFAChallengeResponse, error)
+	MFAUnenroll(context.Context, *v1.MFAUnenrollRequest) (*v1.MFAUnenrollResponse, error)
+	ForgotPassword(context.Context, *v1.ForgotPasswordRequest) (*v1.ForgotPasswordResponse, error)
+	ExchangeToken(context.Context, *v1.ExchangeTokenRequest) (*v1.ExchangeTokenResponse, error)
+	UpdatePassword(context.Context, *v1.UpdatePasswordRequest) (*v1.UpdatePasswordResponse, error)
+	SignOut(context.Context, *v1.SignOutRequest) (*v1.SignOutResponse, error)
+	GetCurrentUser(context.Context, *v1.GetCurrentUserRequest) (*v1.GetCurrentUserResponse, error)
+	ResetPassword(context.Context, *v1.ResetPasswordRequest) (*v1.ResetPasswordResponse, error)
+	RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error)
 }
 
-// NewAuthServiceClient constructs a client for the auth.v1.AuthService service. By default, it uses
-// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) AuthServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	authServiceMethods := v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods()
-	return &authServiceClient{
-		signIn: connect.NewClient[v1.SignInRequest, v1.SignInResponse](
-			httpClient,
-			baseURL+AuthServiceSignInProcedure,
-			connect.WithSchema(authServiceMethods.ByName("SignIn")),
-			connect.WithClientOptions(opts...),
-		),
-		mFAEnroll: connect.NewClient[v1.MFAEnrollRequest, v1.MFAEnrollResponse](
-			httpClient,
-			baseURL+AuthServiceMFAEnrollProcedure,
-			connect.WithSchema(authServiceMethods.ByName("MFAEnroll")),
-			connect.WithClientOptions(opts...),
-		),
-		mFAEnrollVerify: connect.NewClient[v1.MFAEnrollVerifyRequest, v1.MFAEnrollVerifyResponse](
-			httpClient,
-			baseURL+AuthServiceMFAEnrollVerifyProcedure,
-			connect.WithSchema(authServiceMethods.ByName("MFAEnrollVerify")),
-			connect.WithClientOptions(opts...),
-		),
-		mFAEnrollSkip: connect.NewClient[v1.MFAEnrollSkipRequest, v1.MFAEnrollSkipResponse](
-			httpClient,
-			baseURL+AuthServiceMFAEnrollSkipProcedure,
-			connect.WithSchema(authServiceMethods.ByName("MFAEnrollSkip")),
-			connect.WithClientOptions(opts...),
-		),
-		mFAChallenge: connect.NewClient[v1.MFAChallengeRequest, v1.MFAChallengeResponse](
-			httpClient,
-			baseURL+AuthServiceMFAChallengeProcedure,
-			connect.WithSchema(authServiceMethods.ByName("MFAChallenge")),
-			connect.WithClientOptions(opts...),
-		),
-		mFAUnenroll: connect.NewClient[v1.MFAUnenrollRequest, v1.MFAUnenrollResponse](
-			httpClient,
-			baseURL+AuthServiceMFAUnenrollProcedure,
-			connect.WithSchema(authServiceMethods.ByName("MFAUnenroll")),
-			connect.WithClientOptions(opts...),
-		),
-		forgotPassword: connect.NewClient[v1.ForgotPasswordRequest, v1.ForgotPasswordResponse](
-			httpClient,
-			baseURL+AuthServiceForgotPasswordProcedure,
-			connect.WithSchema(authServiceMethods.ByName("ForgotPassword")),
-			connect.WithClientOptions(opts...),
-		),
-		exchangeToken: connect.NewClient[v1.ExchangeTokenRequest, v1.ExchangeTokenResponse](
-			httpClient,
-			baseURL+AuthServiceExchangeTokenProcedure,
-			connect.WithSchema(authServiceMethods.ByName("ExchangeToken")),
-			connect.WithClientOptions(opts...),
-		),
-		updatePassword: connect.NewClient[v1.UpdatePasswordRequest, v1.UpdatePasswordResponse](
-			httpClient,
-			baseURL+AuthServiceUpdatePasswordProcedure,
-			connect.WithSchema(authServiceMethods.ByName("UpdatePassword")),
-			connect.WithClientOptions(opts...),
-		),
-		signOut: connect.NewClient[v1.SignOutRequest, v1.SignOutResponse](
-			httpClient,
-			baseURL+AuthServiceSignOutProcedure,
-			connect.WithSchema(authServiceMethods.ByName("SignOut")),
-			connect.WithClientOptions(opts...),
-		),
-		getCurrentUser: connect.NewClient[v1.GetCurrentUserRequest, v1.GetCurrentUserResponse](
-			httpClient,
-			baseURL+AuthServiceGetCurrentUserProcedure,
-			connect.WithSchema(authServiceMethods.ByName("GetCurrentUser")),
-			connect.WithClientOptions(opts...),
-		),
-		resetPassword: connect.NewClient[v1.ResetPasswordRequest, v1.ResetPasswordResponse](
-			httpClient,
-			baseURL+AuthServiceResetPasswordProcedure,
-			connect.WithSchema(authServiceMethods.ByName("ResetPassword")),
-			connect.WithClientOptions(opts...),
-		),
-		regenerateRecoveryCodes: connect.NewClient[v1.RegenerateRecoveryCodesRequest, v1.RegenerateRecoveryCodesResponse](
-			httpClient,
-			baseURL+AuthServiceRegenerateRecoveryCodesProcedure,
-			connect.WithSchema(authServiceMethods.ByName("RegenerateRecoveryCodes")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// authServiceClient implements AuthServiceClient.
-type authServiceClient struct {
-	signIn                  *connect.Client[v1.SignInRequest, v1.SignInResponse]
-	mFAEnroll               *connect.Client[v1.MFAEnrollRequest, v1.MFAEnrollResponse]
-	mFAEnrollVerify         *connect.Client[v1.MFAEnrollVerifyRequest, v1.MFAEnrollVerifyResponse]
-	mFAEnrollSkip           *connect.Client[v1.MFAEnrollSkipRequest, v1.MFAEnrollSkipResponse]
-	mFAChallenge            *connect.Client[v1.MFAChallengeRequest, v1.MFAChallengeResponse]
-	mFAUnenroll             *connect.Client[v1.MFAUnenrollRequest, v1.MFAUnenrollResponse]
-	forgotPassword          *connect.Client[v1.ForgotPasswordRequest, v1.ForgotPasswordResponse]
-	exchangeToken           *connect.Client[v1.ExchangeTokenRequest, v1.ExchangeTokenResponse]
-	updatePassword          *connect.Client[v1.UpdatePasswordRequest, v1.UpdatePasswordResponse]
-	signOut                 *connect.Client[v1.SignOutRequest, v1.SignOutResponse]
-	getCurrentUser          *connect.Client[v1.GetCurrentUserRequest, v1.GetCurrentUserResponse]
-	resetPassword           *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
-	regenerateRecoveryCodes *connect.Client[v1.RegenerateRecoveryCodesRequest, v1.RegenerateRecoveryCodesResponse]
-}
-
-// SignIn calls auth.v1.AuthService.SignIn.
-func (c *authServiceClient) SignIn(ctx context.Context, req *connect.Request[v1.SignInRequest]) (*connect.Response[v1.SignInResponse], error) {
-	return c.signIn.CallUnary(ctx, req)
-}
-
-// MFAEnroll calls auth.v1.AuthService.MFAEnroll.
-func (c *authServiceClient) MFAEnroll(ctx context.Context, req *connect.Request[v1.MFAEnrollRequest]) (*connect.Response[v1.MFAEnrollResponse], error) {
-	return c.mFAEnroll.CallUnary(ctx, req)
-}
-
-// MFAEnrollVerify calls auth.v1.AuthService.MFAEnrollVerify.
-func (c *authServiceClient) MFAEnrollVerify(ctx context.Context, req *connect.Request[v1.MFAEnrollVerifyRequest]) (*connect.Response[v1.MFAEnrollVerifyResponse], error) {
-	return c.mFAEnrollVerify.CallUnary(ctx, req)
-}
-
-// MFAEnrollSkip calls auth.v1.AuthService.MFAEnrollSkip.
-func (c *authServiceClient) MFAEnrollSkip(ctx context.Context, req *connect.Request[v1.MFAEnrollSkipRequest]) (*connect.Response[v1.MFAEnrollSkipResponse], error) {
-	return c.mFAEnrollSkip.CallUnary(ctx, req)
-}
-
-// MFAChallenge calls auth.v1.AuthService.MFAChallenge.
-func (c *authServiceClient) MFAChallenge(ctx context.Context, req *connect.Request[v1.MFAChallengeRequest]) (*connect.Response[v1.MFAChallengeResponse], error) {
-	return c.mFAChallenge.CallUnary(ctx, req)
-}
-
-// MFAUnenroll calls auth.v1.AuthService.MFAUnenroll.
-func (c *authServiceClient) MFAUnenroll(ctx context.Context, req *connect.Request[v1.MFAUnenrollRequest]) (*connect.Response[v1.MFAUnenrollResponse], error) {
-	return c.mFAUnenroll.CallUnary(ctx, req)
-}
-
-// ForgotPassword calls auth.v1.AuthService.ForgotPassword.
-func (c *authServiceClient) ForgotPassword(ctx context.Context, req *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error) {
-	return c.forgotPassword.CallUnary(ctx, req)
-}
-
-// ExchangeToken calls auth.v1.AuthService.ExchangeToken.
-func (c *authServiceClient) ExchangeToken(ctx context.Context, req *connect.Request[v1.ExchangeTokenRequest]) (*connect.Response[v1.ExchangeTokenResponse], error) {
-	return c.exchangeToken.CallUnary(ctx, req)
-}
-
-// UpdatePassword calls auth.v1.AuthService.UpdatePassword.
-func (c *authServiceClient) UpdatePassword(ctx context.Context, req *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error) {
-	return c.updatePassword.CallUnary(ctx, req)
-}
-
-// SignOut calls auth.v1.AuthService.SignOut.
-func (c *authServiceClient) SignOut(ctx context.Context, req *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error) {
-	return c.signOut.CallUnary(ctx, req)
-}
-
-// GetCurrentUser calls auth.v1.AuthService.GetCurrentUser.
-func (c *authServiceClient) GetCurrentUser(ctx context.Context, req *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error) {
-	return c.getCurrentUser.CallUnary(ctx, req)
-}
-
-// ResetPassword calls auth.v1.AuthService.ResetPassword.
-func (c *authServiceClient) ResetPassword(ctx context.Context, req *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error) {
-	return c.resetPassword.CallUnary(ctx, req)
-}
-
-// RegenerateRecoveryCodes calls auth.v1.AuthService.RegenerateRecoveryCodes.
-func (c *authServiceClient) RegenerateRecoveryCodes(ctx context.Context, req *connect.Request[v1.RegenerateRecoveryCodesRequest]) (*connect.Response[v1.RegenerateRecoveryCodesResponse], error) {
-	return c.regenerateRecoveryCodes.CallUnary(ctx, req)
+// NewAuthServiceClient constructs a client for the auth.v1.AuthService service. Multiple service
+// clients may share a single connect.Client.
+func NewAuthServiceClient(client *connect.Client) AuthServiceClient {
+	return &authServiceClient{client: client}
 }
 
 // AuthServiceHandler is an implementation of the auth.v1.AuthService service.
 type AuthServiceHandler interface {
-	SignIn(context.Context, *connect.Request[v1.SignInRequest]) (*connect.Response[v1.SignInResponse], error)
-	MFAEnroll(context.Context, *connect.Request[v1.MFAEnrollRequest]) (*connect.Response[v1.MFAEnrollResponse], error)
-	MFAEnrollVerify(context.Context, *connect.Request[v1.MFAEnrollVerifyRequest]) (*connect.Response[v1.MFAEnrollVerifyResponse], error)
-	MFAEnrollSkip(context.Context, *connect.Request[v1.MFAEnrollSkipRequest]) (*connect.Response[v1.MFAEnrollSkipResponse], error)
-	MFAChallenge(context.Context, *connect.Request[v1.MFAChallengeRequest]) (*connect.Response[v1.MFAChallengeResponse], error)
-	MFAUnenroll(context.Context, *connect.Request[v1.MFAUnenrollRequest]) (*connect.Response[v1.MFAUnenrollResponse], error)
-	ForgotPassword(context.Context, *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error)
-	ExchangeToken(context.Context, *connect.Request[v1.ExchangeTokenRequest]) (*connect.Response[v1.ExchangeTokenResponse], error)
-	UpdatePassword(context.Context, *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error)
-	SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error)
-	GetCurrentUser(context.Context, *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error)
-	ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error)
-	RegenerateRecoveryCodes(context.Context, *connect.Request[v1.RegenerateRecoveryCodesRequest]) (*connect.Response[v1.RegenerateRecoveryCodesResponse], error)
+	SignIn(context.Context, *v1.SignInRequest) (*v1.SignInResponse, error)
+	MFAEnroll(context.Context, *v1.MFAEnrollRequest) (*v1.MFAEnrollResponse, error)
+	MFAEnrollVerify(context.Context, *v1.MFAEnrollVerifyRequest) (*v1.MFAEnrollVerifyResponse, error)
+	MFAEnrollSkip(context.Context, *v1.MFAEnrollSkipRequest) (*v1.MFAEnrollSkipResponse, error)
+	MFAChallenge(context.Context, *v1.MFAChallengeRequest) (*v1.MFAChallengeResponse, error)
+	MFAUnenroll(context.Context, *v1.MFAUnenrollRequest) (*v1.MFAUnenrollResponse, error)
+	ForgotPassword(context.Context, *v1.ForgotPasswordRequest) (*v1.ForgotPasswordResponse, error)
+	ExchangeToken(context.Context, *v1.ExchangeTokenRequest) (*v1.ExchangeTokenResponse, error)
+	UpdatePassword(context.Context, *v1.UpdatePasswordRequest) (*v1.UpdatePasswordResponse, error)
+	SignOut(context.Context, *v1.SignOutRequest) (*v1.SignOutResponse, error)
+	GetCurrentUser(context.Context, *v1.GetCurrentUserRequest) (*v1.GetCurrentUserResponse, error)
+	ResetPassword(context.Context, *v1.ResetPasswordRequest) (*v1.ResetPasswordResponse, error)
+	RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error)
 }
 
-// NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	authServiceMethods := v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods()
-	authServiceSignInHandler := connect.NewUnaryHandler(
-		AuthServiceSignInProcedure,
-		svc.SignIn,
-		connect.WithSchema(authServiceMethods.ByName("SignIn")),
-		connect.WithHandlerOptions(opts...),
+// RegisterAuthServiceHandler registers svc as the auth.v1.AuthService implementation on server.
+func RegisterAuthServiceHandler(server *connect.Server, svc AuthServiceHandler) {
+	adapter := authServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: authServiceSignInSpec(), Handler: adapter.signIn},
+		connect.Method{Spec: authServiceMFAEnrollSpec(), Handler: adapter.mFAEnroll},
+		connect.Method{Spec: authServiceMFAEnrollVerifySpec(), Handler: adapter.mFAEnrollVerify},
+		connect.Method{Spec: authServiceMFAEnrollSkipSpec(), Handler: adapter.mFAEnrollSkip},
+		connect.Method{Spec: authServiceMFAChallengeSpec(), Handler: adapter.mFAChallenge},
+		connect.Method{Spec: authServiceMFAUnenrollSpec(), Handler: adapter.mFAUnenroll},
+		connect.Method{Spec: authServiceForgotPasswordSpec(), Handler: adapter.forgotPassword},
+		connect.Method{Spec: authServiceExchangeTokenSpec(), Handler: adapter.exchangeToken},
+		connect.Method{Spec: authServiceUpdatePasswordSpec(), Handler: adapter.updatePassword},
+		connect.Method{Spec: authServiceSignOutSpec(), Handler: adapter.signOut},
+		connect.Method{Spec: authServiceGetCurrentUserSpec(), Handler: adapter.getCurrentUser},
+		connect.Method{Spec: authServiceResetPasswordSpec(), Handler: adapter.resetPassword},
+		connect.Method{Spec: authServiceRegenerateRecoveryCodesSpec(), Handler: adapter.regenerateRecoveryCodes},
 	)
-	authServiceMFAEnrollHandler := connect.NewUnaryHandler(
-		AuthServiceMFAEnrollProcedure,
-		svc.MFAEnroll,
-		connect.WithSchema(authServiceMethods.ByName("MFAEnroll")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceMFAEnrollVerifyHandler := connect.NewUnaryHandler(
-		AuthServiceMFAEnrollVerifyProcedure,
-		svc.MFAEnrollVerify,
-		connect.WithSchema(authServiceMethods.ByName("MFAEnrollVerify")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceMFAEnrollSkipHandler := connect.NewUnaryHandler(
-		AuthServiceMFAEnrollSkipProcedure,
-		svc.MFAEnrollSkip,
-		connect.WithSchema(authServiceMethods.ByName("MFAEnrollSkip")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceMFAChallengeHandler := connect.NewUnaryHandler(
-		AuthServiceMFAChallengeProcedure,
-		svc.MFAChallenge,
-		connect.WithSchema(authServiceMethods.ByName("MFAChallenge")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceMFAUnenrollHandler := connect.NewUnaryHandler(
-		AuthServiceMFAUnenrollProcedure,
-		svc.MFAUnenroll,
-		connect.WithSchema(authServiceMethods.ByName("MFAUnenroll")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceForgotPasswordHandler := connect.NewUnaryHandler(
-		AuthServiceForgotPasswordProcedure,
-		svc.ForgotPassword,
-		connect.WithSchema(authServiceMethods.ByName("ForgotPassword")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceExchangeTokenHandler := connect.NewUnaryHandler(
-		AuthServiceExchangeTokenProcedure,
-		svc.ExchangeToken,
-		connect.WithSchema(authServiceMethods.ByName("ExchangeToken")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceUpdatePasswordHandler := connect.NewUnaryHandler(
-		AuthServiceUpdatePasswordProcedure,
-		svc.UpdatePassword,
-		connect.WithSchema(authServiceMethods.ByName("UpdatePassword")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceSignOutHandler := connect.NewUnaryHandler(
-		AuthServiceSignOutProcedure,
-		svc.SignOut,
-		connect.WithSchema(authServiceMethods.ByName("SignOut")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceGetCurrentUserHandler := connect.NewUnaryHandler(
-		AuthServiceGetCurrentUserProcedure,
-		svc.GetCurrentUser,
-		connect.WithSchema(authServiceMethods.ByName("GetCurrentUser")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceResetPasswordHandler := connect.NewUnaryHandler(
-		AuthServiceResetPasswordProcedure,
-		svc.ResetPassword,
-		connect.WithSchema(authServiceMethods.ByName("ResetPassword")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceRegenerateRecoveryCodesHandler := connect.NewUnaryHandler(
-		AuthServiceRegenerateRecoveryCodesProcedure,
-		svc.RegenerateRecoveryCodes,
-		connect.WithSchema(authServiceMethods.ByName("RegenerateRecoveryCodes")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/auth.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case AuthServiceSignInProcedure:
-			authServiceSignInHandler.ServeHTTP(w, r)
-		case AuthServiceMFAEnrollProcedure:
-			authServiceMFAEnrollHandler.ServeHTTP(w, r)
-		case AuthServiceMFAEnrollVerifyProcedure:
-			authServiceMFAEnrollVerifyHandler.ServeHTTP(w, r)
-		case AuthServiceMFAEnrollSkipProcedure:
-			authServiceMFAEnrollSkipHandler.ServeHTTP(w, r)
-		case AuthServiceMFAChallengeProcedure:
-			authServiceMFAChallengeHandler.ServeHTTP(w, r)
-		case AuthServiceMFAUnenrollProcedure:
-			authServiceMFAUnenrollHandler.ServeHTTP(w, r)
-		case AuthServiceForgotPasswordProcedure:
-			authServiceForgotPasswordHandler.ServeHTTP(w, r)
-		case AuthServiceExchangeTokenProcedure:
-			authServiceExchangeTokenHandler.ServeHTTP(w, r)
-		case AuthServiceUpdatePasswordProcedure:
-			authServiceUpdatePasswordHandler.ServeHTTP(w, r)
-		case AuthServiceSignOutProcedure:
-			authServiceSignOutHandler.ServeHTTP(w, r)
-		case AuthServiceGetCurrentUserProcedure:
-			authServiceGetCurrentUserHandler.ServeHTTP(w, r)
-		case AuthServiceResetPasswordProcedure:
-			authServiceResetPasswordHandler.ServeHTTP(w, r)
-		case AuthServiceRegenerateRecoveryCodesProcedure:
-			authServiceRegenerateRecoveryCodesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedAuthServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAuthServiceHandler struct{}
 
-func (UnimplementedAuthServiceHandler) SignIn(context.Context, *connect.Request[v1.SignInRequest]) (*connect.Response[v1.SignInResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.SignIn is not implemented"))
+func (UnimplementedAuthServiceHandler) SignIn(context.Context, *v1.SignInRequest) (*v1.SignInResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.SignIn is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) MFAEnroll(context.Context, *connect.Request[v1.MFAEnrollRequest]) (*connect.Response[v1.MFAEnrollResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.MFAEnroll is not implemented"))
+func (UnimplementedAuthServiceHandler) MFAEnroll(context.Context, *v1.MFAEnrollRequest) (*v1.MFAEnrollResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.MFAEnroll is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) MFAEnrollVerify(context.Context, *connect.Request[v1.MFAEnrollVerifyRequest]) (*connect.Response[v1.MFAEnrollVerifyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.MFAEnrollVerify is not implemented"))
+func (UnimplementedAuthServiceHandler) MFAEnrollVerify(context.Context, *v1.MFAEnrollVerifyRequest) (*v1.MFAEnrollVerifyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.MFAEnrollVerify is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) MFAEnrollSkip(context.Context, *connect.Request[v1.MFAEnrollSkipRequest]) (*connect.Response[v1.MFAEnrollSkipResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.MFAEnrollSkip is not implemented"))
+func (UnimplementedAuthServiceHandler) MFAEnrollSkip(context.Context, *v1.MFAEnrollSkipRequest) (*v1.MFAEnrollSkipResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.MFAEnrollSkip is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) MFAChallenge(context.Context, *connect.Request[v1.MFAChallengeRequest]) (*connect.Response[v1.MFAChallengeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.MFAChallenge is not implemented"))
+func (UnimplementedAuthServiceHandler) MFAChallenge(context.Context, *v1.MFAChallengeRequest) (*v1.MFAChallengeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.MFAChallenge is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) MFAUnenroll(context.Context, *connect.Request[v1.MFAUnenrollRequest]) (*connect.Response[v1.MFAUnenrollResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.MFAUnenroll is not implemented"))
+func (UnimplementedAuthServiceHandler) MFAUnenroll(context.Context, *v1.MFAUnenrollRequest) (*v1.MFAUnenrollResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.MFAUnenroll is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) ForgotPassword(context.Context, *connect.Request[v1.ForgotPasswordRequest]) (*connect.Response[v1.ForgotPasswordResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.ForgotPassword is not implemented"))
+func (UnimplementedAuthServiceHandler) ForgotPassword(context.Context, *v1.ForgotPasswordRequest) (*v1.ForgotPasswordResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.ForgotPassword is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) ExchangeToken(context.Context, *connect.Request[v1.ExchangeTokenRequest]) (*connect.Response[v1.ExchangeTokenResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.ExchangeToken is not implemented"))
+func (UnimplementedAuthServiceHandler) ExchangeToken(context.Context, *v1.ExchangeTokenRequest) (*v1.ExchangeTokenResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.ExchangeToken is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) UpdatePassword(context.Context, *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.UpdatePassword is not implemented"))
+func (UnimplementedAuthServiceHandler) UpdatePassword(context.Context, *v1.UpdatePasswordRequest) (*v1.UpdatePasswordResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.UpdatePassword is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.SignOut is not implemented"))
+func (UnimplementedAuthServiceHandler) SignOut(context.Context, *v1.SignOutRequest) (*v1.SignOutResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.SignOut is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) GetCurrentUser(context.Context, *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.GetCurrentUser is not implemented"))
+func (UnimplementedAuthServiceHandler) GetCurrentUser(context.Context, *v1.GetCurrentUserRequest) (*v1.GetCurrentUserResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.GetCurrentUser is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.ResetPassword is not implemented"))
+func (UnimplementedAuthServiceHandler) ResetPassword(context.Context, *v1.ResetPasswordRequest) (*v1.ResetPasswordResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.ResetPassword is not implemented")
 }
 
-func (UnimplementedAuthServiceHandler) RegenerateRecoveryCodes(context.Context, *connect.Request[v1.RegenerateRecoveryCodesRequest]) (*connect.Response[v1.RegenerateRecoveryCodesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.RegenerateRecoveryCodes is not implemented"))
+func (UnimplementedAuthServiceHandler) RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.RegenerateRecoveryCodes is not implemented")
+}
+
+type authServiceClient struct {
+	client *connect.Client
+}
+
+func (c *authServiceClient) SignIn(ctx context.Context, req *v1.SignInRequest) (*v1.SignInResponse, error) {
+	var res v1.SignInResponse
+	if err := c.client.CallUnary(ctx, authServiceSignInSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) MFAEnroll(ctx context.Context, req *v1.MFAEnrollRequest) (*v1.MFAEnrollResponse, error) {
+	var res v1.MFAEnrollResponse
+	if err := c.client.CallUnary(ctx, authServiceMFAEnrollSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) MFAEnrollVerify(ctx context.Context, req *v1.MFAEnrollVerifyRequest) (*v1.MFAEnrollVerifyResponse, error) {
+	var res v1.MFAEnrollVerifyResponse
+	if err := c.client.CallUnary(ctx, authServiceMFAEnrollVerifySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) MFAEnrollSkip(ctx context.Context, req *v1.MFAEnrollSkipRequest) (*v1.MFAEnrollSkipResponse, error) {
+	var res v1.MFAEnrollSkipResponse
+	if err := c.client.CallUnary(ctx, authServiceMFAEnrollSkipSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) MFAChallenge(ctx context.Context, req *v1.MFAChallengeRequest) (*v1.MFAChallengeResponse, error) {
+	var res v1.MFAChallengeResponse
+	if err := c.client.CallUnary(ctx, authServiceMFAChallengeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) MFAUnenroll(ctx context.Context, req *v1.MFAUnenrollRequest) (*v1.MFAUnenrollResponse, error) {
+	var res v1.MFAUnenrollResponse
+	if err := c.client.CallUnary(ctx, authServiceMFAUnenrollSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) ForgotPassword(ctx context.Context, req *v1.ForgotPasswordRequest) (*v1.ForgotPasswordResponse, error) {
+	var res v1.ForgotPasswordResponse
+	if err := c.client.CallUnary(ctx, authServiceForgotPasswordSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) ExchangeToken(ctx context.Context, req *v1.ExchangeTokenRequest) (*v1.ExchangeTokenResponse, error) {
+	var res v1.ExchangeTokenResponse
+	if err := c.client.CallUnary(ctx, authServiceExchangeTokenSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) UpdatePassword(ctx context.Context, req *v1.UpdatePasswordRequest) (*v1.UpdatePasswordResponse, error) {
+	var res v1.UpdatePasswordResponse
+	if err := c.client.CallUnary(ctx, authServiceUpdatePasswordSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) SignOut(ctx context.Context, req *v1.SignOutRequest) (*v1.SignOutResponse, error) {
+	var res v1.SignOutResponse
+	if err := c.client.CallUnary(ctx, authServiceSignOutSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) GetCurrentUser(ctx context.Context, req *v1.GetCurrentUserRequest) (*v1.GetCurrentUserResponse, error) {
+	var res v1.GetCurrentUserResponse
+	if err := c.client.CallUnary(ctx, authServiceGetCurrentUserSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) ResetPassword(ctx context.Context, req *v1.ResetPasswordRequest) (*v1.ResetPasswordResponse, error) {
+	var res v1.ResetPasswordResponse
+	if err := c.client.CallUnary(ctx, authServiceResetPasswordSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) RegenerateRecoveryCodes(ctx context.Context, req *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error) {
+	var res v1.RegenerateRecoveryCodesResponse
+	if err := c.client.CallUnary(ctx, authServiceRegenerateRecoveryCodesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type authServiceHandler struct{ svc AuthServiceHandler }
+
+func (h authServiceHandler) signIn(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SignInRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SignIn(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) mFAEnroll(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MFAEnrollRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MFAEnroll(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) mFAEnrollVerify(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MFAEnrollVerifyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MFAEnrollVerify(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) mFAEnrollSkip(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MFAEnrollSkipRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MFAEnrollSkip(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) mFAChallenge(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MFAChallengeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MFAChallenge(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) mFAUnenroll(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MFAUnenrollRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MFAUnenroll(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) forgotPassword(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ForgotPasswordRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ForgotPassword(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) exchangeToken(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ExchangeTokenRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ExchangeToken(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) updatePassword(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdatePasswordRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdatePassword(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) signOut(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SignOutRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SignOut(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) getCurrentUser(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetCurrentUserRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetCurrentUser(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) resetPassword(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ResetPasswordRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ResetPassword(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) regenerateRecoveryCodes(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RegenerateRecoveryCodesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RegenerateRecoveryCodes(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

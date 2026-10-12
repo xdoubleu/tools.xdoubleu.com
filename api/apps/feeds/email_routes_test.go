@@ -15,7 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -85,20 +86,28 @@ func createEmailFeedFor(
 	t.Helper()
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
-	client := feedsv1connect.NewFeedServiceClient(http.DefaultClient, ts.URL)
+	client := feedsv1connect.NewFeedServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(
+				http.DefaultClient,
+				ts.URL,
+				connecthttp.WithReadMaxBytes(0),
+			),
+		),
+	)
 
 	resp, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Kind: feedsv1.FeedKind_FEED_KIND_EMAIL,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
-	addr := resp.Msg.Feed.InboundAddress
+	addr := resp.Feed.InboundAddress
 	local, _, ok := strings.Cut(addr, "@")
 	require.True(t, ok, "inbound address must contain @: %s", addr)
-	return resp.Msg.Feed.Id, local, client
+	return resp.Feed.Id, local, client
 }
 
 func postWebhook(
@@ -146,10 +155,10 @@ func itemBySourceURL(
 ) *feedsv1.Item {
 	t.Helper()
 	resp, err := client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
-	for _, item := range resp.Msg.Items {
+	for _, item := range resp.Items {
 		if item.SourceUrl == sourceURL {
 			return item
 		}
@@ -284,11 +293,11 @@ func TestEmailInbound_ResendFetchFails_NoOp(t *testing.T) {
 	))
 
 	list, err := client.ListFeeds(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedsRequest{}),
+		context.Background(), &feedsv1.ListFeedsRequest{},
 	)
 	require.NoError(t, err)
 	var found *feedsv1.Feed
-	for _, f := range list.Msg.Feeds {
+	for _, f := range list.Feeds {
 		if f.Id == feedID {
 			found = f
 		}
@@ -317,10 +326,10 @@ func TestEmailInbound_Resend_RestoresDismissedItem(t *testing.T) {
 
 	_, err := client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{
+		&feedsv1.UpdateItemRequest{
 			ItemId:    item.Id,
 			Dismissed: proto.Bool(true),
-		}),
+		},
 	)
 	require.NoError(t, err)
 

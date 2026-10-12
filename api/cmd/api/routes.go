@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"connectrpc.com/connect/v2"
 	"github.com/justinas/alice"
 	mcpauth "github.com/modelcontextprotocol/go-sdk/auth"
 
@@ -26,50 +27,32 @@ const maxRequestBodyBytes = 10 << 20
 //nolint:funlen //route registration: a long list, not complex logic
 func (app *Application) Routes() http.Handler {
 	mux := http.NewServeMux()
-	scrub := iapp.ScrubInternalErrors(app.logger)
+	mountConnect := func(gate iapp.Gate, register func(*connect.Server)) {
+		iapp.MountConnect(mux, app.logger, gate, register)
+	}
 
-	authPath, authHandler := authv1connect.NewAuthServiceHandler(
-		&authConnectHandler{app: app},
-		scrub,
-	)
-	mux.Handle("POST "+authPath, authHandler)
-
-	accessPath, accessHandler := accessv1connect.NewAccessServiceHandler(
-		&accessConnectHandler{app: app},
-		scrub,
-	)
-	mux.Handle("POST "+accessPath, app.auth.Access(accessHandler.ServeHTTP))
-
-	obsPath, obsHandler := observabilityv1connect.NewObservabilityServiceHandler(
-		&obsConnectHandler{app: app},
-		scrub,
-	)
-	mux.Handle(
-		"POST "+obsPath,
-		app.auth.Access(obsHandler.ServeHTTP),
-	)
+	mountConnect(nil, func(s *connect.Server) {
+		authv1connect.RegisterAuthServiceHandler(s, &authConnectHandler{app: app})
+	})
+	mountConnect(app.auth.Access, func(s *connect.Server) {
+		accessv1connect.RegisterAccessServiceHandler(s, &accessConnectHandler{app: app})
+		observabilityv1connect.RegisterObservabilityServiceHandler(
+			s,
+			&obsConnectHandler{app: app},
+		)
+		familyv1connect.RegisterFamilyServiceHandler(
+			s,
+			&familyConnectHandler{app: app},
+		)
+		dashboardv1connect.RegisterDashboardServiceHandler(
+			s,
+			&dashboardConnectHandler{app: app},
+		)
+	})
 
 	mux.Handle(
 		"POST "+observabilityLogsIngestPath,
 		app.observabilityIngestRoute(),
-	)
-
-	familyPath, familyHandler := familyv1connect.NewFamilyServiceHandler(
-		&familyConnectHandler{app: app},
-		scrub,
-	)
-	mux.Handle(
-		"POST "+familyPath,
-		app.auth.Access(familyHandler.ServeHTTP),
-	)
-
-	dashboardPath, dashboardHandler := dashboardv1connect.NewDashboardServiceHandler(
-		&dashboardConnectHandler{app: app},
-		scrub,
-	)
-	mux.Handle(
-		"POST "+dashboardPath,
-		app.auth.Access(dashboardHandler.ServeHTTP),
 	)
 
 	// MCP behind OAuth 2.1 Bearer auth. The protected-resource metadata is public

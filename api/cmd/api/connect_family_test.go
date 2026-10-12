@@ -5,7 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,7 +67,11 @@ func withErroringFamilyService(t *testing.T) {
 func familyClient(t *testing.T) familyv1connect.FamilyServiceClient {
 	t.Helper()
 	ts := connectServer(t)
-	return familyv1connect.NewFamilyServiceClient(ts.Client(), ts.URL)
+	return familyv1connect.NewFamilyServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(ts.Client(), ts.URL, connecthttp.WithReadMaxBytes(0)),
+		),
+	)
 }
 
 // insertPendingFamilyInvite seeds a sender inviting testUserID; returns the
@@ -98,7 +103,7 @@ func TestGetFamily_Unauthenticated(t *testing.T) {
 	client := familyClient(t)
 	_, err := client.GetFamily(
 		context.Background(),
-		connect.NewRequest(&familyv1.GetFamilyRequest{}),
+		&familyv1.GetFamilyRequest{},
 	)
 	require.Error(t, err)
 }
@@ -110,21 +115,19 @@ func TestGetFamily_ImplicitSolo(t *testing.T) {
 	require.NoError(t, testApp.family.Leave(ctx, testUserID))
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.GetFamilyRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetFamily(context.Background(), req)
+	req := &familyv1.GetFamilyRequest{}
+	resp, err := client.GetFamily(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.Members)
-	assert.Nil(t, resp.Msg.IncomingInvite)
+	assert.Empty(t, resp.Members)
+	assert.Nil(t, resp.IncomingInvite)
 }
 
 func TestInviteToFamily_NotFound(t *testing.T) {
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.InviteToFamilyRequest{
+	req := &familyv1.InviteToFamilyRequest{
 		Email: "nonexistent@nowhere.example",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.InviteToFamily(context.Background(), req)
+	}
+	_, err := client.InviteToFamily(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -136,11 +139,10 @@ func TestInviteToFamily_CannotInviteSelf(t *testing.T) {
 	require.NoError(t, testApp.appUsersRepo.Upsert(ctx, testUserID, "user@example.com"))
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.InviteToFamilyRequest{
+	req := &familyv1.InviteToFamilyRequest{
 		Email: "user@example.com",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.InviteToFamily(context.Background(), req)
+	}
+	_, err := client.InviteToFamily(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 }
 
@@ -148,23 +150,24 @@ func TestGetFamily_ShowsIncomingInvite(t *testing.T) {
 	senderID := insertPendingFamilyInvite(t)
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.GetFamilyRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetFamily(context.Background(), req)
+	req := &familyv1.GetFamilyRequest{}
+	resp, err := client.GetFamily(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.IncomingInvite)
-	assert.Equal(t, senderID, resp.Msg.IncomingInvite.FromUserId)
+	require.NotNil(t, resp.IncomingInvite)
+	assert.Equal(t, senderID, resp.IncomingInvite.FromUserId)
 }
 
 func TestAcceptFamilyInvite_Success(t *testing.T) {
 	senderID := insertPendingFamilyInvite(t)
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.AcceptFamilyInviteRequest{
+	req := &familyv1.AcceptFamilyInviteRequest{
 		InviteId: pendingInviteID(t),
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.AcceptFamilyInvite(context.Background(), req)
+	}
+	_, err := client.AcceptFamilyInvite(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.NoError(t, err)
 
 	membership, err := testApp.family.GetMembership(context.Background(), senderID)
@@ -186,9 +189,11 @@ func TestAcceptFamilyInvite_StaleOrInvalidID(t *testing.T) {
 		"":                  connect.CodeInvalidArgument,
 		uuid.New().String(): connect.CodeNotFound,
 	} {
-		req := connect.NewRequest(&familyv1.AcceptFamilyInviteRequest{InviteId: id})
-		setCookieOnRequest(req, accessToken)
-		_, err := client.AcceptFamilyInvite(context.Background(), req)
+		req := &familyv1.AcceptFamilyInviteRequest{InviteId: id}
+		_, err := client.AcceptFamilyInvite(
+			withCookies(context.Background(), accessToken),
+			req,
+		)
 		require.Error(t, err)
 		assert.Equal(t, code, connect.CodeOf(err), id)
 	}
@@ -198,9 +203,11 @@ func TestDeclineFamilyInvite_Success(t *testing.T) {
 	insertPendingFamilyInvite(t)
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.DeclineFamilyInviteRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.DeclineFamilyInvite(context.Background(), req)
+	req := &familyv1.DeclineFamilyInviteRequest{}
+	_, err := client.DeclineFamilyInvite(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.NoError(t, err)
 
 	_, ok, err := testApp.family.GetIncomingInvite(context.Background(), testUserID)
@@ -216,9 +223,8 @@ func TestLeaveFamily_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.LeaveFamilyRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err = client.LeaveFamily(context.Background(), req)
+	req := &familyv1.LeaveFamilyRequest{}
+	_, err = client.LeaveFamily(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
 
 	after, err := testApp.family.GetMembership(ctx, testUserID)
@@ -232,29 +238,35 @@ func TestSetFamilyDisplayName_Success(t *testing.T) {
 
 	client := familyClient(t)
 
-	acceptReq := connect.NewRequest(&familyv1.AcceptFamilyInviteRequest{
+	acceptReq := &familyv1.AcceptFamilyInviteRequest{
 		InviteId: pendingInviteID(t),
-	})
-	setCookieOnRequest(acceptReq, accessToken)
-	_, err := client.AcceptFamilyInvite(context.Background(), acceptReq)
+	}
+	_, err := client.AcceptFamilyInvite(
+		withCookies(context.Background(), accessToken),
+		acceptReq,
+	)
 	require.NoError(t, err)
 
-	nameReq := connect.NewRequest(&familyv1.SetFamilyDisplayNameRequest{
+	nameReq := &familyv1.SetFamilyDisplayNameRequest{
 		DisplayName: "Sam",
-	})
-	setCookieOnRequest(nameReq, accessToken)
-	_, err = client.SetFamilyDisplayName(context.Background(), nameReq)
+	}
+	_, err = client.SetFamilyDisplayName(
+		withCookies(context.Background(), accessToken),
+		nameReq,
+	)
 	require.NoError(t, err)
 
 	membership, err := testApp.family.GetMembership(context.Background(), senderID)
 	require.NoError(t, err)
 	assert.Equal(t, "Sam", membership.DisplayNames[testUserID])
 
-	getReq := connect.NewRequest(&familyv1.GetFamilyRequest{})
-	setCookieOnRequest(getReq, accessToken)
-	getResp, err := client.GetFamily(context.Background(), getReq)
+	getReq := &familyv1.GetFamilyRequest{}
+	getResp, err := client.GetFamily(
+		withCookies(context.Background(), accessToken),
+		getReq,
+	)
 	require.NoError(t, err)
-	assert.Equal(t, "Sam", getResp.Msg.SelfDisplayName)
+	assert.Equal(t, "Sam", getResp.SelfDisplayName)
 
 	require.NoError(t, testApp.family.Leave(context.Background(), testUserID))
 }
@@ -263,11 +275,13 @@ func TestSetFamilyDisplayName_InternalError(t *testing.T) {
 	withErroringFamilyService(t)
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.SetFamilyDisplayNameRequest{
+	req := &familyv1.SetFamilyDisplayNameRequest{
 		DisplayName: "x",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.SetFamilyDisplayName(context.Background(), req)
+	}
+	_, err := client.SetFamilyDisplayName(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -278,9 +292,8 @@ func TestGetFamily_InternalError(t *testing.T) {
 	withErroringFamilyService(t)
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.GetFamilyRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.GetFamily(context.Background(), req)
+	req := &familyv1.GetFamilyRequest{}
+	_, err := client.GetFamily(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -291,9 +304,8 @@ func TestInviteToFamily_InternalError(t *testing.T) {
 	withErroringFamilyService(t)
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.InviteToFamilyRequest{Email: "x@example.com"})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.InviteToFamily(context.Background(), req)
+	req := &familyv1.InviteToFamilyRequest{Email: "x@example.com"}
+	_, err := client.InviteToFamily(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -304,11 +316,13 @@ func TestAcceptFamilyInvite_InternalError(t *testing.T) {
 	withErroringFamilyService(t)
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.AcceptFamilyInviteRequest{
+	req := &familyv1.AcceptFamilyInviteRequest{
 		InviteId: uuid.New().String(),
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.AcceptFamilyInvite(context.Background(), req)
+	}
+	_, err := client.AcceptFamilyInvite(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -319,9 +333,11 @@ func TestDeclineFamilyInvite_InternalError(t *testing.T) {
 	withErroringFamilyService(t)
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.DeclineFamilyInviteRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.DeclineFamilyInvite(context.Background(), req)
+	req := &familyv1.DeclineFamilyInviteRequest{}
+	_, err := client.DeclineFamilyInvite(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -332,9 +348,8 @@ func TestLeaveFamily_InternalError(t *testing.T) {
 	withErroringFamilyService(t)
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.LeaveFamilyRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.LeaveFamily(context.Background(), req)
+	req := &familyv1.LeaveFamilyRequest{}
+	_, err := client.LeaveFamily(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)

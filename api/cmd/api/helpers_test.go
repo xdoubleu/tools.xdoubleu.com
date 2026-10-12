@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/models"
@@ -51,12 +51,20 @@ func doInProcess(
 	return rr
 }
 
-func setCookieOnRequest[T any](req *connect.Request[T], cookies ...http.Cookie) {
+// withCookies returns ctx carrying the given cookies as the request Cookie
+// header of the next client call.
+func withCookies(ctx context.Context, cookies ...http.Cookie) context.Context {
 	var parts []string
 	for _, c := range cookies {
 		parts = append(parts, c.Name+"="+c.Value)
 	}
-	req.Header().Set("Cookie", strings.Join(parts, "; "))
+	return withCookieValue(ctx, strings.Join(parts, "; "))
+}
+
+func withCookieValue(ctx context.Context, value string) context.Context {
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", value)
+	return ctx
 }
 
 func promoteToAdmin(t *testing.T) {

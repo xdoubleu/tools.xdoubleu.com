@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
@@ -46,11 +46,11 @@ func protoFilterRule(r models.FilterRule) *feedsv1.FilterRule {
 func filterRuleErrorToConnect(err error) *connect.Error {
 	switch {
 	case errors.Is(err, services.ErrInvalidFilterRule):
-		return connect.NewError(connect.CodeInvalidArgument, err)
+		return connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	case errors.Is(err, database.ErrResourceConflict):
 		return connect.NewError(
 			connect.CodeAlreadyExists,
-			errors.New("filter rule already exists"),
+			"filter rule already exists",
 		)
 	default:
 		return feedErrorToConnect(err)
@@ -59,8 +59,8 @@ func filterRuleErrorToConnect(err error) *connect.Error {
 
 func (h *feedsConnectHandler) ListFilterRules(
 	ctx context.Context,
-	_ *connect.Request[feedsv1.ListFilterRulesRequest],
-) (*connect.Response[feedsv1.ListFilterRulesResponse], error) {
+	_ *feedsv1.ListFilterRulesRequest,
+) (*feedsv1.ListFilterRulesResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
@@ -75,21 +75,21 @@ func (h *feedsConnectHandler) ListFilterRules(
 	for i, r := range rules {
 		out[i] = protoFilterRule(r)
 	}
-	return connect.NewResponse(&feedsv1.ListFilterRulesResponse{Rules: out}), nil
+	return &feedsv1.ListFilterRulesResponse{Rules: out}, nil
 }
 
 func (h *feedsConnectHandler) CreateFilterRule(
 	ctx context.Context,
-	req *connect.Request[feedsv1.CreateFilterRuleRequest],
-) (*connect.Response[feedsv1.CreateFilterRuleResponse], error) {
+	req *feedsv1.CreateFilterRuleRequest,
+) (*feedsv1.CreateFilterRuleResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
 	}
 
 	var feedID *uuid.UUID
-	if req.Msg.FeedId != "" {
-		parsed, perr := parseFeedID(req.Msg.FeedId)
+	if req.FeedId != "" {
+		parsed, perr := parseFeedID(req.FeedId)
 		if perr != nil {
 			return nil, perr
 		}
@@ -97,34 +97,34 @@ func (h *feedsConnectHandler) CreateFilterRule(
 	}
 
 	rule, err := h.app.Services.Feeds.CreateFilterRule(
-		ctx, user.ID, feedID, filterRuleKinds[req.Msg.Kind], req.Msg.Value,
+		ctx, user.ID, feedID, filterRuleKinds[req.Kind], req.Value,
 	)
 	if err != nil {
 		return nil, filterRuleErrorToConnect(err)
 	}
-	return connect.NewResponse(&feedsv1.CreateFilterRuleResponse{
+	return &feedsv1.CreateFilterRuleResponse{
 		Rule: protoFilterRule(*rule),
-	}), nil
+	}, nil
 }
 
 func (h *feedsConnectHandler) DeleteFilterRule(
 	ctx context.Context,
-	req *connect.Request[feedsv1.DeleteFilterRuleRequest],
-) (*connect.Response[feedsv1.DeleteFilterRuleResponse], error) {
+	req *feedsv1.DeleteFilterRuleRequest,
+) (*feedsv1.DeleteFilterRuleResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
 	}
-	ruleID, err := uuid.Parse(req.Msg.RuleId)
+	ruleID, err := uuid.Parse(req.RuleId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid rule ID"),
+			"invalid rule ID",
 		)
 	}
 
 	if err = h.app.Services.Feeds.DeleteFilterRule(ctx, user.ID, ruleID); err != nil {
 		return nil, filterRuleErrorToConnect(err)
 	}
-	return connect.NewResponse(&feedsv1.DeleteFilterRuleResponse{}), nil
+	return &feedsv1.DeleteFilterRuleResponse{}, nil
 }

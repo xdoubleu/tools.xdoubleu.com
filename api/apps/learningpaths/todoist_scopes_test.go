@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,10 +36,10 @@ func TestConnectTodoist_RequestsCommaSeparatedScopes(t *testing.T) {
 	client := setupTodoistClient(getRoutes())
 
 	resp, err := client.ConnectTodoist(
-		newCtx(), connect.NewRequest(&learningpathsv1.ConnectTodoistRequest{}),
+		newCtx(), &learningpathsv1.ConnectTodoistRequest{},
 	)
 	require.NoError(t, err)
-	parsed, err := url.Parse(resp.Msg.AuthorizeUrl)
+	parsed, err := url.Parse(resp.AuthorizeUrl)
 	require.NoError(t, err)
 	assert.Equal(t,
 		"data:read_write,data:delete,project:delete", parsed.Query().Get("scope"),
@@ -54,11 +54,11 @@ func TestGetTodoistConnectionStatus_TaskAddOnlyNeedsReconnect(t *testing.T) {
 
 	resp, err := client.GetTodoistConnectionStatus(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.GetTodoistConnectionStatusRequest{}),
+		&learningpathsv1.GetTodoistConnectionStatusRequest{},
 	)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Connected)
-	assert.True(t, resp.Msg.NeedsReconnect)
+	assert.True(t, resp.Connected)
+	assert.True(t, resp.NeedsReconnect)
 }
 
 func TestGetTodoistSyncState_ReportsProjectAndTasks(t *testing.T) {
@@ -71,36 +71,40 @@ func TestGetTodoistSyncState_ReportsProjectAndTasks(t *testing.T) {
 	require.NoError(t, repo.SetItemTodoistTaskID(t.Context(), itemID, "task-1"))
 
 	client := setupTodoistClient(getRoutes())
-	resp, err := client.GetTodoistSyncState(newCtx(), connect.NewRequest(
+	resp, err := client.GetTodoistSyncState(
+		newCtx(),
 		&learningpathsv1.GetTodoistSyncStateRequest{LearningPathId: pathID.String()},
-	))
+	)
 	require.NoError(t, err)
 
-	assert.True(t, resp.Msg.Connected)
-	assert.False(t, resp.Msg.NeedsReconnect)
-	assert.Equal(t, "proj-1", resp.Msg.TodoistProjectId)
-	assert.Equal(t, "M1", resp.Msg.ActiveModule)
-	require.Len(t, resp.Msg.Items, 1)
-	assert.Equal(t, itemID.String(), resp.Msg.Items[0].ItemId)
-	assert.Equal(t, "task-1", resp.Msg.Items[0].TodoistTaskId)
+	assert.True(t, resp.Connected)
+	assert.False(t, resp.NeedsReconnect)
+	assert.Equal(t, "proj-1", resp.TodoistProjectId)
+	assert.Equal(t, "M1", resp.ActiveModule)
+	require.Len(t, resp.Items, 1)
+	assert.Equal(t, itemID.String(), resp.Items[0].ItemId)
+	assert.Equal(t, "task-1", resp.Items[0].TodoistTaskId)
 }
 
 func TestGetTodoistSyncState_Errors(t *testing.T) {
 	client := setupTodoistClient(getRoutes())
 
-	_, err := client.GetTodoistSyncState(newCtx(), connect.NewRequest(
+	_, err := client.GetTodoistSyncState(
+		newCtx(),
 		&learningpathsv1.GetTodoistSyncStateRequest{LearningPathId: "not-a-uuid"},
-	))
+	)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 
 	foreignPath, _ := seedPath(t, "someone-else")
-	_, err = client.GetTodoistSyncState(newCtx(), connect.NewRequest(
+	_, err = client.GetTodoistSyncState(
+		newCtx(),
 		&learningpathsv1.GetTodoistSyncStateRequest{LearningPathId: foreignPath.String()},
-	))
+	)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 
-	_, err = client.GetTodoistSyncState(newCtx(), connect.NewRequest(
+	_, err = client.GetTodoistSyncState(
+		newCtx(),
 		&learningpathsv1.GetTodoistSyncStateRequest{LearningPathId: uuid.NewString()},
-	))
+	)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
@@ -18,84 +18,84 @@ import (
 
 func (h *booksConnectHandler) UpdateReadingProgress(
 	ctx context.Context,
-	req *connect.Request[booksv1.UpdateReadingProgressRequest],
-) (*connect.Response[booksv1.UpdateReadingProgressResponse], error) {
+	req *booksv1.UpdateReadingProgressRequest,
+) (*booksv1.UpdateReadingProgressResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := uuid.Parse(req.BookId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid book ID"),
+			"invalid book ID",
 		)
 	}
-	position, err := readingPositionFromProto(req.Msg.Position)
+	position, err := readingPositionFromProto(req.Position)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	var readAt *time.Time
-	if req.Msg.ReadAt != "" {
-		t, parseErr := time.Parse(time.RFC3339Nano, req.Msg.ReadAt)
+	if req.ReadAt != "" {
+		t, parseErr := time.Parse(time.RFC3339Nano, req.ReadAt)
 		if parseErr != nil {
 			return nil, connect.NewError(
 				connect.CodeInvalidArgument,
-				errors.New("read_at must be RFC3339"),
+				"read_at must be RFC3339",
 			)
 		}
 		readAt = &t
 	}
 	var location *string
-	if req.Msg.Location != "" {
-		location = &req.Msg.Location
+	if req.Location != "" {
+		location = &req.Location
 	}
 	err = h.app.Services.Books.UpdateReadingProgress(
 		ctx,
 		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
 			UserID:   user.ID,
 			BookID:   bookID,
-			Source:   req.Msg.Source,
-			Percent:  int(req.Msg.Percent),
+			Source:   req.Source,
+			Percent:  int(req.Percent),
 			Location: location,
 			Position: position,
 			ReadAt:   readAt,
 		},
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&booksv1.UpdateReadingProgressResponse{}), nil
+	return &booksv1.UpdateReadingProgressResponse{}, nil
 }
 
 // GetReadingState returns an empty state when the book has none yet.
 func (h *booksConnectHandler) GetReadingState(
 	ctx context.Context,
-	req *connect.Request[booksv1.GetReadingStateRequest],
-) (*connect.Response[booksv1.GetReadingStateResponse], error) {
+	req *booksv1.GetReadingStateRequest,
+) (*booksv1.GetReadingStateResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := uuid.Parse(req.BookId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid book ID"),
+			"invalid book ID",
 		)
 	}
 	state, err := h.app.Services.Books.GetReadingState(ctx, user.ID, bookID)
 	if errors.Is(err, database.ErrResourceNotFound) {
-		return connect.NewResponse(&booksv1.GetReadingStateResponse{}), nil
+		return &booksv1.GetReadingStateResponse{}, nil
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	if state.Position != nil {
 		pos := h.app.Services.Positions.ReaderPosition(
@@ -103,41 +103,41 @@ func (h *booksConnectHandler) GetReadingState(
 		)
 		state.Position = &pos
 	}
-	return connect.NewResponse(&booksv1.GetReadingStateResponse{
+	return &booksv1.GetReadingStateResponse{
 		State: readingStateToProto(state),
-	}), nil
+	}, nil
 }
 
 // TranslateReadingPosition adds the forms GetReadingState would.
 func (h *booksConnectHandler) TranslateReadingPosition(
 	ctx context.Context,
-	req *connect.Request[booksv1.TranslateReadingPositionRequest],
-) (*connect.Response[booksv1.TranslateReadingPositionResponse], error) {
+	req *booksv1.TranslateReadingPositionRequest,
+) (*booksv1.TranslateReadingPositionResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := uuid.Parse(req.BookId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid book ID"),
+			"invalid book ID",
 		)
 	}
-	position, err := readingPositionFromProto(req.Msg.Position)
+	position, err := readingPositionFromProto(req.Position)
 	if err == nil && position == nil {
 		err = errors.New("position is required")
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	pos := h.app.Services.Positions.ReaderPosition(ctx, user.ID, bookID, *position)
-	return connect.NewResponse(&booksv1.TranslateReadingPositionResponse{
+	return &booksv1.TranslateReadingPositionResponse{
 		Position: readingPositionToProto(pos),
-	}), nil
+	}, nil
 }
 
 func readingPositionToProto(p models.ReadingPosition) *booksv1.ReadingPosition {

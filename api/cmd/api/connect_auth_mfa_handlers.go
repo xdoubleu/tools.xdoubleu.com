@@ -2,9 +2,8 @@ package main
 
 import (
 	"context"
-	"errors"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	authv1 "tools.xdoubleu.com/gen/auth/v1"
@@ -12,77 +11,85 @@ import (
 
 func (h *authConnectHandler) MFAEnroll(
 	ctx context.Context,
-	req *connect.Request[authv1.MFAEnrollRequest],
-) (*connect.Response[authv1.MFAEnrollResponse], error) {
+	_ *authv1.MFAEnrollRequest,
+) (*authv1.MFAEnrollResponse, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
 	// Accept mfaToken (sign-in flow) or accessToken (settings flow).
-	tokenCookie, err := h.parseCookie(req.Header(), mfaTokenCookieName)
+	tokenCookie, err := h.parseCookie(info.RequestHeader(), mfaTokenCookieName)
 	if err != nil {
-		tokenCookie, err = h.parseCookie(req.Header(), "accessToken")
+		tokenCookie, err = h.parseCookie(info.RequestHeader(), "accessToken")
 		if err != nil {
 			return nil, connect.NewError(
 				connect.CodeUnauthenticated,
-				errors.New("authentication required"),
+				"authentication required",
 			)
 		}
 	}
 
 	enrollment, err := h.app.auth.EnrollTOTP(ctx, tokenCookie.Value)
 	if err != nil {
-		return nil, connect.NewError(authErrorCode(err), err)
+		return nil, connect.NewError(authErrorCode(err), err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&authv1.MFAEnrollResponse{
+	return &authv1.MFAEnrollResponse{
 		QrSvg:    enrollment.QRSVG,
 		Secret:   enrollment.Secret,
 		FactorId: enrollment.ID.String(),
-	}), nil
+	}, nil
 }
 
 func (h *authConnectHandler) MFAEnrollVerify(
 	ctx context.Context,
-	req *connect.Request[authv1.MFAEnrollVerifyRequest],
-) (*connect.Response[authv1.MFAEnrollVerifyResponse], error) {
+	req *authv1.MFAEnrollVerifyRequest,
+) (*authv1.MFAEnrollVerifyResponse, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
 	// Accept mfaToken (sign-in flow) or accessToken (settings flow).
-	tokenCookie, err := h.parseCookie(req.Header(), mfaTokenCookieName)
+	tokenCookie, err := h.parseCookie(info.RequestHeader(), mfaTokenCookieName)
 	isSettingsFlow := err != nil
 	if isSettingsFlow {
-		tokenCookie, err = h.parseCookie(req.Header(), "accessToken")
+		tokenCookie, err = h.parseCookie(info.RequestHeader(), "accessToken")
 		if err != nil {
 			return nil, connect.NewError(
 				connect.CodeUnauthenticated,
-				errors.New("authentication required"),
+				"authentication required",
 			)
 		}
 	}
 
-	factorID, parseErr := uuid.Parse(req.Msg.FactorId)
+	factorID, parseErr := uuid.Parse(req.FactorId)
 	if parseErr != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid factor id"),
+			"invalid factor id",
 		)
 	}
 
 	challenge, err := h.app.auth.ChallengeMFA(ctx, tokenCookie.Value, factorID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	accessToken, refreshToken, err := h.app.auth.VerifyMFA(
-		ctx, tokenCookie.Value, factorID, challenge.ID, req.Msg.Code,
+		ctx, tokenCookie.Value, factorID, challenge.ID, req.Code,
 	)
 	if err != nil {
-		return nil, connect.NewError(signInErrorCode(err), err)
+		return nil, connect.NewError(signInErrorCode(err), err.Error()).WithCause(err)
 	}
 
 	rememberMe := false
 	if isSettingsFlow {
 		// Preserve the user's existing persistent session if they had one.
-		if _, cookieErr := h.parseCookie(req.Header(), "refreshToken"); cookieErr == nil {
+		if _, cookieErr := h.parseCookie(
+			info.RequestHeader(),
+			"refreshToken",
+		); cookieErr == nil {
 			rememberMe = true
 		}
 	} else {
-		if c, cErr := h.parseCookie(req.Header(), mfaRememberMeCookieName); cErr == nil {
+		if c, cErr := h.parseCookie(
+			info.RequestHeader(),
+			mfaRememberMeCookieName,
+		); cErr == nil {
 			rememberMe = c.Value == "1"
 		}
 	}
@@ -90,14 +97,18 @@ func (h *authConnectHandler) MFAEnrollVerify(
 	// First enrollment: return the one-time recovery codes now.
 	recoveryCodes, codesErr := h.app.auth.GenerateRecoveryCodes(ctx, *accessToken)
 	if codesErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, codesErr)
+		return nil, connect.NewError(connect.CodeInternal, codesErr.Error()).
+			WithCause(codesErr)
 	}
 
-	resp := connect.NewResponse(&authv1.MFAEnrollVerifyResponse{
+	resp := &authv1.MFAEnrollVerifyResponse{
 		RecoveryCodes: recoveryCodes,
-	})
+	}
 	if err = h.completeMFA(
-		resp.Header(), *accessToken, *refreshToken, rememberMe,
+		info.ResponseHeader(),
+		*accessToken,
+		*refreshToken,
+		rememberMe,
 	); err != nil {
 		return nil, err
 	}
@@ -106,66 +117,74 @@ func (h *authConnectHandler) MFAEnrollVerify(
 
 func (h *authConnectHandler) RegenerateRecoveryCodes(
 	ctx context.Context,
-	req *connect.Request[authv1.RegenerateRecoveryCodesRequest],
-) (*connect.Response[authv1.RegenerateRecoveryCodesResponse], error) {
-	accessToken, err := h.parseCookie(req.Header(), "accessToken")
+	req *authv1.RegenerateRecoveryCodesRequest,
+) (*authv1.RegenerateRecoveryCodesResponse, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
+	accessToken, err := h.parseCookie(info.RequestHeader(), "accessToken")
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("not signed in"),
+			"not signed in",
 		)
 	}
 
 	if err = h.app.auth.VerifyCurrentFactor(
-		ctx, accessToken.Value, req.Msg.Code,
+		ctx, accessToken.Value, req.Code,
 	); err != nil {
-		return nil, connect.NewError(authErrorCode(err), err)
+		return nil, connect.NewError(authErrorCode(err), err.Error()).WithCause(err)
 	}
 
 	codes, err := h.app.auth.GenerateRecoveryCodes(ctx, accessToken.Value)
 	if err != nil {
-		return nil, connect.NewError(authErrorCode(err), err)
+		return nil, connect.NewError(authErrorCode(err), err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&authv1.RegenerateRecoveryCodesResponse{
+	return &authv1.RegenerateRecoveryCodesResponse{
 		RecoveryCodes: codes,
-	}), nil
+	}, nil
 }
 
 func (h *authConnectHandler) MFAEnrollSkip(
 	ctx context.Context,
-	req *connect.Request[authv1.MFAEnrollSkipRequest],
-) (*connect.Response[authv1.MFAEnrollSkipResponse], error) {
-	mfaToken, err := h.parseCookie(req.Header(), "mfaToken")
+	_ *authv1.MFAEnrollSkipRequest,
+) (*authv1.MFAEnrollSkipResponse, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
+	mfaToken, err := h.parseCookie(info.RequestHeader(), "mfaToken")
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("mfa token required"),
+			"mfa token required",
 		)
 	}
 	// Skipping is only for users with no factor; others must pass the challenge.
 	if _, hasMFA := h.app.auth.HasVerifiedTOTP(ctx, mfaToken.Value); hasMFA {
 		return nil, connect.NewError(
 			connect.CodePermissionDenied,
-			errors.New("mfa challenge required"),
+			"mfa challenge required",
 		)
 	}
-	mfaRefreshToken, err := h.parseCookie(req.Header(), "mfaRefreshToken")
+	mfaRefreshToken, err := h.parseCookie(info.RequestHeader(), "mfaRefreshToken")
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("mfa refresh token required"),
+			"mfa refresh token required",
 		)
 	}
 
 	rememberMe := false
-	if c, cErr := h.parseCookie(req.Header(), mfaRememberMeCookieName); cErr == nil {
+	if c, cErr := h.parseCookie(
+		info.RequestHeader(),
+		mfaRememberMeCookieName,
+	); cErr == nil {
 		rememberMe = c.Value == "1"
 	}
 
-	resp := connect.NewResponse(&authv1.MFAEnrollSkipResponse{})
+	resp := &authv1.MFAEnrollSkipResponse{}
 	if err = h.completeMFA(
-		resp.Header(), mfaToken.Value, mfaRefreshToken.Value, rememberMe,
+		info.ResponseHeader(),
+		mfaToken.Value,
+		mfaRefreshToken.Value,
+		rememberMe,
 	); err != nil {
 		return nil, err
 	}
@@ -174,20 +193,21 @@ func (h *authConnectHandler) MFAEnrollSkip(
 
 func (h *authConnectHandler) MFAChallenge(
 	ctx context.Context,
-	req *connect.Request[authv1.MFAChallengeRequest],
-) (*connect.Response[authv1.MFAChallengeResponse], error) {
-	mfaToken, err := h.parseCookie(req.Header(), "mfaToken")
+	req *authv1.MFAChallengeRequest,
+) (*authv1.MFAChallengeResponse, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
+	mfaToken, err := h.parseCookie(info.RequestHeader(), "mfaToken")
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("mfa token required"),
+			"mfa token required",
 		)
 	}
-	mfaFactorID, err := h.parseCookie(req.Header(), mfaFactorIDCookieName)
+	mfaFactorID, err := h.parseCookie(info.RequestHeader(), mfaFactorIDCookieName)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("mfa factor id required"),
+			"mfa factor id required",
 		)
 	}
 
@@ -195,30 +215,36 @@ func (h *authConnectHandler) MFAChallenge(
 	if parseErr != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid factor id"),
+			"invalid factor id",
 		)
 	}
 
 	challenge, err := h.app.auth.ChallengeMFA(ctx, mfaToken.Value, factorID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	accessToken, refreshToken, err := h.app.auth.VerifyMFA(
-		ctx, mfaToken.Value, factorID, challenge.ID, req.Msg.Code,
+		ctx, mfaToken.Value, factorID, challenge.ID, req.Code,
 	)
 	if err != nil {
-		return nil, connect.NewError(signInErrorCode(err), err)
+		return nil, connect.NewError(signInErrorCode(err), err.Error()).WithCause(err)
 	}
 
 	rememberMe := false
-	if c, cErr := h.parseCookie(req.Header(), mfaRememberMeCookieName); cErr == nil {
+	if c, cErr := h.parseCookie(
+		info.RequestHeader(),
+		mfaRememberMeCookieName,
+	); cErr == nil {
 		rememberMe = c.Value == "1"
 	}
 
-	resp := connect.NewResponse(&authv1.MFAChallengeResponse{})
+	resp := &authv1.MFAChallengeResponse{}
 	if err = h.completeMFA(
-		resp.Header(), *accessToken, *refreshToken, rememberMe,
+		info.ResponseHeader(),
+		*accessToken,
+		*refreshToken,
+		rememberMe,
 	); err != nil {
 		return nil, err
 	}
@@ -227,13 +253,14 @@ func (h *authConnectHandler) MFAChallenge(
 
 func (h *authConnectHandler) MFAUnenroll(
 	ctx context.Context,
-	req *connect.Request[authv1.MFAUnenrollRequest],
-) (*connect.Response[authv1.MFAUnenrollResponse], error) {
-	accessToken, err := h.parseCookie(req.Header(), "accessToken")
+	req *authv1.MFAUnenrollRequest,
+) (*authv1.MFAUnenrollResponse, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
+	accessToken, err := h.parseCookie(info.RequestHeader(), "accessToken")
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("not signed in"),
+			"not signed in",
 		)
 	}
 
@@ -241,19 +268,19 @@ func (h *authConnectHandler) MFAUnenroll(
 	if !hasMFA {
 		return nil, connect.NewError(
 			connect.CodeFailedPrecondition,
-			errors.New("MFA is not enabled"),
+			"MFA is not enabled",
 		)
 	}
 
 	if err = h.app.auth.VerifyCurrentFactor(
-		ctx, accessToken.Value, req.Msg.Code,
+		ctx, accessToken.Value, req.Code,
 	); err != nil {
-		return nil, connect.NewError(authErrorCode(err), err)
+		return nil, connect.NewError(authErrorCode(err), err.Error()).WithCause(err)
 	}
 
 	if err = h.app.auth.UnenrollTOTP(ctx, accessToken.Value, factorID); err != nil {
-		return nil, connect.NewError(authErrorCode(err), err)
+		return nil, connect.NewError(authErrorCode(err), err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&authv1.MFAUnenrollResponse{}), nil
+	return &authv1.MFAUnenrollResponse{}, nil
 }

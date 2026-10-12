@@ -5,714 +5,860 @@
 package booksv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/books/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// LibraryServiceName is the fully-qualified name of the LibraryService service.
 	LibraryServiceName = "books.v1.LibraryService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// LibraryServiceGetLibraryProcedure is the fully-qualified name of the LibraryService's GetLibrary
-	// RPC.
+	// LibraryServiceGetLibraryProcedure is the procedure name of the LibraryService's GetLibrary RPC.
 	LibraryServiceGetLibraryProcedure = "/books.v1.LibraryService/GetLibrary"
-	// LibraryServiceGetBooksProgressProcedure is the fully-qualified name of the LibraryService's
+	// LibraryServiceGetBooksProgressProcedure is the procedure name of the LibraryService's
 	// GetBooksProgress RPC.
 	LibraryServiceGetBooksProgressProcedure = "/books.v1.LibraryService/GetBooksProgress"
-	// LibraryServiceSearchLibraryProcedure is the fully-qualified name of the LibraryService's
-	// SearchLibrary RPC.
+	// LibraryServiceSearchLibraryProcedure is the procedure name of the LibraryService's SearchLibrary
+	// RPC.
 	LibraryServiceSearchLibraryProcedure = "/books.v1.LibraryService/SearchLibrary"
-	// LibraryServiceSearchExternalProcedure is the fully-qualified name of the LibraryService's
+	// LibraryServiceSearchExternalProcedure is the procedure name of the LibraryService's
 	// SearchExternal RPC.
 	LibraryServiceSearchExternalProcedure = "/books.v1.LibraryService/SearchExternal"
-	// LibraryServiceGetExternalBookProcedure is the fully-qualified name of the LibraryService's
+	// LibraryServiceGetExternalBookProcedure is the procedure name of the LibraryService's
 	// GetExternalBook RPC.
 	LibraryServiceGetExternalBookProcedure = "/books.v1.LibraryService/GetExternalBook"
-	// LibraryServiceCreateBookProcedure is the fully-qualified name of the LibraryService's CreateBook
-	// RPC.
+	// LibraryServiceCreateBookProcedure is the procedure name of the LibraryService's CreateBook RPC.
 	LibraryServiceCreateBookProcedure = "/books.v1.LibraryService/CreateBook"
-	// LibraryServiceUpdateBookStatusProcedure is the fully-qualified name of the LibraryService's
+	// LibraryServiceUpdateBookStatusProcedure is the procedure name of the LibraryService's
 	// UpdateBookStatus RPC.
 	LibraryServiceUpdateBookStatusProcedure = "/books.v1.LibraryService/UpdateBookStatus"
-	// LibraryServiceUpdateFinishedAtProcedure is the fully-qualified name of the LibraryService's
+	// LibraryServiceUpdateFinishedAtProcedure is the procedure name of the LibraryService's
 	// UpdateFinishedAt RPC.
 	LibraryServiceUpdateFinishedAtProcedure = "/books.v1.LibraryService/UpdateFinishedAt"
-	// LibraryServiceUpdateProgressProcedure is the fully-qualified name of the LibraryService's
+	// LibraryServiceUpdateProgressProcedure is the procedure name of the LibraryService's
 	// UpdateProgress RPC.
 	LibraryServiceUpdateProgressProcedure = "/books.v1.LibraryService/UpdateProgress"
-	// LibraryServiceToggleTagProcedure is the fully-qualified name of the LibraryService's ToggleTag
-	// RPC.
+	// LibraryServiceToggleTagProcedure is the procedure name of the LibraryService's ToggleTag RPC.
 	LibraryServiceToggleTagProcedure = "/books.v1.LibraryService/ToggleTag"
-	// LibraryServiceSetBookTagProcedure is the fully-qualified name of the LibraryService's SetBookTag
-	// RPC.
+	// LibraryServiceSetBookTagProcedure is the procedure name of the LibraryService's SetBookTag RPC.
 	LibraryServiceSetBookTagProcedure = "/books.v1.LibraryService/SetBookTag"
-	// LibraryServiceRemoveBookProcedure is the fully-qualified name of the LibraryService's RemoveBook
-	// RPC.
+	// LibraryServiceRemoveBookProcedure is the procedure name of the LibraryService's RemoveBook RPC.
 	LibraryServiceRemoveBookProcedure = "/books.v1.LibraryService/RemoveBook"
-	// LibraryServiceUpdateReadingProgressProcedure is the fully-qualified name of the LibraryService's
+	// LibraryServiceUpdateReadingProgressProcedure is the procedure name of the LibraryService's
 	// UpdateReadingProgress RPC.
 	LibraryServiceUpdateReadingProgressProcedure = "/books.v1.LibraryService/UpdateReadingProgress"
-	// LibraryServiceGetReadingStateProcedure is the fully-qualified name of the LibraryService's
+	// LibraryServiceGetReadingStateProcedure is the procedure name of the LibraryService's
 	// GetReadingState RPC.
 	LibraryServiceGetReadingStateProcedure = "/books.v1.LibraryService/GetReadingState"
-	// LibraryServiceTranslateReadingPositionProcedure is the fully-qualified name of the
-	// LibraryService's TranslateReadingPosition RPC.
+	// LibraryServiceTranslateReadingPositionProcedure is the procedure name of the LibraryService's
+	// TranslateReadingPosition RPC.
 	LibraryServiceTranslateReadingPositionProcedure = "/books.v1.LibraryService/TranslateReadingPosition"
-	// LibraryServiceGetBookContentProcedure is the fully-qualified name of the LibraryService's
+	// LibraryServiceGetBookContentProcedure is the procedure name of the LibraryService's
 	// GetBookContent RPC.
 	LibraryServiceGetBookContentProcedure = "/books.v1.LibraryService/GetBookContent"
-	// LibraryServiceGetSeriesProcedure is the fully-qualified name of the LibraryService's GetSeries
-	// RPC.
+	// LibraryServiceGetSeriesProcedure is the procedure name of the LibraryService's GetSeries RPC.
 	LibraryServiceGetSeriesProcedure = "/books.v1.LibraryService/GetSeries"
-	// LibraryServiceCreateShelfProcedure is the fully-qualified name of the LibraryService's
-	// CreateShelf RPC.
+	// LibraryServiceCreateShelfProcedure is the procedure name of the LibraryService's CreateShelf RPC.
 	LibraryServiceCreateShelfProcedure = "/books.v1.LibraryService/CreateShelf"
-	// LibraryServiceRenameShelfProcedure is the fully-qualified name of the LibraryService's
-	// RenameShelf RPC.
+	// LibraryServiceRenameShelfProcedure is the procedure name of the LibraryService's RenameShelf RPC.
 	LibraryServiceRenameShelfProcedure = "/books.v1.LibraryService/RenameShelf"
-	// LibraryServiceDeleteShelfProcedure is the fully-qualified name of the LibraryService's
-	// DeleteShelf RPC.
+	// LibraryServiceDeleteShelfProcedure is the procedure name of the LibraryService's DeleteShelf RPC.
 	LibraryServiceDeleteShelfProcedure = "/books.v1.LibraryService/DeleteShelf"
-	// LibraryServiceRenameTagProcedure is the fully-qualified name of the LibraryService's RenameTag
-	// RPC.
+	// LibraryServiceRenameTagProcedure is the procedure name of the LibraryService's RenameTag RPC.
 	LibraryServiceRenameTagProcedure = "/books.v1.LibraryService/RenameTag"
-	// LibraryServiceDeleteTagProcedure is the fully-qualified name of the LibraryService's DeleteTag
-	// RPC.
+	// LibraryServiceDeleteTagProcedure is the procedure name of the LibraryService's DeleteTag RPC.
 	LibraryServiceDeleteTagProcedure = "/books.v1.LibraryService/DeleteTag"
+)
+
+var (
+	libraryServiceGetLibrarySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("GetLibrary"),
+			Procedure:  LibraryServiceGetLibraryProcedure,
+		}
+	})
+	libraryServiceGetBooksProgressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("GetBooksProgress"),
+			Procedure:  LibraryServiceGetBooksProgressProcedure,
+		}
+	})
+	libraryServiceSearchLibrarySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("SearchLibrary"),
+			Procedure:  LibraryServiceSearchLibraryProcedure,
+		}
+	})
+	libraryServiceSearchExternalSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("SearchExternal"),
+			Procedure:  LibraryServiceSearchExternalProcedure,
+		}
+	})
+	libraryServiceGetExternalBookSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("GetExternalBook"),
+			Procedure:  LibraryServiceGetExternalBookProcedure,
+		}
+	})
+	libraryServiceCreateBookSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("CreateBook"),
+			Procedure:  LibraryServiceCreateBookProcedure,
+		}
+	})
+	libraryServiceUpdateBookStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("UpdateBookStatus"),
+			Procedure:  LibraryServiceUpdateBookStatusProcedure,
+		}
+	})
+	libraryServiceUpdateFinishedAtSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("UpdateFinishedAt"),
+			Procedure:  LibraryServiceUpdateFinishedAtProcedure,
+		}
+	})
+	libraryServiceUpdateProgressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("UpdateProgress"),
+			Procedure:  LibraryServiceUpdateProgressProcedure,
+		}
+	})
+	libraryServiceToggleTagSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("ToggleTag"),
+			Procedure:  LibraryServiceToggleTagProcedure,
+		}
+	})
+	libraryServiceSetBookTagSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("SetBookTag"),
+			Procedure:  LibraryServiceSetBookTagProcedure,
+		}
+	})
+	libraryServiceRemoveBookSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("RemoveBook"),
+			Procedure:  LibraryServiceRemoveBookProcedure,
+		}
+	})
+	libraryServiceUpdateReadingProgressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("UpdateReadingProgress"),
+			Procedure:  LibraryServiceUpdateReadingProgressProcedure,
+		}
+	})
+	libraryServiceGetReadingStateSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("GetReadingState"),
+			Procedure:  LibraryServiceGetReadingStateProcedure,
+		}
+	})
+	libraryServiceTranslateReadingPositionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("TranslateReadingPosition"),
+			Procedure:  LibraryServiceTranslateReadingPositionProcedure,
+		}
+	})
+	libraryServiceGetBookContentSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("GetBookContent"),
+			Procedure:  LibraryServiceGetBookContentProcedure,
+		}
+	})
+	libraryServiceGetSeriesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("GetSeries"),
+			Procedure:  LibraryServiceGetSeriesProcedure,
+		}
+	})
+	libraryServiceCreateShelfSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("CreateShelf"),
+			Procedure:  LibraryServiceCreateShelfProcedure,
+		}
+	})
+	libraryServiceRenameShelfSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("RenameShelf"),
+			Procedure:  LibraryServiceRenameShelfProcedure,
+		}
+	})
+	libraryServiceDeleteShelfSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("DeleteShelf"),
+			Procedure:  LibraryServiceDeleteShelfProcedure,
+		}
+	})
+	libraryServiceRenameTagSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("RenameTag"),
+			Procedure:  LibraryServiceRenameTagProcedure,
+		}
+	})
+	libraryServiceDeleteTagSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods().ByName("DeleteTag"),
+			Procedure:  LibraryServiceDeleteTagProcedure,
+		}
+	})
 )
 
 // LibraryServiceClient is a client for the books.v1.LibraryService service.
 type LibraryServiceClient interface {
-	GetLibrary(context.Context, *connect.Request[v1.GetLibraryRequest]) (*connect.Response[v1.GetLibraryResponse], error)
-	GetBooksProgress(context.Context, *connect.Request[v1.GetBooksProgressRequest]) (*connect.Response[v1.GetBooksProgressResponse], error)
-	SearchLibrary(context.Context, *connect.Request[v1.SearchLibraryRequest]) (*connect.Response[v1.SearchLibraryResponse], error)
-	SearchExternal(context.Context, *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error)
-	GetExternalBook(context.Context, *connect.Request[v1.GetExternalBookRequest]) (*connect.Response[v1.GetExternalBookResponse], error)
-	CreateBook(context.Context, *connect.Request[v1.CreateBookRequest]) (*connect.Response[v1.CreateBookResponse], error)
-	UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error)
-	UpdateFinishedAt(context.Context, *connect.Request[v1.UpdateFinishedAtRequest]) (*connect.Response[v1.UpdateFinishedAtResponse], error)
-	UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error)
-	ToggleTag(context.Context, *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error)
-	SetBookTag(context.Context, *connect.Request[v1.SetBookTagRequest]) (*connect.Response[v1.SetBookTagResponse], error)
-	RemoveBook(context.Context, *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error)
-	UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error)
-	GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error)
-	TranslateReadingPosition(context.Context, *connect.Request[v1.TranslateReadingPositionRequest]) (*connect.Response[v1.TranslateReadingPositionResponse], error)
-	GetBookContent(context.Context, *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error)
-	GetSeries(context.Context, *connect.Request[v1.GetSeriesRequest]) (*connect.Response[v1.GetSeriesResponse], error)
-	CreateShelf(context.Context, *connect.Request[v1.CreateShelfRequest]) (*connect.Response[v1.CreateShelfResponse], error)
-	RenameShelf(context.Context, *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error)
-	DeleteShelf(context.Context, *connect.Request[v1.DeleteShelfRequest]) (*connect.Response[v1.DeleteShelfResponse], error)
-	RenameTag(context.Context, *connect.Request[v1.RenameTagRequest]) (*connect.Response[v1.RenameTagResponse], error)
-	DeleteTag(context.Context, *connect.Request[v1.DeleteTagRequest]) (*connect.Response[v1.DeleteTagResponse], error)
+	GetLibrary(context.Context, *v1.GetLibraryRequest) (*v1.GetLibraryResponse, error)
+	GetBooksProgress(context.Context, *v1.GetBooksProgressRequest) (*v1.GetBooksProgressResponse, error)
+	SearchLibrary(context.Context, *v1.SearchLibraryRequest) (*v1.SearchLibraryResponse, error)
+	SearchExternal(context.Context, *v1.SearchExternalRequest) (*v1.SearchExternalResponse, error)
+	GetExternalBook(context.Context, *v1.GetExternalBookRequest) (*v1.GetExternalBookResponse, error)
+	CreateBook(context.Context, *v1.CreateBookRequest) (*v1.CreateBookResponse, error)
+	UpdateBookStatus(context.Context, *v1.UpdateBookStatusRequest) (*v1.UpdateBookStatusResponse, error)
+	UpdateFinishedAt(context.Context, *v1.UpdateFinishedAtRequest) (*v1.UpdateFinishedAtResponse, error)
+	UpdateProgress(context.Context, *v1.UpdateProgressRequest) (*v1.UpdateProgressResponse, error)
+	ToggleTag(context.Context, *v1.ToggleTagRequest) (*v1.ToggleTagResponse, error)
+	SetBookTag(context.Context, *v1.SetBookTagRequest) (*v1.SetBookTagResponse, error)
+	RemoveBook(context.Context, *v1.RemoveBookRequest) (*v1.RemoveBookResponse, error)
+	UpdateReadingProgress(context.Context, *v1.UpdateReadingProgressRequest) (*v1.UpdateReadingProgressResponse, error)
+	GetReadingState(context.Context, *v1.GetReadingStateRequest) (*v1.GetReadingStateResponse, error)
+	TranslateReadingPosition(context.Context, *v1.TranslateReadingPositionRequest) (*v1.TranslateReadingPositionResponse, error)
+	GetBookContent(context.Context, *v1.GetBookContentRequest) (*v1.GetBookContentResponse, error)
+	GetSeries(context.Context, *v1.GetSeriesRequest) (*v1.GetSeriesResponse, error)
+	CreateShelf(context.Context, *v1.CreateShelfRequest) (*v1.CreateShelfResponse, error)
+	RenameShelf(context.Context, *v1.RenameShelfRequest) (*v1.RenameShelfResponse, error)
+	DeleteShelf(context.Context, *v1.DeleteShelfRequest) (*v1.DeleteShelfResponse, error)
+	RenameTag(context.Context, *v1.RenameTagRequest) (*v1.RenameTagResponse, error)
+	DeleteTag(context.Context, *v1.DeleteTagRequest) (*v1.DeleteTagResponse, error)
 }
 
-// NewLibraryServiceClient constructs a client for the books.v1.LibraryService service. By default,
-// it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and
-// sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC()
-// or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewLibraryServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) LibraryServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	libraryServiceMethods := v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods()
-	return &libraryServiceClient{
-		getLibrary: connect.NewClient[v1.GetLibraryRequest, v1.GetLibraryResponse](
-			httpClient,
-			baseURL+LibraryServiceGetLibraryProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("GetLibrary")),
-			connect.WithClientOptions(opts...),
-		),
-		getBooksProgress: connect.NewClient[v1.GetBooksProgressRequest, v1.GetBooksProgressResponse](
-			httpClient,
-			baseURL+LibraryServiceGetBooksProgressProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("GetBooksProgress")),
-			connect.WithClientOptions(opts...),
-		),
-		searchLibrary: connect.NewClient[v1.SearchLibraryRequest, v1.SearchLibraryResponse](
-			httpClient,
-			baseURL+LibraryServiceSearchLibraryProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("SearchLibrary")),
-			connect.WithClientOptions(opts...),
-		),
-		searchExternal: connect.NewClient[v1.SearchExternalRequest, v1.SearchExternalResponse](
-			httpClient,
-			baseURL+LibraryServiceSearchExternalProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("SearchExternal")),
-			connect.WithClientOptions(opts...),
-		),
-		getExternalBook: connect.NewClient[v1.GetExternalBookRequest, v1.GetExternalBookResponse](
-			httpClient,
-			baseURL+LibraryServiceGetExternalBookProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("GetExternalBook")),
-			connect.WithClientOptions(opts...),
-		),
-		createBook: connect.NewClient[v1.CreateBookRequest, v1.CreateBookResponse](
-			httpClient,
-			baseURL+LibraryServiceCreateBookProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("CreateBook")),
-			connect.WithClientOptions(opts...),
-		),
-		updateBookStatus: connect.NewClient[v1.UpdateBookStatusRequest, v1.UpdateBookStatusResponse](
-			httpClient,
-			baseURL+LibraryServiceUpdateBookStatusProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("UpdateBookStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		updateFinishedAt: connect.NewClient[v1.UpdateFinishedAtRequest, v1.UpdateFinishedAtResponse](
-			httpClient,
-			baseURL+LibraryServiceUpdateFinishedAtProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("UpdateFinishedAt")),
-			connect.WithClientOptions(opts...),
-		),
-		updateProgress: connect.NewClient[v1.UpdateProgressRequest, v1.UpdateProgressResponse](
-			httpClient,
-			baseURL+LibraryServiceUpdateProgressProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("UpdateProgress")),
-			connect.WithClientOptions(opts...),
-		),
-		toggleTag: connect.NewClient[v1.ToggleTagRequest, v1.ToggleTagResponse](
-			httpClient,
-			baseURL+LibraryServiceToggleTagProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("ToggleTag")),
-			connect.WithClientOptions(opts...),
-		),
-		setBookTag: connect.NewClient[v1.SetBookTagRequest, v1.SetBookTagResponse](
-			httpClient,
-			baseURL+LibraryServiceSetBookTagProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("SetBookTag")),
-			connect.WithClientOptions(opts...),
-		),
-		removeBook: connect.NewClient[v1.RemoveBookRequest, v1.RemoveBookResponse](
-			httpClient,
-			baseURL+LibraryServiceRemoveBookProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("RemoveBook")),
-			connect.WithClientOptions(opts...),
-		),
-		updateReadingProgress: connect.NewClient[v1.UpdateReadingProgressRequest, v1.UpdateReadingProgressResponse](
-			httpClient,
-			baseURL+LibraryServiceUpdateReadingProgressProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("UpdateReadingProgress")),
-			connect.WithClientOptions(opts...),
-		),
-		getReadingState: connect.NewClient[v1.GetReadingStateRequest, v1.GetReadingStateResponse](
-			httpClient,
-			baseURL+LibraryServiceGetReadingStateProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("GetReadingState")),
-			connect.WithClientOptions(opts...),
-		),
-		translateReadingPosition: connect.NewClient[v1.TranslateReadingPositionRequest, v1.TranslateReadingPositionResponse](
-			httpClient,
-			baseURL+LibraryServiceTranslateReadingPositionProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("TranslateReadingPosition")),
-			connect.WithClientOptions(opts...),
-		),
-		getBookContent: connect.NewClient[v1.GetBookContentRequest, v1.GetBookContentResponse](
-			httpClient,
-			baseURL+LibraryServiceGetBookContentProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("GetBookContent")),
-			connect.WithClientOptions(opts...),
-		),
-		getSeries: connect.NewClient[v1.GetSeriesRequest, v1.GetSeriesResponse](
-			httpClient,
-			baseURL+LibraryServiceGetSeriesProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("GetSeries")),
-			connect.WithClientOptions(opts...),
-		),
-		createShelf: connect.NewClient[v1.CreateShelfRequest, v1.CreateShelfResponse](
-			httpClient,
-			baseURL+LibraryServiceCreateShelfProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("CreateShelf")),
-			connect.WithClientOptions(opts...),
-		),
-		renameShelf: connect.NewClient[v1.RenameShelfRequest, v1.RenameShelfResponse](
-			httpClient,
-			baseURL+LibraryServiceRenameShelfProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("RenameShelf")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteShelf: connect.NewClient[v1.DeleteShelfRequest, v1.DeleteShelfResponse](
-			httpClient,
-			baseURL+LibraryServiceDeleteShelfProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("DeleteShelf")),
-			connect.WithClientOptions(opts...),
-		),
-		renameTag: connect.NewClient[v1.RenameTagRequest, v1.RenameTagResponse](
-			httpClient,
-			baseURL+LibraryServiceRenameTagProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("RenameTag")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteTag: connect.NewClient[v1.DeleteTagRequest, v1.DeleteTagResponse](
-			httpClient,
-			baseURL+LibraryServiceDeleteTagProcedure,
-			connect.WithSchema(libraryServiceMethods.ByName("DeleteTag")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// libraryServiceClient implements LibraryServiceClient.
-type libraryServiceClient struct {
-	getLibrary               *connect.Client[v1.GetLibraryRequest, v1.GetLibraryResponse]
-	getBooksProgress         *connect.Client[v1.GetBooksProgressRequest, v1.GetBooksProgressResponse]
-	searchLibrary            *connect.Client[v1.SearchLibraryRequest, v1.SearchLibraryResponse]
-	searchExternal           *connect.Client[v1.SearchExternalRequest, v1.SearchExternalResponse]
-	getExternalBook          *connect.Client[v1.GetExternalBookRequest, v1.GetExternalBookResponse]
-	createBook               *connect.Client[v1.CreateBookRequest, v1.CreateBookResponse]
-	updateBookStatus         *connect.Client[v1.UpdateBookStatusRequest, v1.UpdateBookStatusResponse]
-	updateFinishedAt         *connect.Client[v1.UpdateFinishedAtRequest, v1.UpdateFinishedAtResponse]
-	updateProgress           *connect.Client[v1.UpdateProgressRequest, v1.UpdateProgressResponse]
-	toggleTag                *connect.Client[v1.ToggleTagRequest, v1.ToggleTagResponse]
-	setBookTag               *connect.Client[v1.SetBookTagRequest, v1.SetBookTagResponse]
-	removeBook               *connect.Client[v1.RemoveBookRequest, v1.RemoveBookResponse]
-	updateReadingProgress    *connect.Client[v1.UpdateReadingProgressRequest, v1.UpdateReadingProgressResponse]
-	getReadingState          *connect.Client[v1.GetReadingStateRequest, v1.GetReadingStateResponse]
-	translateReadingPosition *connect.Client[v1.TranslateReadingPositionRequest, v1.TranslateReadingPositionResponse]
-	getBookContent           *connect.Client[v1.GetBookContentRequest, v1.GetBookContentResponse]
-	getSeries                *connect.Client[v1.GetSeriesRequest, v1.GetSeriesResponse]
-	createShelf              *connect.Client[v1.CreateShelfRequest, v1.CreateShelfResponse]
-	renameShelf              *connect.Client[v1.RenameShelfRequest, v1.RenameShelfResponse]
-	deleteShelf              *connect.Client[v1.DeleteShelfRequest, v1.DeleteShelfResponse]
-	renameTag                *connect.Client[v1.RenameTagRequest, v1.RenameTagResponse]
-	deleteTag                *connect.Client[v1.DeleteTagRequest, v1.DeleteTagResponse]
-}
-
-// GetLibrary calls books.v1.LibraryService.GetLibrary.
-func (c *libraryServiceClient) GetLibrary(ctx context.Context, req *connect.Request[v1.GetLibraryRequest]) (*connect.Response[v1.GetLibraryResponse], error) {
-	return c.getLibrary.CallUnary(ctx, req)
-}
-
-// GetBooksProgress calls books.v1.LibraryService.GetBooksProgress.
-func (c *libraryServiceClient) GetBooksProgress(ctx context.Context, req *connect.Request[v1.GetBooksProgressRequest]) (*connect.Response[v1.GetBooksProgressResponse], error) {
-	return c.getBooksProgress.CallUnary(ctx, req)
-}
-
-// SearchLibrary calls books.v1.LibraryService.SearchLibrary.
-func (c *libraryServiceClient) SearchLibrary(ctx context.Context, req *connect.Request[v1.SearchLibraryRequest]) (*connect.Response[v1.SearchLibraryResponse], error) {
-	return c.searchLibrary.CallUnary(ctx, req)
-}
-
-// SearchExternal calls books.v1.LibraryService.SearchExternal.
-func (c *libraryServiceClient) SearchExternal(ctx context.Context, req *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error) {
-	return c.searchExternal.CallUnary(ctx, req)
-}
-
-// GetExternalBook calls books.v1.LibraryService.GetExternalBook.
-func (c *libraryServiceClient) GetExternalBook(ctx context.Context, req *connect.Request[v1.GetExternalBookRequest]) (*connect.Response[v1.GetExternalBookResponse], error) {
-	return c.getExternalBook.CallUnary(ctx, req)
-}
-
-// CreateBook calls books.v1.LibraryService.CreateBook.
-func (c *libraryServiceClient) CreateBook(ctx context.Context, req *connect.Request[v1.CreateBookRequest]) (*connect.Response[v1.CreateBookResponse], error) {
-	return c.createBook.CallUnary(ctx, req)
-}
-
-// UpdateBookStatus calls books.v1.LibraryService.UpdateBookStatus.
-func (c *libraryServiceClient) UpdateBookStatus(ctx context.Context, req *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error) {
-	return c.updateBookStatus.CallUnary(ctx, req)
-}
-
-// UpdateFinishedAt calls books.v1.LibraryService.UpdateFinishedAt.
-func (c *libraryServiceClient) UpdateFinishedAt(ctx context.Context, req *connect.Request[v1.UpdateFinishedAtRequest]) (*connect.Response[v1.UpdateFinishedAtResponse], error) {
-	return c.updateFinishedAt.CallUnary(ctx, req)
-}
-
-// UpdateProgress calls books.v1.LibraryService.UpdateProgress.
-func (c *libraryServiceClient) UpdateProgress(ctx context.Context, req *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error) {
-	return c.updateProgress.CallUnary(ctx, req)
-}
-
-// ToggleTag calls books.v1.LibraryService.ToggleTag.
-func (c *libraryServiceClient) ToggleTag(ctx context.Context, req *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error) {
-	return c.toggleTag.CallUnary(ctx, req)
-}
-
-// SetBookTag calls books.v1.LibraryService.SetBookTag.
-func (c *libraryServiceClient) SetBookTag(ctx context.Context, req *connect.Request[v1.SetBookTagRequest]) (*connect.Response[v1.SetBookTagResponse], error) {
-	return c.setBookTag.CallUnary(ctx, req)
-}
-
-// RemoveBook calls books.v1.LibraryService.RemoveBook.
-func (c *libraryServiceClient) RemoveBook(ctx context.Context, req *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error) {
-	return c.removeBook.CallUnary(ctx, req)
-}
-
-// UpdateReadingProgress calls books.v1.LibraryService.UpdateReadingProgress.
-func (c *libraryServiceClient) UpdateReadingProgress(ctx context.Context, req *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error) {
-	return c.updateReadingProgress.CallUnary(ctx, req)
-}
-
-// GetReadingState calls books.v1.LibraryService.GetReadingState.
-func (c *libraryServiceClient) GetReadingState(ctx context.Context, req *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error) {
-	return c.getReadingState.CallUnary(ctx, req)
-}
-
-// TranslateReadingPosition calls books.v1.LibraryService.TranslateReadingPosition.
-func (c *libraryServiceClient) TranslateReadingPosition(ctx context.Context, req *connect.Request[v1.TranslateReadingPositionRequest]) (*connect.Response[v1.TranslateReadingPositionResponse], error) {
-	return c.translateReadingPosition.CallUnary(ctx, req)
-}
-
-// GetBookContent calls books.v1.LibraryService.GetBookContent.
-func (c *libraryServiceClient) GetBookContent(ctx context.Context, req *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error) {
-	return c.getBookContent.CallUnary(ctx, req)
-}
-
-// GetSeries calls books.v1.LibraryService.GetSeries.
-func (c *libraryServiceClient) GetSeries(ctx context.Context, req *connect.Request[v1.GetSeriesRequest]) (*connect.Response[v1.GetSeriesResponse], error) {
-	return c.getSeries.CallUnary(ctx, req)
-}
-
-// CreateShelf calls books.v1.LibraryService.CreateShelf.
-func (c *libraryServiceClient) CreateShelf(ctx context.Context, req *connect.Request[v1.CreateShelfRequest]) (*connect.Response[v1.CreateShelfResponse], error) {
-	return c.createShelf.CallUnary(ctx, req)
-}
-
-// RenameShelf calls books.v1.LibraryService.RenameShelf.
-func (c *libraryServiceClient) RenameShelf(ctx context.Context, req *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error) {
-	return c.renameShelf.CallUnary(ctx, req)
-}
-
-// DeleteShelf calls books.v1.LibraryService.DeleteShelf.
-func (c *libraryServiceClient) DeleteShelf(ctx context.Context, req *connect.Request[v1.DeleteShelfRequest]) (*connect.Response[v1.DeleteShelfResponse], error) {
-	return c.deleteShelf.CallUnary(ctx, req)
-}
-
-// RenameTag calls books.v1.LibraryService.RenameTag.
-func (c *libraryServiceClient) RenameTag(ctx context.Context, req *connect.Request[v1.RenameTagRequest]) (*connect.Response[v1.RenameTagResponse], error) {
-	return c.renameTag.CallUnary(ctx, req)
-}
-
-// DeleteTag calls books.v1.LibraryService.DeleteTag.
-func (c *libraryServiceClient) DeleteTag(ctx context.Context, req *connect.Request[v1.DeleteTagRequest]) (*connect.Response[v1.DeleteTagResponse], error) {
-	return c.deleteTag.CallUnary(ctx, req)
+// NewLibraryServiceClient constructs a client for the books.v1.LibraryService service. Multiple
+// service clients may share a single connect.Client.
+func NewLibraryServiceClient(client *connect.Client) LibraryServiceClient {
+	return &libraryServiceClient{client: client}
 }
 
 // LibraryServiceHandler is an implementation of the books.v1.LibraryService service.
 type LibraryServiceHandler interface {
-	GetLibrary(context.Context, *connect.Request[v1.GetLibraryRequest]) (*connect.Response[v1.GetLibraryResponse], error)
-	GetBooksProgress(context.Context, *connect.Request[v1.GetBooksProgressRequest]) (*connect.Response[v1.GetBooksProgressResponse], error)
-	SearchLibrary(context.Context, *connect.Request[v1.SearchLibraryRequest]) (*connect.Response[v1.SearchLibraryResponse], error)
-	SearchExternal(context.Context, *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error)
-	GetExternalBook(context.Context, *connect.Request[v1.GetExternalBookRequest]) (*connect.Response[v1.GetExternalBookResponse], error)
-	CreateBook(context.Context, *connect.Request[v1.CreateBookRequest]) (*connect.Response[v1.CreateBookResponse], error)
-	UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error)
-	UpdateFinishedAt(context.Context, *connect.Request[v1.UpdateFinishedAtRequest]) (*connect.Response[v1.UpdateFinishedAtResponse], error)
-	UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error)
-	ToggleTag(context.Context, *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error)
-	SetBookTag(context.Context, *connect.Request[v1.SetBookTagRequest]) (*connect.Response[v1.SetBookTagResponse], error)
-	RemoveBook(context.Context, *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error)
-	UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error)
-	GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error)
-	TranslateReadingPosition(context.Context, *connect.Request[v1.TranslateReadingPositionRequest]) (*connect.Response[v1.TranslateReadingPositionResponse], error)
-	GetBookContent(context.Context, *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error)
-	GetSeries(context.Context, *connect.Request[v1.GetSeriesRequest]) (*connect.Response[v1.GetSeriesResponse], error)
-	CreateShelf(context.Context, *connect.Request[v1.CreateShelfRequest]) (*connect.Response[v1.CreateShelfResponse], error)
-	RenameShelf(context.Context, *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error)
-	DeleteShelf(context.Context, *connect.Request[v1.DeleteShelfRequest]) (*connect.Response[v1.DeleteShelfResponse], error)
-	RenameTag(context.Context, *connect.Request[v1.RenameTagRequest]) (*connect.Response[v1.RenameTagResponse], error)
-	DeleteTag(context.Context, *connect.Request[v1.DeleteTagRequest]) (*connect.Response[v1.DeleteTagResponse], error)
+	GetLibrary(context.Context, *v1.GetLibraryRequest) (*v1.GetLibraryResponse, error)
+	GetBooksProgress(context.Context, *v1.GetBooksProgressRequest) (*v1.GetBooksProgressResponse, error)
+	SearchLibrary(context.Context, *v1.SearchLibraryRequest) (*v1.SearchLibraryResponse, error)
+	SearchExternal(context.Context, *v1.SearchExternalRequest) (*v1.SearchExternalResponse, error)
+	GetExternalBook(context.Context, *v1.GetExternalBookRequest) (*v1.GetExternalBookResponse, error)
+	CreateBook(context.Context, *v1.CreateBookRequest) (*v1.CreateBookResponse, error)
+	UpdateBookStatus(context.Context, *v1.UpdateBookStatusRequest) (*v1.UpdateBookStatusResponse, error)
+	UpdateFinishedAt(context.Context, *v1.UpdateFinishedAtRequest) (*v1.UpdateFinishedAtResponse, error)
+	UpdateProgress(context.Context, *v1.UpdateProgressRequest) (*v1.UpdateProgressResponse, error)
+	ToggleTag(context.Context, *v1.ToggleTagRequest) (*v1.ToggleTagResponse, error)
+	SetBookTag(context.Context, *v1.SetBookTagRequest) (*v1.SetBookTagResponse, error)
+	RemoveBook(context.Context, *v1.RemoveBookRequest) (*v1.RemoveBookResponse, error)
+	UpdateReadingProgress(context.Context, *v1.UpdateReadingProgressRequest) (*v1.UpdateReadingProgressResponse, error)
+	GetReadingState(context.Context, *v1.GetReadingStateRequest) (*v1.GetReadingStateResponse, error)
+	TranslateReadingPosition(context.Context, *v1.TranslateReadingPositionRequest) (*v1.TranslateReadingPositionResponse, error)
+	GetBookContent(context.Context, *v1.GetBookContentRequest) (*v1.GetBookContentResponse, error)
+	GetSeries(context.Context, *v1.GetSeriesRequest) (*v1.GetSeriesResponse, error)
+	CreateShelf(context.Context, *v1.CreateShelfRequest) (*v1.CreateShelfResponse, error)
+	RenameShelf(context.Context, *v1.RenameShelfRequest) (*v1.RenameShelfResponse, error)
+	DeleteShelf(context.Context, *v1.DeleteShelfRequest) (*v1.DeleteShelfResponse, error)
+	RenameTag(context.Context, *v1.RenameTagRequest) (*v1.RenameTagResponse, error)
+	DeleteTag(context.Context, *v1.DeleteTagRequest) (*v1.DeleteTagResponse, error)
 }
 
-// NewLibraryServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	libraryServiceMethods := v1.File_books_v1_library_proto.Services().ByName("LibraryService").Methods()
-	libraryServiceGetLibraryHandler := connect.NewUnaryHandler(
-		LibraryServiceGetLibraryProcedure,
-		svc.GetLibrary,
-		connect.WithSchema(libraryServiceMethods.ByName("GetLibrary")),
-		connect.WithHandlerOptions(opts...),
+// RegisterLibraryServiceHandler registers svc as the books.v1.LibraryService implementation on
+// server.
+func RegisterLibraryServiceHandler(server *connect.Server, svc LibraryServiceHandler) {
+	adapter := libraryServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: libraryServiceGetLibrarySpec(), Handler: adapter.getLibrary},
+		connect.Method{Spec: libraryServiceGetBooksProgressSpec(), Handler: adapter.getBooksProgress},
+		connect.Method{Spec: libraryServiceSearchLibrarySpec(), Handler: adapter.searchLibrary},
+		connect.Method{Spec: libraryServiceSearchExternalSpec(), Handler: adapter.searchExternal},
+		connect.Method{Spec: libraryServiceGetExternalBookSpec(), Handler: adapter.getExternalBook},
+		connect.Method{Spec: libraryServiceCreateBookSpec(), Handler: adapter.createBook},
+		connect.Method{Spec: libraryServiceUpdateBookStatusSpec(), Handler: adapter.updateBookStatus},
+		connect.Method{Spec: libraryServiceUpdateFinishedAtSpec(), Handler: adapter.updateFinishedAt},
+		connect.Method{Spec: libraryServiceUpdateProgressSpec(), Handler: adapter.updateProgress},
+		connect.Method{Spec: libraryServiceToggleTagSpec(), Handler: adapter.toggleTag},
+		connect.Method{Spec: libraryServiceSetBookTagSpec(), Handler: adapter.setBookTag},
+		connect.Method{Spec: libraryServiceRemoveBookSpec(), Handler: adapter.removeBook},
+		connect.Method{Spec: libraryServiceUpdateReadingProgressSpec(), Handler: adapter.updateReadingProgress},
+		connect.Method{Spec: libraryServiceGetReadingStateSpec(), Handler: adapter.getReadingState},
+		connect.Method{Spec: libraryServiceTranslateReadingPositionSpec(), Handler: adapter.translateReadingPosition},
+		connect.Method{Spec: libraryServiceGetBookContentSpec(), Handler: adapter.getBookContent},
+		connect.Method{Spec: libraryServiceGetSeriesSpec(), Handler: adapter.getSeries},
+		connect.Method{Spec: libraryServiceCreateShelfSpec(), Handler: adapter.createShelf},
+		connect.Method{Spec: libraryServiceRenameShelfSpec(), Handler: adapter.renameShelf},
+		connect.Method{Spec: libraryServiceDeleteShelfSpec(), Handler: adapter.deleteShelf},
+		connect.Method{Spec: libraryServiceRenameTagSpec(), Handler: adapter.renameTag},
+		connect.Method{Spec: libraryServiceDeleteTagSpec(), Handler: adapter.deleteTag},
 	)
-	libraryServiceGetBooksProgressHandler := connect.NewUnaryHandler(
-		LibraryServiceGetBooksProgressProcedure,
-		svc.GetBooksProgress,
-		connect.WithSchema(libraryServiceMethods.ByName("GetBooksProgress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceSearchLibraryHandler := connect.NewUnaryHandler(
-		LibraryServiceSearchLibraryProcedure,
-		svc.SearchLibrary,
-		connect.WithSchema(libraryServiceMethods.ByName("SearchLibrary")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceSearchExternalHandler := connect.NewUnaryHandler(
-		LibraryServiceSearchExternalProcedure,
-		svc.SearchExternal,
-		connect.WithSchema(libraryServiceMethods.ByName("SearchExternal")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceGetExternalBookHandler := connect.NewUnaryHandler(
-		LibraryServiceGetExternalBookProcedure,
-		svc.GetExternalBook,
-		connect.WithSchema(libraryServiceMethods.ByName("GetExternalBook")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceCreateBookHandler := connect.NewUnaryHandler(
-		LibraryServiceCreateBookProcedure,
-		svc.CreateBook,
-		connect.WithSchema(libraryServiceMethods.ByName("CreateBook")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceUpdateBookStatusHandler := connect.NewUnaryHandler(
-		LibraryServiceUpdateBookStatusProcedure,
-		svc.UpdateBookStatus,
-		connect.WithSchema(libraryServiceMethods.ByName("UpdateBookStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceUpdateFinishedAtHandler := connect.NewUnaryHandler(
-		LibraryServiceUpdateFinishedAtProcedure,
-		svc.UpdateFinishedAt,
-		connect.WithSchema(libraryServiceMethods.ByName("UpdateFinishedAt")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceUpdateProgressHandler := connect.NewUnaryHandler(
-		LibraryServiceUpdateProgressProcedure,
-		svc.UpdateProgress,
-		connect.WithSchema(libraryServiceMethods.ByName("UpdateProgress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceToggleTagHandler := connect.NewUnaryHandler(
-		LibraryServiceToggleTagProcedure,
-		svc.ToggleTag,
-		connect.WithSchema(libraryServiceMethods.ByName("ToggleTag")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceSetBookTagHandler := connect.NewUnaryHandler(
-		LibraryServiceSetBookTagProcedure,
-		svc.SetBookTag,
-		connect.WithSchema(libraryServiceMethods.ByName("SetBookTag")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceRemoveBookHandler := connect.NewUnaryHandler(
-		LibraryServiceRemoveBookProcedure,
-		svc.RemoveBook,
-		connect.WithSchema(libraryServiceMethods.ByName("RemoveBook")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceUpdateReadingProgressHandler := connect.NewUnaryHandler(
-		LibraryServiceUpdateReadingProgressProcedure,
-		svc.UpdateReadingProgress,
-		connect.WithSchema(libraryServiceMethods.ByName("UpdateReadingProgress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceGetReadingStateHandler := connect.NewUnaryHandler(
-		LibraryServiceGetReadingStateProcedure,
-		svc.GetReadingState,
-		connect.WithSchema(libraryServiceMethods.ByName("GetReadingState")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceTranslateReadingPositionHandler := connect.NewUnaryHandler(
-		LibraryServiceTranslateReadingPositionProcedure,
-		svc.TranslateReadingPosition,
-		connect.WithSchema(libraryServiceMethods.ByName("TranslateReadingPosition")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceGetBookContentHandler := connect.NewUnaryHandler(
-		LibraryServiceGetBookContentProcedure,
-		svc.GetBookContent,
-		connect.WithSchema(libraryServiceMethods.ByName("GetBookContent")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceGetSeriesHandler := connect.NewUnaryHandler(
-		LibraryServiceGetSeriesProcedure,
-		svc.GetSeries,
-		connect.WithSchema(libraryServiceMethods.ByName("GetSeries")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceCreateShelfHandler := connect.NewUnaryHandler(
-		LibraryServiceCreateShelfProcedure,
-		svc.CreateShelf,
-		connect.WithSchema(libraryServiceMethods.ByName("CreateShelf")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceRenameShelfHandler := connect.NewUnaryHandler(
-		LibraryServiceRenameShelfProcedure,
-		svc.RenameShelf,
-		connect.WithSchema(libraryServiceMethods.ByName("RenameShelf")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceDeleteShelfHandler := connect.NewUnaryHandler(
-		LibraryServiceDeleteShelfProcedure,
-		svc.DeleteShelf,
-		connect.WithSchema(libraryServiceMethods.ByName("DeleteShelf")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceRenameTagHandler := connect.NewUnaryHandler(
-		LibraryServiceRenameTagProcedure,
-		svc.RenameTag,
-		connect.WithSchema(libraryServiceMethods.ByName("RenameTag")),
-		connect.WithHandlerOptions(opts...),
-	)
-	libraryServiceDeleteTagHandler := connect.NewUnaryHandler(
-		LibraryServiceDeleteTagProcedure,
-		svc.DeleteTag,
-		connect.WithSchema(libraryServiceMethods.ByName("DeleteTag")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/books.v1.LibraryService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case LibraryServiceGetLibraryProcedure:
-			libraryServiceGetLibraryHandler.ServeHTTP(w, r)
-		case LibraryServiceGetBooksProgressProcedure:
-			libraryServiceGetBooksProgressHandler.ServeHTTP(w, r)
-		case LibraryServiceSearchLibraryProcedure:
-			libraryServiceSearchLibraryHandler.ServeHTTP(w, r)
-		case LibraryServiceSearchExternalProcedure:
-			libraryServiceSearchExternalHandler.ServeHTTP(w, r)
-		case LibraryServiceGetExternalBookProcedure:
-			libraryServiceGetExternalBookHandler.ServeHTTP(w, r)
-		case LibraryServiceCreateBookProcedure:
-			libraryServiceCreateBookHandler.ServeHTTP(w, r)
-		case LibraryServiceUpdateBookStatusProcedure:
-			libraryServiceUpdateBookStatusHandler.ServeHTTP(w, r)
-		case LibraryServiceUpdateFinishedAtProcedure:
-			libraryServiceUpdateFinishedAtHandler.ServeHTTP(w, r)
-		case LibraryServiceUpdateProgressProcedure:
-			libraryServiceUpdateProgressHandler.ServeHTTP(w, r)
-		case LibraryServiceToggleTagProcedure:
-			libraryServiceToggleTagHandler.ServeHTTP(w, r)
-		case LibraryServiceSetBookTagProcedure:
-			libraryServiceSetBookTagHandler.ServeHTTP(w, r)
-		case LibraryServiceRemoveBookProcedure:
-			libraryServiceRemoveBookHandler.ServeHTTP(w, r)
-		case LibraryServiceUpdateReadingProgressProcedure:
-			libraryServiceUpdateReadingProgressHandler.ServeHTTP(w, r)
-		case LibraryServiceGetReadingStateProcedure:
-			libraryServiceGetReadingStateHandler.ServeHTTP(w, r)
-		case LibraryServiceTranslateReadingPositionProcedure:
-			libraryServiceTranslateReadingPositionHandler.ServeHTTP(w, r)
-		case LibraryServiceGetBookContentProcedure:
-			libraryServiceGetBookContentHandler.ServeHTTP(w, r)
-		case LibraryServiceGetSeriesProcedure:
-			libraryServiceGetSeriesHandler.ServeHTTP(w, r)
-		case LibraryServiceCreateShelfProcedure:
-			libraryServiceCreateShelfHandler.ServeHTTP(w, r)
-		case LibraryServiceRenameShelfProcedure:
-			libraryServiceRenameShelfHandler.ServeHTTP(w, r)
-		case LibraryServiceDeleteShelfProcedure:
-			libraryServiceDeleteShelfHandler.ServeHTTP(w, r)
-		case LibraryServiceRenameTagProcedure:
-			libraryServiceRenameTagHandler.ServeHTTP(w, r)
-		case LibraryServiceDeleteTagProcedure:
-			libraryServiceDeleteTagHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedLibraryServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedLibraryServiceHandler struct{}
 
-func (UnimplementedLibraryServiceHandler) GetLibrary(context.Context, *connect.Request[v1.GetLibraryRequest]) (*connect.Response[v1.GetLibraryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.GetLibrary is not implemented"))
+func (UnimplementedLibraryServiceHandler) GetLibrary(context.Context, *v1.GetLibraryRequest) (*v1.GetLibraryResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.GetLibrary is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) GetBooksProgress(context.Context, *connect.Request[v1.GetBooksProgressRequest]) (*connect.Response[v1.GetBooksProgressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.GetBooksProgress is not implemented"))
+func (UnimplementedLibraryServiceHandler) GetBooksProgress(context.Context, *v1.GetBooksProgressRequest) (*v1.GetBooksProgressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.GetBooksProgress is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) SearchLibrary(context.Context, *connect.Request[v1.SearchLibraryRequest]) (*connect.Response[v1.SearchLibraryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.SearchLibrary is not implemented"))
+func (UnimplementedLibraryServiceHandler) SearchLibrary(context.Context, *v1.SearchLibraryRequest) (*v1.SearchLibraryResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.SearchLibrary is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) SearchExternal(context.Context, *connect.Request[v1.SearchExternalRequest]) (*connect.Response[v1.SearchExternalResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.SearchExternal is not implemented"))
+func (UnimplementedLibraryServiceHandler) SearchExternal(context.Context, *v1.SearchExternalRequest) (*v1.SearchExternalResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.SearchExternal is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) GetExternalBook(context.Context, *connect.Request[v1.GetExternalBookRequest]) (*connect.Response[v1.GetExternalBookResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.GetExternalBook is not implemented"))
+func (UnimplementedLibraryServiceHandler) GetExternalBook(context.Context, *v1.GetExternalBookRequest) (*v1.GetExternalBookResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.GetExternalBook is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) CreateBook(context.Context, *connect.Request[v1.CreateBookRequest]) (*connect.Response[v1.CreateBookResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.CreateBook is not implemented"))
+func (UnimplementedLibraryServiceHandler) CreateBook(context.Context, *v1.CreateBookRequest) (*v1.CreateBookResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.CreateBook is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) UpdateBookStatus(context.Context, *connect.Request[v1.UpdateBookStatusRequest]) (*connect.Response[v1.UpdateBookStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.UpdateBookStatus is not implemented"))
+func (UnimplementedLibraryServiceHandler) UpdateBookStatus(context.Context, *v1.UpdateBookStatusRequest) (*v1.UpdateBookStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.UpdateBookStatus is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) UpdateFinishedAt(context.Context, *connect.Request[v1.UpdateFinishedAtRequest]) (*connect.Response[v1.UpdateFinishedAtResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.UpdateFinishedAt is not implemented"))
+func (UnimplementedLibraryServiceHandler) UpdateFinishedAt(context.Context, *v1.UpdateFinishedAtRequest) (*v1.UpdateFinishedAtResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.UpdateFinishedAt is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) UpdateProgress(context.Context, *connect.Request[v1.UpdateProgressRequest]) (*connect.Response[v1.UpdateProgressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.UpdateProgress is not implemented"))
+func (UnimplementedLibraryServiceHandler) UpdateProgress(context.Context, *v1.UpdateProgressRequest) (*v1.UpdateProgressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.UpdateProgress is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) ToggleTag(context.Context, *connect.Request[v1.ToggleTagRequest]) (*connect.Response[v1.ToggleTagResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.ToggleTag is not implemented"))
+func (UnimplementedLibraryServiceHandler) ToggleTag(context.Context, *v1.ToggleTagRequest) (*v1.ToggleTagResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.ToggleTag is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) SetBookTag(context.Context, *connect.Request[v1.SetBookTagRequest]) (*connect.Response[v1.SetBookTagResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.SetBookTag is not implemented"))
+func (UnimplementedLibraryServiceHandler) SetBookTag(context.Context, *v1.SetBookTagRequest) (*v1.SetBookTagResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.SetBookTag is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) RemoveBook(context.Context, *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.RemoveBook is not implemented"))
+func (UnimplementedLibraryServiceHandler) RemoveBook(context.Context, *v1.RemoveBookRequest) (*v1.RemoveBookResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.RemoveBook is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.UpdateReadingProgress is not implemented"))
+func (UnimplementedLibraryServiceHandler) UpdateReadingProgress(context.Context, *v1.UpdateReadingProgressRequest) (*v1.UpdateReadingProgressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.UpdateReadingProgress is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.GetReadingState is not implemented"))
+func (UnimplementedLibraryServiceHandler) GetReadingState(context.Context, *v1.GetReadingStateRequest) (*v1.GetReadingStateResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.GetReadingState is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) TranslateReadingPosition(context.Context, *connect.Request[v1.TranslateReadingPositionRequest]) (*connect.Response[v1.TranslateReadingPositionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.TranslateReadingPosition is not implemented"))
+func (UnimplementedLibraryServiceHandler) TranslateReadingPosition(context.Context, *v1.TranslateReadingPositionRequest) (*v1.TranslateReadingPositionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.TranslateReadingPosition is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) GetBookContent(context.Context, *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.GetBookContent is not implemented"))
+func (UnimplementedLibraryServiceHandler) GetBookContent(context.Context, *v1.GetBookContentRequest) (*v1.GetBookContentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.GetBookContent is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) GetSeries(context.Context, *connect.Request[v1.GetSeriesRequest]) (*connect.Response[v1.GetSeriesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.GetSeries is not implemented"))
+func (UnimplementedLibraryServiceHandler) GetSeries(context.Context, *v1.GetSeriesRequest) (*v1.GetSeriesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.GetSeries is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) CreateShelf(context.Context, *connect.Request[v1.CreateShelfRequest]) (*connect.Response[v1.CreateShelfResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.CreateShelf is not implemented"))
+func (UnimplementedLibraryServiceHandler) CreateShelf(context.Context, *v1.CreateShelfRequest) (*v1.CreateShelfResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.CreateShelf is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) RenameShelf(context.Context, *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.RenameShelf is not implemented"))
+func (UnimplementedLibraryServiceHandler) RenameShelf(context.Context, *v1.RenameShelfRequest) (*v1.RenameShelfResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.RenameShelf is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) DeleteShelf(context.Context, *connect.Request[v1.DeleteShelfRequest]) (*connect.Response[v1.DeleteShelfResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.DeleteShelf is not implemented"))
+func (UnimplementedLibraryServiceHandler) DeleteShelf(context.Context, *v1.DeleteShelfRequest) (*v1.DeleteShelfResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.DeleteShelf is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) RenameTag(context.Context, *connect.Request[v1.RenameTagRequest]) (*connect.Response[v1.RenameTagResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.RenameTag is not implemented"))
+func (UnimplementedLibraryServiceHandler) RenameTag(context.Context, *v1.RenameTagRequest) (*v1.RenameTagResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.RenameTag is not implemented")
 }
 
-func (UnimplementedLibraryServiceHandler) DeleteTag(context.Context, *connect.Request[v1.DeleteTagRequest]) (*connect.Response[v1.DeleteTagResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.DeleteTag is not implemented"))
+func (UnimplementedLibraryServiceHandler) DeleteTag(context.Context, *v1.DeleteTagRequest) (*v1.DeleteTagResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.LibraryService.DeleteTag is not implemented")
+}
+
+type libraryServiceClient struct {
+	client *connect.Client
+}
+
+func (c *libraryServiceClient) GetLibrary(ctx context.Context, req *v1.GetLibraryRequest) (*v1.GetLibraryResponse, error) {
+	var res v1.GetLibraryResponse
+	if err := c.client.CallUnary(ctx, libraryServiceGetLibrarySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) GetBooksProgress(ctx context.Context, req *v1.GetBooksProgressRequest) (*v1.GetBooksProgressResponse, error) {
+	var res v1.GetBooksProgressResponse
+	if err := c.client.CallUnary(ctx, libraryServiceGetBooksProgressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) SearchLibrary(ctx context.Context, req *v1.SearchLibraryRequest) (*v1.SearchLibraryResponse, error) {
+	var res v1.SearchLibraryResponse
+	if err := c.client.CallUnary(ctx, libraryServiceSearchLibrarySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) SearchExternal(ctx context.Context, req *v1.SearchExternalRequest) (*v1.SearchExternalResponse, error) {
+	var res v1.SearchExternalResponse
+	if err := c.client.CallUnary(ctx, libraryServiceSearchExternalSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) GetExternalBook(ctx context.Context, req *v1.GetExternalBookRequest) (*v1.GetExternalBookResponse, error) {
+	var res v1.GetExternalBookResponse
+	if err := c.client.CallUnary(ctx, libraryServiceGetExternalBookSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) CreateBook(ctx context.Context, req *v1.CreateBookRequest) (*v1.CreateBookResponse, error) {
+	var res v1.CreateBookResponse
+	if err := c.client.CallUnary(ctx, libraryServiceCreateBookSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) UpdateBookStatus(ctx context.Context, req *v1.UpdateBookStatusRequest) (*v1.UpdateBookStatusResponse, error) {
+	var res v1.UpdateBookStatusResponse
+	if err := c.client.CallUnary(ctx, libraryServiceUpdateBookStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) UpdateFinishedAt(ctx context.Context, req *v1.UpdateFinishedAtRequest) (*v1.UpdateFinishedAtResponse, error) {
+	var res v1.UpdateFinishedAtResponse
+	if err := c.client.CallUnary(ctx, libraryServiceUpdateFinishedAtSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) UpdateProgress(ctx context.Context, req *v1.UpdateProgressRequest) (*v1.UpdateProgressResponse, error) {
+	var res v1.UpdateProgressResponse
+	if err := c.client.CallUnary(ctx, libraryServiceUpdateProgressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) ToggleTag(ctx context.Context, req *v1.ToggleTagRequest) (*v1.ToggleTagResponse, error) {
+	var res v1.ToggleTagResponse
+	if err := c.client.CallUnary(ctx, libraryServiceToggleTagSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) SetBookTag(ctx context.Context, req *v1.SetBookTagRequest) (*v1.SetBookTagResponse, error) {
+	var res v1.SetBookTagResponse
+	if err := c.client.CallUnary(ctx, libraryServiceSetBookTagSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) RemoveBook(ctx context.Context, req *v1.RemoveBookRequest) (*v1.RemoveBookResponse, error) {
+	var res v1.RemoveBookResponse
+	if err := c.client.CallUnary(ctx, libraryServiceRemoveBookSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) UpdateReadingProgress(ctx context.Context, req *v1.UpdateReadingProgressRequest) (*v1.UpdateReadingProgressResponse, error) {
+	var res v1.UpdateReadingProgressResponse
+	if err := c.client.CallUnary(ctx, libraryServiceUpdateReadingProgressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) GetReadingState(ctx context.Context, req *v1.GetReadingStateRequest) (*v1.GetReadingStateResponse, error) {
+	var res v1.GetReadingStateResponse
+	if err := c.client.CallUnary(ctx, libraryServiceGetReadingStateSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) TranslateReadingPosition(ctx context.Context, req *v1.TranslateReadingPositionRequest) (*v1.TranslateReadingPositionResponse, error) {
+	var res v1.TranslateReadingPositionResponse
+	if err := c.client.CallUnary(ctx, libraryServiceTranslateReadingPositionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) GetBookContent(ctx context.Context, req *v1.GetBookContentRequest) (*v1.GetBookContentResponse, error) {
+	var res v1.GetBookContentResponse
+	if err := c.client.CallUnary(ctx, libraryServiceGetBookContentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) GetSeries(ctx context.Context, req *v1.GetSeriesRequest) (*v1.GetSeriesResponse, error) {
+	var res v1.GetSeriesResponse
+	if err := c.client.CallUnary(ctx, libraryServiceGetSeriesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) CreateShelf(ctx context.Context, req *v1.CreateShelfRequest) (*v1.CreateShelfResponse, error) {
+	var res v1.CreateShelfResponse
+	if err := c.client.CallUnary(ctx, libraryServiceCreateShelfSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) RenameShelf(ctx context.Context, req *v1.RenameShelfRequest) (*v1.RenameShelfResponse, error) {
+	var res v1.RenameShelfResponse
+	if err := c.client.CallUnary(ctx, libraryServiceRenameShelfSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) DeleteShelf(ctx context.Context, req *v1.DeleteShelfRequest) (*v1.DeleteShelfResponse, error) {
+	var res v1.DeleteShelfResponse
+	if err := c.client.CallUnary(ctx, libraryServiceDeleteShelfSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) RenameTag(ctx context.Context, req *v1.RenameTagRequest) (*v1.RenameTagResponse, error) {
+	var res v1.RenameTagResponse
+	if err := c.client.CallUnary(ctx, libraryServiceRenameTagSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *libraryServiceClient) DeleteTag(ctx context.Context, req *v1.DeleteTagRequest) (*v1.DeleteTagResponse, error) {
+	var res v1.DeleteTagResponse
+	if err := c.client.CallUnary(ctx, libraryServiceDeleteTagSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type libraryServiceHandler struct{ svc LibraryServiceHandler }
+
+func (h libraryServiceHandler) getLibrary(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetLibraryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetLibrary(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) getBooksProgress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBooksProgressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBooksProgress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) searchLibrary(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SearchLibraryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SearchLibrary(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) searchExternal(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SearchExternalRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SearchExternal(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) getExternalBook(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetExternalBookRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetExternalBook(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) createBook(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateBookRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateBook(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) updateBookStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateBookStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateBookStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) updateFinishedAt(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateFinishedAtRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateFinishedAt(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) updateProgress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateProgressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateProgress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) toggleTag(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ToggleTagRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ToggleTag(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) setBookTag(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetBookTagRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetBookTag(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) removeBook(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RemoveBookRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveBook(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) updateReadingProgress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateReadingProgressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateReadingProgress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) getReadingState(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetReadingStateRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetReadingState(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) translateReadingPosition(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.TranslateReadingPositionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.TranslateReadingPosition(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) getBookContent(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBookContentRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBookContent(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) getSeries(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSeriesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSeries(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) createShelf(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateShelfRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateShelf(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) renameShelf(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RenameShelfRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RenameShelf(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) deleteShelf(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteShelfRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteShelf(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) renameTag(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RenameTagRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RenameTag(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h libraryServiceHandler) deleteTag(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteTagRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteTag(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,6 +15,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 const mergeTestUser = "merge-books-test-user"
@@ -561,14 +562,16 @@ func TestMergeBooks_OrphanedLoserBookDeleted(t *testing.T) {
 func TestConnectMergeBooks_InvalidCoverSourceID(t *testing.T) {
 	client := newAdminBooksTestClient(t)
 	bad := "not-a-uuid"
-	req := connect.NewRequest(&booksv1.MergeBooksRequest{
+	req := &booksv1.MergeBooksRequest{
 		WinnerBookId:              uuid.NewString(),
 		LoserBookIds:              []string{},
 		ResolvedCoverSourceBookId: &bad,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.MergeBooks(context.Background(), req)
+	_, err := client.MergeBooks(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -577,23 +580,27 @@ func TestConnectMergeBooks_InvalidCoverSourceID(t *testing.T) {
 
 func TestConnectFindDuplicates_OK(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.FindDuplicatesRequest{})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.FindDuplicatesRequest{}
 
-	resp, err := client.FindDuplicates(context.Background(), req)
+	resp, err := client.FindDuplicates(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
-	assert.NotNil(t, resp.Msg)
+	assert.NotNil(t, resp)
 }
 
 func TestConnectMergeBooks_InvalidWinnerID(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.MergeBooksRequest{
+	req := &booksv1.MergeBooksRequest{
 		WinnerBookId: "not-a-uuid",
 		LoserBookIds: []string{},
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.MergeBooks(context.Background(), req)
+	_, err := client.MergeBooks(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -602,13 +609,15 @@ func TestConnectMergeBooks_InvalidWinnerID(t *testing.T) {
 
 func TestConnectMergeBooks_InvalidLoserID(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.MergeBooksRequest{
+	req := &booksv1.MergeBooksRequest{
 		WinnerBookId: uuid.NewString(),
 		LoserBookIds: []string{"not-a-uuid"},
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.MergeBooks(context.Background(), req)
+	_, err := client.MergeBooks(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -745,14 +754,16 @@ func TestConnectMergeBooks_ResolvedStatusApplied(t *testing.T) {
 
 	client := newAdminBooksTestClient(t)
 	forced := "connect-shelf"
-	req := connect.NewRequest(&booksv1.MergeBooksRequest{
+	req := &booksv1.MergeBooksRequest{
 		WinnerBookId:   winner.BookID.String(),
 		LoserBookIds:   []string{loser.BookID.String()},
 		ResolvedStatus: &forced,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.MergeBooks(context.Background(), req)
+	_, err := client.MergeBooks(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
 
 	var status string

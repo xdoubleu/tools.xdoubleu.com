@@ -2,11 +2,10 @@ package shoppinglist
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/shoppinglist/internal/services"
@@ -44,8 +43,8 @@ func mapError(err error) error {
 
 func (h *shoppingConnectHandler) GetCustomList(
 	ctx context.Context,
-	_ *connect.Request[shoppinglistv1.GetCustomListRequest],
-) (*connect.Response[shoppinglistv1.GetCustomListResponse], error) {
+	_ *shoppinglistv1.GetCustomListRequest,
+) (*shoppinglistv1.GetCustomListResponse, error) {
 	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
@@ -66,29 +65,29 @@ func (h *shoppingConnectHandler) GetCustomList(
 		}
 	}
 
-	return connect.NewResponse(&shoppinglistv1.GetCustomListResponse{Items: pb}), nil
+	return &shoppinglistv1.GetCustomListResponse{Items: pb}, nil
 }
 
 func (h *shoppingConnectHandler) CreateShoppingItem(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.CreateShoppingItemRequest],
-) (*connect.Response[shoppinglistv1.CreateShoppingItemResponse], error) {
-	if req.Msg.Name == "" {
-		return nil, connect.NewError(
+	req *shoppinglistv1.CreateShoppingItemRequest,
+) (*shoppinglistv1.CreateShoppingItemResponse, error) {
+	if req.Name == "" {
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("name is required"),
+			"name is required",
 		)
 	}
 
-	amount, err := strconv.ParseFloat(req.Msg.Amount, 64)
+	amount, err := strconv.ParseFloat(req.Amount, 64)
 	if err != nil || amount < 0 {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("amount must be a non-negative number"),
+			"amount must be a non-negative number",
 		)
 	}
 
-	id, err := connecttools.ParseClientID(req.Msg.Id)
+	id, err := connecttools.ParseClientID(req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -99,46 +98,46 @@ func (h *shoppingConnectHandler) CreateShoppingItem(
 	}
 
 	item, err := h.app.services.Shopping.AddItem(
-		ctx, userID, id, req.Msg.Name, req.Msg.Unit, amount,
+		ctx, userID, id, req.Name, req.Unit, amount,
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&shoppinglistv1.CreateShoppingItemResponse{
+	return &shoppinglistv1.CreateShoppingItemResponse{
 		Item: &shoppinglistv1.ShoppingItem{
 			Id:     item.ID,
 			Name:   item.Name,
 			Amount: format.ToAmount(item.Amount),
 			Unit:   item.Unit,
 		},
-	}), nil
+	}, nil
 }
 
 func (h *shoppingConnectHandler) UpdateShoppingItem(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.UpdateShoppingItemRequest],
-) (*connect.Response[shoppinglistv1.UpdateShoppingItemResponse], error) {
-	itemID, err := uuid.Parse(req.Msg.ItemId)
+	req *shoppinglistv1.UpdateShoppingItemRequest,
+) (*shoppinglistv1.UpdateShoppingItemResponse, error) {
+	itemID, err := uuid.Parse(req.ItemId)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid item ID"),
+			"invalid item ID",
 		)
 	}
 
-	if req.Msg.Name == "" {
-		return nil, connect.NewError(
+	if req.Name == "" {
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("name is required"),
+			"name is required",
 		)
 	}
 
-	amount, err := strconv.ParseFloat(req.Msg.Amount, 64)
+	amount, err := strconv.ParseFloat(req.Amount, 64)
 	if err != nil || amount < 0 {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("amount must be a non-negative number"),
+			"amount must be a non-negative number",
 		)
 	}
 
@@ -148,31 +147,31 @@ func (h *shoppingConnectHandler) UpdateShoppingItem(
 	}
 
 	item, err := h.app.services.Shopping.UpdateItem(
-		ctx, userID, itemID, req.Msg.Name, req.Msg.Unit, amount,
+		ctx, userID, itemID, req.Name, req.Unit, amount,
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&shoppinglistv1.UpdateShoppingItemResponse{
+	return &shoppinglistv1.UpdateShoppingItemResponse{
 		Item: &shoppinglistv1.ShoppingItem{
 			Id:     item.ID,
 			Name:   item.Name,
 			Amount: format.ToAmount(item.Amount),
 			Unit:   item.Unit,
 		},
-	}), nil
+	}, nil
 }
 
 func (h *shoppingConnectHandler) DeleteShoppingItem(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.DeleteShoppingItemRequest],
-) (*connect.Response[shoppinglistv1.DeleteShoppingItemResponse], error) {
-	itemID, err := uuid.Parse(req.Msg.ItemId)
+	req *shoppinglistv1.DeleteShoppingItemRequest,
+) (*shoppinglistv1.DeleteShoppingItemResponse, error) {
+	itemID, err := uuid.Parse(req.ItemId)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid item ID"),
+			"invalid item ID",
 		)
 	}
 
@@ -185,33 +184,33 @@ func (h *shoppingConnectHandler) DeleteShoppingItem(
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&shoppinglistv1.DeleteShoppingItemResponse{}), nil
+	return &shoppinglistv1.DeleteShoppingItemResponse{}, nil
 }
 
 func (h *shoppingConnectHandler) GetMealPlanExportItems(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.GetMealPlanExportItemsRequest],
-) (*connect.Response[shoppinglistv1.GetMealPlanExportItemsResponse], error) {
+	req *shoppinglistv1.GetMealPlanExportItemsRequest,
+) (*shoppinglistv1.GetMealPlanExportItemsResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	planID, err := uuid.Parse(req.Msg.PlanId)
+	planID, err := uuid.Parse(req.PlanId)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid plan ID"),
+			"invalid plan ID",
 		)
 	}
 
 	today, end, pastSlots := services.ExportWindow(time.Now().UTC())
 
 	items, err := h.app.services.Shopping.GetMealPlanExportItems(
-		ctx, planID, user.ID, today, end, pastSlots, req.Msg.ExcludedGroups,
+		ctx, planID, user.ID, today, end, pastSlots, req.ExcludedGroups,
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -228,28 +227,28 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 		}
 	}
 
-	return connect.NewResponse(&shoppinglistv1.GetMealPlanExportItemsResponse{
+	return &shoppinglistv1.GetMealPlanExportItemsResponse{
 		Items: pb,
-	}), nil
+	}, nil
 }
 
 func (h *shoppingConnectHandler) GetPlanIngredientGroups(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.GetPlanIngredientGroupsRequest],
-) (*connect.Response[shoppinglistv1.GetPlanIngredientGroupsResponse], error) {
+	req *shoppinglistv1.GetPlanIngredientGroupsRequest,
+) (*shoppinglistv1.GetPlanIngredientGroupsResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	planID, err := uuid.Parse(req.Msg.PlanId)
+	planID, err := uuid.Parse(req.PlanId)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid plan ID"),
+			"invalid plan ID",
 		)
 	}
 
@@ -270,7 +269,7 @@ func (h *shoppingConnectHandler) GetPlanIngredientGroups(
 		}
 	}
 
-	return connect.NewResponse(&shoppinglistv1.GetPlanIngredientGroupsResponse{
+	return &shoppinglistv1.GetPlanIngredientGroupsResponse{
 		Groups: pb,
-	}), nil
+	}, nil
 }

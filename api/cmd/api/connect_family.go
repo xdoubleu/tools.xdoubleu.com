@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	familyv1 "tools.xdoubleu.com/gen/family/v1"
@@ -46,23 +46,23 @@ func (h *familyConnectHandler) emailsByUserID(
 
 func (h *familyConnectHandler) GetFamily(
 	ctx context.Context,
-	_ *connect.Request[familyv1.GetFamilyRequest],
-) (*connect.Response[familyv1.GetFamilyResponse], error) {
+	_ *familyv1.GetFamilyRequest,
+) (*familyv1.GetFamilyResponse, error) {
 	userID := h.userID(ctx)
 
 	membership, err := h.app.family.GetMembership(ctx, userID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	invite, hasInvite, err := h.app.family.GetIncomingInvite(ctx, userID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	emails, err := h.emailsByUserID(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	members := make([]*familyv1.FamilyMember, len(membership.Members))
@@ -88,87 +88,87 @@ func (h *familyConnectHandler) GetFamily(
 		}
 	}
 
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 func (h *familyConnectHandler) InviteToFamily(
 	ctx context.Context,
-	req *connect.Request[familyv1.InviteToFamilyRequest],
-) (*connect.Response[familyv1.InviteToFamilyResponse], error) {
+	req *familyv1.InviteToFamilyRequest,
+) (*familyv1.InviteToFamilyResponse, error) {
 	userID := h.userID(ctx)
 
-	if err := h.app.family.InviteByEmail(ctx, userID, req.Msg.Email); err != nil {
+	if err := h.app.family.InviteByEmail(ctx, userID, req.Email); err != nil {
 		if family.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, err)
+			return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 		}
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&familyv1.InviteToFamilyResponse{}), nil
+	return &familyv1.InviteToFamilyResponse{}, nil
 }
 
 func (h *familyConnectHandler) AcceptFamilyInvite(
 	ctx context.Context,
-	req *connect.Request[familyv1.AcceptFamilyInviteRequest],
-) (*connect.Response[familyv1.AcceptFamilyInviteResponse], error) {
+	req *familyv1.AcceptFamilyInviteRequest,
+) (*familyv1.AcceptFamilyInviteResponse, error) {
 	userID := h.userID(ctx)
 
-	inviteID, err := uuid.Parse(req.Msg.InviteId)
+	inviteID, err := uuid.Parse(req.InviteId)
 	if err != nil {
 		return nil, connect.NewError(
-			connect.CodeInvalidArgument, errors.New("invalid invite ID"),
+			connect.CodeInvalidArgument, "invalid invite ID",
 		)
 	}
 
 	if err = h.app.family.Accept(ctx, userID, inviteID); err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
 			return nil, connect.NewError(
-				connect.CodeNotFound, errors.New("invite is no longer pending"),
+				connect.CodeNotFound, "invite is no longer pending",
 			)
 		}
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&familyv1.AcceptFamilyInviteResponse{}), nil
+	return &familyv1.AcceptFamilyInviteResponse{}, nil
 }
 
 func (h *familyConnectHandler) DeclineFamilyInvite(
 	ctx context.Context,
-	_ *connect.Request[familyv1.DeclineFamilyInviteRequest],
-) (*connect.Response[familyv1.DeclineFamilyInviteResponse], error) {
+	_ *familyv1.DeclineFamilyInviteRequest,
+) (*familyv1.DeclineFamilyInviteResponse, error) {
 	userID := h.userID(ctx)
 
 	if err := h.app.family.Decline(ctx, userID); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&familyv1.DeclineFamilyInviteResponse{}), nil
+	return &familyv1.DeclineFamilyInviteResponse{}, nil
 }
 
 func (h *familyConnectHandler) SetFamilyDisplayName(
 	ctx context.Context,
-	req *connect.Request[familyv1.SetFamilyDisplayNameRequest],
-) (*connect.Response[familyv1.SetFamilyDisplayNameResponse], error) {
+	req *familyv1.SetFamilyDisplayNameRequest,
+) (*familyv1.SetFamilyDisplayNameResponse, error) {
 	userID := h.userID(ctx)
 
 	if err := h.app.family.SetDisplayName(
-		ctx, userID, req.Msg.DisplayName,
+		ctx, userID, req.DisplayName,
 	); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&familyv1.SetFamilyDisplayNameResponse{}), nil
+	return &familyv1.SetFamilyDisplayNameResponse{}, nil
 }
 
 func (h *familyConnectHandler) LeaveFamily(
 	ctx context.Context,
-	_ *connect.Request[familyv1.LeaveFamilyRequest],
-) (*connect.Response[familyv1.LeaveFamilyResponse], error) {
+	_ *familyv1.LeaveFamilyRequest,
+) (*familyv1.LeaveFamilyResponse, error) {
 	userID := h.userID(ctx)
 
 	if err := h.app.family.Leave(ctx, userID); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&familyv1.LeaveFamilyResponse{}), nil
+	return &familyv1.LeaveFamilyResponse{}, nil
 }

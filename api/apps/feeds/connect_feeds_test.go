@@ -8,7 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,15 @@ func newFeedsClient(t *testing.T) feedsv1connect.FeedServiceClient {
 	t.Helper()
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
-	return feedsv1connect.NewFeedServiceClient(http.DefaultClient, ts.URL)
+	return feedsv1connect.NewFeedServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(
+				http.DefaultClient,
+				ts.URL,
+				connecthttp.WithReadMaxBytes(0),
+			),
+		),
+	)
 }
 
 func uniqueBlogBase() string {
@@ -86,10 +95,10 @@ func fetchItemContent(
 	t.Helper()
 	resp, err := client.GetFeedItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: itemID}),
+		&feedsv1.GetFeedItemRequest{ItemId: itemID},
 	)
 	require.NoError(t, err)
-	return resp.Msg.Item.ContentHtml
+	return resp.Item.ContentHtml
 }
 
 // waitForFeedImport waits until the feed's background import lands an item.
@@ -102,10 +111,10 @@ func waitForFeedImport(
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		resp, err := client.ListFeedItems(
-			context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+			context.Background(), &feedsv1.ListFeedItemsRequest{},
 		)
 		require.NoError(t, err)
-		for _, item := range resp.Msg.Items {
+		for _, item := range resp.Items {
 			if item.FeedId == feedID {
 				return
 			}
@@ -127,10 +136,10 @@ func waitForFeedPollHealth(
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		resp, err := client.ListFeeds(
-			context.Background(), connect.NewRequest(&feedsv1.ListFeedsRequest{}),
+			context.Background(), &feedsv1.ListFeedsRequest{},
 		)
 		require.NoError(t, err)
-		if found := findFeed(resp.Msg.Feeds, feedID); found != nil && found.Etag != "" {
+		if found := findFeed(resp.Feeds, feedID); found != nil && found.Etag != "" {
 			return found
 		}
 		time.Sleep(20 * time.Millisecond)
@@ -142,10 +151,10 @@ func waitForFeedPollHealth(
 func TestListFeeds_Empty(t *testing.T) {
 	client := newFeedsClient(t)
 	resp, err := client.ListFeeds(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedsRequest{}),
+		context.Background(), &feedsv1.ListFeedsRequest{},
 	)
 	require.NoError(t, err)
-	assert.NotNil(t, resp.Msg)
+	assert.NotNil(t, resp)
 }
 
 func TestCreateFeed_RSS_Success(t *testing.T) {
@@ -158,21 +167,21 @@ func TestCreateFeed_RSS_Success(t *testing.T) {
 	client := newFeedsClient(t)
 	resp, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Feed.Id)
-	assert.Equal(t, "My Blog", resp.Msg.Feed.Title)
-	assert.Equal(t, "rss", resp.Msg.Feed.SourceType)
+	assert.NotEmpty(t, resp.Feed.Id)
+	assert.Equal(t, "My Blog", resp.Feed.Title)
+	assert.Equal(t, "rss", resp.Feed.SourceType)
 
-	waitForFeedImport(t, client, resp.Msg.Feed.Id)
+	waitForFeedImport(t, client, resp.Feed.Id)
 
 	items, err := client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
 	found := false
-	for _, item := range items.Msg.Items {
+	for _, item := range items.Items {
 		if item.SourceUrl == base+"/one" {
 			found = true
 			assert.Equal(t, "Post One", item.Title)
@@ -189,7 +198,7 @@ func TestCreateFeed_InvalidURL(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: "not a url"}),
+		&feedsv1.CreateFeedRequest{Url: "not a url"},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -201,7 +210,7 @@ func TestCreateFeed_NotAFeed(t *testing.T) {
 
 	client := newFeedsClient(t)
 	_, err := client.CreateFeed(
-		context.Background(), connect.NewRequest(&feedsv1.CreateFeedRequest{Url: url}),
+		context.Background(), &feedsv1.CreateFeedRequest{Url: url},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -219,17 +228,17 @@ func TestCreateFeed_FetchesLinkedPageWhenNoEmbeddedContent(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	items, err := client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
 	var found *feedsv1.Item
-	for _, item := range items.Msg.Items {
+	for _, item := range items.Items {
 		if item.SourceUrl == itemURL {
 			found = item
 		}
@@ -257,27 +266,27 @@ func TestCreateFeed_CapsItemsPerPoll(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
 
 	// Capped guids are still marked seen, so wait for all 25 rows.
 	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) && countSeenRows(t, created.Msg.Feed.Id) < len(items) {
+	for time.Now().Before(deadline) && countSeenRows(t, created.Feed.Id) < len(items) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	require.Equal(
-		t, len(items), countSeenRows(t, created.Msg.Feed.Id),
+		t, len(items), countSeenRows(t, created.Feed.Id),
 		"every guid should be marked seen",
 	)
 
 	resp, err := client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
 	withContent := 0
-	for _, item := range resp.Msg.Items {
-		if item.FeedId != created.Msg.Feed.Id {
+	for _, item := range resp.Items {
+		if item.FeedId != created.Feed.Id {
 			continue
 		}
 		withContent++
@@ -310,24 +319,24 @@ func TestCreateFeed_Scrape_Success(t *testing.T) {
 	client := newFeedsClient(t)
 	resp, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Feed.Id)
-	assert.Equal(t, "Scraped Blog", resp.Msg.Feed.Title)
-	assert.Equal(t, "scrape", resp.Msg.Feed.SourceType)
+	assert.NotEmpty(t, resp.Feed.Id)
+	assert.Equal(t, "Scraped Blog", resp.Feed.Title)
+	assert.Equal(t, "scrape", resp.Feed.SourceType)
 
-	waitForFeedImport(t, client, resp.Msg.Feed.Id)
+	waitForFeedImport(t, client, resp.Feed.Id)
 
 	items, err := client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
 	found := false
-	for _, item := range items.Msg.Items {
+	for _, item := range items.Items {
 		if item.SourceUrl == postURL {
 			found = true
 			assert.True(t, item.HasContent)
@@ -346,10 +355,10 @@ func TestCreateFeed_Scrape_NoPostsFound(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -359,10 +368,10 @@ func TestCreateFeed_Scrape_InvalidURL(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  "not a url",
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -375,10 +384,10 @@ func TestCreateFeed_Scrape_IndexFetchFails(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -394,19 +403,19 @@ func TestCreateFeed_Scrape_Duplicate(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	_, err = client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
@@ -424,29 +433,29 @@ func TestCreateFeed_Scrape_ContentFetchFails(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) && countSeenRows(t, created.Msg.Feed.Id) < 1 {
+	for time.Now().Before(deadline) && countSeenRows(t, created.Feed.Id) < 1 {
 		time.Sleep(20 * time.Millisecond)
 	}
 	require.Equal(
-		t, 1, countSeenRows(t, created.Msg.Feed.Id),
+		t, 1, countSeenRows(t, created.Feed.Id),
 		"failed link should still be marked seen",
 	)
 
 	items, err := client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
-	for _, item := range items.Msg.Items {
+	for _, item := range items.Items {
 		assert.NotEqual(
-			t, created.Msg.Feed.Id, item.FeedId,
+			t, created.Feed.Id, item.FeedId,
 			"error/skip dedup marker should not be user-visible",
 		)
 	}
@@ -462,21 +471,21 @@ func TestRefreshFeed_Scrape_NotModified(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	mockWebFetch.SetNotModified(indexURL)
 	refreshed, err := client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+		&feedsv1.RefreshFeedRequest{FeedId: created.Feed.Id},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(0), refreshed.Msg.Ingested)
+	assert.Equal(t, int32(0), refreshed.Ingested)
 }
 
 func TestRefreshFeed_Scrape_DiscoverFails(t *testing.T) {
@@ -489,13 +498,13 @@ func TestRefreshFeed_Scrape_DiscoverFails(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	// With no post-like links left, RefreshFeed must surface the error.
 	mockWebFetch.SetHTML(
@@ -503,7 +512,7 @@ func TestRefreshFeed_Scrape_DiscoverFails(t *testing.T) {
 	)
 	_, err = client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+		&feedsv1.RefreshFeedRequest{FeedId: created.Feed.Id},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -531,23 +540,23 @@ func TestCreateFeed_Scrape_DedupesByCanonicalURL(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 	// Give the import time to wrongly ingest the duplicate, if it would.
 	time.Sleep(50 * time.Millisecond)
 
 	items, err := client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
 	count := 0
-	for _, item := range items.Msg.Items {
-		if item.FeedId == created.Msg.Feed.Id {
+	for _, item := range items.Items {
+		if item.FeedId == created.Feed.Id {
 			count++
 		}
 	}
@@ -569,23 +578,23 @@ func TestScrape_DedupesSameTitleUnderDifferentURLs(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	countItems := func() int {
 		items, listErr := client.ListFeedItems(
 			context.Background(),
-			connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+			&feedsv1.ListFeedItemsRequest{},
 		)
 		require.NoError(t, listErr)
 		n := 0
-		for _, item := range items.Msg.Items {
-			if item.FeedId == created.Msg.Feed.Id {
+		for _, item := range items.Items {
+			if item.FeedId == created.Feed.Id {
 				n++
 			}
 		}
@@ -601,7 +610,7 @@ func TestScrape_DedupesSameTitleUnderDifferentURLs(t *testing.T) {
 	))
 	_, err = client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+		&feedsv1.RefreshFeedRequest{FeedId: created.Feed.Id},
 	)
 	require.NoError(t, err)
 	assert.Equal(t, 1, countItems(), "known title under a new URL is skipped")
@@ -627,29 +636,29 @@ func TestCreateFeed_Scrape_CapsItemsPerPoll(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	// The import ingests maxItemsPerPoll and leaves the overflow unseen.
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) &&
-		countSeenRows(t, created.Msg.Feed.Id) < 20 {
+		countSeenRows(t, created.Feed.Id) < 20 {
 		time.Sleep(20 * time.Millisecond)
 	}
-	require.Equal(t, 20, countSeenRows(t, created.Msg.Feed.Id),
+	require.Equal(t, 20, countSeenRows(t, created.Feed.Id),
 		"the per-poll cap's worth should be seen; overflow stays pending")
 
 	resp, err := client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
 	withContent := 0
-	for _, item := range resp.Msg.Items {
-		if item.FeedId != created.Msg.Feed.Id {
+	for _, item := range resp.Items {
+		if item.FeedId != created.Feed.Id {
 			continue
 		}
 		withContent++
@@ -664,17 +673,17 @@ func TestCreateFeed_Scrape_CapsItemsPerPoll(t *testing.T) {
 	// The next poll backfills the leftover five.
 	require.NoError(t, testApp.RunPollNow(context.Background()))
 	require.Eventually(t, func() bool {
-		return countSeenRows(t, created.Msg.Feed.Id) == len(postURLs)
+		return countSeenRows(t, created.Feed.Id) == len(postURLs)
 	}, 5*time.Second, 20*time.Millisecond,
 		"the next poll must pick up the pending overflow — never mark it seen")
 
 	resp, err = client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
 	withContent = 0
-	for _, item := range resp.Msg.Items {
-		if item.FeedId != created.Msg.Feed.Id {
+	for _, item := range resp.Items {
+		if item.FeedId != created.Feed.Id {
 			continue
 		}
 		withContent++
@@ -701,20 +710,20 @@ func TestCreateFeed_Scrape_TitleUsesAnchorText(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	items, err := client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
 	var found *feedsv1.Item
-	for _, item := range items.Msg.Items {
+	for _, item := range items.Items {
 		if item.SourceUrl == postURL {
 			found = item
 		}
@@ -736,13 +745,13 @@ func TestRefreshFeed_Scrape_NewPost_Ingests(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	newURL := base + "/posts/new-post-with-a-long-title-too"
 	mockWebFetch.SetHTML(
@@ -752,17 +761,17 @@ func TestRefreshFeed_Scrape_NewPost_Ingests(t *testing.T) {
 
 	refreshed, err := client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+		&feedsv1.RefreshFeedRequest{FeedId: created.Feed.Id},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(1), refreshed.Msg.Ingested)
+	assert.Equal(t, int32(1), refreshed.Ingested)
 }
 
 func TestRefreshFeed_InvalidID(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: "not-a-uuid"}),
+		&feedsv1.RefreshFeedRequest{FeedId: "not-a-uuid"},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -772,7 +781,7 @@ func TestRefreshFeed_UnknownFeed_NotFound(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: uuid.NewString()}),
+		&feedsv1.RefreshFeedRequest{FeedId: uuid.NewString()},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -788,17 +797,17 @@ func TestRefreshFeed_NotModified_IngestsNothing(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
 
 	mockWebFetch.SetNotModified(feedURL)
 	refreshed, err := client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+		&feedsv1.RefreshFeedRequest{FeedId: created.Feed.Id},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(0), refreshed.Msg.Ingested)
+	assert.Equal(t, int32(0), refreshed.Ingested)
 }
 
 func TestRefreshFeed_NewPost_Ingests(t *testing.T) {
@@ -811,10 +820,10 @@ func TestRefreshFeed_NewPost_Ingests(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
 		"Refresh Blog",
@@ -824,10 +833,10 @@ func TestRefreshFeed_NewPost_Ingests(t *testing.T) {
 
 	refreshed, err := client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+		&feedsv1.RefreshFeedRequest{FeedId: created.Feed.Id},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(1), refreshed.Msg.Ingested)
+	assert.Equal(t, int32(1), refreshed.Ingested)
 }
 
 func TestListFeeds_ExposesPollHealthFields(t *testing.T) {
@@ -847,12 +856,12 @@ func TestListFeeds_ExposesPollHealthFields(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
-	found := waitForFeedPollHealth(t, client, created.Msg.Feed.Id)
+	found := waitForFeedPollHealth(t, client, created.Feed.Id)
 	assert.Equal(t, `"v1"`, found.Etag)
 	assert.Equal(t, "Wed, 21 Oct 2015 07:28:00 GMT", found.LastModified)
 	assert.Equal(t, int32(0), found.ConsecutiveFailures)
@@ -861,15 +870,15 @@ func TestListFeeds_ExposesPollHealthFields(t *testing.T) {
 	mockWebFetch.Errs[feedURL] = assert.AnError
 	_, err = client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+		&feedsv1.RefreshFeedRequest{FeedId: created.Feed.Id},
 	)
 	require.Error(t, err)
 
 	list, err := client.ListFeeds(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedsRequest{}),
+		context.Background(), &feedsv1.ListFeedsRequest{},
 	)
 	require.NoError(t, err)
-	found = findFeed(list.Msg.Feeds, created.Msg.Feed.Id)
+	found = findFeed(list.Feeds, created.Feed.Id)
 	require.NotNil(t, found)
 	assert.Contains(t, found.LastError, assert.AnError.Error())
 	assert.Equal(t, int32(1), found.ConsecutiveFailures)
@@ -882,10 +891,10 @@ func TestListFeeds_ExposesPollHealthFields(t *testing.T) {
 	require.NoError(t, err)
 
 	list, err = client.ListFeeds(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedsRequest{}),
+		context.Background(), &feedsv1.ListFeedsRequest{},
 	)
 	require.NoError(t, err)
-	found = findFeed(list.Msg.Feeds, created.Msg.Feed.Id)
+	found = findFeed(list.Feeds, created.Feed.Id)
 	require.NotNil(t, found)
 	assert.NotEmpty(t, found.NotifiedAt)
 }
@@ -906,25 +915,25 @@ func TestUpdateFeed_Success(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
 
 	_, err = client.UpdateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateFeedRequest{
-			FeedId: created.Msg.Feed.Id, Title: "New Title",
-		}),
+		&feedsv1.UpdateFeedRequest{
+			FeedId: created.Feed.Id, Title: "New Title",
+		},
 	)
 	require.NoError(t, err)
 
 	list, err := client.ListFeeds(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedsRequest{}),
+		context.Background(), &feedsv1.ListFeedsRequest{},
 	)
 	require.NoError(t, err)
 	var found *feedsv1.Feed
-	for _, f := range list.Msg.Feeds {
-		if f.Id == created.Msg.Feed.Id {
+	for _, f := range list.Feeds {
+		if f.Id == created.Feed.Id {
 			found = f
 		}
 	}
@@ -936,9 +945,9 @@ func TestUpdateFeed_NotFound(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.UpdateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateFeedRequest{
+		&feedsv1.UpdateFeedRequest{
 			FeedId: uuid.NewString(), Title: "Whatever",
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -951,19 +960,19 @@ func TestDeleteFeed_Success(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
 
 	_, err = client.DeleteFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.DeleteFeedRequest{FeedId: created.Msg.Feed.Id}),
+		&feedsv1.DeleteFeedRequest{FeedId: created.Feed.Id},
 	)
 	require.NoError(t, err)
 
 	_, err = client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+		&feedsv1.RefreshFeedRequest{FeedId: created.Feed.Id},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -973,7 +982,7 @@ func TestDeleteFeed_NotFound(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.DeleteFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.DeleteFeedRequest{FeedId: uuid.NewString()}),
+		&feedsv1.DeleteFeedRequest{FeedId: uuid.NewString()},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -983,24 +992,24 @@ func TestCreateFeed_Email_Success(t *testing.T) {
 	client := newFeedsClient(t)
 	resp, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Kind: feedsv1.FeedKind_FEED_KIND_EMAIL, Title: "My Newsletter",
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, "email", resp.Msg.Feed.SourceType)
-	assert.Equal(t, "My Newsletter", resp.Msg.Feed.Title)
-	assert.Contains(t, resp.Msg.Feed.InboundAddress, "@mail.example.com")
+	assert.Equal(t, "email", resp.Feed.SourceType)
+	assert.Equal(t, "My Newsletter", resp.Feed.Title)
+	assert.Contains(t, resp.Feed.InboundAddress, "@mail.example.com")
 }
 
 func TestCreateFeed_Email_URLMustBeEmpty(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Kind: feedsv1.FeedKind_FEED_KIND_EMAIL,
 			Url:  "https://example.com/feed.xml",
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -1018,17 +1027,17 @@ func createItem(t *testing.T, client feedsv1connect.FeedServiceClient) string {
 
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	items, err := client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
-	for _, item := range items.Msg.Items {
-		if item.FeedId == created.Msg.Feed.Id {
+	for _, item := range items.Items {
+		if item.FeedId == created.Feed.Id {
 			return item.Id
 		}
 	}
@@ -1050,18 +1059,18 @@ func createItemAndFeed(
 
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	items, err := client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
-	for _, item := range items.Msg.Items {
-		if item.FeedId == created.Msg.Feed.Id {
-			return item.Id, created.Msg.Feed.Id
+	for _, item := range items.Items {
+		if item.FeedId == created.Feed.Id {
+			return item.Id, created.Feed.Id
 		}
 	}
 	t.Fatal("created item not found")
@@ -1075,10 +1084,10 @@ func TestUpdateItem_MarkRead(t *testing.T) {
 	read := true
 	resp, err := client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{ItemId: itemID, Read: &read}),
+		&feedsv1.UpdateItemRequest{ItemId: itemID, Read: &read},
 	)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Item.ReadAt)
+	assert.NotEmpty(t, resp.Item.ReadAt)
 }
 
 func TestUpdateItem_MarkUnread(t *testing.T) {
@@ -1088,17 +1097,17 @@ func TestUpdateItem_MarkUnread(t *testing.T) {
 	read := true
 	_, err := client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{ItemId: itemID, Read: &read}),
+		&feedsv1.UpdateItemRequest{ItemId: itemID, Read: &read},
 	)
 	require.NoError(t, err)
 
 	unread := false
 	resp, err := client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{ItemId: itemID, Read: &unread}),
+		&feedsv1.UpdateItemRequest{ItemId: itemID, Read: &unread},
 	)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.Item.ReadAt)
+	assert.Empty(t, resp.Item.ReadAt)
 }
 
 func TestUpdateItem_Dismiss(t *testing.T) {
@@ -1108,13 +1117,13 @@ func TestUpdateItem_Dismiss(t *testing.T) {
 	dismissed := true
 	resp, err := client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{
+		&feedsv1.UpdateItemRequest{
 			ItemId: itemID, Dismissed: &dismissed,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Item.Dismissed)
-	assert.False(t, resp.Msg.Item.Bookmarked, "unset fields stay unchanged")
+	assert.True(t, resp.Item.Dismissed)
+	assert.False(t, resp.Item.Bookmarked, "unset fields stay unchanged")
 }
 
 func TestUpdateItem_Bookmarked(t *testing.T) {
@@ -1124,12 +1133,12 @@ func TestUpdateItem_Bookmarked(t *testing.T) {
 	bookmarked := true
 	resp, err := client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{
+		&feedsv1.UpdateItemRequest{
 			ItemId: itemID, Bookmarked: &bookmarked,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Item.Bookmarked)
+	assert.True(t, resp.Item.Bookmarked)
 }
 
 func TestListFeedItems_ExcludesDismissed(t *testing.T) {
@@ -1139,17 +1148,15 @@ func TestListFeedItems_ExcludesDismissed(t *testing.T) {
 	dismissed := true
 	_, err := client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(
-			&feedsv1.UpdateItemRequest{ItemId: itemID, Dismissed: &dismissed},
-		),
+		&feedsv1.UpdateItemRequest{ItemId: itemID, Dismissed: &dismissed},
 	)
 	require.NoError(t, err)
 
 	resp, err := client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
-	for _, item := range resp.Msg.Items {
+	for _, item := range resp.Items {
 		assert.NotEqual(t, itemID, item.Id, "dismissed item must not be listed")
 	}
 }
@@ -1161,17 +1168,17 @@ func TestListFeedItems_UnreadOnly(t *testing.T) {
 	read := true
 	_, err := client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{ItemId: itemID, Read: &read}),
+		&feedsv1.UpdateItemRequest{ItemId: itemID, Read: &read},
 	)
 	require.NoError(t, err)
 
 	unreadOnly := true
 	resp, err := client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(&feedsv1.ListFeedItemsRequest{UnreadOnly: &unreadOnly}),
+		&feedsv1.ListFeedItemsRequest{UnreadOnly: &unreadOnly},
 	)
 	require.NoError(t, err)
-	for _, item := range resp.Msg.Items {
+	for _, item := range resp.Items {
 		assert.NotEqual(
 			t,
 			itemID,
@@ -1181,12 +1188,12 @@ func TestListFeedItems_UnreadOnly(t *testing.T) {
 	}
 
 	resp, err = client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
 	assert.Contains(
 		t,
-		itemIDs(resp.Msg.Items),
+		itemIDs(resp.Items),
 		itemID,
 		"unset unread_only returns read items too",
 	)
@@ -1199,14 +1206,12 @@ func TestListFeedItems_BookmarkedOnly(t *testing.T) {
 	bookmarkedOnly := true
 	resp, err := client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(
-			&feedsv1.ListFeedItemsRequest{BookmarkedOnly: &bookmarkedOnly},
-		),
+		&feedsv1.ListFeedItemsRequest{BookmarkedOnly: &bookmarkedOnly},
 	)
 	require.NoError(t, err)
 	assert.NotContains(
 		t,
-		itemIDs(resp.Msg.Items),
+		itemIDs(resp.Items),
 		itemID,
 		"unbookmarked item must not be listed when bookmarked_only",
 	)
@@ -1214,22 +1219,20 @@ func TestListFeedItems_BookmarkedOnly(t *testing.T) {
 	bookmarked := true
 	_, err = client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{
+		&feedsv1.UpdateItemRequest{
 			ItemId: itemID, Bookmarked: &bookmarked,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	resp, err = client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(
-			&feedsv1.ListFeedItemsRequest{BookmarkedOnly: &bookmarkedOnly},
-		),
+		&feedsv1.ListFeedItemsRequest{BookmarkedOnly: &bookmarkedOnly},
 	)
 	require.NoError(t, err)
 	assert.Contains(
 		t,
-		itemIDs(resp.Msg.Items),
+		itemIDs(resp.Items),
 		itemID,
 		"bookmarked item is listed when bookmarked_only",
 	)
@@ -1244,27 +1247,27 @@ func TestListFeedItems_Pagination(t *testing.T) {
 
 	all, err := client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(&feedsv1.ListFeedItemsRequest{Limit: pagination.MaxLimit}),
+		&feedsv1.ListFeedItemsRequest{Limit: pagination.MaxLimit},
 	)
 	require.NoError(t, err)
-	total := len(all.Msg.Items)
+	total := len(all.Items)
 	require.GreaterOrEqual(t, total, 3)
 
 	resp, err := client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(&feedsv1.ListFeedItemsRequest{Limit: int32(total - 1)}),
+		&feedsv1.ListFeedItemsRequest{Limit: int32(total - 1)},
 	)
 	require.NoError(t, err)
-	assert.Len(t, resp.Msg.Items, total-1)
-	assert.True(t, resp.Msg.HasMore)
+	assert.Len(t, resp.Items, total-1)
+	assert.True(t, resp.HasMore)
 
 	resp, err = client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(&feedsv1.ListFeedItemsRequest{Limit: int32(total)}),
+		&feedsv1.ListFeedItemsRequest{Limit: int32(total)},
 	)
 	require.NoError(t, err)
-	assert.Len(t, resp.Msg.Items, total)
-	assert.False(t, resp.Msg.HasMore)
+	assert.Len(t, resp.Items, total)
+	assert.False(t, resp.HasMore)
 }
 
 // TestListFeedItems_FeedIDFilter: feed_id restricts results to one feed.
@@ -1276,14 +1279,14 @@ func TestListFeedItems_FeedIDFilter(t *testing.T) {
 
 	resp, err := client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(&feedsv1.ListFeedItemsRequest{
+		&feedsv1.ListFeedItemsRequest{
 			Limit: pagination.MaxLimit, FeedId: &feedA,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Contains(t, itemIDs(resp.Msg.Items), itemA)
-	assert.NotContains(t, itemIDs(resp.Msg.Items), itemB)
-	for _, item := range resp.Msg.Items {
+	assert.Contains(t, itemIDs(resp.Items), itemA)
+	assert.NotContains(t, itemIDs(resp.Items), itemB)
+	for _, item := range resp.Items {
 		assert.Equal(t, feedA, item.FeedId)
 	}
 }
@@ -1301,9 +1304,9 @@ func TestUpdateItem_InvalidID(t *testing.T) {
 	read := true
 	_, err := client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{
+		&feedsv1.UpdateItemRequest{
 			ItemId: "not-a-uuid", Read: &read,
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -1314,9 +1317,9 @@ func TestUpdateItem_NotFound(t *testing.T) {
 	read := true
 	_, err := client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{
+		&feedsv1.UpdateItemRequest{
 			ItemId: uuid.NewString(), Read: &read,
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -1328,7 +1331,7 @@ func TestGetFeedItem_NotFound(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.GetFeedItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: uuid.NewString()}),
+		&feedsv1.GetFeedItemRequest{ItemId: uuid.NewString()},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -1343,23 +1346,23 @@ func TestUpdateItem_ReadProgressClampsAndMonotonic(t *testing.T) {
 	over := int32(150)
 	resp, err := client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{
+		&feedsv1.UpdateItemRequest{
 			ItemId: itemID, ReadProgressPct: &over,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(100), resp.Msg.Item.ReadProgressPct)
+	assert.Equal(t, int32(100), resp.Item.ReadProgressPct)
 
 	under := int32(-10)
 	resp, err = client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{
+		&feedsv1.UpdateItemRequest{
 			ItemId: itemID, ReadProgressPct: &under,
-		}),
+		},
 	)
 	require.NoError(t, err)
 	// Clamped to 0, but GREATEST against the existing 100 keeps it at 100.
-	assert.Equal(t, int32(100), resp.Msg.Item.ReadProgressPct)
+	assert.Equal(t, int32(100), resp.Item.ReadProgressPct)
 }
 
 // TestGetFeedStats_Basic: item count and read rate aggregate per feed.
@@ -1373,37 +1376,37 @@ func TestGetFeedStats_Basic(t *testing.T) {
 
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	read := true
 	items, err := client.ListFeedItems(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+		context.Background(), &feedsv1.ListFeedItemsRequest{},
 	)
 	require.NoError(t, err)
 	var itemID string
-	for _, item := range items.Msg.Items {
-		if item.FeedId == created.Msg.Feed.Id {
+	for _, item := range items.Items {
+		if item.FeedId == created.Feed.Id {
 			itemID = item.Id
 		}
 	}
 	require.NotEmpty(t, itemID)
 	_, err = client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{ItemId: itemID, Read: &read}),
+		&feedsv1.UpdateItemRequest{ItemId: itemID, Read: &read},
 	)
 	require.NoError(t, err)
 
 	stats, err := client.GetFeedStats(
-		context.Background(), connect.NewRequest(&feedsv1.GetFeedStatsRequest{}),
+		context.Background(), &feedsv1.GetFeedStatsRequest{},
 	)
 	require.NoError(t, err)
 
 	var found *feedsv1.FeedStats
-	for _, s := range stats.Msg.Stats {
-		if s.FeedId == created.Msg.Feed.Id {
+	for _, s := range stats.Stats {
+		if s.FeedId == created.Feed.Id {
 			found = s
 		}
 	}
@@ -1416,18 +1419,18 @@ func TestRefreshFeed_EmailFeed_NoOp(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Kind: feedsv1.FeedKind_FEED_KIND_EMAIL, Title: "Refresh No-op",
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	resp, err := client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+		&feedsv1.RefreshFeedRequest{FeedId: created.Feed.Id},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(0), resp.Msg.Ingested)
+	assert.Equal(t, int32(0), resp.Ingested)
 }
 
 // listFeedWithBody creates a one-item RSS feed with a large body.
@@ -1444,20 +1447,20 @@ func listFeedWithBody(t *testing.T, body string) (
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	items, err := client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(&feedsv1.ListFeedItemsRequest{
-			FeedId: proto.String(created.Msg.Feed.Id),
-		}),
+		&feedsv1.ListFeedItemsRequest{
+			FeedId: proto.String(created.Feed.Id),
+		},
 	)
 	require.NoError(t, err)
-	require.Len(t, items.Msg.Items, 1)
-	return client, items.Msg.Items[0]
+	require.Len(t, items.Items, 1)
+	return client, items.Items[0]
 }
 
 // A list read must never carry content_html, or every page drags every
@@ -1471,11 +1474,11 @@ func TestListFeedItems_OmitsArticleBody(t *testing.T) {
 
 	full, err := client.GetFeedItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: item.Id}),
+		&feedsv1.GetFeedItemRequest{ItemId: item.Id},
 	)
 	require.NoError(t, err)
-	assert.Contains(t, full.Msg.Item.ContentHtml, "egress")
-	assert.True(t, full.Msg.Item.HasContent)
+	assert.Contains(t, full.Item.ContentHtml, "egress")
+	assert.True(t, full.Item.HasContent)
 }
 
 // UpdateItem fires on every scroll tick, so it must not carry the body either.
@@ -1484,15 +1487,15 @@ func TestUpdateItem_OmitsArticleBody(t *testing.T) {
 
 	updated, err := client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{
+		&feedsv1.UpdateItemRequest{
 			ItemId:          item.Id,
 			ReadProgressPct: proto.Int32(42),
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Empty(t, updated.Msg.Item.ContentHtml)
-	assert.True(t, updated.Msg.Item.HasContent)
-	assert.Equal(t, int32(42), updated.Msg.Item.ReadProgressPct)
+	assert.Empty(t, updated.Item.ContentHtml)
+	assert.True(t, updated.Item.HasContent)
+	assert.Equal(t, int32(42), updated.Item.ReadProgressPct)
 }
 
 // A body-less item reports HasContent=false, distinguishing "nothing stored"
@@ -1511,13 +1514,13 @@ func TestFeedItem_NoBodyReportsHasContentFalse(t *testing.T) {
 
 	items, err := client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(&feedsv1.ListFeedItemsRequest{
+		&feedsv1.ListFeedItemsRequest{
 			FeedId: proto.String(seeded.FeedId),
-		}),
+		},
 	)
 	require.NoError(t, err)
 	var listed *feedsv1.Item
-	for _, item := range items.Msg.Items {
+	for _, item := range items.Items {
 		if item.Id == itemID {
 			listed = item
 		}
@@ -1527,18 +1530,18 @@ func TestFeedItem_NoBodyReportsHasContentFalse(t *testing.T) {
 
 	full, err := client.GetFeedItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: itemID}),
+		&feedsv1.GetFeedItemRequest{ItemId: itemID},
 	)
 	require.NoError(t, err)
-	assert.Empty(t, full.Msg.Item.ContentHtml)
-	assert.False(t, full.Msg.Item.HasContent)
+	assert.Empty(t, full.Item.ContentHtml)
+	assert.False(t, full.Item.HasContent)
 }
 
 func TestGetFeedItem_InvalidID(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.GetFeedItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: "not-a-uuid"}),
+		&feedsv1.GetFeedItemRequest{ItemId: "not-a-uuid"},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -1548,7 +1551,7 @@ func TestGetFeedItem_UnknownItem_NotFound(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.GetFeedItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: uuid.NewString()}),
+		&feedsv1.GetFeedItemRequest{ItemId: uuid.NewString()},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))

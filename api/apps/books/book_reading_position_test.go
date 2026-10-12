@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // writeProgress applies a reading-progress write through the service.
@@ -261,25 +262,29 @@ func TestConnectReadingPosition_RoundTrip(t *testing.T) {
 	ctx := context.Background()
 	readAt := time.Now().Add(-time.Minute).UTC().Truncate(time.Second)
 
-	setReq := connect.NewRequest(&booksv1.UpdateReadingProgressRequest{
+	setReq := &booksv1.UpdateReadingProgressRequest{
 		BookId:   book.ID.String(),
 		Source:   models.ReadingSourceWeb,
 		Percent:  12,
 		Location: "epubcfi(/6/4!/4/2/1:0)",
 		Position: &booksv1.ReadingPosition{Href: "text/part1.xhtml", Offset: 812},
 		ReadAt:   readAt.Format(time.RFC3339),
-	})
-	setReq.Header().Set("Cookie", accessToken.String())
-	_, err := client.UpdateReadingProgress(ctx, setReq)
+	}
+	_, err := client.UpdateReadingProgress(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		setReq,
+	)
 	require.NoError(t, err)
 
-	getReq := connect.NewRequest(&booksv1.GetReadingStateRequest{
+	getReq := &booksv1.GetReadingStateRequest{
 		BookId: book.ID.String(),
-	})
-	getReq.Header().Set("Cookie", accessToken.String())
-	resp, err := client.GetReadingState(ctx, getReq)
+	}
+	resp, err := client.GetReadingState(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		getReq,
+	)
 	require.NoError(t, err)
-	state := resp.Msg.State
+	state := resp.State
 	require.NotNil(t, state.Position)
 	assert.Equal(t, "text/part1.xhtml", state.Position.Href)
 	assert.Equal(t, int32(812), state.Position.Offset)
@@ -296,14 +301,15 @@ func TestConnectReadingPosition_PercentOnlyHasNoPosition(t *testing.T) {
 		BookID: book.ID, Source: models.ReadingSourceKobo, Percent: 30,
 	})
 
-	req := connect.NewRequest(&booksv1.GetReadingStateRequest{
+	req := &booksv1.GetReadingStateRequest{
 		BookId: book.ID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 	resp, err := client.GetReadingState(ctx, req)
 	require.NoError(t, err)
-	assert.Nil(t, resp.Msg.State.Position)
-	assert.Equal(t, int32(30), resp.Msg.State.Percent)
+	assert.Nil(t, resp.State.Position)
+	assert.Equal(t, int32(30), resp.State.Percent)
 }
 
 func TestConnectReadingPosition_InvalidInput(t *testing.T) {
@@ -335,9 +341,11 @@ func TestConnectReadingPosition_InvalidInput(t *testing.T) {
 	}
 	for name, msg := range cases {
 		t.Run(name, func(t *testing.T) {
-			req := connect.NewRequest(msg)
-			req.Header().Set("Cookie", accessToken.String())
-			_, err := client.UpdateReadingProgress(ctx, req)
+			req := msg
+			_, err := client.UpdateReadingProgress(
+				testhelper.WithCookie(ctx, accessToken.String()),
+				req,
+			)
 			require.Error(t, err)
 			assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 		})

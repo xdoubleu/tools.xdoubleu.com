@@ -5,7 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -22,7 +23,15 @@ func setupTodoistClient(
 	handler http.Handler,
 ) learningpathsv1connect.TodoistServiceClient {
 	ts := httptest.NewServer(handler)
-	return learningpathsv1connect.NewTodoistServiceClient(http.DefaultClient, ts.URL)
+	return learningpathsv1connect.NewTodoistServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(
+				http.DefaultClient,
+				ts.URL,
+				connecthttp.WithReadMaxBytes(0),
+			),
+		),
+	)
 }
 
 func TestGetTodoistConnectionStatus_NotConnected(t *testing.T) {
@@ -30,29 +39,29 @@ func TestGetTodoistConnectionStatus_NotConnected(t *testing.T) {
 
 	resp, err := client.GetTodoistConnectionStatus(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.GetTodoistConnectionStatusRequest{}),
+		&learningpathsv1.GetTodoistConnectionStatusRequest{},
 	)
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.Connected)
-	assert.Empty(t, resp.Msg.ConnectedAt)
+	assert.False(t, resp.Connected)
+	assert.Empty(t, resp.ConnectedAt)
 }
 
 func TestConnectTodoist_ReturnsAuthorizeURL(t *testing.T) {
 	client := setupTodoistClient(getRoutes())
 
 	resp, err := client.ConnectTodoist(
-		newCtx(), connect.NewRequest(&learningpathsv1.ConnectTodoistRequest{}),
+		newCtx(), &learningpathsv1.ConnectTodoistRequest{},
 	)
 	require.NoError(t, err)
-	assert.Contains(t, resp.Msg.AuthorizeUrl, "https://app.todoist.com/oauth/authorize")
-	assert.Contains(t, resp.Msg.AuthorizeUrl, "state=")
+	assert.Contains(t, resp.AuthorizeUrl, "https://app.todoist.com/oauth/authorize")
+	assert.Contains(t, resp.AuthorizeUrl, "state=")
 }
 
 func TestDisconnectTodoist_NoOpWhenNotConnected(t *testing.T) {
 	client := setupTodoistClient(getRoutes())
 
 	_, err := client.DisconnectTodoist(
-		newCtx(), connect.NewRequest(&learningpathsv1.DisconnectTodoistRequest{}),
+		newCtx(), &learningpathsv1.DisconnectTodoistRequest{},
 	)
 	assert.NoError(t, err)
 }
@@ -77,21 +86,21 @@ func TestGetTodoistConnectionStatus_Connected(t *testing.T) {
 	client := setupTodoistClient(getRoutes())
 	statusResp, err := client.GetTodoistConnectionStatus(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.GetTodoistConnectionStatusRequest{}),
+		&learningpathsv1.GetTodoistConnectionStatusRequest{},
 	)
 	require.NoError(t, err)
-	assert.True(t, statusResp.Msg.Connected)
-	assert.NotEmpty(t, statusResp.Msg.ConnectedAt)
+	assert.True(t, statusResp.Connected)
+	assert.NotEmpty(t, statusResp.ConnectedAt)
 
 	_, err = client.DisconnectTodoist(
-		newCtx(), connect.NewRequest(&learningpathsv1.DisconnectTodoistRequest{}),
+		newCtx(), &learningpathsv1.DisconnectTodoistRequest{},
 	)
 	require.NoError(t, err)
 
 	statusResp, err = client.GetTodoistConnectionStatus(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.GetTodoistConnectionStatusRequest{}),
+		&learningpathsv1.GetTodoistConnectionStatusRequest{},
 	)
 	require.NoError(t, err)
-	assert.False(t, statusResp.Msg.Connected)
+	assert.False(t, statusResp.Connected)
 }

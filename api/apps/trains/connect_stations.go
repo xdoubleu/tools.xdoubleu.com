@@ -5,16 +5,14 @@ import (
 	"math"
 	"time"
 
-	"connectrpc.com/connect"
-
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 )
 
 func (h *trainsConnectHandler) SearchStations(
 	ctx context.Context,
-	req *connect.Request[trainsv1.SearchStationsRequest],
-) (*connect.Response[trainsv1.SearchStationsResponse], error) {
-	stations, err := h.app.Services.Stations.SearchStations(ctx, req.Msg.GetQuery())
+	req *trainsv1.SearchStationsRequest,
+) (*trainsv1.SearchStationsResponse, error) {
+	stations, err := h.app.Services.Stations.SearchStations(ctx, req.GetQuery())
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -29,13 +27,13 @@ func (h *trainsConnectHandler) SearchStations(
 			DisplayName: st.DisplayName,
 		}
 	}
-	return connect.NewResponse(&trainsv1.SearchStationsResponse{Stations: out}), nil
+	return &trainsv1.SearchStationsResponse{Stations: out}, nil
 }
 
 func (h *trainsConnectHandler) GetFeedInfo(
 	ctx context.Context,
-	_ *connect.Request[trainsv1.GetFeedInfoRequest],
-) (*connect.Response[trainsv1.GetFeedInfoResponse], error) {
+	_ *trainsv1.GetFeedInfoRequest,
+) (*trainsv1.GetFeedInfoResponse, error) {
 	info, err := h.app.Services.FeedInfo.FeedInfo(ctx)
 	if err != nil {
 		return nil, mapError(err)
@@ -44,7 +42,7 @@ func (h *trainsConnectHandler) GetFeedInfo(
 	if info.ImportedAt != nil {
 		importedAt = info.ImportedAt.Format(time.RFC3339)
 	}
-	return connect.NewResponse(&trainsv1.GetFeedInfoResponse{
+	return &trainsv1.GetFeedInfoResponse{
 		FeedVersion: info.FeedVersion,
 		ImportedAt:  importedAt,
 		Translations: &trainsv1.TranslationCoverage{
@@ -54,7 +52,7 @@ func (h *trainsConnectHandler) GetFeedInfo(
 			Rows:              count32(info.Translations.Rows),
 			RowsUnmatched:     count32(info.Translations.RowsUnmatched),
 		},
-	}), nil
+	}, nil
 }
 
 // count32 clamps so an implausible count can't wrap negative.

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,11 +14,11 @@ import (
 
 func setPaused(
 	ctx context.Context, id string, paused bool,
-) (*connect.Response[learningpathsv1.SetLearningPathPausedResponse], error) {
+) (*learningpathsv1.SetLearningPathPausedResponse, error) {
 	return setupClient(getRoutes()).SetLearningPathPaused(
-		ctx, connect.NewRequest(&learningpathsv1.SetLearningPathPausedRequest{
+		ctx, &learningpathsv1.SetLearningPathPausedRequest{
 			Id: id, Paused: paused,
-		}),
+		},
 	)
 }
 
@@ -27,42 +27,42 @@ func TestSetLearningPathPaused_PauseAndResume(t *testing.T) {
 	ctx := newCtx()
 
 	createResp, err := client.CreateLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		ctx, &learningpathsv1.CreateLearningPathRequest{
 			Title: "Pausable",
 			Modules: []*learningpathsv1.Module{
 				{Title: "M1", Items: []*learningpathsv1.Item{{Description: "one"}}},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	id := createResp.Msg.LearningPath.Id
+	id := createResp.LearningPath.Id
 	// Mock auth shares one user across tests, so leave its path list as found.
 	t.Cleanup(func() {
 		_, _ = client.DeleteLearningPath(
-			ctx, connect.NewRequest(&learningpathsv1.DeleteLearningPathRequest{Id: id}),
+			ctx, &learningpathsv1.DeleteLearningPathRequest{Id: id},
 		)
 	})
-	assert.False(t, createResp.Msg.LearningPath.Paused)
+	assert.False(t, createResp.LearningPath.Paused)
 
 	resp, err := setPaused(ctx, id, true)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.LearningPath.Paused)
-	assert.Len(t, resp.Msg.LearningPath.Modules, 1)
+	assert.True(t, resp.LearningPath.Paused)
+	assert.Len(t, resp.LearningPath.Modules, 1)
 
 	// A full-tree update leaves the path paused.
 	_, err = client.UpdateLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.UpdateLearningPathRequest{
+		ctx, &learningpathsv1.UpdateLearningPathRequest{
 			Id: id, Title: "Pausable (edited)",
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	listResp, err := client.ListLearningPaths(
-		ctx, connect.NewRequest(&learningpathsv1.ListLearningPathsRequest{Limit: 100}),
+		ctx, &learningpathsv1.ListLearningPathsRequest{Limit: 100},
 	)
 	require.NoError(t, err)
 	var listed *learningpathsv1.LearningPath
-	for _, lp := range listResp.Msg.LearningPaths {
+	for _, lp := range listResp.LearningPaths {
 		if lp.Id == id {
 			listed = lp
 		}
@@ -72,7 +72,7 @@ func TestSetLearningPathPaused_PauseAndResume(t *testing.T) {
 
 	resp, err = setPaused(ctx, id, false)
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.LearningPath.Paused)
+	assert.False(t, resp.LearningPath.Paused)
 }
 
 func TestSetLearningPathPaused_OtherUserDenied(t *testing.T) {

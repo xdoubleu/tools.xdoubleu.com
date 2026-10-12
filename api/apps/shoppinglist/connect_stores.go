@@ -3,7 +3,6 @@ package shoppinglist
 import (
 	"context"
 
-	"connectrpc.com/connect"
 	"github.com/google/uuid"
 
 	shoppinglistv1 "tools.xdoubleu.com/gen/shoppinglist/v1"
@@ -12,8 +11,8 @@ import (
 
 func (h *shoppingConnectHandler) ListStores(
 	ctx context.Context,
-	_ *connect.Request[shoppinglistv1.ListStoresRequest],
-) (*connect.Response[shoppinglistv1.ListStoresResponse], error) {
+	_ *shoppinglistv1.ListStoresRequest,
+) (*shoppinglistv1.ListStoresResponse, error) {
 	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
@@ -28,17 +27,17 @@ func (h *shoppingConnectHandler) ListStores(
 	for i, s := range stores {
 		pb[i] = &shoppinglistv1.Store{Id: s.ID, Name: s.Name}
 	}
-	return connect.NewResponse(&shoppinglistv1.ListStoresResponse{Stores: pb}), nil
+	return &shoppinglistv1.ListStoresResponse{Stores: pb}, nil
 }
 
 func (h *shoppingConnectHandler) CreateStore(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.CreateStoreRequest],
-) (*connect.Response[shoppinglistv1.CreateStoreResponse], error) {
-	if req.Msg.Name == "" {
+	req *shoppinglistv1.CreateStoreRequest,
+) (*shoppinglistv1.CreateStoreResponse, error) {
+	if req.Name == "" {
 		return nil, errNameRequired()
 	}
-	id, err := connecttools.ParseClientID(req.Msg.Id)
+	id, err := connecttools.ParseClientID(req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -47,23 +46,23 @@ func (h *shoppingConnectHandler) CreateStore(
 		return nil, err
 	}
 
-	s, err := h.app.services.Shopping.CreateStore(ctx, userID, id, req.Msg.Name)
+	s, err := h.app.services.Shopping.CreateStore(ctx, userID, id, req.Name)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&shoppinglistv1.CreateStoreResponse{
+	return &shoppinglistv1.CreateStoreResponse{
 		Store: &shoppinglistv1.Store{Id: s.ID, Name: s.Name},
-	}), nil
+	}, nil
 }
 
 func (h *shoppingConnectHandler) RenameStore(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.RenameStoreRequest],
-) (*connect.Response[shoppinglistv1.RenameStoreResponse], error) {
-	if req.Msg.Name == "" {
+	req *shoppinglistv1.RenameStoreRequest,
+) (*shoppinglistv1.RenameStoreResponse, error) {
+	if req.Name == "" {
 		return nil, errNameRequired()
 	}
-	id, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
 		return nil, errInvalidID()
 	}
@@ -72,20 +71,20 @@ func (h *shoppingConnectHandler) RenameStore(
 		return nil, err
 	}
 
-	s, err := h.app.services.Shopping.RenameStore(ctx, userID, id, req.Msg.Name)
+	s, err := h.app.services.Shopping.RenameStore(ctx, userID, id, req.Name)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&shoppinglistv1.RenameStoreResponse{
+	return &shoppinglistv1.RenameStoreResponse{
 		Store: &shoppinglistv1.Store{Id: s.ID, Name: s.Name},
-	}), nil
+	}, nil
 }
 
 func (h *shoppingConnectHandler) DeleteStore(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.DeleteStoreRequest],
-) (*connect.Response[shoppinglistv1.DeleteStoreResponse], error) {
-	id, err := uuid.Parse(req.Msg.Id)
+	req *shoppinglistv1.DeleteStoreRequest,
+) (*shoppinglistv1.DeleteStoreResponse, error) {
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
 		return nil, errInvalidID()
 	}
@@ -97,14 +96,14 @@ func (h *shoppingConnectHandler) DeleteStore(
 	if err = h.app.services.Shopping.DeleteStore(ctx, userID, id); err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&shoppinglistv1.DeleteStoreResponse{}), nil
+	return &shoppinglistv1.DeleteStoreResponse{}, nil
 }
 
 func (h *shoppingConnectHandler) GetStoreCategories(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.GetStoreCategoriesRequest],
-) (*connect.Response[shoppinglistv1.GetStoreCategoriesResponse], error) {
-	storeID, err := uuid.Parse(req.Msg.StoreId)
+	req *shoppinglistv1.GetStoreCategoriesRequest,
+) (*shoppinglistv1.GetStoreCategoriesResponse, error) {
+	storeID, err := uuid.Parse(req.StoreId)
 	if err != nil {
 		return nil, errInvalidID()
 	}
@@ -124,22 +123,22 @@ func (h *shoppingConnectHandler) GetStoreCategories(
 	for i, c := range categories {
 		pb[i] = &shoppinglistv1.Category{Id: c.ID, Name: c.Name}
 	}
-	return connect.NewResponse(&shoppinglistv1.GetStoreCategoriesResponse{
+	return &shoppinglistv1.GetStoreCategoriesResponse{
 		Categories: pb,
-	}), nil
+	}, nil
 }
 
 func (h *shoppingConnectHandler) SetStoreCategories(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.SetStoreCategoriesRequest],
-) (*connect.Response[shoppinglistv1.SetStoreCategoriesResponse], error) {
-	storeID, err := uuid.Parse(req.Msg.StoreId)
+	req *shoppinglistv1.SetStoreCategoriesRequest,
+) (*shoppinglistv1.SetStoreCategoriesResponse, error) {
+	storeID, err := uuid.Parse(req.StoreId)
 	if err != nil {
 		return nil, errInvalidID()
 	}
 
-	categoryIDs := make([]uuid.UUID, len(req.Msg.CategoryIds))
-	for i, raw := range req.Msg.CategoryIds {
+	categoryIDs := make([]uuid.UUID, len(req.CategoryIds))
+	for i, raw := range req.CategoryIds {
 		parsed, parseErr := uuid.Parse(raw)
 		if parseErr != nil {
 			return nil, errInvalidID()
@@ -158,5 +157,5 @@ func (h *shoppingConnectHandler) SetStoreCategories(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&shoppinglistv1.SetStoreCategoriesResponse{}), nil
+	return &shoppinglistv1.SetStoreCategoriesResponse{}, nil
 }

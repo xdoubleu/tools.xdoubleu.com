@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
@@ -16,7 +16,7 @@ func TestConnectTodoist_Unauthenticated(t *testing.T) {
 	h := &todoistConnectHandler{app: nil}
 	_, err := h.ConnectTodoist(
 		context.Background(),
-		connect.NewRequest(&learningpathsv1.ConnectTodoistRequest{}),
+		&learningpathsv1.ConnectTodoistRequest{},
 	)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
@@ -25,7 +25,7 @@ func TestDisconnectTodoist_Unauthenticated(t *testing.T) {
 	h := &todoistConnectHandler{app: nil}
 	_, err := h.DisconnectTodoist(
 		context.Background(),
-		connect.NewRequest(&learningpathsv1.DisconnectTodoistRequest{}),
+		&learningpathsv1.DisconnectTodoistRequest{},
 	)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
@@ -34,7 +34,7 @@ func TestGetTodoistSyncState_Unauthenticated(t *testing.T) {
 	h := &todoistConnectHandler{app: nil}
 	_, err := h.GetTodoistSyncState(
 		context.Background(),
-		connect.NewRequest(&learningpathsv1.GetTodoistSyncStateRequest{}),
+		&learningpathsv1.GetTodoistSyncStateRequest{},
 	)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
@@ -49,7 +49,7 @@ func TestGetTodoistConnectionStatus_Unauthenticated(t *testing.T) {
 	h := &todoistConnectHandler{app: nil}
 	_, err := h.GetTodoistConnectionStatus(
 		context.Background(),
-		connect.NewRequest(&learningpathsv1.GetTodoistConnectionStatusRequest{}),
+		&learningpathsv1.GetTodoistConnectionStatusRequest{},
 	)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }

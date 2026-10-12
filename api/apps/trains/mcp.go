@@ -3,7 +3,6 @@ package trains
 import (
 	"context"
 
-	"connectrpc.com/connect"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
@@ -80,44 +79,43 @@ func (a *Trains) RegisterMCPTools(srv *mcp.Server) {
 func (h *trainsConnectHandler) mcpSearchStations(
 	ctx context.Context, args mcpSearchStationsArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.SearchStations(ctx, connect.NewRequest(
-		&trainsv1.SearchStationsRequest{Query: args.Query},
-	)))
+	return mcptools.Unwrap(
+		h.SearchStations(ctx, &trainsv1.SearchStationsRequest{Query: args.Query}),
+	)
 }
 
 func (h *trainsConnectHandler) mcpGetFeedInfo(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetFeedInfo(ctx, connect.NewRequest(
-		&trainsv1.GetFeedInfoRequest{},
-	)))
+	return mcptools.Unwrap(h.GetFeedInfo(ctx, &trainsv1.GetFeedInfoRequest{}))
 }
 
 func (h *trainsConnectHandler) mcpSearchJourneys(
 	ctx context.Context, args mcpSearchJourneysArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.SearchJourneys(ctx, connect.NewRequest(
-		&trainsv1.SearchJourneysRequest{
-			OriginStopId:      args.OriginStopID,
-			DestinationStopId: args.DestinationStopID,
-			Time:              args.Time,
-			ArriveBy:          args.ArriveBy,
-		},
-	)))
+	return mcptools.Unwrap(h.SearchJourneys(ctx, &trainsv1.SearchJourneysRequest{
+		OriginStopId:      args.OriginStopID,
+		DestinationStopId: args.DestinationStopID,
+		Time:              args.Time,
+		ArriveBy:          args.ArriveBy,
+	}))
 }
 
 func (h *trainsConnectHandler) mcpGetJourneyDetail(
 	ctx context.Context, args mcpGetJourneyDetailArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetJourneyDetail(ctx, connect.NewRequest(
-		&trainsv1.GetJourneyDetailRequest{JourneyId: args.JourneyID},
-	)))
+	return mcptools.Unwrap(
+		h.GetJourneyDetail(ctx, &trainsv1.GetJourneyDetailRequest{JourneyId: args.JourneyID}),
+	)
 }
 
 func (h *trainsConnectHandler) mcpGetRealtimeTrip(
 	ctx context.Context, args mcpGetRealtimeTripArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetRealtimeTrip(ctx, connect.NewRequest(
-		&trainsv1.GetRealtimeTripRequest{TripShortName: args.TripShortName},
-	)))
+	return mcptools.Unwrap(
+		h.GetRealtimeTrip(
+			ctx,
+			&trainsv1.GetRealtimeTripRequest{TripShortName: args.TripShortName},
+		),
+	)
 }

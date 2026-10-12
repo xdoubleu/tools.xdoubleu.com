@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,10 +22,10 @@ func createCategory(
 	t.Helper()
 	resp, err := client.CreateCategory(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateCategoryRequest{Name: name}),
+		&shoppinglistv1.CreateCategoryRequest{Name: name},
 	)
 	require.NoError(t, err)
-	return resp.Msg.Category
+	return resp.Category
 }
 
 func createStore(
@@ -36,10 +36,10 @@ func createStore(
 	t.Helper()
 	resp, err := client.CreateStore(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateStoreRequest{Name: name}),
+		&shoppinglistv1.CreateStoreRequest{Name: name},
 	)
 	require.NoError(t, err)
-	return resp.Msg.Store
+	return resp.Store
 }
 
 func assertCode(t *testing.T, err error, code connect.Code) {
@@ -61,7 +61,7 @@ func TestCreateCategory_EmptyName(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.CreateCategory(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateCategoryRequest{Name: ""}),
+		&shoppinglistv1.CreateCategoryRequest{Name: ""},
 	)
 	assertCode(t, err, connect.CodeInvalidArgument)
 }
@@ -72,7 +72,7 @@ func TestCreateCategory_DuplicateNameConflict(t *testing.T) {
 	_, err := client.CreateCategory(
 		t.Context(),
 		// Case-insensitive unique index: "dairy" collides with "Dairy".
-		connect.NewRequest(&shoppinglistv1.CreateCategoryRequest{Name: "dairy"}),
+		&shoppinglistv1.CreateCategoryRequest{Name: "dairy"},
 	)
 	assertCode(t, err, connect.CodeAlreadyExists)
 }
@@ -83,11 +83,11 @@ func TestListCategories_ReturnsCreated(t *testing.T) {
 
 	resp, err := client.ListCategories(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.ListCategoriesRequest{}),
+		&shoppinglistv1.ListCategoriesRequest{},
 	)
 	require.NoError(t, err)
 	var found bool
-	for _, c := range resp.Msg.Categories {
+	for _, c := range resp.Categories {
 		if c.Id == created.Id {
 			found = true
 		}
@@ -101,23 +101,23 @@ func TestRenameCategory_Success(t *testing.T) {
 
 	resp, err := client.RenameCategory(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.RenameCategoryRequest{
+		&shoppinglistv1.RenameCategoryRequest{
 			Id:   c.Id,
 			Name: "Frozen-" + uuid.NewString(),
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, c.Id, resp.Msg.Category.Id)
+	assert.Equal(t, c.Id, resp.Category.Id)
 }
 
 func TestRenameCategory_NotFound(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.RenameCategory(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.RenameCategoryRequest{
+		&shoppinglistv1.RenameCategoryRequest{
 			Id:   uuid.New().String(),
 			Name: "Whatever",
-		}),
+		},
 	)
 	assertCode(t, err, connect.CodeNotFound)
 }
@@ -126,10 +126,10 @@ func TestRenameCategory_InvalidID(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.RenameCategory(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.RenameCategoryRequest{
+		&shoppinglistv1.RenameCategoryRequest{
 			Id:   "not-a-uuid",
 			Name: "Whatever",
-		}),
+		},
 	)
 	assertCode(t, err, connect.CodeInvalidArgument)
 }
@@ -140,7 +140,7 @@ func TestDeleteCategory_Success(t *testing.T) {
 
 	_, err := client.DeleteCategory(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.DeleteCategoryRequest{Id: c.Id}),
+		&shoppinglistv1.DeleteCategoryRequest{Id: c.Id},
 	)
 	require.NoError(t, err)
 }
@@ -149,9 +149,9 @@ func TestDeleteCategory_NotFound(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.DeleteCategory(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.DeleteCategoryRequest{
+		&shoppinglistv1.DeleteCategoryRequest{
 			Id: uuid.New().String(),
-		}),
+		},
 	)
 	assertCode(t, err, connect.CodeNotFound)
 }
@@ -166,7 +166,7 @@ func TestCreateStore_EmptyName(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.CreateStore(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateStoreRequest{Name: ""}),
+		&shoppinglistv1.CreateStoreRequest{Name: ""},
 	)
 	assertCode(t, err, connect.CodeInvalidArgument)
 }
@@ -177,11 +177,11 @@ func TestListStores_ReturnsCreated(t *testing.T) {
 
 	resp, err := client.ListStores(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.ListStoresRequest{}),
+		&shoppinglistv1.ListStoresRequest{},
 	)
 	require.NoError(t, err)
 	var found bool
-	for _, s := range resp.Msg.Stores {
+	for _, s := range resp.Stores {
 		if s.Id == created.Id {
 			found = true
 		}
@@ -193,10 +193,10 @@ func TestRenameStore_InvalidID(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.RenameStore(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.RenameStoreRequest{
+		&shoppinglistv1.RenameStoreRequest{
 			Id:   "not-a-uuid",
 			Name: "Whatever",
-		}),
+		},
 	)
 	assertCode(t, err, connect.CodeInvalidArgument)
 }
@@ -205,10 +205,10 @@ func TestRenameStore_NotFound(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.RenameStore(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.RenameStoreRequest{
+		&shoppinglistv1.RenameStoreRequest{
 			Id:   uuid.New().String(),
 			Name: "Whatever",
-		}),
+		},
 	)
 	assertCode(t, err, connect.CodeNotFound)
 }
@@ -220,21 +220,21 @@ func TestSetStoreCategories_SkipsUnknownCategory(t *testing.T) {
 	// A syntactically valid but non-existent category id is silently skipped.
 	_, err := client.SetStoreCategories(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.SetStoreCategoriesRequest{
+		&shoppinglistv1.SetStoreCategoriesRequest{
 			StoreId:     store.Id,
 			CategoryIds: []string{uuid.New().String()},
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	resp, err := client.GetStoreCategories(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetStoreCategoriesRequest{
+		&shoppinglistv1.GetStoreCategoriesRequest{
 			StoreId: store.Id,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.Categories)
+	assert.Empty(t, resp.Categories)
 }
 
 func TestRenameAndDeleteStore(t *testing.T) {
@@ -243,22 +243,22 @@ func TestRenameAndDeleteStore(t *testing.T) {
 
 	_, err := client.RenameStore(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.RenameStoreRequest{
+		&shoppinglistv1.RenameStoreRequest{
 			Id:   s.Id,
 			Name: "Lidl-" + uuid.NewString(),
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	_, err = client.DeleteStore(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.DeleteStoreRequest{Id: s.Id}),
+		&shoppinglistv1.DeleteStoreRequest{Id: s.Id},
 	)
 	require.NoError(t, err)
 
 	_, err = client.DeleteStore(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.DeleteStoreRequest{Id: s.Id}),
+		&shoppinglistv1.DeleteStoreRequest{Id: s.Id},
 	)
 	assertCode(t, err, connect.CodeNotFound)
 }
@@ -272,24 +272,24 @@ func TestSetAndGetStoreCategories_OrderPreserved(t *testing.T) {
 
 	_, err := client.SetStoreCategories(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.SetStoreCategoriesRequest{
+		&shoppinglistv1.SetStoreCategoriesRequest{
 			StoreId:     store.Id,
 			CategoryIds: []string{c2.Id, c3.Id, c1.Id},
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	resp, err := client.GetStoreCategories(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetStoreCategoriesRequest{
+		&shoppinglistv1.GetStoreCategoriesRequest{
 			StoreId: store.Id,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.Categories, 3)
-	assert.Equal(t, c2.Id, resp.Msg.Categories[0].Id)
-	assert.Equal(t, c3.Id, resp.Msg.Categories[1].Id)
-	assert.Equal(t, c1.Id, resp.Msg.Categories[2].Id)
+	require.Len(t, resp.Categories, 3)
+	assert.Equal(t, c2.Id, resp.Categories[0].Id)
+	assert.Equal(t, c3.Id, resp.Categories[1].Id)
+	assert.Equal(t, c1.Id, resp.Categories[2].Id)
 }
 
 func TestSetStoreCategories_ReplacesPrevious(t *testing.T) {
@@ -301,10 +301,10 @@ func TestSetStoreCategories_ReplacesPrevious(t *testing.T) {
 	set := func(ids ...string) {
 		_, err := client.SetStoreCategories(
 			t.Context(),
-			connect.NewRequest(&shoppinglistv1.SetStoreCategoriesRequest{
+			&shoppinglistv1.SetStoreCategoriesRequest{
 				StoreId:     store.Id,
 				CategoryIds: ids,
-			}),
+			},
 		)
 		require.NoError(t, err)
 	}
@@ -314,22 +314,22 @@ func TestSetStoreCategories_ReplacesPrevious(t *testing.T) {
 
 	resp, err := client.GetStoreCategories(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetStoreCategoriesRequest{
+		&shoppinglistv1.GetStoreCategoriesRequest{
 			StoreId: store.Id,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.Categories, 1)
-	assert.Equal(t, c2.Id, resp.Msg.Categories[0].Id)
+	require.Len(t, resp.Categories, 1)
+	assert.Equal(t, c2.Id, resp.Categories[0].Id)
 }
 
 func TestGetStoreCategories_StoreNotFound(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.GetStoreCategories(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetStoreCategoriesRequest{
+		&shoppinglistv1.GetStoreCategoriesRequest{
 			StoreId: uuid.New().String(),
-		}),
+		},
 	)
 	assertCode(t, err, connect.CodeNotFound)
 }
@@ -339,10 +339,10 @@ func TestSetStoreCategories_InvalidCategoryID(t *testing.T) {
 	store := createStore(t, client, "Spar-"+uuid.NewString())
 	_, err := client.SetStoreCategories(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.SetStoreCategoriesRequest{
+		&shoppinglistv1.SetStoreCategoriesRequest{
 			StoreId:     store.Id,
 			CategoryIds: []string{"not-a-uuid"},
-		}),
+		},
 	)
 	assertCode(t, err, connect.CodeInvalidArgument)
 }
@@ -380,33 +380,31 @@ func TestStores_PrivateToCaller(t *testing.T) {
 	// …yet ListStores never returns the owner's store.
 	list, err := client.ListStores(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.ListStoresRequest{}),
+		&shoppinglistv1.ListStoresRequest{},
 	)
 	require.NoError(t, err)
-	for _, s := range list.Msg.Stores {
+	for _, s := range list.Stores {
 		assert.NotEqual(t, foreignID, s.Id, "must not see another user's store")
 	}
 
 	// The foreign store is a 404 (queries are user_id-scoped).
 	_, err = client.GetStoreCategories(
 		t.Context(),
-		connect.NewRequest(
-			&shoppinglistv1.GetStoreCategoriesRequest{StoreId: foreignID},
-		),
+		&shoppinglistv1.GetStoreCategoriesRequest{StoreId: foreignID},
 	)
 	assertCode(t, err, connect.CodeNotFound)
 
 	_, err = client.RenameStore(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.RenameStoreRequest{
+		&shoppinglistv1.RenameStoreRequest{
 			Id: foreignID, Name: "Hijacked",
-		}),
+		},
 	)
 	assertCode(t, err, connect.CodeNotFound)
 
 	_, err = client.DeleteStore(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.DeleteStoreRequest{Id: foreignID}),
+		&shoppinglistv1.DeleteStoreRequest{Id: foreignID},
 	)
 	assertCode(t, err, connect.CodeNotFound)
 }
@@ -459,11 +457,11 @@ func TestFamilyMember_SharesCategoriesAndCustomItems(t *testing.T) {
 	client := newShoppingClient(t)
 
 	cats, err := client.ListCategories(
-		t.Context(), connect.NewRequest(&shoppinglistv1.ListCategoriesRequest{}),
+		t.Context(), &shoppinglistv1.ListCategoriesRequest{},
 	)
 	require.NoError(t, err)
 	var foundCat bool
-	for _, c := range cats.Msg.Categories {
+	for _, c := range cats.Categories {
 		if c.Id == catID {
 			foundCat = true
 		}
@@ -471,11 +469,11 @@ func TestFamilyMember_SharesCategoriesAndCustomItems(t *testing.T) {
 	assert.True(t, foundCat, "family member's category should be visible")
 
 	items, err := client.GetCustomList(
-		t.Context(), connect.NewRequest(&shoppinglistv1.GetCustomListRequest{}),
+		t.Context(), &shoppinglistv1.GetCustomListRequest{},
 	)
 	require.NoError(t, err)
 	var foundItem bool
-	for _, item := range items.Msg.Items {
+	for _, item := range items.Items {
 		if item.Name == itemName {
 			foundItem = true
 		}
@@ -490,20 +488,20 @@ func TestSetItemCategory_AssignAndList(t *testing.T) {
 	// Mixed-case name is normalized to lower(trim) on write.
 	_, err := client.SetItemCategory(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.SetItemCategoryRequest{
+		&shoppinglistv1.SetItemCategoryRequest{
 			Name:       "  Pepper  ",
 			CategoryId: cat.Id,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	resp, err := client.ListItemCategories(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.ListItemCategoriesRequest{}),
+		&shoppinglistv1.ListItemCategoriesRequest{},
 	)
 	require.NoError(t, err)
 	var got string
-	for _, ic := range resp.Msg.Items {
+	for _, ic := range resp.Items {
 		if ic.Name == "pepper" {
 			got = ic.CategoryId
 		}
@@ -518,10 +516,10 @@ func TestSetItemCategory_Unassign(t *testing.T) {
 	assign := func(categoryID string) {
 		_, err := client.SetItemCategory(
 			t.Context(),
-			connect.NewRequest(&shoppinglistv1.SetItemCategoryRequest{
+			&shoppinglistv1.SetItemCategoryRequest{
 				Name:       "beans",
 				CategoryId: categoryID,
-			}),
+			},
 		)
 		require.NoError(t, err)
 	}
@@ -530,10 +528,10 @@ func TestSetItemCategory_Unassign(t *testing.T) {
 
 	resp, err := client.ListItemCategories(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.ListItemCategoriesRequest{}),
+		&shoppinglistv1.ListItemCategoriesRequest{},
 	)
 	require.NoError(t, err)
-	for _, ic := range resp.Msg.Items {
+	for _, ic := range resp.Items {
 		assert.NotEqual(t, "beans", ic.Name)
 	}
 }
@@ -542,10 +540,10 @@ func TestSetItemCategory_UnknownCategory(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.SetItemCategory(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.SetItemCategoryRequest{
+		&shoppinglistv1.SetItemCategoryRequest{
 			Name:       "salt",
 			CategoryId: uuid.New().String(),
-		}),
+		},
 	)
 	assertCode(t, err, connect.CodeNotFound)
 }
@@ -554,10 +552,10 @@ func TestSetItemCategory_EmptyName(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.SetItemCategory(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.SetItemCategoryRequest{
+		&shoppinglistv1.SetItemCategoryRequest{
 			Name:       "",
 			CategoryId: uuid.New().String(),
-		}),
+		},
 	)
 	assertCode(t, err, connect.CodeInvalidArgument)
 }
@@ -569,38 +567,38 @@ func TestListItemNames_IncludesCustomItemsWithAssignment(t *testing.T) {
 	itemName := "icecream-" + uuid.NewString()
 	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
+		&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   itemName,
 			Amount: "1",
 			Unit:   "tub",
-		}),
+		},
 	)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_, _ = testDB.Exec(
 			context.Background(),
 			"DELETE FROM shoppinglist.custom_items WHERE id::text = $1",
-			addResp.Msg.Item.Id,
+			addResp.Item.Id,
 		)
 	})
 
 	_, err = client.SetItemCategory(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.SetItemCategoryRequest{
+		&shoppinglistv1.SetItemCategoryRequest{
 			Name:       itemName,
 			CategoryId: cat.Id,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	resp, err := client.ListItemNames(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.ListItemNamesRequest{}),
+		&shoppinglistv1.ListItemNamesRequest{},
 	)
 	require.NoError(t, err)
 	var got string
 	var found bool
-	for _, n := range resp.Msg.Names {
+	for _, n := range resp.Names {
 		if n.Name == itemName {
 			found = true
 			got = n.CategoryId
@@ -625,12 +623,12 @@ func TestListItemNames_IncludesMealPlanCustomItems(t *testing.T) {
 	client := newShoppingClient(t)
 	resp, err := client.ListItemNames(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.ListItemNamesRequest{}),
+		&shoppinglistv1.ListItemNamesRequest{},
 	)
 	require.NoError(t, err)
 
-	byName := make(map[string]string, len(resp.Msg.Names))
-	for _, n := range resp.Msg.Names {
+	byName := make(map[string]string, len(resp.Names))
+	for _, n := range resp.Names {
 		byName[n.Name] = n.CategoryId
 	}
 	catID, plainFound := byName[plain]
@@ -647,20 +645,20 @@ func TestListItemNames_IncludesMealPlanCustomItems(t *testing.T) {
 	cat := createCategory(t, client, "Mexican-"+uuid.NewString())
 	_, err = client.SetItemCategory(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.SetItemCategoryRequest{
+		&shoppinglistv1.SetItemCategoryRequest{
 			Name:       plain,
 			CategoryId: cat.Id,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	resp, err = client.ListItemNames(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.ListItemNamesRequest{}),
+		&shoppinglistv1.ListItemNamesRequest{},
 	)
 	require.NoError(t, err)
 	var got string
-	for _, n := range resp.Msg.Names {
+	for _, n := range resp.Names {
 		if n.Name == plain {
 			got = n.CategoryId
 		}
@@ -677,10 +675,10 @@ func catalogEntry(
 	t.Helper()
 	resp, err := client.ListItemNames(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.ListItemNamesRequest{}),
+		&shoppinglistv1.ListItemNamesRequest{},
 	)
 	require.NoError(t, err)
-	for _, n := range resp.Msg.Names {
+	for _, n := range resp.Names {
 		if n.Name == name {
 			return n
 		}
@@ -720,16 +718,16 @@ func TestListItemNames_ActiveSourceWinsOverExcluded(t *testing.T) {
 	client := newShoppingClient(t)
 	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
+		&shoppinglistv1.CreateShoppingItemRequest{
 			Name: name, Amount: "1", Unit: "jar",
-		}),
+		},
 	)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_, _ = testDB.Exec(
 			context.Background(),
 			"DELETE FROM shoppinglist.custom_items WHERE id::text = $1",
-			addResp.Msg.Item.Id,
+			addResp.Item.Id,
 		)
 	})
 	addExcludedPlanMeal(t, planID, time.Now().UTC().Add(24*time.Hour), name)
@@ -756,12 +754,12 @@ func TestSetItemExcluded_FlipsMealPlanFlagBothWays(t *testing.T) {
 	inExport := func() bool {
 		resp, err := client.GetMealPlanExportItems(
 			t.Context(),
-			connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+			&shoppinglistv1.GetMealPlanExportItemsRequest{
 				PlanId: planID.String(),
-			}),
+			},
 		)
 		require.NoError(t, err)
-		for _, item := range resp.Msg.Items {
+		for _, item := range resp.Items {
 			if item.Name == name {
 				return true
 			}
@@ -773,9 +771,9 @@ func TestSetItemExcluded_FlipsMealPlanFlagBothWays(t *testing.T) {
 
 	_, err := client.SetItemExcluded(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.SetItemExcludedRequest{
+		&shoppinglistv1.SetItemExcludedRequest{
 			Name: name, Excluded: true,
-		}),
+		},
 	)
 	require.NoError(t, err)
 	removed := catalogEntry(t, client, name)
@@ -785,9 +783,9 @@ func TestSetItemExcluded_FlipsMealPlanFlagBothWays(t *testing.T) {
 
 	_, err = client.SetItemExcluded(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.SetItemExcludedRequest{
+		&shoppinglistv1.SetItemExcludedRequest{
 			Name: name, Excluded: false,
-		}),
+		},
 	)
 	require.NoError(t, err)
 	restored := catalogEntry(t, client, name)
@@ -802,33 +800,33 @@ func TestSetItemExcluded_DeletesCustomItem(t *testing.T) {
 	client := newShoppingClient(t)
 	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
+		&shoppinglistv1.CreateShoppingItemRequest{
 			Name: name, Amount: "1", Unit: "roll",
-		}),
+		},
 	)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_, _ = testDB.Exec(
 			context.Background(),
 			"DELETE FROM shoppinglist.custom_items WHERE id::text = $1",
-			addResp.Msg.Item.Id,
+			addResp.Item.Id,
 		)
 	})
 
 	_, err = client.SetItemExcluded(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.SetItemExcludedRequest{
+		&shoppinglistv1.SetItemExcludedRequest{
 			Name: name, Excluded: true,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	resp, err := client.GetCustomList(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetCustomListRequest{}),
+		&shoppinglistv1.GetCustomListRequest{},
 	)
 	require.NoError(t, err)
-	for _, item := range resp.Msg.Items {
+	for _, item := range resp.Items {
 		assert.NotEqual(t, name, item.Name, "custom item should be deleted")
 	}
 }
@@ -837,7 +835,7 @@ func TestSetItemExcluded_EmptyName(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.SetItemExcluded(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.SetItemExcludedRequest{Name: ""}),
+		&shoppinglistv1.SetItemExcludedRequest{Name: ""},
 	)
 	assertCode(t, err, connect.CodeInvalidArgument)
 }

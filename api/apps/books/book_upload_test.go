@@ -9,7 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -749,19 +750,20 @@ func TestConnectCreateBookUpload_OK(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.CreateBookUploadRequest{
+	req := &booksv1.CreateBookUploadRequest{
 		Filename:    "handler-test.epub",
 		ContentType: "application/epub+zip",
 		Size:        1024,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.CreateBookUpload(ctx, req)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.UploadId)
-	assert.NotEmpty(t, resp.Msg.Url)
-	assert.Contains(t, resp.Msg.UploadId, "users/"+userID+"/uploads/")
-	assert.False(t, resp.Msg.AlreadyExists)
+	assert.NotEmpty(t, resp.UploadId)
+	assert.NotEmpty(t, resp.Url)
+	assert.Contains(t, resp.UploadId, "users/"+userID+"/uploads/")
+	assert.False(t, resp.AlreadyExists)
 }
 
 func TestConnectCreateBookUpload_Oversize_ReturnsResourceExhausted(t *testing.T) {
@@ -769,12 +771,13 @@ func TestConnectCreateBookUpload_Oversize_ReturnsResourceExhausted(t *testing.T)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.CreateBookUploadRequest{
+	req := &booksv1.CreateBookUploadRequest{
 		Filename:    "huge.epub",
 		ContentType: "application/epub+zip",
 		Size:        int64(bsvc.MaxUploadBytes) + 1,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.CreateBookUpload(ctx, req)
 	require.Error(t, err)
@@ -790,31 +793,35 @@ func TestConnectFinalizeBookUpload_OK(t *testing.T) {
 
 	addTestBookWithISBN(t, "HandlerUploadBook", "9786666666666")
 	data := buildEPUBBytes("HandlerUploadBook", "Handler Author", "9786666666666")
-	createReq := connect.NewRequest(&booksv1.CreateBookUploadRequest{
+	createReq := &booksv1.CreateBookUploadRequest{
 		Filename:    "handler-test.epub",
 		ContentType: "application/epub+zip",
 		Size:        int64(len(data)),
-	})
-	createReq.Header().Set("Cookie", accessToken.String())
-	createResp, err := client.CreateBookUpload(ctx, createReq)
+	}
+	createResp, err := client.CreateBookUpload(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		createReq,
+	)
 	require.NoError(t, err)
 
 	require.NoError(t, fakeStore.Put(
-		ctx, createResp.Msg.UploadId,
+		ctx, createResp.UploadId,
 		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
 	))
 
-	finalReq := connect.NewRequest(&booksv1.FinalizeBookUploadRequest{
-		UploadId:    createResp.Msg.UploadId,
+	finalReq := &booksv1.FinalizeBookUploadRequest{
+		UploadId:    createResp.UploadId,
 		Filename:    "handler-test.epub",
 		ContentType: "application/epub+zip",
-	})
-	finalReq.Header().Set("Cookie", accessToken.String())
-	resp, err := client.FinalizeBookUpload(ctx, finalReq)
+	}
+	resp, err := client.FinalizeBookUpload(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		finalReq,
+	)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.BookId)
-	assert.NotEmpty(t, resp.Msg.FileId)
-	assert.Equal(t, models.FileFormatEPUB, resp.Msg.Format)
+	assert.NotEmpty(t, resp.BookId)
+	assert.NotEmpty(t, resp.FileId)
+	assert.Equal(t, models.FileFormatEPUB, resp.Format)
 }
 
 // TestConnectFinalizeBookUpload_PDF_NoMetadata checks an unrecognizable PDF
@@ -824,32 +831,36 @@ func TestConnectFinalizeBookUpload_PDF_NoMetadata(t *testing.T) {
 	app2 := noExternalMatchApp(t, isolatedUser)
 	ts := httptest.NewServer(testhelper.BuildMux(app2))
 	t.Cleanup(ts.Close)
-	client := newBooksClientFor(ts.URL, connect.WithHTTPGet())
+	client := newBooksClientFor(ts.URL, connecthttp.WithHTTPGet())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	data := minimalPDFData()
-	createReq := connect.NewRequest(&booksv1.CreateBookUploadRequest{
+	createReq := &booksv1.CreateBookUploadRequest{
 		Filename:    "handler-pdf.pdf",
 		ContentType: "application/pdf",
 		Size:        int64(len(data)),
-	})
-	createReq.Header().Set("Cookie", accessToken.String())
-	createResp, err := client.CreateBookUpload(ctx, createReq)
+	}
+	createResp, err := client.CreateBookUpload(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		createReq,
+	)
 	require.NoError(t, err)
 
 	require.NoError(t, fakeStore.Put(
-		ctx, createResp.Msg.UploadId,
+		ctx, createResp.UploadId,
 		bytes.NewReader(data), int64(len(data)), "application/pdf",
 	))
 
-	finalReq := connect.NewRequest(&booksv1.FinalizeBookUploadRequest{
-		UploadId:    createResp.Msg.UploadId,
+	finalReq := &booksv1.FinalizeBookUploadRequest{
+		UploadId:    createResp.UploadId,
 		Filename:    "handler-pdf.pdf",
 		ContentType: "application/pdf",
-	})
-	finalReq.Header().Set("Cookie", accessToken.String())
-	_, err = client.FinalizeBookUpload(ctx, finalReq)
+	}
+	_, err = client.FinalizeBookUpload(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		finalReq,
+	)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -862,27 +873,31 @@ func TestConnectFinalizeBookUpload_WrongMagicBytes(t *testing.T) {
 	defer cancel()
 
 	data := []byte("\x00\x01\x02\x03 not epub magic")
-	createReq := connect.NewRequest(&booksv1.CreateBookUploadRequest{
+	createReq := &booksv1.CreateBookUploadRequest{
 		Filename:    "evil.epub",
 		ContentType: "application/epub+zip",
 		Size:        int64(len(data)),
-	})
-	createReq.Header().Set("Cookie", accessToken.String())
-	createResp, err := client.CreateBookUpload(ctx, createReq)
+	}
+	createResp, err := client.CreateBookUpload(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		createReq,
+	)
 	require.NoError(t, err)
 
 	require.NoError(t, fakeStore.Put(
-		ctx, createResp.Msg.UploadId,
+		ctx, createResp.UploadId,
 		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
 	))
 
-	finalReq := connect.NewRequest(&booksv1.FinalizeBookUploadRequest{
-		UploadId:    createResp.Msg.UploadId,
+	finalReq := &booksv1.FinalizeBookUploadRequest{
+		UploadId:    createResp.UploadId,
 		Filename:    "evil.epub",
 		ContentType: "application/epub+zip",
-	})
-	finalReq.Header().Set("Cookie", accessToken.String())
-	_, err = client.FinalizeBookUpload(ctx, finalReq)
+	}
+	_, err = client.FinalizeBookUpload(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		finalReq,
+	)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -894,12 +909,13 @@ func TestConnectFinalizeBookUpload_WrongOwner_ReturnsPermissionDenied(t *testing
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	finalReq := connect.NewRequest(&booksv1.FinalizeBookUploadRequest{
+	finalReq := &booksv1.FinalizeBookUploadRequest{
 		UploadId:    "users/other-user/uploads/uuid.epub",
 		Filename:    "stolen.epub",
 		ContentType: "application/epub+zip",
-	})
-	finalReq.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 	_, err := client.FinalizeBookUpload(ctx, finalReq)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -1176,33 +1192,37 @@ func TestConnectFinalizeBookUpload_Unrecognized_ReturnsInvalidArgument(t *testin
 
 	ts := httptest.NewServer(testhelper.BuildMux(app2))
 	t.Cleanup(ts.Close)
-	client := newBooksClientFor(ts.URL, connect.WithHTTPGet())
+	client := newBooksClientFor(ts.URL, connecthttp.WithHTTPGet())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	data := buildEPUBBytes("HandlerUnrecognizedBook", "Unknown Author Handler", "")
-	createReq := connect.NewRequest(&booksv1.CreateBookUploadRequest{
+	createReq := &booksv1.CreateBookUploadRequest{
 		Filename:    "unrecognized.epub",
 		ContentType: "application/epub+zip",
 		Size:        int64(len(data)),
-	})
-	createReq.Header().Set("Cookie", accessToken.String())
-	createResp, err := client.CreateBookUpload(ctx, createReq)
+	}
+	createResp, err := client.CreateBookUpload(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		createReq,
+	)
 	require.NoError(t, err)
 
 	require.NoError(t, fakeStore.Put(
-		ctx, createResp.Msg.UploadId,
+		ctx, createResp.UploadId,
 		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
 	))
 
-	finalReq := connect.NewRequest(&booksv1.FinalizeBookUploadRequest{
-		UploadId:    createResp.Msg.UploadId,
+	finalReq := &booksv1.FinalizeBookUploadRequest{
+		UploadId:    createResp.UploadId,
 		Filename:    "unrecognized.epub",
 		ContentType: "application/epub+zip",
-	})
-	finalReq.Header().Set("Cookie", accessToken.String())
-	_, err = client.FinalizeBookUpload(ctx, finalReq)
+	}
+	_, err = client.FinalizeBookUpload(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		finalReq,
+	)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)

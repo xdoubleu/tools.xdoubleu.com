@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -18,15 +17,15 @@ func TestSearchStations_Handler_Success(t *testing.T) {
 	require.NoError(t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()))
 
 	client := newTrainsTestClient(t)
-	req := connect.NewRequest(&trainsv1.SearchStationsRequest{Query: "rav"})
+	req := &trainsv1.SearchStationsRequest{Query: "rav"}
 
 	resp, err := client.SearchStations(ctx, req)
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.GetStations(), 1)
-	assert.Equal(t, "SB", resp.Msg.GetStations()[0].GetStopId())
-	assert.Equal(t, "Bravo-NL", resp.Msg.GetStations()[0].GetNameNl())
-	assert.Equal(t, "Bravo", resp.Msg.GetStations()[0].GetNameFr())
-	assert.Equal(t, "Bravo-EN", resp.Msg.GetStations()[0].GetNameEn())
+	require.Len(t, resp.GetStations(), 1)
+	assert.Equal(t, "SB", resp.GetStations()[0].GetStopId())
+	assert.Equal(t, "Bravo-NL", resp.GetStations()[0].GetNameNl())
+	assert.Equal(t, "Bravo", resp.GetStations()[0].GetNameFr())
+	assert.Equal(t, "Bravo-EN", resp.GetStations()[0].GetNameEn())
 }
 
 // TestGetFeedInfo_Handler_Success checks feed_version and translation
@@ -37,15 +36,15 @@ func TestGetFeedInfo_Handler_Success(t *testing.T) {
 	require.NoError(t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()))
 
 	client := newTrainsTestClient(t)
-	req := connect.NewRequest(&trainsv1.GetFeedInfoRequest{})
+	req := &trainsv1.GetFeedInfoRequest{}
 	resp, err := client.GetFeedInfo(ctx, req)
 	require.NoError(t, err)
-	assert.Equal(t, "2026-08-31", resp.Msg.GetFeedVersion())
-	importedAt, err := time.Parse(time.RFC3339, resp.Msg.GetImportedAt())
+	assert.Equal(t, "2026-08-31", resp.GetFeedVersion())
+	importedAt, err := time.Parse(time.RFC3339, resp.GetImportedAt())
 	require.NoError(t, err, "imported_at is an RFC3339 timestamp")
 	assert.WithinDuration(t, time.Now(), importedAt, time.Minute)
 
-	translations := resp.Msg.GetTranslations()
+	translations := resp.GetTranslations()
 	require.NotNil(t, translations)
 	assert.Equal(t, int32(2), translations.GetTranslatedStopsNl())
 	assert.Equal(t, int32(0), translations.GetTranslatedStopsFr())

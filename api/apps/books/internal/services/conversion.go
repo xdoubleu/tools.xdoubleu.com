@@ -10,7 +10,7 @@ import (
 	"log/slog"
 	"os"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	kepubpkg "github.com/pgaskin/kepubify/v4/kepub"
 
@@ -319,7 +319,7 @@ func (s *ConversionService) resolveSourceFile(
 
 	return nil, "", connect.NewError(
 		connect.CodeFailedPrecondition,
-		errors.New("no EPUB or PDF available for this book"),
+		"no EPUB or PDF available for this book",
 	)
 }
 

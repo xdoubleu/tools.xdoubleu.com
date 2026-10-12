@@ -5,20 +5,11 @@
 package learningpathsv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/learningpaths/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// LearningPathsServiceName is the fully-qualified name of the LearningPathsService service.
@@ -27,449 +18,525 @@ const (
 	TodoistServiceName = "learningpaths.v1.TodoistService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// LearningPathsServiceListLearningPathsProcedure is the fully-qualified name of the
+	// LearningPathsServiceListLearningPathsProcedure is the procedure name of the
 	// LearningPathsService's ListLearningPaths RPC.
 	LearningPathsServiceListLearningPathsProcedure = "/learningpaths.v1.LearningPathsService/ListLearningPaths"
-	// LearningPathsServiceGetLearningPathProcedure is the fully-qualified name of the
-	// LearningPathsService's GetLearningPath RPC.
+	// LearningPathsServiceGetLearningPathProcedure is the procedure name of the LearningPathsService's
+	// GetLearningPath RPC.
 	LearningPathsServiceGetLearningPathProcedure = "/learningpaths.v1.LearningPathsService/GetLearningPath"
-	// LearningPathsServiceCreateLearningPathProcedure is the fully-qualified name of the
+	// LearningPathsServiceCreateLearningPathProcedure is the procedure name of the
 	// LearningPathsService's CreateLearningPath RPC.
 	LearningPathsServiceCreateLearningPathProcedure = "/learningpaths.v1.LearningPathsService/CreateLearningPath"
-	// LearningPathsServiceUpdateLearningPathProcedure is the fully-qualified name of the
+	// LearningPathsServiceUpdateLearningPathProcedure is the procedure name of the
 	// LearningPathsService's UpdateLearningPath RPC.
 	LearningPathsServiceUpdateLearningPathProcedure = "/learningpaths.v1.LearningPathsService/UpdateLearningPath"
-	// LearningPathsServiceDeleteLearningPathProcedure is the fully-qualified name of the
+	// LearningPathsServiceDeleteLearningPathProcedure is the procedure name of the
 	// LearningPathsService's DeleteLearningPath RPC.
 	LearningPathsServiceDeleteLearningPathProcedure = "/learningpaths.v1.LearningPathsService/DeleteLearningPath"
-	// LearningPathsServiceRecordItemProgressProcedure is the fully-qualified name of the
+	// LearningPathsServiceRecordItemProgressProcedure is the procedure name of the
 	// LearningPathsService's RecordItemProgress RPC.
 	LearningPathsServiceRecordItemProgressProcedure = "/learningpaths.v1.LearningPathsService/RecordItemProgress"
-	// LearningPathsServiceSetLearningPathPausedProcedure is the fully-qualified name of the
+	// LearningPathsServiceSetLearningPathPausedProcedure is the procedure name of the
 	// LearningPathsService's SetLearningPathPaused RPC.
 	LearningPathsServiceSetLearningPathPausedProcedure = "/learningpaths.v1.LearningPathsService/SetLearningPathPaused"
-	// LearningPathsServiceGetLearningPathProgressProcedure is the fully-qualified name of the
+	// LearningPathsServiceGetLearningPathProgressProcedure is the procedure name of the
 	// LearningPathsService's GetLearningPathProgress RPC.
 	LearningPathsServiceGetLearningPathProgressProcedure = "/learningpaths.v1.LearningPathsService/GetLearningPathProgress"
-	// TodoistServiceConnectTodoistProcedure is the fully-qualified name of the TodoistService's
+	// TodoistServiceConnectTodoistProcedure is the procedure name of the TodoistService's
 	// ConnectTodoist RPC.
 	TodoistServiceConnectTodoistProcedure = "/learningpaths.v1.TodoistService/ConnectTodoist"
-	// TodoistServiceDisconnectTodoistProcedure is the fully-qualified name of the TodoistService's
+	// TodoistServiceDisconnectTodoistProcedure is the procedure name of the TodoistService's
 	// DisconnectTodoist RPC.
 	TodoistServiceDisconnectTodoistProcedure = "/learningpaths.v1.TodoistService/DisconnectTodoist"
-	// TodoistServiceGetTodoistConnectionStatusProcedure is the fully-qualified name of the
-	// TodoistService's GetTodoistConnectionStatus RPC.
+	// TodoistServiceGetTodoistConnectionStatusProcedure is the procedure name of the TodoistService's
+	// GetTodoistConnectionStatus RPC.
 	TodoistServiceGetTodoistConnectionStatusProcedure = "/learningpaths.v1.TodoistService/GetTodoistConnectionStatus"
-	// TodoistServiceGetTodoistSyncStateProcedure is the fully-qualified name of the TodoistService's
+	// TodoistServiceGetTodoistSyncStateProcedure is the procedure name of the TodoistService's
 	// GetTodoistSyncState RPC.
 	TodoistServiceGetTodoistSyncStateProcedure = "/learningpaths.v1.TodoistService/GetTodoistSyncState"
 )
 
+var (
+	learningPathsServiceListLearningPathsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("LearningPathsService").Methods().ByName("ListLearningPaths"),
+			Procedure:  LearningPathsServiceListLearningPathsProcedure,
+		}
+	})
+	learningPathsServiceGetLearningPathSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("LearningPathsService").Methods().ByName("GetLearningPath"),
+			Procedure:  LearningPathsServiceGetLearningPathProcedure,
+		}
+	})
+	learningPathsServiceCreateLearningPathSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("LearningPathsService").Methods().ByName("CreateLearningPath"),
+			Procedure:  LearningPathsServiceCreateLearningPathProcedure,
+		}
+	})
+	learningPathsServiceUpdateLearningPathSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("LearningPathsService").Methods().ByName("UpdateLearningPath"),
+			Procedure:  LearningPathsServiceUpdateLearningPathProcedure,
+		}
+	})
+	learningPathsServiceDeleteLearningPathSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("LearningPathsService").Methods().ByName("DeleteLearningPath"),
+			Procedure:  LearningPathsServiceDeleteLearningPathProcedure,
+		}
+	})
+	learningPathsServiceRecordItemProgressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("LearningPathsService").Methods().ByName("RecordItemProgress"),
+			Procedure:  LearningPathsServiceRecordItemProgressProcedure,
+		}
+	})
+	learningPathsServiceSetLearningPathPausedSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("LearningPathsService").Methods().ByName("SetLearningPathPaused"),
+			Procedure:  LearningPathsServiceSetLearningPathPausedProcedure,
+		}
+	})
+	learningPathsServiceGetLearningPathProgressSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("LearningPathsService").Methods().ByName("GetLearningPathProgress"),
+			Procedure:  LearningPathsServiceGetLearningPathProgressProcedure,
+		}
+	})
+)
+
 // LearningPathsServiceClient is a client for the learningpaths.v1.LearningPathsService service.
 type LearningPathsServiceClient interface {
-	ListLearningPaths(context.Context, *connect.Request[v1.ListLearningPathsRequest]) (*connect.Response[v1.ListLearningPathsResponse], error)
-	GetLearningPath(context.Context, *connect.Request[v1.GetLearningPathRequest]) (*connect.Response[v1.GetLearningPathResponse], error)
-	CreateLearningPath(context.Context, *connect.Request[v1.CreateLearningPathRequest]) (*connect.Response[v1.CreateLearningPathResponse], error)
-	UpdateLearningPath(context.Context, *connect.Request[v1.UpdateLearningPathRequest]) (*connect.Response[v1.UpdateLearningPathResponse], error)
-	DeleteLearningPath(context.Context, *connect.Request[v1.DeleteLearningPathRequest]) (*connect.Response[v1.DeleteLearningPathResponse], error)
-	RecordItemProgress(context.Context, *connect.Request[v1.RecordItemProgressRequest]) (*connect.Response[v1.RecordItemProgressResponse], error)
-	SetLearningPathPaused(context.Context, *connect.Request[v1.SetLearningPathPausedRequest]) (*connect.Response[v1.SetLearningPathPausedResponse], error)
-	GetLearningPathProgress(context.Context, *connect.Request[v1.GetLearningPathProgressRequest]) (*connect.Response[v1.GetLearningPathProgressResponse], error)
+	ListLearningPaths(context.Context, *v1.ListLearningPathsRequest) (*v1.ListLearningPathsResponse, error)
+	GetLearningPath(context.Context, *v1.GetLearningPathRequest) (*v1.GetLearningPathResponse, error)
+	CreateLearningPath(context.Context, *v1.CreateLearningPathRequest) (*v1.CreateLearningPathResponse, error)
+	UpdateLearningPath(context.Context, *v1.UpdateLearningPathRequest) (*v1.UpdateLearningPathResponse, error)
+	DeleteLearningPath(context.Context, *v1.DeleteLearningPathRequest) (*v1.DeleteLearningPathResponse, error)
+	RecordItemProgress(context.Context, *v1.RecordItemProgressRequest) (*v1.RecordItemProgressResponse, error)
+	SetLearningPathPaused(context.Context, *v1.SetLearningPathPausedRequest) (*v1.SetLearningPathPausedResponse, error)
+	GetLearningPathProgress(context.Context, *v1.GetLearningPathProgressRequest) (*v1.GetLearningPathProgressResponse, error)
 }
 
 // NewLearningPathsServiceClient constructs a client for the learningpaths.v1.LearningPathsService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewLearningPathsServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) LearningPathsServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	learningPathsServiceMethods := v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("LearningPathsService").Methods()
-	return &learningPathsServiceClient{
-		listLearningPaths: connect.NewClient[v1.ListLearningPathsRequest, v1.ListLearningPathsResponse](
-			httpClient,
-			baseURL+LearningPathsServiceListLearningPathsProcedure,
-			connect.WithSchema(learningPathsServiceMethods.ByName("ListLearningPaths")),
-			connect.WithClientOptions(opts...),
-		),
-		getLearningPath: connect.NewClient[v1.GetLearningPathRequest, v1.GetLearningPathResponse](
-			httpClient,
-			baseURL+LearningPathsServiceGetLearningPathProcedure,
-			connect.WithSchema(learningPathsServiceMethods.ByName("GetLearningPath")),
-			connect.WithClientOptions(opts...),
-		),
-		createLearningPath: connect.NewClient[v1.CreateLearningPathRequest, v1.CreateLearningPathResponse](
-			httpClient,
-			baseURL+LearningPathsServiceCreateLearningPathProcedure,
-			connect.WithSchema(learningPathsServiceMethods.ByName("CreateLearningPath")),
-			connect.WithClientOptions(opts...),
-		),
-		updateLearningPath: connect.NewClient[v1.UpdateLearningPathRequest, v1.UpdateLearningPathResponse](
-			httpClient,
-			baseURL+LearningPathsServiceUpdateLearningPathProcedure,
-			connect.WithSchema(learningPathsServiceMethods.ByName("UpdateLearningPath")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteLearningPath: connect.NewClient[v1.DeleteLearningPathRequest, v1.DeleteLearningPathResponse](
-			httpClient,
-			baseURL+LearningPathsServiceDeleteLearningPathProcedure,
-			connect.WithSchema(learningPathsServiceMethods.ByName("DeleteLearningPath")),
-			connect.WithClientOptions(opts...),
-		),
-		recordItemProgress: connect.NewClient[v1.RecordItemProgressRequest, v1.RecordItemProgressResponse](
-			httpClient,
-			baseURL+LearningPathsServiceRecordItemProgressProcedure,
-			connect.WithSchema(learningPathsServiceMethods.ByName("RecordItemProgress")),
-			connect.WithClientOptions(opts...),
-		),
-		setLearningPathPaused: connect.NewClient[v1.SetLearningPathPausedRequest, v1.SetLearningPathPausedResponse](
-			httpClient,
-			baseURL+LearningPathsServiceSetLearningPathPausedProcedure,
-			connect.WithSchema(learningPathsServiceMethods.ByName("SetLearningPathPaused")),
-			connect.WithClientOptions(opts...),
-		),
-		getLearningPathProgress: connect.NewClient[v1.GetLearningPathProgressRequest, v1.GetLearningPathProgressResponse](
-			httpClient,
-			baseURL+LearningPathsServiceGetLearningPathProgressProcedure,
-			connect.WithSchema(learningPathsServiceMethods.ByName("GetLearningPathProgress")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// learningPathsServiceClient implements LearningPathsServiceClient.
-type learningPathsServiceClient struct {
-	listLearningPaths       *connect.Client[v1.ListLearningPathsRequest, v1.ListLearningPathsResponse]
-	getLearningPath         *connect.Client[v1.GetLearningPathRequest, v1.GetLearningPathResponse]
-	createLearningPath      *connect.Client[v1.CreateLearningPathRequest, v1.CreateLearningPathResponse]
-	updateLearningPath      *connect.Client[v1.UpdateLearningPathRequest, v1.UpdateLearningPathResponse]
-	deleteLearningPath      *connect.Client[v1.DeleteLearningPathRequest, v1.DeleteLearningPathResponse]
-	recordItemProgress      *connect.Client[v1.RecordItemProgressRequest, v1.RecordItemProgressResponse]
-	setLearningPathPaused   *connect.Client[v1.SetLearningPathPausedRequest, v1.SetLearningPathPausedResponse]
-	getLearningPathProgress *connect.Client[v1.GetLearningPathProgressRequest, v1.GetLearningPathProgressResponse]
-}
-
-// ListLearningPaths calls learningpaths.v1.LearningPathsService.ListLearningPaths.
-func (c *learningPathsServiceClient) ListLearningPaths(ctx context.Context, req *connect.Request[v1.ListLearningPathsRequest]) (*connect.Response[v1.ListLearningPathsResponse], error) {
-	return c.listLearningPaths.CallUnary(ctx, req)
-}
-
-// GetLearningPath calls learningpaths.v1.LearningPathsService.GetLearningPath.
-func (c *learningPathsServiceClient) GetLearningPath(ctx context.Context, req *connect.Request[v1.GetLearningPathRequest]) (*connect.Response[v1.GetLearningPathResponse], error) {
-	return c.getLearningPath.CallUnary(ctx, req)
-}
-
-// CreateLearningPath calls learningpaths.v1.LearningPathsService.CreateLearningPath.
-func (c *learningPathsServiceClient) CreateLearningPath(ctx context.Context, req *connect.Request[v1.CreateLearningPathRequest]) (*connect.Response[v1.CreateLearningPathResponse], error) {
-	return c.createLearningPath.CallUnary(ctx, req)
-}
-
-// UpdateLearningPath calls learningpaths.v1.LearningPathsService.UpdateLearningPath.
-func (c *learningPathsServiceClient) UpdateLearningPath(ctx context.Context, req *connect.Request[v1.UpdateLearningPathRequest]) (*connect.Response[v1.UpdateLearningPathResponse], error) {
-	return c.updateLearningPath.CallUnary(ctx, req)
-}
-
-// DeleteLearningPath calls learningpaths.v1.LearningPathsService.DeleteLearningPath.
-func (c *learningPathsServiceClient) DeleteLearningPath(ctx context.Context, req *connect.Request[v1.DeleteLearningPathRequest]) (*connect.Response[v1.DeleteLearningPathResponse], error) {
-	return c.deleteLearningPath.CallUnary(ctx, req)
-}
-
-// RecordItemProgress calls learningpaths.v1.LearningPathsService.RecordItemProgress.
-func (c *learningPathsServiceClient) RecordItemProgress(ctx context.Context, req *connect.Request[v1.RecordItemProgressRequest]) (*connect.Response[v1.RecordItemProgressResponse], error) {
-	return c.recordItemProgress.CallUnary(ctx, req)
-}
-
-// SetLearningPathPaused calls learningpaths.v1.LearningPathsService.SetLearningPathPaused.
-func (c *learningPathsServiceClient) SetLearningPathPaused(ctx context.Context, req *connect.Request[v1.SetLearningPathPausedRequest]) (*connect.Response[v1.SetLearningPathPausedResponse], error) {
-	return c.setLearningPathPaused.CallUnary(ctx, req)
-}
-
-// GetLearningPathProgress calls learningpaths.v1.LearningPathsService.GetLearningPathProgress.
-func (c *learningPathsServiceClient) GetLearningPathProgress(ctx context.Context, req *connect.Request[v1.GetLearningPathProgressRequest]) (*connect.Response[v1.GetLearningPathProgressResponse], error) {
-	return c.getLearningPathProgress.CallUnary(ctx, req)
+// service. Multiple service clients may share a single connect.Client.
+func NewLearningPathsServiceClient(client *connect.Client) LearningPathsServiceClient {
+	return &learningPathsServiceClient{client: client}
 }
 
 // LearningPathsServiceHandler is an implementation of the learningpaths.v1.LearningPathsService
 // service.
 type LearningPathsServiceHandler interface {
-	ListLearningPaths(context.Context, *connect.Request[v1.ListLearningPathsRequest]) (*connect.Response[v1.ListLearningPathsResponse], error)
-	GetLearningPath(context.Context, *connect.Request[v1.GetLearningPathRequest]) (*connect.Response[v1.GetLearningPathResponse], error)
-	CreateLearningPath(context.Context, *connect.Request[v1.CreateLearningPathRequest]) (*connect.Response[v1.CreateLearningPathResponse], error)
-	UpdateLearningPath(context.Context, *connect.Request[v1.UpdateLearningPathRequest]) (*connect.Response[v1.UpdateLearningPathResponse], error)
-	DeleteLearningPath(context.Context, *connect.Request[v1.DeleteLearningPathRequest]) (*connect.Response[v1.DeleteLearningPathResponse], error)
-	RecordItemProgress(context.Context, *connect.Request[v1.RecordItemProgressRequest]) (*connect.Response[v1.RecordItemProgressResponse], error)
-	SetLearningPathPaused(context.Context, *connect.Request[v1.SetLearningPathPausedRequest]) (*connect.Response[v1.SetLearningPathPausedResponse], error)
-	GetLearningPathProgress(context.Context, *connect.Request[v1.GetLearningPathProgressRequest]) (*connect.Response[v1.GetLearningPathProgressResponse], error)
+	ListLearningPaths(context.Context, *v1.ListLearningPathsRequest) (*v1.ListLearningPathsResponse, error)
+	GetLearningPath(context.Context, *v1.GetLearningPathRequest) (*v1.GetLearningPathResponse, error)
+	CreateLearningPath(context.Context, *v1.CreateLearningPathRequest) (*v1.CreateLearningPathResponse, error)
+	UpdateLearningPath(context.Context, *v1.UpdateLearningPathRequest) (*v1.UpdateLearningPathResponse, error)
+	DeleteLearningPath(context.Context, *v1.DeleteLearningPathRequest) (*v1.DeleteLearningPathResponse, error)
+	RecordItemProgress(context.Context, *v1.RecordItemProgressRequest) (*v1.RecordItemProgressResponse, error)
+	SetLearningPathPaused(context.Context, *v1.SetLearningPathPausedRequest) (*v1.SetLearningPathPausedResponse, error)
+	GetLearningPathProgress(context.Context, *v1.GetLearningPathProgressRequest) (*v1.GetLearningPathProgressResponse, error)
 }
 
-// NewLearningPathsServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewLearningPathsServiceHandler(svc LearningPathsServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	learningPathsServiceMethods := v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("LearningPathsService").Methods()
-	learningPathsServiceListLearningPathsHandler := connect.NewUnaryHandler(
-		LearningPathsServiceListLearningPathsProcedure,
-		svc.ListLearningPaths,
-		connect.WithSchema(learningPathsServiceMethods.ByName("ListLearningPaths")),
-		connect.WithHandlerOptions(opts...),
+// RegisterLearningPathsServiceHandler registers svc as the learningpaths.v1.LearningPathsService
+// implementation on server.
+func RegisterLearningPathsServiceHandler(server *connect.Server, svc LearningPathsServiceHandler) {
+	adapter := learningPathsServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: learningPathsServiceListLearningPathsSpec(), Handler: adapter.listLearningPaths},
+		connect.Method{Spec: learningPathsServiceGetLearningPathSpec(), Handler: adapter.getLearningPath},
+		connect.Method{Spec: learningPathsServiceCreateLearningPathSpec(), Handler: adapter.createLearningPath},
+		connect.Method{Spec: learningPathsServiceUpdateLearningPathSpec(), Handler: adapter.updateLearningPath},
+		connect.Method{Spec: learningPathsServiceDeleteLearningPathSpec(), Handler: adapter.deleteLearningPath},
+		connect.Method{Spec: learningPathsServiceRecordItemProgressSpec(), Handler: adapter.recordItemProgress},
+		connect.Method{Spec: learningPathsServiceSetLearningPathPausedSpec(), Handler: adapter.setLearningPathPaused},
+		connect.Method{Spec: learningPathsServiceGetLearningPathProgressSpec(), Handler: adapter.getLearningPathProgress},
 	)
-	learningPathsServiceGetLearningPathHandler := connect.NewUnaryHandler(
-		LearningPathsServiceGetLearningPathProcedure,
-		svc.GetLearningPath,
-		connect.WithSchema(learningPathsServiceMethods.ByName("GetLearningPath")),
-		connect.WithHandlerOptions(opts...),
-	)
-	learningPathsServiceCreateLearningPathHandler := connect.NewUnaryHandler(
-		LearningPathsServiceCreateLearningPathProcedure,
-		svc.CreateLearningPath,
-		connect.WithSchema(learningPathsServiceMethods.ByName("CreateLearningPath")),
-		connect.WithHandlerOptions(opts...),
-	)
-	learningPathsServiceUpdateLearningPathHandler := connect.NewUnaryHandler(
-		LearningPathsServiceUpdateLearningPathProcedure,
-		svc.UpdateLearningPath,
-		connect.WithSchema(learningPathsServiceMethods.ByName("UpdateLearningPath")),
-		connect.WithHandlerOptions(opts...),
-	)
-	learningPathsServiceDeleteLearningPathHandler := connect.NewUnaryHandler(
-		LearningPathsServiceDeleteLearningPathProcedure,
-		svc.DeleteLearningPath,
-		connect.WithSchema(learningPathsServiceMethods.ByName("DeleteLearningPath")),
-		connect.WithHandlerOptions(opts...),
-	)
-	learningPathsServiceRecordItemProgressHandler := connect.NewUnaryHandler(
-		LearningPathsServiceRecordItemProgressProcedure,
-		svc.RecordItemProgress,
-		connect.WithSchema(learningPathsServiceMethods.ByName("RecordItemProgress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	learningPathsServiceSetLearningPathPausedHandler := connect.NewUnaryHandler(
-		LearningPathsServiceSetLearningPathPausedProcedure,
-		svc.SetLearningPathPaused,
-		connect.WithSchema(learningPathsServiceMethods.ByName("SetLearningPathPaused")),
-		connect.WithHandlerOptions(opts...),
-	)
-	learningPathsServiceGetLearningPathProgressHandler := connect.NewUnaryHandler(
-		LearningPathsServiceGetLearningPathProgressProcedure,
-		svc.GetLearningPathProgress,
-		connect.WithSchema(learningPathsServiceMethods.ByName("GetLearningPathProgress")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/learningpaths.v1.LearningPathsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case LearningPathsServiceListLearningPathsProcedure:
-			learningPathsServiceListLearningPathsHandler.ServeHTTP(w, r)
-		case LearningPathsServiceGetLearningPathProcedure:
-			learningPathsServiceGetLearningPathHandler.ServeHTTP(w, r)
-		case LearningPathsServiceCreateLearningPathProcedure:
-			learningPathsServiceCreateLearningPathHandler.ServeHTTP(w, r)
-		case LearningPathsServiceUpdateLearningPathProcedure:
-			learningPathsServiceUpdateLearningPathHandler.ServeHTTP(w, r)
-		case LearningPathsServiceDeleteLearningPathProcedure:
-			learningPathsServiceDeleteLearningPathHandler.ServeHTTP(w, r)
-		case LearningPathsServiceRecordItemProgressProcedure:
-			learningPathsServiceRecordItemProgressHandler.ServeHTTP(w, r)
-		case LearningPathsServiceSetLearningPathPausedProcedure:
-			learningPathsServiceSetLearningPathPausedHandler.ServeHTTP(w, r)
-		case LearningPathsServiceGetLearningPathProgressProcedure:
-			learningPathsServiceGetLearningPathProgressHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedLearningPathsServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedLearningPathsServiceHandler struct{}
 
-func (UnimplementedLearningPathsServiceHandler) ListLearningPaths(context.Context, *connect.Request[v1.ListLearningPathsRequest]) (*connect.Response[v1.ListLearningPathsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.LearningPathsService.ListLearningPaths is not implemented"))
+func (UnimplementedLearningPathsServiceHandler) ListLearningPaths(context.Context, *v1.ListLearningPathsRequest) (*v1.ListLearningPathsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "learningpaths.v1.LearningPathsService.ListLearningPaths is not implemented")
 }
 
-func (UnimplementedLearningPathsServiceHandler) GetLearningPath(context.Context, *connect.Request[v1.GetLearningPathRequest]) (*connect.Response[v1.GetLearningPathResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.LearningPathsService.GetLearningPath is not implemented"))
+func (UnimplementedLearningPathsServiceHandler) GetLearningPath(context.Context, *v1.GetLearningPathRequest) (*v1.GetLearningPathResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "learningpaths.v1.LearningPathsService.GetLearningPath is not implemented")
 }
 
-func (UnimplementedLearningPathsServiceHandler) CreateLearningPath(context.Context, *connect.Request[v1.CreateLearningPathRequest]) (*connect.Response[v1.CreateLearningPathResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.LearningPathsService.CreateLearningPath is not implemented"))
+func (UnimplementedLearningPathsServiceHandler) CreateLearningPath(context.Context, *v1.CreateLearningPathRequest) (*v1.CreateLearningPathResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "learningpaths.v1.LearningPathsService.CreateLearningPath is not implemented")
 }
 
-func (UnimplementedLearningPathsServiceHandler) UpdateLearningPath(context.Context, *connect.Request[v1.UpdateLearningPathRequest]) (*connect.Response[v1.UpdateLearningPathResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.LearningPathsService.UpdateLearningPath is not implemented"))
+func (UnimplementedLearningPathsServiceHandler) UpdateLearningPath(context.Context, *v1.UpdateLearningPathRequest) (*v1.UpdateLearningPathResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "learningpaths.v1.LearningPathsService.UpdateLearningPath is not implemented")
 }
 
-func (UnimplementedLearningPathsServiceHandler) DeleteLearningPath(context.Context, *connect.Request[v1.DeleteLearningPathRequest]) (*connect.Response[v1.DeleteLearningPathResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.LearningPathsService.DeleteLearningPath is not implemented"))
+func (UnimplementedLearningPathsServiceHandler) DeleteLearningPath(context.Context, *v1.DeleteLearningPathRequest) (*v1.DeleteLearningPathResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "learningpaths.v1.LearningPathsService.DeleteLearningPath is not implemented")
 }
 
-func (UnimplementedLearningPathsServiceHandler) RecordItemProgress(context.Context, *connect.Request[v1.RecordItemProgressRequest]) (*connect.Response[v1.RecordItemProgressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.LearningPathsService.RecordItemProgress is not implemented"))
+func (UnimplementedLearningPathsServiceHandler) RecordItemProgress(context.Context, *v1.RecordItemProgressRequest) (*v1.RecordItemProgressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "learningpaths.v1.LearningPathsService.RecordItemProgress is not implemented")
 }
 
-func (UnimplementedLearningPathsServiceHandler) SetLearningPathPaused(context.Context, *connect.Request[v1.SetLearningPathPausedRequest]) (*connect.Response[v1.SetLearningPathPausedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.LearningPathsService.SetLearningPathPaused is not implemented"))
+func (UnimplementedLearningPathsServiceHandler) SetLearningPathPaused(context.Context, *v1.SetLearningPathPausedRequest) (*v1.SetLearningPathPausedResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "learningpaths.v1.LearningPathsService.SetLearningPathPaused is not implemented")
 }
 
-func (UnimplementedLearningPathsServiceHandler) GetLearningPathProgress(context.Context, *connect.Request[v1.GetLearningPathProgressRequest]) (*connect.Response[v1.GetLearningPathProgressResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.LearningPathsService.GetLearningPathProgress is not implemented"))
+func (UnimplementedLearningPathsServiceHandler) GetLearningPathProgress(context.Context, *v1.GetLearningPathProgressRequest) (*v1.GetLearningPathProgressResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "learningpaths.v1.LearningPathsService.GetLearningPathProgress is not implemented")
 }
+
+type learningPathsServiceClient struct {
+	client *connect.Client
+}
+
+func (c *learningPathsServiceClient) ListLearningPaths(ctx context.Context, req *v1.ListLearningPathsRequest) (*v1.ListLearningPathsResponse, error) {
+	var res v1.ListLearningPathsResponse
+	if err := c.client.CallUnary(ctx, learningPathsServiceListLearningPathsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *learningPathsServiceClient) GetLearningPath(ctx context.Context, req *v1.GetLearningPathRequest) (*v1.GetLearningPathResponse, error) {
+	var res v1.GetLearningPathResponse
+	if err := c.client.CallUnary(ctx, learningPathsServiceGetLearningPathSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *learningPathsServiceClient) CreateLearningPath(ctx context.Context, req *v1.CreateLearningPathRequest) (*v1.CreateLearningPathResponse, error) {
+	var res v1.CreateLearningPathResponse
+	if err := c.client.CallUnary(ctx, learningPathsServiceCreateLearningPathSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *learningPathsServiceClient) UpdateLearningPath(ctx context.Context, req *v1.UpdateLearningPathRequest) (*v1.UpdateLearningPathResponse, error) {
+	var res v1.UpdateLearningPathResponse
+	if err := c.client.CallUnary(ctx, learningPathsServiceUpdateLearningPathSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *learningPathsServiceClient) DeleteLearningPath(ctx context.Context, req *v1.DeleteLearningPathRequest) (*v1.DeleteLearningPathResponse, error) {
+	var res v1.DeleteLearningPathResponse
+	if err := c.client.CallUnary(ctx, learningPathsServiceDeleteLearningPathSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *learningPathsServiceClient) RecordItemProgress(ctx context.Context, req *v1.RecordItemProgressRequest) (*v1.RecordItemProgressResponse, error) {
+	var res v1.RecordItemProgressResponse
+	if err := c.client.CallUnary(ctx, learningPathsServiceRecordItemProgressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *learningPathsServiceClient) SetLearningPathPaused(ctx context.Context, req *v1.SetLearningPathPausedRequest) (*v1.SetLearningPathPausedResponse, error) {
+	var res v1.SetLearningPathPausedResponse
+	if err := c.client.CallUnary(ctx, learningPathsServiceSetLearningPathPausedSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *learningPathsServiceClient) GetLearningPathProgress(ctx context.Context, req *v1.GetLearningPathProgressRequest) (*v1.GetLearningPathProgressResponse, error) {
+	var res v1.GetLearningPathProgressResponse
+	if err := c.client.CallUnary(ctx, learningPathsServiceGetLearningPathProgressSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type learningPathsServiceHandler struct{ svc LearningPathsServiceHandler }
+
+func (h learningPathsServiceHandler) listLearningPaths(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListLearningPathsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListLearningPaths(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h learningPathsServiceHandler) getLearningPath(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetLearningPathRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetLearningPath(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h learningPathsServiceHandler) createLearningPath(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateLearningPathRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateLearningPath(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h learningPathsServiceHandler) updateLearningPath(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateLearningPathRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateLearningPath(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h learningPathsServiceHandler) deleteLearningPath(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteLearningPathRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteLearningPath(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h learningPathsServiceHandler) recordItemProgress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RecordItemProgressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RecordItemProgress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h learningPathsServiceHandler) setLearningPathPaused(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetLearningPathPausedRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetLearningPathPaused(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h learningPathsServiceHandler) getLearningPathProgress(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetLearningPathProgressRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetLearningPathProgress(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+var (
+	todoistServiceConnectTodoistSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("TodoistService").Methods().ByName("ConnectTodoist"),
+			Procedure:  TodoistServiceConnectTodoistProcedure,
+		}
+	})
+	todoistServiceDisconnectTodoistSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("TodoistService").Methods().ByName("DisconnectTodoist"),
+			Procedure:  TodoistServiceDisconnectTodoistProcedure,
+		}
+	})
+	todoistServiceGetTodoistConnectionStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("TodoistService").Methods().ByName("GetTodoistConnectionStatus"),
+			Procedure:  TodoistServiceGetTodoistConnectionStatusProcedure,
+		}
+	})
+	todoistServiceGetTodoistSyncStateSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("TodoistService").Methods().ByName("GetTodoistSyncState"),
+			Procedure:  TodoistServiceGetTodoistSyncStateProcedure,
+		}
+	})
+)
 
 // TodoistServiceClient is a client for the learningpaths.v1.TodoistService service.
 type TodoistServiceClient interface {
-	ConnectTodoist(context.Context, *connect.Request[v1.ConnectTodoistRequest]) (*connect.Response[v1.ConnectTodoistResponse], error)
-	DisconnectTodoist(context.Context, *connect.Request[v1.DisconnectTodoistRequest]) (*connect.Response[v1.DisconnectTodoistResponse], error)
-	GetTodoistConnectionStatus(context.Context, *connect.Request[v1.GetTodoistConnectionStatusRequest]) (*connect.Response[v1.GetTodoistConnectionStatusResponse], error)
-	GetTodoistSyncState(context.Context, *connect.Request[v1.GetTodoistSyncStateRequest]) (*connect.Response[v1.GetTodoistSyncStateResponse], error)
+	ConnectTodoist(context.Context, *v1.ConnectTodoistRequest) (*v1.ConnectTodoistResponse, error)
+	DisconnectTodoist(context.Context, *v1.DisconnectTodoistRequest) (*v1.DisconnectTodoistResponse, error)
+	GetTodoistConnectionStatus(context.Context, *v1.GetTodoistConnectionStatusRequest) (*v1.GetTodoistConnectionStatusResponse, error)
+	GetTodoistSyncState(context.Context, *v1.GetTodoistSyncStateRequest) (*v1.GetTodoistSyncStateResponse, error)
 }
 
-// NewTodoistServiceClient constructs a client for the learningpaths.v1.TodoistService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewTodoistServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) TodoistServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	todoistServiceMethods := v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("TodoistService").Methods()
-	return &todoistServiceClient{
-		connectTodoist: connect.NewClient[v1.ConnectTodoistRequest, v1.ConnectTodoistResponse](
-			httpClient,
-			baseURL+TodoistServiceConnectTodoistProcedure,
-			connect.WithSchema(todoistServiceMethods.ByName("ConnectTodoist")),
-			connect.WithClientOptions(opts...),
-		),
-		disconnectTodoist: connect.NewClient[v1.DisconnectTodoistRequest, v1.DisconnectTodoistResponse](
-			httpClient,
-			baseURL+TodoistServiceDisconnectTodoistProcedure,
-			connect.WithSchema(todoistServiceMethods.ByName("DisconnectTodoist")),
-			connect.WithClientOptions(opts...),
-		),
-		getTodoistConnectionStatus: connect.NewClient[v1.GetTodoistConnectionStatusRequest, v1.GetTodoistConnectionStatusResponse](
-			httpClient,
-			baseURL+TodoistServiceGetTodoistConnectionStatusProcedure,
-			connect.WithSchema(todoistServiceMethods.ByName("GetTodoistConnectionStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		getTodoistSyncState: connect.NewClient[v1.GetTodoistSyncStateRequest, v1.GetTodoistSyncStateResponse](
-			httpClient,
-			baseURL+TodoistServiceGetTodoistSyncStateProcedure,
-			connect.WithSchema(todoistServiceMethods.ByName("GetTodoistSyncState")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// todoistServiceClient implements TodoistServiceClient.
-type todoistServiceClient struct {
-	connectTodoist             *connect.Client[v1.ConnectTodoistRequest, v1.ConnectTodoistResponse]
-	disconnectTodoist          *connect.Client[v1.DisconnectTodoistRequest, v1.DisconnectTodoistResponse]
-	getTodoistConnectionStatus *connect.Client[v1.GetTodoistConnectionStatusRequest, v1.GetTodoistConnectionStatusResponse]
-	getTodoistSyncState        *connect.Client[v1.GetTodoistSyncStateRequest, v1.GetTodoistSyncStateResponse]
-}
-
-// ConnectTodoist calls learningpaths.v1.TodoistService.ConnectTodoist.
-func (c *todoistServiceClient) ConnectTodoist(ctx context.Context, req *connect.Request[v1.ConnectTodoistRequest]) (*connect.Response[v1.ConnectTodoistResponse], error) {
-	return c.connectTodoist.CallUnary(ctx, req)
-}
-
-// DisconnectTodoist calls learningpaths.v1.TodoistService.DisconnectTodoist.
-func (c *todoistServiceClient) DisconnectTodoist(ctx context.Context, req *connect.Request[v1.DisconnectTodoistRequest]) (*connect.Response[v1.DisconnectTodoistResponse], error) {
-	return c.disconnectTodoist.CallUnary(ctx, req)
-}
-
-// GetTodoistConnectionStatus calls learningpaths.v1.TodoistService.GetTodoistConnectionStatus.
-func (c *todoistServiceClient) GetTodoistConnectionStatus(ctx context.Context, req *connect.Request[v1.GetTodoistConnectionStatusRequest]) (*connect.Response[v1.GetTodoistConnectionStatusResponse], error) {
-	return c.getTodoistConnectionStatus.CallUnary(ctx, req)
-}
-
-// GetTodoistSyncState calls learningpaths.v1.TodoistService.GetTodoistSyncState.
-func (c *todoistServiceClient) GetTodoistSyncState(ctx context.Context, req *connect.Request[v1.GetTodoistSyncStateRequest]) (*connect.Response[v1.GetTodoistSyncStateResponse], error) {
-	return c.getTodoistSyncState.CallUnary(ctx, req)
+// NewTodoistServiceClient constructs a client for the learningpaths.v1.TodoistService service.
+// Multiple service clients may share a single connect.Client.
+func NewTodoistServiceClient(client *connect.Client) TodoistServiceClient {
+	return &todoistServiceClient{client: client}
 }
 
 // TodoistServiceHandler is an implementation of the learningpaths.v1.TodoistService service.
 type TodoistServiceHandler interface {
-	ConnectTodoist(context.Context, *connect.Request[v1.ConnectTodoistRequest]) (*connect.Response[v1.ConnectTodoistResponse], error)
-	DisconnectTodoist(context.Context, *connect.Request[v1.DisconnectTodoistRequest]) (*connect.Response[v1.DisconnectTodoistResponse], error)
-	GetTodoistConnectionStatus(context.Context, *connect.Request[v1.GetTodoistConnectionStatusRequest]) (*connect.Response[v1.GetTodoistConnectionStatusResponse], error)
-	GetTodoistSyncState(context.Context, *connect.Request[v1.GetTodoistSyncStateRequest]) (*connect.Response[v1.GetTodoistSyncStateResponse], error)
+	ConnectTodoist(context.Context, *v1.ConnectTodoistRequest) (*v1.ConnectTodoistResponse, error)
+	DisconnectTodoist(context.Context, *v1.DisconnectTodoistRequest) (*v1.DisconnectTodoistResponse, error)
+	GetTodoistConnectionStatus(context.Context, *v1.GetTodoistConnectionStatusRequest) (*v1.GetTodoistConnectionStatusResponse, error)
+	GetTodoistSyncState(context.Context, *v1.GetTodoistSyncStateRequest) (*v1.GetTodoistSyncStateResponse, error)
 }
 
-// NewTodoistServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewTodoistServiceHandler(svc TodoistServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	todoistServiceMethods := v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("TodoistService").Methods()
-	todoistServiceConnectTodoistHandler := connect.NewUnaryHandler(
-		TodoistServiceConnectTodoistProcedure,
-		svc.ConnectTodoist,
-		connect.WithSchema(todoistServiceMethods.ByName("ConnectTodoist")),
-		connect.WithHandlerOptions(opts...),
+// RegisterTodoistServiceHandler registers svc as the learningpaths.v1.TodoistService implementation
+// on server.
+func RegisterTodoistServiceHandler(server *connect.Server, svc TodoistServiceHandler) {
+	adapter := todoistServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: todoistServiceConnectTodoistSpec(), Handler: adapter.connectTodoist},
+		connect.Method{Spec: todoistServiceDisconnectTodoistSpec(), Handler: adapter.disconnectTodoist},
+		connect.Method{Spec: todoistServiceGetTodoistConnectionStatusSpec(), Handler: adapter.getTodoistConnectionStatus},
+		connect.Method{Spec: todoistServiceGetTodoistSyncStateSpec(), Handler: adapter.getTodoistSyncState},
 	)
-	todoistServiceDisconnectTodoistHandler := connect.NewUnaryHandler(
-		TodoistServiceDisconnectTodoistProcedure,
-		svc.DisconnectTodoist,
-		connect.WithSchema(todoistServiceMethods.ByName("DisconnectTodoist")),
-		connect.WithHandlerOptions(opts...),
-	)
-	todoistServiceGetTodoistConnectionStatusHandler := connect.NewUnaryHandler(
-		TodoistServiceGetTodoistConnectionStatusProcedure,
-		svc.GetTodoistConnectionStatus,
-		connect.WithSchema(todoistServiceMethods.ByName("GetTodoistConnectionStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	todoistServiceGetTodoistSyncStateHandler := connect.NewUnaryHandler(
-		TodoistServiceGetTodoistSyncStateProcedure,
-		svc.GetTodoistSyncState,
-		connect.WithSchema(todoistServiceMethods.ByName("GetTodoistSyncState")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/learningpaths.v1.TodoistService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case TodoistServiceConnectTodoistProcedure:
-			todoistServiceConnectTodoistHandler.ServeHTTP(w, r)
-		case TodoistServiceDisconnectTodoistProcedure:
-			todoistServiceDisconnectTodoistHandler.ServeHTTP(w, r)
-		case TodoistServiceGetTodoistConnectionStatusProcedure:
-			todoistServiceGetTodoistConnectionStatusHandler.ServeHTTP(w, r)
-		case TodoistServiceGetTodoistSyncStateProcedure:
-			todoistServiceGetTodoistSyncStateHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedTodoistServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedTodoistServiceHandler struct{}
 
-func (UnimplementedTodoistServiceHandler) ConnectTodoist(context.Context, *connect.Request[v1.ConnectTodoistRequest]) (*connect.Response[v1.ConnectTodoistResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.TodoistService.ConnectTodoist is not implemented"))
+func (UnimplementedTodoistServiceHandler) ConnectTodoist(context.Context, *v1.ConnectTodoistRequest) (*v1.ConnectTodoistResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "learningpaths.v1.TodoistService.ConnectTodoist is not implemented")
 }
 
-func (UnimplementedTodoistServiceHandler) DisconnectTodoist(context.Context, *connect.Request[v1.DisconnectTodoistRequest]) (*connect.Response[v1.DisconnectTodoistResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.TodoistService.DisconnectTodoist is not implemented"))
+func (UnimplementedTodoistServiceHandler) DisconnectTodoist(context.Context, *v1.DisconnectTodoistRequest) (*v1.DisconnectTodoistResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "learningpaths.v1.TodoistService.DisconnectTodoist is not implemented")
 }
 
-func (UnimplementedTodoistServiceHandler) GetTodoistConnectionStatus(context.Context, *connect.Request[v1.GetTodoistConnectionStatusRequest]) (*connect.Response[v1.GetTodoistConnectionStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.TodoistService.GetTodoistConnectionStatus is not implemented"))
+func (UnimplementedTodoistServiceHandler) GetTodoistConnectionStatus(context.Context, *v1.GetTodoistConnectionStatusRequest) (*v1.GetTodoistConnectionStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "learningpaths.v1.TodoistService.GetTodoistConnectionStatus is not implemented")
 }
 
-func (UnimplementedTodoistServiceHandler) GetTodoistSyncState(context.Context, *connect.Request[v1.GetTodoistSyncStateRequest]) (*connect.Response[v1.GetTodoistSyncStateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.TodoistService.GetTodoistSyncState is not implemented"))
+func (UnimplementedTodoistServiceHandler) GetTodoistSyncState(context.Context, *v1.GetTodoistSyncStateRequest) (*v1.GetTodoistSyncStateResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "learningpaths.v1.TodoistService.GetTodoistSyncState is not implemented")
+}
+
+type todoistServiceClient struct {
+	client *connect.Client
+}
+
+func (c *todoistServiceClient) ConnectTodoist(ctx context.Context, req *v1.ConnectTodoistRequest) (*v1.ConnectTodoistResponse, error) {
+	var res v1.ConnectTodoistResponse
+	if err := c.client.CallUnary(ctx, todoistServiceConnectTodoistSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *todoistServiceClient) DisconnectTodoist(ctx context.Context, req *v1.DisconnectTodoistRequest) (*v1.DisconnectTodoistResponse, error) {
+	var res v1.DisconnectTodoistResponse
+	if err := c.client.CallUnary(ctx, todoistServiceDisconnectTodoistSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *todoistServiceClient) GetTodoistConnectionStatus(ctx context.Context, req *v1.GetTodoistConnectionStatusRequest) (*v1.GetTodoistConnectionStatusResponse, error) {
+	var res v1.GetTodoistConnectionStatusResponse
+	if err := c.client.CallUnary(ctx, todoistServiceGetTodoistConnectionStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *todoistServiceClient) GetTodoistSyncState(ctx context.Context, req *v1.GetTodoistSyncStateRequest) (*v1.GetTodoistSyncStateResponse, error) {
+	var res v1.GetTodoistSyncStateResponse
+	if err := c.client.CallUnary(ctx, todoistServiceGetTodoistSyncStateSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type todoistServiceHandler struct{ svc TodoistServiceHandler }
+
+func (h todoistServiceHandler) connectTodoist(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ConnectTodoistRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ConnectTodoist(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h todoistServiceHandler) disconnectTodoist(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DisconnectTodoistRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DisconnectTodoist(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h todoistServiceHandler) getTodoistConnectionStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetTodoistConnectionStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTodoistConnectionStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h todoistServiceHandler) getTodoistSyncState(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetTodoistSyncStateRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTodoistSyncState(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

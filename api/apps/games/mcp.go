@@ -3,7 +3,6 @@ package games
 import (
 	"context"
 
-	"connectrpc.com/connect"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
@@ -54,39 +53,43 @@ func (a *Games) RegisterMCPTools(srv *mcp.Server) {
 func (h *gamesConnectHandler) mcpGetSteam(
 	ctx context.Context, args steamRangeArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetSteam(ctx, connect.NewRequest(
-		&gamesv1.GetSteamRequest{DateStart: args.DateStart, DateEnd: args.DateEnd},
-	)))
+	return mcptools.Unwrap(
+		h.GetSteam(
+			ctx,
+			&gamesv1.GetSteamRequest{DateStart: args.DateStart, DateEnd: args.DateEnd},
+		),
+	)
 }
 
 func (h *gamesConnectHandler) mcpGetSteamGame(
 	ctx context.Context, args gameIDArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetSteamGame(ctx, connect.NewRequest(
-		&gamesv1.GetSteamGameRequest{GameId: args.GameID},
-	)))
+	return mcptools.Unwrap(
+		h.GetSteamGame(ctx, &gamesv1.GetSteamGameRequest{GameId: args.GameID}),
+	)
 }
 
 func (h *gamesConnectHandler) mcpGetSteamDistribution(
 	ctx context.Context, args bucketArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetSteamDistribution(ctx, connect.NewRequest(
-		&gamesv1.GetSteamDistributionRequest{Bucket: args.Bucket},
-	)))
+	return mcptools.Unwrap(
+		h.GetSteamDistribution(
+			ctx,
+			&gamesv1.GetSteamDistributionRequest{Bucket: args.Bucket},
+		),
+	)
 }
 
 func (h *gamesConnectHandler) mcpGetRecentlyActiveGames(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetRecentlyActiveGames(ctx, connect.NewRequest(
-		&gamesv1.GetRecentlyActiveGamesRequest{},
-	)))
+	return mcptools.Unwrap(
+		h.GetRecentlyActiveGames(ctx, &gamesv1.GetRecentlyActiveGamesRequest{}),
+	)
 }
 
 func (h *gamesConnectHandler) mcpGetIntegrations(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetIntegrations(ctx, connect.NewRequest(
-		&gamesv1.GetIntegrationsRequest{},
-	)))
+	return mcptools.Unwrap(h.GetIntegrations(ctx, &gamesv1.GetIntegrationsRequest{}))
 }

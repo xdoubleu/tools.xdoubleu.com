@@ -5,307 +5,350 @@
 package gamesv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/games/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// GamesServiceName is the fully-qualified name of the GamesService service.
 	GamesServiceName = "games.v1.GamesService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// GamesServiceGetSteamProcedure is the fully-qualified name of the GamesService's GetSteam RPC.
+	// GamesServiceGetSteamProcedure is the procedure name of the GamesService's GetSteam RPC.
 	GamesServiceGetSteamProcedure = "/games.v1.GamesService/GetSteam"
-	// GamesServiceGetSteamGameProcedure is the fully-qualified name of the GamesService's GetSteamGame
-	// RPC.
+	// GamesServiceGetSteamGameProcedure is the procedure name of the GamesService's GetSteamGame RPC.
 	GamesServiceGetSteamGameProcedure = "/games.v1.GamesService/GetSteamGame"
-	// GamesServiceGetSteamDistributionProcedure is the fully-qualified name of the GamesService's
+	// GamesServiceGetSteamDistributionProcedure is the procedure name of the GamesService's
 	// GetSteamDistribution RPC.
 	GamesServiceGetSteamDistributionProcedure = "/games.v1.GamesService/GetSteamDistribution"
-	// GamesServiceGetRecentlyActiveGamesProcedure is the fully-qualified name of the GamesService's
+	// GamesServiceGetRecentlyActiveGamesProcedure is the procedure name of the GamesService's
 	// GetRecentlyActiveGames RPC.
 	GamesServiceGetRecentlyActiveGamesProcedure = "/games.v1.GamesService/GetRecentlyActiveGames"
-	// GamesServiceRefreshSteamGameProcedure is the fully-qualified name of the GamesService's
+	// GamesServiceRefreshSteamGameProcedure is the procedure name of the GamesService's
 	// RefreshSteamGame RPC.
 	GamesServiceRefreshSteamGameProcedure = "/games.v1.GamesService/RefreshSteamGame"
-	// GamesServiceGetIntegrationsProcedure is the fully-qualified name of the GamesService's
-	// GetIntegrations RPC.
+	// GamesServiceGetIntegrationsProcedure is the procedure name of the GamesService's GetIntegrations
+	// RPC.
 	GamesServiceGetIntegrationsProcedure = "/games.v1.GamesService/GetIntegrations"
-	// GamesServiceSaveIntegrationsProcedure is the fully-qualified name of the GamesService's
+	// GamesServiceSaveIntegrationsProcedure is the procedure name of the GamesService's
 	// SaveIntegrations RPC.
 	GamesServiceSaveIntegrationsProcedure = "/games.v1.GamesService/SaveIntegrations"
-	// GamesServiceSetGameFavouriteProcedure is the fully-qualified name of the GamesService's
+	// GamesServiceSetGameFavouriteProcedure is the procedure name of the GamesService's
 	// SetGameFavourite RPC.
 	GamesServiceSetGameFavouriteProcedure = "/games.v1.GamesService/SetGameFavourite"
 )
 
+var (
+	gamesServiceGetSteamSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_games_v1_games_proto.Services().ByName("GamesService").Methods().ByName("GetSteam"),
+			Procedure:  GamesServiceGetSteamProcedure,
+		}
+	})
+	gamesServiceGetSteamGameSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_games_v1_games_proto.Services().ByName("GamesService").Methods().ByName("GetSteamGame"),
+			Procedure:  GamesServiceGetSteamGameProcedure,
+		}
+	})
+	gamesServiceGetSteamDistributionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_games_v1_games_proto.Services().ByName("GamesService").Methods().ByName("GetSteamDistribution"),
+			Procedure:  GamesServiceGetSteamDistributionProcedure,
+		}
+	})
+	gamesServiceGetRecentlyActiveGamesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_games_v1_games_proto.Services().ByName("GamesService").Methods().ByName("GetRecentlyActiveGames"),
+			Procedure:  GamesServiceGetRecentlyActiveGamesProcedure,
+		}
+	})
+	gamesServiceRefreshSteamGameSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_games_v1_games_proto.Services().ByName("GamesService").Methods().ByName("RefreshSteamGame"),
+			Procedure:  GamesServiceRefreshSteamGameProcedure,
+		}
+	})
+	gamesServiceGetIntegrationsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_games_v1_games_proto.Services().ByName("GamesService").Methods().ByName("GetIntegrations"),
+			Procedure:  GamesServiceGetIntegrationsProcedure,
+		}
+	})
+	gamesServiceSaveIntegrationsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_games_v1_games_proto.Services().ByName("GamesService").Methods().ByName("SaveIntegrations"),
+			Procedure:  GamesServiceSaveIntegrationsProcedure,
+		}
+	})
+	gamesServiceSetGameFavouriteSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_games_v1_games_proto.Services().ByName("GamesService").Methods().ByName("SetGameFavourite"),
+			Procedure:  GamesServiceSetGameFavouriteProcedure,
+		}
+	})
+)
+
 // GamesServiceClient is a client for the games.v1.GamesService service.
 type GamesServiceClient interface {
-	GetSteam(context.Context, *connect.Request[v1.GetSteamRequest]) (*connect.Response[v1.GetSteamResponse], error)
-	GetSteamGame(context.Context, *connect.Request[v1.GetSteamGameRequest]) (*connect.Response[v1.GetSteamGameResponse], error)
-	GetSteamDistribution(context.Context, *connect.Request[v1.GetSteamDistributionRequest]) (*connect.Response[v1.GetSteamDistributionResponse], error)
-	GetRecentlyActiveGames(context.Context, *connect.Request[v1.GetRecentlyActiveGamesRequest]) (*connect.Response[v1.GetRecentlyActiveGamesResponse], error)
-	RefreshSteamGame(context.Context, *connect.Request[v1.RefreshSteamGameRequest]) (*connect.Response[v1.RefreshSteamGameResponse], error)
-	GetIntegrations(context.Context, *connect.Request[v1.GetIntegrationsRequest]) (*connect.Response[v1.GetIntegrationsResponse], error)
-	SaveIntegrations(context.Context, *connect.Request[v1.SaveIntegrationsRequest]) (*connect.Response[v1.SaveIntegrationsResponse], error)
-	SetGameFavourite(context.Context, *connect.Request[v1.SetGameFavouriteRequest]) (*connect.Response[v1.SetGameFavouriteResponse], error)
+	GetSteam(context.Context, *v1.GetSteamRequest) (*v1.GetSteamResponse, error)
+	GetSteamGame(context.Context, *v1.GetSteamGameRequest) (*v1.GetSteamGameResponse, error)
+	GetSteamDistribution(context.Context, *v1.GetSteamDistributionRequest) (*v1.GetSteamDistributionResponse, error)
+	GetRecentlyActiveGames(context.Context, *v1.GetRecentlyActiveGamesRequest) (*v1.GetRecentlyActiveGamesResponse, error)
+	RefreshSteamGame(context.Context, *v1.RefreshSteamGameRequest) (*v1.RefreshSteamGameResponse, error)
+	GetIntegrations(context.Context, *v1.GetIntegrationsRequest) (*v1.GetIntegrationsResponse, error)
+	SaveIntegrations(context.Context, *v1.SaveIntegrationsRequest) (*v1.SaveIntegrationsResponse, error)
+	SetGameFavourite(context.Context, *v1.SetGameFavouriteRequest) (*v1.SetGameFavouriteResponse, error)
 }
 
-// NewGamesServiceClient constructs a client for the games.v1.GamesService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewGamesServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) GamesServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	gamesServiceMethods := v1.File_games_v1_games_proto.Services().ByName("GamesService").Methods()
-	return &gamesServiceClient{
-		getSteam: connect.NewClient[v1.GetSteamRequest, v1.GetSteamResponse](
-			httpClient,
-			baseURL+GamesServiceGetSteamProcedure,
-			connect.WithSchema(gamesServiceMethods.ByName("GetSteam")),
-			connect.WithClientOptions(opts...),
-		),
-		getSteamGame: connect.NewClient[v1.GetSteamGameRequest, v1.GetSteamGameResponse](
-			httpClient,
-			baseURL+GamesServiceGetSteamGameProcedure,
-			connect.WithSchema(gamesServiceMethods.ByName("GetSteamGame")),
-			connect.WithClientOptions(opts...),
-		),
-		getSteamDistribution: connect.NewClient[v1.GetSteamDistributionRequest, v1.GetSteamDistributionResponse](
-			httpClient,
-			baseURL+GamesServiceGetSteamDistributionProcedure,
-			connect.WithSchema(gamesServiceMethods.ByName("GetSteamDistribution")),
-			connect.WithClientOptions(opts...),
-		),
-		getRecentlyActiveGames: connect.NewClient[v1.GetRecentlyActiveGamesRequest, v1.GetRecentlyActiveGamesResponse](
-			httpClient,
-			baseURL+GamesServiceGetRecentlyActiveGamesProcedure,
-			connect.WithSchema(gamesServiceMethods.ByName("GetRecentlyActiveGames")),
-			connect.WithClientOptions(opts...),
-		),
-		refreshSteamGame: connect.NewClient[v1.RefreshSteamGameRequest, v1.RefreshSteamGameResponse](
-			httpClient,
-			baseURL+GamesServiceRefreshSteamGameProcedure,
-			connect.WithSchema(gamesServiceMethods.ByName("RefreshSteamGame")),
-			connect.WithClientOptions(opts...),
-		),
-		getIntegrations: connect.NewClient[v1.GetIntegrationsRequest, v1.GetIntegrationsResponse](
-			httpClient,
-			baseURL+GamesServiceGetIntegrationsProcedure,
-			connect.WithSchema(gamesServiceMethods.ByName("GetIntegrations")),
-			connect.WithClientOptions(opts...),
-		),
-		saveIntegrations: connect.NewClient[v1.SaveIntegrationsRequest, v1.SaveIntegrationsResponse](
-			httpClient,
-			baseURL+GamesServiceSaveIntegrationsProcedure,
-			connect.WithSchema(gamesServiceMethods.ByName("SaveIntegrations")),
-			connect.WithClientOptions(opts...),
-		),
-		setGameFavourite: connect.NewClient[v1.SetGameFavouriteRequest, v1.SetGameFavouriteResponse](
-			httpClient,
-			baseURL+GamesServiceSetGameFavouriteProcedure,
-			connect.WithSchema(gamesServiceMethods.ByName("SetGameFavourite")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// gamesServiceClient implements GamesServiceClient.
-type gamesServiceClient struct {
-	getSteam               *connect.Client[v1.GetSteamRequest, v1.GetSteamResponse]
-	getSteamGame           *connect.Client[v1.GetSteamGameRequest, v1.GetSteamGameResponse]
-	getSteamDistribution   *connect.Client[v1.GetSteamDistributionRequest, v1.GetSteamDistributionResponse]
-	getRecentlyActiveGames *connect.Client[v1.GetRecentlyActiveGamesRequest, v1.GetRecentlyActiveGamesResponse]
-	refreshSteamGame       *connect.Client[v1.RefreshSteamGameRequest, v1.RefreshSteamGameResponse]
-	getIntegrations        *connect.Client[v1.GetIntegrationsRequest, v1.GetIntegrationsResponse]
-	saveIntegrations       *connect.Client[v1.SaveIntegrationsRequest, v1.SaveIntegrationsResponse]
-	setGameFavourite       *connect.Client[v1.SetGameFavouriteRequest, v1.SetGameFavouriteResponse]
-}
-
-// GetSteam calls games.v1.GamesService.GetSteam.
-func (c *gamesServiceClient) GetSteam(ctx context.Context, req *connect.Request[v1.GetSteamRequest]) (*connect.Response[v1.GetSteamResponse], error) {
-	return c.getSteam.CallUnary(ctx, req)
-}
-
-// GetSteamGame calls games.v1.GamesService.GetSteamGame.
-func (c *gamesServiceClient) GetSteamGame(ctx context.Context, req *connect.Request[v1.GetSteamGameRequest]) (*connect.Response[v1.GetSteamGameResponse], error) {
-	return c.getSteamGame.CallUnary(ctx, req)
-}
-
-// GetSteamDistribution calls games.v1.GamesService.GetSteamDistribution.
-func (c *gamesServiceClient) GetSteamDistribution(ctx context.Context, req *connect.Request[v1.GetSteamDistributionRequest]) (*connect.Response[v1.GetSteamDistributionResponse], error) {
-	return c.getSteamDistribution.CallUnary(ctx, req)
-}
-
-// GetRecentlyActiveGames calls games.v1.GamesService.GetRecentlyActiveGames.
-func (c *gamesServiceClient) GetRecentlyActiveGames(ctx context.Context, req *connect.Request[v1.GetRecentlyActiveGamesRequest]) (*connect.Response[v1.GetRecentlyActiveGamesResponse], error) {
-	return c.getRecentlyActiveGames.CallUnary(ctx, req)
-}
-
-// RefreshSteamGame calls games.v1.GamesService.RefreshSteamGame.
-func (c *gamesServiceClient) RefreshSteamGame(ctx context.Context, req *connect.Request[v1.RefreshSteamGameRequest]) (*connect.Response[v1.RefreshSteamGameResponse], error) {
-	return c.refreshSteamGame.CallUnary(ctx, req)
-}
-
-// GetIntegrations calls games.v1.GamesService.GetIntegrations.
-func (c *gamesServiceClient) GetIntegrations(ctx context.Context, req *connect.Request[v1.GetIntegrationsRequest]) (*connect.Response[v1.GetIntegrationsResponse], error) {
-	return c.getIntegrations.CallUnary(ctx, req)
-}
-
-// SaveIntegrations calls games.v1.GamesService.SaveIntegrations.
-func (c *gamesServiceClient) SaveIntegrations(ctx context.Context, req *connect.Request[v1.SaveIntegrationsRequest]) (*connect.Response[v1.SaveIntegrationsResponse], error) {
-	return c.saveIntegrations.CallUnary(ctx, req)
-}
-
-// SetGameFavourite calls games.v1.GamesService.SetGameFavourite.
-func (c *gamesServiceClient) SetGameFavourite(ctx context.Context, req *connect.Request[v1.SetGameFavouriteRequest]) (*connect.Response[v1.SetGameFavouriteResponse], error) {
-	return c.setGameFavourite.CallUnary(ctx, req)
+// NewGamesServiceClient constructs a client for the games.v1.GamesService service. Multiple service
+// clients may share a single connect.Client.
+func NewGamesServiceClient(client *connect.Client) GamesServiceClient {
+	return &gamesServiceClient{client: client}
 }
 
 // GamesServiceHandler is an implementation of the games.v1.GamesService service.
 type GamesServiceHandler interface {
-	GetSteam(context.Context, *connect.Request[v1.GetSteamRequest]) (*connect.Response[v1.GetSteamResponse], error)
-	GetSteamGame(context.Context, *connect.Request[v1.GetSteamGameRequest]) (*connect.Response[v1.GetSteamGameResponse], error)
-	GetSteamDistribution(context.Context, *connect.Request[v1.GetSteamDistributionRequest]) (*connect.Response[v1.GetSteamDistributionResponse], error)
-	GetRecentlyActiveGames(context.Context, *connect.Request[v1.GetRecentlyActiveGamesRequest]) (*connect.Response[v1.GetRecentlyActiveGamesResponse], error)
-	RefreshSteamGame(context.Context, *connect.Request[v1.RefreshSteamGameRequest]) (*connect.Response[v1.RefreshSteamGameResponse], error)
-	GetIntegrations(context.Context, *connect.Request[v1.GetIntegrationsRequest]) (*connect.Response[v1.GetIntegrationsResponse], error)
-	SaveIntegrations(context.Context, *connect.Request[v1.SaveIntegrationsRequest]) (*connect.Response[v1.SaveIntegrationsResponse], error)
-	SetGameFavourite(context.Context, *connect.Request[v1.SetGameFavouriteRequest]) (*connect.Response[v1.SetGameFavouriteResponse], error)
+	GetSteam(context.Context, *v1.GetSteamRequest) (*v1.GetSteamResponse, error)
+	GetSteamGame(context.Context, *v1.GetSteamGameRequest) (*v1.GetSteamGameResponse, error)
+	GetSteamDistribution(context.Context, *v1.GetSteamDistributionRequest) (*v1.GetSteamDistributionResponse, error)
+	GetRecentlyActiveGames(context.Context, *v1.GetRecentlyActiveGamesRequest) (*v1.GetRecentlyActiveGamesResponse, error)
+	RefreshSteamGame(context.Context, *v1.RefreshSteamGameRequest) (*v1.RefreshSteamGameResponse, error)
+	GetIntegrations(context.Context, *v1.GetIntegrationsRequest) (*v1.GetIntegrationsResponse, error)
+	SaveIntegrations(context.Context, *v1.SaveIntegrationsRequest) (*v1.SaveIntegrationsResponse, error)
+	SetGameFavourite(context.Context, *v1.SetGameFavouriteRequest) (*v1.SetGameFavouriteResponse, error)
 }
 
-// NewGamesServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewGamesServiceHandler(svc GamesServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	gamesServiceMethods := v1.File_games_v1_games_proto.Services().ByName("GamesService").Methods()
-	gamesServiceGetSteamHandler := connect.NewUnaryHandler(
-		GamesServiceGetSteamProcedure,
-		svc.GetSteam,
-		connect.WithSchema(gamesServiceMethods.ByName("GetSteam")),
-		connect.WithHandlerOptions(opts...),
+// RegisterGamesServiceHandler registers svc as the games.v1.GamesService implementation on server.
+func RegisterGamesServiceHandler(server *connect.Server, svc GamesServiceHandler) {
+	adapter := gamesServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: gamesServiceGetSteamSpec(), Handler: adapter.getSteam},
+		connect.Method{Spec: gamesServiceGetSteamGameSpec(), Handler: adapter.getSteamGame},
+		connect.Method{Spec: gamesServiceGetSteamDistributionSpec(), Handler: adapter.getSteamDistribution},
+		connect.Method{Spec: gamesServiceGetRecentlyActiveGamesSpec(), Handler: adapter.getRecentlyActiveGames},
+		connect.Method{Spec: gamesServiceRefreshSteamGameSpec(), Handler: adapter.refreshSteamGame},
+		connect.Method{Spec: gamesServiceGetIntegrationsSpec(), Handler: adapter.getIntegrations},
+		connect.Method{Spec: gamesServiceSaveIntegrationsSpec(), Handler: adapter.saveIntegrations},
+		connect.Method{Spec: gamesServiceSetGameFavouriteSpec(), Handler: adapter.setGameFavourite},
 	)
-	gamesServiceGetSteamGameHandler := connect.NewUnaryHandler(
-		GamesServiceGetSteamGameProcedure,
-		svc.GetSteamGame,
-		connect.WithSchema(gamesServiceMethods.ByName("GetSteamGame")),
-		connect.WithHandlerOptions(opts...),
-	)
-	gamesServiceGetSteamDistributionHandler := connect.NewUnaryHandler(
-		GamesServiceGetSteamDistributionProcedure,
-		svc.GetSteamDistribution,
-		connect.WithSchema(gamesServiceMethods.ByName("GetSteamDistribution")),
-		connect.WithHandlerOptions(opts...),
-	)
-	gamesServiceGetRecentlyActiveGamesHandler := connect.NewUnaryHandler(
-		GamesServiceGetRecentlyActiveGamesProcedure,
-		svc.GetRecentlyActiveGames,
-		connect.WithSchema(gamesServiceMethods.ByName("GetRecentlyActiveGames")),
-		connect.WithHandlerOptions(opts...),
-	)
-	gamesServiceRefreshSteamGameHandler := connect.NewUnaryHandler(
-		GamesServiceRefreshSteamGameProcedure,
-		svc.RefreshSteamGame,
-		connect.WithSchema(gamesServiceMethods.ByName("RefreshSteamGame")),
-		connect.WithHandlerOptions(opts...),
-	)
-	gamesServiceGetIntegrationsHandler := connect.NewUnaryHandler(
-		GamesServiceGetIntegrationsProcedure,
-		svc.GetIntegrations,
-		connect.WithSchema(gamesServiceMethods.ByName("GetIntegrations")),
-		connect.WithHandlerOptions(opts...),
-	)
-	gamesServiceSaveIntegrationsHandler := connect.NewUnaryHandler(
-		GamesServiceSaveIntegrationsProcedure,
-		svc.SaveIntegrations,
-		connect.WithSchema(gamesServiceMethods.ByName("SaveIntegrations")),
-		connect.WithHandlerOptions(opts...),
-	)
-	gamesServiceSetGameFavouriteHandler := connect.NewUnaryHandler(
-		GamesServiceSetGameFavouriteProcedure,
-		svc.SetGameFavourite,
-		connect.WithSchema(gamesServiceMethods.ByName("SetGameFavourite")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/games.v1.GamesService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case GamesServiceGetSteamProcedure:
-			gamesServiceGetSteamHandler.ServeHTTP(w, r)
-		case GamesServiceGetSteamGameProcedure:
-			gamesServiceGetSteamGameHandler.ServeHTTP(w, r)
-		case GamesServiceGetSteamDistributionProcedure:
-			gamesServiceGetSteamDistributionHandler.ServeHTTP(w, r)
-		case GamesServiceGetRecentlyActiveGamesProcedure:
-			gamesServiceGetRecentlyActiveGamesHandler.ServeHTTP(w, r)
-		case GamesServiceRefreshSteamGameProcedure:
-			gamesServiceRefreshSteamGameHandler.ServeHTTP(w, r)
-		case GamesServiceGetIntegrationsProcedure:
-			gamesServiceGetIntegrationsHandler.ServeHTTP(w, r)
-		case GamesServiceSaveIntegrationsProcedure:
-			gamesServiceSaveIntegrationsHandler.ServeHTTP(w, r)
-		case GamesServiceSetGameFavouriteProcedure:
-			gamesServiceSetGameFavouriteHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedGamesServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedGamesServiceHandler struct{}
 
-func (UnimplementedGamesServiceHandler) GetSteam(context.Context, *connect.Request[v1.GetSteamRequest]) (*connect.Response[v1.GetSteamResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("games.v1.GamesService.GetSteam is not implemented"))
+func (UnimplementedGamesServiceHandler) GetSteam(context.Context, *v1.GetSteamRequest) (*v1.GetSteamResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "games.v1.GamesService.GetSteam is not implemented")
 }
 
-func (UnimplementedGamesServiceHandler) GetSteamGame(context.Context, *connect.Request[v1.GetSteamGameRequest]) (*connect.Response[v1.GetSteamGameResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("games.v1.GamesService.GetSteamGame is not implemented"))
+func (UnimplementedGamesServiceHandler) GetSteamGame(context.Context, *v1.GetSteamGameRequest) (*v1.GetSteamGameResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "games.v1.GamesService.GetSteamGame is not implemented")
 }
 
-func (UnimplementedGamesServiceHandler) GetSteamDistribution(context.Context, *connect.Request[v1.GetSteamDistributionRequest]) (*connect.Response[v1.GetSteamDistributionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("games.v1.GamesService.GetSteamDistribution is not implemented"))
+func (UnimplementedGamesServiceHandler) GetSteamDistribution(context.Context, *v1.GetSteamDistributionRequest) (*v1.GetSteamDistributionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "games.v1.GamesService.GetSteamDistribution is not implemented")
 }
 
-func (UnimplementedGamesServiceHandler) GetRecentlyActiveGames(context.Context, *connect.Request[v1.GetRecentlyActiveGamesRequest]) (*connect.Response[v1.GetRecentlyActiveGamesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("games.v1.GamesService.GetRecentlyActiveGames is not implemented"))
+func (UnimplementedGamesServiceHandler) GetRecentlyActiveGames(context.Context, *v1.GetRecentlyActiveGamesRequest) (*v1.GetRecentlyActiveGamesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "games.v1.GamesService.GetRecentlyActiveGames is not implemented")
 }
 
-func (UnimplementedGamesServiceHandler) RefreshSteamGame(context.Context, *connect.Request[v1.RefreshSteamGameRequest]) (*connect.Response[v1.RefreshSteamGameResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("games.v1.GamesService.RefreshSteamGame is not implemented"))
+func (UnimplementedGamesServiceHandler) RefreshSteamGame(context.Context, *v1.RefreshSteamGameRequest) (*v1.RefreshSteamGameResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "games.v1.GamesService.RefreshSteamGame is not implemented")
 }
 
-func (UnimplementedGamesServiceHandler) GetIntegrations(context.Context, *connect.Request[v1.GetIntegrationsRequest]) (*connect.Response[v1.GetIntegrationsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("games.v1.GamesService.GetIntegrations is not implemented"))
+func (UnimplementedGamesServiceHandler) GetIntegrations(context.Context, *v1.GetIntegrationsRequest) (*v1.GetIntegrationsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "games.v1.GamesService.GetIntegrations is not implemented")
 }
 
-func (UnimplementedGamesServiceHandler) SaveIntegrations(context.Context, *connect.Request[v1.SaveIntegrationsRequest]) (*connect.Response[v1.SaveIntegrationsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("games.v1.GamesService.SaveIntegrations is not implemented"))
+func (UnimplementedGamesServiceHandler) SaveIntegrations(context.Context, *v1.SaveIntegrationsRequest) (*v1.SaveIntegrationsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "games.v1.GamesService.SaveIntegrations is not implemented")
 }
 
-func (UnimplementedGamesServiceHandler) SetGameFavourite(context.Context, *connect.Request[v1.SetGameFavouriteRequest]) (*connect.Response[v1.SetGameFavouriteResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("games.v1.GamesService.SetGameFavourite is not implemented"))
+func (UnimplementedGamesServiceHandler) SetGameFavourite(context.Context, *v1.SetGameFavouriteRequest) (*v1.SetGameFavouriteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "games.v1.GamesService.SetGameFavourite is not implemented")
+}
+
+type gamesServiceClient struct {
+	client *connect.Client
+}
+
+func (c *gamesServiceClient) GetSteam(ctx context.Context, req *v1.GetSteamRequest) (*v1.GetSteamResponse, error) {
+	var res v1.GetSteamResponse
+	if err := c.client.CallUnary(ctx, gamesServiceGetSteamSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *gamesServiceClient) GetSteamGame(ctx context.Context, req *v1.GetSteamGameRequest) (*v1.GetSteamGameResponse, error) {
+	var res v1.GetSteamGameResponse
+	if err := c.client.CallUnary(ctx, gamesServiceGetSteamGameSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *gamesServiceClient) GetSteamDistribution(ctx context.Context, req *v1.GetSteamDistributionRequest) (*v1.GetSteamDistributionResponse, error) {
+	var res v1.GetSteamDistributionResponse
+	if err := c.client.CallUnary(ctx, gamesServiceGetSteamDistributionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *gamesServiceClient) GetRecentlyActiveGames(ctx context.Context, req *v1.GetRecentlyActiveGamesRequest) (*v1.GetRecentlyActiveGamesResponse, error) {
+	var res v1.GetRecentlyActiveGamesResponse
+	if err := c.client.CallUnary(ctx, gamesServiceGetRecentlyActiveGamesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *gamesServiceClient) RefreshSteamGame(ctx context.Context, req *v1.RefreshSteamGameRequest) (*v1.RefreshSteamGameResponse, error) {
+	var res v1.RefreshSteamGameResponse
+	if err := c.client.CallUnary(ctx, gamesServiceRefreshSteamGameSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *gamesServiceClient) GetIntegrations(ctx context.Context, req *v1.GetIntegrationsRequest) (*v1.GetIntegrationsResponse, error) {
+	var res v1.GetIntegrationsResponse
+	if err := c.client.CallUnary(ctx, gamesServiceGetIntegrationsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *gamesServiceClient) SaveIntegrations(ctx context.Context, req *v1.SaveIntegrationsRequest) (*v1.SaveIntegrationsResponse, error) {
+	var res v1.SaveIntegrationsResponse
+	if err := c.client.CallUnary(ctx, gamesServiceSaveIntegrationsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *gamesServiceClient) SetGameFavourite(ctx context.Context, req *v1.SetGameFavouriteRequest) (*v1.SetGameFavouriteResponse, error) {
+	var res v1.SetGameFavouriteResponse
+	if err := c.client.CallUnary(ctx, gamesServiceSetGameFavouriteSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type gamesServiceHandler struct{ svc GamesServiceHandler }
+
+func (h gamesServiceHandler) getSteam(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSteamRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSteam(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h gamesServiceHandler) getSteamGame(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSteamGameRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSteamGame(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h gamesServiceHandler) getSteamDistribution(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSteamDistributionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSteamDistribution(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h gamesServiceHandler) getRecentlyActiveGames(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetRecentlyActiveGamesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetRecentlyActiveGames(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h gamesServiceHandler) refreshSteamGame(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RefreshSteamGameRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RefreshSteamGame(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h gamesServiceHandler) getIntegrations(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetIntegrationsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetIntegrations(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h gamesServiceHandler) saveIntegrations(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SaveIntegrationsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SaveIntegrations(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h gamesServiceHandler) setGameFavourite(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetGameFavouriteRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetGameFavourite(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

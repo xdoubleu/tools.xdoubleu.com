@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
@@ -115,7 +115,7 @@ func parseItemID(id string) (uuid.UUID, *connect.Error) {
 	if err != nil {
 		return uuid.Nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid item ID"),
+			"invalid item ID",
 		)
 	}
 	return itemID, nil
@@ -127,7 +127,7 @@ func feedUser(ctx context.Context) (*sharedmodels.User, *connect.Error) {
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 	return user, nil
@@ -138,7 +138,7 @@ func parseFeedID(id string) (uuid.UUID, *connect.Error) {
 	if err != nil {
 		return uuid.Nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid feed ID"),
+			"invalid feed ID",
 		)
 	}
 	return feedID, nil
@@ -147,25 +147,25 @@ func parseFeedID(id string) (uuid.UUID, *connect.Error) {
 func feedErrorToConnect(err error) *connect.Error {
 	switch {
 	case errors.Is(err, database.ErrResourceNotFound):
-		return connect.NewError(connect.CodeNotFound, err)
+		return connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	case errors.Is(err, database.ErrResourceConflict):
 		return connect.NewError(
 			connect.CodeAlreadyExists,
-			errors.New("feed already exists"),
+			"feed already exists",
 		)
 	case errors.Is(err, services.ErrInvalidFeed),
 		errors.Is(err, services.ErrUnsupportedURL),
 		errors.Is(err, services.ErrNoPostsFound):
-		return connect.NewError(connect.CodeInvalidArgument, err)
+		return connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	default:
-		return connect.NewError(connect.CodeInternal, err)
+		return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 }
 
 func (h *feedsConnectHandler) ListFeeds(
 	ctx context.Context,
-	_ *connect.Request[feedsv1.ListFeedsRequest],
-) (*connect.Response[feedsv1.ListFeedsResponse], error) {
+	_ *feedsv1.ListFeedsRequest,
+) (*feedsv1.ListFeedsResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
@@ -180,96 +180,97 @@ func (h *feedsConnectHandler) ListFeeds(
 	for i, f := range feeds {
 		out[i] = protoFeed(f)
 	}
-	return connect.NewResponse(&feedsv1.ListFeedsResponse{Feeds: out}), nil
+	return &feedsv1.ListFeedsResponse{Feeds: out}, nil
 }
 
 func (h *feedsConnectHandler) CreateFeed(
 	ctx context.Context,
-	req *connect.Request[feedsv1.CreateFeedRequest],
-) (*connect.Response[feedsv1.CreateFeedResponse], error) {
+	req *feedsv1.CreateFeedRequest,
+) (*feedsv1.CreateFeedResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
 	}
 
-	if req.Msg.Kind == feedsv1.FeedKind_FEED_KIND_EMAIL {
-		return h.createEmailFeed(ctx, user.ID, req.Msg)
+	if req.Kind == feedsv1.FeedKind_FEED_KIND_EMAIL {
+		return h.createEmailFeed(ctx, user.ID, req)
 	}
-	if req.Msg.Kind == feedsv1.FeedKind_FEED_KIND_SCRAPE {
-		feed, err := h.app.Services.Feeds.CreateScrape(ctx, user.ID, req.Msg.Url)
+	if req.Kind == feedsv1.FeedKind_FEED_KIND_SCRAPE {
+		feed, err := h.app.Services.Feeds.CreateScrape(ctx, user.ID, req.Url)
 		if err != nil {
 			return nil, feedErrorToConnect(err)
 		}
-		return connect.NewResponse(&feedsv1.CreateFeedResponse{
+		return &feedsv1.CreateFeedResponse{
 			Feed: protoFeed(*feed),
-		}), nil
+		}, nil
 	}
 
-	feed, err := h.app.Services.Feeds.Create(ctx, user.ID, req.Msg.Url)
+	feed, err := h.app.Services.Feeds.Create(ctx, user.ID, req.Url)
 	if err != nil {
 		return nil, feedErrorToConnect(err)
 	}
 
-	return connect.NewResponse(&feedsv1.CreateFeedResponse{
+	return &feedsv1.CreateFeedResponse{
 		Feed: protoFeed(*feed),
-	}), nil
+	}, nil
 }
 
 func (h *feedsConnectHandler) createEmailFeed(
 	ctx context.Context,
 	userID string,
 	req *feedsv1.CreateFeedRequest,
-) (*connect.Response[feedsv1.CreateFeedResponse], error) {
+) (*feedsv1.CreateFeedResponse, error) {
 	if req.Url != "" {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("url must be empty for an email feed"),
+			"url must be empty for an email feed",
 		)
 	}
 
 	feed, address, err := h.app.Services.Feeds.CreateEmail(ctx, userID, req.Title)
 	if err != nil {
 		if errors.Is(err, services.ErrEmailFeedsNotConfigured) {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).
+				WithCause(err)
 		}
 		return nil, feedErrorToConnect(err)
 	}
 
 	proto := protoFeed(*feed)
 	proto.InboundAddress = address
-	return connect.NewResponse(&feedsv1.CreateFeedResponse{Feed: proto}), nil
+	return &feedsv1.CreateFeedResponse{Feed: proto}, nil
 }
 
 func (h *feedsConnectHandler) UpdateFeed(
 	ctx context.Context,
-	req *connect.Request[feedsv1.UpdateFeedRequest],
-) (*connect.Response[feedsv1.UpdateFeedResponse], error) {
+	req *feedsv1.UpdateFeedRequest,
+) (*feedsv1.UpdateFeedResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
 	}
-	feedID, cerr := parseFeedID(req.Msg.FeedId)
+	feedID, cerr := parseFeedID(req.FeedId)
 	if cerr != nil {
 		return nil, cerr
 	}
 
 	if err := h.app.Services.Feeds.Update(
-		ctx, user.ID, feedID, req.Msg.Title,
+		ctx, user.ID, feedID, req.Title,
 	); err != nil {
 		return nil, feedErrorToConnect(err)
 	}
-	return connect.NewResponse(&feedsv1.UpdateFeedResponse{}), nil
+	return &feedsv1.UpdateFeedResponse{}, nil
 }
 
 func (h *feedsConnectHandler) DeleteFeed(
 	ctx context.Context,
-	req *connect.Request[feedsv1.DeleteFeedRequest],
-) (*connect.Response[feedsv1.DeleteFeedResponse], error) {
+	req *feedsv1.DeleteFeedRequest,
+) (*feedsv1.DeleteFeedResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
 	}
-	feedID, cerr := parseFeedID(req.Msg.FeedId)
+	feedID, cerr := parseFeedID(req.FeedId)
 	if cerr != nil {
 		return nil, cerr
 	}
@@ -277,18 +278,18 @@ func (h *feedsConnectHandler) DeleteFeed(
 	if err := h.app.Services.Feeds.Delete(ctx, user.ID, feedID); err != nil {
 		return nil, feedErrorToConnect(err)
 	}
-	return connect.NewResponse(&feedsv1.DeleteFeedResponse{}), nil
+	return &feedsv1.DeleteFeedResponse{}, nil
 }
 
 func (h *feedsConnectHandler) RefreshFeed(
 	ctx context.Context,
-	req *connect.Request[feedsv1.RefreshFeedRequest],
-) (*connect.Response[feedsv1.RefreshFeedResponse], error) {
+	req *feedsv1.RefreshFeedRequest,
+) (*feedsv1.RefreshFeedResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
 	}
-	feedID, cerr := parseFeedID(req.Msg.FeedId)
+	feedID, cerr := parseFeedID(req.FeedId)
 	if cerr != nil {
 		return nil, cerr
 	}
@@ -297,23 +298,23 @@ func (h *feedsConnectHandler) RefreshFeed(
 	if err != nil {
 		return nil, feedErrorToConnect(err)
 	}
-	return connect.NewResponse(&feedsv1.RefreshFeedResponse{
+	return &feedsv1.RefreshFeedResponse{
 		Ingested: int32(ingested), //nolint:gosec // bounded by per-poll cap
-	}), nil
+	}, nil
 }
 
 func (h *feedsConnectHandler) ListFeedItems(
 	ctx context.Context,
-	req *connect.Request[feedsv1.ListFeedItemsRequest],
-) (*connect.Response[feedsv1.ListFeedItemsResponse], error) {
+	req *feedsv1.ListFeedItemsRequest,
+) (*feedsv1.ListFeedItemsResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
 	}
 
 	var feedID *uuid.UUID
-	if req.Msg.FeedId != nil {
-		parsed, perr := parseFeedID(req.Msg.GetFeedId())
+	if req.FeedId != nil {
+		parsed, perr := parseFeedID(req.GetFeedId())
 		if perr != nil {
 			return nil, perr
 		}
@@ -321,8 +322,8 @@ func (h *feedsConnectHandler) ListFeedItems(
 	}
 
 	items, hasMore, err := h.app.Services.Feeds.ListItems(
-		ctx, user.ID, req.Msg.Limit, req.Msg.Offset, req.Msg.GetUnreadOnly(),
-		feedID, req.Msg.GetBookmarkedOnly(), req.Msg.GetFilteredOnly(),
+		ctx, user.ID, req.Limit, req.Offset, req.GetUnreadOnly(),
+		feedID, req.GetBookmarkedOnly(), req.GetFilteredOnly(),
 	)
 	if err != nil {
 		return nil, feedErrorToConnect(err)
@@ -332,22 +333,22 @@ func (h *feedsConnectHandler) ListFeedItems(
 	for i, item := range items {
 		out[i] = protoItem(item)
 	}
-	return connect.NewResponse(&feedsv1.ListFeedItemsResponse{
+	return &feedsv1.ListFeedItemsResponse{
 		Items:   out,
 		HasMore: hasMore,
-	}), nil
+	}, nil
 }
 
 // GetFeedItem is the only RPC returning an item's article body.
 func (h *feedsConnectHandler) GetFeedItem(
 	ctx context.Context,
-	req *connect.Request[feedsv1.GetFeedItemRequest],
-) (*connect.Response[feedsv1.GetFeedItemResponse], error) {
+	req *feedsv1.GetFeedItemRequest,
+) (*feedsv1.GetFeedItemResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
 	}
-	itemID, cerr := parseItemID(req.Msg.ItemId)
+	itemID, cerr := parseItemID(req.ItemId)
 	if cerr != nil {
 		return nil, cerr
 	}
@@ -362,40 +363,40 @@ func (h *feedsConnectHandler) GetFeedItem(
 		}
 		return nil, feedErrorToConnect(err)
 	}
-	return connect.NewResponse(&feedsv1.GetFeedItemResponse{
+	return &feedsv1.GetFeedItemResponse{
 		Item: protoItem(*item),
-	}), nil
+	}, nil
 }
 
 func (h *feedsConnectHandler) UpdateItem(
 	ctx context.Context,
-	req *connect.Request[feedsv1.UpdateItemRequest],
-) (*connect.Response[feedsv1.UpdateItemResponse], error) {
+	req *feedsv1.UpdateItemRequest,
+) (*feedsv1.UpdateItemResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
 	}
-	itemID, cerr := parseItemID(req.Msg.ItemId)
+	itemID, cerr := parseItemID(req.ItemId)
 	if cerr != nil {
 		return nil, cerr
 	}
 
 	item, err := h.app.Services.Feeds.UpdateItem(
-		ctx, user.ID, itemID, req.Msg.Read, req.Msg.Dismissed, req.Msg.Bookmarked,
-		req.Msg.ReadProgressPct,
+		ctx, user.ID, itemID, req.Read, req.Dismissed, req.Bookmarked,
+		req.ReadProgressPct,
 	)
 	if err != nil {
 		return nil, feedErrorToConnect(err)
 	}
-	return connect.NewResponse(&feedsv1.UpdateItemResponse{
+	return &feedsv1.UpdateItemResponse{
 		Item: protoItem(*item),
-	}), nil
+	}, nil
 }
 
 func (h *feedsConnectHandler) GetFeedStats(
 	ctx context.Context,
-	_ *connect.Request[feedsv1.GetFeedStatsRequest],
-) (*connect.Response[feedsv1.GetFeedStatsResponse], error) {
+	_ *feedsv1.GetFeedStatsRequest,
+) (*feedsv1.GetFeedStatsResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
@@ -425,10 +426,10 @@ func (h *feedsConnectHandler) GetFeedStats(
 		}
 	}
 
-	return connect.NewResponse(&feedsv1.GetFeedStatsResponse{
+	return &feedsv1.GetFeedStatsResponse{
 		Stats:       protoStats,
 		ItemsPerDay: protoDays,
-	}), nil
+	}, nil
 }
 
 // requireFeedsAdmin gates GetUnhealthyFeeds, which spans all users.
@@ -437,7 +438,7 @@ func requireFeedsAdmin(ctx context.Context) *connect.Error {
 	if user == nil || user.Role != sharedmodels.RoleAdmin {
 		return connect.NewError(
 			connect.CodePermissionDenied,
-			errors.New("admin access required"),
+			"admin access required",
 		)
 	}
 	return nil
@@ -445,15 +446,15 @@ func requireFeedsAdmin(ctx context.Context) *connect.Error {
 
 func (h *feedsConnectHandler) GetUnhealthyFeeds(
 	ctx context.Context,
-	_ *connect.Request[feedsv1.GetUnhealthyFeedsRequest],
-) (*connect.Response[feedsv1.GetUnhealthyFeedsResponse], error) {
+	_ *feedsv1.GetUnhealthyFeedsRequest,
+) (*feedsv1.GetUnhealthyFeedsResponse, error) {
 	if cerr := requireFeedsAdmin(ctx); cerr != nil {
 		return nil, cerr
 	}
 
 	unhealthy, err := h.app.ListUnhealthy(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	protoFeeds := make([]*feedsv1.UnhealthyFeed, len(unhealthy))
@@ -466,7 +467,5 @@ func (h *feedsConnectHandler) GetUnhealthyFeeds(
 			ConsecutiveFailures: int32(feed.ConsecutiveFailures),
 		}
 	}
-	return connect.NewResponse(
-		&feedsv1.GetUnhealthyFeedsResponse{Feeds: protoFeeds},
-	), nil
+	return &feedsv1.GetUnhealthyFeedsResponse{Feeds: protoFeeds}, nil
 }

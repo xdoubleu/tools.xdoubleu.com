@@ -2,9 +2,8 @@ package learningpaths
 
 import (
 	"context"
-	"fmt"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
@@ -13,46 +12,46 @@ import (
 
 func (h *learningPathsConnectHandler) ListLearningPaths(
 	ctx context.Context,
-	req *connect.Request[learningpathsv1.ListLearningPathsRequest],
-) (*connect.Response[learningpathsv1.ListLearningPathsResponse], error) {
+	req *learningpathsv1.ListLearningPathsRequest,
+) (*learningpathsv1.ListLearningPathsResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
 	list, hasMore, err := h.app.services.LearningPaths.List(
-		ctx, user.ID, req.Msg.Limit, req.Msg.Offset,
+		ctx, user.ID, req.Limit, req.Offset,
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&learningpathsv1.ListLearningPathsResponse{
+	return &learningpathsv1.ListLearningPathsResponse{
 		LearningPaths: protoLearningPaths(list),
 		HasMore:       hasMore,
-	}), nil
+	}, nil
 }
 
 func (h *learningPathsConnectHandler) GetLearningPath(
 	ctx context.Context,
-	req *connect.Request[learningpathsv1.GetLearningPathRequest],
-) (*connect.Response[learningpathsv1.GetLearningPathResponse], error) {
+	req *learningpathsv1.GetLearningPathRequest,
+) (*learningpathsv1.GetLearningPathResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	id, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid learning path ID"),
+			"invalid learning path ID",
 		)
 	}
 
@@ -61,31 +60,31 @@ func (h *learningPathsConnectHandler) GetLearningPath(
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&learningpathsv1.GetLearningPathResponse{
+	return &learningpathsv1.GetLearningPathResponse{
 		LearningPath: protoLearningPath(lp),
-	}), nil
+	}, nil
 }
 
 func (h *learningPathsConnectHandler) CreateLearningPath(
 	ctx context.Context,
-	req *connect.Request[learningpathsv1.CreateLearningPathRequest],
-) (*connect.Response[learningpathsv1.CreateLearningPathResponse], error) {
+	req *learningpathsv1.CreateLearningPathRequest,
+) (*learningpathsv1.CreateLearningPathResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
 	//nolint:exhaustruct //ID/UserID/timestamps assigned by the service/repository
 	lp := models.LearningPath{
-		Title:             req.Msg.Title,
-		Goal:              req.Msg.Goal,
-		Routine:           req.Msg.Routine,
-		Modules:           dtoToModules(req.Msg.Modules),
-		Resources:         dtoToResources(req.Msg.Resources),
-		ReminderSchedules: req.Msg.ReminderSchedules,
+		Title:             req.Title,
+		Goal:              req.Goal,
+		Routine:           req.Routine,
+		Modules:           dtoToModules(req.Modules),
+		Resources:         dtoToResources(req.Resources),
+		ReminderSchedules: req.ReminderSchedules,
 	}
 
 	created, err := h.app.services.LearningPaths.Create(ctx, user.ID, lp)
@@ -93,40 +92,40 @@ func (h *learningPathsConnectHandler) CreateLearningPath(
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&learningpathsv1.CreateLearningPathResponse{
+	return &learningpathsv1.CreateLearningPathResponse{
 		LearningPath: protoLearningPath(created),
-	}), nil
+	}, nil
 }
 
 func (h *learningPathsConnectHandler) UpdateLearningPath(
 	ctx context.Context,
-	req *connect.Request[learningpathsv1.UpdateLearningPathRequest],
-) (*connect.Response[learningpathsv1.UpdateLearningPathResponse], error) {
+	req *learningpathsv1.UpdateLearningPathRequest,
+) (*learningpathsv1.UpdateLearningPathResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	id, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid learning path ID"),
+			"invalid learning path ID",
 		)
 	}
 
 	//nolint:exhaustruct //UserID/timestamps assigned by the service/repository
 	lp := models.LearningPath{
 		ID:                id,
-		Title:             req.Msg.Title,
-		Goal:              req.Msg.Goal,
-		Routine:           req.Msg.Routine,
-		Modules:           dtoToModules(req.Msg.Modules),
-		Resources:         dtoToResources(req.Msg.Resources),
-		ReminderSchedules: req.Msg.ReminderSchedules,
+		Title:             req.Title,
+		Goal:              req.Goal,
+		Routine:           req.Routine,
+		Modules:           dtoToModules(req.Modules),
+		Resources:         dtoToResources(req.Resources),
+		ReminderSchedules: req.ReminderSchedules,
 	}
 
 	if err = h.app.services.LearningPaths.Update(ctx, user.ID, lp); err != nil {
@@ -138,28 +137,28 @@ func (h *learningPathsConnectHandler) UpdateLearningPath(
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&learningpathsv1.UpdateLearningPathResponse{
+	return &learningpathsv1.UpdateLearningPathResponse{
 		LearningPath: protoLearningPath(updated),
-	}), nil
+	}, nil
 }
 
 func (h *learningPathsConnectHandler) DeleteLearningPath(
 	ctx context.Context,
-	req *connect.Request[learningpathsv1.DeleteLearningPathRequest],
-) (*connect.Response[learningpathsv1.DeleteLearningPathResponse], error) {
+	req *learningpathsv1.DeleteLearningPathRequest,
+) (*learningpathsv1.DeleteLearningPathResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	id, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid learning path ID"),
+			"invalid learning path ID",
 		)
 	}
 
@@ -167,60 +166,60 @@ func (h *learningPathsConnectHandler) DeleteLearningPath(
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&learningpathsv1.DeleteLearningPathResponse{}), nil
+	return &learningpathsv1.DeleteLearningPathResponse{}, nil
 }
 
 func (h *learningPathsConnectHandler) RecordItemProgress(
 	ctx context.Context,
-	req *connect.Request[learningpathsv1.RecordItemProgressRequest],
-) (*connect.Response[learningpathsv1.RecordItemProgressResponse], error) {
+	req *learningpathsv1.RecordItemProgressRequest,
+) (*learningpathsv1.RecordItemProgressResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	itemID, err := uuid.Parse(req.Msg.ItemId)
+	itemID, err := uuid.Parse(req.ItemId)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid item ID"),
+			"invalid item ID",
 		)
 	}
 
 	if err = h.app.services.LearningPaths.RecordItemProgress(
-		ctx, user.ID, itemID, req.Msg.Completed,
+		ctx, user.ID, itemID, req.Completed,
 	); err != nil {
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&learningpathsv1.RecordItemProgressResponse{}), nil
+	return &learningpathsv1.RecordItemProgressResponse{}, nil
 }
 
 func (h *learningPathsConnectHandler) SetLearningPathPaused(
 	ctx context.Context,
-	req *connect.Request[learningpathsv1.SetLearningPathPausedRequest],
-) (*connect.Response[learningpathsv1.SetLearningPathPausedResponse], error) {
+	req *learningpathsv1.SetLearningPathPausedRequest,
+) (*learningpathsv1.SetLearningPathPausedResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	id, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid learning path ID"),
+			"invalid learning path ID",
 		)
 	}
 
 	if err = h.app.services.LearningPaths.SetPaused(
-		ctx, id, user.ID, req.Msg.Paused,
+		ctx, id, user.ID, req.Paused,
 	); err != nil {
 		return nil, mapError(err)
 	}
@@ -230,28 +229,28 @@ func (h *learningPathsConnectHandler) SetLearningPathPaused(
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(&learningpathsv1.SetLearningPathPausedResponse{
+	return &learningpathsv1.SetLearningPathPausedResponse{
 		LearningPath: protoLearningPath(lp),
-	}), nil
+	}, nil
 }
 
 func (h *learningPathsConnectHandler) GetLearningPathProgress(
 	ctx context.Context,
-	req *connect.Request[learningpathsv1.GetLearningPathProgressRequest],
-) (*connect.Response[learningpathsv1.GetLearningPathProgressResponse], error) {
+	req *learningpathsv1.GetLearningPathProgressRequest,
+) (*learningpathsv1.GetLearningPathProgressResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
+			"user not authenticated",
 		)
 	}
 
-	id, err := uuid.Parse(req.Msg.Id)
+	id, err := uuid.Parse(req.Id)
 	if err != nil {
-		return nil, connect.NewError(
+		return nil, connect.Errorf(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid learning path ID"),
+			"invalid learning path ID",
 		)
 	}
 
@@ -260,5 +259,5 @@ func (h *learningPathsConnectHandler) GetLearningPathProgress(
 		return nil, mapError(err)
 	}
 
-	return connect.NewResponse(progressFromLearningPath(lp)), nil
+	return progressFromLearningPath(lp), nil
 }

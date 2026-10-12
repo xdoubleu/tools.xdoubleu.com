@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -70,7 +70,7 @@ func TestBookLinkedItem_PartialThenCompleteRoundsTrip(t *testing.T) {
 
 	createResp, err := client.CreateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Reading Path",
 			Modules: []*learningpathsv1.Module{
 				{
@@ -83,11 +83,11 @@ func TestBookLinkedItem_PartialThenCompleteRoundsTrip(t *testing.T) {
 					},
 				},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	item := createResp.Msg.LearningPath.Modules[0].Items[0]
-	defer deletePath(t, createResp.Msg.LearningPath.Id)
+	item := createResp.LearningPath.Modules[0].Items[0]
+	defer deletePath(t, createResp.LearningPath.Id)
 	assert.False(t, item.Completed)
 	assert.Equal(t, bookID.String(), item.GetLinkedBookId())
 	require.NotNil(t, item.LinkedBook)
@@ -96,21 +96,21 @@ func TestBookLinkedItem_PartialThenCompleteRoundsTrip(t *testing.T) {
 
 	// A manual toggle on a book-linked item is rejected; completion is derived.
 	_, err = client.RecordItemProgress(
-		ctx, connect.NewRequest(&learningpathsv1.RecordItemProgressRequest{
+		ctx, &learningpathsv1.RecordItemProgressRequest{
 			ItemId: item.Id, Completed: true,
-		}),
+		},
 	)
 	require.Error(t, err)
 
 	// Advance the book to 100% — the item flips complete with no manual toggle.
 	updateBookProgress(t, bookID, 100)
 	getResp, err := client.GetLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{
-			Id: createResp.Msg.LearningPath.Id,
-		}),
+		ctx, &learningpathsv1.GetLearningPathRequest{
+			Id: createResp.LearningPath.Id,
+		},
 	)
 	require.NoError(t, err)
-	assert.True(t, getResp.Msg.LearningPath.Modules[0].Items[0].Completed)
+	assert.True(t, getResp.LearningPath.Modules[0].Items[0].Completed)
 }
 
 // TestProgressCountsReflectBookLinkedItems: GetLearningPathProgress derives
@@ -123,7 +123,7 @@ func TestProgressCountsReflectBookLinkedItems(t *testing.T) {
 	bookID := seedLibraryBookWithProgress(t, userID, "Progress Book", 100)
 	createResp, err := client.CreateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Counting Path",
 			Modules: []*learningpathsv1.Module{
 				{
@@ -137,19 +137,19 @@ func TestProgressCountsReflectBookLinkedItems(t *testing.T) {
 					},
 				},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	defer deletePath(t, createResp.Msg.LearningPath.Id)
+	defer deletePath(t, createResp.LearningPath.Id)
 
 	resp, err := client.GetLearningPathProgress(
-		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathProgressRequest{
-			Id: createResp.Msg.LearningPath.Id,
-		}),
+		ctx, &learningpathsv1.GetLearningPathProgressRequest{
+			Id: createResp.LearningPath.Id,
+		},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(2), resp.Msg.TotalItems)
-	assert.Equal(t, int32(1), resp.Msg.CompletedItems)
+	assert.Equal(t, int32(2), resp.TotalItems)
+	assert.Equal(t, int32(1), resp.CompletedItems)
 }
 
 // TestBookLinkedItem_NonBookItemsKeepManualToggle: items without a linked
@@ -160,7 +160,7 @@ func TestBookLinkedItem_NonBookItemsKeepManualToggle(t *testing.T) {
 
 	createResp, err := client.CreateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Manual Path",
 			Modules: []*learningpathsv1.Module{
 				{
@@ -168,26 +168,26 @@ func TestBookLinkedItem_NonBookItemsKeepManualToggle(t *testing.T) {
 					Items: []*learningpathsv1.Item{{Description: "manual item"}},
 				},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	itemID := createResp.Msg.LearningPath.Modules[0].Items[0].Id
-	defer deletePath(t, createResp.Msg.LearningPath.Id)
+	itemID := createResp.LearningPath.Modules[0].Items[0].Id
+	defer deletePath(t, createResp.LearningPath.Id)
 
 	_, err = client.RecordItemProgress(
-		ctx, connect.NewRequest(&learningpathsv1.RecordItemProgressRequest{
+		ctx, &learningpathsv1.RecordItemProgressRequest{
 			ItemId: itemID, Completed: true,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	getResp, err := client.GetLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{
-			Id: createResp.Msg.LearningPath.Id,
-		}),
+		ctx, &learningpathsv1.GetLearningPathRequest{
+			Id: createResp.LearningPath.Id,
+		},
 	)
 	require.NoError(t, err)
-	assert.True(t, getResp.Msg.LearningPath.Modules[0].Items[0].Completed)
+	assert.True(t, getResp.LearningPath.Modules[0].Items[0].Completed)
 }
 
 // TestBookLinkedItem_UnknownBookRejected: a linked_book_id that doesn't
@@ -197,7 +197,7 @@ func TestBookLinkedItem_UnknownBookRejected(t *testing.T) {
 
 	_, err := client.CreateLearningPath(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Bad Book Path",
 			Modules: []*learningpathsv1.Module{
 				{
@@ -207,7 +207,7 @@ func TestBookLinkedItem_UnknownBookRejected(t *testing.T) {
 					},
 				},
 			},
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())

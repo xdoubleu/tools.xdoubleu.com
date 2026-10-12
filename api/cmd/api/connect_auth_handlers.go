@@ -3,9 +3,8 @@ package main
 import (
 	"context"
 	"errors"
-	"net/http"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	authv1 "tools.xdoubleu.com/gen/auth/v1"
 	"tools.xdoubleu.com/internal/auth"
@@ -19,146 +18,150 @@ func isRelativeURL(url string) bool {
 
 func (h *authConnectHandler) SignIn(
 	ctx context.Context,
-	req *connect.Request[authv1.SignInRequest],
-) (*connect.Response[authv1.SignInResponse], error) {
-	if req.Msg.Email == "" {
+	req *authv1.SignInRequest,
+) (*authv1.SignInResponse, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
+	if req.Email == "" {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("email is required"),
+			"email is required",
 		)
 	}
-	if req.Msg.Password == "" {
+	if req.Password == "" {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("password is required"),
+			"password is required",
 		)
 	}
-	if req.Msg.Redirect != "" && !isRelativeURL(req.Msg.Redirect) {
+	if req.Redirect != "" && !isRelativeURL(req.Redirect) {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("redirect must be a relative URL"),
+			"redirect must be a relative URL",
 		)
 	}
 
 	accessToken, refreshToken, err := h.app.auth.SignInWithEmail(
 		ctx,
-		req.Msg.Email,
-		req.Msg.Password,
+		req.Email,
+		req.Password,
 	)
 	if err != nil {
-		return nil, connect.NewError(signInErrorCode(err), err)
+		return nil, connect.NewError(signInErrorCode(err), err.Error()).WithCause(err)
 	}
 
 	factorID, hasMFA := h.app.auth.HasVerifiedTOTP(ctx, *accessToken)
 	if !hasMFA {
-		resp := connect.NewResponse(&authv1.SignInResponse{})
+		resp := &authv1.SignInResponse{}
 		if err = h.completeMFA(
-			resp.Header(), *accessToken, *refreshToken, req.Msg.RememberMe,
+			info.ResponseHeader(),
+			*accessToken,
+			*refreshToken,
+			req.RememberMe,
 		); err != nil {
 			return nil, err
 		}
 		return resp, nil
 	}
 
-	resp := connect.NewResponse(&authv1.SignInResponse{NeedsMfa: true})
-	h.setMFACookies(
-		resp.Header(),
-		*accessToken,
+	resp := &authv1.SignInResponse{NeedsMfa: true}
+	h.setMFACookies(info.ResponseHeader(), *accessToken,
 		*refreshToken,
-		req.Msg.RememberMe,
-		req.Msg.Redirect,
+		req.RememberMe,
+		req.Redirect,
 	)
-	h.setMFAFactorIDCookie(resp.Header(), factorID)
+	h.setMFAFactorIDCookie(info.ResponseHeader(), factorID)
 	return resp, nil
 }
 
 func (h *authConnectHandler) ForgotPassword(
 	ctx context.Context,
-	req *connect.Request[authv1.ForgotPasswordRequest],
-) (*connect.Response[authv1.ForgotPasswordResponse], error) {
-	if req.Msg.Email == "" {
+	req *authv1.ForgotPasswordRequest,
+) (*authv1.ForgotPasswordResponse, error) {
+	if req.Email == "" {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("email is required"),
+			"email is required",
 		)
 	}
 	_ = h.app.auth.ForgotPassword(
 		ctx,
-		req.Msg.Email,
+		req.Email,
 		h.app.config.WebURL+"/auth/reset-password",
 	)
-	return connect.NewResponse(&authv1.ForgotPasswordResponse{}), nil
+	return &authv1.ForgotPasswordResponse{}, nil
 }
 
 func (h *authConnectHandler) ResetPassword(
 	ctx context.Context,
-	req *connect.Request[authv1.ResetPasswordRequest],
-) (*connect.Response[authv1.ResetPasswordResponse], error) {
-	if req.Msg.Token == "" {
+	req *authv1.ResetPasswordRequest,
+) (*authv1.ResetPasswordResponse, error) {
+	if req.Token == "" {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("token is required"),
+			"token is required",
 		)
 	}
-	if req.Msg.NewPassword == "" {
+	if req.NewPassword == "" {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("new_password is required"),
+			"new_password is required",
 		)
 	}
 
 	if err := h.app.auth.ResetPasswordWithToken(
-		ctx, req.Msg.Token, req.Msg.NewPassword,
+		ctx, req.Token, req.NewPassword,
 	); err != nil {
 		code := connect.CodeUnauthenticated
 		if errors.Is(err, auth.ErrPasswordTooShort) {
 			code = connect.CodeInvalidArgument
 		}
-		return nil, connect.NewError(code, err)
+		return nil, connect.NewError(code, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&authv1.ResetPasswordResponse{}), nil
+	return &authv1.ResetPasswordResponse{}, nil
 }
 
 func (h *authConnectHandler) ExchangeToken(
 	ctx context.Context,
-	req *connect.Request[authv1.ExchangeTokenRequest],
-) (*connect.Response[authv1.ExchangeTokenResponse], error) {
-	if req.Msg.AccessToken == "" {
+	req *authv1.ExchangeTokenRequest,
+) (*authv1.ExchangeTokenResponse, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
+	if req.AccessToken == "" {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("access_token is required"),
+			"access_token is required",
 		)
 	}
-	if req.Msg.RefreshToken == "" {
+	if req.RefreshToken == "" {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("refresh_token is required"),
+			"refresh_token is required",
 		)
 	}
 
-	if err := h.app.auth.ValidateAccessToken(req.Msg.AccessToken); err != nil {
+	if err := h.app.auth.ValidateAccessToken(req.AccessToken); err != nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("invalid or expired token"),
+			"invalid or expired token",
 		)
 	}
 
 	// Like SignIn: a verified TOTP factor must still be challenged, so a reset
 	// can't bypass MFA.
-	factorID, hasMFA := h.app.auth.HasVerifiedTOTP(ctx, req.Msg.AccessToken)
+	factorID, hasMFA := h.app.auth.HasVerifiedTOTP(ctx, req.AccessToken)
 	if hasMFA {
-		resp := connect.NewResponse(&authv1.ExchangeTokenResponse{NeedsMfa: true})
-		h.setMFACookies(
-			resp.Header(), req.Msg.AccessToken, req.Msg.RefreshToken, true, "",
-		)
-		h.setMFAFactorIDCookie(resp.Header(), factorID)
+		resp := &authv1.ExchangeTokenResponse{NeedsMfa: true}
+		h.setMFACookies(info.ResponseHeader(), req.AccessToken, req.RefreshToken, true, "")
+		h.setMFAFactorIDCookie(info.ResponseHeader(), factorID)
 		return resp, nil
 	}
 
-	resp := connect.NewResponse(&authv1.ExchangeTokenResponse{})
+	resp := &authv1.ExchangeTokenResponse{}
 	if err := h.completeMFA(
-		resp.Header(), req.Msg.AccessToken, req.Msg.RefreshToken, true,
+		info.ResponseHeader(),
+		req.AccessToken,
+		req.RefreshToken,
+		true,
 	); err != nil {
 		return nil, err
 	}
@@ -167,41 +170,43 @@ func (h *authConnectHandler) ExchangeToken(
 
 func (h *authConnectHandler) UpdatePassword(
 	ctx context.Context,
-	req *connect.Request[authv1.UpdatePasswordRequest],
-) (*connect.Response[authv1.UpdatePasswordResponse], error) {
-	if req.Msg.NewPassword == "" {
+	req *authv1.UpdatePasswordRequest,
+) (*authv1.UpdatePasswordResponse, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
+	if req.NewPassword == "" {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("new_password is required"),
+			"new_password is required",
 		)
 	}
 
-	accessToken, err := h.parseCookie(req.Header(), "accessToken")
+	accessToken, err := h.parseCookie(info.RequestHeader(), "accessToken")
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("not signed in"),
+			"not signed in",
 		)
 	}
 
 	if err = h.app.auth.UpdatePassword(
-		ctx, accessToken.Value, req.Msg.CurrentPassword, req.Msg.NewPassword,
+		ctx, accessToken.Value, req.CurrentPassword, req.NewPassword,
 	); err != nil {
-		return nil, connect.NewError(authErrorCode(err), err)
+		return nil, connect.NewError(authErrorCode(err), err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&authv1.UpdatePasswordResponse{}), nil
+	return &authv1.UpdatePasswordResponse{}, nil
 }
 
 func (h *authConnectHandler) SignOut(
 	ctx context.Context,
-	req *connect.Request[authv1.SignOutRequest],
-) (*connect.Response[authv1.SignOutResponse], error) {
-	accessToken, err := h.parseCookie(req.Header(), "accessToken")
+	_ *authv1.SignOutRequest,
+) (*authv1.SignOutResponse, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
+	accessToken, err := h.parseCookie(info.RequestHeader(), "accessToken")
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("not signed in"),
+			"not signed in",
 		)
 	}
 
@@ -209,32 +214,33 @@ func (h *authConnectHandler) SignOut(
 		ctx, accessToken.Value, h.secure(),
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	resp := connect.NewResponse(&authv1.SignOutResponse{})
-	resp.Header().Add("Set-Cookie", deleteAccess.String())
-	resp.Header().Add("Set-Cookie", deleteRefresh.String())
+	resp := &authv1.SignOutResponse{}
+	info.ResponseHeader().Add("Set-Cookie", deleteAccess.String())
+	info.ResponseHeader().Add("Set-Cookie", deleteRefresh.String())
 	return resp, nil
 }
 
 func (h *authConnectHandler) GetCurrentUser(
 	ctx context.Context,
-	req *connect.Request[authv1.GetCurrentUserRequest],
-) (*connect.Response[authv1.GetCurrentUserResponse], error) {
-	resp := connect.NewResponse(&authv1.GetCurrentUserResponse{})
+	_ *authv1.GetCurrentUserRequest,
+) (*authv1.GetCurrentUserResponse, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
+	resp := &authv1.GetCurrentUserResponse{}
 
 	var user *models.User
-	if cookie, err := h.parseCookie(req.Header(), "accessToken"); err == nil {
+	if cookie, err := h.parseCookie(info.RequestHeader(), "accessToken"); err == nil {
 		user, _ = h.app.auth.GetUser(ctx, cookie.Value)
 	}
 
 	if user == nil {
-		user = h.tryRefreshToken(ctx, req.Header(), resp.Header())
+		user = h.tryRefreshToken(ctx, info.RequestHeader(), info.ResponseHeader())
 		if user == nil {
 			return nil, connect.NewError(
 				connect.CodeUnauthenticated,
-				errors.New("not signed in"),
+				"not signed in",
 			)
 		}
 	}
@@ -249,11 +255,11 @@ func (h *authConnectHandler) GetCurrentUser(
 		displayName = enrichedUser.DisplayName
 	}
 
-	resp.Msg.Role = string(role)
-	resp.Msg.AppAccess = appAccess
-	resp.Msg.HasMfa = user.HasMFA
-	resp.Msg.DisplayName = displayName
-	resp.Msg.UserId = user.ID
+	resp.Role = string(role)
+	resp.AppAccess = appAccess
+	resp.HasMfa = user.HasMFA
+	resp.DisplayName = displayName
+	resp.UserId = user.ID
 	return resp, nil
 }
 
@@ -261,7 +267,7 @@ func (h *authConnectHandler) GetCurrentUser(
 // session is gone.
 func (h *authConnectHandler) tryRefreshToken(
 	ctx context.Context,
-	reqHeader, respHeader http.Header,
+	reqHeader, respHeader *connect.Header,
 ) *models.User {
 	refreshCookie, err := h.parseCookie(reqHeader, "refreshToken")
 	if err != nil {

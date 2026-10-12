@@ -3,15 +3,13 @@ package movies
 import (
 	"context"
 
-	"connectrpc.com/connect"
-
 	moviesv1 "tools.xdoubleu.com/gen/movies/v1"
 )
 
 func (h *moviesConnectHandler) GetStats(
 	ctx context.Context,
-	_ *connect.Request[moviesv1.GetStatsRequest],
-) (*connect.Response[moviesv1.GetStatsResponse], error) {
+	_ *moviesv1.GetStatsRequest,
+) (*moviesv1.GetStatsResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
@@ -36,14 +34,14 @@ func (h *moviesConnectHandler) GetStats(
 	for i, n := range stats.Ratings {
 		ratings[i] = count32(n)
 	}
-	return connect.NewResponse(&moviesv1.GetStatsResponse{
+	return &moviesv1.GetStatsResponse{
 		Months:         months,
 		Genres:         genres,
 		Ratings:        ratings,
 		MoviesWatched:  count32(stats.MoviesWatched),
 		SeriesWatched:  count32(stats.SeriesWatched),
 		SeasonsWatched: count32(stats.SeasonsWatched),
-	}), nil
+	}, nil
 }
 
 func count32(n int) int32 {

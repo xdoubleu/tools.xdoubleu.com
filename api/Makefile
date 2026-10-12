@@ -40,7 +40,7 @@ tools/proto:
 # buf.gen.yaml's pins (checked by make lint/proto-local-versions).
 tools/proto/local: tools/proto
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
-	go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.21.0
+	go install connectrpc.com/connect/v2/cmd/protoc-gen-connect-go@v2.0.0
 
 lint/proto: tools/proto
 	cd ../proto && buf lint

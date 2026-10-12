@@ -5,221 +5,240 @@
 package recipesv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/recipes/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// RecipesServiceName is the fully-qualified name of the RecipesService service.
 	RecipesServiceName = "recipes.v1.RecipesService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// RecipesServiceListRecipesProcedure is the fully-qualified name of the RecipesService's
-	// ListRecipes RPC.
+	// RecipesServiceListRecipesProcedure is the procedure name of the RecipesService's ListRecipes RPC.
 	RecipesServiceListRecipesProcedure = "/recipes.v1.RecipesService/ListRecipes"
-	// RecipesServiceGetRecipeProcedure is the fully-qualified name of the RecipesService's GetRecipe
-	// RPC.
+	// RecipesServiceGetRecipeProcedure is the procedure name of the RecipesService's GetRecipe RPC.
 	RecipesServiceGetRecipeProcedure = "/recipes.v1.RecipesService/GetRecipe"
-	// RecipesServiceCreateRecipeProcedure is the fully-qualified name of the RecipesService's
-	// CreateRecipe RPC.
+	// RecipesServiceCreateRecipeProcedure is the procedure name of the RecipesService's CreateRecipe
+	// RPC.
 	RecipesServiceCreateRecipeProcedure = "/recipes.v1.RecipesService/CreateRecipe"
-	// RecipesServiceUpdateRecipeProcedure is the fully-qualified name of the RecipesService's
-	// UpdateRecipe RPC.
+	// RecipesServiceUpdateRecipeProcedure is the procedure name of the RecipesService's UpdateRecipe
+	// RPC.
 	RecipesServiceUpdateRecipeProcedure = "/recipes.v1.RecipesService/UpdateRecipe"
-	// RecipesServiceDeleteRecipeProcedure is the fully-qualified name of the RecipesService's
-	// DeleteRecipe RPC.
+	// RecipesServiceDeleteRecipeProcedure is the procedure name of the RecipesService's DeleteRecipe
+	// RPC.
 	RecipesServiceDeleteRecipeProcedure = "/recipes.v1.RecipesService/DeleteRecipe"
+)
+
+var (
+	recipesServiceListRecipesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_recipes_v1_recipes_proto.Services().ByName("RecipesService").Methods().ByName("ListRecipes"),
+			Procedure:  RecipesServiceListRecipesProcedure,
+		}
+	})
+	recipesServiceGetRecipeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_recipes_v1_recipes_proto.Services().ByName("RecipesService").Methods().ByName("GetRecipe"),
+			Procedure:  RecipesServiceGetRecipeProcedure,
+		}
+	})
+	recipesServiceCreateRecipeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_recipes_v1_recipes_proto.Services().ByName("RecipesService").Methods().ByName("CreateRecipe"),
+			Procedure:  RecipesServiceCreateRecipeProcedure,
+		}
+	})
+	recipesServiceUpdateRecipeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_recipes_v1_recipes_proto.Services().ByName("RecipesService").Methods().ByName("UpdateRecipe"),
+			Procedure:  RecipesServiceUpdateRecipeProcedure,
+		}
+	})
+	recipesServiceDeleteRecipeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_recipes_v1_recipes_proto.Services().ByName("RecipesService").Methods().ByName("DeleteRecipe"),
+			Procedure:  RecipesServiceDeleteRecipeProcedure,
+		}
+	})
 )
 
 // RecipesServiceClient is a client for the recipes.v1.RecipesService service.
 type RecipesServiceClient interface {
-	ListRecipes(context.Context, *connect.Request[v1.ListRecipesRequest]) (*connect.Response[v1.ListRecipesResponse], error)
-	GetRecipe(context.Context, *connect.Request[v1.GetRecipeRequest]) (*connect.Response[v1.GetRecipeResponse], error)
-	CreateRecipe(context.Context, *connect.Request[v1.CreateRecipeRequest]) (*connect.Response[v1.CreateRecipeResponse], error)
-	UpdateRecipe(context.Context, *connect.Request[v1.UpdateRecipeRequest]) (*connect.Response[v1.UpdateRecipeResponse], error)
-	DeleteRecipe(context.Context, *connect.Request[v1.DeleteRecipeRequest]) (*connect.Response[v1.DeleteRecipeResponse], error)
+	ListRecipes(context.Context, *v1.ListRecipesRequest) (*v1.ListRecipesResponse, error)
+	GetRecipe(context.Context, *v1.GetRecipeRequest) (*v1.GetRecipeResponse, error)
+	CreateRecipe(context.Context, *v1.CreateRecipeRequest) (*v1.CreateRecipeResponse, error)
+	UpdateRecipe(context.Context, *v1.UpdateRecipeRequest) (*v1.UpdateRecipeResponse, error)
+	DeleteRecipe(context.Context, *v1.DeleteRecipeRequest) (*v1.DeleteRecipeResponse, error)
 }
 
-// NewRecipesServiceClient constructs a client for the recipes.v1.RecipesService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewRecipesServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) RecipesServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	recipesServiceMethods := v1.File_recipes_v1_recipes_proto.Services().ByName("RecipesService").Methods()
-	return &recipesServiceClient{
-		listRecipes: connect.NewClient[v1.ListRecipesRequest, v1.ListRecipesResponse](
-			httpClient,
-			baseURL+RecipesServiceListRecipesProcedure,
-			connect.WithSchema(recipesServiceMethods.ByName("ListRecipes")),
-			connect.WithClientOptions(opts...),
-		),
-		getRecipe: connect.NewClient[v1.GetRecipeRequest, v1.GetRecipeResponse](
-			httpClient,
-			baseURL+RecipesServiceGetRecipeProcedure,
-			connect.WithSchema(recipesServiceMethods.ByName("GetRecipe")),
-			connect.WithClientOptions(opts...),
-		),
-		createRecipe: connect.NewClient[v1.CreateRecipeRequest, v1.CreateRecipeResponse](
-			httpClient,
-			baseURL+RecipesServiceCreateRecipeProcedure,
-			connect.WithSchema(recipesServiceMethods.ByName("CreateRecipe")),
-			connect.WithClientOptions(opts...),
-		),
-		updateRecipe: connect.NewClient[v1.UpdateRecipeRequest, v1.UpdateRecipeResponse](
-			httpClient,
-			baseURL+RecipesServiceUpdateRecipeProcedure,
-			connect.WithSchema(recipesServiceMethods.ByName("UpdateRecipe")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteRecipe: connect.NewClient[v1.DeleteRecipeRequest, v1.DeleteRecipeResponse](
-			httpClient,
-			baseURL+RecipesServiceDeleteRecipeProcedure,
-			connect.WithSchema(recipesServiceMethods.ByName("DeleteRecipe")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// recipesServiceClient implements RecipesServiceClient.
-type recipesServiceClient struct {
-	listRecipes  *connect.Client[v1.ListRecipesRequest, v1.ListRecipesResponse]
-	getRecipe    *connect.Client[v1.GetRecipeRequest, v1.GetRecipeResponse]
-	createRecipe *connect.Client[v1.CreateRecipeRequest, v1.CreateRecipeResponse]
-	updateRecipe *connect.Client[v1.UpdateRecipeRequest, v1.UpdateRecipeResponse]
-	deleteRecipe *connect.Client[v1.DeleteRecipeRequest, v1.DeleteRecipeResponse]
-}
-
-// ListRecipes calls recipes.v1.RecipesService.ListRecipes.
-func (c *recipesServiceClient) ListRecipes(ctx context.Context, req *connect.Request[v1.ListRecipesRequest]) (*connect.Response[v1.ListRecipesResponse], error) {
-	return c.listRecipes.CallUnary(ctx, req)
-}
-
-// GetRecipe calls recipes.v1.RecipesService.GetRecipe.
-func (c *recipesServiceClient) GetRecipe(ctx context.Context, req *connect.Request[v1.GetRecipeRequest]) (*connect.Response[v1.GetRecipeResponse], error) {
-	return c.getRecipe.CallUnary(ctx, req)
-}
-
-// CreateRecipe calls recipes.v1.RecipesService.CreateRecipe.
-func (c *recipesServiceClient) CreateRecipe(ctx context.Context, req *connect.Request[v1.CreateRecipeRequest]) (*connect.Response[v1.CreateRecipeResponse], error) {
-	return c.createRecipe.CallUnary(ctx, req)
-}
-
-// UpdateRecipe calls recipes.v1.RecipesService.UpdateRecipe.
-func (c *recipesServiceClient) UpdateRecipe(ctx context.Context, req *connect.Request[v1.UpdateRecipeRequest]) (*connect.Response[v1.UpdateRecipeResponse], error) {
-	return c.updateRecipe.CallUnary(ctx, req)
-}
-
-// DeleteRecipe calls recipes.v1.RecipesService.DeleteRecipe.
-func (c *recipesServiceClient) DeleteRecipe(ctx context.Context, req *connect.Request[v1.DeleteRecipeRequest]) (*connect.Response[v1.DeleteRecipeResponse], error) {
-	return c.deleteRecipe.CallUnary(ctx, req)
+// NewRecipesServiceClient constructs a client for the recipes.v1.RecipesService service. Multiple
+// service clients may share a single connect.Client.
+func NewRecipesServiceClient(client *connect.Client) RecipesServiceClient {
+	return &recipesServiceClient{client: client}
 }
 
 // RecipesServiceHandler is an implementation of the recipes.v1.RecipesService service.
 type RecipesServiceHandler interface {
-	ListRecipes(context.Context, *connect.Request[v1.ListRecipesRequest]) (*connect.Response[v1.ListRecipesResponse], error)
-	GetRecipe(context.Context, *connect.Request[v1.GetRecipeRequest]) (*connect.Response[v1.GetRecipeResponse], error)
-	CreateRecipe(context.Context, *connect.Request[v1.CreateRecipeRequest]) (*connect.Response[v1.CreateRecipeResponse], error)
-	UpdateRecipe(context.Context, *connect.Request[v1.UpdateRecipeRequest]) (*connect.Response[v1.UpdateRecipeResponse], error)
-	DeleteRecipe(context.Context, *connect.Request[v1.DeleteRecipeRequest]) (*connect.Response[v1.DeleteRecipeResponse], error)
+	ListRecipes(context.Context, *v1.ListRecipesRequest) (*v1.ListRecipesResponse, error)
+	GetRecipe(context.Context, *v1.GetRecipeRequest) (*v1.GetRecipeResponse, error)
+	CreateRecipe(context.Context, *v1.CreateRecipeRequest) (*v1.CreateRecipeResponse, error)
+	UpdateRecipe(context.Context, *v1.UpdateRecipeRequest) (*v1.UpdateRecipeResponse, error)
+	DeleteRecipe(context.Context, *v1.DeleteRecipeRequest) (*v1.DeleteRecipeResponse, error)
 }
 
-// NewRecipesServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewRecipesServiceHandler(svc RecipesServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	recipesServiceMethods := v1.File_recipes_v1_recipes_proto.Services().ByName("RecipesService").Methods()
-	recipesServiceListRecipesHandler := connect.NewUnaryHandler(
-		RecipesServiceListRecipesProcedure,
-		svc.ListRecipes,
-		connect.WithSchema(recipesServiceMethods.ByName("ListRecipes")),
-		connect.WithHandlerOptions(opts...),
+// RegisterRecipesServiceHandler registers svc as the recipes.v1.RecipesService implementation on
+// server.
+func RegisterRecipesServiceHandler(server *connect.Server, svc RecipesServiceHandler) {
+	adapter := recipesServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: recipesServiceListRecipesSpec(), Handler: adapter.listRecipes},
+		connect.Method{Spec: recipesServiceGetRecipeSpec(), Handler: adapter.getRecipe},
+		connect.Method{Spec: recipesServiceCreateRecipeSpec(), Handler: adapter.createRecipe},
+		connect.Method{Spec: recipesServiceUpdateRecipeSpec(), Handler: adapter.updateRecipe},
+		connect.Method{Spec: recipesServiceDeleteRecipeSpec(), Handler: adapter.deleteRecipe},
 	)
-	recipesServiceGetRecipeHandler := connect.NewUnaryHandler(
-		RecipesServiceGetRecipeProcedure,
-		svc.GetRecipe,
-		connect.WithSchema(recipesServiceMethods.ByName("GetRecipe")),
-		connect.WithHandlerOptions(opts...),
-	)
-	recipesServiceCreateRecipeHandler := connect.NewUnaryHandler(
-		RecipesServiceCreateRecipeProcedure,
-		svc.CreateRecipe,
-		connect.WithSchema(recipesServiceMethods.ByName("CreateRecipe")),
-		connect.WithHandlerOptions(opts...),
-	)
-	recipesServiceUpdateRecipeHandler := connect.NewUnaryHandler(
-		RecipesServiceUpdateRecipeProcedure,
-		svc.UpdateRecipe,
-		connect.WithSchema(recipesServiceMethods.ByName("UpdateRecipe")),
-		connect.WithHandlerOptions(opts...),
-	)
-	recipesServiceDeleteRecipeHandler := connect.NewUnaryHandler(
-		RecipesServiceDeleteRecipeProcedure,
-		svc.DeleteRecipe,
-		connect.WithSchema(recipesServiceMethods.ByName("DeleteRecipe")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/recipes.v1.RecipesService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case RecipesServiceListRecipesProcedure:
-			recipesServiceListRecipesHandler.ServeHTTP(w, r)
-		case RecipesServiceGetRecipeProcedure:
-			recipesServiceGetRecipeHandler.ServeHTTP(w, r)
-		case RecipesServiceCreateRecipeProcedure:
-			recipesServiceCreateRecipeHandler.ServeHTTP(w, r)
-		case RecipesServiceUpdateRecipeProcedure:
-			recipesServiceUpdateRecipeHandler.ServeHTTP(w, r)
-		case RecipesServiceDeleteRecipeProcedure:
-			recipesServiceDeleteRecipeHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedRecipesServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedRecipesServiceHandler struct{}
 
-func (UnimplementedRecipesServiceHandler) ListRecipes(context.Context, *connect.Request[v1.ListRecipesRequest]) (*connect.Response[v1.ListRecipesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("recipes.v1.RecipesService.ListRecipes is not implemented"))
+func (UnimplementedRecipesServiceHandler) ListRecipes(context.Context, *v1.ListRecipesRequest) (*v1.ListRecipesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "recipes.v1.RecipesService.ListRecipes is not implemented")
 }
 
-func (UnimplementedRecipesServiceHandler) GetRecipe(context.Context, *connect.Request[v1.GetRecipeRequest]) (*connect.Response[v1.GetRecipeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("recipes.v1.RecipesService.GetRecipe is not implemented"))
+func (UnimplementedRecipesServiceHandler) GetRecipe(context.Context, *v1.GetRecipeRequest) (*v1.GetRecipeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "recipes.v1.RecipesService.GetRecipe is not implemented")
 }
 
-func (UnimplementedRecipesServiceHandler) CreateRecipe(context.Context, *connect.Request[v1.CreateRecipeRequest]) (*connect.Response[v1.CreateRecipeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("recipes.v1.RecipesService.CreateRecipe is not implemented"))
+func (UnimplementedRecipesServiceHandler) CreateRecipe(context.Context, *v1.CreateRecipeRequest) (*v1.CreateRecipeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "recipes.v1.RecipesService.CreateRecipe is not implemented")
 }
 
-func (UnimplementedRecipesServiceHandler) UpdateRecipe(context.Context, *connect.Request[v1.UpdateRecipeRequest]) (*connect.Response[v1.UpdateRecipeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("recipes.v1.RecipesService.UpdateRecipe is not implemented"))
+func (UnimplementedRecipesServiceHandler) UpdateRecipe(context.Context, *v1.UpdateRecipeRequest) (*v1.UpdateRecipeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "recipes.v1.RecipesService.UpdateRecipe is not implemented")
 }
 
-func (UnimplementedRecipesServiceHandler) DeleteRecipe(context.Context, *connect.Request[v1.DeleteRecipeRequest]) (*connect.Response[v1.DeleteRecipeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("recipes.v1.RecipesService.DeleteRecipe is not implemented"))
+func (UnimplementedRecipesServiceHandler) DeleteRecipe(context.Context, *v1.DeleteRecipeRequest) (*v1.DeleteRecipeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "recipes.v1.RecipesService.DeleteRecipe is not implemented")
+}
+
+type recipesServiceClient struct {
+	client *connect.Client
+}
+
+func (c *recipesServiceClient) ListRecipes(ctx context.Context, req *v1.ListRecipesRequest) (*v1.ListRecipesResponse, error) {
+	var res v1.ListRecipesResponse
+	if err := c.client.CallUnary(ctx, recipesServiceListRecipesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *recipesServiceClient) GetRecipe(ctx context.Context, req *v1.GetRecipeRequest) (*v1.GetRecipeResponse, error) {
+	var res v1.GetRecipeResponse
+	if err := c.client.CallUnary(ctx, recipesServiceGetRecipeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *recipesServiceClient) CreateRecipe(ctx context.Context, req *v1.CreateRecipeRequest) (*v1.CreateRecipeResponse, error) {
+	var res v1.CreateRecipeResponse
+	if err := c.client.CallUnary(ctx, recipesServiceCreateRecipeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *recipesServiceClient) UpdateRecipe(ctx context.Context, req *v1.UpdateRecipeRequest) (*v1.UpdateRecipeResponse, error) {
+	var res v1.UpdateRecipeResponse
+	if err := c.client.CallUnary(ctx, recipesServiceUpdateRecipeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *recipesServiceClient) DeleteRecipe(ctx context.Context, req *v1.DeleteRecipeRequest) (*v1.DeleteRecipeResponse, error) {
+	var res v1.DeleteRecipeResponse
+	if err := c.client.CallUnary(ctx, recipesServiceDeleteRecipeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type recipesServiceHandler struct{ svc RecipesServiceHandler }
+
+func (h recipesServiceHandler) listRecipes(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListRecipesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListRecipes(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h recipesServiceHandler) getRecipe(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetRecipeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetRecipe(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h recipesServiceHandler) createRecipe(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateRecipeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateRecipe(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h recipesServiceHandler) updateRecipe(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateRecipeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateRecipe(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h recipesServiceHandler) deleteRecipe(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteRecipeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteRecipe(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

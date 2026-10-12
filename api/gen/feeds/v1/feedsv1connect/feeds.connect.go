@@ -5,533 +5,639 @@
 package feedsv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/feeds/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// FeedServiceName is the fully-qualified name of the FeedService service.
 	FeedServiceName = "feeds.v1.FeedService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// FeedServiceListFeedsProcedure is the fully-qualified name of the FeedService's ListFeeds RPC.
+	// FeedServiceListFeedsProcedure is the procedure name of the FeedService's ListFeeds RPC.
 	FeedServiceListFeedsProcedure = "/feeds.v1.FeedService/ListFeeds"
-	// FeedServiceCreateFeedProcedure is the fully-qualified name of the FeedService's CreateFeed RPC.
+	// FeedServiceCreateFeedProcedure is the procedure name of the FeedService's CreateFeed RPC.
 	FeedServiceCreateFeedProcedure = "/feeds.v1.FeedService/CreateFeed"
-	// FeedServiceUpdateFeedProcedure is the fully-qualified name of the FeedService's UpdateFeed RPC.
+	// FeedServiceUpdateFeedProcedure is the procedure name of the FeedService's UpdateFeed RPC.
 	FeedServiceUpdateFeedProcedure = "/feeds.v1.FeedService/UpdateFeed"
-	// FeedServiceDeleteFeedProcedure is the fully-qualified name of the FeedService's DeleteFeed RPC.
+	// FeedServiceDeleteFeedProcedure is the procedure name of the FeedService's DeleteFeed RPC.
 	FeedServiceDeleteFeedProcedure = "/feeds.v1.FeedService/DeleteFeed"
-	// FeedServiceRefreshFeedProcedure is the fully-qualified name of the FeedService's RefreshFeed RPC.
+	// FeedServiceRefreshFeedProcedure is the procedure name of the FeedService's RefreshFeed RPC.
 	FeedServiceRefreshFeedProcedure = "/feeds.v1.FeedService/RefreshFeed"
-	// FeedServiceListFeedItemsProcedure is the fully-qualified name of the FeedService's ListFeedItems
-	// RPC.
+	// FeedServiceListFeedItemsProcedure is the procedure name of the FeedService's ListFeedItems RPC.
 	FeedServiceListFeedItemsProcedure = "/feeds.v1.FeedService/ListFeedItems"
-	// FeedServiceGetFeedItemProcedure is the fully-qualified name of the FeedService's GetFeedItem RPC.
+	// FeedServiceGetFeedItemProcedure is the procedure name of the FeedService's GetFeedItem RPC.
 	FeedServiceGetFeedItemProcedure = "/feeds.v1.FeedService/GetFeedItem"
-	// FeedServiceUpdateItemProcedure is the fully-qualified name of the FeedService's UpdateItem RPC.
+	// FeedServiceUpdateItemProcedure is the procedure name of the FeedService's UpdateItem RPC.
 	FeedServiceUpdateItemProcedure = "/feeds.v1.FeedService/UpdateItem"
-	// FeedServiceGetFeedStatsProcedure is the fully-qualified name of the FeedService's GetFeedStats
-	// RPC.
+	// FeedServiceGetFeedStatsProcedure is the procedure name of the FeedService's GetFeedStats RPC.
 	FeedServiceGetFeedStatsProcedure = "/feeds.v1.FeedService/GetFeedStats"
-	// FeedServiceGetUnhealthyFeedsProcedure is the fully-qualified name of the FeedService's
+	// FeedServiceGetUnhealthyFeedsProcedure is the procedure name of the FeedService's
 	// GetUnhealthyFeeds RPC.
 	FeedServiceGetUnhealthyFeedsProcedure = "/feeds.v1.FeedService/GetUnhealthyFeeds"
-	// FeedServiceListFilterRulesProcedure is the fully-qualified name of the FeedService's
-	// ListFilterRules RPC.
+	// FeedServiceListFilterRulesProcedure is the procedure name of the FeedService's ListFilterRules
+	// RPC.
 	FeedServiceListFilterRulesProcedure = "/feeds.v1.FeedService/ListFilterRules"
-	// FeedServiceCreateFilterRuleProcedure is the fully-qualified name of the FeedService's
-	// CreateFilterRule RPC.
+	// FeedServiceCreateFilterRuleProcedure is the procedure name of the FeedService's CreateFilterRule
+	// RPC.
 	FeedServiceCreateFilterRuleProcedure = "/feeds.v1.FeedService/CreateFilterRule"
-	// FeedServiceDeleteFilterRuleProcedure is the fully-qualified name of the FeedService's
-	// DeleteFilterRule RPC.
+	// FeedServiceDeleteFilterRuleProcedure is the procedure name of the FeedService's DeleteFilterRule
+	// RPC.
 	FeedServiceDeleteFilterRuleProcedure = "/feeds.v1.FeedService/DeleteFilterRule"
-	// FeedServiceRestoreFeedItemProcedure is the fully-qualified name of the FeedService's
-	// RestoreFeedItem RPC.
+	// FeedServiceRestoreFeedItemProcedure is the procedure name of the FeedService's RestoreFeedItem
+	// RPC.
 	FeedServiceRestoreFeedItemProcedure = "/feeds.v1.FeedService/RestoreFeedItem"
-	// FeedServiceGetFilterRuleSuggestionsProcedure is the fully-qualified name of the FeedService's
+	// FeedServiceGetFilterRuleSuggestionsProcedure is the procedure name of the FeedService's
 	// GetFilterRuleSuggestions RPC.
 	FeedServiceGetFilterRuleSuggestionsProcedure = "/feeds.v1.FeedService/GetFilterRuleSuggestions"
-	// FeedServiceDismissFilterRuleSuggestionProcedure is the fully-qualified name of the FeedService's
+	// FeedServiceDismissFilterRuleSuggestionProcedure is the procedure name of the FeedService's
 	// DismissFilterRuleSuggestion RPC.
 	FeedServiceDismissFilterRuleSuggestionProcedure = "/feeds.v1.FeedService/DismissFilterRuleSuggestion"
 )
 
+var (
+	feedServiceListFeedsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("ListFeeds"),
+			Procedure:  FeedServiceListFeedsProcedure,
+		}
+	})
+	feedServiceCreateFeedSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("CreateFeed"),
+			Procedure:  FeedServiceCreateFeedProcedure,
+		}
+	})
+	feedServiceUpdateFeedSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("UpdateFeed"),
+			Procedure:  FeedServiceUpdateFeedProcedure,
+		}
+	})
+	feedServiceDeleteFeedSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("DeleteFeed"),
+			Procedure:  FeedServiceDeleteFeedProcedure,
+		}
+	})
+	feedServiceRefreshFeedSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("RefreshFeed"),
+			Procedure:  FeedServiceRefreshFeedProcedure,
+		}
+	})
+	feedServiceListFeedItemsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("ListFeedItems"),
+			Procedure:  FeedServiceListFeedItemsProcedure,
+		}
+	})
+	feedServiceGetFeedItemSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("GetFeedItem"),
+			Procedure:  FeedServiceGetFeedItemProcedure,
+		}
+	})
+	feedServiceUpdateItemSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("UpdateItem"),
+			Procedure:  FeedServiceUpdateItemProcedure,
+		}
+	})
+	feedServiceGetFeedStatsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("GetFeedStats"),
+			Procedure:  FeedServiceGetFeedStatsProcedure,
+		}
+	})
+	feedServiceGetUnhealthyFeedsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("GetUnhealthyFeeds"),
+			Procedure:  FeedServiceGetUnhealthyFeedsProcedure,
+		}
+	})
+	feedServiceListFilterRulesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("ListFilterRules"),
+			Procedure:  FeedServiceListFilterRulesProcedure,
+		}
+	})
+	feedServiceCreateFilterRuleSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("CreateFilterRule"),
+			Procedure:  FeedServiceCreateFilterRuleProcedure,
+		}
+	})
+	feedServiceDeleteFilterRuleSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("DeleteFilterRule"),
+			Procedure:  FeedServiceDeleteFilterRuleProcedure,
+		}
+	})
+	feedServiceRestoreFeedItemSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("RestoreFeedItem"),
+			Procedure:  FeedServiceRestoreFeedItemProcedure,
+		}
+	})
+	feedServiceGetFilterRuleSuggestionsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("GetFilterRuleSuggestions"),
+			Procedure:  FeedServiceGetFilterRuleSuggestionsProcedure,
+		}
+	})
+	feedServiceDismissFilterRuleSuggestionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("DismissFilterRuleSuggestion"),
+			Procedure:  FeedServiceDismissFilterRuleSuggestionProcedure,
+		}
+	})
+)
+
 // FeedServiceClient is a client for the feeds.v1.FeedService service.
 type FeedServiceClient interface {
-	ListFeeds(context.Context, *connect.Request[v1.ListFeedsRequest]) (*connect.Response[v1.ListFeedsResponse], error)
-	CreateFeed(context.Context, *connect.Request[v1.CreateFeedRequest]) (*connect.Response[v1.CreateFeedResponse], error)
-	UpdateFeed(context.Context, *connect.Request[v1.UpdateFeedRequest]) (*connect.Response[v1.UpdateFeedResponse], error)
-	DeleteFeed(context.Context, *connect.Request[v1.DeleteFeedRequest]) (*connect.Response[v1.DeleteFeedResponse], error)
-	RefreshFeed(context.Context, *connect.Request[v1.RefreshFeedRequest]) (*connect.Response[v1.RefreshFeedResponse], error)
-	ListFeedItems(context.Context, *connect.Request[v1.ListFeedItemsRequest]) (*connect.Response[v1.ListFeedItemsResponse], error)
-	GetFeedItem(context.Context, *connect.Request[v1.GetFeedItemRequest]) (*connect.Response[v1.GetFeedItemResponse], error)
-	UpdateItem(context.Context, *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error)
-	GetFeedStats(context.Context, *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error)
-	GetUnhealthyFeeds(context.Context, *connect.Request[v1.GetUnhealthyFeedsRequest]) (*connect.Response[v1.GetUnhealthyFeedsResponse], error)
-	ListFilterRules(context.Context, *connect.Request[v1.ListFilterRulesRequest]) (*connect.Response[v1.ListFilterRulesResponse], error)
-	CreateFilterRule(context.Context, *connect.Request[v1.CreateFilterRuleRequest]) (*connect.Response[v1.CreateFilterRuleResponse], error)
-	DeleteFilterRule(context.Context, *connect.Request[v1.DeleteFilterRuleRequest]) (*connect.Response[v1.DeleteFilterRuleResponse], error)
-	RestoreFeedItem(context.Context, *connect.Request[v1.RestoreFeedItemRequest]) (*connect.Response[v1.RestoreFeedItemResponse], error)
-	GetFilterRuleSuggestions(context.Context, *connect.Request[v1.GetFilterRuleSuggestionsRequest]) (*connect.Response[v1.GetFilterRuleSuggestionsResponse], error)
-	DismissFilterRuleSuggestion(context.Context, *connect.Request[v1.DismissFilterRuleSuggestionRequest]) (*connect.Response[v1.DismissFilterRuleSuggestionResponse], error)
+	ListFeeds(context.Context, *v1.ListFeedsRequest) (*v1.ListFeedsResponse, error)
+	CreateFeed(context.Context, *v1.CreateFeedRequest) (*v1.CreateFeedResponse, error)
+	UpdateFeed(context.Context, *v1.UpdateFeedRequest) (*v1.UpdateFeedResponse, error)
+	DeleteFeed(context.Context, *v1.DeleteFeedRequest) (*v1.DeleteFeedResponse, error)
+	RefreshFeed(context.Context, *v1.RefreshFeedRequest) (*v1.RefreshFeedResponse, error)
+	ListFeedItems(context.Context, *v1.ListFeedItemsRequest) (*v1.ListFeedItemsResponse, error)
+	GetFeedItem(context.Context, *v1.GetFeedItemRequest) (*v1.GetFeedItemResponse, error)
+	UpdateItem(context.Context, *v1.UpdateItemRequest) (*v1.UpdateItemResponse, error)
+	GetFeedStats(context.Context, *v1.GetFeedStatsRequest) (*v1.GetFeedStatsResponse, error)
+	GetUnhealthyFeeds(context.Context, *v1.GetUnhealthyFeedsRequest) (*v1.GetUnhealthyFeedsResponse, error)
+	ListFilterRules(context.Context, *v1.ListFilterRulesRequest) (*v1.ListFilterRulesResponse, error)
+	CreateFilterRule(context.Context, *v1.CreateFilterRuleRequest) (*v1.CreateFilterRuleResponse, error)
+	DeleteFilterRule(context.Context, *v1.DeleteFilterRuleRequest) (*v1.DeleteFilterRuleResponse, error)
+	RestoreFeedItem(context.Context, *v1.RestoreFeedItemRequest) (*v1.RestoreFeedItemResponse, error)
+	GetFilterRuleSuggestions(context.Context, *v1.GetFilterRuleSuggestionsRequest) (*v1.GetFilterRuleSuggestionsResponse, error)
+	DismissFilterRuleSuggestion(context.Context, *v1.DismissFilterRuleSuggestionRequest) (*v1.DismissFilterRuleSuggestionResponse, error)
 }
 
-// NewFeedServiceClient constructs a client for the feeds.v1.FeedService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewFeedServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) FeedServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	feedServiceMethods := v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods()
-	return &feedServiceClient{
-		listFeeds: connect.NewClient[v1.ListFeedsRequest, v1.ListFeedsResponse](
-			httpClient,
-			baseURL+FeedServiceListFeedsProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("ListFeeds")),
-			connect.WithClientOptions(opts...),
-		),
-		createFeed: connect.NewClient[v1.CreateFeedRequest, v1.CreateFeedResponse](
-			httpClient,
-			baseURL+FeedServiceCreateFeedProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("CreateFeed")),
-			connect.WithClientOptions(opts...),
-		),
-		updateFeed: connect.NewClient[v1.UpdateFeedRequest, v1.UpdateFeedResponse](
-			httpClient,
-			baseURL+FeedServiceUpdateFeedProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("UpdateFeed")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteFeed: connect.NewClient[v1.DeleteFeedRequest, v1.DeleteFeedResponse](
-			httpClient,
-			baseURL+FeedServiceDeleteFeedProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("DeleteFeed")),
-			connect.WithClientOptions(opts...),
-		),
-		refreshFeed: connect.NewClient[v1.RefreshFeedRequest, v1.RefreshFeedResponse](
-			httpClient,
-			baseURL+FeedServiceRefreshFeedProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("RefreshFeed")),
-			connect.WithClientOptions(opts...),
-		),
-		listFeedItems: connect.NewClient[v1.ListFeedItemsRequest, v1.ListFeedItemsResponse](
-			httpClient,
-			baseURL+FeedServiceListFeedItemsProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("ListFeedItems")),
-			connect.WithClientOptions(opts...),
-		),
-		getFeedItem: connect.NewClient[v1.GetFeedItemRequest, v1.GetFeedItemResponse](
-			httpClient,
-			baseURL+FeedServiceGetFeedItemProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("GetFeedItem")),
-			connect.WithClientOptions(opts...),
-		),
-		updateItem: connect.NewClient[v1.UpdateItemRequest, v1.UpdateItemResponse](
-			httpClient,
-			baseURL+FeedServiceUpdateItemProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("UpdateItem")),
-			connect.WithClientOptions(opts...),
-		),
-		getFeedStats: connect.NewClient[v1.GetFeedStatsRequest, v1.GetFeedStatsResponse](
-			httpClient,
-			baseURL+FeedServiceGetFeedStatsProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("GetFeedStats")),
-			connect.WithClientOptions(opts...),
-		),
-		getUnhealthyFeeds: connect.NewClient[v1.GetUnhealthyFeedsRequest, v1.GetUnhealthyFeedsResponse](
-			httpClient,
-			baseURL+FeedServiceGetUnhealthyFeedsProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("GetUnhealthyFeeds")),
-			connect.WithClientOptions(opts...),
-		),
-		listFilterRules: connect.NewClient[v1.ListFilterRulesRequest, v1.ListFilterRulesResponse](
-			httpClient,
-			baseURL+FeedServiceListFilterRulesProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("ListFilterRules")),
-			connect.WithClientOptions(opts...),
-		),
-		createFilterRule: connect.NewClient[v1.CreateFilterRuleRequest, v1.CreateFilterRuleResponse](
-			httpClient,
-			baseURL+FeedServiceCreateFilterRuleProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("CreateFilterRule")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteFilterRule: connect.NewClient[v1.DeleteFilterRuleRequest, v1.DeleteFilterRuleResponse](
-			httpClient,
-			baseURL+FeedServiceDeleteFilterRuleProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("DeleteFilterRule")),
-			connect.WithClientOptions(opts...),
-		),
-		restoreFeedItem: connect.NewClient[v1.RestoreFeedItemRequest, v1.RestoreFeedItemResponse](
-			httpClient,
-			baseURL+FeedServiceRestoreFeedItemProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("RestoreFeedItem")),
-			connect.WithClientOptions(opts...),
-		),
-		getFilterRuleSuggestions: connect.NewClient[v1.GetFilterRuleSuggestionsRequest, v1.GetFilterRuleSuggestionsResponse](
-			httpClient,
-			baseURL+FeedServiceGetFilterRuleSuggestionsProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("GetFilterRuleSuggestions")),
-			connect.WithClientOptions(opts...),
-		),
-		dismissFilterRuleSuggestion: connect.NewClient[v1.DismissFilterRuleSuggestionRequest, v1.DismissFilterRuleSuggestionResponse](
-			httpClient,
-			baseURL+FeedServiceDismissFilterRuleSuggestionProcedure,
-			connect.WithSchema(feedServiceMethods.ByName("DismissFilterRuleSuggestion")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// feedServiceClient implements FeedServiceClient.
-type feedServiceClient struct {
-	listFeeds                   *connect.Client[v1.ListFeedsRequest, v1.ListFeedsResponse]
-	createFeed                  *connect.Client[v1.CreateFeedRequest, v1.CreateFeedResponse]
-	updateFeed                  *connect.Client[v1.UpdateFeedRequest, v1.UpdateFeedResponse]
-	deleteFeed                  *connect.Client[v1.DeleteFeedRequest, v1.DeleteFeedResponse]
-	refreshFeed                 *connect.Client[v1.RefreshFeedRequest, v1.RefreshFeedResponse]
-	listFeedItems               *connect.Client[v1.ListFeedItemsRequest, v1.ListFeedItemsResponse]
-	getFeedItem                 *connect.Client[v1.GetFeedItemRequest, v1.GetFeedItemResponse]
-	updateItem                  *connect.Client[v1.UpdateItemRequest, v1.UpdateItemResponse]
-	getFeedStats                *connect.Client[v1.GetFeedStatsRequest, v1.GetFeedStatsResponse]
-	getUnhealthyFeeds           *connect.Client[v1.GetUnhealthyFeedsRequest, v1.GetUnhealthyFeedsResponse]
-	listFilterRules             *connect.Client[v1.ListFilterRulesRequest, v1.ListFilterRulesResponse]
-	createFilterRule            *connect.Client[v1.CreateFilterRuleRequest, v1.CreateFilterRuleResponse]
-	deleteFilterRule            *connect.Client[v1.DeleteFilterRuleRequest, v1.DeleteFilterRuleResponse]
-	restoreFeedItem             *connect.Client[v1.RestoreFeedItemRequest, v1.RestoreFeedItemResponse]
-	getFilterRuleSuggestions    *connect.Client[v1.GetFilterRuleSuggestionsRequest, v1.GetFilterRuleSuggestionsResponse]
-	dismissFilterRuleSuggestion *connect.Client[v1.DismissFilterRuleSuggestionRequest, v1.DismissFilterRuleSuggestionResponse]
-}
-
-// ListFeeds calls feeds.v1.FeedService.ListFeeds.
-func (c *feedServiceClient) ListFeeds(ctx context.Context, req *connect.Request[v1.ListFeedsRequest]) (*connect.Response[v1.ListFeedsResponse], error) {
-	return c.listFeeds.CallUnary(ctx, req)
-}
-
-// CreateFeed calls feeds.v1.FeedService.CreateFeed.
-func (c *feedServiceClient) CreateFeed(ctx context.Context, req *connect.Request[v1.CreateFeedRequest]) (*connect.Response[v1.CreateFeedResponse], error) {
-	return c.createFeed.CallUnary(ctx, req)
-}
-
-// UpdateFeed calls feeds.v1.FeedService.UpdateFeed.
-func (c *feedServiceClient) UpdateFeed(ctx context.Context, req *connect.Request[v1.UpdateFeedRequest]) (*connect.Response[v1.UpdateFeedResponse], error) {
-	return c.updateFeed.CallUnary(ctx, req)
-}
-
-// DeleteFeed calls feeds.v1.FeedService.DeleteFeed.
-func (c *feedServiceClient) DeleteFeed(ctx context.Context, req *connect.Request[v1.DeleteFeedRequest]) (*connect.Response[v1.DeleteFeedResponse], error) {
-	return c.deleteFeed.CallUnary(ctx, req)
-}
-
-// RefreshFeed calls feeds.v1.FeedService.RefreshFeed.
-func (c *feedServiceClient) RefreshFeed(ctx context.Context, req *connect.Request[v1.RefreshFeedRequest]) (*connect.Response[v1.RefreshFeedResponse], error) {
-	return c.refreshFeed.CallUnary(ctx, req)
-}
-
-// ListFeedItems calls feeds.v1.FeedService.ListFeedItems.
-func (c *feedServiceClient) ListFeedItems(ctx context.Context, req *connect.Request[v1.ListFeedItemsRequest]) (*connect.Response[v1.ListFeedItemsResponse], error) {
-	return c.listFeedItems.CallUnary(ctx, req)
-}
-
-// GetFeedItem calls feeds.v1.FeedService.GetFeedItem.
-func (c *feedServiceClient) GetFeedItem(ctx context.Context, req *connect.Request[v1.GetFeedItemRequest]) (*connect.Response[v1.GetFeedItemResponse], error) {
-	return c.getFeedItem.CallUnary(ctx, req)
-}
-
-// UpdateItem calls feeds.v1.FeedService.UpdateItem.
-func (c *feedServiceClient) UpdateItem(ctx context.Context, req *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error) {
-	return c.updateItem.CallUnary(ctx, req)
-}
-
-// GetFeedStats calls feeds.v1.FeedService.GetFeedStats.
-func (c *feedServiceClient) GetFeedStats(ctx context.Context, req *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error) {
-	return c.getFeedStats.CallUnary(ctx, req)
-}
-
-// GetUnhealthyFeeds calls feeds.v1.FeedService.GetUnhealthyFeeds.
-func (c *feedServiceClient) GetUnhealthyFeeds(ctx context.Context, req *connect.Request[v1.GetUnhealthyFeedsRequest]) (*connect.Response[v1.GetUnhealthyFeedsResponse], error) {
-	return c.getUnhealthyFeeds.CallUnary(ctx, req)
-}
-
-// ListFilterRules calls feeds.v1.FeedService.ListFilterRules.
-func (c *feedServiceClient) ListFilterRules(ctx context.Context, req *connect.Request[v1.ListFilterRulesRequest]) (*connect.Response[v1.ListFilterRulesResponse], error) {
-	return c.listFilterRules.CallUnary(ctx, req)
-}
-
-// CreateFilterRule calls feeds.v1.FeedService.CreateFilterRule.
-func (c *feedServiceClient) CreateFilterRule(ctx context.Context, req *connect.Request[v1.CreateFilterRuleRequest]) (*connect.Response[v1.CreateFilterRuleResponse], error) {
-	return c.createFilterRule.CallUnary(ctx, req)
-}
-
-// DeleteFilterRule calls feeds.v1.FeedService.DeleteFilterRule.
-func (c *feedServiceClient) DeleteFilterRule(ctx context.Context, req *connect.Request[v1.DeleteFilterRuleRequest]) (*connect.Response[v1.DeleteFilterRuleResponse], error) {
-	return c.deleteFilterRule.CallUnary(ctx, req)
-}
-
-// RestoreFeedItem calls feeds.v1.FeedService.RestoreFeedItem.
-func (c *feedServiceClient) RestoreFeedItem(ctx context.Context, req *connect.Request[v1.RestoreFeedItemRequest]) (*connect.Response[v1.RestoreFeedItemResponse], error) {
-	return c.restoreFeedItem.CallUnary(ctx, req)
-}
-
-// GetFilterRuleSuggestions calls feeds.v1.FeedService.GetFilterRuleSuggestions.
-func (c *feedServiceClient) GetFilterRuleSuggestions(ctx context.Context, req *connect.Request[v1.GetFilterRuleSuggestionsRequest]) (*connect.Response[v1.GetFilterRuleSuggestionsResponse], error) {
-	return c.getFilterRuleSuggestions.CallUnary(ctx, req)
-}
-
-// DismissFilterRuleSuggestion calls feeds.v1.FeedService.DismissFilterRuleSuggestion.
-func (c *feedServiceClient) DismissFilterRuleSuggestion(ctx context.Context, req *connect.Request[v1.DismissFilterRuleSuggestionRequest]) (*connect.Response[v1.DismissFilterRuleSuggestionResponse], error) {
-	return c.dismissFilterRuleSuggestion.CallUnary(ctx, req)
+// NewFeedServiceClient constructs a client for the feeds.v1.FeedService service. Multiple service
+// clients may share a single connect.Client.
+func NewFeedServiceClient(client *connect.Client) FeedServiceClient {
+	return &feedServiceClient{client: client}
 }
 
 // FeedServiceHandler is an implementation of the feeds.v1.FeedService service.
 type FeedServiceHandler interface {
-	ListFeeds(context.Context, *connect.Request[v1.ListFeedsRequest]) (*connect.Response[v1.ListFeedsResponse], error)
-	CreateFeed(context.Context, *connect.Request[v1.CreateFeedRequest]) (*connect.Response[v1.CreateFeedResponse], error)
-	UpdateFeed(context.Context, *connect.Request[v1.UpdateFeedRequest]) (*connect.Response[v1.UpdateFeedResponse], error)
-	DeleteFeed(context.Context, *connect.Request[v1.DeleteFeedRequest]) (*connect.Response[v1.DeleteFeedResponse], error)
-	RefreshFeed(context.Context, *connect.Request[v1.RefreshFeedRequest]) (*connect.Response[v1.RefreshFeedResponse], error)
-	ListFeedItems(context.Context, *connect.Request[v1.ListFeedItemsRequest]) (*connect.Response[v1.ListFeedItemsResponse], error)
-	GetFeedItem(context.Context, *connect.Request[v1.GetFeedItemRequest]) (*connect.Response[v1.GetFeedItemResponse], error)
-	UpdateItem(context.Context, *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error)
-	GetFeedStats(context.Context, *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error)
-	GetUnhealthyFeeds(context.Context, *connect.Request[v1.GetUnhealthyFeedsRequest]) (*connect.Response[v1.GetUnhealthyFeedsResponse], error)
-	ListFilterRules(context.Context, *connect.Request[v1.ListFilterRulesRequest]) (*connect.Response[v1.ListFilterRulesResponse], error)
-	CreateFilterRule(context.Context, *connect.Request[v1.CreateFilterRuleRequest]) (*connect.Response[v1.CreateFilterRuleResponse], error)
-	DeleteFilterRule(context.Context, *connect.Request[v1.DeleteFilterRuleRequest]) (*connect.Response[v1.DeleteFilterRuleResponse], error)
-	RestoreFeedItem(context.Context, *connect.Request[v1.RestoreFeedItemRequest]) (*connect.Response[v1.RestoreFeedItemResponse], error)
-	GetFilterRuleSuggestions(context.Context, *connect.Request[v1.GetFilterRuleSuggestionsRequest]) (*connect.Response[v1.GetFilterRuleSuggestionsResponse], error)
-	DismissFilterRuleSuggestion(context.Context, *connect.Request[v1.DismissFilterRuleSuggestionRequest]) (*connect.Response[v1.DismissFilterRuleSuggestionResponse], error)
+	ListFeeds(context.Context, *v1.ListFeedsRequest) (*v1.ListFeedsResponse, error)
+	CreateFeed(context.Context, *v1.CreateFeedRequest) (*v1.CreateFeedResponse, error)
+	UpdateFeed(context.Context, *v1.UpdateFeedRequest) (*v1.UpdateFeedResponse, error)
+	DeleteFeed(context.Context, *v1.DeleteFeedRequest) (*v1.DeleteFeedResponse, error)
+	RefreshFeed(context.Context, *v1.RefreshFeedRequest) (*v1.RefreshFeedResponse, error)
+	ListFeedItems(context.Context, *v1.ListFeedItemsRequest) (*v1.ListFeedItemsResponse, error)
+	GetFeedItem(context.Context, *v1.GetFeedItemRequest) (*v1.GetFeedItemResponse, error)
+	UpdateItem(context.Context, *v1.UpdateItemRequest) (*v1.UpdateItemResponse, error)
+	GetFeedStats(context.Context, *v1.GetFeedStatsRequest) (*v1.GetFeedStatsResponse, error)
+	GetUnhealthyFeeds(context.Context, *v1.GetUnhealthyFeedsRequest) (*v1.GetUnhealthyFeedsResponse, error)
+	ListFilterRules(context.Context, *v1.ListFilterRulesRequest) (*v1.ListFilterRulesResponse, error)
+	CreateFilterRule(context.Context, *v1.CreateFilterRuleRequest) (*v1.CreateFilterRuleResponse, error)
+	DeleteFilterRule(context.Context, *v1.DeleteFilterRuleRequest) (*v1.DeleteFilterRuleResponse, error)
+	RestoreFeedItem(context.Context, *v1.RestoreFeedItemRequest) (*v1.RestoreFeedItemResponse, error)
+	GetFilterRuleSuggestions(context.Context, *v1.GetFilterRuleSuggestionsRequest) (*v1.GetFilterRuleSuggestionsResponse, error)
+	DismissFilterRuleSuggestion(context.Context, *v1.DismissFilterRuleSuggestionRequest) (*v1.DismissFilterRuleSuggestionResponse, error)
 }
 
-// NewFeedServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewFeedServiceHandler(svc FeedServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	feedServiceMethods := v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods()
-	feedServiceListFeedsHandler := connect.NewUnaryHandler(
-		FeedServiceListFeedsProcedure,
-		svc.ListFeeds,
-		connect.WithSchema(feedServiceMethods.ByName("ListFeeds")),
-		connect.WithHandlerOptions(opts...),
+// RegisterFeedServiceHandler registers svc as the feeds.v1.FeedService implementation on server.
+func RegisterFeedServiceHandler(server *connect.Server, svc FeedServiceHandler) {
+	adapter := feedServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: feedServiceListFeedsSpec(), Handler: adapter.listFeeds},
+		connect.Method{Spec: feedServiceCreateFeedSpec(), Handler: adapter.createFeed},
+		connect.Method{Spec: feedServiceUpdateFeedSpec(), Handler: adapter.updateFeed},
+		connect.Method{Spec: feedServiceDeleteFeedSpec(), Handler: adapter.deleteFeed},
+		connect.Method{Spec: feedServiceRefreshFeedSpec(), Handler: adapter.refreshFeed},
+		connect.Method{Spec: feedServiceListFeedItemsSpec(), Handler: adapter.listFeedItems},
+		connect.Method{Spec: feedServiceGetFeedItemSpec(), Handler: adapter.getFeedItem},
+		connect.Method{Spec: feedServiceUpdateItemSpec(), Handler: adapter.updateItem},
+		connect.Method{Spec: feedServiceGetFeedStatsSpec(), Handler: adapter.getFeedStats},
+		connect.Method{Spec: feedServiceGetUnhealthyFeedsSpec(), Handler: adapter.getUnhealthyFeeds},
+		connect.Method{Spec: feedServiceListFilterRulesSpec(), Handler: adapter.listFilterRules},
+		connect.Method{Spec: feedServiceCreateFilterRuleSpec(), Handler: adapter.createFilterRule},
+		connect.Method{Spec: feedServiceDeleteFilterRuleSpec(), Handler: adapter.deleteFilterRule},
+		connect.Method{Spec: feedServiceRestoreFeedItemSpec(), Handler: adapter.restoreFeedItem},
+		connect.Method{Spec: feedServiceGetFilterRuleSuggestionsSpec(), Handler: adapter.getFilterRuleSuggestions},
+		connect.Method{Spec: feedServiceDismissFilterRuleSuggestionSpec(), Handler: adapter.dismissFilterRuleSuggestion},
 	)
-	feedServiceCreateFeedHandler := connect.NewUnaryHandler(
-		FeedServiceCreateFeedProcedure,
-		svc.CreateFeed,
-		connect.WithSchema(feedServiceMethods.ByName("CreateFeed")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceUpdateFeedHandler := connect.NewUnaryHandler(
-		FeedServiceUpdateFeedProcedure,
-		svc.UpdateFeed,
-		connect.WithSchema(feedServiceMethods.ByName("UpdateFeed")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceDeleteFeedHandler := connect.NewUnaryHandler(
-		FeedServiceDeleteFeedProcedure,
-		svc.DeleteFeed,
-		connect.WithSchema(feedServiceMethods.ByName("DeleteFeed")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceRefreshFeedHandler := connect.NewUnaryHandler(
-		FeedServiceRefreshFeedProcedure,
-		svc.RefreshFeed,
-		connect.WithSchema(feedServiceMethods.ByName("RefreshFeed")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceListFeedItemsHandler := connect.NewUnaryHandler(
-		FeedServiceListFeedItemsProcedure,
-		svc.ListFeedItems,
-		connect.WithSchema(feedServiceMethods.ByName("ListFeedItems")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceGetFeedItemHandler := connect.NewUnaryHandler(
-		FeedServiceGetFeedItemProcedure,
-		svc.GetFeedItem,
-		connect.WithSchema(feedServiceMethods.ByName("GetFeedItem")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceUpdateItemHandler := connect.NewUnaryHandler(
-		FeedServiceUpdateItemProcedure,
-		svc.UpdateItem,
-		connect.WithSchema(feedServiceMethods.ByName("UpdateItem")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceGetFeedStatsHandler := connect.NewUnaryHandler(
-		FeedServiceGetFeedStatsProcedure,
-		svc.GetFeedStats,
-		connect.WithSchema(feedServiceMethods.ByName("GetFeedStats")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceGetUnhealthyFeedsHandler := connect.NewUnaryHandler(
-		FeedServiceGetUnhealthyFeedsProcedure,
-		svc.GetUnhealthyFeeds,
-		connect.WithSchema(feedServiceMethods.ByName("GetUnhealthyFeeds")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceListFilterRulesHandler := connect.NewUnaryHandler(
-		FeedServiceListFilterRulesProcedure,
-		svc.ListFilterRules,
-		connect.WithSchema(feedServiceMethods.ByName("ListFilterRules")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceCreateFilterRuleHandler := connect.NewUnaryHandler(
-		FeedServiceCreateFilterRuleProcedure,
-		svc.CreateFilterRule,
-		connect.WithSchema(feedServiceMethods.ByName("CreateFilterRule")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceDeleteFilterRuleHandler := connect.NewUnaryHandler(
-		FeedServiceDeleteFilterRuleProcedure,
-		svc.DeleteFilterRule,
-		connect.WithSchema(feedServiceMethods.ByName("DeleteFilterRule")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceRestoreFeedItemHandler := connect.NewUnaryHandler(
-		FeedServiceRestoreFeedItemProcedure,
-		svc.RestoreFeedItem,
-		connect.WithSchema(feedServiceMethods.ByName("RestoreFeedItem")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceGetFilterRuleSuggestionsHandler := connect.NewUnaryHandler(
-		FeedServiceGetFilterRuleSuggestionsProcedure,
-		svc.GetFilterRuleSuggestions,
-		connect.WithSchema(feedServiceMethods.ByName("GetFilterRuleSuggestions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	feedServiceDismissFilterRuleSuggestionHandler := connect.NewUnaryHandler(
-		FeedServiceDismissFilterRuleSuggestionProcedure,
-		svc.DismissFilterRuleSuggestion,
-		connect.WithSchema(feedServiceMethods.ByName("DismissFilterRuleSuggestion")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/feeds.v1.FeedService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case FeedServiceListFeedsProcedure:
-			feedServiceListFeedsHandler.ServeHTTP(w, r)
-		case FeedServiceCreateFeedProcedure:
-			feedServiceCreateFeedHandler.ServeHTTP(w, r)
-		case FeedServiceUpdateFeedProcedure:
-			feedServiceUpdateFeedHandler.ServeHTTP(w, r)
-		case FeedServiceDeleteFeedProcedure:
-			feedServiceDeleteFeedHandler.ServeHTTP(w, r)
-		case FeedServiceRefreshFeedProcedure:
-			feedServiceRefreshFeedHandler.ServeHTTP(w, r)
-		case FeedServiceListFeedItemsProcedure:
-			feedServiceListFeedItemsHandler.ServeHTTP(w, r)
-		case FeedServiceGetFeedItemProcedure:
-			feedServiceGetFeedItemHandler.ServeHTTP(w, r)
-		case FeedServiceUpdateItemProcedure:
-			feedServiceUpdateItemHandler.ServeHTTP(w, r)
-		case FeedServiceGetFeedStatsProcedure:
-			feedServiceGetFeedStatsHandler.ServeHTTP(w, r)
-		case FeedServiceGetUnhealthyFeedsProcedure:
-			feedServiceGetUnhealthyFeedsHandler.ServeHTTP(w, r)
-		case FeedServiceListFilterRulesProcedure:
-			feedServiceListFilterRulesHandler.ServeHTTP(w, r)
-		case FeedServiceCreateFilterRuleProcedure:
-			feedServiceCreateFilterRuleHandler.ServeHTTP(w, r)
-		case FeedServiceDeleteFilterRuleProcedure:
-			feedServiceDeleteFilterRuleHandler.ServeHTTP(w, r)
-		case FeedServiceRestoreFeedItemProcedure:
-			feedServiceRestoreFeedItemHandler.ServeHTTP(w, r)
-		case FeedServiceGetFilterRuleSuggestionsProcedure:
-			feedServiceGetFilterRuleSuggestionsHandler.ServeHTTP(w, r)
-		case FeedServiceDismissFilterRuleSuggestionProcedure:
-			feedServiceDismissFilterRuleSuggestionHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedFeedServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedFeedServiceHandler struct{}
 
-func (UnimplementedFeedServiceHandler) ListFeeds(context.Context, *connect.Request[v1.ListFeedsRequest]) (*connect.Response[v1.ListFeedsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.ListFeeds is not implemented"))
+func (UnimplementedFeedServiceHandler) ListFeeds(context.Context, *v1.ListFeedsRequest) (*v1.ListFeedsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.ListFeeds is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) CreateFeed(context.Context, *connect.Request[v1.CreateFeedRequest]) (*connect.Response[v1.CreateFeedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.CreateFeed is not implemented"))
+func (UnimplementedFeedServiceHandler) CreateFeed(context.Context, *v1.CreateFeedRequest) (*v1.CreateFeedResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.CreateFeed is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) UpdateFeed(context.Context, *connect.Request[v1.UpdateFeedRequest]) (*connect.Response[v1.UpdateFeedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.UpdateFeed is not implemented"))
+func (UnimplementedFeedServiceHandler) UpdateFeed(context.Context, *v1.UpdateFeedRequest) (*v1.UpdateFeedResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.UpdateFeed is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) DeleteFeed(context.Context, *connect.Request[v1.DeleteFeedRequest]) (*connect.Response[v1.DeleteFeedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.DeleteFeed is not implemented"))
+func (UnimplementedFeedServiceHandler) DeleteFeed(context.Context, *v1.DeleteFeedRequest) (*v1.DeleteFeedResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.DeleteFeed is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) RefreshFeed(context.Context, *connect.Request[v1.RefreshFeedRequest]) (*connect.Response[v1.RefreshFeedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.RefreshFeed is not implemented"))
+func (UnimplementedFeedServiceHandler) RefreshFeed(context.Context, *v1.RefreshFeedRequest) (*v1.RefreshFeedResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.RefreshFeed is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) ListFeedItems(context.Context, *connect.Request[v1.ListFeedItemsRequest]) (*connect.Response[v1.ListFeedItemsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.ListFeedItems is not implemented"))
+func (UnimplementedFeedServiceHandler) ListFeedItems(context.Context, *v1.ListFeedItemsRequest) (*v1.ListFeedItemsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.ListFeedItems is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) GetFeedItem(context.Context, *connect.Request[v1.GetFeedItemRequest]) (*connect.Response[v1.GetFeedItemResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.GetFeedItem is not implemented"))
+func (UnimplementedFeedServiceHandler) GetFeedItem(context.Context, *v1.GetFeedItemRequest) (*v1.GetFeedItemResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.GetFeedItem is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) UpdateItem(context.Context, *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.UpdateItem is not implemented"))
+func (UnimplementedFeedServiceHandler) UpdateItem(context.Context, *v1.UpdateItemRequest) (*v1.UpdateItemResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.UpdateItem is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) GetFeedStats(context.Context, *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.GetFeedStats is not implemented"))
+func (UnimplementedFeedServiceHandler) GetFeedStats(context.Context, *v1.GetFeedStatsRequest) (*v1.GetFeedStatsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.GetFeedStats is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) GetUnhealthyFeeds(context.Context, *connect.Request[v1.GetUnhealthyFeedsRequest]) (*connect.Response[v1.GetUnhealthyFeedsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.GetUnhealthyFeeds is not implemented"))
+func (UnimplementedFeedServiceHandler) GetUnhealthyFeeds(context.Context, *v1.GetUnhealthyFeedsRequest) (*v1.GetUnhealthyFeedsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.GetUnhealthyFeeds is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) ListFilterRules(context.Context, *connect.Request[v1.ListFilterRulesRequest]) (*connect.Response[v1.ListFilterRulesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.ListFilterRules is not implemented"))
+func (UnimplementedFeedServiceHandler) ListFilterRules(context.Context, *v1.ListFilterRulesRequest) (*v1.ListFilterRulesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.ListFilterRules is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) CreateFilterRule(context.Context, *connect.Request[v1.CreateFilterRuleRequest]) (*connect.Response[v1.CreateFilterRuleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.CreateFilterRule is not implemented"))
+func (UnimplementedFeedServiceHandler) CreateFilterRule(context.Context, *v1.CreateFilterRuleRequest) (*v1.CreateFilterRuleResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.CreateFilterRule is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) DeleteFilterRule(context.Context, *connect.Request[v1.DeleteFilterRuleRequest]) (*connect.Response[v1.DeleteFilterRuleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.DeleteFilterRule is not implemented"))
+func (UnimplementedFeedServiceHandler) DeleteFilterRule(context.Context, *v1.DeleteFilterRuleRequest) (*v1.DeleteFilterRuleResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.DeleteFilterRule is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) RestoreFeedItem(context.Context, *connect.Request[v1.RestoreFeedItemRequest]) (*connect.Response[v1.RestoreFeedItemResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.RestoreFeedItem is not implemented"))
+func (UnimplementedFeedServiceHandler) RestoreFeedItem(context.Context, *v1.RestoreFeedItemRequest) (*v1.RestoreFeedItemResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.RestoreFeedItem is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) GetFilterRuleSuggestions(context.Context, *connect.Request[v1.GetFilterRuleSuggestionsRequest]) (*connect.Response[v1.GetFilterRuleSuggestionsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.GetFilterRuleSuggestions is not implemented"))
+func (UnimplementedFeedServiceHandler) GetFilterRuleSuggestions(context.Context, *v1.GetFilterRuleSuggestionsRequest) (*v1.GetFilterRuleSuggestionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.GetFilterRuleSuggestions is not implemented")
 }
 
-func (UnimplementedFeedServiceHandler) DismissFilterRuleSuggestion(context.Context, *connect.Request[v1.DismissFilterRuleSuggestionRequest]) (*connect.Response[v1.DismissFilterRuleSuggestionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.DismissFilterRuleSuggestion is not implemented"))
+func (UnimplementedFeedServiceHandler) DismissFilterRuleSuggestion(context.Context, *v1.DismissFilterRuleSuggestionRequest) (*v1.DismissFilterRuleSuggestionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.DismissFilterRuleSuggestion is not implemented")
+}
+
+type feedServiceClient struct {
+	client *connect.Client
+}
+
+func (c *feedServiceClient) ListFeeds(ctx context.Context, req *v1.ListFeedsRequest) (*v1.ListFeedsResponse, error) {
+	var res v1.ListFeedsResponse
+	if err := c.client.CallUnary(ctx, feedServiceListFeedsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) CreateFeed(ctx context.Context, req *v1.CreateFeedRequest) (*v1.CreateFeedResponse, error) {
+	var res v1.CreateFeedResponse
+	if err := c.client.CallUnary(ctx, feedServiceCreateFeedSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) UpdateFeed(ctx context.Context, req *v1.UpdateFeedRequest) (*v1.UpdateFeedResponse, error) {
+	var res v1.UpdateFeedResponse
+	if err := c.client.CallUnary(ctx, feedServiceUpdateFeedSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) DeleteFeed(ctx context.Context, req *v1.DeleteFeedRequest) (*v1.DeleteFeedResponse, error) {
+	var res v1.DeleteFeedResponse
+	if err := c.client.CallUnary(ctx, feedServiceDeleteFeedSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) RefreshFeed(ctx context.Context, req *v1.RefreshFeedRequest) (*v1.RefreshFeedResponse, error) {
+	var res v1.RefreshFeedResponse
+	if err := c.client.CallUnary(ctx, feedServiceRefreshFeedSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) ListFeedItems(ctx context.Context, req *v1.ListFeedItemsRequest) (*v1.ListFeedItemsResponse, error) {
+	var res v1.ListFeedItemsResponse
+	if err := c.client.CallUnary(ctx, feedServiceListFeedItemsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) GetFeedItem(ctx context.Context, req *v1.GetFeedItemRequest) (*v1.GetFeedItemResponse, error) {
+	var res v1.GetFeedItemResponse
+	if err := c.client.CallUnary(ctx, feedServiceGetFeedItemSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) UpdateItem(ctx context.Context, req *v1.UpdateItemRequest) (*v1.UpdateItemResponse, error) {
+	var res v1.UpdateItemResponse
+	if err := c.client.CallUnary(ctx, feedServiceUpdateItemSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) GetFeedStats(ctx context.Context, req *v1.GetFeedStatsRequest) (*v1.GetFeedStatsResponse, error) {
+	var res v1.GetFeedStatsResponse
+	if err := c.client.CallUnary(ctx, feedServiceGetFeedStatsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) GetUnhealthyFeeds(ctx context.Context, req *v1.GetUnhealthyFeedsRequest) (*v1.GetUnhealthyFeedsResponse, error) {
+	var res v1.GetUnhealthyFeedsResponse
+	if err := c.client.CallUnary(ctx, feedServiceGetUnhealthyFeedsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) ListFilterRules(ctx context.Context, req *v1.ListFilterRulesRequest) (*v1.ListFilterRulesResponse, error) {
+	var res v1.ListFilterRulesResponse
+	if err := c.client.CallUnary(ctx, feedServiceListFilterRulesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) CreateFilterRule(ctx context.Context, req *v1.CreateFilterRuleRequest) (*v1.CreateFilterRuleResponse, error) {
+	var res v1.CreateFilterRuleResponse
+	if err := c.client.CallUnary(ctx, feedServiceCreateFilterRuleSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) DeleteFilterRule(ctx context.Context, req *v1.DeleteFilterRuleRequest) (*v1.DeleteFilterRuleResponse, error) {
+	var res v1.DeleteFilterRuleResponse
+	if err := c.client.CallUnary(ctx, feedServiceDeleteFilterRuleSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) RestoreFeedItem(ctx context.Context, req *v1.RestoreFeedItemRequest) (*v1.RestoreFeedItemResponse, error) {
+	var res v1.RestoreFeedItemResponse
+	if err := c.client.CallUnary(ctx, feedServiceRestoreFeedItemSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) GetFilterRuleSuggestions(ctx context.Context, req *v1.GetFilterRuleSuggestionsRequest) (*v1.GetFilterRuleSuggestionsResponse, error) {
+	var res v1.GetFilterRuleSuggestionsResponse
+	if err := c.client.CallUnary(ctx, feedServiceGetFilterRuleSuggestionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) DismissFilterRuleSuggestion(ctx context.Context, req *v1.DismissFilterRuleSuggestionRequest) (*v1.DismissFilterRuleSuggestionResponse, error) {
+	var res v1.DismissFilterRuleSuggestionResponse
+	if err := c.client.CallUnary(ctx, feedServiceDismissFilterRuleSuggestionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type feedServiceHandler struct{ svc FeedServiceHandler }
+
+func (h feedServiceHandler) listFeeds(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListFeedsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListFeeds(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) createFeed(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateFeedRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateFeed(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) updateFeed(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateFeedRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateFeed(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) deleteFeed(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteFeedRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteFeed(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) refreshFeed(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RefreshFeedRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RefreshFeed(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) listFeedItems(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListFeedItemsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListFeedItems(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) getFeedItem(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetFeedItemRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetFeedItem(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) updateItem(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateItemRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateItem(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) getFeedStats(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetFeedStatsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetFeedStats(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) getUnhealthyFeeds(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetUnhealthyFeedsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetUnhealthyFeeds(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) listFilterRules(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListFilterRulesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListFilterRules(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) createFilterRule(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateFilterRuleRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateFilterRule(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) deleteFilterRule(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteFilterRuleRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteFilterRule(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) restoreFeedItem(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RestoreFeedItemRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RestoreFeedItem(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) getFilterRuleSuggestions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetFilterRuleSuggestionsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetFilterRuleSuggestions(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) dismissFilterRuleSuggestion(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DismissFilterRuleSuggestionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DismissFilterRuleSuggestion(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

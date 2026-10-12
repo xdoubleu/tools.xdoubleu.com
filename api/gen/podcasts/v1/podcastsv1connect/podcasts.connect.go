@@ -5,221 +5,242 @@
 package podcastsv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/podcasts/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// PodcastsServiceName is the fully-qualified name of the PodcastsService service.
 	PodcastsServiceName = "podcasts.v1.PodcastsService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// PodcastsServiceSearchShowsProcedure is the fully-qualified name of the PodcastsService's
-	// SearchShows RPC.
+	// PodcastsServiceSearchShowsProcedure is the procedure name of the PodcastsService's SearchShows
+	// RPC.
 	PodcastsServiceSearchShowsProcedure = "/podcasts.v1.PodcastsService/SearchShows"
-	// PodcastsServiceListFavouritesProcedure is the fully-qualified name of the PodcastsService's
+	// PodcastsServiceListFavouritesProcedure is the procedure name of the PodcastsService's
 	// ListFavourites RPC.
 	PodcastsServiceListFavouritesProcedure = "/podcasts.v1.PodcastsService/ListFavourites"
-	// PodcastsServiceAddFavouriteProcedure is the fully-qualified name of the PodcastsService's
-	// AddFavourite RPC.
+	// PodcastsServiceAddFavouriteProcedure is the procedure name of the PodcastsService's AddFavourite
+	// RPC.
 	PodcastsServiceAddFavouriteProcedure = "/podcasts.v1.PodcastsService/AddFavourite"
-	// PodcastsServiceRemoveFavouriteProcedure is the fully-qualified name of the PodcastsService's
+	// PodcastsServiceRemoveFavouriteProcedure is the procedure name of the PodcastsService's
 	// RemoveFavourite RPC.
 	PodcastsServiceRemoveFavouriteProcedure = "/podcasts.v1.PodcastsService/RemoveFavourite"
-	// PodcastsServiceListEpisodesProcedure is the fully-qualified name of the PodcastsService's
-	// ListEpisodes RPC.
+	// PodcastsServiceListEpisodesProcedure is the procedure name of the PodcastsService's ListEpisodes
+	// RPC.
 	PodcastsServiceListEpisodesProcedure = "/podcasts.v1.PodcastsService/ListEpisodes"
+)
+
+var (
+	podcastsServiceSearchShowsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_podcasts_v1_podcasts_proto.Services().ByName("PodcastsService").Methods().ByName("SearchShows"),
+			Procedure:  PodcastsServiceSearchShowsProcedure,
+		}
+	})
+	podcastsServiceListFavouritesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_podcasts_v1_podcasts_proto.Services().ByName("PodcastsService").Methods().ByName("ListFavourites"),
+			Procedure:  PodcastsServiceListFavouritesProcedure,
+		}
+	})
+	podcastsServiceAddFavouriteSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_podcasts_v1_podcasts_proto.Services().ByName("PodcastsService").Methods().ByName("AddFavourite"),
+			Procedure:  PodcastsServiceAddFavouriteProcedure,
+		}
+	})
+	podcastsServiceRemoveFavouriteSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_podcasts_v1_podcasts_proto.Services().ByName("PodcastsService").Methods().ByName("RemoveFavourite"),
+			Procedure:  PodcastsServiceRemoveFavouriteProcedure,
+		}
+	})
+	podcastsServiceListEpisodesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_podcasts_v1_podcasts_proto.Services().ByName("PodcastsService").Methods().ByName("ListEpisodes"),
+			Procedure:  PodcastsServiceListEpisodesProcedure,
+		}
+	})
 )
 
 // PodcastsServiceClient is a client for the podcasts.v1.PodcastsService service.
 type PodcastsServiceClient interface {
-	SearchShows(context.Context, *connect.Request[v1.SearchShowsRequest]) (*connect.Response[v1.SearchShowsResponse], error)
-	ListFavourites(context.Context, *connect.Request[v1.ListFavouritesRequest]) (*connect.Response[v1.ListFavouritesResponse], error)
-	AddFavourite(context.Context, *connect.Request[v1.AddFavouriteRequest]) (*connect.Response[v1.AddFavouriteResponse], error)
-	RemoveFavourite(context.Context, *connect.Request[v1.RemoveFavouriteRequest]) (*connect.Response[v1.RemoveFavouriteResponse], error)
-	ListEpisodes(context.Context, *connect.Request[v1.ListEpisodesRequest]) (*connect.Response[v1.ListEpisodesResponse], error)
+	SearchShows(context.Context, *v1.SearchShowsRequest) (*v1.SearchShowsResponse, error)
+	ListFavourites(context.Context, *v1.ListFavouritesRequest) (*v1.ListFavouritesResponse, error)
+	AddFavourite(context.Context, *v1.AddFavouriteRequest) (*v1.AddFavouriteResponse, error)
+	RemoveFavourite(context.Context, *v1.RemoveFavouriteRequest) (*v1.RemoveFavouriteResponse, error)
+	ListEpisodes(context.Context, *v1.ListEpisodesRequest) (*v1.ListEpisodesResponse, error)
 }
 
-// NewPodcastsServiceClient constructs a client for the podcasts.v1.PodcastsService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewPodcastsServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) PodcastsServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	podcastsServiceMethods := v1.File_podcasts_v1_podcasts_proto.Services().ByName("PodcastsService").Methods()
-	return &podcastsServiceClient{
-		searchShows: connect.NewClient[v1.SearchShowsRequest, v1.SearchShowsResponse](
-			httpClient,
-			baseURL+PodcastsServiceSearchShowsProcedure,
-			connect.WithSchema(podcastsServiceMethods.ByName("SearchShows")),
-			connect.WithClientOptions(opts...),
-		),
-		listFavourites: connect.NewClient[v1.ListFavouritesRequest, v1.ListFavouritesResponse](
-			httpClient,
-			baseURL+PodcastsServiceListFavouritesProcedure,
-			connect.WithSchema(podcastsServiceMethods.ByName("ListFavourites")),
-			connect.WithClientOptions(opts...),
-		),
-		addFavourite: connect.NewClient[v1.AddFavouriteRequest, v1.AddFavouriteResponse](
-			httpClient,
-			baseURL+PodcastsServiceAddFavouriteProcedure,
-			connect.WithSchema(podcastsServiceMethods.ByName("AddFavourite")),
-			connect.WithClientOptions(opts...),
-		),
-		removeFavourite: connect.NewClient[v1.RemoveFavouriteRequest, v1.RemoveFavouriteResponse](
-			httpClient,
-			baseURL+PodcastsServiceRemoveFavouriteProcedure,
-			connect.WithSchema(podcastsServiceMethods.ByName("RemoveFavourite")),
-			connect.WithClientOptions(opts...),
-		),
-		listEpisodes: connect.NewClient[v1.ListEpisodesRequest, v1.ListEpisodesResponse](
-			httpClient,
-			baseURL+PodcastsServiceListEpisodesProcedure,
-			connect.WithSchema(podcastsServiceMethods.ByName("ListEpisodes")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// podcastsServiceClient implements PodcastsServiceClient.
-type podcastsServiceClient struct {
-	searchShows     *connect.Client[v1.SearchShowsRequest, v1.SearchShowsResponse]
-	listFavourites  *connect.Client[v1.ListFavouritesRequest, v1.ListFavouritesResponse]
-	addFavourite    *connect.Client[v1.AddFavouriteRequest, v1.AddFavouriteResponse]
-	removeFavourite *connect.Client[v1.RemoveFavouriteRequest, v1.RemoveFavouriteResponse]
-	listEpisodes    *connect.Client[v1.ListEpisodesRequest, v1.ListEpisodesResponse]
-}
-
-// SearchShows calls podcasts.v1.PodcastsService.SearchShows.
-func (c *podcastsServiceClient) SearchShows(ctx context.Context, req *connect.Request[v1.SearchShowsRequest]) (*connect.Response[v1.SearchShowsResponse], error) {
-	return c.searchShows.CallUnary(ctx, req)
-}
-
-// ListFavourites calls podcasts.v1.PodcastsService.ListFavourites.
-func (c *podcastsServiceClient) ListFavourites(ctx context.Context, req *connect.Request[v1.ListFavouritesRequest]) (*connect.Response[v1.ListFavouritesResponse], error) {
-	return c.listFavourites.CallUnary(ctx, req)
-}
-
-// AddFavourite calls podcasts.v1.PodcastsService.AddFavourite.
-func (c *podcastsServiceClient) AddFavourite(ctx context.Context, req *connect.Request[v1.AddFavouriteRequest]) (*connect.Response[v1.AddFavouriteResponse], error) {
-	return c.addFavourite.CallUnary(ctx, req)
-}
-
-// RemoveFavourite calls podcasts.v1.PodcastsService.RemoveFavourite.
-func (c *podcastsServiceClient) RemoveFavourite(ctx context.Context, req *connect.Request[v1.RemoveFavouriteRequest]) (*connect.Response[v1.RemoveFavouriteResponse], error) {
-	return c.removeFavourite.CallUnary(ctx, req)
-}
-
-// ListEpisodes calls podcasts.v1.PodcastsService.ListEpisodes.
-func (c *podcastsServiceClient) ListEpisodes(ctx context.Context, req *connect.Request[v1.ListEpisodesRequest]) (*connect.Response[v1.ListEpisodesResponse], error) {
-	return c.listEpisodes.CallUnary(ctx, req)
+// NewPodcastsServiceClient constructs a client for the podcasts.v1.PodcastsService service.
+// Multiple service clients may share a single connect.Client.
+func NewPodcastsServiceClient(client *connect.Client) PodcastsServiceClient {
+	return &podcastsServiceClient{client: client}
 }
 
 // PodcastsServiceHandler is an implementation of the podcasts.v1.PodcastsService service.
 type PodcastsServiceHandler interface {
-	SearchShows(context.Context, *connect.Request[v1.SearchShowsRequest]) (*connect.Response[v1.SearchShowsResponse], error)
-	ListFavourites(context.Context, *connect.Request[v1.ListFavouritesRequest]) (*connect.Response[v1.ListFavouritesResponse], error)
-	AddFavourite(context.Context, *connect.Request[v1.AddFavouriteRequest]) (*connect.Response[v1.AddFavouriteResponse], error)
-	RemoveFavourite(context.Context, *connect.Request[v1.RemoveFavouriteRequest]) (*connect.Response[v1.RemoveFavouriteResponse], error)
-	ListEpisodes(context.Context, *connect.Request[v1.ListEpisodesRequest]) (*connect.Response[v1.ListEpisodesResponse], error)
+	SearchShows(context.Context, *v1.SearchShowsRequest) (*v1.SearchShowsResponse, error)
+	ListFavourites(context.Context, *v1.ListFavouritesRequest) (*v1.ListFavouritesResponse, error)
+	AddFavourite(context.Context, *v1.AddFavouriteRequest) (*v1.AddFavouriteResponse, error)
+	RemoveFavourite(context.Context, *v1.RemoveFavouriteRequest) (*v1.RemoveFavouriteResponse, error)
+	ListEpisodes(context.Context, *v1.ListEpisodesRequest) (*v1.ListEpisodesResponse, error)
 }
 
-// NewPodcastsServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewPodcastsServiceHandler(svc PodcastsServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	podcastsServiceMethods := v1.File_podcasts_v1_podcasts_proto.Services().ByName("PodcastsService").Methods()
-	podcastsServiceSearchShowsHandler := connect.NewUnaryHandler(
-		PodcastsServiceSearchShowsProcedure,
-		svc.SearchShows,
-		connect.WithSchema(podcastsServiceMethods.ByName("SearchShows")),
-		connect.WithHandlerOptions(opts...),
+// RegisterPodcastsServiceHandler registers svc as the podcasts.v1.PodcastsService implementation on
+// server.
+func RegisterPodcastsServiceHandler(server *connect.Server, svc PodcastsServiceHandler) {
+	adapter := podcastsServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: podcastsServiceSearchShowsSpec(), Handler: adapter.searchShows},
+		connect.Method{Spec: podcastsServiceListFavouritesSpec(), Handler: adapter.listFavourites},
+		connect.Method{Spec: podcastsServiceAddFavouriteSpec(), Handler: adapter.addFavourite},
+		connect.Method{Spec: podcastsServiceRemoveFavouriteSpec(), Handler: adapter.removeFavourite},
+		connect.Method{Spec: podcastsServiceListEpisodesSpec(), Handler: adapter.listEpisodes},
 	)
-	podcastsServiceListFavouritesHandler := connect.NewUnaryHandler(
-		PodcastsServiceListFavouritesProcedure,
-		svc.ListFavourites,
-		connect.WithSchema(podcastsServiceMethods.ByName("ListFavourites")),
-		connect.WithHandlerOptions(opts...),
-	)
-	podcastsServiceAddFavouriteHandler := connect.NewUnaryHandler(
-		PodcastsServiceAddFavouriteProcedure,
-		svc.AddFavourite,
-		connect.WithSchema(podcastsServiceMethods.ByName("AddFavourite")),
-		connect.WithHandlerOptions(opts...),
-	)
-	podcastsServiceRemoveFavouriteHandler := connect.NewUnaryHandler(
-		PodcastsServiceRemoveFavouriteProcedure,
-		svc.RemoveFavourite,
-		connect.WithSchema(podcastsServiceMethods.ByName("RemoveFavourite")),
-		connect.WithHandlerOptions(opts...),
-	)
-	podcastsServiceListEpisodesHandler := connect.NewUnaryHandler(
-		PodcastsServiceListEpisodesProcedure,
-		svc.ListEpisodes,
-		connect.WithSchema(podcastsServiceMethods.ByName("ListEpisodes")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/podcasts.v1.PodcastsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case PodcastsServiceSearchShowsProcedure:
-			podcastsServiceSearchShowsHandler.ServeHTTP(w, r)
-		case PodcastsServiceListFavouritesProcedure:
-			podcastsServiceListFavouritesHandler.ServeHTTP(w, r)
-		case PodcastsServiceAddFavouriteProcedure:
-			podcastsServiceAddFavouriteHandler.ServeHTTP(w, r)
-		case PodcastsServiceRemoveFavouriteProcedure:
-			podcastsServiceRemoveFavouriteHandler.ServeHTTP(w, r)
-		case PodcastsServiceListEpisodesProcedure:
-			podcastsServiceListEpisodesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedPodcastsServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedPodcastsServiceHandler struct{}
 
-func (UnimplementedPodcastsServiceHandler) SearchShows(context.Context, *connect.Request[v1.SearchShowsRequest]) (*connect.Response[v1.SearchShowsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("podcasts.v1.PodcastsService.SearchShows is not implemented"))
+func (UnimplementedPodcastsServiceHandler) SearchShows(context.Context, *v1.SearchShowsRequest) (*v1.SearchShowsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "podcasts.v1.PodcastsService.SearchShows is not implemented")
 }
 
-func (UnimplementedPodcastsServiceHandler) ListFavourites(context.Context, *connect.Request[v1.ListFavouritesRequest]) (*connect.Response[v1.ListFavouritesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("podcasts.v1.PodcastsService.ListFavourites is not implemented"))
+func (UnimplementedPodcastsServiceHandler) ListFavourites(context.Context, *v1.ListFavouritesRequest) (*v1.ListFavouritesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "podcasts.v1.PodcastsService.ListFavourites is not implemented")
 }
 
-func (UnimplementedPodcastsServiceHandler) AddFavourite(context.Context, *connect.Request[v1.AddFavouriteRequest]) (*connect.Response[v1.AddFavouriteResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("podcasts.v1.PodcastsService.AddFavourite is not implemented"))
+func (UnimplementedPodcastsServiceHandler) AddFavourite(context.Context, *v1.AddFavouriteRequest) (*v1.AddFavouriteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "podcasts.v1.PodcastsService.AddFavourite is not implemented")
 }
 
-func (UnimplementedPodcastsServiceHandler) RemoveFavourite(context.Context, *connect.Request[v1.RemoveFavouriteRequest]) (*connect.Response[v1.RemoveFavouriteResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("podcasts.v1.PodcastsService.RemoveFavourite is not implemented"))
+func (UnimplementedPodcastsServiceHandler) RemoveFavourite(context.Context, *v1.RemoveFavouriteRequest) (*v1.RemoveFavouriteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "podcasts.v1.PodcastsService.RemoveFavourite is not implemented")
 }
 
-func (UnimplementedPodcastsServiceHandler) ListEpisodes(context.Context, *connect.Request[v1.ListEpisodesRequest]) (*connect.Response[v1.ListEpisodesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("podcasts.v1.PodcastsService.ListEpisodes is not implemented"))
+func (UnimplementedPodcastsServiceHandler) ListEpisodes(context.Context, *v1.ListEpisodesRequest) (*v1.ListEpisodesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "podcasts.v1.PodcastsService.ListEpisodes is not implemented")
+}
+
+type podcastsServiceClient struct {
+	client *connect.Client
+}
+
+func (c *podcastsServiceClient) SearchShows(ctx context.Context, req *v1.SearchShowsRequest) (*v1.SearchShowsResponse, error) {
+	var res v1.SearchShowsResponse
+	if err := c.client.CallUnary(ctx, podcastsServiceSearchShowsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *podcastsServiceClient) ListFavourites(ctx context.Context, req *v1.ListFavouritesRequest) (*v1.ListFavouritesResponse, error) {
+	var res v1.ListFavouritesResponse
+	if err := c.client.CallUnary(ctx, podcastsServiceListFavouritesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *podcastsServiceClient) AddFavourite(ctx context.Context, req *v1.AddFavouriteRequest) (*v1.AddFavouriteResponse, error) {
+	var res v1.AddFavouriteResponse
+	if err := c.client.CallUnary(ctx, podcastsServiceAddFavouriteSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *podcastsServiceClient) RemoveFavourite(ctx context.Context, req *v1.RemoveFavouriteRequest) (*v1.RemoveFavouriteResponse, error) {
+	var res v1.RemoveFavouriteResponse
+	if err := c.client.CallUnary(ctx, podcastsServiceRemoveFavouriteSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *podcastsServiceClient) ListEpisodes(ctx context.Context, req *v1.ListEpisodesRequest) (*v1.ListEpisodesResponse, error) {
+	var res v1.ListEpisodesResponse
+	if err := c.client.CallUnary(ctx, podcastsServiceListEpisodesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type podcastsServiceHandler struct{ svc PodcastsServiceHandler }
+
+func (h podcastsServiceHandler) searchShows(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SearchShowsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SearchShows(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h podcastsServiceHandler) listFavourites(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListFavouritesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListFavourites(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h podcastsServiceHandler) addFavourite(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AddFavouriteRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AddFavourite(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h podcastsServiceHandler) removeFavourite(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RemoveFavouriteRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveFavourite(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h podcastsServiceHandler) listEpisodes(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListEpisodesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListEpisodes(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

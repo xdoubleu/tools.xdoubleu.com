@@ -2,11 +2,10 @@ package books
 
 import (
 	"context"
-	"errors"
 	"math"
 	"strings"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
@@ -18,30 +17,28 @@ import (
 
 func (h *booksConnectHandler) GetSeries(
 	ctx context.Context,
-	req *connect.Request[booksv1.GetSeriesRequest],
-) (*connect.Response[booksv1.GetSeriesResponse], error) {
+	req *booksv1.GetSeriesRequest,
+) (*booksv1.GetSeriesResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	name := strings.TrimSpace(req.Msg.Name)
+	name := strings.TrimSpace(req.Name)
 	if name == "" {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("series name is required"),
+			"series name is required",
 		)
 	}
 
 	view, err := h.app.Services.Books.GetSeries(ctx, user.ID, name)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(
-		protoSeries(view, h.app.clients.PublicAPIBaseURL),
-	), nil
+	return protoSeries(view, h.app.clients.PublicAPIBaseURL), nil
 }
 
 func protoSeries(

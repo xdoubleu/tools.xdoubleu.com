@@ -2,9 +2,8 @@ package mealplans
 
 import (
 	"context"
-	"errors"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
@@ -47,7 +46,7 @@ func (h *mealplansConnectHandler) mcpListPlans(
 	user := getUser(ctx)
 	if user == nil {
 		return nil, connect.NewError(
-			connect.CodeUnauthenticated, errors.New("user not authenticated"),
+			connect.CodeUnauthenticated, "user not authenticated",
 		)
 	}
 	list, hasMore, err := h.app.services.Plans.List(ctx, user.ID, 0, 0)
@@ -63,19 +62,17 @@ func (h *mealplansConnectHandler) mcpListPlans(
 func (h *mealplansConnectHandler) mcpGetPlan(
 	ctx context.Context, args mcpGetPlanArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetPlan(ctx, connect.NewRequest(
-		&mealplansv1.GetPlanRequest{Id: args.ID, Offset: args.Offset},
-	)))
+	return mcptools.Unwrap(
+		h.GetPlan(ctx, &mealplansv1.GetPlanRequest{Id: args.ID, Offset: args.Offset}),
+	)
 }
 
 func (h *mealplansConnectHandler) mcpSuggestRecipes(
 	ctx context.Context, args mcpSuggestArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.SuggestRecipes(ctx, connect.NewRequest(
-		&mealplansv1.SuggestRecipesRequest{
-			PlanId:   args.PlanID,
-			MealDate: args.MealDate,
-			MealSlot: args.MealSlot,
-		},
-	)))
+	return mcptools.Unwrap(h.SuggestRecipes(ctx, &mealplansv1.SuggestRecipesRequest{
+		PlanId:   args.PlanID,
+		MealDate: args.MealDate,
+		MealSlot: args.MealSlot,
+	}))
 }

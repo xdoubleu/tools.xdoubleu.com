@@ -2,9 +2,8 @@ package trains
 
 import (
 	"context"
-	"fmt"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
@@ -20,12 +19,12 @@ func getUser(ctx context.Context) *sharedmodels.User {
 
 func (h *trainsConnectHandler) ListSavedCommutes(
 	ctx context.Context,
-	_ *connect.Request[trainsv1.ListSavedCommutesRequest],
-) (*connect.Response[trainsv1.ListSavedCommutesResponse], error) {
+	_ *trainsv1.ListSavedCommutesRequest,
+) (*trainsv1.ListSavedCommutesResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated, fmt.Errorf("user not authenticated"),
+		return nil, connect.Errorf(
+			connect.CodeUnauthenticated, "user not authenticated",
 		)
 	}
 
@@ -38,87 +37,87 @@ func (h *trainsConnectHandler) ListSavedCommutes(
 	for i := range list {
 		out[i] = protoSavedCommute(&list[i])
 	}
-	return connect.NewResponse(&trainsv1.ListSavedCommutesResponse{
+	return &trainsv1.ListSavedCommutesResponse{
 		SavedCommutes: out,
-	}), nil
+	}, nil
 }
 
 func (h *trainsConnectHandler) CreateSavedCommute(
 	ctx context.Context,
-	req *connect.Request[trainsv1.CreateSavedCommuteRequest],
-) (*connect.Response[trainsv1.CreateSavedCommuteResponse], error) {
+	req *trainsv1.CreateSavedCommuteRequest,
+) (*trainsv1.CreateSavedCommuteResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated, fmt.Errorf("user not authenticated"),
+		return nil, connect.Errorf(
+			connect.CodeUnauthenticated, "user not authenticated",
 		)
 	}
 
 	created, err := h.app.Services.SavedCommutes.Create(
 		ctx, user.ID,
-		req.Msg.GetLabel(),
-		req.Msg.GetOriginStopId(),
-		req.Msg.GetDestinationStopId(),
+		req.GetLabel(),
+		req.GetOriginStopId(),
+		req.GetDestinationStopId(),
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&trainsv1.CreateSavedCommuteResponse{
+	return &trainsv1.CreateSavedCommuteResponse{
 		SavedCommute: protoSavedCommute(&created),
-	}), nil
+	}, nil
 }
 
 func (h *trainsConnectHandler) UpdateSavedCommute(
 	ctx context.Context,
-	req *connect.Request[trainsv1.UpdateSavedCommuteRequest],
-) (*connect.Response[trainsv1.UpdateSavedCommuteResponse], error) {
+	req *trainsv1.UpdateSavedCommuteRequest,
+) (*trainsv1.UpdateSavedCommuteResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated, fmt.Errorf("user not authenticated"),
+		return nil, connect.Errorf(
+			connect.CodeUnauthenticated, "user not authenticated",
 		)
 	}
 
-	id, err := uuid.Parse(req.Msg.GetId())
+	id, err := uuid.Parse(req.GetId())
 	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument, fmt.Errorf("invalid saved commute id"),
+		return nil, connect.Errorf(
+			connect.CodeInvalidArgument, "invalid saved commute id",
 		)
 	}
 
 	updated, err := h.app.Services.SavedCommutes.Update(
-		ctx, user.ID, id, req.Msg.GetLabel(), int(req.Msg.GetPosition()),
+		ctx, user.ID, id, req.GetLabel(), int(req.GetPosition()),
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&trainsv1.UpdateSavedCommuteResponse{
+	return &trainsv1.UpdateSavedCommuteResponse{
 		SavedCommute: protoSavedCommute(&updated),
-	}), nil
+	}, nil
 }
 
 func (h *trainsConnectHandler) DeleteSavedCommute(
 	ctx context.Context,
-	req *connect.Request[trainsv1.DeleteSavedCommuteRequest],
-) (*connect.Response[trainsv1.DeleteSavedCommuteResponse], error) {
+	req *trainsv1.DeleteSavedCommuteRequest,
+) (*trainsv1.DeleteSavedCommuteResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated, fmt.Errorf("user not authenticated"),
+		return nil, connect.Errorf(
+			connect.CodeUnauthenticated, "user not authenticated",
 		)
 	}
 
-	id, err := uuid.Parse(req.Msg.GetId())
+	id, err := uuid.Parse(req.GetId())
 	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument, fmt.Errorf("invalid saved commute id"),
+		return nil, connect.Errorf(
+			connect.CodeInvalidArgument, "invalid saved commute id",
 		)
 	}
 
 	if err = h.app.Services.SavedCommutes.Delete(ctx, user.ID, id); err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&trainsv1.DeleteSavedCommuteResponse{}), nil
+	return &trainsv1.DeleteSavedCommuteResponse{}, nil
 }
 
 func protoSavedCommute(sc *models.SavedCommute) *trainsv1.SavedCommute {

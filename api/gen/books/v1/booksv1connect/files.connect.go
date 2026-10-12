@@ -5,221 +5,242 @@
 package booksv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/books/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// BookFilesServiceName is the fully-qualified name of the BookFilesService service.
 	BookFilesServiceName = "books.v1.BookFilesService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// BookFilesServiceCreateBookUploadProcedure is the fully-qualified name of the BookFilesService's
+	// BookFilesServiceCreateBookUploadProcedure is the procedure name of the BookFilesService's
 	// CreateBookUpload RPC.
 	BookFilesServiceCreateBookUploadProcedure = "/books.v1.BookFilesService/CreateBookUpload"
-	// BookFilesServiceFinalizeBookUploadProcedure is the fully-qualified name of the BookFilesService's
+	// BookFilesServiceFinalizeBookUploadProcedure is the procedure name of the BookFilesService's
 	// FinalizeBookUpload RPC.
 	BookFilesServiceFinalizeBookUploadProcedure = "/books.v1.BookFilesService/FinalizeBookUpload"
-	// BookFilesServiceGetBookFileProcedure is the fully-qualified name of the BookFilesService's
-	// GetBookFile RPC.
+	// BookFilesServiceGetBookFileProcedure is the procedure name of the BookFilesService's GetBookFile
+	// RPC.
 	BookFilesServiceGetBookFileProcedure = "/books.v1.BookFilesService/GetBookFile"
-	// BookFilesServiceRequestKEPUBConversionProcedure is the fully-qualified name of the
-	// BookFilesService's RequestKEPUBConversion RPC.
+	// BookFilesServiceRequestKEPUBConversionProcedure is the procedure name of the BookFilesService's
+	// RequestKEPUBConversion RPC.
 	BookFilesServiceRequestKEPUBConversionProcedure = "/books.v1.BookFilesService/RequestKEPUBConversion"
-	// BookFilesServiceGetKEPUBStatusProcedure is the fully-qualified name of the BookFilesService's
+	// BookFilesServiceGetKEPUBStatusProcedure is the procedure name of the BookFilesService's
 	// GetKEPUBStatus RPC.
 	BookFilesServiceGetKEPUBStatusProcedure = "/books.v1.BookFilesService/GetKEPUBStatus"
 )
 
+var (
+	bookFilesServiceCreateBookUploadSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_files_proto.Services().ByName("BookFilesService").Methods().ByName("CreateBookUpload"),
+			Procedure:  BookFilesServiceCreateBookUploadProcedure,
+		}
+	})
+	bookFilesServiceFinalizeBookUploadSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_files_proto.Services().ByName("BookFilesService").Methods().ByName("FinalizeBookUpload"),
+			Procedure:  BookFilesServiceFinalizeBookUploadProcedure,
+		}
+	})
+	bookFilesServiceGetBookFileSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_files_proto.Services().ByName("BookFilesService").Methods().ByName("GetBookFile"),
+			Procedure:  BookFilesServiceGetBookFileProcedure,
+		}
+	})
+	bookFilesServiceRequestKEPUBConversionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_files_proto.Services().ByName("BookFilesService").Methods().ByName("RequestKEPUBConversion"),
+			Procedure:  BookFilesServiceRequestKEPUBConversionProcedure,
+		}
+	})
+	bookFilesServiceGetKEPUBStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_files_proto.Services().ByName("BookFilesService").Methods().ByName("GetKEPUBStatus"),
+			Procedure:  BookFilesServiceGetKEPUBStatusProcedure,
+		}
+	})
+)
+
 // BookFilesServiceClient is a client for the books.v1.BookFilesService service.
 type BookFilesServiceClient interface {
-	CreateBookUpload(context.Context, *connect.Request[v1.CreateBookUploadRequest]) (*connect.Response[v1.CreateBookUploadResponse], error)
-	FinalizeBookUpload(context.Context, *connect.Request[v1.FinalizeBookUploadRequest]) (*connect.Response[v1.FinalizeBookUploadResponse], error)
-	GetBookFile(context.Context, *connect.Request[v1.GetBookFileRequest]) (*connect.Response[v1.GetBookFileResponse], error)
-	RequestKEPUBConversion(context.Context, *connect.Request[v1.RequestKEPUBConversionRequest]) (*connect.Response[v1.RequestKEPUBConversionResponse], error)
-	GetKEPUBStatus(context.Context, *connect.Request[v1.GetKEPUBStatusRequest]) (*connect.Response[v1.GetKEPUBStatusResponse], error)
+	CreateBookUpload(context.Context, *v1.CreateBookUploadRequest) (*v1.CreateBookUploadResponse, error)
+	FinalizeBookUpload(context.Context, *v1.FinalizeBookUploadRequest) (*v1.FinalizeBookUploadResponse, error)
+	GetBookFile(context.Context, *v1.GetBookFileRequest) (*v1.GetBookFileResponse, error)
+	RequestKEPUBConversion(context.Context, *v1.RequestKEPUBConversionRequest) (*v1.RequestKEPUBConversionResponse, error)
+	GetKEPUBStatus(context.Context, *v1.GetKEPUBStatusRequest) (*v1.GetKEPUBStatusResponse, error)
 }
 
-// NewBookFilesServiceClient constructs a client for the books.v1.BookFilesService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewBookFilesServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) BookFilesServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	bookFilesServiceMethods := v1.File_books_v1_files_proto.Services().ByName("BookFilesService").Methods()
-	return &bookFilesServiceClient{
-		createBookUpload: connect.NewClient[v1.CreateBookUploadRequest, v1.CreateBookUploadResponse](
-			httpClient,
-			baseURL+BookFilesServiceCreateBookUploadProcedure,
-			connect.WithSchema(bookFilesServiceMethods.ByName("CreateBookUpload")),
-			connect.WithClientOptions(opts...),
-		),
-		finalizeBookUpload: connect.NewClient[v1.FinalizeBookUploadRequest, v1.FinalizeBookUploadResponse](
-			httpClient,
-			baseURL+BookFilesServiceFinalizeBookUploadProcedure,
-			connect.WithSchema(bookFilesServiceMethods.ByName("FinalizeBookUpload")),
-			connect.WithClientOptions(opts...),
-		),
-		getBookFile: connect.NewClient[v1.GetBookFileRequest, v1.GetBookFileResponse](
-			httpClient,
-			baseURL+BookFilesServiceGetBookFileProcedure,
-			connect.WithSchema(bookFilesServiceMethods.ByName("GetBookFile")),
-			connect.WithClientOptions(opts...),
-		),
-		requestKEPUBConversion: connect.NewClient[v1.RequestKEPUBConversionRequest, v1.RequestKEPUBConversionResponse](
-			httpClient,
-			baseURL+BookFilesServiceRequestKEPUBConversionProcedure,
-			connect.WithSchema(bookFilesServiceMethods.ByName("RequestKEPUBConversion")),
-			connect.WithClientOptions(opts...),
-		),
-		getKEPUBStatus: connect.NewClient[v1.GetKEPUBStatusRequest, v1.GetKEPUBStatusResponse](
-			httpClient,
-			baseURL+BookFilesServiceGetKEPUBStatusProcedure,
-			connect.WithSchema(bookFilesServiceMethods.ByName("GetKEPUBStatus")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// bookFilesServiceClient implements BookFilesServiceClient.
-type bookFilesServiceClient struct {
-	createBookUpload       *connect.Client[v1.CreateBookUploadRequest, v1.CreateBookUploadResponse]
-	finalizeBookUpload     *connect.Client[v1.FinalizeBookUploadRequest, v1.FinalizeBookUploadResponse]
-	getBookFile            *connect.Client[v1.GetBookFileRequest, v1.GetBookFileResponse]
-	requestKEPUBConversion *connect.Client[v1.RequestKEPUBConversionRequest, v1.RequestKEPUBConversionResponse]
-	getKEPUBStatus         *connect.Client[v1.GetKEPUBStatusRequest, v1.GetKEPUBStatusResponse]
-}
-
-// CreateBookUpload calls books.v1.BookFilesService.CreateBookUpload.
-func (c *bookFilesServiceClient) CreateBookUpload(ctx context.Context, req *connect.Request[v1.CreateBookUploadRequest]) (*connect.Response[v1.CreateBookUploadResponse], error) {
-	return c.createBookUpload.CallUnary(ctx, req)
-}
-
-// FinalizeBookUpload calls books.v1.BookFilesService.FinalizeBookUpload.
-func (c *bookFilesServiceClient) FinalizeBookUpload(ctx context.Context, req *connect.Request[v1.FinalizeBookUploadRequest]) (*connect.Response[v1.FinalizeBookUploadResponse], error) {
-	return c.finalizeBookUpload.CallUnary(ctx, req)
-}
-
-// GetBookFile calls books.v1.BookFilesService.GetBookFile.
-func (c *bookFilesServiceClient) GetBookFile(ctx context.Context, req *connect.Request[v1.GetBookFileRequest]) (*connect.Response[v1.GetBookFileResponse], error) {
-	return c.getBookFile.CallUnary(ctx, req)
-}
-
-// RequestKEPUBConversion calls books.v1.BookFilesService.RequestKEPUBConversion.
-func (c *bookFilesServiceClient) RequestKEPUBConversion(ctx context.Context, req *connect.Request[v1.RequestKEPUBConversionRequest]) (*connect.Response[v1.RequestKEPUBConversionResponse], error) {
-	return c.requestKEPUBConversion.CallUnary(ctx, req)
-}
-
-// GetKEPUBStatus calls books.v1.BookFilesService.GetKEPUBStatus.
-func (c *bookFilesServiceClient) GetKEPUBStatus(ctx context.Context, req *connect.Request[v1.GetKEPUBStatusRequest]) (*connect.Response[v1.GetKEPUBStatusResponse], error) {
-	return c.getKEPUBStatus.CallUnary(ctx, req)
+// NewBookFilesServiceClient constructs a client for the books.v1.BookFilesService service. Multiple
+// service clients may share a single connect.Client.
+func NewBookFilesServiceClient(client *connect.Client) BookFilesServiceClient {
+	return &bookFilesServiceClient{client: client}
 }
 
 // BookFilesServiceHandler is an implementation of the books.v1.BookFilesService service.
 type BookFilesServiceHandler interface {
-	CreateBookUpload(context.Context, *connect.Request[v1.CreateBookUploadRequest]) (*connect.Response[v1.CreateBookUploadResponse], error)
-	FinalizeBookUpload(context.Context, *connect.Request[v1.FinalizeBookUploadRequest]) (*connect.Response[v1.FinalizeBookUploadResponse], error)
-	GetBookFile(context.Context, *connect.Request[v1.GetBookFileRequest]) (*connect.Response[v1.GetBookFileResponse], error)
-	RequestKEPUBConversion(context.Context, *connect.Request[v1.RequestKEPUBConversionRequest]) (*connect.Response[v1.RequestKEPUBConversionResponse], error)
-	GetKEPUBStatus(context.Context, *connect.Request[v1.GetKEPUBStatusRequest]) (*connect.Response[v1.GetKEPUBStatusResponse], error)
+	CreateBookUpload(context.Context, *v1.CreateBookUploadRequest) (*v1.CreateBookUploadResponse, error)
+	FinalizeBookUpload(context.Context, *v1.FinalizeBookUploadRequest) (*v1.FinalizeBookUploadResponse, error)
+	GetBookFile(context.Context, *v1.GetBookFileRequest) (*v1.GetBookFileResponse, error)
+	RequestKEPUBConversion(context.Context, *v1.RequestKEPUBConversionRequest) (*v1.RequestKEPUBConversionResponse, error)
+	GetKEPUBStatus(context.Context, *v1.GetKEPUBStatusRequest) (*v1.GetKEPUBStatusResponse, error)
 }
 
-// NewBookFilesServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewBookFilesServiceHandler(svc BookFilesServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	bookFilesServiceMethods := v1.File_books_v1_files_proto.Services().ByName("BookFilesService").Methods()
-	bookFilesServiceCreateBookUploadHandler := connect.NewUnaryHandler(
-		BookFilesServiceCreateBookUploadProcedure,
-		svc.CreateBookUpload,
-		connect.WithSchema(bookFilesServiceMethods.ByName("CreateBookUpload")),
-		connect.WithHandlerOptions(opts...),
+// RegisterBookFilesServiceHandler registers svc as the books.v1.BookFilesService implementation on
+// server.
+func RegisterBookFilesServiceHandler(server *connect.Server, svc BookFilesServiceHandler) {
+	adapter := bookFilesServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: bookFilesServiceCreateBookUploadSpec(), Handler: adapter.createBookUpload},
+		connect.Method{Spec: bookFilesServiceFinalizeBookUploadSpec(), Handler: adapter.finalizeBookUpload},
+		connect.Method{Spec: bookFilesServiceGetBookFileSpec(), Handler: adapter.getBookFile},
+		connect.Method{Spec: bookFilesServiceRequestKEPUBConversionSpec(), Handler: adapter.requestKEPUBConversion},
+		connect.Method{Spec: bookFilesServiceGetKEPUBStatusSpec(), Handler: adapter.getKEPUBStatus},
 	)
-	bookFilesServiceFinalizeBookUploadHandler := connect.NewUnaryHandler(
-		BookFilesServiceFinalizeBookUploadProcedure,
-		svc.FinalizeBookUpload,
-		connect.WithSchema(bookFilesServiceMethods.ByName("FinalizeBookUpload")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bookFilesServiceGetBookFileHandler := connect.NewUnaryHandler(
-		BookFilesServiceGetBookFileProcedure,
-		svc.GetBookFile,
-		connect.WithSchema(bookFilesServiceMethods.ByName("GetBookFile")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bookFilesServiceRequestKEPUBConversionHandler := connect.NewUnaryHandler(
-		BookFilesServiceRequestKEPUBConversionProcedure,
-		svc.RequestKEPUBConversion,
-		connect.WithSchema(bookFilesServiceMethods.ByName("RequestKEPUBConversion")),
-		connect.WithHandlerOptions(opts...),
-	)
-	bookFilesServiceGetKEPUBStatusHandler := connect.NewUnaryHandler(
-		BookFilesServiceGetKEPUBStatusProcedure,
-		svc.GetKEPUBStatus,
-		connect.WithSchema(bookFilesServiceMethods.ByName("GetKEPUBStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/books.v1.BookFilesService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case BookFilesServiceCreateBookUploadProcedure:
-			bookFilesServiceCreateBookUploadHandler.ServeHTTP(w, r)
-		case BookFilesServiceFinalizeBookUploadProcedure:
-			bookFilesServiceFinalizeBookUploadHandler.ServeHTTP(w, r)
-		case BookFilesServiceGetBookFileProcedure:
-			bookFilesServiceGetBookFileHandler.ServeHTTP(w, r)
-		case BookFilesServiceRequestKEPUBConversionProcedure:
-			bookFilesServiceRequestKEPUBConversionHandler.ServeHTTP(w, r)
-		case BookFilesServiceGetKEPUBStatusProcedure:
-			bookFilesServiceGetKEPUBStatusHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedBookFilesServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedBookFilesServiceHandler struct{}
 
-func (UnimplementedBookFilesServiceHandler) CreateBookUpload(context.Context, *connect.Request[v1.CreateBookUploadRequest]) (*connect.Response[v1.CreateBookUploadResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.BookFilesService.CreateBookUpload is not implemented"))
+func (UnimplementedBookFilesServiceHandler) CreateBookUpload(context.Context, *v1.CreateBookUploadRequest) (*v1.CreateBookUploadResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.BookFilesService.CreateBookUpload is not implemented")
 }
 
-func (UnimplementedBookFilesServiceHandler) FinalizeBookUpload(context.Context, *connect.Request[v1.FinalizeBookUploadRequest]) (*connect.Response[v1.FinalizeBookUploadResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.BookFilesService.FinalizeBookUpload is not implemented"))
+func (UnimplementedBookFilesServiceHandler) FinalizeBookUpload(context.Context, *v1.FinalizeBookUploadRequest) (*v1.FinalizeBookUploadResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.BookFilesService.FinalizeBookUpload is not implemented")
 }
 
-func (UnimplementedBookFilesServiceHandler) GetBookFile(context.Context, *connect.Request[v1.GetBookFileRequest]) (*connect.Response[v1.GetBookFileResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.BookFilesService.GetBookFile is not implemented"))
+func (UnimplementedBookFilesServiceHandler) GetBookFile(context.Context, *v1.GetBookFileRequest) (*v1.GetBookFileResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.BookFilesService.GetBookFile is not implemented")
 }
 
-func (UnimplementedBookFilesServiceHandler) RequestKEPUBConversion(context.Context, *connect.Request[v1.RequestKEPUBConversionRequest]) (*connect.Response[v1.RequestKEPUBConversionResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.BookFilesService.RequestKEPUBConversion is not implemented"))
+func (UnimplementedBookFilesServiceHandler) RequestKEPUBConversion(context.Context, *v1.RequestKEPUBConversionRequest) (*v1.RequestKEPUBConversionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.BookFilesService.RequestKEPUBConversion is not implemented")
 }
 
-func (UnimplementedBookFilesServiceHandler) GetKEPUBStatus(context.Context, *connect.Request[v1.GetKEPUBStatusRequest]) (*connect.Response[v1.GetKEPUBStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.BookFilesService.GetKEPUBStatus is not implemented"))
+func (UnimplementedBookFilesServiceHandler) GetKEPUBStatus(context.Context, *v1.GetKEPUBStatusRequest) (*v1.GetKEPUBStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.BookFilesService.GetKEPUBStatus is not implemented")
+}
+
+type bookFilesServiceClient struct {
+	client *connect.Client
+}
+
+func (c *bookFilesServiceClient) CreateBookUpload(ctx context.Context, req *v1.CreateBookUploadRequest) (*v1.CreateBookUploadResponse, error) {
+	var res v1.CreateBookUploadResponse
+	if err := c.client.CallUnary(ctx, bookFilesServiceCreateBookUploadSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bookFilesServiceClient) FinalizeBookUpload(ctx context.Context, req *v1.FinalizeBookUploadRequest) (*v1.FinalizeBookUploadResponse, error) {
+	var res v1.FinalizeBookUploadResponse
+	if err := c.client.CallUnary(ctx, bookFilesServiceFinalizeBookUploadSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bookFilesServiceClient) GetBookFile(ctx context.Context, req *v1.GetBookFileRequest) (*v1.GetBookFileResponse, error) {
+	var res v1.GetBookFileResponse
+	if err := c.client.CallUnary(ctx, bookFilesServiceGetBookFileSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bookFilesServiceClient) RequestKEPUBConversion(ctx context.Context, req *v1.RequestKEPUBConversionRequest) (*v1.RequestKEPUBConversionResponse, error) {
+	var res v1.RequestKEPUBConversionResponse
+	if err := c.client.CallUnary(ctx, bookFilesServiceRequestKEPUBConversionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *bookFilesServiceClient) GetKEPUBStatus(ctx context.Context, req *v1.GetKEPUBStatusRequest) (*v1.GetKEPUBStatusResponse, error) {
+	var res v1.GetKEPUBStatusResponse
+	if err := c.client.CallUnary(ctx, bookFilesServiceGetKEPUBStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type bookFilesServiceHandler struct{ svc BookFilesServiceHandler }
+
+func (h bookFilesServiceHandler) createBookUpload(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateBookUploadRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateBookUpload(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bookFilesServiceHandler) finalizeBookUpload(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.FinalizeBookUploadRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.FinalizeBookUpload(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bookFilesServiceHandler) getBookFile(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBookFileRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBookFile(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bookFilesServiceHandler) requestKEPUBConversion(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RequestKEPUBConversionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RequestKEPUBConversion(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h bookFilesServiceHandler) getKEPUBStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetKEPUBStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetKEPUBStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

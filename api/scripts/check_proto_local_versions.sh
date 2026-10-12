@@ -9,7 +9,7 @@
 #   1. api/buf.gen.yaml   protoc-gen-go pin        <-> api/Makefile's
 #      `go install google.golang.org/protobuf/cmd/protoc-gen-go@vX`
 #   2. api/buf.gen.yaml   protoc-gen-connect-go pin <-> api/Makefile's
-#      `go install connectrpc.com/connect/cmd/protoc-gen-connect-go@vX`
+#      `go install connectrpc.com/connect/v2/cmd/protoc-gen-connect-go@vX`
 #   3. web/buf.gen.yaml   protoc-gen-es pin         <-> web/package.json's
 #      "@bufbuild/protoc-gen-es" devDependency version
 #
@@ -48,7 +48,7 @@ go_got="$(grep -oE 'google\.golang\.org/protobuf/cmd/protoc-gen-go@v[0-9.]+' "$a
 check "protoc-gen-go" "$go_want" "$go_got" "api/Makefile tools/proto/local"
 
 connect_want="$(remote_version connectrpc/go "$api_gen_yaml")"
-connect_got="$(grep -oE 'connectrpc\.com/connect/cmd/protoc-gen-connect-go@v[0-9.]+' "$api_makefile" | grep -oE 'v[0-9.]+$' || true)"
+connect_got="$(grep -oE 'connectrpc\.com/connect/v2/cmd/protoc-gen-connect-go@v[0-9.]+' "$api_makefile" | grep -oE 'v[0-9.]+$' || true)"
 check "protoc-gen-connect-go" "$connect_want" "$connect_got" "api/Makefile tools/proto/local"
 
 es_want="$(remote_version bufbuild/es "$web_gen_yaml" | sed 's/^v//')"

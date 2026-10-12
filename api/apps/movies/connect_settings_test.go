@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -20,20 +20,19 @@ func setServices(
 	ids ...int64,
 ) []int64 {
 	t.Helper()
-	resp, err := c.SetSettings(context.Background(), connect.NewRequest(
+	resp, err := c.SetSettings(
+		context.Background(),
 		&moviesv1.SetSettingsRequest{ProviderIds: ids},
-	))
+	)
 	require.NoError(t, err)
-	return resp.Msg.ProviderIds
+	return resp.ProviderIds
 }
 
 func getServices(t *testing.T, c moviesv1connect.MoviesServiceClient) []int64 {
 	t.Helper()
-	resp, err := c.GetSettings(context.Background(), connect.NewRequest(
-		&moviesv1.GetSettingsRequest{},
-	))
+	resp, err := c.GetSettings(context.Background(), &moviesv1.GetSettingsRequest{})
 	require.NoError(t, err)
-	return resp.Msg.ProviderIds
+	return resp.ProviderIds
 }
 
 func TestSettings_SaveSortsAndDeduplicates(t *testing.T) {
@@ -53,9 +52,10 @@ func TestSettings_RejectsInvalidProviderIDs(t *testing.T) {
 	c := newClient(t, userID, fakeTMDB{})
 
 	for _, id := range []int64{0, -1, 1 << 40} {
-		_, err := c.SetSettings(context.Background(), connect.NewRequest(
+		_, err := c.SetSettings(
+			context.Background(),
 			&moviesv1.SetSettingsRequest{ProviderIds: []int64{8, id}},
-		))
+		)
 		assert.Equal(t, connect.CodeInvalidArgument, code(err), id)
 	}
 	assert.Empty(t, getServices(t, c))
@@ -83,13 +83,14 @@ func availableProviders(
 	c moviesv1connect.MoviesServiceClient,
 ) (*moviesv1.ListAvailableProvidersResponse, error) {
 	t.Helper()
-	resp, err := c.ListAvailableProviders(context.Background(), connect.NewRequest(
+	resp, err := c.ListAvailableProviders(
+		context.Background(),
 		&moviesv1.ListAvailableProvidersRequest{},
-	))
+	)
 	if err != nil {
 		return nil, err
 	}
-	return resp.Msg, nil
+	return resp, nil
 }
 
 func TestAvailableProviders_Cached(t *testing.T) {

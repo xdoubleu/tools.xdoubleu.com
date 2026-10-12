@@ -2,9 +2,8 @@ package main
 
 import (
 	"context"
-	"errors"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	accessv1 "tools.xdoubleu.com/gen/access/v1"
 	"tools.xdoubleu.com/gen/access/v1/accessv1connect"
@@ -25,7 +24,7 @@ func requireAdmin(ctx context.Context) error {
 	if user.Role != models.RoleAdmin {
 		return connect.NewError(
 			connect.CodePermissionDenied,
-			errors.New("admin access required"),
+			"admin access required",
 		)
 	}
 	return nil
@@ -38,7 +37,7 @@ func requireObservability(ctx context.Context) error {
 	if user.Role != models.RoleAdmin && user.Role != models.RoleService {
 		return connect.NewError(
 			connect.CodePermissionDenied,
-			errors.New("admin access required"),
+			"admin access required",
 		)
 	}
 	return nil
@@ -59,15 +58,15 @@ func protoAppUser(u models.User) *accessv1.AppUser {
 
 func (h *accessConnectHandler) ListUsers(
 	ctx context.Context,
-	_ *connect.Request[accessv1.ListUsersRequest],
-) (*connect.Response[accessv1.ListUsersResponse], error) {
+	_ *accessv1.ListUsersRequest,
+) (*accessv1.ListUsersResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
 	users, err := h.app.appUsersRepo.GetAllWithAccess(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	protoUsers := make([]*accessv1.AppUser, len(users))
@@ -75,61 +74,57 @@ func (h *accessConnectHandler) ListUsers(
 		protoUsers[i] = protoAppUser(u)
 	}
 
-	return connect.NewResponse(&accessv1.ListUsersResponse{Users: protoUsers}), nil
+	return &accessv1.ListUsersResponse{Users: protoUsers}, nil
 }
 
 func (h *accessConnectHandler) SetRole(
 	ctx context.Context,
-	req *connect.Request[accessv1.SetRoleRequest],
-) (*connect.Response[accessv1.SetRoleResponse], error) {
+	req *accessv1.SetRoleRequest,
+) (*accessv1.SetRoleResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	role := models.Role(req.Msg.Role)
+	role := models.Role(req.Role)
 	if role != models.RoleAdmin && role != models.RoleUser {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid role"),
+			"invalid role",
 		)
 	}
 
-	if err := h.app.appUsersRepo.SetRole(ctx, req.Msg.UserId, role); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+	if err := h.app.appUsersRepo.SetRole(ctx, req.UserId, role); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	h.app.auth.InvalidateUserCache()
 
-	user, err := h.app.appUsersRepo.GetByID(ctx, req.Msg.UserId)
+	user, err := h.app.appUsersRepo.GetByID(ctx, req.UserId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(
-		&accessv1.SetRoleResponse{User: protoAppUser(*user)},
-	), nil
+	return &accessv1.SetRoleResponse{User: protoAppUser(*user)}, nil
 }
 
 func (h *accessConnectHandler) SetAppAccess(
 	ctx context.Context,
-	req *connect.Request[accessv1.SetAppAccessRequest],
-) (*connect.Response[accessv1.SetAppAccessResponse], error) {
+	req *accessv1.SetAppAccessRequest,
+) (*accessv1.SetAppAccessResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
 	if err := h.app.appUsersRepo.SetAppAccess(
-		ctx, req.Msg.UserId, req.Msg.AppName, req.Msg.Grant,
+		ctx, req.UserId, req.AppName, req.Grant,
 	); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	h.app.auth.InvalidateUserCache()
 
-	user, err := h.app.appUsersRepo.GetByID(ctx, req.Msg.UserId)
+	user, err := h.app.appUsersRepo.GetByID(ctx, req.UserId)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(
-		&accessv1.SetAppAccessResponse{User: protoAppUser(*user)},
-	), nil
+	return &accessv1.SetAppAccessResponse{User: protoAppUser(*user)}, nil
 }

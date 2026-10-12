@@ -3,15 +3,13 @@ package movies
 import (
 	"context"
 
-	"connectrpc.com/connect"
-
 	moviesv1 "tools.xdoubleu.com/gen/movies/v1"
 )
 
 func (h *moviesConnectHandler) GetSettings(
 	ctx context.Context,
-	_ *connect.Request[moviesv1.GetSettingsRequest],
-) (*connect.Response[moviesv1.GetSettingsResponse], error) {
+	_ *moviesv1.GetSettingsRequest,
+) (*moviesv1.GetSettingsResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
@@ -21,29 +19,29 @@ func (h *moviesConnectHandler) GetSettings(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&moviesv1.GetSettingsResponse{ProviderIds: ids}), nil
+	return &moviesv1.GetSettingsResponse{ProviderIds: ids}, nil
 }
 
 func (h *moviesConnectHandler) SetSettings(
 	ctx context.Context,
-	req *connect.Request[moviesv1.SetSettingsRequest],
-) (*connect.Response[moviesv1.SetSettingsResponse], error) {
+	req *moviesv1.SetSettingsRequest,
+) (*moviesv1.SetSettingsResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	ids, err := h.app.services.Movies.SetSettings(ctx, uid, req.Msg.ProviderIds)
+	ids, err := h.app.services.Movies.SetSettings(ctx, uid, req.ProviderIds)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&moviesv1.SetSettingsResponse{ProviderIds: ids}), nil
+	return &moviesv1.SetSettingsResponse{ProviderIds: ids}, nil
 }
 
 func (h *moviesConnectHandler) ListAvailableProviders(
 	ctx context.Context,
-	_ *connect.Request[moviesv1.ListAvailableProvidersRequest],
-) (*connect.Response[moviesv1.ListAvailableProvidersResponse], error) {
+	_ *moviesv1.ListAvailableProvidersRequest,
+) (*moviesv1.ListAvailableProvidersResponse, error) {
 	if _, err := userID(ctx); err != nil {
 		return nil, err
 	}
@@ -56,7 +54,7 @@ func (h *moviesConnectHandler) ListAvailableProviders(
 	for i, p := range list {
 		out[i] = &moviesv1.Provider{Id: p.ID, Name: p.Name, LogoPath: p.LogoPath}
 	}
-	return connect.NewResponse(&moviesv1.ListAvailableProvidersResponse{
+	return &moviesv1.ListAvailableProvidersResponse{
 		Providers: out,
-	}), nil
+	}, nil
 }

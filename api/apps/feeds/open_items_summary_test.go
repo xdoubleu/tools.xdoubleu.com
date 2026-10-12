@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,10 +23,10 @@ func TestListOpenItemsReturnsUnreadCountsPerFeed(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	open, err := testApp.ListOpenItems(context.Background())
 	require.NoError(t, err)
@@ -54,25 +53,25 @@ func TestListOpenItemsOmitsFeedOnceEverythingIsRead(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	items, err := client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(&feedsv1.ListFeedItemsRequest{FeedId: &created.Msg.Feed.Id}),
+		&feedsv1.ListFeedItemsRequest{FeedId: &created.Feed.Id},
 	)
 	require.NoError(t, err)
-	require.Len(t, items.Msg.Items, 1)
+	require.Len(t, items.Items, 1)
 
 	read := true
 	_, err = client.UpdateItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.UpdateItemRequest{
-			ItemId: items.Msg.Items[0].Id,
+		&feedsv1.UpdateItemRequest{
+			ItemId: items.Items[0].Id,
 			Read:   &read,
-		}),
+		},
 	)
 	require.NoError(t, err)
 

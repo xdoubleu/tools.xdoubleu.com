@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,11 +19,9 @@ func getTitle(
 	id string,
 ) *moviesv1.GetTitleResponse {
 	t.Helper()
-	resp, err := c.GetTitle(context.Background(), connect.NewRequest(
-		&moviesv1.GetTitleRequest{Id: id},
-	))
+	resp, err := c.GetTitle(context.Background(), &moviesv1.GetTitleRequest{Id: id})
 	require.NoError(t, err)
-	return resp.Msg
+	return resp
 }
 
 // ticks maps season number to its watch dates.
@@ -43,13 +41,14 @@ func setSeason(
 	watched bool,
 ) *moviesv1.SetSeasonWatchedResponse {
 	t.Helper()
-	resp, err := c.SetSeasonWatched(context.Background(), connect.NewRequest(
+	resp, err := c.SetSeasonWatched(
+		context.Background(),
 		&moviesv1.SetSeasonWatchedRequest{
 			Id: id, SeasonNumber: number, Watched: watched, UnknownDate: false,
 		},
-	))
+	)
 	require.NoError(t, err)
-	return resp.Msg
+	return resp
 }
 
 func TestGetTitle_ListsSeasons(t *testing.T) {
@@ -72,15 +71,13 @@ func TestAddTitle_WatchedSeriesTicksAiredSeasons(t *testing.T) {
 	for name, unknown := range map[string]bool{"today": false, "a while ago": true} {
 		t.Run(name, func(t *testing.T) {
 			c := newClient(t, userID, fakeTMDB{})
-			resp, err := c.AddTitle(context.Background(), connect.NewRequest(
-				&moviesv1.AddTitleRequest{
-					MediaType: "series", TmdbId: 1396, Status: "watched",
-					UnknownDate: unknown,
-				},
-			))
+			resp, err := c.AddTitle(context.Background(), &moviesv1.AddTitleRequest{
+				MediaType: "series", TmdbId: 1396, Status: "watched",
+				UnknownDate: unknown,
+			})
 			require.NoError(t, err)
 
-			got := ticks(getTitle(t, c, resp.Msg.Entry.Id).Seasons)
+			got := ticks(getTitle(t, c, resp.Entry.Id).Seasons)
 			assert.Empty(t, got[0], "specials stay unticked")
 			assert.Len(t, got[1], 1)
 			assert.Len(t, got[2], 1)
@@ -96,11 +93,12 @@ func TestSetStatus_WatchedSeriesTicksAiredSeasons(t *testing.T) {
 	e := add(t, c, "series", 1396, "want")
 	setSeason(t, c, e.Id, 1, true)
 
-	resp, err := c.SetStatus(context.Background(), connect.NewRequest(
+	resp, err := c.SetStatus(
+		context.Background(),
 		&moviesv1.SetStatusRequest{Id: e.Id, Status: "watched", UnknownDate: true},
-	))
+	)
 	require.NoError(t, err)
-	assert.Equal(t, "watched", resp.Msg.Entry.Status)
+	assert.Equal(t, "watched", resp.Entry.Status)
 
 	got := ticks(getTitle(t, c, e.Id).Seasons)
 	assert.Len(t, got[1], 1, "already ticked seasons keep their watch")
@@ -139,9 +137,10 @@ func TestSetSeasonWatched_TickingTwiceKeepsOneWatch(t *testing.T) {
 func TestSetSeasonWatched_DroppedStaysDropped(t *testing.T) {
 	c := newClient(t, userID, fakeTMDB{})
 	e := add(t, c, "series", 1396, "want")
-	_, err := c.SetStatus(context.Background(), connect.NewRequest(
+	_, err := c.SetStatus(
+		context.Background(),
 		&moviesv1.SetStatusRequest{Id: e.Id, Status: "dropped", UnknownDate: false},
-	))
+	)
 	require.NoError(t, err)
 
 	assert.Equal(t, "dropped", setSeason(t, c, e.Id, 1, true).Entry.Status)
@@ -152,18 +151,14 @@ func TestSetSeasonWatched_UnknownSeasonOrEntry(t *testing.T) {
 	e := add(t, c, "series", 1396, "want")
 	ctx := context.Background()
 
-	_, err := c.SetSeasonWatched(ctx, connect.NewRequest(
-		&moviesv1.SetSeasonWatchedRequest{
-			Id: e.Id, SeasonNumber: 9, Watched: true, UnknownDate: false,
-		},
-	))
+	_, err := c.SetSeasonWatched(ctx, &moviesv1.SetSeasonWatchedRequest{
+		Id: e.Id, SeasonNumber: 9, Watched: true, UnknownDate: false,
+	})
 	assert.Equal(t, connect.CodeNotFound, code(err))
 
-	_, err = c.SetSeasonWatched(ctx, connect.NewRequest(
-		&moviesv1.SetSeasonWatchedRequest{
-			Id: "x", SeasonNumber: 1, Watched: true, UnknownDate: false,
-		},
-	))
+	_, err = c.SetSeasonWatched(ctx, &moviesv1.SetSeasonWatchedRequest{
+		Id: "x", SeasonNumber: 1, Watched: true, UnknownDate: false,
+	})
 	assert.Equal(t, connect.CodeInvalidArgument, code(err))
 }
 

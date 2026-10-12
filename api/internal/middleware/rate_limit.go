@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"errors"
 	"net"
 	"net/http"
 	"net/netip"
@@ -9,17 +8,18 @@ import (
 	"sync"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"golang.org/x/time/rate"
 
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/errortools"
 )
 
-var cleanerActive bool                   //nolint: gochecknoglobals //need this
-var mu sync.RWMutex                      //nolint: gochecknoglobals //need this
-var clients = make(map[string]*client)   //nolint: gochecknoglobals //need this
-var errWriter = connect.NewErrorWriter() //nolint: gochecknoglobals //need this
+var cleanerActive bool                       //nolint: gochecknoglobals //need this
+var mu sync.RWMutex                          //nolint: gochecknoglobals //need this
+var clients = make(map[string]*client)       //nolint: gochecknoglobals //need this
+var errWriter = connecthttp.NewErrorWriter() //nolint: gochecknoglobals //need this
 
 type client struct {
 	limiter  *rate.Limiter
@@ -96,7 +96,7 @@ func rateLimit(
 			if r.Method == http.MethodPost && errWriter.IsSupported(r) {
 				connectErr := connect.NewError(
 					connect.CodeResourceExhausted,
-					errors.New(errortools.MessageTooManyRequests),
+					errortools.MessageTooManyRequests,
 				)
 				_ = errWriter.Write(w, r, connectErr)
 				return

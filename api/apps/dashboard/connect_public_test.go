@@ -6,7 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -131,8 +132,11 @@ func newPublicClient(
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
 	return dashboardv1connect.NewPublicGamesDashboardServiceClient(
-		http.DefaultClient,
-		ts.URL,
+		connect.NewClient(connecthttp.NewTransport(
+			http.DefaultClient,
+			ts.URL,
+			connecthttp.WithReadMaxBytes(0),
+		)),
 	)
 }
 
@@ -143,8 +147,11 @@ func newPublicReadingClient(
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
 	return dashboardv1connect.NewPublicReadingDashboardServiceClient(
-		http.DefaultClient,
-		ts.URL,
+		connect.NewClient(connecthttp.NewTransport(
+			http.DefaultClient,
+			ts.URL,
+			connecthttp.WithReadMaxBytes(0),
+		)),
 	)
 }
 
@@ -155,15 +162,15 @@ func TestGetSharedSteam_Success(t *testing.T) {
 	client := newPublicClient(t)
 	resp, err := client.GetSharedSteam(
 		context.Background(),
-		connect.NewRequest(&dashboardv1.GetSharedSteamRequest{Token: publicGamesToken}),
+		&dashboardv1.GetSharedSteamRequest{Token: publicGamesToken},
 	)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.Steam)
-	assert.NotEmpty(t, resp.Msg.LastSyncedAt)
-	assert.Equal(t, publicDisplayName, resp.Msg.DisplayName)
-	total := len(resp.Msg.Steam.NotStarted) +
-		len(resp.Msg.Steam.InProgress) +
-		len(resp.Msg.Steam.Completed)
+	require.NotNil(t, resp.Steam)
+	assert.NotEmpty(t, resp.LastSyncedAt)
+	assert.Equal(t, publicDisplayName, resp.DisplayName)
+	total := len(resp.Steam.NotStarted) +
+		len(resp.Steam.InProgress) +
+		len(resp.Steam.Completed)
 	assert.Positive(t, total, "seeded library should contain games")
 }
 
@@ -175,14 +182,14 @@ func TestGetSharedSteam_InvalidDateRange(t *testing.T) {
 	client := newPublicClient(t)
 	resp, err := client.GetSharedSteam(
 		context.Background(),
-		connect.NewRequest(&dashboardv1.GetSharedSteamRequest{
+		&dashboardv1.GetSharedSteamRequest{
 			Token:     publicGamesToken,
 			DateStart: "not-a-date",
 			DateEnd:   "also-not-a-date",
-		}),
+		},
 	)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.Steam)
+	require.NotNil(t, resp.Steam)
 }
 
 func TestGetSharedSteam_UnknownToken(t *testing.T) {
@@ -191,9 +198,7 @@ func TestGetSharedSteam_UnknownToken(t *testing.T) {
 	client := newPublicClient(t)
 	_, err := client.GetSharedSteam(
 		context.Background(),
-		connect.NewRequest(
-			&dashboardv1.GetSharedSteamRequest{Token: "definitely-not-a-token"},
-		),
+		&dashboardv1.GetSharedSteamRequest{Token: "definitely-not-a-token"},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -205,7 +210,7 @@ func TestGetSharedSteam_EmptyToken(t *testing.T) {
 	client := newPublicClient(t)
 	_, err := client.GetSharedSteam(
 		context.Background(),
-		connect.NewRequest(&dashboardv1.GetSharedSteamRequest{}),
+		&dashboardv1.GetSharedSteamRequest{},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -218,9 +223,7 @@ func TestGetSharedSteam_WrongKindToken(t *testing.T) {
 	client := newPublicClient(t)
 	_, err := client.GetSharedSteam(
 		context.Background(),
-		connect.NewRequest(
-			&dashboardv1.GetSharedSteamRequest{Token: publicReadingToken},
-		),
+		&dashboardv1.GetSharedSteamRequest{Token: publicReadingToken},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -233,13 +236,13 @@ func TestGetSharedSteamGame_Success(t *testing.T) {
 	client := newPublicClient(t)
 	resp, err := client.GetSharedSteamGame(
 		context.Background(),
-		connect.NewRequest(&dashboardv1.GetSharedSteamGameRequest{
+		&dashboardv1.GetSharedSteamGameRequest{
 			Token: publicGamesToken, GameId: 1,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.Data)
-	require.NotNil(t, resp.Msg.Data.Game)
+	require.NotNil(t, resp.Data)
+	require.NotNil(t, resp.Data.Game)
 }
 
 func TestGetSharedSteamGame_UnknownGame(t *testing.T) {
@@ -249,9 +252,9 @@ func TestGetSharedSteamGame_UnknownGame(t *testing.T) {
 	client := newPublicClient(t)
 	_, err := client.GetSharedSteamGame(
 		context.Background(),
-		connect.NewRequest(&dashboardv1.GetSharedSteamGameRequest{
+		&dashboardv1.GetSharedSteamGameRequest{
 			Token: publicGamesToken, GameId: 999999,
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -263,9 +266,9 @@ func TestGetSharedSteamGame_UnknownToken(t *testing.T) {
 	client := newPublicClient(t)
 	_, err := client.GetSharedSteamGame(
 		context.Background(),
-		connect.NewRequest(&dashboardv1.GetSharedSteamGameRequest{
+		&dashboardv1.GetSharedSteamGameRequest{
 			Token: "definitely-not-a-token", GameId: 1,
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -278,12 +281,12 @@ func TestGetSharedRecentlyActiveGames_Success(t *testing.T) {
 	client := newPublicClient(t)
 	resp, err := client.GetSharedRecentlyActiveGames(
 		context.Background(),
-		connect.NewRequest(&dashboardv1.GetSharedRecentlyActiveGamesRequest{
+		&dashboardv1.GetSharedRecentlyActiveGamesRequest{
 			Token: publicGamesToken,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.NotNil(t, resp.Msg.Games)
+	assert.NotNil(t, resp.Games)
 }
 
 func TestGetSharedRecentlyActiveGames_UnknownToken(t *testing.T) {
@@ -292,9 +295,9 @@ func TestGetSharedRecentlyActiveGames_UnknownToken(t *testing.T) {
 	client := newPublicClient(t)
 	_, err := client.GetSharedRecentlyActiveGames(
 		context.Background(),
-		connect.NewRequest(&dashboardv1.GetSharedRecentlyActiveGamesRequest{
+		&dashboardv1.GetSharedRecentlyActiveGamesRequest{
 			Token: "definitely-not-a-token",
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -307,17 +310,15 @@ func TestGetSharedLibrary_Success(t *testing.T) {
 	client := newPublicReadingClient(t)
 	resp, err := client.GetSharedLibrary(
 		context.Background(),
-		connect.NewRequest(
-			&dashboardv1.GetSharedLibraryRequest{Token: publicReadingToken},
-		),
+		&dashboardv1.GetSharedLibraryRequest{Token: publicReadingToken},
 	)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.Library)
-	require.NotEmpty(t, resp.Msg.Library.Wishlist)
-	assert.Equal(t, publicDisplayName, resp.Msg.DisplayName)
+	require.NotNil(t, resp.Library)
+	require.NotEmpty(t, resp.Library.Wishlist)
+	assert.Equal(t, publicDisplayName, resp.DisplayName)
 
 	var found bool
-	for _, ub := range resp.Msg.Library.Wishlist {
+	for _, ub := range resp.Library.Wishlist {
 		if ub.BookId == bookID {
 			found = true
 		}
@@ -331,9 +332,7 @@ func TestGetSharedLibrary_UnknownToken(t *testing.T) {
 	client := newPublicReadingClient(t)
 	_, err := client.GetSharedLibrary(
 		context.Background(),
-		connect.NewRequest(
-			&dashboardv1.GetSharedLibraryRequest{Token: "definitely-not-a-token"},
-		),
+		&dashboardv1.GetSharedLibraryRequest{Token: "definitely-not-a-token"},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -345,9 +344,7 @@ func TestGetSharedLibrary_WrongKindToken(t *testing.T) {
 	client := newPublicReadingClient(t)
 	_, err := client.GetSharedLibrary(
 		context.Background(),
-		connect.NewRequest(
-			&dashboardv1.GetSharedLibraryRequest{Token: publicGamesToken},
-		),
+		&dashboardv1.GetSharedLibraryRequest{Token: publicGamesToken},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -359,14 +356,14 @@ func TestGetSharedBooksProgress_Success(t *testing.T) {
 	client := newPublicReadingClient(t)
 	resp, err := client.GetSharedBooksProgress(
 		context.Background(),
-		connect.NewRequest(&dashboardv1.GetSharedBooksProgressRequest{
+		&dashboardv1.GetSharedBooksProgressRequest{
 			Token: publicReadingToken,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.Progress)
-	assert.NotEmpty(t, resp.Msg.Progress.DateStart)
-	assert.NotEmpty(t, resp.Msg.Progress.DateEnd)
+	require.NotNil(t, resp.Progress)
+	assert.NotEmpty(t, resp.Progress.DateStart)
+	assert.NotEmpty(t, resp.Progress.DateEnd)
 }
 
 func TestGetSharedBooksProgress_UnknownToken(t *testing.T) {
@@ -375,9 +372,9 @@ func TestGetSharedBooksProgress_UnknownToken(t *testing.T) {
 	client := newPublicReadingClient(t)
 	_, err := client.GetSharedBooksProgress(
 		context.Background(),
-		connect.NewRequest(&dashboardv1.GetSharedBooksProgressRequest{
+		&dashboardv1.GetSharedBooksProgressRequest{
 			Token: "definitely-not-a-token",
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
@@ -393,14 +390,14 @@ func TestGetSharedFeedsSummary_Success(t *testing.T) {
 	client := newPublicReadingClient(t)
 	resp, err := client.GetSharedFeedsSummary(
 		context.Background(),
-		connect.NewRequest(&dashboardv1.GetSharedFeedsSummaryRequest{
+		&dashboardv1.GetSharedFeedsSummaryRequest{
 			Token: publicReadingToken,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	var found bool
-	for _, feed := range resp.Msg.Feeds {
+	for _, feed := range resp.Feeds {
 		if feed.Title == "Dashboard Test Feed" &&
 			feed.Url == "https://example.com" {
 			found = true
@@ -415,9 +412,9 @@ func TestGetSharedFeedsSummary_UnknownToken(t *testing.T) {
 	client := newPublicReadingClient(t)
 	_, err := client.GetSharedFeedsSummary(
 		context.Background(),
-		connect.NewRequest(&dashboardv1.GetSharedFeedsSummaryRequest{
+		&dashboardv1.GetSharedFeedsSummaryRequest{
 			Token: "definitely-not-a-token",
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))

@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 
 	"tools.xdoubleu.com/apps/movies"
@@ -237,7 +239,15 @@ func newKeepingClient(
 	t.Helper()
 	ts := httptest.NewServer(testhelper.BuildMux(newApp(uid, client)))
 	t.Cleanup(ts.Close)
-	return moviesv1connect.NewMoviesServiceClient(http.DefaultClient, ts.URL)
+	return moviesv1connect.NewMoviesServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(
+				http.DefaultClient,
+				ts.URL,
+				connecthttp.WithReadMaxBytes(0),
+			),
+		),
+	)
 }
 
 func TestAppMetadata(t *testing.T) {

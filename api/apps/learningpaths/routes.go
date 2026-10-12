@@ -4,29 +4,29 @@ import (
 	"fmt"
 	"net/http"
 
+	"connectrpc.com/connect/v2"
+
 	"tools.xdoubleu.com/gen/learningpaths/v1/learningpathsv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 )
 
 func (a *LearningPaths) Routes(prefix string, mux *http.ServeMux) {
-	learningPathsPath, learningPathsHandler := learningpathsv1connect.
-		NewLearningPathsServiceHandler(
-			&learningPathsConnectHandler{app: a},
-			iapp.ScrubInternalErrors(a.Logger),
-		)
-	mux.Handle(
-		fmt.Sprintf("POST %s", learningPathsPath),
-		a.services.Auth.AppAccess(prefix, learningPathsHandler.ServeHTTP),
-	)
-
-	todoistPath, todoistHandler := learningpathsv1connect.
-		NewTodoistServiceHandler(
-			&todoistConnectHandler{app: a},
-			iapp.ScrubInternalErrors(a.Logger),
-		)
-	mux.Handle(
-		fmt.Sprintf("POST %s", todoistPath),
-		a.services.Auth.AppAccess(prefix, todoistHandler.ServeHTTP),
+	iapp.MountConnect(
+		mux,
+		a.Logger,
+		func(next http.HandlerFunc) http.HandlerFunc {
+			return a.services.Auth.AppAccess(prefix, next)
+		},
+		func(s *connect.Server) {
+			learningpathsv1connect.RegisterLearningPathsServiceHandler(
+				s,
+				&learningPathsConnectHandler{app: a},
+			)
+			learningpathsv1connect.RegisterTodoistServiceHandler(
+				s,
+				&todoistConnectHandler{app: a},
+			)
+		},
 	)
 
 	// The Todoist OAuth callback is a plain HTTP redirect, not ConnectRPC. It

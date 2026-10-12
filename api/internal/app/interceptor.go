@@ -5,44 +5,41 @@ import (
 	"errors"
 	"log/slog"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	essentialogger "tools.xdoubleu.com/internal/logging"
 )
 
 // ScrubInternalErrors logs CodeInternal/CodeUnknown errors and replaces the
 // client-facing message with a generic one so internals never leak.
-func ScrubInternalErrors(logger *slog.Logger) connect.Option {
-	return connect.WithInterceptors(scrubInterceptor(logger))
-}
-
-func scrubInterceptor(logger *slog.Logger) connect.UnaryInterceptorFunc {
-	return func(next connect.UnaryFunc) connect.UnaryFunc {
+func ScrubInternalErrors(logger *slog.Logger) connect.ServerInterceptor {
+	return func(next connect.ServerFunc) connect.ServerFunc {
 		return func(
 			ctx context.Context,
-			req connect.AnyRequest,
-		) (connect.AnyResponse, error) {
-			resp, err := next(ctx, req)
+			spec connect.Spec,
+			stream connect.ServerStream,
+		) error {
+			err := next(ctx, spec, stream)
 			if err == nil {
-				return resp, nil
+				return nil
 			}
 
 			if errors.Is(err, context.Canceled) {
-				return resp, connect.NewError(connect.CodeCanceled, err)
+				return connect.NewError(connect.CodeCanceled, err.Error()).WithCause(err)
 			}
 
 			code := connect.CodeOf(err)
 			if code != connect.CodeInternal && code != connect.CodeUnknown {
-				return resp, err
+				return err
 			}
 
 			logger.ErrorContext(
 				ctx,
 				"internal error",
-				slog.String("procedure", req.Spec().Procedure),
+				slog.String("procedure", spec.Procedure),
 				essentialogger.ErrAttr(err),
 			)
-			return resp, connect.NewError(code, errors.New("internal server error"))
+			return connect.NewError(code, "internal server error")
 		}
 	}
 }

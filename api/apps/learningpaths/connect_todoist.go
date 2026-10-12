@@ -2,10 +2,9 @@ package learningpaths
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
@@ -20,46 +19,46 @@ var _ learningpathsv1connect.TodoistServiceHandler = (*todoistConnectHandler)(ni
 
 func (h *todoistConnectHandler) ConnectTodoist(
 	ctx context.Context,
-	_ *connect.Request[learningpathsv1.ConnectTodoistRequest],
-) (*connect.Response[learningpathsv1.ConnectTodoistResponse], error) {
+	_ *learningpathsv1.ConnectTodoistRequest,
+) (*learningpathsv1.ConnectTodoistResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated, fmt.Errorf("user not authenticated"),
+		return nil, connect.Errorf(
+			connect.CodeUnauthenticated, "user not authenticated",
 		)
 	}
 
 	url := h.app.services.Todoist.AuthorizeURL(user.ID)
-	return connect.NewResponse(&learningpathsv1.ConnectTodoistResponse{
+	return &learningpathsv1.ConnectTodoistResponse{
 		AuthorizeUrl: url,
-	}), nil
+	}, nil
 }
 
 func (h *todoistConnectHandler) DisconnectTodoist(
 	ctx context.Context,
-	_ *connect.Request[learningpathsv1.DisconnectTodoistRequest],
-) (*connect.Response[learningpathsv1.DisconnectTodoistResponse], error) {
+	_ *learningpathsv1.DisconnectTodoistRequest,
+) (*learningpathsv1.DisconnectTodoistResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated, fmt.Errorf("user not authenticated"),
+		return nil, connect.Errorf(
+			connect.CodeUnauthenticated, "user not authenticated",
 		)
 	}
 
 	if err := h.app.services.Todoist.Disconnect(ctx, user.ID); err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&learningpathsv1.DisconnectTodoistResponse{}), nil
+	return &learningpathsv1.DisconnectTodoistResponse{}, nil
 }
 
 func (h *todoistConnectHandler) GetTodoistConnectionStatus(
 	ctx context.Context,
-	_ *connect.Request[learningpathsv1.GetTodoistConnectionStatusRequest],
-) (*connect.Response[learningpathsv1.GetTodoistConnectionStatusResponse], error) {
+	_ *learningpathsv1.GetTodoistConnectionStatusRequest,
+) (*learningpathsv1.GetTodoistConnectionStatusResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated, fmt.Errorf("user not authenticated"),
+		return nil, connect.Errorf(
+			connect.CodeUnauthenticated, "user not authenticated",
 		)
 	}
 
@@ -75,24 +74,24 @@ func (h *todoistConnectHandler) GetTodoistConnectionStatus(
 	if st.Connected {
 		resp.ConnectedAt = st.ConnectedAt.Format(time.RFC3339)
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 func (h *todoistConnectHandler) GetTodoistSyncState(
 	ctx context.Context,
-	req *connect.Request[learningpathsv1.GetTodoistSyncStateRequest],
-) (*connect.Response[learningpathsv1.GetTodoistSyncStateResponse], error) {
+	req *learningpathsv1.GetTodoistSyncStateRequest,
+) (*learningpathsv1.GetTodoistSyncStateResponse, error) {
 	user := getUser(ctx)
 	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated, fmt.Errorf("user not authenticated"),
+		return nil, connect.Errorf(
+			connect.CodeUnauthenticated, "user not authenticated",
 		)
 	}
 
-	pathID, err := uuid.Parse(req.Msg.LearningPathId)
+	pathID, err := uuid.Parse(req.LearningPathId)
 	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument, fmt.Errorf("invalid learning path ID"),
+		return nil, connect.Errorf(
+			connect.CodeInvalidArgument, "invalid learning path ID",
 		)
 	}
 
@@ -111,7 +110,7 @@ func (h *todoistConnectHandler) GetTodoistSyncState(
 			TodoistTaskId: derefString(it.TodoistTaskID),
 		}
 	}
-	return connect.NewResponse(&learningpathsv1.GetTodoistSyncStateResponse{
+	return &learningpathsv1.GetTodoistSyncStateResponse{
 		Connected:        state.Status.Connected,
 		NeedsReconnect:   state.Status.NeedsReconnect,
 		RequestedScope:   state.Status.RequestedScope,
@@ -119,7 +118,7 @@ func (h *todoistConnectHandler) GetTodoistSyncState(
 		ActiveModule:     state.ActiveModule,
 		Items:            items,
 		Paused:           state.Paused,
-	}), nil
+	}, nil
 }
 
 func derefString(s *string) string {

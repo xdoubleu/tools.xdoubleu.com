@@ -8,7 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,7 +24,15 @@ func setupMealPlansClient(
 	handler http.Handler,
 ) mealplansv1connect.MealPlansServiceClient {
 	ts := httptest.NewServer(handler)
-	return mealplansv1connect.NewMealPlansServiceClient(http.DefaultClient, ts.URL)
+	return mealplansv1connect.NewMealPlansServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(
+				http.DefaultClient,
+				ts.URL,
+				connecthttp.WithReadMaxBytes(0),
+			),
+		),
+	)
 }
 
 func contextWithUser(ctx context.Context, user *sharedmodels.User) context.Context {
@@ -81,11 +90,11 @@ func TestListPlans_AutoCreatesForNewUser(t *testing.T) {
 
 	resp, err := client.ListPlans(
 		ctx,
-		connect.NewRequest(&mealplansv1.ListPlansRequest{}),
+		&mealplansv1.ListPlansRequest{},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, 1, len(resp.Msg.Plans))
-	assert.Equal(t, "My Meal Plan", resp.Msg.Plans[0].Name)
+	assert.Equal(t, 1, len(resp.Plans))
+	assert.Equal(t, "My Meal Plan", resp.Plans[0].Name)
 }
 
 func TestListPlans_ReturnsExistingPlan(t *testing.T) {
@@ -101,10 +110,10 @@ func TestListPlans_ReturnsExistingPlan(t *testing.T) {
 
 	resp, err := client.ListPlans(
 		ctx,
-		connect.NewRequest(&mealplansv1.ListPlansRequest{}),
+		&mealplansv1.ListPlansRequest{},
 	)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Plans)
+	assert.NotEmpty(t, resp.Plans)
 }
 
 // TestListPlans_Pagination checks Limit/Offset/HasMore. Mock auth shares one
@@ -117,32 +126,32 @@ func TestListPlans_Pagination(t *testing.T) {
 	)
 
 	baseline, err := client.ListPlans(
-		ctx, connect.NewRequest(&mealplansv1.ListPlansRequest{Limit: 1000}),
+		ctx, &mealplansv1.ListPlansRequest{Limit: 1000},
 	)
 	require.NoError(t, err)
-	existing := int32(len(baseline.Msg.Plans))
+	existing := int32(len(baseline.Plans))
 
 	createPlanInDB(t, "zzz_paginated_plan_one")
 	createPlanInDB(t, "zzz_paginated_plan_two")
 	createPlanInDB(t, "zzz_paginated_plan_three")
 
 	firstPage, err := client.ListPlans(
-		ctx, connect.NewRequest(&mealplansv1.ListPlansRequest{
+		ctx, &mealplansv1.ListPlansRequest{
 			Limit: 2, Offset: existing,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Len(t, firstPage.Msg.Plans, 2)
-	assert.True(t, firstPage.Msg.HasMore)
+	assert.Len(t, firstPage.Plans, 2)
+	assert.True(t, firstPage.HasMore)
 
 	secondPage, err := client.ListPlans(
-		ctx, connect.NewRequest(&mealplansv1.ListPlansRequest{
+		ctx, &mealplansv1.ListPlansRequest{
 			Limit: 2, Offset: existing + 2,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Len(t, secondPage.Msg.Plans, 1)
-	assert.False(t, secondPage.Msg.HasMore)
+	assert.Len(t, secondPage.Plans, 1)
+	assert.False(t, secondPage.HasMore)
 }
 
 func TestGetPlan_Success(t *testing.T) {
@@ -156,14 +165,14 @@ func TestGetPlan_Success(t *testing.T) {
 
 	planID := createPlanInDB(t, "Test Plan")
 
-	getResp, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Equal(t, "Test Plan", getResp.Msg.Plan.Name)
-	assert.True(t, getResp.Msg.IsOwner)
-	assert.NotEmpty(t, getResp.Msg.IcalUrl)
-	assert.Equal(t, int32(0), getResp.Msg.Offset)
+	assert.Equal(t, "Test Plan", getResp.Plan.Name)
+	assert.True(t, getResp.IsOwner)
+	assert.NotEmpty(t, getResp.IcalUrl)
+	assert.Equal(t, int32(0), getResp.Offset)
 }
 
 func TestGetPlan_WindowStartsToday(t *testing.T) {
@@ -177,17 +186,17 @@ func TestGetPlan_WindowStartsToday(t *testing.T) {
 
 	planID := createPlanInDB(t, "Rolling Plan")
 
-	getResp, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
 
 	today := time.Now().UTC().Truncate(24 * time.Hour)
-	assert.Equal(t, today.Format(time.RFC3339), getResp.Msg.WindowStart)
+	assert.Equal(t, today.Format(time.RFC3339), getResp.WindowStart)
 	assert.Equal(
 		t,
 		today.AddDate(0, 0, 6).Format(time.RFC3339),
-		getResp.Msg.WindowEnd,
+		getResp.WindowEnd,
 	)
 }
 
@@ -202,19 +211,19 @@ func TestUpdatePlan_Success(t *testing.T) {
 
 	planID := createPlanInDB(t, "Original Plan")
 
-	_, err := client.UpdatePlan(ctx, connect.NewRequest(&mealplansv1.UpdatePlanRequest{
+	_, err := client.UpdatePlan(ctx, &mealplansv1.UpdatePlanRequest{
 		Id:            planID,
 		Name:          "Updated Plan",
 		IcalHideSlots: []string{"breakfast"},
 		IcalHidePast:  true,
-	}))
+	})
 	require.NoError(t, err)
 
-	getResp, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Equal(t, "Updated Plan", getResp.Msg.Plan.Name)
+	assert.Equal(t, "Updated Plan", getResp.Plan.Name)
 }
 
 // TestFamilyMember_GrantsAccess stages another user's plan and family
@@ -249,14 +258,14 @@ func TestFamilyMember_GrantsAccess(t *testing.T) {
 	require.NoError(t, err)
 
 	getResp, err := client.GetPlan(
-		ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{Id: planID}),
+		ctx, &mealplansv1.GetPlanRequest{Id: planID},
 	)
 	require.NoError(t, err)
-	assert.False(t, getResp.Msg.IsOwner)
+	assert.False(t, getResp.IsOwner)
 
-	_, err = client.UpdatePlan(ctx, connect.NewRequest(&mealplansv1.UpdatePlanRequest{
+	_, err = client.UpdatePlan(ctx, &mealplansv1.UpdatePlanRequest{
 		Id: planID, Name: "Edited By Family Member",
-	}))
+	})
 	require.NoError(t, err)
 }
 
@@ -272,22 +281,22 @@ func TestAddMeal_WithRecipe(t *testing.T) {
 	recipeID := createRecipeInDB(t, "Chicken")
 	planID := createPlanInDB(t, "Week Plan")
 
-	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+	_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 		PlanId:   planID,
 		MealDate: time.Now().Format("2006-01-02"),
 		MealSlot: "noon",
 		RecipeId: recipeID.String(),
 		Servings: 4,
-	}))
+	})
 	require.NoError(t, err)
 
-	getResp, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Equal(t, 1, len(getResp.Msg.Plan.Meals))
-	assert.Equal(t, "noon", getResp.Msg.Plan.Meals[0].MealSlot)
-	assert.NotEmpty(t, getResp.Msg.Plan.Meals[0].RecipeId)
+	assert.Equal(t, 1, len(getResp.Plan.Meals))
+	assert.Equal(t, "noon", getResp.Plan.Meals[0].MealSlot)
+	assert.NotEmpty(t, getResp.Plan.Meals[0].RecipeId)
 }
 
 func TestAddMeal_WithCustomName(t *testing.T) {
@@ -301,23 +310,23 @@ func TestAddMeal_WithCustomName(t *testing.T) {
 
 	planID := createPlanInDB(t, "Custom Meals Plan")
 
-	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+	_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 		PlanId:     planID,
 		MealDate:   time.Now().Format("2006-01-02"),
 		MealSlot:   "breakfast",
 		CustomName: "Scrambled eggs",
 		Servings:   1,
-	}))
+	})
 	require.NoError(t, err)
 
-	getResp, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Equal(t, 1, len(getResp.Msg.Plan.Meals))
-	assert.Equal(t, "breakfast", getResp.Msg.Plan.Meals[0].MealSlot)
-	assert.Equal(t, "Scrambled eggs", getResp.Msg.Plan.Meals[0].CustomName)
-	assert.Equal(t, "", getResp.Msg.Plan.Meals[0].RecipeId)
+	assert.Equal(t, 1, len(getResp.Plan.Meals))
+	assert.Equal(t, "breakfast", getResp.Plan.Meals[0].MealSlot)
+	assert.Equal(t, "Scrambled eggs", getResp.Plan.Meals[0].CustomName)
+	assert.Equal(t, "", getResp.Plan.Meals[0].RecipeId)
 }
 
 func TestAddMeal_ExcludedFromShoppingList(t *testing.T) {
@@ -331,21 +340,21 @@ func TestAddMeal_ExcludedFromShoppingList(t *testing.T) {
 
 	planID := createPlanInDB(t, "Event Plan")
 
-	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+	_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 		PlanId:                  planID,
 		MealDate:                time.Now().Format("2006-01-02"),
 		MealSlot:                "evening",
 		CustomName:              "Birthday dinner",
 		ExcludeFromShoppingList: true,
-	}))
+	})
 	require.NoError(t, err)
 
-	getResp, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	require.Len(t, getResp.Msg.Plan.Meals, 1)
-	meal := getResp.Msg.Plan.Meals[0]
+	require.Len(t, getResp.Plan.Meals, 1)
+	meal := getResp.Plan.Meals[0]
 	assert.Equal(t, "Birthday dinner", meal.CustomName)
 	assert.Empty(t, meal.RecipeId)
 	assert.True(t, meal.ExcludeFromShoppingList)
@@ -362,10 +371,10 @@ func TestAddMeal_RequiresRecipeOrName(t *testing.T) {
 
 	planID := createPlanInDB(t, "Test Plan")
 
-	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+	_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 		PlanId: planID, MealDate: time.Now().Format("2006-01-02"),
 		MealSlot: "noon", Servings: 2,
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
@@ -381,32 +390,32 @@ func TestDeleteMeal_Success(t *testing.T) {
 
 	planID := createPlanInDB(t, "Delete Meal Plan")
 
-	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+	_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 		PlanId:     planID,
 		MealDate:   time.Now().Format("2006-01-02"),
 		MealSlot:   "noon",
 		CustomName: "Test Meal",
 		Servings:   2,
-	}))
+	})
 	require.NoError(t, err)
 
-	getResp, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	require.Equal(t, 1, len(getResp.Msg.Plan.Meals))
-	mealID := getResp.Msg.Plan.Meals[0].Id
+	require.Equal(t, 1, len(getResp.Plan.Meals))
+	mealID := getResp.Plan.Meals[0].Id
 
-	_, err = client.DeleteMeal(ctx, connect.NewRequest(&mealplansv1.DeleteMealRequest{
+	_, err = client.DeleteMeal(ctx, &mealplansv1.DeleteMealRequest{
 		PlanId: planID, MealId: mealID,
-	}))
+	})
 	require.NoError(t, err)
 
-	getResp2, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp2, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	assert.Equal(t, 0, len(getResp2.Msg.Plan.Meals))
+	assert.Equal(t, 0, len(getResp2.Plan.Meals))
 }
 
 func TestUpdateMeal_Success(t *testing.T) {
@@ -421,31 +430,31 @@ func TestUpdateMeal_Success(t *testing.T) {
 	planID := createPlanInDB(t, "Update Meal Plan")
 	today := time.Now().Format("2006-01-02")
 
-	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+	_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 		PlanId: planID, MealDate: today, MealSlot: "noon",
 		CustomName: "Old Meal", Servings: 2,
-	}))
+	})
 	require.NoError(t, err)
 
-	getResp, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	require.Equal(t, 1, len(getResp.Msg.Plan.Meals))
-	mealID := getResp.Msg.Plan.Meals[0].Id
+	require.Equal(t, 1, len(getResp.Plan.Meals))
+	mealID := getResp.Plan.Meals[0].Id
 
-	_, err = client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+	_, err = client.UpdateMeal(ctx, &mealplansv1.UpdateMealRequest{
 		PlanId: planID, MealId: mealID,
 		CustomName: "New Meal", Servings: 5, ExcludeFromShoppingList: true,
-	}))
+	})
 	require.NoError(t, err)
 
-	getResp2, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp2, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	require.Equal(t, 1, len(getResp2.Msg.Plan.Meals))
-	updated := getResp2.Msg.Plan.Meals[0]
+	require.Equal(t, 1, len(getResp2.Plan.Meals))
+	updated := getResp2.Plan.Meals[0]
 	assert.Equal(t, mealID, updated.Id)
 	assert.Equal(t, "New Meal", updated.CustomName)
 	assert.Equal(t, int32(5), updated.Servings)
@@ -463,9 +472,9 @@ func TestUpdateMeal_RequiresRecipeOrName(t *testing.T) {
 		},
 	)
 
-	_, err := client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+	_, err := client.UpdateMeal(ctx, &mealplansv1.UpdateMealRequest{
 		PlanId: uuid.New().String(), MealId: uuid.New().String(), Servings: 2,
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -479,9 +488,9 @@ func TestUpdateMeal_InvalidPlanID(t *testing.T) {
 		},
 	)
 
-	_, err := client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+	_, err := client.UpdateMeal(ctx, &mealplansv1.UpdateMealRequest{
 		PlanId: "not-a-uuid", MealId: uuid.New().String(), CustomName: "X",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -495,9 +504,9 @@ func TestUpdateMeal_InvalidMealID(t *testing.T) {
 		},
 	)
 
-	_, err := client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+	_, err := client.UpdateMeal(ctx, &mealplansv1.UpdateMealRequest{
 		PlanId: uuid.New().String(), MealId: "not-a-uuid", CustomName: "X",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -511,11 +520,11 @@ func TestUpdateMeal_InvalidRecipeID(t *testing.T) {
 		},
 	)
 
-	_, err := client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+	_, err := client.UpdateMeal(ctx, &mealplansv1.UpdateMealRequest{
 		PlanId: uuid.New().
 			String(),
 		MealId: uuid.New().String(), RecipeId: "not-a-uuid",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -529,9 +538,9 @@ func TestUpdateMeal_PlanNotFound(t *testing.T) {
 		},
 	)
 
-	_, err := client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+	_, err := client.UpdateMeal(ctx, &mealplansv1.UpdateMealRequest{
 		PlanId: uuid.New().String(), MealId: uuid.New().String(), CustomName: "Ghost",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
@@ -550,30 +559,30 @@ func TestMoveMeal_ToEmptySlot(t *testing.T) {
 	today := time.Now().Format("2006-01-02")
 	tomorrow := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
 
-	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+	_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 		PlanId: planID, MealDate: today, MealSlot: "noon",
 		CustomName: "Pasta", Servings: 2,
-	}))
+	})
 	require.NoError(t, err)
 
-	getResp, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	mealID := getResp.Msg.Plan.Meals[0].Id
+	mealID := getResp.Plan.Meals[0].Id
 
-	_, err = client.MoveMeal(ctx, connect.NewRequest(&mealplansv1.MoveMealRequest{
+	_, err = client.MoveMeal(ctx, &mealplansv1.MoveMealRequest{
 		PlanId: planID, MealId: mealID, NewDate: tomorrow, NewSlot: "noon",
-	}))
+	})
 	require.NoError(t, err)
 
-	getResp, err = client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp, err = client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	require.Equal(t, 1, len(getResp.Msg.Plan.Meals))
-	assert.Equal(t, tomorrow, getResp.Msg.Plan.Meals[0].MealDate)
-	assert.Equal(t, "Pasta", getResp.Msg.Plan.Meals[0].CustomName)
+	require.Equal(t, 1, len(getResp.Plan.Meals))
+	assert.Equal(t, tomorrow, getResp.Plan.Meals[0].MealDate)
+	assert.Equal(t, "Pasta", getResp.Plan.Meals[0].CustomName)
 }
 
 func TestAddMeal_MultipleCustomItemsSameSlot(t *testing.T) {
@@ -589,26 +598,26 @@ func TestAddMeal_MultipleCustomItemsSameSlot(t *testing.T) {
 
 	today := time.Now().Format("2006-01-02")
 
-	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+	_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 		PlanId: planID, MealDate: today, MealSlot: "noon",
 		CustomName: "Salad", Servings: 1,
-	}))
+	})
 	require.NoError(t, err)
-	_, err = client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+	_, err = client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 		PlanId: planID, MealDate: today, MealSlot: "noon",
 		CustomName: "Soup", Servings: 1,
-	}))
+	})
 	require.NoError(t, err)
 
-	getResp, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	require.Equal(t, 2, len(getResp.Msg.Plan.Meals))
+	require.Equal(t, 2, len(getResp.Plan.Meals))
 
 	names := []string{
-		getResp.Msg.Plan.Meals[0].CustomName,
-		getResp.Msg.Plan.Meals[1].CustomName,
+		getResp.Plan.Meals[0].CustomName,
+		getResp.Plan.Meals[1].CustomName,
 	}
 	assert.ElementsMatch(t, []string{"Salad", "Soup"}, names)
 }
@@ -626,30 +635,30 @@ func TestMoveMeal_NoOp(t *testing.T) {
 
 	today := time.Now().Format("2006-01-02")
 
-	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+	_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 		PlanId: planID, MealDate: today, MealSlot: "evening",
 		CustomName: "Soup", Servings: 2,
-	}))
+	})
 	require.NoError(t, err)
 
-	getResp, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	mealID := getResp.Msg.Plan.Meals[0].Id
+	mealID := getResp.Plan.Meals[0].Id
 
-	_, err = client.MoveMeal(ctx, connect.NewRequest(&mealplansv1.MoveMealRequest{
+	_, err = client.MoveMeal(ctx, &mealplansv1.MoveMealRequest{
 		PlanId: planID, MealId: mealID, NewDate: today, NewSlot: "evening",
-	}))
+	})
 	require.NoError(t, err)
 
-	getResp, err = client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+	getResp, err = client.GetPlan(ctx, &mealplansv1.GetPlanRequest{
 		Id: planID, Offset: 0,
-	}))
+	})
 	require.NoError(t, err)
-	require.Equal(t, 1, len(getResp.Msg.Plan.Meals))
-	assert.Equal(t, today, getResp.Msg.Plan.Meals[0].MealDate)
-	assert.Equal(t, "evening", getResp.Msg.Plan.Meals[0].MealSlot)
+	require.Equal(t, 1, len(getResp.Plan.Meals))
+	assert.Equal(t, today, getResp.Plan.Meals[0].MealDate)
+	assert.Equal(t, "evening", getResp.Plan.Meals[0].MealSlot)
 }
 
 func TestDeleteMeal_InvalidPlanID(t *testing.T) {
@@ -660,9 +669,9 @@ func TestDeleteMeal_InvalidPlanID(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.DeleteMeal(ctx, connect.NewRequest(&mealplansv1.DeleteMealRequest{
+	_, err := client.DeleteMeal(ctx, &mealplansv1.DeleteMealRequest{
 		PlanId: "not-a-uuid", MealId: uuid.New().String(),
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
@@ -675,10 +684,10 @@ func TestMoveMeal_InvalidPlanID(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.MoveMeal(ctx, connect.NewRequest(&mealplansv1.MoveMealRequest{
+	_, err := client.MoveMeal(ctx, &mealplansv1.MoveMealRequest{
 		PlanId: "not-a-uuid", MealId: uuid.New().String(),
 		NewDate: "2026-01-01", NewSlot: "noon",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
@@ -715,10 +724,10 @@ func TestICalFeedHandler_Success(t *testing.T) {
 	planID := createPlanInDB(t, "iCal Plan")
 
 	getResp, err := client.GetPlan(
-		ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{Id: planID, Offset: 0}),
+		ctx, &mealplansv1.GetPlanRequest{Id: planID, Offset: 0},
 	)
 	require.NoError(t, err)
-	icalURL := getResp.Msg.IcalUrl
+	icalURL := getResp.IcalUrl
 
 	ts := httptest.NewServer(getRoutes())
 	defer ts.Close()
@@ -738,9 +747,9 @@ func TestUpdatePlan_InvalidPlanID(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.UpdatePlan(ctx, connect.NewRequest(&mealplansv1.UpdatePlanRequest{
+	_, err := client.UpdatePlan(ctx, &mealplansv1.UpdatePlanRequest{
 		Id: "not-a-uuid", Name: "x",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
@@ -753,9 +762,9 @@ func TestUpdatePlan_NotFound(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.UpdatePlan(ctx, connect.NewRequest(&mealplansv1.UpdatePlanRequest{
+	_, err := client.UpdatePlan(ctx, &mealplansv1.UpdatePlanRequest{
 		Id: uuid.New().String(), Name: "ghost",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
 }
@@ -768,9 +777,9 @@ func TestAddMeal_InvalidPlanID(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+	_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 		PlanId: "not-a-uuid", MealDate: "2026-01-01", MealSlot: "noon", CustomName: "x",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
@@ -783,11 +792,11 @@ func TestAddMeal_InvalidDate(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+	_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 		PlanId: uuid.New().
 			String(),
 		MealDate: "not-a-date", MealSlot: "noon", CustomName: "x",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
@@ -800,12 +809,12 @@ func TestAddMeal_InvalidRecipeID(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+	_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 		PlanId:   uuid.New().String(),
 		MealDate: "2026-01-01",
 		MealSlot: "noon",
 		RecipeId: "not-a-uuid",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
@@ -818,9 +827,9 @@ func TestDeleteMeal_InvalidMealID(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.DeleteMeal(ctx, connect.NewRequest(&mealplansv1.DeleteMealRequest{
+	_, err := client.DeleteMeal(ctx, &mealplansv1.DeleteMealRequest{
 		PlanId: uuid.New().String(), MealId: "not-a-uuid",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
@@ -833,10 +842,10 @@ func TestMoveMeal_InvalidMealID(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.MoveMeal(ctx, connect.NewRequest(&mealplansv1.MoveMealRequest{
+	_, err := client.MoveMeal(ctx, &mealplansv1.MoveMealRequest{
 		PlanId: uuid.New().String(), MealId: "not-a-uuid",
 		NewDate: "2026-01-01", NewSlot: "noon",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
@@ -849,10 +858,10 @@ func TestMoveMeal_InvalidDate(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.MoveMeal(ctx, connect.NewRequest(&mealplansv1.MoveMealRequest{
+	_, err := client.MoveMeal(ctx, &mealplansv1.MoveMealRequest{
 		PlanId: uuid.New().String(), MealId: uuid.New().String(),
 		NewDate: "not-a-date", NewSlot: "noon",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
@@ -865,10 +874,10 @@ func TestMoveMeal_InvalidSlot(t *testing.T) {
 			ID: userID,
 		},
 	)
-	_, err := client.MoveMeal(ctx, connect.NewRequest(&mealplansv1.MoveMealRequest{
+	_, err := client.MoveMeal(ctx, &mealplansv1.MoveMealRequest{
 		PlanId: uuid.New().String(), MealId: uuid.New().String(),
 		NewDate: "2026-01-01", NewSlot: "invalid-slot",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
@@ -890,10 +899,10 @@ func TestSuggestRecipes_RanksByWeekdayAndSlot(t *testing.T) {
 	add := func(plan, date, slot string, recipe uuid.UUID, servings int32) {
 		_, err := client.CreateMeal(
 			ctx,
-			connect.NewRequest(&mealplansv1.CreateMealRequest{
+			&mealplansv1.CreateMealRequest{
 				PlanId: plan, MealDate: date, MealSlot: slot,
 				RecipeId: recipe.String(), Servings: servings,
-			}),
+			},
 		)
 		require.NoError(t, err)
 	}
@@ -911,16 +920,16 @@ func TestSuggestRecipes_RanksByWeekdayAndSlot(t *testing.T) {
 
 	resp, err := client.SuggestRecipes(
 		ctx,
-		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
+		&mealplansv1.SuggestRecipesRequest{
 			PlanId: planID, MealDate: "2024-02-05", MealSlot: "noon", // a Monday
-		}),
+		},
 	)
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.Suggestions, 2)
-	assert.Equal(t, recipeA.String(), resp.Msg.Suggestions[0].RecipeId)
-	assert.Equal(t, int32(4), resp.Msg.Suggestions[0].Servings)
-	assert.Equal(t, recipeB.String(), resp.Msg.Suggestions[1].RecipeId)
-	assert.Equal(t, int32(2), resp.Msg.Suggestions[1].Servings)
+	require.Len(t, resp.Suggestions, 2)
+	assert.Equal(t, recipeA.String(), resp.Suggestions[0].RecipeId)
+	assert.Equal(t, int32(4), resp.Suggestions[0].Servings)
+	assert.Equal(t, recipeB.String(), resp.Suggestions[1].RecipeId)
+	assert.Equal(t, int32(2), resp.Suggestions[1].Servings)
 }
 
 func TestSuggestRecipes_ExcludesDrafts(t *testing.T) {
@@ -941,21 +950,21 @@ func TestSuggestRecipes_ExcludesDrafts(t *testing.T) {
 
 	_, err = client.CreateMeal(
 		ctx,
-		connect.NewRequest(&mealplansv1.CreateMealRequest{
+		&mealplansv1.CreateMealRequest{
 			PlanId: planID, MealDate: "2024-01-01", MealSlot: "noon", // Monday
 			RecipeId: draftRecipe.String(), Servings: 4,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	resp, err := client.SuggestRecipes(
 		ctx,
-		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
+		&mealplansv1.SuggestRecipesRequest{
 			PlanId: planID, MealDate: "2024-02-05", MealSlot: "noon", // a Monday
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.Suggestions)
+	assert.Empty(t, resp.Suggestions)
 }
 
 func TestSuggestRecipes_EmptyWhenNoHistory(t *testing.T) {
@@ -971,12 +980,12 @@ func TestSuggestRecipes_EmptyWhenNoHistory(t *testing.T) {
 
 	resp, err := client.SuggestRecipes(
 		ctx,
-		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
+		&mealplansv1.SuggestRecipesRequest{
 			PlanId: planID, MealDate: "2024-01-22", MealSlot: "evening",
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.Suggestions)
+	assert.Empty(t, resp.Suggestions)
 }
 
 func TestSuggestRecipes_PlanNotFound(t *testing.T) {
@@ -990,9 +999,9 @@ func TestSuggestRecipes_PlanNotFound(t *testing.T) {
 
 	_, err := client.SuggestRecipes(
 		ctx,
-		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
+		&mealplansv1.SuggestRecipesRequest{
 			PlanId: uuid.New().String(), MealDate: "2024-01-22", MealSlot: "noon",
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
@@ -1008,9 +1017,9 @@ func TestSuggestRecipes_InvalidPlanID(t *testing.T) {
 	)
 	_, err := client.SuggestRecipes(
 		ctx,
-		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
+		&mealplansv1.SuggestRecipesRequest{
 			PlanId: "not-a-uuid", MealDate: "2024-01-22", MealSlot: "noon",
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
@@ -1026,9 +1035,9 @@ func TestSuggestRecipes_InvalidDate(t *testing.T) {
 	)
 	_, err := client.SuggestRecipes(
 		ctx,
-		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
+		&mealplansv1.SuggestRecipesRequest{
 			PlanId: uuid.New().String(), MealDate: "not-a-date", MealSlot: "noon",
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
@@ -1045,16 +1054,16 @@ func TestRotateICalToken_RevokesOldLink(t *testing.T) {
 	planID := createPlanInDB(t, "Rotate iCal Plan")
 
 	getResp, err := client.GetPlan(
-		ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{Id: planID, Offset: 0}),
+		ctx, &mealplansv1.GetPlanRequest{Id: planID, Offset: 0},
 	)
 	require.NoError(t, err)
-	oldURL := getResp.Msg.IcalUrl
+	oldURL := getResp.IcalUrl
 
 	rotResp, err := client.RotateICalToken(
-		ctx, connect.NewRequest(&mealplansv1.RotateICalTokenRequest{Id: planID}),
+		ctx, &mealplansv1.RotateICalTokenRequest{Id: planID},
 	)
 	require.NoError(t, err)
-	newURL := rotResp.Msg.IcalUrl
+	newURL := rotResp.IcalUrl
 	assert.NotEqual(t, oldURL, newURL)
 
 	ts := httptest.NewServer(getRoutes())
@@ -1081,15 +1090,15 @@ func TestRotateICalToken_InvalidAndUnknownPlan(t *testing.T) {
 	)
 
 	_, err := client.RotateICalToken(
-		ctx, connect.NewRequest(&mealplansv1.RotateICalTokenRequest{Id: "not-a-uuid"}),
+		ctx, &mealplansv1.RotateICalTokenRequest{Id: "not-a-uuid"},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 
 	_, err = client.RotateICalToken(
-		ctx, connect.NewRequest(&mealplansv1.RotateICalTokenRequest{
+		ctx, &mealplansv1.RotateICalTokenRequest{
 			Id: uuid.New().String(),
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())

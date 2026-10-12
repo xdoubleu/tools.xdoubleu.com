@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/movies/internal/models"
@@ -28,7 +28,7 @@ func userID(ctx context.Context) (string, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return "", connect.NewError(
-			connect.CodeUnauthenticated, errors.New("user not authenticated"),
+			connect.CodeUnauthenticated, "user not authenticated",
 		)
 	}
 	return user.ID, nil
@@ -38,7 +38,7 @@ func parseID(raw string) (uuid.UUID, error) {
 	id, err := uuid.Parse(raw)
 	if err != nil {
 		return uuid.Nil, connect.NewError(
-			connect.CodeInvalidArgument, errors.New("invalid id"),
+			connect.CodeInvalidArgument, "invalid id",
 		)
 	}
 	return id, nil
@@ -46,7 +46,7 @@ func parseID(raw string) (uuid.UUID, error) {
 
 func mapError(err error) error {
 	if errors.Is(err, services.ErrNotConfigured) {
-		return connect.NewError(connect.CodeFailedPrecondition, err)
+		return connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 	return connecttools.MapError(err)
 }

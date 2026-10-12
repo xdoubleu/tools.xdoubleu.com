@@ -5,7 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -16,16 +17,20 @@ import (
 func dashboardClient(t *testing.T) dashboardv1connect.DashboardServiceClient {
 	t.Helper()
 	ts := connectServer(t)
-	return dashboardv1connect.NewDashboardServiceClient(ts.Client(), ts.URL)
+	return dashboardv1connect.NewDashboardServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(ts.Client(), ts.URL, connecthttp.WithReadMaxBytes(0)),
+		),
+	)
 }
 
 func TestGetDashboardShare_Unauthenticated(t *testing.T) {
 	client := dashboardClient(t)
 	_, err := client.GetDashboardShare(
 		context.Background(),
-		connect.NewRequest(&dashboardv1.GetDashboardShareRequest{
+		&dashboardv1.GetDashboardShareRequest{
 			Kind: dashboardv1.DashboardKind_DASHBOARD_KIND_READING,
-		}),
+		},
 	)
 	require.Error(t, err)
 }
@@ -38,11 +43,10 @@ func TestCreateDashboardShare_RequiresDisplayName(t *testing.T) {
 	require.NoError(t, testApp.appUsersRepo.SetDisplayName(ctx, testUserID, ""))
 	require.NoError(t, testApp.profileSharesRepo.Delete(ctx, testUserID, "reading"))
 
-	req := connect.NewRequest(&dashboardv1.CreateDashboardShareRequest{
+	req := &dashboardv1.CreateDashboardShareRequest{
 		Kind: dashboardv1.DashboardKind_DASHBOARD_KIND_READING,
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.CreateDashboardShare(ctx, req)
+	}
+	_, err := client.CreateDashboardShare(withCookies(ctx, accessToken), req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
@@ -53,9 +57,8 @@ func TestSetDisplayName(t *testing.T) {
 
 	require.NoError(t, testApp.appUsersRepo.Upsert(ctx, testUserID, "user@example.com"))
 
-	req := connect.NewRequest(&dashboardv1.SetDisplayNameRequest{DisplayName: "Alice"})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.SetDisplayName(ctx, req)
+	req := &dashboardv1.SetDisplayNameRequest{DisplayName: "Alice"}
+	_, err := client.SetDisplayName(withCookies(ctx, accessToken), req)
 	require.NoError(t, err)
 
 	user, err := testApp.appUsersRepo.GetByID(ctx, testUserID)
@@ -67,9 +70,8 @@ func TestSetDisplayName_Empty(t *testing.T) {
 	ctx := context.Background()
 	client := dashboardClient(t)
 
-	req := connect.NewRequest(&dashboardv1.SetDisplayNameRequest{DisplayName: ""})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.SetDisplayName(ctx, req)
+	req := &dashboardv1.SetDisplayNameRequest{DisplayName: ""}
+	_, err := client.SetDisplayName(withCookies(ctx, accessToken), req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -86,76 +88,77 @@ func TestDashboardShare_Lifecycle(t *testing.T) {
 	)
 	require.NoError(t, testApp.profileSharesRepo.Delete(ctx, testUserID, "reading"))
 
-	getReq := connect.NewRequest(&dashboardv1.GetDashboardShareRequest{
+	getReq := &dashboardv1.GetDashboardShareRequest{
 		Kind: dashboardv1.DashboardKind_DASHBOARD_KIND_READING,
-	})
-	setCookieOnRequest(getReq, accessToken)
-	getResp, err := client.GetDashboardShare(ctx, getReq)
+	}
+	getResp, err := client.GetDashboardShare(withCookies(ctx, accessToken), getReq)
 	require.NoError(t, err)
-	assert.Nil(t, getResp.Msg.Share, "no share should exist yet")
+	assert.Nil(t, getResp.Share, "no share should exist yet")
 
-	createReq := connect.NewRequest(&dashboardv1.CreateDashboardShareRequest{
+	createReq := &dashboardv1.CreateDashboardShareRequest{
 		Kind: dashboardv1.DashboardKind_DASHBOARD_KIND_READING,
-	})
-	setCookieOnRequest(createReq, accessToken)
-	createResp, err := client.CreateDashboardShare(ctx, createReq)
+	}
+	createResp, err := client.CreateDashboardShare(
+		withCookies(ctx, accessToken),
+		createReq,
+	)
 	require.NoError(t, err)
-	require.NotNil(t, createResp.Msg.Share)
-	token := createResp.Msg.Share.Token
+	require.NotNil(t, createResp.Share)
+	token := createResp.Share.Token
 	assert.NotEmpty(t, token)
-	_, err = time.Parse(time.RFC3339, createResp.Msg.Share.CreatedAt)
+	_, err = time.Parse(time.RFC3339, createResp.Share.CreatedAt)
 	assert.NoError(t, err)
 
-	getReq = connect.NewRequest(&dashboardv1.GetDashboardShareRequest{
+	getReq = &dashboardv1.GetDashboardShareRequest{
 		Kind: dashboardv1.DashboardKind_DASHBOARD_KIND_READING,
-	})
-	setCookieOnRequest(getReq, accessToken)
-	getResp, err = client.GetDashboardShare(ctx, getReq)
+	}
+	getResp, err = client.GetDashboardShare(withCookies(ctx, accessToken), getReq)
 	require.NoError(t, err)
-	require.NotNil(t, getResp.Msg.Share)
-	assert.Equal(t, token, getResp.Msg.Share.Token)
+	require.NotNil(t, getResp.Share)
+	assert.Equal(t, token, getResp.Share.Token)
 
 	// The games share is independent of the reading link.
-	gamesCreateReq := connect.NewRequest(&dashboardv1.CreateDashboardShareRequest{
+	gamesCreateReq := &dashboardv1.CreateDashboardShareRequest{
 		Kind: dashboardv1.DashboardKind_DASHBOARD_KIND_GAMES,
-	})
-	setCookieOnRequest(gamesCreateReq, accessToken)
-	gamesCreateResp, err := client.CreateDashboardShare(ctx, gamesCreateReq)
+	}
+	gamesCreateResp, err := client.CreateDashboardShare(
+		withCookies(ctx, accessToken),
+		gamesCreateReq,
+	)
 	require.NoError(t, err)
-	gamesToken := gamesCreateResp.Msg.Share.Token
+	gamesToken := gamesCreateResp.Share.Token
 
-	createReq = connect.NewRequest(&dashboardv1.CreateDashboardShareRequest{
+	createReq = &dashboardv1.CreateDashboardShareRequest{
 		Kind: dashboardv1.DashboardKind_DASHBOARD_KIND_READING,
-	})
-	setCookieOnRequest(createReq, accessToken)
-	regenResp, err := client.CreateDashboardShare(ctx, createReq)
+	}
+	regenResp, err := client.CreateDashboardShare(withCookies(ctx, accessToken), createReq)
 	require.NoError(t, err)
-	require.NotNil(t, regenResp.Msg.Share)
-	assert.NotEqual(t, token, regenResp.Msg.Share.Token)
+	require.NotNil(t, regenResp.Share)
+	assert.NotEqual(t, token, regenResp.Share.Token)
 
-	deleteReq := connect.NewRequest(&dashboardv1.DeleteDashboardShareRequest{
+	deleteReq := &dashboardv1.DeleteDashboardShareRequest{
 		Kind: dashboardv1.DashboardKind_DASHBOARD_KIND_READING,
-	})
-	setCookieOnRequest(deleteReq, accessToken)
-	_, err = client.DeleteDashboardShare(ctx, deleteReq)
+	}
+	_, err = client.DeleteDashboardShare(withCookies(ctx, accessToken), deleteReq)
 	require.NoError(t, err)
 
-	getReq = connect.NewRequest(&dashboardv1.GetDashboardShareRequest{
+	getReq = &dashboardv1.GetDashboardShareRequest{
 		Kind: dashboardv1.DashboardKind_DASHBOARD_KIND_READING,
-	})
-	setCookieOnRequest(getReq, accessToken)
-	getResp, err = client.GetDashboardShare(ctx, getReq)
+	}
+	getResp, err = client.GetDashboardShare(withCookies(ctx, accessToken), getReq)
 	require.NoError(t, err)
-	assert.Nil(t, getResp.Msg.Share, "share should be gone after delete")
+	assert.Nil(t, getResp.Share, "share should be gone after delete")
 
-	gamesGetReq := connect.NewRequest(&dashboardv1.GetDashboardShareRequest{
+	gamesGetReq := &dashboardv1.GetDashboardShareRequest{
 		Kind: dashboardv1.DashboardKind_DASHBOARD_KIND_GAMES,
-	})
-	setCookieOnRequest(gamesGetReq, accessToken)
-	gamesGetResp, err := client.GetDashboardShare(ctx, gamesGetReq)
+	}
+	gamesGetResp, err := client.GetDashboardShare(
+		withCookies(ctx, accessToken),
+		gamesGetReq,
+	)
 	require.NoError(t, err)
-	require.NotNil(t, gamesGetResp.Msg.Share)
-	assert.Equal(t, gamesToken, gamesGetResp.Msg.Share.Token)
+	require.NotNil(t, gamesGetResp.Share)
+	assert.Equal(t, gamesToken, gamesGetResp.Share.Token)
 
 	require.NoError(t, testApp.profileSharesRepo.Delete(ctx, testUserID, "games"))
 }

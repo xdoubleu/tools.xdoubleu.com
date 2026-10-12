@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"connectrpc.com/connect/v2"
+
 	"tools.xdoubleu.com/gen/mealplans/v1/mealplansv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 )
@@ -17,12 +19,17 @@ func (a *MealPlans) Routes(prefix string, mux *http.ServeMux) {
 		a.icalFeedHandler,
 	)
 
-	mealplansPath, mealplansHandler := mealplansv1connect.NewMealPlansServiceHandler(
-		&mealplansConnectHandler{app: a},
-		iapp.ScrubInternalErrors(a.Logger),
-	)
-	mux.Handle(
-		"POST "+mealplansPath,
-		a.services.Auth.AppAccess(prefix, mealplansHandler.ServeHTTP),
+	iapp.MountConnect(
+		mux,
+		a.Logger,
+		func(next http.HandlerFunc) http.HandlerFunc {
+			return a.services.Auth.AppAccess(prefix, next)
+		},
+		func(s *connect.Server) {
+			mealplansv1connect.RegisterMealPlansServiceHandler(
+				s,
+				&mealplansConnectHandler{app: a},
+			)
+		},
 	)
 }

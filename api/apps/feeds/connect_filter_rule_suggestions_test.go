@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -89,11 +89,11 @@ func suggestionFor(
 	t.Helper()
 	resp, err := client.GetFilterRuleSuggestions(
 		context.Background(),
-		connect.NewRequest(&feedsv1.GetFilterRuleSuggestionsRequest{}),
+		&feedsv1.GetFilterRuleSuggestionsRequest{},
 	)
 	require.NoError(t, err)
 	var out *feedsv1.FilterRuleSuggestion
-	for _, s := range resp.Msg.Suggestions {
+	for _, s := range resp.Suggestions {
 		if s.FeedId == feedID {
 			require.Nil(t, out, "feed %s has more than one suggestion", feedID)
 			out = s
@@ -108,9 +108,9 @@ func dismissSuggestion(
 ) error {
 	_, err := client.DismissFilterRuleSuggestion(
 		context.Background(),
-		connect.NewRequest(&feedsv1.DismissFilterRuleSuggestionRequest{
+		&feedsv1.DismissFilterRuleSuggestionRequest{
 			FeedId: feedID, Category: category,
-		}),
+		},
 	)
 	return err
 }

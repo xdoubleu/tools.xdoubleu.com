@@ -10,6 +10,8 @@ import (
 	"sync"
 	"testing"
 
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 
 	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
@@ -203,7 +205,15 @@ func newKeepingClient(
 	t.Helper()
 	ts := httptest.NewServer(testhelper.BuildMux(newApp(uid, client, fetch)))
 	t.Cleanup(ts.Close)
-	return podcastsv1connect.NewPodcastsServiceClient(http.DefaultClient, ts.URL)
+	return podcastsv1connect.NewPodcastsServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(
+				http.DefaultClient,
+				ts.URL,
+				connecthttp.WithReadMaxBytes(0),
+			),
+		),
+	)
 }
 
 func TestAppMetadata(t *testing.T) {

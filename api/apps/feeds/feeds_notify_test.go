@@ -12,7 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -115,7 +116,15 @@ func newNotifyTestApp(
 
 	ts := httptest.NewServer(testhelper.BuildMux(app))
 	t.Cleanup(ts.Close)
-	client := feedsv1connect.NewFeedServiceClient(http.DefaultClient, ts.URL)
+	client := feedsv1connect.NewFeedServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(
+				http.DefaultClient,
+				ts.URL,
+				connecthttp.WithReadMaxBytes(0),
+			),
+		),
+	)
 	return client, webFetch, mailSrv, notifSvc, &logBuf
 }
 
@@ -148,10 +157,10 @@ func TestFeedNotify_ErrorThreshold_DedupAndRecovery(t *testing.T) {
 
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	feedID := created.Msg.Feed.Id
+	feedID := created.Feed.Id
 	waitForFeedImport(t, client, feedID)
 	assert.Equal(t, 0, mailSrv.count())
 
@@ -160,7 +169,7 @@ func TestFeedNotify_ErrorThreshold_DedupAndRecovery(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		_, refreshErr := client.RefreshFeed(
 			context.Background(),
-			connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: feedID}),
+			&feedsv1.RefreshFeedRequest{FeedId: feedID},
 		)
 		require.Error(t, refreshErr)
 	}
@@ -169,7 +178,7 @@ func TestFeedNotify_ErrorThreshold_DedupAndRecovery(t *testing.T) {
 
 	_, err = client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: feedID}),
+		&feedsv1.RefreshFeedRequest{FeedId: feedID},
 	)
 	require.Error(t, err)
 	notifSvc.WaitUntilDone()
@@ -180,7 +189,7 @@ func TestFeedNotify_ErrorThreshold_DedupAndRecovery(t *testing.T) {
 
 	_, err = client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: feedID}),
+		&feedsv1.RefreshFeedRequest{FeedId: feedID},
 	)
 	require.Error(t, err)
 	notifSvc.WaitUntilDone()
@@ -189,7 +198,7 @@ func TestFeedNotify_ErrorThreshold_DedupAndRecovery(t *testing.T) {
 	delete(webFetch.Errs, feedURL)
 	_, err = client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: feedID}),
+		&feedsv1.RefreshFeedRequest{FeedId: feedID},
 	)
 	require.NoError(t, err)
 	notifSvc.WaitUntilDone()
@@ -212,10 +221,10 @@ func TestFeedNotify_SendFailure_LoggedAndNotMarkedNotified(t *testing.T) {
 
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	feedID := created.Msg.Feed.Id
+	feedID := created.Feed.Id
 	waitForFeedImport(t, client, feedID)
 
 	webFetch.Errs[feedURL] = errors.New("simulated fetch failure")
@@ -224,7 +233,7 @@ func TestFeedNotify_SendFailure_LoggedAndNotMarkedNotified(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		_, refreshErr := client.RefreshFeed(
 			context.Background(),
-			connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: feedID}),
+			&feedsv1.RefreshFeedRequest{FeedId: feedID},
 		)
 		require.Error(t, refreshErr)
 	}

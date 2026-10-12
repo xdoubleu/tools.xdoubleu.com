@@ -3,7 +3,6 @@ package recipes
 import (
 	"context"
 
-	"connectrpc.com/connect"
 	"google.golang.org/protobuf/proto"
 
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
@@ -72,5 +71,5 @@ func (h *recipesConnectHandler) mcpCreateRecipe(
 		req.IngredientUnits[i] = ing.Unit
 		req.IngredientGroupNames[i] = ing.GroupName
 	}
-	return mcptools.Unwrap(h.CreateRecipe(ctx, connect.NewRequest(req)))
+	return mcptools.Unwrap(h.CreateRecipe(ctx, req))
 }

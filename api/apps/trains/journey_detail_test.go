@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/MobilityData/gtfs-realtime-bindings/golang/gtfs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -287,20 +287,21 @@ func TestGetJourneyDetail_Handler_EndToEnd(t *testing.T) {
 	journeyID := services.EncodeJourneyID([]services.LegRef{detailLegRef(windowStart)})
 	client := newTrainsTestClient(t)
 
-	resp, err := client.GetJourneyDetail(ctx, connect.NewRequest(
+	resp, err := client.GetJourneyDetail(
+		ctx,
 		&trainsv1.GetJourneyDetailRequest{JourneyId: journeyID},
-	))
+	)
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.GetJourney().GetLegs(), 1)
-	assert.Equal(t, "IC900", resp.Msg.GetJourney().GetLegs()[0].GetTripShortName())
-	assert.Equal(t, journeyID, resp.Msg.GetJourney().GetJourneyId())
+	require.Len(t, resp.GetJourney().GetLegs(), 1)
+	assert.Equal(t, "IC900", resp.GetJourney().GetLegs()[0].GetTripShortName())
+	assert.Equal(t, journeyID, resp.GetJourney().GetJourneyId())
 }
 
 func TestGetJourneyDetail_Handler_EmptyJourneyIDIsInvalidArgument(t *testing.T) {
 	client := newTrainsTestClient(t)
 	_, err := client.GetJourneyDetail(
 		context.Background(),
-		connect.NewRequest(&trainsv1.GetJourneyDetailRequest{JourneyId: ""}),
+		&trainsv1.GetJourneyDetailRequest{JourneyId: ""},
 	)
 	require.Error(t, err)
 	var connErr *connect.Error
@@ -312,9 +313,7 @@ func TestGetJourneyDetail_Handler_MalformedJourneyIDIsInvalidArgument(t *testing
 	client := newTrainsTestClient(t)
 	_, err := client.GetJourneyDetail(
 		context.Background(),
-		connect.NewRequest(
-			&trainsv1.GetJourneyDetailRequest{JourneyId: "!!not-valid!!"},
-		),
+		&trainsv1.GetJourneyDetailRequest{JourneyId: "!!not-valid!!"},
 	)
 	require.Error(t, err)
 	var connErr *connect.Error
@@ -335,15 +334,15 @@ func TestSearchJourneys_ResponseCarriesJourneyID(t *testing.T) {
 	client := newTrainsTestClient(t)
 	resp, err := client.SearchJourneys(
 		ctx,
-		connect.NewRequest(&trainsv1.SearchJourneysRequest{
+		&trainsv1.SearchJourneysRequest{
 			OriginStopId:      "DA",
 			DestinationStopId: "DB",
 			Time: windowStart.Add(7*time.Hour + 55*time.Minute).
 				Format(time.RFC3339),
 			ArriveBy: false,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	require.NotEmpty(t, resp.Msg.GetJourneys())
-	assert.NotEmpty(t, resp.Msg.GetJourneys()[0].GetJourneyId())
+	require.NotEmpty(t, resp.GetJourneys())
+	assert.NotEmpty(t, resp.GetJourneys()[0].GetJourneyId())
 }

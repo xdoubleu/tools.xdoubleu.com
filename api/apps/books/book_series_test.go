@@ -5,7 +5,7 @@ import (
 	"math"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func f64(f float64) *float64 { return &f }
@@ -56,7 +57,7 @@ func TestCreateBook_StoresSeries_FillOnly(t *testing.T) {
 	client := newBooksTestClient(t)
 
 	create := func(series string, pos float64, total int32) {
-		req := connect.NewRequest(&booksv1.CreateBookRequest{
+		req := &booksv1.CreateBookRequest{
 			Provider:       "hardcover",
 			Title:          "Series Create " + uid,
 			Author:         "Series Author",
@@ -66,9 +67,11 @@ func TestCreateBook_StoresSeries_FillOnly(t *testing.T) {
 			SeriesName:     "  " + series + " ",
 			SeriesPosition: &pos,
 			SeriesTotal:    total,
-		})
-		req.Header().Set("Cookie", accessToken.String())
-		_, err := client.CreateBook(context.Background(), req)
+		}
+		_, err := client.CreateBook(
+			testhelper.WithCookie(context.Background(), accessToken.String()),
+			req,
+		)
 		require.NoError(t, err)
 	}
 
@@ -91,7 +94,7 @@ func TestCreateBook_DropsInvalidSeriesPosition(t *testing.T) {
 	uid := uuid.NewString()[:8]
 	isbn := testISBN("create-series-nan-" + uid)
 	pos := math.NaN()
-	req := connect.NewRequest(&booksv1.CreateBookRequest{
+	req := &booksv1.CreateBookRequest{
 		Provider:       "hardcover",
 		Title:          "Series NaN " + uid,
 		Author:         "Series Author",
@@ -100,9 +103,10 @@ func TestCreateBook_DropsInvalidSeriesPosition(t *testing.T) {
 		Description:    "Desc.",
 		SeriesName:     "Saga-" + uid,
 		SeriesPosition: &pos,
-	})
-	req.Header().Set("Cookie", accessToken.String())
-	_, err := newBooksTestClient(t).CreateBook(context.Background(), req)
+	}
+	_, err := newBooksTestClient(
+		t,
+	).CreateBook(testhelper.WithCookie(context.Background(), accessToken.String()), req)
 	require.NoError(t, err)
 
 	ub, err := testApp.Repositories.Books.FindUserBookByISBN13(
@@ -120,12 +124,13 @@ func TestGetSeries_MergesLibraryAndHardcover(t *testing.T) {
 	name := "Merge Saga " + uid
 	owned := addBookInSeries(t, "Second Volume "+uid, name, f64(2))
 
-	req := connect.NewRequest(&booksv1.GetSeriesRequest{Name: name})
-	req.Header().Set("Cookie", accessToken.String())
-	resp, err := newBooksTestClient(t).GetSeries(context.Background(), req)
+	req := &booksv1.GetSeriesRequest{Name: name}
+	resp, err := newBooksTestClient(
+		t,
+	).GetSeries(testhelper.WithCookie(context.Background(), accessToken.String()), req)
 	require.NoError(t, err)
 
-	msg := resp.Msg
+	msg := resp
 	assert.Equal(t, name, msg.Name)
 	assert.Equal(t, int32(2), msg.Total)
 	assert.False(t, msg.ExternalUnavailable)
@@ -148,9 +153,10 @@ func TestGetSeries_MergesLibraryAndHardcover(t *testing.T) {
 }
 
 func TestGetSeries_EmptyName_InvalidArgument(t *testing.T) {
-	req := connect.NewRequest(&booksv1.GetSeriesRequest{Name: "  "})
-	req.Header().Set("Cookie", accessToken.String())
-	_, err := newBooksTestClient(t).GetSeries(context.Background(), req)
+	req := &booksv1.GetSeriesRequest{Name: "  "}
+	_, err := newBooksTestClient(
+		t,
+	).GetSeries(testhelper.WithCookie(context.Background(), accessToken.String()), req)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
 	assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
@@ -165,7 +171,7 @@ func TestUpdateBook_SetsAndClearsSeries(t *testing.T) {
 	client := newAdminBooksTestClient(t)
 
 	update := func(series string, pos *float64) *booksv1.Book {
-		req := connect.NewRequest(&booksv1.UpdateBookRequest{
+		req := &booksv1.UpdateBookRequest{
 			BookId: ub.BookID.String(),
 			Metadata: &booksv1.Book{
 				Title:          "Edit Series " + uid,
@@ -173,11 +179,13 @@ func TestUpdateBook_SetsAndClearsSeries(t *testing.T) {
 				SeriesName:     series,
 				SeriesPosition: pos,
 			},
-		})
-		req.Header().Set("Cookie", accessToken.String())
-		resp, err := client.UpdateBook(context.Background(), req)
+		}
+		resp, err := client.UpdateBook(
+			testhelper.WithCookie(context.Background(), accessToken.String()),
+			req,
+		)
 		require.NoError(t, err)
-		return resp.Msg.Book
+		return resp.Book
 	}
 
 	got := update("Edit Saga "+uid, f64(1.5))

@@ -56,12 +56,12 @@ func TestObservabilityGetSecurityAlerts_Denied_NamesMissingScope(t *testing.T) {
 
 	resp, err := callSecurityAlerts(t)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.Alerts)
-	assert.Contains(t, resp.Msg.Error, "security_events")
-	assert.Contains(t, resp.Msg.Error, `"read:project,repo"`)
-	assert.Contains(t, resp.Msg.Error, "/monitoring/connections")
-	assert.Contains(t, resp.Msg.Error, "Resource not accessible by integration")
+	assert.True(t, resp.Configured)
+	assert.Empty(t, resp.Alerts)
+	assert.Contains(t, resp.Error, "security_events")
+	assert.Contains(t, resp.Error, `"read:project,repo"`)
+	assert.Contains(t, resp.Error, "/monitoring/connections")
+	assert.Contains(t, resp.Error, "Resource not accessible by integration")
 }
 
 func TestObservabilityGetSecurityAlerts_DeniedWithScope_ReportsUpstream(
@@ -74,9 +74,9 @@ func TestObservabilityGetSecurityAlerts_DeniedWithScope_ReportsUpstream(
 
 	resp, err := callSecurityAlerts(t)
 	require.NoError(t, err)
-	assert.Contains(t, resp.Msg.Error, "GitHub denied access to security alerts")
-	assert.Contains(t, resp.Msg.Error, "Resource not accessible by integration")
-	assert.NotContains(t, resp.Msg.Error, "reconnect")
+	assert.Contains(t, resp.Error, "GitHub denied access to security alerts")
+	assert.Contains(t, resp.Error, "Resource not accessible by integration")
+	assert.NotContains(t, resp.Error, "reconnect")
 }
 
 func TestObservabilityGetSecurityAlerts_UpstreamError_SetsError(t *testing.T) {
@@ -94,6 +94,6 @@ func TestObservabilityGetSecurityAlerts_UpstreamError_SetsError(t *testing.T) {
 
 	resp, err := callSecurityAlerts(t)
 	require.NoError(t, err)
-	assert.Contains(t, resp.Msg.Error, "security alerts unavailable")
-	assert.Contains(t, resp.Msg.Error, "500")
+	assert.Contains(t, resp.Error, "security alerts unavailable")
+	assert.Contains(t, resp.Error, "500")
 }

@@ -3,7 +3,6 @@ package movies
 import (
 	"context"
 
-	"connectrpc.com/connect"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
@@ -58,47 +57,39 @@ func (a *Movies) RegisterMCPTools(srv *mcp.Server) {
 func (h *moviesConnectHandler) mcpGetStats(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetStats(ctx, connect.NewRequest(
-		&moviesv1.GetStatsRequest{},
-	)))
+	return mcptools.Unwrap(h.GetStats(ctx, &moviesv1.GetStatsRequest{}))
 }
 
 func (h *moviesConnectHandler) mcpGetSettings(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetSettings(ctx, connect.NewRequest(
-		&moviesv1.GetSettingsRequest{},
-	)))
+	return mcptools.Unwrap(h.GetSettings(ctx, &moviesv1.GetSettingsRequest{}))
 }
 
 func (h *moviesConnectHandler) mcpSearchTitles(
 	ctx context.Context, args mcpSearchArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.SearchTitles(ctx, connect.NewRequest(
-		&moviesv1.SearchTitlesRequest{Query: args.Query},
-	)))
+	return mcptools.Unwrap(
+		h.SearchTitles(ctx, &moviesv1.SearchTitlesRequest{Query: args.Query}),
+	)
 }
 
 func (h *moviesConnectHandler) mcpListBacklog(
 	ctx context.Context, args mcpListBacklogArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListBacklog(ctx, connect.NewRequest(
-		&moviesv1.ListBacklogRequest{
-			Status:       args.Status,
-			MediaType:    args.MediaType,
-			Sort:         args.Sort,
-			NewSeason:    args.NewSeason,
-			OnMyServices: args.OnMyServices,
-			Limit:        args.Limit,
-			Offset:       args.Offset,
-		},
-	)))
+	return mcptools.Unwrap(h.ListBacklog(ctx, &moviesv1.ListBacklogRequest{
+		Status:       args.Status,
+		MediaType:    args.MediaType,
+		Sort:         args.Sort,
+		NewSeason:    args.NewSeason,
+		OnMyServices: args.OnMyServices,
+		Limit:        args.Limit,
+		Offset:       args.Offset,
+	}))
 }
 
 func (h *moviesConnectHandler) mcpGetTitle(
 	ctx context.Context, args mcpGetTitleArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetTitle(ctx, connect.NewRequest(
-		&moviesv1.GetTitleRequest{Id: args.ID},
-	)))
+	return mcptools.Unwrap(h.GetTitle(ctx, &moviesv1.GetTitleRequest{Id: args.ID}))
 }

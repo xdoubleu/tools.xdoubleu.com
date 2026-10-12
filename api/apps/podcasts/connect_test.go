@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,11 +29,12 @@ func add(
 	id int64,
 ) *podcastsv1.Favourite {
 	t.Helper()
-	resp, err := c.AddFavourite(context.Background(), connect.NewRequest(
+	resp, err := c.AddFavourite(
+		context.Background(),
 		&podcastsv1.AddFavouriteRequest{ItunesId: id},
-	))
+	)
 	require.NoError(t, err)
-	return resp.Msg.Favourite
+	return resp.Favourite
 }
 
 func favourites(
@@ -41,11 +42,12 @@ func favourites(
 	c podcastsv1connect.PodcastsServiceClient,
 ) []*podcastsv1.Favourite {
 	t.Helper()
-	resp, err := c.ListFavourites(context.Background(), connect.NewRequest(
+	resp, err := c.ListFavourites(
+		context.Background(),
 		&podcastsv1.ListFavouritesRequest{},
-	))
+	)
 	require.NoError(t, err)
-	return resp.Msg.Favourites
+	return resp.Favourites
 }
 
 func search(
@@ -54,11 +56,12 @@ func search(
 	query string,
 ) []*podcastsv1.SearchResult {
 	t.Helper()
-	resp, err := c.SearchShows(context.Background(), connect.NewRequest(
+	resp, err := c.SearchShows(
+		context.Background(),
 		&podcastsv1.SearchShowsRequest{Query: query},
-	))
+	)
 	require.NoError(t, err)
-	return resp.Msg.Results
+	return resp.Results
 }
 
 func TestAddFavourite(t *testing.T) {
@@ -90,27 +93,30 @@ func TestAddFavourite_IsIdempotent(t *testing.T) {
 func TestAddFavourite_UnknownShow(t *testing.T) {
 	c := newClient(t, userID, fakeITunes{})
 
-	_, err := c.AddFavourite(context.Background(), connect.NewRequest(
+	_, err := c.AddFavourite(
+		context.Background(),
 		&podcastsv1.AddFavouriteRequest{ItunesId: 999},
-	))
+	)
 	assert.Equal(t, connect.CodeNotFound, code(err))
 }
 
 func TestAddFavourite_InvalidID(t *testing.T) {
 	c := newClient(t, userID, fakeITunes{})
 
-	_, err := c.AddFavourite(context.Background(), connect.NewRequest(
+	_, err := c.AddFavourite(
+		context.Background(),
 		&podcastsv1.AddFavouriteRequest{ItunesId: 0},
-	))
+	)
 	assert.Equal(t, connect.CodeInvalidArgument, code(err))
 }
 
 func TestAddFavourite_UpstreamDown(t *testing.T) {
 	c := newClient(t, userID, downITunes{})
 
-	_, err := c.AddFavourite(context.Background(), connect.NewRequest(
+	_, err := c.AddFavourite(
+		context.Background(),
 		&podcastsv1.AddFavouriteRequest{ItunesId: 1},
-	))
+	)
 	assert.Equal(t, connect.CodeUnavailable, code(err))
 }
 
@@ -135,24 +141,27 @@ func TestRemoveFavourite(t *testing.T) {
 	c := newClient(t, userID, fakeITunes{})
 	f := add(t, c, 1)
 
-	_, err := c.RemoveFavourite(context.Background(), connect.NewRequest(
+	_, err := c.RemoveFavourite(
+		context.Background(),
 		&podcastsv1.RemoveFavouriteRequest{Id: f.Id},
-	))
+	)
 	require.NoError(t, err)
 	assert.Empty(t, favourites(t, c))
 
-	_, err = c.RemoveFavourite(context.Background(), connect.NewRequest(
+	_, err = c.RemoveFavourite(
+		context.Background(),
 		&podcastsv1.RemoveFavouriteRequest{Id: f.Id},
-	))
+	)
 	assert.Equal(t, connect.CodeNotFound, code(err))
 }
 
 func TestRemoveFavourite_InvalidID(t *testing.T) {
 	c := newClient(t, userID, fakeITunes{})
 
-	_, err := c.RemoveFavourite(context.Background(), connect.NewRequest(
+	_, err := c.RemoveFavourite(
+		context.Background(),
 		&podcastsv1.RemoveFavouriteRequest{Id: "nope"},
-	))
+	)
 	assert.Equal(t, connect.CodeInvalidArgument, code(err))
 }
 
@@ -165,15 +174,17 @@ func TestFavourites_ArePerUser(t *testing.T) {
 	assert.False(t, search(t, other, "hardcore")[0].Favourite)
 
 	// Another user's favourite reads as not found and survives.
-	_, err := other.RemoveFavourite(context.Background(), connect.NewRequest(
+	_, err := other.RemoveFavourite(
+		context.Background(),
 		&podcastsv1.RemoveFavouriteRequest{Id: f.Id},
-	))
+	)
 	assert.Equal(t, connect.CodeNotFound, code(err))
 	assert.Len(t, favourites(t, mine), 1)
 
-	_, err = other.RemoveFavourite(context.Background(), connect.NewRequest(
+	_, err = other.RemoveFavourite(
+		context.Background(),
 		&podcastsv1.RemoveFavouriteRequest{Id: uuid.NewString()},
-	))
+	)
 	assert.Equal(t, connect.CodeNotFound, code(err))
 }
 
@@ -205,8 +216,9 @@ func TestSearchShows_ShortQueryFindsNothing(t *testing.T) {
 func TestSearchShows_UpstreamDown(t *testing.T) {
 	c := newClient(t, userID, downITunes{})
 
-	_, err := c.SearchShows(context.Background(), connect.NewRequest(
+	_, err := c.SearchShows(
+		context.Background(),
 		&podcastsv1.SearchShowsRequest{Query: "history"},
-	))
+	)
 	assert.Equal(t, connect.CodeUnavailable, code(err))
 }

@@ -7,7 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -20,7 +21,12 @@ func newTrainsTestClient(t *testing.T) trainsv1connect.TrainServiceClient {
 	ts := httptest.NewServer(getTrainsRoutes())
 	t.Cleanup(ts.Close)
 	return trainsv1connect.NewTrainServiceClient(
-		http.DefaultClient, ts.URL, connect.WithHTTPGet(),
+		connect.NewClient(connecthttp.NewTransport(
+			http.DefaultClient,
+			ts.URL,
+			connecthttp.WithReadMaxBytes(0),
+			connecthttp.WithHTTPGet(),
+		)),
 	)
 }
 
@@ -41,10 +47,10 @@ func TestSearchJourneys_Handler_UnknownStop(t *testing.T) {
 	require.NoError(t, err)
 
 	client := newTrainsTestClient(t)
-	req := connect.NewRequest(&trainsv1.SearchJourneysRequest{
+	req := &trainsv1.SearchJourneysRequest{
 		OriginStopId:      "does-not-exist",
 		DestinationStopId: "also-not-real",
-	})
+	}
 
 	_, err = client.SearchJourneys(ctx, req)
 	require.Error(t, err)
@@ -56,11 +62,11 @@ func TestSearchJourneys_Handler_UnknownStop(t *testing.T) {
 // TestSearchJourneys_Handler_InvalidTime covers a non-RFC3339 time.
 func TestSearchJourneys_Handler_InvalidTime(t *testing.T) {
 	client := newTrainsTestClient(t)
-	req := connect.NewRequest(&trainsv1.SearchJourneysRequest{
+	req := &trainsv1.SearchJourneysRequest{
 		OriginStopId:      "SA",
 		DestinationStopId: "SB",
 		Time:              "not-a-timestamp",
-	})
+	}
 
 	_, err := client.SearchJourneys(context.Background(), req)
 	require.Error(t, err)
@@ -84,17 +90,17 @@ func TestSearchJourneys_Handler_Success(t *testing.T) {
 	client := newTrainsTestClient(t)
 	// SA->SC needs the same-station transfer at Bravo from journey_test.go.
 	when := windowStart.Add(8*time.Hour + 55*time.Minute)
-	req := connect.NewRequest(&trainsv1.SearchJourneysRequest{
+	req := &trainsv1.SearchJourneysRequest{
 		OriginStopId:      "SA",
 		DestinationStopId: "SC",
 		Time:              when.Format(time.RFC3339),
-	})
+	}
 
 	resp, err := client.SearchJourneys(ctx, req)
 	require.NoError(t, err)
-	require.NotEmpty(t, resp.Msg.GetJourneys())
+	require.NotEmpty(t, resp.GetJourneys())
 	// SearchJourneys returns a window of journeys; don't assume position.
-	j := findJourneyByFirstLeg(t, resp.Msg.GetJourneys(), "200")
+	j := findJourneyByFirstLeg(t, resp.GetJourneys(), "200")
 	require.Len(t, j.GetLegs(), 2)
 	assert.Equal(t, int32(1), j.GetTransfers())
 	assert.Equal(t, "200", j.GetLegs()[0].GetTripShortName())

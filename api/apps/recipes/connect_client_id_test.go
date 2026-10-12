@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,19 +45,19 @@ func TestCreateRecipe_ClientIDRepeatIsIdempotent(t *testing.T) {
 		IngredientUnits:   []string{"l", "tsp"},
 	}
 
-	first, err := client.CreateRecipe(userCtx(), connect.NewRequest(req))
+	first, err := client.CreateRecipe(userCtx(), req)
 	require.NoError(t, err)
-	second, err := client.CreateRecipe(userCtx(), connect.NewRequest(req))
+	second, err := client.CreateRecipe(userCtx(), req)
 	require.NoError(t, err)
 
-	assert.Equal(t, id, first.Msg.Recipe.Id)
-	assert.Equal(t, id, second.Msg.Recipe.Id)
+	assert.Equal(t, id, first.Recipe.Id)
+	assert.Equal(t, id, second.Recipe.Id)
 
 	got, err := client.GetRecipe(
-		userCtx(), connect.NewRequest(&recipesv1.GetRecipeRequest{Id: id}),
+		userCtx(), &recipesv1.GetRecipeRequest{Id: id},
 	)
 	require.NoError(t, err)
-	assert.Len(t, got.Msg.Recipe.Ingredients, 2)
+	assert.Len(t, got.Recipe.Ingredients, 2)
 
 	var count int
 	require.NoError(t, testDB.QueryRow(
@@ -77,18 +77,20 @@ func TestCreateRecipe_ClientIDOwnedByAnotherFamily(t *testing.T) {
 	).Scan(&id))
 	deleteRecipeAfter(t, id)
 
-	_, err := client.CreateRecipe(userCtx(), connect.NewRequest(
+	_, err := client.CreateRecipe(
+		userCtx(),
 		&recipesv1.CreateRecipeRequest{Id: id, Name: "Mine", BaseServings: 2},
-	))
+	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
 }
 
 func TestCreateRecipe_InvalidClientID(t *testing.T) {
 	client := setupRecipesClient(getRoutes())
-	_, err := client.CreateRecipe(userCtx(), connect.NewRequest(
+	_, err := client.CreateRecipe(
+		userCtx(),
 		&recipesv1.CreateRecipeRequest{Id: "nope", Name: "x", BaseServings: 2},
-	))
+	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
@@ -105,24 +107,24 @@ func TestCreateRecipe_ReplayKeepsLaterEdits(t *testing.T) {
 		IngredientAmounts: []float64{1},
 		IngredientUnits:   []string{"can"},
 	}
-	_, err := client.CreateRecipe(userCtx(), connect.NewRequest(create))
+	_, err := client.CreateRecipe(userCtx(), create)
 	require.NoError(t, err)
 
 	_, err = client.UpdateRecipe(
 		userCtx(),
-		connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+		&recipesv1.UpdateRecipeRequest{
 			Id:                id,
 			Name:              "Stew",
 			BaseServings:      2,
 			IngredientNames:   []string{"Lentils", "Carrot"},
 			IngredientAmounts: []float64{2, 1},
 			IngredientUnits:   []string{"cup", ""},
-		}),
+		},
 	)
 	require.NoError(t, err)
 
-	replayed, err := client.CreateRecipe(userCtx(), connect.NewRequest(create))
+	replayed, err := client.CreateRecipe(userCtx(), create)
 	require.NoError(t, err)
-	assert.Equal(t, "Stew", replayed.Msg.Recipe.Name)
-	assert.Len(t, replayed.Msg.Recipe.Ingredients, 2)
+	assert.Equal(t, "Stew", replayed.Recipe.Name)
+	assert.Len(t, replayed.Recipe.Ingredients, 2)
 }

@@ -3,8 +3,6 @@ package feeds
 import (
 	"context"
 
-	"connectrpc.com/connect"
-
 	"tools.xdoubleu.com/apps/feeds/internal/models"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 )
@@ -25,8 +23,8 @@ func protoFilterRuleSuggestion(
 
 func (h *feedsConnectHandler) GetFilterRuleSuggestions(
 	ctx context.Context,
-	_ *connect.Request[feedsv1.GetFilterRuleSuggestionsRequest],
-) (*connect.Response[feedsv1.GetFilterRuleSuggestionsResponse], error) {
+	_ *feedsv1.GetFilterRuleSuggestionsRequest,
+) (*feedsv1.GetFilterRuleSuggestionsResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
@@ -41,28 +39,28 @@ func (h *feedsConnectHandler) GetFilterRuleSuggestions(
 	for i, s := range suggestions {
 		out[i] = protoFilterRuleSuggestion(s)
 	}
-	return connect.NewResponse(&feedsv1.GetFilterRuleSuggestionsResponse{
+	return &feedsv1.GetFilterRuleSuggestionsResponse{
 		Suggestions: out,
-	}), nil
+	}, nil
 }
 
 func (h *feedsConnectHandler) DismissFilterRuleSuggestion(
 	ctx context.Context,
-	req *connect.Request[feedsv1.DismissFilterRuleSuggestionRequest],
-) (*connect.Response[feedsv1.DismissFilterRuleSuggestionResponse], error) {
+	req *feedsv1.DismissFilterRuleSuggestionRequest,
+) (*feedsv1.DismissFilterRuleSuggestionResponse, error) {
 	user, cerr := feedUser(ctx)
 	if cerr != nil {
 		return nil, cerr
 	}
-	feedID, cerr := parseFeedID(req.Msg.FeedId)
+	feedID, cerr := parseFeedID(req.FeedId)
 	if cerr != nil {
 		return nil, cerr
 	}
 
 	if err := h.app.Services.Feeds.DismissFilterRuleSuggestion(
-		ctx, user.ID, feedID, req.Msg.Category,
+		ctx, user.ID, feedID, req.Category,
 	); err != nil {
 		return nil, filterRuleErrorToConnect(err)
 	}
-	return connect.NewResponse(&feedsv1.DismissFilterRuleSuggestionResponse{}), nil
+	return &feedsv1.DismissFilterRuleSuggestionResponse{}, nil
 }

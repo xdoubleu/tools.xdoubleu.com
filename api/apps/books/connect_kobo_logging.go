@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/services"
@@ -28,14 +28,14 @@ func (h *booksConnectHandler) koboDeviceForLogging(
 	if user == nil {
 		return uuid.Nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 	deviceID, err := uuid.Parse(rawID)
 	if err != nil {
 		return uuid.Nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid device ID"),
+			"invalid device ID",
 		)
 	}
 	if _, err = h.app.Services.Kobo.GetKoboDevice(
@@ -44,31 +44,31 @@ func (h *booksConnectHandler) koboDeviceForLogging(
 		if errors.Is(err, database.ErrResourceNotFound) {
 			return uuid.Nil, connect.NewError(
 				connect.CodeNotFound,
-				errors.New("device not found"),
+				"device not found",
 			)
 		}
-		return uuid.Nil, connect.NewError(connect.CodeInternal, err)
+		return uuid.Nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	return deviceID, nil
 }
 
 func (h *booksConnectHandler) SetKoboDeviceLogging(
 	ctx context.Context,
-	req *connect.Request[booksv1.SetKoboDeviceLoggingRequest],
-) (*connect.Response[booksv1.SetKoboDeviceLoggingResponse], error) {
-	deviceID, err := h.koboDeviceForLogging(ctx, req.Msg.Id)
+	req *booksv1.SetKoboDeviceLoggingRequest,
+) (*booksv1.SetKoboDeviceLoggingResponse, error) {
+	deviceID, err := h.koboDeviceForLogging(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
-	h.app.Services.KoboLog.SetEnabled(deviceID.String(), req.Msg.Enabled)
-	return connect.NewResponse(&booksv1.SetKoboDeviceLoggingResponse{}), nil
+	h.app.Services.KoboLog.SetEnabled(deviceID.String(), req.Enabled)
+	return &booksv1.SetKoboDeviceLoggingResponse{}, nil
 }
 
 func (h *booksConnectHandler) GetKoboDeviceLogs(
 	ctx context.Context,
-	req *connect.Request[booksv1.GetKoboDeviceLogsRequest],
-) (*connect.Response[booksv1.GetKoboDeviceLogsResponse], error) {
-	deviceID, err := h.koboDeviceForLogging(ctx, req.Msg.Id)
+	req *booksv1.GetKoboDeviceLogsRequest,
+) (*booksv1.GetKoboDeviceLogsResponse, error) {
+	deviceID, err := h.koboDeviceForLogging(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -79,19 +79,19 @@ func (h *booksConnectHandler) GetKoboDeviceLogs(
 	for i, e := range entries {
 		resp.Entries[i] = koboLogEntryProto(e)
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 func (h *booksConnectHandler) ClearKoboDeviceLogs(
 	ctx context.Context,
-	req *connect.Request[booksv1.ClearKoboDeviceLogsRequest],
-) (*connect.Response[booksv1.ClearKoboDeviceLogsResponse], error) {
-	deviceID, err := h.koboDeviceForLogging(ctx, req.Msg.Id)
+	req *booksv1.ClearKoboDeviceLogsRequest,
+) (*booksv1.ClearKoboDeviceLogsResponse, error) {
+	deviceID, err := h.koboDeviceForLogging(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
 	h.app.Services.KoboLog.Clear(deviceID.String())
-	return connect.NewResponse(&booksv1.ClearKoboDeviceLogsResponse{}), nil
+	return &booksv1.ClearKoboDeviceLogsResponse{}, nil
 }
 
 // koboLogEntryProto converts a captured entry to its proto form. Captured

@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // putStoreState PUTs a store book's reading state at percent.
@@ -52,11 +53,13 @@ func eventuallyStoreOutcome(
 	client := newBooksTestClient(t)
 	var found *booksv1.KoboStoreBook
 	require.Eventually(t, func() bool {
-		req := connect.NewRequest(&booksv1.ListKoboStoreBooksRequest{})
-		req.Header().Set("Cookie", accessToken.String())
-		resp, err := client.ListKoboStoreBooks(context.Background(), req)
+		req := &booksv1.ListKoboStoreBooksRequest{}
+		resp, err := client.ListKoboStoreBooks(
+			testhelper.WithCookie(context.Background(), accessToken.String()),
+			req,
+		)
 		require.NoError(t, err)
-		for _, b := range resp.Msg.Books {
+		for _, b := range resp.Books {
 			if b.EntitlementId == storeID && b.LastOutcome == string(outcome) {
 				found = b
 				return true
@@ -191,10 +194,12 @@ func TestConnectListKoboStoreBooks_DBFailure_ReturnsInternal(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fts := httptest.NewServer(getRoutesWithFailingDB(t, upstream.URL, failSQL))
 			t.Cleanup(fts.Close)
-			req := connect.NewRequest(&booksv1.ListKoboStoreBooksRequest{})
-			req.Header().Set("Cookie", accessToken.String())
-			_, err := newBooksClientFor(fts.URL).ListKoboStoreBooks(
-				context.Background(), req,
+			req := &booksv1.ListKoboStoreBooksRequest{}
+			_, err := newBooksClientFor(
+				fts.URL,
+			).ListKoboStoreBooks(
+				testhelper.WithCookie(context.Background(), accessToken.String()),
+				req,
 			)
 			require.Error(t, err)
 			assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))

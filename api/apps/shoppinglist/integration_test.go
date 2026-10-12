@@ -7,7 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,8 +49,11 @@ func newShoppingClient(t *testing.T) shoppinglistv1connect.ShoppingListServiceCl
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
 	return shoppinglistv1connect.NewShoppingListServiceClient(
-		http.DefaultClient,
-		ts.URL,
+		connect.NewClient(connecthttp.NewTransport(
+			http.DefaultClient,
+			ts.URL,
+			connecthttp.WithReadMaxBytes(0),
+		)),
 	)
 }
 
@@ -57,37 +61,37 @@ func TestGetCustomList_Empty(t *testing.T) {
 	client := newShoppingClient(t)
 	resp, err := client.GetCustomList(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetCustomListRequest{}),
+		&shoppinglistv1.GetCustomListRequest{},
 	)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.Items)
+	assert.Empty(t, resp.Items)
 }
 
 func TestAddShoppingItem_Success(t *testing.T) {
 	client := newShoppingClient(t)
 	resp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
+		&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Milk",
 			Amount: "2",
 			Unit:   "L",
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Item.Id)
-	assert.Equal(t, "Milk", resp.Msg.Item.Name)
-	assert.Equal(t, "L", resp.Msg.Item.Unit)
+	assert.NotEmpty(t, resp.Item.Id)
+	assert.Equal(t, "Milk", resp.Item.Name)
+	assert.Equal(t, "L", resp.Item.Unit)
 }
 
 func TestAddShoppingItem_EmptyName(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
+		&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "",
 			Amount: "1",
 			Unit:   "kg",
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -99,11 +103,11 @@ func TestAddShoppingItem_InvalidAmount(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
+		&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Eggs",
 			Amount: "not-a-number",
 			Unit:   "pcs",
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -116,28 +120,28 @@ func TestUpdateShoppingItem_Success(t *testing.T) {
 
 	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
+		&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Milk",
 			Amount: "2",
 			Unit:   "L",
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	resp, err := client.UpdateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.UpdateShoppingItemRequest{
-			ItemId: addResp.Msg.Item.Id,
+		&shoppinglistv1.UpdateShoppingItemRequest{
+			ItemId: addResp.Item.Id,
 			Name:   "Oat Milk",
 			Amount: "3",
 			Unit:   "cartons",
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, addResp.Msg.Item.Id, resp.Msg.Item.Id)
-	assert.Equal(t, "Oat Milk", resp.Msg.Item.Name)
-	assert.Equal(t, "cartons", resp.Msg.Item.Unit)
-	assert.Equal(t, "3", resp.Msg.Item.Amount)
+	assert.Equal(t, addResp.Item.Id, resp.Item.Id)
+	assert.Equal(t, "Oat Milk", resp.Item.Name)
+	assert.Equal(t, "cartons", resp.Item.Unit)
+	assert.Equal(t, "3", resp.Item.Amount)
 }
 
 func TestUpdateShoppingItem_EmptyName(t *testing.T) {
@@ -145,22 +149,22 @@ func TestUpdateShoppingItem_EmptyName(t *testing.T) {
 
 	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
+		&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Bread",
 			Amount: "1",
 			Unit:   "loaf",
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	_, err = client.UpdateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.UpdateShoppingItemRequest{
-			ItemId: addResp.Msg.Item.Id,
+		&shoppinglistv1.UpdateShoppingItemRequest{
+			ItemId: addResp.Item.Id,
 			Name:   "",
 			Amount: "1",
 			Unit:   "loaf",
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -173,22 +177,22 @@ func TestUpdateShoppingItem_InvalidAmount(t *testing.T) {
 
 	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
+		&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Eggs",
 			Amount: "6",
 			Unit:   "pcs",
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	_, err = client.UpdateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.UpdateShoppingItemRequest{
-			ItemId: addResp.Msg.Item.Id,
+		&shoppinglistv1.UpdateShoppingItemRequest{
+			ItemId: addResp.Item.Id,
 			Name:   "Eggs",
 			Amount: "not-a-number",
 			Unit:   "pcs",
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -200,12 +204,12 @@ func TestUpdateShoppingItem_NotFound(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.UpdateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.UpdateShoppingItemRequest{
+		&shoppinglistv1.UpdateShoppingItemRequest{
 			ItemId: uuid.New().String(),
 			Name:   "Ghost",
 			Amount: "1",
 			Unit:   "",
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -217,12 +221,12 @@ func TestUpdateShoppingItem_InvalidID(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.UpdateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.UpdateShoppingItemRequest{
+		&shoppinglistv1.UpdateShoppingItemRequest{
 			ItemId: "not-a-uuid",
 			Name:   "Milk",
 			Amount: "1",
 			Unit:   "L",
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -235,19 +239,19 @@ func TestDeleteShoppingItem_Success(t *testing.T) {
 
 	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
+		&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Butter",
 			Amount: "1",
 			Unit:   "block",
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	_, err = client.DeleteShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.DeleteShoppingItemRequest{
-			ItemId: addResp.Msg.Item.Id,
-		}),
+		&shoppinglistv1.DeleteShoppingItemRequest{
+			ItemId: addResp.Item.Id,
+		},
 	)
 	require.NoError(t, err)
 }
@@ -256,9 +260,9 @@ func TestDeleteShoppingItem_NotFound(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.DeleteShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.DeleteShoppingItemRequest{
+		&shoppinglistv1.DeleteShoppingItemRequest{
 			ItemId: uuid.New().String(),
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -270,9 +274,9 @@ func TestDeleteShoppingItem_InvalidID(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.DeleteShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.DeleteShoppingItemRequest{
+		&shoppinglistv1.DeleteShoppingItemRequest{
 			ItemId: "not-a-uuid",
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -285,29 +289,29 @@ func TestGetCustomList_WithItems(t *testing.T) {
 
 	_, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
+		&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Cheese",
 			Amount: "200",
 			Unit:   "g",
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	resp, err := client.GetCustomList(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetCustomListRequest{}),
+		&shoppinglistv1.GetCustomListRequest{},
 	)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Items)
+	assert.NotEmpty(t, resp.Items)
 }
 
 func TestGetMealPlanExportItems_InvalidPlanID(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.GetMealPlanExportItems(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+		&shoppinglistv1.GetMealPlanExportItemsRequest{
 			PlanId: "not-a-uuid",
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -319,9 +323,9 @@ func TestGetMealPlanExportItems_PlanNotFound(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.GetMealPlanExportItems(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+		&shoppinglistv1.GetMealPlanExportItemsRequest{
 			PlanId: uuid.New().String(),
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -336,13 +340,13 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 	client := newShoppingClient(t)
 	resp, err := client.GetMealPlanExportItems(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+		&shoppinglistv1.GetMealPlanExportItemsRequest{
 			PlanId: planID.String(),
-		}),
+		},
 	)
 	require.NoError(t, err)
 	// No meals added, so day items should be empty.
-	assert.NotNil(t, resp.Msg)
+	assert.NotNil(t, resp)
 }
 
 // Custom items are fetched separately by the frontend; the export is called
@@ -355,33 +359,33 @@ func TestGetMealPlanExportItems_ExcludesCustomItems(t *testing.T) {
 
 	addResp, err := client.CreateShoppingItem(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
+		&shoppinglistv1.CreateShoppingItemRequest{
 			Name:   "Olive Oil",
 			Amount: "1",
 			Unit:   "bottle",
-		}),
+		},
 	)
 	require.NoError(t, err)
-	customItemID := addResp.Msg.Item.Id
+	customItemID := addResp.Item.Id
 	t.Cleanup(func() {
 		_, _ = client.DeleteShoppingItem(
 			t.Context(),
-			connect.NewRequest(&shoppinglistv1.DeleteShoppingItemRequest{
+			&shoppinglistv1.DeleteShoppingItemRequest{
 				ItemId: customItemID,
-			}),
+			},
 		)
 	})
 
 	resp, err := client.GetMealPlanExportItems(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+		&shoppinglistv1.GetMealPlanExportItemsRequest{
 			PlanId: planID.String(),
-		}),
+		},
 	)
 	require.NoError(t, err)
 
-	names := make([]string, 0, len(resp.Msg.Items))
-	for _, item := range resp.Msg.Items {
+	names := make([]string, 0, len(resp.Items))
+	for _, item := range resp.Items {
 		names = append(names, item.Name)
 	}
 	assert.NotContains(t, names, "Olive Oil")
@@ -416,14 +420,14 @@ func TestGetMealPlanExportItems_IncludesCustomMealItems(t *testing.T) {
 	client := newShoppingClient(t)
 	resp, err := client.GetMealPlanExportItems(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+		&shoppinglistv1.GetMealPlanExportItemsRequest{
 			PlanId: planID.String(),
-		}),
+		},
 	)
 	require.NoError(t, err)
 
-	names := make([]string, 0, len(resp.Msg.Items))
-	for _, item := range resp.Msg.Items {
+	names := make([]string, 0, len(resp.Items))
+	for _, item := range resp.Items {
 		names = append(names, item.Name)
 	}
 	assert.Contains(t, names, "olive oil")
@@ -461,14 +465,14 @@ func TestGetMealPlanExportItems_ExcludesFlaggedEntries(t *testing.T) {
 	client := newShoppingClient(t)
 	resp, err := client.GetMealPlanExportItems(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+		&shoppinglistv1.GetMealPlanExportItemsRequest{
 			PlanId: planID.String(),
-		}),
+		},
 	)
 	require.NoError(t, err)
 
-	names := make([]string, 0, len(resp.Msg.Items))
-	for _, item := range resp.Msg.Items {
+	names := make([]string, 0, len(resp.Items))
+	for _, item := range resp.Items {
 		names = append(names, item.Name)
 	}
 	assert.Contains(t, names, "olive oil")
@@ -488,14 +492,14 @@ func TestGetMealPlanExportItems_DedupesCustomMealItems(t *testing.T) {
 	client := newShoppingClient(t)
 	resp, err := client.GetMealPlanExportItems(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+		&shoppinglistv1.GetMealPlanExportItemsRequest{
 			PlanId: planID.String(),
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	count := 0
-	for _, item := range resp.Msg.Items {
+	for _, item := range resp.Items {
 		if item.Name == "olive oil" {
 			count++
 		}
@@ -514,14 +518,14 @@ func TestGetMealPlanExportItems_IncludesCustomMealItemAmounts(t *testing.T) {
 	client := newShoppingClient(t)
 	resp, err := client.GetMealPlanExportItems(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+		&shoppinglistv1.GetMealPlanExportItemsRequest{
 			PlanId: planID.String(),
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	var found *shoppinglistv1.ShoppingItem
-	for _, item := range resp.Msg.Items {
+	for _, item := range resp.Items {
 		if item.Name == "olive oil" {
 			found = item
 		}
@@ -543,14 +547,14 @@ func TestGetMealPlanExportItems_SumsCustomMealItemAmounts(t *testing.T) {
 	client := newShoppingClient(t)
 	resp, err := client.GetMealPlanExportItems(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+		&shoppinglistv1.GetMealPlanExportItemsRequest{
 			PlanId: planID.String(),
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	var found *shoppinglistv1.ShoppingItem
-	for _, item := range resp.Msg.Items {
+	for _, item := range resp.Items {
 		if item.Name == "olive oil" {
 			found = item
 		}
@@ -606,9 +610,9 @@ func TestGetPlanIngredientGroups_InvalidPlanID(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.GetPlanIngredientGroups(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetPlanIngredientGroupsRequest{
+		&shoppinglistv1.GetPlanIngredientGroupsRequest{
 			PlanId: "not-a-uuid",
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -620,9 +624,9 @@ func TestGetPlanIngredientGroups_PlanNotFound(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.GetPlanIngredientGroups(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetPlanIngredientGroupsRequest{
+		&shoppinglistv1.GetPlanIngredientGroupsRequest{
 			PlanId: uuid.New().String(),
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -652,14 +656,14 @@ func TestGetPlanIngredientGroups_ReturnsGroups(t *testing.T) {
 	client := newShoppingClient(t)
 	resp, err := client.GetPlanIngredientGroups(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetPlanIngredientGroupsRequest{
+		&shoppinglistv1.GetPlanIngredientGroupsRequest{
 			PlanId: planID.String(),
-		}),
+		},
 	)
 	require.NoError(t, err)
 
-	groupNames := make([]string, 0, len(resp.Msg.Groups))
-	for _, g := range resp.Msg.Groups {
+	groupNames := make([]string, 0, len(resp.Groups))
+	for _, g := range resp.Groups {
 		groupNames = append(groupNames, g.GroupName)
 	}
 	assert.Contains(t, groupNames, "sauce")
@@ -687,15 +691,15 @@ func TestGetMealPlanExportItems_RecipeAndGroupAttribution(t *testing.T) {
 	client := newShoppingClient(t)
 	resp, err := client.GetMealPlanExportItems(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+		&shoppinglistv1.GetMealPlanExportItemsRequest{
 			PlanId: planID.String(),
-		}),
+		},
 	)
 	require.NoError(t, err)
-	require.NotEmpty(t, resp.Msg.Items, "expected meal-plan items in response")
+	require.NotEmpty(t, resp.Items, "expected meal-plan items in response")
 
-	byName := make(map[string]*shoppinglistv1.ShoppingItem, len(resp.Msg.Items))
-	for _, item := range resp.Msg.Items {
+	byName := make(map[string]*shoppinglistv1.ShoppingItem, len(resp.Items))
+	for _, item := range resp.Items {
 		byName[item.Name] = item
 	}
 
@@ -740,15 +744,15 @@ func TestGetMealPlanExportItems_ExcludesGroup(t *testing.T) {
 	// Exclude the sauce group — only pasta ingredients should appear.
 	resp, err := client.GetMealPlanExportItems(
 		t.Context(),
-		connect.NewRequest(&shoppinglistv1.GetMealPlanExportItemsRequest{
+		&shoppinglistv1.GetMealPlanExportItemsRequest{
 			PlanId:         planID.String(),
 			ExcludedGroups: []string{"sauce"},
-		}),
+		},
 	)
 	require.NoError(t, err)
 
-	names := make([]string, 0, len(resp.Msg.Items))
-	for _, item := range resp.Msg.Items {
+	names := make([]string, 0, len(resp.Items))
+	for _, item := range resp.Items {
 		names = append(names, item.Name)
 	}
 	assert.Contains(t, names, "spaghetti")

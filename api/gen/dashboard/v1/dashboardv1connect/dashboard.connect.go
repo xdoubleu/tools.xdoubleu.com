@@ -5,192 +5,205 @@
 package dashboardv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/dashboard/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// DashboardServiceName is the fully-qualified name of the DashboardService service.
 	DashboardServiceName = "dashboard.v1.DashboardService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// DashboardServiceGetDashboardShareProcedure is the fully-qualified name of the DashboardService's
+	// DashboardServiceGetDashboardShareProcedure is the procedure name of the DashboardService's
 	// GetDashboardShare RPC.
 	DashboardServiceGetDashboardShareProcedure = "/dashboard.v1.DashboardService/GetDashboardShare"
-	// DashboardServiceCreateDashboardShareProcedure is the fully-qualified name of the
-	// DashboardService's CreateDashboardShare RPC.
+	// DashboardServiceCreateDashboardShareProcedure is the procedure name of the DashboardService's
+	// CreateDashboardShare RPC.
 	DashboardServiceCreateDashboardShareProcedure = "/dashboard.v1.DashboardService/CreateDashboardShare"
-	// DashboardServiceDeleteDashboardShareProcedure is the fully-qualified name of the
-	// DashboardService's DeleteDashboardShare RPC.
+	// DashboardServiceDeleteDashboardShareProcedure is the procedure name of the DashboardService's
+	// DeleteDashboardShare RPC.
 	DashboardServiceDeleteDashboardShareProcedure = "/dashboard.v1.DashboardService/DeleteDashboardShare"
-	// DashboardServiceSetDisplayNameProcedure is the fully-qualified name of the DashboardService's
+	// DashboardServiceSetDisplayNameProcedure is the procedure name of the DashboardService's
 	// SetDisplayName RPC.
 	DashboardServiceSetDisplayNameProcedure = "/dashboard.v1.DashboardService/SetDisplayName"
 )
 
+var (
+	dashboardServiceGetDashboardShareSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_dashboard_v1_dashboard_proto.Services().ByName("DashboardService").Methods().ByName("GetDashboardShare"),
+			Procedure:  DashboardServiceGetDashboardShareProcedure,
+		}
+	})
+	dashboardServiceCreateDashboardShareSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_dashboard_v1_dashboard_proto.Services().ByName("DashboardService").Methods().ByName("CreateDashboardShare"),
+			Procedure:  DashboardServiceCreateDashboardShareProcedure,
+		}
+	})
+	dashboardServiceDeleteDashboardShareSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_dashboard_v1_dashboard_proto.Services().ByName("DashboardService").Methods().ByName("DeleteDashboardShare"),
+			Procedure:  DashboardServiceDeleteDashboardShareProcedure,
+		}
+	})
+	dashboardServiceSetDisplayNameSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_dashboard_v1_dashboard_proto.Services().ByName("DashboardService").Methods().ByName("SetDisplayName"),
+			Procedure:  DashboardServiceSetDisplayNameProcedure,
+		}
+	})
+)
+
 // DashboardServiceClient is a client for the dashboard.v1.DashboardService service.
 type DashboardServiceClient interface {
-	GetDashboardShare(context.Context, *connect.Request[v1.GetDashboardShareRequest]) (*connect.Response[v1.GetDashboardShareResponse], error)
-	CreateDashboardShare(context.Context, *connect.Request[v1.CreateDashboardShareRequest]) (*connect.Response[v1.CreateDashboardShareResponse], error)
-	DeleteDashboardShare(context.Context, *connect.Request[v1.DeleteDashboardShareRequest]) (*connect.Response[v1.DeleteDashboardShareResponse], error)
-	SetDisplayName(context.Context, *connect.Request[v1.SetDisplayNameRequest]) (*connect.Response[v1.SetDisplayNameResponse], error)
+	GetDashboardShare(context.Context, *v1.GetDashboardShareRequest) (*v1.GetDashboardShareResponse, error)
+	CreateDashboardShare(context.Context, *v1.CreateDashboardShareRequest) (*v1.CreateDashboardShareResponse, error)
+	DeleteDashboardShare(context.Context, *v1.DeleteDashboardShareRequest) (*v1.DeleteDashboardShareResponse, error)
+	SetDisplayName(context.Context, *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error)
 }
 
-// NewDashboardServiceClient constructs a client for the dashboard.v1.DashboardService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewDashboardServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) DashboardServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	dashboardServiceMethods := v1.File_dashboard_v1_dashboard_proto.Services().ByName("DashboardService").Methods()
-	return &dashboardServiceClient{
-		getDashboardShare: connect.NewClient[v1.GetDashboardShareRequest, v1.GetDashboardShareResponse](
-			httpClient,
-			baseURL+DashboardServiceGetDashboardShareProcedure,
-			connect.WithSchema(dashboardServiceMethods.ByName("GetDashboardShare")),
-			connect.WithClientOptions(opts...),
-		),
-		createDashboardShare: connect.NewClient[v1.CreateDashboardShareRequest, v1.CreateDashboardShareResponse](
-			httpClient,
-			baseURL+DashboardServiceCreateDashboardShareProcedure,
-			connect.WithSchema(dashboardServiceMethods.ByName("CreateDashboardShare")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteDashboardShare: connect.NewClient[v1.DeleteDashboardShareRequest, v1.DeleteDashboardShareResponse](
-			httpClient,
-			baseURL+DashboardServiceDeleteDashboardShareProcedure,
-			connect.WithSchema(dashboardServiceMethods.ByName("DeleteDashboardShare")),
-			connect.WithClientOptions(opts...),
-		),
-		setDisplayName: connect.NewClient[v1.SetDisplayNameRequest, v1.SetDisplayNameResponse](
-			httpClient,
-			baseURL+DashboardServiceSetDisplayNameProcedure,
-			connect.WithSchema(dashboardServiceMethods.ByName("SetDisplayName")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// dashboardServiceClient implements DashboardServiceClient.
-type dashboardServiceClient struct {
-	getDashboardShare    *connect.Client[v1.GetDashboardShareRequest, v1.GetDashboardShareResponse]
-	createDashboardShare *connect.Client[v1.CreateDashboardShareRequest, v1.CreateDashboardShareResponse]
-	deleteDashboardShare *connect.Client[v1.DeleteDashboardShareRequest, v1.DeleteDashboardShareResponse]
-	setDisplayName       *connect.Client[v1.SetDisplayNameRequest, v1.SetDisplayNameResponse]
-}
-
-// GetDashboardShare calls dashboard.v1.DashboardService.GetDashboardShare.
-func (c *dashboardServiceClient) GetDashboardShare(ctx context.Context, req *connect.Request[v1.GetDashboardShareRequest]) (*connect.Response[v1.GetDashboardShareResponse], error) {
-	return c.getDashboardShare.CallUnary(ctx, req)
-}
-
-// CreateDashboardShare calls dashboard.v1.DashboardService.CreateDashboardShare.
-func (c *dashboardServiceClient) CreateDashboardShare(ctx context.Context, req *connect.Request[v1.CreateDashboardShareRequest]) (*connect.Response[v1.CreateDashboardShareResponse], error) {
-	return c.createDashboardShare.CallUnary(ctx, req)
-}
-
-// DeleteDashboardShare calls dashboard.v1.DashboardService.DeleteDashboardShare.
-func (c *dashboardServiceClient) DeleteDashboardShare(ctx context.Context, req *connect.Request[v1.DeleteDashboardShareRequest]) (*connect.Response[v1.DeleteDashboardShareResponse], error) {
-	return c.deleteDashboardShare.CallUnary(ctx, req)
-}
-
-// SetDisplayName calls dashboard.v1.DashboardService.SetDisplayName.
-func (c *dashboardServiceClient) SetDisplayName(ctx context.Context, req *connect.Request[v1.SetDisplayNameRequest]) (*connect.Response[v1.SetDisplayNameResponse], error) {
-	return c.setDisplayName.CallUnary(ctx, req)
+// NewDashboardServiceClient constructs a client for the dashboard.v1.DashboardService service.
+// Multiple service clients may share a single connect.Client.
+func NewDashboardServiceClient(client *connect.Client) DashboardServiceClient {
+	return &dashboardServiceClient{client: client}
 }
 
 // DashboardServiceHandler is an implementation of the dashboard.v1.DashboardService service.
 type DashboardServiceHandler interface {
-	GetDashboardShare(context.Context, *connect.Request[v1.GetDashboardShareRequest]) (*connect.Response[v1.GetDashboardShareResponse], error)
-	CreateDashboardShare(context.Context, *connect.Request[v1.CreateDashboardShareRequest]) (*connect.Response[v1.CreateDashboardShareResponse], error)
-	DeleteDashboardShare(context.Context, *connect.Request[v1.DeleteDashboardShareRequest]) (*connect.Response[v1.DeleteDashboardShareResponse], error)
-	SetDisplayName(context.Context, *connect.Request[v1.SetDisplayNameRequest]) (*connect.Response[v1.SetDisplayNameResponse], error)
+	GetDashboardShare(context.Context, *v1.GetDashboardShareRequest) (*v1.GetDashboardShareResponse, error)
+	CreateDashboardShare(context.Context, *v1.CreateDashboardShareRequest) (*v1.CreateDashboardShareResponse, error)
+	DeleteDashboardShare(context.Context, *v1.DeleteDashboardShareRequest) (*v1.DeleteDashboardShareResponse, error)
+	SetDisplayName(context.Context, *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error)
 }
 
-// NewDashboardServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewDashboardServiceHandler(svc DashboardServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	dashboardServiceMethods := v1.File_dashboard_v1_dashboard_proto.Services().ByName("DashboardService").Methods()
-	dashboardServiceGetDashboardShareHandler := connect.NewUnaryHandler(
-		DashboardServiceGetDashboardShareProcedure,
-		svc.GetDashboardShare,
-		connect.WithSchema(dashboardServiceMethods.ByName("GetDashboardShare")),
-		connect.WithHandlerOptions(opts...),
+// RegisterDashboardServiceHandler registers svc as the dashboard.v1.DashboardService implementation
+// on server.
+func RegisterDashboardServiceHandler(server *connect.Server, svc DashboardServiceHandler) {
+	adapter := dashboardServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: dashboardServiceGetDashboardShareSpec(), Handler: adapter.getDashboardShare},
+		connect.Method{Spec: dashboardServiceCreateDashboardShareSpec(), Handler: adapter.createDashboardShare},
+		connect.Method{Spec: dashboardServiceDeleteDashboardShareSpec(), Handler: adapter.deleteDashboardShare},
+		connect.Method{Spec: dashboardServiceSetDisplayNameSpec(), Handler: adapter.setDisplayName},
 	)
-	dashboardServiceCreateDashboardShareHandler := connect.NewUnaryHandler(
-		DashboardServiceCreateDashboardShareProcedure,
-		svc.CreateDashboardShare,
-		connect.WithSchema(dashboardServiceMethods.ByName("CreateDashboardShare")),
-		connect.WithHandlerOptions(opts...),
-	)
-	dashboardServiceDeleteDashboardShareHandler := connect.NewUnaryHandler(
-		DashboardServiceDeleteDashboardShareProcedure,
-		svc.DeleteDashboardShare,
-		connect.WithSchema(dashboardServiceMethods.ByName("DeleteDashboardShare")),
-		connect.WithHandlerOptions(opts...),
-	)
-	dashboardServiceSetDisplayNameHandler := connect.NewUnaryHandler(
-		DashboardServiceSetDisplayNameProcedure,
-		svc.SetDisplayName,
-		connect.WithSchema(dashboardServiceMethods.ByName("SetDisplayName")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/dashboard.v1.DashboardService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case DashboardServiceGetDashboardShareProcedure:
-			dashboardServiceGetDashboardShareHandler.ServeHTTP(w, r)
-		case DashboardServiceCreateDashboardShareProcedure:
-			dashboardServiceCreateDashboardShareHandler.ServeHTTP(w, r)
-		case DashboardServiceDeleteDashboardShareProcedure:
-			dashboardServiceDeleteDashboardShareHandler.ServeHTTP(w, r)
-		case DashboardServiceSetDisplayNameProcedure:
-			dashboardServiceSetDisplayNameHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedDashboardServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedDashboardServiceHandler struct{}
 
-func (UnimplementedDashboardServiceHandler) GetDashboardShare(context.Context, *connect.Request[v1.GetDashboardShareRequest]) (*connect.Response[v1.GetDashboardShareResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("dashboard.v1.DashboardService.GetDashboardShare is not implemented"))
+func (UnimplementedDashboardServiceHandler) GetDashboardShare(context.Context, *v1.GetDashboardShareRequest) (*v1.GetDashboardShareResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "dashboard.v1.DashboardService.GetDashboardShare is not implemented")
 }
 
-func (UnimplementedDashboardServiceHandler) CreateDashboardShare(context.Context, *connect.Request[v1.CreateDashboardShareRequest]) (*connect.Response[v1.CreateDashboardShareResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("dashboard.v1.DashboardService.CreateDashboardShare is not implemented"))
+func (UnimplementedDashboardServiceHandler) CreateDashboardShare(context.Context, *v1.CreateDashboardShareRequest) (*v1.CreateDashboardShareResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "dashboard.v1.DashboardService.CreateDashboardShare is not implemented")
 }
 
-func (UnimplementedDashboardServiceHandler) DeleteDashboardShare(context.Context, *connect.Request[v1.DeleteDashboardShareRequest]) (*connect.Response[v1.DeleteDashboardShareResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("dashboard.v1.DashboardService.DeleteDashboardShare is not implemented"))
+func (UnimplementedDashboardServiceHandler) DeleteDashboardShare(context.Context, *v1.DeleteDashboardShareRequest) (*v1.DeleteDashboardShareResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "dashboard.v1.DashboardService.DeleteDashboardShare is not implemented")
 }
 
-func (UnimplementedDashboardServiceHandler) SetDisplayName(context.Context, *connect.Request[v1.SetDisplayNameRequest]) (*connect.Response[v1.SetDisplayNameResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("dashboard.v1.DashboardService.SetDisplayName is not implemented"))
+func (UnimplementedDashboardServiceHandler) SetDisplayName(context.Context, *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "dashboard.v1.DashboardService.SetDisplayName is not implemented")
+}
+
+type dashboardServiceClient struct {
+	client *connect.Client
+}
+
+func (c *dashboardServiceClient) GetDashboardShare(ctx context.Context, req *v1.GetDashboardShareRequest) (*v1.GetDashboardShareResponse, error) {
+	var res v1.GetDashboardShareResponse
+	if err := c.client.CallUnary(ctx, dashboardServiceGetDashboardShareSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *dashboardServiceClient) CreateDashboardShare(ctx context.Context, req *v1.CreateDashboardShareRequest) (*v1.CreateDashboardShareResponse, error) {
+	var res v1.CreateDashboardShareResponse
+	if err := c.client.CallUnary(ctx, dashboardServiceCreateDashboardShareSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *dashboardServiceClient) DeleteDashboardShare(ctx context.Context, req *v1.DeleteDashboardShareRequest) (*v1.DeleteDashboardShareResponse, error) {
+	var res v1.DeleteDashboardShareResponse
+	if err := c.client.CallUnary(ctx, dashboardServiceDeleteDashboardShareSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *dashboardServiceClient) SetDisplayName(ctx context.Context, req *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error) {
+	var res v1.SetDisplayNameResponse
+	if err := c.client.CallUnary(ctx, dashboardServiceSetDisplayNameSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type dashboardServiceHandler struct{ svc DashboardServiceHandler }
+
+func (h dashboardServiceHandler) getDashboardShare(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetDashboardShareRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetDashboardShare(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h dashboardServiceHandler) createDashboardShare(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateDashboardShareRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateDashboardShare(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h dashboardServiceHandler) deleteDashboardShare(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteDashboardShareRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteDashboardShare(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h dashboardServiceHandler) setDisplayName(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetDisplayNameRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetDisplayName(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

@@ -6,7 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -21,7 +22,15 @@ func newConnectClient(t *testing.T) watchpartyv1connect.RoomServiceClient {
 	_, mux := newTestApp()
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
-	return watchpartyv1connect.NewRoomServiceClient(http.DefaultClient, ts.URL)
+	return watchpartyv1connect.NewRoomServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(
+				http.DefaultClient,
+				ts.URL,
+				connecthttp.WithReadMaxBytes(0),
+			),
+		),
+	)
 }
 
 // contextWithUser adds a user to ctx for auth.
@@ -34,11 +43,11 @@ func TestGetRoom_NotInRoom(t *testing.T) {
 	client := newConnectClient(t)
 	ctx := contextWithUser(context.Background(), userID)
 
-	resp, err := client.GetRoom(ctx, connect.NewRequest(&watchpartyv1.GetRoomRequest{}))
+	resp, err := client.GetRoom(ctx, &watchpartyv1.GetRoomRequest{})
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.Room.InRoom)
-	assert.Empty(t, resp.Msg.Room.RoomCode)
-	assert.Empty(t, resp.Msg.Room.Role)
+	assert.False(t, resp.Room.InRoom)
+	assert.Empty(t, resp.Room.RoomCode)
+	assert.Empty(t, resp.Room.Role)
 }
 
 func TestGetRoom_InRoom(t *testing.T) {
@@ -47,18 +56,18 @@ func TestGetRoom_InRoom(t *testing.T) {
 
 	createResp, err := client.CreateRoom(
 		ctx,
-		connect.NewRequest(&watchpartyv1.CreateRoomRequest{}),
+		&watchpartyv1.CreateRoomRequest{},
 	)
 	require.NoError(t, err)
-	assert.True(t, createResp.Msg.Room.InRoom)
-	assert.NotEmpty(t, createResp.Msg.Room.RoomCode)
-	assert.Equal(t, "presenter", createResp.Msg.Room.Role)
+	assert.True(t, createResp.Room.InRoom)
+	assert.NotEmpty(t, createResp.Room.RoomCode)
+	assert.Equal(t, "presenter", createResp.Room.Role)
 
-	resp, err := client.GetRoom(ctx, connect.NewRequest(&watchpartyv1.GetRoomRequest{}))
+	resp, err := client.GetRoom(ctx, &watchpartyv1.GetRoomRequest{})
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Room.InRoom)
-	assert.Equal(t, createResp.Msg.Room.RoomCode, resp.Msg.Room.RoomCode)
-	assert.Equal(t, "presenter", resp.Msg.Room.Role)
+	assert.True(t, resp.Room.InRoom)
+	assert.Equal(t, createResp.Room.RoomCode, resp.Room.RoomCode)
+	assert.Equal(t, "presenter", resp.Room.Role)
 }
 
 func TestCreateRoom_Success(t *testing.T) {
@@ -67,36 +76,44 @@ func TestCreateRoom_Success(t *testing.T) {
 
 	resp, err := client.CreateRoom(
 		ctx,
-		connect.NewRequest(&watchpartyv1.CreateRoomRequest{}),
+		&watchpartyv1.CreateRoomRequest{},
 	)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Room.InRoom)
-	assert.NotEmpty(t, resp.Msg.Room.RoomCode)
-	assert.Equal(t, "presenter", resp.Msg.Room.Role)
+	assert.True(t, resp.Room.InRoom)
+	assert.NotEmpty(t, resp.Room.RoomCode)
+	assert.Equal(t, "presenter", resp.Room.Role)
 }
 
 func TestCreateRoom_AlreadyInRoom(t *testing.T) {
 	_, mux := newTestApp()
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
-	client := watchpartyv1connect.NewRoomServiceClient(http.DefaultClient, ts.URL)
+	client := watchpartyv1connect.NewRoomServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(
+				http.DefaultClient,
+				ts.URL,
+				connecthttp.WithReadMaxBytes(0),
+			),
+		),
+	)
 
 	ctx := context.Background()
 
 	resp1, err := client.CreateRoom(
 		ctx,
-		connect.NewRequest(&watchpartyv1.CreateRoomRequest{}),
+		&watchpartyv1.CreateRoomRequest{},
 	)
 	require.NoError(t, err)
-	roomCode1 := resp1.Msg.Room.RoomCode
+	roomCode1 := resp1.Room.RoomCode
 
 	// Same room again: mock auth always uses the same user.
 	resp2, err := client.CreateRoom(
 		ctx,
-		connect.NewRequest(&watchpartyv1.CreateRoomRequest{}),
+		&watchpartyv1.CreateRoomRequest{},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, roomCode1, resp2.Msg.Room.RoomCode)
+	assert.Equal(t, roomCode1, resp2.Room.RoomCode)
 }
 
 func TestJoinRoom_Success(t *testing.T) {
@@ -106,9 +123,9 @@ func TestJoinRoom_Success(t *testing.T) {
 	ctx := context.Background()
 
 	roomCode := "ABC123" // Simulate a room code that might exist
-	_, err := client.JoinRoom(ctx, connect.NewRequest(&watchpartyv1.JoinRoomRequest{
+	_, err := client.JoinRoom(ctx, &watchpartyv1.JoinRoomRequest{
 		RoomCode: roomCode,
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
@@ -117,9 +134,9 @@ func TestJoinRoom_EmptyRoomCode(t *testing.T) {
 	client := newConnectClient(t)
 	ctx := contextWithUser(context.Background(), userID)
 
-	_, err := client.JoinRoom(ctx, connect.NewRequest(&watchpartyv1.JoinRoomRequest{
+	_, err := client.JoinRoom(ctx, &watchpartyv1.JoinRoomRequest{
 		RoomCode: "",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -128,9 +145,9 @@ func TestJoinRoom_NonExistentRoom(t *testing.T) {
 	client := newConnectClient(t)
 	ctx := contextWithUser(context.Background(), userID)
 
-	_, err := client.JoinRoom(ctx, connect.NewRequest(&watchpartyv1.JoinRoomRequest{
+	_, err := client.JoinRoom(ctx, &watchpartyv1.JoinRoomRequest{
 		RoomCode: "nonexistent",
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
@@ -139,25 +156,33 @@ func TestLeaveRoom_AsPresenter(t *testing.T) {
 	_, mux := newTestApp()
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
-	client := watchpartyv1connect.NewRoomServiceClient(http.DefaultClient, ts.URL)
+	client := watchpartyv1connect.NewRoomServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(
+				http.DefaultClient,
+				ts.URL,
+				connecthttp.WithReadMaxBytes(0),
+			),
+		),
+	)
 
 	ctx := context.Background()
 
 	createResp, err := client.CreateRoom(
 		ctx,
-		connect.NewRequest(&watchpartyv1.CreateRoomRequest{}),
+		&watchpartyv1.CreateRoomRequest{},
 	)
 	require.NoError(t, err)
-	assert.True(t, createResp.Msg.Room.InRoom)
-	assert.Equal(t, "presenter", createResp.Msg.Room.Role)
+	assert.True(t, createResp.Room.InRoom)
+	assert.Equal(t, "presenter", createResp.Room.Role)
 
 	// Leaving as presenter removes the room.
-	_, err = client.LeaveRoom(ctx, connect.NewRequest(&watchpartyv1.LeaveRoomRequest{}))
+	_, err = client.LeaveRoom(ctx, &watchpartyv1.LeaveRoomRequest{})
 	require.NoError(t, err)
 
-	resp, err := client.GetRoom(ctx, connect.NewRequest(&watchpartyv1.GetRoomRequest{}))
+	resp, err := client.GetRoom(ctx, &watchpartyv1.GetRoomRequest{})
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.Room.InRoom)
+	assert.False(t, resp.Room.InRoom)
 }
 
 func TestLeaveRoom_NotInRoom(t *testing.T) {
@@ -167,11 +192,11 @@ func TestLeaveRoom_NotInRoom(t *testing.T) {
 	// Leaving without a room is a no-op.
 	_, err := client.LeaveRoom(
 		ctx,
-		connect.NewRequest(&watchpartyv1.LeaveRoomRequest{}),
+		&watchpartyv1.LeaveRoomRequest{},
 	)
 	require.NoError(t, err)
 
-	resp, err := client.GetRoom(ctx, connect.NewRequest(&watchpartyv1.GetRoomRequest{}))
+	resp, err := client.GetRoom(ctx, &watchpartyv1.GetRoomRequest{})
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.Room.InRoom)
+	assert.False(t, resp.Room.InRoom)
 }

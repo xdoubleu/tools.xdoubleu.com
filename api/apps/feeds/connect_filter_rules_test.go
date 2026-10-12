@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,11 +51,11 @@ func createRuleFeed(
 	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(ruleRSSXML(items...)))
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	waitForItemCount(t, client, created.Msg.Feed.Id, len(items))
-	return created.Msg.Feed.Id
+	waitForItemCount(t, client, created.Feed.Id, len(items))
+	return created.Feed.Id
 }
 
 // inboxBySourceURL lists feedID's inbox items, read ones included.
@@ -67,11 +67,11 @@ func inboxBySourceURL(
 	t.Helper()
 	resp, err := client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(&feedsv1.ListFeedItemsRequest{FeedId: &feedID}),
+		&feedsv1.ListFeedItemsRequest{FeedId: &feedID},
 	)
 	require.NoError(t, err)
 	out := map[string]*feedsv1.Item{}
-	for _, item := range resp.Msg.Items {
+	for _, item := range resp.Items {
 		out[item.SourceUrl] = item
 	}
 	return out
@@ -89,16 +89,16 @@ func createRule(
 	t.Helper()
 	resp, err := client.CreateFilterRule(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFilterRuleRequest{
+		&feedsv1.CreateFilterRuleRequest{
 			FeedId: feedID, Kind: kind, Value: value,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	rule := resp.Msg.Rule
+	rule := resp.Rule
 	t.Cleanup(func() {
 		_, _ = client.DeleteFilterRule(
 			context.Background(),
-			connect.NewRequest(&feedsv1.DeleteFilterRuleRequest{RuleId: rule.Id}),
+			&feedsv1.DeleteFilterRuleRequest{RuleId: rule.Id},
 		)
 	})
 	return rule
@@ -112,10 +112,10 @@ func listedRule(
 	t.Helper()
 	resp, err := client.ListFilterRules(
 		context.Background(),
-		connect.NewRequest(&feedsv1.ListFilterRulesRequest{}),
+		&feedsv1.ListFilterRulesRequest{},
 	)
 	require.NoError(t, err)
-	for _, r := range resp.Msg.Rules {
+	for _, r := range resp.Rules {
 		if r.Id == ruleID {
 			return r
 		}
@@ -130,10 +130,10 @@ func feedItemCount(
 ) int32 {
 	t.Helper()
 	resp, err := client.GetFeedStats(
-		context.Background(), connect.NewRequest(&feedsv1.GetFeedStatsRequest{}),
+		context.Background(), &feedsv1.GetFeedStatsRequest{},
 	)
 	require.NoError(t, err)
-	for _, s := range resp.Msg.Stats {
+	for _, s := range resp.Stats {
 		if s.FeedId == feedID {
 			return s.ItemCount
 		}
@@ -148,7 +148,7 @@ func updateItem(
 	req *feedsv1.UpdateItemRequest,
 ) {
 	t.Helper()
-	_, err := client.UpdateItem(context.Background(), connect.NewRequest(req))
+	_, err := client.UpdateItem(context.Background(), req)
 	require.NoError(t, err)
 }
 
@@ -212,7 +212,7 @@ func TestDeleteFilterRule_ItemsStayFiltered(t *testing.T) {
 
 	_, err := client.DeleteFilterRule(
 		context.Background(),
-		connect.NewRequest(&feedsv1.DeleteFilterRuleRequest{RuleId: rule.Id}),
+		&feedsv1.DeleteFilterRuleRequest{RuleId: rule.Id},
 	)
 	require.NoError(t, err)
 
@@ -228,7 +228,7 @@ func TestDeleteFilterRule_ItemsStayFiltered(t *testing.T) {
 
 	_, err = client.DeleteFilterRule(
 		context.Background(),
-		connect.NewRequest(&feedsv1.DeleteFilterRuleRequest{RuleId: rule.Id}),
+		&feedsv1.DeleteFilterRuleRequest{RuleId: rule.Id},
 	)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
@@ -296,7 +296,7 @@ func TestCreateFilterRule_Errors(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := client.CreateFilterRule(
 				context.Background(),
-				connect.NewRequest(c.req),
+				c.req,
 			)
 			var cerr *connect.Error
 			require.True(t, errors.As(err, &cerr), "want a connect error, got %v", err)
@@ -309,7 +309,7 @@ func TestDeleteFilterRule_InvalidID(t *testing.T) {
 	client := newFeedsClient(t)
 	_, err := client.DeleteFilterRule(
 		context.Background(),
-		connect.NewRequest(&feedsv1.DeleteFilterRuleRequest{RuleId: "nope"}),
+		&feedsv1.DeleteFilterRuleRequest{RuleId: "nope"},
 	)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }

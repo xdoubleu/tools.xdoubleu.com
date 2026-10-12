@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,33 +54,27 @@ func TestResetPassword_Success(t *testing.T) {
 	client := authClient(t)
 	token, email := seedResetUserWithToken(t, time.Now().Add(time.Hour), nil)
 
-	_, err := client.ResetPassword(context.Background(), connect.NewRequest(
-		&authv1.ResetPasswordRequest{
-			Token:       token,
-			NewPassword: "a-brand-new-password",
-		},
-	))
+	_, err := client.ResetPassword(context.Background(), &authv1.ResetPasswordRequest{
+		Token:       token,
+		NewPassword: "a-brand-new-password",
+	})
 	require.NoError(t, err)
 
-	signInResp, err := client.SignIn(context.Background(), connect.NewRequest(
-		&authv1.SignInRequest{
-			Email:    email,
-			Password: "a-brand-new-password",
-			Redirect: "/",
-		},
-	))
+	signInResp, err := client.SignIn(context.Background(), &authv1.SignInRequest{
+		Email:    email,
+		Password: "a-brand-new-password",
+		Redirect: "/",
+	})
 	require.NoError(t, err)
-	assert.False(t, signInResp.Msg.NeedsMfa)
+	assert.False(t, signInResp.NeedsMfa)
 }
 
 func TestResetPassword_EmptyToken(t *testing.T) {
 	client := authClient(t)
-	_, err := client.ResetPassword(context.Background(), connect.NewRequest(
-		&authv1.ResetPasswordRequest{
-			Token:       "",
-			NewPassword: "a-brand-new-password",
-		},
-	))
+	_, err := client.ResetPassword(context.Background(), &authv1.ResetPasswordRequest{
+		Token:       "",
+		NewPassword: "a-brand-new-password",
+	})
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -89,12 +83,10 @@ func TestResetPassword_EmptyToken(t *testing.T) {
 
 func TestResetPassword_EmptyNewPassword(t *testing.T) {
 	client := authClient(t)
-	_, err := client.ResetPassword(context.Background(), connect.NewRequest(
-		&authv1.ResetPasswordRequest{
-			Token:       "some-token",
-			NewPassword: "",
-		},
-	))
+	_, err := client.ResetPassword(context.Background(), &authv1.ResetPasswordRequest{
+		Token:       "some-token",
+		NewPassword: "",
+	})
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -103,12 +95,10 @@ func TestResetPassword_EmptyNewPassword(t *testing.T) {
 
 func TestResetPassword_InvalidToken(t *testing.T) {
 	client := authClient(t)
-	_, err := client.ResetPassword(context.Background(), connect.NewRequest(
-		&authv1.ResetPasswordRequest{
-			Token:       "not-a-real-token",
-			NewPassword: "a-brand-new-password",
-		},
-	))
+	_, err := client.ResetPassword(context.Background(), &authv1.ResetPasswordRequest{
+		Token:       "not-a-real-token",
+		NewPassword: "a-brand-new-password",
+	})
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -119,12 +109,10 @@ func TestResetPassword_ExpiredToken(t *testing.T) {
 	client := authClient(t)
 	token, _ := seedResetUserWithToken(t, time.Now().Add(-time.Hour), nil)
 
-	_, err := client.ResetPassword(context.Background(), connect.NewRequest(
-		&authv1.ResetPasswordRequest{
-			Token:       token,
-			NewPassword: "a-brand-new-password",
-		},
-	))
+	_, err := client.ResetPassword(context.Background(), &authv1.ResetPasswordRequest{
+		Token:       token,
+		NewPassword: "a-brand-new-password",
+	})
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -136,12 +124,10 @@ func TestResetPassword_AlreadyUsedToken(t *testing.T) {
 	usedAt := time.Now().Add(-time.Minute)
 	token, _ := seedResetUserWithToken(t, time.Now().Add(time.Hour), &usedAt)
 
-	_, err := client.ResetPassword(context.Background(), connect.NewRequest(
-		&authv1.ResetPasswordRequest{
-			Token:       token,
-			NewPassword: "a-brand-new-password",
-		},
-	))
+	_, err := client.ResetPassword(context.Background(), &authv1.ResetPasswordRequest{
+		Token:       token,
+		NewPassword: "a-brand-new-password",
+	})
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)

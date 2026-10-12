@@ -4,12 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func setBookTag(
@@ -18,11 +19,12 @@ func setBookTag(
 	enabled bool,
 ) error {
 	t.Helper()
-	req := connect.NewRequest(&booksv1.SetBookTagRequest{
+	req := &booksv1.SetBookTagRequest{
 		BookId: bookID, Tag: tag, Enabled: enabled,
-	})
-	req.Header().Set("Cookie", accessToken.String())
-	_, err := newBooksTestClient(t).SetBookTag(context.Background(), req)
+	}
+	_, err := newBooksTestClient(
+		t,
+	).SetBookTag(testhelper.WithCookie(context.Background(), accessToken.String()), req)
 	return err
 }
 
@@ -90,23 +92,20 @@ func TestConnectTagRPCs_RejectOwnBol(t *testing.T) {
 	err := setBookTag(t, id, models.TagOwnBol, true)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 
-	toggle := connect.NewRequest(&booksv1.ToggleTagRequest{
+	toggle := &booksv1.ToggleTagRequest{
 		BookId: id, Tag: models.TagOwnBol,
-	})
-	toggle.Header().Set("Cookie", accessToken.String())
-	_, err = client.ToggleTag(ctx, toggle)
+	}
+	_, err = client.ToggleTag(testhelper.WithCookie(ctx, accessToken.String()), toggle)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 
-	rename := connect.NewRequest(&booksv1.RenameTagRequest{
+	rename := &booksv1.RenameTagRequest{
 		OldName: "poetry", NewName: models.TagOwnBol,
-	})
-	rename.Header().Set("Cookie", accessToken.String())
-	_, err = client.RenameTag(ctx, rename)
+	}
+	_, err = client.RenameTag(testhelper.WithCookie(ctx, accessToken.String()), rename)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 
-	del := connect.NewRequest(&booksv1.DeleteTagRequest{Name: models.TagOwnBol})
-	del.Header().Set("Cookie", accessToken.String())
-	_, err = client.DeleteTag(ctx, del)
+	del := &booksv1.DeleteTagRequest{Name: models.TagOwnBol}
+	_, err = client.DeleteTag(testhelper.WithCookie(ctx, accessToken.String()), del)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 
 	assert.NotContains(t, bookTags(t, book), models.TagOwnBol)

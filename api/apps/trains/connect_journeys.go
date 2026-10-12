@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
 	"tools.xdoubleu.com/apps/trains/internal/services"
@@ -23,16 +23,16 @@ var _ trainsv1connect.TrainServiceHandler = (*trainsConnectHandler)(nil)
 
 func (h *trainsConnectHandler) SearchJourneys(
 	ctx context.Context,
-	req *connect.Request[trainsv1.SearchJourneysRequest],
-) (*connect.Response[trainsv1.SearchJourneysResponse], error) {
-	msg := req.Msg
+	req *trainsv1.SearchJourneysRequest,
+) (*trainsv1.SearchJourneysResponse, error) {
+	msg := req
 	when := time.Now()
 	if msg.GetTime() != "" {
 		parsed, err := time.Parse(time.RFC3339, msg.GetTime())
 		if err != nil {
 			return nil, connect.NewError(
-				connect.CodeInvalidArgument, err,
-			)
+				connect.CodeInvalidArgument, err.Error(),
+			).WithCause(err)
 		}
 		when = parsed
 	}
@@ -48,37 +48,37 @@ func (h *trainsConnectHandler) SearchJourneys(
 	for i, j := range journeys {
 		out[i] = protoJourney(&j)
 	}
-	return connect.NewResponse(&trainsv1.SearchJourneysResponse{
+	return &trainsv1.SearchJourneysResponse{
 		Journeys: out,
-	}), nil
+	}, nil
 }
 
 // GetJourneyDetail fetches a searched journey's live state and ensures its
 // websocket topic exists so the client can subscribe right after.
 func (h *trainsConnectHandler) GetJourneyDetail(
 	ctx context.Context,
-	req *connect.Request[trainsv1.GetJourneyDetailRequest],
-) (*connect.Response[trainsv1.GetJourneyDetailResponse], error) {
-	journeyID := req.Msg.GetJourneyId()
+	req *trainsv1.GetJourneyDetailRequest,
+) (*trainsv1.GetJourneyDetailResponse, error) {
+	journeyID := req.GetJourneyId()
 	if journeyID == "" {
 		return nil, connect.NewError(
-			connect.CodeInvalidArgument, errors.New("journey_id is required"),
+			connect.CodeInvalidArgument, "journey_id is required",
 		)
 	}
 
 	detail, err := h.app.Services.JourneyDetail.GetJourneyDetail(ctx, journeyID)
 	if err != nil {
 		if errors.Is(err, services.ErrInvalidJourneyID) {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		}
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	h.app.Services.JourneyWS.EnsureTopic(journeyID)
 
-	return connect.NewResponse(&trainsv1.GetJourneyDetailResponse{
+	return &trainsv1.GetJourneyDetailResponse{
 		Journey: protoJourneyDetail(journeyID, detail),
-	}), nil
+	}, nil
 }
 
 func protoJourney(j *csa.Journey) *trainsv1.Journey {
@@ -226,16 +226,16 @@ func protoStopCall(sc *models.StopDetail) *trainsv1.StopCall {
 func mapError(err error) error {
 	switch {
 	case errors.Is(err, csa.ErrUnknownStop):
-		return connect.NewError(connect.CodeNotFound, err)
+		return connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	case errors.Is(err, services.ErrRouterWarmingUp):
-		return connect.NewError(connect.CodeUnavailable, err)
+		return connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	case errors.Is(err, services.ErrInvalidCommute):
-		return connect.NewError(connect.CodeInvalidArgument, err)
+		return connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	case errors.Is(err, database.ErrResourceNotFound):
-		return connect.NewError(connect.CodeNotFound, err)
+		return connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	case errors.Is(err, database.ErrResourceConflict):
-		return connect.NewError(connect.CodeAlreadyExists, err)
+		return connect.NewError(connect.CodeAlreadyExists, err.Error()).WithCause(err)
 	default:
-		return connect.NewError(connect.CodeInternal, err)
+		return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 }

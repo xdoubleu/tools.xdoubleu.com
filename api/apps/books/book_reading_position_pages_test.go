@@ -4,12 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/mocks"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // pageTwoOffset is where page 2's anchor sits in PagedDocOne's KEPUB text.
@@ -17,28 +18,34 @@ const pageTwoOffset = len("Page one text.More of page one.")
 
 func getPosition(t *testing.T, bookID string) *booksv1.ReadingPosition {
 	t.Helper()
-	req := connect.NewRequest(&booksv1.GetReadingStateRequest{BookId: bookID})
-	req.Header().Set("Cookie", accessToken.String())
-	resp, err := newBooksTestClient(t).GetReadingState(context.Background(), req)
+	req := &booksv1.GetReadingStateRequest{BookId: bookID}
+	resp, err := newBooksTestClient(
+		t,
+	).GetReadingState(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
-	return resp.Msg.State.Position
+	return resp.State.Position
 }
 
 func translate(
 	t *testing.T, bookID string, pos *booksv1.ReadingPosition,
 ) (*booksv1.ReadingPosition, error) {
 	t.Helper()
-	req := connect.NewRequest(&booksv1.TranslateReadingPositionRequest{
+	req := &booksv1.TranslateReadingPositionRequest{
 		BookId: bookID, Position: pos,
-	})
-	req.Header().Set("Cookie", accessToken.String())
-	resp, err := newBooksTestClient(t).TranslateReadingPosition(
-		context.Background(), req,
+	}
+	resp, err := newBooksTestClient(
+		t,
+	).TranslateReadingPosition(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
 	)
 	if err != nil {
 		return nil, err
 	}
-	return resp.Msg.Position, nil
+	return resp.Position, nil
 }
 
 func TestConnectGetReadingState_PDFSourced_BothForms(t *testing.T) {

@@ -1,9 +1,7 @@
 package connecttools
 
 import (
-	"errors"
-
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 )
 
@@ -18,7 +16,7 @@ func ParseClientID(raw string) (uuid.NullUUID, error) {
 	if err != nil {
 		return uuid.NullUUID{UUID: uuid.Nil, Valid: false}, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid ID"),
+			"invalid ID",
 		)
 	}
 	return uuid.NullUUID{UUID: id, Valid: true}, nil

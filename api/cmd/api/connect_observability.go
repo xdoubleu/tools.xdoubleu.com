@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	"tools.xdoubleu.com/apps/feeds"
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
@@ -45,18 +45,18 @@ func windowSince(windowDays int32) time.Time {
 
 func (h *obsConnectHandler) GetJobStats(
 	ctx context.Context,
-	req *connect.Request[observabilityv1.GetJobStatsRequest],
-) (*connect.Response[observabilityv1.GetJobStatsResponse], error) {
+	req *observabilityv1.GetJobStatsRequest,
+) (*observabilityv1.GetJobStatsResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	resp, err := h.jobStats(ctx, req.Msg.WindowDays)
+	resp, err := h.jobStats(ctx, req.WindowDays)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // jobStats builds the job-stats response for both the Connect handler and the
@@ -106,18 +106,18 @@ func (h *obsConnectHandler) jobStats(
 
 func (h *obsConnectHandler) GetUsageStats(
 	ctx context.Context,
-	req *connect.Request[observabilityv1.GetUsageStatsRequest],
-) (*connect.Response[observabilityv1.GetUsageStatsResponse], error) {
+	req *observabilityv1.GetUsageStatsRequest,
+) (*observabilityv1.GetUsageStatsResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	resp, err := h.usageStats(ctx, req.Msg.WindowDays)
+	resp, err := h.usageStats(ctx, req.WindowDays)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 func (h *obsConnectHandler) usageStats(
@@ -170,18 +170,18 @@ func (h *obsConnectHandler) unusedApps(entries []models.UsageEntry) []string {
 
 func (h *obsConnectHandler) GetStorageStats(
 	ctx context.Context,
-	_ *connect.Request[observabilityv1.GetStorageStatsRequest],
-) (*connect.Response[observabilityv1.GetStorageStatsResponse], error) {
+	_ *observabilityv1.GetStorageStatsRequest,
+) (*observabilityv1.GetStorageStatsResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
 	resp, err := h.storageStats(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 func (h *obsConnectHandler) storageStats(
@@ -211,8 +211,8 @@ func (h *obsConnectHandler) storageStats(
 
 func (h *obsConnectHandler) TriggerStorageScan(
 	ctx context.Context,
-	_ *connect.Request[observabilityv1.TriggerStorageScanRequest],
-) (*connect.Response[observabilityv1.TriggerStorageScanResponse], error) {
+	_ *observabilityv1.TriggerStorageScanRequest,
+) (*observabilityv1.TriggerStorageScanResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
@@ -220,10 +220,10 @@ func (h *obsConnectHandler) TriggerStorageScan(
 	// Scan inline (fast, admin-only) so GetStorageStats shows live data right
 	// after.
 	if err := h.app.booksApp.RunStorageScanNow(ctx); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&observabilityv1.TriggerStorageScanResponse{}), nil
+	return &observabilityv1.TriggerStorageScanResponse{}, nil
 }
 
 func protoStorageSnapshot(s *models.StorageSnapshot) *observabilityv1.StorageSnapshot {
@@ -257,18 +257,18 @@ func protoStorageSnapshot(s *models.StorageSnapshot) *observabilityv1.StorageSna
 
 func (h *obsConnectHandler) GetDatabaseStats(
 	ctx context.Context,
-	_ *connect.Request[observabilityv1.GetDatabaseStatsRequest],
-) (*connect.Response[observabilityv1.GetDatabaseStatsResponse], error) {
+	_ *observabilityv1.GetDatabaseStatsRequest,
+) (*observabilityv1.GetDatabaseStatsResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
 	resp, err := h.databaseStats(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // databaseStats is a live size snapshot; history lives in Prometheus.

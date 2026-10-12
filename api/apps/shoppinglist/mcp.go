@@ -3,7 +3,6 @@ package shoppinglist
 import (
 	"context"
 
-	"connectrpc.com/connect"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
@@ -54,66 +53,64 @@ func (a *ShoppingList) RegisterMCPTools(srv *mcp.Server) {
 func (h *shoppingConnectHandler) mcpGetCustomList(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetCustomList(ctx, connect.NewRequest(
-		&shoppinglistv1.GetCustomListRequest{},
-	)))
+	return mcptools.Unwrap(h.GetCustomList(ctx, &shoppinglistv1.GetCustomListRequest{}))
 }
 
 func (h *shoppingConnectHandler) mcpGetMealPlanExportItems(
 	ctx context.Context, args mcpExportArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetMealPlanExportItems(ctx, connect.NewRequest(
-		&shoppinglistv1.GetMealPlanExportItemsRequest{
+	return mcptools.Unwrap(
+		h.GetMealPlanExportItems(ctx, &shoppinglistv1.GetMealPlanExportItemsRequest{
 			PlanId:         args.PlanID,
 			ExcludedGroups: args.ExcludedGroups,
-		},
-	)))
+		}),
+	)
 }
 
 func (h *shoppingConnectHandler) mcpGetPlanIngredientGroups(
 	ctx context.Context, args mcpPlanIDArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetPlanIngredientGroups(ctx, connect.NewRequest(
-		&shoppinglistv1.GetPlanIngredientGroupsRequest{PlanId: args.PlanID},
-	)))
+	return mcptools.Unwrap(
+		h.GetPlanIngredientGroups(
+			ctx,
+			&shoppinglistv1.GetPlanIngredientGroupsRequest{PlanId: args.PlanID},
+		),
+	)
 }
 
 func (h *shoppingConnectHandler) mcpListCategories(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListCategories(ctx, connect.NewRequest(
-		&shoppinglistv1.ListCategoriesRequest{},
-	)))
+	return mcptools.Unwrap(h.ListCategories(ctx, &shoppinglistv1.ListCategoriesRequest{}))
 }
 
 func (h *shoppingConnectHandler) mcpListStores(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListStores(ctx, connect.NewRequest(
-		&shoppinglistv1.ListStoresRequest{},
-	)))
+	return mcptools.Unwrap(h.ListStores(ctx, &shoppinglistv1.ListStoresRequest{}))
 }
 
 func (h *shoppingConnectHandler) mcpGetStoreCategories(
 	ctx context.Context, args mcpStoreIDArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetStoreCategories(ctx, connect.NewRequest(
-		&shoppinglistv1.GetStoreCategoriesRequest{StoreId: args.StoreID},
-	)))
+	return mcptools.Unwrap(
+		h.GetStoreCategories(
+			ctx,
+			&shoppinglistv1.GetStoreCategoriesRequest{StoreId: args.StoreID},
+		),
+	)
 }
 
 func (h *shoppingConnectHandler) mcpListItemNames(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListItemNames(ctx, connect.NewRequest(
-		&shoppinglistv1.ListItemNamesRequest{},
-	)))
+	return mcptools.Unwrap(h.ListItemNames(ctx, &shoppinglistv1.ListItemNamesRequest{}))
 }
 
 func (h *shoppingConnectHandler) mcpListItemCategories(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListItemCategories(ctx, connect.NewRequest(
-		&shoppinglistv1.ListItemCategoriesRequest{},
-	)))
+	return mcptools.Unwrap(
+		h.ListItemCategories(ctx, &shoppinglistv1.ListItemCategoriesRequest{}),
+	)
 }

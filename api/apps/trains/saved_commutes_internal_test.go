@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 
 	"tools.xdoubleu.com/apps/trains/internal/services"
@@ -17,24 +17,16 @@ func TestSavedCommutes_Unauthenticated(t *testing.T) {
 	h := &trainsConnectHandler{app: nil}
 	ctx := context.Background()
 
-	_, err := h.ListSavedCommutes(ctx, connect.NewRequest(
-		&trainsv1.ListSavedCommutesRequest{},
-	))
+	_, err := h.ListSavedCommutes(ctx, &trainsv1.ListSavedCommutesRequest{})
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 
-	_, err = h.CreateSavedCommute(ctx, connect.NewRequest(
-		&trainsv1.CreateSavedCommuteRequest{},
-	))
+	_, err = h.CreateSavedCommute(ctx, &trainsv1.CreateSavedCommuteRequest{})
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 
-	_, err = h.UpdateSavedCommute(ctx, connect.NewRequest(
-		&trainsv1.UpdateSavedCommuteRequest{},
-	))
+	_, err = h.UpdateSavedCommute(ctx, &trainsv1.UpdateSavedCommuteRequest{})
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 
-	_, err = h.DeleteSavedCommute(ctx, connect.NewRequest(
-		&trainsv1.DeleteSavedCommuteRequest{},
-	))
+	_, err = h.DeleteSavedCommute(ctx, &trainsv1.DeleteSavedCommuteRequest{})
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
 

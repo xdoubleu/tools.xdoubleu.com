@@ -3,6 +3,8 @@ package dashboard
 import (
 	"net/http"
 
+	"connectrpc.com/connect/v2"
+
 	dashboardv1connect "tools.xdoubleu.com/gen/dashboard/v1/dashboardv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 )
@@ -11,19 +13,9 @@ import (
 // than auth. The owner-facing token CRUD is registered in cmd/api/routes.go
 // behind auth.Access.
 func (a *Dashboard) Routes(_ string, mux *http.ServeMux) {
-	scrub := iapp.ScrubInternalErrors(a.Logger)
-	handler := &publicConnectHandler{app: a}
-
-	gamesPath, gamesHandler := dashboardv1connect.NewPublicGamesDashboardServiceHandler(
-		handler,
-		scrub,
-	)
-	mux.Handle("POST "+gamesPath, gamesHandler)
-
-	readingPath, readingHandler := dashboardv1connect.
-		NewPublicReadingDashboardServiceHandler(
-			handler,
-			scrub,
-		)
-	mux.Handle("POST "+readingPath, readingHandler)
+	iapp.MountConnect(mux, a.Logger, nil, func(s *connect.Server) {
+		handler := &publicConnectHandler{app: a}
+		dashboardv1connect.RegisterPublicGamesDashboardServiceHandler(s, handler)
+		dashboardv1connect.RegisterPublicReadingDashboardServiceHandler(s, handler)
+	})
 }

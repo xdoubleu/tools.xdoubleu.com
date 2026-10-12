@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -54,13 +54,14 @@ func TestGetProviderOptions_Github(t *testing.T) {
 		configNotConnected(),
 	)
 
-	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+	req := &observabilityv1.GetProviderOptionsRequest{
 		Provider: string(models.OAuthProviderGithub),
-	})
-	setCookieOnRequest(req, accessToken)
-	resp, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	}
+	resp, err := observabilityClient(
+		t,
+	).GetProviderOptions(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"o/a", "o/b"}, resp.Msg.Repos)
+	assert.Equal(t, []string{"o/a", "o/b"}, resp.Repos)
 }
 
 func TestGetProviderOptions_SentryOrgsThenProjects(t *testing.T) {
@@ -74,15 +75,16 @@ func TestGetProviderOptions_SentryOrgsThenProjects(t *testing.T) {
 		logging.NewNopLogger(), stubTok("tok"), configNotConnected(),
 	)
 
-	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+	req := &observabilityv1.GetProviderOptionsRequest{
 		Provider:  string(models.OAuthProviderSentry),
 		SentryOrg: "org-a",
-	})
-	setCookieOnRequest(req, accessToken)
-	resp, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	}
+	resp, err := observabilityClient(
+		t,
+	).GetProviderOptions(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"proj-a"}, resp.Msg.SentryProjects)
-	assert.Empty(t, resp.Msg.SentryOrgs)
+	assert.Equal(t, []string{"proj-a"}, resp.SentryProjects)
+	assert.Empty(t, resp.SentryOrgs)
 }
 
 func TestGetProviderOptions_SentryOrgs(t *testing.T) {
@@ -96,13 +98,14 @@ func TestGetProviderOptions_SentryOrgs(t *testing.T) {
 		logging.NewNopLogger(), stubTok("tok"), configNotConnected(),
 	)
 
-	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+	req := &observabilityv1.GetProviderOptionsRequest{
 		Provider: string(models.OAuthProviderSentry),
-	})
-	setCookieOnRequest(req, accessToken)
-	resp, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	}
+	resp, err := observabilityClient(
+		t,
+	).GetProviderOptions(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.Equal(t, []string{"org-a"}, resp.Msg.SentryOrgs)
+	assert.Equal(t, []string{"org-a"}, resp.SentryOrgs)
 }
 
 func TestGetProviderOptions_SentryOrgsError(t *testing.T) {
@@ -112,11 +115,12 @@ func TestGetProviderOptions_SentryOrgsError(t *testing.T) {
 		logging.NewNopLogger(), stubTok(""), configNotConnected(),
 	)
 
-	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+	req := &observabilityv1.GetProviderOptionsRequest{
 		Provider: string(models.OAuthProviderSentry),
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	}
+	_, err := observabilityClient(
+		t,
+	).GetProviderOptions(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
@@ -128,12 +132,13 @@ func TestGetProviderOptions_SentryProjectsError(t *testing.T) {
 		logging.NewNopLogger(), stubTok(""), configNotConnected(),
 	)
 
-	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+	req := &observabilityv1.GetProviderOptionsRequest{
 		Provider:  string(models.OAuthProviderSentry),
 		SentryOrg: "org-a",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	}
+	_, err := observabilityClient(
+		t,
+	).GetProviderOptions(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
@@ -147,11 +152,12 @@ func TestGetProviderOptions_NotConnected(t *testing.T) {
 		configNotConnected(),
 	)
 
-	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+	req := &observabilityv1.GetProviderOptionsRequest{
 		Provider: string(models.OAuthProviderGithub),
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	}
+	_, err := observabilityClient(
+		t,
+	).GetProviderOptions(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
@@ -160,11 +166,12 @@ func TestGetProviderOptions_UnknownProvider(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
-	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+	req := &observabilityv1.GetProviderOptionsRequest{
 		Provider: "not-a-provider",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	}
+	_, err := observabilityClient(
+		t,
+	).GetProviderOptions(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -172,11 +179,12 @@ func TestGetProviderOptions_UnknownProvider(t *testing.T) {
 func TestGetProviderOptions_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 
-	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+	req := &observabilityv1.GetProviderOptionsRequest{
 		Provider: string(models.OAuthProviderGithub),
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	}
+	_, err := observabilityClient(
+		t,
+	).GetProviderOptions(withCookies(context.Background(), accessToken), req)
 	requirePermissionDenied(t, err)
 }
 
@@ -195,29 +203,29 @@ func TestSetProviderConfig_Github(t *testing.T) {
 		nil,
 	))
 
-	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{
+	req := &observabilityv1.SetProviderConfigRequest{
 		Provider: string(models.OAuthProviderGithub),
 		Config: &observabilityv1.ProviderConfig{
 			Config: &observabilityv1.ProviderConfig_Github{
 				Github: &observabilityv1.GithubConfig{Repo: "o/r"},
 			},
 		},
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).SetProviderConfig(context.Background(), req)
+	}
+	_, err := observabilityClient(
+		t,
+	).SetProviderConfig(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
 
 	_, conn, err := testApp.oauthConnRepo.Get(t.Context(), models.OAuthProviderGithub)
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"repo":"o/r"}`, string(conn.Config))
 
-	listReq := connect.NewRequest(&observabilityv1.ListOAuthConnectionsRequest{})
-	setCookieOnRequest(listReq, accessToken)
+	listReq := &observabilityv1.ListOAuthConnectionsRequest{}
 	listResp, err := observabilityClient(
 		t,
-	).ListOAuthConnections(context.Background(), listReq)
+	).ListOAuthConnections(withCookies(context.Background(), accessToken), listReq)
 	require.NoError(t, err)
-	for _, c := range listResp.Msg.Connections {
+	for _, c := range listResp.Connections {
 		if c.Provider == string(models.OAuthProviderGithub) {
 			require.NotNil(t, c.Config)
 			assert.Equal(t, "o/r", c.Config.GetGithub().GetRepo())
@@ -240,7 +248,7 @@ func TestSetProviderConfig_Sentry(t *testing.T) {
 		nil,
 	))
 
-	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{
+	req := &observabilityv1.SetProviderConfigRequest{
 		Provider: string(models.OAuthProviderSentry),
 		Config: &observabilityv1.ProviderConfig{
 			Config: &observabilityv1.ProviderConfig_Sentry{
@@ -249,9 +257,10 @@ func TestSetProviderConfig_Sentry(t *testing.T) {
 				},
 			},
 		},
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).SetProviderConfig(context.Background(), req)
+	}
+	_, err := observabilityClient(
+		t,
+	).SetProviderConfig(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
 
 	_, conn, err := testApp.oauthConnRepo.Get(t.Context(), models.OAuthProviderSentry)
@@ -264,12 +273,13 @@ func TestSetProviderConfig_MissingFields(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 	clearOAuthConnections(t)
 
-	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{
+	req := &observabilityv1.SetProviderConfigRequest{
 		Provider: string(models.OAuthProviderGithub),
 		Config:   &observabilityv1.ProviderConfig{},
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).SetProviderConfig(context.Background(), req)
+	}
+	_, err := observabilityClient(
+		t,
+	).SetProviderConfig(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -278,12 +288,13 @@ func TestSetProviderConfig_UnknownProvider(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
-	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{
+	req := &observabilityv1.SetProviderConfigRequest{
 		Provider: "not-a-provider",
 		Config:   &observabilityv1.ProviderConfig{},
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).SetProviderConfig(context.Background(), req)
+	}
+	_, err := observabilityClient(
+		t,
+	).SetProviderConfig(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -293,16 +304,17 @@ func TestSetProviderConfig_NotConnected(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 	clearOAuthConnections(t)
 
-	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{
+	req := &observabilityv1.SetProviderConfigRequest{
 		Provider: string(models.OAuthProviderGithub),
 		Config: &observabilityv1.ProviderConfig{
 			Config: &observabilityv1.ProviderConfig_Github{
 				Github: &observabilityv1.GithubConfig{Repo: "o/r"},
 			},
 		},
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).SetProviderConfig(context.Background(), req)
+	}
+	_, err := observabilityClient(
+		t,
+	).SetProviderConfig(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 }
@@ -310,15 +322,16 @@ func TestSetProviderConfig_NotConnected(t *testing.T) {
 func TestSetProviderConfig_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 
-	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{
+	req := &observabilityv1.SetProviderConfigRequest{
 		Provider: string(models.OAuthProviderGithub),
 		Config: &observabilityv1.ProviderConfig{
 			Config: &observabilityv1.ProviderConfig_Github{
 				Github: &observabilityv1.GithubConfig{Repo: "o/r"},
 			},
 		},
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).SetProviderConfig(context.Background(), req)
+	}
+	_, err := observabilityClient(
+		t,
+	).SetProviderConfig(withCookies(context.Background(), accessToken), req)
 	requirePermissionDenied(t, err)
 }

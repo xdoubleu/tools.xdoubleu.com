@@ -7,7 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,8 +24,11 @@ func setupClient(
 ) learningpathsv1connect.LearningPathsServiceClient {
 	ts := httptest.NewServer(handler)
 	return learningpathsv1connect.NewLearningPathsServiceClient(
-		http.DefaultClient,
-		ts.URL,
+		connect.NewClient(connecthttp.NewTransport(
+			http.DefaultClient,
+			ts.URL,
+			connecthttp.WithReadMaxBytes(0),
+		)),
 	)
 }
 
@@ -49,10 +53,10 @@ func TestListLearningPaths_Empty(t *testing.T) {
 	client := setupClient(getRoutes())
 
 	resp, err := client.ListLearningPaths(
-		newCtx(), connect.NewRequest(&learningpathsv1.ListLearningPathsRequest{}),
+		newCtx(), &learningpathsv1.ListLearningPathsRequest{},
 	)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.LearningPaths)
+	assert.Empty(t, resp.LearningPaths)
 }
 
 func TestCreateLearningPath_Success(t *testing.T) {
@@ -60,7 +64,7 @@ func TestCreateLearningPath_Success(t *testing.T) {
 
 	resp, err := client.CreateLearningPath(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title:   "Learn Go",
 			Goal:    "Ship a backend service",
 			Routine: "30 min every weekday",
@@ -76,15 +80,15 @@ func TestCreateLearningPath_Success(t *testing.T) {
 			Resources: []*learningpathsv1.Resource{
 				{Text: "https://go.dev/tour/"},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, "Learn Go", resp.Msg.LearningPath.Title)
-	assert.Equal(t, userID, resp.Msg.LearningPath.UserId)
-	require.Len(t, resp.Msg.LearningPath.Modules, 1)
-	assert.Len(t, resp.Msg.LearningPath.Modules[0].Items, 2)
-	require.Len(t, resp.Msg.LearningPath.Resources, 1)
-	assert.Equal(t, "https://go.dev/tour/", resp.Msg.LearningPath.Resources[0].Text)
+	assert.Equal(t, "Learn Go", resp.LearningPath.Title)
+	assert.Equal(t, userID, resp.LearningPath.UserId)
+	require.Len(t, resp.LearningPath.Modules, 1)
+	assert.Len(t, resp.LearningPath.Modules[0].Items, 2)
+	require.Len(t, resp.LearningPath.Resources, 1)
+	assert.Equal(t, "https://go.dev/tour/", resp.LearningPath.Resources[0].Text)
 }
 
 func TestGetLearningPath_Success(t *testing.T) {
@@ -93,7 +97,7 @@ func TestGetLearningPath_Success(t *testing.T) {
 
 	createResp, err := client.CreateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Test Path",
 			Modules: []*learningpathsv1.Module{
 				{
@@ -101,19 +105,19 @@ func TestGetLearningPath_Success(t *testing.T) {
 					Items: []*learningpathsv1.Item{{Description: "Do the thing"}},
 				},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	getResp, err := client.GetLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{
-			Id: createResp.Msg.LearningPath.Id,
-		}),
+		ctx, &learningpathsv1.GetLearningPathRequest{
+			Id: createResp.LearningPath.Id,
+		},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, "Test Path", getResp.Msg.LearningPath.Title)
-	require.Len(t, getResp.Msg.LearningPath.Modules, 1)
-	assert.Equal(t, "Week 1", getResp.Msg.LearningPath.Modules[0].Title)
+	assert.Equal(t, "Test Path", getResp.LearningPath.Title)
+	require.Len(t, getResp.LearningPath.Modules, 1)
+	assert.Equal(t, "Week 1", getResp.LearningPath.Modules[0].Title)
 }
 
 func TestGetLearningPath_WithResources(t *testing.T) {
@@ -122,34 +126,34 @@ func TestGetLearningPath_WithResources(t *testing.T) {
 
 	createResp, err := client.CreateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Resourced Path",
 			Resources: []*learningpathsv1.Resource{
 				{Text: "https://example.com/a"},
 				{Text: "https://example.com/b"},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	getResp, err := client.GetLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{
-			Id: createResp.Msg.LearningPath.Id,
-		}),
+		ctx, &learningpathsv1.GetLearningPathRequest{
+			Id: createResp.LearningPath.Id,
+		},
 	)
 	require.NoError(t, err)
-	require.Len(t, getResp.Msg.LearningPath.Resources, 2)
-	assert.Equal(t, "https://example.com/a", getResp.Msg.LearningPath.Resources[0].Text)
-	assert.Equal(t, "https://example.com/b", getResp.Msg.LearningPath.Resources[1].Text)
+	require.Len(t, getResp.LearningPath.Resources, 2)
+	assert.Equal(t, "https://example.com/a", getResp.LearningPath.Resources[0].Text)
+	assert.Equal(t, "https://example.com/b", getResp.LearningPath.Resources[1].Text)
 }
 
 func TestGetLearningPath_NotFound(t *testing.T) {
 	client := setupClient(getRoutes())
 
 	_, err := client.GetLearningPath(
-		newCtx(), connect.NewRequest(&learningpathsv1.GetLearningPathRequest{
+		newCtx(), &learningpathsv1.GetLearningPathRequest{
 			Id: uuid.New().String(),
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
@@ -169,7 +173,7 @@ func TestGetLearningPath_OtherUserDenied(t *testing.T) {
 
 	_, err = client.GetLearningPath(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.GetLearningPathRequest{Id: pathID}),
+		&learningpathsv1.GetLearningPathRequest{Id: pathID},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
@@ -181,18 +185,18 @@ func TestUpdateLearningPath_Success(t *testing.T) {
 
 	createResp, err := client.CreateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Original",
 			Modules: []*learningpathsv1.Module{
 				{Title: "M1", Items: []*learningpathsv1.Item{{Description: "item 1"}}},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	pathID := createResp.Msg.LearningPath.Id
+	pathID := createResp.LearningPath.Id
 
 	updateResp, err := client.UpdateLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.UpdateLearningPathRequest{
+		ctx, &learningpathsv1.UpdateLearningPathRequest{
 			Id:    pathID,
 			Title: "Updated",
 			Modules: []*learningpathsv1.Module{
@@ -200,13 +204,13 @@ func TestUpdateLearningPath_Success(t *testing.T) {
 					{Description: "item 1"}, {Description: "item 2"},
 				}},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, "Updated", updateResp.Msg.LearningPath.Title)
-	require.Len(t, updateResp.Msg.LearningPath.Modules, 1)
-	assert.Equal(t, "M1 renamed", updateResp.Msg.LearningPath.Modules[0].Title)
-	assert.Len(t, updateResp.Msg.LearningPath.Modules[0].Items, 2)
+	assert.Equal(t, "Updated", updateResp.LearningPath.Title)
+	require.Len(t, updateResp.LearningPath.Modules, 1)
+	assert.Equal(t, "M1 renamed", updateResp.LearningPath.Modules[0].Title)
+	assert.Len(t, updateResp.LearningPath.Modules[0].Items, 2)
 }
 
 // TestUpdateLearningPath_KeepsItemIDsAndProgress: an update reconciles
@@ -219,33 +223,33 @@ func TestUpdateLearningPath_KeepsItemIDsAndProgress(t *testing.T) {
 
 	createResp, err := client.CreateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Keep IDs",
 			Modules: []*learningpathsv1.Module{
 				{Title: "M1", Items: []*learningpathsv1.Item{
 					{Description: "item 1"}, {Description: "item 2"},
 				}},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	pathID := createResp.Msg.LearningPath.Id
-	modules := createResp.Msg.LearningPath.Modules
+	pathID := createResp.LearningPath.Id
+	modules := createResp.LearningPath.Modules
 	require.Len(t, modules, 1)
 	require.Len(t, modules[0].Items, 2)
 	itemID, item2ID := modules[0].Items[0].Id, modules[0].Items[1].Id
 
 	_, err = client.RecordItemProgress(
 		ctx,
-		connect.NewRequest(&learningpathsv1.RecordItemProgressRequest{
+		&learningpathsv1.RecordItemProgressRequest{
 			ItemId: itemID, Completed: true,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	_, err = client.UpdateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.UpdateLearningPathRequest{
+		&learningpathsv1.UpdateLearningPathRequest{
 			Id:    pathID,
 			Title: "Renamed",
 			Modules: []*learningpathsv1.Module{
@@ -253,16 +257,16 @@ func TestUpdateLearningPath_KeepsItemIDsAndProgress(t *testing.T) {
 					{Description: "item 1"}, {Description: "item 2 edited"},
 				}},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	got, err := client.GetLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{Id: pathID}),
+		ctx, &learningpathsv1.GetLearningPathRequest{Id: pathID},
 	)
 	require.NoError(t, err)
-	require.Len(t, got.Msg.LearningPath.Modules, 1)
-	items := got.Msg.LearningPath.Modules[0].Items
+	require.Len(t, got.LearningPath.Modules, 1)
+	items := got.LearningPath.Modules[0].Items
 	require.Len(t, items, 2)
 	assert.Equal(t, itemID, items[0].Id, "item ID survives an update")
 	assert.True(t, items[0].Completed, "recorded progress survives an update")
@@ -280,7 +284,7 @@ func TestUpdateLearningPath_AddRemoveItemsReconciles(t *testing.T) {
 
 	createResp, err := client.CreateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Reconcile",
 			Modules: []*learningpathsv1.Module{
 				{Title: "M1", Items: []*learningpathsv1.Item{
@@ -290,11 +294,11 @@ func TestUpdateLearningPath_AddRemoveItemsReconciles(t *testing.T) {
 				}},
 				{Title: "M2", Items: []*learningpathsv1.Item{{Description: "gone"}}},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	pathID := createResp.Msg.LearningPath.Id
-	modules := createResp.Msg.LearningPath.Modules
+	pathID := createResp.LearningPath.Id
+	modules := createResp.LearningPath.Modules
 	require.Len(t, modules, 2)
 	alphaID := modules[0].Items[0].Id
 	gammaID := modules[0].Items[2].Id
@@ -302,16 +306,16 @@ func TestUpdateLearningPath_AddRemoveItemsReconciles(t *testing.T) {
 	for _, itemID := range []string{alphaID, gammaID} {
 		_, err = client.RecordItemProgress(
 			ctx,
-			connect.NewRequest(&learningpathsv1.RecordItemProgressRequest{
+			&learningpathsv1.RecordItemProgressRequest{
 				ItemId: itemID, Completed: true,
-			}),
+			},
 		)
 		require.NoError(t, err)
 	}
 
 	_, err = client.UpdateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.UpdateLearningPathRequest{
+		&learningpathsv1.UpdateLearningPathRequest{
 			Id:    pathID,
 			Title: "Reconcile",
 			Modules: []*learningpathsv1.Module{
@@ -321,16 +325,16 @@ func TestUpdateLearningPath_AddRemoveItemsReconciles(t *testing.T) {
 					{Description: "new item", Completed: true},
 				}},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	got, err := client.GetLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{Id: pathID}),
+		ctx, &learningpathsv1.GetLearningPathRequest{Id: pathID},
 	)
 	require.NoError(t, err)
-	require.Len(t, got.Msg.LearningPath.Modules, 1, "removed module is deleted")
-	items := got.Msg.LearningPath.Modules[0].Items
+	require.Len(t, got.LearningPath.Modules, 1, "removed module is deleted")
+	items := got.LearningPath.Modules[0].Items
 	require.Len(t, items, 3)
 	assert.Equal(t, alphaID, items[0].Id, "surviving item keeps its ID")
 	assert.True(t, items[0].Completed, "surviving item keeps its progress")
@@ -350,7 +354,7 @@ func TestCreateLearningPath_QuizRoundTrip(t *testing.T) {
 
 	resp, err := client.CreateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Learn Go",
 			Modules: []*learningpathsv1.Module{
 				{
@@ -362,17 +366,17 @@ func TestCreateLearningPath_QuizRoundTrip(t *testing.T) {
 					},
 				},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	pathID := resp.Msg.LearningPath.Id
+	pathID := resp.LearningPath.Id
 
 	got, err := client.GetLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{Id: pathID}),
+		ctx, &learningpathsv1.GetLearningPathRequest{Id: pathID},
 	)
 	require.NoError(t, err)
-	require.Len(t, got.Msg.LearningPath.Modules, 1)
-	quiz := got.Msg.LearningPath.Modules[0].Quiz
+	require.Len(t, got.LearningPath.Modules, 1)
+	quiz := got.LearningPath.Modules[0].Quiz
 	// The nil question element is carried through as an empty slot.
 	require.Len(t, quiz, 2)
 	assert.Equal(t, "What is 2+2?", quiz[0].Prompt)
@@ -388,36 +392,36 @@ func TestReminderSchedules_RoundTrip(t *testing.T) {
 
 	createResp, err := client.CreateLearningPath(
 		ctx,
-		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		&learningpathsv1.CreateLearningPathRequest{
 			Title: "Scheduled",
 			ReminderSchedules: map[string]string{
 				"READ": " every day at 20:00 ", "do": " ",
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	pathID := createResp.Msg.LearningPath.Id
+	pathID := createResp.LearningPath.Id
 
 	got, err := client.GetLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{Id: pathID}),
+		ctx, &learningpathsv1.GetLearningPathRequest{Id: pathID},
 	)
 	require.NoError(t, err)
 	assert.Equal(t,
 		map[string]string{"read": "every day at 20:00"},
-		got.Msg.LearningPath.ReminderSchedules,
+		got.LearningPath.ReminderSchedules,
 	)
 
 	updateResp, err := client.UpdateLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.UpdateLearningPathRequest{
+		ctx, &learningpathsv1.UpdateLearningPathRequest{
 			Id:                pathID,
 			Title:             "Scheduled",
 			ReminderSchedules: map[string]string{"checkpoint": "every sun at 18:00"},
-		}),
+		},
 	)
 	require.NoError(t, err)
 	assert.Equal(t,
 		map[string]string{"checkpoint": "every sun at 18:00"},
-		updateResp.Msg.LearningPath.ReminderSchedules,
+		updateResp.LearningPath.ReminderSchedules,
 	)
 }
 
@@ -425,9 +429,9 @@ func TestUpdateLearningPath_NotFound(t *testing.T) {
 	client := setupClient(getRoutes())
 
 	_, err := client.UpdateLearningPath(
-		newCtx(), connect.NewRequest(&learningpathsv1.UpdateLearningPathRequest{
+		newCtx(), &learningpathsv1.UpdateLearningPathRequest{
 			Id: uuid.New().String(), Title: "ghost",
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
@@ -439,20 +443,18 @@ func TestDeleteLearningPath_Success(t *testing.T) {
 
 	createResp, err := client.CreateLearningPath(
 		ctx,
-		connect.NewRequest(
-			&learningpathsv1.CreateLearningPathRequest{Title: "To Delete"},
-		),
+		&learningpathsv1.CreateLearningPathRequest{Title: "To Delete"},
 	)
 	require.NoError(t, err)
-	pathID := createResp.Msg.LearningPath.Id
+	pathID := createResp.LearningPath.Id
 
 	_, err = client.DeleteLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.DeleteLearningPathRequest{Id: pathID}),
+		ctx, &learningpathsv1.DeleteLearningPathRequest{Id: pathID},
 	)
 	require.NoError(t, err)
 
 	_, err = client.GetLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{Id: pathID}),
+		ctx, &learningpathsv1.GetLearningPathRequest{Id: pathID},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
@@ -462,9 +464,9 @@ func TestDeleteLearningPath_NotFound(t *testing.T) {
 	client := setupClient(getRoutes())
 
 	_, err := client.DeleteLearningPath(
-		newCtx(), connect.NewRequest(&learningpathsv1.DeleteLearningPathRequest{
+		newCtx(), &learningpathsv1.DeleteLearningPathRequest{
 			Id: uuid.New().String(),
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
@@ -475,7 +477,7 @@ func TestRecordItemProgress_TogglesCompleted(t *testing.T) {
 	ctx := newCtx()
 
 	createResp, err := client.CreateLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		ctx, &learningpathsv1.CreateLearningPathRequest{
 			Title: "Progress Path",
 			Modules: []*learningpathsv1.Module{
 				{
@@ -483,26 +485,26 @@ func TestRecordItemProgress_TogglesCompleted(t *testing.T) {
 					Items: []*learningpathsv1.Item{{Description: "check me"}},
 				},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	itemID := createResp.Msg.LearningPath.Modules[0].Items[0].Id
-	assert.False(t, createResp.Msg.LearningPath.Modules[0].Items[0].Completed)
+	itemID := createResp.LearningPath.Modules[0].Items[0].Id
+	assert.False(t, createResp.LearningPath.Modules[0].Items[0].Completed)
 
 	_, err = client.RecordItemProgress(
-		ctx, connect.NewRequest(&learningpathsv1.RecordItemProgressRequest{
+		ctx, &learningpathsv1.RecordItemProgressRequest{
 			ItemId: itemID, Completed: true,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	getResp, err := client.GetLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{
-			Id: createResp.Msg.LearningPath.Id,
-		}),
+		ctx, &learningpathsv1.GetLearningPathRequest{
+			Id: createResp.LearningPath.Id,
+		},
 	)
 	require.NoError(t, err)
-	assert.True(t, getResp.Msg.LearningPath.Modules[0].Items[0].Completed)
+	assert.True(t, getResp.LearningPath.Modules[0].Items[0].Completed)
 }
 
 func TestRecordItemProgress_OtherUserDenied(t *testing.T) {
@@ -531,9 +533,9 @@ func TestRecordItemProgress_OtherUserDenied(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = client.RecordItemProgress(
-		newCtx(), connect.NewRequest(&learningpathsv1.RecordItemProgressRequest{
+		newCtx(), &learningpathsv1.RecordItemProgressRequest{
 			ItemId: itemID, Completed: true,
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
@@ -544,7 +546,7 @@ func TestGetLearningPath_InvalidID(t *testing.T) {
 
 	_, err := client.GetLearningPath(
 		newCtx(),
-		connect.NewRequest(&learningpathsv1.GetLearningPathRequest{Id: "not-a-uuid"}),
+		&learningpathsv1.GetLearningPathRequest{Id: "not-a-uuid"},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
@@ -555,9 +557,7 @@ func TestUpdateLearningPath_InvalidID(t *testing.T) {
 
 	_, err := client.UpdateLearningPath(
 		newCtx(),
-		connect.NewRequest(
-			&learningpathsv1.UpdateLearningPathRequest{Id: "not-a-uuid"},
-		),
+		&learningpathsv1.UpdateLearningPathRequest{Id: "not-a-uuid"},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
@@ -568,9 +568,7 @@ func TestDeleteLearningPath_InvalidID(t *testing.T) {
 
 	_, err := client.DeleteLearningPath(
 		newCtx(),
-		connect.NewRequest(
-			&learningpathsv1.DeleteLearningPathRequest{Id: "not-a-uuid"},
-		),
+		&learningpathsv1.DeleteLearningPathRequest{Id: "not-a-uuid"},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
@@ -581,9 +579,7 @@ func TestRecordItemProgress_InvalidID(t *testing.T) {
 
 	_, err := client.RecordItemProgress(
 		newCtx(),
-		connect.NewRequest(
-			&learningpathsv1.RecordItemProgressRequest{ItemId: "not-a-uuid"},
-		),
+		&learningpathsv1.RecordItemProgressRequest{ItemId: "not-a-uuid"},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
@@ -594,40 +590,38 @@ func TestListLearningPaths_Pagination(t *testing.T) {
 	ctx := newCtx()
 
 	baseline, err := client.ListLearningPaths(
-		ctx, connect.NewRequest(&learningpathsv1.ListLearningPathsRequest{Limit: 1000}),
+		ctx, &learningpathsv1.ListLearningPathsRequest{Limit: 1000},
 	)
 	require.NoError(t, err)
-	existing := int32(len(baseline.Msg.LearningPaths))
+	existing := int32(len(baseline.LearningPaths))
 
 	for _, title := range []string{
 		"zzz_paginated_one", "zzz_paginated_two", "zzz_paginated_three",
 	} {
 		_, err = client.CreateLearningPath(
 			ctx,
-			connect.NewRequest(
-				&learningpathsv1.CreateLearningPathRequest{Title: title},
-			),
+			&learningpathsv1.CreateLearningPathRequest{Title: title},
 		)
 		require.NoError(t, err)
 	}
 
 	firstPage, err := client.ListLearningPaths(
-		ctx, connect.NewRequest(&learningpathsv1.ListLearningPathsRequest{
+		ctx, &learningpathsv1.ListLearningPathsRequest{
 			Limit: 2, Offset: existing,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Len(t, firstPage.Msg.LearningPaths, 2)
-	assert.True(t, firstPage.Msg.HasMore)
+	assert.Len(t, firstPage.LearningPaths, 2)
+	assert.True(t, firstPage.HasMore)
 
 	secondPage, err := client.ListLearningPaths(
-		ctx, connect.NewRequest(&learningpathsv1.ListLearningPathsRequest{
+		ctx, &learningpathsv1.ListLearningPathsRequest{
 			Limit: 2, Offset: existing + 2,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Len(t, secondPage.Msg.LearningPaths, 1)
-	assert.False(t, secondPage.Msg.HasMore)
+	assert.Len(t, secondPage.LearningPaths, 1)
+	assert.False(t, secondPage.HasMore)
 }
 
 func TestGetLearningPathProgress_Success(t *testing.T) {
@@ -635,7 +629,7 @@ func TestGetLearningPathProgress_Success(t *testing.T) {
 	ctx := newCtx()
 
 	createResp, err := client.CreateLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+		ctx, &learningpathsv1.CreateLearningPathRequest{
 			Title: "Progress Overview",
 			Modules: []*learningpathsv1.Module{
 				{
@@ -652,32 +646,32 @@ func TestGetLearningPathProgress_Success(t *testing.T) {
 					},
 				},
 			},
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	resp, err := client.GetLearningPathProgress(
-		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathProgressRequest{
-			Id: createResp.Msg.LearningPath.Id,
-		}),
+		ctx, &learningpathsv1.GetLearningPathProgressRequest{
+			Id: createResp.LearningPath.Id,
+		},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(3), resp.Msg.TotalItems)
-	assert.Equal(t, int32(1), resp.Msg.CompletedItems)
-	require.Len(t, resp.Msg.Modules, 2)
-	assert.Equal(t, int32(2), resp.Msg.Modules[0].TotalItems)
-	assert.Equal(t, int32(1), resp.Msg.Modules[0].CompletedItems)
-	assert.Equal(t, int32(1), resp.Msg.Modules[1].TotalItems)
-	assert.Equal(t, int32(0), resp.Msg.Modules[1].CompletedItems)
+	assert.Equal(t, int32(3), resp.TotalItems)
+	assert.Equal(t, int32(1), resp.CompletedItems)
+	require.Len(t, resp.Modules, 2)
+	assert.Equal(t, int32(2), resp.Modules[0].TotalItems)
+	assert.Equal(t, int32(1), resp.Modules[0].CompletedItems)
+	assert.Equal(t, int32(1), resp.Modules[1].TotalItems)
+	assert.Equal(t, int32(0), resp.Modules[1].CompletedItems)
 }
 
 func TestGetLearningPathProgress_NotFound(t *testing.T) {
 	client := setupClient(getRoutes())
 
 	_, err := client.GetLearningPathProgress(
-		newCtx(), connect.NewRequest(&learningpathsv1.GetLearningPathProgressRequest{
+		newCtx(), &learningpathsv1.GetLearningPathProgressRequest{
 			Id: uuid.NewString(),
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
@@ -695,9 +689,9 @@ func TestGetLearningPathProgress_OtherUserDenied(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = client.GetLearningPathProgress(
-		newCtx(), connect.NewRequest(&learningpathsv1.GetLearningPathProgressRequest{
+		newCtx(), &learningpathsv1.GetLearningPathProgressRequest{
 			Id: pathID,
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
@@ -708,9 +702,7 @@ func TestGetLearningPathProgress_InvalidID(t *testing.T) {
 
 	_, err := client.GetLearningPathProgress(
 		newCtx(),
-		connect.NewRequest(
-			&learningpathsv1.GetLearningPathProgressRequest{Id: "not-a-uuid"},
-		),
+		&learningpathsv1.GetLearningPathProgressRequest{Id: "not-a-uuid"},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())

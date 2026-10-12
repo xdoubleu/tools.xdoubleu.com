@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -21,15 +20,15 @@ func TestListUnhealthyReturnsFeedsFailingToPoll(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	mockWebFetch.Errs[feedURL] = assert.AnError
 	_, err = client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+		&feedsv1.RefreshFeedRequest{FeedId: created.Feed.Id},
 	)
 	require.Error(t, err)
 

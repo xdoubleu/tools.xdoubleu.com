@@ -7,7 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,15 @@ import (
 
 func setupRecipesClient(handler http.Handler) recipesv1connect.RecipesServiceClient {
 	ts := httptest.NewServer(handler)
-	return recipesv1connect.NewRecipesServiceClient(http.DefaultClient, ts.URL)
+	return recipesv1connect.NewRecipesServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(
+				http.DefaultClient,
+				ts.URL,
+				connecthttp.WithReadMaxBytes(0),
+			),
+		),
+	)
 }
 
 func contextWithUser(ctx context.Context, user *sharedmodels.User) context.Context {
@@ -44,10 +53,10 @@ func TestListRecipes_Empty(t *testing.T) {
 
 	resp, err := client.ListRecipes(
 		ctx,
-		connect.NewRequest(&recipesv1.ListRecipesRequest{}),
+		&recipesv1.ListRecipesRequest{},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, 0, len(resp.Msg.Recipes))
+	assert.Equal(t, 0, len(resp.Recipes))
 }
 
 func TestCreateRecipe_Success(t *testing.T) {
@@ -61,20 +70,20 @@ func TestCreateRecipe_Success(t *testing.T) {
 
 	resp, err := client.CreateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+		&recipesv1.CreateRecipeRequest{
 			Name:              "Pasta Carbonara",
 			Steps:             []string{"Boil water", "Cook pasta", "Mix eggs"},
 			BaseServings:      4,
 			IngredientNames:   []string{"Pasta", "Eggs", "Bacon"},
 			IngredientAmounts: []float64{400, 4, 200},
 			IngredientUnits:   []string{"g", "", "g"},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, "Pasta Carbonara", resp.Msg.Recipe.Name)
-	assert.Equal(t, int32(4), resp.Msg.Recipe.BaseServings)
-	assert.Equal(t, 3, len(resp.Msg.Recipe.Ingredients))
-	assert.Equal(t, userID, resp.Msg.Recipe.UserId)
+	assert.Equal(t, "Pasta Carbonara", resp.Recipe.Name)
+	assert.Equal(t, int32(4), resp.Recipe.BaseServings)
+	assert.Equal(t, 3, len(resp.Recipe.Ingredients))
+	assert.Equal(t, userID, resp.Recipe.UserId)
 }
 
 func TestGetRecipe_Success(t *testing.T) {
@@ -88,27 +97,27 @@ func TestGetRecipe_Success(t *testing.T) {
 
 	createResp, err := client.CreateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+		&recipesv1.CreateRecipeRequest{
 			Name:              "Test Recipe",
 			Steps:             []string{"Step 1", "Step 2"},
 			BaseServings:      2,
 			IngredientNames:   []string{"Ingredient 1"},
 			IngredientAmounts: []float64{1},
 			IngredientUnits:   []string{"cup"},
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	getResp, err := client.GetRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.GetRecipeRequest{
-			Id: createResp.Msg.Recipe.Id,
-		}),
+		&recipesv1.GetRecipeRequest{
+			Id: createResp.Recipe.Id,
+		},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, "Test Recipe", getResp.Msg.Recipe.Name)
-	assert.Equal(t, int32(2), getResp.Msg.Servings)
-	assert.True(t, getResp.Msg.IsOwner)
+	assert.Equal(t, "Test Recipe", getResp.Recipe.Name)
+	assert.Equal(t, int32(2), getResp.Servings)
+	assert.True(t, getResp.IsOwner)
 }
 
 func TestGetRecipe_WithServingScale(t *testing.T) {
@@ -122,27 +131,27 @@ func TestGetRecipe_WithServingScale(t *testing.T) {
 
 	createResp, err := client.CreateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+		&recipesv1.CreateRecipeRequest{
 			Name:              "Scaling Test",
 			Steps:             []string{"Mix well"},
 			BaseServings:      2,
 			IngredientNames:   []string{"Flour"},
 			IngredientAmounts: []float64{2},
 			IngredientUnits:   []string{"cups"},
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	getResp, err := client.GetRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.GetRecipeRequest{
-			Id: createResp.Msg.Recipe.Id, Servings: 4,
-		}),
+		&recipesv1.GetRecipeRequest{
+			Id: createResp.Recipe.Id, Servings: 4,
+		},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(4), getResp.Msg.Servings)
-	assert.Equal(t, 1, len(getResp.Msg.ScaledIngredients))
-	assert.Equal(t, "4", getResp.Msg.ScaledIngredients[0].Amount)
+	assert.Equal(t, int32(4), getResp.Servings)
+	assert.Equal(t, 1, len(getResp.ScaledIngredients))
+	assert.Equal(t, "4", getResp.ScaledIngredients[0].Amount)
 }
 
 // TestGetRecipe_OtherFamilyDenied: a recipe in another family is inaccessible.
@@ -164,7 +173,7 @@ func TestGetRecipe_OtherFamilyDenied(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = client.GetRecipe(
-		ctx, connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
+		ctx, &recipesv1.GetRecipeRequest{Id: recipeID},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodePermissionDenied, connectErr(err).Code())
@@ -179,9 +188,9 @@ func TestGetRecipe_NotFound(t *testing.T) {
 		},
 	)
 
-	_, err := client.GetRecipe(ctx, connect.NewRequest(&recipesv1.GetRecipeRequest{
+	_, err := client.GetRecipe(ctx, &recipesv1.GetRecipeRequest{
 		Id: uuid.New().String(),
-	}))
+	})
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
 }
@@ -197,19 +206,19 @@ func TestUpdateRecipe_Success(t *testing.T) {
 
 	createResp, err := client.CreateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+		&recipesv1.CreateRecipeRequest{
 			Name:              "Original Name",
 			Steps:             []string{"Do something"},
 			BaseServings:      2,
 			IngredientNames:   []string{"Ingredient"},
 			IngredientAmounts: []float64{1},
 			IngredientUnits:   []string{""},
-		}),
+		},
 	)
 	require.NoError(t, err)
-	recipeID := createResp.Msg.Recipe.Id
+	recipeID := createResp.Recipe.Id
 
-	_, err = client.UpdateRecipe(ctx, connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+	_, err = client.UpdateRecipe(ctx, &recipesv1.UpdateRecipeRequest{
 		Id:                recipeID,
 		Name:              "Updated Name",
 		Steps:             []string{"Do something else"},
@@ -217,18 +226,18 @@ func TestUpdateRecipe_Success(t *testing.T) {
 		IngredientNames:   []string{"Ingredient"},
 		IngredientAmounts: []float64{2},
 		IngredientUnits:   []string{""},
-	}))
+	})
 	require.NoError(t, err)
 
 	getResp, err := client.GetRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.GetRecipeRequest{
+		&recipesv1.GetRecipeRequest{
 			Id: recipeID,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, "Updated Name", getResp.Msg.Recipe.Name)
-	assert.Equal(t, int32(4), getResp.Msg.Recipe.BaseServings)
+	assert.Equal(t, "Updated Name", getResp.Recipe.Name)
+	assert.Equal(t, int32(4), getResp.Recipe.BaseServings)
 }
 
 func TestDeleteRecipe_Success(t *testing.T) {
@@ -242,23 +251,23 @@ func TestDeleteRecipe_Success(t *testing.T) {
 
 	createResp, err := client.CreateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+		&recipesv1.CreateRecipeRequest{
 			Name:         "To Delete",
 			Steps:        []string{"Delete me"},
 			BaseServings: 2,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	recipeID := createResp.Msg.Recipe.Id
+	recipeID := createResp.Recipe.Id
 
-	_, err = client.DeleteRecipe(ctx, connect.NewRequest(&recipesv1.DeleteRecipeRequest{
+	_, err = client.DeleteRecipe(ctx, &recipesv1.DeleteRecipeRequest{
 		Id: recipeID,
-	}))
+	})
 	require.NoError(t, err)
 
 	_, err = client.GetRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
+		&recipesv1.GetRecipeRequest{Id: recipeID},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
@@ -276,16 +285,16 @@ func TestCreateRecipe_WithBatchServings(t *testing.T) {
 	batchServings := int32(10)
 	resp, err := client.CreateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+		&recipesv1.CreateRecipeRequest{
 			Name:          "Batch Chili",
 			Steps:         []string{"Cook everything"},
 			BaseServings:  2,
 			BatchServings: &batchServings,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.Recipe.BatchServings)
-	assert.Equal(t, int32(10), *resp.Msg.Recipe.BatchServings)
+	require.NotNil(t, resp.Recipe.BatchServings)
+	assert.Equal(t, int32(10), *resp.Recipe.BatchServings)
 }
 
 func TestUpdateRecipe_WithBatchServings(t *testing.T) {
@@ -299,33 +308,33 @@ func TestUpdateRecipe_WithBatchServings(t *testing.T) {
 
 	createResp, err := client.CreateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+		&recipesv1.CreateRecipeRequest{
 			Name:         "Batch Recipe",
 			Steps:        []string{"Step 1"},
 			BaseServings: 2,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Nil(t, createResp.Msg.Recipe.BatchServings)
+	assert.Nil(t, createResp.Recipe.BatchServings)
 
-	recipeID := createResp.Msg.Recipe.Id
+	recipeID := createResp.Recipe.Id
 	batchServings := int32(8)
-	_, err = client.UpdateRecipe(ctx, connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+	_, err = client.UpdateRecipe(ctx, &recipesv1.UpdateRecipeRequest{
 		Id:            recipeID,
 		Name:          "Batch Recipe",
 		Steps:         []string{"Step 1"},
 		BaseServings:  2,
 		BatchServings: &batchServings,
-	}))
+	})
 	require.NoError(t, err)
 
 	getResp, err := client.GetRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
+		&recipesv1.GetRecipeRequest{Id: recipeID},
 	)
 	require.NoError(t, err)
-	require.NotNil(t, getResp.Msg.Recipe.BatchServings)
-	assert.Equal(t, int32(8), *getResp.Msg.Recipe.BatchServings)
+	require.NotNil(t, getResp.Recipe.BatchServings)
+	assert.Equal(t, int32(8), *getResp.Recipe.BatchServings)
 }
 
 func TestCreateRecipe_WithIsDraft(t *testing.T) {
@@ -339,15 +348,15 @@ func TestCreateRecipe_WithIsDraft(t *testing.T) {
 
 	resp, err := client.CreateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+		&recipesv1.CreateRecipeRequest{
 			Name:         "Untested Stew",
 			Steps:        []string{"Cook and hope"},
 			BaseServings: 2,
 			IsDraft:      true,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Recipe.IsDraft)
+	assert.True(t, resp.Recipe.IsDraft)
 }
 
 func TestUpdateRecipe_TogglesIsDraft(t *testing.T) {
@@ -361,32 +370,32 @@ func TestUpdateRecipe_TogglesIsDraft(t *testing.T) {
 
 	createResp, err := client.CreateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+		&recipesv1.CreateRecipeRequest{
 			Name:         "Draft Recipe",
 			Steps:        []string{"Step 1"},
 			BaseServings: 2,
 			IsDraft:      true,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.True(t, createResp.Msg.Recipe.IsDraft)
+	assert.True(t, createResp.Recipe.IsDraft)
 
-	recipeID := createResp.Msg.Recipe.Id
-	_, err = client.UpdateRecipe(ctx, connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+	recipeID := createResp.Recipe.Id
+	_, err = client.UpdateRecipe(ctx, &recipesv1.UpdateRecipeRequest{
 		Id:           recipeID,
 		Name:         "Draft Recipe",
 		Steps:        []string{"Step 1"},
 		BaseServings: 2,
 		IsDraft:      false,
-	}))
+	})
 	require.NoError(t, err)
 
 	getResp, err := client.GetRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
+		&recipesv1.GetRecipeRequest{Id: recipeID},
 	)
 	require.NoError(t, err)
-	assert.False(t, getResp.Msg.Recipe.IsDraft)
+	assert.False(t, getResp.Recipe.IsDraft)
 }
 
 func TestUpdateRecipe_ClearBatchServings(t *testing.T) {
@@ -401,31 +410,31 @@ func TestUpdateRecipe_ClearBatchServings(t *testing.T) {
 	batchServings := int32(12)
 	createResp, err := client.CreateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+		&recipesv1.CreateRecipeRequest{
 			Name:          "Was Batch",
 			Steps:         []string{"Step"},
 			BaseServings:  2,
 			BatchServings: &batchServings,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	recipeID := createResp.Msg.Recipe.Id
+	recipeID := createResp.Recipe.Id
 
-	_, err = client.UpdateRecipe(ctx, connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+	_, err = client.UpdateRecipe(ctx, &recipesv1.UpdateRecipeRequest{
 		Id:           recipeID,
 		Name:         "Was Batch",
 		Steps:        []string{"Step"},
 		BaseServings: 2,
 		// BatchServings intentionally omitted to clear it
-	}))
+	})
 	require.NoError(t, err)
 
 	getResp, err := client.GetRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
+		&recipesv1.GetRecipeRequest{Id: recipeID},
 	)
 	require.NoError(t, err)
-	assert.Nil(t, getResp.Msg.Recipe.BatchServings)
+	assert.Nil(t, getResp.Recipe.BatchServings)
 }
 
 func TestListRecipes_WithItems(t *testing.T) {
@@ -439,29 +448,29 @@ func TestListRecipes_WithItems(t *testing.T) {
 
 	_, err := client.CreateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+		&recipesv1.CreateRecipeRequest{
 			Name: "Listed Recipe", Steps: []string{"step"}, BaseServings: 2,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	_, err = client.CreateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+		&recipesv1.CreateRecipeRequest{
 			Name: "Listed Draft", Steps: []string{"step"}, BaseServings: 2, IsDraft: true,
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	resp, err := client.ListRecipes(
 		ctx,
-		connect.NewRequest(&recipesv1.ListRecipesRequest{Limit: 1000}),
+		&recipesv1.ListRecipesRequest{Limit: 1000},
 	)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Recipes)
+	assert.NotEmpty(t, resp.Recipes)
 
 	drafts := map[string]bool{}
-	for _, r := range resp.Msg.Recipes {
+	for _, r := range resp.Recipes {
 		drafts[r.Name] = r.IsDraft
 	}
 	assert.True(t, drafts["Listed Draft"])
@@ -478,40 +487,40 @@ func TestListRecipes_Pagination(t *testing.T) {
 	)
 
 	baseline, err := client.ListRecipes(
-		ctx, connect.NewRequest(&recipesv1.ListRecipesRequest{Limit: 1000}),
+		ctx, &recipesv1.ListRecipesRequest{Limit: 1000},
 	)
 	require.NoError(t, err)
-	existing := int32(len(baseline.Msg.Recipes))
+	existing := int32(len(baseline.Recipes))
 
 	for _, name := range []string{
 		"zzz_paginated_one", "zzz_paginated_two", "zzz_paginated_three",
 	} {
 		_, err = client.CreateRecipe(
 			ctx,
-			connect.NewRequest(&recipesv1.CreateRecipeRequest{
+			&recipesv1.CreateRecipeRequest{
 				Name: name, Steps: []string{"step"}, BaseServings: 2,
-			}),
+			},
 		)
 		require.NoError(t, err)
 	}
 
 	firstPage, err := client.ListRecipes(
-		ctx, connect.NewRequest(&recipesv1.ListRecipesRequest{
+		ctx, &recipesv1.ListRecipesRequest{
 			Limit: 2, Offset: existing,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Len(t, firstPage.Msg.Recipes, 2)
-	assert.True(t, firstPage.Msg.HasMore)
+	assert.Len(t, firstPage.Recipes, 2)
+	assert.True(t, firstPage.HasMore)
 
 	secondPage, err := client.ListRecipes(
-		ctx, connect.NewRequest(&recipesv1.ListRecipesRequest{
+		ctx, &recipesv1.ListRecipesRequest{
 			Limit: 2, Offset: existing + 2,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.Len(t, secondPage.Msg.Recipes, 1)
-	assert.False(t, secondPage.Msg.HasMore)
+	assert.Len(t, secondPage.Recipes, 1)
+	assert.False(t, secondPage.HasMore)
 }
 
 func TestDeleteRecipe_NotFound(t *testing.T) {
@@ -525,9 +534,9 @@ func TestDeleteRecipe_NotFound(t *testing.T) {
 
 	_, err := client.DeleteRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.DeleteRecipeRequest{
+		&recipesv1.DeleteRecipeRequest{
 			Id: uuid.New().String(),
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
@@ -565,11 +574,11 @@ func TestFamilyMember_GrantsAccess(t *testing.T) {
 	require.NoError(t, err)
 
 	listResp, err := client.ListRecipes(
-		ctx, connect.NewRequest(&recipesv1.ListRecipesRequest{}),
+		ctx, &recipesv1.ListRecipesRequest{},
 	)
 	require.NoError(t, err)
 	var inList bool
-	for _, r := range listResp.Msg.Recipes {
+	for _, r := range listResp.Recipes {
 		if r.Id == recipeID {
 			inList = true
 		}
@@ -578,17 +587,17 @@ func TestFamilyMember_GrantsAccess(t *testing.T) {
 
 	// Full edit rights, but ownership stays with the creator.
 	getResp, err := client.GetRecipe(
-		ctx, connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
+		ctx, &recipesv1.GetRecipeRequest{Id: recipeID},
 	)
 	require.NoError(t, err)
-	assert.False(t, getResp.Msg.IsOwner)
-	assert.True(t, getResp.Msg.CanEdit)
+	assert.False(t, getResp.IsOwner)
+	assert.True(t, getResp.CanEdit)
 
 	_, err = client.UpdateRecipe(
-		ctx, connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+		ctx, &recipesv1.UpdateRecipeRequest{
 			Id: recipeID, Name: "Edited By Family Member",
 			Steps: []string{"new"}, BaseServings: 3,
-		}),
+		},
 	)
 	require.NoError(t, err)
 }
@@ -603,11 +612,11 @@ func TestUpdateRecipe_NotFound(t *testing.T) {
 	)
 	_, err := client.UpdateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+		&recipesv1.UpdateRecipeRequest{
 			Id: uuid.New().
 				String(),
 			Name: "ghost", Steps: []string{"s"}, BaseServings: 1,
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
@@ -623,7 +632,7 @@ func TestGetRecipe_InvalidID(t *testing.T) {
 	)
 	_, err := client.GetRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.GetRecipeRequest{Id: "not-a-uuid"}),
+		&recipesv1.GetRecipeRequest{Id: "not-a-uuid"},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
@@ -639,9 +648,9 @@ func TestUpdateRecipe_InvalidID(t *testing.T) {
 	)
 	_, err := client.UpdateRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+		&recipesv1.UpdateRecipeRequest{
 			Id: "not-a-uuid", Name: "x", Steps: []string{"s"}, BaseServings: 1,
-		}),
+		},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
@@ -657,7 +666,7 @@ func TestDeleteRecipe_InvalidID(t *testing.T) {
 	)
 	_, err := client.DeleteRecipe(
 		ctx,
-		connect.NewRequest(&recipesv1.DeleteRecipeRequest{Id: "not-a-uuid"}),
+		&recipesv1.DeleteRecipeRequest{Id: "not-a-uuid"},
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())

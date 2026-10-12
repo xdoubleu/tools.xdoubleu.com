@@ -5,11 +5,10 @@ package mcptools
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"slices"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -34,7 +33,7 @@ func RequireAppAccess(ctx context.Context, appName string) error {
 	}
 	return connect.NewError(
 		connect.CodePermissionDenied,
-		errors.New("access to "+appName+" required"),
+		"access to "+appName+" required",
 	)
 }
 
@@ -83,13 +82,13 @@ func addTool[In any](
 
 // Unwrap adapts a Connect handler's (*connect.Response[T], error) into
 // (proto.Message, error).
-func Unwrap[T any](resp *connect.Response[T], err error) (proto.Message, error) {
+func Unwrap[T any](resp *T, err error) (proto.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	msg, ok := any(resp.Msg).(proto.Message)
+	msg, ok := any(resp).(proto.Message)
 	if !ok {
-		return nil, fmt.Errorf("connect response %T is not a proto.Message", resp.Msg)
+		return nil, fmt.Errorf("connect response %T is not a proto.Message", resp)
 	}
 	return msg, nil
 }

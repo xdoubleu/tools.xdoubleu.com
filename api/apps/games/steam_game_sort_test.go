@@ -7,7 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -64,20 +65,24 @@ func TestConnectGetSteamGame_SortBranches(t *testing.T) {
 	ts := httptest.NewServer(testhelper.BuildMux(app2))
 	t.Cleanup(ts.Close)
 	client := gamesv1connect.NewGamesServiceClient(
-		http.DefaultClient,
-		ts.URL,
-		connect.WithHTTPGet(),
+		connect.NewClient(connecthttp.NewTransport(
+			http.DefaultClient,
+			ts.URL,
+			connecthttp.WithReadMaxBytes(0),
+			connecthttp.WithHTTPGet(),
+		)),
 	)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&gamesv1.GetSteamGameRequest{GameId: 7})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &gamesv1.GetSteamGameRequest{GameId: 7}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.GetSteamGame(ctx, req)
 	require.NoError(t, err)
-	assert.NotNil(t, resp.Msg.Data)
-	assert.Len(t, resp.Msg.Data.Achievements, 2)
+	assert.NotNil(t, resp.Data)
+	assert.Len(t, resp.Data.Achievements, 2)
 }
 
 // TestConnectRefreshSteamGame_SortBranches covers RefreshSteamGame's
@@ -113,20 +118,24 @@ func TestConnectRefreshSteamGame_SortBranches(t *testing.T) {
 	ts := httptest.NewServer(testhelper.BuildMux(app2))
 	t.Cleanup(ts.Close)
 	client := gamesv1connect.NewGamesServiceClient(
-		http.DefaultClient,
-		ts.URL,
-		connect.WithHTTPGet(),
+		connect.NewClient(connecthttp.NewTransport(
+			http.DefaultClient,
+			ts.URL,
+			connecthttp.WithReadMaxBytes(0),
+			connecthttp.WithHTTPGet(),
+		)),
 	)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&gamesv1.RefreshSteamGameRequest{GameId: 7})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &gamesv1.RefreshSteamGameRequest{GameId: 7}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.RefreshSteamGame(ctx, req)
 	require.NoError(t, err)
-	assert.NotNil(t, resp.Msg.Data)
-	assert.Len(t, resp.Msg.Data.Achievements, 2)
+	assert.NotNil(t, resp.Data)
+	assert.Len(t, resp.Data.Achievements, 2)
 }
 
 // TestConnectRefreshSteamGame_AllSortBranches covers the remaining sort
@@ -163,20 +172,24 @@ func TestConnectRefreshSteamGame_AllSortBranches(t *testing.T) {
 	ts := httptest.NewServer(testhelper.BuildMux(app2))
 	t.Cleanup(ts.Close)
 	client := gamesv1connect.NewGamesServiceClient(
-		http.DefaultClient,
-		ts.URL,
-		connect.WithHTTPGet(),
+		connect.NewClient(connecthttp.NewTransport(
+			http.DefaultClient,
+			ts.URL,
+			connecthttp.WithReadMaxBytes(0),
+			connecthttp.WithHTTPGet(),
+		)),
 	)
 	reqCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	req := connect.NewRequest(&gamesv1.RefreshSteamGameRequest{GameId: 9})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &gamesv1.RefreshSteamGameRequest{GameId: 9}
+	reqCtx, info := connect.NewClientContext(reqCtx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.RefreshSteamGame(reqCtx, req)
 	require.NoError(t, err)
-	assert.NotNil(t, resp.Msg.Data)
-	assert.Len(t, resp.Msg.Data.Achievements, 4,
+	assert.NotNil(t, resp.Data)
+	assert.Len(t, resp.Data.Achievements, 4,
 		"all four achievements should be returned after refresh")
 }
 
@@ -215,17 +228,19 @@ func TestConnectRefreshSteamGame_SyncError(t *testing.T) {
 	ts := httptest.NewServer(testhelper.BuildMux(app2))
 	t.Cleanup(ts.Close)
 	client := gamesv1connect.NewGamesServiceClient(
-		http.DefaultClient,
-		ts.URL,
-		connect.WithHTTPGet(),
+		connect.NewClient(connecthttp.NewTransport(
+			http.DefaultClient,
+			ts.URL,
+			connecthttp.WithReadMaxBytes(0),
+			connecthttp.WithHTTPGet(),
+		)),
 	)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(
-		&gamesv1.RefreshSteamGameRequest{GameId: int32(gameID)},
-	)
-	req.Header().Set("Cookie", accessToken.String())
+	req := &gamesv1.RefreshSteamGameRequest{GameId: int32(gameID)}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.RefreshSteamGame(ctx, req)
 	require.Error(t, err)

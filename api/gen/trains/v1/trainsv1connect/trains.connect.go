@@ -5,345 +5,396 @@
 package trainsv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/trains/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// TrainServiceName is the fully-qualified name of the TrainService service.
 	TrainServiceName = "trains.v1.TrainService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// TrainServiceSearchJourneysProcedure is the fully-qualified name of the TrainService's
-	// SearchJourneys RPC.
-	TrainServiceSearchJourneysProcedure = "/trains.v1.TrainService/SearchJourneys"
-	// TrainServiceSearchStationsProcedure is the fully-qualified name of the TrainService's
-	// SearchStations RPC.
-	TrainServiceSearchStationsProcedure = "/trains.v1.TrainService/SearchStations"
-	// TrainServiceGetFeedInfoProcedure is the fully-qualified name of the TrainService's GetFeedInfo
+	// TrainServiceSearchJourneysProcedure is the procedure name of the TrainService's SearchJourneys
 	// RPC.
+	TrainServiceSearchJourneysProcedure = "/trains.v1.TrainService/SearchJourneys"
+	// TrainServiceSearchStationsProcedure is the procedure name of the TrainService's SearchStations
+	// RPC.
+	TrainServiceSearchStationsProcedure = "/trains.v1.TrainService/SearchStations"
+	// TrainServiceGetFeedInfoProcedure is the procedure name of the TrainService's GetFeedInfo RPC.
 	TrainServiceGetFeedInfoProcedure = "/trains.v1.TrainService/GetFeedInfo"
-	// TrainServiceGetJourneyDetailProcedure is the fully-qualified name of the TrainService's
+	// TrainServiceGetJourneyDetailProcedure is the procedure name of the TrainService's
 	// GetJourneyDetail RPC.
 	TrainServiceGetJourneyDetailProcedure = "/trains.v1.TrainService/GetJourneyDetail"
-	// TrainServiceGetRealtimeTripProcedure is the fully-qualified name of the TrainService's
-	// GetRealtimeTrip RPC.
+	// TrainServiceGetRealtimeTripProcedure is the procedure name of the TrainService's GetRealtimeTrip
+	// RPC.
 	TrainServiceGetRealtimeTripProcedure = "/trains.v1.TrainService/GetRealtimeTrip"
-	// TrainServiceListSavedCommutesProcedure is the fully-qualified name of the TrainService's
+	// TrainServiceListSavedCommutesProcedure is the procedure name of the TrainService's
 	// ListSavedCommutes RPC.
 	TrainServiceListSavedCommutesProcedure = "/trains.v1.TrainService/ListSavedCommutes"
-	// TrainServiceCreateSavedCommuteProcedure is the fully-qualified name of the TrainService's
+	// TrainServiceCreateSavedCommuteProcedure is the procedure name of the TrainService's
 	// CreateSavedCommute RPC.
 	TrainServiceCreateSavedCommuteProcedure = "/trains.v1.TrainService/CreateSavedCommute"
-	// TrainServiceUpdateSavedCommuteProcedure is the fully-qualified name of the TrainService's
+	// TrainServiceUpdateSavedCommuteProcedure is the procedure name of the TrainService's
 	// UpdateSavedCommute RPC.
 	TrainServiceUpdateSavedCommuteProcedure = "/trains.v1.TrainService/UpdateSavedCommute"
-	// TrainServiceDeleteSavedCommuteProcedure is the fully-qualified name of the TrainService's
+	// TrainServiceDeleteSavedCommuteProcedure is the procedure name of the TrainService's
 	// DeleteSavedCommute RPC.
 	TrainServiceDeleteSavedCommuteProcedure = "/trains.v1.TrainService/DeleteSavedCommute"
 )
 
+var (
+	trainServiceSearchJourneysSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods().ByName("SearchJourneys"),
+			Procedure:  TrainServiceSearchJourneysProcedure,
+		}
+	})
+	trainServiceSearchStationsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods().ByName("SearchStations"),
+			Procedure:  TrainServiceSearchStationsProcedure,
+		}
+	})
+	trainServiceGetFeedInfoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods().ByName("GetFeedInfo"),
+			Procedure:  TrainServiceGetFeedInfoProcedure,
+		}
+	})
+	trainServiceGetJourneyDetailSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods().ByName("GetJourneyDetail"),
+			Procedure:  TrainServiceGetJourneyDetailProcedure,
+		}
+	})
+	trainServiceGetRealtimeTripSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods().ByName("GetRealtimeTrip"),
+			Procedure:  TrainServiceGetRealtimeTripProcedure,
+		}
+	})
+	trainServiceListSavedCommutesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods().ByName("ListSavedCommutes"),
+			Procedure:  TrainServiceListSavedCommutesProcedure,
+		}
+	})
+	trainServiceCreateSavedCommuteSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods().ByName("CreateSavedCommute"),
+			Procedure:  TrainServiceCreateSavedCommuteProcedure,
+		}
+	})
+	trainServiceUpdateSavedCommuteSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods().ByName("UpdateSavedCommute"),
+			Procedure:  TrainServiceUpdateSavedCommuteProcedure,
+		}
+	})
+	trainServiceDeleteSavedCommuteSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods().ByName("DeleteSavedCommute"),
+			Procedure:  TrainServiceDeleteSavedCommuteProcedure,
+		}
+	})
+)
+
 // TrainServiceClient is a client for the trains.v1.TrainService service.
 type TrainServiceClient interface {
-	SearchJourneys(context.Context, *connect.Request[v1.SearchJourneysRequest]) (*connect.Response[v1.SearchJourneysResponse], error)
-	SearchStations(context.Context, *connect.Request[v1.SearchStationsRequest]) (*connect.Response[v1.SearchStationsResponse], error)
-	GetFeedInfo(context.Context, *connect.Request[v1.GetFeedInfoRequest]) (*connect.Response[v1.GetFeedInfoResponse], error)
+	SearchJourneys(context.Context, *v1.SearchJourneysRequest) (*v1.SearchJourneysResponse, error)
+	SearchStations(context.Context, *v1.SearchStationsRequest) (*v1.SearchStationsResponse, error)
+	GetFeedInfo(context.Context, *v1.GetFeedInfoRequest) (*v1.GetFeedInfoResponse, error)
 	// GetJourneyDetail fetches a searched journey's live state and ensures its
 	// /trains/api/journeys/live websocket topic exists.
-	GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error)
+	GetJourneyDetail(context.Context, *v1.GetJourneyDetailRequest) (*v1.GetJourneyDetailResponse, error)
 	// GetRealtimeTrip exposes the raw realtime snapshot for one train.
-	GetRealtimeTrip(context.Context, *connect.Request[v1.GetRealtimeTripRequest]) (*connect.Response[v1.GetRealtimeTripResponse], error)
+	GetRealtimeTrip(context.Context, *v1.GetRealtimeTripRequest) (*v1.GetRealtimeTripResponse, error)
 	// Saved-commute CRUD, scoped to the signed-in user.
-	ListSavedCommutes(context.Context, *connect.Request[v1.ListSavedCommutesRequest]) (*connect.Response[v1.ListSavedCommutesResponse], error)
-	CreateSavedCommute(context.Context, *connect.Request[v1.CreateSavedCommuteRequest]) (*connect.Response[v1.CreateSavedCommuteResponse], error)
-	UpdateSavedCommute(context.Context, *connect.Request[v1.UpdateSavedCommuteRequest]) (*connect.Response[v1.UpdateSavedCommuteResponse], error)
-	DeleteSavedCommute(context.Context, *connect.Request[v1.DeleteSavedCommuteRequest]) (*connect.Response[v1.DeleteSavedCommuteResponse], error)
+	ListSavedCommutes(context.Context, *v1.ListSavedCommutesRequest) (*v1.ListSavedCommutesResponse, error)
+	CreateSavedCommute(context.Context, *v1.CreateSavedCommuteRequest) (*v1.CreateSavedCommuteResponse, error)
+	UpdateSavedCommute(context.Context, *v1.UpdateSavedCommuteRequest) (*v1.UpdateSavedCommuteResponse, error)
+	DeleteSavedCommute(context.Context, *v1.DeleteSavedCommuteRequest) (*v1.DeleteSavedCommuteResponse, error)
 }
 
-// NewTrainServiceClient constructs a client for the trains.v1.TrainService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewTrainServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) TrainServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	trainServiceMethods := v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods()
-	return &trainServiceClient{
-		searchJourneys: connect.NewClient[v1.SearchJourneysRequest, v1.SearchJourneysResponse](
-			httpClient,
-			baseURL+TrainServiceSearchJourneysProcedure,
-			connect.WithSchema(trainServiceMethods.ByName("SearchJourneys")),
-			connect.WithClientOptions(opts...),
-		),
-		searchStations: connect.NewClient[v1.SearchStationsRequest, v1.SearchStationsResponse](
-			httpClient,
-			baseURL+TrainServiceSearchStationsProcedure,
-			connect.WithSchema(trainServiceMethods.ByName("SearchStations")),
-			connect.WithClientOptions(opts...),
-		),
-		getFeedInfo: connect.NewClient[v1.GetFeedInfoRequest, v1.GetFeedInfoResponse](
-			httpClient,
-			baseURL+TrainServiceGetFeedInfoProcedure,
-			connect.WithSchema(trainServiceMethods.ByName("GetFeedInfo")),
-			connect.WithClientOptions(opts...),
-		),
-		getJourneyDetail: connect.NewClient[v1.GetJourneyDetailRequest, v1.GetJourneyDetailResponse](
-			httpClient,
-			baseURL+TrainServiceGetJourneyDetailProcedure,
-			connect.WithSchema(trainServiceMethods.ByName("GetJourneyDetail")),
-			connect.WithClientOptions(opts...),
-		),
-		getRealtimeTrip: connect.NewClient[v1.GetRealtimeTripRequest, v1.GetRealtimeTripResponse](
-			httpClient,
-			baseURL+TrainServiceGetRealtimeTripProcedure,
-			connect.WithSchema(trainServiceMethods.ByName("GetRealtimeTrip")),
-			connect.WithClientOptions(opts...),
-		),
-		listSavedCommutes: connect.NewClient[v1.ListSavedCommutesRequest, v1.ListSavedCommutesResponse](
-			httpClient,
-			baseURL+TrainServiceListSavedCommutesProcedure,
-			connect.WithSchema(trainServiceMethods.ByName("ListSavedCommutes")),
-			connect.WithClientOptions(opts...),
-		),
-		createSavedCommute: connect.NewClient[v1.CreateSavedCommuteRequest, v1.CreateSavedCommuteResponse](
-			httpClient,
-			baseURL+TrainServiceCreateSavedCommuteProcedure,
-			connect.WithSchema(trainServiceMethods.ByName("CreateSavedCommute")),
-			connect.WithClientOptions(opts...),
-		),
-		updateSavedCommute: connect.NewClient[v1.UpdateSavedCommuteRequest, v1.UpdateSavedCommuteResponse](
-			httpClient,
-			baseURL+TrainServiceUpdateSavedCommuteProcedure,
-			connect.WithSchema(trainServiceMethods.ByName("UpdateSavedCommute")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteSavedCommute: connect.NewClient[v1.DeleteSavedCommuteRequest, v1.DeleteSavedCommuteResponse](
-			httpClient,
-			baseURL+TrainServiceDeleteSavedCommuteProcedure,
-			connect.WithSchema(trainServiceMethods.ByName("DeleteSavedCommute")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// trainServiceClient implements TrainServiceClient.
-type trainServiceClient struct {
-	searchJourneys     *connect.Client[v1.SearchJourneysRequest, v1.SearchJourneysResponse]
-	searchStations     *connect.Client[v1.SearchStationsRequest, v1.SearchStationsResponse]
-	getFeedInfo        *connect.Client[v1.GetFeedInfoRequest, v1.GetFeedInfoResponse]
-	getJourneyDetail   *connect.Client[v1.GetJourneyDetailRequest, v1.GetJourneyDetailResponse]
-	getRealtimeTrip    *connect.Client[v1.GetRealtimeTripRequest, v1.GetRealtimeTripResponse]
-	listSavedCommutes  *connect.Client[v1.ListSavedCommutesRequest, v1.ListSavedCommutesResponse]
-	createSavedCommute *connect.Client[v1.CreateSavedCommuteRequest, v1.CreateSavedCommuteResponse]
-	updateSavedCommute *connect.Client[v1.UpdateSavedCommuteRequest, v1.UpdateSavedCommuteResponse]
-	deleteSavedCommute *connect.Client[v1.DeleteSavedCommuteRequest, v1.DeleteSavedCommuteResponse]
-}
-
-// SearchJourneys calls trains.v1.TrainService.SearchJourneys.
-func (c *trainServiceClient) SearchJourneys(ctx context.Context, req *connect.Request[v1.SearchJourneysRequest]) (*connect.Response[v1.SearchJourneysResponse], error) {
-	return c.searchJourneys.CallUnary(ctx, req)
-}
-
-// SearchStations calls trains.v1.TrainService.SearchStations.
-func (c *trainServiceClient) SearchStations(ctx context.Context, req *connect.Request[v1.SearchStationsRequest]) (*connect.Response[v1.SearchStationsResponse], error) {
-	return c.searchStations.CallUnary(ctx, req)
-}
-
-// GetFeedInfo calls trains.v1.TrainService.GetFeedInfo.
-func (c *trainServiceClient) GetFeedInfo(ctx context.Context, req *connect.Request[v1.GetFeedInfoRequest]) (*connect.Response[v1.GetFeedInfoResponse], error) {
-	return c.getFeedInfo.CallUnary(ctx, req)
-}
-
-// GetJourneyDetail calls trains.v1.TrainService.GetJourneyDetail.
-func (c *trainServiceClient) GetJourneyDetail(ctx context.Context, req *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error) {
-	return c.getJourneyDetail.CallUnary(ctx, req)
-}
-
-// GetRealtimeTrip calls trains.v1.TrainService.GetRealtimeTrip.
-func (c *trainServiceClient) GetRealtimeTrip(ctx context.Context, req *connect.Request[v1.GetRealtimeTripRequest]) (*connect.Response[v1.GetRealtimeTripResponse], error) {
-	return c.getRealtimeTrip.CallUnary(ctx, req)
-}
-
-// ListSavedCommutes calls trains.v1.TrainService.ListSavedCommutes.
-func (c *trainServiceClient) ListSavedCommutes(ctx context.Context, req *connect.Request[v1.ListSavedCommutesRequest]) (*connect.Response[v1.ListSavedCommutesResponse], error) {
-	return c.listSavedCommutes.CallUnary(ctx, req)
-}
-
-// CreateSavedCommute calls trains.v1.TrainService.CreateSavedCommute.
-func (c *trainServiceClient) CreateSavedCommute(ctx context.Context, req *connect.Request[v1.CreateSavedCommuteRequest]) (*connect.Response[v1.CreateSavedCommuteResponse], error) {
-	return c.createSavedCommute.CallUnary(ctx, req)
-}
-
-// UpdateSavedCommute calls trains.v1.TrainService.UpdateSavedCommute.
-func (c *trainServiceClient) UpdateSavedCommute(ctx context.Context, req *connect.Request[v1.UpdateSavedCommuteRequest]) (*connect.Response[v1.UpdateSavedCommuteResponse], error) {
-	return c.updateSavedCommute.CallUnary(ctx, req)
-}
-
-// DeleteSavedCommute calls trains.v1.TrainService.DeleteSavedCommute.
-func (c *trainServiceClient) DeleteSavedCommute(ctx context.Context, req *connect.Request[v1.DeleteSavedCommuteRequest]) (*connect.Response[v1.DeleteSavedCommuteResponse], error) {
-	return c.deleteSavedCommute.CallUnary(ctx, req)
+// NewTrainServiceClient constructs a client for the trains.v1.TrainService service. Multiple
+// service clients may share a single connect.Client.
+func NewTrainServiceClient(client *connect.Client) TrainServiceClient {
+	return &trainServiceClient{client: client}
 }
 
 // TrainServiceHandler is an implementation of the trains.v1.TrainService service.
 type TrainServiceHandler interface {
-	SearchJourneys(context.Context, *connect.Request[v1.SearchJourneysRequest]) (*connect.Response[v1.SearchJourneysResponse], error)
-	SearchStations(context.Context, *connect.Request[v1.SearchStationsRequest]) (*connect.Response[v1.SearchStationsResponse], error)
-	GetFeedInfo(context.Context, *connect.Request[v1.GetFeedInfoRequest]) (*connect.Response[v1.GetFeedInfoResponse], error)
+	SearchJourneys(context.Context, *v1.SearchJourneysRequest) (*v1.SearchJourneysResponse, error)
+	SearchStations(context.Context, *v1.SearchStationsRequest) (*v1.SearchStationsResponse, error)
+	GetFeedInfo(context.Context, *v1.GetFeedInfoRequest) (*v1.GetFeedInfoResponse, error)
 	// GetJourneyDetail fetches a searched journey's live state and ensures its
 	// /trains/api/journeys/live websocket topic exists.
-	GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error)
+	GetJourneyDetail(context.Context, *v1.GetJourneyDetailRequest) (*v1.GetJourneyDetailResponse, error)
 	// GetRealtimeTrip exposes the raw realtime snapshot for one train.
-	GetRealtimeTrip(context.Context, *connect.Request[v1.GetRealtimeTripRequest]) (*connect.Response[v1.GetRealtimeTripResponse], error)
+	GetRealtimeTrip(context.Context, *v1.GetRealtimeTripRequest) (*v1.GetRealtimeTripResponse, error)
 	// Saved-commute CRUD, scoped to the signed-in user.
-	ListSavedCommutes(context.Context, *connect.Request[v1.ListSavedCommutesRequest]) (*connect.Response[v1.ListSavedCommutesResponse], error)
-	CreateSavedCommute(context.Context, *connect.Request[v1.CreateSavedCommuteRequest]) (*connect.Response[v1.CreateSavedCommuteResponse], error)
-	UpdateSavedCommute(context.Context, *connect.Request[v1.UpdateSavedCommuteRequest]) (*connect.Response[v1.UpdateSavedCommuteResponse], error)
-	DeleteSavedCommute(context.Context, *connect.Request[v1.DeleteSavedCommuteRequest]) (*connect.Response[v1.DeleteSavedCommuteResponse], error)
+	ListSavedCommutes(context.Context, *v1.ListSavedCommutesRequest) (*v1.ListSavedCommutesResponse, error)
+	CreateSavedCommute(context.Context, *v1.CreateSavedCommuteRequest) (*v1.CreateSavedCommuteResponse, error)
+	UpdateSavedCommute(context.Context, *v1.UpdateSavedCommuteRequest) (*v1.UpdateSavedCommuteResponse, error)
+	DeleteSavedCommute(context.Context, *v1.DeleteSavedCommuteRequest) (*v1.DeleteSavedCommuteResponse, error)
 }
 
-// NewTrainServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewTrainServiceHandler(svc TrainServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	trainServiceMethods := v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods()
-	trainServiceSearchJourneysHandler := connect.NewUnaryHandler(
-		TrainServiceSearchJourneysProcedure,
-		svc.SearchJourneys,
-		connect.WithSchema(trainServiceMethods.ByName("SearchJourneys")),
-		connect.WithHandlerOptions(opts...),
+// RegisterTrainServiceHandler registers svc as the trains.v1.TrainService implementation on server.
+func RegisterTrainServiceHandler(server *connect.Server, svc TrainServiceHandler) {
+	adapter := trainServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: trainServiceSearchJourneysSpec(), Handler: adapter.searchJourneys},
+		connect.Method{Spec: trainServiceSearchStationsSpec(), Handler: adapter.searchStations},
+		connect.Method{Spec: trainServiceGetFeedInfoSpec(), Handler: adapter.getFeedInfo},
+		connect.Method{Spec: trainServiceGetJourneyDetailSpec(), Handler: adapter.getJourneyDetail},
+		connect.Method{Spec: trainServiceGetRealtimeTripSpec(), Handler: adapter.getRealtimeTrip},
+		connect.Method{Spec: trainServiceListSavedCommutesSpec(), Handler: adapter.listSavedCommutes},
+		connect.Method{Spec: trainServiceCreateSavedCommuteSpec(), Handler: adapter.createSavedCommute},
+		connect.Method{Spec: trainServiceUpdateSavedCommuteSpec(), Handler: adapter.updateSavedCommute},
+		connect.Method{Spec: trainServiceDeleteSavedCommuteSpec(), Handler: adapter.deleteSavedCommute},
 	)
-	trainServiceSearchStationsHandler := connect.NewUnaryHandler(
-		TrainServiceSearchStationsProcedure,
-		svc.SearchStations,
-		connect.WithSchema(trainServiceMethods.ByName("SearchStations")),
-		connect.WithHandlerOptions(opts...),
-	)
-	trainServiceGetFeedInfoHandler := connect.NewUnaryHandler(
-		TrainServiceGetFeedInfoProcedure,
-		svc.GetFeedInfo,
-		connect.WithSchema(trainServiceMethods.ByName("GetFeedInfo")),
-		connect.WithHandlerOptions(opts...),
-	)
-	trainServiceGetJourneyDetailHandler := connect.NewUnaryHandler(
-		TrainServiceGetJourneyDetailProcedure,
-		svc.GetJourneyDetail,
-		connect.WithSchema(trainServiceMethods.ByName("GetJourneyDetail")),
-		connect.WithHandlerOptions(opts...),
-	)
-	trainServiceGetRealtimeTripHandler := connect.NewUnaryHandler(
-		TrainServiceGetRealtimeTripProcedure,
-		svc.GetRealtimeTrip,
-		connect.WithSchema(trainServiceMethods.ByName("GetRealtimeTrip")),
-		connect.WithHandlerOptions(opts...),
-	)
-	trainServiceListSavedCommutesHandler := connect.NewUnaryHandler(
-		TrainServiceListSavedCommutesProcedure,
-		svc.ListSavedCommutes,
-		connect.WithSchema(trainServiceMethods.ByName("ListSavedCommutes")),
-		connect.WithHandlerOptions(opts...),
-	)
-	trainServiceCreateSavedCommuteHandler := connect.NewUnaryHandler(
-		TrainServiceCreateSavedCommuteProcedure,
-		svc.CreateSavedCommute,
-		connect.WithSchema(trainServiceMethods.ByName("CreateSavedCommute")),
-		connect.WithHandlerOptions(opts...),
-	)
-	trainServiceUpdateSavedCommuteHandler := connect.NewUnaryHandler(
-		TrainServiceUpdateSavedCommuteProcedure,
-		svc.UpdateSavedCommute,
-		connect.WithSchema(trainServiceMethods.ByName("UpdateSavedCommute")),
-		connect.WithHandlerOptions(opts...),
-	)
-	trainServiceDeleteSavedCommuteHandler := connect.NewUnaryHandler(
-		TrainServiceDeleteSavedCommuteProcedure,
-		svc.DeleteSavedCommute,
-		connect.WithSchema(trainServiceMethods.ByName("DeleteSavedCommute")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/trains.v1.TrainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case TrainServiceSearchJourneysProcedure:
-			trainServiceSearchJourneysHandler.ServeHTTP(w, r)
-		case TrainServiceSearchStationsProcedure:
-			trainServiceSearchStationsHandler.ServeHTTP(w, r)
-		case TrainServiceGetFeedInfoProcedure:
-			trainServiceGetFeedInfoHandler.ServeHTTP(w, r)
-		case TrainServiceGetJourneyDetailProcedure:
-			trainServiceGetJourneyDetailHandler.ServeHTTP(w, r)
-		case TrainServiceGetRealtimeTripProcedure:
-			trainServiceGetRealtimeTripHandler.ServeHTTP(w, r)
-		case TrainServiceListSavedCommutesProcedure:
-			trainServiceListSavedCommutesHandler.ServeHTTP(w, r)
-		case TrainServiceCreateSavedCommuteProcedure:
-			trainServiceCreateSavedCommuteHandler.ServeHTTP(w, r)
-		case TrainServiceUpdateSavedCommuteProcedure:
-			trainServiceUpdateSavedCommuteHandler.ServeHTTP(w, r)
-		case TrainServiceDeleteSavedCommuteProcedure:
-			trainServiceDeleteSavedCommuteHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedTrainServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedTrainServiceHandler struct{}
 
-func (UnimplementedTrainServiceHandler) SearchJourneys(context.Context, *connect.Request[v1.SearchJourneysRequest]) (*connect.Response[v1.SearchJourneysResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.SearchJourneys is not implemented"))
+func (UnimplementedTrainServiceHandler) SearchJourneys(context.Context, *v1.SearchJourneysRequest) (*v1.SearchJourneysResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "trains.v1.TrainService.SearchJourneys is not implemented")
 }
 
-func (UnimplementedTrainServiceHandler) SearchStations(context.Context, *connect.Request[v1.SearchStationsRequest]) (*connect.Response[v1.SearchStationsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.SearchStations is not implemented"))
+func (UnimplementedTrainServiceHandler) SearchStations(context.Context, *v1.SearchStationsRequest) (*v1.SearchStationsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "trains.v1.TrainService.SearchStations is not implemented")
 }
 
-func (UnimplementedTrainServiceHandler) GetFeedInfo(context.Context, *connect.Request[v1.GetFeedInfoRequest]) (*connect.Response[v1.GetFeedInfoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.GetFeedInfo is not implemented"))
+func (UnimplementedTrainServiceHandler) GetFeedInfo(context.Context, *v1.GetFeedInfoRequest) (*v1.GetFeedInfoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "trains.v1.TrainService.GetFeedInfo is not implemented")
 }
 
-func (UnimplementedTrainServiceHandler) GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.GetJourneyDetail is not implemented"))
+func (UnimplementedTrainServiceHandler) GetJourneyDetail(context.Context, *v1.GetJourneyDetailRequest) (*v1.GetJourneyDetailResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "trains.v1.TrainService.GetJourneyDetail is not implemented")
 }
 
-func (UnimplementedTrainServiceHandler) GetRealtimeTrip(context.Context, *connect.Request[v1.GetRealtimeTripRequest]) (*connect.Response[v1.GetRealtimeTripResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.GetRealtimeTrip is not implemented"))
+func (UnimplementedTrainServiceHandler) GetRealtimeTrip(context.Context, *v1.GetRealtimeTripRequest) (*v1.GetRealtimeTripResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "trains.v1.TrainService.GetRealtimeTrip is not implemented")
 }
 
-func (UnimplementedTrainServiceHandler) ListSavedCommutes(context.Context, *connect.Request[v1.ListSavedCommutesRequest]) (*connect.Response[v1.ListSavedCommutesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.ListSavedCommutes is not implemented"))
+func (UnimplementedTrainServiceHandler) ListSavedCommutes(context.Context, *v1.ListSavedCommutesRequest) (*v1.ListSavedCommutesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "trains.v1.TrainService.ListSavedCommutes is not implemented")
 }
 
-func (UnimplementedTrainServiceHandler) CreateSavedCommute(context.Context, *connect.Request[v1.CreateSavedCommuteRequest]) (*connect.Response[v1.CreateSavedCommuteResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.CreateSavedCommute is not implemented"))
+func (UnimplementedTrainServiceHandler) CreateSavedCommute(context.Context, *v1.CreateSavedCommuteRequest) (*v1.CreateSavedCommuteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "trains.v1.TrainService.CreateSavedCommute is not implemented")
 }
 
-func (UnimplementedTrainServiceHandler) UpdateSavedCommute(context.Context, *connect.Request[v1.UpdateSavedCommuteRequest]) (*connect.Response[v1.UpdateSavedCommuteResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.UpdateSavedCommute is not implemented"))
+func (UnimplementedTrainServiceHandler) UpdateSavedCommute(context.Context, *v1.UpdateSavedCommuteRequest) (*v1.UpdateSavedCommuteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "trains.v1.TrainService.UpdateSavedCommute is not implemented")
 }
 
-func (UnimplementedTrainServiceHandler) DeleteSavedCommute(context.Context, *connect.Request[v1.DeleteSavedCommuteRequest]) (*connect.Response[v1.DeleteSavedCommuteResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.DeleteSavedCommute is not implemented"))
+func (UnimplementedTrainServiceHandler) DeleteSavedCommute(context.Context, *v1.DeleteSavedCommuteRequest) (*v1.DeleteSavedCommuteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "trains.v1.TrainService.DeleteSavedCommute is not implemented")
+}
+
+type trainServiceClient struct {
+	client *connect.Client
+}
+
+func (c *trainServiceClient) SearchJourneys(ctx context.Context, req *v1.SearchJourneysRequest) (*v1.SearchJourneysResponse, error) {
+	var res v1.SearchJourneysResponse
+	if err := c.client.CallUnary(ctx, trainServiceSearchJourneysSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *trainServiceClient) SearchStations(ctx context.Context, req *v1.SearchStationsRequest) (*v1.SearchStationsResponse, error) {
+	var res v1.SearchStationsResponse
+	if err := c.client.CallUnary(ctx, trainServiceSearchStationsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *trainServiceClient) GetFeedInfo(ctx context.Context, req *v1.GetFeedInfoRequest) (*v1.GetFeedInfoResponse, error) {
+	var res v1.GetFeedInfoResponse
+	if err := c.client.CallUnary(ctx, trainServiceGetFeedInfoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *trainServiceClient) GetJourneyDetail(ctx context.Context, req *v1.GetJourneyDetailRequest) (*v1.GetJourneyDetailResponse, error) {
+	var res v1.GetJourneyDetailResponse
+	if err := c.client.CallUnary(ctx, trainServiceGetJourneyDetailSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *trainServiceClient) GetRealtimeTrip(ctx context.Context, req *v1.GetRealtimeTripRequest) (*v1.GetRealtimeTripResponse, error) {
+	var res v1.GetRealtimeTripResponse
+	if err := c.client.CallUnary(ctx, trainServiceGetRealtimeTripSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *trainServiceClient) ListSavedCommutes(ctx context.Context, req *v1.ListSavedCommutesRequest) (*v1.ListSavedCommutesResponse, error) {
+	var res v1.ListSavedCommutesResponse
+	if err := c.client.CallUnary(ctx, trainServiceListSavedCommutesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *trainServiceClient) CreateSavedCommute(ctx context.Context, req *v1.CreateSavedCommuteRequest) (*v1.CreateSavedCommuteResponse, error) {
+	var res v1.CreateSavedCommuteResponse
+	if err := c.client.CallUnary(ctx, trainServiceCreateSavedCommuteSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *trainServiceClient) UpdateSavedCommute(ctx context.Context, req *v1.UpdateSavedCommuteRequest) (*v1.UpdateSavedCommuteResponse, error) {
+	var res v1.UpdateSavedCommuteResponse
+	if err := c.client.CallUnary(ctx, trainServiceUpdateSavedCommuteSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *trainServiceClient) DeleteSavedCommute(ctx context.Context, req *v1.DeleteSavedCommuteRequest) (*v1.DeleteSavedCommuteResponse, error) {
+	var res v1.DeleteSavedCommuteResponse
+	if err := c.client.CallUnary(ctx, trainServiceDeleteSavedCommuteSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type trainServiceHandler struct{ svc TrainServiceHandler }
+
+func (h trainServiceHandler) searchJourneys(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SearchJourneysRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SearchJourneys(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h trainServiceHandler) searchStations(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SearchStationsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SearchStations(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h trainServiceHandler) getFeedInfo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetFeedInfoRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetFeedInfo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h trainServiceHandler) getJourneyDetail(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetJourneyDetailRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetJourneyDetail(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h trainServiceHandler) getRealtimeTrip(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetRealtimeTripRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetRealtimeTrip(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h trainServiceHandler) listSavedCommutes(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListSavedCommutesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListSavedCommutes(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h trainServiceHandler) createSavedCommute(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateSavedCommuteRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateSavedCommute(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h trainServiceHandler) updateSavedCommute(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateSavedCommuteRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateSavedCommute(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h trainServiceHandler) deleteSavedCommute(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteSavedCommuteRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteSavedCommute(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

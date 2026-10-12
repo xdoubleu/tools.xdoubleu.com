@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,12 +29,12 @@ func TestRefreshFeed_Scrape_CategoryRule_FiltersWithoutFetchingContent(t *testin
 
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url: indexURL, Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	feedID := created.Msg.Feed.Id
+	feedID := created.Feed.Id
 	waitForItemCount(t, client, feedID, 1)
 
 	rule := createRule(t, client, feedID,
@@ -49,11 +48,11 @@ func TestRefreshFeed_Scrape_CategoryRule_FiltersWithoutFetchingContent(t *testin
 		`</ul></body></html>`)
 	refreshed, err := client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: feedID}),
+		&feedsv1.RefreshFeedRequest{FeedId: feedID},
 	)
 	require.NoError(t, err)
 
-	assert.Equal(t, int32(0), refreshed.Msg.Ingested)
+	assert.Equal(t, int32(0), refreshed.Ingested)
 	assert.Zero(t, countFetches(newURL), "a filtered link must not be fetched")
 	assert.Equal(t, 2, countSeenRows(t, feedID), "the filtered link is stored as seen")
 	assert.Empty(t, inboxBySourceURL(t, client, feedID))
@@ -80,11 +79,11 @@ func TestRefreshFeed_RSS_CategoryRule_KeepsOnlyEmbeddedContent(t *testing.T) {
 	)))
 	refreshed, err := client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: feedID}),
+		&feedsv1.RefreshFeedRequest{FeedId: feedID},
 	)
 	require.NoError(t, err)
 
-	assert.Equal(t, int32(0), refreshed.Msg.Ingested)
+	assert.Equal(t, int32(0), refreshed.Ingested)
 	assert.Zero(t, countFetches(linked), "a filtered link must not be fetched")
 	assert.Equal(t, int32(2), listedRule(t, client, rule.Id).FilteredCount)
 	assert.Equal(t, map[string]string{linked: "", embedded: itemContent},

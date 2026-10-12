@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,13 +23,14 @@ func TestConnectGetKEPUBStatus_StaleKEPUBReportsConverting(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 	insertStaleKEPUBRow(t, bookID, userID)
 
-	req := connect.NewRequest(&booksv1.GetKEPUBStatusRequest{BookId: bookID.String()})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.GetKEPUBStatusRequest{BookId: bookID.String()}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.GetKEPUBStatus(ctx, req)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.HasEpub)
-	assert.Equal(t, models.FileStatusConverting, resp.Msg.KepubStatus)
+	assert.True(t, resp.HasEpub)
+	assert.Equal(t, models.FileStatusConverting, resp.KepubStatus)
 
 	// The read started the reconversion, so "converting" resolves.
 	require.Eventually(t, func() bool {

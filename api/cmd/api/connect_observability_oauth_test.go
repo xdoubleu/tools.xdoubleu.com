@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -52,13 +52,14 @@ func TestListOAuthConnections_AsAdmin_NoneConnected(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 	clearOAuthConnections(t)
 
-	req := connect.NewRequest(&observabilityv1.ListOAuthConnectionsRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := observabilityClient(t).ListOAuthConnections(context.Background(), req)
+	req := &observabilityv1.ListOAuthConnectionsRequest{}
+	resp, err := observabilityClient(
+		t,
+	).ListOAuthConnections(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
 
-	require.Len(t, resp.Msg.Connections, 2)
-	for _, c := range resp.Msg.Connections {
+	require.Len(t, resp.Connections, 2)
+	for _, c := range resp.Connections {
 		assert.False(t, c.Connected)
 		assert.Empty(t, c.ConnectedBy)
 	}
@@ -79,12 +80,13 @@ func TestListOAuthConnections_AsAdmin_OneConnected(t *testing.T) {
 		githubScopes,
 	))
 
-	req := connect.NewRequest(&observabilityv1.ListOAuthConnectionsRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := observabilityClient(t).ListOAuthConnections(context.Background(), req)
+	req := &observabilityv1.ListOAuthConnectionsRequest{}
+	resp, err := observabilityClient(
+		t,
+	).ListOAuthConnections(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
 
-	for _, c := range resp.Msg.Connections {
+	for _, c := range resp.Connections {
 		if c.Provider == string(models.OAuthProviderGithub) {
 			assert.True(t, c.Connected)
 			assert.NotEmpty(t, c.ConnectedAt)
@@ -106,12 +108,13 @@ func TestListOAuthConnections_AsAdmin_StaleScope(t *testing.T) {
 		t.Context(), models.OAuthProviderSentry, tok, testUserID, nil,
 	))
 
-	req := connect.NewRequest(&observabilityv1.ListOAuthConnectionsRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := observabilityClient(t).ListOAuthConnections(context.Background(), req)
+	req := &observabilityv1.ListOAuthConnectionsRequest{}
+	resp, err := observabilityClient(
+		t,
+	).ListOAuthConnections(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
 
-	for _, c := range resp.Msg.Connections {
+	for _, c := range resp.Connections {
 		if c.Provider == string(models.OAuthProviderSentry) {
 			assert.False(
 				t,
@@ -136,12 +139,13 @@ func TestListOAuthConnections_NormalizedGrantedScope_ShowsConnected(t *testing.T
 		t.Context(), models.OAuthProviderGithub, tok, testUserID, githubScopes,
 	))
 
-	req := connect.NewRequest(&observabilityv1.ListOAuthConnectionsRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := observabilityClient(t).ListOAuthConnections(context.Background(), req)
+	req := &observabilityv1.ListOAuthConnectionsRequest{}
+	resp, err := observabilityClient(
+		t,
+	).ListOAuthConnections(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
 
-	for _, c := range resp.Msg.Connections {
+	for _, c := range resp.Connections {
 		if c.Provider != string(models.OAuthProviderGithub) {
 			continue
 		}
@@ -173,12 +177,13 @@ func TestListOAuthConnections_StaleScope_ReportsScopes(t *testing.T) {
 		[]string{"repo"},
 	))
 
-	req := connect.NewRequest(&observabilityv1.ListOAuthConnectionsRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := observabilityClient(t).ListOAuthConnections(context.Background(), req)
+	req := &observabilityv1.ListOAuthConnectionsRequest{}
+	resp, err := observabilityClient(
+		t,
+	).ListOAuthConnections(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
 
-	for _, c := range resp.Msg.Connections {
+	for _, c := range resp.Connections {
 		if c.Provider != string(models.OAuthProviderGithub) {
 			continue
 		}
@@ -191,9 +196,10 @@ func TestListOAuthConnections_StaleScope_ReportsScopes(t *testing.T) {
 func TestListOAuthConnections_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 
-	req := connect.NewRequest(&observabilityv1.ListOAuthConnectionsRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).ListOAuthConnections(context.Background(), req)
+	req := &observabilityv1.ListOAuthConnectionsRequest{}
+	_, err := observabilityClient(
+		t,
+	).ListOAuthConnections(withCookies(context.Background(), accessToken), req)
 	requirePermissionDenied(t, err)
 }
 
@@ -212,13 +218,12 @@ func TestDisconnectOAuthConnection_AsAdmin(t *testing.T) {
 		githubScopes,
 	))
 
-	req := connect.NewRequest(&observabilityv1.DisconnectOAuthConnectionRequest{
+	req := &observabilityv1.DisconnectOAuthConnectionRequest{
 		Provider: string(models.OAuthProviderGithub),
-	})
-	setCookieOnRequest(req, accessToken)
+	}
 	_, err := observabilityClient(
 		t,
-	).DisconnectOAuthConnection(context.Background(), req)
+	).DisconnectOAuthConnection(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
 
 	_, _, err = testApp.oauthConnRepo.Get(t.Context(), models.OAuthProviderGithub)
@@ -228,13 +233,12 @@ func TestDisconnectOAuthConnection_AsAdmin(t *testing.T) {
 func TestDisconnectOAuthConnection_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 
-	req := connect.NewRequest(&observabilityv1.DisconnectOAuthConnectionRequest{
+	req := &observabilityv1.DisconnectOAuthConnectionRequest{
 		Provider: string(models.OAuthProviderGithub),
-	})
-	setCookieOnRequest(req, accessToken)
+	}
 	_, err := observabilityClient(
 		t,
-	).DisconnectOAuthConnection(context.Background(), req)
+	).DisconnectOAuthConnection(withCookies(context.Background(), accessToken), req)
 	requirePermissionDenied(t, err)
 }
 
@@ -250,11 +254,12 @@ func TestGetProviderOptions_TodoistIsUnknown(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
-	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+	req := &observabilityv1.GetProviderOptionsRequest{
 		Provider: "todoist",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	}
+	_, err := observabilityClient(
+		t,
+	).GetProviderOptions(withCookies(context.Background(), accessToken), req)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
@@ -263,10 +268,11 @@ func TestSetProviderConfig_TodoistIsUnknown(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
-	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{
+	req := &observabilityv1.SetProviderConfigRequest{
 		Provider: "todoist",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).SetProviderConfig(context.Background(), req)
+	}
+	_, err := observabilityClient(
+		t,
+	).SetProviderConfig(withCookies(context.Background(), accessToken), req)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -197,17 +197,18 @@ func TestConnectGetBookFile_OK(t *testing.T) {
 
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 
-	req := connect.NewRequest(&booksv1.GetBookFileRequest{
+	req := &booksv1.GetBookFileRequest{
 		BookId: bookID.String(),
 		Format: models.FileFormatEPUB,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.GetBookFile(ctx, req)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Url)
-	assert.NotEmpty(t, resp.Msg.ExpiresAt)
-	assert.Equal(t, models.FileFormatEPUB, resp.Msg.Format)
+	assert.NotEmpty(t, resp.Url)
+	assert.NotEmpty(t, resp.ExpiresAt)
+	assert.Equal(t, models.FileFormatEPUB, resp.Format)
 }
 
 func TestConnectGetBookFile_NoFormat_OK(t *testing.T) {
@@ -217,14 +218,15 @@ func TestConnectGetBookFile_NoFormat_OK(t *testing.T) {
 
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatPDF)
 
-	req := connect.NewRequest(&booksv1.GetBookFileRequest{
+	req := &booksv1.GetBookFileRequest{
 		BookId: bookID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.GetBookFile(ctx, req)
 	require.NoError(t, err)
-	assert.Equal(t, models.FileFormatPDF, resp.Msg.Format)
+	assert.Equal(t, models.FileFormatPDF, resp.Format)
 }
 
 func TestConnectGetBookFile_NotFound(t *testing.T) {
@@ -232,10 +234,11 @@ func TestConnectGetBookFile_NotFound(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.GetBookFileRequest{
+	req := &booksv1.GetBookFileRequest{
 		BookId: uuid.NewString(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.GetBookFile(ctx, req)
 	require.Error(t, err)
@@ -249,10 +252,11 @@ func TestConnectGetBookFile_InvalidBookID(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.GetBookFileRequest{
+	req := &booksv1.GetBookFileRequest{
 		BookId: "not-a-uuid",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.GetBookFile(ctx, req)
 	require.Error(t, err)

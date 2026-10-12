@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -36,9 +36,9 @@ func episodes(
 	req *podcastsv1.ListEpisodesRequest,
 ) *podcastsv1.ListEpisodesResponse {
 	t.Helper()
-	resp, err := c.ListEpisodes(context.Background(), connect.NewRequest(req))
+	resp, err := c.ListEpisodes(context.Background(), req)
 	require.NoError(t, err)
-	return resp.Msg
+	return resp
 }
 
 func titles(eps []*podcastsv1.Episode) []string {
@@ -202,9 +202,10 @@ func TestListEpisodes_FilterAndPaging(t *testing.T) {
 func TestListEpisodes_InvalidShowID(t *testing.T) {
 	c := newClient(t, userID, fakeITunes{})
 
-	_, err := c.ListEpisodes(context.Background(), connect.NewRequest(
+	_, err := c.ListEpisodes(
+		context.Background(),
 		&podcastsv1.ListEpisodesRequest{ShowId: "nope"},
-	))
+	)
 	assert.Equal(t, connect.CodeInvalidArgument, code(err))
 }
 
@@ -226,9 +227,10 @@ func TestRemoveFavourite_DropsItsEpisodes(t *testing.T) {
 	c := newClientWithFeeds(t, userID, fakeITunes{}, feeds)
 	f := add(t, c, 1)
 
-	_, err := c.RemoveFavourite(context.Background(), connect.NewRequest(
+	_, err := c.RemoveFavourite(
+		context.Background(),
 		&podcastsv1.RemoveFavouriteRequest{Id: f.Id},
-	))
+	)
 	require.NoError(t, err)
 	assert.Empty(t, episodes(t, c, &podcastsv1.ListEpisodesRequest{}).Episodes)
 	var n int

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
@@ -19,232 +19,233 @@ import (
 
 func (h *booksConnectHandler) GetLibrary(
 	ctx context.Context,
-	_ *connect.Request[booksv1.GetLibraryRequest],
-) (*connect.Response[booksv1.GetLibraryResponse], error) {
+	_ *booksv1.GetLibraryRequest,
+) (*booksv1.GetLibraryResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 	data, err := h.app.buildLibraryData(ctx, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	base := h.app.clients.PublicAPIBaseURL
-	return connect.NewResponse(&booksv1.GetLibraryResponse{
+	return &booksv1.GetLibraryResponse{
 		Library: &booksv1.LibraryResponse{
 			Reading:  protoUserBooks(data.Reading, base),
 			Wishlist: protoUserBooks(data.Wishlist, base),
 			Finished: protoUserBooks(data.Finished, base),
 			Shelves:  protoBookshelves(data.Shelves, base),
 		},
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) GetBooksProgress(
 	ctx context.Context,
-	req *connect.Request[booksv1.GetBooksProgressRequest],
-) (*connect.Response[booksv1.GetBooksProgressResponse], error) {
+	req *booksv1.GetBooksProgressRequest,
+) (*booksv1.GetBooksProgressResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	dateStart, dateEnd := parseDateRangeFromStrings(req.Msg.DateStart, req.Msg.DateEnd)
+	dateStart, dateEnd := parseDateRangeFromStrings(req.DateStart, req.DateEnd)
 	labels, values, err := h.app.Services.Progress.GetByDates(
 		ctx, user.ID, dateStart, dateEnd,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&booksv1.GetBooksProgressResponse{
+	return &booksv1.GetBooksProgressResponse{
 		Progress: &booksv1.BooksProgressResponse{
 			Labels:    labels,
 			Values:    values,
 			DateStart: dateStart.Format(models.ProgressDateFormat),
 			DateEnd:   dateEnd.Format(models.ProgressDateFormat),
 		},
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) SearchLibrary(
 	ctx context.Context,
-	req *connect.Request[booksv1.SearchLibraryRequest],
-) (*connect.Response[booksv1.SearchLibraryResponse], error) {
+	req *booksv1.SearchLibraryRequest,
+) (*booksv1.SearchLibraryResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	if req.Msg.Query == "" {
-		return connect.NewResponse(&booksv1.SearchLibraryResponse{
+	if req.Query == "" {
+		return &booksv1.SearchLibraryResponse{
 			Books: []*booksv1.UserBook{},
-		}), nil
+		}, nil
 	}
 	libraryResults, hasMore, err := h.app.Services.Books.SearchLibrary(
 		ctx,
 		user.ID,
-		req.Msg.Query,
-		req.Msg.Limit,
-		req.Msg.Offset,
+		req.Query,
+		req.Limit,
+		req.Offset,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&booksv1.SearchLibraryResponse{
+	return &booksv1.SearchLibraryResponse{
 		Books:   protoUserBooks(libraryResults, h.app.clients.PublicAPIBaseURL),
 		HasMore: hasMore,
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) SearchExternal(
 	ctx context.Context,
-	req *connect.Request[booksv1.SearchExternalRequest],
-) (*connect.Response[booksv1.SearchExternalResponse], error) {
+	req *booksv1.SearchExternalRequest,
+) (*booksv1.SearchExternalResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	if req.Msg.Query == "" {
-		return connect.NewResponse(&booksv1.SearchExternalResponse{
+	if req.Query == "" {
+		return &booksv1.SearchExternalResponse{
 			Results: []*booksv1.ExternalBookResult{},
-		}), nil
+		}, nil
 	}
-	results := h.app.Services.Books.SearchExternal(ctx, req.Msg.Query)
-	results = services.FilterExternalByQuery(req.Msg.Query, results)
-	return connect.NewResponse(&booksv1.SearchExternalResponse{
+	results := h.app.Services.Books.SearchExternal(ctx, req.Query)
+	results = services.FilterExternalByQuery(req.Query, results)
+	return &booksv1.SearchExternalResponse{
 		Results: protoExternalBooks(results),
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) GetExternalBook(
 	ctx context.Context,
-	req *connect.Request[booksv1.GetExternalBookRequest],
-) (*connect.Response[booksv1.GetExternalBookResponse], error) {
+	req *booksv1.GetExternalBookRequest,
+) (*booksv1.GetExternalBookResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 	book, err := h.app.Services.Books.GetExternal(
 		ctx,
-		req.Msg.Provider,
-		req.Msg.ProviderId,
+		req.Provider,
+		req.ProviderId,
 	)
 	if err != nil {
 		if errors.Is(err, services.ErrExternalNotFound) {
-			return nil, connect.NewError(connect.CodeNotFound, err)
+			return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 		}
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&booksv1.GetExternalBookResponse{
+	return &booksv1.GetExternalBookResponse{
 		Result: protoExternalBook(*book),
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) CreateBook(
 	ctx context.Context,
-	req *connect.Request[booksv1.CreateBookRequest],
-) (*connect.Response[booksv1.CreateBookResponse], error) {
+	req *booksv1.CreateBookRequest,
+) (*booksv1.CreateBookResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	status := req.Msg.Status
+	status := req.Status
 	if status == "" {
 		status = models.StatusToRead
 	}
 	ext := services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused here
-		Source:      req.Msg.Provider,
-		Title:       req.Msg.Title,
-		Authors:     []string{req.Msg.Author},
-		ISBN13:      req.Msg.Isbn13,
-		CoverURL:    req.Msg.CoverUrl,
-		Description: req.Msg.Description,
+		Source:      req.Provider,
+		Title:       req.Title,
+		Authors:     []string{req.Author},
+		ISBN13:      req.Isbn13,
+		CoverURL:    req.CoverUrl,
+		Description: req.Description,
 	}
 	if series := seriesFromProto(
-		req.Msg.SeriesName, req.Msg.SeriesPosition,
+		req.SeriesName, req.SeriesPosition,
 	); series != nil {
 		ext.SeriesName = series.Name
 		ext.SeriesPosition = series.Position
-		if req.Msg.SeriesTotal > 0 {
-			total := int(req.Msg.SeriesTotal)
+		if req.SeriesTotal > 0 {
+			total := int(req.SeriesTotal)
 			ext.SeriesTotal = &total
 		}
 	}
 	initialTags := []string{}
-	if req.Msg.OwnPhysical {
+	if req.OwnPhysical {
 		initialTags = append(initialTags, models.TagOwnPhysical)
 	}
-	if req.Msg.OwnDigital {
+	if req.OwnDigital {
 		initialTags = append(initialTags, models.TagOwnDigital)
 	}
 	_, err := h.app.Services.Books.AddToLibrary(ctx, user.ID, ext, status, initialTags)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&booksv1.CreateBookResponse{}), nil
+	return &booksv1.CreateBookResponse{}, nil
 }
 
 func (h *booksConnectHandler) UpdateBookStatus(
 	ctx context.Context,
-	req *connect.Request[booksv1.UpdateBookStatusRequest],
-) (*connect.Response[booksv1.UpdateBookStatusResponse], error) {
+	req *booksv1.UpdateBookStatusRequest,
+) (*booksv1.UpdateBookStatusResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := uuid.Parse(req.BookId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid book ID"),
+			"invalid book ID",
 		)
 	}
 	existing, err := h.app.Services.Books.GetUserBook(ctx, user.ID, bookID)
 	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	var existingTags []string
 	if existing != nil {
 		existingTags = existing.Tags
 	}
-	existingTags = toggleTag(existingTags, models.TagFavourite, req.Msg.Favourite)
-	rating := parseRating(req.Msg.Rating)
+	existingTags = toggleTag(existingTags, models.TagFavourite, req.Favourite)
+	rating := parseRating(req.Rating)
 	ub := models.UserBook{ //nolint:exhaustruct //optional fields
 		UserID:     user.ID,
 		BookID:     bookID,
-		Status:     req.Msg.Status,
+		Status:     req.Status,
 		Tags:       existingTags,
 		Rating:     rating,
-		FinishedAt: buildFinishedAt(existing, req.Msg.Status),
+		FinishedAt: buildFinishedAt(existing, req.Status),
 	}
 	if err = h.app.Services.Books.UpdateStatus(ctx, user.ID, ub); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	if req.Msg.Status == models.StatusRead {
+	if req.Status == models.StatusRead {
 		if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
-			return nil, connect.NewError(connect.CodeInternal, rebuildErr)
+			return nil, connect.NewError(connect.CodeInternal, rebuildErr.Error()).
+				WithCause(rebuildErr)
 		}
 	}
-	return connect.NewResponse(&booksv1.UpdateBookStatusResponse{}), nil
+	return &booksv1.UpdateBookStatusResponse{}, nil
 }
 
 // UpdateFinishedAt lets a user manually correct their read-date history
@@ -252,24 +253,24 @@ func (h *booksConnectHandler) UpdateBookStatus(
 // date-only (YYYY-MM-DD); blank entries are skipped.
 func (h *booksConnectHandler) UpdateFinishedAt(
 	ctx context.Context,
-	req *connect.Request[booksv1.UpdateFinishedAtRequest],
-) (*connect.Response[booksv1.UpdateFinishedAtResponse], error) {
+	req *booksv1.UpdateFinishedAtRequest,
+) (*booksv1.UpdateFinishedAtResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := uuid.Parse(req.BookId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid book ID"),
+			"invalid book ID",
 		)
 	}
-	finishedAt := make([]time.Time, 0, len(req.Msg.FinishedAt))
-	for _, raw := range req.Msg.FinishedAt {
+	finishedAt := make([]time.Time, 0, len(req.FinishedAt))
+	for _, raw := range req.FinishedAt {
 		if raw == "" {
 			continue
 		}
@@ -277,104 +278,106 @@ func (h *booksConnectHandler) UpdateFinishedAt(
 		if parseErr != nil {
 			return nil, connect.NewError(
 				connect.CodeInvalidArgument,
-				errors.New("invalid finished_at date"),
+				"invalid finished_at date",
 			)
 		}
 		finishedAt = append(finishedAt, t)
 	}
 	err = h.app.Services.Books.UpdateFinishedAt(ctx, user.ID, bookID, finishedAt)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, rebuildErr)
+		return nil, connect.NewError(connect.CodeInternal, rebuildErr.Error()).
+			WithCause(rebuildErr)
 	}
-	return connect.NewResponse(&booksv1.UpdateFinishedAtResponse{}), nil
+	return &booksv1.UpdateFinishedAtResponse{}, nil
 }
 
 func (h *booksConnectHandler) RemoveBook(
 	ctx context.Context,
-	req *connect.Request[booksv1.RemoveBookRequest],
-) (*connect.Response[booksv1.RemoveBookResponse], error) {
+	req *booksv1.RemoveBookRequest,
+) (*booksv1.RemoveBookResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := uuid.Parse(req.BookId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid book ID"),
+			"invalid book ID",
 		)
 	}
 	if err = h.app.Services.Books.RemoveFromLibrary(ctx, user.ID, bookID); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, rebuildErr)
+		return nil, connect.NewError(connect.CodeInternal, rebuildErr.Error()).
+			WithCause(rebuildErr)
 	}
-	return connect.NewResponse(&booksv1.RemoveBookResponse{}), nil
+	return &booksv1.RemoveBookResponse{}, nil
 }
 
 func (h *booksConnectHandler) UpdateProgress(
 	ctx context.Context,
-	req *connect.Request[booksv1.UpdateProgressRequest],
-) (*connect.Response[booksv1.UpdateProgressResponse], error) {
+	req *booksv1.UpdateProgressRequest,
+) (*booksv1.UpdateProgressResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := uuid.Parse(req.BookId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid book ID"),
+			"invalid book ID",
 		)
 	}
 	err = h.app.Services.Books.UpdateProgress(
 		ctx,
 		user.ID,
 		bookID,
-		req.Msg.ProgressMode,
-		int(req.Msg.CurrentPage),
-		int(req.Msg.ProgressPercent),
+		req.ProgressMode,
+		int(req.CurrentPage),
+		int(req.ProgressPercent),
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&booksv1.UpdateProgressResponse{}), nil
+	return &booksv1.UpdateProgressResponse{}, nil
 }
 
 func (h *booksConnectHandler) GetBookContent(
 	ctx context.Context,
-	req *connect.Request[booksv1.GetBookContentRequest],
-) (*connect.Response[booksv1.GetBookContentResponse], error) {
+	req *booksv1.GetBookContentRequest,
+) (*booksv1.GetBookContentResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := uuid.Parse(req.BookId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid book ID"),
+			"invalid book ID",
 		)
 	}
 	html, err := h.app.Services.Books.GetContentHTML(ctx, user.ID, bookID)
 	if err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
-			return nil, connect.NewError(connect.CodeNotFound, errors.New("not found"))
+			return nil, connect.NewError(connect.CodeNotFound, "not found")
 		}
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	if html == "" {
@@ -382,12 +385,12 @@ func (h *booksConnectHandler) GetBookContent(
 		// failure here is unexpected rather than a legitimate not-found.
 		ub, ubErr := h.app.Services.Books.GetUserBook(ctx, user.ID, bookID)
 		if ubErr != nil {
-			return nil, connect.NewError(connect.CodeInternal, ubErr)
+			return nil, connect.NewError(connect.CodeInternal, ubErr.Error()).WithCause(ubErr)
 		}
 		html = h.app.Services.Ingest.BackfillContentHTML(ctx, ub.Book)
 	}
 
-	return connect.NewResponse(&booksv1.GetBookContentResponse{
+	return &booksv1.GetBookContentResponse{
 		Html: html,
-	}), nil
+	}, nil
 }

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/models"
@@ -25,8 +25,8 @@ var allOAuthProviders = []models.OAuthProvider{
 
 func (h *obsConnectHandler) ListOAuthConnections(
 	ctx context.Context,
-	_ *connect.Request[observabilityv1.ListOAuthConnectionsRequest],
-) (*connect.Response[observabilityv1.ListOAuthConnectionsResponse], error) {
+	_ *observabilityv1.ListOAuthConnectionsRequest,
+) (*observabilityv1.ListOAuthConnectionsResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (h *obsConnectHandler) ListOAuthConnections(
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(res), nil
+	return res, nil
 }
 
 // oauthConnections builds each provider's status for Connect and MCP.
@@ -130,22 +130,20 @@ func formatExpiresAt(t *time.Time) string {
 
 func (h *obsConnectHandler) DisconnectOAuthConnection(
 	ctx context.Context,
-	req *connect.Request[observabilityv1.DisconnectOAuthConnectionRequest],
-) (*connect.Response[observabilityv1.DisconnectOAuthConnectionResponse], error) {
+	req *observabilityv1.DisconnectOAuthConnectionRequest,
+) (*observabilityv1.DisconnectOAuthConnectionResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	provider := models.OAuthProvider(req.Msg.GetProvider())
+	provider := models.OAuthProvider(req.GetProvider())
 	if err := h.app.oauthConnRepo.Delete(ctx, provider); err != nil {
 		h.app.logger.WarnContext(ctx, "failed to delete oauth connection",
 			slog.String("provider", string(provider)), slog.Any("error", err))
 		return nil, err
 	}
 
-	return connect.NewResponse(
-		&observabilityv1.DisconnectOAuthConnectionResponse{},
-	), nil
+	return &observabilityv1.DisconnectOAuthConnectionResponse{}, nil
 }
 
 // githubConfigJSON/sentryConfigJSON mirror the private config shapes in
@@ -201,8 +199,8 @@ func protoProviderConfig(
 // GetProviderOptions lists a connected provider's pickable identifiers.
 func (h *obsConnectHandler) GetProviderOptions(
 	ctx context.Context,
-	req *connect.Request[observabilityv1.GetProviderOptionsRequest],
-) (*connect.Response[observabilityv1.GetProviderOptionsResponse], error) {
+	req *observabilityv1.GetProviderOptionsRequest,
+) (*observabilityv1.GetProviderOptionsResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
@@ -212,24 +210,24 @@ func (h *obsConnectHandler) GetProviderOptions(
 		err  error
 	)
 
-	switch models.OAuthProvider(req.Msg.GetProvider()) {
+	switch models.OAuthProvider(req.GetProvider()) {
 	case models.OAuthProviderGithub:
 		resp, err = h.githubOptions(ctx)
 	case models.OAuthProviderSentry:
-		resp, err = h.sentryOptions(ctx, req.Msg.GetSentryOrg())
+		resp, err = h.sentryOptions(ctx, req.GetSentryOrg())
 	// Todoist connections live in learningpaths.oauth_connections, never here.
 	case models.OAuthProviderTodoist:
 		fallthrough
 	default:
 		return nil, connect.NewError(
-			connect.CodeInvalidArgument, errors.New("unknown provider"),
+			connect.CodeInvalidArgument, "unknown provider",
 		)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 func (h *obsConnectHandler) githubOptions(
@@ -276,39 +274,39 @@ func (h *obsConnectHandler) sentryOptions(
 // providerOptionsError maps "not connected" to a client error, not a 500.
 func providerOptionsError(err error) error {
 	if errors.Is(err, oauthconn.ErrNotConnected) {
-		return connect.NewError(connect.CodeFailedPrecondition, err)
+		return connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
 	if errors.Is(err, models.ErrDecryptFailed) {
-		return connect.NewError(connect.CodeFailedPrecondition, errors.New(
+		return connect.NewError(connect.CodeFailedPrecondition,
 			"this connection can no longer be decrypted and must be reconnected",
-		))
+		)
 	}
-	return connect.NewError(connect.CodeInternal, err)
+	return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 }
 
 // SetProviderConfig stores the admin-picked identifiers for a provider.
 func (h *obsConnectHandler) SetProviderConfig(
 	ctx context.Context,
-	req *connect.Request[observabilityv1.SetProviderConfigRequest],
-) (*connect.Response[observabilityv1.SetProviderConfigResponse], error) {
+	req *observabilityv1.SetProviderConfigRequest,
+) (*observabilityv1.SetProviderConfigResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	provider := models.OAuthProvider(req.Msg.GetProvider())
+	provider := models.OAuthProvider(req.GetProvider())
 
-	raw, err := configJSON(provider, req.Msg.GetConfig())
+	raw, err := configJSON(provider, req.GetConfig())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	if setErr := h.app.oauthConnRepo.SetConfig(ctx, provider, raw); setErr != nil {
 		h.app.logger.WarnContext(ctx, "failed to set oauth connection config",
 			slog.String("provider", string(provider)), slog.Any("error", setErr))
-		return nil, connect.NewError(connect.CodeInternal, setErr)
+		return nil, connect.NewError(connect.CodeInternal, setErr.Error()).WithCause(setErr)
 	}
 
-	return connect.NewResponse(&observabilityv1.SetProviderConfigResponse{}), nil
+	return &observabilityv1.SetProviderConfigResponse{}, nil
 }
 
 // configJSON marshals the request's ProviderConfig to stored JSON, checking it

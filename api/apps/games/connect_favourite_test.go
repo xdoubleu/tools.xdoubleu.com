@@ -4,24 +4,27 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func TestSetGameFavourite_UnknownGame(t *testing.T) {
 	seedSteamData(t)
 
 	client := newGamesTestClient(t)
-	req := connect.NewRequest(&gamesv1.SetGameFavouriteRequest{
+	req := &gamesv1.SetGameFavouriteRequest{
 		GameId:    999999,
 		Favourite: true,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.SetGameFavourite(context.Background(), req)
+	_, err := client.SetGameFavourite(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
@@ -31,30 +34,36 @@ func TestSetGameFavourite_RoundTrip(t *testing.T) {
 	ctx := context.Background()
 	client := newGamesTestClient(t)
 
-	req := connect.NewRequest(&gamesv1.SetGameFavouriteRequest{
+	req := &gamesv1.SetGameFavouriteRequest{
 		GameId:    1,
 		Favourite: true,
-	})
-	req.Header().Set("Cookie", accessToken.String())
-	resp, err := client.SetGameFavourite(ctx, req)
+	}
+	resp, err := client.SetGameFavourite(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.Game)
-	assert.True(t, resp.Msg.Game.Favourite)
+	require.NotNil(t, resp.Game)
+	assert.True(t, resp.Game.Favourite)
 
-	getReq := connect.NewRequest(&gamesv1.GetSteamGameRequest{GameId: 1})
-	getReq.Header().Set("Cookie", accessToken.String())
-	getResp, err := client.GetSteamGame(ctx, getReq)
+	getReq := &gamesv1.GetSteamGameRequest{GameId: 1}
+	getResp, err := client.GetSteamGame(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		getReq,
+	)
 	require.NoError(t, err)
-	assert.True(t, getResp.Msg.Data.Game.Favourite)
+	assert.True(t, getResp.Data.Game.Favourite)
 
-	req = connect.NewRequest(&gamesv1.SetGameFavouriteRequest{
+	req = &gamesv1.SetGameFavouriteRequest{
 		GameId:    1,
 		Favourite: false,
-	})
-	req.Header().Set("Cookie", accessToken.String())
-	resp, err = client.SetGameFavourite(ctx, req)
+	}
+	resp, err = client.SetGameFavourite(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.Game.Favourite)
+	assert.False(t, resp.Game.Favourite)
 }
 
 // TestSetGameFavourite_SurvivesSync: a Steam refresh never resets favourite.

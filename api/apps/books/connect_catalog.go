@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/repositories"
@@ -20,33 +20,33 @@ import (
 
 func (h *booksConnectHandler) ImportBooks(
 	ctx context.Context,
-	req *connect.Request[booksv1.ImportBooksRequest],
-) (*connect.Response[booksv1.ImportBooksResponse], error) {
+	req *booksv1.ImportBooksRequest,
+) (*booksv1.ImportBooksResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 	importCtx := context.WithoutCancel(ctx)
-	reader := bytes.NewReader(req.Msg.CsvData)
+	reader := bytes.NewReader(req.CsvData)
 	count, err := h.app.Services.Books.ImportFromCSV(importCtx, user.ID, reader)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	if err = h.app.rebuildReadProgress(importCtx, user.ID); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&booksv1.ImportBooksResponse{
+	return &booksv1.ImportBooksResponse{
 		ImportedCount: int32(count), //nolint:gosec // int32 safe for domain values
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) FindDuplicates(
 	ctx context.Context,
-	_ *connect.Request[booksv1.FindDuplicatesRequest],
-) (*connect.Response[booksv1.FindDuplicatesResponse], error) {
+	_ *booksv1.FindDuplicatesRequest,
+) (*booksv1.FindDuplicatesResponse, error) {
 	user, err := h.requireAdmin(ctx)
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func (h *booksConnectHandler) FindDuplicates(
 
 	groups, err := h.app.Services.Books.FindDuplicates(ctx, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	base := h.app.clients.PublicAPIBaseURL
@@ -70,35 +70,35 @@ func (h *booksConnectHandler) FindDuplicates(
 		}
 	}
 
-	return connect.NewResponse(&booksv1.FindDuplicatesResponse{
+	return &booksv1.FindDuplicatesResponse{
 		Groups: protoGroups,
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) MergeBooks(
 	ctx context.Context,
-	req *connect.Request[booksv1.MergeBooksRequest],
-) (*connect.Response[booksv1.MergeBooksResponse], error) {
+	req *booksv1.MergeBooksRequest,
+) (*booksv1.MergeBooksResponse, error) {
 	user, err := h.requireAdmin(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	winnerID, err := uuid.Parse(req.Msg.WinnerBookId)
+	winnerID, err := uuid.Parse(req.WinnerBookId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid winner_book_id: %w", err),
+			fmt.Errorf("invalid winner_book_id: %w", err).Error(),
 		)
 	}
 
-	loserIDs := make([]uuid.UUID, 0, len(req.Msg.LoserBookIds))
-	for _, raw := range req.Msg.LoserBookIds {
+	loserIDs := make([]uuid.UUID, 0, len(req.LoserBookIds))
+	for _, raw := range req.LoserBookIds {
 		id, parseErr := uuid.Parse(raw)
 		if parseErr != nil {
 			return nil, connect.NewError(
 				connect.CodeInvalidArgument,
-				fmt.Errorf("invalid loser_book_id %q: %w", raw, parseErr),
+				fmt.Errorf("invalid loser_book_id %q: %w", raw, parseErr).Error(),
 			)
 		}
 		loserIDs = append(loserIDs, id)
@@ -106,7 +106,7 @@ func (h *booksConnectHandler) MergeBooks(
 
 	var resolvedCoverSourceBookID *uuid.UUID
 
-	if raw := req.Msg.ResolvedCoverSourceBookId; raw != nil && *raw != "" {
+	if raw := req.ResolvedCoverSourceBookId; raw != nil && *raw != "" {
 		coverSourceID, parseErr := uuid.Parse(*raw)
 		if parseErr != nil {
 			return nil, connect.NewError(
@@ -114,7 +114,7 @@ func (h *booksConnectHandler) MergeBooks(
 				fmt.Errorf(
 					"invalid resolved_cover_source_book_id: %w",
 					parseErr,
-				),
+				).Error(),
 			)
 		}
 
@@ -126,64 +126,65 @@ func (h *booksConnectHandler) MergeBooks(
 		user.ID,
 		winnerID,
 		loserIDs,
-		protoBookToModel(req.Msg.ResolvedMetadata),
+		protoBookToModel(req.ResolvedMetadata),
 		resolvedCoverSourceBookID,
-		req.Msg.ResolvedStatus,
+		req.ResolvedStatus,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	for _, uid := range affectedUsers {
 		if rebuildErr := h.app.rebuildReadProgress(ctx, uid); rebuildErr != nil {
-			return nil, connect.NewError(connect.CodeInternal, rebuildErr)
+			return nil, connect.NewError(connect.CodeInternal, rebuildErr.Error()).
+				WithCause(rebuildErr)
 		}
 	}
 
-	return connect.NewResponse(&booksv1.MergeBooksResponse{
+	return &booksv1.MergeBooksResponse{
 		MergedGroups: 1,
 		DeletedFiles: deletedFiles,
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) StartResync(
 	ctx context.Context,
-	req *connect.Request[booksv1.StartResyncRequest],
-) (*connect.Response[booksv1.StartResyncResponse], error) {
+	req *booksv1.StartResyncRequest,
+) (*booksv1.StartResyncResponse, error) {
 	if _, err := h.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	h.app.resyncBooksJob.Arm(req.Msg.Force)
+	h.app.resyncBooksJob.Arm(req.Force)
 	h.app.jobQueue.ForceRun(h.app.resyncBooksJob.ID())
 
-	return connect.NewResponse(&booksv1.StartResyncResponse{}), nil
+	return &booksv1.StartResyncResponse{}, nil
 }
 
 func (h *booksConnectHandler) CancelResync(
 	ctx context.Context,
-	_ *connect.Request[booksv1.CancelResyncRequest],
-) (*connect.Response[booksv1.CancelResyncResponse], error) {
+	_ *booksv1.CancelResyncRequest,
+) (*booksv1.CancelResyncResponse, error) {
 	if _, err := h.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
 	h.app.resyncBooksJob.Cancel()
 
-	return connect.NewResponse(&booksv1.CancelResyncResponse{}), nil
+	return &booksv1.CancelResyncResponse{}, nil
 }
 
 func (h *booksConnectHandler) ListResyncProposals(
 	ctx context.Context,
-	_ *connect.Request[booksv1.ListResyncProposalsRequest],
-) (*connect.Response[booksv1.ListResyncProposalsResponse], error) {
+	_ *booksv1.ListResyncProposalsRequest,
+) (*booksv1.ListResyncProposalsResponse, error) {
 	if _, err := h.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
 	proposals, err := h.app.Services.Books.ListResyncProposals(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	result := make([]*booksv1.ResyncProposal, len(proposals))
@@ -191,9 +192,9 @@ func (h *booksConnectHandler) ListResyncProposals(
 		result[i] = protoResyncProposal(p)
 	}
 
-	return connect.NewResponse(&booksv1.ListResyncProposalsResponse{
+	return &booksv1.ListResyncProposalsResponse{
 		Proposals: result,
-	}), nil
+	}, nil
 }
 
 // requireAdminBookID checks admin access and parses book_id — the common
@@ -209,7 +210,7 @@ func (h *booksConnectHandler) requireAdminBookID(
 	if err != nil {
 		return uuid.UUID{}, connect.NewError(
 			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid book_id: %w", err),
+			fmt.Errorf("invalid book_id: %w", err).Error(),
 		)
 	}
 	return bookID, nil
@@ -217,9 +218,9 @@ func (h *booksConnectHandler) requireAdminBookID(
 
 func (h *booksConnectHandler) ApplyResyncChoice(
 	ctx context.Context,
-	req *connect.Request[booksv1.ApplyResyncChoiceRequest],
-) (*connect.Response[booksv1.ApplyResyncChoiceResponse], error) {
-	bookID, err := h.requireAdminBookID(ctx, req.Msg.BookId)
+	req *booksv1.ApplyResyncChoiceRequest,
+) (*booksv1.ApplyResyncChoiceResponse, error) {
+	bookID, err := h.requireAdminBookID(ctx, req.BookId)
 	if err != nil {
 		return nil, err
 	}
@@ -228,23 +229,23 @@ func (h *booksConnectHandler) ApplyResyncChoice(
 		ctx,
 		h.app.Logger,
 		bookID,
-		req.Msg.Source,
+		req.Source,
 	)
 	if errors.Is(err, services.ErrProposalNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&booksv1.ApplyResyncChoiceResponse{}), nil
+	return &booksv1.ApplyResyncChoiceResponse{}, nil
 }
 
 func (h *booksConnectHandler) GetBookSources(
 	ctx context.Context,
-	req *connect.Request[booksv1.GetBookSourcesRequest],
-) (*connect.Response[booksv1.GetBookSourcesResponse], error) {
-	bookID, err := h.requireAdminBookID(ctx, req.Msg.BookId)
+	req *booksv1.GetBookSourcesRequest,
+) (*booksv1.GetBookSourcesResponse, error) {
+	bookID, err := h.requireAdminBookID(ctx, req.BookId)
 	if err != nil {
 		return nil, err
 	}
@@ -253,26 +254,26 @@ func (h *booksConnectHandler) GetBookSources(
 		ctx,
 		h.app.Logger,
 		bookID,
-		req.Msg.GetOverrideTitle(),
-		req.Msg.GetOverrideAuthor(),
+		req.GetOverrideTitle(),
+		req.GetOverrideAuthor(),
 	)
 	if errors.Is(err, services.ErrProposalNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&booksv1.GetBookSourcesResponse{
+	return &booksv1.GetBookSourcesResponse{
 		Proposal: protoResyncProposal(proposal),
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) ApplyBookSource(
 	ctx context.Context,
-	req *connect.Request[booksv1.ApplyBookSourceRequest],
-) (*connect.Response[booksv1.ApplyBookSourceResponse], error) {
-	bookID, err := h.requireAdminBookID(ctx, req.Msg.BookId)
+	req *booksv1.ApplyBookSourceRequest,
+) (*booksv1.ApplyBookSourceResponse, error) {
+	bookID, err := h.requireAdminBookID(ctx, req.BookId)
 	if err != nil {
 		return nil, err
 	}
@@ -281,67 +282,67 @@ func (h *booksConnectHandler) ApplyBookSource(
 		ctx,
 		h.app.Logger,
 		bookID,
-		req.Msg.Source,
-		int(req.Msg.Index),
-		req.Msg.GetOverrideTitle(),
-		req.Msg.GetOverrideAuthor(),
+		req.Source,
+		int(req.Index),
+		req.GetOverrideTitle(),
+		req.GetOverrideAuthor(),
 	)
 	if errors.Is(err, services.ErrProposalNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&booksv1.ApplyBookSourceResponse{}), nil
+	return &booksv1.ApplyBookSourceResponse{}, nil
 }
 
 func (h *booksConnectHandler) SetBookISBN(
 	ctx context.Context,
-	req *connect.Request[booksv1.SetBookISBNRequest],
-) (*connect.Response[booksv1.SetBookISBNResponse], error) {
-	bookID, err := h.requireAdminBookID(ctx, req.Msg.BookId)
+	req *booksv1.SetBookISBNRequest,
+) (*booksv1.SetBookISBNResponse, error) {
+	bookID, err := h.requireAdminBookID(ctx, req.BookId)
 	if err != nil {
 		return nil, err
 	}
 
-	normalized, err := normalizeAndValidateISBN13(req.Msg.Isbn13)
+	normalized, err := normalizeAndValidateISBN13(req.Isbn13)
 	if err != nil {
 		return nil, err
 	}
 
 	err = h.app.Services.Books.SetBookISBN(ctx, bookID, normalized)
 	if errors.Is(err, database.ErrResourceNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("book not found"))
+		return nil, connect.NewError(connect.CodeNotFound, "book not found")
 	}
 	if errors.Is(err, database.ErrResourceConflict) {
 		return nil, connect.NewError(
 			connect.CodeAlreadyExists,
-			errors.New("ISBN is already assigned to another book"),
+			"ISBN is already assigned to another book",
 		)
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&booksv1.SetBookISBNResponse{}), nil
+	return &booksv1.SetBookISBNResponse{}, nil
 }
 
 // UpdateBook lets an admin hand-correct a catalog book's metadata directly.
 func (h *booksConnectHandler) UpdateBook(
 	ctx context.Context,
-	req *connect.Request[booksv1.UpdateBookRequest],
-) (*connect.Response[booksv1.UpdateBookResponse], error) {
-	bookID, err := h.requireAdminBookID(ctx, req.Msg.BookId)
+	req *booksv1.UpdateBookRequest,
+) (*booksv1.UpdateBookResponse, error) {
+	bookID, err := h.requireAdminBookID(ctx, req.BookId)
 	if err != nil {
 		return nil, err
 	}
 
-	metadata := protoBookToModel(req.Msg.Metadata)
+	metadata := protoBookToModel(req.Metadata)
 	if metadata == nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("metadata is required"),
+			"metadata is required",
 		)
 	}
 
@@ -354,24 +355,24 @@ func (h *booksConnectHandler) UpdateBook(
 	}
 
 	updated, err := h.app.Services.Books.UpdateBook(
-		ctx, bookID, *metadata, req.Msg.Metadata.CoverUrl,
+		ctx, bookID, *metadata, req.Metadata.CoverUrl,
 	)
 	if errors.Is(err, database.ErrResourceNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("book not found"))
+		return nil, connect.NewError(connect.CodeNotFound, "book not found")
 	}
 	if errors.Is(err, database.ErrResourceConflict) {
 		return nil, connect.NewError(
 			connect.CodeAlreadyExists,
-			errors.New("ISBN is already assigned to another book"),
+			"ISBN is already assigned to another book",
 		)
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&booksv1.UpdateBookResponse{
+	return &booksv1.UpdateBookResponse{
 		Book: protoBook(updated, h.app.clients.PublicAPIBaseURL),
-	}), nil
+	}, nil
 }
 
 // Source name constants shared across the source-stats and exact-sources
@@ -383,18 +384,18 @@ const (
 
 func (h *booksConnectHandler) GetSourceStats(
 	ctx context.Context,
-	_ *connect.Request[booksv1.GetSourceStatsRequest],
-) (*connect.Response[booksv1.GetSourceStatsResponse], error) {
+	_ *booksv1.GetSourceStatsRequest,
+) (*booksv1.GetSourceStatsResponse, error) {
 	if _, err := h.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
 	stats, err := h.app.Services.Books.GetSourceStats(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&booksv1.GetSourceStatsResponse{
+	return &booksv1.GetSourceStatsResponse{
 		Sources: []*booksv1.SourceStat{
 			{
 				Source:      sourceUniCat,
@@ -414,7 +415,7 @@ func (h *booksConnectHandler) GetSourceStats(
 		NeverScanned:     int32FromInt(stats.NeverScanned),
 		Overlaps:         sourceOverlaps(stats),
 		MissedOverlaps:   sourceMissedOverlaps(stats),
-	}), nil
+	}, nil
 }
 
 // sourceOverlaps lists the "found by both sources" combo. Zero-count is kept
@@ -439,21 +440,21 @@ func sourceMissedOverlaps(
 
 func (h *booksConnectHandler) ListBooksInExactSources(
 	ctx context.Context,
-	req *connect.Request[booksv1.ListBooksInExactSourcesRequest],
-) (*connect.Response[booksv1.ListBooksInExactSourcesResponse], error) {
+	req *booksv1.ListBooksInExactSourcesRequest,
+) (*booksv1.ListBooksInExactSourcesResponse, error) {
 	if _, err := h.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	books, err := h.app.Services.Books.ListBooksInExactSources(ctx, req.Msg.Sources)
+	books, err := h.app.Services.Books.ListBooksInExactSources(ctx, req.Sources)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("sources must be 1-2 of unicat, hardcover"),
+			"sources must be 1-2 of unicat, hardcover",
 		)
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	out := make([]*booksv1.Book, len(books))
@@ -461,7 +462,5 @@ func (h *booksConnectHandler) ListBooksInExactSources(
 		out[i] = protoBook(&books[i], h.app.clients.PublicAPIBaseURL)
 	}
 
-	return connect.NewResponse(
-		&booksv1.ListBooksInExactSourcesResponse{Books: out},
-	), nil
+	return &booksv1.ListBooksInExactSourcesResponse{Books: out}, nil
 }

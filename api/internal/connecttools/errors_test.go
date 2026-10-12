@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 
 	iapp "tools.xdoubleu.com/internal/app"

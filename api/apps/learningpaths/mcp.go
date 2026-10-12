@@ -3,7 +3,6 @@ package learningpaths
 import (
 	"context"
 
-	"connectrpc.com/connect"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
@@ -34,7 +33,7 @@ type mcpItemArg struct {
 	//nolint:gostruct //LinkedBook is read-only, never authored
 	LinkedBookID *string `json:"linked_book_id,omitempty" jsonschema:"auto-completes item"`
 	//nolint:lll //jsonschema description
-	ExternalBook *mcpExternalBookArg `json:"external_book,omitempty" jsonschema:"book not in library, from books_search_external; added to To Learn and linked"`
+	ExternalBook *mcpExternalBookArg `json:"external_book,omitempty"  jsonschema:"book not in library, from books_search_external; added to To Learn and linked"`
 }
 
 type mcpExternalBookArg struct {
@@ -198,58 +197,64 @@ func toProtoResources(in []mcpResourceArg) []*learningpathsv1.Resource {
 func (h *learningPathsConnectHandler) mcpListPaths(
 	ctx context.Context, args mcpListPathsArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListLearningPaths(ctx, connect.NewRequest(
-		&learningpathsv1.ListLearningPathsRequest{
+	return mcptools.Unwrap(
+		h.ListLearningPaths(ctx, &learningpathsv1.ListLearningPathsRequest{
 			Limit:  args.Limit,
 			Offset: args.Offset,
-		},
-	)))
+		}),
+	)
 }
 
 func (h *learningPathsConnectHandler) mcpGetPath(
 	ctx context.Context, args mcpPathIDArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetLearningPath(ctx, connect.NewRequest(
-		&learningpathsv1.GetLearningPathRequest{Id: args.ID},
-	)))
+	return mcptools.Unwrap(
+		h.GetLearningPath(ctx, &learningpathsv1.GetLearningPathRequest{Id: args.ID}),
+	)
 }
 
 func (h *todoistConnectHandler) mcpGetTodoistStatus(
 	ctx context.Context, args mcpPathIDArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetTodoistSyncState(ctx, connect.NewRequest(
-		&learningpathsv1.GetTodoistSyncStateRequest{LearningPathId: args.ID},
-	)))
+	return mcptools.Unwrap(
+		h.GetTodoistSyncState(
+			ctx,
+			&learningpathsv1.GetTodoistSyncStateRequest{LearningPathId: args.ID},
+		),
+	)
 }
 
 func (h *learningPathsConnectHandler) mcpGetProgress(
 	ctx context.Context, args mcpPathIDArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetLearningPathProgress(ctx, connect.NewRequest(
-		&learningpathsv1.GetLearningPathProgressRequest{Id: args.ID},
-	)))
+	return mcptools.Unwrap(
+		h.GetLearningPathProgress(
+			ctx,
+			&learningpathsv1.GetLearningPathProgressRequest{Id: args.ID},
+		),
+	)
 }
 
 func (h *learningPathsConnectHandler) mcpCreatePath(
 	ctx context.Context, args mcpCreatePathArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.CreateLearningPath(ctx, connect.NewRequest(
-		&learningpathsv1.CreateLearningPathRequest{
+	return mcptools.Unwrap(
+		h.CreateLearningPath(ctx, &learningpathsv1.CreateLearningPathRequest{
 			Title:             args.Title,
 			Goal:              args.Goal,
 			Routine:           args.Routine,
 			Modules:           toProtoModules(args.Modules),
 			Resources:         toProtoResources(args.Resources),
 			ReminderSchedules: args.ReminderSchedules,
-		},
-	)))
+		}),
+	)
 }
 
 func (h *learningPathsConnectHandler) mcpUpdatePath(
 	ctx context.Context, args mcpUpdatePathArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.UpdateLearningPath(ctx, connect.NewRequest(
-		&learningpathsv1.UpdateLearningPathRequest{
+	return mcptools.Unwrap(
+		h.UpdateLearningPath(ctx, &learningpathsv1.UpdateLearningPathRequest{
 			Id:                args.ID,
 			Title:             args.Title,
 			Goal:              args.Goal,
@@ -257,17 +262,17 @@ func (h *learningPathsConnectHandler) mcpUpdatePath(
 			Modules:           toProtoModules(args.Modules),
 			Resources:         toProtoResources(args.Resources),
 			ReminderSchedules: args.ReminderSchedules,
-		},
-	)))
+		}),
+	)
 }
 
 func (h *learningPathsConnectHandler) mcpRecordProgress(
 	ctx context.Context, args mcpRecordProgressArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.RecordItemProgress(ctx, connect.NewRequest(
-		&learningpathsv1.RecordItemProgressRequest{
+	return mcptools.Unwrap(
+		h.RecordItemProgress(ctx, &learningpathsv1.RecordItemProgressRequest{
 			ItemId:    args.ItemID,
 			Completed: args.Completed,
-		},
-	)))
+		}),
+	)
 }

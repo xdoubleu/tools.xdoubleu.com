@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,11 +31,12 @@ func add(
 	status string,
 ) *moviesv1.BacklogEntry {
 	t.Helper()
-	resp, err := c.AddTitle(context.Background(), connect.NewRequest(
+	resp, err := c.AddTitle(
+		context.Background(),
 		&moviesv1.AddTitleRequest{MediaType: mediaType, TmdbId: id, Status: status},
-	))
+	)
 	require.NoError(t, err)
-	return resp.Msg.Entry
+	return resp.Entry
 }
 
 func list(
@@ -44,10 +45,10 @@ func list(
 	req *moviesv1.ListBacklogRequest,
 ) []string {
 	t.Helper()
-	resp, err := c.ListBacklog(context.Background(), connect.NewRequest(req))
+	resp, err := c.ListBacklog(context.Background(), req)
 	require.NoError(t, err)
-	titles := make([]string, len(resp.Msg.Entries))
-	for i, e := range resp.Msg.Entries {
+	titles := make([]string, len(resp.Entries))
+	for i, e := range resp.Entries {
 		titles[i] = e.Title
 	}
 	return titles
@@ -124,7 +125,7 @@ func TestAddTitle_Errors(t *testing.T) {
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			_, err := c.AddTitle(ctx, connect.NewRequest(tc.req))
+			_, err := c.AddTitle(ctx, tc.req)
 			assert.Equal(t, tc.want, code(err))
 		})
 	}
@@ -134,13 +135,14 @@ func TestSearchTitles_MarksBacklogStatus(t *testing.T) {
 	c := newClient(t, userID, fakeTMDB{})
 	add(t, c, "movie", 603, "watched")
 
-	resp, err := c.SearchTitles(context.Background(), connect.NewRequest(
+	resp, err := c.SearchTitles(
+		context.Background(),
 		&moviesv1.SearchTitlesRequest{Query: "a"},
-	))
+	)
 	require.NoError(t, err)
 
 	byTitle := map[string]*moviesv1.SearchResult{}
-	for _, r := range resp.Msg.Results {
+	for _, r := range resp.Results {
 		byTitle[r.Title] = r
 	}
 	require.Contains(t, byTitle, "The Matrix")
@@ -154,25 +156,25 @@ func TestSearchTitles_MarksBacklogStatus(t *testing.T) {
 func TestSearchTitles_BlankQuery(t *testing.T) {
 	c := newClient(t, userID, nil)
 
-	resp, err := c.SearchTitles(context.Background(), connect.NewRequest(
+	resp, err := c.SearchTitles(
+		context.Background(),
 		&moviesv1.SearchTitlesRequest{Query: "  "},
-	))
+	)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.Results)
+	assert.Empty(t, resp.Results)
 }
 
 func TestNotConfigured(t *testing.T) {
 	c := newClient(t, userID, nil)
 	ctx := context.Background()
 
-	_, err := c.SearchTitles(ctx, connect.NewRequest(
-		&moviesv1.SearchTitlesRequest{Query: "matrix"},
-	))
+	_, err := c.SearchTitles(ctx, &moviesv1.SearchTitlesRequest{Query: "matrix"})
 	assert.Equal(t, connect.CodeFailedPrecondition, code(err))
 
-	_, err = c.AddTitle(ctx, connect.NewRequest(
+	_, err = c.AddTitle(
+		ctx,
 		&moviesv1.AddTitleRequest{MediaType: "movie", TmdbId: 603, Status: "want"},
-	))
+	)
 	assert.Equal(t, connect.CodeFailedPrecondition, code(err))
 }
 
@@ -181,31 +183,23 @@ func TestSetStatus(t *testing.T) {
 	ctx := context.Background()
 	e := add(t, c, "movie", 129, "want")
 
-	resp, err := c.SetStatus(ctx, connect.NewRequest(
-		&moviesv1.SetStatusRequest{Id: e.Id, Status: "watching"},
-	))
+	resp, err := c.SetStatus(ctx, &moviesv1.SetStatusRequest{Id: e.Id, Status: "watching"})
 	require.NoError(t, err)
-	assert.Equal(t, "watching", resp.Msg.Entry.Status)
-	assert.Empty(t, resp.Msg.Entry.WatchedAt)
+	assert.Equal(t, "watching", resp.Entry.Status)
+	assert.Empty(t, resp.Entry.WatchedAt)
 
-	resp, err = c.SetStatus(ctx, connect.NewRequest(
-		&moviesv1.SetStatusRequest{Id: e.Id, Status: "watched"},
-	))
+	resp, err = c.SetStatus(ctx, &moviesv1.SetStatusRequest{Id: e.Id, Status: "watched"})
 	require.NoError(t, err)
-	assert.Len(t, resp.Msg.Entry.WatchedAt, 1)
+	assert.Len(t, resp.Entry.WatchedAt, 1)
 
 	// Leaving and re-entering watched keeps the single recorded watch.
 	for _, s := range []string{"dropped", "watched"} {
-		resp, err = c.SetStatus(ctx, connect.NewRequest(
-			&moviesv1.SetStatusRequest{Id: e.Id, Status: s},
-		))
+		resp, err = c.SetStatus(ctx, &moviesv1.SetStatusRequest{Id: e.Id, Status: s})
 		require.NoError(t, err)
 	}
-	assert.Len(t, resp.Msg.Entry.WatchedAt, 1)
+	assert.Len(t, resp.Entry.WatchedAt, 1)
 
-	_, err = c.SetStatus(ctx, connect.NewRequest(
-		&moviesv1.SetStatusRequest{Id: e.Id, Status: "finished"},
-	))
+	_, err = c.SetStatus(ctx, &moviesv1.SetStatusRequest{Id: e.Id, Status: "finished"})
 	assert.Equal(t, connect.CodeInvalidArgument, code(err))
 }
 
@@ -215,19 +209,13 @@ func TestOtherUsersEntriesAreNotFound(t *testing.T) {
 	ctx := context.Background()
 	e := add(t, mine, "movie", 603, "want")
 
-	_, err := theirs.GetTitle(ctx, connect.NewRequest(
-		&moviesv1.GetTitleRequest{Id: e.Id},
-	))
+	_, err := theirs.GetTitle(ctx, &moviesv1.GetTitleRequest{Id: e.Id})
 	assert.Equal(t, connect.CodeNotFound, code(err))
 
-	_, err = theirs.SetStatus(ctx, connect.NewRequest(
-		&moviesv1.SetStatusRequest{Id: e.Id, Status: "watched"},
-	))
+	_, err = theirs.SetStatus(ctx, &moviesv1.SetStatusRequest{Id: e.Id, Status: "watched"})
 	assert.Equal(t, connect.CodeNotFound, code(err))
 
-	_, err = theirs.RemoveTitle(ctx, connect.NewRequest(
-		&moviesv1.RemoveTitleRequest{Id: e.Id},
-	))
+	_, err = theirs.RemoveTitle(ctx, &moviesv1.RemoveTitleRequest{Id: e.Id})
 	assert.Equal(t, connect.CodeNotFound, code(err))
 
 	assert.Empty(t, list(t, theirs, &moviesv1.ListBacklogRequest{}))
@@ -237,29 +225,23 @@ func TestGetTitle_IncludesOverview(t *testing.T) {
 	c := newClient(t, userID, fakeTMDB{})
 	e := add(t, c, "series", 1396, "want")
 
-	resp, err := c.GetTitle(context.Background(), connect.NewRequest(
-		&moviesv1.GetTitleRequest{Id: e.Id},
-	))
+	resp, err := c.GetTitle(context.Background(), &moviesv1.GetTitleRequest{Id: e.Id})
 	require.NoError(t, err)
-	assert.Equal(t, "A teacher turns cook.", resp.Msg.Overview)
-	assert.Equal(t, "Breaking Bad", resp.Msg.Entry.Title)
+	assert.Equal(t, "A teacher turns cook.", resp.Overview)
+	assert.Equal(t, "Breaking Bad", resp.Entry.Title)
 }
 
 func TestInvalidID(t *testing.T) {
 	c := newClient(t, userID, fakeTMDB{})
 	ctx := context.Background()
 
-	_, err := c.GetTitle(ctx, connect.NewRequest(&moviesv1.GetTitleRequest{Id: "x"}))
+	_, err := c.GetTitle(ctx, &moviesv1.GetTitleRequest{Id: "x"})
 	assert.Equal(t, connect.CodeInvalidArgument, code(err))
-	_, err = c.SetStatus(ctx, connect.NewRequest(
-		&moviesv1.SetStatusRequest{Id: "x", Status: "want"},
-	))
+	_, err = c.SetStatus(ctx, &moviesv1.SetStatusRequest{Id: "x", Status: "want"})
 	assert.Equal(t, connect.CodeInvalidArgument, code(err))
-	_, err = c.RemoveTitle(ctx, connect.NewRequest(&moviesv1.RemoveTitleRequest{Id: "x"}))
+	_, err = c.RemoveTitle(ctx, &moviesv1.RemoveTitleRequest{Id: "x"})
 	assert.Equal(t, connect.CodeInvalidArgument, code(err))
-	_, err = c.GetTitle(ctx, connect.NewRequest(
-		&moviesv1.GetTitleRequest{Id: uuid.NewString()},
-	))
+	_, err = c.GetTitle(ctx, &moviesv1.GetTitleRequest{Id: uuid.NewString()})
 	assert.Equal(t, connect.CodeNotFound, code(err))
 }
 
@@ -267,9 +249,7 @@ func TestRemoveTitle(t *testing.T) {
 	c := newClient(t, userID, fakeTMDB{})
 	e := add(t, c, "movie", 603, "want")
 
-	_, err := c.RemoveTitle(context.Background(), connect.NewRequest(
-		&moviesv1.RemoveTitleRequest{Id: e.Id},
-	))
+	_, err := c.RemoveTitle(context.Background(), &moviesv1.RemoveTitleRequest{Id: e.Id})
 	require.NoError(t, err)
 	assert.Empty(t, list(t, c, &moviesv1.ListBacklogRequest{}))
 }
@@ -304,12 +284,13 @@ func TestListBacklog_FiltersAndSorts(t *testing.T) {
 		list(t, c, &moviesv1.ListBacklogRequest{MediaType: "series"}),
 	)
 
-	resp, err := c.ListBacklog(context.Background(), connect.NewRequest(
+	resp, err := c.ListBacklog(
+		context.Background(),
 		&moviesv1.ListBacklogRequest{Limit: 2},
-	))
+	)
 	require.NoError(t, err)
-	assert.Len(t, resp.Msg.Entries, 2)
-	assert.True(t, resp.Msg.HasMore)
+	assert.Len(t, resp.Entries, 2)
+	assert.True(t, resp.HasMore)
 }
 
 func TestListBacklog_RejectsUnknownFilters(t *testing.T) {
@@ -322,7 +303,7 @@ func TestListBacklog_RejectsUnknownFilters(t *testing.T) {
 		{Sort: "stars"},
 		{Offset: -1},
 	} {
-		_, err := c.ListBacklog(ctx, connect.NewRequest(req))
+		_, err := c.ListBacklog(ctx, req)
 		assert.Equal(t, connect.CodeInvalidArgument, code(err))
 	}
 }

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -18,23 +18,28 @@ func callScrubbed(t *testing.T, nextErr error) error {
 
 	next := func(
 		_ context.Context,
-		_ connect.AnyRequest,
-	) (connect.AnyResponse, error) {
-		return nil, nextErr
+		_ connect.Spec,
+		_ connect.ServerStream,
+	) error {
+		return nextErr
 	}
 
-	req := connect.NewRequest(&struct{}{})
-	_, err := scrubInterceptor(logging.NewNopLogger())(next)(
+	return ScrubInternalErrors(logging.NewNopLogger())(next)(
 		context.Background(),
-		req,
+		connect.Spec{
+			StreamType:       connect.StreamTypeUnary,
+			Schema:           nil,
+			Procedure:        "/test.v1.Service/Method",
+			IdempotencyLevel: connect.IdempotencyUnknown,
+		},
+		nil,
 	)
-	return err
 }
 
 func TestScrubInternalErrorsInternal(t *testing.T) {
 	err := callScrubbed(
 		t,
-		connect.NewError(connect.CodeInternal, errors.New("secret detail")),
+		connect.NewError(connect.CodeInternal, "secret detail"),
 	)
 
 	require.Error(t, err)
@@ -54,7 +59,7 @@ func TestScrubInternalErrorsUnknown(t *testing.T) {
 func TestScrubInternalErrorsPassesThroughOtherCodes(t *testing.T) {
 	original := connect.NewError(
 		connect.CodeNotFound,
-		errors.New("recipe not found"),
+		"recipe not found",
 	)
 	err := callScrubbed(t, original)
 
@@ -69,10 +74,8 @@ func TestScrubInternalErrorsPassesThroughSuccess(t *testing.T) {
 }
 
 func TestScrubInternalErrorsContextCanceled(t *testing.T) {
-	wrapped := connect.NewError(
-		connect.CodeInternal,
-		fmt.Errorf("query failed: %w", context.Canceled),
-	)
+	cause := fmt.Errorf("query failed: %w", context.Canceled)
+	wrapped := connect.NewError(connect.CodeInternal, cause.Error()).WithCause(cause)
 	err := callScrubbed(t, wrapped)
 
 	require.Error(t, err)

@@ -5,506 +5,601 @@
 package moviesv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/movies/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// MoviesServiceName is the fully-qualified name of the MoviesService service.
 	MoviesServiceName = "movies.v1.MoviesService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// MoviesServiceSearchTitlesProcedure is the fully-qualified name of the MoviesService's
-	// SearchTitles RPC.
+	// MoviesServiceSearchTitlesProcedure is the procedure name of the MoviesService's SearchTitles RPC.
 	MoviesServiceSearchTitlesProcedure = "/movies.v1.MoviesService/SearchTitles"
-	// MoviesServiceAddTitleProcedure is the fully-qualified name of the MoviesService's AddTitle RPC.
+	// MoviesServiceAddTitleProcedure is the procedure name of the MoviesService's AddTitle RPC.
 	MoviesServiceAddTitleProcedure = "/movies.v1.MoviesService/AddTitle"
-	// MoviesServiceSetStatusProcedure is the fully-qualified name of the MoviesService's SetStatus RPC.
+	// MoviesServiceSetStatusProcedure is the procedure name of the MoviesService's SetStatus RPC.
 	MoviesServiceSetStatusProcedure = "/movies.v1.MoviesService/SetStatus"
-	// MoviesServiceSetRatingProcedure is the fully-qualified name of the MoviesService's SetRating RPC.
+	// MoviesServiceSetRatingProcedure is the procedure name of the MoviesService's SetRating RPC.
 	MoviesServiceSetRatingProcedure = "/movies.v1.MoviesService/SetRating"
-	// MoviesServiceRemoveTitleProcedure is the fully-qualified name of the MoviesService's RemoveTitle
-	// RPC.
+	// MoviesServiceRemoveTitleProcedure is the procedure name of the MoviesService's RemoveTitle RPC.
 	MoviesServiceRemoveTitleProcedure = "/movies.v1.MoviesService/RemoveTitle"
-	// MoviesServiceListBacklogProcedure is the fully-qualified name of the MoviesService's ListBacklog
-	// RPC.
+	// MoviesServiceListBacklogProcedure is the procedure name of the MoviesService's ListBacklog RPC.
 	MoviesServiceListBacklogProcedure = "/movies.v1.MoviesService/ListBacklog"
-	// MoviesServiceGetTitleProcedure is the fully-qualified name of the MoviesService's GetTitle RPC.
+	// MoviesServiceGetTitleProcedure is the procedure name of the MoviesService's GetTitle RPC.
 	MoviesServiceGetTitleProcedure = "/movies.v1.MoviesService/GetTitle"
-	// MoviesServiceGetStatsProcedure is the fully-qualified name of the MoviesService's GetStats RPC.
+	// MoviesServiceGetStatsProcedure is the procedure name of the MoviesService's GetStats RPC.
 	MoviesServiceGetStatsProcedure = "/movies.v1.MoviesService/GetStats"
-	// MoviesServiceGetSettingsProcedure is the fully-qualified name of the MoviesService's GetSettings
-	// RPC.
+	// MoviesServiceGetSettingsProcedure is the procedure name of the MoviesService's GetSettings RPC.
 	MoviesServiceGetSettingsProcedure = "/movies.v1.MoviesService/GetSettings"
-	// MoviesServiceSetSettingsProcedure is the fully-qualified name of the MoviesService's SetSettings
-	// RPC.
+	// MoviesServiceSetSettingsProcedure is the procedure name of the MoviesService's SetSettings RPC.
 	MoviesServiceSetSettingsProcedure = "/movies.v1.MoviesService/SetSettings"
-	// MoviesServiceListAvailableProvidersProcedure is the fully-qualified name of the MoviesService's
+	// MoviesServiceListAvailableProvidersProcedure is the procedure name of the MoviesService's
 	// ListAvailableProviders RPC.
 	MoviesServiceListAvailableProvidersProcedure = "/movies.v1.MoviesService/ListAvailableProviders"
-	// MoviesServiceSetSeasonWatchedProcedure is the fully-qualified name of the MoviesService's
+	// MoviesServiceSetSeasonWatchedProcedure is the procedure name of the MoviesService's
 	// SetSeasonWatched RPC.
 	MoviesServiceSetSeasonWatchedProcedure = "/movies.v1.MoviesService/SetSeasonWatched"
-	// MoviesServiceAddWatchDateProcedure is the fully-qualified name of the MoviesService's
-	// AddWatchDate RPC.
+	// MoviesServiceAddWatchDateProcedure is the procedure name of the MoviesService's AddWatchDate RPC.
 	MoviesServiceAddWatchDateProcedure = "/movies.v1.MoviesService/AddWatchDate"
-	// MoviesServiceEditWatchDateProcedure is the fully-qualified name of the MoviesService's
-	// EditWatchDate RPC.
+	// MoviesServiceEditWatchDateProcedure is the procedure name of the MoviesService's EditWatchDate
+	// RPC.
 	MoviesServiceEditWatchDateProcedure = "/movies.v1.MoviesService/EditWatchDate"
-	// MoviesServiceRemoveWatchDateProcedure is the fully-qualified name of the MoviesService's
+	// MoviesServiceRemoveWatchDateProcedure is the procedure name of the MoviesService's
 	// RemoveWatchDate RPC.
 	MoviesServiceRemoveWatchDateProcedure = "/movies.v1.MoviesService/RemoveWatchDate"
 )
 
+var (
+	moviesServiceSearchTitlesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("SearchTitles"),
+			Procedure:  MoviesServiceSearchTitlesProcedure,
+		}
+	})
+	moviesServiceAddTitleSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("AddTitle"),
+			Procedure:  MoviesServiceAddTitleProcedure,
+		}
+	})
+	moviesServiceSetStatusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("SetStatus"),
+			Procedure:  MoviesServiceSetStatusProcedure,
+		}
+	})
+	moviesServiceSetRatingSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("SetRating"),
+			Procedure:  MoviesServiceSetRatingProcedure,
+		}
+	})
+	moviesServiceRemoveTitleSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("RemoveTitle"),
+			Procedure:  MoviesServiceRemoveTitleProcedure,
+		}
+	})
+	moviesServiceListBacklogSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("ListBacklog"),
+			Procedure:  MoviesServiceListBacklogProcedure,
+		}
+	})
+	moviesServiceGetTitleSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("GetTitle"),
+			Procedure:  MoviesServiceGetTitleProcedure,
+		}
+	})
+	moviesServiceGetStatsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("GetStats"),
+			Procedure:  MoviesServiceGetStatsProcedure,
+		}
+	})
+	moviesServiceGetSettingsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("GetSettings"),
+			Procedure:  MoviesServiceGetSettingsProcedure,
+		}
+	})
+	moviesServiceSetSettingsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("SetSettings"),
+			Procedure:  MoviesServiceSetSettingsProcedure,
+		}
+	})
+	moviesServiceListAvailableProvidersSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("ListAvailableProviders"),
+			Procedure:  MoviesServiceListAvailableProvidersProcedure,
+		}
+	})
+	moviesServiceSetSeasonWatchedSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("SetSeasonWatched"),
+			Procedure:  MoviesServiceSetSeasonWatchedProcedure,
+		}
+	})
+	moviesServiceAddWatchDateSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("AddWatchDate"),
+			Procedure:  MoviesServiceAddWatchDateProcedure,
+		}
+	})
+	moviesServiceEditWatchDateSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("EditWatchDate"),
+			Procedure:  MoviesServiceEditWatchDateProcedure,
+		}
+	})
+	moviesServiceRemoveWatchDateSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods().ByName("RemoveWatchDate"),
+			Procedure:  MoviesServiceRemoveWatchDateProcedure,
+		}
+	})
+)
+
 // MoviesServiceClient is a client for the movies.v1.MoviesService service.
 type MoviesServiceClient interface {
-	SearchTitles(context.Context, *connect.Request[v1.SearchTitlesRequest]) (*connect.Response[v1.SearchTitlesResponse], error)
-	AddTitle(context.Context, *connect.Request[v1.AddTitleRequest]) (*connect.Response[v1.AddTitleResponse], error)
-	SetStatus(context.Context, *connect.Request[v1.SetStatusRequest]) (*connect.Response[v1.SetStatusResponse], error)
-	SetRating(context.Context, *connect.Request[v1.SetRatingRequest]) (*connect.Response[v1.SetRatingResponse], error)
-	RemoveTitle(context.Context, *connect.Request[v1.RemoveTitleRequest]) (*connect.Response[v1.RemoveTitleResponse], error)
-	ListBacklog(context.Context, *connect.Request[v1.ListBacklogRequest]) (*connect.Response[v1.ListBacklogResponse], error)
-	GetTitle(context.Context, *connect.Request[v1.GetTitleRequest]) (*connect.Response[v1.GetTitleResponse], error)
-	GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error)
-	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
-	SetSettings(context.Context, *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error)
-	ListAvailableProviders(context.Context, *connect.Request[v1.ListAvailableProvidersRequest]) (*connect.Response[v1.ListAvailableProvidersResponse], error)
-	SetSeasonWatched(context.Context, *connect.Request[v1.SetSeasonWatchedRequest]) (*connect.Response[v1.SetSeasonWatchedResponse], error)
-	AddWatchDate(context.Context, *connect.Request[v1.AddWatchDateRequest]) (*connect.Response[v1.AddWatchDateResponse], error)
-	EditWatchDate(context.Context, *connect.Request[v1.EditWatchDateRequest]) (*connect.Response[v1.EditWatchDateResponse], error)
-	RemoveWatchDate(context.Context, *connect.Request[v1.RemoveWatchDateRequest]) (*connect.Response[v1.RemoveWatchDateResponse], error)
+	SearchTitles(context.Context, *v1.SearchTitlesRequest) (*v1.SearchTitlesResponse, error)
+	AddTitle(context.Context, *v1.AddTitleRequest) (*v1.AddTitleResponse, error)
+	SetStatus(context.Context, *v1.SetStatusRequest) (*v1.SetStatusResponse, error)
+	SetRating(context.Context, *v1.SetRatingRequest) (*v1.SetRatingResponse, error)
+	RemoveTitle(context.Context, *v1.RemoveTitleRequest) (*v1.RemoveTitleResponse, error)
+	ListBacklog(context.Context, *v1.ListBacklogRequest) (*v1.ListBacklogResponse, error)
+	GetTitle(context.Context, *v1.GetTitleRequest) (*v1.GetTitleResponse, error)
+	GetStats(context.Context, *v1.GetStatsRequest) (*v1.GetStatsResponse, error)
+	GetSettings(context.Context, *v1.GetSettingsRequest) (*v1.GetSettingsResponse, error)
+	SetSettings(context.Context, *v1.SetSettingsRequest) (*v1.SetSettingsResponse, error)
+	ListAvailableProviders(context.Context, *v1.ListAvailableProvidersRequest) (*v1.ListAvailableProvidersResponse, error)
+	SetSeasonWatched(context.Context, *v1.SetSeasonWatchedRequest) (*v1.SetSeasonWatchedResponse, error)
+	AddWatchDate(context.Context, *v1.AddWatchDateRequest) (*v1.AddWatchDateResponse, error)
+	EditWatchDate(context.Context, *v1.EditWatchDateRequest) (*v1.EditWatchDateResponse, error)
+	RemoveWatchDate(context.Context, *v1.RemoveWatchDateRequest) (*v1.RemoveWatchDateResponse, error)
 }
 
-// NewMoviesServiceClient constructs a client for the movies.v1.MoviesService service. By default,
-// it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and
-// sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC()
-// or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewMoviesServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) MoviesServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	moviesServiceMethods := v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods()
-	return &moviesServiceClient{
-		searchTitles: connect.NewClient[v1.SearchTitlesRequest, v1.SearchTitlesResponse](
-			httpClient,
-			baseURL+MoviesServiceSearchTitlesProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("SearchTitles")),
-			connect.WithClientOptions(opts...),
-		),
-		addTitle: connect.NewClient[v1.AddTitleRequest, v1.AddTitleResponse](
-			httpClient,
-			baseURL+MoviesServiceAddTitleProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("AddTitle")),
-			connect.WithClientOptions(opts...),
-		),
-		setStatus: connect.NewClient[v1.SetStatusRequest, v1.SetStatusResponse](
-			httpClient,
-			baseURL+MoviesServiceSetStatusProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("SetStatus")),
-			connect.WithClientOptions(opts...),
-		),
-		setRating: connect.NewClient[v1.SetRatingRequest, v1.SetRatingResponse](
-			httpClient,
-			baseURL+MoviesServiceSetRatingProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("SetRating")),
-			connect.WithClientOptions(opts...),
-		),
-		removeTitle: connect.NewClient[v1.RemoveTitleRequest, v1.RemoveTitleResponse](
-			httpClient,
-			baseURL+MoviesServiceRemoveTitleProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("RemoveTitle")),
-			connect.WithClientOptions(opts...),
-		),
-		listBacklog: connect.NewClient[v1.ListBacklogRequest, v1.ListBacklogResponse](
-			httpClient,
-			baseURL+MoviesServiceListBacklogProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("ListBacklog")),
-			connect.WithClientOptions(opts...),
-		),
-		getTitle: connect.NewClient[v1.GetTitleRequest, v1.GetTitleResponse](
-			httpClient,
-			baseURL+MoviesServiceGetTitleProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("GetTitle")),
-			connect.WithClientOptions(opts...),
-		),
-		getStats: connect.NewClient[v1.GetStatsRequest, v1.GetStatsResponse](
-			httpClient,
-			baseURL+MoviesServiceGetStatsProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("GetStats")),
-			connect.WithClientOptions(opts...),
-		),
-		getSettings: connect.NewClient[v1.GetSettingsRequest, v1.GetSettingsResponse](
-			httpClient,
-			baseURL+MoviesServiceGetSettingsProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("GetSettings")),
-			connect.WithClientOptions(opts...),
-		),
-		setSettings: connect.NewClient[v1.SetSettingsRequest, v1.SetSettingsResponse](
-			httpClient,
-			baseURL+MoviesServiceSetSettingsProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("SetSettings")),
-			connect.WithClientOptions(opts...),
-		),
-		listAvailableProviders: connect.NewClient[v1.ListAvailableProvidersRequest, v1.ListAvailableProvidersResponse](
-			httpClient,
-			baseURL+MoviesServiceListAvailableProvidersProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("ListAvailableProviders")),
-			connect.WithClientOptions(opts...),
-		),
-		setSeasonWatched: connect.NewClient[v1.SetSeasonWatchedRequest, v1.SetSeasonWatchedResponse](
-			httpClient,
-			baseURL+MoviesServiceSetSeasonWatchedProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("SetSeasonWatched")),
-			connect.WithClientOptions(opts...),
-		),
-		addWatchDate: connect.NewClient[v1.AddWatchDateRequest, v1.AddWatchDateResponse](
-			httpClient,
-			baseURL+MoviesServiceAddWatchDateProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("AddWatchDate")),
-			connect.WithClientOptions(opts...),
-		),
-		editWatchDate: connect.NewClient[v1.EditWatchDateRequest, v1.EditWatchDateResponse](
-			httpClient,
-			baseURL+MoviesServiceEditWatchDateProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("EditWatchDate")),
-			connect.WithClientOptions(opts...),
-		),
-		removeWatchDate: connect.NewClient[v1.RemoveWatchDateRequest, v1.RemoveWatchDateResponse](
-			httpClient,
-			baseURL+MoviesServiceRemoveWatchDateProcedure,
-			connect.WithSchema(moviesServiceMethods.ByName("RemoveWatchDate")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// moviesServiceClient implements MoviesServiceClient.
-type moviesServiceClient struct {
-	searchTitles           *connect.Client[v1.SearchTitlesRequest, v1.SearchTitlesResponse]
-	addTitle               *connect.Client[v1.AddTitleRequest, v1.AddTitleResponse]
-	setStatus              *connect.Client[v1.SetStatusRequest, v1.SetStatusResponse]
-	setRating              *connect.Client[v1.SetRatingRequest, v1.SetRatingResponse]
-	removeTitle            *connect.Client[v1.RemoveTitleRequest, v1.RemoveTitleResponse]
-	listBacklog            *connect.Client[v1.ListBacklogRequest, v1.ListBacklogResponse]
-	getTitle               *connect.Client[v1.GetTitleRequest, v1.GetTitleResponse]
-	getStats               *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
-	getSettings            *connect.Client[v1.GetSettingsRequest, v1.GetSettingsResponse]
-	setSettings            *connect.Client[v1.SetSettingsRequest, v1.SetSettingsResponse]
-	listAvailableProviders *connect.Client[v1.ListAvailableProvidersRequest, v1.ListAvailableProvidersResponse]
-	setSeasonWatched       *connect.Client[v1.SetSeasonWatchedRequest, v1.SetSeasonWatchedResponse]
-	addWatchDate           *connect.Client[v1.AddWatchDateRequest, v1.AddWatchDateResponse]
-	editWatchDate          *connect.Client[v1.EditWatchDateRequest, v1.EditWatchDateResponse]
-	removeWatchDate        *connect.Client[v1.RemoveWatchDateRequest, v1.RemoveWatchDateResponse]
-}
-
-// SearchTitles calls movies.v1.MoviesService.SearchTitles.
-func (c *moviesServiceClient) SearchTitles(ctx context.Context, req *connect.Request[v1.SearchTitlesRequest]) (*connect.Response[v1.SearchTitlesResponse], error) {
-	return c.searchTitles.CallUnary(ctx, req)
-}
-
-// AddTitle calls movies.v1.MoviesService.AddTitle.
-func (c *moviesServiceClient) AddTitle(ctx context.Context, req *connect.Request[v1.AddTitleRequest]) (*connect.Response[v1.AddTitleResponse], error) {
-	return c.addTitle.CallUnary(ctx, req)
-}
-
-// SetStatus calls movies.v1.MoviesService.SetStatus.
-func (c *moviesServiceClient) SetStatus(ctx context.Context, req *connect.Request[v1.SetStatusRequest]) (*connect.Response[v1.SetStatusResponse], error) {
-	return c.setStatus.CallUnary(ctx, req)
-}
-
-// SetRating calls movies.v1.MoviesService.SetRating.
-func (c *moviesServiceClient) SetRating(ctx context.Context, req *connect.Request[v1.SetRatingRequest]) (*connect.Response[v1.SetRatingResponse], error) {
-	return c.setRating.CallUnary(ctx, req)
-}
-
-// RemoveTitle calls movies.v1.MoviesService.RemoveTitle.
-func (c *moviesServiceClient) RemoveTitle(ctx context.Context, req *connect.Request[v1.RemoveTitleRequest]) (*connect.Response[v1.RemoveTitleResponse], error) {
-	return c.removeTitle.CallUnary(ctx, req)
-}
-
-// ListBacklog calls movies.v1.MoviesService.ListBacklog.
-func (c *moviesServiceClient) ListBacklog(ctx context.Context, req *connect.Request[v1.ListBacklogRequest]) (*connect.Response[v1.ListBacklogResponse], error) {
-	return c.listBacklog.CallUnary(ctx, req)
-}
-
-// GetTitle calls movies.v1.MoviesService.GetTitle.
-func (c *moviesServiceClient) GetTitle(ctx context.Context, req *connect.Request[v1.GetTitleRequest]) (*connect.Response[v1.GetTitleResponse], error) {
-	return c.getTitle.CallUnary(ctx, req)
-}
-
-// GetStats calls movies.v1.MoviesService.GetStats.
-func (c *moviesServiceClient) GetStats(ctx context.Context, req *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error) {
-	return c.getStats.CallUnary(ctx, req)
-}
-
-// GetSettings calls movies.v1.MoviesService.GetSettings.
-func (c *moviesServiceClient) GetSettings(ctx context.Context, req *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error) {
-	return c.getSettings.CallUnary(ctx, req)
-}
-
-// SetSettings calls movies.v1.MoviesService.SetSettings.
-func (c *moviesServiceClient) SetSettings(ctx context.Context, req *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error) {
-	return c.setSettings.CallUnary(ctx, req)
-}
-
-// ListAvailableProviders calls movies.v1.MoviesService.ListAvailableProviders.
-func (c *moviesServiceClient) ListAvailableProviders(ctx context.Context, req *connect.Request[v1.ListAvailableProvidersRequest]) (*connect.Response[v1.ListAvailableProvidersResponse], error) {
-	return c.listAvailableProviders.CallUnary(ctx, req)
-}
-
-// SetSeasonWatched calls movies.v1.MoviesService.SetSeasonWatched.
-func (c *moviesServiceClient) SetSeasonWatched(ctx context.Context, req *connect.Request[v1.SetSeasonWatchedRequest]) (*connect.Response[v1.SetSeasonWatchedResponse], error) {
-	return c.setSeasonWatched.CallUnary(ctx, req)
-}
-
-// AddWatchDate calls movies.v1.MoviesService.AddWatchDate.
-func (c *moviesServiceClient) AddWatchDate(ctx context.Context, req *connect.Request[v1.AddWatchDateRequest]) (*connect.Response[v1.AddWatchDateResponse], error) {
-	return c.addWatchDate.CallUnary(ctx, req)
-}
-
-// EditWatchDate calls movies.v1.MoviesService.EditWatchDate.
-func (c *moviesServiceClient) EditWatchDate(ctx context.Context, req *connect.Request[v1.EditWatchDateRequest]) (*connect.Response[v1.EditWatchDateResponse], error) {
-	return c.editWatchDate.CallUnary(ctx, req)
-}
-
-// RemoveWatchDate calls movies.v1.MoviesService.RemoveWatchDate.
-func (c *moviesServiceClient) RemoveWatchDate(ctx context.Context, req *connect.Request[v1.RemoveWatchDateRequest]) (*connect.Response[v1.RemoveWatchDateResponse], error) {
-	return c.removeWatchDate.CallUnary(ctx, req)
+// NewMoviesServiceClient constructs a client for the movies.v1.MoviesService service. Multiple
+// service clients may share a single connect.Client.
+func NewMoviesServiceClient(client *connect.Client) MoviesServiceClient {
+	return &moviesServiceClient{client: client}
 }
 
 // MoviesServiceHandler is an implementation of the movies.v1.MoviesService service.
 type MoviesServiceHandler interface {
-	SearchTitles(context.Context, *connect.Request[v1.SearchTitlesRequest]) (*connect.Response[v1.SearchTitlesResponse], error)
-	AddTitle(context.Context, *connect.Request[v1.AddTitleRequest]) (*connect.Response[v1.AddTitleResponse], error)
-	SetStatus(context.Context, *connect.Request[v1.SetStatusRequest]) (*connect.Response[v1.SetStatusResponse], error)
-	SetRating(context.Context, *connect.Request[v1.SetRatingRequest]) (*connect.Response[v1.SetRatingResponse], error)
-	RemoveTitle(context.Context, *connect.Request[v1.RemoveTitleRequest]) (*connect.Response[v1.RemoveTitleResponse], error)
-	ListBacklog(context.Context, *connect.Request[v1.ListBacklogRequest]) (*connect.Response[v1.ListBacklogResponse], error)
-	GetTitle(context.Context, *connect.Request[v1.GetTitleRequest]) (*connect.Response[v1.GetTitleResponse], error)
-	GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error)
-	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
-	SetSettings(context.Context, *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error)
-	ListAvailableProviders(context.Context, *connect.Request[v1.ListAvailableProvidersRequest]) (*connect.Response[v1.ListAvailableProvidersResponse], error)
-	SetSeasonWatched(context.Context, *connect.Request[v1.SetSeasonWatchedRequest]) (*connect.Response[v1.SetSeasonWatchedResponse], error)
-	AddWatchDate(context.Context, *connect.Request[v1.AddWatchDateRequest]) (*connect.Response[v1.AddWatchDateResponse], error)
-	EditWatchDate(context.Context, *connect.Request[v1.EditWatchDateRequest]) (*connect.Response[v1.EditWatchDateResponse], error)
-	RemoveWatchDate(context.Context, *connect.Request[v1.RemoveWatchDateRequest]) (*connect.Response[v1.RemoveWatchDateResponse], error)
+	SearchTitles(context.Context, *v1.SearchTitlesRequest) (*v1.SearchTitlesResponse, error)
+	AddTitle(context.Context, *v1.AddTitleRequest) (*v1.AddTitleResponse, error)
+	SetStatus(context.Context, *v1.SetStatusRequest) (*v1.SetStatusResponse, error)
+	SetRating(context.Context, *v1.SetRatingRequest) (*v1.SetRatingResponse, error)
+	RemoveTitle(context.Context, *v1.RemoveTitleRequest) (*v1.RemoveTitleResponse, error)
+	ListBacklog(context.Context, *v1.ListBacklogRequest) (*v1.ListBacklogResponse, error)
+	GetTitle(context.Context, *v1.GetTitleRequest) (*v1.GetTitleResponse, error)
+	GetStats(context.Context, *v1.GetStatsRequest) (*v1.GetStatsResponse, error)
+	GetSettings(context.Context, *v1.GetSettingsRequest) (*v1.GetSettingsResponse, error)
+	SetSettings(context.Context, *v1.SetSettingsRequest) (*v1.SetSettingsResponse, error)
+	ListAvailableProviders(context.Context, *v1.ListAvailableProvidersRequest) (*v1.ListAvailableProvidersResponse, error)
+	SetSeasonWatched(context.Context, *v1.SetSeasonWatchedRequest) (*v1.SetSeasonWatchedResponse, error)
+	AddWatchDate(context.Context, *v1.AddWatchDateRequest) (*v1.AddWatchDateResponse, error)
+	EditWatchDate(context.Context, *v1.EditWatchDateRequest) (*v1.EditWatchDateResponse, error)
+	RemoveWatchDate(context.Context, *v1.RemoveWatchDateRequest) (*v1.RemoveWatchDateResponse, error)
 }
 
-// NewMoviesServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewMoviesServiceHandler(svc MoviesServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	moviesServiceMethods := v1.File_movies_v1_movies_proto.Services().ByName("MoviesService").Methods()
-	moviesServiceSearchTitlesHandler := connect.NewUnaryHandler(
-		MoviesServiceSearchTitlesProcedure,
-		svc.SearchTitles,
-		connect.WithSchema(moviesServiceMethods.ByName("SearchTitles")),
-		connect.WithHandlerOptions(opts...),
+// RegisterMoviesServiceHandler registers svc as the movies.v1.MoviesService implementation on
+// server.
+func RegisterMoviesServiceHandler(server *connect.Server, svc MoviesServiceHandler) {
+	adapter := moviesServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: moviesServiceSearchTitlesSpec(), Handler: adapter.searchTitles},
+		connect.Method{Spec: moviesServiceAddTitleSpec(), Handler: adapter.addTitle},
+		connect.Method{Spec: moviesServiceSetStatusSpec(), Handler: adapter.setStatus},
+		connect.Method{Spec: moviesServiceSetRatingSpec(), Handler: adapter.setRating},
+		connect.Method{Spec: moviesServiceRemoveTitleSpec(), Handler: adapter.removeTitle},
+		connect.Method{Spec: moviesServiceListBacklogSpec(), Handler: adapter.listBacklog},
+		connect.Method{Spec: moviesServiceGetTitleSpec(), Handler: adapter.getTitle},
+		connect.Method{Spec: moviesServiceGetStatsSpec(), Handler: adapter.getStats},
+		connect.Method{Spec: moviesServiceGetSettingsSpec(), Handler: adapter.getSettings},
+		connect.Method{Spec: moviesServiceSetSettingsSpec(), Handler: adapter.setSettings},
+		connect.Method{Spec: moviesServiceListAvailableProvidersSpec(), Handler: adapter.listAvailableProviders},
+		connect.Method{Spec: moviesServiceSetSeasonWatchedSpec(), Handler: adapter.setSeasonWatched},
+		connect.Method{Spec: moviesServiceAddWatchDateSpec(), Handler: adapter.addWatchDate},
+		connect.Method{Spec: moviesServiceEditWatchDateSpec(), Handler: adapter.editWatchDate},
+		connect.Method{Spec: moviesServiceRemoveWatchDateSpec(), Handler: adapter.removeWatchDate},
 	)
-	moviesServiceAddTitleHandler := connect.NewUnaryHandler(
-		MoviesServiceAddTitleProcedure,
-		svc.AddTitle,
-		connect.WithSchema(moviesServiceMethods.ByName("AddTitle")),
-		connect.WithHandlerOptions(opts...),
-	)
-	moviesServiceSetStatusHandler := connect.NewUnaryHandler(
-		MoviesServiceSetStatusProcedure,
-		svc.SetStatus,
-		connect.WithSchema(moviesServiceMethods.ByName("SetStatus")),
-		connect.WithHandlerOptions(opts...),
-	)
-	moviesServiceSetRatingHandler := connect.NewUnaryHandler(
-		MoviesServiceSetRatingProcedure,
-		svc.SetRating,
-		connect.WithSchema(moviesServiceMethods.ByName("SetRating")),
-		connect.WithHandlerOptions(opts...),
-	)
-	moviesServiceRemoveTitleHandler := connect.NewUnaryHandler(
-		MoviesServiceRemoveTitleProcedure,
-		svc.RemoveTitle,
-		connect.WithSchema(moviesServiceMethods.ByName("RemoveTitle")),
-		connect.WithHandlerOptions(opts...),
-	)
-	moviesServiceListBacklogHandler := connect.NewUnaryHandler(
-		MoviesServiceListBacklogProcedure,
-		svc.ListBacklog,
-		connect.WithSchema(moviesServiceMethods.ByName("ListBacklog")),
-		connect.WithHandlerOptions(opts...),
-	)
-	moviesServiceGetTitleHandler := connect.NewUnaryHandler(
-		MoviesServiceGetTitleProcedure,
-		svc.GetTitle,
-		connect.WithSchema(moviesServiceMethods.ByName("GetTitle")),
-		connect.WithHandlerOptions(opts...),
-	)
-	moviesServiceGetStatsHandler := connect.NewUnaryHandler(
-		MoviesServiceGetStatsProcedure,
-		svc.GetStats,
-		connect.WithSchema(moviesServiceMethods.ByName("GetStats")),
-		connect.WithHandlerOptions(opts...),
-	)
-	moviesServiceGetSettingsHandler := connect.NewUnaryHandler(
-		MoviesServiceGetSettingsProcedure,
-		svc.GetSettings,
-		connect.WithSchema(moviesServiceMethods.ByName("GetSettings")),
-		connect.WithHandlerOptions(opts...),
-	)
-	moviesServiceSetSettingsHandler := connect.NewUnaryHandler(
-		MoviesServiceSetSettingsProcedure,
-		svc.SetSettings,
-		connect.WithSchema(moviesServiceMethods.ByName("SetSettings")),
-		connect.WithHandlerOptions(opts...),
-	)
-	moviesServiceListAvailableProvidersHandler := connect.NewUnaryHandler(
-		MoviesServiceListAvailableProvidersProcedure,
-		svc.ListAvailableProviders,
-		connect.WithSchema(moviesServiceMethods.ByName("ListAvailableProviders")),
-		connect.WithHandlerOptions(opts...),
-	)
-	moviesServiceSetSeasonWatchedHandler := connect.NewUnaryHandler(
-		MoviesServiceSetSeasonWatchedProcedure,
-		svc.SetSeasonWatched,
-		connect.WithSchema(moviesServiceMethods.ByName("SetSeasonWatched")),
-		connect.WithHandlerOptions(opts...),
-	)
-	moviesServiceAddWatchDateHandler := connect.NewUnaryHandler(
-		MoviesServiceAddWatchDateProcedure,
-		svc.AddWatchDate,
-		connect.WithSchema(moviesServiceMethods.ByName("AddWatchDate")),
-		connect.WithHandlerOptions(opts...),
-	)
-	moviesServiceEditWatchDateHandler := connect.NewUnaryHandler(
-		MoviesServiceEditWatchDateProcedure,
-		svc.EditWatchDate,
-		connect.WithSchema(moviesServiceMethods.ByName("EditWatchDate")),
-		connect.WithHandlerOptions(opts...),
-	)
-	moviesServiceRemoveWatchDateHandler := connect.NewUnaryHandler(
-		MoviesServiceRemoveWatchDateProcedure,
-		svc.RemoveWatchDate,
-		connect.WithSchema(moviesServiceMethods.ByName("RemoveWatchDate")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/movies.v1.MoviesService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case MoviesServiceSearchTitlesProcedure:
-			moviesServiceSearchTitlesHandler.ServeHTTP(w, r)
-		case MoviesServiceAddTitleProcedure:
-			moviesServiceAddTitleHandler.ServeHTTP(w, r)
-		case MoviesServiceSetStatusProcedure:
-			moviesServiceSetStatusHandler.ServeHTTP(w, r)
-		case MoviesServiceSetRatingProcedure:
-			moviesServiceSetRatingHandler.ServeHTTP(w, r)
-		case MoviesServiceRemoveTitleProcedure:
-			moviesServiceRemoveTitleHandler.ServeHTTP(w, r)
-		case MoviesServiceListBacklogProcedure:
-			moviesServiceListBacklogHandler.ServeHTTP(w, r)
-		case MoviesServiceGetTitleProcedure:
-			moviesServiceGetTitleHandler.ServeHTTP(w, r)
-		case MoviesServiceGetStatsProcedure:
-			moviesServiceGetStatsHandler.ServeHTTP(w, r)
-		case MoviesServiceGetSettingsProcedure:
-			moviesServiceGetSettingsHandler.ServeHTTP(w, r)
-		case MoviesServiceSetSettingsProcedure:
-			moviesServiceSetSettingsHandler.ServeHTTP(w, r)
-		case MoviesServiceListAvailableProvidersProcedure:
-			moviesServiceListAvailableProvidersHandler.ServeHTTP(w, r)
-		case MoviesServiceSetSeasonWatchedProcedure:
-			moviesServiceSetSeasonWatchedHandler.ServeHTTP(w, r)
-		case MoviesServiceAddWatchDateProcedure:
-			moviesServiceAddWatchDateHandler.ServeHTTP(w, r)
-		case MoviesServiceEditWatchDateProcedure:
-			moviesServiceEditWatchDateHandler.ServeHTTP(w, r)
-		case MoviesServiceRemoveWatchDateProcedure:
-			moviesServiceRemoveWatchDateHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedMoviesServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedMoviesServiceHandler struct{}
 
-func (UnimplementedMoviesServiceHandler) SearchTitles(context.Context, *connect.Request[v1.SearchTitlesRequest]) (*connect.Response[v1.SearchTitlesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.SearchTitles is not implemented"))
+func (UnimplementedMoviesServiceHandler) SearchTitles(context.Context, *v1.SearchTitlesRequest) (*v1.SearchTitlesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.SearchTitles is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) AddTitle(context.Context, *connect.Request[v1.AddTitleRequest]) (*connect.Response[v1.AddTitleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.AddTitle is not implemented"))
+func (UnimplementedMoviesServiceHandler) AddTitle(context.Context, *v1.AddTitleRequest) (*v1.AddTitleResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.AddTitle is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) SetStatus(context.Context, *connect.Request[v1.SetStatusRequest]) (*connect.Response[v1.SetStatusResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.SetStatus is not implemented"))
+func (UnimplementedMoviesServiceHandler) SetStatus(context.Context, *v1.SetStatusRequest) (*v1.SetStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.SetStatus is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) SetRating(context.Context, *connect.Request[v1.SetRatingRequest]) (*connect.Response[v1.SetRatingResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.SetRating is not implemented"))
+func (UnimplementedMoviesServiceHandler) SetRating(context.Context, *v1.SetRatingRequest) (*v1.SetRatingResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.SetRating is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) RemoveTitle(context.Context, *connect.Request[v1.RemoveTitleRequest]) (*connect.Response[v1.RemoveTitleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.RemoveTitle is not implemented"))
+func (UnimplementedMoviesServiceHandler) RemoveTitle(context.Context, *v1.RemoveTitleRequest) (*v1.RemoveTitleResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.RemoveTitle is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) ListBacklog(context.Context, *connect.Request[v1.ListBacklogRequest]) (*connect.Response[v1.ListBacklogResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.ListBacklog is not implemented"))
+func (UnimplementedMoviesServiceHandler) ListBacklog(context.Context, *v1.ListBacklogRequest) (*v1.ListBacklogResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.ListBacklog is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) GetTitle(context.Context, *connect.Request[v1.GetTitleRequest]) (*connect.Response[v1.GetTitleResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.GetTitle is not implemented"))
+func (UnimplementedMoviesServiceHandler) GetTitle(context.Context, *v1.GetTitleRequest) (*v1.GetTitleResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.GetTitle is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.GetStats is not implemented"))
+func (UnimplementedMoviesServiceHandler) GetStats(context.Context, *v1.GetStatsRequest) (*v1.GetStatsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.GetStats is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.GetSettings is not implemented"))
+func (UnimplementedMoviesServiceHandler) GetSettings(context.Context, *v1.GetSettingsRequest) (*v1.GetSettingsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.GetSettings is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) SetSettings(context.Context, *connect.Request[v1.SetSettingsRequest]) (*connect.Response[v1.SetSettingsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.SetSettings is not implemented"))
+func (UnimplementedMoviesServiceHandler) SetSettings(context.Context, *v1.SetSettingsRequest) (*v1.SetSettingsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.SetSettings is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) ListAvailableProviders(context.Context, *connect.Request[v1.ListAvailableProvidersRequest]) (*connect.Response[v1.ListAvailableProvidersResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.ListAvailableProviders is not implemented"))
+func (UnimplementedMoviesServiceHandler) ListAvailableProviders(context.Context, *v1.ListAvailableProvidersRequest) (*v1.ListAvailableProvidersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.ListAvailableProviders is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) SetSeasonWatched(context.Context, *connect.Request[v1.SetSeasonWatchedRequest]) (*connect.Response[v1.SetSeasonWatchedResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.SetSeasonWatched is not implemented"))
+func (UnimplementedMoviesServiceHandler) SetSeasonWatched(context.Context, *v1.SetSeasonWatchedRequest) (*v1.SetSeasonWatchedResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.SetSeasonWatched is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) AddWatchDate(context.Context, *connect.Request[v1.AddWatchDateRequest]) (*connect.Response[v1.AddWatchDateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.AddWatchDate is not implemented"))
+func (UnimplementedMoviesServiceHandler) AddWatchDate(context.Context, *v1.AddWatchDateRequest) (*v1.AddWatchDateResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.AddWatchDate is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) EditWatchDate(context.Context, *connect.Request[v1.EditWatchDateRequest]) (*connect.Response[v1.EditWatchDateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.EditWatchDate is not implemented"))
+func (UnimplementedMoviesServiceHandler) EditWatchDate(context.Context, *v1.EditWatchDateRequest) (*v1.EditWatchDateResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.EditWatchDate is not implemented")
 }
 
-func (UnimplementedMoviesServiceHandler) RemoveWatchDate(context.Context, *connect.Request[v1.RemoveWatchDateRequest]) (*connect.Response[v1.RemoveWatchDateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("movies.v1.MoviesService.RemoveWatchDate is not implemented"))
+func (UnimplementedMoviesServiceHandler) RemoveWatchDate(context.Context, *v1.RemoveWatchDateRequest) (*v1.RemoveWatchDateResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "movies.v1.MoviesService.RemoveWatchDate is not implemented")
+}
+
+type moviesServiceClient struct {
+	client *connect.Client
+}
+
+func (c *moviesServiceClient) SearchTitles(ctx context.Context, req *v1.SearchTitlesRequest) (*v1.SearchTitlesResponse, error) {
+	var res v1.SearchTitlesResponse
+	if err := c.client.CallUnary(ctx, moviesServiceSearchTitlesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) AddTitle(ctx context.Context, req *v1.AddTitleRequest) (*v1.AddTitleResponse, error) {
+	var res v1.AddTitleResponse
+	if err := c.client.CallUnary(ctx, moviesServiceAddTitleSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) SetStatus(ctx context.Context, req *v1.SetStatusRequest) (*v1.SetStatusResponse, error) {
+	var res v1.SetStatusResponse
+	if err := c.client.CallUnary(ctx, moviesServiceSetStatusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) SetRating(ctx context.Context, req *v1.SetRatingRequest) (*v1.SetRatingResponse, error) {
+	var res v1.SetRatingResponse
+	if err := c.client.CallUnary(ctx, moviesServiceSetRatingSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) RemoveTitle(ctx context.Context, req *v1.RemoveTitleRequest) (*v1.RemoveTitleResponse, error) {
+	var res v1.RemoveTitleResponse
+	if err := c.client.CallUnary(ctx, moviesServiceRemoveTitleSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) ListBacklog(ctx context.Context, req *v1.ListBacklogRequest) (*v1.ListBacklogResponse, error) {
+	var res v1.ListBacklogResponse
+	if err := c.client.CallUnary(ctx, moviesServiceListBacklogSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) GetTitle(ctx context.Context, req *v1.GetTitleRequest) (*v1.GetTitleResponse, error) {
+	var res v1.GetTitleResponse
+	if err := c.client.CallUnary(ctx, moviesServiceGetTitleSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) GetStats(ctx context.Context, req *v1.GetStatsRequest) (*v1.GetStatsResponse, error) {
+	var res v1.GetStatsResponse
+	if err := c.client.CallUnary(ctx, moviesServiceGetStatsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) GetSettings(ctx context.Context, req *v1.GetSettingsRequest) (*v1.GetSettingsResponse, error) {
+	var res v1.GetSettingsResponse
+	if err := c.client.CallUnary(ctx, moviesServiceGetSettingsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) SetSettings(ctx context.Context, req *v1.SetSettingsRequest) (*v1.SetSettingsResponse, error) {
+	var res v1.SetSettingsResponse
+	if err := c.client.CallUnary(ctx, moviesServiceSetSettingsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) ListAvailableProviders(ctx context.Context, req *v1.ListAvailableProvidersRequest) (*v1.ListAvailableProvidersResponse, error) {
+	var res v1.ListAvailableProvidersResponse
+	if err := c.client.CallUnary(ctx, moviesServiceListAvailableProvidersSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) SetSeasonWatched(ctx context.Context, req *v1.SetSeasonWatchedRequest) (*v1.SetSeasonWatchedResponse, error) {
+	var res v1.SetSeasonWatchedResponse
+	if err := c.client.CallUnary(ctx, moviesServiceSetSeasonWatchedSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) AddWatchDate(ctx context.Context, req *v1.AddWatchDateRequest) (*v1.AddWatchDateResponse, error) {
+	var res v1.AddWatchDateResponse
+	if err := c.client.CallUnary(ctx, moviesServiceAddWatchDateSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) EditWatchDate(ctx context.Context, req *v1.EditWatchDateRequest) (*v1.EditWatchDateResponse, error) {
+	var res v1.EditWatchDateResponse
+	if err := c.client.CallUnary(ctx, moviesServiceEditWatchDateSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *moviesServiceClient) RemoveWatchDate(ctx context.Context, req *v1.RemoveWatchDateRequest) (*v1.RemoveWatchDateResponse, error) {
+	var res v1.RemoveWatchDateResponse
+	if err := c.client.CallUnary(ctx, moviesServiceRemoveWatchDateSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type moviesServiceHandler struct{ svc MoviesServiceHandler }
+
+func (h moviesServiceHandler) searchTitles(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SearchTitlesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SearchTitles(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) addTitle(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AddTitleRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AddTitle(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) setStatus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetStatusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetStatus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) setRating(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetRatingRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetRating(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) removeTitle(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RemoveTitleRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveTitle(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) listBacklog(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListBacklogRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListBacklog(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) getTitle(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetTitleRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTitle(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) getStats(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetStatsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetStats(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) getSettings(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSettingsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSettings(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) setSettings(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetSettingsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetSettings(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) listAvailableProviders(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListAvailableProvidersRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListAvailableProviders(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) setSeasonWatched(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetSeasonWatchedRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetSeasonWatched(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) addWatchDate(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AddWatchDateRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AddWatchDate(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) editWatchDate(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.EditWatchDateRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EditWatchDate(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h moviesServiceHandler) removeWatchDate(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RemoveWatchDateRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveWatchDate(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

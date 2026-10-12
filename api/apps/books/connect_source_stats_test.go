@@ -4,12 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func getSourceStats(
@@ -17,11 +18,13 @@ func getSourceStats(
 	client booksTestClient,
 ) *booksv1.GetSourceStatsResponse {
 	t.Helper()
-	req := connect.NewRequest(&booksv1.GetSourceStatsRequest{})
-	req.Header().Set("Cookie", accessToken.String())
-	resp, err := client.GetSourceStats(context.Background(), req)
+	req := &booksv1.GetSourceStatsRequest{}
+	resp, err := client.GetSourceStats(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
-	return resp.Msg
+	return resp
 }
 
 func statFor(
@@ -91,21 +94,23 @@ func listBooksInExactSources(
 	sources ...string,
 ) *booksv1.ListBooksInExactSourcesResponse {
 	t.Helper()
-	req := connect.NewRequest(
-		&booksv1.ListBooksInExactSourcesRequest{Sources: sources},
+	req := &booksv1.ListBooksInExactSourcesRequest{Sources: sources}
+	resp, err := client.ListBooksInExactSources(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
 	)
-	req.Header().Set("Cookie", accessToken.String())
-	resp, err := client.ListBooksInExactSources(context.Background(), req)
 	require.NoError(t, err)
-	return resp.Msg
+	return resp
 }
 
 func TestGetSourceStats_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.GetSourceStatsRequest{})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.GetSourceStatsRequest{}
 
-	_, err := client.GetSourceStats(context.Background(), req)
+	_, err := client.GetSourceStats(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -215,12 +220,12 @@ func TestGetSourceStats_MissedOverlaps_Structural(t *testing.T) {
 
 func TestListBooksInExactSources_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(
-		&booksv1.ListBooksInExactSourcesRequest{Sources: []string{"hardcover"}},
-	)
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.ListBooksInExactSourcesRequest{Sources: []string{"hardcover"}}
 
-	_, err := client.ListBooksInExactSources(context.Background(), req)
+	_, err := client.ListBooksInExactSources(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -229,12 +234,12 @@ func TestListBooksInExactSources_NonAdmin_PermissionDenied(t *testing.T) {
 
 func TestListBooksInExactSources_UnknownSource_InvalidArgument(t *testing.T) {
 	client, _ := newAdminBooksTestClientWithMockSources(t)
-	req := connect.NewRequest(
-		&booksv1.ListBooksInExactSourcesRequest{Sources: []string{"bogus"}},
-	)
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.ListBooksInExactSourcesRequest{Sources: []string{"bogus"}}
 
-	_, err := client.ListBooksInExactSources(context.Background(), req)
+	_, err := client.ListBooksInExactSources(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -243,10 +248,12 @@ func TestListBooksInExactSources_UnknownSource_InvalidArgument(t *testing.T) {
 
 func TestListBooksInExactSources_EmptySources_InvalidArgument(t *testing.T) {
 	client, _ := newAdminBooksTestClientWithMockSources(t)
-	req := connect.NewRequest(&booksv1.ListBooksInExactSourcesRequest{Sources: nil})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.ListBooksInExactSourcesRequest{Sources: nil}
 
-	_, err := client.ListBooksInExactSources(context.Background(), req)
+	_, err := client.ListBooksInExactSources(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)

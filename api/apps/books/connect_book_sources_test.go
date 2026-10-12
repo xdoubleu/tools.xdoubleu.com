@@ -5,7 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,7 +45,7 @@ func newAdminBooksTestClientWithMockSources(
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(adminApp))
 	t.Cleanup(ts.Close)
-	return newBooksClientFor(ts.URL, connect.WithHTTPGet()), adminApp
+	return newBooksClientFor(ts.URL, connecthttp.WithHTTPGet()), adminApp
 }
 
 // newAdminBooksTestClientWithTwoSources wires both mocks so an ISBN'd book is
@@ -69,19 +70,21 @@ func newAdminBooksTestClientWithTwoSources(
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(adminApp))
 	t.Cleanup(ts.Close)
-	return newBooksClientFor(ts.URL, connect.WithHTTPGet()), adminApp
+	return newBooksClientFor(ts.URL, connecthttp.WithHTTPGet()), adminApp
 }
 
 // GetBookSources / ApplyBookSource: requireAdmin + invalid input.
 
 func TestGetBookSources_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.GetBookSourcesRequest{
+	req := &booksv1.GetBookSourcesRequest{
 		BookId: "00000000-0000-0000-0000-000000000001",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.GetBookSources(context.Background(), req)
+	_, err := client.GetBookSources(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -90,10 +93,12 @@ func TestGetBookSources_NonAdmin_PermissionDenied(t *testing.T) {
 
 func TestGetBookSources_Admin_InvalidUUID_InvalidArgument(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.GetBookSourcesRequest{BookId: "not-a-uuid"})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.GetBookSourcesRequest{BookId: "not-a-uuid"}
 
-	_, err := client.GetBookSources(context.Background(), req)
+	_, err := client.GetBookSources(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -102,12 +107,12 @@ func TestGetBookSources_Admin_InvalidUUID_InvalidArgument(t *testing.T) {
 
 func TestGetBookSources_Admin_UnknownBook_NotFound(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(
-		&booksv1.GetBookSourcesRequest{BookId: uuid.New().String()},
-	)
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.GetBookSourcesRequest{BookId: uuid.New().String()}
 
-	_, err := client.GetBookSources(context.Background(), req)
+	_, err := client.GetBookSources(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -116,13 +121,15 @@ func TestGetBookSources_Admin_UnknownBook_NotFound(t *testing.T) {
 
 func TestApplyBookSource_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
+	req := &booksv1.ApplyBookSourceRequest{
 		BookId: "00000000-0000-0000-0000-000000000001",
 		Source: "",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.ApplyBookSource(context.Background(), req)
+	_, err := client.ApplyBookSource(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -131,13 +138,15 @@ func TestApplyBookSource_NonAdmin_PermissionDenied(t *testing.T) {
 
 func TestApplyBookSource_Admin_InvalidUUID_InvalidArgument(t *testing.T) {
 	client := newAdminBooksTestClient(t)
-	req := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
+	req := &booksv1.ApplyBookSourceRequest{
 		BookId: "not-a-uuid",
 		Source: "",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.ApplyBookSource(context.Background(), req)
+	_, err := client.ApplyBookSource(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -154,19 +163,21 @@ func TestGetBookSources_Admin_Success(t *testing.T) {
 
 	client, _ := newAdminBooksTestClientWithMockSources(t)
 	title, author := "The Odyssey", "Homer"
-	req := connect.NewRequest(&booksv1.GetBookSourcesRequest{
+	req := &booksv1.GetBookSourcesRequest{
 		BookId:        ub.BookID.String(),
 		OverrideTitle: &title, OverrideAuthor: &author,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	resp, err := client.GetBookSources(context.Background(), req)
+	resp, err := client.GetBookSources(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.Proposal)
-	require.Len(t, resp.Msg.Proposal.Sources, 1)
-	assert.Equal(t, "hardcover", resp.Msg.Proposal.Sources[0].Source)
-	assert.Equal(t, "The Odyssey", resp.Msg.Proposal.Sources[0].Title)
-	assert.Contains(t, resp.Msg.Proposal.Sources[0].Differs, "title")
+	require.NotNil(t, resp.Proposal)
+	require.Len(t, resp.Proposal.Sources, 1)
+	assert.Equal(t, "hardcover", resp.Proposal.Sources[0].Source)
+	assert.Equal(t, "The Odyssey", resp.Proposal.Sources[0].Title)
+	assert.Contains(t, resp.Proposal.Sources[0].Differs, "title")
 }
 
 // TestApplyBookSource_Admin_Success checks the live-fetched source is written
@@ -177,14 +188,16 @@ func TestApplyBookSource_Admin_Success(t *testing.T) {
 
 	client, _ := newAdminBooksTestClientWithMockSources(t)
 	title, author := "The Odyssey", "Homer"
-	req := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
+	req := &booksv1.ApplyBookSourceRequest{
 		BookId:        ub.BookID.String(),
 		Source:        "hardcover",
 		OverrideTitle: &title, OverrideAuthor: &author,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.ApplyBookSource(context.Background(), req)
+	_, err := client.ApplyBookSource(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
 
 	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
@@ -203,13 +216,15 @@ func TestApplyBookSource_Admin_Override(t *testing.T) {
 
 	client, _ := newAdminBooksTestClientWithMockSources(t)
 
-	noOverride := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
+	noOverride := &booksv1.ApplyBookSourceRequest{
 
 		BookId: ub.BookID.String(),
 		Source: "hardcover",
-	})
-	noOverride.Header().Set("Cookie", accessToken.String())
-	_, err := client.ApplyBookSource(context.Background(), noOverride)
+	}
+	_, err := client.ApplyBookSource(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		noOverride,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)
@@ -217,14 +232,16 @@ func TestApplyBookSource_Admin_Override(t *testing.T) {
 
 	title := "The Odyssey"
 	author := "Homer"
-	withOverride := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
+	withOverride := &booksv1.ApplyBookSourceRequest{
 		BookId:         ub.BookID.String(),
 		Source:         "hardcover",
 		OverrideTitle:  &title,
 		OverrideAuthor: &author,
-	})
-	withOverride.Header().Set("Cookie", accessToken.String())
-	_, err = client.ApplyBookSource(context.Background(), withOverride)
+	}
+	_, err = client.ApplyBookSource(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		withOverride,
+	)
 	require.NoError(t, err)
 
 	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
@@ -249,16 +266,21 @@ func TestApplyBookSource_Admin_SecondSyncStillSucceeds(t *testing.T) {
 	require.NoError(t, err)
 
 	client, _ := newAdminBooksTestClientWithMockSources(t)
-	req := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
+	req := &booksv1.ApplyBookSourceRequest{
 		BookId: ub.BookID.String(),
 		Source: "hardcover",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err = client.ApplyBookSource(context.Background(), req)
+	_, err = client.ApplyBookSource(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
 
-	_, err = client.ApplyBookSource(context.Background(), req)
+	_, err = client.ApplyBookSource(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err, "a second sync must not fail")
 }
 
@@ -266,13 +288,15 @@ func TestApplyBookSource_Admin_UnknownSource_NotFound(t *testing.T) {
 	ub := addTestBookNoISBN(t, "ApplyBookSourceUnknownSourceBook")
 
 	client, _ := newAdminBooksTestClientWithMockSources(t)
-	req := connect.NewRequest(&booksv1.ApplyBookSourceRequest{
+	req := &booksv1.ApplyBookSourceRequest{
 		BookId: ub.BookID.String(),
 		Source: "unicat", // mock UniCat is configured but always confirmed-absent
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.ApplyBookSource(context.Background(), req)
+	_, err := client.ApplyBookSource(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)

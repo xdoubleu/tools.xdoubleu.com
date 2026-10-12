@@ -5,337 +5,387 @@
 package mealplansv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/mealplans/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// MealPlansServiceName is the fully-qualified name of the MealPlansService service.
 	MealPlansServiceName = "mealplans.v1.MealPlansService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// MealPlansServiceListPlansProcedure is the fully-qualified name of the MealPlansService's
-	// ListPlans RPC.
+	// MealPlansServiceListPlansProcedure is the procedure name of the MealPlansService's ListPlans RPC.
 	MealPlansServiceListPlansProcedure = "/mealplans.v1.MealPlansService/ListPlans"
-	// MealPlansServiceGetPlanProcedure is the fully-qualified name of the MealPlansService's GetPlan
-	// RPC.
+	// MealPlansServiceGetPlanProcedure is the procedure name of the MealPlansService's GetPlan RPC.
 	MealPlansServiceGetPlanProcedure = "/mealplans.v1.MealPlansService/GetPlan"
-	// MealPlansServiceUpdatePlanProcedure is the fully-qualified name of the MealPlansService's
-	// UpdatePlan RPC.
+	// MealPlansServiceUpdatePlanProcedure is the procedure name of the MealPlansService's UpdatePlan
+	// RPC.
 	MealPlansServiceUpdatePlanProcedure = "/mealplans.v1.MealPlansService/UpdatePlan"
-	// MealPlansServiceRotateICalTokenProcedure is the fully-qualified name of the MealPlansService's
+	// MealPlansServiceRotateICalTokenProcedure is the procedure name of the MealPlansService's
 	// RotateICalToken RPC.
 	MealPlansServiceRotateICalTokenProcedure = "/mealplans.v1.MealPlansService/RotateICalToken"
-	// MealPlansServiceCreateMealProcedure is the fully-qualified name of the MealPlansService's
-	// CreateMeal RPC.
-	MealPlansServiceCreateMealProcedure = "/mealplans.v1.MealPlansService/CreateMeal"
-	// MealPlansServiceUpdateMealProcedure is the fully-qualified name of the MealPlansService's
-	// UpdateMeal RPC.
-	MealPlansServiceUpdateMealProcedure = "/mealplans.v1.MealPlansService/UpdateMeal"
-	// MealPlansServiceDeleteMealProcedure is the fully-qualified name of the MealPlansService's
-	// DeleteMeal RPC.
-	MealPlansServiceDeleteMealProcedure = "/mealplans.v1.MealPlansService/DeleteMeal"
-	// MealPlansServiceMoveMealProcedure is the fully-qualified name of the MealPlansService's MoveMeal
+	// MealPlansServiceCreateMealProcedure is the procedure name of the MealPlansService's CreateMeal
 	// RPC.
+	MealPlansServiceCreateMealProcedure = "/mealplans.v1.MealPlansService/CreateMeal"
+	// MealPlansServiceUpdateMealProcedure is the procedure name of the MealPlansService's UpdateMeal
+	// RPC.
+	MealPlansServiceUpdateMealProcedure = "/mealplans.v1.MealPlansService/UpdateMeal"
+	// MealPlansServiceDeleteMealProcedure is the procedure name of the MealPlansService's DeleteMeal
+	// RPC.
+	MealPlansServiceDeleteMealProcedure = "/mealplans.v1.MealPlansService/DeleteMeal"
+	// MealPlansServiceMoveMealProcedure is the procedure name of the MealPlansService's MoveMeal RPC.
 	MealPlansServiceMoveMealProcedure = "/mealplans.v1.MealPlansService/MoveMeal"
-	// MealPlansServiceSuggestRecipesProcedure is the fully-qualified name of the MealPlansService's
+	// MealPlansServiceSuggestRecipesProcedure is the procedure name of the MealPlansService's
 	// SuggestRecipes RPC.
 	MealPlansServiceSuggestRecipesProcedure = "/mealplans.v1.MealPlansService/SuggestRecipes"
 )
 
+var (
+	mealPlansServiceListPlansSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_mealplans_v1_mealplans_proto.Services().ByName("MealPlansService").Methods().ByName("ListPlans"),
+			Procedure:  MealPlansServiceListPlansProcedure,
+		}
+	})
+	mealPlansServiceGetPlanSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_mealplans_v1_mealplans_proto.Services().ByName("MealPlansService").Methods().ByName("GetPlan"),
+			Procedure:  MealPlansServiceGetPlanProcedure,
+		}
+	})
+	mealPlansServiceUpdatePlanSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_mealplans_v1_mealplans_proto.Services().ByName("MealPlansService").Methods().ByName("UpdatePlan"),
+			Procedure:  MealPlansServiceUpdatePlanProcedure,
+		}
+	})
+	mealPlansServiceRotateICalTokenSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_mealplans_v1_mealplans_proto.Services().ByName("MealPlansService").Methods().ByName("RotateICalToken"),
+			Procedure:  MealPlansServiceRotateICalTokenProcedure,
+		}
+	})
+	mealPlansServiceCreateMealSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_mealplans_v1_mealplans_proto.Services().ByName("MealPlansService").Methods().ByName("CreateMeal"),
+			Procedure:  MealPlansServiceCreateMealProcedure,
+		}
+	})
+	mealPlansServiceUpdateMealSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_mealplans_v1_mealplans_proto.Services().ByName("MealPlansService").Methods().ByName("UpdateMeal"),
+			Procedure:  MealPlansServiceUpdateMealProcedure,
+		}
+	})
+	mealPlansServiceDeleteMealSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_mealplans_v1_mealplans_proto.Services().ByName("MealPlansService").Methods().ByName("DeleteMeal"),
+			Procedure:  MealPlansServiceDeleteMealProcedure,
+		}
+	})
+	mealPlansServiceMoveMealSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_mealplans_v1_mealplans_proto.Services().ByName("MealPlansService").Methods().ByName("MoveMeal"),
+			Procedure:  MealPlansServiceMoveMealProcedure,
+		}
+	})
+	mealPlansServiceSuggestRecipesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_mealplans_v1_mealplans_proto.Services().ByName("MealPlansService").Methods().ByName("SuggestRecipes"),
+			Procedure:  MealPlansServiceSuggestRecipesProcedure,
+		}
+	})
+)
+
 // MealPlansServiceClient is a client for the mealplans.v1.MealPlansService service.
 type MealPlansServiceClient interface {
-	ListPlans(context.Context, *connect.Request[v1.ListPlansRequest]) (*connect.Response[v1.ListPlansResponse], error)
-	GetPlan(context.Context, *connect.Request[v1.GetPlanRequest]) (*connect.Response[v1.GetPlanResponse], error)
-	UpdatePlan(context.Context, *connect.Request[v1.UpdatePlanRequest]) (*connect.Response[v1.UpdatePlanResponse], error)
-	RotateICalToken(context.Context, *connect.Request[v1.RotateICalTokenRequest]) (*connect.Response[v1.RotateICalTokenResponse], error)
-	CreateMeal(context.Context, *connect.Request[v1.CreateMealRequest]) (*connect.Response[v1.CreateMealResponse], error)
-	UpdateMeal(context.Context, *connect.Request[v1.UpdateMealRequest]) (*connect.Response[v1.UpdateMealResponse], error)
-	DeleteMeal(context.Context, *connect.Request[v1.DeleteMealRequest]) (*connect.Response[v1.DeleteMealResponse], error)
-	MoveMeal(context.Context, *connect.Request[v1.MoveMealRequest]) (*connect.Response[v1.MoveMealResponse], error)
-	SuggestRecipes(context.Context, *connect.Request[v1.SuggestRecipesRequest]) (*connect.Response[v1.SuggestRecipesResponse], error)
+	ListPlans(context.Context, *v1.ListPlansRequest) (*v1.ListPlansResponse, error)
+	GetPlan(context.Context, *v1.GetPlanRequest) (*v1.GetPlanResponse, error)
+	UpdatePlan(context.Context, *v1.UpdatePlanRequest) (*v1.UpdatePlanResponse, error)
+	RotateICalToken(context.Context, *v1.RotateICalTokenRequest) (*v1.RotateICalTokenResponse, error)
+	CreateMeal(context.Context, *v1.CreateMealRequest) (*v1.CreateMealResponse, error)
+	UpdateMeal(context.Context, *v1.UpdateMealRequest) (*v1.UpdateMealResponse, error)
+	DeleteMeal(context.Context, *v1.DeleteMealRequest) (*v1.DeleteMealResponse, error)
+	MoveMeal(context.Context, *v1.MoveMealRequest) (*v1.MoveMealResponse, error)
+	SuggestRecipes(context.Context, *v1.SuggestRecipesRequest) (*v1.SuggestRecipesResponse, error)
 }
 
-// NewMealPlansServiceClient constructs a client for the mealplans.v1.MealPlansService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewMealPlansServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) MealPlansServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	mealPlansServiceMethods := v1.File_mealplans_v1_mealplans_proto.Services().ByName("MealPlansService").Methods()
-	return &mealPlansServiceClient{
-		listPlans: connect.NewClient[v1.ListPlansRequest, v1.ListPlansResponse](
-			httpClient,
-			baseURL+MealPlansServiceListPlansProcedure,
-			connect.WithSchema(mealPlansServiceMethods.ByName("ListPlans")),
-			connect.WithClientOptions(opts...),
-		),
-		getPlan: connect.NewClient[v1.GetPlanRequest, v1.GetPlanResponse](
-			httpClient,
-			baseURL+MealPlansServiceGetPlanProcedure,
-			connect.WithSchema(mealPlansServiceMethods.ByName("GetPlan")),
-			connect.WithClientOptions(opts...),
-		),
-		updatePlan: connect.NewClient[v1.UpdatePlanRequest, v1.UpdatePlanResponse](
-			httpClient,
-			baseURL+MealPlansServiceUpdatePlanProcedure,
-			connect.WithSchema(mealPlansServiceMethods.ByName("UpdatePlan")),
-			connect.WithClientOptions(opts...),
-		),
-		rotateICalToken: connect.NewClient[v1.RotateICalTokenRequest, v1.RotateICalTokenResponse](
-			httpClient,
-			baseURL+MealPlansServiceRotateICalTokenProcedure,
-			connect.WithSchema(mealPlansServiceMethods.ByName("RotateICalToken")),
-			connect.WithClientOptions(opts...),
-		),
-		createMeal: connect.NewClient[v1.CreateMealRequest, v1.CreateMealResponse](
-			httpClient,
-			baseURL+MealPlansServiceCreateMealProcedure,
-			connect.WithSchema(mealPlansServiceMethods.ByName("CreateMeal")),
-			connect.WithClientOptions(opts...),
-		),
-		updateMeal: connect.NewClient[v1.UpdateMealRequest, v1.UpdateMealResponse](
-			httpClient,
-			baseURL+MealPlansServiceUpdateMealProcedure,
-			connect.WithSchema(mealPlansServiceMethods.ByName("UpdateMeal")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteMeal: connect.NewClient[v1.DeleteMealRequest, v1.DeleteMealResponse](
-			httpClient,
-			baseURL+MealPlansServiceDeleteMealProcedure,
-			connect.WithSchema(mealPlansServiceMethods.ByName("DeleteMeal")),
-			connect.WithClientOptions(opts...),
-		),
-		moveMeal: connect.NewClient[v1.MoveMealRequest, v1.MoveMealResponse](
-			httpClient,
-			baseURL+MealPlansServiceMoveMealProcedure,
-			connect.WithSchema(mealPlansServiceMethods.ByName("MoveMeal")),
-			connect.WithClientOptions(opts...),
-		),
-		suggestRecipes: connect.NewClient[v1.SuggestRecipesRequest, v1.SuggestRecipesResponse](
-			httpClient,
-			baseURL+MealPlansServiceSuggestRecipesProcedure,
-			connect.WithSchema(mealPlansServiceMethods.ByName("SuggestRecipes")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// mealPlansServiceClient implements MealPlansServiceClient.
-type mealPlansServiceClient struct {
-	listPlans       *connect.Client[v1.ListPlansRequest, v1.ListPlansResponse]
-	getPlan         *connect.Client[v1.GetPlanRequest, v1.GetPlanResponse]
-	updatePlan      *connect.Client[v1.UpdatePlanRequest, v1.UpdatePlanResponse]
-	rotateICalToken *connect.Client[v1.RotateICalTokenRequest, v1.RotateICalTokenResponse]
-	createMeal      *connect.Client[v1.CreateMealRequest, v1.CreateMealResponse]
-	updateMeal      *connect.Client[v1.UpdateMealRequest, v1.UpdateMealResponse]
-	deleteMeal      *connect.Client[v1.DeleteMealRequest, v1.DeleteMealResponse]
-	moveMeal        *connect.Client[v1.MoveMealRequest, v1.MoveMealResponse]
-	suggestRecipes  *connect.Client[v1.SuggestRecipesRequest, v1.SuggestRecipesResponse]
-}
-
-// ListPlans calls mealplans.v1.MealPlansService.ListPlans.
-func (c *mealPlansServiceClient) ListPlans(ctx context.Context, req *connect.Request[v1.ListPlansRequest]) (*connect.Response[v1.ListPlansResponse], error) {
-	return c.listPlans.CallUnary(ctx, req)
-}
-
-// GetPlan calls mealplans.v1.MealPlansService.GetPlan.
-func (c *mealPlansServiceClient) GetPlan(ctx context.Context, req *connect.Request[v1.GetPlanRequest]) (*connect.Response[v1.GetPlanResponse], error) {
-	return c.getPlan.CallUnary(ctx, req)
-}
-
-// UpdatePlan calls mealplans.v1.MealPlansService.UpdatePlan.
-func (c *mealPlansServiceClient) UpdatePlan(ctx context.Context, req *connect.Request[v1.UpdatePlanRequest]) (*connect.Response[v1.UpdatePlanResponse], error) {
-	return c.updatePlan.CallUnary(ctx, req)
-}
-
-// RotateICalToken calls mealplans.v1.MealPlansService.RotateICalToken.
-func (c *mealPlansServiceClient) RotateICalToken(ctx context.Context, req *connect.Request[v1.RotateICalTokenRequest]) (*connect.Response[v1.RotateICalTokenResponse], error) {
-	return c.rotateICalToken.CallUnary(ctx, req)
-}
-
-// CreateMeal calls mealplans.v1.MealPlansService.CreateMeal.
-func (c *mealPlansServiceClient) CreateMeal(ctx context.Context, req *connect.Request[v1.CreateMealRequest]) (*connect.Response[v1.CreateMealResponse], error) {
-	return c.createMeal.CallUnary(ctx, req)
-}
-
-// UpdateMeal calls mealplans.v1.MealPlansService.UpdateMeal.
-func (c *mealPlansServiceClient) UpdateMeal(ctx context.Context, req *connect.Request[v1.UpdateMealRequest]) (*connect.Response[v1.UpdateMealResponse], error) {
-	return c.updateMeal.CallUnary(ctx, req)
-}
-
-// DeleteMeal calls mealplans.v1.MealPlansService.DeleteMeal.
-func (c *mealPlansServiceClient) DeleteMeal(ctx context.Context, req *connect.Request[v1.DeleteMealRequest]) (*connect.Response[v1.DeleteMealResponse], error) {
-	return c.deleteMeal.CallUnary(ctx, req)
-}
-
-// MoveMeal calls mealplans.v1.MealPlansService.MoveMeal.
-func (c *mealPlansServiceClient) MoveMeal(ctx context.Context, req *connect.Request[v1.MoveMealRequest]) (*connect.Response[v1.MoveMealResponse], error) {
-	return c.moveMeal.CallUnary(ctx, req)
-}
-
-// SuggestRecipes calls mealplans.v1.MealPlansService.SuggestRecipes.
-func (c *mealPlansServiceClient) SuggestRecipes(ctx context.Context, req *connect.Request[v1.SuggestRecipesRequest]) (*connect.Response[v1.SuggestRecipesResponse], error) {
-	return c.suggestRecipes.CallUnary(ctx, req)
+// NewMealPlansServiceClient constructs a client for the mealplans.v1.MealPlansService service.
+// Multiple service clients may share a single connect.Client.
+func NewMealPlansServiceClient(client *connect.Client) MealPlansServiceClient {
+	return &mealPlansServiceClient{client: client}
 }
 
 // MealPlansServiceHandler is an implementation of the mealplans.v1.MealPlansService service.
 type MealPlansServiceHandler interface {
-	ListPlans(context.Context, *connect.Request[v1.ListPlansRequest]) (*connect.Response[v1.ListPlansResponse], error)
-	GetPlan(context.Context, *connect.Request[v1.GetPlanRequest]) (*connect.Response[v1.GetPlanResponse], error)
-	UpdatePlan(context.Context, *connect.Request[v1.UpdatePlanRequest]) (*connect.Response[v1.UpdatePlanResponse], error)
-	RotateICalToken(context.Context, *connect.Request[v1.RotateICalTokenRequest]) (*connect.Response[v1.RotateICalTokenResponse], error)
-	CreateMeal(context.Context, *connect.Request[v1.CreateMealRequest]) (*connect.Response[v1.CreateMealResponse], error)
-	UpdateMeal(context.Context, *connect.Request[v1.UpdateMealRequest]) (*connect.Response[v1.UpdateMealResponse], error)
-	DeleteMeal(context.Context, *connect.Request[v1.DeleteMealRequest]) (*connect.Response[v1.DeleteMealResponse], error)
-	MoveMeal(context.Context, *connect.Request[v1.MoveMealRequest]) (*connect.Response[v1.MoveMealResponse], error)
-	SuggestRecipes(context.Context, *connect.Request[v1.SuggestRecipesRequest]) (*connect.Response[v1.SuggestRecipesResponse], error)
+	ListPlans(context.Context, *v1.ListPlansRequest) (*v1.ListPlansResponse, error)
+	GetPlan(context.Context, *v1.GetPlanRequest) (*v1.GetPlanResponse, error)
+	UpdatePlan(context.Context, *v1.UpdatePlanRequest) (*v1.UpdatePlanResponse, error)
+	RotateICalToken(context.Context, *v1.RotateICalTokenRequest) (*v1.RotateICalTokenResponse, error)
+	CreateMeal(context.Context, *v1.CreateMealRequest) (*v1.CreateMealResponse, error)
+	UpdateMeal(context.Context, *v1.UpdateMealRequest) (*v1.UpdateMealResponse, error)
+	DeleteMeal(context.Context, *v1.DeleteMealRequest) (*v1.DeleteMealResponse, error)
+	MoveMeal(context.Context, *v1.MoveMealRequest) (*v1.MoveMealResponse, error)
+	SuggestRecipes(context.Context, *v1.SuggestRecipesRequest) (*v1.SuggestRecipesResponse, error)
 }
 
-// NewMealPlansServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewMealPlansServiceHandler(svc MealPlansServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	mealPlansServiceMethods := v1.File_mealplans_v1_mealplans_proto.Services().ByName("MealPlansService").Methods()
-	mealPlansServiceListPlansHandler := connect.NewUnaryHandler(
-		MealPlansServiceListPlansProcedure,
-		svc.ListPlans,
-		connect.WithSchema(mealPlansServiceMethods.ByName("ListPlans")),
-		connect.WithHandlerOptions(opts...),
+// RegisterMealPlansServiceHandler registers svc as the mealplans.v1.MealPlansService implementation
+// on server.
+func RegisterMealPlansServiceHandler(server *connect.Server, svc MealPlansServiceHandler) {
+	adapter := mealPlansServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: mealPlansServiceListPlansSpec(), Handler: adapter.listPlans},
+		connect.Method{Spec: mealPlansServiceGetPlanSpec(), Handler: adapter.getPlan},
+		connect.Method{Spec: mealPlansServiceUpdatePlanSpec(), Handler: adapter.updatePlan},
+		connect.Method{Spec: mealPlansServiceRotateICalTokenSpec(), Handler: adapter.rotateICalToken},
+		connect.Method{Spec: mealPlansServiceCreateMealSpec(), Handler: adapter.createMeal},
+		connect.Method{Spec: mealPlansServiceUpdateMealSpec(), Handler: adapter.updateMeal},
+		connect.Method{Spec: mealPlansServiceDeleteMealSpec(), Handler: adapter.deleteMeal},
+		connect.Method{Spec: mealPlansServiceMoveMealSpec(), Handler: adapter.moveMeal},
+		connect.Method{Spec: mealPlansServiceSuggestRecipesSpec(), Handler: adapter.suggestRecipes},
 	)
-	mealPlansServiceGetPlanHandler := connect.NewUnaryHandler(
-		MealPlansServiceGetPlanProcedure,
-		svc.GetPlan,
-		connect.WithSchema(mealPlansServiceMethods.ByName("GetPlan")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mealPlansServiceUpdatePlanHandler := connect.NewUnaryHandler(
-		MealPlansServiceUpdatePlanProcedure,
-		svc.UpdatePlan,
-		connect.WithSchema(mealPlansServiceMethods.ByName("UpdatePlan")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mealPlansServiceRotateICalTokenHandler := connect.NewUnaryHandler(
-		MealPlansServiceRotateICalTokenProcedure,
-		svc.RotateICalToken,
-		connect.WithSchema(mealPlansServiceMethods.ByName("RotateICalToken")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mealPlansServiceCreateMealHandler := connect.NewUnaryHandler(
-		MealPlansServiceCreateMealProcedure,
-		svc.CreateMeal,
-		connect.WithSchema(mealPlansServiceMethods.ByName("CreateMeal")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mealPlansServiceUpdateMealHandler := connect.NewUnaryHandler(
-		MealPlansServiceUpdateMealProcedure,
-		svc.UpdateMeal,
-		connect.WithSchema(mealPlansServiceMethods.ByName("UpdateMeal")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mealPlansServiceDeleteMealHandler := connect.NewUnaryHandler(
-		MealPlansServiceDeleteMealProcedure,
-		svc.DeleteMeal,
-		connect.WithSchema(mealPlansServiceMethods.ByName("DeleteMeal")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mealPlansServiceMoveMealHandler := connect.NewUnaryHandler(
-		MealPlansServiceMoveMealProcedure,
-		svc.MoveMeal,
-		connect.WithSchema(mealPlansServiceMethods.ByName("MoveMeal")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mealPlansServiceSuggestRecipesHandler := connect.NewUnaryHandler(
-		MealPlansServiceSuggestRecipesProcedure,
-		svc.SuggestRecipes,
-		connect.WithSchema(mealPlansServiceMethods.ByName("SuggestRecipes")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/mealplans.v1.MealPlansService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case MealPlansServiceListPlansProcedure:
-			mealPlansServiceListPlansHandler.ServeHTTP(w, r)
-		case MealPlansServiceGetPlanProcedure:
-			mealPlansServiceGetPlanHandler.ServeHTTP(w, r)
-		case MealPlansServiceUpdatePlanProcedure:
-			mealPlansServiceUpdatePlanHandler.ServeHTTP(w, r)
-		case MealPlansServiceRotateICalTokenProcedure:
-			mealPlansServiceRotateICalTokenHandler.ServeHTTP(w, r)
-		case MealPlansServiceCreateMealProcedure:
-			mealPlansServiceCreateMealHandler.ServeHTTP(w, r)
-		case MealPlansServiceUpdateMealProcedure:
-			mealPlansServiceUpdateMealHandler.ServeHTTP(w, r)
-		case MealPlansServiceDeleteMealProcedure:
-			mealPlansServiceDeleteMealHandler.ServeHTTP(w, r)
-		case MealPlansServiceMoveMealProcedure:
-			mealPlansServiceMoveMealHandler.ServeHTTP(w, r)
-		case MealPlansServiceSuggestRecipesProcedure:
-			mealPlansServiceSuggestRecipesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedMealPlansServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedMealPlansServiceHandler struct{}
 
-func (UnimplementedMealPlansServiceHandler) ListPlans(context.Context, *connect.Request[v1.ListPlansRequest]) (*connect.Response[v1.ListPlansResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.ListPlans is not implemented"))
+func (UnimplementedMealPlansServiceHandler) ListPlans(context.Context, *v1.ListPlansRequest) (*v1.ListPlansResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "mealplans.v1.MealPlansService.ListPlans is not implemented")
 }
 
-func (UnimplementedMealPlansServiceHandler) GetPlan(context.Context, *connect.Request[v1.GetPlanRequest]) (*connect.Response[v1.GetPlanResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.GetPlan is not implemented"))
+func (UnimplementedMealPlansServiceHandler) GetPlan(context.Context, *v1.GetPlanRequest) (*v1.GetPlanResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "mealplans.v1.MealPlansService.GetPlan is not implemented")
 }
 
-func (UnimplementedMealPlansServiceHandler) UpdatePlan(context.Context, *connect.Request[v1.UpdatePlanRequest]) (*connect.Response[v1.UpdatePlanResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.UpdatePlan is not implemented"))
+func (UnimplementedMealPlansServiceHandler) UpdatePlan(context.Context, *v1.UpdatePlanRequest) (*v1.UpdatePlanResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "mealplans.v1.MealPlansService.UpdatePlan is not implemented")
 }
 
-func (UnimplementedMealPlansServiceHandler) RotateICalToken(context.Context, *connect.Request[v1.RotateICalTokenRequest]) (*connect.Response[v1.RotateICalTokenResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.RotateICalToken is not implemented"))
+func (UnimplementedMealPlansServiceHandler) RotateICalToken(context.Context, *v1.RotateICalTokenRequest) (*v1.RotateICalTokenResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "mealplans.v1.MealPlansService.RotateICalToken is not implemented")
 }
 
-func (UnimplementedMealPlansServiceHandler) CreateMeal(context.Context, *connect.Request[v1.CreateMealRequest]) (*connect.Response[v1.CreateMealResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.CreateMeal is not implemented"))
+func (UnimplementedMealPlansServiceHandler) CreateMeal(context.Context, *v1.CreateMealRequest) (*v1.CreateMealResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "mealplans.v1.MealPlansService.CreateMeal is not implemented")
 }
 
-func (UnimplementedMealPlansServiceHandler) UpdateMeal(context.Context, *connect.Request[v1.UpdateMealRequest]) (*connect.Response[v1.UpdateMealResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.UpdateMeal is not implemented"))
+func (UnimplementedMealPlansServiceHandler) UpdateMeal(context.Context, *v1.UpdateMealRequest) (*v1.UpdateMealResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "mealplans.v1.MealPlansService.UpdateMeal is not implemented")
 }
 
-func (UnimplementedMealPlansServiceHandler) DeleteMeal(context.Context, *connect.Request[v1.DeleteMealRequest]) (*connect.Response[v1.DeleteMealResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.DeleteMeal is not implemented"))
+func (UnimplementedMealPlansServiceHandler) DeleteMeal(context.Context, *v1.DeleteMealRequest) (*v1.DeleteMealResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "mealplans.v1.MealPlansService.DeleteMeal is not implemented")
 }
 
-func (UnimplementedMealPlansServiceHandler) MoveMeal(context.Context, *connect.Request[v1.MoveMealRequest]) (*connect.Response[v1.MoveMealResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.MoveMeal is not implemented"))
+func (UnimplementedMealPlansServiceHandler) MoveMeal(context.Context, *v1.MoveMealRequest) (*v1.MoveMealResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "mealplans.v1.MealPlansService.MoveMeal is not implemented")
 }
 
-func (UnimplementedMealPlansServiceHandler) SuggestRecipes(context.Context, *connect.Request[v1.SuggestRecipesRequest]) (*connect.Response[v1.SuggestRecipesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.SuggestRecipes is not implemented"))
+func (UnimplementedMealPlansServiceHandler) SuggestRecipes(context.Context, *v1.SuggestRecipesRequest) (*v1.SuggestRecipesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "mealplans.v1.MealPlansService.SuggestRecipes is not implemented")
+}
+
+type mealPlansServiceClient struct {
+	client *connect.Client
+}
+
+func (c *mealPlansServiceClient) ListPlans(ctx context.Context, req *v1.ListPlansRequest) (*v1.ListPlansResponse, error) {
+	var res v1.ListPlansResponse
+	if err := c.client.CallUnary(ctx, mealPlansServiceListPlansSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mealPlansServiceClient) GetPlan(ctx context.Context, req *v1.GetPlanRequest) (*v1.GetPlanResponse, error) {
+	var res v1.GetPlanResponse
+	if err := c.client.CallUnary(ctx, mealPlansServiceGetPlanSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mealPlansServiceClient) UpdatePlan(ctx context.Context, req *v1.UpdatePlanRequest) (*v1.UpdatePlanResponse, error) {
+	var res v1.UpdatePlanResponse
+	if err := c.client.CallUnary(ctx, mealPlansServiceUpdatePlanSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mealPlansServiceClient) RotateICalToken(ctx context.Context, req *v1.RotateICalTokenRequest) (*v1.RotateICalTokenResponse, error) {
+	var res v1.RotateICalTokenResponse
+	if err := c.client.CallUnary(ctx, mealPlansServiceRotateICalTokenSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mealPlansServiceClient) CreateMeal(ctx context.Context, req *v1.CreateMealRequest) (*v1.CreateMealResponse, error) {
+	var res v1.CreateMealResponse
+	if err := c.client.CallUnary(ctx, mealPlansServiceCreateMealSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mealPlansServiceClient) UpdateMeal(ctx context.Context, req *v1.UpdateMealRequest) (*v1.UpdateMealResponse, error) {
+	var res v1.UpdateMealResponse
+	if err := c.client.CallUnary(ctx, mealPlansServiceUpdateMealSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mealPlansServiceClient) DeleteMeal(ctx context.Context, req *v1.DeleteMealRequest) (*v1.DeleteMealResponse, error) {
+	var res v1.DeleteMealResponse
+	if err := c.client.CallUnary(ctx, mealPlansServiceDeleteMealSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mealPlansServiceClient) MoveMeal(ctx context.Context, req *v1.MoveMealRequest) (*v1.MoveMealResponse, error) {
+	var res v1.MoveMealResponse
+	if err := c.client.CallUnary(ctx, mealPlansServiceMoveMealSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *mealPlansServiceClient) SuggestRecipes(ctx context.Context, req *v1.SuggestRecipesRequest) (*v1.SuggestRecipesResponse, error) {
+	var res v1.SuggestRecipesResponse
+	if err := c.client.CallUnary(ctx, mealPlansServiceSuggestRecipesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type mealPlansServiceHandler struct{ svc MealPlansServiceHandler }
+
+func (h mealPlansServiceHandler) listPlans(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListPlansRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListPlans(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mealPlansServiceHandler) getPlan(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetPlanRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetPlan(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mealPlansServiceHandler) updatePlan(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdatePlanRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdatePlan(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mealPlansServiceHandler) rotateICalToken(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RotateICalTokenRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RotateICalToken(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mealPlansServiceHandler) createMeal(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateMealRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateMeal(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mealPlansServiceHandler) updateMeal(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateMealRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateMeal(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mealPlansServiceHandler) deleteMeal(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteMealRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteMeal(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mealPlansServiceHandler) moveMeal(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MoveMealRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MoveMeal(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h mealPlansServiceHandler) suggestRecipes(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SuggestRecipesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SuggestRecipes(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

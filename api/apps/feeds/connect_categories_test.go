@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -43,11 +42,11 @@ func feedItemCategories(
 	t.Helper()
 	resp, err := client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(&feedsv1.ListFeedItemsRequest{FeedId: &feedID}),
+		&feedsv1.ListFeedItemsRequest{FeedId: &feedID},
 	)
 	require.NoError(t, err)
 	out := map[string][]string{}
-	for _, item := range resp.Msg.Items {
+	for _, item := range resp.Items {
 		out[item.SourceUrl] = item.Categories
 	}
 	return out
@@ -89,13 +88,13 @@ func TestCreateFeed_RSS_StoresCategories(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	waitForFeedImport(t, client, created.Msg.Feed.Id)
+	waitForFeedImport(t, client, created.Feed.Id)
 
 	assert.Equal(t, []string{"Go", "Databases"},
-		feedItemCategories(t, client, created.Msg.Feed.Id)[postURL])
+		feedItemCategories(t, client, created.Feed.Id)[postURL])
 }
 
 func TestRefreshFeed_RSS_BackfillsMissingCategories(t *testing.T) {
@@ -113,10 +112,10 @@ func TestRefreshFeed_RSS_BackfillsMissingCategories(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+		&feedsv1.CreateFeedRequest{Url: feedURL},
 	)
 	require.NoError(t, err)
-	feedID := created.Msg.Feed.Id
+	feedID := created.Feed.Id
 	waitForItemCount(t, client, feedID, 2)
 	require.Empty(t, feedItemCategories(t, client, feedID)[bareURL])
 
@@ -128,10 +127,10 @@ func TestRefreshFeed_RSS_BackfillsMissingCategories(t *testing.T) {
 
 	refreshed, err := client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: feedID}),
+		&feedsv1.RefreshFeedRequest{FeedId: feedID},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(0), refreshed.Msg.Ingested)
+	assert.Equal(t, int32(0), refreshed.Ingested)
 
 	categories := feedItemCategories(t, client, feedID)
 	assert.Equal(t, []string{"News"}, categories[bareURL])
@@ -155,13 +154,13 @@ func TestRefreshFeed_Scrape_StoresAndBackfillsCategories(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	feedID := created.Msg.Feed.Id
+	feedID := created.Feed.Id
 	waitForItemCount(t, client, feedID, 1)
 	require.Empty(t, feedItemCategories(t, client, feedID)[oldURL])
 
@@ -175,10 +174,10 @@ func TestRefreshFeed_Scrape_StoresAndBackfillsCategories(t *testing.T) {
 
 	refreshed, err := client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: feedID}),
+		&feedsv1.RefreshFeedRequest{FeedId: feedID},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, int32(1), refreshed.Msg.Ingested)
+	assert.Equal(t, int32(1), refreshed.Ingested)
 
 	categories := feedItemCategories(t, client, feedID)
 	assert.Equal(t, []string{"Enterprise AI"}, categories[newURL])

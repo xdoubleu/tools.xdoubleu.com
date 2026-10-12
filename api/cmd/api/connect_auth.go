@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
@@ -32,7 +32,7 @@ type authConnectHandler struct {
 var _ authv1connect.AuthServiceHandler = (*authConnectHandler)(nil)
 
 func (h *authConnectHandler) parseCookie(
-	header http.Header,
+	header *connect.Header,
 	name string,
 ) (*http.Cookie, error) {
 	return (&http.Request{
@@ -72,7 +72,7 @@ func (h *authConnectHandler) secure() bool {
 }
 
 func (h *authConnectHandler) setMFACookies(
-	header http.Header,
+	header *connect.Header,
 	accessToken string,
 	refreshToken string,
 	rememberMe bool,
@@ -131,7 +131,7 @@ func (h *authConnectHandler) setMFACookies(
 }
 
 func (h *authConnectHandler) setMFAFactorIDCookie(
-	header http.Header,
+	header *connect.Header,
 	factorID uuid.UUID,
 ) {
 	//nolint:gosec // Secure is conditionally set based on environment
@@ -146,7 +146,7 @@ func (h *authConnectHandler) setMFAFactorIDCookie(
 	}).String())
 }
 
-func (h *authConnectHandler) clearMFACookies(header http.Header) {
+func (h *authConnectHandler) clearMFACookies(header *connect.Header) {
 	secure := h.secure()
 	mfaCookieNames := []string{
 		mfaTokenCookieName,
@@ -171,7 +171,7 @@ func (h *authConnectHandler) clearMFACookies(header http.Header) {
 }
 
 func (h *authConnectHandler) completeMFA(
-	header http.Header,
+	header *connect.Header,
 	accessToken, refreshToken string,
 	rememberMe bool,
 ) error {
@@ -181,7 +181,7 @@ func (h *authConnectHandler) completeMFA(
 		models.AccessScope, accessToken, h.app.config.AccessExpiry, secure,
 	)
 	if err != nil {
-		return connect.NewError(connect.CodeInternal, err)
+		return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	header.Add("Set-Cookie", accessCookie.String())
 
@@ -191,7 +191,7 @@ func (h *authConnectHandler) completeMFA(
 			models.RefreshScope, refreshToken, h.app.config.RefreshExpiry, secure,
 		)
 		if err != nil {
-			return connect.NewError(connect.CodeInternal, err)
+			return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 		header.Add("Set-Cookie", refreshCookie.String())
 	}

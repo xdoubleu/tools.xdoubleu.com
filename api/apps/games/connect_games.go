@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	"tools.xdoubleu.com/apps/games/internal/models"
 	"tools.xdoubleu.com/apps/games/internal/services"
@@ -25,157 +25,157 @@ type gamesConnectHandler struct {
 
 func (h *gamesConnectHandler) GetSteam(
 	ctx context.Context,
-	req *connect.Request[gamesv1.GetSteamRequest],
-) (*connect.Response[gamesv1.GetSteamResponse], error) {
+	req *gamesv1.GetSteamRequest,
+) (*gamesv1.GetSteamResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 
-	dateStart, dateEnd := parseDateRangeFromStrings(req.Msg.DateStart, req.Msg.DateEnd)
+	dateStart, dateEnd := parseDateRangeFromStrings(req.DateStart, req.DateEnd)
 
 	steam, err := h.app.buildSteamResponse(ctx, user.ID, dateStart, dateEnd)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&gamesv1.GetSteamResponse{Steam: steam}), nil
+	return &gamesv1.GetSteamResponse{Steam: steam}, nil
 }
 
 func (h *gamesConnectHandler) GetSteamGame(
 	ctx context.Context,
-	req *connect.Request[gamesv1.GetSteamGameRequest],
-) (*connect.Response[gamesv1.GetSteamGameResponse], error) {
+	req *gamesv1.GetSteamGameRequest,
+) (*gamesv1.GetSteamGameResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 
-	data, err := h.app.buildSteamGameResponse(ctx, user.ID, int(req.Msg.GameId))
+	data, err := h.app.buildSteamGameResponse(ctx, user.ID, int(req.GameId))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&gamesv1.GetSteamGameResponse{Data: data}), nil
+	return &gamesv1.GetSteamGameResponse{Data: data}, nil
 }
 
 func (h *gamesConnectHandler) RefreshSteamGame(
 	ctx context.Context,
-	req *connect.Request[gamesv1.RefreshSteamGameRequest],
-) (*connect.Response[gamesv1.RefreshSteamGameResponse], error) {
+	req *gamesv1.RefreshSteamGameRequest,
+) (*gamesv1.RefreshSteamGameResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 
-	gameID := int(req.Msg.GameId)
+	gameID := int(req.GameId)
 
 	if err := h.app.Services.Steam.SyncGame(ctx, user.ID, gameID); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	data, err := h.app.buildSteamGameResponse(ctx, user.ID, gameID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&gamesv1.RefreshSteamGameResponse{Data: data}), nil
+	return &gamesv1.RefreshSteamGameResponse{Data: data}, nil
 }
 
 // SetGameFavourite flips a game's favourite flag and returns the game.
 func (h *gamesConnectHandler) SetGameFavourite(
 	ctx context.Context,
-	req *connect.Request[gamesv1.SetGameFavouriteRequest],
-) (*connect.Response[gamesv1.SetGameFavouriteResponse], error) {
+	req *gamesv1.SetGameFavouriteRequest,
+) (*gamesv1.SetGameFavouriteResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 
-	gameID := int(req.Msg.GameId)
+	gameID := int(req.GameId)
 
 	err := h.app.Services.Steam.SetFavourite(
-		ctx, user.ID, gameID, req.Msg.Favourite,
+		ctx, user.ID, gameID, req.Favourite,
 	)
 	if errors.Is(err, database.ErrResourceNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	game, err := h.app.Services.Steam.GetGameByID(ctx, gameID, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&gamesv1.SetGameFavouriteResponse{
+	return &gamesv1.SetGameFavouriteResponse{
 		Game: protoGame(*game),
-	}), nil
+	}, nil
 }
 
 func (h *gamesConnectHandler) GetSteamDistribution(
 	ctx context.Context,
-	req *connect.Request[gamesv1.GetSteamDistributionRequest],
-) (*connect.Response[gamesv1.GetSteamDistributionResponse], error) {
+	req *gamesv1.GetSteamDistributionRequest,
+) (*gamesv1.GetSteamDistributionResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 
 	label, bucketGames, err := h.app.Services.Progress.GetDistributionBucket(
-		ctx, user.ID, int(req.Msg.Bucket),
+		ctx, user.ID, int(req.Bucket),
 	)
 	if errors.Is(err, services.ErrInvalidBucket) {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&gamesv1.GetSteamDistributionResponse{
+	return &gamesv1.GetSteamDistributionResponse{
 		Data: &gamesv1.SteamDistributionResponse{
 			Label: label,
 			Games: protoGames(bucketGames),
 		},
-	}), nil
+	}, nil
 }
 
 func (h *gamesConnectHandler) GetRecentlyActiveGames(
 	ctx context.Context,
-	_ *connect.Request[gamesv1.GetRecentlyActiveGamesRequest],
-) (*connect.Response[gamesv1.GetRecentlyActiveGamesResponse], error) {
+	_ *gamesv1.GetRecentlyActiveGamesRequest,
+) (*gamesv1.GetRecentlyActiveGamesResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 
 	games, err := h.app.Services.Steam.GetRecentlyActive(ctx, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&gamesv1.GetRecentlyActiveGamesResponse{
+	return &gamesv1.GetRecentlyActiveGamesResponse{
 		Games: protoRecentGames(games),
-	}), nil
+	}, nil
 }
 
 func protoGame(g models.Game) *gamesv1.Game {

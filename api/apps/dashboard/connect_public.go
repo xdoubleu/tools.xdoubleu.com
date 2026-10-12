@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	dashboardv1 "tools.xdoubleu.com/gen/dashboard/v1"
 	"tools.xdoubleu.com/gen/dashboard/v1/dashboardv1connect"
@@ -36,34 +36,34 @@ func (h *publicConnectHandler) resolveToken(
 	if token == "" {
 		return "", "", connect.NewError(
 			connect.CodeNotFound,
-			errors.New("unknown dashboard"),
+			"unknown dashboard",
 		)
 	}
 	userID, displayName, err := h.app.profileShares.ResolveToken(ctx, token, kind)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return "", "", connect.NewError(
 			connect.CodeNotFound,
-			errors.New("unknown dashboard"),
+			"unknown dashboard",
 		)
 	}
 	if err != nil {
-		return "", "", connect.NewError(connect.CodeInternal, err)
+		return "", "", connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	return userID, displayName, nil
 }
 
 func (h *publicConnectHandler) GetSharedSteam(
 	ctx context.Context,
-	req *connect.Request[dashboardv1.GetSharedSteamRequest],
-) (*connect.Response[dashboardv1.GetSharedSteamResponse], error) {
+	req *dashboardv1.GetSharedSteamRequest,
+) (*dashboardv1.GetSharedSteamResponse, error) {
 	userID, displayName, err := h.resolveToken(
-		ctx, req.Msg.Token, sharedmodels.DashboardKindGames,
+		ctx, req.Token, sharedmodels.DashboardKindGames,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	dateStart, dateEnd := parseDateRangeFromStrings(req.Msg.DateStart, req.Msg.DateEnd)
+	dateStart, dateEnd := parseDateRangeFromStrings(req.DateStart, req.DateEnd)
 
 	steam, lastSyncedAt, err := h.app.games.BuildSharedSteam(
 		ctx,
@@ -72,49 +72,49 @@ func (h *publicConnectHandler) GetSharedSteam(
 		dateEnd,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&dashboardv1.GetSharedSteamResponse{
+	return &dashboardv1.GetSharedSteamResponse{
 		Steam:        steam,
 		LastSyncedAt: lastSyncedAt,
 		DisplayName:  displayName,
-	}), nil
+	}, nil
 }
 
 func (h *publicConnectHandler) GetSharedSteamGame(
 	ctx context.Context,
-	req *connect.Request[dashboardv1.GetSharedSteamGameRequest],
-) (*connect.Response[dashboardv1.GetSharedSteamGameResponse], error) {
+	req *dashboardv1.GetSharedSteamGameRequest,
+) (*dashboardv1.GetSharedSteamGameResponse, error) {
 	userID, _, err := h.resolveToken(
 		ctx,
-		req.Msg.Token,
+		req.Token,
 		sharedmodels.DashboardKindGames,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := h.app.games.BuildSharedSteamGame(ctx, userID, int(req.Msg.GameId))
+	data, err := h.app.games.BuildSharedSteamGame(ctx, userID, int(req.GameId))
 	if errors.Is(err, database.ErrResourceNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&dashboardv1.GetSharedSteamGameResponse{
+	return &dashboardv1.GetSharedSteamGameResponse{
 		Data: data,
-	}), nil
+	}, nil
 }
 
 func (h *publicConnectHandler) GetSharedRecentlyActiveGames(
 	ctx context.Context,
-	req *connect.Request[dashboardv1.GetSharedRecentlyActiveGamesRequest],
-) (*connect.Response[dashboardv1.GetSharedRecentlyActiveGamesResponse], error) {
+	req *dashboardv1.GetSharedRecentlyActiveGamesRequest,
+) (*dashboardv1.GetSharedRecentlyActiveGamesResponse, error) {
 	userID, _, err := h.resolveToken(
 		ctx,
-		req.Msg.Token,
+		req.Token,
 		sharedmodels.DashboardKindGames,
 	)
 	if err != nil {
@@ -123,20 +123,20 @@ func (h *publicConnectHandler) GetSharedRecentlyActiveGames(
 
 	recentGames, err := h.app.games.BuildSharedRecentlyActiveGames(ctx, userID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&dashboardv1.GetSharedRecentlyActiveGamesResponse{
+	return &dashboardv1.GetSharedRecentlyActiveGamesResponse{
 		Games: recentGames,
-	}), nil
+	}, nil
 }
 
 func (h *publicConnectHandler) GetSharedLibrary(
 	ctx context.Context,
-	req *connect.Request[dashboardv1.GetSharedLibraryRequest],
-) (*connect.Response[dashboardv1.GetSharedLibraryResponse], error) {
+	req *dashboardv1.GetSharedLibraryRequest,
+) (*dashboardv1.GetSharedLibraryResponse, error) {
 	userID, displayName, err := h.resolveToken(
-		ctx, req.Msg.Token, sharedmodels.DashboardKindReading,
+		ctx, req.Token, sharedmodels.DashboardKindReading,
 	)
 	if err != nil {
 		return nil, err
@@ -144,47 +144,47 @@ func (h *publicConnectHandler) GetSharedLibrary(
 
 	library, lastSyncedAt, err := h.app.books.BuildSharedLibrary(ctx, userID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&dashboardv1.GetSharedLibraryResponse{
+	return &dashboardv1.GetSharedLibraryResponse{
 		Library:      library,
 		LastSyncedAt: lastSyncedAt,
 		DisplayName:  displayName,
-	}), nil
+	}, nil
 }
 
 func (h *publicConnectHandler) GetSharedBooksProgress(
 	ctx context.Context,
-	req *connect.Request[dashboardv1.GetSharedBooksProgressRequest],
-) (*connect.Response[dashboardv1.GetSharedBooksProgressResponse], error) {
+	req *dashboardv1.GetSharedBooksProgressRequest,
+) (*dashboardv1.GetSharedBooksProgressResponse, error) {
 	userID, _, err := h.resolveToken(
 		ctx,
-		req.Msg.Token,
+		req.Token,
 		sharedmodels.DashboardKindReading,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	dateStart, dateEnd := parseDateRangeFromStrings(req.Msg.DateStart, req.Msg.DateEnd)
+	dateStart, dateEnd := parseDateRangeFromStrings(req.DateStart, req.DateEnd)
 	progress, err := h.app.books.BuildSharedProgress(ctx, userID, dateStart, dateEnd)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&dashboardv1.GetSharedBooksProgressResponse{
+	return &dashboardv1.GetSharedBooksProgressResponse{
 		Progress: progress,
-	}), nil
+	}, nil
 }
 
 func (h *publicConnectHandler) GetSharedFeedsSummary(
 	ctx context.Context,
-	req *connect.Request[dashboardv1.GetSharedFeedsSummaryRequest],
-) (*connect.Response[dashboardv1.GetSharedFeedsSummaryResponse], error) {
+	req *dashboardv1.GetSharedFeedsSummaryRequest,
+) (*dashboardv1.GetSharedFeedsSummaryResponse, error) {
 	userID, _, err := h.resolveToken(
 		ctx,
-		req.Msg.Token,
+		req.Token,
 		sharedmodels.DashboardKindReading,
 	)
 	if err != nil {
@@ -193,10 +193,10 @@ func (h *publicConnectHandler) GetSharedFeedsSummary(
 
 	sharedFeeds, err := h.app.feeds.BuildSharedFeeds(ctx, userID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&dashboardv1.GetSharedFeedsSummaryResponse{
+	return &dashboardv1.GetSharedFeedsSummaryResponse{
 		Feeds: protoSharedFeeds(sharedFeeds),
-	}), nil
+	}, nil
 }

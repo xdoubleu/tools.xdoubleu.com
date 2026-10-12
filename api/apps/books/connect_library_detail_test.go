@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func addTestBookWithISBN(t *testing.T, title, isbn string) *models.UserBook {
@@ -44,25 +45,28 @@ func TestConnectGetLibrary_WithVariousBooksAndShelves(t *testing.T) {
 	bookB := addTestBookWithISBN(t, "CovRead-"+uid, "9780000000002")
 	bookC := addTestBookWithISBN(t, "CovNilRating-"+uid, "9780000000003")
 
-	readingReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+	readingReq := &booksv1.UpdateBookStatusRequest{
 		BookId: bookA.BookID.String(), Status: models.StatusReading,
-	})
-	readingReq.Header().Set("Cookie", accessToken.String())
-	_, err := newBooksTestClient(t).UpdateBookStatus(ctx, readingReq)
+	}
+	_, err := newBooksTestClient(
+		t,
+	).UpdateBookStatus(testhelper.WithCookie(ctx, accessToken.String()), readingReq)
 	require.NoError(t, err)
 
-	readReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+	readReq := &booksv1.UpdateBookStatusRequest{
 		BookId: bookB.BookID.String(), Status: models.StatusRead, Rating: "4",
-	})
-	readReq.Header().Set("Cookie", accessToken.String())
-	_, err = newBooksTestClient(t).UpdateBookStatus(ctx, readReq)
+	}
+	_, err = newBooksTestClient(
+		t,
+	).UpdateBookStatus(testhelper.WithCookie(ctx, accessToken.String()), readReq)
 	require.NoError(t, err)
 
-	tagReq := connect.NewRequest(&booksv1.ToggleTagRequest{
+	tagReq := &booksv1.ToggleTagRequest{
 		BookId: bookA.BookID.String(), Tag: "cov-user-tag",
-	})
-	tagReq.Header().Set("Cookie", accessToken.String())
-	_, err = newBooksTestClient(t).ToggleTag(ctx, tagReq)
+	}
+	_, err = newBooksTestClient(
+		t,
+	).ToggleTag(testhelper.WithCookie(ctx, accessToken.String()), tagReq)
 	require.NoError(t, err)
 
 	bookD := addTestBookWithISBN(t, "CovCustomA-"+uid, "9780000000004")
@@ -75,22 +79,24 @@ func TestConnectGetLibrary_WithVariousBooksAndShelves(t *testing.T) {
 		{bookD, "beta-shelf"},
 		{bookE, "gamma-shelf"},
 	} {
-		statusReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+		statusReq := &booksv1.UpdateBookStatusRequest{
 			BookId: tc.book.BookID.String(), Status: tc.status,
-		})
-		statusReq.Header().Set("Cookie", accessToken.String())
-		_, err = newBooksTestClient(t).UpdateBookStatus(ctx, statusReq)
+		}
+		_, err = newBooksTestClient(
+			t,
+		).UpdateBookStatus(testhelper.WithCookie(ctx, accessToken.String()), statusReq)
 		require.NoError(t, err)
 	}
 
-	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
-	libReq.Header().Set("Cookie", accessToken.String())
-	resp, err := newBooksTestClient(t).GetLibrary(ctx, libReq)
+	libReq := &booksv1.GetLibraryRequest{}
+	resp, err := newBooksTestClient(
+		t,
+	).GetLibrary(testhelper.WithCookie(ctx, accessToken.String()), libReq)
 	require.NoError(t, err)
-	assert.NotNil(t, resp.Msg.Library)
-	assert.NotEmpty(t, resp.Msg.Library.Finished)
-	assert.NotEmpty(t, resp.Msg.Library.Shelves)
-	for _, shelf := range resp.Msg.Library.Shelves {
+	assert.NotNil(t, resp.Library)
+	assert.NotEmpty(t, resp.Library.Finished)
+	assert.NotEmpty(t, resp.Library.Shelves)
+	for _, shelf := range resp.Library.Shelves {
 		assert.NotEqual(t, "cov-user-tag", shelf.Name,
 			"user tag must not appear as a shelf")
 	}
@@ -105,13 +111,14 @@ func TestConnectUpdateBookStatus_ZeroRating(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+	req := &booksv1.UpdateBookStatusRequest{
 		BookId:    book.BookID.String(),
 		Status:    models.StatusReading,
 		Favourite: false,
 		Rating:    "0",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 	_, err := client.UpdateBookStatus(ctx, req)
 	require.NoError(t, err)
 }
@@ -125,13 +132,14 @@ func TestConnectUpdateBookStatus_NegativeRating(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+	req := &booksv1.UpdateBookStatusRequest{
 		BookId:    book.BookID.String(),
 		Status:    models.StatusReading,
 		Favourite: false,
 		Rating:    "-1",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 	_, err := client.UpdateBookStatus(ctx, req)
 	require.NoError(t, err)
 }
@@ -146,13 +154,14 @@ func TestConnectUpdateBookStatus_OutOfRangeRating(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+	req := &booksv1.UpdateBookStatusRequest{
 		BookId:    book.BookID.String(),
 		Status:    models.StatusReading,
 		Favourite: false,
 		Rating:    "6",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 	_, err := client.UpdateBookStatus(ctx, req)
 	require.NoError(t, err)
 }
@@ -178,52 +187,64 @@ func TestConnectUpdateFinishedAt_OverwritesDates(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	setReq := connect.NewRequest(&booksv1.UpdateFinishedAtRequest{
+	setReq := &booksv1.UpdateFinishedAtRequest{
 		BookId:     book.BookID.String(),
 		FinishedAt: []string{"2024-01-15", "2024-06-01"},
-	})
-	setReq.Header().Set("Cookie", accessToken.String())
-	_, err := client.UpdateFinishedAt(ctx, setReq)
+	}
+	_, err := client.UpdateFinishedAt(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		setReq,
+	)
 	require.NoError(t, err)
 
-	getReq := connect.NewRequest(
-		&booksv1.SearchLibraryRequest{Query: "FinishedAtEditBook"},
+	getReq := &booksv1.SearchLibraryRequest{Query: "FinishedAtEditBook"}
+	searchResp, err := client.SearchLibrary(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		getReq,
 	)
-	getReq.Header().Set("Cookie", accessToken.String())
-	searchResp, err := client.SearchLibrary(ctx, getReq)
 	require.NoError(t, err)
-	require.Len(t, searchResp.Msg.Books, 1)
+	require.Len(t, searchResp.Books, 1)
 	assertFinishedAtDates(
 		t,
-		searchResp.Msg.Books[0].FinishedAt,
+		searchResp.Books[0].FinishedAt,
 		"2024-01-15",
 		"2024-06-01",
 	)
 
-	replaceReq := connect.NewRequest(&booksv1.UpdateFinishedAtRequest{
+	replaceReq := &booksv1.UpdateFinishedAtRequest{
 		BookId:     book.BookID.String(),
 		FinishedAt: []string{"2024-12-25"},
-	})
-	replaceReq.Header().Set("Cookie", accessToken.String())
-	_, err = client.UpdateFinishedAt(ctx, replaceReq)
+	}
+	_, err = client.UpdateFinishedAt(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		replaceReq,
+	)
 	require.NoError(t, err)
 
-	searchResp, err = client.SearchLibrary(ctx, getReq)
+	searchResp, err = client.SearchLibrary(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		getReq,
+	)
 	require.NoError(t, err)
-	require.Len(t, searchResp.Msg.Books, 1)
-	assertFinishedAtDates(t, searchResp.Msg.Books[0].FinishedAt, "2024-12-25")
+	require.Len(t, searchResp.Books, 1)
+	assertFinishedAtDates(t, searchResp.Books[0].FinishedAt, "2024-12-25")
 
-	clearReq := connect.NewRequest(&booksv1.UpdateFinishedAtRequest{
+	clearReq := &booksv1.UpdateFinishedAtRequest{
 		BookId: book.BookID.String(),
-	})
-	clearReq.Header().Set("Cookie", accessToken.String())
-	_, err = client.UpdateFinishedAt(ctx, clearReq)
+	}
+	_, err = client.UpdateFinishedAt(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		clearReq,
+	)
 	require.NoError(t, err)
 
-	searchResp, err = client.SearchLibrary(ctx, getReq)
+	searchResp, err = client.SearchLibrary(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		getReq,
+	)
 	require.NoError(t, err)
-	require.Len(t, searchResp.Msg.Books, 1)
-	assert.Empty(t, searchResp.Msg.Books[0].FinishedAt)
+	require.Len(t, searchResp.Books, 1)
+	assert.Empty(t, searchResp.Books[0].FinishedAt)
 }
 
 // TestConnectUpdateFinishedAt_InvalidDate covers the date-parse error path.
@@ -235,11 +256,12 @@ func TestConnectUpdateFinishedAt_InvalidDate(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.UpdateFinishedAtRequest{
+	req := &booksv1.UpdateFinishedAtRequest{
 		BookId:     book.BookID.String(),
 		FinishedAt: []string{"not-a-date"},
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 	_, err := client.UpdateFinishedAt(ctx, req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
@@ -264,14 +286,15 @@ func TestConnectGetLibrary_FormatsPopulated(t *testing.T) {
 	_, err := testApp.Repositories.BookFiles.Insert(ctx, pdfFile)
 	require.NoError(t, err)
 
-	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
-	libReq.Header().Set("Cookie", accessToken.String())
+	libReq := &booksv1.GetLibraryRequest{}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 	resp, err := newBooksTestClient(t).GetLibrary(ctx, libReq)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.Library)
+	require.NotNil(t, resp.Library)
 
 	var found bool
-	for _, ub := range resp.Msg.Library.Wishlist {
+	for _, ub := range resp.Library.Wishlist {
 		if ub.BookId == book.BookID.String() {
 			assert.Contains(t, ub.Formats, models.FileFormatPDF)
 			assert.NotContains(t, ub.Formats, models.FileFormatEPUB)

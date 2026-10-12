@@ -5,308 +5,351 @@
 package booksv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/books/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// KoboServiceName is the fully-qualified name of the KoboService service.
 	KoboServiceName = "books.v1.KoboService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// KoboServiceEnableKoboSyncProcedure is the fully-qualified name of the KoboService's
-	// EnableKoboSync RPC.
+	// KoboServiceEnableKoboSyncProcedure is the procedure name of the KoboService's EnableKoboSync RPC.
 	KoboServiceEnableKoboSyncProcedure = "/books.v1.KoboService/EnableKoboSync"
-	// KoboServiceRegisterKoboDeviceProcedure is the fully-qualified name of the KoboService's
+	// KoboServiceRegisterKoboDeviceProcedure is the procedure name of the KoboService's
 	// RegisterKoboDevice RPC.
 	KoboServiceRegisterKoboDeviceProcedure = "/books.v1.KoboService/RegisterKoboDevice"
-	// KoboServiceListKoboDevicesProcedure is the fully-qualified name of the KoboService's
-	// ListKoboDevices RPC.
+	// KoboServiceListKoboDevicesProcedure is the procedure name of the KoboService's ListKoboDevices
+	// RPC.
 	KoboServiceListKoboDevicesProcedure = "/books.v1.KoboService/ListKoboDevices"
-	// KoboServiceDisconnectKoboDeviceProcedure is the fully-qualified name of the KoboService's
+	// KoboServiceDisconnectKoboDeviceProcedure is the procedure name of the KoboService's
 	// DisconnectKoboDevice RPC.
 	KoboServiceDisconnectKoboDeviceProcedure = "/books.v1.KoboService/DisconnectKoboDevice"
-	// KoboServiceSetKoboDeviceLoggingProcedure is the fully-qualified name of the KoboService's
+	// KoboServiceSetKoboDeviceLoggingProcedure is the procedure name of the KoboService's
 	// SetKoboDeviceLogging RPC.
 	KoboServiceSetKoboDeviceLoggingProcedure = "/books.v1.KoboService/SetKoboDeviceLogging"
-	// KoboServiceGetKoboDeviceLogsProcedure is the fully-qualified name of the KoboService's
+	// KoboServiceGetKoboDeviceLogsProcedure is the procedure name of the KoboService's
 	// GetKoboDeviceLogs RPC.
 	KoboServiceGetKoboDeviceLogsProcedure = "/books.v1.KoboService/GetKoboDeviceLogs"
-	// KoboServiceClearKoboDeviceLogsProcedure is the fully-qualified name of the KoboService's
+	// KoboServiceClearKoboDeviceLogsProcedure is the procedure name of the KoboService's
 	// ClearKoboDeviceLogs RPC.
 	KoboServiceClearKoboDeviceLogsProcedure = "/books.v1.KoboService/ClearKoboDeviceLogs"
-	// KoboServiceListKoboStoreBooksProcedure is the fully-qualified name of the KoboService's
+	// KoboServiceListKoboStoreBooksProcedure is the procedure name of the KoboService's
 	// ListKoboStoreBooks RPC.
 	KoboServiceListKoboStoreBooksProcedure = "/books.v1.KoboService/ListKoboStoreBooks"
 )
 
+var (
+	koboServiceEnableKoboSyncSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_kobo_proto.Services().ByName("KoboService").Methods().ByName("EnableKoboSync"),
+			Procedure:  KoboServiceEnableKoboSyncProcedure,
+		}
+	})
+	koboServiceRegisterKoboDeviceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_kobo_proto.Services().ByName("KoboService").Methods().ByName("RegisterKoboDevice"),
+			Procedure:  KoboServiceRegisterKoboDeviceProcedure,
+		}
+	})
+	koboServiceListKoboDevicesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_kobo_proto.Services().ByName("KoboService").Methods().ByName("ListKoboDevices"),
+			Procedure:  KoboServiceListKoboDevicesProcedure,
+		}
+	})
+	koboServiceDisconnectKoboDeviceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_kobo_proto.Services().ByName("KoboService").Methods().ByName("DisconnectKoboDevice"),
+			Procedure:  KoboServiceDisconnectKoboDeviceProcedure,
+		}
+	})
+	koboServiceSetKoboDeviceLoggingSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_kobo_proto.Services().ByName("KoboService").Methods().ByName("SetKoboDeviceLogging"),
+			Procedure:  KoboServiceSetKoboDeviceLoggingProcedure,
+		}
+	})
+	koboServiceGetKoboDeviceLogsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_kobo_proto.Services().ByName("KoboService").Methods().ByName("GetKoboDeviceLogs"),
+			Procedure:  KoboServiceGetKoboDeviceLogsProcedure,
+		}
+	})
+	koboServiceClearKoboDeviceLogsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_kobo_proto.Services().ByName("KoboService").Methods().ByName("ClearKoboDeviceLogs"),
+			Procedure:  KoboServiceClearKoboDeviceLogsProcedure,
+		}
+	})
+	koboServiceListKoboStoreBooksSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_kobo_proto.Services().ByName("KoboService").Methods().ByName("ListKoboStoreBooks"),
+			Procedure:  KoboServiceListKoboStoreBooksProcedure,
+		}
+	})
+)
+
 // KoboServiceClient is a client for the books.v1.KoboService service.
 type KoboServiceClient interface {
-	EnableKoboSync(context.Context, *connect.Request[v1.EnableKoboSyncRequest]) (*connect.Response[v1.EnableKoboSyncResponse], error)
-	RegisterKoboDevice(context.Context, *connect.Request[v1.RegisterKoboDeviceRequest]) (*connect.Response[v1.RegisterKoboDeviceResponse], error)
-	ListKoboDevices(context.Context, *connect.Request[v1.ListKoboDevicesRequest]) (*connect.Response[v1.ListKoboDevicesResponse], error)
-	DisconnectKoboDevice(context.Context, *connect.Request[v1.DisconnectKoboDeviceRequest]) (*connect.Response[v1.DisconnectKoboDeviceResponse], error)
-	SetKoboDeviceLogging(context.Context, *connect.Request[v1.SetKoboDeviceLoggingRequest]) (*connect.Response[v1.SetKoboDeviceLoggingResponse], error)
-	GetKoboDeviceLogs(context.Context, *connect.Request[v1.GetKoboDeviceLogsRequest]) (*connect.Response[v1.GetKoboDeviceLogsResponse], error)
-	ClearKoboDeviceLogs(context.Context, *connect.Request[v1.ClearKoboDeviceLogsRequest]) (*connect.Response[v1.ClearKoboDeviceLogsResponse], error)
-	ListKoboStoreBooks(context.Context, *connect.Request[v1.ListKoboStoreBooksRequest]) (*connect.Response[v1.ListKoboStoreBooksResponse], error)
+	EnableKoboSync(context.Context, *v1.EnableKoboSyncRequest) (*v1.EnableKoboSyncResponse, error)
+	RegisterKoboDevice(context.Context, *v1.RegisterKoboDeviceRequest) (*v1.RegisterKoboDeviceResponse, error)
+	ListKoboDevices(context.Context, *v1.ListKoboDevicesRequest) (*v1.ListKoboDevicesResponse, error)
+	DisconnectKoboDevice(context.Context, *v1.DisconnectKoboDeviceRequest) (*v1.DisconnectKoboDeviceResponse, error)
+	SetKoboDeviceLogging(context.Context, *v1.SetKoboDeviceLoggingRequest) (*v1.SetKoboDeviceLoggingResponse, error)
+	GetKoboDeviceLogs(context.Context, *v1.GetKoboDeviceLogsRequest) (*v1.GetKoboDeviceLogsResponse, error)
+	ClearKoboDeviceLogs(context.Context, *v1.ClearKoboDeviceLogsRequest) (*v1.ClearKoboDeviceLogsResponse, error)
+	ListKoboStoreBooks(context.Context, *v1.ListKoboStoreBooksRequest) (*v1.ListKoboStoreBooksResponse, error)
 }
 
-// NewKoboServiceClient constructs a client for the books.v1.KoboService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewKoboServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) KoboServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	koboServiceMethods := v1.File_books_v1_kobo_proto.Services().ByName("KoboService").Methods()
-	return &koboServiceClient{
-		enableKoboSync: connect.NewClient[v1.EnableKoboSyncRequest, v1.EnableKoboSyncResponse](
-			httpClient,
-			baseURL+KoboServiceEnableKoboSyncProcedure,
-			connect.WithSchema(koboServiceMethods.ByName("EnableKoboSync")),
-			connect.WithClientOptions(opts...),
-		),
-		registerKoboDevice: connect.NewClient[v1.RegisterKoboDeviceRequest, v1.RegisterKoboDeviceResponse](
-			httpClient,
-			baseURL+KoboServiceRegisterKoboDeviceProcedure,
-			connect.WithSchema(koboServiceMethods.ByName("RegisterKoboDevice")),
-			connect.WithClientOptions(opts...),
-		),
-		listKoboDevices: connect.NewClient[v1.ListKoboDevicesRequest, v1.ListKoboDevicesResponse](
-			httpClient,
-			baseURL+KoboServiceListKoboDevicesProcedure,
-			connect.WithSchema(koboServiceMethods.ByName("ListKoboDevices")),
-			connect.WithClientOptions(opts...),
-		),
-		disconnectKoboDevice: connect.NewClient[v1.DisconnectKoboDeviceRequest, v1.DisconnectKoboDeviceResponse](
-			httpClient,
-			baseURL+KoboServiceDisconnectKoboDeviceProcedure,
-			connect.WithSchema(koboServiceMethods.ByName("DisconnectKoboDevice")),
-			connect.WithClientOptions(opts...),
-		),
-		setKoboDeviceLogging: connect.NewClient[v1.SetKoboDeviceLoggingRequest, v1.SetKoboDeviceLoggingResponse](
-			httpClient,
-			baseURL+KoboServiceSetKoboDeviceLoggingProcedure,
-			connect.WithSchema(koboServiceMethods.ByName("SetKoboDeviceLogging")),
-			connect.WithClientOptions(opts...),
-		),
-		getKoboDeviceLogs: connect.NewClient[v1.GetKoboDeviceLogsRequest, v1.GetKoboDeviceLogsResponse](
-			httpClient,
-			baseURL+KoboServiceGetKoboDeviceLogsProcedure,
-			connect.WithSchema(koboServiceMethods.ByName("GetKoboDeviceLogs")),
-			connect.WithClientOptions(opts...),
-		),
-		clearKoboDeviceLogs: connect.NewClient[v1.ClearKoboDeviceLogsRequest, v1.ClearKoboDeviceLogsResponse](
-			httpClient,
-			baseURL+KoboServiceClearKoboDeviceLogsProcedure,
-			connect.WithSchema(koboServiceMethods.ByName("ClearKoboDeviceLogs")),
-			connect.WithClientOptions(opts...),
-		),
-		listKoboStoreBooks: connect.NewClient[v1.ListKoboStoreBooksRequest, v1.ListKoboStoreBooksResponse](
-			httpClient,
-			baseURL+KoboServiceListKoboStoreBooksProcedure,
-			connect.WithSchema(koboServiceMethods.ByName("ListKoboStoreBooks")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// koboServiceClient implements KoboServiceClient.
-type koboServiceClient struct {
-	enableKoboSync       *connect.Client[v1.EnableKoboSyncRequest, v1.EnableKoboSyncResponse]
-	registerKoboDevice   *connect.Client[v1.RegisterKoboDeviceRequest, v1.RegisterKoboDeviceResponse]
-	listKoboDevices      *connect.Client[v1.ListKoboDevicesRequest, v1.ListKoboDevicesResponse]
-	disconnectKoboDevice *connect.Client[v1.DisconnectKoboDeviceRequest, v1.DisconnectKoboDeviceResponse]
-	setKoboDeviceLogging *connect.Client[v1.SetKoboDeviceLoggingRequest, v1.SetKoboDeviceLoggingResponse]
-	getKoboDeviceLogs    *connect.Client[v1.GetKoboDeviceLogsRequest, v1.GetKoboDeviceLogsResponse]
-	clearKoboDeviceLogs  *connect.Client[v1.ClearKoboDeviceLogsRequest, v1.ClearKoboDeviceLogsResponse]
-	listKoboStoreBooks   *connect.Client[v1.ListKoboStoreBooksRequest, v1.ListKoboStoreBooksResponse]
-}
-
-// EnableKoboSync calls books.v1.KoboService.EnableKoboSync.
-func (c *koboServiceClient) EnableKoboSync(ctx context.Context, req *connect.Request[v1.EnableKoboSyncRequest]) (*connect.Response[v1.EnableKoboSyncResponse], error) {
-	return c.enableKoboSync.CallUnary(ctx, req)
-}
-
-// RegisterKoboDevice calls books.v1.KoboService.RegisterKoboDevice.
-func (c *koboServiceClient) RegisterKoboDevice(ctx context.Context, req *connect.Request[v1.RegisterKoboDeviceRequest]) (*connect.Response[v1.RegisterKoboDeviceResponse], error) {
-	return c.registerKoboDevice.CallUnary(ctx, req)
-}
-
-// ListKoboDevices calls books.v1.KoboService.ListKoboDevices.
-func (c *koboServiceClient) ListKoboDevices(ctx context.Context, req *connect.Request[v1.ListKoboDevicesRequest]) (*connect.Response[v1.ListKoboDevicesResponse], error) {
-	return c.listKoboDevices.CallUnary(ctx, req)
-}
-
-// DisconnectKoboDevice calls books.v1.KoboService.DisconnectKoboDevice.
-func (c *koboServiceClient) DisconnectKoboDevice(ctx context.Context, req *connect.Request[v1.DisconnectKoboDeviceRequest]) (*connect.Response[v1.DisconnectKoboDeviceResponse], error) {
-	return c.disconnectKoboDevice.CallUnary(ctx, req)
-}
-
-// SetKoboDeviceLogging calls books.v1.KoboService.SetKoboDeviceLogging.
-func (c *koboServiceClient) SetKoboDeviceLogging(ctx context.Context, req *connect.Request[v1.SetKoboDeviceLoggingRequest]) (*connect.Response[v1.SetKoboDeviceLoggingResponse], error) {
-	return c.setKoboDeviceLogging.CallUnary(ctx, req)
-}
-
-// GetKoboDeviceLogs calls books.v1.KoboService.GetKoboDeviceLogs.
-func (c *koboServiceClient) GetKoboDeviceLogs(ctx context.Context, req *connect.Request[v1.GetKoboDeviceLogsRequest]) (*connect.Response[v1.GetKoboDeviceLogsResponse], error) {
-	return c.getKoboDeviceLogs.CallUnary(ctx, req)
-}
-
-// ClearKoboDeviceLogs calls books.v1.KoboService.ClearKoboDeviceLogs.
-func (c *koboServiceClient) ClearKoboDeviceLogs(ctx context.Context, req *connect.Request[v1.ClearKoboDeviceLogsRequest]) (*connect.Response[v1.ClearKoboDeviceLogsResponse], error) {
-	return c.clearKoboDeviceLogs.CallUnary(ctx, req)
-}
-
-// ListKoboStoreBooks calls books.v1.KoboService.ListKoboStoreBooks.
-func (c *koboServiceClient) ListKoboStoreBooks(ctx context.Context, req *connect.Request[v1.ListKoboStoreBooksRequest]) (*connect.Response[v1.ListKoboStoreBooksResponse], error) {
-	return c.listKoboStoreBooks.CallUnary(ctx, req)
+// NewKoboServiceClient constructs a client for the books.v1.KoboService service. Multiple service
+// clients may share a single connect.Client.
+func NewKoboServiceClient(client *connect.Client) KoboServiceClient {
+	return &koboServiceClient{client: client}
 }
 
 // KoboServiceHandler is an implementation of the books.v1.KoboService service.
 type KoboServiceHandler interface {
-	EnableKoboSync(context.Context, *connect.Request[v1.EnableKoboSyncRequest]) (*connect.Response[v1.EnableKoboSyncResponse], error)
-	RegisterKoboDevice(context.Context, *connect.Request[v1.RegisterKoboDeviceRequest]) (*connect.Response[v1.RegisterKoboDeviceResponse], error)
-	ListKoboDevices(context.Context, *connect.Request[v1.ListKoboDevicesRequest]) (*connect.Response[v1.ListKoboDevicesResponse], error)
-	DisconnectKoboDevice(context.Context, *connect.Request[v1.DisconnectKoboDeviceRequest]) (*connect.Response[v1.DisconnectKoboDeviceResponse], error)
-	SetKoboDeviceLogging(context.Context, *connect.Request[v1.SetKoboDeviceLoggingRequest]) (*connect.Response[v1.SetKoboDeviceLoggingResponse], error)
-	GetKoboDeviceLogs(context.Context, *connect.Request[v1.GetKoboDeviceLogsRequest]) (*connect.Response[v1.GetKoboDeviceLogsResponse], error)
-	ClearKoboDeviceLogs(context.Context, *connect.Request[v1.ClearKoboDeviceLogsRequest]) (*connect.Response[v1.ClearKoboDeviceLogsResponse], error)
-	ListKoboStoreBooks(context.Context, *connect.Request[v1.ListKoboStoreBooksRequest]) (*connect.Response[v1.ListKoboStoreBooksResponse], error)
+	EnableKoboSync(context.Context, *v1.EnableKoboSyncRequest) (*v1.EnableKoboSyncResponse, error)
+	RegisterKoboDevice(context.Context, *v1.RegisterKoboDeviceRequest) (*v1.RegisterKoboDeviceResponse, error)
+	ListKoboDevices(context.Context, *v1.ListKoboDevicesRequest) (*v1.ListKoboDevicesResponse, error)
+	DisconnectKoboDevice(context.Context, *v1.DisconnectKoboDeviceRequest) (*v1.DisconnectKoboDeviceResponse, error)
+	SetKoboDeviceLogging(context.Context, *v1.SetKoboDeviceLoggingRequest) (*v1.SetKoboDeviceLoggingResponse, error)
+	GetKoboDeviceLogs(context.Context, *v1.GetKoboDeviceLogsRequest) (*v1.GetKoboDeviceLogsResponse, error)
+	ClearKoboDeviceLogs(context.Context, *v1.ClearKoboDeviceLogsRequest) (*v1.ClearKoboDeviceLogsResponse, error)
+	ListKoboStoreBooks(context.Context, *v1.ListKoboStoreBooksRequest) (*v1.ListKoboStoreBooksResponse, error)
 }
 
-// NewKoboServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewKoboServiceHandler(svc KoboServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	koboServiceMethods := v1.File_books_v1_kobo_proto.Services().ByName("KoboService").Methods()
-	koboServiceEnableKoboSyncHandler := connect.NewUnaryHandler(
-		KoboServiceEnableKoboSyncProcedure,
-		svc.EnableKoboSync,
-		connect.WithSchema(koboServiceMethods.ByName("EnableKoboSync")),
-		connect.WithHandlerOptions(opts...),
+// RegisterKoboServiceHandler registers svc as the books.v1.KoboService implementation on server.
+func RegisterKoboServiceHandler(server *connect.Server, svc KoboServiceHandler) {
+	adapter := koboServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: koboServiceEnableKoboSyncSpec(), Handler: adapter.enableKoboSync},
+		connect.Method{Spec: koboServiceRegisterKoboDeviceSpec(), Handler: adapter.registerKoboDevice},
+		connect.Method{Spec: koboServiceListKoboDevicesSpec(), Handler: adapter.listKoboDevices},
+		connect.Method{Spec: koboServiceDisconnectKoboDeviceSpec(), Handler: adapter.disconnectKoboDevice},
+		connect.Method{Spec: koboServiceSetKoboDeviceLoggingSpec(), Handler: adapter.setKoboDeviceLogging},
+		connect.Method{Spec: koboServiceGetKoboDeviceLogsSpec(), Handler: adapter.getKoboDeviceLogs},
+		connect.Method{Spec: koboServiceClearKoboDeviceLogsSpec(), Handler: adapter.clearKoboDeviceLogs},
+		connect.Method{Spec: koboServiceListKoboStoreBooksSpec(), Handler: adapter.listKoboStoreBooks},
 	)
-	koboServiceRegisterKoboDeviceHandler := connect.NewUnaryHandler(
-		KoboServiceRegisterKoboDeviceProcedure,
-		svc.RegisterKoboDevice,
-		connect.WithSchema(koboServiceMethods.ByName("RegisterKoboDevice")),
-		connect.WithHandlerOptions(opts...),
-	)
-	koboServiceListKoboDevicesHandler := connect.NewUnaryHandler(
-		KoboServiceListKoboDevicesProcedure,
-		svc.ListKoboDevices,
-		connect.WithSchema(koboServiceMethods.ByName("ListKoboDevices")),
-		connect.WithHandlerOptions(opts...),
-	)
-	koboServiceDisconnectKoboDeviceHandler := connect.NewUnaryHandler(
-		KoboServiceDisconnectKoboDeviceProcedure,
-		svc.DisconnectKoboDevice,
-		connect.WithSchema(koboServiceMethods.ByName("DisconnectKoboDevice")),
-		connect.WithHandlerOptions(opts...),
-	)
-	koboServiceSetKoboDeviceLoggingHandler := connect.NewUnaryHandler(
-		KoboServiceSetKoboDeviceLoggingProcedure,
-		svc.SetKoboDeviceLogging,
-		connect.WithSchema(koboServiceMethods.ByName("SetKoboDeviceLogging")),
-		connect.WithHandlerOptions(opts...),
-	)
-	koboServiceGetKoboDeviceLogsHandler := connect.NewUnaryHandler(
-		KoboServiceGetKoboDeviceLogsProcedure,
-		svc.GetKoboDeviceLogs,
-		connect.WithSchema(koboServiceMethods.ByName("GetKoboDeviceLogs")),
-		connect.WithHandlerOptions(opts...),
-	)
-	koboServiceClearKoboDeviceLogsHandler := connect.NewUnaryHandler(
-		KoboServiceClearKoboDeviceLogsProcedure,
-		svc.ClearKoboDeviceLogs,
-		connect.WithSchema(koboServiceMethods.ByName("ClearKoboDeviceLogs")),
-		connect.WithHandlerOptions(opts...),
-	)
-	koboServiceListKoboStoreBooksHandler := connect.NewUnaryHandler(
-		KoboServiceListKoboStoreBooksProcedure,
-		svc.ListKoboStoreBooks,
-		connect.WithSchema(koboServiceMethods.ByName("ListKoboStoreBooks")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/books.v1.KoboService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case KoboServiceEnableKoboSyncProcedure:
-			koboServiceEnableKoboSyncHandler.ServeHTTP(w, r)
-		case KoboServiceRegisterKoboDeviceProcedure:
-			koboServiceRegisterKoboDeviceHandler.ServeHTTP(w, r)
-		case KoboServiceListKoboDevicesProcedure:
-			koboServiceListKoboDevicesHandler.ServeHTTP(w, r)
-		case KoboServiceDisconnectKoboDeviceProcedure:
-			koboServiceDisconnectKoboDeviceHandler.ServeHTTP(w, r)
-		case KoboServiceSetKoboDeviceLoggingProcedure:
-			koboServiceSetKoboDeviceLoggingHandler.ServeHTTP(w, r)
-		case KoboServiceGetKoboDeviceLogsProcedure:
-			koboServiceGetKoboDeviceLogsHandler.ServeHTTP(w, r)
-		case KoboServiceClearKoboDeviceLogsProcedure:
-			koboServiceClearKoboDeviceLogsHandler.ServeHTTP(w, r)
-		case KoboServiceListKoboStoreBooksProcedure:
-			koboServiceListKoboStoreBooksHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedKoboServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedKoboServiceHandler struct{}
 
-func (UnimplementedKoboServiceHandler) EnableKoboSync(context.Context, *connect.Request[v1.EnableKoboSyncRequest]) (*connect.Response[v1.EnableKoboSyncResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.KoboService.EnableKoboSync is not implemented"))
+func (UnimplementedKoboServiceHandler) EnableKoboSync(context.Context, *v1.EnableKoboSyncRequest) (*v1.EnableKoboSyncResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.KoboService.EnableKoboSync is not implemented")
 }
 
-func (UnimplementedKoboServiceHandler) RegisterKoboDevice(context.Context, *connect.Request[v1.RegisterKoboDeviceRequest]) (*connect.Response[v1.RegisterKoboDeviceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.KoboService.RegisterKoboDevice is not implemented"))
+func (UnimplementedKoboServiceHandler) RegisterKoboDevice(context.Context, *v1.RegisterKoboDeviceRequest) (*v1.RegisterKoboDeviceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.KoboService.RegisterKoboDevice is not implemented")
 }
 
-func (UnimplementedKoboServiceHandler) ListKoboDevices(context.Context, *connect.Request[v1.ListKoboDevicesRequest]) (*connect.Response[v1.ListKoboDevicesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.KoboService.ListKoboDevices is not implemented"))
+func (UnimplementedKoboServiceHandler) ListKoboDevices(context.Context, *v1.ListKoboDevicesRequest) (*v1.ListKoboDevicesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.KoboService.ListKoboDevices is not implemented")
 }
 
-func (UnimplementedKoboServiceHandler) DisconnectKoboDevice(context.Context, *connect.Request[v1.DisconnectKoboDeviceRequest]) (*connect.Response[v1.DisconnectKoboDeviceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.KoboService.DisconnectKoboDevice is not implemented"))
+func (UnimplementedKoboServiceHandler) DisconnectKoboDevice(context.Context, *v1.DisconnectKoboDeviceRequest) (*v1.DisconnectKoboDeviceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.KoboService.DisconnectKoboDevice is not implemented")
 }
 
-func (UnimplementedKoboServiceHandler) SetKoboDeviceLogging(context.Context, *connect.Request[v1.SetKoboDeviceLoggingRequest]) (*connect.Response[v1.SetKoboDeviceLoggingResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.KoboService.SetKoboDeviceLogging is not implemented"))
+func (UnimplementedKoboServiceHandler) SetKoboDeviceLogging(context.Context, *v1.SetKoboDeviceLoggingRequest) (*v1.SetKoboDeviceLoggingResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.KoboService.SetKoboDeviceLogging is not implemented")
 }
 
-func (UnimplementedKoboServiceHandler) GetKoboDeviceLogs(context.Context, *connect.Request[v1.GetKoboDeviceLogsRequest]) (*connect.Response[v1.GetKoboDeviceLogsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.KoboService.GetKoboDeviceLogs is not implemented"))
+func (UnimplementedKoboServiceHandler) GetKoboDeviceLogs(context.Context, *v1.GetKoboDeviceLogsRequest) (*v1.GetKoboDeviceLogsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.KoboService.GetKoboDeviceLogs is not implemented")
 }
 
-func (UnimplementedKoboServiceHandler) ClearKoboDeviceLogs(context.Context, *connect.Request[v1.ClearKoboDeviceLogsRequest]) (*connect.Response[v1.ClearKoboDeviceLogsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.KoboService.ClearKoboDeviceLogs is not implemented"))
+func (UnimplementedKoboServiceHandler) ClearKoboDeviceLogs(context.Context, *v1.ClearKoboDeviceLogsRequest) (*v1.ClearKoboDeviceLogsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.KoboService.ClearKoboDeviceLogs is not implemented")
 }
 
-func (UnimplementedKoboServiceHandler) ListKoboStoreBooks(context.Context, *connect.Request[v1.ListKoboStoreBooksRequest]) (*connect.Response[v1.ListKoboStoreBooksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.KoboService.ListKoboStoreBooks is not implemented"))
+func (UnimplementedKoboServiceHandler) ListKoboStoreBooks(context.Context, *v1.ListKoboStoreBooksRequest) (*v1.ListKoboStoreBooksResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.KoboService.ListKoboStoreBooks is not implemented")
+}
+
+type koboServiceClient struct {
+	client *connect.Client
+}
+
+func (c *koboServiceClient) EnableKoboSync(ctx context.Context, req *v1.EnableKoboSyncRequest) (*v1.EnableKoboSyncResponse, error) {
+	var res v1.EnableKoboSyncResponse
+	if err := c.client.CallUnary(ctx, koboServiceEnableKoboSyncSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *koboServiceClient) RegisterKoboDevice(ctx context.Context, req *v1.RegisterKoboDeviceRequest) (*v1.RegisterKoboDeviceResponse, error) {
+	var res v1.RegisterKoboDeviceResponse
+	if err := c.client.CallUnary(ctx, koboServiceRegisterKoboDeviceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *koboServiceClient) ListKoboDevices(ctx context.Context, req *v1.ListKoboDevicesRequest) (*v1.ListKoboDevicesResponse, error) {
+	var res v1.ListKoboDevicesResponse
+	if err := c.client.CallUnary(ctx, koboServiceListKoboDevicesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *koboServiceClient) DisconnectKoboDevice(ctx context.Context, req *v1.DisconnectKoboDeviceRequest) (*v1.DisconnectKoboDeviceResponse, error) {
+	var res v1.DisconnectKoboDeviceResponse
+	if err := c.client.CallUnary(ctx, koboServiceDisconnectKoboDeviceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *koboServiceClient) SetKoboDeviceLogging(ctx context.Context, req *v1.SetKoboDeviceLoggingRequest) (*v1.SetKoboDeviceLoggingResponse, error) {
+	var res v1.SetKoboDeviceLoggingResponse
+	if err := c.client.CallUnary(ctx, koboServiceSetKoboDeviceLoggingSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *koboServiceClient) GetKoboDeviceLogs(ctx context.Context, req *v1.GetKoboDeviceLogsRequest) (*v1.GetKoboDeviceLogsResponse, error) {
+	var res v1.GetKoboDeviceLogsResponse
+	if err := c.client.CallUnary(ctx, koboServiceGetKoboDeviceLogsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *koboServiceClient) ClearKoboDeviceLogs(ctx context.Context, req *v1.ClearKoboDeviceLogsRequest) (*v1.ClearKoboDeviceLogsResponse, error) {
+	var res v1.ClearKoboDeviceLogsResponse
+	if err := c.client.CallUnary(ctx, koboServiceClearKoboDeviceLogsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *koboServiceClient) ListKoboStoreBooks(ctx context.Context, req *v1.ListKoboStoreBooksRequest) (*v1.ListKoboStoreBooksResponse, error) {
+	var res v1.ListKoboStoreBooksResponse
+	if err := c.client.CallUnary(ctx, koboServiceListKoboStoreBooksSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type koboServiceHandler struct{ svc KoboServiceHandler }
+
+func (h koboServiceHandler) enableKoboSync(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.EnableKoboSyncRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.EnableKoboSync(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h koboServiceHandler) registerKoboDevice(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RegisterKoboDeviceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RegisterKoboDevice(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h koboServiceHandler) listKoboDevices(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListKoboDevicesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListKoboDevices(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h koboServiceHandler) disconnectKoboDevice(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DisconnectKoboDeviceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DisconnectKoboDevice(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h koboServiceHandler) setKoboDeviceLogging(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetKoboDeviceLoggingRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetKoboDeviceLogging(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h koboServiceHandler) getKoboDeviceLogs(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetKoboDeviceLogsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetKoboDeviceLogs(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h koboServiceHandler) clearKoboDeviceLogs(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ClearKoboDeviceLogsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ClearKoboDeviceLogs(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h koboServiceHandler) listKoboStoreBooks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListKoboStoreBooksRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListKoboStoreBooks(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

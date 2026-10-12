@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -193,14 +193,15 @@ func TestConnectEnableKoboSync_EPUBBook_ReturnsConverting(t *testing.T) {
 
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 
-	req := connect.NewRequest(&booksv1.EnableKoboSyncRequest{
+	req := &booksv1.EnableKoboSyncRequest{
 		BookId: bookID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.EnableKoboSync(ctx, req)
 	require.NoError(t, err)
-	assert.Equal(t, models.FileStatusConverting, resp.Msg.KepubStatus)
+	assert.Equal(t, models.FileStatusConverting, resp.KepubStatus)
 
 	updated, err := testApp.Services.Books.GetUserBook(ctx, userID, bookID)
 	require.NoError(t, err)
@@ -215,14 +216,15 @@ func TestConnectEnableKoboSync_AlreadyReadyKEPUB_ReturnsReady(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 	insertKEPUBRow(t, bookID, userID)
 
-	req := connect.NewRequest(&booksv1.EnableKoboSyncRequest{
+	req := &booksv1.EnableKoboSyncRequest{
 		BookId: bookID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.EnableKoboSync(ctx, req)
 	require.NoError(t, err)
-	assert.Equal(t, models.FileStatusReady, resp.Msg.KepubStatus)
+	assert.Equal(t, models.FileStatusReady, resp.KepubStatus)
 }
 
 // TestConnectEnableKoboSync_StaleReadyKEPUB_ReturnsConverting: a stale KEPUB
@@ -235,14 +237,15 @@ func TestConnectEnableKoboSync_StaleReadyKEPUB_ReturnsConverting(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 	insertStaleKEPUBRow(t, bookID, userID)
 
-	req := connect.NewRequest(&booksv1.EnableKoboSyncRequest{
+	req := &booksv1.EnableKoboSyncRequest{
 		BookId: bookID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.EnableKoboSync(ctx, req)
 	require.NoError(t, err)
-	assert.Equal(t, models.FileStatusConverting, resp.Msg.KepubStatus,
+	assert.Equal(t, models.FileStatusConverting, resp.KepubStatus,
 		"a stale ready KEPUB must re-trigger conversion, not be served as-is")
 }
 
@@ -253,14 +256,15 @@ func TestConnectEnableKoboSync_PDFOnly_ReturnsConverting(t *testing.T) {
 
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatPDF)
 
-	req := connect.NewRequest(&booksv1.EnableKoboSyncRequest{
+	req := &booksv1.EnableKoboSyncRequest{
 		BookId: bookID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.EnableKoboSync(ctx, req)
 	require.NoError(t, err)
-	assert.Equal(t, models.FileStatusConverting, resp.Msg.KepubStatus)
+	assert.Equal(t, models.FileStatusConverting, resp.KepubStatus)
 }
 
 func TestConnectEnableKoboSync_InvalidBookID(t *testing.T) {
@@ -268,8 +272,9 @@ func TestConnectEnableKoboSync_InvalidBookID(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.EnableKoboSyncRequest{BookId: "bad-id"})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.EnableKoboSyncRequest{BookId: "bad-id"}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.EnableKoboSync(ctx, req)
 	require.Error(t, err)
@@ -295,15 +300,14 @@ func TestConnectGetKEPUBStatus_NoFiles(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	req := connect.NewRequest(
-		&booksv1.GetKEPUBStatusRequest{BookId: book.ID.String()},
-	)
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.GetKEPUBStatusRequest{BookId: book.ID.String()}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.GetKEPUBStatus(ctx, req)
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.HasEpub)
-	assert.Empty(t, resp.Msg.KepubStatus)
+	assert.False(t, resp.HasEpub)
+	assert.Empty(t, resp.KepubStatus)
 }
 
 func TestConnectGetKEPUBStatus_EPUBAndKEPUBReady(t *testing.T) {
@@ -314,13 +318,14 @@ func TestConnectGetKEPUBStatus_EPUBAndKEPUBReady(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 	insertKEPUBRow(t, bookID, userID)
 
-	req := connect.NewRequest(&booksv1.GetKEPUBStatusRequest{BookId: bookID.String()})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.GetKEPUBStatusRequest{BookId: bookID.String()}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.GetKEPUBStatus(ctx, req)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.HasEpub)
-	assert.Equal(t, models.FileStatusReady, resp.Msg.KepubStatus)
+	assert.True(t, resp.HasEpub)
+	assert.Equal(t, models.FileStatusReady, resp.KepubStatus)
 }
 
 func TestConnectGetKEPUBStatus_InvalidBookID(t *testing.T) {
@@ -328,8 +333,9 @@ func TestConnectGetKEPUBStatus_InvalidBookID(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.GetKEPUBStatusRequest{BookId: "not-a-uuid"})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.GetKEPUBStatusRequest{BookId: "not-a-uuid"}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.GetKEPUBStatus(ctx, req)
 	require.Error(t, err)
@@ -625,32 +631,34 @@ func TestConnectRegisterKoboDevice_ReturnsDeviceAndToken(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.RegisterKoboDeviceRequest{
+	req := &booksv1.RegisterKoboDeviceRequest{
 		Name:   "My Kobo Touch",
 		Serial: "N418ABCD1234",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := newKoboTestClient(t).RegisterKoboDevice(ctx, req)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.RawToken)
-	require.NotNil(t, resp.Msg.Device)
-	assert.Equal(t, "My Kobo Touch", resp.Msg.Device.Name)
-	assert.Equal(t, "N418ABCD1234", resp.Msg.Device.Serial)
-	assert.NotEmpty(t, resp.Msg.Device.Id)
+	assert.NotEmpty(t, resp.RawToken)
+	require.NotNil(t, resp.Device)
+	assert.Equal(t, "My Kobo Touch", resp.Device.Name)
+	assert.Equal(t, "N418ABCD1234", resp.Device.Serial)
+	assert.NotEmpty(t, resp.Device.Id)
 }
 
 func TestConnectRegisterKoboDevice_TokenLookupAfterRegister(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.RegisterKoboDeviceRequest{Name: "Lookup Test"})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.RegisterKoboDeviceRequest{Name: "Lookup Test"}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := newKoboTestClient(t).RegisterKoboDevice(ctx, req)
 	require.NoError(t, err)
 
-	hash := tokenHash(resp.Msg.RawToken)
+	hash := tokenHash(resp.RawToken)
 	gotUserID, _, err := testApp.Repositories.KoboDevices.GetKoboAuthByTokenHash(
 		ctx, hash,
 	)
@@ -664,18 +672,22 @@ func TestConnectListKoboDevices_ReturnsRegisteredDevices(t *testing.T) {
 	client := newKoboTestClient(t)
 
 	for _, name := range []string{"Kobo 1", "Kobo 2"} {
-		regReq := connect.NewRequest(&booksv1.RegisterKoboDeviceRequest{Name: name})
-		regReq.Header().Set("Cookie", accessToken.String())
-		_, err := client.RegisterKoboDevice(ctx, regReq)
+		regReq := &booksv1.RegisterKoboDeviceRequest{Name: name}
+		_, err := client.RegisterKoboDevice(
+			testhelper.WithCookie(ctx, accessToken.String()),
+			regReq,
+		)
 		require.NoError(t, err)
 	}
 
-	listReq := connect.NewRequest(&booksv1.ListKoboDevicesRequest{})
-	listReq.Header().Set("Cookie", accessToken.String())
-	listResp, err := client.ListKoboDevices(ctx, listReq)
+	listReq := &booksv1.ListKoboDevicesRequest{}
+	listResp, err := client.ListKoboDevices(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		listReq,
+	)
 	require.NoError(t, err)
 	// Other tests may have added more devices for userID.
-	assert.GreaterOrEqual(t, len(listResp.Msg.Devices), 2)
+	assert.GreaterOrEqual(t, len(listResp.Devices), 2)
 }
 
 func TestConnectDisconnectKoboDevice_RemovesDevice(t *testing.T) {
@@ -683,20 +695,22 @@ func TestConnectDisconnectKoboDevice_RemovesDevice(t *testing.T) {
 	defer cancel()
 	client := newKoboTestClient(t)
 
-	regReq := connect.NewRequest(
-		&booksv1.RegisterKoboDeviceRequest{Name: "To Remove"},
+	regReq := &booksv1.RegisterKoboDeviceRequest{Name: "To Remove"}
+	regResp, err := client.RegisterKoboDevice(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		regReq,
 	)
-	regReq.Header().Set("Cookie", accessToken.String())
-	regResp, err := client.RegisterKoboDevice(ctx, regReq)
 	require.NoError(t, err)
-	deviceID := regResp.Msg.Device.Id
+	deviceID := regResp.Device.Id
 
-	discReq := connect.NewRequest(&booksv1.DisconnectKoboDeviceRequest{Id: deviceID})
-	discReq.Header().Set("Cookie", accessToken.String())
-	_, err = client.DisconnectKoboDevice(ctx, discReq)
+	discReq := &booksv1.DisconnectKoboDeviceRequest{Id: deviceID}
+	_, err = client.DisconnectKoboDevice(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		discReq,
+	)
 	require.NoError(t, err)
 
-	hash := tokenHash(regResp.Msg.RawToken)
+	hash := tokenHash(regResp.RawToken)
 	_, _, err = testApp.Repositories.KoboDevices.GetKoboAuthByTokenHash(ctx, hash)
 	assert.True(t, errors.Is(err, database.ErrResourceNotFound),
 		"token must be revoked after disconnect")
@@ -706,8 +720,9 @@ func TestConnectDisconnectKoboDevice_InvalidID(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.DisconnectKoboDeviceRequest{Id: "not-a-uuid"})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.DisconnectKoboDeviceRequest{Id: "not-a-uuid"}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := newKoboTestClient(t).DisconnectKoboDevice(ctx, req)
 	require.Error(t, err)
@@ -720,10 +735,11 @@ func TestConnectDisconnectKoboDevice_NotFound(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.DisconnectKoboDeviceRequest{
+	req := &booksv1.DisconnectKoboDeviceRequest{
 		Id: uuid.NewString(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := newKoboTestClient(t).DisconnectKoboDevice(ctx, req)
 	require.Error(t, err)
@@ -739,14 +755,15 @@ func TestConnectRequestKEPUBConversion_PDFOnly_ReturnsConverting(t *testing.T) {
 
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatPDF)
 
-	req := connect.NewRequest(&booksv1.RequestKEPUBConversionRequest{
+	req := &booksv1.RequestKEPUBConversionRequest{
 		BookId: bookID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.RequestKEPUBConversion(ctx, req)
 	require.NoError(t, err)
-	assert.Equal(t, models.FileStatusConverting, resp.Msg.KepubStatus)
+	assert.Equal(t, models.FileStatusConverting, resp.KepubStatus)
 
 	// Must not set kobo-sync: this is a pure preview trigger.
 	ub, err := testApp.Services.Books.GetUserBook(ctx, userID, bookID)
@@ -763,14 +780,15 @@ func TestConnectRequestKEPUBConversion_AlreadyReady_ReturnsReady(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 	insertKEPUBRow(t, bookID, userID)
 
-	req := connect.NewRequest(&booksv1.RequestKEPUBConversionRequest{
+	req := &booksv1.RequestKEPUBConversionRequest{
 		BookId: bookID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.RequestKEPUBConversion(ctx, req)
 	require.NoError(t, err)
-	assert.Equal(t, models.FileStatusReady, resp.Msg.KepubStatus)
+	assert.Equal(t, models.FileStatusReady, resp.KepubStatus)
 }
 
 // TestConnectRequestKEPUBConversion_StaleReadyKEPUB_ReturnsConverting: preview
@@ -783,14 +801,15 @@ func TestConnectRequestKEPUBConversion_StaleReadyKEPUB_ReturnsConverting(t *test
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 	insertStaleKEPUBRow(t, bookID, userID)
 
-	req := connect.NewRequest(&booksv1.RequestKEPUBConversionRequest{
+	req := &booksv1.RequestKEPUBConversionRequest{
 		BookId: bookID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.RequestKEPUBConversion(ctx, req)
 	require.NoError(t, err)
-	assert.Equal(t, models.FileStatusConverting, resp.Msg.KepubStatus,
+	assert.Equal(t, models.FileStatusConverting, resp.KepubStatus,
 		"a stale ready KEPUB must re-trigger conversion, not be served as-is")
 }
 
@@ -808,15 +827,16 @@ func TestConnectRequestKEPUBConversion_PDFWithKoboFormatPDFTag_StillConverts(
 	)
 	require.NoError(t, err)
 
-	req := connect.NewRequest(&booksv1.RequestKEPUBConversionRequest{
+	req := &booksv1.RequestKEPUBConversionRequest{
 		BookId: bookID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	// Preview converts even when the sync preference is raw PDF.
 	resp, err := client.RequestKEPUBConversion(ctx, req)
 	require.NoError(t, err)
-	assert.Equal(t, models.FileStatusConverting, resp.Msg.KepubStatus)
+	assert.Equal(t, models.FileStatusConverting, resp.KepubStatus)
 }
 
 func TestConnectRequestKEPUBConversion_InvalidBookID(t *testing.T) {
@@ -824,10 +844,9 @@ func TestConnectRequestKEPUBConversion_InvalidBookID(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(
-		&booksv1.RequestKEPUBConversionRequest{BookId: "bad-id"},
-	)
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.RequestKEPUBConversionRequest{BookId: "bad-id"}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.RequestKEPUBConversion(ctx, req)
 	require.Error(t, err)

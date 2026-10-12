@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -202,13 +202,14 @@ func callDismissSecurityAlert(
 	alertType observabilityv1.SecurityAlertType,
 	alertNumber int64,
 	reason string,
-) (*connect.Response[observabilityv1.DismissSecurityAlertResponse], error) {
+) (*observabilityv1.DismissSecurityAlertResponse, error) {
 	t.Helper()
-	req := connect.NewRequest(&observabilityv1.DismissSecurityAlertRequest{
+	req := &observabilityv1.DismissSecurityAlertRequest{
 		AlertType:   alertType,
 		AlertNumber: alertNumber,
 		Reason:      reason,
-	})
-	setCookieOnRequest(req, accessToken)
-	return observabilityClient(t).DismissSecurityAlert(context.Background(), req)
+	}
+	return observabilityClient(
+		t,
+	).DismissSecurityAlert(withCookies(context.Background(), accessToken), req)
 }

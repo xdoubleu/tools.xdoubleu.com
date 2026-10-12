@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -112,12 +112,12 @@ func TestObservabilityGetFailingPullRequests_AsAdmin(t *testing.T) {
 
 	resp, err := callFailingPullRequests(t)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Configured)
-	require.Len(t, resp.Msg.PullRequests, 1)
-	assert.Equal(t, int64(3), resp.Msg.PullRequests[0].Number)
-	assert.Equal(t, "alice", resp.Msg.PullRequests[0].Author)
-	require.Len(t, resp.Msg.PullRequests[0].FailingChecks, 1)
-	assert.Equal(t, int32(1), resp.Msg.FailingCount)
+	assert.True(t, resp.Configured)
+	require.Len(t, resp.PullRequests, 1)
+	assert.Equal(t, int64(3), resp.PullRequests[0].Number)
+	assert.Equal(t, "alice", resp.PullRequests[0].Author)
+	require.Len(t, resp.PullRequests[0].FailingChecks, 1)
+	assert.Equal(t, int32(1), resp.FailingCount)
 }
 
 func TestObservabilityGetFailingPullRequests_NotConfigured(t *testing.T) {
@@ -131,8 +131,8 @@ func TestObservabilityGetFailingPullRequests_NotConfigured(t *testing.T) {
 
 	resp, err := callFailingPullRequests(t)
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.PullRequests)
+	assert.False(t, resp.Configured)
+	assert.Empty(t, resp.PullRequests)
 }
 
 func TestObservabilityGetFailingPullRequests_UpstreamError(t *testing.T) {
@@ -150,8 +150,8 @@ func TestObservabilityGetFailingPullRequests_UpstreamError(t *testing.T) {
 
 	resp, err := callFailingPullRequests(t)
 	require.NoError(t, err) // degraded, never a failed response
-	assert.True(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.PullRequests)
+	assert.True(t, resp.Configured)
+	assert.Empty(t, resp.PullRequests)
 }
 
 func TestObservabilityGetFailingPullRequests_NonAdmin(t *testing.T) {
@@ -162,11 +162,12 @@ func TestObservabilityGetFailingPullRequests_NonAdmin(t *testing.T) {
 
 func callFailingPullRequests(
 	t *testing.T,
-) (*connect.Response[observabilityv1.GetFailingPullRequestsResponse], error) {
+) (*observabilityv1.GetFailingPullRequestsResponse, error) {
 	t.Helper()
-	req := connect.NewRequest(&observabilityv1.GetFailingPullRequestsRequest{})
-	setCookieOnRequest(req, accessToken)
-	return observabilityClient(t).GetFailingPullRequests(context.Background(), req)
+	req := &observabilityv1.GetFailingPullRequestsRequest{}
+	return observabilityClient(
+		t,
+	).GetFailingPullRequests(withCookies(context.Background(), accessToken), req)
 }
 
 // --- Workflow runs ---
@@ -203,10 +204,10 @@ func TestObservabilityGetWorkflowRuns_AsAdmin(t *testing.T) {
 
 	resp, err := callWorkflowRuns(t)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Configured)
-	require.Len(t, resp.Msg.Runs, 1)
-	assert.Equal(t, "pull_request", resp.Msg.Runs[0].Event)
-	assert.Equal(t, int64(5*60*1000), resp.Msg.Runs[0].DurationMs)
+	assert.True(t, resp.Configured)
+	require.Len(t, resp.Runs, 1)
+	assert.Equal(t, "pull_request", resp.Runs[0].Event)
+	assert.Equal(t, int64(5*60*1000), resp.Runs[0].DurationMs)
 }
 
 func TestObservabilityGetWorkflowRuns_MainFailureIncludesFailedJobs(t *testing.T) {
@@ -258,11 +259,11 @@ func TestObservabilityGetWorkflowRuns_MainFailureIncludesFailedJobs(t *testing.T
 
 	resp, err := callWorkflowRuns(t)
 	require.NoError(t, err)
-	byID := make(map[int64]*observabilityv1.WorkflowRun, len(resp.Msg.Runs))
-	for _, run := range resp.Msg.Runs {
+	byID := make(map[int64]*observabilityv1.WorkflowRun, len(resp.Runs))
+	for _, run := range resp.Runs {
 		byID[run.Id] = run
 	}
-	require.Len(t, resp.Msg.Runs, 3)
+	require.Len(t, resp.Runs, 3)
 	assert.Empty(t, byID[3].FailedJobs, "non-main branch must not report failed jobs")
 	assert.Empty(t, byID[4].FailedJobs, "non-failing run must not report failed jobs")
 	assert.Equal(t, []string{"Deploy to Hetzner via Kamal"}, byID[2].FailedJobs)
@@ -305,8 +306,8 @@ func TestObservabilityGetWorkflowRuns_MainFailureJobsFetchError(t *testing.T) {
 
 	resp, err := callWorkflowRuns(t)
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.Runs, 1)
-	assert.Empty(t, resp.Msg.Runs[0].FailedJobs)
+	require.Len(t, resp.Runs, 1)
+	assert.Empty(t, resp.Runs[0].FailedJobs)
 }
 
 func TestObservabilityGetWorkflowRuns_NotConfigured(t *testing.T) {
@@ -320,8 +321,8 @@ func TestObservabilityGetWorkflowRuns_NotConfigured(t *testing.T) {
 
 	resp, err := callWorkflowRuns(t)
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.Runs)
+	assert.False(t, resp.Configured)
+	assert.Empty(t, resp.Runs)
 }
 
 func TestObservabilityGetWorkflowRuns_UpstreamError(t *testing.T) {
@@ -339,8 +340,8 @@ func TestObservabilityGetWorkflowRuns_UpstreamError(t *testing.T) {
 
 	resp, err := callWorkflowRuns(t)
 	require.NoError(t, err) // degraded, never a failed response
-	assert.True(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.Runs)
+	assert.True(t, resp.Configured)
+	assert.Empty(t, resp.Runs)
 }
 
 func TestObservabilityGetWorkflowRuns_NonAdmin(t *testing.T) {
@@ -351,11 +352,12 @@ func TestObservabilityGetWorkflowRuns_NonAdmin(t *testing.T) {
 
 func callWorkflowRuns(
 	t *testing.T,
-) (*connect.Response[observabilityv1.GetWorkflowRunsResponse], error) {
+) (*observabilityv1.GetWorkflowRunsResponse, error) {
 	t.Helper()
-	req := connect.NewRequest(&observabilityv1.GetWorkflowRunsRequest{})
-	setCookieOnRequest(req, accessToken)
-	return observabilityClient(t).GetWorkflowRuns(context.Background(), req)
+	req := &observabilityv1.GetWorkflowRunsRequest{}
+	return observabilityClient(
+		t,
+	).GetWorkflowRuns(withCookies(context.Background(), accessToken), req)
 }
 
 // --- Security alerts ---
@@ -405,34 +407,34 @@ func TestObservabilityGetSecurityAlerts_AsAdmin(t *testing.T) {
 
 	resp, err := callSecurityAlerts(t)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Configured)
-	require.Len(t, resp.Msg.Alerts, 3)
-	assert.Equal(t, int64(83), resp.Msg.Alerts[0].Number)
-	assert.Equal(t, "otel", resp.Msg.Alerts[0].PackageName)
-	assert.Equal(t, "medium", resp.Msg.Alerts[0].Severity)
+	assert.True(t, resp.Configured)
+	require.Len(t, resp.Alerts, 3)
+	assert.Equal(t, int64(83), resp.Alerts[0].Number)
+	assert.Equal(t, "otel", resp.Alerts[0].PackageName)
+	assert.Equal(t, "medium", resp.Alerts[0].Severity)
 	assert.Equal(
 		t,
 		observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_DEPENDABOT,
-		resp.Msg.Alerts[0].AlertType,
+		resp.Alerts[0].AlertType,
 	)
 
-	assert.Equal(t, int64(12), resp.Msg.Alerts[1].Number)
-	assert.Equal(t, "go/sql-injection", resp.Msg.Alerts[1].RuleId)
-	assert.Equal(t, "api/foo.go", resp.Msg.Alerts[1].FilePath)
-	assert.Equal(t, int32(42), resp.Msg.Alerts[1].Line)
+	assert.Equal(t, int64(12), resp.Alerts[1].Number)
+	assert.Equal(t, "go/sql-injection", resp.Alerts[1].RuleId)
+	assert.Equal(t, "api/foo.go", resp.Alerts[1].FilePath)
+	assert.Equal(t, int32(42), resp.Alerts[1].Line)
 	assert.Equal(
 		t,
 		observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_CODE_SCANNING,
-		resp.Msg.Alerts[1].AlertType,
+		resp.Alerts[1].AlertType,
 	)
-	assert.Equal(t, int64(7), resp.Msg.Alerts[2].Number)
-	assert.Equal(t, "AWS Access Key", resp.Msg.Alerts[2].SecretType)
+	assert.Equal(t, int64(7), resp.Alerts[2].Number)
+	assert.Equal(t, "AWS Access Key", resp.Alerts[2].SecretType)
 	assert.Equal(
 		t,
 		observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_SECRET_SCANNING,
-		resp.Msg.Alerts[2].AlertType,
+		resp.Alerts[2].AlertType,
 	)
-	assert.Equal(t, int32(3), resp.Msg.AlertCount)
+	assert.Equal(t, int32(3), resp.AlertCount)
 }
 
 func TestObservabilityGetSecurityAlerts_NotConfigured(t *testing.T) {
@@ -446,8 +448,8 @@ func TestObservabilityGetSecurityAlerts_NotConfigured(t *testing.T) {
 
 	resp, err := callSecurityAlerts(t)
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.Alerts)
+	assert.False(t, resp.Configured)
+	assert.Empty(t, resp.Alerts)
 }
 
 func TestObservabilityGetSecurityAlerts_UpstreamError(t *testing.T) {
@@ -465,8 +467,8 @@ func TestObservabilityGetSecurityAlerts_UpstreamError(t *testing.T) {
 
 	resp, err := callSecurityAlerts(t)
 	require.NoError(t, err) // degraded, never a failed response
-	assert.True(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.Alerts)
+	assert.True(t, resp.Configured)
+	assert.Empty(t, resp.Alerts)
 }
 
 func TestObservabilityGetSecurityAlerts_NonAdmin(t *testing.T) {
@@ -477,11 +479,12 @@ func TestObservabilityGetSecurityAlerts_NonAdmin(t *testing.T) {
 
 func callSecurityAlerts(
 	t *testing.T,
-) (*connect.Response[observabilityv1.GetSecurityAlertsResponse], error) {
+) (*observabilityv1.GetSecurityAlertsResponse, error) {
 	t.Helper()
-	req := connect.NewRequest(&observabilityv1.GetSecurityAlertsRequest{})
-	setCookieOnRequest(req, accessToken)
-	return observabilityClient(t).GetSecurityAlerts(context.Background(), req)
+	req := &observabilityv1.GetSecurityAlertsRequest{}
+	return observabilityClient(
+		t,
+	).GetSecurityAlerts(withCookies(context.Background(), accessToken), req)
 }
 
 // --- Sentry ---
@@ -503,11 +506,11 @@ func TestObservabilityGetSentryIssues_AsAdmin(t *testing.T) {
 
 	resp, err := callSentry(t)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Configured)
-	require.Len(t, resp.Msg.Issues, 1)
-	assert.Equal(t, "42", resp.Msg.Issues[0].Id)
-	assert.Equal(t, int64(9), resp.Msg.Issues[0].Count)
-	assert.Equal(t, int32(1), resp.Msg.UnresolvedCount)
+	assert.True(t, resp.Configured)
+	require.Len(t, resp.Issues, 1)
+	assert.Equal(t, "42", resp.Issues[0].Id)
+	assert.Equal(t, int64(9), resp.Issues[0].Count)
+	assert.Equal(t, int32(1), resp.UnresolvedCount)
 }
 
 func TestObservabilityGetSentryIssues_NotConfigured(t *testing.T) {
@@ -521,8 +524,8 @@ func TestObservabilityGetSentryIssues_NotConfigured(t *testing.T) {
 
 	resp, err := callSentry(t)
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.Issues)
+	assert.False(t, resp.Configured)
+	assert.Empty(t, resp.Issues)
 }
 
 func TestObservabilityGetSentryIssues_NonAdmin(t *testing.T) {
@@ -533,11 +536,12 @@ func TestObservabilityGetSentryIssues_NonAdmin(t *testing.T) {
 
 func callSentry(
 	t *testing.T,
-) (*connect.Response[observabilityv1.GetSentryIssuesResponse], error) {
+) (*observabilityv1.GetSentryIssuesResponse, error) {
 	t.Helper()
-	req := connect.NewRequest(&observabilityv1.GetSentryIssuesRequest{})
-	setCookieOnRequest(req, accessToken)
-	return observabilityClient(t).GetSentryIssues(context.Background(), req)
+	req := &observabilityv1.GetSentryIssuesRequest{}
+	return observabilityClient(
+		t,
+	).GetSentryIssues(withCookies(context.Background(), accessToken), req)
 }
 
 func TestObservabilityResolveSentryIssue_AsAdmin(t *testing.T) {
@@ -620,13 +624,14 @@ func TestObservabilityResolveSentryIssue_NonAdmin(t *testing.T) {
 
 func callResolveSentryIssue(
 	t *testing.T,
-) (*connect.Response[observabilityv1.ResolveSentryIssueResponse], error) {
+) (*observabilityv1.ResolveSentryIssueResponse, error) {
 	t.Helper()
-	req := connect.NewRequest(&observabilityv1.ResolveSentryIssueRequest{
+	req := &observabilityv1.ResolveSentryIssueRequest{
 		IssueId: "42",
-	})
-	setCookieOnRequest(req, accessToken)
-	return observabilityClient(t).ResolveSentryIssue(context.Background(), req)
+	}
+	return observabilityClient(
+		t,
+	).ResolveSentryIssue(withCookies(context.Background(), accessToken), req)
 }
 
 // --- Health overview (mixed states) ---
@@ -644,23 +649,21 @@ func TestObservabilityGetHealthOverview_AsAdmin(t *testing.T) {
 		testConfigJSON(t, map[string]any{"org": "org", "projects": []string{"proj"}}),
 	)
 
-	req := connect.NewRequest(&observabilityv1.GetHealthOverviewRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := observabilityClient(t).GetHealthOverview(
-		context.Background(), req,
-	)
+	req := &observabilityv1.GetHealthOverviewRequest{}
+	resp, err := observabilityClient(
+		t,
+	).GetHealthOverview(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Sentry.Configured) // configured, upstream failed
-	assert.Empty(t, resp.Msg.Sentry.Issues)
+	assert.True(t, resp.Sentry.Configured) // configured, upstream failed
+	assert.Empty(t, resp.Sentry.Issues)
 }
 
 func TestObservabilityGetHealthOverview_NonAdmin(t *testing.T) {
 	demoteToUser(t)
-	req := connect.NewRequest(&observabilityv1.GetHealthOverviewRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).GetHealthOverview(
-		context.Background(), req,
-	)
+	req := &observabilityv1.GetHealthOverviewRequest{}
+	_, err := observabilityClient(
+		t,
+	).GetHealthOverview(withCookies(context.Background(), accessToken), req)
 	requirePermissionDenied(t, err)
 }
 
@@ -694,11 +697,11 @@ func TestObservabilityGetSlowTransactions_AsAdmin(t *testing.T) {
 
 	resp, err := callSlowTransactions(t)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Configured)
-	require.Len(t, resp.Msg.Current, 2)
-	assert.Equal(t, "GET /api/slow", resp.Msg.Current[0].Transaction, "slowest first")
-	assert.Equal(t, "GET /api/fast", resp.Msg.Current[1].Transaction)
-	assert.Empty(t, resp.Msg.Trending, "no history seeded yet")
+	assert.True(t, resp.Configured)
+	require.Len(t, resp.Current, 2)
+	assert.Equal(t, "GET /api/slow", resp.Current[0].Transaction, "slowest first")
+	assert.Equal(t, "GET /api/fast", resp.Current[1].Transaction)
+	assert.Empty(t, resp.Trending, "no history seeded yet")
 }
 
 func TestObservabilityGetSlowTransactions_NotConfiguredStillReportsTrending(
@@ -718,12 +721,12 @@ func TestObservabilityGetSlowTransactions_NotConfiguredStillReportsTrending(
 
 	resp, err := callSlowTransactions(t)
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.Current)
-	require.Len(t, resp.Msg.Trending, 1,
+	assert.False(t, resp.Configured)
+	assert.Empty(t, resp.Current)
+	require.Len(t, resp.Trending, 1,
 		"trending must still be reported when Sentry itself is unconfigured")
-	assert.Equal(t, "GET /api/regressed", resp.Msg.Trending[0].Transaction)
-	assert.InEpsilon(t, 2.0, resp.Msg.Trending[0].PctChange, 0.001)
+	assert.Equal(t, "GET /api/regressed", resp.Trending[0].Transaction)
+	assert.InEpsilon(t, 2.0, resp.Trending[0].PctChange, 0.001)
 }
 
 func TestObservabilityGetSlowTransactions_UpstreamError(t *testing.T) {
@@ -767,11 +770,12 @@ func seedTransactionLatencyDay(
 
 func callSlowTransactions(
 	t *testing.T,
-) (*connect.Response[observabilityv1.GetSlowTransactionsResponse], error) {
+) (*observabilityv1.GetSlowTransactionsResponse, error) {
 	t.Helper()
-	req := connect.NewRequest(&observabilityv1.GetSlowTransactionsRequest{})
-	setCookieOnRequest(req, accessToken)
-	return observabilityClient(t).GetSlowTransactions(context.Background(), req)
+	req := &observabilityv1.GetSlowTransactionsRequest{}
+	return observabilityClient(
+		t,
+	).GetSlowTransactions(withCookies(context.Background(), accessToken), req)
 }
 
 // --- Logs ---
@@ -789,18 +793,20 @@ func TestObservabilityGetLogs_AsAdmin(t *testing.T) {
 	`)
 	require.NoError(t, err)
 
-	req := connect.NewRequest(&observabilityv1.GetLogsRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := observabilityClient(t).GetLogs(context.Background(), req)
+	req := &observabilityv1.GetLogsRequest{}
+	resp, err := observabilityClient(
+		t,
+	).GetLogs(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.Entries, 1)
-	assert.Equal(t, "hello from a test", resp.Msg.Entries[0].Message)
+	require.Len(t, resp.Entries, 1)
+	assert.Equal(t, "hello from a test", resp.Entries[0].Message)
 }
 
 func TestObservabilityGetLogs_NonAdmin(t *testing.T) {
 	demoteToUser(t)
-	req := connect.NewRequest(&observabilityv1.GetLogsRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).GetLogs(context.Background(), req)
+	req := &observabilityv1.GetLogsRequest{}
+	_, err := observabilityClient(
+		t,
+	).GetLogs(withCookies(context.Background(), accessToken), req)
 	requirePermissionDenied(t, err)
 }

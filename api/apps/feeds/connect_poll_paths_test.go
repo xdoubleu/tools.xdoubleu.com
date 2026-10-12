@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -28,13 +27,13 @@ func TestPollScrapeFeed_PollPaths(t *testing.T) {
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url:  indexURL,
 			Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	feedID := created.Msg.Feed.Id
+	feedID := created.Feed.Id
 	waitForFeedImport(t, client, feedID)
 
 	// Fetch error: the poll records the failure on the feed and returns.

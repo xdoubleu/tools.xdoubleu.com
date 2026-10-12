@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,16 +40,14 @@ func TestCreateMeal_ClientIDRepeatIsIdempotent(t *testing.T) {
 	id := uuid.NewString()
 
 	for range 2 {
-		_, err := client.CreateMeal(userCtx(), connect.NewRequest(customMeal(planID, id)))
+		_, err := client.CreateMeal(userCtx(), customMeal(planID, id))
 		require.NoError(t, err)
 	}
 
-	got, err := client.GetPlan(userCtx(), connect.NewRequest(
-		&mealplansv1.GetPlanRequest{Id: planID},
-	))
+	got, err := client.GetPlan(userCtx(), &mealplansv1.GetPlanRequest{Id: planID})
 	require.NoError(t, err)
-	require.Len(t, got.Msg.Plan.Meals, 1)
-	assert.Equal(t, id, got.Msg.Plan.Meals[0].Id)
+	require.Len(t, got.Plan.Meals, 1)
+	assert.Equal(t, id, got.Plan.Meals[0].Id)
 }
 
 func TestCreateMeal_ClientIDReplayKeepsLaterEdits(t *testing.T) {
@@ -57,23 +55,21 @@ func TestCreateMeal_ClientIDReplayKeepsLaterEdits(t *testing.T) {
 	planID := createPlanInDB(t, "Offline Edit Plan")
 	id := uuid.NewString()
 
-	_, err := client.CreateMeal(userCtx(), connect.NewRequest(customMeal(planID, id)))
+	_, err := client.CreateMeal(userCtx(), customMeal(planID, id))
 	require.NoError(t, err)
 	update := &mealplansv1.UpdateMealRequest{
 		PlanId: planID, MealId: id, CustomName: "Renamed", Servings: 4,
 	}
-	_, err = client.UpdateMeal(userCtx(), connect.NewRequest(update))
+	_, err = client.UpdateMeal(userCtx(), update)
 	require.NoError(t, err)
-	_, err = client.CreateMeal(userCtx(), connect.NewRequest(customMeal(planID, id)))
+	_, err = client.CreateMeal(userCtx(), customMeal(planID, id))
 	require.NoError(t, err)
 
-	got, err := client.GetPlan(userCtx(), connect.NewRequest(
-		&mealplansv1.GetPlanRequest{Id: planID},
-	))
+	got, err := client.GetPlan(userCtx(), &mealplansv1.GetPlanRequest{Id: planID})
 	require.NoError(t, err)
-	require.Len(t, got.Msg.Plan.Meals, 1)
-	assert.Equal(t, "Renamed", got.Msg.Plan.Meals[0].CustomName)
-	assert.Equal(t, int32(4), got.Msg.Plan.Meals[0].Servings)
+	require.Len(t, got.Plan.Meals, 1)
+	assert.Equal(t, "Renamed", got.Plan.Meals[0].CustomName)
+	assert.Equal(t, int32(4), got.Plan.Meals[0].Servings)
 }
 
 func TestCreateMeal_ClientIDOnAnotherPlan(t *testing.T) {
@@ -82,9 +78,9 @@ func TestCreateMeal_ClientIDOnAnotherPlan(t *testing.T) {
 	second := createPlanInDB(t, "Second Plan")
 	id := uuid.NewString()
 
-	_, err := client.CreateMeal(userCtx(), connect.NewRequest(customMeal(first, id)))
+	_, err := client.CreateMeal(userCtx(), customMeal(first, id))
 	require.NoError(t, err)
-	_, err = client.CreateMeal(userCtx(), connect.NewRequest(customMeal(second, id)))
+	_, err = client.CreateMeal(userCtx(), customMeal(second, id))
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
 }
@@ -93,7 +89,7 @@ func TestCreateMeal_InvalidClientID(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	planID := createPlanInDB(t, "Invalid ID Plan")
 
-	_, err := client.CreateMeal(userCtx(), connect.NewRequest(customMeal(planID, "nope")))
+	_, err := client.CreateMeal(userCtx(), customMeal(planID, "nope"))
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }

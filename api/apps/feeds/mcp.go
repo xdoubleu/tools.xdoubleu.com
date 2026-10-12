@@ -3,7 +3,6 @@ package feeds
 import (
 	"context"
 
-	"connectrpc.com/connect"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
@@ -54,9 +53,7 @@ type mcpGetItemArgs struct {
 func (h *feedsConnectHandler) mcpListFeeds(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListFeeds(ctx, connect.NewRequest(
-		&feedsv1.ListFeedsRequest{},
-	)))
+	return mcptools.Unwrap(h.ListFeeds(ctx, &feedsv1.ListFeedsRequest{}))
 }
 
 func (h *feedsConnectHandler) mcpListItems(
@@ -71,29 +68,27 @@ func (h *feedsConnectHandler) mcpListItems(
 	if args.FeedID != "" {
 		req.FeedId = proto.String(args.FeedID)
 	}
-	return mcptools.Unwrap(h.ListFeedItems(ctx, connect.NewRequest(req)))
+	return mcptools.Unwrap(h.ListFeedItems(ctx, req))
 }
 
 func (h *feedsConnectHandler) mcpGetItem(
 	ctx context.Context, args mcpGetItemArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetFeedItem(ctx, connect.NewRequest(
-		&feedsv1.GetFeedItemRequest{ItemId: args.ItemID},
-	)))
+	return mcptools.Unwrap(
+		h.GetFeedItem(ctx, &feedsv1.GetFeedItemRequest{ItemId: args.ItemID}),
+	)
 }
 
 func (h *feedsConnectHandler) mcpListFilterRules(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListFilterRules(ctx, connect.NewRequest(
-		&feedsv1.ListFilterRulesRequest{},
-	)))
+	return mcptools.Unwrap(h.ListFilterRules(ctx, &feedsv1.ListFilterRulesRequest{}))
 }
 
 func (h *feedsConnectHandler) mcpGetFilterRuleSuggestions(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetFilterRuleSuggestions(ctx, connect.NewRequest(
-		&feedsv1.GetFilterRuleSuggestionsRequest{},
-	)))
+	return mcptools.Unwrap(
+		h.GetFilterRuleSuggestions(ctx, &feedsv1.GetFilterRuleSuggestionsRequest{}),
+	)
 }

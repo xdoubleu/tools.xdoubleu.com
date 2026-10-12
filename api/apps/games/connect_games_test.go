@@ -7,7 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,11 +20,12 @@ func newGamesTestClient(t *testing.T) gamesv1connect.GamesServiceClient {
 	t.Helper()
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
-	return gamesv1connect.NewGamesServiceClient(
+	return gamesv1connect.NewGamesServiceClient(connect.NewClient(connecthttp.NewTransport(
 		http.DefaultClient,
 		ts.URL,
-		connect.WithHTTPGet(),
-	)
+		connecthttp.WithReadMaxBytes(0),
+		connecthttp.WithHTTPGet(),
+	)))
 }
 
 func TestConnectGetSteam(t *testing.T) {
@@ -31,17 +33,16 @@ func TestConnectGetSteam(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(
-		&gamesv1.GetSteamRequest{},
-	)
-	req.Header().Set("Cookie", accessToken.String())
+	req := &gamesv1.GetSteamRequest{}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.GetSteam(ctx, req)
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	if resp.Msg.Steam != nil {
-		assert.GreaterOrEqual(t, int(resp.Msg.Steam.TotalBacklog), 0)
-		assert.NotNil(t, resp.Msg.Steam.Distribution)
+	if resp.Steam != nil {
+		assert.GreaterOrEqual(t, int(resp.Steam.TotalBacklog), 0)
+		assert.NotNil(t, resp.Steam.Distribution)
 	}
 }
 
@@ -50,10 +51,11 @@ func TestConnectGetSteamGame(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&gamesv1.GetSteamGameRequest{
+	req := &gamesv1.GetSteamGameRequest{
 		GameId: 570,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	// Only checks the call doesn't panic; the mock may lack the game.
 	_, _ = client.GetSteamGame(ctx, req)
@@ -66,17 +68,18 @@ func TestConnectGetSteamGame_WithSeededData(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&gamesv1.GetSteamGameRequest{
+	req := &gamesv1.GetSteamGameRequest{
 		GameId: 1,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.GetSteamGame(ctx, req)
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.NotNil(t, resp.Msg.Data)
-	assert.NotNil(t, resp.Msg.Data.Game)
-	assert.NotEmpty(t, resp.Msg.Data.Game.LastSyncedAt,
+	assert.NotNil(t, resp.Data)
+	assert.NotNil(t, resp.Data.Game)
+	assert.NotEmpty(t, resp.Data.Game.LastSyncedAt,
 		"GetSteamGame should populate last_synced_at")
 }
 
@@ -87,16 +90,17 @@ func TestConnectGetRecentlyActiveGames(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&gamesv1.GetRecentlyActiveGamesRequest{})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &gamesv1.GetRecentlyActiveGamesRequest{}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.GetRecentlyActiveGames(ctx, req)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	require.NotEmpty(t, resp.Msg.Games)
+	require.NotEmpty(t, resp.Games)
 
 	found := false
-	for _, g := range resp.Msg.Games {
+	for _, g := range resp.Games {
 		if g.Id == 1 {
 			found = true
 			assert.NotEmpty(t, g.LastPlayedAt)
@@ -110,16 +114,17 @@ func TestConnectGetSteamDistribution_ValidBucket(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&gamesv1.GetSteamDistributionRequest{
+	req := &gamesv1.GetSteamDistributionRequest{
 		Bucket: 0,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.GetSteamDistribution(ctx, req)
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	if resp.Msg.Data != nil {
-		assert.Equal(t, "0–9%", resp.Msg.Data.Label)
+	if resp.Data != nil {
+		assert.Equal(t, "0–9%", resp.Data.Label)
 	}
 }
 
@@ -128,10 +133,11 @@ func TestConnectGetSteamDistribution_InvalidBucket(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&gamesv1.GetSteamDistributionRequest{
+	req := &gamesv1.GetSteamDistributionRequest{
 		Bucket: 99,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.GetSteamDistribution(ctx, req)
 	assert.Error(t, err)
@@ -146,8 +152,9 @@ func TestConnectRefreshSteamGame_GameNotFound(t *testing.T) {
 	defer cancel()
 
 	// Empty creds make SyncGame a no-op; GetGameByID then fails.
-	req := connect.NewRequest(&gamesv1.RefreshSteamGameRequest{GameId: 999999})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &gamesv1.RefreshSteamGameRequest{GameId: 999999}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.RefreshSteamGame(ctx, req)
 	assert.Error(t, err)
@@ -162,15 +169,16 @@ func TestConnectRefreshSteamGame_WithSeededData(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&gamesv1.RefreshSteamGameRequest{GameId: 1})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &gamesv1.RefreshSteamGameRequest{GameId: 1}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.RefreshSteamGame(ctx, req)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	require.NotNil(t, resp.Msg.Data)
-	assert.NotNil(t, resp.Msg.Data.Game)
-	assert.NotEmpty(t, resp.Msg.Data.Achievements)
-	assert.NotEmpty(t, resp.Msg.Data.Game.LastSyncedAt,
+	require.NotNil(t, resp.Data)
+	assert.NotNil(t, resp.Data.Game)
+	assert.NotEmpty(t, resp.Data.Achievements)
+	assert.NotEmpty(t, resp.Data.Game.LastSyncedAt,
 		"RefreshSteamGame should populate last_synced_at")
 }

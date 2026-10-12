@@ -6,7 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -40,7 +41,11 @@ func observabilityClient(
 ) observabilityv1connect.ObservabilityServiceClient {
 	t.Helper()
 	ts := connectServer(t)
-	return observabilityv1connect.NewObservabilityServiceClient(ts.Client(), ts.URL)
+	return observabilityv1connect.NewObservabilityServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(ts.Client(), ts.URL, connecthttp.WithReadMaxBytes(0)),
+		),
+	)
 }
 
 func TestObservabilityGetJobStats_AsAdmin(t *testing.T) {
@@ -64,13 +69,12 @@ func TestObservabilityGetJobStats_AsAdmin(t *testing.T) {
 	}))
 
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.GetJobStatsRequest{WindowDays: 7})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetJobStats(context.Background(), req)
+	req := &observabilityv1.GetJobStatsRequest{WindowDays: 7}
+	resp, err := client.GetJobStats(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
 
 	var steam *observabilityv1.JobStat
-	for _, s := range resp.Msg.Stats {
+	for _, s := range resp.Stats {
 		if s.JobId == "steam" {
 			steam = s
 		}
@@ -78,15 +82,14 @@ func TestObservabilityGetJobStats_AsAdmin(t *testing.T) {
 	require.NotNil(t, steam)
 	assert.GreaterOrEqual(t, steam.TotalRuns, int64(2))
 	assert.GreaterOrEqual(t, steam.FailedRuns, int64(1))
-	assert.NotEmpty(t, resp.Msg.RecentRuns)
+	assert.NotEmpty(t, resp.RecentRuns)
 }
 
 func TestObservabilityGetJobStats_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.GetJobStatsRequest{WindowDays: 7})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.GetJobStats(context.Background(), req)
+	req := &observabilityv1.GetJobStatsRequest{WindowDays: 7}
+	_, err := client.GetJobStats(withCookies(context.Background(), accessToken), req)
 	requirePermissionDenied(t, err)
 }
 
@@ -100,21 +103,19 @@ func TestObservabilityGetUsageStats_AsAdmin(t *testing.T) {
 	}))
 
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.GetUsageStatsRequest{WindowDays: 7})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetUsageStats(context.Background(), req)
+	req := &observabilityv1.GetUsageStatsRequest{WindowDays: 7}
+	resp, err := client.GetUsageStats(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Entries)
-	assert.NotContains(t, resp.Msg.UnusedApps, "books")
-	assert.Contains(t, resp.Msg.UnusedApps, "watchparty")
+	assert.NotEmpty(t, resp.Entries)
+	assert.NotContains(t, resp.UnusedApps, "books")
+	assert.Contains(t, resp.UnusedApps, "watchparty")
 }
 
 func TestObservabilityGetUsageStats_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.GetUsageStatsRequest{WindowDays: 7})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.GetUsageStats(context.Background(), req)
+	req := &observabilityv1.GetUsageStatsRequest{WindowDays: 7}
+	_, err := client.GetUsageStats(withCookies(context.Background(), accessToken), req)
 	requirePermissionDenied(t, err)
 }
 
@@ -140,16 +141,18 @@ func TestObservabilityGetStorageStats_AsAdmin(t *testing.T) {
 	}))
 
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.GetStorageStatsRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetStorageStats(context.Background(), req)
+	req := &observabilityv1.GetStorageStatsRequest{}
+	resp, err := client.GetStorageStats(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.Latest)
-	assert.Equal(t, int64(1234), resp.Msg.Latest.TotalSizeBytes)
-	assert.NotEmpty(t, resp.Msg.Latest.PrefixBreakdown)
-	assert.Equal(t, []string{"books/b1/orphan.epub"}, resp.Msg.Latest.OrphanKeys)
-	assert.Equal(t, int64(1), resp.Msg.Latest.DeletedOrphanCount)
-	assert.Equal(t, int64(50), resp.Msg.Latest.DeletedOrphanSizeBytes)
+	require.NotNil(t, resp.Latest)
+	assert.Equal(t, int64(1234), resp.Latest.TotalSizeBytes)
+	assert.NotEmpty(t, resp.Latest.PrefixBreakdown)
+	assert.Equal(t, []string{"books/b1/orphan.epub"}, resp.Latest.OrphanKeys)
+	assert.Equal(t, int64(1), resp.Latest.DeletedOrphanCount)
+	assert.Equal(t, int64(50), resp.Latest.DeletedOrphanSizeBytes)
 }
 
 // TestRunStorageScanNow_Success covers Books.RunStorageScanNow with a fake
@@ -176,9 +179,11 @@ func TestRunStorageScanNow_Success(t *testing.T) {
 func TestObservabilityTriggerStorageScan_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.TriggerStorageScanRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.TriggerStorageScan(context.Background(), req)
+	req := &observabilityv1.TriggerStorageScanRequest{}
+	_, err := client.TriggerStorageScan(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	requirePermissionDenied(t, err)
 }
 
@@ -188,9 +193,11 @@ func TestObservabilityTriggerStorageScan_AsAdmin(t *testing.T) {
 	withStorageScanRunner(t, &stubStorageScanRunner{err: nil})
 
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.TriggerStorageScanRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.TriggerStorageScan(context.Background(), req)
+	req := &observabilityv1.TriggerStorageScanRequest{}
+	_, err := client.TriggerStorageScan(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.NoError(t, err)
 }
 
@@ -202,9 +209,11 @@ func TestObservabilityTriggerStorageScan_AsAdmin_ScanFails(t *testing.T) {
 	withStorageScanRunner(t, &stubStorageScanRunner{err: errors.New("boom")})
 
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.TriggerStorageScanRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.TriggerStorageScan(context.Background(), req)
+	req := &observabilityv1.TriggerStorageScanRequest{}
+	_, err := client.TriggerStorageScan(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -216,14 +225,16 @@ func TestObservabilityGetDatabaseStats_AsAdmin(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.GetDatabaseStatsRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetDatabaseStats(context.Background(), req)
+	req := &observabilityv1.GetDatabaseStatsRequest{}
+	resp, err := client.GetDatabaseStats(
+		withCookies(context.Background(), accessToken),
+		req,
+	)
 	require.NoError(t, err)
-	assert.Positive(t, resp.Msg.TotalSizeBytes)
+	assert.Positive(t, resp.TotalSizeBytes)
 
 	var hasGlobal bool
-	for _, s := range resp.Msg.Schemas {
+	for _, s := range resp.Schemas {
 		if s.Name == "global" {
 			hasGlobal = true
 		}
@@ -234,9 +245,8 @@ func TestObservabilityGetDatabaseStats_AsAdmin(t *testing.T) {
 func TestObservabilityGetDatabaseStats_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.GetDatabaseStatsRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.GetDatabaseStats(context.Background(), req)
+	req := &observabilityv1.GetDatabaseStatsRequest{}
+	_, err := client.GetDatabaseStats(withCookies(context.Background(), accessToken), req)
 	requirePermissionDenied(t, err)
 }
 

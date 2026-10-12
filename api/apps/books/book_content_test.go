@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // articlePageHTML builds an HTML page with enough content for readability
@@ -158,25 +159,29 @@ func TestConnectGetBookContent_OK(t *testing.T) {
 		context.Background(), book.ID, "<p>Article body</p>",
 	))
 
-	req := connect.NewRequest(&booksv1.GetBookContentRequest{
+	req := &booksv1.GetBookContentRequest{
 		BookId: book.ID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	resp, err := client.GetBookContent(context.Background(), req)
+	resp, err := client.GetBookContent(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
-	assert.Equal(t, "<p>Article body</p>", resp.Msg.Html)
+	assert.Equal(t, "<p>Article body</p>", resp.Html)
 }
 
 func TestConnectGetBookContent_NotFound(t *testing.T) {
 	client := newBooksTestClient(t)
 
-	req := connect.NewRequest(&booksv1.GetBookContentRequest{
+	req := &booksv1.GetBookContentRequest{
 		BookId: uuid.NewString(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.GetBookContent(context.Background(), req)
+	_, err := client.GetBookContent(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -189,14 +194,16 @@ func TestConnectGetBookContent_BackfillsMissingContentForSourcedItem(t *testing.
 	book := seedSourcedBookInLibrary(t, userID, url)
 	mockWebFetch.SetHTML(url, articlePageHTML("Backfilled Post"))
 
-	req := connect.NewRequest(&booksv1.GetBookContentRequest{
+	req := &booksv1.GetBookContentRequest{
 		BookId: book.ID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	resp, err := client.GetBookContent(context.Background(), req)
+	resp, err := client.GetBookContent(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
-	assert.Contains(t, resp.Msg.Html, "Lorem ipsum")
+	assert.Contains(t, resp.Html, "Lorem ipsum")
 
 	stored, err := testApp.Repositories.Books.GetBookContentHTML(
 		context.Background(), userID, book.ID,
@@ -231,39 +238,45 @@ func TestConnectGetBookContent_NoBackfillWhenFetchFails(t *testing.T) {
 	// No mockWebFetch entry for url: fetch fails, so the empty-state response
 	// must be returned as-is rather than erroring.
 
-	req := connect.NewRequest(&booksv1.GetBookContentRequest{
+	req := &booksv1.GetBookContentRequest{
 		BookId: book.ID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	resp, err := client.GetBookContent(context.Background(), req)
+	resp, err := client.GetBookContent(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.Html)
+	assert.Empty(t, resp.Html)
 }
 
 func TestConnectGetBookContent_NoBackfillWithoutSourceURL(t *testing.T) {
 	client := newBooksTestClient(t)
 	book := seedContentBookInLibrary(t, userID)
 
-	req := connect.NewRequest(&booksv1.GetBookContentRequest{
+	req := &booksv1.GetBookContentRequest{
 		BookId: book.ID.String(),
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	resp, err := client.GetBookContent(context.Background(), req)
+	resp, err := client.GetBookContent(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.Html)
+	assert.Empty(t, resp.Html)
 }
 
 func TestConnectGetBookContent_InvalidBookID(t *testing.T) {
 	client := newBooksTestClient(t)
 
-	req := connect.NewRequest(&booksv1.GetBookContentRequest{
+	req := &booksv1.GetBookContentRequest{
 		BookId: "not-a-uuid",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
 
-	_, err := client.GetBookContent(context.Background(), req)
+	_, err := client.GetBookContent(
+		testhelper.WithCookie(context.Background(), accessToken.String()),
+		req,
+	)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)

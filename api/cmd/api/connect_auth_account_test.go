@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -15,14 +15,13 @@ import (
 
 func TestExchangeToken_Success(t *testing.T) {
 	client := authClient(t)
-	resp, err := client.ExchangeToken(context.Background(), connect.NewRequest(
-		&authv1.ExchangeTokenRequest{
-			AccessToken: accessToken.Value, RefreshToken: "refresh",
-		},
-	))
+	ctx, info := connect.NewClientContext(context.Background())
+	resp, err := client.ExchangeToken(ctx, &authv1.ExchangeTokenRequest{
+		AccessToken: accessToken.Value, RefreshToken: "refresh",
+	})
 	require.NoError(t, err)
 	assert.NotNil(t, resp)
-	setCookieHeaders := resp.Header().Values("Set-Cookie")
+	setCookieHeaders := info.ResponseHeader().Values("Set-Cookie")
 	assert.NotEmpty(t, setCookieHeaders)
 }
 
@@ -30,16 +29,15 @@ func TestExchangeToken_NeedsMFA(t *testing.T) {
 	// A verified TOTP factor must still be challenged before ExchangeToken grants
 	// a session. mfaAccessToken's user has one.
 	client := authClient(t)
-	resp, err := client.ExchangeToken(context.Background(), connect.NewRequest(
-		&authv1.ExchangeTokenRequest{
-			AccessToken:  mfaAccessToken.Value,
-			RefreshToken: "mfa-refresh",
-		},
-	))
+	ctx, info := connect.NewClientContext(context.Background())
+	resp, err := client.ExchangeToken(ctx, &authv1.ExchangeTokenRequest{
+		AccessToken:  mfaAccessToken.Value,
+		RefreshToken: "mfa-refresh",
+	})
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.NeedsMfa)
+	assert.True(t, resp.NeedsMfa)
 
-	setCookieHeaders := resp.Header().Values("Set-Cookie")
+	setCookieHeaders := info.ResponseHeader().Values("Set-Cookie")
 	sawMFACookie, sawSessionCookie := false, false
 	for _, c := range setCookieHeaders {
 		switch {
@@ -56,12 +54,10 @@ func TestExchangeToken_NeedsMFA(t *testing.T) {
 
 func TestExchangeToken_InvalidToken(t *testing.T) {
 	client := authClient(t)
-	_, err := client.ExchangeToken(context.Background(), connect.NewRequest(
-		&authv1.ExchangeTokenRequest{
-			AccessToken:  "bad-token",
-			RefreshToken: "bad-refresh",
-		},
-	))
+	_, err := client.ExchangeToken(context.Background(), &authv1.ExchangeTokenRequest{
+		AccessToken:  "bad-token",
+		RefreshToken: "bad-refresh",
+	})
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -70,9 +66,10 @@ func TestExchangeToken_InvalidToken(t *testing.T) {
 
 func TestExchangeToken_EmptyAccessToken(t *testing.T) {
 	client := authClient(t)
-	_, err := client.ExchangeToken(context.Background(), connect.NewRequest(
+	_, err := client.ExchangeToken(
+		context.Background(),
 		&authv1.ExchangeTokenRequest{AccessToken: "", RefreshToken: "refresh"},
-	))
+	)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -81,9 +78,10 @@ func TestExchangeToken_EmptyAccessToken(t *testing.T) {
 
 func TestExchangeToken_EmptyRefreshToken(t *testing.T) {
 	client := authClient(t)
-	_, err := client.ExchangeToken(context.Background(), connect.NewRequest(
+	_, err := client.ExchangeToken(
+		context.Background(),
 		&authv1.ExchangeTokenRequest{AccessToken: "access", RefreshToken: ""},
-	))
+	)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -92,9 +90,10 @@ func TestExchangeToken_EmptyRefreshToken(t *testing.T) {
 
 func TestUpdatePassword_NoToken(t *testing.T) {
 	client := authClient(t)
-	_, err := client.UpdatePassword(context.Background(), connect.NewRequest(
+	_, err := client.UpdatePassword(
+		context.Background(),
 		&authv1.UpdatePasswordRequest{NewPassword: "newpass"},
-	))
+	)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -103,9 +102,8 @@ func TestUpdatePassword_NoToken(t *testing.T) {
 
 func TestUpdatePassword_EmptyPassword(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.UpdatePasswordRequest{NewPassword: ""})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.UpdatePassword(context.Background(), req)
+	req := &authv1.UpdatePasswordRequest{NewPassword: ""}
+	_, err := client.UpdatePassword(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -116,19 +114,19 @@ func TestUpdatePassword_Success(t *testing.T) {
 	// A throwaway user, so changing its password doesn't break shared fixtures.
 	token := freshTestUser(t)
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.UpdatePasswordRequest{
+	req := &authv1.UpdatePasswordRequest{
 		NewPassword: "newpassword123", CurrentPassword: testUserPassword,
-	})
-	setCookieOnRequest(req, http.Cookie{Name: "accessToken", Value: token})
-	_, err := client.UpdatePassword(context.Background(), req)
+	}
+	_, err := client.UpdatePassword(
+		withCookies(context.Background(), http.Cookie{Name: "accessToken", Value: token}),
+		req,
+	)
 	require.NoError(t, err)
 }
 
 func TestMFAUnenroll_NoToken(t *testing.T) {
 	client := authClient(t)
-	_, err := client.MFAUnenroll(context.Background(), connect.NewRequest(
-		&authv1.MFAUnenrollRequest{},
-	))
+	_, err := client.MFAUnenroll(context.Background(), &authv1.MFAUnenrollRequest{})
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -137,9 +135,8 @@ func TestMFAUnenroll_NoToken(t *testing.T) {
 
 func TestMFAUnenroll_NoMFA(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.MFAUnenrollRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.MFAUnenroll(context.Background(), req)
+	req := &authv1.MFAUnenrollRequest{}
+	_, err := client.MFAUnenroll(withCookies(context.Background(), accessToken), req)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -153,73 +150,73 @@ func TestMFAUnenroll_Success(t *testing.T) {
 
 	mfaClient := mfaClient(t)
 	factorID, secret := enrollFactor(t, mfaClient, tokenCookie)
-	verifyReq := connect.NewRequest(&authv1.MFAEnrollVerifyRequest{
+	verifyReq := &authv1.MFAEnrollVerifyRequest{
 		FactorId: factorID,
 		Code:     currentTOTPCode(t, secret),
-	})
-	setCookieOnRequest(verifyReq, tokenCookie)
-	verifyResp, err := mfaClient.MFAEnrollVerify(context.Background(), verifyReq)
+	}
+	verifyCtx := withCookies(context.Background(), tokenCookie)
+	verifyInfo, _ := connect.CallInfoForClientContext(verifyCtx)
+	verifyResp, err := mfaClient.MFAEnrollVerify(verifyCtx, verifyReq)
 	require.NoError(t, err)
 
 	// The pre-enrolment aal1 token no longer grants a session.
 	client := authClient(t)
-	staleReq := connect.NewRequest(&authv1.MFAUnenrollRequest{})
-	setCookieOnRequest(staleReq, tokenCookie)
-	_, err = client.MFAUnenroll(context.Background(), staleReq)
+	staleReq := &authv1.MFAUnenrollRequest{}
+	_, err = client.MFAUnenroll(withCookies(context.Background(), tokenCookie), staleReq)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 
-	req := connect.NewRequest(&authv1.MFAUnenrollRequest{
-		Code: verifyResp.Msg.RecoveryCodes[0],
-	})
-	setCookieOnRequest(req, sessionCookie(t, verifyResp.Header()))
-	_, err = client.MFAUnenroll(context.Background(), req)
+	req := &authv1.MFAUnenrollRequest{
+		Code: verifyResp.RecoveryCodes[0],
+	}
+	_, err = client.MFAUnenroll(
+		withCookies(context.Background(), sessionCookie(t, verifyInfo.ResponseHeader())),
+		req,
+	)
 	require.NoError(t, err)
 }
 
 func TestMFAEnroll_WithAccessToken(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.MFAEnrollRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.MFAEnroll(context.Background(), req)
+	req := &authv1.MFAEnrollRequest{}
+	resp, err := client.MFAEnroll(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.FactorId)
+	assert.NotEmpty(t, resp.FactorId)
 }
 
 func TestGetCurrentUser_HasMFA_False(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetCurrentUser(context.Background(), req)
+	req := &authv1.GetCurrentUserRequest{}
+	resp, err := client.GetCurrentUser(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.HasMfa)
+	assert.False(t, resp.HasMfa)
 }
 
 func TestGetCurrentUser_HasMFA_True(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(req, mfaSessionToken)
-	resp, err := client.GetCurrentUser(context.Background(), req)
+	req := &authv1.GetCurrentUserRequest{}
+	resp, err := client.GetCurrentUser(
+		withCookies(context.Background(), mfaSessionToken),
+		req,
+	)
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.HasMfa)
+	assert.True(t, resp.HasMfa)
 }
 
 // The aal1 token issued before the MFA challenge is not a session.
 func TestGetCurrentUser_PreMFAToken_Unauthenticated(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(req, mfaAccessToken)
-	_, err := client.GetCurrentUser(context.Background(), req)
+	req := &authv1.GetCurrentUserRequest{}
+	_, err := client.GetCurrentUser(withCookies(context.Background(), mfaAccessToken), req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
 
 func TestUpdatePassword_PreMFAToken_Unauthenticated(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.UpdatePasswordRequest{
+	req := &authv1.UpdatePasswordRequest{
 		NewPassword: "another-password", CurrentPassword: testUserPassword,
-	})
-	setCookieOnRequest(req, mfaAccessToken)
-	_, err := client.UpdatePassword(context.Background(), req)
+	}
+	_, err := client.UpdatePassword(withCookies(context.Background(), mfaAccessToken), req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
@@ -227,36 +224,37 @@ func TestUpdatePassword_PreMFAToken_Unauthenticated(t *testing.T) {
 func TestUpdatePassword_WrongCurrentPassword_PermissionDenied(t *testing.T) {
 	token := freshTestUser(t)
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.UpdatePasswordRequest{
+	req := &authv1.UpdatePasswordRequest{
 		NewPassword: "newpassword123", CurrentPassword: "wrong",
-	})
-	setCookieOnRequest(req, http.Cookie{Name: "accessToken", Value: token})
-	_, err := client.UpdatePassword(context.Background(), req)
+	}
+	_, err := client.UpdatePassword(
+		withCookies(context.Background(), http.Cookie{Name: "accessToken", Value: token}),
+		req,
+	)
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 }
 
 func TestUpdatePassword_TooShort_InvalidArgument(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.UpdatePasswordRequest{
+	req := &authv1.UpdatePasswordRequest{
 		NewPassword: "short", CurrentPassword: testUserPassword,
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.UpdatePassword(context.Background(), req)
+	}
+	_, err := client.UpdatePassword(withCookies(context.Background(), accessToken), req)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
 func TestResetPassword_TooShort_InvalidArgument(t *testing.T) {
 	client := authClient(t)
-	_, err := client.ResetPassword(context.Background(), connect.NewRequest(
+	_, err := client.ResetPassword(
+		context.Background(),
 		&authv1.ResetPasswordRequest{Token: "t", NewPassword: "short"},
-	))
+	)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
 func TestMFAUnenroll_WrongCode_PermissionDenied(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.MFAUnenrollRequest{Code: "000000"})
-	setCookieOnRequest(req, mfaSessionToken)
-	_, err := client.MFAUnenroll(context.Background(), req)
+	req := &authv1.MFAUnenrollRequest{Code: "000000"}
+	_, err := client.MFAUnenroll(withCookies(context.Background(), mfaSessionToken), req)
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 }

@@ -6,7 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,21 +19,25 @@ import (
 func authClient(t *testing.T) authv1connect.AuthServiceClient {
 	t.Helper()
 	ts := connectServer(t)
-	return authv1connect.NewAuthServiceClient(ts.Client(), ts.URL)
+	return authv1connect.NewAuthServiceClient(
+		connect.NewClient(
+			connecthttp.NewTransport(ts.Client(), ts.URL, connecthttp.WithReadMaxBytes(0)),
+		),
+	)
 }
 
 func TestSignIn_Success(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.SignInRequest{
+	req := &authv1.SignInRequest{
 		Email:      "valid@example.com",
 		Password:   "password",
 		RememberMe: false,
 		Redirect:   "/",
-	})
+	}
 	resp, err := client.SignIn(context.Background(), req)
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.NeedsMfa)
-	assert.False(t, resp.Msg.EnrollMfa)
+	assert.False(t, resp.NeedsMfa)
+	assert.False(t, resp.EnrollMfa)
 }
 
 func TestSignIn_LockoutReturnsResourceExhausted(t *testing.T) {
@@ -41,9 +46,10 @@ func TestSignIn_LockoutReturnsResourceExhausted(t *testing.T) {
 
 	var err error
 	for range 7 {
-		_, err = client.SignIn(context.Background(), connect.NewRequest(
+		_, err = client.SignIn(
+			context.Background(),
 			&authv1.SignInRequest{Email: email, Password: "wrong", Redirect: "/"},
-		))
+		)
 		require.Error(t, err)
 	}
 	assert.Equal(t, connect.CodeResourceExhausted, connect.CodeOf(err))
@@ -61,11 +67,11 @@ func TestSignIn_EmptyEmail(t *testing.T) {
 	client := authClient(t)
 	_, err := client.SignIn(
 		context.Background(),
-		connect.NewRequest(&authv1.SignInRequest{
+		&authv1.SignInRequest{
 			Email:    "",
 			Password: "password",
 			Redirect: "/",
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -77,11 +83,11 @@ func TestSignIn_EmptyPassword(t *testing.T) {
 	client := authClient(t)
 	_, err := client.SignIn(
 		context.Background(),
-		connect.NewRequest(&authv1.SignInRequest{
+		&authv1.SignInRequest{
 			Email:    "valid@example.com",
 			Password: "",
 			Redirect: "/",
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -93,25 +99,25 @@ func TestSignIn_EmptyRedirect(t *testing.T) {
 	client := authClient(t)
 	resp, err := client.SignIn(
 		context.Background(),
-		connect.NewRequest(&authv1.SignInRequest{
+		&authv1.SignInRequest{
 			Email:    "valid@example.com",
 			Password: "password",
 			Redirect: "",
-		}),
+		},
 	)
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.NeedsMfa)
+	assert.False(t, resp.NeedsMfa)
 }
 
 func TestSignIn_InvalidRedirect(t *testing.T) {
 	client := authClient(t)
 	_, err := client.SignIn(
 		context.Background(),
-		connect.NewRequest(&authv1.SignInRequest{
+		&authv1.SignInRequest{
 			Email:    "valid@example.com",
 			Password: "password",
 			Redirect: "https://evil.com",
-		}),
+		},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -144,19 +150,20 @@ func TestSignIn_Success_UsesLaxCookies(t *testing.T) {
 	// Session cookies must be SameSite=Lax so they attach on the cross-site
 	// redirect from the OAuth AS to /oauth/consent.
 	client := authClient(t)
-	resp, err := client.SignIn(
-		context.Background(),
-		connect.NewRequest(&authv1.SignInRequest{
+	ctx, info := connect.NewClientContext(context.Background())
+	_, err := client.SignIn(
+		ctx,
+		&authv1.SignInRequest{
 			Email:      "valid@example.com",
 			Password:   "password",
 			RememberMe: true,
 			Redirect:   "/",
-		}),
+		},
 	)
 	require.NoError(t, err)
 
 	found := false
-	for _, raw := range resp.Header().Values("Set-Cookie") {
+	for _, raw := range info.ResponseHeader().Values("Set-Cookie") {
 		if strings.HasPrefix(raw, "accessToken=") {
 			found = true
 			assert.Contains(t, raw, "SameSite=Lax")
@@ -167,17 +174,19 @@ func TestSignIn_Success_UsesLaxCookies(t *testing.T) {
 
 func TestForgotPassword_Success(t *testing.T) {
 	client := authClient(t)
-	_, err := client.ForgotPassword(context.Background(), connect.NewRequest(
+	_, err := client.ForgotPassword(
+		context.Background(),
 		&authv1.ForgotPasswordRequest{Email: "user@example.com"},
-	))
+	)
 	require.NoError(t, err)
 }
 
 func TestForgotPassword_EmptyEmail(t *testing.T) {
 	client := authClient(t)
-	_, err := client.ForgotPassword(context.Background(), connect.NewRequest(
+	_, err := client.ForgotPassword(
+		context.Background(),
 		&authv1.ForgotPasswordRequest{Email: ""},
-	))
+	)
 	require.Error(t, err)
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
@@ -186,9 +195,8 @@ func TestForgotPassword_EmptyEmail(t *testing.T) {
 
 func TestSignOut_Success(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.SignOutRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.SignOut(context.Background(), req)
+	req := &authv1.SignOutRequest{}
+	_, err := client.SignOut(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
 }
 
@@ -196,7 +204,7 @@ func TestSignOut_NoToken(t *testing.T) {
 	client := authClient(t)
 	_, err := client.SignOut(
 		context.Background(),
-		connect.NewRequest(&authv1.SignOutRequest{}),
+		&authv1.SignOutRequest{},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -206,18 +214,17 @@ func TestSignOut_NoToken(t *testing.T) {
 
 func TestGetCurrentUser_Success(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetCurrentUser(context.Background(), req)
+	req := &authv1.GetCurrentUserRequest{}
+	resp, err := client.GetCurrentUser(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Role)
+	assert.NotEmpty(t, resp.Role)
 }
 
 func TestGetCurrentUser_NoToken(t *testing.T) {
 	client := authClient(t)
 	_, err := client.GetCurrentUser(
 		context.Background(),
-		connect.NewRequest(&authv1.GetCurrentUserRequest{}),
+		&authv1.GetCurrentUserRequest{},
 	)
 	require.Error(t, err)
 	var connectErr *connect.Error
@@ -228,33 +235,33 @@ func TestGetCurrentUser_NoToken(t *testing.T) {
 func TestGetCurrentUser_WithRefreshToken_Success(t *testing.T) {
 	refresh := freshTestUserWithRefresh(t)
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(req, http.Cookie{Name: "refreshToken", Value: refresh})
-	resp, err := client.GetCurrentUser(context.Background(), req)
+	req := &authv1.GetCurrentUserRequest{}
+	resp, err := client.GetCurrentUser(
+		withCookies(context.Background(), http.Cookie{Name: "refreshToken", Value: refresh}),
+		req,
+	)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Role)
+	assert.NotEmpty(t, resp.Role)
 }
 
 func TestGetCurrentUser_NoAccessToken_FallsBackToRefreshToken(t *testing.T) {
 	refresh := freshTestUserWithRefresh(t)
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(
+	req := &authv1.GetCurrentUserRequest{}
+	resp, err := client.GetCurrentUser(
+		withCookies(context.Background(), http.Cookie{Name: "refreshToken", Value: refresh}),
 		req,
-		http.Cookie{Name: "refreshToken", Value: refresh},
 	)
-	resp, err := client.GetCurrentUser(context.Background(), req)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Role)
+	assert.NotEmpty(t, resp.Role)
 }
 
 func TestGetCurrentUser_ReturnsUserRole(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetCurrentUser(context.Background(), req)
+	req := &authv1.GetCurrentUserRequest{}
+	resp, err := client.GetCurrentUser(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.Equal(t, "user", resp.Msg.Role)
+	assert.Equal(t, "user", resp.Role)
 }
 
 func TestGetCurrentUser_ReturnsAdminRole(t *testing.T) {
@@ -262,20 +269,18 @@ func TestGetCurrentUser_ReturnsAdminRole(t *testing.T) {
 	defer demoteToUser(t)
 
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetCurrentUser(context.Background(), req)
+	req := &authv1.GetCurrentUserRequest{}
+	resp, err := client.GetCurrentUser(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.Equal(t, "admin", resp.Msg.Role)
+	assert.Equal(t, "admin", resp.Role)
 }
 
 func TestGetCurrentUser_ReturnsEmptyAppAccess(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetCurrentUser(context.Background(), req)
+	req := &authv1.GetCurrentUserRequest{}
+	resp, err := client.GetCurrentUser(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Msg.AppAccess)
+	assert.Empty(t, resp.AppAccess)
 }
 
 func TestGetCurrentUser_ReturnsAppAccess_WithGrant(t *testing.T) {
@@ -285,20 +290,18 @@ func TestGetCurrentUser_ReturnsAppAccess_WithGrant(t *testing.T) {
 	defer revokeAppAccess(t, testUserID, "backlog")
 
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetCurrentUser(context.Background(), req)
+	req := &authv1.GetCurrentUserRequest{}
+	resp, err := client.GetCurrentUser(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.Contains(t, resp.Msg.AppAccess, "backlog")
+	assert.Contains(t, resp.AppAccess, "backlog")
 }
 
 func TestGetCurrentUser_ReturnsUserId(t *testing.T) {
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetCurrentUser(context.Background(), req)
+	req := &authv1.GetCurrentUserRequest{}
+	resp, err := client.GetCurrentUser(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.Equal(t, testUserID, resp.Msg.UserId)
+	assert.Equal(t, testUserID, resp.UserId)
 }
 
 func TestGetCurrentUser_Admin_HasRole(t *testing.T) {
@@ -306,12 +309,11 @@ func TestGetCurrentUser_Admin_HasRole(t *testing.T) {
 	defer demoteToUser(t)
 
 	client := authClient(t)
-	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetCurrentUser(context.Background(), req)
+	req := &authv1.GetCurrentUserRequest{}
+	resp, err := client.GetCurrentUser(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.Equal(t, "admin", resp.Msg.Role)
-	assert.IsType(t, []string{}, resp.Msg.AppAccess)
+	assert.Equal(t, "admin", resp.Role)
+	assert.IsType(t, []string{}, resp.AppAccess)
 }
 
 // mfaTokenCookie holds a real signed JWT for testUserID; MFA RPCs verify it,

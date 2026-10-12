@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -88,9 +87,10 @@ func age(t *testing.T, tmdbID int64, by time.Duration) {
 
 func watching(t *testing.T, c moviesv1connect.MoviesServiceClient, id string) {
 	t.Helper()
-	_, err := c.SetStatus(context.Background(), connect.NewRequest(
+	_, err := c.SetStatus(
+		context.Background(),
 		&moviesv1.SetStatusRequest{Id: id, Status: "watching", UnknownDate: false},
-	))
+	)
 	require.NoError(t, err)
 }
 
@@ -114,9 +114,9 @@ func backlog(
 	req *moviesv1.ListBacklogRequest,
 ) []*moviesv1.BacklogEntry {
 	t.Helper()
-	resp, err := c.ListBacklog(context.Background(), connect.NewRequest(req))
+	resp, err := c.ListBacklog(context.Background(), req)
 	require.NoError(t, err)
-	return resp.Msg.Entries
+	return resp.Entries
 }
 
 func TestRefresh_NewSeasonOfAWatchedSeries(t *testing.T) {
@@ -205,9 +205,7 @@ func TestRefresh_WithoutTMDBOnlyPrunes(t *testing.T) {
 	justGone := add(t, c, "movie", 999, "want")
 	add(t, c, "movie", 129, "want")
 	for _, e := range []*moviesv1.BacklogEntry{gone, justGone} {
-		_, err := c.RemoveTitle(context.Background(), connect.NewRequest(
-			&moviesv1.RemoveTitleRequest{Id: e.Id},
-		))
+		_, err := c.RemoveTitle(context.Background(), &moviesv1.RemoveTitleRequest{Id: e.Id})
 		require.NoError(t, err)
 	}
 	age(t, 603, 2*24*time.Hour)

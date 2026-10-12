@@ -5,453 +5,533 @@
 package booksv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/books/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// CatalogServiceName is the fully-qualified name of the CatalogService service.
 	CatalogServiceName = "books.v1.CatalogService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// CatalogServiceImportBooksProcedure is the fully-qualified name of the CatalogService's
-	// ImportBooks RPC.
+	// CatalogServiceImportBooksProcedure is the procedure name of the CatalogService's ImportBooks RPC.
 	CatalogServiceImportBooksProcedure = "/books.v1.CatalogService/ImportBooks"
-	// CatalogServiceFindDuplicatesProcedure is the fully-qualified name of the CatalogService's
+	// CatalogServiceFindDuplicatesProcedure is the procedure name of the CatalogService's
 	// FindDuplicates RPC.
 	CatalogServiceFindDuplicatesProcedure = "/books.v1.CatalogService/FindDuplicates"
-	// CatalogServiceMergeBooksProcedure is the fully-qualified name of the CatalogService's MergeBooks
-	// RPC.
+	// CatalogServiceMergeBooksProcedure is the procedure name of the CatalogService's MergeBooks RPC.
 	CatalogServiceMergeBooksProcedure = "/books.v1.CatalogService/MergeBooks"
-	// CatalogServiceStartResyncProcedure is the fully-qualified name of the CatalogService's
-	// StartResync RPC.
+	// CatalogServiceStartResyncProcedure is the procedure name of the CatalogService's StartResync RPC.
 	CatalogServiceStartResyncProcedure = "/books.v1.CatalogService/StartResync"
-	// CatalogServiceCancelResyncProcedure is the fully-qualified name of the CatalogService's
-	// CancelResync RPC.
+	// CatalogServiceCancelResyncProcedure is the procedure name of the CatalogService's CancelResync
+	// RPC.
 	CatalogServiceCancelResyncProcedure = "/books.v1.CatalogService/CancelResync"
-	// CatalogServiceListResyncProposalsProcedure is the fully-qualified name of the CatalogService's
+	// CatalogServiceListResyncProposalsProcedure is the procedure name of the CatalogService's
 	// ListResyncProposals RPC.
 	CatalogServiceListResyncProposalsProcedure = "/books.v1.CatalogService/ListResyncProposals"
-	// CatalogServiceApplyResyncChoiceProcedure is the fully-qualified name of the CatalogService's
+	// CatalogServiceApplyResyncChoiceProcedure is the procedure name of the CatalogService's
 	// ApplyResyncChoice RPC.
 	CatalogServiceApplyResyncChoiceProcedure = "/books.v1.CatalogService/ApplyResyncChoice"
-	// CatalogServiceSetBookISBNProcedure is the fully-qualified name of the CatalogService's
-	// SetBookISBN RPC.
+	// CatalogServiceSetBookISBNProcedure is the procedure name of the CatalogService's SetBookISBN RPC.
 	CatalogServiceSetBookISBNProcedure = "/books.v1.CatalogService/SetBookISBN"
-	// CatalogServiceUpdateBookProcedure is the fully-qualified name of the CatalogService's UpdateBook
-	// RPC.
+	// CatalogServiceUpdateBookProcedure is the procedure name of the CatalogService's UpdateBook RPC.
 	CatalogServiceUpdateBookProcedure = "/books.v1.CatalogService/UpdateBook"
-	// CatalogServiceGetBookSourcesProcedure is the fully-qualified name of the CatalogService's
+	// CatalogServiceGetBookSourcesProcedure is the procedure name of the CatalogService's
 	// GetBookSources RPC.
 	CatalogServiceGetBookSourcesProcedure = "/books.v1.CatalogService/GetBookSources"
-	// CatalogServiceApplyBookSourceProcedure is the fully-qualified name of the CatalogService's
+	// CatalogServiceApplyBookSourceProcedure is the procedure name of the CatalogService's
 	// ApplyBookSource RPC.
 	CatalogServiceApplyBookSourceProcedure = "/books.v1.CatalogService/ApplyBookSource"
-	// CatalogServiceGetSourceStatsProcedure is the fully-qualified name of the CatalogService's
+	// CatalogServiceGetSourceStatsProcedure is the procedure name of the CatalogService's
 	// GetSourceStats RPC.
 	CatalogServiceGetSourceStatsProcedure = "/books.v1.CatalogService/GetSourceStats"
-	// CatalogServiceListBooksInExactSourcesProcedure is the fully-qualified name of the
-	// CatalogService's ListBooksInExactSources RPC.
+	// CatalogServiceListBooksInExactSourcesProcedure is the procedure name of the CatalogService's
+	// ListBooksInExactSources RPC.
 	CatalogServiceListBooksInExactSourcesProcedure = "/books.v1.CatalogService/ListBooksInExactSources"
+)
+
+var (
+	catalogServiceImportBooksSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods().ByName("ImportBooks"),
+			Procedure:  CatalogServiceImportBooksProcedure,
+		}
+	})
+	catalogServiceFindDuplicatesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods().ByName("FindDuplicates"),
+			Procedure:  CatalogServiceFindDuplicatesProcedure,
+		}
+	})
+	catalogServiceMergeBooksSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods().ByName("MergeBooks"),
+			Procedure:  CatalogServiceMergeBooksProcedure,
+		}
+	})
+	catalogServiceStartResyncSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods().ByName("StartResync"),
+			Procedure:  CatalogServiceStartResyncProcedure,
+		}
+	})
+	catalogServiceCancelResyncSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods().ByName("CancelResync"),
+			Procedure:  CatalogServiceCancelResyncProcedure,
+		}
+	})
+	catalogServiceListResyncProposalsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods().ByName("ListResyncProposals"),
+			Procedure:  CatalogServiceListResyncProposalsProcedure,
+		}
+	})
+	catalogServiceApplyResyncChoiceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods().ByName("ApplyResyncChoice"),
+			Procedure:  CatalogServiceApplyResyncChoiceProcedure,
+		}
+	})
+	catalogServiceSetBookISBNSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods().ByName("SetBookISBN"),
+			Procedure:  CatalogServiceSetBookISBNProcedure,
+		}
+	})
+	catalogServiceUpdateBookSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods().ByName("UpdateBook"),
+			Procedure:  CatalogServiceUpdateBookProcedure,
+		}
+	})
+	catalogServiceGetBookSourcesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods().ByName("GetBookSources"),
+			Procedure:  CatalogServiceGetBookSourcesProcedure,
+		}
+	})
+	catalogServiceApplyBookSourceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods().ByName("ApplyBookSource"),
+			Procedure:  CatalogServiceApplyBookSourceProcedure,
+		}
+	})
+	catalogServiceGetSourceStatsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods().ByName("GetSourceStats"),
+			Procedure:  CatalogServiceGetSourceStatsProcedure,
+		}
+	})
+	catalogServiceListBooksInExactSourcesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods().ByName("ListBooksInExactSources"),
+			Procedure:  CatalogServiceListBooksInExactSourcesProcedure,
+		}
+	})
 )
 
 // CatalogServiceClient is a client for the books.v1.CatalogService service.
 type CatalogServiceClient interface {
-	ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error)
-	FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error)
-	MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error)
-	StartResync(context.Context, *connect.Request[v1.StartResyncRequest]) (*connect.Response[v1.StartResyncResponse], error)
-	CancelResync(context.Context, *connect.Request[v1.CancelResyncRequest]) (*connect.Response[v1.CancelResyncResponse], error)
-	ListResyncProposals(context.Context, *connect.Request[v1.ListResyncProposalsRequest]) (*connect.Response[v1.ListResyncProposalsResponse], error)
-	ApplyResyncChoice(context.Context, *connect.Request[v1.ApplyResyncChoiceRequest]) (*connect.Response[v1.ApplyResyncChoiceResponse], error)
-	SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error)
-	UpdateBook(context.Context, *connect.Request[v1.UpdateBookRequest]) (*connect.Response[v1.UpdateBookResponse], error)
-	GetBookSources(context.Context, *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error)
-	ApplyBookSource(context.Context, *connect.Request[v1.ApplyBookSourceRequest]) (*connect.Response[v1.ApplyBookSourceResponse], error)
-	GetSourceStats(context.Context, *connect.Request[v1.GetSourceStatsRequest]) (*connect.Response[v1.GetSourceStatsResponse], error)
-	ListBooksInExactSources(context.Context, *connect.Request[v1.ListBooksInExactSourcesRequest]) (*connect.Response[v1.ListBooksInExactSourcesResponse], error)
+	ImportBooks(context.Context, *v1.ImportBooksRequest) (*v1.ImportBooksResponse, error)
+	FindDuplicates(context.Context, *v1.FindDuplicatesRequest) (*v1.FindDuplicatesResponse, error)
+	MergeBooks(context.Context, *v1.MergeBooksRequest) (*v1.MergeBooksResponse, error)
+	StartResync(context.Context, *v1.StartResyncRequest) (*v1.StartResyncResponse, error)
+	CancelResync(context.Context, *v1.CancelResyncRequest) (*v1.CancelResyncResponse, error)
+	ListResyncProposals(context.Context, *v1.ListResyncProposalsRequest) (*v1.ListResyncProposalsResponse, error)
+	ApplyResyncChoice(context.Context, *v1.ApplyResyncChoiceRequest) (*v1.ApplyResyncChoiceResponse, error)
+	SetBookISBN(context.Context, *v1.SetBookISBNRequest) (*v1.SetBookISBNResponse, error)
+	UpdateBook(context.Context, *v1.UpdateBookRequest) (*v1.UpdateBookResponse, error)
+	GetBookSources(context.Context, *v1.GetBookSourcesRequest) (*v1.GetBookSourcesResponse, error)
+	ApplyBookSource(context.Context, *v1.ApplyBookSourceRequest) (*v1.ApplyBookSourceResponse, error)
+	GetSourceStats(context.Context, *v1.GetSourceStatsRequest) (*v1.GetSourceStatsResponse, error)
+	ListBooksInExactSources(context.Context, *v1.ListBooksInExactSourcesRequest) (*v1.ListBooksInExactSourcesResponse, error)
 }
 
-// NewCatalogServiceClient constructs a client for the books.v1.CatalogService service. By default,
-// it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and
-// sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC()
-// or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewCatalogServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) CatalogServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	catalogServiceMethods := v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods()
-	return &catalogServiceClient{
-		importBooks: connect.NewClient[v1.ImportBooksRequest, v1.ImportBooksResponse](
-			httpClient,
-			baseURL+CatalogServiceImportBooksProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("ImportBooks")),
-			connect.WithClientOptions(opts...),
-		),
-		findDuplicates: connect.NewClient[v1.FindDuplicatesRequest, v1.FindDuplicatesResponse](
-			httpClient,
-			baseURL+CatalogServiceFindDuplicatesProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("FindDuplicates")),
-			connect.WithClientOptions(opts...),
-		),
-		mergeBooks: connect.NewClient[v1.MergeBooksRequest, v1.MergeBooksResponse](
-			httpClient,
-			baseURL+CatalogServiceMergeBooksProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("MergeBooks")),
-			connect.WithClientOptions(opts...),
-		),
-		startResync: connect.NewClient[v1.StartResyncRequest, v1.StartResyncResponse](
-			httpClient,
-			baseURL+CatalogServiceStartResyncProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("StartResync")),
-			connect.WithClientOptions(opts...),
-		),
-		cancelResync: connect.NewClient[v1.CancelResyncRequest, v1.CancelResyncResponse](
-			httpClient,
-			baseURL+CatalogServiceCancelResyncProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("CancelResync")),
-			connect.WithClientOptions(opts...),
-		),
-		listResyncProposals: connect.NewClient[v1.ListResyncProposalsRequest, v1.ListResyncProposalsResponse](
-			httpClient,
-			baseURL+CatalogServiceListResyncProposalsProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("ListResyncProposals")),
-			connect.WithClientOptions(opts...),
-		),
-		applyResyncChoice: connect.NewClient[v1.ApplyResyncChoiceRequest, v1.ApplyResyncChoiceResponse](
-			httpClient,
-			baseURL+CatalogServiceApplyResyncChoiceProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("ApplyResyncChoice")),
-			connect.WithClientOptions(opts...),
-		),
-		setBookISBN: connect.NewClient[v1.SetBookISBNRequest, v1.SetBookISBNResponse](
-			httpClient,
-			baseURL+CatalogServiceSetBookISBNProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("SetBookISBN")),
-			connect.WithClientOptions(opts...),
-		),
-		updateBook: connect.NewClient[v1.UpdateBookRequest, v1.UpdateBookResponse](
-			httpClient,
-			baseURL+CatalogServiceUpdateBookProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("UpdateBook")),
-			connect.WithClientOptions(opts...),
-		),
-		getBookSources: connect.NewClient[v1.GetBookSourcesRequest, v1.GetBookSourcesResponse](
-			httpClient,
-			baseURL+CatalogServiceGetBookSourcesProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("GetBookSources")),
-			connect.WithClientOptions(opts...),
-		),
-		applyBookSource: connect.NewClient[v1.ApplyBookSourceRequest, v1.ApplyBookSourceResponse](
-			httpClient,
-			baseURL+CatalogServiceApplyBookSourceProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("ApplyBookSource")),
-			connect.WithClientOptions(opts...),
-		),
-		getSourceStats: connect.NewClient[v1.GetSourceStatsRequest, v1.GetSourceStatsResponse](
-			httpClient,
-			baseURL+CatalogServiceGetSourceStatsProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("GetSourceStats")),
-			connect.WithClientOptions(opts...),
-		),
-		listBooksInExactSources: connect.NewClient[v1.ListBooksInExactSourcesRequest, v1.ListBooksInExactSourcesResponse](
-			httpClient,
-			baseURL+CatalogServiceListBooksInExactSourcesProcedure,
-			connect.WithSchema(catalogServiceMethods.ByName("ListBooksInExactSources")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// catalogServiceClient implements CatalogServiceClient.
-type catalogServiceClient struct {
-	importBooks             *connect.Client[v1.ImportBooksRequest, v1.ImportBooksResponse]
-	findDuplicates          *connect.Client[v1.FindDuplicatesRequest, v1.FindDuplicatesResponse]
-	mergeBooks              *connect.Client[v1.MergeBooksRequest, v1.MergeBooksResponse]
-	startResync             *connect.Client[v1.StartResyncRequest, v1.StartResyncResponse]
-	cancelResync            *connect.Client[v1.CancelResyncRequest, v1.CancelResyncResponse]
-	listResyncProposals     *connect.Client[v1.ListResyncProposalsRequest, v1.ListResyncProposalsResponse]
-	applyResyncChoice       *connect.Client[v1.ApplyResyncChoiceRequest, v1.ApplyResyncChoiceResponse]
-	setBookISBN             *connect.Client[v1.SetBookISBNRequest, v1.SetBookISBNResponse]
-	updateBook              *connect.Client[v1.UpdateBookRequest, v1.UpdateBookResponse]
-	getBookSources          *connect.Client[v1.GetBookSourcesRequest, v1.GetBookSourcesResponse]
-	applyBookSource         *connect.Client[v1.ApplyBookSourceRequest, v1.ApplyBookSourceResponse]
-	getSourceStats          *connect.Client[v1.GetSourceStatsRequest, v1.GetSourceStatsResponse]
-	listBooksInExactSources *connect.Client[v1.ListBooksInExactSourcesRequest, v1.ListBooksInExactSourcesResponse]
-}
-
-// ImportBooks calls books.v1.CatalogService.ImportBooks.
-func (c *catalogServiceClient) ImportBooks(ctx context.Context, req *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error) {
-	return c.importBooks.CallUnary(ctx, req)
-}
-
-// FindDuplicates calls books.v1.CatalogService.FindDuplicates.
-func (c *catalogServiceClient) FindDuplicates(ctx context.Context, req *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error) {
-	return c.findDuplicates.CallUnary(ctx, req)
-}
-
-// MergeBooks calls books.v1.CatalogService.MergeBooks.
-func (c *catalogServiceClient) MergeBooks(ctx context.Context, req *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error) {
-	return c.mergeBooks.CallUnary(ctx, req)
-}
-
-// StartResync calls books.v1.CatalogService.StartResync.
-func (c *catalogServiceClient) StartResync(ctx context.Context, req *connect.Request[v1.StartResyncRequest]) (*connect.Response[v1.StartResyncResponse], error) {
-	return c.startResync.CallUnary(ctx, req)
-}
-
-// CancelResync calls books.v1.CatalogService.CancelResync.
-func (c *catalogServiceClient) CancelResync(ctx context.Context, req *connect.Request[v1.CancelResyncRequest]) (*connect.Response[v1.CancelResyncResponse], error) {
-	return c.cancelResync.CallUnary(ctx, req)
-}
-
-// ListResyncProposals calls books.v1.CatalogService.ListResyncProposals.
-func (c *catalogServiceClient) ListResyncProposals(ctx context.Context, req *connect.Request[v1.ListResyncProposalsRequest]) (*connect.Response[v1.ListResyncProposalsResponse], error) {
-	return c.listResyncProposals.CallUnary(ctx, req)
-}
-
-// ApplyResyncChoice calls books.v1.CatalogService.ApplyResyncChoice.
-func (c *catalogServiceClient) ApplyResyncChoice(ctx context.Context, req *connect.Request[v1.ApplyResyncChoiceRequest]) (*connect.Response[v1.ApplyResyncChoiceResponse], error) {
-	return c.applyResyncChoice.CallUnary(ctx, req)
-}
-
-// SetBookISBN calls books.v1.CatalogService.SetBookISBN.
-func (c *catalogServiceClient) SetBookISBN(ctx context.Context, req *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error) {
-	return c.setBookISBN.CallUnary(ctx, req)
-}
-
-// UpdateBook calls books.v1.CatalogService.UpdateBook.
-func (c *catalogServiceClient) UpdateBook(ctx context.Context, req *connect.Request[v1.UpdateBookRequest]) (*connect.Response[v1.UpdateBookResponse], error) {
-	return c.updateBook.CallUnary(ctx, req)
-}
-
-// GetBookSources calls books.v1.CatalogService.GetBookSources.
-func (c *catalogServiceClient) GetBookSources(ctx context.Context, req *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error) {
-	return c.getBookSources.CallUnary(ctx, req)
-}
-
-// ApplyBookSource calls books.v1.CatalogService.ApplyBookSource.
-func (c *catalogServiceClient) ApplyBookSource(ctx context.Context, req *connect.Request[v1.ApplyBookSourceRequest]) (*connect.Response[v1.ApplyBookSourceResponse], error) {
-	return c.applyBookSource.CallUnary(ctx, req)
-}
-
-// GetSourceStats calls books.v1.CatalogService.GetSourceStats.
-func (c *catalogServiceClient) GetSourceStats(ctx context.Context, req *connect.Request[v1.GetSourceStatsRequest]) (*connect.Response[v1.GetSourceStatsResponse], error) {
-	return c.getSourceStats.CallUnary(ctx, req)
-}
-
-// ListBooksInExactSources calls books.v1.CatalogService.ListBooksInExactSources.
-func (c *catalogServiceClient) ListBooksInExactSources(ctx context.Context, req *connect.Request[v1.ListBooksInExactSourcesRequest]) (*connect.Response[v1.ListBooksInExactSourcesResponse], error) {
-	return c.listBooksInExactSources.CallUnary(ctx, req)
+// NewCatalogServiceClient constructs a client for the books.v1.CatalogService service. Multiple
+// service clients may share a single connect.Client.
+func NewCatalogServiceClient(client *connect.Client) CatalogServiceClient {
+	return &catalogServiceClient{client: client}
 }
 
 // CatalogServiceHandler is an implementation of the books.v1.CatalogService service.
 type CatalogServiceHandler interface {
-	ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error)
-	FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error)
-	MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error)
-	StartResync(context.Context, *connect.Request[v1.StartResyncRequest]) (*connect.Response[v1.StartResyncResponse], error)
-	CancelResync(context.Context, *connect.Request[v1.CancelResyncRequest]) (*connect.Response[v1.CancelResyncResponse], error)
-	ListResyncProposals(context.Context, *connect.Request[v1.ListResyncProposalsRequest]) (*connect.Response[v1.ListResyncProposalsResponse], error)
-	ApplyResyncChoice(context.Context, *connect.Request[v1.ApplyResyncChoiceRequest]) (*connect.Response[v1.ApplyResyncChoiceResponse], error)
-	SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error)
-	UpdateBook(context.Context, *connect.Request[v1.UpdateBookRequest]) (*connect.Response[v1.UpdateBookResponse], error)
-	GetBookSources(context.Context, *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error)
-	ApplyBookSource(context.Context, *connect.Request[v1.ApplyBookSourceRequest]) (*connect.Response[v1.ApplyBookSourceResponse], error)
-	GetSourceStats(context.Context, *connect.Request[v1.GetSourceStatsRequest]) (*connect.Response[v1.GetSourceStatsResponse], error)
-	ListBooksInExactSources(context.Context, *connect.Request[v1.ListBooksInExactSourcesRequest]) (*connect.Response[v1.ListBooksInExactSourcesResponse], error)
+	ImportBooks(context.Context, *v1.ImportBooksRequest) (*v1.ImportBooksResponse, error)
+	FindDuplicates(context.Context, *v1.FindDuplicatesRequest) (*v1.FindDuplicatesResponse, error)
+	MergeBooks(context.Context, *v1.MergeBooksRequest) (*v1.MergeBooksResponse, error)
+	StartResync(context.Context, *v1.StartResyncRequest) (*v1.StartResyncResponse, error)
+	CancelResync(context.Context, *v1.CancelResyncRequest) (*v1.CancelResyncResponse, error)
+	ListResyncProposals(context.Context, *v1.ListResyncProposalsRequest) (*v1.ListResyncProposalsResponse, error)
+	ApplyResyncChoice(context.Context, *v1.ApplyResyncChoiceRequest) (*v1.ApplyResyncChoiceResponse, error)
+	SetBookISBN(context.Context, *v1.SetBookISBNRequest) (*v1.SetBookISBNResponse, error)
+	UpdateBook(context.Context, *v1.UpdateBookRequest) (*v1.UpdateBookResponse, error)
+	GetBookSources(context.Context, *v1.GetBookSourcesRequest) (*v1.GetBookSourcesResponse, error)
+	ApplyBookSource(context.Context, *v1.ApplyBookSourceRequest) (*v1.ApplyBookSourceResponse, error)
+	GetSourceStats(context.Context, *v1.GetSourceStatsRequest) (*v1.GetSourceStatsResponse, error)
+	ListBooksInExactSources(context.Context, *v1.ListBooksInExactSourcesRequest) (*v1.ListBooksInExactSourcesResponse, error)
 }
 
-// NewCatalogServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewCatalogServiceHandler(svc CatalogServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	catalogServiceMethods := v1.File_books_v1_catalog_proto.Services().ByName("CatalogService").Methods()
-	catalogServiceImportBooksHandler := connect.NewUnaryHandler(
-		CatalogServiceImportBooksProcedure,
-		svc.ImportBooks,
-		connect.WithSchema(catalogServiceMethods.ByName("ImportBooks")),
-		connect.WithHandlerOptions(opts...),
+// RegisterCatalogServiceHandler registers svc as the books.v1.CatalogService implementation on
+// server.
+func RegisterCatalogServiceHandler(server *connect.Server, svc CatalogServiceHandler) {
+	adapter := catalogServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: catalogServiceImportBooksSpec(), Handler: adapter.importBooks},
+		connect.Method{Spec: catalogServiceFindDuplicatesSpec(), Handler: adapter.findDuplicates},
+		connect.Method{Spec: catalogServiceMergeBooksSpec(), Handler: adapter.mergeBooks},
+		connect.Method{Spec: catalogServiceStartResyncSpec(), Handler: adapter.startResync},
+		connect.Method{Spec: catalogServiceCancelResyncSpec(), Handler: adapter.cancelResync},
+		connect.Method{Spec: catalogServiceListResyncProposalsSpec(), Handler: adapter.listResyncProposals},
+		connect.Method{Spec: catalogServiceApplyResyncChoiceSpec(), Handler: adapter.applyResyncChoice},
+		connect.Method{Spec: catalogServiceSetBookISBNSpec(), Handler: adapter.setBookISBN},
+		connect.Method{Spec: catalogServiceUpdateBookSpec(), Handler: adapter.updateBook},
+		connect.Method{Spec: catalogServiceGetBookSourcesSpec(), Handler: adapter.getBookSources},
+		connect.Method{Spec: catalogServiceApplyBookSourceSpec(), Handler: adapter.applyBookSource},
+		connect.Method{Spec: catalogServiceGetSourceStatsSpec(), Handler: adapter.getSourceStats},
+		connect.Method{Spec: catalogServiceListBooksInExactSourcesSpec(), Handler: adapter.listBooksInExactSources},
 	)
-	catalogServiceFindDuplicatesHandler := connect.NewUnaryHandler(
-		CatalogServiceFindDuplicatesProcedure,
-		svc.FindDuplicates,
-		connect.WithSchema(catalogServiceMethods.ByName("FindDuplicates")),
-		connect.WithHandlerOptions(opts...),
-	)
-	catalogServiceMergeBooksHandler := connect.NewUnaryHandler(
-		CatalogServiceMergeBooksProcedure,
-		svc.MergeBooks,
-		connect.WithSchema(catalogServiceMethods.ByName("MergeBooks")),
-		connect.WithHandlerOptions(opts...),
-	)
-	catalogServiceStartResyncHandler := connect.NewUnaryHandler(
-		CatalogServiceStartResyncProcedure,
-		svc.StartResync,
-		connect.WithSchema(catalogServiceMethods.ByName("StartResync")),
-		connect.WithHandlerOptions(opts...),
-	)
-	catalogServiceCancelResyncHandler := connect.NewUnaryHandler(
-		CatalogServiceCancelResyncProcedure,
-		svc.CancelResync,
-		connect.WithSchema(catalogServiceMethods.ByName("CancelResync")),
-		connect.WithHandlerOptions(opts...),
-	)
-	catalogServiceListResyncProposalsHandler := connect.NewUnaryHandler(
-		CatalogServiceListResyncProposalsProcedure,
-		svc.ListResyncProposals,
-		connect.WithSchema(catalogServiceMethods.ByName("ListResyncProposals")),
-		connect.WithHandlerOptions(opts...),
-	)
-	catalogServiceApplyResyncChoiceHandler := connect.NewUnaryHandler(
-		CatalogServiceApplyResyncChoiceProcedure,
-		svc.ApplyResyncChoice,
-		connect.WithSchema(catalogServiceMethods.ByName("ApplyResyncChoice")),
-		connect.WithHandlerOptions(opts...),
-	)
-	catalogServiceSetBookISBNHandler := connect.NewUnaryHandler(
-		CatalogServiceSetBookISBNProcedure,
-		svc.SetBookISBN,
-		connect.WithSchema(catalogServiceMethods.ByName("SetBookISBN")),
-		connect.WithHandlerOptions(opts...),
-	)
-	catalogServiceUpdateBookHandler := connect.NewUnaryHandler(
-		CatalogServiceUpdateBookProcedure,
-		svc.UpdateBook,
-		connect.WithSchema(catalogServiceMethods.ByName("UpdateBook")),
-		connect.WithHandlerOptions(opts...),
-	)
-	catalogServiceGetBookSourcesHandler := connect.NewUnaryHandler(
-		CatalogServiceGetBookSourcesProcedure,
-		svc.GetBookSources,
-		connect.WithSchema(catalogServiceMethods.ByName("GetBookSources")),
-		connect.WithHandlerOptions(opts...),
-	)
-	catalogServiceApplyBookSourceHandler := connect.NewUnaryHandler(
-		CatalogServiceApplyBookSourceProcedure,
-		svc.ApplyBookSource,
-		connect.WithSchema(catalogServiceMethods.ByName("ApplyBookSource")),
-		connect.WithHandlerOptions(opts...),
-	)
-	catalogServiceGetSourceStatsHandler := connect.NewUnaryHandler(
-		CatalogServiceGetSourceStatsProcedure,
-		svc.GetSourceStats,
-		connect.WithSchema(catalogServiceMethods.ByName("GetSourceStats")),
-		connect.WithHandlerOptions(opts...),
-	)
-	catalogServiceListBooksInExactSourcesHandler := connect.NewUnaryHandler(
-		CatalogServiceListBooksInExactSourcesProcedure,
-		svc.ListBooksInExactSources,
-		connect.WithSchema(catalogServiceMethods.ByName("ListBooksInExactSources")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/books.v1.CatalogService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case CatalogServiceImportBooksProcedure:
-			catalogServiceImportBooksHandler.ServeHTTP(w, r)
-		case CatalogServiceFindDuplicatesProcedure:
-			catalogServiceFindDuplicatesHandler.ServeHTTP(w, r)
-		case CatalogServiceMergeBooksProcedure:
-			catalogServiceMergeBooksHandler.ServeHTTP(w, r)
-		case CatalogServiceStartResyncProcedure:
-			catalogServiceStartResyncHandler.ServeHTTP(w, r)
-		case CatalogServiceCancelResyncProcedure:
-			catalogServiceCancelResyncHandler.ServeHTTP(w, r)
-		case CatalogServiceListResyncProposalsProcedure:
-			catalogServiceListResyncProposalsHandler.ServeHTTP(w, r)
-		case CatalogServiceApplyResyncChoiceProcedure:
-			catalogServiceApplyResyncChoiceHandler.ServeHTTP(w, r)
-		case CatalogServiceSetBookISBNProcedure:
-			catalogServiceSetBookISBNHandler.ServeHTTP(w, r)
-		case CatalogServiceUpdateBookProcedure:
-			catalogServiceUpdateBookHandler.ServeHTTP(w, r)
-		case CatalogServiceGetBookSourcesProcedure:
-			catalogServiceGetBookSourcesHandler.ServeHTTP(w, r)
-		case CatalogServiceApplyBookSourceProcedure:
-			catalogServiceApplyBookSourceHandler.ServeHTTP(w, r)
-		case CatalogServiceGetSourceStatsProcedure:
-			catalogServiceGetSourceStatsHandler.ServeHTTP(w, r)
-		case CatalogServiceListBooksInExactSourcesProcedure:
-			catalogServiceListBooksInExactSourcesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedCatalogServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedCatalogServiceHandler struct{}
 
-func (UnimplementedCatalogServiceHandler) ImportBooks(context.Context, *connect.Request[v1.ImportBooksRequest]) (*connect.Response[v1.ImportBooksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.ImportBooks is not implemented"))
+func (UnimplementedCatalogServiceHandler) ImportBooks(context.Context, *v1.ImportBooksRequest) (*v1.ImportBooksResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.CatalogService.ImportBooks is not implemented")
 }
 
-func (UnimplementedCatalogServiceHandler) FindDuplicates(context.Context, *connect.Request[v1.FindDuplicatesRequest]) (*connect.Response[v1.FindDuplicatesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.FindDuplicates is not implemented"))
+func (UnimplementedCatalogServiceHandler) FindDuplicates(context.Context, *v1.FindDuplicatesRequest) (*v1.FindDuplicatesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.CatalogService.FindDuplicates is not implemented")
 }
 
-func (UnimplementedCatalogServiceHandler) MergeBooks(context.Context, *connect.Request[v1.MergeBooksRequest]) (*connect.Response[v1.MergeBooksResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.MergeBooks is not implemented"))
+func (UnimplementedCatalogServiceHandler) MergeBooks(context.Context, *v1.MergeBooksRequest) (*v1.MergeBooksResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.CatalogService.MergeBooks is not implemented")
 }
 
-func (UnimplementedCatalogServiceHandler) StartResync(context.Context, *connect.Request[v1.StartResyncRequest]) (*connect.Response[v1.StartResyncResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.StartResync is not implemented"))
+func (UnimplementedCatalogServiceHandler) StartResync(context.Context, *v1.StartResyncRequest) (*v1.StartResyncResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.CatalogService.StartResync is not implemented")
 }
 
-func (UnimplementedCatalogServiceHandler) CancelResync(context.Context, *connect.Request[v1.CancelResyncRequest]) (*connect.Response[v1.CancelResyncResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.CancelResync is not implemented"))
+func (UnimplementedCatalogServiceHandler) CancelResync(context.Context, *v1.CancelResyncRequest) (*v1.CancelResyncResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.CatalogService.CancelResync is not implemented")
 }
 
-func (UnimplementedCatalogServiceHandler) ListResyncProposals(context.Context, *connect.Request[v1.ListResyncProposalsRequest]) (*connect.Response[v1.ListResyncProposalsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.ListResyncProposals is not implemented"))
+func (UnimplementedCatalogServiceHandler) ListResyncProposals(context.Context, *v1.ListResyncProposalsRequest) (*v1.ListResyncProposalsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.CatalogService.ListResyncProposals is not implemented")
 }
 
-func (UnimplementedCatalogServiceHandler) ApplyResyncChoice(context.Context, *connect.Request[v1.ApplyResyncChoiceRequest]) (*connect.Response[v1.ApplyResyncChoiceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.ApplyResyncChoice is not implemented"))
+func (UnimplementedCatalogServiceHandler) ApplyResyncChoice(context.Context, *v1.ApplyResyncChoiceRequest) (*v1.ApplyResyncChoiceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.CatalogService.ApplyResyncChoice is not implemented")
 }
 
-func (UnimplementedCatalogServiceHandler) SetBookISBN(context.Context, *connect.Request[v1.SetBookISBNRequest]) (*connect.Response[v1.SetBookISBNResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.SetBookISBN is not implemented"))
+func (UnimplementedCatalogServiceHandler) SetBookISBN(context.Context, *v1.SetBookISBNRequest) (*v1.SetBookISBNResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.CatalogService.SetBookISBN is not implemented")
 }
 
-func (UnimplementedCatalogServiceHandler) UpdateBook(context.Context, *connect.Request[v1.UpdateBookRequest]) (*connect.Response[v1.UpdateBookResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.UpdateBook is not implemented"))
+func (UnimplementedCatalogServiceHandler) UpdateBook(context.Context, *v1.UpdateBookRequest) (*v1.UpdateBookResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.CatalogService.UpdateBook is not implemented")
 }
 
-func (UnimplementedCatalogServiceHandler) GetBookSources(context.Context, *connect.Request[v1.GetBookSourcesRequest]) (*connect.Response[v1.GetBookSourcesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.GetBookSources is not implemented"))
+func (UnimplementedCatalogServiceHandler) GetBookSources(context.Context, *v1.GetBookSourcesRequest) (*v1.GetBookSourcesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.CatalogService.GetBookSources is not implemented")
 }
 
-func (UnimplementedCatalogServiceHandler) ApplyBookSource(context.Context, *connect.Request[v1.ApplyBookSourceRequest]) (*connect.Response[v1.ApplyBookSourceResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.ApplyBookSource is not implemented"))
+func (UnimplementedCatalogServiceHandler) ApplyBookSource(context.Context, *v1.ApplyBookSourceRequest) (*v1.ApplyBookSourceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.CatalogService.ApplyBookSource is not implemented")
 }
 
-func (UnimplementedCatalogServiceHandler) GetSourceStats(context.Context, *connect.Request[v1.GetSourceStatsRequest]) (*connect.Response[v1.GetSourceStatsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.GetSourceStats is not implemented"))
+func (UnimplementedCatalogServiceHandler) GetSourceStats(context.Context, *v1.GetSourceStatsRequest) (*v1.GetSourceStatsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.CatalogService.GetSourceStats is not implemented")
 }
 
-func (UnimplementedCatalogServiceHandler) ListBooksInExactSources(context.Context, *connect.Request[v1.ListBooksInExactSourcesRequest]) (*connect.Response[v1.ListBooksInExactSourcesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.CatalogService.ListBooksInExactSources is not implemented"))
+func (UnimplementedCatalogServiceHandler) ListBooksInExactSources(context.Context, *v1.ListBooksInExactSourcesRequest) (*v1.ListBooksInExactSourcesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "books.v1.CatalogService.ListBooksInExactSources is not implemented")
+}
+
+type catalogServiceClient struct {
+	client *connect.Client
+}
+
+func (c *catalogServiceClient) ImportBooks(ctx context.Context, req *v1.ImportBooksRequest) (*v1.ImportBooksResponse, error) {
+	var res v1.ImportBooksResponse
+	if err := c.client.CallUnary(ctx, catalogServiceImportBooksSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *catalogServiceClient) FindDuplicates(ctx context.Context, req *v1.FindDuplicatesRequest) (*v1.FindDuplicatesResponse, error) {
+	var res v1.FindDuplicatesResponse
+	if err := c.client.CallUnary(ctx, catalogServiceFindDuplicatesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *catalogServiceClient) MergeBooks(ctx context.Context, req *v1.MergeBooksRequest) (*v1.MergeBooksResponse, error) {
+	var res v1.MergeBooksResponse
+	if err := c.client.CallUnary(ctx, catalogServiceMergeBooksSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *catalogServiceClient) StartResync(ctx context.Context, req *v1.StartResyncRequest) (*v1.StartResyncResponse, error) {
+	var res v1.StartResyncResponse
+	if err := c.client.CallUnary(ctx, catalogServiceStartResyncSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *catalogServiceClient) CancelResync(ctx context.Context, req *v1.CancelResyncRequest) (*v1.CancelResyncResponse, error) {
+	var res v1.CancelResyncResponse
+	if err := c.client.CallUnary(ctx, catalogServiceCancelResyncSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *catalogServiceClient) ListResyncProposals(ctx context.Context, req *v1.ListResyncProposalsRequest) (*v1.ListResyncProposalsResponse, error) {
+	var res v1.ListResyncProposalsResponse
+	if err := c.client.CallUnary(ctx, catalogServiceListResyncProposalsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *catalogServiceClient) ApplyResyncChoice(ctx context.Context, req *v1.ApplyResyncChoiceRequest) (*v1.ApplyResyncChoiceResponse, error) {
+	var res v1.ApplyResyncChoiceResponse
+	if err := c.client.CallUnary(ctx, catalogServiceApplyResyncChoiceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *catalogServiceClient) SetBookISBN(ctx context.Context, req *v1.SetBookISBNRequest) (*v1.SetBookISBNResponse, error) {
+	var res v1.SetBookISBNResponse
+	if err := c.client.CallUnary(ctx, catalogServiceSetBookISBNSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *catalogServiceClient) UpdateBook(ctx context.Context, req *v1.UpdateBookRequest) (*v1.UpdateBookResponse, error) {
+	var res v1.UpdateBookResponse
+	if err := c.client.CallUnary(ctx, catalogServiceUpdateBookSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *catalogServiceClient) GetBookSources(ctx context.Context, req *v1.GetBookSourcesRequest) (*v1.GetBookSourcesResponse, error) {
+	var res v1.GetBookSourcesResponse
+	if err := c.client.CallUnary(ctx, catalogServiceGetBookSourcesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *catalogServiceClient) ApplyBookSource(ctx context.Context, req *v1.ApplyBookSourceRequest) (*v1.ApplyBookSourceResponse, error) {
+	var res v1.ApplyBookSourceResponse
+	if err := c.client.CallUnary(ctx, catalogServiceApplyBookSourceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *catalogServiceClient) GetSourceStats(ctx context.Context, req *v1.GetSourceStatsRequest) (*v1.GetSourceStatsResponse, error) {
+	var res v1.GetSourceStatsResponse
+	if err := c.client.CallUnary(ctx, catalogServiceGetSourceStatsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *catalogServiceClient) ListBooksInExactSources(ctx context.Context, req *v1.ListBooksInExactSourcesRequest) (*v1.ListBooksInExactSourcesResponse, error) {
+	var res v1.ListBooksInExactSourcesResponse
+	if err := c.client.CallUnary(ctx, catalogServiceListBooksInExactSourcesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type catalogServiceHandler struct{ svc CatalogServiceHandler }
+
+func (h catalogServiceHandler) importBooks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ImportBooksRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ImportBooks(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h catalogServiceHandler) findDuplicates(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.FindDuplicatesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.FindDuplicates(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h catalogServiceHandler) mergeBooks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MergeBooksRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MergeBooks(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h catalogServiceHandler) startResync(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StartResyncRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.StartResync(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h catalogServiceHandler) cancelResync(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CancelResyncRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CancelResync(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h catalogServiceHandler) listResyncProposals(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListResyncProposalsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListResyncProposals(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h catalogServiceHandler) applyResyncChoice(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ApplyResyncChoiceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ApplyResyncChoice(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h catalogServiceHandler) setBookISBN(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetBookISBNRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetBookISBN(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h catalogServiceHandler) updateBook(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateBookRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateBook(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h catalogServiceHandler) getBookSources(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetBookSourcesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetBookSources(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h catalogServiceHandler) applyBookSource(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ApplyBookSourceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ApplyBookSource(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h catalogServiceHandler) getSourceStats(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSourceStatsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSourceStats(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h catalogServiceHandler) listBooksInExactSources(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListBooksInExactSourcesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListBooksInExactSources(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

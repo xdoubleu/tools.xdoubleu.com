@@ -3,22 +3,20 @@ package movies
 import (
 	"context"
 
-	"connectrpc.com/connect"
-
 	"tools.xdoubleu.com/apps/movies/internal/models"
 	moviesv1 "tools.xdoubleu.com/gen/movies/v1"
 )
 
 func (h *moviesConnectHandler) SearchTitles(
 	ctx context.Context,
-	req *connect.Request[moviesv1.SearchTitlesRequest],
-) (*connect.Response[moviesv1.SearchTitlesResponse], error) {
+	req *moviesv1.SearchTitlesRequest,
+) (*moviesv1.SearchTitlesResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	results, err := h.app.services.Movies.Search(ctx, uid, req.Msg.Query)
+	results, err := h.app.services.Movies.Search(ctx, uid, req.Query)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -27,83 +25,83 @@ func (h *moviesConnectHandler) SearchTitles(
 	for i, r := range results {
 		out[i] = protoSearchResult(r)
 	}
-	return connect.NewResponse(&moviesv1.SearchTitlesResponse{Results: out}), nil
+	return &moviesv1.SearchTitlesResponse{Results: out}, nil
 }
 
 func (h *moviesConnectHandler) AddTitle(
 	ctx context.Context,
-	req *connect.Request[moviesv1.AddTitleRequest],
-) (*connect.Response[moviesv1.AddTitleResponse], error) {
+	req *moviesv1.AddTitleRequest,
+) (*moviesv1.AddTitleResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	entry, err := h.app.services.Movies.Add(
-		ctx, uid, req.Msg.MediaType, req.Msg.TmdbId, req.Msg.Status,
-		req.Msg.UnknownDate,
+		ctx, uid, req.MediaType, req.TmdbId, req.Status,
+		req.UnknownDate,
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&moviesv1.AddTitleResponse{
+	return &moviesv1.AddTitleResponse{
 		Entry: protoEntry(entry),
-	}), nil
+	}, nil
 }
 
 func (h *moviesConnectHandler) SetStatus(
 	ctx context.Context,
-	req *connect.Request[moviesv1.SetStatusRequest],
-) (*connect.Response[moviesv1.SetStatusResponse], error) {
+	req *moviesv1.SetStatusRequest,
+) (*moviesv1.SetStatusResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.Msg.Id)
+	id, err := parseID(req.Id)
 	if err != nil {
 		return nil, err
 	}
 
 	entry, err := h.app.services.Movies.SetStatus(
-		ctx, uid, id, req.Msg.Status, req.Msg.UnknownDate,
+		ctx, uid, id, req.Status, req.UnknownDate,
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&moviesv1.SetStatusResponse{
+	return &moviesv1.SetStatusResponse{
 		Entry: protoEntry(entry),
-	}), nil
+	}, nil
 }
 
 func (h *moviesConnectHandler) SetRating(
 	ctx context.Context,
-	req *connect.Request[moviesv1.SetRatingRequest],
-) (*connect.Response[moviesv1.SetRatingResponse], error) {
-	uid, id, err := target(ctx, req.Msg.Id)
+	req *moviesv1.SetRatingRequest,
+) (*moviesv1.SetRatingResponse, error) {
+	uid, id, err := target(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
 
 	entry, err := h.app.services.Movies.SetRating(
-		ctx, uid, id, optionalInt(req.Msg.Rating),
+		ctx, uid, id, optionalInt(req.Rating),
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&moviesv1.SetRatingResponse{
+	return &moviesv1.SetRatingResponse{
 		Entry: protoEntry(entry),
-	}), nil
+	}, nil
 }
 
 func (h *moviesConnectHandler) RemoveTitle(
 	ctx context.Context,
-	req *connect.Request[moviesv1.RemoveTitleRequest],
-) (*connect.Response[moviesv1.RemoveTitleResponse], error) {
+	req *moviesv1.RemoveTitleRequest,
+) (*moviesv1.RemoveTitleResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.Msg.Id)
+	id, err := parseID(req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -111,26 +109,26 @@ func (h *moviesConnectHandler) RemoveTitle(
 	if err = h.app.services.Movies.Remove(ctx, uid, id); err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&moviesv1.RemoveTitleResponse{}), nil
+	return &moviesv1.RemoveTitleResponse{}, nil
 }
 
 func (h *moviesConnectHandler) ListBacklog(
 	ctx context.Context,
-	req *connect.Request[moviesv1.ListBacklogRequest],
-) (*connect.Response[moviesv1.ListBacklogResponse], error) {
+	req *moviesv1.ListBacklogRequest,
+) (*moviesv1.ListBacklogResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	entries, hasMore, err := h.app.services.Movies.List(ctx, uid, models.ListFilter{
-		Status:       req.Msg.Status,
-		MediaType:    req.Msg.MediaType,
-		Sort:         req.Msg.Sort,
-		NewSeason:    req.Msg.NewSeason,
-		OnMyServices: req.Msg.OnMyServices,
-		Limit:        req.Msg.Limit,
-		Offset:       req.Msg.Offset,
+		Status:       req.Status,
+		MediaType:    req.MediaType,
+		Sort:         req.Sort,
+		NewSeason:    req.NewSeason,
+		OnMyServices: req.OnMyServices,
+		Limit:        req.Limit,
+		Offset:       req.Offset,
 	})
 	if err != nil {
 		return nil, mapError(err)
@@ -140,21 +138,21 @@ func (h *moviesConnectHandler) ListBacklog(
 	for i := range entries {
 		out[i] = protoEntry(&entries[i])
 	}
-	return connect.NewResponse(&moviesv1.ListBacklogResponse{
+	return &moviesv1.ListBacklogResponse{
 		Entries: out,
 		HasMore: hasMore,
-	}), nil
+	}, nil
 }
 
 func (h *moviesConnectHandler) GetTitle(
 	ctx context.Context,
-	req *connect.Request[moviesv1.GetTitleRequest],
-) (*connect.Response[moviesv1.GetTitleResponse], error) {
+	req *moviesv1.GetTitleRequest,
+) (*moviesv1.GetTitleResponse, error) {
 	uid, err := userID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.Msg.Id)
+	id, err := parseID(req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -163,11 +161,11 @@ func (h *moviesConnectHandler) GetTitle(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&moviesv1.GetTitleResponse{
+	return &moviesv1.GetTitleResponse{
 		Entry:     protoEntry(entry),
 		Overview:  entry.Title.Overview,
 		Seasons:   protoSeasons(entry.Seasons),
 		Offers:    protoOffers(entry.Providers),
 		WatchLink: entry.Title.WatchLink,
-	}), nil
+	}, nil
 }

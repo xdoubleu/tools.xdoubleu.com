@@ -6,7 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -131,21 +132,25 @@ func TestConnectGetSteam_WithBacklogAndInProgress(t *testing.T) {
 	inProgressApp := setupSteamUser(inProgressUser, func(_ string) steam.Client {
 		return twoAchievementsMock{}
 	})
+	ctx, info := connect.NewClientContext(ctx)
 
 	for _, app2 := range []*games.Games{backlogApp, inProgressApp} {
 		ts := httptest.NewServer(testhelper.BuildMux(app2))
 		t.Cleanup(ts.Close)
 		client := gamesv1connect.NewGamesServiceClient(
-			http.DefaultClient,
-			ts.URL,
-			connect.WithHTTPGet(),
+			connect.NewClient(connecthttp.NewTransport(
+				http.DefaultClient,
+				ts.URL,
+				connecthttp.WithReadMaxBytes(0),
+				connecthttp.WithHTTPGet(),
+			)),
 		)
 
-		req := connect.NewRequest(&gamesv1.GetSteamRequest{})
-		req.Header().Set("Cookie", accessToken.String())
+		req := &gamesv1.GetSteamRequest{}
+		info.RequestHeader().Set("Cookie", accessToken.String())
 
 		resp, err := client.GetSteam(ctx, req)
 		require.NoError(t, err)
-		assert.NotNil(t, resp.Msg.Steam)
+		assert.NotNil(t, resp.Steam)
 	}
 }

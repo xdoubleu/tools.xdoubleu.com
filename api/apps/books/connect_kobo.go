@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
@@ -18,77 +18,77 @@ import (
 
 func (h *booksConnectHandler) EnableKoboSync(
 	ctx context.Context,
-	req *connect.Request[booksv1.EnableKoboSyncRequest],
-) (*connect.Response[booksv1.EnableKoboSyncResponse], error) {
+	req *booksv1.EnableKoboSyncRequest,
+) (*booksv1.EnableKoboSyncResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	bookID, err := uuid.Parse(req.Msg.BookId)
+	bookID, err := uuid.Parse(req.BookId)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid book ID"),
+			"invalid book ID",
 		)
 	}
 	if err = h.app.Services.Books.EnableKoboSync(ctx, user.ID, bookID); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	statusResult, err := h.app.Services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	kepubStatus, convErr := h.maybeStartKEPUBConversion(
 		ctx, user.ID, bookID, statusResult, true,
 	)
 	if convErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, convErr)
+		return nil, connect.NewError(connect.CodeInternal, convErr.Error()).WithCause(convErr)
 	}
-	return connect.NewResponse(&booksv1.EnableKoboSyncResponse{
+	return &booksv1.EnableKoboSyncResponse{
 		KepubStatus: kepubStatus,
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) RegisterKoboDevice(
 	ctx context.Context,
-	req *connect.Request[booksv1.RegisterKoboDeviceRequest],
-) (*connect.Response[booksv1.RegisterKoboDeviceResponse], error) {
+	req *booksv1.RegisterKoboDeviceRequest,
+) (*booksv1.RegisterKoboDeviceResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 	device, rawToken, err := h.app.Services.Kobo.RegisterKoboDevice(
-		ctx, user.ID, req.Msg.Name, req.Msg.Serial,
+		ctx, user.ID, req.Name, req.Serial,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&booksv1.RegisterKoboDeviceResponse{
+	return &booksv1.RegisterKoboDeviceResponse{
 		Device:   koboDeviceProto(device),
 		RawToken: rawToken,
-	}), nil
+	}, nil
 }
 
 func (h *booksConnectHandler) ListKoboDevices(
 	ctx context.Context,
-	_ *connect.Request[booksv1.ListKoboDevicesRequest],
-) (*connect.Response[booksv1.ListKoboDevicesResponse], error) {
+	_ *booksv1.ListKoboDevicesRequest,
+) (*booksv1.ListKoboDevicesResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 	devices, err := h.app.Services.Kobo.ListKoboDevices(ctx, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	resp := &booksv1.ListKoboDevicesResponse{
 		Devices: make([]*booksv1.KoboDevice, len(devices)),
@@ -98,25 +98,25 @@ func (h *booksConnectHandler) ListKoboDevices(
 		d.LoggingEnabled = h.app.Services.KoboLog.IsEnabled(d.ID)
 		resp.Devices[i] = koboDeviceProto(d)
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 func (h *booksConnectHandler) DisconnectKoboDevice(
 	ctx context.Context,
-	req *connect.Request[booksv1.DisconnectKoboDeviceRequest],
-) (*connect.Response[booksv1.DisconnectKoboDeviceResponse], error) {
+	req *booksv1.DisconnectKoboDeviceRequest,
+) (*booksv1.DisconnectKoboDeviceResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
-	deviceID, err := uuid.Parse(req.Msg.Id)
+	deviceID, err := uuid.Parse(req.Id)
 	if err != nil {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("invalid device ID"),
+			"invalid device ID",
 		)
 	}
 	err = h.app.Services.Kobo.DisconnectKoboDevice(ctx, user.ID, deviceID)
@@ -124,12 +124,12 @@ func (h *booksConnectHandler) DisconnectKoboDevice(
 		if errors.Is(err, database.ErrResourceNotFound) {
 			return nil, connect.NewError(
 				connect.CodeNotFound,
-				errors.New("device not found"),
+				"device not found",
 			)
 		}
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&booksv1.DisconnectKoboDeviceResponse{}), nil
+	return &booksv1.DisconnectKoboDeviceResponse{}, nil
 }
 
 func koboDeviceProto(d models.KoboDevice) *booksv1.KoboDevice {
@@ -149,18 +149,18 @@ func koboDeviceProto(d models.KoboDevice) *booksv1.KoboDevice {
 
 func (h *booksConnectHandler) ListKoboStoreBooks(
 	ctx context.Context,
-	_ *connect.Request[booksv1.ListKoboStoreBooksRequest],
-) (*connect.Response[booksv1.ListKoboStoreBooksResponse], error) {
+	_ *booksv1.ListKoboStoreBooksRequest,
+) (*booksv1.ListKoboStoreBooksResponse, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
-			errors.New("unauthorized"),
+			"unauthorized",
 		)
 	}
 	books, err := h.app.Services.Books.ListKoboStoreBooks(ctx, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	resp := &booksv1.ListKoboStoreBooksResponse{
 		Books: make([]*booksv1.KoboStoreBook, len(books)),
@@ -168,7 +168,7 @@ func (h *booksConnectHandler) ListKoboStoreBooks(
 	for i, b := range books {
 		resp.Books[i] = koboStoreBookProto(b)
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 func koboStoreBookProto(b models.KoboStoreBookStatus) *booksv1.KoboStoreBook {

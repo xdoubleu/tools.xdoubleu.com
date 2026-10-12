@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -37,11 +36,9 @@ func stats(
 	c moviesv1connect.MoviesServiceClient,
 ) *moviesv1.GetStatsResponse {
 	t.Helper()
-	resp, err := c.GetStats(context.Background(), connect.NewRequest(
-		&moviesv1.GetStatsRequest{},
-	))
+	resp, err := c.GetStats(context.Background(), &moviesv1.GetStatsRequest{})
 	require.NoError(t, err)
-	return resp.Msg
+	return resp
 }
 
 func TestGetStats_Empty(t *testing.T) {
@@ -89,9 +86,9 @@ func TestGetStats_CountsSeededWatches(t *testing.T) {
 	// Ticking every aired season made it watched; it counts as watching.
 	watching(t, c, bb.Id)
 
-	_, err = c.AddTitle(context.Background(), connect.NewRequest(&moviesv1.AddTitleRequest{
+	_, err = c.AddTitle(context.Background(), &moviesv1.AddTitleRequest{
 		MediaType: "series", TmdbId: 95396, Status: "watched", UnknownDate: true,
-	}))
+	})
 	require.NoError(t, err)
 
 	got := stats(t, c)

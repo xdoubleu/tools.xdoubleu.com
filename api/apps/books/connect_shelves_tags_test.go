@@ -5,12 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func TestConnectToggleTag_AddTag(t *testing.T) {
@@ -21,16 +22,17 @@ func TestConnectToggleTag_AddTag(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.ToggleTagRequest{
+	req := &booksv1.ToggleTagRequest{
 		BookId: book.BookID.String(),
 		Tag:    "fantasy",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	resp, err := client.ToggleTag(ctx, req)
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.NotNil(t, resp.Msg)
+	assert.NotNil(t, resp)
 }
 
 func TestConnectToggleTag_RemoveTag(t *testing.T) {
@@ -41,23 +43,24 @@ func TestConnectToggleTag_RemoveTag(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	addReq := connect.NewRequest(&booksv1.ToggleTagRequest{
+	addReq := &booksv1.ToggleTagRequest{
 		BookId: book.BookID.String(),
 		Tag:    "mystery",
-	})
-	addReq.Header().Set("Cookie", accessToken.String())
-	_, err := client.ToggleTag(ctx, addReq)
+	}
+	_, err := client.ToggleTag(testhelper.WithCookie(ctx, accessToken.String()), addReq)
 	require.NoError(t, err)
 
-	removeReq := connect.NewRequest(&booksv1.ToggleTagRequest{
+	removeReq := &booksv1.ToggleTagRequest{
 		BookId: book.BookID.String(),
 		Tag:    "mystery",
-	})
-	removeReq.Header().Set("Cookie", accessToken.String())
-	resp, err := client.ToggleTag(ctx, removeReq)
+	}
+	resp, err := client.ToggleTag(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		removeReq,
+	)
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.NotNil(t, resp.Msg)
+	assert.NotNil(t, resp)
 }
 
 func TestConnectToggleTag_EmptyTag(t *testing.T) {
@@ -68,11 +71,12 @@ func TestConnectToggleTag_EmptyTag(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.ToggleTagRequest{
+	req := &booksv1.ToggleTagRequest{
 		BookId: book.BookID.String(),
 		Tag:    "",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.ToggleTag(ctx, req)
 	assert.Error(t, err)
@@ -85,19 +89,20 @@ func TestConnectCreateShelf_Success(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.CreateShelfRequest{Name: "empty-shelf"})
-	req.Header().Set("Cookie", accessToken.String())
-	_, err := client.CreateShelf(ctx, req)
+	req := &booksv1.CreateShelfRequest{Name: "empty-shelf"}
+	_, err := client.CreateShelf(testhelper.WithCookie(ctx, accessToken.String()), req)
 	require.NoError(t, err)
 
 	// Registered shelves appear even with zero books.
-	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
-	libReq.Header().Set("Cookie", accessToken.String())
-	libResp, err := client.GetLibrary(ctx, libReq)
+	libReq := &booksv1.GetLibraryRequest{}
+	libResp, err := client.GetLibrary(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		libReq,
+	)
 	require.NoError(t, err)
 
 	found := false
-	for _, shelf := range libResp.Msg.Library.Shelves {
+	for _, shelf := range libResp.Library.Shelves {
 		if shelf.Name == "empty-shelf" {
 			found = true
 			assert.Empty(t, shelf.Books)
@@ -111,8 +116,9 @@ func TestConnectCreateShelf_BuiltIn(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.CreateShelfRequest{Name: models.StatusRead})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.CreateShelfRequest{Name: models.StatusRead}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.CreateShelf(ctx, req)
 	require.Error(t, err)
@@ -124,8 +130,9 @@ func TestConnectCreateShelf_EmptyName(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.CreateShelfRequest{Name: ""})
-	req.Header().Set("Cookie", accessToken.String())
+	req := &booksv1.CreateShelfRequest{Name: ""}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.CreateShelf(ctx, req)
 	require.Error(t, err)
@@ -142,29 +149,35 @@ func TestConnectShelf_PersistsWhenEmptied(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	statusReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+	statusReq := &booksv1.UpdateBookStatusRequest{
 		BookId: book.BookID.String(),
 		Status: "temporary-shelf",
-	})
-	statusReq.Header().Set("Cookie", accessToken.String())
-	_, err := client.UpdateBookStatus(ctx, statusReq)
+	}
+	_, err := client.UpdateBookStatus(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		statusReq,
+	)
 	require.NoError(t, err)
 
-	backReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+	backReq := &booksv1.UpdateBookStatusRequest{
 		BookId: book.BookID.String(),
 		Status: models.StatusToRead,
-	})
-	backReq.Header().Set("Cookie", accessToken.String())
-	_, err = client.UpdateBookStatus(ctx, backReq)
+	}
+	_, err = client.UpdateBookStatus(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		backReq,
+	)
 	require.NoError(t, err)
 
-	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
-	libReq.Header().Set("Cookie", accessToken.String())
-	libResp, err := client.GetLibrary(ctx, libReq)
+	libReq := &booksv1.GetLibraryRequest{}
+	libResp, err := client.GetLibrary(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		libReq,
+	)
 	require.NoError(t, err)
 
 	found := false
-	for _, shelf := range libResp.Msg.Library.Shelves {
+	for _, shelf := range libResp.Library.Shelves {
 		if shelf.Name == "temporary-shelf" {
 			found = true
 			assert.Empty(t, shelf.Books)
@@ -183,29 +196,35 @@ func TestConnectShelf_DroppedPersistsWhenEmptied(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	statusReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+	statusReq := &booksv1.UpdateBookStatusRequest{
 		BookId: book.BookID.String(),
 		Status: models.StatusDropped,
-	})
-	statusReq.Header().Set("Cookie", accessToken.String())
-	_, err := client.UpdateBookStatus(ctx, statusReq)
+	}
+	_, err := client.UpdateBookStatus(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		statusReq,
+	)
 	require.NoError(t, err)
 
-	backReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+	backReq := &booksv1.UpdateBookStatusRequest{
 		BookId: book.BookID.String(),
 		Status: models.StatusToRead,
-	})
-	backReq.Header().Set("Cookie", accessToken.String())
-	_, err = client.UpdateBookStatus(ctx, backReq)
+	}
+	_, err = client.UpdateBookStatus(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		backReq,
+	)
 	require.NoError(t, err)
 
-	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
-	libReq.Header().Set("Cookie", accessToken.String())
-	libResp, err := client.GetLibrary(ctx, libReq)
+	libReq := &booksv1.GetLibraryRequest{}
+	libResp, err := client.GetLibrary(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		libReq,
+	)
 	require.NoError(t, err)
 
 	found := false
-	for _, shelf := range libResp.Msg.Library.Shelves {
+	for _, shelf := range libResp.Library.Shelves {
 		if shelf.Name == models.StatusDropped {
 			found = true
 			assert.Empty(t, shelf.Books)
@@ -221,13 +240,14 @@ func TestConnectLibrary_DroppedAlwaysPresent(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
-	libReq.Header().Set("Cookie", accessToken.String())
+	libReq := &booksv1.GetLibraryRequest{}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 	libResp, err := client.GetLibrary(ctx, libReq)
 	require.NoError(t, err)
 
 	names := make(map[string]bool)
-	for _, shelf := range libResp.Msg.Library.Shelves {
+	for _, shelf := range libResp.Library.Shelves {
 		names[shelf.Name] = true
 	}
 	assert.True(
@@ -245,38 +265,46 @@ func TestConnectRenameShelf_Success(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	statusReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+	statusReq := &booksv1.UpdateBookStatusRequest{
 		BookId: book.BookID.String(),
 		Status: "custom-shelf",
-	})
-	statusReq.Header().Set("Cookie", accessToken.String())
-	_, err := client.UpdateBookStatus(ctx, statusReq)
+	}
+	_, err := client.UpdateBookStatus(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		statusReq,
+	)
 	require.NoError(t, err)
 
-	renameReq := connect.NewRequest(&booksv1.RenameShelfRequest{
+	renameReq := &booksv1.RenameShelfRequest{
 		OldName: "custom-shelf",
 		NewName: "renamed-shelf",
-	})
-	renameReq.Header().Set("Cookie", accessToken.String())
-	resp, err := client.RenameShelf(ctx, renameReq)
+	}
+	resp, err := client.RenameShelf(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		renameReq,
+	)
 	require.NoError(t, err)
-	assert.GreaterOrEqual(t, resp.Msg.Moved, uint32(1))
+	assert.GreaterOrEqual(t, resp.Moved, uint32(1))
 
 	// The registry entry moved with the rename.
-	backReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+	backReq := &booksv1.UpdateBookStatusRequest{
 		BookId: book.BookID.String(),
 		Status: models.StatusToRead,
-	})
-	backReq.Header().Set("Cookie", accessToken.String())
-	_, err = client.UpdateBookStatus(ctx, backReq)
+	}
+	_, err = client.UpdateBookStatus(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		backReq,
+	)
 	require.NoError(t, err)
 
-	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
-	libReq.Header().Set("Cookie", accessToken.String())
-	libResp, err := client.GetLibrary(ctx, libReq)
+	libReq := &booksv1.GetLibraryRequest{}
+	libResp, err := client.GetLibrary(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		libReq,
+	)
 	require.NoError(t, err)
 	foundRenamed, foundOld := false, false
-	for _, shelf := range libResp.Msg.Library.Shelves {
+	for _, shelf := range libResp.Library.Shelves {
 		if shelf.Name == "renamed-shelf" {
 			foundRenamed = true
 		}
@@ -293,11 +321,12 @@ func TestConnectRenameShelf_BuiltIn(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.RenameShelfRequest{
+	req := &booksv1.RenameShelfRequest{
 		OldName: models.StatusToRead,
 		NewName: "my-wishlist",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.RenameShelf(ctx, req)
 	require.Error(t, err)
@@ -309,11 +338,12 @@ func TestConnectRenameShelf_TargetBuiltIn(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.RenameShelfRequest{
+	req := &booksv1.RenameShelfRequest{
 		OldName: "custom-shelf",
 		NewName: models.StatusToRead,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.RenameShelf(ctx, req)
 	require.Error(t, err)
@@ -325,11 +355,12 @@ func TestConnectRenameShelf_EmptyNewName(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.RenameShelfRequest{
+	req := &booksv1.RenameShelfRequest{
 		OldName: "custom-shelf",
 		NewName: "",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.RenameShelf(ctx, req)
 	require.Error(t, err)
@@ -344,29 +375,35 @@ func TestConnectDeleteShelf_Success(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	statusReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
+	statusReq := &booksv1.UpdateBookStatusRequest{
 		BookId: book.BookID.String(),
 		Status: "shelf-to-delete",
-	})
-	statusReq.Header().Set("Cookie", accessToken.String())
-	_, err := client.UpdateBookStatus(ctx, statusReq)
+	}
+	_, err := client.UpdateBookStatus(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		statusReq,
+	)
 	require.NoError(t, err)
 
-	deleteReq := connect.NewRequest(&booksv1.DeleteShelfRequest{
+	deleteReq := &booksv1.DeleteShelfRequest{
 		Name:       "shelf-to-delete",
 		TargetName: models.StatusToRead,
-	})
-	deleteReq.Header().Set("Cookie", accessToken.String())
-	resp, err := client.DeleteShelf(ctx, deleteReq)
+	}
+	resp, err := client.DeleteShelf(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		deleteReq,
+	)
 	require.NoError(t, err)
-	assert.GreaterOrEqual(t, resp.Msg.Moved, uint32(1))
+	assert.GreaterOrEqual(t, resp.Moved, uint32(1))
 
 	// The deleted shelf must not reappear, even empty.
-	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
-	libReq.Header().Set("Cookie", accessToken.String())
-	libResp, err := client.GetLibrary(ctx, libReq)
+	libReq := &booksv1.GetLibraryRequest{}
+	libResp, err := client.GetLibrary(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		libReq,
+	)
 	require.NoError(t, err)
-	for _, shelf := range libResp.Msg.Library.Shelves {
+	for _, shelf := range libResp.Library.Shelves {
 		assert.NotEqual(t, "shelf-to-delete", shelf.Name)
 	}
 }
@@ -376,11 +413,12 @@ func TestConnectDeleteShelf_BuiltIn(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.DeleteShelfRequest{
+	req := &booksv1.DeleteShelfRequest{
 		Name:       models.StatusReading,
 		TargetName: models.StatusToRead,
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.DeleteShelf(ctx, req)
 	require.Error(t, err)
@@ -395,22 +433,23 @@ func TestConnectRenameTag_Success(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	tagReq := connect.NewRequest(&booksv1.ToggleTagRequest{
+	tagReq := &booksv1.ToggleTagRequest{
 		BookId: book.BookID.String(),
 		Tag:    "old-tag",
-	})
-	tagReq.Header().Set("Cookie", accessToken.String())
-	_, err := client.ToggleTag(ctx, tagReq)
+	}
+	_, err := client.ToggleTag(testhelper.WithCookie(ctx, accessToken.String()), tagReq)
 	require.NoError(t, err)
 
-	renameReq := connect.NewRequest(&booksv1.RenameTagRequest{
+	renameReq := &booksv1.RenameTagRequest{
 		OldName: "old-tag",
 		NewName: "new-tag",
-	})
-	renameReq.Header().Set("Cookie", accessToken.String())
-	resp, err := client.RenameTag(ctx, renameReq)
+	}
+	resp, err := client.RenameTag(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		renameReq,
+	)
 	require.NoError(t, err)
-	assert.GreaterOrEqual(t, resp.Msg.Affected, uint32(1))
+	assert.GreaterOrEqual(t, resp.Affected, uint32(1))
 }
 
 func TestConnectRenameTag_EmptyName(t *testing.T) {
@@ -418,11 +457,12 @@ func TestConnectRenameTag_EmptyName(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.RenameTagRequest{
+	req := &booksv1.RenameTagRequest{
 		OldName: "",
 		NewName: "new-tag",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.RenameTag(ctx, req)
 	require.Error(t, err)
@@ -437,21 +477,22 @@ func TestConnectDeleteTag_Success(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	tagReq := connect.NewRequest(&booksv1.ToggleTagRequest{
+	tagReq := &booksv1.ToggleTagRequest{
 		BookId: book.BookID.String(),
 		Tag:    "tag-to-delete",
-	})
-	tagReq.Header().Set("Cookie", accessToken.String())
-	_, err := client.ToggleTag(ctx, tagReq)
+	}
+	_, err := client.ToggleTag(testhelper.WithCookie(ctx, accessToken.String()), tagReq)
 	require.NoError(t, err)
 
-	deleteReq := connect.NewRequest(&booksv1.DeleteTagRequest{
+	deleteReq := &booksv1.DeleteTagRequest{
 		Name: "tag-to-delete",
-	})
-	deleteReq.Header().Set("Cookie", accessToken.String())
-	resp, err := client.DeleteTag(ctx, deleteReq)
+	}
+	resp, err := client.DeleteTag(
+		testhelper.WithCookie(ctx, accessToken.String()),
+		deleteReq,
+	)
 	require.NoError(t, err)
-	assert.GreaterOrEqual(t, resp.Msg.Affected, uint32(1))
+	assert.GreaterOrEqual(t, resp.Affected, uint32(1))
 }
 
 func TestConnectDeleteTag_EmptyName(t *testing.T) {
@@ -459,10 +500,11 @@ func TestConnectDeleteTag_EmptyName(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	req := connect.NewRequest(&booksv1.DeleteTagRequest{
+	req := &booksv1.DeleteTagRequest{
 		Name: "",
-	})
-	req.Header().Set("Cookie", accessToken.String())
+	}
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
 
 	_, err := client.DeleteTag(ctx, req)
 	require.Error(t, err)

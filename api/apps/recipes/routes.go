@@ -1,20 +1,26 @@
 package recipes
 
 import (
-	"fmt"
 	"net/http"
+
+	"connectrpc.com/connect/v2"
 
 	"tools.xdoubleu.com/gen/recipes/v1/recipesv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 )
 
 func (a *Recipes) Routes(prefix string, mux *http.ServeMux) {
-	recipesPath, recipesHandler := recipesv1connect.NewRecipesServiceHandler(
-		&recipesConnectHandler{app: a},
-		iapp.ScrubInternalErrors(a.Logger),
-	)
-	mux.Handle(
-		fmt.Sprintf("POST %s", recipesPath),
-		a.services.Auth.AppAccess(prefix, recipesHandler.ServeHTTP),
+	iapp.MountConnect(
+		mux,
+		a.Logger,
+		func(next http.HandlerFunc) http.HandlerFunc {
+			return a.services.Auth.AppAccess(prefix, next)
+		},
+		func(s *connect.Server) {
+			recipesv1connect.RegisterRecipesServiceHandler(
+				s,
+				&recipesConnectHandler{app: a},
+			)
+		},
 	)
 }

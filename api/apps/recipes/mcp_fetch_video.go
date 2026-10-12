@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -34,11 +34,11 @@ func (h *recipesConnectHandler) mcpFetchVideo(
 	switch {
 	case errors.Is(err, videofetch.ErrInstagram),
 		errors.Is(err, videofetch.ErrUnsupportedURL):
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	case errors.Is(err, videofetch.ErrNotFound):
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	case err != nil:
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	}
 
 	return structpb.NewStruct(map[string]any{

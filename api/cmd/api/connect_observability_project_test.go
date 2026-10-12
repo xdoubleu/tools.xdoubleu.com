@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -44,9 +44,9 @@ func TestObservabilityGetProjectIssuesByStatus_AsAdmin(t *testing.T) {
 
 	resp, err := callProjectIssuesByStatus(t, 8, "Ready")
 	require.NoError(t, err)
-	assert.True(t, resp.Msg.Configured)
-	require.Len(t, resp.Msg.Issues, 1)
-	is := resp.Msg.Issues[0]
+	assert.True(t, resp.Configured)
+	require.Len(t, resp.Issues, 1)
+	is := resp.Issues[0]
 	assert.Equal(t, int64(1357), is.Number)
 	assert.Equal(t, "Ready", is.Status)
 	assert.Equal(t, "app[bot]", is.AuthorLogin)
@@ -77,8 +77,8 @@ func TestObservabilityGetProjectIssuesByStatus_NotConfigured(t *testing.T) {
 
 	resp, err := callProjectIssuesByStatus(t, 8, "Ready")
 	require.NoError(t, err)
-	assert.False(t, resp.Msg.Configured)
-	assert.Empty(t, resp.Msg.Issues)
+	assert.False(t, resp.Configured)
+	assert.Empty(t, resp.Issues)
 }
 
 func TestObservabilityGetProjectIssuesByStatus_UpstreamErrorsSurface(t *testing.T) {
@@ -137,12 +137,13 @@ func TestObservabilityGetProjectIssuesByStatus_NonAdmin(t *testing.T) {
 
 func callProjectIssuesByStatus(
 	t *testing.T, projectNumber int32, status string,
-) (*connect.Response[observabilityv1.GetProjectIssuesByStatusResponse], error) {
+) (*observabilityv1.GetProjectIssuesByStatusResponse, error) {
 	t.Helper()
-	req := connect.NewRequest(&observabilityv1.GetProjectIssuesByStatusRequest{
+	req := &observabilityv1.GetProjectIssuesByStatusRequest{
 		ProjectNumber: projectNumber,
 		Status:        status,
-	})
-	setCookieOnRequest(req, accessToken)
-	return observabilityClient(t).GetProjectIssuesByStatus(context.Background(), req)
+	}
+	return observabilityClient(
+		t,
+	).GetProjectIssuesByStatus(withCookies(context.Background(), accessToken), req)
 }

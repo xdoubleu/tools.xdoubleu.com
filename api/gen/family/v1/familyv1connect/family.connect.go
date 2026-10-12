@@ -5,249 +5,277 @@
 package familyv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 	v1 "tools.xdoubleu.com/gen/family/v1"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// FamilyServiceName is the fully-qualified name of the FamilyService service.
 	FamilyServiceName = "family.v1.FamilyService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// FamilyServiceGetFamilyProcedure is the fully-qualified name of the FamilyService's GetFamily RPC.
+	// FamilyServiceGetFamilyProcedure is the procedure name of the FamilyService's GetFamily RPC.
 	FamilyServiceGetFamilyProcedure = "/family.v1.FamilyService/GetFamily"
-	// FamilyServiceInviteToFamilyProcedure is the fully-qualified name of the FamilyService's
-	// InviteToFamily RPC.
+	// FamilyServiceInviteToFamilyProcedure is the procedure name of the FamilyService's InviteToFamily
+	// RPC.
 	FamilyServiceInviteToFamilyProcedure = "/family.v1.FamilyService/InviteToFamily"
-	// FamilyServiceAcceptFamilyInviteProcedure is the fully-qualified name of the FamilyService's
+	// FamilyServiceAcceptFamilyInviteProcedure is the procedure name of the FamilyService's
 	// AcceptFamilyInvite RPC.
 	FamilyServiceAcceptFamilyInviteProcedure = "/family.v1.FamilyService/AcceptFamilyInvite"
-	// FamilyServiceDeclineFamilyInviteProcedure is the fully-qualified name of the FamilyService's
+	// FamilyServiceDeclineFamilyInviteProcedure is the procedure name of the FamilyService's
 	// DeclineFamilyInvite RPC.
 	FamilyServiceDeclineFamilyInviteProcedure = "/family.v1.FamilyService/DeclineFamilyInvite"
-	// FamilyServiceSetFamilyDisplayNameProcedure is the fully-qualified name of the FamilyService's
+	// FamilyServiceSetFamilyDisplayNameProcedure is the procedure name of the FamilyService's
 	// SetFamilyDisplayName RPC.
 	FamilyServiceSetFamilyDisplayNameProcedure = "/family.v1.FamilyService/SetFamilyDisplayName"
-	// FamilyServiceLeaveFamilyProcedure is the fully-qualified name of the FamilyService's LeaveFamily
-	// RPC.
+	// FamilyServiceLeaveFamilyProcedure is the procedure name of the FamilyService's LeaveFamily RPC.
 	FamilyServiceLeaveFamilyProcedure = "/family.v1.FamilyService/LeaveFamily"
+)
+
+var (
+	familyServiceGetFamilySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_family_v1_family_proto.Services().ByName("FamilyService").Methods().ByName("GetFamily"),
+			Procedure:  FamilyServiceGetFamilyProcedure,
+		}
+	})
+	familyServiceInviteToFamilySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_family_v1_family_proto.Services().ByName("FamilyService").Methods().ByName("InviteToFamily"),
+			Procedure:  FamilyServiceInviteToFamilyProcedure,
+		}
+	})
+	familyServiceAcceptFamilyInviteSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_family_v1_family_proto.Services().ByName("FamilyService").Methods().ByName("AcceptFamilyInvite"),
+			Procedure:  FamilyServiceAcceptFamilyInviteProcedure,
+		}
+	})
+	familyServiceDeclineFamilyInviteSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_family_v1_family_proto.Services().ByName("FamilyService").Methods().ByName("DeclineFamilyInvite"),
+			Procedure:  FamilyServiceDeclineFamilyInviteProcedure,
+		}
+	})
+	familyServiceSetFamilyDisplayNameSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_family_v1_family_proto.Services().ByName("FamilyService").Methods().ByName("SetFamilyDisplayName"),
+			Procedure:  FamilyServiceSetFamilyDisplayNameProcedure,
+		}
+	})
+	familyServiceLeaveFamilySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_family_v1_family_proto.Services().ByName("FamilyService").Methods().ByName("LeaveFamily"),
+			Procedure:  FamilyServiceLeaveFamilyProcedure,
+		}
+	})
 )
 
 // FamilyServiceClient is a client for the family.v1.FamilyService service.
 type FamilyServiceClient interface {
-	GetFamily(context.Context, *connect.Request[v1.GetFamilyRequest]) (*connect.Response[v1.GetFamilyResponse], error)
-	InviteToFamily(context.Context, *connect.Request[v1.InviteToFamilyRequest]) (*connect.Response[v1.InviteToFamilyResponse], error)
-	AcceptFamilyInvite(context.Context, *connect.Request[v1.AcceptFamilyInviteRequest]) (*connect.Response[v1.AcceptFamilyInviteResponse], error)
-	DeclineFamilyInvite(context.Context, *connect.Request[v1.DeclineFamilyInviteRequest]) (*connect.Response[v1.DeclineFamilyInviteResponse], error)
-	SetFamilyDisplayName(context.Context, *connect.Request[v1.SetFamilyDisplayNameRequest]) (*connect.Response[v1.SetFamilyDisplayNameResponse], error)
-	LeaveFamily(context.Context, *connect.Request[v1.LeaveFamilyRequest]) (*connect.Response[v1.LeaveFamilyResponse], error)
+	GetFamily(context.Context, *v1.GetFamilyRequest) (*v1.GetFamilyResponse, error)
+	InviteToFamily(context.Context, *v1.InviteToFamilyRequest) (*v1.InviteToFamilyResponse, error)
+	AcceptFamilyInvite(context.Context, *v1.AcceptFamilyInviteRequest) (*v1.AcceptFamilyInviteResponse, error)
+	DeclineFamilyInvite(context.Context, *v1.DeclineFamilyInviteRequest) (*v1.DeclineFamilyInviteResponse, error)
+	SetFamilyDisplayName(context.Context, *v1.SetFamilyDisplayNameRequest) (*v1.SetFamilyDisplayNameResponse, error)
+	LeaveFamily(context.Context, *v1.LeaveFamilyRequest) (*v1.LeaveFamilyResponse, error)
 }
 
-// NewFamilyServiceClient constructs a client for the family.v1.FamilyService service. By default,
-// it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and
-// sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC()
-// or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewFamilyServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) FamilyServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	familyServiceMethods := v1.File_family_v1_family_proto.Services().ByName("FamilyService").Methods()
-	return &familyServiceClient{
-		getFamily: connect.NewClient[v1.GetFamilyRequest, v1.GetFamilyResponse](
-			httpClient,
-			baseURL+FamilyServiceGetFamilyProcedure,
-			connect.WithSchema(familyServiceMethods.ByName("GetFamily")),
-			connect.WithClientOptions(opts...),
-		),
-		inviteToFamily: connect.NewClient[v1.InviteToFamilyRequest, v1.InviteToFamilyResponse](
-			httpClient,
-			baseURL+FamilyServiceInviteToFamilyProcedure,
-			connect.WithSchema(familyServiceMethods.ByName("InviteToFamily")),
-			connect.WithClientOptions(opts...),
-		),
-		acceptFamilyInvite: connect.NewClient[v1.AcceptFamilyInviteRequest, v1.AcceptFamilyInviteResponse](
-			httpClient,
-			baseURL+FamilyServiceAcceptFamilyInviteProcedure,
-			connect.WithSchema(familyServiceMethods.ByName("AcceptFamilyInvite")),
-			connect.WithClientOptions(opts...),
-		),
-		declineFamilyInvite: connect.NewClient[v1.DeclineFamilyInviteRequest, v1.DeclineFamilyInviteResponse](
-			httpClient,
-			baseURL+FamilyServiceDeclineFamilyInviteProcedure,
-			connect.WithSchema(familyServiceMethods.ByName("DeclineFamilyInvite")),
-			connect.WithClientOptions(opts...),
-		),
-		setFamilyDisplayName: connect.NewClient[v1.SetFamilyDisplayNameRequest, v1.SetFamilyDisplayNameResponse](
-			httpClient,
-			baseURL+FamilyServiceSetFamilyDisplayNameProcedure,
-			connect.WithSchema(familyServiceMethods.ByName("SetFamilyDisplayName")),
-			connect.WithClientOptions(opts...),
-		),
-		leaveFamily: connect.NewClient[v1.LeaveFamilyRequest, v1.LeaveFamilyResponse](
-			httpClient,
-			baseURL+FamilyServiceLeaveFamilyProcedure,
-			connect.WithSchema(familyServiceMethods.ByName("LeaveFamily")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// familyServiceClient implements FamilyServiceClient.
-type familyServiceClient struct {
-	getFamily            *connect.Client[v1.GetFamilyRequest, v1.GetFamilyResponse]
-	inviteToFamily       *connect.Client[v1.InviteToFamilyRequest, v1.InviteToFamilyResponse]
-	acceptFamilyInvite   *connect.Client[v1.AcceptFamilyInviteRequest, v1.AcceptFamilyInviteResponse]
-	declineFamilyInvite  *connect.Client[v1.DeclineFamilyInviteRequest, v1.DeclineFamilyInviteResponse]
-	setFamilyDisplayName *connect.Client[v1.SetFamilyDisplayNameRequest, v1.SetFamilyDisplayNameResponse]
-	leaveFamily          *connect.Client[v1.LeaveFamilyRequest, v1.LeaveFamilyResponse]
-}
-
-// GetFamily calls family.v1.FamilyService.GetFamily.
-func (c *familyServiceClient) GetFamily(ctx context.Context, req *connect.Request[v1.GetFamilyRequest]) (*connect.Response[v1.GetFamilyResponse], error) {
-	return c.getFamily.CallUnary(ctx, req)
-}
-
-// InviteToFamily calls family.v1.FamilyService.InviteToFamily.
-func (c *familyServiceClient) InviteToFamily(ctx context.Context, req *connect.Request[v1.InviteToFamilyRequest]) (*connect.Response[v1.InviteToFamilyResponse], error) {
-	return c.inviteToFamily.CallUnary(ctx, req)
-}
-
-// AcceptFamilyInvite calls family.v1.FamilyService.AcceptFamilyInvite.
-func (c *familyServiceClient) AcceptFamilyInvite(ctx context.Context, req *connect.Request[v1.AcceptFamilyInviteRequest]) (*connect.Response[v1.AcceptFamilyInviteResponse], error) {
-	return c.acceptFamilyInvite.CallUnary(ctx, req)
-}
-
-// DeclineFamilyInvite calls family.v1.FamilyService.DeclineFamilyInvite.
-func (c *familyServiceClient) DeclineFamilyInvite(ctx context.Context, req *connect.Request[v1.DeclineFamilyInviteRequest]) (*connect.Response[v1.DeclineFamilyInviteResponse], error) {
-	return c.declineFamilyInvite.CallUnary(ctx, req)
-}
-
-// SetFamilyDisplayName calls family.v1.FamilyService.SetFamilyDisplayName.
-func (c *familyServiceClient) SetFamilyDisplayName(ctx context.Context, req *connect.Request[v1.SetFamilyDisplayNameRequest]) (*connect.Response[v1.SetFamilyDisplayNameResponse], error) {
-	return c.setFamilyDisplayName.CallUnary(ctx, req)
-}
-
-// LeaveFamily calls family.v1.FamilyService.LeaveFamily.
-func (c *familyServiceClient) LeaveFamily(ctx context.Context, req *connect.Request[v1.LeaveFamilyRequest]) (*connect.Response[v1.LeaveFamilyResponse], error) {
-	return c.leaveFamily.CallUnary(ctx, req)
+// NewFamilyServiceClient constructs a client for the family.v1.FamilyService service. Multiple
+// service clients may share a single connect.Client.
+func NewFamilyServiceClient(client *connect.Client) FamilyServiceClient {
+	return &familyServiceClient{client: client}
 }
 
 // FamilyServiceHandler is an implementation of the family.v1.FamilyService service.
 type FamilyServiceHandler interface {
-	GetFamily(context.Context, *connect.Request[v1.GetFamilyRequest]) (*connect.Response[v1.GetFamilyResponse], error)
-	InviteToFamily(context.Context, *connect.Request[v1.InviteToFamilyRequest]) (*connect.Response[v1.InviteToFamilyResponse], error)
-	AcceptFamilyInvite(context.Context, *connect.Request[v1.AcceptFamilyInviteRequest]) (*connect.Response[v1.AcceptFamilyInviteResponse], error)
-	DeclineFamilyInvite(context.Context, *connect.Request[v1.DeclineFamilyInviteRequest]) (*connect.Response[v1.DeclineFamilyInviteResponse], error)
-	SetFamilyDisplayName(context.Context, *connect.Request[v1.SetFamilyDisplayNameRequest]) (*connect.Response[v1.SetFamilyDisplayNameResponse], error)
-	LeaveFamily(context.Context, *connect.Request[v1.LeaveFamilyRequest]) (*connect.Response[v1.LeaveFamilyResponse], error)
+	GetFamily(context.Context, *v1.GetFamilyRequest) (*v1.GetFamilyResponse, error)
+	InviteToFamily(context.Context, *v1.InviteToFamilyRequest) (*v1.InviteToFamilyResponse, error)
+	AcceptFamilyInvite(context.Context, *v1.AcceptFamilyInviteRequest) (*v1.AcceptFamilyInviteResponse, error)
+	DeclineFamilyInvite(context.Context, *v1.DeclineFamilyInviteRequest) (*v1.DeclineFamilyInviteResponse, error)
+	SetFamilyDisplayName(context.Context, *v1.SetFamilyDisplayNameRequest) (*v1.SetFamilyDisplayNameResponse, error)
+	LeaveFamily(context.Context, *v1.LeaveFamilyRequest) (*v1.LeaveFamilyResponse, error)
 }
 
-// NewFamilyServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewFamilyServiceHandler(svc FamilyServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	familyServiceMethods := v1.File_family_v1_family_proto.Services().ByName("FamilyService").Methods()
-	familyServiceGetFamilyHandler := connect.NewUnaryHandler(
-		FamilyServiceGetFamilyProcedure,
-		svc.GetFamily,
-		connect.WithSchema(familyServiceMethods.ByName("GetFamily")),
-		connect.WithHandlerOptions(opts...),
+// RegisterFamilyServiceHandler registers svc as the family.v1.FamilyService implementation on
+// server.
+func RegisterFamilyServiceHandler(server *connect.Server, svc FamilyServiceHandler) {
+	adapter := familyServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: familyServiceGetFamilySpec(), Handler: adapter.getFamily},
+		connect.Method{Spec: familyServiceInviteToFamilySpec(), Handler: adapter.inviteToFamily},
+		connect.Method{Spec: familyServiceAcceptFamilyInviteSpec(), Handler: adapter.acceptFamilyInvite},
+		connect.Method{Spec: familyServiceDeclineFamilyInviteSpec(), Handler: adapter.declineFamilyInvite},
+		connect.Method{Spec: familyServiceSetFamilyDisplayNameSpec(), Handler: adapter.setFamilyDisplayName},
+		connect.Method{Spec: familyServiceLeaveFamilySpec(), Handler: adapter.leaveFamily},
 	)
-	familyServiceInviteToFamilyHandler := connect.NewUnaryHandler(
-		FamilyServiceInviteToFamilyProcedure,
-		svc.InviteToFamily,
-		connect.WithSchema(familyServiceMethods.ByName("InviteToFamily")),
-		connect.WithHandlerOptions(opts...),
-	)
-	familyServiceAcceptFamilyInviteHandler := connect.NewUnaryHandler(
-		FamilyServiceAcceptFamilyInviteProcedure,
-		svc.AcceptFamilyInvite,
-		connect.WithSchema(familyServiceMethods.ByName("AcceptFamilyInvite")),
-		connect.WithHandlerOptions(opts...),
-	)
-	familyServiceDeclineFamilyInviteHandler := connect.NewUnaryHandler(
-		FamilyServiceDeclineFamilyInviteProcedure,
-		svc.DeclineFamilyInvite,
-		connect.WithSchema(familyServiceMethods.ByName("DeclineFamilyInvite")),
-		connect.WithHandlerOptions(opts...),
-	)
-	familyServiceSetFamilyDisplayNameHandler := connect.NewUnaryHandler(
-		FamilyServiceSetFamilyDisplayNameProcedure,
-		svc.SetFamilyDisplayName,
-		connect.WithSchema(familyServiceMethods.ByName("SetFamilyDisplayName")),
-		connect.WithHandlerOptions(opts...),
-	)
-	familyServiceLeaveFamilyHandler := connect.NewUnaryHandler(
-		FamilyServiceLeaveFamilyProcedure,
-		svc.LeaveFamily,
-		connect.WithSchema(familyServiceMethods.ByName("LeaveFamily")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/family.v1.FamilyService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case FamilyServiceGetFamilyProcedure:
-			familyServiceGetFamilyHandler.ServeHTTP(w, r)
-		case FamilyServiceInviteToFamilyProcedure:
-			familyServiceInviteToFamilyHandler.ServeHTTP(w, r)
-		case FamilyServiceAcceptFamilyInviteProcedure:
-			familyServiceAcceptFamilyInviteHandler.ServeHTTP(w, r)
-		case FamilyServiceDeclineFamilyInviteProcedure:
-			familyServiceDeclineFamilyInviteHandler.ServeHTTP(w, r)
-		case FamilyServiceSetFamilyDisplayNameProcedure:
-			familyServiceSetFamilyDisplayNameHandler.ServeHTTP(w, r)
-		case FamilyServiceLeaveFamilyProcedure:
-			familyServiceLeaveFamilyHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedFamilyServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedFamilyServiceHandler struct{}
 
-func (UnimplementedFamilyServiceHandler) GetFamily(context.Context, *connect.Request[v1.GetFamilyRequest]) (*connect.Response[v1.GetFamilyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("family.v1.FamilyService.GetFamily is not implemented"))
+func (UnimplementedFamilyServiceHandler) GetFamily(context.Context, *v1.GetFamilyRequest) (*v1.GetFamilyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "family.v1.FamilyService.GetFamily is not implemented")
 }
 
-func (UnimplementedFamilyServiceHandler) InviteToFamily(context.Context, *connect.Request[v1.InviteToFamilyRequest]) (*connect.Response[v1.InviteToFamilyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("family.v1.FamilyService.InviteToFamily is not implemented"))
+func (UnimplementedFamilyServiceHandler) InviteToFamily(context.Context, *v1.InviteToFamilyRequest) (*v1.InviteToFamilyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "family.v1.FamilyService.InviteToFamily is not implemented")
 }
 
-func (UnimplementedFamilyServiceHandler) AcceptFamilyInvite(context.Context, *connect.Request[v1.AcceptFamilyInviteRequest]) (*connect.Response[v1.AcceptFamilyInviteResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("family.v1.FamilyService.AcceptFamilyInvite is not implemented"))
+func (UnimplementedFamilyServiceHandler) AcceptFamilyInvite(context.Context, *v1.AcceptFamilyInviteRequest) (*v1.AcceptFamilyInviteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "family.v1.FamilyService.AcceptFamilyInvite is not implemented")
 }
 
-func (UnimplementedFamilyServiceHandler) DeclineFamilyInvite(context.Context, *connect.Request[v1.DeclineFamilyInviteRequest]) (*connect.Response[v1.DeclineFamilyInviteResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("family.v1.FamilyService.DeclineFamilyInvite is not implemented"))
+func (UnimplementedFamilyServiceHandler) DeclineFamilyInvite(context.Context, *v1.DeclineFamilyInviteRequest) (*v1.DeclineFamilyInviteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "family.v1.FamilyService.DeclineFamilyInvite is not implemented")
 }
 
-func (UnimplementedFamilyServiceHandler) SetFamilyDisplayName(context.Context, *connect.Request[v1.SetFamilyDisplayNameRequest]) (*connect.Response[v1.SetFamilyDisplayNameResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("family.v1.FamilyService.SetFamilyDisplayName is not implemented"))
+func (UnimplementedFamilyServiceHandler) SetFamilyDisplayName(context.Context, *v1.SetFamilyDisplayNameRequest) (*v1.SetFamilyDisplayNameResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "family.v1.FamilyService.SetFamilyDisplayName is not implemented")
 }
 
-func (UnimplementedFamilyServiceHandler) LeaveFamily(context.Context, *connect.Request[v1.LeaveFamilyRequest]) (*connect.Response[v1.LeaveFamilyResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("family.v1.FamilyService.LeaveFamily is not implemented"))
+func (UnimplementedFamilyServiceHandler) LeaveFamily(context.Context, *v1.LeaveFamilyRequest) (*v1.LeaveFamilyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "family.v1.FamilyService.LeaveFamily is not implemented")
+}
+
+type familyServiceClient struct {
+	client *connect.Client
+}
+
+func (c *familyServiceClient) GetFamily(ctx context.Context, req *v1.GetFamilyRequest) (*v1.GetFamilyResponse, error) {
+	var res v1.GetFamilyResponse
+	if err := c.client.CallUnary(ctx, familyServiceGetFamilySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *familyServiceClient) InviteToFamily(ctx context.Context, req *v1.InviteToFamilyRequest) (*v1.InviteToFamilyResponse, error) {
+	var res v1.InviteToFamilyResponse
+	if err := c.client.CallUnary(ctx, familyServiceInviteToFamilySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *familyServiceClient) AcceptFamilyInvite(ctx context.Context, req *v1.AcceptFamilyInviteRequest) (*v1.AcceptFamilyInviteResponse, error) {
+	var res v1.AcceptFamilyInviteResponse
+	if err := c.client.CallUnary(ctx, familyServiceAcceptFamilyInviteSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *familyServiceClient) DeclineFamilyInvite(ctx context.Context, req *v1.DeclineFamilyInviteRequest) (*v1.DeclineFamilyInviteResponse, error) {
+	var res v1.DeclineFamilyInviteResponse
+	if err := c.client.CallUnary(ctx, familyServiceDeclineFamilyInviteSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *familyServiceClient) SetFamilyDisplayName(ctx context.Context, req *v1.SetFamilyDisplayNameRequest) (*v1.SetFamilyDisplayNameResponse, error) {
+	var res v1.SetFamilyDisplayNameResponse
+	if err := c.client.CallUnary(ctx, familyServiceSetFamilyDisplayNameSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *familyServiceClient) LeaveFamily(ctx context.Context, req *v1.LeaveFamilyRequest) (*v1.LeaveFamilyResponse, error) {
+	var res v1.LeaveFamilyResponse
+	if err := c.client.CallUnary(ctx, familyServiceLeaveFamilySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type familyServiceHandler struct{ svc FamilyServiceHandler }
+
+func (h familyServiceHandler) getFamily(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetFamilyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetFamily(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h familyServiceHandler) inviteToFamily(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.InviteToFamilyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.InviteToFamily(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h familyServiceHandler) acceptFamilyInvite(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AcceptFamilyInviteRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AcceptFamilyInvite(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h familyServiceHandler) declineFamilyInvite(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeclineFamilyInviteRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeclineFamilyInvite(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h familyServiceHandler) setFamilyDisplayName(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetFamilyDisplayNameRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetFamilyDisplayName(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h familyServiceHandler) leaveFamily(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.LeaveFamilyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.LeaveFamily(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

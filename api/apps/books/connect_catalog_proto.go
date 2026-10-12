@@ -1,10 +1,9 @@
 package books
 
 import (
-	"errors"
 	"strings"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
@@ -25,14 +24,14 @@ func normalizeAndValidateISBN13(raw string) (string, error) {
 	if len(normalized) != isbn13Length {
 		return "", connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("isbn13 must be exactly 13 digits"),
+			"isbn13 must be exactly 13 digits",
 		)
 	}
 	for _, r := range normalized {
 		if r < '0' || r > '9' {
 			return "", connect.NewError(
 				connect.CodeInvalidArgument,
-				errors.New("isbn13 must contain only digits"),
+				"isbn13 must contain only digits",
 			)
 		}
 	}

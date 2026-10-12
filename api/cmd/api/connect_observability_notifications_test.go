@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -15,44 +15,41 @@ func TestGetNotificationSettings_AsAdmin(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
-	req := connect.NewRequest(&observabilityv1.GetNotificationSettingsRequest{})
-	setCookieOnRequest(req, accessToken)
+	req := &observabilityv1.GetNotificationSettingsRequest{}
 	resp, err := observabilityClient(
 		t,
-	).GetNotificationSettings(context.Background(), req)
+	).GetNotificationSettings(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
 
-	got := make(map[string]bool, len(resp.Msg.Settings))
-	for _, s := range resp.Msg.Settings {
+	got := make(map[string]bool, len(resp.Settings))
+	for _, s := range resp.Settings {
 		got[s.SourceKey] = s.Enabled
 	}
 	assert.Contains(t, got, "unhealthy_feeds")
 	assert.Contains(t, got, "open_feed_items")
-	assert.Equal(t, testApp.config.NotifyEmailTo, resp.Msg.AdminEmail)
+	assert.Equal(t, testApp.config.NotifyEmailTo, resp.AdminEmail)
 }
 
 // Non-admins can read the toggles but not the admin's address.
 func TestGetNotificationSettings_AsNonAdmin_Allowed(t *testing.T) {
-	req := connect.NewRequest(&observabilityv1.GetNotificationSettingsRequest{})
-	setCookieOnRequest(req, accessToken)
+	req := &observabilityv1.GetNotificationSettingsRequest{}
 	resp, err := observabilityClient(
 		t,
-	).GetNotificationSettings(context.Background(), req)
+	).GetNotificationSettings(withCookies(context.Background(), accessToken), req)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.Settings)
-	assert.Empty(t, resp.Msg.AdminEmail)
+	assert.NotEmpty(t, resp.Settings)
+	assert.Empty(t, resp.AdminEmail)
 }
 
 // The settings are global, so only admins may change them.
 func TestUpdateNotificationSettings_AsNonAdmin_Denied(t *testing.T) {
-	req := connect.NewRequest(&observabilityv1.UpdateNotificationSettingsRequest{
+	req := &observabilityv1.UpdateNotificationSettingsRequest{
 		SourceKey: "open_feed_items",
 		Enabled:   false,
-	})
-	setCookieOnRequest(req, accessToken)
+	}
 	_, err := observabilityClient(
 		t,
-	).UpdateNotificationSettings(context.Background(), req)
+	).UpdateNotificationSettings(withCookies(context.Background(), accessToken), req)
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 }
 
@@ -60,34 +57,31 @@ func TestUpdateNotificationSettings_AsAdmin(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 	t.Cleanup(func() {
-		req := connect.NewRequest(&observabilityv1.UpdateNotificationSettingsRequest{
+		req := &observabilityv1.UpdateNotificationSettingsRequest{
 			SourceKey: "open_feed_items",
 			Enabled:   true,
-		})
-		setCookieOnRequest(req, accessToken)
+		}
 		_, _ = observabilityClient(
 			t,
-		).UpdateNotificationSettings(context.Background(), req)
+		).UpdateNotificationSettings(withCookies(context.Background(), accessToken), req)
 	})
 
-	updateReq := connect.NewRequest(&observabilityv1.UpdateNotificationSettingsRequest{
+	updateReq := &observabilityv1.UpdateNotificationSettingsRequest{
 		SourceKey: "open_feed_items",
 		Enabled:   false,
-	})
-	setCookieOnRequest(updateReq, accessToken)
+	}
 	_, err := observabilityClient(
 		t,
-	).UpdateNotificationSettings(context.Background(), updateReq)
+	).UpdateNotificationSettings(withCookies(context.Background(), accessToken), updateReq)
 	require.NoError(t, err)
 
-	getReq := connect.NewRequest(&observabilityv1.GetNotificationSettingsRequest{})
-	setCookieOnRequest(getReq, accessToken)
+	getReq := &observabilityv1.GetNotificationSettingsRequest{}
 	resp, err := observabilityClient(
 		t,
-	).GetNotificationSettings(context.Background(), getReq)
+	).GetNotificationSettings(withCookies(context.Background(), accessToken), getReq)
 	require.NoError(t, err)
 
-	for _, s := range resp.Msg.Settings {
+	for _, s := range resp.Settings {
 		if s.SourceKey == "open_feed_items" {
 			assert.False(t, s.Enabled)
 		}

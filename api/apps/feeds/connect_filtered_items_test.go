@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,13 +24,13 @@ func filteredBySourceURL(
 	t.Helper()
 	resp, err := client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(&feedsv1.ListFeedItemsRequest{
+		&feedsv1.ListFeedItemsRequest{
 			FeedId: feedID, FilteredOnly: proto.Bool(true), Limit: 100,
-		}),
+		},
 	)
 	require.NoError(t, err)
 	out := map[string]*feedsv1.Item{}
-	for _, item := range resp.Msg.Items {
+	for _, item := range resp.Items {
 		out[item.SourceUrl] = item
 	}
 	return out
@@ -44,10 +44,10 @@ func restoreItem(
 	t.Helper()
 	resp, err := client.RestoreFeedItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RestoreFeedItemRequest{ItemId: itemID}),
+		&feedsv1.RestoreFeedItemRequest{ItemId: itemID},
 	)
 	require.NoError(t, err)
-	return resp.Msg.Item
+	return resp.Item
 }
 
 func unreadInbox(
@@ -58,13 +58,13 @@ func unreadInbox(
 	t.Helper()
 	resp, err := client.ListFeedItems(
 		context.Background(),
-		connect.NewRequest(&feedsv1.ListFeedItemsRequest{
+		&feedsv1.ListFeedItemsRequest{
 			FeedId: &feedID, UnreadOnly: proto.Bool(true),
-		}),
+		},
 	)
 	require.NoError(t, err)
 	out := map[string]*feedsv1.Item{}
-	for _, item := range resp.Msg.Items {
+	for _, item := range resp.Items {
 		out[item.SourceUrl] = item
 	}
 	return out
@@ -95,7 +95,7 @@ func ingestFilteredRSSItem(
 	)))
 	_, err := client.RefreshFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: feedID}),
+		&feedsv1.RefreshFeedRequest{FeedId: feedID},
 	)
 	require.NoError(t, err)
 	require.Zero(t, countFetches(linked))
@@ -154,10 +154,10 @@ func TestRestoreFeedItem_RSS_FetchesContentAndReturnsUnreadToInbox(t *testing.T)
 
 	body, err := client.GetFeedItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: restored.Id}),
+		&feedsv1.GetFeedItemRequest{ItemId: restored.Id},
 	)
 	require.NoError(t, err)
-	assert.Contains(t, body.Msg.Item.ContentHtml, "Lorem ipsum")
+	assert.Contains(t, body.Item.ContentHtml, "Lorem ipsum")
 }
 
 func TestRestoreFeedItem_Scrape_FetchesContent(t *testing.T) {
@@ -171,12 +171,12 @@ func TestRestoreFeedItem_Scrape_FetchesContent(t *testing.T) {
 	mockWebFetch.SetHTML(postURL, articlePageHTML("Launch"))
 	created, err := client.CreateFeed(
 		context.Background(),
-		connect.NewRequest(&feedsv1.CreateFeedRequest{
+		&feedsv1.CreateFeedRequest{
 			Url: indexURL, Kind: feedsv1.FeedKind_FEED_KIND_SCRAPE,
-		}),
+		},
 	)
 	require.NoError(t, err)
-	feedID := created.Msg.Feed.Id
+	feedID := created.Feed.Id
 	waitForItemCount(t, client, feedID, 1)
 	createRule(t, client, feedID,
 		feedsv1.FilterRuleKind_FILTER_RULE_KIND_CATEGORY, "Launches")
@@ -249,7 +249,7 @@ func TestRestoreFeedItem_DeletedRule_ShowsNoRuleAndRestores(t *testing.T) {
 	feedID, linked, rule := ingestFilteredRSSItem(t, client)
 	_, err := client.DeleteFilterRule(
 		context.Background(),
-		connect.NewRequest(&feedsv1.DeleteFilterRuleRequest{RuleId: rule.Id}),
+		&feedsv1.DeleteFilterRuleRequest{RuleId: rule.Id},
 	)
 	require.NoError(t, err)
 
@@ -311,7 +311,7 @@ func TestFilteredItems_OtherUserCannotListOrRestore(t *testing.T) {
 
 	_, err := client.RestoreFeedItem(
 		context.Background(),
-		connect.NewRequest(&feedsv1.RestoreFeedItemRequest{ItemId: foreignItemID}),
+		&feedsv1.RestoreFeedItemRequest{ItemId: foreignItemID},
 	)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 
@@ -345,7 +345,7 @@ func TestRestoreFeedItem_Errors(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := client.RestoreFeedItem(
 				context.Background(),
-				connect.NewRequest(&feedsv1.RestoreFeedItemRequest{ItemId: c.itemID}),
+				&feedsv1.RestoreFeedItemRequest{ItemId: c.itemID},
 			)
 			assert.Equal(t, c.code, connect.CodeOf(err))
 		})

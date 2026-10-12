@@ -6,7 +6,7 @@ import (
 	"slices"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"google.golang.org/protobuf/proto"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
@@ -34,18 +34,18 @@ var (
 
 func (h *obsConnectHandler) OpenAutomatedAction(
 	ctx context.Context,
-	req *connect.Request[observabilityv1.OpenAutomatedActionRequest],
-) (*connect.Response[observabilityv1.OpenAutomatedActionResponse], error) {
+	req *observabilityv1.OpenAutomatedActionRequest,
+) (*observabilityv1.OpenAutomatedActionResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.openAutomatedAction(
-		ctx, req.Msg.GetTriggerSource(), req.Msg.GetRoutineName(),
+		ctx, req.GetTriggerSource(), req.GetRoutineName(),
 	)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // openAutomatedAction records that a routine started. Routines run outside
@@ -56,15 +56,18 @@ func (h *obsConnectHandler) openAutomatedAction(
 ) (*observabilityv1.OpenAutomatedActionResponse, error) {
 	if !slices.Contains(validTriggerSources, triggerSource) {
 		return nil, connect.NewError(connect.CodeInvalidArgument,
-			errInvalidTriggerSource)
+			errInvalidTriggerSource.Error()).WithCause(errInvalidTriggerSource)
 	}
 	if routineName == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errEmptyRoutineName)
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errEmptyRoutineName.Error(),
+		).WithCause(errEmptyRoutineName)
 	}
 
 	id, err := h.app.automatedActionsRepo.Open(ctx, triggerSource, routineName)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	return &observabilityv1.OpenAutomatedActionResponse{Id: id}, nil
@@ -72,23 +75,23 @@ func (h *obsConnectHandler) openAutomatedAction(
 
 func (h *obsConnectHandler) CloseAutomatedAction(
 	ctx context.Context,
-	req *connect.Request[observabilityv1.CloseAutomatedActionRequest],
-) (*connect.Response[observabilityv1.CloseAutomatedActionResponse], error) {
+	req *observabilityv1.CloseAutomatedActionRequest,
+) (*observabilityv1.CloseAutomatedActionResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.closeAutomatedAction(
 		ctx,
-		req.Msg.GetId(),
-		req.Msg.GetOutcome(),
-		req.Msg.GetPrUrl(),
-		req.Msg.GetError(),
-		req.Msg.GetMetrics(),
+		req.GetId(),
+		req.GetOutcome(),
+		req.GetPrUrl(),
+		req.GetError(),
+		req.GetMetrics(),
 	)
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // closeAutomatedAction closes the row with the routine's outcome and, when
@@ -100,17 +103,18 @@ func (h *obsConnectHandler) closeAutomatedAction(
 	metrics *observabilityv1.RunMetrics,
 ) (*observabilityv1.CloseAutomatedActionResponse, error) {
 	if !slices.Contains(validOutcomes, outcome) {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errInvalidOutcome)
+		return nil, connect.NewError(connect.CodeInvalidArgument, errInvalidOutcome.Error()).
+			WithCause(errInvalidOutcome)
 	}
 	m, err := runMetricsModel(metrics)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	if err = h.app.automatedActionsRepo.Close(
 		ctx, id, outcome, prURL, errorText, m,
 	); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	return &observabilityv1.CloseAutomatedActionResponse{}, nil
@@ -118,16 +122,16 @@ func (h *obsConnectHandler) closeAutomatedAction(
 
 func (h *obsConnectHandler) GetAutomatedActions(
 	ctx context.Context,
-	req *connect.Request[observabilityv1.GetAutomatedActionsRequest],
-) (*connect.Response[observabilityv1.GetAutomatedActionsResponse], error) {
+	req *observabilityv1.GetAutomatedActionsRequest,
+) (*observabilityv1.GetAutomatedActionsResponse, error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
-	resp, err := h.automatedActions(ctx, req.Msg.GetWindowDays())
+	resp, err := h.automatedActions(ctx, req.GetWindowDays())
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 // automatedActions builds the run-history response for Connect and MCP.
@@ -164,7 +168,8 @@ func (h *obsConnectHandler) recordAction(
 			ctx, a.ID, a.Outcome, a.PRURL, a.Error, a.Metrics.proto(),
 		)
 	default:
-		return nil, connect.NewError(connect.CodeInvalidArgument, errInvalidMode)
+		return nil, connect.NewError(connect.CodeInvalidArgument, errInvalidMode.Error()).
+			WithCause(errInvalidMode)
 	}
 }
 

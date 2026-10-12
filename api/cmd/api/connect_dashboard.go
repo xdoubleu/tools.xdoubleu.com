@@ -7,7 +7,7 @@ import (
 	"errors"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 
 	dashboardv1 "tools.xdoubleu.com/gen/dashboard/v1"
 	"tools.xdoubleu.com/gen/dashboard/v1/dashboardv1connect"
@@ -47,85 +47,85 @@ func dashboardKindFromProto(kind dashboardv1.DashboardKind) models.DashboardKind
 
 func (h *dashboardConnectHandler) GetDashboardShare(
 	ctx context.Context,
-	req *connect.Request[dashboardv1.GetDashboardShareRequest],
-) (*connect.Response[dashboardv1.GetDashboardShareResponse], error) {
+	req *dashboardv1.GetDashboardShareRequest,
+) (*dashboardv1.GetDashboardShareResponse, error) {
 	resp := &dashboardv1.GetDashboardShareResponse{}
 
 	share, err := h.app.profileSharesRepo.Get(
-		ctx, h.userID(ctx), dashboardKindFromProto(req.Msg.Kind),
+		ctx, h.userID(ctx), dashboardKindFromProto(req.Kind),
 	)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		// Having no share link yet is a normal state, not an error.
-		return connect.NewResponse(resp), nil
+		return resp, nil
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	resp.Share = protoDashboardShare(*share)
-	return connect.NewResponse(resp), nil
+	return resp, nil
 }
 
 func (h *dashboardConnectHandler) CreateDashboardShare(
 	ctx context.Context,
-	req *connect.Request[dashboardv1.CreateDashboardShareRequest],
-) (*connect.Response[dashboardv1.CreateDashboardShareResponse], error) {
+	req *dashboardv1.CreateDashboardShareRequest,
+) (*dashboardv1.CreateDashboardShareResponse, error) {
 	user, err := h.app.appUsersRepo.GetByID(ctx, h.userID(ctx))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	if user.DisplayName == "" {
 		return nil, connect.NewError(
 			connect.CodeFailedPrecondition,
-			errors.New("set a display name before sharing your dashboard"),
+			"set a display name before sharing your dashboard",
 		)
 	}
 
 	raw := make([]byte, dashboardTokenBytes)
 	if _, err = rand.Read(raw); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	token := base64.RawURLEncoding.EncodeToString(raw)
 
 	share, err := h.app.profileSharesRepo.Upsert(
-		ctx, h.userID(ctx), dashboardKindFromProto(req.Msg.Kind), token,
+		ctx, h.userID(ctx), dashboardKindFromProto(req.Kind), token,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	return connect.NewResponse(&dashboardv1.CreateDashboardShareResponse{
+	return &dashboardv1.CreateDashboardShareResponse{
 		Share: protoDashboardShare(*share),
-	}), nil
+	}, nil
 }
 
 func (h *dashboardConnectHandler) DeleteDashboardShare(
 	ctx context.Context,
-	req *connect.Request[dashboardv1.DeleteDashboardShareRequest],
-) (*connect.Response[dashboardv1.DeleteDashboardShareResponse], error) {
+	req *dashboardv1.DeleteDashboardShareRequest,
+) (*dashboardv1.DeleteDashboardShareResponse, error) {
 	err := h.app.profileSharesRepo.Delete(
-		ctx, h.userID(ctx), dashboardKindFromProto(req.Msg.Kind),
+		ctx, h.userID(ctx), dashboardKindFromProto(req.Kind),
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&dashboardv1.DeleteDashboardShareResponse{}), nil
+	return &dashboardv1.DeleteDashboardShareResponse{}, nil
 }
 
 func (h *dashboardConnectHandler) SetDisplayName(
 	ctx context.Context,
-	req *connect.Request[dashboardv1.SetDisplayNameRequest],
-) (*connect.Response[dashboardv1.SetDisplayNameResponse], error) {
-	if req.Msg.DisplayName == "" {
+	req *dashboardv1.SetDisplayNameRequest,
+) (*dashboardv1.SetDisplayNameResponse, error) {
+	if req.DisplayName == "" {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
-			errors.New("display_name is required"),
+			"display_name is required",
 		)
 	}
 
-	err := h.app.appUsersRepo.SetDisplayName(ctx, h.userID(ctx), req.Msg.DisplayName)
+	err := h.app.appUsersRepo.SetDisplayName(ctx, h.userID(ctx), req.DisplayName)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return connect.NewResponse(&dashboardv1.SetDisplayNameResponse{}), nil
+	return &dashboardv1.SetDisplayNameResponse{}, nil
 }

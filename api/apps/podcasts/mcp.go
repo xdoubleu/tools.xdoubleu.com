@@ -3,7 +3,6 @@ package podcasts
 import (
 	"context"
 
-	"connectrpc.com/connect"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
@@ -37,19 +36,15 @@ func (a *Podcasts) RegisterMCPTools(srv *mcp.Server) {
 func (h *podcastsConnectHandler) mcpListFavourites(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListFavourites(ctx, connect.NewRequest(
-		&podcastsv1.ListFavouritesRequest{},
-	)))
+	return mcptools.Unwrap(h.ListFavourites(ctx, &podcastsv1.ListFavouritesRequest{}))
 }
 
 func (h *podcastsConnectHandler) mcpListEpisodes(
 	ctx context.Context, args mcpListEpisodesArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListEpisodes(ctx, connect.NewRequest(
-		&podcastsv1.ListEpisodesRequest{
-			ShowId: args.ShowID,
-			Limit:  args.Limit,
-			Offset: args.Offset,
-		},
-	)))
+	return mcptools.Unwrap(h.ListEpisodes(ctx, &podcastsv1.ListEpisodesRequest{
+		ShowId: args.ShowID,
+		Limit:  args.Limit,
+		Offset: args.Offset,
+	}))
 }
