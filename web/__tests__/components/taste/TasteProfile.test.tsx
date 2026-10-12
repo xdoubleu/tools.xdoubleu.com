@@ -63,11 +63,12 @@ describe('TasteProfile', () => {
     mockProfile({
       data: create(GetProfileResponseSchema, {
         ...written,
-        sections: create(ProfileSectionsSchema, { summary: 'S', like: ['Same', 'Same'] })
+        sections: create(ProfileSectionsSchema, { summary: 'S', bounce: ['Same', 'Same'] })
       })
     })
     render(<TasteProfile />)
     expect(screen.getAllByText('Same')).toHaveLength(2)
+    expect(screen.getByRole('heading', { name: 'Bounce off' })).toBeInTheDocument()
     expect(spy).not.toHaveBeenCalled()
     spy.mockRestore()
   })
