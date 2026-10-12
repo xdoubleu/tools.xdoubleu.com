@@ -73,7 +73,7 @@ const FeedItemMarkReadButton = forwardRef<FeedItemMarkReadHandle, FeedItemMarkRe
     }
 
     return (
-      <Button variant="ghost" size="sm" onClick={handleMarkRead}>
+      <Button variant="secondary" size="sm" className="min-h-11 min-w-11" onClick={handleMarkRead}>
         Mark read
       </Button>
     )

@@ -100,4 +100,18 @@ describe('LearningPathsListClient', () => {
     expect(link).toHaveTextContent('1 module')
     expect(link).toHaveTextContent('1/2 done')
   })
+
+  it('links each card straight to its edit page', () => {
+    mockLearningPaths({
+      data: create(ListLearningPathsResponseSchema, {
+        learningPaths: [create(LearningPathSchema, { id: 'lp1', title: 'Learn Go' })]
+      }),
+      isLoading: false
+    })
+    render(<LearningPathsListClient />)
+    expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
+      'href',
+      '/learningpaths/lp1/edit'
+    )
+  })
 })

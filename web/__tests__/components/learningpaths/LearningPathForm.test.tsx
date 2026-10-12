@@ -65,6 +65,16 @@ describe('LearningPathForm (new)', () => {
     expect(screen.getByRole('button', { name: 'Save Learning Path' })).toBeInTheDocument()
   })
 
+  it('disables Save and Cancel with a pending label while saving', async () => {
+    let resolve: (v: unknown) => void = () => {}
+    mockCreateLearningPath.mockReturnValue(new Promise((r) => (resolve = r)))
+    render(<LearningPathForm onSave={jest.fn()} onCancel={jest.fn()} />)
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+    expect(await screen.findByRole('button', { name: 'Saving…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+    resolve({ learningPath: { id: 'x' } })
+  })
+
   it('calls onCancel when Cancel is clicked', () => {
     const onCancel = jest.fn()
     render(<LearningPathForm onSave={jest.fn()} onCancel={onCancel} />)

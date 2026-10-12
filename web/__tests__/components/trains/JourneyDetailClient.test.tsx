@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 const mockMutate = jest.fn()
 const mockUseJourneyDetail = jest.fn()
@@ -159,5 +159,17 @@ describe('JourneyDetailClient', () => {
     render(<JourneyDetailClient journeyId="journey-1" />)
     expect(screen.getByText(/FRESH/)).toBeInTheDocument()
     expect(screen.queryByText(/STALE/)).not.toBeInTheDocument()
+  })
+
+  it('refreshes the journey when the live-status button is tapped', () => {
+    mockUseJourneyDetail.mockReturnValue({
+      data: { journey: { legs: [] } },
+      error: undefined,
+      isLoading: false,
+      mutate: mockMutate
+    })
+    render(<JourneyDetailClient journeyId="journey-1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh live status' }))
+    expect(mockMutate).toHaveBeenCalled()
   })
 })

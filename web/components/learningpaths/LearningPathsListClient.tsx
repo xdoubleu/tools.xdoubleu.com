@@ -25,7 +25,15 @@ function moduleAndItemCounts(path: LearningPath) {
 function LearningPathCard({ path }: { path: LearningPath }) {
   const { moduleCount, itemCount, completedCount } = moduleAndItemCounts(path)
   return (
-    <LinkCard href={`/learningpaths/${path.id}`} linkClassName="p-4">
+    <LinkCard
+      href={`/learningpaths/${path.id}`}
+      linkClassName="p-4"
+      actions={
+        <Button asChild variant="secondary" size="sm" className="min-h-11 min-w-11">
+          <Link href={`/learningpaths/${path.id}/edit`}>Edit</Link>
+        </Button>
+      }
+    >
       <h2 className="break-words text-lg font-semibold">{path.title}</h2>
       {path.goal && <p className="mt-1 break-words text-sm text-muted">{path.goal}</p>}
       <p className="text-xs text-muted mt-2">
