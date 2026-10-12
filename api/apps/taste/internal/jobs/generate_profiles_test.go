@@ -47,6 +47,14 @@ func (f *fakeProfiles) Generate(
 	return nil
 }
 
+// profilesFake is a fake failing Generate for failFor and Due with dueErr.
+func profilesFake(configured bool, failFor string, dueErr error) *fakeProfiles {
+	return &fakeProfiles{
+		configured: configured, dueErr: dueErr, failFor: failFor, asked: nil,
+		generated: map[string]bool{},
+	}
+}
+
 func user(id string, role sharedmodels.Role, access ...string) sharedmodels.User {
 	//nolint:exhaustruct // only what the job reads
 	return sharedmodels.User{ID: id, Role: role, AppAccess: access}
@@ -59,7 +67,7 @@ func TestGenerateProfilesJob(t *testing.T) {
 		user("b", sharedmodels.RoleUser, "taste"),
 		user("x", sharedmodels.RoleUser, "books"),
 	}, err: nil}
-	profiles := &fakeProfiles{configured: true, generated: map[string]bool{}}
+	profiles := profilesFake(true, "", nil)
 	job := jobs.NewGenerateProfilesJob(users, profiles, "taste")
 
 	assert.Equal(t, jobs.GenerateProfilesID, job.ID())
@@ -74,25 +82,25 @@ func TestGenerateProfilesJob_Failures(t *testing.T) {
 		user("a", sharedmodels.RoleAdmin), user("b", sharedmodels.RoleAdmin),
 	}, err: nil}
 
-	profiles := &fakeProfiles{configured: true, failFor: "a", generated: map[string]bool{}}
+	profiles := profilesFake(true, "a", nil)
 	err := jobs.NewGenerateProfilesJob(users, profiles, "taste").
 		Run(context.Background(), logging.NewNopLogger())
 	require.ErrorContains(t, err, "user a: boom")
 	assert.Len(t, profiles.generated, 2, "one failure doesn't stop the others")
 
-	profiles = &fakeProfiles{configured: true, dueErr: errors.New("db"), generated: map[string]bool{}}
+	profiles = profilesFake(true, "", errors.New("db"))
 	err = jobs.NewGenerateProfilesJob(users, profiles, "taste").
 		Run(context.Background(), logging.NewNopLogger())
 	require.ErrorContains(t, err, "db")
 
 	err = jobs.NewGenerateProfilesJob(fakeUsers{users: nil, err: errors.New("auth")},
-		&fakeProfiles{configured: true, generated: map[string]bool{}}, "taste").
+		profilesFake(true, "", nil), "taste").
 		Run(context.Background(), logging.NewNopLogger())
 	require.ErrorContains(t, err, "auth")
 }
 
 func TestGenerateProfilesJob_IdleWithoutKey(t *testing.T) {
-	profiles := &fakeProfiles{configured: false, generated: map[string]bool{}}
+	profiles := profilesFake(false, "", nil)
 	err := jobs.NewGenerateProfilesJob(fakeUsers{users: nil, err: errors.New("unused")},
 		profiles, "taste").Run(context.Background(), logging.NewNopLogger())
 	require.NoError(t, err)

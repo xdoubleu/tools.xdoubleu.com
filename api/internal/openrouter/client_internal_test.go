@@ -41,7 +41,8 @@ func TestComplete_SendsSchemaAndWebSearch(t *testing.T) {
 		_, _ = w.Write([]byte(`{
 			"model": "served/model",
 			"choices": [{"message": {"content": "{\"a\":1}", "annotations": [
-				{"type": "url_citation", "url_citation": {"url": "https://a.example", "title": "A"}},
+				{"type": "url_citation",
+				 "url_citation": {"url": "https://a.example", "title": "A"}},
 				{"type": "url_citation", "url_citation": {"url": ""}},
 				{"type": "other"}
 			]}}],

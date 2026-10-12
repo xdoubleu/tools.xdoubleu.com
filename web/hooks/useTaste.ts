@@ -1,9 +1,13 @@
-import useSWR from 'swr'
+import useSWR, { useSWRConfig } from 'swr'
 import { useCallback } from 'react'
 import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
 import { TasteService } from '@/lib/gen/taste/v1/taste_pb'
-import type { GetStatsResponse, ListEventsResponse } from '@/lib/gen/taste/v1/taste_pb'
+import type {
+  GetProfileResponse,
+  GetStatsResponse,
+  ListEventsResponse
+} from '@/lib/gen/taste/v1/taste_pb'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 
 export function useTasteStats() {
@@ -29,4 +33,25 @@ export function useFetchTasteEventsPage(domain: string) {
         .then((r) => ({ items: r.events, hasMore: r.hasMore })),
     [client, domain]
   )
+}
+
+/** How often a pending profile is re-read until the job has written it. */
+export const PROFILE_POLL_MS = 10_000
+
+/** The taste profile, polled while a regeneration is pending. */
+export function useTasteProfile() {
+  const client = createServiceClient(TasteService)
+  return useSWR<GetProfileResponse, Error>(swrKeys.tasteProfile, () => client.getProfile({}), {
+    refreshInterval: (data) => (data?.pending ? PROFILE_POLL_MS : 0)
+  })
+}
+
+/** Queues a profile regeneration, then re-reads the profile. */
+export function useRefreshTasteProfile() {
+  const client = createServiceClient(TasteService)
+  const { mutate } = useSWRConfig()
+  return useCallback(async () => {
+    await client.refreshProfile({})
+    await mutate(swrKeys.tasteProfile)
+  }, [client, mutate])
 }

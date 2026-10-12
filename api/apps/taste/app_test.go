@@ -22,8 +22,8 @@ import (
 	"tools.xdoubleu.com/internal/consumption"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
-	"tools.xdoubleu.com/internal/openrouter"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/openrouter"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
@@ -51,6 +51,12 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	os.Exit(m.Run())
+}
+
+// newLLM answers every completion with content.
+func newLLM(content string) *fakeLLM {
+	//nolint:exhaustruct // the rest start empty
+	return &fakeLLM{content: content}
 }
 
 // fakeLLM answers every completion with content, or fails with err.
@@ -108,7 +114,7 @@ func newClientAs(
 ) tastev1connect.TasteServiceClient {
 	t.Helper()
 	a := taste.NewInner(
-		authService, logging.NewNopLogger(), testCfg, testDB, &fakeLLM{}, sources...,
+		authService, logging.NewNopLogger(), testCfg, testDB, newLLM(""), sources...,
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(a))
 	t.Cleanup(ts.Close)

@@ -18,15 +18,18 @@ const (
 	// ProfileMaxAge is when the job regenerates a profile unasked.
 	ProfileMaxAge = 7 * 24 * time.Hour
 
-	profileMaxTokens  = 2000
-	maxBullets        = 6
-	maxErrorLength    = 300
+	profileMaxTokens = 2000
+	maxBullets       = 6
+	maxErrorLength   = 300
 )
 
 // ErrNotConfigured means no OpenRouter key is set.
 var ErrNotConfigured = openrouter.ErrNotConfigured
 
-var errNothingConsumed = errors.New("Nothing consumed yet.") //nolint:staticcheck,revive // shown as is
+var errNothingConsumed = errors.New("nothing consumed yet")
+
+// nothingConsumedNote is stored as the profile's last error for an empty log.
+const nothingConsumedNote = "Nothing consumed yet."
 
 type profileStore interface {
 	Get(ctx context.Context, userID string) (*models.Profile, error)
@@ -68,7 +71,10 @@ func (s *ProfileService) Configured() bool {
 }
 
 // Get returns userID's profile, or nil before the first request.
-func (s *ProfileService) Get(ctx context.Context, userID string) (*models.Profile, error) {
+func (s *ProfileService) Get(
+	ctx context.Context,
+	userID string,
+) (*models.Profile, error) {
 	return s.profiles.Get(ctx, userID)
 }
 
@@ -97,7 +103,7 @@ func (s *ProfileService) Generate(
 ) error {
 	sections, model, err := s.generate(ctx, userID, include)
 	if errors.Is(err, errNothingConsumed) {
-		return s.profiles.SaveError(ctx, userID, err.Error(), s.now())
+		return s.profiles.SaveError(ctx, userID, nothingConsumedNote, s.now())
 	}
 	if err != nil {
 		saveErr := s.profiles.SaveError(ctx, userID, errorText(err), s.now())
@@ -183,13 +189,15 @@ Each list holds at most 6 short bullets; use an empty list when the log ` +
 	`gives no evidence.`
 
 func profileSchema() map[string]any {
-	list := map[string]any{"type": "array", "items": map[string]any{"type": "string"}}
+	const typeKey = "type"
+	str := map[string]any{typeKey: "string"}
+	list := map[string]any{typeKey: "array", "items": str}
 	return map[string]any{
-		"type":                 "object",
+		typeKey:                "object",
 		"additionalProperties": false,
 		"required":             []string{"summary", "know", "like", "drifting", "bounce"},
 		"properties": map[string]any{
-			"summary":  map[string]any{"type": "string"},
+			"summary":  str,
 			"know":     list,
 			"like":     list,
 			"drifting": list,

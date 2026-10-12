@@ -85,7 +85,7 @@ func New(apiKey, referer string, logger *slog.Logger) Client {
 	return &client{
 		apiKey:  apiKey,
 		referer: referer,
-		http:    &http.Client{Timeout: requestTimeout}, //nolint:exhaustruct // defaults
+		http:    &http.Client{Timeout: requestTimeout},
 		logger:  logger,
 	}
 }

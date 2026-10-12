@@ -57,7 +57,10 @@ func tags(e consumption.Event) []string {
 
 // strongest returns events whose signal has sign's direction, strongest and
 // then newest first.
-func strongest(events []consumption.Event, sign consumption.Signal) []consumption.Event {
+func strongest(
+	events []consumption.Event,
+	sign consumption.Signal,
+) []consumption.Event {
 	out := slices.DeleteFunc(slices.Clone(events), func(e consumption.Event) bool {
 		return e.Signal*sign <= 0
 	})
@@ -68,7 +71,12 @@ func strongest(events []consumption.Event, sign consumption.Signal) []consumptio
 	return out
 }
 
-func writeEvents(b *strings.Builder, heading string, events []consumption.Event, limit int) {
+func writeEvents(
+	b *strings.Builder,
+	heading string,
+	events []consumption.Event,
+	limit int,
+) {
 	if len(events) == 0 {
 		return
 	}

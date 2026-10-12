@@ -22,7 +22,7 @@ func (h *tasteConnectHandler) GetProfile(
 	if err != nil {
 		return nil, err
 	}
-	//nolint:exhaustruct // filled below when configured
+
 	out := &tastev1.GetProfileResponse{Configured: h.app.profiles.Configured()}
 	if !out.Configured {
 		return connect.NewResponse(out), nil

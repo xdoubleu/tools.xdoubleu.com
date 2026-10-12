@@ -80,7 +80,7 @@ func TestProfile_NotConfigured(t *testing.T) {
 }
 
 func TestProfile_RefreshGeneratesAndRateLimits(t *testing.T) {
-	llm := &fakeLLM{content: profileJSON}
+	llm := newLLM(profileJSON)
 	a, c := profileApp(t, sharedmocks.NewMockedAdminAuthService(userID), llm)
 
 	p := getProfile(t, c)
@@ -126,7 +126,7 @@ func TestProfile_RefreshGeneratesAndRateLimits(t *testing.T) {
 }
 
 func TestProfile_FailureKeepsLastProfile(t *testing.T) {
-	llm := &fakeLLM{content: profileJSON}
+	llm := newLLM(profileJSON)
 	a, c := profileApp(t, sharedmocks.NewMockedAdminAuthService(userID), llm)
 	require.NoError(t, a.GenerateProfilesNow(context.Background()))
 
@@ -135,7 +135,11 @@ func TestProfile_FailureKeepsLastProfile(t *testing.T) {
 		WHERE user_id = $1`, userID)
 	require.NoError(t, err)
 	llm.err = errors.New("model overloaded")
-	require.ErrorContains(t, a.GenerateProfilesNow(context.Background()), "model overloaded")
+	require.ErrorContains(
+		t,
+		a.GenerateProfilesNow(context.Background()),
+		"model overloaded",
+	)
 
 	p := getProfile(t, c)
 	assert.Equal(t, "model overloaded", p.LastError)
@@ -149,7 +153,7 @@ func TestProfile_FailureKeepsLastProfile(t *testing.T) {
 
 func TestProfile_InvalidAnswers(t *testing.T) {
 	for _, content := range []string{`not json`, `{"summary": "  "}`} {
-		llm := &fakeLLM{content: content}
+		llm := newLLM(content)
 		a, c := profileApp(t, sharedmocks.NewMockedAdminAuthService(userID), llm)
 		require.Error(t, a.GenerateProfilesNow(context.Background()))
 		p := getProfile(t, c)
@@ -164,7 +168,7 @@ func TestProfile_NothingConsumedIsNoFailure(t *testing.T) {
 	require.NoError(t, err)
 	cfg := testCfg
 	cfg.OpenRouterAPIKey = "test-key"
-	llm := &fakeLLM{content: profileJSON}
+	llm := newLLM(profileJSON)
 	a := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
 		logging.NewNopLogger(), cfg, testDB, llm)
 
@@ -178,7 +182,7 @@ func TestProfile_NothingConsumedIsNoFailure(t *testing.T) {
 }
 
 func TestProfile_JobSkipsUsersWithoutTasteAccess(t *testing.T) {
-	llm := &fakeLLM{content: profileJSON}
+	llm := newLLM(profileJSON)
 	// The mocked non-admin user has no taste access.
 	a, _ := profileApp(t, sharedmocks.NewMockedAuthService(userID), llm)
 	require.NoError(t, a.GenerateProfilesNow(context.Background()))
@@ -186,7 +190,7 @@ func TestProfile_JobSkipsUsersWithoutTasteAccess(t *testing.T) {
 }
 
 func TestProfile_JobIdleWithoutKey(t *testing.T) {
-	llm := &fakeLLM{content: profileJSON}
+	llm := newLLM(profileJSON)
 	a := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
 		logging.NewNopLogger(), testCfg, testDB, llm)
 	require.NoError(t, a.GenerateProfilesNow(context.Background()))

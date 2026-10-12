@@ -28,14 +28,14 @@ func TestErrorText(t *testing.T) {
 	for i := range long {
 		long[i] = 'x'
 	}
-	got := errorText(errString(string(long)))
+	got := errorText(textError(string(long)))
 	assert.Len(t, got, maxErrorLength+len("…"))
-	assert.Equal(t, "short", errorText(errString("short")))
+	assert.Equal(t, "short", errorText(textError("short")))
 }
 
-type errString string
+type textError string
 
-func (e errString) Error() string { return string(e) }
+func (e textError) Error() string { return string(e) }
 
 func TestProfileSchemaRequiresEverySection(t *testing.T) {
 	s := profileSchema()

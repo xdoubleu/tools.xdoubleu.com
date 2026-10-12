@@ -103,6 +103,7 @@ export const swrKeys = {
   podcastsSearch: (query: string) => ['/podcasts/search', query] as const,
 
   tasteStats: '/taste/stats',
+  tasteProfile: '/taste/profile',
   tasteEvents: (domain: string) => ['/taste/events', domain] as const,
 
   shoppingList: (ownerUserId: string) => `/shoppinglist?owner=${ownerUserId}`,

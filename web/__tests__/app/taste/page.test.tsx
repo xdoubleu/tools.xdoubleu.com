@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 
 const fetchOrNull = jest.fn()
 const swrFallback = jest.fn()
-const serverClient = { getStats: jest.fn(), listEvents: jest.fn() }
+const serverClient = { getProfile: jest.fn(), getStats: jest.fn(), listEvents: jest.fn() }
 
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => serverClient)
@@ -35,18 +35,23 @@ import TastePage from '@/app/taste/page'
 beforeEach(() => jest.clearAllMocks())
 
 describe('TastePage', () => {
-  it('seeds the stats and the first log page', async () => {
+  it('seeds the profile, the stats and the first log page', async () => {
+    const profile = { configured: true }
     const stats = { domains: [] }
     const events = { events: [] }
-    fetchOrNull.mockResolvedValueOnce(stats).mockResolvedValueOnce(events)
+    fetchOrNull
+      .mockResolvedValueOnce(profile)
+      .mockResolvedValueOnce(stats)
+      .mockResolvedValueOnce(events)
     render(await TastePage())
     expect(screen.getByTestId('taste-client')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Taste' })).toBeInTheDocument()
+    expect(serverClient.getProfile).toHaveBeenCalledWith({})
     expect(serverClient.getStats).toHaveBeenCalledWith({})
     expect(serverClient.listEvents).toHaveBeenCalledWith({ domain: '', limit: 50 })
     expect(swrFallback).toHaveBeenCalledWith(
       expect.objectContaining({
-        fallback: { '/taste/stats': stats },
+        fallback: { '/taste/profile': profile, '/taste/stats': stats },
         keyed: [[['/taste/events', ''], events]]
       })
     )

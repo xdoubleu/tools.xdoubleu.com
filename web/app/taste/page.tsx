@@ -10,7 +10,8 @@ import { TasteService } from '@/lib/gen/taste/v1/taste_pb'
 
 export default async function TastePage() {
   const client = await createServerClient(TasteService)
-  const [stats, events] = await Promise.all([
+  const [profile, stats, events] = await Promise.all([
+    fetchOrNull(() => client.getProfile({})),
     fetchOrNull(() => client.getStats({})),
     fetchOrNull(() => client.listEvents({ domain: '', limit: DEFAULT_PAGE_SIZE }))
   ])
@@ -18,7 +19,10 @@ export default async function TastePage() {
   return (
     <PageContainer>
       <SWRFallback
-        fallback={stats ? { [swrKeys.tasteStats]: stats } : {}}
+        fallback={{
+          ...(profile && { [swrKeys.tasteProfile]: profile }),
+          ...(stats && { [swrKeys.tasteStats]: stats })
+        }}
         keyed={events ? [[swrKeys.tasteEvents(''), events]] : []}
       >
         <PageHeader title="Taste" />
