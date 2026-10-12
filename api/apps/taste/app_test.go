@@ -71,7 +71,10 @@ func (f *fakeLLM) profileCalls() int {
 
 // noCatalogs finds nothing in any domain.
 func noCatalogs() taste.Catalogs {
-	return taste.Catalogs{Books: nil, Movies: nil, Games: nil, Podcasts: nil, Feeds: nil}
+	return taste.Catalogs{
+		Books: nil, Movies: nil, Games: nil, Podcasts: nil, Feeds: nil,
+		WantBook: nil, WantTitle: nil,
+	}
 }
 
 // newLLM answers profile completions with content and candidate completions

@@ -9,9 +9,25 @@ import (
 	"tools.xdoubleu.com/internal/consumption"
 )
 
-// picksPerList is how many picks the generator proposes per domain and track;
-// verification and judging cut them to keepPerList.
-const picksPerList = 5
+const (
+	// picksPerList is how many picks the generator proposes per domain and
+	// track; verification and judging cut them to keepPerList.
+	picksPerList = 5
+	// maxFeedback caps the earlier picks' feedback in the generator's input.
+	maxFeedback = 60
+	// maxAlreadySuggested caps the earlier picks listed as already suggested.
+	maxAlreadySuggested = 100
+)
+
+// feedbackLabels say what each feedback means to the generator.
+//
+//nolint:gochecknoglobals // read-only lookup table
+var feedbackLabels = map[string]string{
+	models.FeedbackHit:           "hit, loved it",
+	models.FeedbackMiss:          "miss, didn't like it",
+	models.FeedbackNotInterested: "not interested",
+	models.FeedbackKnown:         "already knew it",
+}
 
 func generatorPrompt(domains []consumption.Domain) string {
 	names := make([]string, len(domains))
@@ -32,7 +48,9 @@ Let each neighbour propose picks, then merge them.
 Search the web: for recent releases, lesser-known work, "if you liked X" `+
 		`discussions and reviews, and to confirm each title exists as you name it. `+
 		`Skip the famous canon this person has almost certainly met already. Never `+
-		`propose anything in their history or in the "already suggested" list.
+		`propose anything in their history or in the "already suggested" list. `+
+		`Learn from the feedback on earlier picks: lean into the directions that `+
+		`were hits, especially on the broaden track, and away from the misses.
 
 Two tracks:
 - more: more of what they demonstrably like.
@@ -52,7 +70,7 @@ Cover these domains: %s. Propose up to %d picks per domain and track. For `+
 func generatorInput(
 	events []consumption.Event,
 	profile *models.Profile,
-	previous []models.Recommendation,
+	previous, touched []models.Recommendation,
 	now time.Time,
 ) string {
 	var b strings.Builder
@@ -72,6 +90,18 @@ func generatorInput(
 		for _, r := range previous {
 			fmt.Fprintf(&b, "- %s (%s)\n", r.Title, r.Domain)
 		}
+	}
+	n := 0
+	for _, r := range touched {
+		if r.Feedback == models.FeedbackNone || n == maxFeedback {
+			continue
+		}
+		if n == 0 {
+			b.WriteString("\n## Feedback on earlier picks\n")
+		}
+		n++
+		fmt.Fprintf(&b, "- %s (%s, %s): %s\n",
+			r.Title, r.Domain, r.Track, feedbackLabels[r.Feedback])
 	}
 	return b.String()
 }

@@ -12,7 +12,10 @@ const mockClient = {
   listRecommendations: jest.fn().mockResolvedValue({}),
   refreshProfile: jest.fn().mockResolvedValue({}),
   getStats: jest.fn().mockResolvedValue({}),
-  listEvents: jest.fn().mockResolvedValue({ events: [{ itemId: 'b1' }], hasMore: true })
+  listEvents: jest.fn().mockResolvedValue({ events: [{ itemId: 'b1' }], hasMore: true }),
+  setFeedback: jest.fn().mockResolvedValue({}),
+  setSaved: jest.fn().mockResolvedValue({}),
+  acceptRecommendation: jest.fn().mockResolvedValue({})
 }
 jest.mock('@/lib/client', () => ({ createServiceClient: jest.fn(() => mockClient) }))
 jest.mock('@/lib/gen/taste/v1/taste_pb', () => ({
@@ -31,6 +34,7 @@ import {
   useRevalidatePicksWhenDone,
   useTasteEvents,
   useTasteProfile,
+  usePickActions,
   useTasteRecommendations,
   useTasteStats
 } from '@/hooks/useTaste'
@@ -160,8 +164,55 @@ describe('useTasteRecommendations', () => {
     )
     expect(mockClient.listRecommendations).toHaveBeenCalledWith({
       domain: 'books',
-      track: 'broaden'
+      track: 'broaden',
+      savedOnly: false
     })
+  })
+
+  it('fetches every saved pick for the saved view', () => {
+    renderHook(() => useTasteRecommendations('', 'saved'))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      ['/taste/recommendations', '', 'saved'],
+      expect.any(Function)
+    )
+    expect(mockClient.listRecommendations).toHaveBeenCalledWith({
+      domain: '',
+      track: '',
+      savedOnly: true
+    })
+  })
+})
+
+describe('usePickActions', () => {
+  it('writes, then re-reads the picks and the stats', async () => {
+    const { result } = renderHook(() => usePickActions())
+    await result.current.setFeedback('r1', 'hit')
+    expect(mockClient.setFeedback).toHaveBeenCalledWith({ id: 'r1', feedback: 'hit' })
+    await result.current.setSaved('r1', true)
+    expect(mockClient.setSaved).toHaveBeenCalledWith({ id: 'r1', saved: true })
+    await result.current.accept('r1')
+    expect(mockClient.acceptRecommendation).toHaveBeenCalledWith({ id: 'r1' })
+    expect(mockMutate).toHaveBeenCalledWith(isRecommendationsKey)
+    expect(mockMutate).toHaveBeenCalledWith('/taste/stats')
+    expect(mockMutate).toHaveBeenCalledTimes(6)
+  })
+
+  it('uses the current mutate', async () => {
+    const { result, rerender } = renderHook(() => usePickActions())
+    const first = mockMutate
+    mockMutate = jest.fn()
+    rerender()
+    await result.current.setSaved('r1', true)
+    expect(mockMutate).toHaveBeenCalled()
+    expect(first).not.toHaveBeenCalled()
+    mockMutate = first
+  })
+
+  it('re-reads nothing when the write fails', async () => {
+    mockClient.setSaved.mockRejectedValueOnce(new Error('nope'))
+    const { result } = renderHook(() => usePickActions())
+    await expect(result.current.setSaved('r1', false)).rejects.toThrow('nope')
+    expect(mockMutate).not.toHaveBeenCalled()
   })
 })
 

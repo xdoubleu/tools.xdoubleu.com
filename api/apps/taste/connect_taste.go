@@ -55,7 +55,21 @@ func (h *tasteConnectHandler) GetStats(
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
-	return connect.NewResponse(protoStats(services.BuildStats(events, time.Now()))), nil
+	rates, err := h.app.picks.HitRates(ctx, uid)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	out := protoStats(services.BuildStats(events, time.Now()))
+	access := canAccess(ctx)
+	for _, r := range rates {
+		if access(services.AppOf(consumption.Domain(r.Domain))) {
+			out.HitRates = append(out.HitRates, &tastev1.HitRate{
+				Domain: r.Domain, Track: r.Track,
+				Hits: count32(r.Hits), Misses: count32(r.Misses),
+			})
+		}
+	}
+	return connect.NewResponse(out), nil
 }
 
 func (h *tasteConnectHandler) ListEvents(

@@ -2,8 +2,12 @@ package books
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"strings"
 
+	"tools.xdoubleu.com/apps/books/internal/models"
+	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/consumption"
 )
 
@@ -34,16 +38,30 @@ func (app *Books) FindBook(
 			ref = p.Source + ":" + p.ISBN13
 		}
 		return &consumption.CatalogMatch{
-			Ref:      ref,
-			Title:    p.Title,
-			Creator:  strings.Join(p.Authors[:min(len(p.Authors), maxAuthors)], ", "),
-			Year:     0,
-			ImageURL: p.CoverURL,
-			URL:      "",
-			Known:    known,
+			Ref:          ref,
+			Title:        p.Title,
+			Creator:      strings.Join(p.Authors[:min(len(p.Authors), maxAuthors)], ", "),
+			Year:         0,
+			ImageURL:     p.CoverURL,
+			URL:          "",
+			Known:        known,
+			OnMyServices: false,
 		}, nil
 	}
 	return nil, nil //nolint:nilnil // no match is not an error
+}
+
+// WantBook adds the book a FindBook ref ("provider:isbn13") names to userID's
+// to-read shelf, unless the library already holds it; for the taste app.
+func (app *Books) WantBook(ctx context.Context, userID, ref string) error {
+	provider, isbn, _ := strings.Cut(ref, ":")
+	_, err := app.EnsureLibraryBook(ctx, userID, provider, isbn, models.StatusToRead)
+	if errors.Is(err, ErrExternalBookNotFound) {
+		return &iapp.HTTPError{
+			Status: http.StatusNotFound, Message: "the book is no longer in its catalog",
+		}
+	}
+	return err
 }
 
 // inLibrary reports whether userID's library holds isbn13 or a book named

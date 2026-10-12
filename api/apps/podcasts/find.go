@@ -24,13 +24,14 @@ func (a *Podcasts) FindShow(
 	if i := consumption.BestTitle(titles, title); i >= 0 {
 		r := results[i]
 		return &consumption.CatalogMatch{
-			Ref:      strconv.FormatInt(r.ID, 10),
-			Title:    r.Title,
-			Creator:  r.Author,
-			Year:     0,
-			ImageURL: r.ArtworkURL,
-			URL:      r.AppleURL,
-			Known:    r.Favourite,
+			Ref:          strconv.FormatInt(r.ID, 10),
+			Title:        r.Title,
+			Creator:      r.Author,
+			Year:         0,
+			ImageURL:     r.ArtworkURL,
+			URL:          r.AppleURL,
+			Known:        r.Favourite,
+			OnMyServices: false,
 		}, nil
 	}
 	return nil, nil //nolint:nilnil // no match is not an error

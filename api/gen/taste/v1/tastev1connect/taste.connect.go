@@ -45,6 +45,14 @@ const (
 	// TasteServiceListRecommendationsProcedure is the fully-qualified name of the TasteService's
 	// ListRecommendations RPC.
 	TasteServiceListRecommendationsProcedure = "/taste.v1.TasteService/ListRecommendations"
+	// TasteServiceSetFeedbackProcedure is the fully-qualified name of the TasteService's SetFeedback
+	// RPC.
+	TasteServiceSetFeedbackProcedure = "/taste.v1.TasteService/SetFeedback"
+	// TasteServiceSetSavedProcedure is the fully-qualified name of the TasteService's SetSaved RPC.
+	TasteServiceSetSavedProcedure = "/taste.v1.TasteService/SetSaved"
+	// TasteServiceAcceptRecommendationProcedure is the fully-qualified name of the TasteService's
+	// AcceptRecommendation RPC.
+	TasteServiceAcceptRecommendationProcedure = "/taste.v1.TasteService/AcceptRecommendation"
 )
 
 // TasteServiceClient is a client for the taste.v1.TasteService service.
@@ -54,6 +62,9 @@ type TasteServiceClient interface {
 	GetProfile(context.Context, *connect.Request[v1.GetProfileRequest]) (*connect.Response[v1.GetProfileResponse], error)
 	RefreshProfile(context.Context, *connect.Request[v1.RefreshProfileRequest]) (*connect.Response[v1.RefreshProfileResponse], error)
 	ListRecommendations(context.Context, *connect.Request[v1.ListRecommendationsRequest]) (*connect.Response[v1.ListRecommendationsResponse], error)
+	SetFeedback(context.Context, *connect.Request[v1.SetFeedbackRequest]) (*connect.Response[v1.SetFeedbackResponse], error)
+	SetSaved(context.Context, *connect.Request[v1.SetSavedRequest]) (*connect.Response[v1.SetSavedResponse], error)
+	AcceptRecommendation(context.Context, *connect.Request[v1.AcceptRecommendationRequest]) (*connect.Response[v1.AcceptRecommendationResponse], error)
 }
 
 // NewTasteServiceClient constructs a client for the taste.v1.TasteService service. By default, it
@@ -97,16 +108,37 @@ func NewTasteServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(tasteServiceMethods.ByName("ListRecommendations")),
 			connect.WithClientOptions(opts...),
 		),
+		setFeedback: connect.NewClient[v1.SetFeedbackRequest, v1.SetFeedbackResponse](
+			httpClient,
+			baseURL+TasteServiceSetFeedbackProcedure,
+			connect.WithSchema(tasteServiceMethods.ByName("SetFeedback")),
+			connect.WithClientOptions(opts...),
+		),
+		setSaved: connect.NewClient[v1.SetSavedRequest, v1.SetSavedResponse](
+			httpClient,
+			baseURL+TasteServiceSetSavedProcedure,
+			connect.WithSchema(tasteServiceMethods.ByName("SetSaved")),
+			connect.WithClientOptions(opts...),
+		),
+		acceptRecommendation: connect.NewClient[v1.AcceptRecommendationRequest, v1.AcceptRecommendationResponse](
+			httpClient,
+			baseURL+TasteServiceAcceptRecommendationProcedure,
+			connect.WithSchema(tasteServiceMethods.ByName("AcceptRecommendation")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // tasteServiceClient implements TasteServiceClient.
 type tasteServiceClient struct {
-	getStats            *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
-	listEvents          *connect.Client[v1.ListEventsRequest, v1.ListEventsResponse]
-	getProfile          *connect.Client[v1.GetProfileRequest, v1.GetProfileResponse]
-	refreshProfile      *connect.Client[v1.RefreshProfileRequest, v1.RefreshProfileResponse]
-	listRecommendations *connect.Client[v1.ListRecommendationsRequest, v1.ListRecommendationsResponse]
+	getStats             *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
+	listEvents           *connect.Client[v1.ListEventsRequest, v1.ListEventsResponse]
+	getProfile           *connect.Client[v1.GetProfileRequest, v1.GetProfileResponse]
+	refreshProfile       *connect.Client[v1.RefreshProfileRequest, v1.RefreshProfileResponse]
+	listRecommendations  *connect.Client[v1.ListRecommendationsRequest, v1.ListRecommendationsResponse]
+	setFeedback          *connect.Client[v1.SetFeedbackRequest, v1.SetFeedbackResponse]
+	setSaved             *connect.Client[v1.SetSavedRequest, v1.SetSavedResponse]
+	acceptRecommendation *connect.Client[v1.AcceptRecommendationRequest, v1.AcceptRecommendationResponse]
 }
 
 // GetStats calls taste.v1.TasteService.GetStats.
@@ -134,6 +166,21 @@ func (c *tasteServiceClient) ListRecommendations(ctx context.Context, req *conne
 	return c.listRecommendations.CallUnary(ctx, req)
 }
 
+// SetFeedback calls taste.v1.TasteService.SetFeedback.
+func (c *tasteServiceClient) SetFeedback(ctx context.Context, req *connect.Request[v1.SetFeedbackRequest]) (*connect.Response[v1.SetFeedbackResponse], error) {
+	return c.setFeedback.CallUnary(ctx, req)
+}
+
+// SetSaved calls taste.v1.TasteService.SetSaved.
+func (c *tasteServiceClient) SetSaved(ctx context.Context, req *connect.Request[v1.SetSavedRequest]) (*connect.Response[v1.SetSavedResponse], error) {
+	return c.setSaved.CallUnary(ctx, req)
+}
+
+// AcceptRecommendation calls taste.v1.TasteService.AcceptRecommendation.
+func (c *tasteServiceClient) AcceptRecommendation(ctx context.Context, req *connect.Request[v1.AcceptRecommendationRequest]) (*connect.Response[v1.AcceptRecommendationResponse], error) {
+	return c.acceptRecommendation.CallUnary(ctx, req)
+}
+
 // TasteServiceHandler is an implementation of the taste.v1.TasteService service.
 type TasteServiceHandler interface {
 	GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error)
@@ -141,6 +188,9 @@ type TasteServiceHandler interface {
 	GetProfile(context.Context, *connect.Request[v1.GetProfileRequest]) (*connect.Response[v1.GetProfileResponse], error)
 	RefreshProfile(context.Context, *connect.Request[v1.RefreshProfileRequest]) (*connect.Response[v1.RefreshProfileResponse], error)
 	ListRecommendations(context.Context, *connect.Request[v1.ListRecommendationsRequest]) (*connect.Response[v1.ListRecommendationsResponse], error)
+	SetFeedback(context.Context, *connect.Request[v1.SetFeedbackRequest]) (*connect.Response[v1.SetFeedbackResponse], error)
+	SetSaved(context.Context, *connect.Request[v1.SetSavedRequest]) (*connect.Response[v1.SetSavedResponse], error)
+	AcceptRecommendation(context.Context, *connect.Request[v1.AcceptRecommendationRequest]) (*connect.Response[v1.AcceptRecommendationResponse], error)
 }
 
 // NewTasteServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -180,6 +230,24 @@ func NewTasteServiceHandler(svc TasteServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(tasteServiceMethods.ByName("ListRecommendations")),
 		connect.WithHandlerOptions(opts...),
 	)
+	tasteServiceSetFeedbackHandler := connect.NewUnaryHandler(
+		TasteServiceSetFeedbackProcedure,
+		svc.SetFeedback,
+		connect.WithSchema(tasteServiceMethods.ByName("SetFeedback")),
+		connect.WithHandlerOptions(opts...),
+	)
+	tasteServiceSetSavedHandler := connect.NewUnaryHandler(
+		TasteServiceSetSavedProcedure,
+		svc.SetSaved,
+		connect.WithSchema(tasteServiceMethods.ByName("SetSaved")),
+		connect.WithHandlerOptions(opts...),
+	)
+	tasteServiceAcceptRecommendationHandler := connect.NewUnaryHandler(
+		TasteServiceAcceptRecommendationProcedure,
+		svc.AcceptRecommendation,
+		connect.WithSchema(tasteServiceMethods.ByName("AcceptRecommendation")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/taste.v1.TasteService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TasteServiceGetStatsProcedure:
@@ -192,6 +260,12 @@ func NewTasteServiceHandler(svc TasteServiceHandler, opts ...connect.HandlerOpti
 			tasteServiceRefreshProfileHandler.ServeHTTP(w, r)
 		case TasteServiceListRecommendationsProcedure:
 			tasteServiceListRecommendationsHandler.ServeHTTP(w, r)
+		case TasteServiceSetFeedbackProcedure:
+			tasteServiceSetFeedbackHandler.ServeHTTP(w, r)
+		case TasteServiceSetSavedProcedure:
+			tasteServiceSetSavedHandler.ServeHTTP(w, r)
+		case TasteServiceAcceptRecommendationProcedure:
+			tasteServiceAcceptRecommendationHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -219,4 +293,16 @@ func (UnimplementedTasteServiceHandler) RefreshProfile(context.Context, *connect
 
 func (UnimplementedTasteServiceHandler) ListRecommendations(context.Context, *connect.Request[v1.ListRecommendationsRequest]) (*connect.Response[v1.ListRecommendationsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("taste.v1.TasteService.ListRecommendations is not implemented"))
+}
+
+func (UnimplementedTasteServiceHandler) SetFeedback(context.Context, *connect.Request[v1.SetFeedbackRequest]) (*connect.Response[v1.SetFeedbackResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("taste.v1.TasteService.SetFeedback is not implemented"))
+}
+
+func (UnimplementedTasteServiceHandler) SetSaved(context.Context, *connect.Request[v1.SetSavedRequest]) (*connect.Response[v1.SetSavedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("taste.v1.TasteService.SetSaved is not implemented"))
+}
+
+func (UnimplementedTasteServiceHandler) AcceptRecommendation(context.Context, *connect.Request[v1.AcceptRecommendationRequest]) (*connect.Response[v1.AcceptRecommendationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("taste.v1.TasteService.AcceptRecommendation is not implemented"))
 }

@@ -65,17 +65,63 @@ func (s *scriptLLM) schemas() []string {
 
 // recStore is an in-memory recommendation store.
 type recStore struct {
-	recs     []models.Recommendation
-	replaced bool
-	at       time.Time
-	note     string
-	listErr  error
+	recs       []models.Recommendation
+	touched    []models.Recommendation
+	rates      []models.HitRate
+	replaced   bool
+	at         time.Time
+	note       string
+	listErr    error
+	touchedErr error
+	savedOnly  bool
+	calls      []string
 }
 
 func (r *recStore) List(
-	context.Context, string, string, string,
+	_ context.Context, _, _, _ string, savedOnly bool,
 ) ([]models.Recommendation, error) {
+	r.savedOnly = savedOnly
 	return r.recs, r.listErr
+}
+
+func (r *recStore) Touched(context.Context, string) ([]models.Recommendation, error) {
+	return r.touched, r.touchedErr
+}
+
+func (r *recStore) Get(
+	_ context.Context, _, id string,
+) (*models.Recommendation, error) {
+	//nolint:exhaustruct // the id is enough
+	return &models.Recommendation{ID: id}, r.listErr
+}
+
+func (r *recStore) SetFeedback(
+	_ context.Context, _, id, feedback string, at time.Time,
+) (*models.Recommendation, error) {
+	r.calls = append(r.calls, fmt.Sprintf("feedback %s %s %s", id, feedback,
+		at.Format(time.DateOnly)))
+	//nolint:exhaustruct // what was set
+	return &models.Recommendation{ID: id, Feedback: feedback}, nil
+}
+
+func (r *recStore) SetSaved(
+	_ context.Context, _, id string, saved bool,
+) (*models.Recommendation, error) {
+	r.calls = append(r.calls, fmt.Sprintf("saved %s %t", id, saved))
+	//nolint:exhaustruct // what was set
+	return &models.Recommendation{ID: id, Saved: saved}, nil
+}
+
+func (r *recStore) SetAccepted(
+	_ context.Context, _, id string,
+) (*models.Recommendation, error) {
+	r.calls = append(r.calls, "accepted "+id)
+	//nolint:exhaustruct // what was set
+	return &models.Recommendation{ID: id, Accepted: true}, nil
+}
+
+func (r *recStore) HitRates(context.Context, string) ([]models.HitRate, error) {
+	return r.rates, r.listErr
 }
 
 func (r *recStore) Replace(
@@ -97,11 +143,16 @@ func (r *recStore) Status(context.Context, string) (*time.Time, string, error) {
 // emptyStore holds no picks; listErr fails List.
 func emptyStore(listErr error) *recStore {
 	return &recStore{
-		recs:     nil,
-		replaced: false,
-		at:       time.Time{},
-		note:     "",
-		listErr:  listErr,
+		recs:       nil,
+		touched:    nil,
+		rates:      nil,
+		replaced:   false,
+		at:         time.Time{},
+		note:       "",
+		listErr:    listErr,
+		touchedErr: nil,
+		savedOnly:  false,
+		calls:      nil,
 	}
 }
 
@@ -121,6 +172,7 @@ func match(title string, known bool) *consumption.CatalogMatch {
 	return &consumption.CatalogMatch{
 		Ref: "ref:" + title, Title: title, Creator: "", Year: 0,
 		ImageURL: "img/" + title, URL: "url/" + title, Known: known,
+		OnMyServices: false,
 	}
 }
 
@@ -138,6 +190,7 @@ func catalogs(found ...string) Catalogs {
 		}
 		return nil, nil //nolint:nilnil // not found
 	}
+	//nolint:exhaustruct // no backlogs; accept tests set them
 	return Catalogs{
 		Books: func(
 			_ context.Context, _, title, _ string,
@@ -270,7 +323,7 @@ func TestRecommend_EndToEnd(t *testing.T) {
 	assert.Contains(t, judge.Messages[1].Content, "## Profile\nLoves SF\nLikes: l\n")
 
 	profile.Sections.Drifting = nil
-	assert.NotContains(t, generatorInput(nil, profile, nil, clock), "Drifting toward",
+	assert.NotContains(t, generatorInput(nil, profile, nil, nil, clock), "Drifting toward",
 		"an empty section is left out")
 }
 
@@ -350,6 +403,13 @@ func TestRecommend_Failures(t *testing.T) {
 			"Your earlier picks couldn't be read.",
 		},
 		{
+			"touched picks", script(nil), &recStore{
+				recs: nil, touched: nil, rates: nil, replaced: false, at: time.Time{},
+				note: "", listErr: nil, touchedErr: errors.New("db"),
+				savedOnly: false, calls: nil,
+			}, oneBook, "Your earlier picks couldn't be read.",
+		},
+		{
 			"generator", failingAt(nil, "taste_candidates", errors.New("503")),
 			emptyStore(nil), oneBook, "The model service failed.",
 		},
@@ -398,15 +458,16 @@ func TestRecommend_List(t *testing.T) {
 	store.recs = []models.Recommendation{{Title: "X"}}
 	store.at, store.note = clock, "n"
 	recs, at, note, err := recService(script(nil), catalogs(), store, oneBook, nil).
-		List(context.Background(), "u", "", "")
+		List(context.Background(), "u", "", "", true)
 	require.NoError(t, err)
+	assert.True(t, store.savedOnly)
 	assert.Len(t, recs, 1)
 	assert.Equal(t, clock, *at)
 	assert.Equal(t, "n", note)
 
 	store.listErr = errors.New("db")
 	_, _, _, err = recService(script(nil), catalogs(), store, oneBook, nil).
-		List(context.Background(), "u", "", "")
+		List(context.Background(), "u", "", "", false)
 	assert.Error(t, err)
 }
 
@@ -453,7 +514,10 @@ func TestRecommend_AllLookupsFailed(t *testing.T) {
 func TestRecommend_NoCatalogsNoCall(t *testing.T) {
 	llm := script(nil)
 	store := emptyStore(nil)
-	none := Catalogs{Books: nil, Movies: nil, Games: nil, Podcasts: nil, Feeds: nil}
+	none := Catalogs{
+		Books: nil, Movies: nil, Games: nil, Podcasts: nil, Feeds: nil,
+		WantBook: nil, WantTitle: nil,
+	}
 	require.NoError(t, recService(llm, none, store, oneBook, nil).
 		Generate(context.Background(), "u", all))
 	assert.Empty(t, llm.requests)
@@ -488,4 +552,197 @@ func TestSourcesFor(t *testing.T) {
 	assert.Equal(t, "https://x.example/children-of-time-review", got[0].URL)
 	assert.Equal(t, "https://y.example/", got[1].URL)
 	assert.Empty(t, sourcesFor("  ", sources))
+}
+
+// touchedPick is a pick the user acted on.
+func touchedPick(
+	domain, title, ref, feedback string,
+	saved bool,
+) models.Recommendation {
+	//nolint:exhaustruct // what verification and the prompt read
+	return models.Recommendation{
+		ID: title, Domain: domain, Track: "broaden", Title: title, CatalogRef: ref,
+		Feedback: feedback, Saved: saved,
+	}
+}
+
+func TestRecommend_TouchedPicksShapeTheNextRun(t *testing.T) {
+	llm := script(map[string]string{
+		"taste_candidates": picksJSON(
+			pick("books", "more", "B1"),
+			pick("books", "more", "B2"),        // same ref as a known pick
+			pick("books", "more", "Saved One"), // same title as a saved pick
+			pick("series", "more", "Old Hit"),  // a hit, but in another app
+		),
+		"taste_scores": `{"scores": [{"id": 0, "score": 50}, {"id": 1, "score": 60}]}`,
+	})
+	store := emptyStore(nil)
+	store.touched = []models.Recommendation{
+		touchedPick("games", "Hidden Hit", "ref:g", models.FeedbackHit, false),
+		touchedPick("books", "Old Hit", "ref:x", models.FeedbackHit, false),
+		touchedPick("books", "Already", "ref:B2", models.FeedbackKnown, false),
+		touchedPick("books", "Saved One", "", models.FeedbackNone, true),
+	}
+	//nolint:exhaustruct // only what the prompt reads
+	store.recs = []models.Recommendation{
+		{ID: "Old Hit", Title: "Old Hit", Domain: "books"},
+	}
+	s := recService(llm, catalogs("B1", "B2", "Saved One", "series:Old Hit"),
+		store, oneBook, nil)
+	noGames := func(app string) bool { return app != "games" }
+	require.NoError(t, s.Generate(context.Background(), "u", noGames))
+
+	titles := make([]string, len(store.recs))
+	for i, r := range store.recs {
+		titles[i] = r.Title
+	}
+	assert.Equal(t, []string{"series:Old Hit", "B1"}, titles)
+	in := llm.requests[0].Messages[1].Content
+	assert.Contains(t, in, "## Already suggested\n- Old Hit (books)\n"+
+		"- Already (books)\n- Saved One (books)\n", "each pick once")
+	assert.Contains(t, in, "## Feedback on earlier picks\n"+
+		"- Old Hit (books, broaden): hit, loved it\n"+
+		"- Already (books, broaden): already knew it\n")
+	assert.NotContains(t, in, "Saved One (books, broaden)", "saving isn't feedback")
+	assert.NotContains(t, in, "Hidden Hit", "only apps the user can open")
+}
+
+func TestGeneratorInput_CapsFeedback(t *testing.T) {
+	touched := make([]models.Recommendation, maxFeedback+1)
+	for i := range touched {
+		title := fmt.Sprintf("T%d", i)
+		touched[i] = touchedPick("games", title, "", models.FeedbackMiss, false)
+	}
+	in := generatorInput(nil, nil, nil, touched, clock)
+	assert.Contains(t, in, fmt.Sprintf("- T%d (games, broaden): miss", maxFeedback-1))
+	assert.NotContains(t, in, fmt.Sprintf("T%d ", maxFeedback))
+}
+
+func TestMergePicks_CapsAndDeduplicates(t *testing.T) {
+	//nolint:exhaustruct // ids are enough
+	previous := []models.Recommendation{{ID: "a"}, {ID: "b"}}
+	//nolint:exhaustruct // ids are enough
+	touched := []models.Recommendation{{ID: "b"}, {ID: "c"}}
+	ids := func(recs []models.Recommendation) []string {
+		out := make([]string, len(recs))
+		for i, r := range recs {
+			out[i] = r.ID
+		}
+		return out
+	}
+	assert.Equal(t, []string{"a", "b", "c"}, ids(mergePicks(previous, touched)))
+
+	many := make([]models.Recommendation, maxAlreadySuggested+5)
+	for i := range many {
+		many[i].ID = fmt.Sprint(i)
+	}
+	assert.Len(t, mergePicks(many, nil), maxAlreadySuggested)
+}
+
+func TestRecommend_BoostsPicksOnMyServices(t *testing.T) {
+	llm := script(map[string]string{
+		"taste_candidates": picksJSON(
+			pick("movies", "more", "Near"), pick("movies", "more", "Far"),
+			pick("movies", "more", "Top"),
+		),
+		"taste_scores": `{"scores": [{"id": 0, "score": 50}, {"id": 1, "score": 55},
+			{"id": 2, "score": 95}]}`,
+	})
+	cats := catalogs()
+	cats.Movies = func(
+		_ context.Context, _, _, title string, _ int,
+	) (*consumption.CatalogMatch, error) {
+		m := match(title, false)
+		m.OnMyServices = title != "Far"
+		return m, nil
+	}
+	store := emptyStore(nil)
+	require.NoError(t, recService(llm, cats, store, oneBook, nil).
+		Generate(context.Background(), "u", all))
+	got := make([]string, len(store.recs))
+	for i, r := range store.recs {
+		got[i] = fmt.Sprintf("%s/%d/%t", r.Title, r.Score, r.OnMyServices)
+	}
+	assert.Equal(t, []string{"Top/100/true", "Near/60/true", "Far/55/false"}, got)
+}
+
+func TestRecommend_Accept(t *testing.T) {
+	var wanted []string
+	want := func(name string, err error) Wanter {
+		return func(_ context.Context, userID, ref string) error {
+			wanted = append(wanted, name+" "+userID+" "+ref)
+			return err
+		}
+	}
+	cats := catalogs()
+	cats.WantBook = want("book", nil)
+	cats.WantTitle = want("title", nil)
+	store := emptyStore(nil)
+	s := recService(script(nil), cats, store, oneBook, nil)
+	//nolint:exhaustruct // what Accept reads
+	accept := func(domain, ref string) *models.Recommendation {
+		rec, err := s.Accept(context.Background(), "u",
+			models.Recommendation{ID: domain + ref, Domain: domain, CatalogRef: ref})
+		require.NoError(t, err)
+		return rec
+	}
+
+	assert.True(t, accept("books", "hardcover:978").Accepted)
+	assert.True(t, accept("movies", "movie:1").Accepted)
+	assert.True(t, accept("series", "series:2").Accepted)
+	assert.True(t, accept("games", "620").Saved, "no games backlog: saved")
+	assert.True(t, accept("books", "").Saved, "no ref: saved")
+	assert.Equal(t, []string{
+		"book u hardcover:978", "title u movie:1", "title u series:2",
+	}, wanted)
+	assert.Equal(t, []string{
+		"accepted bookshardcover:978", "accepted moviesmovie:1",
+		"accepted seriesseries:2", "saved games620 true", "saved books true",
+	}, store.calls)
+
+	cats.WantBook = want("book", errors.New("hardcover down"))
+	s = recService(script(nil), cats, emptyStore(nil), oneBook, nil)
+	//nolint:exhaustruct // what Accept reads
+	_, err := s.Accept(context.Background(), "u",
+		models.Recommendation{ID: "x", Domain: "books", CatalogRef: "hardcover:1"})
+	assert.ErrorContains(t, err, "hardcover down")
+}
+
+func TestRecommend_FeedbackSavedGet(t *testing.T) {
+	store := emptyStore(nil)
+	s := recService(script(nil), catalogs(), store, oneBook, nil)
+	ctx := context.Background()
+
+	rec, err := s.Get(ctx, "u", "id1")
+	require.NoError(t, err)
+	assert.Equal(t, "id1", rec.ID)
+	rec, err = s.SetFeedback(ctx, "u", "id1", models.FeedbackHit)
+	require.NoError(t, err)
+	assert.Equal(t, models.FeedbackHit, rec.Feedback)
+	rec, err = s.SetSaved(ctx, "u", "id1", true)
+	require.NoError(t, err)
+	assert.True(t, rec.Saved)
+	assert.Equal(t, []string{"feedback id1 hit 2026-10-12", "saved id1 true"}, store.calls)
+}
+
+func TestRecommend_HitRatesInDisplayOrder(t *testing.T) {
+	store := emptyStore(nil)
+	store.rates = []models.HitRate{
+		{Domain: "series", Track: "broaden", Hits: 1, Misses: 0},
+		{Domain: "books", Track: "broaden", Hits: 2, Misses: 1},
+		{Domain: "books", Track: "more", Hits: 3, Misses: 0},
+	}
+	rates, err := recService(script(nil), catalogs(), store, oneBook, nil).
+		HitRates(context.Background(), "u")
+	require.NoError(t, err)
+	got := make([]string, len(rates))
+	for i, r := range rates {
+		got[i] = r.Domain + "/" + r.Track
+	}
+	assert.Equal(t, []string{"books/more", "books/broaden", "series/broaden"}, got)
+
+	store.listErr = errors.New("db")
+	_, err = recService(script(nil), catalogs(), store, oneBook, nil).
+		HitRates(context.Background(), "u")
+	assert.Error(t, err)
 }

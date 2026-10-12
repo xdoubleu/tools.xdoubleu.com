@@ -1,5 +1,5 @@
 import useSWR, { useSWRConfig } from 'swr'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
 import { TasteService } from '@/lib/gen/taste/v1/taste_pb'
@@ -10,6 +10,7 @@ import type {
   ListRecommendationsResponse
 } from '@/lib/gen/taste/v1/taste_pb'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
+import { SAVED_VIEW } from '@/lib/taste/format'
 
 export function useTasteStats() {
   const client = createServiceClient(TasteService)
@@ -79,11 +80,32 @@ export function useRevalidatePicksWhenDone(pending: boolean) {
   }, [pending, mutate])
 }
 
-/** Picks for a domain and track; '' is every domain or both tracks. */
-export function useTasteRecommendations(domain: string, track: string) {
+/**
+ * Picks for a domain and track, or every saved one for SAVED_VIEW; '' is
+ * every domain or both tracks.
+ */
+export function useTasteRecommendations(domain: string, view: string) {
   const client = createServiceClient(TasteService)
+  const savedOnly = view === SAVED_VIEW
   return useSWR<ListRecommendationsResponse, Error>(
-    swrKeys.tasteRecommendations(domain, track),
-    () => client.listRecommendations({ domain, track })
+    swrKeys.tasteRecommendations(domain, view),
+    () => client.listRecommendations({ domain, track: savedOnly ? '' : view, savedOnly })
   )
+}
+
+/** Feedback, save and accept on a pick; each re-reads the picks and stats. */
+export function usePickActions() {
+  const client = createServiceClient(TasteService)
+  const { mutate } = useSWRConfig()
+  return useMemo(() => {
+    const after = async <T>(call: Promise<T>) => {
+      await call
+      await Promise.all([mutate(isRecommendationsKey), mutate(swrKeys.tasteStats)])
+    }
+    return {
+      setFeedback: (id: string, feedback: string) => after(client.setFeedback({ id, feedback })),
+      setSaved: (id: string, saved: boolean) => after(client.setSaved({ id, saved })),
+      accept: (id: string) => after(client.acceptRecommendation({ id }))
+    }
+  }, [client, mutate])
 }

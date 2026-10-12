@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file taste/v1/taste.proto.
  */
 export const file_taste_v1_taste: GenFile = /*@__PURE__*/
-  fileDesc("ChR0YXN0ZS92MS90YXN0ZS5wcm90bxIIdGFzdGUudjEiggEKBUV2ZW50Eg4KBmRvbWFpbhgBIAEoCRIPCgdpdGVtX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2NyZWF0b3IYBCABKAkSDAoEdGFncxgFIAMoCRIKCgJhdBgGIAEoCRIOCgZzaWduYWwYByABKAUSDgoGcmVhc29uGAggASgJImQKC0RvbWFpblN0YXRzEg4KBmRvbWFpbhgBIAEoCRIQCghjb25zdW1lZBgCIAEoBRIQCghwb3NpdGl2ZRgDIAEoBRIQCghuZWdhdGl2ZRgEIAEoBRIPCgdsYXN0X2F0GAUgASgJIiwKC0RvbWFpbkNvdW50Eg4KBmRvbWFpbhgBIAEoCRINCgVjb3VudBgCIAEoBSJDCgtNb250aENvdW50cxINCgVtb250aBgBIAEoCRIlCgZjb3VudHMYAiADKAsyFS50YXN0ZS52MS5Eb21haW5Db3VudCI9CgpSYW5rZWROYW1lEgwKBG5hbWUYASABKAkSEAoIcG9zaXRpdmUYAiABKAUSDwoHZG9tYWlucxgDIAMoCSIRCg9HZXRTdGF0c1JlcXVlc3QitQEKEEdldFN0YXRzUmVzcG9uc2USJgoHZG9tYWlucxgBIAMoCzIVLnRhc3RlLnYxLkRvbWFpblN0YXRzEiUKBm1vbnRocxgCIAMoCzIVLnRhc3RlLnYxLk1vbnRoQ291bnRzEiYKCHRvcF90YWdzGAMgAygLMhQudGFzdGUudjEuUmFua2VkTmFtZRIqCgx0b3BfY3JlYXRvcnMYBCADKAsyFC50YXN0ZS52MS5SYW5rZWROYW1lIkIKEUxpc3RFdmVudHNSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgVsaW1pdBgCIAEoBRIOCgZvZmZzZXQYAyABKAUiRwoSTGlzdEV2ZW50c1Jlc3BvbnNlEh8KBmV2ZW50cxgBIAMoCzIPLnRhc3RlLnYxLkV2ZW50EhAKCGhhc19tb3JlGAIgASgIImAKD1Byb2ZpbGVTZWN0aW9ucxIPCgdzdW1tYXJ5GAEgASgJEgwKBGtub3cYAiADKAkSDAoEbGlrZRgDIAMoCRIQCghkcmlmdGluZxgEIAMoCRIOCgZib3VuY2UYBSADKAkiEwoRR2V0UHJvZmlsZVJlcXVlc3QiuAEKEkdldFByb2ZpbGVSZXNwb25zZRISCgpjb25maWd1cmVkGAEgASgIEisKCHNlY3Rpb25zGAIgASgLMhkudGFzdGUudjEuUHJvZmlsZVNlY3Rpb25zEg0KBW1vZGVsGAMgASgJEhQKDGdlbmVyYXRlZF9hdBgEIAEoCRIPCgdwZW5kaW5nGAUgASgIEhIKCmxhc3RfZXJyb3IYBiABKAkSFwoPbmV4dF9yZWZyZXNoX2F0GAcgASgJIhcKFVJlZnJlc2hQcm9maWxlUmVxdWVzdCIYChZSZWZyZXNoUHJvZmlsZVJlc3BvbnNlIiQKBlNvdXJjZRILCgN1cmwYASABKAkSDQoFdGl0bGUYAiABKAkiyAEKDlJlY29tbWVuZGF0aW9uEgoKAmlkGAEgASgJEg4KBmRvbWFpbhgCIAEoCRINCgV0cmFjaxgDIAEoCRINCgV0aXRsZRgEIAEoCRIPCgdjcmVhdG9yGAUgASgJEgwKBHllYXIYBiABKAUSCwoDdXJsGAcgASgJEhEKCWltYWdlX3VybBgIIAEoCRILCgN3aHkYCSABKAkSIQoHc291cmNlcxgKIAMoCzIQLnRhc3RlLnYxLlNvdXJjZRINCgVzY29yZRgLIAEoBSI7ChpMaXN0UmVjb21tZW5kYXRpb25zUmVxdWVzdBIOCgZkb21haW4YASABKAkSDQoFdHJhY2sYAiABKAkiegobTGlzdFJlY29tbWVuZGF0aW9uc1Jlc3BvbnNlEjEKD3JlY29tbWVuZGF0aW9ucxgBIAMoCzIYLnRhc3RlLnYxLlJlY29tbWVuZGF0aW9uEhQKDGdlbmVyYXRlZF9hdBgCIAEoCRISCgpsYXN0X2Vycm9yGAMgASgJMpwDCgxUYXN0ZVNlcnZpY2USQQoIR2V0U3RhdHMSGS50YXN0ZS52MS5HZXRTdGF0c1JlcXVlc3QaGi50YXN0ZS52MS5HZXRTdGF0c1Jlc3BvbnNlEkcKCkxpc3RFdmVudHMSGy50YXN0ZS52MS5MaXN0RXZlbnRzUmVxdWVzdBocLnRhc3RlLnYxLkxpc3RFdmVudHNSZXNwb25zZRJHCgpHZXRQcm9maWxlEhsudGFzdGUudjEuR2V0UHJvZmlsZVJlcXVlc3QaHC50YXN0ZS52MS5HZXRQcm9maWxlUmVzcG9uc2USUwoOUmVmcmVzaFByb2ZpbGUSHy50YXN0ZS52MS5SZWZyZXNoUHJvZmlsZVJlcXVlc3QaIC50YXN0ZS52MS5SZWZyZXNoUHJvZmlsZVJlc3BvbnNlEmIKE0xpc3RSZWNvbW1lbmRhdGlvbnMSJC50YXN0ZS52MS5MaXN0UmVjb21tZW5kYXRpb25zUmVxdWVzdBolLnRhc3RlLnYxLkxpc3RSZWNvbW1lbmRhdGlvbnNSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL3Rhc3RlL3YxO3Rhc3RldjFiBnByb3RvMw");
+  fileDesc("ChR0YXN0ZS92MS90YXN0ZS5wcm90bxIIdGFzdGUudjEiggEKBUV2ZW50Eg4KBmRvbWFpbhgBIAEoCRIPCgdpdGVtX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2NyZWF0b3IYBCABKAkSDAoEdGFncxgFIAMoCRIKCgJhdBgGIAEoCRIOCgZzaWduYWwYByABKAUSDgoGcmVhc29uGAggASgJImQKC0RvbWFpblN0YXRzEg4KBmRvbWFpbhgBIAEoCRIQCghjb25zdW1lZBgCIAEoBRIQCghwb3NpdGl2ZRgDIAEoBRIQCghuZWdhdGl2ZRgEIAEoBRIPCgdsYXN0X2F0GAUgASgJIiwKC0RvbWFpbkNvdW50Eg4KBmRvbWFpbhgBIAEoCRINCgVjb3VudBgCIAEoBSJDCgtNb250aENvdW50cxINCgVtb250aBgBIAEoCRIlCgZjb3VudHMYAiADKAsyFS50YXN0ZS52MS5Eb21haW5Db3VudCI9CgpSYW5rZWROYW1lEgwKBG5hbWUYASABKAkSEAoIcG9zaXRpdmUYAiABKAUSDwoHZG9tYWlucxgDIAMoCSIRCg9HZXRTdGF0c1JlcXVlc3Qi2wEKEEdldFN0YXRzUmVzcG9uc2USJgoHZG9tYWlucxgBIAMoCzIVLnRhc3RlLnYxLkRvbWFpblN0YXRzEiUKBm1vbnRocxgCIAMoCzIVLnRhc3RlLnYxLk1vbnRoQ291bnRzEiYKCHRvcF90YWdzGAMgAygLMhQudGFzdGUudjEuUmFua2VkTmFtZRIqCgx0b3BfY3JlYXRvcnMYBCADKAsyFC50YXN0ZS52MS5SYW5rZWROYW1lEiQKCWhpdF9yYXRlcxgFIAMoCzIRLnRhc3RlLnYxLkhpdFJhdGUiRgoHSGl0UmF0ZRIOCgZkb21haW4YASABKAkSDQoFdHJhY2sYAiABKAkSDAoEaGl0cxgDIAEoBRIOCgZtaXNzZXMYBCABKAUiQgoRTGlzdEV2ZW50c1JlcXVlc3QSDgoGZG9tYWluGAEgASgJEg0KBWxpbWl0GAIgASgFEg4KBm9mZnNldBgDIAEoBSJHChJMaXN0RXZlbnRzUmVzcG9uc2USHwoGZXZlbnRzGAEgAygLMg8udGFzdGUudjEuRXZlbnQSEAoIaGFzX21vcmUYAiABKAgiYAoPUHJvZmlsZVNlY3Rpb25zEg8KB3N1bW1hcnkYASABKAkSDAoEa25vdxgCIAMoCRIMCgRsaWtlGAMgAygJEhAKCGRyaWZ0aW5nGAQgAygJEg4KBmJvdW5jZRgFIAMoCSITChFHZXRQcm9maWxlUmVxdWVzdCK4AQoSR2V0UHJvZmlsZVJlc3BvbnNlEhIKCmNvbmZpZ3VyZWQYASABKAgSKwoIc2VjdGlvbnMYAiABKAsyGS50YXN0ZS52MS5Qcm9maWxlU2VjdGlvbnMSDQoFbW9kZWwYAyABKAkSFAoMZ2VuZXJhdGVkX2F0GAQgASgJEg8KB3BlbmRpbmcYBSABKAgSEgoKbGFzdF9lcnJvchgGIAEoCRIXCg9uZXh0X3JlZnJlc2hfYXQYByABKAkiFwoVUmVmcmVzaFByb2ZpbGVSZXF1ZXN0IhgKFlJlZnJlc2hQcm9maWxlUmVzcG9uc2UiJAoGU291cmNlEgsKA3VybBgBIAEoCRINCgV0aXRsZRgCIAEoCSK9AgoOUmVjb21tZW5kYXRpb24SCgoCaWQYASABKAkSDgoGZG9tYWluGAIgASgJEg0KBXRyYWNrGAMgASgJEg0KBXRpdGxlGAQgASgJEg8KB2NyZWF0b3IYBSABKAkSDAoEeWVhchgGIAEoBRILCgN1cmwYByABKAkSEQoJaW1hZ2VfdXJsGAggASgJEgsKA3doeRgJIAEoCRIhCgdzb3VyY2VzGAogAygLMhAudGFzdGUudjEuU291cmNlEg0KBXNjb3JlGAsgASgFEhAKCGZlZWRiYWNrGAwgASgJEg0KBXNhdmVkGA0gASgIEhAKCGFjY2VwdGVkGA4gASgIEhYKDm9uX215X3NlcnZpY2VzGA8gASgIEhQKDGdlbmVyYXRlZF9hdBgQIAEoCRISCgpjYW5fYWNjZXB0GBEgASgIIk8KGkxpc3RSZWNvbW1lbmRhdGlvbnNSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgV0cmFjaxgCIAEoCRISCgpzYXZlZF9vbmx5GAMgASgIInoKG0xpc3RSZWNvbW1lbmRhdGlvbnNSZXNwb25zZRIxCg9yZWNvbW1lbmRhdGlvbnMYASADKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbhIUCgxnZW5lcmF0ZWRfYXQYAiABKAkSEgoKbGFzdF9lcnJvchgDIAEoCSIyChJTZXRGZWVkYmFja1JlcXVlc3QSCgoCaWQYASABKAkSEAoIZmVlZGJhY2sYAiABKAkiRwoTU2V0RmVlZGJhY2tSZXNwb25zZRIwCg5yZWNvbW1lbmRhdGlvbhgBIAEoCzIYLnRhc3RlLnYxLlJlY29tbWVuZGF0aW9uIiwKD1NldFNhdmVkUmVxdWVzdBIKCgJpZBgBIAEoCRINCgVzYXZlZBgCIAEoCCJEChBTZXRTYXZlZFJlc3BvbnNlEjAKDnJlY29tbWVuZGF0aW9uGAEgASgLMhgudGFzdGUudjEuUmVjb21tZW5kYXRpb24iKQobQWNjZXB0UmVjb21tZW5kYXRpb25SZXF1ZXN0EgoKAmlkGAEgASgJIlAKHEFjY2VwdFJlY29tbWVuZGF0aW9uUmVzcG9uc2USMAoOcmVjb21tZW5kYXRpb24YASABKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbjKSBQoMVGFzdGVTZXJ2aWNlEkEKCEdldFN0YXRzEhkudGFzdGUudjEuR2V0U3RhdHNSZXF1ZXN0GhoudGFzdGUudjEuR2V0U3RhdHNSZXNwb25zZRJHCgpMaXN0RXZlbnRzEhsudGFzdGUudjEuTGlzdEV2ZW50c1JlcXVlc3QaHC50YXN0ZS52MS5MaXN0RXZlbnRzUmVzcG9uc2USRwoKR2V0UHJvZmlsZRIbLnRhc3RlLnYxLkdldFByb2ZpbGVSZXF1ZXN0GhwudGFzdGUudjEuR2V0UHJvZmlsZVJlc3BvbnNlElMKDlJlZnJlc2hQcm9maWxlEh8udGFzdGUudjEuUmVmcmVzaFByb2ZpbGVSZXF1ZXN0GiAudGFzdGUudjEuUmVmcmVzaFByb2ZpbGVSZXNwb25zZRJiChNMaXN0UmVjb21tZW5kYXRpb25zEiQudGFzdGUudjEuTGlzdFJlY29tbWVuZGF0aW9uc1JlcXVlc3QaJS50YXN0ZS52MS5MaXN0UmVjb21tZW5kYXRpb25zUmVzcG9uc2USSgoLU2V0RmVlZGJhY2sSHC50YXN0ZS52MS5TZXRGZWVkYmFja1JlcXVlc3QaHS50YXN0ZS52MS5TZXRGZWVkYmFja1Jlc3BvbnNlEkEKCFNldFNhdmVkEhkudGFzdGUudjEuU2V0U2F2ZWRSZXF1ZXN0GhoudGFzdGUudjEuU2V0U2F2ZWRSZXNwb25zZRJlChRBY2NlcHRSZWNvbW1lbmRhdGlvbhIlLnRhc3RlLnYxLkFjY2VwdFJlY29tbWVuZGF0aW9uUmVxdWVzdBomLnRhc3RlLnYxLkFjY2VwdFJlY29tbWVuZGF0aW9uUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi90YXN0ZS92MTt0YXN0ZXYxYgZwcm90bzM");
 
 /**
  * One consumed item. Signal is engagement normalized within its domain, from
@@ -235,6 +235,13 @@ export type GetStatsResponse = Message<"taste.v1.GetStatsResponse"> & {
    * @generated from field: repeated taste.v1.RankedName top_creators = 4;
    */
   topCreators: RankedName[];
+
+  /**
+   * Per domain and track that has any hit or miss, in display order.
+   *
+   * @generated from field: repeated taste.v1.HitRate hit_rates = 5;
+   */
+  hitRates: HitRate[];
 };
 
 /**
@@ -243,6 +250,40 @@ export type GetStatsResponse = Message<"taste.v1.GetStatsResponse"> & {
  */
 export const GetStatsResponseSchema: GenMessage<GetStatsResponse> = /*@__PURE__*/
   messageDesc(file_taste_v1_taste, 6);
+
+/**
+ * How a domain and track's picks landed: hits / (hits + misses).
+ *
+ * @generated from message taste.v1.HitRate
+ */
+export type HitRate = Message<"taste.v1.HitRate"> & {
+  /**
+   * @generated from field: string domain = 1;
+   */
+  domain: string;
+
+  /**
+   * @generated from field: string track = 2;
+   */
+  track: string;
+
+  /**
+   * @generated from field: int32 hits = 3;
+   */
+  hits: number;
+
+  /**
+   * @generated from field: int32 misses = 4;
+   */
+  misses: number;
+};
+
+/**
+ * Describes the message taste.v1.HitRate.
+ * Use `create(HitRateSchema)` to create a new message.
+ */
+export const HitRateSchema: GenMessage<HitRate> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 7);
 
 /**
  * @generated from message taste.v1.ListEventsRequest
@@ -271,7 +312,7 @@ export type ListEventsRequest = Message<"taste.v1.ListEventsRequest"> & {
  * Use `create(ListEventsRequestSchema)` to create a new message.
  */
 export const ListEventsRequestSchema: GenMessage<ListEventsRequest> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 7);
+  messageDesc(file_taste_v1_taste, 8);
 
 /**
  * @generated from message taste.v1.ListEventsResponse
@@ -295,7 +336,7 @@ export type ListEventsResponse = Message<"taste.v1.ListEventsResponse"> & {
  * Use `create(ListEventsResponseSchema)` to create a new message.
  */
 export const ListEventsResponseSchema: GenMessage<ListEventsResponse> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 8);
+  messageDesc(file_taste_v1_taste, 9);
 
 /**
  * The LLM-written profile; lists hold short bullets.
@@ -342,7 +383,7 @@ export type ProfileSections = Message<"taste.v1.ProfileSections"> & {
  * Use `create(ProfileSectionsSchema)` to create a new message.
  */
 export const ProfileSectionsSchema: GenMessage<ProfileSections> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 9);
+  messageDesc(file_taste_v1_taste, 10);
 
 /**
  * @generated from message taste.v1.GetProfileRequest
@@ -355,7 +396,7 @@ export type GetProfileRequest = Message<"taste.v1.GetProfileRequest"> & {
  * Use `create(GetProfileRequestSchema)` to create a new message.
  */
 export const GetProfileRequestSchema: GenMessage<GetProfileRequest> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 10);
+  messageDesc(file_taste_v1_taste, 11);
 
 /**
  * @generated from message taste.v1.GetProfileResponse
@@ -416,7 +457,7 @@ export type GetProfileResponse = Message<"taste.v1.GetProfileResponse"> & {
  * Use `create(GetProfileResponseSchema)` to create a new message.
  */
 export const GetProfileResponseSchema: GenMessage<GetProfileResponse> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 11);
+  messageDesc(file_taste_v1_taste, 12);
 
 /**
  * Queues regenerating the profile and then the picks; RESOURCE_EXHAUSTED within 6 hours of the last
@@ -432,7 +473,7 @@ export type RefreshProfileRequest = Message<"taste.v1.RefreshProfileRequest"> & 
  * Use `create(RefreshProfileRequestSchema)` to create a new message.
  */
 export const RefreshProfileRequestSchema: GenMessage<RefreshProfileRequest> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 12);
+  messageDesc(file_taste_v1_taste, 13);
 
 /**
  * @generated from message taste.v1.RefreshProfileResponse
@@ -445,7 +486,7 @@ export type RefreshProfileResponse = Message<"taste.v1.RefreshProfileResponse"> 
  * Use `create(RefreshProfileResponseSchema)` to create a new message.
  */
 export const RefreshProfileResponseSchema: GenMessage<RefreshProfileResponse> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 13);
+  messageDesc(file_taste_v1_taste, 14);
 
 /**
  * A web page the generator cited.
@@ -469,7 +510,7 @@ export type Source = Message<"taste.v1.Source"> & {
  * Use `create(SourceSchema)` to create a new message.
  */
 export const SourceSchema: GenMessage<Source> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 14);
+  messageDesc(file_taste_v1_taste, 15);
 
 /**
  * A verified, judged pick.
@@ -540,11 +581,52 @@ export type Recommendation = Message<"taste.v1.Recommendation"> & {
   sources: Source[];
 
   /**
-   * The judge's 0-100 score.
+   * The judge's 0-100 score, plus the services bonus.
    *
    * @generated from field: int32 score = 11;
    */
   score: number;
+
+  /**
+   * hit, miss, not_interested, known (already knew it), or empty.
+   *
+   * @generated from field: string feedback = 12;
+   */
+  feedback: string;
+
+  /**
+   * @generated from field: bool saved = 13;
+   */
+  saved: boolean;
+
+  /**
+   * Added to the books or movies backlog.
+   *
+   * @generated from field: bool accepted = 14;
+   */
+  accepted: boolean;
+
+  /**
+   * A movie or series streaming on one of the user's services.
+   *
+   * @generated from field: bool on_my_services = 15;
+   */
+  onMyServices: boolean;
+
+  /**
+   * RFC3339 of the run that made it.
+   *
+   * @generated from field: string generated_at = 16;
+   */
+  generatedAt: string;
+
+  /**
+   * AcceptRecommendation adds it to the books or movies backlog; otherwise
+   * it saves it.
+   *
+   * @generated from field: bool can_accept = 17;
+   */
+  canAccept: boolean;
 };
 
 /**
@@ -552,7 +634,7 @@ export type Recommendation = Message<"taste.v1.Recommendation"> & {
  * Use `create(RecommendationSchema)` to create a new message.
  */
 export const RecommendationSchema: GenMessage<Recommendation> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 15);
+  messageDesc(file_taste_v1_taste, 16);
 
 /**
  * @generated from message taste.v1.ListRecommendationsRequest
@@ -571,6 +653,13 @@ export type ListRecommendationsRequest = Message<"taste.v1.ListRecommendationsRe
    * @generated from field: string track = 2;
    */
   track: string;
+
+  /**
+   * Every saved pick, from any run, instead of the latest run's.
+   *
+   * @generated from field: bool saved_only = 3;
+   */
+  savedOnly: boolean;
 };
 
 /**
@@ -578,7 +667,7 @@ export type ListRecommendationsRequest = Message<"taste.v1.ListRecommendationsRe
  * Use `create(ListRecommendationsRequestSchema)` to create a new message.
  */
 export const ListRecommendationsRequestSchema: GenMessage<ListRecommendationsRequest> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 16);
+  messageDesc(file_taste_v1_taste, 17);
 
 /**
  * @generated from message taste.v1.ListRecommendationsResponse
@@ -611,7 +700,124 @@ export type ListRecommendationsResponse = Message<"taste.v1.ListRecommendationsR
  * Use `create(ListRecommendationsResponseSchema)` to create a new message.
  */
 export const ListRecommendationsResponseSchema: GenMessage<ListRecommendationsResponse> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 17);
+  messageDesc(file_taste_v1_taste, 18);
+
+/**
+ * Feedback on a pick; empty clears it.
+ *
+ * @generated from message taste.v1.SetFeedbackRequest
+ */
+export type SetFeedbackRequest = Message<"taste.v1.SetFeedbackRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string feedback = 2;
+   */
+  feedback: string;
+};
+
+/**
+ * Describes the message taste.v1.SetFeedbackRequest.
+ * Use `create(SetFeedbackRequestSchema)` to create a new message.
+ */
+export const SetFeedbackRequestSchema: GenMessage<SetFeedbackRequest> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 19);
+
+/**
+ * @generated from message taste.v1.SetFeedbackResponse
+ */
+export type SetFeedbackResponse = Message<"taste.v1.SetFeedbackResponse"> & {
+  /**
+   * @generated from field: taste.v1.Recommendation recommendation = 1;
+   */
+  recommendation?: Recommendation | undefined;
+};
+
+/**
+ * Describes the message taste.v1.SetFeedbackResponse.
+ * Use `create(SetFeedbackResponseSchema)` to create a new message.
+ */
+export const SetFeedbackResponseSchema: GenMessage<SetFeedbackResponse> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 20);
+
+/**
+ * @generated from message taste.v1.SetSavedRequest
+ */
+export type SetSavedRequest = Message<"taste.v1.SetSavedRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: bool saved = 2;
+   */
+  saved: boolean;
+};
+
+/**
+ * Describes the message taste.v1.SetSavedRequest.
+ * Use `create(SetSavedRequestSchema)` to create a new message.
+ */
+export const SetSavedRequestSchema: GenMessage<SetSavedRequest> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 21);
+
+/**
+ * @generated from message taste.v1.SetSavedResponse
+ */
+export type SetSavedResponse = Message<"taste.v1.SetSavedResponse"> & {
+  /**
+   * @generated from field: taste.v1.Recommendation recommendation = 1;
+   */
+  recommendation?: Recommendation | undefined;
+};
+
+/**
+ * Describes the message taste.v1.SetSavedResponse.
+ * Use `create(SetSavedResponseSchema)` to create a new message.
+ */
+export const SetSavedResponseSchema: GenMessage<SetSavedResponse> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 22);
+
+/**
+ * Adds a book to the to-read shelf or a movie or series to the backlog as
+ * want; any other pick is saved instead.
+ *
+ * @generated from message taste.v1.AcceptRecommendationRequest
+ */
+export type AcceptRecommendationRequest = Message<"taste.v1.AcceptRecommendationRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message taste.v1.AcceptRecommendationRequest.
+ * Use `create(AcceptRecommendationRequestSchema)` to create a new message.
+ */
+export const AcceptRecommendationRequestSchema: GenMessage<AcceptRecommendationRequest> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 23);
+
+/**
+ * @generated from message taste.v1.AcceptRecommendationResponse
+ */
+export type AcceptRecommendationResponse = Message<"taste.v1.AcceptRecommendationResponse"> & {
+  /**
+   * @generated from field: taste.v1.Recommendation recommendation = 1;
+   */
+  recommendation?: Recommendation | undefined;
+};
+
+/**
+ * Describes the message taste.v1.AcceptRecommendationResponse.
+ * Use `create(AcceptRecommendationResponseSchema)` to create a new message.
+ */
+export const AcceptRecommendationResponseSchema: GenMessage<AcceptRecommendationResponse> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 24);
 
 /**
  * The caller's consumption log across every app; per user, never shared.
@@ -658,6 +864,30 @@ export const TasteService: GenService<{
     methodKind: "unary";
     input: typeof ListRecommendationsRequestSchema;
     output: typeof ListRecommendationsResponseSchema;
+  },
+  /**
+   * @generated from rpc taste.v1.TasteService.SetFeedback
+   */
+  setFeedback: {
+    methodKind: "unary";
+    input: typeof SetFeedbackRequestSchema;
+    output: typeof SetFeedbackResponseSchema;
+  },
+  /**
+   * @generated from rpc taste.v1.TasteService.SetSaved
+   */
+  setSaved: {
+    methodKind: "unary";
+    input: typeof SetSavedRequestSchema;
+    output: typeof SetSavedResponseSchema;
+  },
+  /**
+   * @generated from rpc taste.v1.TasteService.AcceptRecommendation
+   */
+  acceptRecommendation: {
+    methodKind: "unary";
+    input: typeof AcceptRecommendationRequestSchema;
+    output: typeof AcceptRecommendationResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_taste_v1_taste, 0);

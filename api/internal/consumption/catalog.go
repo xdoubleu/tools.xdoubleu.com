@@ -17,6 +17,9 @@ type CatalogMatch struct {
 	// Known is set when the item is already in the user's library, backlog,
 	// favourites or feeds.
 	Known bool
+	// OnMyServices is set when a movie or series streams on one of the
+	// user's services.
+	OnMyServices bool
 }
 
 // SameTitle reports whether two titles name the same work, ignoring case,

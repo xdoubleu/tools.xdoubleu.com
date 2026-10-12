@@ -103,6 +103,9 @@ func NewApps(
 			Games:    gamesApp.FindGame,
 			Podcasts: podcastsApp.FindShow,
 			Feeds:    feedsApp.FindSource,
+
+			WantBook:  booksApp.WantBook,
+			WantTitle: moviesApp.WantTitle,
 		},
 		booksApp, feedsApp, gamesApp, moviesApp, podcastsApp,
 	))

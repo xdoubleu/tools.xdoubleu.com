@@ -2,10 +2,13 @@ package books_test
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	iapp "tools.xdoubleu.com/internal/app"
 )
 
 func TestFindBook(t *testing.T) {
@@ -40,4 +43,25 @@ func TestFindBook_LibraryError(t *testing.T) {
 	cancel()
 	_, err := testApp.FindBook(ctx, "books-find-test-user", "Odyssey", "Homer")
 	assert.Error(t, err)
+}
+
+func TestWantBook(t *testing.T) {
+	ctx := context.Background()
+	const uid = "books-want-test-user"
+	_, err := testDB.Exec(ctx, "DELETE FROM books.user_books WHERE user_id = $1", uid)
+	require.NoError(t, err)
+
+	require.NoError(t, testApp.WantBook(ctx, uid, "hardcover:9780140447934"))
+	m, err := testApp.FindBook(ctx, uid, "The Odyssey", "")
+	require.NoError(t, err)
+	require.NotNil(t, m)
+	assert.True(t, m.Known)
+	var status string
+	require.NoError(t, testDB.QueryRow(ctx,
+		"SELECT status FROM books.user_books WHERE user_id = $1", uid).Scan(&status))
+	assert.Equal(t, "to-read", status)
+
+	var httpErr *iapp.HTTPError
+	require.ErrorAs(t, testApp.WantBook(ctx, uid, "nowhere"), &httpErr)
+	assert.Equal(t, http.StatusNotFound, httpErr.Status)
 }

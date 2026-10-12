@@ -30,6 +30,7 @@ import {
   DomainCountSchema,
   DomainStatsSchema,
   GetStatsResponseSchema,
+  HitRateSchema,
   MonthCountsSchema,
   RankedNameSchema
 } from '@/lib/gen/taste/v1/taste_pb'
@@ -115,5 +116,26 @@ describe('TasteStats', () => {
     expect(within(tags).getByText('Movies')).toBeInTheDocument()
     expect(within(tags).getByText('3')).toBeInTheDocument()
     expect(screen.getByText('No liked creators yet.')).toBeInTheDocument()
+    expect(screen.queryByText('Recommendation hit rate')).not.toBeInTheDocument()
+  })
+
+  it('shows the hit rate per domain and track', () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    mockStats({
+      data: create(GetStatsResponseSchema, {
+        ...full,
+        hitRates: [
+          create(HitRateSchema, { domain: 'books', track: 'more', hits: 2, misses: 1 }),
+          create(HitRateSchema, { domain: 'series', track: 'broaden', hits: 0, misses: 2 })
+        ]
+      })
+    })
+    render(<TasteStats />)
+    const list = screen.getByRole('list', { name: 'Hit rate per domain and track' })
+    const [books, series] = within(list).getAllByRole('listitem')
+    expect(books).toHaveTextContent('Books · More of what you like67% (2 of 3)')
+    expect(series).toHaveTextContent('Series · Broaden your horizon0% (0 of 2)')
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
   })
 })

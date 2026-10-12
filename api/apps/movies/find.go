@@ -3,9 +3,13 @@ package movies
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"net/http"
 	"strconv"
+	"strings"
 
 	"tools.xdoubleu.com/apps/movies/internal/models"
+	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/consumption"
 )
 
@@ -14,7 +18,7 @@ const posterBaseURL = "https://image.tmdb.org/t/p/w185"
 // FindTitle looks a recommended movie or series ("movie" or "series") up on
 // TMDB, for the taste app; nil when TMDB has no title of that name. A match
 // of year wins over the first match. Known is set when it is in userID's
-// backlog.
+// backlog, and OnMyServices when it isn't and streams on their services.
 func (a *Movies) FindTitle(
 	ctx context.Context,
 	userID, mediaType, title string,
@@ -37,15 +41,53 @@ func (a *Movies) FindTitle(
 	if t.PosterPath != "" {
 		poster = posterBaseURL + t.PosterPath
 	}
+	known := best.Status != nil
+	onMyServices := !known && a.streamsOnMyServices(ctx, userID, t)
 	return &consumption.CatalogMatch{
-		Ref:      t.MediaType + ":" + strconv.FormatInt(t.TMDBID, 10),
-		Title:    t.Title,
-		Creator:  "",
-		Year:     releaseYear(t),
-		ImageURL: poster,
-		URL:      fmt.Sprintf("https://www.themoviedb.org/%s/%d", path, t.TMDBID),
-		Known:    best.Status != nil,
+		Ref:          titleRef(t.MediaType, t.TMDBID),
+		Title:        t.Title,
+		Creator:      "",
+		Year:         releaseYear(t),
+		ImageURL:     poster,
+		URL:          fmt.Sprintf("https://www.themoviedb.org/%s/%d", path, t.TMDBID),
+		Known:        known,
+		OnMyServices: onMyServices,
 	}, nil
+}
+
+// streamsOnMyServices reports whether t streams on userID's services; a
+// failed lookup reads as not, and is logged.
+func (a *Movies) streamsOnMyServices(
+	ctx context.Context,
+	userID string,
+	t models.Title,
+) bool {
+	on, err := a.services.Movies.StreamsOnMyServices(
+		ctx, userID, models.TitleKey{MediaType: t.MediaType, TMDBID: t.TMDBID},
+	)
+	if err != nil {
+		a.Logger.WarnContext(ctx, "streaming providers lookup failed",
+			slog.Int64("tmdb_id", t.TMDBID), slog.Any("error", err))
+	}
+	return on
+}
+
+// WantTitle adds the title a FindTitle ref names to userID's backlog as want,
+// unless it is already there; for the taste app.
+func (a *Movies) WantTitle(ctx context.Context, userID, ref string) error {
+	mediaType, id, _ := strings.Cut(ref, ":")
+	tmdbID, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return &iapp.HTTPError{Status: http.StatusBadRequest, Message: "invalid title ref"}
+	}
+	return a.services.Movies.Want(
+		ctx, userID, models.TitleKey{MediaType: mediaType, TMDBID: tmdbID},
+	)
+}
+
+// titleRef is a title's catalog ref: its media type and TMDB id.
+func titleRef(mediaType string, tmdbID int64) string {
+	return mediaType + ":" + strconv.FormatInt(tmdbID, 10)
 }
 
 // pickTitle prefers an exact title (or original title) of the media type,

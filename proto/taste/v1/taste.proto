@@ -57,6 +57,16 @@ message GetStatsResponse {
   // Top 15 each.
   repeated RankedName top_tags = 3;
   repeated RankedName top_creators = 4;
+  // Per domain and track that has any hit or miss, in display order.
+  repeated HitRate hit_rates = 5;
+}
+
+// How a domain and track's picks landed: hits / (hits + misses).
+message HitRate {
+  string domain = 1;
+  string track = 2;
+  int32 hits = 3;
+  int32 misses = 4;
 }
 
 message ListEventsRequest {
@@ -131,8 +141,20 @@ message Recommendation {
   string why = 9;
   // Pages the generator cited while proposing this run's picks.
   repeated Source sources = 10;
-  // The judge's 0-100 score.
+  // The judge's 0-100 score, plus the services bonus.
   int32 score = 11;
+  // hit, miss, not_interested, known (already knew it), or empty.
+  string feedback = 12;
+  bool saved = 13;
+  // Added to the books or movies backlog.
+  bool accepted = 14;
+  // A movie or series streaming on one of the user's services.
+  bool on_my_services = 15;
+  // RFC3339 of the run that made it.
+  string generated_at = 16;
+  // AcceptRecommendation adds it to the books or movies backlog; otherwise
+  // it saves it.
+  bool can_accept = 17;
 }
 
 message ListRecommendationsRequest {
@@ -140,6 +162,8 @@ message ListRecommendationsRequest {
   string domain = 1;
   // Empty for both tracks.
   string track = 2;
+  // Every saved pick, from any run, instead of the latest run's.
+  bool saved_only = 3;
 }
 message ListRecommendationsResponse {
   // Best first.
@@ -150,6 +174,32 @@ message ListRecommendationsResponse {
   string last_error = 3;
 }
 
+// Feedback on a pick; empty clears it.
+message SetFeedbackRequest {
+  string id = 1;
+  string feedback = 2;
+}
+message SetFeedbackResponse {
+  Recommendation recommendation = 1;
+}
+
+message SetSavedRequest {
+  string id = 1;
+  bool saved = 2;
+}
+message SetSavedResponse {
+  Recommendation recommendation = 1;
+}
+
+// Adds a book to the to-read shelf or a movie or series to the backlog as
+// want; any other pick is saved instead.
+message AcceptRecommendationRequest {
+  string id = 1;
+}
+message AcceptRecommendationResponse {
+  Recommendation recommendation = 1;
+}
+
 // The caller's consumption log across every app; per user, never shared.
 service TasteService {
   rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
@@ -158,4 +208,8 @@ service TasteService {
   rpc RefreshProfile(RefreshProfileRequest) returns (RefreshProfileResponse);
   rpc ListRecommendations(ListRecommendationsRequest)
     returns (ListRecommendationsResponse);
+  rpc SetFeedback(SetFeedbackRequest) returns (SetFeedbackResponse);
+  rpc SetSaved(SetSavedRequest) returns (SetSavedResponse);
+  rpc AcceptRecommendation(AcceptRecommendationRequest)
+    returns (AcceptRecommendationResponse);
 }

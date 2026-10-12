@@ -33,13 +33,14 @@ func (a *Games) FindGame(
 			return nil, err
 		}
 		return &consumption.CatalogMatch{
-			Ref:      strconv.Itoa(it.ID),
-			Title:    it.Name,
-			Creator:  "",
-			Year:     0,
-			ImageURL: it.ImageURL,
-			URL:      fmt.Sprintf("https://store.steampowered.com/app/%d", it.ID),
-			Known:    known,
+			Ref:          strconv.Itoa(it.ID),
+			Title:        it.Name,
+			Creator:      "",
+			Year:         0,
+			ImageURL:     it.ImageURL,
+			URL:          fmt.Sprintf("https://store.steampowered.com/app/%d", it.ID),
+			Known:        known,
+			OnMyServices: false,
 		}, nil
 	}
 	return nil, nil //nolint:nilnil // no match is not an error

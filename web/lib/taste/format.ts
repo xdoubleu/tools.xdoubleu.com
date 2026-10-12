@@ -54,7 +54,8 @@ export const TRACKS = [
   { value: 'broaden', label: 'Broaden your horizon' }
 ] as const
 
-export type Track = (typeof TRACKS)[number]['value']
+/** The view that lists every saved pick instead of a track's latest. */
+export const SAVED_VIEW = 'saved'
 
 /** The hostname of url without "www.", or url itself when it doesn't parse. */
 export function hostLabel(url: string): string {
@@ -63,4 +64,25 @@ export function hostLabel(url: string): string {
   } catch {
     return url
   }
+}
+
+/** The track's label, or the value itself when unknown. */
+export function trackLabel(value: string): string {
+  return TRACKS.find((t) => t.value === value)?.label ?? value
+}
+
+// Stryker disable StringLiteral: labels are presentation only.
+export const FEEDBACK = [
+  { value: 'hit', label: 'Hit' },
+  { value: 'miss', label: 'Miss' },
+  { value: 'not_interested', label: 'Not interested' },
+  { value: 'known', label: 'Already know it' }
+] as const
+// Stryker restore StringLiteral
+
+/** "67% (2 of 3)" for hits out of hits plus misses. */
+export function hitRateLabel(hits: number, misses: number): string {
+  const total = hits + misses
+  if (total === 0) return 'No hits or misses yet'
+  return `${Math.round((hits / total) * 100)}% (${hits} of ${total})`
 }

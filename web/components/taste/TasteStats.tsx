@@ -11,9 +11,9 @@ import {
   YAxis
 } from 'recharts'
 import { axisTick, tooltipProps } from '@/lib/chartTheme'
-import type { RankedName } from '@/lib/gen/taste/v1/taste_pb'
+import type { HitRate, RankedName } from '@/lib/gen/taste/v1/taste_pb'
 import { useTasteStats } from '@/hooks/useTaste'
-import { DOMAINS, domainLabel, monthRows } from '@/lib/taste/format'
+import { DOMAINS, domainLabel, hitRateLabel, monthRows, trackLabel } from '@/lib/taste/format'
 import { formatDate } from '@/lib/dates'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -56,6 +56,29 @@ function RankedList({
             ))}
           </ol>
         )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function HitRates({ rates }: { rates: HitRate[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Recommendation hit rate</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ul className="space-y-2 text-sm" aria-label="Hit rate per domain and track">
+          {rates.map((r) => (
+            <li key={`${r.domain}:${r.track}`} className="flex items-start justify-between gap-3">
+              <span className="min-w-0 break-words">
+                {domainLabel(r.domain)} · {trackLabel(r.track)}
+              </span>
+              <span className="shrink-0 text-muted">{hitRateLabel(r.hits, r.misses)}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2 text-xs text-muted">Hits out of the picks you marked hit or miss.</p>
       </CardContent>
     </Card>
   )
@@ -124,6 +147,8 @@ export default function TasteStats() {
         <RankedList title="Top tags" names={data.topTags} empty="No liked tags yet." />
         <RankedList title="Top creators" names={data.topCreators} empty="No liked creators yet." />
       </div>
+
+      {data.hitRates.length > 0 && <HitRates rates={data.hitRates} />}
     </div>
   )
 }

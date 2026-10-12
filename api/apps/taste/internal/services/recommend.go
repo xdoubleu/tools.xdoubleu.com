@@ -27,6 +27,10 @@ const (
 	judgeMaxTokens     = 3000
 	searchMaxResults   = 5
 	searchMaxTotal     = 20
+	// servicesBonus is added to the score of a pick streaming on the user's
+	// services.
+	servicesBonus = 10
+	maxScore      = 100
 )
 
 type (
@@ -46,15 +50,23 @@ type (
 	SiteFinder func(
 		ctx context.Context, userID, title, url string,
 	) (*consumption.CatalogMatch, error)
+	// Wanter adds an item, by the catalog ref its finder returned, to userID's
+	// backlog in the owning app.
+	Wanter func(ctx context.Context, userID, ref string) error
 )
 
-// Catalogs look candidates up per domain; a nil finder skips that domain.
+// Catalogs look candidates up per domain, where a nil finder skips that
+// domain, and add accepted picks to a backlog, where a nil Wanter saves them
+// instead.
 type Catalogs struct {
 	Books    CreatorFinder
 	Movies   MediaFinder
 	Games    TitleFinder
 	Podcasts TitleFinder
 	Feeds    SiteFinder
+	WantBook Wanter
+	// WantTitle takes movies and series.
+	WantTitle Wanter
 }
 
 // AppOf is the app a domain's items live in.
@@ -81,7 +93,22 @@ type recommendationStore interface {
 	List(
 		ctx context.Context,
 		userID, domain, track string,
+		savedOnly bool,
 	) ([]models.Recommendation, error)
+	Touched(ctx context.Context, userID string) ([]models.Recommendation, error)
+	Get(ctx context.Context, userID, id string) (*models.Recommendation, error)
+	SetFeedback(
+		ctx context.Context,
+		userID, id, feedback string,
+		at time.Time,
+	) (*models.Recommendation, error)
+	SetSaved(
+		ctx context.Context,
+		userID, id string,
+		saved bool,
+	) (*models.Recommendation, error)
+	SetAccepted(ctx context.Context, userID, id string) (*models.Recommendation, error)
+	HitRates(ctx context.Context, userID string) ([]models.HitRate, error)
 	Replace(
 		ctx context.Context,
 		userID string,
@@ -121,18 +148,101 @@ func NewRecommendService(
 	}
 }
 
-// List returns userID's picks with when they were made and the last run's
-// error note.
+// List returns userID's latest picks, or every saved one, with when the
+// latest were made and the last run's error note.
 func (s *RecommendService) List(
 	ctx context.Context,
 	userID, domain, track string,
+	savedOnly bool,
 ) ([]models.Recommendation, *time.Time, string, error) {
-	recs, err := s.recs.List(ctx, userID, domain, track)
+	recs, err := s.recs.List(ctx, userID, domain, track, savedOnly)
 	if err != nil {
 		return nil, nil, "", err
 	}
 	at, note, err := s.recs.Status(ctx, userID)
 	return recs, at, note, err
+}
+
+// Get returns userID's pick id.
+func (s *RecommendService) Get(
+	ctx context.Context,
+	userID, id string,
+) (*models.Recommendation, error) {
+	return s.recs.Get(ctx, userID, id)
+}
+
+// SetFeedback records feedback on userID's pick id.
+func (s *RecommendService) SetFeedback(
+	ctx context.Context,
+	userID, id, feedback string,
+) (*models.Recommendation, error) {
+	return s.recs.SetFeedback(ctx, userID, id, feedback, s.now())
+}
+
+// SetSaved saves or unsaves userID's pick id.
+func (s *RecommendService) SetSaved(
+	ctx context.Context,
+	userID, id string,
+	saved bool,
+) (*models.Recommendation, error) {
+	return s.recs.SetSaved(ctx, userID, id, saved)
+}
+
+// Accept adds rec to its app's backlog, or saves it where there is none.
+func (s *RecommendService) Accept(
+	ctx context.Context,
+	userID string,
+	rec models.Recommendation,
+) (*models.Recommendation, error) {
+	want := s.wanter(consumption.Domain(rec.Domain))
+	if want == nil || !rec.CanAccept() {
+		return s.recs.SetSaved(ctx, userID, rec.ID, true)
+	}
+	if err := want(ctx, userID, rec.CatalogRef); err != nil {
+		return nil, err
+	}
+	return s.recs.SetAccepted(ctx, userID, rec.ID)
+}
+
+func (s *RecommendService) wanter(d consumption.Domain) Wanter {
+	switch d { //nolint:exhaustive // other domains have no backlog
+	case consumption.DomainBooks:
+		return s.catalogs.WantBook
+	case consumption.DomainMovies, consumption.DomainSeries:
+		return s.catalogs.WantTitle
+	}
+	return nil
+}
+
+// HitRates counts userID's hits and misses per domain and track, in display
+// order.
+func (s *RecommendService) HitRates(
+	ctx context.Context,
+	userID string,
+) ([]models.HitRate, error) {
+	rates, err := s.recs.HitRates(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	order := map[consumption.Domain]int{}
+	for i, d := range consumption.Domains() {
+		order[d] = i
+	}
+	slices.SortFunc(rates, func(a, b models.HitRate) int {
+		da, db := consumption.Domain(a.Domain), consumption.Domain(b.Domain)
+		return cmp.Or(
+			cmp.Compare(order[da], order[db]),
+			cmp.Compare(trackOrder(a.Track), trackOrder(b.Track)),
+		)
+	})
+	return rates, nil
+}
+
+func trackOrder(t string) int {
+	if t == models.TrackMore {
+		return 0
+	}
+	return 1
 }
 
 // Generate replaces userID's picks for the apps include accepts. A failure is
@@ -166,20 +276,29 @@ func (s *RecommendService) generate(
 	if len(domains) == 0 {
 		return nil, nil
 	}
-	previous, err := s.recs.List(ctx, userID, "", "")
+	previous, err := s.recs.List(ctx, userID, "", "", false)
 	if err != nil {
 		return nil, failure{note: "Your earlier picks couldn't be read.", err: err}
 	}
+	touched, err := s.recs.Touched(ctx, userID)
+	if err != nil {
+		return nil, failure{note: "Your earlier picks couldn't be read.", err: err}
+	}
+	touched = slices.DeleteFunc(touched, func(r models.Recommendation) bool {
+		return !include(AppOf(consumption.Domain(r.Domain)))
+	})
 	profile, err := s.profiles.Get(ctx, userID)
 	if err != nil {
 		return nil, failure{note: "Your profile couldn't be read.", err: err}
 	}
 
-	candidates, sources, err := s.propose(ctx, events, domains, profile, previous)
+	candidates, sources, err := s.propose(
+		ctx, events, domains, profile, mergePicks(previous, touched), touched,
+	)
 	if err != nil {
 		return nil, err
 	}
-	verified, failed := s.verify(ctx, userID, candidates, events)
+	verified, failed := s.verify(ctx, userID, candidates, events, touched)
 	if len(verified) == 0 {
 		// Keep the earlier picks rather than replace them with nothing.
 		if failed > 0 {
@@ -232,13 +351,13 @@ func (s *RecommendService) propose(
 	events []consumption.Event,
 	domains []consumption.Domain,
 	profile *models.Profile,
-	previous []models.Recommendation,
+	previous, touched []models.Recommendation,
 ) ([]Candidate, []models.Source, error) {
 	resp, err := s.llm.Complete(ctx, openrouter.Request{
 		Model: s.generator,
 		Messages: []openrouter.Message{
 			openrouter.System(generatorPrompt(domains)),
-			openrouter.User(generatorInput(events, profile, previous, s.now())),
+			openrouter.User(generatorInput(events, profile, previous, touched, s.now())),
 		},
 		SchemaName: "taste_candidates",
 		Schema:     candidatesSchema(),
@@ -278,13 +397,14 @@ type verified struct {
 }
 
 // verify keeps candidates their catalog confirms, dropping what the user
-// already has or consumed and duplicates; a failed lookup only drops that
-// candidate, and is counted.
+// already has, consumed or acted on as a pick, and duplicates; a failed
+// lookup only drops that candidate, and is counted.
 func (s *RecommendService) verify(
 	ctx context.Context,
 	userID string,
 	candidates []Candidate,
 	events []consumption.Event,
+	touched []models.Recommendation,
 ) ([]verified, int) {
 	matches := make([]*consumption.CatalogMatch, len(candidates))
 	var failed atomic.Int32
@@ -309,7 +429,8 @@ func (s *RecommendService) verify(
 	var out []verified
 	for i, m := range matches {
 		c := candidates[i]
-		if m == nil || m.Known || consumed(events, c.Domain, m.Title) {
+		if m == nil || m.Known || consumed(events, c.Domain, m.Title) ||
+			pickedBefore(touched, c.Domain, *m) {
 			continue
 		}
 		key := c.Domain + "|" + cmp.Or(m.Ref, strings.ToLower(m.Title))
@@ -352,6 +473,38 @@ func consumed(events []consumption.Event, domain, title string) bool {
 	})
 }
 
+// pickedBefore reports whether m is a pick the user already acted on.
+func pickedBefore(
+	touched []models.Recommendation,
+	domain string,
+	m consumption.CatalogMatch,
+) bool {
+	app := AppOf(consumption.Domain(domain))
+	return slices.ContainsFunc(touched, func(r models.Recommendation) bool {
+		if AppOf(consumption.Domain(r.Domain)) != app {
+			return false
+		}
+		return (m.Ref != "" && r.CatalogRef == m.Ref) ||
+			consumption.SameTitle(r.Title, m.Title)
+	})
+}
+
+// mergePicks is previous plus the touched picks not in it, newest feedback
+// first, capped at maxAlreadySuggested.
+func mergePicks(previous, touched []models.Recommendation) []models.Recommendation {
+	out := slices.Clone(previous)
+	seen := map[string]bool{}
+	for _, p := range previous {
+		seen[p.ID] = true
+	}
+	for _, t := range touched {
+		if !seen[t.ID] {
+			out = append(out, t)
+		}
+	}
+	return out[:min(len(out), maxAlreadySuggested)]
+}
+
 func (s *RecommendService) score(
 	ctx context.Context,
 	profile *models.Profile,
@@ -382,14 +535,14 @@ func (s *RecommendService) score(
 	}
 	scores := map[int]int{}
 	for _, sc := range out.Scores {
-		scores[sc.ID] = min(max(sc.Score, 0), 100) //nolint:mnd // a 0-100 score
+		scores[sc.ID] = min(max(sc.Score, 0), maxScore)
 	}
 	return scores, nil
 }
 
 // rankPicks keeps the best-scored keepPerList picks per domain and track,
-// dropping any the judge didn't score; each carries the cited sources that
-// name it.
+// dropping any the judge didn't score and boosting those on the user's
+// services; each carries the cited sources that name it.
 func rankPicks(
 	picks []verified,
 	scores map[int]int,
@@ -401,12 +554,16 @@ func rankPicks(
 		if !judged {
 			continue
 		}
+		if p.match.OnMyServices {
+			score = min(score+servicesBonus, maxScore)
+		}
 		recs = append(recs, models.Recommendation{
 			ID: "", Domain: p.Domain, Track: p.Track, Title: p.match.Title,
 			Creator: cmp.Or(p.match.Creator, p.Creator), Year: cmp.Or(p.match.Year, p.Year),
 			CatalogRef: p.match.Ref, URL: p.match.URL, ImageURL: p.match.ImageURL,
 			Why: p.Why, Sources: sourcesFor(p.match.Title, sources), Score: score,
-			GeneratedAt: time.Time{},
+			GeneratedAt: time.Time{}, Feedback: models.FeedbackNone, Saved: false,
+			Accepted: false, OnMyServices: p.match.OnMyServices,
 		})
 	}
 	slices.SortStableFunc(recs, func(a, b models.Recommendation) int {

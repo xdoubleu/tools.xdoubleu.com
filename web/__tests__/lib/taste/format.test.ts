@@ -1,4 +1,15 @@
-import { DOMAINS, TRACKS, domainLabel, hostLabel, monthRows, signalBadge } from '@/lib/taste/format'
+import {
+  DOMAINS,
+  FEEDBACK,
+  SAVED_VIEW,
+  TRACKS,
+  domainLabel,
+  hitRateLabel,
+  hostLabel,
+  monthRows,
+  signalBadge,
+  trackLabel
+} from '@/lib/taste/format'
 
 describe('DOMAINS', () => {
   it('lists every domain in display order with its series colour', () => {
@@ -63,6 +74,28 @@ describe('TRACKS', () => {
       { value: 'more', label: 'More of what you like' },
       { value: 'broaden', label: 'Broaden your horizon' }
     ])
+  })
+})
+
+describe('trackLabel', () => {
+  it('labels a track, or echoes an unknown one', () => {
+    expect(trackLabel('broaden')).toBe('Broaden your horizon')
+    expect(trackLabel('sideways')).toBe('sideways')
+  })
+})
+
+describe('hitRateLabel', () => {
+  it('rounds the share of hits', () => {
+    expect(hitRateLabel(2, 1)).toBe('67% (2 of 3)')
+    expect(hitRateLabel(1, 0)).toBe('100% (1 of 1)')
+    expect(hitRateLabel(0, 0)).toBe('No hits or misses yet')
+  })
+})
+
+describe('FEEDBACK and SAVED_VIEW', () => {
+  it('lists every feedback value', () => {
+    expect(FEEDBACK.map((f) => f.value)).toEqual(['hit', 'miss', 'not_interested', 'known'])
+    expect(SAVED_VIEW).toBe('saved')
   })
 })
 
