@@ -12,7 +12,7 @@ const librarySearchLimit = 20
 
 // FindBook looks a recommended book up in the external catalogs, for the
 // taste app; nil when no provider has a book of that title. Known is set when
-// userID's library already holds it.
+// userID's library already holds it, by ISBN or title.
 func (app *Books) FindBook(
 	ctx context.Context,
 	userID, title, author string,
@@ -25,7 +25,7 @@ func (app *Books) FindBook(
 	}
 	if i := consumption.BestTitle(titles, title); i >= 0 {
 		p := proposals[i]
-		known, err := app.inLibrary(ctx, userID, p.Title)
+		known, err := app.inLibrary(ctx, userID, p.Title, p.ISBN13)
 		if err != nil {
 			return nil, err
 		}
@@ -46,7 +46,18 @@ func (app *Books) FindBook(
 	return nil, nil //nolint:nilnil // no match is not an error
 }
 
-func (app *Books) inLibrary(ctx context.Context, userID, title string) (bool, error) {
+// inLibrary reports whether userID's library holds isbn13 or a book named
+// title.
+func (app *Books) inLibrary(
+	ctx context.Context,
+	userID, title, isbn13 string,
+) (bool, error) {
+	if isbn13 != "" {
+		has, err := app.Services.Books.HasISBN13(ctx, userID, isbn13)
+		if err != nil || has {
+			return has, err
+		}
+	}
 	books, _, err := app.Services.Books.SearchLibrary(
 		ctx, userID, title, librarySearchLimit, 0,
 	)

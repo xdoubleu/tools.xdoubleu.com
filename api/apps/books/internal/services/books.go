@@ -66,6 +66,19 @@ func (s *BookService) SearchLibrary(
 	return s.books.SearchLibrary(ctx, userID, query, limit, offset)
 }
 
+// HasISBN13 reports whether userID's library holds a book with isbn13.
+func (s *BookService) HasISBN13(
+	ctx context.Context,
+	userID string,
+	isbn13 string,
+) (bool, error) {
+	_, err := s.books.FindUserBookByISBN13(ctx, userID, isbn13)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
 // SearchExternal fans out to every configured provider and keeps each source's
 // matches side by side. Interactive callers should narrow with
 // FilterExternalByQuery; tryExternalLookup wants the providers' raw top hit.
