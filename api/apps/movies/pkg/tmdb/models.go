@@ -76,6 +76,7 @@ type searchResult struct {
 	Name          string `json:"name"`
 	OriginalTitle string `json:"original_title"`
 	OriginalName  string `json:"original_name"`
+	OriginalLang  string `json:"original_language"`
 	ReleaseDate   string `json:"release_date"`
 	FirstAirDate  string `json:"first_air_date"`
 	PosterPath    string `json:"poster_path"`
@@ -182,6 +183,7 @@ type movieResponse struct {
 	ID            int64   `json:"id"`
 	Title         string  `json:"title"`
 	OriginalTitle string  `json:"original_title"`
+	OriginalLang  string  `json:"original_language"`
 	ReleaseDate   string  `json:"release_date"`
 	PosterPath    string  `json:"poster_path"`
 	Overview      string  `json:"overview"`
@@ -195,6 +197,7 @@ type seriesResponse struct {
 	ID              int64   `json:"id"`
 	Name            string  `json:"name"`
 	OriginalName    string  `json:"original_name"`
+	OriginalLang    string  `json:"original_language"`
 	FirstAirDate    string  `json:"first_air_date"`
 	PosterPath      string  `json:"poster_path"`
 	Overview        string  `json:"overview"`
@@ -242,10 +245,12 @@ func (r searchResult) toTitle() (Title, bool) {
 	case "movie":
 		t.MediaType = MediaTypeMovie
 		t.Title, t.OriginalTitle = r.Title, r.OriginalTitle
+		t.Title = displayTitle(t.Title, t.OriginalTitle, r.OriginalLang)
 		t.ReleaseDate = parseDate(r.ReleaseDate)
 	case "tv":
 		t.MediaType = MediaTypeSeries
 		t.Title, t.OriginalTitle = r.Name, r.OriginalName
+		t.Title = displayTitle(t.Title, t.OriginalTitle, r.OriginalLang)
 		t.ReleaseDate = parseDate(r.FirstAirDate)
 	default:
 		return t, false
@@ -258,7 +263,7 @@ func (r movieResponse) toTitle() Title {
 	return Title{
 		MediaType:     MediaTypeMovie,
 		TMDBID:        r.ID,
-		Title:         r.Title,
+		Title:         displayTitle(r.Title, r.OriginalTitle, r.OriginalLang),
 		OriginalTitle: r.OriginalTitle,
 		ReleaseDate:   parseDate(r.ReleaseDate),
 		PosterPath:    r.PosterPath,
@@ -286,7 +291,7 @@ func (r seriesResponse) toTitle() Title {
 	return Title{
 		MediaType:     MediaTypeSeries,
 		TMDBID:        r.ID,
-		Title:         r.Name,
+		Title:         displayTitle(r.Name, r.OriginalName, r.OriginalLang),
 		OriginalTitle: r.OriginalName,
 		ReleaseDate:   parseDate(r.FirstAirDate),
 		PosterPath:    r.PosterPath,
@@ -298,4 +303,13 @@ func (r seriesResponse) toTitle() Title {
 		WatchLink:     link,
 		Providers:     providers,
 	}
+}
+
+// displayTitle keeps the original title for Dutch productions and the English
+// title for everything else.
+func displayTitle(english, original, lang string) string {
+	if lang == "nl" && original != "" {
+		return original
+	}
+	return english
 }

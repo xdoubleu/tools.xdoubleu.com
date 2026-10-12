@@ -69,7 +69,9 @@ export default function MovieTitleClient({ id }: { id: string }) {
       <PageHeader
         title={displayed}
         breadcrumb={[...breadcrumb, { label: displayed }]}
-        description={entry.title !== displayed ? entry.title : undefined}
+        description={
+          entry.originalTitle !== displayed ? entry.originalTitle || undefined : undefined
+        }
       />
       <div className="flex flex-col gap-6 sm:flex-row">
         <MoviePoster posterPath={entry.posterPath} title={displayed} size="lg" />

@@ -48,9 +48,9 @@ export function mediaTypeLabel(mediaType: string): string {
   return mediaType === 'series' ? 'Series' : 'Movie'
 }
 
-/** The name to show: the original title, falling back to the localized one. */
-export function titleName(t: { title: string; originalTitle: string }): string {
-  return t.originalTitle || t.title
+/** The name to show: the API picks the original title for Dutch productions, English otherwise. */
+export function titleName(t: { title: string }): string {
+  return t.title
 }
 
 /** TMDB poster URL at a fixed width; empty when the title has none. */

@@ -19,3 +19,9 @@ func TestPositive(t *testing.T) {
 	require.NotNil(t, got)
 	assert.Equal(t, 1, *got)
 }
+
+func TestDisplayTitle(t *testing.T) {
+	assert.Equal(t, "Nonkels", displayTitle("Uncles", "Nonkels", "nl"))
+	assert.Equal(t, "Beerus", displayTitle("Beerus", "ドラゴンボール超", "ja"))
+	assert.Equal(t, "Uncles", displayTitle("Uncles", "", "nl"))
+}

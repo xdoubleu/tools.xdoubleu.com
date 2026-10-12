@@ -48,13 +48,8 @@ describe('movies format helpers', () => {
 })
 
 describe('titleName', () => {
-  it('prefers the original title', () => {
-    expect(titleName({ title: 'Uncles', originalTitle: 'Nonkels' })).toBe('Nonkels')
-    expect(titleName({ title: 'Home Grown', originalTitle: 'Eigen Kweek' })).toBe('Eigen Kweek')
-  })
-
-  it('falls back to the localized title when there is no original', () => {
-    expect(titleName({ title: 'Dune', originalTitle: '' })).toBe('Dune')
+  it('shows the title as provided', () => {
+    expect(titleName({ title: 'Nonkels' })).toBe('Nonkels')
   })
 })
 
