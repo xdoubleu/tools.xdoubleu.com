@@ -78,6 +78,20 @@ describe('TasteRecommendations', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
+  it('keeps repeated source links apart', () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const twice = create(SourceSchema, { url: 'https://a.example/1' })
+    mockPicks({
+      data: create(ListRecommendationsResponseSchema, {
+        recommendations: [create(RecommendationSchema, { ...bare, sources: [twice, twice] })]
+      })
+    })
+    render(<TasteRecommendations />)
+    expect(screen.getAllByRole('link', { name: 'via a.example' })).toHaveLength(2)
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
   it('switches track and domain', () => {
     mockPicks({ data: create(ListRecommendationsResponseSchema, {}) })
     render(<TasteRecommendations />)

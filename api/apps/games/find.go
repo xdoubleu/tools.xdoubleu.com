@@ -21,10 +21,12 @@ func (a *Games) FindGame(
 	if err != nil {
 		return nil, err
 	}
-	for _, it := range items {
-		if !consumption.SameTitle(it.Name, title) {
-			continue
-		}
+	names := make([]string, len(items))
+	for i, it := range items {
+		names[i] = it.Name
+	}
+	if i := consumption.BestTitle(names, title); i >= 0 {
+		it := items[i]
 		_, err = a.Repositories.Steam.GetGameByID(ctx, it.ID, userID)
 		known := err == nil
 		if err != nil && !errors.Is(err, database.ErrResourceNotFound) {

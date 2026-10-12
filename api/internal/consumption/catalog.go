@@ -20,13 +20,28 @@ type CatalogMatch struct {
 }
 
 // SameTitle reports whether two titles name the same work, ignoring case,
-// punctuation, a leading article and a subtitle on either side.
+// punctuation and a leading article. "Dune" and "Dune: Part Two" differ.
 func SameTitle(a, b string) bool {
-	na, nb := normalizeTitle(a), normalizeTitle(b)
-	if na == "" || nb == "" {
-		return false
+	na := normalizeTitle(a)
+	return na != "" && na == normalizeTitle(b)
+}
+
+// BestTitle returns the index of the title in titles naming want: an exact
+// SameTitle match, else one equal once a subtitle is dropped from either
+// side ("Children of Time: A Novel"), else -1.
+func BestTitle(titles []string, want string) int {
+	for i, t := range titles {
+		if SameTitle(t, want) {
+			return i
+		}
 	}
-	return na == nb || mainTitle(a) == nb || na == mainTitle(b)
+	nw, mw := normalizeTitle(want), mainTitle(want)
+	for i, t := range titles {
+		if nw != "" && (mainTitle(t) == nw || normalizeTitle(t) == mw) {
+			return i
+		}
+	}
+	return -1
 }
 
 // mainTitle is the normalized title before a subtitle separator.

@@ -1,5 +1,5 @@
 import useSWR, { useSWRConfig } from 'swr'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
 import { TasteService } from '@/lib/gen/taste/v1/taste_pb'
@@ -60,8 +60,23 @@ export function useRefreshTasteProfile() {
   const { mutate } = useSWRConfig()
   return useCallback(async () => {
     await client.refreshProfile({})
-    await mutate(swrKeys.tasteProfile)
+    await Promise.all([mutate(swrKeys.tasteProfile), mutate(isRecommendationsKey)])
   }, [client, mutate])
+}
+
+/** Matches every recommendations key, whatever its domain and track. */
+export function isRecommendationsKey(key: unknown): boolean {
+  return Array.isArray(key) && key[0] === swrKeys.tasteRecommendations('', '')[0]
+}
+
+/** Re-reads the picks once a pending profile run finishes; it writes them too. */
+export function useRevalidatePicksWhenDone(pending: boolean) {
+  const { mutate } = useSWRConfig()
+  const wasPending = useRef(pending)
+  useEffect(() => {
+    if (wasPending.current && !pending) void mutate(isRecommendationsKey)
+    wasPending.current = pending
+  }, [pending, mutate])
 }
 
 /** Picks for a domain and track; '' is every domain or both tracks. */

@@ -18,11 +18,14 @@ func (app *Books) FindBook(
 	userID, title, author string,
 ) (*consumption.CatalogMatch, error) {
 	query := strings.TrimSpace(title + " " + author)
-	for _, p := range app.Services.Books.SearchExternal(ctx, query) {
-		if !consumption.SameTitle(p.Title, title) {
-			continue
-		}
-		known, err := app.inLibrary(ctx, userID, title)
+	proposals := app.Services.Books.SearchExternal(ctx, query)
+	titles := make([]string, len(proposals))
+	for i, p := range proposals {
+		titles[i] = p.Title
+	}
+	if i := consumption.BestTitle(titles, title); i >= 0 {
+		p := proposals[i]
+		known, err := app.inLibrary(ctx, userID, p.Title)
 		if err != nil {
 			return nil, err
 		}

@@ -202,9 +202,13 @@ func TestRecommend_EndToEnd(t *testing.T) {
 			"taste_scores": `{"scores": [{"id": 0, "score": 40}, {"id": 1, "score": 90},
 				{"id": 2, "score": 150}, {"id": 3, "score": -5}, {"id": 4, "score": 70}]}`,
 		},
-		errs:      map[string]error{},
-		citations: []openrouter.Citation{{URL: "https://a.example", Title: "A"}},
-		requests:  nil,
+		errs: map[string]error{},
+		citations: []openrouter.Citation{
+			{URL: "https://a.example/b3", Title: "Why B3 works"},
+			{URL: "https://a.example/b3", Title: "Why B3 works"},
+			{URL: "https://b.example/other", Title: "Unrelated"},
+		},
+		requests: nil,
 	}
 	cats := catalogs("B1", "B2", "B3", "B4", "KnownBook", "Dune", "series:Show")
 	cats.Feeds = nil
@@ -237,7 +241,9 @@ func TestRecommend_EndToEnd(t *testing.T) {
 	assert.Equal(t, "C", first.Creator, "the generator's creator fills a gap")
 	assert.Equal(t, 2020, first.Year)
 	assert.Equal(t, "because B3", first.Why)
-	assert.Equal(t, []models.Source{{URL: "https://a.example", Title: "A"}}, first.Sources)
+	assert.Equal(t, []models.Source{{URL: "https://a.example/b3", Title: "Why B3 works"}},
+		first.Sources, "only the sources naming it, once")
+	assert.Empty(t, store.recs[1].Sources)
 
 	gen := llm.requests[0]
 	assert.Equal(t, "gen", gen.Model)
@@ -270,12 +276,13 @@ func TestRecommend_PassesPreviousPicks(t *testing.T) {
 	//nolint:exhaustruct // only what the prompt reads
 	store.recs = []models.Recommendation{{Title: "Old Pick", Domain: "books"}}
 	s := recService(llm, catalogs(), store, oneBook, nil)
-	require.NoError(t, s.Generate(context.Background(), "u", all))
+	require.Error(t, s.Generate(context.Background(), "u", all))
 	assert.Contains(t, llm.requests[0].Messages[1].Content,
 		"## Already suggested\n- Old Pick (books)\n")
 	assert.NotContains(t, llm.requests[0].Messages[1].Content, "## Profile")
 	assert.Equal(t, []string{"taste_candidates"}, llm.schemas(), "no judge without picks")
-	assert.Empty(t, store.recs)
+	assert.False(t, store.replaced, "the earlier picks stay")
+	assert.Equal(t, "None of the proposed picks checked out.", store.note)
 }
 
 func TestRecommend_OnlyAccessibleDomains(t *testing.T) {
@@ -316,9 +323,9 @@ func TestRecommend_ConsumedAcrossMoviesAndSeries(t *testing.T) {
 		return match("Dark", false), nil
 	}
 	store := emptyStore(nil)
-	require.NoError(t, recService(llm, cats, store, watched, nil).
+	require.Error(t, recService(llm, cats, store, watched, nil).
 		Generate(context.Background(), "u", all))
-	assert.Empty(t, store.recs)
+	assert.False(t, store.replaced, "nothing new, so the earlier picks stay")
 }
 
 func TestRecommend_Failures(t *testing.T) {
@@ -400,8 +407,8 @@ func TestRecommend_List(t *testing.T) {
 }
 
 func TestAppOfAndFindUnknownDomain(t *testing.T) {
-	assert.Equal(t, "movies", appOf(consumption.DomainSeries))
-	assert.Equal(t, "books", appOf(consumption.DomainBooks))
+	assert.Equal(t, "movies", AppOf(consumption.DomainSeries))
+	assert.Equal(t, "books", AppOf(consumption.DomainBooks))
 	s := recService(script(nil), catalogs(), emptyStore(nil), oneBook, nil)
 	_, err := s.find(context.Background(), "u", pick("music", "more", "x"))
 	assert.ErrorContains(t, err, "unknown domain")
@@ -425,4 +432,56 @@ func TestFindRoutesEachDomain(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, m, c.Domain)
 	}
+}
+
+func TestRecommend_AllLookupsFailed(t *testing.T) {
+	llm := script(map[string]string{
+		"taste_candidates": picksJSON(pick("books", "more", "Broken")),
+	})
+	store := emptyStore(nil)
+	err := recService(llm, catalogs(), store, oneBook, nil).
+		Generate(context.Background(), "u", all)
+	require.ErrorContains(t, err, "1 of 1 lookups failed")
+	assert.Equal(t, "The catalogs couldn't be reached.", store.note)
+	assert.False(t, store.replaced)
+}
+
+func TestRecommend_NoCatalogsNoCall(t *testing.T) {
+	llm := script(nil)
+	store := emptyStore(nil)
+	none := Catalogs{Books: nil, Movies: nil, Games: nil, Podcasts: nil, Feeds: nil}
+	require.NoError(t, recService(llm, none, store, oneBook, nil).
+		Generate(context.Background(), "u", all))
+	assert.Empty(t, llm.requests)
+	assert.True(t, store.replaced)
+}
+
+func TestRecommend_DropsUnjudgedPicks(t *testing.T) {
+	llm := script(map[string]string{
+		"taste_candidates": picksJSON(
+			pick("books", "more", "B1"),
+			pick("books", "more", "B2"),
+		),
+		"taste_scores": `{"scores": [{"id": 1, "score": 0}, {"id": 7, "score": 99}]}`,
+	})
+	store := emptyStore(nil)
+	require.NoError(t, recService(llm, catalogs("B1", "B2"), store, oneBook, nil).
+		Generate(context.Background(), "u", all))
+	require.Len(t, store.recs, 1)
+	assert.Equal(t, "B2", store.recs[0].Title)
+	assert.Zero(t, store.recs[0].Score)
+}
+
+func TestSourcesFor(t *testing.T) {
+	sources := []models.Source{
+		{URL: "https://x.example/children-of-time-review", Title: "A review"},
+		{URL: "https://y.example/", Title: "Best SF: Children of Time and more"},
+		{URL: "https://x.example/children-of-time-review", Title: "dup"},
+		{URL: "https://z.example/", Title: "Other"},
+	}
+	got := sourcesFor("Children of Time", sources)
+	require.Len(t, got, 2)
+	assert.Equal(t, "https://x.example/children-of-time-review", got[0].URL)
+	assert.Equal(t, "https://y.example/", got[1].URL)
+	assert.Empty(t, sourcesFor("  ", sources))
 }

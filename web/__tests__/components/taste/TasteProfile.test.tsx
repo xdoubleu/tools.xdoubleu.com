@@ -7,11 +7,12 @@ const mockRefresh = jest.fn()
 
 jest.mock('@/hooks/useTaste', () => ({
   useTasteProfile: jest.fn(),
-  useRefreshTasteProfile: jest.fn(() => mockRefresh)
+  useRefreshTasteProfile: jest.fn(() => mockRefresh),
+  useRevalidatePicksWhenDone: jest.fn()
 }))
 
 import TasteProfile from '@/components/taste/TasteProfile'
-import { useTasteProfile } from '@/hooks/useTaste'
+import { useRevalidatePicksWhenDone, useTasteProfile } from '@/hooks/useTaste'
 import { GetProfileResponseSchema, ProfileSectionsSchema } from '@/lib/gen/taste/v1/taste_pb'
 
 function mockProfile(value: { data?: unknown; error?: Error; isLoading?: boolean }) {
@@ -103,6 +104,15 @@ describe('TasteProfile', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled())
     expect(mockRefresh).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('watches for the pending run to finish', () => {
+    mockProfile({ data: create(GetProfileResponseSchema, { configured: true, pending: true }) })
+    const { rerender } = render(<TasteProfile />)
+    expect(useRevalidatePicksWhenDone).toHaveBeenLastCalledWith(true)
+    mockProfile({ isLoading: true })
+    rerender(<TasteProfile />)
+    expect(useRevalidatePicksWhenDone).toHaveBeenLastCalledWith(false)
   })
 
   it('shows a pending regeneration', () => {

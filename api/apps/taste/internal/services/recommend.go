@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -56,8 +57,8 @@ type Catalogs struct {
 	Feeds    SiteFinder
 }
 
-// appOf is the app a domain's items live in.
-func appOf(d consumption.Domain) string {
+// AppOf is the app a domain's items live in.
+func AppOf(d consumption.Domain) string {
 	if d == consumption.DomainSeries {
 		return string(consumption.DomainMovies)
 	}
@@ -162,6 +163,9 @@ func (s *RecommendService) generate(
 		return nil, nil
 	}
 	domains := s.domains(include)
+	if len(domains) == 0 {
+		return nil, nil
+	}
 	previous, err := s.recs.List(ctx, userID, "", "")
 	if err != nil {
 		return nil, failure{note: "Your earlier picks couldn't be read.", err: err}
@@ -175,9 +179,19 @@ func (s *RecommendService) generate(
 	if err != nil {
 		return nil, err
 	}
-	verified := s.verify(ctx, userID, candidates, events)
+	verified, failed := s.verify(ctx, userID, candidates, events)
 	if len(verified) == 0 {
-		return nil, nil
+		// Keep the earlier picks rather than replace them with nothing.
+		if failed > 0 {
+			return nil, failure{
+				note: "The catalogs couldn't be reached.",
+				err:  fmt.Errorf("%d of %d lookups failed", failed, len(candidates)),
+			}
+		}
+		return nil, failure{
+			note: "None of the proposed picks checked out.",
+			err:  fmt.Errorf("none of %d candidates verified", len(candidates)),
+		}
 	}
 	scores, err := s.score(ctx, profile, verified)
 	if err != nil {
@@ -190,7 +204,7 @@ func (s *RecommendService) generate(
 func (s *RecommendService) domains(include func(string) bool) []consumption.Domain {
 	var out []consumption.Domain
 	for _, d := range consumption.Domains() {
-		if include(appOf(d)) && s.hasCatalog(d) {
+		if include(AppOf(d)) && s.hasCatalog(d) {
 			out = append(out, d)
 		}
 	}
@@ -251,8 +265,8 @@ func (s *RecommendService) propose(
 		allowed[string(d)] = true
 	}
 	valid := slices.DeleteFunc(out.Picks, func(c Candidate) bool {
-		return !allowed[c.Domain] || (c.Track != models.TrackMore &&
-			c.Track != models.TrackBroaden) || strings.TrimSpace(c.Title) == ""
+		return !allowed[c.Domain] || !models.IsTrack(c.Track) ||
+			strings.TrimSpace(c.Title) == ""
 	})
 	return valid, sources, nil
 }
@@ -265,14 +279,15 @@ type verified struct {
 
 // verify keeps candidates their catalog confirms, dropping what the user
 // already has or consumed and duplicates; a failed lookup only drops that
-// candidate.
+// candidate, and is counted.
 func (s *RecommendService) verify(
 	ctx context.Context,
 	userID string,
 	candidates []Candidate,
 	events []consumption.Event,
-) []verified {
+) ([]verified, int) {
 	matches := make([]*consumption.CatalogMatch, len(candidates))
+	var failed atomic.Int32
 	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(verifyConcurrency)
 	for i, c := range candidates {
@@ -281,6 +296,7 @@ func (s *RecommendService) verify(
 			if err != nil {
 				s.logger.WarnContext(gctx, "taste candidate lookup failed",
 					slog.String("domain", c.Domain), slog.Any("error", err))
+				failed.Add(1)
 				return nil
 			}
 			matches[i] = m
@@ -303,7 +319,7 @@ func (s *RecommendService) verify(
 		seen[key] = true
 		out = append(out, verified{Candidate: c, match: *m})
 	}
-	return out
+	return out, int(failed.Load())
 }
 
 func (s *RecommendService) find(
@@ -330,9 +346,9 @@ func (s *RecommendService) find(
 
 // consumed reports whether the log already has title in the domain's app.
 func consumed(events []consumption.Event, domain, title string) bool {
-	app := appOf(consumption.Domain(domain))
+	app := AppOf(consumption.Domain(domain))
 	return slices.ContainsFunc(events, func(e consumption.Event) bool {
-		return appOf(e.Domain) == app && consumption.SameTitle(e.Title, title)
+		return AppOf(e.Domain) == app && consumption.SameTitle(e.Title, title)
 	})
 }
 
@@ -371,21 +387,27 @@ func (s *RecommendService) score(
 	return scores, nil
 }
 
-// rankPicks keeps the best-scored keepPerList picks per domain and track; every
-// pick carries the generation's cited sources.
+// rankPicks keeps the best-scored keepPerList picks per domain and track,
+// dropping any the judge didn't score; each carries the cited sources that
+// name it.
 func rankPicks(
 	picks []verified,
 	scores map[int]int,
 	sources []models.Source,
 ) []models.Recommendation {
-	recs := make([]models.Recommendation, len(picks))
+	recs := make([]models.Recommendation, 0, len(picks))
 	for i, p := range picks {
-		recs[i] = models.Recommendation{
+		score, judged := scores[i]
+		if !judged {
+			continue
+		}
+		recs = append(recs, models.Recommendation{
 			ID: "", Domain: p.Domain, Track: p.Track, Title: p.match.Title,
 			Creator: cmp.Or(p.match.Creator, p.Creator), Year: cmp.Or(p.match.Year, p.Year),
 			CatalogRef: p.match.Ref, URL: p.match.URL, ImageURL: p.match.ImageURL,
-			Why: p.Why, Sources: sources, Score: scores[i], GeneratedAt: time.Time{},
-		}
+			Why: p.Why, Sources: sourcesFor(p.match.Title, sources), Score: score,
+			GeneratedAt: time.Time{},
+		})
 	}
 	slices.SortStableFunc(recs, func(a, b models.Recommendation) int {
 		return cmp.Compare(b.Score, a.Score)
@@ -396,4 +418,23 @@ func rankPicks(
 		kept[key]++
 		return kept[key] > keepPerList
 	})
+}
+
+// sourcesFor keeps the cited sources whose title or URL names title, each
+// URL once.
+func sourcesFor(title string, sources []models.Source) []models.Source {
+	name := strings.ToLower(strings.TrimSpace(title))
+	slug := strings.ReplaceAll(name, " ", "-")
+	seen := map[string]bool{}
+	out := []models.Source{}
+	for _, src := range sources {
+		hay := strings.ToLower(src.Title + " " + src.URL)
+		if name == "" || seen[src.URL] ||
+			(!strings.Contains(hay, name) && !strings.Contains(hay, slug)) {
+			continue
+		}
+		seen[src.URL] = true
+		out = append(out, src)
+	}
+	return out
 }

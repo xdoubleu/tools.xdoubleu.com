@@ -17,10 +17,12 @@ func (a *Podcasts) FindShow(
 	if err != nil {
 		return nil, err
 	}
-	for _, r := range results {
-		if !consumption.SameTitle(r.Title, title) {
-			continue
-		}
+	titles := make([]string, len(results))
+	for i, r := range results {
+		titles[i] = r.Title
+	}
+	if i := consumption.BestTitle(titles, title); i >= 0 {
+		r := results[i]
 		return &consumption.CatalogMatch{
 			Ref:      strconv.FormatInt(r.ID, 10),
 			Title:    r.Title,

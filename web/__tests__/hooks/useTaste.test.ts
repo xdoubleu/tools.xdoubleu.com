@@ -24,9 +24,11 @@ import useSWR from 'swr'
 import { GetProfileResponseSchema } from '@/lib/gen/taste/v1/taste_pb'
 import {
   PROFILE_POLL_MS,
+  isRecommendationsKey,
   profileRefreshInterval,
   useFetchTasteEventsPage,
   useRefreshTasteProfile,
+  useRevalidatePicksWhenDone,
   useTasteEvents,
   useTasteProfile,
   useTasteRecommendations,
@@ -128,6 +130,7 @@ describe('useRefreshTasteProfile', () => {
     await result.current()
     expect(mockClient.refreshProfile).toHaveBeenCalledWith({})
     expect(mockMutate).toHaveBeenCalledWith('/taste/profile')
+    expect(mockMutate).toHaveBeenCalledWith(isRecommendationsKey)
   })
 
   it('uses the current SWR mutate', async () => {
@@ -159,5 +162,29 @@ describe('useTasteRecommendations', () => {
       domain: 'books',
       track: 'broaden'
     })
+  })
+})
+
+describe('isRecommendationsKey', () => {
+  it('matches every recommendations key only', () => {
+    expect(isRecommendationsKey(['/taste/recommendations', 'books', 'more'])).toBe(true)
+    expect(isRecommendationsKey(['/taste/events', ''])).toBe(false)
+    expect(isRecommendationsKey('/taste/recommendations')).toBe(false)
+  })
+})
+
+describe('useRevalidatePicksWhenDone', () => {
+  it('re-reads the picks only when a pending run finishes', () => {
+    const { rerender } = renderHook(({ pending }) => useRevalidatePicksWhenDone(pending), {
+      initialProps: { pending: false }
+    })
+    expect(mockMutate).not.toHaveBeenCalled()
+    rerender({ pending: true })
+    expect(mockMutate).not.toHaveBeenCalled()
+    rerender({ pending: false })
+    expect(mockMutate).toHaveBeenCalledTimes(1)
+    expect(mockMutate).toHaveBeenCalledWith(isRecommendationsKey)
+    rerender({ pending: false })
+    expect(mockMutate).toHaveBeenCalledTimes(1)
   })
 })

@@ -31,9 +31,9 @@ function PickRow({ pick }: { pick: Recommendation }) {
               Open
             </a>
           )}
-          {pick.sources.slice(0, 3).map((s) => (
+          {pick.sources.slice(0, 3).map((s, i) => (
             <a
-              key={s.url}
+              key={`${i}:${s.url}`}
               href={s.url}
               target="_blank"
               rel="noopener noreferrer"

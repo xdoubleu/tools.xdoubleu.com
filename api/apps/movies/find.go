@@ -24,18 +24,7 @@ func (a *Movies) FindTitle(
 	if err != nil {
 		return nil, err
 	}
-	var best *models.SearchResult
-	for i, r := range results {
-		t := r.Title
-		named := consumption.SameTitle(t.Title, title) ||
-			consumption.SameTitle(t.OriginalTitle, title)
-		if t.MediaType != mediaType || !named {
-			continue
-		}
-		if best == nil || (releaseYear(t) == year && releaseYear(best.Title) != year) {
-			best = &results[i]
-		}
-	}
+	best := pickTitle(results, mediaType, title, year)
 	if best == nil {
 		return nil, nil //nolint:nilnil // no match is not an error
 	}
@@ -57,6 +46,37 @@ func (a *Movies) FindTitle(
 		URL:      fmt.Sprintf("https://www.themoviedb.org/%s/%d", path, t.TMDBID),
 		Known:    best.Status != nil,
 	}, nil
+}
+
+// pickTitle prefers an exact title (or original title) of the media type,
+// the one released in year first, else a match once a subtitle is dropped.
+func pickTitle(
+	results []models.SearchResult,
+	mediaType, title string,
+	year int,
+) *models.SearchResult {
+	var best *models.SearchResult
+	var names []string
+	var indices []int
+	for i, r := range results {
+		t := r.Title
+		if t.MediaType != mediaType {
+			continue
+		}
+		names, indices = append(names, t.Title), append(indices, i)
+		exact := consumption.SameTitle(t.Title, title) ||
+			consumption.SameTitle(t.OriginalTitle, title)
+		if exact && (best == nil ||
+			(releaseYear(t) == year && releaseYear(best.Title) != year)) {
+			best = &results[i]
+		}
+	}
+	if best == nil {
+		if i := consumption.BestTitle(names, title); i >= 0 {
+			best = &results[indices[i]]
+		}
+	}
+	return best
 }
 
 func releaseYear(t models.Title) int {

@@ -103,3 +103,32 @@ func TestEntryEvent_SeriesUsesSeasonWatches(t *testing.T) {
 	assert.True(t, e.At.IsZero())
 	assert.Equal(t, "watched", e.Reason)
 }
+
+func result(mediaType, title, original string, year int) models.SearchResult {
+	release := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
+	//nolint:exhaustruct // only what pickTitle reads
+	return models.SearchResult{Title: models.Title{
+		MediaType: mediaType, Title: title, OriginalTitle: original, ReleaseDate: &release,
+	}}
+}
+
+func TestPickTitle(t *testing.T) {
+	results := []models.SearchResult{
+		result("movie", "Dune: Part Two", "Dune: Part Two", 2024),
+		result("series", "Dune", "Dune", 2000),
+		result("movie", "Dune", "Dune", 1984),
+		result("movie", "Dune", "Dune", 2021),
+		result("movie", "Spirited Away", "千と千尋の神隠し", 2001),
+	}
+	assert.Equal(t, 1984, releaseYear(pickTitle(results, "movie", "Dune", 0).Title),
+		"the first exact match without a year")
+	assert.Equal(t, 2021, releaseYear(pickTitle(results, "movie", "Dune", 2021).Title))
+	assert.Equal(t, 2000, releaseYear(pickTitle(results, "series", "Dune", 2021).Title))
+	assert.Equal(t, "Spirited Away",
+		pickTitle(results, "movie", "千と千尋の神隠し", 0).Title.Title)
+	assert.Equal(t, "Dune: Part Two",
+		pickTitle(results[:1], "movie", "Dune", 0).Title.Title, "a subtitle fallback")
+	assert.Nil(t, pickTitle(results, "series", "Arrival", 0))
+	//nolint:exhaustruct // no release date
+	assert.Zero(t, releaseYear(models.Title{}))
+}

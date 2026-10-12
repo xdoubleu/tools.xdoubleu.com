@@ -27,7 +27,7 @@ func (h *tasteConnectHandler) ListRecommendations(
 			connect.CodeInvalidArgument, errors.New("unknown domain"),
 		)
 	}
-	if track != "" && track != models.TrackMore && track != models.TrackBroaden {
+	if track != "" && !models.IsTrack(track) {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument, errors.New("track must be more or broaden"),
 		)
@@ -39,7 +39,7 @@ func (h *tasteConnectHandler) ListRecommendations(
 	out := make([]*tastev1.Recommendation, 0, len(recs))
 	canAccess := canAccess(ctx)
 	for _, r := range recs {
-		if canAccess(appOf(r.Domain)) {
+		if canAccess(services.AppOf(consumption.Domain(r.Domain))) {
 			out = append(out, protoRecommendation(r))
 		}
 	}
@@ -48,14 +48,6 @@ func (h *tasteConnectHandler) ListRecommendations(
 		GeneratedAt:     formatTimePtr(at),
 		LastError:       note,
 	}), nil
-}
-
-// appOf is the app a domain's picks come from.
-func appOf(domain string) string {
-	if domain == string(consumption.DomainSeries) {
-		return string(consumption.DomainMovies)
-	}
-	return domain
 }
 
 func protoRecommendation(r models.Recommendation) *tastev1.Recommendation {

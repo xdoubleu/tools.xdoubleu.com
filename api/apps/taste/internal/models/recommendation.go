@@ -7,6 +7,11 @@ const (
 	TrackBroaden = "broaden"
 )
 
+// IsTrack reports whether t is a known track.
+func IsTrack(t string) bool {
+	return t == TrackMore || t == TrackBroaden
+}
+
 // Source is a web page the generator cited for a pick.
 type Source struct {
 	URL   string `json:"url"`

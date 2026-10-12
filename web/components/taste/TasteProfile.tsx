@@ -3,7 +3,11 @@
 import { useState } from 'react'
 import { ConnectError } from '@connectrpc/connect'
 import type { ProfileSections } from '@/lib/gen/taste/v1/taste_pb'
-import { useRefreshTasteProfile, useTasteProfile } from '@/hooks/useTaste'
+import {
+  useRefreshTasteProfile,
+  useRevalidatePicksWhenDone,
+  useTasteProfile
+} from '@/hooks/useTaste'
 import { formatDateTime } from '@/lib/dates'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -86,6 +90,7 @@ function RefreshButton({ waitUntil, pending }: { waitUntil: string; pending: boo
 /** The LLM-written taste profile with its refresh control. */
 export default function TasteProfile() {
   const { data, error, isLoading } = useTasteProfile()
+  useRevalidatePicksWhenDone(data?.pending ?? false)
 
   if (isLoading && !data) return <LoadingState label="profile" />
   if (error && !data) return <ErrorState what="profile" />

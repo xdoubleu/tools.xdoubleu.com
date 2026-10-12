@@ -42,8 +42,10 @@ func (pickLLM) Complete(
 	}
 	return &openrouter.Response{
 		Model: "served/model", Content: content,
-		Citations: []openrouter.Citation{{URL: "https://src.example", Title: "Src"}},
-		Usage:     openrouter.Usage{PromptTokens: 0, CompletionTokens: 0, Cost: 0},
+		Citations: []openrouter.Citation{
+			{URL: "https://src.example/hyperion", Title: "Hyperion, reviewed"},
+		},
+		Usage: openrouter.Usage{PromptTokens: 0, CompletionTokens: 0, Cost: 0},
 	}, nil
 }
 
@@ -134,8 +136,8 @@ func TestRecommendations(t *testing.T) {
 	assert.Equal(t, "Like Dune.", r.Why)
 	assert.Equal(t, int32(88), r.Score)
 	require.Len(t, r.Sources, 1)
-	assert.Equal(t, "https://src.example", r.Sources[0].Url)
-	assert.Equal(t, "Src", r.Sources[0].Title)
+	assert.Equal(t, "https://src.example/hyperion", r.Sources[0].Url)
+	assert.Equal(t, "Hyperion, reviewed", r.Sources[0].Title)
 
 	podcasts := listRecs(t, c, "podcasts", "broaden")
 	require.Len(t, podcasts.Recommendations, 1)
