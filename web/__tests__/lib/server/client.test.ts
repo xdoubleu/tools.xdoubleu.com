@@ -13,6 +13,9 @@ jest.mock('next/headers', () => ({
 // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
 const fakeResponse = { ok: true } as Response
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+const fakeResponse502 = { ok: false, status: 502 } as Response
+
 function mockGlobalFetch() {
   const mockFetch = jest.fn(async () => fakeResponse)
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
@@ -56,6 +59,44 @@ describe('serverFetch', () => {
 
     const [, init] = callArgs(mockFetch)
     expect(new Headers(init.headers).get('cookie')).toBeNull()
+  })
+
+  it('retries on a 502 (api mid-restart) and returns the success response', async () => {
+    const mockFetch = jest
+      .fn()
+      .mockResolvedValueOnce(fakeResponse502)
+      .mockResolvedValueOnce(fakeResponse)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    global.fetch = mockFetch as unknown as typeof fetch
+
+    const res = await serverFetch('')('http://api.test/x')
+
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(res.ok).toBe(true)
+  })
+
+  it('gives up after the bounded retries and returns the last 502', async () => {
+    const mockFetch = jest.fn(async () => fakeResponse502)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    global.fetch = mockFetch as unknown as typeof fetch
+
+    const res = await serverFetch('')('http://api.test/x')
+
+    expect(mockFetch).toHaveBeenCalledTimes(2 + 1)
+    expect(res.status).toBe(502)
+  })
+
+  it('does not retry non-502 failures', async () => {
+    const mockFetch = jest.fn(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+      async () => ({ ok: false, status: 404 }) as Response
+    )
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    global.fetch = mockFetch as unknown as typeof fetch
+
+    await serverFetch('')('http://api.test/x')
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
   })
 })
 

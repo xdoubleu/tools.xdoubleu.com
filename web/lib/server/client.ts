@@ -8,11 +8,23 @@ import { getApiUrl } from '@/lib/env'
 // Server-side ConnectRPC client for RSCs. Unlike lib/client.ts, it forwards
 // the request's Cookie header itself, so the transport is per request.
 
+// kamal-proxy returns 502 while the api container is mid-restart (rolling
+// deploy); the RSC fetch is a read-only prefetch, so retry briefly rather
+// than surface a transient ConnectError in Sentry.
+const retryableStatuses = new Set([502])
+const maxRetries = 2
+const retryDelayMs = 250
+
 export function serverFetch(cookieHeader: string): typeof fetch {
-  return (input, init) => {
+  return async (input, init) => {
     const headers = new Headers(init?.headers)
     if (cookieHeader) headers.set('cookie', cookieHeader)
-    return fetch(input, { ...init, headers, cache: 'no-store' })
+    const request = { ...init, headers, cache: 'no-store' as const }
+    for (let attempt = 0; ; attempt++) {
+      const res = await fetch(input, request)
+      if (!retryableStatuses.has(res.status) || attempt >= maxRetries) return res
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs))
+    }
   }
 }
 
