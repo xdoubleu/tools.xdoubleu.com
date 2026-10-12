@@ -23,8 +23,8 @@ const sections = create(ProfileSectionsSchema, {
   summary: 'You love big ideas.',
   know: ['Space opera'],
   like: ['World-building', 'Slow burns'],
-  drifting: [],
-  bounce: ['Survival games']
+  drifting: ['Toward essays'],
+  bounce: []
 })
 
 const written = create(GetProfileResponseSchema, {
@@ -77,11 +77,18 @@ describe('TasteProfile', () => {
     render(<TasteProfile />)
     expect(screen.getByText('You love big ideas.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'What you know' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'What you like' })).toBeInTheDocument()
     expect(screen.getByText('Slow burns')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Bounce off' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Drifting toward' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Drifting toward' })).toBeInTheDocument()
+    expect(screen.getByText('Toward essays')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Bounce off' })).not.toBeInTheDocument()
     expect(screen.getByText(/Written .* by anthropic\/claude-sonnet-5/)).toBeInTheDocument()
     expect(screen.queryByText(/No profile yet/)).not.toBeInTheDocument()
+    // Nothing failed and no cooldown: no warning, error or wait hint.
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Again after/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled()
   })
 
   it('invites a first refresh', async () => {

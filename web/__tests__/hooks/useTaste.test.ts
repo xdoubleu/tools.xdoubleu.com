@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 
-const mockMutate = jest.fn()
+let mockMutate = jest.fn()
 jest.mock('swr', () => ({
   __esModule: true,
   default: jest.fn(),
@@ -126,6 +126,16 @@ describe('useRefreshTasteProfile', () => {
     await result.current()
     expect(mockClient.refreshProfile).toHaveBeenCalledWith({})
     expect(mockMutate).toHaveBeenCalledWith('/taste/profile')
+  })
+
+  it('uses the current SWR mutate', async () => {
+    const { result, rerender } = renderHook(() => useRefreshTasteProfile())
+    const first = mockMutate
+    mockMutate = jest.fn()
+    rerender()
+    await result.current()
+    expect(mockMutate).toHaveBeenCalledWith('/taste/profile')
+    expect(first).not.toHaveBeenCalled()
   })
 
   it('re-reads nothing when the refresh is refused', async () => {

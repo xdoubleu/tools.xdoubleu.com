@@ -52,7 +52,7 @@ func TestDigest(t *testing.T) {
 	// Strongest first, though Hated is undated and Bounced dated.
 	assert.Contains(t, got, "## games: 3 consumed, 0 liked, 2 disliked\n"+
 		"Disliked:\n- Hated (games, -2 rated 1★)\n"+
-		"- Bounced (games, -1 under an hour played, 2024-10)\n")
+		"- Bounced (games, -1 under an hour played, 2024-10)\n\n## Last 90 days")
 	assert.NotContains(t, got, "## feeds")
 	// Same date, so by title; undated events never count as recent.
 	assert.Contains(t, got, "## Last 90 days:\n- Meh (games, +0 played, 2026-09)\n"+
