@@ -110,7 +110,8 @@ sudo systemctl start release-upgrade-check.service  # trigger manually
 
 **Disk hygiene (`HostDiskHigh`):** `harden.sh` installs `disk-cleanup.timer`
 (weekly) that prunes Docker images and build cache older than 7 days and
-vacuums the journal to 200M; Kamal never prunes superseded images itself.
+vacuums the journal to 200M (also run once on every `harden.sh` apply, so
+merging a change frees space without SSH); Kamal never prunes superseded images itself.
 Container logs are capped at 3×10 MB via `logging:` in the compose files and
 `config/deploy.*.yml` (applies when a container is recreated). To find the top
 consumer when the alert fires: `docker system df`, `du -xhd1 /`.

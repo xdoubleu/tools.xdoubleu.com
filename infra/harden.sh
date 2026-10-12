@@ -131,6 +131,8 @@ EOF
 
 systemctl daemon-reload
 systemctl enable --now disk-cleanup.timer
+# Also run once now: the timer's first weekly fire could be days away.
+systemctl start --no-block disk-cleanup.service
 
 # --- sshd hardening ------------------------------------------------------------
 # Validate before reloading and confirm sshd still listens: a bad reload
