@@ -48,8 +48,10 @@ func TestKoboStorePercent(t *testing.T) {
 	for in, want := range map[float64]int{
 		0: 0, 0.01: 1, 0.49: 1, 0.99: 1, 1.4: 1, 12.6: 13, 100: 100,
 	} {
-		assert.Equal(t, want, koboStorePercent(in), "%v", in)
+		assert.Equal(t, want, koboStorePercent(in, "ReadyToRead"), "%v", in)
 	}
+	assert.Equal(t, 1, koboStorePercent(0, koboStatusReading))
+	assert.Equal(t, 13, koboStorePercent(12.6, koboStatusReading))
 }
 
 func TestKoboStoreOwned(t *testing.T) {

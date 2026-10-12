@@ -3,6 +3,7 @@ package jobs
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
@@ -21,6 +22,17 @@ func securityAlertsJob(
 			vars: nil, varsErr: nil,
 		},
 	}
+}
+
+func TestNewIssueSignalCollectorJobSeedsFetchOK(t *testing.T) {
+	resetGauges()
+	githubSecurityAlertsFetchOK.Set(0)
+
+	emptyStubJob(stubAutomatedActionGetter{firedAt: time.Now(), err: nil, byRoutine: nil})
+
+	// A fresh process has no fetch to have failed yet; the gauge must read 1
+	// so a deploy doesn't pend SecurityAlertsUnreadable before the first run.
+	assert.InDelta(t, 1.0, testutil.ToFloat64(githubSecurityAlertsFetchOK), 0)
 }
 
 func TestCollectSecurityAlertsNoneSeedsZeroSeries(t *testing.T) {

@@ -86,6 +86,7 @@ func (app *Books) buildLibraryData(
 	for i := range library {
 		library[i].Formats = files[library[i].BookID].Formats
 		library[i].FileVersions = files[library[i].BookID].Versions
+		library[i].ReadSuggestion = files[library[i].BookID].ReadSuggestion()
 	}
 
 	var reading, wishlist, finished []models.UserBook

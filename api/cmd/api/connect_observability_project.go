@@ -71,6 +71,7 @@ func (h *obsConnectHandler) projectIssuesByStatus(
 			StatusUpdatedAt:       is.StatusUpdatedAt.Format(time.RFC3339),
 			BodyHasHtmlComment:    is.BodyHasHTMLComment,
 			BodyEditedAfterStatus: is.BodyEditedAfterStatus,
+			Labels:                is.Labels,
 		}
 	}
 	resp.Issues = protoIssues

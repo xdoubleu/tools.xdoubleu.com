@@ -102,18 +102,19 @@ func (s *koboStoreState) toReading(fallbackID string) models.KoboStoreReading {
 	if id == "" {
 		id = fallbackID
 	}
+	status := s.StatusInfo.Status
 	return models.KoboStoreReading{
 		EntitlementID: id,
-		Percent:       koboStorePercent(s.CurrentBookmark.ProgressPercent),
-		Finished:      s.StatusInfo.Status == koboStatusFinished,
+		Percent:       koboStorePercent(s.CurrentBookmark.ProgressPercent, status),
+		Finished:      status == koboStatusFinished,
 		ReadAt:        parseKoboTime(s.CurrentBookmark.LastModified),
 	}
 }
 
 // koboStorePercent rounds the store's fractional percent; any positive
-// progress is at least 1, as the device shows it.
-func koboStorePercent(p float64) int {
-	if p > 0 && p < 1 {
+// progress, or an opened book at 0, is at least 1, as the device shows it.
+func koboStorePercent(p float64, status string) int {
+	if p > 0 && p < 1 || p == 0 && status == koboStatusReading {
 		return 1
 	}
 	return int(math.Round(p))

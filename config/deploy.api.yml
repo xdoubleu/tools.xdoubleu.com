@@ -45,6 +45,14 @@ proxy:
     interval: 10
     timeout: 5
 
+# Docker's default json-file driver never rotates; unbounded container logs
+# fill the VPS disk.
+logging:
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
 env:
   clear:
     ENV: production
@@ -76,6 +84,7 @@ env:
     - STEAM_API_KEY
     - HARDCOVER_API_KEY
     - TMDB_API_KEY
+    - OPENROUTER_API_KEY
     # SNCB GTFS feed key, sent as bmc-partner-key.
     - BMC_PARTNER_KEY
     - R2_ACCOUNT_ID

@@ -345,6 +345,23 @@ jobs:
         env:
           BASE_REF: ${{ github.event_name == 'push' && 'HEAD' || format('origin/{0}', github.base_ref) }}
 
+  # PRs merged off the same base can each pass api-lint's migration check
+  # and collide on main; goose then refuses the duplicate and the api won't
+  # start. BASE_REF=HEAD leaves only the duplicate-version check.
+  migration-versions:
+    name: Migration Versions on Main
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Check migration versions
+        run: ./scripts/check_migration_versions.sh
+        working-directory: './api'
+        env:
+          BASE_REF: HEAD
+
   ci-pass:
     needs:
       [
@@ -443,15 +460,17 @@ jobs:
 
   # The only production deploy. Runs `kamal deploy`, so the host must have been
   # bootstrapped once with `kamal setup` (infra/README.md). Waits for the build
-  # jobs and infra-apply (success-or-skipped). The concurrency group is not
-  # ref-scoped: concurrent `kamal deploy`s on one host fail on the lock or
-  # racing pulls, and cancelling mid-deploy would leave a half-applied release.
+  # jobs and infra-apply (success-or-skipped) and a passing migration-versions.
+  # The concurrency group is not ref-scoped: concurrent `kamal deploy`s on one
+  # host fail on the lock or racing pulls, and cancelling mid-deploy would leave
+  # a half-applied release.
   deploy-kamal:
-    needs: [build-api, build-web, build-grafana, infra-apply]
+    needs: [build-api, build-web, build-grafana, infra-apply, migration-versions]
     if: |
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
+      needs.migration-versions.result == 'success' &&
       (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
       (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
       (needs.build-grafana.result == 'success' || needs.build-grafana.result == 'skipped') &&
@@ -496,6 +515,22 @@ jobs:
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
         run: mkdir -p ~/.ssh && ssh-keyscan "$KAMAL_SERVER_IP" >> ~/.ssh/known_hosts
 
+      # Before either deploy, so a bad key never ships half a release; api
+      # itself only logs one and falls back to an ephemeral key.
+      - name: Validate OAUTH_OIDC_PRIVATE_KEY
+        if: needs.build-api.result == 'success'
+        env:
+          OAUTH_OIDC_PRIVATE_KEY: ${{ secrets.OAUTH_OIDC_PRIVATE_KEY }}
+        run: |
+          if [ -z "$OAUTH_OIDC_PRIVATE_KEY" ]; then
+            echo "::warning::OAUTH_OIDC_PRIVATE_KEY is unset; api will sign ID tokens with an ephemeral key"
+            exit 0
+          fi
+          if ! printf '%s\n' "$OAUTH_OIDC_PRIVATE_KEY" | openssl rsa -check -noout -passin pass: >/dev/null 2>&1; then
+            echo "::error::OAUTH_OIDC_PRIVATE_KEY is not an unencrypted RSA private key in PEM. Re-set it with: openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 | gh secret set OAUTH_OIDC_PRIVATE_KEY --env production"
+            exit 1
+          fi
+
       # Kamal evaluates config/deploy.*.yml as ERB with the env below; --version
       # is the full commit SHA the build jobs tag with.
       # web deploys first (ADR 0001): kamal-proxy needs TLS established by the
@@ -536,6 +571,7 @@ jobs:
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
           HARDCOVER_API_KEY: ${{ secrets.HARDCOVER_API_KEY }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           BMC_PARTNER_KEY: ${{ secrets.BMC_PARTNER_KEY }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -735,6 +771,7 @@ jobs:
         kobo-gateway-test,
         sentrytools-test,
         docs-lint,
+        migration-versions,
         infra-apply,
         deploy-kamal,
       ]

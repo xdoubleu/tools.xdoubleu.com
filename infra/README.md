@@ -108,6 +108,14 @@ systemctl list-timers release-upgrade-check.timer   # confirm scheduled
 sudo systemctl start release-upgrade-check.service  # trigger manually
 ```
 
+**Disk hygiene (`HostDiskHigh`):** `harden.sh` installs `disk-cleanup.timer`
+(weekly) that prunes Docker images and build cache older than 7 days and
+vacuums the journal to 200M (also run once on every `harden.sh` apply, so
+merging a change frees space without SSH); Kamal never prunes superseded images itself.
+Container logs are capped at 3×10 MB via `logging:` in the compose files and
+`config/deploy.*.yml` (applies when a container is recreated). To find the top
+consumer when the alert fires: `docker system df`, `du -xhd1 /`.
+
 ## Stand up Postgres
 
 `null_resource.postgres` uploads `postgres-compose.yml` and a generated `.env`
@@ -166,11 +174,13 @@ Re-applying redeploys the Prometheus accessory; `kamal deploy -c
 config/deploy.grafana.yml` (or a push to `main` touching `infra/grafana/**` or
 `infra/grafana.Dockerfile`) redeploys Grafana.
 
-A systemd unit (`prometheus-compose.service`, installed by
-`prometheus-setup.sh`) keeps the stack up across reboots and after infra-apply
-no-ops, and `DOCKER_GID` is persisted to the project's `.env`, so a plain
-`docker compose up -d` from `/home/deploy/prometheus` (no exported var) is all
-a manual recovery needs.
+`prometheus-compose.timer` (installed by `prometheus-setup.sh`) runs
+`docker compose up -d` on boot and every 2 minutes, so a stopped or removed
+Prometheus recovers within about 2 minutes. `DOCKER_GID` is persisted to the
+project's `.env`, so a plain `docker compose up -d` from
+`/home/deploy/prometheus` (no exported var) is all a manual recovery needs.
+`restart: unless-stopped` alone isn't enough: Docker treats any `docker
+kill`/`stop` as a manual stop and never restarts that container.
 
 **Troubleshooting:** if `prom_query` reports a target `down`, check
 `ssh deploy@<ip> docker ps` for `prometheus`/`postgres-exporter`/`node-exporter`.
@@ -315,6 +325,8 @@ GRAFANA_ADMIN_PASSWORD       (Grafana break-glass admin, GF_SECURITY_ADMIN_PASSW
 STEAM_API_KEY
 HARDCOVER_API_KEY
 TMDB_API_KEY
+OPENROUTER_API_KEY           (taste app LLM stages; a dedicated key with a
+                              credit limit, apart from the routines key)
 BMC_PARTNER_KEY              (SNCB GTFS feed subscription key, trains app;
                               sent as the bmc-partner-key header)
 R2_ACCOUNT_ID

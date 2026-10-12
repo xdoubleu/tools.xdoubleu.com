@@ -62,6 +62,9 @@ var appsToolNames = []string{
 	"movies_get_stats", "movies_get_settings",
 	// podcasts (2)
 	"podcasts_list_favourites", "podcasts_list_episodes",
+	// taste (4)
+	"taste_get_stats", "taste_list_events", "taste_get_profile",
+	"taste_list_recommendations",
 	// observability (20, admin-gated)
 	"get_job_stats", "get_automated_actions", "record_action",
 	"get_usage_stats", "get_storage_stats", "get_database_stats",

@@ -4,6 +4,11 @@ services:
     # restored dump, and its `postgres` role isn't a real superuser.
     image: postgres:17
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     env_file: .env
     ports:
       # Loopback only; use an SSH tunnel (infra/README.md).

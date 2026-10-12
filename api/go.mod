@@ -17,7 +17,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
-	github.com/klippa-app/go-pdfium v1.21.1
+	github.com/klippa-app/go-pdfium v1.21.2
 	github.com/ledongthuc/pdf v0.0.0-20260907135840-6c8c28e0e8a0
 	github.com/mmcdole/gofeed v1.4.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
@@ -25,17 +25,17 @@ require (
 	github.com/pgaskin/kepubify/v4 v4.0.4
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.28.0
-	github.com/prometheus/client_golang v1.23.2
-	github.com/prometheus/client_model v0.6.2
+	github.com/prometheus/client_golang v1.25.0
+	github.com/prometheus/client_model v0.6.3
 	github.com/rs/cors v1.11.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/stretchr/testify v1.12.1
 	github.com/xhit/go-str2duration/v2 v2.1.0
-	golang.org/x/crypto v0.57.0
-	golang.org/x/net v0.59.0
+	golang.org/x/crypto v0.58.0
+	golang.org/x/net v0.60.0
 	golang.org/x/oauth2 v0.37.0
 	golang.org/x/sync v0.24.0
-	golang.org/x/text v0.42.0
+	golang.org/x/text v0.43.0
 	google.golang.org/protobuf v1.36.12
 )
 
@@ -74,7 +74,7 @@ require (
 	github.com/ory/x v0.0.665 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/common v0.66.1 // indirect
+	github.com/prometheus/common v0.72.0 // indirect
 	github.com/prometheus/procfs v0.22.0 // indirect
 	github.com/seatgeek/logrus-gelf-formatter v0.0.0-20210414080842-5b05eb8ff761 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
@@ -100,10 +100,9 @@ require (
 	go.opentelemetry.io/otel/sdk v1.46.0 // indirect
 	go.opentelemetry.io/otel/trace v1.46.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.11.0 // indirect
-	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/tools v0.49.0 // indirect
+	golang.org/x/tools v0.51.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260819154853-08b0e4226688 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260831171406-18b4a7587f8a // indirect
 	google.golang.org/grpc v1.83.2 // indirect
@@ -114,7 +113,7 @@ require (
 	github.com/goddtriffin/helmet v1.0.2
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/joho/godotenv v1.5.1
-	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/time v0.16.0
 )
 

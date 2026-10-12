@@ -81,21 +81,34 @@ func protoUserBook(ub models.UserBook, coverBaseURL string) *booksv1.UserBook {
 	}
 
 	return &booksv1.UserBook{
-		Id:              ub.ID.String(),
-		UserId:          ub.UserID,
-		BookId:          ub.BookID.String(),
-		Book:            protoBook(ub.Book, coverBaseURL),
-		Status:          ub.Status,
-		Tags:            reconcileOwnDigitalTag(ub.Tags, ub.Formats),
-		Formats:         ub.Formats,
-		FileVersions:    ub.FileVersions,
-		Rating:          int32PtrFromInt16(ub.Rating),
-		FinishedAt:      finishedAt,
-		ProgressMode:    ub.ProgressMode,
-		CurrentPage:     int32FromInt(ub.CurrentPage),
-		ProgressPercent: int32FromInt(ub.ProgressPercent),
-		AddedAt:         ub.AddedAt.Format(time.RFC3339),
-		UpdatedAt:       ub.UpdatedAt.Format(time.RFC3339),
+		Id:                ub.ID.String(),
+		UserId:            ub.UserID,
+		BookId:            ub.BookID.String(),
+		Book:              protoBook(ub.Book, coverBaseURL),
+		Status:            ub.Status,
+		Tags:              reconcileOwnDigitalTag(ub.Tags, ub.Formats),
+		Formats:           ub.Formats,
+		FileVersions:      ub.FileVersions,
+		ReadSuggestion:    protoReadSuggestion(ub.ReadSuggestion),
+		Rating:            int32PtrFromInt16(ub.Rating),
+		FinishedAt:        finishedAt,
+		ProgressMode:      ub.ProgressMode,
+		CurrentPage:       int32FromInt(ub.CurrentPage),
+		ProgressPercent:   int32FromInt(ub.ProgressPercent),
+		PhysicalPageCount: int32FromIntPtr(ub.PhysicalPageCount),
+		AddedAt:           ub.AddedAt.Format(time.RFC3339),
+		UpdatedAt:         ub.UpdatedAt.Format(time.RFC3339),
+	}
+}
+
+func protoReadSuggestion(s *models.ReadSuggestion) *booksv1.ReadSuggestion {
+	if s == nil {
+		return nil
+	}
+	return &booksv1.ReadSuggestion{
+		Format:      s.Format,
+		FigureCount: int32FromInt(s.FigureCount),
+		Pages:       int32FromInt(s.Pages),
 	}
 }
 

@@ -84,10 +84,14 @@ func (s *BookService) mirrorKoboStoreReading(
 	if ub == nil {
 		return models.KoboStoreNoMatch, nil
 	}
+	// Read on the Kobo, the match is digital whether or not it's owned.
 	if *sb.Owned {
-		if err = s.markKoboStoreOwned(ctx, userID, ub); err != nil {
-			return models.KoboStoreUnrecorded, err
-		}
+		err = s.markKoboStoreOwned(ctx, userID, ub)
+	} else {
+		err = s.useKoboStorePercentMode(ctx, userID, ub)
+	}
+	if err != nil {
+		return models.KoboStoreUnrecorded, err
 	}
 	if reading.Percent <= 0 {
 		return models.KoboStoreNoProgress, nil
@@ -167,9 +171,8 @@ func (s *BookService) matchKoboStoreBook(
 	), nil
 }
 
-// markKoboStoreOwned tags ub own-bol and, as a store book is digital, moves
-// it to percent mode unless it has page progress or a physical copy. A nil ub
-// is a no-op.
+// markKoboStoreOwned tags ub own-bol and moves it to percent mode (see
+// useKoboStorePercentMode). A nil ub is a no-op.
 func (s *BookService) markKoboStoreOwned(
 	ctx context.Context,
 	userID string,
@@ -184,6 +187,16 @@ func (s *BookService) markKoboStoreOwned(
 		}
 		ub.Tags = append(ub.Tags, models.TagOwnBol)
 	}
+	return s.useKoboStorePercentMode(ctx, userID, ub)
+}
+
+// useKoboStorePercentMode moves a store book's match to percent mode, as it's
+// digital, unless it has page progress or a physical copy.
+func (s *BookService) useKoboStorePercentMode(
+	ctx context.Context,
+	userID string,
+	ub *models.UserBook,
+) error {
 	if ub.ProgressMode != models.ProgressModePages || ub.CurrentPage > 0 ||
 		ub.HasTag(models.TagOwnPhysical) {
 		return nil

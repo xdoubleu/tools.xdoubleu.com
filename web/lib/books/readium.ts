@@ -45,6 +45,20 @@ export function tocItems(links: readonly Link[] | undefined): ReaderTocItem[] {
 
 const stripFragment = (href: string) => href.split('#')[0]!
 
+/** The TOC entry for a whole section file (no fragment), depth-first, if any. */
+export function sectionStartEntry(
+  links: readonly Link[] | undefined,
+  href: string
+): Link | undefined {
+  const target = stripFragment(href)
+  for (const l of links ?? []) {
+    if (l.href === target) return l
+    const nested = sectionStartEntry(l.children?.items, href)
+    if (nested) return nested
+  }
+  return undefined
+}
+
 /** The zip-root path of a manifest href, as stored in neutral positions. */
 function zipPath(href: string): string {
   return stripFragment(href).replace(RESOURCE_PREFIX, '')

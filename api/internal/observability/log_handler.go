@@ -37,7 +37,7 @@ func (h *LogRepoHandler) Handle(ctx context.Context, record slog.Record) error {
 func (h *LogRepoHandler) insertBestEffort(record slog.Record) {
 	attrs := map[string]any{}
 	record.Attrs(func(a slog.Attr) bool {
-		attrs[a.Key] = a.Value.Any()
+		attrs[a.Key] = jsonValue(a.Value)
 		return true
 	})
 
@@ -56,6 +56,23 @@ func (h *LogRepoHandler) insertBestEffort(record slog.Record) {
 		Message:    record.Message,
 		AttrsJSON:  attrsJSON,
 	})
+}
+
+// jsonValue converts v into something json.Marshal renders faithfully: errors
+// marshal to {} and groups to Key/Value pairs otherwise.
+func jsonValue(v slog.Value) any {
+	v = v.Resolve()
+	if v.Kind() == slog.KindGroup {
+		group := map[string]any{}
+		for _, a := range v.Group() {
+			group[a.Key] = jsonValue(a.Value)
+		}
+		return group
+	}
+	if err, ok := v.Any().(error); ok {
+		return err.Error()
+	}
+	return v.Any()
 }
 
 func (h *LogRepoHandler) WithAttrs(attrs []slog.Attr) slog.Handler {

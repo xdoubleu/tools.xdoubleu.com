@@ -305,6 +305,7 @@ func resetGauges() {
 	automatedActionRoutinePaused.Reset()
 	automatedActionLastRun.Reset()
 	sentryUnresolvedIssues.Set(0)
+	sentryUnresolvedFetchOK.Set(0)
 	transactionP95Seconds.Reset()
 }
 

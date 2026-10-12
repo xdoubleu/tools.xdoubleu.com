@@ -16,7 +16,7 @@ one incident. Read-mostly plus issue filing — no code fixes; those go through
    symptom and the app isn't obvious, ask which — don't read the wrong app's
    logs.
 
-2. **Gather evidence** via MCP: `get_logs` (source/level/since),
+2. **Gather evidence** via MCP: `get_logs` (source, min_level, since/until, contains),
    `get_job_stats`, `prom_query` (host, Postgres, `/metrics` latency
    histograms), `get_grafana_alerts`, `get_sentry_issues`,
    `get_slow_transactions`, `get_database_stats`, `get_workflow_runs`.

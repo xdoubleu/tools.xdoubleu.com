@@ -33,6 +33,23 @@ describe('scrubPostHogEvent', () => {
     expect(out?.properties.other).toBe('https://x.test/?token=kept')
   })
 
+  it('keeps element attribution on dead clicks', () => {
+    const event: CaptureResult = {
+      uuid: 'u',
+      event: '$dead_click',
+      properties: {
+        $current_url: 'https://x.test/trains',
+        $el_text: 'Live',
+        $elements: [{ tag_name: 'button', $el_text: 'Live' }]
+      }
+    }
+
+    const out = scrubPostHogEvent(event)
+
+    expect(out?.properties.$el_text).toBe('Live')
+    expect(out?.properties.$elements).toEqual([{ tag_name: 'button', $el_text: 'Live' }])
+  })
+
   it('passes a dropped event through', () => {
     expect(scrubPostHogEvent(null)).toBeNull()
   })

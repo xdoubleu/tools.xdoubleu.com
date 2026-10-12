@@ -60,6 +60,9 @@ type moviesStore interface {
 		ctx context.Context, userID string, entryID uuid.UUID, watchedAt []*time.Time,
 	) error
 	Stats(ctx context.Context, userID string) (*models.Stats, error)
+	SeasonWatchSummaries(
+		ctx context.Context, userID string,
+	) (map[uuid.UUID]models.SeasonWatchSummary, error)
 	ReplaceProviders(
 		ctx context.Context, titleID uuid.UUID, providers []models.Provider,
 	) error
@@ -335,6 +338,15 @@ func (s *MovieService) Stats(
 	userID string,
 ) (*models.Stats, error) {
 	return s.repo.Stats(ctx, userID)
+}
+
+// SeasonWatchSummaries condenses each of the user's series' season watches,
+// keyed by entry id.
+func (s *MovieService) SeasonWatchSummaries(
+	ctx context.Context,
+	userID string,
+) (map[uuid.UUID]models.SeasonWatchSummary, error) {
+	return s.repo.SeasonWatchSummaries(ctx, userID)
 }
 
 // backfillProviders fetches a title stored before providers were. A TMDB

@@ -59,7 +59,7 @@ jobs:
     steps:
       # Audit mode logs every outbound host to StepSecurity; switch to
       # egress-policy: block with an allowed-endpoints list once known.
-      - uses: step-security/harden-runner@351661ca32ac09a36dc5ee2d536e3128f2a3c8ed # v2.22.0
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
 
@@ -87,7 +87,7 @@ jobs:
         with:
           go-version-file: './api/go.mod'
           cache-dependency-path: './api/go.sum'
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: './web/package.json'
 
@@ -108,6 +108,17 @@ jobs:
         run: |
           scripts/routine_sandbox_setup.sh "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/routine-bin" >> "$GITHUB_PATH"
+
+      # So make -C api lint/migrations runs under routine-sandbox. A venv, as
+      # the system Python is externally managed; ~/.local/bin leads its PATH.
+      # Keep the version in step with api/Makefile.
+      - name: Install sqlfluff for the sandbox
+        run: |
+          cd /
+          sudo -n -u routine-sandbox -H bash -c 'python3 -m venv ~/.local/sqlfluff \
+            && ~/.local/sqlfluff/bin/pip install -q sqlfluff==4.3.0 \
+            && mkdir -p ~/.local/bin \
+            && ln -sf ~/.local/sqlfluff/bin/sqlfluff ~/.local/bin/sqlfluff'
 
       - name: Mint MCP token (client_credentials)
         id: mcp-token

@@ -180,6 +180,7 @@ message ProjectIssue {
   string status_updated_at = 7;   // RFC3339
   bool body_has_html_comment = 8;
   bool body_edited_after_status = 9;
+  repeated string labels = 10;
 }
 
 // GetProjectIssuesByStatusRequest finds issues on the owner's Projects (v2)
@@ -336,12 +337,13 @@ message LogEntry {
   string attrs_json = 5;  // opaque JSON, empty if there were no attrs
 }
 
-// GetLogsRequest filters global.log_entries; empty source/min_level means
-// any.
+// GetLogsRequest filters global.log_entries; empty fields match any.
 message GetLogsRequest {
   string source = 1;
-  string min_level = 2;
-  string since = 3;  // RFC3339
+  string min_level = 2;  // at least DEBUG < INFO < WARN < ERROR
+  string since = 3;      // RFC3339, inclusive
+  string until = 4;      // RFC3339, exclusive
+  string contains = 5;   // case-insensitive substring of message or attrs
 }
 
 message GetLogsResponse {

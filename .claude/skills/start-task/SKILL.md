@@ -35,6 +35,13 @@ Reset in place: confirm `git status --porcelain` is clean (else `git stash
 push -u -m <tag>`), then `git fetch origin main && git checkout -B
 <new-branch> origin/main`.
 
+**Actions routine (`GITHUB_ACTIONS` set):** no worktree. The sandbox user
+can't write under `.claude/`, so `routine-sandbox npm ci` fails in
+`.claude/worktrees/`, and the edit guard is off here. Work in the runner's
+checkout (clean tree first; each issue in the run repeats this):
+`git fetch origin main && git checkout -B <new-branch> origin/main`. Never
+grant the sandbox write access to `.claude/` with `setfacl`.
+
 **OpenCode only:** create the worktree under `<repo>/.claude/worktrees/` (the
 `PreToolUse` edit guard only accepts edits there — a worktree at a sibling
 path gets the first edit rejected), then re-point the session with

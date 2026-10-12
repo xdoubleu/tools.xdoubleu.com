@@ -18,12 +18,23 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// putStoreState PUTs a store book's reading state at percent.
+// putStoreState PUTs a store book's Reading state at percent.
 func putStoreState(
 	t *testing.T,
 	ts *httptest.Server,
 	rawToken, storeID string,
 	percent float64,
+) {
+	t.Helper()
+	putStoreStateStatus(t, ts, rawToken, storeID, percent, "Reading")
+}
+
+func putStoreStateStatus(
+	t *testing.T,
+	ts *httptest.Server,
+	rawToken, storeID string,
+	percent float64,
+	status string,
 ) {
 	t.Helper()
 	body, err := json.Marshal(map[string]any{"ReadingStates": []map[string]any{{
@@ -32,7 +43,7 @@ func putStoreState(
 			"ProgressPercent": percent,
 			"LastModified":    time.Now().UTC().Format(time.RFC3339),
 		},
-		"StatusInfo": map[string]any{"Status": "Reading"},
+		"StatusInfo": map[string]any{"Status": status},
 	}}})
 	require.NoError(t, err)
 	resp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
@@ -98,7 +109,7 @@ func TestKoboPutState_StoreBook_RecordsMirrorOutcome(t *testing.T) {
 	putStoreState(t, ts, rawToken, storeID, 10)
 	eventuallyStoreOutcome(t, storeID, models.KoboStoreNotNewer)
 
-	putStoreState(t, ts, rawToken, storeID, 0)
+	putStoreStateStatus(t, ts, rawToken, storeID, 0, "ReadyToRead")
 	got = eventuallyStoreOutcome(t, storeID, models.KoboStoreNoProgress)
 	assert.EqualValues(t, 0, *got.LastPercent)
 
@@ -125,6 +136,27 @@ func TestKoboPutState_StoreBook_FractionalPercentMirrors(t *testing.T) {
 	require.NotNil(t, got.LastPercent)
 	assert.EqualValues(t, 1, *got.LastPercent)
 	eventuallyPercent(t, userID, bookID, 1)
+}
+
+// TestKoboPutState_OpenedStoreBook_MirrorsOnePercentInPercentMode: a store
+// book of unknown ownership, opened on the Kobo at 0%, mirrors as 1% and
+// moves to percent mode without being tagged owned.
+func TestKoboPutState_OpenedStoreBook_MirrorsOnePercentInPercentMode(t *testing.T) {
+	owner := "kobo-store-opened-" + uuid.NewString()
+	isbn := testISBN(owner)
+	bookID := addStoreLibraryBook(t, owner, "Opened "+owner, isbn, "Some Author")
+
+	upstream := koboStoreUpstream(t, nil, []any{
+		map[string]any{"Title": "Opened", "Isbn": isbn},
+	})
+	ts := httptest.NewServer(getRoutesWithKoboUpstream(t, upstream.URL))
+	t.Cleanup(ts.Close)
+
+	putStoreState(t, ts, registerTestDevice(t, owner), uuid.NewString(), 0)
+
+	eventuallyPercent(t, owner, bookID, 1)
+	assert.Equal(t, models.ProgressModePercent, progressMode(t, owner, bookID))
+	assert.False(t, hasOwnBol(t, owner, bookID))
 }
 
 // TestKoboPutState_UnmatchedStoreBook_RecordsNoMatch: a store book with no

@@ -5,6 +5,7 @@ import {
   BookReadingStateDataSchema,
   BookShelfSchema,
   GetLibraryResponseSchema,
+  GetPhysicalCopyResponseSchema,
   GetReadingStateResponseSchema,
   LibraryService,
   type LibraryResponse,
@@ -263,6 +264,23 @@ export const updateReadingProgressWrite = defineOfflineWrite({
   keepalive: true
 })
 
+/** A physical copy's details, and the library's page count from them. */
+export const updatePhysicalCopyWrite = defineOfflineWrite({
+  method: library.updatePhysicalCopy,
+  apply: (key, data, req) => {
+    if (isMessage(data, GetPhysicalCopyResponseSchema)) {
+      const own = JSON.stringify(key) === JSON.stringify(swrKeys.physicalCopy(req.bookId))
+      return own ? { ...data, copy: req.copy } : data
+    }
+    return onBook(key, data, req.bookId, (ub) => ({
+      ...ub,
+      physicalPageCount: req.copy?.pageCount ?? 0
+    }))
+  },
+  describe: () => 'Edit a book’s physical copy',
+  revalidate: REVALIDATE
+})
+
 export const bookWrites = [
   updateBookStatusWrite,
   updateFinishedAtWrite,
@@ -271,5 +289,6 @@ export const bookWrites = [
   removeBookWrite,
   setBookISBNWrite,
   updateBookWrite,
-  updateReadingProgressWrite
+  updateReadingProgressWrite,
+  updatePhysicalCopyWrite
 ]

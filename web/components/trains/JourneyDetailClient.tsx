@@ -1,7 +1,7 @@
 'use client'
 
 import { PageContainer } from '@/components/ui/page-container'
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import JourneyLegCard from '@/components/trains/JourneyLegCard'
@@ -26,9 +26,15 @@ export default function JourneyDetailClient({ journeyId }: { journeyId: string }
         title="Journey"
         breadcrumb={[{ label: 'Trains', href: '/trains' }, { label: 'Journey' }]}
         actions={
-          <Badge variant={connected ? 'success' : 'secondary'}>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="min-h-11"
+            aria-label="Refresh live status"
+            onClick={() => mutate()}
+          >
             {connected ? 'Live' : 'Reconnecting…'}
-          </Badge>
+          </Button>
         }
       />
 

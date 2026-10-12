@@ -1,0 +1,215 @@
+syntax = "proto3";
+package taste.v1;
+option go_package = "tools.xdoubleu.com/gen/taste/v1;tastev1";
+
+// One consumed item. Signal is engagement normalized within its domain, from
+// -2 (strong negative) to 2 (strong positive).
+message Event {
+  // books, feeds, games, movies, series or podcasts.
+  string domain = 1;
+  // The owning app's id for the item.
+  string item_id = 2;
+  string title = 3;
+  // Author, feed or show author; empty when the domain has none.
+  string creator = 4;
+  repeated string tags = 5;
+  // RFC3339; empty when the date is unknown.
+  string at = 6;
+  int32 signal = 7;
+  // Why the item got its signal, e.g. "rated 5★".
+  string reason = 8;
+}
+
+message DomainStats {
+  string domain = 1;
+  int32 consumed = 2;
+  int32 positive = 3;
+  int32 negative = 4;
+  // RFC3339 of the latest dated event; empty without one.
+  string last_at = 5;
+}
+
+message DomainCount {
+  string domain = 1;
+  int32 count = 2;
+}
+
+message MonthCounts {
+  // YYYY-MM, in Europe/Brussels.
+  string month = 1;
+  // Domains with no events that month are omitted.
+  repeated DomainCount counts = 2;
+}
+
+// A tag or creator ranked by how many items with it got a positive signal.
+message RankedName {
+  string name = 1;
+  int32 positive = 2;
+  repeated string domains = 3;
+}
+
+message GetStatsRequest {}
+message GetStatsResponse {
+  // Every domain, in display order, including empty ones.
+  repeated DomainStats domains = 1;
+  // This month and the 11 before it, oldest first; dated events only.
+  repeated MonthCounts months = 2;
+  // Top 15 each.
+  repeated RankedName top_tags = 3;
+  repeated RankedName top_creators = 4;
+  // Per domain and track that has any hit or miss, in display order.
+  repeated HitRate hit_rates = 5;
+}
+
+// How a domain and track's picks landed: hits / (hits + misses).
+message HitRate {
+  string domain = 1;
+  string track = 2;
+  int32 hits = 3;
+  int32 misses = 4;
+}
+
+message ListEventsRequest {
+  // Empty for every domain.
+  string domain = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message ListEventsResponse {
+  // Newest first; undated events last.
+  repeated Event events = 1;
+  bool has_more = 2;
+}
+
+// The LLM-written profile; lists hold short bullets.
+message ProfileSections {
+  string summary = 1;
+  // What the user knows well.
+  repeated string know = 2;
+  // What reliably works for them.
+  repeated string like = 3;
+  // Where their taste moved recently.
+  repeated string drifting = 4;
+  // What they tend to drop or dislike.
+  repeated string bounce = 5;
+}
+
+message GetProfileRequest {}
+message GetProfileResponse {
+  // False while no OpenRouter key is set; nothing else is then filled.
+  bool configured = 1;
+  // Unset before the first successful generation.
+  ProfileSections sections = 2;
+  // The model that wrote it.
+  string model = 3;
+  // RFC3339; empty before the first generation.
+  string generated_at = 4;
+  // A regeneration is queued or running.
+  bool pending = 5;
+  // Why the last generation failed; empty when it succeeded.
+  string last_error = 6;
+  // RFC3339 from when RefreshProfile is accepted again; empty when now.
+  string next_refresh_at = 7;
+}
+
+// Queues regenerating the profile and then the picks; RESOURCE_EXHAUSTED within 6 hours of the last
+// request, FAILED_PRECONDITION without an OpenRouter key.
+message RefreshProfileRequest {}
+message RefreshProfileResponse {}
+
+// A web page the generator cited.
+message Source {
+  string url = 1;
+  string title = 2;
+}
+
+// A verified, judged pick.
+message Recommendation {
+  string id = 1;
+  // books, feeds, games, movies, series or podcasts.
+  string domain = 2;
+  // "more" (more of what you like) or "broaden" (broaden your horizon).
+  string track = 3;
+  string title = 4;
+  string creator = 5;
+  // 0 when unknown.
+  int32 year = 6;
+  // The catalog or site page.
+  string url = 7;
+  string image_url = 8;
+  // One sentence on why it fits.
+  string why = 9;
+  // Pages the generator cited while proposing this run's picks.
+  repeated Source sources = 10;
+  // The judge's 0-100 score, plus the services bonus.
+  int32 score = 11;
+  // hit, miss, not_interested, known (already knew it), or empty.
+  string feedback = 12;
+  bool saved = 13;
+  // Added to the books or movies backlog.
+  bool accepted = 14;
+  // A movie or series streaming on one of the user's services.
+  bool on_my_services = 15;
+  // RFC3339 of the run that made it.
+  string generated_at = 16;
+  // AcceptRecommendation adds it to the books or movies backlog; otherwise
+  // it saves it.
+  bool can_accept = 17;
+}
+
+message ListRecommendationsRequest {
+  // Empty for every domain.
+  string domain = 1;
+  // Empty for both tracks.
+  string track = 2;
+  // Every saved pick, from any run, instead of the latest run's.
+  bool saved_only = 3;
+}
+message ListRecommendationsResponse {
+  // Best first.
+  repeated Recommendation recommendations = 1;
+  // RFC3339 of the last successful run; empty before the first.
+  string generated_at = 2;
+  // Why the last run failed; empty when it succeeded.
+  string last_error = 3;
+}
+
+// Feedback on a pick; empty clears it.
+message SetFeedbackRequest {
+  string id = 1;
+  string feedback = 2;
+}
+message SetFeedbackResponse {
+  Recommendation recommendation = 1;
+}
+
+message SetSavedRequest {
+  string id = 1;
+  bool saved = 2;
+}
+message SetSavedResponse {
+  Recommendation recommendation = 1;
+}
+
+// Adds a book to the to-read shelf or a movie or series to the backlog as
+// want; any other pick is saved instead.
+message AcceptRecommendationRequest {
+  string id = 1;
+}
+message AcceptRecommendationResponse {
+  Recommendation recommendation = 1;
+}
+
+// The caller's consumption log across every app; per user, never shared.
+service TasteService {
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc RefreshProfile(RefreshProfileRequest) returns (RefreshProfileResponse);
+  rpc ListRecommendations(ListRecommendationsRequest)
+    returns (ListRecommendationsResponse);
+  rpc SetFeedback(SetFeedbackRequest) returns (SetFeedbackResponse);
+  rpc SetSaved(SetSavedRequest) returns (SetSavedResponse);
+  rpc AcceptRecommendation(AcceptRecommendationRequest)
+    returns (AcceptRecommendationResponse);
+}

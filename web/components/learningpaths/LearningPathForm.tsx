@@ -100,6 +100,7 @@ export default function LearningPathForm({
       : [emptyResource()]
   )
   // pickingBook is the module/item index whose "Link book" search is open.
+  const [saving, setSaving] = useState(false)
   const [pickingBook, setPickingBook] = useState<{ m: number; i: number } | null>(null)
 
   const createLearningPath = useCreateLearningPath()
@@ -210,6 +211,8 @@ export default function LearningPathForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (saving) return
+    setSaving(true)
     try {
       const modulePayload = modules
         .filter((m) => m.title.trim())
@@ -257,6 +260,7 @@ export default function LearningPathForm({
       onSave(savedId)
     } catch (err) {
       console.error('Failed to save learning path:', err)
+      setSaving(false)
     }
   }
 
@@ -469,10 +473,16 @@ export default function LearningPathForm({
       </div>
 
       <div className="flex gap-2">
-        <Button type="submit" className="flex-1">
-          Save Learning Path
+        <Button type="submit" disabled={saving} className="flex-1">
+          {saving ? 'Saving…' : 'Save Learning Path'}
         </Button>
-        <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onCancel}
+          disabled={saving}
+          className="flex-1"
+        >
           Cancel
         </Button>
       </div>

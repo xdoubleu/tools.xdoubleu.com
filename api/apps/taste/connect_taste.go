@@ -1,0 +1,179 @@
+package taste
+
+import (
+	"context"
+	"time"
+
+	"connectrpc.com/connect/v2"
+
+	"tools.xdoubleu.com/apps/taste/internal/services"
+	tastev1 "tools.xdoubleu.com/gen/taste/v1"
+	"tools.xdoubleu.com/gen/taste/v1/tastev1connect"
+	"tools.xdoubleu.com/internal/connecttools"
+	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/mcptools"
+	sharedmodels "tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/pagination"
+)
+
+type tasteConnectHandler struct {
+	app *Taste
+}
+
+var _ tastev1connect.TasteServiceHandler = (*tasteConnectHandler)(nil)
+
+func userID(ctx context.Context) (string, error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return "", connect.NewError(
+			connect.CodeUnauthenticated, "user not authenticated",
+		)
+	}
+	return user.ID, nil
+}
+
+// canAccess reports whether the caller may read an app, so taste never
+// surfaces an app's data to someone without access to it.
+func canAccess(ctx context.Context) func(appName string) bool {
+	return func(appName string) bool {
+		return mcptools.RequireAppAccess(ctx, appName) == nil
+	}
+}
+
+func (h *tasteConnectHandler) GetStats(
+	ctx context.Context,
+	_ *tastev1.GetStatsRequest,
+) (*tastev1.GetStatsResponse, error) {
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	events, err := h.app.log.Events(ctx, uid, canAccess(ctx))
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	rates, err := h.app.picks.HitRates(ctx, uid)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	out := protoStats(services.BuildStats(events, time.Now()))
+	access := canAccess(ctx)
+	for _, r := range rates {
+		if access(services.AppOf(consumption.Domain(r.Domain))) {
+			out.HitRates = append(out.HitRates, &tastev1.HitRate{
+				Domain: r.Domain, Track: r.Track,
+				Hits: count32(r.Hits), Misses: count32(r.Misses),
+			})
+		}
+	}
+	return out, nil
+}
+
+func (h *tasteConnectHandler) ListEvents(
+	ctx context.Context,
+	req *tastev1.ListEventsRequest,
+) (*tastev1.ListEventsResponse, error) {
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	domain := consumption.Domain(req.Domain)
+	if domain != "" && !services.IsDomain(domain) {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument, "unknown domain",
+		)
+	}
+	if req.Offset < 0 {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument, "offset must not be negative",
+		)
+	}
+	events, err := h.app.log.Events(ctx, uid, canAccess(ctx))
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	events = services.Filter(events, domain)
+
+	limit, _ := pagination.Clamp(req.Limit)
+	start := min(int(req.Offset), len(events))
+	end := min(start+limit, len(events))
+	page := events[start:end]
+	out := make([]*tastev1.Event, 0, len(page))
+	for _, e := range page {
+		out = append(out, protoEvent(e))
+	}
+	return &tastev1.ListEventsResponse{
+		Events: out, HasMore: end < len(events),
+	}, nil
+}
+
+func protoEvent(e consumption.Event) *tastev1.Event {
+	return &tastev1.Event{
+		Domain:  string(e.Domain),
+		ItemId:  e.ItemID,
+		Title:   e.Title,
+		Creator: e.Creator,
+		Tags:    e.Tags,
+		At:      formatTime(e.At),
+		Signal:  int32(e.Signal), //nolint:gosec // -2..2
+		Reason:  e.Reason,
+	}
+}
+
+func protoStats(s services.Stats) *tastev1.GetStatsResponse {
+	domains := make([]*tastev1.DomainStats, len(s.Domains))
+	for i, d := range s.Domains {
+		domains[i] = &tastev1.DomainStats{
+			Domain:   string(d.Domain),
+			Consumed: count32(d.Consumed),
+			Positive: count32(d.Positive),
+			Negative: count32(d.Negative),
+			LastAt:   formatTime(d.LastAt),
+		}
+	}
+	months := make([]*tastev1.MonthCounts, len(s.Months))
+	for i, m := range s.Months {
+		var counts []*tastev1.DomainCount
+		for _, d := range consumption.Domains() {
+			if n := m.Counts[d]; n > 0 {
+				counts = append(counts, &tastev1.DomainCount{
+					Domain: string(d), Count: count32(n),
+				})
+			}
+		}
+		months[i] = &tastev1.MonthCounts{Month: m.Month, Counts: counts}
+	}
+	return &tastev1.GetStatsResponse{
+		Domains:     domains,
+		Months:      months,
+		TopTags:     protoRanked(s.TopTags),
+		TopCreators: protoRanked(s.TopCreators),
+	}
+}
+
+func protoRanked(names []services.RankedName) []*tastev1.RankedName {
+	out := make([]*tastev1.RankedName, len(names))
+	for i, n := range names {
+		domains := make([]string, len(n.Domains))
+		for j, d := range n.Domains {
+			domains[j] = string(d)
+		}
+		out[i] = &tastev1.RankedName{
+			Name: n.Name, Positive: count32(n.Positive), Domains: domains,
+		}
+	}
+	return out
+}
+
+func formatTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.UTC().Format(time.RFC3339)
+}
+
+func count32(n int) int32 {
+	return int32(n) //nolint:gosec // a user's item counts fit in int32
+}

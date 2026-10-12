@@ -1,6 +1,8 @@
 // SWR cache keys. Readers and mutate() calls must both use these: SWR
 // serializes keys, so drift silently breaks revalidation.
 
+const tasteRecommendations = '/taste/recommendations'
+
 export const swrKeys = {
   currentUser: '/auth/current-user',
   userManagementUsers: '/user-management/users',
@@ -50,6 +52,7 @@ export const swrKeys = {
   kepubStatus: (bookId: string) => ['/books/kepub-status', bookId] as const,
   bookContent: (bookId: string) => ['/books/content', bookId] as const,
   readingState: (bookId: string) => ['/books/reading-state', bookId] as const,
+  physicalCopy: (bookId: string) => ['/books/physical-copy', bookId] as const,
   externalBook: (provider: string, providerId: string) =>
     ['/books/external', provider, providerId] as const,
   bookSeries: (name: string) => ['/books/series', name] as const,
@@ -100,6 +103,13 @@ export const swrKeys = {
   podcastsFavourites: '/podcasts/favourites',
   podcastsEpisodes: '/podcasts/episodes',
   podcastsSearch: (query: string) => ['/podcasts/search', query] as const,
+
+  tasteStats: '/taste/stats',
+  tasteProfile: '/taste/profile',
+  tasteRecommendationsPrefix: tasteRecommendations,
+  tasteRecommendations: (domain: string, track: string) =>
+    [tasteRecommendations, domain, track] as const,
+  tasteEvents: (domain: string) => ['/taste/events', domain] as const,
 
   shoppingList: (ownerUserId: string) => `/shoppinglist?owner=${ownerUserId}`,
   shoppingListExport: (planId: string, excludedGroups: readonly string[]) =>

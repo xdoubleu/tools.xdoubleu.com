@@ -37,6 +37,7 @@ type Books struct {
 	jobQueue       *jobqueue.JobQueue
 	resyncBooksJob *jobs.ResyncMetadataJob
 	storageScanJob *jobs.StorageScanJob
+	figuresJob     *jobs.FigureAnalysisJob
 }
 
 func New(
@@ -129,6 +130,7 @@ func NewInner(
 		a.Repositories.BookFiles,
 		sharedrepos.NewStorageSnapshotsRepository(db),
 	)
+	a.figuresJob = jobs.NewFigureAnalysisJob(a.Services.Figures)
 
 	return a
 }
@@ -144,6 +146,12 @@ func (a *Books) Start() error {
 	noop := func(_ string, _ bool, _ *time.Time) {}
 	if err := a.jobQueue.AddJob(
 		observability.NewTrackedJob(a.storageScanJob, a.db),
+		noop,
+	); err != nil {
+		return err
+	}
+	if err := a.jobQueue.AddJob(
+		observability.NewTrackedJob(a.figuresJob, a.db),
 		noop,
 	); err != nil {
 		return err

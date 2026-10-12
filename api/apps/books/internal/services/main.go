@@ -19,7 +19,9 @@ type Services struct {
 	Auth       auth.Service
 	Books      *BookService
 	Conversion *ConversionService
+	Figures    *FigureService
 	Positions  *PositionService
+	Physical   *PhysicalService
 	Progress   *ProgressService
 	Kobo       *KoboService
 	KoboLog    *KoboLogStore
@@ -57,6 +59,7 @@ func New(
 		resyncSource: repositories.Books,
 		coverClient:  newCoverClient(config.Env),
 		seriesCache:  newSeriesCache(),
+		physical:     nil, // set once the position service exists
 	}
 
 	conversionSvc := NewConversionService(
@@ -74,18 +77,25 @@ func New(
 		webFetchClient,
 	)
 
+	positions := newPositionService(
+		logger, repositories.BookFiles, objectStore, translateBudget,
+	)
+	booksSvc.physical = newPhysicalService(
+		logger, repositories.Books, repositories.ReadingState, positions,
+	)
+
 	return &Services{
 		Auth:       authService,
 		Books:      booksSvc,
 		Conversion: conversionSvc,
-		Positions: newPositionService(
-			logger, repositories.BookFiles, objectStore, translateBudget,
-		),
-		Progress: NewProgressService(repositories.Progress),
-		Kobo:     kobo,
-		KoboLog:  koboLog,
-		Ingest:   ingestSvc,
-		WebPub:   newWebPubService(booksSvc),
+		Figures:    NewFigureService(logger, repositories.BookFiles, objectStore),
+		Positions:  positions,
+		Physical:   booksSvc.physical,
+		Progress:   NewProgressService(repositories.Progress),
+		Kobo:       kobo,
+		KoboLog:    koboLog,
+		Ingest:     ingestSvc,
+		WebPub:     newWebPubService(booksSvc),
 		WebSocket: progressws.NewService(
 			ctx,
 			logger,

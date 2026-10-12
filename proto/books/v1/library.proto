@@ -43,6 +43,20 @@ message UserBook {
   // Format (incl. kepub) -> version of the file GetBookFile serves; changes
   // when that file is replaced or reconverted.
   map<string, string> file_versions = 16;
+  // Unset until the deciding file's figures are analysed.
+  ReadSuggestion read_suggestion = 17;
+  // The physical copy's page count; 0 falls back to the catalog's.
+  int32 physical_page_count = 18;
+}
+
+// ReadSuggestion recommends a format, and with it a device, from the figure
+// density of the book's PDF (else its EPUB).
+message ReadSuggestion {
+  // "pdf" (figure-heavy: iPad/laptop) or "epub" (phone/Kobo).
+  string format = 1;
+  int32 figure_count = 2;
+  // Pages the figures were counted over; estimated for an EPUB.
+  int32 pages = 3;
 }
 
 message BookShelf {
@@ -99,6 +113,10 @@ message BookReadingStateData {
   ReadingPosition position = 5;
   // When the reading device recorded the position (RFC3339); empty if unknown.
   string read_at = 6;
+  // The physical copy's page at the position, 0 when it can't be mapped.
+  int32 physical_page = 7;
+  // The first sentence at the position, to find on that page.
+  string physical_excerpt = 8;
 }
 
 message GetLibraryRequest {}
@@ -183,6 +201,9 @@ message UpdateProgressRequest {
   string progress_mode = 2;
   int32 current_page = 3;
   int32 progress_percent = 4;
+  // When the page was entered (RFC3339, default now); in pages mode it is the
+  // physical reading state's read_at.
+  string read_at = 5;
 }
 message UpdateProgressResponse {}
 
@@ -209,7 +230,49 @@ message TranslateReadingPositionRequest {
   string book_id = 1;
   ReadingPosition position = 2;
 }
-message TranslateReadingPositionResponse { ReadingPosition position = 1; }
+message TranslateReadingPositionResponse {
+  ReadingPosition position = 1;
+  // As in BookReadingStateData.
+  int32 physical_page = 2;
+}
+
+// PhysicalAnchor pins a page of the physical copy to a position in the EPUB.
+message PhysicalAnchor {
+  int32 page = 1;
+  ReadingPosition position = 2;
+}
+
+// PhysicalChapter is a table-of-contents entry, offered as an anchor.
+message PhysicalChapter {
+  string title = 1;
+  ReadingPosition position = 2;
+}
+
+message PhysicalCopy {
+  // Defaults to the catalog's page count, 0 when unknown.
+  int32 page_count = 1;
+  // The page where the text starts; defaults to 1.
+  int32 text_start_page = 2;
+  repeated PhysicalAnchor anchors = 3;
+}
+
+message GetPhysicalCopyRequest { string book_id = 1; }
+message GetPhysicalCopyResponse {
+  PhysicalCopy copy = 1;
+  // Whether the book is tagged own-physical and own-digital and has an EPUB.
+  bool syncable = 2;
+  // The EPUB has the print edition's page markers, which are used instead of
+  // the text start and anchors.
+  bool has_print_pages = 3;
+  // Empty when the EPUB isn't ready within the translation budget.
+  repeated PhysicalChapter chapters = 4;
+}
+
+message UpdatePhysicalCopyRequest {
+  string book_id = 1;
+  PhysicalCopy copy = 2;
+}
+message UpdatePhysicalCopyResponse {}
 
 // GetBookContent returns a URL-ingested book's extracted body; html is empty
 // when none was extracted.
@@ -262,6 +325,8 @@ service LibraryService {
   rpc UpdateReadingProgress(UpdateReadingProgressRequest) returns (UpdateReadingProgressResponse);
   rpc GetReadingState(GetReadingStateRequest) returns (GetReadingStateResponse);
   rpc TranslateReadingPosition(TranslateReadingPositionRequest) returns (TranslateReadingPositionResponse);
+  rpc GetPhysicalCopy(GetPhysicalCopyRequest) returns (GetPhysicalCopyResponse);
+  rpc UpdatePhysicalCopy(UpdatePhysicalCopyRequest) returns (UpdatePhysicalCopyResponse);
   rpc GetBookContent(GetBookContentRequest) returns (GetBookContentResponse);
   rpc GetSeries(GetSeriesRequest) returns (GetSeriesResponse);
   rpc CreateShelf(CreateShelfRequest) returns (CreateShelfResponse);

@@ -28,7 +28,9 @@ type Games struct {
 	// Exported so integration tests can seed through the service layer.
 	Services     *services.Services
 	Repositories *repositories.Repositories
-	jobQueue     *jobqueue.JobQueue
+	// Store finds recommended games; tests swap in a fake.
+	Store    steam.StoreSearcher
+	jobQueue *jobqueue.JobQueue
 }
 
 func New(
@@ -59,8 +61,9 @@ func NewInner(
 ) *Games {
 	//nolint:exhaustruct //jobQueue, Repositories, Services initialised below
 	a := &Games{
-		Base: app.NewBase(context.Background(), authService, logger, cfg),
-		db:   db,
+		Base:  app.NewBase(context.Background(), authService, logger, cfg),
+		db:    db,
+		Store: steam.NewStore(steam.StorefrontURLRESTAPI),
 	}
 
 	const amountOfWorkers = 1

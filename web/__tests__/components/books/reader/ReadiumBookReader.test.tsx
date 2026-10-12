@@ -14,6 +14,7 @@ const mockLocatorToPosition = jest.fn()
 let nav: FakeNavigator | null = null
 let loadError: Error | null = null
 let loadHangs = false
+let prefsFail = false
 
 class FakeNavigator {
   listeners: Listeners
@@ -23,7 +24,9 @@ class FakeNavigator {
     if (loadHangs) await new Promise(() => {})
   })
   destroy = jest.fn(async () => {})
-  submitPreferences = jest.fn(async () => {})
+  submitPreferences = jest.fn(async () => {
+    if (prefsFail) throw new Error('late')
+  })
   goBackward = jest.fn()
   goForward = jest.fn()
   goLink = jest.fn()
@@ -69,6 +72,8 @@ jest.mock('@/lib/books/readium', () => ({
   locatorToPosition: (...a: unknown[]) => mockLocatorToPosition(...a),
   overallFraction: () => 0.25,
   sectionIndex: () => 1,
+  sectionStartEntry: (_items: unknown, href: string) =>
+    href === 'res/part.xhtml' ? { href, title: 'Part' } : undefined,
   tocItems: (items: unknown[] | undefined) => items ?? [],
   readiumPreferences: (theme: string, size: number) => ({ theme, size })
 }))
@@ -108,6 +113,7 @@ beforeEach(() => {
   nav = null
   loadError = null
   loadHangs = false
+  prefsFail = false
   localStorage.clear()
   mockLoadPublication.mockResolvedValue({
     manifest: { toc: { items: toc } },
@@ -132,7 +138,7 @@ describe('ReadiumBookReader', () => {
   it('reports page turns with the neutral position, but not the opening location', async () => {
     const { onRelocate } = await renderReader()
     await screen.findByRole('button', { name: 'Contents' })
-    act(() => nav!.listeners.positionChanged({ href: 'res/ch2.xhtml' }))
+    act(() => nav!.listeners.positionChanged({ href: 'res/ch2.xhtml', locations: {} }))
     await waitFor(() => expect(onRelocate).toHaveBeenCalledTimes(1))
     expect(onRelocate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -234,6 +240,28 @@ describe('ReadiumBookReader', () => {
     )
   })
 
+  it('labels a section start with the section entry, not a subsection on the same screen', async () => {
+    await renderReader()
+    await screen.findByRole('button', { name: 'Contents' })
+    act(() => nav!.listeners.timelineItemChanged({ references: ['res/ch1.xhtml#top'] }))
+    expect(await screen.findByText('Chapter 1')).toBeInTheDocument()
+    act(() =>
+      nav!.listeners.positionChanged({
+        href: 'res/part.xhtml',
+        locations: { progression: 0 }
+      })
+    )
+    expect(await screen.findByText('Part')).toBeInTheDocument()
+    expect(screen.queryByText('Chapter 1')).not.toBeInTheDocument()
+    act(() =>
+      nav!.listeners.positionChanged({
+        href: 'res/part.xhtml',
+        locations: { progression: 0.4 }
+      })
+    )
+    expect(await screen.findByText('Chapter 1')).toBeInTheDocument()
+  })
+
   it('clears the section label when no contents entry covers the page', async () => {
     await renderReader()
     await screen.findByRole('button', { name: 'Contents' })
@@ -255,7 +283,7 @@ describe('ReadiumBookReader', () => {
 
   it('ignores page changes before the book has opened', async () => {
     const { onRelocate } = await renderReader()
-    act(() => nav!.listeners.positionChanged({ href: 'res/ch2.xhtml' }))
+    act(() => nav!.listeners.positionChanged({ href: 'res/ch2.xhtml', locations: {} }))
     expect(onRelocate).not.toHaveBeenCalled()
   })
 
@@ -268,5 +296,48 @@ describe('ReadiumBookReader', () => {
       resolve({ manifest: {}, positionsFromManifest: () => Promise.resolve(positions) })
     })
     expect(nav).toBeNull()
+  })
+
+  describe('navigator calls that throw', () => {
+    it('swallows sync and async throws from turns, preferences and goLink', async () => {
+      prefsFail = true
+      await renderReader()
+      await screen.findByRole('button', { name: 'Contents' })
+      const boom = () => {
+        throw new TypeError('_readium_cssSelectorGenerator')
+      }
+      nav!.goForward.mockImplementation(boom)
+      nav!.goBackward.mockImplementation(() => Promise.reject(new Error('late')))
+      nav!.goLink.mockImplementation(boom)
+      expect(() => fireEvent.keyDown(window, { key: 'ArrowRight' })).not.toThrow()
+      expect(() => fireEvent.keyDown(window, { key: 'ArrowLeft' })).not.toThrow()
+      fireEvent.click(screen.getByRole('button', { name: 'Contents' }))
+      expect(() => fireEvent.click(screen.getByRole('button', { name: 'Chapter 1' }))).not.toThrow()
+      expect(nav!.goForward).toHaveBeenCalled()
+      expect(nav!.goLink).toHaveBeenCalled()
+      expect(nav!.submitPreferences).toHaveBeenCalled()
+    })
+
+    it('does not touch the navigator after unmount, and survives a throwing destroy', async () => {
+      const { unmount } = render(<ReadiumBookReader bookId="b1" title="Dune" onClose={jest.fn()} />)
+      await screen.findByRole('button', { name: 'Contents' })
+      const n = nav!
+      n.destroy.mockImplementation(() => {
+        throw new Error('destroy')
+      })
+      const tap = n.listeners.tap
+      expect(() => unmount()).not.toThrow()
+      tap({ x: 290, y: 0 })
+      fireEvent.keyDown(window, { key: 'ArrowRight' })
+      expect(n.goForward).not.toHaveBeenCalled()
+    })
+
+    it('does not call the navigator before it has opened', async () => {
+      loadHangs = true
+      render(<ReadiumBookReader bookId="b1" title="Dune" onClose={jest.fn()} />)
+      await waitFor(() => expect(nav?.load).toHaveBeenCalled())
+      nav!.listeners.tap({ x: 290, y: 0 })
+      expect(nav!.goForward).not.toHaveBeenCalled()
+    })
   })
 })

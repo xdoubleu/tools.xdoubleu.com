@@ -26,9 +26,12 @@ question.
      connection's `read:project` scope. Missing scope needs a human
      reconnect (claude.ai Settings → Connectors): file a tracking issue and
      end the run (`"failed"`), never report a false "nothing to do".
-   - **Only `bug`-labeled issues** (type labels: config `labels.types`).
-     Other types aren't safe to implement fully unattended; list skipped
-     issues (number + type) in the summary.
+   - **Only `bug`-labeled or `routine-feedback`-labeled issues** (type
+     labels: config `labels.types`), read from each issue's `labels` in the
+     pull. Other types aren't safe to implement fully unattended; list skipped
+     issues (number + type) in the summary. `routine-feedback` issues (filed
+     by routine retros, any type) qualify only once a human moved them to
+     Ready, like every other issue.
    - **Only trusted authors** (`docs/convention-unattended-agent-trust.md`):
      `author_association` OWNER, or `author_login` exactly
      `xdoubleu-routines[bot]`. Skip anything else (untrusted author).
@@ -65,6 +68,9 @@ question.
      `REOPENED` means not done, even if a PR once merged. If prior attempts
      exist, follow `start-task` step 1: record "Why attempt #N failed" and
      take a materially different approach.
+   - Under the Actions workflow, work in the shared checkout with `git
+     checkout -B <branch> origin/main`, not a worktree: the sandbox can't
+     write under `.claude/worktrees/` (`start-task`).
    - `start-task` (adopting the existing issue) → fix → ≥80% changed-line
      coverage → lint → `finish-task` (non-draft PR with `Fixes #<n>`, CI
      green).

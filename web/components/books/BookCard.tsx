@@ -10,6 +10,7 @@ import BookFavouriteButton from '@/components/books/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
 import BookDescription from '@/components/books/BookDescription'
 import OfflineBookBadge from '@/components/books/OfflineBookBadge'
+import ReadSuggestionBadge from '@/components/books/ReadSuggestionBadge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LinkCard } from '@/components/ui/link-card'
@@ -99,6 +100,7 @@ export default function BookCard({
           </Badge>
           {userBook.tags.includes('own-bol') && <Badge variant="secondary">Kobo store</Badge>}
           <OfflineBookBadge bookId={userBook.bookId} />
+          <ReadSuggestionBadge userBook={userBook} />
           {tags.length > 0 && (
             <span className="min-w-0 truncate text-xs text-muted">{tags.join(', ')}</span>
           )}

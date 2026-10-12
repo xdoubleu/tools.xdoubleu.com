@@ -69,6 +69,9 @@ type koboResult struct {
 // bookmark Source is the first resource rather than the reading position.
 const koboStatusFinished = "Finished"
 
+// koboStatusReading is the StatusInfo.Status of an opened, unfinished book.
+const koboStatusReading = "Reading"
+
 const koboResultSuccess = "Success"
 
 // koboChangedReadingStates builds ChangedReadingState entries for the states
@@ -129,14 +132,9 @@ func (app *Books) koboGetStateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if state != nil {
-		format, fmtErr := app.Services.Books.GetKoboFileFormat(
-			r.Context(), userID, bookID,
-		)
-		if fmtErr == nil && format == models.FileFormatKEPUB {
-			states := map[uuid.UUID]*models.BookReadingState{bookID: state}
-			app.koboWithSpans(r.Context(), userID, []uuid.UUID{bookID}, states, nil)
-			state = states[bookID]
-		}
+		states := map[uuid.UUID]*models.BookReadingState{bookID: state}
+		app.koboWithSpans(r.Context(), userID, []uuid.UUID{bookID}, states, nil)
+		state = states[bookID]
 	}
 
 	koboWriteJSON(w, buildKoboState(bookID.String(), state))
@@ -249,7 +247,7 @@ func koboStatusForPercent(percent int) string {
 	case percent >= models.MaxProgressPercent:
 		return koboStatusFinished
 	case percent > 0:
-		return "Reading"
+		return koboStatusReading
 	default:
 		return "ReadyToRead"
 	}

@@ -50,6 +50,9 @@ type BookService struct {
 	resyncSource ResyncSource
 	coverClient  *http.Client
 	seriesCache  *seriesCache
+	// physical follows digital positions on a physical copy; nil in tests
+	// that build a BookService directly.
+	physical *PhysicalService
 }
 
 // SearchLibrary searches the user's own library by title/author substring.
@@ -61,6 +64,19 @@ func (s *BookService) SearchLibrary(
 	offset int32,
 ) ([]models.UserBook, bool, error) {
 	return s.books.SearchLibrary(ctx, userID, query, limit, offset)
+}
+
+// HasISBN13 reports whether userID's library holds a book with isbn13.
+func (s *BookService) HasISBN13(
+	ctx context.Context,
+	userID string,
+	isbn13 string,
+) (bool, error) {
+	_, err := s.books.FindUserBookByISBN13(ctx, userID, isbn13)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 // SearchExternal fans out to every configured provider and keeps each source's
@@ -724,16 +740,18 @@ func (s *BookService) ListKoboSyncBooks(
 	return s.books.ListKoboSyncBooks(ctx, userID)
 }
 
-// UpdateKoboLastSyncedConverterVersion records the converter version last sent
-// to the device, so the next sync can detect a regenerated file.
-func (s *BookService) UpdateKoboLastSyncedConverterVersion(
+// UpdateKoboLastSynced records the converter version and CoverImageId last
+// sent to the device, so the next sync can detect a regenerated file or a
+// new cover id.
+func (s *BookService) UpdateKoboLastSynced(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 	converterVersion int16,
+	coverImageID string,
 ) error {
-	return s.books.UpdateKoboLastSyncedConverterVersion(
-		ctx, userID, bookID, converterVersion)
+	return s.books.UpdateKoboLastSynced(
+		ctx, userID, bookID, converterVersion, coverImageID)
 }
 
 // ListKoboRemovals returns books tombstoned for removal from the user's Kobo.
@@ -803,6 +821,9 @@ func (s *BookService) upsertReadingProgress(
 	updatedAt, err := s.readingState.UpsertIfNewer(ctx, state)
 	if err != nil || updatedAt == nil {
 		return nil, err
+	}
+	if s.physical != nil {
+		s.physical.FollowDigital(ctx, state, *updatedAt)
 	}
 
 	// Non-zero progress promotes to-read/dropped to currently-reading.

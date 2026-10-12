@@ -47,6 +47,19 @@ describe('displayProgressPercent', () => {
   it('returns zero when there is no book', () => {
     expect(displayProgressPercent(userBook({ progressMode: 'pages', currentPage: 10 }))).toBe(0)
   })
+
+  it("prefers the physical copy's page count", () => {
+    expect(
+      displayProgressPercent(
+        userBook({
+          progressMode: 'pages',
+          currentPage: 50,
+          physicalPageCount: 100,
+          book: create(BookSchema, { pageCount: 400 })
+        })
+      )
+    ).toBe(50)
+  })
 })
 
 describe('defaultProgressMode', () => {

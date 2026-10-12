@@ -63,7 +63,9 @@ func (a *Books) RegisterMCPTools(srv *mcp.Server) {
 
 func registerReadingLibraryTools(srv *mcp.Server, h *booksConnectHandler) {
 	mcptools.AddReadTool(srv, mcpAppName, "books_get_library",
-		"The user's full library: reading/wishlist/finished shelves plus RSS.",
+		"The user's full library: reading/wishlist/finished shelves, with each "+
+			"book's formats and read suggestion (pdf for iPad/laptop when "+
+			"figure-heavy, else epub for phone/Kobo).",
 		h.mcpGetLibrary)
 	mcptools.AddReadTool(srv, mcpAppName, "books_get_books_progress",
 		"Reading-progress graph data over a date window.", h.mcpGetBooksProgress)
@@ -76,8 +78,9 @@ func registerReadingLibraryTools(srv *mcp.Server, h *booksConnectHandler) {
 		h.mcpGetExternalBook)
 	mcptools.AddReadTool(srv, mcpAppName, "books_get_reading_state",
 		"The latest reading position for a book: percent, neutral position "+
-			"(href+offset, page, or both for a PDF-sourced book) and when it "+
-			"was read.", h.mcpGetReadingState)
+			"(href+offset, page, or both for a PDF-sourced book), when it was "+
+			"read, and for a physical copy its page and the sentence there.",
+		h.mcpGetReadingState)
 	mcptools.AddReadTool(srv, mcpAppName, "books_get_series",
 		"A series' volumes in order: the user's books plus Hardcover volumes "+
 			"they don't have.", h.mcpGetSeries)

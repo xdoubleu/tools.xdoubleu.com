@@ -15,56 +15,63 @@ type spanMapKey struct {
 	version  int16
 }
 
-// spanMapCache is a fixed-size LRU of span maps.
-type spanMapCache struct {
+type spanMapCache = lruCache[spanMapKey, *spanMap]
+
+func newSpanMapCache(size int) *spanMapCache {
+	return newLRUCache[spanMapKey, *spanMap](size)
+}
+
+// lruCache is a fixed-size LRU.
+type lruCache[K comparable, V any] struct {
 	mu    sync.Mutex
 	size  int
 	order *list.List // front is most recently used
-	items map[spanMapKey]*list.Element
+	items map[K]*list.Element
 }
 
-type spanMapEntry struct {
-	key spanMapKey
-	m   *spanMap
+type lruEntry[K comparable, V any] struct {
+	key K
+	v   V
 }
 
-func newSpanMapCache(size int) *spanMapCache {
-	return &spanMapCache{
+func newLRUCache[K comparable, V any](size int) *lruCache[K, V] {
+	return &lruCache[K, V]{
 		mu:    sync.Mutex{},
 		size:  size,
 		order: list.New(),
-		items: make(map[spanMapKey]*list.Element, size),
+		items: make(map[K]*list.Element, size),
 	}
 }
 
-func (c *spanMapCache) get(key spanMapKey) (*spanMap, bool) {
+func (c *lruCache[K, V]) get(key K) (V, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	el, ok := c.items[key]
 	if !ok {
-		return nil, false
+		var zero V
+		return zero, false
 	}
 	c.order.MoveToFront(el)
-	return entryOf(el).m, true
+	return entryOf[K, V](el).v, true
 }
 
-func entryOf(el *list.Element) *spanMapEntry {
-	e, _ := el.Value.(*spanMapEntry)
+func entryOf[K comparable, V any](el *list.Element) *lruEntry[K, V] {
+	e, _ := el.Value.(*lruEntry[K, V])
 	return e
 }
 
-func (c *spanMapCache) add(key spanMapKey, m *spanMap) {
+func (c *lruCache[K, V]) add(key K, v V) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if el, ok := c.items[key]; ok {
-		entryOf(el).m = m
+		entryOf[K, V](el).v = v
 		c.order.MoveToFront(el)
 		return
 	}
-	c.items[key] = c.order.PushFront(&spanMapEntry{key: key, m: m})
+	c.items[key] = c.order.PushFront(&lruEntry[K, V]{key: key, v: v})
 	if c.order.Len() > c.size {
 		oldest := c.order.Back()
 		c.order.Remove(oldest)
-		delete(c.items, entryOf(oldest).key)
+		delete(c.items, entryOf[K, V](oldest).key)
 	}
 }

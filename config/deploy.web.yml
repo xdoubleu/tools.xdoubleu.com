@@ -34,6 +34,14 @@ proxy:
     interval: 10
     timeout: 5
 
+# Docker's default json-file driver never rotates; unbounded container logs
+# fill the VPS disk.
+logging:
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
 env:
   clear:
     ENV: production

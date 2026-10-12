@@ -10,27 +10,13 @@ import {
   XAxis,
   YAxis
 } from 'recharts'
+import { axisTick, tooltipProps } from '@/lib/chartTheme'
 import { useMovieStats } from '@/hooks/useMovies'
 import { monthLabel } from '@/lib/movies/format'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RatingStars } from '@/components/ui/rating-stars'
 import { StatTile } from '@/components/ui/stat'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
-
-// Stryker disable StringLiteral,ObjectLiteral: chart colours and tooltip styling are presentation only.
-const axisTick = { fontSize: 11, fill: 'var(--color-muted)' }
-const tooltipProps = {
-  cursor: { fill: 'rgb(var(--hover-rgb) / 0.5)' },
-  contentStyle: {
-    backgroundColor: 'var(--color-surface)',
-    border: '1px solid var(--color-border)',
-    borderRadius: '0.75rem',
-    color: 'var(--color-fg)'
-  },
-  labelStyle: { color: 'var(--color-fg)' },
-  itemStyle: { color: 'var(--color-fg)' }
-}
-// Stryker restore StringLiteral,ObjectLiteral
 
 /** Watching totals, watches per month, top genres and ratings. */
 export default function MoviesStatsClient() {

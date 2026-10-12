@@ -30,6 +30,15 @@
   /* Favourite hearts and rating stars */
   --star-rgb: 245 158 11;
 
+  /* Categorical chart series (Apple system colours); charts read the
+   * triples directly, since no utility uses them. */
+  --series-1-rgb: 0 122 255;
+  --series-2-rgb: 52 199 89;
+  --series-3-rgb: 255 149 0;
+  --series-4-rgb: 175 82 222;
+  --series-5-rgb: 255 45 85;
+  --series-6-rgb: 48 176 199;
+
   /* Translucent sticky navbar/footer */
   --glass-rgb: 255 255 255;
   --glass-opacity: 0.72;
@@ -79,6 +88,13 @@
   --warn-rgb: 255 159 10;
   --danger-rgb: 255 69 58;
   --star-rgb: 251 191 36;
+
+  --series-1-rgb: 10 132 255;
+  --series-2-rgb: 48 209 88;
+  --series-3-rgb: 255 159 10;
+  --series-4-rgb: 191 90 242;
+  --series-5-rgb: 255 55 95;
+  --series-6-rgb: 64 200 224;
 
   --glass-rgb: 28 28 30;
   --glass-opacity: 0.8;

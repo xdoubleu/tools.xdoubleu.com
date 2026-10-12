@@ -17,8 +17,7 @@ export const SPECIAL_TAGS = new Set([
   'own-physical',
   'own-digital',
   'own-bol',
-  'kobo-sync',
-  'kobo-format-pdf'
+  'kobo-sync'
 ])
 
 // Custom shelves are any other status value.

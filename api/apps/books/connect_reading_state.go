@@ -97,15 +97,16 @@ func (h *booksConnectHandler) GetReadingState(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
+	out := readingStateToProto(state)
 	if state.Position != nil {
-		pos := h.app.Services.Positions.ReaderPosition(
+		out.PhysicalPage, out.PhysicalExcerpt = h.physicalAt(
 			ctx, user.ID, bookID, *state.Position,
 		)
-		state.Position = &pos
+		out.Position = readingPositionToProto(h.app.Services.Positions.ReaderPosition(
+			ctx, user.ID, bookID, *state.Position,
+		))
 	}
-	return &booksv1.GetReadingStateResponse{
-		State: readingStateToProto(state),
-	}, nil
+	return &booksv1.GetReadingStateResponse{State: out}, nil
 }
 
 // TranslateReadingPosition adds the forms GetReadingState would.
@@ -135,9 +136,22 @@ func (h *booksConnectHandler) TranslateReadingPosition(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	pos := h.app.Services.Positions.ReaderPosition(ctx, user.ID, bookID, *position)
+	page, _ := h.physicalAt(ctx, user.ID, bookID, *position)
 	return &booksv1.TranslateReadingPositionResponse{
-		Position: readingPositionToProto(pos),
+		Position:     readingPositionToProto(pos),
+		PhysicalPage: page,
 	}, nil
+}
+
+// physicalAt is the physical copy's page at pos and the sentence there.
+func (h *booksConnectHandler) physicalAt(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	pos models.ReadingPosition,
+) (int32, string) {
+	page, excerpt := h.app.Services.Physical.Locate(ctx, userID, bookID, pos)
+	return int32FromInt(page), excerpt
 }
 
 func readingPositionToProto(p models.ReadingPosition) *booksv1.ReadingPosition {

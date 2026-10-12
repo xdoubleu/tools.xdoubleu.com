@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"sort"
 	"time"
@@ -11,6 +12,7 @@ import (
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
@@ -462,11 +464,9 @@ func (h *obsConnectHandler) GetLogs(
 		return nil, err
 	}
 
-	resp, err := h.logs(
-		ctx, req.GetSource(), req.GetMinLevel(), req.GetSince(),
-	)
+	resp, err := h.logs(ctx, req)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, err
 	}
 	return resp, nil
 }
@@ -474,21 +474,44 @@ func (h *obsConnectHandler) GetLogs(
 // maxLogEntries caps one GetLogs response.
 const maxLogEntries = 1000
 
-func (h *obsConnectHandler) logs(
-	ctx context.Context, source, minLevel, since string,
-) (*observabilityv1.GetLogsResponse, error) {
-	sinceTime := time.Now().Add(-defaultWindowDays * 24 * time.Hour)
-	if since != "" {
-		if parsed, err := time.Parse(time.RFC3339, since); err == nil {
-			sinceTime = parsed
+// logsFilter parses req's timestamps; since defaults to defaultWindowDays ago.
+func logsFilter(req *observabilityv1.GetLogsRequest) (repositories.LogsFilter, error) {
+	filter := repositories.LogsFilter{
+		Since:    time.Now().Add(-defaultWindowDays * 24 * time.Hour),
+		Until:    time.Time{},
+		Source:   req.GetSource(),
+		MinLevel: req.GetMinLevel(),
+		Contains: req.GetContains(),
+		Limit:    maxLogEntries,
+	}
+	var err error
+	if since := req.GetSince(); since != "" {
+		if filter.Since, err = time.Parse(time.RFC3339, since); err != nil {
+			return filter, fmt.Errorf("since: %w", err)
 		}
 	}
+	if until := req.GetUntil(); until != "" {
+		if filter.Until, err = time.Parse(time.RFC3339, until); err != nil {
+			return filter, fmt.Errorf("until: %w", err)
+		}
+	}
+	return filter, nil
+}
 
-	entries, err := h.app.logsRepo.Query(
-		ctx, sinceTime, source, minLevel, maxLogEntries,
-	)
+func (h *obsConnectHandler) logs(
+	ctx context.Context, req *observabilityv1.GetLogsRequest,
+) (*observabilityv1.GetLogsResponse, error) {
+	filter, err := logsFilter(req)
 	if err != nil {
-		return nil, err
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
+	}
+
+	entries, err := h.app.logsRepo.Query(ctx, filter)
+	if errors.Is(err, repositories.ErrUnknownLogLevel) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	protoEntries := make([]*observabilityv1.LogEntry, len(entries))

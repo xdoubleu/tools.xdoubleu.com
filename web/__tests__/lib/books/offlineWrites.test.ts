@@ -4,6 +4,7 @@ import { keepaliveTransport, transport } from '@/lib/client'
 import { swrKeys } from '@/lib/swrKeys'
 import {
   GetLibraryResponseSchema,
+  GetPhysicalCopyResponseSchema,
   GetReadingStateResponseSchema,
   type LibraryResponse
 } from '@/lib/gen/books/v1/library_pb'
@@ -15,6 +16,7 @@ import {
   updateBookStatusWrite,
   updateBookWrite,
   updateFinishedAtWrite,
+  updatePhysicalCopyWrite,
   updateProgressWrite,
   updateReadingProgressWrite
 } from '@/lib/books/offlineWrites'
@@ -315,10 +317,30 @@ describe('book offline writes', () => {
     expect(describe(updateBookWrite, { metadata: { title: 'Dune' } })).toBe('Edit “Dune”')
     expect(describe(updateBookWrite, {})).toBe('Edit “a book”')
     expect(describe(updateReadingProgressWrite, {})).toBe('Save reading position')
+    expect(describe(updatePhysicalCopyWrite, {})).toBe('Edit a book’s physical copy')
+  })
+
+  it('applies physical copy details to the copy and the library', () => {
+    const save = { bookId: 'b', copy: { pageCount: 320, textStartPage: 9 } }
+    expect(lib(run(updatePhysicalCopyWrite, save, library())).reading[0]).toMatchObject({
+      physicalPageCount: 320
+    })
+    const copy = create(GetPhysicalCopyResponseSchema, { syncable: true })
+    const applied = run(updatePhysicalCopyWrite, save, copy, undefined, swrKeys.physicalCopy('b'))
+    expect(applied).toMatchObject({ syncable: true, copy: { pageCount: 320, textStartPage: 9 } })
+    expect(run(updatePhysicalCopyWrite, save, copy, undefined, swrKeys.physicalCopy('x'))).toBe(
+      copy
+    )
+    expect(run(updatePhysicalCopyWrite, save, copy, undefined, swrKeys.readingState('b'))).toBe(
+      copy
+    )
+    expect(lib(run(updatePhysicalCopyWrite, { bookId: 'b' }, library())).reading[0]).toMatchObject({
+      physicalPageCount: 0
+    })
   })
 
   it('refetches books and registers every write', () => {
-    expect(bookWrites).toHaveLength(8)
+    expect(bookWrites).toHaveLength(9)
     for (const write of bookWrites) expect(write.revalidate).toMatch(/^\/books/)
   })
 })

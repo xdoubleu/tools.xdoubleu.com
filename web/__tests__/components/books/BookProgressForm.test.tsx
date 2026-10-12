@@ -11,6 +11,18 @@ jest.mock('swr', () => ({
   mutate: (...args: unknown[]) => mockMutate(...args)
 }))
 
+const mockPhysicalCopy: { data?: Record<string, unknown> } = { data: undefined }
+const mockReadingState: { data: unknown } = { data: undefined }
+const mockUpdatePhysicalCopy = jest.fn()
+jest.mock('@/hooks/usePhysicalCopy', () => ({
+  usePhysicalCopy: () => mockPhysicalCopy,
+  useUpdatePhysicalCopy: () => mockUpdatePhysicalCopy
+}))
+
+jest.mock('@/hooks/useReadingState', () => ({
+  useReadingState: (bookId: string | null) => (bookId ? mockReadingState : { data: undefined })
+}))
+
 jest.mock('@/hooks/useBooks', () => ({
   useUpdateProgress: () => mockUpdateProgress
 }))
@@ -54,6 +66,10 @@ describe('BookProgressForm', () => {
     mockMutate.mockReset()
     mockTrack.mockReset()
     mockUpdateProgress.mockResolvedValue({})
+    mockUpdatePhysicalCopy.mockReset()
+    mockUpdatePhysicalCopy.mockResolvedValue(undefined)
+    mockPhysicalCopy.data = undefined
+    mockReadingState.data = undefined
   })
 
   it('commits pages progress on Enter and calls UpdateProgress', async () => {
@@ -68,7 +84,8 @@ describe('BookProgressForm', () => {
         bookId: 'book-1',
         progressMode: 'pages',
         currentPage: 120,
-        progressPercent: 0
+        progressPercent: 0,
+        readAt: expect.any(String)
       })
     })
     expect(mockMutate).toHaveBeenCalledWith('/books')
@@ -270,5 +287,142 @@ describe('BookProgressForm', () => {
     expect(mockTrack).toHaveBeenCalledWith('book_progress_dialog_cancelled', {
       source: 'progress_editor'
     })
+  })
+
+  describe('physical copy', () => {
+    const chapters = [
+      { title: 'Chapter One', position: { href: 'OEBPS/ch1.xhtml', offset: 0 } },
+      { title: 'Chapter Two', position: { href: 'OEBPS/ch2.xhtml', offset: 9 } }
+    ]
+    const physicalBook = () => makeBook({ tags: ['own-physical'], currentPage: 50 })
+
+    beforeEach(() => {
+      mockPhysicalCopy.data = {
+        syncable: true,
+        hasPrintPages: false,
+        copy: { pageCount: 200, textStartPage: 1, anchors: [] },
+        chapters
+      }
+    })
+
+    it('shows where the digital reading left off and can use that page', () => {
+      mockReadingState.data = {
+        state: { source: 'kobo', physicalPage: 87, physicalExcerpt: 'It was a dark night.' }
+      }
+      render(<BookProgressForm userBook={physicalBook()} />)
+
+      expect(screen.getByText('Continue on page ~87')).toBeInTheDocument()
+      expect(screen.getByText('“It was a dark night.”')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Use page 87' }))
+      expect(screen.getByLabelText('Current page')).toHaveValue(87)
+    })
+
+    it('shows no hint when the page entered by hand is the newest', () => {
+      mockReadingState.data = { state: { source: 'physical', physicalPage: 50 } }
+      render(<BookProgressForm userBook={physicalBook()} />)
+      expect(screen.queryByText(/Continue on page/)).not.toBeInTheDocument()
+    })
+
+    it('saves edited copy details before the page', async () => {
+      render(<BookProgressForm userBook={physicalBook()} />)
+      fireEvent.click(screen.getByRole('button', { name: /Copy details/ }))
+      fireEvent.change(screen.getByLabelText('Pages in your copy'), { target: { value: '320' } })
+      fireEvent.change(screen.getByLabelText('Text starts on page'), { target: { value: '9' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Add chapter anchor' }))
+      fireEvent.change(screen.getByLabelText('Chapter'), {
+        target: { value: 'OEBPS/ch2.xhtml#9' }
+      })
+      fireEvent.change(screen.getByLabelText('Page'), { target: { value: '87' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Add chapter anchor' }))
+      expect(screen.getByText('of 320 pages')).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+      await waitFor(() => expect(mockUpdateProgress).toHaveBeenCalled())
+      expect(mockUpdatePhysicalCopy).toHaveBeenCalledWith('book-1', {
+        pageCount: 320,
+        textStartPage: 9,
+        anchors: [{ page: 87, href: 'OEBPS/ch2.xhtml', offset: 9 }]
+      })
+      expect(mockUpdatePhysicalCopy.mock.invocationCallOrder[0]).toBeLessThan(
+        mockUpdateProgress.mock.invocationCallOrder[0]
+      )
+      expect(mockMutate).toHaveBeenCalledWith(['/books/reading-state', 'book-1'])
+    })
+
+    it('leaves Enter on a button to the button', () => {
+      render(<BookProgressForm userBook={physicalBook()} />)
+      fireEvent.keyDown(screen.getByRole('button', { name: /Copy details/ }), { key: 'Enter' })
+      expect(mockUpdateProgress).not.toHaveBeenCalled()
+    })
+
+    it('removes an anchor', () => {
+      mockPhysicalCopy.data = {
+        syncable: true,
+        hasPrintPages: false,
+        copy: {
+          pageCount: 200,
+          textStartPage: 1,
+          anchors: [{ page: 30, position: { href: 'OEBPS/ch2.xhtml', offset: 9 } }]
+        },
+        chapters
+      }
+      render(<BookProgressForm userBook={physicalBook()} />)
+      fireEvent.click(screen.getByRole('button', { name: /Copy details/ }))
+      expect(screen.getByLabelText('Page')).toHaveValue(30)
+      fireEvent.click(screen.getByRole('button', { name: 'Remove chapter anchor' }))
+      expect(screen.queryByLabelText('Page')).not.toBeInTheDocument()
+    })
+
+    it('explains that print page numbers map exactly', () => {
+      mockPhysicalCopy.data = { ...mockPhysicalCopy.data, hasPrintPages: true }
+      render(<BookProgressForm userBook={physicalBook()} />)
+      fireEvent.click(screen.getByRole('button', { name: /Copy details/ }))
+      expect(screen.getByText(/print edition's page numbers/)).toBeInTheDocument()
+      expect(screen.queryByLabelText('Text starts on page')).not.toBeInTheDocument()
+    })
+
+    it('hides the copy details in percent mode and without an EPUB', () => {
+      const { unmount } = render(
+        <BookProgressForm
+          userBook={makeBook({ tags: ['own-physical'], progressMode: 'percent' })}
+        />
+      )
+      expect(screen.queryByRole('button', { name: /Copy details/ })).not.toBeInTheDocument()
+      unmount()
+
+      mockPhysicalCopy.data = { ...mockPhysicalCopy.data, syncable: false }
+      render(<BookProgressForm userBook={physicalBook()} />)
+      expect(screen.queryByRole('button', { name: /Copy details/ })).not.toBeInTheDocument()
+    })
+
+    it('shows no hint or details in percent mode, or before the copy loads', () => {
+      mockReadingState.data = { state: { source: 'kobo', physicalPage: 87, physicalExcerpt: '' } }
+      const { unmount } = render(
+        <BookProgressForm
+          userBook={makeBook({ tags: ['own-physical'], progressMode: 'percent' })}
+        />
+      )
+      expect(screen.queryByText(/Continue on page/)).not.toBeInTheDocument()
+      unmount()
+
+      mockPhysicalCopy.data = undefined
+      render(<BookProgressForm userBook={physicalBook()} />)
+      expect(screen.queryByText(/Continue on page/)).not.toBeInTheDocument()
+    })
+
+    it('discards edited details on cancel', () => {
+      render(<BookProgressForm userBook={physicalBook()} />)
+      fireEvent.click(screen.getByRole('button', { name: /Copy details/ }))
+      fireEvent.change(screen.getByLabelText('Pages in your copy'), { target: { value: '320' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      expect(screen.getByLabelText('Pages in your copy')).toHaveValue(200)
+    })
+  })
+
+  it('leaves the reading state alone for a book without a physical copy', async () => {
+    render(<BookProgressForm userBook={makeBook()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(mockUpdateProgress).toHaveBeenCalled())
+    expect(mockMutate).not.toHaveBeenCalledWith(['/books/reading-state', 'book-1'])
   })
 })

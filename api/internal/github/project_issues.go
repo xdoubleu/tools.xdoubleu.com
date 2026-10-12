@@ -27,6 +27,7 @@ type ProjectIssue struct {
 	StatusUpdatedAt       time.Time
 	BodyHasHTMLComment    bool
 	BodyEditedAfterStatus bool
+	Labels                []string
 }
 
 const issueStateOpen = "OPEN"
@@ -68,6 +69,7 @@ query($login: String!, $number: Int!, $pageSize: Int!, $after: String) {
               author { __typename login }
               authorAssociation
               editor { login }
+              labels(first: 20) { nodes { name } }
             }
           }
         }
@@ -111,6 +113,9 @@ type projectItemNodeWire struct {
 		Author            actorWire  `json:"author"`
 		AuthorAssociation string     `json:"authorAssociation"`
 		Editor            actorWire  `json:"editor"`
+		Labels            struct {
+			Nodes []labelWire `json:"nodes"`
+		} `json:"labels"`
 	} `json:"content"`
 }
 
@@ -220,6 +225,7 @@ func filterProjectIssuesByStatus(
 			AuthorLogin:        n.Content.Author.restLogin(),
 			AuthorAssociation:  n.Content.AuthorAssociation,
 			StatusUpdatedAt:    n.Status.UpdatedAt,
+			Labels:             labelNames(n.Content.Labels.Nodes),
 			BodyHasHTMLComment: strings.Contains(n.Content.Body, "<!--"),
 			BodyEditedAfterStatus: edited != nil &&
 				edited.After(n.Status.UpdatedAt) &&

@@ -7,7 +7,8 @@ make test/v | make test/race
 make test/cov/diff                 # coverage on lines changed vs origin/main (heuristic, see Testing)
 make test/cov/per-pkg              # per-package coverage, merged
 make lint/pkg PKG=apps/recipes     # lint one package
-make lint/fix/pkg PKG=apps/recipes # auto-fix one package — prefer over repo-wide lint/fix, whose golines pass reformats unrelated files
+make lint/fix/pkg PKG=apps/recipes # auto-fix one package
+make lint/golines                  # fails if golines would rewrite anything (CI runs it)
 make lint/migrations               # duplicate version (goose silently skips it) or a new one numbered below the dir's max
 make lint/kamal-secrets            # deploy-secret lists agree; deploy.grafana.yml env names must be GF_-prefixed (Grafana ignores others)
 make lint/proto-local-versions     # proto/generate/local plugin versions match buf.gen.yaml's `remote:` pins
@@ -16,7 +17,7 @@ make db/reset                      # recreate the Postgres volume — shared by 
 
 ## Architecture
 
-- `NewApps` (`cmd/api/apps.go`) registers apps in a fixed order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after `games`/`books`/`feeds` (holds live references to them); `trains`/`learningpaths`/`movies`/`podcasts` last.
+- `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after `games`/`books`/`feeds` (reads them); `trains`/`learningpaths`/`movies`/`podcasts`, then `taste` (reads them).
 - `main.go` wraps the pgx pool in `postgres.NewSpanDB` for tracing spans; migrations use the raw pool.
 - `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
 - `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked sibling PRs can merge migrations out of numeric order, and this makes that self-healing instead of a startup panic.

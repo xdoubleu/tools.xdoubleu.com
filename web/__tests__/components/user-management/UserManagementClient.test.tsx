@@ -80,4 +80,10 @@ describe('UserManagementClient', () => {
     render(<UserManagementClient />)
     expect(screen.getByRole('columnheader', { name: 'podcasts' })).toBeInTheDocument()
   })
+
+  it('offers taste access', () => {
+    mockUseUsers.mockReturnValue({ data: { users: [] }, isLoading: false, error: undefined })
+    render(<UserManagementClient />)
+    expect(screen.getByRole('columnheader', { name: 'taste' })).toBeInTheDocument()
+  })
 })

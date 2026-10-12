@@ -153,7 +153,8 @@ func TestComputeDifferences_Series(t *testing.T) {
 	assert.NotContains(t, computeDifferences(book, same), "series")
 	assert.Contains(t, computeDifferences(book, moved), "series")
 	assert.Contains(t, computeDifferences(book, unordered), "series")
-	assert.Contains(t, computeDifferences(models.Book{Title: "Mort"}, same), "series") //nolint:exhaustruct,lll // partial
+	unseries := models.Book{Title: "Mort"} //nolint:exhaustruct // partial
+	assert.Contains(t, computeDifferences(unseries, same), "series")
 }
 
 func TestLibraryProposal_CarriesSeries(t *testing.T) {
@@ -176,6 +177,13 @@ func ownedInSeries(title string, pos *float64) models.UserBook {
 	}
 }
 
+func volume(pos float64, title string) hardcover.SeriesBook {
+	return hardcover.SeriesBook{
+		Position: pos,
+		Book:     hardcover.ExternalBook{Title: title}, //nolint:exhaustruct // partial
+	}
+}
+
 func TestMergeSeriesEntries(t *testing.T) {
 	owned := []models.UserBook{
 		ownedInSeries("Mort", fptr(4)),
@@ -186,9 +194,9 @@ func TestMergeSeriesEntries(t *testing.T) {
 		Name:  "Discworld",
 		Total: iptr(41),
 		Books: []hardcover.SeriesBook{
-			{Position: 1, Book: hardcover.ExternalBook{Title: "The Colour of Magic"}}, //nolint:exhaustruct,lll // partial
-			{Position: 2, Book: hardcover.ExternalBook{Title: "The Light Fantastic"}}, //nolint:exhaustruct,lll // partial
-			{Position: 4, Book: hardcover.ExternalBook{Title: "Mort (Discworld #4)"}}, //nolint:exhaustruct,lll // partial
+			volume(1, "The Colour of Magic"),
+			volume(2, "The Light Fantastic"),
+			volume(4, "Mort (Discworld #4)"),
 		},
 	}
 
@@ -253,17 +261,20 @@ func TestEnrichByISBN_FillsSeriesFromHardcover(t *testing.T) {
 			Title: "Mort", Series: hcDiscworldRef(),
 		},
 	}
-	svc := &BookService{logger: logging.NewNopLogger(), hardcover: hc} //nolint:exhaustruct,lll // partial
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:    logging.NewNopLogger(),
+		hardcover: hc,
+	}
 
-	got := svc.enrichByISBN(context.Background(), SourceProposal{ //nolint:exhaustruct,lll // partial
+	proposal := SourceProposal{ //nolint:exhaustruct // partial
 		Source: "manual", Title: "Mort", ISBN13: "9780552131063",
-	})
+	}
+	got := svc.enrichByISBN(context.Background(), proposal)
 	assert.Equal(t, "Discworld", got.SeriesName)
 	assert.InDelta(t, 4.0, *got.SeriesPosition, 0)
 
-	kept := svc.enrichByISBN(context.Background(), SourceProposal{ //nolint:exhaustruct,lll // partial
-		Source: "manual", Title: "Mort", ISBN13: "9780552131063", SeriesName: "Death",
-	})
+	proposal.SeriesName = "Death"
+	kept := svc.enrichByISBN(context.Background(), proposal)
 	assert.Equal(t, "Death", kept.SeriesName, "a supplied series wins")
 }
 
@@ -273,7 +284,10 @@ func TestGetExternal_HardcoverCarriesSeries(t *testing.T) {
 			Title: "Mort", Series: hcDiscworldRef(),
 		},
 	}
-	svc := &BookService{logger: logging.NewNopLogger(), hardcover: hc} //nolint:exhaustruct,lll // partial
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:    logging.NewNopLogger(),
+		hardcover: hc,
+	}
 
 	got, err := svc.GetExternal(context.Background(), "hardcover", "9780552131063")
 	require.NoError(t, err)
@@ -321,9 +335,9 @@ func TestMatchOwnedVolumes_TitleBeatsPosition(t *testing.T) {
 		ownedInSeries("B", fptr(1)), // mistyped: B is volume 2
 	}
 	volumes := []hardcover.SeriesBook{
-		{Position: 1, Book: hardcover.ExternalBook{Title: "A"}}, //nolint:exhaustruct,lll // partial
-		{Position: 2, Book: hardcover.ExternalBook{Title: "B"}}, //nolint:exhaustruct,lll // partial
-		{Position: 3, Book: hardcover.ExternalBook{Title: ""}},  //nolint:exhaustruct,lll // partial
+		volume(1, "A"),
+		volume(2, "B"),
+		volume(3, ""),
 	}
 	assert.Equal(t, []int{0, 1, -1}, matchOwnedVolumes(owned, volumes))
 }
@@ -335,8 +349,8 @@ func TestMatchOwnedVolumes_PositionPassSkipsMatchedAndMismatched(t *testing.T) {
 		ownedInSeries("D", fptr(5)),
 	}
 	volumes := []hardcover.SeriesBook{
-		{Position: 1, Book: hardcover.ExternalBook{Title: "A"}}, //nolint:exhaustruct,lll // partial
-		{Position: 2, Book: hardcover.ExternalBook{Title: "X"}}, //nolint:exhaustruct,lll // partial
+		volume(1, "A"),
+		volume(2, "X"),
 	}
 	assert.Equal(t, []int{0, -1}, matchOwnedVolumes(owned, volumes),
 		"a title match keeps its volume; D's position 5 isn't volume 2")

@@ -119,6 +119,12 @@ linters:
           deny:
             - pkg: tools.xdoubleu.com/apps/movies/internal
               desc: apps/movies/internal is private to the movies app
+        apps-taste-internal:
+          files:
+            - "!**/apps/taste/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/taste/internal
+              desc: apps/taste/internal is private to the taste app
         apps-podcasts-internal:
           files:
             - "!**/apps/podcasts/**"

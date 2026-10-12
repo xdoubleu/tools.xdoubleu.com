@@ -647,26 +647,23 @@ func (repo *BooksRepository) UpdateFinishedAt(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// ListKoboSyncBooks returns the user's kobo-sync books with a ready file:
-// "pdf" with the kobo-format-pdf tag, else "kepub".
+// ListKoboSyncBooks returns the user's kobo-sync books with a ready KEPUB.
 func (repo *BooksRepository) ListKoboSyncBooks(
 	ctx context.Context,
 	userID string,
 ) ([]models.KoboSyncBook, error) {
 	query := `
-		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes,
+		SELECT b.id, b.title, b.authors, bf.storage_key, bf.size_bytes,
 		       COALESCE(ub.kobo_sync_enabled_at, ub.added_at), bf.converter_version,
-		       ub.kobo_last_synced_converter_version
+		       ub.kobo_last_synced_converter_version,
+		       ub.kobo_last_synced_cover_image_id
 		FROM books.user_books ub
 		JOIN books.books b ON b.id = ub.book_id
 		JOIN books.book_files bf
 		    ON bf.book_id = ub.book_id
 		    AND bf.user_id = ub.user_id
 		    AND bf.status = 'ready'
-		    AND bf.format = CASE
-		        WHEN 'kobo-format-pdf' = ANY(ub.tags) THEN 'pdf'
-		        ELSE 'kepub'
-		    END
+		    AND bf.format = 'kepub'
 		WHERE ub.user_id = $1 AND 'kobo-sync' = ANY(ub.tags)
 		ORDER BY b.title
 	`
@@ -681,8 +678,9 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 	for rows.Next() {
 		var b models.KoboSyncBook
 		if scanErr := rows.Scan(
-			&b.BookID, &b.Title, &b.Authors, &b.Format, &b.StorageKey, &b.Size,
+			&b.BookID, &b.Title, &b.Authors, &b.StorageKey, &b.Size,
 			&b.KoboSyncEnabledAt, &b.ConverterVersion, &b.LastSyncedConverterVersion,
+			&b.LastSyncedCoverImageID,
 		); scanErr != nil {
 			return nil, postgres.PgxErrorToHTTPError(scanErr)
 		}
@@ -694,20 +692,24 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 	return out, nil
 }
 
-// UpdateKoboLastSyncedConverterVersion records the converter version last sent
-// to the device.
-func (repo *BooksRepository) UpdateKoboLastSyncedConverterVersion(
+// UpdateKoboLastSynced records the converter version and CoverImageId last
+// sent to the device.
+func (repo *BooksRepository) UpdateKoboLastSynced(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 	converterVersion int16,
+	coverImageID string,
 ) error {
 	query := `
 		UPDATE books.user_books
-		SET kobo_last_synced_converter_version = $3
+		SET kobo_last_synced_converter_version = $3,
+		    kobo_last_synced_cover_image_id = $4
 		WHERE user_id = $1 AND book_id = $2
 	`
-	_, err := repo.db.Exec(ctx, query, userID, bookID, converterVersion)
+	_, err := repo.db.Exec(
+		ctx, query, userID, bookID, converterVersion, coverImageID,
+	)
 	return postgres.PgxErrorToHTTPError(err)
 }
 
@@ -994,6 +996,7 @@ func (repo *BooksRepository) GetCatalogWithUserOverlay(
 		    COALESCE(ub.progress_mode, ''),
 		    COALESCE(ub.current_page, 0),
 		    COALESCE(ub.progress_percent, 0),
+		    ub.physical_page_count,
 		    COALESCE(ub.added_at, b.created_at),
 		    COALESCE(ub.updated_at, b.updated_at),
 		    b.id, b.title, b.authors, b.isbn13, b.cover_url, b.description,
@@ -1246,25 +1249,24 @@ func (repo *BooksRepository) GetKoboSyncBook(
 	bookID uuid.UUID,
 ) (models.KoboSyncBook, error) {
 	query := `
-		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes,
-		       bf.converter_version, ub.kobo_last_synced_converter_version
+		SELECT b.id, b.title, b.authors, bf.storage_key, bf.size_bytes,
+		       bf.converter_version, ub.kobo_last_synced_converter_version,
+		       ub.kobo_last_synced_cover_image_id
 		FROM books.user_books ub
 		JOIN books.books b ON b.id = ub.book_id
 		JOIN books.book_files bf
 		    ON bf.book_id = ub.book_id
 		    AND bf.user_id = ub.user_id
 		    AND bf.status = 'ready'
-		    AND bf.format = CASE
-		        WHEN 'kobo-format-pdf' = ANY(ub.tags) THEN 'pdf'
-		        ELSE 'kepub'
-		    END
+		    AND bf.format = 'kepub'
 		WHERE ub.user_id = $1 AND ub.book_id = $2 AND 'kobo-sync' = ANY(ub.tags)
 	`
 
 	var b models.KoboSyncBook
 	err := repo.db.QueryRow(ctx, query, userID, bookID).Scan(
-		&b.BookID, &b.Title, &b.Authors, &b.Format, &b.StorageKey, &b.Size,
+		&b.BookID, &b.Title, &b.Authors, &b.StorageKey, &b.Size,
 		&b.ConverterVersion, &b.LastSyncedConverterVersion,
+		&b.LastSyncedCoverImageID,
 	)
 	if err != nil {
 		return models.KoboSyncBook{}, postgres.PgxErrorToHTTPError(err)

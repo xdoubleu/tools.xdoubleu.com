@@ -118,6 +118,25 @@ func TestUserBook_DisplayProgressPercent(t *testing.T) {
 			want: 100,
 		},
 		{
+			name: "pages mode prefers the physical copy's page count",
+			ub: models.UserBook{ //nolint:exhaustruct //fields under test
+				ProgressMode:      models.ProgressModePages,
+				CurrentPage:       50,
+				PhysicalPageCount: intPtr(100),
+				Book:              pages(intPtr(400)),
+			},
+			want: 50,
+		},
+		{
+			name: "pages mode over a single page",
+			ub: models.UserBook{ //nolint:exhaustruct //fields under test
+				ProgressMode:      models.ProgressModePages,
+				CurrentPage:       1,
+				PhysicalPageCount: intPtr(1),
+			},
+			want: 100,
+		},
+		{
 			name: "pages mode without page count returns zero",
 			ub: models.UserBook{ //nolint:exhaustruct //fields under test
 				ProgressMode: models.ProgressModePages,

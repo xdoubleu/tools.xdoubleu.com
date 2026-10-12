@@ -44,6 +44,13 @@ jest.mock('@/components/dashboard/DashboardShareButton', () => {
 })
 
 jest.mock('swr', () => ({ mutate: jest.fn() }))
+jest.mock('@/hooks/usePhysicalCopy', () => ({
+  usePhysicalCopy: () => ({ data: undefined }),
+  useUpdatePhysicalCopy: () => jest.fn()
+}))
+jest.mock('@/hooks/useReadingState', () => ({
+  useReadingState: () => ({ data: undefined })
+}))
 
 import ReadingDashboard from '@/components/dashboard/ReadingDashboard'
 import { useLibrary, useBooksProgress } from '@/hooks/useBooks'

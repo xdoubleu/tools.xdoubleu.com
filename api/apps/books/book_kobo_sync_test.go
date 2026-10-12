@@ -122,32 +122,6 @@ func TestGetKEPUBStatus_EPUBAndKEPUBConverting(t *testing.T) {
 	assert.Equal(t, models.FileStatusConverting, result.KepubStatus)
 }
 
-func TestGetKoboFileFormat_DefaultKEPUB(t *testing.T) {
-	ub := addTestBook(t, "KoboFmtDefault-"+uuid.NewString())
-
-	format, err := testApp.Services.Books.GetKoboFileFormat(
-		context.Background(), userID, ub.BookID,
-	)
-	require.NoError(t, err)
-	assert.Equal(t, models.FileFormatKEPUB, format)
-}
-
-func TestGetKoboFileFormat_PDFTag_ReturnsPDF(t *testing.T) {
-	ub := addTestBook(t, "KoboFmtPDF-"+uuid.NewString())
-	err := testApp.Repositories.Books.UpdateTags(
-		context.Background(), userID, ub.BookID,
-		[]string{models.TagKoboFormatPDF},
-		false, // no kobo-sync tag
-	)
-	require.NoError(t, err)
-
-	format, err := testApp.Services.Books.GetKoboFileFormat(
-		context.Background(), userID, ub.BookID,
-	)
-	require.NoError(t, err)
-	assert.Equal(t, models.FileFormatPDF, format)
-}
-
 func TestEnableKoboSync_SetsTag(t *testing.T) {
 	ub := addTestBook(t, "KoboSyncTag-"+uuid.NewString())
 
@@ -813,32 +787,6 @@ func TestConnectRequestKEPUBConversion_StaleReadyKEPUB_ReturnsConverting(t *test
 		"a stale ready KEPUB must re-trigger conversion, not be served as-is")
 }
 
-func TestConnectRequestKEPUBConversion_PDFWithKoboFormatPDFTag_StillConverts(
-	t *testing.T,
-) {
-	client := newBooksTestClient(t)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	_, bookID := uploadFileForOwner(t, userID, models.FileFormatPDF)
-	err := testApp.Repositories.Books.UpdateTags(
-		context.Background(), userID, bookID, []string{models.TagKoboFormatPDF},
-		false, // no kobo-sync tag
-	)
-	require.NoError(t, err)
-
-	req := &booksv1.RequestKEPUBConversionRequest{
-		BookId: bookID.String(),
-	}
-	ctx, info := connect.NewClientContext(ctx)
-	info.RequestHeader().Set("Cookie", accessToken.String())
-
-	// Preview converts even when the sync preference is raw PDF.
-	resp, err := client.RequestKEPUBConversion(ctx, req)
-	require.NoError(t, err)
-	assert.Equal(t, models.FileStatusConverting, resp.KepubStatus)
-}
-
 func TestConnectRequestKEPUBConversion_InvalidBookID(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -900,7 +848,7 @@ func TestUpdateTags_PreservesKoboSyncEnabledAt(t *testing.T) {
 
 	require.NoError(t, testApp.Repositories.Books.UpdateTags(
 		ctx, userID, ub.BookID,
-		[]string{models.TagKoboSync, models.TagKoboFormatPDF},
+		[]string{models.TagKoboSync, models.TagFavourite},
 		true,
 	))
 
@@ -1058,7 +1006,7 @@ func TestToggleTag_UnrelatedTag_DoesNotTombstone(t *testing.T) {
 			ctx,
 			userID,
 			ub.BookID,
-			models.TagKoboFormatPDF,
+			models.TagFavourite,
 		),
 	)
 

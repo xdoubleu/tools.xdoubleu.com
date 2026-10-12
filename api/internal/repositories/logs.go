@@ -2,6 +2,10 @@ package repositories
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"tools.xdoubleu.com/internal/database/postgres"
@@ -33,23 +37,66 @@ func (r *LogsRepository) Insert(ctx context.Context, entry models.LogEntry) erro
 	return err
 }
 
-// Query returns up to limit entries since since, newest first; empty
-// source/level match any.
+// ErrUnknownLogLevel is returned for a MinLevel outside DEBUG/INFO/WARN/ERROR.
+var ErrUnknownLogLevel = errors.New("unknown log level")
+
+// LogsFilter narrows Query. Empty strings match any; a zero Until means no
+// upper bound.
+type LogsFilter struct {
+	Since    time.Time
+	Until    time.Time
+	Source   string
+	MinLevel string // at least this level, case-insensitive
+	Contains string // case-insensitive substring of message or attrs JSON
+	Limit    int
+}
+
+// logLevelRank orders levels by severity from 1; 0 means no level filter.
+func logLevelRank(level string) (int, error) {
+	if level == "" {
+		return 0, nil
+	}
+	i := slices.Index(
+		[]string{"DEBUG", "INFO", "WARN", "ERROR"}, strings.ToUpper(level),
+	)
+	if i < 0 {
+		return 0, fmt.Errorf("%w: %q", ErrUnknownLogLevel, level)
+	}
+	return i + 1, nil
+}
+
+// Query returns up to f.Limit entries in [f.Since, f.Until), newest first.
 func (r *LogsRepository) Query(
 	ctx context.Context,
-	since time.Time,
-	source, level string,
-	limit int,
+	f LogsFilter,
 ) ([]models.LogEntry, error) {
+	minRank, err := logLevelRank(f.MinLevel)
+	if err != nil {
+		return nil, err
+	}
+	var until *time.Time
+	if !f.Until.IsZero() {
+		until = &f.Until
+	}
+
 	rows, err := r.db.Query(ctx, `
 		SELECT occurred_at, source, level, message, attrs
 		FROM global.log_entries
 		WHERE occurred_at >= $1
-		  AND ($2 = '' OR source = $2)
-		  AND ($3 = '' OR level = $3)
+		  AND ($2::timestamptz IS NULL OR occurred_at < $2)
+		  AND ($3 = '' OR source = $3)
+		  AND CASE
+		        WHEN upper(level) LIKE 'ERROR%' THEN 4
+		        WHEN upper(level) LIKE 'WARN%' THEN 3
+		        WHEN upper(level) LIKE 'INFO%' THEN 2
+		        ELSE 1
+		      END >= $4
+		  AND ($5 = ''
+		       OR strpos(lower(message), lower($5)) > 0
+		       OR strpos(lower(coalesce(attrs::text, '')), lower($5)) > 0)
 		ORDER BY occurred_at DESC
-		LIMIT $4
-	`, since, source, level, limit)
+		LIMIT $6
+	`, f.Since, until, f.Source, minRank, f.Contains, f.Limit)
 	if err != nil {
 		return nil, err
 	}

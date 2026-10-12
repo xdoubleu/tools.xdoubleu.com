@@ -422,6 +422,46 @@ groups:
                     type: gt
                     params: [0]
 
+      # Fires when the collector can't read Sentry (not connected, or fetch
+      # failing), where sentry_unresolved_issues is stale and a 0 means nothing.
+      # The 15m hold absorbs the 0 a fresh process reports until its first fetch
+      # and transient Sentry 5xx.
+      - uid: sentry-unresolved-unreadable
+        title: SentryUnresolvedUnreadable
+        condition: C
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Sentry unresolved issues can't be read
+          description: >-
+            The issue-signal collector couldn't fetch unresolved Sentry issues
+            (Sentry not connected or configured, or the API failing), so
+            IssueSentryUnresolved is blind. See the api logs for "failed to list
+            unresolved Sentry issues"; check /monitoring/connections.
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: 1 - max(sentry_unresolved_issues_fetch_ok) > 0
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
       - uid: issue-security-alerts
         title: IssueSecurityAlerts
         condition: C
@@ -454,8 +494,9 @@ groups:
                     params: [0]
 
       # IssueSecurityAlerts can't tell "no alerts" from "can't read alerts";
-      # this fires on the latter. The gauge starts at 0 until the collector's
-      # first run, which the 15m hold absorbs.
+      # this fires on the latter. The gauge is seeded to 1 at process start
+      # and drops to 0 only on a real fetch failure, so the 15m hold absorbs
+      # transient 4xx/5xx spikes.
       - uid: security-alerts-unreadable
         title: SecurityAlertsUnreadable
         condition: C

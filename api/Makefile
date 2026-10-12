@@ -14,14 +14,19 @@ tools: tools/lint tools/proto
 
 tools/lint: tools/lint/go tools/lint/sql
 
-tools/lint/go:
+tools/lint/go: tools/lint/golines
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
-	go install github.com/segmentio/golines@v0.13.0
 	go install github.com/daixiang0/gci@v0.14.0
 	go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
 
-# Keep in step with Homebrew's sqlfluff (unpinnable on macOS): LT01's
-# `TEXT[]` rule differs between 3.x and 4.x.
+tools/lint/golines:
+	go install github.com/segmentio/golines@v0.13.0
+
+# --tab-len 1 matches lll, which counts a tab as one column.
+GOLINES = golines -m 88 --tab-len 1 --ignore-generated
+
+# Keep in step with Homebrew's sqlfluff (unpinnable on macOS), api-lint.yml and
+# agent-routine.yml: LT01's `TEXT[]` rule differs between 3.x and 4.x.
 tools/lint/sql:
 ifeq ($(UNAME_S),Darwin)
 	brew install sqlfluff
@@ -68,6 +73,7 @@ arch/diagram: tools/arch
 
 lint: tools/lint
 	golangci-lint run
+	make lint/golines
 	make lint/sql
 	make lint/proto
 	make lint/migrations
@@ -78,17 +84,21 @@ lint/pkg: tools/lint
 	golangci-lint run ./$(PKG)/...
 
 lint/fix/pkg: tools/lint
-	golines ./$(PKG) -m 88 --tab-len 1 -w --ignore-generated
+	$(GOLINES) -w ./$(PKG)
 	golangci-lint run --fix ./$(PKG)/...
 	gci write --skip-generated -s standard -s default -s "prefix(tools.xdoubleu.com)" ./$(PKG)
 
 lint/fix: tools/lint
-	# --tab-len 1 matches lll, which counts a tab as one column.
-	golines . -m 88 --tab-len 1 -w --ignore-generated
+	$(GOLINES) -w .
 	golangci-lint run --fix
 	gci write --skip-generated -s standard -s default -s "prefix(tools.xdoubleu.com)" .
 	sqlfluff fix --dialect postgres .
 	make lint/proto
+
+# Fails when lint/fix would rewrite anything: lll accepts //nolint:lll, golines doesn't.
+lint/golines: tools/lint/golines
+	@diff=$$($(GOLINES) --dry-run .); \
+	if [ -n "$$diff" ]; then echo "$$diff"; echo "golines drift: run make lint/fix"; exit 1; fi
 
 lint/go/ci:
 	golangci-lint run

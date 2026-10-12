@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -180,6 +182,73 @@ func (repo *ItemsRepository) Insert(
 		publishedAt, item.IngestError, nonNilCategories(item.Categories),
 		item.FilteredAt, item.FilteredRuleID,
 	)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// insertManyChunk bounds rows per statement under Postgres' 65535 parameter cap.
+const insertManyChunk = 5000
+
+// InsertMany stores items like Insert, in multi-row statements. GUIDs must be
+// unique per feed within items: one statement cannot upsert a row twice.
+func (repo *ItemsRepository) InsertMany(
+	ctx context.Context,
+	items []models.Item,
+) error {
+	for start := 0; start < len(items); start += insertManyChunk {
+		end := min(start+insertManyChunk, len(items))
+		if err := repo.insertChunk(ctx, items[start:end]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (repo *ItemsRepository) insertChunk(
+	ctx context.Context,
+	items []models.Item,
+) error {
+	const (
+		cols         = 10
+		publishedCol = 6 // position of published_at in the column list
+	)
+	var sb strings.Builder
+	sb.WriteString(`
+		INSERT INTO feeds.items
+			(feed_id, guid, title, source_url, content_html, published_at,
+			 ingest_error, categories, filtered_at, filtered_rule_id)
+		VALUES `)
+	args := make([]any, 0, len(items)*cols)
+	for i, item := range items {
+		var publishedAt *time.Time
+		if !item.PublishedAt.IsZero() {
+			publishedAt = &item.PublishedAt
+		}
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteByte('(')
+		for c := 1; c <= cols; c++ {
+			if c > 1 {
+				sb.WriteString(", ")
+			}
+			p := i*cols + c
+			if c == publishedCol {
+				fmt.Fprintf(&sb, "COALESCE($%d, now())", p)
+			} else {
+				fmt.Fprintf(&sb, "$%d", p)
+			}
+		}
+		sb.WriteByte(')')
+		args = append(args,
+			item.FeedID, item.GUID, item.Title, item.SourceURL, item.ContentHTML,
+			publishedAt, item.IngestError, nonNilCategories(item.Categories),
+			item.FilteredAt, item.FilteredRuleID)
+	}
+	sb.WriteString(`
+		ON CONFLICT (feed_id, guid) DO UPDATE SET
+			read_at = NULL,
+			dismissed = false`)
+	_, err := repo.db.Exec(ctx, sb.String(), args...)
 	return postgres.PgxErrorToHTTPError(err)
 }
 

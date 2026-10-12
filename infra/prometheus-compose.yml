@@ -4,6 +4,11 @@ services:
     # prom_query tool reach it at prometheus:9090.
     image: prom/prometheus:v3.1.0
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     # Runs as `nobody`; needs the host's docker gid (passed in by
     # prometheus-setup.sh) to read the socket for docker_sd_configs.
     group_add:
@@ -29,6 +34,11 @@ services:
     # Server-level Postgres stats.
     image: quay.io/prometheuscommunity/postgres-exporter:v0.16.0
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     env_file: .env
     networks:
       # Reaches `postgres:5432` over the shared network.

@@ -48,7 +48,8 @@ run with over 3x its 14-day average requests.
 The agent ends each run with a retro. It reports blockers and concrete waste
 from that run as `routine-feedback` issues, commenting on an open match
 instead of duplicating, at most 2 per run. They never go to Ready: the owner
-triages them like any Backlog issue. They hold no log excerpts or copied
+triages them like any Backlog issue, and `ready-issues-sweep` fixes one
+only after the owner moves it to Ready. They hold no log excerpts or copied
 input text, since the inputs are untrusted.
 
 A red `main` also starts red-PR repair: `main.yml`'s `notify-main-ci-red` job
@@ -127,3 +128,6 @@ openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:"$ROUTINE_TRANSCRIPT_PASSPHRASE" 
   disables git hooks. The agent is told to use the sandbox; deny rules on bare
   `npm`/`make`/`go test` and `npm_config_ignore_scripts` back that up, but a
   command the agent runs outside it isn't isolated.
+- The sandbox can't write under `.claude/`, so routine runs use a branch in the
+  runner's checkout (`git checkout -B <branch> origin/main`), never a worktree
+  under `.claude/worktrees/`, where `npm ci` would fail.

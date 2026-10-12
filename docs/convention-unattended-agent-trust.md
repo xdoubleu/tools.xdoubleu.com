@@ -9,6 +9,8 @@
 
 - **Only a human moves an issue to Ready.** Agents file or re-triage into
   Backlog. The move to Ready is the approval an unattended run relies on.
+  This includes `routine-feedback` issues, which the executor fixes only
+  after that human move.
 - **The executor trusts only known authors.** `ready-issues-sweep` skips an
   issue not opened by the owner (`author_association: OWNER`) or the routines
   App (`xdoubleu-routines[bot]`), and gives subagents only comments whose

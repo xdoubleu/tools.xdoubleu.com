@@ -6,7 +6,8 @@ import {
   BookSchema,
   LibraryResponseSchema,
   GetLibraryResponseSchema,
-  BookShelfSchema
+  BookShelfSchema,
+  ReadSuggestionSchema
 } from '@/lib/gen/books/v1/library_pb'
 
 jest.mock('@/hooks/useBooks', () => ({
@@ -340,6 +341,27 @@ describe('BookDetailClient', () => {
     })
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByTestId('favourite-button')).toBeInTheDocument()
+  })
+
+  it('shows the device suggestion once the book is analysed', () => {
+    const analysed = create(UserBookSchema, {
+      ...mockUserBook,
+      readSuggestion: create(ReadSuggestionSchema, { format: 'epub', figureCount: 2, pages: 200 })
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLibrary).mockReturnValue({
+      data: makeLibraryData([analysed]),
+      isLoading: false,
+      error: undefined
+    })
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.getByText('Best on phone/Kobo (EPUB)')).toBeInTheDocument()
+    expect(screen.getByText('· 2 figures in ~200 pages', { exact: false })).toBeInTheDocument()
+  })
+
+  it('hides the device suggestion before the book is analysed', () => {
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.queryByText(/Best on/)).not.toBeInTheDocument()
   })
 
   it('hides Kobo sync toggle when book has no epub/pdf format', () => {

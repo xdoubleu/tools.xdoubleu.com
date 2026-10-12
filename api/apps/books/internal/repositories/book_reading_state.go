@@ -93,6 +93,26 @@ func (r *BookReadingStateRepository) SetPositionForKoboLocation(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
+// SetPhysicalPosition sets position and percent on the physical row stored
+// at updatedAt that has none yet; the update bumps updated_at, so devices
+// get it again.
+func (r *BookReadingStateRepository) SetPhysicalPosition(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	updatedAt time.Time,
+	pos models.ReadingPosition,
+	percent int,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE books.book_reading_state
+		SET position = $4, percent = $5
+		WHERE user_id = $1 AND book_id = $2 AND updated_at = $3
+		  AND source = $6 AND position IS NULL
+	`, userID, bookID, updatedAt, pos, percent, models.ReadingSourcePhysical)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 // ClearKoboLocation drops the Kobo bookmark of the row still holding loc,
 // keeping its position.
 func (r *BookReadingStateRepository) ClearKoboLocation(

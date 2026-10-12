@@ -42,6 +42,7 @@ type PositionService struct {
 	files        kepubFileStore
 	objectStore  objectstore.Client
 	cache        *spanMapCache
+	texts        *lruCache[bookTextKey, *bookText]
 	builds       singleflight.Group
 	slots        chan struct{}
 	budget       time.Duration
@@ -50,7 +51,8 @@ type PositionService struct {
 	maxDownload  int64
 	now          func() time.Time
 	pendingMu    sync.Mutex
-	pendingSince map[spanMapKey]time.Time
+	// pendingSince is keyed by spanMapKey and bookTextKey.
+	pendingSince map[any]time.Time
 }
 
 func newPositionService(
@@ -64,6 +66,7 @@ func newPositionService(
 		files:        files,
 		objectStore:  objectStore,
 		cache:        newSpanMapCache(spanMapCacheSize),
+		texts:        newLRUCache[bookTextKey, *bookText](bookTextCacheSize),
 		builds:       singleflight.Group{},
 		slots:        make(chan struct{}, spanMapBuildSlots),
 		budget:       budget,
@@ -72,7 +75,7 @@ func newPositionService(
 		maxDownload:  maxConversionInputBytes,
 		now:          time.Now,
 		pendingMu:    sync.Mutex{},
-		pendingSince: map[spanMapKey]time.Time{},
+		pendingSince: map[any]time.Time{},
 	}
 }
 
@@ -211,7 +214,7 @@ func (s *PositionService) await(
 }
 
 // stillPending reports whether key first went pending within the grace.
-func (s *PositionService) stillPending(key spanMapKey) bool {
+func (s *PositionService) stillPending(key any) bool {
 	s.pendingMu.Lock()
 	defer s.pendingMu.Unlock()
 	now := s.now()
@@ -225,6 +228,10 @@ func (s *PositionService) stillPending(key spanMapKey) bool {
 
 func (s *PositionService) markBuilt(key spanMapKey, m *spanMap) {
 	s.cache.add(key, m)
+	s.clearPending(key)
+}
+
+func (s *PositionService) clearPending(key any) {
 	s.pendingMu.Lock()
 	delete(s.pendingSince, key)
 	s.pendingMu.Unlock()

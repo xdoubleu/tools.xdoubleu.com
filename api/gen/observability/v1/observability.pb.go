@@ -1250,6 +1250,7 @@ type ProjectIssue struct {
 	StatusUpdatedAt       string                 `protobuf:"bytes,7,opt,name=status_updated_at,json=statusUpdatedAt,proto3" json:"status_updated_at,omitempty"`     // RFC3339
 	BodyHasHtmlComment    bool                   `protobuf:"varint,8,opt,name=body_has_html_comment,json=bodyHasHtmlComment,proto3" json:"body_has_html_comment,omitempty"`
 	BodyEditedAfterStatus bool                   `protobuf:"varint,9,opt,name=body_edited_after_status,json=bodyEditedAfterStatus,proto3" json:"body_edited_after_status,omitempty"`
+	Labels                []string               `protobuf:"bytes,10,rep,name=labels,proto3" json:"labels,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -1345,6 +1346,13 @@ func (x *ProjectIssue) GetBodyEditedAfterStatus() bool {
 		return x.BodyEditedAfterStatus
 	}
 	return false
+}
+
+func (x *ProjectIssue) GetLabels() []string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
 }
 
 // GetProjectIssuesByStatusRequest finds issues on the owner's Projects (v2)
@@ -2622,13 +2630,14 @@ func (x *LogEntry) GetAttrsJson() string {
 	return ""
 }
 
-// GetLogsRequest filters global.log_entries; empty source/min_level means
-// any.
+// GetLogsRequest filters global.log_entries; empty fields match any.
 type GetLogsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Source        string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
-	MinLevel      string                 `protobuf:"bytes,2,opt,name=min_level,json=minLevel,proto3" json:"min_level,omitempty"`
-	Since         string                 `protobuf:"bytes,3,opt,name=since,proto3" json:"since,omitempty"` // RFC3339
+	MinLevel      string                 `protobuf:"bytes,2,opt,name=min_level,json=minLevel,proto3" json:"min_level,omitempty"` // at least DEBUG < INFO < WARN < ERROR
+	Since         string                 `protobuf:"bytes,3,opt,name=since,proto3" json:"since,omitempty"`                       // RFC3339, inclusive
+	Until         string                 `protobuf:"bytes,4,opt,name=until,proto3" json:"until,omitempty"`                       // RFC3339, exclusive
+	Contains      string                 `protobuf:"bytes,5,opt,name=contains,proto3" json:"contains,omitempty"`                 // case-insensitive substring of message or attrs
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2680,6 +2689,20 @@ func (x *GetLogsRequest) GetMinLevel() string {
 func (x *GetLogsRequest) GetSince() string {
 	if x != nil {
 		return x.Since
+	}
+	return ""
+}
+
+func (x *GetLogsRequest) GetUntil() string {
+	if x != nil {
+		return x.Until
+	}
+	return ""
+}
+
+func (x *GetLogsRequest) GetContains() string {
+	if x != nil {
+		return x.Contains
 	}
 	return ""
 }
@@ -4320,7 +4343,7 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\n" +
 	"configured\x18\x02 \x01(\bR\n" +
 	"configured\x12#\n" +
-	"\rfailing_count\x18\x03 \x01(\x05R\ffailingCount\"\xd0\x02\n" +
+	"\rfailing_count\x18\x03 \x01(\x05R\ffailingCount\"\xe8\x02\n" +
 	"\fProjectIssue\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x03R\x06number\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x10\n" +
@@ -4330,7 +4353,9 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x12author_association\x18\x06 \x01(\tR\x11authorAssociation\x12*\n" +
 	"\x11status_updated_at\x18\a \x01(\tR\x0fstatusUpdatedAt\x121\n" +
 	"\x15body_has_html_comment\x18\b \x01(\bR\x12bodyHasHtmlComment\x127\n" +
-	"\x18body_edited_after_status\x18\t \x01(\bR\x15bodyEditedAfterStatus\"`\n" +
+	"\x18body_edited_after_status\x18\t \x01(\bR\x15bodyEditedAfterStatus\x12\x16\n" +
+	"\x06labels\x18\n" +
+	" \x03(\tR\x06labels\"`\n" +
 	"\x1fGetProjectIssuesByStatusRequest\x12%\n" +
 	"\x0eproject_number\x18\x01 \x01(\x05R\rprojectNumber\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\"z\n" +
@@ -4442,11 +4467,13 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x05level\x18\x03 \x01(\tR\x05level\x12\x18\n" +
 	"\amessage\x18\x04 \x01(\tR\amessage\x12\x1d\n" +
 	"\n" +
-	"attrs_json\x18\x05 \x01(\tR\tattrsJson\"[\n" +
+	"attrs_json\x18\x05 \x01(\tR\tattrsJson\"\x8d\x01\n" +
 	"\x0eGetLogsRequest\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12\x1b\n" +
 	"\tmin_level\x18\x02 \x01(\tR\bminLevel\x12\x14\n" +
-	"\x05since\x18\x03 \x01(\tR\x05since\"G\n" +
+	"\x05since\x18\x03 \x01(\tR\x05since\x12\x14\n" +
+	"\x05until\x18\x04 \x01(\tR\x05until\x12\x1a\n" +
+	"\bcontains\x18\x05 \x01(\tR\bcontains\"G\n" +
 	"\x0fGetLogsResponse\x124\n" +
 	"\aentries\x18\x01 \x03(\v2\x1a.observability.v1.LogEntryR\aentries\"\x1a\n" +
 	"\x18GetHealthOverviewRequest\"^\n" +
