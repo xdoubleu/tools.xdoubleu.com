@@ -487,46 +487,80 @@ func (s *FeedService) processItems(
 	})
 	rules := s.pollFilterRules(ctx, feed, newGUIDs)
 
-	ingested := 0
+	// Rows are built one by one (content fetches) and stored in one statement.
+	batch := make([]models.Item, 0, len(newGUIDs))
 	for i, guid := range newGUIDs {
 		if ctx.Err() != nil {
-			return ingested
+			break
 		}
 		if i >= maxItemsPerPoll {
-			s.markSeenError(ctx, feed.ID, guid, "skipped: over per-poll cap")
+			batch = append(batch, seenErrorItem(feed.ID, guid, "skipped: over per-poll cap"))
 			continue
 		}
-		if s.ingestItem(ctx, feed, byGUID[guid], guid, rules) {
+		batch = append(batch, s.buildOrErrorItem(ctx, feed, byGUID[guid], guid, rules))
+	}
+	// Detached so a cancelled poll still keeps the rows it already built.
+	return s.storeItems(context.WithoutCancel(ctx), feed.ID, batch)
+}
+
+// storeItems upserts the batch in one statement and returns how many
+// unfiltered items it stored. If the batch fails, rows go in one by one so
+// a single bad row cannot starve the rest; stored rows are marked seen.
+func (s *FeedService) storeItems(
+	ctx context.Context,
+	feedID uuid.UUID,
+	batch []models.Item,
+) int {
+	if len(batch) == 0 {
+		return 0
+	}
+	if err := s.items.InsertMany(ctx, batch); err != nil {
+		s.logger.WarnContext(ctx, "feed item batch store failed",
+			"feedID", feedID, "items", len(batch), "error", err)
+		ingested := 0
+		for _, it := range batch {
+			if insErr := s.items.Insert(ctx, it); insErr != nil {
+				s.logger.WarnContext(ctx, "feed item store failed",
+					"feedID", feedID, "guid", it.GUID, "error", insErr)
+				continue
+			}
+			if isIngested(it) {
+				ingested++
+			}
+		}
+		return ingested
+	}
+	ingested := 0
+	for _, it := range batch {
+		if isIngested(it) {
 			ingested++
 		}
 	}
 	return ingested
 }
 
-// ingestItem ingests one feed item and reports whether it stored an
-// unfiltered one. The guid is marked seen regardless; RefreshFeed re-parses
-// the live feed.
-func (s *FeedService) ingestItem(
+// isIngested reports whether the row is a stored, unfiltered item.
+func isIngested(it models.Item) bool {
+	return it.IngestError == nil && it.FilteredAt == nil
+}
+
+// buildOrErrorItem builds one feed item, or an error-only seen marker when
+// that fails. The guid is marked seen regardless; RefreshFeed re-parses the
+// live feed.
+func (s *FeedService) buildOrErrorItem(
 	ctx context.Context,
 	feed models.Feed,
 	item *gofeed.Item,
 	guid string,
 	rules []models.FilterRule,
-) bool {
+) models.Item {
 	built, err := s.buildItem(ctx, feed, item, guid, rules)
 	if err != nil {
 		s.logger.WarnContext(ctx, "feed item ingest failed",
 			"feedID", feed.ID, "guid", guid, "error", err)
-		s.markSeenError(ctx, feed.ID, guid, err.Error())
-		return false
+		return seenErrorItem(feed.ID, guid, err.Error())
 	}
-
-	if err = s.items.Insert(ctx, *built); err != nil {
-		s.logger.WarnContext(ctx, "feed item store failed",
-			"feedID", feed.ID, "guid", guid, "error", err)
-		return false
-	}
-	return built.FilteredAt == nil
+	return *built
 }
 
 // buildItem resolves item content: embedded content, else the extracted
@@ -622,17 +656,22 @@ func titleOrDefault(title, fallback string) string {
 	return fallback
 }
 
+// seenErrorItem is an error-only seen marker, no content.
+func seenErrorItem(feedID uuid.UUID, guid, ingestErr string) models.Item {
+	//nolint:exhaustruct // this is an error-only seen marker, no content
+	return models.Item{
+		FeedID:      feedID,
+		GUID:        guid,
+		IngestError: &ingestErr,
+	}
+}
+
 func (s *FeedService) markSeenError(
 	ctx context.Context,
 	feedID uuid.UUID,
 	guid, ingestErr string,
 ) {
-	//nolint:exhaustruct // this is an error-only seen marker, no content
-	item := models.Item{
-		FeedID:      feedID,
-		GUID:        guid,
-		IngestError: &ingestErr,
-	}
+	item := seenErrorItem(feedID, guid, ingestErr)
 	if err := s.items.Insert(ctx, item); err != nil {
 		s.logger.WarnContext(ctx, "feed mark-seen failed",
 			"feedID", feedID, "guid", guid, "error", err)
