@@ -50,6 +50,9 @@ describe('TasteEvents', () => {
     expect(screen.getByText('Loved')).toBeInTheDocument()
     const log = screen.getByRole('list', { name: 'Consumption log' })
     expect(within(log).getByText('Games')).toBeInTheDocument()
+    // No reason, no reason line.
+    const bouncedRow = within(log).getAllByRole('listitem')[1]
+    expect(bouncedRow.querySelectorAll('p')).toHaveLength(2)
     expect(screen.getByText('Disliked')).toBeInTheDocument()
   })
 
@@ -57,6 +60,11 @@ describe('TasteEvents', () => {
     mockEvents({ isLoading: true })
     const { rerender } = render(<TasteEvents />)
     expect(screen.getByText(/Loading log/)).toBeInTheDocument()
+
+    // Not loading and no data yet: nothing to show, not a spinner.
+    mockEvents({})
+    rerender(<TasteEvents />)
+    expect(screen.queryByText(/Loading log/)).not.toBeInTheDocument()
 
     mockEvents({ error: new Error('nope') })
     rerender(<TasteEvents />)
@@ -84,5 +92,53 @@ describe('TasteEvents', () => {
     await waitFor(() => expect(screen.getByText('Outer Wilds')).toBeInTheDocument())
     expect(mockFetchPage).toHaveBeenCalledWith(1)
     expect(screen.queryByRole('button', { name: /Load more/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('TasteEvents revalidation', () => {
+  const extra = create(EventSchema, { domain: 'movies', itemId: 'm1', title: 'Arrival' })
+
+  async function loadTwoPages() {
+    mockEvents({ data: page([dune], true) })
+    mockFetchPage.mockResolvedValue({ items: [bounced], hasMore: false })
+    const view = render(<TasteEvents />)
+    fireEvent.click(screen.getByRole('button', { name: /Load more/ }))
+    await waitFor(() => expect(screen.getByText('Outer Wilds')).toBeInTheDocument())
+    return view
+  }
+
+  it('keeps loaded pages when the first page comes back unchanged', async () => {
+    const { rerender } = await loadTwoPages()
+    mockEvents({ data: page([create(EventSchema, { ...dune })], true) })
+    rerender(<TasteEvents />)
+    expect(screen.getByText('Outer Wilds')).toBeInTheDocument()
+  })
+
+  it('resets when the first page changes item', async () => {
+    const { rerender } = await loadTwoPages()
+    mockEvents({ data: page([extra], true) })
+    rerender(<TasteEvents />)
+    await waitFor(() => expect(screen.getByText('Arrival')).toBeInTheDocument())
+    expect(screen.queryByText('Outer Wilds')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dune')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['another domain with the same id', { domain: 'games', itemId: 'b1' }],
+    ['the same domain with another id', { domain: 'books', itemId: 'b2' }]
+  ])('treats %s as a different item', async (_, key) => {
+    const { rerender } = await loadTwoPages()
+    mockEvents({ data: page([create(EventSchema, { ...dune, ...key, title: 'Dune 2' })], true) })
+    rerender(<TasteEvents />)
+    await waitFor(() => expect(screen.getByText('Dune 2')).toBeInTheDocument())
+    expect(screen.queryByText('Outer Wilds')).not.toBeInTheDocument()
+  })
+
+  it('keys rows uniquely', () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    mockEvents({ data: page([dune, bounced]) })
+    render(<TasteEvents />)
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
   })
 })

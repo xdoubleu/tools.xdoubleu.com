@@ -47,4 +47,19 @@ describe('useFetchTasteEventsPage', () => {
     })
     expect(mockClient.listEvents).toHaveBeenCalledWith({ domain: 'books', limit: 50, offset: 50 })
   })
+
+  it('follows a domain change', async () => {
+    const { result, rerender } = renderHook(({ domain }) => useFetchTasteEventsPage(domain), {
+      initialProps: { domain: 'books' }
+    })
+    const first = result.current
+    rerender({ domain: 'games' })
+    expect(result.current).not.toBe(first)
+    await result.current(0)
+    expect(mockClient.listEvents).toHaveBeenLastCalledWith({
+      domain: 'games',
+      limit: 50,
+      offset: 0
+    })
+  })
 })

@@ -13,7 +13,9 @@ jest.mock('recharts', () => ({
     <span data-testid="bar">{`${dataKey}:${stackId}:${fill}`}</span>
   ),
   XAxis: () => null,
-  YAxis: () => null,
+  YAxis: ({ allowDecimals }: { allowDecimals: boolean }) => (
+    <span data-testid="y-axis">{String(allowDecimals)}</span>
+  ),
   CartesianGrid: () => null,
   Tooltip: () => null,
   Legend: () => null,
@@ -103,6 +105,7 @@ describe('TasteStats', () => {
     expect(screen.getAllByTestId('bar').map((b) => b.textContent)).toContain(
       'Books:events:rgb(var(--series-1-rgb))'
     )
+    expect(screen.getByTestId('y-axis')).toHaveTextContent('false')
     expect(mockBarChart).toHaveBeenCalledWith([
       expect.objectContaining({ month: 'Oct 26', Books: 4 })
     ])

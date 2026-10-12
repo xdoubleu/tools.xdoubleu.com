@@ -1,5 +1,29 @@
 import { DOMAINS, domainLabel, monthRows, signalBadge } from '@/lib/taste/format'
 
+describe('DOMAINS', () => {
+  it('lists every domain in display order with its series colour', () => {
+    expect(DOMAINS.map((d) => d.id)).toEqual([
+      'books',
+      'feeds',
+      'games',
+      'movies',
+      'series',
+      'podcasts'
+    ])
+    expect(DOMAINS.map((d) => d.label)).toEqual([
+      'Books',
+      'Feeds',
+      'Games',
+      'Movies',
+      'Series',
+      'Podcasts'
+    ])
+    expect(DOMAINS.map((d) => d.color)).toEqual(
+      [1, 2, 3, 4, 5, 6].map((n) => `rgb(var(--series-${n}-rgb))`)
+    )
+  })
+})
+
 describe('domainLabel', () => {
   it('labels known domains and passes unknown ones through', () => {
     expect(domainLabel('series')).toBe('Series')
