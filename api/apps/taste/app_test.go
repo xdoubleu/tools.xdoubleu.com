@@ -15,6 +15,7 @@ import (
 	"tools.xdoubleu.com/apps/taste"
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
 	"tools.xdoubleu.com/gen/taste/v1/tastev1connect"
+	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/consumption"
 	"tools.xdoubleu.com/internal/logging"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
@@ -23,11 +24,14 @@ import (
 
 const userID = "taste-test-user"
 
-// userSource serves fixed events for userID only.
+// userSource is app name's fixed events for userID only.
 type userSource struct {
+	name   string
 	events []consumption.Event
 	err    error
 }
+
+func (s userSource) GetName() string { return s.name }
 
 func (s userSource) ListConsumption(
 	_ context.Context, uid string,
@@ -38,14 +42,23 @@ func (s userSource) ListConsumption(
 	return s.events, s.err
 }
 
+// newClient serves the app to an admin, who may read every source.
 func newClient(
 	t *testing.T,
 	sources ...taste.Source,
 ) tastev1connect.TasteServiceClient {
 	t.Helper()
+	return newClientAs(t, sharedmocks.NewMockedAdminAuthService(userID), sources...)
+}
+
+func newClientAs(
+	t *testing.T,
+	authService auth.Service,
+	sources ...taste.Source,
+) tastev1connect.TasteServiceClient {
+	t.Helper()
 	a := taste.New(
-		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(),
-		testhelper.NewTestConfig(), sources...,
+		authService, logging.NewNopLogger(), testhelper.NewTestConfig(), sources...,
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(a))
 	t.Cleanup(ts.Close)
@@ -80,8 +93,8 @@ func TestAppMetadata(t *testing.T) {
 
 func TestGetStats(t *testing.T) {
 	c := newClient(t,
-		userSource{events: []consumption.Event{book}, err: nil},
-		userSource{events: []consumption.Event{game}, err: nil},
+		userSource{name: "books", events: []consumption.Event{book}, err: nil},
+		userSource{name: "games", events: []consumption.Event{game}, err: nil},
 	)
 	resp, err := c.GetStats(context.Background(), connect.NewRequest(
 		&tastev1.GetStatsRequest{},
@@ -109,7 +122,10 @@ func TestGetStats(t *testing.T) {
 func TestGetStats_MonthCounts(t *testing.T) {
 	recent := book
 	recent.At = time.Now()
-	c := newClient(t, userSource{events: []consumption.Event{recent}, err: nil})
+	c := newClient(
+		t,
+		userSource{name: "books", events: []consumption.Event{recent}, err: nil},
+	)
 	resp, err := c.GetStats(context.Background(), connect.NewRequest(
 		&tastev1.GetStatsRequest{},
 	))
@@ -122,7 +138,10 @@ func TestGetStats_MonthCounts(t *testing.T) {
 }
 
 func TestListEvents(t *testing.T) {
-	c := newClient(t, userSource{events: []consumption.Event{game, book}, err: nil})
+	c := newClient(
+		t,
+		userSource{name: "books", events: []consumption.Event{game, book}, err: nil},
+	)
 	resp, err := c.ListEvents(context.Background(), connect.NewRequest(
 		&tastev1.ListEventsRequest{Domain: "", Limit: 1, Offset: 0},
 	))
@@ -176,7 +195,7 @@ func TestListEvents_InvalidArguments(t *testing.T) {
 }
 
 func TestSourceErrorIsInternal(t *testing.T) {
-	c := newClient(t, userSource{events: nil, err: errors.New("db down")})
+	c := newClient(t, userSource{name: "books", events: nil, err: errors.New("db down")})
 	_, err := c.GetStats(context.Background(), connect.NewRequest(
 		&tastev1.GetStatsRequest{},
 	))
@@ -185,4 +204,20 @@ func TestSourceErrorIsInternal(t *testing.T) {
 		&tastev1.ListEventsRequest{Domain: "", Limit: 0, Offset: 0},
 	))
 	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+}
+
+// TestSourcesNeedAppAccess: a user sees only the apps they may open; the
+// mocked user has recipes access but not books.
+func TestSourcesNeedAppAccess(t *testing.T) {
+	c := newClientAs(t, sharedmocks.NewMockedAuthService(userID),
+		userSource{name: "books", events: []consumption.Event{book}, err: nil},
+		userSource{name: "recipes", events: []consumption.Event{game}, err: nil},
+		userSource{name: "feeds", events: nil, err: errors.New("never called")},
+	)
+	resp, err := c.ListEvents(context.Background(), connect.NewRequest(
+		&tastev1.ListEventsRequest{Domain: "", Limit: 0, Offset: 0},
+	))
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.Events, 1)
+	assert.Equal(t, "Outer Wilds", resp.Msg.Events[0].Title)
 }

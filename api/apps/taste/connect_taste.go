@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/consumption"
 	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/mcptools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/pagination"
 )
@@ -34,6 +35,14 @@ func userID(ctx context.Context) (string, error) {
 	return user.ID, nil
 }
 
+// canAccess reports whether the caller may read an app, so taste never
+// surfaces an app's data to someone without access to it.
+func canAccess(ctx context.Context) func(appName string) bool {
+	return func(appName string) bool {
+		return mcptools.RequireAppAccess(ctx, appName) == nil
+	}
+}
+
 func (h *tasteConnectHandler) GetStats(
 	ctx context.Context,
 	_ *connect.Request[tastev1.GetStatsRequest],
@@ -42,7 +51,7 @@ func (h *tasteConnectHandler) GetStats(
 	if err != nil {
 		return nil, err
 	}
-	events, err := h.app.log.Events(ctx, uid)
+	events, err := h.app.log.Events(ctx, uid, canAccess(ctx))
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
@@ -68,7 +77,7 @@ func (h *tasteConnectHandler) ListEvents(
 			connect.CodeInvalidArgument, errors.New("offset must not be negative"),
 		)
 	}
-	events, err := h.app.log.Events(ctx, uid)
+	events, err := h.app.log.Events(ctx, uid, canAccess(ctx))
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}

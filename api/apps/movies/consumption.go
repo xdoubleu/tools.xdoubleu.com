@@ -3,6 +3,7 @@ package movies
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"tools.xdoubleu.com/apps/movies/internal/models"
 	"tools.xdoubleu.com/internal/consumption"
@@ -11,23 +12,30 @@ import (
 
 // ListConsumption returns userID's watching, watched and dropped titles as
 // consumption events, for the taste app. Series and movies are separate
-// domains.
+// domains; a series is dated and judged by its season watches.
 func (a *Movies) ListConsumption(
 	ctx context.Context,
 	userID string,
 ) ([]consumption.Event, error) {
+	seasons, err := a.services.Movies.SeasonWatchSummaries(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
 	var events []consumption.Event
 	for offset := int32(0); ; offset += pagination.MaxLimit {
-		entries, hasMore, err := a.services.Movies.List(ctx, userID, models.ListFilter{
-			Status: "", MediaType: "", Sort: models.SortAdded,
-			NewSeason: false, OnMyServices: false,
-			Limit: pagination.MaxLimit, Offset: offset,
-		})
-		if err != nil {
-			return nil, err
+		entries, hasMore, listErr := a.services.Movies.List(
+			ctx, userID, models.ListFilter{
+				Status: "", MediaType: "", Sort: models.SortAdded,
+				NewSeason: false, OnMyServices: false,
+				Limit: pagination.MaxLimit, Offset: offset,
+			},
+		)
+		if listErr != nil {
+			return nil, listErr
 		}
 		for _, e := range entries {
-			if event, ok := entryEvent(e); ok {
+			if event, ok := entryEvent(e, seasons[e.ID]); ok {
 				events = append(events, event)
 			}
 		}
@@ -37,18 +45,23 @@ func (a *Movies) ListConsumption(
 	}
 }
 
-func entryEvent(e models.Entry) (consumption.Event, bool) {
-	signal, reason, ok := entrySignal(e)
-	if !ok {
-		return consumption.Event{}, false //nolint:exhaustruct // unused when !ok
-	}
+// entryEvent maps an entry; seasons is the zero summary for movies. An entry
+// with no dated watch stays undated.
+func entryEvent(
+	e models.Entry,
+	seasons models.SeasonWatchSummary,
+) (consumption.Event, bool) {
+	rewatched := len(e.WatchedAt) > 1
+	at := consumption.Latest(e.WatchedAt)
 	domain := consumption.DomainMovies
 	if e.Title.MediaType == "series" {
 		domain = consumption.DomainSeries
+		rewatched = seasons.Rewatched
+		at = consumption.Latest([]*time.Time{seasons.LatestAt})
 	}
-	at := consumption.Latest(e.WatchedAt)
-	if at.IsZero() {
-		at = e.UpdatedAt
+	signal, reason, ok := entrySignal(e.Status, e.Rating, rewatched)
+	if !ok {
+		return consumption.Event{}, false //nolint:exhaustruct // unused when !ok
 	}
 	return consumption.Event{
 		Domain:  domain,
@@ -62,20 +75,24 @@ func entryEvent(e models.Entry) (consumption.Event, bool) {
 	}, true
 }
 
-func entrySignal(e models.Entry) (consumption.Signal, string, bool) {
-	if e.Status == models.StatusWant {
+func entrySignal(
+	status string,
+	rating *int,
+	rewatched bool,
+) (consumption.Signal, string, bool) {
+	if status == models.StatusWant {
 		return 0, "", false
 	}
-	if e.Rating != nil {
-		return consumption.RatingSignal(*e.Rating), consumption.RatingReason(*e.Rating), true
+	if rating != nil {
+		return consumption.RatingSignal(*rating), consumption.RatingReason(*rating), true
 	}
-	switch e.Status {
+	switch status {
 	case models.StatusDropped:
 		return consumption.Negative, "dropped", true
 	case models.StatusWatching:
 		return consumption.Neutral, "watching", true
 	}
-	if len(e.WatchedAt) > 1 {
+	if rewatched {
 		return consumption.StrongPositive, "rewatched", true
 	}
 	return consumption.Positive, "watched", true

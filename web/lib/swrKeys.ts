@@ -102,6 +102,9 @@ export const swrKeys = {
   podcastsEpisodes: '/podcasts/episodes',
   podcastsSearch: (query: string) => ['/podcasts/search', query] as const,
 
+  tasteStats: '/taste/stats',
+  tasteEvents: (domain: string) => ['/taste/events', domain] as const,
+
   shoppingList: (ownerUserId: string) => `/shoppinglist?owner=${ownerUserId}`,
   shoppingListExport: (planId: string, excludedGroups: readonly string[]) =>
     `/shoppinglist/export/${planId}?excluded=${[...excludedGroups].sort().join(',')}`,

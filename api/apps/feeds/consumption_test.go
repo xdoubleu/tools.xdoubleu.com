@@ -48,7 +48,7 @@ func TestListConsumption(t *testing.T) {
 	require.Len(t, got, 4)
 	assert.Equal(t, consumption.StrongPositive, got["Bookmarked"].Signal)
 	assert.Equal(t, []string{"Go"}, got["Bookmarked"].Tags)
-	assert.True(t, published.Equal(got["Bookmarked"].At))
+	assert.True(t, got["Bookmarked"].At.IsZero())
 	assert.Equal(t, "Consumption Blog", got["Bookmarked"].Creator)
 	assert.Equal(t, consumption.DomainFeeds, got["Bookmarked"].Domain)
 	assert.Equal(t, consumption.Positive, got["Read in full"].Signal)
@@ -56,4 +56,12 @@ func TestListConsumption(t *testing.T) {
 	assert.Equal(t, consumption.Neutral, got["Skimmed"].Signal)
 	assert.Equal(t, consumption.Negative, got["Dismissed"].Signal)
 	assert.Equal(t, "dismissed", got["Dismissed"].Reason)
+	assert.True(t, got["Dismissed"].At.IsZero())
+}
+
+func TestListConsumption_Error(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := testApp.ListConsumption(ctx, "consumption-error-user")
+	assert.Error(t, err)
 }

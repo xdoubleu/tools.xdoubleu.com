@@ -30,3 +30,10 @@ func TestListConsumption(t *testing.T) {
 	assert.Equal(t, consumption.StrongPositive, e.Signal)
 	assert.False(t, e.At.IsZero())
 }
+
+func TestListConsumption_Error(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := newApp(userID, fakeITunes{}, nil).ListConsumption(ctx, userID)
+	assert.Error(t, err)
+}

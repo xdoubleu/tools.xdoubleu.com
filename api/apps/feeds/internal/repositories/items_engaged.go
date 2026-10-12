@@ -15,7 +15,7 @@ func (repo *ItemsRepository) ListEngaged(
 	userID string,
 ) ([]models.EngagedItem, error) {
 	query := `
-		SELECT i.id, i.title, f.title, i.categories, i.published_at, i.read_at,
+		SELECT i.id, i.title, f.title, i.categories, i.read_at,
 		       i.dismissed, i.bookmarked, i.read_progress_pct
 		FROM feeds.items i
 		JOIN feeds.feeds f ON f.id = i.feed_id
@@ -34,9 +34,8 @@ func (repo *ItemsRepository) ListEngaged(
 	for rows.Next() {
 		var item models.EngagedItem
 		if err = rows.Scan(
-			&item.ID, &item.Title, &item.FeedTitle, &item.Categories,
-			&item.PublishedAt, &item.ReadAt, &item.Dismissed, &item.Bookmarked,
-			&item.ReadProgressPct,
+			&item.ID, &item.Title, &item.FeedTitle, &item.Categories, &item.ReadAt,
+			&item.Dismissed, &item.Bookmarked, &item.ReadProgressPct,
 		); err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
 		}

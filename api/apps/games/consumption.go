@@ -28,8 +28,10 @@ func (a *Games) ListConsumption(
 		return nil, err
 	}
 
+	// A delisted game whose achievements a listed one took over is that same
+	// game under an old id.
 	played := slices.DeleteFunc(games, func(g models.Game) bool {
-		return g.Playtime <= 0
+		return g.Playtime <= 0 || !g.InCompletionAverage
 	})
 	topQuartile := upperQuartile(played)
 

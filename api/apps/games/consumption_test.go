@@ -29,6 +29,11 @@ func TestListConsumption(t *testing.T) {
 		    (5, $1, 'Middling', 200, '20.00', false, NULL),
 		    (6, $1, 'Unplayed', 0, '0.00', false, NULL)`, uid, played)
 	require.NoError(t, err)
+	_, err = testDB.Exec(ctx, `
+		INSERT INTO games.steam_games
+		    (id, user_id, name, playtime_forever, is_delisted, in_completion_average)
+		VALUES (7, $1, 'Superseded', 900, true, false)`, uid)
+	require.NoError(t, err)
 
 	events, err := testApp.ListConsumption(ctx, uid)
 	require.NoError(t, err)
@@ -47,4 +52,11 @@ func TestListConsumption(t *testing.T) {
 	assert.Equal(t, consumption.Negative, got["Bounced"].Signal)
 	assert.Equal(t, consumption.Positive, got["Marathon"].Signal)
 	assert.Equal(t, consumption.Neutral, got["Middling"].Signal)
+}
+
+func TestListConsumption_Error(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := testApp.ListConsumption(ctx, "consumption-error-user")
+	assert.Error(t, err)
 }

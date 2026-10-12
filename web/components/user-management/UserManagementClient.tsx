@@ -28,6 +28,7 @@ const APP_NAMES = [
   'podcasts',
   'recipes',
   'shoppinglist',
+  'taste',
   'watchparty'
 ]
 

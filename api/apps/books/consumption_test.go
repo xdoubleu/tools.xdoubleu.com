@@ -77,5 +77,12 @@ func TestListConsumption(t *testing.T) {
 	dropped := byTitle["Consumption Dropped"]
 	assert.Equal(t, consumption.Negative, dropped.Signal)
 	assert.Equal(t, "abandoned", dropped.Reason)
-	assert.False(t, dropped.At.IsZero())
+	assert.True(t, dropped.At.IsZero(), "a book never finished stays undated")
+}
+
+func TestListConsumption_Error(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := testApp.ListConsumption(ctx, "consumption-error-user")
+	assert.Error(t, err)
 }

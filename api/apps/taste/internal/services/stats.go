@@ -12,6 +12,23 @@ import (
 // topN caps the ranked tags and creators.
 const topN = 15
 
+// monthsShown is how many months the timeline covers, this one included.
+const monthsShown = 12
+
+// statsLocation is the timezone months are bucketed in; cmd/api embeds
+// time/tzdata.
+//
+//nolint:gochecknoglobals // loaded once
+var statsLocation = mustLoadLocation("Europe/Brussels")
+
+func mustLoadLocation(name string) *time.Location {
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		panic(err)
+	}
+	return loc
+}
+
 type DomainStats struct {
 	Domain   consumption.Domain
 	Consumed int
@@ -88,7 +105,7 @@ func domainStats(events []consumption.Event) []DomainStats {
 }
 
 func monthCounts(events []consumption.Event, now time.Time) []MonthCounts {
-	loc := statsLocation()
+	loc := statsLocation
 	now = now.In(loc)
 	first := time.Date(now.Year(), now.Month()-monthsShown+1, 1, 0, 0, 0, 0, loc)
 

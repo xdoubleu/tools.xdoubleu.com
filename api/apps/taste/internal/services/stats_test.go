@@ -14,9 +14,14 @@ import (
 )
 
 type fakeSource struct {
+	name   string
 	events []consumption.Event
 	err    error
 }
+
+func (f fakeSource) GetName() string { return f.name }
+
+func all(string) bool { return true }
 
 func (f fakeSource) ListConsumption(
 	context.Context, string,
@@ -38,17 +43,17 @@ func TestEvents_MergesNewestFirstUndatedLast(t *testing.T) {
 	jan := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	feb := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
 	log := services.NewLogService([]services.Source{
-		fakeSource{events: []consumption.Event{
+		fakeSource{name: "src", events: []consumption.Event{
 			ev(consumption.DomainBooks, "Jan", jan, 1),
 			ev(consumption.DomainBooks, "B undated", time.Time{}, 1),
 		}, err: nil},
-		fakeSource{events: []consumption.Event{
+		fakeSource{name: "src", events: []consumption.Event{
 			ev(consumption.DomainGames, "Feb", feb, 1),
 			ev(consumption.DomainGames, "A undated", time.Time{}, 1),
 		}, err: nil},
 	})
 
-	events, err := log.Events(context.Background(), "u")
+	events, err := log.Events(context.Background(), "u", all)
 	require.NoError(t, err)
 	titles := make([]string, len(events))
 	for i, e := range events {
@@ -59,10 +64,20 @@ func TestEvents_MergesNewestFirstUndatedLast(t *testing.T) {
 
 func TestEvents_SourceErrorFails(t *testing.T) {
 	log := services.NewLogService([]services.Source{
-		fakeSource{events: nil, err: errors.New("boom")},
+		fakeSource{name: "src", events: nil, err: errors.New("boom")},
 	})
-	_, err := log.Events(context.Background(), "u")
-	assert.ErrorContains(t, err, "boom")
+	_, err := log.Events(context.Background(), "u", all)
+	assert.ErrorContains(t, err, "src: boom")
+}
+
+func TestEvents_SkipsExcludedSources(t *testing.T) {
+	log := services.NewLogService([]services.Source{
+		fakeSource{name: "hidden", events: nil, err: errors.New("never called")},
+	})
+	events, err := log.Events(context.Background(), "u",
+		func(name string) bool { return name != "hidden" })
+	require.NoError(t, err)
+	assert.Empty(t, events)
 }
 
 func TestFilterAndIsDomain(t *testing.T) {

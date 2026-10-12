@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -15,6 +14,7 @@ import (
 
 // Source is an app exporting its consumed items.
 type Source interface {
+	GetName() string
 	ListConsumption(ctx context.Context, userID string) ([]consumption.Event, error)
 }
 
@@ -27,19 +27,23 @@ func NewLogService(sources []Source) *LogService {
 	return &LogService{sources: sources}
 }
 
-// Events returns the user's events from every source, newest first and
-// undated events last.
+// Events returns the user's events from every source whose app name include
+// accepts, newest first and undated events last.
 func (s *LogService) Events(
 	ctx context.Context,
 	userID string,
+	include func(appName string) bool,
 ) ([]consumption.Event, error) {
 	perSource := make([][]consumption.Event, len(s.sources))
 	g, gctx := errgroup.WithContext(ctx)
 	for i, src := range s.sources {
+		if !include(src.GetName()) {
+			continue
+		}
 		g.Go(func() error {
 			events, err := src.ListConsumption(gctx, userID)
 			if err != nil {
-				return fmt.Errorf("source %d: %w", i, err)
+				return fmt.Errorf("%s: %w", src.GetName(), err)
 			}
 			perSource[i] = events
 			return nil
@@ -84,16 +88,4 @@ func Filter(events []consumption.Event, domain consumption.Domain) []consumption
 // IsDomain reports whether d is a known domain.
 func IsDomain(d consumption.Domain) bool {
 	return slices.Contains(consumption.Domains(), d)
-}
-
-// monthsShown is how many months the timeline covers, this one included.
-const monthsShown = 12
-
-// statsLocation is the timezone months are bucketed in.
-func statsLocation() *time.Location {
-	loc, err := time.LoadLocation("Europe/Brussels")
-	if err != nil {
-		return time.UTC
-	}
-	return loc
 }

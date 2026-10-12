@@ -65,3 +65,10 @@ func WatchDate(day *time.Time) *time.Time {
 	d := time.Date(day.Year(), day.Month(), day.Day(), 12, 0, 0, 0, time.UTC)
 	return &d
 }
+
+// SeasonWatchSummary condenses a series entry's season watches.
+type SeasonWatchSummary struct {
+	// LatestAt is the latest dated season watch; nil when none is dated.
+	LatestAt  *time.Time
+	Rewatched bool
+}

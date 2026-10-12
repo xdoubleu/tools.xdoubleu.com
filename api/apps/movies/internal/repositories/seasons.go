@@ -137,3 +137,34 @@ func (r *MoviesRepository) SetWatchedAt(
 	}
 	return nil
 }
+
+// SeasonWatchSummaries returns, per series entry of userID with a ticked
+// season (specials excluded), its latest dated season watch and whether any
+// season was watched more than once.
+func (r *MoviesRepository) SeasonWatchSummaries(
+	ctx context.Context,
+	userID string,
+) (map[uuid.UUID]models.SeasonWatchSummary, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT us.user_title_id, MAX(w.at), BOOL_OR(cardinality(us.watched_at) > 1)
+		FROM movies.user_seasons us
+		JOIN movies.user_titles ut ON ut.id = us.user_title_id
+		LEFT JOIN LATERAL unnest(us.watched_at) AS w (at) ON true
+		WHERE ut.user_id = $1 AND us.season_number > 0
+		GROUP BY us.user_title_id`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := map[uuid.UUID]models.SeasonWatchSummary{}
+	for rows.Next() {
+		var id uuid.UUID
+		var s models.SeasonWatchSummary
+		if err = rows.Scan(&id, &s.LatestAt, &s.Rewatched); err != nil {
+			return nil, err
+		}
+		out[id] = s
+	}
+	return out, rows.Err()
+}

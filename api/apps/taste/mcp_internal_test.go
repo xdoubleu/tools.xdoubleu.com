@@ -21,6 +21,8 @@ import (
 
 type staticSource []consumption.Event
 
+func (staticSource) GetName() string { return "podcasts" }
+
 func (s staticSource) ListConsumption(
 	context.Context, string,
 ) ([]consumption.Event, error) {
@@ -43,8 +45,8 @@ func TestMCPTools(t *testing.T) {
 	ctx := context.WithValue(
 		context.Background(),
 		constants.UserContextKey,
-		//nolint:exhaustruct // only ID and AppAccess matter for the gate
-		sharedmodels.User{ID: uid, AppAccess: []string{mcpAppName}},
+		//nolint:exhaustruct // only ID and AppAccess matter for the gates
+		sharedmodels.User{ID: uid, AppAccess: []string{mcpAppName, "podcasts"}},
 	)
 
 	msg, err := h.mcpGetStats(ctx, mcptools.NoArgs{})

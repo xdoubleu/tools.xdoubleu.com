@@ -147,7 +147,6 @@ type EngagedItem struct {
 	Title           string
 	FeedTitle       string
 	Categories      []string
-	PublishedAt     time.Time
 	ReadAt          *time.Time
 	Dismissed       bool
 	Bookmarked      bool

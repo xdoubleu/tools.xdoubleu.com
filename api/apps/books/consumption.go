@@ -14,8 +14,8 @@ import (
 const maxAuthors = 2
 
 // ListConsumption returns userID's finished and dropped books as consumption
-// events, for the taste app. URL-ingested articles aren't books and are left
-// out.
+// events, for the taste app, dated by their last finish. URL-ingested
+// articles aren't books and are left out.
 func (app *Books) ListConsumption(
 	ctx context.Context,
 	userID string,
@@ -34,7 +34,7 @@ func (app *Books) ListConsumption(
 		if !ok {
 			continue
 		}
-		at := ub.UpdatedAt
+		var at time.Time
 		if len(ub.FinishedAt) > 0 {
 			at = slices.MaxFunc(ub.FinishedAt, time.Time.Compare)
 		}

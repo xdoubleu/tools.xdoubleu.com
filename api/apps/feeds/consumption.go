@@ -2,6 +2,7 @@ package feeds
 
 import (
 	"context"
+	"time"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
 	"tools.xdoubleu.com/internal/consumption"
@@ -11,7 +12,8 @@ import (
 const readInFullPct = 75
 
 // ListConsumption returns userID's read, bookmarked and dismissed items as
-// consumption events, for the taste app.
+// consumption events, for the taste app. Only a read has a date; bookmarking
+// and dismissing don't record one.
 func (a *Feeds) ListConsumption(
 	ctx context.Context,
 	userID string,
@@ -24,7 +26,7 @@ func (a *Feeds) ListConsumption(
 	events := make([]consumption.Event, 0, len(items))
 	for _, item := range items {
 		signal, reason := itemSignal(item)
-		at := item.PublishedAt
+		var at time.Time
 		if item.ReadAt != nil {
 			at = *item.ReadAt
 		}
