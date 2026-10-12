@@ -42,6 +42,9 @@ const (
 	// TasteServiceRefreshProfileProcedure is the fully-qualified name of the TasteService's
 	// RefreshProfile RPC.
 	TasteServiceRefreshProfileProcedure = "/taste.v1.TasteService/RefreshProfile"
+	// TasteServiceListRecommendationsProcedure is the fully-qualified name of the TasteService's
+	// ListRecommendations RPC.
+	TasteServiceListRecommendationsProcedure = "/taste.v1.TasteService/ListRecommendations"
 )
 
 // TasteServiceClient is a client for the taste.v1.TasteService service.
@@ -50,6 +53,7 @@ type TasteServiceClient interface {
 	ListEvents(context.Context, *connect.Request[v1.ListEventsRequest]) (*connect.Response[v1.ListEventsResponse], error)
 	GetProfile(context.Context, *connect.Request[v1.GetProfileRequest]) (*connect.Response[v1.GetProfileResponse], error)
 	RefreshProfile(context.Context, *connect.Request[v1.RefreshProfileRequest]) (*connect.Response[v1.RefreshProfileResponse], error)
+	ListRecommendations(context.Context, *connect.Request[v1.ListRecommendationsRequest]) (*connect.Response[v1.ListRecommendationsResponse], error)
 }
 
 // NewTasteServiceClient constructs a client for the taste.v1.TasteService service. By default, it
@@ -87,15 +91,22 @@ func NewTasteServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(tasteServiceMethods.ByName("RefreshProfile")),
 			connect.WithClientOptions(opts...),
 		),
+		listRecommendations: connect.NewClient[v1.ListRecommendationsRequest, v1.ListRecommendationsResponse](
+			httpClient,
+			baseURL+TasteServiceListRecommendationsProcedure,
+			connect.WithSchema(tasteServiceMethods.ByName("ListRecommendations")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // tasteServiceClient implements TasteServiceClient.
 type tasteServiceClient struct {
-	getStats       *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
-	listEvents     *connect.Client[v1.ListEventsRequest, v1.ListEventsResponse]
-	getProfile     *connect.Client[v1.GetProfileRequest, v1.GetProfileResponse]
-	refreshProfile *connect.Client[v1.RefreshProfileRequest, v1.RefreshProfileResponse]
+	getStats            *connect.Client[v1.GetStatsRequest, v1.GetStatsResponse]
+	listEvents          *connect.Client[v1.ListEventsRequest, v1.ListEventsResponse]
+	getProfile          *connect.Client[v1.GetProfileRequest, v1.GetProfileResponse]
+	refreshProfile      *connect.Client[v1.RefreshProfileRequest, v1.RefreshProfileResponse]
+	listRecommendations *connect.Client[v1.ListRecommendationsRequest, v1.ListRecommendationsResponse]
 }
 
 // GetStats calls taste.v1.TasteService.GetStats.
@@ -118,12 +129,18 @@ func (c *tasteServiceClient) RefreshProfile(ctx context.Context, req *connect.Re
 	return c.refreshProfile.CallUnary(ctx, req)
 }
 
+// ListRecommendations calls taste.v1.TasteService.ListRecommendations.
+func (c *tasteServiceClient) ListRecommendations(ctx context.Context, req *connect.Request[v1.ListRecommendationsRequest]) (*connect.Response[v1.ListRecommendationsResponse], error) {
+	return c.listRecommendations.CallUnary(ctx, req)
+}
+
 // TasteServiceHandler is an implementation of the taste.v1.TasteService service.
 type TasteServiceHandler interface {
 	GetStats(context.Context, *connect.Request[v1.GetStatsRequest]) (*connect.Response[v1.GetStatsResponse], error)
 	ListEvents(context.Context, *connect.Request[v1.ListEventsRequest]) (*connect.Response[v1.ListEventsResponse], error)
 	GetProfile(context.Context, *connect.Request[v1.GetProfileRequest]) (*connect.Response[v1.GetProfileResponse], error)
 	RefreshProfile(context.Context, *connect.Request[v1.RefreshProfileRequest]) (*connect.Response[v1.RefreshProfileResponse], error)
+	ListRecommendations(context.Context, *connect.Request[v1.ListRecommendationsRequest]) (*connect.Response[v1.ListRecommendationsResponse], error)
 }
 
 // NewTasteServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -157,6 +174,12 @@ func NewTasteServiceHandler(svc TasteServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(tasteServiceMethods.ByName("RefreshProfile")),
 		connect.WithHandlerOptions(opts...),
 	)
+	tasteServiceListRecommendationsHandler := connect.NewUnaryHandler(
+		TasteServiceListRecommendationsProcedure,
+		svc.ListRecommendations,
+		connect.WithSchema(tasteServiceMethods.ByName("ListRecommendations")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/taste.v1.TasteService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TasteServiceGetStatsProcedure:
@@ -167,6 +190,8 @@ func NewTasteServiceHandler(svc TasteServiceHandler, opts ...connect.HandlerOpti
 			tasteServiceGetProfileHandler.ServeHTTP(w, r)
 		case TasteServiceRefreshProfileProcedure:
 			tasteServiceRefreshProfileHandler.ServeHTTP(w, r)
+		case TasteServiceListRecommendationsProcedure:
+			tasteServiceListRecommendationsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -190,4 +215,8 @@ func (UnimplementedTasteServiceHandler) GetProfile(context.Context, *connect.Req
 
 func (UnimplementedTasteServiceHandler) RefreshProfile(context.Context, *connect.Request[v1.RefreshProfileRequest]) (*connect.Response[v1.RefreshProfileResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("taste.v1.TasteService.RefreshProfile is not implemented"))
+}
+
+func (UnimplementedTasteServiceHandler) ListRecommendations(context.Context, *connect.Request[v1.ListRecommendationsRequest]) (*connect.Response[v1.ListRecommendationsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("taste.v1.TasteService.ListRecommendations is not implemented"))
 }

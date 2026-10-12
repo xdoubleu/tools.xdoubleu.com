@@ -31,7 +31,9 @@ func TestFindSource(t *testing.T) {
 	require.NotNil(t, m)
 	assert.True(t, m.Known, "same host, www. ignored")
 
-	for _, bad := range []string{"ftp://blog.example/", "not a url", "https://unreachable.example/"} {
+	for _, bad := range []string{
+		"ftp://blog.example/", "not a url", "https://unreachable.example/",
+	} {
 		m, err = testApp.FindSource(ctx, uid, "X", bad)
 		require.NoError(t, err)
 		assert.Nil(t, m, bad)

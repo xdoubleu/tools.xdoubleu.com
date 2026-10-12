@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file taste/v1/taste.proto.
  */
 export const file_taste_v1_taste: GenFile = /*@__PURE__*/
-  fileDesc("ChR0YXN0ZS92MS90YXN0ZS5wcm90bxIIdGFzdGUudjEiggEKBUV2ZW50Eg4KBmRvbWFpbhgBIAEoCRIPCgdpdGVtX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2NyZWF0b3IYBCABKAkSDAoEdGFncxgFIAMoCRIKCgJhdBgGIAEoCRIOCgZzaWduYWwYByABKAUSDgoGcmVhc29uGAggASgJImQKC0RvbWFpblN0YXRzEg4KBmRvbWFpbhgBIAEoCRIQCghjb25zdW1lZBgCIAEoBRIQCghwb3NpdGl2ZRgDIAEoBRIQCghuZWdhdGl2ZRgEIAEoBRIPCgdsYXN0X2F0GAUgASgJIiwKC0RvbWFpbkNvdW50Eg4KBmRvbWFpbhgBIAEoCRINCgVjb3VudBgCIAEoBSJDCgtNb250aENvdW50cxINCgVtb250aBgBIAEoCRIlCgZjb3VudHMYAiADKAsyFS50YXN0ZS52MS5Eb21haW5Db3VudCI9CgpSYW5rZWROYW1lEgwKBG5hbWUYASABKAkSEAoIcG9zaXRpdmUYAiABKAUSDwoHZG9tYWlucxgDIAMoCSIRCg9HZXRTdGF0c1JlcXVlc3QitQEKEEdldFN0YXRzUmVzcG9uc2USJgoHZG9tYWlucxgBIAMoCzIVLnRhc3RlLnYxLkRvbWFpblN0YXRzEiUKBm1vbnRocxgCIAMoCzIVLnRhc3RlLnYxLk1vbnRoQ291bnRzEiYKCHRvcF90YWdzGAMgAygLMhQudGFzdGUudjEuUmFua2VkTmFtZRIqCgx0b3BfY3JlYXRvcnMYBCADKAsyFC50YXN0ZS52MS5SYW5rZWROYW1lIkIKEUxpc3RFdmVudHNSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgVsaW1pdBgCIAEoBRIOCgZvZmZzZXQYAyABKAUiRwoSTGlzdEV2ZW50c1Jlc3BvbnNlEh8KBmV2ZW50cxgBIAMoCzIPLnRhc3RlLnYxLkV2ZW50EhAKCGhhc19tb3JlGAIgASgIImAKD1Byb2ZpbGVTZWN0aW9ucxIPCgdzdW1tYXJ5GAEgASgJEgwKBGtub3cYAiADKAkSDAoEbGlrZRgDIAMoCRIQCghkcmlmdGluZxgEIAMoCRIOCgZib3VuY2UYBSADKAkiEwoRR2V0UHJvZmlsZVJlcXVlc3QiuAEKEkdldFByb2ZpbGVSZXNwb25zZRISCgpjb25maWd1cmVkGAEgASgIEisKCHNlY3Rpb25zGAIgASgLMhkudGFzdGUudjEuUHJvZmlsZVNlY3Rpb25zEg0KBW1vZGVsGAMgASgJEhQKDGdlbmVyYXRlZF9hdBgEIAEoCRIPCgdwZW5kaW5nGAUgASgIEhIKCmxhc3RfZXJyb3IYBiABKAkSFwoPbmV4dF9yZWZyZXNoX2F0GAcgASgJIhcKFVJlZnJlc2hQcm9maWxlUmVxdWVzdCIYChZSZWZyZXNoUHJvZmlsZVJlc3BvbnNlMrgCCgxUYXN0ZVNlcnZpY2USQQoIR2V0U3RhdHMSGS50YXN0ZS52MS5HZXRTdGF0c1JlcXVlc3QaGi50YXN0ZS52MS5HZXRTdGF0c1Jlc3BvbnNlEkcKCkxpc3RFdmVudHMSGy50YXN0ZS52MS5MaXN0RXZlbnRzUmVxdWVzdBocLnRhc3RlLnYxLkxpc3RFdmVudHNSZXNwb25zZRJHCgpHZXRQcm9maWxlEhsudGFzdGUudjEuR2V0UHJvZmlsZVJlcXVlc3QaHC50YXN0ZS52MS5HZXRQcm9maWxlUmVzcG9uc2USUwoOUmVmcmVzaFByb2ZpbGUSHy50YXN0ZS52MS5SZWZyZXNoUHJvZmlsZVJlcXVlc3QaIC50YXN0ZS52MS5SZWZyZXNoUHJvZmlsZVJlc3BvbnNlQilaJ3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vdGFzdGUvdjE7dGFzdGV2MWIGcHJvdG8z");
+  fileDesc("ChR0YXN0ZS92MS90YXN0ZS5wcm90bxIIdGFzdGUudjEiggEKBUV2ZW50Eg4KBmRvbWFpbhgBIAEoCRIPCgdpdGVtX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2NyZWF0b3IYBCABKAkSDAoEdGFncxgFIAMoCRIKCgJhdBgGIAEoCRIOCgZzaWduYWwYByABKAUSDgoGcmVhc29uGAggASgJImQKC0RvbWFpblN0YXRzEg4KBmRvbWFpbhgBIAEoCRIQCghjb25zdW1lZBgCIAEoBRIQCghwb3NpdGl2ZRgDIAEoBRIQCghuZWdhdGl2ZRgEIAEoBRIPCgdsYXN0X2F0GAUgASgJIiwKC0RvbWFpbkNvdW50Eg4KBmRvbWFpbhgBIAEoCRINCgVjb3VudBgCIAEoBSJDCgtNb250aENvdW50cxINCgVtb250aBgBIAEoCRIlCgZjb3VudHMYAiADKAsyFS50YXN0ZS52MS5Eb21haW5Db3VudCI9CgpSYW5rZWROYW1lEgwKBG5hbWUYASABKAkSEAoIcG9zaXRpdmUYAiABKAUSDwoHZG9tYWlucxgDIAMoCSIRCg9HZXRTdGF0c1JlcXVlc3QitQEKEEdldFN0YXRzUmVzcG9uc2USJgoHZG9tYWlucxgBIAMoCzIVLnRhc3RlLnYxLkRvbWFpblN0YXRzEiUKBm1vbnRocxgCIAMoCzIVLnRhc3RlLnYxLk1vbnRoQ291bnRzEiYKCHRvcF90YWdzGAMgAygLMhQudGFzdGUudjEuUmFua2VkTmFtZRIqCgx0b3BfY3JlYXRvcnMYBCADKAsyFC50YXN0ZS52MS5SYW5rZWROYW1lIkIKEUxpc3RFdmVudHNSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgVsaW1pdBgCIAEoBRIOCgZvZmZzZXQYAyABKAUiRwoSTGlzdEV2ZW50c1Jlc3BvbnNlEh8KBmV2ZW50cxgBIAMoCzIPLnRhc3RlLnYxLkV2ZW50EhAKCGhhc19tb3JlGAIgASgIImAKD1Byb2ZpbGVTZWN0aW9ucxIPCgdzdW1tYXJ5GAEgASgJEgwKBGtub3cYAiADKAkSDAoEbGlrZRgDIAMoCRIQCghkcmlmdGluZxgEIAMoCRIOCgZib3VuY2UYBSADKAkiEwoRR2V0UHJvZmlsZVJlcXVlc3QiuAEKEkdldFByb2ZpbGVSZXNwb25zZRISCgpjb25maWd1cmVkGAEgASgIEisKCHNlY3Rpb25zGAIgASgLMhkudGFzdGUudjEuUHJvZmlsZVNlY3Rpb25zEg0KBW1vZGVsGAMgASgJEhQKDGdlbmVyYXRlZF9hdBgEIAEoCRIPCgdwZW5kaW5nGAUgASgIEhIKCmxhc3RfZXJyb3IYBiABKAkSFwoPbmV4dF9yZWZyZXNoX2F0GAcgASgJIhcKFVJlZnJlc2hQcm9maWxlUmVxdWVzdCIYChZSZWZyZXNoUHJvZmlsZVJlc3BvbnNlIiQKBlNvdXJjZRILCgN1cmwYASABKAkSDQoFdGl0bGUYAiABKAkiyAEKDlJlY29tbWVuZGF0aW9uEgoKAmlkGAEgASgJEg4KBmRvbWFpbhgCIAEoCRINCgV0cmFjaxgDIAEoCRINCgV0aXRsZRgEIAEoCRIPCgdjcmVhdG9yGAUgASgJEgwKBHllYXIYBiABKAUSCwoDdXJsGAcgASgJEhEKCWltYWdlX3VybBgIIAEoCRILCgN3aHkYCSABKAkSIQoHc291cmNlcxgKIAMoCzIQLnRhc3RlLnYxLlNvdXJjZRINCgVzY29yZRgLIAEoBSI7ChpMaXN0UmVjb21tZW5kYXRpb25zUmVxdWVzdBIOCgZkb21haW4YASABKAkSDQoFdHJhY2sYAiABKAkiegobTGlzdFJlY29tbWVuZGF0aW9uc1Jlc3BvbnNlEjEKD3JlY29tbWVuZGF0aW9ucxgBIAMoCzIYLnRhc3RlLnYxLlJlY29tbWVuZGF0aW9uEhQKDGdlbmVyYXRlZF9hdBgCIAEoCRISCgpsYXN0X2Vycm9yGAMgASgJMpwDCgxUYXN0ZVNlcnZpY2USQQoIR2V0U3RhdHMSGS50YXN0ZS52MS5HZXRTdGF0c1JlcXVlc3QaGi50YXN0ZS52MS5HZXRTdGF0c1Jlc3BvbnNlEkcKCkxpc3RFdmVudHMSGy50YXN0ZS52MS5MaXN0RXZlbnRzUmVxdWVzdBocLnRhc3RlLnYxLkxpc3RFdmVudHNSZXNwb25zZRJHCgpHZXRQcm9maWxlEhsudGFzdGUudjEuR2V0UHJvZmlsZVJlcXVlc3QaHC50YXN0ZS52MS5HZXRQcm9maWxlUmVzcG9uc2USUwoOUmVmcmVzaFByb2ZpbGUSHy50YXN0ZS52MS5SZWZyZXNoUHJvZmlsZVJlcXVlc3QaIC50YXN0ZS52MS5SZWZyZXNoUHJvZmlsZVJlc3BvbnNlEmIKE0xpc3RSZWNvbW1lbmRhdGlvbnMSJC50YXN0ZS52MS5MaXN0UmVjb21tZW5kYXRpb25zUmVxdWVzdBolLnRhc3RlLnYxLkxpc3RSZWNvbW1lbmRhdGlvbnNSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL3Rhc3RlL3YxO3Rhc3RldjFiBnByb3RvMw");
 
 /**
  * One consumed item. Signal is engagement normalized within its domain, from
@@ -419,7 +419,7 @@ export const GetProfileResponseSchema: GenMessage<GetProfileResponse> = /*@__PUR
   messageDesc(file_taste_v1_taste, 11);
 
 /**
- * Queues a regeneration; RESOURCE_EXHAUSTED within 6 hours of the last
+ * Queues regenerating the profile and then the picks; RESOURCE_EXHAUSTED within 6 hours of the last
  * request, FAILED_PRECONDITION without an OpenRouter key.
  *
  * @generated from message taste.v1.RefreshProfileRequest
@@ -446,6 +446,172 @@ export type RefreshProfileResponse = Message<"taste.v1.RefreshProfileResponse"> 
  */
 export const RefreshProfileResponseSchema: GenMessage<RefreshProfileResponse> = /*@__PURE__*/
   messageDesc(file_taste_v1_taste, 13);
+
+/**
+ * A web page the generator cited.
+ *
+ * @generated from message taste.v1.Source
+ */
+export type Source = Message<"taste.v1.Source"> & {
+  /**
+   * @generated from field: string url = 1;
+   */
+  url: string;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
+};
+
+/**
+ * Describes the message taste.v1.Source.
+ * Use `create(SourceSchema)` to create a new message.
+ */
+export const SourceSchema: GenMessage<Source> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 14);
+
+/**
+ * A verified, judged pick.
+ *
+ * @generated from message taste.v1.Recommendation
+ */
+export type Recommendation = Message<"taste.v1.Recommendation"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * books, feeds, games, movies, series or podcasts.
+   *
+   * @generated from field: string domain = 2;
+   */
+  domain: string;
+
+  /**
+   * "more" (more of what you like) or "broaden" (broaden your horizon).
+   *
+   * @generated from field: string track = 3;
+   */
+  track: string;
+
+  /**
+   * @generated from field: string title = 4;
+   */
+  title: string;
+
+  /**
+   * @generated from field: string creator = 5;
+   */
+  creator: string;
+
+  /**
+   * 0 when unknown.
+   *
+   * @generated from field: int32 year = 6;
+   */
+  year: number;
+
+  /**
+   * The catalog or site page.
+   *
+   * @generated from field: string url = 7;
+   */
+  url: string;
+
+  /**
+   * @generated from field: string image_url = 8;
+   */
+  imageUrl: string;
+
+  /**
+   * One sentence on why it fits.
+   *
+   * @generated from field: string why = 9;
+   */
+  why: string;
+
+  /**
+   * Pages the generator cited while proposing this run's picks.
+   *
+   * @generated from field: repeated taste.v1.Source sources = 10;
+   */
+  sources: Source[];
+
+  /**
+   * The judge's 0-100 score.
+   *
+   * @generated from field: int32 score = 11;
+   */
+  score: number;
+};
+
+/**
+ * Describes the message taste.v1.Recommendation.
+ * Use `create(RecommendationSchema)` to create a new message.
+ */
+export const RecommendationSchema: GenMessage<Recommendation> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 15);
+
+/**
+ * @generated from message taste.v1.ListRecommendationsRequest
+ */
+export type ListRecommendationsRequest = Message<"taste.v1.ListRecommendationsRequest"> & {
+  /**
+   * Empty for every domain.
+   *
+   * @generated from field: string domain = 1;
+   */
+  domain: string;
+
+  /**
+   * Empty for both tracks.
+   *
+   * @generated from field: string track = 2;
+   */
+  track: string;
+};
+
+/**
+ * Describes the message taste.v1.ListRecommendationsRequest.
+ * Use `create(ListRecommendationsRequestSchema)` to create a new message.
+ */
+export const ListRecommendationsRequestSchema: GenMessage<ListRecommendationsRequest> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 16);
+
+/**
+ * @generated from message taste.v1.ListRecommendationsResponse
+ */
+export type ListRecommendationsResponse = Message<"taste.v1.ListRecommendationsResponse"> & {
+  /**
+   * Best first.
+   *
+   * @generated from field: repeated taste.v1.Recommendation recommendations = 1;
+   */
+  recommendations: Recommendation[];
+
+  /**
+   * RFC3339 of the last successful run; empty before the first.
+   *
+   * @generated from field: string generated_at = 2;
+   */
+  generatedAt: string;
+
+  /**
+   * Why the last run failed; empty when it succeeded.
+   *
+   * @generated from field: string last_error = 3;
+   */
+  lastError: string;
+};
+
+/**
+ * Describes the message taste.v1.ListRecommendationsResponse.
+ * Use `create(ListRecommendationsResponseSchema)` to create a new message.
+ */
+export const ListRecommendationsResponseSchema: GenMessage<ListRecommendationsResponse> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 17);
 
 /**
  * The caller's consumption log across every app; per user, never shared.
@@ -484,6 +650,14 @@ export const TasteService: GenService<{
     methodKind: "unary";
     input: typeof RefreshProfileRequestSchema;
     output: typeof RefreshProfileResponseSchema;
+  },
+  /**
+   * @generated from rpc taste.v1.TasteService.ListRecommendations
+   */
+  listRecommendations: {
+    methodKind: "unary";
+    input: typeof ListRecommendationsRequestSchema;
+    output: typeof ListRecommendationsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_taste_v1_taste, 0);

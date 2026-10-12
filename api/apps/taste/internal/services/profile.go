@@ -142,8 +142,8 @@ func (s *ProfileService) generate(
 	resp, err := s.llm.Complete(ctx, openrouter.Request{
 		Model: s.model,
 		Messages: []openrouter.Message{
-			{Role: "system", Content: profileSystemPrompt},
-			{Role: "user", Content: Digest(events, s.now())},
+			openrouter.System(profileSystemPrompt),
+			openrouter.User(Digest(events, s.now())),
 		},
 		SchemaName: "taste_profile",
 		Schema:     profileSchema(),
@@ -195,19 +195,12 @@ Each list holds at most 6 short bullets; use an empty list when the log ` +
 	`gives no evidence.`
 
 func profileSchema() map[string]any {
-	const typeKey = "type"
-	str := map[string]any{typeKey: "string"}
-	list := map[string]any{typeKey: "array", "items": str}
-	return map[string]any{
-		typeKey:                "object",
-		"additionalProperties": false,
-		"required":             []string{"summary", "know", "like", "drifting", "bounce"},
-		"properties": map[string]any{
-			"summary":  str,
-			"know":     list,
-			"like":     list,
-			"drifting": list,
-			"bounce":   list,
-		},
-	}
+	list := arraySchema(typeSchema("string"))
+	return objectSchema(map[string]any{
+		"summary":  typeSchema("string"),
+		"know":     list,
+		"like":     list,
+		"drifting": list,
+		"bounce":   list,
+	})
 }

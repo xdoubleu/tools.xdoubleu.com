@@ -29,12 +29,16 @@ var embedMigrations embed.FS
 // Source is an app exporting its consumed items.
 type Source = services.Source
 
+// Catalogs look recommendation candidates up in each domain's catalog.
+type Catalogs = services.Catalogs
+
 type Taste struct {
 	app.Base
 	db       postgres.DB
 	auth     auth.Service
 	log      *services.LogService
 	profiles *services.ProfileService
+	picks    *services.RecommendService
 	jobQueue *jobqueue.JobQueue
 	genJob   jobs.GenerateProfilesJob
 }
@@ -46,10 +50,11 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
+	catalogs Catalogs,
 	sources ...Source,
 ) *Taste {
 	llm := openrouter.New(cfg.OpenRouterAPIKey, cfg.WebURL, logger)
-	return NewInner(authService, logger, cfg, db, llm, sources...)
+	return NewInner(authService, logger, cfg, db, llm, catalogs, sources...)
 }
 
 // NewInner allows tests to inject a fake OpenRouter client; it counts as
@@ -60,6 +65,7 @@ func NewInner(
 	cfg config.Config,
 	db postgres.DB,
 	llm openrouter.Client,
+	catalogs Catalogs,
 	sources ...Source,
 ) *Taste {
 	if cfg.OpenRouterAPIKey == "" {
@@ -72,15 +78,21 @@ func NewInner(
 		auth: authService,
 		log:  services.NewLogService(sources),
 	}
+	profiles := repositories.NewProfilesRepository(db)
 	a.profiles = services.NewProfileService(
-		a.log, repositories.NewProfilesRepository(db), llm,
-		cfg.TasteGeneratorModel, cfg.OpenRouterAPIKey != "",
+		a.log, profiles, llm, cfg.TasteGeneratorModel, cfg.OpenRouterAPIKey != "",
+	)
+	a.picks = services.NewRecommendService(
+		a.log, profiles, repositories.NewRecommendationsRepository(db), catalogs,
+		llm, cfg.TasteGeneratorModel, cfg.TasteJudgeModel, logger,
 	)
 
 	const amountOfWorkers = 1
 	const jobQueueSize = 10
 	a.jobQueue = jobqueue.NewJobQueue(a.Ctx, logger, amountOfWorkers, jobQueueSize, db)
-	a.genJob = jobs.NewGenerateProfilesJob(authService, a.profiles, a.GetName())
+	a.genJob = jobs.NewGenerateProfilesJob(
+		authService, a.profiles, a.picks, a.GetName(),
+	)
 	return a
 }
 

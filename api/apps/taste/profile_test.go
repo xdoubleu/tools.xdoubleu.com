@@ -44,7 +44,13 @@ func profileApp(
 
 	cfg := testCfg
 	cfg.OpenRouterAPIKey = "test-key"
-	a := taste.NewInner(authService, logging.NewNopLogger(), cfg, testDB, llm,
+	a := taste.NewInner(
+		authService,
+		logging.NewNopLogger(),
+		cfg,
+		testDB,
+		llm,
+		noCatalogs(),
 		userSource{name: "books", events: []consumption.Event{book}, err: nil},
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(a))
@@ -115,7 +121,7 @@ func TestProfile_RefreshGeneratesAndRateLimits(t *testing.T) {
 	require.NoError(t, err)
 	assert.WithinDuration(t, time.Now(), generated, time.Minute)
 
-	require.Len(t, llm.requests, 1)
+	require.Equal(t, 1, llm.profileCalls())
 	req := llm.requests[0]
 	assert.Equal(t, testCfg.TasteGeneratorModel, req.Model)
 	assert.Equal(t, "taste_profile", req.SchemaName)
@@ -125,7 +131,7 @@ func TestProfile_RefreshGeneratesAndRateLimits(t *testing.T) {
 
 	// Fresh, so the next run leaves it alone.
 	require.NoError(t, a.GenerateProfilesNow(context.Background()))
-	assert.Len(t, llm.requests, 1)
+	assert.Equal(t, 1, llm.profileCalls())
 }
 
 func TestProfile_FailureKeepsLastProfile(t *testing.T) {
@@ -147,7 +153,7 @@ func TestProfile_FailureKeepsLastProfile(t *testing.T) {
 
 	// Failed attempts count too, so it isn't retried hourly.
 	require.NoError(t, a.GenerateProfilesNow(context.Background()))
-	assert.Len(t, llm.requests, 2)
+	assert.Equal(t, 2, llm.profileCalls())
 }
 
 func TestProfile_InvalidAnswers(t *testing.T) {
@@ -169,10 +175,10 @@ func TestProfile_SourceFailureIsNoted(t *testing.T) {
 	cfg.OpenRouterAPIKey = "test-key"
 	llm := newLLM(profileJSON)
 	a := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
-		logging.NewNopLogger(), cfg, testDB, llm,
+		logging.NewNopLogger(), cfg, testDB, llm, noCatalogs(),
 		userSource{name: "books", events: nil, err: errors.New("db down")})
 	require.ErrorContains(t, a.GenerateProfilesNow(context.Background()), "db down")
-	assert.Empty(t, llm.requests)
+	assert.Zero(t, llm.profileCalls())
 	var lastError string
 	require.NoError(t, testDB.QueryRow(context.Background(),
 		"SELECT last_error FROM taste.profiles WHERE user_id = $1", userID,
@@ -202,9 +208,9 @@ func TestProfile_NothingConsumedClearsTheProfile(t *testing.T) {
 	cfg := testCfg
 	cfg.OpenRouterAPIKey = "test-key"
 	empty := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
-		logging.NewNopLogger(), cfg, testDB, llm)
+		logging.NewNopLogger(), cfg, testDB, llm, noCatalogs())
 	require.NoError(t, empty.GenerateProfilesNow(context.Background()))
-	assert.Len(t, llm.requests, 1, "no completion for an empty log")
+	assert.Equal(t, 1, llm.profileCalls(), "no completion for an empty log")
 
 	ts := httptest.NewServer(testhelper.BuildMux(empty))
 	t.Cleanup(ts.Close)
@@ -223,13 +229,13 @@ func TestProfile_JobSkipsUsersWithoutTasteAccess(t *testing.T) {
 	// The mocked non-admin user has no taste access.
 	a, _ := profileApp(t, sharedmocks.NewMockedAuthService(userID), llm)
 	require.NoError(t, a.GenerateProfilesNow(context.Background()))
-	assert.Empty(t, llm.requests)
+	assert.Zero(t, llm.profileCalls())
 }
 
 func TestProfile_JobIdleWithoutKey(t *testing.T) {
 	llm := newLLM(profileJSON)
 	a := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
-		logging.NewNopLogger(), testCfg, testDB, llm)
+		logging.NewNopLogger(), testCfg, testDB, llm, noCatalogs())
 	require.NoError(t, a.GenerateProfilesNow(context.Background()))
-	assert.Empty(t, llm.requests)
+	assert.Zero(t, llm.profileCalls())
 }

@@ -26,20 +26,28 @@ type profileGenerator interface {
 	Generate(ctx context.Context, userID string, include func(appName string) bool) error
 }
 
+type recommender interface {
+	Generate(ctx context.Context, userID string, include func(appName string) bool) error
+}
+
 // GenerateProfilesJob writes the profiles of users with taste access that
-// were requested or have gone stale.
+// were requested or have gone stale, then their picks from the new profile.
 type GenerateProfilesJob struct {
 	users    userLister
 	profiles profileGenerator
+	picks    recommender
 	appName  string
 }
 
 func NewGenerateProfilesJob(
 	users userLister,
 	profiles profileGenerator,
+	picks recommender,
 	appName string,
 ) GenerateProfilesJob {
-	return GenerateProfilesJob{users: users, profiles: profiles, appName: appName}
+	return GenerateProfilesJob{
+		users: users, profiles: profiles, picks: picks, appName: appName,
+	}
 }
 
 func (j GenerateProfilesJob) ID() string {
@@ -77,8 +85,13 @@ func (j GenerateProfilesJob) Run(ctx context.Context, logger *slog.Logger) error
 	}
 	var errs []error
 	for _, id := range due {
-		if genErr := j.profiles.Generate(ctx, id, CanAccess(byID[id])); genErr != nil {
-			logger.WarnContext(ctx, "taste profile generation failed",
+		include := CanAccess(byID[id])
+		genErr := j.profiles.Generate(ctx, id, include)
+		if genErr == nil {
+			genErr = j.picks.Generate(ctx, id, include)
+		}
+		if genErr != nil {
+			logger.WarnContext(ctx, "taste generation failed",
 				slog.String("user_id", id), slog.Any("error", genErr))
 			errs = append(errs, fmt.Errorf("user %s: %w", id, genErr))
 		}

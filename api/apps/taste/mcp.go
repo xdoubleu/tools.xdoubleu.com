@@ -20,6 +20,12 @@ type mcpListEventsArgs struct {
 	Offset int32  `json:"offset,omitempty" jsonschema:"pagination offset"`
 }
 
+//nolint:lll // struct tags can't wrap
+type mcpListRecommendationsArgs struct {
+	Domain string `json:"domain,omitempty" jsonschema:"books, feeds, games, movies, series or podcasts; empty for every domain"`
+	Track  string `json:"track,omitempty"  jsonschema:"more (more of what you like) or broaden (broaden your horizon); empty for both"`
+}
+
 // RegisterMCPTools exposes the consumption log and its stats, scoped to the
 // caller.
 func (a *Taste) RegisterMCPTools(srv *mcp.Server) {
@@ -39,6 +45,19 @@ func (a *Taste) RegisterMCPTools(srv *mcp.Server) {
 		"The user's LLM-written taste profile: a summary plus what they know, "+
 			"what they like, where their taste is drifting and what they bounce "+
 			"off, with when and by which model it was written.", h.mcpGetProfile)
+	mcptools.AddReadTool(srv, mcpAppName, "taste_list_recommendations",
+		"The user's current recommendations, best first: per domain and track "+
+			"(more of what they like, or broaden their horizon), each verified "+
+			"against a catalog with a one-line why, the judge's 0-100 score and "+
+			"the web sources the generator cited.", h.mcpListRecommendations)
+}
+
+func (h *tasteConnectHandler) mcpListRecommendations(
+	ctx context.Context, args mcpListRecommendationsArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.ListRecommendations(ctx, connect.NewRequest(
+		&tastev1.ListRecommendationsRequest{Domain: args.Domain, Track: args.Track},
+	)))
 }
 
 func (h *tasteConnectHandler) mcpGetProfile(

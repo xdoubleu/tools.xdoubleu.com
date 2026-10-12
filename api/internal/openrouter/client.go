@@ -31,6 +31,12 @@ type Message struct {
 	Content string `json:"content"`
 }
 
+// System is a system message.
+func System(content string) Message { return Message{Role: "system", Content: content} }
+
+// User is a user message.
+func User(content string) Message { return Message{Role: "user", Content: content} }
+
 // WebSearch enables OpenRouter's server-side web search tool, capped to bound
 // its per-result cost.
 type WebSearch struct {

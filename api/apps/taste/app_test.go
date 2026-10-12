@@ -48,6 +48,7 @@ func TestMain(m *testing.M) {
 	}
 	a := taste.New(
 		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), testCfg, testDB,
+		noCatalogs(),
 	)
 	if err := a.ApplyMigrations(ctx, pool); err != nil {
 		panic(err)
@@ -55,7 +56,26 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// newLLM answers every completion with content.
+// profileCalls counts the profile completions asked for.
+func (f *fakeLLM) profileCalls() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	n := 0
+	for _, r := range f.requests {
+		if r.SchemaName == "taste_profile" {
+			n++
+		}
+	}
+	return n
+}
+
+// noCatalogs finds nothing in any domain.
+func noCatalogs() taste.Catalogs {
+	return taste.Catalogs{Books: nil, Movies: nil, Games: nil, Podcasts: nil, Feeds: nil}
+}
+
+// newLLM answers profile completions with content and candidate completions
+// with no picks.
 func newLLM(content string) *fakeLLM {
 	//nolint:exhaustruct // the rest start empty
 	return &fakeLLM{content: content}
@@ -77,6 +97,10 @@ func (f *fakeLLM) Complete(
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.requests = append(f.requests, req)
+	if req.SchemaName == "taste_candidates" {
+		//nolint:exhaustruct // usage is irrelevant here
+		return &openrouter.Response{Model: "served/model", Content: `{"picks": []}`}, nil
+	}
 	if f.during != nil {
 		f.during()
 	}
@@ -121,7 +145,8 @@ func newClientAs(
 ) tastev1connect.TasteServiceClient {
 	t.Helper()
 	a := taste.NewInner(
-		authService, logging.NewNopLogger(), testCfg, testDB, newLLM(""), sources...,
+		authService, logging.NewNopLogger(), testCfg, testDB, newLLM(""), noCatalogs(),
+		sources...,
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(a))
 	t.Cleanup(ts.Close)
@@ -146,6 +171,7 @@ var (
 func TestAppMetadata(t *testing.T) {
 	a := taste.New(
 		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), testCfg, testDB,
+		noCatalogs(),
 	)
 	assert.Equal(t, "taste", a.GetName())
 	assert.Equal(t, "Taste", a.GetDisplayName())
@@ -286,12 +312,24 @@ func TestSourcesNeedAppAccess(t *testing.T) {
 func TestNew_WarnsOnlyWithoutKey(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logs, nil))
-	taste.New(sharedmocks.NewMockedAuthService(userID), logger, testCfg, testDB)
+	taste.New(
+		sharedmocks.NewMockedAuthService(userID),
+		logger,
+		testCfg,
+		testDB,
+		noCatalogs(),
+	)
 	assert.Contains(t, logs.String(), "OPENROUTER_API_KEY not set")
 
 	logs.Reset()
 	cfg := testCfg
 	cfg.OpenRouterAPIKey = "key"
-	taste.New(sharedmocks.NewMockedAuthService(userID), logger, cfg, testDB)
+	taste.New(
+		sharedmocks.NewMockedAuthService(userID),
+		logger,
+		cfg,
+		testDB,
+		noCatalogs(),
+	)
 	assert.Empty(t, logs.String())
 }

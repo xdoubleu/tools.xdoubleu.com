@@ -27,9 +27,9 @@ func (a *Movies) FindTitle(
 	var best *models.SearchResult
 	for i, r := range results {
 		t := r.Title
-		if t.MediaType != mediaType ||
-			!(consumption.SameTitle(t.Title, title) ||
-				consumption.SameTitle(t.OriginalTitle, title)) {
+		named := consumption.SameTitle(t.Title, title) ||
+			consumption.SameTitle(t.OriginalTitle, title)
+		if t.MediaType != mediaType || !named {
 			continue
 		}
 		if best == nil || (releaseYear(t) == year && releaseYear(best.Title) != year) {

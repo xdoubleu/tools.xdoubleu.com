@@ -35,6 +35,7 @@ func TestMCPTools(t *testing.T) {
 	a := New(
 		sharedmocks.NewMockedAuthService(uid), logging.NewNopLogger(), cfg,
 		testhelper.ConnectTestDB(cfg.DBDsn),
+		Catalogs{Books: nil, Movies: nil, Games: nil, Podcasts: nil, Feeds: nil},
 		staticSource{
 			//nolint:exhaustruct // only what the tools return
 			{Domain: consumption.DomainPodcasts, Title: "Show", At: time.Now(), Signal: 2},
@@ -65,6 +66,14 @@ func TestMCPTools(t *testing.T) {
 	require.True(t, ok)
 	require.Len(t, events.Events, 1)
 	assert.Equal(t, "Show", events.Events[0].Title)
+
+	msg, err = h.mcpListRecommendations(ctx, mcpListRecommendationsArgs{
+		Domain: "podcasts", Track: "more",
+	})
+	require.NoError(t, err)
+	recs, ok := msg.(*tastev1.ListRecommendationsResponse)
+	require.True(t, ok)
+	assert.Empty(t, recs.Recommendations)
 
 	msg, err = h.mcpGetProfile(ctx, mcptools.NoArgs{})
 	require.NoError(t, err)

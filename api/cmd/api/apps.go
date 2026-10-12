@@ -97,6 +97,13 @@ func NewApps(
 	// follows them.
 	apps.addApp(taste.New(
 		authService, logger, cfg, db,
+		taste.Catalogs{
+			Books:    booksApp.FindBook,
+			Movies:   moviesApp.FindTitle,
+			Games:    gamesApp.FindGame,
+			Podcasts: podcastsApp.FindShow,
+			Feeds:    feedsApp.FindSource,
+		},
 		booksApp, feedsApp, gamesApp, moviesApp, podcastsApp,
 	))
 

@@ -31,12 +31,14 @@ type storeClient struct {
 
 // NewStore searches the store at baseURL (StorefrontURLRESTAPI in production).
 func NewStore(baseURL string) StoreSearcher {
-	//nolint:exhaustruct // defaults
 	return storeClient{baseURL: baseURL, http: &http.Client{Timeout: storeTimeout}}
 }
 
 // SearchStore returns the apps (not bundles or packages) matching term.
-func (c storeClient) SearchStore(ctx context.Context, term string) ([]StoreItem, error) {
+func (c storeClient) SearchStore(
+	ctx context.Context,
+	term string,
+) ([]StoreItem, error) {
 	q := url.Values{"term": {term}, "l": {"english"}, "cc": {"BE"}}
 	req, err := http.NewRequestWithContext(
 		ctx, http.MethodGet, c.baseURL+"/storesearch/?"+q.Encode(), nil,

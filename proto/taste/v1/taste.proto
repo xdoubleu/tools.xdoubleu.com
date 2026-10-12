@@ -102,10 +102,53 @@ message GetProfileResponse {
   string next_refresh_at = 7;
 }
 
-// Queues a regeneration; RESOURCE_EXHAUSTED within 6 hours of the last
+// Queues regenerating the profile and then the picks; RESOURCE_EXHAUSTED within 6 hours of the last
 // request, FAILED_PRECONDITION without an OpenRouter key.
 message RefreshProfileRequest {}
 message RefreshProfileResponse {}
+
+// A web page the generator cited.
+message Source {
+  string url = 1;
+  string title = 2;
+}
+
+// A verified, judged pick.
+message Recommendation {
+  string id = 1;
+  // books, feeds, games, movies, series or podcasts.
+  string domain = 2;
+  // "more" (more of what you like) or "broaden" (broaden your horizon).
+  string track = 3;
+  string title = 4;
+  string creator = 5;
+  // 0 when unknown.
+  int32 year = 6;
+  // The catalog or site page.
+  string url = 7;
+  string image_url = 8;
+  // One sentence on why it fits.
+  string why = 9;
+  // Pages the generator cited while proposing this run's picks.
+  repeated Source sources = 10;
+  // The judge's 0-100 score.
+  int32 score = 11;
+}
+
+message ListRecommendationsRequest {
+  // Empty for every domain.
+  string domain = 1;
+  // Empty for both tracks.
+  string track = 2;
+}
+message ListRecommendationsResponse {
+  // Best first.
+  repeated Recommendation recommendations = 1;
+  // RFC3339 of the last successful run; empty before the first.
+  string generated_at = 2;
+  // Why the last run failed; empty when it succeeded.
+  string last_error = 3;
+}
 
 // The caller's consumption log across every app; per user, never shared.
 service TasteService {
@@ -113,4 +156,6 @@ service TasteService {
   rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
   rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
   rpc RefreshProfile(RefreshProfileRequest) returns (RefreshProfileResponse);
+  rpc ListRecommendations(ListRecommendationsRequest)
+    returns (ListRecommendationsResponse);
 }

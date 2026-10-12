@@ -809,7 +809,7 @@ func (x *GetProfileResponse) GetNextRefreshAt() string {
 	return ""
 }
 
-// Queues a regeneration; RESOURCE_EXHAUSTED within 6 hours of the last
+// Queues regenerating the profile and then the picks; RESOURCE_EXHAUSTED within 6 hours of the last
 // request, FAILED_PRECONDITION without an OpenRouter key.
 type RefreshProfileRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -883,6 +883,308 @@ func (*RefreshProfileResponse) Descriptor() ([]byte, []int) {
 	return file_taste_v1_taste_proto_rawDescGZIP(), []int{13}
 }
 
+// A web page the generator cited.
+type Source struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Source) Reset() {
+	*x = Source{}
+	mi := &file_taste_v1_taste_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Source) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Source) ProtoMessage() {}
+
+func (x *Source) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Source.ProtoReflect.Descriptor instead.
+func (*Source) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *Source) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *Source) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+// A verified, judged pick.
+type Recommendation struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// books, feeds, games, movies, series or podcasts.
+	Domain string `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
+	// "more" (more of what you like) or "broaden" (broaden your horizon).
+	Track   string `protobuf:"bytes,3,opt,name=track,proto3" json:"track,omitempty"`
+	Title   string `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
+	Creator string `protobuf:"bytes,5,opt,name=creator,proto3" json:"creator,omitempty"`
+	// 0 when unknown.
+	Year int32 `protobuf:"varint,6,opt,name=year,proto3" json:"year,omitempty"`
+	// The catalog or site page.
+	Url      string `protobuf:"bytes,7,opt,name=url,proto3" json:"url,omitempty"`
+	ImageUrl string `protobuf:"bytes,8,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
+	// One sentence on why it fits.
+	Why string `protobuf:"bytes,9,opt,name=why,proto3" json:"why,omitempty"`
+	// Pages the generator cited while proposing this run's picks.
+	Sources []*Source `protobuf:"bytes,10,rep,name=sources,proto3" json:"sources,omitempty"`
+	// The judge's 0-100 score.
+	Score         int32 `protobuf:"varint,11,opt,name=score,proto3" json:"score,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Recommendation) Reset() {
+	*x = Recommendation{}
+	mi := &file_taste_v1_taste_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Recommendation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Recommendation) ProtoMessage() {}
+
+func (x *Recommendation) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Recommendation.ProtoReflect.Descriptor instead.
+func (*Recommendation) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *Recommendation) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Recommendation) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *Recommendation) GetTrack() string {
+	if x != nil {
+		return x.Track
+	}
+	return ""
+}
+
+func (x *Recommendation) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *Recommendation) GetCreator() string {
+	if x != nil {
+		return x.Creator
+	}
+	return ""
+}
+
+func (x *Recommendation) GetYear() int32 {
+	if x != nil {
+		return x.Year
+	}
+	return 0
+}
+
+func (x *Recommendation) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *Recommendation) GetImageUrl() string {
+	if x != nil {
+		return x.ImageUrl
+	}
+	return ""
+}
+
+func (x *Recommendation) GetWhy() string {
+	if x != nil {
+		return x.Why
+	}
+	return ""
+}
+
+func (x *Recommendation) GetSources() []*Source {
+	if x != nil {
+		return x.Sources
+	}
+	return nil
+}
+
+func (x *Recommendation) GetScore() int32 {
+	if x != nil {
+		return x.Score
+	}
+	return 0
+}
+
+type ListRecommendationsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty for every domain.
+	Domain string `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
+	// Empty for both tracks.
+	Track         string `protobuf:"bytes,2,opt,name=track,proto3" json:"track,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRecommendationsRequest) Reset() {
+	*x = ListRecommendationsRequest{}
+	mi := &file_taste_v1_taste_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRecommendationsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRecommendationsRequest) ProtoMessage() {}
+
+func (x *ListRecommendationsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRecommendationsRequest.ProtoReflect.Descriptor instead.
+func (*ListRecommendationsRequest) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ListRecommendationsRequest) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *ListRecommendationsRequest) GetTrack() string {
+	if x != nil {
+		return x.Track
+	}
+	return ""
+}
+
+type ListRecommendationsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Best first.
+	Recommendations []*Recommendation `protobuf:"bytes,1,rep,name=recommendations,proto3" json:"recommendations,omitempty"`
+	// RFC3339 of the last successful run; empty before the first.
+	GeneratedAt string `protobuf:"bytes,2,opt,name=generated_at,json=generatedAt,proto3" json:"generated_at,omitempty"`
+	// Why the last run failed; empty when it succeeded.
+	LastError     string `protobuf:"bytes,3,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRecommendationsResponse) Reset() {
+	*x = ListRecommendationsResponse{}
+	mi := &file_taste_v1_taste_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRecommendationsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRecommendationsResponse) ProtoMessage() {}
+
+func (x *ListRecommendationsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRecommendationsResponse.ProtoReflect.Descriptor instead.
+func (*ListRecommendationsResponse) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ListRecommendationsResponse) GetRecommendations() []*Recommendation {
+	if x != nil {
+		return x.Recommendations
+	}
+	return nil
+}
+
+func (x *ListRecommendationsResponse) GetGeneratedAt() string {
+	if x != nil {
+		return x.GeneratedAt
+	}
+	return ""
+}
+
+func (x *ListRecommendationsResponse) GetLastError() string {
+	if x != nil {
+		return x.LastError
+	}
+	return ""
+}
+
 var File_taste_v1_taste_proto protoreflect.FileDescriptor
 
 const file_taste_v1_taste_proto_rawDesc = "" +
@@ -946,14 +1248,39 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"last_error\x18\x06 \x01(\tR\tlastError\x12&\n" +
 	"\x0fnext_refresh_at\x18\a \x01(\tR\rnextRefreshAt\"\x17\n" +
 	"\x15RefreshProfileRequest\"\x18\n" +
-	"\x16RefreshProfileResponse2\xb8\x02\n" +
+	"\x16RefreshProfileResponse\"0\n" +
+	"\x06Source\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\"\x95\x02\n" +
+	"\x0eRecommendation\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x14\n" +
+	"\x05track\x18\x03 \x01(\tR\x05track\x12\x14\n" +
+	"\x05title\x18\x04 \x01(\tR\x05title\x12\x18\n" +
+	"\acreator\x18\x05 \x01(\tR\acreator\x12\x12\n" +
+	"\x04year\x18\x06 \x01(\x05R\x04year\x12\x10\n" +
+	"\x03url\x18\a \x01(\tR\x03url\x12\x1b\n" +
+	"\timage_url\x18\b \x01(\tR\bimageUrl\x12\x10\n" +
+	"\x03why\x18\t \x01(\tR\x03why\x12*\n" +
+	"\asources\x18\n" +
+	" \x03(\v2\x10.taste.v1.SourceR\asources\x12\x14\n" +
+	"\x05score\x18\v \x01(\x05R\x05score\"J\n" +
+	"\x1aListRecommendationsRequest\x12\x16\n" +
+	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x14\n" +
+	"\x05track\x18\x02 \x01(\tR\x05track\"\xa3\x01\n" +
+	"\x1bListRecommendationsResponse\x12B\n" +
+	"\x0frecommendations\x18\x01 \x03(\v2\x18.taste.v1.RecommendationR\x0frecommendations\x12!\n" +
+	"\fgenerated_at\x18\x02 \x01(\tR\vgeneratedAt\x12\x1d\n" +
+	"\n" +
+	"last_error\x18\x03 \x01(\tR\tlastError2\x9c\x03\n" +
 	"\fTasteService\x12A\n" +
 	"\bGetStats\x12\x19.taste.v1.GetStatsRequest\x1a\x1a.taste.v1.GetStatsResponse\x12G\n" +
 	"\n" +
 	"ListEvents\x12\x1b.taste.v1.ListEventsRequest\x1a\x1c.taste.v1.ListEventsResponse\x12G\n" +
 	"\n" +
 	"GetProfile\x12\x1b.taste.v1.GetProfileRequest\x1a\x1c.taste.v1.GetProfileResponse\x12S\n" +
-	"\x0eRefreshProfile\x12\x1f.taste.v1.RefreshProfileRequest\x1a .taste.v1.RefreshProfileResponseB)Z'tools.xdoubleu.com/gen/taste/v1;tastev1b\x06proto3"
+	"\x0eRefreshProfile\x12\x1f.taste.v1.RefreshProfileRequest\x1a .taste.v1.RefreshProfileResponse\x12b\n" +
+	"\x13ListRecommendations\x12$.taste.v1.ListRecommendationsRequest\x1a%.taste.v1.ListRecommendationsResponseB)Z'tools.xdoubleu.com/gen/taste/v1;tastev1b\x06proto3"
 
 var (
 	file_taste_v1_taste_proto_rawDescOnce sync.Once
@@ -967,22 +1294,26 @@ func file_taste_v1_taste_proto_rawDescGZIP() []byte {
 	return file_taste_v1_taste_proto_rawDescData
 }
 
-var file_taste_v1_taste_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_taste_v1_taste_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_taste_v1_taste_proto_goTypes = []any{
-	(*Event)(nil),                  // 0: taste.v1.Event
-	(*DomainStats)(nil),            // 1: taste.v1.DomainStats
-	(*DomainCount)(nil),            // 2: taste.v1.DomainCount
-	(*MonthCounts)(nil),            // 3: taste.v1.MonthCounts
-	(*RankedName)(nil),             // 4: taste.v1.RankedName
-	(*GetStatsRequest)(nil),        // 5: taste.v1.GetStatsRequest
-	(*GetStatsResponse)(nil),       // 6: taste.v1.GetStatsResponse
-	(*ListEventsRequest)(nil),      // 7: taste.v1.ListEventsRequest
-	(*ListEventsResponse)(nil),     // 8: taste.v1.ListEventsResponse
-	(*ProfileSections)(nil),        // 9: taste.v1.ProfileSections
-	(*GetProfileRequest)(nil),      // 10: taste.v1.GetProfileRequest
-	(*GetProfileResponse)(nil),     // 11: taste.v1.GetProfileResponse
-	(*RefreshProfileRequest)(nil),  // 12: taste.v1.RefreshProfileRequest
-	(*RefreshProfileResponse)(nil), // 13: taste.v1.RefreshProfileResponse
+	(*Event)(nil),                       // 0: taste.v1.Event
+	(*DomainStats)(nil),                 // 1: taste.v1.DomainStats
+	(*DomainCount)(nil),                 // 2: taste.v1.DomainCount
+	(*MonthCounts)(nil),                 // 3: taste.v1.MonthCounts
+	(*RankedName)(nil),                  // 4: taste.v1.RankedName
+	(*GetStatsRequest)(nil),             // 5: taste.v1.GetStatsRequest
+	(*GetStatsResponse)(nil),            // 6: taste.v1.GetStatsResponse
+	(*ListEventsRequest)(nil),           // 7: taste.v1.ListEventsRequest
+	(*ListEventsResponse)(nil),          // 8: taste.v1.ListEventsResponse
+	(*ProfileSections)(nil),             // 9: taste.v1.ProfileSections
+	(*GetProfileRequest)(nil),           // 10: taste.v1.GetProfileRequest
+	(*GetProfileResponse)(nil),          // 11: taste.v1.GetProfileResponse
+	(*RefreshProfileRequest)(nil),       // 12: taste.v1.RefreshProfileRequest
+	(*RefreshProfileResponse)(nil),      // 13: taste.v1.RefreshProfileResponse
+	(*Source)(nil),                      // 14: taste.v1.Source
+	(*Recommendation)(nil),              // 15: taste.v1.Recommendation
+	(*ListRecommendationsRequest)(nil),  // 16: taste.v1.ListRecommendationsRequest
+	(*ListRecommendationsResponse)(nil), // 17: taste.v1.ListRecommendationsResponse
 }
 var file_taste_v1_taste_proto_depIdxs = []int32{
 	2,  // 0: taste.v1.MonthCounts.counts:type_name -> taste.v1.DomainCount
@@ -992,19 +1323,23 @@ var file_taste_v1_taste_proto_depIdxs = []int32{
 	4,  // 4: taste.v1.GetStatsResponse.top_creators:type_name -> taste.v1.RankedName
 	0,  // 5: taste.v1.ListEventsResponse.events:type_name -> taste.v1.Event
 	9,  // 6: taste.v1.GetProfileResponse.sections:type_name -> taste.v1.ProfileSections
-	5,  // 7: taste.v1.TasteService.GetStats:input_type -> taste.v1.GetStatsRequest
-	7,  // 8: taste.v1.TasteService.ListEvents:input_type -> taste.v1.ListEventsRequest
-	10, // 9: taste.v1.TasteService.GetProfile:input_type -> taste.v1.GetProfileRequest
-	12, // 10: taste.v1.TasteService.RefreshProfile:input_type -> taste.v1.RefreshProfileRequest
-	6,  // 11: taste.v1.TasteService.GetStats:output_type -> taste.v1.GetStatsResponse
-	8,  // 12: taste.v1.TasteService.ListEvents:output_type -> taste.v1.ListEventsResponse
-	11, // 13: taste.v1.TasteService.GetProfile:output_type -> taste.v1.GetProfileResponse
-	13, // 14: taste.v1.TasteService.RefreshProfile:output_type -> taste.v1.RefreshProfileResponse
-	11, // [11:15] is the sub-list for method output_type
-	7,  // [7:11] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	14, // 7: taste.v1.Recommendation.sources:type_name -> taste.v1.Source
+	15, // 8: taste.v1.ListRecommendationsResponse.recommendations:type_name -> taste.v1.Recommendation
+	5,  // 9: taste.v1.TasteService.GetStats:input_type -> taste.v1.GetStatsRequest
+	7,  // 10: taste.v1.TasteService.ListEvents:input_type -> taste.v1.ListEventsRequest
+	10, // 11: taste.v1.TasteService.GetProfile:input_type -> taste.v1.GetProfileRequest
+	12, // 12: taste.v1.TasteService.RefreshProfile:input_type -> taste.v1.RefreshProfileRequest
+	16, // 13: taste.v1.TasteService.ListRecommendations:input_type -> taste.v1.ListRecommendationsRequest
+	6,  // 14: taste.v1.TasteService.GetStats:output_type -> taste.v1.GetStatsResponse
+	8,  // 15: taste.v1.TasteService.ListEvents:output_type -> taste.v1.ListEventsResponse
+	11, // 16: taste.v1.TasteService.GetProfile:output_type -> taste.v1.GetProfileResponse
+	13, // 17: taste.v1.TasteService.RefreshProfile:output_type -> taste.v1.RefreshProfileResponse
+	17, // 18: taste.v1.TasteService.ListRecommendations:output_type -> taste.v1.ListRecommendationsResponse
+	14, // [14:19] is the sub-list for method output_type
+	9,  // [9:14] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_taste_v1_taste_proto_init() }
@@ -1018,7 +1353,7 @@ func file_taste_v1_taste_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_taste_v1_taste_proto_rawDesc), len(file_taste_v1_taste_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
