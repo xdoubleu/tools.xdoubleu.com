@@ -34,7 +34,11 @@ create a PR, or edit a repo file.
      whatever the setting says. If the count is 0, skip `$dead_click` and
      report it as a gap. Mention in the summary when the setting and the
      events disagree. Then `$rageclick` and `$dead_click` grouped by
-     element/page.
+     element/page. Group by the `elements_chain` column (the SDK sends
+     `$elements`; ingestion stores it as that column, so a `$elements_chain`
+     property never appears in the taxonomy), not `$el_text`: it is null for
+     clicks on non-text elements (icons, containers), and the `before_send`
+     scrubber (`web/lib/scrubUrl.ts`) only rewrites URL properties.
    - **Mis-navigation:** a detail page (`$pageview`, SPA navigations
      included) reached from a list page, then left within **8s** — the
      user tapped the wrong thing.
