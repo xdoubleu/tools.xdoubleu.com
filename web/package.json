@@ -31,7 +31,7 @@
     "@dnd-kit/utilities": "3.2.2",
     "@radix-ui/react-dialog": "1.2.0",
     "@radix-ui/react-slot": "1.4.0",
-    "@readium/navigator": "2.11.1",
+    "@readium/navigator": "2.12.1",
     "@readium/shared": "2.7.0",
     "@sentry/nextjs": "11.6.0",
     "clsx": "2.1.1",
