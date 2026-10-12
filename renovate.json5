@@ -83,6 +83,21 @@
         'connectrpc/connect-go',
       ],
     },
+    // Major codegen bumps regenerate api/gen differently, so the proto staleness
+    // check can never pass until the code is migrated; a human decides when.
+    {
+      matchDepNames: [
+        'connectrpc.com/connect',
+        'connectrpc/connect-go',
+        'buf.build/connectrpc/go',
+        'protocolbuffers/protobuf-go',
+        'bufbuild/protobuf-es',
+      ],
+      matchUpdateTypes: [
+        'major',
+      ],
+      dependencyDashboardApproval: true,
+    },
     {
       groupName: 'typescript',
       matchDepNames: [
