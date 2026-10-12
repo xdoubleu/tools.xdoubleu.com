@@ -40,6 +40,19 @@ function appTheme(): ReaderTheme {
 
 const noop = () => {}
 
+/**
+ * Runs a navigator call, swallowing a library-internal throw (sync or async) so a race with the
+ * iframe's init or teardown degrades to a no-op instead of an unhandled error.
+ */
+function guarded(call: () => unknown) {
+  try {
+    const result = call()
+    if (result instanceof Promise) result.catch(noop)
+  } catch {
+    // intentionally ignored
+  }
+}
+
 /** A navigator that hasn't opened by then never will (a frame it can't reach never settles). */
 export const READIUM_LOAD_TIMEOUT_MS = 30_000
 
@@ -66,6 +79,8 @@ export default function ReadiumBookReader({
   const [defaultTheme] = useState(appTheme)
   const theme = storedTheme ?? defaultTheme
   const prefsRef = useRef(readiumPreferences(theme, fontSize))
+  // The navigator, only while it is open and not destroyed; every call into it goes through this.
+  const liveRef = useRef<EpubNavigator | null>(null)
   const onRelocateRef = useRef(onRelocate)
   const initialPositionRef = useRef(initialPosition)
   useEffect(() => {
@@ -117,8 +132,10 @@ export default function ReadiumBookReader({
         if (positions.length === 0) throw new Error('no positions')
         if (cancelled) return
         const turn = (direction: PageTurn | null) => {
-          if (direction === 'left') created?.goBackward(false, noop)
-          if (direction === 'right') created?.goForward(false, noop)
+          const live = liveRef.current
+          if (!live) return
+          if (direction === 'left') guarded(() => live.goBackward(false, noop))
+          if (direction === 'right') guarded(() => live.goForward(false, noop))
         }
         const container = containerRef.current!
         const nav = new EpubNavigator(
@@ -171,6 +188,7 @@ export default function ReadiumBookReader({
         setNavigator(nav)
         setStatus('ready')
         opened = true
+        liveRef.current = nav
       } catch {
         if (!cancelled) setStatus('error')
       }
@@ -178,15 +196,17 @@ export default function ReadiumBookReader({
 
     return () => {
       cancelled = true
+      liveRef.current = null
       clearTimeout(loadTimer)
       window.removeEventListener('keydown', onKey)
-      void created?.destroy()
+      guarded(() => created?.destroy())
     }
   }, [bookId])
 
   useEffect(() => {
     prefsRef.current = readiumPreferences(theme, fontSize)
-    void navigator?.submitPreferences(new EpubPreferences(prefsRef.current))
+    const live = liveRef.current
+    if (live) guarded(() => live.submitPreferences(new EpubPreferences(prefsRef.current)))
   }, [navigator, theme, fontSize])
 
   return (
@@ -202,7 +222,10 @@ export default function ReadiumBookReader({
         navigator && (
           <ReaderControls
             toc={toc}
-            onGoTo={(href) => navigator.goLink(new Link({ href }), false, noop)}
+            onGoTo={(href) => {
+              const live = liveRef.current
+              if (live) guarded(() => live.goLink(new Link({ href }), false, noop))
+            }}
             reflowable
             currentHref={(startEntry ?? tocEntry).href}
             theme={theme}
