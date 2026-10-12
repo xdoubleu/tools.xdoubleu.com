@@ -344,6 +344,8 @@ github.com/klauspost/compress v1.20.1 h1:T7kKElXUMXrUJ2E9QhQhxFtcK5rPyLdsGZvdbLM
 github.com/klauspost/compress v1.20.1/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
 github.com/klippa-app/go-pdfium v1.21.2 h1:cJWyt3reQyie19Z+Lw5jujoT5NHVDz3bALOo80pmsoI=
 github.com/klippa-app/go-pdfium v1.21.2/go.mod h1:sg9hrNV29uKb2Q/g+GU8WYTzTgtEt8QAMGzXtvLPzck=
+github.com/klippa-app/go-pdfium v1.21.3 h1:RA9LChVEg0JWYcTMPPbgJ30lSwttatl46JwElfNzkcE=
+github.com/klippa-app/go-pdfium v1.21.3/go.mod h1:sg9hrNV29uKb2Q/g+GU8WYTzTgtEt8QAMGzXtvLPzck=
 github.com/knadh/koanf/maps v0.1.1 h1:G5TjmUh2D7G2YWf5SQQqSiHRJEjaicvU0KpypqB3NIs=
 github.com/knadh/koanf/maps v0.1.1/go.mod h1:npD/QZY3V6ghQDdcQzl1W4ICNVTkohC8E73eI2xW4yI=
 github.com/knadh/koanf/parsers/json v0.1.0 h1:dzSZl5pf5bBcW0Acnu20Djleto19T0CfHcvZ14NJ6fU=
