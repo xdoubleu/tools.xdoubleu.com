@@ -84,7 +84,7 @@ func NewInner(
 	)
 	a.picks = services.NewRecommendService(
 		a.log, profiles, repositories.NewRecommendationsRepository(db), catalogs,
-		llm, cfg.TasteGeneratorModel, cfg.TasteJudgeModel, logger,
+		llm, cfg.TasteGeneratorModel, logger,
 	)
 
 	const amountOfWorkers = 1

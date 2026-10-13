@@ -23,23 +23,22 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// pickLLM writes the profile, proposes two picks and scores them.
+// pickLLM writes the profile and proposes two scored picks.
 type pickLLM struct{}
 
 func (pickLLM) Complete(
 	_ context.Context, req openrouter.Request,
 ) (*openrouter.Response, error) {
 	content := profileJSON
-	switch req.SchemaName {
-	case "taste_candidates":
+	if req.SchemaName == "taste_candidates" {
 		content = `{"picks": [
-			{"domain": "books", "track": "more", "title": "Hyperion", "creator": "Dan Simmons",
-			 "year": 1989, "url": "", "why": "Like Dune.", "neighbour": "purist"},
-			{"domain": "podcasts", "track": "broaden", "title": "Radiolab", "creator": "",
-			 "year": 0, "url": "", "why": "Big ideas, by ear.", "neighbour": "explorer"}
+			{"domain": "books", "track": "more", "title": "Hyperion",
+			 "creator": "Dan Simmons", "year": 1989, "url": "", "why": "Like Dune.",
+			 "neighbour": "purist", "score": 88},
+			{"domain": "podcasts", "track": "broaden", "title": "Radiolab",
+			 "creator": "", "year": 0, "url": "", "why": "Big ideas, by ear.",
+			 "neighbour": "explorer", "score": 61}
 		]}`
-	case "taste_scores":
-		content = `{"scores": [{"id": 0, "score": 88}, {"id": 1, "score": 61}]}`
 	}
 	return &openrouter.Response{
 		Model: "served/model", Content: content,

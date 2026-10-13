@@ -11,7 +11,7 @@ import (
 
 const (
 	// picksPerList is how many picks the generator proposes per domain and
-	// track; verification and judging cut them to keepPerList.
+	// track; verification and ranking cut them to keepPerList.
 	picksPerList = 5
 	// maxFeedback caps the earlier picks' feedback in the generator's input.
 	maxFeedback = 60
@@ -63,8 +63,12 @@ Cover these domains: %s. Propose up to %d picks per domain and track. For `+
 		`URL; leave url empty for every other domain. Give the title exactly as `+
 		`published, the main creator (author, studio, director or host), the `+
 		`release year or 0 when unsure, one sentence of why addressed to the `+
-		`person that names specific items from their history, and which neighbour `+
-		`proposed it.`, strings.Join(names, ", "), picksPerList)
+		`person that names specific items from their history, which neighbour `+
+		`proposed it, and a score from 0 to 100: how likely they are to enjoy it `+
+		`given their profile. On the broaden track also reward how well it `+
+		`stretches them in a direction they are likely to welcome, and penalise `+
+		`picks that are really "more of the same". Score honestly: a spread of `+
+		`scores is more useful than all high ones.`, strings.Join(names, ", "), picksPerList)
 }
 
 func generatorInput(
@@ -112,33 +116,6 @@ func writeList(b *strings.Builder, heading string, items []string) {
 	}
 }
 
-const judgePrompt = `You score recommendation candidates for one person. ` +
-	`For each candidate id give a score from 0 to 100: how likely they are to ` +
-	`enjoy it given their profile. For the "broaden" track, also reward how ` +
-	`well it stretches them in a direction they are likely to welcome, and ` +
-	`penalise picks that are really "more of the same". Score every id once.`
-
-func judgeInput(profile *models.Profile, picks []verified) string {
-	var b strings.Builder
-	if profile != nil && profile.Sections != nil {
-		p := profile.Sections
-		fmt.Fprintf(&b, "## Profile\n%s\n", p.Summary)
-		writeList(&b, "Likes", p.Like)
-		writeList(&b, "Bounces off", p.Bounce)
-		b.WriteString("\n")
-	}
-	b.WriteString("## Candidates\n")
-	for i, p := range picks {
-		creator := p.match.Creator
-		if creator == "" {
-			creator = p.Creator
-		}
-		fmt.Fprintf(&b, "%d | %s | %s | %s — %s | %s\n",
-			i, p.Domain, p.Track, p.match.Title, creator, p.Why)
-	}
-	return b.String()
-}
-
 func candidatesSchema() map[string]any {
 	str := typeSchema("string")
 	pick := objectSchema(map[string]any{
@@ -152,13 +129,7 @@ func candidatesSchema() map[string]any {
 		"url":       str,
 		"why":       str,
 		"neighbour": str,
+		"score":     typeSchema("integer"),
 	})
 	return objectSchema(map[string]any{"picks": arraySchema(pick)})
-}
-
-func scoresSchema() map[string]any {
-	score := objectSchema(map[string]any{
-		"id": typeSchema("integer"), "score": typeSchema("integer"),
-	})
-	return objectSchema(map[string]any{"scores": arraySchema(score)})
 }

@@ -103,11 +103,11 @@ func TestGenerateProfilesJob_Failures(t *testing.T) {
 	assert.Len(t, profiles.generated, 2, "one failure doesn't stop the others")
 	assert.Equal(t, []string{"b"}, picks.users, "no picks without a fresh profile")
 
-	failingPicks := &fakePicks{users: nil, err: errors.New("judge down")}
+	failingPicks := &fakePicks{users: nil, err: errors.New("picks down")}
 	err = jobs.NewGenerateProfilesJob(users, profilesFake(true, "", nil), failingPicks,
 		"taste").Run(context.Background(), logging.NewNopLogger())
-	require.ErrorContains(t, err, "user a: judge down")
-	require.ErrorContains(t, err, "user b: judge down")
+	require.ErrorContains(t, err, "user a: picks down")
+	require.ErrorContains(t, err, "user b: picks down")
 
 	profiles = profilesFake(true, "", errors.New("db"))
 	err = jobs.NewGenerateProfilesJob(users, profiles, picks, "taste").

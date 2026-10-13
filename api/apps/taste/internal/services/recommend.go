@@ -20,11 +20,10 @@ import (
 )
 
 const (
-	// keepPerList is how many judged picks each domain and track keeps.
+	// keepPerList is how many scored picks each domain and track keeps.
 	keepPerList        = 3
 	verifyConcurrency  = 4
 	generatorMaxTokens = 8000
-	judgeMaxTokens     = 3000
 	searchMaxResults   = 5
 	searchMaxTotal     = 20
 	// servicesBonus is added to the score of a pick streaming on the user's
@@ -87,6 +86,8 @@ type Candidate struct {
 	URL       string `json:"url"`
 	Why       string `json:"why"`
 	Neighbour string `json:"neighbour"`
+	// Score is the model's 0-100 estimate of how much they'd enjoy it.
+	Score int `json:"score"`
 }
 
 type recommendationStore interface {
@@ -120,7 +121,7 @@ type recommendationStore interface {
 }
 
 // RecommendService proposes picks with the generator, verifies them against
-// the catalogs and ranks them with the judge.
+// the catalogs and ranks them by the score the generator gave each.
 type RecommendService struct {
 	log       *LogService
 	profiles  profileStore
@@ -128,7 +129,6 @@ type RecommendService struct {
 	catalogs  Catalogs
 	llm       openrouter.Client
 	generator string
-	judge     string
 	logger    *slog.Logger
 	now       func() time.Time
 }
@@ -139,12 +139,12 @@ func NewRecommendService(
 	recs recommendationStore,
 	catalogs Catalogs,
 	llm openrouter.Client,
-	generator, judge string,
+	generator string,
 	logger *slog.Logger,
 ) *RecommendService {
 	return &RecommendService{
 		log: log, profiles: profiles, recs: recs, catalogs: catalogs, llm: llm,
-		generator: generator, judge: judge, logger: logger, now: time.Now,
+		generator: generator, logger: logger, now: time.Now,
 	}
 }
 
@@ -312,11 +312,7 @@ func (s *RecommendService) generate(
 			err:  fmt.Errorf("none of %d candidates verified", len(candidates)),
 		}
 	}
-	scores, err := s.score(ctx, profile, verified)
-	if err != nil {
-		return nil, err
-	}
-	return rankPicks(verified, scores, sources), nil
+	return rankPicks(verified, sources), nil
 }
 
 // domains are the domains whose app include accepts and has a catalog.
@@ -505,55 +501,13 @@ func mergePicks(previous, touched []models.Recommendation) []models.Recommendati
 	return out[:min(len(out), maxAlreadySuggested)]
 }
 
-func (s *RecommendService) score(
-	ctx context.Context,
-	profile *models.Profile,
-	picks []verified,
-) (map[int]int, error) {
-	resp, err := s.llm.Complete(ctx, openrouter.Request{
-		Model: s.judge,
-		Messages: []openrouter.Message{
-			openrouter.System(judgePrompt),
-			openrouter.User(judgeInput(profile, picks)),
-		},
-		SchemaName: "taste_scores",
-		Schema:     scoresSchema(),
-		WebSearch:  nil,
-		MaxTokens:  judgeMaxTokens,
-	})
-	if err != nil {
-		return nil, failure{note: "The scoring model failed.", err: err}
-	}
-	var out struct {
-		Scores []struct {
-			ID    int `json:"id"`
-			Score int `json:"score"`
-		} `json:"scores"`
-	}
-	if err = json.Unmarshal([]byte(resp.Content), &out); err != nil {
-		return nil, failure{note: "The scoring model's answer couldn't be read.", err: err}
-	}
-	scores := map[int]int{}
-	for _, sc := range out.Scores {
-		scores[sc.ID] = min(max(sc.Score, 0), maxScore)
-	}
-	return scores, nil
-}
-
 // rankPicks keeps the best-scored keepPerList picks per domain and track,
-// dropping any the judge didn't score and boosting those on the user's
-// services; each carries the cited sources that name it.
-func rankPicks(
-	picks []verified,
-	scores map[int]int,
-	sources []models.Source,
-) []models.Recommendation {
+// boosting those on the user's services; each carries the cited sources that
+// name it.
+func rankPicks(picks []verified, sources []models.Source) []models.Recommendation {
 	recs := make([]models.Recommendation, 0, len(picks))
-	for i, p := range picks {
-		score, judged := scores[i]
-		if !judged {
-			continue
-		}
+	for _, p := range picks {
+		score := min(max(p.Score, 0), maxScore)
 		if p.match.OnMyServices {
 			score = min(score+servicesBonus, maxScore)
 		}

@@ -164,8 +164,15 @@ func picksJSON(picks ...Candidate) string {
 func pick(domain, track, title string) Candidate {
 	return Candidate{
 		Domain: domain, Track: track, Title: title, Creator: "C", Year: 2020,
-		URL: "", Why: "because " + title, Neighbour: "explorer",
+		URL: "", Why: "because " + title, Neighbour: "explorer", Score: 50,
 	}
+}
+
+// scored is pick with the model's own score.
+func scored(domain, track, title string, score int) Candidate {
+	c := pick(domain, track, title)
+	c.Score = score
+	return c
 }
 
 func match(title string, known bool) *consumption.CatalogMatch {
@@ -230,7 +237,7 @@ func recService(
 	//nolint:exhaustruct // only Get is used
 	profiles := &memStore{profile: profile}
 	s := NewRecommendService(NewLogService([]Source{src}), profiles, store, cats, llm,
-		"gen", "judge", logging.NewNopLogger())
+		"gen", logging.NewNopLogger())
 	s.now = func() time.Time { return clock }
 	return s
 }
@@ -239,8 +246,8 @@ func TestRecommend_EndToEnd(t *testing.T) {
 	llm := &scriptLLM{
 		answers: map[string]string{
 			"taste_candidates": picksJSON(
-				pick("books", "more", "B1"), pick("books", "more", "B2"),
-				pick("books", "more", "B3"), pick("books", "more", "B4"),
+				scored("books", "more", "B1", 40), scored("books", "more", "B2", 90),
+				scored("books", "more", "B3", 150), scored("books", "more", "B4", -5),
 				pick("books", "broaden", "KnownBook"),
 				pick("books", "broaden", "Dune"), // consumed
 				pick("books", "broaden", "Missing"),
@@ -249,11 +256,9 @@ func TestRecommend_EndToEnd(t *testing.T) {
 				pick("music", "more", "Song"),
 				pick("books", "sideways", "B5"),
 				pick("books", "more", "  "),
-				pick("series", "broaden", "Show"),
+				scored("series", "broaden", "Show", 70),
 				pick("feeds", "broaden", "Blog"),
 			),
-			"taste_scores": `{"scores": [{"id": 0, "score": 40}, {"id": 1, "score": 90},
-				{"id": 2, "score": 150}, {"id": 3, "score": -5}, {"id": 4, "score": 70}]}`,
 		},
 		errs: map[string]error{},
 		citations: []openrouter.Citation{
@@ -276,7 +281,7 @@ func TestRecommend_EndToEnd(t *testing.T) {
 	require.NoError(t, s.Generate(context.Background(), "u", all))
 	require.True(t, store.replaced)
 	assert.Equal(t, clock, store.at)
-	assert.Equal(t, []string{"taste_candidates", "taste_scores"}, llm.schemas())
+	assert.Equal(t, []string{"taste_candidates"}, llm.schemas(), "one call")
 
 	got := make([]string, len(store.recs))
 	for i, r := range store.recs {
@@ -306,21 +311,11 @@ func TestRecommend_EndToEnd(t *testing.T) {
 	assert.Equal(t, generatorMaxTokens, gen.MaxTokens)
 	assert.Contains(t, gen.Messages[0].Content,
 		"Cover these domains: books, games, movies, series, podcasts.")
+	assert.Contains(t, gen.Messages[0].Content, "a score from 0 to 100")
 	assert.Contains(t, gen.Messages[1].Content, "## Profile\nLoves SF\nKnows: k\n")
 	assert.Contains(t, gen.Messages[1].Content, "Bounces off: b\n")
 	assert.Contains(t, gen.Messages[1].Content, "## History\nToday is")
 	assert.NotContains(t, gen.Messages[1].Content, "Already suggested")
-
-	judge := llm.requests[1]
-	assert.Equal(t, "judge", judge.Model)
-	assert.Nil(t, judge.WebSearch)
-	assert.Equal(t, judgeMaxTokens, judge.MaxTokens)
-	assert.Contains(
-		t,
-		judge.Messages[1].Content,
-		"0 | books | more | B1 — C | because B1\n",
-	)
-	assert.Contains(t, judge.Messages[1].Content, "## Profile\nLoves SF\nLikes: l\n")
 
 	profile.Sections.Drifting = nil
 	assert.NotContains(t, generatorInput(nil, profile, nil, nil, clock), "Drifting toward",
@@ -337,7 +332,7 @@ func TestRecommend_PassesPreviousPicks(t *testing.T) {
 	assert.Contains(t, llm.requests[0].Messages[1].Content,
 		"## Already suggested\n- Old Pick (books)\n")
 	assert.NotContains(t, llm.requests[0].Messages[1].Content, "## Profile")
-	assert.Equal(t, []string{"taste_candidates"}, llm.schemas(), "no judge without picks")
+	assert.Equal(t, []string{"taste_candidates"}, llm.schemas(), "one call, none to retry")
 	assert.False(t, store.replaced, "the earlier picks stay")
 	assert.Equal(t, "None of the proposed picks checked out.", store.note)
 }
@@ -346,7 +341,6 @@ func TestRecommend_OnlyAccessibleDomains(t *testing.T) {
 	llm := script(map[string]string{
 		"taste_candidates": picksJSON(pick("books", "more", "B1"),
 			pick("movies", "more", "M")),
-		"taste_scores": `{"scores": [{"id": 0, "score": 50}]}`,
 	})
 	store := emptyStore(nil)
 	s := recService(llm, catalogs("B1", "movie:M"), store, oneBook, nil)
@@ -417,20 +411,6 @@ func TestRecommend_Failures(t *testing.T) {
 			"generator answer", script(map[string]string{"taste_candidates": "nope"}),
 			emptyStore(nil), oneBook, "The model's answer couldn't be read.",
 		},
-		{
-			"judge", failingAt(
-				map[string]string{
-					"taste_candidates": picksJSON(pick("books", "more", "B1")),
-				},
-				"taste_scores", errors.New("503"),
-			), emptyStore(nil), oneBook, "The scoring model failed.",
-		},
-		{
-			"judge answer", script(map[string]string{
-				"taste_candidates": picksJSON(pick("books", "more", "B1")),
-				"taste_scores":     "nope",
-			}), emptyStore(nil), oneBook, "The scoring model's answer couldn't be read.",
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -447,7 +427,7 @@ func TestRecommend_ProfileReadFailure(t *testing.T) {
 	//nolint:exhaustruct // only Get fails
 	profiles := &memStore{err: errors.New("db")}
 	s := NewRecommendService(NewLogService([]Source{oneBook}), profiles, store,
-		catalogs(), script(nil), "gen", "judge", logging.NewNopLogger())
+		catalogs(), script(nil), "gen", logging.NewNopLogger())
 	require.Error(t, s.Generate(context.Background(), "u", all))
 	assert.Equal(t, "Your profile couldn't be read.", store.note)
 }
@@ -490,7 +470,7 @@ func TestFindRoutesEachDomain(t *testing.T) {
 		pick("podcasts", "more", "P"),
 		{
 			Domain: "feeds", Track: "more", Title: "F", Creator: "", Year: 0,
-			URL: "https://f.example", Why: "", Neighbour: "",
+			URL: "https://f.example", Why: "", Neighbour: "", Score: 0,
 		},
 	} {
 		m, err := s.find(context.Background(), "u", c)
@@ -524,20 +504,19 @@ func TestRecommend_NoCatalogsNoCall(t *testing.T) {
 	assert.True(t, store.replaced)
 }
 
-func TestRecommend_DropsUnjudgedPicks(t *testing.T) {
+func TestRecommend_KeepsPicksWithoutAScore(t *testing.T) {
+	unscored := pick("books", "more", "B1")
+	unscored.Score = 0
 	llm := script(map[string]string{
-		"taste_candidates": picksJSON(
-			pick("books", "more", "B1"),
-			pick("books", "more", "B2"),
-		),
-		"taste_scores": `{"scores": [{"id": 1, "score": 0}, {"id": 7, "score": 99}]}`,
+		"taste_candidates": picksJSON(unscored, scored("books", "more", "B2", 70)),
 	})
 	store := emptyStore(nil)
 	require.NoError(t, recService(llm, catalogs("B1", "B2"), store, oneBook, nil).
 		Generate(context.Background(), "u", all))
-	require.Len(t, store.recs, 1)
+	require.Len(t, store.recs, 2)
 	assert.Equal(t, "B2", store.recs[0].Title)
-	assert.Zero(t, store.recs[0].Score)
+	assert.Equal(t, "B1", store.recs[1].Title)
+	assert.Zero(t, store.recs[1].Score)
 }
 
 func TestSourcesFor(t *testing.T) {
@@ -569,12 +548,11 @@ func touchedPick(
 func TestRecommend_TouchedPicksShapeTheNextRun(t *testing.T) {
 	llm := script(map[string]string{
 		"taste_candidates": picksJSON(
-			pick("books", "more", "B1"),
-			pick("books", "more", "B2"),        // same ref as a known pick
-			pick("books", "more", "Saved One"), // same title as a saved pick
-			pick("series", "more", "Old Hit"),  // a hit, but in another app
+			scored("books", "more", "B1", 50),
+			pick("books", "more", "B2"),             // same ref as a known pick
+			pick("books", "more", "Saved One"),      // same title as a saved pick
+			scored("series", "more", "Old Hit", 60), // a hit, but in another app
 		),
-		"taste_scores": `{"scores": [{"id": 0, "score": 50}, {"id": 1, "score": 60}]}`,
 	})
 	store := emptyStore(nil)
 	store.touched = []models.Recommendation{
@@ -642,11 +620,9 @@ func TestMergePicks_CapsAndDeduplicates(t *testing.T) {
 func TestRecommend_BoostsPicksOnMyServices(t *testing.T) {
 	llm := script(map[string]string{
 		"taste_candidates": picksJSON(
-			pick("movies", "more", "Near"), pick("movies", "more", "Far"),
-			pick("movies", "more", "Top"),
+			scored("movies", "more", "Near", 50), scored("movies", "more", "Far", 55),
+			scored("movies", "more", "Top", 95),
 		),
-		"taste_scores": `{"scores": [{"id": 0, "score": 50}, {"id": 1, "score": 55},
-			{"id": 2, "score": 95}]}`,
 	})
 	cats := catalogs()
 	cats.Movies = func(

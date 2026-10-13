@@ -16,11 +16,10 @@ tens of seconds, which is longer than a request may run (ADR-0017).
 - **OpenRouter as the only LLM provider**, reached through a minimal
   chat-completions client (`internal/openrouter`). It asks for strict JSON
   schema answers and logs token usage and cost on every call.
-- **One model per stage, set by config:**
-  - `TASTE_GENERATOR_MODEL` (default `anthropic/claude-sonnet-5`) writes the
-    profile and generates candidates.
-  - `TASTE_JUDGE_MODEL` (default `google/gemini-3.6-flash`), a cheaper model
-    from another family, only scores candidates.
+- **One model, `TASTE_GENERATOR_MODEL`** (default `mistralai/mistral-large-4-0`).
+  It writes the profile, proposes candidates and gives each a 0-100 score in
+  the same call. Catalog verification, not a second model, is the check on
+  its picks.
 - **The generator may search the web** for candidates through OpenRouter's
   `openrouter:web_search` server tool. Each generation caps it with
   `max_results`, `max_total_results` and `max_tool_calls`. The profile itself
@@ -39,16 +38,19 @@ tens of seconds, which is longer than a request may run (ADR-0017).
 
 ## Alternatives considered
 
-- **Direct provider APIs**: one key and client per vendor, and the
-  cross-family judge would double that.
+- **Direct provider APIs**: one key and client per vendor.
+- **A separate judge model** scoring the candidates: an independent second
+  opinion, but a second env var, call and failure path for one user.
 - **Generating inside the request**: exceeds kamal-proxy's response timeout.
 - **A monthly token budget enforced in the app**: more code than the key's
   credit limit for the same protection.
 
 ## Consequences
 
-- Profile and recommendation quality depends on the configured models. A
+- Profile and recommendation quality depends on the configured model. A
   model ID OpenRouter retires shows up as the profile's last error.
+- A model scoring its own picks may rate them generously, so scores rank
+  within a run rather than measure absolute fit.
 - A user's consumption digest (titles, ratings, tags) is sent to OpenRouter
   and the model's provider.
 

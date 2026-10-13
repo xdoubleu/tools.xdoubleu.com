@@ -513,7 +513,7 @@ export const SourceSchema: GenMessage<Source> = /*@__PURE__*/
   messageDesc(file_taste_v1_taste, 15);
 
 /**
- * A verified, judged pick.
+ * A verified, scored pick.
  *
  * @generated from message taste.v1.Recommendation
  */
@@ -581,7 +581,7 @@ export type Recommendation = Message<"taste.v1.Recommendation"> & {
   sources: Source[];
 
   /**
-   * The judge's 0-100 score, plus the services bonus.
+   * The model's 0-100 score, plus the services bonus.
    *
    * @generated from field: int32 score = 11;
    */

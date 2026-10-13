@@ -123,7 +123,7 @@ message Source {
   string title = 2;
 }
 
-// A verified, judged pick.
+// A verified, scored pick.
 message Recommendation {
   string id = 1;
   // books, feeds, games, movies, series or podcasts.
@@ -141,7 +141,7 @@ message Recommendation {
   string why = 9;
   // Pages the generator cited while proposing this run's picks.
   repeated Source sources = 10;
-  // The judge's 0-100 score, plus the services bonus.
+  // The model's 0-100 score, plus the services bonus.
   int32 score = 11;
   // hit, miss, not_interested, known (already knew it), or empty.
   string feedback = 12;

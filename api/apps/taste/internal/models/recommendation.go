@@ -40,7 +40,7 @@ type Source struct {
 	Title string `json:"title"`
 }
 
-// Recommendation is a verified, judged pick.
+// Recommendation is a verified, scored pick.
 type Recommendation struct {
 	ID          string
 	Domain      string

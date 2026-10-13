@@ -54,11 +54,10 @@ type Config struct {
 	// TMDBAPIKey is a TMDB API Read Access Token. Empty disables movies search.
 	TMDBAPIKey string
 	// OpenRouterAPIKey powers the taste app's LLM stages; empty disables them.
-	// TasteGeneratorModel writes the profile and proposes picks,
-	// TasteJudgeModel scores them (docs/adr-0032-openrouter-llm-for-taste.md).
+	// TasteGeneratorModel writes the profile and proposes and scores picks
+	// (docs/adr-0032-openrouter-llm-for-taste.md).
 	OpenRouterAPIKey    string
 	TasteGeneratorModel string
-	TasteJudgeModel     string
 
 	// BMCHost is the Belgian Mobility Company APIM host for the GTFS feeds (kept
 	// as config: the host spelling has changed). BMCPartnerKey is sent as the
@@ -217,7 +216,6 @@ func (c parser) envBool(key string, defaultValue bool) bool {
 	return value
 }
 
-//nolint:funlen // one line per setting
 func New(logger *slog.Logger) Config {
 	var cfg Config
 
@@ -251,9 +249,8 @@ func New(logger *slog.Logger) Config {
 	cfg.HardcoverAPIKey = p.envSecret("HARDCOVER_API_KEY", "")
 	cfg.TMDBAPIKey = p.envSecret("TMDB_API_KEY", "")
 	cfg.OpenRouterAPIKey = p.envSecret("OPENROUTER_API_KEY", "")
-	cfg.TasteJudgeModel = p.envStr("TASTE_JUDGE_MODEL", "google/gemini-3.6-flash")
 	cfg.TasteGeneratorModel = p.envStr(
-		"TASTE_GENERATOR_MODEL", "anthropic/claude-sonnet-5",
+		"TASTE_GENERATOR_MODEL", "mistralai/mistral-large-4-0",
 	)
 
 	cfg.BMCHost = p.envStr(

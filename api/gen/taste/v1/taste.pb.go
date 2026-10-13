@@ -1014,7 +1014,7 @@ func (x *Source) GetTitle() string {
 	return ""
 }
 
-// A verified, judged pick.
+// A verified, scored pick.
 type Recommendation struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1033,7 +1033,7 @@ type Recommendation struct {
 	Why string `protobuf:"bytes,9,opt,name=why,proto3" json:"why,omitempty"`
 	// Pages the generator cited while proposing this run's picks.
 	Sources []*Source `protobuf:"bytes,10,rep,name=sources,proto3" json:"sources,omitempty"`
-	// The judge's 0-100 score, plus the services bonus.
+	// The model's 0-100 score, plus the services bonus.
 	Score int32 `protobuf:"varint,11,opt,name=score,proto3" json:"score,omitempty"`
 	// hit, miss, not_interested, known (already knew it), or empty.
 	Feedback string `protobuf:"bytes,12,opt,name=feedback,proto3" json:"feedback,omitempty"`

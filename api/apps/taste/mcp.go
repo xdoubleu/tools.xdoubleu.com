@@ -49,7 +49,7 @@ func (a *Taste) RegisterMCPTools(srv *mcp.Server) {
 	mcptools.AddReadTool(srv, mcpAppName, "taste_list_recommendations",
 		"The user's current recommendations, best first: per domain and track "+
 			"(more of what they like, or broaden their horizon), each verified "+
-			"against a catalog with a one-line why, the judge's 0-100 score, "+
+			"against a catalog with a one-line why, the model's 0-100 score, "+
 			"the web sources the generator cited, and the user's feedback, "+
 			"saved and accepted state. saved_only lists every saved pick.",
 		h.mcpListRecommendations)
