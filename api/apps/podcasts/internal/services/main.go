@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 	"tools.xdoubleu.com/apps/podcasts/internal/models"
 	"tools.xdoubleu.com/apps/podcasts/internal/repositories"
 	"tools.xdoubleu.com/apps/podcasts/pkg/itunes"
@@ -28,34 +26,24 @@ var ErrUpstream = errors.New("iTunes is unavailable")
 const minQueryLen = 2
 
 type Services struct {
-	Auth     auth.Service
-	Shows    *ShowService
-	Episodes *EpisodeService
+	Auth  auth.Service
+	Shows *ShowService
 }
 
 func New(
 	repos *repositories.Repositories,
 	authService auth.Service,
 	c itunes.Client,
-	fetcher webfetch.Client,
-	logger *slog.Logger,
 ) *Services {
 	return &Services{
-		Auth: authService,
-		Shows: &ShowService{
-			repo: repos.Shows, episodes: repos.Episodes, itunes: c, fetcher: fetcher,
-			logger: logger,
-		},
-		Episodes: &EpisodeService{repo: repos.Episodes},
+		Auth:  authService,
+		Shows: &ShowService{repo: repos.Shows, itunes: c},
 	}
 }
 
 type ShowService struct {
-	repo     *repositories.ShowsRepository
-	episodes *repositories.EpisodesRepository
-	itunes   itunes.Client
-	fetcher  webfetch.Client
-	logger   *slog.Logger
+	repo   *repositories.ShowsRepository
+	itunes itunes.Client
 }
 
 // SearchResult is an iTunes show and whether the user already favourited it.
@@ -104,8 +92,8 @@ func (s *ShowService) List(ctx context.Context, userID string) ([]models.Show, e
 	return s.repo.List(ctx, userID)
 }
 
-// Add favourites a show. Its feed URL comes from an iTunes lookup, never
-// from the caller.
+// Add favourites a show, taking its metadata from an iTunes lookup rather
+// than from the caller.
 func (s *ShowService) Add(
 	ctx context.Context,
 	userID string,
@@ -128,23 +116,13 @@ func (s *ShowService) Add(
 		Title:      show.Title,
 		Author:     show.Author,
 		ArtworkURL: show.ArtworkURL,
-		FeedURL:    show.FeedURL,
 		AppleURL:   show.AppleURL,
 		AddedAt:    time.Time{},
-		ETag:       nil, LastModified: nil, FetchError: "",
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	// Show the first episodes at once; a failure is recorded on the show and
-	// the hourly poll retries it.
-	pollCtx, cancel := context.WithTimeout(ctx, addPollTimeout)
-	defer cancel()
-	if pollErr := s.PollShow(pollCtx, *added); pollErr != nil {
-		s.logger.WarnContext(ctx, "first podcast feed poll failed",
-			slog.String("show_id", added.ID.String()), slog.Any("error", pollErr))
-	}
 	return added, nil
 }
 

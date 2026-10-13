@@ -36,9 +36,6 @@ const (
 	// PodcastsServiceRemoveFavouriteProcedure is the procedure name of the PodcastsService's
 	// RemoveFavourite RPC.
 	PodcastsServiceRemoveFavouriteProcedure = "/podcasts.v1.PodcastsService/RemoveFavourite"
-	// PodcastsServiceListEpisodesProcedure is the procedure name of the PodcastsService's ListEpisodes
-	// RPC.
-	PodcastsServiceListEpisodesProcedure = "/podcasts.v1.PodcastsService/ListEpisodes"
 )
 
 var (
@@ -70,13 +67,6 @@ var (
 			Procedure:  PodcastsServiceRemoveFavouriteProcedure,
 		}
 	})
-	podcastsServiceListEpisodesSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_podcasts_v1_podcasts_proto.Services().ByName("PodcastsService").Methods().ByName("ListEpisodes"),
-			Procedure:  PodcastsServiceListEpisodesProcedure,
-		}
-	})
 )
 
 // PodcastsServiceClient is a client for the podcasts.v1.PodcastsService service.
@@ -85,7 +75,6 @@ type PodcastsServiceClient interface {
 	ListFavourites(context.Context, *v1.ListFavouritesRequest) (*v1.ListFavouritesResponse, error)
 	AddFavourite(context.Context, *v1.AddFavouriteRequest) (*v1.AddFavouriteResponse, error)
 	RemoveFavourite(context.Context, *v1.RemoveFavouriteRequest) (*v1.RemoveFavouriteResponse, error)
-	ListEpisodes(context.Context, *v1.ListEpisodesRequest) (*v1.ListEpisodesResponse, error)
 }
 
 // NewPodcastsServiceClient constructs a client for the podcasts.v1.PodcastsService service.
@@ -100,7 +89,6 @@ type PodcastsServiceHandler interface {
 	ListFavourites(context.Context, *v1.ListFavouritesRequest) (*v1.ListFavouritesResponse, error)
 	AddFavourite(context.Context, *v1.AddFavouriteRequest) (*v1.AddFavouriteResponse, error)
 	RemoveFavourite(context.Context, *v1.RemoveFavouriteRequest) (*v1.RemoveFavouriteResponse, error)
-	ListEpisodes(context.Context, *v1.ListEpisodesRequest) (*v1.ListEpisodesResponse, error)
 }
 
 // RegisterPodcastsServiceHandler registers svc as the podcasts.v1.PodcastsService implementation on
@@ -112,7 +100,6 @@ func RegisterPodcastsServiceHandler(server *connect.Server, svc PodcastsServiceH
 		connect.Method{Spec: podcastsServiceListFavouritesSpec(), Handler: adapter.listFavourites},
 		connect.Method{Spec: podcastsServiceAddFavouriteSpec(), Handler: adapter.addFavourite},
 		connect.Method{Spec: podcastsServiceRemoveFavouriteSpec(), Handler: adapter.removeFavourite},
-		connect.Method{Spec: podcastsServiceListEpisodesSpec(), Handler: adapter.listEpisodes},
 	)
 }
 
@@ -133,10 +120,6 @@ func (UnimplementedPodcastsServiceHandler) AddFavourite(context.Context, *v1.Add
 
 func (UnimplementedPodcastsServiceHandler) RemoveFavourite(context.Context, *v1.RemoveFavouriteRequest) (*v1.RemoveFavouriteResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "podcasts.v1.PodcastsService.RemoveFavourite is not implemented")
-}
-
-func (UnimplementedPodcastsServiceHandler) ListEpisodes(context.Context, *v1.ListEpisodesRequest) (*v1.ListEpisodesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "podcasts.v1.PodcastsService.ListEpisodes is not implemented")
 }
 
 type podcastsServiceClient struct {
@@ -170,14 +153,6 @@ func (c *podcastsServiceClient) AddFavourite(ctx context.Context, req *v1.AddFav
 func (c *podcastsServiceClient) RemoveFavourite(ctx context.Context, req *v1.RemoveFavouriteRequest) (*v1.RemoveFavouriteResponse, error) {
 	var res v1.RemoveFavouriteResponse
 	if err := c.client.CallUnary(ctx, podcastsServiceRemoveFavouriteSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *podcastsServiceClient) ListEpisodes(ctx context.Context, req *v1.ListEpisodesRequest) (*v1.ListEpisodesResponse, error) {
-	var res v1.ListEpisodesResponse
-	if err := c.client.CallUnary(ctx, podcastsServiceListEpisodesSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -227,18 +202,6 @@ func (h podcastsServiceHandler) removeFavourite(ctx context.Context, _ connect.S
 		return err
 	}
 	res, err := h.svc.RemoveFavourite(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h podcastsServiceHandler) listEpisodes(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.ListEpisodesRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.ListEpisodes(ctx, &req)
 	if err != nil {
 		return err
 	}

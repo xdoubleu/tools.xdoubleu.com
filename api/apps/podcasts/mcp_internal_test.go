@@ -35,7 +35,7 @@ func TestMCPTools(t *testing.T) {
 
 	a := NewInner(
 		sharedmocks.NewMockedAuthService(uid), logging.NewNopLogger(), cfg, pg,
-		nil, nil,
+		nil,
 	)
 	ctx := context.Background()
 	require.NoError(t, a.ApplyMigrations(ctx, pg))
@@ -50,14 +50,10 @@ func TestMCPTools(t *testing.T) {
 	}
 	clean()
 	t.Cleanup(clean)
-	var showID string
-	require.NoError(t, pg.QueryRow(ctx, `
-		INSERT INTO podcasts.shows (user_id, itunes_id, title, feed_url)
-		VALUES ($1, 42, 'Mcp Show', 'https://feeds.example/42') RETURNING id`, uid,
-	).Scan(&showID))
 	_, err := pg.Exec(ctx, `
-		INSERT INTO podcasts.episodes (show_id, guid, title, published_at)
-		VALUES ($1, 'a', 'Older', '2026-01-01'), ($1, 'b', 'Newer', '2026-02-01')`, showID)
+		INSERT INTO podcasts.shows (user_id, itunes_id, title)
+		VALUES ($1, 42, 'Mcp Show')`, uid,
+	)
 	require.NoError(t, err)
 
 	msg, err := h.mcpListFavourites(userCtx(uid), mcptools.NoArgs{})
@@ -67,42 +63,10 @@ func TestMCPTools(t *testing.T) {
 	require.Len(t, favs.Favourites, 1)
 	assert.Equal(t, "Mcp Show", favs.Favourites[0].Title)
 
-	msg, err = h.mcpListEpisodes(userCtx(uid), mcpListEpisodesArgs{
-		ShowID: showID, Limit: 1, Offset: 0,
-	})
-	require.NoError(t, err)
-	eps, ok := msg.(*podcastsv1.ListEpisodesResponse)
-	require.True(t, ok)
-	require.Len(t, eps.Episodes, 1)
-	assert.Equal(t, "Newer", eps.Episodes[0].Title)
-	assert.True(t, eps.HasMore)
-
-	msg, err = h.mcpListEpisodes(userCtx(uid), mcpListEpisodesArgs{
-		ShowID: "", Limit: 1, Offset: 1,
-	})
-	require.NoError(t, err)
-	eps, ok = msg.(*podcastsv1.ListEpisodesResponse)
-	require.True(t, ok)
-	require.Len(t, eps.Episodes, 1)
-	assert.Equal(t, "Older", eps.Episodes[0].Title)
-	assert.False(t, eps.HasMore)
-
 	// Another user sees none of it.
 	msg, err = h.mcpListFavourites(userCtx(other), mcptools.NoArgs{})
 	require.NoError(t, err)
 	favs, ok = msg.(*podcastsv1.ListFavouritesResponse)
 	require.True(t, ok)
 	assert.Empty(t, favs.Favourites)
-	msg, err = h.mcpListEpisodes(userCtx(other), mcpListEpisodesArgs{
-		ShowID: showID, Limit: 0, Offset: 0,
-	})
-	require.NoError(t, err)
-	eps, ok = msg.(*podcastsv1.ListEpisodesResponse)
-	require.True(t, ok)
-	assert.Empty(t, eps.Episodes)
-
-	_, err = h.mcpListEpisodes(userCtx(uid), mcpListEpisodesArgs{
-		ShowID: "nope", Limit: 0, Offset: 0,
-	})
-	require.ErrorContains(t, err, "invalid show id")
 }

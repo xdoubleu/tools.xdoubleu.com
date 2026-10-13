@@ -11,7 +11,7 @@ import (
 func TestFindShow(t *testing.T) {
 	const uid = "podcasts-find-test-user"
 	c := newClient(t, uid, fakeITunes{})
-	a := newApp(uid, fakeITunes{}, nil)
+	a := newApp(uid, fakeITunes{})
 	ctx := context.Background()
 
 	m, err := a.FindShow(ctx, uid, "Hardcore History")
@@ -33,6 +33,6 @@ func TestFindShow(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, m, "a partial title is no match")
 
-	_, err = newApp(uid, downITunes{}, nil).FindShow(ctx, uid, "Hardcore History")
+	_, err = newApp(uid, downITunes{}).FindShow(ctx, uid, "Hardcore History")
 	assert.Error(t, err)
 }

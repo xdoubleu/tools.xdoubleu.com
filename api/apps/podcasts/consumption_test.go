@@ -15,11 +15,7 @@ func TestListConsumption(t *testing.T) {
 	c := newClient(t, uid, fakeITunes{})
 	f := add(t, c, 1)
 
-	events, err := newApp(
-		uid,
-		fakeITunes{},
-		nil,
-	).ListConsumption(context.Background(), uid)
+	events, err := newApp(uid, fakeITunes{}).ListConsumption(context.Background(), uid)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	e := events[0]
@@ -34,6 +30,6 @@ func TestListConsumption(t *testing.T) {
 func TestListConsumption_Error(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err := newApp(userID, fakeITunes{}, nil).ListConsumption(ctx, userID)
+	_, err := newApp(userID, fakeITunes{}).ListConsumption(ctx, userID)
 	assert.Error(t, err)
 }

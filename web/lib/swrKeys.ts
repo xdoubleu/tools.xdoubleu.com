@@ -101,7 +101,6 @@ export const swrKeys = {
   moviesStats: '/movies/stats',
 
   podcastsFavourites: '/podcasts/favourites',
-  podcastsEpisodes: '/podcasts/episodes',
   podcastsSearch: (query: string) => ['/podcasts/search', query] as const,
 
   tasteStats: '/taste/stats',

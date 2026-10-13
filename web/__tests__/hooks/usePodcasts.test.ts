@@ -3,7 +3,6 @@ import { renderHook } from '@testing-library/react'
 const sampleKeys = [
   '/podcasts/favourites',
   ['/podcasts/search', 'x'],
-  '/podcasts/episodes',
   '/movies/settings',
   undefined
 ]
@@ -19,7 +18,6 @@ jest.mock('swr', () => ({
 const mockClient = {
   listFavourites: jest.fn().mockResolvedValue({ favourites: [] }),
   searchShows: jest.fn().mockResolvedValue({ results: [] }),
-  listEpisodes: jest.fn().mockResolvedValue({ episodes: [{ id: 'e-1' }], hasMore: true }),
   addFavourite: jest.fn().mockResolvedValue({}),
   removeFavourite: jest.fn().mockResolvedValue({})
 }
@@ -29,13 +27,7 @@ jest.mock('@/lib/client', () => ({
 jest.mock('@/lib/gen/podcasts/v1/podcasts_pb', () => ({ PodcastsService: {} }))
 
 import useSWR from 'swr'
-import {
-  useFetchPodcastEpisodesPage,
-  usePodcastActions,
-  usePodcastEpisodes,
-  usePodcastFavourites,
-  usePodcastSearch
-} from '@/hooks/usePodcasts'
+import { usePodcastActions, usePodcastFavourites, usePodcastSearch } from '@/hooks/usePodcasts'
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -61,22 +53,6 @@ describe('usePodcastFavourites', () => {
   })
 })
 
-describe('usePodcastEpisodes', () => {
-  it('fetches the first page', () => {
-    renderHook(() => usePodcastEpisodes())
-    expect(mockUseSWR).toHaveBeenCalledWith('/podcasts/episodes', expect.any(Function))
-    expect(mockClient.listEpisodes).toHaveBeenCalledWith({ limit: 50 })
-  })
-})
-
-describe('useFetchPodcastEpisodesPage', () => {
-  it('fetches a page from an offset', async () => {
-    const { result } = renderHook(() => useFetchPodcastEpisodesPage())
-    await expect(result.current(50)).resolves.toEqual({ items: [{ id: 'e-1' }], hasMore: true })
-    expect(mockClient.listEpisodes).toHaveBeenCalledWith({ limit: 50, offset: 50 })
-  })
-})
-
 describe('usePodcastSearch', () => {
   it('searches from two characters', () => {
     renderHook(() => usePodcastSearch(' hi '))
@@ -98,17 +74,13 @@ describe('usePodcastActions', () => {
     const { result } = renderHook(() => usePodcastActions())
     await result.current.add(7n)
     expect(mockClient.addFavourite).toHaveBeenCalledWith({ itunesId: 7n })
-    expect(revalidated).toEqual([
-      '/podcasts/favourites',
-      ['/podcasts/search', 'x'],
-      '/podcasts/episodes'
-    ])
+    expect(revalidated).toEqual(['/podcasts/favourites', ['/podcasts/search', 'x']])
   })
 
   it('removes and revalidates', async () => {
     const { result } = renderHook(() => usePodcastActions())
     await result.current.remove('f-1')
     expect(mockClient.removeFavourite).toHaveBeenCalledWith({ id: 'f-1' })
-    expect(revalidated).toHaveLength(3)
+    expect(revalidated).toHaveLength(2)
   })
 })

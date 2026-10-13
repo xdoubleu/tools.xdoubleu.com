@@ -61,7 +61,7 @@ var appsToolNames = []string{
 	"movies_search_titles", "movies_list_backlog", "movies_get_title",
 	"movies_get_stats", "movies_get_settings",
 	// podcasts (2)
-	"podcasts_list_favourites", "podcasts_list_episodes",
+	"podcasts_list_favourites",
 	// taste (4)
 	"taste_get_stats", "taste_list_events", "taste_get_profile",
 	"taste_list_recommendations",

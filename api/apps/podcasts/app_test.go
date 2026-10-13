@@ -7,14 +7,12 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
-	"sync"
 	"testing"
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 
-	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 	"tools.xdoubleu.com/apps/podcasts"
 	"tools.xdoubleu.com/apps/podcasts/pkg/itunes"
 	"tools.xdoubleu.com/gen/podcasts/v1/podcastsv1connect"
@@ -45,11 +43,11 @@ var catalog = []itunes.Show{
 	},
 	{
 		ID: 2, Title: "History of Rome", Author: "Mike Duncan",
-		ArtworkURL: "", FeedURL: "https://feeds.example/2", AppleURL: "",
+		ArtworkURL: "", FeedURL: "https://feeds.example/x", AppleURL: "",
 	},
 	{
 		ID: 3, Title: "Something else", Author: "",
-		ArtworkURL: "", FeedURL: "https://feeds.example/3", AppleURL: "",
+		ArtworkURL: "", FeedURL: "https://feeds.example/x", AppleURL: "",
 	},
 }
 
@@ -86,57 +84,6 @@ func (downITunes) Lookup(context.Context, int64) (*itunes.Show, error) {
 	return nil, errors.New("itunes down")
 }
 
-// fakeFeeds serves feed bodies by URL, honouring conditional GETs; unknown
-// URLs answer 404.
-type fakeFeeds struct {
-	mu    sync.Mutex
-	feeds map[string]*webfetch.Result
-	errs  map[string]error
-	calls []webfetch.Options
-}
-
-func newFakeFeeds() *fakeFeeds {
-	//nolint:exhaustruct // the mutex starts zeroed
-	return &fakeFeeds{
-		feeds: map[string]*webfetch.Result{},
-		errs:  map[string]error{},
-		calls: nil,
-	}
-}
-
-func (f *fakeFeeds) set(url string, body []byte, etag string) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.feeds[url] = &webfetch.Result{
-		Body: body, ContentType: "application/rss+xml", FinalURL: url,
-		ETag: etag, LastModified: "", NotModified: false,
-	}
-}
-
-func (f *fakeFeeds) Get(
-	_ context.Context,
-	rawURL string,
-	opts webfetch.Options,
-) (*webfetch.Result, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.calls = append(f.calls, opts)
-	if err := f.errs[rawURL]; err != nil {
-		return nil, err
-	}
-	res, ok := f.feeds[rawURL]
-	if !ok {
-		return nil, &webfetch.StatusError{Code: http.StatusNotFound}
-	}
-	if opts.ETag != "" && opts.ETag == res.ETag {
-		return &webfetch.Result{
-			Body: nil, ContentType: "", FinalURL: rawURL,
-			ETag: res.ETag, LastModified: "", NotModified: true,
-		}, nil
-	}
-	return res, nil
-}
-
 func TestMain(m *testing.M) {
 	testCfg = testhelper.NewTestConfig()
 	pool := testhelper.ConnectTestDB(testCfg.DBDsn)
@@ -146,7 +93,7 @@ func TestMain(m *testing.M) {
 	if _, err := testDB.Exec(ctx, "DROP SCHEMA IF EXISTS podcasts CASCADE"); err != nil {
 		panic(err)
 	}
-	if err := newApp(userID, fakeITunes{}, nil).ApplyMigrations(ctx, pool); err != nil {
+	if err := newApp(userID, fakeITunes{}).ApplyMigrations(ctx, pool); err != nil {
 		panic(err)
 	}
 
@@ -156,7 +103,6 @@ func TestMain(m *testing.M) {
 func newApp(
 	uid string,
 	client itunes.Client,
-	fetch webfetch.Client,
 ) *podcasts.Podcasts {
 	return podcasts.NewInner(
 		sharedmocks.NewMockedAuthService(uid),
@@ -164,7 +110,6 @@ func newApp(
 		testCfg,
 		testDB,
 		client,
-		fetch,
 	)
 }
 
@@ -176,34 +121,12 @@ func newClient(
 	client itunes.Client,
 ) podcastsv1connect.PodcastsServiceClient {
 	t.Helper()
-	return newClientWithFeeds(t, uid, client, newFakeFeeds())
-}
-
-// newClientWithFeeds is newClient with the given feed fetcher.
-func newClientWithFeeds(
-	t *testing.T,
-	uid string,
-	client itunes.Client,
-	fetch webfetch.Client,
-) podcastsv1connect.PodcastsServiceClient {
-	t.Helper()
 	_, err := testDB.Exec(context.Background(),
 		"DELETE FROM podcasts.shows WHERE user_id = $1", uid)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return newKeepingClient(t, uid, client, fetch)
-}
-
-// newKeepingClient serves an app acting as uid without clearing favourites.
-func newKeepingClient(
-	t *testing.T,
-	uid string,
-	client itunes.Client,
-	fetch webfetch.Client,
-) podcastsv1connect.PodcastsServiceClient {
-	t.Helper()
-	ts := httptest.NewServer(testhelper.BuildMux(newApp(uid, client, fetch)))
+	ts := httptest.NewServer(testhelper.BuildMux(newApp(uid, client)))
 	t.Cleanup(ts.Close)
 	return podcastsv1connect.NewPodcastsServiceClient(
 		connect.NewClient(
@@ -217,7 +140,7 @@ func newKeepingClient(
 }
 
 func TestAppMetadata(t *testing.T) {
-	a := newApp(userID, nil, nil)
+	a := newApp(userID, nil)
 	assert.Equal(t, "podcasts", a.GetName())
 	assert.Equal(t, "Podcasts", a.GetDisplayName())
 	assert.NoError(t, a.Start())
@@ -228,10 +151,4 @@ func TestNew(t *testing.T) {
 		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), testCfg, testDB,
 	)
 	assert.NotNil(t, a)
-}
-
-func TestAllowPrivateFeeds_OnlyOutsideProduction(t *testing.T) {
-	assert.False(t, podcasts.AllowPrivateFeeds(config.ProdEnv))
-	assert.True(t, podcasts.AllowPrivateFeeds(config.DevEnv))
-	assert.True(t, podcasts.AllowPrivateFeeds(""))
 }
