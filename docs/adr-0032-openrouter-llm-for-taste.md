@@ -16,7 +16,7 @@ tens of seconds, which is longer than a request may run (ADR-0017).
 - **OpenRouter as the only LLM provider**, reached through a minimal
   chat-completions client (`internal/openrouter`). It asks for strict JSON
   schema answers and logs token usage and cost on every call.
-- **One model, `TASTE_GENERATOR_MODEL`** (default `mistralai/mistral-large-4-0`).
+- **One model, `TASTE_GENERATOR_MODEL`** (default `mistralai/mistral-medium-3-5`).
   It writes the profile, proposes candidates and gives each a 0-100 score in
   the same call. Catalog verification, not a second model, is the check on
   its picks.

@@ -250,7 +250,7 @@ func New(logger *slog.Logger) Config {
 	cfg.TMDBAPIKey = p.envSecret("TMDB_API_KEY", "")
 	cfg.OpenRouterAPIKey = p.envSecret("OPENROUTER_API_KEY", "")
 	cfg.TasteGeneratorModel = p.envStr(
-		"TASTE_GENERATOR_MODEL", "mistralai/mistral-large-4-0",
+		"TASTE_GENERATOR_MODEL", "mistralai/mistral-medium-3-5",
 	)
 
 	cfg.BMCHost = p.envStr(
