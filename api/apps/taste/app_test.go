@@ -49,7 +49,7 @@ func TestMain(m *testing.M) {
 	}
 	a := taste.New(
 		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), testCfg, testDB,
-		noCatalogs(),
+		nil, noCatalogs(),
 	)
 	if err := a.ApplyMigrations(ctx, pool); err != nil {
 		panic(err)
@@ -149,7 +149,7 @@ func newClientAs(
 ) tastev1connect.TasteServiceClient {
 	t.Helper()
 	a := taste.NewInner(
-		authService, logging.NewNopLogger(), testCfg, testDB, newLLM(""), noCatalogs(),
+		authService, logging.NewNopLogger(), testCfg, testDB, newLLM(""), nil, noCatalogs(),
 		sources...,
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(a))
@@ -183,7 +183,7 @@ var (
 func TestAppMetadata(t *testing.T) {
 	a := taste.New(
 		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), testCfg, testDB,
-		noCatalogs(),
+		nil, noCatalogs(),
 	)
 	assert.Equal(t, "taste", a.GetName())
 	assert.Equal(t, "Taste", a.GetDisplayName())
@@ -329,6 +329,7 @@ func TestNew_WarnsOnlyWithoutKey(t *testing.T) {
 		logger,
 		testCfg,
 		testDB,
+		nil,
 		noCatalogs(),
 	)
 	assert.Contains(t, logs.String(), "OPENROUTER_API_KEY not set")
@@ -341,6 +342,7 @@ func TestNew_WarnsOnlyWithoutKey(t *testing.T) {
 		logger,
 		cfg,
 		testDB,
+		nil,
 		noCatalogs(),
 	)
 	assert.Empty(t, logs.String())

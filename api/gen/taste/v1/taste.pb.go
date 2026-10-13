@@ -1270,7 +1270,9 @@ type ListRecommendationsResponse struct {
 	// RFC3339 of the last successful run; empty before the first.
 	GeneratedAt string `protobuf:"bytes,2,opt,name=generated_at,json=generatedAt,proto3" json:"generated_at,omitempty"`
 	// Why the last run failed; empty when it succeeded.
-	LastError     string `protobuf:"bytes,3,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	LastError string `protobuf:"bytes,3,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	// Whether a run that writes new picks emails the caller; on by default.
+	EmailNewPicks bool `protobuf:"varint,4,opt,name=email_new_picks,json=emailNewPicks,proto3" json:"email_new_picks,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1324,6 +1326,13 @@ func (x *ListRecommendationsResponse) GetLastError() string {
 		return x.LastError
 	}
 	return ""
+}
+
+func (x *ListRecommendationsResponse) GetEmailNewPicks() bool {
+	if x != nil {
+		return x.EmailNewPicks
+	}
+	return false
 }
 
 // Feedback on a pick; empty clears it.
@@ -1519,6 +1528,87 @@ func (x *SetSavedResponse) GetRecommendation() *Recommendation {
 	return nil
 }
 
+// Turns the email for new picks on or off for the caller.
+type SetEmailNewPicksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Enabled       bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetEmailNewPicksRequest) Reset() {
+	*x = SetEmailNewPicksRequest{}
+	mi := &file_taste_v1_taste_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetEmailNewPicksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetEmailNewPicksRequest) ProtoMessage() {}
+
+func (x *SetEmailNewPicksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetEmailNewPicksRequest.ProtoReflect.Descriptor instead.
+func (*SetEmailNewPicksRequest) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *SetEmailNewPicksRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+type SetEmailNewPicksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetEmailNewPicksResponse) Reset() {
+	*x = SetEmailNewPicksResponse{}
+	mi := &file_taste_v1_taste_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetEmailNewPicksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetEmailNewPicksResponse) ProtoMessage() {}
+
+func (x *SetEmailNewPicksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetEmailNewPicksResponse.ProtoReflect.Descriptor instead.
+func (*SetEmailNewPicksResponse) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{24}
+}
+
 // Adds a book to the to-read shelf or a movie or series to the backlog as
 // want; any other pick is saved instead.
 type AcceptRecommendationRequest struct {
@@ -1530,7 +1620,7 @@ type AcceptRecommendationRequest struct {
 
 func (x *AcceptRecommendationRequest) Reset() {
 	*x = AcceptRecommendationRequest{}
-	mi := &file_taste_v1_taste_proto_msgTypes[23]
+	mi := &file_taste_v1_taste_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1542,7 +1632,7 @@ func (x *AcceptRecommendationRequest) String() string {
 func (*AcceptRecommendationRequest) ProtoMessage() {}
 
 func (x *AcceptRecommendationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_taste_v1_taste_proto_msgTypes[23]
+	mi := &file_taste_v1_taste_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1555,7 +1645,7 @@ func (x *AcceptRecommendationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptRecommendationRequest.ProtoReflect.Descriptor instead.
 func (*AcceptRecommendationRequest) Descriptor() ([]byte, []int) {
-	return file_taste_v1_taste_proto_rawDescGZIP(), []int{23}
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *AcceptRecommendationRequest) GetId() string {
@@ -1574,7 +1664,7 @@ type AcceptRecommendationResponse struct {
 
 func (x *AcceptRecommendationResponse) Reset() {
 	*x = AcceptRecommendationResponse{}
-	mi := &file_taste_v1_taste_proto_msgTypes[24]
+	mi := &file_taste_v1_taste_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1586,7 +1676,7 @@ func (x *AcceptRecommendationResponse) String() string {
 func (*AcceptRecommendationResponse) ProtoMessage() {}
 
 func (x *AcceptRecommendationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_taste_v1_taste_proto_msgTypes[24]
+	mi := &file_taste_v1_taste_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1599,7 +1689,7 @@ func (x *AcceptRecommendationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptRecommendationResponse.ProtoReflect.Descriptor instead.
 func (*AcceptRecommendationResponse) Descriptor() ([]byte, []int) {
-	return file_taste_v1_taste_proto_rawDescGZIP(), []int{24}
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *AcceptRecommendationResponse) GetRecommendation() *Recommendation {
@@ -1706,12 +1796,13 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x14\n" +
 	"\x05track\x18\x02 \x01(\tR\x05track\x12\x1d\n" +
 	"\n" +
-	"saved_only\x18\x03 \x01(\bR\tsavedOnly\"\xa3\x01\n" +
+	"saved_only\x18\x03 \x01(\bR\tsavedOnly\"\xcb\x01\n" +
 	"\x1bListRecommendationsResponse\x12B\n" +
 	"\x0frecommendations\x18\x01 \x03(\v2\x18.taste.v1.RecommendationR\x0frecommendations\x12!\n" +
 	"\fgenerated_at\x18\x02 \x01(\tR\vgeneratedAt\x12\x1d\n" +
 	"\n" +
-	"last_error\x18\x03 \x01(\tR\tlastError\"@\n" +
+	"last_error\x18\x03 \x01(\tR\tlastError\x12&\n" +
+	"\x0femail_new_picks\x18\x04 \x01(\bR\remailNewPicks\"@\n" +
 	"\x12SetFeedbackRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bfeedback\x18\x02 \x01(\tR\bfeedback\"W\n" +
@@ -1721,11 +1812,14 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05saved\x18\x02 \x01(\bR\x05saved\"T\n" +
 	"\x10SetSavedResponse\x12@\n" +
-	"\x0erecommendation\x18\x01 \x01(\v2\x18.taste.v1.RecommendationR\x0erecommendation\"-\n" +
+	"\x0erecommendation\x18\x01 \x01(\v2\x18.taste.v1.RecommendationR\x0erecommendation\"3\n" +
+	"\x17SetEmailNewPicksRequest\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\"\x1a\n" +
+	"\x18SetEmailNewPicksResponse\"-\n" +
 	"\x1bAcceptRecommendationRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"`\n" +
 	"\x1cAcceptRecommendationResponse\x12@\n" +
-	"\x0erecommendation\x18\x01 \x01(\v2\x18.taste.v1.RecommendationR\x0erecommendation2\x92\x05\n" +
+	"\x0erecommendation\x18\x01 \x01(\v2\x18.taste.v1.RecommendationR\x0erecommendation2\xed\x05\n" +
 	"\fTasteService\x12A\n" +
 	"\bGetStats\x12\x19.taste.v1.GetStatsRequest\x1a\x1a.taste.v1.GetStatsResponse\x12G\n" +
 	"\n" +
@@ -1736,7 +1830,8 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"\x13ListRecommendations\x12$.taste.v1.ListRecommendationsRequest\x1a%.taste.v1.ListRecommendationsResponse\x12J\n" +
 	"\vSetFeedback\x12\x1c.taste.v1.SetFeedbackRequest\x1a\x1d.taste.v1.SetFeedbackResponse\x12A\n" +
 	"\bSetSaved\x12\x19.taste.v1.SetSavedRequest\x1a\x1a.taste.v1.SetSavedResponse\x12e\n" +
-	"\x14AcceptRecommendation\x12%.taste.v1.AcceptRecommendationRequest\x1a&.taste.v1.AcceptRecommendationResponseB)Z'tools.xdoubleu.com/gen/taste/v1;tastev1b\x06proto3"
+	"\x14AcceptRecommendation\x12%.taste.v1.AcceptRecommendationRequest\x1a&.taste.v1.AcceptRecommendationResponse\x12Y\n" +
+	"\x10SetEmailNewPicks\x12!.taste.v1.SetEmailNewPicksRequest\x1a\".taste.v1.SetEmailNewPicksResponseB)Z'tools.xdoubleu.com/gen/taste/v1;tastev1b\x06proto3"
 
 var (
 	file_taste_v1_taste_proto_rawDescOnce sync.Once
@@ -1750,7 +1845,7 @@ func file_taste_v1_taste_proto_rawDescGZIP() []byte {
 	return file_taste_v1_taste_proto_rawDescData
 }
 
-var file_taste_v1_taste_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_taste_v1_taste_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_taste_v1_taste_proto_goTypes = []any{
 	(*Event)(nil),                        // 0: taste.v1.Event
 	(*DomainStats)(nil),                  // 1: taste.v1.DomainStats
@@ -1775,8 +1870,10 @@ var file_taste_v1_taste_proto_goTypes = []any{
 	(*SetFeedbackResponse)(nil),          // 20: taste.v1.SetFeedbackResponse
 	(*SetSavedRequest)(nil),              // 21: taste.v1.SetSavedRequest
 	(*SetSavedResponse)(nil),             // 22: taste.v1.SetSavedResponse
-	(*AcceptRecommendationRequest)(nil),  // 23: taste.v1.AcceptRecommendationRequest
-	(*AcceptRecommendationResponse)(nil), // 24: taste.v1.AcceptRecommendationResponse
+	(*SetEmailNewPicksRequest)(nil),      // 23: taste.v1.SetEmailNewPicksRequest
+	(*SetEmailNewPicksResponse)(nil),     // 24: taste.v1.SetEmailNewPicksResponse
+	(*AcceptRecommendationRequest)(nil),  // 25: taste.v1.AcceptRecommendationRequest
+	(*AcceptRecommendationResponse)(nil), // 26: taste.v1.AcceptRecommendationResponse
 }
 var file_taste_v1_taste_proto_depIdxs = []int32{
 	2,  // 0: taste.v1.MonthCounts.counts:type_name -> taste.v1.DomainCount
@@ -1799,17 +1896,19 @@ var file_taste_v1_taste_proto_depIdxs = []int32{
 	17, // 17: taste.v1.TasteService.ListRecommendations:input_type -> taste.v1.ListRecommendationsRequest
 	19, // 18: taste.v1.TasteService.SetFeedback:input_type -> taste.v1.SetFeedbackRequest
 	21, // 19: taste.v1.TasteService.SetSaved:input_type -> taste.v1.SetSavedRequest
-	23, // 20: taste.v1.TasteService.AcceptRecommendation:input_type -> taste.v1.AcceptRecommendationRequest
-	6,  // 21: taste.v1.TasteService.GetStats:output_type -> taste.v1.GetStatsResponse
-	9,  // 22: taste.v1.TasteService.ListEvents:output_type -> taste.v1.ListEventsResponse
-	12, // 23: taste.v1.TasteService.GetProfile:output_type -> taste.v1.GetProfileResponse
-	14, // 24: taste.v1.TasteService.RefreshProfile:output_type -> taste.v1.RefreshProfileResponse
-	18, // 25: taste.v1.TasteService.ListRecommendations:output_type -> taste.v1.ListRecommendationsResponse
-	20, // 26: taste.v1.TasteService.SetFeedback:output_type -> taste.v1.SetFeedbackResponse
-	22, // 27: taste.v1.TasteService.SetSaved:output_type -> taste.v1.SetSavedResponse
-	24, // 28: taste.v1.TasteService.AcceptRecommendation:output_type -> taste.v1.AcceptRecommendationResponse
-	21, // [21:29] is the sub-list for method output_type
-	13, // [13:21] is the sub-list for method input_type
+	25, // 20: taste.v1.TasteService.AcceptRecommendation:input_type -> taste.v1.AcceptRecommendationRequest
+	23, // 21: taste.v1.TasteService.SetEmailNewPicks:input_type -> taste.v1.SetEmailNewPicksRequest
+	6,  // 22: taste.v1.TasteService.GetStats:output_type -> taste.v1.GetStatsResponse
+	9,  // 23: taste.v1.TasteService.ListEvents:output_type -> taste.v1.ListEventsResponse
+	12, // 24: taste.v1.TasteService.GetProfile:output_type -> taste.v1.GetProfileResponse
+	14, // 25: taste.v1.TasteService.RefreshProfile:output_type -> taste.v1.RefreshProfileResponse
+	18, // 26: taste.v1.TasteService.ListRecommendations:output_type -> taste.v1.ListRecommendationsResponse
+	20, // 27: taste.v1.TasteService.SetFeedback:output_type -> taste.v1.SetFeedbackResponse
+	22, // 28: taste.v1.TasteService.SetSaved:output_type -> taste.v1.SetSavedResponse
+	26, // 29: taste.v1.TasteService.AcceptRecommendation:output_type -> taste.v1.AcceptRecommendationResponse
+	24, // 30: taste.v1.TasteService.SetEmailNewPicks:output_type -> taste.v1.SetEmailNewPicksResponse
+	22, // [22:31] is the sub-list for method output_type
+	13, // [13:22] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
 	13, // [13:13] is the sub-list for extension extendee
 	0,  // [0:13] is the sub-list for field type_name
@@ -1826,7 +1925,7 @@ func file_taste_v1_taste_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_taste_v1_taste_proto_rawDesc), len(file_taste_v1_taste_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   25,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -172,6 +172,8 @@ message ListRecommendationsResponse {
   string generated_at = 2;
   // Why the last run failed; empty when it succeeded.
   string last_error = 3;
+  // Whether a run that writes new picks emails the caller; on by default.
+  bool email_new_picks = 4;
 }
 
 // Feedback on a pick; empty clears it.
@@ -190,6 +192,12 @@ message SetSavedRequest {
 message SetSavedResponse {
   Recommendation recommendation = 1;
 }
+
+// Turns the email for new picks on or off for the caller.
+message SetEmailNewPicksRequest {
+  bool enabled = 1;
+}
+message SetEmailNewPicksResponse {}
 
 // Adds a book to the to-read shelf or a movie or series to the backlog as
 // want; any other pick is saved instead.
@@ -212,4 +220,5 @@ service TasteService {
   rpc SetSaved(SetSavedRequest) returns (SetSavedResponse);
   rpc AcceptRecommendation(AcceptRecommendationRequest)
     returns (AcceptRecommendationResponse);
+  rpc SetEmailNewPicks(SetEmailNewPicksRequest) returns (SetEmailNewPicksResponse);
 }

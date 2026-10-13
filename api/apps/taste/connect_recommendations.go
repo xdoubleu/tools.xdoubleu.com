@@ -44,11 +44,30 @@ func (h *tasteConnectHandler) ListRecommendations(
 			out = append(out, protoRecommendation(r))
 		}
 	}
+	emailNewPicks, err := h.app.notify.EmailNewPicks(ctx, uid)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
 	return &tastev1.ListRecommendationsResponse{
 		Recommendations: out,
 		GeneratedAt:     formatTimePtr(at),
 		LastError:       note,
+		EmailNewPicks:   emailNewPicks,
 	}, nil
+}
+
+func (h *tasteConnectHandler) SetEmailNewPicks(
+	ctx context.Context,
+	req *tastev1.SetEmailNewPicksRequest,
+) (*tastev1.SetEmailNewPicksResponse, error) {
+	uid, err := userID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err = h.app.notify.SetEmailNewPicks(ctx, uid, req.Enabled); err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return &tastev1.SetEmailNewPicksResponse{}, nil
 }
 
 func (h *tasteConnectHandler) SetFeedback(

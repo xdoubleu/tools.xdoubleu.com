@@ -96,7 +96,7 @@ func NewApps(
 	// taste reads every media app through its exported ListConsumption, so it
 	// follows them.
 	apps.addApp(taste.New(
-		authService, logger, cfg, db,
+		authService, logger, cfg, db, notifications,
 		taste.Catalogs{
 			Books:    booksApp.FindBook,
 			Movies:   moviesApp.FindTitle,

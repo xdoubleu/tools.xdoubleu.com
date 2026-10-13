@@ -34,7 +34,7 @@ func TestMCPTools(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
 	a := New(
 		sharedmocks.NewMockedAuthService(uid), logging.NewNopLogger(), cfg,
-		testhelper.ConnectTestDB(cfg.DBDsn),
+		testhelper.ConnectTestDB(cfg.DBDsn), nil,
 		Catalogs{
 			Books: nil, Movies: nil, Games: nil, Podcasts: nil, Feeds: nil,
 			WantBook: nil, WantTitle: nil,

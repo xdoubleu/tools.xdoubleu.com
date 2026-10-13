@@ -19,6 +19,7 @@ import (
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/jobqueue"
+	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/observability"
 	"tools.xdoubleu.com/internal/openrouter"
 )
@@ -28,6 +29,9 @@ var embedMigrations embed.FS
 
 // Source is an app exporting its consumed items.
 type Source = services.Source
+
+// EmailSender queues the new-picks email.
+type EmailSender = services.EmailSender
 
 // Catalogs look recommendation candidates up in each domain's catalog.
 type Catalogs = services.Catalogs
@@ -39,6 +43,7 @@ type Taste struct {
 	log      *services.LogService
 	profiles *services.ProfileService
 	picks    *services.RecommendService
+	notify   *services.NotifyService
 	jobQueue *jobqueue.JobQueue
 	genJob   jobs.GenerateProfilesJob
 }
@@ -50,21 +55,28 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
+	mail *notifications.Service,
 	catalogs Catalogs,
 	sources ...Source,
 ) *Taste {
 	llm := openrouter.New(cfg.OpenRouterAPIKey, cfg.WebURL, logger)
-	return NewInner(authService, logger, cfg, db, llm, catalogs, sources...)
+	// A nil *Service must not become a non-nil EmailSender.
+	var sender EmailSender
+	if mail != nil {
+		sender = mail
+	}
+	return NewInner(authService, logger, cfg, db, llm, sender, catalogs, sources...)
 }
 
-// NewInner allows tests to inject a fake OpenRouter client; it counts as
-// configured when cfg has a key.
+// NewInner allows tests to inject a fake OpenRouter client and mail sender
+// (nil sends no email); it counts as configured when cfg has a key.
 func NewInner(
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
 	llm openrouter.Client,
+	mail EmailSender,
 	catalogs Catalogs,
 	sources ...Source,
 ) *Taste {
@@ -86,12 +98,15 @@ func NewInner(
 		a.log, profiles, repositories.NewRecommendationsRepository(db), catalogs,
 		llm, cfg.TasteGeneratorModel, logger,
 	)
+	a.notify = services.NewNotifyService(
+		repositories.NewPreferencesRepository(db), a.picks, mail, cfg.WebURL, logger,
+	)
 
 	const amountOfWorkers = 1
 	const jobQueueSize = 10
 	a.jobQueue = jobqueue.NewJobQueue(a.Ctx, logger, amountOfWorkers, jobQueueSize, db)
 	a.genJob = jobs.NewGenerateProfilesJob(
-		authService, a.profiles, a.picks, a.GetName(),
+		authService, a.profiles, a.picks, a.notify, a.GetName(),
 	)
 	return a
 }

@@ -93,6 +93,19 @@ export function useTasteRecommendations(domain: string, view: string) {
   )
 }
 
+/** Turns the new-picks email on or off, then re-reads the picks that carry the setting. */
+export function useSetEmailNewPicks() {
+  const client = createServiceClient(TasteService)
+  const { mutate } = useSWRConfig()
+  return useCallback(
+    async (enabled: boolean) => {
+      await client.setEmailNewPicks({ enabled })
+      await mutate(isRecommendationsKey)
+    },
+    [client, mutate]
+  )
+}
+
 /** Feedback, save and accept on a pick; each re-reads the picks and stats. */
 export function usePickActions() {
   const client = createServiceClient(TasteService)

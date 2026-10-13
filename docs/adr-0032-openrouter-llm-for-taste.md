@@ -35,6 +35,11 @@ tens of seconds, which is longer than a request may run (ADR-0017).
   ceiling is the credit limit on a dedicated `OPENROUTER_API_KEY`, separate
   from the agent routines' key. There is no dollar tracking in the app.
 - **Without a key** the stages are off: the job idles and the UI says so.
+- **A successful run emails the user** the best of their new picks and a link,
+  through `internal/notifications`, unless they turned it off
+  (`taste.preferences.email_new_picks`, on by default). A failed run, a run
+  without picks, a missing address or an unconfigured mailer sends nothing,
+  and a send failure never fails the run.
 
 ## Alternatives considered
 

@@ -30,12 +30,18 @@ type recommender interface {
 	Generate(ctx context.Context, userID string, include func(appName string) bool) error
 }
 
+type pickNotifier interface {
+	NotifyNewPicks(ctx context.Context, userID, email string)
+}
+
 // GenerateProfilesJob writes the profiles of users with taste access that
-// were requested or have gone stale, then their picks from the new profile.
+// were requested or have gone stale, then their picks from the new profile,
+// and emails them when picks were written.
 type GenerateProfilesJob struct {
 	users    userLister
 	profiles profileGenerator
 	picks    recommender
+	notify   pickNotifier
 	appName  string
 }
 
@@ -43,10 +49,12 @@ func NewGenerateProfilesJob(
 	users userLister,
 	profiles profileGenerator,
 	picks recommender,
+	notify pickNotifier,
 	appName string,
 ) GenerateProfilesJob {
 	return GenerateProfilesJob{
-		users: users, profiles: profiles, picks: picks, appName: appName,
+		users: users, profiles: profiles, picks: picks, notify: notify,
+		appName: appName,
 	}
 }
 
@@ -89,6 +97,9 @@ func (j GenerateProfilesJob) Run(ctx context.Context, logger *slog.Logger) error
 		genErr := j.profiles.Generate(ctx, id, include)
 		if genErr == nil {
 			genErr = j.picks.Generate(ctx, id, include)
+		}
+		if genErr == nil {
+			j.notify.NotifyNewPicks(ctx, id, byID[id].Email)
 		}
 		if genErr != nil {
 			logger.WarnContext(ctx, "taste generation failed",

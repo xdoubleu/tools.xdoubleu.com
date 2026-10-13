@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { Recommendation } from '@/lib/gen/taste/v1/taste_pb'
-import { useTasteRecommendations } from '@/hooks/useTaste'
+import { useSetEmailNewPicks, useTasteRecommendations } from '@/hooks/useTaste'
 import { DOMAINS, SAVED_VIEW, TRACKS, domainLabel, hostLabel, trackLabel } from '@/lib/taste/format'
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/dates'
@@ -11,6 +11,7 @@ import PickArtwork from '@/components/taste/PickArtwork'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Field } from '@/components/ui/field'
 import { SectionCard } from '@/components/ui/section-card'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
@@ -67,6 +68,37 @@ function PickRow({ pick, saved }: { pick: Recommendation; saved: boolean }) {
   )
 }
 
+function EmailToggle({ checked }: { checked: boolean }) {
+  const setEmailNewPicks = useSetEmailNewPicks()
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState(false)
+
+  const change = async (enabled: boolean) => {
+    setBusy(true)
+    setFailed(false)
+    try {
+      await setEmailNewPicks(enabled)
+    } catch {
+      setFailed(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div>
+      <Checkbox
+        id="taste-email-new-picks"
+        label="Email me when new picks are ready"
+        checked={checked}
+        disabled={busy}
+        onChange={(e) => void change(e.target.checked)}
+      />
+      {failed && <Alert tone="warn">Couldn&apos;t save that. Try again.</Alert>}
+    </div>
+  )
+}
+
 function PickList({ domain, view }: { domain: string; view: string }) {
   const { data, error, isLoading } = useTasteRecommendations(domain, view)
   const saved = view === SAVED_VIEW
@@ -98,6 +130,7 @@ function PickList({ domain, view }: { domain: string; view: string }) {
           Picked {formatDateTime(data.generatedAt)}, each checked against its catalog.
         </p>
       )}
+      <EmailToggle checked={data.emailNewPicks} />
     </div>
   )
 }

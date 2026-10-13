@@ -19,6 +19,7 @@ import (
 	"tools.xdoubleu.com/internal/consumption"
 	"tools.xdoubleu.com/internal/logging"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/openrouter"
 	"tools.xdoubleu.com/internal/testhelper"
 )
@@ -90,15 +91,26 @@ func recsApp(
 	authService auth.Service,
 ) (*taste.Taste, tastev1connect.TasteServiceClient) {
 	t.Helper()
+	return recsAppMail(t, authService, nil)
+}
+
+// recsAppMail is recsApp with mail as the new-picks email sender.
+func recsAppMail(
+	t *testing.T,
+	authService auth.Service,
+	mail taste.EmailSender,
+) (*taste.Taste, tastev1connect.TasteServiceClient) {
+	t.Helper()
 	ctx := context.Background()
-	for _, table := range []string{"taste.recommendations", "taste.profiles"} {
+	tables := []string{"taste.recommendations", "taste.profiles", "taste.preferences"}
+	for _, table := range tables {
 		_, err := testDB.Exec(ctx, "DELETE FROM "+table+" WHERE user_id = $1", userID)
 		require.NoError(t, err)
 	}
 	cfg := testCfg
 	cfg.OpenRouterAPIKey = "test-key"
 	a := taste.NewInner(authService, logging.NewNopLogger(), cfg, testDB, pickLLM{},
-		pickCatalogs(),
+		mail, pickCatalogs(),
 		userSource{name: "books", events: []consumption.Event{book}, err: nil},
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(a))
@@ -310,7 +322,7 @@ func TestRecommendations_InvalidArguments(t *testing.T) {
 func TestGetStats_HitRateReadFails(t *testing.T) {
 	pool := testhelper.ConnectTestDB(testCfg.DBDsn)
 	a := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
-		logging.NewNopLogger(), testCfg, pool, pickLLM{}, pickCatalogs(),
+		logging.NewNopLogger(), testCfg, pool, pickLLM{}, nil, pickCatalogs(),
 		userSource{name: "books", events: []consumption.Event{book}, err: nil},
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(a))
@@ -329,4 +341,52 @@ func TestGetStats_HitRateReadFails(t *testing.T) {
 	_, err := c.GetStats(context.Background(),
 		&tastev1.GetStatsRequest{})
 	assert.Error(t, err)
+}
+
+// recordingMail records the emails the app queues.
+type recordingMail struct {
+	to, subject, body []string
+}
+
+func (m *recordingMail) EnqueueTo(
+	to, subject, body string, onResult notifications.OnResult,
+) {
+	m.to = append(m.to, to)
+	m.subject = append(m.subject, subject)
+	m.body = append(m.body, body)
+	if onResult != nil {
+		_ = onResult(context.Background(), nil)
+	}
+}
+
+func TestRecommendations_EmailsNewPicks(t *testing.T) {
+	mail := &recordingMail{to: nil, subject: nil, body: nil}
+	a, c := recsAppMail(t, sharedmocks.NewMockedAdminAuthService(userID), mail)
+	assert.True(t, listRecs(t, c, "", "").EmailNewPicks, "on until turned off")
+
+	require.NoError(t, a.GenerateProfilesNow(context.Background()))
+
+	require.Len(t, mail.to, 1)
+	assert.NotEmpty(t, mail.to[0])
+	assert.Equal(t, "2 new recommendations for you", mail.subject[0])
+	assert.Contains(t, mail.body[0], "- Hyperion (books): Like Dune.\n")
+	assert.Contains(t, mail.body[0], "- Radiolab (podcasts): Big ideas, by ear.\n")
+}
+
+func TestRecommendations_NoEmailWhenTurnedOff(t *testing.T) {
+	mail := &recordingMail{to: nil, subject: nil, body: nil}
+	a, c := recsAppMail(t, sharedmocks.NewMockedAdminAuthService(userID), mail)
+	ctx := context.Background()
+
+	_, err := c.SetEmailNewPicks(ctx, &tastev1.SetEmailNewPicksRequest{Enabled: false})
+	require.NoError(t, err)
+	assert.False(t, listRecs(t, c, "", "").EmailNewPicks)
+
+	require.NoError(t, a.GenerateProfilesNow(ctx))
+	assert.Empty(t, mail.to, "opted out")
+	assert.Len(t, listRecs(t, c, "", "").Recommendations, 2, "picks are still written")
+
+	_, err = c.SetEmailNewPicks(ctx, &tastev1.SetEmailNewPicksRequest{Enabled: true})
+	require.NoError(t, err)
+	assert.True(t, listRecs(t, c, "", "").EmailNewPicks)
 }

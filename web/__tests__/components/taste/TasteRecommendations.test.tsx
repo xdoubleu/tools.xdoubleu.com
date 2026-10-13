@@ -1,8 +1,11 @@
 import React from 'react'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 
-jest.mock('@/hooks/useTaste', () => ({ useTasteRecommendations: jest.fn() }))
+jest.mock('@/hooks/useTaste', () => ({
+  useTasteRecommendations: jest.fn(),
+  useSetEmailNewPicks: jest.fn()
+}))
 jest.mock('@/components/taste/PickActions', () => ({
   __esModule: true,
   default: ({ pick }: { pick: { id: string } }) => <div data-testid="actions" data-id={pick.id} />
@@ -15,7 +18,7 @@ jest.mock('@/components/taste/PickArtwork', () => ({
 }))
 
 import TasteRecommendations from '@/components/taste/TasteRecommendations'
-import { useTasteRecommendations } from '@/hooks/useTaste'
+import { useSetEmailNewPicks, useTasteRecommendations } from '@/hooks/useTaste'
 import {
   ListRecommendationsResponseSchema,
   RecommendationSchema,
@@ -47,7 +50,13 @@ const hyperion = create(RecommendationSchema, {
 })
 const bare = create(RecommendationSchema, { id: 'r2', domain: 'podcasts', title: 'Radiolab' })
 
-beforeEach(() => jest.clearAllMocks())
+let setEmailNewPicks: jest.Mock
+
+beforeEach(() => {
+  jest.clearAllMocks()
+  setEmailNewPicks = jest.fn().mockResolvedValue(undefined)
+  jest.mocked(useSetEmailNewPicks).mockReturnValue(setEmailNewPicks)
+})
 
 describe('TasteRecommendations', () => {
   it('shows a pick with its artwork, meta, why, link and up to three sources', () => {
@@ -179,5 +188,42 @@ describe('TasteRecommendations', () => {
     render(<TasteRecommendations />)
     expect(screen.getByText('Hyperion')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('shows the email setting and turns it off', async () => {
+    mockPicks({ data: create(ListRecommendationsResponseSchema, { emailNewPicks: true }) })
+    render(<TasteRecommendations />)
+    const box = screen.getByRole('checkbox', { name: 'Email me when new picks are ready' })
+    expect(box).toBeChecked()
+
+    await act(async () => {
+      fireEvent.click(box)
+    })
+    expect(setEmailNewPicks).toHaveBeenCalledWith(false)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('shows the setting off and turns it on', async () => {
+    mockPicks({ data: create(ListRecommendationsResponseSchema, { emailNewPicks: false }) })
+    render(<TasteRecommendations />)
+    const box = screen.getByRole('checkbox', { name: 'Email me when new picks are ready' })
+    expect(box).not.toBeChecked()
+
+    await act(async () => {
+      fireEvent.click(box)
+    })
+    expect(setEmailNewPicks).toHaveBeenCalledWith(true)
+  })
+
+  it('says so when the setting could not be saved', async () => {
+    setEmailNewPicks.mockRejectedValueOnce(new Error('nope'))
+    mockPicks({ data: create(ListRecommendationsResponseSchema, { emailNewPicks: true }) })
+    render(<TasteRecommendations />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Email me when new picks are ready' }))
+    })
+    expect(screen.getByRole('status')).toHaveTextContent("Couldn't save that")
+    expect(screen.getByRole('checkbox', { name: /Email me/ })).not.toBeDisabled()
   })
 })

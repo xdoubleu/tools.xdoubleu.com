@@ -15,7 +15,8 @@ const mockClient = {
   listEvents: jest.fn().mockResolvedValue({ events: [{ itemId: 'b1' }], hasMore: true }),
   setFeedback: jest.fn().mockResolvedValue({}),
   setSaved: jest.fn().mockResolvedValue({}),
-  acceptRecommendation: jest.fn().mockResolvedValue({})
+  acceptRecommendation: jest.fn().mockResolvedValue({}),
+  setEmailNewPicks: jest.fn().mockResolvedValue({})
 }
 jest.mock('@/lib/client', () => ({ createServiceClient: jest.fn(() => mockClient) }))
 jest.mock('@/lib/gen/taste/v1/taste_pb', () => ({
@@ -35,6 +36,7 @@ import {
   useTasteEvents,
   useTasteProfile,
   usePickActions,
+  useSetEmailNewPicks,
   useTasteRecommendations,
   useTasteStats
 } from '@/hooks/useTaste'
@@ -237,5 +239,21 @@ describe('useRevalidatePicksWhenDone', () => {
     expect(mockMutate).toHaveBeenCalledWith(isRecommendationsKey)
     rerender({ pending: false })
     expect(mockMutate).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('useSetEmailNewPicks', () => {
+  it('writes the setting, then re-reads the picks', async () => {
+    const { result } = renderHook(() => useSetEmailNewPicks())
+    await result.current(false)
+    expect(mockClient.setEmailNewPicks).toHaveBeenCalledWith({ enabled: false })
+    expect(mockMutate).toHaveBeenCalledWith(isRecommendationsKey)
+  })
+
+  it('re-reads nothing when the write fails', async () => {
+    mockClient.setEmailNewPicks.mockRejectedValueOnce(new Error('nope'))
+    const { result } = renderHook(() => useSetEmailNewPicks())
+    await expect(result.current(true)).rejects.toThrow('nope')
+    expect(mockMutate).not.toHaveBeenCalled()
   })
 })

@@ -43,6 +43,9 @@ const (
 	// TasteServiceAcceptRecommendationProcedure is the procedure name of the TasteService's
 	// AcceptRecommendation RPC.
 	TasteServiceAcceptRecommendationProcedure = "/taste.v1.TasteService/AcceptRecommendation"
+	// TasteServiceSetEmailNewPicksProcedure is the procedure name of the TasteService's
+	// SetEmailNewPicks RPC.
+	TasteServiceSetEmailNewPicksProcedure = "/taste.v1.TasteService/SetEmailNewPicks"
 )
 
 var (
@@ -102,6 +105,13 @@ var (
 			Procedure:  TasteServiceAcceptRecommendationProcedure,
 		}
 	})
+	tasteServiceSetEmailNewPicksSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_taste_v1_taste_proto.Services().ByName("TasteService").Methods().ByName("SetEmailNewPicks"),
+			Procedure:  TasteServiceSetEmailNewPicksProcedure,
+		}
+	})
 )
 
 // TasteServiceClient is a client for the taste.v1.TasteService service.
@@ -114,6 +124,7 @@ type TasteServiceClient interface {
 	SetFeedback(context.Context, *v1.SetFeedbackRequest) (*v1.SetFeedbackResponse, error)
 	SetSaved(context.Context, *v1.SetSavedRequest) (*v1.SetSavedResponse, error)
 	AcceptRecommendation(context.Context, *v1.AcceptRecommendationRequest) (*v1.AcceptRecommendationResponse, error)
+	SetEmailNewPicks(context.Context, *v1.SetEmailNewPicksRequest) (*v1.SetEmailNewPicksResponse, error)
 }
 
 // NewTasteServiceClient constructs a client for the taste.v1.TasteService service. Multiple service
@@ -132,6 +143,7 @@ type TasteServiceHandler interface {
 	SetFeedback(context.Context, *v1.SetFeedbackRequest) (*v1.SetFeedbackResponse, error)
 	SetSaved(context.Context, *v1.SetSavedRequest) (*v1.SetSavedResponse, error)
 	AcceptRecommendation(context.Context, *v1.AcceptRecommendationRequest) (*v1.AcceptRecommendationResponse, error)
+	SetEmailNewPicks(context.Context, *v1.SetEmailNewPicksRequest) (*v1.SetEmailNewPicksResponse, error)
 }
 
 // RegisterTasteServiceHandler registers svc as the taste.v1.TasteService implementation on server.
@@ -146,6 +158,7 @@ func RegisterTasteServiceHandler(server *connect.Server, svc TasteServiceHandler
 		connect.Method{Spec: tasteServiceSetFeedbackSpec(), Handler: adapter.setFeedback},
 		connect.Method{Spec: tasteServiceSetSavedSpec(), Handler: adapter.setSaved},
 		connect.Method{Spec: tasteServiceAcceptRecommendationSpec(), Handler: adapter.acceptRecommendation},
+		connect.Method{Spec: tasteServiceSetEmailNewPicksSpec(), Handler: adapter.setEmailNewPicks},
 	)
 }
 
@@ -182,6 +195,10 @@ func (UnimplementedTasteServiceHandler) SetSaved(context.Context, *v1.SetSavedRe
 
 func (UnimplementedTasteServiceHandler) AcceptRecommendation(context.Context, *v1.AcceptRecommendationRequest) (*v1.AcceptRecommendationResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "taste.v1.TasteService.AcceptRecommendation is not implemented")
+}
+
+func (UnimplementedTasteServiceHandler) SetEmailNewPicks(context.Context, *v1.SetEmailNewPicksRequest) (*v1.SetEmailNewPicksResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "taste.v1.TasteService.SetEmailNewPicks is not implemented")
 }
 
 type tasteServiceClient struct {
@@ -247,6 +264,14 @@ func (c *tasteServiceClient) SetSaved(ctx context.Context, req *v1.SetSavedReque
 func (c *tasteServiceClient) AcceptRecommendation(ctx context.Context, req *v1.AcceptRecommendationRequest) (*v1.AcceptRecommendationResponse, error) {
 	var res v1.AcceptRecommendationResponse
 	if err := c.client.CallUnary(ctx, tasteServiceAcceptRecommendationSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *tasteServiceClient) SetEmailNewPicks(ctx context.Context, req *v1.SetEmailNewPicksRequest) (*v1.SetEmailNewPicksResponse, error) {
+	var res v1.SetEmailNewPicksResponse
+	if err := c.client.CallUnary(ctx, tasteServiceSetEmailNewPicksSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -344,6 +369,18 @@ func (h tasteServiceHandler) acceptRecommendation(ctx context.Context, _ connect
 		return err
 	}
 	res, err := h.svc.AcceptRecommendation(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h tasteServiceHandler) setEmailNewPicks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetEmailNewPicksRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetEmailNewPicks(ctx, &req)
 	if err != nil {
 		return err
 	}
