@@ -14,7 +14,7 @@ const mcpAppName = "movies"
 
 //nolint:lll // struct tags can't wrap
 type mcpSearchArgs struct {
-	Query  string `json:"query" jsonschema:"title to search for on TMDB"`
+	Query  string `json:"query"            jsonschema:"title to search for on TMDB"`
 	Shared bool   `json:"shared,omitempty" jsonschema:"read the family's shared list instead of the solo one"`
 }
 
@@ -37,7 +37,7 @@ type mcpListBacklogArgs struct {
 
 //nolint:lll // struct tags can't wrap
 type mcpGetTitleArgs struct {
-	ID     string `json:"id" jsonschema:"backlog entry id"`
+	ID     string `json:"id"               jsonschema:"backlog entry id"`
 	Shared bool   `json:"shared,omitempty" jsonschema:"read the family's shared list instead of the solo one"`
 }
 

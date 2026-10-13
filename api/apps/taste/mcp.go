@@ -30,7 +30,7 @@ type mcpListRecommendationsArgs struct {
 	Domain    string `json:"domain,omitempty"     jsonschema:"books, feeds, games, movies, series or podcasts; empty for every domain"`
 	Track     string `json:"track,omitempty"      jsonschema:"more (more of what you like) or broaden (broaden your horizon); empty for both"`
 	SavedOnly bool   `json:"saved_only,omitempty" jsonschema:"every saved pick from any run instead of the latest run's"`
-	Shared    bool   `json:"shared,omitempty" jsonschema:"read the family's shared movies & series taste instead of the user's own"`
+	Shared    bool   `json:"shared,omitempty"     jsonschema:"read the family's shared movies & series taste instead of the user's own"`
 }
 
 // RegisterMCPTools exposes the consumption log and its stats, scoped to the
