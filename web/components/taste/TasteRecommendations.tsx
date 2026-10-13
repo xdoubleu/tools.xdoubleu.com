@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { Recommendation } from '@/lib/gen/taste/v1/taste_pb'
 import { useSetEmailNewPicks, useTasteRecommendations } from '@/hooks/useTaste'
+import { useSharedList } from '@/hooks/useSharedList'
 import { DOMAINS, SAVED_VIEW, TRACKS, domainLabel, hostLabel, trackLabel } from '@/lib/taste/format'
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/dates'
@@ -101,6 +102,7 @@ function EmailToggle({ checked }: { checked: boolean }) {
 
 function PickList({ domain, view }: { domain: string; view: string }) {
   const { data, error, isLoading } = useTasteRecommendations(domain, view)
+  const shared = useSharedList()
   const saved = view === SAVED_VIEW
 
   if (isLoading && !data) return <LoadingState label="recommendations" />
@@ -130,7 +132,7 @@ function PickList({ domain, view }: { domain: string; view: string }) {
           Picked {formatDateTime(data.generatedAt)}, each checked against its catalog.
         </p>
       )}
-      <EmailToggle checked={data.emailNewPicks} />
+      {!shared && <EmailToggle checked={data.emailNewPicks} />}
     </div>
   )
 }

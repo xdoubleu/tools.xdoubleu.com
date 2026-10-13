@@ -48,7 +48,11 @@ message RankedName {
   repeated string domains = 3;
 }
 
-message GetStatsRequest {}
+message GetStatsRequest {
+  // Read or change the family's shared taste instead of the caller's own. It
+  // covers only the shared movies & series list.
+  bool shared = 1;
+}
 message GetStatsResponse {
   // Every domain, in display order, including empty ones.
   repeated DomainStats domains = 1;
@@ -74,6 +78,9 @@ message ListEventsRequest {
   string domain = 1;
   int32 limit = 2;
   int32 offset = 3;
+  // Read or change the family's shared taste instead of the caller's own. It
+  // covers only the shared movies & series list.
+  bool shared = 4;
 }
 message ListEventsResponse {
   // Newest first; undated events last.
@@ -94,7 +101,11 @@ message ProfileSections {
   repeated string bounce = 5;
 }
 
-message GetProfileRequest {}
+message GetProfileRequest {
+  // Read or change the family's shared taste instead of the caller's own. It
+  // covers only the shared movies & series list.
+  bool shared = 1;
+}
 message GetProfileResponse {
   // False while no OpenRouter key is set; nothing else is then filled.
   bool configured = 1;
@@ -114,7 +125,11 @@ message GetProfileResponse {
 
 // Queues regenerating the profile and then the picks; RESOURCE_EXHAUSTED within 6 hours of the last
 // request, FAILED_PRECONDITION without an OpenRouter key.
-message RefreshProfileRequest {}
+message RefreshProfileRequest {
+  // Read or change the family's shared taste instead of the caller's own. It
+  // covers only the shared movies & series list.
+  bool shared = 1;
+}
 message RefreshProfileResponse {}
 
 // A web page the generator cited.
@@ -164,6 +179,9 @@ message ListRecommendationsRequest {
   string track = 2;
   // Every saved pick, from any run, instead of the latest run's.
   bool saved_only = 3;
+  // Read or change the family's shared taste instead of the caller's own. It
+  // covers only the shared movies & series list.
+  bool shared = 4;
 }
 message ListRecommendationsResponse {
   // Best first.
@@ -180,6 +198,9 @@ message ListRecommendationsResponse {
 message SetFeedbackRequest {
   string id = 1;
   string feedback = 2;
+  // Read or change the family's shared taste instead of the caller's own. It
+  // covers only the shared movies & series list.
+  bool shared = 3;
 }
 message SetFeedbackResponse {
   Recommendation recommendation = 1;
@@ -188,6 +209,9 @@ message SetFeedbackResponse {
 message SetSavedRequest {
   string id = 1;
   bool saved = 2;
+  // Read or change the family's shared taste instead of the caller's own. It
+  // covers only the shared movies & series list.
+  bool shared = 3;
 }
 message SetSavedResponse {
   Recommendation recommendation = 1;
@@ -203,12 +227,17 @@ message SetEmailNewPicksResponse {}
 // want; any other pick is saved instead.
 message AcceptRecommendationRequest {
   string id = 1;
+  // Read or change the family's shared taste instead of the caller's own. It
+  // covers only the shared movies & series list.
+  bool shared = 2;
 }
 message AcceptRecommendationResponse {
   Recommendation recommendation = 1;
 }
 
-// The caller's consumption log across every app; per user, never shared.
+// The caller's consumption log across every app; per user. Requests with
+// shared set cover instead the family's shared movies & series list, treating
+// the family as one person.
 service TasteService {
   rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
   rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);

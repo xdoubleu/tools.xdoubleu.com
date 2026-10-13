@@ -71,6 +71,7 @@ type moviesStore interface {
 	SetProviderIDs(ctx context.Context, userID string, ids []int64) error
 	DeleteOrphanTitles(ctx context.Context) (int64, error)
 	DueTitles(ctx context.Context) ([]models.TitleKey, error)
+	SharedOwners(ctx context.Context) ([]string, error)
 }
 
 type MovieService struct {

@@ -47,3 +47,8 @@ func (s *MovieService) StreamsOnMyServices(
 		return models.StreamsOnMyServices(p.OfferType) && slices.Contains(mine, p.ID)
 	}), nil
 }
+
+// SharedSubjects returns the owner key of every shared list with a title.
+func (s *MovieService) SharedSubjects(ctx context.Context) ([]string, error) {
+	return s.repo.SharedOwners(ctx)
+}

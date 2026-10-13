@@ -18,6 +18,9 @@ import (
 	"tools.xdoubleu.com/internal/pagination"
 )
 
+// sharedApp is the only app the family-wide taste reads.
+const sharedApp = "movies"
+
 type tasteConnectHandler struct {
 	app *Taste
 }
@@ -34,6 +37,39 @@ func userID(ctx context.Context) (string, error) {
 	return user.ID, nil
 }
 
+// scope is what a request covers: the subject whose log and picks it reads,
+// which is the caller or, when shared, their family; and the apps it may read.
+type scope struct {
+	// user is always the caller.
+	user    string
+	subject string
+	access  func(appName string) bool
+}
+
+// scopeOf resolves the scope of a request. The shared one covers only the
+// movies app, whose shared list is the one family-wide log.
+func (h *tasteConnectHandler) scopeOf(ctx context.Context, shared bool) (scope, error) {
+	uid, err := userID(ctx)
+	if err != nil {
+		return scope{}, err
+	}
+	access := canAccess(ctx)
+	if !shared {
+		return scope{user: uid, subject: uid, access: access}, nil
+	}
+	familyID, err := h.app.family.EnsureFamily(ctx, uid)
+	if err != nil {
+		return scope{}, connecttools.MapError(err)
+	}
+	return scope{
+		user:    uid,
+		subject: consumption.SharedSubject(familyID),
+		access: func(appName string) bool {
+			return appName == sharedApp && access(appName)
+		},
+	}, nil
+}
+
 // canAccess reports whether the caller may read an app, so taste never
 // surfaces an app's data to someone without access to it.
 func canAccess(ctx context.Context) func(appName string) bool {
@@ -44,24 +80,23 @@ func canAccess(ctx context.Context) func(appName string) bool {
 
 func (h *tasteConnectHandler) GetStats(
 	ctx context.Context,
-	_ *tastev1.GetStatsRequest,
+	req *tastev1.GetStatsRequest,
 ) (*tastev1.GetStatsResponse, error) {
-	uid, err := userID(ctx)
+	sc, err := h.scopeOf(ctx, req.Shared)
 	if err != nil {
 		return nil, err
 	}
-	events, err := h.app.log.Events(ctx, uid, canAccess(ctx))
+	events, err := h.app.log.Events(ctx, sc.subject, sc.access)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
-	rates, err := h.app.picks.HitRates(ctx, uid)
+	rates, err := h.app.picks.HitRates(ctx, sc.subject)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
 	out := protoStats(services.BuildStats(events, time.Now()))
-	access := canAccess(ctx)
 	for _, r := range rates {
-		if access(services.AppOf(consumption.Domain(r.Domain))) {
+		if sc.access(services.AppOf(consumption.Domain(r.Domain))) {
 			out.HitRates = append(out.HitRates, &tastev1.HitRate{
 				Domain: r.Domain, Track: r.Track,
 				Hits: count32(r.Hits), Misses: count32(r.Misses),
@@ -75,7 +110,7 @@ func (h *tasteConnectHandler) ListEvents(
 	ctx context.Context,
 	req *tastev1.ListEventsRequest,
 ) (*tastev1.ListEventsResponse, error) {
-	uid, err := userID(ctx)
+	sc, err := h.scopeOf(ctx, req.Shared)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +125,7 @@ func (h *tasteConnectHandler) ListEvents(
 			connect.CodeInvalidArgument, "offset must not be negative",
 		)
 	}
-	events, err := h.app.log.Events(ctx, uid, canAccess(ctx))
+	events, err := h.app.log.Events(ctx, sc.subject, sc.access)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}

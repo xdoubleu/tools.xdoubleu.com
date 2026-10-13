@@ -149,3 +149,30 @@ func TestGenerateProfilesJob_IdleWithoutKey(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, profiles.asked)
 }
+
+func TestGenerateProfilesJob_SharedSubjects(t *testing.T) {
+	users := fakeUsers{users: []sharedmodels.User{
+		user("a", sharedmodels.RoleAdmin),
+	}, err: nil}
+	profiles := profilesFake(true, "", nil)
+	picks := &fakePicks{users: nil, err: nil}
+	notify := noNotify()
+	job := jobs.NewGenerateProfilesJob(users, profiles, picks, notify, "taste").
+		WithShared(func(context.Context) ([]string, error) {
+			return []string{"family:f1"}, nil
+		})
+
+	require.NoError(t, job.Run(context.Background(), logging.NewNopLogger()))
+	assert.Equal(t, []string{"a", "family:f1"}, profiles.asked)
+	assert.Equal(t, map[string]bool{"a": true, "family:f1": false}, profiles.generated,
+		"a shared profile reads no other app than movies")
+	assert.Equal(t, []string{"a", "family:f1"}, picks.users)
+	assert.Equal(t, []string{"a=a@example.com"}, notify.told, "nobody is emailed for it")
+
+	failing := jobs.NewGenerateProfilesJob(users, profiles, picks, notify, "taste").
+		WithShared(func(context.Context) ([]string, error) {
+			return nil, errors.New("movies down")
+		})
+	require.ErrorContains(t, failing.Run(context.Background(), logging.NewNopLogger()),
+		"movies down")
+}

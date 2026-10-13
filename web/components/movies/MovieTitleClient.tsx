@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Code, ConnectError } from '@connectrpc/connect'
 import { useMovieTitle, useMoviesActions } from '@/hooks/useMovies'
+import { useSharedList } from '@/hooks/useSharedList'
+import { listHref } from '@/lib/listScope'
 import { mediaTypeLabel, releaseLabel, titleName, todayISO } from '@/lib/movies/format'
 import MoviePoster from '@/components/movies/MoviePoster'
 import MovieWatches from '@/components/movies/MovieWatches'
@@ -22,12 +24,16 @@ import { ErrorState, LoadingState } from '@/components/ui/states'
 export default function MovieTitleClient({ id }: { id: string }) {
   const router = useRouter()
   const { data, error, isLoading } = useMovieTitle(id)
-  const { remove } = useMoviesActions()
+  const shared = useSharedList()
+  const { add, remove } = useMoviesActions()
+  const [copying, setCopying] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [copyFailed, setCopyFailed] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [removing, setRemoving] = useState(false)
   const [removeFailed, setRemoveFailed] = useState(false)
 
-  const breadcrumb = [{ label: 'Movies & Series', href: '/movies' }]
+  const breadcrumb = [{ label: 'Movies & Series', href: listHref('/movies', shared) }]
 
   if (isLoading && !data) return <LoadingState label="title" />
   // Other failed revalidations (e.g. offline) keep showing the loaded data.
@@ -56,11 +62,27 @@ export default function MovieTitleClient({ id }: { id: string }) {
     setRemoveFailed(false)
     try {
       await remove(entry.id)
-      router.push('/movies')
+      router.push(listHref('/movies', shared))
     } catch {
       setRemoveFailed(true)
     } finally {
       setRemoving(false)
+    }
+  }
+
+  // Puts the title on the other list, keeping its status; the rest of the
+  // entry (rating, watch dates) stays with this list.
+  const copyToOtherList = async () => {
+    setCopying(true)
+    setCopyFailed(false)
+    try {
+      const status = entry.status === 'watched' ? 'watched' : 'want'
+      await add(entry.mediaType, entry.tmdbId, status, true, !shared)
+      setCopied(true)
+    } catch {
+      setCopyFailed(true)
+    } finally {
+      setCopying(false)
     }
   }
 
@@ -97,6 +119,20 @@ export default function MovieTitleClient({ id }: { id: string }) {
             <MovieWatches entry={entry} />
           )}
           <WhereToWatch offers={data.offers ?? []} watchLink={data.watchLink} />
+          <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              disabled={copying || copied}
+              onClick={() => void copyToOtherList()}
+            >
+              {copied
+                ? `Added to ${shared ? 'my' : 'family'} list`
+                : copying
+                  ? 'Adding…'
+                  : `Add to ${shared ? 'my' : 'family'} list`}
+            </Button>
+            {copyFailed && <p className="text-sm text-danger">Couldn&apos;t add. Try again.</p>}
+          </div>
           <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
             Remove from backlog
           </Button>

@@ -12,8 +12,15 @@ import (
 
 const mcpAppName = "movies"
 
+//nolint:lll // struct tags can't wrap
 type mcpSearchArgs struct {
-	Query string `json:"query" jsonschema:"title to search for on TMDB"`
+	Query  string `json:"query" jsonschema:"title to search for on TMDB"`
+	Shared bool   `json:"shared,omitempty" jsonschema:"read the family's shared list instead of the solo one"`
+}
+
+//nolint:lll // struct tags can't wrap
+type mcpStatsArgs struct {
+	Shared bool `json:"shared,omitempty" jsonschema:"read the family's shared list instead of the solo one"`
 }
 
 //nolint:lll // struct tags can't wrap
@@ -25,10 +32,13 @@ type mcpListBacklogArgs struct {
 	OnMyServices bool   `json:"on_my_services,omitempty" jsonschema:"only titles streaming (flatrate, free or ads) on the user's services in Belgium"`
 	Limit        int32  `json:"limit,omitempty"          jsonschema:"max entries, default 50"`
 	Offset       int32  `json:"offset,omitempty"         jsonschema:"pagination offset"`
+	Shared       bool   `json:"shared,omitempty"         jsonschema:"read the family's shared list instead of the solo one"`
 }
 
+//nolint:lll // struct tags can't wrap
 type mcpGetTitleArgs struct {
-	ID string `json:"id" jsonschema:"backlog entry id"`
+	ID     string `json:"id" jsonschema:"backlog entry id"`
+	Shared bool   `json:"shared,omitempty" jsonschema:"read the family's shared list instead of the solo one"`
 }
 
 // RegisterMCPTools exposes the app's read RPCs, scoped to the caller.
@@ -39,8 +49,9 @@ func (a *Movies) RegisterMCPTools(srv *mcp.Server) {
 		"Search TMDB for movies and series. Results already in the user's "+
 			"backlog carry their status.", h.mcpSearchTitles)
 	mcptools.AddReadTool(srv, mcpAppName, "movies_list_backlog",
-		"The user's movies & series backlog with status, rating, watch dates and "+
-			"has_new_season and on_my_services. Page with limit/offset while has_more is true.",
+		"The user's movies & series backlog (or, with shared, the family's shared "+
+			"one) with status, rating, watch dates and has_new_season and "+
+			"on_my_services. Page with limit/offset while has_more is true.",
 		h.mcpListBacklog)
 	mcptools.AddReadTool(srv, mcpAppName, "movies_get_title",
 		"A single backlog entry including the TMDB overview, seasons and where "+
@@ -49,15 +60,18 @@ func (a *Movies) RegisterMCPTools(srv *mcp.Server) {
 		"The user's streaming services as TMDB provider IDs, used by the "+
 			"on_my_services filter and flag.", h.mcpGetSettings)
 	mcptools.AddReadTool(srv, mcpAppName, "movies_get_stats",
-		"The user's watching stats: dated watches per month (last 12, "+
+		"The user's (or, with shared, the family's shared) watching stats: dated "+
+			"watches per month (last 12, "+
 			"Europe/Brussels), top genres, rating distribution and totals.",
 		h.mcpGetStats)
 }
 
 func (h *moviesConnectHandler) mcpGetStats(
-	ctx context.Context, _ mcptools.NoArgs,
+	ctx context.Context, args mcpStatsArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetStats(ctx, &moviesv1.GetStatsRequest{}))
+	return mcptools.Unwrap(h.GetStats(ctx, &moviesv1.GetStatsRequest{
+		Shared: args.Shared,
+	}))
 }
 
 func (h *moviesConnectHandler) mcpGetSettings(
@@ -69,9 +83,9 @@ func (h *moviesConnectHandler) mcpGetSettings(
 func (h *moviesConnectHandler) mcpSearchTitles(
 	ctx context.Context, args mcpSearchArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.SearchTitles(ctx, &moviesv1.SearchTitlesRequest{Query: args.Query}),
-	)
+	return mcptools.Unwrap(h.SearchTitles(ctx, &moviesv1.SearchTitlesRequest{
+		Query: args.Query, Shared: args.Shared,
+	}))
 }
 
 func (h *moviesConnectHandler) mcpListBacklog(
@@ -85,11 +99,14 @@ func (h *moviesConnectHandler) mcpListBacklog(
 		OnMyServices: args.OnMyServices,
 		Limit:        args.Limit,
 		Offset:       args.Offset,
+		Shared:       args.Shared,
 	}))
 }
 
 func (h *moviesConnectHandler) mcpGetTitle(
 	ctx context.Context, args mcpGetTitleArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetTitle(ctx, &moviesv1.GetTitleRequest{Id: args.ID}))
+	return mcptools.Unwrap(h.GetTitle(ctx, &moviesv1.GetTitleRequest{
+		Id: args.ID, Shared: args.Shared,
+	}))
 }

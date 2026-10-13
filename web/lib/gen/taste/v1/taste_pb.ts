@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file taste/v1/taste.proto.
  */
 export const file_taste_v1_taste: GenFile = /*@__PURE__*/
-  fileDesc("ChR0YXN0ZS92MS90YXN0ZS5wcm90bxIIdGFzdGUudjEiggEKBUV2ZW50Eg4KBmRvbWFpbhgBIAEoCRIPCgdpdGVtX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2NyZWF0b3IYBCABKAkSDAoEdGFncxgFIAMoCRIKCgJhdBgGIAEoCRIOCgZzaWduYWwYByABKAUSDgoGcmVhc29uGAggASgJImQKC0RvbWFpblN0YXRzEg4KBmRvbWFpbhgBIAEoCRIQCghjb25zdW1lZBgCIAEoBRIQCghwb3NpdGl2ZRgDIAEoBRIQCghuZWdhdGl2ZRgEIAEoBRIPCgdsYXN0X2F0GAUgASgJIiwKC0RvbWFpbkNvdW50Eg4KBmRvbWFpbhgBIAEoCRINCgVjb3VudBgCIAEoBSJDCgtNb250aENvdW50cxINCgVtb250aBgBIAEoCRIlCgZjb3VudHMYAiADKAsyFS50YXN0ZS52MS5Eb21haW5Db3VudCI9CgpSYW5rZWROYW1lEgwKBG5hbWUYASABKAkSEAoIcG9zaXRpdmUYAiABKAUSDwoHZG9tYWlucxgDIAMoCSIRCg9HZXRTdGF0c1JlcXVlc3Qi2wEKEEdldFN0YXRzUmVzcG9uc2USJgoHZG9tYWlucxgBIAMoCzIVLnRhc3RlLnYxLkRvbWFpblN0YXRzEiUKBm1vbnRocxgCIAMoCzIVLnRhc3RlLnYxLk1vbnRoQ291bnRzEiYKCHRvcF90YWdzGAMgAygLMhQudGFzdGUudjEuUmFua2VkTmFtZRIqCgx0b3BfY3JlYXRvcnMYBCADKAsyFC50YXN0ZS52MS5SYW5rZWROYW1lEiQKCWhpdF9yYXRlcxgFIAMoCzIRLnRhc3RlLnYxLkhpdFJhdGUiRgoHSGl0UmF0ZRIOCgZkb21haW4YASABKAkSDQoFdHJhY2sYAiABKAkSDAoEaGl0cxgDIAEoBRIOCgZtaXNzZXMYBCABKAUiQgoRTGlzdEV2ZW50c1JlcXVlc3QSDgoGZG9tYWluGAEgASgJEg0KBWxpbWl0GAIgASgFEg4KBm9mZnNldBgDIAEoBSJHChJMaXN0RXZlbnRzUmVzcG9uc2USHwoGZXZlbnRzGAEgAygLMg8udGFzdGUudjEuRXZlbnQSEAoIaGFzX21vcmUYAiABKAgiYAoPUHJvZmlsZVNlY3Rpb25zEg8KB3N1bW1hcnkYASABKAkSDAoEa25vdxgCIAMoCRIMCgRsaWtlGAMgAygJEhAKCGRyaWZ0aW5nGAQgAygJEg4KBmJvdW5jZRgFIAMoCSITChFHZXRQcm9maWxlUmVxdWVzdCK4AQoSR2V0UHJvZmlsZVJlc3BvbnNlEhIKCmNvbmZpZ3VyZWQYASABKAgSKwoIc2VjdGlvbnMYAiABKAsyGS50YXN0ZS52MS5Qcm9maWxlU2VjdGlvbnMSDQoFbW9kZWwYAyABKAkSFAoMZ2VuZXJhdGVkX2F0GAQgASgJEg8KB3BlbmRpbmcYBSABKAgSEgoKbGFzdF9lcnJvchgGIAEoCRIXCg9uZXh0X3JlZnJlc2hfYXQYByABKAkiFwoVUmVmcmVzaFByb2ZpbGVSZXF1ZXN0IhgKFlJlZnJlc2hQcm9maWxlUmVzcG9uc2UiJAoGU291cmNlEgsKA3VybBgBIAEoCRINCgV0aXRsZRgCIAEoCSK9AgoOUmVjb21tZW5kYXRpb24SCgoCaWQYASABKAkSDgoGZG9tYWluGAIgASgJEg0KBXRyYWNrGAMgASgJEg0KBXRpdGxlGAQgASgJEg8KB2NyZWF0b3IYBSABKAkSDAoEeWVhchgGIAEoBRILCgN1cmwYByABKAkSEQoJaW1hZ2VfdXJsGAggASgJEgsKA3doeRgJIAEoCRIhCgdzb3VyY2VzGAogAygLMhAudGFzdGUudjEuU291cmNlEg0KBXNjb3JlGAsgASgFEhAKCGZlZWRiYWNrGAwgASgJEg0KBXNhdmVkGA0gASgIEhAKCGFjY2VwdGVkGA4gASgIEhYKDm9uX215X3NlcnZpY2VzGA8gASgIEhQKDGdlbmVyYXRlZF9hdBgQIAEoCRISCgpjYW5fYWNjZXB0GBEgASgIIk8KGkxpc3RSZWNvbW1lbmRhdGlvbnNSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgV0cmFjaxgCIAEoCRISCgpzYXZlZF9vbmx5GAMgASgIIpMBChtMaXN0UmVjb21tZW5kYXRpb25zUmVzcG9uc2USMQoPcmVjb21tZW5kYXRpb25zGAEgAygLMhgudGFzdGUudjEuUmVjb21tZW5kYXRpb24SFAoMZ2VuZXJhdGVkX2F0GAIgASgJEhIKCmxhc3RfZXJyb3IYAyABKAkSFwoPZW1haWxfbmV3X3BpY2tzGAQgASgIIjIKElNldEZlZWRiYWNrUmVxdWVzdBIKCgJpZBgBIAEoCRIQCghmZWVkYmFjaxgCIAEoCSJHChNTZXRGZWVkYmFja1Jlc3BvbnNlEjAKDnJlY29tbWVuZGF0aW9uGAEgASgLMhgudGFzdGUudjEuUmVjb21tZW5kYXRpb24iLAoPU2V0U2F2ZWRSZXF1ZXN0EgoKAmlkGAEgASgJEg0KBXNhdmVkGAIgASgIIkQKEFNldFNhdmVkUmVzcG9uc2USMAoOcmVjb21tZW5kYXRpb24YASABKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbiIqChdTZXRFbWFpbE5ld1BpY2tzUmVxdWVzdBIPCgdlbmFibGVkGAEgASgIIhoKGFNldEVtYWlsTmV3UGlja3NSZXNwb25zZSIpChtBY2NlcHRSZWNvbW1lbmRhdGlvblJlcXVlc3QSCgoCaWQYASABKAkiUAocQWNjZXB0UmVjb21tZW5kYXRpb25SZXNwb25zZRIwCg5yZWNvbW1lbmRhdGlvbhgBIAEoCzIYLnRhc3RlLnYxLlJlY29tbWVuZGF0aW9uMu0FCgxUYXN0ZVNlcnZpY2USQQoIR2V0U3RhdHMSGS50YXN0ZS52MS5HZXRTdGF0c1JlcXVlc3QaGi50YXN0ZS52MS5HZXRTdGF0c1Jlc3BvbnNlEkcKCkxpc3RFdmVudHMSGy50YXN0ZS52MS5MaXN0RXZlbnRzUmVxdWVzdBocLnRhc3RlLnYxLkxpc3RFdmVudHNSZXNwb25zZRJHCgpHZXRQcm9maWxlEhsudGFzdGUudjEuR2V0UHJvZmlsZVJlcXVlc3QaHC50YXN0ZS52MS5HZXRQcm9maWxlUmVzcG9uc2USUwoOUmVmcmVzaFByb2ZpbGUSHy50YXN0ZS52MS5SZWZyZXNoUHJvZmlsZVJlcXVlc3QaIC50YXN0ZS52MS5SZWZyZXNoUHJvZmlsZVJlc3BvbnNlEmIKE0xpc3RSZWNvbW1lbmRhdGlvbnMSJC50YXN0ZS52MS5MaXN0UmVjb21tZW5kYXRpb25zUmVxdWVzdBolLnRhc3RlLnYxLkxpc3RSZWNvbW1lbmRhdGlvbnNSZXNwb25zZRJKCgtTZXRGZWVkYmFjaxIcLnRhc3RlLnYxLlNldEZlZWRiYWNrUmVxdWVzdBodLnRhc3RlLnYxLlNldEZlZWRiYWNrUmVzcG9uc2USQQoIU2V0U2F2ZWQSGS50YXN0ZS52MS5TZXRTYXZlZFJlcXVlc3QaGi50YXN0ZS52MS5TZXRTYXZlZFJlc3BvbnNlEmUKFEFjY2VwdFJlY29tbWVuZGF0aW9uEiUudGFzdGUudjEuQWNjZXB0UmVjb21tZW5kYXRpb25SZXF1ZXN0GiYudGFzdGUudjEuQWNjZXB0UmVjb21tZW5kYXRpb25SZXNwb25zZRJZChBTZXRFbWFpbE5ld1BpY2tzEiEudGFzdGUudjEuU2V0RW1haWxOZXdQaWNrc1JlcXVlc3QaIi50YXN0ZS52MS5TZXRFbWFpbE5ld1BpY2tzUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi90YXN0ZS92MTt0YXN0ZXYxYgZwcm90bzM");
+  fileDesc("ChR0YXN0ZS92MS90YXN0ZS5wcm90bxIIdGFzdGUudjEiggEKBUV2ZW50Eg4KBmRvbWFpbhgBIAEoCRIPCgdpdGVtX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2NyZWF0b3IYBCABKAkSDAoEdGFncxgFIAMoCRIKCgJhdBgGIAEoCRIOCgZzaWduYWwYByABKAUSDgoGcmVhc29uGAggASgJImQKC0RvbWFpblN0YXRzEg4KBmRvbWFpbhgBIAEoCRIQCghjb25zdW1lZBgCIAEoBRIQCghwb3NpdGl2ZRgDIAEoBRIQCghuZWdhdGl2ZRgEIAEoBRIPCgdsYXN0X2F0GAUgASgJIiwKC0RvbWFpbkNvdW50Eg4KBmRvbWFpbhgBIAEoCRINCgVjb3VudBgCIAEoBSJDCgtNb250aENvdW50cxINCgVtb250aBgBIAEoCRIlCgZjb3VudHMYAiADKAsyFS50YXN0ZS52MS5Eb21haW5Db3VudCI9CgpSYW5rZWROYW1lEgwKBG5hbWUYASABKAkSEAoIcG9zaXRpdmUYAiABKAUSDwoHZG9tYWlucxgDIAMoCSIhCg9HZXRTdGF0c1JlcXVlc3QSDgoGc2hhcmVkGAEgASgIItsBChBHZXRTdGF0c1Jlc3BvbnNlEiYKB2RvbWFpbnMYASADKAsyFS50YXN0ZS52MS5Eb21haW5TdGF0cxIlCgZtb250aHMYAiADKAsyFS50YXN0ZS52MS5Nb250aENvdW50cxImCgh0b3BfdGFncxgDIAMoCzIULnRhc3RlLnYxLlJhbmtlZE5hbWUSKgoMdG9wX2NyZWF0b3JzGAQgAygLMhQudGFzdGUudjEuUmFua2VkTmFtZRIkCgloaXRfcmF0ZXMYBSADKAsyES50YXN0ZS52MS5IaXRSYXRlIkYKB0hpdFJhdGUSDgoGZG9tYWluGAEgASgJEg0KBXRyYWNrGAIgASgJEgwKBGhpdHMYAyABKAUSDgoGbWlzc2VzGAQgASgFIlIKEUxpc3RFdmVudHNSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgVsaW1pdBgCIAEoBRIOCgZvZmZzZXQYAyABKAUSDgoGc2hhcmVkGAQgASgIIkcKEkxpc3RFdmVudHNSZXNwb25zZRIfCgZldmVudHMYASADKAsyDy50YXN0ZS52MS5FdmVudBIQCghoYXNfbW9yZRgCIAEoCCJgCg9Qcm9maWxlU2VjdGlvbnMSDwoHc3VtbWFyeRgBIAEoCRIMCgRrbm93GAIgAygJEgwKBGxpa2UYAyADKAkSEAoIZHJpZnRpbmcYBCADKAkSDgoGYm91bmNlGAUgAygJIiMKEUdldFByb2ZpbGVSZXF1ZXN0Eg4KBnNoYXJlZBgBIAEoCCK4AQoSR2V0UHJvZmlsZVJlc3BvbnNlEhIKCmNvbmZpZ3VyZWQYASABKAgSKwoIc2VjdGlvbnMYAiABKAsyGS50YXN0ZS52MS5Qcm9maWxlU2VjdGlvbnMSDQoFbW9kZWwYAyABKAkSFAoMZ2VuZXJhdGVkX2F0GAQgASgJEg8KB3BlbmRpbmcYBSABKAgSEgoKbGFzdF9lcnJvchgGIAEoCRIXCg9uZXh0X3JlZnJlc2hfYXQYByABKAkiJwoVUmVmcmVzaFByb2ZpbGVSZXF1ZXN0Eg4KBnNoYXJlZBgBIAEoCCIYChZSZWZyZXNoUHJvZmlsZVJlc3BvbnNlIiQKBlNvdXJjZRILCgN1cmwYASABKAkSDQoFdGl0bGUYAiABKAkivQIKDlJlY29tbWVuZGF0aW9uEgoKAmlkGAEgASgJEg4KBmRvbWFpbhgCIAEoCRINCgV0cmFjaxgDIAEoCRINCgV0aXRsZRgEIAEoCRIPCgdjcmVhdG9yGAUgASgJEgwKBHllYXIYBiABKAUSCwoDdXJsGAcgASgJEhEKCWltYWdlX3VybBgIIAEoCRILCgN3aHkYCSABKAkSIQoHc291cmNlcxgKIAMoCzIQLnRhc3RlLnYxLlNvdXJjZRINCgVzY29yZRgLIAEoBRIQCghmZWVkYmFjaxgMIAEoCRINCgVzYXZlZBgNIAEoCBIQCghhY2NlcHRlZBgOIAEoCBIWCg5vbl9teV9zZXJ2aWNlcxgPIAEoCBIUCgxnZW5lcmF0ZWRfYXQYECABKAkSEgoKY2FuX2FjY2VwdBgRIAEoCCJfChpMaXN0UmVjb21tZW5kYXRpb25zUmVxdWVzdBIOCgZkb21haW4YASABKAkSDQoFdHJhY2sYAiABKAkSEgoKc2F2ZWRfb25seRgDIAEoCBIOCgZzaGFyZWQYBCABKAgikwEKG0xpc3RSZWNvbW1lbmRhdGlvbnNSZXNwb25zZRIxCg9yZWNvbW1lbmRhdGlvbnMYASADKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbhIUCgxnZW5lcmF0ZWRfYXQYAiABKAkSEgoKbGFzdF9lcnJvchgDIAEoCRIXCg9lbWFpbF9uZXdfcGlja3MYBCABKAgiQgoSU2V0RmVlZGJhY2tSZXF1ZXN0EgoKAmlkGAEgASgJEhAKCGZlZWRiYWNrGAIgASgJEg4KBnNoYXJlZBgDIAEoCCJHChNTZXRGZWVkYmFja1Jlc3BvbnNlEjAKDnJlY29tbWVuZGF0aW9uGAEgASgLMhgudGFzdGUudjEuUmVjb21tZW5kYXRpb24iPAoPU2V0U2F2ZWRSZXF1ZXN0EgoKAmlkGAEgASgJEg0KBXNhdmVkGAIgASgIEg4KBnNoYXJlZBgDIAEoCCJEChBTZXRTYXZlZFJlc3BvbnNlEjAKDnJlY29tbWVuZGF0aW9uGAEgASgLMhgudGFzdGUudjEuUmVjb21tZW5kYXRpb24iKgoXU2V0RW1haWxOZXdQaWNrc1JlcXVlc3QSDwoHZW5hYmxlZBgBIAEoCCIaChhTZXRFbWFpbE5ld1BpY2tzUmVzcG9uc2UiOQobQWNjZXB0UmVjb21tZW5kYXRpb25SZXF1ZXN0EgoKAmlkGAEgASgJEg4KBnNoYXJlZBgCIAEoCCJQChxBY2NlcHRSZWNvbW1lbmRhdGlvblJlc3BvbnNlEjAKDnJlY29tbWVuZGF0aW9uGAEgASgLMhgudGFzdGUudjEuUmVjb21tZW5kYXRpb24y7QUKDFRhc3RlU2VydmljZRJBCghHZXRTdGF0cxIZLnRhc3RlLnYxLkdldFN0YXRzUmVxdWVzdBoaLnRhc3RlLnYxLkdldFN0YXRzUmVzcG9uc2USRwoKTGlzdEV2ZW50cxIbLnRhc3RlLnYxLkxpc3RFdmVudHNSZXF1ZXN0GhwudGFzdGUudjEuTGlzdEV2ZW50c1Jlc3BvbnNlEkcKCkdldFByb2ZpbGUSGy50YXN0ZS52MS5HZXRQcm9maWxlUmVxdWVzdBocLnRhc3RlLnYxLkdldFByb2ZpbGVSZXNwb25zZRJTCg5SZWZyZXNoUHJvZmlsZRIfLnRhc3RlLnYxLlJlZnJlc2hQcm9maWxlUmVxdWVzdBogLnRhc3RlLnYxLlJlZnJlc2hQcm9maWxlUmVzcG9uc2USYgoTTGlzdFJlY29tbWVuZGF0aW9ucxIkLnRhc3RlLnYxLkxpc3RSZWNvbW1lbmRhdGlvbnNSZXF1ZXN0GiUudGFzdGUudjEuTGlzdFJlY29tbWVuZGF0aW9uc1Jlc3BvbnNlEkoKC1NldEZlZWRiYWNrEhwudGFzdGUudjEuU2V0RmVlZGJhY2tSZXF1ZXN0Gh0udGFzdGUudjEuU2V0RmVlZGJhY2tSZXNwb25zZRJBCghTZXRTYXZlZBIZLnRhc3RlLnYxLlNldFNhdmVkUmVxdWVzdBoaLnRhc3RlLnYxLlNldFNhdmVkUmVzcG9uc2USZQoUQWNjZXB0UmVjb21tZW5kYXRpb24SJS50YXN0ZS52MS5BY2NlcHRSZWNvbW1lbmRhdGlvblJlcXVlc3QaJi50YXN0ZS52MS5BY2NlcHRSZWNvbW1lbmRhdGlvblJlc3BvbnNlElkKEFNldEVtYWlsTmV3UGlja3MSIS50YXN0ZS52MS5TZXRFbWFpbE5ld1BpY2tzUmVxdWVzdBoiLnRhc3RlLnYxLlNldEVtYWlsTmV3UGlja3NSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL3Rhc3RlL3YxO3Rhc3RldjFiBnByb3RvMw");
 
 /**
  * One consumed item. Signal is engagement normalized within its domain, from
@@ -197,6 +197,13 @@ export const RankedNameSchema: GenMessage<RankedName> = /*@__PURE__*/
  * @generated from message taste.v1.GetStatsRequest
  */
 export type GetStatsRequest = Message<"taste.v1.GetStatsRequest"> & {
+  /**
+   * Read or change the family's shared taste instead of the caller's own. It
+   * covers only the shared movies & series list.
+   *
+   * @generated from field: bool shared = 1;
+   */
+  shared: boolean;
 };
 
 /**
@@ -305,6 +312,14 @@ export type ListEventsRequest = Message<"taste.v1.ListEventsRequest"> & {
    * @generated from field: int32 offset = 3;
    */
   offset: number;
+
+  /**
+   * Read or change the family's shared taste instead of the caller's own. It
+   * covers only the shared movies & series list.
+   *
+   * @generated from field: bool shared = 4;
+   */
+  shared: boolean;
 };
 
 /**
@@ -389,6 +404,13 @@ export const ProfileSectionsSchema: GenMessage<ProfileSections> = /*@__PURE__*/
  * @generated from message taste.v1.GetProfileRequest
  */
 export type GetProfileRequest = Message<"taste.v1.GetProfileRequest"> & {
+  /**
+   * Read or change the family's shared taste instead of the caller's own. It
+   * covers only the shared movies & series list.
+   *
+   * @generated from field: bool shared = 1;
+   */
+  shared: boolean;
 };
 
 /**
@@ -466,6 +488,13 @@ export const GetProfileResponseSchema: GenMessage<GetProfileResponse> = /*@__PUR
  * @generated from message taste.v1.RefreshProfileRequest
  */
 export type RefreshProfileRequest = Message<"taste.v1.RefreshProfileRequest"> & {
+  /**
+   * Read or change the family's shared taste instead of the caller's own. It
+   * covers only the shared movies & series list.
+   *
+   * @generated from field: bool shared = 1;
+   */
+  shared: boolean;
 };
 
 /**
@@ -660,6 +689,14 @@ export type ListRecommendationsRequest = Message<"taste.v1.ListRecommendationsRe
    * @generated from field: bool saved_only = 3;
    */
   savedOnly: boolean;
+
+  /**
+   * Read or change the family's shared taste instead of the caller's own. It
+   * covers only the shared movies & series list.
+   *
+   * @generated from field: bool shared = 4;
+   */
+  shared: boolean;
 };
 
 /**
@@ -724,6 +761,14 @@ export type SetFeedbackRequest = Message<"taste.v1.SetFeedbackRequest"> & {
    * @generated from field: string feedback = 2;
    */
   feedback: string;
+
+  /**
+   * Read or change the family's shared taste instead of the caller's own. It
+   * covers only the shared movies & series list.
+   *
+   * @generated from field: bool shared = 3;
+   */
+  shared: boolean;
 };
 
 /**
@@ -763,6 +808,14 @@ export type SetSavedRequest = Message<"taste.v1.SetSavedRequest"> & {
    * @generated from field: bool saved = 2;
    */
   saved: boolean;
+
+  /**
+   * Read or change the family's shared taste instead of the caller's own. It
+   * covers only the shared movies & series list.
+   *
+   * @generated from field: bool shared = 3;
+   */
+  shared: boolean;
 };
 
 /**
@@ -832,6 +885,14 @@ export type AcceptRecommendationRequest = Message<"taste.v1.AcceptRecommendation
    * @generated from field: string id = 1;
    */
   id: string;
+
+  /**
+   * Read or change the family's shared taste instead of the caller's own. It
+   * covers only the shared movies & series list.
+   *
+   * @generated from field: bool shared = 2;
+   */
+  shared: boolean;
 };
 
 /**
@@ -859,7 +920,9 @@ export const AcceptRecommendationResponseSchema: GenMessage<AcceptRecommendation
   messageDesc(file_taste_v1_taste, 26);
 
 /**
- * The caller's consumption log across every app; per user, never shared.
+ * The caller's consumption log across every app; per user. Requests with
+ * shared set cover instead the family's shared movies & series list, treating
+ * the family as one person.
  *
  * @generated from service taste.v1.TasteService
  */

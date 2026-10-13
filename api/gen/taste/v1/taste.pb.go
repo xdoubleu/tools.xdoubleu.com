@@ -373,7 +373,10 @@ func (x *RankedName) GetDomains() []string {
 }
 
 type GetStatsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Read or change the family's shared taste instead of the caller's own. It
+	// covers only the shared movies & series list.
+	Shared        bool `protobuf:"varint,1,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -406,6 +409,13 @@ func (x *GetStatsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetStatsRequest) Descriptor() ([]byte, []int) {
 	return file_taste_v1_taste_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetStatsRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
 }
 
 type GetStatsResponse struct {
@@ -560,9 +570,12 @@ func (x *HitRate) GetMisses() int32 {
 type ListEventsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Empty for every domain.
-	Domain        string `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
-	Limit         int32  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
-	Offset        int32  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	Domain string `protobuf:"bytes,1,opt,name=domain,proto3" json:"domain,omitempty"`
+	Limit  int32  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset int32  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	// Read or change the family's shared taste instead of the caller's own. It
+	// covers only the shared movies & series list.
+	Shared        bool `protobuf:"varint,4,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -616,6 +629,13 @@ func (x *ListEventsRequest) GetOffset() int32 {
 		return x.Offset
 	}
 	return 0
+}
+
+func (x *ListEventsRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
 }
 
 type ListEventsResponse struct {
@@ -753,7 +773,10 @@ func (x *ProfileSections) GetBounce() []string {
 }
 
 type GetProfileRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Read or change the family's shared taste instead of the caller's own. It
+	// covers only the shared movies & series list.
+	Shared        bool `protobuf:"varint,1,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -786,6 +809,13 @@ func (x *GetProfileRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetProfileRequest.ProtoReflect.Descriptor instead.
 func (*GetProfileRequest) Descriptor() ([]byte, []int) {
 	return file_taste_v1_taste_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetProfileRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
 }
 
 type GetProfileResponse struct {
@@ -890,7 +920,10 @@ func (x *GetProfileResponse) GetNextRefreshAt() string {
 // Queues regenerating the profile and then the picks; RESOURCE_EXHAUSTED within 6 hours of the last
 // request, FAILED_PRECONDITION without an OpenRouter key.
 type RefreshProfileRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Read or change the family's shared taste instead of the caller's own. It
+	// covers only the shared movies & series list.
+	Shared        bool `protobuf:"varint,1,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -923,6 +956,13 @@ func (x *RefreshProfileRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RefreshProfileRequest.ProtoReflect.Descriptor instead.
 func (*RefreshProfileRequest) Descriptor() ([]byte, []int) {
 	return file_taste_v1_taste_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *RefreshProfileRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
 }
 
 type RefreshProfileResponse struct {
@@ -1207,7 +1247,10 @@ type ListRecommendationsRequest struct {
 	// Empty for both tracks.
 	Track string `protobuf:"bytes,2,opt,name=track,proto3" json:"track,omitempty"`
 	// Every saved pick, from any run, instead of the latest run's.
-	SavedOnly     bool `protobuf:"varint,3,opt,name=saved_only,json=savedOnly,proto3" json:"saved_only,omitempty"`
+	SavedOnly bool `protobuf:"varint,3,opt,name=saved_only,json=savedOnly,proto3" json:"saved_only,omitempty"`
+	// Read or change the family's shared taste instead of the caller's own. It
+	// covers only the shared movies & series list.
+	Shared        bool `protobuf:"varint,4,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1259,6 +1302,13 @@ func (x *ListRecommendationsRequest) GetTrack() string {
 func (x *ListRecommendationsRequest) GetSavedOnly() bool {
 	if x != nil {
 		return x.SavedOnly
+	}
+	return false
+}
+
+func (x *ListRecommendationsRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
 	}
 	return false
 }
@@ -1337,9 +1387,12 @@ func (x *ListRecommendationsResponse) GetEmailNewPicks() bool {
 
 // Feedback on a pick; empty clears it.
 type SetFeedbackRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Feedback      string                 `protobuf:"bytes,2,opt,name=feedback,proto3" json:"feedback,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Id       string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Feedback string                 `protobuf:"bytes,2,opt,name=feedback,proto3" json:"feedback,omitempty"`
+	// Read or change the family's shared taste instead of the caller's own. It
+	// covers only the shared movies & series list.
+	Shared        bool `protobuf:"varint,3,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1388,6 +1441,13 @@ func (x *SetFeedbackRequest) GetFeedback() string {
 	return ""
 }
 
+func (x *SetFeedbackRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
+}
+
 type SetFeedbackResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Recommendation *Recommendation        `protobuf:"bytes,1,opt,name=recommendation,proto3" json:"recommendation,omitempty"`
@@ -1433,9 +1493,12 @@ func (x *SetFeedbackResponse) GetRecommendation() *Recommendation {
 }
 
 type SetSavedRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Saved         bool                   `protobuf:"varint,2,opt,name=saved,proto3" json:"saved,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Saved bool                   `protobuf:"varint,2,opt,name=saved,proto3" json:"saved,omitempty"`
+	// Read or change the family's shared taste instead of the caller's own. It
+	// covers only the shared movies & series list.
+	Shared        bool `protobuf:"varint,3,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1480,6 +1543,13 @@ func (x *SetSavedRequest) GetId() string {
 func (x *SetSavedRequest) GetSaved() bool {
 	if x != nil {
 		return x.Saved
+	}
+	return false
+}
+
+func (x *SetSavedRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
 	}
 	return false
 }
@@ -1612,8 +1682,11 @@ func (*SetEmailNewPicksResponse) Descriptor() ([]byte, []int) {
 // Adds a book to the to-read shelf or a movie or series to the backlog as
 // want; any other pick is saved instead.
 type AcceptRecommendationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Read or change the family's shared taste instead of the caller's own. It
+	// covers only the shared movies & series list.
+	Shared        bool `protobuf:"varint,2,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1653,6 +1726,13 @@ func (x *AcceptRecommendationRequest) GetId() string {
 		return x.Id
 	}
 	return ""
+}
+
+func (x *AcceptRecommendationRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
 }
 
 type AcceptRecommendationResponse struct {
@@ -1729,8 +1809,9 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"RankedName\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
 	"\bpositive\x18\x02 \x01(\x05R\bpositive\x12\x18\n" +
-	"\adomains\x18\x03 \x03(\tR\adomains\"\x11\n" +
-	"\x0fGetStatsRequest\"\x8c\x02\n" +
+	"\adomains\x18\x03 \x03(\tR\adomains\")\n" +
+	"\x0fGetStatsRequest\x12\x16\n" +
+	"\x06shared\x18\x01 \x01(\bR\x06shared\"\x8c\x02\n" +
 	"\x10GetStatsResponse\x12/\n" +
 	"\adomains\x18\x01 \x03(\v2\x15.taste.v1.DomainStatsR\adomains\x12-\n" +
 	"\x06months\x18\x02 \x03(\v2\x15.taste.v1.MonthCountsR\x06months\x12/\n" +
@@ -1741,11 +1822,12 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x14\n" +
 	"\x05track\x18\x02 \x01(\tR\x05track\x12\x12\n" +
 	"\x04hits\x18\x03 \x01(\x05R\x04hits\x12\x16\n" +
-	"\x06misses\x18\x04 \x01(\x05R\x06misses\"Y\n" +
+	"\x06misses\x18\x04 \x01(\x05R\x06misses\"q\n" +
 	"\x11ListEventsRequest\x12\x16\n" +
 	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
-	"\x06offset\x18\x03 \x01(\x05R\x06offset\"X\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\x12\x16\n" +
+	"\x06shared\x18\x04 \x01(\bR\x06shared\"X\n" +
 	"\x12ListEventsResponse\x12'\n" +
 	"\x06events\x18\x01 \x03(\v2\x0f.taste.v1.EventR\x06events\x12\x19\n" +
 	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"\x87\x01\n" +
@@ -1754,8 +1836,9 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"\x04know\x18\x02 \x03(\tR\x04know\x12\x12\n" +
 	"\x04like\x18\x03 \x03(\tR\x04like\x12\x1a\n" +
 	"\bdrifting\x18\x04 \x03(\tR\bdrifting\x12\x16\n" +
-	"\x06bounce\x18\x05 \x03(\tR\x06bounce\"\x13\n" +
-	"\x11GetProfileRequest\"\x85\x02\n" +
+	"\x06bounce\x18\x05 \x03(\tR\x06bounce\"+\n" +
+	"\x11GetProfileRequest\x12\x16\n" +
+	"\x06shared\x18\x01 \x01(\bR\x06shared\"\x85\x02\n" +
 	"\x12GetProfileResponse\x12\x1e\n" +
 	"\n" +
 	"configured\x18\x01 \x01(\bR\n" +
@@ -1766,8 +1849,9 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"\apending\x18\x05 \x01(\bR\apending\x12\x1d\n" +
 	"\n" +
 	"last_error\x18\x06 \x01(\tR\tlastError\x12&\n" +
-	"\x0fnext_refresh_at\x18\a \x01(\tR\rnextRefreshAt\"\x17\n" +
-	"\x15RefreshProfileRequest\"\x18\n" +
+	"\x0fnext_refresh_at\x18\a \x01(\tR\rnextRefreshAt\"/\n" +
+	"\x15RefreshProfileRequest\x12\x16\n" +
+	"\x06shared\x18\x01 \x01(\bR\x06shared\"\x18\n" +
 	"\x16RefreshProfileResponse\"0\n" +
 	"\x06Source\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x14\n" +
@@ -1791,33 +1875,37 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"\x0eon_my_services\x18\x0f \x01(\bR\fonMyServices\x12!\n" +
 	"\fgenerated_at\x18\x10 \x01(\tR\vgeneratedAt\x12\x1d\n" +
 	"\n" +
-	"can_accept\x18\x11 \x01(\bR\tcanAccept\"i\n" +
+	"can_accept\x18\x11 \x01(\bR\tcanAccept\"\x81\x01\n" +
 	"\x1aListRecommendationsRequest\x12\x16\n" +
 	"\x06domain\x18\x01 \x01(\tR\x06domain\x12\x14\n" +
 	"\x05track\x18\x02 \x01(\tR\x05track\x12\x1d\n" +
 	"\n" +
-	"saved_only\x18\x03 \x01(\bR\tsavedOnly\"\xcb\x01\n" +
+	"saved_only\x18\x03 \x01(\bR\tsavedOnly\x12\x16\n" +
+	"\x06shared\x18\x04 \x01(\bR\x06shared\"\xcb\x01\n" +
 	"\x1bListRecommendationsResponse\x12B\n" +
 	"\x0frecommendations\x18\x01 \x03(\v2\x18.taste.v1.RecommendationR\x0frecommendations\x12!\n" +
 	"\fgenerated_at\x18\x02 \x01(\tR\vgeneratedAt\x12\x1d\n" +
 	"\n" +
 	"last_error\x18\x03 \x01(\tR\tlastError\x12&\n" +
-	"\x0femail_new_picks\x18\x04 \x01(\bR\remailNewPicks\"@\n" +
+	"\x0femail_new_picks\x18\x04 \x01(\bR\remailNewPicks\"X\n" +
 	"\x12SetFeedbackRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
-	"\bfeedback\x18\x02 \x01(\tR\bfeedback\"W\n" +
+	"\bfeedback\x18\x02 \x01(\tR\bfeedback\x12\x16\n" +
+	"\x06shared\x18\x03 \x01(\bR\x06shared\"W\n" +
 	"\x13SetFeedbackResponse\x12@\n" +
-	"\x0erecommendation\x18\x01 \x01(\v2\x18.taste.v1.RecommendationR\x0erecommendation\"7\n" +
+	"\x0erecommendation\x18\x01 \x01(\v2\x18.taste.v1.RecommendationR\x0erecommendation\"O\n" +
 	"\x0fSetSavedRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
-	"\x05saved\x18\x02 \x01(\bR\x05saved\"T\n" +
+	"\x05saved\x18\x02 \x01(\bR\x05saved\x12\x16\n" +
+	"\x06shared\x18\x03 \x01(\bR\x06shared\"T\n" +
 	"\x10SetSavedResponse\x12@\n" +
 	"\x0erecommendation\x18\x01 \x01(\v2\x18.taste.v1.RecommendationR\x0erecommendation\"3\n" +
 	"\x17SetEmailNewPicksRequest\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\"\x1a\n" +
-	"\x18SetEmailNewPicksResponse\"-\n" +
+	"\x18SetEmailNewPicksResponse\"E\n" +
 	"\x1bAcceptRecommendationRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"`\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06shared\x18\x02 \x01(\bR\x06shared\"`\n" +
 	"\x1cAcceptRecommendationResponse\x12@\n" +
 	"\x0erecommendation\x18\x01 \x01(\v2\x18.taste.v1.RecommendationR\x0erecommendation2\xed\x05\n" +
 	"\fTasteService\x12A\n" +

@@ -198,6 +198,21 @@ func TestMain(m *testing.M) {
 	if _, err := testDB.Exec(ctx, "DROP SCHEMA IF EXISTS movies CASCADE"); err != nil {
 		panic(err)
 	}
+	// Tests share one database; ensure the family tables exist.
+	if _, err := testDB.Exec(ctx, `
+		CREATE SCHEMA IF NOT EXISTS global;
+		CREATE TABLE IF NOT EXISTS global.families (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		);
+		CREATE TABLE IF NOT EXISTS global.family_members (
+			user_id TEXT PRIMARY KEY,
+			family_id UUID NOT NULL REFERENCES global.families (id) ON DELETE CASCADE,
+			joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			display_name TEXT NOT NULL DEFAULT ''
+		)`); err != nil {
+		panic(err)
+	}
 	if err := newApp(userID, fakeTMDB{}).ApplyMigrations(ctx, pool); err != nil {
 		panic(err)
 	}

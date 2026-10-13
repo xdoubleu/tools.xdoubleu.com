@@ -5,19 +5,22 @@ import { Code, ConnectError } from '@connectrpc/connect'
 
 const mockSetStatus = jest.fn()
 const mockRemove = jest.fn()
+const mockAdd = jest.fn()
 const mockPush = jest.fn()
 
 jest.mock('@/hooks/useMovies', () => ({
   useMovieTitle: jest.fn(),
   useMoviesActions: jest.fn(() => ({
-    add: jest.fn(),
+    add: mockAdd,
     setStatus: mockSetStatus,
     remove: mockRemove
   }))
 }))
 
+let mockSearch = ''
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush })
+  useRouter: () => ({ push: mockPush }),
+  useSearchParams: () => new URLSearchParams(mockSearch)
 }))
 
 jest.mock('next/link', () => {
@@ -55,7 +58,10 @@ const spirited = create(GetTitleResponseSchema, {
   })
 })
 
-beforeEach(() => jest.clearAllMocks())
+beforeEach(() => {
+  jest.clearAllMocks()
+  mockSearch = ''
+})
 
 describe('MovieTitleClient', () => {
   it('shows the title details and watch dates', () => {
@@ -110,6 +116,41 @@ describe('MovieTitleClient', () => {
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Remove' })))
     expect(mockRemove).toHaveBeenCalledWith('e-1')
     expect(mockPush).toHaveBeenCalledWith('/movies')
+  })
+
+  it('adds the title to the other list, keeping its status', async () => {
+    mockAdd.mockResolvedValue(undefined)
+    mockTitle({ data: spirited })
+    render(<MovieTitleClient id="e-1" />)
+
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: 'Add to family list' }))
+    )
+    expect(mockAdd).toHaveBeenCalledWith('movie', expect.anything(), 'watched', true, true)
+    expect(screen.getByRole('button', { name: 'Added to family list' })).toBeDisabled()
+  })
+
+  it('offers my list from the family list, and returns to it', () => {
+    mockSearch = 'list=shared'
+    mockTitle({ data: spirited })
+    render(<MovieTitleClient id="e-1" />)
+
+    expect(screen.getByRole('button', { name: 'Add to my list' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Movies & Series' })).toHaveAttribute(
+      'href',
+      '/movies?list=shared'
+    )
+  })
+
+  it('reports a failed add to the other list', async () => {
+    mockAdd.mockRejectedValue(new Error('nope'))
+    mockTitle({ data: spirited })
+    render(<MovieTitleClient id="e-1" />)
+
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: 'Add to family list' }))
+    )
+    expect(screen.getByText(/Couldn.t add/)).toBeInTheDocument()
   })
 
   it('reports a failed status change', async () => {

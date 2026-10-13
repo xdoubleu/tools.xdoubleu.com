@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file movies/v1/movies.proto.
  */
 export const file_movies_v1_movies: GenFile = /*@__PURE__*/
-  fileDesc("ChZtb3ZpZXMvdjEvbW92aWVzLnByb3RvEgltb3ZpZXMudjEipQEKDFNlYXJjaFJlc3VsdBISCgptZWRpYV90eXBlGAEgASgJEg8KB3RtZGJfaWQYAiABKAMSDQoFdGl0bGUYAyABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBCABKAkSFAoMcmVsZWFzZV9kYXRlGAUgASgJEhMKC3Bvc3Rlcl9wYXRoGAYgASgJEhMKBnN0YXR1cxgHIAEoCUgAiAEBQgkKB19zdGF0dXMiiQMKDEJhY2tsb2dFbnRyeRIKCgJpZBgBIAEoCRISCgptZWRpYV90eXBlGAIgASgJEg8KB3RtZGJfaWQYAyABKAMSDQoFdGl0bGUYBCABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBSABKAkSFAoMcmVsZWFzZV9kYXRlGAYgASgJEhMKC3Bvc3Rlcl9wYXRoGAcgASgJEg4KBmdlbnJlcxgIIAMoCRIUCgdydW50aW1lGAkgASgFSACIAQESGQoMc2Vhc29uX2NvdW50GAogASgFSAGIAQESDgoGc3RhdHVzGAsgASgJEhIKCndhdGNoZWRfYXQYDCADKAkSEAoIYWRkZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCRITCgZyYXRpbmcYDyABKAVIAogBARIWCg5oYXNfbmV3X3NlYXNvbhgQIAEoCBIWCg5vbl9teV9zZXJ2aWNlcxgRIAEoCEIKCghfcnVudGltZUIPCg1fc2Vhc29uX2NvdW50QgkKB19yYXRpbmciEQoPR2V0U3RhdHNSZXF1ZXN0Ij4KDE1vbnRoV2F0Y2hlcxINCgVtb250aBgBIAEoCRIOCgZtb3ZpZXMYAiABKAUSDwoHc2Vhc29ucxgDIAEoBSIqCgpHZW5yZUNvdW50Eg0KBWdlbnJlGAEgASgJEg0KBWNvdW50GAIgASgFIrwBChBHZXRTdGF0c1Jlc3BvbnNlEicKBm1vbnRocxgBIAMoCzIXLm1vdmllcy52MS5Nb250aFdhdGNoZXMSJQoGZ2VucmVzGAIgAygLMhUubW92aWVzLnYxLkdlbnJlQ291bnQSDwoHcmF0aW5ncxgDIAMoBRIWCg5tb3ZpZXNfd2F0Y2hlZBgEIAEoBRIWCg5zZXJpZXNfd2F0Y2hlZBgFIAEoBRIXCg9zZWFzb25zX3dhdGNoZWQYBiABKAUiJAoTU2VhcmNoVGl0bGVzUmVxdWVzdBINCgVxdWVyeRgBIAEoCSJAChRTZWFyY2hUaXRsZXNSZXNwb25zZRIoCgdyZXN1bHRzGAEgAygLMhcubW92aWVzLnYxLlNlYXJjaFJlc3VsdCJcCg9BZGRUaXRsZVJlcXVlc3QSEgoKbWVkaWFfdHlwZRgBIAEoCRIPCgd0bWRiX2lkGAIgASgDEg4KBnN0YXR1cxgDIAEoCRIUCgx1bmtub3duX2RhdGUYBCABKAgiOgoQQWRkVGl0bGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkiRAoQU2V0U3RhdHVzUmVxdWVzdBIKCgJpZBgBIAEoCRIOCgZzdGF0dXMYAiABKAkSFAoMdW5rbm93bl9kYXRlGAMgASgIIjsKEVNldFN0YXR1c1Jlc3BvbnNlEiYKBWVudHJ5GAEgASgLMhcubW92aWVzLnYxLkJhY2tsb2dFbnRyeSI+ChBTZXRSYXRpbmdSZXF1ZXN0EgoKAmlkGAEgASgJEhMKBnJhdGluZxgCIAEoBUgAiAEBQgkKB19yYXRpbmciOwoRU2V0UmF0aW5nUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5IiAKElJlbW92ZVRpdGxlUmVxdWVzdBIKCgJpZBgBIAEoCSIVChNSZW1vdmVUaXRsZVJlc3BvbnNlIpEBChJMaXN0QmFja2xvZ1JlcXVlc3QSDgoGc3RhdHVzGAEgASgJEhIKCm1lZGlhX3R5cGUYAiABKAkSDAoEc29ydBgDIAEoCRINCgVsaW1pdBgEIAEoBRIOCgZvZmZzZXQYBSABKAUSEgoKbmV3X3NlYXNvbhgGIAEoCBIWCg5vbl9teV9zZXJ2aWNlcxgHIAEoCCJRChNMaXN0QmFja2xvZ1Jlc3BvbnNlEigKB2VudHJpZXMYASADKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EhAKCGhhc19tb3JlGAIgASgIInIKBlNlYXNvbhIOCgZudW1iZXIYASABKAUSDAoEbmFtZRgCIAEoCRIQCghhaXJfZGF0ZRgDIAEoCRIVCg1lcGlzb2RlX2NvdW50GAQgASgFEhIKCndhdGNoZWRfYXQYBSADKAkSDQoFYWlyZWQYBiABKAgiRQoIUHJvdmlkZXISCgoCaWQYASABKAMSDAoEbmFtZRgCIAEoCRIRCglsb2dvX3BhdGgYAyABKAkSDAoEbWluZRgEIAEoCCJMCg5Qcm92aWRlck9mZmVycxISCgpvZmZlcl90eXBlGAEgASgJEiYKCXByb3ZpZGVycxgCIAMoCzITLm1vdmllcy52MS5Qcm92aWRlciIUChJHZXRTZXR0aW5nc1JlcXVlc3QiKwoTR2V0U2V0dGluZ3NSZXNwb25zZRIUCgxwcm92aWRlcl9pZHMYASADKAMiKgoSU2V0U2V0dGluZ3NSZXF1ZXN0EhQKDHByb3ZpZGVyX2lkcxgBIAMoAyIrChNTZXRTZXR0aW5nc1Jlc3BvbnNlEhQKDHByb3ZpZGVyX2lkcxgBIAMoAyIfCh1MaXN0QXZhaWxhYmxlUHJvdmlkZXJzUmVxdWVzdCJICh5MaXN0QXZhaWxhYmxlUHJvdmlkZXJzUmVzcG9uc2USJgoJcHJvdmlkZXJzGAEgAygLMhMubW92aWVzLnYxLlByb3ZpZGVyIh0KD0dldFRpdGxlUmVxdWVzdBIKCgJpZBgBIAEoCSKvAQoQR2V0VGl0bGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSEAoIb3ZlcnZpZXcYAiABKAkSIgoHc2Vhc29ucxgDIAMoCzIRLm1vdmllcy52MS5TZWFzb24SKQoGb2ZmZXJzGAQgAygLMhkubW92aWVzLnYxLlByb3ZpZGVyT2ZmZXJzEhIKCndhdGNoX2xpbmsYBSABKAkiYwoXU2V0U2Vhc29uV2F0Y2hlZFJlcXVlc3QSCgoCaWQYASABKAkSFQoNc2Vhc29uX251bWJlchgCIAEoBRIPCgd3YXRjaGVkGAMgASgIEhQKDHVua25vd25fZGF0ZRgEIAEoCCJmChhTZXRTZWFzb25XYXRjaGVkUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uIl0KE0FkZFdhdGNoRGF0ZVJlcXVlc3QSCgoCaWQYASABKAkSGgoNc2Vhc29uX251bWJlchgCIAEoBUgAiAEBEgwKBGRhdGUYAyABKAlCEAoOX3NlYXNvbl9udW1iZXIiYgoUQWRkV2F0Y2hEYXRlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uIm0KFEVkaXRXYXRjaERhdGVSZXF1ZXN0EgoKAmlkGAEgASgJEhoKDXNlYXNvbl9udW1iZXIYAiABKAVIAIgBARINCgVpbmRleBgDIAEoBRIMCgRkYXRlGAQgASgJQhAKDl9zZWFzb25fbnVtYmVyImMKFUVkaXRXYXRjaERhdGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSIgoHc2Vhc29ucxgCIAMoCzIRLm1vdmllcy52MS5TZWFzb24iYQoWUmVtb3ZlV2F0Y2hEYXRlUmVxdWVzdBIKCgJpZBgBIAEoCRIaCg1zZWFzb25fbnVtYmVyGAIgASgFSACIAQESDQoFaW5kZXgYAyABKAVCEAoOX3NlYXNvbl9udW1iZXIiZQoXUmVtb3ZlV2F0Y2hEYXRlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uMsIJCg1Nb3ZpZXNTZXJ2aWNlEk8KDFNlYXJjaFRpdGxlcxIeLm1vdmllcy52MS5TZWFyY2hUaXRsZXNSZXF1ZXN0Gh8ubW92aWVzLnYxLlNlYXJjaFRpdGxlc1Jlc3BvbnNlEkMKCEFkZFRpdGxlEhoubW92aWVzLnYxLkFkZFRpdGxlUmVxdWVzdBobLm1vdmllcy52MS5BZGRUaXRsZVJlc3BvbnNlEkYKCVNldFN0YXR1cxIbLm1vdmllcy52MS5TZXRTdGF0dXNSZXF1ZXN0GhwubW92aWVzLnYxLlNldFN0YXR1c1Jlc3BvbnNlEkYKCVNldFJhdGluZxIbLm1vdmllcy52MS5TZXRSYXRpbmdSZXF1ZXN0GhwubW92aWVzLnYxLlNldFJhdGluZ1Jlc3BvbnNlEkwKC1JlbW92ZVRpdGxlEh0ubW92aWVzLnYxLlJlbW92ZVRpdGxlUmVxdWVzdBoeLm1vdmllcy52MS5SZW1vdmVUaXRsZVJlc3BvbnNlEkwKC0xpc3RCYWNrbG9nEh0ubW92aWVzLnYxLkxpc3RCYWNrbG9nUmVxdWVzdBoeLm1vdmllcy52MS5MaXN0QmFja2xvZ1Jlc3BvbnNlEkMKCEdldFRpdGxlEhoubW92aWVzLnYxLkdldFRpdGxlUmVxdWVzdBobLm1vdmllcy52MS5HZXRUaXRsZVJlc3BvbnNlEkMKCEdldFN0YXRzEhoubW92aWVzLnYxLkdldFN0YXRzUmVxdWVzdBobLm1vdmllcy52MS5HZXRTdGF0c1Jlc3BvbnNlEkwKC0dldFNldHRpbmdzEh0ubW92aWVzLnYxLkdldFNldHRpbmdzUmVxdWVzdBoeLm1vdmllcy52MS5HZXRTZXR0aW5nc1Jlc3BvbnNlEkwKC1NldFNldHRpbmdzEh0ubW92aWVzLnYxLlNldFNldHRpbmdzUmVxdWVzdBoeLm1vdmllcy52MS5TZXRTZXR0aW5nc1Jlc3BvbnNlEm0KFkxpc3RBdmFpbGFibGVQcm92aWRlcnMSKC5tb3ZpZXMudjEuTGlzdEF2YWlsYWJsZVByb3ZpZGVyc1JlcXVlc3QaKS5tb3ZpZXMudjEuTGlzdEF2YWlsYWJsZVByb3ZpZGVyc1Jlc3BvbnNlElsKEFNldFNlYXNvbldhdGNoZWQSIi5tb3ZpZXMudjEuU2V0U2Vhc29uV2F0Y2hlZFJlcXVlc3QaIy5tb3ZpZXMudjEuU2V0U2Vhc29uV2F0Y2hlZFJlc3BvbnNlEk8KDEFkZFdhdGNoRGF0ZRIeLm1vdmllcy52MS5BZGRXYXRjaERhdGVSZXF1ZXN0Gh8ubW92aWVzLnYxLkFkZFdhdGNoRGF0ZVJlc3BvbnNlElIKDUVkaXRXYXRjaERhdGUSHy5tb3ZpZXMudjEuRWRpdFdhdGNoRGF0ZVJlcXVlc3QaIC5tb3ZpZXMudjEuRWRpdFdhdGNoRGF0ZVJlc3BvbnNlElgKD1JlbW92ZVdhdGNoRGF0ZRIhLm1vdmllcy52MS5SZW1vdmVXYXRjaERhdGVSZXF1ZXN0GiIubW92aWVzLnYxLlJlbW92ZVdhdGNoRGF0ZVJlc3BvbnNlQitaKXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vbW92aWVzL3YxO21vdmllc3YxYgZwcm90bzM");
+  fileDesc("ChZtb3ZpZXMvdjEvbW92aWVzLnByb3RvEgltb3ZpZXMudjEipQEKDFNlYXJjaFJlc3VsdBISCgptZWRpYV90eXBlGAEgASgJEg8KB3RtZGJfaWQYAiABKAMSDQoFdGl0bGUYAyABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBCABKAkSFAoMcmVsZWFzZV9kYXRlGAUgASgJEhMKC3Bvc3Rlcl9wYXRoGAYgASgJEhMKBnN0YXR1cxgHIAEoCUgAiAEBQgkKB19zdGF0dXMiiQMKDEJhY2tsb2dFbnRyeRIKCgJpZBgBIAEoCRISCgptZWRpYV90eXBlGAIgASgJEg8KB3RtZGJfaWQYAyABKAMSDQoFdGl0bGUYBCABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBSABKAkSFAoMcmVsZWFzZV9kYXRlGAYgASgJEhMKC3Bvc3Rlcl9wYXRoGAcgASgJEg4KBmdlbnJlcxgIIAMoCRIUCgdydW50aW1lGAkgASgFSACIAQESGQoMc2Vhc29uX2NvdW50GAogASgFSAGIAQESDgoGc3RhdHVzGAsgASgJEhIKCndhdGNoZWRfYXQYDCADKAkSEAoIYWRkZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCRITCgZyYXRpbmcYDyABKAVIAogBARIWCg5oYXNfbmV3X3NlYXNvbhgQIAEoCBIWCg5vbl9teV9zZXJ2aWNlcxgRIAEoCEIKCghfcnVudGltZUIPCg1fc2Vhc29uX2NvdW50QgkKB19yYXRpbmciIQoPR2V0U3RhdHNSZXF1ZXN0Eg4KBnNoYXJlZBgBIAEoCCI+CgxNb250aFdhdGNoZXMSDQoFbW9udGgYASABKAkSDgoGbW92aWVzGAIgASgFEg8KB3NlYXNvbnMYAyABKAUiKgoKR2VucmVDb3VudBINCgVnZW5yZRgBIAEoCRINCgVjb3VudBgCIAEoBSK8AQoQR2V0U3RhdHNSZXNwb25zZRInCgZtb250aHMYASADKAsyFy5tb3ZpZXMudjEuTW9udGhXYXRjaGVzEiUKBmdlbnJlcxgCIAMoCzIVLm1vdmllcy52MS5HZW5yZUNvdW50Eg8KB3JhdGluZ3MYAyADKAUSFgoObW92aWVzX3dhdGNoZWQYBCABKAUSFgoOc2VyaWVzX3dhdGNoZWQYBSABKAUSFwoPc2Vhc29uc193YXRjaGVkGAYgASgFIjQKE1NlYXJjaFRpdGxlc1JlcXVlc3QSDQoFcXVlcnkYASABKAkSDgoGc2hhcmVkGAIgASgIIkAKFFNlYXJjaFRpdGxlc1Jlc3BvbnNlEigKB3Jlc3VsdHMYASADKAsyFy5tb3ZpZXMudjEuU2VhcmNoUmVzdWx0ImwKD0FkZFRpdGxlUmVxdWVzdBISCgptZWRpYV90eXBlGAEgASgJEg8KB3RtZGJfaWQYAiABKAMSDgoGc3RhdHVzGAMgASgJEhQKDHVua25vd25fZGF0ZRgEIAEoCBIOCgZzaGFyZWQYBSABKAgiOgoQQWRkVGl0bGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkiVAoQU2V0U3RhdHVzUmVxdWVzdBIKCgJpZBgBIAEoCRIOCgZzdGF0dXMYAiABKAkSFAoMdW5rbm93bl9kYXRlGAMgASgIEg4KBnNoYXJlZBgEIAEoCCI7ChFTZXRTdGF0dXNSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkiTgoQU2V0UmF0aW5nUmVxdWVzdBIKCgJpZBgBIAEoCRITCgZyYXRpbmcYAiABKAVIAIgBARIOCgZzaGFyZWQYAyABKAhCCQoHX3JhdGluZyI7ChFTZXRSYXRpbmdSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkiMAoSUmVtb3ZlVGl0bGVSZXF1ZXN0EgoKAmlkGAEgASgJEg4KBnNoYXJlZBgCIAEoCCIVChNSZW1vdmVUaXRsZVJlc3BvbnNlIqEBChJMaXN0QmFja2xvZ1JlcXVlc3QSDgoGc3RhdHVzGAEgASgJEhIKCm1lZGlhX3R5cGUYAiABKAkSDAoEc29ydBgDIAEoCRINCgVsaW1pdBgEIAEoBRIOCgZvZmZzZXQYBSABKAUSEgoKbmV3X3NlYXNvbhgGIAEoCBIWCg5vbl9teV9zZXJ2aWNlcxgHIAEoCBIOCgZzaGFyZWQYCCABKAgiUQoTTGlzdEJhY2tsb2dSZXNwb25zZRIoCgdlbnRyaWVzGAEgAygLMhcubW92aWVzLnYxLkJhY2tsb2dFbnRyeRIQCghoYXNfbW9yZRgCIAEoCCJyCgZTZWFzb24SDgoGbnVtYmVyGAEgASgFEgwKBG5hbWUYAiABKAkSEAoIYWlyX2RhdGUYAyABKAkSFQoNZXBpc29kZV9jb3VudBgEIAEoBRISCgp3YXRjaGVkX2F0GAUgAygJEg0KBWFpcmVkGAYgASgIIkUKCFByb3ZpZGVyEgoKAmlkGAEgASgDEgwKBG5hbWUYAiABKAkSEQoJbG9nb19wYXRoGAMgASgJEgwKBG1pbmUYBCABKAgiTAoOUHJvdmlkZXJPZmZlcnMSEgoKb2ZmZXJfdHlwZRgBIAEoCRImCglwcm92aWRlcnMYAiADKAsyEy5tb3ZpZXMudjEuUHJvdmlkZXIiFAoSR2V0U2V0dGluZ3NSZXF1ZXN0IisKE0dldFNldHRpbmdzUmVzcG9uc2USFAoMcHJvdmlkZXJfaWRzGAEgAygDIioKElNldFNldHRpbmdzUmVxdWVzdBIUCgxwcm92aWRlcl9pZHMYASADKAMiKwoTU2V0U2V0dGluZ3NSZXNwb25zZRIUCgxwcm92aWRlcl9pZHMYASADKAMiHwodTGlzdEF2YWlsYWJsZVByb3ZpZGVyc1JlcXVlc3QiSAoeTGlzdEF2YWlsYWJsZVByb3ZpZGVyc1Jlc3BvbnNlEiYKCXByb3ZpZGVycxgBIAMoCzITLm1vdmllcy52MS5Qcm92aWRlciItCg9HZXRUaXRsZVJlcXVlc3QSCgoCaWQYASABKAkSDgoGc2hhcmVkGAIgASgIIq8BChBHZXRUaXRsZVJlc3BvbnNlEiYKBWVudHJ5GAEgASgLMhcubW92aWVzLnYxLkJhY2tsb2dFbnRyeRIQCghvdmVydmlldxgCIAEoCRIiCgdzZWFzb25zGAMgAygLMhEubW92aWVzLnYxLlNlYXNvbhIpCgZvZmZlcnMYBCADKAsyGS5tb3ZpZXMudjEuUHJvdmlkZXJPZmZlcnMSEgoKd2F0Y2hfbGluaxgFIAEoCSJzChdTZXRTZWFzb25XYXRjaGVkUmVxdWVzdBIKCgJpZBgBIAEoCRIVCg1zZWFzb25fbnVtYmVyGAIgASgFEg8KB3dhdGNoZWQYAyABKAgSFAoMdW5rbm93bl9kYXRlGAQgASgIEg4KBnNoYXJlZBgFIAEoCCJmChhTZXRTZWFzb25XYXRjaGVkUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uIm0KE0FkZFdhdGNoRGF0ZVJlcXVlc3QSCgoCaWQYASABKAkSGgoNc2Vhc29uX251bWJlchgCIAEoBUgAiAEBEgwKBGRhdGUYAyABKAkSDgoGc2hhcmVkGAQgASgIQhAKDl9zZWFzb25fbnVtYmVyImIKFEFkZFdhdGNoRGF0ZVJlc3BvbnNlEiYKBWVudHJ5GAEgASgLMhcubW92aWVzLnYxLkJhY2tsb2dFbnRyeRIiCgdzZWFzb25zGAIgAygLMhEubW92aWVzLnYxLlNlYXNvbiJ9ChRFZGl0V2F0Y2hEYXRlUmVxdWVzdBIKCgJpZBgBIAEoCRIaCg1zZWFzb25fbnVtYmVyGAIgASgFSACIAQESDQoFaW5kZXgYAyABKAUSDAoEZGF0ZRgEIAEoCRIOCgZzaGFyZWQYBSABKAhCEAoOX3NlYXNvbl9udW1iZXIiYwoVRWRpdFdhdGNoRGF0ZVJlc3BvbnNlEiYKBWVudHJ5GAEgASgLMhcubW92aWVzLnYxLkJhY2tsb2dFbnRyeRIiCgdzZWFzb25zGAIgAygLMhEubW92aWVzLnYxLlNlYXNvbiJxChZSZW1vdmVXYXRjaERhdGVSZXF1ZXN0EgoKAmlkGAEgASgJEhoKDXNlYXNvbl9udW1iZXIYAiABKAVIAIgBARINCgVpbmRleBgDIAEoBRIOCgZzaGFyZWQYBCABKAhCEAoOX3NlYXNvbl9udW1iZXIiZQoXUmVtb3ZlV2F0Y2hEYXRlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uMsIJCg1Nb3ZpZXNTZXJ2aWNlEk8KDFNlYXJjaFRpdGxlcxIeLm1vdmllcy52MS5TZWFyY2hUaXRsZXNSZXF1ZXN0Gh8ubW92aWVzLnYxLlNlYXJjaFRpdGxlc1Jlc3BvbnNlEkMKCEFkZFRpdGxlEhoubW92aWVzLnYxLkFkZFRpdGxlUmVxdWVzdBobLm1vdmllcy52MS5BZGRUaXRsZVJlc3BvbnNlEkYKCVNldFN0YXR1cxIbLm1vdmllcy52MS5TZXRTdGF0dXNSZXF1ZXN0GhwubW92aWVzLnYxLlNldFN0YXR1c1Jlc3BvbnNlEkYKCVNldFJhdGluZxIbLm1vdmllcy52MS5TZXRSYXRpbmdSZXF1ZXN0GhwubW92aWVzLnYxLlNldFJhdGluZ1Jlc3BvbnNlEkwKC1JlbW92ZVRpdGxlEh0ubW92aWVzLnYxLlJlbW92ZVRpdGxlUmVxdWVzdBoeLm1vdmllcy52MS5SZW1vdmVUaXRsZVJlc3BvbnNlEkwKC0xpc3RCYWNrbG9nEh0ubW92aWVzLnYxLkxpc3RCYWNrbG9nUmVxdWVzdBoeLm1vdmllcy52MS5MaXN0QmFja2xvZ1Jlc3BvbnNlEkMKCEdldFRpdGxlEhoubW92aWVzLnYxLkdldFRpdGxlUmVxdWVzdBobLm1vdmllcy52MS5HZXRUaXRsZVJlc3BvbnNlEkMKCEdldFN0YXRzEhoubW92aWVzLnYxLkdldFN0YXRzUmVxdWVzdBobLm1vdmllcy52MS5HZXRTdGF0c1Jlc3BvbnNlEkwKC0dldFNldHRpbmdzEh0ubW92aWVzLnYxLkdldFNldHRpbmdzUmVxdWVzdBoeLm1vdmllcy52MS5HZXRTZXR0aW5nc1Jlc3BvbnNlEkwKC1NldFNldHRpbmdzEh0ubW92aWVzLnYxLlNldFNldHRpbmdzUmVxdWVzdBoeLm1vdmllcy52MS5TZXRTZXR0aW5nc1Jlc3BvbnNlEm0KFkxpc3RBdmFpbGFibGVQcm92aWRlcnMSKC5tb3ZpZXMudjEuTGlzdEF2YWlsYWJsZVByb3ZpZGVyc1JlcXVlc3QaKS5tb3ZpZXMudjEuTGlzdEF2YWlsYWJsZVByb3ZpZGVyc1Jlc3BvbnNlElsKEFNldFNlYXNvbldhdGNoZWQSIi5tb3ZpZXMudjEuU2V0U2Vhc29uV2F0Y2hlZFJlcXVlc3QaIy5tb3ZpZXMudjEuU2V0U2Vhc29uV2F0Y2hlZFJlc3BvbnNlEk8KDEFkZFdhdGNoRGF0ZRIeLm1vdmllcy52MS5BZGRXYXRjaERhdGVSZXF1ZXN0Gh8ubW92aWVzLnYxLkFkZFdhdGNoRGF0ZVJlc3BvbnNlElIKDUVkaXRXYXRjaERhdGUSHy5tb3ZpZXMudjEuRWRpdFdhdGNoRGF0ZVJlcXVlc3QaIC5tb3ZpZXMudjEuRWRpdFdhdGNoRGF0ZVJlc3BvbnNlElgKD1JlbW92ZVdhdGNoRGF0ZRIhLm1vdmllcy52MS5SZW1vdmVXYXRjaERhdGVSZXF1ZXN0GiIubW92aWVzLnYxLlJlbW92ZVdhdGNoRGF0ZVJlc3BvbnNlQitaKXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vbW92aWVzL3YxO21vdmllc3YxYgZwcm90bzM");
 
 /**
  * @generated from message movies.v1.SearchResult
@@ -177,6 +177,12 @@ export const BacklogEntrySchema: GenMessage<BacklogEntry> = /*@__PURE__*/
  * @generated from message movies.v1.GetStatsRequest
  */
 export type GetStatsRequest = Message<"movies.v1.GetStatsRequest"> & {
+  /**
+   * Act on the family's shared list instead of the caller's solo list.
+   *
+   * @generated from field: bool shared = 1;
+   */
+  shared: boolean;
 };
 
 /**
@@ -299,6 +305,13 @@ export type SearchTitlesRequest = Message<"movies.v1.SearchTitlesRequest"> & {
    * @generated from field: string query = 1;
    */
   query: string;
+
+  /**
+   * Act on the family's shared list instead of the caller's solo list.
+   *
+   * @generated from field: bool shared = 2;
+   */
+  shared: boolean;
 };
 
 /**
@@ -353,6 +366,13 @@ export type AddTitleRequest = Message<"movies.v1.AddTitleRequest"> & {
    * @generated from field: bool unknown_date = 4;
    */
   unknownDate: boolean;
+
+  /**
+   * Act on the family's shared list instead of the caller's solo list.
+   *
+   * @generated from field: bool shared = 5;
+   */
+  shared: boolean;
 };
 
 /**
@@ -400,6 +420,13 @@ export type SetStatusRequest = Message<"movies.v1.SetStatusRequest"> & {
    * @generated from field: bool unknown_date = 3;
    */
   unknownDate: boolean;
+
+  /**
+   * Act on the family's shared list instead of the caller's solo list.
+   *
+   * @generated from field: bool shared = 4;
+   */
+  shared: boolean;
 };
 
 /**
@@ -441,6 +468,13 @@ export type SetRatingRequest = Message<"movies.v1.SetRatingRequest"> & {
    * @generated from field: optional int32 rating = 2;
    */
   rating?: number | undefined;
+
+  /**
+   * Act on the family's shared list instead of the caller's solo list.
+   *
+   * @generated from field: bool shared = 3;
+   */
+  shared: boolean;
 };
 
 /**
@@ -475,6 +509,13 @@ export type RemoveTitleRequest = Message<"movies.v1.RemoveTitleRequest"> & {
    * @generated from field: string id = 1;
    */
   id: string;
+
+  /**
+   * Act on the family's shared list instead of the caller's solo list.
+   *
+   * @generated from field: bool shared = 2;
+   */
+  shared: boolean;
 };
 
 /**
@@ -546,6 +587,13 @@ export type ListBacklogRequest = Message<"movies.v1.ListBacklogRequest"> & {
    * @generated from field: bool on_my_services = 7;
    */
   onMyServices: boolean;
+
+  /**
+   * Act on the family's shared list instead of the caller's solo list.
+   *
+   * @generated from field: bool shared = 8;
+   */
+  shared: boolean;
 };
 
 /**
@@ -796,6 +844,13 @@ export type GetTitleRequest = Message<"movies.v1.GetTitleRequest"> & {
    * @generated from field: string id = 1;
    */
   id: string;
+
+  /**
+   * Act on the family's shared list instead of the caller's solo list.
+   *
+   * @generated from field: bool shared = 2;
+   */
+  shared: boolean;
 };
 
 /**
@@ -875,6 +930,13 @@ export type SetSeasonWatchedRequest = Message<"movies.v1.SetSeasonWatchedRequest
    * @generated from field: bool unknown_date = 4;
    */
   unknownDate: boolean;
+
+  /**
+   * Act on the family's shared list instead of the caller's solo list.
+   *
+   * @generated from field: bool shared = 5;
+   */
+  shared: boolean;
 };
 
 /**
@@ -927,6 +989,13 @@ export type AddWatchDateRequest = Message<"movies.v1.AddWatchDateRequest"> & {
    * @generated from field: string date = 3;
    */
   date: string;
+
+  /**
+   * Act on the family's shared list instead of the caller's solo list.
+   *
+   * @generated from field: bool shared = 4;
+   */
+  shared: boolean;
 };
 
 /**
@@ -981,6 +1050,13 @@ export type EditWatchDateRequest = Message<"movies.v1.EditWatchDateRequest"> & {
    * @generated from field: string date = 4;
    */
   date: string;
+
+  /**
+   * Act on the family's shared list instead of the caller's solo list.
+   *
+   * @generated from field: bool shared = 5;
+   */
+  shared: boolean;
 };
 
 /**
@@ -1030,6 +1106,13 @@ export type RemoveWatchDateRequest = Message<"movies.v1.RemoveWatchDateRequest">
    * @generated from field: int32 index = 3;
    */
   index: number;
+
+  /**
+   * Act on the family's shared list instead of the caller's solo list.
+   *
+   * @generated from field: bool shared = 4;
+   */
+  shared: boolean;
 };
 
 /**

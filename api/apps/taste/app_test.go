@@ -47,6 +47,21 @@ func TestMain(m *testing.M) {
 	if _, err := testDB.Exec(ctx, "DROP SCHEMA IF EXISTS taste CASCADE"); err != nil {
 		panic(err)
 	}
+	// Tests share one database; ensure the family tables exist.
+	if _, err := testDB.Exec(ctx, `
+		CREATE SCHEMA IF NOT EXISTS global;
+		CREATE TABLE IF NOT EXISTS global.families (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		);
+		CREATE TABLE IF NOT EXISTS global.family_members (
+			user_id TEXT PRIMARY KEY,
+			family_id UUID NOT NULL REFERENCES global.families (id) ON DELETE CASCADE,
+			joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			display_name TEXT NOT NULL DEFAULT ''
+		)`); err != nil {
+		panic(err)
+	}
 	a := taste.New(
 		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), testCfg, testDB,
 		nil, noCatalogs(),
@@ -346,4 +361,45 @@ func TestNew_WarnsOnlyWithoutKey(t *testing.T) {
 		noCatalogs(),
 	)
 	assert.Empty(t, logs.String())
+}
+
+// sharedSource is app name's fixed events for family subjects only.
+type sharedSource struct {
+	name   string
+	events []consumption.Event
+}
+
+func (s sharedSource) GetName() string { return s.name }
+
+func (s sharedSource) ListConsumption(
+	_ context.Context, uid string,
+) ([]consumption.Event, error) {
+	if !consumption.IsSharedSubject(uid) {
+		return nil, nil
+	}
+	return s.events, nil
+}
+
+func TestGetStats_SharedReadsOnlyTheSharedMoviesList(t *testing.T) {
+	movie := consumption.Event{
+		Domain: consumption.DomainMovies, ItemID: "movie:603", Title: "The Matrix",
+		Creator: "", Tags: []string{"sci-fi"}, At: read,
+		Signal: consumption.Positive, Reason: "watched",
+	}
+	c := newClient(t,
+		sharedSource{name: "movies", events: []consumption.Event{movie}},
+		sharedSource{name: "books", events: []consumption.Event{book}},
+		userSource{name: "games", events: []consumption.Event{game}, err: nil},
+	)
+	ctx := context.Background()
+
+	shared, err := c.ListEvents(ctx, &tastev1.ListEventsRequest{Shared: true})
+	require.NoError(t, err)
+	require.Len(t, shared.Events, 1, "only movies feed the shared taste")
+	assert.Equal(t, "The Matrix", shared.Events[0].Title)
+
+	solo, err := c.ListEvents(ctx, &tastev1.ListEventsRequest{})
+	require.NoError(t, err)
+	require.Len(t, solo.Events, 1, "shared watches never feed the solo taste")
+	assert.Equal(t, "Outer Wilds", solo.Events[0].Title)
 }

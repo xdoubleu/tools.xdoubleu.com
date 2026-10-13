@@ -50,7 +50,7 @@ describe('TastePage', () => {
       .mockResolvedValueOnce(picks)
       .mockResolvedValueOnce(stats)
       .mockResolvedValueOnce(events)
-    render(await TastePage())
+    render(await TastePage({ searchParams: Promise.resolve({}) }))
     expect(screen.getByTestId('taste-client')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Taste' })).toBeInTheDocument()
     expect(serverClient.getProfile).toHaveBeenCalledWith({})
@@ -68,9 +68,20 @@ describe('TastePage', () => {
     )
   })
 
+  it('reads the shared taste for ?list=shared', async () => {
+    fetchOrNull.mockResolvedValue(null)
+    render(await TastePage({ searchParams: Promise.resolve({ list: 'shared' }) }))
+    expect(serverClient.getProfile).toHaveBeenCalledWith({ shared: true })
+    expect(serverClient.listEvents).toHaveBeenCalledWith({
+      domain: '',
+      limit: 50,
+      shared: true
+    })
+  })
+
   it('renders without seeding when the fetches fail', async () => {
     fetchOrNull.mockResolvedValue(null)
-    render(await TastePage())
+    render(await TastePage({ searchParams: Promise.resolve({}) }))
     expect(swrFallback).toHaveBeenCalledWith(expect.objectContaining({ fallback: {}, keyed: [] }))
   })
 })

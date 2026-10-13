@@ -41,7 +41,7 @@ func TestMCPTools(t *testing.T) {
 
 	msg, err := h.mcpListBacklog(ctx, mcpListBacklogArgs{
 		Status: "want", MediaType: "", Sort: "title", NewSeason: false, OnMyServices: false,
-		Limit: 5, Offset: 0,
+		Limit: 5, Offset: 0, Shared: false,
 	})
 	require.NoError(t, err)
 	resp, ok := msg.(*moviesv1.ListBacklogResponse)
@@ -54,9 +54,9 @@ func TestMCPTools(t *testing.T) {
 	require.True(t, ok)
 	assert.Empty(t, settingsResp.ProviderIds)
 
-	_, err = h.mcpSearchTitles(ctx, mcpSearchArgs{Query: "matrix"})
+	_, err = h.mcpSearchTitles(ctx, mcpSearchArgs{Query: "matrix", Shared: false})
 	require.ErrorContains(t, err, "TMDB is not configured")
 
-	_, err = h.mcpGetTitle(ctx, mcpGetTitleArgs{ID: "not-a-uuid"})
+	_, err = h.mcpGetTitle(ctx, mcpGetTitleArgs{ID: "not-a-uuid", Shared: false})
 	require.ErrorContains(t, err, "invalid id")
 }

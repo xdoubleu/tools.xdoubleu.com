@@ -8,6 +8,7 @@ import {
   useRevalidatePicksWhenDone,
   useTasteProfile
 } from '@/hooks/useTaste'
+import { useSharedList } from '@/hooks/useSharedList'
 import { formatDateTime } from '@/lib/dates'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -89,6 +90,7 @@ function RefreshButton({ waitUntil, pending }: { waitUntil: string; pending: boo
 
 /** The LLM-written taste profile with its refresh control. */
 export default function TasteProfile() {
+  const shared = useSharedList()
   const { data, error, isLoading } = useTasteProfile()
   useRevalidatePicksWhenDone(data?.pending ?? false)
 
@@ -108,7 +110,7 @@ export default function TasteProfile() {
 
   return (
     <SectionCard
-      title="Your taste profile"
+      title={shared ? "The family's taste profile" : 'Your taste profile'}
       action={<RefreshButton waitUntil={data.nextRefreshAt} pending={data.pending} />}
     >
       <div className="space-y-4">

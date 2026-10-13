@@ -16,9 +16,9 @@ import (
 
 func (h *tasteConnectHandler) GetProfile(
 	ctx context.Context,
-	_ *tastev1.GetProfileRequest,
+	req *tastev1.GetProfileRequest,
 ) (*tastev1.GetProfileResponse, error) {
-	uid, err := userID(ctx)
+	sc, err := h.scopeOf(ctx, req.Shared)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func (h *tasteConnectHandler) GetProfile(
 	if !out.Configured {
 		return out, nil
 	}
-	p, err := h.app.profiles.Get(ctx, uid)
+	p, err := h.app.profiles.Get(ctx, sc.subject)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
@@ -60,13 +60,13 @@ func fillProfile(out *tastev1.GetProfileResponse, p *models.Profile) {
 
 func (h *tasteConnectHandler) RefreshProfile(
 	ctx context.Context,
-	_ *tastev1.RefreshProfileRequest,
+	req *tastev1.RefreshProfileRequest,
 ) (*tastev1.RefreshProfileResponse, error) {
-	uid, err := userID(ctx)
+	sc, err := h.scopeOf(ctx, req.Shared)
 	if err != nil {
 		return nil, err
 	}
-	accepted, err := h.app.profiles.Request(ctx, uid)
+	accepted, err := h.app.profiles.Request(ctx, sc.subject)
 	if errors.Is(err, services.ErrNotConfigured) {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).
 			WithCause(err)

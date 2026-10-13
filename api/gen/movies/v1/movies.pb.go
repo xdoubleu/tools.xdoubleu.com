@@ -295,7 +295,9 @@ func (x *BacklogEntry) GetOnMyServices() bool {
 }
 
 type GetStatsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Act on the family's shared list instead of the caller's solo list.
+	Shared        bool `protobuf:"varint,1,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -328,6 +330,13 @@ func (x *GetStatsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetStatsRequest) Descriptor() ([]byte, []int) {
 	return file_movies_v1_movies_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetStatsRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
 }
 
 type MonthWatches struct {
@@ -535,8 +544,10 @@ func (x *GetStatsResponse) GetSeasonsWatched() int32 {
 }
 
 type SearchTitlesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Query string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	// Act on the family's shared list instead of the caller's solo list.
+	Shared        bool `protobuf:"varint,2,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -576,6 +587,13 @@ func (x *SearchTitlesRequest) GetQuery() string {
 		return x.Query
 	}
 	return ""
+}
+
+func (x *SearchTitlesRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
 }
 
 type SearchTitlesResponse struct {
@@ -630,7 +648,9 @@ type AddTitleRequest struct {
 	Status string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
 	// Date new watches unknown instead of now: the movie's, or each aired
 	// season's when a series is added as watched.
-	UnknownDate   bool `protobuf:"varint,4,opt,name=unknown_date,json=unknownDate,proto3" json:"unknown_date,omitempty"`
+	UnknownDate bool `protobuf:"varint,4,opt,name=unknown_date,json=unknownDate,proto3" json:"unknown_date,omitempty"`
+	// Act on the family's shared list instead of the caller's solo list.
+	Shared        bool `protobuf:"varint,5,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -693,6 +713,13 @@ func (x *AddTitleRequest) GetUnknownDate() bool {
 	return false
 }
 
+func (x *AddTitleRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
+}
+
 type AddTitleResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Entry         *BacklogEntry          `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
@@ -743,7 +770,9 @@ type SetStatusRequest struct {
 	Status string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	// As AddTitleRequest.unknown_date; "watched" on a series ticks its aired
 	// seasons.
-	UnknownDate   bool `protobuf:"varint,3,opt,name=unknown_date,json=unknownDate,proto3" json:"unknown_date,omitempty"`
+	UnknownDate bool `protobuf:"varint,3,opt,name=unknown_date,json=unknownDate,proto3" json:"unknown_date,omitempty"`
+	// Act on the family's shared list instead of the caller's solo list.
+	Shared        bool `protobuf:"varint,4,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -799,6 +828,13 @@ func (x *SetStatusRequest) GetUnknownDate() bool {
 	return false
 }
 
+func (x *SetStatusRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
+}
+
 type SetStatusResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Entry         *BacklogEntry          `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
@@ -847,7 +883,9 @@ type SetRatingRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// 1-5 stars; unset clears the rating.
-	Rating        *int32 `protobuf:"varint,2,opt,name=rating,proto3,oneof" json:"rating,omitempty"`
+	Rating *int32 `protobuf:"varint,2,opt,name=rating,proto3,oneof" json:"rating,omitempty"`
+	// Act on the family's shared list instead of the caller's solo list.
+	Shared        bool `protobuf:"varint,3,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -896,6 +934,13 @@ func (x *SetRatingRequest) GetRating() int32 {
 	return 0
 }
 
+func (x *SetRatingRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
+}
+
 type SetRatingResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Entry         *BacklogEntry          `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
@@ -941,8 +986,10 @@ func (x *SetRatingResponse) GetEntry() *BacklogEntry {
 }
 
 type RemoveTitleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Act on the family's shared list instead of the caller's solo list.
+	Shared        bool `protobuf:"varint,2,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -982,6 +1029,13 @@ func (x *RemoveTitleRequest) GetId() string {
 		return x.Id
 	}
 	return ""
+}
+
+func (x *RemoveTitleRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
 }
 
 type RemoveTitleResponse struct {
@@ -1034,7 +1088,9 @@ type ListBacklogRequest struct {
 	// Only entries with has_new_season.
 	NewSeason bool `protobuf:"varint,6,opt,name=new_season,json=newSeason,proto3" json:"new_season,omitempty"`
 	// Only entries with on_my_services.
-	OnMyServices  bool `protobuf:"varint,7,opt,name=on_my_services,json=onMyServices,proto3" json:"on_my_services,omitempty"`
+	OnMyServices bool `protobuf:"varint,7,opt,name=on_my_services,json=onMyServices,proto3" json:"on_my_services,omitempty"`
+	// Act on the family's shared list instead of the caller's solo list.
+	Shared        bool `protobuf:"varint,8,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1114,6 +1170,13 @@ func (x *ListBacklogRequest) GetNewSeason() bool {
 func (x *ListBacklogRequest) GetOnMyServices() bool {
 	if x != nil {
 		return x.OnMyServices
+	}
+	return false
+}
+
+func (x *ListBacklogRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
 	}
 	return false
 }
@@ -1636,8 +1699,10 @@ func (x *ListAvailableProvidersResponse) GetProviders() []*Provider {
 }
 
 type GetTitleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Act on the family's shared list instead of the caller's solo list.
+	Shared        bool `protobuf:"varint,2,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1677,6 +1742,13 @@ func (x *GetTitleRequest) GetId() string {
 		return x.Id
 	}
 	return ""
+}
+
+func (x *GetTitleRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
 }
 
 type GetTitleResponse struct {
@@ -1762,11 +1834,13 @@ func (x *GetTitleResponse) GetWatchLink() string {
 // Ticking adds one watch (now, or unknown); unticking clears the season's
 // watches. Either re-derives the series status unless it is dropped.
 type SetSeasonWatchedRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	SeasonNumber  int32                  `protobuf:"varint,2,opt,name=season_number,json=seasonNumber,proto3" json:"season_number,omitempty"`
-	Watched       bool                   `protobuf:"varint,3,opt,name=watched,proto3" json:"watched,omitempty"`
-	UnknownDate   bool                   `protobuf:"varint,4,opt,name=unknown_date,json=unknownDate,proto3" json:"unknown_date,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Id           string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SeasonNumber int32                  `protobuf:"varint,2,opt,name=season_number,json=seasonNumber,proto3" json:"season_number,omitempty"`
+	Watched      bool                   `protobuf:"varint,3,opt,name=watched,proto3" json:"watched,omitempty"`
+	UnknownDate  bool                   `protobuf:"varint,4,opt,name=unknown_date,json=unknownDate,proto3" json:"unknown_date,omitempty"`
+	// Act on the family's shared list instead of the caller's solo list.
+	Shared        bool `protobuf:"varint,5,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1829,6 +1903,13 @@ func (x *SetSeasonWatchedRequest) GetUnknownDate() bool {
 	return false
 }
 
+func (x *SetSeasonWatchedRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
+}
+
 type SetSeasonWatchedResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Entry         *BacklogEntry          `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
@@ -1884,10 +1965,12 @@ func (x *SetSeasonWatchedResponse) GetSeasons() []*Season {
 // Watch-date edits target the entry's own watches (movies) or, with
 // season_number set, a season's. date is YYYY-MM-DD; empty means unknown.
 type AddWatchDateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	SeasonNumber  *int32                 `protobuf:"varint,2,opt,name=season_number,json=seasonNumber,proto3,oneof" json:"season_number,omitempty"`
-	Date          string                 `protobuf:"bytes,3,opt,name=date,proto3" json:"date,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Id           string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SeasonNumber *int32                 `protobuf:"varint,2,opt,name=season_number,json=seasonNumber,proto3,oneof" json:"season_number,omitempty"`
+	Date         string                 `protobuf:"bytes,3,opt,name=date,proto3" json:"date,omitempty"`
+	// Act on the family's shared list instead of the caller's solo list.
+	Shared        bool `protobuf:"varint,4,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1943,6 +2026,13 @@ func (x *AddWatchDateRequest) GetDate() string {
 	return ""
 }
 
+func (x *AddWatchDateRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
+}
+
 type AddWatchDateResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Entry         *BacklogEntry          `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
@@ -1996,11 +2086,13 @@ func (x *AddWatchDateResponse) GetSeasons() []*Season {
 }
 
 type EditWatchDateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	SeasonNumber  *int32                 `protobuf:"varint,2,opt,name=season_number,json=seasonNumber,proto3,oneof" json:"season_number,omitempty"`
-	Index         int32                  `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
-	Date          string                 `protobuf:"bytes,4,opt,name=date,proto3" json:"date,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Id           string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SeasonNumber *int32                 `protobuf:"varint,2,opt,name=season_number,json=seasonNumber,proto3,oneof" json:"season_number,omitempty"`
+	Index        int32                  `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
+	Date         string                 `protobuf:"bytes,4,opt,name=date,proto3" json:"date,omitempty"`
+	// Act on the family's shared list instead of the caller's solo list.
+	Shared        bool `protobuf:"varint,5,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2063,6 +2155,13 @@ func (x *EditWatchDateRequest) GetDate() string {
 	return ""
 }
 
+func (x *EditWatchDateRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
+}
+
 type EditWatchDateResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Entry         *BacklogEntry          `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
@@ -2116,10 +2215,12 @@ func (x *EditWatchDateResponse) GetSeasons() []*Season {
 }
 
 type RemoveWatchDateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	SeasonNumber  *int32                 `protobuf:"varint,2,opt,name=season_number,json=seasonNumber,proto3,oneof" json:"season_number,omitempty"`
-	Index         int32                  `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Id           string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SeasonNumber *int32                 `protobuf:"varint,2,opt,name=season_number,json=seasonNumber,proto3,oneof" json:"season_number,omitempty"`
+	Index        int32                  `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
+	// Act on the family's shared list instead of the caller's solo list.
+	Shared        bool `protobuf:"varint,4,opt,name=shared,proto3" json:"shared,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2173,6 +2274,13 @@ func (x *RemoveWatchDateRequest) GetIndex() int32 {
 		return x.Index
 	}
 	return 0
+}
+
+func (x *RemoveWatchDateRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
 }
 
 type RemoveWatchDateResponse struct {
@@ -2269,8 +2377,9 @@ const file_movies_v1_movies_proto_rawDesc = "" +
 	"\n" +
 	"\b_runtimeB\x0f\n" +
 	"\r_season_countB\t\n" +
-	"\a_rating\"\x11\n" +
-	"\x0fGetStatsRequest\"V\n" +
+	"\a_rating\")\n" +
+	"\x0fGetStatsRequest\x12\x16\n" +
+	"\x06shared\x18\x01 \x01(\bR\x06shared\"V\n" +
 	"\fMonthWatches\x12\x14\n" +
 	"\x05month\x18\x01 \x01(\tR\x05month\x12\x16\n" +
 	"\x06movies\x18\x02 \x01(\x05R\x06movies\x12\x18\n" +
@@ -2285,34 +2394,39 @@ const file_movies_v1_movies_proto_rawDesc = "" +
 	"\aratings\x18\x03 \x03(\x05R\aratings\x12%\n" +
 	"\x0emovies_watched\x18\x04 \x01(\x05R\rmoviesWatched\x12%\n" +
 	"\x0eseries_watched\x18\x05 \x01(\x05R\rseriesWatched\x12'\n" +
-	"\x0fseasons_watched\x18\x06 \x01(\x05R\x0eseasonsWatched\"+\n" +
+	"\x0fseasons_watched\x18\x06 \x01(\x05R\x0eseasonsWatched\"C\n" +
 	"\x13SearchTitlesRequest\x12\x14\n" +
-	"\x05query\x18\x01 \x01(\tR\x05query\"I\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12\x16\n" +
+	"\x06shared\x18\x02 \x01(\bR\x06shared\"I\n" +
 	"\x14SearchTitlesResponse\x121\n" +
-	"\aresults\x18\x01 \x03(\v2\x17.movies.v1.SearchResultR\aresults\"\x84\x01\n" +
+	"\aresults\x18\x01 \x03(\v2\x17.movies.v1.SearchResultR\aresults\"\x9c\x01\n" +
 	"\x0fAddTitleRequest\x12\x1d\n" +
 	"\n" +
 	"media_type\x18\x01 \x01(\tR\tmediaType\x12\x17\n" +
 	"\atmdb_id\x18\x02 \x01(\x03R\x06tmdbId\x12\x16\n" +
 	"\x06status\x18\x03 \x01(\tR\x06status\x12!\n" +
-	"\funknown_date\x18\x04 \x01(\bR\vunknownDate\"A\n" +
+	"\funknown_date\x18\x04 \x01(\bR\vunknownDate\x12\x16\n" +
+	"\x06shared\x18\x05 \x01(\bR\x06shared\"A\n" +
 	"\x10AddTitleResponse\x12-\n" +
-	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\"]\n" +
+	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\"u\n" +
 	"\x10SetStatusRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12!\n" +
-	"\funknown_date\x18\x03 \x01(\bR\vunknownDate\"B\n" +
+	"\funknown_date\x18\x03 \x01(\bR\vunknownDate\x12\x16\n" +
+	"\x06shared\x18\x04 \x01(\bR\x06shared\"B\n" +
 	"\x11SetStatusResponse\x12-\n" +
-	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\"J\n" +
+	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\"b\n" +
 	"\x10SetRatingRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
-	"\x06rating\x18\x02 \x01(\x05H\x00R\x06rating\x88\x01\x01B\t\n" +
+	"\x06rating\x18\x02 \x01(\x05H\x00R\x06rating\x88\x01\x01\x12\x16\n" +
+	"\x06shared\x18\x03 \x01(\bR\x06sharedB\t\n" +
 	"\a_rating\"B\n" +
 	"\x11SetRatingResponse\x12-\n" +
-	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\"$\n" +
+	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\"<\n" +
 	"\x12RemoveTitleRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x15\n" +
-	"\x13RemoveTitleResponse\"\xd2\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06shared\x18\x02 \x01(\bR\x06shared\"\x15\n" +
+	"\x13RemoveTitleResponse\"\xea\x01\n" +
 	"\x12ListBacklogRequest\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1d\n" +
 	"\n" +
@@ -2322,7 +2436,8 @@ const file_movies_v1_movies_proto_rawDesc = "" +
 	"\x06offset\x18\x05 \x01(\x05R\x06offset\x12\x1d\n" +
 	"\n" +
 	"new_season\x18\x06 \x01(\bR\tnewSeason\x12$\n" +
-	"\x0eon_my_services\x18\a \x01(\bR\fonMyServices\"c\n" +
+	"\x0eon_my_services\x18\a \x01(\bR\fonMyServices\x12\x16\n" +
+	"\x06shared\x18\b \x01(\bR\x06shared\"c\n" +
 	"\x13ListBacklogResponse\x121\n" +
 	"\aentries\x18\x01 \x03(\v2\x17.movies.v1.BacklogEntryR\aentries\x12\x19\n" +
 	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"\xa9\x01\n" +
@@ -2352,45 +2467,50 @@ const file_movies_v1_movies_proto_rawDesc = "" +
 	"\fprovider_ids\x18\x01 \x03(\x03R\vproviderIds\"\x1f\n" +
 	"\x1dListAvailableProvidersRequest\"S\n" +
 	"\x1eListAvailableProvidersResponse\x121\n" +
-	"\tproviders\x18\x01 \x03(\v2\x13.movies.v1.ProviderR\tproviders\"!\n" +
+	"\tproviders\x18\x01 \x03(\v2\x13.movies.v1.ProviderR\tproviders\"9\n" +
 	"\x0fGetTitleRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xdc\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06shared\x18\x02 \x01(\bR\x06shared\"\xdc\x01\n" +
 	"\x10GetTitleResponse\x12-\n" +
 	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\x12\x1a\n" +
 	"\boverview\x18\x02 \x01(\tR\boverview\x12+\n" +
 	"\aseasons\x18\x03 \x03(\v2\x11.movies.v1.SeasonR\aseasons\x121\n" +
 	"\x06offers\x18\x04 \x03(\v2\x19.movies.v1.ProviderOffersR\x06offers\x12\x1d\n" +
 	"\n" +
-	"watch_link\x18\x05 \x01(\tR\twatchLink\"\x8b\x01\n" +
+	"watch_link\x18\x05 \x01(\tR\twatchLink\"\xa3\x01\n" +
 	"\x17SetSeasonWatchedRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12#\n" +
 	"\rseason_number\x18\x02 \x01(\x05R\fseasonNumber\x12\x18\n" +
 	"\awatched\x18\x03 \x01(\bR\awatched\x12!\n" +
-	"\funknown_date\x18\x04 \x01(\bR\vunknownDate\"v\n" +
+	"\funknown_date\x18\x04 \x01(\bR\vunknownDate\x12\x16\n" +
+	"\x06shared\x18\x05 \x01(\bR\x06shared\"v\n" +
 	"\x18SetSeasonWatchedResponse\x12-\n" +
 	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\x12+\n" +
-	"\aseasons\x18\x02 \x03(\v2\x11.movies.v1.SeasonR\aseasons\"u\n" +
+	"\aseasons\x18\x02 \x03(\v2\x11.movies.v1.SeasonR\aseasons\"\x8d\x01\n" +
 	"\x13AddWatchDateRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12(\n" +
 	"\rseason_number\x18\x02 \x01(\x05H\x00R\fseasonNumber\x88\x01\x01\x12\x12\n" +
-	"\x04date\x18\x03 \x01(\tR\x04dateB\x10\n" +
+	"\x04date\x18\x03 \x01(\tR\x04date\x12\x16\n" +
+	"\x06shared\x18\x04 \x01(\bR\x06sharedB\x10\n" +
 	"\x0e_season_number\"r\n" +
 	"\x14AddWatchDateResponse\x12-\n" +
 	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\x12+\n" +
-	"\aseasons\x18\x02 \x03(\v2\x11.movies.v1.SeasonR\aseasons\"\x8c\x01\n" +
+	"\aseasons\x18\x02 \x03(\v2\x11.movies.v1.SeasonR\aseasons\"\xa4\x01\n" +
 	"\x14EditWatchDateRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12(\n" +
 	"\rseason_number\x18\x02 \x01(\x05H\x00R\fseasonNumber\x88\x01\x01\x12\x14\n" +
 	"\x05index\x18\x03 \x01(\x05R\x05index\x12\x12\n" +
-	"\x04date\x18\x04 \x01(\tR\x04dateB\x10\n" +
+	"\x04date\x18\x04 \x01(\tR\x04date\x12\x16\n" +
+	"\x06shared\x18\x05 \x01(\bR\x06sharedB\x10\n" +
 	"\x0e_season_number\"s\n" +
 	"\x15EditWatchDateResponse\x12-\n" +
 	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\x12+\n" +
-	"\aseasons\x18\x02 \x03(\v2\x11.movies.v1.SeasonR\aseasons\"z\n" +
+	"\aseasons\x18\x02 \x03(\v2\x11.movies.v1.SeasonR\aseasons\"\x92\x01\n" +
 	"\x16RemoveWatchDateRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12(\n" +
 	"\rseason_number\x18\x02 \x01(\x05H\x00R\fseasonNumber\x88\x01\x01\x12\x14\n" +
-	"\x05index\x18\x03 \x01(\x05R\x05indexB\x10\n" +
+	"\x05index\x18\x03 \x01(\x05R\x05index\x12\x16\n" +
+	"\x06shared\x18\x04 \x01(\bR\x06sharedB\x10\n" +
 	"\x0e_season_number\"u\n" +
 	"\x17RemoveWatchDateResponse\x12-\n" +
 	"\x05entry\x18\x01 \x01(\v2\x17.movies.v1.BacklogEntryR\x05entry\x12+\n" +

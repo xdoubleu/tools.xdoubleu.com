@@ -11,29 +11,37 @@ import type {
 } from '@/lib/gen/taste/v1/taste_pb'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 import { SAVED_VIEW } from '@/lib/taste/format'
+import { sharedField } from '@/lib/listScope'
+import { useSharedList } from '@/hooks/useSharedList'
 
+/** The stats, log, profile and picks of the list the URL selects: solo or the family's. */
 export function useTasteStats() {
   const client = createServiceClient(TasteService)
-  return useSWR<GetStatsResponse, Error>(swrKeys.tasteStats, () => client.getStats({}))
+  const shared = useSharedList()
+  return useSWR<GetStatsResponse, Error>(swrKeys.tasteStats(shared), () =>
+    client.getStats(sharedField(shared))
+  )
 }
 
 /** The first page of the log; domain '' is every domain. */
 export function useTasteEvents(domain: string) {
   const client = createServiceClient(TasteService)
-  return useSWR<ListEventsResponse, Error>(swrKeys.tasteEvents(domain), () =>
-    client.listEvents({ domain, limit: DEFAULT_PAGE_SIZE })
+  const shared = useSharedList()
+  return useSWR<ListEventsResponse, Error>(swrKeys.tasteEvents(domain, shared), () =>
+    client.listEvents({ domain, limit: DEFAULT_PAGE_SIZE, ...sharedField(shared) })
   )
 }
 
 export function useFetchTasteEventsPage(domain: string) {
   // createServiceClient caches per service, so client is stable.
   const client = createServiceClient(TasteService)
+  const shared = useSharedList()
   return useCallback(
     (offset: number) =>
       client
-        .listEvents({ domain, limit: DEFAULT_PAGE_SIZE, offset })
+        .listEvents({ domain, limit: DEFAULT_PAGE_SIZE, offset, ...sharedField(shared) })
         .then((r) => ({ items: r.events, hasMore: r.hasMore })),
-    [client, domain]
+    [client, domain, shared]
   )
 }
 
@@ -50,19 +58,23 @@ export function profileRefreshInterval(data: GetProfileResponse | undefined): nu
 /** The taste profile, re-read while pending and when the cooldown ends. */
 export function useTasteProfile() {
   const client = createServiceClient(TasteService)
-  return useSWR<GetProfileResponse, Error>(swrKeys.tasteProfile, () => client.getProfile({}), {
-    refreshInterval: profileRefreshInterval
-  })
+  const shared = useSharedList()
+  return useSWR<GetProfileResponse, Error>(
+    swrKeys.tasteProfile(shared),
+    () => client.getProfile(sharedField(shared)),
+    { refreshInterval: profileRefreshInterval }
+  )
 }
 
 /** Queues a profile regeneration, then re-reads the profile. */
 export function useRefreshTasteProfile() {
   const client = createServiceClient(TasteService)
   const { mutate } = useSWRConfig()
+  const shared = useSharedList()
   return useCallback(async () => {
-    await client.refreshProfile({})
-    await Promise.all([mutate(swrKeys.tasteProfile), mutate(isRecommendationsKey)])
-  }, [client, mutate])
+    await client.refreshProfile(sharedField(shared))
+    await Promise.all([mutate(swrKeys.tasteProfile(shared)), mutate(isRecommendationsKey)])
+  }, [client, mutate, shared])
 }
 
 /** Matches every recommendations key, whatever its domain and track. */
@@ -86,10 +98,17 @@ export function useRevalidatePicksWhenDone(pending: boolean) {
  */
 export function useTasteRecommendations(domain: string, view: string) {
   const client = createServiceClient(TasteService)
+  const shared = useSharedList()
   const savedOnly = view === SAVED_VIEW
   return useSWR<ListRecommendationsResponse, Error>(
-    swrKeys.tasteRecommendations(domain, view),
-    () => client.listRecommendations({ domain, track: savedOnly ? '' : view, savedOnly })
+    swrKeys.tasteRecommendations(domain, view, shared),
+    () =>
+      client.listRecommendations({
+        domain,
+        track: savedOnly ? '' : view,
+        savedOnly,
+        ...sharedField(shared)
+      })
   )
 }
 
@@ -110,15 +129,18 @@ export function useSetEmailNewPicks() {
 export function usePickActions() {
   const client = createServiceClient(TasteService)
   const { mutate } = useSWRConfig()
+  const shared = useSharedList()
   return useMemo(() => {
     const after = async <T>(call: Promise<T>) => {
       await call
-      await Promise.all([mutate(isRecommendationsKey), mutate(swrKeys.tasteStats)])
+      await Promise.all([mutate(isRecommendationsKey), mutate(swrKeys.tasteStats(shared))])
     }
+    const scope = sharedField(shared)
     return {
-      setFeedback: (id: string, feedback: string) => after(client.setFeedback({ id, feedback })),
-      setSaved: (id: string, saved: boolean) => after(client.setSaved({ id, saved })),
-      accept: (id: string) => after(client.acceptRecommendation({ id }))
+      setFeedback: (id: string, feedback: string) =>
+        after(client.setFeedback({ id, feedback, ...scope })),
+      setSaved: (id: string, saved: boolean) => after(client.setSaved({ id, saved, ...scope })),
+      accept: (id: string) => after(client.acceptRecommendation({ id, ...scope }))
     }
-  }, [client, mutate])
+  }, [client, mutate, shared])
 }

@@ -11,7 +11,7 @@ func (h *moviesConnectHandler) SearchTitles(
 	ctx context.Context,
 	req *moviesv1.SearchTitlesRequest,
 ) (*moviesv1.SearchTitlesResponse, error) {
-	uid, err := userID(ctx)
+	uid, err := h.owner(ctx, req.Shared)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (h *moviesConnectHandler) AddTitle(
 	ctx context.Context,
 	req *moviesv1.AddTitleRequest,
 ) (*moviesv1.AddTitleResponse, error) {
-	uid, err := userID(ctx)
+	uid, err := h.owner(ctx, req.Shared)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (h *moviesConnectHandler) SetStatus(
 	ctx context.Context,
 	req *moviesv1.SetStatusRequest,
 ) (*moviesv1.SetStatusResponse, error) {
-	uid, err := userID(ctx)
+	uid, err := h.owner(ctx, req.Shared)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (h *moviesConnectHandler) SetRating(
 	ctx context.Context,
 	req *moviesv1.SetRatingRequest,
 ) (*moviesv1.SetRatingResponse, error) {
-	uid, id, err := target(ctx, req.Id)
+	uid, id, err := h.target(ctx, req.Shared, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (h *moviesConnectHandler) RemoveTitle(
 	ctx context.Context,
 	req *moviesv1.RemoveTitleRequest,
 ) (*moviesv1.RemoveTitleResponse, error) {
-	uid, err := userID(ctx)
+	uid, err := h.owner(ctx, req.Shared)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (h *moviesConnectHandler) ListBacklog(
 	ctx context.Context,
 	req *moviesv1.ListBacklogRequest,
 ) (*moviesv1.ListBacklogResponse, error) {
-	uid, err := userID(ctx)
+	uid, err := h.owner(ctx, req.Shared)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (h *moviesConnectHandler) GetTitle(
 	ctx context.Context,
 	req *moviesv1.GetTitleRequest,
 ) (*moviesv1.GetTitleResponse, error) {
-	uid, err := userID(ctx)
+	uid, err := h.owner(ctx, req.Shared)
 	if err != nil {
 		return nil, err
 	}

@@ -62,7 +62,7 @@ describe('MoviesPage', () => {
   it('seeds the default backlog key', async () => {
     const backlog = { entries: [] }
     fetchOrNull.mockResolvedValue(backlog)
-    render(await MoviesPage())
+    render(await MoviesPage({ searchParams: Promise.resolve({}) }))
     expect(screen.getByTestId('movies-client')).toBeInTheDocument()
     expect(serverClient.listBacklog).toHaveBeenCalledWith({
       status: '',
@@ -76,9 +76,21 @@ describe('MoviesPage', () => {
     )
   })
 
+  it('seeds the shared backlog under its own key', async () => {
+    const backlog = { entries: [] }
+    fetchOrNull.mockResolvedValue(backlog)
+    render(await MoviesPage({ searchParams: Promise.resolve({ list: 'shared' }) }))
+    expect(serverClient.listBacklog).toHaveBeenCalledWith(expect.objectContaining({ shared: true }))
+    expect(swrFallback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        keyed: [[['/movies/backlog', '', '', 'added', false, 'shared'], backlog]]
+      })
+    )
+  })
+
   it('renders without seeding when the fetch fails', async () => {
     fetchOrNull.mockResolvedValue(null)
-    render(await MoviesPage())
+    render(await MoviesPage({ searchParams: Promise.resolve({}) }))
     expect(swrFallback).toHaveBeenCalledWith(expect.objectContaining({ keyed: [] }))
   })
 })
@@ -87,7 +99,12 @@ describe('MovieTitlePage', () => {
   it('seeds the title key', async () => {
     const title = { entry: { id: 't-1' } }
     fetchOrNull.mockResolvedValue(title)
-    render(await MovieTitlePage({ params: Promise.resolve({ id: 't-1' }) }))
+    render(
+      await MovieTitlePage({
+        params: Promise.resolve({ id: 't-1' }),
+        searchParams: Promise.resolve({})
+      })
+    )
     expect(screen.getByTestId('title-client')).toHaveTextContent('t-1')
     expect(serverClient.getTitle).toHaveBeenCalledWith({ id: 't-1' })
     expect(swrFallback).toHaveBeenCalledWith(
@@ -97,7 +114,12 @@ describe('MovieTitlePage', () => {
 
   it('renders without seeding when the fetch fails', async () => {
     fetchOrNull.mockResolvedValue(null)
-    render(await MovieTitlePage({ params: Promise.resolve({ id: 't-1' }) }))
+    render(
+      await MovieTitlePage({
+        params: Promise.resolve({ id: 't-1' }),
+        searchParams: Promise.resolve({})
+      })
+    )
     expect(swrFallback).toHaveBeenCalledWith(expect.objectContaining({ fallback: {} }))
   })
 })
@@ -106,7 +128,7 @@ describe('MoviesStatsPage', () => {
   it('seeds the stats key under a breadcrumb back to the backlog', async () => {
     const stats = { months: [] }
     fetchOrNull.mockResolvedValue(stats)
-    render(await MoviesStatsPage())
+    render(await MoviesStatsPage({ searchParams: Promise.resolve({}) }))
     expect(screen.getByTestId('stats-client')).toBeInTheDocument()
     expect(serverClient.getStats).toHaveBeenCalledWith({})
     expect(swrFallback).toHaveBeenCalledWith(
@@ -118,7 +140,7 @@ describe('MoviesStatsPage', () => {
 
   it('renders without seeding when the fetch fails', async () => {
     fetchOrNull.mockResolvedValue(null)
-    render(await MoviesStatsPage())
+    render(await MoviesStatsPage({ searchParams: Promise.resolve({}) }))
     expect(swrFallback).toHaveBeenCalledWith(expect.objectContaining({ fallback: {} }))
   })
 })

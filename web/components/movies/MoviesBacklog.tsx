@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react'
 import type { BacklogEntry } from '@/lib/gen/movies/v1/movies_pb'
 import { useFetchMoviesBacklogPage, useMoviesActions, useMoviesBacklog } from '@/hooks/useMovies'
+import { useSharedList } from '@/hooks/useSharedList'
+import { listHref } from '@/lib/listScope'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import {
   type BacklogFilter,
@@ -45,6 +47,7 @@ const TYPE_TABS = [
 
 function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
   const { setStatus } = useMoviesActions()
+  const shared = useSharedList()
   const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)
   // Rows past the first page aren't refetched, so a saved status is held
@@ -81,7 +84,7 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
 
   return (
     <LinkCard
-      href={`/movies/${entry.id}`}
+      href={listHref(`/movies/${entry.id}`, shared)}
       linkClassName="flex items-center gap-3 p-3"
       actions={
         <>

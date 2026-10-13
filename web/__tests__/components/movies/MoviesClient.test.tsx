@@ -1,4 +1,12 @@
 import React from 'react'
+let mockListParam = ''
+const mockReplace = jest.fn()
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn(), replace: mockReplace }),
+  usePathname: () => '/movies',
+  useSearchParams: () => new URLSearchParams(mockListParam)
+}))
+
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import { Code, ConnectError } from '@connectrpc/connect'
@@ -336,5 +344,31 @@ describe('MoviesClient search', () => {
     mockSearch({ error: new Error('boom') })
     rerender(<MoviesClient />)
     expect(screen.getByText('Search failed. Try again.')).toBeInTheDocument()
+  })
+})
+
+describe('MoviesClient lists', () => {
+  beforeEach(() => {
+    mockListParam = ''
+    mockReplace.mockClear()
+  })
+
+  it('switches to the family list through the URL', () => {
+    render(<MoviesClient />)
+    expect(screen.getByRole('tab', { name: 'Mine' })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(screen.getByRole('tab', { name: 'Family' }))
+    expect(mockReplace).toHaveBeenCalledWith('/movies?list=shared')
+  })
+
+  it('keeps the family list on its links and switches back', () => {
+    mockListParam = 'list=shared'
+    render(<MoviesClient />)
+    expect(screen.getByRole('tab', { name: 'Family' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute(
+      'href',
+      '/movies/stats?list=shared'
+    )
+    fireEvent.click(screen.getByRole('tab', { name: 'Mine' }))
+    expect(mockReplace).toHaveBeenCalledWith('/movies')
   })
 })

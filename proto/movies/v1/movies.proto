@@ -4,6 +4,9 @@ option go_package = "tools.xdoubleu.com/gen/movies/v1;moviesv1";
 
 // media_type is "movie" or "series"; status is "want", "watching",
 // "watched" or "dropped".
+//
+// Every request but the settings ones takes shared: the caller's family keeps
+// a second list, with its own statuses and ratings, next to their solo one.
 
 message SearchResult {
   string media_type = 1;
@@ -44,7 +47,10 @@ message BacklogEntry {
   bool on_my_services = 17;
 }
 
-message GetStatsRequest {}
+message GetStatsRequest {
+  // Act on the family's shared list instead of the caller's solo list.
+  bool shared = 1;
+}
 message MonthWatches {
   // YYYY-MM, in Europe/Brussels.
   string month = 1;
@@ -71,7 +77,11 @@ message GetStatsResponse {
   int32 seasons_watched = 6;
 }
 
-message SearchTitlesRequest { string query = 1; }
+message SearchTitlesRequest {
+  string query = 1;
+  // Act on the family's shared list instead of the caller's solo list.
+  bool shared = 2;
+}
 message SearchTitlesResponse { repeated SearchResult results = 1; }
 
 message AddTitleRequest {
@@ -82,6 +92,8 @@ message AddTitleRequest {
   // Date new watches unknown instead of now: the movie's, or each aired
   // season's when a series is added as watched.
   bool unknown_date = 4;
+  // Act on the family's shared list instead of the caller's solo list.
+  bool shared = 5;
 }
 message AddTitleResponse { BacklogEntry entry = 1; }
 
@@ -91,6 +103,8 @@ message SetStatusRequest {
   // As AddTitleRequest.unknown_date; "watched" on a series ticks its aired
   // seasons.
   bool unknown_date = 3;
+  // Act on the family's shared list instead of the caller's solo list.
+  bool shared = 4;
 }
 message SetStatusResponse { BacklogEntry entry = 1; }
 
@@ -98,10 +112,16 @@ message SetRatingRequest {
   string id = 1;
   // 1-5 stars; unset clears the rating.
   optional int32 rating = 2;
+  // Act on the family's shared list instead of the caller's solo list.
+  bool shared = 3;
 }
 message SetRatingResponse { BacklogEntry entry = 1; }
 
-message RemoveTitleRequest { string id = 1; }
+message RemoveTitleRequest {
+  string id = 1;
+  // Act on the family's shared list instead of the caller's solo list.
+  bool shared = 2;
+}
 message RemoveTitleResponse {}
 
 message ListBacklogRequest {
@@ -118,6 +138,8 @@ message ListBacklogRequest {
   bool new_season = 6;
   // Only entries with on_my_services.
   bool on_my_services = 7;
+  // Act on the family's shared list instead of the caller's solo list.
+  bool shared = 8;
 }
 message ListBacklogResponse {
   repeated BacklogEntry entries = 1;
@@ -164,7 +186,11 @@ message ListAvailableProvidersRequest {}
 // Belgian providers to pick from, by TMDB display priority.
 message ListAvailableProvidersResponse { repeated Provider providers = 1; }
 
-message GetTitleRequest { string id = 1; }
+message GetTitleRequest {
+  string id = 1;
+  // Act on the family's shared list instead of the caller's solo list.
+  bool shared = 2;
+}
 message GetTitleResponse {
   BacklogEntry entry = 1;
   string overview = 2;
@@ -184,6 +210,8 @@ message SetSeasonWatchedRequest {
   int32 season_number = 2;
   bool watched = 3;
   bool unknown_date = 4;
+  // Act on the family's shared list instead of the caller's solo list.
+  bool shared = 5;
 }
 message SetSeasonWatchedResponse {
   BacklogEntry entry = 1;
@@ -196,6 +224,8 @@ message AddWatchDateRequest {
   string id = 1;
   optional int32 season_number = 2;
   string date = 3;
+  // Act on the family's shared list instead of the caller's solo list.
+  bool shared = 4;
 }
 message AddWatchDateResponse {
   BacklogEntry entry = 1;
@@ -207,6 +237,8 @@ message EditWatchDateRequest {
   optional int32 season_number = 2;
   int32 index = 3;
   string date = 4;
+  // Act on the family's shared list instead of the caller's solo list.
+  bool shared = 5;
 }
 message EditWatchDateResponse {
   BacklogEntry entry = 1;
@@ -217,6 +249,8 @@ message RemoveWatchDateRequest {
   string id = 1;
   optional int32 season_number = 2;
   int32 index = 3;
+  // Act on the family's shared list instead of the caller's solo list.
+  bool shared = 4;
 }
 message RemoveWatchDateResponse {
   BacklogEntry entry = 1;

@@ -11,7 +11,8 @@ import (
 )
 
 // ListConsumption returns userID's watching, watched and dropped titles as
-// consumption events, for the taste app. Series and movies are separate
+// consumption events, for the taste app; userID may be a family's shared
+// subject. Series and movies are separate
 // domains; a series is dated and judged by its season watches.
 func (a *Movies) ListConsumption(
 	ctx context.Context,
@@ -96,4 +97,10 @@ func entrySignal(
 		return consumption.StrongPositive, "rewatched", true
 	}
 	return consumption.Positive, "watched", true
+}
+
+// ListSharedSubjects returns the shared-list subject of every family with
+// a title, for the taste app's shared profiles.
+func (a *Movies) ListSharedSubjects(ctx context.Context) ([]string, error) {
+	return a.services.Movies.SharedSubjects(ctx)
 }

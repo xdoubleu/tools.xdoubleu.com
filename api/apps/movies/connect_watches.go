@@ -32,9 +32,13 @@ func optionalInt(n *int32) *int {
 	return &v
 }
 
-// target resolves the caller and entry id of an entry RPC.
-func target(ctx context.Context, rawID string) (string, uuid.UUID, error) {
-	uid, err := userID(ctx)
+// target resolves the list owner and entry id of an entry RPC.
+func (h *moviesConnectHandler) target(
+	ctx context.Context,
+	shared bool,
+	rawID string,
+) (string, uuid.UUID, error) {
+	uid, err := h.owner(ctx, shared)
 	if err != nil {
 		return "", uuid.Nil, err
 	}
@@ -46,7 +50,7 @@ func (h *moviesConnectHandler) SetSeasonWatched(
 	ctx context.Context,
 	req *moviesv1.SetSeasonWatchedRequest,
 ) (*moviesv1.SetSeasonWatchedResponse, error) {
-	uid, id, err := target(ctx, req.Id)
+	uid, id, err := h.target(ctx, req.Shared, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +70,7 @@ func (h *moviesConnectHandler) AddWatchDate(
 	ctx context.Context,
 	req *moviesv1.AddWatchDateRequest,
 ) (*moviesv1.AddWatchDateResponse, error) {
-	uid, id, err := target(ctx, req.Id)
+	uid, id, err := h.target(ctx, req.Shared, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +94,7 @@ func (h *moviesConnectHandler) EditWatchDate(
 	ctx context.Context,
 	req *moviesv1.EditWatchDateRequest,
 ) (*moviesv1.EditWatchDateResponse, error) {
-	uid, id, err := target(ctx, req.Id)
+	uid, id, err := h.target(ctx, req.Shared, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +118,7 @@ func (h *moviesConnectHandler) RemoveWatchDate(
 	ctx context.Context,
 	req *moviesv1.RemoveWatchDateRequest,
 ) (*moviesv1.RemoveWatchDateResponse, error) {
-	uid, id, err := target(ctx, req.Id)
+	uid, id, err := h.target(ctx, req.Shared, req.Id)
 	if err != nil {
 		return nil, err
 	}

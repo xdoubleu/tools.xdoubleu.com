@@ -92,24 +92,40 @@ export const swrKeys = {
   learningPath: (id: string) => `/learningpaths/${id}`,
   todoistConnection: '/learningpaths/todoist-connection',
 
-  moviesBacklog: (status: string, mediaType: string, sort: string, onMyServices: boolean) =>
-    ['/movies/backlog', status, mediaType, sort, onMyServices] as const,
+  moviesBacklog: (
+    status: string,
+    mediaType: string,
+    sort: string,
+    onMyServices: boolean,
+    shared = false
+  ) =>
+    (shared
+      ? ['/movies/backlog', status, mediaType, sort, onMyServices, 'shared']
+      : ['/movies/backlog', status, mediaType, sort, onMyServices]) as readonly unknown[],
   moviesSettings: '/movies/settings',
   moviesProviders: '/movies/providers',
-  moviesSearch: (query: string) => ['/movies/search', query] as const,
-  moviesTitle: (id: string) => `/movies/title/${id}`,
-  moviesStats: '/movies/stats',
+  moviesSearch: (query: string, shared = false) =>
+    (shared
+      ? ['/movies/search', query, 'shared']
+      : ['/movies/search', query]) as readonly unknown[],
+  moviesTitle: (id: string, shared = false) => `/movies/title/${id}${shared ? '/shared' : ''}`,
+  moviesStats: (shared = false) => `/movies/stats${shared ? '/shared' : ''}`,
 
   podcastsFavourites: '/podcasts/favourites',
   podcastsEpisodes: '/podcasts/episodes',
   podcastsSearch: (query: string) => ['/podcasts/search', query] as const,
 
-  tasteStats: '/taste/stats',
-  tasteProfile: '/taste/profile',
+  tasteStats: (shared = false) => `/taste/stats${shared ? '/shared' : ''}`,
+  tasteProfile: (shared = false) => `/taste/profile${shared ? '/shared' : ''}`,
   tasteRecommendationsPrefix: tasteRecommendations,
-  tasteRecommendations: (domain: string, track: string) =>
-    [tasteRecommendations, domain, track] as const,
-  tasteEvents: (domain: string) => ['/taste/events', domain] as const,
+  tasteRecommendations: (domain: string, track: string, shared = false) =>
+    (shared
+      ? [tasteRecommendations, domain, track, 'shared']
+      : [tasteRecommendations, domain, track]) as readonly unknown[],
+  tasteEvents: (domain: string, shared = false) =>
+    (shared
+      ? ['/taste/events', domain, 'shared']
+      : ['/taste/events', domain]) as readonly unknown[],
 
   shoppingList: (ownerUserId: string) => `/shoppinglist?owner=${ownerUserId}`,
   shoppingListExport: (planId: string, excludedGroups: readonly string[]) =>

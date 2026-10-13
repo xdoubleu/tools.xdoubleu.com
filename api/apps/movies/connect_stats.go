@@ -8,9 +8,9 @@ import (
 
 func (h *moviesConnectHandler) GetStats(
 	ctx context.Context,
-	_ *moviesv1.GetStatsRequest,
+	req *moviesv1.GetStatsRequest,
 ) (*moviesv1.GetStatsResponse, error) {
-	uid, err := userID(ctx)
+	uid, err := h.owner(ctx, req.Shared)
 	if err != nil {
 		return nil, err
 	}

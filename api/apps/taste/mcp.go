@@ -17,6 +17,12 @@ type mcpListEventsArgs struct {
 	Domain string `json:"domain,omitempty" jsonschema:"books, feeds, games, movies, series or podcasts; empty for every domain"`
 	Limit  int32  `json:"limit,omitempty"  jsonschema:"max events, default 50"`
 	Offset int32  `json:"offset,omitempty" jsonschema:"pagination offset"`
+	Shared bool   `json:"shared,omitempty" jsonschema:"read the family's shared movies & series taste instead of the user's own"`
+}
+
+//nolint:lll // struct tags can't wrap
+type mcpSharedArgs struct {
+	Shared bool `json:"shared,omitempty" jsonschema:"read the family's shared movies & series taste instead of the user's own"`
 }
 
 //nolint:lll // struct tags can't wrap
@@ -24,6 +30,7 @@ type mcpListRecommendationsArgs struct {
 	Domain    string `json:"domain,omitempty"     jsonschema:"books, feeds, games, movies, series or podcasts; empty for every domain"`
 	Track     string `json:"track,omitempty"      jsonschema:"more (more of what you like) or broaden (broaden your horizon); empty for both"`
 	SavedOnly bool   `json:"saved_only,omitempty" jsonschema:"every saved pick from any run instead of the latest run's"`
+	Shared    bool   `json:"shared,omitempty" jsonschema:"read the family's shared movies & series taste instead of the user's own"`
 }
 
 // RegisterMCPTools exposes the consumption log and its stats, scoped to the
@@ -60,19 +67,24 @@ func (h *tasteConnectHandler) mcpListRecommendations(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.ListRecommendations(ctx, &tastev1.ListRecommendationsRequest{
 		Domain: args.Domain, Track: args.Track, SavedOnly: args.SavedOnly,
+		Shared: args.Shared,
 	}))
 }
 
 func (h *tasteConnectHandler) mcpGetProfile(
-	ctx context.Context, _ mcptools.NoArgs,
+	ctx context.Context, args mcpSharedArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetProfile(ctx, &tastev1.GetProfileRequest{}))
+	return mcptools.Unwrap(h.GetProfile(ctx, &tastev1.GetProfileRequest{
+		Shared: args.Shared,
+	}))
 }
 
 func (h *tasteConnectHandler) mcpGetStats(
-	ctx context.Context, _ mcptools.NoArgs,
+	ctx context.Context, args mcpSharedArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetStats(ctx, &tastev1.GetStatsRequest{}))
+	return mcptools.Unwrap(h.GetStats(ctx, &tastev1.GetStatsRequest{
+		Shared: args.Shared,
+	}))
 }
 
 func (h *tasteConnectHandler) mcpListEvents(
@@ -82,5 +94,6 @@ func (h *tasteConnectHandler) mcpListEvents(
 		Domain: args.Domain,
 		Limit:  args.Limit,
 		Offset: args.Offset,
+		Shared: args.Shared,
 	}))
 }

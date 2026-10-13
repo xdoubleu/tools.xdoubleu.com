@@ -13,7 +13,6 @@ import (
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/consumption"
 	"tools.xdoubleu.com/internal/logging"
-	"tools.xdoubleu.com/internal/mcptools"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/testhelper"
@@ -54,7 +53,7 @@ func TestMCPTools(t *testing.T) {
 		sharedmodels.User{ID: uid, AppAccess: []string{mcpAppName, "podcasts"}},
 	)
 
-	msg, err := h.mcpGetStats(ctx, mcptools.NoArgs{})
+	msg, err := h.mcpGetStats(ctx, mcpSharedArgs{Shared: false})
 	require.NoError(t, err)
 	stats, ok := msg.(*tastev1.GetStatsResponse)
 	require.True(t, ok)
@@ -62,7 +61,7 @@ func TestMCPTools(t *testing.T) {
 
 	msg, err = h.mcpListEvents(
 		ctx,
-		mcpListEventsArgs{Domain: "podcasts", Limit: 5, Offset: 0},
+		mcpListEventsArgs{Domain: "podcasts", Limit: 5, Offset: 0, Shared: false},
 	)
 	require.NoError(t, err)
 	events, ok := msg.(*tastev1.ListEventsResponse)
@@ -71,19 +70,19 @@ func TestMCPTools(t *testing.T) {
 	assert.Equal(t, "Show", events.Events[0].Title)
 
 	msg, err = h.mcpListRecommendations(ctx, mcpListRecommendationsArgs{
-		Domain: "podcasts", Track: "more", SavedOnly: false,
+		Domain: "podcasts", Track: "more", SavedOnly: false, Shared: false,
 	})
 	require.NoError(t, err)
 	recs, ok := msg.(*tastev1.ListRecommendationsResponse)
 	require.True(t, ok)
 	assert.Empty(t, recs.Recommendations)
 
-	msg, err = h.mcpGetProfile(ctx, mcptools.NoArgs{})
+	msg, err = h.mcpGetProfile(ctx, mcpSharedArgs{Shared: false})
 	require.NoError(t, err)
 	profile, ok := msg.(*tastev1.GetProfileResponse)
 	require.True(t, ok)
 	assert.False(t, profile.Configured)
 
-	_, err = h.mcpGetStats(context.Background(), mcptools.NoArgs{})
+	_, err = h.mcpGetStats(context.Background(), mcpSharedArgs{Shared: false})
 	require.Error(t, err)
 }

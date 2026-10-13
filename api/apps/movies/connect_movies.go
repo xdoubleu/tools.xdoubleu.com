@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/gen/movies/v1/moviesv1connect"
 	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/consumption"
 	"tools.xdoubleu.com/internal/contexttools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
@@ -32,6 +33,20 @@ func userID(ctx context.Context) (string, error) {
 		)
 	}
 	return user.ID, nil
+}
+
+// owner is the key the caller's list is stored under: their user ID, or the
+// family's shared-list subject when shared.
+func (h *moviesConnectHandler) owner(ctx context.Context, shared bool) (string, error) {
+	uid, err := userID(ctx)
+	if err != nil || !shared {
+		return uid, err
+	}
+	familyID, err := h.app.family.EnsureFamily(ctx, uid)
+	if err != nil {
+		return "", mapError(err)
+	}
+	return consumption.SharedSubject(familyID), nil
 }
 
 func parseID(raw string) (uuid.UUID, error) {

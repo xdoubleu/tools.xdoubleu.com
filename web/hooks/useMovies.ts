@@ -13,13 +13,21 @@ import type {
 } from '@/lib/gen/movies/v1/movies_pb'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 import { backlogRequest, type BacklogFilter } from '@/lib/movies/format'
+import { sharedField } from '@/lib/listScope'
+import { useSharedList } from '@/hooks/useSharedList'
 
 export function useMoviesBacklog(filter: BacklogFilter) {
   const client = createServiceClient(MoviesService)
+  const shared = useSharedList()
   const { status, mediaType, sort, onMyServices } = filter
   return useSWR<ListBacklogResponse, Error>(
-    swrKeys.moviesBacklog(status, mediaType, sort, onMyServices),
-    () => client.listBacklog({ ...backlogRequest(filter), limit: DEFAULT_PAGE_SIZE })
+    swrKeys.moviesBacklog(status, mediaType, sort, onMyServices, shared),
+    () =>
+      client.listBacklog({
+        ...backlogRequest(filter),
+        ...sharedField(shared),
+        limit: DEFAULT_PAGE_SIZE
+      })
   )
 }
 
@@ -31,26 +39,29 @@ export function useFetchMoviesBacklogPage({
 }: BacklogFilter) {
   // createServiceClient caches per service, so client is stable.
   const client = createServiceClient(MoviesService)
+  const shared = useSharedList()
   return useCallback(
     (offset: number) =>
       client
         .listBacklog({
           ...backlogRequest({ status, mediaType, sort, onMyServices }),
+          ...sharedField(shared),
           limit: DEFAULT_PAGE_SIZE,
           offset
         })
         .then((r) => ({ items: r.entries, hasMore: r.hasMore })),
-    [client, status, mediaType, sort, onMyServices]
+    [client, status, mediaType, sort, onMyServices, shared]
   )
 }
 
 /** TMDB search; no fetch for queries under two characters. */
 export function useMovieSearch(query: string) {
   const client = createServiceClient(MoviesService)
+  const shared = useSharedList()
   const trimmed = query.trim()
   return useSWR<SearchTitlesResponse, Error>(
-    trimmed.length >= 2 ? swrKeys.moviesSearch(trimmed) : null,
-    () => client.searchTitles({ query: trimmed }),
+    trimmed.length >= 2 ? swrKeys.moviesSearch(trimmed, shared) : null,
+    () => client.searchTitles({ query: trimmed, ...sharedField(shared) }),
     { keepPreviousData: true }
   )
 }
@@ -71,13 +82,17 @@ export function useAvailableProviders() {
 
 export function useMovieStats() {
   const client = createServiceClient(MoviesService)
-  return useSWR<GetStatsResponse, Error>(swrKeys.moviesStats, () => client.getStats({}))
+  const shared = useSharedList()
+  return useSWR<GetStatsResponse, Error>(swrKeys.moviesStats(shared), () =>
+    client.getStats(sharedField(shared))
+  )
 }
 
 export function useMovieTitle(id: string) {
   const client = createServiceClient(MoviesService)
-  return useSWR<GetTitleResponse, Error>(id ? swrKeys.moviesTitle(id) : null, () =>
-    client.getTitle({ id })
+  const shared = useSharedList()
+  return useSWR<GetTitleResponse, Error>(id ? swrKeys.moviesTitle(id, shared) : null, () =>
+    client.getTitle({ id, ...sharedField(shared) })
   )
 }
 
@@ -86,9 +101,13 @@ const isMoviesKey = (key: unknown) => {
   return typeof path === 'string' && path.startsWith('/movies/')
 }
 
-/** Backlog writes; each revalidates every movies list, search and title. */
+/**
+ * Backlog writes on the list the URL selects; each revalidates every movies
+ * list, search and title. add and the other-list actions can name a list.
+ */
 export function useMoviesActions() {
   const client = createServiceClient(MoviesService)
+  const shared = useSharedList()
   const { mutate } = useSWRConfig()
   const refresh = (except?: string) => mutate((key) => key !== except && isMoviesKey(key))
 
@@ -104,34 +123,51 @@ export function useMoviesActions() {
       mediaType: string,
       tmdbId: bigint,
       status: 'want' | 'watched',
-      unknownDate = false
+      unknownDate = false,
+      toShared = shared
     ) => {
-      const res = await client.addTitle({ mediaType, tmdbId, status, unknownDate })
+      const res = await client.addTitle({
+        mediaType,
+        tmdbId,
+        status,
+        unknownDate,
+        ...sharedField(toShared)
+      })
       await refresh()
       return res.entry
     },
     setStatus: async (id: string, status: string, unknownDate = false) => {
-      await client.setStatus({ id, status, unknownDate })
+      await client.setStatus({ id, status, unknownDate, ...sharedField(shared) })
       await refresh()
     },
     // rating is 1-5, or 0 to clear.
     setRating: async (id: string, rating: number) => {
-      await client.setRating({ id, rating: rating > 0 ? rating : undefined })
+      await client.setRating({
+        id,
+        rating: rating > 0 ? rating : undefined,
+        ...sharedField(shared)
+      })
       await refresh()
     },
     remove: async (id: string) => {
-      await client.removeTitle({ id })
+      await client.removeTitle({ id, ...sharedField(shared) })
       // The removed title would only revalidate to NotFound.
-      await refresh(swrKeys.moviesTitle(id))
+      await refresh(swrKeys.moviesTitle(id, shared))
     },
     setSeasonWatched: async (id: string, seasonNumber: number, watched: boolean) => {
-      await client.setSeasonWatched({ id, seasonNumber, watched, unknownDate: false })
+      await client.setSeasonWatched({
+        id,
+        seasonNumber,
+        watched,
+        unknownDate: false,
+        ...sharedField(shared)
+      })
       await refresh()
     },
     // seasonNumber undefined targets the entry's own watches (movies); date
     // is YYYY-MM-DD or '' for unknown.
     addWatchDate: async (id: string, seasonNumber: number | undefined, date: string) => {
-      await client.addWatchDate({ id, seasonNumber, date })
+      await client.addWatchDate({ id, seasonNumber, date, ...sharedField(shared) })
       await refresh()
     },
     editWatchDate: async (
@@ -140,11 +176,11 @@ export function useMoviesActions() {
       index: number,
       date: string
     ) => {
-      await client.editWatchDate({ id, seasonNumber, index, date })
+      await client.editWatchDate({ id, seasonNumber, index, date, ...sharedField(shared) })
       await refresh()
     },
     removeWatchDate: async (id: string, seasonNumber: number | undefined, index: number) => {
-      await client.removeWatchDate({ id, seasonNumber, index })
+      await client.removeWatchDate({ id, seasonNumber, index, ...sharedField(shared) })
       await refresh()
     }
   }

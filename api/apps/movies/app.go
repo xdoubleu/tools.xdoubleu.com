@@ -1,5 +1,5 @@
-// Package movies implements a per-user movies & series backlog backed by
-// TMDB metadata.
+// Package movies implements a per-user movies & series backlog, plus one
+// shared with the user's family, backed by TMDB metadata.
 package movies
 
 import (
@@ -20,6 +20,7 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/observability"
+	sharedrepositories "tools.xdoubleu.com/internal/repositories"
 )
 
 //go:embed migrations/*.sql
@@ -28,6 +29,7 @@ var embedMigrations embed.FS
 type Movies struct {
 	app.Base
 	db         postgres.DB
+	family     *sharedrepositories.FamilyRepository
 	services   *services.Services
 	jobQueue   *jobqueue.JobQueue
 	refreshJob jobs.RefreshMetadataJob
@@ -53,8 +55,9 @@ func NewWithTMDB(
 ) *Movies {
 	//nolint:exhaustruct //services, jobs initialised below
 	a := &Movies{
-		Base: app.NewBase(context.Background(), authService, logger, cfg),
-		db:   db,
+		Base:   app.NewBase(context.Background(), authService, logger, cfg),
+		db:     db,
+		family: sharedrepositories.NewFamilyRepository(db),
 	}
 	a.services = services.New(repositories.New(db), authService, tmdbClient)
 

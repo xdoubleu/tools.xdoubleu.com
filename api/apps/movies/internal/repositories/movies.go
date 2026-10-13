@@ -314,3 +314,25 @@ func (r *MoviesRepository) StatusesByKey(
 	}
 	return out, rows.Err()
 }
+
+// SharedOwners returns the owner key of every shared list with a title.
+func (r *MoviesRepository) SharedOwners(ctx context.Context) ([]string, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT DISTINCT user_id FROM movies.user_titles
+		WHERE user_id LIKE 'family:%'
+		ORDER BY user_id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var owners []string
+	for rows.Next() {
+		var owner string
+		if err = rows.Scan(&owner); err != nil {
+			return nil, err
+		}
+		owners = append(owners, owner)
+	}
+	return owners, rows.Err()
+}

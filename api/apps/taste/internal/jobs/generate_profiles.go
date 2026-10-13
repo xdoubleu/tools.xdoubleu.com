@@ -34,6 +34,12 @@ type pickNotifier interface {
 	NotifyNewPicks(ctx context.Context, userID, email string)
 }
 
+// SharedLister returns the subject of every family with a shared list.
+type SharedLister func(ctx context.Context) ([]string, error)
+
+// SharedApp is the only app a shared profile reads.
+const SharedApp = "movies"
+
 // GenerateProfilesJob writes the profiles of users with taste access that
 // were requested or have gone stale, then their picks from the new profile,
 // and emails them when picks were written.
@@ -43,6 +49,7 @@ type GenerateProfilesJob struct {
 	picks    recommender
 	notify   pickNotifier
 	appName  string
+	shared   SharedLister
 }
 
 func NewGenerateProfilesJob(
@@ -54,8 +61,15 @@ func NewGenerateProfilesJob(
 ) GenerateProfilesJob {
 	return GenerateProfilesJob{
 		users: users, profiles: profiles, picks: picks, notify: notify,
-		appName: appName,
+		appName: appName, shared: nil,
 	}
+}
+
+// WithShared also writes the profiles of the subjects lister returns, from
+// the shared app only and without emailing anyone.
+func (j GenerateProfilesJob) WithShared(lister SharedLister) GenerateProfilesJob {
+	j.shared = lister
+	return j
 }
 
 func (j GenerateProfilesJob) ID() string {
@@ -87,19 +101,29 @@ func (j GenerateProfilesJob) Run(ctx context.Context, logger *slog.Logger) error
 	}
 	slices.Sort(ids)
 
+	sharedIDs, err := j.sharedSubjects(ctx)
+	if err != nil {
+		return err
+	}
+	ids = append(ids, sharedIDs...)
+
 	due, err := j.profiles.Due(ctx, ids)
 	if err != nil {
 		return err
 	}
 	var errs []error
 	for _, id := range due {
-		include := CanAccess(byID[id])
+		user, isUser := byID[id]
+		include := CanAccess(user)
+		if !isUser {
+			include = func(appName string) bool { return appName == SharedApp }
+		}
 		genErr := j.profiles.Generate(ctx, id, include)
 		if genErr == nil {
 			genErr = j.picks.Generate(ctx, id, include)
 		}
-		if genErr == nil {
-			j.notify.NotifyNewPicks(ctx, id, byID[id].Email)
+		if genErr == nil && isUser {
+			j.notify.NotifyNewPicks(ctx, id, user.Email)
 		}
 		if genErr != nil {
 			logger.WarnContext(ctx, "taste generation failed",
@@ -108,6 +132,13 @@ func (j GenerateProfilesJob) Run(ctx context.Context, logger *slog.Logger) error
 		}
 	}
 	return errors.Join(errs...)
+}
+
+func (j GenerateProfilesJob) sharedSubjects(ctx context.Context) ([]string, error) {
+	if j.shared == nil {
+		return nil, nil
+	}
+	return j.shared(ctx)
 }
 
 // CanAccess reports which apps u may read, mirroring auth's AppAccess gate.

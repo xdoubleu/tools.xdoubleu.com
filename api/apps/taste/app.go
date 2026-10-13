@@ -1,6 +1,8 @@
 // Package taste builds a per-user consumption log across every media app, its
-// cross-domain statistics, and an LLM-written taste profile. It reaches other
-// apps only through their exported ListConsumption methods.
+// cross-domain statistics, and an LLM-written taste profile. A family's shared
+// movies & series list gets its own profile, treating the family as one
+// person. It reaches other apps only through their exported ListConsumption
+// methods.
 package taste
 
 import (
@@ -22,6 +24,7 @@ import (
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/observability"
 	"tools.xdoubleu.com/internal/openrouter"
+	sharedrepositories "tools.xdoubleu.com/internal/repositories"
 )
 
 //go:embed migrations/*.sql
@@ -40,6 +43,7 @@ type Taste struct {
 	app.Base
 	db       postgres.DB
 	auth     auth.Service
+	family   *sharedrepositories.FamilyRepository
 	log      *services.LogService
 	profiles *services.ProfileService
 	picks    *services.RecommendService
@@ -85,10 +89,11 @@ func NewInner(
 	}
 	//nolint:exhaustruct // jobQueue, genJob initialised below
 	a := &Taste{
-		Base: app.NewBase(context.Background(), authService, logger, cfg),
-		db:   db,
-		auth: authService,
-		log:  services.NewLogService(sources),
+		Base:   app.NewBase(context.Background(), authService, logger, cfg),
+		db:     db,
+		auth:   authService,
+		family: sharedrepositories.NewFamilyRepository(db),
+		log:    services.NewLogService(sources),
 	}
 	profiles := repositories.NewProfilesRepository(db)
 	a.profiles = services.NewProfileService(
@@ -107,7 +112,7 @@ func NewInner(
 	a.jobQueue = jobqueue.NewJobQueue(a.Ctx, logger, amountOfWorkers, jobQueueSize, db)
 	a.genJob = jobs.NewGenerateProfilesJob(
 		authService, a.profiles, a.picks, a.notify, a.GetName(),
-	)
+	).WithShared(sharedSubjects(sources))
 	return a
 }
 
@@ -131,4 +136,24 @@ func (a *Taste) GetName() string {
 
 func (a *Taste) GetDisplayName() string {
 	return "Taste"
+}
+
+// sharedSubjects lists the shared lists of every source that keeps one.
+func sharedSubjects(sources []Source) jobs.SharedLister {
+	type sharer interface {
+		ListSharedSubjects(ctx context.Context) ([]string, error)
+	}
+	return func(ctx context.Context) ([]string, error) {
+		var out []string
+		for _, src := range sources {
+			if s, ok := src.(sharer); ok {
+				subjects, err := s.ListSharedSubjects(ctx)
+				if err != nil {
+					return nil, err
+				}
+				out = append(out, subjects...)
+			}
+		}
+		return out, nil
+	}
 }
