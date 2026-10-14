@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -17,7 +18,21 @@ const (
 	maxFeedback = 60
 	// maxAlreadySuggested caps the earlier picks listed as already suggested.
 	maxAlreadySuggested = 100
+	// maxStories caps the stories already met, newest first.
+	maxStories = 400
 )
+
+// storyDomains are the domains whose items tell a story an adaptation retells.
+//
+//nolint:gochecknoglobals // read-only lookup table
+var storyDomains = map[consumption.Domain]bool{
+	consumption.DomainBooks:    true,
+	consumption.DomainMovies:   true,
+	consumption.DomainSeries:   true,
+	consumption.DomainGames:    true,
+	consumption.DomainFeeds:    false,
+	consumption.DomainPodcasts: false,
+}
 
 // feedbackLabels say what each feedback means to the generator.
 //
@@ -49,6 +64,11 @@ Search the web: for recent releases, lesser-known work, "if you liked X" `+
 		`discussions and reviews, and to confirm each title exists as you name it. `+
 		`Skip the famous canon this person has almost certainly met already. Never `+
 		`propose anything in their history or in the "already suggested" list. `+
+		`Never propose an adaptation, retelling or remake, in any medium, of a `+
+		`story under "Stories already met": they would only go through the same `+
+		`story again. The exception is a story marked "big fan": then an `+
+		`adaptation is welcome, and its why says so. Sequels and spin-offs that `+
+		`tell a new story are fine. `+
 		`Learn from the feedback on earlier picks: lean into the directions that `+
 		`were hits, especially on the broaden track, and away from the misses.
 
@@ -99,6 +119,7 @@ func generatorInput(
 	}
 	b.WriteString("## History\n")
 	b.WriteString(Digest(events, now))
+	writeStories(&b, events)
 	if len(previous) > 0 {
 		b.WriteString("\n## Already suggested\n")
 		for _, r := range previous {
@@ -118,6 +139,26 @@ func generatorInput(
 			r.Title, r.Domain, r.Track, feedbackLabels[r.Feedback])
 	}
 	return b.String()
+}
+
+// writeStories lists every book, movie, series and game in events, newest
+// first, marking the strongly liked ones "big fan".
+func writeStories(b *strings.Builder, events []consumption.Event) {
+	stories := slices.DeleteFunc(slices.Clone(events), func(e consumption.Event) bool {
+		return !storyDomains[e.Domain]
+	})
+	if len(stories) == 0 {
+		return
+	}
+	SortNewestFirst(stories)
+	b.WriteString("\n## Stories already met\n")
+	for _, e := range stories[:min(len(stories), maxStories)] {
+		fan := ""
+		if e.Signal == consumption.StrongPositive {
+			fan = "big fan: "
+		}
+		fmt.Fprintf(b, "- %s (%s, %s%s)\n", e.Title, e.Domain, fan, e.Reason)
+	}
 }
 
 func writeList(b *strings.Builder, heading string, items []string) {

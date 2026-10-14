@@ -34,7 +34,15 @@ func TestBookSignal(t *testing.T) {
 		ok     bool
 	}{
 		{"to read", userBook(models.StatusToRead, nil, nil, nil), 0, "", false},
-		{"reading", userBook(models.StatusReading, nil, nil, nil), 0, "", false},
+		{
+			"reading", userBook(models.StatusReading, nil, nil, nil),
+			consumption.Neutral, "reading", true,
+		},
+		{
+			"re-reading a favourite",
+			userBook(models.StatusReading, nil, []string{models.TagFavourite}, nil),
+			consumption.StrongPositive, "favourite", true,
+		},
 		{
 			"rating wins over dropped",
 			userBook(models.StatusDropped, &two, nil, nil),

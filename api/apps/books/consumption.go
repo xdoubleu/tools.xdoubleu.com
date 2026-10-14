@@ -13,8 +13,9 @@ import (
 // maxAuthors caps the creator credit of a multi-author book.
 const maxAuthors = 2
 
-// ListConsumption returns userID's finished and dropped books as consumption
-// events, for the taste app, dated by their last finish. URL-ingested
+// ListConsumption returns userID's finished, dropped and currently-reading
+// books as consumption events, for the taste app, dated by their last finish,
+// or a book being read for the first time by its last update. URL-ingested
 // articles aren't books and are left out.
 func (app *Books) ListConsumption(
 	ctx context.Context,
@@ -35,8 +36,11 @@ func (app *Books) ListConsumption(
 			continue
 		}
 		var at time.Time
-		if len(ub.FinishedAt) > 0 {
+		switch {
+		case len(ub.FinishedAt) > 0:
 			at = slices.MaxFunc(ub.FinishedAt, time.Time.Compare)
+		case ub.Status == models.StatusReading:
+			at = ub.UpdatedAt
 		}
 		events = append(events, consumption.Event{
 			Domain:  consumption.DomainBooks,
@@ -52,9 +56,12 @@ func (app *Books) ListConsumption(
 	return events, nil
 }
 
-// bookSignal rates a read or dropped book; other statuses aren't consumed.
+// bookSignal rates a read, dropped or currently-reading book; other statuses
+// aren't consumed.
 func bookSignal(ub models.UserBook) (consumption.Signal, string, bool) {
-	if ub.Status != models.StatusRead && ub.Status != models.StatusDropped {
+	switch ub.Status {
+	case models.StatusRead, models.StatusDropped, models.StatusReading:
+	default:
 		return 0, "", false
 	}
 	if ub.Rating != nil {
@@ -69,6 +76,9 @@ func bookSignal(ub models.UserBook) (consumption.Signal, string, bool) {
 	}
 	if len(ub.FinishedAt) > 1 {
 		return consumption.StrongPositive, "re-read", true
+	}
+	if ub.Status == models.StatusReading {
+		return consumption.Neutral, "reading", true
 	}
 	return consumption.Positive, "finished", true
 }
