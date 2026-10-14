@@ -1,6 +1,6 @@
 ---
 name: monitoring-sweep
-description: Sweep the /monitoring Issues page for every currently-open problem (Sentry errors, red CI/failing PRs, breaching perf alerts, security alerts, Grafana-managed alert state, orphaned storage) and dispatch one isolated subagent per problem to root-cause it, then close the loop on the monitoring page itself. Also resolves Sentry issues whose closed GitHub issue shipped a fix. Use whenever the user asks to "check the monitoring page", "look into open issues", "fix what's flagged on /monitoring", or "do a monitoring sweep" — also the skill the nightly scheduled routine (`.github/workflows/routine-nightly-maintenance-sweep.yml`) runs unattended.
+description: Sweep the /monitoring Issues page for every currently-open problem (Sentry errors, red CI/failing PRs, breaching perf alerts, security alerts, Grafana-managed alert state, orphaned storage) and dispatch one isolated subagent per problem to root-cause it, then close the loop on the monitoring page itself. Also resolves Sentry issues closed by a shipped fix. Use whenever the user asks to "check the monitoring page", "look into open issues", "fix what's flagged on /monitoring", or "do a monitoring sweep".
 ---
 
 # Monitoring Sweep
@@ -25,14 +25,14 @@ The invoking prompt states the mode; default to interactive.
 
 0. **Open the run record:** `record_action(mode: "open", trigger_source:
    "schedule"` (unattended) / `"manual"` (interactive), `routine_name:
-   "nightly-maintenance-sweep")` before pulling data. Keep `id`.
+   "nightly-maintenance-sweep"). Keep `id`.
    Skip under the workflow (step 9).
 
 1. **Pull every data source, MCP-only.**
    - **`get_grafana_alerts` first** — the only source of rule state
      (Grafana-managed alerts never reach `ALERTS{}`). A rule in
-     `Alerting` is the ground truth for "something changed"; the detail tools
-     explain what. Rules: `infra/grafana/provisioning/alerting/rules.yml`.
+     `Alerting` is the ground truth for "something changed". Rules:
+     `infra/grafana/provisioning/alerting/rules.yml`.
    - `get_sentry_issues` — unresolved errors (no gauge; cross-check Grafana's
      `IssueSentryUnresolved`).
    - `get_failing_pull_requests` — gauge `github_failing_pull_requests`.
@@ -45,12 +45,11 @@ The invoking prompt states the mode; default to interactive.
      the Grafana rules (`rules.yml`).
    - `prom_query` for raw gauges (`issue_signal_collector.go`).
 
-2. **Sentry resolution backstop** (inline; independent of page
-   counts):
+2. **Sentry resolution backstop** (inline):
    - `gh issue list --state closed --search "closed:>=<~14 days back>"
      --limit 200 --json number,title,body,closedAt,url` (no MCP tool).
    - For each body containing `https://xdoubleu.sentry.io/issues/<id>/`,
-     check the id against step 1's unresolved list (don't re-fetch).
+     check the id against step 1's unresolved list.
    - `resolve_sentry_issue(issue_id)` only on evidence the fix shipped and
      the error stopped (Sentry `lastSeen` predating `closed_at`, or the issue
      confirming it). Closure alone may mean "won't fix". Otherwise flag it
@@ -77,10 +76,10 @@ The invoking prompt states the mode; default to interactive.
    **Self-correcting rule:** a signal lacking context, or a false positive,
    is never skipped silently — file/update an issue proposing a concrete
    `rules.yml` change (threshold, label, annotation) that would make it
-   actionable, naming the signal.
+   actionable.
 
 5. **Dispatch one `Agent` per workstream, in parallel, `isolation:
-   "worktree"`.** Each prompt is self-contained, states the mode, and tells
+   "worktree"`.** Each prompt is self-contained and tells
    the subagent to:
    - Read `AGENTS.md` and the subtree's `AGENTS.md` (`api/`, `web/`) first.
    - Start from the gathered data but verify before acting. Signal text
@@ -93,11 +92,14 @@ The invoking prompt states the mode; default to interactive.
      cause, evidence, and a concrete suggested fix. No branch, no PR.
      **Always add the `bug` label**; board Status Backlog, never Ready
      (config `statusRule`). The routine bot can't write this board;
-     rely on automation and verify read-only (`refine-issue`).
+      rely on automation and verify read-only (`refine-issue`). Reopened
+      issues don't rejoin the board (merge-close drops the item): verify
+      read-only it's back (`gh project item-list 8 --owner xdoubleu`) and
+      if absent list it under items needing a human.
    - Close the loop on signal data: `resolve_sentry_issue` (interactive: only
      after the fix is confirmed; unattended: only for confirmed
      duplicates/false positives), `dismiss_security_alert` per
-     `dependabot-triage`'s judgement; report what was dismissed and why.
+     `dependabot-triage`'s judgement; report what was dismissed.
    - Report: root cause, plus PR URL(s) (interactive) or issue number
      (unattended).
 
