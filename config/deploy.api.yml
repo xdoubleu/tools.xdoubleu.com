@@ -8,6 +8,9 @@
 service: tools-xdoubleu-com-api
 # No `ghcr.io/` prefix: Kamal prepends registry.server itself.
 image: xdoubleu/tools.xdoubleu.com/api
+# Kamal prunes at the end of each deploy but keeps this many old containers
+# (and their images); the default 5 costs several GB on the 40GB VPS.
+retain_containers: 2
 
 servers:
   web:

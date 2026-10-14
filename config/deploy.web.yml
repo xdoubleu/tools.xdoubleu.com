@@ -2,6 +2,7 @@
 
 service: tools-xdoubleu-com-web
 image: xdoubleu/tools.xdoubleu.com/web
+retain_containers: 2
 
 servers:
   web:

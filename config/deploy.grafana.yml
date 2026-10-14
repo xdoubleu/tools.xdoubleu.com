@@ -7,6 +7,7 @@
 service: tools-xdoubleu-com-grafana
 # No registry prefix or tag: Kamal adds both.
 image: xdoubleu/tools.xdoubleu.com/grafana
+retain_containers: 2
 
 servers:
   web:

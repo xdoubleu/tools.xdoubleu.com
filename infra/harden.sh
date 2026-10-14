@@ -105,7 +105,7 @@ systemctl daemon-reload
 systemctl enable --now release-upgrade-check.timer
 
 # --- disk-cleanup timer ------------------------------------------------------------
-# Every deploy leaves a superseded image behind, and Kamal never prunes them.
+# Backstop for what the end-of-deploy `kamal prune` leaves: older retained images, build cache, journal.
 cat >/etc/systemd/system/disk-cleanup.service <<'EOF'
 [Unit]
 Description=Prune old Docker images/build cache and vacuum the journal
@@ -114,7 +114,7 @@ Description=Prune old Docker images/build cache and vacuum the journal
 Type=oneshot
 ExecStart=/usr/bin/docker image prune -af --filter until=168h
 ExecStart=/usr/bin/docker builder prune -af --filter until=168h
-ExecStart=/usr/bin/journalctl --vacuum-size=200M
+ExecStart=/usr/bin/journalctl --vacuum-size=100M
 EOF
 
 cat >/etc/systemd/system/disk-cleanup.timer <<'EOF'

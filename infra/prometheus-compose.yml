@@ -16,8 +16,8 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
-      # Sized for a single VPS with ~3GB free.
-      - "--storage.tsdb.retention.time=90d"
+      # Sized for a single VPS with limited free disk.
+      - "--storage.tsdb.retention.time=30d"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       # Bearer token for the `web` scrape job (written by infra/main.tf).
