@@ -192,7 +192,19 @@ message ListRecommendationsResponse {
   string last_error = 3;
   // Whether a run that writes new picks emails the caller; on by default.
   bool email_new_picks = 4;
+  // A run is queued or running.
+  bool pending = 5;
+  // RFC3339 from when RefreshRecommendations is accepted again; empty when now.
+  string next_refresh_at = 6;
 }
+
+// Queues new picks from the stored profile, without rewriting it.
+message RefreshRecommendationsRequest {
+  // Read or change the family's shared taste instead of the caller's own. It
+  // covers only the shared movies & series list.
+  bool shared = 1;
+}
+message RefreshRecommendationsResponse {}
 
 // Feedback on a pick; empty clears it.
 message SetFeedbackRequest {
@@ -245,6 +257,8 @@ service TasteService {
   rpc RefreshProfile(RefreshProfileRequest) returns (RefreshProfileResponse);
   rpc ListRecommendations(ListRecommendationsRequest)
     returns (ListRecommendationsResponse);
+  rpc RefreshRecommendations(RefreshRecommendationsRequest)
+    returns (RefreshRecommendationsResponse);
   rpc SetFeedback(SetFeedbackRequest) returns (SetFeedbackResponse);
   rpc SetSaved(SetSavedRequest) returns (SetSavedResponse);
   rpc AcceptRecommendation(AcceptRecommendationRequest)

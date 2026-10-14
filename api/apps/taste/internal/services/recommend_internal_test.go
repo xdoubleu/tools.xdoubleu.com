@@ -86,6 +86,7 @@ type recStore struct {
 
 	attempted   time.Time // when SaveError last ran
 	retryBefore time.Time // what Due was asked
+	notBefore   time.Time // what Request was asked
 }
 
 func (r *recStore) List(
@@ -154,8 +155,17 @@ func (r *recStore) Due(
 	return ids, nil
 }
 
-func (r *recStore) Status(context.Context, string) (*time.Time, string, error) {
-	return &r.at, r.note, nil
+func (r *recStore) Status(context.Context, string) (models.PicksStatus, error) {
+	return models.PicksStatus{
+		GeneratedAt: &r.at, Error: r.note, RequestedAt: nil, Pending: false,
+	}, nil
+}
+
+func (r *recStore) Request(
+	_ context.Context, _ string, _, notBefore time.Time,
+) (bool, error) {
+	r.notBefore = notBefore
+	return true, r.listErr
 }
 
 // emptyStore holds no picks; listErr fails List.
@@ -172,7 +182,7 @@ func emptyStore(listErr error) *recStore {
 		savedOnly:  false,
 		calls:      nil,
 
-		attempted: time.Time{}, retryBefore: time.Time{},
+		attempted: time.Time{}, retryBefore: time.Time{}, notBefore: time.Time{},
 	}
 }
 
@@ -375,6 +385,33 @@ func TestRecommend_Due(t *testing.T) {
 	assert.Equal(t, clock.Add(-PicksRetryAfter), store.retryBefore)
 }
 
+func TestRecommend_Request(t *testing.T) {
+	ctx := context.Background()
+	store := emptyStore(nil)
+	//nolint:exhaustruct // only GeneratedAt is read
+	profile := &models.Profile{GeneratedAt: &clock}
+	accepted, err := recService(script(nil), catalogs(), store, oneBook, profile).
+		Request(ctx, "u")
+	require.NoError(t, err)
+	assert.True(t, accepted)
+	assert.Equal(t, clock.Add(-RefreshCooldown), store.notBefore)
+
+	for name, p := range map[string]*models.Profile{
+		"no profile":      nil,
+		"never generated": {},
+	} {
+		_, err = recService(script(nil), catalogs(), store, oneBook, p).Request(ctx, "u")
+		assert.ErrorIs(t, err, ErrNoProfile, name)
+	}
+
+	//nolint:exhaustruct // only Get fails
+	profiles := &memStore{err: errors.New("db")}
+	s := NewRecommendService(NewLogService([]Source{oneBook}), profiles, store,
+		catalogs(), script(nil), "gen", logging.NewNopLogger())
+	_, err = s.Request(ctx, "u")
+	assert.ErrorContains(t, err, "db")
+}
+
 func TestRecommend_OnlyAccessibleDomains(t *testing.T) {
 	llm := script(map[string]string{
 		"taste_candidates": picksJSON(pick("books", "more", "B1"),
@@ -439,7 +476,7 @@ func TestRecommend_Failures(t *testing.T) {
 				recs: nil, touched: nil, rates: nil, replaced: false, at: time.Time{},
 				note: "", listErr: nil, touchedErr: errors.New("db"),
 				savedOnly: false, calls: nil,
-				attempted: time.Time{}, retryBefore: time.Time{},
+				attempted: time.Time{}, retryBefore: time.Time{}, notBefore: time.Time{},
 			}, oneBook, "Your earlier picks couldn't be read.",
 		},
 		{
@@ -484,16 +521,16 @@ func TestRecommend_List(t *testing.T) {
 	//nolint:exhaustruct // a title is enough
 	store.recs = []models.Recommendation{{Title: "X"}}
 	store.at, store.note = clock, "n"
-	recs, at, note, err := recService(script(nil), catalogs(), store, oneBook, nil).
+	recs, st, err := recService(script(nil), catalogs(), store, oneBook, nil).
 		List(context.Background(), "u", "", "", true)
 	require.NoError(t, err)
 	assert.True(t, store.savedOnly)
 	assert.Len(t, recs, 1)
-	assert.Equal(t, clock, *at)
-	assert.Equal(t, "n", note)
+	assert.Equal(t, clock, *st.GeneratedAt)
+	assert.Equal(t, "n", st.Error)
 
 	store.listErr = errors.New("db")
-	_, _, _, err = recService(script(nil), catalogs(), store, oneBook, nil).
+	_, _, err = recService(script(nil), catalogs(), store, oneBook, nil).
 		List(context.Background(), "u", "", "", false)
 	assert.Error(t, err)
 }

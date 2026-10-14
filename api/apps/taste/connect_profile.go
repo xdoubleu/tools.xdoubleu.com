@@ -51,11 +51,19 @@ func fillProfile(out *tastev1.GetProfileResponse, p *models.Profile) {
 	out.GeneratedAt = formatTimePtr(p.GeneratedAt)
 	out.Pending = p.Pending
 	out.LastError = p.LastError
-	if p.RequestedAt != nil {
-		if next := p.RequestedAt.Add(services.RefreshCooldown); next.After(time.Now()) {
-			out.NextRefreshAt = formatTime(next)
-		}
+	out.NextRefreshAt = nextRefreshAt(p.RequestedAt)
+}
+
+// nextRefreshAt is when a refresh requested at requested is accepted again;
+// empty when now.
+func nextRefreshAt(requested *time.Time) string {
+	if requested == nil {
+		return ""
 	}
+	if next := requested.Add(services.RefreshCooldown); next.After(time.Now()) {
+		return formatTime(next)
+	}
+	return ""
 }
 
 func (h *tasteConnectHandler) RefreshProfile(

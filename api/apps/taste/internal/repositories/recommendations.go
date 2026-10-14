@@ -226,8 +226,33 @@ func (r *RecommendationsRepository) SaveError(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// Due returns the users among userIDs with a profile but no picks, or picks
-// older than it, whose picks weren't attempted since retryBefore.
+// picksPending matches a picks request no attempt has started since.
+const picksPending = `(recommendations_requested_at IS NOT NULL
+	AND (recommendations_attempted_at IS NULL
+	     OR recommendations_attempted_at < recommendations_requested_at))`
+
+// Request marks userID's picks pending as of at, unless a request since
+// notBefore exists or there is no profile to write them from; it reports
+// whether it did.
+func (r *RecommendationsRepository) Request(
+	ctx context.Context,
+	userID string,
+	at, notBefore time.Time,
+) (bool, error) {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE taste.profiles SET recommendations_requested_at = $2
+		WHERE user_id = $1 AND generated_at IS NOT NULL
+		  AND (recommendations_requested_at IS NULL
+		       OR recommendations_requested_at < $3)`, userID, at, notBefore)
+	if err != nil {
+		return false, postgres.PgxErrorToHTTPError(err)
+	}
+	return tag.RowsAffected() == 1, nil
+}
+
+// Due returns the users among userIDs with a profile whose picks were
+// requested, or are missing or older than it and weren't attempted since it
+// or since retryBefore.
 func (r *RecommendationsRepository) Due(
 	ctx context.Context,
 	userIDs []string,
@@ -236,9 +261,11 @@ func (r *RecommendationsRepository) Due(
 	rows, err := r.db.Query(ctx, `
 		SELECT user_id FROM taste.profiles
 		WHERE user_id = ANY($1) AND generated_at IS NOT NULL
-		  AND (recommended_at IS NULL OR recommended_at < generated_at)
-		  AND (recommendations_attempted_at IS NULL
-		       OR recommendations_attempted_at < $2)
+		  AND (`+picksPending+`
+		       OR ((recommended_at IS NULL OR recommended_at < generated_at)
+		           AND (recommendations_attempted_at IS NULL
+		                OR recommendations_attempted_at < generated_at
+		                OR recommendations_attempted_at < $2)))
 		ORDER BY user_id`, userIDs, retryBefore)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -255,20 +282,21 @@ func (r *RecommendationsRepository) Due(
 	return due, postgres.PgxErrorToHTTPError(rows.Err())
 }
 
-// Status returns when userID's picks were last generated (nil before the
-// first run) and the last run's error note.
+// Status returns the state of userID's latest picks run; a request is only
+// pending while there is a profile to write picks from.
 func (r *RecommendationsRepository) Status(
 	ctx context.Context,
 	userID string,
-) (*time.Time, string, error) {
-	var at *time.Time
-	var note string
+) (models.PicksStatus, error) {
+	var st models.PicksStatus
 	err := r.db.QueryRow(ctx, `
-		SELECT recommended_at, recommendations_error
+		SELECT recommended_at, recommendations_error,
+		       recommendations_requested_at,
+		       generated_at IS NOT NULL AND `+picksPending+`
 		FROM taste.profiles WHERE user_id = $1`, userID,
-	).Scan(&at, &note)
+	).Scan(&st.GeneratedAt, &st.Error, &st.RequestedAt, &st.Pending)
 	if err == pgx.ErrNoRows { //nolint:errorlint // pgx returns it unwrapped
-		return nil, "", nil
+		return st, nil
 	}
-	return at, note, postgres.PgxErrorToHTTPError(err)
+	return st, postgres.PgxErrorToHTTPError(err)
 }

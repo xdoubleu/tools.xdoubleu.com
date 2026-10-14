@@ -43,8 +43,8 @@ const SharedApp = "movies"
 
 // GenerateProfilesJob writes the profiles of users with taste access that
 // were requested or have gone stale, then their picks from the new profile,
-// and emails them when picks were written. It also retries picks that never
-// finished, from the stored profile.
+// and emails them when picks were written. It also writes picks that were
+// requested on their own or never finished, from the stored profile.
 type GenerateProfilesJob struct {
 	users    userLister
 	profiles profileGenerator
@@ -118,7 +118,7 @@ func (j GenerateProfilesJob) Run(ctx context.Context, logger *slog.Logger) error
 		errs = append(errs, j.generate(ctx, logger, id, byID, true))
 	}
 
-	// A picks step that never finished leaves a fresh profile that isn't due.
+	// Requested or unfinished picks leave a fresh profile that isn't due.
 	rest := slices.DeleteFunc(slices.Clone(ids), func(id string) bool {
 		return slices.Contains(due, id)
 	})

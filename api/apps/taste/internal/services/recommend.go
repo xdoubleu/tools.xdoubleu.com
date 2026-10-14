@@ -144,9 +144,13 @@ type recommendationStore interface {
 		at time.Time,
 	) error
 	SaveError(ctx context.Context, userID, note string, at time.Time) error
-	Status(ctx context.Context, userID string) (*time.Time, string, error)
+	Status(ctx context.Context, userID string) (models.PicksStatus, error)
+	Request(ctx context.Context, userID string, at, notBefore time.Time) (bool, error)
 	Due(ctx context.Context, userIDs []string, retryBefore time.Time) ([]string, error)
 }
+
+// ErrNoProfile means there is no profile to write picks from yet.
+var ErrNoProfile = errors.New("there's no profile to write picks from yet")
 
 // RecommendService proposes picks with the generator, verifies them against
 // the catalogs and ranks them by the score the generator gave each.
@@ -176,19 +180,34 @@ func NewRecommendService(
 	}
 }
 
-// List returns userID's latest picks, or every saved one, with when the
-// latest were made and the last run's error note.
+// List returns userID's latest picks, or every saved one, with the state of
+// the latest run.
 func (s *RecommendService) List(
 	ctx context.Context,
 	userID, domain, track string,
 	savedOnly bool,
-) ([]models.Recommendation, *time.Time, string, error) {
+) ([]models.Recommendation, models.PicksStatus, error) {
+	var st models.PicksStatus
 	recs, err := s.recs.List(ctx, userID, domain, track, savedOnly)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, st, err
 	}
-	at, note, err := s.recs.Status(ctx, userID)
-	return recs, at, note, err
+	st, err = s.recs.Status(ctx, userID)
+	return recs, st, err
+}
+
+// Request queues new picks from the stored profile unless they were requested
+// within RefreshCooldown; it reports whether it did.
+func (s *RecommendService) Request(ctx context.Context, userID string) (bool, error) {
+	profile, err := s.profiles.Get(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+	if profile == nil || profile.GeneratedAt == nil {
+		return false, ErrNoProfile
+	}
+	now := s.now()
+	return s.recs.Request(ctx, userID, now, now.Add(-RefreshCooldown))
 }
 
 // Get returns userID's pick id.
@@ -273,8 +292,9 @@ func trackOrder(t string) int {
 	return 1
 }
 
-// Due returns the users among userIDs whose profile has no picks yet, or only
-// older ones, and whose picks weren't attempted within PicksRetryAfter.
+// Due returns the users among userIDs whose picks were requested, or are
+// missing or older than their profile and weren't attempted since it or within
+// PicksRetryAfter.
 func (s *RecommendService) Due(
 	ctx context.Context,
 	userIDs []string,

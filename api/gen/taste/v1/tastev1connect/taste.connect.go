@@ -36,6 +36,9 @@ const (
 	// TasteServiceListRecommendationsProcedure is the procedure name of the TasteService's
 	// ListRecommendations RPC.
 	TasteServiceListRecommendationsProcedure = "/taste.v1.TasteService/ListRecommendations"
+	// TasteServiceRefreshRecommendationsProcedure is the procedure name of the TasteService's
+	// RefreshRecommendations RPC.
+	TasteServiceRefreshRecommendationsProcedure = "/taste.v1.TasteService/RefreshRecommendations"
 	// TasteServiceSetFeedbackProcedure is the procedure name of the TasteService's SetFeedback RPC.
 	TasteServiceSetFeedbackProcedure = "/taste.v1.TasteService/SetFeedback"
 	// TasteServiceSetSavedProcedure is the procedure name of the TasteService's SetSaved RPC.
@@ -84,6 +87,13 @@ var (
 			Procedure:  TasteServiceListRecommendationsProcedure,
 		}
 	})
+	tasteServiceRefreshRecommendationsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_taste_v1_taste_proto.Services().ByName("TasteService").Methods().ByName("RefreshRecommendations"),
+			Procedure:  TasteServiceRefreshRecommendationsProcedure,
+		}
+	})
 	tasteServiceSetFeedbackSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -121,6 +131,7 @@ type TasteServiceClient interface {
 	GetProfile(context.Context, *v1.GetProfileRequest) (*v1.GetProfileResponse, error)
 	RefreshProfile(context.Context, *v1.RefreshProfileRequest) (*v1.RefreshProfileResponse, error)
 	ListRecommendations(context.Context, *v1.ListRecommendationsRequest) (*v1.ListRecommendationsResponse, error)
+	RefreshRecommendations(context.Context, *v1.RefreshRecommendationsRequest) (*v1.RefreshRecommendationsResponse, error)
 	SetFeedback(context.Context, *v1.SetFeedbackRequest) (*v1.SetFeedbackResponse, error)
 	SetSaved(context.Context, *v1.SetSavedRequest) (*v1.SetSavedResponse, error)
 	AcceptRecommendation(context.Context, *v1.AcceptRecommendationRequest) (*v1.AcceptRecommendationResponse, error)
@@ -140,6 +151,7 @@ type TasteServiceHandler interface {
 	GetProfile(context.Context, *v1.GetProfileRequest) (*v1.GetProfileResponse, error)
 	RefreshProfile(context.Context, *v1.RefreshProfileRequest) (*v1.RefreshProfileResponse, error)
 	ListRecommendations(context.Context, *v1.ListRecommendationsRequest) (*v1.ListRecommendationsResponse, error)
+	RefreshRecommendations(context.Context, *v1.RefreshRecommendationsRequest) (*v1.RefreshRecommendationsResponse, error)
 	SetFeedback(context.Context, *v1.SetFeedbackRequest) (*v1.SetFeedbackResponse, error)
 	SetSaved(context.Context, *v1.SetSavedRequest) (*v1.SetSavedResponse, error)
 	AcceptRecommendation(context.Context, *v1.AcceptRecommendationRequest) (*v1.AcceptRecommendationResponse, error)
@@ -155,6 +167,7 @@ func RegisterTasteServiceHandler(server *connect.Server, svc TasteServiceHandler
 		connect.Method{Spec: tasteServiceGetProfileSpec(), Handler: adapter.getProfile},
 		connect.Method{Spec: tasteServiceRefreshProfileSpec(), Handler: adapter.refreshProfile},
 		connect.Method{Spec: tasteServiceListRecommendationsSpec(), Handler: adapter.listRecommendations},
+		connect.Method{Spec: tasteServiceRefreshRecommendationsSpec(), Handler: adapter.refreshRecommendations},
 		connect.Method{Spec: tasteServiceSetFeedbackSpec(), Handler: adapter.setFeedback},
 		connect.Method{Spec: tasteServiceSetSavedSpec(), Handler: adapter.setSaved},
 		connect.Method{Spec: tasteServiceAcceptRecommendationSpec(), Handler: adapter.acceptRecommendation},
@@ -183,6 +196,10 @@ func (UnimplementedTasteServiceHandler) RefreshProfile(context.Context, *v1.Refr
 
 func (UnimplementedTasteServiceHandler) ListRecommendations(context.Context, *v1.ListRecommendationsRequest) (*v1.ListRecommendationsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "taste.v1.TasteService.ListRecommendations is not implemented")
+}
+
+func (UnimplementedTasteServiceHandler) RefreshRecommendations(context.Context, *v1.RefreshRecommendationsRequest) (*v1.RefreshRecommendationsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "taste.v1.TasteService.RefreshRecommendations is not implemented")
 }
 
 func (UnimplementedTasteServiceHandler) SetFeedback(context.Context, *v1.SetFeedbackRequest) (*v1.SetFeedbackResponse, error) {
@@ -240,6 +257,14 @@ func (c *tasteServiceClient) RefreshProfile(ctx context.Context, req *v1.Refresh
 func (c *tasteServiceClient) ListRecommendations(ctx context.Context, req *v1.ListRecommendationsRequest) (*v1.ListRecommendationsResponse, error) {
 	var res v1.ListRecommendationsResponse
 	if err := c.client.CallUnary(ctx, tasteServiceListRecommendationsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *tasteServiceClient) RefreshRecommendations(ctx context.Context, req *v1.RefreshRecommendationsRequest) (*v1.RefreshRecommendationsResponse, error) {
+	var res v1.RefreshRecommendationsResponse
+	if err := c.client.CallUnary(ctx, tasteServiceRefreshRecommendationsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -333,6 +358,18 @@ func (h tasteServiceHandler) listRecommendations(ctx context.Context, _ connect.
 		return err
 	}
 	res, err := h.svc.ListRecommendations(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h tasteServiceHandler) refreshRecommendations(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RefreshRecommendationsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RefreshRecommendations(ctx, &req)
 	if err != nil {
 		return err
 	}

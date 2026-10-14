@@ -42,18 +42,20 @@ func (r *ProfilesRepository) Get(
 	return &p, nil
 }
 
-// Request marks userID's profile pending as of at, unless a request since
-// notBefore exists; it reports whether it did.
+// Request marks userID's profile, and the picks written from it, pending as
+// of at, unless a request since notBefore exists; it reports whether it did.
 func (r *ProfilesRepository) Request(
 	ctx context.Context,
 	userID string,
 	at, notBefore time.Time,
 ) (bool, error) {
 	tag, err := r.db.Exec(ctx, `
-		INSERT INTO taste.profiles (user_id, requested_at, pending)
-		VALUES ($1, $2, true)
+		INSERT INTO taste.profiles
+		    (user_id, requested_at, pending, recommendations_requested_at)
+		VALUES ($1, $2, true, $2)
 		ON CONFLICT (user_id) DO UPDATE
-		SET requested_at = EXCLUDED.requested_at, pending = true
+		SET requested_at = EXCLUDED.requested_at, pending = true,
+		    recommendations_requested_at = EXCLUDED.requested_at
 		WHERE taste.profiles.requested_at IS NULL
 		   OR taste.profiles.requested_at < $3`, userID, at, notBefore)
 	if err != nil {

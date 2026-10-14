@@ -426,13 +426,114 @@ func TestRecommendations_RetriedWhenPicksNeverFinished(t *testing.T) {
 	).Scan(&after))
 	assert.True(t, generated.Equal(after), "from the stored profile")
 
-	lose("now() - interval '1 hour'")
+	lose("generated_at + interval '1 second'")
 	require.NoError(t, a.GenerateProfilesNow(ctx))
 	assert.Empty(t, listRecs(t, c, "", "").Recommendations, "backs off after an attempt")
 
+	lose("generated_at - interval '1 second'")
+	require.NoError(t, a.GenerateProfilesNow(ctx))
+	assert.Len(t, listRecs(t, c, "", "").Recommendations, 2,
+		"an attempt from before the profile doesn't count")
+
 	lose("now() - interval '7 hours'")
+	_, err := testDB.Exec(ctx, `
+		UPDATE taste.profiles SET generated_at = now() - interval '8 hours'
+		WHERE user_id = $1`, userID)
+	require.NoError(t, err)
 	require.NoError(t, a.GenerateProfilesNow(ctx))
 	assert.Len(t, listRecs(t, c, "", "").Recommendations, 2, "retried once it is over")
+}
+
+func refreshPicks(c tastev1connect.TasteServiceClient) error {
+	_, err := c.RefreshRecommendations(context.Background(),
+		&tastev1.RefreshRecommendationsRequest{Shared: false})
+	return err
+}
+
+func TestRecommendations_RefreshOnTheirOwn(t *testing.T) {
+	ctx := context.Background()
+	a, c := recsApp(t, sharedmocks.NewMockedAdminAuthService(userID))
+	err := refreshPicks(c)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	assert.ErrorContains(t, err, "no profile")
+
+	require.NoError(t, a.GenerateProfilesNow(ctx))
+	first := listRecs(t, c, "", "")
+	assert.False(t, first.Pending)
+	assert.Empty(t, first.NextRefreshAt)
+	var profileAt time.Time
+	require.NoError(t, testDB.QueryRow(ctx,
+		"SELECT generated_at FROM taste.profiles WHERE user_id = $1", userID,
+	).Scan(&profileAt))
+
+	require.NoError(t, refreshPicks(c))
+	err = refreshPicks(c)
+	assert.Equal(t, connect.CodeResourceExhausted, connect.CodeOf(err))
+	assert.ErrorContains(t, err, "refreshed in the last 6h0m0s")
+	resp := listRecs(t, c, "", "")
+	assert.True(t, resp.Pending)
+	next, err := time.Parse(time.RFC3339, resp.NextRefreshAt)
+	require.NoError(t, err)
+	assert.WithinDuration(t, time.Now().Add(6*time.Hour), next, time.Minute)
+	assert.Empty(t, getProfile(t, c).NextRefreshAt, "the profile has its own cooldown")
+
+	require.NoError(t, a.GenerateProfilesNow(ctx))
+	resp = listRecs(t, c, "", "")
+	assert.False(t, resp.Pending)
+	assert.Len(t, resp.Recommendations, 2)
+	assert.NotEqual(t, first.Recommendations[0].Id, resp.Recommendations[0].Id,
+		"new picks")
+	var after time.Time
+	require.NoError(t, testDB.QueryRow(ctx,
+		"SELECT generated_at FROM taste.profiles WHERE user_id = $1", userID,
+	).Scan(&after))
+	assert.True(t, profileAt.Equal(after), "the profile is kept")
+}
+
+func TestRecommendations_ProfileRefreshQueuesPicks(t *testing.T) {
+	ctx := context.Background()
+	a, c := recsApp(t, sharedmocks.NewMockedAdminAuthService(userID))
+	require.NoError(t, a.GenerateProfilesNow(ctx))
+
+	require.NoError(t, refresh(c))
+	resp := listRecs(t, c, "", "")
+	assert.True(t, resp.Pending, "pending until the picks are written too")
+	assert.NotEmpty(t, resp.NextRefreshAt)
+	assert.Equal(t, connect.CodeResourceExhausted, connect.CodeOf(refreshPicks(c)))
+
+	// A restart killed the run after the profile was saved.
+	_, err := testDB.Exec(ctx, `
+		UPDATE taste.profiles SET pending = false, generated_at = now()
+		WHERE user_id = $1`, userID)
+	require.NoError(t, err)
+	assert.True(t, listRecs(t, c, "", "").Pending)
+
+	require.NoError(t, a.GenerateProfilesNow(ctx))
+	resp = listRecs(t, c, "", "")
+	assert.False(t, resp.Pending)
+	assert.Len(t, resp.Recommendations, 2)
+}
+
+func TestRecommendations_RefreshNotConfigured(t *testing.T) {
+	err := refreshPicks(newClient(t))
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+}
+
+func TestRecommendations_RequestPendingUntilAttempted(t *testing.T) {
+	ctx := context.Background()
+	a, c := recsApp(t, sharedmocks.NewMockedAdminAuthService(userID))
+	require.NoError(t, a.GenerateProfilesNow(ctx))
+
+	// Asked for after the latest attempt started, e.g. while it ran.
+	_, err := testDB.Exec(ctx, `
+		UPDATE taste.profiles
+		SET recommendations_attempted_at = now() - interval '1 hour',
+		    recommendations_requested_at = now() - interval '30 minutes'
+		WHERE user_id = $1`, userID)
+	require.NoError(t, err)
+	assert.True(t, listRecs(t, c, "", "").Pending)
+	require.NoError(t, a.GenerateProfilesNow(ctx))
+	assert.False(t, listRecs(t, c, "", "").Pending)
 }
 
 // failingPicksLLM writes profiles but fails every pick proposal, counting them.

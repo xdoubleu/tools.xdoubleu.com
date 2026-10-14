@@ -11,6 +11,7 @@ const mockClient = {
   getProfile: jest.fn().mockResolvedValue({}),
   listRecommendations: jest.fn().mockResolvedValue({}),
   refreshProfile: jest.fn().mockResolvedValue({}),
+  refreshRecommendations: jest.fn().mockResolvedValue({}),
   getStats: jest.fn().mockResolvedValue({}),
   listEvents: jest.fn().mockResolvedValue({ events: [{ itemId: 'b1' }], hasMore: true }),
   setFeedback: jest.fn().mockResolvedValue({}),
@@ -27,12 +28,12 @@ jest.mock('@/lib/gen/taste/v1/taste_pb', () => ({
 import useSWR from 'swr'
 import { GetProfileResponseSchema } from '@/lib/gen/taste/v1/taste_pb'
 import {
-  PROFILE_POLL_MS,
+  PENDING_POLL_MS,
   isRecommendationsKey,
-  profileRefreshInterval,
+  pendingRefreshInterval,
   useFetchTasteEventsPage,
+  useRefreshTastePicks,
   useRefreshTasteProfile,
-  useRevalidatePicksWhenDone,
   useTasteEvents,
   useTasteProfile,
   usePickActions,
@@ -99,34 +100,34 @@ describe('useTasteProfile', () => {
     renderHook(() => useTasteProfile())
     expect(mockClient.getProfile).toHaveBeenCalledWith({})
     expect(mockUseSWR).toHaveBeenCalledWith('/taste/profile', expect.any(Function), {
-      refreshInterval: profileRefreshInterval
+      refreshInterval: pendingRefreshInterval
     })
   })
 })
 
-describe('profileRefreshInterval', () => {
+describe('pendingRefreshInterval', () => {
   const at = (ms: number) => new Date(Date.now() + ms).toISOString()
   const profile = (pending: boolean, nextRefreshAt: string) =>
     create(GetProfileResponseSchema, { pending, nextRefreshAt })
 
   it('polls while pending', () => {
-    expect(profileRefreshInterval(profile(true, at(3_600_000)))).toBe(PROFILE_POLL_MS)
+    expect(pendingRefreshInterval(profile(true, at(3_600_000)))).toBe(PENDING_POLL_MS)
   })
 
   it('re-reads once the cooldown ends', () => {
-    const delay = profileRefreshInterval(profile(false, at(3_600_000)))
+    const delay = pendingRefreshInterval(profile(false, at(3_600_000)))
     expect(delay).toBeGreaterThan(3_590_000)
     expect(delay).toBeLessThanOrEqual(3_600_000)
   })
 
   it('waits at least the poll interval for a cooldown about to end', () => {
-    expect(profileRefreshInterval(profile(false, at(1_000)))).toBe(PROFILE_POLL_MS)
-    expect(profileRefreshInterval(profile(false, at(-60_000)))).toBe(PROFILE_POLL_MS)
+    expect(pendingRefreshInterval(profile(false, at(1_000)))).toBe(PENDING_POLL_MS)
+    expect(pendingRefreshInterval(profile(false, at(-60_000)))).toBe(PENDING_POLL_MS)
   })
 
   it('stops without a cooldown or data', () => {
-    expect(profileRefreshInterval(profile(false, ''))).toBe(0)
-    expect(profileRefreshInterval(undefined)).toBe(0)
+    expect(pendingRefreshInterval(profile(false, ''))).toBe(0)
+    expect(pendingRefreshInterval(undefined)).toBe(0)
   })
 })
 
@@ -162,7 +163,8 @@ describe('useTasteRecommendations', () => {
     renderHook(() => useTasteRecommendations('books', 'broaden'))
     expect(mockUseSWR).toHaveBeenCalledWith(
       ['/taste/recommendations', 'books', 'broaden'],
-      expect.any(Function)
+      expect.any(Function),
+      { refreshInterval: pendingRefreshInterval }
     )
     expect(mockClient.listRecommendations).toHaveBeenCalledWith({
       domain: 'books',
@@ -175,7 +177,8 @@ describe('useTasteRecommendations', () => {
     renderHook(() => useTasteRecommendations('', 'saved'))
     expect(mockUseSWR).toHaveBeenCalledWith(
       ['/taste/recommendations', '', 'saved'],
-      expect.any(Function)
+      expect.any(Function),
+      { refreshInterval: pendingRefreshInterval }
     )
     expect(mockClient.listRecommendations).toHaveBeenCalledWith({
       domain: '',
@@ -226,19 +229,20 @@ describe('isRecommendationsKey', () => {
   })
 })
 
-describe('useRevalidatePicksWhenDone', () => {
-  it('re-reads the picks only when a pending run finishes', () => {
-    const { rerender } = renderHook(({ pending }) => useRevalidatePicksWhenDone(pending), {
-      initialProps: { pending: false }
-    })
-    expect(mockMutate).not.toHaveBeenCalled()
-    rerender({ pending: true })
-    expect(mockMutate).not.toHaveBeenCalled()
-    rerender({ pending: false })
-    expect(mockMutate).toHaveBeenCalledTimes(1)
+describe('useRefreshTastePicks', () => {
+  it('queues new picks, then re-reads them', async () => {
+    const { result } = renderHook(() => useRefreshTastePicks())
+    await result.current()
+    expect(mockClient.refreshRecommendations).toHaveBeenCalledWith({})
     expect(mockMutate).toHaveBeenCalledWith(isRecommendationsKey)
-    rerender({ pending: false })
-    expect(mockMutate).toHaveBeenCalledTimes(1)
+    expect(mockMutate).not.toHaveBeenCalledWith('/taste/profile')
+  })
+
+  it('re-reads nothing when the refresh is refused', async () => {
+    mockClient.refreshRecommendations.mockRejectedValueOnce(new Error('too soon'))
+    const { result } = renderHook(() => useRefreshTastePicks())
+    await expect(result.current()).rejects.toThrow('too soon')
+    expect(mockMutate).not.toHaveBeenCalled()
   })
 })
 

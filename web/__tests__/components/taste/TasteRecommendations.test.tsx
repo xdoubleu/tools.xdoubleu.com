@@ -1,10 +1,14 @@
 import React from 'react'
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
+import { Code, ConnectError } from '@connectrpc/connect'
+
+const mockRefresh = jest.fn()
 
 jest.mock('@/hooks/useTaste', () => ({
   useTasteRecommendations: jest.fn(),
-  useSetEmailNewPicks: jest.fn()
+  useSetEmailNewPicks: jest.fn(),
+  useRefreshTastePicks: jest.fn(() => mockRefresh)
 }))
 jest.mock('@/components/taste/PickActions', () => ({
   __esModule: true,
@@ -225,5 +229,56 @@ describe('TasteRecommendations', () => {
     })
     expect(screen.getByRole('status')).toHaveTextContent("Couldn't save that")
     expect(screen.getByRole('checkbox', { name: /Email me/ })).not.toBeDisabled()
+  })
+
+  it('refreshes the picks on their own', async () => {
+    mockRefresh.mockResolvedValue(undefined)
+    mockPicks({ data: create(ListRecommendationsResponseSchema, { recommendations: [hyperion] }) })
+    render(<TasteRecommendations />)
+    expect(screen.queryByText('Writing new picks…')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh picks' }))
+    expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh picks' })).toBeEnabled())
+    expect(mockRefresh).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows a pending run and keeps the current picks', () => {
+    mockPicks({
+      data: create(ListRecommendationsResponseSchema, {
+        recommendations: [hyperion],
+        pending: true,
+        nextRefreshAt: '2026-10-14T21:00:00Z'
+      })
+    })
+    render(<TasteRecommendations />)
+    expect(screen.getByText('Writing new picks…')).toBeInTheDocument()
+    expect(screen.getByText('Hyperion')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
+    expect(screen.queryByText(/Again after/)).not.toBeInTheDocument()
+  })
+
+  it('waits out the cooldown', () => {
+    mockPicks({
+      data: create(ListRecommendationsResponseSchema, { nextRefreshAt: '2026-10-14T21:00:00Z' })
+    })
+    render(<TasteRecommendations />)
+    expect(screen.getByRole('button', { name: 'Refresh picks' })).toBeDisabled()
+    expect(screen.getByText(/Again after/)).toBeInTheDocument()
+  })
+
+  it('shows a refused refresh', async () => {
+    mockRefresh.mockRejectedValue(
+      new ConnectError("there's no profile to write picks from yet", Code.FailedPrecondition)
+    )
+    mockPicks({ data: create(ListRecommendationsResponseSchema, {}) })
+    render(<TasteRecommendations />)
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh picks' }))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('no profile'))
+  })
+
+  it('has no refresh control before the picks load', () => {
+    mockPicks({ isLoading: true })
+    render(<TasteRecommendations />)
+    expect(screen.queryByRole('button', { name: /Refresh/ })).not.toBeInTheDocument()
   })
 })

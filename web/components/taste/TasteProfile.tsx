@@ -1,17 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { ConnectError } from '@connectrpc/connect'
 import type { ProfileSections } from '@/lib/gen/taste/v1/taste_pb'
-import {
-  useRefreshTasteProfile,
-  useRevalidatePicksWhenDone,
-  useTasteProfile
-} from '@/hooks/useTaste'
+import { useRefreshTasteProfile, useTasteProfile } from '@/hooks/useTaste'
 import { useSharedList } from '@/hooks/useSharedList'
 import { formatDateTime } from '@/lib/dates'
+import RefreshButton from '@/components/taste/RefreshButton'
 import { Alert } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
 import { SectionCard } from '@/components/ui/section-card'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 
@@ -46,53 +40,11 @@ function Sections({ sections }: { sections: ProfileSections }) {
   )
 }
 
-function RefreshButton({ waitUntil, pending }: { waitUntil: string; pending: boolean }) {
-  const refresh = useRefreshTasteProfile()
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-
-  async function onClick() {
-    setBusy(true)
-    setError('')
-    try {
-      await refresh()
-    } catch (err) {
-      setError(ConnectError.from(err).rawMessage)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const label = pending || busy ? 'Refreshing…' : 'Refresh'
-  return (
-    <div className="flex flex-col items-end gap-1">
-      <Button
-        size="sm"
-        variant="secondary"
-        onClick={onClick}
-        disabled={pending || busy || waitUntil !== ''}
-      >
-        {label}
-      </Button>
-      {waitUntil !== '' && !pending && (
-        <p className="text-xs text-muted" suppressHydrationWarning>
-          Again after {formatDateTime(waitUntil)}
-        </p>
-      )}
-      {error && (
-        <p role="alert" className="text-xs text-danger">
-          {error}
-        </p>
-      )}
-    </div>
-  )
-}
-
 /** The LLM-written taste profile with its refresh control. */
 export default function TasteProfile() {
   const shared = useSharedList()
   const { data, error, isLoading } = useTasteProfile()
-  useRevalidatePicksWhenDone(data?.pending ?? false)
+  const refresh = useRefreshTasteProfile()
 
   if (isLoading && !data) return <LoadingState label="profile" />
   if (error && !data) return <ErrorState what="profile" />
@@ -111,7 +63,9 @@ export default function TasteProfile() {
   return (
     <SectionCard
       title={shared ? "The family's taste profile" : 'Your taste profile'}
-      action={<RefreshButton waitUntil={data.nextRefreshAt} pending={data.pending} />}
+      action={
+        <RefreshButton refresh={refresh} waitUntil={data.nextRefreshAt} pending={data.pending} />
+      }
     >
       <div className="space-y-4">
         {data.lastError && <Alert tone="warn">{data.lastError}</Alert>}

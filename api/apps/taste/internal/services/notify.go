@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"time"
 
 	"tools.xdoubleu.com/apps/taste/internal/models"
 	"tools.xdoubleu.com/internal/mailer"
@@ -31,7 +30,7 @@ type latestPicks interface {
 		ctx context.Context,
 		userID, domain, track string,
 		savedOnly bool,
-	) ([]models.Recommendation, *time.Time, string, error)
+	) ([]models.Recommendation, models.PicksStatus, error)
 }
 
 // NotifyService emails a user when a run has written new picks, unless they
@@ -90,7 +89,7 @@ func (s *NotifyService) NotifyNewPicks(ctx context.Context, userID, email string
 	if !enabled {
 		return
 	}
-	recs, _, _, err := s.picks.List(ctx, userID, "", "", false)
+	recs, _, err := s.picks.List(ctx, userID, "", "", false)
 	if err != nil {
 		s.logger.WarnContext(ctx, "taste: couldn't read the new picks",
 			slog.String("user_id", userID), slog.Any("error", err))

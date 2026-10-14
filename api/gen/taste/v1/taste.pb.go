@@ -1323,6 +1323,10 @@ type ListRecommendationsResponse struct {
 	LastError string `protobuf:"bytes,3,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
 	// Whether a run that writes new picks emails the caller; on by default.
 	EmailNewPicks bool `protobuf:"varint,4,opt,name=email_new_picks,json=emailNewPicks,proto3" json:"email_new_picks,omitempty"`
+	// A run is queued or running.
+	Pending bool `protobuf:"varint,5,opt,name=pending,proto3" json:"pending,omitempty"`
+	// RFC3339 from when RefreshRecommendations is accepted again; empty when now.
+	NextRefreshAt string `protobuf:"bytes,6,opt,name=next_refresh_at,json=nextRefreshAt,proto3" json:"next_refresh_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1385,6 +1389,103 @@ func (x *ListRecommendationsResponse) GetEmailNewPicks() bool {
 	return false
 }
 
+func (x *ListRecommendationsResponse) GetPending() bool {
+	if x != nil {
+		return x.Pending
+	}
+	return false
+}
+
+func (x *ListRecommendationsResponse) GetNextRefreshAt() string {
+	if x != nil {
+		return x.NextRefreshAt
+	}
+	return ""
+}
+
+// Queues new picks from the stored profile, without rewriting it.
+type RefreshRecommendationsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Read or change the family's shared taste instead of the caller's own. It
+	// covers only the shared movies & series list.
+	Shared        bool `protobuf:"varint,1,opt,name=shared,proto3" json:"shared,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshRecommendationsRequest) Reset() {
+	*x = RefreshRecommendationsRequest{}
+	mi := &file_taste_v1_taste_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshRecommendationsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshRecommendationsRequest) ProtoMessage() {}
+
+func (x *RefreshRecommendationsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshRecommendationsRequest.ProtoReflect.Descriptor instead.
+func (*RefreshRecommendationsRequest) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *RefreshRecommendationsRequest) GetShared() bool {
+	if x != nil {
+		return x.Shared
+	}
+	return false
+}
+
+type RefreshRecommendationsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshRecommendationsResponse) Reset() {
+	*x = RefreshRecommendationsResponse{}
+	mi := &file_taste_v1_taste_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshRecommendationsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshRecommendationsResponse) ProtoMessage() {}
+
+func (x *RefreshRecommendationsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_taste_v1_taste_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshRecommendationsResponse.ProtoReflect.Descriptor instead.
+func (*RefreshRecommendationsResponse) Descriptor() ([]byte, []int) {
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{20}
+}
+
 // Feedback on a pick; empty clears it.
 type SetFeedbackRequest struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
@@ -1399,7 +1500,7 @@ type SetFeedbackRequest struct {
 
 func (x *SetFeedbackRequest) Reset() {
 	*x = SetFeedbackRequest{}
-	mi := &file_taste_v1_taste_proto_msgTypes[19]
+	mi := &file_taste_v1_taste_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1411,7 +1512,7 @@ func (x *SetFeedbackRequest) String() string {
 func (*SetFeedbackRequest) ProtoMessage() {}
 
 func (x *SetFeedbackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_taste_v1_taste_proto_msgTypes[19]
+	mi := &file_taste_v1_taste_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1424,7 +1525,7 @@ func (x *SetFeedbackRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetFeedbackRequest.ProtoReflect.Descriptor instead.
 func (*SetFeedbackRequest) Descriptor() ([]byte, []int) {
-	return file_taste_v1_taste_proto_rawDescGZIP(), []int{19}
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *SetFeedbackRequest) GetId() string {
@@ -1457,7 +1558,7 @@ type SetFeedbackResponse struct {
 
 func (x *SetFeedbackResponse) Reset() {
 	*x = SetFeedbackResponse{}
-	mi := &file_taste_v1_taste_proto_msgTypes[20]
+	mi := &file_taste_v1_taste_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1469,7 +1570,7 @@ func (x *SetFeedbackResponse) String() string {
 func (*SetFeedbackResponse) ProtoMessage() {}
 
 func (x *SetFeedbackResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_taste_v1_taste_proto_msgTypes[20]
+	mi := &file_taste_v1_taste_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1482,7 +1583,7 @@ func (x *SetFeedbackResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetFeedbackResponse.ProtoReflect.Descriptor instead.
 func (*SetFeedbackResponse) Descriptor() ([]byte, []int) {
-	return file_taste_v1_taste_proto_rawDescGZIP(), []int{20}
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *SetFeedbackResponse) GetRecommendation() *Recommendation {
@@ -1505,7 +1606,7 @@ type SetSavedRequest struct {
 
 func (x *SetSavedRequest) Reset() {
 	*x = SetSavedRequest{}
-	mi := &file_taste_v1_taste_proto_msgTypes[21]
+	mi := &file_taste_v1_taste_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1517,7 +1618,7 @@ func (x *SetSavedRequest) String() string {
 func (*SetSavedRequest) ProtoMessage() {}
 
 func (x *SetSavedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_taste_v1_taste_proto_msgTypes[21]
+	mi := &file_taste_v1_taste_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1530,7 +1631,7 @@ func (x *SetSavedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSavedRequest.ProtoReflect.Descriptor instead.
 func (*SetSavedRequest) Descriptor() ([]byte, []int) {
-	return file_taste_v1_taste_proto_rawDescGZIP(), []int{21}
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *SetSavedRequest) GetId() string {
@@ -1563,7 +1664,7 @@ type SetSavedResponse struct {
 
 func (x *SetSavedResponse) Reset() {
 	*x = SetSavedResponse{}
-	mi := &file_taste_v1_taste_proto_msgTypes[22]
+	mi := &file_taste_v1_taste_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1575,7 +1676,7 @@ func (x *SetSavedResponse) String() string {
 func (*SetSavedResponse) ProtoMessage() {}
 
 func (x *SetSavedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_taste_v1_taste_proto_msgTypes[22]
+	mi := &file_taste_v1_taste_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1588,7 +1689,7 @@ func (x *SetSavedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSavedResponse.ProtoReflect.Descriptor instead.
 func (*SetSavedResponse) Descriptor() ([]byte, []int) {
-	return file_taste_v1_taste_proto_rawDescGZIP(), []int{22}
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *SetSavedResponse) GetRecommendation() *Recommendation {
@@ -1608,7 +1709,7 @@ type SetEmailNewPicksRequest struct {
 
 func (x *SetEmailNewPicksRequest) Reset() {
 	*x = SetEmailNewPicksRequest{}
-	mi := &file_taste_v1_taste_proto_msgTypes[23]
+	mi := &file_taste_v1_taste_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1620,7 +1721,7 @@ func (x *SetEmailNewPicksRequest) String() string {
 func (*SetEmailNewPicksRequest) ProtoMessage() {}
 
 func (x *SetEmailNewPicksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_taste_v1_taste_proto_msgTypes[23]
+	mi := &file_taste_v1_taste_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1633,7 +1734,7 @@ func (x *SetEmailNewPicksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetEmailNewPicksRequest.ProtoReflect.Descriptor instead.
 func (*SetEmailNewPicksRequest) Descriptor() ([]byte, []int) {
-	return file_taste_v1_taste_proto_rawDescGZIP(), []int{23}
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *SetEmailNewPicksRequest) GetEnabled() bool {
@@ -1651,7 +1752,7 @@ type SetEmailNewPicksResponse struct {
 
 func (x *SetEmailNewPicksResponse) Reset() {
 	*x = SetEmailNewPicksResponse{}
-	mi := &file_taste_v1_taste_proto_msgTypes[24]
+	mi := &file_taste_v1_taste_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1663,7 +1764,7 @@ func (x *SetEmailNewPicksResponse) String() string {
 func (*SetEmailNewPicksResponse) ProtoMessage() {}
 
 func (x *SetEmailNewPicksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_taste_v1_taste_proto_msgTypes[24]
+	mi := &file_taste_v1_taste_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1676,7 +1777,7 @@ func (x *SetEmailNewPicksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetEmailNewPicksResponse.ProtoReflect.Descriptor instead.
 func (*SetEmailNewPicksResponse) Descriptor() ([]byte, []int) {
-	return file_taste_v1_taste_proto_rawDescGZIP(), []int{24}
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{26}
 }
 
 // Adds a book to the to-read shelf or a movie or series to the backlog as
@@ -1693,7 +1794,7 @@ type AcceptRecommendationRequest struct {
 
 func (x *AcceptRecommendationRequest) Reset() {
 	*x = AcceptRecommendationRequest{}
-	mi := &file_taste_v1_taste_proto_msgTypes[25]
+	mi := &file_taste_v1_taste_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1705,7 +1806,7 @@ func (x *AcceptRecommendationRequest) String() string {
 func (*AcceptRecommendationRequest) ProtoMessage() {}
 
 func (x *AcceptRecommendationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_taste_v1_taste_proto_msgTypes[25]
+	mi := &file_taste_v1_taste_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1718,7 +1819,7 @@ func (x *AcceptRecommendationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptRecommendationRequest.ProtoReflect.Descriptor instead.
 func (*AcceptRecommendationRequest) Descriptor() ([]byte, []int) {
-	return file_taste_v1_taste_proto_rawDescGZIP(), []int{25}
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *AcceptRecommendationRequest) GetId() string {
@@ -1744,7 +1845,7 @@ type AcceptRecommendationResponse struct {
 
 func (x *AcceptRecommendationResponse) Reset() {
 	*x = AcceptRecommendationResponse{}
-	mi := &file_taste_v1_taste_proto_msgTypes[26]
+	mi := &file_taste_v1_taste_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1756,7 +1857,7 @@ func (x *AcceptRecommendationResponse) String() string {
 func (*AcceptRecommendationResponse) ProtoMessage() {}
 
 func (x *AcceptRecommendationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_taste_v1_taste_proto_msgTypes[26]
+	mi := &file_taste_v1_taste_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1769,7 +1870,7 @@ func (x *AcceptRecommendationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptRecommendationResponse.ProtoReflect.Descriptor instead.
 func (*AcceptRecommendationResponse) Descriptor() ([]byte, []int) {
-	return file_taste_v1_taste_proto_rawDescGZIP(), []int{26}
+	return file_taste_v1_taste_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *AcceptRecommendationResponse) GetRecommendation() *Recommendation {
@@ -1881,13 +1982,18 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"\x05track\x18\x02 \x01(\tR\x05track\x12\x1d\n" +
 	"\n" +
 	"saved_only\x18\x03 \x01(\bR\tsavedOnly\x12\x16\n" +
-	"\x06shared\x18\x04 \x01(\bR\x06shared\"\xcb\x01\n" +
+	"\x06shared\x18\x04 \x01(\bR\x06shared\"\x8d\x02\n" +
 	"\x1bListRecommendationsResponse\x12B\n" +
 	"\x0frecommendations\x18\x01 \x03(\v2\x18.taste.v1.RecommendationR\x0frecommendations\x12!\n" +
 	"\fgenerated_at\x18\x02 \x01(\tR\vgeneratedAt\x12\x1d\n" +
 	"\n" +
 	"last_error\x18\x03 \x01(\tR\tlastError\x12&\n" +
-	"\x0femail_new_picks\x18\x04 \x01(\bR\remailNewPicks\"X\n" +
+	"\x0femail_new_picks\x18\x04 \x01(\bR\remailNewPicks\x12\x18\n" +
+	"\apending\x18\x05 \x01(\bR\apending\x12&\n" +
+	"\x0fnext_refresh_at\x18\x06 \x01(\tR\rnextRefreshAt\"7\n" +
+	"\x1dRefreshRecommendationsRequest\x12\x16\n" +
+	"\x06shared\x18\x01 \x01(\bR\x06shared\" \n" +
+	"\x1eRefreshRecommendationsResponse\"X\n" +
 	"\x12SetFeedbackRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bfeedback\x18\x02 \x01(\tR\bfeedback\x12\x16\n" +
@@ -1907,7 +2013,7 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06shared\x18\x02 \x01(\bR\x06shared\"`\n" +
 	"\x1cAcceptRecommendationResponse\x12@\n" +
-	"\x0erecommendation\x18\x01 \x01(\v2\x18.taste.v1.RecommendationR\x0erecommendation2\xed\x05\n" +
+	"\x0erecommendation\x18\x01 \x01(\v2\x18.taste.v1.RecommendationR\x0erecommendation2\xda\x06\n" +
 	"\fTasteService\x12A\n" +
 	"\bGetStats\x12\x19.taste.v1.GetStatsRequest\x1a\x1a.taste.v1.GetStatsResponse\x12G\n" +
 	"\n" +
@@ -1915,7 +2021,8 @@ const file_taste_v1_taste_proto_rawDesc = "" +
 	"\n" +
 	"GetProfile\x12\x1b.taste.v1.GetProfileRequest\x1a\x1c.taste.v1.GetProfileResponse\x12S\n" +
 	"\x0eRefreshProfile\x12\x1f.taste.v1.RefreshProfileRequest\x1a .taste.v1.RefreshProfileResponse\x12b\n" +
-	"\x13ListRecommendations\x12$.taste.v1.ListRecommendationsRequest\x1a%.taste.v1.ListRecommendationsResponse\x12J\n" +
+	"\x13ListRecommendations\x12$.taste.v1.ListRecommendationsRequest\x1a%.taste.v1.ListRecommendationsResponse\x12k\n" +
+	"\x16RefreshRecommendations\x12'.taste.v1.RefreshRecommendationsRequest\x1a(.taste.v1.RefreshRecommendationsResponse\x12J\n" +
 	"\vSetFeedback\x12\x1c.taste.v1.SetFeedbackRequest\x1a\x1d.taste.v1.SetFeedbackResponse\x12A\n" +
 	"\bSetSaved\x12\x19.taste.v1.SetSavedRequest\x1a\x1a.taste.v1.SetSavedResponse\x12e\n" +
 	"\x14AcceptRecommendation\x12%.taste.v1.AcceptRecommendationRequest\x1a&.taste.v1.AcceptRecommendationResponse\x12Y\n" +
@@ -1933,35 +2040,37 @@ func file_taste_v1_taste_proto_rawDescGZIP() []byte {
 	return file_taste_v1_taste_proto_rawDescData
 }
 
-var file_taste_v1_taste_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_taste_v1_taste_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_taste_v1_taste_proto_goTypes = []any{
-	(*Event)(nil),                        // 0: taste.v1.Event
-	(*DomainStats)(nil),                  // 1: taste.v1.DomainStats
-	(*DomainCount)(nil),                  // 2: taste.v1.DomainCount
-	(*MonthCounts)(nil),                  // 3: taste.v1.MonthCounts
-	(*RankedName)(nil),                   // 4: taste.v1.RankedName
-	(*GetStatsRequest)(nil),              // 5: taste.v1.GetStatsRequest
-	(*GetStatsResponse)(nil),             // 6: taste.v1.GetStatsResponse
-	(*HitRate)(nil),                      // 7: taste.v1.HitRate
-	(*ListEventsRequest)(nil),            // 8: taste.v1.ListEventsRequest
-	(*ListEventsResponse)(nil),           // 9: taste.v1.ListEventsResponse
-	(*ProfileSections)(nil),              // 10: taste.v1.ProfileSections
-	(*GetProfileRequest)(nil),            // 11: taste.v1.GetProfileRequest
-	(*GetProfileResponse)(nil),           // 12: taste.v1.GetProfileResponse
-	(*RefreshProfileRequest)(nil),        // 13: taste.v1.RefreshProfileRequest
-	(*RefreshProfileResponse)(nil),       // 14: taste.v1.RefreshProfileResponse
-	(*Source)(nil),                       // 15: taste.v1.Source
-	(*Recommendation)(nil),               // 16: taste.v1.Recommendation
-	(*ListRecommendationsRequest)(nil),   // 17: taste.v1.ListRecommendationsRequest
-	(*ListRecommendationsResponse)(nil),  // 18: taste.v1.ListRecommendationsResponse
-	(*SetFeedbackRequest)(nil),           // 19: taste.v1.SetFeedbackRequest
-	(*SetFeedbackResponse)(nil),          // 20: taste.v1.SetFeedbackResponse
-	(*SetSavedRequest)(nil),              // 21: taste.v1.SetSavedRequest
-	(*SetSavedResponse)(nil),             // 22: taste.v1.SetSavedResponse
-	(*SetEmailNewPicksRequest)(nil),      // 23: taste.v1.SetEmailNewPicksRequest
-	(*SetEmailNewPicksResponse)(nil),     // 24: taste.v1.SetEmailNewPicksResponse
-	(*AcceptRecommendationRequest)(nil),  // 25: taste.v1.AcceptRecommendationRequest
-	(*AcceptRecommendationResponse)(nil), // 26: taste.v1.AcceptRecommendationResponse
+	(*Event)(nil),                          // 0: taste.v1.Event
+	(*DomainStats)(nil),                    // 1: taste.v1.DomainStats
+	(*DomainCount)(nil),                    // 2: taste.v1.DomainCount
+	(*MonthCounts)(nil),                    // 3: taste.v1.MonthCounts
+	(*RankedName)(nil),                     // 4: taste.v1.RankedName
+	(*GetStatsRequest)(nil),                // 5: taste.v1.GetStatsRequest
+	(*GetStatsResponse)(nil),               // 6: taste.v1.GetStatsResponse
+	(*HitRate)(nil),                        // 7: taste.v1.HitRate
+	(*ListEventsRequest)(nil),              // 8: taste.v1.ListEventsRequest
+	(*ListEventsResponse)(nil),             // 9: taste.v1.ListEventsResponse
+	(*ProfileSections)(nil),                // 10: taste.v1.ProfileSections
+	(*GetProfileRequest)(nil),              // 11: taste.v1.GetProfileRequest
+	(*GetProfileResponse)(nil),             // 12: taste.v1.GetProfileResponse
+	(*RefreshProfileRequest)(nil),          // 13: taste.v1.RefreshProfileRequest
+	(*RefreshProfileResponse)(nil),         // 14: taste.v1.RefreshProfileResponse
+	(*Source)(nil),                         // 15: taste.v1.Source
+	(*Recommendation)(nil),                 // 16: taste.v1.Recommendation
+	(*ListRecommendationsRequest)(nil),     // 17: taste.v1.ListRecommendationsRequest
+	(*ListRecommendationsResponse)(nil),    // 18: taste.v1.ListRecommendationsResponse
+	(*RefreshRecommendationsRequest)(nil),  // 19: taste.v1.RefreshRecommendationsRequest
+	(*RefreshRecommendationsResponse)(nil), // 20: taste.v1.RefreshRecommendationsResponse
+	(*SetFeedbackRequest)(nil),             // 21: taste.v1.SetFeedbackRequest
+	(*SetFeedbackResponse)(nil),            // 22: taste.v1.SetFeedbackResponse
+	(*SetSavedRequest)(nil),                // 23: taste.v1.SetSavedRequest
+	(*SetSavedResponse)(nil),               // 24: taste.v1.SetSavedResponse
+	(*SetEmailNewPicksRequest)(nil),        // 25: taste.v1.SetEmailNewPicksRequest
+	(*SetEmailNewPicksResponse)(nil),       // 26: taste.v1.SetEmailNewPicksResponse
+	(*AcceptRecommendationRequest)(nil),    // 27: taste.v1.AcceptRecommendationRequest
+	(*AcceptRecommendationResponse)(nil),   // 28: taste.v1.AcceptRecommendationResponse
 }
 var file_taste_v1_taste_proto_depIdxs = []int32{
 	2,  // 0: taste.v1.MonthCounts.counts:type_name -> taste.v1.DomainCount
@@ -1982,21 +2091,23 @@ var file_taste_v1_taste_proto_depIdxs = []int32{
 	11, // 15: taste.v1.TasteService.GetProfile:input_type -> taste.v1.GetProfileRequest
 	13, // 16: taste.v1.TasteService.RefreshProfile:input_type -> taste.v1.RefreshProfileRequest
 	17, // 17: taste.v1.TasteService.ListRecommendations:input_type -> taste.v1.ListRecommendationsRequest
-	19, // 18: taste.v1.TasteService.SetFeedback:input_type -> taste.v1.SetFeedbackRequest
-	21, // 19: taste.v1.TasteService.SetSaved:input_type -> taste.v1.SetSavedRequest
-	25, // 20: taste.v1.TasteService.AcceptRecommendation:input_type -> taste.v1.AcceptRecommendationRequest
-	23, // 21: taste.v1.TasteService.SetEmailNewPicks:input_type -> taste.v1.SetEmailNewPicksRequest
-	6,  // 22: taste.v1.TasteService.GetStats:output_type -> taste.v1.GetStatsResponse
-	9,  // 23: taste.v1.TasteService.ListEvents:output_type -> taste.v1.ListEventsResponse
-	12, // 24: taste.v1.TasteService.GetProfile:output_type -> taste.v1.GetProfileResponse
-	14, // 25: taste.v1.TasteService.RefreshProfile:output_type -> taste.v1.RefreshProfileResponse
-	18, // 26: taste.v1.TasteService.ListRecommendations:output_type -> taste.v1.ListRecommendationsResponse
-	20, // 27: taste.v1.TasteService.SetFeedback:output_type -> taste.v1.SetFeedbackResponse
-	22, // 28: taste.v1.TasteService.SetSaved:output_type -> taste.v1.SetSavedResponse
-	26, // 29: taste.v1.TasteService.AcceptRecommendation:output_type -> taste.v1.AcceptRecommendationResponse
-	24, // 30: taste.v1.TasteService.SetEmailNewPicks:output_type -> taste.v1.SetEmailNewPicksResponse
-	22, // [22:31] is the sub-list for method output_type
-	13, // [13:22] is the sub-list for method input_type
+	19, // 18: taste.v1.TasteService.RefreshRecommendations:input_type -> taste.v1.RefreshRecommendationsRequest
+	21, // 19: taste.v1.TasteService.SetFeedback:input_type -> taste.v1.SetFeedbackRequest
+	23, // 20: taste.v1.TasteService.SetSaved:input_type -> taste.v1.SetSavedRequest
+	27, // 21: taste.v1.TasteService.AcceptRecommendation:input_type -> taste.v1.AcceptRecommendationRequest
+	25, // 22: taste.v1.TasteService.SetEmailNewPicks:input_type -> taste.v1.SetEmailNewPicksRequest
+	6,  // 23: taste.v1.TasteService.GetStats:output_type -> taste.v1.GetStatsResponse
+	9,  // 24: taste.v1.TasteService.ListEvents:output_type -> taste.v1.ListEventsResponse
+	12, // 25: taste.v1.TasteService.GetProfile:output_type -> taste.v1.GetProfileResponse
+	14, // 26: taste.v1.TasteService.RefreshProfile:output_type -> taste.v1.RefreshProfileResponse
+	18, // 27: taste.v1.TasteService.ListRecommendations:output_type -> taste.v1.ListRecommendationsResponse
+	20, // 28: taste.v1.TasteService.RefreshRecommendations:output_type -> taste.v1.RefreshRecommendationsResponse
+	22, // 29: taste.v1.TasteService.SetFeedback:output_type -> taste.v1.SetFeedbackResponse
+	24, // 30: taste.v1.TasteService.SetSaved:output_type -> taste.v1.SetSavedResponse
+	28, // 31: taste.v1.TasteService.AcceptRecommendation:output_type -> taste.v1.AcceptRecommendationResponse
+	26, // 32: taste.v1.TasteService.SetEmailNewPicks:output_type -> taste.v1.SetEmailNewPicksResponse
+	23, // [23:33] is the sub-list for method output_type
+	13, // [13:23] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
 	13, // [13:13] is the sub-list for extension extendee
 	0,  // [0:13] is the sub-list for field type_name
@@ -2013,7 +2124,7 @@ func file_taste_v1_taste_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_taste_v1_taste_proto_rawDesc), len(file_taste_v1_taste_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   27,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

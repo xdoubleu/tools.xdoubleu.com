@@ -2,11 +2,13 @@ package taste
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/apps/taste/internal/jobs"
 	"tools.xdoubleu.com/apps/taste/internal/models"
 	"tools.xdoubleu.com/apps/taste/internal/services"
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
@@ -33,7 +35,7 @@ func (h *tasteConnectHandler) ListRecommendations(
 			connect.CodeInvalidArgument, "track must be more or broaden",
 		)
 	}
-	recs, at, note, err := h.app.picks.List(ctx, sc.subject, domain, track, req.SavedOnly)
+	recs, st, err := h.app.picks.List(ctx, sc.subject, domain, track, req.SavedOnly)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
@@ -49,10 +51,44 @@ func (h *tasteConnectHandler) ListRecommendations(
 	}
 	return &tastev1.ListRecommendationsResponse{
 		Recommendations: out,
-		GeneratedAt:     formatTimePtr(at),
-		LastError:       note,
+		GeneratedAt:     formatTimePtr(st.GeneratedAt),
+		LastError:       st.Error,
 		EmailNewPicks:   emailNewPicks,
+		Pending:         st.Pending,
+		NextRefreshAt:   nextRefreshAt(st.RequestedAt),
 	}, nil
+}
+
+func (h *tasteConnectHandler) RefreshRecommendations(
+	ctx context.Context,
+	req *tastev1.RefreshRecommendationsRequest,
+) (*tastev1.RefreshRecommendationsResponse, error) {
+	sc, err := h.scopeOf(ctx, req.Shared)
+	if err != nil {
+		return nil, err
+	}
+	if !h.app.profiles.Configured() {
+		return nil, connect.NewError(
+			connect.CodeFailedPrecondition, services.ErrNotConfigured.Error(),
+		).WithCause(services.ErrNotConfigured)
+	}
+	accepted, err := h.app.picks.Request(ctx, sc.subject)
+	if errors.Is(err, services.ErrNoProfile) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).
+			WithCause(err)
+	}
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	if !accepted {
+		return nil, connect.Errorf(
+			connect.CodeResourceExhausted,
+			"the picks were refreshed in the last %s",
+			services.RefreshCooldown,
+		)
+	}
+	h.app.jobQueue.ForceRun(jobs.GenerateProfilesID)
+	return &tastev1.RefreshRecommendationsResponse{}, nil
 }
 
 func (h *tasteConnectHandler) SetEmailNewPicks(

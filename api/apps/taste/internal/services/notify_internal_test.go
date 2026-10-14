@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,8 +53,8 @@ type fakePicks struct {
 
 func (f fakePicks) List(
 	context.Context, string, string, string, bool,
-) ([]models.Recommendation, *time.Time, string, error) {
-	return f.recs, nil, "", f.err
+) ([]models.Recommendation, models.PicksStatus, error) {
+	return f.recs, models.PicksStatus{}, f.err
 }
 
 func newMail(result error) *fakeMail { return &fakeMail{sent: nil, result: result} }

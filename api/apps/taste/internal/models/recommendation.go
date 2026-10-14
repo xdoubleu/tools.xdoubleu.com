@@ -85,3 +85,15 @@ type HitRate struct {
 	Hits   int
 	Misses int
 }
+
+// PicksStatus is the state of a user's latest picks run.
+type PicksStatus struct {
+	// GeneratedAt is when the latest picks were made; nil before the first.
+	GeneratedAt *time.Time
+	// Error is the last run's note; empty when it succeeded.
+	Error string
+	// RequestedAt is when picks were last asked for; nil when never.
+	RequestedAt *time.Time
+	// Pending means a requested run hasn't started yet or is running.
+	Pending bool
+}

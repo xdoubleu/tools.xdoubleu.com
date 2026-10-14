@@ -1,5 +1,5 @@
 import useSWR, { useSWRConfig } from 'swr'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useMemo } from 'react'
 import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
 import { TasteService } from '@/lib/gen/taste/v1/taste_pb'
@@ -45,14 +45,16 @@ export function useFetchTasteEventsPage(domain: string) {
   )
 }
 
-/** How often a pending profile is re-read until the job has written it. */
-export const PROFILE_POLL_MS = 10_000
+/** How often a pending profile or picks run is re-read until the job has written it. */
+export const PENDING_POLL_MS = 10_000
 
 /** Re-read delay: poll while pending, else re-read once the cooldown ends. */
-export function profileRefreshInterval(data: GetProfileResponse | undefined): number {
-  if (data?.pending) return PROFILE_POLL_MS
+export function pendingRefreshInterval(
+  data: { pending: boolean; nextRefreshAt: string } | undefined
+): number {
+  if (data?.pending) return PENDING_POLL_MS
   if (!data?.nextRefreshAt) return 0
-  return Math.max(PROFILE_POLL_MS, Date.parse(data.nextRefreshAt) - Date.now())
+  return Math.max(PENDING_POLL_MS, Date.parse(data.nextRefreshAt) - Date.now())
 }
 
 /** The taste profile, re-read while pending and when the cooldown ends. */
@@ -62,7 +64,7 @@ export function useTasteProfile() {
   return useSWR<GetProfileResponse, Error>(
     swrKeys.tasteProfile(shared),
     () => client.getProfile(sharedField(shared)),
-    { refreshInterval: profileRefreshInterval }
+    { refreshInterval: pendingRefreshInterval }
   )
 }
 
@@ -82,19 +84,21 @@ export function isRecommendationsKey(key: unknown): boolean {
   return Array.isArray(key) && key[0] === swrKeys.tasteRecommendationsPrefix
 }
 
-/** Re-reads the picks once a pending profile run finishes; it writes them too. */
-export function useRevalidatePicksWhenDone(pending: boolean) {
+/** Queues new picks from the stored profile, then re-reads the picks. */
+export function useRefreshTastePicks() {
+  const client = createServiceClient(TasteService)
   const { mutate } = useSWRConfig()
-  const wasPending = useRef(pending)
-  useEffect(() => {
-    if (wasPending.current && !pending) void mutate(isRecommendationsKey)
-    wasPending.current = pending
-  }, [pending, mutate])
+  const shared = useSharedList()
+  return useCallback(async () => {
+    await client.refreshRecommendations(sharedField(shared))
+    await mutate(isRecommendationsKey)
+  }, [client, mutate, shared])
 }
 
 /**
  * Picks for a domain and track, or every saved one for SAVED_VIEW; '' is
- * every domain or both tracks.
+ * every domain or both tracks. Re-read while a run is pending and when the
+ * cooldown ends.
  */
 export function useTasteRecommendations(domain: string, view: string) {
   const client = createServiceClient(TasteService)
@@ -108,7 +112,8 @@ export function useTasteRecommendations(domain: string, view: string) {
         track: savedOnly ? '' : view,
         savedOnly,
         ...sharedField(shared)
-      })
+      }),
+    { refreshInterval: pendingRefreshInterval }
   )
 }
 

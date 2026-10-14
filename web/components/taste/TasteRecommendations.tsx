@@ -2,13 +2,18 @@
 
 import { useState } from 'react'
 import type { Recommendation } from '@/lib/gen/taste/v1/taste_pb'
-import { useSetEmailNewPicks, useTasteRecommendations } from '@/hooks/useTaste'
+import {
+  useRefreshTastePicks,
+  useSetEmailNewPicks,
+  useTasteRecommendations
+} from '@/hooks/useTaste'
 import { useSharedList } from '@/hooks/useSharedList'
 import { DOMAINS, SAVED_VIEW, TRACKS, domainLabel, hostLabel, trackLabel } from '@/lib/taste/format'
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/dates'
 import PickActions from '@/components/taste/PickActions'
 import PickArtwork from '@/components/taste/PickArtwork'
+import RefreshButton from '@/components/taste/RefreshButton'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -112,11 +117,12 @@ function PickList({ domain, view }: { domain: string; view: string }) {
   return (
     <div className="space-y-3">
       {data.lastError && <Alert tone="warn">{data.lastError}</Alert>}
+      {data.pending && <p className="text-sm text-muted">Writing new picks…</p>}
       {data.recommendations.length === 0 ? (
         <EmptyState>
           {saved
             ? 'Nothing saved yet. Saved picks stay here across runs.'
-            : 'No picks yet. They are written after your profile, weekly or when you refresh it.'}
+            : 'No picks yet. They are written after your profile, weekly or when you refresh either.'}
         </EmptyState>
       ) : (
         <ul className="space-y-2" aria-label="Recommendations">
@@ -141,9 +147,24 @@ function PickList({ domain, view }: { domain: string; view: string }) {
 export default function TasteRecommendations() {
   const [view, setView] = useState<string>('more')
   const [domain, setDomain] = useState('')
+  // The same SWR key as PickList's, so it shares that request.
+  const { data } = useTasteRecommendations(domain, view)
+  const refresh = useRefreshTastePicks()
 
   return (
-    <SectionCard title="Recommendations">
+    <SectionCard
+      title="Recommendations"
+      action={
+        data && (
+          <RefreshButton
+            refresh={refresh}
+            waitUntil={data.nextRefreshAt}
+            pending={data.pending}
+            label="Refresh picks"
+          />
+        )
+      }
+    >
       <div className="space-y-3">
         <SegmentedTabs aria-label="Track" value={view} options={VIEWS} onChange={setView} />
         <Field label="Domain" htmlFor="taste-pick-domain" className="w-44">

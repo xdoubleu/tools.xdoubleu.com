@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file taste/v1/taste.proto.
  */
 export const file_taste_v1_taste: GenFile = /*@__PURE__*/
-  fileDesc("ChR0YXN0ZS92MS90YXN0ZS5wcm90bxIIdGFzdGUudjEiggEKBUV2ZW50Eg4KBmRvbWFpbhgBIAEoCRIPCgdpdGVtX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2NyZWF0b3IYBCABKAkSDAoEdGFncxgFIAMoCRIKCgJhdBgGIAEoCRIOCgZzaWduYWwYByABKAUSDgoGcmVhc29uGAggASgJImQKC0RvbWFpblN0YXRzEg4KBmRvbWFpbhgBIAEoCRIQCghjb25zdW1lZBgCIAEoBRIQCghwb3NpdGl2ZRgDIAEoBRIQCghuZWdhdGl2ZRgEIAEoBRIPCgdsYXN0X2F0GAUgASgJIiwKC0RvbWFpbkNvdW50Eg4KBmRvbWFpbhgBIAEoCRINCgVjb3VudBgCIAEoBSJDCgtNb250aENvdW50cxINCgVtb250aBgBIAEoCRIlCgZjb3VudHMYAiADKAsyFS50YXN0ZS52MS5Eb21haW5Db3VudCI9CgpSYW5rZWROYW1lEgwKBG5hbWUYASABKAkSEAoIcG9zaXRpdmUYAiABKAUSDwoHZG9tYWlucxgDIAMoCSIhCg9HZXRTdGF0c1JlcXVlc3QSDgoGc2hhcmVkGAEgASgIItsBChBHZXRTdGF0c1Jlc3BvbnNlEiYKB2RvbWFpbnMYASADKAsyFS50YXN0ZS52MS5Eb21haW5TdGF0cxIlCgZtb250aHMYAiADKAsyFS50YXN0ZS52MS5Nb250aENvdW50cxImCgh0b3BfdGFncxgDIAMoCzIULnRhc3RlLnYxLlJhbmtlZE5hbWUSKgoMdG9wX2NyZWF0b3JzGAQgAygLMhQudGFzdGUudjEuUmFua2VkTmFtZRIkCgloaXRfcmF0ZXMYBSADKAsyES50YXN0ZS52MS5IaXRSYXRlIkYKB0hpdFJhdGUSDgoGZG9tYWluGAEgASgJEg0KBXRyYWNrGAIgASgJEgwKBGhpdHMYAyABKAUSDgoGbWlzc2VzGAQgASgFIlIKEUxpc3RFdmVudHNSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgVsaW1pdBgCIAEoBRIOCgZvZmZzZXQYAyABKAUSDgoGc2hhcmVkGAQgASgIIkcKEkxpc3RFdmVudHNSZXNwb25zZRIfCgZldmVudHMYASADKAsyDy50YXN0ZS52MS5FdmVudBIQCghoYXNfbW9yZRgCIAEoCCJgCg9Qcm9maWxlU2VjdGlvbnMSDwoHc3VtbWFyeRgBIAEoCRIMCgRrbm93GAIgAygJEgwKBGxpa2UYAyADKAkSEAoIZHJpZnRpbmcYBCADKAkSDgoGYm91bmNlGAUgAygJIiMKEUdldFByb2ZpbGVSZXF1ZXN0Eg4KBnNoYXJlZBgBIAEoCCK4AQoSR2V0UHJvZmlsZVJlc3BvbnNlEhIKCmNvbmZpZ3VyZWQYASABKAgSKwoIc2VjdGlvbnMYAiABKAsyGS50YXN0ZS52MS5Qcm9maWxlU2VjdGlvbnMSDQoFbW9kZWwYAyABKAkSFAoMZ2VuZXJhdGVkX2F0GAQgASgJEg8KB3BlbmRpbmcYBSABKAgSEgoKbGFzdF9lcnJvchgGIAEoCRIXCg9uZXh0X3JlZnJlc2hfYXQYByABKAkiJwoVUmVmcmVzaFByb2ZpbGVSZXF1ZXN0Eg4KBnNoYXJlZBgBIAEoCCIYChZSZWZyZXNoUHJvZmlsZVJlc3BvbnNlIiQKBlNvdXJjZRILCgN1cmwYASABKAkSDQoFdGl0bGUYAiABKAkivQIKDlJlY29tbWVuZGF0aW9uEgoKAmlkGAEgASgJEg4KBmRvbWFpbhgCIAEoCRINCgV0cmFjaxgDIAEoCRINCgV0aXRsZRgEIAEoCRIPCgdjcmVhdG9yGAUgASgJEgwKBHllYXIYBiABKAUSCwoDdXJsGAcgASgJEhEKCWltYWdlX3VybBgIIAEoCRILCgN3aHkYCSABKAkSIQoHc291cmNlcxgKIAMoCzIQLnRhc3RlLnYxLlNvdXJjZRINCgVzY29yZRgLIAEoBRIQCghmZWVkYmFjaxgMIAEoCRINCgVzYXZlZBgNIAEoCBIQCghhY2NlcHRlZBgOIAEoCBIWCg5vbl9teV9zZXJ2aWNlcxgPIAEoCBIUCgxnZW5lcmF0ZWRfYXQYECABKAkSEgoKY2FuX2FjY2VwdBgRIAEoCCJfChpMaXN0UmVjb21tZW5kYXRpb25zUmVxdWVzdBIOCgZkb21haW4YASABKAkSDQoFdHJhY2sYAiABKAkSEgoKc2F2ZWRfb25seRgDIAEoCBIOCgZzaGFyZWQYBCABKAgikwEKG0xpc3RSZWNvbW1lbmRhdGlvbnNSZXNwb25zZRIxCg9yZWNvbW1lbmRhdGlvbnMYASADKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbhIUCgxnZW5lcmF0ZWRfYXQYAiABKAkSEgoKbGFzdF9lcnJvchgDIAEoCRIXCg9lbWFpbF9uZXdfcGlja3MYBCABKAgiQgoSU2V0RmVlZGJhY2tSZXF1ZXN0EgoKAmlkGAEgASgJEhAKCGZlZWRiYWNrGAIgASgJEg4KBnNoYXJlZBgDIAEoCCJHChNTZXRGZWVkYmFja1Jlc3BvbnNlEjAKDnJlY29tbWVuZGF0aW9uGAEgASgLMhgudGFzdGUudjEuUmVjb21tZW5kYXRpb24iPAoPU2V0U2F2ZWRSZXF1ZXN0EgoKAmlkGAEgASgJEg0KBXNhdmVkGAIgASgIEg4KBnNoYXJlZBgDIAEoCCJEChBTZXRTYXZlZFJlc3BvbnNlEjAKDnJlY29tbWVuZGF0aW9uGAEgASgLMhgudGFzdGUudjEuUmVjb21tZW5kYXRpb24iKgoXU2V0RW1haWxOZXdQaWNrc1JlcXVlc3QSDwoHZW5hYmxlZBgBIAEoCCIaChhTZXRFbWFpbE5ld1BpY2tzUmVzcG9uc2UiOQobQWNjZXB0UmVjb21tZW5kYXRpb25SZXF1ZXN0EgoKAmlkGAEgASgJEg4KBnNoYXJlZBgCIAEoCCJQChxBY2NlcHRSZWNvbW1lbmRhdGlvblJlc3BvbnNlEjAKDnJlY29tbWVuZGF0aW9uGAEgASgLMhgudGFzdGUudjEuUmVjb21tZW5kYXRpb24y7QUKDFRhc3RlU2VydmljZRJBCghHZXRTdGF0cxIZLnRhc3RlLnYxLkdldFN0YXRzUmVxdWVzdBoaLnRhc3RlLnYxLkdldFN0YXRzUmVzcG9uc2USRwoKTGlzdEV2ZW50cxIbLnRhc3RlLnYxLkxpc3RFdmVudHNSZXF1ZXN0GhwudGFzdGUudjEuTGlzdEV2ZW50c1Jlc3BvbnNlEkcKCkdldFByb2ZpbGUSGy50YXN0ZS52MS5HZXRQcm9maWxlUmVxdWVzdBocLnRhc3RlLnYxLkdldFByb2ZpbGVSZXNwb25zZRJTCg5SZWZyZXNoUHJvZmlsZRIfLnRhc3RlLnYxLlJlZnJlc2hQcm9maWxlUmVxdWVzdBogLnRhc3RlLnYxLlJlZnJlc2hQcm9maWxlUmVzcG9uc2USYgoTTGlzdFJlY29tbWVuZGF0aW9ucxIkLnRhc3RlLnYxLkxpc3RSZWNvbW1lbmRhdGlvbnNSZXF1ZXN0GiUudGFzdGUudjEuTGlzdFJlY29tbWVuZGF0aW9uc1Jlc3BvbnNlEkoKC1NldEZlZWRiYWNrEhwudGFzdGUudjEuU2V0RmVlZGJhY2tSZXF1ZXN0Gh0udGFzdGUudjEuU2V0RmVlZGJhY2tSZXNwb25zZRJBCghTZXRTYXZlZBIZLnRhc3RlLnYxLlNldFNhdmVkUmVxdWVzdBoaLnRhc3RlLnYxLlNldFNhdmVkUmVzcG9uc2USZQoUQWNjZXB0UmVjb21tZW5kYXRpb24SJS50YXN0ZS52MS5BY2NlcHRSZWNvbW1lbmRhdGlvblJlcXVlc3QaJi50YXN0ZS52MS5BY2NlcHRSZWNvbW1lbmRhdGlvblJlc3BvbnNlElkKEFNldEVtYWlsTmV3UGlja3MSIS50YXN0ZS52MS5TZXRFbWFpbE5ld1BpY2tzUmVxdWVzdBoiLnRhc3RlLnYxLlNldEVtYWlsTmV3UGlja3NSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL3Rhc3RlL3YxO3Rhc3RldjFiBnByb3RvMw");
+  fileDesc("ChR0YXN0ZS92MS90YXN0ZS5wcm90bxIIdGFzdGUudjEiggEKBUV2ZW50Eg4KBmRvbWFpbhgBIAEoCRIPCgdpdGVtX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2NyZWF0b3IYBCABKAkSDAoEdGFncxgFIAMoCRIKCgJhdBgGIAEoCRIOCgZzaWduYWwYByABKAUSDgoGcmVhc29uGAggASgJImQKC0RvbWFpblN0YXRzEg4KBmRvbWFpbhgBIAEoCRIQCghjb25zdW1lZBgCIAEoBRIQCghwb3NpdGl2ZRgDIAEoBRIQCghuZWdhdGl2ZRgEIAEoBRIPCgdsYXN0X2F0GAUgASgJIiwKC0RvbWFpbkNvdW50Eg4KBmRvbWFpbhgBIAEoCRINCgVjb3VudBgCIAEoBSJDCgtNb250aENvdW50cxINCgVtb250aBgBIAEoCRIlCgZjb3VudHMYAiADKAsyFS50YXN0ZS52MS5Eb21haW5Db3VudCI9CgpSYW5rZWROYW1lEgwKBG5hbWUYASABKAkSEAoIcG9zaXRpdmUYAiABKAUSDwoHZG9tYWlucxgDIAMoCSIhCg9HZXRTdGF0c1JlcXVlc3QSDgoGc2hhcmVkGAEgASgIItsBChBHZXRTdGF0c1Jlc3BvbnNlEiYKB2RvbWFpbnMYASADKAsyFS50YXN0ZS52MS5Eb21haW5TdGF0cxIlCgZtb250aHMYAiADKAsyFS50YXN0ZS52MS5Nb250aENvdW50cxImCgh0b3BfdGFncxgDIAMoCzIULnRhc3RlLnYxLlJhbmtlZE5hbWUSKgoMdG9wX2NyZWF0b3JzGAQgAygLMhQudGFzdGUudjEuUmFua2VkTmFtZRIkCgloaXRfcmF0ZXMYBSADKAsyES50YXN0ZS52MS5IaXRSYXRlIkYKB0hpdFJhdGUSDgoGZG9tYWluGAEgASgJEg0KBXRyYWNrGAIgASgJEgwKBGhpdHMYAyABKAUSDgoGbWlzc2VzGAQgASgFIlIKEUxpc3RFdmVudHNSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgVsaW1pdBgCIAEoBRIOCgZvZmZzZXQYAyABKAUSDgoGc2hhcmVkGAQgASgIIkcKEkxpc3RFdmVudHNSZXNwb25zZRIfCgZldmVudHMYASADKAsyDy50YXN0ZS52MS5FdmVudBIQCghoYXNfbW9yZRgCIAEoCCJgCg9Qcm9maWxlU2VjdGlvbnMSDwoHc3VtbWFyeRgBIAEoCRIMCgRrbm93GAIgAygJEgwKBGxpa2UYAyADKAkSEAoIZHJpZnRpbmcYBCADKAkSDgoGYm91bmNlGAUgAygJIiMKEUdldFByb2ZpbGVSZXF1ZXN0Eg4KBnNoYXJlZBgBIAEoCCK4AQoSR2V0UHJvZmlsZVJlc3BvbnNlEhIKCmNvbmZpZ3VyZWQYASABKAgSKwoIc2VjdGlvbnMYAiABKAsyGS50YXN0ZS52MS5Qcm9maWxlU2VjdGlvbnMSDQoFbW9kZWwYAyABKAkSFAoMZ2VuZXJhdGVkX2F0GAQgASgJEg8KB3BlbmRpbmcYBSABKAgSEgoKbGFzdF9lcnJvchgGIAEoCRIXCg9uZXh0X3JlZnJlc2hfYXQYByABKAkiJwoVUmVmcmVzaFByb2ZpbGVSZXF1ZXN0Eg4KBnNoYXJlZBgBIAEoCCIYChZSZWZyZXNoUHJvZmlsZVJlc3BvbnNlIiQKBlNvdXJjZRILCgN1cmwYASABKAkSDQoFdGl0bGUYAiABKAkivQIKDlJlY29tbWVuZGF0aW9uEgoKAmlkGAEgASgJEg4KBmRvbWFpbhgCIAEoCRINCgV0cmFjaxgDIAEoCRINCgV0aXRsZRgEIAEoCRIPCgdjcmVhdG9yGAUgASgJEgwKBHllYXIYBiABKAUSCwoDdXJsGAcgASgJEhEKCWltYWdlX3VybBgIIAEoCRILCgN3aHkYCSABKAkSIQoHc291cmNlcxgKIAMoCzIQLnRhc3RlLnYxLlNvdXJjZRINCgVzY29yZRgLIAEoBRIQCghmZWVkYmFjaxgMIAEoCRINCgVzYXZlZBgNIAEoCBIQCghhY2NlcHRlZBgOIAEoCBIWCg5vbl9teV9zZXJ2aWNlcxgPIAEoCBIUCgxnZW5lcmF0ZWRfYXQYECABKAkSEgoKY2FuX2FjY2VwdBgRIAEoCCJfChpMaXN0UmVjb21tZW5kYXRpb25zUmVxdWVzdBIOCgZkb21haW4YASABKAkSDQoFdHJhY2sYAiABKAkSEgoKc2F2ZWRfb25seRgDIAEoCBIOCgZzaGFyZWQYBCABKAgivQEKG0xpc3RSZWNvbW1lbmRhdGlvbnNSZXNwb25zZRIxCg9yZWNvbW1lbmRhdGlvbnMYASADKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbhIUCgxnZW5lcmF0ZWRfYXQYAiABKAkSEgoKbGFzdF9lcnJvchgDIAEoCRIXCg9lbWFpbF9uZXdfcGlja3MYBCABKAgSDwoHcGVuZGluZxgFIAEoCBIXCg9uZXh0X3JlZnJlc2hfYXQYBiABKAkiLwodUmVmcmVzaFJlY29tbWVuZGF0aW9uc1JlcXVlc3QSDgoGc2hhcmVkGAEgASgIIiAKHlJlZnJlc2hSZWNvbW1lbmRhdGlvbnNSZXNwb25zZSJCChJTZXRGZWVkYmFja1JlcXVlc3QSCgoCaWQYASABKAkSEAoIZmVlZGJhY2sYAiABKAkSDgoGc2hhcmVkGAMgASgIIkcKE1NldEZlZWRiYWNrUmVzcG9uc2USMAoOcmVjb21tZW5kYXRpb24YASABKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbiI8Cg9TZXRTYXZlZFJlcXVlc3QSCgoCaWQYASABKAkSDQoFc2F2ZWQYAiABKAgSDgoGc2hhcmVkGAMgASgIIkQKEFNldFNhdmVkUmVzcG9uc2USMAoOcmVjb21tZW5kYXRpb24YASABKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbiIqChdTZXRFbWFpbE5ld1BpY2tzUmVxdWVzdBIPCgdlbmFibGVkGAEgASgIIhoKGFNldEVtYWlsTmV3UGlja3NSZXNwb25zZSI5ChtBY2NlcHRSZWNvbW1lbmRhdGlvblJlcXVlc3QSCgoCaWQYASABKAkSDgoGc2hhcmVkGAIgASgIIlAKHEFjY2VwdFJlY29tbWVuZGF0aW9uUmVzcG9uc2USMAoOcmVjb21tZW5kYXRpb24YASABKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbjLaBgoMVGFzdGVTZXJ2aWNlEkEKCEdldFN0YXRzEhkudGFzdGUudjEuR2V0U3RhdHNSZXF1ZXN0GhoudGFzdGUudjEuR2V0U3RhdHNSZXNwb25zZRJHCgpMaXN0RXZlbnRzEhsudGFzdGUudjEuTGlzdEV2ZW50c1JlcXVlc3QaHC50YXN0ZS52MS5MaXN0RXZlbnRzUmVzcG9uc2USRwoKR2V0UHJvZmlsZRIbLnRhc3RlLnYxLkdldFByb2ZpbGVSZXF1ZXN0GhwudGFzdGUudjEuR2V0UHJvZmlsZVJlc3BvbnNlElMKDlJlZnJlc2hQcm9maWxlEh8udGFzdGUudjEuUmVmcmVzaFByb2ZpbGVSZXF1ZXN0GiAudGFzdGUudjEuUmVmcmVzaFByb2ZpbGVSZXNwb25zZRJiChNMaXN0UmVjb21tZW5kYXRpb25zEiQudGFzdGUudjEuTGlzdFJlY29tbWVuZGF0aW9uc1JlcXVlc3QaJS50YXN0ZS52MS5MaXN0UmVjb21tZW5kYXRpb25zUmVzcG9uc2USawoWUmVmcmVzaFJlY29tbWVuZGF0aW9ucxInLnRhc3RlLnYxLlJlZnJlc2hSZWNvbW1lbmRhdGlvbnNSZXF1ZXN0GigudGFzdGUudjEuUmVmcmVzaFJlY29tbWVuZGF0aW9uc1Jlc3BvbnNlEkoKC1NldEZlZWRiYWNrEhwudGFzdGUudjEuU2V0RmVlZGJhY2tSZXF1ZXN0Gh0udGFzdGUudjEuU2V0RmVlZGJhY2tSZXNwb25zZRJBCghTZXRTYXZlZBIZLnRhc3RlLnYxLlNldFNhdmVkUmVxdWVzdBoaLnRhc3RlLnYxLlNldFNhdmVkUmVzcG9uc2USZQoUQWNjZXB0UmVjb21tZW5kYXRpb24SJS50YXN0ZS52MS5BY2NlcHRSZWNvbW1lbmRhdGlvblJlcXVlc3QaJi50YXN0ZS52MS5BY2NlcHRSZWNvbW1lbmRhdGlvblJlc3BvbnNlElkKEFNldEVtYWlsTmV3UGlja3MSIS50YXN0ZS52MS5TZXRFbWFpbE5ld1BpY2tzUmVxdWVzdBoiLnRhc3RlLnYxLlNldEVtYWlsTmV3UGlja3NSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL3Rhc3RlL3YxO3Rhc3RldjFiBnByb3RvMw");
 
 /**
  * One consumed item. Signal is engagement normalized within its domain, from
@@ -737,6 +737,20 @@ export type ListRecommendationsResponse = Message<"taste.v1.ListRecommendationsR
    * @generated from field: bool email_new_picks = 4;
    */
   emailNewPicks: boolean;
+
+  /**
+   * A run is queued or running.
+   *
+   * @generated from field: bool pending = 5;
+   */
+  pending: boolean;
+
+  /**
+   * RFC3339 from when RefreshRecommendations is accepted again; empty when now.
+   *
+   * @generated from field: string next_refresh_at = 6;
+   */
+  nextRefreshAt: string;
 };
 
 /**
@@ -745,6 +759,41 @@ export type ListRecommendationsResponse = Message<"taste.v1.ListRecommendationsR
  */
 export const ListRecommendationsResponseSchema: GenMessage<ListRecommendationsResponse> = /*@__PURE__*/
   messageDesc(file_taste_v1_taste, 18);
+
+/**
+ * Queues new picks from the stored profile, without rewriting it.
+ *
+ * @generated from message taste.v1.RefreshRecommendationsRequest
+ */
+export type RefreshRecommendationsRequest = Message<"taste.v1.RefreshRecommendationsRequest"> & {
+  /**
+   * Read or change the family's shared taste instead of the caller's own. It
+   * covers only the shared movies & series list.
+   *
+   * @generated from field: bool shared = 1;
+   */
+  shared: boolean;
+};
+
+/**
+ * Describes the message taste.v1.RefreshRecommendationsRequest.
+ * Use `create(RefreshRecommendationsRequestSchema)` to create a new message.
+ */
+export const RefreshRecommendationsRequestSchema: GenMessage<RefreshRecommendationsRequest> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 19);
+
+/**
+ * @generated from message taste.v1.RefreshRecommendationsResponse
+ */
+export type RefreshRecommendationsResponse = Message<"taste.v1.RefreshRecommendationsResponse"> & {
+};
+
+/**
+ * Describes the message taste.v1.RefreshRecommendationsResponse.
+ * Use `create(RefreshRecommendationsResponseSchema)` to create a new message.
+ */
+export const RefreshRecommendationsResponseSchema: GenMessage<RefreshRecommendationsResponse> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 20);
 
 /**
  * Feedback on a pick; empty clears it.
@@ -776,7 +825,7 @@ export type SetFeedbackRequest = Message<"taste.v1.SetFeedbackRequest"> & {
  * Use `create(SetFeedbackRequestSchema)` to create a new message.
  */
 export const SetFeedbackRequestSchema: GenMessage<SetFeedbackRequest> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 19);
+  messageDesc(file_taste_v1_taste, 21);
 
 /**
  * @generated from message taste.v1.SetFeedbackResponse
@@ -793,7 +842,7 @@ export type SetFeedbackResponse = Message<"taste.v1.SetFeedbackResponse"> & {
  * Use `create(SetFeedbackResponseSchema)` to create a new message.
  */
 export const SetFeedbackResponseSchema: GenMessage<SetFeedbackResponse> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 20);
+  messageDesc(file_taste_v1_taste, 22);
 
 /**
  * @generated from message taste.v1.SetSavedRequest
@@ -823,7 +872,7 @@ export type SetSavedRequest = Message<"taste.v1.SetSavedRequest"> & {
  * Use `create(SetSavedRequestSchema)` to create a new message.
  */
 export const SetSavedRequestSchema: GenMessage<SetSavedRequest> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 21);
+  messageDesc(file_taste_v1_taste, 23);
 
 /**
  * @generated from message taste.v1.SetSavedResponse
@@ -840,7 +889,7 @@ export type SetSavedResponse = Message<"taste.v1.SetSavedResponse"> & {
  * Use `create(SetSavedResponseSchema)` to create a new message.
  */
 export const SetSavedResponseSchema: GenMessage<SetSavedResponse> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 22);
+  messageDesc(file_taste_v1_taste, 24);
 
 /**
  * Turns the email for new picks on or off for the caller.
@@ -859,7 +908,7 @@ export type SetEmailNewPicksRequest = Message<"taste.v1.SetEmailNewPicksRequest"
  * Use `create(SetEmailNewPicksRequestSchema)` to create a new message.
  */
 export const SetEmailNewPicksRequestSchema: GenMessage<SetEmailNewPicksRequest> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 23);
+  messageDesc(file_taste_v1_taste, 25);
 
 /**
  * @generated from message taste.v1.SetEmailNewPicksResponse
@@ -872,7 +921,7 @@ export type SetEmailNewPicksResponse = Message<"taste.v1.SetEmailNewPicksRespons
  * Use `create(SetEmailNewPicksResponseSchema)` to create a new message.
  */
 export const SetEmailNewPicksResponseSchema: GenMessage<SetEmailNewPicksResponse> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 24);
+  messageDesc(file_taste_v1_taste, 26);
 
 /**
  * Adds a book to the to-read shelf or a movie or series to the backlog as
@@ -900,7 +949,7 @@ export type AcceptRecommendationRequest = Message<"taste.v1.AcceptRecommendation
  * Use `create(AcceptRecommendationRequestSchema)` to create a new message.
  */
 export const AcceptRecommendationRequestSchema: GenMessage<AcceptRecommendationRequest> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 25);
+  messageDesc(file_taste_v1_taste, 27);
 
 /**
  * @generated from message taste.v1.AcceptRecommendationResponse
@@ -917,7 +966,7 @@ export type AcceptRecommendationResponse = Message<"taste.v1.AcceptRecommendatio
  * Use `create(AcceptRecommendationResponseSchema)` to create a new message.
  */
 export const AcceptRecommendationResponseSchema: GenMessage<AcceptRecommendationResponse> = /*@__PURE__*/
-  messageDesc(file_taste_v1_taste, 26);
+  messageDesc(file_taste_v1_taste, 28);
 
 /**
  * The caller's consumption log across every app; per user. Requests with
@@ -966,6 +1015,14 @@ export const TasteService: GenService<{
     methodKind: "unary";
     input: typeof ListRecommendationsRequestSchema;
     output: typeof ListRecommendationsResponseSchema;
+  },
+  /**
+   * @generated from rpc taste.v1.TasteService.RefreshRecommendations
+   */
+  refreshRecommendations: {
+    methodKind: "unary";
+    input: typeof RefreshRecommendationsRequestSchema;
+    output: typeof RefreshRecommendationsResponseSchema;
   },
   /**
    * @generated from rpc taste.v1.TasteService.SetFeedback
