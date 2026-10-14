@@ -210,7 +210,7 @@ func TestSearch_ReturnsResults(t *testing.T) {
 	books := searchResponse(t, []bookFixture{
 		//nolint:exhaustruct // only fields under test
 		{ID: 1, Title: "Space Odyssey", Authors: []string{"Clarke"}, Pages: 221,
-			ISBN13: "9780000000001"},
+			ISBN13: "9780000000001", Readers: 1234},
 		//nolint:exhaustruct // only fields under test
 		{ID: 2, Title: "Another Book", Authors: []string{"Smith"}},
 	})
@@ -234,6 +234,10 @@ func TestSearch_ReturnsResults(t *testing.T) {
 	require.NotNil(t, results[0].ISBN13)
 	assert.Equal(t, "9780000000001", *results[0].ISBN13)
 	assert.Nil(t, results[1].ISBN13)
+
+	require.NotNil(t, results[0].Readers)
+	assert.Equal(t, 1234, *results[0].Readers)
+	assert.Nil(t, results[1].Readers)
 }
 
 // TestSearch_PreservesRelevanceOrder: hydrated books are reordered to the
@@ -431,6 +435,7 @@ type bookFixture struct {
 	Pages   int
 	Cover   string
 	ISBN13  string
+	Readers int
 }
 
 func contributorsJSON(authors []string, flat bool) []map[string]any {
@@ -455,6 +460,9 @@ func bookJSON(f bookFixture) map[string]any {
 	}
 	if f.Cover != "" {
 		b["cached_image"] = map[string]any{"url": f.Cover}
+	}
+	if f.Readers > 0 {
+		b["users_count"] = f.Readers
 	}
 	if f.ISBN13 != "" {
 		b["editions"] = []map[string]any{{"isbn_13": f.ISBN13}}

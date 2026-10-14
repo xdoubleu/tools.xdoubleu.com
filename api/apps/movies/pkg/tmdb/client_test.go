@@ -40,7 +40,7 @@ func TestSearch_KeepsMoviesAndSeries(t *testing.T) {
 		_, _ = w.Write([]byte(`{"results":[
 			{"media_type":"movie","id":438631,"title":"Dune",
 			 "original_title":"Dune","release_date":"2021-09-15",
-			 "poster_path":"/d.jpg"},
+			 "poster_path":"/d.jpg","vote_count":13000},
 			{"media_type":"person","id":1,"name":"Someone"},
 			{"media_type":"tv","id":90228,"name":"Dune: Prophecy",
 			 "original_name":"Dune: Prophecy","first_air_date":""}
@@ -55,6 +55,7 @@ func TestSearch_KeepsMoviesAndSeries(t *testing.T) {
 	assert.Equal(t, int64(438631), got[0].TMDBID)
 	assert.Equal(t, "Dune", got[0].Title)
 	assert.Equal(t, "/d.jpg", got[0].PosterPath)
+	assert.Equal(t, 13000, got[0].VoteCount)
 	require.NotNil(t, got[0].ReleaseDate)
 	assert.Equal(t, "2021-09-15", got[0].ReleaseDate.Format(time.DateOnly))
 

@@ -25,6 +25,8 @@ func TestFindBook(t *testing.T) {
 	assert.Equal(t, "hardcover:9780140447934", m.Ref)
 	assert.Equal(t, "https://hardcover.app/cover.jpg", m.ImageURL)
 	assert.False(t, m.Known)
+	require.NotNil(t, m.Audience)
+	assert.Equal(t, 2500, *m.Audience)
 
 	_, err = testApp.EnsureLibraryBook(ctx, uid, "hardcover", "9780140447934", "to-read")
 	require.NoError(t, err)

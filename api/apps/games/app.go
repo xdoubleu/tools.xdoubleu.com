@@ -63,7 +63,7 @@ func NewInner(
 	a := &Games{
 		Base:  app.NewBase(context.Background(), authService, logger, cfg),
 		db:    db,
-		Store: steam.NewStore(steam.StorefrontURLRESTAPI),
+		Store: steam.NewStore(steam.StoreURL),
 	}
 
 	const amountOfWorkers = 1

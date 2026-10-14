@@ -31,8 +31,31 @@ const (
 	// servicesBonus is added to the score of a pick streaming on the user's
 	// services.
 	servicesBonus = 10
-	maxScore      = 100
+	// nichePenalty is taken off the score of a pick with a small following.
+	nichePenalty = 15
+	maxScore     = 100
 )
+
+// A pick's reach as the generator judged it.
+const (
+	reachNiche   = "niche"
+	reachKnown   = "known"
+	reachPopular = "popular"
+	reachUnknown = "unknown"
+)
+
+// nicheBelow is the catalog audience under which a pick is niche: TMDB votes
+// for movies and series, Hardcover readers for books, Steam reviews for games.
+//
+//nolint:gochecknoglobals,mnd // read-only lookup table of thresholds
+var nicheBelow = map[consumption.Domain]int{
+	consumption.DomainMovies:   300,
+	consumption.DomainSeries:   100,
+	consumption.DomainBooks:    100,
+	consumption.DomainGames:    500,
+	consumption.DomainFeeds:    0,
+	consumption.DomainPodcasts: 0,
+}
 
 type (
 	// TitleFinder looks a title up; games and podcasts.
@@ -90,6 +113,8 @@ type Candidate struct {
 	Neighbour string `json:"neighbour"`
 	// Score is the model's 0-100 estimate of how much they'd enjoy it.
 	Score int `json:"score"`
+	// Reach is the model's estimate of its following, e.g. reachNiche.
+	Reach string `json:"reach"`
 }
 
 type recommendationStore interface {
@@ -477,6 +502,15 @@ func (s *RecommendService) verify(
 	return out, int(failed.Load())
 }
 
+// niche reports whether the pick has a small following: by its catalog
+// audience where the catalog counts one, else by the generator's reach.
+func (v verified) niche() bool {
+	if v.match.Audience != nil {
+		return *v.match.Audience < nicheBelow[consumption.Domain(v.Domain)]
+	}
+	return v.Reach == reachNiche
+}
+
 func (s *RecommendService) find(
 	ctx context.Context,
 	userID string,
@@ -540,14 +574,17 @@ func mergePicks(previous, touched []models.Recommendation) []models.Recommendati
 }
 
 // rankPicks keeps the best-scored keepPerList picks per domain and track,
-// boosting those on the user's services; each carries the cited sources that
-// name it.
+// boosting those on the user's services and holding back niche ones; each
+// carries the cited sources that name it.
 func rankPicks(picks []verified, sources []models.Source) []models.Recommendation {
 	recs := make([]models.Recommendation, 0, len(picks))
 	for _, p := range picks {
 		score := min(max(p.Score, 0), maxScore)
 		if p.match.OnMyServices {
 			score = min(score+servicesBonus, maxScore)
+		}
+		if p.niche() {
+			score = max(score-nichePenalty, 0)
 		}
 		recs = append(recs, models.Recommendation{
 			ID: "", Domain: p.Domain, Track: p.Track, Title: p.match.Title,

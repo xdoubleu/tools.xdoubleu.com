@@ -41,14 +41,17 @@ First imagine four taste neighbours: people whose history and profile closely `+
 		`match this person's but who differ in temperament.
 - The purist goes deeper into exactly what the person loves.
 - The explorer crosses into adjacent genres, forms and media.
-- The contrarian champions overlooked, non-canonical and non-English work.
+- The contrarian champions underrated but well-reviewed work, non-English `+
+		`work included.
 - The curator tracks what is new and acclaimed right now.
 Let each neighbour propose picks, then merge them.
 
-Search the web: for recent releases, lesser-known work, "if you liked X" `+
+Search the web: for recent releases, underrated work, "if you liked X" `+
 		`discussions and reviews, and to confirm each title exists as you name it. `+
-		`Skip the famous canon this person has almost certainly met already. Never `+
-		`propose anything in their history or in the "already suggested" list. `+
+		`Well-known work they haven't logged is fine: prefer picks with a real `+
+		`audience over obscure ones few people have read, watched, played or `+
+		`followed. Never propose anything in their history or in the "already `+
+		`suggested" list. `+
 		`Learn from the feedback on earlier picks: lean into the directions that `+
 		`were hits, especially on the broaden track, and away from the misses.
 
@@ -68,7 +71,9 @@ Cover these domains: %s. Propose up to %d picks per domain and track. For `+
 		`given their profile. On the broaden track also reward how well it `+
 		`stretches them in a direction they are likely to welcome, and penalise `+
 		`picks that are really "more of the same". Score honestly: a spread of `+
-		`scores is more useful than all high ones.
+		`scores is more useful than all high ones. Also give its reach, judged `+
+		`from what your searches show: niche (a small following), known, `+
+		`popular, or unknown.
 
 Write the picks as a plain list, one per pick, with every field above. A `+
 		`later step turns your list into structured data, so don't write JSON.`,
@@ -78,8 +83,9 @@ Write the picks as a plain list, one per pick, with every field above. A `+
 // formatterPrompt tells the format call to only restructure the research.
 const formatterPrompt = `Turn the recommendations below into the requested ` +
 	`JSON. Keep every pick exactly as written: do not add, drop, merge or ` +
-	`reword any, and keep each why, neighbour and score as given. Use year 0 ` +
-	`when none is given and an empty url when there is none.`
+	`reword any, and keep each why, neighbour, score and reach as given. Use ` +
+	`year 0 when none is given, an empty url when there is none and reach ` +
+	`unknown when none is given.`
 
 func generatorInput(
 	events []consumption.Event,
@@ -140,6 +146,9 @@ func candidatesSchema() map[string]any {
 		"why":       str,
 		"neighbour": str,
 		"score":     typeSchema("integer"),
+		"reach": enumSchema(
+			reachNiche, reachKnown, reachPopular, reachUnknown,
+		),
 	})
 	return objectSchema(map[string]any{"picks": arraySchema(pick)})
 }

@@ -35,7 +35,7 @@ func (a *Feeds) FindSource(
 	return &consumption.CatalogMatch{
 		Ref: final, Title: title, Creator: "", Year: 0, ImageURL: "",
 		URL: final, Known: known,
-		OnMyServices: false,
+		OnMyServices: false, Audience: nil,
 	}, nil
 }
 

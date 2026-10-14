@@ -100,6 +100,8 @@ type ListFilter struct {
 type SearchResult struct {
 	Title  Title
 	Status *string
+	// VoteCount is how many TMDB users rated it.
+	VoteCount int
 }
 
 // TitleKey identifies a catalog title by its TMDB identity.

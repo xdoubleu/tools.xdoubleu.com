@@ -31,6 +31,8 @@ func TestFindTitle(t *testing.T) {
 	assert.Equal(t, "https://image.tmdb.org/t/p/w185/matrix.jpg", m.ImageURL)
 	assert.Equal(t, "https://www.themoviedb.org/movie/603", m.URL)
 	assert.False(t, m.Known)
+	require.NotNil(t, m.Audience)
+	assert.Equal(t, 25000, *m.Audience)
 
 	// A series.
 	m, err = a.FindTitle(ctx, uid, "series", "Dark", 0)

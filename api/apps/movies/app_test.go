@@ -52,7 +52,7 @@ var catalog = []tmdb.Title{
 		OriginalTitle: "The Matrix", ReleaseDate: date("1999-03-30"),
 		PosterPath: "/matrix.jpg", Overview: "Neo learns the truth.",
 		Genres: []string{"Action", "Science Fiction"}, Runtime: intPtr(136),
-		SeasonCount: nil, Seasons: nil,
+		SeasonCount: nil, Seasons: nil, VoteCount: 25000,
 		WatchLink: "https://www.themoviedb.org/movie/603/watch?locale=BE",
 		Providers: []tmdb.Provider{
 			{ID: 8, Name: "Netflix", LogoPath: "/netflix.jpg",
@@ -69,7 +69,7 @@ var catalog = []tmdb.Title{
 		PosterPath: "/spirited.jpg", Overview: "A girl in a spirit world.",
 		Genres: []string{"Animation"}, Runtime: intPtr(125), SeasonCount: nil,
 		Seasons:   nil,
-		WatchLink: "", Providers: nil,
+		WatchLink: "", Providers: nil, VoteCount: 0,
 	},
 	{
 		MediaType: tmdb.MediaTypeSeries, TMDBID: 1396, Title: "Breaking Bad",
@@ -83,7 +83,7 @@ var catalog = []tmdb.Title{
 			{Number: 3, Name: "Season 3", AirDate: date("2099-01-01"), EpisodeCount: 0},
 			{Number: 4, Name: "Season 4", AirDate: nil, EpisodeCount: 0},
 		},
-		WatchLink: "", Providers: nil,
+		WatchLink: "", Providers: nil, VoteCount: 0,
 	},
 	{
 		MediaType: tmdb.MediaTypeSeries, TMDBID: 70523, Title: "Dark",
@@ -98,6 +98,7 @@ var catalog = []tmdb.Title{
 			{ID: 99, Name: "Ad TV", LogoPath: "", OfferType: tmdb.OfferAds,
 				DisplayPriority: 5},
 		},
+		VoteCount: 0,
 	},
 	{
 		MediaType: tmdb.MediaTypeSeries, TMDBID: 136315, Title: "The Bear",
@@ -107,7 +108,7 @@ var catalog = []tmdb.Title{
 			{Number: 1, Name: "Season 1", AirDate: date("2022-06-23"), EpisodeCount: 8},
 			{Number: 2, Name: "Season 2", AirDate: date("2099-06-22"), EpisodeCount: 0},
 		},
-		WatchLink: "", Providers: nil,
+		WatchLink: "", Providers: nil, VoteCount: 0,
 	},
 	{
 		MediaType: tmdb.MediaTypeSeries, TMDBID: 95396, Title: "Severance",
@@ -116,7 +117,7 @@ var catalog = []tmdb.Title{
 		Seasons: []tmdb.Season{
 			{Number: 1, Name: "Season 1", AirDate: date("2022-02-18"), EpisodeCount: 9},
 		},
-		WatchLink: "", Providers: nil,
+		WatchLink: "", Providers: nil, VoteCount: 0,
 	},
 	{
 		MediaType: tmdb.MediaTypeSeries, TMDBID: 83867, Title: "Andor",
@@ -125,13 +126,13 @@ var catalog = []tmdb.Title{
 		Seasons: []tmdb.Season{
 			{Number: 1, Name: "Season 1", AirDate: date("2022-09-21"), EpisodeCount: 12},
 		},
-		WatchLink: "", Providers: nil,
+		WatchLink: "", Providers: nil, VoteCount: 0,
 	},
 	{
 		MediaType: tmdb.MediaTypeMovie, TMDBID: 999, Title: "Avatar 5",
 		OriginalTitle: "Avatar 5", ReleaseDate: nil, PosterPath: "",
 		Overview: "", Genres: nil, Runtime: nil, SeasonCount: nil, Seasons: nil,
-		WatchLink: "", Providers: nil,
+		WatchLink: "", Providers: nil, VoteCount: 0,
 	},
 }
 

@@ -12,12 +12,18 @@ import (
 )
 
 type fakeStore struct {
-	items []steam.StoreItem
-	err   error
+	items      []steam.StoreItem
+	err        error
+	reviews    int
+	reviewsErr error
 }
 
 func (f fakeStore) SearchStore(context.Context, string) ([]steam.StoreItem, error) {
 	return f.items, f.err
+}
+
+func (f fakeStore) ReviewCount(context.Context, int) (int, error) {
+	return f.reviews, f.reviewsErr
 }
 
 func TestFindGame(t *testing.T) {
@@ -28,10 +34,11 @@ func TestFindGame(t *testing.T) {
 
 	old := testApp.Store
 	t.Cleanup(func() { testApp.Store = old })
-	testApp.Store = fakeStore{items: []steam.StoreItem{
+	items := []steam.StoreItem{
 		{ID: 1, Name: "Outer Wilds - Echoes of the Eye", Type: "app", ImageURL: ""},
 		{ID: 753640, Name: "Outer Wilds", Type: "app", ImageURL: "https://img/ow.jpg"},
-	}, err: nil}
+	}
+	testApp.Store = fakeStore{items: items, err: nil, reviews: 4200, reviewsErr: nil}
 
 	m, err := testApp.FindGame(ctx, uid, "Outer Wilds")
 	require.NoError(t, err)
@@ -40,6 +47,8 @@ func TestFindGame(t *testing.T) {
 	assert.Equal(t, "https://store.steampowered.com/app/753640", m.URL)
 	assert.Equal(t, "https://img/ow.jpg", m.ImageURL)
 	assert.False(t, m.Known)
+	require.NotNil(t, m.Audience)
+	assert.Equal(t, 4200, *m.Audience)
 
 	_, err = testDB.Exec(ctx, `INSERT INTO games.steam_games (id, user_id, name)
 		VALUES (753640, $1, 'Outer Wilds')`, uid)
@@ -47,6 +56,7 @@ func TestFindGame(t *testing.T) {
 	m, err = testApp.FindGame(ctx, uid, "Outer Wilds")
 	require.NoError(t, err)
 	assert.True(t, m.Known)
+	assert.Nil(t, m.Audience, "a known game needs no review count")
 
 	m, err = testApp.FindGame(ctx, uid, "Outer Wilds - Echoes of the Eye")
 	require.NoError(t, err)
@@ -62,7 +72,16 @@ func TestFindGame(t *testing.T) {
 	_, err = testApp.FindGame(cancelled, uid, "Outer Wilds")
 	require.Error(t, err)
 
-	testApp.Store = fakeStore{items: nil, err: errors.New("store down")}
+	testApp.Store = fakeStore{
+		items: items, err: nil, reviews: 0, reviewsErr: errors.New("reviews down"),
+	}
+	m, err = testApp.FindGame(ctx, uid, "Outer Wilds - Echoes of the Eye")
+	require.NoError(t, err, "a failed review count only leaves it out")
+	assert.Nil(t, m.Audience)
+
+	testApp.Store = fakeStore{
+		items: nil, err: errors.New("store down"), reviews: 0, reviewsErr: nil,
+	}
 	_, err = testApp.FindGame(ctx, uid, "Outer Wilds")
 	require.ErrorContains(t, err, "store down")
 }

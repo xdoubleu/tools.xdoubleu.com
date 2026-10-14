@@ -32,6 +32,7 @@ func (a *Podcasts) FindShow(
 			URL:          r.AppleURL,
 			Known:        r.Favourite,
 			OnMyServices: false,
+			Audience:     nil,
 		}, nil
 	}
 	return nil, nil //nolint:nilnil // no match is not an error

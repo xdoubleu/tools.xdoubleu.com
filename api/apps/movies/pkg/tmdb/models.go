@@ -55,6 +55,8 @@ type Title struct {
 	// WatchLink is TMDB's watch page for Belgium, not a streaming service.
 	WatchLink string
 	Providers []Provider
+	// VoteCount is how many TMDB users rated it.
+	VoteCount int
 }
 
 // Season is one season of a series; Number 0 is TMDB's "Specials".
@@ -80,6 +82,7 @@ type searchResult struct {
 	ReleaseDate   string `json:"release_date"`
 	FirstAirDate  string `json:"first_air_date"`
 	PosterPath    string `json:"poster_path"`
+	VoteCount     int    `json:"vote_count"`
 }
 
 type genre struct {
@@ -189,6 +192,7 @@ type movieResponse struct {
 	Overview      string  `json:"overview"`
 	Genres        []genre `json:"genres"`
 	Runtime       int     `json:"runtime"`
+	VoteCount     int     `json:"vote_count"`
 
 	WatchProviders watchProviders `json:"watch/providers"`
 }
@@ -203,6 +207,7 @@ type seriesResponse struct {
 	Overview        string  `json:"overview"`
 	Genres          []genre `json:"genres"`
 	NumberOfSeasons int     `json:"number_of_seasons"`
+	VoteCount       int     `json:"vote_count"`
 
 	WatchProviders watchProviders `json:"watch/providers"`
 	Seasons        []struct {
@@ -240,7 +245,7 @@ func positive(n int) *int {
 
 func (r searchResult) toTitle() (Title, bool) {
 	//nolint:exhaustruct // detail-only fields stay empty for search results
-	t := Title{TMDBID: r.ID, PosterPath: r.PosterPath}
+	t := Title{TMDBID: r.ID, PosterPath: r.PosterPath, VoteCount: r.VoteCount}
 	switch r.MediaType {
 	case "movie":
 		t.MediaType = MediaTypeMovie
@@ -274,6 +279,7 @@ func (r movieResponse) toTitle() Title {
 		Seasons:       nil,
 		WatchLink:     link,
 		Providers:     providers,
+		VoteCount:     r.VoteCount,
 	}
 }
 
@@ -302,6 +308,7 @@ func (r seriesResponse) toTitle() Title {
 		Seasons:       seasons,
 		WatchLink:     link,
 		Providers:     providers,
+		VoteCount:     r.VoteCount,
 	}
 }
 

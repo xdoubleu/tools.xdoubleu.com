@@ -66,6 +66,7 @@ func pickCatalogs() taste.Catalogs {
 			ImageURL: "https://img.example/" + title, URL: "https://cat.example/" + title,
 			Known:        false,
 			OnMyServices: false,
+			Audience:     nil,
 		}
 	}
 	return taste.Catalogs{

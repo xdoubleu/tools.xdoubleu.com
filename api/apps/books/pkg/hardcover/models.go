@@ -12,6 +12,9 @@ type ExternalBook struct {
 	PageCount   *int
 	// Series is nil when Hardcover places the book in none.
 	Series *SeriesRef
+	// Readers is how many Hardcover users shelved the book; only Search sets
+	// it.
+	Readers *int
 }
 
 // SeriesRef is a book's place in a series. Position is nil for an unordered
@@ -91,8 +94,9 @@ type book struct {
 	// its ISBN13).
 	Editions          []edition           `json:"editions"`
 	CachedContributor []cachedContributor `json:"cached_contributors"`
-	// BookSeries is only selected by booksByIDsQuery.
+	// BookSeries and UsersCount are only selected by booksByIDsQuery.
 	BookSeries []bookSeries `json:"book_series"`
+	UsersCount *int         `json:"users_count"`
 }
 
 // bookSeries links a book to a series; Series or Book is set depending on

@@ -13,7 +13,6 @@ import (
 )
 
 const BaseURLRESTAPI = "http://api.steampowered.com"
-const StorefrontURLRESTAPI = "https://store.steampowered.com/api"
 
 type client struct {
 	logger   *slog.Logger

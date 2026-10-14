@@ -184,6 +184,7 @@ func pick(domain, track, title string) Candidate {
 	return Candidate{
 		Domain: domain, Track: track, Title: title, Creator: "C", Year: 2020,
 		URL: "", Why: "because " + title, Neighbour: "explorer", Score: 50,
+		Reach: reachUnknown,
 	}
 }
 
@@ -198,7 +199,7 @@ func match(title string, known bool) *consumption.CatalogMatch {
 	return &consumption.CatalogMatch{
 		Ref: "ref:" + title, Title: title, Creator: "", Year: 0,
 		ImageURL: "img/" + title, URL: "url/" + title, Known: known,
-		OnMyServices: false,
+		OnMyServices: false, Audience: nil,
 	}
 }
 
@@ -516,6 +517,7 @@ func TestFindRoutesEachDomain(t *testing.T) {
 		{
 			Domain: "feeds", Track: "more", Title: "F", Creator: "", Year: 0,
 			URL: "https://f.example", Why: "", Neighbour: "", Score: 0,
+			Reach: reachUnknown,
 		},
 	} {
 		m, err := s.find(context.Background(), "u", c)
@@ -685,6 +687,56 @@ func TestRecommend_BoostsPicksOnMyServices(t *testing.T) {
 		got[i] = fmt.Sprintf("%s/%d/%t", r.Title, r.Score, r.OnMyServices)
 	}
 	assert.Equal(t, []string{"Top/100/true", "Near/60/true", "Far/55/false"}, got)
+}
+
+func TestRecommend_HoldsBackNichePicks(t *testing.T) {
+	reached := func(domain, title, reach string) Candidate {
+		c := scored(domain, "more", title, 60)
+		c.Reach = reach
+		return c
+	}
+	llm := script(map[string]string{
+		"taste_candidates": picksJSON(
+			reached("movies", "Few Votes", reachPopular),
+			reached("movies", "Many Votes", reachNiche),
+			reached("series", "Small Series", reachUnknown),
+			reached("podcasts", "Tiny Show", reachNiche),
+			reached("podcasts", "Big Show", reachPopular),
+			reached("podcasts", "Unknown Show", reachUnknown),
+		),
+	})
+	votes := map[string]int{"Few Votes": 299, "Many Votes": 300, "Small Series": 99}
+	cats := catalogs("Tiny Show", "Big Show", "Unknown Show")
+	cats.Movies = func(
+		_ context.Context, _, _, title string, _ int,
+	) (*consumption.CatalogMatch, error) {
+		m := match(title, false)
+		n := votes[title]
+		m.Audience = &n
+		return m, nil
+	}
+	store := emptyStore(nil)
+	require.NoError(t, recService(llm, cats, store, oneBook, nil).
+		Generate(context.Background(), "u", all))
+	got := map[string]int{}
+	for _, r := range store.recs {
+		got[r.Title] = r.Score
+	}
+	assert.Equal(t, map[string]int{
+		"Few Votes": 45, "Many Votes": 60, "Small Series": 45,
+		"Tiny Show": 45, "Big Show": 60, "Unknown Show": 60,
+	}, got, "the catalog's audience wins over the reach; no data, no penalty")
+}
+
+func TestRecommend_NichePenaltyFloorsAtZero(t *testing.T) {
+	c := scored("podcasts", "more", "Tiny Show", 5)
+	c.Reach = reachNiche
+	llm := script(map[string]string{"taste_candidates": picksJSON(c)})
+	store := emptyStore(nil)
+	require.NoError(t, recService(llm, catalogs("Tiny Show"), store, oneBook, nil).
+		Generate(context.Background(), "u", all))
+	require.Len(t, store.recs, 1)
+	assert.Zero(t, store.recs[0].Score)
 }
 
 func TestRecommend_Accept(t *testing.T) {

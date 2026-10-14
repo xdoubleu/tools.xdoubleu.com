@@ -82,6 +82,9 @@ type SourceProposal struct {
 	Index int `json:"index,omitempty"`
 	// Differs is computed at read time, never persisted.
 	Differs []string `json:"-"`
+	// Readers is how many Hardcover users shelved the book; set by search
+	// only, never persisted.
+	Readers *int `json:"-"`
 }
 
 // series returns the proposal's series, or nil when it names none.
@@ -817,7 +820,7 @@ func hcCandidate(r hardcover.ExternalBook) titleOnlyCandidate {
 	return titleOnlyCandidate{
 		title: r.Title, authors: r.Authors, isbn13: r.ISBN13,
 		coverURL: r.CoverURL, description: r.Description, pageCount: r.PageCount,
-		series: hcSeries(r.Series),
+		series: hcSeries(r.Series), readers: r.Readers,
 	}
 }
 
@@ -875,6 +878,7 @@ func newSourceProposalFromCandidate(
 		p.PageCount = *c.pageCount
 	}
 	p.setSeries(c.series)
+	p.Readers = c.readers
 	return p
 }
 
@@ -1268,6 +1272,7 @@ type titleOnlyCandidate struct {
 	description *string
 	pageCount   *int
 	series      *models.BookSeries
+	readers     *int
 }
 
 // selectTitleOnlyMatch returns the first title match, unless two matches have

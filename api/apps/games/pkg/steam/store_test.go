@@ -15,7 +15,7 @@ import (
 func TestSearchStore(t *testing.T) {
 	ts := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "/storesearch/", r.URL.Path)
+			assert.Equal(t, "/api/storesearch/", r.URL.Path)
 			assert.Equal(t, "outer wilds", r.URL.Query().Get("term"))
 			assert.Equal(t, "english", r.URL.Query().Get("l"))
 			assert.Equal(t, "BE", r.URL.Query().Get("cc"))
@@ -54,4 +54,38 @@ func TestSearchStore_Errors(t *testing.T) {
 	require.Error(t, err)
 	_, err = steam.NewStore("::bad").SearchStore(context.Background(), "x")
 	require.Error(t, err)
+}
+
+func TestReviewCount(t *testing.T) {
+	ts := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/appreviews/753640", r.URL.Path)
+			assert.Equal(t, "1", r.URL.Query().Get("json"))
+			assert.Equal(t, "all", r.URL.Query().Get("language"))
+			_, _ = w.Write([]byte(`{"success": 1, "query_summary": {
+				"num_reviews": 1, "total_reviews": 96123}, "reviews": []}`))
+		}),
+	)
+	t.Cleanup(ts.Close)
+
+	n, err := steam.NewStore(ts.URL).ReviewCount(context.Background(), 753640)
+	require.NoError(t, err)
+	assert.Equal(t, 96123, n)
+}
+
+func TestReviewCount_Errors(t *testing.T) {
+	for _, body := range []string{"", "{", `{"success": 2}`} {
+		ts := httptest.NewServer(
+			http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				if body == "" {
+					w.WriteHeader(http.StatusBadGateway)
+					return
+				}
+				_, _ = w.Write([]byte(body))
+			}),
+		)
+		_, err := steam.NewStore(ts.URL).ReviewCount(context.Background(), 1)
+		require.Error(t, err, body)
+		ts.Close()
+	}
 }

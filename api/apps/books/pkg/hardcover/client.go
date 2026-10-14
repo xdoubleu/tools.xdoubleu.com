@@ -77,6 +77,7 @@ const booksByIDsQuery = `query BooksByIDs($ids: [Int!]!) {
     description
     cached_image
     cached_contributors
+    users_count
     editions(limit: 1) {
       isbn_13
     }
@@ -237,6 +238,7 @@ func bookToExternalBook(b book) ExternalBook {
 		out.CoverURL = &url
 	}
 	out.Series = pickSeries(b.BookSeries)
+	out.Readers = b.UsersCount
 	return out
 }
 

@@ -48,6 +48,7 @@ func hcOdysseyBook() hardcover.ExternalBook {
 	cover := "https://hardcover.app/cover.jpg"
 	desc := testBookDesc
 	pages := 300
+	readers := 2500
 	return hardcover.ExternalBook{
 		Title:       testBookTitle,
 		Authors:     []string{testBookAuthor},
@@ -56,6 +57,7 @@ func hcOdysseyBook() hardcover.ExternalBook {
 		Description: &desc,
 		PageCount:   &pages,
 		Series:      nil,
+		Readers:     &readers,
 	}
 }
 

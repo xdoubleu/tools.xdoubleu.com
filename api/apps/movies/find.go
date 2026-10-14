@@ -52,6 +52,7 @@ func (a *Movies) FindTitle(
 		URL:          fmt.Sprintf("https://www.themoviedb.org/%s/%d", path, t.TMDBID),
 		Known:        known,
 		OnMyServices: onMyServices,
+		Audience:     &best.VoteCount,
 	}, nil
 }
 

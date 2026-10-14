@@ -20,6 +20,9 @@ type CatalogMatch struct {
 	// OnMyServices is set when a movie or series streams on one of the
 	// user's services.
 	OnMyServices bool
+	// Audience is how many people the catalog counts for the item (TMDB
+	// votes, Hardcover readers, Steam reviews); nil when it counts none.
+	Audience *int
 }
 
 // SameTitle reports whether two titles name the same work, ignoring case,

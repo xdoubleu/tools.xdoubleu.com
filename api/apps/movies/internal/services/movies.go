@@ -136,7 +136,9 @@ func (s *MovieService) Search(
 
 	results := make([]models.SearchResult, len(titles))
 	for i, t := range titles {
-		results[i] = models.SearchResult{Title: fromTMDB(t), Status: nil}
+		results[i] = models.SearchResult{
+			Title: fromTMDB(t), Status: nil, VoteCount: t.VoteCount,
+		}
 		if status, ok := statuses[keys[i]]; ok {
 			results[i].Status = &status
 		}

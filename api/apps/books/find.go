@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services"
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/consumption"
 )
@@ -46,9 +47,24 @@ func (app *Books) FindBook(
 			URL:          "",
 			Known:        known,
 			OnMyServices: false,
+			Audience:     readers(proposals, p),
 		}, nil
 	}
 	return nil, nil //nolint:nilnil // no match is not an error
+}
+
+// readers is p's Hardcover reader count, else that of another proposal of
+// the same title, as when p comes from a provider that counts none.
+func readers(proposals []services.SourceProposal, p services.SourceProposal) *int {
+	if p.Readers != nil {
+		return p.Readers
+	}
+	for _, o := range proposals {
+		if o.Readers != nil && consumption.SameTitle(o.Title, p.Title) {
+			return o.Readers
+		}
+	}
+	return nil
 }
 
 // WantBook adds the book a FindBook ref ("provider:isbn13") names to userID's
