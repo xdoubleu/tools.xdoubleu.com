@@ -3,6 +3,19 @@ import { createClient, type Client } from '@connectrpc/connect'
 import type { DescService } from '@bufbuild/protobuf'
 import { getApiUrl } from './env'
 
+// kamal-proxy answers 502 while the api container restarts, before the
+// request reaches a handler, so retrying any method is safe.
+const maxRetries = 2
+const retryDelayMs = 250
+
+async function fetchRetrying502(input: RequestInfo | URL, init: RequestInit): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(input, init)
+    if (res.status !== 502 || attempt >= maxRetries || init.signal?.aborted) return res
+    await new Promise((resolve) => setTimeout(resolve, retryDelayMs))
+  }
+}
+
 const createTransport = (keepalive: boolean) =>
   createConnectTransport({
     baseUrl: getApiUrl(),
@@ -10,7 +23,7 @@ const createTransport = (keepalive: boolean) =>
     // exceed the server cap).
     useBinaryFormat: true,
     fetch: (input, init) =>
-      fetch(input, {
+      fetchRetrying502(input, {
         ...init,
         credentials: 'include',
         keepalive

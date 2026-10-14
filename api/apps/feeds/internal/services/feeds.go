@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/mmcdole/gofeed"
 
@@ -385,7 +386,7 @@ func (s *FeedService) PollAll(
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		if _, pollErr := s.pollFeed(ctx, feed); pollErr != nil {
+		if pollErr := s.pollFeedSpan(ctx, feed); pollErr != nil {
 			logger.WarnContext(ctx, "feed poll failed",
 				"feedID", feed.ID, "url", feed.URL, "error", pollErr)
 		}
@@ -394,6 +395,16 @@ func (s *FeedService) PollAll(
 		}
 	}
 	return nil
+}
+
+// pollFeedSpan polls one feed under its own span, so each feed's identical
+// per-feed queries are siblings of different parents and Sentry doesn't
+// flag the whole run as an N+1.
+func (s *FeedService) pollFeedSpan(ctx context.Context, feed models.Feed) error {
+	span := sentry.StartSpan(ctx, "feed.poll", sentry.WithDescription(feed.URL))
+	defer span.Finish()
+	_, err := s.pollFeed(span.Context(), feed)
+	return err
 }
 
 // ListUnhealthy returns every failing feed across all users.

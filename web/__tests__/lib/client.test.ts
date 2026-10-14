@@ -55,4 +55,45 @@ describe('transports', () => {
       fetchMock.mockRestore()
     }
   })
+
+  it('retries a 502 from the proxy, then succeeds', async () => {
+    const ok = () =>
+      new Response(new Uint8Array(), { headers: { 'Content-Type': 'application/proto' } })
+    const fetchMock = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(null, { status: 502 }))
+      .mockResolvedValueOnce(ok())
+    try {
+      await transport.unary(
+        LibraryService.method.updateReadingProgress,
+        undefined,
+        undefined,
+        undefined,
+        {}
+      )
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+    } finally {
+      fetchMock.mockRestore()
+    }
+  })
+
+  it('gives up after the retry budget', async () => {
+    const fetchMock = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => new Response(null, { status: 502 }))
+    try {
+      await expect(
+        transport.unary(
+          LibraryService.method.updateReadingProgress,
+          undefined,
+          undefined,
+          undefined,
+          {}
+        )
+      ).rejects.toThrow()
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+    } finally {
+      fetchMock.mockRestore()
+    }
+  })
 })
