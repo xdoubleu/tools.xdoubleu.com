@@ -26,6 +26,8 @@ const (
 	generatorMaxTokens = 8000
 	searchMaxResults   = 5
 	searchMaxTotal     = 20
+	// replyPrefixLen is how much of an unparseable reply is logged.
+	replyPrefixLen = 200
 	// servicesBonus is added to the score of a pick streaming on the user's
 	// services.
 	servicesBonus = 10
@@ -360,30 +362,55 @@ func (s *RecommendService) propose(
 	profile *models.Profile,
 	previous, touched []models.Recommendation,
 ) ([]Candidate, []models.Source, error) {
-	resp, err := s.llm.Complete(ctx, openrouter.Request{
+	// The web-search call can't be held to the schema (models answer it in
+	// prose), so the format call turns its notes into strict JSON.
+	research, err := s.llm.Complete(ctx, openrouter.Request{
 		Model: s.generator,
 		Messages: []openrouter.Message{
 			openrouter.System(generatorPrompt(domains)),
 			openrouter.User(generatorInput(events, profile, previous, touched, s.now())),
 		},
-		SchemaName: "taste_candidates",
-		Schema:     candidatesSchema(),
+		SchemaName: "",
+		Schema:     nil,
 		WebSearch: &openrouter.WebSearch{
 			MaxResults: searchMaxResults, MaxTotalResults: searchMaxTotal,
 		},
 		MaxTokens: generatorMaxTokens,
 	})
 	if err != nil {
-		return nil, nil, failure{note: "The model service failed.", err: err}
+		return nil, nil, failure{note: noteModelFailed, err: err}
+	}
+	if strings.TrimSpace(research.Content) == "" {
+		return nil, nil, failure{
+			note: noteAnswerUnreadable,
+			err:  errors.New("the research answer is empty"),
+		}
+	}
+	resp, err := s.llm.Complete(ctx, openrouter.Request{
+		Model: s.generator,
+		Messages: []openrouter.Message{
+			openrouter.System(formatterPrompt),
+			openrouter.User(research.Content),
+		},
+		SchemaName: "taste_candidates",
+		Schema:     candidatesSchema(),
+		WebSearch:  nil,
+		MaxTokens:  generatorMaxTokens,
+	})
+	if err != nil {
+		return nil, nil, failure{note: noteModelFailed, err: err}
 	}
 	var out struct {
 		Picks []Candidate `json:"picks"`
 	}
 	if err = json.Unmarshal([]byte(resp.Content), &out); err != nil {
-		return nil, nil, failure{note: "The model's answer couldn't be read.", err: err}
+		s.logger.WarnContext(ctx, "taste picks reply is not valid JSON",
+			slog.String("model", resp.Model),
+			slog.String("prefix", prefix(resp.Content, replyPrefixLen)))
+		return nil, nil, failure{note: noteAnswerUnreadable, err: err}
 	}
-	sources := make([]models.Source, 0, len(resp.Citations))
-	for _, c := range resp.Citations {
+	sources := make([]models.Source, 0, len(research.Citations))
+	for _, c := range research.Citations {
 		sources = append(sources, models.Source{URL: c.URL, Title: c.Title})
 	}
 	allowed := map[string]bool{}
@@ -559,4 +586,12 @@ func sourcesFor(title string, sources []models.Source) []models.Source {
 		out = append(out, src)
 	}
 	return out
+}
+
+// prefix is the first n bytes of s, cut at a rune boundary.
+func prefix(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return strings.ToValidUTF8(s[:n], "")
 }

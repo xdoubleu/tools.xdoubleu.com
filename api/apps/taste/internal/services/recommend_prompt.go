@@ -68,8 +68,18 @@ Cover these domains: %s. Propose up to %d picks per domain and track. For `+
 		`given their profile. On the broaden track also reward how well it `+
 		`stretches them in a direction they are likely to welcome, and penalise `+
 		`picks that are really "more of the same". Score honestly: a spread of `+
-		`scores is more useful than all high ones.`, strings.Join(names, ", "), picksPerList)
+		`scores is more useful than all high ones.
+
+Write the picks as a plain list, one per pick, with every field above. A `+
+		`later step turns your list into structured data, so don't write JSON.`,
+		strings.Join(names, ", "), picksPerList)
 }
+
+// formatterPrompt tells the format call to only restructure the research.
+const formatterPrompt = `Turn the recommendations below into the requested ` +
+	`JSON. Keep every pick exactly as written: do not add, drop, merge or ` +
+	`reword any, and keep each why, neighbour and score as given. Use year 0 ` +
+	`when none is given and an empty url when there is none.`
 
 func generatorInput(
 	events []consumption.Event,

@@ -32,6 +32,9 @@ func (pickLLM) Complete(
 	_ context.Context, req openrouter.Request,
 ) (*openrouter.Response, error) {
 	content := profileJSON
+	if req.SchemaName == "" {
+		content = "1. Hyperion (books, more). 2. Radiolab (podcasts, broaden)."
+	}
 	if req.SchemaName == "taste_candidates" {
 		content = `{"picks": [
 			{"domain": "books", "track": "more", "title": "Hyperion",

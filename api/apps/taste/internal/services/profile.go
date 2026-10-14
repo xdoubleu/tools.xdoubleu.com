@@ -30,6 +30,12 @@ var ErrNotConfigured = openrouter.ErrNotConfigured
 
 var errNothingConsumed = errors.New("nothing consumed yet")
 
+// Notes the user sees when a model call fails.
+const (
+	noteModelFailed      = "The model service failed."
+	noteAnswerUnreadable = "The model's answer couldn't be read."
+)
+
 // nothingConsumedNote is noted on the profile for an empty log.
 const nothingConsumedNote = "There's nothing in your history to write a " +
 	"profile from yet."
@@ -154,11 +160,11 @@ func (s *ProfileService) generate(
 		MaxTokens:  profileMaxTokens,
 	})
 	if err != nil {
-		return nil, "", failure{note: "The model service failed.", err: err}
+		return nil, "", failure{note: noteModelFailed, err: err}
 	}
 	sections, err := parseSections(resp.Content)
 	if err != nil {
-		return nil, "", failure{note: "The model's answer couldn't be read.", err: err}
+		return nil, "", failure{note: noteAnswerUnreadable, err: err}
 	}
 	return sections, resp.Model, nil
 }

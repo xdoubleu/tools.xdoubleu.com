@@ -32,11 +32,18 @@ func (s *scriptLLM) Complete(
 	if err := s.errs[req.SchemaName]; err != nil {
 		return nil, err
 	}
+	content, ok := s.answers[req.SchemaName]
+	if !ok && req.Schema == nil {
+		content = researchNotes
+	}
 	//nolint:exhaustruct // usage is irrelevant here
 	return &openrouter.Response{
-		Model: req.Model, Content: s.answers[req.SchemaName], Citations: s.citations,
+		Model: req.Model, Content: content, Citations: s.citations,
 	}, nil
 }
+
+// researchNotes is what the web-search call answers unless scripted otherwise.
+const researchNotes = "1. Dune (books, more), why: you loved Foundation."
 
 // script answers each schema with its content.
 func script(answers map[string]string) *scriptLLM {
@@ -293,7 +300,14 @@ func TestRecommend_EndToEnd(t *testing.T) {
 	require.NoError(t, s.Generate(context.Background(), "u", all))
 	require.True(t, store.replaced)
 	assert.Equal(t, clock, store.at)
-	assert.Equal(t, []string{"taste_candidates"}, llm.schemas(), "one call")
+	assert.Equal(t, []string{"", "taste_candidates"}, llm.schemas(),
+		"web-search research, then the strict format call")
+	research, format := llm.requests[0], llm.requests[1]
+	assert.NotNil(t, research.WebSearch)
+	assert.Nil(t, research.Schema, "a searching call can't be held to a schema")
+	assert.Nil(t, format.WebSearch)
+	assert.NotNil(t, format.Schema)
+	assert.Equal(t, researchNotes, format.Messages[1].Content, "formats the research")
 
 	got := make([]string, len(store.recs))
 	for i, r := range store.recs {
@@ -344,7 +358,7 @@ func TestRecommend_PassesPreviousPicks(t *testing.T) {
 	assert.Contains(t, llm.requests[0].Messages[1].Content,
 		"## Already suggested\n- Old Pick (books)\n")
 	assert.NotContains(t, llm.requests[0].Messages[1].Content, "## Profile")
-	assert.Equal(t, []string{"taste_candidates"}, llm.schemas(), "one call, none to retry")
+	assert.Equal(t, []string{"", "taste_candidates"}, llm.schemas(), "none to retry")
 	assert.False(t, store.replaced, "the earlier picks stay")
 	assert.Equal(t, "None of the proposed picks checked out.", store.note)
 	assert.Equal(t, clock, store.attempted, "a failed run counts as an attempt")
@@ -427,11 +441,19 @@ func TestRecommend_Failures(t *testing.T) {
 			}, oneBook, "Your earlier picks couldn't be read.",
 		},
 		{
-			"generator", failingAt(nil, "taste_candidates", errors.New("503")),
+			"research", failingAt(nil, "", errors.New("503")),
 			emptyStore(nil), oneBook, "The model service failed.",
 		},
 		{
-			"generator answer", script(map[string]string{"taste_candidates": "nope"}),
+			"empty research", script(map[string]string{"": "  "}),
+			emptyStore(nil), oneBook, "The model's answer couldn't be read.",
+		},
+		{
+			"format", failingAt(nil, "taste_candidates", errors.New("503")),
+			emptyStore(nil), oneBook, "The model service failed.",
+		},
+		{
+			"format answer", script(map[string]string{"taste_candidates": "nope"}),
 			emptyStore(nil), oneBook, "The model's answer couldn't be read.",
 		},
 	}
@@ -744,4 +766,10 @@ func TestRecommend_HitRatesInDisplayOrder(t *testing.T) {
 	_, err = recService(script(nil), catalogs(), store, oneBook, nil).
 		HitRates(context.Background(), "u")
 	assert.Error(t, err)
+}
+
+func TestPrefix(t *testing.T) {
+	assert.Equal(t, "short", prefix("short", 10))
+	assert.Equal(t, "ab", prefix("abcd", 2))
+	assert.Equal(t, "a", prefix("aé", 2), "never cuts a rune in half")
 }
