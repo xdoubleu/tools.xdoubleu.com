@@ -27,6 +27,7 @@ type profileGenerator interface {
 }
 
 type recommender interface {
+	Due(ctx context.Context, userIDs []string) ([]string, error)
 	Generate(ctx context.Context, userID string, include func(appName string) bool) error
 }
 
@@ -42,7 +43,8 @@ const SharedApp = "movies"
 
 // GenerateProfilesJob writes the profiles of users with taste access that
 // were requested or have gone stale, then their picks from the new profile,
-// and emails them when picks were written.
+// and emails them when picks were written. It also retries picks that never
+// finished, from the stored profile.
 type GenerateProfilesJob struct {
 	users    userLister
 	profiles profileGenerator
@@ -113,25 +115,53 @@ func (j GenerateProfilesJob) Run(ctx context.Context, logger *slog.Logger) error
 	}
 	var errs []error
 	for _, id := range due {
-		user, isUser := byID[id]
-		include := CanAccess(user)
-		if !isUser {
-			include = func(appName string) bool { return appName == SharedApp }
-		}
-		genErr := j.profiles.Generate(ctx, id, include)
-		if genErr == nil {
-			genErr = j.picks.Generate(ctx, id, include)
-		}
-		if genErr == nil && isUser {
-			j.notify.NotifyNewPicks(ctx, id, user.Email)
-		}
-		if genErr != nil {
-			logger.WarnContext(ctx, "taste generation failed",
-				slog.String("user_id", id), slog.Any("error", genErr))
-			errs = append(errs, fmt.Errorf("user %s: %w", id, genErr))
-		}
+		errs = append(errs, j.generate(ctx, logger, id, byID, true))
+	}
+
+	// A picks step that never finished leaves a fresh profile that isn't due.
+	rest := slices.DeleteFunc(slices.Clone(ids), func(id string) bool {
+		return slices.Contains(due, id)
+	})
+	picksDue, err := j.picks.Due(ctx, rest)
+	if err != nil {
+		return errors.Join(append(errs, err)...)
+	}
+	for _, id := range picksDue {
+		errs = append(errs, j.generate(ctx, logger, id, byID, false))
 	}
 	return errors.Join(errs...)
+}
+
+// generate writes id's picks, after their profile when withProfile, and emails
+// a user when picks were written.
+func (j GenerateProfilesJob) generate(
+	ctx context.Context,
+	logger *slog.Logger,
+	id string,
+	byID map[string]sharedmodels.User,
+	withProfile bool,
+) error {
+	user, isUser := byID[id]
+	include := CanAccess(user)
+	if !isUser {
+		include = func(appName string) bool { return appName == SharedApp }
+	}
+	var err error
+	if withProfile {
+		err = j.profiles.Generate(ctx, id, include)
+	}
+	if err == nil {
+		err = j.picks.Generate(ctx, id, include)
+	}
+	if err == nil && isUser {
+		j.notify.NotifyNewPicks(ctx, id, user.Email)
+	}
+	if err != nil {
+		logger.WarnContext(ctx, "taste generation failed",
+			slog.String("user_id", id), slog.Any("error", err))
+		return fmt.Errorf("user %s: %w", id, err)
+	}
+	return nil
 }
 
 func (j GenerateProfilesJob) sharedSubjects(ctx context.Context) ([]string, error) {

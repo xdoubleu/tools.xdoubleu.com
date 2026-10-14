@@ -2,6 +2,7 @@ package taste_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -389,4 +390,88 @@ func TestRecommendations_NoEmailWhenTurnedOff(t *testing.T) {
 	_, err = c.SetEmailNewPicks(ctx, &tastev1.SetEmailNewPicksRequest{Enabled: true})
 	require.NoError(t, err)
 	assert.True(t, listRecs(t, c, "", "").EmailNewPicks)
+}
+
+func TestRecommendations_RetriedWhenPicksNeverFinished(t *testing.T) {
+	ctx := context.Background()
+	a, c := recsApp(t, sharedmocks.NewMockedAdminAuthService(userID))
+	require.NoError(t, a.GenerateProfilesNow(ctx))
+	require.Len(t, listRecs(t, c, "", "").Recommendations, 2)
+	var generated time.Time
+	require.NoError(t, testDB.QueryRow(ctx,
+		"SELECT generated_at FROM taste.profiles WHERE user_id = $1", userID,
+	).Scan(&generated))
+
+	// A restart killed the picks step after the profile was saved.
+	lose := func(attempted string) {
+		_, err := testDB.Exec(ctx, `
+			DELETE FROM taste.recommendations WHERE user_id = $1`, userID)
+		require.NoError(t, err)
+		_, err = testDB.Exec(ctx, `
+			UPDATE taste.profiles
+			SET recommended_at = NULL, recommendations_attempted_at = `+attempted+`
+			WHERE user_id = $1`, userID)
+		require.NoError(t, err)
+	}
+	lose("NULL")
+	require.NoError(t, a.GenerateProfilesNow(ctx))
+	assert.Len(t, listRecs(t, c, "", "").Recommendations, 2, "picks are retried")
+	var after time.Time
+	require.NoError(t, testDB.QueryRow(ctx,
+		"SELECT generated_at FROM taste.profiles WHERE user_id = $1", userID,
+	).Scan(&after))
+	assert.True(t, generated.Equal(after), "from the stored profile")
+
+	lose("now() - interval '1 hour'")
+	require.NoError(t, a.GenerateProfilesNow(ctx))
+	assert.Empty(t, listRecs(t, c, "", "").Recommendations, "backs off after an attempt")
+
+	lose("now() - interval '7 hours'")
+	require.NoError(t, a.GenerateProfilesNow(ctx))
+	assert.Len(t, listRecs(t, c, "", "").Recommendations, 2, "retried once it is over")
+}
+
+// failingPicksLLM writes profiles but fails every pick proposal, counting them.
+type failingPicksLLM struct {
+	pickLLM
+
+	proposals int
+}
+
+func (f *failingPicksLLM) Complete(
+	ctx context.Context, req openrouter.Request,
+) (*openrouter.Response, error) {
+	if req.SchemaName == "taste_candidates" {
+		f.proposals++
+		return nil, errors.New("openrouter down")
+	}
+	return f.pickLLM.Complete(ctx, req)
+}
+
+func TestRecommendations_FailedPicksBackOff(t *testing.T) {
+	ctx := context.Background()
+	_, c := recsApp(t, sharedmocks.NewMockedAdminAuthService(userID))
+	llm := &failingPicksLLM{pickLLM: pickLLM{}, proposals: 0}
+	cfg := testCfg
+	cfg.OpenRouterAPIKey = "test-key"
+	a := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
+		logging.NewNopLogger(), cfg, testDB, llm, nil, pickCatalogs(),
+		userSource{name: "books", events: []consumption.Event{book}, err: nil})
+
+	require.ErrorContains(t, a.GenerateProfilesNow(ctx), "openrouter down")
+	resp := listRecs(t, c, "", "")
+	assert.Equal(t, "The model service failed.", resp.LastError)
+	assert.Equal(t, 1, llm.proposals)
+
+	// The profile is fresh and the attempt recent: nothing runs.
+	require.NoError(t, a.GenerateProfilesNow(ctx))
+	assert.Equal(t, 1, llm.proposals, "no retry within the back-off")
+
+	_, err := testDB.Exec(ctx, `
+		UPDATE taste.profiles
+		SET recommendations_attempted_at = now() - interval '7 hours'
+		WHERE user_id = $1`, userID)
+	require.NoError(t, err)
+	require.ErrorContains(t, a.GenerateProfilesNow(ctx), "openrouter down")
+	assert.Equal(t, 2, llm.proposals, "retried once it is over")
 }

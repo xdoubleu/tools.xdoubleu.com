@@ -28,12 +28,16 @@ type fakeProfiles struct {
 	failFor    string
 	asked      []string
 	generated  map[string]bool // user -> could read books
+	due        []string        // when set, the only users due
 }
 
 func (f *fakeProfiles) Configured() bool { return f.configured }
 
 func (f *fakeProfiles) Due(_ context.Context, ids []string) ([]string, error) {
 	f.asked = ids
+	if f.due != nil {
+		return f.due, f.dueErr
+	}
 	return ids, f.dueErr
 }
 
@@ -51,19 +55,31 @@ func (f *fakeProfiles) Generate(
 func profilesFake(configured bool, failFor string, dueErr error) *fakeProfiles {
 	return &fakeProfiles{
 		configured: configured, dueErr: dueErr, failFor: failFor, asked: nil,
-		generated: map[string]bool{},
+		generated: map[string]bool{}, due: nil,
 	}
 }
 
 // fakePicks records whose picks were generated.
 type fakePicks struct {
-	users []string
-	err   error
+	users  []string
+	err    error
+	due    []string // users whose picks are due
+	dueErr error
+	asked  []string
+}
+
+func (f *fakePicks) Due(_ context.Context, ids []string) ([]string, error) {
+	f.asked = ids
+	return f.due, f.dueErr
 }
 
 func (f *fakePicks) Generate(_ context.Context, id string, _ func(string) bool) error {
 	f.users = append(f.users, id)
 	return f.err
+}
+
+func newPicks(err error) *fakePicks {
+	return &fakePicks{users: nil, err: err, due: nil, dueErr: nil, asked: nil}
 }
 
 // fakeNotify records who was told about new picks, with their address.
@@ -92,7 +108,7 @@ func TestGenerateProfilesJob(t *testing.T) {
 		user("x", sharedmodels.RoleUser, "books"),
 	}, err: nil}
 	profiles := profilesFake(true, "", nil)
-	picks := &fakePicks{users: nil, err: nil}
+	picks := newPicks(nil)
 	notify := noNotify()
 	job := jobs.NewGenerateProfilesJob(users, profiles, picks, notify, "taste")
 
@@ -112,7 +128,7 @@ func TestGenerateProfilesJob_Failures(t *testing.T) {
 	}, err: nil}
 
 	profiles := profilesFake(true, "a", nil)
-	picks := &fakePicks{users: nil, err: nil}
+	picks := newPicks(nil)
 	notify := noNotify()
 	err := jobs.NewGenerateProfilesJob(users, profiles, picks, notify, "taste").
 		Run(context.Background(), logging.NewNopLogger())
@@ -122,7 +138,7 @@ func TestGenerateProfilesJob_Failures(t *testing.T) {
 	assert.Len(t, profiles.generated, 2, "one failure doesn't stop the others")
 	assert.Equal(t, []string{"b"}, picks.users, "no picks without a fresh profile")
 
-	failingPicks := &fakePicks{users: nil, err: errors.New("picks down")}
+	failingPicks := newPicks(errors.New("picks down"))
 	notify = noNotify()
 	err = jobs.NewGenerateProfilesJob(users, profilesFake(true, "", nil), failingPicks,
 		notify, "taste").Run(context.Background(), logging.NewNopLogger())
@@ -141,10 +157,47 @@ func TestGenerateProfilesJob_Failures(t *testing.T) {
 	require.ErrorContains(t, err, "auth")
 }
 
+func TestGenerateProfilesJob_RetriesPicks(t *testing.T) {
+	users := fakeUsers{users: []sharedmodels.User{
+		user("a", sharedmodels.RoleAdmin), user("b", sharedmodels.RoleUser, "taste"),
+	}, err: nil}
+	profiles := &fakeProfiles{
+		configured: true, dueErr: nil, failFor: "", asked: nil,
+		generated: map[string]bool{}, due: []string{"a"},
+	}
+	picks := newPicks(nil)
+	picks.due = []string{"b"}
+	notify := noNotify()
+
+	err := jobs.NewGenerateProfilesJob(users, profiles, picks, notify, "taste").
+		Run(context.Background(), logging.NewNopLogger())
+	require.NoError(t, err)
+	assert.Equal(t, []string{"b"}, picks.asked, "not asked again about a user just done")
+	assert.Equal(t, []string{"a", "b"}, picks.users)
+	assert.Equal(t, map[string]bool{"a": true}, profiles.generated,
+		"the retry keeps the stored profile")
+	assert.Equal(t, []string{"a=a@example.com", "b=b@example.com"}, notify.told)
+
+	picks = newPicks(errors.New("picks down"))
+	picks.due = []string{"b"}
+	notify = noNotify()
+	profiles.due = nil
+	err = jobs.NewGenerateProfilesJob(users, profiles, picks, notify, "taste").
+		Run(context.Background(), logging.NewNopLogger())
+	require.ErrorContains(t, err, "user b: picks down")
+	assert.Empty(t, notify.told)
+
+	picks = newPicks(nil)
+	picks.dueErr = errors.New("db")
+	err = jobs.NewGenerateProfilesJob(users, profiles, picks, noNotify(), "taste").
+		Run(context.Background(), logging.NewNopLogger())
+	require.ErrorContains(t, err, "db")
+}
+
 func TestGenerateProfilesJob_IdleWithoutKey(t *testing.T) {
 	profiles := profilesFake(false, "", nil)
 	err := jobs.NewGenerateProfilesJob(fakeUsers{users: nil, err: errors.New("unused")},
-		profiles, &fakePicks{users: nil, err: nil}, noNotify(), "taste").
+		profiles, newPicks(nil), noNotify(), "taste").
 		Run(context.Background(), logging.NewNopLogger())
 	require.NoError(t, err)
 	assert.Nil(t, profiles.asked)
@@ -155,7 +208,7 @@ func TestGenerateProfilesJob_SharedSubjects(t *testing.T) {
 		user("a", sharedmodels.RoleAdmin),
 	}, err: nil}
 	profiles := profilesFake(true, "", nil)
-	picks := &fakePicks{users: nil, err: nil}
+	picks := newPicks(nil)
 	notify := noNotify()
 	job := jobs.NewGenerateProfilesJob(users, profiles, picks, notify, "taste").
 		WithShared(func(context.Context) ([]string, error) {

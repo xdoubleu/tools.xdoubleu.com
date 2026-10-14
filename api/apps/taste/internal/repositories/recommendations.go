@@ -207,7 +207,8 @@ func (r *RecommendationsRepository) Replace(
 	batch.Queue(`
 		INSERT INTO taste.profiles (user_id, recommended_at) VALUES ($1, $2)
 		ON CONFLICT (user_id) DO UPDATE
-		SET recommended_at = $2, recommendations_error = ''`, userID, at)
+		SET recommended_at = $2, recommendations_attempted_at = $2,
+		    recommendations_error = ''`, userID, at)
 	// A batch runs in one implicit transaction.
 	return postgres.PgxErrorToHTTPError(r.db.SendBatch(ctx, batch).Close())
 }
@@ -216,11 +217,42 @@ func (r *RecommendationsRepository) Replace(
 func (r *RecommendationsRepository) SaveError(
 	ctx context.Context,
 	userID, note string,
+	at time.Time,
 ) error {
 	_, err := r.db.Exec(ctx, `
-		UPDATE taste.profiles SET recommendations_error = $2
-		WHERE user_id = $1`, userID, note)
+		UPDATE taste.profiles
+		SET recommendations_error = $2, recommendations_attempted_at = $3
+		WHERE user_id = $1`, userID, note, at)
 	return postgres.PgxErrorToHTTPError(err)
+}
+
+// Due returns the users among userIDs with a profile but no picks, or picks
+// older than it, whose picks weren't attempted since retryBefore.
+func (r *RecommendationsRepository) Due(
+	ctx context.Context,
+	userIDs []string,
+	retryBefore time.Time,
+) ([]string, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT user_id FROM taste.profiles
+		WHERE user_id = ANY($1) AND generated_at IS NOT NULL
+		  AND (recommended_at IS NULL OR recommended_at < generated_at)
+		  AND (recommendations_attempted_at IS NULL
+		       OR recommendations_attempted_at < $2)
+		ORDER BY user_id`, userIDs, retryBefore)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+	var due []string
+	for rows.Next() {
+		var id string
+		if err = rows.Scan(&id); err != nil {
+			return nil, postgres.PgxErrorToHTTPError(err)
+		}
+		due = append(due, id)
+	}
+	return due, postgres.PgxErrorToHTTPError(rows.Err())
 }
 
 // Status returns when userID's picks were last generated (nil before the

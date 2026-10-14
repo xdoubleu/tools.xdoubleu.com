@@ -75,6 +75,9 @@ type recStore struct {
 	touchedErr error
 	savedOnly  bool
 	calls      []string
+
+	attempted   time.Time // when SaveError last ran
+	retryBefore time.Time // what Due was asked
 }
 
 func (r *recStore) List(
@@ -131,9 +134,16 @@ func (r *recStore) Replace(
 	return nil
 }
 
-func (r *recStore) SaveError(_ context.Context, _, note string) error {
-	r.note = note
+func (r *recStore) SaveError(_ context.Context, _, note string, at time.Time) error {
+	r.note, r.attempted = note, at
 	return nil
+}
+
+func (r *recStore) Due(
+	_ context.Context, ids []string, retryBefore time.Time,
+) ([]string, error) {
+	r.retryBefore = retryBefore
+	return ids, nil
 }
 
 func (r *recStore) Status(context.Context, string) (*time.Time, string, error) {
@@ -153,6 +163,8 @@ func emptyStore(listErr error) *recStore {
 		touchedErr: nil,
 		savedOnly:  false,
 		calls:      nil,
+
+		attempted: time.Time{}, retryBefore: time.Time{},
 	}
 }
 
@@ -335,6 +347,16 @@ func TestRecommend_PassesPreviousPicks(t *testing.T) {
 	assert.Equal(t, []string{"taste_candidates"}, llm.schemas(), "one call, none to retry")
 	assert.False(t, store.replaced, "the earlier picks stay")
 	assert.Equal(t, "None of the proposed picks checked out.", store.note)
+	assert.Equal(t, clock, store.attempted, "a failed run counts as an attempt")
+}
+
+func TestRecommend_Due(t *testing.T) {
+	store := emptyStore(nil)
+	due, err := recService(script(nil), catalogs(), store, oneBook, nil).
+		Due(context.Background(), []string{"a", "b"})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"a", "b"}, due)
+	assert.Equal(t, clock.Add(-PicksRetryAfter), store.retryBefore)
 }
 
 func TestRecommend_OnlyAccessibleDomains(t *testing.T) {
@@ -401,6 +423,7 @@ func TestRecommend_Failures(t *testing.T) {
 				recs: nil, touched: nil, rates: nil, replaced: false, at: time.Time{},
 				note: "", listErr: nil, touchedErr: errors.New("db"),
 				savedOnly: false, calls: nil,
+				attempted: time.Time{}, retryBefore: time.Time{},
 			}, oneBook, "Your earlier picks couldn't be read.",
 		},
 		{

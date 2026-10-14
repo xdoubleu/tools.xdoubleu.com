@@ -116,8 +116,9 @@ type recommendationStore interface {
 		recs []models.Recommendation,
 		at time.Time,
 	) error
-	SaveError(ctx context.Context, userID, note string) error
+	SaveError(ctx context.Context, userID, note string, at time.Time) error
 	Status(ctx context.Context, userID string) (*time.Time, string, error)
+	Due(ctx context.Context, userIDs []string, retryBefore time.Time) ([]string, error)
 }
 
 // RecommendService proposes picks with the generator, verifies them against
@@ -245,6 +246,15 @@ func trackOrder(t string) int {
 	return 1
 }
 
+// Due returns the users among userIDs whose profile has no picks yet, or only
+// older ones, and whose picks weren't attempted within PicksRetryAfter.
+func (s *RecommendService) Due(
+	ctx context.Context,
+	userIDs []string,
+) ([]string, error) {
+	return s.recs.Due(ctx, userIDs, s.now().Add(-PicksRetryAfter))
+}
+
 // Generate replaces userID's picks for the apps include accepts. A failure is
 // noted and returned, keeping the previous picks.
 func (s *RecommendService) Generate(
@@ -252,12 +262,13 @@ func (s *RecommendService) Generate(
 	userID string,
 	include func(appName string) bool,
 ) error {
+	at := s.now()
 	recs, err := s.generate(ctx, userID, include)
 	var f failure
 	if errors.As(err, &f) {
-		return errors.Join(err, s.recs.SaveError(ctx, userID, f.note))
+		return errors.Join(err, s.recs.SaveError(ctx, userID, f.note, at))
 	}
-	return s.recs.Replace(ctx, userID, recs, s.now())
+	return s.recs.Replace(ctx, userID, recs, at)
 }
 
 func (s *RecommendService) generate(

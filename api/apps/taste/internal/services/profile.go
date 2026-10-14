@@ -17,6 +17,9 @@ const (
 	RefreshCooldown = 6 * time.Hour
 	// ProfileMaxAge is when the job regenerates a profile unasked.
 	ProfileMaxAge = 7 * 24 * time.Hour
+	// PicksRetryAfter is how long the job waits before retrying picks that are
+	// missing or older than the profile.
+	PicksRetryAfter = RefreshCooldown
 
 	profileMaxTokens = 2000
 	maxBullets       = 6
