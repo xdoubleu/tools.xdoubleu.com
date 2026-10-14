@@ -97,6 +97,10 @@ const (
 	// globalJobQueueWorkers/globalJobQueueSize size the cross-app job queue.
 	globalJobQueueWorkers = 1
 	globalJobQueueSize    = 10
+	// heapWatchThreshold sits above the trains import's ~1 GB peak and below
+	// the 4 GB host's OOM point; see observability.WatchHeap.
+	heapWatchThreshold = 1 << 30
+	heapWatchInterval  = 5 * time.Second
 )
 
 // migrationLockTimeout makes a replica fail loudly if a stale connection
@@ -133,6 +137,10 @@ func main() {
 	slog.SetDefault(logger)
 
 	app := NewApplication(logger, cfg, db)
+
+	go observability.WatchHeap(
+		context.Background(), logger, heapWatchThreshold, heapWatchInterval,
+	)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),

@@ -206,6 +206,46 @@ groups:
                     type: gt
                     params: [0]
 
+      # A crash or OOM loop leaves `up` flapping between scrapes, so TargetDown
+      # never fires. `instance` carries the release SHA, so a deploy starts a
+      # fresh series (0 changes) and only in-place restarts count.
+      - uid: api-restart-loop
+        title: ApiRestartLoop
+        condition: C
+        for: 0s
+        labels:
+          severity: critical
+          notify: slack
+        annotations:
+          summary: "api restarted {{ $values.A }} times in 30 minutes"
+          description: >-
+            The api process restarted in place repeatedly, which kills every
+            in-flight request and long-running job. Check
+            process_resident_memory_bytes (OOM kill) and the "heap watchdog"
+            WARN in get_logs.
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: sum(changes(process_start_time_seconds{job="api"}[30m])) > 2
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
   - orgId: 1
     name: latency
     folder: tools.xdoubleu.com
