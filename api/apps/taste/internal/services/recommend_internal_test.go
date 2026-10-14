@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -641,6 +642,43 @@ func TestGeneratorInput_CapsFeedback(t *testing.T) {
 	in := generatorInput(nil, nil, nil, touched, clock)
 	assert.Contains(t, in, fmt.Sprintf("- T%d (games, broaden): miss", maxFeedback-1))
 	assert.NotContains(t, in, fmt.Sprintf("T%d ", maxFeedback))
+}
+
+func TestGeneratorInput_ListsStoriesAlreadyMet(t *testing.T) {
+	day := clock.AddDate(0, 0, -1)
+	//nolint:exhaustruct // only what the list reads
+	events := []consumption.Event{
+		{Domain: consumption.DomainBooks, Title: "Dune", At: day,
+			Signal: consumption.StrongPositive, Reason: "favourite"},
+		{Domain: consumption.DomainBooks, Title: "The Martian", At: clock,
+			Signal: consumption.Neutral, Reason: "reading"},
+		{Domain: consumption.DomainGames, Title: "Old Game",
+			Signal: consumption.Negative, Reason: "under an hour played"},
+		{Domain: consumption.DomainFeeds, Title: "A Blog", At: clock,
+			Signal: consumption.Positive, Reason: "read"},
+	}
+	in := generatorInput(events, nil, nil, nil, clock)
+	assert.Contains(t, in, "## Stories already met\n"+
+		"- The Martian (books, reading)\n"+
+		"- Dune (books, big fan: favourite)\n"+
+		"- Old Game (games, under an hour played)\n")
+	_, stories, _ := strings.Cut(in, "## Stories already met")
+	assert.NotContains(t, stories, "A Blog", "feeds tell no story")
+	assert.Contains(t, generatorPrompt(nil), `story marked "big fan"`)
+}
+
+func TestGeneratorInput_CapsStories(t *testing.T) {
+	events := make([]consumption.Event, maxStories+1)
+	for i := range events {
+		//nolint:exhaustruct // only what the list reads
+		events[i] = consumption.Event{
+			Domain: consumption.DomainGames, Title: fmt.Sprintf("G%04d", i),
+			At: clock.Add(-time.Duration(i) * time.Hour), Reason: "played",
+		}
+	}
+	in := generatorInput(events, nil, nil, nil, clock)
+	assert.Contains(t, in, fmt.Sprintf("- G%04d (games", maxStories-1))
+	assert.NotContains(t, in, fmt.Sprintf("- G%04d (games", maxStories))
 }
 
 func TestMergePicks_CapsAndDeduplicates(t *testing.T) {

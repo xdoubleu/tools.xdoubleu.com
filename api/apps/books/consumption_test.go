@@ -56,10 +56,11 @@ func TestListConsumption(t *testing.T) {
 		[]time.Time{finished.AddDate(-1, 0, 0), finished})
 	addConsumptionBook(t, "Consumption Dropped", models.StatusDropped, nil, nil, nil)
 	addConsumptionBook(t, "Consumption Wishlist", models.StatusToRead, nil, nil, nil)
+	addConsumptionBook(t, "Consumption Reading", models.StatusReading, nil, nil, nil)
 
 	events, err := testApp.ListConsumption(ctx, consumptionUserID)
 	require.NoError(t, err)
-	require.Len(t, events, 2)
+	require.Len(t, events, 3)
 
 	byTitle := map[string]consumption.Event{}
 	for _, e := range events {
@@ -78,6 +79,11 @@ func TestListConsumption(t *testing.T) {
 	assert.Equal(t, consumption.Negative, dropped.Signal)
 	assert.Equal(t, "abandoned", dropped.Reason)
 	assert.True(t, dropped.At.IsZero(), "a book never finished stays undated")
+
+	reading := byTitle["Consumption Reading"]
+	assert.Equal(t, consumption.Neutral, reading.Signal)
+	assert.Equal(t, "reading", reading.Reason)
+	assert.False(t, reading.At.IsZero(), "a book being read is dated by its update")
 }
 
 func TestListConsumption_Error(t *testing.T) {
