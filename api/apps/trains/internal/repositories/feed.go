@@ -94,14 +94,9 @@ func (r *FeedRepository) PopulateStaging(
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	truncateList := make([]string, len(stagedTables))
-	for i, t := range stagedTables {
-		truncateList[i] = fmt.Sprintf("trains.%s_staging", t)
-	}
-
 	ctx, span := startStep(ctx, "db.trains.truncate_staging")
 	_, err = tx.Exec(
-		ctx, fmt.Sprintf("TRUNCATE %s", strings.Join(truncateList, ", ")),
+		ctx, fmt.Sprintf("TRUNCATE %s", stagingList()),
 	)
 	span.Finish()
 	if err != nil {
@@ -194,7 +189,23 @@ func (r *FeedRepository) SwapStagingIn(
 		return err
 	}
 
-	return tx.Commit(ctx)
+	if err = tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	// The superseded timetable now sits in `_staging`; nothing reads it, so
+	// free its disk now rather than at the next import. Separate from the
+	// swap so waiting on a straggler reader never blocks live readers.
+	_, err = r.db.Exec(ctx, fmt.Sprintf("TRUNCATE %s", stagingList()))
+	return err
+}
+
+func stagingList() string {
+	names := make([]string, len(stagedTables))
+	for i, t := range stagedTables {
+		names[i] = fmt.Sprintf("trains.%s_staging", t)
+	}
+	return strings.Join(names, ", ")
 }
 
 // CountTripsResolvingOn counts trips running on date via calendar_dates alone.

@@ -56,6 +56,13 @@ func TestFeedRepository_ImportFeed_SecondImportFullyReplacesFirst(t *testing.T) 
 	require.NoError(t, err)
 	require.NotNil(t, info)
 	assert.Equal(t, "2026-09-02", info.FeedVersion)
+
+	var staged int
+	require.NoError(t, testDB.QueryRow(ctx,
+		`SELECT (SELECT count(*) FROM trains.stops_staging)
+		      + (SELECT count(*) FROM trains.stop_times_staging)`,
+	).Scan(&staged))
+	assert.Zero(t, staged, "superseded timetable must not linger in staging")
 }
 
 // TestFeedRepository_PopulateStaging_IndependentOfLiveTableLocks:
