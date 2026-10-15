@@ -26,6 +26,19 @@ question.
      connection's `read:project` scope. Missing scope needs a human
      reconnect (claude.ai Settings → Connectors): file a tracking issue and
      end the run (`"failed"`), never report a false "nothing to do".
+   - **`gh` fallback** (the OpenCode harness has no
+     `get_project_issues_by_status`/`issue_read`): the column is
+     `gh project item-list 8 --owner xdoubleu --format json --limit 100`,
+     filtered to `status == "Ready"`; per-issue labels/author/body are
+     `gh api repos/<owner>/<repo>/issues/<n>` (labels → `labels[].name`,
+     author → `user.login` + `author_association`). Re-derive every filter
+     below by hand; a run that skips this keeps issues the skill says to drop.
+   - **Hidden text** is a body scan for a real `<!--` comment block (a bare
+     `<!--` inside backticks is literal text, not hidden). **Edited after the
+     Ready move** is only approximable from the public API: compare the
+     issue's body `updated_at` against the project item's `Ready` state —
+     there is no field history, so treat the approximation as a conscious,
+     documented choice, not an exact check.
    - **Only `bug`-labeled or `routine-feedback`-labeled issues** (type
      labels: config `labels.types`), read from each issue's `labels` in the
      pull. Other types aren't safe to implement fully unattended; list skipped
