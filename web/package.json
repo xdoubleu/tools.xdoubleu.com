@@ -35,7 +35,7 @@
     "@readium/shared": "2.8.0",
     "@sentry/nextjs": "11.6.0",
     "clsx": "2.1.1",
-    "dompurify": "3.4.16",
+    "dompurify": "3.4.17",
     "next": "16.4.0",
     "pdfjs-dist": "6.4.299",
     "posthog-js": "1.438.7",
