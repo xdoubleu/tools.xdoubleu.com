@@ -439,3 +439,13 @@ func TestVectorFigureBounds_PropagatesPathError(t *testing.T) {
 		pageGeometry{originX: 0, originY: 0, width: 100, height: 100}, nil)
 	require.ErrorIs(t, err, errFigureCall)
 }
+
+// The figure-analysis pdfium pool must cap its wazero linear memory so a
+// pathological PDF can't grow it to the 4 GiB default and OOM-kill the api
+// (the #2520 restart loop). Assert the cap the pool is configured with.
+func TestPdfiumMemoryLimitConstant(t *testing.T) {
+	assert.Equal(t, uint32(8192), uint32(analysisPDFiumMemoryLimitPages),
+		"pdfium wasm memory cap moved; keep it under what a 4 GiB host can serve")
+	// 8192 pages * 64 KiB = 512 MiB.
+	assert.Equal(t, uint64(512*1024*1024), uint64(analysisPDFiumMemoryLimitPages)*65536)
+}

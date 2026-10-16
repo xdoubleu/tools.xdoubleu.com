@@ -313,7 +313,7 @@ func withPDFDocument(
 	}
 	defer func() { <-pdfSem }()
 
-	pool, err := getPDFiumPool()
+	pool, err := getAnalysisPDFiumPool()
 	if err != nil {
 		return fmt.Errorf("init pdfium pool: %w", err)
 	}
