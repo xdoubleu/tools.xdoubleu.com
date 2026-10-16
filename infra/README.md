@@ -109,9 +109,9 @@ sudo systemctl start release-upgrade-check.service  # trigger manually
 ```
 
 **Disk hygiene (`HostDiskHigh`):** `harden.sh` installs `disk-cleanup.timer`
-(weekly) that prunes Docker images and build cache older than 7 days and
-vacuums the journal to 100M (also run once on every `harden.sh` apply, so
-merging a change frees space without SSH). `kamal deploy` itself prunes at the end of
+(weekly) that prunes Docker images, build cache, and stopped containers older
+than 7 days and vacuums the journal to 100M (also run once on every
+`harden.sh` apply, so merging a change frees space without SSH). `kamal deploy` itself prunes at the end of
 each deploy and keeps `retain_containers: 2` old containers per service.
 Container logs are capped at 3×10 MB via `logging:` in the compose files and
 `config/deploy.*.yml` (applies when a container is recreated). To find the top
