@@ -17,6 +17,7 @@ import (
 	"unicode"
 
 	"github.com/klippa-app/go-pdfium"
+	"github.com/klippa-app/go-pdfium/enums"
 	"github.com/klippa-app/go-pdfium/references"
 	"github.com/klippa-app/go-pdfium/requests"
 	"golang.org/x/net/html/charset"
@@ -165,7 +166,7 @@ func countPageFigures(instance pdfium.Pdfium, page requests.Page) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	figures, _, err := pageFigures(instance, page, geo, chars)
+	figures, err := figureBounds(instance, page, geo, chars)
 	if err != nil {
 		return 0, err
 	}
@@ -179,6 +180,124 @@ func countPageFigures(instance pdfium.Pdfium, page requests.Page) (int, error) {
 		n++
 	}
 	return n, nil
+}
+
+// figureBounds returns the page's raster and vector figures as bounds-only
+// rawFigures (png nil), mirroring the converter's extractPageImages and
+// extractVectorFigures without their rendering. Figure counting never needs
+// the pixels, and rendering them is what ballooned pdfium's wasm heap on a
+// huge embedded image or page, OOM-killing the api (the restart loop).
+func figureBounds(
+	instance pdfium.Pdfium, page requests.Page, geo pageGeometry, chars []pdfChar,
+) ([]rawFigure, error) {
+	raster, err := imageFigureBounds(instance, page, geo.width*geo.height)
+	if err != nil {
+		return nil, fmt.Errorf("extract page images: %w", err)
+	}
+	vector, _, err := vectorFigureBounds(instance, page, geo, chars)
+	if err != nil {
+		return nil, fmt.Errorf("extract vector figures: %w", err)
+	}
+	return append(outsideFigures(raster, vector), vector...), nil
+}
+
+// imageFigureBounds enumerates a page's image objects that pass the
+// converter's pixel-size and page-area filters, returning their bounds only.
+func imageFigureBounds(
+	instance pdfium.Pdfium, page requests.Page, pageArea float64,
+) ([]rawFigure, error) {
+	countResp, err := instance.FPDFPage_CountObjects(
+		&requests.FPDFPage_CountObjects{Page: page},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("count page objects: %w", err)
+	}
+
+	var figures []rawFigure
+	for i := range countResp.Count {
+		objResp, getErr := instance.FPDFPage_GetObject(
+			&requests.FPDFPage_GetObject{Page: page, Index: i},
+		)
+		if getErr != nil {
+			return nil, fmt.Errorf("get page object %d: %w", i, getErr)
+		}
+		typeResp, typeErr := instance.FPDFPageObj_GetType(
+			&requests.FPDFPageObj_GetType{PageObject: objResp.PageObject},
+		)
+		if typeErr != nil {
+			return nil, fmt.Errorf("get page object type %d: %w", i, typeErr)
+		}
+		if typeResp.Type != enums.FPDF_PAGEOBJ_IMAGE {
+			continue
+		}
+
+		sizeResp, sizeErr := instance.FPDFImageObj_GetImagePixelSize(
+			&requests.FPDFImageObj_GetImagePixelSize{ImageObject: objResp.PageObject},
+		)
+		if sizeErr != nil {
+			return nil, fmt.Errorf("get image pixel size: %w", sizeErr)
+		}
+		if sizeResp.Width < figureMinPixels || sizeResp.Height < figureMinPixels {
+			continue
+		}
+
+		boundsResp, boundsErr := instance.FPDFPageObj_GetBounds(
+			&requests.FPDFPageObj_GetBounds{PageObject: objResp.PageObject},
+		)
+		if boundsErr != nil {
+			return nil, fmt.Errorf("get image bounds: %w", boundsErr)
+		}
+		left, bottom := float64(boundsResp.Left), float64(boundsResp.Bottom)
+		right, top := float64(boundsResp.Right), float64(boundsResp.Top)
+		if pageArea <= 0 || (right-left)*(top-bottom) < figureMinAreaFraction*pageArea {
+			continue
+		}
+		figures = append(figures, rawFigure{
+			png: nil, left: left, top: top, right: right, bottom: bottom,
+		})
+	}
+	return figures, nil
+}
+
+// vectorFigureBounds maps a page's vector figures to their region bounds, the
+// converter's renderRegions crops without the page render.
+func vectorFigureBounds(
+	instance pdfium.Pdfium, page requests.Page, geo pageGeometry, chars []pdfChar,
+) ([]rawFigure, []pdfChar, error) {
+	boxes, err := pathBoxes(instance, page, geo)
+	if err != nil || len(boxes) == 0 {
+		return nil, chars, err
+	}
+
+	lines := groupLines(append([]pdfChar(nil), chars...))
+	taken := make([]bool, len(lines))
+	var regions []box
+	for _, r := range clusterBoxes(boxes) {
+		if r.width() < vectorMinSide || r.height() < vectorMinSide ||
+			r.width()*r.height() < figureMinAreaFraction*geo.width*geo.height {
+			continue
+		}
+		if region, ok := claimFigureRegion(r, lines, taken); ok {
+			regions = append(regions, region)
+		}
+	}
+	if len(regions) == 0 {
+		return nil, chars, nil
+	}
+	regions = mergePanels(regions, lines, taken)
+
+	figures := make([]rawFigure, 0, len(regions))
+	for _, r := range regions {
+		r = box{
+			left: max(0, r.left-vectorPadding), bottom: max(0, r.bottom-vectorPadding),
+			right: min(geo.width, r.right+vectorPadding),
+			top:   min(geo.height, r.top+vectorPadding),
+		}
+		figures = append(figures, rawFigure{
+			png: nil, left: r.left, top: r.top, right: r.right, bottom: r.bottom,
+		})
+	}
+	return figures, charsOutsideLines(chars, lines, taken), nil
 }
 
 // withPDFDocument opens the PDF at path the way goPDFConverter does, holding

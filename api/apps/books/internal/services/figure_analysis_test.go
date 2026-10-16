@@ -5,6 +5,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"errors"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -13,6 +14,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/klippa-app/go-pdfium"
+	"github.com/klippa-app/go-pdfium/enums"
+	"github.com/klippa-app/go-pdfium/references"
+	"github.com/klippa-app/go-pdfium/requests"
+	"github.com/klippa-app/go-pdfium/responses"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -73,6 +79,129 @@ func TestCountPDFFigures_Cancelled(t *testing.T) {
 
 	_, err := countPDFFigures(ctx, makeVectorFigurePDF(t))
 	require.ErrorIs(t, err, context.Canceled)
+}
+
+// imageFigureBounds keeps only image objects that pass the pixel-size and
+// page-area filters, and never carries pixel data.
+func TestImageFigureBounds_Filters(t *testing.T) {
+	pdf := newFixturePDF()
+	fixtureText(pdf, fixtureLeftX, 60, fixtureBodySize, "Figures on this page.")
+	fixtureImage(t, pdf, "fig", 100, 400, 240, 200, color.RGBA{R: 200, G: 0, B: 0, A: 255})
+	// Under the 1% page-area floor.
+	fixtureImage(
+		t,
+		pdf,
+		"tiny-area",
+		400,
+		100,
+		5,
+		5,
+		color.RGBA{R: 0, G: 0, B: 200, A: 255},
+	)
+	// Under the 50px pixel-size floor.
+	tiny := solidPNG(t, 40, 40, color.White)
+	pdf.RegisterImageOptionsReader("small", pngImageOptions, bytes.NewReader(tiny))
+	pdf.ImageOptions("small", 200, 400, 48, 40, false, pngImageOptions, 0, "")
+	path := savePDF(t, pdf, "filter.pdf")
+
+	err := withPDFDocument(context.Background(), path,
+		func(instance pdfium.Pdfium, doc references.FPDF_DOCUMENT) error {
+			page := requests.Page{ //nolint:exhaustruct // by index
+				ByIndex: &requests.PageByIndex{Document: doc, Index: 0},
+			}
+			figures, err := imageFigureBounds(instance, page,
+				fixturePageWidth*fixturePageHeight)
+			require.NoError(t, err)
+			require.Len(t, figures, 1)
+			assert.Nil(t, figures[0].png)
+			return nil
+		})
+	require.NoError(t, err)
+}
+
+// vectorFigureBounds yields a vector diagram's region bounds (png nil) and
+// leaves the label chars out, mirroring the converter without rendering.
+func TestVectorFigureBounds_NoRender(t *testing.T) {
+	err := withPDFDocument(context.Background(), makeVectorFigurePDF(t),
+		func(instance pdfium.Pdfium, doc references.FPDF_DOCUMENT) error {
+			page := requests.Page{ //nolint:exhaustruct // by index
+				ByIndex: &requests.PageByIndex{Document: doc, Index: 0},
+			}
+			geo, chars, err := pageText(instance, page)
+			require.NoError(t, err)
+
+			figures, rest, err := vectorFigureBounds(instance, page, geo, chars)
+			require.NoError(t, err)
+			require.NotEmpty(t, figures, "the diagram must count as a figure")
+			for i := range figures {
+				assert.Nil(t, figures[i].png)
+			}
+			joined := ""
+			for _, c := range rest {
+				joined += c.text
+			}
+			assert.NotContains(t, joined, "stock")
+			return nil
+		})
+	require.NoError(t, err)
+}
+
+// A text-only page has no vector figure regions.
+func TestVectorFigureBounds_NoBoxes(t *testing.T) {
+	pdf := newFixturePDF()
+	fixtureText(pdf, fixtureLeftX, 60, fixtureBodySize, "Just prose.")
+	path := savePDF(t, pdf, "text.pdf")
+
+	err := withPDFDocument(context.Background(), path,
+		func(instance pdfium.Pdfium, doc references.FPDF_DOCUMENT) error {
+			page := requests.Page{ //nolint:exhaustruct // by index
+				ByIndex: &requests.PageByIndex{Document: doc, Index: 0},
+			}
+			geo, chars, err := pageText(instance, page)
+			require.NoError(t, err)
+			figures, _, err := vectorFigureBounds(instance, page, geo, chars)
+			require.NoError(t, err)
+			assert.Empty(t, figures)
+			return nil
+		})
+	require.NoError(t, err)
+}
+
+// The counting path must not render figure pixels: a huge embedded image
+// would balloon the pdfium wasm heap just to be counted (the api restart
+// loop). Bounds-only figures keep the same count while skipping GetBitmap
+// and the page render.
+func TestCountPageFigures_CountingSkipsRendering(t *testing.T) {
+	pdf := newFixturePDF()
+	fixtureText(pdf, fixtureLeftX, 60, fixtureBodySize, "A page with a figure.")
+	fixtureImage(t, pdf, "a", 100, 400, 240, 200, color.RGBA{R: 200, G: 0, B: 0, A: 255})
+	path := savePDF(t, pdf, "render.pdf")
+
+	err := withPDFDocument(context.Background(), path,
+		func(instance pdfium.Pdfium, doc references.FPDF_DOCUMENT) error {
+			page := requests.Page{ //nolint:exhaustruct // by index
+				ByIndex: &requests.PageByIndex{Document: doc, Index: 0},
+			}
+			geo, chars, err := pageText(instance, page)
+			require.NoError(t, err)
+
+			counted, err := figureBounds(instance, page, geo, chars)
+			require.NoError(t, err)
+			require.NotEmpty(t, counted, "the image must count as a figure")
+			for i := range counted {
+				assert.Nil(t, counted[i].png, "counting must not render pixels")
+			}
+
+			// The converter's pageFigures must still render them.
+			rendered, _, err := pageFigures(instance, page, geo, chars)
+			require.NoError(t, err)
+			require.Len(t, rendered, len(counted))
+			for i := range rendered {
+				assert.NotEmpty(t, rendered[i].png, "conversion still renders pixels")
+			}
+			return nil
+		})
+	require.NoError(t, err)
 }
 
 func figureTestJPEG(t *testing.T) []byte {
@@ -186,4 +315,127 @@ func TestCountEPUBFigures_Invalid(t *testing.T) {
 	require.NoError(t, zw.Close())
 	_, err = countEPUBFigures(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
 	require.Error(t, err, "no package document")
+}
+
+// errFigureCall is the error every failing fake pdfium call returns.
+var errFigureCall = errors.New("pdfium call failed")
+
+// failPDFium fakes the pdfium calls the bounds helpers make. failOn names a
+// method whose nth call (1-based) errors; other calls succeed with
+// sane-enough defaults (one IMAGE object, a big pixel size, page bounds) so
+// earlier steps pass until the targeted call. It embeds the real interface so
+// any unexpected call panics instead of silently passing.
+type failPDFium struct {
+	pdfium.Pdfium
+	failOn map[string]int
+	calls  map[string]int
+}
+
+func (f *failPDFium) next(name string) error {
+	f.calls[name]++
+	if f.failOn[name] == f.calls[name] {
+		return errFigureCall
+	}
+	return nil
+}
+
+//nolint:revive // names must match the pdfium.Pdfium interface
+func (f *failPDFium) FPDFPage_CountObjects(
+	*requests.FPDFPage_CountObjects,
+) (*responses.FPDFPage_CountObjects, error) {
+	if err := f.next("CountObjects"); err != nil {
+		return nil, err
+	}
+	return &responses.FPDFPage_CountObjects{Count: 1}, nil
+}
+
+//nolint:revive // names must match the pdfium.Pdfium interface
+func (f *failPDFium) FPDFPage_GetObject(
+	*requests.FPDFPage_GetObject,
+) (*responses.FPDFPage_GetObject, error) {
+	if err := f.next("GetObject"); err != nil {
+		return nil, err
+	}
+	return &responses.FPDFPage_GetObject{
+		PageObject: "",
+	}, nil
+}
+
+//nolint:revive // names must match the pdfium.Pdfium interface
+func (f *failPDFium) FPDFPageObj_GetType(
+	*requests.FPDFPageObj_GetType,
+) (*responses.FPDFPageObj_GetType, error) {
+	if err := f.next("GetType"); err != nil {
+		return nil, err
+	}
+	return &responses.FPDFPageObj_GetType{Type: enums.FPDF_PAGEOBJ_IMAGE}, nil
+}
+
+//nolint:revive // names must match the pdfium.Pdfium interface
+func (f *failPDFium) FPDFImageObj_GetImagePixelSize(
+	*requests.FPDFImageObj_GetImagePixelSize,
+) (*responses.FPDFImageObj_GetImagePixelSize, error) {
+	if err := f.next("PixelSize"); err != nil {
+		return nil, err
+	}
+	return &responses.FPDFImageObj_GetImagePixelSize{Width: 1000, Height: 1000}, nil
+}
+
+//nolint:revive // names must match the pdfium.Pdfium interface
+func (f *failPDFium) FPDFPageObj_GetBounds(
+	*requests.FPDFPageObj_GetBounds,
+) (*responses.FPDFPageObj_GetBounds, error) {
+	if err := f.next("Bounds"); err != nil {
+		return nil, err
+	}
+	return &responses.FPDFPageObj_GetBounds{Left: 0, Bottom: 0, Right: 100, Top: 100}, nil
+}
+
+func newFailPDFium(method string, on int) *failPDFium {
+	return &failPDFium{
+		Pdfium: pdfium.Pdfium(nil),
+		failOn: map[string]int{method: on},
+		calls:  make(map[string]int),
+	}
+}
+
+// Every pdfium failure in the image-bounds path propagates as an error.
+func TestImageFigureBounds_PropagatesErrors(t *testing.T) {
+	page := requests.Page{ //nolint:exhaustruct // by index
+		ByIndex: &requests.PageByIndex{Document: "doc", Index: 0},
+	}
+	for _, method := range []string{
+		"CountObjects", "GetObject", "GetType", "PixelSize", "Bounds",
+	} {
+		t.Run(method, func(t *testing.T) {
+			_, err := imageFigureBounds(newFailPDFium(method, 1), page, 100_000)
+			require.ErrorIs(t, err, errFigureCall)
+		})
+	}
+}
+
+// figureBounds propagates errors from each half of the page.
+func TestFigureBounds_PropagatesErrors(t *testing.T) {
+	page := requests.Page{ //nolint:exhaustruct // by index
+		ByIndex: &requests.PageByIndex{Document: "doc", Index: 0},
+	}
+	geo := pageGeometry{originX: 0, originY: 0, width: 100, height: 100}
+
+	_, err := figureBounds(newFailPDFium("CountObjects", 1), page, geo, nil)
+	require.ErrorIs(t, err, errFigureCall)
+
+	// The second CountObjects call is pathBoxes inside vectorFigureBounds,
+	// after imageFigureBounds has already succeeded.
+	_, err = figureBounds(newFailPDFium("CountObjects", 2), page, geo, nil)
+	require.ErrorIs(t, err, errFigureCall)
+}
+
+// vectorFigureBounds propagates a pathBoxes failure.
+func TestVectorFigureBounds_PropagatesPathError(t *testing.T) {
+	page := requests.Page{ //nolint:exhaustruct // by index
+		ByIndex: &requests.PageByIndex{Document: "doc", Index: 0},
+	}
+	_, _, err := vectorFigureBounds(newFailPDFium("CountObjects", 1), page,
+		pageGeometry{originX: 0, originY: 0, width: 100, height: 100}, nil)
+	require.ErrorIs(t, err, errFigureCall)
 }
