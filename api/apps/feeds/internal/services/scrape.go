@@ -605,19 +605,20 @@ func (s *FeedService) ingestDiscoveredLinks(
 	newGUIDs = s.dropKnownTitles(ctx, feed.ID, newGUIDs, byGUID)
 	rules := s.pollFilterRules(ctx, feed, newGUIDs)
 
-	ingested := 0
+	// Rows are built one by one (content fetches) and stored in one statement,
+	// so a poll with many new posts costs one INSERT, not one per post.
+	batch := make([]models.Item, 0, len(newGUIDs))
 	for i, guid := range newGUIDs {
 		if ctx.Err() != nil {
-			return ingested
+			break
 		}
 		if i >= maxItemsPerPoll {
 			continue
 		}
-		if s.ingestDiscoveredLink(ctx, feed, byGUID[guid], guid, rules) {
-			ingested++
-		}
+		batch = append(batch, s.buildScrapeItem(ctx, feed, byGUID[guid], guid, rules))
 	}
-	return ingested
+	// Detached so a cancelled poll still keeps the rows it already built.
+	return s.storeItems(context.WithoutCancel(ctx), feed.ID, batch)
 }
 
 // titleKey normalizes a post title for duplicate detection; sites republish
@@ -655,26 +656,24 @@ func (s *FeedService) dropKnownTitles(
 	return kept
 }
 
-// ingestDiscoveredLink fetches and extracts one post, titled by its anchor
-// text, and reports whether it stored an unfiltered item. With no feed
-// description to fall back to, a failed fetch/extraction drops the item
-// (marked seen, never retried). A link matching a filter rule is stored
-// without fetching.
-func (s *FeedService) ingestDiscoveredLink(
+// buildScrapeItem builds one scrape-post item, or a seen-error marker when
+// its content fetch fails. With no feed description to fall back to, a failed
+// post is dropped (marked seen, never retried). A link matching a filter rule
+// is stored without fetching.
+func (s *FeedService) buildScrapeItem(
 	ctx context.Context,
 	feed models.Feed,
 	link discoveredLink,
 	guid string,
 	rules []models.FilterRule,
-) bool {
+) models.Item {
 	title := link.Title
 	rule := matchFilterRule(rules, feed.ID, title, link.Categories)
 	var body string
 	if rule == nil {
 		body = s.fetchLinkedPageHTML(ctx, guid, &title)
 		if body == "" {
-			s.markSeenError(ctx, feed.ID, guid, "content fetch failed")
-			return false
+			return seenErrorItem(feed.ID, guid, "content fetch failed")
 		}
 	}
 
@@ -694,10 +693,5 @@ func (s *FeedService) ingestDiscoveredLink(
 		Categories:  link.Categories,
 	}
 	markFiltered(&item, rule)
-	if err := s.items.Insert(ctx, item); err != nil {
-		s.logger.WarnContext(ctx, "scrape feed item store failed",
-			"feedID", feed.ID, "guid", guid, "error", err)
-		return false
-	}
-	return rule == nil
+	return item
 }

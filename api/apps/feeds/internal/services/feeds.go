@@ -677,18 +677,6 @@ func seenErrorItem(feedID uuid.UUID, guid, ingestErr string) models.Item {
 	}
 }
 
-func (s *FeedService) markSeenError(
-	ctx context.Context,
-	feedID uuid.UUID,
-	guid, ingestErr string,
-) {
-	item := seenErrorItem(feedID, guid, ingestErr)
-	if err := s.items.Insert(ctx, item); err != nil {
-		s.logger.WarnContext(ctx, "feed mark-seen failed",
-			"feedID", feedID, "guid", guid, "error", err)
-	}
-}
-
 // recordFetchResult persists poll outcome; res may be nil on failure.
 func (s *FeedService) recordFetchResult(
 	ctx context.Context,
