@@ -306,7 +306,10 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
                   </Button>
                 )}
                 {otherUnits && (
-                  <p className="w-full text-xs text-warn">
+                  <p className="w-full text-xs text-muted">
+                    <span className="text-warn" aria-hidden="true">
+                      ⚠{' '}
+                    </span>
                     Other recipes use {ing.name.trim()} in:{' '}
                     {otherUnits.map((u) => u || 'no unit').join(', ')}
                   </p>
