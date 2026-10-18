@@ -31,6 +31,14 @@ func TestArxivID(t *testing.T) {
 		},
 		{"falls back to link", "tag:x", "https://www.arxiv.org/abs/2410.01234", "2410.01234"},
 		{"not arxiv", "https://example.com/abs/2410.01234", "", ""},
+		{
+			"arxiv path on another host",
+			"https://evil.example/arxiv.org/abs/2410.01234",
+			"",
+			"",
+		},
+		{"arxiv lookalike host", "https://notarxiv.org/abs/2410.01234", "", ""},
+		{"trailing junk", "https://arxiv.org/abs/2410.01234v1/../x", "", ""},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

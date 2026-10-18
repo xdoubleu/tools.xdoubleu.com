@@ -20,12 +20,12 @@ const arxivQuietMinGap = 14 * 24 * time.Hour
 // arxivMinRequestGap is arXiv's requested spacing between API requests.
 const arxivMinRequestGap = 3 * time.Second
 
-// arxivIDPattern matches a new-style (2410.01234) or old-style
-// (math.GT/0309136) arXiv id in an abs URL or OAI identifier, without the
-// version suffix.
+// arxivIDPattern matches a whole arXiv abs URL or OAI identifier and
+// captures its new-style (2410.01234) or old-style (math.GT/0309136) id,
+// without the version suffix.
 var arxivIDPattern = regexp.MustCompile(
-	`(?i)(?:arxiv\.org/abs/|oai:arxiv\.org:)` +
-		`(\d{4}\.\d{4,5}|[a-z-]+(?:\.[a-z]{2})?/\d{7})(?:v\d+)?`,
+	`(?i)^(?:https?://(?:www\.|export\.)?arxiv\.org/abs/|oai:arxiv\.org:)` +
+		`(\d{4}\.\d{4,5}|[a-z-]+(?:\.[a-z]{2})?/\d{7})(?:v\d+)?$`,
 )
 
 // isArxivFeed reports whether feedURL is an arXiv API query or RSS feed.
