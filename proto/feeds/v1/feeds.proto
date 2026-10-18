@@ -43,7 +43,8 @@ enum FeedKind {
 message CreateFeedRequest {
   string url = 1;
   FeedKind kind = 2;
-  // Only used for kind=EMAIL; RSS titles come from the feed.
+  // Required for kind=EMAIL; for RSS, overrides the feed's own title when
+  // set. Unused for SCRAPE.
   string title = 3;
 }
 message CreateFeedResponse { Feed feed = 1; }

@@ -150,6 +150,103 @@ describe('AddFeedForm', () => {
     expect(writeText).toHaveBeenCalledWith('abc123@mail.example.com')
   })
 
+  it('subscribes to an arXiv search with a generated URL and title', async () => {
+    createFeed.mockResolvedValue({})
+    render(<AddFeedForm />)
+
+    fireEvent.click(screen.getByLabelText('arXiv papers'))
+    const subscribe = screen.getByRole('button', { name: 'Subscribe' })
+    expect(subscribe).toBeDisabled()
+
+    fireEvent.change(screen.getByLabelText('arXiv categories'), {
+      target: { value: 'cs.AI' }
+    })
+    fireEvent.change(screen.getByLabelText('Keywords'), { target: { value: 'agents' } })
+    fireEvent.change(screen.getByLabelText('Author'), { target: { value: 'Turing' } })
+    fireEvent.click(subscribe)
+
+    await waitFor(() => {
+      expect(createFeed).toHaveBeenCalledWith(
+        expect.stringMatching(/^https:\/\/export\.arxiv\.org\/api\/query\?/),
+        1,
+        'arXiv: agents, Turing · cs.AI'
+      )
+      expect(screen.getByLabelText('arXiv categories')).toHaveValue('')
+      expect(screen.getByLabelText('Keywords')).toHaveValue('')
+      expect(screen.getByLabelText('Author')).toHaveValue('')
+    })
+  })
+
+  it('shows the arXiv hint only in arXiv mode until a submit reports back', async () => {
+    createFeed.mockResolvedValue({})
+    render(<AddFeedForm />)
+    const hint = /Only the 20 newest matches/
+    expect(screen.queryByText(hint)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByLabelText('arXiv papers'))
+    expect(screen.getByText(hint)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('arXiv categories'), { target: { value: 'cs.AI' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
+    await waitFor(() => {
+      expect(screen.queryByText(hint)).not.toBeInTheDocument()
+    })
+  })
+
+  it('starts the arXiv fields empty', () => {
+    render(<AddFeedForm />)
+    fireEvent.click(screen.getByLabelText('arXiv papers'))
+    expect(screen.getByLabelText('arXiv categories')).toHaveValue('')
+    expect(screen.getByLabelText('Keywords')).toHaveValue('')
+    expect(screen.getByLabelText('Author')).toHaveValue('')
+  })
+
+  it('sends the trimmed URL and no title from RSS mode, ignoring other modes', async () => {
+    createFeed.mockResolvedValue({})
+    render(<AddFeedForm />)
+
+    fireEvent.click(screen.getByLabelText('Email newsletter'))
+    fireEvent.change(screen.getByLabelText('Newsletter name'), { target: { value: 'News' } })
+    fireEvent.click(screen.getByLabelText('arXiv papers'))
+    fireEvent.change(screen.getByLabelText('arXiv categories'), { target: { value: 'cs.AI' } })
+    fireEvent.click(screen.getByLabelText('RSS feed'))
+    fireEvent.change(screen.getByLabelText('Feed URL'), {
+      target: { value: '  https://news.example.com/rss  ' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
+
+    await waitFor(() => {
+      expect(createFeed).toHaveBeenCalledWith('https://news.example.com/rss', 1, '')
+    })
+  })
+
+  it('sends no URL and the trimmed name from email mode', async () => {
+    createFeed.mockResolvedValue({ feed: { inboundAddress: 'a@mail.example.com' } })
+    render(<AddFeedForm />)
+
+    fireEvent.change(screen.getByLabelText('Feed URL'), {
+      target: { value: 'https://news.example.com/rss' }
+    })
+    fireEvent.click(screen.getByLabelText('Email newsletter'))
+    fireEvent.change(screen.getByLabelText('Newsletter name'), {
+      target: { value: '  News  ' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Subscribe' }))
+
+    await waitFor(() => {
+      expect(createFeed).toHaveBeenCalledWith('', 2, 'News')
+    })
+  })
+
+  it('does not submit a blank URL, even via the form', () => {
+    render(<AddFeedForm />)
+    fireEvent.change(screen.getByLabelText('Feed URL'), { target: { value: '   ' } })
+    expect(screen.getByRole('button', { name: 'Subscribe' })).toBeDisabled()
+
+    fireEvent.submit(screen.getByLabelText('Feed URL').closest('form')!)
+    expect(createFeed).not.toHaveBeenCalled()
+  })
+
   it('disables the submit button while the URL is empty in RSS mode', () => {
     render(<AddFeedForm />)
     expect(screen.getByRole('button', { name: 'Subscribe' })).toBeDisabled()

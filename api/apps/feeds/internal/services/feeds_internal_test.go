@@ -105,7 +105,7 @@ func TestIsFeedQuiet(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			assert.Equal(t, c.want, isFeedQuiet(c.times, now))
+			assert.Equal(t, c.want, isFeedQuiet(c.times, now, quietMinGap))
 		})
 	}
 }

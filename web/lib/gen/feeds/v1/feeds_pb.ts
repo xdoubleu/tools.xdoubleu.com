@@ -151,7 +151,8 @@ export type CreateFeedRequest = Message<"feeds.v1.CreateFeedRequest"> & {
   kind: FeedKind;
 
   /**
-   * Only used for kind=EMAIL; RSS titles come from the feed.
+   * Required for kind=EMAIL; for RSS, overrides the feed's own title when
+   * set. Unused for SCRAPE.
    *
    * @generated from field: string title = 3;
    */

@@ -149,9 +149,10 @@ func (s *FeedService) CountUnread(ctx context.Context, userID string) (int, erro
 // Create validates the URL by fetching and parsing it, stores the feed and
 // imports its contents in the background: the import can exceed the write
 // timeout, and the poll-feeds job backfills if it's dropped.
+// A non-blank title overrides the feed's own.
 func (s *FeedService) Create(
 	ctx context.Context,
-	userID, rawURL string,
+	userID, rawURL, title string,
 ) (*models.Feed, error) {
 	canonical, err := canonicalURL(rawURL)
 	if err != nil {
@@ -166,12 +167,15 @@ func (s *FeedService) Create(
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalidFeed, err)
 	}
+	if msg := arxivAPIError(parsed.Items); isArxivFeed(canonical) && msg != "" {
+		return nil, fmt.Errorf("%w: arXiv: %s", ErrInvalidFeed, msg)
+	}
 
 	//nolint:exhaustruct // fetch state starts empty; ids are DB-owned
 	feed, err := s.feeds.Insert(ctx, models.Feed{
 		UserID: userID,
 		URL:    canonical,
-		Title:  parsed.Title,
+		Title:  titleOrDefault(title, parsed.Title),
 	})
 	if err != nil {
 		return nil, err
@@ -382,9 +386,13 @@ func (s *FeedService) PollAll(
 		return err
 	}
 
+	var pacer arxivPacer
 	for i, feed := range feeds {
 		if ctx.Err() != nil {
 			return ctx.Err()
+		}
+		if err = pacer.wait(ctx, feed.URL); err != nil {
+			return err
 		}
 		if pollErr := s.pollFeedSpan(ctx, feed); pollErr != nil {
 			logger.WarnContext(ctx, "feed poll failed",
@@ -478,8 +486,9 @@ func (s *FeedService) processItems(
 
 	guids := make([]string, 0, len(ordered))
 	byGUID := make(map[string]*gofeed.Item, len(ordered))
+	arxiv := isArxivFeed(feed.URL)
 	for _, item := range ordered {
-		guid := itemGUID(item)
+		guid := feedItemGUID(arxiv, item)
 		if guid == "" || byGUID[guid] != nil {
 			continue
 		}
@@ -584,6 +593,11 @@ func (s *FeedService) buildItem(
 	guid string,
 	rules []models.FilterRule,
 ) (*models.Item, error) {
+	if isArxivFeed(feed.URL) {
+		if id := arxivID(item); id != "" {
+			return buildArxivItem(feed, item, id, guid, rules), nil
+		}
+	}
 	if item.Link == "" {
 		return nil, errors.New("feed item has no link")
 	}
@@ -734,7 +748,11 @@ func (s *FeedService) checkFeedHealth(ctx context.Context, feed models.Feed) {
 		return
 	}
 
-	quiet := isFeedQuiet(times, time.Now())
+	minGap := quietMinGap
+	if isArxivFeed(feed.URL) {
+		minGap = arxivQuietMinGap
+	}
+	quiet := isFeedQuiet(times, time.Now(), minGap)
 	switch {
 	case quiet && feed.NotifiedAt == nil:
 		s.notifyProblem(ctx, feed, "hasn't posted new content in longer than usual")
@@ -750,8 +768,8 @@ func (s *FeedService) checkFeedHealth(ctx context.Context, feed models.Feed) {
 const minQuietHistory = 3
 
 // isFeedQuiet reports whether a feed has gone quiet relative to its own
-// cadence. times need not be sorted.
-func isFeedQuiet(times []time.Time, now time.Time) bool {
+// cadence, floored at minGap. times need not be sorted.
+func isFeedQuiet(times []time.Time, now time.Time, minGap time.Duration) bool {
 	if len(times) < minQuietHistory {
 		return false
 	}
@@ -767,8 +785,8 @@ func isFeedQuiet(times []time.Time, now time.Time) bool {
 	avgGap := totalGap / time.Duration(len(sorted)-1)
 
 	threshold := avgGap * quietGapMultiplier
-	if threshold < quietMinGap {
-		threshold = quietMinGap
+	if threshold < minGap {
+		threshold = minGap
 	}
 
 	latest := sorted[len(sorted)-1]

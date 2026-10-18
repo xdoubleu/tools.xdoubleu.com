@@ -353,7 +353,8 @@ type CreateFeedRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Url   string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	Kind  FeedKind               `protobuf:"varint,2,opt,name=kind,proto3,enum=feeds.v1.FeedKind" json:"kind,omitempty"`
-	// Only used for kind=EMAIL; RSS titles come from the feed.
+	// Required for kind=EMAIL; for RSS, overrides the feed's own title when
+	// set. Unused for SCRAPE.
 	Title         string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

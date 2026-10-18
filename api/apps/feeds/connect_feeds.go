@@ -205,7 +205,9 @@ func (h *feedsConnectHandler) CreateFeed(
 		}, nil
 	}
 
-	feed, err := h.app.Services.Feeds.Create(ctx, user.ID, req.Url)
+	feed, err := h.app.Services.Feeds.Create(
+		ctx, user.ID, req.Url, req.Title,
+	)
 	if err != nil {
 		return nil, feedErrorToConnect(err)
 	}
