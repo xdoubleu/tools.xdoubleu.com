@@ -57,6 +57,9 @@ const (
 	// ObservabilityServiceGetSentryIssuesProcedure is the procedure name of the ObservabilityService's
 	// GetSentryIssues RPC.
 	ObservabilityServiceGetSentryIssuesProcedure = "/observability.v1.ObservabilityService/GetSentryIssues"
+	// ObservabilityServiceGetSentryIssueEventProcedure is the procedure name of the
+	// ObservabilityService's GetSentryIssueEvent RPC.
+	ObservabilityServiceGetSentryIssueEventProcedure = "/observability.v1.ObservabilityService/GetSentryIssueEvent"
 	// ObservabilityServiceResolveSentryIssueProcedure is the procedure name of the
 	// ObservabilityService's ResolveSentryIssue RPC.
 	ObservabilityServiceResolveSentryIssueProcedure = "/observability.v1.ObservabilityService/ResolveSentryIssue"
@@ -176,6 +179,13 @@ var (
 			Procedure:  ObservabilityServiceGetSentryIssuesProcedure,
 		}
 	})
+	observabilityServiceGetSentryIssueEventSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_observability_v1_observability_proto.Services().ByName("ObservabilityService").Methods().ByName("GetSentryIssueEvent"),
+			Procedure:  ObservabilityServiceGetSentryIssueEventProcedure,
+		}
+	})
 	observabilityServiceResolveSentryIssueSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -282,6 +292,7 @@ type ObservabilityServiceClient interface {
 	DismissSecurityAlert(context.Context, *v1.DismissSecurityAlertRequest) (*v1.DismissSecurityAlertResponse, error)
 	GetProjectIssuesByStatus(context.Context, *v1.GetProjectIssuesByStatusRequest) (*v1.GetProjectIssuesByStatusResponse, error)
 	GetSentryIssues(context.Context, *v1.GetSentryIssuesRequest) (*v1.GetSentryIssuesResponse, error)
+	GetSentryIssueEvent(context.Context, *v1.GetSentryIssueEventRequest) (*v1.GetSentryIssueEventResponse, error)
 	ResolveSentryIssue(context.Context, *v1.ResolveSentryIssueRequest) (*v1.ResolveSentryIssueResponse, error)
 	GetSlowTransactions(context.Context, *v1.GetSlowTransactionsRequest) (*v1.GetSlowTransactionsResponse, error)
 	GetLogs(context.Context, *v1.GetLogsRequest) (*v1.GetLogsResponse, error)
@@ -317,6 +328,7 @@ type ObservabilityServiceHandler interface {
 	DismissSecurityAlert(context.Context, *v1.DismissSecurityAlertRequest) (*v1.DismissSecurityAlertResponse, error)
 	GetProjectIssuesByStatus(context.Context, *v1.GetProjectIssuesByStatusRequest) (*v1.GetProjectIssuesByStatusResponse, error)
 	GetSentryIssues(context.Context, *v1.GetSentryIssuesRequest) (*v1.GetSentryIssuesResponse, error)
+	GetSentryIssueEvent(context.Context, *v1.GetSentryIssueEventRequest) (*v1.GetSentryIssueEventResponse, error)
 	ResolveSentryIssue(context.Context, *v1.ResolveSentryIssueRequest) (*v1.ResolveSentryIssueResponse, error)
 	GetSlowTransactions(context.Context, *v1.GetSlowTransactionsRequest) (*v1.GetSlowTransactionsResponse, error)
 	GetLogs(context.Context, *v1.GetLogsRequest) (*v1.GetLogsResponse, error)
@@ -348,6 +360,7 @@ func RegisterObservabilityServiceHandler(server *connect.Server, svc Observabili
 		connect.Method{Spec: observabilityServiceDismissSecurityAlertSpec(), Handler: adapter.dismissSecurityAlert},
 		connect.Method{Spec: observabilityServiceGetProjectIssuesByStatusSpec(), Handler: adapter.getProjectIssuesByStatus},
 		connect.Method{Spec: observabilityServiceGetSentryIssuesSpec(), Handler: adapter.getSentryIssues},
+		connect.Method{Spec: observabilityServiceGetSentryIssueEventSpec(), Handler: adapter.getSentryIssueEvent},
 		connect.Method{Spec: observabilityServiceResolveSentryIssueSpec(), Handler: adapter.resolveSentryIssue},
 		connect.Method{Spec: observabilityServiceGetSlowTransactionsSpec(), Handler: adapter.getSlowTransactions},
 		connect.Method{Spec: observabilityServiceGetLogsSpec(), Handler: adapter.getLogs},
@@ -409,6 +422,10 @@ func (UnimplementedObservabilityServiceHandler) GetProjectIssuesByStatus(context
 
 func (UnimplementedObservabilityServiceHandler) GetSentryIssues(context.Context, *v1.GetSentryIssuesRequest) (*v1.GetSentryIssuesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "observability.v1.ObservabilityService.GetSentryIssues is not implemented")
+}
+
+func (UnimplementedObservabilityServiceHandler) GetSentryIssueEvent(context.Context, *v1.GetSentryIssueEventRequest) (*v1.GetSentryIssueEventResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "observability.v1.ObservabilityService.GetSentryIssueEvent is not implemented")
 }
 
 func (UnimplementedObservabilityServiceHandler) ResolveSentryIssue(context.Context, *v1.ResolveSentryIssueRequest) (*v1.ResolveSentryIssueResponse, error) {
@@ -550,6 +567,14 @@ func (c *observabilityServiceClient) GetProjectIssuesByStatus(ctx context.Contex
 func (c *observabilityServiceClient) GetSentryIssues(ctx context.Context, req *v1.GetSentryIssuesRequest) (*v1.GetSentryIssuesResponse, error) {
 	var res v1.GetSentryIssuesResponse
 	if err := c.client.CallUnary(ctx, observabilityServiceGetSentryIssuesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *observabilityServiceClient) GetSentryIssueEvent(ctx context.Context, req *v1.GetSentryIssueEventRequest) (*v1.GetSentryIssueEventResponse, error) {
+	var res v1.GetSentryIssueEventResponse
+	if err := c.client.CallUnary(ctx, observabilityServiceGetSentryIssueEventSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -787,6 +812,18 @@ func (h observabilityServiceHandler) getSentryIssues(ctx context.Context, _ conn
 		return err
 	}
 	res, err := h.svc.GetSentryIssues(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h observabilityServiceHandler) getSentryIssueEvent(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetSentryIssueEventRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetSentryIssueEvent(ctx, &req)
 	if err != nil {
 		return err
 	}

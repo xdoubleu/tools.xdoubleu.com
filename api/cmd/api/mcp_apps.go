@@ -38,6 +38,11 @@ type resolveSentryIssueArgs struct {
 	IssueID string `json:"issue_id" jsonschema:"Sentry issue ID, from get_sentry_issues"`
 }
 
+// getSentryIssueEventArgs is the input for get_sentry_issue_event.
+type getSentryIssueEventArgs struct {
+	IssueID string `json:"issue_id" jsonschema:"Sentry issue ID, from get_sentry_issues"`
+}
+
 // dismissSecurityAlertArgs: AlertType is "dependabot", "code_scanning" or
 // "secret_scanning". Valid Reasons per type:
 // dependabot: fix_started|inaccurate|no_bandwidth|not_used|tolerable_risk.
@@ -232,6 +237,13 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 			"none.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.sentryIssues(ctx), nil
+		})
+	addObsToolWithDefaults(srv, "get_sentry_issue_event",
+		"Latest event of a Sentry issue with its database spans (offender=true "+
+			"marks the spans Sentry's N+1/slow-query detector flagged). Use it to "+
+			"find the exact query before fixing a performance issue.",
+		func(ctx context.Context, a getSentryIssueEventArgs) (proto.Message, error) {
+			return h.sentryIssueEvent(ctx, a.IssueID)
 		})
 	addObsTool(srv, "get_slow_transactions",
 		"Slow API endpoints/pages: currently-slowest transactions (live from "+

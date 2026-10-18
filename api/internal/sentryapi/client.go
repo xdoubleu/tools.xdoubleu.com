@@ -145,6 +145,36 @@ func (c *client) ListTransactionStats(ctx context.Context) ([]TransactionStat, e
 	return stats, nil
 }
 
+// GetLatestEvent fetches issueID's latest event.
+func (c *client) GetLatestEvent(ctx context.Context, issueID string) (Event, error) {
+	// issueID lands in the URL path; only a numeric ID keeps the GET on it.
+	if _, err := strconv.ParseUint(issueID, 10, 64); err != nil {
+		return Event{}, fmt.Errorf("invalid Sentry issue ID %q", issueID)
+	}
+	cfg, err := c.resolveConfig(ctx)
+	if err != nil {
+		return Event{}, err
+	}
+
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return Event{}, ErrNotConfigured
+	}
+	if err != nil {
+		return Event{}, err
+	}
+
+	endpoint := fmt.Sprintf(
+		"%s/api/0/organizations/%s/issues/%s/events/latest/",
+		baseURL, url.PathEscape(cfg.Org), issueID,
+	)
+	var w eventWire
+	if getErr := c.get(ctx, endpoint, token, &w); getErr != nil {
+		return Event{}, getErr
+	}
+	return w.toEvent(), nil
+}
+
 // ResolveIssue resolves issueID. The endpoint needs no org, but config is
 // checked first so an unconfigured connection fails consistently.
 func (c *client) ResolveIssue(ctx context.Context, issueID string) error {

@@ -341,6 +341,45 @@ func (h *obsConnectHandler) sentryIssues(
 	return resp
 }
 
+func (h *obsConnectHandler) GetSentryIssueEvent(
+	ctx context.Context,
+	req *observabilityv1.GetSentryIssueEventRequest,
+) (*observabilityv1.GetSentryIssueEventResponse, error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	return h.sentryIssueEvent(ctx, req.GetIssueId())
+}
+
+func (h *obsConnectHandler) sentryIssueEvent(
+	ctx context.Context, issueID string,
+) (*observabilityv1.GetSentryIssueEventResponse, error) {
+	ev, err := h.app.sentryClient.GetLatestEvent(ctx, issueID)
+	if err != nil {
+		if errors.Is(err, sentryapi.ErrNotConfigured) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).
+				WithCause(err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	}
+
+	spans := make([]*observabilityv1.SentrySpan, len(ev.Spans))
+	for i, sp := range ev.Spans {
+		spans[i] = &observabilityv1.SentrySpan{
+			Op:          sp.Op,
+			Description: sp.Description,
+			DurationMs:  sp.DurationMs,
+			Offender:    sp.Offender,
+		}
+	}
+	return &observabilityv1.GetSentryIssueEventResponse{
+		EventId:     ev.ID,
+		Title:       ev.Title,
+		DateCreated: ev.DateCreated.Format(time.RFC3339),
+		Spans:       spans,
+	}, nil
+}
+
 func (h *obsConnectHandler) ResolveSentryIssue(
 	ctx context.Context,
 	req *observabilityv1.ResolveSentryIssueRequest,

@@ -499,3 +499,46 @@ func TestResolveIssue_RejectsNonNumericID(t *testing.T) {
 		assert.NotErrorIs(t, err, sentryapi.ErrNotConfigured)
 	}
 }
+
+func TestGetLatestEvent_ParsesDBSpans(t *testing.T) {
+	body := `{
+		"eventID":"e1","title":"N+1 Query","dateCreated":"2026-10-17T07:00:00Z",
+		"entries":[{"type":"spans","data":[
+			{"span_id":"a","op":"db.query","description":"SELECT 1",
+			 "start_timestamp":10.0,"timestamp":10.25},
+			{"span_id":"b","op":"http.client","description":"GET /x",
+			 "start_timestamp":10.0,"timestamp":11.0}
+		]}],
+		"occurrence":{"evidenceData":{"offenderSpanIds":["a"]}}
+	}`
+
+	var gotPath string
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			gotPath = r.URL.Path
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(body))
+		}))
+	defer cleanup()
+
+	ev, err := newClient().GetLatestEvent(context.Background(), "42")
+	require.NoError(t, err)
+	assert.True(t,
+		strings.HasSuffix(gotPath, "/organizations/org/issues/42/events/latest/"))
+	assert.Equal(t, "e1", ev.ID)
+	require.Len(t, ev.Spans, 1, "only db spans are kept")
+	assert.Equal(t, "SELECT 1", ev.Spans[0].Description)
+	assert.InDelta(t, 250, ev.Spans[0].DurationMs, 0.001)
+	assert.True(t, ev.Spans[0].Offender)
+}
+
+func TestGetLatestEvent_InvalidIssueID(t *testing.T) {
+	_, err := newClient().GetLatestEvent(context.Background(), "../x")
+	require.Error(t, err)
+}
+
+func TestGetLatestEvent_NotConfigured(t *testing.T) {
+	c := sentryapi.New(logging.NewNopLogger(), stubToken("token"), configNotConnected())
+	_, err := c.GetLatestEvent(context.Background(), "42")
+	require.ErrorIs(t, err, sentryapi.ErrNotConfigured)
+}

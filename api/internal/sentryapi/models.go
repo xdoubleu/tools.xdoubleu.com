@@ -1,7 +1,9 @@
 package sentryapi
 
 import (
+	"encoding/json"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -67,4 +69,81 @@ func (w transactionStatWire) toTransactionStat() TransactionStat {
 		P95DurationMs: w.P95Duration,
 		RequestCount:  int64(w.Count),
 	}
+}
+
+// maxEventSpans caps the db spans returned per event.
+const maxEventSpans = 200
+
+// Span is one db span of an Event; Offender marks spans Sentry's performance
+// detector flagged.
+type Span struct {
+	Op          string
+	Description string
+	DurationMs  float64
+	Offender    bool
+}
+
+// Event is an issue's latest event, reduced to its db spans.
+type Event struct {
+	ID          string
+	Title       string
+	DateCreated time.Time
+	Spans       []Span
+}
+
+type eventWire struct {
+	EventID     string    `json:"eventID"`
+	Title       string    `json:"title"`
+	DateCreated time.Time `json:"dateCreated"`
+	Entries     []struct {
+		Type string          `json:"type"`
+		Data json.RawMessage `json:"data"`
+	} `json:"entries"`
+	Occurrence *struct {
+		EvidenceData struct {
+			OffenderSpanIDs []string `json:"offenderSpanIds"`
+		} `json:"evidenceData"`
+	} `json:"occurrence"`
+}
+
+type spanWire struct {
+	SpanID         string  `json:"span_id"`
+	Op             string  `json:"op"`
+	Description    string  `json:"description"`
+	StartTimestamp float64 `json:"start_timestamp"`
+	Timestamp      float64 `json:"timestamp"`
+}
+
+// toEvent keeps only db.* spans; a malformed spans entry yields no spans
+// since it's diagnostic detail.
+func (w eventWire) toEvent() Event {
+	offenders := map[string]bool{}
+	if w.Occurrence != nil {
+		for _, id := range w.Occurrence.EvidenceData.OffenderSpanIDs {
+			offenders[id] = true
+		}
+	}
+
+	spans := []Span{}
+	for _, e := range w.Entries {
+		if e.Type != "spans" {
+			continue
+		}
+		var raw []spanWire
+		if err := json.Unmarshal(e.Data, &raw); err != nil {
+			continue
+		}
+		for _, sp := range raw {
+			if !strings.HasPrefix(sp.Op, "db") || len(spans) >= maxEventSpans {
+				continue
+			}
+			spans = append(spans, Span{
+				Op:          sp.Op,
+				Description: sp.Description,
+				DurationMs:  (sp.Timestamp - sp.StartTimestamp) * 1000, //nolint:mnd // s to ms
+				Offender:    offenders[sp.SpanID],
+			})
+		}
+	}
+	return Event{ID: w.EventID, Title: w.Title, DateCreated: w.DateCreated, Spans: spans}
 }

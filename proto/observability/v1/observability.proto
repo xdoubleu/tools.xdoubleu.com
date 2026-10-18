@@ -20,6 +20,8 @@ service ObservabilityService {
   rpc GetProjectIssuesByStatus(GetProjectIssuesByStatusRequest)
       returns (GetProjectIssuesByStatusResponse);
   rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
+  rpc GetSentryIssueEvent(GetSentryIssueEventRequest)
+      returns (GetSentryIssueEventResponse);
   rpc ResolveSentryIssue(ResolveSentryIssueRequest)
       returns (ResolveSentryIssueResponse);
   rpc GetSlowTransactions(GetSlowTransactionsRequest)
@@ -292,6 +294,28 @@ message GetSentryIssuesResponse {
   repeated SentryIssue issues = 1;
   bool configured = 2;
   int32 unresolved_count = 3;
+}
+
+message GetSentryIssueEventRequest {
+  string issue_id = 1;
+}
+
+// SentrySpan is one database span of an event; offender marks the spans
+// Sentry's performance detector flagged (e.g. the N+1 repeats).
+message SentrySpan {
+  string op = 1;
+  string description = 2;
+  double duration_ms = 3;
+  bool offender = 4;
+}
+
+// GetSentryIssueEventResponse is the issue's latest event. spans holds only
+// db.* spans (capped at 200); empty for non-performance events.
+message GetSentryIssueEventResponse {
+  string event_id = 1;
+  string title = 2;
+  string date_created = 3;  // RFC3339
+  repeated SentrySpan spans = 4;
 }
 
 message ResolveSentryIssueRequest {

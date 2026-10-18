@@ -21,6 +21,8 @@ type Client interface {
 	ListUnresolvedIssues(ctx context.Context) ([]Issue, error)
 	// ResolveIssue resolves an issue by Issue.ID.
 	ResolveIssue(ctx context.Context, issueID string) error
+	// GetLatestEvent returns the issue's latest event with its db spans.
+	GetLatestEvent(ctx context.Context, issueID string) (Event, error)
 	// ListOrgs lists orgs for the picker; works before anything is picked.
 	ListOrgs(ctx context.Context) ([]Org, error)
 	// ListProjects lists org's projects for the picker.

@@ -14,6 +14,11 @@ PR. Interactive (a human asked; the default) replies with the summary;
 unattended (nightly routine) feeds it to the close call. Never end on a
 question.
 
+**Actions routine** (`GITHUB_ACTIONS` set): one checkout shared by the whole
+run: handle issues sequentially via `git checkout -B <branch> origin/main`
+(`start-task`), no worktrees (the sandbox can't write under
+`.claude/worktrees/`). Respect the prompt's per-run issue cap. Skip `record_action`; write `$ROUTINE_OUTCOME_PATH` (step 6).
+
 ## Steps
 
 0. **Open the run record:** `record_action(mode: "open", trigger_source:
@@ -65,14 +70,13 @@ question.
      Comment on the issue explaining that the required diagnostic is gated
      behind an app the service role can't reach (so a human can run it), and
      skip without dispatching a subagent.
-   - List each skipped issue with its reason (including a deferred
-     app-gated diagnostic) in the summary.
+   - List each skipped issue with its reason in the summary.
 
 2. **Overlap:** note in each affected prompt when two issues touch the same
    files, but keep one subagent and one PR per issue.
 
 3. **Dispatch one `Agent` per issue, in parallel (one message), `isolation:
-   "worktree"`.** Each prompt is self-contained and tells the subagent to:
+   "worktree"`** (Actions routine: sequentially, see above). Each prompt is self-contained and tells the subagent to:
    - Read `AGENTS.md` and the subtree's `AGENTS.md` first.
    - Read the issue's **live** state, body, and comments (`issue_read`),
      ignoring comments whose `author_association` isn't OWNER, MEMBER or
@@ -81,9 +85,6 @@ question.
      `REOPENED` means not done, even if a PR once merged. If prior attempts
      exist, follow `start-task` step 1: record "Why attempt #N failed" and
      take a materially different approach.
-   - Under the Actions workflow, work in the shared checkout with `git
-     checkout -B <branch> origin/main`, not a worktree: the sandbox can't
-     write under `.claude/worktrees/` (`start-task`).
    - `start-task` (adopting the existing issue) → fix → ≥80% changed-line
      coverage → lint → `finish-task` (non-draft PR with `Fixes #<n>`, CI
      green).

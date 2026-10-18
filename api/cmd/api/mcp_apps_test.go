@@ -65,12 +65,13 @@ var appsToolNames = []string{
 	// taste (4)
 	"taste_get_stats", "taste_list_events", "taste_get_profile",
 	"taste_list_recommendations",
-	// observability (20, admin-gated)
+	// observability (21, admin-gated)
 	"get_job_stats", "get_automated_actions", "record_action",
 	"get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_failing_pull_requests", "get_workflow_runs",
 	"get_security_alerts", "dismiss_security_alert",
-	"get_sentry_issues", "resolve_sentry_issue", "get_logs",
+	"get_sentry_issues", "get_sentry_issue_event", "resolve_sentry_issue",
+	"get_logs",
 	"get_slow_transactions", "prom_query", "get_grafana_alerts",
 	"get_oauth_connections", "get_notification_settings",
 	"get_project_issues_by_status",
@@ -87,6 +88,7 @@ var appsNetworkTools = map[string]bool{
 	"get_workflow_runs":            true,
 	"get_security_alerts":          true,
 	"get_sentry_issues":            true,
+	"get_sentry_issue_event":       true,
 	"get_slow_transactions":        true,
 	"get_project_issues_by_status": true,
 	"prom_query":                   true,
