@@ -11,6 +11,7 @@ const MIN_TAP_PX = 44 // Apple HIG / WCAG 2.2 AAA target size.
 const MIN_TAP_GAP_PX = 8
 const MIN_INPUT_FONT_PX = 16 // Below this, iOS Safari zooms on focus.
 const OVERFLOW_TOLERANCE_PX = 1 // Sub-pixel layout rounding is not a finding.
+const NETWORK_SETTLE_MS = 5000 // Max wait for network idle before measuring.
 
 function parseArgs(argv) {
   const paths = []
@@ -207,7 +208,12 @@ for (const theme of opts.themes) {
     const url = new URL(path, opts.baseUrl).toString()
     const page = await context.newPage()
     try {
-      const response = await page.goto(url, { waitUntil: 'networkidle' })
+      const response = await page.goto(url, { waitUntil: 'load' })
+      // Under `npm run dev` without the API, retried calls keep the network
+      // busy forever; measure anyway once the settle window passes.
+      await page
+        .waitForLoadState('networkidle', { timeout: NETWORK_SETTLE_MS })
+        .catch(() => {})
       const status = response?.status() ?? 0
       if (status >= 400) {
         results.push({ path, theme, error: `HTTP ${status}` })
