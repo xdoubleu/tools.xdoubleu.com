@@ -10,6 +10,7 @@ const mockClient = {
   getStoreCategories: jest.fn().mockResolvedValue({}),
   listItemNames: jest.fn().mockResolvedValue({}),
   listItemCategories: jest.fn().mockResolvedValue({}),
+  listIngredientUnits: jest.fn().mockResolvedValue({}),
   listPlans: jest.fn().mockResolvedValue({ plans: [] })
 }
 
@@ -37,6 +38,8 @@ import {
   useStoreCategories,
   useItemNames,
   useItemCategories,
+  useItemAliases,
+  useIngredientUnits,
   useAllMealPlanExportItems,
   useAllPlanIngredientGroups,
   queueCategory,
@@ -162,6 +165,40 @@ describe('useItemNames', () => {
     renderHook(() => useItemNames())
     await callFetcher()
     expect(mockClient.listItemNames).toHaveBeenCalledWith({})
+  })
+})
+
+describe('useItemAliases', () => {
+  it('maps merged names to their canonical', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseSWR.mockReturnValue({
+      data: {
+        names: [
+          { name: 'paprika', mergedInto: '' },
+          { name: 'rode paprika', mergedInto: 'paprika' }
+        ]
+      }
+    })
+    const { result } = renderHook(() => useItemAliases())
+    expect(result.current).toEqual({ 'rode paprika': 'paprika' })
+  })
+
+  it('is empty before the catalog loads', () => {
+    const { result } = renderHook(() => useItemAliases())
+    expect(result.current).toEqual({})
+  })
+})
+
+describe('useIngredientUnits', () => {
+  it('uses /shoppinglist/ingredient-units as the SWR key', () => {
+    renderHook(() => useIngredientUnits())
+    expect(mockUseSWR).toHaveBeenCalledWith('/shoppinglist/ingredient-units', expect.any(Function))
+  })
+
+  it('fetcher calls listIngredientUnits', async () => {
+    renderHook(() => useIngredientUnits())
+    await callFetcher()
+    expect(mockClient.listIngredientUnits).toHaveBeenCalledWith({})
   })
 })
 
