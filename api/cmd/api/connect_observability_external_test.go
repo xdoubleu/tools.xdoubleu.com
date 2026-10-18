@@ -544,6 +544,77 @@ func callSentry(
 	).GetSentryIssues(withCookies(context.Background(), accessToken), req)
 }
 
+func TestObservabilityGetSentryIssueEvent_AsAdmin(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := jsonServer(t, http.StatusOK, `{
+		"eventID":"e1","title":"N+1 Query","dateCreated":"2026-10-17T07:00:00Z",
+		"entries":[{"type":"spans","data":[
+			{"span_id":"a","op":"db.query","description":"SELECT 1",
+			 "start_timestamp":10.0,"timestamp":10.5}]}],
+		"occurrence":{"evidenceData":{"offenderSpanIds":["a"]}}
+	}`)
+	sentryapi.SetBaseURL(srv.URL)
+	t.Cleanup(func() { sentryapi.SetBaseURL("https://sentry.io") })
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(), stubTok("tok"),
+		testConfigJSON(t, map[string]any{"org": "org", "projects": []string{"proj"}}),
+	)
+
+	resp, err := callSentryIssueEvent(t)
+	require.NoError(t, err)
+	assert.Equal(t, "e1", resp.EventId)
+	require.Len(t, resp.Spans, 1)
+	assert.Equal(t, "SELECT 1", resp.Spans[0].Description)
+	assert.True(t, resp.Spans[0].Offender)
+}
+
+func TestObservabilityGetSentryIssueEvent_UpstreamError(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := jsonServer(t, http.StatusInternalServerError, ``)
+	sentryapi.SetBaseURL(srv.URL)
+	t.Cleanup(func() { sentryapi.SetBaseURL("https://sentry.io") })
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(), stubTok("tok"),
+		testConfigJSON(t, map[string]any{"org": "org", "projects": []string{"proj"}}),
+	)
+
+	_, err := callSentryIssueEvent(t)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+}
+
+func TestObservabilityGetSentryIssueEvent_NotConfigured(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(), stubTok("tok"), configNotConnected(),
+	)
+
+	_, err := callSentryIssueEvent(t)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+}
+
+func TestObservabilityGetSentryIssueEvent_NonAdmin(t *testing.T) {
+	demoteToUser(t)
+	_, err := callSentryIssueEvent(t)
+	requirePermissionDenied(t, err)
+}
+
+func callSentryIssueEvent(
+	t *testing.T,
+) (*observabilityv1.GetSentryIssueEventResponse, error) {
+	t.Helper()
+	req := &observabilityv1.GetSentryIssueEventRequest{IssueId: "42"}
+	return observabilityClient(
+		t,
+	).GetSentryIssueEvent(withCookies(context.Background(), accessToken), req)
+}
+
 func TestObservabilityResolveSentryIssue_AsAdmin(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
