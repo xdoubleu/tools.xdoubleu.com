@@ -44,11 +44,12 @@ var appsToolNames = []string{
 	"recipes_fetch_video",
 	// mealplans (3)
 	"mealplans_list_plans", "mealplans_get_plan", "mealplans_suggest_recipes",
-	// shoppinglist (8)
+	// shoppinglist (9)
 	"shoppinglist_get_custom_list", "shoppinglist_get_meal_plan_export_items",
 	"shoppinglist_get_plan_ingredient_groups", "shoppinglist_list_categories",
 	"shoppinglist_list_stores", "shoppinglist_get_store_categories",
 	"shoppinglist_list_item_names", "shoppinglist_list_item_categories",
+	"shoppinglist_list_ingredient_units",
 	// trains (5)
 	"trains_search_stations", "trains_get_feed_info", "trains_search_journeys",
 	"trains_get_journey_detail", "trains_get_realtime_trip",

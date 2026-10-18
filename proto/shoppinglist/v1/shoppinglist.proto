@@ -137,10 +137,12 @@ message SetStoreCategoriesResponse {}
 
 // ItemName is a known item name and its category_id (empty if unassigned).
 // excluded marks names removed from the export, so the UI can restore them.
+// merged_into is the name it's exported as when merged, else empty.
 message ItemName {
   string name        = 1;
   string category_id = 2;
   bool excluded      = 3;
+  string merged_into = 4;
 }
 
 message ItemCategory {
@@ -170,6 +172,23 @@ message SetItemExcludedRequest  {
 }
 message SetItemExcludedResponse {}
 
+// SetItemAlias exports name as canonical; an empty canonical unmerges it.
+message SetItemAliasRequest  {
+  string name      = 1;
+  string canonical = 2;
+}
+message SetItemAliasResponse {}
+
+// IngredientUnit is a unit the family's recipes use for a merged name.
+message IngredientUnit {
+  string name                = 1;
+  string unit                = 2;
+  repeated string recipe_ids = 3;
+}
+
+message ListIngredientUnitsRequest  {}
+message ListIngredientUnitsResponse { repeated IngredientUnit units = 1; }
+
 service ShoppingListService {
   rpc GetCustomList             (GetCustomListRequest)             returns (GetCustomListResponse);
   rpc CreateShoppingItem           (CreateShoppingItemRequest)           returns (CreateShoppingItemResponse);
@@ -194,4 +213,6 @@ service ShoppingListService {
   rpc ListItemCategories (ListItemCategoriesRequest) returns (ListItemCategoriesResponse);
   rpc SetItemCategory    (SetItemCategoryRequest)    returns (SetItemCategoryResponse);
   rpc SetItemExcluded    (SetItemExcludedRequest)    returns (SetItemExcludedResponse);
+  rpc SetItemAlias       (SetItemAliasRequest)       returns (SetItemAliasResponse);
+  rpc ListIngredientUnits (ListIngredientUnitsRequest) returns (ListIngredientUnitsResponse);
 }

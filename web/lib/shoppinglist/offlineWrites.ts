@@ -231,6 +231,28 @@ export const setItemExcludedWrite = defineOfflineWrite({
   revalidate: REVALIDATE
 })
 
+/** Mirrors the API's chain flattening: aliases of `name` move along with it. */
+export const setItemAliasWrite = defineOfflineWrite({
+  method: method.setItemAlias,
+  apply: (key, data, req) =>
+    onKey(key, swrKeys.itemNames, ListItemNamesResponseSchema, data, (d) => {
+      const target = req.canonical
+        ? d.names.find((n) => n.name === req.canonical)?.mergedInto || req.canonical
+        : ''
+      return {
+        ...d,
+        names: d.names.map((n) =>
+          n.name === req.name || (target && n.mergedInto === req.name)
+            ? { ...n, mergedInto: target }
+            : n
+        )
+      }
+    }),
+  describe: (req) =>
+    req.canonical ? `Merge “${req.name}” into “${req.canonical}”` : `Unmerge “${req.name}”`,
+  revalidate: REVALIDATE
+})
+
 export const shoppingListWrites = [
   createShoppingItemWrite,
   updateShoppingItemWrite,
@@ -243,5 +265,6 @@ export const shoppingListWrites = [
   deleteStoreWrite,
   setStoreCategoriesWrite,
   setItemCategoryWrite,
-  setItemExcludedWrite
+  setItemExcludedWrite,
+  setItemAliasWrite
 ]

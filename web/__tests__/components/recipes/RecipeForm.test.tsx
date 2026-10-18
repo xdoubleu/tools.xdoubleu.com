@@ -9,7 +9,9 @@ const mockUpdateRecipe = jest.fn()
 
 const mockShopping = {
   itemNames: [] as { name: string; categoryId: string; excluded: boolean }[],
-  categories: [] as { id: string; name: string }[]
+  categories: [] as { id: string; name: string }[],
+  aliases: {} as Record<string, string>,
+  units: [] as { name: string; unit: string; recipeIds: string[] }[]
 }
 const mockQueueItemCategory = jest.fn().mockResolvedValue(undefined)
 const mockQueueCategory = jest.fn()
@@ -22,6 +24,8 @@ jest.mock('@/hooks/useRecipes', () => ({
 jest.mock('@/hooks/useShoppingList', () => ({
   useItemNames: () => ({ data: { names: mockShopping.itemNames } }),
   useCategories: () => ({ data: { categories: mockShopping.categories } }),
+  useItemAliases: () => mockShopping.aliases,
+  useIngredientUnits: () => ({ data: { units: mockShopping.units } }),
   queueCategory: (...args: unknown[]) => mockQueueCategory(...args),
   queueItemCategory: (...args: unknown[]) => mockQueueItemCategory(...args)
 }))
@@ -33,6 +37,8 @@ jest.mock('@/lib/recipes/parseFraction', () => ({
 beforeEach(() => {
   jest.clearAllMocks()
   mockShopping.itemNames = []
+  mockShopping.aliases = {}
+  mockShopping.units = []
   mockShopping.categories = [
     { id: 'cat-produce', name: 'Produce' },
     { id: 'cat-dairy', name: 'Dairy' }
@@ -251,6 +257,30 @@ describe('RecipeForm (edit recipe)', () => {
     await waitFor(() => {
       expect(mockUpdateRecipe).toHaveBeenCalledWith(expect.objectContaining({ isDraft: false }))
     })
+  })
+
+  it('warns about a unit other recipes of a merged name do not use', () => {
+    mockShopping.aliases = { pasta: 'spaghetti' }
+    mockShopping.units = [
+      { name: 'spaghetti', unit: 'pak', recipeIds: ['r-2'] },
+      { name: 'spaghetti', unit: 'g', recipeIds: ['r-1'] }
+    ]
+    render(<RecipeForm recipe={existingRecipe} onSave={jest.fn()} onCancel={jest.fn()} />)
+    // Its own "g" doesn't count as another recipe's unit.
+    expect(screen.getByText('Other recipes use pasta in: pak')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('Unit'), { target: { value: 'Pak ' } })
+    expect(screen.queryByText(/Other recipes use/)).not.toBeInTheDocument()
+  })
+
+  it('still saves with a unit warning showing', async () => {
+    mockShopping.units = [{ name: 'pasta', unit: '', recipeIds: ['r-2'] }]
+    mockUpdateRecipe.mockResolvedValue({})
+    render(<RecipeForm recipe={existingRecipe} onSave={jest.fn()} onCancel={jest.fn()} />)
+    expect(screen.getByText('Other recipes use pasta in: no unit')).toBeInTheDocument()
+
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+    await waitFor(() => expect(mockUpdateRecipe).toHaveBeenCalled())
   })
 
   it('pre-fills the ingredient category from the catalog', async () => {

@@ -154,6 +154,12 @@ type shoppingRepo interface {
 		name string,
 		excluded bool,
 	) error
+	SetItemAlias(ctx context.Context, familyID uuid.UUID, alias, canonical string) error
+	DeleteItemAlias(ctx context.Context, familyID uuid.UUID, alias string) error
+	ListIngredientUnits(
+		ctx context.Context,
+		familyID uuid.UUID,
+	) ([]repositories.IngredientUnit, error)
 }
 
 type Services struct {

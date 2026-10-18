@@ -19,6 +19,7 @@ import {
   formatAmount,
   renameCategoryWrite,
   renameStoreWrite,
+  setItemAliasWrite,
   setItemCategoryWrite,
   setItemExcludedWrite,
   setStoreCategoriesWrite,
@@ -248,6 +249,58 @@ describe('shopping list offline writes', () => {
     })
   })
 
+  it('merges into the canonical of an alias and moves aliases along', () => {
+    const names = create(ListItemNamesResponseSchema, {
+      names: [
+        { name: 'paprika' },
+        { name: 'rode paprika', mergedInto: 'paprika' },
+        { name: 'groene paprika' },
+        { name: 'ui' }
+      ]
+    })
+
+    // Merging into an alias targets its canonical.
+    expect(
+      run(setItemAliasWrite, { name: 'ui', canonical: 'rode paprika' }, swrKeys.itemNames, names)
+    ).toMatchObject({ names: [{ mergedInto: '' }, {}, {}, { name: 'ui', mergedInto: 'paprika' }] })
+
+    // Merging a canonical moves its aliases along.
+    expect(
+      run(
+        setItemAliasWrite,
+        { name: 'paprika', canonical: 'groene paprika' },
+        swrKeys.itemNames,
+        names
+      )
+    ).toMatchObject({
+      names: [
+        { name: 'paprika', mergedInto: 'groene paprika' },
+        { name: 'rode paprika', mergedInto: 'groene paprika' },
+        { name: 'groene paprika', mergedInto: '' },
+        { name: 'ui', mergedInto: '' }
+      ]
+    })
+  })
+
+  it('unmerges only the named item', () => {
+    const names = create(ListItemNamesResponseSchema, {
+      names: [
+        { name: 'paprika' },
+        { name: 'rode paprika', mergedInto: 'paprika' },
+        { name: 'gele paprika', mergedInto: 'paprika' }
+      ]
+    })
+    expect(
+      run(setItemAliasWrite, { name: 'rode paprika' }, swrKeys.itemNames, names)
+    ).toMatchObject({
+      names: [
+        { name: 'paprika', mergedInto: '' },
+        { name: 'rode paprika', mergedInto: '' },
+        { name: 'gele paprika', mergedInto: 'paprika' }
+      ]
+    })
+  })
+
   it('describes each write for the couldn’t-sync list', () => {
     const describe = <I extends DescMessage>(write: OfflineWrite<I>, init: MessageInitShape<I>) =>
       write.describe(write.encode(init))
@@ -265,5 +318,9 @@ describe('shopping list offline writes', () => {
     expect(describe(setItemCategoryWrite, { name: 'milk' })).toBe('Set the category of “milk”')
     expect(describe(setItemExcludedWrite, { name: 'milk', excluded: true })).toBe('Remove “milk”')
     expect(describe(setItemExcludedWrite, { name: 'milk' })).toBe('Restore “milk”')
+    expect(describe(setItemAliasWrite, { name: 'rode ui', canonical: 'ui' })).toBe(
+      'Merge “rode ui” into “ui”'
+    )
+    expect(describe(setItemAliasWrite, { name: 'rode ui' })).toBe('Unmerge “rode ui”')
   })
 })

@@ -120,31 +120,78 @@ describe('shoppingExport', () => {
       expect(result).toBe('3 cups - flour (Recipe A: 2 cups, Recipe B: 1 cups)')
     })
 
-    it('does not combine items with the same name but different units', () => {
+    it('joins different units of the same name into one line', () => {
       const items: ShoppingItem[] = [
-        { amount: '200', unit: 'g', name: 'butter', recipeName: 'Recipe A' },
-        { amount: '2', unit: 'tbsp', name: 'butter', recipeName: 'Recipe B' }
+        { amount: '200', unit: 'g', name: 'paprika', recipeName: 'Recipe A' },
+        { amount: '1', unit: 'stuk', name: 'paprika', recipeName: 'Recipe B' },
+        { amount: '100', unit: 'g', name: 'paprika', recipeName: 'Recipe C' }
       ]
       const result = formatForClipboard([], items)
-      expect(result).toBe('200 g - butter (Recipe A)\n2 tbsp - butter (Recipe B)')
+      expect(result).toBe(
+        '300 g + 1 stuk - paprika (Recipe A: 200 g, Recipe B: 1 stuk, Recipe C: 100 g)'
+      )
     })
 
-    it('does not combine custom items with meal plan items of same name', () => {
+    it('upgrades each unit part separately', () => {
+      const items: ShoppingItem[] = [
+        { amount: '1500', unit: 'g', name: 'paprika', recipeName: 'Recipe A' },
+        { amount: '1', unit: 'stuk', name: 'paprika', recipeName: 'Recipe B' }
+      ]
+      expect(prepareForExport([], items)[0]).toMatchObject({
+        amount: '1.5 kg + 1',
+        unit: 'stuk'
+      })
+    })
+
+    it('joins a unit-less part without a trailing space', () => {
+      const items: ShoppingItem[] = [
+        { amount: '2', unit: '', name: 'ui', recipeName: 'Recipe A' },
+        { amount: '100', unit: 'g', name: 'ui', recipeName: 'Recipe B' }
+      ]
+      expect(prepareForExport([], items)[0]).toMatchObject({ amount: '2 + 100', unit: 'g' })
+    })
+
+    it('drops zero-amount parts next to specified ones', () => {
+      const items: ShoppingItem[] = [
+        { amount: '0', unit: '', name: 'ui' },
+        { amount: '1', unit: 'stuk', name: 'ui', recipeName: 'Recipe A' }
+      ]
+      expect(formatForClipboard([], items)).toBe('1 stuk - ui (Custom, Recipe A: 1 stuk)')
+    })
+
+    it('keeps a zero amount when nothing else is specified', () => {
+      const items: ShoppingItem[] = [
+        { amount: '0', unit: '', name: 'ui' },
+        { amount: '0', unit: '', name: 'Ui' }
+      ]
+      expect(prepareForExport(items)).toEqual([
+        { name: 'ui', amount: '0', unit: '', origins: undefined }
+      ])
+    })
+
+    it('combines custom items with meal plan items of the same name', () => {
       const custom: ShoppingItem[] = [{ id: 'c1', amount: '1', unit: 'cups', name: 'flour' }]
       const meal: ShoppingItem[] = [
         { amount: '2', unit: 'cups', name: 'flour', recipeName: 'Recipe A' }
       ]
       const result = formatForClipboard(custom, meal)
-      expect(result).toBe('1 cups - flour\n2 cups - flour (Recipe A)')
+      expect(result).toBe('3 cups - flour (Custom: 1 cups, Recipe A: 2 cups)')
     })
 
-    it('treats two custom items with same name independently (no recipeName)', () => {
+    it('combines custom items of the same name without origins', () => {
       const items: ShoppingItem[] = [
         { id: 'a', amount: '1', unit: 'cups', name: 'milk' },
         { id: 'b', amount: '2', unit: 'cups', name: 'milk' }
       ]
       const result = formatForClipboard(items)
-      expect(result).toBe('1 cups - milk\n2 cups - milk')
+      expect(result).toBe('3 cups - milk')
+    })
+
+    it('keeps a lone custom item as is', () => {
+      const custom: ShoppingItem[] = [{ id: 'c1', amount: '1500', unit: 'g', name: 'Rice' }]
+      expect(prepareForExport(custom)).toEqual([
+        { id: 'c1', amount: '1.5', unit: 'kg', name: 'Rice', origins: undefined }
+      ])
     })
 
     it('shows single recipe origin for a non-combined meal item', () => {

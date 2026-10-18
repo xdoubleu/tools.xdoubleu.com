@@ -5,7 +5,8 @@ import {
   useCustomList,
   useCategories,
   useAllMealPlanExportItems,
-  useAllPlanIngredientGroups
+  useAllPlanIngredientGroups,
+  useItemAliases
 } from '@/hooks/useShoppingList'
 import ShoppingList from '@/components/shoppinglist/ShoppingList'
 import ExportDialog from '@/components/shoppinglist/ExportDialog'
@@ -38,6 +39,12 @@ export default function ShoppingListPageClient() {
   const categories = categoriesData?.categories ?? []
 
   const items = (data?.items ?? []).map(toExportItem)
+  // The export shows merged names; the editable list keeps what was typed.
+  const aliases = useItemAliases()
+  const exportCustomItems = items.map((item) => ({
+    ...item,
+    name: aliases[item.name.trim().toLowerCase()] ?? item.name
+  }))
 
   const { data: groupsData } = useAllPlanIngredientGroups()
   const { data: mealExportData, isLoading: mealLoading } = useAllMealPlanExportItems(
@@ -111,7 +118,7 @@ export default function ShoppingListPageClient() {
 
       {showExport && (
         <ExportDialog
-          customItems={items}
+          customItems={exportCustomItems}
           mealItems={mealItems}
           onClose={() => setShowExport(false)}
         />

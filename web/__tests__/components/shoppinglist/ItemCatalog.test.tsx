@@ -2,15 +2,20 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import ItemCatalog from '@/components/shoppinglist/ItemCatalog'
 import { enqueueWrite } from '@/lib/offline/outbox'
-import { setItemCategoryWrite, setItemExcludedWrite } from '@/lib/shoppinglist/offlineWrites'
+import {
+  setItemAliasWrite,
+  setItemCategoryWrite,
+  setItemExcludedWrite
+} from '@/lib/shoppinglist/offlineWrites'
 
-type Name = { name: string; categoryId: string; excluded: boolean }
+type Name = { name: string; categoryId: string; excluded: boolean; mergedInto: string }
 let namesData: { names: Name[] } | undefined
 
 const defaultNames: Name[] = [
-  { name: 'milk', categoryId: 'cat-dairy', excluded: false },
-  { name: 'apple', categoryId: '', excluded: false },
-  { name: 'cake', categoryId: '', excluded: true }
+  { name: 'milk', categoryId: 'cat-dairy', excluded: false, mergedInto: '' },
+  { name: 'apple', categoryId: '', excluded: false, mergedInto: '' },
+  { name: 'cake', categoryId: '', excluded: true, mergedInto: '' },
+  { name: 'rode ui', categoryId: '', excluded: false, mergedInto: 'apple' }
 ]
 
 jest.mock('@/hooks/useShoppingList', () => ({
@@ -41,8 +46,8 @@ describe('ItemCatalog', () => {
     render(<ItemCatalog />)
     expect(screen.getByRole('button', { name: /Unassigned/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Dairy/ })).toBeInTheDocument()
-    expect(screen.getByText('milk')).toBeInTheDocument()
-    expect(screen.getByText('apple')).toBeInTheDocument()
+    expect(screen.getByText('milk', { selector: 'span' })).toBeInTheDocument()
+    expect(screen.getByText('apple', { selector: 'span' })).toBeInTheDocument()
   })
 
   it('assigns a category to an item name', async () => {
@@ -77,6 +82,37 @@ describe('ItemCatalog', () => {
     fireEvent.click(screen.getByLabelText('Export cake to list'))
     await waitFor(() =>
       expect(enqueue).toHaveBeenCalledWith(setItemExcludedWrite, { name: 'cake', excluded: false })
+    )
+  })
+
+  it('offers only exported, unmerged names as merge targets', () => {
+    render(<ItemCatalog />)
+    const options = Array.from(
+      (screen.getByLabelText('Merge apple into') as HTMLSelectElement).options
+    ).map((o) => o.value)
+    expect(options).toEqual(['', 'milk'])
+  })
+
+  it('merges an item into another', async () => {
+    render(<ItemCatalog />)
+    fireEvent.change(screen.getByLabelText('Merge milk into'), { target: { value: 'apple' } })
+    await waitFor(() =>
+      expect(enqueue).toHaveBeenCalledWith(setItemAliasWrite, { name: 'milk', canonical: 'apple' })
+    )
+  })
+
+  it('shows merged items under a collapsed "Merged" group and unmerges them', async () => {
+    render(<ItemCatalog />)
+    expect(screen.queryByText('rode ui')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('Merged'))
+    expect(screen.getByText('rode ui')).toBeInTheDocument()
+    expect(screen.getByText('→ apple')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Category for rode ui')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Unmerge rode ui' }))
+    await waitFor(() =>
+      expect(enqueue).toHaveBeenCalledWith(setItemAliasWrite, { name: 'rode ui', canonical: '' })
     )
   })
 

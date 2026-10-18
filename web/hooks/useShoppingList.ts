@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
@@ -9,7 +10,8 @@ import type {
   ListStoresResponse,
   GetStoreCategoriesResponse,
   ListItemNamesResponse,
-  ListItemCategoriesResponse
+  ListItemCategoriesResponse,
+  ListIngredientUnitsResponse
 } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import type { Category } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import { MealPlansService } from '@/lib/gen/mealplans/v1/mealplans_pb'
@@ -64,6 +66,25 @@ export function useStoreCategories(storeId: string) {
 export function useItemNames() {
   const client = createServiceClient(ShoppingListService)
   return useSWR<ListItemNamesResponse, Error>(swrKeys.itemNames, () => client.listItemNames({}))
+}
+
+/** Merged name → the name it exports as. */
+export function useItemAliases(): Record<string, string> {
+  const { data } = useItemNames()
+  return useMemo(
+    () =>
+      Object.fromEntries(
+        (data?.names ?? []).filter((n) => n.mergedInto).map((n) => [n.name, n.mergedInto])
+      ),
+    [data]
+  )
+}
+
+export function useIngredientUnits() {
+  const client = createServiceClient(ShoppingListService)
+  return useSWR<ListIngredientUnitsResponse, Error>(swrKeys.ingredientUnits, () =>
+    client.listIngredientUnits({})
+  )
 }
 
 export function useItemCategories() {

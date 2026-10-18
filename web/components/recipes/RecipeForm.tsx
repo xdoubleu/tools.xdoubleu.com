@@ -5,12 +5,15 @@ import { useCreateRecipe, useUpdateRecipe } from '@/hooks/useRecipes'
 import type { CreateRecipeInput, UpdateRecipeInput } from '@/hooks/useRecipes'
 import {
   useItemNames,
+  useItemAliases,
+  useIngredientUnits,
   useCategories,
   queueCategory,
   queueItemCategory
 } from '@/hooks/useShoppingList'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { parseFraction } from '@/lib/recipes/parseFraction'
+import { indexIngredientUnits, otherRecipeUnits } from '@/lib/recipes/unitConsistency'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -62,6 +65,12 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
   const { data: itemNamesData } = useItemNames()
   const { data: categoriesData } = useCategories()
   const categories = categoriesData?.categories ?? []
+  const aliases = useItemAliases()
+  const { data: ingredientUnitsData } = useIngredientUnits()
+  const unitsByName = useMemo(
+    () => indexIngredientUnits(ingredientUnitsData?.units ?? []),
+    [ingredientUnitsData]
+  )
 
   const itemNameSuggestions = useMemo(
     () => (itemNamesData?.names ?? []).map((n) => n.name),
@@ -225,75 +234,86 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
       <div className="space-y-1.5">
         <Label>Ingredients</Label>
         <div className="space-y-2">
-          {ingredients.map((ing, idx) => (
-            <div key={idx} className="flex flex-wrap gap-2">
-              <Input
-                type="text"
-                placeholder="e.g. 1/3"
-                value={ing.amount}
-                onChange={(e) => updateIngredient(idx, 'amount', e.target.value)}
-                className="min-w-0 flex-1 sm:w-16 sm:flex-none"
-              />
-              <Input
-                type="text"
-                placeholder="Unit"
-                value={ing.unit}
-                onChange={(e) => updateIngredient(idx, 'unit', e.target.value)}
-                className="min-w-0 flex-1 sm:w-20 sm:flex-none"
-              />
-              <Combobox
-                value={ing.name}
-                onChange={(value) => updateIngredient(idx, 'name', value)}
-                onSelect={(value) => selectIngredientName(idx, value)}
-                suggestions={itemNameSuggestions}
-                placeholder="Name"
-                aria-label="Name"
-                className="flex-1 min-w-32"
-              />
-              <Input
-                type="text"
-                placeholder="Group (optional)"
-                value={ing.group}
-                onChange={(e) => updateIngredient(idx, 'group', e.target.value)}
-                className="w-full sm:w-28"
-              />
-              <Select
-                aria-label="Category"
-                value={ing.categoryId}
-                onChange={(e) => updateIngredient(idx, 'categoryId', e.target.value)}
-                className="w-full sm:w-auto"
-              >
-                <option value="">-- Category --</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-                <option value={NEW_CATEGORY}>+ New category</option>
-              </Select>
-              {ing.categoryId === NEW_CATEGORY && (
+          {ingredients.map((ing, idx) => {
+            const otherUnits = ing.name.trim()
+              ? otherRecipeUnits(ing.name, ing.unit, unitsByName, aliases, recipe?.id)
+              : undefined
+            return (
+              <div key={idx} className="flex flex-wrap gap-2">
                 <Input
                   type="text"
-                  placeholder="New category"
-                  aria-label="New category name"
-                  value={ing.newCategoryName}
-                  onChange={(e) => updateIngredient(idx, 'newCategoryName', e.target.value)}
-                  className="w-full sm:w-32"
+                  placeholder="e.g. 1/3"
+                  value={ing.amount}
+                  onChange={(e) => updateIngredient(idx, 'amount', e.target.value)}
+                  className="min-w-0 flex-1 sm:w-16 sm:flex-none"
                 />
-              )}
-              {ingredients.length > 1 && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  aria-label="Remove"
-                  onClick={() => removeIngredient(idx)}
+                <Input
+                  type="text"
+                  placeholder="Unit"
+                  value={ing.unit}
+                  onChange={(e) => updateIngredient(idx, 'unit', e.target.value)}
+                  className="min-w-0 flex-1 sm:w-20 sm:flex-none"
+                />
+                <Combobox
+                  value={ing.name}
+                  onChange={(value) => updateIngredient(idx, 'name', value)}
+                  onSelect={(value) => selectIngredientName(idx, value)}
+                  suggestions={itemNameSuggestions}
+                  placeholder="Name"
+                  aria-label="Name"
+                  className="flex-1 min-w-32"
+                />
+                <Input
+                  type="text"
+                  placeholder="Group (optional)"
+                  value={ing.group}
+                  onChange={(e) => updateIngredient(idx, 'group', e.target.value)}
+                  className="w-full sm:w-28"
+                />
+                <Select
+                  aria-label="Category"
+                  value={ing.categoryId}
+                  onChange={(e) => updateIngredient(idx, 'categoryId', e.target.value)}
+                  className="w-full sm:w-auto"
                 >
-                  ×
-                </Button>
-              )}
-            </div>
-          ))}
+                  <option value="">-- Category --</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                  <option value={NEW_CATEGORY}>+ New category</option>
+                </Select>
+                {ing.categoryId === NEW_CATEGORY && (
+                  <Input
+                    type="text"
+                    placeholder="New category"
+                    aria-label="New category name"
+                    value={ing.newCategoryName}
+                    onChange={(e) => updateIngredient(idx, 'newCategoryName', e.target.value)}
+                    className="w-full sm:w-32"
+                  />
+                )}
+                {ingredients.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    aria-label="Remove"
+                    onClick={() => removeIngredient(idx)}
+                  >
+                    ×
+                  </Button>
+                )}
+                {otherUnits && (
+                  <p className="w-full text-xs text-warn">
+                    Other recipes use {ing.name.trim()} in:{' '}
+                    {otherUnits.map((u) => u || 'no unit').join(', ')}
+                  </p>
+                )}
+              </div>
+            )
+          })}
         </div>
         <Button type="button" variant="secondary" size="sm" onClick={addIngredient}>
           Add Ingredient

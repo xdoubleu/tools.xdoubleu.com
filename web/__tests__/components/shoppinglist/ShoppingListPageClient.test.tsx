@@ -17,6 +17,7 @@ let mockMealExport: { data: { items: unknown[] }; isLoading: boolean } = {
 }
 let mockListLoading = false
 let mockPlanGroups: { data: { groups: unknown[] } } = { data: { groups: [] } }
+let mockAliases: Record<string, string> = {}
 
 jest.mock('@/hooks/useShoppingList', () => ({
   useCustomList: () => ({
@@ -30,7 +31,8 @@ jest.mock('@/hooks/useShoppingList', () => ({
   useAllPlanIngredientGroups: () => mockPlanGroups,
   useStores: () => ({ data: { stores: [] }, isLoading: false }),
   useStoreCategories: () => ({ data: undefined, isLoading: false }),
-  useItemCategories: () => ({ data: { items: [] }, isLoading: false })
+  useItemCategories: () => ({ data: { items: [] }, isLoading: false }),
+  useItemAliases: () => mockAliases
 }))
 
 jest.mock('@/lib/offline/outbox', () => ({
@@ -47,6 +49,7 @@ beforeEach(() => {
   mockMealExport = { data: { items: [] }, isLoading: false }
   mockPlanGroups = { data: { groups: [] } }
   mockListLoading = false
+  mockAliases = {}
 })
 
 describe('ShoppingPage add form', () => {
@@ -207,6 +210,19 @@ describe('ShoppingPage meal-plan section', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(screen.queryByText('Export Shopping List')).not.toBeInTheDocument()
+  })
+
+  it('exports a merged custom item under its canonical name, keeping the typed name in the list', () => {
+    mockAliases = { milk: 'melk' }
+    mockMealExport = {
+      data: { items: [{ name: 'melk', amount: '2', unit: 'L', recipeName: 'Pap' }] },
+      isLoading: false
+    }
+    render(<ShoppingListPageClient />)
+
+    expect(screen.getByText(/1 L - Milk/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
+    expect(screen.getByText(/3 L — melk/)).toBeInTheDocument()
   })
 })
 

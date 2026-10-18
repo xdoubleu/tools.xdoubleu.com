@@ -64,6 +64,9 @@ func baseMock() *mocks.ShoppingRepoMock {
 		ListItemCategoriesFn:      nil,
 		SetItemCategoryFn:         nil,
 		SetItemExcludedFn:         nil,
+		SetItemAliasFn:            nil,
+		DeleteItemAliasFn:         nil,
+		ListIngredientUnitsFn:     nil,
 	}
 }
 
@@ -442,6 +445,52 @@ func TestFamilyResolutionErrors_PropagateWithoutTouchingRepo(t *testing.T) {
 	err = svc.SetItemExcluded(ctx, "user1", "milk", true)
 	assert.ErrorIs(t, err, familyErr)
 
+	err = svc.SetItemAlias(ctx, "user1", "rode ui", "ui")
+	assert.ErrorIs(t, err, familyErr)
+
+	_, err = svc.ListIngredientUnits(ctx, "user1")
+	assert.ErrorIs(t, err, familyErr)
+
 	err = svc.SetStoreCategories(ctx, "user1", uuid.New(), []uuid.UUID{})
 	assert.ErrorIs(t, err, familyErr)
+}
+
+func TestSetItemAlias_NormalizesNames(t *testing.T) {
+	store := newFamilyStore()
+	repo := baseMock()
+	var gotAlias, gotCanonical string
+	repo.SetItemAliasFn = func(
+		_ context.Context, familyID uuid.UUID, alias, canonical string,
+	) error {
+		assert.Equal(t, store.familyID, familyID)
+		gotAlias, gotCanonical = alias, canonical
+		return nil
+	}
+	svc := services.NewShoppingService(repo, store)
+
+	require.NoError(t, svc.SetItemAlias(t.Context(), "user1", " Rode Ui ", "UI"))
+	assert.Equal(t, "rode ui", gotAlias)
+	assert.Equal(t, "ui", gotCanonical)
+}
+
+func TestSetItemAlias_EmptyCanonicalDeletes(t *testing.T) {
+	repo := baseMock()
+	var deleted string
+	repo.DeleteItemAliasFn = func(_ context.Context, _ uuid.UUID, alias string) error {
+		deleted = alias
+		return nil
+	}
+	svc := services.NewShoppingService(repo, newFamilyStore())
+
+	require.NoError(t, svc.SetItemAlias(t.Context(), "user1", "Rode Ui", "  "))
+	assert.Equal(t, "rode ui", deleted)
+}
+
+func TestSetItemAlias_RejectsSelfMerge(t *testing.T) {
+	svc := services.NewShoppingService(baseMock(), newFamilyStore())
+
+	err := svc.SetItemAlias(t.Context(), "user1", "Ui", " ui")
+	var httpErr *iapp.HTTPError
+	require.ErrorAs(t, err, &httpErr)
+	assert.Equal(t, http.StatusBadRequest, httpErr.Status)
 }

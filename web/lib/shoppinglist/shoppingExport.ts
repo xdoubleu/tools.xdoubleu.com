@@ -21,7 +21,7 @@ const UNIT_UPGRADES: Record<string, { threshold: number; nextUnit: string; divis
   mg: { threshold: 1000, nextUnit: 'g', divisor: 1000 }
 }
 
-function upgradeUnit(item: ShoppingItem): ShoppingItem {
+function upgradeUnit<T extends { amount: string; unit: string }>(item: T): T {
   const upgrade = UNIT_UPGRADES[item.unit]
   if (!upgrade) return item
   const amount = parseFloat(item.amount)
@@ -35,66 +35,84 @@ function formatAmount(n: number): string {
   return n % 1 === 0 ? String(n) : String(parseFloat(n.toFixed(3)))
 }
 
+const CUSTOM_ORIGIN = 'Custom'
+
 function formatOriginLabel(o: ItemOrigin): string {
   return o.groupName ? `${o.recipeName} [${o.groupName}]` : o.recipeName
+}
+
+// A bare (zero-amount) origin shows only its label.
+function formatOriginEntry(o: ItemOrigin): string {
+  const quantity = parseFloat(o.amount) === 0 ? '' : `${o.amount} ${o.unit}`.trim()
+  return quantity ? `${formatOriginLabel(o)}: ${quantity}` : formatOriginLabel(o)
 }
 
 export function formatOrigins(origins: ItemOrigin[] | undefined): string {
   if (!origins || origins.length === 0) return ''
   if (origins.length === 1) return ` (${formatOriginLabel(origins[0])})`
-  return ` (${origins.map((o) => `${formatOriginLabel(o)}: ${o.amount} ${o.unit}`).join(', ')})`
+  return ` (${origins.map(formatOriginEntry).join(', ')})`
 }
 
 function normalizeName(name: string): string {
   return name.trim().toLowerCase()
 }
 
-// Sums meal-plan items sharing normalized name and unit; custom items pass
-// through.
-function combineItems(items: ShoppingItem[]): ShoppingItem[] {
-  const result: ShoppingItem[] = []
-  const mealByKey = new Map<string, ShoppingItem[]>()
-
-  for (const item of items) {
-    if (!item.recipeName) {
-      result.push(item)
-      continue
-    }
-    const key = `${normalizeName(item.name)}::${item.unit}`
-    const group = mealByKey.get(key)
-    if (group) group.push(item)
-    else mealByKey.set(key, [item])
-  }
-
-  for (const group of mealByKey.values()) {
-    const first = group[0]
-    const origins: ItemOrigin[] = group.map((i) => ({
-      recipeName: i.recipeName!,
-      amount: i.amount,
-      unit: i.unit,
-      groupName: i.groupName
-    }))
-    if (group.length === 1) {
-      result.push({ ...first, origins })
-    } else {
-      const allNumeric = group.every((i) => !isNaN(parseFloat(i.amount)))
-      const amount = allNumeric
-        ? formatAmount(group.reduce((sum, i) => sum + parseFloat(i.amount), 0))
-        : first.amount
-      result.push({ name: first.name, amount, unit: first.unit, origins })
-    }
-  }
-
-  return result
+// Non-numeric amounts fall back to the first.
+function sumAmounts(items: ShoppingItem[]): string {
+  return items.every((i) => !isNaN(parseFloat(i.amount)))
+    ? formatAmount(items.reduce((sum, i) => sum + parseFloat(i.amount), 0))
+    : items[0].amount
 }
 
-// Combines before upgrading units, so 1500 g and 200 g still merge instead
-// of diverging into kg and g.
+function groupBy(items: ShoppingItem[], key: (item: ShoppingItem) => string) {
+  const groups = new Map<string, ShoppingItem[]>()
+  for (const item of items) {
+    const k = key(item)
+    const group = groups.get(k)
+    if (group) group.push(item)
+    else groups.set(k, [item])
+  }
+  return [...groups.values()]
+}
+
+// Sums each unit, upgrading after summing so 1500 g and 200 g still merge
+// before becoming kg. Mixed units join into amount, leaving the last unit in
+// `unit`, so `${amount} ${unit}` reads "200 g + 1 stuk". Zero-amount parts
+// (bare entries) drop out next to specified ones.
+function combineGroup(group: ShoppingItem[]): ShoppingItem {
+  const parts = groupBy(group, (i) => i.unit).map((items) =>
+    upgradeUnit({ amount: sumAmounts(items), unit: items[0].unit })
+  )
+  const specified = parts.filter((p) => parseFloat(p.amount) !== 0)
+  const shown = specified.length > 0 ? specified : parts
+  const last = shown[shown.length - 1]
+  const amount = [
+    ...shown.slice(0, -1).map((p) => `${p.amount} ${p.unit}`.trim()),
+    last.amount
+  ].join(' + ')
+
+  const origins = group.some((i) => i.recipeName)
+    ? group.map((i) => ({
+        recipeName: i.recipeName || CUSTOM_ORIGIN,
+        amount: i.amount,
+        unit: i.unit,
+        groupName: i.groupName
+      }))
+    : undefined
+  if (group.length === 1) return { ...group[0], amount, unit: last.unit, origins }
+  return { name: group[0].name, amount, unit: last.unit, origins }
+}
+
+// One line per normalized name, so custom and meal-plan items combine.
+function combineItems(items: ShoppingItem[]): ShoppingItem[] {
+  return groupBy(items, (i) => normalizeName(i.name)).map(combineGroup)
+}
+
 function mergeItems(
   customItems: ShoppingItem[],
   mealItems: ShoppingItem[] | undefined
 ): ShoppingItem[] {
-  return combineItems([...customItems, ...(mealItems ?? [])]).map(upgradeUnit)
+  return combineItems([...customItems, ...(mealItems ?? [])])
 }
 
 // Merged, combined, unit-upgraded list; also used by the export preview.

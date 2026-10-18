@@ -44,10 +44,13 @@ func (a *ShoppingList) RegisterMCPTools(srv *mcp.Server) {
 	mcptools.AddReadTool(srv, mcpAppName, "shoppinglist_get_store_categories",
 		"A store's categories in walk-through order.", h.mcpGetStoreCategories)
 	mcptools.AddReadTool(srv, mcpAppName, "shoppinglist_list_item_names",
-		"The known item-name catalog and their category mapping.",
+		"The known item-name catalog, their category mapping and merges.",
 		h.mcpListItemNames)
 	mcptools.AddReadTool(srv, mcpAppName, "shoppinglist_list_item_categories",
 		"The item-name to category assignments.", h.mcpListItemCategories)
+	mcptools.AddReadTool(srv, mcpAppName, "shoppinglist_list_ingredient_units",
+		"Units the family's recipes use per (merged) ingredient name.",
+		h.mcpListIngredientUnits)
 }
 
 func (h *shoppingConnectHandler) mcpGetCustomList(
@@ -112,5 +115,13 @@ func (h *shoppingConnectHandler) mcpListItemCategories(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(
 		h.ListItemCategories(ctx, &shoppinglistv1.ListItemCategoriesRequest{}),
+	)
+}
+
+func (h *shoppingConnectHandler) mcpListIngredientUnits(
+	ctx context.Context, _ mcptools.NoArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(
+		h.ListIngredientUnits(ctx, &shoppinglistv1.ListIngredientUnitsRequest{}),
 	)
 }

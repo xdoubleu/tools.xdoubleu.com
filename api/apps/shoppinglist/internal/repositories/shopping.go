@@ -156,22 +156,16 @@ func (r *ShoppingRepository) DeleteCustomItem(
 	return nil
 }
 
-func (r *ShoppingRepository) GetMealPlanExportItems(
-	ctx context.Context,
-	planID uuid.UUID,
-	start, end time.Time,
-	pastSlots []string,
-	excludedGroups []string,
-) ([]ShoppingItem, error) {
-	// A nil slice would be sent as NULL, making ANY($n::text[]) exclude rows.
-	if pastSlots == nil {
-		pastSlots = []string{}
-	}
-	if excludedGroups == nil {
-		excludedGroups = []string{}
-	}
-	rows, err := r.db.Query(ctx, `
-		WITH recipe_effective_servings AS (
+// mealPlanExportItemsQuery resolves names through the family's aliases, so
+// merged items share one.
+const mealPlanExportItemsQuery = `
+		WITH aliases AS (
+		    SELECT a.alias, a.canonical
+		    FROM shoppinglist.item_aliases a
+		    JOIN mealplans.plans p ON p.family_id = a.family_id
+		    WHERE p.id = $1
+		),
+		recipe_effective_servings AS (
 		    SELECT
 		        r.id AS recipe_id,
 		        r.name AS recipe_name,
@@ -190,14 +184,19 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 		SELECT
 		    res.recipe_name,
 		    COALESCE(i.group_name, '') AS group_name,
-		    LOWER(i.name) AS name,
+		    COALESCE(a.canonical, LOWER(TRIM(i.name))) AS name,
 		    i.unit,
 		    SUM(i.amount * res.effective_servings / res.base_servings)
 		        AS total_amount
 		FROM recipe_effective_servings res
 		JOIN recipes.ingredients i ON i.recipe_id = res.recipe_id
+		LEFT JOIN aliases a ON a.alias = LOWER(TRIM(i.name))
 		WHERE i.group_name IS NULL OR NOT (i.group_name = ANY($5::text[]))
-		GROUP BY res.recipe_name, i.group_name, LOWER(i.name), i.unit
+		GROUP BY
+		    res.recipe_name,
+		    i.group_name,
+		    COALESCE(a.canonical, LOWER(TRIM(i.name))),
+		    i.unit
 
 		UNION ALL
 
@@ -211,23 +210,45 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 		SELECT
 		    '' AS recipe_name,
 		    '' AS group_name,
-		    LOWER(TRIM(split_part(item, E'\t', 1))) AS name,
+		    COALESCE(
+		        a.canonical, LOWER(TRIM(split_part(item, E'\t', 1)))
+		    ) AS name,
 		    '' AS unit,
 		    COALESCE(
 		        SUM(NULLIF(TRIM(split_part(item, E'\t', 2)), '')::numeric),
 		        0
 		    ) AS total_amount
-		FROM mealplans.plan_meals pm,
-		     unnest(string_to_array(pm.custom_name, E'\n')) AS item
+		FROM mealplans.plan_meals pm
+		CROSS JOIN LATERAL
+		    unnest(string_to_array(pm.custom_name, E'\n')) AS item
+		LEFT JOIN aliases a
+		    ON a.alias = LOWER(TRIM(split_part(item, E'\t', 1)))
 		WHERE pm.plan_id = $1
 		  AND pm.recipe_id IS NULL
 		  AND pm.exclude_from_shopping_list = FALSE
 		  AND pm.meal_date BETWEEN $2 AND $3
 		  AND NOT (pm.meal_date = $2 AND pm.meal_slot = ANY($4::text[]))
 		  AND TRIM(split_part(item, E'\t', 1)) <> ''
-		GROUP BY LOWER(TRIM(split_part(item, E'\t', 1)))
+		GROUP BY
+		    COALESCE(a.canonical, LOWER(TRIM(split_part(item, E'\t', 1))))
 
-		ORDER BY 1, 2, 3`,
+		ORDER BY 1, 2, 3`
+
+func (r *ShoppingRepository) GetMealPlanExportItems(
+	ctx context.Context,
+	planID uuid.UUID,
+	start, end time.Time,
+	pastSlots []string,
+	excludedGroups []string,
+) ([]ShoppingItem, error) {
+	// A nil slice would be sent as NULL, making ANY($n::text[]) exclude rows.
+	if pastSlots == nil {
+		pastSlots = []string{}
+	}
+	if excludedGroups == nil {
+		excludedGroups = []string{}
+	}
+	rows, err := r.db.Query(ctx, mealPlanExportItemsQuery,
 		planID, start, end, pastSlots, excludedGroups,
 	)
 	if err != nil {

@@ -137,5 +137,6 @@ export const swrKeys = {
   stores: '/shoppinglist/stores',
   storeCategories: (storeId: string) => `/shoppinglist/stores/${storeId}/categories`,
   itemNames: '/shoppinglist/item-names',
-  itemCategories: '/shoppinglist/item-categories'
+  itemCategories: '/shoppinglist/item-categories',
+  ingredientUnits: '/shoppinglist/ingredient-units'
 } as const

@@ -11,11 +11,13 @@ import (
 
 // ItemName is a distinct normalized name known for a family with its category
 // (empty when unassigned). Excluded is true when it survives only via
-// meal-plan entries flagged exclude_from_shopping_list.
+// meal-plan entries flagged exclude_from_shopping_list. MergedInto is the
+// canonical name it exports as, empty when not an alias.
 type ItemName struct {
 	Name       string
 	CategoryID string
 	Excluded   bool
+	MergedInto string
 }
 
 // ItemCategory is a raw catalog entry mapping a normalized name to a category.
@@ -27,13 +29,14 @@ type ItemCategory struct {
 // ListItemNames returns distinct normalized names from the family's custom
 // items, recipe ingredients and meal-plan custom entries, with category and
 // excluded flag. A name is excluded only when no active source remains, so
-// the UI can offer to restore it.
+// the UI can offer to restore it. Canonicals of active aliases count as
+// active, since they're what the export shows.
 func (r *ShoppingRepository) ListItemNames(
 	ctx context.Context,
 	familyID uuid.UUID,
 ) ([]ItemName, error) {
 	rows, err := r.db.Query(ctx, `
-		WITH active AS (
+		WITH sources AS (
 		    SELECT DISTINCT LOWER(TRIM(name)) AS name
 		    FROM shoppinglist.custom_items
 		    WHERE family_id = $1 AND TRIM(name) != ''
@@ -55,6 +58,14 @@ func (r *ShoppingRepository) ListItemNames(
 		      AND pm.exclude_from_shopping_list = FALSE
 		      AND TRIM(split_part(item, E'\t', 1)) != ''
 		),
+		active AS (
+		    SELECT name FROM sources
+		    UNION
+		    SELECT a.canonical
+		    FROM shoppinglist.item_aliases a
+		    JOIN sources s ON s.name = a.alias
+		    WHERE a.family_id = $1
+		),
 		excluded AS (
 		    -- Names that currently only exist on excluded meal-plan entries.
 		    SELECT DISTINCT LOWER(TRIM(split_part(item, E'\t', 1))) AS name
@@ -72,10 +83,16 @@ func (r *ShoppingRepository) ListItemNames(
 		    SELECT name, TRUE AS excluded FROM excluded
 		    WHERE name NOT IN (SELECT name FROM active)
 		)
-		SELECT n.name, COALESCE(ic.category_id::text, ''), n.excluded
+		SELECT
+		    n.name,
+		    COALESCE(ic.category_id::text, ''),
+		    n.excluded,
+		    COALESCE(a.canonical, '')
 		FROM names n
 		LEFT JOIN shoppinglist.item_categories ic
 		    ON ic.family_id = $1 AND ic.name = n.name
+		LEFT JOIN shoppinglist.item_aliases a
+		    ON a.family_id = $1 AND a.alias = n.name
 		ORDER BY n.name`,
 		familyID,
 	)
@@ -87,7 +104,9 @@ func (r *ShoppingRepository) ListItemNames(
 	var result []ItemName
 	for rows.Next() {
 		var n ItemName
-		if err = rows.Scan(&n.Name, &n.CategoryID, &n.Excluded); err != nil {
+		if err = rows.Scan(
+			&n.Name, &n.CategoryID, &n.Excluded, &n.MergedInto,
+		); err != nil {
 			return nil, err
 		}
 		result = append(result, n)
@@ -160,16 +179,16 @@ func (r *ShoppingRepository) SetItemCategory(
 	return nil
 }
 
-// SetItemExcluded removes a name from the export (flagging matching meal-plan
-// entries and deleting matching custom items) or restores it (clearing the
-// flag only). Recipe ingredients are never touched.
+// SetItemExcluded removes a name and its aliases from the export (flagging
+// matching meal-plan entries and deleting matching custom items) or restores
+// them (clearing the flag only). Recipe ingredients are never touched.
 func (r *ShoppingRepository) SetItemExcluded(
 	ctx context.Context,
 	familyID uuid.UUID,
 	name string,
 	excluded bool,
 ) error {
-	_, err := r.db.Exec(ctx, `
+	_, err := r.db.Exec(ctx, itemWithAliasesCTE+`
 		UPDATE mealplans.plan_meals pm
 		SET exclude_from_shopping_list = $3
 		FROM mealplans.plans p
@@ -179,7 +198,8 @@ func (r *ShoppingRepository) SetItemExcluded(
 		  AND EXISTS (
 		      SELECT 1
 		      FROM unnest(string_to_array(pm.custom_name, E'\n')) AS item
-		      WHERE LOWER(TRIM(split_part(item, E'\t', 1))) = LOWER(TRIM($2))
+		      WHERE LOWER(TRIM(split_part(item, E'\t', 1)))
+		          IN (SELECT name FROM names)
 		  )`,
 		familyID, name, excluded,
 	)
@@ -191,10 +211,21 @@ func (r *ShoppingRepository) SetItemExcluded(
 		return nil
 	}
 
-	_, err = r.db.Exec(ctx, `
+	_, err = r.db.Exec(ctx, itemWithAliasesCTE+`
 		DELETE FROM shoppinglist.custom_items
-		WHERE family_id = $1 AND LOWER(TRIM(name)) = LOWER(TRIM($2))`,
+		WHERE family_id = $1
+		  AND LOWER(TRIM(name)) IN (SELECT name FROM names)`,
 		familyID, name,
 	)
 	return err
 }
+
+// itemWithAliasesCTE binds names to $2 (normalized) and its aliases in
+// family $1.
+const itemWithAliasesCTE = `
+	WITH names AS (
+	    SELECT LOWER(TRIM($2)) AS name
+	    UNION
+	    SELECT alias FROM shoppinglist.item_aliases
+	    WHERE family_id = $1 AND canonical = LOWER(TRIM($2))
+	)`

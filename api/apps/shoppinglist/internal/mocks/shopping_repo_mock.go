@@ -91,6 +91,15 @@ type ShoppingRepoMock struct {
 	SetItemExcludedFn func(
 		ctx context.Context, familyID uuid.UUID, name string, excluded bool,
 	) error
+	SetItemAliasFn func(
+		ctx context.Context, familyID uuid.UUID, alias, canonical string,
+	) error
+	DeleteItemAliasFn func(
+		ctx context.Context, familyID uuid.UUID, alias string,
+	) error
+	ListIngredientUnitsFn func(
+		ctx context.Context, familyID uuid.UUID,
+	) ([]repositories.IngredientUnit, error)
 }
 
 func (m *ShoppingRepoMock) CheckPlanAccess(
@@ -276,4 +285,27 @@ func (m *ShoppingRepoMock) SetItemExcluded(
 	excluded bool,
 ) error {
 	return m.SetItemExcludedFn(ctx, familyID, name, excluded)
+}
+
+func (m *ShoppingRepoMock) SetItemAlias(
+	ctx context.Context,
+	familyID uuid.UUID,
+	alias, canonical string,
+) error {
+	return m.SetItemAliasFn(ctx, familyID, alias, canonical)
+}
+
+func (m *ShoppingRepoMock) DeleteItemAlias(
+	ctx context.Context,
+	familyID uuid.UUID,
+	alias string,
+) error {
+	return m.DeleteItemAliasFn(ctx, familyID, alias)
+}
+
+func (m *ShoppingRepoMock) ListIngredientUnits(
+	ctx context.Context,
+	familyID uuid.UUID,
+) ([]repositories.IngredientUnit, error) {
+	return m.ListIngredientUnitsFn(ctx, familyID)
 }

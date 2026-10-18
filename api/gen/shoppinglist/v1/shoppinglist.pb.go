@@ -1714,11 +1714,13 @@ func (*SetStoreCategoriesResponse) Descriptor() ([]byte, []int) {
 
 // ItemName is a known item name and its category_id (empty if unassigned).
 // excluded marks names removed from the export, so the UI can restore them.
+// merged_into is the name it's exported as when merged, else empty.
 type ItemName struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	CategoryId    string                 `protobuf:"bytes,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
 	Excluded      bool                   `protobuf:"varint,3,opt,name=excluded,proto3" json:"excluded,omitempty"`
+	MergedInto    string                 `protobuf:"bytes,4,opt,name=merged_into,json=mergedInto,proto3" json:"merged_into,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1772,6 +1774,13 @@ func (x *ItemName) GetExcluded() bool {
 		return x.Excluded
 	}
 	return false
+}
+
+func (x *ItemName) GetMergedInto() string {
+	if x != nil {
+		return x.MergedInto
+	}
+	return ""
 }
 
 type ItemCategory struct {
@@ -2164,6 +2173,236 @@ func (*SetItemExcludedResponse) Descriptor() ([]byte, []int) {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{45}
 }
 
+// SetItemAlias exports name as canonical; an empty canonical unmerges it.
+type SetItemAliasRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Canonical     string                 `protobuf:"bytes,2,opt,name=canonical,proto3" json:"canonical,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetItemAliasRequest) Reset() {
+	*x = SetItemAliasRequest{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetItemAliasRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetItemAliasRequest) ProtoMessage() {}
+
+func (x *SetItemAliasRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetItemAliasRequest.ProtoReflect.Descriptor instead.
+func (*SetItemAliasRequest) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *SetItemAliasRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SetItemAliasRequest) GetCanonical() string {
+	if x != nil {
+		return x.Canonical
+	}
+	return ""
+}
+
+type SetItemAliasResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetItemAliasResponse) Reset() {
+	*x = SetItemAliasResponse{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetItemAliasResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetItemAliasResponse) ProtoMessage() {}
+
+func (x *SetItemAliasResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetItemAliasResponse.ProtoReflect.Descriptor instead.
+func (*SetItemAliasResponse) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{47}
+}
+
+// IngredientUnit is a unit the family's recipes use for a merged name.
+type IngredientUnit struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Unit          string                 `protobuf:"bytes,2,opt,name=unit,proto3" json:"unit,omitempty"`
+	RecipeIds     []string               `protobuf:"bytes,3,rep,name=recipe_ids,json=recipeIds,proto3" json:"recipe_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IngredientUnit) Reset() {
+	*x = IngredientUnit{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IngredientUnit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IngredientUnit) ProtoMessage() {}
+
+func (x *IngredientUnit) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IngredientUnit.ProtoReflect.Descriptor instead.
+func (*IngredientUnit) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *IngredientUnit) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *IngredientUnit) GetUnit() string {
+	if x != nil {
+		return x.Unit
+	}
+	return ""
+}
+
+func (x *IngredientUnit) GetRecipeIds() []string {
+	if x != nil {
+		return x.RecipeIds
+	}
+	return nil
+}
+
+type ListIngredientUnitsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListIngredientUnitsRequest) Reset() {
+	*x = ListIngredientUnitsRequest{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListIngredientUnitsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListIngredientUnitsRequest) ProtoMessage() {}
+
+func (x *ListIngredientUnitsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListIngredientUnitsRequest.ProtoReflect.Descriptor instead.
+func (*ListIngredientUnitsRequest) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{49}
+}
+
+type ListIngredientUnitsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Units         []*IngredientUnit      `protobuf:"bytes,1,rep,name=units,proto3" json:"units,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListIngredientUnitsResponse) Reset() {
+	*x = ListIngredientUnitsResponse{}
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListIngredientUnitsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListIngredientUnitsResponse) ProtoMessage() {}
+
+func (x *ListIngredientUnitsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_shoppinglist_v1_shoppinglist_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListIngredientUnitsResponse.ProtoReflect.Descriptor instead.
+func (*ListIngredientUnitsResponse) Descriptor() ([]byte, []int) {
+	return file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *ListIngredientUnitsResponse) GetUnits() []*IngredientUnit {
+	if x != nil {
+		return x.Units
+	}
+	return nil
+}
+
 var File_shoppinglist_v1_shoppinglist_proto protoreflect.FileDescriptor
 
 const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
@@ -2261,12 +2500,14 @@ const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"\x19SetStoreCategoriesRequest\x12\x19\n" +
 	"\bstore_id\x18\x01 \x01(\tR\astoreId\x12!\n" +
 	"\fcategory_ids\x18\x02 \x03(\tR\vcategoryIdsJ\x04\b\x03\x10\x04R\rowner_user_id\"\x1c\n" +
-	"\x1aSetStoreCategoriesResponse\"[\n" +
+	"\x1aSetStoreCategoriesResponse\"|\n" +
 	"\bItemName\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
 	"\vcategory_id\x18\x02 \x01(\tR\n" +
 	"categoryId\x12\x1a\n" +
-	"\bexcluded\x18\x03 \x01(\bR\bexcluded\"C\n" +
+	"\bexcluded\x18\x03 \x01(\bR\bexcluded\x12\x1f\n" +
+	"\vmerged_into\x18\x04 \x01(\tR\n" +
+	"mergedInto\"C\n" +
 	"\fItemCategory\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
 	"\vcategory_id\x18\x02 \x01(\tR\n" +
@@ -2285,7 +2526,19 @@ const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"\x16SetItemExcludedRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
 	"\bexcluded\x18\x02 \x01(\bR\bexcludedJ\x04\b\x03\x10\x04R\rowner_user_id\"\x19\n" +
-	"\x17SetItemExcludedResponse2\xa5\x10\n" +
+	"\x17SetItemExcludedResponse\"G\n" +
+	"\x13SetItemAliasRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1c\n" +
+	"\tcanonical\x18\x02 \x01(\tR\tcanonical\"\x16\n" +
+	"\x14SetItemAliasResponse\"W\n" +
+	"\x0eIngredientUnit\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
+	"\x04unit\x18\x02 \x01(\tR\x04unit\x12\x1d\n" +
+	"\n" +
+	"recipe_ids\x18\x03 \x03(\tR\trecipeIds\"\x1c\n" +
+	"\x1aListIngredientUnitsRequest\"T\n" +
+	"\x1bListIngredientUnitsResponse\x125\n" +
+	"\x05units\x18\x01 \x03(\v2\x1f.shoppinglist.v1.IngredientUnitR\x05units2\xf4\x11\n" +
 	"\x13ShoppingListService\x12^\n" +
 	"\rGetCustomList\x12%.shoppinglist.v1.GetCustomListRequest\x1a&.shoppinglist.v1.GetCustomListResponse\x12m\n" +
 	"\x12CreateShoppingItem\x12*.shoppinglist.v1.CreateShoppingItemRequest\x1a+.shoppinglist.v1.CreateShoppingItemResponse\x12m\n" +
@@ -2307,7 +2560,9 @@ const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"\rListItemNames\x12%.shoppinglist.v1.ListItemNamesRequest\x1a&.shoppinglist.v1.ListItemNamesResponse\x12m\n" +
 	"\x12ListItemCategories\x12*.shoppinglist.v1.ListItemCategoriesRequest\x1a+.shoppinglist.v1.ListItemCategoriesResponse\x12d\n" +
 	"\x0fSetItemCategory\x12'.shoppinglist.v1.SetItemCategoryRequest\x1a(.shoppinglist.v1.SetItemCategoryResponse\x12d\n" +
-	"\x0fSetItemExcluded\x12'.shoppinglist.v1.SetItemExcludedRequest\x1a(.shoppinglist.v1.SetItemExcludedResponseB7Z5tools.xdoubleu.com/gen/shoppinglist/v1;shoppinglistv1b\x06proto3"
+	"\x0fSetItemExcluded\x12'.shoppinglist.v1.SetItemExcludedRequest\x1a(.shoppinglist.v1.SetItemExcludedResponse\x12[\n" +
+	"\fSetItemAlias\x12$.shoppinglist.v1.SetItemAliasRequest\x1a%.shoppinglist.v1.SetItemAliasResponse\x12p\n" +
+	"\x13ListIngredientUnits\x12+.shoppinglist.v1.ListIngredientUnitsRequest\x1a,.shoppinglist.v1.ListIngredientUnitsResponseB7Z5tools.xdoubleu.com/gen/shoppinglist/v1;shoppinglistv1b\x06proto3"
 
 var (
 	file_shoppinglist_v1_shoppinglist_proto_rawDescOnce sync.Once
@@ -2321,7 +2576,7 @@ func file_shoppinglist_v1_shoppinglist_proto_rawDescGZIP() []byte {
 	return file_shoppinglist_v1_shoppinglist_proto_rawDescData
 }
 
-var file_shoppinglist_v1_shoppinglist_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
+var file_shoppinglist_v1_shoppinglist_proto_msgTypes = make([]protoimpl.MessageInfo, 51)
 var file_shoppinglist_v1_shoppinglist_proto_goTypes = []any{
 	(*ShoppingItem)(nil),                    // 0: shoppinglist.v1.ShoppingItem
 	(*GetCustomListRequest)(nil),            // 1: shoppinglist.v1.GetCustomListRequest
@@ -2369,6 +2624,11 @@ var file_shoppinglist_v1_shoppinglist_proto_goTypes = []any{
 	(*SetItemCategoryResponse)(nil),         // 43: shoppinglist.v1.SetItemCategoryResponse
 	(*SetItemExcludedRequest)(nil),          // 44: shoppinglist.v1.SetItemExcludedRequest
 	(*SetItemExcludedResponse)(nil),         // 45: shoppinglist.v1.SetItemExcludedResponse
+	(*SetItemAliasRequest)(nil),             // 46: shoppinglist.v1.SetItemAliasRequest
+	(*SetItemAliasResponse)(nil),            // 47: shoppinglist.v1.SetItemAliasResponse
+	(*IngredientUnit)(nil),                  // 48: shoppinglist.v1.IngredientUnit
+	(*ListIngredientUnitsRequest)(nil),      // 49: shoppinglist.v1.ListIngredientUnitsRequest
+	(*ListIngredientUnitsResponse)(nil),     // 50: shoppinglist.v1.ListIngredientUnitsResponse
 }
 var file_shoppinglist_v1_shoppinglist_proto_depIdxs = []int32{
 	0,  // 0: shoppinglist.v1.GetCustomListResponse.items:type_name -> shoppinglist.v1.ShoppingItem
@@ -2385,51 +2645,56 @@ var file_shoppinglist_v1_shoppinglist_proto_depIdxs = []int32{
 	14, // 11: shoppinglist.v1.GetStoreCategoriesResponse.categories:type_name -> shoppinglist.v1.Category
 	36, // 12: shoppinglist.v1.ListItemNamesResponse.names:type_name -> shoppinglist.v1.ItemName
 	37, // 13: shoppinglist.v1.ListItemCategoriesResponse.items:type_name -> shoppinglist.v1.ItemCategory
-	1,  // 14: shoppinglist.v1.ShoppingListService.GetCustomList:input_type -> shoppinglist.v1.GetCustomListRequest
-	3,  // 15: shoppinglist.v1.ShoppingListService.CreateShoppingItem:input_type -> shoppinglist.v1.CreateShoppingItemRequest
-	5,  // 16: shoppinglist.v1.ShoppingListService.UpdateShoppingItem:input_type -> shoppinglist.v1.UpdateShoppingItemRequest
-	7,  // 17: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:input_type -> shoppinglist.v1.DeleteShoppingItemRequest
-	9,  // 18: shoppinglist.v1.ShoppingListService.GetMealPlanExportItems:input_type -> shoppinglist.v1.GetMealPlanExportItemsRequest
-	11, // 19: shoppinglist.v1.ShoppingListService.GetPlanIngredientGroups:input_type -> shoppinglist.v1.GetPlanIngredientGroupsRequest
-	15, // 20: shoppinglist.v1.ShoppingListService.ListCategories:input_type -> shoppinglist.v1.ListCategoriesRequest
-	17, // 21: shoppinglist.v1.ShoppingListService.CreateCategory:input_type -> shoppinglist.v1.CreateCategoryRequest
-	19, // 22: shoppinglist.v1.ShoppingListService.RenameCategory:input_type -> shoppinglist.v1.RenameCategoryRequest
-	21, // 23: shoppinglist.v1.ShoppingListService.DeleteCategory:input_type -> shoppinglist.v1.DeleteCategoryRequest
-	24, // 24: shoppinglist.v1.ShoppingListService.ListStores:input_type -> shoppinglist.v1.ListStoresRequest
-	26, // 25: shoppinglist.v1.ShoppingListService.CreateStore:input_type -> shoppinglist.v1.CreateStoreRequest
-	28, // 26: shoppinglist.v1.ShoppingListService.RenameStore:input_type -> shoppinglist.v1.RenameStoreRequest
-	30, // 27: shoppinglist.v1.ShoppingListService.DeleteStore:input_type -> shoppinglist.v1.DeleteStoreRequest
-	32, // 28: shoppinglist.v1.ShoppingListService.GetStoreCategories:input_type -> shoppinglist.v1.GetStoreCategoriesRequest
-	34, // 29: shoppinglist.v1.ShoppingListService.SetStoreCategories:input_type -> shoppinglist.v1.SetStoreCategoriesRequest
-	38, // 30: shoppinglist.v1.ShoppingListService.ListItemNames:input_type -> shoppinglist.v1.ListItemNamesRequest
-	40, // 31: shoppinglist.v1.ShoppingListService.ListItemCategories:input_type -> shoppinglist.v1.ListItemCategoriesRequest
-	42, // 32: shoppinglist.v1.ShoppingListService.SetItemCategory:input_type -> shoppinglist.v1.SetItemCategoryRequest
-	44, // 33: shoppinglist.v1.ShoppingListService.SetItemExcluded:input_type -> shoppinglist.v1.SetItemExcludedRequest
-	2,  // 34: shoppinglist.v1.ShoppingListService.GetCustomList:output_type -> shoppinglist.v1.GetCustomListResponse
-	4,  // 35: shoppinglist.v1.ShoppingListService.CreateShoppingItem:output_type -> shoppinglist.v1.CreateShoppingItemResponse
-	6,  // 36: shoppinglist.v1.ShoppingListService.UpdateShoppingItem:output_type -> shoppinglist.v1.UpdateShoppingItemResponse
-	8,  // 37: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:output_type -> shoppinglist.v1.DeleteShoppingItemResponse
-	10, // 38: shoppinglist.v1.ShoppingListService.GetMealPlanExportItems:output_type -> shoppinglist.v1.GetMealPlanExportItemsResponse
-	13, // 39: shoppinglist.v1.ShoppingListService.GetPlanIngredientGroups:output_type -> shoppinglist.v1.GetPlanIngredientGroupsResponse
-	16, // 40: shoppinglist.v1.ShoppingListService.ListCategories:output_type -> shoppinglist.v1.ListCategoriesResponse
-	18, // 41: shoppinglist.v1.ShoppingListService.CreateCategory:output_type -> shoppinglist.v1.CreateCategoryResponse
-	20, // 42: shoppinglist.v1.ShoppingListService.RenameCategory:output_type -> shoppinglist.v1.RenameCategoryResponse
-	22, // 43: shoppinglist.v1.ShoppingListService.DeleteCategory:output_type -> shoppinglist.v1.DeleteCategoryResponse
-	25, // 44: shoppinglist.v1.ShoppingListService.ListStores:output_type -> shoppinglist.v1.ListStoresResponse
-	27, // 45: shoppinglist.v1.ShoppingListService.CreateStore:output_type -> shoppinglist.v1.CreateStoreResponse
-	29, // 46: shoppinglist.v1.ShoppingListService.RenameStore:output_type -> shoppinglist.v1.RenameStoreResponse
-	31, // 47: shoppinglist.v1.ShoppingListService.DeleteStore:output_type -> shoppinglist.v1.DeleteStoreResponse
-	33, // 48: shoppinglist.v1.ShoppingListService.GetStoreCategories:output_type -> shoppinglist.v1.GetStoreCategoriesResponse
-	35, // 49: shoppinglist.v1.ShoppingListService.SetStoreCategories:output_type -> shoppinglist.v1.SetStoreCategoriesResponse
-	39, // 50: shoppinglist.v1.ShoppingListService.ListItemNames:output_type -> shoppinglist.v1.ListItemNamesResponse
-	41, // 51: shoppinglist.v1.ShoppingListService.ListItemCategories:output_type -> shoppinglist.v1.ListItemCategoriesResponse
-	43, // 52: shoppinglist.v1.ShoppingListService.SetItemCategory:output_type -> shoppinglist.v1.SetItemCategoryResponse
-	45, // 53: shoppinglist.v1.ShoppingListService.SetItemExcluded:output_type -> shoppinglist.v1.SetItemExcludedResponse
-	34, // [34:54] is the sub-list for method output_type
-	14, // [14:34] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	48, // 14: shoppinglist.v1.ListIngredientUnitsResponse.units:type_name -> shoppinglist.v1.IngredientUnit
+	1,  // 15: shoppinglist.v1.ShoppingListService.GetCustomList:input_type -> shoppinglist.v1.GetCustomListRequest
+	3,  // 16: shoppinglist.v1.ShoppingListService.CreateShoppingItem:input_type -> shoppinglist.v1.CreateShoppingItemRequest
+	5,  // 17: shoppinglist.v1.ShoppingListService.UpdateShoppingItem:input_type -> shoppinglist.v1.UpdateShoppingItemRequest
+	7,  // 18: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:input_type -> shoppinglist.v1.DeleteShoppingItemRequest
+	9,  // 19: shoppinglist.v1.ShoppingListService.GetMealPlanExportItems:input_type -> shoppinglist.v1.GetMealPlanExportItemsRequest
+	11, // 20: shoppinglist.v1.ShoppingListService.GetPlanIngredientGroups:input_type -> shoppinglist.v1.GetPlanIngredientGroupsRequest
+	15, // 21: shoppinglist.v1.ShoppingListService.ListCategories:input_type -> shoppinglist.v1.ListCategoriesRequest
+	17, // 22: shoppinglist.v1.ShoppingListService.CreateCategory:input_type -> shoppinglist.v1.CreateCategoryRequest
+	19, // 23: shoppinglist.v1.ShoppingListService.RenameCategory:input_type -> shoppinglist.v1.RenameCategoryRequest
+	21, // 24: shoppinglist.v1.ShoppingListService.DeleteCategory:input_type -> shoppinglist.v1.DeleteCategoryRequest
+	24, // 25: shoppinglist.v1.ShoppingListService.ListStores:input_type -> shoppinglist.v1.ListStoresRequest
+	26, // 26: shoppinglist.v1.ShoppingListService.CreateStore:input_type -> shoppinglist.v1.CreateStoreRequest
+	28, // 27: shoppinglist.v1.ShoppingListService.RenameStore:input_type -> shoppinglist.v1.RenameStoreRequest
+	30, // 28: shoppinglist.v1.ShoppingListService.DeleteStore:input_type -> shoppinglist.v1.DeleteStoreRequest
+	32, // 29: shoppinglist.v1.ShoppingListService.GetStoreCategories:input_type -> shoppinglist.v1.GetStoreCategoriesRequest
+	34, // 30: shoppinglist.v1.ShoppingListService.SetStoreCategories:input_type -> shoppinglist.v1.SetStoreCategoriesRequest
+	38, // 31: shoppinglist.v1.ShoppingListService.ListItemNames:input_type -> shoppinglist.v1.ListItemNamesRequest
+	40, // 32: shoppinglist.v1.ShoppingListService.ListItemCategories:input_type -> shoppinglist.v1.ListItemCategoriesRequest
+	42, // 33: shoppinglist.v1.ShoppingListService.SetItemCategory:input_type -> shoppinglist.v1.SetItemCategoryRequest
+	44, // 34: shoppinglist.v1.ShoppingListService.SetItemExcluded:input_type -> shoppinglist.v1.SetItemExcludedRequest
+	46, // 35: shoppinglist.v1.ShoppingListService.SetItemAlias:input_type -> shoppinglist.v1.SetItemAliasRequest
+	49, // 36: shoppinglist.v1.ShoppingListService.ListIngredientUnits:input_type -> shoppinglist.v1.ListIngredientUnitsRequest
+	2,  // 37: shoppinglist.v1.ShoppingListService.GetCustomList:output_type -> shoppinglist.v1.GetCustomListResponse
+	4,  // 38: shoppinglist.v1.ShoppingListService.CreateShoppingItem:output_type -> shoppinglist.v1.CreateShoppingItemResponse
+	6,  // 39: shoppinglist.v1.ShoppingListService.UpdateShoppingItem:output_type -> shoppinglist.v1.UpdateShoppingItemResponse
+	8,  // 40: shoppinglist.v1.ShoppingListService.DeleteShoppingItem:output_type -> shoppinglist.v1.DeleteShoppingItemResponse
+	10, // 41: shoppinglist.v1.ShoppingListService.GetMealPlanExportItems:output_type -> shoppinglist.v1.GetMealPlanExportItemsResponse
+	13, // 42: shoppinglist.v1.ShoppingListService.GetPlanIngredientGroups:output_type -> shoppinglist.v1.GetPlanIngredientGroupsResponse
+	16, // 43: shoppinglist.v1.ShoppingListService.ListCategories:output_type -> shoppinglist.v1.ListCategoriesResponse
+	18, // 44: shoppinglist.v1.ShoppingListService.CreateCategory:output_type -> shoppinglist.v1.CreateCategoryResponse
+	20, // 45: shoppinglist.v1.ShoppingListService.RenameCategory:output_type -> shoppinglist.v1.RenameCategoryResponse
+	22, // 46: shoppinglist.v1.ShoppingListService.DeleteCategory:output_type -> shoppinglist.v1.DeleteCategoryResponse
+	25, // 47: shoppinglist.v1.ShoppingListService.ListStores:output_type -> shoppinglist.v1.ListStoresResponse
+	27, // 48: shoppinglist.v1.ShoppingListService.CreateStore:output_type -> shoppinglist.v1.CreateStoreResponse
+	29, // 49: shoppinglist.v1.ShoppingListService.RenameStore:output_type -> shoppinglist.v1.RenameStoreResponse
+	31, // 50: shoppinglist.v1.ShoppingListService.DeleteStore:output_type -> shoppinglist.v1.DeleteStoreResponse
+	33, // 51: shoppinglist.v1.ShoppingListService.GetStoreCategories:output_type -> shoppinglist.v1.GetStoreCategoriesResponse
+	35, // 52: shoppinglist.v1.ShoppingListService.SetStoreCategories:output_type -> shoppinglist.v1.SetStoreCategoriesResponse
+	39, // 53: shoppinglist.v1.ShoppingListService.ListItemNames:output_type -> shoppinglist.v1.ListItemNamesResponse
+	41, // 54: shoppinglist.v1.ShoppingListService.ListItemCategories:output_type -> shoppinglist.v1.ListItemCategoriesResponse
+	43, // 55: shoppinglist.v1.ShoppingListService.SetItemCategory:output_type -> shoppinglist.v1.SetItemCategoryResponse
+	45, // 56: shoppinglist.v1.ShoppingListService.SetItemExcluded:output_type -> shoppinglist.v1.SetItemExcludedResponse
+	47, // 57: shoppinglist.v1.ShoppingListService.SetItemAlias:output_type -> shoppinglist.v1.SetItemAliasResponse
+	50, // 58: shoppinglist.v1.ShoppingListService.ListIngredientUnits:output_type -> shoppinglist.v1.ListIngredientUnitsResponse
+	37, // [37:59] is the sub-list for method output_type
+	15, // [15:37] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_shoppinglist_v1_shoppinglist_proto_init() }
@@ -2443,7 +2708,7 @@ func file_shoppinglist_v1_shoppinglist_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_shoppinglist_v1_shoppinglist_proto_rawDesc), len(file_shoppinglist_v1_shoppinglist_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   46,
+			NumMessages:   51,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

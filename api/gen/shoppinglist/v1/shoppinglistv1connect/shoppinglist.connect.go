@@ -84,6 +84,12 @@ const (
 	// ShoppingListServiceSetItemExcludedProcedure is the procedure name of the ShoppingListService's
 	// SetItemExcluded RPC.
 	ShoppingListServiceSetItemExcludedProcedure = "/shoppinglist.v1.ShoppingListService/SetItemExcluded"
+	// ShoppingListServiceSetItemAliasProcedure is the procedure name of the ShoppingListService's
+	// SetItemAlias RPC.
+	ShoppingListServiceSetItemAliasProcedure = "/shoppinglist.v1.ShoppingListService/SetItemAlias"
+	// ShoppingListServiceListIngredientUnitsProcedure is the procedure name of the
+	// ShoppingListService's ListIngredientUnits RPC.
+	ShoppingListServiceListIngredientUnitsProcedure = "/shoppinglist.v1.ShoppingListService/ListIngredientUnits"
 )
 
 var (
@@ -227,6 +233,20 @@ var (
 			Procedure:  ShoppingListServiceSetItemExcludedProcedure,
 		}
 	})
+	shoppingListServiceSetItemAliasSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_shoppinglist_v1_shoppinglist_proto.Services().ByName("ShoppingListService").Methods().ByName("SetItemAlias"),
+			Procedure:  ShoppingListServiceSetItemAliasProcedure,
+		}
+	})
+	shoppingListServiceListIngredientUnitsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_shoppinglist_v1_shoppinglist_proto.Services().ByName("ShoppingListService").Methods().ByName("ListIngredientUnits"),
+			Procedure:  ShoppingListServiceListIngredientUnitsProcedure,
+		}
+	})
 )
 
 // ShoppingListServiceClient is a client for the shoppinglist.v1.ShoppingListService service.
@@ -251,6 +271,8 @@ type ShoppingListServiceClient interface {
 	ListItemCategories(context.Context, *v1.ListItemCategoriesRequest) (*v1.ListItemCategoriesResponse, error)
 	SetItemCategory(context.Context, *v1.SetItemCategoryRequest) (*v1.SetItemCategoryResponse, error)
 	SetItemExcluded(context.Context, *v1.SetItemExcludedRequest) (*v1.SetItemExcludedResponse, error)
+	SetItemAlias(context.Context, *v1.SetItemAliasRequest) (*v1.SetItemAliasResponse, error)
+	ListIngredientUnits(context.Context, *v1.ListIngredientUnitsRequest) (*v1.ListIngredientUnitsResponse, error)
 }
 
 // NewShoppingListServiceClient constructs a client for the shoppinglist.v1.ShoppingListService
@@ -282,6 +304,8 @@ type ShoppingListServiceHandler interface {
 	ListItemCategories(context.Context, *v1.ListItemCategoriesRequest) (*v1.ListItemCategoriesResponse, error)
 	SetItemCategory(context.Context, *v1.SetItemCategoryRequest) (*v1.SetItemCategoryResponse, error)
 	SetItemExcluded(context.Context, *v1.SetItemExcludedRequest) (*v1.SetItemExcludedResponse, error)
+	SetItemAlias(context.Context, *v1.SetItemAliasRequest) (*v1.SetItemAliasResponse, error)
+	ListIngredientUnits(context.Context, *v1.ListIngredientUnitsRequest) (*v1.ListIngredientUnitsResponse, error)
 }
 
 // RegisterShoppingListServiceHandler registers svc as the shoppinglist.v1.ShoppingListService
@@ -309,6 +333,8 @@ func RegisterShoppingListServiceHandler(server *connect.Server, svc ShoppingList
 		connect.Method{Spec: shoppingListServiceListItemCategoriesSpec(), Handler: adapter.listItemCategories},
 		connect.Method{Spec: shoppingListServiceSetItemCategorySpec(), Handler: adapter.setItemCategory},
 		connect.Method{Spec: shoppingListServiceSetItemExcludedSpec(), Handler: adapter.setItemExcluded},
+		connect.Method{Spec: shoppingListServiceSetItemAliasSpec(), Handler: adapter.setItemAlias},
+		connect.Method{Spec: shoppingListServiceListIngredientUnitsSpec(), Handler: adapter.listIngredientUnits},
 	)
 }
 
@@ -393,6 +419,14 @@ func (UnimplementedShoppingListServiceHandler) SetItemCategory(context.Context, 
 
 func (UnimplementedShoppingListServiceHandler) SetItemExcluded(context.Context, *v1.SetItemExcludedRequest) (*v1.SetItemExcludedResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "shoppinglist.v1.ShoppingListService.SetItemExcluded is not implemented")
+}
+
+func (UnimplementedShoppingListServiceHandler) SetItemAlias(context.Context, *v1.SetItemAliasRequest) (*v1.SetItemAliasResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "shoppinglist.v1.ShoppingListService.SetItemAlias is not implemented")
+}
+
+func (UnimplementedShoppingListServiceHandler) ListIngredientUnits(context.Context, *v1.ListIngredientUnitsRequest) (*v1.ListIngredientUnitsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "shoppinglist.v1.ShoppingListService.ListIngredientUnits is not implemented")
 }
 
 type shoppingListServiceClient struct {
@@ -554,6 +588,22 @@ func (c *shoppingListServiceClient) SetItemCategory(ctx context.Context, req *v1
 func (c *shoppingListServiceClient) SetItemExcluded(ctx context.Context, req *v1.SetItemExcludedRequest) (*v1.SetItemExcludedResponse, error) {
 	var res v1.SetItemExcludedResponse
 	if err := c.client.CallUnary(ctx, shoppingListServiceSetItemExcludedSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *shoppingListServiceClient) SetItemAlias(ctx context.Context, req *v1.SetItemAliasRequest) (*v1.SetItemAliasResponse, error) {
+	var res v1.SetItemAliasResponse
+	if err := c.client.CallUnary(ctx, shoppingListServiceSetItemAliasSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *shoppingListServiceClient) ListIngredientUnits(ctx context.Context, req *v1.ListIngredientUnitsRequest) (*v1.ListIngredientUnitsResponse, error) {
+	var res v1.ListIngredientUnitsResponse
+	if err := c.client.CallUnary(ctx, shoppingListServiceListIngredientUnitsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -795,6 +845,30 @@ func (h shoppingListServiceHandler) setItemExcluded(ctx context.Context, _ conne
 		return err
 	}
 	res, err := h.svc.SetItemExcluded(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h shoppingListServiceHandler) setItemAlias(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetItemAliasRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetItemAlias(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h shoppingListServiceHandler) listIngredientUnits(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListIngredientUnitsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListIngredientUnits(ctx, &req)
 	if err != nil {
 		return err
 	}

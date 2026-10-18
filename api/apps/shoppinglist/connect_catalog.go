@@ -2,6 +2,7 @@ package shoppinglist
 
 import (
 	"context"
+	"strings"
 
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
@@ -122,6 +123,7 @@ func (h *shoppingConnectHandler) ListItemNames(
 			Name:       n.Name,
 			CategoryId: n.CategoryID,
 			Excluded:   n.Excluded,
+			MergedInto: n.MergedInto,
 		}
 	}
 	return &shoppinglistv1.ListItemNamesResponse{Names: pb}, nil
@@ -202,6 +204,53 @@ func (h *shoppingConnectHandler) SetItemExcluded(
 		return nil, mapError(err)
 	}
 	return &shoppinglistv1.SetItemExcludedResponse{}, nil
+}
+
+func (h *shoppingConnectHandler) SetItemAlias(
+	ctx context.Context,
+	req *shoppinglistv1.SetItemAliasRequest,
+) (*shoppinglistv1.SetItemAliasResponse, error) {
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, errNameRequired()
+	}
+
+	userID, err := h.callerID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = h.app.services.Shopping.SetItemAlias(
+		ctx, userID, req.Name, req.Canonical,
+	)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &shoppinglistv1.SetItemAliasResponse{}, nil
+}
+
+func (h *shoppingConnectHandler) ListIngredientUnits(
+	ctx context.Context,
+	_ *shoppinglistv1.ListIngredientUnitsRequest,
+) (*shoppinglistv1.ListIngredientUnitsResponse, error) {
+	userID, err := h.callerID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	units, err := h.app.services.Shopping.ListIngredientUnits(ctx, userID)
+	if err != nil {
+		return nil, mapError(err)
+	}
+
+	pb := make([]*shoppinglistv1.IngredientUnit, len(units))
+	for i, u := range units {
+		pb[i] = &shoppinglistv1.IngredientUnit{
+			Name:      u.Name,
+			Unit:      u.Unit,
+			RecipeIds: u.RecipeIDs,
+		}
+	}
+	return &shoppinglistv1.ListIngredientUnitsResponse{Units: pb}, nil
 }
 
 func errUnauthenticated() error {
