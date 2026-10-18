@@ -95,7 +95,7 @@
     "browserslist": "4.29.3",
     "baseline-browser-mapping": "2.11.28",
     "postcss-selector-parser": "7.1.6",
-    "qs": "6.16.0",
+    "qs": "6.16.1",
     "sharp": "0.35.5"
   },
   "engines": {
