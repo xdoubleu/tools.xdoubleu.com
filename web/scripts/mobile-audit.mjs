@@ -3,7 +3,9 @@
  * Measures horizontal overflow and tap-target geometry at a real mobile
  * viewport for the given routes; used by the `mobile-review` skill.
  *
- * Usage: npm run mobile:audit -- /trains /books [--base-url ...] [--json]
+ * Usage: npm run mobile:audit -- /trains /books [--base-url ...] [--json] [--expand]
+ * --expand opens <details> and aria-expanded=false toggles first, so collapsed
+ * groups are measured too.
  */
 import { chromium, devices } from '@playwright/test'
 
@@ -21,11 +23,13 @@ function parseArgs(argv) {
     width: 375,
     height: 667,
     themes: ['light', 'dark'],
-    json: false
+    json: false,
+    expand: false
   }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === '--json') opts.json = true
+    else if (arg === '--expand') opts.expand = true
     else if (arg === '--base-url') opts.baseUrl = argv[++i]
     else if (arg === '--storage-state') opts.storageState = argv[++i]
     else if (arg === '--width') opts.width = Number(argv[++i])
@@ -214,6 +218,19 @@ for (const theme of opts.themes) {
       await page
         .waitForLoadState('networkidle', { timeout: NETWORK_SETTLE_MS })
         .catch(() => {})
+      if (opts.expand) {
+        await page.evaluate(() => {
+          // eslint-disable-next-line no-undef -- runs in the page.
+          document.querySelectorAll('details:not([open])').forEach((d) => {
+            d.open = true
+          })
+          // eslint-disable-next-line no-undef -- runs in the page.
+          document
+            .querySelectorAll('[aria-expanded="false"]')
+            .forEach((el) => el.click())
+        })
+        await page.waitForTimeout(300)
+      }
       const status = response?.status() ?? 0
       if (status >= 400) {
         results.push({ path, theme, error: `HTTP ${status}` })

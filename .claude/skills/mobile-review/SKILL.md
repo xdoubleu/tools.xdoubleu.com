@@ -29,6 +29,8 @@ npm run dev &
 npm run mobile:audit -- /trains /books/library
 ```
 
+Add `--expand` to open collapsed groups before measuring.
+
 `web/scripts/mobile-audit.mjs` checks both themes and reports, with real
 pixel sizes:
 
