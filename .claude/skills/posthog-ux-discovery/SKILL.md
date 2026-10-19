@@ -36,8 +36,8 @@ create a PR, or edit a repo file.
      events disagree. Then `$rageclick` and `$dead_click` grouped by
      element/page by `elements_chain`.
    - **Mis-navigation:** a detail page (`$pageview`, SPA navigations
-     included) reached from a list page, then left within **8s** — the
-     user tapped the wrong thing.
+     included) reached from a list page, left within **8s** — the
+     user tapped the wrong thing (`mis-navigation.sql`).
    - **Completion:** per custom-event pair (e.g. `book_progress_dialog_opened`
      → `book_progress_updated`, by `source`), mobile vs desktop rate.
    - **Funnel drop-off:** each flow's funnel.

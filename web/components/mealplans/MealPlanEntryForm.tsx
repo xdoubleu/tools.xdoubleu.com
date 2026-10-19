@@ -70,6 +70,7 @@ export default function MealPlanEntryForm({
   const [excludeFromShoppingList, setExcludeFromShoppingList] = useState(
     initialExcludeFromShoppingList
   )
+  const [saving, setSaving] = useState(false)
 
   const { data: categoriesData } = useCategories()
   const { data: itemCategoriesData } = useItemCategories()
@@ -110,14 +111,20 @@ export default function MealPlanEntryForm({
   }
 
   const handleSave = async () => {
+    if (saving) return
     if (tab === 'recipe') {
       if (!recipeId) return
       onSave(recipeId, '', servings, false)
     } else {
       const joined = encodeCustomItems(customItems)
       if (!joined) return
-      await persistCategories()
-      onSave('', joined, 1, excludeFromShoppingList)
+      setSaving(true)
+      try {
+        await persistCategories()
+        onSave('', joined, 1, excludeFromShoppingList)
+      } finally {
+        setSaving(false)
+      }
     }
   }
 
@@ -200,7 +207,7 @@ export default function MealPlanEntryForm({
           <div className="space-y-2">
             {customItems.map((item, i) => (
               <Card key={i} variant="inset" className="space-y-2 p-2">
-                <div className="flex flex-wrap gap-2 sm:flex-nowrap">
+                <div className="grid grid-cols-2 gap-2 sm:flex">
                   {!excludeFromShoppingList && (
                     <>
                       <Input
@@ -218,7 +225,7 @@ export default function MealPlanEntryForm({
                         }}
                         placeholder="Qty"
                         aria-label={`Amount for item ${i + 1}`}
-                        className="min-w-0 flex-1 sm:w-20 sm:flex-none"
+                        className="min-w-0 sm:w-20 sm:flex-none"
                       />
                       <Input
                         type="text"
@@ -232,7 +239,7 @@ export default function MealPlanEntryForm({
                         }}
                         placeholder="Unit"
                         aria-label={`Unit for item ${i + 1}`}
-                        className="min-w-0 flex-1 sm:w-20 sm:flex-none"
+                        className="min-w-0 sm:w-20 sm:flex-none"
                       />
                     </>
                   )}
@@ -249,8 +256,7 @@ export default function MealPlanEntryForm({
                     placeholder={`Item ${i + 1}`}
                     autoFocus={i === 0}
                     className={cn(
-                      'min-w-0 flex-1',
-                      !excludeFromShoppingList && 'order-last basis-full sm:order-none sm:basis-0'
+                      'col-span-2 min-w-0 sm:flex-1'
                     )}
                   />
                   {customItems.length > 1 && (
@@ -295,8 +301,8 @@ export default function MealPlanEntryForm({
           <Button variant="secondary" onClick={onCancel} className="flex-1 sm:flex-none">
             Cancel
           </Button>
-          <Button onClick={handleSave} className="flex-1 sm:flex-none">
-            {saveLabel}
+          <Button onClick={handleSave} disabled={saving} className="flex-1 sm:flex-none">
+            {saving ? 'Saving…' : saveLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

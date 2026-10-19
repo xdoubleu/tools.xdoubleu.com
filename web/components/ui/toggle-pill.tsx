@@ -20,7 +20,12 @@ function TogglePill({ label, active, className, ...props }: TogglePillProps) {
       type="button"
       size="sm"
       variant={active ? 'default' : 'secondary'}
-      className={cn('px-3 sm:h-auto sm:px-2.5 sm:py-0.5', className)}
+      className={cn(
+        'px-3 sm:h-auto sm:px-2.5 sm:py-0.5',
+        // The selected pill is inert: re-tapping it changes nothing, so don't advertise it.
+        active && 'cursor-default active:scale-100',
+        className
+      )}
       aria-pressed={active}
       {...props}
     >
