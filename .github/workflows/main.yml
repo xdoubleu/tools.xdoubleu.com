@@ -512,6 +512,23 @@ jobs:
             exit 1
           fi
 
+      # One-time cutover (ADR-0034): kamal-proxy rejects a second root service,
+      # so the retired web service must go before api takes the root path.
+      # Idempotent; delete once it has run on main.
+      - name: Remove the retired web service
+        if: needs.build-api.result == 'success'
+        env:
+          KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
+        run: |
+          ssh "deploy@$KAMAL_SERVER_IP" 'bash -s' <<'REMOTE'
+          set -u
+          ids=$(docker ps -aq --filter label=service=tools-xdoubleu-com-web)
+          [ -z "$ids" ] || docker rm -f $ids
+          for name in $(docker exec kamal-proxy kamal-proxy list | grep -o 'tools-xdoubleu-com-web[A-Za-z0-9_-]*' | sort -u); do
+            docker exec kamal-proxy kamal-proxy remove "$name"
+          done
+          REMOTE
+
       # Kamal evaluates config/deploy.*.yml as ERB with the env below; --version
       # is the full commit SHA the build jobs tag with.
       - name: Deploy api via Kamal

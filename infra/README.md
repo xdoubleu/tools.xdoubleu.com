@@ -238,9 +238,12 @@ first deploy of the root `api` service, remove `web` from the VPS (a few
 seconds of downtime between this and the api deploy):
 
 ```bash
-ssh deploy@<ip> docker exec kamal-proxy kamal-proxy remove tools-xdoubleu-com-web
 ssh deploy@<ip> 'docker ps -aq --filter label=service=tools-xdoubleu-com-web | xargs -r docker rm -f'
+ssh deploy@<ip> docker exec kamal-proxy kamal-proxy list   # note the web entry's name
+ssh deploy@<ip> docker exec kamal-proxy kamal-proxy remove <that name>
 ```
+
+`deploy-kamal` also runs this idempotently before the api deploy.
 
 Then merge: `deploy-kamal` registers `api` as the root service.
 `SENTRY_DSN_WEB` and `POSTHOG_KEY` now feed the api's `/env.js`.
