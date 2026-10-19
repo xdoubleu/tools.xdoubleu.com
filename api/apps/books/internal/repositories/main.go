@@ -20,19 +20,21 @@ type Querier interface {
 }
 
 type Repositories struct {
-	Books        *BooksRepository
-	BookFiles    *BookFilesRepository
-	ReadingState *BookReadingStateRepository
-	Progress     *ProgressRepository
-	KoboDevices  *KoboDevicesRepository
+	Books         *BooksRepository
+	BookFiles     *BookFilesRepository
+	ReadingState  *BookReadingStateRepository
+	Progress      *ProgressRepository
+	KoboDevices   *KoboDevicesRepository
+	KEPUBRequests *KEPUBRequestsRepository
 }
 
 func New(db postgres.DB) *Repositories {
 	return &Repositories{
-		Books:        &BooksRepository{db: db},
-		BookFiles:    &BookFilesRepository{db: db},
-		ReadingState: &BookReadingStateRepository{db: db},
-		Progress:     &ProgressRepository{db: db},
-		KoboDevices:  &KoboDevicesRepository{db: db},
+		Books:         &BooksRepository{db: db},
+		BookFiles:     &BookFilesRepository{db: db},
+		ReadingState:  &BookReadingStateRepository{db: db},
+		Progress:      &ProgressRepository{db: db},
+		KoboDevices:   &KoboDevicesRepository{db: db},
+		KEPUBRequests: &KEPUBRequestsRepository{db: db},
 	}
 }

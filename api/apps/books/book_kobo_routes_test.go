@@ -768,15 +768,14 @@ func TestKoboLibrarySync_StaleKEPUB_TriggersRegeneration(t *testing.T) {
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	require.Eventually(t, func() bool {
-		var version int16
-		scanErr := testDB.QueryRow(context.Background(),
-			`SELECT converter_version FROM books.book_files
-			 WHERE book_id = $1 AND user_id = $2 AND format = 'kepub'`,
-			bookID, owner,
-		).Scan(&version)
-		return scanErr == nil && version == services.CurrentKEPUBConverterVersion()
-	}, 5*time.Second, 50*time.Millisecond,
+	drainKEPUBQueue(t)
+	var version int16
+	require.NoError(t, testDB.QueryRow(context.Background(),
+		`SELECT converter_version FROM books.book_files
+		 WHERE book_id = $1 AND user_id = $2 AND format = 'kepub'`,
+		bookID, owner,
+	).Scan(&version))
+	assert.Equal(t, services.CurrentKEPUBConverterVersion(), version,
 		"a stale KEPUB must be regenerated after a library sync")
 }
 

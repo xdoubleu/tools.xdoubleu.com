@@ -42,3 +42,24 @@ func TestStart_RegistersJobs(t *testing.T) {
 	err := bl.Start()
 	require.NoError(t, err)
 }
+
+// TestStartWorkers_RegistersHeavyJobs: the workers role registers the jobs
+// Start leaves out, so both can share one job queue's ID space.
+func TestStartWorkers_RegistersHeavyJobs(t *testing.T) {
+	bl := books.NewInner(
+		sharedmocks.NewMockedAuthService(userID),
+		testApp.Logger,
+		testCfg,
+		testDB,
+		books.Clients{
+			UniCat:           nil,
+			WebFetch:         nil,
+			Hardcover:        nil,
+			ObjectStore:      objectstore.NewFake(),
+			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
+		},
+	)
+	require.NoError(t, bl.StartWorkers())
+	require.NoError(t, bl.Start())
+}

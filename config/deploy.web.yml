@@ -8,6 +8,9 @@ servers:
   web:
     hosts:
       - <%= ENV.fetch("KAMAL_SERVER_IP") %>
+    # Hard cap (steady state ~170 MB); see deploy.api.yml.
+    options:
+      memory: 384m
 
 ssh:
   user: deploy

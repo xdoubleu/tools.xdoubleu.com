@@ -19,6 +19,7 @@ type Services struct {
 	Auth       auth.Service
 	Books      *BookService
 	Conversion *ConversionService
+	KEPUBQueue *KEPUBQueue
 	Figures    *FigureService
 	Positions  *PositionService
 	Physical   *PhysicalService
@@ -88,6 +89,7 @@ func New(
 		Auth:       authService,
 		Books:      booksSvc,
 		Conversion: conversionSvc,
+		KEPUBQueue: NewKEPUBQueue(logger, repositories.KEPUBRequests, conversionSvc),
 		Figures:    NewFigureService(logger, repositories.BookFiles, objectStore),
 		Positions:  positions,
 		Physical:   booksSvc.physical,

@@ -12,10 +12,27 @@ image: xdoubleu/tools.xdoubleu.com/api
 # (and their images); the default 5 costs several GB on the 40GB VPS.
 retain_containers: 2
 
+# The 4 GB host has no swap, so each role has a hard cap: a runaway job is
+# OOM-killed alone instead of starving the host. GOMEMLIMIT (soft) sits below
+# the cap and the heap watchdog threshold (cmd/api/main.go) between the two.
+# workers runs the memory-heavy jobs (book figure analysis, KEPUB conversion,
+# trains static import, ~1 GB peak) and has no proxy: Prometheus finds it via
+# the shared `service` label, so TargetDown / ApiRestartLoop cover it.
 servers:
   web:
     hosts:
       - <%= ENV.fetch("KAMAL_SERVER_IP") %>
+    options:
+      memory: 512m
+  workers:
+    hosts:
+      - <%= ENV.fetch("KAMAL_SERVER_IP") %>
+    options:
+      memory: 1536m
+    env:
+      clear:
+        ROLE: workers
+        GOMEMLIMIT: 1100MiB
 
 # No ssh.key_data: auth goes through ssh-agent (CI starts one).
 ssh:
@@ -62,8 +79,7 @@ env:
     # CORS allowedOrigins and mailer links need it.
     WEB_URL: https://tools.xdoubleu.com
     API_URL: https://tools.xdoubleu.com/api
-    # Not re-tuned since api got its own container.
-    GOMEMLIMIT: 300MiB
+    GOMEMLIMIT: 380MiB
   secret:
     # Deploy-time SHA (Kamal doesn't inject one); CI passes github.sha.
     - RELEASE

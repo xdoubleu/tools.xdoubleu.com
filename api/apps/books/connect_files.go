@@ -51,7 +51,7 @@ func (h *booksConnectHandler) GetBookFile(
 	}, nil
 }
 
-// maybeStartKEPUBConversion launches EnsureKEPUB in the background when the
+// maybeStartKEPUBConversion queues a conversion for the workers role when the
 // KEPUB is missing or stale and a source exists, returning
 // FileStatusConverting; otherwise kepubStatus unchanged.
 func (h *booksConnectHandler) maybeStartKEPUBConversion(
@@ -66,10 +66,11 @@ func (h *booksConnectHandler) maybeStartKEPUBConversion(
 		return kepubStatus
 	}
 
-	convCtx := context.WithoutCancel(ctx)
-	go func() {
-		_, _ = h.app.Services.Conversion.EnsureKEPUB(convCtx, userID, bookID)
-	}()
+	if err := h.app.Services.KEPUBQueue.Request(ctx, userID, bookID); err != nil {
+		h.app.Logger.ErrorContext(ctx, "queue kepub conversion",
+			"book_id", bookID, "err", err)
+		return kepubStatus
+	}
 	return models.FileStatusConverting
 }
 
@@ -127,8 +128,7 @@ func (h *booksConnectHandler) GetKEPUBStatus(
 	// RequestKEPUBConversion would, so "converting" resolves.
 	kepubStatus := result.KepubStatus
 	if result.KepubStale && (result.HasEPUB || result.HasPDF) {
-		h.app.startKEPUBRegeneration(ctx, user.ID, bookID)
-		kepubStatus = models.FileStatusConverting
+		kepubStatus = h.app.startKEPUBRegeneration(ctx, user.ID, bookID, kepubStatus)
 	}
 	return &booksv1.GetKEPUBStatusResponse{
 		HasEpub:     result.HasEPUB,

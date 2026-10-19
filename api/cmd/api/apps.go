@@ -40,6 +40,12 @@ type App interface {
 	Start() error
 }
 
+// WorkersStarter is implemented by apps with jobs for the workers role; the
+// workers role calls it instead of Start.
+type WorkersStarter interface {
+	StartWorkers() error
+}
+
 // MCPToolProvider is optionally implemented by apps exposing tools on
 // /apps/mcp.
 type MCPToolProvider interface {
@@ -111,6 +117,25 @@ func NewApps(
 	))
 
 	return &apps, booksApp, feedsApp
+}
+
+// Start runs each app's jobs for the role: every app's Start for web, only
+// StartWorkers of apps that have one for workers.
+func (apps *Apps) Start(role string) error {
+	for _, app := range *apps {
+		if role == config.RoleWorkers {
+			if w, ok := app.(WorkersStarter); ok {
+				if err := w.StartWorkers(); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+		if err := app.Start(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (apps *Apps) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

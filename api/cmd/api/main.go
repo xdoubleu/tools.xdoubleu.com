@@ -97,10 +97,12 @@ const (
 	// globalJobQueueWorkers/globalJobQueueSize size the cross-app job queue.
 	globalJobQueueWorkers = 1
 	globalJobQueueSize    = 10
-	// heapWatchThreshold sits above the trains import's ~1 GB peak and below
-	// the 4 GB host's OOM point; see observability.WatchHeap.
-	heapWatchThreshold = 1 << 30
-	heapWatchInterval  = 5 * time.Second
+	// The heap watchdog thresholds sit below each role's container cap
+	// (config/deploy.api.yml) so it logs before the kill; the workers cap is
+	// above the trains import's ~1 GB peak. See observability.WatchHeap.
+	webHeapWatchThreshold     = 400 << 20
+	workersHeapWatchThreshold = 1200 << 20
+	heapWatchInterval         = 5 * time.Second
 )
 
 // migrationLockTimeout makes a replica fail loudly if a stale connection
@@ -139,12 +141,13 @@ func main() {
 	app := NewApplication(logger, cfg, db)
 
 	go observability.WatchHeap(
-		context.Background(), logger, heapWatchThreshold, heapWatchInterval,
+		context.Background(), logger, heapWatchThreshold(cfg.Role),
+		heapWatchInterval,
 	)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		Handler:      stripAPIPathPrefix(app.Routes()),
+		Handler:      stripAPIPathPrefix(app.handler()),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  httpReadTimeout,
 		WriteTimeout: httpWriteTimeout,
@@ -153,6 +156,25 @@ func main() {
 	if err != nil {
 		logger.Error("failed to serve server", essentialogger.ErrAttr(err))
 	}
+}
+
+func heapWatchThreshold(role string) uint64 {
+	if role == config.RoleWorkers {
+		return workersHeapWatchThreshold
+	}
+	return webHeapWatchThreshold
+}
+
+// handler is the full API for the web role; the workers role serves only
+// /health and /metrics, which Prometheus scrapes by the shared service label.
+func (app *Application) handler() http.Handler {
+	if !app.config.IsWorkers() {
+		return app.Routes()
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET "+healthPath, app.healthHandler)
+	mux.Handle("GET "+metricsPath, metricsHandler())
+	return mux
 }
 
 // newOAuthSealer builds the AES-GCM sealer for OAuth tokens and TOTP secrets.
@@ -496,18 +518,17 @@ func NewApplication(
 		panic(err)
 	}
 
-	// Flush request counts for the process lifetime.
-	app.usage.Start(ctx, usageFlushInterval)
+	if !config.IsWorkers() {
+		// Flush request counts for the process lifetime.
+		app.usage.Start(ctx, usageFlushInterval)
 
-	if err = startCrossAppJobs(app); err != nil {
-		panic(err)
-	}
-
-	for _, a := range *app.apps {
-		err = a.Start()
-		if err != nil {
+		if err = startCrossAppJobs(app); err != nil {
 			panic(err)
 		}
+	}
+
+	if err = app.apps.Start(config.Role); err != nil {
+		panic(err)
 	}
 
 	return app

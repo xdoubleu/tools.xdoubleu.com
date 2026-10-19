@@ -104,7 +104,7 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 - **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions — never stop it when finishing. Failures like `relation ... does not exist` may be leftover state (`db/reset`) or a concurrent teardown (check `docker ps` uptime).
 - **`relation "X" already exists` panic** = another worktree's DDL applied without its `goose_db_version` row. Check with `docker exec api-db-1 psql -U postgres -d postgres -c "SET search_path=global; SELECT version_id, is_applied FROM goose_db_version ORDER BY version_id DESC LIMIT 8;"`; if the schema already matches, insert the missing row (`INSERT INTO goose_db_version (version_id, is_applied) VALUES (<n>, true);`).
 - **Concurrent `go test` runs from two worktrees race on shared fixtures** (`-p 1` is per-invocation), e.g. `TestAppsMCPCallAllToolsAsAdmin`, `TestListBooksInExactSources_Admin_ReturnsOverlapBook`. Re-run in isolation before calling it a regression.
-- `git stash` is repo-global: never blind-`pop`; confirm your push created an entry and pop only that ref.
+- `git stash` is repo-global: never blind-`pop`.
 - No Docker? `.claude/hooks/session-start.sh` has a `pg_ctlcluster` fallback — try it before reporting tests as blocked.
 - Bug fixes: failing test first. Reproduce production state via the MCP read tools; for external input, commit the **real bytes** as gzipped `testdata/` fetched with the app's own client (example: `apps/feeds/internal/services/scrape_live_internal_test.go`).
 - A bug closes on a production observation or user confirmation, not a green suite.
@@ -112,6 +112,8 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 - Kobo-firmware behavior can't be verified server-side — say so in the PR and treat the user's on-device retest as acceptance.
 
 - `make test/cov/report` exiting 1 with `go: no such tool "covdata"` is a sandbox toolchain-download artifact (golang/go#75031), not a coverage failure; re-run `.claude/hooks/session-start.sh`, which builds it.
+
+`ROLE=workers` runs only `StartWorkers()` jobs; `heapWatchThreshold` stays under the deploy caps.
 
 ## File size
 

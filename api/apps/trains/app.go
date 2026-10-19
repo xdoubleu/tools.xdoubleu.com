@@ -88,12 +88,6 @@ func NewInner(
 func (a *Trains) Start() error {
 	noop := func(_ string, _ bool, _ *time.Time) {}
 	if err := a.jobQueue.AddJob(
-		observability.NewTrackedJob(a.staticImportJob, a.db),
-		noop,
-	); err != nil {
-		return err
-	}
-	if err := a.jobQueue.AddJob(
 		observability.NewTrackedJob(a.routerRefreshJob, a.db),
 		noop,
 	); err != nil {
@@ -107,6 +101,16 @@ func (a *Trains) Start() error {
 	return a.jobQueue.AddJob(
 		observability.NewTrackedJob(a.realtimePollJob, a.db),
 		noop,
+	)
+}
+
+// StartWorkers registers the static import, which the workers role runs
+// instead of Start's jobs; the web role's router picks the data up on its next
+// refresh.
+func (a *Trains) StartWorkers() error {
+	return a.jobQueue.AddJob(
+		observability.NewTrackedJob(a.staticImportJob, a.db),
+		func(_ string, _ bool, _ *time.Time) {},
 	)
 }
 

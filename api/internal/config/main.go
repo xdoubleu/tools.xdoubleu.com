@@ -21,8 +21,20 @@ const TestEnv string = "test"
 // DevEnv is the development environment name.
 const DevEnv string = "development"
 
+// RoleWeb serves requests and runs the light jobs; RoleWorkers runs only the
+// memory-heavy jobs (books figure analysis, KEPUB conversion, trains import).
+const (
+	RoleWeb     string = "web"
+	RoleWorkers string = "workers"
+)
+
+// IsWorkers reports whether this process runs the workers role.
+func (c Config) IsWorkers() bool { return c.Role == RoleWorkers }
+
 type Config struct {
-	Env           string
+	Env string
+	// Role selects what this process runs: RoleWeb (default) or RoleWorkers.
+	Role          string
 	Port          int
 	Throttle      bool
 	WebURL        string
@@ -216,12 +228,22 @@ func (c parser) envBool(key string, defaultValue bool) bool {
 	return value
 }
 
+func (c parser) envRole() string {
+	role := c.envStr("ROLE", RoleWeb)
+	if role != RoleWeb && role != RoleWorkers {
+		panic(fmt.Sprintf("invalid ROLE %q: want %q or %q", role, RoleWeb, RoleWorkers))
+	}
+	return role
+}
+
+//nolint:funlen //flat list of env reads
 func New(logger *slog.Logger) Config {
 	var cfg Config
 
 	p := newParser(logger)
 
 	cfg.Env = p.envStr("ENV", ProdEnv)
+	cfg.Role = p.envRole()
 	cfg.Port = p.envInt("PORT", 8000)
 	cfg.Throttle = p.envBool("THROTTLE", true)
 	cfg.WebURL = p.envStr("WEB_URL", "http://localhost:3000")

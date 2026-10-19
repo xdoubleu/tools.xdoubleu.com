@@ -457,7 +457,7 @@ func (app *Books) buildKoboSyncEntry(
 	isChanged := koboIsReplace(b) || koboCoverChanged(b, coverID)
 
 	if app.Services.Conversion.IsKEPUBStale(b.ConverterVersion) {
-		app.startKEPUBRegeneration(r.Context(), userID, b.BookID)
+		_ = app.startKEPUBRegeneration(r.Context(), userID, b.BookID, "")
 	}
 
 	entry := koboSyncEntry{
@@ -629,17 +629,21 @@ func (app *Books) koboFetchUpstreamSync(
 	return koboUpstream{items: items, hdrs: hdrs, note: ""}
 }
 
-// startKEPUBRegeneration regenerates a stale KEPUB in a detached goroutine:
-// the sync request must never wait on a PDF conversion (ADR-0017).
+// startKEPUBRegeneration queues a stale KEPUB's regeneration for the workers
+// role: the sync request must never wait on a PDF conversion (ADR-0017). It
+// returns FileStatusConverting, or current when queueing failed.
 func (app *Books) startKEPUBRegeneration(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
-) {
-	convCtx := context.WithoutCancel(ctx)
-	go func() {
-		_, _ = app.Services.Conversion.EnsureKEPUB(convCtx, userID, bookID)
-	}()
+	current string,
+) string {
+	if err := app.Services.KEPUBQueue.Request(ctx, userID, bookID); err != nil {
+		app.Logger.ErrorContext(ctx, "queue kepub regeneration",
+			"book_id", bookID, "err", err)
+		return current
+	}
+	return models.FileStatusConverting
 }
 
 // buildKoboMetadata builds BookMetadata; shared by sync and the metadata

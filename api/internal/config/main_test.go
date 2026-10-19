@@ -17,6 +17,17 @@ func TestNewDefaults(t *testing.T) {
 	assert.Equal(t, config.ProdEnv, cfg.Env)
 	assert.Equal(t, 8000, cfg.Port)
 	assert.True(t, cfg.Throttle)
+	assert.Equal(t, config.RoleWeb, cfg.Role)
+}
+
+func TestNewRoleWorkers(t *testing.T) {
+	t.Setenv("ROLE", config.RoleWorkers)
+	assert.Equal(t, config.RoleWorkers, config.New(logging.NewNopLogger()).Role)
+}
+
+func TestNewPanicsOnInvalidRole(t *testing.T) {
+	t.Setenv("ROLE", "nope")
+	assert.Panics(t, func() { config.New(logging.NewNopLogger()) })
 }
 
 func TestNewPanicsOnInvalidInt(t *testing.T) {

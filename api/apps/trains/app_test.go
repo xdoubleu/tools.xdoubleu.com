@@ -311,6 +311,15 @@ func TestNewAndStart(t *testing.T) {
 	require.NoError(t, a.Start())
 }
 
+func TestStartWorkers(t *testing.T) {
+	a := trains.New(
+		sharedmocks.NewMockedAuthService(userID),
+		logging.NewNopLogger(), testhelper.NewTestConfig(), testDB,
+	)
+	require.NoError(t, a.StartWorkers())
+	require.NoError(t, a.Start())
+}
+
 func TestStaticImportJob_Metadata(t *testing.T) {
 	j := jobs.NewStaticImportJob(testApp.Services.StaticImport)
 	assert.Equal(t, "trains-static-import", j.ID())

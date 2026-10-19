@@ -38,6 +38,7 @@ type Books struct {
 	resyncBooksJob *jobs.ResyncMetadataJob
 	storageScanJob *jobs.StorageScanJob
 	figuresJob     *jobs.FigureAnalysisJob
+	kepubJob       *jobs.KEPUBConversionJob
 }
 
 func New(
@@ -131,6 +132,7 @@ func NewInner(
 		sharedrepos.NewStorageSnapshotsRepository(db),
 	)
 	a.figuresJob = jobs.NewFigureAnalysisJob(a.Services.Figures)
+	a.kepubJob = jobs.NewKEPUBConversionJob(a.Services.KEPUBQueue)
 
 	return a
 }
@@ -150,15 +152,25 @@ func (a *Books) Start() error {
 	); err != nil {
 		return err
 	}
+
+	a.Services.WebSocket.RegisterTopics(a.jobQueue.FetchJobIDs())
+	return nil
+}
+
+// StartWorkers registers the memory-heavy jobs the workers role runs instead
+// of Start's.
+func (a *Books) StartWorkers() error {
+	noop := func(_ string, _ bool, _ *time.Time) {}
 	if err := a.jobQueue.AddJob(
 		observability.NewTrackedJob(a.figuresJob, a.db),
 		noop,
 	); err != nil {
 		return err
 	}
-
-	a.Services.WebSocket.RegisterTopics(a.jobQueue.FetchJobIDs())
-	return nil
+	return a.jobQueue.AddJob(
+		observability.NewTrackedJob(a.kepubJob, a.db),
+		noop,
+	)
 }
 
 func (a *Books) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
