@@ -255,9 +255,7 @@ export default function MealPlanEntryForm({
                     }}
                     placeholder={`Item ${i + 1}`}
                     autoFocus={i === 0}
-                    className={cn(
-                      'col-span-2 min-w-0 sm:flex-1'
-                    )}
+                    className={cn('col-span-2 min-w-0 sm:flex-1')}
                   />
                   {customItems.length > 1 && (
                     <Button
