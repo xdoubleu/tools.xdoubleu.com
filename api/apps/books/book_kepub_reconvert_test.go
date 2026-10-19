@@ -277,3 +277,30 @@ func TestEnsureKEPUB_ConcurrentStaleReplacement(t *testing.T) {
 	}
 	assert.Equal(t, 1, countKEPUBRows(t, book.ID))
 }
+
+// TestKEPUBQueue_FailedConversionIsDropped: a request for a book with no
+// source file fails to convert, and is still removed so it can't clog the queue.
+func TestKEPUBQueue_FailedConversionIsDropped(t *testing.T) {
+	ctx := context.Background()
+	owner := "kepub-queue-fail-" + uuid.NewString()
+	book := addUniqueBook(t)
+	require.NoError(t, testApp.Services.KEPUBQueue.Request(ctx, owner, book.ID))
+
+	drainKEPUBQueue(t)
+
+	var queued int
+	require.NoError(t, testDB.QueryRow(ctx,
+		`SELECT count(*) FROM books.kepub_conversion_requests WHERE user_id = $1`,
+		owner,
+	).Scan(&queued))
+	assert.Zero(t, queued)
+}
+
+func TestKEPUBQueue_CancelledContextErrors(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	require.Error(t, testApp.Services.KEPUBQueue.Request(ctx, "u", uuid.New()))
+	_, err := testApp.Services.KEPUBQueue.Drain(ctx)
+	require.Error(t, err)
+}

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/logging"
 )
 
 type roleApp struct {
@@ -57,4 +58,14 @@ func TestWorkersHandlerServesOnlyHealthAndMetrics(t *testing.T) {
 	rec = httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/version", nil))
 	assert.Equal(t, http.StatusNotFound, rec.Code)
+}
+
+func TestNewApplicationWorkersRoleServesHealth(t *testing.T) {
+	cfg := testApp.config
+	cfg.Role = config.RoleWorkers
+	workers := NewApplication(logging.NewNopLogger(), cfg, testApp.db)
+
+	rec := httptest.NewRecorder()
+	workers.handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, healthPath, nil))
+	assert.Equal(t, http.StatusOK, rec.Code)
 }
