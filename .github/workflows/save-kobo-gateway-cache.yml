@@ -33,7 +33,7 @@ jobs:
     needs: check-cache
     if: needs.check-cache.outputs.cache-hit != 'true'
     name: Save kobo-gateway build cache (macOS)
-    runs-on: macos-14
+    runs-on: macos-26
     permissions:
       contents: read
     steps:
