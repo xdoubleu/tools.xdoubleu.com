@@ -56,7 +56,8 @@ write `$ROUTINE_OUTCOME_PATH` (step 9).
    - `resolve_sentry_issue(issue_id)` only on evidence the fix shipped and
      the error stopped (Sentry `lastSeen` predating `closed_at`, or the issue
      confirming it). Closure alone may mean "won't fix". Otherwise flag it
-     in the summary.
+     in the summary. Its returned `status: "resolved"` confirms the
+     resolution; don't re-list to check.
    - **Reopen** the issue, with an evidence comment (`lastSeen` vs
      `closed_at`), when its Sentry id is still unresolved and `lastSeen`
      is after `closed_at`. Fix PRs use `Refs #n` for Sentry issues until

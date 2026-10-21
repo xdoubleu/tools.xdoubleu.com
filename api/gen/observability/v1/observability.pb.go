@@ -2456,8 +2456,11 @@ func (x *ResolveSentryIssueRequest) GetIssueId() string {
 	return ""
 }
 
+// status is what Sentry reports after the update, normally "resolved".
 type ResolveSentryIssueResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	IssueId       string                 `protobuf:"bytes,1,opt,name=issue_id,json=issueId,proto3" json:"issue_id,omitempty"`
+	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2490,6 +2493,20 @@ func (x *ResolveSentryIssueResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ResolveSentryIssueResponse.ProtoReflect.Descriptor instead.
 func (*ResolveSentryIssueResponse) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *ResolveSentryIssueResponse) GetIssueId() string {
+	if x != nil {
+		return x.IssueId
+	}
+	return ""
+}
+
+func (x *ResolveSentryIssueResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
 }
 
 // SlowTransaction is one endpoint's or page's live 24h p95 and count.
@@ -4637,8 +4654,10 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\fdate_created\x18\x03 \x01(\tR\vdateCreated\x122\n" +
 	"\x05spans\x18\x04 \x03(\v2\x1c.observability.v1.SentrySpanR\x05spans\"6\n" +
 	"\x19ResolveSentryIssueRequest\x12\x19\n" +
-	"\bissue_id\x18\x01 \x01(\tR\aissueId\"\x1c\n" +
-	"\x1aResolveSentryIssueResponse\"\x9a\x01\n" +
+	"\bissue_id\x18\x01 \x01(\tR\aissueId\"O\n" +
+	"\x1aResolveSentryIssueResponse\x12\x19\n" +
+	"\bissue_id\x18\x01 \x01(\tR\aissueId\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\"\x9a\x01\n" +
 	"\x0fSlowTransaction\x12 \n" +
 	"\vtransaction\x18\x01 \x01(\tR\vtransaction\x12\x18\n" +
 	"\aproject\x18\x02 \x01(\tR\aproject\x12&\n" +

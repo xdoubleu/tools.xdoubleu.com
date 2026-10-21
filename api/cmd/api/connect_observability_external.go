@@ -397,7 +397,8 @@ func (h *obsConnectHandler) ResolveSentryIssue(
 func (h *obsConnectHandler) resolveSentryIssue(
 	ctx context.Context, issueID string,
 ) (*observabilityv1.ResolveSentryIssueResponse, error) {
-	if err := h.app.sentryClient.ResolveIssue(ctx, issueID); err != nil {
+	status, err := h.app.sentryClient.ResolveIssue(ctx, issueID)
+	if err != nil {
 		if errors.Is(err, sentryapi.ErrReauthRequired) {
 			// CodeUnauthenticated (not FailedPrecondition) makes the UI prompt a
 			// reconnect.
@@ -409,7 +410,10 @@ func (h *obsConnectHandler) resolveSentryIssue(
 		}
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	return &observabilityv1.ResolveSentryIssueResponse{}, nil
+	return &observabilityv1.ResolveSentryIssueResponse{
+		IssueId: issueID,
+		Status:  status,
+	}, nil
 }
 
 func (h *obsConnectHandler) GetSlowTransactions(

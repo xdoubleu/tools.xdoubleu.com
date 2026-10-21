@@ -624,7 +624,7 @@ func TestObservabilityResolveSentryIssue_AsAdmin(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			gotMethod = r.Method
 			gotPath = r.URL.Path
-			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"id":"42","status":"resolved"}`))
 		}))
 	t.Cleanup(srv.Close)
 	sentryapi.SetBaseURL(srv.URL)
@@ -634,8 +634,10 @@ func TestObservabilityResolveSentryIssue_AsAdmin(t *testing.T) {
 		testConfigJSON(t, map[string]any{"org": "org", "projects": []string{"proj"}}),
 	)
 
-	_, err := callResolveSentryIssue(t)
+	resp, err := callResolveSentryIssue(t)
 	require.NoError(t, err)
+	assert.Equal(t, "42", resp.GetIssueId())
+	assert.Equal(t, "resolved", resp.GetStatus())
 	assert.Equal(t, http.MethodPut, gotMethod)
 	assert.True(t, strings.HasSuffix(gotPath, "/api/0/issues/42/"))
 }

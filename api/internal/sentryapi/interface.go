@@ -19,8 +19,9 @@ var ErrReauthRequired = errors.New(
 type Client interface {
 	// ListUnresolvedIssues returns the configured projects' unresolved issues.
 	ListUnresolvedIssues(ctx context.Context) ([]Issue, error)
-	// ResolveIssue resolves an issue by Issue.ID.
-	ResolveIssue(ctx context.Context, issueID string) error
+	// ResolveIssue resolves an issue by Issue.ID and returns its resulting
+	// status ("" when Sentry's response omits it).
+	ResolveIssue(ctx context.Context, issueID string) (string, error)
 	// GetLatestEvent returns the issue's latest event with its db spans.
 	GetLatestEvent(ctx context.Context, issueID string) (Event, error)
 	// ListOrgs lists orgs for the picker; works before anything is picked.

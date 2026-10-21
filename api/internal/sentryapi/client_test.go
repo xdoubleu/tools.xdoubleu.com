@@ -268,6 +268,18 @@ func TestIsTransientAPIError_ServerError(t *testing.T) {
 	assert.True(t, sentryapi.IsTransientAPIError(err))
 }
 
+func TestIsTransientAPIError_RateLimited(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusTooManyRequests)
+		}))
+	defer cleanup()
+
+	_, err := newClient().ListUnresolvedIssues(context.Background())
+	require.Error(t, err)
+	assert.True(t, sentryapi.IsTransientAPIError(err))
+}
+
 func TestIsTransientAPIError_NonRetryable4xx(t *testing.T) {
 	cleanup := buildServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
@@ -399,12 +411,14 @@ func TestResolveIssue_SendsResolvePUT(t *testing.T) {
 			raw, _ := io.ReadAll(r.Body)
 			gotBody = string(raw)
 			authHeader = r.Header.Get("Authorization")
-			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"id":"42","status":"resolved"}`))
 		}))
 	defer cleanup()
 
-	err := newClient().ResolveIssue(context.Background(), "42")
+	status, err := newClient().ResolveIssue(context.Background(), "42")
 	require.NoError(t, err)
+	assert.Equal(t, "resolved", status)
 	assert.Equal(t, http.MethodPut, gotMethod)
 	assert.True(t, strings.HasSuffix(gotPath, "/api/0/issues/42/"))
 	assert.JSONEq(t, `{"status":"resolved"}`, gotBody)
@@ -428,7 +442,8 @@ func TestResolveIssue_InvalidatesCache(t *testing.T) {
 	c := newClient()
 	_, err := c.ListUnresolvedIssues(context.Background())
 	require.NoError(t, err)
-	require.NoError(t, c.ResolveIssue(context.Background(), "1"))
+	_, err = c.ResolveIssue(context.Background(), "1")
+	require.NoError(t, err)
 	_, err = c.ListUnresolvedIssues(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, 2, requests, "resolving must invalidate the cached list")
@@ -436,7 +451,7 @@ func TestResolveIssue_InvalidatesCache(t *testing.T) {
 
 func TestResolveIssue_NotConfigured(t *testing.T) {
 	c := sentryapi.New(logging.NewNopLogger(), stubToken("token"), configNotConnected())
-	err := c.ResolveIssue(context.Background(), "42")
+	_, err := c.ResolveIssue(context.Background(), "42")
 	require.ErrorIs(t, err, sentryapi.ErrNotConfigured)
 }
 
@@ -445,14 +460,14 @@ func TestResolveIssue_TokenNotConnected(t *testing.T) {
 	c := sentryapi.New(
 		logging.NewNopLogger(), stubNotConnected(), configWith("org", "proj"),
 	)
-	err := c.ResolveIssue(context.Background(), "42")
+	_, err := c.ResolveIssue(context.Background(), "42")
 	require.ErrorIs(t, err, sentryapi.ErrReauthRequired)
 }
 
 func TestResolveIssue_TokenError(t *testing.T) {
 	tokenErr := func(context.Context) (string, error) { return "", assert.AnError }
 	c := sentryapi.New(logging.NewNopLogger(), tokenErr, configWith("org", "proj"))
-	err := c.ResolveIssue(context.Background(), "42")
+	_, err := c.ResolveIssue(context.Background(), "42")
 	require.ErrorIs(t, err, assert.AnError)
 }
 
@@ -463,7 +478,7 @@ func TestResolveIssue_ServerError(t *testing.T) {
 		}))
 	defer cleanup()
 
-	err := newClient().ResolveIssue(context.Background(), "42")
+	_, err := newClient().ResolveIssue(context.Background(), "42")
 	require.Error(t, err)
 }
 
@@ -476,7 +491,7 @@ func TestResolveIssue_NonRetryable4xx(t *testing.T) {
 		}))
 	defer cleanup()
 
-	err := newClient().ResolveIssue(context.Background(), "42")
+	_, err := newClient().ResolveIssue(context.Background(), "42")
 	require.Error(t, err)
 	assert.Equal(t, 1, attempts)
 }
@@ -485,7 +500,7 @@ func TestResolveIssue_NetworkError(t *testing.T) {
 	sentryapi.SetBaseURL("http://127.0.0.1:1")
 	defer sentryapi.SetBaseURL(realBaseURL)
 
-	err := newClient().ResolveIssue(context.Background(), "42")
+	_, err := newClient().ResolveIssue(context.Background(), "42")
 	require.Error(t, err)
 }
 
@@ -494,7 +509,7 @@ func TestResolveIssue_NetworkError(t *testing.T) {
 func TestResolveIssue_RejectsNonNumericID(t *testing.T) {
 	c := sentryapi.New(logging.NewNopLogger(), stubToken("token"), configNotConnected())
 	for _, id := range []string{"../projects", "42?x=1", ""} {
-		err := c.ResolveIssue(context.Background(), id)
+		_, err := c.ResolveIssue(context.Background(), id)
 		require.Error(t, err)
 		assert.NotErrorIs(t, err, sentryapi.ErrNotConfigured)
 	}

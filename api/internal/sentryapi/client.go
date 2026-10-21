@@ -175,36 +175,40 @@ func (c *client) GetLatestEvent(ctx context.Context, issueID string) (Event, err
 	return w.toEvent(), nil
 }
 
-// ResolveIssue resolves issueID. The endpoint needs no org, but config is
-// checked first so an unconfigured connection fails consistently.
-func (c *client) ResolveIssue(ctx context.Context, issueID string) error {
+// ResolveIssue resolves issueID and returns the status Sentry reports back.
+// The endpoint needs no org, but config is checked first so an unconfigured
+// connection fails consistently.
+func (c *client) ResolveIssue(ctx context.Context, issueID string) (string, error) {
 	// issueID lands in the URL path; only a numeric ID keeps the PUT on it.
 	if _, err := strconv.ParseUint(issueID, 10, 64); err != nil {
-		return fmt.Errorf("invalid Sentry issue ID %q", issueID)
+		return "", fmt.Errorf("invalid Sentry issue ID %q", issueID)
 	}
 	if _, err := c.resolveConfig(ctx); err != nil {
-		return err
+		return "", err
 	}
 
 	token, err := c.tokenFn(ctx)
 	if errors.Is(err, oauthconn.ErrNotConnected) {
 		// Config exists, so a refusal here means a stale scope.
-		return ErrReauthRequired
+		return "", ErrReauthRequired
 	}
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	endpoint := fmt.Sprintf("%s/api/0/issues/%s/", baseURL, issueID)
-	if putErr := c.put(ctx, endpoint, token, resolveIssueBody); putErr != nil {
-		return putErr
+	var w struct {
+		Status string `json:"status"`
+	}
+	if putErr := c.put(ctx, endpoint, token, resolveIssueBody, &w); putErr != nil {
+		return "", putErr
 	}
 
 	// Invalidate the cached issue list.
 	c.mu.Lock()
 	c.cached = nil
 	c.mu.Unlock()
-	return nil
+	return w.Status, nil
 }
 
 func (c *client) resolveConfig(ctx context.Context) (projectsConfig, error) {
@@ -391,7 +395,8 @@ func (c *client) get(ctx context.Context, endpoint, token string, dst any) error
 	})
 }
 
-func (c *client) put(ctx context.Context, endpoint, token, body string) error {
+// put sends body and decodes the response into out.
+func (c *client) put(ctx context.Context, endpoint, token, body string, out any) error {
 	return c.doWithRetry(ctx, func() (bool, error) {
 		req, reqErr := http.NewRequestWithContext(
 			ctx, http.MethodPut, endpoint, strings.NewReader(body),
@@ -420,7 +425,9 @@ func (c *client) put(ctx context.Context, endpoint, token, body string) error {
 			return false, &apiError{status: resp.StatusCode, body: string(raw)}
 		}
 
-		_, _ = io.Copy(io.Discard, resp.Body)
+		// The write already landed, so an unreadable body only leaves out
+		// unset.
+		_ = json.NewDecoder(resp.Body).Decode(out)
 		return false, nil
 	})
 }
@@ -481,10 +488,11 @@ func isRetryableStatus(status int) bool {
 		(status >= http.StatusInternalServerError && status < 600)
 }
 
-// IsTransientAPIError reports whether err is a self-healing 5xx or timeout.
+// IsTransientAPIError reports whether err is a self-healing 5xx, 429 or
+// timeout that exhausted its retries.
 func IsTransientAPIError(err error) bool {
 	var apiErr *apiError
-	if errors.As(err, &apiErr) && apiErr.status >= http.StatusInternalServerError {
+	if errors.As(err, &apiErr) && isRetryableStatus(apiErr.status) {
 		return true
 	}
 	return isTransientErr(err)

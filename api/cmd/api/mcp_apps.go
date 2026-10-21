@@ -259,7 +259,8 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 // (split out for the function-length lint).
 func registerMutatingObservabilityMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 	addObsTool(srv, "resolve_sentry_issue",
-		"Marks a Sentry issue as resolved. One of three mutating observability "+
+		"Marks a Sentry issue as resolved and returns the status Sentry reports "+
+			"back (\"resolved\" on success). One of three mutating observability "+
 			"tools, alongside dismiss_security_alert and record_action.",
 		func(ctx context.Context, a resolveSentryIssueArgs) (proto.Message, error) {
 			return h.resolveSentryIssue(ctx, a.IssueID)

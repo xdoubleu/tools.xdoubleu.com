@@ -322,7 +322,11 @@ message ResolveSentryIssueRequest {
   string issue_id = 1;
 }
 
-message ResolveSentryIssueResponse {}
+// status is what Sentry reports after the update, normally "resolved".
+message ResolveSentryIssueResponse {
+  string issue_id = 1;
+  string status = 2;
+}
 
 // SlowTransaction is one endpoint's or page's live 24h p95 and count.
 message SlowTransaction {
