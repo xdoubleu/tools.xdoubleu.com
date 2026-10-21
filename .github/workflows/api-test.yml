@@ -29,6 +29,16 @@ jobs:
         with:
           go-version-file: './api/go.mod'
           cache-dependency-path: './api/go.sum'
+      # A transient proxy.golang.org error mid-test fails whole binaries at
+      # setup, so fetch modules up front and retry that.
+      - name: Download modules
+        working-directory: './api'
+        run: |
+          for attempt in 1 2 3; do
+            go mod download && exit 0
+            sleep $((attempt * 15))
+          done
+          exit 1
       - run: make test/cov/report
         working-directory: './api'
       # Upload only the deduped coverage.out; the pre-dedup intermediates would

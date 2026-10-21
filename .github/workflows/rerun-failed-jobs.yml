@@ -1,0 +1,37 @@
+name: Re-run failed jobs
+
+# Dispatched by red-pr-repair's callers for runs the agent judged flaky, so
+# the agent itself never holds actions: write. A run still in progress (a red
+# main run whose own job started the routine) is waited out first.
+
+permissions:
+  actions: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: The failed workflow run to re-run
+        required: true
+        type: string
+
+jobs:
+  rerun:
+    name: Re-run ${{ inputs.run_id }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      # Only a first attempt that failed qualifies, so each run gets one re-run.
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          [[ $RUN_ID =~ ^[0-9]+$ ]] || { echo "::error::run_id must be numeric"; exit 1; }
+          api="repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID"
+          until [ "$(gh api "$api" --jq .status)" = completed ]; do sleep 60; done
+          state=$(gh api "$api" --jq '"\(.run_attempt) \(.conclusion)"')
+          if [ "$state" != "1 failure" ]; then
+            echo "::notice::Not re-running $RUN_ID: attempt and conclusion are $state"
+            exit 0
+          fi
+          gh run rerun "$RUN_ID" --failed --repo "$GITHUB_REPOSITORY"

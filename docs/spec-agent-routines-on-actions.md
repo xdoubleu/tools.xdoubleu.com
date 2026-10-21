@@ -38,6 +38,10 @@ workflow:
 11. uploads the transcript encrypted,
 12. always posts a Slack notice: the recorded outcome and error, the agent's
     summary, the metrics line, and the run link.
+13. outputs the outcome's `rerun_run_ids` (flaky runs, red-pr-repair only).
+    Its callers dispatch `rerun-failed-jobs.yml` per id from a separate job
+    with `actions: write`, so the agent's job never holds it; that workflow
+    waits for the run to end and re-runs a failed first attempt once.
 
 The collector exports each routine's latest measured run as
 `automated_action_last_run{routine,metric}`; `AutomatedRoutineRunHeavy` flags a

@@ -25,8 +25,26 @@ jobs:
         For each, check out the PR's existing branch (never start-task),
         diagnose from the failing job's logs, and do exactly one of: (a) ci-pass
         "Timed out waiting for Codecov to report" → push a trivial non-empty
-        commit, never re-run the check; (b) a determinable fix → fix, verify
-        locally (including after any merge-conflict resolution), push; (c)
-        otherwise leave the PR open and post a gh pr comment explaining what
-        was investigated and why — never close or abandon it. Never merge.
-        Write the outcome file only once every push has landed.
+        commit, never re-run the check; (b) a transient infrastructure flake
+        → list the run id in the outcome file's rerun_run_ids; (c) a
+        determinable fix → fix, verify locally (including after any
+        merge-conflict resolution), push; (d) otherwise leave the PR open and
+        post a gh pr comment explaining what was investigated and why — never
+        close or abandon it. Never merge. Write the outcome file only once
+        every push has landed.
+
+  rerun:
+    needs: red-pr-repair
+    if: always() && needs.red-pr-repair.outputs.rerun_run_ids != ''
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          RUNS: ${{ needs.red-pr-repair.outputs.rerun_run_ids }}
+        run: |
+          for id in $RUNS; do
+            gh workflow run rerun-failed-jobs.yml --repo "$GITHUB_REPOSITORY" \
+              --ref main -f run_id="$id"
+          done

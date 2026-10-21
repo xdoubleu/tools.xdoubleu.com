@@ -30,6 +30,12 @@ on:
         required: false
         type: boolean
         default: false
+    outputs:
+      rerun_run_ids:
+        description: >-
+          Space-separated failed run ids the agent judged flaky, for the
+          caller to hand to rerun-failed-jobs.yml
+        value: ${{ jobs.run.outputs.rerun_run_ids }}
 
 env:
   OPENCODE_VERSION: 2.0.18
@@ -40,6 +46,8 @@ jobs:
     name: ${{ inputs.routine }}
     runs-on: ubuntu-latest
     environment: agents
+    outputs:
+      rerun_run_ids: ${{ steps.outcome.outputs.reruns }}
     timeout-minutes: 75
     concurrency:
       group: agent-routine-${{ inputs.routine }}
@@ -316,7 +324,7 @@ jobs:
           AGENT: ${{ steps.agent.outcome }}
           OUTCOME_PATH: ${{ runner.temp }}/outcome.json
         run: |
-          outcome=failed pr_url="" error="agent step ${AGENT:-not run}"
+          outcome=failed pr_url="" error="agent step ${AGENT:-not run}" reruns=""
           if [ "$AGENT" = "success" ]; then
             error="agent wrote no valid outcome file"
             if jq -e '.outcome | IN("succeeded", "failed", "no_action_needed")' \
@@ -324,10 +332,13 @@ jobs:
               outcome=$(jq -r .outcome "$OUTCOME_PATH")
               pr_url=$(jq -r '.pr_url // ""' "$OUTCOME_PATH")
               error=$(jq -r '.error // ""' "$OUTCOME_PATH")
+              reruns=$(jq -r '[.rerun_run_ids // [] | .[] | tostring
+                | select(test("^[0-9]+$"))][:3] | join(" ")' "$OUTCOME_PATH")
             fi
           fi
           {
             echo "outcome=$outcome"
+            echo "reruns=$reruns"
             echo "pr_url=$(head -n 1 <<<"$pr_url")"
             echo "error=$(printf '%s' "$error" | tr '\n' ' ' | head -c 500)"
           } >> "$GITHUB_OUTPUT"
