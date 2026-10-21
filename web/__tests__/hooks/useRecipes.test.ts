@@ -29,6 +29,7 @@ import {
 } from '@/lib/recipes/offlineWrites'
 import {
   useRecipes,
+  useAllRecipes,
   useRecipe,
   useCreateRecipe,
   useUpdateRecipe,
@@ -48,6 +49,35 @@ describe('useRecipes', () => {
   it('uses /recipes as key', () => {
     renderHook(() => useRecipes())
     expect(mockUseSWR).toHaveBeenCalledWith('/recipes', expect.any(Function))
+  })
+})
+
+function isFetcher(fn: unknown): fn is () => Promise<unknown> {
+  return typeof fn === 'function'
+}
+
+function swrFetcher() {
+  const fn: unknown = mockUseSWR.mock.calls[0][1]
+  if (!isFetcher(fn)) throw new Error('useSWR was called without a fetcher')
+  return fn
+}
+
+describe('useAllRecipes', () => {
+  it('pages through every recipe until hasMore is false', async () => {
+    mockClient.listRecipes
+      .mockResolvedValueOnce({ recipes: [{ id: 'r-1' }, { id: 'r-2' }], hasMore: true })
+      .mockResolvedValueOnce({ recipes: [{ id: 'r-3' }], hasMore: false })
+    renderHook(() => useAllRecipes())
+    expect(mockUseSWR).toHaveBeenCalledWith('/recipes?all', expect.any(Function))
+    await expect(swrFetcher()()).resolves.toEqual([{ id: 'r-1' }, { id: 'r-2' }, { id: 'r-3' }])
+    expect(mockClient.listRecipes).toHaveBeenNthCalledWith(1, { limit: 200, offset: 0 })
+    expect(mockClient.listRecipes).toHaveBeenNthCalledWith(2, { limit: 200, offset: 2 })
+  })
+
+  it('stops on an empty page even if hasMore is set', async () => {
+    mockClient.listRecipes.mockResolvedValueOnce({ recipes: [], hasMore: true })
+    renderHook(() => useAllRecipes())
+    await expect(swrFetcher()()).resolves.toEqual([])
   })
 })
 

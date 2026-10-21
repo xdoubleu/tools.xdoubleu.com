@@ -85,6 +85,7 @@ export const swrKeys = {
     `/mealplans/${planId}/suggest?d=${mealDate}&s=${mealSlot}`,
 
   recipes: '/recipes',
+  allRecipes: '/recipes?all',
   recipe: (id: string, servings?: number) =>
     servings ? `/recipes/${id}?servings=${servings}` : `/recipes/${id}`,
 

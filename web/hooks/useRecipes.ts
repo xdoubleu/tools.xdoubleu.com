@@ -9,7 +9,11 @@ import {
   UpdateRecipeRequestSchema,
   DeleteRecipeRequestSchema
 } from '@/lib/gen/recipes/v1/recipes_pb'
-import type { ListRecipesResponse, GetRecipeResponse } from '@/lib/gen/recipes/v1/recipes_pb'
+import type {
+  ListRecipesResponse,
+  GetRecipeResponse,
+  Recipe
+} from '@/lib/gen/recipes/v1/recipes_pb'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 import { enqueueWrite, flushOutbox, sendWrite } from '@/lib/offline/outbox'
 import {
@@ -27,6 +31,22 @@ export function useRecipes() {
   return useSWR<ListRecipesResponse, Error>(swrKeys.recipes, () =>
     client.listRecipes({ limit: DEFAULT_PAGE_SIZE })
   )
+}
+
+// Server-side cap on ListRecipes' limit.
+const MAX_PAGE_SIZE = 200
+
+/** Every recipe in the family, for pickers and lookups that can't page. */
+export function useAllRecipes() {
+  const client = createServiceClient(RecipesService)
+  return useSWR<Recipe[], Error>(swrKeys.allRecipes, async () => {
+    const all: Recipe[] = []
+    for (;;) {
+      const page = await client.listRecipes({ limit: MAX_PAGE_SIZE, offset: all.length })
+      all.push(...page.recipes)
+      if (!page.hasMore || page.recipes.length === 0) return all
+    }
+  })
 }
 
 export function useFetchRecipesPage() {

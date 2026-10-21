@@ -10,7 +10,7 @@ vi.mock('@/hooks/useMealPlans', () => ({
 }))
 
 vi.mock('@/hooks/useRecipes', () => ({
-  useRecipes: vi.fn()
+  useAllRecipes: vi.fn()
 }))
 
 vi.mock('@/hooks/navigation', () => ({
@@ -29,11 +29,11 @@ vi.mock('@/lib/env', () => ({ getApiUrl: () => 'http://localhost' }))
 
 import MealPlanClient from '@/app/mealplans/[id]/MealPlanClient'
 import { useMealPlan } from '@/hooks/useMealPlans'
-import { useRecipes } from '@/hooks/useRecipes'
+import { useAllRecipes } from '@/hooks/useRecipes'
 import { useRouter } from '@/hooks/navigation'
 import { create } from '@bufbuild/protobuf'
 import { PlanSchema, GetPlanResponseSchema } from '@/lib/gen/mealplans/v1/mealplans_pb'
-import { RecipeSchema, ListRecipesResponseSchema } from '@/lib/gen/recipes/v1/recipes_pb'
+import { RecipeSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 
 const mockRouter = { push: vi.fn() }
 const mockPlan = create(PlanSchema, {
@@ -63,8 +63,8 @@ beforeEach(() => {
     isLoading: false
   })
   // @ts-expect-error -- mock returns partial SWRResponse for test purposes
-  vi.mocked(useRecipes).mockReturnValue({
-    data: create(ListRecipesResponseSchema, { recipes: mockRecipes }),
+  vi.mocked(useAllRecipes).mockReturnValue({
+    data: mockRecipes,
     error: undefined,
     isLoading: false
   })
@@ -86,10 +86,10 @@ describe('MealPlanClient', () => {
     expect(screen.getByTestId('meal-plan-calendar')).toBeInTheDocument()
   })
 
-  it('passes all recipes from useRecipes to MealPlanCalendar', async () => {
+  it('passes all recipes from useAllRecipes to MealPlanCalendar', async () => {
     render(<MealPlanClient id="plan-1" />)
     await waitFor(() => {
-      expect(useRecipes).toHaveBeenCalled()
+      expect(useAllRecipes).toHaveBeenCalled()
     })
   })
 

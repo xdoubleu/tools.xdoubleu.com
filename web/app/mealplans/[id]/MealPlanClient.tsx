@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { getApiUrl } from '@/lib/env'
 import { useMealPlan } from '@/hooks/useMealPlans'
-import { useRecipes } from '@/hooks/useRecipes'
+import { useAllRecipes } from '@/hooks/useRecipes'
 import MealPlanCalendar from '@/components/mealplans/MealPlanCalendar'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
@@ -11,7 +11,7 @@ import { ErrorState, LoadingState } from '@/components/ui/states'
 export default function MealPlanClient({ id }: { id: string }) {
   const [offset, setOffset] = useState(0)
   const { data, error, isLoading, mutate } = useMealPlan(id, offset)
-  const { data: recipesData } = useRecipes()
+  const { data: recipesData } = useAllRecipes()
 
   const [icalCopied, setIcalCopied] = useState(false)
 
@@ -25,7 +25,7 @@ export default function MealPlanClient({ id }: { id: string }) {
   }
 
   const plan = data?.plan
-  const recipes = recipesData?.recipes ?? []
+  const recipes = recipesData ?? []
 
   return (
     <PageContainer>
