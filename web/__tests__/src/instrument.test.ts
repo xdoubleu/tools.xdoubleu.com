@@ -3,9 +3,10 @@ const { mockSentryInit, mockPostHogInit } = vi.hoisted(() => ({
   mockPostHogInit: vi.fn()
 }))
 
-vi.mock('@sentry/react', () => ({
-  init: mockSentryInit,
-  browserTracingIntegration: vi.fn(() => ({ name: 'BrowserTracing' }))
+vi.mock('@sentry/react', () => ({ init: mockSentryInit }))
+
+vi.mock('@sentry/react/react-router', () => ({
+  reactRouterBrowserTracingIntegration: vi.fn(() => ({ name: 'BrowserTracing' }))
 }))
 
 vi.mock('posthog-js', () => ({
@@ -33,6 +34,14 @@ describe('instrument', () => {
 
     expect(mockSentryInit).toHaveBeenCalledWith(
       expect.objectContaining({ dsn: 'https://example@sentry.io/123', release: 'v1.0.0' })
+    )
+  })
+
+  it('names transactions by route', async () => {
+    await import('@/src/instrument')
+
+    expect(mockSentryInit).toHaveBeenCalledWith(
+      expect.objectContaining({ integrations: [{ name: 'BrowserTracing' }] })
     )
   })
 

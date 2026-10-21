@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react'
+import { reactRouterBrowserTracingIntegration } from '@sentry/react/react-router'
 import posthog from 'posthog-js'
 import { getSentryDsn, getRelease, getPostHogKey, getPostHogHost } from '@/lib/env'
 import { scrubPostHogEvent } from '@/lib/scrubUrl'
@@ -6,7 +7,8 @@ import { scrubPostHogEvent } from '@/lib/scrubUrl'
 Sentry.init({
   dsn: getSentryDsn(),
   release: getRelease(),
-  integrations: [Sentry.browserTracingIntegration()],
+  // Names pageload/navigation transactions by route (e.g. /books/:id/read).
+  integrations: [reactRouterBrowserTracingIntegration()],
   tracesSampleRate: 1.0,
   // v11 defaults to collecting everything; keep the restrictive v10 baseline.
   dataCollection: {

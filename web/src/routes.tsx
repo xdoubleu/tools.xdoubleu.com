@@ -1,3 +1,4 @@
+import { wrapCreateBrowserRouter } from '@sentry/react'
 import { createBrowserRouter, type RouteObject } from 'react-router'
 import { PageLoading } from '@/components/ui/PageLoading'
 import RootLayout from './RootLayout'
@@ -22,7 +23,7 @@ export function pageRoutes(modules: Record<string, () => Promise<PageModule>>): 
   }))
 }
 
-export const router = createBrowserRouter([
+export const router = wrapCreateBrowserRouter(createBrowserRouter)([
   {
     Component: RootLayout,
     // Shown while the first page's chunk loads.
