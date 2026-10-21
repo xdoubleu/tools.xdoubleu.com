@@ -271,7 +271,7 @@ func (s *RecommendService) HitRates(
 	if err != nil {
 		return nil, err
 	}
-	order := map[consumption.Domain]int{}
+	order := make(map[consumption.Domain]int, len(consumption.Domains()))
 	for i, d := range consumption.Domains() {
 		order[d] = i
 	}

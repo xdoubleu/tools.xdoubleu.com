@@ -78,8 +78,8 @@ func creators(e consumption.Event) []string {
 }
 
 func domainStats(events []consumption.Event) []DomainStats {
-	byDomain := map[consumption.Domain]*DomainStats{}
 	out := make([]DomainStats, 0, len(consumption.Domains()))
+	byDomain := make(map[consumption.Domain]*DomainStats, len(consumption.Domains()))
 	for _, d := range consumption.Domains() {
 		out = append(out, DomainStats{Domain: d}) //nolint:exhaustruct // counted below
 	}
@@ -114,7 +114,7 @@ func monthCounts(events []consumption.Event, now time.Time) []MonthCounts {
 	index := map[string]int{}
 	for i := range out {
 		key := first.AddDate(0, i, 0).Format("2006-01")
-		out[i] = MonthCounts{Month: key, Counts: map[consumption.Domain]int{}}
+		out[i] = MonthCounts{Month: key, Counts: make(map[consumption.Domain]int)}
 		index[key] = i
 	}
 	for _, e := range events {
@@ -155,7 +155,7 @@ func rank(
 			t, ok := tallies[key]
 			if !ok {
 				t = &tally{
-					positive: 0, domains: map[consumption.Domain]bool{},
+					positive: 0, domains: make(map[consumption.Domain]bool),
 					spellings: map[string]int{},
 				}
 				tallies[key] = t

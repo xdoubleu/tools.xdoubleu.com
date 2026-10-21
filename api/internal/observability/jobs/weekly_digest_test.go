@@ -204,7 +204,7 @@ func TestWeeklyDigestSkipsSendWhenAllSourcesDisabled(t *testing.T) {
 	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notifSvc := testNotifications(t, mail)
 	settings := disabledSourceSettings{
-		enabled: map[repositories.NotificationSource]bool{},
+		enabled: make(map[repositories.NotificationSource]bool),
 	}
 
 	job := jobs.NewWeeklyDigestJob(
