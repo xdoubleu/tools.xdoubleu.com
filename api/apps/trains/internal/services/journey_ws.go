@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
+	"time"
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
 	"tools.xdoubleu.com/internal/communication/wstools"
@@ -33,9 +34,16 @@ func (d journeySubscribeDto) Validate() (bool, map[string]string) {
 	return true, map[string]string{}
 }
 
+// pushInterval is how often watched journeys are re-fetched from iRail.
+const pushInterval = 30 * time.Second
+
+// topicGrace is how long a journey's topic outlives its arrival time.
+const topicGrace = time.Hour
+
 // JourneyWSService serves a lazily-created wstools topic per live journey:
-// GetJourneyDetail calls EnsureTopic, and PushAll broadcasts after each
-// realtime poll. Topics are never removed until the process restarts.
+// GetJourneyDetail calls EnsureTopic, and Run broadcasts fresh detail on a
+// timer. A topic is dropped once its journey has ended, so only journeys that
+// can still change are polled.
 type JourneyWSService struct {
 	logger         *slog.Logger
 	detail         journeyDetailFetcher
@@ -94,8 +102,24 @@ func (s *JourneyWSService) EnsureTopic(journeyID string) {
 	s.topics[journeyID] = topic
 }
 
-// PushAll broadcasts fresh detail to every journey topic.
+// Run pushes on every tick until ctx is done.
+func (s *JourneyWSService) Run(ctx context.Context) {
+	ticker := time.NewTicker(pushInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.PushAll(ctx)
+		}
+	}
+}
+
+// PushAll broadcasts fresh detail to every journey topic, first dropping the
+// topics of journeys that ended more than topicGrace ago.
 func (s *JourneyWSService) PushAll(ctx context.Context) {
+	s.dropEnded()
 	s.mu.RLock()
 	topics := make([]*wstools.Topic, 0, len(s.topics))
 	for _, t := range s.topics {
@@ -113,5 +137,20 @@ func (s *JourneyWSService) PushAll(ctx context.Context) {
 			continue
 		}
 		t.EnqueueEvent(detail)
+	}
+}
+
+func (s *JourneyWSService) dropEnded() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for id, topic := range s.topics {
+		refs, err := DecodeJourneyID(id)
+		if err != nil || time.Since(refs[len(refs)-1].AlightTime) < topicGrace {
+			continue
+		}
+		if rmErr := s.handler.RemoveTopic(topic); rmErr != nil {
+			s.logger.Warn("trains: failed to remove journey topic", "error", rmErr)
+		}
+		delete(s.topics, id)
 	}
 }

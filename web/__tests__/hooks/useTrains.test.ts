@@ -2,7 +2,6 @@ import { renderHook } from '@testing-library/react'
 
 vi.mock('swr', () => ({ __esModule: true, default: vi.fn() }))
 const mockClient = {
-  getFeedInfo: vi.fn().mockResolvedValue({ feedVersion: '2026-08-31' }),
   searchStations: vi.fn().mockResolvedValue({ stations: [{ stopId: 'SA', name: 'Alpha' }] }),
   searchJourneys: vi.fn().mockResolvedValue({ journeys: [] }),
   getJourneyDetail: vi.fn().mockResolvedValue({ journey: { legs: [] } }),
@@ -19,7 +18,6 @@ vi.mock('@/lib/gen/trains/v1/trains_pb', () => ({
 
 import useSWR from 'swr'
 import {
-  useTrainsFeedInfo,
   useStationSearch,
   useJourneySearch,
   useJourneyDetail,
@@ -32,13 +30,6 @@ beforeEach(() => {
   // @ts-expect-error -- mock returns partial SWRResponse for test purposes
   mockUseSWR.mockReturnValue({ data: undefined, isLoading: false, error: undefined })
   mockUseSWR.mockClear()
-})
-
-describe('useTrainsFeedInfo', () => {
-  it('uses the feed-info key', () => {
-    renderHook(() => useTrainsFeedInfo())
-    expect(mockUseSWR).toHaveBeenCalledWith('/trains/feed-info', expect.any(Function))
-  })
 })
 
 describe('useStationSearch', () => {

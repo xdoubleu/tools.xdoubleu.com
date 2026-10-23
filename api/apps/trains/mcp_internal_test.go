@@ -21,20 +21,15 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// TestMCPTools exercises the tool wrappers against an app with the sample
-// feed imported.
+// TestMCPTools exercises the tool wrappers over the recorded iRail responses.
 func TestMCPTools(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
-	cfg.BMCPartnerKey = "test-key"
 	var pg postgres.DB = testhelper.ConnectTestDB(cfg.DBDsn)
 
 	const mcpUserID = "mcp-trains-user"
 	app := NewInner(
 		sharedmocks.NewMockedAuthService(mcpUserID),
-		logging.NewNopLogger(),
-		cfg,
-		pg,
-		mocks.NewMockBMCClient(mocks.BuildFeedZip(mocks.SampleFeedFiles())),
+		logging.NewNopLogger(), cfg, pg, mocks.NewFixtureClient(t),
 	)
 
 	ctx := context.WithValue(
@@ -43,35 +38,25 @@ func TestMCPTools(t *testing.T) {
 		//nolint:exhaustruct // only ID and AppAccess matter for the gate
 		sharedmodels.User{ID: mcpUserID, AppAccess: []string{mcpAppName}},
 	)
-	require.NoError(t, app.Services.StaticImport.Import(ctx))
-	require.NoError(t, app.Services.Journey.RefreshOnly(ctx))
-
 	h := &trainsConnectHandler{app: app}
 
-	msg, err := h.mcpSearchStations(ctx, mcpSearchStationsArgs{Query: "brussel"})
+	msg, err := h.mcpSearchStations(ctx, mcpSearchStationsArgs{Query: "brussel-noord"})
 	require.NoError(t, err)
-	assert.Contains(t, mcpJSON(t, msg), "Brussel-Zuid",
-		"the tool reports every language's name, not just the feed's primary one")
+	assert.Contains(t, mcpJSON(t, msg), "Bruxelles-Nord",
+		"the tool reports every language's name")
 
-	msg, err = h.mcpGetFeedInfo(ctx, mcptools.NoArgs{})
-	require.NoError(t, err)
-	assert.Contains(t, mcpJSON(t, msg), "importedAt",
-		"a stale import is only visible through imported_at")
-
-	//nolint:exhaustruct // an unknown origin exercises the empty-result path
-	_, err = h.mcpSearchJourneys(ctx, mcpSearchJourneysArgs{
-		OriginStopID:      "gs:nmbssncb:S8814001",
-		DestinationStopID: "gs:nmbssncb:S8892007",
+	//nolint:exhaustruct // time defaults to now
+	msg, err = h.mcpSearchJourneys(ctx, mcpSearchJourneysArgs{
+		OriginStopID:      "008812005",
+		DestinationStopID: "008841004",
 	})
 	require.NoError(t, err)
+	assert.Contains(t, mcpJSON(t, msg), "journeyId")
 
-	// No realtime poll: detail renders with every stop DelayUnknown, not an error.
+	t0 := time.Now().UTC()
 	journeyID := services.EncodeJourneyID([]services.LegRef{{
-		TripShortName: "IC1234",
-		BoardStopID:   "gs:nmbssncb:S8814001",
-		BoardTime:     time.Now().UTC().Add(time.Hour),
-		AlightStopID:  "gs:nmbssncb:S8892007",
-		AlightTime:    time.Now().UTC().Add(2 * time.Hour),
+		VehicleID: "BE.NMBS.IC530", BoardStopID: "008841004", BoardTime: t0,
+		AlightStopID: "008812005", AlightTime: t0.Add(time.Hour),
 	}})
 	msg, err = h.mcpGetJourneyDetail(ctx, mcpGetJourneyDetailArgs{JourneyID: journeyID})
 	require.NoError(t, err)
@@ -82,12 +67,40 @@ func TestMCPTools(t *testing.T) {
 		mcpGetJourneyDetailArgs{JourneyID: "!!not-valid!!"},
 	)
 	require.Error(t, err)
+}
 
-	// Before any poll the snapshot is empty, and says so.
-	msg, err = h.mcpGetRealtimeTrip(ctx, mcpGetRealtimeTripArgs{TripShortName: "IC1234"})
+func TestMCPIrailDiagnostic(t *testing.T) {
+	cfg := testhelper.NewTestConfig()
+	app := NewInner(
+		sharedmocks.NewMockedAuthService("diag"), logging.NewNopLogger(), cfg,
+		testhelper.ConnectTestDB(cfg.DBDsn), mocks.NewFixtureClient(t),
+	)
+
+	//nolint:exhaustruct //no vehicle: summary only
+	msg, err := app.mcpIrailDiagnostic(context.Background(), mcpIrailDiagnosticArgs{})
 	require.NoError(t, err)
-	assert.NotContains(t, mcpJSON(t, msg), "fetchedAt",
-		"no poll yet: fetched_at stays empty")
+	out := mcpJSON(t, msg)
+	assert.Contains(t, out, "rate_limited")
+	assert.NotContains(t, out, "vehicle")
+
+	msg, err = app.mcpIrailDiagnostic(context.Background(), mcpIrailDiagnosticArgs{
+		VehicleID: "IC530", Date: "2026-10-23",
+	})
+	require.NoError(t, err)
+	out = mcpJSON(t, msg)
+	assert.Contains(t, out, "BE.NMBS.IC530")
+	assert.Contains(t, out, "Welkenraedt", "the raw iRail response is included")
+
+	msg, err = app.mcpIrailDiagnostic(context.Background(), mcpIrailDiagnosticArgs{
+		VehicleID: "IC1", Date: "2026-10-23",
+	})
+	require.NoError(t, err)
+	assert.Contains(t, mcpJSON(t, msg), "not found")
+
+	_, err = app.mcpIrailDiagnostic(context.Background(), mcpIrailDiagnosticArgs{
+		VehicleID: "IC530", Date: "yesterday",
+	})
+	require.Error(t, err)
 }
 
 // TestMCPTools_RequireAppAccess rejects a caller without trains access.

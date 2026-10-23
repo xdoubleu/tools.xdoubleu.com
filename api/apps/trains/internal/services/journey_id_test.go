@@ -15,18 +15,18 @@ func TestEncodeDecodeJourneyID_RoundTrips(t *testing.T) {
 	alightTime := boardTime.Add(30 * time.Minute)
 	legs := []services.LegRef{
 		{
-			TripShortName: "IC123",
-			BoardStopID:   "A1",
-			BoardTime:     boardTime,
-			AlightStopID:  "B1",
-			AlightTime:    alightTime,
+			VehicleID:    "BE.NMBS.IC123",
+			BoardStopID:  "A1",
+			BoardTime:    boardTime,
+			AlightStopID: "B1",
+			AlightTime:   alightTime,
 		},
 		{
-			TripShortName: "IC456",
-			BoardStopID:   "B1",
-			BoardTime:     alightTime,
-			AlightStopID:  "C1",
-			AlightTime:    alightTime.Add(20 * time.Minute),
+			VehicleID:    "BE.NMBS.IC456",
+			BoardStopID:  "B1",
+			BoardTime:    alightTime,
+			AlightStopID: "C1",
+			AlightTime:   alightTime.Add(20 * time.Minute),
 		},
 	}
 
@@ -36,9 +36,9 @@ func TestEncodeDecodeJourneyID_RoundTrips(t *testing.T) {
 	decoded, err := services.DecodeJourneyID(id)
 	require.NoError(t, err)
 	require.Len(t, decoded, 2)
-	assert.Equal(t, "IC123", decoded[0].TripShortName)
+	assert.Equal(t, "BE.NMBS.IC123", decoded[0].VehicleID)
 	assert.True(t, boardTime.Equal(decoded[0].BoardTime))
-	assert.Equal(t, "IC456", decoded[1].TripShortName)
+	assert.Equal(t, "BE.NMBS.IC456", decoded[1].VehicleID)
 }
 
 func TestDecodeJourneyID_RejectsGarbage(t *testing.T) {
@@ -55,5 +55,25 @@ func TestDecodeJourneyID_RejectsValidBase64NonJourneyPayload(t *testing.T) {
 func TestDecodeJourneyID_RejectsEmptyLegList(t *testing.T) {
 	id := services.EncodeJourneyID(nil)
 	_, err := services.DecodeJourneyID(id)
+	require.ErrorIs(t, err, services.ErrInvalidJourneyID)
+}
+
+func TestDecodeJourneyID_RejectsForeignVehicleAndTooManyLegs(t *testing.T) {
+	//nolint:exhaustruct //times are irrelevant to the rejection
+	_, err := services.DecodeJourneyID(services.EncodeJourneyID([]services.LegRef{
+		{VehicleID: "../evil", BoardStopID: "1", AlightStopID: "2"},
+	}))
+	require.ErrorIs(t, err, services.ErrInvalidJourneyID)
+
+	legs := make([]services.LegRef, 9)
+	for i := range legs {
+		//nolint:exhaustruct //times are irrelevant to the rejection
+		legs[i] = services.LegRef{
+			VehicleID:    "BE.NMBS.IC1",
+			BoardStopID:  "1",
+			AlightStopID: "2",
+		}
+	}
+	_, err = services.DecodeJourneyID(services.EncodeJourneyID(legs))
 	require.ErrorIs(t, err, services.ErrInvalidJourneyID)
 }

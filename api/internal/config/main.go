@@ -71,11 +71,6 @@ type Config struct {
 	OpenRouterAPIKey    string
 	TasteGeneratorModel string
 
-	// BMCHost is the Belgian Mobility Company APIM host for the GTFS feeds (kept
-	// as config: the host spelling has changed). BMCPartnerKey is sent as the
-	// bmc-partner-key header.
-	BMCHost       string
-	BMCPartnerKey string
 	R2AccountID   string
 	R2AccessKeyID string
 	R2SecretKey   string
@@ -311,11 +306,6 @@ func New(logger *slog.Logger) Config {
 	cfg.TasteGeneratorModel = p.envStr(
 		"TASTE_GENERATOR_MODEL", "mistralai/mistral-medium-3-5",
 	)
-
-	cfg.BMCHost = p.envStr(
-		"BMC_HOST", "api-management-opendata-production.azure-api.net",
-	)
-	cfg.BMCPartnerKey = p.envSecret("BMC_PARTNER_KEY", "")
 
 	cfg.R2AccountID = p.envStr("R2_ACCOUNT_ID", "")
 	cfg.R2AccessKeyID = p.envSecret("R2_ACCESS_KEY_ID", "")

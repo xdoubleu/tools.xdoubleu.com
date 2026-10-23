@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { TogglePill } from '@/components/ui/toggle-pill'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
-import { useJourneySearch, useSavedCommutes, useTrainsFeedInfo } from '@/hooks/useTrains'
+import { useJourneySearch, useSavedCommutes } from '@/hooks/useTrains'
 
 function nowParts(): { date: string; time: string } {
   const now = new Date()
@@ -38,7 +38,6 @@ export default function TrainsClient() {
   const [time, setTime] = useState(initial.time)
   const [arriveBy, setArriveBy] = useState(false)
 
-  const { data: feedInfo } = useTrainsFeedInfo()
   const { data: savedCommutes, create: createCommute, remove: removeCommute } = useSavedCommutes()
   const requestTime = toRfc3339(date, time)
 
@@ -152,7 +151,6 @@ export default function TrainsClient() {
           ready={originStopId !== '' && destStopId !== ''}
           isLoading={isLoading}
           error={error}
-          feedImported={feedInfo ? feedInfo.feedVersion !== '' : true}
           journeys={journeysData?.journeys ?? []}
         />
       </div>

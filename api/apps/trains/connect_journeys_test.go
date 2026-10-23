@@ -2,126 +2,92 @@ package trains_test
 
 import (
 	"context"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect/v2"
-	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
-	"tools.xdoubleu.com/gen/trains/v1/trainsv1connect"
 )
 
-func newTrainsTestClient(t *testing.T) trainsv1connect.TrainServiceClient {
-	t.Helper()
-	ts := httptest.NewServer(getTrainsRoutes())
-	t.Cleanup(ts.Close)
-	return trainsv1connect.NewTrainServiceClient(
-		connect.NewClient(connecthttp.NewTransport(
-			http.DefaultClient,
-			ts.URL,
-			connecthttp.WithReadMaxBytes(0),
-			connecthttp.WithHTTPGet(),
-		)),
-	)
-}
+const (
+	brusselsNorth = "008812005"
+	liege         = "008841004"
+)
 
-func getTrainsRoutes() http.Handler {
-	mux := http.NewServeMux()
-	testApp.Routes(testApp.GetName(), mux)
-	return mux
-}
+func TestSearchStations_Handler(t *testing.T) {
+	client := newTrainsTestClient(t)
 
-// TestSearchJourneys_Handler_UnknownStop covers csa.ErrUnknownStop ->
-// CodeNotFound over real HTTP.
-func TestSearchJourneys_Handler_UnknownStop(t *testing.T) {
-	ctx := context.Background()
-	// Warm the router, else SearchJourneys returns CodeUnavailable.
-	_, err := testApp.Services.Journey.RefreshWindow(
-		ctx, time.Now().UTC().Truncate(24*time.Hour),
+	resp, err := client.SearchStations(
+		context.Background(), &trainsv1.SearchStationsRequest{Query: "bruxelles-nord"},
 	)
 	require.NoError(t, err)
-
-	client := newTrainsTestClient(t)
-	req := &trainsv1.SearchJourneysRequest{
-		OriginStopId:      "does-not-exist",
-		DestinationStopId: "also-not-real",
-	}
-
-	_, err = client.SearchJourneys(ctx, req)
-	require.Error(t, err)
-	var connErr *connect.Error
-	require.ErrorAs(t, err, &connErr)
-	assert.Equal(t, connect.CodeNotFound, connErr.Code())
+	require.NotEmpty(t, resp.GetStations())
+	st := resp.GetStations()[0]
+	assert.Equal(t, brusselsNorth, st.GetStopId())
+	assert.Equal(t, "Brussel-Noord", st.GetNameNl())
+	assert.Equal(t, "Bruxelles-Nord", st.GetNameFr())
+	assert.Equal(t, "Brussels-North", st.GetNameEn())
+	assert.Equal(t, "Bruxelles-Nord / Brussel-Noord / Brussels-North", st.GetDisplayName())
 }
 
-// TestSearchJourneys_Handler_InvalidTime covers a non-RFC3339 time.
+func TestSearchJourneys_Handler_UnknownStation(t *testing.T) {
+	client := newTrainsTestClient(t)
+	_, err := client.SearchJourneys(context.Background(), &trainsv1.SearchJourneysRequest{
+		OriginStopId: "does-not-exist", DestinationStopId: liege,
+	})
+	assert.Equal(t, connect.CodeNotFound, connectCode(t, err))
+}
+
 func TestSearchJourneys_Handler_InvalidTime(t *testing.T) {
 	client := newTrainsTestClient(t)
-	req := &trainsv1.SearchJourneysRequest{
-		OriginStopId:      "SA",
-		DestinationStopId: "SB",
-		Time:              "not-a-timestamp",
-	}
-
-	_, err := client.SearchJourneys(context.Background(), req)
-	require.Error(t, err)
-	var connErr *connect.Error
-	require.ErrorAs(t, err, &connErr)
-	assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
+	_, err := client.SearchJourneys(context.Background(), &trainsv1.SearchJourneysRequest{
+		OriginStopId: brusselsNorth, DestinationStopId: liege, Time: "not-a-timestamp",
+	})
+	assert.Equal(t, connect.CodeInvalidArgument, connectCode(t, err))
 }
 
-// TestSearchJourneys_Handler_Success checks protoJourney mapping end-to-end.
-func TestSearchJourneys_Handler_Success(t *testing.T) {
+// TestJourneySearchToDetail follows a searched journey into its live detail,
+// the path the /trains pages take.
+func TestJourneySearchToDetail(t *testing.T) {
 	ctx := context.Background()
-	windowStart := time.Now().UTC().Truncate(24 * time.Hour)
-
-	require.NoError(
-		t,
-		testApp.Repositories.Feed.ImportFeed(ctx, journeyFeed(windowStart)),
-	)
-	_, refreshErr := testApp.Services.Journey.RefreshWindow(ctx, windowStart)
-	require.NoError(t, refreshErr)
-
 	client := newTrainsTestClient(t)
-	// SA->SC needs the same-station transfer at Bravo from journey_test.go.
-	when := windowStart.Add(8*time.Hour + 55*time.Minute)
-	req := &trainsv1.SearchJourneysRequest{
-		OriginStopId:      "SA",
-		DestinationStopId: "SC",
-		Time:              when.Format(time.RFC3339),
-	}
 
-	resp, err := client.SearchJourneys(ctx, req)
+	resp, err := client.SearchJourneys(ctx, &trainsv1.SearchJourneysRequest{
+		OriginStopId:      brusselsNorth,
+		DestinationStopId: liege,
+		Time:              time.Date(2026, 10, 23, 8, 0, 0, 0, time.UTC).Format(time.RFC3339),
+	})
 	require.NoError(t, err)
-	require.NotEmpty(t, resp.GetJourneys())
-	// SearchJourneys returns a window of journeys; don't assume position.
-	j := findJourneyByFirstLeg(t, resp.GetJourneys(), "200")
-	require.Len(t, j.GetLegs(), 2)
-	assert.Equal(t, int32(1), j.GetTransfers())
-	assert.Equal(t, "200", j.GetLegs()[0].GetTripShortName())
-	assert.Equal(t, "B1", j.GetLegs()[0].GetAlightStopId())
-	assert.Equal(t, "300", j.GetLegs()[1].GetTripShortName())
-	assert.Equal(t, "B2", j.GetLegs()[1].GetBoardStopId())
-	assert.NotEmpty(t, j.GetLegs()[0].GetBoardTime())
-	assert.NotEmpty(t, j.GetLegs()[1].GetAlightTime())
-	assert.NotEmpty(t, j.GetDepartureTime())
-	assert.NotEmpty(t, j.GetArrivalTime())
+	require.Len(t, resp.GetJourneys(), 6)
+
+	j := resp.GetJourneys()[0]
+	require.NotEmpty(t, j.GetLegs())
+	leg := j.GetLegs()[0]
+	assert.Equal(t, brusselsNorth, leg.GetBoardStopId())
+	assert.NotEmpty(t, leg.GetBoardTime())
+	assert.NotEmpty(t, leg.GetAlightTime())
+	assert.NotEmpty(t, j.GetJourneyId())
+	assert.Equal(t, int32(len(j.GetLegs())-1), j.GetTransfers())
+
+	// The recorded responses only cover train IC 530, so a detail request for
+	// another train renders without stops, and an unknown train is no error.
+	detail, err := client.GetJourneyDetail(ctx, &trainsv1.GetJourneyDetailRequest{
+		JourneyId: j.GetJourneyId(),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, j.GetJourneyId(), detail.GetJourney().GetJourneyId())
+	assert.Len(t, detail.GetJourney().GetLegs(), len(j.GetLegs()))
 }
 
-func findJourneyByFirstLeg(
-	t *testing.T, journeys []*trainsv1.Journey, tripShortName string,
-) *trainsv1.Journey {
-	t.Helper()
-	for _, j := range journeys {
-		if len(j.GetLegs()) > 0 && j.GetLegs()[0].GetTripShortName() == tripShortName {
-			return j
-		}
+func TestGetJourneyDetail_Handler_InvalidIDs(t *testing.T) {
+	client := newTrainsTestClient(t)
+	for _, id := range []string{"", "!!not-valid!!"} {
+		_, err := client.GetJourneyDetail(
+			context.Background(), &trainsv1.GetJourneyDetailRequest{JourneyId: id},
+		)
+		assert.Equal(t, connect.CodeInvalidArgument, connectCode(t, err), id)
 	}
-	require.Fail(t, "no journey found with first leg "+tripShortName)
-	return nil
 }

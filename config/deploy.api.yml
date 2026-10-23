@@ -16,8 +16,8 @@ retain_containers: 2
 # The 4 GB host has no swap, so each role has a hard cap: a runaway job is
 # OOM-killed alone instead of starving the host. GOMEMLIMIT (soft) sits below
 # the cap and the heap watchdog threshold (cmd/api/main.go) between the two.
-# workers runs the memory-heavy jobs (book figure analysis, KEPUB conversion,
-# trains static import, ~1 GB peak) and has no proxy: Prometheus finds it via
+# workers runs the memory-heavy jobs (book figure analysis, KEPUB conversion)
+# and has no proxy: Prometheus finds it via
 # the shared `service` label, so TargetDown / ApiRestartLoop cover it.
 servers:
   web:
@@ -106,8 +106,6 @@ env:
     - HARDCOVER_API_KEY
     - TMDB_API_KEY
     - OPENROUTER_API_KEY
-    # SNCB GTFS feed key, sent as bmc-partner-key.
-    - BMC_PARTNER_KEY
     - R2_ACCOUNT_ID
     - R2_ACCESS_KEY_ID
     - R2_SECRET_ACCESS_KEY

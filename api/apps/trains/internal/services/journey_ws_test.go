@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -68,4 +69,27 @@ func TestJourneyWSService_Handler_ReturnsNonNilHandlerFunc(t *testing.T) {
 		context.Background(), logging.NewNopLogger(), []string{"*"}, fake,
 	)
 	require.NotNil(t, svc.Handler())
+}
+
+func TestJourneyWSService_PushAll_DropsEndedJourneys(t *testing.T) {
+	fake := &fakeDetailFetcher{} //nolint:exhaustruct //calls/err zero-valued deliberately
+	svc := services.NewJourneyWSService(
+		context.Background(), logging.NewNopLogger(), []string{"*"}, fake,
+	)
+	leg := func(alight time.Time) string {
+		return services.EncodeJourneyID([]services.LegRef{{
+			VehicleID: "BE.NMBS.IC1", BoardStopID: "A", BoardTime: alight.Add(-time.Hour),
+			AlightStopID: "B", AlightTime: alight,
+		}})
+	}
+	svc.EnsureTopic(leg(time.Now().Add(-3 * time.Hour)))
+	svc.EnsureTopic(leg(time.Now().Add(time.Hour)))
+
+	svc.PushAll(context.Background())
+	assert.Equal(
+		t,
+		int32(1),
+		atomic.LoadInt32(&fake.calls),
+		"only the running journey is polled",
+	)
 }

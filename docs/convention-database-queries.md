@@ -19,8 +19,6 @@ Every byte returned costs egress on every request. That's also why
 
 - `feeds`' `itemColumns`/`itemListColumns` — `apps/feeds/internal/repositories/items.go`
 - `books`' `bookColumns` — `apps/books/internal/repositories/books_scan.go`
-- `trains`: `stop_times` (~0.8M rows) and `calendar_dates` (~1.07M) — router
-  list queries select only the columns they use.
 
 ## What violating it looked like
 

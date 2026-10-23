@@ -50,9 +50,9 @@ var appsToolNames = []string{
 	"shoppinglist_list_stores", "shoppinglist_get_store_categories",
 	"shoppinglist_list_item_names", "shoppinglist_list_item_categories",
 	"shoppinglist_list_ingredient_units",
-	// trains (5)
-	"trains_search_stations", "trains_get_feed_info", "trains_search_journeys",
-	"trains_get_journey_detail", "trains_get_realtime_trip",
+	// trains (4)
+	"trains_search_stations", "trains_search_journeys",
+	"trains_get_journey_detail", "trains_get_irail_diagnostic",
 	// learningpaths (7); create_path/update_path/record_progress mutate (adr-0023)
 	"learningpaths_list_paths", "learningpaths_get_path",
 	"learningpaths_get_progress", "learningpaths_get_todoist_status",

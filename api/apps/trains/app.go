@@ -1,25 +1,22 @@
-// Package trains ingests the SNCB/NMBS GTFS timetable, overlays realtime
-// delays, and plans journeys with a Connection Scan Algorithm router.
+// Package trains plans journeys and shows live train state through the iRail
+// API.
 package trains
 
 import (
 	"context"
 	"embed"
+	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"tools.xdoubleu.com/apps/trains/internal/jobs"
 	"tools.xdoubleu.com/apps/trains/internal/repositories"
 	"tools.xdoubleu.com/apps/trains/internal/services"
-	"tools.xdoubleu.com/apps/trains/pkg/bmc"
+	"tools.xdoubleu.com/apps/trains/pkg/irail"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/jobqueue"
-	"tools.xdoubleu.com/internal/observability"
 )
 
 //go:embed migrations/*.sql
@@ -28,13 +25,10 @@ var embedMigrations embed.FS
 type Trains struct {
 	app.Base
 	db postgres.DB
-	// Exported so integration tests can drive the real import path.
-	Services         *services.Services
-	Repositories     *repositories.Repositories
-	jobQueue         *jobqueue.JobQueue
-	staticImportJob  *jobs.StaticImportJob
-	routerRefreshJob *jobs.RouterRefreshJob
-	realtimePollJob  *jobs.RealtimePollJob
+	// Exported so integration tests can drive the real services.
+	Services     *services.Services
+	Repositories *repositories.Repositories
+	irail        irail.Client
 }
 
 func New(
@@ -43,83 +37,41 @@ func New(
 	cfg config.Config,
 	db postgres.DB,
 ) *Trains {
-	if cfg.BMCPartnerKey == "" {
-		logger.Warn(
-			"BMC_PARTNER_KEY is not set — SNCB timetable import will be disabled",
-		)
-	}
+	// iRail asks for a User-Agent that identifies the app and how to reach it.
+	userAgent := fmt.Sprintf("tools.xdoubleu.com (%s)", cfg.WebURL)
 	return NewInner(
 		authService, logger, cfg, db,
-		bmc.New(logger, cfg.BMCHost, cfg.BMCPartnerKey),
+		irail.New(logger, irail.DefaultBaseURL, userAgent),
 	)
 }
 
-// NewInner lets tests inject a fake bmc.Client.
+// NewInner lets tests inject a fake irail.Client.
 func NewInner(
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	bmcClient bmc.Client,
+	client irail.Client,
 ) *Trains {
-	//nolint:exhaustruct //jobQueue/Services/Repositories initialised below
+	//nolint:exhaustruct //Services/Repositories initialised below
 	a := &Trains{
-		Base: app.NewBase(context.Background(), authService, logger, cfg),
-		db:   db,
+		Base:  app.NewBase(context.Background(), authService, logger, cfg),
+		db:    db,
+		irail: client,
 	}
-
-	const amountOfWorkers = 1
-	const jobQueueSize = 10
-	a.jobQueue = jobqueue.NewJobQueue(
-		a.Ctx, logger, amountOfWorkers, jobQueueSize, a.db,
-	)
 
 	a.Repositories = repositories.New(a.db)
 	a.Services = services.New(
-		a.Ctx, logger, a.Repositories, bmcClient, []string{cfg.WebURL},
+		a.Ctx, logger, a.Repositories, client, []string{cfg.WebURL},
 	)
-	a.staticImportJob = jobs.NewStaticImportJob(a.Services.StaticImport)
-	a.routerRefreshJob = jobs.NewRouterRefreshJob(a.Services.Journey.RefreshOnly)
-	a.realtimePollJob = jobs.NewRealtimePollJob(a.Services.Realtime)
 
 	return a
 }
 
+// Start begins pushing fresh detail to watched journeys.
 func (a *Trains) Start() error {
-	noop := func(_ string, _ bool, _ *time.Time) {}
-	if err := a.jobQueue.AddJob(
-		observability.NewTrackedJob(a.routerRefreshJob, a.db),
-		noop,
-	); err != nil {
-		return err
-	}
-	// Warm the router off the request path; SearchJourneys returns
-	// ErrRouterWarmingUp until it's built. Refresh's singleflight dedupes this
-	// against the first job tick.
-	go a.warmRouter()
-
-	return a.jobQueue.AddJob(
-		observability.NewTrackedJob(a.realtimePollJob, a.db),
-		noop,
-	)
-}
-
-// StartWorkers registers the static import, which the workers role runs
-// instead of Start's jobs; the web role's router picks the data up on its next
-// refresh.
-func (a *Trains) StartWorkers() error {
-	return a.jobQueue.AddJob(
-		observability.NewTrackedJob(a.staticImportJob, a.db),
-		func(_ string, _ bool, _ *time.Time) {},
-	)
-}
-
-// warmRouter builds the initial CSA index; failures are retried by
-// RouterRefreshJob.
-func (a *Trains) warmRouter() {
-	if err := a.routerRefreshJob.Run(a.Ctx, a.Logger); err != nil {
-		a.Logger.Error("trains: initial router warm-up failed", "error", err)
-	}
+	go a.Services.JourneyWS.Run(a.Ctx)
+	return nil
 }
 
 func (a *Trains) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

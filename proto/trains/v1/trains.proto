@@ -2,8 +2,8 @@ syntax = "proto3";
 package trains.v1;
 option go_package = "tools.xdoubleu.com/gen/trains/v1;trainsv1";
 
-// Leg is one boarded train, board to alight. trip_id churns daily and is
-// never exposed; trip_short_name/route_short_name identify the train.
+// Leg is one boarded train, board to alight. trip_short_name/route_short_name
+// identify the train ("530", "IC").
 message Leg {
   string trip_short_name = 1;
   string route_short_name = 2;
@@ -24,12 +24,11 @@ message Journey {
   string departure_time = 2;
   string arrival_time = 3;
   int32 transfers = 4;
-  // Opaque, stateless id decodable into GetJourneyDetailRequest; never a raw
-  // trip_id.
+  // Opaque, stateless id decodable into GetJourneyDetailRequest.
   string journey_id = 5;
 }
 
-// Alert is a decoded GTFS-RT service alert attached to a leg of a journey.
+// Alert is a service alert attached to a leg of a journey.
 message Alert {
   string id = 1;
   string header_text = 2;
@@ -100,7 +99,7 @@ message GetJourneyDetailResponse {
 }
 
 message SearchJourneysRequest {
-  // A station (all its platforms) or a specific platform.
+  // A station UIC id from SearchStations.
   string origin_stop_id = 1;
   string destination_stop_id = 2;
   // RFC3339; a departure time unless arrive_by is set.
@@ -109,11 +108,11 @@ message SearchJourneysRequest {
 }
 
 message SearchJourneysResponse {
-  // Pareto set over (arrival, transfers) for a window around the time.
+  // Journeys iRail plans around the time, ordered by departure.
   repeated Journey journeys = 1;
 }
 
-// Station is a location_type=1 stop, never a platform.
+// Station is a railway station; stop_id is its 9-digit UIC code.
 message Station {
   string stop_id = 1;
   string name_nl = 2;
@@ -133,33 +132,8 @@ message SearchStationsResponse {
   repeated Station stations = 1;
 }
 
-message GetFeedInfoRequest {}
-
-message GetFeedInfoResponse {
-  // Empty when the static feed has never been imported yet.
-  string feed_version = 1;
-  // RFC3339 time of the import that produced the stored feed; empty if none.
-  // The only signal of timetable staleness, since unchanged feeds no-op.
-  string imported_at = 2;
-  // How much of translations.txt was applied; distinguishes missing,
-  // unmatched and monolingual translations.
-  TranslationCoverage translations = 3;
-}
-
-// TranslationCoverage reports what an import made of translations.txt.
-message TranslationCoverage {
-  // Stops named from translations.txt rather than the primary stop_name.
-  int32 translated_stops_nl = 1;
-  int32 translated_stops_fr = 2;
-  int32 translated_stops_en = 3;
-  // Usable stop_name rows read; 0 when the file is absent.
-  int32 rows = 4;
-  // Rows identifying a stop this feed's stops.txt does not contain.
-  int32 rows_unmatched = 5;
-}
-
 // SavedCommute is a user's named station pair for one-tap searches. Stations
-// are keyed by S-prefixed UIC parent-station id, never a trip_id.
+// are keyed by UIC station id.
 message SavedCommute {
   string id = 1;
   string label = 2;
@@ -201,77 +175,12 @@ message DeleteSavedCommuteRequest {
 
 message DeleteSavedCommuteResponse {}
 
-// GetRealtimeTripRequest names a train running today (Europe/Brussels).
-message GetRealtimeTripRequest {
-  // Empty returns only the snapshot summary.
-  string trip_short_name = 1;
-}
-
-// RealtimeStopUpdate is one stop_time_update exactly as decoded from GTFS-RT.
-message RealtimeStopUpdate {
-  string stop_id = 1;
-  // 0 when the feed omits it.
-  int32 stop_sequence = 2;
-  // Same values as StopCall.status.
-  string status = 3;
-  // Seconds, positive = late; absent when unpublished.
-  optional int32 arrival_delay = 4;
-  optional int32 departure_delay = 5;
-  // RFC3339 absolute times, when published.
-  string arrival_time = 6;
-  string departure_time = 7;
-}
-
-// PlannedStop is one static stop_time of the trip journey detail resolves.
-message PlannedStop {
-  string stop_id = 1;
-  int32 stop_sequence = 2;
-}
-
-// GetRealtimeTripResponse is a diagnostic view of the in-memory realtime
-// snapshot, which is replaced every poll and never persisted.
-message GetRealtimeTripResponse {
-  // RFC3339 time of the last successful poll; empty before the first.
-  string fetched_at = 1;
-  int32 trip_count = 2;
-  // Realtime trips with no matching static trip.
-  int32 unresolved_trip_count = 3;
-  // Realtime trips dropped because another one had the same short name and
-  // service date.
-  int32 duplicate_trip_count = 4;
-  int32 alert_count = 5;
-  // Stop updates across the whole snapshot, counted by status.
-  map<string, int32> stop_update_statuses = 6;
-  // Whether trip_short_name is in today's snapshot.
-  bool found = 7;
-  // The realtime trip_id, for diagnostics only.
-  string trip_id = 8;
-  string start_date = 9;
-  // Trip-level status: "on_time" or "cancelled".
-  string status = 10;
-  repeated RealtimeStopUpdate stop_updates = 11;
-  // The static trip journey detail overlays it on; empty when none runs today.
-  string planned_trip_id = 12;
-  repeated PlannedStop planned_stops = 13;
-  // Entities in the raw trip-update feed, before trips are resolved.
-  int32 feed_entity_count = 14;
-  // Feed entities carrying a trip update.
-  int32 feed_trip_update_count = 15;
-  // Trip updates with an empty trip_id, which cannot resolve.
-  int32 feed_without_trip_id_count = 16;
-  // Train numbers in today's snapshot, sorted.
-  repeated string snapshot_trip_short_names = 17;
-}
-
 service TrainService {
   rpc SearchJourneys(SearchJourneysRequest) returns (SearchJourneysResponse);
   rpc SearchStations(SearchStationsRequest) returns (SearchStationsResponse);
-  rpc GetFeedInfo(GetFeedInfoRequest) returns (GetFeedInfoResponse);
   // GetJourneyDetail fetches a searched journey's live state and ensures its
   // /trains/api/journeys/live websocket topic exists.
   rpc GetJourneyDetail(GetJourneyDetailRequest) returns (GetJourneyDetailResponse);
-  // GetRealtimeTrip exposes the raw realtime snapshot for one train.
-  rpc GetRealtimeTrip(GetRealtimeTripRequest) returns (GetRealtimeTripResponse);
   // Saved-commute CRUD, scoped to the signed-in user.
   rpc ListSavedCommutes(ListSavedCommutesRequest) returns (ListSavedCommutesResponse);
   rpc CreateSavedCommute(CreateSavedCommuteRequest) returns (CreateSavedCommuteResponse);

@@ -16,104 +16,47 @@ function journey(transfers = 0, journeyId = ''): Journey {
 describe('JourneyResults', () => {
   it('renders nothing when not ready', () => {
     const { container } = render(
-      <JourneyResults
-        ready={false}
-        isLoading={false}
-        error={undefined}
-        feedImported
-        journeys={[]}
-      />
+      <JourneyResults ready={false} isLoading={false} error={undefined} journeys={[]} />
     )
     expect(container).toBeEmptyDOMElement()
   })
 
   it('shows the loading state', () => {
-    render(<JourneyResults ready isLoading error={undefined} feedImported journeys={[]} />)
+    render(<JourneyResults ready isLoading error={undefined} journeys={[]} />)
     expect(screen.getByText('Loading journeys…')).toBeInTheDocument()
   })
 
   it('shows the error state', () => {
-    render(
-      <JourneyResults
-        ready
-        isLoading={false}
-        error={new Error('boom')}
-        feedImported
-        journeys={[]}
-      />
-    )
+    render(<JourneyResults ready isLoading={false} error={new Error('boom')} journeys={[]} />)
     expect(screen.getByText('Failed to load journeys.')).toBeInTheDocument()
   })
 
-  it('shows the feed-not-imported state', () => {
-    render(
-      <JourneyResults
-        ready
-        isLoading={false}
-        error={undefined}
-        feedImported={false}
-        journeys={[]}
-      />
-    )
-    expect(screen.getByText(/hasn't been imported yet/)).toBeInTheDocument()
-  })
-
   it('shows the no-service state', () => {
-    render(<JourneyResults ready isLoading={false} error={undefined} feedImported journeys={[]} />)
+    render(<JourneyResults ready isLoading={false} error={undefined} journeys={[]} />)
     expect(screen.getByText(/No trains found/)).toBeInTheDocument()
   })
 
   it('renders a direct journey row', () => {
-    render(
-      <JourneyResults
-        ready
-        isLoading={false}
-        error={undefined}
-        feedImported
-        journeys={[journey()]}
-      />
-    )
+    render(<JourneyResults ready isLoading={false} error={undefined} journeys={[journey()]} />)
     expect(screen.getByText('Direct · 515')).toBeInTheDocument()
     expect(screen.getByText('1h 20m')).toBeInTheDocument()
   })
 
   it('renders a journey with changes', () => {
-    render(
-      <JourneyResults
-        ready
-        isLoading={false}
-        error={undefined}
-        feedImported
-        journeys={[journey(2)]}
-      />
-    )
+    render(<JourneyResults ready isLoading={false} error={undefined} journeys={[journey(2)]} />)
     expect(screen.getByText('2 changes · 515')).toBeInTheDocument()
   })
 
   it('links a row with a journey_id to its detail page', () => {
     render(
-      <JourneyResults
-        ready
-        isLoading={false}
-        error={undefined}
-        feedImported
-        journeys={[journey(0, 'abc123')]}
-      />
+      <JourneyResults ready isLoading={false} error={undefined} journeys={[journey(0, 'abc123')]} />
     )
     const link = screen.getByRole('link')
     expect(link).toHaveAttribute('href', '/trains/abc123')
   })
 
   it('renders a non-clickable card when a row has no journey_id', () => {
-    render(
-      <JourneyResults
-        ready
-        isLoading={false}
-        error={undefined}
-        feedImported
-        journeys={[journey(0, '')]}
-      />
-    )
+    render(<JourneyResults ready isLoading={false} error={undefined} journeys={[journey(0, '')]} />)
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 })

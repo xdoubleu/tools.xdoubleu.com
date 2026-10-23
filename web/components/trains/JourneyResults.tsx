@@ -68,24 +68,14 @@ interface JourneyResultsProps {
   ready: boolean
   isLoading: boolean
   error: unknown
-  feedImported: boolean
   journeys: Journey[]
 }
 
 /** Route overview list plus its empty/degraded states. */
-export default function JourneyResults({
-  ready,
-  isLoading,
-  error,
-  feedImported,
-  journeys
-}: JourneyResultsProps) {
+export default function JourneyResults({ ready, isLoading, error, journeys }: JourneyResultsProps) {
   if (!ready) return null
   if (isLoading) return <LoadingState label="journeys" />
   if (error) return <ErrorState what="journeys" />
-  if (!feedImported) {
-    return <p className="text-muted">The timetable hasn&apos;t been imported yet.</p>
-  }
   if (journeys.length === 0) {
     return <p className="text-muted">No trains found for this station pair and time.</p>
   }

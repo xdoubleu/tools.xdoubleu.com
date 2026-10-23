@@ -12,21 +12,15 @@ import (
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 )
 
-func connectCode(t *testing.T, err error) connect.Code {
-	t.Helper()
-	require.Error(t, err)
-	var connErr *connect.Error
-	require.ErrorAs(t, err, &connErr)
-	return connErr.Code()
-}
-
 func TestSavedCommutes_Service_Validation(t *testing.T) {
 	ctx := context.Background()
-	require.NoError(t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()))
+	testApp := newApp(t)
 	_, err := testDB.Exec(ctx, "TRUNCATE trains.saved_commutes")
 	require.NoError(t, err)
 
-	created, err := testApp.Services.SavedCommutes.Create(ctx, userID, "c", "SA", "SB")
+	created, err := testApp.Services.SavedCommutes.Create(
+		ctx, userID, "c", brusselsNorth, liege,
+	)
 	require.NoError(t, err)
 
 	_, err = testApp.Services.SavedCommutes.Update(ctx, userID, created.ID, "ok", -1)
@@ -41,7 +35,6 @@ func TestSavedCommutes_Service_Validation(t *testing.T) {
 
 func TestSavedCommutes_Handler(t *testing.T) {
 	ctx := context.Background()
-	require.NoError(t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()))
 	_, err := testDB.Exec(ctx, "TRUNCATE trains.saved_commutes")
 	require.NoError(t, err)
 
@@ -50,19 +43,19 @@ func TestSavedCommutes_Handler(t *testing.T) {
 	var createdID string
 	t.Run("create resolves station names and orders by position", func(t *testing.T) {
 		res, cErr := client.CreateSavedCommute(ctx, &trainsv1.CreateSavedCommuteRequest{
-			Label: "Home to work", OriginStopId: "SA", DestinationStopId: "SB",
+			Label: "Home to work", OriginStopId: brusselsNorth, DestinationStopId: liege,
 		})
 		require.NoError(t, cErr)
 		sc := res.GetSavedCommute()
 		assert.Equal(t, "Home to work", sc.GetLabel())
-		assert.Equal(t, "SA", sc.GetOrigin().GetStopId())
-		assert.Equal(t, "Alpha", sc.GetOrigin().GetNameFr())
-		assert.Equal(t, "Bravo", sc.GetDestination().GetNameFr())
+		assert.Equal(t, brusselsNorth, sc.GetOrigin().GetStopId())
+		assert.Equal(t, "Bruxelles-Nord", sc.GetOrigin().GetNameFr())
+		assert.Equal(t, "Liège-Guillemins", sc.GetDestination().GetNameFr())
 		assert.NotEmpty(t, sc.GetId())
 		createdID = sc.GetId()
 
 		second, cErr := client.CreateSavedCommute(ctx, &trainsv1.CreateSavedCommuteRequest{
-			Label: "Work to home", OriginStopId: "SB", DestinationStopId: "SA",
+			Label: "Work to home", OriginStopId: liege, DestinationStopId: brusselsNorth,
 		})
 		require.NoError(t, cErr)
 		assert.Equal(t, int32(1), second.GetSavedCommute().GetPosition())
@@ -79,17 +72,17 @@ func TestSavedCommutes_Handler(t *testing.T) {
 
 	t.Run("duplicate pair conflicts", func(t *testing.T) {
 		_, cErr := client.CreateSavedCommute(ctx, &trainsv1.CreateSavedCommuteRequest{
-			Label: "dupe", OriginStopId: "SA", DestinationStopId: "SB",
+			Label: "dupe", OriginStopId: brusselsNorth, DestinationStopId: liege,
 		})
 		assert.Equal(t, connect.CodeAlreadyExists, connectCode(t, cErr))
 	})
 
 	t.Run("validation failures map to InvalidArgument", func(t *testing.T) {
 		cases := []*trainsv1.CreateSavedCommuteRequest{
-			{Label: "  ", OriginStopId: "SA", DestinationStopId: "SC"},
-			{Label: "same", OriginStopId: "SA", DestinationStopId: "SA"},
-			{Label: "ghost", OriginStopId: "SA", DestinationStopId: "nope"},
-			{Label: "ghost", OriginStopId: "A1", DestinationStopId: "SB"},
+			{Label: "  ", OriginStopId: brusselsNorth, DestinationStopId: "008892007"},
+			{Label: "same", OriginStopId: brusselsNorth, DestinationStopId: brusselsNorth},
+			{Label: "ghost", OriginStopId: brusselsNorth, DestinationStopId: "nope"},
+			{Label: "ghost", OriginStopId: "S8812005", DestinationStopId: liege},
 		}
 		for _, req := range cases {
 			_, cErr := client.CreateSavedCommute(ctx, req)

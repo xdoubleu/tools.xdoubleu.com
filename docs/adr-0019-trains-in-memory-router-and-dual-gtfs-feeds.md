@@ -1,6 +1,6 @@
 # ADR-0019: The trains router is an in-memory CSA index warmed off the request path, and the two GTFS feeds are correlated by (trip_short_name, service date)
 
-- Status: Accepted
+- Status: Superseded by [ADR-0035](adr-0035-trains-on-irail.md)
 - Issues: #1388, #1390, #1391, #1393, #1394, #1484
 - Affects: `api/apps/trains/`
 

@@ -7,23 +7,11 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
-	"tools.xdoubleu.com/apps/trains/pkg/csa"
 )
 
 // finalArrivalSlipSeconds is how far the final arrival must slip before it
 // alone triggers a re-plan.
 const finalArrivalSlipSeconds = 900
-
-// replanner is the slice of JourneyService the alternative evaluator needs.
-type replanner interface {
-	SearchJourneys(
-		ctx context.Context,
-		originStopID, destStopID string,
-		when time.Time,
-		arriveBy bool,
-	) ([]csa.Journey, error)
-	MinTransferSeconds(fromStopID, toStopID string) int
-}
 
 // journeyBreak is a detected break: reason, re-plan origin and time,
 // destination, and trips known dead so the re-plan doesn't return them.
@@ -65,9 +53,9 @@ func detectJourneyBreak(
 	return finalArrivalBreak(refs, legs, destStopID)
 }
 
-// Planned times come from the LegRef (the router's frame, which a fresh
-// SearchJourneys expects), not the overlay's scheduled times; only realtime
-// delays are read off the overlay.
+// Planned times come from the LegRef (the frame a fresh SearchJourneys
+// expects), not the overlay's scheduled times; only live delays are read off
+// the overlay.
 
 // brokenLeg fires when the trip is cancelled or the board/alight stop is
 // skipped; the re-plan starts at that leg's board stop.
@@ -89,7 +77,9 @@ func brokenLeg(
 		fromStopName: fromName,
 		at:           at,
 		destStopID:   destStopID,
-		deadTrips:    map[string]bool{leg.TripShortName: true},
+		deadTrips: map[string]bool{
+			vehicleKey(leg.RouteShortName, leg.TripShortName): true,
+		},
 	}, true
 }
 
@@ -280,7 +270,7 @@ func humanizeDuration(d time.Duration) string {
 	return fmt.Sprintf("%d min", mins)
 }
 
-// evaluateAlternative re-plans when a break is detected. If the re-plan fails
+// evaluateAlternative re-plans via iRail when a break is detected. If the re-plan fails
 // or finds nothing, the reason is still returned.
 func (s *JourneyDetailService) evaluateAlternative(
 	ctx context.Context, refs []LegRef, legs []models.LegDetail,
@@ -307,7 +297,7 @@ func (s *JourneyDetailService) evaluateAlternative(
 	}
 	// Skip journeys departing before brk.at, then pick the earliest arrival;
 	// it isn't necessarily journeys[0].
-	var best *csa.Journey
+	var best *models.JourneyOption
 	for i := range journeys {
 		j := &journeys[i]
 		if j.DepartureTime.Before(brk.at) {
@@ -321,52 +311,21 @@ func (s *JourneyDetailService) evaluateAlternative(
 		}
 	}
 	if best != nil {
-		alt.Journey = toJourneyOption(best)
+		alt.Journey = best
 	}
 	return alt
 }
 
-func reusesDeadTrip(j csa.Journey, dead map[string]bool) bool {
+func reusesDeadTrip(j models.JourneyOption, dead map[string]bool) bool {
 	for _, l := range j.Legs {
-		if dead[l.TripShortName] {
+		if dead[vehicleKey(l.RouteShortName, l.TripShortName)] {
 			return true
 		}
 	}
 	return false
 }
 
-// toJourneyOption converts a router result, stamping the same journey_id
-// SearchJourneys would.
-func toJourneyOption(j *csa.Journey) *models.JourneyOption {
-	legs := make([]models.JourneyOptionLeg, len(j.Legs))
-	refs := make([]LegRef, len(j.Legs))
-	for i, l := range j.Legs {
-		legs[i] = models.JourneyOptionLeg{
-			TripShortName:  l.TripShortName,
-			RouteShortName: l.RouteShortName,
-			Headsign:       l.Headsign,
-			BoardStopID:    l.BoardStopID,
-			BoardStopName:  l.BoardStopName,
-			BoardPlatform:  l.BoardPlatform,
-			BoardTime:      l.BoardTime,
-			AlightStopID:   l.AlightStopID,
-			AlightStopName: l.AlightStopName,
-			AlightPlatform: l.AlightPlatform,
-			AlightTime:     l.AlightTime,
-		}
-		refs[i] = LegRef{
-			TripShortName: l.TripShortName,
-			BoardStopID:   l.BoardStopID,
-			BoardTime:     l.BoardTime,
-			AlightStopID:  l.AlightStopID,
-			AlightTime:    l.AlightTime,
-		}
-	}
-	return &models.JourneyOption{
-		Legs:          legs,
-		DepartureTime: j.DepartureTime,
-		ArrivalTime:   j.ArrivalTime,
-		Transfers:     j.Transfers,
-		JourneyID:     EncodeJourneyID(refs),
-	}
+// vehicleKey identifies a train by type and number, e.g. "IC530".
+func vehicleKey(routeShortName, tripShortName string) string {
+	return routeShortName + tripShortName
 }

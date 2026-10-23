@@ -30,14 +30,9 @@ const (
 	// TrainServiceSearchStationsProcedure is the procedure name of the TrainService's SearchStations
 	// RPC.
 	TrainServiceSearchStationsProcedure = "/trains.v1.TrainService/SearchStations"
-	// TrainServiceGetFeedInfoProcedure is the procedure name of the TrainService's GetFeedInfo RPC.
-	TrainServiceGetFeedInfoProcedure = "/trains.v1.TrainService/GetFeedInfo"
 	// TrainServiceGetJourneyDetailProcedure is the procedure name of the TrainService's
 	// GetJourneyDetail RPC.
 	TrainServiceGetJourneyDetailProcedure = "/trains.v1.TrainService/GetJourneyDetail"
-	// TrainServiceGetRealtimeTripProcedure is the procedure name of the TrainService's GetRealtimeTrip
-	// RPC.
-	TrainServiceGetRealtimeTripProcedure = "/trains.v1.TrainService/GetRealtimeTrip"
 	// TrainServiceListSavedCommutesProcedure is the procedure name of the TrainService's
 	// ListSavedCommutes RPC.
 	TrainServiceListSavedCommutesProcedure = "/trains.v1.TrainService/ListSavedCommutes"
@@ -67,25 +62,11 @@ var (
 			Procedure:  TrainServiceSearchStationsProcedure,
 		}
 	})
-	trainServiceGetFeedInfoSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods().ByName("GetFeedInfo"),
-			Procedure:  TrainServiceGetFeedInfoProcedure,
-		}
-	})
 	trainServiceGetJourneyDetailSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
 			Schema:     v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods().ByName("GetJourneyDetail"),
 			Procedure:  TrainServiceGetJourneyDetailProcedure,
-		}
-	})
-	trainServiceGetRealtimeTripSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_trains_v1_trains_proto.Services().ByName("TrainService").Methods().ByName("GetRealtimeTrip"),
-			Procedure:  TrainServiceGetRealtimeTripProcedure,
 		}
 	})
 	trainServiceListSavedCommutesSpec = sync.OnceValue(func() connect.Spec {
@@ -122,12 +103,9 @@ var (
 type TrainServiceClient interface {
 	SearchJourneys(context.Context, *v1.SearchJourneysRequest) (*v1.SearchJourneysResponse, error)
 	SearchStations(context.Context, *v1.SearchStationsRequest) (*v1.SearchStationsResponse, error)
-	GetFeedInfo(context.Context, *v1.GetFeedInfoRequest) (*v1.GetFeedInfoResponse, error)
 	// GetJourneyDetail fetches a searched journey's live state and ensures its
 	// /trains/api/journeys/live websocket topic exists.
 	GetJourneyDetail(context.Context, *v1.GetJourneyDetailRequest) (*v1.GetJourneyDetailResponse, error)
-	// GetRealtimeTrip exposes the raw realtime snapshot for one train.
-	GetRealtimeTrip(context.Context, *v1.GetRealtimeTripRequest) (*v1.GetRealtimeTripResponse, error)
 	// Saved-commute CRUD, scoped to the signed-in user.
 	ListSavedCommutes(context.Context, *v1.ListSavedCommutesRequest) (*v1.ListSavedCommutesResponse, error)
 	CreateSavedCommute(context.Context, *v1.CreateSavedCommuteRequest) (*v1.CreateSavedCommuteResponse, error)
@@ -145,12 +123,9 @@ func NewTrainServiceClient(client *connect.Client) TrainServiceClient {
 type TrainServiceHandler interface {
 	SearchJourneys(context.Context, *v1.SearchJourneysRequest) (*v1.SearchJourneysResponse, error)
 	SearchStations(context.Context, *v1.SearchStationsRequest) (*v1.SearchStationsResponse, error)
-	GetFeedInfo(context.Context, *v1.GetFeedInfoRequest) (*v1.GetFeedInfoResponse, error)
 	// GetJourneyDetail fetches a searched journey's live state and ensures its
 	// /trains/api/journeys/live websocket topic exists.
 	GetJourneyDetail(context.Context, *v1.GetJourneyDetailRequest) (*v1.GetJourneyDetailResponse, error)
-	// GetRealtimeTrip exposes the raw realtime snapshot for one train.
-	GetRealtimeTrip(context.Context, *v1.GetRealtimeTripRequest) (*v1.GetRealtimeTripResponse, error)
 	// Saved-commute CRUD, scoped to the signed-in user.
 	ListSavedCommutes(context.Context, *v1.ListSavedCommutesRequest) (*v1.ListSavedCommutesResponse, error)
 	CreateSavedCommute(context.Context, *v1.CreateSavedCommuteRequest) (*v1.CreateSavedCommuteResponse, error)
@@ -164,9 +139,7 @@ func RegisterTrainServiceHandler(server *connect.Server, svc TrainServiceHandler
 	server.Register(
 		connect.Method{Spec: trainServiceSearchJourneysSpec(), Handler: adapter.searchJourneys},
 		connect.Method{Spec: trainServiceSearchStationsSpec(), Handler: adapter.searchStations},
-		connect.Method{Spec: trainServiceGetFeedInfoSpec(), Handler: adapter.getFeedInfo},
 		connect.Method{Spec: trainServiceGetJourneyDetailSpec(), Handler: adapter.getJourneyDetail},
-		connect.Method{Spec: trainServiceGetRealtimeTripSpec(), Handler: adapter.getRealtimeTrip},
 		connect.Method{Spec: trainServiceListSavedCommutesSpec(), Handler: adapter.listSavedCommutes},
 		connect.Method{Spec: trainServiceCreateSavedCommuteSpec(), Handler: adapter.createSavedCommute},
 		connect.Method{Spec: trainServiceUpdateSavedCommuteSpec(), Handler: adapter.updateSavedCommute},
@@ -185,16 +158,8 @@ func (UnimplementedTrainServiceHandler) SearchStations(context.Context, *v1.Sear
 	return nil, connect.NewError(connect.CodeUnimplemented, "trains.v1.TrainService.SearchStations is not implemented")
 }
 
-func (UnimplementedTrainServiceHandler) GetFeedInfo(context.Context, *v1.GetFeedInfoRequest) (*v1.GetFeedInfoResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "trains.v1.TrainService.GetFeedInfo is not implemented")
-}
-
 func (UnimplementedTrainServiceHandler) GetJourneyDetail(context.Context, *v1.GetJourneyDetailRequest) (*v1.GetJourneyDetailResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "trains.v1.TrainService.GetJourneyDetail is not implemented")
-}
-
-func (UnimplementedTrainServiceHandler) GetRealtimeTrip(context.Context, *v1.GetRealtimeTripRequest) (*v1.GetRealtimeTripResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "trains.v1.TrainService.GetRealtimeTrip is not implemented")
 }
 
 func (UnimplementedTrainServiceHandler) ListSavedCommutes(context.Context, *v1.ListSavedCommutesRequest) (*v1.ListSavedCommutesResponse, error) {
@@ -233,25 +198,9 @@ func (c *trainServiceClient) SearchStations(ctx context.Context, req *v1.SearchS
 	return &res, nil
 }
 
-func (c *trainServiceClient) GetFeedInfo(ctx context.Context, req *v1.GetFeedInfoRequest) (*v1.GetFeedInfoResponse, error) {
-	var res v1.GetFeedInfoResponse
-	if err := c.client.CallUnary(ctx, trainServiceGetFeedInfoSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
 func (c *trainServiceClient) GetJourneyDetail(ctx context.Context, req *v1.GetJourneyDetailRequest) (*v1.GetJourneyDetailResponse, error) {
 	var res v1.GetJourneyDetailResponse
 	if err := c.client.CallUnary(ctx, trainServiceGetJourneyDetailSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *trainServiceClient) GetRealtimeTrip(ctx context.Context, req *v1.GetRealtimeTripRequest) (*v1.GetRealtimeTripResponse, error) {
-	var res v1.GetRealtimeTripResponse
-	if err := c.client.CallUnary(ctx, trainServiceGetRealtimeTripSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -315,36 +264,12 @@ func (h trainServiceHandler) searchStations(ctx context.Context, _ connect.Spec,
 	return stream.Send(res)
 }
 
-func (h trainServiceHandler) getFeedInfo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.GetFeedInfoRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.GetFeedInfo(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
 func (h trainServiceHandler) getJourneyDetail(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
 	var req v1.GetJourneyDetailRequest
 	if err := stream.Receive(&req); err != nil {
 		return err
 	}
 	res, err := h.svc.GetJourneyDetail(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h trainServiceHandler) getRealtimeTrip(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.GetRealtimeTripRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.GetRealtimeTrip(ctx, &req)
 	if err != nil {
 		return err
 	}

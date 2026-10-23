@@ -21,8 +21,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Leg is one boarded train, board to alight. trip_id churns daily and is
-// never exposed; trip_short_name/route_short_name identify the train.
+// Leg is one boarded train, board to alight. trip_short_name/route_short_name
+// identify the train ("530", "IC").
 type Leg struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	TripShortName  string                 `protobuf:"bytes,1,opt,name=trip_short_name,json=tripShortName,proto3" json:"trip_short_name,omitempty"`
@@ -154,8 +154,7 @@ type Journey struct {
 	DepartureTime string                 `protobuf:"bytes,2,opt,name=departure_time,json=departureTime,proto3" json:"departure_time,omitempty"`
 	ArrivalTime   string                 `protobuf:"bytes,3,opt,name=arrival_time,json=arrivalTime,proto3" json:"arrival_time,omitempty"`
 	Transfers     int32                  `protobuf:"varint,4,opt,name=transfers,proto3" json:"transfers,omitempty"`
-	// Opaque, stateless id decodable into GetJourneyDetailRequest; never a raw
-	// trip_id.
+	// Opaque, stateless id decodable into GetJourneyDetailRequest.
 	JourneyId     string `protobuf:"bytes,5,opt,name=journey_id,json=journeyId,proto3" json:"journey_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -226,7 +225,7 @@ func (x *Journey) GetJourneyId() string {
 	return ""
 }
 
-// Alert is a decoded GTFS-RT service alert attached to a leg of a journey.
+// Alert is a service alert attached to a leg of a journey.
 type Alert struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -725,7 +724,7 @@ func (x *GetJourneyDetailResponse) GetJourney() *JourneyDetail {
 
 type SearchJourneysRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// A station (all its platforms) or a specific platform.
+	// A station UIC id from SearchStations.
 	OriginStopId      string `protobuf:"bytes,1,opt,name=origin_stop_id,json=originStopId,proto3" json:"origin_stop_id,omitempty"`
 	DestinationStopId string `protobuf:"bytes,2,opt,name=destination_stop_id,json=destinationStopId,proto3" json:"destination_stop_id,omitempty"`
 	// RFC3339; a departure time unless arrive_by is set.
@@ -795,7 +794,7 @@ func (x *SearchJourneysRequest) GetArriveBy() bool {
 
 type SearchJourneysResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Pareto set over (arrival, transfers) for a window around the time.
+	// Journeys iRail plans around the time, ordered by departure.
 	Journeys      []*Journey `protobuf:"bytes,1,rep,name=journeys,proto3" json:"journeys,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -838,7 +837,7 @@ func (x *SearchJourneysResponse) GetJourneys() []*Journey {
 	return nil
 }
 
-// Station is a location_type=1 stop, never a platform.
+// Station is a railway station; stop_id is its 9-digit UIC code.
 type Station struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	StopId string                 `protobuf:"bytes,1,opt,name=stop_id,json=stopId,proto3" json:"stop_id,omitempty"`
@@ -1006,189 +1005,8 @@ func (x *SearchStationsResponse) GetStations() []*Station {
 	return nil
 }
 
-type GetFeedInfoRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetFeedInfoRequest) Reset() {
-	*x = GetFeedInfoRequest{}
-	mi := &file_trains_v1_trains_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetFeedInfoRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetFeedInfoRequest) ProtoMessage() {}
-
-func (x *GetFeedInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[14]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetFeedInfoRequest.ProtoReflect.Descriptor instead.
-func (*GetFeedInfoRequest) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{14}
-}
-
-type GetFeedInfoResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Empty when the static feed has never been imported yet.
-	FeedVersion string `protobuf:"bytes,1,opt,name=feed_version,json=feedVersion,proto3" json:"feed_version,omitempty"`
-	// RFC3339 time of the import that produced the stored feed; empty if none.
-	// The only signal of timetable staleness, since unchanged feeds no-op.
-	ImportedAt string `protobuf:"bytes,2,opt,name=imported_at,json=importedAt,proto3" json:"imported_at,omitempty"`
-	// How much of translations.txt was applied; distinguishes missing,
-	// unmatched and monolingual translations.
-	Translations  *TranslationCoverage `protobuf:"bytes,3,opt,name=translations,proto3" json:"translations,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetFeedInfoResponse) Reset() {
-	*x = GetFeedInfoResponse{}
-	mi := &file_trains_v1_trains_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetFeedInfoResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetFeedInfoResponse) ProtoMessage() {}
-
-func (x *GetFeedInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetFeedInfoResponse.ProtoReflect.Descriptor instead.
-func (*GetFeedInfoResponse) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *GetFeedInfoResponse) GetFeedVersion() string {
-	if x != nil {
-		return x.FeedVersion
-	}
-	return ""
-}
-
-func (x *GetFeedInfoResponse) GetImportedAt() string {
-	if x != nil {
-		return x.ImportedAt
-	}
-	return ""
-}
-
-func (x *GetFeedInfoResponse) GetTranslations() *TranslationCoverage {
-	if x != nil {
-		return x.Translations
-	}
-	return nil
-}
-
-// TranslationCoverage reports what an import made of translations.txt.
-type TranslationCoverage struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Stops named from translations.txt rather than the primary stop_name.
-	TranslatedStopsNl int32 `protobuf:"varint,1,opt,name=translated_stops_nl,json=translatedStopsNl,proto3" json:"translated_stops_nl,omitempty"`
-	TranslatedStopsFr int32 `protobuf:"varint,2,opt,name=translated_stops_fr,json=translatedStopsFr,proto3" json:"translated_stops_fr,omitempty"`
-	TranslatedStopsEn int32 `protobuf:"varint,3,opt,name=translated_stops_en,json=translatedStopsEn,proto3" json:"translated_stops_en,omitempty"`
-	// Usable stop_name rows read; 0 when the file is absent.
-	Rows int32 `protobuf:"varint,4,opt,name=rows,proto3" json:"rows,omitempty"`
-	// Rows identifying a stop this feed's stops.txt does not contain.
-	RowsUnmatched int32 `protobuf:"varint,5,opt,name=rows_unmatched,json=rowsUnmatched,proto3" json:"rows_unmatched,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *TranslationCoverage) Reset() {
-	*x = TranslationCoverage{}
-	mi := &file_trains_v1_trains_proto_msgTypes[16]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *TranslationCoverage) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*TranslationCoverage) ProtoMessage() {}
-
-func (x *TranslationCoverage) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[16]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use TranslationCoverage.ProtoReflect.Descriptor instead.
-func (*TranslationCoverage) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{16}
-}
-
-func (x *TranslationCoverage) GetTranslatedStopsNl() int32 {
-	if x != nil {
-		return x.TranslatedStopsNl
-	}
-	return 0
-}
-
-func (x *TranslationCoverage) GetTranslatedStopsFr() int32 {
-	if x != nil {
-		return x.TranslatedStopsFr
-	}
-	return 0
-}
-
-func (x *TranslationCoverage) GetTranslatedStopsEn() int32 {
-	if x != nil {
-		return x.TranslatedStopsEn
-	}
-	return 0
-}
-
-func (x *TranslationCoverage) GetRows() int32 {
-	if x != nil {
-		return x.Rows
-	}
-	return 0
-}
-
-func (x *TranslationCoverage) GetRowsUnmatched() int32 {
-	if x != nil {
-		return x.RowsUnmatched
-	}
-	return 0
-}
-
 // SavedCommute is a user's named station pair for one-tap searches. Stations
-// are keyed by S-prefixed UIC parent-station id, never a trip_id.
+// are keyed by UIC station id.
 type SavedCommute struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1203,7 +1021,7 @@ type SavedCommute struct {
 
 func (x *SavedCommute) Reset() {
 	*x = SavedCommute{}
-	mi := &file_trains_v1_trains_proto_msgTypes[17]
+	mi := &file_trains_v1_trains_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1215,7 +1033,7 @@ func (x *SavedCommute) String() string {
 func (*SavedCommute) ProtoMessage() {}
 
 func (x *SavedCommute) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[17]
+	mi := &file_trains_v1_trains_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1228,7 +1046,7 @@ func (x *SavedCommute) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SavedCommute.ProtoReflect.Descriptor instead.
 func (*SavedCommute) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{17}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SavedCommute) GetId() string {
@@ -1274,7 +1092,7 @@ type ListSavedCommutesRequest struct {
 
 func (x *ListSavedCommutesRequest) Reset() {
 	*x = ListSavedCommutesRequest{}
-	mi := &file_trains_v1_trains_proto_msgTypes[18]
+	mi := &file_trains_v1_trains_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1286,7 +1104,7 @@ func (x *ListSavedCommutesRequest) String() string {
 func (*ListSavedCommutesRequest) ProtoMessage() {}
 
 func (x *ListSavedCommutesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[18]
+	mi := &file_trains_v1_trains_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1299,7 +1117,7 @@ func (x *ListSavedCommutesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSavedCommutesRequest.ProtoReflect.Descriptor instead.
 func (*ListSavedCommutesRequest) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{18}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{15}
 }
 
 type ListSavedCommutesResponse struct {
@@ -1311,7 +1129,7 @@ type ListSavedCommutesResponse struct {
 
 func (x *ListSavedCommutesResponse) Reset() {
 	*x = ListSavedCommutesResponse{}
-	mi := &file_trains_v1_trains_proto_msgTypes[19]
+	mi := &file_trains_v1_trains_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1323,7 +1141,7 @@ func (x *ListSavedCommutesResponse) String() string {
 func (*ListSavedCommutesResponse) ProtoMessage() {}
 
 func (x *ListSavedCommutesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[19]
+	mi := &file_trains_v1_trains_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1336,7 +1154,7 @@ func (x *ListSavedCommutesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSavedCommutesResponse.ProtoReflect.Descriptor instead.
 func (*ListSavedCommutesResponse) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{19}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListSavedCommutesResponse) GetSavedCommutes() []*SavedCommute {
@@ -1357,7 +1175,7 @@ type CreateSavedCommuteRequest struct {
 
 func (x *CreateSavedCommuteRequest) Reset() {
 	*x = CreateSavedCommuteRequest{}
-	mi := &file_trains_v1_trains_proto_msgTypes[20]
+	mi := &file_trains_v1_trains_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1369,7 +1187,7 @@ func (x *CreateSavedCommuteRequest) String() string {
 func (*CreateSavedCommuteRequest) ProtoMessage() {}
 
 func (x *CreateSavedCommuteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[20]
+	mi := &file_trains_v1_trains_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1382,7 +1200,7 @@ func (x *CreateSavedCommuteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSavedCommuteRequest.ProtoReflect.Descriptor instead.
 func (*CreateSavedCommuteRequest) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{20}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CreateSavedCommuteRequest) GetLabel() string {
@@ -1415,7 +1233,7 @@ type CreateSavedCommuteResponse struct {
 
 func (x *CreateSavedCommuteResponse) Reset() {
 	*x = CreateSavedCommuteResponse{}
-	mi := &file_trains_v1_trains_proto_msgTypes[21]
+	mi := &file_trains_v1_trains_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1427,7 +1245,7 @@ func (x *CreateSavedCommuteResponse) String() string {
 func (*CreateSavedCommuteResponse) ProtoMessage() {}
 
 func (x *CreateSavedCommuteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[21]
+	mi := &file_trains_v1_trains_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1440,7 +1258,7 @@ func (x *CreateSavedCommuteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSavedCommuteResponse.ProtoReflect.Descriptor instead.
 func (*CreateSavedCommuteResponse) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{21}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *CreateSavedCommuteResponse) GetSavedCommute() *SavedCommute {
@@ -1461,7 +1279,7 @@ type UpdateSavedCommuteRequest struct {
 
 func (x *UpdateSavedCommuteRequest) Reset() {
 	*x = UpdateSavedCommuteRequest{}
-	mi := &file_trains_v1_trains_proto_msgTypes[22]
+	mi := &file_trains_v1_trains_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1473,7 +1291,7 @@ func (x *UpdateSavedCommuteRequest) String() string {
 func (*UpdateSavedCommuteRequest) ProtoMessage() {}
 
 func (x *UpdateSavedCommuteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[22]
+	mi := &file_trains_v1_trains_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1486,7 +1304,7 @@ func (x *UpdateSavedCommuteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSavedCommuteRequest.ProtoReflect.Descriptor instead.
 func (*UpdateSavedCommuteRequest) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{22}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *UpdateSavedCommuteRequest) GetId() string {
@@ -1519,7 +1337,7 @@ type UpdateSavedCommuteResponse struct {
 
 func (x *UpdateSavedCommuteResponse) Reset() {
 	*x = UpdateSavedCommuteResponse{}
-	mi := &file_trains_v1_trains_proto_msgTypes[23]
+	mi := &file_trains_v1_trains_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1531,7 +1349,7 @@ func (x *UpdateSavedCommuteResponse) String() string {
 func (*UpdateSavedCommuteResponse) ProtoMessage() {}
 
 func (x *UpdateSavedCommuteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[23]
+	mi := &file_trains_v1_trains_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1544,7 +1362,7 @@ func (x *UpdateSavedCommuteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSavedCommuteResponse.ProtoReflect.Descriptor instead.
 func (*UpdateSavedCommuteResponse) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{23}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *UpdateSavedCommuteResponse) GetSavedCommute() *SavedCommute {
@@ -1563,7 +1381,7 @@ type DeleteSavedCommuteRequest struct {
 
 func (x *DeleteSavedCommuteRequest) Reset() {
 	*x = DeleteSavedCommuteRequest{}
-	mi := &file_trains_v1_trains_proto_msgTypes[24]
+	mi := &file_trains_v1_trains_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1575,7 +1393,7 @@ func (x *DeleteSavedCommuteRequest) String() string {
 func (*DeleteSavedCommuteRequest) ProtoMessage() {}
 
 func (x *DeleteSavedCommuteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[24]
+	mi := &file_trains_v1_trains_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1588,7 +1406,7 @@ func (x *DeleteSavedCommuteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSavedCommuteRequest.ProtoReflect.Descriptor instead.
 func (*DeleteSavedCommuteRequest) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{24}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *DeleteSavedCommuteRequest) GetId() string {
@@ -1606,7 +1424,7 @@ type DeleteSavedCommuteResponse struct {
 
 func (x *DeleteSavedCommuteResponse) Reset() {
 	*x = DeleteSavedCommuteResponse{}
-	mi := &file_trains_v1_trains_proto_msgTypes[25]
+	mi := &file_trains_v1_trains_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1618,7 +1436,7 @@ func (x *DeleteSavedCommuteResponse) String() string {
 func (*DeleteSavedCommuteResponse) ProtoMessage() {}
 
 func (x *DeleteSavedCommuteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[25]
+	mi := &file_trains_v1_trains_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1631,390 +1449,7 @@ func (x *DeleteSavedCommuteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSavedCommuteResponse.ProtoReflect.Descriptor instead.
 func (*DeleteSavedCommuteResponse) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{25}
-}
-
-// GetRealtimeTripRequest names a train running today (Europe/Brussels).
-type GetRealtimeTripRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Empty returns only the snapshot summary.
-	TripShortName string `protobuf:"bytes,1,opt,name=trip_short_name,json=tripShortName,proto3" json:"trip_short_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetRealtimeTripRequest) Reset() {
-	*x = GetRealtimeTripRequest{}
-	mi := &file_trains_v1_trains_proto_msgTypes[26]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetRealtimeTripRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetRealtimeTripRequest) ProtoMessage() {}
-
-func (x *GetRealtimeTripRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[26]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetRealtimeTripRequest.ProtoReflect.Descriptor instead.
-func (*GetRealtimeTripRequest) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{26}
-}
-
-func (x *GetRealtimeTripRequest) GetTripShortName() string {
-	if x != nil {
-		return x.TripShortName
-	}
-	return ""
-}
-
-// RealtimeStopUpdate is one stop_time_update exactly as decoded from GTFS-RT.
-type RealtimeStopUpdate struct {
-	state  protoimpl.MessageState `protogen:"open.v1"`
-	StopId string                 `protobuf:"bytes,1,opt,name=stop_id,json=stopId,proto3" json:"stop_id,omitempty"`
-	// 0 when the feed omits it.
-	StopSequence int32 `protobuf:"varint,2,opt,name=stop_sequence,json=stopSequence,proto3" json:"stop_sequence,omitempty"`
-	// Same values as StopCall.status.
-	Status string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
-	// Seconds, positive = late; absent when unpublished.
-	ArrivalDelay   *int32 `protobuf:"varint,4,opt,name=arrival_delay,json=arrivalDelay,proto3,oneof" json:"arrival_delay,omitempty"`
-	DepartureDelay *int32 `protobuf:"varint,5,opt,name=departure_delay,json=departureDelay,proto3,oneof" json:"departure_delay,omitempty"`
-	// RFC3339 absolute times, when published.
-	ArrivalTime   string `protobuf:"bytes,6,opt,name=arrival_time,json=arrivalTime,proto3" json:"arrival_time,omitempty"`
-	DepartureTime string `protobuf:"bytes,7,opt,name=departure_time,json=departureTime,proto3" json:"departure_time,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RealtimeStopUpdate) Reset() {
-	*x = RealtimeStopUpdate{}
-	mi := &file_trains_v1_trains_proto_msgTypes[27]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RealtimeStopUpdate) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RealtimeStopUpdate) ProtoMessage() {}
-
-func (x *RealtimeStopUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[27]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RealtimeStopUpdate.ProtoReflect.Descriptor instead.
-func (*RealtimeStopUpdate) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{27}
-}
-
-func (x *RealtimeStopUpdate) GetStopId() string {
-	if x != nil {
-		return x.StopId
-	}
-	return ""
-}
-
-func (x *RealtimeStopUpdate) GetStopSequence() int32 {
-	if x != nil {
-		return x.StopSequence
-	}
-	return 0
-}
-
-func (x *RealtimeStopUpdate) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *RealtimeStopUpdate) GetArrivalDelay() int32 {
-	if x != nil && x.ArrivalDelay != nil {
-		return *x.ArrivalDelay
-	}
-	return 0
-}
-
-func (x *RealtimeStopUpdate) GetDepartureDelay() int32 {
-	if x != nil && x.DepartureDelay != nil {
-		return *x.DepartureDelay
-	}
-	return 0
-}
-
-func (x *RealtimeStopUpdate) GetArrivalTime() string {
-	if x != nil {
-		return x.ArrivalTime
-	}
-	return ""
-}
-
-func (x *RealtimeStopUpdate) GetDepartureTime() string {
-	if x != nil {
-		return x.DepartureTime
-	}
-	return ""
-}
-
-// PlannedStop is one static stop_time of the trip journey detail resolves.
-type PlannedStop struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StopId        string                 `protobuf:"bytes,1,opt,name=stop_id,json=stopId,proto3" json:"stop_id,omitempty"`
-	StopSequence  int32                  `protobuf:"varint,2,opt,name=stop_sequence,json=stopSequence,proto3" json:"stop_sequence,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PlannedStop) Reset() {
-	*x = PlannedStop{}
-	mi := &file_trains_v1_trains_proto_msgTypes[28]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PlannedStop) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PlannedStop) ProtoMessage() {}
-
-func (x *PlannedStop) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[28]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PlannedStop.ProtoReflect.Descriptor instead.
-func (*PlannedStop) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{28}
-}
-
-func (x *PlannedStop) GetStopId() string {
-	if x != nil {
-		return x.StopId
-	}
-	return ""
-}
-
-func (x *PlannedStop) GetStopSequence() int32 {
-	if x != nil {
-		return x.StopSequence
-	}
-	return 0
-}
-
-// GetRealtimeTripResponse is a diagnostic view of the in-memory realtime
-// snapshot, which is replaced every poll and never persisted.
-type GetRealtimeTripResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// RFC3339 time of the last successful poll; empty before the first.
-	FetchedAt string `protobuf:"bytes,1,opt,name=fetched_at,json=fetchedAt,proto3" json:"fetched_at,omitempty"`
-	TripCount int32  `protobuf:"varint,2,opt,name=trip_count,json=tripCount,proto3" json:"trip_count,omitempty"`
-	// Realtime trips with no matching static trip.
-	UnresolvedTripCount int32 `protobuf:"varint,3,opt,name=unresolved_trip_count,json=unresolvedTripCount,proto3" json:"unresolved_trip_count,omitempty"`
-	// Realtime trips dropped because another one had the same short name and
-	// service date.
-	DuplicateTripCount int32 `protobuf:"varint,4,opt,name=duplicate_trip_count,json=duplicateTripCount,proto3" json:"duplicate_trip_count,omitempty"`
-	AlertCount         int32 `protobuf:"varint,5,opt,name=alert_count,json=alertCount,proto3" json:"alert_count,omitempty"`
-	// Stop updates across the whole snapshot, counted by status.
-	StopUpdateStatuses map[string]int32 `protobuf:"bytes,6,rep,name=stop_update_statuses,json=stopUpdateStatuses,proto3" json:"stop_update_statuses,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	// Whether trip_short_name is in today's snapshot.
-	Found bool `protobuf:"varint,7,opt,name=found,proto3" json:"found,omitempty"`
-	// The realtime trip_id, for diagnostics only.
-	TripId    string `protobuf:"bytes,8,opt,name=trip_id,json=tripId,proto3" json:"trip_id,omitempty"`
-	StartDate string `protobuf:"bytes,9,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
-	// Trip-level status: "on_time" or "cancelled".
-	Status      string                `protobuf:"bytes,10,opt,name=status,proto3" json:"status,omitempty"`
-	StopUpdates []*RealtimeStopUpdate `protobuf:"bytes,11,rep,name=stop_updates,json=stopUpdates,proto3" json:"stop_updates,omitempty"`
-	// The static trip journey detail overlays it on; empty when none runs today.
-	PlannedTripId string         `protobuf:"bytes,12,opt,name=planned_trip_id,json=plannedTripId,proto3" json:"planned_trip_id,omitempty"`
-	PlannedStops  []*PlannedStop `protobuf:"bytes,13,rep,name=planned_stops,json=plannedStops,proto3" json:"planned_stops,omitempty"`
-	// Entities in the raw trip-update feed, before trips are resolved.
-	FeedEntityCount int32 `protobuf:"varint,14,opt,name=feed_entity_count,json=feedEntityCount,proto3" json:"feed_entity_count,omitempty"`
-	// Feed entities carrying a trip update.
-	FeedTripUpdateCount int32 `protobuf:"varint,15,opt,name=feed_trip_update_count,json=feedTripUpdateCount,proto3" json:"feed_trip_update_count,omitempty"`
-	// Trip updates with an empty trip_id, which cannot resolve.
-	FeedWithoutTripIdCount int32 `protobuf:"varint,16,opt,name=feed_without_trip_id_count,json=feedWithoutTripIdCount,proto3" json:"feed_without_trip_id_count,omitempty"`
-	// Train numbers in today's snapshot, sorted.
-	SnapshotTripShortNames []string `protobuf:"bytes,17,rep,name=snapshot_trip_short_names,json=snapshotTripShortNames,proto3" json:"snapshot_trip_short_names,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *GetRealtimeTripResponse) Reset() {
-	*x = GetRealtimeTripResponse{}
-	mi := &file_trains_v1_trains_proto_msgTypes[29]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetRealtimeTripResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetRealtimeTripResponse) ProtoMessage() {}
-
-func (x *GetRealtimeTripResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[29]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetRealtimeTripResponse.ProtoReflect.Descriptor instead.
-func (*GetRealtimeTripResponse) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{29}
-}
-
-func (x *GetRealtimeTripResponse) GetFetchedAt() string {
-	if x != nil {
-		return x.FetchedAt
-	}
-	return ""
-}
-
-func (x *GetRealtimeTripResponse) GetTripCount() int32 {
-	if x != nil {
-		return x.TripCount
-	}
-	return 0
-}
-
-func (x *GetRealtimeTripResponse) GetUnresolvedTripCount() int32 {
-	if x != nil {
-		return x.UnresolvedTripCount
-	}
-	return 0
-}
-
-func (x *GetRealtimeTripResponse) GetDuplicateTripCount() int32 {
-	if x != nil {
-		return x.DuplicateTripCount
-	}
-	return 0
-}
-
-func (x *GetRealtimeTripResponse) GetAlertCount() int32 {
-	if x != nil {
-		return x.AlertCount
-	}
-	return 0
-}
-
-func (x *GetRealtimeTripResponse) GetStopUpdateStatuses() map[string]int32 {
-	if x != nil {
-		return x.StopUpdateStatuses
-	}
-	return nil
-}
-
-func (x *GetRealtimeTripResponse) GetFound() bool {
-	if x != nil {
-		return x.Found
-	}
-	return false
-}
-
-func (x *GetRealtimeTripResponse) GetTripId() string {
-	if x != nil {
-		return x.TripId
-	}
-	return ""
-}
-
-func (x *GetRealtimeTripResponse) GetStartDate() string {
-	if x != nil {
-		return x.StartDate
-	}
-	return ""
-}
-
-func (x *GetRealtimeTripResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *GetRealtimeTripResponse) GetStopUpdates() []*RealtimeStopUpdate {
-	if x != nil {
-		return x.StopUpdates
-	}
-	return nil
-}
-
-func (x *GetRealtimeTripResponse) GetPlannedTripId() string {
-	if x != nil {
-		return x.PlannedTripId
-	}
-	return ""
-}
-
-func (x *GetRealtimeTripResponse) GetPlannedStops() []*PlannedStop {
-	if x != nil {
-		return x.PlannedStops
-	}
-	return nil
-}
-
-func (x *GetRealtimeTripResponse) GetFeedEntityCount() int32 {
-	if x != nil {
-		return x.FeedEntityCount
-	}
-	return 0
-}
-
-func (x *GetRealtimeTripResponse) GetFeedTripUpdateCount() int32 {
-	if x != nil {
-		return x.FeedTripUpdateCount
-	}
-	return 0
-}
-
-func (x *GetRealtimeTripResponse) GetFeedWithoutTripIdCount() int32 {
-	if x != nil {
-		return x.FeedWithoutTripIdCount
-	}
-	return 0
-}
-
-func (x *GetRealtimeTripResponse) GetSnapshotTripShortNames() []string {
-	if x != nil {
-		return x.SnapshotTripShortNames
-	}
-	return nil
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{22}
 }
 
 var File_trains_v1_trains_proto protoreflect.FileDescriptor
@@ -2098,19 +1533,7 @@ const file_trains_v1_trains_proto_rawDesc = "" +
 	"\x15SearchStationsRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\"H\n" +
 	"\x16SearchStationsResponse\x12.\n" +
-	"\bstations\x18\x01 \x03(\v2\x12.trains.v1.StationR\bstations\"\x14\n" +
-	"\x12GetFeedInfoRequest\"\x9d\x01\n" +
-	"\x13GetFeedInfoResponse\x12!\n" +
-	"\ffeed_version\x18\x01 \x01(\tR\vfeedVersion\x12\x1f\n" +
-	"\vimported_at\x18\x02 \x01(\tR\n" +
-	"importedAt\x12B\n" +
-	"\ftranslations\x18\x03 \x01(\v2\x1e.trains.v1.TranslationCoverageR\ftranslations\"\xe0\x01\n" +
-	"\x13TranslationCoverage\x12.\n" +
-	"\x13translated_stops_nl\x18\x01 \x01(\x05R\x11translatedStopsNl\x12.\n" +
-	"\x13translated_stops_fr\x18\x02 \x01(\x05R\x11translatedStopsFr\x12.\n" +
-	"\x13translated_stops_en\x18\x03 \x01(\x05R\x11translatedStopsEn\x12\x12\n" +
-	"\x04rows\x18\x04 \x01(\x05R\x04rows\x12%\n" +
-	"\x0erows_unmatched\x18\x05 \x01(\x05R\rrowsUnmatched\"\xb2\x01\n" +
+	"\bstations\x18\x01 \x03(\v2\x12.trains.v1.StationR\bstations\"\xb2\x01\n" +
 	"\fSavedCommute\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12*\n" +
@@ -2134,54 +1557,11 @@ const file_trains_v1_trains_proto_rawDesc = "" +
 	"\rsaved_commute\x18\x01 \x01(\v2\x17.trains.v1.SavedCommuteR\fsavedCommute\"+\n" +
 	"\x19DeleteSavedCommuteRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x1c\n" +
-	"\x1aDeleteSavedCommuteResponse\"@\n" +
-	"\x16GetRealtimeTripRequest\x12&\n" +
-	"\x0ftrip_short_name\x18\x01 \x01(\tR\rtripShortName\"\xb2\x02\n" +
-	"\x12RealtimeStopUpdate\x12\x17\n" +
-	"\astop_id\x18\x01 \x01(\tR\x06stopId\x12#\n" +
-	"\rstop_sequence\x18\x02 \x01(\x05R\fstopSequence\x12\x16\n" +
-	"\x06status\x18\x03 \x01(\tR\x06status\x12(\n" +
-	"\rarrival_delay\x18\x04 \x01(\x05H\x00R\farrivalDelay\x88\x01\x01\x12,\n" +
-	"\x0fdeparture_delay\x18\x05 \x01(\x05H\x01R\x0edepartureDelay\x88\x01\x01\x12!\n" +
-	"\farrival_time\x18\x06 \x01(\tR\varrivalTime\x12%\n" +
-	"\x0edeparture_time\x18\a \x01(\tR\rdepartureTimeB\x10\n" +
-	"\x0e_arrival_delayB\x12\n" +
-	"\x10_departure_delay\"K\n" +
-	"\vPlannedStop\x12\x17\n" +
-	"\astop_id\x18\x01 \x01(\tR\x06stopId\x12#\n" +
-	"\rstop_sequence\x18\x02 \x01(\x05R\fstopSequence\"\xf8\x06\n" +
-	"\x17GetRealtimeTripResponse\x12\x1d\n" +
-	"\n" +
-	"fetched_at\x18\x01 \x01(\tR\tfetchedAt\x12\x1d\n" +
-	"\n" +
-	"trip_count\x18\x02 \x01(\x05R\ttripCount\x122\n" +
-	"\x15unresolved_trip_count\x18\x03 \x01(\x05R\x13unresolvedTripCount\x120\n" +
-	"\x14duplicate_trip_count\x18\x04 \x01(\x05R\x12duplicateTripCount\x12\x1f\n" +
-	"\valert_count\x18\x05 \x01(\x05R\n" +
-	"alertCount\x12l\n" +
-	"\x14stop_update_statuses\x18\x06 \x03(\v2:.trains.v1.GetRealtimeTripResponse.StopUpdateStatusesEntryR\x12stopUpdateStatuses\x12\x14\n" +
-	"\x05found\x18\a \x01(\bR\x05found\x12\x17\n" +
-	"\atrip_id\x18\b \x01(\tR\x06tripId\x12\x1d\n" +
-	"\n" +
-	"start_date\x18\t \x01(\tR\tstartDate\x12\x16\n" +
-	"\x06status\x18\n" +
-	" \x01(\tR\x06status\x12@\n" +
-	"\fstop_updates\x18\v \x03(\v2\x1d.trains.v1.RealtimeStopUpdateR\vstopUpdates\x12&\n" +
-	"\x0fplanned_trip_id\x18\f \x01(\tR\rplannedTripId\x12;\n" +
-	"\rplanned_stops\x18\r \x03(\v2\x16.trains.v1.PlannedStopR\fplannedStops\x12*\n" +
-	"\x11feed_entity_count\x18\x0e \x01(\x05R\x0ffeedEntityCount\x123\n" +
-	"\x16feed_trip_update_count\x18\x0f \x01(\x05R\x13feedTripUpdateCount\x12:\n" +
-	"\x1afeed_without_trip_id_count\x18\x10 \x01(\x05R\x16feedWithoutTripIdCount\x129\n" +
-	"\x19snapshot_trip_short_names\x18\x11 \x03(\tR\x16snapshotTripShortNames\x1aE\n" +
-	"\x17StopUpdateStatusesEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x012\xca\x06\n" +
+	"\x1aDeleteSavedCommuteResponse2\xa2\x05\n" +
 	"\fTrainService\x12U\n" +
 	"\x0eSearchJourneys\x12 .trains.v1.SearchJourneysRequest\x1a!.trains.v1.SearchJourneysResponse\x12U\n" +
-	"\x0eSearchStations\x12 .trains.v1.SearchStationsRequest\x1a!.trains.v1.SearchStationsResponse\x12L\n" +
-	"\vGetFeedInfo\x12\x1d.trains.v1.GetFeedInfoRequest\x1a\x1e.trains.v1.GetFeedInfoResponse\x12[\n" +
-	"\x10GetJourneyDetail\x12\".trains.v1.GetJourneyDetailRequest\x1a#.trains.v1.GetJourneyDetailResponse\x12X\n" +
-	"\x0fGetRealtimeTrip\x12!.trains.v1.GetRealtimeTripRequest\x1a\".trains.v1.GetRealtimeTripResponse\x12^\n" +
+	"\x0eSearchStations\x12 .trains.v1.SearchStationsRequest\x1a!.trains.v1.SearchStationsResponse\x12[\n" +
+	"\x10GetJourneyDetail\x12\".trains.v1.GetJourneyDetailRequest\x1a#.trains.v1.GetJourneyDetailResponse\x12^\n" +
 	"\x11ListSavedCommutes\x12#.trains.v1.ListSavedCommutesRequest\x1a$.trains.v1.ListSavedCommutesResponse\x12a\n" +
 	"\x12CreateSavedCommute\x12$.trains.v1.CreateSavedCommuteRequest\x1a%.trains.v1.CreateSavedCommuteResponse\x12a\n" +
 	"\x12UpdateSavedCommute\x12$.trains.v1.UpdateSavedCommuteRequest\x1a%.trains.v1.UpdateSavedCommuteResponse\x12a\n" +
@@ -2199,7 +1579,7 @@ func file_trains_v1_trains_proto_rawDescGZIP() []byte {
 	return file_trains_v1_trains_proto_rawDescData
 }
 
-var file_trains_v1_trains_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_trains_v1_trains_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_trains_v1_trains_proto_goTypes = []any{
 	(*Leg)(nil),                        // 0: trains.v1.Leg
 	(*Journey)(nil),                    // 1: trains.v1.Journey
@@ -2215,23 +1595,15 @@ var file_trains_v1_trains_proto_goTypes = []any{
 	(*Station)(nil),                    // 11: trains.v1.Station
 	(*SearchStationsRequest)(nil),      // 12: trains.v1.SearchStationsRequest
 	(*SearchStationsResponse)(nil),     // 13: trains.v1.SearchStationsResponse
-	(*GetFeedInfoRequest)(nil),         // 14: trains.v1.GetFeedInfoRequest
-	(*GetFeedInfoResponse)(nil),        // 15: trains.v1.GetFeedInfoResponse
-	(*TranslationCoverage)(nil),        // 16: trains.v1.TranslationCoverage
-	(*SavedCommute)(nil),               // 17: trains.v1.SavedCommute
-	(*ListSavedCommutesRequest)(nil),   // 18: trains.v1.ListSavedCommutesRequest
-	(*ListSavedCommutesResponse)(nil),  // 19: trains.v1.ListSavedCommutesResponse
-	(*CreateSavedCommuteRequest)(nil),  // 20: trains.v1.CreateSavedCommuteRequest
-	(*CreateSavedCommuteResponse)(nil), // 21: trains.v1.CreateSavedCommuteResponse
-	(*UpdateSavedCommuteRequest)(nil),  // 22: trains.v1.UpdateSavedCommuteRequest
-	(*UpdateSavedCommuteResponse)(nil), // 23: trains.v1.UpdateSavedCommuteResponse
-	(*DeleteSavedCommuteRequest)(nil),  // 24: trains.v1.DeleteSavedCommuteRequest
-	(*DeleteSavedCommuteResponse)(nil), // 25: trains.v1.DeleteSavedCommuteResponse
-	(*GetRealtimeTripRequest)(nil),     // 26: trains.v1.GetRealtimeTripRequest
-	(*RealtimeStopUpdate)(nil),         // 27: trains.v1.RealtimeStopUpdate
-	(*PlannedStop)(nil),                // 28: trains.v1.PlannedStop
-	(*GetRealtimeTripResponse)(nil),    // 29: trains.v1.GetRealtimeTripResponse
-	nil,                                // 30: trains.v1.GetRealtimeTripResponse.StopUpdateStatusesEntry
+	(*SavedCommute)(nil),               // 14: trains.v1.SavedCommute
+	(*ListSavedCommutesRequest)(nil),   // 15: trains.v1.ListSavedCommutesRequest
+	(*ListSavedCommutesResponse)(nil),  // 16: trains.v1.ListSavedCommutesResponse
+	(*CreateSavedCommuteRequest)(nil),  // 17: trains.v1.CreateSavedCommuteRequest
+	(*CreateSavedCommuteResponse)(nil), // 18: trains.v1.CreateSavedCommuteResponse
+	(*UpdateSavedCommuteRequest)(nil),  // 19: trains.v1.UpdateSavedCommuteRequest
+	(*UpdateSavedCommuteResponse)(nil), // 20: trains.v1.UpdateSavedCommuteResponse
+	(*DeleteSavedCommuteRequest)(nil),  // 21: trains.v1.DeleteSavedCommuteRequest
+	(*DeleteSavedCommuteResponse)(nil), // 22: trains.v1.DeleteSavedCommuteResponse
 }
 var file_trains_v1_trains_proto_depIdxs = []int32{
 	0,  // 0: trains.v1.Journey.legs:type_name -> trains.v1.Leg
@@ -2243,38 +1615,30 @@ var file_trains_v1_trains_proto_depIdxs = []int32{
 	6,  // 6: trains.v1.GetJourneyDetailResponse.journey:type_name -> trains.v1.JourneyDetail
 	1,  // 7: trains.v1.SearchJourneysResponse.journeys:type_name -> trains.v1.Journey
 	11, // 8: trains.v1.SearchStationsResponse.stations:type_name -> trains.v1.Station
-	16, // 9: trains.v1.GetFeedInfoResponse.translations:type_name -> trains.v1.TranslationCoverage
-	11, // 10: trains.v1.SavedCommute.origin:type_name -> trains.v1.Station
-	11, // 11: trains.v1.SavedCommute.destination:type_name -> trains.v1.Station
-	17, // 12: trains.v1.ListSavedCommutesResponse.saved_commutes:type_name -> trains.v1.SavedCommute
-	17, // 13: trains.v1.CreateSavedCommuteResponse.saved_commute:type_name -> trains.v1.SavedCommute
-	17, // 14: trains.v1.UpdateSavedCommuteResponse.saved_commute:type_name -> trains.v1.SavedCommute
-	30, // 15: trains.v1.GetRealtimeTripResponse.stop_update_statuses:type_name -> trains.v1.GetRealtimeTripResponse.StopUpdateStatusesEntry
-	27, // 16: trains.v1.GetRealtimeTripResponse.stop_updates:type_name -> trains.v1.RealtimeStopUpdate
-	28, // 17: trains.v1.GetRealtimeTripResponse.planned_stops:type_name -> trains.v1.PlannedStop
-	9,  // 18: trains.v1.TrainService.SearchJourneys:input_type -> trains.v1.SearchJourneysRequest
-	12, // 19: trains.v1.TrainService.SearchStations:input_type -> trains.v1.SearchStationsRequest
-	14, // 20: trains.v1.TrainService.GetFeedInfo:input_type -> trains.v1.GetFeedInfoRequest
-	7,  // 21: trains.v1.TrainService.GetJourneyDetail:input_type -> trains.v1.GetJourneyDetailRequest
-	26, // 22: trains.v1.TrainService.GetRealtimeTrip:input_type -> trains.v1.GetRealtimeTripRequest
-	18, // 23: trains.v1.TrainService.ListSavedCommutes:input_type -> trains.v1.ListSavedCommutesRequest
-	20, // 24: trains.v1.TrainService.CreateSavedCommute:input_type -> trains.v1.CreateSavedCommuteRequest
-	22, // 25: trains.v1.TrainService.UpdateSavedCommute:input_type -> trains.v1.UpdateSavedCommuteRequest
-	24, // 26: trains.v1.TrainService.DeleteSavedCommute:input_type -> trains.v1.DeleteSavedCommuteRequest
-	10, // 27: trains.v1.TrainService.SearchJourneys:output_type -> trains.v1.SearchJourneysResponse
-	13, // 28: trains.v1.TrainService.SearchStations:output_type -> trains.v1.SearchStationsResponse
-	15, // 29: trains.v1.TrainService.GetFeedInfo:output_type -> trains.v1.GetFeedInfoResponse
-	8,  // 30: trains.v1.TrainService.GetJourneyDetail:output_type -> trains.v1.GetJourneyDetailResponse
-	29, // 31: trains.v1.TrainService.GetRealtimeTrip:output_type -> trains.v1.GetRealtimeTripResponse
-	19, // 32: trains.v1.TrainService.ListSavedCommutes:output_type -> trains.v1.ListSavedCommutesResponse
-	21, // 33: trains.v1.TrainService.CreateSavedCommute:output_type -> trains.v1.CreateSavedCommuteResponse
-	23, // 34: trains.v1.TrainService.UpdateSavedCommute:output_type -> trains.v1.UpdateSavedCommuteResponse
-	25, // 35: trains.v1.TrainService.DeleteSavedCommute:output_type -> trains.v1.DeleteSavedCommuteResponse
-	27, // [27:36] is the sub-list for method output_type
-	18, // [18:27] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	11, // 9: trains.v1.SavedCommute.origin:type_name -> trains.v1.Station
+	11, // 10: trains.v1.SavedCommute.destination:type_name -> trains.v1.Station
+	14, // 11: trains.v1.ListSavedCommutesResponse.saved_commutes:type_name -> trains.v1.SavedCommute
+	14, // 12: trains.v1.CreateSavedCommuteResponse.saved_commute:type_name -> trains.v1.SavedCommute
+	14, // 13: trains.v1.UpdateSavedCommuteResponse.saved_commute:type_name -> trains.v1.SavedCommute
+	9,  // 14: trains.v1.TrainService.SearchJourneys:input_type -> trains.v1.SearchJourneysRequest
+	12, // 15: trains.v1.TrainService.SearchStations:input_type -> trains.v1.SearchStationsRequest
+	7,  // 16: trains.v1.TrainService.GetJourneyDetail:input_type -> trains.v1.GetJourneyDetailRequest
+	15, // 17: trains.v1.TrainService.ListSavedCommutes:input_type -> trains.v1.ListSavedCommutesRequest
+	17, // 18: trains.v1.TrainService.CreateSavedCommute:input_type -> trains.v1.CreateSavedCommuteRequest
+	19, // 19: trains.v1.TrainService.UpdateSavedCommute:input_type -> trains.v1.UpdateSavedCommuteRequest
+	21, // 20: trains.v1.TrainService.DeleteSavedCommute:input_type -> trains.v1.DeleteSavedCommuteRequest
+	10, // 21: trains.v1.TrainService.SearchJourneys:output_type -> trains.v1.SearchJourneysResponse
+	13, // 22: trains.v1.TrainService.SearchStations:output_type -> trains.v1.SearchStationsResponse
+	8,  // 23: trains.v1.TrainService.GetJourneyDetail:output_type -> trains.v1.GetJourneyDetailResponse
+	16, // 24: trains.v1.TrainService.ListSavedCommutes:output_type -> trains.v1.ListSavedCommutesResponse
+	18, // 25: trains.v1.TrainService.CreateSavedCommute:output_type -> trains.v1.CreateSavedCommuteResponse
+	20, // 26: trains.v1.TrainService.UpdateSavedCommute:output_type -> trains.v1.UpdateSavedCommuteResponse
+	22, // 27: trains.v1.TrainService.DeleteSavedCommute:output_type -> trains.v1.DeleteSavedCommuteResponse
+	21, // [21:28] is the sub-list for method output_type
+	14, // [14:21] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_trains_v1_trains_proto_init() }
@@ -2282,14 +1646,13 @@ func file_trains_v1_trains_proto_init() {
 	if File_trains_v1_trains_proto != nil {
 		return
 	}
-	file_trains_v1_trains_proto_msgTypes[27].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_trains_v1_trains_proto_rawDesc), len(file_trains_v1_trains_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   31,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

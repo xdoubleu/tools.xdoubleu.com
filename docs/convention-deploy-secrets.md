@@ -30,7 +30,7 @@ A mismatch fails only at `kamal deploy` on `main`, post-merge:
 
 ## What violating it looked like
 
-- `BMC_PARTNER_KEY` broke the `main` deploy (#1390, fixed #1404); the lint
+- A new deploy secret broke the `main` deploy (#1390, fixed #1404); the lint
   followed (#1405).
 - `OAUTH_GRAFANA_CLIENT_SECRET` was consistent everywhere yet inert in Grafana
   until renamed `GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET` (#1517).

@@ -2,10 +2,15 @@ package trains
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 
+	"tools.xdoubleu.com/apps/trains/pkg/irail"
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 	"tools.xdoubleu.com/internal/mcptools"
 )
@@ -32,9 +37,10 @@ type mcpGetJourneyDetailArgs struct {
 	JourneyID string `json:"journey_id" jsonschema:"id from trains_search_journeys"`
 }
 
-// mcpGetRealtimeTripArgs names a train running today.
-type mcpGetRealtimeTripArgs struct {
-	TripShortName string `json:"trip_short_name,omitempty" jsonschema:"train no."`
+// mcpIrailDiagnosticArgs names a train to fetch raw from iRail.
+type mcpIrailDiagnosticArgs struct {
+	VehicleID string `json:"vehicle_id,omitempty" jsonschema:"train, e.g. IC530"`
+	Date      string `json:"date,omitempty"       jsonschema:"YYYY-MM-DD, empty=today"`
 }
 
 // RegisterMCPTools exposes the trains read RPCs on the apps MCP server. The
@@ -46,34 +52,24 @@ func (a *Trains) RegisterMCPTools(srv *mcp.Server) {
 		"Stations matching a query, each with its Dutch, French and English "+
 			"name — the names the /trains pickers search and display.",
 		h.mcpSearchStations)
-	mcptools.AddReadTool(srv, mcpAppName, "trains_get_feed_info",
-		"The imported SNCB/NMBS timetable's feed version, when the import "+
-			"that produced it ran, and how much of the feed's translations.txt "+
-			"it applied. A conditional GET makes an unchanged feed a no-op, so "+
-			"a stale imported_at is how a skipped import shows up; translated "+
-			"stop counts of 0 against a non-zero rows count is how station "+
-			"names silently staying monolingual shows up.",
-		h.mcpGetFeedInfo)
 	mcptools.AddReadTool(srv, mcpAppName, "trains_search_journeys",
 		"Journeys between two stops around a time, as the /trains route "+
 			"overview computes them.", h.mcpSearchJourneys)
 	mcptools.AddReadTool(srv, mcpAppName, "trains_get_journey_detail",
 		"The full live state of one previously-searched journey — every stop "+
 			"of every boarded train with its scheduled time, live delay/"+
-			"cancellation status and platform, plus attached service alerts. "+
-			"This is what /trains/[journeyId] renders. The realtime feed is "+
-			"replaced wholesale every 30s and nothing is retained, so this "+
-			"only ever reports the current state, never what it looked like "+
+			"cancellation status and platform. This is what "+
+			"/trains/[journeyId] renders. Nothing is retained, so this only "+
+			"ever reports the current state, never what it looked like "+
 			"earlier.",
 		h.mcpGetJourneyDetail)
-	mcptools.AddReadTool(srv, mcpAppName, "trains_get_realtime_trip",
-		"The in-memory GTFS-RT snapshot: when it was last polled, how many "+
-			"trips it holds, how many were unresolved or duplicate, and stop "+
-			"updates by status. With a train number, also that train's raw "+
-			"realtime stop updates today next to the static stop_times journey "+
-			"detail overlays them on — how an 'unknown' stop on a running "+
-			"train is traced to a missing trip versus a failed stop match.",
-		h.mcpGetRealtimeTrip)
+	mcptools.AddReadTool(srv, mcpAppName, "trains_get_irail_diagnostic",
+		"iRail request health: total requests, 429s, failures and the most "+
+			"recent errors since the process started. With a vehicle_id "+
+			"(e.g. IC530), also iRail's raw response for that train today — "+
+			"how a wrong or missing delay on /trains is traced to iRail "+
+			"versus our own mapping.",
+		a.mcpIrailDiagnostic)
 }
 
 func (h *trainsConnectHandler) mcpSearchStations(
@@ -82,12 +78,6 @@ func (h *trainsConnectHandler) mcpSearchStations(
 	return mcptools.Unwrap(
 		h.SearchStations(ctx, &trainsv1.SearchStationsRequest{Query: args.Query}),
 	)
-}
-
-func (h *trainsConnectHandler) mcpGetFeedInfo(
-	ctx context.Context, _ mcptools.NoArgs,
-) (proto.Message, error) {
-	return mcptools.Unwrap(h.GetFeedInfo(ctx, &trainsv1.GetFeedInfoRequest{}))
 }
 
 func (h *trainsConnectHandler) mcpSearchJourneys(
@@ -109,13 +99,57 @@ func (h *trainsConnectHandler) mcpGetJourneyDetail(
 	)
 }
 
-func (h *trainsConnectHandler) mcpGetRealtimeTrip(
-	ctx context.Context, args mcpGetRealtimeTripArgs,
+func (a *Trains) mcpIrailDiagnostic(
+	ctx context.Context, args mcpIrailDiagnosticArgs,
 ) (proto.Message, error) {
-	return mcptools.Unwrap(
-		h.GetRealtimeTrip(
-			ctx,
-			&trainsv1.GetRealtimeTripRequest{TripShortName: args.TripShortName},
-		),
-	)
+	out := map[string]any{"diagnostics": a.irail.Diagnostics()}
+
+	if args.VehicleID != "" {
+		vehicle, err := a.rawVehicle(ctx, args)
+		if err != nil {
+			return nil, err
+		}
+		out["vehicle"] = vehicle
+	}
+
+	// Round-trip through JSON so structs become the plain maps structpb needs.
+	data, err := json.Marshal(out)
+	if err != nil {
+		return nil, err
+	}
+	var plain map[string]any
+	if err = json.Unmarshal(data, &plain); err != nil {
+		return nil, err
+	}
+	return structpb.NewStruct(plain)
+}
+
+// rawVehicle fetches one train's unparsed iRail response; an iRail failure is
+// reported in the result rather than failing the whole diagnostic.
+func (a *Trains) rawVehicle(
+	ctx context.Context, args mcpIrailDiagnosticArgs,
+) (map[string]any, error) {
+	day := time.Now()
+	if args.Date != "" {
+		parsed, err := time.Parse(time.DateOnly, args.Date)
+		if err != nil {
+			return nil, fmt.Errorf("date must be YYYY-MM-DD: %w", err)
+		}
+		day = parsed
+	}
+
+	id := irail.VehicleID(args.VehicleID)
+	vehicle := map[string]any{"id": id}
+	raw, err := a.irail.RawVehicle(ctx, id, day)
+	if err != nil {
+		vehicle["error"] = err.Error()
+		return vehicle, nil //nolint:nilerr //the failure is the diagnostic
+	}
+	var decoded any
+	if err = json.Unmarshal(raw, &decoded); err != nil {
+		vehicle["error"] = err.Error()
+		return vehicle, nil //nolint:nilerr //the failure is the diagnostic
+	}
+	vehicle["raw"] = decoded
+	return vehicle, nil
 }

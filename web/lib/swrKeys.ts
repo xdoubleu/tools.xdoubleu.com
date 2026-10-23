@@ -13,7 +13,6 @@ export const swrKeys = {
   // Not under /api: kamal-proxy routes that to the Go service.
   webRelease: '/release',
 
-  trainsFeedInfo: '/trains/feed-info',
   trainsStations: (query: string) => ['/trains/stations', query] as const,
   trainsJourneys: (
     originStopId: string,

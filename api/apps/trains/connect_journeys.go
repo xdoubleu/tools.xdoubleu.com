@@ -9,7 +9,7 @@ import (
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
 	"tools.xdoubleu.com/apps/trains/internal/services"
-	"tools.xdoubleu.com/apps/trains/pkg/csa"
+	"tools.xdoubleu.com/apps/trains/pkg/irail"
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 	"tools.xdoubleu.com/gen/trains/v1/trainsv1connect"
 	"tools.xdoubleu.com/internal/database"
@@ -45,8 +45,8 @@ func (h *trainsConnectHandler) SearchJourneys(
 	}
 
 	out := make([]*trainsv1.Journey, len(journeys))
-	for i, j := range journeys {
-		out[i] = protoJourney(&j)
+	for i := range journeys {
+		out[i] = protoJourneyOption(&journeys[i])
 	}
 	return &trainsv1.SearchJourneysResponse{
 		Journeys: out,
@@ -71,7 +71,7 @@ func (h *trainsConnectHandler) GetJourneyDetail(
 		if errors.Is(err, services.ErrInvalidJourneyID) {
 			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		}
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 
 	h.app.Services.JourneyWS.EnsureTopic(journeyID)
@@ -79,40 +79,6 @@ func (h *trainsConnectHandler) GetJourneyDetail(
 	return &trainsv1.GetJourneyDetailResponse{
 		Journey: protoJourneyDetail(journeyID, detail),
 	}, nil
-}
-
-func protoJourney(j *csa.Journey) *trainsv1.Journey {
-	legs := make([]*trainsv1.Leg, len(j.Legs))
-	refs := make([]services.LegRef, len(j.Legs))
-	for i, l := range j.Legs {
-		legs[i] = &trainsv1.Leg{
-			TripShortName:  l.TripShortName,
-			RouteShortName: l.RouteShortName,
-			Headsign:       l.Headsign,
-			BoardStopId:    l.BoardStopID,
-			BoardStopName:  l.BoardStopName,
-			BoardPlatform:  l.BoardPlatform,
-			BoardTime:      l.BoardTime.Format(time.RFC3339),
-			AlightStopId:   l.AlightStopID,
-			AlightStopName: l.AlightStopName,
-			AlightPlatform: l.AlightPlatform,
-			AlightTime:     l.AlightTime.Format(time.RFC3339),
-		}
-		refs[i] = services.LegRef{
-			TripShortName: l.TripShortName,
-			BoardStopID:   l.BoardStopID,
-			BoardTime:     l.BoardTime,
-			AlightStopID:  l.AlightStopID,
-			AlightTime:    l.AlightTime,
-		}
-	}
-	return &trainsv1.Journey{
-		Legs:          legs,
-		DepartureTime: j.DepartureTime.Format(time.RFC3339),
-		ArrivalTime:   j.ArrivalTime.Format(time.RFC3339),
-		Transfers:     int32(j.Transfers), //nolint:gosec //transfer count is small
-		JourneyId:     services.EncodeJourneyID(refs),
-	}
 }
 
 func protoJourneyDetail(
@@ -225,9 +191,9 @@ func protoStopCall(sc *models.StopDetail) *trainsv1.StopCall {
 
 func mapError(err error) error {
 	switch {
-	case errors.Is(err, csa.ErrUnknownStop):
+	case errors.Is(err, services.ErrUnknownStation):
 		return connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
-	case errors.Is(err, services.ErrRouterWarmingUp):
+	case errors.Is(err, irail.ErrRateLimited):
 		return connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	case errors.Is(err, services.ErrInvalidCommute):
 		return connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)

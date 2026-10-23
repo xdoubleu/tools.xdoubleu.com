@@ -68,11 +68,10 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - **watchparty** — no DB, own domain `watchparty.xdoubleu.com`.
 - **mealplans/shoppinglist/recipes** — family-scoped by `family_id`; shoppinglist stores stay per-user.
 - **dashboard** — public services (`apps/dashboard/connect_public.go`) run **without auth middleware**; they resolve an opaque share token (`global.profile_shares`) and **must never read the user-context key**, then delegate to exported methods on the live app structs. Token management is in `DashboardService` behind `Access`, not `dashboard`'s `AppAccess` → [`adr-0007`](../docs/adr-0007-dashboard-app-owns-public-sharing.md).
-- **trains** → [`adr-0019`](../docs/adr-0019-trains-in-memory-router-and-dual-gtfs-feeds.md):
-  - `SearchJourneys` reads an in-memory CSA index built off the request path; while nil it returns `CodeUnavailable`, never a lazy build.
-  - **An import that starts writing something new must bump `services.ImportParserVersion`** — conditional GETs otherwise pin old rows.
-  - **Keep GTFS-RT trip `CANCELED` distinct from stop `SKIPPED`/`NO_DATA`** — conflating them fakes cancellations.
-  - **Never persist, return, or join on `trip_id`** (churns daily); correlate by `(trip_short_name, service date)`.
+- **trains** → [`adr-0035`](../docs/adr-0035-trains-on-irail.md):
+  - Everything goes through `pkg/irail` (rate-limited, 429 retried once, 20 s cache); handlers never call iRail directly.
+  - **Keep a whole-train cancellation (`cancelled`) distinct from a skipped stop (`skipped`)** — conflating them fakes cancellations.
+  - Station ids are 9-digit UIC codes; a `journey_id` carries the iRail vehicle id, never a stored row id.
 - **learningpaths** → [`adr-0023`](../docs/adr-0023-learningpaths-mcp-write-tools.md):
   - Scoped by `user_id`; another user's path reads as not-found.
   - Proto nests `LearningPath{modules{items}}`; Create/Update replace the whole tree; `RecordItemProgress` is the single-item exception.
@@ -83,7 +82,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 ### Database
 
 - Migrations: `apps/<name>/migrations/`; `global` schema in `cmd/api/migrations/`.
-- **No wide TEXT column in list queries or `RETURNING`** — select `<col> IS NOT NULL AND <col> <> ''`; only single-row reads fetch it. Large trains tables (`stop_times`, `calendar_dates`) select only used columns → [`convention-database-queries`](../docs/convention-database-queries.md).
+- **No wide TEXT column in list queries or `RETURNING`** — select `<col> IS NOT NULL AND <col> <> ''`; only single-row reads fetch it → [`convention-database-queries`](../docs/convention-database-queries.md).
 - Cross-schema reads only downstream: `recipes ← mealplans ← shoppinglist`. Grep downstream repos before changing an upstream schema.
 
 ### MCP

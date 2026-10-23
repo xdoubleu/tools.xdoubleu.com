@@ -7,7 +7,7 @@ import (
 )
 
 // SavedCommute is a user's named origin->destination station pair, stored
-// as S-prefixed UIC parent-station ids.
+// as UIC station ids.
 type SavedCommute struct {
 	ID                uuid.UUID
 	UserID            string
@@ -15,8 +15,8 @@ type SavedCommute struct {
 	OriginStopID      string
 	DestinationStopID string
 	Position          int
-	Origin            Stop
-	Destination       Stop
+	Origin            Station
+	Destination       Station
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }

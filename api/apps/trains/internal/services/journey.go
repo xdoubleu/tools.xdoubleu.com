@@ -3,29 +3,24 @@ package services
 import (
 	"context"
 	"errors"
-	"log/slog"
-	"sync"
+	"fmt"
+	"sort"
 	"time"
 
-	"golang.org/x/sync/singleflight"
-
-	"tools.xdoubleu.com/apps/trains/internal/repositories"
-	"tools.xdoubleu.com/apps/trains/pkg/csa"
+	"tools.xdoubleu.com/apps/trains/internal/models"
+	"tools.xdoubleu.com/apps/trains/pkg/irail"
 )
 
-// ErrRouterWarmingUp is returned before the CSA index is first built. The
-// build is too heavy for a request handler (it would outlive the proxy
-// timeout, see docs/adr-0017), so it's warmed at startup and on a schedule.
-var ErrRouterWarmingUp = errors.New("journey router is warming up")
+// ErrUnknownStation is returned when an origin or destination isn't a station.
+var ErrUnknownStation = errors.New("trains: unknown station id")
 
-// routerWindowDays bounds the in-memory stop_times window to keep the router
-// inside the container's GOMEMLIMIT (config/deploy.api.yml).
-const routerWindowDays = 14
+// minTransferSeconds is the change time assumed when judging whether a delayed
+// arrival still makes its connection.
+const minTransferSeconds = 180
 
-// brusselsLoc is the feed's timezone; stop_times are offsets from local
-// midnight.
+// brusselsLoc is the timezone passengers read times in.
 //
-//nolint:gochecknoglobals //fixed feed timezone
+//nolint:gochecknoglobals //fixed timezone
 var brusselsLoc = mustLoadLocation("Europe/Brussels")
 
 func mustLoadLocation(name string) *time.Location {
@@ -36,123 +31,99 @@ func mustLoadLocation(name string) *time.Location {
 	return loc
 }
 
-// JourneyService answers SearchJourneys over an in-memory CSA index of a
-// rolling timetable window. Routing is timetable-only.
+// JourneyService answers SearchJourneys from iRail's connections.
 type JourneyService struct {
-	logger *slog.Logger
-	repos  *repositories.Repositories
-
-	mu    sync.RWMutex
-	index *csa.Index
-	// refreshGroup collapses concurrent rebuilds into one window scan.
-	refreshGroup singleflight.Group
+	client   irail.Client
+	stations *StationsService
 }
 
 func NewJourneyService(
-	logger *slog.Logger, repos *repositories.Repositories,
+	client irail.Client, stations *StationsService,
 ) *JourneyService {
-	//nolint:exhaustruct //index is built lazily on first search or refresh
-	return &JourneyService{logger: logger, repos: repos}
+	return &JourneyService{client: client, stations: stations}
 }
 
-// SearchJourneys returns a few journeys before and after the given time. It
-// returns ErrRouterWarmingUp rather than building the index in-request.
+// SearchJourneys returns the journeys iRail plans around the given time,
+// ordered by departure.
 func (s *JourneyService) SearchJourneys(
-	_ context.Context,
+	ctx context.Context,
 	originStopID, destStopID string,
 	when time.Time,
 	arriveBy bool,
-) ([]csa.Journey, error) {
-	s.mu.RLock()
-	idx := s.index
-	s.mu.RUnlock()
-	if idx == nil {
-		return nil, ErrRouterWarmingUp
+) ([]models.JourneyOption, error) {
+	for _, id := range []string{originStopID, destStopID} {
+		if _, ok, err := s.stations.ByID(ctx, id); err != nil {
+			return nil, err
+		} else if !ok {
+			return nil, fmt.Errorf("%w: %q", ErrUnknownStation, id)
+		}
 	}
-	return idx.SearchJourneys(originStopID, destStopID, when, arriveBy)
-}
 
-// MinTransferSeconds reports the minimum change time between two stops,
-// falling back to the router default before the index is built.
-func (s *JourneyService) MinTransferSeconds(fromStopID, toStopID string) int {
-	s.mu.RLock()
-	idx := s.index
-	s.mu.RUnlock()
-	if idx == nil {
-		return csa.DefaultMinTransferSeconds
+	conns, err := s.client.Connections(ctx, originStopID, destStopID, when, arriveBy)
+	if err != nil {
+		return nil, err
 	}
-	return idx.MinTransferSeconds(fromStopID, toStopID)
-}
 
-// RefreshOnly rebuilds the index, matching jobs.RouterRefreshJob's func shape.
-func (s *JourneyService) RefreshOnly(ctx context.Context) error {
-	_, err := s.Refresh(ctx)
-	return err
-}
-
-// Refresh rebuilds the index for the current window and swaps it in
-// atomically; concurrent callers share one rebuild.
-func (s *JourneyService) Refresh(ctx context.Context) (*csa.Index, error) {
-	_, err, _ := s.refreshGroup.Do("refresh", func() (any, error) {
-		const oneDay = 24 * time.Hour
-		windowStart := time.Now().In(brusselsLoc).Truncate(oneDay)
-		return s.RefreshWindow(ctx, windowStart)
+	out := make([]models.JourneyOption, 0, len(conns))
+	for _, c := range conns {
+		if len(c.Legs) == 0 {
+			continue
+		}
+		out = append(out, s.option(ctx, c.Legs))
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		return out[i].DepartureTime.Before(out[j].DepartureTime)
 	})
-	if err != nil {
-		return nil, err
-	}
-	s.mu.RLock()
-	idx := s.index
-	s.mu.RUnlock()
-	return idx, nil
+	return out, nil
 }
 
-// RefreshWindow rebuilds the index for a caller-chosen window start (tests
-// align it to fixture dates).
-func (s *JourneyService) RefreshWindow(
-	ctx context.Context, windowStart time.Time,
-) (*csa.Index, error) {
-	windowEnd := windowStart.AddDate(0, 0, routerWindowDays-1)
+// MinTransferSeconds is the assumed change time between two stations.
+func (s *JourneyService) MinTransferSeconds(_, _ string) int {
+	return minTransferSeconds
+}
 
-	stops, err := s.repos.Feed.AllStops(ctx)
-	if err != nil {
-		return nil, err
+func (s *JourneyService) option(
+	ctx context.Context,
+	legs []irail.Leg,
+) models.JourneyOption {
+	optLegs := make([]models.JourneyOptionLeg, len(legs))
+	refs := make([]LegRef, len(legs))
+	for i, l := range legs {
+		optLegs[i] = models.JourneyOptionLeg{
+			TripShortName:  l.Number,
+			RouteShortName: l.Type,
+			Headsign:       l.Direction,
+			BoardStopID:    l.Board.StationID,
+			BoardStopName:  s.stationName(ctx, l.Board),
+			BoardPlatform:  l.Board.Platform,
+			BoardTime:      l.Board.Time,
+			AlightStopID:   l.Alight.StationID,
+			AlightStopName: s.stationName(ctx, l.Alight),
+			AlightPlatform: l.Alight.Platform,
+			AlightTime:     l.Alight.Time,
+		}
+		refs[i] = LegRef{
+			VehicleID:    l.VehicleID,
+			BoardStopID:  l.Board.StationID,
+			BoardTime:    l.Board.Time,
+			AlightStopID: l.Alight.StationID,
+			AlightTime:   l.Alight.Time,
+		}
 	}
-	transfers, err := s.repos.Feed.AllTransfers(ctx)
-	if err != nil {
-		return nil, err
+	return models.JourneyOption{
+		Legs:          optLegs,
+		DepartureTime: legs[0].Board.Time,
+		ArrivalTime:   legs[len(legs)-1].Alight.Time,
+		Transfers:     len(legs) - 1,
+		JourneyID:     EncodeJourneyID(refs),
 	}
-	active, err := s.repos.Feed.ActiveTripsInWindow(ctx, windowStart, windowEnd)
-	if err != nil {
-		return nil, err
-	}
+}
 
-	tripIDSet := make(map[string]bool, len(active))
-	for _, a := range active {
-		tripIDSet[a.TripID] = true
+// stationName prefers the app's canonical display name over iRail's
+// single-language one.
+func (s *JourneyService) stationName(ctx context.Context, e irail.Endpoint) string {
+	if st, ok, err := s.stations.ByID(ctx, e.StationID); err == nil && ok {
+		return st.DisplayName
 	}
-	tripIDs := make([]string, 0, len(tripIDSet))
-	for id := range tripIDSet {
-		tripIDs = append(tripIDs, id)
-	}
-	stopTimes, err := s.repos.Feed.StopTimesForTrips(ctx, tripIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	idx := csa.Build(
-		brusselsLoc, windowStart, stops, transfers, active, stopTimes,
-	)
-
-	s.mu.Lock()
-	s.index = idx
-	s.mu.Unlock()
-
-	s.logger.InfoContext(ctx, "trains: router index rebuilt",
-		slog.Int("stops", len(stops)),
-		slog.Int("active_trip_days", len(active)),
-		slog.Time("window_start", windowStart),
-		slog.Int("window_days", routerWindowDays),
-	)
-	return idx, nil
+	return e.Name
 }

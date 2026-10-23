@@ -2,30 +2,40 @@ package services
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
-	"tools.xdoubleu.com/apps/trains/internal/repositories"
+	"tools.xdoubleu.com/apps/trains/pkg/irail"
 )
 
 // onTimeThresholdSeconds: delays below this render as on time.
 const onTimeThresholdSeconds = 60
 
+// replanner is the slice of JourneyService the alternative evaluator needs.
+type replanner interface {
+	SearchJourneys(
+		ctx context.Context,
+		originStopID, destStopID string,
+		when time.Time,
+		arriveBy bool,
+	) ([]models.JourneyOption, error)
+	MinTransferSeconds(fromStopID, toStopID string) int
+}
+
 // JourneyDetailService rebuilds a searched journey's live state from its
 // journey_id; nothing is persisted.
 type JourneyDetailService struct {
-	repos    *repositories.Repositories
-	realtime *RealtimeService
-	// replan re-queries the router when the journey breaks; nil disables it.
+	client   irail.Client
+	stations *StationsService
+	// replan re-queries iRail when the journey breaks; nil disables it.
 	replan replanner
 }
 
 func NewJourneyDetailService(
-	repos *repositories.Repositories,
-	realtime *RealtimeService,
-	replan replanner,
+	client irail.Client, stations *StationsService, replan replanner,
 ) *JourneyDetailService {
-	return &JourneyDetailService{repos: repos, realtime: realtime, replan: replan}
+	return &JourneyDetailService{client: client, stations: stations, replan: replan}
 }
 
 // GetJourneyDetail rebuilds the live state of each leg in journeyID.
@@ -37,10 +47,9 @@ func (s *JourneyDetailService) GetJourneyDetail(
 		return nil, err
 	}
 
-	snapshot := s.realtime.Snapshot()
 	legs := make([]models.LegDetail, len(refs))
 	for i, ref := range refs {
-		leg, buildErr := s.buildLeg(ctx, ref, snapshot)
+		leg, buildErr := s.buildLeg(ctx, ref)
 		if buildErr != nil {
 			return nil, buildErr
 		}
@@ -56,117 +65,93 @@ func (s *JourneyDetailService) GetJourneyDetail(
 }
 
 func (s *JourneyDetailService) buildLeg(
-	ctx context.Context, ref LegRef, snapshot models.Snapshot,
+	ctx context.Context, ref LegRef,
 ) (models.LegDetail, error) {
-	date := serviceDateOf(ref.BoardTime)
-	active, err := s.repos.Feed.TripByShortNameOnDate(ctx, ref.TripShortName, date)
-	if err != nil {
-		return models.LegDetail{}, err
-	}
-	if active == nil {
-		// Trip no longer in the timetable; render without stop detail rather than
-		// failing.
-		//nolint:exhaustruct //no stop detail is known for a trip outside the window
-		return models.LegDetail{TripShortName: ref.TripShortName}, nil
-	}
-
-	stopTimes, err := s.repos.Feed.StopTimesForTrips(ctx, []string{active.TripID})
-	if err != nil {
-		return models.LegDetail{}, err
-	}
-	boardIdx, alightIdx := legRange(stopTimes, ref.BoardStopID, ref.AlightStopID)
-	if boardIdx < 0 || alightIdx < 0 || alightIdx < boardIdx {
-		//nolint:exhaustruct //board/alight stop not found in this trip's pattern
+	vehicle, err := s.client.Vehicle(ctx, ref.VehicleID, ref.BoardTime)
+	if errors.Is(err, irail.ErrNotFound) {
+		// The train is gone from iRail; render the leg without stop detail
+		// rather than failing the whole journey.
 		return models.LegDetail{
-			TripShortName:  ref.TripShortName,
-			RouteShortName: active.RouteShortName,
-			Headsign:       active.TripHeadsign,
+			TripShortName:  vehicleNumber(ref.VehicleID),
+			RouteShortName: vehicleType(ref.VehicleID),
+			Cancelled:      false,
+			Stops:          nil,
+			Alerts:         nil,
+			Headsign:       "",
 		}, nil
 	}
-	pattern := stopTimes[boardIdx : alightIdx+1]
-
-	stops, err := s.repos.Feed.StopsByIDs(ctx, stopIDsOf(pattern))
 	if err != nil {
 		return models.LegDetail{}, err
 	}
 
-	tripUpdate, hasTripUpdate := snapshot.CallFor(ref.TripShortName, date)
-	cancelled := hasTripUpdate && tripUpdate.State == models.DelayCancelled
-	live := overlayCalls(stopTimes, tripUpdate.StopCalls, date)
-
-	return models.LegDetail{
-		TripShortName:  ref.TripShortName,
-		RouteShortName: active.RouteShortName,
-		Headsign:       active.TripHeadsign,
+	boardIdx, alightIdx := legRange(vehicle.Calls, ref.BoardStopID, ref.AlightStopID)
+	cancelled := vehicle.Canceled()
+	leg := models.LegDetail{
+		TripShortName:  vehicle.Num,
+		RouteShortName: vehicle.Type,
+		Headsign:       lastCallName(vehicle.Calls),
 		Cancelled:      cancelled,
-		Stops: buildStopDetails(
-			pattern, stopByID(stops), live[boardIdx:alightIdx+1], cancelled, date, ref,
-		),
-		Alerts: alertsForLeg(snapshot.Alerts, active, stopIDsOf(pattern)),
-	}, nil
+		Stops:          nil,
+		Alerts:         nil,
+	}
+	if boardIdx < 0 || alightIdx < 0 || alightIdx < boardIdx {
+		return leg, nil
+	}
+
+	for i := boardIdx; i <= alightIdx; i++ {
+		leg.Stops = append(leg.Stops, s.stopDetail(ctx, vehicle.Calls[i], ref, cancelled))
+	}
+	return leg, nil
 }
 
-// buildStopDetails renders pattern; calls, when non-nil, holds pattern's
-// effective live calls index for index (see overlayCalls).
-func buildStopDetails(
-	pattern []models.StopTime,
-	stops map[string]models.Stop,
-	calls []models.StopCall,
-	cancelled bool,
-	date time.Time,
-	ref LegRef,
-) []models.StopDetail {
-	details := make([]models.StopDetail, len(pattern))
-	for i, st := range pattern {
-		info := stops[st.StopID]
-		arr := date.Add(time.Duration(st.ArrivalSeconds) * time.Second)
-		dep := date.Add(time.Duration(st.DepartureSeconds) * time.Second)
-		//nolint:exhaustruct //ArrivalDelay/DepartureDelay set below by applyLiveState
-		d := models.StopDetail{
-			StopID:             st.StopID,
-			StopName:           info.DisplayName,
-			Platform:           info.PlatformCode,
-			ScheduledArrival:   &arr,
-			ScheduledDeparture: &dep,
-			State:              models.DelayUnknown,
-			IsBoardStop:        st.StopID == ref.BoardStopID,
-			IsAlightStop:       st.StopID == ref.AlightStopID,
-		}
-		var call models.StopCall
-		if calls != nil {
-			call = calls[i]
-		}
-		applyLiveState(&d, call, cancelled)
-		details[i] = d
+func (s *JourneyDetailService) stopDetail(
+	ctx context.Context, call irail.Call, ref LegRef, cancelled bool,
+) models.StopDetail {
+	name := call.Name
+	if st, ok, err := s.stations.ByID(ctx, call.StationID); err == nil && ok {
+		name = st.DisplayName
 	}
-	return details
+	d := models.StopDetail{
+		StopID:             call.StationID,
+		StopName:           name,
+		Platform:           call.Platform,
+		ScheduledArrival:   nil,
+		ScheduledDeparture: nil,
+		State:              stopState(call, cancelled),
+		ArrivalDelay:       nil,
+		DepartureDelay:     nil,
+		IsBoardStop:        call.StationID == ref.BoardStopID,
+		IsAlightStop:       call.StationID == ref.AlightStopID,
+	}
+	if !call.ScheduledArrival.IsZero() {
+		arr := call.ScheduledArrival
+		d.ScheduledArrival = &arr
+		delay := call.ArrivalDelay
+		d.ArrivalDelay = &delay
+	}
+	if !call.ScheduledDeparture.IsZero() {
+		dep := call.ScheduledDeparture
+		d.ScheduledDeparture = &dep
+		delay := call.DepartureDelay
+		d.DepartureDelay = &delay
+	}
+	return d
 }
 
-// applyLiveState overlays call onto d. A zero call means DelayUnknown.
-func applyLiveState(d *models.StopDetail, call models.StopCall, cancelled bool) {
-	if cancelled {
-		d.State = models.DelayCancelled
-		return
+// stopState maps iRail's per-stop flags: a cancelled stop on a running train
+// is skipped; delays below the threshold count as on time.
+func stopState(call irail.Call, cancelled bool) models.DelayState {
+	switch {
+	case cancelled:
+		return models.DelayCancelled
+	case call.ArrivalCanceled || call.DepartureCanceled:
+		return models.DelaySkipped
+	case absInt(call.ArrivalDelay) >= onTimeThresholdSeconds ||
+		absInt(call.DepartureDelay) >= onTimeThresholdSeconds:
+		return models.DelayDelayed
+	default:
+		return models.DelayOnTime
 	}
-
-	d.State = call.State
-	d.ArrivalDelay = call.ArrivalDelay
-	d.DepartureDelay = call.DepartureDelay
-	if d.State == models.DelayDelayed && !exceedsThreshold(call) {
-		d.State = models.DelayOnTime
-	}
-}
-
-func exceedsThreshold(call models.StopCall) bool {
-	if call.ArrivalDelay != nil &&
-		absInt(*call.ArrivalDelay) >= onTimeThresholdSeconds {
-		return true
-	}
-	if call.DepartureDelay != nil &&
-		absInt(*call.DepartureDelay) >= onTimeThresholdSeconds {
-		return true
-	}
-	return false
 }
 
 func absInt(n int) int {
@@ -176,78 +161,39 @@ func absInt(n int) int {
 	return n
 }
 
-// serviceDateOf returns the Brussels-local midnight of t's day.
-func serviceDateOf(t time.Time) time.Time {
-	local := t.In(brusselsLoc)
-	return time.Date(
-		local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, brusselsLoc,
-	)
-}
-
-// legRange finds [boardIdx, alightIdx] of the boarded portion of pattern.
-func legRange(
-	pattern []models.StopTime, boardStopID, alightStopID string,
-) (int, int) {
+// legRange finds [boardIdx, alightIdx] of the boarded portion of a run.
+func legRange(calls []irail.Call, boardStopID, alightStopID string) (int, int) {
 	boardIdx, alightIdx := -1, -1
-	for i, st := range pattern {
-		if st.StopID == boardStopID && boardIdx == -1 {
+	for i, c := range calls {
+		if c.StationID == boardStopID && boardIdx == -1 {
 			boardIdx = i
 		}
-		if st.StopID == alightStopID {
+		if c.StationID == alightStopID {
 			alightIdx = i
 		}
 	}
 	return boardIdx, alightIdx
 }
 
-func stopIDsOf(pattern []models.StopTime) []string {
-	ids := make([]string, len(pattern))
-	for i, st := range pattern {
-		ids[i] = st.StopID
+func lastCallName(calls []irail.Call) string {
+	if len(calls) == 0 {
+		return ""
 	}
-	return ids
+	return calls[len(calls)-1].Name
 }
 
-func stopByID(stops []models.Stop) map[string]models.Stop {
-	out := make(map[string]models.Stop, len(stops))
-	for _, s := range stops {
-		out[s.StopID] = s
-	}
-	return out
-}
-
-func alertsForLeg(
-	alerts []models.Alert, active *repositories.ActiveTrip, stopIDs []string,
-) []models.Alert {
-	stopSet := make(map[string]bool, len(stopIDs))
-	for _, id := range stopIDs {
-		stopSet[id] = true
-	}
-	var out []models.Alert
-	for _, a := range alerts {
-		if containsStr(a.InformedTripIDs, active.TripID) ||
-			containsStr(a.InformedRouteIDs, active.RouteID) ||
-			anyInSet(a.InformedStopIDs, stopSet) {
-			out = append(out, a)
+// vehicleType and vehicleNumber split "BE.NMBS.IC530" into "IC" and "530".
+func vehicleType(vehicleID string) string {
+	short := irail.ShortName(vehicleID)
+	for i, r := range short {
+		if r >= '0' && r <= '9' {
+			return short[:i]
 		}
 	}
-	return out
+	return short
 }
 
-func containsStr(list []string, target string) bool {
-	for _, s := range list {
-		if s == target {
-			return true
-		}
-	}
-	return false
-}
-
-func anyInSet(list []string, set map[string]bool) bool {
-	for _, s := range list {
-		if set[s] {
-			return true
-		}
-	}
-	return false
+func vehicleNumber(vehicleID string) string {
+	short := irail.ShortName(vehicleID)
+	return short[len(vehicleType(vehicleID)):]
 }

@@ -20,7 +20,7 @@ frontend (a single-page app the api serves). Architecture, commands, and convent
 - **shoppinglist** — Shopping list with meal-plan ingredient aggregation, categories, and store-ordered export. Shared with your family; stores stay per-user.
 - **family** — Invite users by email into one shared recipe book, meal plan set, and shopping list. One family per user.
 - **dashboard** — Read-only games and reading dashboards, including the public share views.
-- **trains** — SNCB/NMBS journey planner built on the open GTFS timetable (refreshed daily) with a realtime overlay, re-planning when a delay breaks a journey.
+- **trains** — SNCB/NMBS journey planner backed by the iRail API, with live delays, re-planning when a delay breaks a journey.
 - **learningpaths** — Personal learning curricula: ordered modules of checkable items plus resources, with an optional one-way Todoist connection. Per-user, no family sharing.
 - **podcasts** — Favourite podcast shows: search iTunes by name and favourite shows. Per-user, no family sharing.
 - **taste** — One consumption log across books, feeds, games, movies, series and podcasts, each item rated from strong dislike to strong like within its domain, with combined stats. Per-user, no family sharing.
@@ -49,7 +49,7 @@ unprefixed admin observability tools (`prom_query`, `get_grafana_alerts`,
 agent can pull production data and system health in as context. Which tools
 mutate is listed in [AGENTS.md](AGENTS.md#mcp).
 
-- App tools are gated by the caller's per-app access and return only their own data (trains' timetable is public, so every caller with access sees the same rows). Observability tools require admin.
+- App tools are gated by the caller's per-app access and return only their own data (trains' timetable is public, so every caller with access sees the same data). Observability tools require admin.
 - `record_action` opens (`mode: "open"`) and closes (`mode: "close"`, passing back the id) a `global.automated_actions` row — the only record of a routine that runs outside the api process. `get_automated_actions` reads it; `get_job_stats` reads in-process `global.job_runs`.
 - `get_grafana_alerts` reads alert state from Grafana's ruler API, since Grafana-managed alerts never appear in Prometheus `ALERTS{}`.
 

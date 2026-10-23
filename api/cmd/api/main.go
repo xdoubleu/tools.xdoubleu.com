@@ -99,7 +99,7 @@ const (
 	globalJobQueueSize    = 10
 	// The heap watchdog thresholds sit below each role's container cap
 	// (config/deploy.api.yml) so it logs before the kill; the workers cap is
-	// above the trains import's ~1 GB peak. See observability.WatchHeap.
+	// above the memory-heavy books jobs' peak. See observability.WatchHeap.
 	webHeapWatchThreshold     = 400 << 20
 	workersHeapWatchThreshold = 1200 << 20
 	heapWatchInterval         = 5 * time.Second

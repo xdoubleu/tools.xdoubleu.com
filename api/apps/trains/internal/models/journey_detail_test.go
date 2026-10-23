@@ -198,16 +198,11 @@ func TestJourneyDetail_MarshalJSON_WithAlternative(t *testing.T) {
 	assert.Equal(t, "IC1 is cancelled", alt["reason"])
 }
 
-func TestAlert_MarshalJSON_OnlyExposesPassengerFacingFields(t *testing.T) {
+func TestAlert_MarshalJSON_UsesClientFieldNames(t *testing.T) {
 	a := models.Alert{
-		ID:               "a1",
-		Cause:            "TECHNICAL_PROBLEM",
-		Effect:           "DELAYED",
-		HeaderText:       "Signal failure",
-		DescriptionText:  "Delays expected",
-		InformedTripIDs:  []string{"t1"},
-		InformedRouteIDs: []string{"r1"},
-		InformedStopIDs:  []string{"s1"},
+		ID:              "a1",
+		HeaderText:      "Signal failure",
+		DescriptionText: "Delays expected",
 	}
 
 	body, err := json.Marshal(a)
@@ -217,7 +212,4 @@ func TestAlert_MarshalJSON_OnlyExposesPassengerFacingFields(t *testing.T) {
 	assert.Equal(t, "a1", out["id"])
 	assert.Equal(t, "Signal failure", out["headerText"])
 	assert.Equal(t, "Delays expected", out["descriptionText"])
-	assert.NotContains(t, out, "cause")
-	assert.NotContains(t, out, "effect")
-	assert.NotContains(t, out, "informedTripIDs")
 }

@@ -6,15 +6,12 @@ import (
 	"log/slog"
 
 	"tools.xdoubleu.com/apps/trains/internal/repositories"
-	"tools.xdoubleu.com/apps/trains/pkg/bmc"
+	"tools.xdoubleu.com/apps/trains/pkg/irail"
 )
 
 type Services struct {
-	StaticImport  *StaticImportService
 	Journey       *JourneyService
 	Stations      *StationsService
-	FeedInfo      *FeedInfoService
-	Realtime      *RealtimeService
 	JourneyDetail *JourneyDetailService
 	JourneyWS     *JourneyWSService
 	SavedCommutes *SavedCommutesService
@@ -24,23 +21,18 @@ func New(
 	ctx context.Context,
 	logger *slog.Logger,
 	repos *repositories.Repositories,
-	bmcClient bmc.Client,
+	client irail.Client,
 	allowedOrigins []string,
 ) *Services {
-	realtime := NewRealtimeService(logger, bmcClient, repos.Feed)
-	journey := NewJourneyService(logger, repos)
-	detail := NewJourneyDetailService(repos, realtime, journey)
-	journeyWS := NewJourneyWSService(ctx, logger, allowedOrigins, detail)
-	realtime.OnUpdate(func() { journeyWS.PushAll(ctx) })
+	stations := NewStationsService(client)
+	journey := NewJourneyService(client, stations)
+	detail := NewJourneyDetailService(client, stations, journey)
 
 	return &Services{
-		StaticImport:  NewStaticImportService(logger, repos, bmcClient),
 		Journey:       journey,
-		Stations:      NewStationsService(repos),
-		FeedInfo:      NewFeedInfoService(repos),
-		Realtime:      realtime,
+		Stations:      stations,
 		JourneyDetail: detail,
-		JourneyWS:     journeyWS,
-		SavedCommutes: NewSavedCommutesService(repos),
+		JourneyWS:     NewJourneyWSService(ctx, logger, allowedOrigins, detail),
+		SavedCommutes: NewSavedCommutesService(repos, stations),
 	}
 }

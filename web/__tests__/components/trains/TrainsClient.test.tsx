@@ -1,13 +1,11 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import TrainsClient from '@/components/trains/TrainsClient'
 
-const mockUseTrainsFeedInfo = vi.fn()
 const mockUseStationSearch = vi.fn()
 const mockUseJourneySearch = vi.fn()
 const mockUseSavedCommutes = vi.fn()
 
 vi.mock('@/hooks/useTrains', () => ({
-  useTrainsFeedInfo: () => mockUseTrainsFeedInfo(),
   useSavedCommutes: () => mockUseSavedCommutes(),
   useStationSearch: (query: string) => mockUseStationSearch(query),
   useJourneySearch: (
@@ -19,7 +17,6 @@ vi.mock('@/hooks/useTrains', () => ({
 }))
 
 beforeEach(() => {
-  mockUseTrainsFeedInfo.mockReturnValue({ data: { feedVersion: '2026-08-31' } })
   mockUseStationSearch.mockReturnValue({
     stations: [
       { stopId: 'SA', nameNl: 'Alpha', nameFr: 'Alpha', nameEn: 'Alpha', displayName: 'Alpha' },
@@ -38,7 +35,7 @@ describe('TrainsClient', () => {
   it('renders the heading and attribution', () => {
     render(<TrainsClient />)
     expect(screen.getByRole('heading', { name: 'Trains' })).toBeInTheDocument()
-    expect(screen.getByText(/Source: NMBS-SNCB - Open Data - 2026-08-31/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'iRail' })).toBeInTheDocument()
   })
 
   it('does not search until both stations are chosen', () => {
@@ -114,12 +111,6 @@ describe('TrainsClient', () => {
     render(<TrainsClient />)
     fireEvent.change(screen.getByLabelText('Date'), { target: { value: '' } })
     expect(mockUseJourneySearch).toHaveBeenLastCalledWith('', '', '', false)
-  })
-
-  it('defaults feedImported to true while feed info is still loading', () => {
-    mockUseTrainsFeedInfo.mockReturnValue({ data: undefined })
-    render(<TrainsClient />)
-    expect(screen.queryByText(/hasn't been imported yet/)).not.toBeInTheDocument()
   })
 
   it('updates the search time when the time field changes', () => {

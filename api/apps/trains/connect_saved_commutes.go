@@ -124,18 +124,18 @@ func protoSavedCommute(sc *models.SavedCommute) *trainsv1.SavedCommute {
 	return &trainsv1.SavedCommute{
 		Id:          sc.ID.String(),
 		Label:       sc.Label,
-		Origin:      protoStation(sc.OriginStopID, &sc.Origin),
-		Destination: protoStation(sc.DestinationStopID, &sc.Destination),
+		Origin:      protoStation(&sc.Origin),
+		Destination: protoStation(&sc.Destination),
 		Position:    int32(sc.Position), //nolint:gosec // small list ordering value
 	}
 }
 
-func protoStation(stopID string, stop *models.Stop) *trainsv1.Station {
+func protoStation(st *models.Station) *trainsv1.Station {
 	return &trainsv1.Station{
-		StopId:      stopID,
-		NameNl:      stop.NameNL,
-		NameFr:      stop.NameFR,
-		NameEn:      stop.NameEN,
-		DisplayName: stop.DisplayName,
+		StopId:      st.StopID,
+		NameNl:      st.NameNL,
+		NameFr:      st.NameFR,
+		NameEn:      st.NameEN,
+		DisplayName: st.DisplayName,
 	}
 }

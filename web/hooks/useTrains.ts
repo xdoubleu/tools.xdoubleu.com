@@ -3,18 +3,11 @@ import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
 import { TrainService } from '@/lib/gen/trains/v1/trains_pb'
 import type {
-  GetFeedInfoResponse,
   GetJourneyDetailResponse,
   ListSavedCommutesResponse,
   SearchJourneysResponse,
   Station
 } from '@/lib/gen/trains/v1/trains_pb'
-
-/** Feed version date for the CC BY attribution. */
-export function useTrainsFeedInfo() {
-  const client = createServiceClient(TrainService)
-  return useSWR<GetFeedInfoResponse, Error>(swrKeys.trainsFeedInfo, () => client.getFeedInfo({}))
-}
 
 /** Type-ahead station search backing the origin/destination pickers. */
 export function useStationSearch(query: string) {

@@ -2,8 +2,6 @@ package trains
 
 import (
 	"context"
-	"math"
-	"time"
 
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 )
@@ -18,50 +16,8 @@ func (h *trainsConnectHandler) SearchStations(
 	}
 
 	out := make([]*trainsv1.Station, len(stations))
-	for i, st := range stations {
-		out[i] = &trainsv1.Station{
-			StopId:      st.StopID,
-			NameNl:      st.NameNL,
-			NameFr:      st.NameFR,
-			NameEn:      st.NameEN,
-			DisplayName: st.DisplayName,
-		}
+	for i := range stations {
+		out[i] = protoStation(&stations[i])
 	}
 	return &trainsv1.SearchStationsResponse{Stations: out}, nil
-}
-
-func (h *trainsConnectHandler) GetFeedInfo(
-	ctx context.Context,
-	_ *trainsv1.GetFeedInfoRequest,
-) (*trainsv1.GetFeedInfoResponse, error) {
-	info, err := h.app.Services.FeedInfo.FeedInfo(ctx)
-	if err != nil {
-		return nil, mapError(err)
-	}
-	var importedAt string
-	if info.ImportedAt != nil {
-		importedAt = info.ImportedAt.Format(time.RFC3339)
-	}
-	return &trainsv1.GetFeedInfoResponse{
-		FeedVersion: info.FeedVersion,
-		ImportedAt:  importedAt,
-		Translations: &trainsv1.TranslationCoverage{
-			TranslatedStopsNl: count32(info.Translations.StopsNL),
-			TranslatedStopsFr: count32(info.Translations.StopsFR),
-			TranslatedStopsEn: count32(info.Translations.StopsEN),
-			Rows:              count32(info.Translations.Rows),
-			RowsUnmatched:     count32(info.Translations.RowsUnmatched),
-		},
-	}, nil
-}
-
-// count32 clamps so an implausible count can't wrap negative.
-func count32(n int) int32 {
-	if n > math.MaxInt32 {
-		return math.MaxInt32
-	}
-	if n < 0 {
-		return 0
-	}
-	return int32(n)
 }

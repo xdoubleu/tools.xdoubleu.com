@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
-	"tools.xdoubleu.com/apps/trains/pkg/csa"
 )
 
 // base anchors the fixtures' scheduled times.
@@ -26,12 +25,12 @@ func iPtr(n int) *int { return &n }
 func twoLegRefs() []LegRef {
 	return []LegRef{
 		{
-			TripShortName: "A", BoardStopID: "P1",
+			VehicleID: "BE.NMBS.ICA", BoardStopID: "P1",
 			BoardTime:    altBase,
 			AlightStopID: "M", AlightTime: altBase.Add(30 * time.Minute),
 		},
 		{
-			TripShortName: "B", BoardStopID: "M",
+			VehicleID: "BE.NMBS.ICB", BoardStopID: "M",
 			BoardTime:    altBase.Add(40 * time.Minute),
 			AlightStopID: "P9", AlightTime: altBase.Add(90 * time.Minute),
 		},
@@ -161,7 +160,7 @@ func TestDetectJourneyBreak_CancelledLeg(t *testing.T) {
 	brk, ok := detectJourneyBreak(refs, legs, fixedTransfer)
 	require.True(t, ok)
 	assert.Equal(t, "M", brk.fromStopID)
-	assert.True(t, brk.deadTrips["B"])
+	assert.True(t, brk.deadTrips["ICB"])
 	assert.Contains(t, brk.reason, "cancelled")
 	// Re-plan starts at leg A's live arrival at M.
 	assert.Equal(t, altBase.Add(30*time.Minute), brk.at)
@@ -199,7 +198,7 @@ func TestDetectJourneyBreak_BoardStopSkipped(t *testing.T) {
 	brk, ok := detectJourneyBreak(refs, legs, fixedTransfer)
 	require.True(t, ok)
 	assert.Contains(t, brk.reason, "no longer stops at Mechelen")
-	assert.True(t, brk.deadTrips["B"])
+	assert.True(t, brk.deadTrips["ICB"])
 }
 
 func TestDetectJourneyBreak_FinalArrivalSlip(t *testing.T) {
@@ -282,13 +281,13 @@ func TestHumanizeDuration(t *testing.T) {
 
 // stubReplanner is a canned replanner for evaluateAlternative's paths.
 type stubReplanner struct {
-	journeys []csa.Journey
+	journeys []models.JourneyOption
 	err      error
 }
 
 func (s stubReplanner) SearchJourneys(
 	_ context.Context, _, _ string, _ time.Time, _ bool,
-) ([]csa.Journey, error) {
+) ([]models.JourneyOption, error) {
 	return s.journeys, s.err
 }
 
@@ -365,19 +364,23 @@ func TestEvaluateAlternative_SkipsCandidateReusingDeadTrip(t *testing.T) {
 		),
 	}
 	//nolint:exhaustruct //only the fields reusesDeadTrip reads are set
-	dead := csa.Journey{Legs: []csa.Leg{{TripShortName: "B"}}}
-	//nolint:exhaustruct //only the fields toJourneyOption copies are set
-	good := csa.Journey{
-		Legs: []csa.Leg{{
-			TripShortName: "C", BoardStopID: "M", AlightStopID: "P9",
+	dead := models.JourneyOption{Legs: []models.JourneyOptionLeg{
+		{RouteShortName: "IC", TripShortName: "B"},
+	}}
+	//nolint:exhaustruct //only the fields the evaluator reads are set
+	good := models.JourneyOption{
+		Legs: []models.JourneyOptionLeg{{
+			RouteShortName: "IC", TripShortName: "C",
+			BoardStopID: "M", AlightStopID: "P9",
 			BoardTime: altBase.Add(time.Hour), AlightTime: altBase.Add(2 * time.Hour),
 		}},
 		DepartureTime: altBase.Add(time.Hour),
 		ArrivalTime:   altBase.Add(2 * time.Hour),
+		JourneyID:     "id-c",
 	}
 	//nolint:exhaustruct //only replan matters
 	s := &JourneyDetailService{
-		replan: stubReplanner{journeys: []csa.Journey{dead, good}},
+		replan: stubReplanner{journeys: []models.JourneyOption{dead, good}},
 	}
 
 	alt := s.evaluateAlternative(context.Background(), refs, legs)
@@ -385,5 +388,5 @@ func TestEvaluateAlternative_SkipsCandidateReusingDeadTrip(t *testing.T) {
 	require.NotNil(t, alt.Journey)
 	require.Len(t, alt.Journey.Legs, 1)
 	assert.Equal(t, "C", alt.Journey.Legs[0].TripShortName)
-	assert.NotEmpty(t, alt.Journey.JourneyID)
+	assert.Equal(t, "id-c", alt.Journey.JourneyID)
 }

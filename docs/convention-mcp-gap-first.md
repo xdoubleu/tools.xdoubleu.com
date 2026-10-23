@@ -28,13 +28,11 @@ working tool would have saved, often requiring direct database access.
 - **#1374/#1377/#1424** — completion rate vs Steam unreconcilable.
   `games_get_steam`'s `delisted` list exposes the excluded population
   (ADR-0018).
-- **#1453** — trains had no MCP tools. Added `trains_search_stations`,
-  `trains_get_feed_info` (with `imported_at`), `trains_search_journeys`;
-  `feed_info.parser_version` forces re-import on importer change.
-- **#1459** — import reported nothing about translations. `feed_info` stores
-  `translation_rows`, `translation_rows_unmatched`, per-language
-  `translated_stops_*`. **A fixture written to match the code proves only that
-  the code matches itself.**
+- **#1453** — trains had no MCP tools. Added `trains_search_stations` and
+  `trains_search_journeys`.
+- **#1459** — the GTFS import reported nothing about translations.
+  **A fixture written to match the code proves only that the code matches
+  itself.**
 - **#1397** — no live journey state. `trains_get_journey_detail` wraps
   `GetJourneyDetail`; current overlay only, no history.
 - **#1554** — `prom_query` worked while `api`/`web` were never scraped.
@@ -54,11 +52,9 @@ working tool would have saved, often requiring direct database access.
   capped at 30. It now emits defaults, matches red-pr-repair's scope, pages,
   and errors on upstream failure. **Empty must look different from broken.**
 - **#2226** — running trains showed "No live data" with no way to tell a
-  missing realtime trip from a failed stop match. `trains_get_realtime_trip`
-  returns the snapshot summary plus one train's raw stop updates beside the
-  static stop_times they overlay. It still couldn't say whether the feed
-  omits running trains or decode drops them, so it also reports raw feed
-  entity counts and the train numbers in the snapshot.
+  missing realtime trip from a failed stop match. After the move to iRail
+  (ADR-0035), `trains_get_irail_diagnostic` returns request, 429 and failure
+  counts plus one train's raw iRail response.
 - **#2365** — Kobo store-book progress never reached the library, with no
   error: the mirror dropped unmatched or 0% states silently.
   `books_list_kobo_store_books` lists each store book's library match and the
