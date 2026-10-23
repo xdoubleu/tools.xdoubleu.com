@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/xdoubleu/tools.xdoubleu.com/graph/badge.svg)](https://codecov.io/gh/xdoubleu/tools.xdoubleu.com)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-A monorepo serving multiple web tools: a Go 1.26 + PostgreSQL API with
+A monorepo serving multiple web tools: a Go 1.27 + PostgreSQL API with
 first-party auth (bcrypt + TOTP), and a Vite / React 19 / TypeScript
 frontend (a single-page app the api serves). Architecture, commands, and conventions live in
 [AGENTS.md](AGENTS.md).
