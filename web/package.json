@@ -32,7 +32,7 @@
     "@dnd-kit/utilities": "3.2.2",
     "@radix-ui/react-dialog": "1.3.1",
     "@radix-ui/react-slot": "1.5.0",
-    "@readium/navigator": "2.13.1",
+    "@readium/navigator": "2.13.2",
     "@readium/shared": "2.8.0",
     "@sentry/react": "11.8.0",
     "@sentry/vite-plugin": "11.8.0",
