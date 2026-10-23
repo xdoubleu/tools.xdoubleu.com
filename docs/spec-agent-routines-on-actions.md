@@ -8,8 +8,10 @@ Each routine is a thin caller workflow (`routine-<name>.yml`, `schedule:` +
 `workflow_dispatch:` only) around `.github/workflows/agent-routine.yml`. That
 workflow:
 
-1. runs step-security/harden-runner (egress audit; block mode once the host
-   list is known),
+1. runs step-security/harden-runner in egress block mode; the allowed hosts
+   (GitHub, OpenRouter, `tools.xdoubleu.com`, the npm/Go/PyPI registries,
+   PostHog, Slack, StepSecurity) are listed in the workflow, so a new host a
+   routine needs must be added there,
 2. mints a one-hour GitHub App token and a client_credentials MCP token
    ([ADR-0025](adr-0025-machine-client-credentials-service-role.md)); with
    `issues_only` (the detection routines) the App token can file issues but
