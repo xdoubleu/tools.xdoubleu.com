@@ -11,6 +11,9 @@ const (
 	// figureAnalysisBatch bounds one run's downloads and parsing; the
 	// existing library drains over successive runs.
 	figureAnalysisBatch = 10
+	// figureAnalysisDeadline allows for a batch of large PDFs; one batch has
+	// taken about 14 minutes.
+	figureAnalysisDeadline = time.Hour
 )
 
 type figureAnalyser interface {
@@ -30,6 +33,10 @@ func NewFigureAnalysisJob(figures figureAnalyser) *FigureAnalysisJob {
 func (j *FigureAnalysisJob) ID() string { return "books-figure-analysis" }
 
 func (j *FigureAnalysisJob) RunEvery() time.Duration { return figureAnalysisInterval }
+
+func (j *FigureAnalysisJob) RunDeadline() time.Duration {
+	return figureAnalysisDeadline
+}
 
 func (j *FigureAnalysisJob) Run(ctx context.Context, logger *slog.Logger) error {
 	n, err := j.figures.AnalysePending(ctx, figureAnalysisBatch)

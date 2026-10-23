@@ -7,6 +7,7 @@ import (
 	"connectrpc.com/connect/v2"
 
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
+	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
@@ -30,7 +31,7 @@ func (h *gamesConnectHandler) GetIntegrations(
 
 	integrations, err := h.app.GetIntegrations(ctx, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &gamesv1.GetIntegrationsResponse{
@@ -76,7 +77,7 @@ func (h *gamesConnectHandler) SaveIntegrations(
 	if err := h.app.SaveIntegrations(ctx, user.ID, Integrations{
 		SteamUserID: i.SteamUserId,
 	}); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &gamesv1.SaveIntegrationsResponse{}, nil

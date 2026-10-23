@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/internal/progressws"
@@ -37,6 +38,13 @@ func NewResyncMetadataJob(
 
 func (j *ResyncMetadataJob) ID() string {
 	return "resync-books"
+}
+
+// RunDeadline allows a forced scan of the whole catalog through the
+// rate-limited sources.
+func (j *ResyncMetadataJob) RunDeadline() time.Duration {
+	const resyncDeadline = 2 * time.Hour
+	return resyncDeadline
 }
 
 // Arm makes the next Run scan the whole catalog; force bypasses the
