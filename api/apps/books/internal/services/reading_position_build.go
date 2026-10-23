@@ -1,12 +1,9 @@
 package services
 
 import (
-	"archive/zip"
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 )
 
 // errSpanMapRetry marks a build failure worth retrying (download, timeout)
@@ -65,60 +62,20 @@ func (s *PositionService) buildFromStore(
 	}
 	defer kepub.close()
 	if ref.pdf {
-		return buildSpanMap(ctx, &kepub.zr.Reader, nil)
+		return buildSpanMap(ctx, kepub.zr, nil)
 	}
 	source, err := s.openZip(ctx, ref.sourceKey)
 	if err != nil {
 		return nil, err
 	}
 	defer source.close()
-	return buildSpanMap(ctx, &kepub.zr.Reader, &source.zr.Reader)
+	return buildSpanMap(ctx, kepub.zr, source.zr)
 }
 
-type tempZip struct {
-	zr   *zip.ReadCloser
-	path string
-}
-
-func (t *tempZip) close() {
-	_ = t.zr.Close()
-	_ = os.Remove(t.path)
-}
-
-// openZip downloads key to a temp file rather than memory: books can be large
-// and the API's memory limit is tight.
 func (s *PositionService) openZip(ctx context.Context, key string) (*tempZip, error) {
-	rc, err := s.objectStore.Get(ctx, key)
-	if err != nil {
-		return nil, fmt.Errorf("%w: download %s: %w", errSpanMapRetry, key, err)
+	z, err := openTempZip(ctx, s.objectStore, key, s.maxDownload)
+	if errors.Is(err, errZipDownload) {
+		return nil, fmt.Errorf("%w: %w", errSpanMapRetry, err)
 	}
-	defer func() { _ = rc.Close() }()
-
-	tmp, err := os.CreateTemp("", "spanmap-*.zip")
-	if err != nil {
-		return nil, fmt.Errorf("%w: create temp file: %w", errSpanMapRetry, err)
-	}
-	n, err := io.Copy(tmp, io.LimitReader(rc, s.maxDownload+1))
-	_ = tmp.Close()
-	if err != nil {
-		_ = os.Remove(tmp.Name())
-		return nil, fmt.Errorf("%w: download %s: %w", errSpanMapRetry, key, err)
-	}
-	if n > s.maxDownload {
-		err = fmt.Errorf("%s exceeds %d bytes", key, s.maxDownload)
-	}
-	var zr *zip.ReadCloser
-	if err == nil {
-		zr, err = zip.OpenReader(tmp.Name())
-	}
-	if err == nil {
-		if err = checkEPUBSize(&zr.Reader); err != nil {
-			_ = zr.Close()
-		}
-	}
-	if err != nil {
-		_ = os.Remove(tmp.Name())
-		return nil, fmt.Errorf("open %s: %w", key, err)
-	}
-	return &tempZip{zr: zr, path: tmp.Name()}, nil
+	return z, err
 }

@@ -39,8 +39,8 @@ to keep it running.
 
 - New dependencies (`@readium/navigator`, `@readium/shared`, `pdfjs-dist`) and
   a `worker-src 'self' blob:` CSP directive.
-- Every WebPub request buffers the stored EPUB in memory (up to the upload
-  cap); cache it if it shows up in metrics.
+- The stored EPUB is downloaded to a temp file, never memory, and a small LRU
+  keeps a few open, so a reading session downloads it once.
 - An EPUB can't be read offline until its sync has warmed the cache.
 - Annotations, search and TTS are absent, as before.
 

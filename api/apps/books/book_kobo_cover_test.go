@@ -6,12 +6,87 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/apps/books/internal/models"
 )
+
+// TestKoboLibrarySync_ConcurrentSyncsWarmOnce: a sync while the user's cover
+// warm is still running doesn't start another.
+func TestKoboLibrarySync_ConcurrentSyncsWarmOnce(t *testing.T) {
+	ctx := context.Background()
+	rawToken, bookID := setupKoboSyncBook(t, "kobo-warm-once-"+uuid.NewString())
+
+	var hits atomic.Int32
+	release := make(chan struct{})
+	cover := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			hits.Add(1)
+			select {
+			case <-release:
+			case <-r.Context().Done():
+			}
+			_, _ = w.Write([]byte(jpegCover))
+		},
+	))
+	t.Cleanup(cover.Close)
+	t.Cleanup(func() { close(release) })
+	_, err := testDB.Exec(ctx,
+		`UPDATE books.books SET cover_url = $1 WHERE id = $2`, cover.URL, bookID)
+	require.NoError(t, err)
+
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+	koboSync(t, ts, rawToken)
+	require.Eventually(t, func() bool { return hits.Load() == 1 },
+		5*time.Second, 10*time.Millisecond)
+
+	koboSync(t, ts, rawToken)
+	assert.Never(t, func() bool { return hits.Load() > 1 },
+		300*time.Millisecond, 10*time.Millisecond,
+		"the second sync joins the running warm")
+}
+
+// TestEnsureUserCoverCached_SkipsFilesFoundCoverless: files already found
+// coverless aren't downloaded again; a reconverted one is.
+func TestEnsureUserCoverCached_SkipsFilesFoundCoverless(t *testing.T) {
+	ctx := context.Background()
+	owner := "cover-none-" + uuid.NewString()
+	epub, bookID := uploadFileForOwner(t, owner, models.FileFormatEPUB)
+	_, err := testDB.Exec(ctx,
+		`UPDATE books.books SET cover_url = NULL WHERE id = $1`, bookID)
+	require.NoError(t, err)
+	kepub, err := testApp.Services.Conversion.EnsureKEPUB(ctx, owner, bookID)
+	require.NoError(t, err)
+
+	cached, err := testApp.Services.Books.EnsureUserCoverCached(ctx, owner, bookID)
+	require.NoError(t, err)
+	require.False(t, cached)
+
+	for _, key := range []string{epub.StorageKey, kepub.StorageKey} {
+		require.NoError(t, fakeStore.Delete(ctx, key))
+	}
+	cached, err = testApp.Services.Books.EnsureUserCoverCached(ctx, owner, bookID)
+	require.NoError(t, err, "coverless files are not downloaded again")
+	assert.False(t, cached)
+
+	data := buildCoveredEPUBBytes("Covered")
+	require.NoError(t, fakeStore.Put(ctx, kepub.StorageKey,
+		bytes.NewReader(data), int64(len(data)), "application/epub+zip"))
+	_, err = testDB.Exec(ctx,
+		`UPDATE books.book_files SET converter_version = converter_version + 1
+		 WHERE id = $1`, kepub.ID)
+	require.NoError(t, err)
+	cached, err = testApp.Services.Books.EnsureUserCoverCached(ctx, owner, bookID)
+	require.NoError(t, err)
+	assert.True(t, cached, "a reconverted KEPUB under the same key is reopened")
+}
 
 // jpegCover is a JPEG signature, enough for content sniffing.
 const jpegCover = "\xff\xd8\xff\xe0epub-cover"

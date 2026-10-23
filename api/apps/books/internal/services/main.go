@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 
+	"golang.org/x/sync/singleflight"
+
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
@@ -59,6 +61,7 @@ func New(
 		hardcover:    hardcoverClient,
 		resyncSource: repositories.Books,
 		coverClient:  newCoverClient(config.Env),
+		coverWarms:   singleflight.Group{},
 		seriesCache:  newSeriesCache(),
 		physical:     nil, // set once the position service exists
 	}
