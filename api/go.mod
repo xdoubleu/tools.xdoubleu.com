@@ -29,7 +29,7 @@ require (
 	github.com/rs/cors v1.11.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/stretchr/testify v1.12.1
-	github.com/xhit/go-str2duration/v2 v2.1.0
+	github.com/xhit/go-str2duration/v2 v2.2.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/net v0.61.0
 	golang.org/x/oauth2 v0.37.0
