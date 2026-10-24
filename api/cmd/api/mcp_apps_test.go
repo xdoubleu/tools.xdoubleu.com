@@ -122,6 +122,7 @@ func appsMCPSession(t *testing.T, token string) *mcp.ClientSession {
 		MaxRetries:           -1,
 		DisableStandaloneSSE: true,
 		OAuthHandler:         nil,
+		MaxEventSize:         0, // 0 = SDK default (16 MiB) per-event cap
 	}
 
 	//nolint:exhaustruct // only Name/Version identify the test client

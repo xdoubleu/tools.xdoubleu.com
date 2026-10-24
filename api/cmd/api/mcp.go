@@ -99,6 +99,10 @@ func (app *Application) mcpBearerRoute(
 		&mcpauth.RequireBearerTokenOptions{
 			ResourceMetadataURL: resourceMetadataURL,
 			Scopes:              nil,
+			// Zero values keep strict expiration: the verifier always sets an
+			// Expiration, and no clock-skew tolerance is applied.
+			AllowMissingExpiration: false,
+			ClockSkew:              0,
 		},
 	)
 	return bearer(app.mcpUserContext(inner))
