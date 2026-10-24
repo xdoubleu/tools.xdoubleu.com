@@ -2,14 +2,24 @@ package repositories
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/pagination"
 )
+
+// ErrRecipeOnMealPlan is returned when a delete is blocked because a meal
+// plan still references the recipe.
+var ErrRecipeOnMealPlan = errors.New("recipe is used in a meal plan")
+
+// planMealsRecipeFK is the foreign key from the plan-meal rows to recipes.
+const planMealsRecipeFK = "plan_meals_recipe_id_fkey"
 
 type RecipesRepository struct {
 	db postgres.DB
@@ -140,6 +150,11 @@ func (r *RecipesRepository) Delete(
 		`DELETE FROM recipes.recipes WHERE id = $1 AND family_id = $2`,
 		id, familyID,
 	)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.ForeignKeyViolation &&
+		pgErr.ConstraintName == planMealsRecipeFK {
+		return ErrRecipeOnMealPlan
+	}
 	return err
 }
 

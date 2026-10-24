@@ -273,6 +273,56 @@ func TestDeleteRecipe_Success(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
 }
 
+// TestDeleteRecipe_OnMealPlanReturnsPrecondition: a meal-plan row referencing
+// the recipe blocks the delete with the precondition error, and the recipe
+// stays. The plan tables ship with recipes' own init migration; the mealplans
+// app moves them to its schema at runtime.
+func TestDeleteRecipe_OnMealPlanReturnsPrecondition(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	createResp, err := client.CreateRecipe(ctx, &recipesv1.CreateRecipeRequest{
+		Name:         "Planned Recipe",
+		Steps:        []string{"step"},
+		BaseServings: 2,
+	})
+	require.NoError(t, err)
+	recipeID := createResp.Recipe.Id
+
+	var planID string
+	err = testDB.QueryRow(context.Background(), `
+		INSERT INTO recipes.plans (owner_user_id, name)
+		VALUES ($1, 'Plan')
+		RETURNING id::text`,
+		userID,
+	).Scan(&planID)
+	require.NoError(t, err)
+	_, err = testDB.Exec(context.Background(), `
+		INSERT INTO recipes.plan_meals (plan_id, meal_date, meal_slot, recipe_id)
+		VALUES ($1, CURRENT_DATE, 'noon', $2)`,
+		planID, recipeID,
+	)
+	require.NoError(t, err)
+
+	_, err = client.DeleteRecipe(ctx, &recipesv1.DeleteRecipeRequest{Id: recipeID})
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, connectErr(err).Code())
+	assert.Equal(
+		t,
+		"This recipe is used in a meal plan; remove it there first.",
+		connectErr(err).Message(),
+	)
+
+	getResp, err := client.GetRecipe(ctx, &recipesv1.GetRecipeRequest{Id: recipeID})
+	require.NoError(t, err)
+	assert.Equal(t, recipeID, getResp.Recipe.Id)
+}
+
 func TestCreateRecipe_WithBatchServings(t *testing.T) {
 	client := setupRecipesClient(getRoutes())
 	ctx := contextWithUser(
