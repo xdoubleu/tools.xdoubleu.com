@@ -18,7 +18,7 @@ require (
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/klippa-app/go-pdfium v1.21.3
 	github.com/ledongthuc/pdf v0.0.0-20261020125853-5e46805f718e
-	github.com/mmcdole/gofeed v1.4.0
+	github.com/mmcdole/gofeed v1.5.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/ory/fosite v0.49.0
 	github.com/pgaskin/kepubify/v4 v4.0.4
