@@ -2,10 +2,14 @@ package recipes
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
+	"connectrpc.com/connect/v2"
+
 	"tools.xdoubleu.com/apps/recipes/internal/models"
+	"tools.xdoubleu.com/apps/recipes/internal/repositories"
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
 	"tools.xdoubleu.com/gen/recipes/v1/recipesv1connect"
 	"tools.xdoubleu.com/internal/connecttools"
@@ -27,7 +31,14 @@ func getUser(ctx context.Context) *sharedmodels.User {
 	)
 }
 
+const msgRecipeOnMealPlan = "This recipe is used in a meal plan; remove it there first."
+
 func mapError(err error) error {
+	if errors.Is(err, repositories.ErrRecipeOnMealPlan) {
+		return connect.NewError(
+			connect.CodeFailedPrecondition, msgRecipeOnMealPlan,
+		).WithCause(err)
+	}
 	return connecttools.MapError(err)
 }
 

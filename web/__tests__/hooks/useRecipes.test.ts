@@ -11,7 +11,6 @@ vi.mock('@/lib/client', () => ({
 let mockStatus = 'sent'
 vi.mock('@/lib/offline/outbox', () => ({
   enqueueWrite: vi.fn(async () => ({ status: () => mockStatus })),
-  flushOutbox: vi.fn().mockResolvedValue(undefined),
   // Mirrors the real sendWrite over the mocked handle.
   sendWrite: vi.fn(async (pending: Promise<{ status: () => string }>) => {
     const status = (await pending).status()
@@ -21,7 +20,7 @@ vi.mock('@/lib/offline/outbox', () => ({
 }))
 
 import useSWR from 'swr'
-import { enqueueWrite, flushOutbox, sendWrite } from '@/lib/offline/outbox'
+import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
 import {
   createRecipeWrite,
   deleteRecipeWrite,
@@ -138,12 +137,23 @@ describe('mutation hooks queue writes and send them', () => {
     expect(enqueueWrite).toHaveBeenCalledWith(updateRecipeWrite, { id: 'r-1', name: 'Stew' })
   })
 
-  it('useDeleteRecipe queues the delete without throwing on rejection', async () => {
-    mockStatus = 'failed'
+  it('useDeleteRecipe queues the delete and sends it', async () => {
     const { result } = renderHook(() => useDeleteRecipe())
     await result.current({ id: 'r-1' })
     expect(enqueueWrite).toHaveBeenCalledWith(deleteRecipeWrite, { id: 'r-1' })
-    expect(flushOutbox).toHaveBeenCalled()
+    expect(sendWrite).toHaveBeenCalled()
+  })
+
+  it('useDeleteRecipe resolves for a delete still queued offline', async () => {
+    mockStatus = 'queued'
+    const { result } = renderHook(() => useDeleteRecipe())
+    await expect(result.current({ id: 'r-1' })).resolves.toBeUndefined()
+  })
+
+  it('useDeleteRecipe throws when the server rejects the delete', async () => {
+    mockStatus = 'failed'
+    const { result } = renderHook(() => useDeleteRecipe())
+    await expect(result.current({ id: 'r-1' })).rejects.toThrow('The server rejected the change')
   })
 })
 
