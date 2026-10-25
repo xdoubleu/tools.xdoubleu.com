@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { Field } from '@/components/ui/field'
 import { PageHeader } from '@/components/ui/page-header'
-import { LoadingState } from '@/components/ui/states'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
 import { McpSetupSection } from '@/components/settings/McpSetupSection'
@@ -25,7 +25,7 @@ import RecoveryCodesDialog from '@/components/settings/RecoveryCodesDialog'
 type MFAEnrollState = 'idle' | 'qr' | 'done'
 
 export default function SettingsPage() {
-  const { data, isLoading } = useCurrentUser()
+  const { data, error, isLoading } = useCurrentUser()
 
   const updatePassword = useUpdatePassword()
   const updateDisplayName = useUpdateDisplayName()
@@ -62,6 +62,9 @@ export default function SettingsPage() {
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null)
   const [recoveryCodesError, setRecoveryCodesError] = useState('')
 
+  if (error && !data) {
+    return <ErrorState what="your account" className="py-16 text-center text-sm" />
+  }
   if (isLoading || !data) {
     return <LoadingState className="py-16 text-center text-sm" />
   }

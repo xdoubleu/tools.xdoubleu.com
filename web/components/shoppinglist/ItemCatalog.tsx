@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card'
 import { Select } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible } from '@/components/ui/collapsible'
-import { EmptyState, LoadingState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { cn } from '@/lib/cn'
 
 const NOT_EXPORTED = 'Not exported'
@@ -65,7 +65,7 @@ function buildGroups(names: ItemName[], categoryNames: Map<string, string>): Cat
 }
 
 export default function ItemCatalog() {
-  const { data: namesData, isLoading } = useItemNames()
+  const { data: namesData, error, isLoading } = useItemNames()
   const { data: categoriesData } = useCategories()
   const names = namesData?.names ?? []
   const categories = categoriesData?.categories ?? []
@@ -93,6 +93,7 @@ export default function ItemCatalog() {
     enqueueWrite(setItemAliasWrite, { name, canonical })
 
   if (isLoading) return <LoadingState className="text-sm" />
+  if (error && !namesData) return <ErrorState what="items" className="text-sm" />
   if (names.length === 0) {
     return <EmptyState>No items yet. Add custom items or recipe ingredients first.</EmptyState>
   }
