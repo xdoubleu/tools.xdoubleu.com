@@ -52,6 +52,18 @@ for ds in prometheus github sentry; do
   fi
 done
 
+echo "==> checking the datasource plugins run their pinned versions"
+for plugin in grafana-github-datasource grafana-sentry-datasource; do
+  arg="$(tr 'a-z-' 'A-Z_' <<<"$plugin")_VERSION"
+  want=$(sed -n "s/^ARG $arg=//p" "$repo_root/infra/grafana.Dockerfile")
+  got=$(curl -sf -u admin:admin "$base/api/plugins/$plugin/settings" \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["info"]["version"])' || true)
+  if [ -z "$want" ] || [ "$got" != "$want" ]; then
+    echo "FAIL: $plugin is ${got:-not installed}, want ARG $arg (${want:-missing}) from infra/grafana.Dockerfile"
+    fail=1
+  fi
+done
+
 echo "==> checking every dashboard JSON provisioned"
 want=$(cd "$repo_root/infra/grafana/dashboards" && for f in *.json; do
   python3 -c "import json;print(json.load(open('$f'))['uid'])"

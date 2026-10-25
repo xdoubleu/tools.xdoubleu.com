@@ -9,10 +9,15 @@ service: tools-xdoubleu-com-grafana
 image: xdoubleu/tools.xdoubleu.com/grafana
 retain_containers: 2
 
+# Hard cap, like the api roles (deploy.api.yml). The server peaks near 600 MiB
+# and its ~15 backend plugin processes (bundled and preinstalled datasources)
+# add ~400 MiB that Prometheus doesn't see.
 servers:
   web:
     hosts:
       - <%= ENV.fetch("KAMAL_SERVER_IP") %>
+    options:
+      memory: 1536m
 
 ssh:
   user: deploy

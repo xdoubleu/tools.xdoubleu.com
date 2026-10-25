@@ -4,6 +4,8 @@ services:
     # prom_query tool reach it at prometheus:9090.
     image: prom/prometheus:v3.1.0
     restart: unless-stopped
+    # Long-range queries push the Go heap near 500 MiB; this leaves 2× that.
+    mem_limit: 1g
     logging:
       driver: json-file
       options:
@@ -34,6 +36,7 @@ services:
     # Server-level Postgres stats.
     image: quay.io/prometheuscommunity/postgres-exporter:v0.16.0
     restart: unless-stopped
+    mem_limit: 128m
     logging:
       driver: json-file
       options:

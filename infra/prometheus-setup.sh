@@ -21,6 +21,9 @@ export DOCKER_GID
 # covers a gid change on re-apply.
 grep -qxF "DOCKER_GID=$DOCKER_GID" .env 2>/dev/null || echo "DOCKER_GID=$DOCKER_GID" >>.env
 
+# Same pull as main.tf's local.compose_up: a failed pull keeps the local images.
+# The timer below never pulls.
+timeout 300 docker compose pull --quiet || echo 'docker compose pull failed; keeping the local images' >&2
 docker compose up -d --remove-orphans
 
 # `up -d` doesn't recreate on a prometheus.yml content change, so always

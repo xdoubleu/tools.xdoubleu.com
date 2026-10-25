@@ -4,6 +4,9 @@ services:
     # restored dump, and its `postgres` role isn't a real superuser.
     image: postgres:17
     restart: unless-stopped
+    # Well above shared_buffers (128 MiB) + max_connections × work_mem
+    # (100 × 4 MiB); a cgroup OOM resets every connection.
+    mem_limit: 1536m
     logging:
       driver: json-file
       options:
