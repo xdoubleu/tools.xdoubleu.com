@@ -4,6 +4,10 @@ locals {
     for key in var.deploy_ssh_public_keys :
     can(regex("^(ssh-|ecdsa-)", key)) ? key : trimspace(file(pathexpand(key)))
   ]
+
+  # Pulls first so a moved tag (postgres:17) is picked up. A failed pull keeps
+  # the local images: failing the apply would rebuild the VPS from its snapshot.
+  compose_up = "{ timeout 300 docker compose pull --quiet || echo 'docker compose pull failed; keeping the local images' >&2; } && docker compose up -d --remove-orphans"
 }
 
 # Attached by ID to the manually created server (infra/README.md).
@@ -175,6 +179,8 @@ resource "null_resource" "postgres" {
   triggers = {
     compose_hash  = filesha256("${path.module}/postgres-compose.yml")
     password_hash = sha256(random_password.postgres.result)
+    # An inline remote-exec edit changes no other trigger, so it would never run.
+    command_hash = sha256(local.compose_up)
   }
 
   connection {
@@ -203,7 +209,7 @@ resource "null_resource" "postgres" {
   provisioner "remote-exec" {
     inline = [
       "chmod 600 /home/deploy/postgres/.env",
-      "cd /home/deploy/postgres && docker compose up -d --remove-orphans",
+      "cd /home/deploy/postgres && ${local.compose_up}",
     ]
   }
 }
@@ -214,6 +220,7 @@ resource "null_resource" "node_exporter" {
 
   triggers = {
     compose_hash = filesha256("${path.module}/node-exporter-compose.yml")
+    command_hash = sha256(local.compose_up)
   }
 
   connection {
@@ -234,7 +241,7 @@ resource "null_resource" "node_exporter" {
 
   provisioner "remote-exec" {
     inline = [
-      "cd /home/deploy/node-exporter && docker compose up -d --remove-orphans",
+      "cd /home/deploy/node-exporter && ${local.compose_up}",
     ]
   }
 }

@@ -91,7 +91,27 @@
         '# renovate: datasource=(?<datasource>[^\\s]+) depName=(?<depName>[^\\s]+)\\n\\s+- remote: [^:]+:(?<currentValue>v[^\\s]+)',
       ],
     },
+    // Grafana plugin versions baked into the wrapper image.
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/^infra/grafana\\.Dockerfile$/',
+      ],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>[^\\s]+) depName=(?<depName>[^\\s]+)\\nARG [A-Z_]+_VERSION=(?<currentValue>[^\\s]+)',
+      ],
+    },
   ],
+  // `custom.grafana-plugin`: grafana.com's plugin catalog. createdAt feeds
+  // minimumReleaseAge.
+  customDatasources: {
+    'grafana-plugin': {
+      defaultRegistryUrlTemplate: 'https://grafana.com/api/plugins/{{packageName}}/versions',
+      transformTemplates: [
+        '{"releases": items.{"version": version, "releaseTimestamp": createdAt}}',
+      ],
+    },
+  },
   packageRules: [
     {
       groupName: 'golangci-lint',

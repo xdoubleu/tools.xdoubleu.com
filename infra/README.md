@@ -121,8 +121,13 @@ consumer when the alert fires: `docker system df`, `du -xhd1 /`.
 
 `null_resource.postgres` uploads `postgres-compose.yml` and a generated `.env`
 (Tofu-managed `random_password`) to `/home/deploy/postgres/` and runs
-`docker compose up -d` as `deploy`. It runs plain `postgres:17`, not
+`docker compose pull` then `up -d` as `deploy`. It runs plain `postgres:17`, not
 `supabase/postgres` — see the image comment in `postgres-compose.yml`.
+
+Every compose apply path pulls first (`local.compose_up` in `main.tf`,
+`prometheus-setup.sh`), so a moved tag lands on the next apply; a failed pull
+only warns and keeps the local images. Each compose service has a `mem_limit`,
+and Grafana a `memory` option, like the api roles.
 
 Postgres is bound to `127.0.0.1:5432` only, never public. Password:
 
@@ -165,8 +170,9 @@ so Prometheus sends the token before the api requires it.
 Grafana is **not** Tofu-managed: it's a third Kamal service
 (`config/deploy.grafana.yml`, deployed by `deploy-kamal`) because it needs the
 public `/grafana` path through kamal-proxy. Its wrapper image
-(`infra/grafana.Dockerfile`, built by `build-grafana.yml`) bakes in the
-datasources, plugins, dashboards, and alerting from `infra/grafana/`.
+(`infra/grafana.Dockerfile`, built by `build-grafana.yml`) installs the
+GitHub/Sentry datasource plugins at Renovate-managed pinned versions and bakes
+in the datasources, dashboards, and alerting from `infra/grafana/`.
 Dashboard JSON under `infra/grafana/dashboards/` is the source of truth
 (`allowUiUpdates: false`) — edit it and redeploy. `make lint/grafana` and
 `make grafana/verify` check it (also run by `build-grafana.yml`). Rationale:

@@ -1,4 +1,4 @@
-# GitHub + Sentry datasources (plugins installed via GF_INSTALL_PLUGINS in
+# GitHub + Sentry datasources (plugins pinned and installed by
 # infra/grafana.Dockerfile), baked into the image like prometheus.yml. Only
 # the Sentry signal is queried from here; the GitHub datasource is for ad-hoc
 # use, its signals stay Prometheus gauges.
