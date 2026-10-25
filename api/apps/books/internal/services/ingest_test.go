@@ -2,6 +2,7 @@
 package services
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,4 +42,14 @@ func TestExtractReadable_NoContent(t *testing.T) {
 		"https://example.com/empty", []byte("<html><body></body></html>"),
 	)
 	assert.ErrorIs(t, err, ErrNoReadableContent)
+}
+
+func TestExtractReadable_TitleFallsBackToURL(t *testing.T) {
+	page := "<html><body><article><p>" + loremParagraph + "</p><p>" +
+		loremParagraph + "</p></article></body></html>"
+
+	art, err := extractReadable("https://blog.example.com/untitled", []byte(page))
+	require.NoError(t, err)
+	assert.Equal(t, "https://blog.example.com/untitled", art.Title)
+	assert.True(t, strings.HasPrefix(art.Excerpt, "Lorem ipsum dolor sit amet"))
 }

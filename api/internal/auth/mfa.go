@@ -25,6 +25,7 @@ const (
 	totpIssuer          = "tools.xdoubleu.com"
 	totpQRSize          = 256
 	totpQRQuietZone     = 24
+	totpQRCodeSize      = totpQRSize - 2*totpQRQuietZone
 	totpSkew            = 1
 	totpPeriodSeconds   = 30
 	recoveryCodeCount   = 10
@@ -114,15 +115,14 @@ func (service *LocalService) EnrollTOTP(
 
 // renderQRSVG wraps the key's PNG QR code, inset by a white quiet zone, in SVG.
 func renderQRSVG(key *otp.Key) (string, error) {
-	inner := totpQRSize - 2*totpQRQuietZone
-	code, err := key.Image(inner, inner)
+	code, err := key.Image(totpQRCodeSize, totpQRCodeSize)
 	if err != nil {
 		return "", err
 	}
 	canvas := image.NewGray(image.Rect(0, 0, totpQRSize, totpQRSize))
-	draw.Draw(canvas, canvas.Bounds(), image.White, image.Point{}, draw.Src)
+	draw.Draw(canvas, canvas.Bounds(), image.White, image.Pt(0, 0), draw.Src)
 	at := image.Pt(totpQRQuietZone, totpQRQuietZone)
-	draw.Draw(canvas, code.Bounds().Add(at), code, image.Point{}, draw.Src)
+	draw.Draw(canvas, code.Bounds().Add(at), code, image.Pt(0, 0), draw.Src)
 
 	var buf bytes.Buffer
 	if err = png.Encode(&buf, canvas); err != nil {

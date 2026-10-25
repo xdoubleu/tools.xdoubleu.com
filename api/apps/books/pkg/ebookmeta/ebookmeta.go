@@ -224,7 +224,7 @@ func extractPDF(r io.ReaderAt, size int64) (Metadata, error) {
 	func() {
 		defer func() {
 			if p := recover(); p != nil {
-				m, err = Metadata{}, fmt.Errorf("ebookmeta: read pdf metadata: %v", p)
+				err = fmt.Errorf("ebookmeta: read pdf metadata: %v", p)
 			}
 		}()
 		m, err = readPDFInfo(r, size)
