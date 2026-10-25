@@ -112,10 +112,14 @@ func (b bearerRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func appsMCPSession(t *testing.T, token string) *mcp.ClientSession {
 	t.Helper()
-	ts := connectServer(t)
+	return mcpSession(t, connectServer(t).URL+appsMCPPath, token)
+}
 
+// mcpSession connects a client to the MCP server at endpoint, without retries.
+func mcpSession(t *testing.T, endpoint, token string) *mcp.ClientSession {
+	t.Helper()
 	transport := &mcp.StreamableClientTransport{
-		Endpoint: ts.URL + appsMCPPath,
+		Endpoint: endpoint,
 		HTTPClient: &http.Client{
 			Transport: bearerRoundTripper{token: token, base: http.DefaultTransport},
 		},
