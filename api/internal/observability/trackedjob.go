@@ -3,6 +3,7 @@ package observability
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -32,13 +33,24 @@ var jobDuration = promauto.NewHistogramVec(
 	[]string{"job", "success"},
 )
 
+// DefaultRunDeadline bounds a run, well above every job's longest observed
+// run; a job implementing Deadlined sets its own.
+const DefaultRunDeadline = 30 * time.Minute
+
+// Deadlined overrides DefaultRunDeadline for a job.
+type Deadlined interface {
+	RunDeadline() time.Duration
+}
+
+var errRunDeadline = errors.New("job exceeded its run deadline")
+
 type jobRunsInserter interface {
 	Insert(ctx context.Context, run models.JobRun) error
 }
 
 // TrackedJob wraps a threading.Job so every run is recorded in
-// global.job_runs, failures log at Error (Sentry), and panics become failed
-// runs. The inner job's ID is preserved.
+// global.job_runs, failures log at Error (Sentry), and panics or overrunning
+// the deadline become failed runs. The inner job's ID is preserved.
 type TrackedJob struct {
 	inner threading.Job
 	repo  jobRunsInserter
@@ -76,9 +88,20 @@ func (j *TrackedJob) Run(ctx context.Context, logger *slog.Logger) (err error) {
 	ctx = transaction.Context()
 	defer transaction.Finish()
 
+	deadline := DefaultRunDeadline
+	if d, ok := j.inner.(Deadlined); ok {
+		deadline = d.RunDeadline()
+	}
+	runCtx, cancel := context.WithTimeoutCause(ctx, deadline, errRunDeadline)
+
 	defer func() {
+		cancel()
 		if r := recover(); r != nil {
 			err = fmt.Errorf("job panicked: %v", r)
+		}
+		// After cancel the cause is final; the job may have swallowed it.
+		if errors.Is(context.Cause(runCtx), errRunDeadline) {
+			err = errors.Join(fmt.Errorf("%w of %s", errRunDeadline, deadline), err)
 		}
 		if err != nil {
 			transaction.Status = sentry.HTTPtoSpanStatus(http.StatusInternalServerError)
@@ -86,7 +109,7 @@ func (j *TrackedJob) Run(ctx context.Context, logger *slog.Logger) (err error) {
 		j.record(ctx, logger, start, err)
 	}()
 
-	return j.inner.Run(ctx, logger)
+	return j.inner.Run(runCtx, logger)
 }
 
 func (j *TrackedJob) record(

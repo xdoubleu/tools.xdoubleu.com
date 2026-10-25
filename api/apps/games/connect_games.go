@@ -11,9 +11,9 @@ import (
 	"tools.xdoubleu.com/apps/games/internal/services"
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
 	gamesv1connect "tools.xdoubleu.com/gen/games/v1/gamesv1connect"
+	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
@@ -39,7 +39,7 @@ func (h *gamesConnectHandler) GetSteam(
 
 	steam, err := h.app.buildSteamResponse(ctx, user.ID, dateStart, dateEnd)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &gamesv1.GetSteamResponse{Steam: steam}, nil
@@ -59,7 +59,7 @@ func (h *gamesConnectHandler) GetSteamGame(
 
 	data, err := h.app.buildSteamGameResponse(ctx, user.ID, int(req.GameId))
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &gamesv1.GetSteamGameResponse{Data: data}, nil
@@ -80,12 +80,12 @@ func (h *gamesConnectHandler) RefreshSteamGame(
 	gameID := int(req.GameId)
 
 	if err := h.app.Services.Steam.SyncGame(ctx, user.ID, gameID); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	data, err := h.app.buildSteamGameResponse(ctx, user.ID, gameID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &gamesv1.RefreshSteamGameResponse{Data: data}, nil
@@ -109,16 +109,13 @@ func (h *gamesConnectHandler) SetGameFavourite(
 	err := h.app.Services.Steam.SetFavourite(
 		ctx, user.ID, gameID, req.Favourite,
 	)
-	if errors.Is(err, database.ErrResourceNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
-	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	game, err := h.app.Services.Steam.GetGameByID(ctx, gameID, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &gamesv1.SetGameFavouriteResponse{
@@ -145,7 +142,7 @@ func (h *gamesConnectHandler) GetSteamDistribution(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &gamesv1.GetSteamDistributionResponse{
@@ -170,7 +167,7 @@ func (h *gamesConnectHandler) GetRecentlyActiveGames(
 
 	games, err := h.app.Services.Steam.GetRecentlyActive(ctx, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &gamesv1.GetRecentlyActiveGamesResponse{

@@ -11,6 +11,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/jobs"
 	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/observability"
 )
 
 type fakeFigureAnalyser struct {
@@ -32,6 +33,11 @@ func TestFigureAnalysisJob(t *testing.T) {
 	assert.Equal(t, 15*time.Minute, job.RunEvery())
 	require.NoError(t, job.Run(t.Context(), logging.NewNopLogger()))
 	assert.Positive(t, analyser.limit)
+}
+
+func TestFigureAnalysisJob_RunDeadlineOutlastsDefault(t *testing.T) {
+	var job observability.Deadlined = jobs.NewFigureAnalysisJob(nil)
+	assert.Greater(t, job.RunDeadline(), observability.DefaultRunDeadline)
 }
 
 func TestFigureAnalysisJob_Error(t *testing.T) {

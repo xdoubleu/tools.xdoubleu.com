@@ -12,8 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/games"
+	"tools.xdoubleu.com/apps/games/pkg/steam"
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
 	gamesv1connect "tools.xdoubleu.com/gen/games/v1/gamesv1connect"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func newGamesTestClient(t *testing.T) gamesv1connect.GamesServiceClient {
@@ -145,21 +148,55 @@ func TestConnectGetSteamDistribution_InvalidBucket(t *testing.T) {
 	assert.True(t, errors.As(err, &connectErr))
 }
 
-// TestConnectRefreshSteamGame_GameNotFound: an unknown game errors.
-func TestConnectRefreshSteamGame_GameNotFound(t *testing.T) {
+func TestConnectGetSteamGame_UnknownGameIsNotFound(t *testing.T) {
 	client := newGamesTestClient(t)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Empty creds make SyncGame a no-op; GetGameByID then fails.
-	req := &gamesv1.RefreshSteamGameRequest{GameId: 999999}
-	ctx, info := connect.NewClientContext(ctx)
+	ctx, info := connect.NewClientContext(t.Context())
 	info.RequestHeader().Set("Cookie", accessToken.String())
 
-	_, err := client.RefreshSteamGame(ctx, req)
-	assert.Error(t, err)
-	var connectErr *connect.Error
-	assert.True(t, errors.As(err, &connectErr))
+	_, err := client.GetSteamGame(ctx, &gamesv1.GetSteamGameRequest{GameId: 999999})
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+}
+
+// TestConnectRefreshSteamGame_GameNotFound: an unknown game is NotFound
+// without Steam configured.
+func TestConnectRefreshSteamGame_GameNotFound(t *testing.T) {
+	//nolint:exhaustruct //empty: Steam not configured
+	require.NoError(t, testApp.SaveIntegrations(
+		t.Context(), userID, games.Integrations{},
+	))
+	client := newGamesTestClient(t)
+	ctx, info := connect.NewClientContext(t.Context())
+	info.RequestHeader().Set("Cookie", accessToken.String())
+
+	_, err := client.RefreshSteamGame(
+		ctx,
+		&gamesv1.RefreshSteamGameRequest{GameId: 999999},
+	)
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+}
+
+// TestConnectRefreshSteamGame_UnknownGameSkipsSteam: with Steam configured, an
+// unknown game is NotFound before Steam (which rejects unknown apps) is asked.
+func TestConnectRefreshSteamGame_UnknownGameSkipsSteam(t *testing.T) {
+	const unknownGame = 999999
+	app := newSyncTestApp(t, "refresh-unknown-game-user", syncFakeClient{
+		games:     []steam.Game{},
+		playerAch: map[int][]steam.Achievement{},
+		schemaErr: map[int]bool{unknownGame: true},
+	})
+	ts := httptest.NewServer(testhelper.BuildMux(app))
+	t.Cleanup(ts.Close)
+	client := gamesv1connect.NewGamesServiceClient(connect.NewClient(
+		connecthttp.NewTransport(http.DefaultClient, ts.URL, connecthttp.WithHTTPGet()),
+	))
+	ctx, info := connect.NewClientContext(t.Context())
+	info.RequestHeader().Set("Cookie", accessToken.String())
+
+	_, err := client.RefreshSteamGame(
+		ctx,
+		&gamesv1.RefreshSteamGameRequest{GameId: unknownGame},
+	)
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
 
 func TestConnectRefreshSteamGame_WithSeededData(t *testing.T) {

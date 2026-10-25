@@ -9,11 +9,17 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/jobs"
 	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/observability"
 )
 
 func TestResyncMetadataJob_ID(t *testing.T) {
 	j := jobs.NewResyncMetadataJob(nil, nil)
 	assert.Equal(t, "resync-books", j.ID())
+}
+
+func TestResyncMetadataJob_RunDeadlineOutlastsDefault(t *testing.T) {
+	var j observability.Deadlined = jobs.NewResyncMetadataJob(nil, nil)
+	assert.Greater(t, j.RunDeadline(), observability.DefaultRunDeadline)
 }
 
 // TestResyncMetadataJob_NotArmed_IsNoop verifies that an unarmed Run call

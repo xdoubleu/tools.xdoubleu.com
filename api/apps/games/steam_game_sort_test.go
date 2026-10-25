@@ -198,32 +198,15 @@ func TestConnectRefreshSteamGame_SyncError(t *testing.T) {
 	const isolatedUser = "refresh-sync-error-user"
 	const gameID = 7
 
-	app2 := games.NewInner(
-		sharedmocks.NewMockedAuthService(isolatedUser),
-		testApp.Logger,
-		testCfg,
-		testDB,
-		func(_ string) steam.Client {
-			// schemaErr makes SyncGame fail.
-			return syncFakeClient{
-				games:     []steam.Game{},
-				playerAch: map[int][]steam.Achievement{},
-				schemaErr: map[int]bool{gameID: true},
-			}
-		},
-	)
-	require.NoError(t, app2.SaveIntegrations(
-		context.Background(),
-		isolatedUser,
-		games.Integrations{
-			SteamUserID: "76561197960287930",
-		},
-	))
-
-	t.Cleanup(func() {
-		_, _ = testDB.Exec(context.Background(),
-			`DELETE FROM games.user_integrations WHERE user_id = $1`, isolatedUser)
+	// schemaErr makes SyncGame fail; SyncUser still stores the game.
+	app2 := newSyncTestApp(t, isolatedUser, syncFakeClient{
+		games: []steam.Game{{ //nolint:exhaustruct //only required fields
+			AppID: gameID, Name: "Sync Error Game", HasCommunityVisibleStats: true,
+		}},
+		playerAch: map[int][]steam.Achievement{},
+		schemaErr: map[int]bool{gameID: true},
 	})
+	require.NoError(t, app2.Services.Steam.SyncUser(t.Context(), isolatedUser))
 
 	ts := httptest.NewServer(testhelper.BuildMux(app2))
 	t.Cleanup(ts.Close)

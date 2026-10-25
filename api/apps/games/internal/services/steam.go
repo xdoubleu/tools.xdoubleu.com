@@ -545,6 +545,13 @@ func (service *SteamService) SyncGame(
 		return nil
 	}
 
+	// Looked up first: Steam rejects an app the user doesn't own, which would
+	// hide the not-found.
+	game, err := service.steam.GetGameByID(ctx, gameID, userID)
+	if err != nil {
+		return err
+	}
+
 	client := service.clientFactory(service.steamAPIKey)
 
 	rows, err := service.fetchAchievementsForGame(
@@ -555,11 +562,6 @@ func (service *SteamService) SyncGame(
 	}
 
 	allGames, err := service.steam.GetAllGames(ctx, userID)
-	if err != nil {
-		return err
-	}
-
-	game, err := service.steam.GetGameByID(ctx, gameID, userID)
 	if err != nil {
 		return err
 	}
