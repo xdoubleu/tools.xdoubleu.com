@@ -18,7 +18,7 @@ describe('RecipeCombobox', () => {
 
   it('shows filtered recipe list when typing', () => {
     render(<RecipeCombobox recipes={recipes} onSelect={vi.fn()} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'pasta' } })
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'pasta' } })
     expect(screen.getByText('Pasta Bolognese')).toBeInTheDocument()
     expect(screen.getByText('Pasta Carbonara')).toBeInTheDocument()
     expect(screen.queryByText('Caesar Salad')).not.toBeInTheDocument()
@@ -27,7 +27,7 @@ describe('RecipeCombobox', () => {
   it('calls onSelect with recipeId when recipe is clicked', () => {
     const onSelect = vi.fn()
     render(<RecipeCombobox recipes={recipes} onSelect={onSelect} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'pasta' } })
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'pasta' } })
     fireEvent.mouseDown(screen.getByText('Pasta Bolognese'))
     expect(onSelect).toHaveBeenCalledWith('r1', '')
   })
@@ -35,14 +35,14 @@ describe('RecipeCombobox', () => {
   it('calls onSelect with customName when typing free text', () => {
     const onSelect = vi.fn()
     render(<RecipeCombobox recipes={recipes} onSelect={onSelect} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Eggs on toast' } })
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'Eggs on toast' } })
     expect(onSelect).toHaveBeenLastCalledWith('', 'Eggs on toast')
   })
 
   it('navigates dropdown with arrow keys and selects with Enter', () => {
     const onSelect = vi.fn()
     render(<RecipeCombobox recipes={recipes} onSelect={onSelect} />)
-    const input = screen.getByRole('textbox')
+    const input = screen.getByRole('combobox')
     fireEvent.change(input, { target: { value: 'pasta' } })
     fireEvent.keyDown(input, { key: 'ArrowDown' })
     fireEvent.keyDown(input, { key: 'Enter' })
@@ -51,7 +51,7 @@ describe('RecipeCombobox', () => {
 
   it('closes dropdown on Escape', () => {
     render(<RecipeCombobox recipes={recipes} onSelect={vi.fn()} />)
-    const input = screen.getByRole('textbox')
+    const input = screen.getByRole('combobox')
     fireEvent.change(input, { target: { value: 'pasta' } })
     expect(screen.getByText('Pasta Bolognese')).toBeInTheDocument()
     fireEvent.keyDown(input, { key: 'Escape' })
@@ -61,7 +61,7 @@ describe('RecipeCombobox', () => {
   it('calls onEnter when Enter pressed with no dropdown item highlighted', () => {
     const onEnter = vi.fn()
     render(<RecipeCombobox recipes={recipes} onSelect={vi.fn()} onEnter={onEnter} />)
-    const input = screen.getByRole('textbox')
+    const input = screen.getByRole('combobox')
     fireEvent.change(input, { target: { value: 'Soup' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(onEnter).toHaveBeenCalled()
@@ -69,7 +69,7 @@ describe('RecipeCombobox', () => {
 
   it('sets input value to recipe name after selection', () => {
     render(<RecipeCombobox recipes={recipes} onSelect={vi.fn()} />)
-    const inputEl = screen.getByRole('textbox')
+    const inputEl = screen.getByRole('combobox')
     if (!(inputEl instanceof HTMLInputElement)) throw new Error('expected HTMLInputElement')
     fireEvent.change(inputEl, { target: { value: 'pasta' } })
     fireEvent.mouseDown(screen.getByText('Pasta Carbonara'))
@@ -78,24 +78,24 @@ describe('RecipeCombobox', () => {
 
   it('matches case-insensitively', () => {
     render(<RecipeCombobox recipes={recipes} onSelect={vi.fn()} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'CAESAR' } })
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'CAESAR' } })
     expect(screen.getByText('Caesar Salad')).toBeInTheDocument()
   })
 
-  it('Tab completes with the first filtered result when no item is highlighted', () => {
+  it('Tab keeps the typed text when no item is highlighted', () => {
     const onSelect = vi.fn()
     render(<RecipeCombobox recipes={recipes} onSelect={onSelect} />)
-    const input = screen.getByRole('textbox') as HTMLInputElement
+    const input = screen.getByRole('combobox', { name: 'Recipe' }) as HTMLInputElement
     fireEvent.change(input, { target: { value: 'pasta' } })
     fireEvent.keyDown(input, { key: 'Tab' })
-    expect(input.value).toBe('Pasta Bolognese')
-    expect(onSelect).toHaveBeenLastCalledWith('r1', '')
+    expect(input.value).toBe('pasta')
+    expect(onSelect).toHaveBeenLastCalledWith('', 'pasta')
   })
 
   it('Tab completes with the highlighted item when one is active', () => {
     const onSelect = vi.fn()
     render(<RecipeCombobox recipes={recipes} onSelect={onSelect} />)
-    const input = screen.getByRole('textbox') as HTMLInputElement
+    const input = screen.getByRole('combobox') as HTMLInputElement
     fireEvent.change(input, { target: { value: 'pasta' } })
     fireEvent.keyDown(input, { key: 'ArrowDown' })
     fireEvent.keyDown(input, { key: 'ArrowDown' })
@@ -106,7 +106,7 @@ describe('RecipeCombobox', () => {
 
   it('Tab does not prevent default when dropdown is closed', () => {
     render(<RecipeCombobox recipes={recipes} onSelect={vi.fn()} />)
-    const input = screen.getByRole('textbox')
+    const input = screen.getByRole('combobox')
     const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })
     const preventDefaultSpy = vi.spyOn(event, 'preventDefault')
     input.dispatchEvent(event)
