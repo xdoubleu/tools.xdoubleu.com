@@ -2,6 +2,7 @@ package learningpaths_test
 
 import (
 	"context"
+	"encoding/hex"
 	"testing"
 	"time"
 
@@ -87,4 +88,44 @@ func TestOAuthConnectionsRepository_EncryptionNotConfigured(t *testing.T) {
 
 	_, _, err = repo.Get(ctx, user, provider)
 	require.ErrorIs(t, err, sharedrepos.ErrEncryptionNotConfigured)
+}
+
+// TestOAuthConnectionsRepository_ReadsExistingCiphertext pins the on-disk
+// format so stored rows keep decrypting: the hex values are raw
+// Sealer.Encrypt output under this key, one per column.
+func TestOAuthConnectionsRepository_ReadsExistingCiphertext(t *testing.T) {
+	sealer, err := crypto.New("MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=")
+	require.NoError(t, err)
+
+	access, err := hex.DecodeString(
+		"44289ace953da4664d1e006fd1f286d81eb938d1ea20162d01158cbe147d605c" +
+			"47f2ab66cccdeb7cdb",
+	)
+	require.NoError(t, err)
+	refresh, err := hex.DecodeString(
+		"72db74d8b181876d6d3dcb1bcbd4a58297e3ac8095dcb324ff80f2127cfbb8d5" +
+			"ae738aade499ba633453",
+	)
+	require.NoError(t, err)
+
+	ctx := t.Context()
+	user := "oauth-existing-ciphertext-user"
+	provider := sharedmodels.OAuthProviderTodoist
+
+	_, err = testDB.Exec(ctx, `
+		INSERT INTO learningpaths.oauth_connections
+			(user_id, provider, access_token, refresh_token)
+		VALUES ($1, $2, $3, $4)
+	`, user, provider, access, refresh)
+	require.NoError(t, err)
+
+	repo := repositories.New(testDB, sealer).OAuthConnections
+	t.Cleanup(func() {
+		_ = repo.Delete(context.Background(), user, provider)
+	})
+
+	got, _, err := repo.Get(ctx, user, provider)
+	require.NoError(t, err)
+	assert.Equal(t, "legacy-access", got.AccessToken)
+	assert.Equal(t, "legacy-refresh", got.RefreshToken)
 }

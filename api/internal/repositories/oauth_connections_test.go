@@ -301,16 +301,19 @@ func TestOAuthConnectionsRepository_DecryptFailedOnKeyMismatch(t *testing.T) {
 
 func TestOAuthConnectionsRepository_EncryptionNotConfigured(t *testing.T) {
 	clearOAuthConnections(t)
+	tok := &oauth2.Token{ //nolint:exhaustruct // other fields unused in test
+		AccessToken: "x",
+	}
+	sealed := repositories.NewOAuthConnectionsRepository(testDB, testSealer(t))
+	require.NoError(t, sealed.Upsert(
+		t.Context(), models.OAuthProviderGithub, tok, "admin", nil,
+	))
+
 	repo := repositories.NewOAuthConnectionsRepository(testDB, nil)
 
-	err := repo.Upsert(
-		t.Context(),
-		models.OAuthProviderGithub,
-		&oauth2.Token{ //nolint:exhaustruct // other fields unused in test
-			AccessToken: "x",
-		},
-		"admin",
-		nil,
-	)
+	err := repo.Upsert(t.Context(), models.OAuthProviderGithub, tok, "admin", nil)
+	require.ErrorIs(t, err, repositories.ErrEncryptionNotConfigured)
+
+	_, _, err = repo.Get(t.Context(), models.OAuthProviderGithub)
 	assert.ErrorIs(t, err, repositories.ErrEncryptionNotConfigured)
 }
