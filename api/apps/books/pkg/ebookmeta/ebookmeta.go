@@ -214,7 +214,25 @@ func zipFile(zr *zip.Reader, name string) *zip.File {
 	return nil
 }
 
+// extractPDF turns a panic into an error: ledongthuc/pdf panics on malformed
+// objects while resolving them lazily in Value.Key.
 func extractPDF(r io.ReaderAt, size int64) (Metadata, error) {
+	var (
+		m   Metadata
+		err error
+	)
+	func() {
+		defer func() {
+			if p := recover(); p != nil {
+				m, err = Metadata{}, fmt.Errorf("ebookmeta: read pdf metadata: %v", p)
+			}
+		}()
+		m, err = readPDFInfo(r, size)
+	}()
+	return m, err
+}
+
+func readPDFInfo(r io.ReaderAt, size int64) (Metadata, error) {
 	reader, err := pdf.NewReader(r, size)
 	if err != nil {
 		return Metadata{}, fmt.Errorf("ebookmeta: open pdf: %w", err)
