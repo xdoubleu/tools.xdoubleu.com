@@ -1,37 +1,42 @@
-# ADR-0017: Pin long-request handler deadlines under the edge proxy's ceiling
+# ADR-0017: One request budget under the server's WriteTimeout
 
-- Status: Accepted (the two constants below were since removed with their handlers; the rule applies to any long handler)
-- Issues: #672, #1113
-- Affects: `api/cmd/api/routes.go`, `api/internal/digitalocean/logs_live.go`, `config/deploy.api.yml`
+- Status: Accepted
+- Issues: #672, #1113, #2599
+- Affects: `api/internal/communication/httptools/budget.go`, `api/cmd/api/routes.go`, `api/cmd/api/main.go`, `config/deploy.api.yml`
 
 ## Context
 
-A handler outliving the edge proxy's response timeout has its connection
-**reset before it writes a byte** — no log, no Sentry event. This hit
-`GetDeployLogs` twice (#672).
+The api's `http.Server` `WriteTimeout` (10s) is set when a request's headers
+are read. A response written after it never arrives: the connection closes,
+the metrics record the handler's status, and nothing is logged or sent to
+Sentry. kamal-proxy's `proxy.response_timeout` (Kamal's 30s default) sits
+outside it and never fires first. Kobo library syncs were cut this way when
+the upstream store call alone took its 10s timeout.
 
 ## Decision
 
-Handler deadlines stay below the edge ceiling:
+`httptools.Budget` gives every request a context deadline of
+`RequestBudget` (8s), `WriteSlack` below `WriteTimeout`, so a handler that
+runs out still writes its error, and logs the overrun.
 
-| Constant | Location | Value |
-|---|---|---|
-| `deployLogsCtxTimeout` | `api/cmd/api/routes.go` | 20s |
-| `liveLogDeadline` | `api/internal/digitalocean/logs_live.go` | 8s |
-
-The edge is kamal-proxy; its ceiling is `proxy.response_timeout` in
-`config/deploy.api.yml` (unset, so Kamal's default). Raising a deadline
-**requires raising that too** — a deadline above the ceiling never fires.
+- Routes that legitimately take longer are listed in `isLongRequest`
+  (`api/cmd/api/routes.go`): they get `LongRequestBudget` and a write
+  deadline moved to match via `http.ResponseController`.
+- WebSocket upgrades are exempt: hijacking clears the connection's deadlines.
+- A request-path call that must leave the handler time to answer times out at
+  `UpstreamTimeout`; work that can't fit the budget runs as a job.
+- `request_budget_test.go` fails if the budgets stop fitting `WriteTimeout` or
+  `proxy.response_timeout`.
 
 ## Alternatives considered
 
-- **Rely on the proxy timeout** — gives no server-side signal; the in-handler
-  deadline returns a real error.
+- **Raise `WriteTimeout`** — every handler would then hang on a stalled
+  dependency for longer, and the cut would still be silent.
+- **`http.TimeoutHandler`** — buffers the whole response and breaks
+  `Flush`/`Hijack`.
 
 ## Consequences
 
-Enforced only by convention: **no test binds these constants to the ceiling.**
-
-## Revisit when
-
-A test binds them to `proxy.response_timeout`.
+A handler that drops the request context (`context.WithoutCancel`) escapes
+the deadline; `httptools.Detach` keeps the deadline while dropping
+cancellation.

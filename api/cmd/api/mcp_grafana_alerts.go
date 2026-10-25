@@ -6,15 +6,16 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"tools.xdoubleu.com/internal/communication/httptools"
 )
 
 // grafanaQueryTimeout bounds one Grafana API call. Grafana is reached over the
 // public host via kamal-proxy (Kamal gives no stable network alias), so this
 // is a real HTTPS round trip.
-const grafanaQueryTimeout = 10 * time.Second
+const grafanaQueryTimeout = httptools.UpstreamTimeout
 
 // grafanaAdminUser is Grafana's default admin, unlocked by
 // GF_SECURITY_ADMIN_PASSWORD.

@@ -6,17 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"time"
 
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
+	"tools.xdoubleu.com/internal/communication/httptools"
 )
 
-// seriesLookupTimeout keeps a slow Hardcover well inside the proxy's response
-// timeout, so GetSeries degrades to the library instead of being reset.
-const seriesLookupTimeout = 10 * time.Second
+// seriesLookupTimeout leaves GetSeries time to degrade to the library when
+// Hardcover is slow.
+const seriesLookupTimeout = httptools.UpstreamTimeout
 
 // SeriesEntry is one volume: the user's own book, or a Hardcover volume they
 // don't have yet (External).

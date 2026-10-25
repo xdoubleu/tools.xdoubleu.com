@@ -11,6 +11,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
 	"tools.xdoubleu.com/internal/database"
@@ -183,8 +184,12 @@ func (h *booksConnectHandler) FinalizeBookUpload(
 			"unauthorized",
 		)
 	}
+	// Leaving the page mustn't half-finalize an upload, but the work must still
+	// fit the route's budget.
+	finalizeCtx, cancel := httptools.Detach(ctx)
+	defer cancel()
 	result, err := h.app.Services.Books.FinalizeUpload(
-		context.WithoutCancel(ctx),
+		finalizeCtx,
 		user.ID,
 		req.UploadId,
 		req.Filename,

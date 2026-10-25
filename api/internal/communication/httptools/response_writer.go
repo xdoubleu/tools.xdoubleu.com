@@ -59,6 +59,11 @@ func (w responseWriter) Status() int {
 	return w.status
 }
 
+// Unwrap lets http.ResponseController reach the underlying writer.
+func (w *responseWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
+
 func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	h, ok := w.ResponseWriter.(http.Hijacker)
 	if !ok {

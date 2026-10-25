@@ -15,11 +15,12 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
+	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/database"
 )
 
 // emailUpstreamTimeout bounds the call to Resend's retrieve-received-email API.
-const emailUpstreamTimeout = 10 * time.Second
+const emailUpstreamTimeout = httptools.UpstreamTimeout
 
 //nolint:gochecknoglobals // shared client
 var emailUpstreamClient = &http.Client{Timeout: emailUpstreamTimeout}

@@ -37,6 +37,10 @@ const (
 	burst             = 3
 
 	maxAttempts = 4
+	// deadlineAttempts replaces maxAttempts when the caller's deadline is
+	// shorter than maxAttempts full attempts (a request's is); each attempt
+	// gets an even share of the time left, so the retry still fits.
+	deadlineAttempts = 2
 )
 
 // isbnQuery stays within Hardcover's max query depth of 3, hence
@@ -286,7 +290,7 @@ func (c client) post(
 		return err
 	}
 
-	return c.doWithRetry(ctx, func() (bool, error) {
+	return c.doWithRetry(ctx, func(ctx context.Context) (bool, error) {
 		if waitErr := c.limiter.Wait(ctx); waitErr != nil {
 			return false, waitErr
 		}
@@ -334,11 +338,24 @@ func (c client) post(
 
 func (c client) doWithRetry(
 	ctx context.Context,
-	attempt func() (retryable bool, err error),
+	attempt func(ctx context.Context) (retryable bool, err error),
 ) error {
+	deadline, ok := ctx.Deadline()
+	bounded := ok && time.Until(deadline) < maxAttempts*apiTimeout
+	attempts := maxAttempts
+	if bounded {
+		attempts = deadlineAttempts
+	}
+
 	var lastErr error
-	for i := range maxAttempts {
-		retryable, err := attempt()
+	for i := range attempts {
+		attemptCtx, cancel := ctx, context.CancelFunc(func() {})
+		if bounded {
+			share := time.Until(deadline) / time.Duration(attempts-i)
+			attemptCtx, cancel = context.WithTimeout(ctx, share)
+		}
+		retryable, err := attempt(attemptCtx)
+		cancel()
 		if err == nil {
 			return nil
 		}
@@ -349,7 +366,7 @@ func (c client) doWithRetry(
 
 		lastErr = err
 
-		if !retryable || i == maxAttempts-1 {
+		if !retryable || i == attempts-1 {
 			break
 		}
 
