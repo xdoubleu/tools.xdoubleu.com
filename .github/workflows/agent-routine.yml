@@ -39,7 +39,7 @@ on:
 
 env:
   # renovate: datasource=npm depName=@opencode/cli
-  OPENCODE_VERSION: 2.1.2
+  OPENCODE_VERSION: 2.1.3
   APPS_BASE_URL: https://tools.xdoubleu.com/api
 
 jobs:
