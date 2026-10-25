@@ -10,8 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/books"
+	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/gen/observability/v1/observabilityv1connect"
+	"tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/models"
 )
 
@@ -177,6 +180,37 @@ func TestObservabilityTriggerStorageScan_AsAdmin(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.Equal(t, 1, runner.started)
+}
+
+// Books.StartStorageScan returns at once; the scan runs on the job queue and
+// lands in job_runs. Here, not in apps/books, because it needs the global
+// migrations.
+func TestStartStorageScan_RunsInBackground(t *testing.T) {
+	booksWithFakeStore := books.NewInner(
+		mocks.NewMockedAuthService(testUserID),
+		testApp.logger,
+		testApp.config,
+		testApp.db,
+		books.Clients{
+			UniCat:           nil,
+			Hardcover:        nil,
+			ObjectStore:      objectstore.NewFake(),
+			WebFetch:         nil,
+			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
+		},
+	)
+	require.NoError(t, booksWithFakeStore.Start())
+	since := time.Now().Add(-time.Second)
+
+	booksWithFakeStore.StartStorageScan()
+
+	require.Eventually(t, func() bool {
+		last, err := testApp.jobRunsRepo.LastSuccessAt(
+			context.Background(), "books-storage-scan",
+		)
+		return err == nil && last != nil && last.After(since)
+	}, 10*time.Second, 50*time.Millisecond)
 }
 
 func TestObservabilityGetDatabaseStats_AsAdmin(t *testing.T) {
