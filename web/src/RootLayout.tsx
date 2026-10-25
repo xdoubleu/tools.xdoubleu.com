@@ -1,5 +1,5 @@
 import { Suspense, useEffect } from 'react'
-import { Outlet } from 'react-router'
+import { Outlet, ScrollRestoration } from 'react-router'
 import AppShell from '@/components/AppShell'
 import { PageLoading } from '@/components/ui/PageLoading'
 import { usePathname } from '@/hooks/navigation'
@@ -35,6 +35,7 @@ export default function RootLayout() {
 
   return (
     <>
+      <ScrollRestoration />
       <WebVitals />
       <AppShell>
         <Suspense fallback={<PageLoading />}>

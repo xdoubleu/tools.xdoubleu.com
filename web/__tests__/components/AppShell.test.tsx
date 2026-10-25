@@ -45,16 +45,63 @@ vi.mock('@/components/books/OfflineBooksSync', () => ({
   default: () => <div data-testid="offline-books-sync" />
 }))
 
+import { Code, ConnectError } from '@connectrpc/connect'
 import AppShell from '@/components/AppShell'
+import { usePathname, useRouter, useSearchParams } from '@/hooks/navigation'
 import { useCurrentUser } from '@/hooks/useAuth'
 import { useSessionEffects } from '@/components/SWRProvider'
 
 function signedInAs(user: { userId?: string; role: string; appAccess: string[] } | undefined) {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- only data is read
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- only data and error are read
   vi.mocked(useCurrentUser).mockReturnValue({ data: user } as never)
 }
 
+function failsWith(error: Error) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- only data and error are read
+  vi.mocked(useCurrentUser).mockReturnValue({ data: undefined, error } as never)
+}
+
+function renderAt(pathname: string, search = '') {
+  vi.mocked(usePathname).mockReturnValue(pathname)
+  vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams(search))
+  render(
+    <AppShell>
+      <div data-testid="child">content</div>
+    </AppShell>
+  )
+}
+
+const replace = () => useRouter().replace
+
 describe('AppShell', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('sends a signed-out visitor to sign-in, then back to the page', () => {
+    failsWith(new ConnectError('not signed in', Code.Unauthenticated))
+    renderAt('/feeds/stats', 'feed=1')
+
+    expect(replace()).toHaveBeenCalledWith('/auth/sign-in?next=%2Ffeeds%2Fstats%3Ffeed%3D1')
+    expect(screen.queryByTestId('child')).not.toBeInTheDocument()
+  })
+
+  it('lets a signed-out visitor stay on a public page', () => {
+    failsWith(new ConnectError('not signed in', Code.Unauthenticated))
+    renderAt('/dashboard/reading/tok')
+
+    expect(replace()).not.toHaveBeenCalled()
+    expect(screen.getByTestId('child')).toBeInTheDocument()
+  })
+
+  it('keeps the page when the api is unreachable, so offline mode works', () => {
+    failsWith(new TypeError('Failed to fetch'))
+    renderAt('/feeds')
+
+    expect(replace()).not.toHaveBeenCalled()
+    expect(screen.getByTestId('child')).toBeInTheDocument()
+  })
+
   it('renders the app chrome and children', () => {
     signedInAs({ role: 'user', appAccess: [] })
     render(

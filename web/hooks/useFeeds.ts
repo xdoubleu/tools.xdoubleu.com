@@ -37,19 +37,16 @@ function mutateFeedItems() {
   return mutate((key) => typeof key === 'string' && key.startsWith('/feeds/items'))
 }
 
-// No refetch on focus/reconnect: pages are server-prefetched and refetching
-// wastes egress.
-export const noAutoRevalidate = {
-  revalidateOnFocus: false,
-  revalidateOnReconnect: false
-} as const
+// No refetch on focus: the lists are large and tabs switch often. Reconnect
+// still refetches, replacing a copy saved for offline use.
+export const noFocusRevalidate = { revalidateOnFocus: false } as const
 
 export function useFeeds() {
   const client = createServiceClient(FeedService)
   return useSWR<ListFeedsResponse, Error>(
     swrKeys.feeds,
     () => client.listFeeds({}),
-    noAutoRevalidate
+    noFocusRevalidate
   )
 }
 
@@ -67,7 +64,7 @@ export function useFeedItems(unreadOnly: boolean, feedId?: string, bookmarkedOnl
   return useSWR<ListFeedItemsResponse, Error>(
     swrKeys.feedItems(unreadOnly, feedId, bookmarkedOnly),
     () => client.listFeedItems({ limit: DEFAULT_PAGE_SIZE, unreadOnly, feedId, bookmarkedOnly }),
-    noAutoRevalidate
+    noFocusRevalidate
   )
 }
 
@@ -77,7 +74,7 @@ export function useFeedItem(itemId: string | null) {
   return useSWR<GetFeedItemResponse, Error>(
     itemId ? swrKeys.feedItem(itemId) : null,
     itemId ? () => client.getFeedItem({ itemId }) : null,
-    noAutoRevalidate
+    noFocusRevalidate
   )
 }
 
@@ -157,7 +154,7 @@ export function useFilterRules() {
   return useSWR<ListFilterRulesResponse, Error>(
     swrKeys.feedFilterRules,
     () => client.listFilterRules({}),
-    noAutoRevalidate
+    noFocusRevalidate
   )
 }
 
@@ -203,7 +200,7 @@ export function useFeedStats() {
   return useSWR<GetFeedStatsResponse, Error>(
     swrKeys.feedStats,
     () => client.getFeedStats({}),
-    noAutoRevalidate
+    noFocusRevalidate
   )
 }
 
@@ -218,7 +215,7 @@ export function useFeedsSummary() {
   } = useSWR<ListFeedItemsResponse, Error>(
     swrKeys.feedsSummary,
     () => itemsClient.listFeedItems({ limit: FEEDS_SUMMARY_ITEM_LIMIT, unreadOnly: true }),
-    noAutoRevalidate
+    noFocusRevalidate
   )
   const { data: statsData } = useFeedStats()
 

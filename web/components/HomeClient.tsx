@@ -10,6 +10,7 @@ import { Field } from '@/components/ui/field'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { LoadingState } from '@/components/ui/states'
+import { isSignedOut } from '@/lib/signIn'
 import { ConnectError } from '@connectrpc/connect'
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-challenge'
@@ -150,7 +151,9 @@ const ALWAYS_VISIBLE = new Set(['settings', 'family'])
 const ADMIN_ONLY = new Set(['user-management', 'monitoring', 'observability', 'grafana'])
 
 export default function HomeClient() {
-  const { data, error, isLoading } = useCurrentUser()
+  const { data: lastUser, error, isLoading } = useCurrentUser()
+  // SWR keeps the last user when a refetch fails; a signed-out answer means it's gone.
+  const data = isSignedOut(error) ? undefined : lastUser
   const signIn = useSignIn()
   const mFAChallenge = useMFAChallenge()
 

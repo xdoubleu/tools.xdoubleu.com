@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { act, render, screen } from '@testing-library/react'
+import { createMemoryRouter, RouterProvider } from 'react-router'
 import RootLayout from '@/src/RootLayout'
 import { usePathname } from '@/hooks/navigation'
 
@@ -10,22 +10,31 @@ vi.mock('@/components/AppShell', () => ({
 }))
 vi.mock('@/src/WebVitals', () => ({ WebVitals: () => <i data-testid="vitals" /> }))
 
+// ScrollRestoration needs a data router, as in src/routes.tsx.
 function mount() {
-  return render(
-    <MemoryRouter>
-      <Routes>
-        <Route element={<RootLayout />}>
-          <Route index element={<p>home page</p>} />
-        </Route>
-      </Routes>
-    </MemoryRouter>
-  )
+  const router = createMemoryRouter([
+    {
+      Component: RootLayout,
+      children: [
+        { index: true, element: <p>home page</p> },
+        { path: 'detail', element: <p>detail page</p> }
+      ]
+    }
+  ])
+  render(<RouterProvider router={router} />)
+  return router
+}
+
+function scrollWindowTo(y: number) {
+  Object.defineProperty(window, 'scrollY', { value: y, configurable: true })
 }
 
 describe('RootLayout', () => {
   beforeEach(() => {
     document.head.innerHTML =
       '<link id="app-icon" rel="icon" href="/icon.svg"><link id="app-apple-icon" rel="apple-touch-icon" href="/apple-icon.png">'
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    scrollWindowTo(0)
   })
 
   it('renders the matched page inside the app shell', () => {
@@ -34,6 +43,21 @@ describe('RootLayout', () => {
 
     expect(screen.getByTestId('shell')).toHaveTextContent('home page')
     expect(screen.getByTestId('vitals')).toBeInTheDocument()
+  })
+
+  it('opens a new page at the top and restores the position on Back', async () => {
+    const router = mount()
+    expect(await screen.findByText('home page')).toBeInTheDocument()
+
+    scrollWindowTo(640)
+    await act(() => router.navigate('/detail'))
+    expect(await screen.findByText('detail page')).toBeInTheDocument()
+    expect(window.scrollTo).toHaveBeenLastCalledWith(0, 0)
+
+    scrollWindowTo(0)
+    await act(() => router.navigate(-1))
+    expect(await screen.findByText('home page')).toBeInTheDocument()
+    expect(window.scrollTo).toHaveBeenLastCalledWith(0, 640)
   })
 
   it("uses an app's own icons under its path", () => {

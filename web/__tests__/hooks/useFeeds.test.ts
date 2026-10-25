@@ -102,13 +102,11 @@ describe('useFeeds', () => {
     expect(clientMocks.getFeedItem).not.toHaveBeenCalled()
   })
 
-  it('feed list hooks opt out of focus and reconnect revalidation', () => {
+  it('feed list hooks skip focus revalidation but keep reconnect revalidation', () => {
     renderHook(() => useFeedItems(true))
     const [, , options] = mockUseSWR.mock.calls[0]!
-    expect(options).toMatchObject({
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false
-    })
+    expect(options).toMatchObject({ revalidateOnFocus: false })
+    expect(options).not.toHaveProperty('revalidateOnReconnect', false)
   })
 
   it('useFeedItems threads an optional feedId into the key and request', async () => {

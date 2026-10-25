@@ -4,7 +4,7 @@ import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
 import { FeedService } from '@/lib/gen/feeds/v1/feeds_pb'
 import type { GetFilterRuleSuggestionsResponse } from '@/lib/gen/feeds/v1/feeds_pb'
-import { noAutoRevalidate } from '@/hooks/useFeeds'
+import { noFocusRevalidate } from '@/hooks/useFeeds'
 import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
 import { dismissSuggestionWrite } from '@/lib/feeds/offlineWrites'
 
@@ -15,7 +15,7 @@ export function useFilterRuleSuggestions() {
   return useSWR<GetFilterRuleSuggestionsResponse, Error>(
     swrKeys.feedFilterRuleSuggestions,
     () => client.getFilterRuleSuggestions({}),
-    noAutoRevalidate
+    noFocusRevalidate
   )
 }
 

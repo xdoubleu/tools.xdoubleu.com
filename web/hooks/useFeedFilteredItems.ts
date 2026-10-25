@@ -5,7 +5,7 @@ import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 import { createServiceClient } from '@/lib/client'
 import { FeedService } from '@/lib/gen/feeds/v1/feeds_pb'
 import type { ListFeedItemsResponse } from '@/lib/gen/feeds/v1/feeds_pb'
-import { noAutoRevalidate } from '@/hooks/useFeeds'
+import { noFocusRevalidate } from '@/hooks/useFeeds'
 import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
 import { restoreFeedItemWrite } from '@/lib/feeds/offlineWrites'
 
@@ -16,7 +16,7 @@ export function useFilteredFeedItems(feedId?: string) {
   return useSWR<ListFeedItemsResponse, Error>(
     swrKeys.feedFilteredItems(feedId),
     () => client.listFeedItems({ limit: DEFAULT_PAGE_SIZE, filteredOnly: true, feedId }),
-    noAutoRevalidate
+    noFocusRevalidate
   )
 }
 

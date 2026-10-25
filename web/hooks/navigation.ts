@@ -12,13 +12,17 @@ export interface Router {
   back(): void
 }
 
-/** Imperative navigation with a stable identity, safe in effect dependencies. */
+/**
+ * Imperative navigation with a stable identity, safe in effect dependencies.
+ * A pushed page opens at the top; replace updates the page in place (e.g. a
+ * search query), so it keeps the scroll position.
+ */
 export function useRouter(): Router {
   const navigate = useNavigate()
   return useMemo(
     () => ({
       push: (href) => void navigate(href),
-      replace: (href) => void navigate(href, { replace: true }),
+      replace: (href) => void navigate(href, { replace: true, preventScrollReset: true }),
       back: () => void navigate(-1)
     }),
     [navigate]

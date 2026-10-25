@@ -7,6 +7,7 @@ import {
   Route,
   RouterProvider,
   Routes,
+  ScrollRestoration,
   useLocation
 } from 'react-router'
 
@@ -91,5 +92,27 @@ describe('navigation hooks', () => {
 
     expect(seen.length).toBeGreaterThan(1)
     expect(new Set(seen).size).toBe(1)
+  })
+
+  it('opens a pushed page at the top but keeps the position on replace', async () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    let nav: ReturnType<typeof useRouter> | undefined
+    function Probe() {
+      nav = useRouter()
+      return <ScrollRestoration />
+    }
+    const router = createMemoryRouter([{ path: '*', Component: Probe }], {
+      initialEntries: ['/books/library']
+    })
+    render(<RouterProvider router={router} />)
+
+    // A search box rewriting ?q= must not jump the list to the top.
+    scrollTo.mockClear()
+    await act(async () => nav!.replace('/books/library?q=dune'))
+    expect(router.state.location.search).toBe('?q=dune')
+    expect(scrollTo).not.toHaveBeenCalled()
+
+    await act(async () => nav!.push('/books/42'))
+    expect(scrollTo).toHaveBeenLastCalledWith(0, 0)
   })
 })
