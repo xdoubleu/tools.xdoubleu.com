@@ -43,3 +43,4 @@ registration, and RFC 8414 metadata. `mcpAuthServerIssuer` is `cfg.AuthIssuer`
 
 Partly superseded by ADR-0021 (non-MCP client: Grafana). This ADR still governs
 the MCP flow, consent page, and rejection logging.
+The fosite library choice is revisited in ADR-0037.
