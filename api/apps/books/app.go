@@ -174,76 +174,7 @@ func (a *Books) StartWorkers() error {
 }
 
 func (a *Books) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
-	if err := renameLegacyBooksSchema(ctx, db); err != nil {
-		return err
-	}
-	if err := renameLegacyReadingSchema(ctx, db); err != nil {
-		return err
-	}
 	return a.ApplyMigrationsFromFS(ctx, db, embedMigrations, a.GetName())
-}
-
-// renameLegacyBooksSchema renames an old "books" schema to "reading", carrying
-// goose's version table along. Must run before ApplyMigrationsFromFS creates an
-// empty "reading" schema; an empty one from a partial deploy is dropped first.
-func renameLegacyBooksSchema(ctx context.Context, db *pgxpool.Pool) error {
-	_, err := db.Exec(ctx, `
-		DO $$
-		BEGIN
-		    IF EXISTS (
-		        SELECT 1 FROM information_schema.schemata
-		        WHERE schema_name = 'books'
-		    ) THEN
-		        IF EXISTS (
-		            SELECT 1 FROM information_schema.schemata
-		            WHERE schema_name = 'reading'
-		        ) AND NOT EXISTS (
-		            SELECT 1 FROM information_schema.tables
-		            WHERE table_schema = 'reading'
-		        ) THEN
-		            DROP SCHEMA reading;
-		        END IF;
-		        IF NOT EXISTS (
-		            SELECT 1 FROM information_schema.schemata
-		            WHERE schema_name = 'reading'
-		        ) THEN
-		            ALTER SCHEMA books RENAME TO reading;
-		        END IF;
-		    END IF;
-		END $$;
-	`)
-	return err
-}
-
-// renameLegacyReadingSchema renames "reading" back to "books" the same way.
-// Both run, since a database may still need the first rename.
-func renameLegacyReadingSchema(ctx context.Context, db *pgxpool.Pool) error {
-	_, err := db.Exec(ctx, `
-		DO $$
-		BEGIN
-		    IF EXISTS (
-		        SELECT 1 FROM information_schema.schemata
-		        WHERE schema_name = 'reading'
-		    ) THEN
-		        IF EXISTS (
-		            SELECT 1 FROM information_schema.schemata
-		            WHERE schema_name = 'books'
-		        ) AND NOT EXISTS (
-		            SELECT 1 FROM information_schema.tables
-		            WHERE table_schema = 'books'
-		        ) THEN
-		            DROP SCHEMA books;
-		        END IF;
-		        IF NOT EXISTS (
-		            SELECT 1 FROM information_schema.schemata
-		            WHERE schema_name = 'books'
-		        ) THEN
-		            ALTER SCHEMA reading RENAME TO books;
-		        END IF;
-		    END IF;
-		END $$;
-	`)
-	return err
 }
 
 // RunStorageScanNow runs the R2 scan synchronously under the scheduled job's
