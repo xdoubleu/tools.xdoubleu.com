@@ -38,6 +38,7 @@ on:
         value: ${{ jobs.run.outputs.rerun_run_ids }}
 
 env:
+  # renovate: datasource=npm depName=@opencode/cli
   OPENCODE_VERSION: 2.0.18
   APPS_BASE_URL: https://tools.xdoubleu.com/api
 
@@ -54,7 +55,7 @@ jobs:
       cancel-in-progress: false
     services:
       postgres:
-        image: postgres:18
+        image: postgres:17
         env:
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:

@@ -1,6 +1,6 @@
 module tools.xdoubleu.com/sentrytools
 
-go 1.26.0
+go 1.27.3
 
 require github.com/getsentry/sentry-go v0.50.0
 

@@ -255,6 +255,8 @@ jobs:
       # tofu_wrapper off so lint_infra.sh sees real exit codes.
       - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2
         with:
+          # renovate: datasource=github-releases depName=opentofu/opentofu
+          tofu_version: 1.13.2
           tofu_wrapper: false
       - name: make lint/infra
         run: make lint/infra
@@ -397,7 +399,7 @@ jobs:
           # PRs: use the head commit, not the merge commit.
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          pip install --quiet codecov-cli
+          pip install --quiet codecov-cli==11.3.1
 
           send_notifications() {
             codecovcli send-notifications --commit-sha "$SHA" --slug "$REPO" --git-service github
@@ -465,7 +467,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
         with:
           ruby-version: "4.0.8"
           bundler-cache: true
@@ -630,6 +632,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2
+        with:
+          # renovate: datasource=github-releases depName=opentofu/opentofu
+          tofu_version: 1.13.2
 
       # Same key as deploy-kamal; already authorized for Tofu's provisioners.
       - name: Load the deploy SSH key

@@ -4,7 +4,17 @@
     'config:recommended',
     // Third-party actions run with deploy/infra secrets; pin them to digests.
     'helpers:pinGitHubActionDigests',
+    'docker:pinDigests',
   ],
+  // The api module's local `replace`; there is nothing to look up.
+  ignoreDeps: [
+    'tools.xdoubleu.com/sentrytools',
+  ],
+  'docker-compose': {
+    managerFilePatterns: [
+      '/(^|/)[^/]*-compose\\.ya?ml$/',
+    ],
+  },
   customManagers: [
     {
       customType: 'regex',
@@ -14,6 +24,18 @@
       matchStrings: [
         '# renovate: datasource=(?<datasource>[^\\s]+) depName=(?<depName>[^\\s]+)\\n\\s+version: (?<currentValue>v[^\\s]+)',
       ],
+    },
+    // Unprefixed `<name>_version:` / `<NAME>_VERSION:` keys (tofu_version,
+    // OPENCODE_VERSION); tags may carry a `v`.
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/^\\.github/workflows/.*\\.yml$/',
+      ],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>[^\\s]+) depName=(?<depName>[^\\s]+)\\n\\s+[A-Za-z]+_(?:version|VERSION): (?<currentValue>[^\\s]+)',
+      ],
+      extractVersionTemplate: '^v?(?<version>.+)$',
     },
     {
       customType: 'regex',
@@ -25,15 +47,39 @@
       ],
       datasourceTemplate: 'go',
     },
+    // codecov-cli, sqlfluff (and sqlfluff's pip cache key).
     {
       customType: 'regex',
       managerFilePatterns: [
-        '/^go.mod$/',
+        '/^\\.github/workflows/.*\\.yml$/',
+        '/Makefile$/',
+      ],
+      matchStrings: [
+        'pip install (?:-[^\\s]+ )*(?<depName>[A-Za-z0-9_.-]+)==(?<currentValue>[^\\s]+)',
+        'key: (?<depName>sqlfluff)-(?<currentValue>[^\\s]+)',
+      ],
+      datasourceTemplate: 'pypi',
+    },
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/(^|/)go\\.mod$/',
       ],
       matchStrings: [
         '\\sgo (?<currentValue>.+?)\\s',
       ],
       depNameTemplate: 'golang',
+      datasourceTemplate: 'docker',
+    },
+    // promtool's image, kept in step with infra/prometheus-compose.yml.
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/^scripts/lint_infra\\.sh$/',
+      ],
+      matchStrings: [
+        'prom_image="(?<depName>[^:"]+):(?<currentValue>[^"@]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?"',
+      ],
       datasourceTemplate: 'docker',
     },
     {
@@ -109,6 +155,105 @@
         '@typescript-eslint/eslint-plugin',
         '@typescript-eslint/parser',
       ],
+    },
+    // A package path, not a module, so its own lookup finds nothing; resolving
+    // the module keeps it in the proto group with go.mod and buf.gen.yaml.
+    {
+      matchDepNames: [
+        'connectrpc.com/connect/v2/cmd/protoc-gen-connect-go',
+      ],
+      overridePackageName: 'connectrpc.com/connect/v2',
+    },
+    // Regex matches without a captured digest have nowhere to put one.
+    {
+      matchManagers: [
+        'custom.regex',
+      ],
+      matchDatasources: [
+        'docker',
+      ],
+      pinDigests: false,
+    },
+    // ADR-0015: kobo-gateway stays on Go 1.24 until darwinkit#286 is fixed.
+    {
+      matchFileNames: [
+        'kobo-gateway/go.mod',
+      ],
+      matchDepNames: [
+        'golang',
+      ],
+      enabled: false,
+    },
+    // golang images set GOTOOLCHAIN=local, so a go directive above the builder
+    // image's Go fails the Docker build.
+    {
+      groupName: 'golang',
+      matchDatasources: [
+        'docker',
+      ],
+      matchDepNames: [
+        'golang',
+      ],
+    },
+    // A major needs a pg_upgrade of the production volume (and PG18 moves the
+    // mount to /var/lib/postgresql); CI and dev move with production.
+    {
+      matchDatasources: [
+        'docker',
+      ],
+      matchDepNames: [
+        'postgres',
+      ],
+      matchUpdateTypes: [
+        'major',
+      ],
+      dependencyDashboardApproval: true,
+    },
+    // Merging restarts production Postgres through infra-apply.
+    {
+      matchFileNames: [
+        'infra/postgres-compose.yml',
+      ],
+      automerge: false,
+    },
+    // Only deploy-kamal, on main, runs setup-ruby, so no PR check catches a
+    // ruby-version it doesn't know yet. By the time a Ruby is a week old, a
+    // setup-ruby that knows it is past the 3-day minimum; both land together.
+    {
+      groupName: 'ruby',
+      matchDepNames: [
+        'ruby',
+        'ruby/setup-ruby',
+      ],
+      schedule: [
+        '* 0-3 * * 1',
+      ],
+    },
+    {
+      matchDepNames: [
+        'ruby',
+      ],
+      minimumReleaseAge: '7 days',
+    },
+    // No PR check runs OpenCode.
+    {
+      matchDepNames: [
+        '@opencode/cli',
+      ],
+      automerge: false,
+    },
+    // An override forces a version onto packages that didn't ask for it.
+    {
+      matchManagers: [
+        'npm',
+      ],
+      matchDepTypes: [
+        'overrides',
+      ],
+      matchUpdateTypes: [
+        'major',
+      ],
+      automerge: false,
     },
   ],
   timezone: 'Europe/Brussels',
