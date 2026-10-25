@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -404,35 +403,17 @@ func (app *Books) koboLinkStoreBooks(
 }
 
 // warmKoboCovers caches every book's cover so the device's per-cover fetches
-// during its update phase are fast R2 hits. Bounded concurrency; a missing
-// cover or a failed fetch is logged and skipped, never fatal.
+// during its update phase are fast R2 hits.
 func (app *Books) warmKoboCovers(
 	ctx context.Context,
 	userID string,
 	books []models.KoboSyncBook,
 ) {
-	const warmConcurrency = 4
-
-	ids := make(chan uuid.UUID)
-	var wg sync.WaitGroup
-	for i := 0; i < warmConcurrency; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for id := range ids {
-				_, err := app.Services.Books.EnsureUserCoverCached(ctx, userID, id)
-				if err != nil {
-					app.Logger.Warn("failed to warm kobo cover",
-						"bookID", id, "err", err)
-				}
-			}
-		}()
+	ids := make([]uuid.UUID, len(books))
+	for i, b := range books {
+		ids[i] = b.BookID
 	}
-	for _, b := range books {
-		ids <- b.BookID
-	}
-	close(ids)
-	wg.Wait()
+	app.Services.Books.WarmUserCovers(ctx, userID, ids)
 }
 
 // buildKoboSyncEntry builds one book's entitlement. RevisionId stays the bare

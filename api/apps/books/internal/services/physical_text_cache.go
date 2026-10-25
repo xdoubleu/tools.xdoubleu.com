@@ -137,7 +137,7 @@ func (s *PositionService) parseText(
 				err = fmt.Errorf("epub text model build panicked: %v", r)
 			}
 		}()
-		t, err = buildBookText(ctx, &zr.zr.Reader)
+		t, err = buildBookText(ctx, zr.zr)
 	}()
 	return t, err
 }

@@ -1,6 +1,7 @@
 package books_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -42,6 +43,22 @@ func TestWebPubRoutes_ManifestAndResource(t *testing.T) {
 	assert.NotEmpty(t, w.Header().Get("Content-Length"))
 }
 
+// TestWebPubRoutes_ReusesOpenedEPUB: a reading session downloads the EPUB
+// once; later requests read the already-opened archive.
+func TestWebPubRoutes_ReusesOpenedEPUB(t *testing.T) {
+	book := addUniqueBook(t)
+	file := seedEPUBFile(t, fakeStore, book.ID)
+	base := "/books/api/book/" + book.ID.String() + "/webpub/"
+
+	require.Equal(t, http.StatusOK, webPubGet(t, base+"manifest.json").Code)
+	require.NoError(t, fakeStore.Delete(context.Background(), file.StorageKey))
+
+	assert.Equal(t, http.StatusOK, webPubGet(t, base+"positions.json").Code)
+	w := webPubGet(t, base+"res/META-INF/container.xml")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "rootfile")
+}
+
 func TestWebPubRoutes_NotFound(t *testing.T) {
 	book := addUniqueBook(t)
 	seedEPUBFile(t, fakeStore, book.ID)
@@ -53,6 +70,17 @@ func TestWebPubRoutes_NotFound(t *testing.T) {
 		webPubGet(t, "/books/api/book/"+uuid.NewString()+"/webpub/manifest.json").Code)
 	assert.Equal(t, http.StatusNotFound,
 		webPubGet(t, "/books/api/book/"+uuid.NewString()+"/webpub/positions.json").Code)
+	assert.Equal(t, http.StatusNotFound,
+		webPubGet(t, "/books/api/book/"+uuid.NewString()+"/webpub/res/a.xhtml").Code)
 	assert.Equal(t, http.StatusBadRequest,
 		webPubGet(t, "/books/api/book/nope/webpub/manifest.json").Code)
+}
+
+func TestWebPubRoutes_MissingBlobIsAnError(t *testing.T) {
+	book := addUniqueBook(t)
+	file := seedEPUBFile(t, fakeStore, book.ID)
+	require.NoError(t, fakeStore.Delete(context.Background(), file.StorageKey))
+
+	assert.Equal(t, http.StatusInternalServerError, webPubGet(t,
+		"/books/api/book/"+book.ID.String()+"/webpub/manifest.json").Code)
 }

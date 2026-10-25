@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/singleflight"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
@@ -49,6 +50,7 @@ type BookService struct {
 	hardcover    hardcover.Client
 	resyncSource ResyncSource
 	coverClient  *http.Client
+	coverWarms   singleflight.Group
 	seriesCache  *seriesCache
 	// physical follows digital positions on a physical copy; nil in tests
 	// that build a BookService directly.
