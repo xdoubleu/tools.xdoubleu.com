@@ -7,7 +7,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 infra_dir="$repo_root/infra"
 
 # Keep in step with infra/prometheus-compose.yml's image tag.
-prom_image="prom/prometheus:v3.1.0"
+prom_image="prom/prometheus:v3.15.1"
 
 echo "==> promtool check config (infra/prometheus.yml)"
 # promtool fails if the `api` job's credentials_file is missing; mount a stub.
