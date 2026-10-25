@@ -32,7 +32,7 @@ ifeq ($(UNAME_S),Darwin)
 	brew install sqlfluff
 endif
 ifeq ($(UNAME_S),Linux)
-	pip install sqlfluff==4.3.0
+	pip install sqlfluff==4.4.0
 endif
 
 lint/sql: tools/lint/sql

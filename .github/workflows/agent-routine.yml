@@ -151,7 +151,7 @@ jobs:
         run: |
           cd /
           sudo -n -u routine-sandbox -H bash -c 'python3 -m venv ~/.local/sqlfluff \
-            && ~/.local/sqlfluff/bin/pip install -q sqlfluff==4.3.0 \
+            && ~/.local/sqlfluff/bin/pip install -q sqlfluff==4.4.0 \
             && mkdir -p ~/.local/bin \
             && ln -sf ~/.local/sqlfluff/bin/sqlfluff ~/.local/bin/sqlfluff'
 
