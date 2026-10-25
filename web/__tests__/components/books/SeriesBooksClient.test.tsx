@@ -116,7 +116,7 @@ describe('SeriesBooksClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add to Want to read' }))
     expect(screen.getByRole('button', { name: 'Adding…' })).toBeDisabled()
     reject(new Error('nope'))
-    expect(await screen.findByText('Failed to add. Try again.')).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to add. Try again.')
     expect(screen.getByRole('button', { name: 'Add to Want to read' })).toBeEnabled()
 
     mockAddBook.mockResolvedValueOnce({})

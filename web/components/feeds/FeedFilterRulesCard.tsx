@@ -54,7 +54,11 @@ function RuleRow({ rule, scope }: { rule: FilterRule; scope: string }) {
               </Link>
             </Button>
           </div>
-          {failed && <p className="text-xs text-danger">Deleting the rule failed.</p>}
+          {failed && (
+            <p className="text-xs text-danger" role="alert">
+              Deleting the rule failed.
+            </p>
+          )}
         </div>
         <Button
           size="sm"

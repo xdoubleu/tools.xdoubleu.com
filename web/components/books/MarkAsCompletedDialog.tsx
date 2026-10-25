@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/components/ui/dialog'
 import { ToggleIconButton } from '@/components/ui/toggle-icon-button'
 import { cn } from '@/lib/cn'
 import { swrKeys } from '@/lib/swrKeys'
+import { Alert } from '@/components/ui/alert'
 
 interface MarkAsCompletedDialogProps {
   userBook: UserBook
@@ -109,9 +110,9 @@ export default function MarkAsCompletedDialog({
       </div>
 
       {error && (
-        <p className="mt-2 text-sm text-danger" data-testid="mark-completed-error">
+        <Alert tone="danger" className="mt-2" data-testid="mark-completed-error">
           {error}
-        </p>
+        </Alert>
       )}
     </ConfirmDialog>
   )

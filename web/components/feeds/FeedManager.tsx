@@ -64,6 +64,7 @@ function FeedRow({ feed }: { feed: Feed }) {
         </div>
         <div className="mt-1 space-y-0.5">
           {feed.lastError && (
+            // eslint-disable-next-line ui/use-primitives -- the last poll's stored error, not a live failure
             <p className="break-words text-xs text-danger">
               {isEmailFeed ? 'Last email failed' : 'Last poll failed'}: {feed.lastError}
             </p>

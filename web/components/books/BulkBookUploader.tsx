@@ -240,11 +240,19 @@ function UploadProgressDisplay({ progress, done, onRetry }: UploadProgressDispla
       <div className="flex items-center justify-between text-sm">
         <span className="text-fg">
           {processed} / {total} uploaded
-          {failed > 0 && <span className="ml-1 text-danger">({failed} failed)</span>}
+          {failed > 0 && (
+            <span className="ml-1 text-danger" role="status">
+              ({failed} failed)
+            </span>
+          )}
         </span>
         {!done && <span className="text-xs text-muted">Uploading…</span>}
         {done && !allFailed && <span className="text-xs text-success">Done</span>}
-        {done && allFailed && <span className="text-xs text-danger">Failed</span>}
+        {done && allFailed && (
+          <span className="text-xs text-danger" role="alert">
+            Failed
+          </span>
+        )}
       </div>
 
       {done && processed > 0 && (
@@ -259,6 +267,7 @@ function UploadProgressDisplay({ progress, done, onRetry }: UploadProgressDispla
         <ul className="space-y-2">
           {errors.map((item, i) => (
             <li key={i}>
+              {/* eslint-disable-next-line ui/use-primitives -- per-file detail; the failed count above announces it */}
               <p className="break-words text-xs text-danger">
                 {item.file.name}: {item.message}
               </p>

@@ -62,7 +62,11 @@ function SearchResultRow({ result, today }: { result: SearchResult; today: strin
             </>
           )}
         </p>
-        {failed && <p className="text-xs text-danger">Couldn&apos;t add. Try again.</p>}
+        {failed && (
+          <p className="text-xs text-danger" role="alert">
+            Couldn&apos;t add. Try again.
+          </p>
+        )}
       </div>
       {result.status ? (
         <Badge variant="secondary">{statusLabel(result.status)}</Badge>

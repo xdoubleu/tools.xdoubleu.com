@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { leaveTo } from '@/lib/navigate'
 import { decideAuthorization } from '@/lib/oauth2as/consentClient'
+import { Alert } from '@/components/ui/alert'
 
 interface ConsentFormProps {
   requestQuery: string
@@ -64,7 +65,7 @@ export default function ConsentForm({
           </ul>
         </div>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
 
         <div className="flex gap-3">
           <Button className="flex-1" disabled={pending} onClick={() => void decide('allow')}>

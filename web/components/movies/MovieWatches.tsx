@@ -32,7 +32,11 @@ export default function MovieWatches({ entry }: { entry: BacklogEntry }) {
         onEdit={(i, date) => void run(() => actions.editWatchDate(entry.id, undefined, i, date))}
         onRemove={(i) => void run(() => actions.removeWatchDate(entry.id, undefined, i))}
       />
-      {failed && <p className="text-sm text-danger">Couldn&apos;t save. Try again.</p>}
+      {failed && (
+        <p className="text-sm text-danger" role="alert">
+          Couldn&apos;t save. Try again.
+        </p>
+      )}
     </section>
   )
 }

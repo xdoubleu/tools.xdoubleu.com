@@ -142,7 +142,11 @@ export default function FamilyPageClient() {
       )}
 
       <SectionCard title="Invite to your family">
-        {inviteError && <p className="mb-2 text-xs text-danger">{inviteError}</p>}
+        {inviteError && (
+          <Alert tone="danger" className="mb-2">
+            {inviteError}
+          </Alert>
+        )}
         <form onSubmit={handleInvite} className="flex gap-2">
           <Input
             type="email"

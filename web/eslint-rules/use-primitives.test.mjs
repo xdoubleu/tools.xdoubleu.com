@@ -9,7 +9,11 @@ ruleTester.run('ui/use-primitives', rule, {
     '<PageContainer size="narrow" className="space-y-4" />',
     '<Link href="/x" className="block min-w-0" />',
     '<p className="text-muted">No books yet.</p>',
-    '<div className="rounded-2xl bg-card" />'
+    '<div className="rounded-2xl bg-card" />',
+    '<p className="text-xs text-danger" role="alert">{error}</p>',
+    '<span className="text-danger" aria-live="polite">{status}</span>',
+    '<MenuItem className="text-danger hover:bg-danger/10" />',
+    '<p className="text-muted hover:text-danger" />'
   ],
   invalid: [
     { code: '<h1 className="text-3xl">Recipes</h1>', errors: [{ messageId: 'raw' }] },
@@ -44,6 +48,11 @@ ruleTester.run('ui/use-primitives', rule, {
     {
       code: '<p className="text-danger">Failed to load books.</p>',
       errors: [{ messageId: 'state' }]
+    },
+    { code: '<p className="text-sm text-danger">{error}</p>', errors: [{ messageId: 'dangerText' }] },
+    {
+      code: '<span className={cn("text-xs", failed ? "text-danger" : "text-muted")} />',
+      errors: [{ messageId: 'dangerText' }]
     },
     { code: '<PageContainer className="p-6" />', errors: [{ messageId: 'pageContainer' }] },
     { code: '<PageContainer className="max-w-2xl" />', errors: [{ messageId: 'pageContainer' }] }

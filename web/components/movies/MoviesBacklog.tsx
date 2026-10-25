@@ -120,7 +120,11 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
           {entry.onMyServices && <Badge variant="success">On my services</Badge>}
           {entry.rating !== undefined && <RatingStars value={entry.rating} />}
         </div>
-        {failed && <p className="text-xs text-danger">Couldn&apos;t update status. Try again.</p>}
+        {failed && (
+          <p className="text-xs text-danger" role="alert">
+            Couldn&apos;t update status. Try again.
+          </p>
+        )}
       </div>
     </LinkCard>
   )

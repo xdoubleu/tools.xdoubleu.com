@@ -191,7 +191,7 @@ describe('ArticleReaderDialog', () => {
       />
     )
 
-    expect(screen.getByText(/no longer available/i)).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent(/no longer available/i)
     expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
   })
 

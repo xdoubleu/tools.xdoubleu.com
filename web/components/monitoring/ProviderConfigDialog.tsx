@@ -14,6 +14,7 @@ import { Select } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field } from '@/components/ui/field'
 import { LoadingState } from '@/components/ui/states'
+import { Alert } from '@/components/ui/alert'
 
 const PROVIDER_LABELS: Record<string, string> = {
   github: 'GitHub',
@@ -176,7 +177,11 @@ export default function ProviderConfigDialog({
           </div>
         )}
 
-        {error && <p className="mt-3 text-sm text-danger">{error}</p>}
+        {error && (
+          <Alert tone="danger" className="mt-3">
+            {error}
+          </Alert>
+        )}
 
         <DialogFooter>
           <Button variant="ghost" disabled={saving} onClick={() => onOpenChange(false)}>

@@ -30,6 +30,7 @@ import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { EmptyState, LoadingState } from '@/components/ui/states'
+import { Alert } from '@/components/ui/alert'
 
 interface OrderedCategory {
   id: string
@@ -92,7 +93,7 @@ export default function StoreManager() {
         </Button>
       </form>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       {isLoading && <LoadingState className="text-sm" />}
       {!isLoading && stores.length === 0 && <EmptyState>No stores yet.</EmptyState>}
 

@@ -198,7 +198,11 @@ export default function BookShelfTagFields({
         )}
       </div>
 
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && (
+        <p className="text-xs text-danger" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

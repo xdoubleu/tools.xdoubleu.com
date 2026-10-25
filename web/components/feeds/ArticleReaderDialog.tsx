@@ -127,7 +127,7 @@ export default function FeedArticleReaderDialog({
         )}
 
         {item.hasContent && notFound && (
-          <p className="text-danger p-4">
+          <p className="text-danger p-4" role="alert">
             This article is no longer available — it may have been deleted.
           </p>
         )}

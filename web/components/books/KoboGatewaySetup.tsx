@@ -234,9 +234,9 @@ export default function KoboGatewaySetup({ status, pollIntervalMs = 1500 }: Kobo
 
       {error && (
         <div className="space-y-2">
-          <p className="text-sm text-danger" data-testid="kobo-gateway-error">
+          <Alert tone="danger" data-testid="kobo-gateway-error">
             {error}
-          </p>
+          </Alert>
           <Button
             type="button"
             variant="secondary"

@@ -6,6 +6,7 @@ import { useSearchParams } from '@/hooks/navigation'
 import { useCurrentUser } from '@/hooks/useAuth'
 import { getConsentInfo, type ConsentInfo } from '@/lib/oauth2as/consentClient'
 import ConsentForm from './ConsentForm'
+import { Alert } from '@/components/ui/alert'
 
 // OAuth 2.1 consent screen. The api's authorization server redirects here
 // with the pending request's params; on approval they're echoed back to
@@ -42,7 +43,7 @@ export default function ConsentPage() {
   if (!info) {
     return (
       <PageContainer size="narrow">
-        <p className="text-danger">This authorization request is invalid or has expired.</p>
+        <Alert tone="danger">This authorization request is invalid or has expired.</Alert>
       </PageContainer>
     )
   }
