@@ -1,18 +1,21 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"image"
+	"image/draw"
+	"image/png"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
-	qrcode "github.com/skip2/go-qrcode"
 	"golang.org/x/crypto/bcrypt"
 
 	"tools.xdoubleu.com/internal/errortools"
@@ -21,6 +24,7 @@ import (
 const (
 	totpIssuer          = "tools.xdoubleu.com"
 	totpQRSize          = 256
+	totpQRQuietZone     = 24
 	totpSkew            = 1
 	totpPeriodSeconds   = 30
 	recoveryCodeCount   = 10
@@ -96,7 +100,7 @@ func (service *LocalService) EnrollTOTP(
 		return nil, err
 	}
 
-	svg, err := renderQRSVG(key.URL())
+	svg, err := renderQRSVG(key)
 	if err != nil {
 		return nil, err
 	}
@@ -108,13 +112,23 @@ func (service *LocalService) EnrollTOTP(
 	}, nil
 }
 
-// renderQRSVG wraps a base64 PNG QR code in SVG; go-qrcode has no SVG output.
-func renderQRSVG(otpURL string) (string, error) {
-	png, err := qrcode.Encode(otpURL, qrcode.Medium, totpQRSize)
+// renderQRSVG wraps the key's PNG QR code, inset by a white quiet zone, in SVG.
+func renderQRSVG(key *otp.Key) (string, error) {
+	inner := totpQRSize - 2*totpQRQuietZone
+	code, err := key.Image(inner, inner)
 	if err != nil {
 		return "", err
 	}
-	b64 := base64.StdEncoding.EncodeToString(png)
+	canvas := image.NewGray(image.Rect(0, 0, totpQRSize, totpQRSize))
+	draw.Draw(canvas, canvas.Bounds(), image.White, image.Point{}, draw.Src)
+	at := image.Pt(totpQRQuietZone, totpQRQuietZone)
+	draw.Draw(canvas, code.Bounds().Add(at), code, image.Point{}, draw.Src)
+
+	var buf bytes.Buffer
+	if err = png.Encode(&buf, canvas); err != nil {
+		return "", err
+	}
+	b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
 	return fmt.Sprintf(
 		`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d">`+
 			`<image width="%d" height="%d" href="data:image/png;base64,%s"/></svg>`,
