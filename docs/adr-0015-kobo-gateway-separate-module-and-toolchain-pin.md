@@ -1,8 +1,13 @@
 # ADR-0015: kobo-gateway is its own Go module, pinned to `GOTOOLCHAIN=go1.24.13`
 
-- Status: Accepted
+- Status: Partially superseded by ADR-0036 (toolchain pin)
 - Issues: [progrium/darwinkit#286](https://github.com/progrium/darwinkit/issues/286)
 - Affects: `kobo-gateway/go.mod`, `kobo-gateway/Makefile`
+
+> **Toolchain pin superseded.** ADR-0036 replaced darwinkit with hand-written
+> Objective-C, so the `GOTOOLCHAIN=go1.24.13` pin is gone and `go.mod` tracks
+> the repo's Go. The separate module still stands: the menu bar is cgo +
+> Objective-C.
 
 ## Context
 

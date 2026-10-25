@@ -194,16 +194,6 @@
       ],
       pinDigests: false,
     },
-    // ADR-0015: kobo-gateway stays on Go 1.24 until darwinkit#286 is fixed.
-    {
-      matchFileNames: [
-        'kobo-gateway/go.mod',
-      ],
-      matchDepNames: [
-        'golang',
-      ],
-      enabled: false,
-    },
     // golang images set GOTOOLCHAIN=local, so a go directive above the builder
     // image's Go fails the Docker build.
     {

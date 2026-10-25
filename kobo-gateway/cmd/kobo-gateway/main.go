@@ -72,7 +72,7 @@ func main() {
 }
 
 // initSentry enables crash reporting when SentryDSN is set (a publishable,
-// send-only key). Covers Go panics only: the darwinkit bridge's SIGABRT
+// send-only key). Covers Go panics only: an Objective-C exception's SIGABRT
 // bypasses Go and is handled by launchd's KeepAlive relaunch.
 func initSentry() {
 	if SentryDSN == "" {

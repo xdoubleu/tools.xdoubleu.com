@@ -19,11 +19,11 @@
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<!-- No Dock icon / app switcher entry — the app only shows a menu-bar
-	     status item (see runUI in menubar_darwin.go). -->
+	     status item (see menubar_darwin.m). -->
 	<key>LSUIElement</key>
 	<true/>
 	<key>LSMinimumSystemVersion</key>
-	<string>12.0</string>
+	<string>13.0</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 </dict>

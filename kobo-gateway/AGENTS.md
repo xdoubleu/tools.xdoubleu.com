@@ -1,6 +1,6 @@
 # kobo-gateway/ — macOS menu-bar helper
 
-Configures a USB-mounted Kobo for the books page. **Separate Go module** because its menu bar needs cgo + AppKit ([`darwinkit`](https://github.com/progrium/darwinkit)), which Linux builds of `api` shouldn't carry.
+Configures a USB-mounted Kobo for the books page. **Separate Go module** because its menu bar is cgo + Objective-C, which Linux builds of `api` shouldn't carry → [`adr-0036`](../docs/adr-0036-kobo-gateway-native-appkit-menu-bar.md).
 
 ## Structure
 
@@ -8,8 +8,9 @@ Configures a USB-mounted Kobo for the books page. **Separate Go module** because
 cmd/kobo-gateway/
   main.go            # flags, Sentry, TLS bootstrap, self-update restart loop
   bundle.go          # runningInAppBundle(): .app vs raw dev binary
-  menubar_darwin.go  # real AppKit status item
-  menubar_other.go   # !darwin no-op stub (keeps Linux/CI green)
+  menubar_darwin.go  # Go side of the menu bar: cgo calls, //export callbacks
+  menubar_darwin.m/.h  # AppKit/UserNotifications code; C bridge
+  menubar_other.go   # !darwin || !cgo no-op stub (keeps Linux/CI green)
   notify.go, recover.go
   assets/            # Info.plist, icons, package.sh (.app/.dmg)
 cmd/kobo-sign/       # self-update key generation and signing (CI)
@@ -23,15 +24,15 @@ internal/updatesig/    # ed25519 sign/verify for self-updates
 
 - HTTPS on `127.0.0.1:41132` (`DefaultPort`): `GET /status`, `POST /configure|/revert|/update`, all via `Server.secure()` (host/origin allowlists, CORS, Private Network Access). HTTPS because Safari blocks secure pages fetching plain-HTTP loopback; the self-signed cert is trusted once via `EnsureTrusted`.
 - `watcher.go` polls `FindKobos` for connect/disconnect. Login item is a `~/Library/LaunchAgents` plist with `KeepAlive`. `Updater.SelfUpdate` replaces the binary, re-signs, restarts via `open -n <bundle>`.
-- **Status item, its button, and live line must stay package-level vars** — `objc.Retain`'s finalizer drops a closure-local one after a few GCs, losing the icon.
+- **AppKit only on the main thread**: `init` locks it; Go reaches AppKit from `//export` callbacks or `runOnMain`.
 - **Never echo the raw `Origin` header** — echo the matched allowlist entry.
 
 ## Building (macOS only)
 
 `make build | dist | test | lint | lint/fix`. `make dist` needs `sips`/`iconutil`/`hdiutil`. `make test` is pure fs/httptest, no DB.
 
-**The Makefile pins `GOTOOLCHAIN=go1.24.13`** — darwinkit `SIGABRT`s on launch under Go 1.25+. Never bump past 1.24.x alone; bump the pin and the `go.mod` minimum together once upstream is fixed → [`adr-0015`](../docs/adr-0015-kobo-gateway-separate-module-and-toolchain-pin.md).
+Go's linker sets the minimum macOS (13 for Go 1.27); keep `Info.plist`'s `LSMinimumSystemVersion` in step.
 
 ## Distribution
 
-`build-kobo-gateway.yml` builds `kobo-gateway.dmg` and `kobo-gateway-darwin-arm64` (self-update target) on `macos-14`, and on `main` signs the latter into `kobo-gateway-darwin-arm64.sig` with `cmd/kobo-sign` (secret `KOBO_GATEWAY_SIGNING_KEY`). `SelfUpdate` installs only binaries verifying against the ed25519 key compiled in from variable `KOBO_GATEWAY_UPDATE_PUBKEY` (none disables self-update); `kobo-sign keygen` makes the pair; `build-api.yml` stages them into `web/public/downloads/`, which the api image serves. The build is cached, so its release can be older than the deploy — `KOBO_GATEWAY_RELEASE` tracks it → [`adr-0004`](../docs/adr-0004-runtime-release-env-vs-compile-stamp.md), [`adr-0002`](../docs/adr-0002-kobo-gateway-ci-cache-split.md).
+`build-kobo-gateway.yml` builds `kobo-gateway.dmg` and `kobo-gateway-darwin-arm64` (self-update target) on `macos-26`, and on `main` signs the latter into `kobo-gateway-darwin-arm64.sig` with `cmd/kobo-sign` (secret `KOBO_GATEWAY_SIGNING_KEY`). `SelfUpdate` installs only binaries verifying against the ed25519 key compiled in from variable `KOBO_GATEWAY_UPDATE_PUBKEY` (none disables self-update); `kobo-sign keygen` makes the pair; `build-api.yml` stages them into `web/public/downloads/`, which the api image serves. The build is cached, so its release can be older than the deploy — `KOBO_GATEWAY_RELEASE` tracks it → [`adr-0004`](../docs/adr-0004-runtime-release-env-vs-compile-stamp.md), [`adr-0002`](../docs/adr-0002-kobo-gateway-ci-cache-split.md).
