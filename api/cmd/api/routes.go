@@ -11,10 +11,12 @@ import (
 
 	"tools.xdoubleu.com/gen/access/v1/accessv1connect"
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
+	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	dashboardv1connect "tools.xdoubleu.com/gen/dashboard/v1/dashboardv1connect"
 	"tools.xdoubleu.com/gen/family/v1/familyv1connect"
 	"tools.xdoubleu.com/gen/observability/v1/observabilityv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/middleware"
 	"tools.xdoubleu.com/internal/oauth2as"
@@ -24,7 +26,6 @@ import (
 // emails and CSV imports; book files upload straight to R2.
 const maxRequestBodyBytes = 10 << 20
 
-//nolint:funlen //route registration: a long list, not complex logic
 func (app *Application) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mountConnect := func(gate iapp.Gate, register func(*connect.Server)) {
@@ -115,6 +116,11 @@ func (app *Application) Routes() http.Handler {
 
 	app.apps.Routes(mux)
 
+	return app.middleware().Then(mux)
+}
+
+// middleware is the chain in front of every route.
+func (app *Application) middleware() alice.Chain {
 	allowedOrigins := []string{app.config.WebURL}
 	for _, a := range *app.apps {
 		if d := a.GetDomain(); d != "" {
@@ -150,8 +156,14 @@ func (app *Application) Routes() http.Handler {
 	handlers = append(handlers, app.domainMiddleware, app.usageMiddleware)
 	// Feeds http_request_duration_seconds for Grafana's RequestP95High alert.
 	handlers = append(handlers, middleware.RequestDuration())
-	standard := alice.New(handlers...)
-	return standard.Then(mux)
+	handlers = append(handlers, httptools.Budget(app.logger, isLongRequest))
+	return alice.New(handlers...)
+}
+
+// isLongRequest marks the routes that legitimately outlast
+// httptools.RequestBudget: FinalizeBookUpload streams up to 250 MB from R2.
+func isLongRequest(r *http.Request) bool {
+	return r.URL.Path == booksv1connect.BookFilesServiceFinalizeBookUploadProcedure
 }
 
 func (app *Application) domainMiddleware(next http.Handler) http.Handler {

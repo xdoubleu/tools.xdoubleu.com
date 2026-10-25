@@ -14,8 +14,8 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-	"time"
 
+	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/safedial"
 )
 
@@ -34,7 +34,7 @@ var (
 
 const (
 	youtubeBaseURL = "https://www.youtube.com"
-	requestTimeout = 10 * time.Second
+	requestTimeout = httptools.UpstreamTimeout
 	maxRedirects   = 3
 	maxBodyBytes   = 5 << 20
 

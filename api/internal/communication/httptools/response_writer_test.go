@@ -113,3 +113,16 @@ func TestResponseWriterReadFromWithoutInnerReaderFrom(t *testing.T) {
 	assert.Equal(t, int64(5), n)
 	assert.Equal(t, "hello", inner.Body.String())
 }
+
+// Unwrap lets http.ResponseController reach the connection, e.g. to move a
+// long route's write deadline.
+func TestResponseWriterUnwrap(t *testing.T) {
+	t.Parallel()
+
+	inner := httptest.NewRecorder()
+	rw := httptools.NewResponseWriter(inner)
+
+	u, ok := rw.(interface{ Unwrap() http.ResponseWriter })
+	require.True(t, ok)
+	assert.Same(t, inner, u.Unwrap())
+}

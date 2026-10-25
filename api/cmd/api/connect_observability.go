@@ -19,7 +19,7 @@ type obsConnectHandler struct {
 
 // storageScanRunner is the slice of *books.Books TriggerStorageScan needs.
 type storageScanRunner interface {
-	RunStorageScanNow(ctx context.Context) error
+	StartStorageScan()
 }
 
 // unhealthyFeedLister is the slice of *feeds.Feeds GetUnhealthyFeeds needs.
@@ -217,11 +217,9 @@ func (h *obsConnectHandler) TriggerStorageScan(
 		return nil, err
 	}
 
-	// Scan inline (fast, admin-only) so GetStorageStats shows live data right
-	// after.
-	if err := h.app.booksApp.RunStorageScanNow(ctx); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
-	}
+	// The bucket walk outlasts any request budget; GetStorageStats shows the
+	// snapshot once it lands.
+	h.app.booksApp.StartStorageScan()
 
 	return &observabilityv1.TriggerStorageScanResponse{}, nil
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -11,21 +10,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/apps/books"
-	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/gen/observability/v1/observabilityv1connect"
-	"tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/models"
 )
 
-// stubStorageScanRunner controls the scan outcome without R2.
+// stubStorageScanRunner records scan starts without R2.
 type stubStorageScanRunner struct {
-	err error
+	started int
 }
 
-func (s *stubStorageScanRunner) RunStorageScanNow(_ context.Context) error {
-	return s.err
+func (s *stubStorageScanRunner) StartStorageScan() {
+	s.started++
 }
 
 // withStorageScanRunner stubs testApp's books app for the test.
@@ -155,27 +151,6 @@ func TestObservabilityGetStorageStats_AsAdmin(t *testing.T) {
 	assert.Equal(t, int64(50), resp.Latest.DeletedOrphanSizeBytes)
 }
 
-// TestRunStorageScanNow_Success covers Books.RunStorageScanNow with a fake
-// object store.
-func TestRunStorageScanNow_Success(t *testing.T) {
-	booksWithFakeStore := books.NewInner(
-		mocks.NewMockedAuthService(testUserID),
-		testApp.logger,
-		testApp.config,
-		testApp.db,
-		books.Clients{
-			UniCat:           nil,
-			Hardcover:        nil,
-			ObjectStore:      objectstore.NewFake(),
-			WebFetch:         nil,
-			KoboStoreBaseURL: "",
-			PublicAPIBaseURL: "",
-		},
-	)
-
-	require.NoError(t, booksWithFakeStore.RunStorageScanNow(context.Background()))
-}
-
 func TestObservabilityTriggerStorageScan_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	client := observabilityClient(t)
@@ -187,10 +162,12 @@ func TestObservabilityTriggerStorageScan_NonAdmin(t *testing.T) {
 	requirePermissionDenied(t, err)
 }
 
+// The scan walks the whole bucket, so the RPC only starts it.
 func TestObservabilityTriggerStorageScan_AsAdmin(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
-	withStorageScanRunner(t, &stubStorageScanRunner{err: nil})
+	runner := &stubStorageScanRunner{started: 0}
+	withStorageScanRunner(t, runner)
 
 	client := observabilityClient(t)
 	req := &observabilityv1.TriggerStorageScanRequest{}
@@ -199,25 +176,7 @@ func TestObservabilityTriggerStorageScan_AsAdmin(t *testing.T) {
 		req,
 	)
 	require.NoError(t, err)
-}
-
-// TestObservabilityTriggerStorageScan_AsAdmin_ScanFails: a failed scan is
-// CodeInternal.
-func TestObservabilityTriggerStorageScan_AsAdmin_ScanFails(t *testing.T) {
-	promoteToAdmin(t)
-	t.Cleanup(func() { demoteToUser(t) })
-	withStorageScanRunner(t, &stubStorageScanRunner{err: errors.New("boom")})
-
-	client := observabilityClient(t)
-	req := &observabilityv1.TriggerStorageScanRequest{}
-	_, err := client.TriggerStorageScan(
-		withCookies(context.Background(), accessToken),
-		req,
-	)
-	require.Error(t, err)
-	var connectErr *connect.Error
-	require.ErrorAs(t, err, &connectErr)
-	assert.Equal(t, connect.CodeInternal, connectErr.Code())
+	assert.Equal(t, 1, runner.started)
 }
 
 func TestObservabilityGetDatabaseStats_AsAdmin(t *testing.T) {

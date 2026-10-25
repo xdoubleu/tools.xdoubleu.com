@@ -177,10 +177,10 @@ func (a *Books) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
 	return a.ApplyMigrationsFromFS(ctx, db, embedMigrations, a.GetName())
 }
 
-// RunStorageScanNow runs the R2 scan synchronously under the scheduled job's
-// TrackedJob, so manual runs show in job_runs.
-func (a *Books) RunStorageScanNow(ctx context.Context) error {
-	return observability.NewTrackedJob(a.storageScanJob, a.db).Run(ctx, a.Logger)
+// StartStorageScan runs the scheduled R2 scan now on the job queue, so the
+// run shows in job_runs and never overlaps a scheduled one.
+func (a *Books) StartStorageScan() {
+	a.jobQueue.ForceRun(a.storageScanJob.ID())
 }
 
 func (a *Books) GetName() string {

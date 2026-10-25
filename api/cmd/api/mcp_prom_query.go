@@ -5,14 +5,15 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"tools.xdoubleu.com/internal/communication/httptools"
 )
 
 // promQueryTimeout bounds one instant query so a stuck Prometheus doesn't hang
 // the MCP call.
-const promQueryTimeout = 10 * time.Second
+const promQueryTimeout = httptools.UpstreamTimeout
 
 // registerPromQueryMCPTool registers prom_query, proxying Prometheus's
 // /api/v1/query directly since the response isn't a proto message.

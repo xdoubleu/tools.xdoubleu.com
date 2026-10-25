@@ -1,13 +1,16 @@
 package books_test
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	sharedrepos "tools.xdoubleu.com/internal/repositories"
 )
 
 // TestNew_ReturnsApp covers the production New constructor that wires real
@@ -62,4 +65,33 @@ func TestStartWorkers_RegistersHeavyJobs(t *testing.T) {
 	)
 	require.NoError(t, bl.StartWorkers())
 	require.NoError(t, bl.Start())
+}
+
+// StartStorageScan returns at once; the scan runs on the job queue and is
+// recorded in job_runs.
+func TestStartStorageScan_RunsInBackground(t *testing.T) {
+	bl := books.NewInner(
+		sharedmocks.NewMockedAuthService(userID),
+		testApp.Logger,
+		testCfg,
+		testDB,
+		books.Clients{
+			UniCat:           nil,
+			WebFetch:         nil,
+			Hardcover:        nil,
+			ObjectStore:      objectstore.NewFake(),
+			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
+		},
+	)
+	require.NoError(t, bl.Start())
+	since := time.Now().Add(-time.Second)
+
+	bl.StartStorageScan()
+
+	jobRuns := sharedrepos.NewJobRunsRepository(testDB)
+	require.Eventually(t, func() bool {
+		last, err := jobRuns.LastSuccessAt(context.Background(), "books-storage-scan")
+		return err == nil && last != nil && last.After(since)
+	}, 10*time.Second, 50*time.Millisecond)
 }

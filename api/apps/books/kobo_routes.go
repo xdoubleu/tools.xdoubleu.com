@@ -18,12 +18,13 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/database"
 )
 
-// koboUpstreamTimeout caps upstream Kobo store calls so a stalled upstream
-// never hangs a device's sync.
-const koboUpstreamTimeout = 10 * time.Second
+// koboUpstreamTimeout caps upstream Kobo store calls so a stalled store still
+// leaves a sync time to answer with our own books.
+const koboUpstreamTimeout = httptools.UpstreamTimeout
 
 //nolint:gochecknoglobals // shared client, Timeout mutated only in tests
 var koboUpstreamClient = &http.Client{Timeout: koboUpstreamTimeout}
