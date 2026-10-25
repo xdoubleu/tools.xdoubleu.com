@@ -15,7 +15,7 @@ import type {
   Recipe
 } from '@/lib/gen/recipes/v1/recipes_pb'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
-import { enqueueWrite, flushOutbox, sendWrite } from '@/lib/offline/outbox'
+import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
 import {
   createRecipeWrite,
   deleteRecipeWrite,
@@ -92,10 +92,9 @@ export function useUpdateRecipe() {
   }
 }
 
-/** Queues a delete; a rejection shows in the offline banner instead of throwing. */
+/** Queues a delete; throws a `WriteRejectedError` if the server refuses it. */
 export function useDeleteRecipe() {
   return async (req: DeleteRecipeInput) => {
-    await enqueueWrite(deleteRecipeWrite, req)
-    await flushOutbox()
+    await sendWrite(enqueueWrite(deleteRecipeWrite, req))
   }
 }
