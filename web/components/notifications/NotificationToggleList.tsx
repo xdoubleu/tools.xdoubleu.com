@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { Alert } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
 import { LoadingState } from '@/components/ui/states'
 import type { GetNotificationSettingsResponse } from '@/lib/gen/observability/v1/observability_pb'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useUpdateNotificationSettings } from '@/hooks/useMonitoring'
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -41,14 +43,15 @@ export default function NotificationToggleList({
 }) {
   const updateNotificationSettings = useUpdateNotificationSettings()
   const [pendingKey, setPendingKey] = useState<string | null>(null)
+  const { run, error } = useAsyncAction()
 
   async function handleToggle(sourceKey: string, enabled: boolean) {
     setPendingKey(sourceKey)
-    try {
-      await updateNotificationSettings(sourceKey, enabled)
-    } finally {
-      setPendingKey(null)
-    }
+    await run(
+      () => updateNotificationSettings(sourceKey, enabled),
+      `Couldn't save the ${sourceLabel(sourceKey)} setting. Try again.`
+    )
+    setPendingKey(null)
   }
 
   if (!data) {
@@ -58,7 +61,13 @@ export default function NotificationToggleList({
   const settings = data.settings.filter((s) => sourceKeys.includes(s.sourceKey))
 
   return (
-    <ul className="space-y-3">
+    <>
+      {error && (
+        <Alert tone="danger" className="mb-3">
+          {error}
+        </Alert>
+      )}
+      <ul className="space-y-3">
       {settings.map((setting) => (
         <li key={setting.sourceKey} className="flex items-start justify-between gap-3">
           <div>
@@ -77,6 +86,7 @@ export default function NotificationToggleList({
           />
         </li>
       ))}
-    </ul>
+      </ul>
+    </>
   )
 }

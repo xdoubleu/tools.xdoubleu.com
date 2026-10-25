@@ -88,6 +88,22 @@ describe('LearningPathsSettingsClient', () => {
     expect(disconnect).toHaveBeenCalled()
   })
 
+  it('shows an alert when connecting or disconnecting fails', async () => {
+    vi.mocked(useConnectTodoist).mockReturnValue(vi.fn().mockRejectedValue(new Error('boom')))
+    mockConnection({ data: create(GetTodoistConnectionStatusResponseSchema, { connected: false }) })
+    const { unmount } = render(<LearningPathsSettingsClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't connect Todoist.")
+    expect(screen.getByRole('button', { name: 'Connect' })).toBeEnabled()
+    unmount()
+
+    vi.mocked(useDisconnectTodoist).mockReturnValue(vi.fn().mockRejectedValue(new Error('boom')))
+    mockConnection({ data: create(GetTodoistConnectionStatusResponseSchema, { connected: true }) })
+    render(<LearningPathsSettingsClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't disconnect Todoist.")
+  })
+
   it('asks to reconnect when the connection lacks scopes', async () => {
     const connect = vi.fn().mockResolvedValue(undefined)
     vi.mocked(useConnectTodoist).mockReturnValue(connect)

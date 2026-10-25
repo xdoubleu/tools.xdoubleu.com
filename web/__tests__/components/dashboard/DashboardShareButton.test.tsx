@@ -76,6 +76,18 @@ describe('DashboardShareButton', () => {
     expect(mockMutate).toHaveBeenCalled()
   })
 
+  it('shows an alert when creating the share link fails', async () => {
+    mockUseCurrentUser.mockReturnValue({ data: { displayName: 'Alice' } })
+    mockCreateShare.mockRejectedValue(new Error('boom'))
+    render(<DashboardShareButton kind="games" />)
+    openDialog()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create share link' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't create the share link.")
+    expect(screen.getByRole('button', { name: 'Create share link' })).toBeEnabled()
+  })
+
   it('shows the dashboard-scoped share URL with copy, regenerate, and disable controls', () => {
     mockUseCurrentUser.mockReturnValue({ data: { displayName: 'Alice' } })
     mockUseDashboardShare.mockReturnValue({ data: withShare('tok-123'), mutate: mockMutate })

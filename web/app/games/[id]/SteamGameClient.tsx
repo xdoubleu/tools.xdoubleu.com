@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from '@/hooks/navigation'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { create } from '@bufbuild/protobuf'
 import { mutate as globalMutate } from 'swr'
 import { useSteamGame, useRefreshSteamGame } from '@/hooks/useGames'
 import { GetSteamGameResponseSchema } from '@/lib/gen/games/v1/games_pb'
 import type { GetSteamGameResponse } from '@/lib/gen/games/v1/games_pb'
 import { swrKeys } from '@/lib/swrKeys'
+import { Alert } from '@/components/ui/alert'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
@@ -35,23 +37,18 @@ export default function SteamGameClient({
   const game = data?.data?.game
   const achievements = data?.data?.achievements ?? []
   const [showCompleted, setShowCompleted] = useState(false)
-  const [isRefetching, setIsRefetching] = useState(false)
+  const { run, pending: isRefetching, error: refreshError } = useAsyncAction()
   const [highPollMode, setHighPollMode] = useState(false)
 
   const refetch = useCallback(() => {
     if (!gameId) return Promise.resolve()
-    setIsRefetching(true)
-    return refreshGame(gameId)
-      .then((fresh) => {
-        // The refetch also updates the library-wide completion graph.
-        void globalMutate(swrKeys.games)
-        return mutate(create(GetSteamGameResponseSchema, { data: fresh.data }), {
-          revalidate: false
-        })
-      })
-      .catch(() => {})
-      .finally(() => setIsRefetching(false))
-  }, [gameId, mutate, refreshGame])
+    return run(async () => {
+      const fresh = await refreshGame(gameId)
+      // The refetch also updates the library-wide completion graph.
+      void globalMutate(swrKeys.games)
+      await mutate(create(GetSteamGameResponseSchema, { data: fresh.data }), { revalidate: false })
+    }, "Couldn't refresh the game. Try again.")
+  }, [gameId, mutate, refreshGame, run])
 
   useEffect(() => {
     if (!gameId || !highPollMode) return
@@ -127,6 +124,12 @@ export default function SteamGameClient({
             )}
             <GamesStatsPanel />
           </div>
+
+          {refreshError && (
+            <Alert tone="danger" className="mb-6">
+              {refreshError}
+            </Alert>
+          )}
 
           <GameAchievements achievements={achievements} showCompleted={showCompleted} />
         </>

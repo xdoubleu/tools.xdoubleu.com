@@ -956,6 +956,7 @@ describe('MealPlanCalendar', () => {
           mealDate: '2026-05-25',
           mealSlot: 'breakfast',
           recipeId: 'r1',
+          customName: '',
           servings: 1
         })
       ]
