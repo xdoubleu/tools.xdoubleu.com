@@ -68,24 +68,24 @@ export default function NotificationToggleList({
         </Alert>
       )}
       <ul className="space-y-3">
-      {settings.map((setting) => (
-        <li key={setting.sourceKey} className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium text-fg">{sourceLabel(setting.sourceKey)}</p>
-            <p className="text-xs text-muted">{sourceDescription(setting.sourceKey)}</p>
-          </div>
-          <Checkbox
-            checked={setting.enabled}
-            disabled={pendingKey === setting.sourceKey}
-            onChange={(e) => handleToggle(setting.sourceKey, e.target.checked)}
-            label={
-              <span className="sr-only">
-                Email notifications for {sourceLabel(setting.sourceKey)}
-              </span>
-            }
-          />
-        </li>
-      ))}
+        {settings.map((setting) => (
+          <li key={setting.sourceKey} className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-fg">{sourceLabel(setting.sourceKey)}</p>
+              <p className="text-xs text-muted">{sourceDescription(setting.sourceKey)}</p>
+            </div>
+            <Checkbox
+              checked={setting.enabled}
+              disabled={pendingKey === setting.sourceKey}
+              onChange={(e) => handleToggle(setting.sourceKey, e.target.checked)}
+              label={
+                <span className="sr-only">
+                  Email notifications for {sourceLabel(setting.sourceKey)}
+                </span>
+              }
+            />
+          </li>
+        ))}
       </ul>
     </>
   )

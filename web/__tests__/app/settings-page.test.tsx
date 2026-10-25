@@ -77,7 +77,11 @@ describe('SettingsPage', () => {
   })
 
   it('shows an error instead of loading forever when the current user fails to load', () => {
-    mockUseCurrentUser.mockReturnValue({ data: undefined, error: new Error('nope'), isLoading: false })
+    mockUseCurrentUser.mockReturnValue({
+      data: undefined,
+      error: new Error('nope'),
+      isLoading: false
+    })
     render(<SettingsPage />)
     expect(screen.getByRole('alert')).toHaveTextContent('Failed to load your account.')
     expect(screen.queryByText('Loading…')).not.toBeInTheDocument()

@@ -61,7 +61,11 @@ describe('SavedCommutes', () => {
   })
 
   it('shows an alert when saving a commute fails', async () => {
-    setup({ onCreate: vi.fn().mockRejectedValue(new Error('boom')), currentPair: pair, commutes: [] })
+    setup({
+      onCreate: vi.fn().mockRejectedValue(new Error('boom')),
+      currentPair: pair,
+      commutes: []
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Save commute' }))
     expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save the commute.")
     expect(screen.getByRole('button', { name: 'Save commute' })).toBeEnabled()
