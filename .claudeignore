@@ -3,8 +3,6 @@ api/gen/
 web/lib/gen/
 
 # Build outputs
-web/.next/
-web/out/
 web/coverage/
 api/bin/
 
