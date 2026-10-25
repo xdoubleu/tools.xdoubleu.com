@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,9 @@ interface MealPlanMealChipProps {
   onSwapClick: (meal: PlanMeal) => void
   onEditClick: (meal: PlanMeal) => void
   onDeleteMeal: (mealId: string) => void
+  /** Focus the chip, e.g. once it has been moved; `onFocusRestored` then clears the request. */
+  restoreFocus?: boolean
+  onFocusRestored?: () => void
 }
 
 export default function MealPlanMealChip({
@@ -26,13 +29,17 @@ export default function MealPlanMealChip({
   onMealClick,
   onSwapClick,
   onEditClick,
-  onDeleteMeal
+  onDeleteMeal,
+  restoreFocus,
+  onFocusRestored
 }: MealPlanMealChipProps) {
   const excluded = meal.excludeFromShoppingList
   const customItems = meal.customName ? parseCustomItems(meal.customName) : []
   const isCustom = customItems.length > 0
   const [expanded, setExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const bodyRef = useRef<HTMLButtonElement>(null)
+  const name = isCustom ? customItems.map(formatCustomItemLabel).join(', ') : recipe?.name || '?'
 
   useEffect(() => {
     if (inSwapMode) {
@@ -40,6 +47,17 @@ export default function MealPlanMealChip({
       setMenuOpen(false)
     }
   }, [inSwapMode])
+
+  // The grid renders a phone and a desktop copy; focus() on the hidden one is a no-op.
+  useEffect(() => {
+    if (isSwapping) bodyRef.current?.focus()
+  }, [isSwapping])
+
+  useEffect(() => {
+    if (!restoreFocus) return
+    bodyRef.current?.focus()
+    onFocusRestored?.()
+  }, [restoreFocus, onFocusRestored])
 
   const handleBodyClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -59,9 +77,9 @@ export default function MealPlanMealChip({
   const clamp = !expanded && 'line-clamp-2'
 
   return (
+    // Clicks on the padding act like the body button, which is the keyboard target.
     <div
       onClick={handleBodyClick}
-      aria-expanded={!inSwapMode ? expanded : undefined}
       className={cn(
         'flex min-w-0 cursor-pointer select-none items-start justify-between gap-1 rounded-xl px-1.5 py-1',
         isSwapping
@@ -71,27 +89,40 @@ export default function MealPlanMealChip({
             : 'bg-accent/10 hover:bg-accent/20 active:bg-accent/20'
       )}
     >
-      <div className="min-w-0 flex-1">
-        {isCustom ? (
-          <ul className={cn('space-y-0.5', clamp)}>
-            {customItems.map((item, i) => (
-              <li
-                key={i}
-                className={cn('wrap-break-word text-xs', excluded ? 'text-muted' : 'text-fg')}
-              >
-                • {formatCustomItemLabel(item)}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <span className={cn('wrap-break-word text-sm text-fg', clamp)}>
-            {recipe?.name || '?'}
-          </span>
+      <Button
+        ref={bodyRef}
+        variant="ghost"
+        onClick={handleBodyClick}
+        aria-expanded={!inSwapMode ? expanded : undefined}
+        aria-label={inSwapMode ? `${isSwapping ? 'Deselect' : 'Swap with'} ${name}` : undefined}
+        className={cn(
+          'h-auto min-h-11 min-w-0 flex-1 items-start justify-between gap-1 rounded-lg p-0 text-left font-normal sm:min-h-0',
+          'hover:bg-transparent active:bg-transparent active:scale-100 focus-visible:ring-accent'
         )}
-      </div>
-      {!isCustom && meal.servings > 1 && (
-        <span className="shrink-0 pt-0.5 text-xs text-muted">×{meal.servings}</span>
-      )}
+      >
+        <span className="block min-w-0 flex-1">
+          {isCustom ? (
+            <span className={cn('block space-y-0.5', clamp)}>
+              {customItems.map((item, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    'block wrap-break-word text-xs',
+                    excluded ? 'text-muted' : 'text-fg'
+                  )}
+                >
+                  • {formatCustomItemLabel(item)}
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span className={cn('wrap-break-word text-sm text-fg', clamp)}>{name}</span>
+          )}
+        </span>
+        {!isCustom && meal.servings > 1 && (
+          <span className="shrink-0 pt-0.5 text-xs text-muted">×{meal.servings}</span>
+        )}
+      </Button>
       {inSwapMode ? (
         // Reserve the trigger's width so chips keep a constant size in swap mode.
         <span aria-hidden className="ml-0.5 h-6 w-6 shrink-0" />

@@ -341,7 +341,7 @@ Navigation to another page in `PageHeader` `actions`, bordered like the `seconda
 
 #### `Popover`
 
-Trigger plus a portalled fixed panel (never clipped by overflow ancestors) that closes on outside click and Escape, flips upward when space below is short, and caps its height to the viewport.
+Trigger plus a portalled fixed panel (never clipped by overflow ancestors) that closes on outside click and Escape, flips upward when space below is short, and caps its height to the viewport. Opening moves focus into the panel (its first `menuitem` for a menu, which arrow keys then move between); closing, or tabbing out, returns focus to the trigger.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
@@ -351,6 +351,7 @@ Trigger plus a portalled fixed panel (never clipped by overflow ancestors) that 
 | `align` | `'left' \| 'right'` |  | Alignment of the panel relative to the trigger. Defaults to "right". |
 | `open` | `boolean` |  | Controls the open state, e.g. to close the panel after a menu action. |
 | `onOpenChange` | `(open: boolean) => void` |  |  |
+| `'aria-label'` | `string` |  | Names the panel for screen readers; without it the trigger labels the panel. |
 
 #### `PopoverTrigger`
 

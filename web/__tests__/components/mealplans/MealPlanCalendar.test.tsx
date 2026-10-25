@@ -492,6 +492,79 @@ describe('MealPlanCalendar', () => {
     expect(screen.queryByText(/Swapping/i)).not.toBeInTheDocument()
   })
 
+  it('completes a swap from the keyboard and returns focus to the moved meal', async () => {
+    const planWithMeal = {
+      ...basePlan,
+      meals: [
+        makePlanMeal({
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs',
+          servings: 1
+        })
+      ]
+    }
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
+    // A focused button activates on Enter/Space, which dispatches a click.
+    const press = () => fireEvent.click(document.activeElement!)
+
+    screen.getAllByRole('button', { name: 'Meal actions' })[0].focus()
+    press()
+    expect(screen.getByRole('menuitem', { name: 'Swap' })).toHaveFocus()
+    press()
+    expect(document.activeElement).toHaveAccessibleName('Deselect Eggs')
+
+    screen.getAllByRole('button', { name: 'Place here: Breakfast, 26/05/2026' })[0].focus()
+    press()
+    await waitFor(() => expect(mockMoveMeal).toHaveBeenCalledTimes(1))
+    expect(mockMoveMeal.mock.calls[0][0]).toMatchObject({ mealId: 'm1', newDate: '2026-05-26' })
+    await waitFor(() => expect(document.activeElement).toHaveAccessibleName('• Eggs'))
+  })
+
+  it('returns focus to the meal when Escape cancels the swap', () => {
+    const planWithMeal = {
+      ...basePlan,
+      meals: [
+        makePlanMeal({
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs',
+          servings: 1
+        })
+      ]
+    }
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
+    startSwap()
+    screen.getAllByRole('button', { name: /^Place here/ })[0].focus()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByText(/Swapping/i)).not.toBeInTheDocument()
+    expect(document.activeElement).toHaveAccessibleName('• Eggs')
+  })
+
+  it('returns focus to the meal when the swap is cancelled from the banner', () => {
+    const planWithMeal = {
+      ...basePlan,
+      meals: [
+        makePlanMeal({
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs',
+          servings: 1
+        })
+      ]
+    }
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
+    startSwap()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(document.activeElement).toHaveAccessibleName('• Eggs')
+  })
+
   it('calls onPrevWeek when Previous Week button is clicked', () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     fireEvent.click(screen.getByRole('button', { name: /Prev/i }))

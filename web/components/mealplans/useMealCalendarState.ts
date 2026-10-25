@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   useAddMeal,
   useUpdateMeal,
@@ -29,6 +29,9 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
   const [swappingMeal, setSwappingMeal] = useState<PlanMeal | null>(null)
   const [editingMeal, setEditingMeal] = useState<PlanMeal | null>(null)
   const [fillingDate, setFillingDate] = useState<string | null>(null)
+  // The chip to refocus once swap mode ends, since its target control unmounts.
+  const [focusMealId, setFocusMealId] = useState('')
+  const clearFocusMeal = useCallback(() => setFocusMealId(''), [])
 
   const createMeal = useAddMeal()
   const updateMeal = useUpdateMeal()
@@ -54,7 +57,10 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (swappingMeal) setSwappingMeal(null)
+        if (swappingMeal) {
+          setFocusMealId(swappingMeal.id)
+          setSwappingMeal(null)
+        }
         if (editingMeal) setEditingMeal(null)
         if (fillingDate) setFillingDate(null)
       }
@@ -118,6 +124,11 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     setSelectedDate(null)
   }
 
+  const cancelSwap = () => {
+    if (swappingMeal) setFocusMealId(swappingMeal.id)
+    setSwappingMeal(null)
+  }
+
   const handleMealClick = (meal: PlanMeal) => {
     if (!swappingMeal) return
     if (swappingMeal.id === meal.id) {
@@ -161,6 +172,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
         }
         await moveMeal(moveTarget)
       }
+      setFocusMealId(swappingMeal.id)
       setSwappingMeal(null)
       onMutate?.()
     } catch (err) {
@@ -245,7 +257,9 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     selectedSlot,
     selectedDate,
     swappingMeal,
-    setSwappingMeal,
+    cancelSwap,
+    focusMealId,
+    clearFocusMeal,
     editingMeal,
     fillingDate,
     suggestedRecipes,

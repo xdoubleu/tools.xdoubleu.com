@@ -32,7 +32,9 @@ export default function MealPlanCalendar({
     selectedSlot,
     selectedDate,
     swappingMeal,
-    setSwappingMeal,
+    cancelSwap,
+    focusMealId,
+    clearFocusMeal,
     editingMeal,
     fillingDate,
     suggestedRecipes,
@@ -97,12 +99,7 @@ export default function MealPlanCalendar({
           <span className="min-w-0 truncate">
             Swapping <strong>{swappingMealName}</strong> — tap another meal or an empty cell
           </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="shrink-0"
-            onClick={() => setSwappingMeal(null)}
-          >
+          <Button variant="secondary" size="sm" className="shrink-0" onClick={cancelSwap}>
             Cancel
           </Button>
         </Card>
@@ -120,6 +117,8 @@ export default function MealPlanCalendar({
         onDeleteMeal={confirmDeleteMeal}
         onAddClick={startAdd}
         onFillDay={startFillDay}
+        focusMealId={focusMealId}
+        onMealFocused={clearFocusMeal}
       />
 
       <MealPlanEntryForm
