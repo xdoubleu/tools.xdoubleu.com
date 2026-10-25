@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/goddtriffin/helmet"
 	"github.com/justinas/alice"
 
 	"tools.xdoubleu.com/internal/sentrytools"
@@ -19,7 +18,7 @@ func Minimal(logger *slog.Logger) []alice.Constructor {
 	}
 }
 
-// Default is [Minimal] plus helmet, [CORS] and [RateLimit].
+// Default is [Minimal] plus [SecurityHeaders], [CORS] and [RateLimit].
 func Default(
 	logger *slog.Logger,
 	allowedOrigins []string,
@@ -47,10 +46,8 @@ func defaultBase(
 ) ([]alice.Constructor, error) {
 	useSentry := env != nil
 
-	helmet := helmet.Default()
-
 	handlers := Minimal(logger)
-	handlers = append(handlers, helmet.Secure)
+	handlers = append(handlers, SecurityHeaders)
 	handlers = append(handlers, CORS(allowedOrigins, useSentry, extraHeaders...))
 	//nolint:mnd//no magic number
 	handlers = append(handlers, RateLimit(10, 30, time.Minute, 3*time.Minute))
