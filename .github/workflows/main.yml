@@ -467,7 +467,7 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "4.0.7"
+          ruby-version: "4.0.8"
           bundler-cache: true
 
       # Not webfactory/ssh-agent: it breaks on a secret missing its trailing
