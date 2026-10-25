@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import AddFeedForm from '@/components/feeds/AddFeedForm'
 import { useFeeds, useDeleteFeed, useRefreshFeed } from '@/hooks/useFeeds'
@@ -11,6 +12,7 @@ function FeedRow({ feed }: { feed: Feed }) {
   const refreshFeed = useRefreshFeed()
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
+  const [confirming, setConfirming] = useState(false)
 
   const run = async (action: () => Promise<string | void>) => {
     setBusy(true)
@@ -26,15 +28,14 @@ function FeedRow({ feed }: { feed: Feed }) {
   }
 
   const isEmailFeed = feed.sourceType === 'email'
+  const name = feed.title || feed.url || 'Email newsletter'
 
   return (
     <li>
       <Card className="p-3">
         <div className="flex flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">
-              {feed.title || feed.url || 'Email newsletter'}
-            </p>
+            <p className="truncate text-sm font-medium">{name}</p>
             {!isEmailFeed && <p className="truncate text-xs text-muted">{feed.url}</p>}
           </div>
           {!isEmailFeed && (
@@ -56,7 +57,7 @@ function FeedRow({ feed }: { feed: Feed }) {
             size="sm"
             variant="destructive"
             disabled={busy}
-            onClick={() => void run(() => deleteFeed(feed.id))}
+            onClick={() => setConfirming(true)}
           >
             Remove
           </Button>
@@ -82,6 +83,17 @@ function FeedRow({ feed }: { feed: Feed }) {
           {status && <p className="text-xs text-muted">{status}</p>}
         </div>
       </Card>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={`Remove ${name}?`}
+        description="Its items, bookmarks and filter rules are deleted too."
+        confirmLabel="Remove"
+        pendingLabel="Removing…"
+        destructive
+        pending={busy}
+        onConfirm={() => void run(() => deleteFeed(feed.id)).then(() => setConfirming(false))}
+      />
     </li>
   )
 }

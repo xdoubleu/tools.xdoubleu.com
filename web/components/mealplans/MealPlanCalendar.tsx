@@ -1,11 +1,13 @@
+import { useState } from 'react'
 import { getWeekDates } from '@/lib/mealplans/mealPlanCalendar'
-import type { Plan } from '@/lib/gen/mealplans/v1/mealplans_pb'
+import type { Plan, PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import MealPlanEntryForm from './MealPlanEntryForm'
 import MealPlanWeekGrid from './MealPlanWeekGrid'
 import { useMealCalendarState } from './useMealCalendarState'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { formatCustomNameLabel } from '@/lib/customItems'
 import { formatDate } from '@/lib/dates'
 
@@ -48,11 +50,22 @@ export default function MealPlanCalendar({
     handleEditClick
   } = useMealCalendarState(plan, recipes, onMutate)
 
+  // Kept after the confirm closes so its title doesn't change mid-animation.
+  const [mealToDelete, setMealToDelete] = useState({ id: '', name: '' })
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+
   const weekDates = getWeekDates(weekOffset)
 
-  const swappingMealName = swappingMeal?.customName
-    ? formatCustomNameLabel(swappingMeal.customName)
-    : recipes.find((r) => r.id === swappingMeal?.recipeId)?.name || '?'
+  const mealName = (meal: PlanMeal | null | undefined) =>
+    meal?.customName
+      ? formatCustomNameLabel(meal.customName)
+      : recipes.find((r) => r.id === meal?.recipeId)?.name || '?'
+  const swappingMealName = mealName(swappingMeal)
+
+  const confirmDeleteMeal = (mealId: string) => {
+    setMealToDelete({ id: mealId, name: mealName(plan.meals.find((m) => m.id === mealId)) })
+    setConfirmingDelete(true)
+  }
 
   const isAdding = !!(selectedSlot && selectedDate)
   const isEditing = !!editingMeal && !selectedSlot
@@ -104,7 +117,7 @@ export default function MealPlanCalendar({
         onMealClick={handleMealClick}
         onStartSwap={handleStartSwap}
         onEditClick={handleEditClick}
-        onDeleteMeal={handleDeleteMeal}
+        onDeleteMeal={confirmDeleteMeal}
         onAddClick={startAdd}
         onFillDay={startFillDay}
       />
@@ -130,6 +143,19 @@ export default function MealPlanCalendar({
         saveLabel={isAdding ? 'Add' : isFilling ? 'Fill day' : 'Save'}
         onSave={isAdding ? handleSaveAdd : isFilling ? handleSaveFillDay : handleSaveEdit}
         onCancel={cancelForm}
+      />
+
+      <ConfirmDialog
+        open={confirmingDelete}
+        onOpenChange={setConfirmingDelete}
+        title={`Delete ${mealToDelete.name}?`}
+        description="It's removed from this plan."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          setConfirmingDelete(false)
+          void handleDeleteMeal(mealToDelete.id)
+        }}
       />
     </div>
   )

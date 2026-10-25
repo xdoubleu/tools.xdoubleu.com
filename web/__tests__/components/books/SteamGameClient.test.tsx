@@ -495,6 +495,25 @@ describe('SteamGameClient', () => {
     expect(mockGlobalMutate).toHaveBeenCalledWith(swrKeys.games)
   })
 
+  it('shows an alert when the refresh fails', async () => {
+    mockRefreshSteamGame.mockRejectedValue(new Error('boom'))
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    vi.mocked(useSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, mockAchievements),
+      isLoading: false,
+      error: undefined,
+      mutate: vi.fn()
+    })
+
+    render(<SteamGameClient id="123" />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    })
+
+    expect(screen.getByRole('alert')).toHaveTextContent("Couldn't refresh the game.")
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled()
+  })
+
   describe('live polling', () => {
     beforeEach(() => {
       vi.useFakeTimers()

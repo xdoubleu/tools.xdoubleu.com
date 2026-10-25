@@ -1,5 +1,6 @@
 import { Link } from '@/components/ui/link'
 import { useState } from 'react'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useCurrentUser } from '@/hooks/useAuth'
 import {
   useDashboardShare,
@@ -14,6 +15,7 @@ import {
   DialogTitle,
   DialogClose
 } from '@/components/ui/dialog'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -29,21 +31,17 @@ export default function DashboardShareButton({ kind }: { kind: DashboardShareKin
   const createShare = useCreateDashboardShare(kind)
   const deleteShare = useDeleteDashboardShare(kind)
   const [open, setOpen] = useState(false)
-  const [busy, setBusy] = useState(false)
+  const { run, pending: busy, error } = useAsyncAction()
   const [copied, setCopied] = useState(false)
 
   const token = data?.share?.token
   const hasDisplayName = !!user?.displayName
 
-  const run = async (action: () => Promise<unknown>) => {
-    setBusy(true)
-    try {
+  const save = (action: () => Promise<unknown>, failure: string) =>
+    run(async () => {
       await action()
       await mutate()
-    } finally {
-      setBusy(false)
-    }
-  }
+    }, failure)
 
   const copyLink = async () => {
     if (!token) return
@@ -80,6 +78,7 @@ export default function DashboardShareButton({ kind }: { kind: DashboardShareKin
                 Share a read-only view of your {kind} dashboard. Anyone with the link can see it —
                 no account needed.
               </p>
+              {error && <Alert tone="danger">{error}</Alert>}
               {token ? (
                 <>
                   <div className="flex flex-col gap-2 sm:flex-row">
@@ -97,7 +96,7 @@ export default function DashboardShareButton({ kind }: { kind: DashboardShareKin
                       variant="secondary"
                       size="sm"
                       disabled={busy}
-                      onClick={() => run(createShare)}
+                      onClick={() => save(createShare, "Couldn't regenerate the link. Try again.")}
                     >
                       Regenerate link
                     </Button>
@@ -105,7 +104,7 @@ export default function DashboardShareButton({ kind }: { kind: DashboardShareKin
                       variant="destructive"
                       size="sm"
                       disabled={busy}
-                      onClick={() => run(deleteShare)}
+                      onClick={() => save(deleteShare, "Couldn't disable sharing. Try again.")}
                     >
                       Disable sharing
                     </Button>
@@ -115,7 +114,10 @@ export default function DashboardShareButton({ kind }: { kind: DashboardShareKin
                   </p>
                 </>
               ) : (
-                <Button disabled={busy} onClick={() => run(createShare)}>
+                <Button
+                  disabled={busy}
+                  onClick={() => save(createShare, "Couldn't create the share link. Try again.")}
+                >
                   Create share link
                 </Button>
               )}

@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import CategoryManager from '@/components/shoppinglist/CategoryManager'
 import { enqueueWrite } from '@/lib/offline/outbox'
 import {
@@ -61,10 +61,24 @@ describe('CategoryManager', () => {
     )
   })
 
-  it('queues a delete', async () => {
+  it('queues a delete after confirming', async () => {
     render(<CategoryManager />)
     fireEvent.click(screen.getByRole('button', { name: /Delete Produce/ }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete Produce?' })
+    expect(dialog).toHaveTextContent(/unassigned/)
+    expect(enqueue).not.toHaveBeenCalled()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(enqueue).toHaveBeenCalledWith(deleteCategoryWrite, { id: 'cat-1' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('keeps the category when the delete is cancelled', () => {
+    render(<CategoryManager />)
+    fireEvent.click(screen.getByRole('button', { name: /Delete Produce/ }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(enqueue).not.toHaveBeenCalled()
   })
 
   it('ignores blank names', () => {

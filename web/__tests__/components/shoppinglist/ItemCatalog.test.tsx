@@ -10,6 +10,7 @@ import {
 
 type Name = { name: string; categoryId: string; excluded: boolean; mergedInto: string }
 let namesData: { names: Name[] } | undefined
+let namesError: Error | undefined
 
 const defaultNames: Name[] = [
   { name: 'milk', categoryId: 'cat-dairy', excluded: false, mergedInto: '' },
@@ -19,7 +20,7 @@ const defaultNames: Name[] = [
 ]
 
 vi.mock('@/hooks/useShoppingList', () => ({
-  useItemNames: () => ({ data: namesData, isLoading: false }),
+  useItemNames: () => ({ data: namesData, error: namesError, isLoading: false }),
   useCategories: () => ({
     data: {
       categories: [
@@ -39,9 +40,18 @@ const enqueue = vi.mocked(enqueueWrite)
 beforeEach(() => {
   vi.clearAllMocks()
   namesData = { names: defaultNames.map((n) => ({ ...n })) }
+  namesError = undefined
 })
 
 describe('ItemCatalog', () => {
+  it('shows an error, not the empty state, when the items fail to load', () => {
+    namesData = undefined
+    namesError = new Error('nope')
+    render(<ItemCatalog />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Failed to load items.')
+    expect(screen.queryByText(/No items yet/)).not.toBeInTheDocument()
+  })
+
   it('groups items by category with an Unassigned group', () => {
     render(<ItemCatalog />)
     expect(screen.getByRole('button', { name: /Unassigned/ })).toBeInTheDocument()

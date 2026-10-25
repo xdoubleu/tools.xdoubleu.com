@@ -9,6 +9,8 @@ describe('ShoppingList', () => {
     { id: 'custom-1', amount: '1', unit: 'L', name: 'milk' }
   ]
 
+  beforeEach(() => localStorage.clear())
+
   it('renders empty state when items list is empty', () => {
     render(<ShoppingList items={[]} />)
     expect(screen.getByText('No items yet. Add something above.')).toBeInTheDocument()
@@ -25,6 +27,63 @@ describe('ShoppingList', () => {
     const checkboxes = screen.getAllByRole('checkbox')
     fireEvent.click(checkboxes[0])
     expect(checkboxes[0]).toBeChecked()
+  })
+
+  describe('ticks', () => {
+    const TICKS_KEY = 'shoppinglist:ticks'
+    const eggs: ShoppingItem = { id: 'custom-2', amount: '6', unit: '', name: 'eggs' }
+    const milkBox = () => screen.getByRole('checkbox', { name: /milk/ })
+
+    afterEach(() => vi.restoreAllMocks())
+
+    it('stay on the same item when items are added above it', () => {
+      const { rerender } = render(<ShoppingList items={items} />)
+      fireEvent.click(milkBox())
+
+      rerender(<ShoppingList items={[eggs, ...items]} />)
+
+      expect(milkBox()).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: /eggs/ })).not.toBeChecked()
+    })
+
+    it('survive a reload', () => {
+      const { unmount } = render(<ShoppingList items={items} />)
+      fireEvent.click(milkBox())
+      unmount()
+
+      render(<ShoppingList items={items} />)
+      expect(milkBox()).toBeChecked()
+    })
+
+    it('drop ids of items that no longer exist', () => {
+      localStorage.setItem(TICKS_KEY, JSON.stringify(['gone', 'custom-1']))
+      render(<ShoppingList items={[items[1], eggs]} />)
+      expect(milkBox()).toBeChecked()
+
+      fireEvent.click(screen.getByRole('checkbox', { name: /eggs/ }))
+
+      expect(JSON.parse(localStorage.getItem(TICKS_KEY)!)).toEqual(['custom-1', 'custom-2'])
+    })
+
+    it('ignore a stored value that is not a list', () => {
+      localStorage.setItem(TICKS_KEY, JSON.stringify({ 'custom-1': true }))
+      render(<ShoppingList items={items} />)
+      expect(milkBox()).not.toBeChecked()
+      fireEvent.click(milkBox())
+      expect(milkBox()).toBeChecked()
+    })
+
+    it('still toggle when storage is unavailable', () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new Error('denied')
+      })
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('denied')
+      })
+      render(<ShoppingList items={items} />)
+      fireEvent.click(milkBox())
+      expect(milkBox()).toBeChecked()
+    })
   })
 
   describe('delete button', () => {

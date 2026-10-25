@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { useSearchParams } from '@/hooks/navigation'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
 import {
   useTodoistConnection,
   useConnectTodoist,
@@ -19,28 +19,17 @@ export default function LearningPathsSettingsClient() {
   const disconnectTodoist = useDisconnectTodoist()
   const searchParams = useSearchParams()
 
-  const [busy, setBusy] = useState(false)
+  const { run, pending: busy, error } = useAsyncAction()
 
   const todoistError = searchParams.get('todoist_error') !== null
 
-  const handleConnect = async () => {
-    setBusy(true)
-    try {
-      await connectTodoist()
-    } finally {
-      setBusy(false)
-    }
-  }
+  const handleConnect = () => run(connectTodoist, "Couldn't connect Todoist. Try again.")
 
-  const handleDisconnect = async () => {
-    setBusy(true)
-    try {
+  const handleDisconnect = () =>
+    run(async () => {
       await disconnectTodoist()
       await mutate()
-    } finally {
-      setBusy(false)
-    }
-  }
+    }, "Couldn't disconnect Todoist. Try again.")
 
   return (
     <PageContainer size="narrow">
@@ -63,6 +52,12 @@ export default function LearningPathsSettingsClient() {
         {todoistError && (
           <Alert tone="danger" className="mb-3">
             Connecting Todoist failed. Please try again.
+          </Alert>
+        )}
+
+        {error && (
+          <Alert tone="danger" className="mb-3">
+            {error}
           </Alert>
         )}
 

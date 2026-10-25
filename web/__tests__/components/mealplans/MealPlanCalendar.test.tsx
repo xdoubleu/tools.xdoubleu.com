@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 
 vi.mock('@/hooks/useMealPlans', () => ({
   useAddMeal: vi.fn(),
@@ -901,7 +901,7 @@ describe('MealPlanCalendar', () => {
     expect(screen.getAllByRole('button', { name: /Meal actions/i })).toHaveLength(4)
   })
 
-  it('removing one chip leaves the other meal in the slot', () => {
+  it('removing one chip leaves the other meal in the slot', async () => {
     const onMutate = vi.fn()
     const planWithTwo = {
       ...basePlan,
@@ -935,7 +935,40 @@ describe('MealPlanCalendar', () => {
     )
     fireEvent.click(screen.getAllByRole('button', { name: /Meal actions/i })[0])
     fireEvent.click(screen.getAllByRole('menuitem', { name: /Delete/i })[0])
-    expect(mockDeleteMeal).toHaveBeenCalledWith(expect.objectContaining({ mealId: 'm1' }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete Eggs?' })
+    expect(mockDeleteMeal).not.toHaveBeenCalled()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
+    await waitFor(() =>
+      expect(mockDeleteMeal).toHaveBeenCalledWith(expect.objectContaining({ mealId: 'm1' }))
+    )
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.queryByText(/Add meal —/)).not.toBeInTheDocument()
     expect(screen.getAllByText(/Pancakes/).length).toBeGreaterThan(0)
+  })
+
+  it('keeps the meal when the delete confirm is cancelled', () => {
+    const planWithMeal = {
+      ...basePlan,
+      meals: [
+        makePlanMeal({
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: 'r1',
+          customName: '',
+          servings: 1
+        })
+      ]
+    }
+
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
+    fireEvent.click(screen.getAllByRole('button', { name: /Meal actions/i })[0])
+    fireEvent.click(screen.getAllByRole('menuitem', { name: /Delete/i })[0])
+    const dialog = screen.getByRole('dialog', { name: `Delete ${baseRecipes[0].name}?` })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(mockDeleteMeal).not.toHaveBeenCalled()
   })
 })

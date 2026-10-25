@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 import type { ShoppingItem } from '@/lib/shoppinglist/shoppingExport'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -19,17 +20,28 @@ interface ShoppingListProps {
   onExport?: () => void
 }
 
+// One list per family, so one key.
+const TICKS_KEY = 'shoppinglist:ticks'
+
+const itemKey = (item: ShoppingItem, idx: number) => item.id ?? `item-${idx}-${item.name}`
+
 export default function ShoppingList({ items, onDelete, onEdit, onExport }: ShoppingListProps) {
-  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set())
+  const [storedTicks, setStoredTicks] = useLocalStorage<string[]>(TICKS_KEY, [])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<ShoppingItemEdit>({ name: '', amount: '', unit: '' })
   const [saving, setSaving] = useState(false)
+
+  // Ticks of items no longer on the list are ignored, and dropped on the next write.
+  const keys = new Set(items.map(itemKey))
+  const checkedItems = new Set(
+    (Array.isArray(storedTicks) ? storedTicks : []).filter((key) => keys.has(key))
+  )
 
   const toggleItem = (key: string) => {
     const newChecked = new Set(checkedItems)
     if (newChecked.has(key)) newChecked.delete(key)
     else newChecked.add(key)
-    setCheckedItems(newChecked)
+    setStoredTicks([...newChecked])
   }
 
   const startEdit = (item: ShoppingItem) => {
@@ -70,7 +82,7 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
       ) : (
         <div className="space-y-2">
           {items.map((item, idx) => {
-            const key = `item-${idx}-${item.name}`
+            const key = itemKey(item, idx)
             const isChecked = checkedItems.has(key)
             const isEditing = editingId != null && item.id === editingId
 

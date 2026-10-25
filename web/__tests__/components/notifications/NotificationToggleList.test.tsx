@@ -53,6 +53,22 @@ describe('NotificationToggleList', () => {
     expect(screen.getByText('some_new_source')).toBeInTheDocument()
   })
 
+  it('shows an alert when saving a toggle fails', async () => {
+    mockUpdateNotificationSettings.mockRejectedValue(new Error('boom'))
+    const data = create(GetNotificationSettingsResponseSchema, {
+      settings: [{ sourceKey: 'sentry_issues', enabled: true }]
+    })
+    render(<NotificationToggleList data={data} sourceKeys={['sentry_issues']} />)
+
+    const checkbox = screen.getByRole('checkbox', { name: 'Email notifications for Sentry issues' })
+    fireEvent.click(checkbox)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "Couldn't save the Sentry issues setting."
+    )
+    expect(checkbox).toBeEnabled()
+  })
+
   it('toggles a source and disables it while pending', async () => {
     const data = create(GetNotificationSettingsResponseSchema, {
       settings: [{ sourceKey: 'sentry_issues', enabled: true }]

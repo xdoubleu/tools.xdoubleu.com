@@ -16,12 +16,16 @@ let mockMealExport: { data: { items: unknown[] }; isLoading: boolean } = {
   isLoading: false
 }
 let mockListLoading = false
+let mockListError: Error | undefined
 let mockPlanGroups: { data: { groups: unknown[] } } = { data: { groups: [] } }
 let mockAliases: Record<string, string> = {}
 
 vi.mock('@/hooks/useShoppingList', () => ({
   useCustomList: () => ({
-    data: { items: [{ id: 'i1', name: 'Milk', amount: '1', unit: 'L' }] },
+    data: mockListError
+      ? undefined
+      : { items: [{ id: 'i1', name: 'Milk', amount: '1', unit: 'L' }] },
+    error: mockListError,
     isLoading: mockListLoading
   }),
   useCategories: () => ({
@@ -49,7 +53,17 @@ beforeEach(() => {
   mockMealExport = { data: { items: [] }, isLoading: false }
   mockPlanGroups = { data: { groups: [] } }
   mockListLoading = false
+  mockListError = undefined
   mockAliases = {}
+})
+
+describe('ShoppingListPageClient load states', () => {
+  it('shows an error, not an empty list, when the list fails to load', () => {
+    mockListError = new Error('nope')
+    render(<ShoppingListPageClient />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Failed to load shopping list.')
+    expect(screen.queryByText(/No items yet/)).not.toBeInTheDocument()
+  })
 })
 
 describe('ShoppingPage add form', () => {

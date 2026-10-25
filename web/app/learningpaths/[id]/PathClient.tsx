@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
@@ -85,24 +86,24 @@ export default function PathClient({ id }: { id: string }) {
               <Button asChild variant="secondary" size="sm">
                 <Link href={`/learningpaths/${learningPath.id}/edit`}>Edit</Link>
               </Button>
-              {deleteConfirm ? (
-                <>
-                  <Button variant="destructive" size="sm" onClick={handleDelete}>
-                    Confirm delete
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => setDeleteConfirm(false)}>
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <Button variant="destructive" size="sm" onClick={() => setDeleteConfirm(true)}>
-                  Delete
-                </Button>
-              )}
+              <Button variant="destructive" size="sm" onClick={() => setDeleteConfirm(true)}>
+                Delete
+              </Button>
             </>
           )
         }
       />
+      {learningPath && (
+        <ConfirmDialog
+          open={deleteConfirm}
+          onOpenChange={setDeleteConfirm}
+          title={`Delete ${learningPath.title}?`}
+          description="Its modules and progress are deleted. This can't be undone."
+          confirmLabel="Delete"
+          destructive
+          onConfirm={handleDelete}
+        />
+      )}
 
       {isLoading && !learningPath && <LoadingState label="learning path" />}
       {error && <ErrorState what="learning path" />}

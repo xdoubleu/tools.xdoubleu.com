@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useKoboDeviceLogs, useClearKoboDeviceLogs } from '@/hooks/useBooks'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { LoadingState } from '@/components/ui/states'
@@ -40,19 +41,15 @@ function HeaderSection({
 export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
   const { data, isLoading, mutate } = useKoboDeviceLogs(deviceId, true)
   const clearLogs = useClearKoboDeviceLogs()
-  const [clearing, setClearing] = useState(false)
+  const { run, pending: clearing, error } = useAsyncAction()
 
   const entries = data?.entries ?? []
 
-  async function handleClear() {
-    setClearing(true)
-    try {
+  const handleClear = () =>
+    run(async () => {
       await clearLogs(deviceId)
       await mutate()
-    } finally {
-      setClearing(false)
-    }
-  }
+    }, "Couldn't clear the logs. Try again.")
 
   return (
     <Card variant="inset" className="mt-3" data-testid="kobo-logs">
@@ -82,6 +79,12 @@ export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
           </Button>
         </div>
       </div>
+
+      {error && (
+        <Alert tone="danger" className="mb-2">
+          {error}
+        </Alert>
+      )}
 
       {isLoading ? (
         <LoadingState label="logs" className="text-xs" />

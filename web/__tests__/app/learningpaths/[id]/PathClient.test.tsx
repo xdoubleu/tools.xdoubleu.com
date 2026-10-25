@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 
 const mockMutate = vi.fn(async () => undefined)
 const mockDeleteLearningPath = vi.fn()
@@ -290,7 +290,8 @@ describe('PathClient', () => {
     render(<PathClient id="lp1" />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete Learn Go?' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => {
       expect(mockDeleteLearningPath).toHaveBeenCalledWith({ id: 'lp1' })
@@ -310,8 +311,8 @@ describe('PathClient', () => {
     render(<PathClient id="lp1" />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(mockDeleteLearningPath).not.toHaveBeenCalled()
   })
 

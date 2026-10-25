@@ -54,6 +54,29 @@ describe('SavedCommutes', () => {
     await waitFor(() => expect(onRemove).toHaveBeenCalledWith('c1'))
   })
 
+  it('shows an alert when deleting a commute fails', async () => {
+    setup({ onRemove: vi.fn().mockRejectedValue(new Error('boom')) })
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Home to work' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't delete the commute.")
+  })
+
+  it('shows an alert when saving a commute fails', async () => {
+    setup({
+      onCreate: vi.fn().mockRejectedValue(new Error('boom')),
+      currentPair: pair,
+      commutes: []
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save commute' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save the commute.")
+    expect(screen.getByRole('button', { name: 'Save commute' })).toBeEnabled()
+  })
+
+  it('shows an alert when saving the reverse fails', async () => {
+    setup({ onCreate: vi.fn().mockRejectedValue(new Error('boom')) })
+    fireEvent.click(screen.getByRole('button', { name: 'Save the reverse of Home to work' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't save the commute.")
+  })
+
   it('offers the reverse direction only when it is not saved', async () => {
     const { onCreate } = setup()
     fireEvent.click(screen.getByRole('button', { name: 'Save the reverse of Home to work' }))

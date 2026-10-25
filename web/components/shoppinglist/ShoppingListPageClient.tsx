@@ -13,7 +13,7 @@ import MealPlanGroupFilter from '@/components/shoppinglist/MealPlanGroupFilter'
 import MealPlanItemsPreview from '@/components/shoppinglist/MealPlanItemsPreview'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
-import { LoadingState } from '@/components/ui/states'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 import { enqueueWrite } from '@/lib/offline/outbox'
 import { deleteShoppingItemWrite, updateShoppingItemWrite } from '@/lib/shoppinglist/offlineWrites'
 import type { ShoppingItem as ShoppingItemExport } from '@/lib/shoppinglist/shoppingExport'
@@ -32,7 +32,7 @@ export default function ShoppingListPageClient() {
   const [showExport, setShowExport] = useState(false)
   const [excludedGroups, setExcludedGroups] = useState<Set<string>>(new Set())
 
-  const { data, isLoading } = useCustomList()
+  const { data, error, isLoading } = useCustomList()
   const { data: categoriesData } = useCategories()
   const categories = categoriesData?.categories ?? []
 
@@ -96,7 +96,8 @@ export default function ShoppingListPageClient() {
       <AddItemForm categories={categories} />
 
       {isLoading && <LoadingState />}
-      {!isLoading && (
+      {error && !data && <ErrorState what="shopping list" />}
+      {data && (
         <ShoppingList
           items={items}
           onDelete={handleDelete}

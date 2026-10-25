@@ -108,3 +108,16 @@ it('disables Clear when there are no entries', () => {
   render(<KoboDeviceLogs deviceId="dev-1" />)
   expect(screen.getByTestId('kobo-logs-clear')).toBeDisabled()
 })
+
+it('shows an alert when clearing the logs fails', async () => {
+  mockClearKoboDeviceLogs.mockRejectedValue(new Error('boom'))
+  mockUseKoboDeviceLogs.mockReturnValue({
+    data: { entries: [entry] },
+    isLoading: false,
+    mutate: mockMutate
+  })
+  render(<KoboDeviceLogs deviceId="dev-1" />)
+  fireEvent.click(screen.getByTestId('kobo-logs-clear'))
+  expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't clear the logs.")
+  expect(screen.getByTestId('kobo-logs-clear')).toBeEnabled()
+})
