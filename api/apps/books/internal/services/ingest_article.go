@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	readability "github.com/go-shiori/go-readability"
+	readability "codeberg.org/readeck/go-readability/v2"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 )
@@ -47,22 +47,36 @@ func extractReadable(finalURL string, body []byte) (*extractedArticle, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrNoReadableContent, err)
 	}
-	if strings.TrimSpace(article.TextContent) == "" ||
-		strings.TrimSpace(article.Content) == "" {
+	content, ok := renderArticle(article)
+	if !ok {
 		return nil, ErrNoReadableContent
 	}
 
-	title := strings.TrimSpace(article.Title)
+	title := strings.TrimSpace(article.Title())
 	if title == "" {
 		title = finalURL
 	}
 	return &extractedArticle{
 		Title:    title,
-		Byline:   strings.TrimSpace(article.Byline),
-		Excerpt:  strings.TrimSpace(article.Excerpt),
-		ImageURL: article.Image,
-		HTML:     article.Content,
+		Byline:   strings.TrimSpace(article.Byline()),
+		Excerpt:  strings.TrimSpace(article.Excerpt()),
+		ImageURL: article.ImageURL(),
+		HTML:     content,
 	}, nil
+}
+
+// renderArticle renders the article's HTML; ok is false when it has no text.
+func renderArticle(article readability.Article) (string, bool) {
+	var content, text strings.Builder
+	if article.Node == nil || article.RenderHTML(&content) != nil ||
+		article.RenderText(&text) != nil {
+		return "", false
+	}
+	if strings.TrimSpace(text.String()) == "" ||
+		strings.TrimSpace(content.String()) == "" {
+		return "", false
+	}
+	return content.String(), true
 }
 
 // BackfillContentHTML lazily fetches and stores the readability-extracted
