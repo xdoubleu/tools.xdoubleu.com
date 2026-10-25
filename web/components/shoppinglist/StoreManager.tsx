@@ -82,6 +82,7 @@ export default function StoreManager() {
     <div className="space-y-4">
       <form onSubmit={handleCreate} className="flex gap-2">
         <Input
+          aria-label="New store"
           placeholder="New store (e.g. Colruyt)"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}

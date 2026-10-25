@@ -79,6 +79,7 @@ export default function ReadingDashboardPublicLibrary({
         type="search"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        aria-label="Search books"
         placeholder="Search books…"
         className="mb-4 max-w-md"
       />

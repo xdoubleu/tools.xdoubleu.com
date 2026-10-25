@@ -70,7 +70,9 @@ describe('ShoppingPage add form', () => {
   it('assigns the chosen category to the catalog on add', async () => {
     render(<ShoppingListPageClient />)
 
-    fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Apples' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'New item name' }), {
+      target: { value: 'Apples' }
+    })
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'cat-produce' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 

@@ -297,6 +297,7 @@ function FailedFileRecovery({ item, onRetry }: FailedFileRecoveryProps) {
   return (
     <div className="mt-1 flex flex-col gap-2 sm:flex-row">
       <Input
+        aria-label="Title"
         placeholder="Title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -304,6 +305,7 @@ function FailedFileRecovery({ item, onRetry }: FailedFileRecoveryProps) {
         disabled={retrying}
       />
       <Input
+        aria-label="Author"
         placeholder="Author (optional)"
         value={author}
         onChange={(e) => setAuthor(e.target.value)}

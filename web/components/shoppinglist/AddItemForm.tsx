@@ -68,6 +68,7 @@ export default function AddItemForm({ categories }: AddItemFormProps) {
       <Input
         type="number"
         inputMode="decimal"
+        aria-label="New item amount"
         placeholder="Amount"
         value={newAmount}
         onChange={(e) => setNewAmount(e.target.value)}
@@ -77,6 +78,7 @@ export default function AddItemForm({ categories }: AddItemFormProps) {
       />
       <Input
         type="text"
+        aria-label="New item unit"
         placeholder="Unit"
         value={newUnit}
         onChange={(e) => setNewUnit(e.target.value)}
@@ -84,6 +86,7 @@ export default function AddItemForm({ categories }: AddItemFormProps) {
       />
       <Input
         type="text"
+        aria-label="New item name"
         placeholder="Item name"
         value={newName}
         onChange={(e) => setNewName(e.target.value)}

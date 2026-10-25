@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { swrKeys } from '@/lib/swrKeys'
 import { mutate } from 'swr'
 import { useUpdateBookStatus, useSetBookTag } from '@/hooks/useBooks'
@@ -35,6 +35,8 @@ export default function BookShelfTagFields({
   const [tags, setTags] = useState<string[]>(displayTags(userBook.tags))
   const [newTag, setNewTag] = useState('')
   const [newShelf, setNewShelf] = useState('')
+  const shelfLabelId = useId()
+  const tagsLabelId = useId()
   const [showTagInput, setShowTagInput] = useState(false)
   const [showShelfInput, setShowShelfInput] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -96,8 +98,13 @@ export default function BookShelfTagFields({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2 sm:space-y-1.5">
-        <Label className="text-xs font-semibold text-muted uppercase tracking-wide">Shelf</Label>
+      <div role="group" aria-labelledby={shelfLabelId} className="space-y-2 sm:space-y-1.5">
+        <Label
+          id={shelfLabelId}
+          className="text-xs font-semibold text-muted uppercase tracking-wide"
+        >
+          Shelf
+        </Label>
         <div className="flex flex-wrap items-center gap-2 sm:gap-1.5">
           {BOOK_STATUSES.map(({ value, label }) => (
             <TogglePill
@@ -142,8 +149,13 @@ export default function BookShelfTagFields({
         )}
       </div>
 
-      <div className="space-y-2 sm:space-y-1.5">
-        <Label className="text-xs font-semibold text-muted uppercase tracking-wide">Tags</Label>
+      <div role="group" aria-labelledby={tagsLabelId} className="space-y-2 sm:space-y-1.5">
+        <Label
+          id={tagsLabelId}
+          className="text-xs font-semibold text-muted uppercase tracking-wide"
+        >
+          Tags
+        </Label>
         {allTags.length === 0 ? (
           <p className="text-xs text-muted">No tags yet.</p>
         ) : (

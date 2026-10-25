@@ -69,6 +69,7 @@ export default function WatchpartyPage() {
           type="text"
           value={roomCode}
           onChange={(e) => setRoomCode(e.target.value)}
+          aria-label="Room code"
           placeholder="Room code"
           className="min-w-0 flex-1"
         />

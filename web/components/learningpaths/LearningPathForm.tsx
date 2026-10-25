@@ -297,13 +297,14 @@ export default function LearningPathForm({
       </Field>
 
       <div className="space-y-1.5">
-        <Label>Modules</Label>
-        <div className="space-y-3">
+        <Label id="learningpath-modules">Modules</Label>
+        <div role="group" aria-labelledby="learningpath-modules" className="space-y-3">
           {modules.map((module, mIdx) => (
             <Card key={mIdx} variant="inset">
               <div className="flex gap-2 mb-2">
                 <Input
                   type="text"
+                  aria-label={`Module ${mIdx + 1} title`}
                   placeholder="Module title (e.g. Month 1)"
                   value={module.title}
                   onChange={(e) => updateModuleTitle(mIdx, e.target.value)}
@@ -326,6 +327,7 @@ export default function LearningPathForm({
                   <div key={iIdx} className="flex flex-wrap gap-2">
                     <Input
                       type="text"
+                      aria-label="Item type"
                       placeholder="Type (read/study/do/checkpoint)"
                       value={item.type}
                       onChange={(e) => updateItem(mIdx, iIdx, 'type', e.target.value)}
@@ -333,6 +335,7 @@ export default function LearningPathForm({
                     />
                     <Input
                       type="text"
+                      aria-label="Item description"
                       placeholder="Description"
                       value={item.description}
                       onChange={(e) => updateItem(mIdx, iIdx, 'description', e.target.value)}
@@ -397,12 +400,12 @@ export default function LearningPathForm({
 
       {scheduleTypes(modules, reminderSchedules).length > 0 && (
         <div className="space-y-1.5">
-          <Label>Todoist reminders</Label>
+          <Label id="learningpath-reminders">Todoist reminders</Label>
           <p className="text-xs text-muted">
             How often each item type&apos;s reminder recurs, as a Todoist due date (e.g.
             &ldquo;every day at 20:00&rdquo;). Leave blank for undated reminders.
           </p>
-          <div className="space-y-2">
+          <div role="group" aria-labelledby="learningpath-reminders" className="space-y-2">
             {scheduleTypes(modules, reminderSchedules).map((type) => (
               <Field key={type} label={type} htmlFor={`learningpath-reminder-${type}`}>
                 <Input
@@ -420,16 +423,17 @@ export default function LearningPathForm({
       )}
 
       <div className="space-y-1.5">
-        <Label>Resources</Label>
+        <Label id="learningpath-resources">Resources</Label>
         <p className="text-xs text-muted">
           Freeform text, or link an existing book/feed item — both may be set together.
         </p>
-        <div className="space-y-3">
+        <div role="group" aria-labelledby="learningpath-resources" className="space-y-3">
           {resources.map((resource, idx) => (
             <Card key={idx} variant="inset" className="space-y-2">
               <div className="flex gap-2">
                 <Input
                   type="text"
+                  aria-label={`Resource ${idx + 1}`}
                   placeholder="e.g. Book: The Go Programming Language"
                   value={resource.text}
                   onChange={(e) => updateResourceText(idx, e.target.value)}

@@ -200,6 +200,7 @@ export default function MealPlanEntryForm({
               value={servings}
               onChange={(e) => setServings(parseInt(e.target.value, 10))}
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              aria-label="Servings"
               placeholder="Servings"
             />
           </div>
@@ -254,6 +255,7 @@ export default function MealPlanEntryForm({
                       }
                     }}
                     placeholder={`Item ${i + 1}`}
+                    aria-label={`Name for item ${i + 1}`}
                     autoFocus={i === 0}
                     className={cn('col-span-2 min-w-0 sm:flex-1')}
                   />

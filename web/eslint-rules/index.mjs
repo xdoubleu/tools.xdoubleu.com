@@ -1,3 +1,4 @@
+import fieldLabels from './field-labels.mjs'
 import mobileFirstClasses from './mobile-first-classes.mjs'
 import noClassnameTemplate from './no-classname-template.mjs'
 import themeTokens from './theme-tokens.mjs'
@@ -8,6 +9,7 @@ import usePrimitives from './use-primitives.mjs'
 export default {
   meta: { name: 'ui' },
   rules: {
+    'field-labels': fieldLabels,
     'mobile-first-classes': mobileFirstClasses,
     'no-classname-template': noClassnameTemplate,
     'theme-tokens': themeTokens,

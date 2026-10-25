@@ -43,6 +43,7 @@ export default function GamesDashboardPublicLibrary({
         type="search"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        aria-label="Search games"
         placeholder="Search games…"
         className="mb-4 max-w-md"
       />

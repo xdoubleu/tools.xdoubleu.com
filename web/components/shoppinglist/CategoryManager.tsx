@@ -71,6 +71,7 @@ export default function CategoryManager() {
     <div className="space-y-4">
       <form onSubmit={handleCreate} className="flex gap-2">
         <Input
+          aria-label="New category"
           placeholder="New category (e.g. Produce)"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
