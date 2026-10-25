@@ -32,7 +32,9 @@ describe('signInRedirect', () => {
     '/dashboard/games/tok/library',
     '/dashboard/games/tok/42',
     '/dashboard/reading/tok',
-    '/dashboard/reading/tok/library'
+    '/dashboard/reading/tok/library',
+    // Any app's share page, not just today's two.
+    '/dashboard/movies/tok'
   ])('lets a signed-out visitor stay on the public page %s', (pathname) => {
     expect(signInRedirect(unauthenticated(), pathname, '')).toBeNull()
   })

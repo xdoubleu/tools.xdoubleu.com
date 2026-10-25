@@ -2,8 +2,8 @@ import { Code, ConnectError } from '@connectrpc/connect'
 
 // Pages a signed-out visitor may stay on: the home page and auth pages (both
 // show the sign-in form), OAuth consent (which sends to sign-in itself), and
-// token-shared dashboards.
-const PUBLIC_PATHS = [/^\/$/, /^\/auth\//, /^\/oauth\//, /^\/dashboard\/(games|reading)\/[^/]+/]
+// token-shared dashboards (/dashboard/<app>/<token>/…).
+const PUBLIC_PATHS = [/^\/$/, /^\/auth\//, /^\/oauth\//, /^\/dashboard\/[^/]+\/[^/]+/]
 
 /** True when the api answered that there's no session. A network error isn't one, so offline reads keep working. */
 export function isSignedOut(error: unknown): boolean {

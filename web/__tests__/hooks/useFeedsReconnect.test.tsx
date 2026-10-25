@@ -54,7 +54,7 @@ describe('feeds hooks on reconnect', () => {
     vi.mocked(loadEntry).mockResolvedValue({ data: { items: [] }, savedAt: 42 })
   })
 
-  it.each([
+  it.each<[string, () => unknown, typeof client.listFeeds]>([
     ['useFeeds', () => useFeeds(), client.listFeeds],
     ['useFeedItems', () => useFeedItems(true), client.listFeedItems],
     ['useFeedItem', () => useFeedItem('item-1'), client.getFeedItem],
