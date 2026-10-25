@@ -1,8 +1,8 @@
 # ADR-0017: One request budget under the server's WriteTimeout
 
 - Status: Accepted
-- Issues: #672, #1113, #2599
-- Affects: `api/internal/communication/httptools/budget.go`, `api/cmd/api/routes.go`, `api/cmd/api/main.go`, `config/deploy.api.yml`
+- Issues: #672, #1113, #2599, #2656
+- Affects: `api/internal/communication/httptools/budget.go`, `api/cmd/api/routes.go`, `api/cmd/api/main.go`, `api/internal/mcptools/tool_calls.go`, `config/deploy.api.yml`
 
 ## Context
 
@@ -39,4 +39,5 @@ runs out still writes its error, and logs the overrun.
 
 A handler that drops the request context (`context.WithoutCancel`) escapes
 the deadline; `httptools.Detach` keeps the deadline while dropping
-cancellation.
+cancellation. The MCP SDK drops it for tool calls, so `mcptools` restores it
+less a second, leaving the SDK time to write the result.

@@ -52,7 +52,8 @@ func boundToolCalls(
 			if !ok || call.Params == nil {
 				return next(ctx, method, req)
 			}
-			if deadline, ok := ctx.Value(requestDeadlineKey{}).(time.Time); ok {
+			deadline, hasDeadline := ctx.Value(requestDeadlineKey{}).(time.Time)
+			if hasDeadline {
 				var cancel context.CancelFunc
 				ctx, cancel = context.WithDeadline(ctx, deadline.Add(-slack))
 				defer cancel()
