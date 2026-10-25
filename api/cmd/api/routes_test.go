@@ -108,6 +108,15 @@ func TestCORSPreflight_ConnectProtocolVersion(t *testing.T) {
 // throttledRoutes builds Routes() with Throttle enabled.
 func throttledRoutes(t *testing.T) http.Handler {
 	t.Helper()
+	handler := throttledApp(t).Routes()
+	require.NotNil(t, handler)
+	return handler
+}
+
+// throttledApp builds an Application with Throttle enabled, so its
+// middleware chain is production's.
+func throttledApp(t *testing.T) *Application {
+	t.Helper()
 
 	logger := logging.NewNopLogger()
 	cfg := config.New(logger)
@@ -126,13 +135,9 @@ func throttledRoutes(t *testing.T) http.Handler {
 	require.NoError(t, err)
 	t.Cleanup(postgresDB.Close)
 
-	throttledApp := NewApplication(
+	return NewApplication(
 		logger,
 		cfg,
 		postgresDB,
 	)
-
-	handler := throttledApp.Routes()
-	require.NotNil(t, handler)
-	return handler
 }

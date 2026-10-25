@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -9,6 +10,7 @@ import (
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/mcptools"
 )
 
 // The apps MCP server exposes each app's read RPCs plus admin observability
@@ -131,26 +133,37 @@ func (app *Application) appsMCPRoute() http.Handler {
 }
 
 func (app *Application) appsMCPHandler() http.Handler {
-	srv := app.newAppsMCPServer()
-	// The real boundary is mcpBearerRoute's token check, so the go-sdk's
-	// loopback DNS-rebinding guard is disabled (kamal-proxy doesn't reach us over
-	// loopback anyway).
-	//nolint:exhaustruct // only Stateless/DisableLocalhostProtection are set
-	return mcp.NewStreamableHTTPHandler(
-		func(*http.Request) *mcp.Server { return srv },
-		&mcp.StreamableHTTPOptions{Stateless: true, DisableLocalhostProtection: true},
-	)
+	return streamableMCPHandler(app.newAppsMCPServer())
 }
 
-// newAppsMCPServer builds the MCP server from every MCPToolProvider plus the
-// observability tools.
-func (app *Application) newAppsMCPServer() *mcp.Server {
+// streamableMCPHandler serves srv statelessly over streamable HTTP. The real
+// boundary is mcpBearerRoute's token check, so the go-sdk's loopback
+// DNS-rebinding guard is disabled (kamal-proxy doesn't reach us over loopback
+// anyway).
+func streamableMCPHandler(srv *mcp.Server) http.Handler {
+	//nolint:exhaustruct // only Stateless/DisableLocalhostProtection are set
+	return mcptools.KeepRequestDeadline(mcp.NewStreamableHTTPHandler(
+		func(*http.Request) *mcp.Server { return srv },
+		&mcp.StreamableHTTPOptions{Stateless: true, DisableLocalhostProtection: true},
+	))
+}
+
+// newMCPServer is an MCP server whose tool calls keep their request's
+// deadline and are logged when slow.
+func newMCPServer(logger *slog.Logger) *mcp.Server {
 	//nolint:exhaustruct // only Name/Version identify the server
 	srv := mcp.NewServer(&mcp.Implementation{
 		Name:    appsMCPServerName,
 		Version: mcpServerVersion,
 	}, nil)
+	srv.AddReceivingMiddleware(mcptools.BoundToolCalls(logger))
+	return srv
+}
 
+// newAppsMCPServer builds the MCP server from every MCPToolProvider plus the
+// observability tools.
+func (app *Application) newAppsMCPServer() *mcp.Server {
+	srv := newMCPServer(app.logger)
 	for _, a := range *app.apps {
 		if provider, ok := a.(MCPToolProvider); ok {
 			provider.RegisterMCPTools(srv)
