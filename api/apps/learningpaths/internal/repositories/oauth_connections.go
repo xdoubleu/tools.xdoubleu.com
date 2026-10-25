@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -10,6 +9,7 @@ import (
 	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/database/postgres"
 	sharedmodels "tools.xdoubleu.com/internal/models"
+	sharedrepos "tools.xdoubleu.com/internal/repositories"
 )
 
 // OAuthConnectionsRepository stores one encrypted OAuth connection per
@@ -54,7 +54,9 @@ func (r *OAuthConnectionsRepository) Get(
 		return nil, nil, postgres.PgxErrorToHTTPError(err)
 	}
 
-	tok, err := r.decryptToken(row)
+	tok, err := sharedrepos.UnsealToken(
+		r.sealer, row.accessToken, row.refreshToken, row.expiresAt,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -71,7 +73,7 @@ func (r *OAuthConnectionsRepository) Upsert(
 	tok *oauth2.Token,
 	requestedScope string,
 ) error {
-	access, refresh, err := r.encryptToken(tok)
+	access, refresh, err := sharedrepos.SealToken(r.sealer, tok)
 	if err != nil {
 		return err
 	}
@@ -99,7 +101,7 @@ func (r *OAuthConnectionsRepository) UpdateToken(
 	provider sharedmodels.OAuthProvider,
 	tok *oauth2.Token,
 ) error {
-	access, refresh, err := r.encryptToken(tok)
+	access, refresh, err := sharedrepos.SealToken(r.sealer, tok)
 	if err != nil {
 		return err
 	}
@@ -171,51 +173,6 @@ func (u UserScopedOAuthStore) UpdateToken(
 	ctx context.Context, provider sharedmodels.OAuthProvider, tok *oauth2.Token,
 ) error {
 	return u.repo.UpdateToken(ctx, u.userID, provider, tok)
-}
-
-func (r *OAuthConnectionsRepository) encryptToken(
-	tok *oauth2.Token,
-) ([]byte, []byte, error) {
-	access, err := r.sealer.Encrypt([]byte(tok.AccessToken))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var refresh []byte
-	if tok.RefreshToken != "" {
-		refresh, err = r.sealer.Encrypt([]byte(tok.RefreshToken))
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-	return access, refresh, nil
-}
-
-func (r *OAuthConnectionsRepository) decryptToken(
-	row oauthConnectionRow,
-) (*oauth2.Token, error) {
-	access, err := r.sealer.Decrypt(row.accessToken)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", sharedmodels.ErrDecryptFailed, err)
-	}
-
-	var refresh string
-	if len(row.refreshToken) > 0 {
-		refreshBytes, decErr := r.sealer.Decrypt(row.refreshToken)
-		if decErr != nil {
-			return nil, fmt.Errorf("%w: %w", sharedmodels.ErrDecryptFailed, decErr)
-		}
-		refresh = string(refreshBytes)
-	}
-
-	tok := &oauth2.Token{ //nolint:exhaustruct // token type/raw fields unused
-		AccessToken:  string(access),
-		RefreshToken: refresh,
-	}
-	if row.expiresAt != nil {
-		tok.Expiry = *row.expiresAt
-	}
-	return tok, nil
 }
 
 func rowToConnection(

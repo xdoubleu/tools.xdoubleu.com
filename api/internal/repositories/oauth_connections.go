@@ -70,7 +70,9 @@ func (r *OAuthConnectionsRepository) Get(
 		return nil, nil, postgres.PgxErrorToHTTPError(err)
 	}
 
-	tok, err := r.decryptToken(row)
+	tok, err := UnsealToken(
+		r.sealer, row.accessToken, row.refreshToken, row.expiresAt,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -87,7 +89,7 @@ func (r *OAuthConnectionsRepository) Upsert(
 	connectedBy string,
 	requestedScopes []string,
 ) error {
-	access, refresh, err := r.encryptToken(tok)
+	access, refresh, err := SealToken(r.sealer, tok)
 	if err != nil {
 		return err
 	}
@@ -117,7 +119,7 @@ func (r *OAuthConnectionsRepository) Upsert(
 func (r *OAuthConnectionsRepository) UpdateToken(
 	ctx context.Context, provider models.OAuthProvider, tok *oauth2.Token,
 ) error {
-	access, refresh, err := r.encryptToken(tok)
+	access, refresh, err := SealToken(r.sealer, tok)
 	if err != nil {
 		return err
 	}
@@ -198,21 +200,21 @@ func (r *OAuthConnectionsRepository) List(
 	return connections, rows.Err()
 }
 
-func (r *OAuthConnectionsRepository) encryptToken(
-	tok *oauth2.Token,
-) ([]byte, []byte, error) {
-	if r.sealer == nil {
+// SealToken encrypts tok's access and refresh tokens for storage; refresh is
+// nil when tok has none. ErrEncryptionNotConfigured if sealer is nil.
+func SealToken(sealer *crypto.Sealer, tok *oauth2.Token) ([]byte, []byte, error) {
+	if sealer == nil {
 		return nil, nil, ErrEncryptionNotConfigured
 	}
 
-	access, err := r.sealer.Encrypt([]byte(tok.AccessToken))
+	access, err := sealer.Encrypt([]byte(tok.AccessToken))
 	if err != nil {
 		return nil, nil, err
 	}
 
 	var refresh []byte
 	if tok.RefreshToken != "" {
-		refresh, err = r.sealer.Encrypt([]byte(tok.RefreshToken))
+		refresh, err = sealer.Encrypt([]byte(tok.RefreshToken))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -220,33 +222,35 @@ func (r *OAuthConnectionsRepository) encryptToken(
 	return access, refresh, nil
 }
 
-func (r *OAuthConnectionsRepository) decryptToken(
-	row oauthConnectionRow,
+// UnsealToken reverses SealToken. ErrEncryptionNotConfigured if sealer is nil;
+// models.ErrDecryptFailed if the ciphertext doesn't open under sealer's key.
+func UnsealToken(
+	sealer *crypto.Sealer, access, refresh []byte, expiresAt *time.Time,
 ) (*oauth2.Token, error) {
-	if r.sealer == nil {
+	if sealer == nil {
 		return nil, ErrEncryptionNotConfigured
 	}
 
-	access, err := r.sealer.Decrypt(row.accessToken)
+	accessBytes, err := sealer.Decrypt(access)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", models.ErrDecryptFailed, err)
 	}
 
-	var refresh string
-	if len(row.refreshToken) > 0 {
-		refreshBytes, decErr := r.sealer.Decrypt(row.refreshToken)
+	var refreshToken string
+	if len(refresh) > 0 {
+		refreshBytes, decErr := sealer.Decrypt(refresh)
 		if decErr != nil {
 			return nil, fmt.Errorf("%w: %w", models.ErrDecryptFailed, decErr)
 		}
-		refresh = string(refreshBytes)
+		refreshToken = string(refreshBytes)
 	}
 
 	tok := &oauth2.Token{ //nolint:exhaustruct // token type/raw fields unused
-		AccessToken:  string(access),
-		RefreshToken: refresh,
+		AccessToken:  string(accessBytes),
+		RefreshToken: refreshToken,
 	}
-	if row.expiresAt != nil {
-		tok.Expiry = *row.expiresAt
+	if expiresAt != nil {
+		tok.Expiry = *expiresAt
 	}
 	return tok, nil
 }
