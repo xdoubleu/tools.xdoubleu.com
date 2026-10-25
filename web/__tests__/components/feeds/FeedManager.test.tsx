@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 
 const mockUseFeeds = vi.fn()
 const deleteFeed = vi.fn()
@@ -71,16 +71,32 @@ describe('FeedManager', () => {
     })
   })
 
-  it('deletes a feed', async () => {
+  it('deletes a feed only after confirming', async () => {
     mockUseFeeds.mockReturnValue({ data: { feeds: [rssFeed] }, error: undefined, isLoading: false })
     deleteFeed.mockResolvedValue(undefined)
     render(<FeedManager />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    const dialog = screen.getByRole('dialog', { name: 'Remove Example Blog?' })
+    expect(dialog).toHaveTextContent(/items, bookmarks and filter rules/)
+    expect(deleteFeed).not.toHaveBeenCalled()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }))
 
     await waitFor(() => {
       expect(deleteFeed).toHaveBeenCalledWith('feed-1')
     })
+  })
+
+  it('keeps the feed when the confirm is cancelled', () => {
+    mockUseFeeds.mockReturnValue({ data: { feeds: [rssFeed] }, error: undefined, isLoading: false })
+    render(<FeedManager />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(deleteFeed).not.toHaveBeenCalled()
   })
 
   it('shows a failure status when an action rejects', async () => {
@@ -89,6 +105,7 @@ describe('FeedManager', () => {
     render(<FeedManager />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
 
     await waitFor(() => {
       expect(screen.getByText('Action failed.')).toBeInTheDocument()

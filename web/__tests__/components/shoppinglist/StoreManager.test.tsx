@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import StoreManager from '@/components/shoppinglist/StoreManager'
 import { enqueueWrite } from '@/lib/offline/outbox'
 import {
@@ -91,10 +91,24 @@ describe('StoreManager', () => {
     expect(enqueue).not.toHaveBeenCalled()
   })
 
-  it('queues deleting a store whose editor is closed', async () => {
+  it('queues deleting a store whose editor is closed, after confirming', async () => {
     render(<StoreManager />)
     fireEvent.click(screen.getByRole('button', { name: /Delete Colruyt/ }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete Colruyt?' })
+    expect(dialog).toHaveTextContent(/aisle order/)
+    expect(enqueue).not.toHaveBeenCalled()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(enqueue).toHaveBeenCalledWith(deleteStoreWrite, { id: 'store-1' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('keeps the store when the delete is cancelled', () => {
+    render(<StoreManager />)
+    fireEvent.click(screen.getByRole('button', { name: /Delete Colruyt/ }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(enqueue).not.toHaveBeenCalled()
   })
 
   it('rejects a store name already in use', () => {
@@ -109,6 +123,7 @@ describe('StoreManager', () => {
     render(<StoreManager />)
     fireEvent.click(screen.getByRole('button', { name: 'Edit order' }))
     fireEvent.click(screen.getByRole('button', { name: /Delete Colruyt/ }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(enqueue).toHaveBeenCalledWith(deleteStoreWrite, { id: 'store-1' }))
     expect(screen.queryByText('Aisle order')).not.toBeInTheDocument()
   })

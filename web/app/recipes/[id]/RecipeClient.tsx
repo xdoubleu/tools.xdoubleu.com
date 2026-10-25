@@ -6,6 +6,7 @@ import type { DeleteRecipeInput } from '@/hooks/useRecipes'
 import { useWakeLock } from '@/hooks/useWakeLock'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
@@ -101,32 +102,23 @@ export default function RecipeClient({ id }: { id: string }) {
                   <Button asChild variant="secondary" size="sm">
                     <Link href={`/recipes/${recipe.id}/edit`}>Edit</Link>
                   </Button>
-                  {isOwner &&
-                    (deleteConfirm ? (
-                      <>
-                        <Button variant="destructive" size="sm" onClick={handleDelete}>
-                          Confirm delete
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setDeleteConfirm(false)}
-                        >
-                          Cancel
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setDeleteConfirm(true)}
-                      >
-                        Delete
-                      </Button>
-                    ))}
+                  {isOwner && (
+                    <Button variant="destructive" size="sm" onClick={() => setDeleteConfirm(true)}>
+                      Delete
+                    </Button>
+                  )}
                 </>
               )
             }
+          />
+          <ConfirmDialog
+            open={deleteConfirm}
+            onOpenChange={setDeleteConfirm}
+            title={`Delete ${recipe.name}?`}
+            description="This can't be undone."
+            confirmLabel="Delete"
+            destructive
+            onConfirm={handleDelete}
           />
 
           <div className="flex items-center gap-3 mb-6 flex-wrap">

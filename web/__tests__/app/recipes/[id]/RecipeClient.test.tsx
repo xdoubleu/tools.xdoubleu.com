@@ -420,11 +420,14 @@ describe('RecipeClient', () => {
     expect(screen.getByText('Batch prep: 10 servings')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByRole('button', { name: 'Confirm delete' })).not.toBeInTheDocument()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(deleteRecipe).not.toHaveBeenCalled()
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete Pasta?' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(deleteRecipe).toHaveBeenCalledWith({ id: 'r1' }))
     await waitFor(() => expect(mockRouter.push).toHaveBeenCalledWith('/recipes/list'))
   })
 

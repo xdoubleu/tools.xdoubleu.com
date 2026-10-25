@@ -26,6 +26,7 @@ import {
 } from '@/lib/shoppinglist/offlineWrites'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { EmptyState, LoadingState } from '@/components/ui/states'
@@ -41,6 +42,7 @@ export default function StoreManager() {
   const [newName, setNewName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [deletingId, setDeletingId] = useState('')
 
   const stores = storesData?.stores ?? []
 
@@ -73,6 +75,7 @@ export default function StoreManager() {
       await enqueueWrite(deleteStoreWrite, { id })
       if (selectedStoreId === id) setSelectedStoreId('')
     })
+    setDeletingId('')
   }
 
   return (
@@ -108,12 +111,23 @@ export default function StoreManager() {
                 size="sm"
                 variant="ghost"
                 disabled={busy}
-                onClick={() => handleDelete(store.id)}
+                onClick={() => setDeletingId(store.id)}
                 aria-label={`Delete ${store.name}`}
               >
                 Delete
               </Button>
             </Card>
+            <ConfirmDialog
+              open={deletingId === store.id}
+              onOpenChange={(open) => !open && setDeletingId('')}
+              title={`Delete ${store.name}?`}
+              description="Its aisle order is deleted too."
+              confirmLabel="Delete"
+              pendingLabel="Deleting…"
+              destructive
+              pending={busy}
+              onConfirm={() => void handleDelete(store.id)}
+            />
           </li>
         ))}
       </ul>

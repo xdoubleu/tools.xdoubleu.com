@@ -9,6 +9,7 @@ import {
 } from '@/lib/shoppinglist/offlineWrites'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { EmptyState, LoadingState } from '@/components/ui/states'
 
@@ -19,6 +20,7 @@ export default function CategoryManager() {
   const [editingId, setEditingId] = useState('')
   const [editName, setEditName] = useState('')
   const [error, setError] = useState('')
+  const [deletingId, setDeletingId] = useState('')
 
   const categories = data?.categories ?? []
 
@@ -62,6 +64,7 @@ export default function CategoryManager() {
 
   const handleDelete = async (id: string) => {
     await run(() => enqueueWrite(deleteCategoryWrite, { id }))
+    setDeletingId('')
   }
 
   return (
@@ -119,7 +122,7 @@ export default function CategoryManager() {
                     size="sm"
                     variant="ghost"
                     disabled={busy}
-                    onClick={() => handleDelete(category.id)}
+                    onClick={() => setDeletingId(category.id)}
                     aria-label={`Delete ${category.name}`}
                   >
                     Delete
@@ -127,6 +130,17 @@ export default function CategoryManager() {
                 </>
               )}
             </Card>
+            <ConfirmDialog
+              open={deletingId === category.id}
+              onOpenChange={(open) => !open && setDeletingId('')}
+              title={`Delete ${category.name}?`}
+              description="Items in it become unassigned, and it's removed from every store's aisle order."
+              confirmLabel="Delete"
+              pendingLabel="Deleting…"
+              destructive
+              pending={busy}
+              onConfirm={() => void handleDelete(category.id)}
+            />
           </li>
         ))}
       </ul>
