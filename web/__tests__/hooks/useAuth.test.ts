@@ -233,11 +233,10 @@ describe('useCurrentUser', () => {
     mockUseSWR.mockReturnValue({ data: undefined, isLoading: false, error: undefined })
   })
 
-  it('uses /auth/current-user as key', () => {
+  it('uses /auth/current-user as key and refetches on reconnect, not on focus', () => {
     renderHook(() => useCurrentUser())
     expect(mockUseSWR).toHaveBeenCalledWith('/auth/current-user', expect.any(Function), {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false
+      revalidateOnFocus: false
     })
   })
 

@@ -1,6 +1,6 @@
 import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { ConnectError } from '@connectrpc/connect'
+import { Code, ConnectError } from '@connectrpc/connect'
 import HomeClient, { safeNext } from '@/components/HomeClient'
 import { GetCurrentUserResponseSchema } from '@/lib/gen/auth/v1/auth_pb'
 
@@ -457,6 +457,25 @@ describe('HomeClient', () => {
       expect(screen.queryByRole('heading', { name: 'Account' })).not.toBeInTheDocument()
     })
     expect(screen.getByText('Loading…')).toBeInTheDocument()
+
+    window.history.pushState({}, '', '/')
+  })
+
+  it('shows the sign-in form, not a redirect back, when an expired session left its user cached', async () => {
+    window.history.pushState({}, '', '/auth/sign-in?next=%2Fsettings')
+
+    // @ts-expect-error -- mock returns partial hook response for test purposes
+    mockUseSettings.mockReturnValue({
+      // SWR keeps the last user when a revalidation fails.
+      data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: [] }),
+      isLoading: false,
+      error: new ConnectError('not signed in', Code.Unauthenticated)
+    })
+
+    render(<HomeClient />)
+
+    expect(await screen.findByLabelText('Email')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Account' })).not.toBeInTheDocument()
 
     window.history.pushState({}, '', '/')
   })

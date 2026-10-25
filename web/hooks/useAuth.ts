@@ -70,7 +70,6 @@ export function useMFAUnenroll() {
 export function useCurrentUser() {
   const client = createServiceClient(AuthService)
   return useSWR(swrKeys.currentUser, () => client.getCurrentUser({}), {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false
+    revalidateOnFocus: false
   })
 }
