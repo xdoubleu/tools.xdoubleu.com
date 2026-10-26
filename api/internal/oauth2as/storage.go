@@ -1,5 +1,5 @@
-// Package oauth2as is the embedded OAuth 2.1 authorization server (ory/fosite)
-// behind the MCP OAuth flow.
+// Package oauth2as is the embedded OAuth 2.1 authorization server (Authelia's
+// fosite fork) behind the MCP OAuth flow.
 package oauth2as
 
 import (
@@ -9,11 +9,11 @@ import (
 	"net/url"
 	"time"
 
+	fosite "authelia.com/provider/oauth2"
+	"authelia.com/provider/oauth2/handler/oauth2"
+	"authelia.com/provider/oauth2/handler/openid"
+	"authelia.com/provider/oauth2/handler/pkce"
 	"github.com/jackc/pgx/v5"
-	"github.com/ory/fosite"
-	"github.com/ory/fosite/handler/oauth2"
-	"github.com/ory/fosite/handler/openid"
-	"github.com/ory/fosite/handler/pkce"
 
 	"tools.xdoubleu.com/internal/database/postgres"
 )
@@ -51,7 +51,7 @@ var (
 	_ fosite.Storage                     = (*Store)(nil)
 	_ oauth2.CoreStorage                 = (*Store)(nil)
 	_ oauth2.TokenRevocationStorage      = (*Store)(nil)
-	_ pkce.PKCERequestStorage            = (*Store)(nil)
+	_ pkce.Storage                       = (*Store)(nil)
 	_ openid.OpenIDConnectRequestStorage = (*Store)(nil)
 )
 
@@ -434,7 +434,7 @@ func (s *Store) GetClient(ctx context.Context, id string) (fosite.Client, error)
 		return nil, err
 	}
 	if secretHash != nil {
-		c.Secret = []byte(*secretHash)
+		c.ClientSecret = fosite.NewBCryptClientSecret(*secretHash)
 	}
 	c.RedirectURIs = redirectURIs
 	c.GrantTypes = grantTypes
@@ -466,4 +466,23 @@ func (s *Store) ClientAssertionJWTValid(_ context.Context, _ string) error {
 
 func (s *Store) SetClientAssertionJWT(_ context.Context, _ string, _ time.Time) error {
 	return nil
+}
+
+// errClientManagementUnsupported: registration is RegisterClient's job, and
+// fosite's RFC 7591/7592 endpoints aren't composed.
+var errClientManagementUnsupported = errors.New(
+	"oauth2as: client management goes through RegisterClient",
+)
+
+// CreateClient/UpdateClient/DeleteClient are ClientRegistrationManager stubs.
+func (s *Store) CreateClient(_ context.Context, _ fosite.Client) error {
+	return errClientManagementUnsupported
+}
+
+func (s *Store) UpdateClient(_ context.Context, _ string, _ fosite.Client) error {
+	return errClientManagementUnsupported
+}
+
+func (s *Store) DeleteClient(_ context.Context, _ string) error {
+	return errClientManagementUnsupported
 }

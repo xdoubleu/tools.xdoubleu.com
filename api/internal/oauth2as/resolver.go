@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ory/fosite"
+	fosite "authelia.com/provider/oauth2"
 )
 
 // TokenResolver implements auth.OAuth2TokenResolver so internal/auth never
 // imports fosite.
 type TokenResolver struct {
-	provider fosite.OAuth2Provider
+	provider fosite.Provider
 }
 
-func NewTokenResolver(provider fosite.OAuth2Provider) *TokenResolver {
+func NewTokenResolver(provider fosite.Provider) *TokenResolver {
 	return &TokenResolver{provider: provider}
 }
 

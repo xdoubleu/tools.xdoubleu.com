@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	fosite "authelia.com/provider/oauth2"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/ory/fosite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
