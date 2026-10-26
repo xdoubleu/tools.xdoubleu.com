@@ -170,9 +170,7 @@ describe('Popover', () => {
 
   it('leaves focus on a control in the panel that took it on mount', () => {
     render(
-      <Popover
-        trigger={({ onClick }) => <PopoverTrigger onClick={onClick}>Tags</PopoverTrigger>}
-      >
+      <Popover trigger={({ onClick }) => <PopoverTrigger onClick={onClick}>Tags</PopoverTrigger>}>
         <input aria-label="New tag" autoFocus />
       </Popover>
     )
