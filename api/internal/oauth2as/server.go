@@ -45,7 +45,6 @@ func NewProvider(
 		EnablePKCEPlainChallengeMethod: false,
 	}
 
-	//nolint:exhaustruct //Config only serves client-supplied JWKS, unused here
 	signer := &jwt.DefaultStrategy{
 		Config: fc,
 		Issuer: jwt.NewDefaultIssuerUnverifiedFromJWKS(&jose.JSONWebKeySet{
