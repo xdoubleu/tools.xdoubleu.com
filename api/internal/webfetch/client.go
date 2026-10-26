@@ -20,24 +20,23 @@ const (
 
 	requestTimeout = 30 * time.Second
 	maxRedirects   = 10
-
-	// userAgent identifies us honestly to origin servers.
-	userAgent = "tools.xdoubleu.com reading-library bot"
 )
 
 type client struct {
-	logger *slog.Logger
-	http   *http.Client
+	logger    *slog.Logger
+	userAgent string
+	http      *http.Client
 }
 
-// New returns the production Client. allowPrivate lets it reach
-// private/loopback addresses — true outside production only, since a
-// user-suppliable URL must never be able to reach the container's own network
-// (see [safedial]).
-func New(logger *slog.Logger, allowPrivate bool) Client {
+// New returns the production Client, identifying itself to origin servers as
+// userAgent. allowPrivate permits private/loopback addresses and must be false
+// in production: a user-suppliable URL must never reach the container's own
+// network (see [safedial]).
+func New(logger *slog.Logger, userAgent string, allowPrivate bool) Client {
 	return &client{
-		logger: logger,
-		http:   safedial.Client(requestTimeout, maxRedirects, allowPrivate),
+		logger:    logger,
+		userAgent: userAgent,
+		http:      safedial.Client(requestTimeout, maxRedirects, allowPrivate),
 	}
 }
 
@@ -60,7 +59,7 @@ func (c *client) Get(
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", c.userAgent)
 	if opts.Accept != "" {
 		req.Header.Set("Accept", opts.Accept)
 	}
@@ -109,8 +108,7 @@ func (c *client) Get(
 	return result, nil
 }
 
-// normalizeContentType strips parameters and lowercases the media type;
-// invalid headers degrade to the raw lowercased value's first segment.
+// normalizeContentType strips parameters and lowercases the media type.
 func normalizeContentType(header string) string {
 	if header == "" {
 		return ""

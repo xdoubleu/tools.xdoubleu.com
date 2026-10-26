@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	"tools.xdoubleu.com/apps/books/internal/repositories"
-	"tools.xdoubleu.com/apps/books/pkg/webfetch"
+	"tools.xdoubleu.com/internal/webfetch"
 )
 
 // ErrNoReadableContent is returned when readability extraction finds no

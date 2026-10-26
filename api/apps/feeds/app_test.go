@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"tools.xdoubleu.com/apps/feeds"
-	"tools.xdoubleu.com/apps/feeds/internal/mocks"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
@@ -31,7 +30,7 @@ var testDB postgres.DB
 // mockWebFetch is testApp's external-content client.
 //
 //nolint:gochecknoglobals //needed for tests
-var mockWebFetch *mocks.MockWebFetchClient
+var mockWebFetch *sharedmocks.MockWebFetchClient
 
 // appUsersRepo lets tests seed users for the problem-email lookup.
 //
@@ -54,7 +53,7 @@ func TestMain(m *testing.M) {
 	ensureGlobalAppUsers(postgresDB)
 	appUsersRepo = sharedrepos.NewAppUsersRepository(postgresDB)
 
-	mockWebFetch = mocks.NewMockWebFetchClient()
+	mockWebFetch = sharedmocks.NewMockWebFetchClient()
 	// Not-configured mailer; notify tests build their own FeedService.
 	testApp = feeds.NewInner(
 		context.Background(),

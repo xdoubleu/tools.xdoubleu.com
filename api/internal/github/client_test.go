@@ -18,6 +18,7 @@ import (
 
 	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/httpclient"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
@@ -62,7 +63,7 @@ func configNotConnected() stubConfigStore {
 }
 
 func TestMain(m *testing.M) {
-	github.SetBackoffBase(1 * time.Millisecond)
+	httpclient.SetBackoffBase(time.Millisecond)
 	os.Exit(m.Run())
 }
 

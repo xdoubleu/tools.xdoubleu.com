@@ -4,26 +4,19 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
 	"golang.org/x/time/rate"
+
+	"tools.xdoubleu.com/internal/httpclient"
 )
 
 //nolint:gochecknoglobals // overridable in tests
 var baseURL = "https://api.hardcover.app/v1/graphql"
-
-//nolint:gochecknoglobals // overridable in tests
-var backoffBase = 500 * time.Millisecond
-
-//nolint:gochecknoglobals // overridable in tests
-var backoffCap = 30 * time.Second
 
 const apiTimeout = 30 * time.Second
 
@@ -38,8 +31,8 @@ const (
 
 	maxAttempts = 4
 	// deadlineAttempts replaces maxAttempts when the caller's deadline is
-	// shorter than maxAttempts full attempts (a request's is); each attempt
-	// gets an even share of the time left, so the retry still fits.
+	// shorter than maxAttempts full attempts (a request's is), so the retry
+	// still fits.
 	deadlineAttempts = 2
 )
 
@@ -93,10 +86,9 @@ const booksByIDsQuery = `query BooksByIDs($ids: [Int!]!) {
 }`
 
 type client struct {
-	logger     *slog.Logger
-	httpClient *http.Client
-	limiter    *rate.Limiter
-	apiKey     string
+	logger *slog.Logger
+	http   *httpclient.Client
+	apiKey string
 }
 
 // New creates a Hardcover client. apiKey is the account's Bearer JWT; leave
@@ -104,11 +96,15 @@ type client struct {
 func New(logger *slog.Logger, apiKey string) Client {
 	return client{
 		logger: logger,
-		httpClient: &http.Client{
-			Timeout: apiTimeout,
-		},
-		limiter: rate.NewLimiter(requestsPerSecond, burst),
-		apiKey:  apiKey,
+		http: httpclient.New(httpclient.Config{
+			Name:             "hardcover",
+			Logger:           logger,
+			Timeout:          apiTimeout,
+			MaxAttempts:      maxAttempts,
+			DeadlineAttempts: deadlineAttempts,
+			Limiter:          rate.NewLimiter(requestsPerSecond, burst),
+		}),
+		apiKey: apiKey,
 	}
 }
 
@@ -290,131 +286,27 @@ func (c client) post(
 		return err
 	}
 
-	return c.doWithRetry(ctx, func(ctx context.Context) (bool, error) {
-		if waitErr := c.limiter.Wait(ctx); waitErr != nil {
-			return false, waitErr
-		}
-
-		req, reqErr := http.NewRequestWithContext(
-			ctx, http.MethodPost, baseURL, bytes.NewReader(body),
-		)
-		if reqErr != nil {
-			return false, reqErr
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Accept", "application/json")
-		if c.apiKey != "" {
-			req.Header.Set("Authorization", "Bearer "+c.apiKey)
-		}
-
-		resp, doErr := c.httpClient.Do(req)
-		if doErr != nil {
-			return isTransientErr(doErr), doErr
-		}
-		defer resp.Body.Close()
-
-		if isRetryableStatus(resp.StatusCode) {
-			raw, _ := io.ReadAll(resp.Body)
-			return true, fmt.Errorf(
-				"hardcover API returned %d: %s",
-				resp.StatusCode,
-				string(raw),
-			)
-		}
-
-		if resp.StatusCode < http.StatusOK ||
-			resp.StatusCode >= http.StatusMultipleChoices {
-			raw, _ := io.ReadAll(resp.Body)
-			return false, fmt.Errorf(
-				"hardcover API returned %d: %s",
-				resp.StatusCode,
-				string(raw),
-			)
-		}
-
-		return false, json.NewDecoder(resp.Body).Decode(dst)
-	})
-}
-
-func (c client) doWithRetry(
-	ctx context.Context,
-	attempt func(ctx context.Context) (retryable bool, err error),
-) error {
-	deadline, ok := ctx.Deadline()
-	bounded := ok && time.Until(deadline) < maxAttempts*apiTimeout
-	attempts := maxAttempts
-	if bounded {
-		attempts = deadlineAttempts
+	req := httpclient.NewRequest(http.MethodPost, baseURL).
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Accept", "application/json").
+		SetBody(body)
+	if c.apiKey != "" {
+		req.SetHeader("Authorization", "Bearer "+c.apiKey)
 	}
 
-	var lastErr error
-	for i := range attempts {
-		attemptCtx, cancel := ctx, context.CancelFunc(func() {})
-		if bounded {
-			share := time.Until(deadline) / time.Duration(attempts-i)
-			attemptCtx, cancel = context.WithTimeout(ctx, share)
-		}
-		retryable, err := attempt(attemptCtx)
-		cancel()
-		if err == nil {
-			return nil
-		}
-
-		if errors.Is(err, context.Canceled) {
-			return err
-		}
-
-		lastErr = err
-
-		if !retryable || i == attempts-1 {
-			break
-		}
-
-		delay := backoffDelay(i)
-		c.logger.DebugContext(ctx, "retrying hardcover request",
-			slog.Int("attempt", i+1),
-			slog.Duration("backoff", delay),
-			slog.Any("error", err),
-		)
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(delay):
-		}
+	resp, err := c.http.Do(ctx, req)
+	if err != nil {
+		return err
 	}
-	return lastErr
+	if resp.StatusCode < http.StatusOK ||
+		resp.StatusCode >= http.StatusMultipleChoices {
+		return fmt.Errorf(
+			"hardcover API returned %d: %s", resp.StatusCode, resp.Snippet(),
+		)
+	}
+
+	return json.NewDecoder(bytes.NewReader(resp.Body)).Decode(dst)
 }
 
 // SetBaseURL overrides the Hardcover GraphQL endpoint. Tests only.
 func SetBaseURL(u string) { baseURL = u }
-
-// SetBackoffBase overrides the backoff base delay. Tests only.
-func SetBackoffBase(d time.Duration) { backoffBase = d }
-
-func backoffDelay(attempt int) time.Duration {
-	d := backoffBase * (1 << attempt)
-	if d > backoffCap {
-		return backoffCap
-	}
-	return d
-}
-
-func isRetryableStatus(status int) bool {
-	return status == http.StatusTooManyRequests ||
-		(status >= http.StatusInternalServerError && status < 600)
-}
-
-func isTransientErr(err error) bool {
-	if errors.Is(err, context.Canceled) {
-		return false
-	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		return true
-	}
-	var urlErr *url.Error
-	if errors.As(err, &urlErr) {
-		return urlErr.Timeout()
-	}
-	return false
-}

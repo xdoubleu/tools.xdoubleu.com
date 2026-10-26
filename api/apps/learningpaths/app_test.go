@@ -10,9 +10,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books"
 	booksobjectstore "tools.xdoubleu.com/apps/books/pkg/objectstore"
-	bookswebfetch "tools.xdoubleu.com/apps/books/pkg/webfetch"
 	"tools.xdoubleu.com/apps/feeds"
-	feedswebfetch "tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 	"tools.xdoubleu.com/apps/learningpaths"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/crypto"
@@ -34,28 +32,6 @@ var (
 	testCfg   config.Config
 	userID    = "4001e9cf-3fbe-4b09-863f-bd1654cfbf76"
 )
-
-// fakeBooksWebFetchClient/fakeFeedsWebFetchClient error on every call; these
-// tests never fetch.
-type fakeBooksWebFetchClient struct{}
-
-func (fakeBooksWebFetchClient) Get(
-	_ context.Context,
-	_ string,
-	_ bookswebfetch.Options,
-) (*bookswebfetch.Result, error) {
-	return nil, bookswebfetch.ErrNetwork
-}
-
-type fakeFeedsWebFetchClient struct{}
-
-func (fakeFeedsWebFetchClient) Get(
-	_ context.Context,
-	_ string,
-	_ feedswebfetch.Options,
-) (*feedswebfetch.Result, error) {
-	return nil, feedswebfetch.ErrNetwork
-}
 
 func TestMain(m *testing.M) {
 	testCfg = testhelper.NewTestConfig()
@@ -82,7 +58,7 @@ func TestMain(m *testing.M) {
 			UniCat:           nil,
 			Hardcover:        nil,
 			ObjectStore:      booksobjectstore.NewFake(),
-			WebFetch:         fakeBooksWebFetchClient{},
+			WebFetch:         sharedmocks.NewMockWebFetchClient(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
 		},
@@ -97,7 +73,7 @@ func TestMain(m *testing.M) {
 		logger,
 		testCfg,
 		postgresDB,
-		fakeFeedsWebFetchClient{},
+		sharedmocks.NewMockWebFetchClient(),
 		notifications.New(
 			context.Background(),
 			logger,

@@ -12,7 +12,6 @@ import (
 	"tools.xdoubleu.com/apps/feeds/internal/jobs"
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
 	"tools.xdoubleu.com/apps/feeds/internal/services"
-	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -21,10 +20,14 @@ import (
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/observability"
 	globalrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/webfetch"
 )
 
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
+
+// userAgent identifies the feeds app's web fetches to origin servers.
+const userAgent = "tools.xdoubleu.com feeds bot"
 
 type Feeds struct {
 	app.Base
@@ -50,7 +53,7 @@ func New(
 		logger,
 		cfg,
 		db,
-		webfetch.New(logger, cfg.Env != config.ProdEnv),
+		webfetch.New(logger, userAgent, cfg.Env != config.ProdEnv),
 		notifications,
 		appUsersRepo,
 	)

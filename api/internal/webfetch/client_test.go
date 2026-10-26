@@ -10,12 +10,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/safedial"
+	"tools.xdoubleu.com/internal/webfetch"
 )
 
+const testUserAgent = "tools.xdoubleu.com test bot"
+
 func newClient() webfetch.Client {
-	return webfetch.New(logging.NewNopLogger(), true)
+	return webfetch.New(logging.NewNopLogger(), testUserAgent, true)
 }
 
 // opts builds fully-initialized Options with just a size cap.
@@ -31,7 +34,7 @@ func opts(maxBytes int64) webfetch.Options {
 func TestGet_Basic(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			assert.NotEmpty(t, r.Header.Get("User-Agent"))
+			assert.Equal(t, testUserAgent, r.Header.Get("User-Agent"))
 			w.Header().Set("Content-Type", "text/HTML; charset=utf-8")
 			w.Header().Set("ETag", `"v1"`)
 			w.Header().Set("Last-Modified", "Mon, 01 Jan 2024 00:00:00 GMT")
@@ -136,4 +139,39 @@ func TestGet_SchemeRejected(t *testing.T) {
 		_, err := newClient().Get(context.Background(), u, opts(0))
 		assert.ErrorIs(t, err, webfetch.ErrScheme, u)
 	}
+}
+
+func TestGet_SendsTheConfiguredUserAgent(t *testing.T) {
+	var got string
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(_ http.ResponseWriter, r *http.Request) {
+			got = r.Header.Get("User-Agent")
+		},
+	))
+	t.Cleanup(ts.Close)
+
+	client := webfetch.New(
+		logging.NewNopLogger(), "tools.xdoubleu.com feeds bot", true,
+	)
+	_, err := client.Get(context.Background(), ts.URL, opts(0))
+
+	require.NoError(t, err)
+	assert.Equal(t, "tools.xdoubleu.com feeds bot", got)
+}
+
+// A user-supplied URL must never reach the container's own network in
+// production (allowPrivate false).
+func TestGet_BlocksPrivateAddressesOutsideDev(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write([]byte("secret"))
+		},
+	))
+	t.Cleanup(ts.Close)
+
+	client := webfetch.New(logging.NewNopLogger(), testUserAgent, false)
+	_, err := client.Get(context.Background(), ts.URL, opts(0))
+
+	require.ErrorIs(t, err, webfetch.ErrNetwork)
+	assert.ErrorIs(t, err, safedial.ErrBlockedAddress)
 }
