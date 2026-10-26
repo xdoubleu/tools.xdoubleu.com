@@ -168,6 +168,18 @@ describe('Popover', () => {
     expect(screen.getByRole('dialog', { name: 'Open menu' })).toHaveFocus()
   })
 
+  it('leaves focus on a control in the panel that took it on mount', () => {
+    render(
+      <Popover
+        trigger={({ onClick }) => <PopoverTrigger onClick={onClick}>Tags</PopoverTrigger>}
+      >
+        <input aria-label="New tag" autoFocus />
+      </Popover>
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Tags' }))
+    expect(screen.getByRole('textbox', { name: 'New tag' })).toHaveFocus()
+  })
+
   it('takes its accessible name from aria-label when given', () => {
     render(
       <Popover
