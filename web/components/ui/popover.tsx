@@ -6,7 +6,7 @@ import {
   useId,
   type ReactNode,
   type ButtonHTMLAttributes,
-  type KeyboardEvent
+  type KeyboardEvent as ReactKeyboardEvent
 } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/cn'
@@ -122,7 +122,7 @@ export function Popover({
     }
   }, [open, fallbackTriggerId])
 
-  const handlePanelKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const handlePanelKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     const panel = panelRef.current
     const items = focusables(panel, MENU_ITEM)
     if (e.key === 'Tab') {
