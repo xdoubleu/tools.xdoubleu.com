@@ -66,7 +66,7 @@ func (h *booksConnectHandler) UpdateReadingProgress(
 		},
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.UpdateReadingProgressResponse{}, nil
 }
@@ -95,7 +95,7 @@ func (h *booksConnectHandler) GetReadingState(
 		return &booksv1.GetReadingStateResponse{}, nil
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	out := readingStateToProto(state)
 	if state.Position != nil {

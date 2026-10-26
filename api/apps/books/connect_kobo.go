@@ -2,7 +2,6 @@ package books
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -12,7 +11,6 @@ import (
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
@@ -35,11 +33,11 @@ func (h *booksConnectHandler) EnableKoboSync(
 		)
 	}
 	if err = h.app.Services.Books.EnableKoboSync(ctx, user.ID, bookID); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	statusResult, err := h.app.Services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	kepubStatus := h.maybeStartKEPUBConversion(ctx, user.ID, bookID, statusResult)
 	return &booksv1.EnableKoboSyncResponse{
@@ -62,7 +60,7 @@ func (h *booksConnectHandler) RegisterKoboDevice(
 		ctx, user.ID, req.Name, req.Serial,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.RegisterKoboDeviceResponse{
 		Device:   koboDeviceProto(device),
@@ -83,7 +81,7 @@ func (h *booksConnectHandler) ListKoboDevices(
 	}
 	devices, err := h.app.Services.Kobo.ListKoboDevices(ctx, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	resp := &booksv1.ListKoboDevicesResponse{
 		Devices: make([]*booksv1.KoboDevice, len(devices)),
@@ -116,13 +114,7 @@ func (h *booksConnectHandler) DisconnectKoboDevice(
 	}
 	err = h.app.Services.Kobo.DisconnectKoboDevice(ctx, user.ID, deviceID)
 	if err != nil {
-		if errors.Is(err, database.ErrResourceNotFound) {
-			return nil, connect.NewError(
-				connect.CodeNotFound,
-				"device not found",
-			)
-		}
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.DisconnectKoboDeviceResponse{}, nil
 }
@@ -155,7 +147,7 @@ func (h *booksConnectHandler) ListKoboStoreBooks(
 	}
 	books, err := h.app.Services.Books.ListKoboStoreBooks(ctx, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	resp := &booksv1.ListKoboStoreBooksResponse{
 		Books: make([]*booksv1.KoboStoreBook, len(books)),

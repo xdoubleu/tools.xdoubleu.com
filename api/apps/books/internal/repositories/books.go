@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -910,18 +911,21 @@ var sourceColumns = map[string]string{
 	"hardcover": "hardcover_found",
 }
 
+// ErrUnknownSources rejects an empty or unknown exact-sources filter.
+var ErrUnknownSources = errors.New("sources must be 1-2 of unicat, hardcover")
+
 // exactSourcesPredicate matches books found (IS TRUE) by exactly the given
 // sources and confirmed absent (IS FALSE) from the rest, so an unresolved
 // (NULL) source excludes the book. Rejects empty or unknown names.
 func exactSourcesPredicate(sources []string) (string, error) {
 	if len(sources) == 0 {
-		return "", database.ErrResourceNotFound
+		return "", ErrUnknownSources
 	}
 
 	want := make(map[string]bool, len(sources))
 	for _, s := range sources {
 		if _, ok := sourceColumns[s]; !ok {
-			return "", database.ErrResourceNotFound
+			return "", ErrUnknownSources
 		}
 		want[s] = true
 	}

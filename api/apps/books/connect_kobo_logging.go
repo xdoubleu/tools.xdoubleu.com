@@ -2,7 +2,6 @@ package books
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
@@ -41,13 +39,7 @@ func (h *booksConnectHandler) koboDeviceForLogging(
 	if _, err = h.app.Services.Kobo.GetKoboDevice(
 		ctx, user.ID, deviceID,
 	); err != nil {
-		if errors.Is(err, database.ErrResourceNotFound) {
-			return uuid.Nil, connect.NewError(
-				connect.CodeNotFound,
-				"device not found",
-			)
-		}
-		return uuid.Nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return uuid.Nil, mapError(err)
 	}
 	return deviceID, nil
 }

@@ -36,7 +36,7 @@ func (h *booksConnectHandler) GetSeries(
 
 	view, err := h.app.Services.Books.GetSeries(ctx, user.ID, name)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return protoSeries(view, h.app.clients.PublicAPIBaseURL), nil
 }
