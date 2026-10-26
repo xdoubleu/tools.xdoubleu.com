@@ -2,7 +2,7 @@
 
 - Enforced by:
   - `npm run lint`, which runs the ESLint raw-control bans and the local `ui/*` rules in `web/eslint-rules/` (`mobile-first-classes`, `theme-tokens`, `no-classname-template`, `touch-targets`, `use-primitives`, `field-labels`). It also runs their RuleTester tests (`test:eslint-rules`) and `generate:ui-catalog:check`.
-  - `npm run build`, for the server/client boundary.
+  - `npm run build`, for the production bundle.
   - The `mobile-review` skill, whose `npm run mobile:audit` fails on overflow, sub-44px or crowded tap targets, and sub-16px inputs at 375x667.
   - Review, for everything else.
 - Issues: #1412, #1626
@@ -34,7 +34,7 @@
 
 ## Worked examples
 
-- **Tailwind v4, CSS-first**: there is no `tailwind.config.ts`. `app/globals.css` defines RGB-triple variables per scheme via `@theme inline`, plus `@theme` for shadow and radius tokens.
+- **Tailwind v4, CSS-first**: there is no JS config file. `app/globals.css` defines RGB-triple variables per scheme via `@theme inline`, plus `@theme` for shadow and radius tokens.
 - **Light/dark** keys off `:root[data-theme='dark']`.
   - `lib/theme.ts` stores `auto`/`light`/`dark` in localStorage.
   - `public/theme-init.js` repeats its resolution in `index.html`'s `<head>` to avoid a flash.

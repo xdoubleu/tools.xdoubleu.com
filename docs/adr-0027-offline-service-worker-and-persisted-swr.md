@@ -2,7 +2,7 @@
 
 - Status: Accepted; the page-saving worker is reworked to precache the app shell and hashed assets in [ADR-0034](adr-0034-vite-spa-served-by-the-api.md). The persisted SWR cache and the outbox are unchanged.
 - Issues: #2133 (part of epic #386); book files #2161, #2162
-- Affects: `web/lib/offline/`, `web/app/sw.js/route.ts`, `web/components/SWRProvider.tsx`, `web/lib/books/offlineBooks.ts`, `web/lib/books/offlineSync.ts`
+- Affects: `web/lib/offline/`, `api/internal/spa/`, `web/components/SWRProvider.tsx`, `web/lib/books/offlineBooks.ts`, `web/lib/books/offlineSync.ts`
 
 ## Context
 

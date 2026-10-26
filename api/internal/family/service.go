@@ -1,6 +1,7 @@
 // Package family owns the family entity (membership, invites, display names,
-// leaving). Members share recipes, meal plans and shopping lists, keyed by the
-// family_id this package hands out. A user belongs to at most one family.
+// leaving). Members share recipes, meal plans, shopping lists and a movies &
+// series list (with its taste profile), keyed by the family_id this package
+// hands out. A user belongs to at most one family.
 package family
 
 import (

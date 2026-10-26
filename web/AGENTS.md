@@ -42,7 +42,7 @@ rm -f tsconfig.tsbuildinfo              # before `npx tsc --noEmit` after a lock
 - **ESLint rejects raw controls and hand-rolled forms of existing primitives** (`<h1>`, cards, banners…) via `ui/*` rules in `eslint-rules/`. Check [`components/ui/README.md`](components/ui/README.md) first; add a primitive, not a raw element. A new class-pattern check needs a RuleTester case.
 - Merge classes with `cn()`; navigating cards use `LinkCard`, with controls in its `actions` footer.
 - Pending buttons use a present participle with the typographic `…`, never `...`.
-- Tailwind v4 CSS-first (no `tailwind.config.ts`); dark tokens key off `:root[data-theme='dark']`, owned by `lib/theme.ts` and `public/theme-init.js`.
+- Tailwind v4 CSS-first (no JS config); dark tokens key off `:root[data-theme='dark']`, owned by `lib/theme.ts` and `public/theme-init.js`.
 
 ## kobo-gateway client (`lib/books/gatewayClient.ts`)
 

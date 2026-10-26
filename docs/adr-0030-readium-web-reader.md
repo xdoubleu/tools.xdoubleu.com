@@ -1,8 +1,8 @@
 # ADR-0030: the web reader renders EPUBs with Readium and PDFs with an in-house pdf.js pager
 
-- Status: Accepted
+- Status: Accepted; the reader-chunk warmup was replaced by the app-shell precache in [ADR-0034](adr-0034-vite-spa-served-by-the-api.md).
 - Issues: #2312, #2313, #2314, #2315, #2316, #2317
-- Affects: `api/apps/books/webpub_routes.go`, `api/apps/books/internal/services/webpub.go`, `web/components/books/reader/`, `web/lib/books/{readium,pdf,webpubCache,readerModules}.ts`
+- Affects: `api/apps/books/webpub_routes.go`, `api/apps/books/internal/services/webpub.go`, `web/components/books/reader/`, `web/lib/books/{readium,pdf,webpubCache}.ts`
 
 ## Context
 
@@ -25,8 +25,8 @@ to keep it running.
   `readium.ts` maps a locator's progression to a body-text offset and back.
 - **Offline**: the offline sync warms the WebPub into the `tools-webpub`
   cache (network-first reads, cache fallback); sign-out clears it with the
-  other `tools-` caches. The readers' chunks and the pdf.js worker are warmed
-  through the service worker's `/_next/static` cache.
+  other `tools-` caches. The readers' chunks and the pdf.js worker are hashed
+  build files, precached by the service worker.
 
 ## Alternatives considered
 

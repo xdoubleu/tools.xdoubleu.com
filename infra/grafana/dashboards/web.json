@@ -33,7 +33,7 @@
       "id": 2,
       "type": "stat",
       "title": "TTFB p95",
-      "description": "Time to First Byte at the 95th percentile, reported by the browser beacon (web/app/_components/web-vitals.tsx). The same expression the FrontendP95High alert rule thresholds at 5s.",
+      "description": "Time to First Byte at the 95th percentile, reported by the browser beacon (web/src/WebVitals.tsx). The same expression the FrontendP95High alert rule thresholds at 5s.",
       "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
@@ -52,7 +52,7 @@
       "id": 3,
       "type": "timeseries",
       "title": "Core Web Vitals p75",
-      "description": "Reported by the browser beacon (web/app/_components/web-vitals.tsx). p75 is the percentile the Core Web Vitals thresholds are defined at. No route label — these are site-wide.",
+      "description": "Reported by the browser beacon (web/src/WebVitals.tsx). p75 is the percentile the Core Web Vitals thresholds are defined at. No route label — these are site-wide.",
       "gridPos": { "h": 9, "w": 24, "x": 0, "y": 5 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [

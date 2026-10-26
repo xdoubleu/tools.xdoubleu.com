@@ -36,9 +36,8 @@ as a manual aid):
    denies importing `api/apps/<name>/internal/*` from outside that app (the
    `dashboard`/`learningpaths` carve-out per
    [`adr-0007`](adr-0007-dashboard-app-owns-public-sharing.md)); web
-   `dependency-cruiser` enforces the server/client boundary
-   ([`convention-ui-standards`](convention-ui-standards.md)) and `web/app/*`
-   route segregation — imports reaching where they shouldn't.
+   `dependency-cruiser` forbids imports across `app/`,
+   `components/` and `lib/` domains — imports reaching where they shouldn't.
 3. **Diff-scoped mutation testing** (`gremlins`, StrykerJS), scoped like
    [`adr-0013`](adr-0013-diff-scoped-coverage.md)'s coverage — tests that
    don't assert anything. gremlins only runs a package's own tests, so code

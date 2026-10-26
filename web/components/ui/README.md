@@ -66,7 +66,7 @@ Navigation trail; the last item is the current page. Use instead of one-off "bac
 |---|---|---|---|
 | `variant` | `'default' \| 'secondary' \| 'ghost' \| 'destructive' \| 'link'` |  |  |
 | `size` | `'sm' \| 'md' \| 'lg' \| 'icon' \| 'iconSm'` |  |  |
-| `asChild` | `boolean` |  | Render the child element as the button (e.g. a Next `<Link>`), inheriting button styles. |
+| `asChild` | `boolean` |  | Render the child element as the button (e.g. a `<Link>`), inheriting button styles. |
 
 Also accepts: `ButtonHTMLAttributes<HTMLButtonElement>`
 
