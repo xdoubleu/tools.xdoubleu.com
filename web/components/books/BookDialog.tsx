@@ -64,7 +64,7 @@ export default function BookDialog({ book, onClose, onAdded }: BookDialogProps) 
 
   return (
     <Dialog open={!!book} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent side="sheet">
         <DialogHeader>
           <DialogTitle>{book?.title ?? ''}</DialogTitle>
           <DialogClose>×</DialogClose>

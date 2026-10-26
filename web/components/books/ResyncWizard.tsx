@@ -12,7 +12,7 @@ import { TogglePill } from '@/components/ui/toggle-pill'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { LoadingState } from '@/components/ui/states'
+import { EmptyState, LoadingState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
 import { Alert } from '@/components/ui/alert'
 
@@ -66,9 +66,7 @@ export default function ResyncWizard() {
 
   if (isLoading) return <LoadingState className="text-xs" />
   if (proposals.length === 0) {
-    return (
-      <p className="text-xs text-muted">No flagged differences. Run a scan to check for updates.</p>
-    )
+    return <EmptyState compact>No flagged differences. Run a scan to check for updates.</EmptyState>
   }
 
   const filterPill = (

@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogClose
 } from '@/components/ui/dialog'
-import BookCover from '@/components/books/BookCover'
+import { Artwork } from '@/components/ui/artwork'
 
 function sourceLabel(source: string): string {
   return SOURCE_LABELS[source] ?? source
@@ -60,7 +60,7 @@ function ExactSourcesDialog({
           <ul className="space-y-2">
             {data.books.map((b) => (
               <li key={b.id} className="flex items-center gap-3">
-                <BookCover coverUrl={b.coverUrl} title={b.title} size="sm" />
+                <Artwork src={b.coverUrl} title={b.title} alt={b.title} initials={2} size="sm" />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-fg">{b.title}</p>
                   {b.authors.length > 0 && (

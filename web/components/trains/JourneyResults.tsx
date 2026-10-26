@@ -1,7 +1,6 @@
-import { Link } from '@/components/ui/link'
-import { Card, interactiveCardClass } from '@/components/ui/card'
-import { ErrorState, LoadingState } from '@/components/ui/states'
-import { cn } from '@/lib/cn'
+import { Card } from '@/components/ui/card'
+import { LinkCard } from '@/components/ui/link-card'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import type { Journey } from '@/lib/gen/trains/v1/trains_pb'
 
 function formatTime(iso: string): string {
@@ -35,12 +34,9 @@ export function JourneyRow({ journey }: { journey: Journey }) {
   }
 
   return (
-    <Link
-      href={`/trains/${encodeURIComponent(journey.journeyId)}`}
-      className={cn(interactiveCardClass, 'block p-4')}
-    >
+    <LinkCard href={`/trains/${encodeURIComponent(journey.journeyId)}`} linkClassName="p-4">
       <JourneyRowContent journey={journey} trains={trains} />
-    </Link>
+    </LinkCard>
   )
 }
 
@@ -77,7 +73,7 @@ export default function JourneyResults({ ready, isLoading, error, journeys }: Jo
   if (isLoading) return <LoadingState label="journeys" />
   if (error) return <ErrorState what="journeys" />
   if (journeys.length === 0) {
-    return <p className="text-muted">No trains found for this station pair and time.</p>
+    return <EmptyState>No trains found for this station pair and time.</EmptyState>
   }
 
   return (

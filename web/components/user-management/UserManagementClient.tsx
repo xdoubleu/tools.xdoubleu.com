@@ -6,7 +6,7 @@ import { Select } from '@/components/ui/select'
 import { Card } from '@/components/ui/card'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
-import { ErrorState, LoadingState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import {
   Table,
   TableBody,
@@ -99,7 +99,7 @@ export default function UserManagementClient() {
           wide sideways scroll below `sm`. */}
       <div className="space-y-3 sm:hidden">
         {users.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted">No users found.</p>
+          <EmptyState>No users found.</EmptyState>
         ) : (
           users.map((user) => (
             <Card key={user.id} className="space-y-3 p-4">

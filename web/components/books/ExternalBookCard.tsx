@@ -1,10 +1,8 @@
-import { Link } from '@/components/ui/link'
 import type { ExternalBookResult } from '@/lib/gen/books/v1/library_pb'
-import BookCover from '@/components/books/BookCover'
+import { Artwork } from '@/components/ui/artwork'
 import { Badge } from '@/components/ui/badge'
-import { interactiveCardClass } from '@/components/ui/card'
-import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
-import { cn } from '@/lib/cn'
+import { Card } from '@/components/ui/card'
+import { LinkCard } from '@/components/ui/link-card'
 import { providerLabel } from '@/lib/books/bookShelves'
 
 interface ExternalBookCardProps {
@@ -18,7 +16,7 @@ export default function ExternalBookCard({ book }: ExternalBookCardProps) {
   const content = (
     <>
       <div className="shrink-0">
-        <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />
+        <Artwork src={book.coverUrl} title={book.title} alt={book.title} initials={2} size="sm" />
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold text-sm leading-snug">{book.title}</h3>
@@ -31,20 +29,15 @@ export default function ExternalBookCard({ book }: ExternalBookCardProps) {
   )
 
   if (!book.providerId) {
-    return (
-      <div className={cn('relative p-3 flex gap-3 items-start rounded-2xl border border-border')}>
-        {content}
-      </div>
-    )
+    return <Card className="flex items-start gap-3 p-3">{content}</Card>
   }
 
   return (
-    <Link
+    <LinkCard
       href={`/books/external/${book.provider}/${book.providerId}`}
-      className={cn(interactiveCardClass, 'relative p-3 flex gap-3 items-start')}
+      linkClassName="flex items-start gap-3"
     >
-      <CardLinkStatus />
       {content}
-    </Link>
+    </LinkCard>
   )
 }

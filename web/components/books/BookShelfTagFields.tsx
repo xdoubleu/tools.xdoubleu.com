@@ -13,6 +13,7 @@ import {
   BUILT_IN_STATUSES,
   displayTags
 } from '@/lib/books/bookShelves'
+import { EmptyState } from '@/components/ui/states'
 
 interface BookShelfTagFieldsProps {
   userBook: UserBook
@@ -157,7 +158,7 @@ export default function BookShelfTagFields({
           Tags
         </Label>
         {allTags.length === 0 ? (
-          <p className="text-xs text-muted">No tags yet.</p>
+          <EmptyState compact>No tags yet.</EmptyState>
         ) : (
           <div className="flex flex-wrap gap-2 sm:gap-1.5">
             {allTags.map((tag) => {

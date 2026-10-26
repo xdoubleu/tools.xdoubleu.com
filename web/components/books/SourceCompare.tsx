@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import type { SourceBook, ResyncProposal } from '@/lib/gen/books/v1/catalog_pb'
-import BookCover from '@/components/books/BookCover'
+import { Artwork } from '@/components/ui/artwork'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Field } from '@/components/ui/field'
@@ -14,7 +14,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   hardcover: 'Hardcover'
 }
 
-// cover_url renders via BookCover.
+// cover_url renders as the card's Artwork.
 const FIELDS = ['title', 'authors', 'description', 'page_count', 'isbn13']
 
 function fieldValue(s: SourceBook, field: string): string {
@@ -39,7 +39,13 @@ function SourceCard({ label, source }: { label: string; source: SourceBook }) {
   return (
     <Card variant="inset" className="rounded-xl text-sm">
       <div className="mb-2 flex items-center gap-2">
-        <BookCover coverUrl={source.coverUrl} title={source.title} size="sm" />
+        <Artwork
+          src={source.coverUrl}
+          title={source.title}
+          alt={source.title}
+          initials={2}
+          size="sm"
+        />
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
       </div>
       <ul className="space-y-1">

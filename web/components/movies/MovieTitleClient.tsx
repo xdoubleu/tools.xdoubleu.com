@@ -4,8 +4,8 @@ import { Code, ConnectError } from '@connectrpc/connect'
 import { useMovieTitle, useMoviesActions } from '@/hooks/useMovies'
 import { useSharedList } from '@/hooks/useSharedList'
 import { listHref } from '@/lib/listScope'
-import { mediaTypeLabel, releaseLabel, titleName, todayISO } from '@/lib/movies/format'
-import MoviePoster from '@/components/movies/MoviePoster'
+import { mediaTypeLabel, posterUrl, releaseLabel, titleName, todayISO } from '@/lib/movies/format'
+import { Artwork } from '@/components/ui/artwork'
 import MovieWatches from '@/components/movies/MovieWatches'
 import SeasonChecklist from '@/components/movies/SeasonChecklist'
 import TitleStatus from '@/components/movies/TitleStatus'
@@ -95,7 +95,7 @@ export default function MovieTitleClient({ id }: { id: string }) {
         }
       />
       <div className="flex flex-col gap-6 sm:flex-row">
-        <MoviePoster posterPath={entry.posterPath} title={displayed} size="lg" />
+        <Artwork src={posterUrl(entry.posterPath, 'w342')} title={displayed} size="lg" />
         <div className="min-w-0 flex-1 space-y-4">
           <p className="text-sm text-muted">{facts.join(' · ')}</p>
           {entry.genres.length > 0 && (

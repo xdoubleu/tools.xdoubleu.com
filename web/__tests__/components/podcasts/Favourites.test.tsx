@@ -8,9 +8,8 @@ vi.mock('@/hooks/usePodcasts', () => ({
   usePodcastFavourites: vi.fn(),
   usePodcastActions: vi.fn(() => ({ remove: mockRemove }))
 }))
-vi.mock('@/components/podcasts/ShowArtwork', () => ({
-  __esModule: true,
-  default: () => <div data-testid="artwork" />
+vi.mock('@/components/ui/artwork', () => ({
+  Artwork: () => <div data-testid="artwork" />
 }))
 
 import Favourites from '@/components/podcasts/Favourites'

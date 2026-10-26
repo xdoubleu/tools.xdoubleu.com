@@ -1,7 +1,4 @@
-import { Link } from '@/components/ui/link'
-import { cn } from '@/lib/cn'
-import { interactiveCardClass } from '@/components/ui/card'
-import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
+import { LinkCard } from '@/components/ui/link-card'
 
 export interface AppLink {
   name: string
@@ -26,28 +23,12 @@ interface AppGridProps {
 function AppCards({ apps }: { apps: AppLink[] }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {apps.map((app) =>
-        app.external ? (
-          <a
-            key={app.name}
-            href={app.href}
-            className={cn(interactiveCardClass, 'relative block p-4')}
-          >
-            <div className="font-semibold text-fg">{app.label}</div>
-            <div className="mt-1 text-sm text-muted">{app.description}</div>
-          </a>
-        ) : (
-          <Link
-            key={app.name}
-            href={app.href}
-            className={cn(interactiveCardClass, 'relative block p-4')}
-          >
-            <CardLinkStatus />
-            <div className="font-semibold text-fg">{app.label}</div>
-            <div className="mt-1 text-sm text-muted">{app.description}</div>
-          </Link>
-        )
-      )}
+      {apps.map((app) => (
+        <LinkCard key={app.name} href={app.href} external={app.external} linkClassName="p-4">
+          <div className="font-semibold text-fg">{app.label}</div>
+          <div className="mt-1 text-sm text-muted">{app.description}</div>
+        </LinkCard>
+      ))}
     </div>
   )
 }

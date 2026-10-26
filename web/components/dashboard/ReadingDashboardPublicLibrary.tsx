@@ -9,7 +9,7 @@ import LibrarySidebar, {
 import DashboardBookCard from '@/components/dashboard/DashboardBookCard'
 import { Input } from '@/components/ui/input'
 import { flattenLibrary } from '@/lib/books/bookShelves'
-import { LoadingState, ErrorState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 function booksForShelf(library: LibraryResponse, shelfId: ShelfId): UserBook[] {
   if (shelfId === 'all') return flattenLibrary(library)
@@ -101,7 +101,7 @@ export default function ReadingDashboardPublicLibrary({ token }: { token: string
               <DashboardBookCard key={ub.id} userBook={ub} />
             ))}
             {filteredBooks.length === 0 && (
-              <p className="col-span-full py-16 text-center text-sm text-muted">No books.</p>
+              <EmptyState className="col-span-full">No books.</EmptyState>
             )}
           </div>
         </div>

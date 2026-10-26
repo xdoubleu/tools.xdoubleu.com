@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useRouter } from '@/hooks/navigation'
 import { mutate } from 'swr'
 import { useExternalBook } from '@/hooks/useBooks'
-import BookCover from '@/components/books/BookCover'
+import { Artwork } from '@/components/ui/artwork'
 import BookDescription from '@/components/books/BookDescription'
 import BookDialog from '@/components/books/BookDialog'
 import { Badge } from '@/components/ui/badge'
@@ -10,7 +10,7 @@ import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
-import { LoadingState, ErrorState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
 import { providerLabel } from '@/lib/books/bookShelves'
 
@@ -47,7 +47,13 @@ export default function ExternalBookDetailClient({
         <>
           <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start">
             <div className="shrink-0">
-              <BookCover coverUrl={book.coverUrl} title={book.title} size="lg" />
+              <Artwork
+                src={book.coverUrl}
+                title={book.title}
+                alt={book.title}
+                initials={2}
+                size="lg"
+              />
             </div>
 
             <div className="flex-1 min-w-0">
@@ -76,7 +82,7 @@ export default function ExternalBookDetailClient({
             {book.description ? (
               <BookDescription description={book.description} />
             ) : (
-              <p className="text-sm text-muted">No description available.</p>
+              <EmptyState compact>No description available.</EmptyState>
             )}
           </section>
         </>

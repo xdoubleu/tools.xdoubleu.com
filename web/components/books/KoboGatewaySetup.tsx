@@ -18,6 +18,7 @@ import {
   useDisconnectKoboDevice,
   useListKoboDevices
 } from '@/hooks/useBooks'
+import { EmptyState } from '@/components/ui/states'
 
 type GatewayState = 'idle' | 'updating' | 'configuring' | 'success' | 'reverting' | 'error'
 
@@ -156,9 +157,9 @@ export default function KoboGatewaySetup({ status, pollIntervalMs = 1500 }: Kobo
       </p>
 
       {kobos.length === 0 && state !== 'error' && (
-        <p className="text-sm text-muted" data-testid="kobo-gateway-no-kobo">
+        <EmptyState compact>
           No Kobo detected. Plug it in via USB — this updates automatically.
-        </p>
+        </EmptyState>
       )}
 
       {kobos.length > 1 && !kobo && (

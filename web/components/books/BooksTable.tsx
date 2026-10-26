@@ -24,6 +24,7 @@ import {
   type SortState
 } from '@/components/books/booksTableColumns'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { EmptyState } from '@/components/ui/states'
 
 const PAGE_SIZE = 20
 
@@ -176,7 +177,9 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
           wide sideways scroll below `sm`. */}
       <ul className="grid grid-cols-1 gap-3 sm:hidden">
         {pageBooks.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted">No books match the current filters.</p>
+          <li>
+            <EmptyState>No books match the current filters.</EmptyState>
+          </li>
         ) : (
           pageBooks.map((ub) => (
             <li key={ub.id}>

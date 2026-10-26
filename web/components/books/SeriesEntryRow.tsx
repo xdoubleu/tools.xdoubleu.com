@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { SeriesEntry } from '@/lib/gen/books/v1/library_pb'
-import BookCover from '@/components/books/BookCover'
+import { Artwork } from '@/components/ui/artwork'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -25,7 +25,13 @@ export default function SeriesEntryRow({ entry, onAdded }: SeriesEntryRowProps) 
         aria-label={owned.book.title}
         linkClassName="flex items-start gap-3"
       >
-        <BookCover coverUrl={owned.book.coverUrl} title={owned.book.title} size="sm" />
+        <Artwork
+          src={owned.book.coverUrl}
+          title={owned.book.title}
+          alt={owned.book.title}
+          initials={2}
+          size="sm"
+        />
         <div className="min-w-0 flex-1">
           {position && <p className="text-xs text-muted">{position}</p>}
           <h3 className="text-sm font-semibold leading-snug">{owned.book.title}</h3>
@@ -85,7 +91,7 @@ function MissingEntry({
       data-testid="series-missing"
     >
       <div className="flex min-w-0 flex-1 items-start gap-3">
-        <BookCover coverUrl={ext.coverUrl} title={ext.title} size="sm" />
+        <Artwork src={ext.coverUrl} title={ext.title} alt={ext.title} initials={2} size="sm" />
         <div className="min-w-0 flex-1">
           {position && <p className="text-xs text-muted">{position}</p>}
           <h3 className="text-sm font-semibold leading-snug">{ext.title}</h3>

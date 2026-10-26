@@ -1,10 +1,9 @@
-import { Link } from '@/components/ui/link'
-import { Card, interactiveCardClass } from '@/components/ui/card'
-import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
+import { Card } from '@/components/ui/card'
+import { LinkCard } from '@/components/ui/link-card'
 import { Badge } from '@/components/ui/badge'
 import RssIcon from '@/components/RssIcon'
-import { cn } from '@/lib/cn'
 import type { FeedsSummary } from '@/hooks/useFeeds'
+import { EmptyState } from '@/components/ui/states'
 
 // Owner's reading-dashboard feeds widget: unread count plus recent items,
 // linking to /feeds. The public dashboard uses SharedFeedsCard.
@@ -31,7 +30,7 @@ export default function ReadingFeedsSummaryCard({
 
   const items =
     summary.items.length === 0 ? (
-      <p className="text-sm text-muted">No unread items.</p>
+      <EmptyState compact>No unread items.</EmptyState>
     ) : (
       <ul className="flex flex-col gap-1">
         {summary.items.slice(0, 3).map((item) => (
@@ -44,11 +43,10 @@ export default function ReadingFeedsSummaryCard({
 
   if (href) {
     return (
-      <Link href={href} className={cn(interactiveCardClass, 'relative flex flex-col gap-2 p-3')}>
-        <CardLinkStatus />
+      <LinkCard href={href} linkClassName="flex flex-col gap-2">
         {header}
         {items}
-      </Link>
+      </LinkCard>
     )
   }
 

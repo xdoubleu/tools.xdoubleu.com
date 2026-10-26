@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field } from '@/components/ui/field'
-import { LoadingState } from '@/components/ui/states'
+import { EmptyState, LoadingState } from '@/components/ui/states'
 import { Alert } from '@/components/ui/alert'
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -156,7 +156,7 @@ export default function ProviderConfigDialog({
                       Projects
                     </p>
                     {projects.length === 0 ? (
-                      <p className="text-sm text-muted">No projects found in {org}.</p>
+                      <EmptyState compact>No projects found in {org}.</EmptyState>
                     ) : (
                       <div className="flex flex-col gap-2">
                         {projects.map((p) => (
