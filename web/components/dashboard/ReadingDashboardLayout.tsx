@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { LibraryResponse, UserBook } from '@/lib/gen/books/v1/library_pb'
-import BooksDashboardView from '@/components/books/BooksDashboardView'
+import BooksDashboardView from '@/components/dashboard/BooksDashboardView'
 import type { DashboardChartState } from '@/hooks/useDashboardChartState'
 
 // Shared by the private and public reading dashboards so they can't drift;

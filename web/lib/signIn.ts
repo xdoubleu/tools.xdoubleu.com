@@ -1,9 +1,17 @@
 import { Code, ConnectError } from '@connectrpc/connect'
 
+// A token-shared dashboard: /dashboard/<app>/<token>/…
+const SHARED_DASHBOARD = /^\/dashboard\/[^/]+\/[^/]+/
+
 // Pages a signed-out visitor may stay on: the home page and auth pages (both
 // show the sign-in form), OAuth consent (which sends to sign-in itself), and
-// token-shared dashboards (/dashboard/<app>/<token>/…).
-const PUBLIC_PATHS = [/^\/$/, /^\/auth\//, /^\/oauth\//, /^\/dashboard\/[^/]+\/[^/]+/]
+// shared dashboards.
+const PUBLIC_PATHS = [/^\/$/, /^\/auth\//, /^\/oauth\//, SHARED_DASHBOARD]
+
+/** True on a page someone opened through a share link, where owner chrome is hidden. */
+export function isSharedDashboard(pathname: string): boolean {
+  return SHARED_DASHBOARD.test(pathname)
+}
 
 /** True when the api answered that there's no session. A network error isn't one, so offline reads keep working. */
 export function isSignedOut(error: unknown): boolean {

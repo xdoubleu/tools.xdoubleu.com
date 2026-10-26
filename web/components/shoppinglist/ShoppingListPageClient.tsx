@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react'
 import {
   useCustomList,
-  useCategories,
   useAllMealPlanExportItems,
-  useAllPlanIngredientGroups,
-  useItemAliases
+  useAllPlanIngredientGroups
 } from '@/hooks/useShoppingList'
+import { useCategories, useItemAliases } from '@/hooks/useIngredientCatalog'
 import ShoppingList from '@/components/shoppinglist/ShoppingList'
 import ExportDialog from '@/components/shoppinglist/ExportDialog'
 import AddItemForm from '@/components/shoppinglist/AddItemForm'

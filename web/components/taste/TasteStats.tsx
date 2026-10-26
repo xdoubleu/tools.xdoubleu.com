@@ -109,7 +109,7 @@ export default function TasteStats() {
             label={domainLabel(d.domain)}
             value={d.consumed}
             hint={
-              <span suppressHydrationWarning>
+              <span>
                 {d.positive} liked · {d.negative} disliked
                 {d.lastAt && <> · last {formatDate(d.lastAt)}</>}
               </span>

@@ -18,7 +18,9 @@ vi.mock('@/hooks/useShoppingList', () => ({
         }
       : undefined,
     isLoading: false
-  }),
+  })
+}))
+vi.mock('@/hooks/useIngredientCatalog', () => ({
   useItemCategories: () => ({
     data: {
       items: [

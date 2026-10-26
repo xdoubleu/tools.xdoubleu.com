@@ -44,7 +44,9 @@ vi.mock('@/hooks/useShoppingList', () => ({
         { id: 'cat-dairy', name: 'Dairy' }
       ]
     }
-  }),
+  })
+}))
+vi.mock('@/hooks/useIngredientCatalog', () => ({
   useCategories: () => ({
     data: {
       categories: [

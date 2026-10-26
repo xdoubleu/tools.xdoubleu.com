@@ -1,5 +1,5 @@
 import { Code, ConnectError } from '@connectrpc/connect'
-import { isSignedOut, signInRedirect } from '@/lib/signIn'
+import { isSharedDashboard, isSignedOut, signInRedirect } from '@/lib/signIn'
 
 const unauthenticated = () => new ConnectError('not signed in', Code.Unauthenticated)
 
@@ -46,5 +46,17 @@ describe('signInRedirect', () => {
     ['a server error', new ConnectError('boom', Code.Internal)]
   ])('stays put on %s', (_, error) => {
     expect(signInRedirect(error, '/feeds', '')).toBeNull()
+  })
+})
+
+describe('isSharedDashboard', () => {
+  it.each([
+    ['/dashboard/reading/tok', true],
+    ['/dashboard/games/tok/42', true],
+    ['/dashboard/reading', false],
+    ['/dashboard/games', false],
+    ['/feeds', false]
+  ])('%s → %s', (pathname, shared) => {
+    expect(isSharedDashboard(pathname)).toBe(shared)
   })
 })

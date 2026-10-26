@@ -4,34 +4,22 @@ import {
   useSharedSteamProgress,
   useSharedRecentlyActiveGames
 } from '@/hooks/useDashboardShare'
-import type {
-  GetSharedSteamResponse,
-  GetSharedRecentlyActiveGamesResponse
-} from '@/lib/gen/dashboard/v1/games_pb'
-import GamesDashboardView from '@/components/games/GamesDashboardView'
+import GamesDashboardView from '@/components/dashboard/GamesDashboardView'
 import { Button } from '@/components/ui/button'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { useDashboardChartState } from '@/hooks/useDashboardChartState'
 import { formatDateTime } from '@/lib/dates'
 
-export default function GamesDashboardPublicClient({
-  token,
-  initialSteam,
-  initialRecent
-}: {
-  token: string
-  initialSteam?: GetSharedSteamResponse
-  initialRecent?: GetSharedRecentlyActiveGamesResponse
-}) {
+export default function GamesDashboardPublicClient({ token }: { token: string }) {
   const chart = useDashboardChartState<'progress' | 'distribution'>('distribution')
 
-  const { data, error, isLoading } = useSharedSteam(token, initialSteam)
+  const { data, error, isLoading } = useSharedSteam(token)
   const { data: progressData, isLoading: progressLoading } = useSharedSteamProgress(
     chart.view === 'progress' ? token : '',
     chart.start,
     chart.end
   )
-  const { data: recentData } = useSharedRecentlyActiveGames(token, initialRecent)
+  const { data: recentData } = useSharedRecentlyActiveGames(token)
 
   const steam = data?.steam
   const progressSteam = progressData?.steam

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import SettingsIcon from '@/components/SettingsIcon'
 import { flushOutbox } from '@/lib/offline/outbox'
 import { clearOfflineData } from '@/lib/offline/session'
+import { isSharedDashboard } from '@/lib/signIn'
 
 const navItemClass = 'text-muted hover:bg-transparent hover:text-accent'
 // Icon-only below `sm`; the text label stays for screen readers.
@@ -37,9 +38,7 @@ export default function Navbar() {
   const signOut = useSignOut()
   const pathname = usePathname()
 
-  if (isLoading || !data) return null
-  // ponytail: /profile/** is the public share-link surface; never show owner chrome there
-  if (pathname?.startsWith('/profile/')) return null
+  if (isLoading || !data || isSharedDashboard(pathname)) return null
 
   const handleSignOut = async () => {
     // Send queued writes first; sign-out deletes whatever is left.
@@ -53,14 +52,14 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-glass pt-[var(--inset-top)] backdrop-blur-xl backdrop-saturate-150 shadow-glass">
-      <nav className="mx-auto flex items-center justify-between py-1 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] sm:px-6 sm:py-2 lg:px-10">
+      <nav className="mx-auto flex items-center justify-between py-1 pl-[var(--inset-left)] pr-[max(0.5rem,env(safe-area-inset-right))] sm:py-2 sm:pr-[var(--inset-right)]">
         <Link
           href="/"
           className="flex min-h-11 min-w-0 items-center truncate text-sm font-semibold text-fg transition-colors hover:text-accent"
         >
           tools.xdoubleu.com
         </Link>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm" className={navItemClass}>
             <Link href="/settings">
               <SettingsIcon size={20} className="sm:hidden" />

@@ -4,7 +4,6 @@ import {
   isNewSeason,
   isUnreleased,
   mediaTypeLabel,
-  monthLabel,
   posterUrl,
   releaseLabel,
   statusLabel,
@@ -98,17 +97,5 @@ describe('isNewSeason', () => {
     ['ticked', 'watched', { ...season, watchedAt: [''] }]
   ])('is not when %s', (_name, status, s) => {
     expect(isNewSeason(status, s)).toBe(false)
-  })
-})
-
-describe('monthLabel', () => {
-  it('names every month', () => {
-    const months = Array.from({ length: 12 }, (_, i) =>
-      monthLabel(`2026-${String(i + 1).padStart(2, '0')}`)
-    )
-    expect(months.join(' ')).toBe(
-      'Jan 26 Feb 26 Mar 26 Apr 26 May 26 Jun 26 Jul 26 Aug 26 Sep 26 Oct 26 Nov 26 Dec 26'
-    )
-    expect(monthLabel('2025-12')).toBe('Dec 25')
   })
 })

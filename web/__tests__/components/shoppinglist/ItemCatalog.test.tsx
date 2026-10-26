@@ -19,7 +19,7 @@ const defaultNames: Name[] = [
   { name: 'rode ui', categoryId: '', excluded: false, mergedInto: 'apple' }
 ]
 
-vi.mock('@/hooks/useShoppingList', () => ({
+vi.mock('@/hooks/useIngredientCatalog', () => ({
   useItemNames: () => ({ data: namesData, error: namesError, isLoading: false }),
   useCategories: () => ({
     data: {

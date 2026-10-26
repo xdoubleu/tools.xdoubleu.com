@@ -1,9 +1,7 @@
-import { Suspense } from 'react'
 import { useSearchParams } from '@/hooks/navigation'
 import FeedFilteredItemsClient from '@/components/feeds/FeedFilteredItemsClient'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
-import { LoadingState } from '@/components/ui/states'
 
 export default function FeedFilteredPage() {
   const feedId = useSearchParams().get('feed') || undefined
@@ -16,9 +14,7 @@ export default function FeedFilteredPage() {
         breadcrumb={[{ label: 'Feeds', href: '/feeds' }, { label: 'Filtered' }]}
       />
 
-      <Suspense fallback={<LoadingState />}>
-        <FeedFilteredItemsClient initialFeedId={feedId} />
-      </Suspense>
+      <FeedFilteredItemsClient initialFeedId={feedId} />
     </PageContainer>
   )
 }

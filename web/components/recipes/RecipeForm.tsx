@@ -8,7 +8,7 @@ import {
   useCategories,
   queueCategory,
   queueItemCategory
-} from '@/hooks/useShoppingList'
+} from '@/hooks/useIngredientCatalog'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { parseFraction } from '@/lib/recipes/parseFraction'
 import { indexIngredientUnits, otherRecipeUnits } from '@/lib/recipes/unitConsistency'

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useIntegrations, useSaveIntegrations } from '@/hooks/useGames'
 import { mutate } from 'swr'
-import type { GetIntegrationsResponse, Integrations } from '@/lib/gen/games/v1/games_pb'
+import type { Integrations } from '@/lib/gen/games/v1/games_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
@@ -11,12 +11,8 @@ import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 
-export default function GamesSettingsClient({
-  initialData
-}: {
-  initialData?: GetIntegrationsResponse
-}) {
-  const { data, isLoading, error } = useIntegrations(initialData)
+export default function GamesSettingsClient() {
+  const { data, isLoading, error } = useIntegrations()
   const saveSettings = useSaveIntegrations()
 
   const [steamUserId, setSteamUserId] = useState('')

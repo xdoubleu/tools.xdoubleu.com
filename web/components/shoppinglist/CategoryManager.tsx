@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useCategories } from '@/hooks/useShoppingList'
+import { useCategories } from '@/hooks/useIngredientCatalog'
 import { enqueueWrite } from '@/lib/offline/outbox'
 import { hasName } from '@/lib/shoppinglist/names'
 import {

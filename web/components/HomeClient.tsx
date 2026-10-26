@@ -157,7 +157,7 @@ export default function HomeClient() {
   const signIn = useSignIn()
   const mFAChallenge = useMFAChallenge()
 
-  // SWRProvider's fallback lets the authenticated view server-render.
+  // A cached user shows the authenticated view straight away.
   const [authState, setAuthState] = useState<AuthState>(data ? 'authenticated' : 'loading')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

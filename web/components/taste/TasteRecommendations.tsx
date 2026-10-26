@@ -132,7 +132,7 @@ function PickList({ domain, view }: { domain: string; view: string }) {
         </ul>
       )}
       {!saved && data.generatedAt && (
-        <p className="text-xs text-muted" suppressHydrationWarning>
+        <p className="text-xs text-muted">
           Picked {formatDateTime(data.generatedAt)}, each checked against its catalog.
         </p>
       )}

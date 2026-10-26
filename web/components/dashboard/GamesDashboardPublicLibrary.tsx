@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useSharedSteam } from '@/hooks/useDashboardShare'
-import type { GetSharedSteamResponse } from '@/lib/gen/dashboard/v1/games_pb'
 import type { Game } from '@/lib/gen/games/v1/games_pb'
 import { GameGroup } from '@/components/games/GameCards'
 import { Input } from '@/components/ui/input'
@@ -8,16 +7,10 @@ import { ErrorState, LoadingState } from '@/components/ui/states'
 
 // Read-only shared games library: the same grouped game grid as the owner's
 // /games/library, with game cards linking to the public game pages.
-export default function GamesDashboardPublicLibrary({
-  token,
-  initialData
-}: {
-  token: string
-  initialData?: GetSharedSteamResponse
-}) {
+export default function GamesDashboardPublicLibrary({ token }: { token: string }) {
   const [search, setSearch] = useState('')
 
-  const { data, error, isLoading } = useSharedSteam(token, initialData)
+  const { data, error, isLoading } = useSharedSteam(token)
 
   const steam = data?.steam
   const gameHref = (game: Game) => `/dashboard/games/${token}/${game.id}`

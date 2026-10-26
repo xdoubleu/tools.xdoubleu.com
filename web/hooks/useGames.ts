@@ -13,28 +13,22 @@ import type {
   Integrations
 } from '@/lib/gen/games/v1/games_pb'
 
-export function useSteam(fallbackData?: GetSteamResponse) {
+export function useSteam() {
   const client = createServiceClient(GamesService)
-  return useSWR<GetSteamResponse, Error>(swrKeys.games, () => client.getSteam({}), {
-    fallbackData
-  })
+  return useSWR<GetSteamResponse, Error>(swrKeys.games, () => client.getSteam({}))
 }
 
-export function useSteamGame(gameId: number, fallbackData?: GetSteamGameResponse) {
+export function useSteamGame(gameId: number) {
   const client = createServiceClient(GamesService)
-  return useSWR<GetSteamGameResponse, Error>(
-    gameId ? swrKeys.game(gameId) : null,
-    () => client.getSteamGame({ gameId }),
-    { fallbackData }
+  return useSWR<GetSteamGameResponse, Error>(gameId ? swrKeys.game(gameId) : null, () =>
+    client.getSteamGame({ gameId })
   )
 }
 
-export function useSteamDistribution(bucket: number, fallbackData?: GetSteamDistributionResponse) {
+export function useSteamDistribution(bucket: number) {
   const client = createServiceClient(GamesService)
-  return useSWR<GetSteamDistributionResponse, Error>(
-    swrKeys.gamesDistribution(bucket),
-    () => client.getSteamDistribution({ bucket }),
-    { fallbackData }
+  return useSWR<GetSteamDistributionResponse, Error>(swrKeys.gamesDistribution(bucket), () =>
+    client.getSteamDistribution({ bucket })
   )
 }
 
@@ -45,12 +39,10 @@ export function useSteamProgress(dateStart?: string, dateEnd?: string) {
   )
 }
 
-export function useRecentlyActiveGames(fallbackData?: GetRecentlyActiveGamesResponse) {
+export function useRecentlyActiveGames() {
   const client = createServiceClient(GamesService)
-  return useSWR<GetRecentlyActiveGamesResponse, Error>(
-    swrKeys.gamesRecent,
-    () => client.getRecentlyActiveGames({}),
-    { fallbackData }
+  return useSWR<GetRecentlyActiveGamesResponse, Error>(swrKeys.gamesRecent, () =>
+    client.getRecentlyActiveGames({})
   )
 }
 
@@ -73,15 +65,14 @@ export function useRefreshSteam() {
     })
 }
 
-export function useIntegrations(fallbackData?: GetIntegrationsResponse) {
+export function useIntegrations() {
   const client = createServiceClient(GamesService)
   return useSWR<GetIntegrationsResponse, Error>(
     swrKeys.gamesIntegrations,
     () => client.getIntegrations({}),
     {
       revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      fallbackData
+      revalidateOnReconnect: false
     }
   )
 }
