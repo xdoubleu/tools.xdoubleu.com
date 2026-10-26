@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/apps/shoppinglist/internal/repositories"
 	"tools.xdoubleu.com/apps/shoppinglist/internal/services"
 	shoppinglistv1 "tools.xdoubleu.com/gen/shoppinglist/v1"
 	"tools.xdoubleu.com/gen/shoppinglist/v1/shoppinglistv1connect"
@@ -38,7 +39,10 @@ func (h *shoppingConnectHandler) callerID(ctx context.Context) (string, error) {
 }
 
 func mapError(err error) error {
-	return connecttools.MapError(err)
+	return connecttools.MapError(
+		err,
+		connecttools.Code(repositories.ErrSelfAlias, connect.CodeInvalidArgument),
+	)
 }
 
 func (h *shoppingConnectHandler) GetCustomList(

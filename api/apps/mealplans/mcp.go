@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
+	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/mcptools"
 )
 
@@ -51,7 +52,7 @@ func (h *mealplansConnectHandler) mcpListPlans(
 	}
 	list, hasMore, err := h.app.services.Plans.List(ctx, user.ID, 0, 0)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 	return &mealplansv1.ListPlansResponse{
 		Plans:   protoPlans(list),

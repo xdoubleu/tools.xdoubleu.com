@@ -14,6 +14,7 @@ import (
 
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 	"tools.xdoubleu.com/apps/watchparty/internal/services"
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/logging"
 )
 
@@ -116,7 +117,7 @@ func TestGetRoomForUserAsPresenter(t *testing.T) {
 func TestGetRoomForUserAsViewer(t *testing.T) {
 	rs := newRoomService(t)
 	code := rs.CreateRoom(t.Context(), "presenter-1")
-	rs.JoinViewer(t.Context(), code, "viewer-1")
+	require.NoError(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
 
 	exists, roomCode, role := rs.GetRoomForUser("viewer-1")
 
@@ -138,18 +139,17 @@ func TestGetRoomForUserNotInRoom(t *testing.T) {
 func TestJoinViewerToNonExistentRoom(t *testing.T) {
 	rs := newRoomService(t)
 
-	ok := rs.JoinViewer(t.Context(), "XXXXXX", "viewer-1")
+	err := rs.JoinViewer(t.Context(), "XXXXXX", "viewer-1")
 
-	assert.False(t, ok)
+	assert.ErrorIs(t, err, database.ErrResourceNotFound)
 }
 
 func TestJoinViewerSuccess(t *testing.T) {
 	rs := newRoomService(t)
 	code := rs.CreateRoom(t.Context(), "presenter-1")
 
-	ok := rs.JoinViewer(t.Context(), code, "viewer-1")
+	require.NoError(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
 
-	assert.True(t, ok)
 	exists, _, role := rs.GetRoomForUser("viewer-1")
 	assert.True(t, exists)
 	assert.Equal(t, "viewer", string(role))
@@ -158,7 +158,7 @@ func TestJoinViewerSuccess(t *testing.T) {
 func TestLeaveViewer(t *testing.T) {
 	rs := newRoomService(t)
 	code := rs.CreateRoom(t.Context(), "presenter-1")
-	rs.JoinViewer(t.Context(), code, "viewer-1")
+	require.NoError(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
 
 	rs.LeaveViewer(t.Context(), code)
 
@@ -203,7 +203,7 @@ func TestSendToPresenterToNonExistentRoom(t *testing.T) {
 func TestSendToViewerWriteError(t *testing.T) {
 	rs := newRoomService(t)
 	code := rs.CreateRoom(t.Context(), "presenter-1")
-	rs.JoinViewer(t.Context(), code, "viewer-1")
+	require.NoError(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
 	rs.JoinViewerWS(t.Context(), code, "viewer-1", closedWSConn(t))
 
 	// A write to a closed connection is logged, not a panic.
@@ -222,7 +222,7 @@ func TestSendToPresenterWriteError(t *testing.T) {
 func TestGetRoomForUserAfterPresenterRemovesRoom(t *testing.T) {
 	rs := newRoomService(t)
 	code := rs.CreateRoom(t.Context(), "presenter-1")
-	rs.JoinViewer(t.Context(), code, "viewer-1")
+	require.NoError(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
 
 	rs.RemoveRoom(t.Context(), code)
 
@@ -249,25 +249,27 @@ func TestJoinViewerWS_UnregisteredUserRefused(t *testing.T) {
 	code := rs.CreateRoom(t.Context(), "presenter-1")
 	assert.False(t, rs.JoinViewerWS(t.Context(), code, "viewer-1", nil))
 
-	rs.JoinViewer(t.Context(), code, "viewer-1")
+	require.NoError(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
 	assert.False(t, rs.JoinViewerWS(t.Context(), code, "intruder", nil))
 }
 
 func TestJoinViewer_ConnectedSeatNotReplaced(t *testing.T) {
 	rs := newRoomService(t)
 	code := rs.CreateRoom(t.Context(), "presenter-1")
-	require.True(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
+	require.NoError(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
 	require.True(t, rs.JoinViewerWS(t.Context(), code, "viewer-1", closedWSConn(t)))
 
-	assert.False(t, rs.JoinViewer(t.Context(), code, "intruder"))
-	assert.True(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
+	assert.ErrorIs(
+		t, rs.JoinViewer(t.Context(), code, "intruder"), services.ErrSeatTaken,
+	)
+	assert.NoError(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
 }
 
 // A dropped viewer socket keeps the seat, so the client's reconnect works.
 func TestDisconnectViewer_KeepsSeatForReconnect(t *testing.T) {
 	rs := newRoomService(t)
 	code := rs.CreateRoom(t.Context(), "presenter-1")
-	require.True(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
+	require.NoError(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
 	conn := closedWSConn(t)
 	require.True(t, rs.JoinViewerWS(t.Context(), code, "viewer-1", conn))
 

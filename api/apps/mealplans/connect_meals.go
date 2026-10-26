@@ -81,7 +81,7 @@ func (h *mealplansConnectHandler) CreateMeal(
 	}
 
 	if err = h.app.services.Plans.CreateMeal(ctx, planID, user.ID, meal); err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &mealplansv1.CreateMealResponse{}, nil
@@ -149,7 +149,7 @@ func (h *mealplansConnectHandler) UpdateMeal(
 	}
 
 	if err = h.app.services.Plans.UpdateMeal(ctx, planID, user.ID, meal); err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &mealplansv1.UpdateMealResponse{}, nil
@@ -184,7 +184,7 @@ func (h *mealplansConnectHandler) DeleteMeal(
 	}
 
 	if err = h.app.services.Plans.DeleteMeal(ctx, mealID, planID, user.ID); err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &mealplansv1.DeleteMealResponse{}, nil
@@ -241,7 +241,7 @@ func (h *mealplansConnectHandler) MoveMeal(
 	if err = h.app.services.Plans.MoveMeal(
 		ctx, mealID, planID, user.ID, newDate, req.NewSlot,
 	); err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &mealplansv1.MoveMealResponse{}, nil
@@ -279,7 +279,7 @@ func (h *mealplansConnectHandler) SuggestRecipes(
 		ctx, planID, user.ID, mealDate, req.MealSlot,
 	)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	pbSuggestions := make([]*mealplansv1.RecipeSuggestion, len(suggestions))

@@ -8,7 +8,6 @@ import (
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
 	"tools.xdoubleu.com/gen/mealplans/v1/mealplansv1connect"
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
-	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
@@ -24,10 +23,6 @@ var _ mealplansv1connect.MealPlansServiceHandler = (*mealplansConnectHandler)(ni
 
 func getUser(ctx context.Context) *sharedmodels.User {
 	return contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
-}
-
-func mapError(err error) error {
-	return connecttools.MapError(err)
 }
 
 func protoPlanMeal(m *models.PlanMeal) *mealplansv1.PlanMeal {

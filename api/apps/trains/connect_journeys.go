@@ -2,7 +2,6 @@ package trains
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -12,7 +11,7 @@ import (
 	"tools.xdoubleu.com/apps/trains/pkg/irail"
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 	"tools.xdoubleu.com/gen/trains/v1/trainsv1connect"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/connecttools"
 )
 
 type trainsConnectHandler struct {
@@ -68,9 +67,6 @@ func (h *trainsConnectHandler) GetJourneyDetail(
 
 	detail, err := h.app.Services.JourneyDetail.GetJourneyDetail(ctx, journeyID)
 	if err != nil {
-		if errors.Is(err, services.ErrInvalidJourneyID) {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
-		}
 		return nil, mapError(err)
 	}
 
@@ -190,18 +186,11 @@ func protoStopCall(sc *models.StopDetail) *trainsv1.StopCall {
 }
 
 func mapError(err error) error {
-	switch {
-	case errors.Is(err, services.ErrUnknownStation):
-		return connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
-	case errors.Is(err, irail.ErrRateLimited):
-		return connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
-	case errors.Is(err, services.ErrInvalidCommute):
-		return connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
-	case errors.Is(err, database.ErrResourceNotFound):
-		return connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
-	case errors.Is(err, database.ErrResourceConflict):
-		return connect.NewError(connect.CodeAlreadyExists, err.Error()).WithCause(err)
-	default:
-		return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
-	}
+	return connecttools.MapError(
+		err,
+		connecttools.Code(services.ErrUnknownStation, connect.CodeNotFound),
+		connecttools.Code(irail.ErrRateLimited, connect.CodeUnavailable),
+		connecttools.Code(services.ErrInvalidCommute, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrInvalidJourneyID, connect.CodeInvalidArgument),
+	)
 }

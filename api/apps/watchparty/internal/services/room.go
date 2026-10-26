@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"log/slog"
 	"sync"
 	"time"
@@ -12,7 +13,11 @@ import (
 
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 	"tools.xdoubleu.com/apps/watchparty/internal/models"
+	"tools.xdoubleu.com/internal/database"
 )
+
+// ErrSeatTaken is returned when another viewer is connected to the room.
+var ErrSeatTaken = errors.New("another viewer is in this room")
 
 type RoomService struct {
 	logger      *slog.Logger
@@ -131,7 +136,9 @@ func (rs *RoomService) JoinPresenter(
 	return true
 }
 
-func (rs *RoomService) JoinViewer(ctx context.Context, code, userID string) bool {
+// JoinViewer seats userID as the room's viewer; a connected viewer keeps
+// their seat (ErrSeatTaken).
+func (rs *RoomService) JoinViewer(ctx context.Context, code, userID string) error {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
@@ -141,13 +148,12 @@ func (rs *RoomService) JoinViewer(ctx context.Context, code, userID string) bool
 			"Attempted to add viewer to non-existent room",
 			slog.String("code", code),
 		)
-		return false
+		return database.ErrResourceNotFound
 	}
-	// A connected viewer keeps their seat.
 	if room.Viewer.ID != "" && room.Viewer.ID != userID && room.Viewer.WS != nil {
 		rs.logger.WarnContext(ctx, "Refused viewer join: seat taken",
 			slog.String("code", code))
-		return false
+		return ErrSeatTaken
 	}
 
 	room.SetViewer(userID)
@@ -156,7 +162,7 @@ func (rs *RoomService) JoinViewer(ctx context.Context, code, userID string) bool
 		slog.String("code", code),
 		slog.String("userID", userID),
 	)
-	return true
+	return nil
 }
 
 // JoinViewerWS attaches conn as the viewer socket; only the viewer who

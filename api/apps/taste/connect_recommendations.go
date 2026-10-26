@@ -2,7 +2,6 @@ package taste
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -12,7 +11,6 @@ import (
 	"tools.xdoubleu.com/apps/taste/internal/models"
 	"tools.xdoubleu.com/apps/taste/internal/services"
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
-	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/consumption"
 )
 
@@ -37,7 +35,7 @@ func (h *tasteConnectHandler) ListRecommendations(
 	}
 	recs, st, err := h.app.picks.List(ctx, sc.subject, domain, track, req.SavedOnly)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, mapError(err)
 	}
 	out := make([]*tastev1.Recommendation, 0, len(recs))
 	for _, r := range recs {
@@ -47,7 +45,7 @@ func (h *tasteConnectHandler) ListRecommendations(
 	}
 	emailNewPicks, err := h.app.notify.EmailNewPicks(ctx, sc.user)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, mapError(err)
 	}
 	return &tastev1.ListRecommendationsResponse{
 		Recommendations: out,
@@ -68,17 +66,11 @@ func (h *tasteConnectHandler) RefreshRecommendations(
 		return nil, err
 	}
 	if !h.app.profiles.Configured() {
-		return nil, connect.NewError(
-			connect.CodeFailedPrecondition, services.ErrNotConfigured.Error(),
-		).WithCause(services.ErrNotConfigured)
+		return nil, mapError(services.ErrNotConfigured)
 	}
 	accepted, err := h.app.picks.Request(ctx, sc.subject)
-	if errors.Is(err, services.ErrNoProfile) {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).
-			WithCause(err)
-	}
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, mapError(err)
 	}
 	if !accepted {
 		return nil, connect.Errorf(
@@ -100,7 +92,7 @@ func (h *tasteConnectHandler) SetEmailNewPicks(
 		return nil, err
 	}
 	if err = h.app.notify.SetEmailNewPicks(ctx, uid, req.Enabled); err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, mapError(err)
 	}
 	return &tastev1.SetEmailNewPicksResponse{}, nil
 }
@@ -121,7 +113,7 @@ func (h *tasteConnectHandler) SetFeedback(
 	}
 	rec, err = h.app.picks.SetFeedback(ctx, uid, rec.ID, req.Feedback)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, mapError(err)
 	}
 	return &tastev1.SetFeedbackResponse{
 		Recommendation: protoRecommendation(*rec),
@@ -138,7 +130,7 @@ func (h *tasteConnectHandler) SetSaved(
 	}
 	rec, err = h.app.picks.SetSaved(ctx, uid, rec.ID, req.Saved)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, mapError(err)
 	}
 	return &tastev1.SetSavedResponse{
 		Recommendation: protoRecommendation(*rec),
@@ -155,7 +147,7 @@ func (h *tasteConnectHandler) AcceptRecommendation(
 	}
 	rec, err = h.app.picks.Accept(ctx, uid, *rec)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, mapError(err)
 	}
 	return &tastev1.AcceptRecommendationResponse{
 		Recommendation: protoRecommendation(*rec),
@@ -180,7 +172,7 @@ func (h *tasteConnectHandler) ownPick(
 	}
 	rec, err := h.app.picks.Get(ctx, sc.subject, id)
 	if err != nil {
-		return "", nil, connecttools.MapError(err)
+		return "", nil, mapError(err)
 	}
 	if !sc.access(services.AppOf(consumption.Domain(rec.Domain))) {
 		return "", nil, connect.NewError(

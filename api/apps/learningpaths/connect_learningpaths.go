@@ -9,7 +9,6 @@ import (
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
 	"tools.xdoubleu.com/gen/learningpaths/v1/learningpathsv1connect"
-	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
@@ -30,10 +29,6 @@ func getUser(ctx context.Context) *sharedmodels.User {
 		ctx,
 		constants.UserContextKey,
 	)
-}
-
-func mapError(err error) error {
-	return connecttools.MapError(err)
 }
 
 func protoLearningPath(lp *models.LearningPath) *learningpathsv1.LearningPath {

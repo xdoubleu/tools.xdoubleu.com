@@ -2,11 +2,10 @@ package repositories
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/google/uuid"
 
-	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
@@ -99,10 +98,7 @@ func (r *ShoppingRepository) DeleteCategory(
 		return err
 	}
 	if result.RowsAffected() == 0 {
-		return &iapp.HTTPError{
-			Status:  http.StatusNotFound,
-			Message: "Category not found",
-		}
+		return database.ErrResourceNotFound
 	}
 	return nil
 }
