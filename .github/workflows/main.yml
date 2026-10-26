@@ -301,6 +301,8 @@ jobs:
         run: make lint/watchdog
       - name: make lint/preflight
         run: make lint/preflight
+      - name: make lint/deploy-version
+        run: make lint/deploy-version
 
   # Unconditional: invalid frontmatter makes harnesses silently drop a skill.
   skills-lint:
@@ -466,6 +468,10 @@ jobs:
     name: Deploy to Hetzner via Kamal
     runs-on: ubuntu-latest
     environment: production
+    # actions: read lets the version resolver see other runs' job conclusions.
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -500,10 +506,22 @@ jobs:
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
         run: mkdir -p ~/.ssh && ssh-keyscan "$KAMAL_SERVER_IP" >> ~/.ssh/known_hosts
 
+      # The group queues one pending job and replaces it in build-finish order,
+      # so this run may not be main's newest. Ships the newest built commit
+      # instead, or skips when it is already live (scripts/resolve_deploy_version.sh).
+      # Its checkout is this run's, so it refuses a tip that changed deploy config.
+      - name: Resolve the versions to deploy
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
+          KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
+        run: ./scripts/resolve_deploy_version.sh api grafana
+
       # Before either deploy, so a bad key never ships half a release; api
       # itself only logs one and falls back to an ephemeral key.
       - name: Validate OAUTH_OIDC_PRIVATE_KEY
-        if: needs.build-api.result == 'success'
+        if: steps.version.outputs.api != 'skip'
         env:
           OAUTH_OIDC_PRIVATE_KEY: ${{ secrets.OAUTH_OIDC_PRIVATE_KEY }}
         run: |
@@ -520,7 +538,7 @@ jobs:
       # so the retired web service must go before api takes the root path.
       # Idempotent; delete once it has run on main.
       - name: Remove the retired web service
-        if: needs.build-api.result == 'success'
+        if: steps.version.outputs.api != 'skip'
         env:
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
         run: |
@@ -534,14 +552,14 @@ jobs:
           REMOTE
 
       # Kamal evaluates config/deploy.*.yml as ERB with the env below; --version
-      # is the full commit SHA the build jobs tag with.
+      # is the resolved commit's full SHA, which the build jobs tag with.
       - name: Deploy api via Kamal
-        if: needs.build-api.result == 'success'
+        if: steps.version.outputs.api != 'skip'
         env:
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
           KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
-          KAMAL_VERSION: ${{ github.sha }}
-          RELEASE: ${{ github.sha }}
+          KAMAL_VERSION: ${{ steps.version.outputs.api }}
+          RELEASE: ${{ steps.version.outputs.api }}
           DB_DSN: ${{ secrets.KAMAL_DB_DSN }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           # See config/deploy.api.yml.
@@ -582,15 +600,15 @@ jobs:
           GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
         run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
 
-      # Last so its OAuth login hits the newest api. Skipped when build-grafana
-      # didn't run.
+      # Last so its OAuth login hits the newest api. Skipped when no commit to
+      # ship built grafana.
       - name: Deploy grafana via Kamal
-        if: needs.build-grafana.result == 'success'
+        if: steps.version.outputs.grafana != 'skip'
         env:
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
           KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
-          KAMAL_VERSION: ${{ github.sha }}
-          RELEASE: ${{ github.sha }}
+          KAMAL_VERSION: ${{ steps.version.outputs.grafana }}
+          RELEASE: ${{ steps.version.outputs.grafana }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           # Same secret as OAUTH_GRAFANA_CLIENT_SECRET (see .kamal/secrets).
           GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_GRAFANA_CLIENT_SECRET }}

@@ -25,6 +25,10 @@ lint/workflows:
 lint/watchdog:
 	./scripts/test_routine_watchdog.sh
 
+# Exercise scripts/resolve_deploy_version.sh against a stubbed GitHub and Kamal.
+lint/deploy-version:
+	./scripts/test_resolve_deploy_version.sh
+
 # Exercise scripts/routine_preflight.sh against a mock MCP server.
 lint/preflight:
 	./scripts/test_routine_preflight.sh

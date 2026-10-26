@@ -290,7 +290,9 @@ Verify with `curl https://tools.xdoubleu.com/api/version`,
 `main.yml`'s `deploy-kamal` job is **the** deploy: every push to `main`, no
 `continue-on-error`. It runs `kamal deploy` (not `setup`) against
 `config/deploy.api.yml` (and Grafana), over SSH via
-an `ssh-agent` loaded with `KAMAL_SSH_KEY`.
+an `ssh-agent` loaded with `KAMAL_SSH_KEY`. It ships the newest `main` commit
+whose images are built, not necessarily its own, and never replaces a newer live
+version (`scripts/resolve_deploy_version.sh`).
 
 **CI deploy key.** The CI agent is headless and can't unlock a passphrase, so
 use a dedicated unencrypted key. Add its public half to
