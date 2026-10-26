@@ -93,8 +93,8 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 ## Linting
 
 - Config is the repo-root `.golangci.yml` (shared with `kobo-gateway/`). Limits: line length 88, `gci` order standard → default → `prefix(tools.xdoubleu.com)`, `funlen` 100 lines/50 statements, `cyclop` 30. `nolintlint` requires a reason except for `funlen`/`gocognit`/`lll`.
-- `depguard`: nothing outside `apps/<name>/**` may import `apps/<name>/internal/...`.
-- Run `make lint/fix` last. `GOLANGCI_LINT_CACHE` is per-checkout so worktrees don't bleed paths.
+- `depguard`: `apps/<name>/internal/...` is app-private; services can't import Connect, repositories `net/http`.
+- Run `make lint/fix` last; `GOLANGCI_LINT_CACHE` is per-checkout.
 
 ## Testing
 

@@ -2,7 +2,6 @@ package books
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -14,7 +13,6 @@ import (
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
@@ -40,10 +38,7 @@ func (h *booksConnectHandler) GetBookFile(
 		ctx, user.ID, bookID, req.Format,
 	)
 	if err != nil {
-		if errors.Is(err, database.ErrResourceNotFound) {
-			return nil, connect.NewError(connect.CodeNotFound, "not found")
-		}
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.GetBookFileResponse{
 		Url:       result.URL,
@@ -95,7 +90,7 @@ func (h *booksConnectHandler) RequestKEPUBConversion(
 	}
 	statusResult, err := h.app.Services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	kepubStatus := h.maybeStartKEPUBConversion(ctx, user.ID, bookID, statusResult)
 	return &booksv1.RequestKEPUBConversionResponse{
@@ -123,7 +118,7 @@ func (h *booksConnectHandler) GetKEPUBStatus(
 	}
 	result, err := h.app.Services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	// A stale KEPUB is never reported ready: reconvert it, as
 	// RequestKEPUBConversion would, so "converting" resolves.
@@ -158,13 +153,7 @@ func (h *booksConnectHandler) CreateBookUpload(
 		req.Checksum,
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, services.ErrFileTooLarge):
-			return nil, connect.NewError(connect.CodeResourceExhausted, err.Error()).
-				WithCause(err)
-		default:
-			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
-		}
+		return nil, mapError(err)
 	}
 	return &booksv1.CreateBookUploadResponse{
 		UploadId:      uploadID,
@@ -199,20 +188,7 @@ func (h *booksConnectHandler) FinalizeBookUpload(
 		req.AuthorOverride,
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, services.ErrInvalidFormat):
-			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
-		case errors.Is(err, services.ErrUnrecognizedBook):
-			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
-		case errors.Is(err, services.ErrInvalidUploadID):
-			return nil, connect.NewError(connect.CodePermissionDenied, err.Error()).
-				WithCause(err)
-		case errors.Is(err, services.ErrUploadMissing):
-			return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).
-				WithCause(err)
-		default:
-			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
-		}
+		return nil, mapError(err)
 	}
 	return &booksv1.FinalizeBookUploadResponse{
 		BookId:          result.UserBook.BookID.String(),

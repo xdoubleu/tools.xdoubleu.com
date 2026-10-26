@@ -31,6 +31,15 @@ var ErrExternalNotFound = errors.New("external book not found")
 // Kobo store sync sets.
 var ErrDerivedTag = errors.New("tag is set automatically and can't be changed")
 
+// ErrInvalidShelf wraps a rejected shelf name.
+var ErrInvalidShelf = errors.New("invalid shelf")
+
+// ErrEmptyTag is returned for a blank tag name.
+var ErrEmptyTag = errors.New("tag name cannot be empty")
+
+// ErrInvalidReadingSource wraps an unknown reading-progress source.
+var ErrInvalidReadingSource = errors.New("invalid reading source")
+
 const externalSearchMaxCandidates = 10
 
 // Source names; "manual" marks hand-entered books with no provenance.
@@ -376,7 +385,7 @@ func (s *BookService) ToggleTag(
 	if tag == models.TagOwnBol {
 		return ErrDerivedTag
 	}
-	ub, err := s.getTaggedBook(ctx, userID, bookID)
+	ub, err := s.books.GetUserBook(ctx, userID, bookID)
 	if err != nil {
 		return err
 	}
@@ -394,23 +403,11 @@ func (s *BookService) SetTag(
 	if tag == models.TagOwnBol {
 		return ErrDerivedTag
 	}
-	ub, err := s.getTaggedBook(ctx, userID, bookID)
+	ub, err := s.books.GetUserBook(ctx, userID, bookID)
 	if err != nil {
 		return err
 	}
 	return s.setTag(ctx, userID, ub, tag, enabled)
-}
-
-func (s *BookService) getTaggedBook(
-	ctx context.Context,
-	userID string,
-	bookID uuid.UUID,
-) (*models.UserBook, error) {
-	ub, err := s.books.GetUserBook(ctx, userID, bookID)
-	if errors.Is(err, database.ErrResourceNotFound) {
-		return nil, fmt.Errorf("book not found")
-	}
-	return ub, err
 }
 
 func (s *BookService) setTag(
@@ -479,10 +476,10 @@ func (s *BookService) CreateShelf(
 	name string,
 ) error {
 	if name == "" {
-		return fmt.Errorf("shelf name cannot be empty")
+		return fmt.Errorf("%w: name cannot be empty", ErrInvalidShelf)
 	}
 	if builtInStatuses[name] {
-		return fmt.Errorf("cannot create built-in shelf %q", name)
+		return fmt.Errorf("%w: cannot create built-in shelf %q", ErrInvalidShelf, name)
 	}
 	return s.books.EnsureShelf(ctx, userID, name)
 }
@@ -495,13 +492,15 @@ func (s *BookService) RenameShelf(
 	newName string,
 ) (uint32, error) {
 	if builtInStatuses[oldName] {
-		return 0, fmt.Errorf("cannot rename built-in shelf %q", oldName)
+		return 0, fmt.Errorf("%w: cannot rename built-in shelf %q", ErrInvalidShelf, oldName)
 	}
 	if builtInStatuses[newName] {
-		return 0, fmt.Errorf("cannot rename shelf to built-in value %q", newName)
+		return 0, fmt.Errorf(
+			"%w: cannot rename shelf to built-in value %q", ErrInvalidShelf, newName,
+		)
 	}
 	if newName == "" {
-		return 0, fmt.Errorf("shelf name cannot be empty")
+		return 0, fmt.Errorf("%w: name cannot be empty", ErrInvalidShelf)
 	}
 	return s.books.RenameShelf(ctx, userID, oldName, newName)
 }
@@ -515,10 +514,10 @@ func (s *BookService) DeleteShelf(
 	targetName string,
 ) (uint32, error) {
 	if builtInStatuses[name] {
-		return 0, fmt.Errorf("cannot delete built-in shelf %q", name)
+		return 0, fmt.Errorf("%w: cannot delete built-in shelf %q", ErrInvalidShelf, name)
 	}
 	if targetName == "" {
-		return 0, fmt.Errorf("target shelf name cannot be empty")
+		return 0, fmt.Errorf("%w: target name cannot be empty", ErrInvalidShelf)
 	}
 	return s.books.DeleteShelf(ctx, userID, name, targetName)
 }
@@ -531,7 +530,7 @@ func (s *BookService) RenameTag(
 	newName string,
 ) (uint32, error) {
 	if oldName == "" || newName == "" {
-		return 0, fmt.Errorf("tag name cannot be empty")
+		return 0, ErrEmptyTag
 	}
 	if oldName == models.TagOwnBol || newName == models.TagOwnBol {
 		return 0, ErrDerivedTag
@@ -546,7 +545,7 @@ func (s *BookService) DeleteTag(
 	name string,
 ) (uint32, error) {
 	if name == "" {
-		return 0, fmt.Errorf("tag name cannot be empty")
+		return 0, ErrEmptyTag
 	}
 	if name == models.TagOwnBol {
 		return 0, ErrDerivedTag
@@ -796,7 +795,7 @@ func (s *BookService) upsertReadingProgress(
 	if state.Source != models.ReadingSourceWeb &&
 		state.Source != models.ReadingSourceKobo &&
 		state.Source != models.ReadingSourceManual {
-		return nil, fmt.Errorf("invalid reading source %q", state.Source)
+		return nil, fmt.Errorf("%w %q", ErrInvalidReadingSource, state.Source)
 	}
 	state.Percent = max(0, min(state.Percent, models.MaxProgressPercent))
 

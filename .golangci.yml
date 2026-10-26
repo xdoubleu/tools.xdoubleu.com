@@ -155,6 +155,18 @@ linters:
           deny:
             - pkg: tools.xdoubleu.com/apps/watchparty/internal
               desc: apps/watchparty/internal is private to the watchparty app
+        services-domain-errors:
+          files:
+            - "**/internal/services/**"
+          deny:
+            - pkg: connectrpc.com/connect
+              desc: services return domain errors; handlers map them with connecttools.MapError
+        repositories-domain-errors:
+          files:
+            - "**/internal/repositories/**"
+          deny:
+            - pkg: net/http
+              desc: repositories return domain errors, not HTTP errors
     errcheck:
       check-type-assertions: true
     exhaustive:

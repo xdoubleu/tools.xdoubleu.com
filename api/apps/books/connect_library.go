@@ -30,7 +30,7 @@ func (h *booksConnectHandler) GetLibrary(
 	}
 	data, err := h.app.buildLibraryData(ctx, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	base := h.app.clients.PublicAPIBaseURL
 	return &booksv1.GetLibraryResponse{
@@ -59,7 +59,7 @@ func (h *booksConnectHandler) GetBooksProgress(
 		ctx, user.ID, dateStart, dateEnd,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.GetBooksProgressResponse{
 		Progress: &booksv1.BooksProgressResponse{
@@ -95,7 +95,7 @@ func (h *booksConnectHandler) SearchLibrary(
 		req.Offset,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.SearchLibraryResponse{
 		Books:   protoUserBooks(libraryResults, h.app.clients.PublicAPIBaseURL),
@@ -143,10 +143,7 @@ func (h *booksConnectHandler) GetExternalBook(
 		req.ProviderId,
 	)
 	if err != nil {
-		if errors.Is(err, services.ErrExternalNotFound) {
-			return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
-		}
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.GetExternalBookResponse{
 		Result: protoExternalBook(*book),
@@ -195,7 +192,7 @@ func (h *booksConnectHandler) CreateBook(
 	}
 	_, err := h.app.Services.Books.AddToLibrary(ctx, user.ID, ext, status, initialTags)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.CreateBookResponse{}, nil
 }
@@ -220,7 +217,7 @@ func (h *booksConnectHandler) UpdateBookStatus(
 	}
 	existing, err := h.app.Services.Books.GetUserBook(ctx, user.ID, bookID)
 	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	var existingTags []string
 	if existing != nil {
@@ -237,12 +234,11 @@ func (h *booksConnectHandler) UpdateBookStatus(
 		FinishedAt: buildFinishedAt(existing, req.Status),
 	}
 	if err = h.app.Services.Books.UpdateStatus(ctx, user.ID, ub); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	if req.Status == models.StatusRead {
 		if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
-			return nil, connect.NewError(connect.CodeInternal, rebuildErr.Error()).
-				WithCause(rebuildErr)
+			return nil, mapError(rebuildErr)
 		}
 	}
 	return &booksv1.UpdateBookStatusResponse{}, nil
@@ -285,11 +281,10 @@ func (h *booksConnectHandler) UpdateFinishedAt(
 	}
 	err = h.app.Services.Books.UpdateFinishedAt(ctx, user.ID, bookID, finishedAt)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, rebuildErr.Error()).
-			WithCause(rebuildErr)
+		return nil, mapError(rebuildErr)
 	}
 	return &booksv1.UpdateFinishedAtResponse{}, nil
 }
@@ -313,11 +308,10 @@ func (h *booksConnectHandler) RemoveBook(
 		)
 	}
 	if err = h.app.Services.Books.RemoveFromLibrary(ctx, user.ID, bookID); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, rebuildErr.Error()).
-			WithCause(rebuildErr)
+		return nil, mapError(rebuildErr)
 	}
 	return &booksv1.RemoveBookResponse{}, nil
 }
@@ -371,7 +365,7 @@ func (h *booksConnectHandler) UpdateProgress(
 		)
 	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.UpdateProgressResponse{}, nil
 }
@@ -396,10 +390,7 @@ func (h *booksConnectHandler) GetBookContent(
 	}
 	html, err := h.app.Services.Books.GetContentHTML(ctx, user.ID, bookID)
 	if err != nil {
-		if errors.Is(err, database.ErrResourceNotFound) {
-			return nil, connect.NewError(connect.CodeNotFound, "not found")
-		}
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 
 	if html == "" {
@@ -407,7 +398,7 @@ func (h *booksConnectHandler) GetBookContent(
 		// failure here is unexpected rather than a legitimate not-found.
 		ub, ubErr := h.app.Services.Books.GetUserBook(ctx, user.ID, bookID)
 		if ubErr != nil {
-			return nil, connect.NewError(connect.CodeInternal, ubErr.Error()).WithCause(ubErr)
+			return nil, mapError(ubErr)
 		}
 		html = h.app.Services.Ingest.BackfillContentHTML(ctx, ub.Book)
 	}

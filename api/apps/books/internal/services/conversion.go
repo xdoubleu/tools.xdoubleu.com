@@ -10,7 +10,6 @@ import (
 	"log/slog"
 	"os"
 
-	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	kepubpkg "github.com/pgaskin/kepubify/v4/kepub"
 
@@ -36,6 +35,9 @@ type PDFConverter func(
 // currentKEPUBConverterVersion: bump by hand whenever the pipeline would
 // produce different output; older rows are then regenerated on access.
 const currentKEPUBConverterVersion int16 = 14
+
+// ErrNoConvertibleSource means the book has neither an EPUB nor a PDF.
+var ErrNoConvertibleSource = errors.New("no EPUB or PDF available for this book")
 
 // IsKEPUBStale reports whether version predates the current pipeline.
 func (s *ConversionService) IsKEPUBStale(version int16) bool {
@@ -85,7 +87,7 @@ func NewConversionService(
 
 // EnsureKEPUB returns the KEPUB row for (userID, bookID), converting the stored
 // EPUB or PDF if needed, or the converting row of a conversion already
-// running; FailedPrecondition when neither source exists.
+// running; ErrNoConvertibleSource when neither source exists.
 func (s *ConversionService) EnsureKEPUB(
 	ctx context.Context,
 	userID string,
@@ -291,7 +293,7 @@ func (s *ConversionService) resolveCanonicalKEPUB(
 	return row, canonicalKey, insertErr
 }
 
-// resolveSourceFile prefers EPUB, then PDF; FailedPrecondition when neither.
+// resolveSourceFile prefers EPUB, then PDF.
 func (s *ConversionService) resolveSourceFile(
 	ctx context.Context,
 	userID string,
@@ -317,10 +319,7 @@ func (s *ConversionService) resolveSourceFile(
 		return nil, "", err
 	}
 
-	return nil, "", connect.NewError(
-		connect.CodeFailedPrecondition,
-		"no EPUB or PDF available for this book",
-	)
+	return nil, "", ErrNoConvertibleSource
 }
 
 // getEPUBBytes returns EPUB bytes for kepubify, converting a PDF source via

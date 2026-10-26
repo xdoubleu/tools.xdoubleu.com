@@ -203,7 +203,7 @@ func TestConnectUpdateReadingProgress_InvalidSource(t *testing.T) {
 
 	_, err := client.UpdateReadingProgress(ctx, req)
 	require.Error(t, err)
-	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
 func TestConnectUpdateReadingProgress_InvalidBookID(t *testing.T) {

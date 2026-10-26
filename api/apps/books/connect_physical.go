@@ -2,17 +2,14 @@ package books
 
 import (
 	"context"
-	"errors"
 
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
@@ -26,11 +23,8 @@ func (h *booksConnectHandler) GetPhysicalCopy(
 		return nil, err
 	}
 	view, err := h.app.Services.Physical.Copy(ctx, userID, bookID)
-	if errors.Is(err, database.ErrResourceNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
-	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	out := &booksv1.GetPhysicalCopyResponse{
 		Copy:          physicalCopyToProto(view.Copy),
@@ -68,14 +62,8 @@ func (h *booksConnectHandler) UpdatePhysicalCopy(
 			Offset: int(a.GetPosition().GetOffset()),
 		})
 	}
-	err = h.app.Services.Physical.UpdateCopy(ctx, userID, bookID, c)
-	switch {
-	case errors.Is(err, services.ErrInvalidPhysicalCopy):
-		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
-	case errors.Is(err, database.ErrResourceNotFound):
-		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
-	case err != nil:
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	if err = h.app.Services.Physical.UpdateCopy(ctx, userID, bookID, c); err != nil {
+		return nil, mapError(err)
 	}
 	return &booksv1.UpdatePhysicalCopyResponse{}, nil
 }
