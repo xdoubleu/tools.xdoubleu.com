@@ -25,7 +25,7 @@ rather than importing `api`'s `config`.
 
 - **Duplicate copies** — drift on first edit.
 - **Publish it** — versioning overhead for one in-repo consumer.
-- **Import `api/config`** — couples the shared module to one consumer.
+- **Import `api/internal/config`** — couples the shared module to one consumer.
 
 ## Consequences
 

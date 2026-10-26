@@ -1,8 +1,8 @@
 # ADR-0024: PostHog Cloud (EU) for product analytics + session replay, no consent gate
 
-- Status: Accepted
+- Status: Accepted; [ADR-0034](adr-0034-vite-spa-served-by-the-api.md) moved the Next.js wiring: `web/src/instrument.ts` initializes it and the api serves the runtime env at `/env.js`.
 - Issues: #1638 (part of epic #1637)
-- Affects: `web/instrumentation-client.ts`, `web/components/SWRProvider.tsx`, `web/lib/env.ts`, `web/app/layout.tsx`, `web/app/settings/page.tsx`, `proto/auth/v1/auth.proto`, `api/cmd/api/connect_auth_handlers.go`, `config/deploy.web.yml`, `.kamal/secrets`, `.github/workflows/main.yml`
+- Affects: `web/src/instrument.ts`, `web/components/SWRProvider.tsx`, `web/lib/env.ts`, `api/internal/spa/`, `web/app/settings/page.tsx`, `proto/auth/v1/auth.proto`, `api/cmd/api/connect_auth_handlers.go`, `config/deploy.api.yml`, `.kamal/secrets`, `.github/workflows/main.yml`
 
 ## Context
 
@@ -17,8 +17,9 @@ for friction. Every family member is an individual account (ADR-0008).
   member, with no consent gate — a deliberate choice. A one-line passive
   notice sits in `/settings`, with no opt-out.
 - **PostHog's default masking only**, including for `health/`.
-- **Client-side only**: `instrumentation-client.ts` initializes it (like
-  Sentry); nothing in Go. It no-ops when `POSTHOG_KEY` is unset.
+- **Client-side only**: `web/src/instrument.ts` initializes it (like
+  Sentry); the api only serves its key via `/env.js`. It no-ops when
+  `POSTHOG_KEY` is unset.
 - **Identify by `user_id`**: `GetCurrentUserResponse` gained `user_id`;
   `SWRProvider.tsx` calls `posthog.identify(currentUser.userId)` when it differs
   from the current `distinct_id`.

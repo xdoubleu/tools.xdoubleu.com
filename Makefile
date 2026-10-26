@@ -43,6 +43,12 @@ routines/test:
 lint/skills:
 	./scripts/lint_skills.sh
 
-# Word budgets for agent instruction files; no long added comment blocks.
+# Word budgets for agent instruction files; no long added comment blocks;
+# backticked repo paths in the docs must exist.
 lint/docs:
 	./scripts/lint_docs.sh
+	./scripts/lint_doc_paths.sh
+
+# Exercise scripts/lint_doc_paths.sh against a synthetic repo.
+lint/docs/test:
+	./scripts/test_lint_doc_paths.sh

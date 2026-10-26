@@ -1,8 +1,8 @@
 # ADR-0022: Prometheus + Grafana replace the hand-rolled metrics pipeline
 
-- Status: Accepted
+- Status: Accepted; [ADR-0034](adr-0034-vite-spa-served-by-the-api.md) moved `web_vitals_seconds` onto the api's `/metrics` (beacon: `POST /web-vitals`) and removed the `web` scrape job and its `TargetMissing`.
 - Issues: #1468, #1528, #1529, #1541, #1554, #1555, #1556, #1564, #1570, #1574, #1580, #1592, #1608, #1702, #1709, #1717, #1723
-- Affects: `api/internal/observability/`, `api/internal/middleware/metrics.go`, `api/cmd/api/metrics.go`, `api/cmd/api/mcp_prom_query.go`, `api/cmd/api/mcp_grafana_alerts.go`, `config/deploy.grafana.yml`, `infra/prometheus-compose.yml`, `infra/prometheus.yml`, `infra/grafana/`, `web/app/metrics/`, `web/lib/server/metrics.ts`
+- Affects: `api/internal/observability/`, `api/internal/middleware/metrics.go`, `api/cmd/api/metrics.go`, `api/cmd/api/mcp_prom_query.go`, `api/cmd/api/mcp_grafana_alerts.go`, `config/deploy.grafana.yml`, `infra/prometheus-compose.yml`, `infra/prometheus.yml`, `infra/grafana/`, `api/internal/spa/`
 
 ## Context
 
@@ -22,7 +22,7 @@ those and the related MCP tools.
   ~3 GB free; PromQL and the ecosystem win.
 - **Topology**: Prometheus + postgres_exporter are Tofu-managed compose
   accessories with no published ports, reachable only on the `kamal` network.
-  Grafana is a third Kamal service at `/grafana` on the shared kamal-proxy
+  Grafana is its own Kamal service at `/grafana` on the shared kamal-proxy
   (`strip_path_prefix: false`, with `GF_SERVER_SERVE_FROM_SUB_PATH`/
   `GF_SERVER_ROOT_URL`), deployed as a wrapper image
   (`infra/grafana.Dockerfile`, `build-grafana.yml`).
@@ -34,8 +34,8 @@ those and the related MCP tools.
   `role_attribute_strict`; local `admin` / `GRAFANA_ADMIN_PASSWORD` stays as
   break-glass.
 - **Instrumentation**: `api` exposes unprefixed `/metrics` (`promhttp`) with
-  `http_request_duration_seconds` and `job_duration_seconds` histograms. `web`
-  exposes `/metrics` with `web_vitals_seconds` from a browser beacon.
+  `http_request_duration_seconds` and `job_duration_seconds` histograms, plus
+  `web_vitals_seconds` from the browser beacon.
   `IssueSignalCollectorJob` exports issue signals as gauges every 5 minutes:
   `github_failing_pull_requests`, `github_workflow_run_failed{branch}`,
   `github_open_security_alerts{severity}`, `github_security_alerts_fetch_ok`,
@@ -64,14 +64,14 @@ those and the related MCP tools.
 
 Each of these was violated once; keep them.
 
-- **Discover `api`/`web`/`grafana` by Docker label, not DNS.** Kamal names
+- **Discover `api`/`grafana` by Docker label, not DNS.** Kamal names
   containers `<service>-<role>-<version>` with no service-name alias, so
   `api`/`web` were never scraped for the entire retention window (#1554). The
   app jobs use `docker_sd_configs` filtered on the `service` label. Prometheus
   needs the Docker socket (`:ro`) and the host's docker gid (resolved at
   provision time into `group_add`; the image runs as `nobody`).
 - **`up == 0` can't see a job that discovers nothing** — no series exists.
-  `TargetMissing` uses `absent(up{job=...})` for api, web, and grafana;
+  `TargetMissing` uses `absent(up{job=...})` for api and grafana;
   `TargetDown` is one multi-dimensional `up == 0` rule.
 - **Verify data arrived, not just that code shipped.** After a metrics change,
   confirm with `prom_query` that each series is non-empty.
@@ -87,9 +87,9 @@ Each of these was violated once; keep them.
 - **Grafana self-scrape path is `/grafana/metrics`** (bare `/metrics`
   redirects). There is no `grafana_alerting_rule_evaluations_total` in this
   version.
-- **`web`'s `GET /metrics` requires `Bearer OBSERVABILITY_INGEST_SECRET`**,
+- **The api's `GET /metrics` requires `Bearer OBSERVABILITY_INGEST_SECRET`**,
   delivered to Prometheus via `credentials_file`; unset skips the gate rather
-  than closing it. `POST /metrics` (the beacon) is unauthenticated by design.
+  than closing it. `POST /web-vitals` (the beacon) is unauthenticated by design.
   `deploy-kamal` `needs` `infra-apply` so the token is sent before it's required.
 - **`IssueSentryUnresolved` must use the Prometheus gauge, not the Sentry
   plugin.** Grafana's SSE layer can't convert the plugin's Issues response into

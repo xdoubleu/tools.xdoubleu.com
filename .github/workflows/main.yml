@@ -329,6 +329,8 @@ jobs:
         run: make lint/docs
         env:
           BASE_REF: ${{ github.event_name == 'push' && 'HEAD' || format('origin/{0}', github.base_ref) }}
+      - name: make lint/docs/test
+        run: make lint/docs/test
 
   # PRs merged off the same base can each pass api-lint's migration check
   # and collide on main; goose then refuses the duplicate and the api won't

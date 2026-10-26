@@ -39,7 +39,7 @@ pages sit under dynamic routes whose IDs are known only at runtime.
   the api is now publicly reachable; Prometheus sends it. The `web` scrape job
   and `TargetMissing` for it are gone. `/api/observability/logs` is removed.
 - **Offline:** the worker precaches the shell and every hashed file (the build
-  lists them in `sw.js`) and serves the shell for any navigation. Saved pages
+  lists them in `/sw.js`) and serves the shell for any navigation. Saved pages
   and the reader-chunk warmup are gone; data still comes from the persisted
   SWR cache and the outbox ([ADR-0027](adr-0027-offline-service-worker-and-persisted-swr.md)).
 - **Sentry:** `@sentry/react` with the Vite plugin's source-map upload; the

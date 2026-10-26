@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #1039
-- Affects: `api/internal/auth/`, `api/cmd/api/migrations/00017`–`00019`, `infra/`
+- Affects: `api/internal/auth/`, `api/cmd/api/migrations/` (00017–00019), `infra/`
 
 ## Context
 

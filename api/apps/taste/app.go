@@ -1,8 +1,9 @@
 // Package taste builds a per-user consumption log across every media app, its
 // cross-domain statistics, and an LLM-written taste profile. A family's shared
 // movies & series list gets its own profile, treating the family as one
-// person. It reaches other apps only through their exported ListConsumption
-// methods.
+// person. It reaches other apps only through their exported methods:
+// ListConsumption to read, Find* to look candidates up, and Want* to add an
+// accepted pick to a backlog (the only write).
 package taste
 
 import (
