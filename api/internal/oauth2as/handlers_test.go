@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/oauth2as"
 	"tools.xdoubleu.com/internal/testhelper"
 )
@@ -57,8 +58,14 @@ type oauth2asTestServer struct {
 
 func newOAuth2asTestServer(t *testing.T) *oauth2asTestServer {
 	t.Helper()
+	return newOAuth2asTestServerWithConfig(t, testhelper.NewTestConfig())
+}
+
+func newOAuth2asTestServerWithConfig(
+	t *testing.T, cfg config.Config,
+) *oauth2asTestServer {
+	t.Helper()
 	store, db := newTestStore(t)
-	cfg := testhelper.NewTestConfig()
 	key := testOIDCKey(t)
 	provider := oauth2as.NewProvider(cfg, store, key)
 	userID := uuid.NewString()
