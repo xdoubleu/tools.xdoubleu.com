@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/cn'
+import { EmptyState } from '@/components/ui/states'
 
 export interface ShoppingItemEdit {
   name: string
@@ -78,7 +79,7 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
       )}
 
       {items.length === 0 ? (
-        <p className="text-muted">No items yet. Add something above.</p>
+        <EmptyState>No items yet. Add something above.</EmptyState>
       ) : (
         <div className="space-y-2">
           {items.map((item, idx) => {

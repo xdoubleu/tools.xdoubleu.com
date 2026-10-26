@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Favourite } from '@/lib/gen/podcasts/v1/podcasts_pb'
 import { usePodcastActions, usePodcastFavourites } from '@/hooks/usePodcasts'
-import ShowArtwork from '@/components/podcasts/ShowArtwork'
+import { Artwork } from '@/components/ui/artwork'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
@@ -24,7 +24,7 @@ function FavouriteRow({ favourite }: { favourite: Favourite }) {
 
   return (
     <Card variant="inset" className="flex flex-wrap items-center gap-3">
-      <ShowArtwork url={favourite.artworkUrl} title={favourite.title} />
+      <Artwork src={favourite.artworkUrl} title={favourite.title} size="square" />
       <div className="min-w-0 flex-1">
         <p className="break-words font-medium">{favourite.title}</p>
         {favourite.author && <p className="break-words text-xs text-muted">{favourite.author}</p>}

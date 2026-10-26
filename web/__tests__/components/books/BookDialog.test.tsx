@@ -51,6 +51,11 @@ describe('BookDialog', () => {
     expect(container.firstChild).toBeNull()
   })
 
+  it('opens as a bottom sheet on phones', () => {
+    render(<BookDialog book={fakeBook} onClose={vi.fn()} onAdded={vi.fn()} />)
+    expect(screen.getByRole('dialog')).toHaveClass('rounded-t-2xl')
+  })
+
   it('renders book title and authors', () => {
     render(<BookDialog book={fakeBook} onClose={vi.fn()} onAdded={vi.fn()} />)
     expect(screen.getByText('The Go Programming Language')).toBeInTheDocument()

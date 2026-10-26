@@ -210,7 +210,7 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
       </p>
 
       {order.length === 0 ? (
-        <p className="text-sm text-muted">No categories added to this store yet.</p>
+        <EmptyState>No categories added to this store yet.</EmptyState>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={order.map((o) => o.id)} strategy={verticalListSortingStrategy}>

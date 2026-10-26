@@ -3,7 +3,7 @@ import { useKoboDeviceLogs, useClearKoboDeviceLogs } from '@/hooks/useBooks'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { LoadingState } from '@/components/ui/states'
+import { EmptyState, LoadingState } from '@/components/ui/states'
 
 interface KoboDeviceLogsProps {
   deviceId: string
@@ -89,9 +89,7 @@ export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
       {isLoading ? (
         <LoadingState label="logs" className="text-xs" />
       ) : entries.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted" data-testid="kobo-logs-empty">
-          No requests captured yet. Sync your Kobo, then refresh.
-        </p>
+        <EmptyState>No requests captured yet. Sync your Kobo, then refresh.</EmptyState>
       ) : (
         <ul className="space-y-2" data-testid="kobo-logs-list">
           {entries

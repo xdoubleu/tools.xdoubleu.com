@@ -2,8 +2,15 @@ import { useState } from 'react'
 import { Code, ConnectError } from '@connectrpc/connect'
 import type { SearchResult } from '@/lib/gen/movies/v1/movies_pb'
 import { useMovieSearch, useMoviesActions } from '@/hooks/useMovies'
-import { mediaTypeLabel, releaseLabel, statusLabel, titleName, todayISO } from '@/lib/movies/format'
-import MoviePoster from '@/components/movies/MoviePoster'
+import {
+  mediaTypeLabel,
+  posterUrl,
+  releaseLabel,
+  statusLabel,
+  titleName,
+  todayISO
+} from '@/lib/movies/format'
+import { Artwork } from '@/components/ui/artwork'
 import WatchedWhenDialog from '@/components/movies/WatchedWhenDialog'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -50,7 +57,7 @@ function SearchResultRow({ result, today }: { result: SearchResult; today: strin
 
   return (
     <Card variant="inset" className="flex flex-wrap items-center gap-3">
-      <MoviePoster posterPath={result.posterPath} title={displayed} />
+      <Artwork src={posterUrl(result.posterPath, 'w92')} title={displayed} size="md" />
       <div className="min-w-0 flex-1">
         <p className="break-words font-medium">{displayed}</p>
         <p className="text-xs text-muted">

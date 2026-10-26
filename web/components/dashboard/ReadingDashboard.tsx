@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from '@/components/ui/link'
 import { useLibrary, useBooksProgress } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
-import BookCover from '@/components/books/BookCover'
+import { Artwork } from '@/components/ui/artwork'
 import BookSearchBar from '@/components/books/BookSearchBar'
 import BookProgressEditor from '@/components/books/BookProgressEditor'
 import MarkAsCompletedDialog from '@/components/books/MarkAsCompletedDialog'
@@ -49,7 +49,7 @@ function ReadingBookCard({ userBook }: { userBook: UserBook }) {
         </>
       }
     >
-      <BookCover coverUrl={book.coverUrl} title={book.title} size="md" />
+      <Artwork src={book.coverUrl} title={book.title} alt={book.title} initials={2} size="md" />
       <div className="min-w-0 flex-1">
         <h3 className="font-semibold break-words">{book.title}</h3>
         <p className="text-sm text-muted truncate">{book.authors.join(', ')}</p>

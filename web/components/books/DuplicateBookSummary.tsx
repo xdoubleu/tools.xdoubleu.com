@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge'
-import BookCover from '@/components/books/BookCover'
+import { Artwork } from '@/components/ui/artwork'
 
 // Duck-typed so tests can pass plain fixtures instead of proto Messages.
 
@@ -66,7 +66,7 @@ export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) 
 
   return (
     <div className="flex items-start gap-3">
-      <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />
+      <Artwork src={book.coverUrl} title={book.title} alt={book.title} initials={2} size="sm" />
       <div className="min-w-0 flex-1">
         <p className="break-words text-sm font-medium leading-tight">{book.title}</p>
         <p className="text-xs text-muted truncate">{book.authors.join(', ')}</p>

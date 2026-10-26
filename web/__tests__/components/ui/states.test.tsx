@@ -31,4 +31,22 @@ describe('EmptyState', () => {
     render(<EmptyState>Nothing here.</EmptyState>)
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
+
+  it('centres a padded block by default', () => {
+    const { container } = render(<EmptyState>Nothing here.</EmptyState>)
+    expect(container.firstElementChild).toHaveClass('py-8', 'text-center')
+  })
+
+  it('sits flush and left-aligned when compact', () => {
+    const { container } = render(
+      <EmptyState compact action={<button>New</button>}>
+        Nothing here.
+      </EmptyState>
+    )
+    expect(container.firstElementChild).not.toHaveClass('py-8', 'text-center')
+    expect(container.firstElementChild).toHaveClass('space-y-2')
+    expect(screen.getByRole('button', { name: 'New' }).parentElement).not.toHaveClass(
+      'justify-center'
+    )
+  })
 })

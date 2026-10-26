@@ -6,7 +6,7 @@ import {
 } from '@/hooks/useBooks'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { LoadingState } from '@/components/ui/states'
+import { EmptyState, LoadingState } from '@/components/ui/states'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatDate } from '@/lib/dates'
 import KoboDeviceLogs from '@/components/books/KoboDeviceLogs'
@@ -110,9 +110,9 @@ export default function KoboDevices() {
 
   if (devices.length === 0) {
     return (
-      <p className="text-xs text-muted" data-testid="kobo-devices-empty">
+      <EmptyState compact>
         No devices connected yet. Use the button above to configure your Kobo.
-      </p>
+      </EmptyState>
     )
   }
 

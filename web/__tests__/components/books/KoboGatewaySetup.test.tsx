@@ -85,7 +85,7 @@ describe('KoboGatewaySetup — no Kobo connected', () => {
   it('shows a message telling the user to plug in a Kobo', () => {
     render(<KoboGatewaySetup status={status([])} />)
 
-    expect(screen.getByTestId('kobo-gateway-no-kobo')).toBeInTheDocument()
+    expect(screen.getByText(/^No Kobo detected/)).toBeInTheDocument()
   })
 })
 

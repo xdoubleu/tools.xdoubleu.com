@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { ErrorState, LoadingState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import {
   useCreateFilterRule,
   useDeleteFilterRule,
@@ -173,7 +173,7 @@ export default function FeedFilterRulesCard() {
         {isLoading && <LoadingState label="filter rules" />}
         {error && <ErrorState what="filter rules" />}
         {!isLoading && !error && rules.length === 0 && (
-          <p className="text-sm text-muted">No filter rules yet.</p>
+          <EmptyState>No filter rules yet.</EmptyState>
         )}
         {rules.length > 0 && (
           <ul className="space-y-2">

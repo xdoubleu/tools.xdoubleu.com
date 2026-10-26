@@ -4,7 +4,7 @@ import { useSteam } from '@/hooks/useGames'
 import { useSteamRefresh } from '@/lib/games/steamRefresh'
 import type { Game } from '@/lib/gen/games/v1/games_pb'
 import { Button } from '@/components/ui/button'
-import { ErrorState, LoadingState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { Input } from '@/components/ui/input'
 import { GameGroup } from '@/components/games/GameCards'
 import { swrKeys } from '@/lib/swrKeys'
@@ -69,9 +69,7 @@ export default function GamesLibrary() {
           {search.trim() &&
             inProgress.length === 0 &&
             notStarted.length === 0 &&
-            completed.length === 0 && (
-              <p className="text-muted text-sm">No games match your search.</p>
-            )}
+            completed.length === 0 && <EmptyState>No games match your search.</EmptyState>}
         </>
       )}
     </section>

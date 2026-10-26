@@ -21,6 +21,7 @@ import { Select } from '@/components/ui/select'
 import { isBuiltInShelfId, BOOK_STATUSES } from '@/lib/books/bookShelves'
 import type { Shelf } from '@/components/books/LibrarySidebar'
 import { swrKeys } from '@/lib/swrKeys'
+import { EmptyState } from '@/components/ui/states'
 
 interface ManageShelvesTagsDialogProps {
   open: boolean
@@ -126,7 +127,7 @@ export default function ManageShelvesTagsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent side="sheet" className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit shelves & tags</DialogTitle>
           <DialogClose />
@@ -178,9 +179,7 @@ export default function ManageShelvesTagsDialog({
               Add
             </Button>
           </div>
-          {customShelves.length === 0 && (
-            <p className="text-sm text-muted">No custom shelves yet.</p>
-          )}
+          {customShelves.length === 0 && <EmptyState compact>No custom shelves yet.</EmptyState>}
           <div className="flex flex-col gap-2">
             {customShelves.map((shelf) => (
               <div key={shelf.id}>
@@ -275,7 +274,7 @@ export default function ManageShelvesTagsDialog({
 
         <section>
           <h3 className="mb-2 text-xs font-semibold text-muted uppercase tracking-wide">Tags</h3>
-          {tags.length === 0 && <p className="text-sm text-muted">No tags yet.</p>}
+          {tags.length === 0 && <EmptyState compact>No tags yet.</EmptyState>}
           <div className="flex flex-col gap-2">
             {tags.map((tag) => (
               <div key={tag}>

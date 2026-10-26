@@ -23,15 +23,17 @@ interface EmptyStateProps {
   children: ReactNode
   /** Optional call to action under the message, e.g. a "New recipe" button. */
   action?: ReactNode
+  /** Flush and left-aligned, for an empty list inside a field, dialog section or panel. */
+  compact?: boolean
   className?: string
 }
 
 /** Message for a list or section with nothing in it yet. */
-function EmptyState({ children, action, className }: EmptyStateProps) {
+function EmptyState({ children, action, compact = false, className }: EmptyStateProps) {
   return (
-    <div className={cn('space-y-3 py-8 text-center', className)}>
+    <div className={cn(compact ? 'space-y-2' : 'space-y-3 py-8 text-center', className)}>
       <p className="text-sm text-muted">{children}</p>
-      {action && <div className="flex justify-center">{action}</div>}
+      {action && <div className={cn('flex', !compact && 'justify-center')}>{action}</div>}
     </div>
   )
 }

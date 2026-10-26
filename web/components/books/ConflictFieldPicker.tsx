@@ -1,6 +1,6 @@
 import type { DuplicateGroup } from '@/lib/gen/books/v1/catalog_pb'
 import type { BookConflictField, FieldConflict } from './duplicateConflicts'
-import BookCover from '@/components/books/BookCover'
+import { Artwork } from '@/components/ui/artwork'
 import { Label } from '@/components/ui/label'
 import { Radio } from '@/components/ui/radio-group'
 import { cn } from '@/lib/cn'
@@ -40,7 +40,7 @@ function CoverChoice({ bookId, coverUrl, title, checked, onChange, groupKey }: C
           checked ? 'border-accent' : 'border-transparent'
         )}
       >
-        <BookCover coverUrl={coverUrl} title={title} size="sm" />
+        <Artwork src={coverUrl} title={title} alt={title} initials={2} size="sm" />
       </div>
       <span className="text-xs text-muted">{checked ? 'Selected' : 'Use this'}</span>
     </Label>

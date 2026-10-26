@@ -3,11 +3,9 @@ import { Link } from '@/components/ui/link'
 import { useRecipes, useFetchRecipesPage } from '@/hooks/useRecipes'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
-import { cn } from '@/lib/cn'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { interactiveCardClass } from '@/components/ui/card'
-import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
+import { LinkCard } from '@/components/ui/link-card'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
@@ -15,8 +13,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
-    <Link href={`/recipes/${recipe.id}`} className={cn(interactiveCardClass, 'relative block p-4')}>
-      <CardLinkStatus />
+    <LinkCard href={`/recipes/${recipe.id}`} linkClassName="p-4">
       <h2 className="font-semibold text-lg">{recipe.name}</h2>
       <p className="text-sm text-muted mt-1">
         Serves {recipe.baseServings}
@@ -26,7 +23,7 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
           </Badge>
         )}
       </p>
-    </Link>
+    </LinkCard>
   )
 }
 

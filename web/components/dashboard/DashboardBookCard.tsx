@@ -1,5 +1,5 @@
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
-import BookCover from '@/components/books/BookCover'
+import { Artwork } from '@/components/ui/artwork'
 import BookRatingStars from '@/components/books/BookRatingStars'
 import BookProgressBar from '@/components/books/BookProgressBar'
 import { Card } from '@/components/ui/card'
@@ -12,7 +12,7 @@ export default function DashboardBookCard({ userBook }: { userBook: UserBook }) 
   const tags = displayTags(userBook.tags)
   return (
     <Card className="flex gap-3 p-4">
-      <BookCover coverUrl={book.coverUrl} title={book.title} size="md" />
+      <Artwork src={book.coverUrl} title={book.title} alt={book.title} initials={2} size="md" />
       <div className="min-w-0 flex-1">
         <h3 className="font-semibold truncate">
           {book.title}

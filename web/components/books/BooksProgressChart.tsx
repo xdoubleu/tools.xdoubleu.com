@@ -7,6 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts'
+import { EmptyState } from '@/components/ui/states'
 
 export interface ProgressPoint {
   label: string
@@ -19,7 +20,7 @@ interface BooksProgressChartProps {
 
 export default function BooksProgressChart({ data }: BooksProgressChartProps) {
   if (data.length === 0) {
-    return <p className="text-muted">No progress data available.</p>
+    return <EmptyState>No progress data available.</EmptyState>
   }
 
   return (

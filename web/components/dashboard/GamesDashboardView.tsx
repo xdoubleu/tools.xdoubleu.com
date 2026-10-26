@@ -1,22 +1,18 @@
 import type { ReactNode } from 'react'
-import { Link } from '@/components/ui/link'
 import type { RecentGame, SteamResponse } from '@/lib/gen/games/v1/games_pb'
 import { StatTile } from '@/components/ui/stat'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import SteamProgressChart from '@/components/games/SteamProgressChart'
 import { DateRangeFields } from '@/components/ui/date-range-fields'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
-import { LoadingState } from '@/components/ui/states'
-import { interactiveCardClass } from '@/components/ui/card'
-import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
-import { cn } from '@/lib/cn'
+import { EmptyState, LoadingState } from '@/components/ui/states'
+import { LinkCard } from '@/components/ui/link-card'
 import { formatDate } from '@/lib/dates'
 import type { DashboardChartState } from '@/hooks/useDashboardChartState'
 
 function RecentGameCard({ game, href }: { game: RecentGame; href: string }) {
   return (
-    <Link href={href} className={cn(interactiveCardClass, 'relative flex gap-3 p-4')}>
-      <CardLinkStatus />
+    <LinkCard href={href} linkClassName="flex gap-3 p-4">
       {game.imageUrl && (
         <img
           src={game.imageUrl}
@@ -33,7 +29,7 @@ function RecentGameCard({ game, href }: { game: RecentGame; href: string }) {
           Last played {formatDate(game.lastPlayedAt)} &mdash; {Math.round(game.playtime / 60)} hrs
         </p>
       </div>
-    </Link>
+    </LinkCard>
   )
 }
 
@@ -82,9 +78,7 @@ export default function GamesDashboardView({
       <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
         <div className="flex min-h-0 flex-col">
           <h2 className="mb-2 text-base font-semibold">Recently active</h2>
-          {recentGames.length === 0 && (
-            <p className="text-muted text-sm">No recently played games.</p>
-          )}
+          {recentGames.length === 0 && <EmptyState compact>No recently played games.</EmptyState>}
           {recentGames.length > 0 && (
             <div className="grid grid-cols-1 min-h-0 gap-3 overflow-y-auto pr-1 sm:grid-cols-2 lg:flex-1 lg:grid-cols-1">
               {recentGames.map((g) => (
@@ -120,7 +114,7 @@ export default function GamesDashboardView({
             <>
               {progressLoading && <LoadingState label="progress" />}
               {!progressLoading && progressChartData.length === 0 && (
-                <p className="text-muted">No progress data for this range.</p>
+                <EmptyState compact>No progress data for this range.</EmptyState>
               )}
               {progressChartData.length > 0 && (
                 <div className="h-72 w-full lg:h-full lg:min-h-0 lg:flex-1">

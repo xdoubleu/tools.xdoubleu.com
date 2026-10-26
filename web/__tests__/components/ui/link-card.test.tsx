@@ -1,7 +1,34 @@
+import { type ReactNode } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { LinkCard } from '@/components/ui/link-card'
 
+vi.mock('@/components/ui/link', () => ({
+  Link: ({ href, children, ...rest }: { href: string; children?: ReactNode }) => (
+    <a href={href} data-router="" {...rest}>
+      {children}
+    </a>
+  ),
+  useLinkPending: () => false
+}))
+
 describe('LinkCard', () => {
+  it('navigates in-app by default', () => {
+    render(<LinkCard href="/recipes">Recipes</LinkCard>)
+    expect(screen.getByRole('link', { name: 'Recipes' })).toHaveAttribute('data-router')
+  })
+
+  it('loads the whole document for an external target', () => {
+    render(
+      <LinkCard href="/grafana" external linkClassName="p-4">
+        Grafana
+      </LinkCard>
+    )
+    const link = screen.getByRole('link', { name: 'Grafana' })
+    expect(link).toHaveAttribute('href', '/grafana')
+    expect(link).not.toHaveAttribute('data-router')
+    expect(link).toHaveClass('p-4', 'block')
+  })
+
   it('links only the content zone', () => {
     const onClick = vi.fn()
     render(

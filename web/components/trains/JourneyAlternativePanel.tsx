@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { JourneyRow } from '@/components/trains/JourneyResults'
 import type { JourneyAlternative } from '@/lib/gen/trains/v1/trains_pb'
+import { EmptyState } from '@/components/ui/states'
 
 /**
  * Inline re-plan shown when realtime data shows the planned journey broke:
@@ -40,9 +41,9 @@ export default function JourneyAlternativePanel({
           )}
         </>
       ) : (
-        <p className="mt-3 text-sm text-muted">
+        <EmptyState compact className="mt-3">
           No alternative route found from {alternative.fromStopName} right now.
-        </p>
+        </EmptyState>
       )}
     </Alert>
   )
