@@ -1,5 +1,6 @@
-// Package webfetch is a bounded http/https fetcher for external web content,
-// with size caps and conditional GETs.
+// Package webfetch is the bounded http/https fetcher for user-supplied URLs
+// (articles, feeds, PDFs, images), with size caps and conditional GETs. It
+// dials through [safedial], so it never reaches non-public addresses.
 package webfetch
 
 import (
@@ -15,11 +16,13 @@ var (
 	ErrStatus = errors.New("webfetch: non-success HTTP status")
 	// ErrScheme is returned for URLs that are not http or https.
 	ErrScheme = errors.New("webfetch: unsupported URL scheme")
-	// ErrNetwork is returned (wrapped) on transport failures.
+	// ErrNetwork is returned (wrapped) when the request fails at the
+	// transport level — DNS, connect, TLS, timeout.
 	ErrNetwork = errors.New("webfetch: request failed")
 )
 
-// StatusError is returned on a non-2xx response and unwraps to ErrStatus.
+// StatusError is returned on a non-2xx response and unwraps to ErrStatus;
+// errors.As reaches the exact code.
 type StatusError struct {
 	Code int
 }
@@ -47,7 +50,8 @@ type Options struct {
 // Result is a completed fetch.
 type Result struct {
 	Body []byte
-	// ContentType is the lowercased media type without parameters.
+	// ContentType is the media type with parameters stripped, lowercased
+	// (e.g. "text/html").
 	ContentType string
 	// FinalURL is the URL after following redirects.
 	FinalURL string

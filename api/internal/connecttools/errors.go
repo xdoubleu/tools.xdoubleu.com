@@ -11,33 +11,68 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// MapError translates a service-layer error into the matching ConnectRPC error.
-func MapError(err error) error {
+// ErrorCode maps an app's own domain error to a Connect code.
+type ErrorCode struct {
+	target  error
+	code    connect.Code
+	message string
+}
+
+// Code maps errors matching target (errors.Is) to code.
+func Code(target error, code connect.Code) ErrorCode {
+	return ErrorCode{target: target, code: code, message: ""}
+}
+
+// CodeWithMessage is Code with a fixed client-facing message.
+func CodeWithMessage(target error, code connect.Code, message string) ErrorCode {
+	return ErrorCode{target: target, code: code, message: message}
+}
+
+// MapError translates a service-layer error into the matching ConnectRPC
+// error. A *connect.Error passes through; app codes are checked before the
+// shared database and HTTPError mappings; anything else is CodeInternal.
+func MapError(err error, app ...ErrorCode) error {
 	if err == nil {
 		return nil
 	}
-	if errors.Is(err, database.ErrResourceNotFound) {
-		return connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
+	var connectErr *connect.Error
+	if errors.As(err, &connectErr) {
+		return connectErr
 	}
-	if errors.Is(err, database.ErrResourceConflict) {
-		return connect.NewError(connect.CodeAlreadyExists, err.Error()).WithCause(err)
+	for _, c := range app {
+		if errors.Is(err, c.target) {
+			msg := c.message
+			if msg == "" {
+				msg = err.Error()
+			}
+			return connect.NewError(c.code, msg).WithCause(err)
+		}
+	}
+	return connect.NewError(sharedCode(err), err.Error()).WithCause(err)
+}
+
+func sharedCode(err error) connect.Code {
+	switch {
+	case errors.Is(err, database.ErrResourceNotFound):
+		return connect.CodeNotFound
+	case errors.Is(err, database.ErrResourceConflict):
+		return connect.CodeAlreadyExists
 	}
 
 	var httpErr *iapp.HTTPError
-	if errors.As(err, &httpErr) {
-		switch httpErr.Status {
-		case http.StatusBadRequest:
-			return connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
-		case http.StatusNotFound:
-			return connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
-		case http.StatusConflict:
-			return connect.NewError(connect.CodeAlreadyExists, err.Error()).WithCause(err)
-		case http.StatusForbidden:
-			return connect.NewError(connect.CodePermissionDenied, err.Error()).WithCause(err)
-		default:
-			return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
-		}
+	if !errors.As(err, &httpErr) {
+		return connect.CodeInternal
 	}
-
-	return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	switch httpErr.Status {
+	case http.StatusBadRequest:
+		return connect.CodeInvalidArgument
+	case http.StatusNotFound:
+		return connect.CodeNotFound
+	case http.StatusConflict:
+		return connect.CodeAlreadyExists
+	case http.StatusForbidden:
+		return connect.CodePermissionDenied
+	default:
+		return connect.CodeInternal
+	}
 }

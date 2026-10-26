@@ -112,6 +112,7 @@ export default [
     languageOptions: {
       sourceType: 'commonjs',
       globals: {
+        __dirname: 'readonly',
         module: 'writable',
         require: 'readonly'
       }

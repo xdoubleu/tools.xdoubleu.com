@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 
 /**
- * SSR-safe localStorage hook: renders initialValue first, applies the stored
+ * localStorage-backed state: renders initialValue first, applies the stored
  * value on mount. Key convention: `<area>:<name>`.
  */
 export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => void] {

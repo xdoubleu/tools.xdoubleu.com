@@ -4,7 +4,7 @@ import { GetNotificationSettingsResponseSchema } from '@/lib/gen/observability/v
 import NotificationToggleList from '@/components/notifications/NotificationToggleList'
 
 const mockUpdateNotificationSettings = vi.fn()
-vi.mock('@/hooks/useMonitoring', () => ({
+vi.mock('@/hooks/useNotificationSettings', () => ({
   useUpdateNotificationSettings: () => mockUpdateNotificationSettings
 }))
 

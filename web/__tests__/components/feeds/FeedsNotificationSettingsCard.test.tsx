@@ -4,7 +4,7 @@ import { GetNotificationSettingsResponseSchema } from '@/lib/gen/observability/v
 import FeedsNotificationSettingsCard from '@/components/feeds/FeedsNotificationSettingsCard'
 
 const mockUseNotificationSettings = vi.fn()
-vi.mock('@/hooks/useMonitoring', () => ({
+vi.mock('@/hooks/useNotificationSettings', () => ({
   useNotificationSettings: () => mockUseNotificationSettings(),
   useUpdateNotificationSettings: () => vi.fn()
 }))

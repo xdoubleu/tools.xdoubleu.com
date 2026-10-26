@@ -1,6 +1,5 @@
 import { Link } from '@/components/ui/link'
 import { useSharedLibrary, useSharedBooksProgress } from '@/hooks/useDashboardShare'
-import type { GetSharedLibraryResponse } from '@/lib/gen/dashboard/v1/reading_pb'
 import DashboardBookCard from '@/components/dashboard/DashboardBookCard'
 import ReadingDashboardLayout from '@/components/dashboard/ReadingDashboardLayout'
 import { Button } from '@/components/ui/button'
@@ -8,16 +7,10 @@ import { useDashboardChartState } from '@/hooks/useDashboardChartState'
 import { formatDateTime } from '@/lib/dates'
 import { LoadingState, ErrorState } from '@/components/ui/states'
 
-export default function ReadingDashboardPublicClient({
-  token,
-  initialData
-}: {
-  token: string
-  initialData?: GetSharedLibraryResponse
-}) {
+export default function ReadingDashboardPublicClient({ token }: { token: string }) {
   const chart = useDashboardChartState<'ytd' | 'all'>('ytd')
 
-  const { data, error, isLoading } = useSharedLibrary(token, initialData)
+  const { data, error, isLoading } = useSharedLibrary(token)
   const { data: progressData } = useSharedBooksProgress(
     chart.view === 'all' ? token : '',
     chart.start,

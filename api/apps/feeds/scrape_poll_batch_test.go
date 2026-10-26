@@ -13,11 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/apps/feeds/internal/mocks"
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
 	"tools.xdoubleu.com/apps/feeds/internal/services"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/mocks"
 )
 
 // itemInsertCountingDB counts item-insert statements, so a test can assert a

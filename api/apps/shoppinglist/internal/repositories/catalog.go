@@ -2,11 +2,10 @@ package repositories
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/google/uuid"
 
-	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/database"
 )
 
 // ItemName is a distinct normalized name known for a family with its category
@@ -171,10 +170,7 @@ func (r *ShoppingRepository) SetItemCategory(
 		return err
 	}
 	if result.RowsAffected() == 0 {
-		return &iapp.HTTPError{
-			Status:  http.StatusNotFound,
-			Message: "Category not found",
-		}
+		return database.ErrResourceNotFound
 	}
 	return nil
 }

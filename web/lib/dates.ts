@@ -27,3 +27,11 @@ export function formatDateTime(value: string | Date): string {
   const date = typeof value === 'string' ? new Date(value) : value
   return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('en-GB')
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** "2026-01" → "Jan 26", in fixed English. */
+export function monthLabel(month: string): string {
+  const [year, m] = month.split('-')
+  return `${MONTHS[Number(m) - 1]} ${year.slice(2)}`
+}

@@ -97,9 +97,7 @@ export default function MovieTitleClient({ id }: { id: string }) {
       <div className="flex flex-col gap-6 sm:flex-row">
         <MoviePoster posterPath={entry.posterPath} title={displayed} size="lg" />
         <div className="min-w-0 flex-1 space-y-4">
-          <p className="text-sm text-muted" suppressHydrationWarning>
-            {facts.join(' · ')}
-          </p>
+          <p className="text-sm text-muted">{facts.join(' · ')}</p>
           {entry.genres.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {entry.genres.map((g) => (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { getTheme, setTheme, THEMES, type Theme } from '@/lib/theme'
 
@@ -9,9 +9,7 @@ const labels: Record<Theme, string> = {
 }
 
 export function AppearanceSection() {
-  // Read after mount: the stored theme lives in localStorage, unavailable to SSR.
-  const [theme, setThemeState] = useState<Theme>('auto')
-  useEffect(() => setThemeState(getTheme()), [])
+  const [theme, setThemeState] = useState<Theme>(getTheme)
 
   return (
     <section>

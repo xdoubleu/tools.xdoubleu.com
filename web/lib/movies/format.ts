@@ -53,12 +53,12 @@ export function titleName(t: { title: string }): string {
   return t.title
 }
 
-/** TMDB poster URL at a fixed width; empty when the title has none. */
 /** A provider logo on TMDB's CDN. */
 export function logoUrl(logoPath: string): string {
   return posterUrl(logoPath, 'w92')
 }
 
+/** TMDB poster URL at a fixed width; empty when the title has none. */
 export function posterUrl(posterPath: string, width: 'w92' | 'w185' | 'w342' = 'w185'): string {
   return posterPath ? `https://image.tmdb.org/t/p/${width}${posterPath}` : ''
 }
@@ -81,12 +81,4 @@ export function todayISO(now: Date = new Date()): string {
 /** A watch's day as YYYY-MM-DD in local time; '' for an unknown date. */
 export function watchDay(watchedAt: string): string {
   return watchedAt ? todayISO(new Date(watchedAt)) : ''
-}
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-/** "2026-01" → "Jan 26"; fixed English so server and client render alike. */
-export function monthLabel(month: string): string {
-  const [year, m] = month.split('-')
-  return `${MONTHS[Number(m) - 1]} ${year.slice(2)}`
 }

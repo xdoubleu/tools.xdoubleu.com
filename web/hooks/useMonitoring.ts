@@ -9,7 +9,6 @@ import {
 import type {
   ListOAuthConnectionsResponse,
   GetProviderOptionsResponse,
-  GetNotificationSettingsResponse,
   GetAutomatedActionsResponse
 } from '@/lib/gen/observability/v1/observability_pb'
 import { swrKeys } from '@/lib/swrKeys'
@@ -50,26 +49,6 @@ export function useSetProviderConfig() {
     async (provider: string, config: ProviderConfigInput) => {
       await client.setProviderConfig({ provider, config })
       await mutate(swrKeys.monitoringOAuthConnections)
-    },
-    [client]
-  )
-}
-
-// useNotificationSettings reads which sources may email an admin.
-export function useNotificationSettings() {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetNotificationSettingsResponse, Error>(
-    swrKeys.monitoringNotificationSettings,
-    () => client.getNotificationSettings({})
-  )
-}
-
-export function useUpdateNotificationSettings() {
-  const client = useMemo(() => createServiceClient(ObservabilityService), [])
-  return useCallback(
-    async (sourceKey: string, enabled: boolean) => {
-      await client.updateNotificationSettings({ sourceKey, enabled })
-      await mutate(swrKeys.monitoringNotificationSettings)
     },
     [client]
   )

@@ -111,7 +111,7 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
           {release && (
             <>
               {' '}
-              &middot; <span suppressHydrationWarning>{release}</span>
+              &middot; <span>{release}</span>
             </>
           )}
         </p>

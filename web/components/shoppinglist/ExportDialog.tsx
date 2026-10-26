@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { useStores, useStoreCategories, useItemCategories } from '@/hooks/useShoppingList'
+import { useStores, useStoreCategories } from '@/hooks/useShoppingList'
+import { useItemCategories } from '@/hooks/useIngredientCatalog'
 import {
   formatForClipboard,
   formatForAppleNotes,

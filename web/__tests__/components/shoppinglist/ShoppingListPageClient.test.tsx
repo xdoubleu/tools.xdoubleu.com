@@ -28,13 +28,15 @@ vi.mock('@/hooks/useShoppingList', () => ({
     error: mockListError,
     isLoading: mockListLoading
   }),
-  useCategories: () => ({
-    data: { categories: [{ id: 'cat-produce', name: 'Produce' }] }
-  }),
   useAllMealPlanExportItems: () => mockMealExport,
   useAllPlanIngredientGroups: () => mockPlanGroups,
   useStores: () => ({ data: { stores: [] }, isLoading: false }),
-  useStoreCategories: () => ({ data: undefined, isLoading: false }),
+  useStoreCategories: () => ({ data: undefined, isLoading: false })
+}))
+vi.mock('@/hooks/useIngredientCatalog', () => ({
+  useCategories: () => ({
+    data: { categories: [{ id: 'cat-produce', name: 'Produce' }] }
+  }),
   useItemCategories: () => ({ data: { items: [] }, isLoading: false }),
   useItemAliases: () => mockAliases
 }))

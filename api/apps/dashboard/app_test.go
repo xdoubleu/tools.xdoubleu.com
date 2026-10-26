@@ -11,10 +11,8 @@ import (
 
 	"tools.xdoubleu.com/apps/books"
 	booksobjectstore "tools.xdoubleu.com/apps/books/pkg/objectstore"
-	bookswebfetch "tools.xdoubleu.com/apps/books/pkg/webfetch"
 	"tools.xdoubleu.com/apps/dashboard"
 	"tools.xdoubleu.com/apps/feeds"
-	feedswebfetch "tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 	"tools.xdoubleu.com/apps/games"
 	"tools.xdoubleu.com/apps/games/pkg/steam"
 	"tools.xdoubleu.com/internal/config"
@@ -108,28 +106,6 @@ func (fakeSteamClient) GetGlobalAchievementPercentagesForApp(
 	return &resp, nil
 }
 
-// fakeBooksWebFetchClient/fakeFeedsWebFetchClient error on every call; these
-// tests never fetch.
-type fakeBooksWebFetchClient struct{}
-
-func (fakeBooksWebFetchClient) Get(
-	_ context.Context,
-	_ string,
-	_ bookswebfetch.Options,
-) (*bookswebfetch.Result, error) {
-	return nil, bookswebfetch.ErrNetwork
-}
-
-type fakeFeedsWebFetchClient struct{}
-
-func (fakeFeedsWebFetchClient) Get(
-	_ context.Context,
-	_ string,
-	_ feedswebfetch.Options,
-) (*feedswebfetch.Result, error) {
-	return nil, feedswebfetch.ErrNetwork
-}
-
 func TestMain(m *testing.M) {
 	testCfg = testhelper.NewTestConfig()
 	testCfg.SteamAPIKey = "test-steam-api-key"
@@ -151,7 +127,7 @@ func TestMain(m *testing.M) {
 			UniCat:           nil,
 			Hardcover:        nil,
 			ObjectStore:      booksobjectstore.NewFake(),
-			WebFetch:         fakeBooksWebFetchClient{},
+			WebFetch:         sharedmocks.NewMockWebFetchClient(),
 			KoboStoreBaseURL: "",
 			PublicAPIBaseURL: "",
 		},
@@ -166,7 +142,7 @@ func TestMain(m *testing.M) {
 		logger,
 		testCfg,
 		postgresDB,
-		fakeFeedsWebFetchClient{},
+		sharedmocks.NewMockWebFetchClient(),
 		notifications.New(
 			context.Background(),
 			logger,

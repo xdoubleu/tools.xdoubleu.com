@@ -17,6 +17,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/httpclient"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
@@ -76,7 +77,7 @@ func configGetError() stubConfigStore {
 }
 
 func TestMain(m *testing.M) {
-	sentryapi.SetBackoffBase(1 * time.Millisecond)
+	httpclient.SetBackoffBase(time.Millisecond)
 	os.Exit(m.Run())
 }
 

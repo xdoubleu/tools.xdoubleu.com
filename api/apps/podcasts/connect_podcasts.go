@@ -2,7 +2,6 @@ package podcasts
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -35,10 +34,9 @@ func userID(ctx context.Context) (string, error) {
 }
 
 func mapError(err error) error {
-	if errors.Is(err, services.ErrUpstream) {
-		return connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
-	}
-	return connecttools.MapError(err)
+	return connecttools.MapError(
+		err, connecttools.Code(services.ErrUpstream, connect.CodeUnavailable),
+	)
 }
 
 func protoFavourite(s *models.Show) *podcastsv1.Favourite {

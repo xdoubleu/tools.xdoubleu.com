@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
+	"tools.xdoubleu.com/internal/webfetch"
 )
 
 func TestFindSource(t *testing.T) {

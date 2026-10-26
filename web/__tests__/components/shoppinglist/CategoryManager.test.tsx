@@ -8,7 +8,7 @@ import {
   renameCategoryWrite
 } from '@/lib/shoppinglist/offlineWrites'
 
-vi.mock('@/hooks/useShoppingList', () => ({
+vi.mock('@/hooks/useIngredientCatalog', () => ({
   useCategories: () => ({
     data: {
       categories: [

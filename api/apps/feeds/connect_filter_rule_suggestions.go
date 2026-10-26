@@ -32,7 +32,7 @@ func (h *feedsConnectHandler) GetFilterRuleSuggestions(
 
 	suggestions, err := h.app.Services.Feeds.GetFilterRuleSuggestions(ctx, user.ID)
 	if err != nil {
-		return nil, feedErrorToConnect(err)
+		return nil, mapError(err)
 	}
 
 	out := make([]*feedsv1.FilterRuleSuggestion, len(suggestions))
@@ -60,7 +60,7 @@ func (h *feedsConnectHandler) DismissFilterRuleSuggestion(
 	if err := h.app.Services.Feeds.DismissFilterRuleSuggestion(
 		ctx, user.ID, feedID, req.Category,
 	); err != nil {
-		return nil, filterRuleErrorToConnect(err)
+		return nil, mapError(err)
 	}
 	return &feedsv1.DismissFilterRuleSuggestionResponse{}, nil
 }

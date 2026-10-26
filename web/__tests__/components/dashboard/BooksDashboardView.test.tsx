@@ -7,7 +7,7 @@ vi.mock('@/components/books/BooksProgressChart', () => ({
   default: () => <div data-testid="books-progress-chart" />
 }))
 
-import BooksDashboardView from '@/components/books/BooksDashboardView'
+import BooksDashboardView from '@/components/dashboard/BooksDashboardView'
 
 function makeLibrary() {
   return create(LibraryResponseSchema, {

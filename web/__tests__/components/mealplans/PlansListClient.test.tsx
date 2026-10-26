@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 vi.mock('@/hooks/useMealPlans', () => ({
   useMealPlans: vi.fn()
@@ -16,13 +16,15 @@ import { create } from '@bufbuild/protobuf'
 import { PlanSchema, ListPlansResponseSchema } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { ListPlansResponse } from '@/lib/gen/mealplans/v1/mealplans_pb'
 
+const mutate = vi.fn(async () => undefined)
+
 function mockUseMealPlans(value: { data?: ListPlansResponse; error?: Error; isLoading: boolean }) {
   vi.mocked(useMealPlans).mockReturnValue({
     data: value.data,
     error: value.error,
     isLoading: value.isLoading,
     isValidating: false,
-    mutate: vi.fn(async () => undefined)
+    mutate
   })
 }
 
@@ -41,11 +43,12 @@ describe('PlansListClient', () => {
     expect(screen.getByText('Failed to load meal plan.')).toBeInTheDocument()
   })
 
-  it('shows a Create Meal Plan link when there are no plans', () => {
+  it('re-lists, which creates the first plan, when there are no plans', () => {
     mockUseMealPlans({ data: create(ListPlansResponseSchema, { plans: [] }), isLoading: false })
     render(<PlansListClient />)
-    const link = screen.getByRole('link', { name: 'Create Meal Plan' })
-    expect(link).toHaveAttribute('href', '/mealplans/new')
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Create Meal Plan' }))
+    expect(mutate).toHaveBeenCalled()
     expect(replace).not.toHaveBeenCalled()
   })
 

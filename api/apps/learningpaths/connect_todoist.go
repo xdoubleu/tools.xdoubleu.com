@@ -9,6 +9,7 @@ import (
 
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
 	"tools.xdoubleu.com/gen/learningpaths/v1/learningpathsv1connect"
+	"tools.xdoubleu.com/internal/connecttools"
 )
 
 type todoistConnectHandler struct {
@@ -46,7 +47,7 @@ func (h *todoistConnectHandler) DisconnectTodoist(
 	}
 
 	if err := h.app.services.Todoist.Disconnect(ctx, user.ID); err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 	return &learningpathsv1.DisconnectTodoistResponse{}, nil
 }
@@ -64,7 +65,7 @@ func (h *todoistConnectHandler) GetTodoistConnectionStatus(
 
 	st, err := h.app.services.Todoist.Status(ctx, user.ID)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	resp := &learningpathsv1.GetTodoistConnectionStatusResponse{
@@ -97,7 +98,7 @@ func (h *todoistConnectHandler) GetTodoistSyncState(
 
 	state, err := h.app.services.Todoist.SyncState(ctx, user.ID, pathID)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	items := make([]*learningpathsv1.TodoistItemState, len(state.Items))

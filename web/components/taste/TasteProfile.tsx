@@ -71,7 +71,7 @@ export default function TasteProfile() {
         {data.sections ? (
           <>
             <Sections sections={data.sections} />
-            <p className="break-all text-xs text-muted" suppressHydrationWarning>
+            <p className="break-all text-xs text-muted">
               Written {formatDateTime(data.generatedAt)} by {data.model}
             </p>
           </>

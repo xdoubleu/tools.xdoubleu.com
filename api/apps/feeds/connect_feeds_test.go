@@ -15,10 +15,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/gen/feeds/v1/feedsv1connect"
 	"tools.xdoubleu.com/internal/pagination"
+	"tools.xdoubleu.com/internal/webfetch"
 )
 
 func newFeedsClient(t *testing.T) feedsv1connect.FeedServiceClient {

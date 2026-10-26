@@ -45,6 +45,23 @@
 
   /* Top padding for surfaces under the status bar. */
   --inset-top: calc(env(safe-area-inset-top) + var(--glass-edge-clear, 0px));
+
+  /* The shell's side gutter, widened past a landscape notch. */
+  --gutter: 1rem;
+  --inset-left: max(var(--gutter), env(safe-area-inset-left));
+  --inset-right: max(var(--gutter), env(safe-area-inset-right));
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --gutter: 1.5rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --gutter: 2.5rem;
+  }
 }
 
 /* An installed iOS 26+ app gets a Liquid Glass blur ~38pt past the status

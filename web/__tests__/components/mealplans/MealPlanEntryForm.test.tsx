@@ -1,10 +1,11 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-const setItemCategory = vi.fn().mockResolvedValue({})
-const mutate = vi.fn().mockResolvedValue(undefined)
+const { queueItemCategory } = vi.hoisted(() => ({
+  queueItemCategory: vi.fn().mockResolvedValue(undefined)
+}))
 
-vi.mock('@/hooks/useShoppingList', () => ({
+vi.mock('@/hooks/useIngredientCatalog', () => ({
   useCategories: () => ({
     data: {
       categories: [
@@ -13,16 +14,8 @@ vi.mock('@/hooks/useShoppingList', () => ({
       ]
     }
   }),
-  useItemCategories: () => ({ data: { items: [{ name: 'milk', categoryId: 'cat-dairy' }] } })
-}))
-
-vi.mock('@/lib/client', () => ({
-  createServiceClient: () => ({ setItemCategory })
-}))
-
-vi.mock('swr', () => ({
-  __esModule: true,
-  useSWRConfig: () => ({ mutate })
+  useItemCategories: () => ({ data: { items: [{ name: 'milk', categoryId: 'cat-dairy' }] } }),
+  queueItemCategory
 }))
 
 import MealPlanEntryForm from '@/components/mealplans/MealPlanEntryForm'
@@ -67,10 +60,7 @@ describe('MealPlanEntryForm category picker', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-    await waitFor(() =>
-      expect(setItemCategory).toHaveBeenCalledWith({ name: 'apple', categoryId: 'cat-produce' })
-    )
-    expect(mutate).toHaveBeenCalledWith('/shoppinglist/item-categories')
+    await waitFor(() => expect(queueItemCategory).toHaveBeenCalledWith('apple', 'cat-produce'))
     expect(onSave).toHaveBeenCalledWith('', 'apple', 1, false)
   })
 
@@ -79,7 +69,7 @@ describe('MealPlanEntryForm category picker', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => expect(onSave).toHaveBeenCalledWith('', 'milk', 1, false))
-    expect(setItemCategory).not.toHaveBeenCalled()
+    expect(queueItemCategory).not.toHaveBeenCalled()
   })
 
   it('encodes unit into customName on save', async () => {

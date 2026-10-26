@@ -1,6 +1,7 @@
 package steam
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,6 +9,8 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	"tools.xdoubleu.com/internal/httpclient"
 )
 
 // StoreURL is the public Steam store.
@@ -32,12 +35,20 @@ const storeTimeout = 15 * time.Second
 
 type storeClient struct {
 	baseURL string
-	http    *http.Client
+	http    *httpclient.Client
 }
 
-// NewStore reads the store at baseURL (StoreURL in production).
+// NewStore reads the store at baseURL (StoreURL in production), trying each
+// request once.
 func NewStore(baseURL string) StoreSearcher {
-	return storeClient{baseURL: baseURL, http: &http.Client{Timeout: storeTimeout}}
+	return storeClient{
+		baseURL: baseURL,
+		http: httpclient.New(httpclient.Config{
+			Name:        "steam-store",
+			Timeout:     storeTimeout,
+			MaxAttempts: 1,
+		}),
+	}
 }
 
 // SearchStore returns the apps (not bundles or packages) matching term.
@@ -84,17 +95,12 @@ func (c storeClient) ReviewCount(ctx context.Context, appID int) (int, error) {
 }
 
 func (c storeClient) get(ctx context.Context, path string, dst any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
+	resp, err := c.http.Do(ctx, httpclient.NewRequest(http.MethodGet, c.baseURL+path))
 	if err != nil {
 		return err
 	}
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("status %d", resp.StatusCode)
 	}
-	return json.NewDecoder(resp.Body).Decode(dst)
+	return json.NewDecoder(bytes.NewReader(resp.Body)).Decode(dst)
 }

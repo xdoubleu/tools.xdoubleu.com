@@ -2,7 +2,6 @@ package movies
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -60,10 +59,10 @@ func parseID(raw string) (uuid.UUID, error) {
 }
 
 func mapError(err error) error {
-	if errors.Is(err, services.ErrNotConfigured) {
-		return connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
-	}
-	return connecttools.MapError(err)
+	return connecttools.MapError(
+		err,
+		connecttools.Code(services.ErrNotConfigured, connect.CodeFailedPrecondition),
+	)
 }
 
 func formatDate(t *time.Time) string {

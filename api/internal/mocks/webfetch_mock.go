@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
+	"tools.xdoubleu.com/internal/webfetch"
 )
 
 // MockWebFetchClient is a configurable in-memory webfetch.Client keyed by

@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { useCurrentUser } from '@/hooks/useAuth'
-import { useNotificationSettings } from '@/hooks/useMonitoring'
+import { useNotificationSettings } from '@/hooks/useNotificationSettings'
 import NotificationToggleList from '@/components/notifications/NotificationToggleList'
 
 // The other sources live on the monitoring page.

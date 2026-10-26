@@ -7,8 +7,6 @@ vi.mock('@/lib/client', () => ({
     disconnectOAuthConnection: vi.fn(),
     getProviderOptions: vi.fn(),
     setProviderConfig: vi.fn(),
-    getNotificationSettings: vi.fn(),
-    updateNotificationSettings: vi.fn(),
     getAutomatedActions: vi.fn()
   }))
 }))
@@ -25,8 +23,6 @@ import {
   useDisconnectOAuthConnection,
   useProviderOptions,
   useSetProviderConfig,
-  useNotificationSettings,
-  useUpdateNotificationSettings,
   useAutomatedActions
 } from '@/hooks/useMonitoring'
 
@@ -46,16 +42,6 @@ describe('useOAuthConnections', () => {
   it('uses the oauth-connections SWR key', () => {
     renderHook(() => useOAuthConnections())
     expect(mockUseSWR).toHaveBeenCalledWith('/monitoring/oauth-connections', expect.any(Function))
-  })
-})
-
-describe('useNotificationSettings', () => {
-  it('uses the notification-settings SWR key', () => {
-    renderHook(() => useNotificationSettings())
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      '/monitoring/notification-settings',
-      expect.any(Function)
-    )
   })
 })
 
@@ -124,22 +110,5 @@ describe('useSetProviderConfig', () => {
 
     expect(setProviderConfig).toHaveBeenCalledWith({ provider: 'github', config })
     expect(mockMutate).toHaveBeenCalledWith('/monitoring/oauth-connections')
-  })
-})
-
-describe('useUpdateNotificationSettings', () => {
-  it('calls client.updateNotificationSettings then revalidates settings', async () => {
-    const updateNotificationSettings = vi.fn().mockResolvedValue({})
-    // @ts-expect-error -- partial client shape
-    mockCreateServiceClient.mockReturnValue({ updateNotificationSettings })
-
-    const { result } = renderHook(() => useUpdateNotificationSettings())
-    await result.current('sentry_issues', true)
-
-    expect(updateNotificationSettings).toHaveBeenCalledWith({
-      sourceKey: 'sentry_issues',
-      enabled: true
-    })
-    expect(mockMutate).toHaveBeenCalledWith('/monitoring/notification-settings')
   })
 })

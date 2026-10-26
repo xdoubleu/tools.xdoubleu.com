@@ -2,7 +2,6 @@ package recipes
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/apps/recipes/internal/repositories"
+	"tools.xdoubleu.com/apps/recipes/pkg/videofetch"
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
 	"tools.xdoubleu.com/gen/recipes/v1/recipesv1connect"
 	"tools.xdoubleu.com/internal/connecttools"
@@ -34,12 +34,18 @@ func getUser(ctx context.Context) *sharedmodels.User {
 const msgRecipeOnMealPlan = "This recipe is used in a meal plan; remove it there first."
 
 func mapError(err error) error {
-	if errors.Is(err, repositories.ErrRecipeOnMealPlan) {
-		return connect.NewError(
-			connect.CodeFailedPrecondition, msgRecipeOnMealPlan,
-		).WithCause(err)
-	}
-	return connecttools.MapError(err)
+	return connecttools.MapError(
+		err,
+		connecttools.CodeWithMessage(
+			repositories.ErrRecipeOnMealPlan,
+			connect.CodeFailedPrecondition,
+			msgRecipeOnMealPlan,
+		),
+		connecttools.Code(videofetch.ErrInstagram, connect.CodeInvalidArgument),
+		connecttools.Code(videofetch.ErrUnsupportedURL, connect.CodeInvalidArgument),
+		connecttools.Code(videofetch.ErrNotFound, connect.CodeNotFound),
+		connecttools.Code(videofetch.ErrFetch, connect.CodeUnavailable),
+	)
 }
 
 func protoRecipe(r *models.Recipe) *recipesv1.Recipe {

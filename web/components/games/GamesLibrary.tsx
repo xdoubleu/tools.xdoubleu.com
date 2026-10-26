@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { mutate } from 'swr'
 import { useSteam } from '@/hooks/useGames'
 import { useSteamRefresh } from '@/lib/games/steamRefresh'
-import type { Game, GetSteamResponse } from '@/lib/gen/games/v1/games_pb'
+import type { Game } from '@/lib/gen/games/v1/games_pb'
 import { Button } from '@/components/ui/button'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { Input } from '@/components/ui/input'
@@ -11,10 +11,10 @@ import { swrKeys } from '@/lib/swrKeys'
 
 const ownerGameHref = (game: Game) => `/games/${game.id}`
 
-export default function GamesLibrary({ initialSteam }: { initialSteam?: GetSteamResponse }) {
+export default function GamesLibrary() {
   const [search, setSearch] = useState('')
 
-  const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam(initialSteam)
+  const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam()
 
   const onSynced = useCallback(() => {
     void mutate(swrKeys.games)

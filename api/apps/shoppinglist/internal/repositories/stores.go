@@ -2,12 +2,11 @@ package repositories
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
@@ -100,10 +99,7 @@ func (r *ShoppingRepository) DeleteStore(
 		return err
 	}
 	if result.RowsAffected() == 0 {
-		return &iapp.HTTPError{
-			Status:  http.StatusNotFound,
-			Message: "Store not found",
-		}
+		return database.ErrResourceNotFound
 	}
 	return nil
 }
@@ -207,10 +203,7 @@ func (r *ShoppingRepository) checkStoreOwnership(
 		return err
 	}
 	if !exists {
-		return &iapp.HTTPError{
-			Status:  http.StatusNotFound,
-			Message: "Store not found",
-		}
+		return database.ErrResourceNotFound
 	}
 	return nil
 }

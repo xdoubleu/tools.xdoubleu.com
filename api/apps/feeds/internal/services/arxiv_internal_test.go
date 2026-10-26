@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/apps/feeds/internal/mocks"
 	"tools.xdoubleu.com/apps/feeds/internal/models"
+	"tools.xdoubleu.com/internal/mocks"
 )
 
 func TestArxivID(t *testing.T) {

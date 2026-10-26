@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
+	"tools.xdoubleu.com/internal/httpclient"
 	"tools.xdoubleu.com/internal/logging"
 )
 
@@ -60,7 +61,7 @@ const fixtureNotFound = `<?xml version='1.0' encoding='UTF-8'?>
 </srw:searchRetrieveResponse>`
 
 func TestMain(m *testing.M) {
-	unicat.SetBackoffBase(time.Millisecond)
+	httpclient.SetBackoffBase(time.Millisecond)
 	os.Exit(m.Run())
 }
 
