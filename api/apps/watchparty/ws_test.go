@@ -55,7 +55,7 @@ func TestSignalingPresenterOfferRelayedToViewer(t *testing.T) {
 
 	ctx := context.Background()
 	roomCode := app.Services.Room.CreateRoom(ctx, userID)
-	app.Services.Room.JoinViewer(ctx, roomCode, userID)
+	require.NoError(t, app.Services.Room.JoinViewer(ctx, roomCode, userID))
 
 	presConn := dialSignaling(t, srv, roomCode, dtos.Presenter)
 	defer presConn.CloseNow() //nolint:errcheck // cleanup in test
@@ -86,7 +86,7 @@ func TestSignalingViewerAnswerRelayedToPresenter(t *testing.T) {
 
 	ctx := context.Background()
 	roomCode := app.Services.Room.CreateRoom(ctx, userID)
-	app.Services.Room.JoinViewer(ctx, roomCode, userID)
+	require.NoError(t, app.Services.Room.JoinViewer(ctx, roomCode, userID))
 
 	presConn := dialSignaling(t, srv, roomCode, dtos.Presenter)
 	defer presConn.CloseNow() //nolint:errcheck // cleanup in test
@@ -117,7 +117,7 @@ func TestSignalingPresenterOfferBufferedBeforeViewerConnects(t *testing.T) {
 
 	ctx := context.Background()
 	roomCode := app.Services.Room.CreateRoom(ctx, userID)
-	app.Services.Room.JoinViewer(ctx, roomCode, userID)
+	require.NoError(t, app.Services.Room.JoinViewer(ctx, roomCode, userID))
 
 	presConn := dialSignaling(t, srv, roomCode, dtos.Presenter)
 	defer presConn.CloseNow() //nolint:errcheck // cleanup in test
@@ -148,7 +148,7 @@ func TestSignalingAbruptDisconnectDoesNotPanic(t *testing.T) {
 
 	ctx := context.Background()
 	roomCode := app.Services.Room.CreateRoom(ctx, userID)
-	app.Services.Room.JoinViewer(ctx, roomCode, userID)
+	require.NoError(t, app.Services.Room.JoinViewer(ctx, roomCode, userID))
 
 	presConn := dialSignaling(t, srv, roomCode, dtos.Presenter)
 
@@ -241,7 +241,7 @@ func TestSignalingViewerReconnectReceivesBufferedOffer(t *testing.T) {
 
 	ctx := context.Background()
 	roomCode := app.Services.Room.CreateRoom(ctx, userID)
-	app.Services.Room.JoinViewer(ctx, roomCode, userID)
+	require.NoError(t, app.Services.Room.JoinViewer(ctx, roomCode, userID))
 
 	presConn := dialSignaling(t, srv, roomCode, dtos.Presenter)
 	defer presConn.CloseNow() //nolint:errcheck // cleanup in test

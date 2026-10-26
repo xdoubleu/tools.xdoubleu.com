@@ -3,7 +3,6 @@ package services_test
 import (
 	"context"
 	"errors"
-	"net/http"
 	"testing"
 	"time"
 
@@ -14,13 +13,10 @@ import (
 	"tools.xdoubleu.com/apps/shoppinglist/internal/mocks"
 	"tools.xdoubleu.com/apps/shoppinglist/internal/repositories"
 	"tools.xdoubleu.com/apps/shoppinglist/internal/services"
-	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/database"
 )
 
-var errNotFound = &iapp.HTTPError{
-	Status:  http.StatusNotFound,
-	Message: "Plan not found",
-}
+var errNotFound = database.ErrResourceNotFound
 
 // fakeFamilyStore maps "user1" to a fixed family ID for tests.
 type fakeFamilyStore struct {
@@ -490,7 +486,5 @@ func TestSetItemAlias_RejectsSelfMerge(t *testing.T) {
 	svc := services.NewShoppingService(baseMock(), newFamilyStore())
 
 	err := svc.SetItemAlias(t.Context(), "user1", "Ui", " ui")
-	var httpErr *iapp.HTTPError
-	require.ErrorAs(t, err, &httpErr)
-	assert.Equal(t, http.StatusBadRequest, httpErr.Status)
+	assert.ErrorIs(t, err, repositories.ErrSelfAlias)
 }

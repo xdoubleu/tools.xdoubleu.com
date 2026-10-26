@@ -3,13 +3,12 @@ package repositories
 import (
 	"context"
 	"errors"
-	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
@@ -48,10 +47,7 @@ func (r *ShoppingRepository) CheckPlanAccess(
 		return err
 	}
 	if !exists {
-		return &iapp.HTTPError{
-			Status:  http.StatusNotFound,
-			Message: "Plan not found",
-		}
+		return database.ErrResourceNotFound
 	}
 	return nil
 }
@@ -123,10 +119,7 @@ func (r *ShoppingRepository) UpdateCustomItem(
 		itemID, familyID, name, amount, unit,
 	).Scan(&item.ID, &item.Name, &item.Unit, &item.Amount)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return ShoppingItem{}, &iapp.HTTPError{
-			Status:  http.StatusNotFound,
-			Message: "Item not found",
-		}
+		return ShoppingItem{}, database.ErrResourceNotFound
 	}
 	if err != nil {
 		return ShoppingItem{}, err
@@ -148,10 +141,7 @@ func (r *ShoppingRepository) DeleteCustomItem(
 		return err
 	}
 	if result.RowsAffected() == 0 {
-		return &iapp.HTTPError{
-			Status:  http.StatusNotFound,
-			Message: "Item not found",
-		}
+		return database.ErrResourceNotFound
 	}
 	return nil
 }

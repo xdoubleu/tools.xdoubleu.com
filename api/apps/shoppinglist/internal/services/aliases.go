@@ -2,11 +2,9 @@ package services
 
 import (
 	"context"
-	"net/http"
 	"strings"
 
 	"tools.xdoubleu.com/apps/shoppinglist/internal/repositories"
-	iapp "tools.xdoubleu.com/internal/app"
 )
 
 // SetItemAlias exports name as canonical; an empty canonical unmerges name.
@@ -17,10 +15,7 @@ func (s *ShoppingService) SetItemAlias(
 	alias := normalizeItemName(name)
 	canonical = normalizeItemName(canonical)
 	if alias == canonical {
-		return &iapp.HTTPError{
-			Status:  http.StatusBadRequest,
-			Message: "Can't merge an item into itself",
-		}
+		return repositories.ErrSelfAlias
 	}
 
 	familyID, err := s.family.EnsureFamily(ctx, userID)

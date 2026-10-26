@@ -2,7 +2,6 @@ package taste
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -11,7 +10,6 @@ import (
 	"tools.xdoubleu.com/apps/taste/internal/models"
 	"tools.xdoubleu.com/apps/taste/internal/services"
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
-	"tools.xdoubleu.com/internal/connecttools"
 )
 
 func (h *tasteConnectHandler) GetProfile(
@@ -29,7 +27,7 @@ func (h *tasteConnectHandler) GetProfile(
 	}
 	p, err := h.app.profiles.Get(ctx, sc.subject)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, mapError(err)
 	}
 	if p != nil {
 		fillProfile(out, p)
@@ -75,12 +73,8 @@ func (h *tasteConnectHandler) RefreshProfile(
 		return nil, err
 	}
 	accepted, err := h.app.profiles.Request(ctx, sc.subject)
-	if errors.Is(err, services.ErrNotConfigured) {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).
-			WithCause(err)
-	}
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, mapError(err)
 	}
 	if !accepted {
 		return nil, connect.Errorf(

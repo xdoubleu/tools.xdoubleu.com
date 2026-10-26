@@ -8,6 +8,7 @@ import (
 
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
+	"tools.xdoubleu.com/internal/connecttools"
 )
 
 func (h *learningPathsConnectHandler) ListLearningPaths(
@@ -26,7 +27,7 @@ func (h *learningPathsConnectHandler) ListLearningPaths(
 		ctx, user.ID, req.Limit, req.Offset,
 	)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &learningpathsv1.ListLearningPathsResponse{
@@ -57,7 +58,7 @@ func (h *learningPathsConnectHandler) GetLearningPath(
 
 	lp, err := h.app.services.LearningPaths.Get(ctx, id, user.ID)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &learningpathsv1.GetLearningPathResponse{
@@ -89,7 +90,7 @@ func (h *learningPathsConnectHandler) CreateLearningPath(
 
 	created, err := h.app.services.LearningPaths.Create(ctx, user.ID, lp)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &learningpathsv1.CreateLearningPathResponse{
@@ -129,12 +130,12 @@ func (h *learningPathsConnectHandler) UpdateLearningPath(
 	}
 
 	if err = h.app.services.LearningPaths.Update(ctx, user.ID, lp); err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	updated, err := h.app.services.LearningPaths.Get(ctx, id, user.ID)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &learningpathsv1.UpdateLearningPathResponse{
@@ -163,7 +164,7 @@ func (h *learningPathsConnectHandler) DeleteLearningPath(
 	}
 
 	if err = h.app.services.LearningPaths.Delete(ctx, id, user.ID); err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &learningpathsv1.DeleteLearningPathResponse{}, nil
@@ -192,7 +193,7 @@ func (h *learningPathsConnectHandler) RecordItemProgress(
 	if err = h.app.services.LearningPaths.RecordItemProgress(
 		ctx, user.ID, itemID, req.Completed,
 	); err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &learningpathsv1.RecordItemProgressResponse{}, nil
@@ -221,12 +222,12 @@ func (h *learningPathsConnectHandler) SetLearningPathPaused(
 	if err = h.app.services.LearningPaths.SetPaused(
 		ctx, id, user.ID, req.Paused,
 	); err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	lp, err := h.app.services.LearningPaths.Get(ctx, id, user.ID)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &learningpathsv1.SetLearningPathPausedResponse{
@@ -256,7 +257,7 @@ func (h *learningPathsConnectHandler) GetLearningPathProgress(
 
 	lp, err := h.app.services.LearningPaths.GetProgress(ctx, id, user.ID)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return progressFromLearningPath(lp), nil

@@ -2,16 +2,13 @@ package feeds
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
-	"tools.xdoubleu.com/apps/feeds/internal/services"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
-	"tools.xdoubleu.com/internal/database"
 )
 
 // filterRuleKinds maps proto kinds to models.FilterRuleKind*; UNSPECIFIED
@@ -43,20 +40,6 @@ func protoFilterRule(r models.FilterRule) *feedsv1.FilterRule {
 	}
 }
 
-func filterRuleErrorToConnect(err error) *connect.Error {
-	switch {
-	case errors.Is(err, services.ErrInvalidFilterRule):
-		return connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
-	case errors.Is(err, database.ErrResourceConflict):
-		return connect.NewError(
-			connect.CodeAlreadyExists,
-			"filter rule already exists",
-		)
-	default:
-		return feedErrorToConnect(err)
-	}
-}
-
 func (h *feedsConnectHandler) ListFilterRules(
 	ctx context.Context,
 	_ *feedsv1.ListFilterRulesRequest,
@@ -68,7 +51,7 @@ func (h *feedsConnectHandler) ListFilterRules(
 
 	rules, err := h.app.Services.Feeds.ListFilterRules(ctx, user.ID)
 	if err != nil {
-		return nil, filterRuleErrorToConnect(err)
+		return nil, mapError(err)
 	}
 
 	out := make([]*feedsv1.FilterRule, len(rules))
@@ -100,7 +83,7 @@ func (h *feedsConnectHandler) CreateFilterRule(
 		ctx, user.ID, feedID, filterRuleKinds[req.Kind], req.Value,
 	)
 	if err != nil {
-		return nil, filterRuleErrorToConnect(err)
+		return nil, mapError(err)
 	}
 	return &feedsv1.CreateFilterRuleResponse{
 		Rule: protoFilterRule(*rule),
@@ -124,7 +107,7 @@ func (h *feedsConnectHandler) DeleteFilterRule(
 	}
 
 	if err = h.app.Services.Feeds.DeleteFilterRule(ctx, user.ID, ruleID); err != nil {
-		return nil, filterRuleErrorToConnect(err)
+		return nil, mapError(err)
 	}
 	return &feedsv1.DeleteFilterRuleResponse{}, nil
 }

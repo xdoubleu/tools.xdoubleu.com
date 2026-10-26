@@ -2,13 +2,14 @@ package repositories
 
 import (
 	"context"
-	"net/http"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-
-	iapp "tools.xdoubleu.com/internal/app"
 )
+
+// ErrSelfAlias is returned when an item would be merged into itself.
+var ErrSelfAlias = errors.New("can't merge an item into itself")
 
 // IngredientUnit is a unit the family's recipes use for an alias-resolved
 // ingredient name, with the recipes using it.
@@ -40,10 +41,7 @@ func (r *ShoppingRepository) SetItemAlias(
 			return err
 		}
 		if canonical == alias {
-			return &iapp.HTTPError{
-				Status:  http.StatusBadRequest,
-				Message: "Can't merge an item into itself",
-			}
+			return ErrSelfAlias
 		}
 
 		if _, err = tx.Exec(ctx, `
