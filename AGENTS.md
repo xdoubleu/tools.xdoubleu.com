@@ -60,7 +60,7 @@ cd api && make proto/generate    # check: make proto/check
 cd web && npm run generate       # check: npm run generate:check
 ```
 
-Generated stubs are committed and excluded from all linters. If a check isn't covered by a `make`/`npm run` target, add or fix the target.
+Generated stubs are committed and never linted. If a check isn't covered by a `make`/`npm run` target, add or fix the target.
 
 ## Task Lifecycle
 
