@@ -2,6 +2,7 @@ import { useEffect, type ReactNode, type RefObject } from 'react'
 import { Alert } from '@/components/ui/alert'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 import { cn } from '@/lib/cn'
 import { attachDraggable } from '@/lib/watchparty/roomUtils'
 import { STATUS_COLOR, STATUS_LABEL, type ConnectionStatus } from '@/lib/watchparty/types'
@@ -61,6 +62,8 @@ export default function WatchPartyRoom({
 
   return (
     <div className="flex flex-col">
+      {/* The video keeps the space; the h1 is for screen readers. */}
+      <PageHeader title={`Watch Party ${crumb}`} className="sr-only" />
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border pb-3">
         <Breadcrumb items={[{ label: 'Watch Party', href: '/watchparty' }, { label: crumb }]} />
         <div className="ml-auto flex items-center gap-2">

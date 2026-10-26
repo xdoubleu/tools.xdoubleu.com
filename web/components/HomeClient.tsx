@@ -250,7 +250,13 @@ export default function HomeClient() {
       apps: names.map((n) => APP_MAP.get(n)!).filter((app) => isVisible(app))
     }))
 
-    return <AppGrid sections={sections} />
+    // The grid's section headings carry the page; the h1 is for screen readers.
+    return (
+      <>
+        <PageHeader title="tools.xdoubleu.com" className="sr-only" />
+        <AppGrid sections={sections} />
+      </>
+    )
   }
 
   if (authState === 'mfa-challenge') {

@@ -46,6 +46,9 @@ describe('HomeClient', () => {
     render(<HomeClient />)
 
     await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { level: 1, name: 'tools.xdoubleu.com' })
+      ).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Learning' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Media' })).toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Transit' })).toBeInTheDocument()
