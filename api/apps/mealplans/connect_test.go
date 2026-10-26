@@ -299,6 +299,46 @@ func TestAddMeal_WithRecipe(t *testing.T) {
 	assert.NotEmpty(t, getResp.Plan.Meals[0].RecipeId)
 }
 
+func TestGetPlan_MealsCarryRecipeRef(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	recipeID := createRecipeInDB(t, "Ref Chicken")
+	planID := createPlanInDB(t, "Recipe Ref Plan")
+	today := time.Now().Format(time.DateOnly)
+
+	_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
+		PlanId: planID, MealDate: today, MealSlot: "noon",
+		RecipeId: recipeID.String(), Servings: 2,
+	})
+	require.NoError(t, err)
+	_, err = client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
+		PlanId: planID, MealDate: today, MealSlot: "evening",
+		CustomName: "Leftovers", Servings: 2,
+	})
+	require.NoError(t, err)
+
+	getResp, err := client.GetPlan(ctx, &mealplansv1.GetPlanRequest{Id: planID})
+	require.NoError(t, err)
+
+	bySlot := map[string]*mealplansv1.PlanMeal{}
+	for _, m := range getResp.Plan.Meals {
+		bySlot[m.MealSlot] = m
+	}
+	require.Len(t, bySlot, 2)
+
+	ref := bySlot["noon"].RecipeRef
+	require.NotNil(t, ref)
+	assert.Equal(t, recipeID.String(), ref.Id)
+	assert.Equal(t, "Ref Chicken", ref.Name)
+	assert.Nil(t, bySlot["evening"].RecipeRef)
+}
+
 func TestAddMeal_WithCustomName(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(

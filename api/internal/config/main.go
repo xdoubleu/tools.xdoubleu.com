@@ -8,8 +8,6 @@ import (
 	"strconv"
 
 	"github.com/joho/godotenv"
-
-	"tools.xdoubleu.com/internal/convert"
 )
 
 // ProdEnv is the production environment name.
@@ -157,14 +155,9 @@ func (c parser) baseEnv(key string) string {
 	return value
 }
 
-func (c parser) logValue(valType string, key string, value any) {
-	strVal, err := convert.AnyToString(value)
-	if err != nil {
-		panic(err)
-	}
-
+func (c parser) logValue(valType, key, value string) {
 	c.logger.Info(
-		fmt.Sprintf("loaded env var '%s'='%s' with type '%s'", key, strVal, valType),
+		fmt.Sprintf("loaded env var '%s'='%s' with type '%s'", key, value, valType),
 	)
 }
 
@@ -207,7 +200,7 @@ func (c parser) envInt(key string, defaultValue int) int {
 		value = intVal
 	}
 
-	c.logValue("int", key, value)
+	c.logValue("int", key, strconv.Itoa(value))
 	return value
 }
 
@@ -223,7 +216,7 @@ func (c parser) envFloat(key string, defaultValue float64) float64 {
 		value = floatVal
 	}
 
-	c.logValue("float64", key, value)
+	c.logValue("float64", key, fmt.Sprintf("%.2f", value))
 	return value
 }
 
@@ -239,7 +232,7 @@ func (c parser) envBool(key string, defaultValue bool) bool {
 		value = boolVal
 	}
 
-	c.logValue("bool", key, value)
+	c.logValue("bool", key, strconv.FormatBool(value))
 	return value
 }
 

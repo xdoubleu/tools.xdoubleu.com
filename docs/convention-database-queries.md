@@ -27,11 +27,6 @@ the site down (#1027); nothing could say which endpoint was responsible.
 
 ## Related: allowed cross-schema read direction
 
-Downstream apps may **read** an upstream schema directly, acyclically:
-
-```
-recipes ← mealplans ← shoppinglist
-```
-
-Reads only, never the reverse; each app's migrations touch only its own schema.
+Raw SQL crosses schemas only downstream, as reads and foreign keys:
+`recipes ← mealplans ← shoppinglist` → [ADR-0036](adr-0036-downstream-cross-schema-reads.md).
 Grep downstream repositories before changing an upstream schema.

@@ -4,15 +4,38 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { Recipe } from "../../recipes/v1/recipes_pb";
-import { file_recipes_v1_recipes } from "../../recipes/v1/recipes_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file mealplans/v1/mealplans.proto.
  */
 export const file_mealplans_v1_mealplans: GenFile = /*@__PURE__*/
-  fileDesc("ChxtZWFscGxhbnMvdjEvbWVhbHBsYW5zLnByb3RvEgxtZWFscGxhbnMudjEizwEKCFBsYW5NZWFsEgoKAmlkGAEgASgJEg8KB3BsYW5faWQYAiABKAkSEQoJbWVhbF9kYXRlGAMgASgJEhEKCW1lYWxfc2xvdBgEIAEoCRIRCglyZWNpcGVfaWQYBSABKAkSEwoLY3VzdG9tX25hbWUYBiABKAkSEAoIc2VydmluZ3MYByABKAUSIgoGcmVjaXBlGAggASgLMhIucmVjaXBlcy52MS5SZWNpcGUSIgoaZXhjbHVkZV9mcm9tX3Nob3BwaW5nX2xpc3QYCSABKAgi3QEKBFBsYW4SCgoCaWQYASABKAkSFQoNb3duZXJfdXNlcl9pZBgCIAEoCRIMCgRuYW1lGAMgASgJEhIKCmljYWxfdG9rZW4YBCABKAkSEgoKY3JlYXRlZF9hdBgFIAEoCRISCgp1cGRhdGVkX2F0GAYgASgJEhAKCGNhbl9lZGl0GAcgASgIEiUKBW1lYWxzGAggAygLMhYubWVhbHBsYW5zLnYxLlBsYW5NZWFsEhcKD2ljYWxfaGlkZV9zbG90cxgJIAMoCRIWCg5pY2FsX2hpZGVfcGFzdBgKIAEoCCIxChBMaXN0UGxhbnNSZXF1ZXN0Eg0KBWxpbWl0GAEgASgFEg4KBm9mZnNldBgCIAEoBSJIChFMaXN0UGxhbnNSZXNwb25zZRIhCgVwbGFucxgBIAMoCzISLm1lYWxwbGFucy52MS5QbGFuEhAKCGhhc19tb3JlGAIgASgIIiwKDkdldFBsYW5SZXF1ZXN0EgoKAmlkGAEgASgJEg4KBm9mZnNldBgCIAEoBSLmAQoPR2V0UGxhblJlc3BvbnNlEiAKBHBsYW4YASABKAsyEi5tZWFscGxhbnMudjEuUGxhbhIjCgdyZWNpcGVzGAIgAygLMhIucmVjaXBlcy52MS5SZWNpcGUSEAoIaWNhbF91cmwYAyABKAkSEAoIaXNfb3duZXIYBCABKAgSDgoGb2Zmc2V0GAUgASgFEhMKC3ByZXZfb2Zmc2V0GAYgASgFEhMKC25leHRfb2Zmc2V0GAcgASgFEhQKDHdpbmRvd19zdGFydBgIIAEoCRISCgp3aW5kb3dfZW5kGAkgASgJSgQIChALIl4KEVVwZGF0ZVBsYW5SZXF1ZXN0EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSFwoPaWNhbF9oaWRlX3Nsb3RzGAMgAygJEhYKDmljYWxfaGlkZV9wYXN0GAQgASgIIhQKElVwZGF0ZVBsYW5SZXNwb25zZSIkChZSb3RhdGVJQ2FsVG9rZW5SZXF1ZXN0EgoKAmlkGAEgASgJIisKF1JvdGF0ZUlDYWxUb2tlblJlc3BvbnNlEhAKCGljYWxfdXJsGAEgASgJIrQBChFDcmVhdGVNZWFsUmVxdWVzdBIPCgdwbGFuX2lkGAEgASgJEhEKCW1lYWxfZGF0ZRgCIAEoCRIRCgltZWFsX3Nsb3QYAyABKAkSEQoJcmVjaXBlX2lkGAQgASgJEhMKC2N1c3RvbV9uYW1lGAUgASgJEhAKCHNlcnZpbmdzGAYgASgFEiIKGmV4Y2x1ZGVfZnJvbV9zaG9wcGluZ19saXN0GAcgASgIEgoKAmlkGAggASgJIhQKEkNyZWF0ZU1lYWxSZXNwb25zZSKTAQoRVXBkYXRlTWVhbFJlcXVlc3QSDwoHcGxhbl9pZBgBIAEoCRIPCgdtZWFsX2lkGAIgASgJEhEKCXJlY2lwZV9pZBgDIAEoCRITCgtjdXN0b21fbmFtZRgEIAEoCRIQCghzZXJ2aW5ncxgFIAEoBRIiChpleGNsdWRlX2Zyb21fc2hvcHBpbmdfbGlzdBgGIAEoCCIUChJVcGRhdGVNZWFsUmVzcG9uc2UiNQoRRGVsZXRlTWVhbFJlcXVlc3QSDwoHcGxhbl9pZBgBIAEoCRIPCgdtZWFsX2lkGAIgASgJIhQKEkRlbGV0ZU1lYWxSZXNwb25zZSJXCg9Nb3ZlTWVhbFJlcXVlc3QSDwoHcGxhbl9pZBgBIAEoCRIPCgdtZWFsX2lkGAIgASgJEhAKCG5ld19kYXRlGAMgASgJEhAKCG5ld19zbG90GAQgASgJIhIKEE1vdmVNZWFsUmVzcG9uc2UiTgoVU3VnZ2VzdFJlY2lwZXNSZXF1ZXN0Eg8KB3BsYW5faWQYASABKAkSEQoJbWVhbF9kYXRlGAIgASgJEhEKCW1lYWxfc2xvdBgDIAEoCSI3ChBSZWNpcGVTdWdnZXN0aW9uEhEKCXJlY2lwZV9pZBgBIAEoCRIQCghzZXJ2aW5ncxgCIAEoBSJNChZTdWdnZXN0UmVjaXBlc1Jlc3BvbnNlEjMKC3N1Z2dlc3Rpb25zGAEgAygLMh4ubWVhbHBsYW5zLnYxLlJlY2lwZVN1Z2dlc3Rpb24y9AUKEE1lYWxQbGFuc1NlcnZpY2USTAoJTGlzdFBsYW5zEh4ubWVhbHBsYW5zLnYxLkxpc3RQbGFuc1JlcXVlc3QaHy5tZWFscGxhbnMudjEuTGlzdFBsYW5zUmVzcG9uc2USRgoHR2V0UGxhbhIcLm1lYWxwbGFucy52MS5HZXRQbGFuUmVxdWVzdBodLm1lYWxwbGFucy52MS5HZXRQbGFuUmVzcG9uc2USTwoKVXBkYXRlUGxhbhIfLm1lYWxwbGFucy52MS5VcGRhdGVQbGFuUmVxdWVzdBogLm1lYWxwbGFucy52MS5VcGRhdGVQbGFuUmVzcG9uc2USXgoPUm90YXRlSUNhbFRva2VuEiQubWVhbHBsYW5zLnYxLlJvdGF0ZUlDYWxUb2tlblJlcXVlc3QaJS5tZWFscGxhbnMudjEuUm90YXRlSUNhbFRva2VuUmVzcG9uc2USTwoKQ3JlYXRlTWVhbBIfLm1lYWxwbGFucy52MS5DcmVhdGVNZWFsUmVxdWVzdBogLm1lYWxwbGFucy52MS5DcmVhdGVNZWFsUmVzcG9uc2USTwoKVXBkYXRlTWVhbBIfLm1lYWxwbGFucy52MS5VcGRhdGVNZWFsUmVxdWVzdBogLm1lYWxwbGFucy52MS5VcGRhdGVNZWFsUmVzcG9uc2USTwoKRGVsZXRlTWVhbBIfLm1lYWxwbGFucy52MS5EZWxldGVNZWFsUmVxdWVzdBogLm1lYWxwbGFucy52MS5EZWxldGVNZWFsUmVzcG9uc2USSQoITW92ZU1lYWwSHS5tZWFscGxhbnMudjEuTW92ZU1lYWxSZXF1ZXN0Gh4ubWVhbHBsYW5zLnYxLk1vdmVNZWFsUmVzcG9uc2USWwoOU3VnZ2VzdFJlY2lwZXMSIy5tZWFscGxhbnMudjEuU3VnZ2VzdFJlY2lwZXNSZXF1ZXN0GiQubWVhbHBsYW5zLnYxLlN1Z2dlc3RSZWNpcGVzUmVzcG9uc2VCMVovdG9vbHMueGRvdWJsZXUuY29tL2dlbi9tZWFscGxhbnMvdjE7bWVhbHBsYW5zdjFiBnByb3RvMw", [file_recipes_v1_recipes]);
+  fileDesc("ChxtZWFscGxhbnMvdjEvbWVhbHBsYW5zLnByb3RvEgxtZWFscGxhbnMudjEiJQoJUmVjaXBlUmVmEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAki5gEKCFBsYW5NZWFsEgoKAmlkGAEgASgJEg8KB3BsYW5faWQYAiABKAkSEQoJbWVhbF9kYXRlGAMgASgJEhEKCW1lYWxfc2xvdBgEIAEoCRIRCglyZWNpcGVfaWQYBSABKAkSEwoLY3VzdG9tX25hbWUYBiABKAkSEAoIc2VydmluZ3MYByABKAUSIgoaZXhjbHVkZV9mcm9tX3Nob3BwaW5nX2xpc3QYCSABKAgSKwoKcmVjaXBlX3JlZhgKIAEoCzIXLm1lYWxwbGFucy52MS5SZWNpcGVSZWZKBAgIEAlSBnJlY2lwZSLdAQoEUGxhbhIKCgJpZBgBIAEoCRIVCg1vd25lcl91c2VyX2lkGAIgASgJEgwKBG5hbWUYAyABKAkSEgoKaWNhbF90b2tlbhgEIAEoCRISCgpjcmVhdGVkX2F0GAUgASgJEhIKCnVwZGF0ZWRfYXQYBiABKAkSEAoIY2FuX2VkaXQYByABKAgSJQoFbWVhbHMYCCADKAsyFi5tZWFscGxhbnMudjEuUGxhbk1lYWwSFwoPaWNhbF9oaWRlX3Nsb3RzGAkgAygJEhYKDmljYWxfaGlkZV9wYXN0GAogASgIIjEKEExpc3RQbGFuc1JlcXVlc3QSDQoFbGltaXQYASABKAUSDgoGb2Zmc2V0GAIgASgFIkgKEUxpc3RQbGFuc1Jlc3BvbnNlEiEKBXBsYW5zGAEgAygLMhIubWVhbHBsYW5zLnYxLlBsYW4SEAoIaGFzX21vcmUYAiABKAgiLAoOR2V0UGxhblJlcXVlc3QSCgoCaWQYASABKAkSDgoGb2Zmc2V0GAIgASgFItABCg9HZXRQbGFuUmVzcG9uc2USIAoEcGxhbhgBIAEoCzISLm1lYWxwbGFucy52MS5QbGFuEhAKCGljYWxfdXJsGAMgASgJEhAKCGlzX293bmVyGAQgASgIEg4KBm9mZnNldBgFIAEoBRITCgtwcmV2X29mZnNldBgGIAEoBRITCgtuZXh0X29mZnNldBgHIAEoBRIUCgx3aW5kb3dfc3RhcnQYCCABKAkSEgoKd2luZG93X2VuZBgJIAEoCUoECAIQA0oECAoQC1IHcmVjaXBlcyJeChFVcGRhdGVQbGFuUmVxdWVzdBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhcKD2ljYWxfaGlkZV9zbG90cxgDIAMoCRIWCg5pY2FsX2hpZGVfcGFzdBgEIAEoCCIUChJVcGRhdGVQbGFuUmVzcG9uc2UiJAoWUm90YXRlSUNhbFRva2VuUmVxdWVzdBIKCgJpZBgBIAEoCSIrChdSb3RhdGVJQ2FsVG9rZW5SZXNwb25zZRIQCghpY2FsX3VybBgBIAEoCSK0AQoRQ3JlYXRlTWVhbFJlcXVlc3QSDwoHcGxhbl9pZBgBIAEoCRIRCgltZWFsX2RhdGUYAiABKAkSEQoJbWVhbF9zbG90GAMgASgJEhEKCXJlY2lwZV9pZBgEIAEoCRITCgtjdXN0b21fbmFtZRgFIAEoCRIQCghzZXJ2aW5ncxgGIAEoBRIiChpleGNsdWRlX2Zyb21fc2hvcHBpbmdfbGlzdBgHIAEoCBIKCgJpZBgIIAEoCSIUChJDcmVhdGVNZWFsUmVzcG9uc2UikwEKEVVwZGF0ZU1lYWxSZXF1ZXN0Eg8KB3BsYW5faWQYASABKAkSDwoHbWVhbF9pZBgCIAEoCRIRCglyZWNpcGVfaWQYAyABKAkSEwoLY3VzdG9tX25hbWUYBCABKAkSEAoIc2VydmluZ3MYBSABKAUSIgoaZXhjbHVkZV9mcm9tX3Nob3BwaW5nX2xpc3QYBiABKAgiFAoSVXBkYXRlTWVhbFJlc3BvbnNlIjUKEURlbGV0ZU1lYWxSZXF1ZXN0Eg8KB3BsYW5faWQYASABKAkSDwoHbWVhbF9pZBgCIAEoCSIUChJEZWxldGVNZWFsUmVzcG9uc2UiVwoPTW92ZU1lYWxSZXF1ZXN0Eg8KB3BsYW5faWQYASABKAkSDwoHbWVhbF9pZBgCIAEoCRIQCghuZXdfZGF0ZRgDIAEoCRIQCghuZXdfc2xvdBgEIAEoCSISChBNb3ZlTWVhbFJlc3BvbnNlIk4KFVN1Z2dlc3RSZWNpcGVzUmVxdWVzdBIPCgdwbGFuX2lkGAEgASgJEhEKCW1lYWxfZGF0ZRgCIAEoCRIRCgltZWFsX3Nsb3QYAyABKAkiNwoQUmVjaXBlU3VnZ2VzdGlvbhIRCglyZWNpcGVfaWQYASABKAkSEAoIc2VydmluZ3MYAiABKAUiTQoWU3VnZ2VzdFJlY2lwZXNSZXNwb25zZRIzCgtzdWdnZXN0aW9ucxgBIAMoCzIeLm1lYWxwbGFucy52MS5SZWNpcGVTdWdnZXN0aW9uMvQFChBNZWFsUGxhbnNTZXJ2aWNlEkwKCUxpc3RQbGFucxIeLm1lYWxwbGFucy52MS5MaXN0UGxhbnNSZXF1ZXN0Gh8ubWVhbHBsYW5zLnYxLkxpc3RQbGFuc1Jlc3BvbnNlEkYKB0dldFBsYW4SHC5tZWFscGxhbnMudjEuR2V0UGxhblJlcXVlc3QaHS5tZWFscGxhbnMudjEuR2V0UGxhblJlc3BvbnNlEk8KClVwZGF0ZVBsYW4SHy5tZWFscGxhbnMudjEuVXBkYXRlUGxhblJlcXVlc3QaIC5tZWFscGxhbnMudjEuVXBkYXRlUGxhblJlc3BvbnNlEl4KD1JvdGF0ZUlDYWxUb2tlbhIkLm1lYWxwbGFucy52MS5Sb3RhdGVJQ2FsVG9rZW5SZXF1ZXN0GiUubWVhbHBsYW5zLnYxLlJvdGF0ZUlDYWxUb2tlblJlc3BvbnNlEk8KCkNyZWF0ZU1lYWwSHy5tZWFscGxhbnMudjEuQ3JlYXRlTWVhbFJlcXVlc3QaIC5tZWFscGxhbnMudjEuQ3JlYXRlTWVhbFJlc3BvbnNlEk8KClVwZGF0ZU1lYWwSHy5tZWFscGxhbnMudjEuVXBkYXRlTWVhbFJlcXVlc3QaIC5tZWFscGxhbnMudjEuVXBkYXRlTWVhbFJlc3BvbnNlEk8KCkRlbGV0ZU1lYWwSHy5tZWFscGxhbnMudjEuRGVsZXRlTWVhbFJlcXVlc3QaIC5tZWFscGxhbnMudjEuRGVsZXRlTWVhbFJlc3BvbnNlEkkKCE1vdmVNZWFsEh0ubWVhbHBsYW5zLnYxLk1vdmVNZWFsUmVxdWVzdBoeLm1lYWxwbGFucy52MS5Nb3ZlTWVhbFJlc3BvbnNlElsKDlN1Z2dlc3RSZWNpcGVzEiMubWVhbHBsYW5zLnYxLlN1Z2dlc3RSZWNpcGVzUmVxdWVzdBokLm1lYWxwbGFucy52MS5TdWdnZXN0UmVjaXBlc1Jlc3BvbnNlQjFaL3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vbWVhbHBsYW5zL3YxO21lYWxwbGFuc3YxYgZwcm90bzM");
+
+/**
+ * RecipeRef names a recipe without embedding it; the recipes service owns the
+ * full message.
+ *
+ * @generated from message mealplans.v1.RecipeRef
+ */
+export type RecipeRef = Message<"mealplans.v1.RecipeRef"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message mealplans.v1.RecipeRef.
+ * Use `create(RecipeRefSchema)` to create a new message.
+ */
+export const RecipeRefSchema: GenMessage<RecipeRef> = /*@__PURE__*/
+  messageDesc(file_mealplans_v1_mealplans, 0);
 
 /**
  * @generated from message mealplans.v1.PlanMeal
@@ -54,16 +77,18 @@ export type PlanMeal = Message<"mealplans.v1.PlanMeal"> & {
   servings: number;
 
   /**
-   * @generated from field: recipes.v1.Recipe recipe = 8;
-   */
-  recipe?: Recipe | undefined;
-
-  /**
    * Keeps a custom entry on the calendar/iCal but out of the shopping export.
    *
    * @generated from field: bool exclude_from_shopping_list = 9;
    */
   excludeFromShoppingList: boolean;
+
+  /**
+   * Unset for custom entries.
+   *
+   * @generated from field: mealplans.v1.RecipeRef recipe_ref = 10;
+   */
+  recipeRef?: RecipeRef | undefined;
 };
 
 /**
@@ -71,7 +96,7 @@ export type PlanMeal = Message<"mealplans.v1.PlanMeal"> & {
  * Use `create(PlanMealSchema)` to create a new message.
  */
 export const PlanMealSchema: GenMessage<PlanMeal> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 0);
+  messageDesc(file_mealplans_v1_mealplans, 1);
 
 /**
  * @generated from message mealplans.v1.Plan
@@ -133,7 +158,7 @@ export type Plan = Message<"mealplans.v1.Plan"> & {
  * Use `create(PlanSchema)` to create a new message.
  */
 export const PlanSchema: GenMessage<Plan> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 1);
+  messageDesc(file_mealplans_v1_mealplans, 2);
 
 /**
  * @generated from message mealplans.v1.ListPlansRequest
@@ -155,7 +180,7 @@ export type ListPlansRequest = Message<"mealplans.v1.ListPlansRequest"> & {
  * Use `create(ListPlansRequestSchema)` to create a new message.
  */
 export const ListPlansRequestSchema: GenMessage<ListPlansRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 2);
+  messageDesc(file_mealplans_v1_mealplans, 3);
 
 /**
  * @generated from message mealplans.v1.ListPlansResponse
@@ -177,7 +202,7 @@ export type ListPlansResponse = Message<"mealplans.v1.ListPlansResponse"> & {
  * Use `create(ListPlansResponseSchema)` to create a new message.
  */
 export const ListPlansResponseSchema: GenMessage<ListPlansResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 3);
+  messageDesc(file_mealplans_v1_mealplans, 4);
 
 /**
  * @generated from message mealplans.v1.GetPlanRequest
@@ -199,7 +224,7 @@ export type GetPlanRequest = Message<"mealplans.v1.GetPlanRequest"> & {
  * Use `create(GetPlanRequestSchema)` to create a new message.
  */
 export const GetPlanRequestSchema: GenMessage<GetPlanRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 4);
+  messageDesc(file_mealplans_v1_mealplans, 5);
 
 /**
  * @generated from message mealplans.v1.GetPlanResponse
@@ -209,11 +234,6 @@ export type GetPlanResponse = Message<"mealplans.v1.GetPlanResponse"> & {
    * @generated from field: mealplans.v1.Plan plan = 1;
    */
   plan?: Plan | undefined;
-
-  /**
-   * @generated from field: repeated recipes.v1.Recipe recipes = 2;
-   */
-  recipes: Recipe[];
 
   /**
    * @generated from field: string ical_url = 3;
@@ -256,7 +276,7 @@ export type GetPlanResponse = Message<"mealplans.v1.GetPlanResponse"> & {
  * Use `create(GetPlanResponseSchema)` to create a new message.
  */
 export const GetPlanResponseSchema: GenMessage<GetPlanResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 5);
+  messageDesc(file_mealplans_v1_mealplans, 6);
 
 /**
  * @generated from message mealplans.v1.UpdatePlanRequest
@@ -288,7 +308,7 @@ export type UpdatePlanRequest = Message<"mealplans.v1.UpdatePlanRequest"> & {
  * Use `create(UpdatePlanRequestSchema)` to create a new message.
  */
 export const UpdatePlanRequestSchema: GenMessage<UpdatePlanRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 6);
+  messageDesc(file_mealplans_v1_mealplans, 7);
 
 /**
  * @generated from message mealplans.v1.UpdatePlanResponse
@@ -301,7 +321,7 @@ export type UpdatePlanResponse = Message<"mealplans.v1.UpdatePlanResponse"> & {
  * Use `create(UpdatePlanResponseSchema)` to create a new message.
  */
 export const UpdatePlanResponseSchema: GenMessage<UpdatePlanResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 7);
+  messageDesc(file_mealplans_v1_mealplans, 8);
 
 /**
  * RotateICalTokenRequest replaces the plan's iCal token, revoking the old link.
@@ -320,7 +340,7 @@ export type RotateICalTokenRequest = Message<"mealplans.v1.RotateICalTokenReques
  * Use `create(RotateICalTokenRequestSchema)` to create a new message.
  */
 export const RotateICalTokenRequestSchema: GenMessage<RotateICalTokenRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 8);
+  messageDesc(file_mealplans_v1_mealplans, 9);
 
 /**
  * @generated from message mealplans.v1.RotateICalTokenResponse
@@ -337,7 +357,7 @@ export type RotateICalTokenResponse = Message<"mealplans.v1.RotateICalTokenRespo
  * Use `create(RotateICalTokenResponseSchema)` to create a new message.
  */
 export const RotateICalTokenResponseSchema: GenMessage<RotateICalTokenResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 9);
+  messageDesc(file_mealplans_v1_mealplans, 10);
 
 /**
  * @generated from message mealplans.v1.CreateMealRequest
@@ -392,7 +412,7 @@ export type CreateMealRequest = Message<"mealplans.v1.CreateMealRequest"> & {
  * Use `create(CreateMealRequestSchema)` to create a new message.
  */
 export const CreateMealRequestSchema: GenMessage<CreateMealRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 10);
+  messageDesc(file_mealplans_v1_mealplans, 11);
 
 /**
  * @generated from message mealplans.v1.CreateMealResponse
@@ -405,7 +425,7 @@ export type CreateMealResponse = Message<"mealplans.v1.CreateMealResponse"> & {
  * Use `create(CreateMealResponseSchema)` to create a new message.
  */
 export const CreateMealResponseSchema: GenMessage<CreateMealResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 11);
+  messageDesc(file_mealplans_v1_mealplans, 12);
 
 /**
  * @generated from message mealplans.v1.UpdateMealRequest
@@ -447,7 +467,7 @@ export type UpdateMealRequest = Message<"mealplans.v1.UpdateMealRequest"> & {
  * Use `create(UpdateMealRequestSchema)` to create a new message.
  */
 export const UpdateMealRequestSchema: GenMessage<UpdateMealRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 12);
+  messageDesc(file_mealplans_v1_mealplans, 13);
 
 /**
  * @generated from message mealplans.v1.UpdateMealResponse
@@ -460,7 +480,7 @@ export type UpdateMealResponse = Message<"mealplans.v1.UpdateMealResponse"> & {
  * Use `create(UpdateMealResponseSchema)` to create a new message.
  */
 export const UpdateMealResponseSchema: GenMessage<UpdateMealResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 13);
+  messageDesc(file_mealplans_v1_mealplans, 14);
 
 /**
  * @generated from message mealplans.v1.DeleteMealRequest
@@ -482,7 +502,7 @@ export type DeleteMealRequest = Message<"mealplans.v1.DeleteMealRequest"> & {
  * Use `create(DeleteMealRequestSchema)` to create a new message.
  */
 export const DeleteMealRequestSchema: GenMessage<DeleteMealRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 14);
+  messageDesc(file_mealplans_v1_mealplans, 15);
 
 /**
  * @generated from message mealplans.v1.DeleteMealResponse
@@ -495,7 +515,7 @@ export type DeleteMealResponse = Message<"mealplans.v1.DeleteMealResponse"> & {
  * Use `create(DeleteMealResponseSchema)` to create a new message.
  */
 export const DeleteMealResponseSchema: GenMessage<DeleteMealResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 15);
+  messageDesc(file_mealplans_v1_mealplans, 16);
 
 /**
  * @generated from message mealplans.v1.MoveMealRequest
@@ -527,7 +547,7 @@ export type MoveMealRequest = Message<"mealplans.v1.MoveMealRequest"> & {
  * Use `create(MoveMealRequestSchema)` to create a new message.
  */
 export const MoveMealRequestSchema: GenMessage<MoveMealRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 16);
+  messageDesc(file_mealplans_v1_mealplans, 17);
 
 /**
  * @generated from message mealplans.v1.MoveMealResponse
@@ -540,7 +560,7 @@ export type MoveMealResponse = Message<"mealplans.v1.MoveMealResponse"> & {
  * Use `create(MoveMealResponseSchema)` to create a new message.
  */
 export const MoveMealResponseSchema: GenMessage<MoveMealResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 17);
+  messageDesc(file_mealplans_v1_mealplans, 18);
 
 /**
  * @generated from message mealplans.v1.SuggestRecipesRequest
@@ -567,7 +587,7 @@ export type SuggestRecipesRequest = Message<"mealplans.v1.SuggestRecipesRequest"
  * Use `create(SuggestRecipesRequestSchema)` to create a new message.
  */
 export const SuggestRecipesRequestSchema: GenMessage<SuggestRecipesRequest> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 18);
+  messageDesc(file_mealplans_v1_mealplans, 19);
 
 /**
  * @generated from message mealplans.v1.RecipeSuggestion
@@ -589,7 +609,7 @@ export type RecipeSuggestion = Message<"mealplans.v1.RecipeSuggestion"> & {
  * Use `create(RecipeSuggestionSchema)` to create a new message.
  */
 export const RecipeSuggestionSchema: GenMessage<RecipeSuggestion> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 19);
+  messageDesc(file_mealplans_v1_mealplans, 20);
 
 /**
  * @generated from message mealplans.v1.SuggestRecipesResponse
@@ -606,7 +626,7 @@ export type SuggestRecipesResponse = Message<"mealplans.v1.SuggestRecipesRespons
  * Use `create(SuggestRecipesResponseSchema)` to create a new message.
  */
 export const SuggestRecipesResponseSchema: GenMessage<SuggestRecipesResponse> = /*@__PURE__*/
-  messageDesc(file_mealplans_v1_mealplans, 20);
+  messageDesc(file_mealplans_v1_mealplans, 21);
 
 /**
  * @generated from service mealplans.v1.MealPlansService

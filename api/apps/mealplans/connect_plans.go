@@ -10,7 +10,6 @@ import (
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
-	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
 	"tools.xdoubleu.com/internal/connecttools"
 )
 
@@ -85,7 +84,6 @@ func (h *mealplansConnectHandler) GetPlan(
 
 	return &mealplansv1.GetPlanResponse{
 		Plan:        protoPlan(plan),
-		Recipes:     []*recipesv1.Recipe{},
 		IcalUrl:     h.icalURL(plan.ICalToken),
 		IsOwner:     plan.OwnerUserID == user.ID,
 		Offset:      int32(offset),     //nolint:gosec // pagination offset fits int32
