@@ -35,7 +35,7 @@ const detail = () =>
           mealDate: '2024-01-22',
           mealSlot: 'noon',
           recipeId: 'r1',
-          recipe: { id: 'r1', name: 'Soup' },
+          recipeRef: { id: 'r1', name: 'Soup' },
           servings: 2
         },
         { id: 'm2', planId: 'p1', mealDate: '2024-01-23', mealSlot: 'evening', customName: 'Pizza' }
@@ -71,7 +71,7 @@ describe('meal plan offline writes', () => {
       id: 'm3',
       mealDate: '2024-01-28',
       servings: 2,
-      recipe: { id: 'r2', name: 'Stew' }
+      recipeRef: { id: 'r2', name: 'Stew' }
     })
     // Re-applied over a refetch that already holds it, it stays one meal.
     expect(meals(run(createMealWrite, req, key, result, 'Stew'))).toHaveLength(3)
@@ -85,7 +85,7 @@ describe('meal plan offline writes', () => {
       detail()
     )
     expect(meals(custom)?.[2]).toMatchObject({ customName: 'Toast', servings: 1 })
-    expect(meals(custom)?.[2].recipe).toBeUndefined()
+    expect(meals(custom)?.[2].recipeRef).toBeUndefined()
 
     for (const mealDate of ['2024-01-21', '2024-01-29']) {
       const result = run(createMealWrite, { id: 'm3', planId: 'p1', mealDate }, key, detail())
@@ -100,7 +100,7 @@ describe('meal plan offline writes', () => {
       key,
       detail()
     )
-    expect(meals(same)?.[0]).toMatchObject({ servings: 4, recipe: { name: 'Soup' } })
+    expect(meals(same)?.[0]).toMatchObject({ servings: 4, recipeRef: { name: 'Soup' } })
     expect(meals(same)?.[1]).toMatchObject({ id: 'm2', customName: 'Pizza' })
 
     const renamed = run(
@@ -114,7 +114,7 @@ describe('meal plan offline writes', () => {
       recipeId: 'r2',
       servings: 2,
       excludeFromShoppingList: true,
-      recipe: { id: 'r2', name: 'Stew' }
+      recipeRef: { id: 'r2', name: 'Stew' }
     })
 
     const unknown = run(
@@ -123,7 +123,7 @@ describe('meal plan offline writes', () => {
       key,
       detail()
     )
-    expect(meals(unknown)?.[0].recipe).toBeUndefined()
+    expect(meals(unknown)?.[0].recipeRef).toBeUndefined()
 
     const custom = run(
       updateMealWrite,
@@ -132,7 +132,7 @@ describe('meal plan offline writes', () => {
       detail()
     )
     expect(meals(custom)?.[0]).toMatchObject({ recipeId: '', customName: 'Leftovers' })
-    expect(meals(custom)?.[0].recipe).toBeUndefined()
+    expect(meals(custom)?.[0].recipeRef).toBeUndefined()
   })
 
   it('removes a deleted meal', () => {
@@ -203,7 +203,7 @@ describe('meal plan offline writes', () => {
       detail(),
       'Stale name'
     )
-    expect(meals(custom)?.[2].recipe).toBeUndefined()
+    expect(meals(custom)?.[2].recipeRef).toBeUndefined()
     const unnamed = run(
       createMealWrite,
       { id: 'm3', planId: 'p1', mealDate: '2024-01-22', recipeId: 'r9' },
@@ -211,7 +211,7 @@ describe('meal plan offline writes', () => {
       detail()
     )
     expect(meals(unnamed)?.[2]).toMatchObject({ recipeId: 'r9' })
-    expect(meals(unnamed)?.[2].recipe).toBeUndefined()
+    expect(meals(unnamed)?.[2].recipeRef).toBeUndefined()
   })
 
   it('describes each write', () => {

@@ -70,6 +70,22 @@ func TestNewDoesNotLogSecretValues(t *testing.T) {
 	assert.Contains(t, logs, "ENCRYPTION_KEY'='<redacted>'")
 }
 
+func TestNewLogsLoadedValuesByType(t *testing.T) {
+	t.Setenv("ENV", "development")
+	t.Setenv("PORT", "9001")
+	t.Setenv("SAMPLE_RATE", "0.5")
+	t.Setenv("THROTTLE", "false")
+
+	var buf bytes.Buffer
+	config.New(slog.New(logging.NewBufLogHandler(&buf, nil)))
+
+	logs := buf.String()
+	assert.Contains(t, logs, "'ENV'='development' with type 'string'")
+	assert.Contains(t, logs, "'PORT'='9001' with type 'int'")
+	assert.Contains(t, logs, "'SAMPLE_RATE'='0.50' with type 'float64'")
+	assert.Contains(t, logs, "'THROTTLE'='false' with type 'bool'")
+}
+
 func TestNewHonorsOverrides(t *testing.T) {
 	t.Setenv("PORT", "9001")
 	t.Setenv("THROTTLE", "false")

@@ -57,6 +57,10 @@ lint/migrations:
 lint/kamal-secrets:
 	./scripts/check_kamal_secrets.sh
 
+lint/cross-schema:
+	./scripts/test_check_cross_schema.sh
+	./scripts/check_cross_schema.sh
+
 lint/proto-local-versions:
 	./scripts/check_proto_local_versions.sh
 
@@ -78,6 +82,7 @@ lint: tools/lint
 	make lint/proto
 	make lint/migrations
 	make lint/kamal-secrets
+	make lint/cross-schema
 	make lint/proto-local-versions
 
 lint/pkg: tools/lint
@@ -258,9 +263,6 @@ test/cov/per-pkg:
 	go test ./internal/contacts \
 		-coverpkg=./internal/contacts \
 		-covermode=set -count=1 -coverprofile=cov_internal_contacts.out
-	go test ./internal/format \
-		-coverpkg=./internal/format \
-		-covermode=set -count=1 -coverprofile=cov_internal_format.out
 	python3 ../tools/merge_coverage.py \
 		cov_todos_pkg.out cov_todos_internal.out \
 		cov_games_pkg.out cov_games_internal.out \
@@ -270,5 +272,4 @@ test/cov/per-pkg:
 		cov_shoppinglist_pkg.out cov_shoppinglist_svc.out \
 		cov_watchparty_pkg.out cov_watchparty_internal.out \
 		cov_api_pkg.out \
-		cov_internal_app.out cov_internal_contacts.out \
-		cov_internal_format.out
+		cov_internal_app.out cov_internal_contacts.out

@@ -7,7 +7,6 @@ import (
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
 	"tools.xdoubleu.com/gen/mealplans/v1/mealplansv1connect"
-	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
@@ -45,7 +44,7 @@ func protoPlanMeal(m *models.PlanMeal) *mealplansv1.PlanMeal {
 		ExcludeFromShoppingList: m.ExcludeFromShoppingList,
 	}
 	if m.RecipeID != nil && m.RecipeName != "" {
-		pb.Recipe = &recipesv1.Recipe{
+		pb.RecipeRef = &mealplansv1.RecipeRef{
 			Id:   recipeID,
 			Name: m.RecipeName,
 		}
