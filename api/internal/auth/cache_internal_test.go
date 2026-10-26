@@ -74,3 +74,22 @@ func TestUserCacheClear(t *testing.T) {
 	assert.False(t, ok1)
 	assert.False(t, ok2)
 }
+
+func TestUserCacheSweepEvictsExpiredKeepsLive(t *testing.T) {
+	c := newUserCache(time.Minute)
+	clock := time.Now()
+	c.now = func() time.Time { return clock }
+	c.lastSweep = clock
+
+	c.set("expired", testUser("u1"))
+	clock = clock.Add(cacheSweepInterval - 30*time.Second)
+	c.set("recent", testUser("u2"))
+	assert.Len(t, c.entries, 2, "no sweep before the interval elapses")
+
+	clock = clock.Add(30 * time.Second)
+	c.set("new", testUser("u3"))
+
+	assert.NotContains(t, c.entries, "expired")
+	assert.Contains(t, c.entries, "recent")
+	assert.Contains(t, c.entries, "new")
+}

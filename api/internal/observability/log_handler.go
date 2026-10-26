@@ -8,21 +8,35 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-type logInserter interface {
-	Insert(ctx context.Context, entry models.LogEntry) error
-}
-
 // LogRepoHandler tees every record into global.log_entries alongside the
-// wrapped handler. Insert failures are dropped, never logged, to avoid a log
-// storm when the DB is the problem.
+// wrapped handler, through an async batching writer (logWriter). Records the
+// writer can't queue or insert are counted in log_entries_dropped_total,
+// never logged, to avoid a log storm when the DB is the problem.
 type LogRepoHandler struct {
-	next     slog.Handler
-	inserter logInserter
+	next   slog.Handler
+	writer *logWriter
 }
 
-// NewLogRepoHandler wraps next, inserting records as source "api".
-func NewLogRepoHandler(next slog.Handler, inserter logInserter) *LogRepoHandler {
-	return &LogRepoHandler{next: next, inserter: inserter}
+// NewLogRepoHandler wraps next, inserting records as source "api". Call Close
+// on shutdown to write what is still queued.
+func NewLogRepoHandler(
+	next slog.Handler,
+	inserter logBatchInserter,
+) *LogRepoHandler {
+	return newLogRepoHandler(next, inserter, defaultLogWriterOptions())
+}
+
+func newLogRepoHandler(
+	next slog.Handler,
+	inserter logBatchInserter,
+	opts logWriterOptions,
+) *LogRepoHandler {
+	return &LogRepoHandler{next: next, writer: newLogWriter(inserter, opts)}
+}
+
+// Close writes the queued records, giving up when ctx ends. Idempotent.
+func (h *LogRepoHandler) Close(ctx context.Context) error {
+	return h.writer.Close(ctx)
 }
 
 func (h *LogRepoHandler) Enabled(ctx context.Context, level slog.Level) bool {
@@ -30,11 +44,11 @@ func (h *LogRepoHandler) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 func (h *LogRepoHandler) Handle(ctx context.Context, record slog.Record) error {
-	h.insertBestEffort(record)
+	h.writer.enqueue(logEntry(record))
 	return h.next.Handle(ctx, record)
 }
 
-func (h *LogRepoHandler) insertBestEffort(record slog.Record) {
+func logEntry(record slog.Record) models.LogEntry {
 	attrs := map[string]any{}
 	record.Attrs(func(a slog.Attr) bool {
 		attrs[a.Key] = jsonValue(a.Value)
@@ -48,14 +62,13 @@ func (h *LogRepoHandler) insertBestEffort(record slog.Record) {
 		}
 	}
 
-	// Background, not ctx: request contexts are often canceled by now.
-	_ = h.inserter.Insert(context.Background(), models.LogEntry{
+	return models.LogEntry{
 		OccurredAt: record.Time,
 		Source:     "api",
 		Level:      record.Level.String(),
 		Message:    record.Message,
 		AttrsJSON:  attrsJSON,
-	})
+	}
 }
 
 // jsonValue converts v into something json.Marshal renders faithfully: errors
@@ -76,9 +89,9 @@ func jsonValue(v slog.Value) any {
 }
 
 func (h *LogRepoHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &LogRepoHandler{next: h.next.WithAttrs(attrs), inserter: h.inserter}
+	return &LogRepoHandler{next: h.next.WithAttrs(attrs), writer: h.writer}
 }
 
 func (h *LogRepoHandler) WithGroup(name string) slog.Handler {
-	return &LogRepoHandler{next: h.next.WithGroup(name), inserter: h.inserter}
+	return &LogRepoHandler{next: h.next.WithGroup(name), writer: h.writer}
 }

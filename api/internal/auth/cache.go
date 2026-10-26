@@ -12,19 +12,28 @@ type cacheEntry struct {
 	expiresAt time.Time
 }
 
+// cacheSweepInterval is how often set drops every expired entry.
+const cacheSweepInterval = 10 * time.Minute
+
 // userCache maps access tokens to enriched users; TTL <= 0 disables it.
-// Expiry is lazy (checked on read), so no sweeper is needed.
+// get expires an entry lazily; set also sweeps every cacheSweepInterval,
+// since a rotated token is never read again. The map only grows on set, so
+// sweeping there bounds it without a goroutine.
 type userCache struct {
-	mu      sync.Mutex
-	ttl     time.Duration
-	entries map[string]cacheEntry
+	mu        sync.Mutex
+	ttl       time.Duration
+	entries   map[string]cacheEntry
+	now       func() time.Time
+	lastSweep time.Time
 }
 
 func newUserCache(ttl time.Duration) *userCache {
 	return &userCache{
-		mu:      sync.Mutex{},
-		ttl:     ttl,
-		entries: make(map[string]cacheEntry),
+		mu:        sync.Mutex{},
+		ttl:       ttl,
+		entries:   make(map[string]cacheEntry),
+		now:       time.Now,
+		lastSweep: time.Now(),
 	}
 }
 
@@ -42,7 +51,7 @@ func (c *userCache) get(token string) (models.User, bool) {
 	if !ok {
 		return zero, false
 	}
-	if time.Now().After(entry.expiresAt) {
+	if c.now().After(entry.expiresAt) {
 		delete(c.entries, token)
 		return zero, false
 	}
@@ -57,9 +66,18 @@ func (c *userCache) set(token string, user models.User) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	now := c.now()
+	if now.Sub(c.lastSweep) >= cacheSweepInterval {
+		c.lastSweep = now
+		for t, entry := range c.entries {
+			if now.After(entry.expiresAt) {
+				delete(c.entries, t)
+			}
+		}
+	}
 	c.entries[token] = cacheEntry{
 		user:      user,
-		expiresAt: time.Now().Add(c.ttl),
+		expiresAt: now.Add(c.ttl),
 	}
 }
 

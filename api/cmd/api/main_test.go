@@ -53,7 +53,7 @@ func TestMain(m *testing.M) {
 	// A fixed key so OAuth tests use the real AES-GCM sealer.
 	cfg.EncryptionKey = base64.StdEncoding.EncodeToString(make([]byte, 32))
 
-	postgresDB, err := newDBPool(logging.NewNopLogger(), cfg.DBDsn)
+	postgresDB, err := newDBPool(logging.NewNopLogger(), cfg.DBDsn, cfg.DBMaxConns)
 	if err != nil {
 		panic(err)
 	}

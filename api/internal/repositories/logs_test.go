@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,6 +53,62 @@ func TestLogsInsertAndQuery(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, errOnly, 1)
 	assert.Equal(t, "web oops", errOnly[0].Message)
+}
+
+func TestLogsInsertBatch(t *testing.T) {
+	for name, mode := range map[string]pgx.QueryExecMode{
+		"extended": pgx.QueryExecModeCacheStatement,
+		"simple":   pgx.QueryExecModeSimpleProtocol,
+	} {
+		t.Run(name, func(t *testing.T) {
+			pgxCfg, err := pgxpool.ParseConfig(testhelper.NewTestConfig().DBDsn)
+			require.NoError(t, err)
+			pgxCfg.ConnConfig.DefaultQueryExecMode = mode
+			pool, err := pgxpool.NewWithConfig(t.Context(), pgxCfg)
+			require.NoError(t, err)
+			defer pool.Close()
+
+			clearLogs(t)
+			repo := repositories.NewLogsRepository(pool)
+			now := time.Now()
+			require.NoError(t, repo.InsertBatch(t.Context(), []models.LogEntry{
+				{
+					OccurredAt: now, Source: "api", Level: "INFO",
+					Message: "first", AttrsJSON: []byte(`{"a":1}`),
+				},
+				{
+					OccurredAt: now.Add(time.Second), Source: "api", Level: "WARN",
+					Message: "second", AttrsJSON: nil,
+				},
+			}))
+
+			entries, err := repo.Query(t.Context(), sinceFilter(now.Add(-time.Hour)))
+			require.NoError(t, err)
+			assert.Equal(t, []string{"second", "first"}, messages(entries))
+			assert.JSONEq(t, `{"a":1}`, string(entries[1].AttrsJSON))
+		})
+	}
+}
+
+func TestLogsInsertBatch_FailsWholeBatch(t *testing.T) {
+	clearLogs(t)
+	repo := repositories.NewLogsRepository(testDB)
+	now := time.Now()
+
+	err := repo.InsertBatch(t.Context(), []models.LogEntry{
+		{OccurredAt: now, Source: "api", Level: "INFO", Message: "ok", AttrsJSON: nil},
+		{
+			OccurredAt: now, Source: "api", Level: "INFO", Message: "bad",
+			AttrsJSON: []byte(`not json`),
+		},
+	})
+
+	// The log writer retries row by row only on a server-side rejection.
+	var pgErr *pgconn.PgError
+	require.ErrorAs(t, err, &pgErr)
+	entries, err := repo.Query(t.Context(), sinceFilter(now.Add(-time.Hour)))
+	require.NoError(t, err)
+	assert.Empty(t, entries)
 }
 
 func sinceFilter(since time.Time) repositories.LogsFilter {
