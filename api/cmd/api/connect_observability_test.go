@@ -187,6 +187,7 @@ func TestObservabilityTriggerStorageScan_AsAdmin(t *testing.T) {
 // migrations.
 func TestStartStorageScan_RunsInBackground(t *testing.T) {
 	booksWithFakeStore := books.NewInner(
+		context.Background(),
 		mocks.NewMockedAuthService(testUserID),
 		testApp.logger,
 		testApp.config,

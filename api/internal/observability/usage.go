@@ -36,18 +36,20 @@ type usageCounter struct {
 }
 
 // UsageRecorder counts requests and bytes per (day, app, endpoint) in memory
-// and flushes to global.usage_daily; up to one interval may be lost on
-// shutdown.
+// and flushes to global.usage_daily; Stop flushes what's left.
 type UsageRecorder struct {
 	logger    *slog.Logger
 	repo      usageStore
 	mu        sync.Mutex
 	counts    map[usageKey]usageCounter
 	lastPrune time.Time
+	stop      chan struct{} // nil until Start
+	stopped   chan struct{}
+	stopOnce  sync.Once
 }
 
 func NewUsageRecorder(logger *slog.Logger, db postgres.DB) *UsageRecorder {
-	//nolint:exhaustruct //mu and lastPrune start zero-valued on purpose
+	//nolint:exhaustruct //mu, lastPrune and the Start/Stop fields start zero-valued
 	return &UsageRecorder{
 		logger: logger,
 		repo:   repositories.NewUsageRepository(db),
@@ -71,22 +73,43 @@ func (u *UsageRecorder) Record(app, endpoint string, bytes int64) {
 	u.mu.Unlock()
 }
 
-// Start runs the flush loop for the lifetime of ctx.
+// Start flushes every interval until Stop. Flushes keep ctx's values but not
+// its cancellation, so they still work while the server drains.
 func (u *UsageRecorder) Start(ctx context.Context, interval time.Duration) {
+	ctx = context.WithoutCancel(ctx)
+	u.stop = make(chan struct{})
+	u.stopped = make(chan struct{})
+
 	go func() {
+		defer close(u.stopped)
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
 		for {
 			select {
-			case <-ctx.Done():
-				u.flushTick(ctx)
+			case <-u.stop:
 				return
 			case <-ticker.C:
 				u.flushTick(ctx)
 			}
 		}
 	}()
+}
+
+// Stop ends Start's loop, then flushes the remaining counts with ctx. Without
+// Start it does nothing.
+func (u *UsageRecorder) Stop(ctx context.Context) error {
+	if u.stop == nil {
+		return nil
+	}
+	u.stopOnce.Do(func() { close(u.stop) })
+
+	select {
+	case <-u.stopped:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	return u.Flush(ctx)
 }
 
 // flushTick recovers panics so one bad flush cannot kill the loop.

@@ -1,6 +1,7 @@
 package books_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -14,6 +15,7 @@ import (
 // UniCat / Hardcover / R2 clients.
 func TestNew_ReturnsApp(t *testing.T) {
 	bl := books.New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		testApp.Logger,
 		testCfg,
@@ -25,6 +27,7 @@ func TestNew_ReturnsApp(t *testing.T) {
 // TestStart_RegistersJobs covers Start registering the resync job and topics.
 func TestStart_RegistersJobs(t *testing.T) {
 	bl := books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		testApp.Logger,
 		testCfg,
@@ -47,6 +50,7 @@ func TestStart_RegistersJobs(t *testing.T) {
 // Start leaves out, so both can share one job queue's ID space.
 func TestStartWorkers_RegistersHeavyJobs(t *testing.T) {
 	bl := books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		testApp.Logger,
 		testCfg,

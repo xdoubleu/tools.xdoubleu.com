@@ -46,6 +46,7 @@ func profileApp(
 	cfg := testCfg
 	cfg.OpenRouterAPIKey = "test-key"
 	a := taste.NewInner(
+		context.Background(),
 		authService,
 		logging.NewNopLogger(),
 		cfg,
@@ -180,9 +181,17 @@ func TestProfile_SourceFailureIsNoted(t *testing.T) {
 	cfg := testCfg
 	cfg.OpenRouterAPIKey = "test-key"
 	llm := newLLM(profileJSON)
-	a := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
-		logging.NewNopLogger(), cfg, testDB, llm, nil, noCatalogs(),
-		userSource{name: "books", events: nil, err: errors.New("db down")})
+	a := taste.NewInner(
+		context.Background(),
+		sharedmocks.NewMockedAdminAuthService(userID),
+		logging.NewNopLogger(),
+		cfg,
+		testDB,
+		llm,
+		nil,
+		noCatalogs(),
+		userSource{name: "books", events: nil, err: errors.New("db down")},
+	)
 	require.ErrorContains(t, a.GenerateProfilesNow(context.Background()), "db down")
 	assert.Zero(t, llm.profileCalls())
 	var lastError string
@@ -213,8 +222,16 @@ func TestProfile_NothingConsumedClearsTheProfile(t *testing.T) {
 
 	cfg := testCfg
 	cfg.OpenRouterAPIKey = "test-key"
-	empty := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
-		logging.NewNopLogger(), cfg, testDB, llm, nil, noCatalogs())
+	empty := taste.NewInner(
+		context.Background(),
+		sharedmocks.NewMockedAdminAuthService(userID),
+		logging.NewNopLogger(),
+		cfg,
+		testDB,
+		llm,
+		nil,
+		noCatalogs(),
+	)
 	require.NoError(t, empty.GenerateProfilesNow(context.Background()))
 	assert.Equal(t, 1, llm.profileCalls(), "no completion for an empty log")
 
@@ -248,8 +265,16 @@ func TestProfile_JobSkipsUsersWithoutTasteAccess(t *testing.T) {
 
 func TestProfile_JobIdleWithoutKey(t *testing.T) {
 	llm := newLLM(profileJSON)
-	a := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
-		logging.NewNopLogger(), testCfg, testDB, llm, nil, noCatalogs())
+	a := taste.NewInner(
+		context.Background(),
+		sharedmocks.NewMockedAdminAuthService(userID),
+		logging.NewNopLogger(),
+		testCfg,
+		testDB,
+		llm,
+		nil,
+		noCatalogs(),
+	)
 	require.NoError(t, a.GenerateProfilesNow(context.Background()))
 	assert.Zero(t, llm.profileCalls())
 }

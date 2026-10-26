@@ -3,7 +3,6 @@ package threading
 import (
 	"context"
 	"log/slog"
-	"sync"
 
 	"tools.xdoubleu.com/internal/sentrytools"
 )
@@ -17,10 +16,10 @@ type WorkerPool struct {
 	logger  *slog.Logger
 	workers []Worker
 	queue   chan DoWork
-	// wg makes WaitUntilDone deterministic: IsWorkRemaining has a gap between
+	// inflight makes Wait deterministic: IsWorkRemaining has a gap between
 	// dequeue and isDoingWork. A pointer because EventQueue copies WorkerPool by
 	// value while workers hold the original.
-	wg *sync.WaitGroup
+	inflight *inflight
 }
 
 // NewWorkerPool creates a new [WorkerPool].
@@ -31,11 +30,11 @@ func NewWorkerPool(
 	queueSize int,
 ) *WorkerPool {
 	pool := &WorkerPool{
-		ctx:     ctx,
-		logger:  logger,
-		workers: make([]Worker, amountWorkers),
-		queue:   make(chan DoWork, queueSize),
-		wg:      &sync.WaitGroup{},
+		ctx:      ctx,
+		logger:   logger,
+		workers:  make([]Worker, amountWorkers),
+		queue:    make(chan DoWork, queueSize),
+		inflight: newInflight(),
 	}
 
 	pool.createWorkers(amountWorkers)
@@ -77,7 +76,7 @@ func (pool *WorkerPool) Start() {
 
 // EnqueueWork puts work on the queue.
 func (pool *WorkerPool) EnqueueWork(doWork DoWork) {
-	pool.wg.Add(1)
+	pool.inflight.add()
 	pool.queue <- doWork
 }
 
@@ -88,7 +87,13 @@ func (pool *WorkerPool) IsWorkRemaining() bool {
 
 // WaitUntilDone blocks until every enqueued work item has finished running.
 func (pool *WorkerPool) WaitUntilDone() {
-	pool.wg.Wait()
+	_ = pool.Wait(context.Background())
+}
+
+// Wait blocks until every enqueued work item has finished running or ctx is
+// done.
+func (pool *WorkerPool) Wait(ctx context.Context) error {
+	return pool.inflight.wait(ctx)
 }
 
 // Stop stops all workers.

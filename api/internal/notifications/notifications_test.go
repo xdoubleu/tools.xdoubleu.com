@@ -27,15 +27,19 @@ type fakeMailer struct {
 	err  error
 }
 
-func (f *fakeMailer) Send(_ context.Context, subject, body string) error {
-	return f.record("", subject, body)
+func (f *fakeMailer) Send(ctx context.Context, subject, body string) error {
+	return f.record(ctx, "", subject, body)
 }
 
-func (f *fakeMailer) SendTo(_ context.Context, to, subject, body string) error {
-	return f.record(to, subject, body)
+func (f *fakeMailer) SendTo(ctx context.Context, to, subject, body string) error {
+	return f.record(ctx, to, subject, body)
 }
 
-func (f *fakeMailer) record(to, subject, body string) error {
+// record fails on a cancelled ctx, as the real HTTP client would.
+func (f *fakeMailer) record(ctx context.Context, to, subject, body string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if f.err != nil {
 		return f.err
 	}
@@ -187,4 +191,34 @@ func TestEnqueueDeliversStrictlyInOrder(t *testing.T) {
 	for i := range n {
 		assert.Equal(t, strconv.Itoa(i), sent[i].subject)
 	}
+}
+
+func TestShutdownDeliversMailQueuedBeforeTheAppContextWasCancelled(t *testing.T) {
+	t.Parallel()
+
+	mail := newFakeMailer(nil)
+	ctx, cancel := context.WithCancel(t.Context())
+	svc := notifications.New(ctx, logging.NewNopLogger(), mail)
+	cancel()
+
+	svc.EnqueueEmail("subject", "body", nil)
+	require.NoError(t, svc.Shutdown(t.Context()))
+
+	require.Len(t, mail.sentMails(), 1)
+}
+
+func TestEnqueueSurvivesAPanickingOnResult(t *testing.T) {
+	t.Parallel()
+
+	mail := newFakeMailer(nil)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+
+	svc.EnqueueEmail("first", "body", func(context.Context, error) error {
+		panic("boom")
+	})
+	svc.EnqueueEmail("second", "body", nil)
+	require.NoError(t, svc.Shutdown(t.Context()))
+
+	require.Len(t, mail.sentMails(), 2)
+	assert.Equal(t, "second", mail.sentMails()[1].subject)
 }

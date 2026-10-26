@@ -23,6 +23,7 @@ import (
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/notifications"
 	globalrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/threading"
 )
 
 // ErrInvalidFeed is returned when a subscribed URL does not parse as RSS/Atom.
@@ -60,6 +61,7 @@ const quietMinGap = 48 * time.Hour
 // ingesting their items as self-contained feeds.items rows.
 type FeedService struct {
 	logger        *slog.Logger
+	background    *threading.Background
 	feeds         *repositories.FeedsRepository
 	items         *repositories.ItemsRepository
 	filterRules   *repositories.FilterRulesRepository
@@ -74,6 +76,7 @@ type FeedService struct {
 // CreateEmail.
 func NewFeedService(
 	logger *slog.Logger,
+	background *threading.Background,
 	feeds *repositories.FeedsRepository,
 	items *repositories.ItemsRepository,
 	filterRules *repositories.FilterRulesRepository,
@@ -85,6 +88,7 @@ func NewFeedService(
 ) *FeedService {
 	return &FeedService{
 		logger:        logger,
+		background:    background,
 		feeds:         feeds,
 		items:         items,
 		filterRules:   filterRules,
@@ -181,13 +185,12 @@ func (s *FeedService) Create(
 		return nil, err
 	}
 
-	// Detached, not queued: a restart can drop it; poll-feeds backfills.
+	// Off the request, not queued: a restart can drop it; poll-feeds backfills.
 	importFeed := *feed
-	go func() {
-		importCtx := context.WithoutCancel(ctx)
-		s.processItems(importCtx, importFeed, parsed.Items)
-		s.recordFetchResult(importCtx, importFeed.ID, res, nil)
-	}()
+	s.background.Go(ctx, "feed-import", func(ctx context.Context) {
+		s.processItems(ctx, importFeed, parsed.Items)
+		s.recordFetchResult(ctx, importFeed.ID, res, nil)
+	})
 	return feed, nil
 }
 

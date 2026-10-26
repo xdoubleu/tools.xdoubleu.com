@@ -614,6 +614,7 @@ func TestUploadFile_EPUB_ExternalSearchFallback(t *testing.T) {
 	const isolatedUser = "hc-fallback-upload-user"
 
 	app2 := books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(isolatedUser),
 		testApp.Logger,
 		testCfg,
@@ -962,6 +963,7 @@ func TestUploadFile_Unrecognized_EmptyMetadata_Rejected(t *testing.T) {
 func noExternalMatchApp(t *testing.T, isolatedUser string) *books.Books {
 	t.Helper()
 	return books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(isolatedUser),
 		testApp.Logger,
 		testCfg,

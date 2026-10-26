@@ -98,6 +98,7 @@ func TestConnectGetSteam_WithBacklogAndInProgress(t *testing.T) {
 		factory func(string) steam.Client,
 	) *games.Games {
 		app2 := games.NewInner(
+			context.Background(),
 			sharedmocks.NewMockedAuthService(isolatedUser),
 			testApp.Logger,
 			testCfg,

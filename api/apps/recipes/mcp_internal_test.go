@@ -26,6 +26,7 @@ func TestMCPTools_CreateRecipeIsDraft(t *testing.T) {
 
 	const mcpUserID = "mcp-recipes-user"
 	app := New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(mcpUserID),
 		logging.NewNopLogger(),
 		cfg,

@@ -114,8 +114,15 @@ func recsAppMail(
 	}
 	cfg := testCfg
 	cfg.OpenRouterAPIKey = "test-key"
-	a := taste.NewInner(authService, logging.NewNopLogger(), cfg, testDB, pickLLM{},
-		mail, pickCatalogs(),
+	a := taste.NewInner(
+		context.Background(),
+		authService,
+		logging.NewNopLogger(),
+		cfg,
+		testDB,
+		pickLLM{},
+		mail,
+		pickCatalogs(),
 		userSource{name: "books", events: []consumption.Event{book}, err: nil},
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(a))
@@ -326,8 +333,15 @@ func TestRecommendations_InvalidArguments(t *testing.T) {
 
 func TestGetStats_HitRateReadFails(t *testing.T) {
 	pool := testhelper.ConnectTestDB(testCfg.DBDsn)
-	a := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
-		logging.NewNopLogger(), testCfg, pool, pickLLM{}, nil, pickCatalogs(),
+	a := taste.NewInner(
+		context.Background(),
+		sharedmocks.NewMockedAdminAuthService(userID),
+		logging.NewNopLogger(),
+		testCfg,
+		pool,
+		pickLLM{},
+		nil,
+		pickCatalogs(),
 		userSource{name: "books", events: []consumption.Event{book}, err: nil},
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(a))
@@ -559,9 +573,17 @@ func TestRecommendations_FailedPicksBackOff(t *testing.T) {
 	llm := &failingPicksLLM{pickLLM: pickLLM{}, proposals: 0}
 	cfg := testCfg
 	cfg.OpenRouterAPIKey = "test-key"
-	a := taste.NewInner(sharedmocks.NewMockedAdminAuthService(userID),
-		logging.NewNopLogger(), cfg, testDB, llm, nil, pickCatalogs(),
-		userSource{name: "books", events: []consumption.Event{book}, err: nil})
+	a := taste.NewInner(
+		context.Background(),
+		sharedmocks.NewMockedAdminAuthService(userID),
+		logging.NewNopLogger(),
+		cfg,
+		testDB,
+		llm,
+		nil,
+		pickCatalogs(),
+		userSource{name: "books", events: []consumption.Event{book}, err: nil},
+	)
 
 	require.ErrorContains(t, a.GenerateProfilesNow(ctx), "openrouter down")
 	resp := listRecs(t, c, "", "")

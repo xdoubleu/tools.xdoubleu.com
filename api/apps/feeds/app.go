@@ -3,6 +3,7 @@ package feeds
 import (
 	"context"
 	"embed"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -35,6 +36,7 @@ type Feeds struct {
 }
 
 func New(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -43,6 +45,7 @@ func New(
 	appUsersRepo *globalrepositories.AppUsersRepository,
 ) *Feeds {
 	return NewInner(
+		ctx,
 		authService,
 		logger,
 		cfg,
@@ -55,6 +58,7 @@ func New(
 
 // NewInner allows tests to inject a fake webfetch.Client.
 func NewInner(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -65,7 +69,7 @@ func NewInner(
 ) *Feeds {
 	//nolint:exhaustruct // jobQueue/Services/feedPollJob initialised below
 	a := &Feeds{
-		Base: app.NewBase(context.Background(), authService, logger, cfg),
+		Base: app.NewBase(ctx, authService, logger, cfg),
 		db:   db,
 	}
 
@@ -82,6 +86,7 @@ func NewInner(
 	repos := repositories.New(db)
 	a.Services = services.New(
 		logger,
+		a.Background,
 		repos,
 		webFetchClient,
 		cfg.EmailInboundDomain,
@@ -101,6 +106,11 @@ func (a *Feeds) Start() error {
 		observability.NewTrackedJob(a.feedPollJob, a.db),
 		noop,
 	)
+}
+
+// Shutdown drains background tasks, then the job queue.
+func (a *Feeds) Shutdown(ctx context.Context) error {
+	return errors.Join(a.Base.Shutdown(ctx), a.jobQueue.Wait(ctx))
 }
 
 func (a *Feeds) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

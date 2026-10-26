@@ -57,6 +57,7 @@ func TestMain(m *testing.M) {
 	mockWebFetch = mocks.NewMockWebFetchClient()
 	// Not-configured mailer; notify tests build their own FeedService.
 	testApp = feeds.NewInner(
+		context.Background(),
 		auth,
 		logging.NewNopLogger(),
 		cfg,

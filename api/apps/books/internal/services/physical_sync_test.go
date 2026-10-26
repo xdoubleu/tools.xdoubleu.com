@@ -19,6 +19,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/threading"
 )
 
 type fakePhysicalStore struct {
@@ -126,7 +127,9 @@ func newPhysicalFixture(
 	logger := slog.New(&logRecorder{mu: sync.Mutex{}, msgs: nil})
 	positions := newPositionService(logger, files, blobs, budget)
 	return &physicalFixture{
-		svc:   newPhysicalService(logger, store, store, positions),
+		svc: newPhysicalService(
+			logger, threading.NewBackground(logger, 0), store, store, positions,
+		),
 		store: store, blobs: blobs, files: files,
 	}
 }

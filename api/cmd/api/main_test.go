@@ -58,9 +58,9 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	testApp = NewApplication(logging.NewNopLogger(), cfg, postgresDB)
-
 	ctx := context.Background()
+	testApp = NewApplication(ctx, logging.NewNopLogger(), cfg, postgresDB)
+
 	if _, err = postgresDB.Exec(
 		ctx,
 		"DELETE FROM global.family_invites WHERE to_user_id = $1",

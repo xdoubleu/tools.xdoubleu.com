@@ -25,6 +25,7 @@ type ShoppingList struct {
 }
 
 func New(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -34,7 +35,7 @@ func New(
 	//nolint:exhaustruct //services initialised below
 	a := &ShoppingList{
 		Base: app.NewBase(
-			context.Background(),
+			ctx,
 			authService,
 			logger,
 			cfg,

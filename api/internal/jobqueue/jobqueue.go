@@ -121,6 +121,12 @@ func (q *JobQueue) FetchState(id string) (bool, *time.Time) {
 	return qj.running.Load(), qj.lastRun.Load()
 }
 
+// Wait blocks until every queued or running job has finished or ctx is done.
+// Runs stop early once the queue's ctx is cancelled.
+func (q *JobQueue) Wait(ctx context.Context) error {
+	return q.pool.Wait(ctx)
+}
+
 func (q *JobQueue) scheduleLoop() {
 	ticker := time.NewTicker(tickInterval)
 	defer ticker.Stop()

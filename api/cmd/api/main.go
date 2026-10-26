@@ -55,6 +55,7 @@ type Application struct {
 	appUsersRepo                  *repositories.AppUsersRepository
 	profileSharesRepo             *repositories.ProfileSharesRepository
 	usage                         *observability.UsageRecorder
+	notifications                 *notifications.Service
 	jobRunsRepo                   *repositories.JobRunsRepository
 	usageRepo                     *repositories.UsageRepository
 	storageRepo                   *repositories.StorageSnapshotsRepository
@@ -124,6 +125,9 @@ func newDBPool(
 }
 
 func main() {
+	ctx, stop := newRootContext()
+	defer stop()
+
 	cfg := config.New(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 
 	bootLogger := slog.New(sentrytools.NewLogHandler(cfg.Env,
@@ -145,11 +149,10 @@ func main() {
 	// Route slog.Default() through the same chain.
 	slog.SetDefault(logger)
 
-	app := NewApplication(logger, cfg, db)
+	app := NewApplication(ctx, logger, cfg, db)
 
 	go observability.WatchHeap(
-		context.Background(), logger, heapWatchThreshold(cfg.Role),
-		heapWatchInterval,
+		ctx, logger, heapWatchThreshold(cfg.Role), heapWatchInterval,
 	)
 
 	handler, err := app.Handler()
@@ -164,10 +167,20 @@ func main() {
 		ReadTimeout:  httpReadTimeout,
 		WriteTimeout: httpWriteTimeout,
 	}
-	err = httptools.Serve(logger, srv, cfg.Env)
+	err = httptools.Serve(ctx, logger, srv, cfg.Env, httpShutdownTimeout)
 	if err != nil {
 		logger.Error("failed to serve server", essentialogger.ErrAttr(err))
 	}
+
+	// Drain background tasks, job pools, email and usage counts here; the
+	// deferred log flush and db.Close then run, in that order. The flush stays
+	// deferred so a panicking boot still writes its logs.
+	stop()
+	if err = app.Shutdown(context.Background()); err != nil {
+		logger.ErrorContext(app.ctx, "shutdown did not drain cleanly",
+			essentialogger.ErrAttr(err))
+	}
+	sentry.Flush(sentryFlushTimeout)
 }
 
 // flushLogs writes the log records still queued for global.log_entries.
@@ -394,12 +407,11 @@ func startCrossAppJobs(app *Application) error {
 
 //nolint:funlen //composition root: wiring every dependency, not complex logic
 func NewApplication(
+	ctx context.Context,
 	logger *slog.Logger,
 	config config.Config,
 	db *pgxpool.Pool,
 ) *Application {
-	ctx := context.Background()
-
 	sentryHub, err := sentrytools.Init(config.Env, sentry.ClientOptions{
 		Dsn:                   config.SentryDsn,
 		Environment:           config.Env,
@@ -480,6 +492,7 @@ func NewApplication(
 		appUsersRepo:                  appUsersRepo,
 		profileSharesRepo:             repositories.NewProfileSharesRepository(db),
 		usage:                         observability.NewUsageRecorder(logger, db),
+		notifications:                 notificationsSvc,
 		jobRunsRepo:                   repositories.NewJobRunsRepository(db),
 		usageRepo:                     repositories.NewUsageRepository(db),
 		storageRepo:                   storageSnapshotsRepo,
@@ -504,7 +517,7 @@ func NewApplication(
 	spanDB := postgres.NewSpanDB(db)
 	var feedsApp *feeds.Feeds
 	app.apps, app.booksApp, feedsApp = NewApps(
-		app.auth, logger, config, spanDB, notificationsSvc, appUsersRepo,
+		ctx, app.auth, logger, config, spanDB, notificationsSvc, appUsersRepo,
 		familyRepo, authSealer,
 	)
 	app.feedsApp = feedsApp

@@ -223,6 +223,7 @@ func TestMain(m *testing.M) {
 
 func newApp(uid string, client tmdb.Client) *movies.Movies {
 	return movies.NewWithTMDB(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(uid),
 		logging.NewNopLogger(),
 		testCfg,
@@ -277,12 +278,14 @@ func TestNew_WithoutKeyDisablesTMDB(t *testing.T) {
 	cfg := testCfg
 	cfg.TMDBAPIKey = ""
 	a := movies.New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), cfg, testDB,
 	)
 	assert.NotNil(t, a)
 
 	cfg.TMDBAPIKey = "token"
 	assert.NotNil(t, movies.New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), cfg, testDB,
 	))
 }

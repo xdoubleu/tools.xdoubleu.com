@@ -105,6 +105,7 @@ func newNotifyTestApp(
 		mailer.New("test-resend-key", "feeds@example.com", ""),
 	)
 	app := feeds.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logger,
 		cfg,

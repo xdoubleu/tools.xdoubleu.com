@@ -66,6 +66,7 @@ func TestMain(m *testing.M) {
 	}
 
 	testApp = books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		testCfg,
@@ -130,6 +131,7 @@ func newAppWithKoboUpstream(t *testing.T, upstreamURL string) *books.Books {
 		PublicAPIBaseURL: "",
 	}
 	return books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		testCfg,

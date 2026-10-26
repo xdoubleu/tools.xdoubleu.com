@@ -61,22 +61,27 @@ func (worker *Worker) Run(ctx context.Context, logger *slog.Logger) error {
 	worker.activeMu.Unlock()
 
 	for worker.Active() {
-		doWork := <-worker.pool.queue
-
-		worker.isDoingWorkMu.Lock()
-		worker.isDoingWork = true
-		worker.isDoingWorkMu.Unlock()
-
-		err := doWork(ctx, logger)
-		if err != nil {
-			logger.ErrorContext(ctx, err.Error())
-		}
-
-		worker.isDoingWorkMu.Lock()
-		worker.isDoingWork = false
-		worker.isDoingWorkMu.Unlock()
-		worker.pool.wg.Done()
+		worker.do(ctx, logger, <-worker.pool.queue)
 	}
 
 	return nil
+}
+
+// do runs one item; a panic is logged at Error so the worker survives it.
+func (worker *Worker) do(ctx context.Context, logger *slog.Logger, doWork DoWork) {
+	worker.isDoingWorkMu.Lock()
+	worker.isDoingWork = true
+	worker.isDoingWorkMu.Unlock()
+
+	defer func() {
+		worker.isDoingWorkMu.Lock()
+		worker.isDoingWork = false
+		worker.isDoingWorkMu.Unlock()
+		worker.pool.inflight.done()
+	}()
+	defer Recover(ctx, logger, "worker")
+
+	if err := doWork(ctx, logger); err != nil {
+		logger.ErrorContext(ctx, err.Error())
+	}
 }

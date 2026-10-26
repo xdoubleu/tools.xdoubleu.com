@@ -45,6 +45,7 @@ func TestMain(m *testing.M) {
 	testDB = postgresDB
 
 	testApp = games.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		testCfg,

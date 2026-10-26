@@ -21,12 +21,16 @@ type fakeUsageStore struct {
 	pruned   int
 }
 
+// Flush fails on a cancelled ctx, as the real repository would.
 func (f *fakeUsageStore) Flush(
-	_ context.Context,
+	ctx context.Context,
 	entries []models.UsageEntry,
 ) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if f.flushErr != nil {
 		return f.flushErr
 	}
@@ -134,16 +138,39 @@ func TestUsageRecorderFlushTickLogsErrorAndSurvives(t *testing.T) {
 	assert.Equal(t, 1, store.flushedLen())
 }
 
-func TestUsageRecorderStartFlushesOnContextCancel(t *testing.T) {
+func TestUsageRecorderStopFlushesCountsRecordedAfterTheRootContextEnds(t *testing.T) {
 	store := newFakeUsageStore()
 	rec := newTestRecorder(store)
+
+	rootCtx, cancelRoot := context.WithCancel(context.Background())
+	rec.Start(rootCtx, time.Hour)
+	cancelRoot()
+	// A request still draining after SIGTERM.
 	rec.Record("books", "root", 0)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	rec.Start(ctx, time.Hour)
-	cancel()
+	require.NoError(t, rec.Stop(t.Context()))
+	assert.Equal(t, 1, store.flushedLen())
+}
+
+func TestUsageRecorderTicksFlushAfterTheRootContextEnds(t *testing.T) {
+	store := newFakeUsageStore()
+	rec := newTestRecorder(store)
+
+	rootCtx, cancelRoot := context.WithCancel(context.Background())
+	cancelRoot()
+	rec.Start(rootCtx, 5*time.Millisecond)
+	rec.Record("books", "root", 0)
 
 	require.Eventually(t, func() bool {
 		return store.flushedLen() == 1
 	}, time.Second, 5*time.Millisecond)
+	require.NoError(t, rec.Stop(t.Context()))
+}
+
+func TestUsageRecorderStopWithoutStartIsANoop(t *testing.T) {
+	store := newFakeUsageStore()
+	rec := newTestRecorder(store)
+
+	require.NoError(t, rec.Stop(t.Context()))
+	assert.Equal(t, 0, store.pruned)
 }

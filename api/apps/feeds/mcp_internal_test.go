@@ -29,6 +29,7 @@ func TestMCPTools_ListFeedsAndItems(t *testing.T) {
 
 	const mcpUserID = "mcp-test-user"
 	app := NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(mcpUserID),
 		logging.NewNopLogger(),
 		cfg,

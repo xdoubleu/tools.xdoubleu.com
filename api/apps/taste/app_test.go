@@ -63,6 +63,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	a := taste.New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), testCfg, testDB,
 		nil, noCatalogs(),
 	)
@@ -164,6 +165,7 @@ func newClientAs(
 ) tastev1connect.TasteServiceClient {
 	t.Helper()
 	a := taste.NewInner(
+		context.Background(),
 		authService, logging.NewNopLogger(), testCfg, testDB, newLLM(""), nil, noCatalogs(),
 		sources...,
 	)
@@ -197,6 +199,7 @@ var (
 
 func TestAppMetadata(t *testing.T) {
 	a := taste.New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), testCfg, testDB,
 		nil, noCatalogs(),
 	)
@@ -340,6 +343,7 @@ func TestNew_WarnsOnlyWithoutKey(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logs, nil))
 	taste.New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logger,
 		testCfg,
@@ -353,6 +357,7 @@ func TestNew_WarnsOnlyWithoutKey(t *testing.T) {
 	cfg := testCfg
 	cfg.OpenRouterAPIKey = "key"
 	taste.New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logger,
 		cfg,

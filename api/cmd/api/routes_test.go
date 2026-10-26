@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -136,6 +137,7 @@ func throttledApp(t *testing.T) *Application {
 	t.Cleanup(postgresDB.Close)
 
 	return NewApplication(
+		context.Background(),
 		logger,
 		cfg,
 		postgresDB,
