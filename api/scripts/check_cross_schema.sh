@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Enforces docs/adr-0036-downstream-cross-schema-reads.md: an app's non-test Go
+# Enforces docs/adr-0038-downstream-cross-schema-reads.md: an app's non-test Go
 # and SQL may name another app's schema only along recipes <- mealplans <-
 # shoppinglist, and may write to it only for the listed exceptions.
 # Test files are exempt (they seed fixtures across schemas).
@@ -72,6 +72,6 @@ for app in apps:
 if failed:
     print()
     print("Cross-schema SQL goes downstream only (recipes <- mealplans <- shoppinglist),")
-    print("reads and foreign keys only; see docs/adr-0036-downstream-cross-schema-reads.md.")
+    print("reads and foreign keys only; see docs/adr-0038-downstream-cross-schema-reads.md.")
     sys.exit(1)
 PY

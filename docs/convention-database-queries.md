@@ -28,5 +28,5 @@ the site down (#1027); nothing could say which endpoint was responsible.
 ## Related: allowed cross-schema read direction
 
 Raw SQL crosses schemas only downstream, as reads and foreign keys:
-`recipes ← mealplans ← shoppinglist` → [ADR-0036](adr-0036-downstream-cross-schema-reads.md).
+`recipes ← mealplans ← shoppinglist` → [ADR-0038](adr-0038-downstream-cross-schema-reads.md).
 Grep downstream repositories before changing an upstream schema.

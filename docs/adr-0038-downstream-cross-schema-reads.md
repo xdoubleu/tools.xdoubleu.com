@@ -1,4 +1,4 @@
-# ADR-0036: Cross-schema SQL runs downstream only, as reads and foreign keys
+# ADR-0038: Cross-schema SQL runs downstream only, as reads and foreign keys
 
 - Status: Accepted
 - Issues: #2618 (wave 2 of #2596)
