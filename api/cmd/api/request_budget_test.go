@@ -104,7 +104,7 @@ func TestMCPToolCallGetsLongBudget(t *testing.T) {
 		return &mcp.CallToolResult{}, nil, nil
 	})
 	mux := http.NewServeMux()
-	mux.Handle(appsMCPPath, streamableMCPHandler(srv))
+	mux.Handle(appsMCPPath, streamableMCPHandler(logging.NewNopLogger(), srv))
 	ts := httptest.NewUnstartedServer(throttledApp(t).middleware().Then(mux))
 	ts.Config.WriteTimeout = writeTimeout
 	ts.Start()
