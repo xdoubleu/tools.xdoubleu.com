@@ -477,6 +477,49 @@ func TestListRecipes_WithItems(t *testing.T) {
 	assert.False(t, drafts["Listed Recipe"])
 }
 
+// TestListRecipes_OmitsInstructions: the list query never selects the wide
+// instructions column (docs/convention-database-queries.md), while GetRecipe
+// still returns it.
+func TestListRecipes_OmitsInstructions(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ID: userID}, //nolint:exhaustruct // only ID needed
+	)
+
+	created, err := client.CreateRecipe(
+		ctx,
+		&recipesv1.CreateRecipeRequest{
+			Name:         "Listed Without Steps",
+			Steps:        []string{"chop the onions", "fry them"},
+			BaseServings: 2,
+		},
+	)
+	require.NoError(t, err)
+	require.Equal(t, "chop the onions\nfry them", created.Recipe.Instructions)
+
+	list, err := client.ListRecipes(
+		ctx, &recipesv1.ListRecipesRequest{Limit: 1000},
+	)
+	require.NoError(t, err)
+	var listed *recipesv1.Recipe
+	for _, r := range list.Recipes {
+		if r.Id == created.Recipe.Id {
+			listed = r
+		}
+	}
+	require.NotNil(t, listed, "created recipe should be listed")
+	assert.Empty(t, listed.Instructions)
+	assert.Equal(t, "Listed Without Steps", listed.Name)
+	assert.Equal(t, int32(2), listed.BaseServings)
+
+	got, err := client.GetRecipe(
+		ctx, &recipesv1.GetRecipeRequest{Id: created.Recipe.Id},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "chop the onions\nfry them", got.Recipe.Instructions)
+}
+
 // TestListRecipes_Pagination checks Limit/Offset/HasMore. Names sort last so
 // the new rows are contiguous in the shared fixture.
 func TestListRecipes_Pagination(t *testing.T) {

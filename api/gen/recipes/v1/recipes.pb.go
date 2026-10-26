@@ -342,9 +342,11 @@ func (x *ListRecipesRequest) GetOffset() int32 {
 }
 
 type ListRecipesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Recipes       []*Recipe              `protobuf:"bytes,1,rep,name=recipes,proto3" json:"recipes,omitempty"`
-	HasMore       bool                   `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Summaries: instructions and ingredients are left empty (list queries never
+	// select wide TEXT columns); call GetRecipe for the full recipe.
+	Recipes       []*Recipe `protobuf:"bytes,1,rep,name=recipes,proto3" json:"recipes,omitempty"`
+	HasMore       bool      `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

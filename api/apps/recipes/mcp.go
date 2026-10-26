@@ -30,6 +30,8 @@ func (a *Recipes) RegisterMCPTools(srv *mcp.Server) {
 
 	mcptools.AddReadTool(srv, mcpAppName, "recipes_list_recipes",
 		"Recipes in the user's family recipe book, sorted by name. "+
+			"Summaries only: instructions and ingredients are omitted, use "+
+			"recipes_get_recipe for those. "+
 			"Page with limit/offset while has_more is true.", h.mcpListRecipes)
 	mcptools.AddReadTool(srv, mcpAppName, "recipes_get_recipe",
 		"A single recipe with its ingredients scaled to the requested servings.",

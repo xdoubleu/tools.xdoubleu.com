@@ -26,6 +26,9 @@ type RecipesRepository struct {
 	db postgres.DB
 }
 
+// ListForFamily returns a page of the family's recipes without Instructions or
+// Ingredients: a list query never selects a wide TEXT column
+// (docs/convention-database-queries.md), so GetByID is the only read for them.
 func (r *RecipesRepository) ListForFamily(
 	ctx context.Context,
 	familyID uuid.UUID,
@@ -36,7 +39,7 @@ func (r *RecipesRepository) ListForFamily(
 
 	rows, err := r.db.Query(ctx, `
 		SELECT r.id, r.user_id, r.family_id, r.name,
-		       r.instructions, r.base_servings, r.is_draft, r.created_at, r.updated_at
+		       r.base_servings, r.is_draft, r.created_at, r.updated_at
 		FROM recipes.recipes r
 		WHERE r.family_id = $1
 		ORDER BY r.name, r.id
@@ -53,7 +56,7 @@ func (r *RecipesRepository) ListForFamily(
 		var recipe models.Recipe
 		if err = rows.Scan(
 			&recipe.ID, &recipe.UserID, &recipe.FamilyID, &recipe.Name,
-			&recipe.Instructions, &recipe.BaseServings, &recipe.IsDraft,
+			&recipe.BaseServings, &recipe.IsDraft,
 			&recipe.CreatedAt, &recipe.UpdatedAt,
 		); err != nil {
 			return nil, false, err
