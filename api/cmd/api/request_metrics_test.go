@@ -67,6 +67,11 @@ func TestMCPRequestsAreRecordedAs2xx(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, res.IsError, toolMessage(res, err))
 
+	// A request is observed after its handler returns, which a streaming client
+	// can outrun; Close waits for every in-flight request.
+	_ = session.Close()
+	ts.Close()
+
 	after := requestCountsByStatus(t, http.MethodPost)
 	assert.Equal(t, before["0xx"], after["0xx"], "no request may land in 0xx")
 	assert.GreaterOrEqual(t, after["2xx"]-before["2xx"], 2,

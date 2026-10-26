@@ -80,8 +80,5 @@ func methodLabel(method string) string {
 const statusClassDivisor = 100
 
 func statusClass(status int) string {
-	if status == 0 {
-		status = http.StatusOK
-	}
 	return fmt.Sprintf("%dxx", status/statusClassDivisor)
 }
