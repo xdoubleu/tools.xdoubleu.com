@@ -25,15 +25,10 @@ const DASHBOARD_KIND_ENUM: Record<DashboardShareKind, DashboardKind> = {
   reading: DashboardKind.READING
 }
 
-export function useDashboardShare(
-  kind: DashboardShareKind,
-  fallbackData?: GetDashboardShareResponse
-) {
+export function useDashboardShare(kind: DashboardShareKind) {
   const client = createServiceClient(DashboardService)
-  return useSWR<GetDashboardShareResponse, Error>(
-    swrKeys.dashboardShare(kind),
-    () => client.getDashboardShare({ kind: DASHBOARD_KIND_ENUM[kind] }),
-    { fallbackData }
+  return useSWR<GetDashboardShareResponse, Error>(swrKeys.dashboardShare(kind), () =>
+    client.getDashboardShare({ kind: DASHBOARD_KIND_ENUM[kind] })
   )
 }
 
@@ -49,12 +44,11 @@ export function useDeleteDashboardShare(kind: DashboardShareKind) {
 
 // Public (token-gated, no session) dashboard data.
 
-export function useSharedLibrary(token: string, fallbackData?: GetSharedLibraryResponse) {
+export function useSharedLibrary(token: string) {
   const client = createServiceClient(PublicReadingDashboardService)
   return useSWR<GetSharedLibraryResponse, Error>(
     token ? swrKeys.dashboardReading(token) : null,
-    () => client.getSharedLibrary({ token }),
-    { fallbackData }
+    () => client.getSharedLibrary({ token })
   )
 }
 
@@ -66,21 +60,18 @@ export function useSharedBooksProgress(token: string, dateStart?: string, dateEn
   )
 }
 
-export function useSharedFeedsSummary(token: string, fallbackData?: GetSharedFeedsSummaryResponse) {
+export function useSharedFeedsSummary(token: string) {
   const client = createServiceClient(PublicReadingDashboardService)
   return useSWR<GetSharedFeedsSummaryResponse, Error>(
     token ? swrKeys.dashboardFeedsSummary(token) : null,
-    () => client.getSharedFeedsSummary({ token }),
-    { fallbackData }
+    () => client.getSharedFeedsSummary({ token })
   )
 }
 
-export function useSharedSteam(token: string, fallbackData?: GetSharedSteamResponse) {
+export function useSharedSteam(token: string) {
   const client = createServiceClient(PublicGamesDashboardService)
-  return useSWR<GetSharedSteamResponse, Error>(
-    token ? swrKeys.dashboardGames(token) : null,
-    () => client.getSharedSteam({ token }),
-    { fallbackData }
+  return useSWR<GetSharedSteamResponse, Error>(token ? swrKeys.dashboardGames(token) : null, () =>
+    client.getSharedSteam({ token })
   )
 }
 
@@ -92,27 +83,18 @@ export function useSharedSteamProgress(token: string, dateStart?: string, dateEn
   )
 }
 
-export function useSharedSteamGame(
-  token: string,
-  gameId: number,
-  fallbackData?: GetSharedSteamGameResponse
-) {
+export function useSharedSteamGame(token: string, gameId: number) {
   const client = createServiceClient(PublicGamesDashboardService)
   return useSWR<GetSharedSteamGameResponse, Error>(
     token && gameId ? swrKeys.dashboardGame(token, gameId) : null,
-    () => client.getSharedSteamGame({ token, gameId }),
-    { fallbackData }
+    () => client.getSharedSteamGame({ token, gameId })
   )
 }
 
-export function useSharedRecentlyActiveGames(
-  token: string,
-  fallbackData?: GetSharedRecentlyActiveGamesResponse
-) {
+export function useSharedRecentlyActiveGames(token: string) {
   const client = createServiceClient(PublicGamesDashboardService)
   return useSWR<GetSharedRecentlyActiveGamesResponse, Error>(
     token ? swrKeys.dashboardRecentGames(token) : null,
-    () => client.getSharedRecentlyActiveGames({ token }),
-    { fallbackData }
+    () => client.getSharedRecentlyActiveGames({ token })
   )
 }

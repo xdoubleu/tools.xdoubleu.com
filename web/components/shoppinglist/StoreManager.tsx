@@ -16,7 +16,8 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useStores, useStoreCategories, useCategories } from '@/hooks/useShoppingList'
+import { useStores, useStoreCategories } from '@/hooks/useShoppingList'
+import { useCategories } from '@/hooks/useIngredientCatalog'
 import { enqueueWrite } from '@/lib/offline/outbox'
 import { hasName } from '@/lib/shoppinglist/names'
 import {

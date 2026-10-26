@@ -58,7 +58,7 @@ function SearchResultRow({ result, today }: { result: SearchResult; today: strin
           {release && (
             <>
               {' '}
-              &middot; <span suppressHydrationWarning>{release}</span>
+              &middot; <span>{release}</span>
             </>
           )}
         </p>

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter, useLocation } from 'react-router'
+import { MemoryRouter } from 'react-router'
 import { useRouteParams, useSearchParams } from '@/hooks/navigation'
 import { useSharedLibrary, useSharedSteam } from '@/hooks/useDashboardShare'
 import { useSharedList } from '@/hooks/useSharedList'
@@ -40,7 +40,6 @@ import ReadingPublicPage from '@/app/dashboard/reading/[token]/page'
 import ReadingPublicLibraryPage from '@/app/dashboard/reading/[token]/library/page'
 import FeedFilteredPage from '@/app/feeds/filtered/page'
 import MoviesStatsPage from '@/app/movies/stats/page'
-import RecipesPage from '@/app/recipes/page'
 
 function mount(page: React.ReactNode) {
   return render(<MemoryRouter>{page}</MemoryRouter>)
@@ -156,21 +155,5 @@ describe('MoviesStatsPage', () => {
     mount(<MoviesStatsPage />)
 
     expect(screen.getByRole('link', { name: 'Movies & Series' })).toHaveAttribute('href', href)
-  })
-})
-
-describe('RecipesPage', () => {
-  it('redirects to the list', () => {
-    function Where() {
-      return <div data-testid="where">{useLocation().pathname}</div>
-    }
-    render(
-      <MemoryRouter initialEntries={['/recipes']}>
-        <RecipesPage />
-        <Where />
-      </MemoryRouter>
-    )
-
-    expect(screen.getByTestId('where')).toHaveTextContent('/recipes/list')
   })
 })

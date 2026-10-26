@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { useSharedLibrary } from '@/hooks/useDashboardShare'
-import type { GetSharedLibraryResponse } from '@/lib/gen/dashboard/v1/reading_pb'
 import type { LibraryResponse, UserBook } from '@/lib/gen/books/v1/library_pb'
 import LibrarySidebar, {
   buildShelves,
@@ -26,14 +25,8 @@ type Selection = { kind: 'shelf'; id: ShelfId } | { kind: 'tag'; tag: string }
 
 // Read-only shared library: the same shelf/tag sidebar and book grid as the
 // owner's /books/library, but without any editing affordances.
-export default function ReadingDashboardPublicLibrary({
-  token,
-  initialData
-}: {
-  token: string
-  initialData?: GetSharedLibraryResponse
-}) {
-  const { data, error, isLoading } = useSharedLibrary(token, initialData)
+export default function ReadingDashboardPublicLibrary({ token }: { token: string }) {
+  const { data, error, isLoading } = useSharedLibrary(token)
 
   const [selection, setSelection] = useState<Selection>({ kind: 'shelf', id: 'all' })
   const [search, setSearch] = useState('')

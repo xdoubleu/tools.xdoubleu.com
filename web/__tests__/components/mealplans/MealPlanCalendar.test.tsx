@@ -8,7 +8,7 @@ vi.mock('@/hooks/useMealPlans', () => ({
   useMoveMeal: vi.fn(),
   useMealSuggestions: vi.fn(() => ({ data: undefined }))
 }))
-vi.mock('@/hooks/useShoppingList', () => ({
+vi.mock('@/hooks/useIngredientCatalog', () => ({
   useCategories: () => ({ data: undefined }),
   useItemCategories: () => ({ data: undefined })
 }))

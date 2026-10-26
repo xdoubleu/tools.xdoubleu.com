@@ -21,7 +21,7 @@ vi.mock('@/hooks/useRecipes', () => ({
   useUpdateRecipe: () => mockUpdateRecipe
 }))
 
-vi.mock('@/hooks/useShoppingList', () => ({
+vi.mock('@/hooks/useIngredientCatalog', () => ({
   useItemNames: () => ({ data: { names: mockShopping.itemNames } }),
   useCategories: () => ({ data: { categories: mockShopping.categories } }),
   useItemAliases: () => mockShopping.aliases,

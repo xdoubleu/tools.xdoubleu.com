@@ -1,18 +1,10 @@
-import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { GATEWAY_DOWNLOAD_PATH } from '@/lib/books/gatewayClient'
 
 /** Prompts for the kobo-gateway app (the only Kobo setup path); macOS-only. */
 export default function KoboGatewayDownload() {
-  // Read in an effect so SSR and first render match.
-  const [isMac, setIsMac] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    setIsMac(/Mac/i.test(navigator.userAgent))
-  }, [])
-
-  if (isMac === null) return null
+  const isMac = /Mac/i.test(navigator.userAgent)
 
   if (!isMac) {
     return (

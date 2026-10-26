@@ -23,7 +23,7 @@ vi.mock('@/components/games/SteamProgressChart', () => ({
   default: () => <div data-testid="progress-chart" />
 }))
 
-import GamesDashboardView from '@/components/games/GamesDashboardView'
+import GamesDashboardView from '@/components/dashboard/GamesDashboardView'
 
 function makeSteam() {
   return create(SteamResponseSchema, {

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useItemNames, useCategories } from '@/hooks/useShoppingList'
+import { useItemNames, useCategories } from '@/hooks/useIngredientCatalog'
 import { enqueueWrite } from '@/lib/offline/outbox'
 import {
   setItemAliasWrite,

@@ -4,7 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { LoadingState } from '@/components/ui/states'
 import type { GetNotificationSettingsResponse } from '@/lib/gen/observability/v1/observability_pb'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
-import { useUpdateNotificationSettings } from '@/hooks/useMonitoring'
+import { useUpdateNotificationSettings } from '@/hooks/useNotificationSettings'
 
 const SOURCE_LABELS: Record<string, string> = {
   sentry_issues: 'Sentry issues',

@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import { axisTick, tooltipProps } from '@/lib/chartTheme'
 import { useMovieStats } from '@/hooks/useMovies'
-import { monthLabel } from '@/lib/movies/format'
+import { monthLabel } from '@/lib/dates'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RatingStars } from '@/components/ui/rating-stars'
 import { StatTile } from '@/components/ui/stat'

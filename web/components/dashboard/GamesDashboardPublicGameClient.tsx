@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useSharedSteamGame } from '@/hooks/useDashboardShare'
-import type { GetSharedSteamGameResponse } from '@/lib/gen/dashboard/v1/games_pb'
 import {
   GameAchievements,
   SteamGameHeader,
@@ -16,15 +15,13 @@ import { formatDateTime } from '@/lib/dates'
 // toggle — visitors only see the owner's state.
 export default function GamesDashboardPublicGameClient({
   token,
-  id,
-  initialData
+  id
 }: {
   token: string
   id: string
-  initialData?: GetSharedSteamGameResponse
 }) {
   const gameId = Number(id)
-  const { data, error, isLoading } = useSharedSteamGame(token, gameId, initialData)
+  const { data, error, isLoading } = useSharedSteamGame(token, gameId)
   const game = data?.data?.game
   const achievements = data?.data?.achievements ?? []
   const [showCompleted, setShowCompleted] = useState(false)
