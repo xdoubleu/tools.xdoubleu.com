@@ -41,3 +41,7 @@ A handler that drops the request context (`context.WithoutCancel`) escapes
 the deadline; `httptools.Detach` keeps the deadline while dropping
 cancellation. The MCP SDK drops it for tool calls, so `mcptools` restores it
 less a second, leaving the SDK time to write the result.
+
+No stream outlives a budget, so `/apps/mcp` advertises no `listChanged`: a
+2026-07-28 client would otherwise hold a `subscriptions/listen` POST until
+the budget cut it, then reopen it.

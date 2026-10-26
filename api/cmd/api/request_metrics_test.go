@@ -54,7 +54,7 @@ func TestMCPRequestsAreRecordedAs2xx(t *testing.T) {
 		return &mcp.CallToolResult{}, nil, nil
 	})
 	mux := http.NewServeMux()
-	mux.Handle(appsMCPPath, streamableMCPHandler(srv))
+	mux.Handle(appsMCPPath, streamableMCPHandler(logging.NewNopLogger(), srv))
 	ts := httptest.NewServer(throttledApp(t).middleware().Then(mux))
 	t.Cleanup(ts.Close)
 

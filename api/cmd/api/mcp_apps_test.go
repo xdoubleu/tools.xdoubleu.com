@@ -118,6 +118,14 @@ func appsMCPSession(t *testing.T, token string) *mcp.ClientSession {
 // mcpSession connects a client to the MCP server at endpoint, without retries.
 func mcpSession(t *testing.T, endpoint, token string) *mcp.ClientSession {
 	t.Helper()
+	return mcpClientSession(t, endpoint, token, nil)
+}
+
+// mcpClientSession is mcpSession with the client's options.
+func mcpClientSession(
+	t *testing.T, endpoint, token string, opts *mcp.ClientOptions,
+) *mcp.ClientSession {
+	t.Helper()
 	transport := &mcp.StreamableClientTransport{
 		Endpoint: endpoint,
 		HTTPClient: &http.Client{
@@ -130,7 +138,7 @@ func mcpSession(t *testing.T, endpoint, token string) *mcp.ClientSession {
 	}
 
 	//nolint:exhaustruct // only Name/Version identify the test client
-	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "0"}, nil)
+	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "0"}, opts)
 	session, err := client.Connect(context.Background(), transport, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = session.Close() })
