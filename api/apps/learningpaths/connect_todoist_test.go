@@ -12,11 +12,11 @@ import (
 	"golang.org/x/oauth2"
 
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
+	"tools.xdoubleu.com/apps/learningpaths/internal/todoist"
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
 	"tools.xdoubleu.com/gen/learningpaths/v1/learningpathsv1connect"
 	"tools.xdoubleu.com/internal/crypto"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/todoist"
 )
 
 func setupTodoistClient(

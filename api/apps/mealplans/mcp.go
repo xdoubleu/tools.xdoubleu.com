@@ -33,7 +33,7 @@ func (a *MealPlans) RegisterMCPTools(srv *mcp.Server) {
 	mcptools.AddReadTool(srv, mcpAppName, "mealplans_list_plans",
 		"The meal plans in the user's family.", h.mcpListPlans)
 	mcptools.AddReadTool(srv, mcpAppName, "mealplans_get_plan",
-		"A single meal plan's week of meals with the referenced recipes.",
+		"A single meal plan's week of meals; recipe meals carry recipe_ref {id, name}.",
 		h.mcpGetPlan)
 	mcptools.AddReadTool(srv, mcpAppName, "mealplans_suggest_recipes",
 		"Recipe suggestions for a given plan slot.", h.mcpSuggestRecipes)

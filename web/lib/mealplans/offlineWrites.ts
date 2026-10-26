@@ -6,10 +6,10 @@ import {
   ListPlansResponseSchema,
   MealPlansService,
   PlanMealSchema,
+  RecipeRefSchema,
   type GetPlanResponse,
   type PlanMeal
 } from '@/lib/gen/mealplans/v1/mealplans_pb'
-import { RecipeSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 
 const { method } = MealPlansService
 const REVALIDATE = '/mealplans'
@@ -17,8 +17,8 @@ const REVALIDATE = '/mealplans'
 // Meal writes' hint is the chosen recipe's name, which requests don't carry.
 function recipeRef(recipeId: string, hint: unknown, current?: PlanMeal) {
   if (!recipeId) return undefined
-  if (typeof hint === 'string') return create(RecipeSchema, { id: recipeId, name: hint })
-  return current?.recipeId === recipeId ? current.recipe : undefined
+  if (typeof hint === 'string') return create(RecipeRefSchema, { id: recipeId, name: hint })
+  return current?.recipeId === recipeId ? current.recipeRef : undefined
 }
 
 /** Whether the date (YYYY-MM-DD) falls in the response's week window. */
@@ -59,7 +59,7 @@ export const createMealWrite = defineOfflineWrite({
         recipeId: req.recipeId,
         customName: req.customName,
         servings: servingsOrDefault(req.servings),
-        recipe: recipeRef(req.recipeId, hint),
+        recipeRef: recipeRef(req.recipeId, hint),
         excludeFromShoppingList: req.excludeFromShoppingList
       })
       return [...meals.filter((m) => m.id !== req.id), meal]
@@ -79,7 +79,7 @@ export const updateMealWrite = defineOfflineWrite({
               recipeId: req.recipeId,
               customName: req.customName,
               servings: servingsOrDefault(req.servings),
-              recipe: recipeRef(req.recipeId, hint, m),
+              recipeRef: recipeRef(req.recipeId, hint, m),
               excludeFromShoppingList: req.excludeFromShoppingList
             }
           : m

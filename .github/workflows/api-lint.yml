@@ -75,3 +75,12 @@ jobs:
       - name: Check Kamal deploy-secret consistency
         run: make lint/kamal-secrets
         working-directory: './api'
+
+  lint-cross-schema:
+    name: API Cross-Schema SQL Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Check cross-schema SQL direction
+        run: make lint/cross-schema
+        working-directory: './api'

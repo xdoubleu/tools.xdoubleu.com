@@ -11,6 +11,7 @@ make lint/fix/pkg PKG=apps/recipes # auto-fix one package
 make lint/golines                  # fails if golines would rewrite anything (CI runs it)
 make lint/migrations               # duplicate version (goose silently skips it) or a new one numbered below the dir's max
 make lint/kamal-secrets            # deploy-secret lists agree; deploy.grafana.yml env names must be GF_-prefixed (Grafana ignores others)
+make lint/cross-schema             # SQL schema direction, adr-0038
 make lint/proto-local-versions     # proto/generate/local plugin versions match buf.gen.yaml's `remote:` pins
 make db/reset                      # recreate the Postgres volume — shared by every worktree, see Testing
 ```
@@ -77,14 +78,14 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
   - Scoped by `user_id`; another user's path reads as not-found.
   - Proto nests `LearningPath{modules{items}}`; Create/Update replace the whole tree; `RecordItemProgress` is the single-item exception.
   - MCP write tools are gated by `RequireAppAccess` and scope via context, never an argument. Authoring guidance lives in tool descriptions and `mcp_authoring_guide.go`.
-  - Todoist: per-user `learningpaths.oauth_connections` (PK `user_id, provider`), separate from admin `global.oauth_connections`; `internal/todoist` is create+delete, idempotent — only the active module's items are tasks.
+  - Todoist: per-user `learningpaths.oauth_connections` (PK `user_id, provider`), separate from admin `global.oauth_connections`; `learningpaths/internal/todoist` is create+delete, idempotent — only the active module's items are tasks.
   - Linked books/feed items resolve through exported `Books`/`Feeds` methods, never their internals.
 
 ### Database
 
 - Migrations: `apps/<name>/migrations/`; `global` schema in `cmd/api/migrations/`.
 - **No wide TEXT column in list queries or `RETURNING`** — select `<col> IS NOT NULL AND <col> <> ''`; only single-row reads fetch it → [`convention-database-queries`](../docs/convention-database-queries.md).
-- Cross-schema reads only downstream: `recipes ← mealplans ← shoppinglist`. Grep downstream repos before changing an upstream schema.
+- Cross-schema SQL: `recipes ← mealplans ← shoppinglist` only → [`adr-0038`](../docs/adr-0038-downstream-cross-schema-reads.md).
 
 ### MCP
 

@@ -11,9 +11,9 @@ import (
 	"golang.org/x/oauth2"
 
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
+	"tools.xdoubleu.com/apps/learningpaths/internal/todoist"
 	"tools.xdoubleu.com/internal/crypto"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/todoist"
 )
 
 // TestTodoistOAuthCallback_InvalidStateRedirectsWithError: an unknown state
