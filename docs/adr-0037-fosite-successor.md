@@ -1,8 +1,8 @@
 # ADR-0037: Replace the unmaintained `ory/fosite` with Authelia's fork, `authelia.com/provider/oauth2`
 
-- Status: Proposed — the owner picks the option in review; the migration gets its own issue
+- Status: Accepted — the owner picked (c), 2026-10-26
 - Issues: #2612 (audit #2596)
-- Affects: `api/internal/oauth2as/`, `api/cmd/api/oauth2as.go`, `api/go.mod`; revisits the library choice in [ADR-0006](adr-0006-embedded-oauth21-authorization-server.md)
+- Affects: `api/internal/oauth2as/`, `api/cmd/api/oauth2as.go`, `api/go.mod`, `api/cmd/api/migrations/00058_oauth2_session_numeric_claim_times.sql`, `.github/workflows/api-vuln.yml`, `renovate.json5`; replaces the library chosen in [ADR-0006](adr-0006-embedded-oauth21-authorization-server.md)
 
 ## Context
 
@@ -36,7 +36,7 @@ State of fosite on 2026-10-25:
 | non-import lines changed, tests included | — | 34 | 55 |
 | test suites | pass | pass, imports only changed | pass, two test lines changed |
 | tokens issued before the switch | — | valid | valid with prefix `ory_%s_` |
-| sessions stored before the switch | — | claim types unchanged | `openid` session JSON fails to decode |
+| sessions stored before the switch | — | claim types unchanged | refresh and code exchange fail until backfilled |
 
 - **(a) Hydra's in-tree fosite** (`github.com/ory/hydra/v2/fosite`, not `internal/`). Storage and strategies become provider accessors (`AuthorizeCodeStorage()`, `CommonStrategyProvider`), and `fosite.Transactional` is required (a pass-through matches today). It is a dead end, though:
   - Hydra's calver tags are invalid for the `/v2` module path, so it pins only by pseudo-version (`v2.3.1-0.20260320110106-0b84568fffcc`), and Renovate can't follow releases.
@@ -51,13 +51,16 @@ State of fosite on 2026-10-25:
 
 ## Decision
 
-Proposed: (c), Authelia's fork. It is maintained and Renovate-trackable, drops every flagged dependency, keeps issued token strings valid (stored sessions need step 4), and passed both suites. Migration:
+(c), Authelia's fork: it is maintained and Renovate-trackable, drops every flagged dependency, keeps issued token strings valid, and passed both suites. Migration as shipped:
 
-1. **Monitoring, whatever is picked**: run `govulncheck ./...` in CI (none does today), on a schedule or non-blocking so a new disclosure doesn't turn every PR red.
-2. **Fixtures**: before swapping, capture tokens and `auth.oauth2_*` rows written by v0.49.0 as `testdata/`.
-3. **Swap**: alias the root package as `fosite`, apply the adaptations above, and use `NewHMACCoreStrategy(cfg, "ory_%s_")`.
-4. **Backfill** `request->'session'` claim times from RFC 3339 to Unix seconds, dropping zero values; the alternative is one forced re-login for MCP clients and Grafana. Test it against the step 2 fixtures.
-5. **Verify**: both suites plus a fixture-compatibility test, then after deploy one MCP connect and refresh and one Grafana SSO login, watching `oauth2 request rejected` logs.
+1. **Fixtures**: `api/internal/oauth2as/testdata/fosite-v0.49.0.json` holds tokens and `auth.oauth2_*` rows written by v0.49.0, captured before the swap.
+2. **Swap**: the root package is aliased as `fosite`, with the adaptations above and `NewHMACCoreStrategy(cfg, "ory_%s_")`. `api/go.sum` went from 1070 to 294 lines, `cmd/api` from 955 to 784 packages, the stripped binary from 54.2 to 50.5 MB.
+3. **Backfill** (migration 00058): v0.49 stored ID-token claim times as RFC 3339 strings and absent claims as `null`. The fork rejects both, including the `"ext": null` every scope-less MCP session carries. Claim times become Unix seconds, and zero times and `null` claims are dropped. Unmigrated rows still introspect, but refresh and code exchange fail. The Down block restores RFC 3339, so a rollback runs it before the old binary starts.
+4. **Compatibility test** (`api/internal/oauth2as/v049_compat_test.go`): on the backfilled fixture, pre-switch access tokens introspect, refresh tokens rotate, a pending PKCE code exchanges, and reuse past the grace period revokes the chain.
+5. **Monitoring**: `make lint/vuln` runs govulncheck, and `api-vuln.yml` runs it daily rather than per PR.
+6. **After deploy**: one MCP connect and refresh, one Grafana SSO login, and the `oauth2 request rejected` logs.
+
+Stored sessions keep their `kid` header, which the fork emits as-is. It is `OIDCKeyID` of the persistent key, so refreshed ID tokens still match `/oauth2/jwks`.
 
 The repo has no conformance tests. One manual run of the OpenID conformance suite against a local stack is feasible, but it isn't a CI gate: its Basic OP plan expects a UserInfo endpoint, which ADR-0021 rejected.
 
@@ -66,8 +69,9 @@ Fallback: (a) is a one-time bridge if the fork stalls (34 lines, no data migrati
 ## Consequences
 
 - ADR-0006's decisions stand; only the engine changes.
-- About 18% fewer packages and a 3.6 MB smaller binary; the deprecated dependencies leave `go.mod`.
-- The fork's API is pre-1.0, so its Renovate bumps need review and shouldn't auto-merge.
+- About 18% fewer packages and a 3.6 MB smaller binary; the deprecated dependencies leave `go.mod`. `go.uber.org/mock` is required only by the fork's tests and isn't linked.
+- The fork's API is pre-1.0, so Renovate doesn't auto-merge its bumps.
+- A rollback without the Down block costs MCP clients and Grafana one re-login.
 
 ## Revisit when
 

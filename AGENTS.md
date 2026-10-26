@@ -39,7 +39,7 @@ Read `api/AGENTS.md`, `web/AGENTS.md`, `kobo-gateway/AGENTS.md` before working t
 
 ```bash
 # api/ (needs `docker-compose up -d` for Postgres)
-make run | test | build | lint | lint/fix | test/cov/report
+make run | test | build | lint | lint/fix | lint/vuln | test/cov/report
 make test/mutation/diff     # gremlins on packages changed vs origin/main
 make arch/diagram           # Mermaid package graph → api/package-graph.mmd (not committed)
 go test ./apps/books/internal/services/... -run TestName -v
