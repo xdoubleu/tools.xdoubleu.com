@@ -451,6 +451,19 @@ func TestStore_ClientAssertionJWT_Stubs(t *testing.T) {
 	require.NoError(t, store.SetClientAssertionJWT(ctx, "any-jti", time.Now()))
 }
 
+func TestStore_ClientRegistrationManager_Refuses(t *testing.T) {
+	store, _ := newTestStore(t)
+	ctx := context.Background()
+	//nolint:exhaustruct //never stored
+	client := &fosite.DefaultClient{ID: "refused"}
+
+	require.Error(t, store.CreateClient(ctx, client))
+	require.Error(t, store.UpdateClient(ctx, client.ID, client))
+	require.Error(t, store.DeleteClient(ctx, client.ID))
+	_, err := store.GetClient(ctx, client.ID)
+	require.ErrorIs(t, err, fosite.ErrNotFound)
+}
+
 func TestStore_PKCERequestSession_RoundTrip(t *testing.T) {
 	store, db := newTestStore(t)
 	ctx := context.Background()
