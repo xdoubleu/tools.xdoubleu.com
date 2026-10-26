@@ -41,6 +41,7 @@ export default function GamesLibrary({ initialSteam }: { initialSteam?: GetSteam
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          aria-label="Search games"
           placeholder="Search games…"
           className="flex-1"
         />

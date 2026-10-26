@@ -73,7 +73,11 @@ export default function BookReadDatesEditor({ userBook, onSaved }: BookReadDates
           Add date
         </Button>
       </div>
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
+      {error && (
+        <p className="mt-1 text-xs text-danger" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

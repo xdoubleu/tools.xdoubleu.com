@@ -31,6 +31,7 @@ export default function GamesSearch({ className }: GamesSearchProps) {
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
+        aria-label="Search games"
         placeholder="Search games…"
       />
       {results.length > 0 && (

@@ -32,7 +32,9 @@ export default function MealPlanCalendar({
     selectedSlot,
     selectedDate,
     swappingMeal,
-    setSwappingMeal,
+    cancelSwap,
+    focusMealId,
+    clearFocusMeal,
     editingMeal,
     fillingDate,
     suggestedRecipes,
@@ -101,7 +103,7 @@ export default function MealPlanCalendar({
             variant="secondary"
             size="sm"
             className="shrink-0"
-            onClick={() => setSwappingMeal(null)}
+            onClick={() => cancelSwap(swappingMeal)}
           >
             Cancel
           </Button>
@@ -120,6 +122,8 @@ export default function MealPlanCalendar({
         onDeleteMeal={confirmDeleteMeal}
         onAddClick={startAdd}
         onFillDay={startFillDay}
+        focusMealId={focusMealId}
+        onMealFocused={clearFocusMeal}
       />
 
       <MealPlanEntryForm

@@ -39,7 +39,11 @@ function SearchResultRow({ result }: { result: SearchResult }) {
       <div className="min-w-0 flex-1">
         <p className="break-words font-medium">{result.title}</p>
         {result.author && <p className="break-words text-xs text-muted">{result.author}</p>}
-        {failed && <p className="text-xs text-danger">Couldn&apos;t add. Try again.</p>}
+        {failed && (
+          <p className="text-xs text-danger" role="alert">
+            Couldn&apos;t add. Try again.
+          </p>
+        )}
       </div>
       {result.favourite ? (
         <Badge variant="secondary">Favourite</Badge>

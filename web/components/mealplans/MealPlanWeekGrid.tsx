@@ -6,8 +6,10 @@ import MealPlanMealChip from './MealPlanMealChip'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/cn'
+import { formatDate } from '@/lib/dates'
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const slotLabel = (slot: string) => slot.charAt(0).toUpperCase() + slot.slice(1)
 
 interface MealPlanWeekGridProps {
   weekDates: Date[]
@@ -21,6 +23,9 @@ interface MealPlanWeekGridProps {
   onDeleteMeal: (mealId: string) => void
   onAddClick: (date: string, slot: string) => void
   onFillDay: (date: string) => void
+  /** Meal whose chip takes focus next, e.g. after a swap moved it. */
+  focusMealId?: string
+  onMealFocused?: () => void
 }
 
 // Stacked by day on mobile, a 7-column grid on desktop; state lives in the parent.
@@ -35,7 +40,9 @@ export default function MealPlanWeekGrid({
   onEditClick,
   onDeleteMeal,
   onAddClick,
-  onFillDay
+  onFillDay,
+  focusMealId,
+  onMealFocused
 }: MealPlanWeekGridProps) {
   const today = formatMealDate(new Date())
 
@@ -62,13 +69,23 @@ export default function MealPlanWeekGrid({
             onSwapClick={onStartSwap}
             onEditClick={onEditClick}
             onDeleteMeal={onDeleteMeal}
+            restoreFocus={meal.id === focusMealId}
+            onFocusRestored={onMealFocused}
           />
         ))}
         {swappingMeal ? (
           !hasMeals && (
-            <div className="flex h-full min-h-10 items-center justify-center text-xs text-muted">
+            <Button
+              variant="ghost"
+              aria-label={`Place here: ${slotLabel(slot)}, ${formatDate(formattedDate)}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onCellClick(formattedDate, slot)
+              }}
+              className="h-full min-h-11 w-full px-0 text-xs font-normal text-muted hover:bg-transparent active:bg-transparent"
+            >
               Place here
-            </div>
+            </Button>
           )
         ) : (
           <Button
@@ -117,7 +134,7 @@ export default function MealPlanWeekGrid({
                   {MEAL_SLOTS.map((slot) => (
                     <div key={slot} className="flex gap-2">
                       <span className="w-16 shrink-0 pt-1 text-xs font-medium text-muted">
-                        {slot.charAt(0).toUpperCase() + slot.slice(1)}
+                        {slotLabel(slot)}
                       </span>
                       <div className="flex-1">{renderCell(formattedDate, slot)}</div>
                     </div>
@@ -177,7 +194,7 @@ export default function MealPlanWeekGrid({
             {MEAL_SLOTS.map((slot) => (
               <React.Fragment key={slot}>
                 <div className="flex items-center pr-2 text-sm font-medium text-muted">
-                  {slot.charAt(0).toUpperCase() + slot.slice(1)}
+                  {slotLabel(slot)}
                 </div>
                 {weekDates.map((date) => renderCell(formatMealDate(date), slot))}
               </React.Fragment>

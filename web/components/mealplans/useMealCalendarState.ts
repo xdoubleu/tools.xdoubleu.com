@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   useAddMeal,
   useUpdateMeal,
@@ -29,6 +29,13 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
   const [swappingMeal, setSwappingMeal] = useState<PlanMeal | null>(null)
   const [editingMeal, setEditingMeal] = useState<PlanMeal | null>(null)
   const [fillingDate, setFillingDate] = useState<string | null>(null)
+  // The chip to refocus once swap mode ends, since its target control unmounts.
+  const [focusMealId, setFocusMealId] = useState('')
+  const clearFocusMeal = useCallback(() => setFocusMealId(''), [])
+  const cancelSwap = (meal: PlanMeal) => {
+    setFocusMealId(meal.id)
+    setSwappingMeal(null)
+  }
 
   const createMeal = useAddMeal()
   const updateMeal = useUpdateMeal()
@@ -54,7 +61,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (swappingMeal) setSwappingMeal(null)
+        if (swappingMeal) cancelSwap(swappingMeal)
         if (editingMeal) setEditingMeal(null)
         if (fillingDate) setFillingDate(null)
       }
@@ -161,6 +168,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
         }
         await moveMeal(moveTarget)
       }
+      setFocusMealId(swappingMeal.id)
       setSwappingMeal(null)
       onMutate?.()
     } catch (err) {
@@ -245,7 +253,9 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     selectedSlot,
     selectedDate,
     swappingMeal,
-    setSwappingMeal,
+    cancelSwap,
+    focusMealId,
+    clearFocusMeal,
     editingMeal,
     fillingDate,
     suggestedRecipes,

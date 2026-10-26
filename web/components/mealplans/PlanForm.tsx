@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Alert } from '@/components/ui/alert'
 
 interface PlanFormProps {
   plan: Plan
@@ -123,7 +124,7 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
         )}
       </div>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
 
       <div className="flex gap-2">
         <Button type="submit" className="flex-1">

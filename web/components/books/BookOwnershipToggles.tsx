@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { mutate } from 'swr'
 import { useSetBookTag } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
@@ -21,6 +21,7 @@ export default function BookOwnershipToggles({
 }: BookOwnershipTogglesProps) {
   const [ownPhysical, setOwnPhysical] = useState(userBook.tags.includes('own-physical'))
   const setBookTag = useSetBookTag()
+  const labelId = useId()
 
   const togglePhysical = async () => {
     const current = ownPhysical
@@ -41,9 +42,14 @@ export default function BookOwnershipToggles({
   const hasEpub = userBook.formats.includes('epub')
 
   return (
-    <div className="space-y-1.5">
+    <div
+      role="group"
+      aria-labelledby={hideLabel ? undefined : labelId}
+      aria-label={hideLabel ? 'Ownership' : undefined}
+      className="space-y-1.5"
+    >
       {!hideLabel && (
-        <Label className="text-xs font-semibold text-muted uppercase tracking-wide">
+        <Label id={labelId} className="text-xs font-semibold text-muted uppercase tracking-wide">
           Ownership
         </Label>
       )}

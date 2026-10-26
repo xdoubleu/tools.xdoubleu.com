@@ -73,13 +73,18 @@ export default function KoboSyncToggle({ bookId, enabled, onChanged }: KoboSyncT
       {enabledState && kepubStatus && (
         <p
           className={cn('text-xs', kepubStatus === 'failed' ? 'text-danger' : 'text-muted')}
+          role="status"
           data-testid="kepub-status"
         >
           {kepubStatusLabel(kepubStatus)}
         </p>
       )}
 
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && (
+        <p className="text-xs text-danger" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

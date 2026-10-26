@@ -97,7 +97,7 @@ describe('RemoveBookDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
 
     await waitFor(() => expect(screen.getByTestId('remove-book-error')).toBeInTheDocument())
-    expect(screen.getByTestId('remove-book-error')).toHaveTextContent('Failed to remove book')
+    expect(screen.getByRole('alert')).toHaveTextContent('Failed to remove book')
   })
 
   it('does not show a mark-owned suggestion for a book with own-physical/own-digital tags', () => {

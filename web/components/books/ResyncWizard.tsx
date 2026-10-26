@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { LoadingState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
+import { Alert } from '@/components/ui/alert'
 
 export default function ResyncWizard() {
   const { data, isLoading } = useResyncProposals()
@@ -124,7 +125,7 @@ export default function ResyncWizard() {
       </div>
 
       {override && liveLoading && <p className="text-sm text-muted">Fetching sources…</p>}
-      {override && liveError && <p className="text-sm text-danger">Failed to fetch sources.</p>}
+      {override && liveError && <Alert tone="danger">Failed to fetch sources.</Alert>}
       <SourceCompare
         key={current.bookId + (override ? '-override' : '')}
         proposal={displayed}

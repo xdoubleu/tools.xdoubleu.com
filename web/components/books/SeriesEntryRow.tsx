@@ -93,7 +93,11 @@ function MissingEntry({
           <Badge variant="warn" className="mt-1">
             Not in library
           </Badge>
-          {error && <p className="mt-1 text-xs text-danger">Failed to add. Try again.</p>}
+          {error && (
+            <p className="mt-1 text-xs text-danger" role="alert">
+              Failed to add. Try again.
+            </p>
+          )}
         </div>
       </div>
       <Button size="sm" variant="secondary" disabled={adding} onClick={handleAdd}>

@@ -18,6 +18,7 @@ import { ConfirmDialog } from '@/components/ui/dialog'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
+import { Alert } from '@/components/ui/alert'
 
 export default function MovieTitleClient({ id }: { id: string }) {
   const router = useRouter()
@@ -129,7 +130,11 @@ export default function MovieTitleClient({ id }: { id: string }) {
                   ? 'Adding…'
                   : `Add to ${shared ? 'my' : 'family'} list`}
             </Button>
-            {copyFailed && <p className="text-sm text-danger">Couldn&apos;t add. Try again.</p>}
+            {copyFailed && (
+              <p className="text-sm text-danger" role="alert">
+                Couldn&apos;t add. Try again.
+              </p>
+            )}
           </div>
           <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
             Remove from backlog
@@ -147,7 +152,11 @@ export default function MovieTitleClient({ id }: { id: string }) {
         pending={removing}
         onConfirm={() => void confirmRemove()}
       >
-        {removeFailed && <p className="text-sm text-danger">Couldn&apos;t remove. Try again.</p>}
+        {removeFailed && (
+          <Alert tone="danger" className="mt-2">
+            Couldn&apos;t remove. Try again.
+          </Alert>
+        )}
       </ConfirmDialog>
       <TmdbAttribution />
     </PageContainer>

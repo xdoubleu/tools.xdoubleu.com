@@ -216,7 +216,11 @@ export default function SourceCompare({
           )}
         </RadioGroup>
         <span className="flex items-center gap-2">
-          {error && <span className="text-xs text-danger">{error}</span>}
+          {error && (
+            <span className="text-xs text-danger" role="alert">
+              {error}
+            </span>
+          )}
           <Button variant="default" disabled={busy} onClick={() => void handleApply()}>
             {busy ? 'Applying…' : applyLabel(choice)}
           </Button>

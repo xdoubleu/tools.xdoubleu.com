@@ -59,7 +59,11 @@ function SeasonRow({
       <p className="text-xs text-muted" suppressHydrationWarning>
         {seasonMeta(season)}
       </p>
-      {failed && <p className="text-xs text-danger">Couldn&apos;t save. Try again.</p>}
+      {failed && (
+        <p className="text-xs text-danger" role="alert">
+          Couldn&apos;t save. Try again.
+        </p>
+      )}
       {ticked && (
         <Collapsible title={`Watch dates (${season.watchedAt.length})`} triggerClassName="text-sm">
           <WatchDates

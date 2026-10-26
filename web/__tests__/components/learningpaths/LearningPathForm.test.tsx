@@ -1,6 +1,6 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import LearningPathForm from '@/components/learningpaths/LearningPathForm'
 import {
   LearningPathSchema,
@@ -63,6 +63,16 @@ describe('LearningPathForm (new)', () => {
     expect(screen.getByText('Modules')).toBeInTheDocument()
     expect(screen.getByText('Resources')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save Learning Path' })).toBeInTheDocument()
+  })
+
+  it('names the module, item and resource fields within their groups', () => {
+    render(<LearningPathForm onSave={vi.fn()} onCancel={vi.fn()} />)
+    const modules = within(screen.getByRole('group', { name: 'Modules' }))
+    expect(modules.getByRole('textbox', { name: 'Module 1 title' })).toBeInTheDocument()
+    expect(modules.getByRole('textbox', { name: 'Item type' })).toBeInTheDocument()
+    expect(modules.getByRole('textbox', { name: 'Item description' })).toBeInTheDocument()
+    const resources = within(screen.getByRole('group', { name: 'Resources' }))
+    expect(resources.getByRole('textbox', { name: 'Resource 1' })).toBeInTheDocument()
   })
 
   it('disables Save and Cancel with a pending label while saving', async () => {
@@ -371,7 +381,8 @@ describe('LearningPathForm (edit)', () => {
     mockUpdateLearningPath.mockResolvedValue({ learningPath: { id: 'lp-1' } })
     render(<LearningPathForm learningPath={withTypes} onSave={vi.fn()} onCancel={vi.fn()} />)
 
-    expect(screen.getByLabelText('read')).toHaveValue('every day at 20:00')
+    const reminders = within(screen.getByRole('group', { name: 'Todoist reminders' }))
+    expect(reminders.getByLabelText('read')).toHaveValue('every day at 20:00')
     fireEvent.change(screen.getByLabelText('checkpoint'), {
       target: { value: 'every sun at 18:00' }
     })

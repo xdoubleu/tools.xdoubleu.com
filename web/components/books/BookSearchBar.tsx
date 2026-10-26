@@ -95,6 +95,7 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
         type="search"
         value={controlledInput}
         onChange={(e) => handleInputChange(e.target.value)}
+        aria-label="Search books"
         placeholder="Search books…"
       />
     )
@@ -110,6 +111,7 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
           type="search"
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
+          aria-label="Search books"
           placeholder="Search books…"
         />
         {isSearching && (

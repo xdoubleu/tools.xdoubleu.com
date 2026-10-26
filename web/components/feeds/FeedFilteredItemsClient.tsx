@@ -76,7 +76,11 @@ function FilteredItemRow({ item, feedTitles, onRestored }: FilteredItemRowProps)
             <FilterReason rule={rule} scope={scope} />
           </p>
           <p className="text-xs text-subtle">Filtered {formatDate(item.filteredAt)}</p>
-          {failed && <p className="text-xs text-danger">Restoring failed. Please try again.</p>}
+          {failed && (
+            <p className="text-xs text-danger" role="alert">
+              Restoring failed. Please try again.
+            </p>
+          )}
         </div>
         <Button
           size="sm"

@@ -109,6 +109,7 @@ describe('KoboSyncToggle', () => {
     setupSWR({ hasEpub: true, kepubStatus: 'failed' })
     render(<KoboSyncToggle bookId={BOOK_ID} enabled={true} />)
     expect(screen.getByTestId('kepub-status')).toHaveTextContent('Conversion failed')
+    expect(screen.getByTestId('kepub-status')).toHaveAttribute('role', 'status')
   })
 
   it('does not show kepub status when not enabled', () => {

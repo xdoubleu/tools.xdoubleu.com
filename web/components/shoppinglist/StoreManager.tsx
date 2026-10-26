@@ -30,6 +30,7 @@ import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { EmptyState, LoadingState } from '@/components/ui/states'
+import { Alert } from '@/components/ui/alert'
 
 interface OrderedCategory {
   id: string
@@ -82,6 +83,7 @@ export default function StoreManager() {
     <div className="space-y-4">
       <form onSubmit={handleCreate} className="flex gap-2">
         <Input
+          aria-label="New store"
           placeholder="New store (e.g. Colruyt)"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
@@ -91,7 +93,7 @@ export default function StoreManager() {
         </Button>
       </form>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       {isLoading && <LoadingState className="text-sm" />}
       {!isLoading && stores.length === 0 && <EmptyState>No stores yet.</EmptyState>}
 

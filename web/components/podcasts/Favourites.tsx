@@ -28,7 +28,11 @@ function FavouriteRow({ favourite }: { favourite: Favourite }) {
       <div className="min-w-0 flex-1">
         <p className="break-words font-medium">{favourite.title}</p>
         {favourite.author && <p className="break-words text-xs text-muted">{favourite.author}</p>}
-        {failed && <p className="text-xs text-danger">Couldn&apos;t remove. Try again.</p>}
+        {failed && (
+          <p className="text-xs text-danger" role="alert">
+            Couldn&apos;t remove. Try again.
+          </p>
+        )}
       </div>
       <Button variant="secondary" disabled={pending} onClick={() => void unfavourite()}>
         {pending ? 'Removing…' : 'Remove'}

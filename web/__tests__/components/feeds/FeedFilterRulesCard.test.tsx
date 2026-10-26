@@ -223,7 +223,7 @@ describe('FeedFilterRulesCard', () => {
 
     const button = screen.getByRole('button', { name: 'Delete rule Title contains: sponsored' })
     fireEvent.click(button)
-    expect(await screen.findByText('Deleting the rule failed.')).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Deleting the rule failed.')
     expect(button).toBeEnabled()
 
     mockDelete.mockReturnValue(new Promise(() => {}))

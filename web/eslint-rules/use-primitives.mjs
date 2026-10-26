@@ -14,6 +14,15 @@ const RAW_ELEMENTS = {
 }
 
 const phoneBases = (attr) => collectTokens(attr.value).map((t) => parseToken(t.token))
+const TEXT_ELEMENTS = new Set(['p', 'span', 'div', 'li'])
+const STATE_TEXT = /^(Loading|Failed to load)\b/
+
+const ownText = (opening) =>
+  opening.parent.children
+    .filter((c) => c.type === 'JSXText')
+    .map((c) => c.value)
+    .join('')
+    .trim()
 
 /** Hand-rolled versions of existing primitives (docs/convention-ui-standards.md). */
 export default {
@@ -29,6 +38,8 @@ export default {
       inset: 'Hand-assembled inset panel. Use `<Card variant="inset">`.',
       alert:
         'Hand-made banner. Use `Alert` from @/components/ui/alert (tone danger/success/warn/info).',
+      dangerText:
+        'Unannounced error text. Use `<Alert tone="danger">` (@/components/ui/alert), or add `role="alert"` to an inline error beside its control. Error details shown as data need an eslint-disable with the reason.',
       badge: 'Hand-made pill. Use `Badge` from @/components/ui/badge.',
       textLink:
         'Styled text link. Use `<Button asChild variant="link">` so it gets a 44px row on phones.',
@@ -47,11 +58,7 @@ export default {
           context.report({ node, messageId: 'raw', data: { element: node.name.name, hint } })
 
         if (node.name.name === 'p') {
-          const text = node.parent.children
-            .filter((c) => c.type === 'JSXText')
-            .map((c) => c.value)
-            .join('')
-            .trim()
+          const text = ownText(node)
           if (/^Loading\b/.test(text)) {
             context.report({ node, messageId: 'state', data: { component: 'LoadingState' } })
           } else if (/^Failed to load\b/.test(text)) {
@@ -107,6 +114,14 @@ export default {
           context.report({ node: attr, messageId: 'inset' })
         } else if (has(/^bg-(danger|success|warn)\/\d+$/)) {
           context.report({ node: attr, messageId: 'alert' })
+        } else if (
+          TEXT_ELEMENTS.has(element) &&
+          bases.has('text-danger') &&
+          !(element === 'p' && STATE_TEXT.test(ownText(attr.parent))) &&
+          siblingAttr(attr, 'role') === undefined &&
+          siblingAttr(attr, 'aria-live') === undefined
+        ) {
+          context.report({ node: attr, messageId: 'dangerText' })
         }
       }
     }

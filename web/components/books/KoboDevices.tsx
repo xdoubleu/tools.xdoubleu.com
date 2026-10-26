@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { formatDate } from '@/lib/dates'
 import KoboDeviceLogs from '@/components/books/KoboDeviceLogs'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Alert } from '@/components/ui/alert'
 
 function formatLastSeen(lastSeenAt: string): string {
   if (!lastSeenAt) return 'Never synced'
@@ -57,9 +58,9 @@ function DisconnectDialog({ open, deviceName, onCancel, onConfirm }: DisconnectD
           until you reconfigure it.
         </p>
         {error && (
-          <p className="mt-2 text-sm text-danger" data-testid="disconnect-error">
+          <Alert tone="danger" className="mt-2" data-testid="disconnect-error">
             {error}
-          </p>
+          </Alert>
         )}
         <div className="mt-6 flex justify-end gap-2">
           <Button variant="ghost" disabled={disconnecting} onClick={handleCancel}>

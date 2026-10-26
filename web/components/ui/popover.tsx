@@ -3,8 +3,10 @@ import {
   useRef,
   useEffect,
   useCallback,
+  useId,
   type ReactNode,
-  type ButtonHTMLAttributes
+  type ButtonHTMLAttributes,
+  type KeyboardEvent as ReactKeyboardEvent
 } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/cn'
@@ -18,6 +20,8 @@ interface PopoverProps {
   /** Controls the open state, e.g. to close the panel after a menu action. */
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  /** Names the panel for screen readers; without it the trigger labels the panel. */
+  'aria-label'?: string
 }
 
 interface PanelCoords {
@@ -32,11 +36,19 @@ interface PanelCoords {
 }
 
 const MARGIN = 8 // px clearance from viewport edges
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+const MENU_ITEM = '[role="menuitem"]:not([disabled])'
+
+const focusables = (root: HTMLElement | null, selector = FOCUSABLE) =>
+  root ? Array.from(root.querySelectorAll<HTMLElement>(selector)) : []
 
 /**
  * Trigger plus a portalled fixed panel (never clipped by overflow ancestors)
  * that closes on outside click and Escape, flips upward when space below is
- * short, and caps its height to the viewport.
+ * short, and caps its height to the viewport. Opening moves focus into the
+ * panel (its first `menuitem` for a menu, which arrow keys then move between);
+ * closing, or tabbing out, returns focus to the trigger.
  */
 export function Popover({
   trigger,
@@ -44,7 +56,8 @@ export function Popover({
   className,
   align = 'right',
   open: controlledOpen,
-  onOpenChange
+  onOpenChange,
+  'aria-label': ariaLabel
 }: PopoverProps) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const open = controlledOpen ?? uncontrolledOpen
@@ -58,6 +71,8 @@ export function Popover({
   const [coords, setCoords] = useState<PanelCoords>({ top: 0, maxHeight: 400 })
   const triggerRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const fallbackTriggerId = useId()
+  const [triggerId, setTriggerId] = useState('')
 
   const close = useCallback(() => setOpen(false), [setOpen])
 
@@ -90,6 +105,57 @@ export function Popover({
   useEffect(() => {
     if (open) computeCoords()
   }, [open, computeCoords])
+
+  useEffect(() => {
+    if (!open) return
+    const trigger = focusables(triggerRef.current)[0]
+    const panel = panelRef.current
+    if (trigger && !trigger.id) trigger.id = fallbackTriggerId
+    setTriggerId(trigger?.id ?? '')
+    if (!panel?.contains(document.activeElement)) {
+      const first = focusables(panel, MENU_ITEM)[0] ?? panel
+      first?.focus({ preventScroll: true })
+    }
+    return () => {
+      // Only reclaim focus that was in the panel (now gone), never a control clicked outside.
+      const active = document.activeElement
+      if (active === document.body || panel?.contains(active)) {
+        trigger?.focus({ preventScroll: true })
+      }
+    }
+  }, [open, fallbackTriggerId])
+
+  const handlePanelKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    const panel = panelRef.current
+    const items = focusables(panel, MENU_ITEM)
+    if (e.key === 'Tab') {
+      const controls = focusables(panel)
+      const active = document.activeElement
+      const edge = e.shiftKey ? controls[0] : controls[controls.length - 1]
+      const leaving = !edge || active === edge || (e.shiftKey && active === panel)
+      // A menu closes on Tab; a dialog only once focus would leave it.
+      if (items.length > 0 || leaving) {
+        e.preventDefault()
+        close()
+      }
+      return
+    }
+    if (items.length === 0) return
+    const i = items.findIndex((item) => item === document.activeElement)
+    const next =
+      e.key === 'ArrowDown'
+        ? (i + 1) % items.length
+        : e.key === 'ArrowUp'
+          ? (i - 1 + items.length) % items.length
+          : e.key === 'Home'
+            ? 0
+            : e.key === 'End'
+              ? items.length - 1
+              : -1
+    if (next < 0) return
+    e.preventDefault()
+    items[next].focus()
+  }
 
   useEffect(() => {
     if (!open) return
@@ -138,10 +204,14 @@ export function Popover({
             }}
             className={cn(
               'z-50 min-w-55 max-w-[calc(100vw-1rem)] rounded-2xl border border-border bg-card shadow-elevated p-3',
-              'overflow-y-auto',
+              'overflow-y-auto outline-none',
               className
             )}
             role="dialog"
+            aria-label={ariaLabel}
+            aria-labelledby={ariaLabel || !triggerId ? undefined : triggerId}
+            tabIndex={-1}
+            onKeyDown={handlePanelKeyDown}
           >
             {children}
           </div>,

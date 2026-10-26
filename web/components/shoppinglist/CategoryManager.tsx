@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { EmptyState, LoadingState } from '@/components/ui/states'
+import { Alert } from '@/components/ui/alert'
 
 export default function CategoryManager() {
   const { data, isLoading } = useCategories()
@@ -71,6 +72,7 @@ export default function CategoryManager() {
     <div className="space-y-4">
       <form onSubmit={handleCreate} className="flex gap-2">
         <Input
+          aria-label="New category"
           placeholder="New category (e.g. Produce)"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
@@ -80,7 +82,7 @@ export default function CategoryManager() {
         </Button>
       </form>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       {isLoading && <LoadingState className="text-sm" />}
       {!isLoading && categories.length === 0 && <EmptyState>No categories yet.</EmptyState>}
 

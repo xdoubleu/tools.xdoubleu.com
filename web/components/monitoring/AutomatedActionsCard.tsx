@@ -81,6 +81,7 @@ export default function AutomatedActionsCard({ data }: { data?: GetAutomatedActi
                   <TableCell>
                     {outcomeBadge(action.outcome, stale)}
                     {action.error && (
+                      // eslint-disable-next-line ui/use-primitives -- a recorded action's error, not a live failure
                       <p className="mt-1 max-w-xs break-words text-xs text-danger">
                         {action.error}
                       </p>
