@@ -125,9 +125,9 @@ export default function MealPlanMealChip({
       </Button>
       {inSwapMode ? (
         // Reserve the trigger's width so chips keep a constant size in swap mode.
-        <span aria-hidden className="ml-0.5 h-6 w-6 shrink-0" />
+        <span aria-hidden className="ml-1 h-6 w-6 shrink-0 sm:ml-0.5" />
       ) : (
-        <div className="ml-0.5 shrink-0">
+        <div className="ml-1 shrink-0 sm:ml-0.5">
           <Popover
             open={menuOpen}
             onOpenChange={setMenuOpen}
