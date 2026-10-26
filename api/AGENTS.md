@@ -18,9 +18,9 @@ make db/reset                      # recreate the Postgres volume — shared by 
 ## Architecture
 
 - `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after `games`/`books`/`feeds` (reads them); `trains`/`learningpaths`/`movies`/`podcasts`, then `taste` (reads `books`/`feeds`/`games`/`movies`/`podcasts`).
-- `main.go` wraps the pgx pool in `postgres.NewSpanDB` for tracing spans; migrations use the raw pool.
+- `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool.
 - `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
-- `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked sibling PRs can merge migrations out of numeric order, and this makes that self-healing instead of a startup panic.
+- `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked PRs can merge migrations out of order; this self-heals instead of panicking at startup.
 
 Per-app layout (`apps/<name>/`):
 
@@ -57,7 +57,8 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - **`notifications`** — email-only: `EnqueueEmail` (fixed recipient), `EnqueueTo` (arbitrary).
 - **`progressws`** / **`progresshistory`** — job-progress WebSocket topics; cumulative progress with carry-forward reads.
 - **`repositories`** — shared repos over the `global` schema.
-- **`safedial`** — `Client(timeout, maxRedirects, allowPrivate)` blocks non-public IPs at dial time (survives redirects and DNS rebinding); `allowPrivate` is on outside prod.
+- **`safedial`** — `Client(timeout, maxRedirects, allowPrivate)` blocks non-public IPs at dial time (survives redirects and DNS rebinding); `allowPrivate` is on outside prod. `webfetch` (user-supplied URLs) also dials through it.
+- **`httpclient`** — retrying client behind github, sentryapi, hardcover, unicat, steam; `SetBackoffBase` speeds up tests.
 - **`mcptools`** — `RequireAppAccess`, `AddReadTool`/`AddWriteTool`, `Unwrap`/`Result`, `KeepRequestDeadline`/`BoundToolCalls`/`LogSlowRequests` (tool calls keep their deadline; slow calls/requests logged).
 - **`testhelper`** — `ConnectTestDB`, `NewTestConfig`, `BuildMux`, `CreateRequestTester`.
 - Job queue: `internal/threading` + `internal/jobqueue`.
@@ -100,17 +101,17 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 - No DB mocking: integration tests hit real Postgres (17 in CI, as in production). Mocks live in `internal/mocks/`.
 - `make test/cov/diff` (`tools/diff_coverage_go.py`) prints a primary (gate) and a conservative number per file; Codecov's patch figure usually lands between them — treat it as a heuristic.
 - `make test/cov/report` runs `tools/extend_signature_coverage.py` so wrapped signatures aren't reported as missed → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md).
-- **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions — never stop it when finishing. Failures like `relation ... does not exist` may be leftover state (`db/reset`) or a concurrent teardown (check `docker ps` uptime).
-- **`relation "X" already exists` panic** = another worktree's DDL applied without its `goose_db_version` row. Check with `docker exec api-db-1 psql -U postgres -d postgres -c "SET search_path=global; SELECT version_id, is_applied FROM goose_db_version ORDER BY version_id DESC LIMIT 8;"`; if the schema already matches, insert the missing row (`INSERT INTO goose_db_version (version_id, is_applied) VALUES (<n>, true);`).
-- **Concurrent `go test` runs from two worktrees race on shared fixtures** (`-p 1` is per-invocation), e.g. `TestAppsMCPCallAllToolsAsAdmin`, `TestListBooksInExactSources_Admin_ReturnsOverlapBook`. Re-run in isolation before calling it a regression.
+- **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions — never stop it when finishing. `relation ... does not exist` failures may be leftover state (`db/reset`) or a concurrent teardown (check `docker ps` uptime).
+- **`relation "X" already exists` panic** = another worktree's DDL applied without its `goose_db_version` row. Check with `docker exec api-db-1 psql -U postgres -d postgres -c "SET search_path=global; SELECT version_id, is_applied FROM goose_db_version ORDER BY version_id DESC LIMIT 8;"`; if the schema already matches, insert the missing row there.
+- **Concurrent `go test` runs from two worktrees race on shared fixtures** (`-p 1` is per-invocation), e.g. `TestAppsMCPCallAllToolsAsAdmin`. Re-run in isolation first.
 - `git stash` is repo-global: never blind-`pop`.
-- No Docker? `.claude/hooks/session-start.sh` has a `pg_ctlcluster` fallback — try it before reporting tests as blocked.
+- No Docker? `.claude/hooks/session-start.sh` has a `pg_ctlcluster` fallback — try it before reporting tests blocked.
 - Bug fixes: failing test first. Reproduce production state via the MCP read tools; for external input, commit the **real bytes** as gzipped `testdata/` fetched with the app's own client (example: `apps/feeds/internal/services/scrape_live_internal_test.go`).
 - A bug closes on a production observation or user confirmation, not a green suite.
 - Backfill migrations: test against a row built to predate the migration, not only fresh rows.
 - Kobo-firmware behavior can't be verified server-side — say so in the PR and treat the user's on-device retest as acceptance.
 
-- `make test/cov/report` failing with `go: no such tool "covdata"` is a sandbox artifact (golang/go#75031); re-run `.claude/hooks/session-start.sh`.
+- `make test/cov/report` failing with `go: no such tool "covdata"` is a sandbox artifact; re-run `.claude/hooks/session-start.sh`.
 
 `ROLE=workers` runs only `StartWorkers()` jobs; `heapWatchThreshold` stays under the deploy caps.
 

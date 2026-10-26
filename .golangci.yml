@@ -185,6 +185,7 @@ linters:
         - ^google.golang.org/protobuf/.+Options$
         - ^gopkg.in/yaml.v3.Node$
         - ^tools\.xdoubleu\.com/gen/.+$
+        - ^tools\.xdoubleu\.com/internal/httpclient\.Config$
         - ^crypto/tls.Config$
         - ^crypto/x509.Certificate$
         - ^crypto/x509/pkix.Name$

@@ -15,7 +15,6 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
-	"tools.xdoubleu.com/apps/books/pkg/webfetch"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -23,10 +22,14 @@ import (
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/observability"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/webfetch"
 )
 
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
+
+// userAgent identifies the books app's web fetches to origin servers.
+const userAgent = "tools.xdoubleu.com reading-library bot"
 
 type Books struct {
 	app.Base
@@ -68,7 +71,7 @@ func New(
 	}
 
 	endpoint := "https://" + cfg.R2AccountID + ".r2.cloudflarestorage.com"
-	webFetchClient := webfetch.New(logger, cfg.Env != config.ProdEnv)
+	webFetchClient := webfetch.New(logger, userAgent, cfg.Env != config.ProdEnv)
 
 	clients := Clients{
 		UniCat:    unicat.New(logger),

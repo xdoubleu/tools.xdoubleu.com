@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/apps/feeds/internal/mocks"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/database/postgres"
@@ -34,7 +33,7 @@ func TestMCPTools_ListFeedsAndItems(t *testing.T) {
 		logging.NewNopLogger(),
 		cfg,
 		pg,
-		mocks.NewMockWebFetchClient(),
+		sharedmocks.NewMockWebFetchClient(),
 		notifications.New(
 			context.Background(),
 			logging.NewNopLogger(),

@@ -19,11 +19,11 @@ import (
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
-	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/notifications"
 	globalrepositories "tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/threading"
+	"tools.xdoubleu.com/internal/webfetch"
 )
 
 // ErrInvalidFeed is returned when a subscribed URL does not parse as RSS/Atom.

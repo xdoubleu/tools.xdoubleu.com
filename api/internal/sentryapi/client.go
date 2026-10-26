@@ -1,35 +1,29 @@
 package sentryapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"golang.org/x/oauth2"
 
 	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/httpclient"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 
 //nolint:gochecknoglobals // overridable in tests
 var baseURL = "https://sentry.io"
-
-//nolint:gochecknoglobals // overridable in tests
-var backoffBase = 500 * time.Millisecond
-
-//nolint:gochecknoglobals // overridable in tests
-var backoffCap = 30 * time.Second
 
 // apiError is a non-2xx response, structured so 5xx can be detected via
 // errors.As.
@@ -64,8 +58,7 @@ type projectsConfig struct {
 }
 
 type client struct {
-	logger     *slog.Logger
-	httpClient *http.Client
+	http       *httpclient.Client
 	tokenFn    oauthconn.TokenFunc
 	configRepo configStore
 
@@ -84,8 +77,12 @@ func New(
 	logger *slog.Logger, tokenFn oauthconn.TokenFunc, configRepo configStore,
 ) Client {
 	return &client{ //nolint:exhaustruct // cache fields start zero-valued
-		logger:     logger,
-		httpClient: &http.Client{Timeout: apiTimeout},
+		http: httpclient.New(httpclient.Config{
+			Name:        "sentry",
+			Logger:      logger,
+			Timeout:     apiTimeout,
+			MaxAttempts: maxAttempts,
+		}),
 		tokenFn:    tokenFn,
 		configRepo: configRepo,
 	}
@@ -364,150 +361,64 @@ func (c *client) fetch(
 const resolveIssueBody = `{"status":"resolved"}`
 
 func (c *client) get(ctx context.Context, endpoint, token string, dst any) error {
-	return c.doWithRetry(ctx, func() (bool, error) {
-		req, reqErr := http.NewRequestWithContext(
-			ctx, http.MethodGet, endpoint, nil,
-		)
-		if reqErr != nil {
-			return false, reqErr
-		}
-		req.Header.Set("Accept", "application/json")
-		req.Header.Set("Authorization", "Bearer "+token)
+	req := c.newRequest(http.MethodGet, endpoint, token)
 
-		resp, doErr := c.httpClient.Do(req)
-		if doErr != nil {
-			return isTransientErr(doErr), doErr
-		}
-		defer resp.Body.Close()
+	resp, err := c.http.Do(ctx, req)
+	if err != nil {
+		return err
+	}
+	if err = statusError(resp); err != nil {
+		return err
+	}
 
-		if isRetryableStatus(resp.StatusCode) {
-			raw, _ := io.ReadAll(resp.Body)
-			return true, &apiError{status: resp.StatusCode, body: string(raw)}
-		}
-
-		if resp.StatusCode < http.StatusOK ||
-			resp.StatusCode >= http.StatusMultipleChoices {
-			raw, _ := io.ReadAll(resp.Body)
-			return false, &apiError{status: resp.StatusCode, body: string(raw)}
-		}
-
-		return false, json.NewDecoder(resp.Body).Decode(dst)
-	})
+	return json.NewDecoder(bytes.NewReader(resp.Body)).Decode(dst)
 }
 
 // put sends body and decodes the response into out.
 func (c *client) put(ctx context.Context, endpoint, token, body string, out any) error {
-	return c.doWithRetry(ctx, func() (bool, error) {
-		req, reqErr := http.NewRequestWithContext(
-			ctx, http.MethodPut, endpoint, strings.NewReader(body),
-		)
-		if reqErr != nil {
-			return false, reqErr
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Accept", "application/json")
-		req.Header.Set("Authorization", "Bearer "+token)
+	req := c.newRequest(http.MethodPut, endpoint, token).
+		SetHeader("Content-Type", "application/json").
+		SetBody([]byte(body))
 
-		resp, doErr := c.httpClient.Do(req)
-		if doErr != nil {
-			return isTransientErr(doErr), doErr
-		}
-		defer resp.Body.Close()
+	resp, err := c.http.Do(ctx, req)
+	if err != nil {
+		return err
+	}
+	if err = statusError(resp); err != nil {
+		return err
+	}
 
-		if isRetryableStatus(resp.StatusCode) {
-			raw, _ := io.ReadAll(resp.Body)
-			return true, &apiError{status: resp.StatusCode, body: string(raw)}
-		}
-
-		if resp.StatusCode < http.StatusOK ||
-			resp.StatusCode >= http.StatusMultipleChoices {
-			raw, _ := io.ReadAll(resp.Body)
-			return false, &apiError{status: resp.StatusCode, body: string(raw)}
-		}
-
-		// The write already landed, so an unreadable body only leaves out
-		// unset.
-		_ = json.NewDecoder(resp.Body).Decode(out)
-		return false, nil
-	})
+	// The write already landed, so an unreadable body only leaves out
+	// unset.
+	_ = json.NewDecoder(bytes.NewReader(resp.Body)).Decode(out)
+	return nil
 }
 
-func (c *client) doWithRetry(
-	ctx context.Context,
-	attempt func() (retryable bool, err error),
-) error {
-	var lastErr error
-	for i := range maxAttempts {
-		retryable, err := attempt()
-		if err == nil {
-			return nil
-		}
+// newRequest builds an authenticated Sentry API request.
+func (c *client) newRequest(method, endpoint, token string) *httpclient.Request {
+	return httpclient.NewRequest(method, endpoint).
+		SetHeader("Accept", "application/json").
+		SetHeader("Authorization", "Bearer "+token)
+}
 
-		if errors.Is(err, context.Canceled) {
-			return err
-		}
-
-		lastErr = err
-
-		if !retryable || i == maxAttempts-1 {
-			break
-		}
-
-		delay := backoffDelay(i)
-		c.logger.DebugContext(ctx, "retrying sentry request",
-			slog.Int("attempt", i+1),
-			slog.Duration("backoff", delay),
-			slog.Any("error", err),
-		)
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(delay):
-		}
+// statusError is nil for a 2xx and an *apiError for any other status.
+func statusError(resp *httpclient.Response) error {
+	if resp.StatusCode >= http.StatusOK &&
+		resp.StatusCode < http.StatusMultipleChoices {
+		return nil
 	}
-	return lastErr
+	return &apiError{status: resp.StatusCode, body: resp.Snippet()}
 }
 
 // SetBaseURL overrides the Sentry API base URL (tests only).
 func SetBaseURL(u string) { baseURL = u }
 
-// SetBackoffBase overrides the retry backoff base (tests only).
-func SetBackoffBase(d time.Duration) { backoffBase = d }
-
-func backoffDelay(attempt int) time.Duration {
-	d := backoffBase * (1 << attempt)
-	if d > backoffCap {
-		return backoffCap
-	}
-	return d
-}
-
-func isRetryableStatus(status int) bool {
-	return status == http.StatusTooManyRequests ||
-		(status >= http.StatusInternalServerError && status < 600)
-}
-
 // IsTransientAPIError reports whether err is a self-healing 5xx, 429 or
 // timeout that exhausted its retries.
 func IsTransientAPIError(err error) bool {
 	var apiErr *apiError
-	if errors.As(err, &apiErr) && isRetryableStatus(apiErr.status) {
+	if errors.As(err, &apiErr) && httpclient.IsRetryableStatus(apiErr.status) {
 		return true
 	}
-	return isTransientErr(err)
-}
-
-func isTransientErr(err error) bool {
-	if errors.Is(err, context.Canceled) {
-		return false
-	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		return true
-	}
-	var urlErr *url.Error
-	if errors.As(err, &urlErr) {
-		return urlErr.Timeout()
-	}
-	return false
+	return httpclient.IsTransient(err)
 }
