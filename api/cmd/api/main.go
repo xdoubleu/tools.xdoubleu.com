@@ -82,7 +82,6 @@ type Application struct {
 //	@Produce		json
 
 const (
-	dbMaxConns           = 25
 	dbMaxIdleTime        = "15m"
 	dbConnectTimeoutSecs = 10
 	dbRetrySleep         = 2 * time.Second
@@ -103,6 +102,7 @@ const (
 	webHeapWatchThreshold     = 400 << 20
 	workersHeapWatchThreshold = 1200 << 20
 	heapWatchInterval         = 5 * time.Second
+	logFlushTimeout           = 5 * time.Second
 )
 
 // migrationLockTimeout makes a replica fail loudly if a stale connection
@@ -112,9 +112,13 @@ const (
 var migrationLockTimeout = 20 * time.Second
 
 // newDBPool opens the shared pgx pool; tests reuse it.
-func newDBPool(logger *slog.Logger, dsn string) (*pgxpool.Pool, error) {
+func newDBPool(
+	logger *slog.Logger,
+	dsn string,
+	maxConns int,
+) (*pgxpool.Pool, error) {
 	return postgres.Connect(
-		logger, dsn, dbMaxConns, dbMaxIdleTime,
+		logger, dsn, maxConns, dbMaxIdleTime,
 		dbConnectTimeoutSecs, dbRetrySleep, dbMaxRetryDuration,
 	)
 }
@@ -124,17 +128,20 @@ func main() {
 
 	bootLogger := slog.New(sentrytools.NewLogHandler(cfg.Env,
 		slog.NewTextHandler(os.Stdout, nil)))
-	db, err := newDBPool(bootLogger, cfg.DBDsn)
+	db, err := newDBPool(bootLogger, cfg.DBDsn, cfg.DBMaxConns)
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
 
 	// Built after the DB pool, which the log-teeing handler needs.
-	logger := slog.New(observability.NewLogRepoHandler(
+	logHandler := observability.NewLogRepoHandler(
 		sentrytools.NewLogHandler(cfg.Env, slog.NewTextHandler(os.Stdout, nil)),
 		repositories.NewLogsRepository(db),
-	))
+	)
+	// Deferred after db.Close, so it flushes first.
+	defer flushLogs(logHandler)
+	logger := slog.New(logHandler)
 	// Route slog.Default() through the same chain.
 	slog.SetDefault(logger)
 
@@ -161,6 +168,13 @@ func main() {
 	if err != nil {
 		logger.Error("failed to serve server", essentialogger.ErrAttr(err))
 	}
+}
+
+// flushLogs writes the log records still queued for global.log_entries.
+func flushLogs(logHandler *observability.LogRepoHandler) {
+	ctx, cancel := context.WithTimeout(context.Background(), logFlushTimeout)
+	defer cancel()
+	_ = logHandler.Close(ctx)
 }
 
 func heapWatchThreshold(role string) uint64 {

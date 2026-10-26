@@ -45,7 +45,11 @@ type Config struct {
 	RefreshExpiry string
 	AuthCacheTTL  int // seconds; 0 disables the per-token user cache
 	DBDsn         string
-	Release       string
+	// DBMaxConns caps this process's pgx pool. Old and new containers of both
+	// roles overlap during a deploy, so 2×(web+workers) must stay well under
+	// Postgres' max_connections (100).
+	DBMaxConns int
+	Release    string
 	// JWTSecret signs local session access-token JWTs.
 	JWTSecret string
 	// OAuthHMACSecret keys the embedded OAuth 2.1 server's HMAC token strategy.
@@ -261,6 +265,15 @@ func (c parser) loadWeb(cfg *Config) {
 	cfg.OfflineDisabled = c.envStr("OFFLINE_DISABLED", "") == "1"
 }
 
+// dbMaxConnsDefault: workers runs two job-queue workers, web serves requests
+// plus the light jobs (Steam sync fans out 10 at once).
+func dbMaxConnsDefault(role string) int {
+	if role == RoleWorkers {
+		return 5
+	}
+	return 15
+}
+
 func (c parser) envRole() string {
 	role := c.envStr("ROLE", RoleWeb)
 	if role != RoleWeb && role != RoleWorkers {
@@ -286,6 +299,7 @@ func New(logger *slog.Logger) Config {
 	cfg.RefreshExpiry = p.envStr("REFRESH_EXPIRY", "7d")
 	cfg.AuthCacheTTL = p.envInt("AUTH_CACHE_TTL", 60)
 	cfg.DBDsn = p.envSecret("DB_DSN", "postgres://postgres@localhost/postgres")
+	cfg.DBMaxConns = p.envInt("DB_MAX_CONNS", dbMaxConnsDefault(cfg.Role))
 	// "dev" is the literal "no real deploy" sentinel web and kobo-gateway expect.
 	cfg.Release = p.envStr("RELEASE", "dev")
 

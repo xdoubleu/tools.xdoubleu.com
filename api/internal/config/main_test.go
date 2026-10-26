@@ -25,6 +25,16 @@ func TestNewRoleWorkers(t *testing.T) {
 	assert.Equal(t, config.RoleWorkers, config.New(logging.NewNopLogger()).Role)
 }
 
+func TestNewDBMaxConnsDefaultsPerRole(t *testing.T) {
+	assert.Equal(t, 15, config.New(logging.NewNopLogger()).DBMaxConns)
+
+	t.Setenv("ROLE", config.RoleWorkers)
+	assert.Equal(t, 5, config.New(logging.NewNopLogger()).DBMaxConns)
+
+	t.Setenv("DB_MAX_CONNS", "8")
+	assert.Equal(t, 8, config.New(logging.NewNopLogger()).DBMaxConns)
+}
+
 func TestNewPanicsOnInvalidRole(t *testing.T) {
 	t.Setenv("ROLE", "nope")
 	assert.Panics(t, func() { config.New(logging.NewNopLogger()) })
