@@ -16,9 +16,6 @@ import (
 	"tools.xdoubleu.com/internal/errortools"
 )
 
-var cleanerActive bool                       //nolint: gochecknoglobals //need this
-var mu sync.RWMutex                          //nolint: gochecknoglobals //need this
-var clients = make(map[string]*client)       //nolint: gochecknoglobals //need this
 var errWriter = connecthttp.NewErrorWriter() //nolint: gochecknoglobals //need this
 
 type client struct {
@@ -26,50 +23,53 @@ type client struct {
 	lastSeen time.Time
 }
 
-// RateLimit rate limits requests per client IP.
+// ipLimiter holds one token bucket per client IP. Buckets idle for longer than
+// removeAfter are dropped by the request path, at most every sweepEvery, so
+// there is no background goroutine to stop.
+type ipLimiter struct {
+	rps         rate.Limit
+	bucketSize  int
+	sweepEvery  time.Duration
+	removeAfter time.Duration
+	now         func() time.Time
+
+	mu        sync.Mutex
+	clients   map[string]*client
+	lastSweep time.Time
+}
+
+func newIPLimiter(
+	rps rate.Limit,
+	bucketSize int,
+	sweepEvery time.Duration,
+	removeAfter time.Duration,
+	now func() time.Time,
+) *ipLimiter {
+	return &ipLimiter{
+		rps:         rps,
+		bucketSize:  bucketSize,
+		sweepEvery:  sweepEvery,
+		removeAfter: removeAfter,
+		now:         now,
+		mu:          sync.Mutex{},
+		clients:     make(map[string]*client),
+		lastSweep:   now(),
+	}
+}
+
+// RateLimit rate limits requests per client IP. Every call has its own table of
+// clients, shared by all handlers the returned function wraps. Clients unseen
+// for removeAfter are forgotten, checked at most every cleanupTimer.
 func RateLimit(
 	rps rate.Limit,
 	bucketSize int,
 	cleanupTimer time.Duration,
 	removeAfter time.Duration,
 ) func(http.Handler) http.Handler {
-	if !cleanerActive {
-		cleanerActive = true
-		go func() {
-			for {
-				time.Sleep(cleanupTimer)
-
-				mu.RLock()
-
-				for ip, client := range clients {
-					if time.Since(client.lastSeen) > removeAfter {
-						mu.RUnlock()
-						mu.Lock()
-
-						delete(clients, ip)
-
-						mu.Unlock()
-						mu.RLock()
-					}
-				}
-
-				mu.RUnlock()
-			}
-		}()
-	}
-
-	return func(next http.Handler) http.Handler {
-		return rateLimit(&mu, clients, rps, bucketSize, next)
-	}
+	return newIPLimiter(rps, bucketSize, cleanupTimer, removeAfter, time.Now).handler
 }
 
-func rateLimit(
-	mu *sync.RWMutex,
-	clients map[string]*client,
-	rps rate.Limit,
-	bucketSize int,
-	next http.Handler,
-) http.Handler {
+func (l *ipLimiter) handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip, err := ClientIP(r)
 		if err != nil {
@@ -77,20 +77,7 @@ func rateLimit(
 			return
 		}
 
-		mu.Lock()
-
-		if _, found := clients[ip]; !found {
-			//nolint:exhaustruct //lastSeen is set later
-			clients[ip] = &client{
-				limiter: rate.NewLimiter(rps, bucketSize),
-			}
-		}
-
-		clients[ip].lastSeen = time.Now()
-
-		if !clients[ip].limiter.Allow() {
-			mu.Unlock()
-
+		if !l.allow(ip) {
 			// GET is only a Connect request with idempotency_level, which no proto sets,
 			// so plain GET endpoints stay on the REST error path.
 			if r.Method == http.MethodPost && errWriter.IsSupported(r) {
@@ -106,10 +93,40 @@ func rateLimit(
 			return
 		}
 
-		mu.Unlock()
-
 		next.ServeHTTP(w, r)
 	})
+}
+
+// allow spends one token of ip's bucket and reports whether one was left.
+func (l *ipLimiter) allow(ip string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	now := l.now()
+	if now.Sub(l.lastSweep) >= l.sweepEvery {
+		l.sweep(now)
+	}
+
+	c, found := l.clients[ip]
+	if !found {
+		//nolint:exhaustruct //lastSeen is set below
+		c = &client{limiter: rate.NewLimiter(l.rps, l.bucketSize)}
+		l.clients[ip] = c
+	}
+
+	c.lastSeen = now
+
+	return c.limiter.AllowN(now, 1)
+}
+
+func (l *ipLimiter) sweep(now time.Time) {
+	for ip, c := range l.clients {
+		if now.Sub(c.lastSeen) > l.removeAfter {
+			delete(l.clients, ip)
+		}
+	}
+
+	l.lastSweep = now
 }
 
 // ClientIP is the request's client address. Behind kamal-proxy (a private or
