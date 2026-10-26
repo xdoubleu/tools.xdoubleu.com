@@ -4,7 +4,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -24,17 +23,13 @@ func TestRequestDurationRecordsHistogram(t *testing.T) {
 	})
 
 	handler := middleware.RequestDuration()(mux)
+	before := requestCount(t, "GET /widgets/{id}", "4xx")
 
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/widgets/42", nil))
 	assert.Equal(t, http.StatusTeapot, rec.Code)
 
-	metrics := scrapeMetrics(t)
-	assert.Regexp(
-		t,
-		`http_request_duration_seconds_count\{[^}]*route="GET /widgets/\{id\}"[^}]*\} 1`,
-		metrics,
-	)
+	assert.Equal(t, before+1, requestCount(t, "GET /widgets/{id}", "4xx"))
 }
 
 // A handler that sets no status gets net/http's implicit 200; it must be
@@ -57,6 +52,11 @@ func TestRequestDurationRecordsImplicitOKAs2xx(t *testing.T) {
 	routes := []string{
 		"GET /implicit-write", "GET /implicit-copy", "GET /implicit-empty",
 	}
+	before := make(map[string]int, len(routes))
+	for _, route := range routes {
+		before[route] = requestCount(t, route, "2xx")
+	}
+
 	for _, route := range routes {
 		_, path, _ := strings.Cut(route, " ")
 		handler.ServeHTTP(
@@ -64,17 +64,9 @@ func TestRequestDurationRecordsImplicitOKAs2xx(t *testing.T) {
 		)
 	}
 
-	metrics := scrapeMetrics(t)
 	for _, route := range routes {
-		label := regexp.QuoteMeta(route)
-		assert.Regexp(
-			t,
-			`http_request_duration_seconds_count\{[^}]*route="`+label+
-				`"[^}]*status="2xx"[^}]*\} 1`,
-			metrics,
-			route,
-		)
-		assert.NotRegexp(t, `route="`+label+`"[^}]*status="0xx"`, metrics, route)
+		assert.Equal(t, before[route]+1, requestCount(t, route, "2xx"), route)
+		assert.Zero(t, requestCount(t, route, "0xx"), route)
 	}
 }
 
