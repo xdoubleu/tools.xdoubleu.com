@@ -3,12 +3,16 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"regexp"
+	"strconv"
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
@@ -103,6 +107,62 @@ func TestCORSPreflight_ConnectProtocolVersion(t *testing.T) {
 
 	allowHeaders := rr.Header().Get("Access-Control-Allow-Headers")
 	assert.Contains(t, allowHeaders, "connect-protocol-version")
+}
+
+// TestRoutes_RequestDurationLabelsMatchedRoute: Budget hands the mux a copy of
+// the request, so RequestDuration must sit inside it or r.Pattern stays empty
+// and every request is recorded as route="other".
+func TestRoutes_RequestDurationLabelsMatchedRoute(t *testing.T) {
+	handler := throttledRoutes(t)
+
+	for _, tc := range []struct {
+		name, method, path, route string
+	}{
+		{
+			"connect procedure", http.MethodPost,
+			authv1connect.AuthServiceSignInProcedure,
+			"POST " + authv1connect.AuthServiceSignInProcedure,
+		},
+		{
+			"plain route", http.MethodGet,
+			oauth2MetadataPath, "GET " + oauth2MetadataPath,
+		},
+		{"long-budget route", http.MethodPost, appsMCPPath, appsMCPPath},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			before := durationCount(t, tc.route)
+
+			handler.ServeHTTP(
+				httptest.NewRecorder(),
+				httptest.NewRequest(tc.method, tc.path, nil),
+			)
+
+			assert.InDelta(t, before+1, durationCount(t, tc.route), 0)
+		})
+	}
+}
+
+// durationCount totals http_request_duration_seconds observations for route.
+func durationCount(t *testing.T, route string) float64 {
+	t.Helper()
+
+	rec := httptest.NewRecorder()
+	promhttp.Handler().ServeHTTP(
+		rec, httptest.NewRequest(http.MethodGet, "/metrics", nil),
+	)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	re := regexp.MustCompile(
+		`(?m)^http_request_duration_seconds_count\{[^}]*route="` +
+			regexp.QuoteMeta(route) + `"[^}]*\} (\S+)$`,
+	)
+	var total float64
+	for _, m := range re.FindAllStringSubmatch(rec.Body.String(), -1) {
+		n, err := strconv.ParseFloat(m[1], 64)
+		require.NoError(t, err)
+		total += n
+	}
+	return total
 }
 
 // throttledRoutes builds Routes() with Throttle enabled.
