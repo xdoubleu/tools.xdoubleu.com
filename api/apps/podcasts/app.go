@@ -27,16 +27,18 @@ type Podcasts struct {
 }
 
 func New(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
 ) *Podcasts {
-	return NewInner(authService, logger, cfg, db, itunes.New())
+	return NewInner(ctx, authService, logger, cfg, db, itunes.New())
 }
 
 // NewInner allows tests to inject a fake iTunes client.
 func NewInner(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -44,7 +46,7 @@ func NewInner(
 	itunesClient itunes.Client,
 ) *Podcasts {
 	return &Podcasts{
-		Base:     app.NewBase(context.Background(), authService, logger, cfg),
+		Base:     app.NewBase(ctx, authService, logger, cfg),
 		services: services.New(repositories.New(db), authService, itunesClient),
 	}
 }

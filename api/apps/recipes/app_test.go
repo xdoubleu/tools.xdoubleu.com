@@ -40,6 +40,7 @@ func TestMain(m *testing.M) {
 	familyRepo = sharedrepositories.NewFamilyRepository(postgresDB)
 
 	testApp = recipes.New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		testCfg,

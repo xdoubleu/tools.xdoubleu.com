@@ -11,6 +11,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/threading"
 )
 
 // Limits on a physical copy's details.
@@ -46,6 +47,7 @@ type physicalStateStore interface {
 // position in step for a book owned both ways (ADR-0031).
 type PhysicalService struct {
 	logger       *slog.Logger
+	background   *threading.Background
 	copies       physicalCopyStore
 	states       physicalStateStore
 	positions    *PositionService
@@ -55,12 +57,14 @@ type PhysicalService struct {
 
 func newPhysicalService(
 	logger *slog.Logger,
+	background *threading.Background,
 	copies physicalCopyStore,
 	states physicalStateStore,
 	positions *PositionService,
 ) *PhysicalService {
 	return &PhysicalService{
 		logger:       logger,
+		background:   background,
 		copies:       copies,
 		states:       states,
 		positions:    positions,
@@ -184,8 +188,10 @@ func (s *PhysicalService) SyncPage(
 	if err != nil || updatedAt == nil {
 		return err
 	}
-	go s.fillPhysicalPosition(context.WithoutCancel(ctx), userID, bookID, *c, page,
-		*updatedAt)
+	cp, at := *c, *updatedAt
+	s.background.Go(ctx, "physical-position-fill", func(ctx context.Context) {
+		s.fillPhysicalPosition(ctx, userID, bookID, cp, page, at)
+	})
 	return nil
 }
 
@@ -226,7 +232,9 @@ func (s *PhysicalService) FollowDigital(
 		state.Position.Page > 0 {
 		return
 	}
-	go s.followDigital(context.WithoutCancel(ctx), state, updatedAt)
+	s.background.Go(ctx, "physical-follow-digital", func(ctx context.Context) {
+		s.followDigital(ctx, state, updatedAt)
+	})
 }
 
 func (s *PhysicalService) followDigital(

@@ -32,6 +32,7 @@ func TestMCPTools(t *testing.T) {
 	const uid = "mcp-taste-user"
 	cfg := testhelper.NewTestConfig()
 	a := New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(uid), logging.NewNopLogger(), cfg,
 		testhelper.ConnectTestDB(cfg.DBDsn), nil,
 		Catalogs{

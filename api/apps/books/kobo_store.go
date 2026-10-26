@@ -227,9 +227,10 @@ func (app *Books) koboStorePutState(
 	r.Body = io.NopCloser(bytes.NewReader(body))
 	app.koboProxyHandler(w, r)
 
-	go app.mirrorKoboStoreState(
-		context.WithoutCancel(r.Context()), userID, id, r.Header.Clone(), body,
-	)
+	hdr := r.Header.Clone()
+	app.Background.Go(r.Context(), "kobo-store-state", func(ctx context.Context) {
+		app.mirrorKoboStoreState(ctx, userID, id, hdr, body)
+	})
 }
 
 // mirrorKoboStoreState records a store book's PUT state on its library match,

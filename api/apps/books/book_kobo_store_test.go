@@ -80,6 +80,7 @@ func getRoutesWithFailingDB(t *testing.T, upstreamURL, failSQL string) http.Hand
 		PublicAPIBaseURL: "",
 	}
 	app := books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		testCfg,

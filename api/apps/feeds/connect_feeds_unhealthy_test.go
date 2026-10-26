@@ -24,6 +24,7 @@ import (
 func newAdminFeedsClient(t *testing.T) feedsv1connect.FeedServiceClient {
 	t.Helper()
 	adminApp := feeds.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAdminAuthService(userID),
 		testApp.Logger,
 		testApp.Config,

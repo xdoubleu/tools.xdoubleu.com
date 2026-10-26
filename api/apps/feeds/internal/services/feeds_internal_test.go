@@ -38,7 +38,7 @@ func TestTitleOrDefault(t *testing.T) {
 // falls back to the canonical URL.
 func TestBuildItemWhitespaceTitleFallsBackToCanonical(t *testing.T) {
 	s := NewFeedService(
-		slog.Default(), nil, nil, nil, mocks.NewMockWebFetchClient(), "", nil, nil,
+		slog.Default(), nil, nil, nil, nil, mocks.NewMockWebFetchClient(), "", nil, nil,
 		"",
 	)
 	//nolint:exhaustruct // only title/link/description are relevant here

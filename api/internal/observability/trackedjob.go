@@ -49,8 +49,9 @@ type jobRunsInserter interface {
 }
 
 // TrackedJob wraps a threading.Job so every run is recorded in
-// global.job_runs, failures log at Error (Sentry), and panics or overrunning
-// the deadline become failed runs. The inner job's ID is preserved.
+// global.job_runs, failures log at Error (Sentry) or at Warn once ctx is
+// cancelled, and panics or overrunning the deadline become failed runs. The
+// inner job's ID is preserved.
 type TrackedJob struct {
 	inner threading.Job
 	repo  jobRunsInserter
@@ -133,18 +134,25 @@ func (j *TrackedJob) record(
 		Error:      "",
 	}
 
+	// A cancelled ctx (shutdown, or a caller giving up) is not worth an alert.
+	level := slog.LevelError
+	if ctx.Err() != nil {
+		level = slog.LevelWarn
+	}
 	if err != nil {
 		run.Error = err.Error()
-		logger.ErrorContext(
+		logger.Log(
 			ctx,
+			level,
 			"job failed",
 			slog.String("job", run.JobID),
 			essentialogger.ErrAttr(err),
 		)
 	}
 
-	// Best-effort: a failed insert must never fail the job.
-	if insertErr := j.repo.Insert(ctx, run); insertErr != nil {
+	// Best-effort: a failed insert must never fail the job. Detached so a run
+	// interrupted by shutdown is still recorded.
+	if insertErr := j.repo.Insert(context.WithoutCancel(ctx), run); insertErr != nil {
 		logger.ErrorContext(
 			ctx,
 			"failed to record job run",

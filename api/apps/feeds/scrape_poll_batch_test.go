@@ -62,7 +62,7 @@ func TestScrapePollStoresItemsInOneBatchInsert(t *testing.T) {
 	feedID := seedScrapeFeed(t, base)
 	repos := repositories.New(counting)
 	svc := services.NewFeedService(
-		logging.NewNopLogger(),
+		logging.NewNopLogger(), nil,
 		repos.Feeds, repos.Items, repos.FilterRules,
 		webFetch, "",
 		nil, appUsersRepo, "",
@@ -102,7 +102,7 @@ func TestScrapePollStoresFetchFailuresAsBatchedSeenMarkers(t *testing.T) {
 	feedID := seedScrapeFeed(t, base)
 	repos := repositories.New(counting)
 	svc := services.NewFeedService(
-		logging.NewNopLogger(),
+		logging.NewNopLogger(), nil,
 		repos.Feeds, repos.Items, repos.FilterRules,
 		webFetch, "",
 		nil, appUsersRepo, "",

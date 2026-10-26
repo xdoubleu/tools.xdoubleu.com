@@ -141,19 +141,27 @@ func TestMain(m *testing.M) {
 	auth := sharedmocks.NewMockedAuthService(userID)
 	logger := logging.NewNopLogger()
 
-	testBooks = books.NewInner(auth, logger, testCfg, postgresDB, books.Clients{
-		UniCat:           nil,
-		Hardcover:        nil,
-		ObjectStore:      booksobjectstore.NewFake(),
-		WebFetch:         fakeBooksWebFetchClient{},
-		KoboStoreBaseURL: "",
-		PublicAPIBaseURL: "",
-	})
+	testBooks = books.NewInner(
+		context.Background(),
+		auth,
+		logger,
+		testCfg,
+		postgresDB,
+		books.Clients{
+			UniCat:           nil,
+			Hardcover:        nil,
+			ObjectStore:      booksobjectstore.NewFake(),
+			WebFetch:         fakeBooksWebFetchClient{},
+			KoboStoreBaseURL: "",
+			PublicAPIBaseURL: "",
+		},
+	)
 	if err := testBooks.ApplyMigrations(context.Background(), postgresDB); err != nil {
 		panic(err)
 	}
 
 	testFeeds = feeds.NewInner(
+		context.Background(),
 		auth,
 		logger,
 		testCfg,
@@ -171,6 +179,7 @@ func TestMain(m *testing.M) {
 	}
 
 	testGames = games.NewInner(
+		context.Background(),
 		auth,
 		logger,
 		testCfg,
@@ -182,6 +191,7 @@ func TestMain(m *testing.M) {
 	}
 
 	testApp = dashboard.New(
+		context.Background(),
 		auth,
 		logger,
 		testCfg,

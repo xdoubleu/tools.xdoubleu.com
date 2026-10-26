@@ -28,6 +28,7 @@ func TestMCPTools(t *testing.T) {
 
 	const mcpUserID = "mcp-trains-user"
 	app := NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(mcpUserID),
 		logging.NewNopLogger(), cfg, pg, mocks.NewFixtureClient(t),
 	)
@@ -72,6 +73,7 @@ func TestMCPTools(t *testing.T) {
 func TestMCPIrailDiagnostic(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
 	app := NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService("diag"), logging.NewNopLogger(), cfg,
 		testhelper.ConnectTestDB(cfg.DBDsn), mocks.NewFixtureClient(t),
 	)

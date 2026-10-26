@@ -228,6 +228,7 @@ func TestSyncUser_SchemaOnlyAchievements(t *testing.T) {
 	const isolatedUserID = "upsert-schema-test-user-id"
 
 	app2 := games.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(isolatedUserID),
 		testApp.Logger,
 		testCfg,

@@ -18,8 +18,7 @@ make db/reset                      # recreate the Postgres volume — shared by 
 ## Architecture
 
 - `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after `games`/`books`/`feeds` (reads them); `trains`/`learningpaths`/`movies`/`podcasts`, then `taste` (reads them).
-- `main.go` wraps the pgx pool in `postgres.NewSpanDB` for tracing spans; migrations use the raw pool.
-- `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
+- `main.go` wraps the pgx pool in `postgres.NewSpanDB` for tracing spans; migrations use the raw pool.- `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
 - `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked sibling PRs can merge migrations out of numeric order, and this makes that self-healing instead of a startup panic.
 
 Per-app layout (`apps/<name>/`):
@@ -45,7 +44,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 
 ### Shared packages (`internal/`)
 
-- **`app`** — `Base`, `HTTPError`, `ScrubInternalErrors` (every `New*ServiceHandler` call must pass it).
+- **`app`** — `Base`, `HTTPError`, `ScrubInternalErrors` (every `New*ServiceHandler` call must pass it). Unawaited request work uses `Base.Background.Go`, never a bare `go`.
 - **`connecttools`** — `MapError`: DB/`HTTPError` errors → Connect codes.
 - **`sentrytools`** — request-scoped Sentry hub middleware, `GoRoutineWrapper`; slog handler/`Init` live in the root `sentrytools/` module → [`adr-0009`](../docs/adr-0009-sentrytools-extracted-module.md).
 - **`family`** — the one sharing model; a user with no row is an implicit family-of-one (`EnsureFamily`). `InviteByEmail` requires a registered invitee and emails off the request path. **Leaving cannot un-merge family-scoped data** → [`adr-0008`](../docs/adr-0008-family-as-single-sharing-concept.md).
@@ -110,7 +109,7 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 - Backfill migrations: test against a row built to predate the migration, not only fresh rows.
 - Kobo-firmware behavior can't be verified server-side — say so in the PR and treat the user's on-device retest as acceptance.
 
-- `make test/cov/report` exiting 1 with `go: no such tool "covdata"` is a sandbox toolchain-download artifact (golang/go#75031), not a coverage failure; re-run `.claude/hooks/session-start.sh`, which builds it.
+- `make test/cov/report` failing with `go: no such tool "covdata"` is a sandbox artifact (golang/go#75031); re-run `.claude/hooks/session-start.sh`.
 
 `ROLE=workers` runs only `StartWorkers()` jobs; `heapWatchThreshold` stays under the deploy caps.
 

@@ -43,6 +43,7 @@ func buildCoverApp(t *testing.T) (*books.Books, *objectstore.FakeClient) {
 		PublicAPIBaseURL: "http://api.test",
 	}
 	app := books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		testCfg,
@@ -199,6 +200,7 @@ func TestCoverHandler_HangingObjectStoreFailsFast(t *testing.T) {
 		PublicAPIBaseURL: "http://api.test",
 	}
 	app := books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		testCfg,

@@ -63,7 +63,7 @@ func TestWorkersHandlerServesOnlyHealthAndMetrics(t *testing.T) {
 func TestNewApplicationWorkersRoleServesHealth(t *testing.T) {
 	cfg := testApp.config
 	cfg.Role = config.RoleWorkers
-	workers := NewApplication(logging.NewNopLogger(), cfg, testApp.db)
+	workers := NewApplication(t.Context(), logging.NewNopLogger(), cfg, testApp.db)
 
 	rec := httptest.NewRecorder()
 	workers.handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, healthPath, nil))

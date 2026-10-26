@@ -1,6 +1,7 @@
 package watchparty_test
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"testing"
@@ -24,6 +25,7 @@ func newTestApp() (*watchparty.WatchParty, http.Handler) {
 	cfg := testhelper.NewTestConfig()
 
 	app := watchparty.New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		cfg,

@@ -82,6 +82,7 @@ func newSyncTestApp(
 	ctx := context.Background()
 
 	app := games.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		testApp.Logger,
 		testCfg,
@@ -503,6 +504,7 @@ func TestSyncGame_UnconfiguredCreds(t *testing.T) {
 
 	// Create app without calling SaveIntegrations so creds are empty.
 	app := games.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(user),
 		testApp.Logger,
 		testCfg,

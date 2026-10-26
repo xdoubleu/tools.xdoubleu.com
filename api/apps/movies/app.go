@@ -5,6 +5,7 @@ package movies
 import (
 	"context"
 	"embed"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -36,17 +37,19 @@ type Movies struct {
 }
 
 func New(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
 ) *Movies {
-	return NewWithTMDB(authService, logger, cfg, db, newTMDBClient(logger, cfg))
+	return NewWithTMDB(ctx, authService, logger, cfg, db, newTMDBClient(logger, cfg))
 }
 
 // NewWithTMDB builds the app around the given TMDB client; nil disables
 // search and adding.
 func NewWithTMDB(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -55,7 +58,7 @@ func NewWithTMDB(
 ) *Movies {
 	//nolint:exhaustruct //services, jobs initialised below
 	a := &Movies{
-		Base:   app.NewBase(context.Background(), authService, logger, cfg),
+		Base:   app.NewBase(ctx, authService, logger, cfg),
 		db:     db,
 		family: sharedrepositories.NewFamilyRepository(db),
 	}
@@ -74,6 +77,11 @@ func newTMDBClient(logger *slog.Logger, cfg config.Config) tmdb.Client {
 		return nil
 	}
 	return tmdb.New(cfg.TMDBAPIKey)
+}
+
+// Shutdown drains background tasks, then the job queue.
+func (a *Movies) Shutdown(ctx context.Context) error {
+	return errors.Join(a.Base.Shutdown(ctx), a.jobQueue.Wait(ctx))
 }
 
 func (a *Movies) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
