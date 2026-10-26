@@ -115,6 +115,21 @@ describe('RecipeForm (new recipe)', () => {
     error.mockRestore()
   })
 
+  it('submits the servings and steps entered through their labels', async () => {
+    mockCreateRecipe.mockResolvedValue({ id: 'new-id', synced: true })
+    render(<RecipeForm onSave={vi.fn()} onCancel={vi.fn()} />)
+
+    fireEvent.change(screen.getByLabelText('Servings'), { target: { value: '4' } })
+    fireEvent.change(screen.getByLabelText('Steps'), { target: { value: 'Boil\nServe' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockCreateRecipe).toHaveBeenCalledWith(
+        expect.objectContaining({ baseServings: 4, steps: ['Boil', 'Serve'] })
+      )
+    })
+  })
+
   it('sends batchServings when set', async () => {
     mockCreateRecipe.mockResolvedValue({ id: 'new-id', synced: true })
     render(<RecipeForm onSave={vi.fn()} onCancel={vi.fn()} />)

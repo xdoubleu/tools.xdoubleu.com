@@ -545,6 +545,28 @@ describe('MealPlanCalendar', () => {
     expect(document.activeElement).toHaveAccessibleName('• Eggs')
   })
 
+  it('closes the edit form on Escape outside swap mode', () => {
+    const planWithMeal = {
+      ...basePlan,
+      meals: [
+        makePlanMeal({
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs',
+          servings: 1
+        })
+      ]
+    }
+    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
+    openMealMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }))
+    expect(screen.getByRole('dialog', { name: /Edit meal/ })).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: /Edit meal/ })).not.toBeInTheDocument()
+  })
+
   it('returns focus to the meal when the swap is cancelled from the banner', () => {
     const planWithMeal = {
       ...basePlan,

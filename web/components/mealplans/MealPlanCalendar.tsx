@@ -99,7 +99,12 @@ export default function MealPlanCalendar({
           <span className="min-w-0 truncate">
             Swapping <strong>{swappingMealName}</strong> — tap another meal or an empty cell
           </span>
-          <Button variant="secondary" size="sm" className="shrink-0" onClick={cancelSwap}>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="shrink-0"
+            onClick={() => cancelSwap(swappingMeal)}
+          >
             Cancel
           </Button>
         </Card>

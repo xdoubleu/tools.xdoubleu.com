@@ -116,7 +116,7 @@ export function Popover({
     return () => {
       // Only reclaim focus that was in the panel (now gone), never a control clicked outside.
       const active = document.activeElement
-      if (!active || active === document.body || panel?.contains(active)) {
+      if (active === document.body || panel?.contains(active)) {
         trigger?.focus({ preventScroll: true })
       }
     }

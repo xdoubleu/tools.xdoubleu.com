@@ -32,6 +32,10 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
   // The chip to refocus once swap mode ends, since its target control unmounts.
   const [focusMealId, setFocusMealId] = useState('')
   const clearFocusMeal = useCallback(() => setFocusMealId(''), [])
+  const cancelSwap = (meal: PlanMeal) => {
+    setFocusMealId(meal.id)
+    setSwappingMeal(null)
+  }
 
   const createMeal = useAddMeal()
   const updateMeal = useUpdateMeal()
@@ -57,10 +61,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (swappingMeal) {
-          setFocusMealId(swappingMeal.id)
-          setSwappingMeal(null)
-        }
+        if (swappingMeal) cancelSwap(swappingMeal)
         if (editingMeal) setEditingMeal(null)
         if (fillingDate) setFillingDate(null)
       }
@@ -122,11 +123,6 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     setSwappingMeal(meal)
     setSelectedSlot(null)
     setSelectedDate(null)
-  }
-
-  const cancelSwap = () => {
-    if (swappingMeal) setFocusMealId(swappingMeal.id)
-    setSwappingMeal(null)
   }
 
   const handleMealClick = (meal: PlanMeal) => {

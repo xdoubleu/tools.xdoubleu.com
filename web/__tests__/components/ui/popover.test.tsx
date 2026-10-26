@@ -225,6 +225,55 @@ describe('Popover', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
+  it('keeps an existing trigger id when labelling the panel by it', () => {
+    render(
+      <Popover
+        trigger={({ onClick }) => (
+          <PopoverTrigger id="columns-trigger" onClick={onClick}>
+            Columns
+          </PopoverTrigger>
+        )}
+      >
+        <p>Panel content</p>
+      </Popover>
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Columns' }))
+    expect(screen.getByRole('dialog', { name: 'Columns' })).toHaveAttribute(
+      'aria-labelledby',
+      'columns-trigger'
+    )
+  })
+
+  it('closes on Shift+Tab from the panel or its first control', () => {
+    render(
+      <Popover
+        trigger={({ onClick }) => <PopoverTrigger onClick={onClick}>Columns</PopoverTrigger>}
+      >
+        <button>First</button>
+      </Popover>
+    )
+    const trigger = screen.getByRole('button', { name: 'Columns' })
+    fireEvent.click(trigger)
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Tab', shiftKey: true })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(trigger).toHaveFocus()
+
+    fireEvent.click(trigger)
+    const first = screen.getByRole('button', { name: 'First' })
+    first.focus()
+    fireEvent.keyDown(first, { key: 'Tab', shiftKey: true })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('leaves arrow keys alone in a panel without menu items', () => {
+    render(<BasicPopover />)
+    fireEvent.click(screen.getByLabelText('Open menu'))
+    const arrow = createEvent.keyDown(screen.getByRole('dialog'), { key: 'ArrowDown' })
+    fireEvent(screen.getByRole('dialog'), arrow)
+    expect(arrow.defaultPrevented).toBe(false)
+    expect(screen.getByRole('dialog')).toHaveFocus()
+  })
+
   describe('with a menu', () => {
     function MenuPopover() {
       return (
@@ -259,6 +308,16 @@ describe('Popover', () => {
       expect(item('Delete')).toHaveFocus()
       fireEvent.keyDown(item('Delete'), { key: 'Home' })
       expect(item('Swap')).toHaveFocus()
+    })
+
+    it('ignores keys other than the arrows, Home and End', () => {
+      render(<MenuPopover />)
+      fireEvent.click(screen.getByRole('button', { name: 'Actions' }))
+      const swap = screen.getByRole('menuitem', { name: 'Swap' })
+      const key = createEvent.keyDown(swap, { key: 'x' })
+      fireEvent(swap, key)
+      expect(key.defaultPrevented).toBe(false)
+      expect(swap).toHaveFocus()
     })
 
     it('closes on Tab from any item, returning focus to the trigger', () => {
