@@ -175,6 +175,9 @@ export const ListRecipesRequestSchema: GenMessage<ListRecipesRequest> = /*@__PUR
  */
 export type ListRecipesResponse = Message<"recipes.v1.ListRecipesResponse"> & {
   /**
+   * Summaries: instructions and ingredients are left empty (list queries never
+   * select wide TEXT columns); call GetRecipe for the full recipe.
+   *
    * @generated from field: repeated recipes.v1.Recipe recipes = 1;
    */
   recipes: Recipe[];
