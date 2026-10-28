@@ -1,6 +1,6 @@
 # ADR-0006: Embed `ory/fosite` as the MCP authorization server, and grant `offline_access` server-side
 
-- Status: Accepted — extended by ADR-0021 (OIDC + confidential clients)
+- Status: Accepted — extended by ADR-0021 (OIDC + confidential clients); library replaced by ADR-0037
 - Issues: #1039, #1177, #1715
 - Affects: `api/internal/oauth2as/`, `api/cmd/api/oauth2as.go`, `api/cmd/api/mcp.go`, `web/app/oauth/consent`
 
@@ -43,3 +43,4 @@ registration, and RFC 8414 metadata. `mcpAuthServerIssuer` is `cfg.AuthIssuer`
 
 Partly superseded by ADR-0021 (non-MCP client: Grafana). This ADR still governs
 the MCP flow, consent page, and rejection logging.
+ADR-0037 replaced `ory/fosite` with Authelia's fork.

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ory/fosite"
+	fosite "authelia.com/provider/oauth2"
 	"github.com/stretchr/testify/assert"
 )
 

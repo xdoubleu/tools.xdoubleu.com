@@ -5,10 +5,9 @@ import (
 	"testing"
 	"time"
 
+	fosite "authelia.com/provider/oauth2"
+	fositeoauth2 "authelia.com/provider/oauth2/handler/oauth2"
 	"github.com/google/uuid"
-	"github.com/ory/fosite"
-	"github.com/ory/fosite/compose"
-	fositeoauth2 "github.com/ory/fosite/handler/oauth2"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/oauth2as"
@@ -22,7 +21,7 @@ func hmacStrategyFor(t *testing.T) fositeoauth2.CoreStrategy {
 	cfg := testhelper.NewTestConfig()
 	//nolint:exhaustruct //remaining Config fields use library defaults
 	fc := &fosite.Config{GlobalSecret: []byte(cfg.OAuthHMACSecret)}
-	return compose.NewOAuth2HMACStrategy(fc)
+	return fositeoauth2.NewHMACCoreStrategy(fc, "ory_%s_")
 }
 
 func TestResolveAccessToken_ValidToken(t *testing.T) {

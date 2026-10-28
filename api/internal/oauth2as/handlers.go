@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ory/fosite"
-	"github.com/ory/fosite/handler/openid"
+	fosite "authelia.com/provider/oauth2"
+	"authelia.com/provider/oauth2/handler/openid"
 
 	"tools.xdoubleu.com/internal/config"
 )
@@ -23,7 +23,7 @@ type SessionUserResolver func(r *http.Request) (user ResolvedUser, ok bool)
 // returns access_denied; consent=allow completes only with the consent token
 // that page obtained for this user and request.
 func AuthorizeHandler(
-	provider fosite.OAuth2Provider,
+	provider fosite.Provider,
 	cfg config.Config,
 	resolveUser SessionUserResolver,
 	signingKeyID string,
@@ -130,7 +130,7 @@ func (l *locationAsJSON) Write(p []byte) (int, error) {
 // TokenHandler serves /oauth2/token (authorization_code, refresh_token, and
 // client_credentials for machine clients).
 func TokenHandler(
-	provider fosite.OAuth2Provider,
+	provider fosite.Provider,
 	logger *slog.Logger,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

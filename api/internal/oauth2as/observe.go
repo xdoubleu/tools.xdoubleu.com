@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/ory/fosite"
+	fosite "authelia.com/provider/oauth2"
 )
 
 // Endpoint labels for the `endpoint` log attribute.

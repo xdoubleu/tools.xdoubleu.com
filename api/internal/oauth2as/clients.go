@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/ory/fosite"
+	fosite "authelia.com/provider/oauth2"
 
 	"tools.xdoubleu.com/internal/database/postgres"
 )
@@ -42,16 +42,17 @@ func RegisterClient(
 		return nil, err
 	}
 
+	//nolint:exhaustruct //DPoP/mTLS binding is unused
 	client := &fosite.DefaultClient{
-		ID:             id,
-		Secret:         nil,
-		RotatedSecrets: nil,
-		RedirectURIs:   metadata.RedirectURIs,
-		GrantTypes:     []string{authorizationCodeGrant, refreshTokenGrant},
-		ResponseTypes:  []string{"code"},
-		Scopes:         []string{OfflineAccessScope, OpenIDScope},
-		Audience:       nil,
-		Public:         true,
+		ID:                   id,
+		ClientSecret:         nil,
+		RotatedClientSecrets: nil,
+		RedirectURIs:         metadata.RedirectURIs,
+		GrantTypes:           []string{authorizationCodeGrant, refreshTokenGrant},
+		ResponseTypes:        []string{"code"},
+		Scopes:               []string{OfflineAccessScope, OpenIDScope},
+		Audience:             nil,
+		Public:               true,
 	}
 
 	_, err = db.Exec(ctx, `
