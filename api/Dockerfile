@@ -43,7 +43,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o ./bin/api ./cmd/api
 
 # distroless/static works because PDF→EPUB is pure Go (go-pdfium's
 # WebAssembly backend under wazero, no CGO). "nonroot" is uid/gid 65532.
-FROM gcr.io/distroless/static-debian12:nonroot AS server
+FROM gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab AS server
 
 # May lag RELEASE when kobo-gateway's build cache-hit (see web/lib/env.ts).
 ARG KOBO_GATEWAY_RELEASE=dev
