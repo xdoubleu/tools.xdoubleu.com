@@ -142,6 +142,7 @@ export default function ReadiumBookReader({
           {
             frameLoaded: noop,
             positionChanged: (locator) => void handleLocator(pub, locator),
+            viewportChanged: noop,
             timelineItemChanged: handleTimelineItem,
             tap: (e) => {
               const area = container.getBoundingClientRect()
