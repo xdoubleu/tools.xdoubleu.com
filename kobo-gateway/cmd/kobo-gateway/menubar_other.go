@@ -1,10 +1,10 @@
-//go:build !darwin
+//go:build !darwin || !cgo
 
 package main
 
 import "tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
 
-// runUI blocks until stop closes; the menu bar needs AppKit (macOS only).
+// runUI blocks until stop closes; the menu bar needs cgo and AppKit.
 func runUI(
 	_ string,
 	stop <-chan struct{},

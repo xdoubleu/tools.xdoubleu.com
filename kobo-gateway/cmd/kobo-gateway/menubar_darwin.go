@@ -1,8 +1,13 @@
-//go:build darwin
+//go:build darwin && cgo
 
 package main
 
-// #cgo LDFLAGS: -framework UserNotifications
+/*
+#cgo CFLAGS: -x objective-c -fobjc-arc
+#cgo LDFLAGS: -framework Cocoa -framework UserNotifications
+#include <stdlib.h>
+#include "menubar_darwin.h"
+*/
 import "C"
 
 import (
@@ -11,15 +16,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
+	"runtime/cgo"
 	"sync"
 	"syscall"
-
-	"github.com/progrium/darwinkit/dispatch"
-	"github.com/progrium/darwinkit/helper/action"
-	"github.com/progrium/darwinkit/macos"
-	"github.com/progrium/darwinkit/macos/appkit"
-	"github.com/progrium/darwinkit/macos/foundation"
-	"github.com/progrium/darwinkit/objc"
+	"unsafe"
 
 	"tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
 )
@@ -33,24 +34,31 @@ var iconTemplate []byte
 // PNG at pixel size, far too large.
 const menubarIconSize = 18
 
-// Menu-bar state that survives a status-item rebuild. Only touched on the
-// main AppKit queue, so no lock is needed.
+// uiState is runUI's arguments, for the //export callbacks.
+type uiState struct {
+	release, homeDir, execPath string
+	firstLaunch                bool
+	stop                       <-chan struct{}
+	koboEvents                 <-chan kobogateway.KoboEvent
+}
+
+// Menu-bar state for the AppKit callbacks. Only touched on the main thread,
+// so no lock is needed.
 //
-//nolint:gochecknoglobals // must outlive runUI's setup closure, see below.
+//nolint:gochecknoglobals // the //export callbacks take no arguments.
 var (
-	// statusItem is package-level so objc.Retain's GC finalizer never releases
-	// it (and the icon vanishes) after runUI's setup closure returns.
-	statusItem   appkit.StatusItem
-	statusButton appkit.StatusBarButton
-	statusLine   appkit.MenuItem
-	// lastKoboEvent lets a rebuild restore the current state.
+	ui uiState
+	// lastKoboEvent lets a status-item rebuild restore the current state.
 	lastKoboEvent kobogateway.KoboEvent
 )
 
-// init wires notify.go's seam to UNUserNotificationCenter.
+// init wires notify.go's seam to UNUserNotificationCenter and keeps main on
+// the main OS thread, which AppKit requires (locking in main is too late).
 //
-//nolint:gochecknoinits //only way to wire notify.go's seam before main runs
+//nolint:gochecknoinits //only way to lock the main thread before main runs
 func init() {
+	runtime.LockOSThread()
+
 	notify = postNotification
 }
 
@@ -68,51 +76,82 @@ func runUI(
 	homeDir, execPath string,
 	firstLaunch bool,
 ) {
-	macos.RunApp(func(app appkit.Application, _ *appkit.ApplicationDelegate) {
-		// Accessory: no Dock icon, no app switcher entry — just the status item.
-		app.SetActivationPolicy(appkit.ApplicationActivationPolicyAccessory)
+	ui = uiState{
+		release:     release,
+		homeDir:     homeDir,
+		execPath:    execPath,
+		firstLaunch: firstLaunch,
+		stop:        stop,
+		koboEvents:  koboEvents,
+	}
 
-		buildStatusItem(release, homeDir, execPath)
-		requestNotificationAuth(execPath)
+	if !C.kgRunApp() {
+		fmt.Fprintln(os.Stderr, "kobo-gateway: not on the main thread, no menu bar")
+		<-stop
+	}
+}
 
-		// The OS prompt can fail silently, so back it up with our own alert on
-		// first install.
-		if firstLaunch && runningInAppBundle(execPath) {
-			promptEnableNotifications()
+//export goAppDidFinishLaunching
+func goAppDidFinishLaunching() {
+	buildStatusItem()
+	requestNotificationAuth(ui.execPath)
+
+	// The OS prompt can fail silently, so back it up with our own alert on
+	// first install.
+	if ui.firstLaunch && runningInAppBundle(ui.execPath) {
+		promptEnableNotifications()
+	}
+
+	stop := ui.stop
+	go recoverGo("stop-terminate", func() {
+		<-stop
+
+		if restarting {
+			// terminate: never returns to serve()'s restart tail, so exec here.
+			if err := execUpdatedBinary(); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+			}
 		}
 
-		// macOS can drop a status item across sleep/wake; rebuilding it is the
-		// reliable fix (SetVisible isn't).
-		appkit.Workspace_SharedWorkspace().NotificationCenter().
-			AddObserverForNameObjectQueueUsingBlock(
-				foundation.NotificationName("NSWorkspaceDidWakeNotification"),
-				nil,
-				foundation.OperationQueue_MainQueue(),
-				func(foundation.Notification) {
-					defer guard("wake-observer")
-
-					appkit.StatusBar_SystemStatusBar().RemoveStatusItem(statusItem)
-					buildStatusItem(release, homeDir, execPath)
-				},
-			)
-
-		go recoverGo("stop-terminate", func() {
-			<-stop
-
-			if restarting {
-				// terminate: never returns to serve()'s restart tail, so exec here.
-				if err := execUpdatedBinary(); err != nil {
-					fmt.Fprintln(os.Stderr, err)
-				}
-			}
-
-			dispatch.MainQueue().DispatchSync(func() {
-				app.Terminate(nil)
-			})
-		})
-
-		go watchKobos(koboEvents, release)
+		C.kgTerminate()
 	})
+
+	go watchKobos(ui.koboEvents)
+}
+
+//export goSystemDidWake
+func goSystemDidWake() {
+	defer guard("wake-observer")
+
+	buildStatusItem()
+}
+
+//export goMenuAction
+func goMenuAction(action C.int) {
+	defer guard("menu-action")
+
+	switch action {
+	case C.KGActionOpenSite:
+		openURL(kobogateway.DefaultWebOrigin)
+	case C.KGActionToggleLoginItem:
+		toggleLoginItem(ui.homeDir, ui.execPath)
+	}
+}
+
+// runOnMain queues fn on the main thread, like dispatch_async to the main
+// queue; goRunHandle runs it.
+func runOnMain(fn func()) {
+	C.kgDispatchMain(C.uintptr_t(cgo.NewHandle(fn)))
+}
+
+//export goRunHandle
+func goRunHandle(handle C.uintptr_t) {
+	h := cgo.Handle(handle)
+	defer h.Delete()
+
+	if fn, ok := h.Value().(func()); ok {
+		fn()
+	}
 }
 
 // execUpdatedBinary relaunches the updated binary. In a .app bundle it uses
@@ -137,66 +176,29 @@ func execUpdatedBinary() error {
 	return syscall.Exec(executable, os.Args, os.Environ())
 }
 
-// buildStatusItem creates a fresh status item and restores lastKoboEvent.
-// Must run on the main AppKit queue.
-func buildStatusItem(release, homeDir, execPath string) {
-	statusItem = appkit.StatusBar_SystemStatusBar().
-		StatusItemWithLength(appkit.VariableStatusItemLength)
-	objc.Retain(&statusItem)
+// buildStatusItem replaces the status item and restores lastKoboEvent. Must
+// run on the main thread.
+func buildStatusItem() {
+	header := C.CString(fmt.Sprintf(
+		"Kobo Gateway %s — for tools.xdoubleu.com",
+		kobogateway.ShortRelease(ui.release),
+	))
+	defer C.free(unsafe.Pointer(header))
 
-	statusButton = statusItem.Button()
+	var icon unsafe.Pointer
 	if len(iconTemplate) > 0 {
-		img := appkit.NewImageWithData(iconTemplate)
-		img.SetTemplate(true)
-		img.SetSize(foundation.Size{Width: menubarIconSize, Height: menubarIconSize})
-		statusButton.SetImage(img)
-	} else {
-		statusButton.SetTitle("Kobo")
+		icon = unsafe.Pointer(&iconTemplate[0])
 	}
 
-	menu := appkit.NewMenu()
+	C.kgBuildStatusItem(
+		header,
+		icon,
+		C.size_t(len(iconTemplate)),
+		C.double(menubarIconSize),
+		C.bool(kobogateway.LoginItemEnabled(ui.homeDir)),
+	)
 
-	shortRelease := kobogateway.ShortRelease(release)
-	header := appkit.NewMenuItemWithTitleActionKeyEquivalent(
-		fmt.Sprintf("Kobo Gateway %s — for tools.xdoubleu.com", shortRelease),
-		objc.Sel(""), "")
-	header.SetEnabled(false)
-	menu.AddItem(header)
-
-	openSite := appkit.NewMenuItemWithTitleActionKeyEquivalent(
-		"Open tools.xdoubleu.com", objc.Sel(""), "")
-	action.Set(openSite, func(objc.Object) {
-		appkit.Workspace_SharedWorkspace().
-			OpenURL(foundation.URL_URLWithString(kobogateway.DefaultWebOrigin))
-	})
-	menu.AddItem(openSite)
-
-	menu.AddItem(appkit.MenuItem_SeparatorItem())
-
-	statusLine = appkit.NewMenuItemWithTitleActionKeyEquivalent(
-		"No Kobo connected", objc.Sel(""), "")
-	statusLine.SetEnabled(false)
-	menu.AddItem(statusLine)
-
-	menu.AddItem(appkit.MenuItem_SeparatorItem())
-
-	loginItem := appkit.NewMenuItemWithTitleActionKeyEquivalent(
-		"Start at Login", objc.Sel(""), "")
-	refreshLoginItemState(loginItem, homeDir)
-	action.Set(loginItem, func(objc.Object) {
-		toggleLoginItem(loginItem, homeDir, execPath)
-	})
-	menu.AddItem(loginItem)
-
-	menu.AddItem(appkit.MenuItem_SeparatorItem())
-
-	quit := appkit.NewMenuItemWithTitleActionKeyEquivalent(
-		"Quit", objc.Sel("terminate:"), "q")
-	menu.AddItem(quit)
-
-	statusItem.SetMenu(menu)
-
-	applyKoboEvent(lastKoboEvent, release, false)
+	applyKoboEvent(lastKoboEvent, false)
 }
 
 // notificationSettingsURL opens System Settings' Notifications pane (no API
@@ -205,36 +207,36 @@ const notificationSettingsURL = "x-apple.systempreferences:" +
 	"com.apple.preference.notifications"
 
 // promptEnableNotifications shows a first-launch alert steering the user to
-// enable notifications, since the OS prompt can fail silently. Runs its own
-// modal loop, so it's safe before the main run loop starts.
+// enable notifications, since the OS prompt can fail silently.
 func promptEnableNotifications() {
 	defer guard("promptEnableNotifications")
 
-	alert := appkit.NewAlert()
-	alert.SetMessageText("Enable Notifications for Kobo Gateway?")
-	alert.SetInformativeText(
+	message := C.CString("Enable Notifications for Kobo Gateway?")
+	defer C.free(unsafe.Pointer(message))
+	info := C.CString(
 		"Kobo Gateway can notify you when your Kobo connects or " +
 			"disconnects, and when it updates itself. Enable notifications " +
 			"in System Settings to see these.",
 	)
-	alert.AddButtonWithTitle("Open System Settings")
-	alert.AddButtonWithTitle("Not Now")
+	defer C.free(unsafe.Pointer(info))
+	openSettings := C.CString("Open System Settings")
+	defer C.free(unsafe.Pointer(openSettings))
+	notNow := C.CString("Not Now")
+	defer C.free(unsafe.Pointer(notNow))
 
-	if alert.RunModal() == appkit.AlertFirstButtonReturn {
-		appkit.Workspace_SharedWorkspace().
-			OpenURL(foundation.URL_URLWithString(notificationSettingsURL))
+	if C.kgRunAlert(message, info, openSettings, notNow) {
+		openURL(notificationSettingsURL)
 	}
 }
 
-func refreshLoginItemState(item appkit.MenuItem, homeDir string) {
-	if kobogateway.LoginItemEnabled(homeDir) {
-		item.SetState(appkit.ControlStateValueOn)
-	} else {
-		item.SetState(appkit.ControlStateValueOff)
-	}
+func openURL(url string) {
+	cURL := C.CString(url)
+	defer C.free(unsafe.Pointer(cURL))
+
+	C.kgOpenURL(cURL)
 }
 
-func toggleLoginItem(item appkit.MenuItem, homeDir, execPath string) {
+func toggleLoginItem(homeDir, execPath string) {
 	var err error
 	if kobogateway.LoginItemEnabled(homeDir) {
 		err = kobogateway.DisableLoginItem(homeDir)
@@ -246,111 +248,61 @@ func toggleLoginItem(item appkit.MenuItem, homeDir, execPath string) {
 		fmt.Fprintln(os.Stderr, "toggle login item:", err)
 	}
 
-	refreshLoginItemState(item, homeDir)
+	C.kgSetLoginItemState(C.bool(kobogateway.LoginItemEnabled(homeDir)))
 }
 
-// watchKobos shows each connect/disconnect, redispatching to the main queue.
-func watchKobos(events <-chan kobogateway.KoboEvent, release string) {
+// watchKobos shows each connect/disconnect, redispatching to the main thread.
+func watchKobos(events <-chan kobogateway.KoboEvent) {
 	for ev := range events {
-		dispatch.MainQueue().DispatchAsync(func() {
+		runOnMain(func() {
 			defer guard("applyKoboEvent")
 
-			applyKoboEvent(ev, release, true)
+			applyKoboEvent(ev, true)
 		})
 	}
 }
 
 // applyKoboEvent updates the status item from ev and records it; notify is
-// false when re-applying after a rebuild.
-func applyKoboEvent(ev kobogateway.KoboEvent, release string, notify bool) {
+// false when re-applying after a rebuild. Must run on the main thread.
+func applyKoboEvent(ev kobogateway.KoboEvent, notify bool) {
 	lastKoboEvent = ev
 
-	statusButton.SetToolTip(kobogateway.KoboTooltip(ev, release))
-	statusLine.SetTitle(kobogateway.KoboMenuLine(ev))
+	tooltip := C.CString(kobogateway.KoboTooltip(ev, ui.release))
+	defer C.free(unsafe.Pointer(tooltip))
+	line := C.CString(kobogateway.KoboMenuLine(ev))
+	defer C.free(unsafe.Pointer(line))
+
+	C.kgSetStatus(tooltip, line)
 
 	if notify {
 		postNotification(kobogateway.KoboNotification(ev))
 	}
 }
 
-// requestNotificationAuth asks once per process. The completion handler is
-// nil to avoid marshalling a Go func as an ObjC block; the result isn't needed.
+// requestNotificationAuth asks once per process.
 func requestNotificationAuth(execPath string) {
 	if !runningInAppBundle(execPath) {
 		return
 	}
 
 	notifyAuthOnce.Do(func() {
-		defer guard("requestNotificationAuth")
-
-		objc.WithAutoreleasePool(func() {
-			center := objc.Call[objc.Object](
-				objc.GetClass("UNUserNotificationCenter"),
-				objc.Sel("currentNotificationCenter"),
-			)
-			// UNAuthorizationOptionAlert (1) | UNAuthorizationOptionSound (4).
-			const authOptions = uint(1 | 4)
-			objc.Call[objc.Void](
-				center,
-				objc.Sel("requestAuthorizationWithOptions:completionHandler:"),
-				authOptions,
-				objc.Object{},
-			)
-		})
+		C.kgRequestNotificationAuth()
 	})
 }
 
-// postNotification posts a best-effort UNUserNotificationCenter toast via
-// objc.Call (darwinkit has no UserNotifications bindings). Only works inside
-// a .app bundle; it throws otherwise.
+// postNotification posts a best-effort UNUserNotificationCenter toast. Safe
+// from any goroutine; skipped outside a .app bundle, where it throws.
 func postNotification(title, body string) {
 	if !runningInAppBundle(currentExecPath()) {
 		return
 	}
 
-	defer guard("postNotification")
+	cTitle := C.CString(title)
+	defer C.free(unsafe.Pointer(cTitle))
+	cBody := C.CString(body)
+	defer C.free(unsafe.Pointer(cBody))
 
-	objc.WithAutoreleasePool(func() {
-		content := objc.Call[objc.Object](
-			objc.GetClass("UNMutableNotificationContent"), objc.Sel("new"),
-		)
-		content.Autorelease()
-		objc.Call[objc.Void](content, objc.Sel("setTitle:"), title)
-
-		if body != "" {
-			objc.Call[objc.Void](content, objc.Sel("setBody:"), body)
-		}
-
-		// Unique identifier so toasts stack instead of coalescing.
-		identifier := fmt.Sprintf("kobo-gateway-%d", notificationSeq())
-
-		request := objc.Call[objc.Object](
-			objc.GetClass("UNNotificationRequest"),
-			objc.Sel("requestWithIdentifier:content:trigger:"),
-			identifier, content, objc.Object{},
-		)
-
-		center := objc.Call[objc.Object](
-			objc.GetClass("UNUserNotificationCenter"),
-			objc.Sel("currentNotificationCenter"),
-		)
-		objc.Call[objc.Void](
-			center,
-			objc.Sel("addNotificationRequest:withCompletionHandler:"),
-			request, objc.Object{},
-		)
-	})
-}
-
-// notificationSeqCounter backs notificationSeq.
-//
-//nolint:gochecknoglobals // simple monotonic counter, only ever incremented.
-var notificationSeqCounter uint64
-
-func notificationSeq() uint64 {
-	notificationSeqCounter++
-
-	return notificationSeqCounter
+	C.kgPostNotification(cTitle, cBody)
 }
 
 // currentExecPath re-resolves the executable path for postNotification.
