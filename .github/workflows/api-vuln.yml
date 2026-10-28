@@ -1,0 +1,26 @@
+name: API Vulnerability Scan
+
+permissions:
+  contents: read
+
+# Scheduled rather than per PR, so a new disclosure fails this run instead of
+# every open PR.
+on:
+  schedule:
+    # 04:17 UTC daily, clear of the routines.
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  govulncheck:
+    name: API govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: './api/go.mod'
+          cache-dependency-path: './api/go.sum'
+      - name: Run govulncheck
+        run: make lint/vuln
+        working-directory: './api'

@@ -1,13 +1,14 @@
 package oauth2as
 
 import (
-	"context"
 	"crypto/rsa"
 	"time"
 
-	"github.com/ory/fosite"
-	"github.com/ory/fosite/compose"
-	"github.com/ory/fosite/token/jwt"
+	fosite "authelia.com/provider/oauth2"
+	"authelia.com/provider/oauth2/compose"
+	hoauth2 "authelia.com/provider/oauth2/handler/oauth2"
+	"authelia.com/provider/oauth2/token/jose"
+	"authelia.com/provider/oauth2/token/jwt"
 
 	"tools.xdoubleu.com/internal/config"
 )
@@ -19,6 +20,10 @@ const (
 	idTokenLifespan       = time.Hour
 )
 
+// hmacTokenPrefix keeps the "ory_at_"/"ory_rt_"/"ory_ac_" prefixes so tokens
+// issued before the switch from ory/fosite still validate.
+const hmacTokenPrefix = "ory_%s_"
+
 // NewProvider builds the embedded OAuth 2.1 / OIDC server: authorization code
 // and refresh grants, PKCE required, RS256 ID tokens for openid clients, and
 // client_credentials for confidential clients registered with that grant.
@@ -27,7 +32,7 @@ func NewProvider(
 	cfg config.Config,
 	store fosite.Storage,
 	oidcKey *rsa.PrivateKey,
-) fosite.OAuth2Provider {
+) fosite.Provider {
 	//nolint:exhaustruct //remaining Config fields use library defaults
 	fc := &fosite.Config{
 		GlobalSecret:                   []byte(cfg.OAuthHMACSecret),
@@ -40,12 +45,23 @@ func NewProvider(
 		EnablePKCEPlainChallengeMethod: false,
 	}
 
-	keyGetter := func(context.Context) (any, error) { return oidcKey, nil }
+	signer := &jwt.DefaultStrategy{
+		Config: fc,
+		Issuer: jwt.NewDefaultIssuerUnverifiedFromJWKS(&jose.JSONWebKeySet{
+			//nolint:exhaustruct //only the private key and its identity are needed
+			Keys: []jose.JSONWebKey{{
+				Key:       oidcKey,
+				KeyID:     OIDCKeyID(oidcKey),
+				Algorithm: string(jose.RS256),
+				Use:       jwt.JSONWebTokenUseSignature,
+			}},
+		}),
+	}
 
 	strategy := &compose.CommonStrategy{
-		CoreStrategy:               compose.NewOAuth2HMACStrategy(fc),
-		OpenIDConnectTokenStrategy: compose.NewOpenIDConnectStrategy(keyGetter, fc),
-		Signer:                     &jwt.DefaultSigner{GetPrivateKey: keyGetter},
+		CoreStrategy:               hoauth2.NewHMACCoreStrategy(fc, hmacTokenPrefix),
+		OpenIDConnectTokenStrategy: compose.NewOpenIDConnectStrategy(nil, signer, fc),
+		Strategy:                   signer,
 	}
 
 	return compose.Compose(

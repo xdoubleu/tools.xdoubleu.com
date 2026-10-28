@@ -3,9 +3,9 @@ package oauth2as
 import (
 	"time"
 
-	"github.com/ory/fosite"
-	"github.com/ory/fosite/handler/openid"
-	"github.com/ory/fosite/token/jwt"
+	fosite "authelia.com/provider/oauth2"
+	"authelia.com/provider/oauth2/handler/openid"
+	"authelia.com/provider/oauth2/token/jwt"
 )
 
 // ResolvedUser is the web-session identity ID-token claims are built from.
@@ -24,17 +24,17 @@ func newAuthorizeSession(
 	user ResolvedUser, kid string, grantedScopes fosite.Arguments,
 ) *openid.DefaultSession {
 	now := time.Now().UTC()
-	//nolint:exhaustruct //ExpiresAt is populated by fosite as tokens are issued
+	//nolint:exhaustruct //ExpiresAt and binding fields are populated by fosite
 	sess := &openid.DefaultSession{
-		Subject:  user.ID,
-		Username: user.Email,
-		Headers:  &jwt.Headers{Extra: map[string]any{"kid": kid}},
+		Subject:     user.ID,
+		Username:    user.Email,
+		RequestedAt: now,
+		Headers:     &jwt.Headers{Extra: map[string]any{"kid": kid}},
 		//nolint:exhaustruct //remaining registered claims are set by fosite's OIDC strategy
 		Claims: &jwt.IDTokenClaims{
-			Subject:     user.ID,
-			IssuedAt:    now,
-			RequestedAt: now,
-			AuthTime:    now,
+			Subject:  user.ID,
+			IssuedAt: jwt.NewNumericDate(now),
+			AuthTime: jwt.NewNumericDate(now),
 		},
 	}
 

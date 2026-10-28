@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
+	fosite "authelia.com/provider/oauth2"
+	"authelia.com/provider/oauth2/handler/openid"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ory/fosite"
-	"github.com/ory/fosite/handler/openid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -47,7 +47,7 @@ func testOIDCKey(t *testing.T) *rsa.PrivateKey {
 // newTestProvider builds the provider as cmd/api does.
 func newTestProvider(
 	t *testing.T, cfg config.Config, store *oauth2as.Store,
-) fosite.OAuth2Provider {
+) fosite.Provider {
 	t.Helper()
 	return oauth2as.NewProvider(cfg, store, testOIDCKey(t))
 }
@@ -75,7 +75,7 @@ func TestRegisterClient_Validation(t *testing.T) {
 	require.NoError(t, err, "localhost redirect_uris are allowed for dev")
 	assert.NotEmpty(t, client.ID)
 	assert.True(t, client.Public)
-	assert.Nil(t, client.Secret)
+	assert.Nil(t, client.ClientSecret)
 
 	//nolint:exhaustruct //ClientName is optional
 	client2, err := oauth2as.RegisterClient(ctx, db, oauth2as.ClientMetadata{
@@ -449,6 +449,19 @@ func TestStore_ClientAssertionJWT_Stubs(t *testing.T) {
 
 	require.NoError(t, store.ClientAssertionJWTValid(ctx, "any-jti"))
 	require.NoError(t, store.SetClientAssertionJWT(ctx, "any-jti", time.Now()))
+}
+
+func TestStore_ClientRegistrationManager_Refuses(t *testing.T) {
+	store, _ := newTestStore(t)
+	ctx := context.Background()
+	//nolint:exhaustruct //never stored
+	client := &fosite.DefaultClient{ID: "refused"}
+
+	require.Error(t, store.CreateClient(ctx, client))
+	require.Error(t, store.UpdateClient(ctx, client.ID, client))
+	require.Error(t, store.DeleteClient(ctx, client.ID))
+	_, err := store.GetClient(ctx, client.ID)
+	require.ErrorIs(t, err, fosite.ErrNotFound)
 }
 
 func TestStore_PKCERequestSession_RoundTrip(t *testing.T) {

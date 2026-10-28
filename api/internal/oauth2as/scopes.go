@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ory/fosite"
+	fosite "authelia.com/provider/oauth2"
 )
 
 // Scopes this server understands. fosite issues a refresh token / ID token

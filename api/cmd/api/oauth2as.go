@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/ory/fosite"
+	fosite "authelia.com/provider/oauth2"
 
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauth2as"
@@ -14,7 +14,7 @@ import (
 // oauth2asWiring bundles the embedded OAuth 2.1 / OIDC authorization server.
 type oauth2asWiring struct {
 	store    *oauth2as.Store
-	provider fosite.OAuth2Provider
+	provider fosite.Provider
 	// oidcKey signs ID tokens; its public half is served at oauth2JWKSPath.
 	oidcKey *rsa.PrivateKey
 }

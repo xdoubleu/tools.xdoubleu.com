@@ -105,6 +105,14 @@ lint/golines: tools/lint/golines
 	@diff=$$($(GOLINES) --dry-run .); \
 	if [ -n "$$diff" ]; then echo "$$diff"; echo "golines drift: run make lint/fix"; exit 1; fi
 
+tools/vuln:
+	go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+
+# Not part of lint: a new disclosure would fail unrelated work, so CI runs it on
+# a schedule (api-vuln.yml).
+lint/vuln: tools/vuln
+	govulncheck ./...
+
 lint/go/ci:
 	golangci-lint run
 

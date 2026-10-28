@@ -255,6 +255,13 @@
       ],
       minimumReleaseAge: '7 days',
     },
+    // ADR-0037: the auth engine is pre-1.0; a human reviews its bumps.
+    {
+      matchDepNames: [
+        'authelia.com/provider/oauth2',
+      ],
+      automerge: false,
+    },
     // No PR check runs OpenCode.
     {
       matchDepNames: [

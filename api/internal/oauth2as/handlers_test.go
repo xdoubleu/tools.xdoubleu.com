@@ -14,12 +14,13 @@ import (
 	"strings"
 	"testing"
 
+	fosite "authelia.com/provider/oauth2"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/ory/fosite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/oauth2as"
 	"tools.xdoubleu.com/internal/testhelper"
 )
@@ -49,7 +50,7 @@ type oauth2asTestServer struct {
 	ts       *httptest.Server
 	store    *oauth2as.Store
 	db       *pgxpool.Pool
-	provider fosite.OAuth2Provider
+	provider fosite.Provider
 	key      *rsa.PrivateKey
 	userID   string
 	logs     *recordCapture
@@ -57,8 +58,14 @@ type oauth2asTestServer struct {
 
 func newOAuth2asTestServer(t *testing.T) *oauth2asTestServer {
 	t.Helper()
+	return newOAuth2asTestServerWithConfig(t, testhelper.NewTestConfig())
+}
+
+func newOAuth2asTestServerWithConfig(
+	t *testing.T, cfg config.Config,
+) *oauth2asTestServer {
+	t.Helper()
 	store, db := newTestStore(t)
-	cfg := testhelper.NewTestConfig()
 	key := testOIDCKey(t)
 	provider := oauth2as.NewProvider(cfg, store, key)
 	userID := uuid.NewString()
@@ -135,7 +142,7 @@ func (s *oauth2asTestServer) registerClient(t *testing.T) *fosite.DefaultClient 
 	// (refresh tokens) and openid (a minimal ID token).
 	assert.Equal(t, "offline_access openid", out.Scope)
 
-	//nolint:exhaustruct //Secret/RotatedSecrets/Audience are unused by these tests
+	//nolint:exhaustruct //secrets, audience and binding are unused by these tests
 	return &fosite.DefaultClient{
 		ID:            out.ClientID,
 		RedirectURIs:  out.RedirectURIs,

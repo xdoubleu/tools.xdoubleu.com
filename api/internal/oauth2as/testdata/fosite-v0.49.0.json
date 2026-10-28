@@ -1,0 +1,1028 @@
+{
+  "captured_at": "2026-10-26T15:38:38.60153185Z",
+  "mcp": {
+    "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+    "access_token": "ory_at_5XdaEfwYQm1YFDqqW5ZiJ8F3S_CUZwq71M1TCTMfRks.9rowZSDvWTUbjEtpsEnMPDYTB9pgYBQZQfUDl4eJnRM",
+    "refresh_token": "ory_rt_8etPg_N0eSvxP-t4WnhKD1RpirhI2YBjS7k4_TqxL8g.7Y6X44JJOYUNtW7uf0YRUdkeHGPTYbPztE8c18wdUJ0"
+  },
+  "rotated": {
+    "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+    "access_token": "ory_at_t7thaPBrfT-BICrmzve9F0cMAdP7IPShPz57KC51JDo.8SvQNvsK7oJs7rzetrGBFBOlgj-r-z0hwFZf2z_qyQI",
+    "refresh_token": "ory_rt_6AoQP8aYofSYYSnuj9sBhYGoC8BnPOvExNSoF3mOS1M.lbWAjSxttFh9p5D4dOBGq9rhLEci8kzUaKKniPUle1Q",
+    "stale_refresh_token": "ory_rt_m0xHEM48u60XsZeDQvQ-7zdR55M5qvOyKck47bYRCNk.hjW4PP-RkFPIK3TeG8Unf-0v8lzNMnOvhWJm_Dmr4sE"
+  },
+  "oidc": {
+    "client_id": "v049-fixture-oidc",
+    "access_token": "ory_at_4IewoSvGy0GIVyzombKpUKZpNymF57waCZC8TSAhHM0.hYvs9e4HbuhL6TS691Vo5UwkTirqG1j8J73sRgAaxzY",
+    "refresh_token": "ory_rt_vYHmLlIQ_WK8Wv04sk0mflxer1W6iuF3gSvgQUuXRmQ.phGu3P6_6Xeypv7FgbzexOBba7e4disuYGNJ818ZvzE"
+  },
+  "pending_code": {
+    "client_id": "v049-fixture-oidc",
+    "code": "ory_ac_pf3GLguYEzohOh7WacBtivH4weRuGO6hSHUkasqB6Gs.g3XDlBJ21Ydj0ABn7Jj1jujslHyQ7Fb_zsPiV6zoyTA",
+    "verifier": "wPrYD0Ps9G1OPiVTKZUsD5EGKSto-3hTDpG_pxSyJmE",
+    "redirect_uri": "https://example.com/v049/callback"
+  },
+  "client_credentials": {
+    "client_id": "routines",
+    "access_token": "ory_at_dZVHb0QNnDjwfrgQIIqJwb1wg8tF9h5E2lOkMNQQ7G4.iKTviR6NwG_DEkGYaXyS-4Esrfa_Ko6_70XKQs9kstg"
+  },
+  "rows": {
+    "oauth2_access_tokens": [
+      {
+        "active": true,
+        "request": {
+          "id": "365cf6ce-52de-4414-8647-e63968d94e72",
+          "form": {
+            "client_id": [
+              "fb3e5fe1d1086d5aa3be3ead1913648e"
+            ],
+            "grant_type": [
+              "authorization_code"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "access_token": "2026-10-26T16:38:38Z",
+              "refresh_token": "2026-11-25T15:38:38Z",
+              "authorize_code": "2026-10-26T15:48:38.084480117Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": null,
+              "iat": "2026-10-26T15:38:38.084444414Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.084444414Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.084444414Z"
+            }
+          },
+          "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+          "requested_at": "2026-10-26T15:38:38.103208318Z",
+          "granted_scope": [
+            "offline_access"
+          ],
+          "requested_scope": null,
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "user_id": "28cf9000-06af-4e31-869f-7732ffb0118d",
+        "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+        "signature": "9rowZSDvWTUbjEtpsEnMPDYTB9pgYBQZQfUDl4eJnRM",
+        "created_at": "2026-10-26T15:38:38.116087+00:00",
+        "expires_at": "2026-10-26T16:38:38+00:00"
+      },
+      {
+        "active": true,
+        "request": {
+          "id": "f6c8e1ac-941b-49f3-b696-192f1a440f70",
+          "form": {
+            "client_id": [
+              "fb3e5fe1d1086d5aa3be3ead1913648e"
+            ],
+            "grant_type": [
+              "authorization_code"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "access_token": "2026-10-26T16:38:38Z",
+              "refresh_token": "2026-11-25T15:38:38Z",
+              "authorize_code": "2026-10-26T15:48:38.1365364Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": null,
+              "iat": "2026-10-26T15:38:38.136522393Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.136522393Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.136522393Z"
+            }
+          },
+          "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+          "requested_at": "2026-10-26T15:38:38.155153626Z",
+          "granted_scope": [
+            "offline_access"
+          ],
+          "requested_scope": null,
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "user_id": "28cf9000-06af-4e31-869f-7732ffb0118d",
+        "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+        "signature": "BOwBqm8pg3XmBMD1h63_MUA2NEXFoIuzoY3y5IqS0TQ",
+        "created_at": "2026-10-26T15:38:38.163047+00:00",
+        "expires_at": "2026-10-26T16:38:38+00:00"
+      },
+      {
+        "active": true,
+        "request": {
+          "id": "f6c8e1ac-941b-49f3-b696-192f1a440f70",
+          "form": {
+            "client_id": [
+              "fb3e5fe1d1086d5aa3be3ead1913648e"
+            ],
+            "grant_type": [
+              "refresh_token"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "access_token": "2026-10-26T16:38:38Z",
+              "refresh_token": "2026-11-25T15:38:38Z",
+              "authorize_code": "2026-10-26T15:48:38.1365364Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": null,
+              "iat": "2026-10-26T15:38:38.136522393Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.136522393Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.136522393Z"
+            }
+          },
+          "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+          "requested_at": "2026-10-26T15:38:38.171505832Z",
+          "granted_scope": [
+            "offline_access"
+          ],
+          "requested_scope": null,
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "user_id": "28cf9000-06af-4e31-869f-7732ffb0118d",
+        "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+        "signature": "8SvQNvsK7oJs7rzetrGBFBOlgj-r-z0hwFZf2z_qyQI",
+        "created_at": "2026-10-26T15:38:38.179026+00:00",
+        "expires_at": "2026-10-26T16:38:38+00:00"
+      },
+      {
+        "active": true,
+        "request": {
+          "id": "f487259f-6814-414a-b848-2506450fb516",
+          "form": {
+            "grant_type": [
+              "authorization_code"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "access_token": "2026-10-26T16:38:38Z",
+              "refresh_token": "2026-11-25T15:38:38Z",
+              "authorize_code": "2026-10-26T15:48:38.196843548Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": {
+                "name": "E2E User",
+                "role": "Admin",
+                "email": "e2e-user@example.com",
+                "email_verified": true,
+                "preferred_username": "e2e-user@example.com"
+              },
+              "iat": "2026-10-26T15:38:38.196830927Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.196830927Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.196830927Z"
+            }
+          },
+          "client_id": "v049-fixture-oidc",
+          "requested_at": "2026-10-26T15:38:38.211138964Z",
+          "granted_scope": [
+            "openid",
+            "profile",
+            "email",
+            "offline_access"
+          ],
+          "requested_scope": [
+            "openid",
+            "profile",
+            "email",
+            "offline_access"
+          ],
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "user_id": "28cf9000-06af-4e31-869f-7732ffb0118d",
+        "client_id": "v049-fixture-oidc",
+        "signature": "hYvs9e4HbuhL6TS691Vo5UwkTirqG1j8J73sRgAaxzY",
+        "created_at": "2026-10-26T15:38:38.223062+00:00",
+        "expires_at": "2026-10-26T16:38:38+00:00"
+      },
+      {
+        "active": true,
+        "request": {
+          "id": "88a305c7-1d8e-4229-86d3-0a45d19d08ce",
+          "form": {
+            "grant_type": [
+              "client_credentials"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": null
+            },
+            "subject": "131220c3-7027-4f72-b714-b6ecb114d19d",
+            "username": "",
+            "expires_at": {
+              "access_token": "2026-10-26T16:38:38.598692712Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": null,
+              "iat": "0001-01-01T00:00:00Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.251080849Z",
+              "sub": "",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "0001-01-01T00:00:00Z"
+            }
+          },
+          "client_id": "routines",
+          "requested_at": "2026-10-26T15:38:38.251083243Z",
+          "granted_scope": [],
+          "requested_scope": null,
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "user_id": "131220c3-7027-4f72-b714-b6ecb114d19d",
+        "client_id": "routines",
+        "signature": "iKTviR6NwG_DEkGYaXyS-4Esrfa_Ko6_70XKQs9kstg",
+        "created_at": "2026-10-26T15:38:38.599077+00:00",
+        "expires_at": "2026-10-26T16:38:38.598692+00:00"
+      }
+    ],
+    "oauth2_auth_codes": [
+      {
+        "active": false,
+        "request": {
+          "id": "365cf6ce-52de-4414-8647-e63968d94e72",
+          "form": {
+            "client_id": [
+              "fb3e5fe1d1086d5aa3be3ead1913648e"
+            ],
+            "redirect_uri": [
+              "http://localhost:9999/callback"
+            ],
+            "response_type": [
+              "code"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "authorize_code": "2026-10-26T15:48:38.084480117Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": null,
+              "iat": "2026-10-26T15:38:38.084444414Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.084444414Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.084444414Z"
+            }
+          },
+          "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+          "requested_at": "2026-10-26T15:38:38.084153747Z",
+          "granted_scope": [
+            "offline_access"
+          ],
+          "requested_scope": null,
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "user_id": "28cf9000-06af-4e31-869f-7732ffb0118d",
+        "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+        "signature": "ALgH20w1LZcH44yUCaLILcZ6bNpqMFht3ecpUkLAoz0",
+        "created_at": "2026-10-26T15:38:38.084984+00:00",
+        "expires_at": "2026-10-26T15:48:38.084484+00:00"
+      },
+      {
+        "active": false,
+        "request": {
+          "id": "f6c8e1ac-941b-49f3-b696-192f1a440f70",
+          "form": {
+            "client_id": [
+              "fb3e5fe1d1086d5aa3be3ead1913648e"
+            ],
+            "redirect_uri": [
+              "http://localhost:9999/callback"
+            ],
+            "response_type": [
+              "code"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "authorize_code": "2026-10-26T15:48:38.1365364Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": null,
+              "iat": "2026-10-26T15:38:38.136522393Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.136522393Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.136522393Z"
+            }
+          },
+          "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+          "requested_at": "2026-10-26T15:38:38.136324936Z",
+          "granted_scope": [
+            "offline_access"
+          ],
+          "requested_scope": null,
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "user_id": "28cf9000-06af-4e31-869f-7732ffb0118d",
+        "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+        "signature": "BSqcPuXKxxv-C1IvhCZ8fVPLm3MdUwg8iWAiPvRWRdw",
+        "created_at": "2026-10-26T15:38:38.136627+00:00",
+        "expires_at": "2026-10-26T15:48:38.136539+00:00"
+      },
+      {
+        "active": false,
+        "request": {
+          "id": "f487259f-6814-414a-b848-2506450fb516",
+          "form": {
+            "scope": [
+              "openid profile email offline_access"
+            ],
+            "client_id": [
+              "v049-fixture-oidc"
+            ],
+            "redirect_uri": [
+              "https://example.com/v049/callback"
+            ],
+            "response_type": [
+              "code"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "authorize_code": "2026-10-26T15:48:38.196843548Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": {
+                "name": "E2E User",
+                "role": "Admin",
+                "email": "e2e-user@example.com",
+                "email_verified": true,
+                "preferred_username": "e2e-user@example.com"
+              },
+              "iat": "2026-10-26T15:38:38.196830927Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.196830927Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.196830927Z"
+            }
+          },
+          "client_id": "v049-fixture-oidc",
+          "requested_at": "2026-10-26T15:38:38.196651948Z",
+          "granted_scope": [
+            "openid",
+            "profile",
+            "email",
+            "offline_access"
+          ],
+          "requested_scope": [
+            "openid",
+            "profile",
+            "email",
+            "offline_access"
+          ],
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "user_id": "28cf9000-06af-4e31-869f-7732ffb0118d",
+        "client_id": "v049-fixture-oidc",
+        "signature": "iktQOMQWrvfFf3x24yKS7IuJH0stl9_IeaCqK-CcqMo",
+        "created_at": "2026-10-26T15:38:38.196935+00:00",
+        "expires_at": "2026-10-26T15:48:38.196846+00:00"
+      },
+      {
+        "active": true,
+        "request": {
+          "id": "aec45411-c622-4a33-969f-7263af85b2ab",
+          "form": {
+            "scope": [
+              "openid profile email offline_access"
+            ],
+            "client_id": [
+              "v049-fixture-oidc"
+            ],
+            "redirect_uri": [
+              "https://example.com/v049/callback"
+            ],
+            "response_type": [
+              "code"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "authorize_code": "2026-10-26T15:48:38.237049687Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": {
+                "name": "E2E User",
+                "role": "Admin",
+                "email": "e2e-user@example.com",
+                "email_verified": true,
+                "preferred_username": "e2e-user@example.com"
+              },
+              "iat": "2026-10-26T15:38:38.237036992Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.237036992Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.237036992Z"
+            }
+          },
+          "client_id": "v049-fixture-oidc",
+          "requested_at": "2026-10-26T15:38:38.236856415Z",
+          "granted_scope": [
+            "openid",
+            "profile",
+            "email",
+            "offline_access"
+          ],
+          "requested_scope": [
+            "openid",
+            "profile",
+            "email",
+            "offline_access"
+          ],
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "user_id": "28cf9000-06af-4e31-869f-7732ffb0118d",
+        "client_id": "v049-fixture-oidc",
+        "signature": "g3XDlBJ21Ydj0ABn7Jj1jujslHyQ7Fb_zsPiV6zoyTA",
+        "created_at": "2026-10-26T15:38:38.23714+00:00",
+        "expires_at": "2026-10-26T15:48:38.237053+00:00"
+      }
+    ],
+    "oauth2_clients": [
+      {
+        "id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+        "public": true,
+        "scopes": [
+          "offline_access",
+          "openid"
+        ],
+        "created_at": "2026-10-26T15:38:37.363817+00:00",
+        "client_name": "e2e test client",
+        "grant_types": [
+          "authorization_code",
+          "refresh_token"
+        ],
+        "secret_hash": null,
+        "redirect_uris": [
+          "http://localhost:9999/callback"
+        ],
+        "response_types": [
+          "code"
+        ]
+      },
+      {
+        "id": "v049-fixture-oidc",
+        "public": false,
+        "scopes": [
+          "openid",
+          "profile",
+          "email",
+          "offline_access"
+        ],
+        "created_at": "2026-10-26T15:38:37.351067+00:00",
+        "client_name": "fosite v0.49.0 fixture",
+        "grant_types": [
+          "authorization_code",
+          "refresh_token"
+        ],
+        "secret_hash": "$2a$04$sC5UMFegFKLENAYIG6rx6eJdjvFjqtoURkxB0Eox09WFT5EWcjriG",
+        "redirect_uris": [
+          "https://example.com/v049/callback"
+        ],
+        "response_types": [
+          "code"
+        ]
+      }
+    ],
+    "oauth2_oidc_sessions": [
+      {
+        "request": {
+          "id": "aec45411-c622-4a33-969f-7263af85b2ab",
+          "form": {
+            "scope": [
+              "openid profile email offline_access"
+            ],
+            "client_id": [
+              "v049-fixture-oidc"
+            ],
+            "response_type": [
+              "code"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "authorize_code": "2026-10-26T15:48:38.237049687Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": {
+                "name": "E2E User",
+                "role": "Admin",
+                "email": "e2e-user@example.com",
+                "email_verified": true,
+                "preferred_username": "e2e-user@example.com"
+              },
+              "iat": "2026-10-26T15:38:38.237036992Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.237036992Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.237036992Z"
+            }
+          },
+          "client_id": "v049-fixture-oidc",
+          "requested_at": "2026-10-26T15:38:38.236856415Z",
+          "granted_scope": [
+            "openid",
+            "profile",
+            "email",
+            "offline_access"
+          ],
+          "requested_scope": [
+            "openid",
+            "profile",
+            "email",
+            "offline_access"
+          ],
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "client_id": "v049-fixture-oidc",
+        "signature": "ory_ac_pf3GLguYEzohOh7WacBtivH4weRuGO6hSHUkasqB6Gs.g3XDlBJ21Ydj0ABn7Jj1jujslHyQ7Fb_zsPiV6zoyTA",
+        "created_at": "2026-10-26T15:38:38.247039+00:00",
+        "expires_at": "2026-10-26T15:48:38.246969+00:00"
+      }
+    ],
+    "oauth2_pkce_requests": [
+      {
+        "request": {
+          "id": "aec45411-c622-4a33-969f-7263af85b2ab",
+          "form": {
+            "scope": [
+              "openid profile email offline_access"
+            ],
+            "client_id": [
+              "v049-fixture-oidc"
+            ],
+            "response_type": [
+              "code"
+            ],
+            "code_challenge": [
+              "fDYpfKEsyh8Pb7CYjFNcjfgODLuQbgV8FttncY-wNAE"
+            ],
+            "code_challenge_method": [
+              "S256"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "authorize_code": "2026-10-26T15:48:38.237049687Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": {
+                "name": "E2E User",
+                "role": "Admin",
+                "email": "e2e-user@example.com",
+                "email_verified": true,
+                "preferred_username": "e2e-user@example.com"
+              },
+              "iat": "2026-10-26T15:38:38.237036992Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.237036992Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.237036992Z"
+            }
+          },
+          "client_id": "v049-fixture-oidc",
+          "requested_at": "2026-10-26T15:38:38.236856415Z",
+          "granted_scope": [
+            "openid",
+            "profile",
+            "email",
+            "offline_access"
+          ],
+          "requested_scope": [
+            "openid",
+            "profile",
+            "email",
+            "offline_access"
+          ],
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "signature": "g3XDlBJ21Ydj0ABn7Jj1jujslHyQ7Fb_zsPiV6zoyTA",
+        "created_at": "2026-10-26T15:38:38.243055+00:00",
+        "expires_at": "2026-10-26T15:48:38.242968+00:00"
+      }
+    ],
+    "oauth2_refresh_tokens": [
+      {
+        "active": true,
+        "request": {
+          "id": "365cf6ce-52de-4414-8647-e63968d94e72",
+          "form": {
+            "client_id": [
+              "fb3e5fe1d1086d5aa3be3ead1913648e"
+            ],
+            "grant_type": [
+              "authorization_code"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "access_token": "2026-10-26T16:38:38Z",
+              "refresh_token": "2026-11-25T15:38:38Z",
+              "authorize_code": "2026-10-26T15:48:38.084480117Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": null,
+              "iat": "2026-10-26T15:38:38.084444414Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.084444414Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.084444414Z"
+            }
+          },
+          "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+          "requested_at": "2026-10-26T15:38:38.103208318Z",
+          "granted_scope": [
+            "offline_access"
+          ],
+          "requested_scope": null,
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "user_id": "28cf9000-06af-4e31-869f-7732ffb0118d",
+        "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+        "signature": "7Y6X44JJOYUNtW7uf0YRUdkeHGPTYbPztE8c18wdUJ0",
+        "created_at": "2026-10-26T15:38:38.127407+00:00",
+        "expires_at": "2026-11-25T15:38:38+00:00",
+        "rotated_at": null
+      },
+      {
+        "active": false,
+        "request": {
+          "id": "f6c8e1ac-941b-49f3-b696-192f1a440f70",
+          "form": {
+            "client_id": [
+              "fb3e5fe1d1086d5aa3be3ead1913648e"
+            ],
+            "grant_type": [
+              "authorization_code"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "access_token": "2026-10-26T16:38:38Z",
+              "refresh_token": "2026-11-25T15:38:38Z",
+              "authorize_code": "2026-10-26T15:48:38.1365364Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": null,
+              "iat": "2026-10-26T15:38:38.136522393Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.136522393Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.136522393Z"
+            }
+          },
+          "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+          "requested_at": "2026-10-26T15:38:38.155153626Z",
+          "granted_scope": [
+            "offline_access"
+          ],
+          "requested_scope": null,
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "user_id": "28cf9000-06af-4e31-869f-7732ffb0118d",
+        "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+        "signature": "hjW4PP-RkFPIK3TeG8Unf-0v8lzNMnOvhWJm_Dmr4sE",
+        "created_at": "2026-10-26T15:38:38.166625+00:00",
+        "expires_at": "2026-11-25T15:38:38+00:00",
+        "rotated_at": "2026-10-26T15:38:38.172561+00:00"
+      },
+      {
+        "active": true,
+        "request": {
+          "id": "f6c8e1ac-941b-49f3-b696-192f1a440f70",
+          "form": {
+            "client_id": [
+              "fb3e5fe1d1086d5aa3be3ead1913648e"
+            ],
+            "grant_type": [
+              "refresh_token"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "access_token": "2026-10-26T16:38:38Z",
+              "refresh_token": "2026-11-25T15:38:38Z",
+              "authorize_code": "2026-10-26T15:48:38.1365364Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": null,
+              "iat": "2026-10-26T15:38:38.136522393Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.136522393Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.136522393Z"
+            }
+          },
+          "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+          "requested_at": "2026-10-26T15:38:38.171505832Z",
+          "granted_scope": [
+            "offline_access"
+          ],
+          "requested_scope": null,
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "user_id": "28cf9000-06af-4e31-869f-7732ffb0118d",
+        "client_id": "fb3e5fe1d1086d5aa3be3ead1913648e",
+        "signature": "lbWAjSxttFh9p5D4dOBGq9rhLEci8kzUaKKniPUle1Q",
+        "created_at": "2026-10-26T15:38:38.187063+00:00",
+        "expires_at": "2026-11-25T15:38:38+00:00",
+        "rotated_at": null
+      },
+      {
+        "active": true,
+        "request": {
+          "id": "f487259f-6814-414a-b848-2506450fb516",
+          "form": {
+            "grant_type": [
+              "authorization_code"
+            ]
+          },
+          "session": {
+            "headers": {
+              "extra": {
+                "kid": "uYg2rsTecl6TYN5ClVPRCUyZ5XoHt77DxZUTvUmAZRs"
+              }
+            },
+            "subject": "28cf9000-06af-4e31-869f-7732ffb0118d",
+            "username": "e2e-user@example.com",
+            "expires_at": {
+              "access_token": "2026-10-26T16:38:38Z",
+              "refresh_token": "2026-11-25T15:38:38Z",
+              "authorize_code": "2026-10-26T15:48:38.196843548Z"
+            },
+            "id_token_claims": {
+              "acr": "",
+              "amr": null,
+              "aud": null,
+              "exp": "0001-01-01T00:00:00Z",
+              "ext": {
+                "name": "E2E User",
+                "role": "Admin",
+                "email": "e2e-user@example.com",
+                "email_verified": true,
+                "preferred_username": "e2e-user@example.com"
+              },
+              "iat": "2026-10-26T15:38:38.196830927Z",
+              "iss": "",
+              "jti": "",
+              "rat": "2026-10-26T15:38:38.196830927Z",
+              "sub": "28cf9000-06af-4e31-869f-7732ffb0118d",
+              "nonce": "",
+              "c_hash": "",
+              "at_hash": "",
+              "auth_time": "2026-10-26T15:38:38.196830927Z"
+            }
+          },
+          "client_id": "v049-fixture-oidc",
+          "requested_at": "2026-10-26T15:38:38.211138964Z",
+          "granted_scope": [
+            "openid",
+            "profile",
+            "email",
+            "offline_access"
+          ],
+          "requested_scope": [
+            "openid",
+            "profile",
+            "email",
+            "offline_access"
+          ],
+          "granted_audience": [],
+          "requested_audience": null
+        },
+        "user_id": "28cf9000-06af-4e31-869f-7732ffb0118d",
+        "client_id": "v049-fixture-oidc",
+        "signature": "phGu3P6_6Xeypv7FgbzexOBba7e4disuYGNJ818ZvzE",
+        "created_at": "2026-10-26T15:38:38.225947+00:00",
+        "expires_at": "2026-11-25T15:38:38+00:00",
+        "rotated_at": null
+      }
+    ]
+  }
+}
