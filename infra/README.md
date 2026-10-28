@@ -354,7 +354,11 @@ STEAM_API_KEY
 HARDCOVER_API_KEY
 TMDB_API_KEY
 OPENROUTER_API_KEY           (taste app LLM stages; a dedicated key with a
-                              credit limit, apart from the routines key)
+                              credit limit. The routines' agent key is an
+                              Actions secret of the same name with its own
+                              monthly cap enforced on OpenRouter — renew at
+                              openrouter.ai/settings/keys when it blocks the
+                              scheduled routines)
 R2_ACCOUNT_ID
 R2_ACCESS_KEY_ID
 R2_SECRET_ACCESS_KEY
