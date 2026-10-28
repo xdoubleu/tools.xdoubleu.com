@@ -42,6 +42,7 @@ func isbnFromUUID(id uuid.UUID) string {
 func newAdminBooksTestClient(t *testing.T) booksTestClient {
 	t.Helper()
 	adminApp := books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAdminAuthService(userID),
 		testApp.Logger,
 		testCfg,

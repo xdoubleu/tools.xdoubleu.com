@@ -27,7 +27,7 @@ connection, so they always read slow. Instead `acceptWithHandshakeSpan`
 bounded signal. That span still exists.
 
 Grafana took over p95 alerting from Prometheus histograms (#1528), and #1597
-removed the last reader (the weekly digest) and deleted `slow_transactions.go`.
+removed the last reader (the weekly digest) and deleted `slow_transactions.go`. <!-- historical -->
 `get_slow_transactions` never used the classification.
 
 ## Alternatives considered

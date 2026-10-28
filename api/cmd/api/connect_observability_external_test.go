@@ -17,6 +17,7 @@ import (
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/httpclient"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
@@ -63,8 +64,7 @@ func configNotConnected() stubConfigStore {
 // retries.
 func jsonServer(t *testing.T, status int, body string) *httptest.Server {
 	t.Helper()
-	github.SetBackoffBase(time.Millisecond)
-	sentryapi.SetBackoffBase(time.Millisecond)
+	httpclient.SetBackoffBase(time.Millisecond)
 	srv := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
@@ -272,8 +272,8 @@ func TestObservabilityGetWorkflowRuns_MainFailureIncludesFailedJobs(t *testing.T
 func TestObservabilityGetWorkflowRuns_MainFailureJobsFetchError(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
-	github.SetBackoffBase(time.Millisecond)
-	t.Cleanup(func() { github.SetBackoffBase(500 * time.Millisecond) })
+	httpclient.SetBackoffBase(time.Millisecond)
+	t.Cleanup(func() { httpclient.SetBackoffBase(0) })
 
 	srv := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {

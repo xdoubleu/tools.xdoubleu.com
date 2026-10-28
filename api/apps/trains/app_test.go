@@ -34,6 +34,7 @@ func TestMain(m *testing.M) {
 
 	// Migrations don't touch iRail, so this app needs no client.
 	migrator := trains.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(), cfg, pool, nil,
 	)
@@ -48,6 +49,7 @@ func TestMain(m *testing.M) {
 func newApp(t *testing.T) *trains.Trains {
 	t.Helper()
 	return trains.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(), testhelper.NewTestConfig(), testDB,
 		mocks.NewFixtureClient(t),
@@ -88,6 +90,7 @@ func TestGetName(t *testing.T) {
 
 func TestNewAndStart(t *testing.T) {
 	a := trains.New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(), testhelper.NewTestConfig(), testDB,
 	)

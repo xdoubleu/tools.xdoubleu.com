@@ -131,26 +131,13 @@ func (app *Application) appsMCPRoute() http.Handler {
 }
 
 func (app *Application) appsMCPHandler() http.Handler {
-	srv := app.newAppsMCPServer()
-	// The real boundary is mcpBearerRoute's token check, so the go-sdk's
-	// loopback DNS-rebinding guard is disabled (kamal-proxy doesn't reach us over
-	// loopback anyway).
-	//nolint:exhaustruct // only Stateless/DisableLocalhostProtection are set
-	return mcp.NewStreamableHTTPHandler(
-		func(*http.Request) *mcp.Server { return srv },
-		&mcp.StreamableHTTPOptions{Stateless: true, DisableLocalhostProtection: true},
-	)
+	return streamableMCPHandler(app.logger, app.newAppsMCPServer())
 }
 
 // newAppsMCPServer builds the MCP server from every MCPToolProvider plus the
 // observability tools.
 func (app *Application) newAppsMCPServer() *mcp.Server {
-	//nolint:exhaustruct // only Name/Version identify the server
-	srv := mcp.NewServer(&mcp.Implementation{
-		Name:    appsMCPServerName,
-		Version: mcpServerVersion,
-	}, nil)
-
+	srv := newMCPServer(app.logger)
 	for _, a := range *app.apps {
 		if provider, ok := a.(MCPToolProvider); ok {
 			provider.RegisterMCPTools(srv)

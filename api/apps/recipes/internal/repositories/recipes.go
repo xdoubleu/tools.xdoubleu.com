@@ -2,19 +2,33 @@ package repositories
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/pagination"
 )
 
+// ErrRecipeOnMealPlan is returned when Delete is blocked by a meal plan that
+// still references the recipe.
+var ErrRecipeOnMealPlan = errors.New("recipe is used in a meal plan")
+
+// planMealsRecipeFK is the meal-plan foreign key to recipes. Matching its name
+// keeps this app unaware of the mealplans schema that owns the table.
+const planMealsRecipeFK = "plan_meals_recipe_id_fkey"
+
 type RecipesRepository struct {
 	db postgres.DB
 }
 
+// ListForFamily returns a page of the family's recipes without Instructions or
+// Ingredients: a list query never selects a wide TEXT column
+// (docs/convention-database-queries.md), so GetByID is the only read for them.
 func (r *RecipesRepository) ListForFamily(
 	ctx context.Context,
 	familyID uuid.UUID,
@@ -25,7 +39,7 @@ func (r *RecipesRepository) ListForFamily(
 
 	rows, err := r.db.Query(ctx, `
 		SELECT r.id, r.user_id, r.family_id, r.name,
-		       r.instructions, r.base_servings, r.is_draft, r.created_at, r.updated_at
+		       r.base_servings, r.is_draft, r.created_at, r.updated_at
 		FROM recipes.recipes r
 		WHERE r.family_id = $1
 		ORDER BY r.name, r.id
@@ -42,7 +56,7 @@ func (r *RecipesRepository) ListForFamily(
 		var recipe models.Recipe
 		if err = rows.Scan(
 			&recipe.ID, &recipe.UserID, &recipe.FamilyID, &recipe.Name,
-			&recipe.Instructions, &recipe.BaseServings, &recipe.IsDraft,
+			&recipe.BaseServings, &recipe.IsDraft,
 			&recipe.CreatedAt, &recipe.UpdatedAt,
 		); err != nil {
 			return nil, false, err
@@ -140,6 +154,12 @@ func (r *RecipesRepository) Delete(
 		`DELETE FROM recipes.recipes WHERE id = $1 AND family_id = $2`,
 		id, familyID,
 	)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) &&
+		pgErr.Code == pgerrcode.ForeignKeyViolation &&
+		pgErr.ConstraintName == planMealsRecipeFK {
+		return ErrRecipeOnMealPlan
+	}
 	return err
 }
 

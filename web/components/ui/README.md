@@ -40,6 +40,21 @@ Inline message banner. `danger` announces immediately (`role="alert"`); the othe
 
 Also accepts: `HTMLAttributes<HTMLDivElement>`
 
+### `artwork.tsx`
+
+#### `Artwork`
+
+A cover, poster or artwork thumbnail that keeps its box, with a muted-initials fallback.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `src` | `string` | yes | Hotlinked image; the fallback shows when empty or when it fails to load. |
+| `title` | `string` | yes | What the artwork shows; the fallback is its initials. |
+| `size` | `keyof typeof SIZES` | yes | sm/md/lg are 2:3 covers and posters; square is 64px. |
+| `initials` | `1 \| 2` |  | Words the fallback takes an initial from. |
+| `alt` | `string` |  | Empty by default: a caption beside the artwork usually names it. |
+| `className` | `string` |  |  |
+
 ### `badge.tsx`
 
 #### `Badge`
@@ -66,7 +81,7 @@ Navigation trail; the last item is the current page. Use instead of one-off "bac
 |---|---|---|---|
 | `variant` | `'default' \| 'secondary' \| 'ghost' \| 'destructive' \| 'link'` |  |  |
 | `size` | `'sm' \| 'md' \| 'lg' \| 'icon' \| 'iconSm'` |  |  |
-| `asChild` | `boolean` |  | Render the child element as the button (e.g. a Next `<Link>`), inheriting button styles. |
+| `asChild` | `boolean` |  | Render the child element as the button (e.g. a `<Link>`), inheriting button styles. |
 
 Also accepts: `ButtonHTMLAttributes<HTMLButtonElement>`
 
@@ -282,6 +297,7 @@ A card that navigates, with its controls kept out of the link area.
 | `children` | `ReactNode` | yes | The navigating zone: cover, title, meta. Keep controls out of it. |
 | `actions` | `ReactNode` |  | Controls in a separate footer that never navigates, so a near-miss can't open the page. |
 | `'aria-label'` | `string` |  | Accessible name for the link when `children` has no clear text. |
+| `external` | `boolean` |  | Full page load, for a same-origin path another service serves (e.g. `/grafana`). |
 | `className` | `string` |  |  |
 | `linkClassName` | `string` |  |  |
 
@@ -341,7 +357,7 @@ Navigation to another page in `PageHeader` `actions`, bordered like the `seconda
 
 #### `Popover`
 
-Trigger plus a portalled fixed panel (never clipped by overflow ancestors) that closes on outside click and Escape, flips upward when space below is short, and caps its height to the viewport.
+Trigger plus a portalled fixed panel (never clipped by overflow ancestors) that closes on outside click and Escape, flips upward when space below is short, and caps its height to the viewport. Opening moves focus into the panel (its first `menuitem` for a menu, which arrow keys then move between); closing, or tabbing out, returns focus to the trigger.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
@@ -351,6 +367,7 @@ Trigger plus a portalled fixed panel (never clipped by overflow ancestors) that 
 | `align` | `'left' \| 'right'` |  | Alignment of the panel relative to the trigger. Defaults to "right". |
 | `open` | `boolean` |  | Controls the open state, e.g. to close the panel after a menu action. |
 | `onOpenChange` | `(open: boolean) => void` |  |  |
+| `'aria-label'` | `string` |  | Names the panel for screen readers; without it the trigger labels the panel. |
 
 #### `PopoverTrigger`
 
@@ -461,6 +478,7 @@ Message for a list or section with nothing in it yet.
 |---|---|---|---|
 | `children` | `ReactNode` | yes |  |
 | `action` | `ReactNode` |  | Optional call to action under the message, e.g. a "New recipe" button. |
+| `compact` | `boolean` |  | Flush and left-aligned, for an empty list inside a field, dialog section or panel. |
 | `className` | `string` |  |  |
 
 #### `ErrorState`

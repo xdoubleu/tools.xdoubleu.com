@@ -18,9 +18,7 @@ function EventRow({ event }: { event: Event }) {
     <Card variant="inset" className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         <p className="break-words font-medium">{event.title}</p>
-        <p className="break-words text-xs text-muted" suppressHydrationWarning>
-          {meta.join(' · ')}
-        </p>
+        <p className="break-words text-xs text-muted">{meta.join(' · ')}</p>
         {event.reason && <p className="text-sm text-subtle">{event.reason}</p>}
       </div>
       <Badge variant={badge.variant}>{badge.label}</Badge>

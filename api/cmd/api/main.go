@@ -55,6 +55,7 @@ type Application struct {
 	appUsersRepo                  *repositories.AppUsersRepository
 	profileSharesRepo             *repositories.ProfileSharesRepository
 	usage                         *observability.UsageRecorder
+	notifications                 *notifications.Service
 	jobRunsRepo                   *repositories.JobRunsRepository
 	usageRepo                     *repositories.UsageRepository
 	storageRepo                   *repositories.StorageSnapshotsRepository
@@ -82,7 +83,6 @@ type Application struct {
 //	@Produce		json
 
 const (
-	dbMaxConns           = 25
 	dbMaxIdleTime        = "15m"
 	dbConnectTimeoutSecs = 10
 	dbRetrySleep         = 2 * time.Second
@@ -103,6 +103,7 @@ const (
 	webHeapWatchThreshold     = 400 << 20
 	workersHeapWatchThreshold = 1200 << 20
 	heapWatchInterval         = 5 * time.Second
+	logFlushTimeout           = 5 * time.Second
 )
 
 // migrationLockTimeout makes a replica fail loudly if a stale connection
@@ -112,37 +113,46 @@ const (
 var migrationLockTimeout = 20 * time.Second
 
 // newDBPool opens the shared pgx pool; tests reuse it.
-func newDBPool(logger *slog.Logger, dsn string) (*pgxpool.Pool, error) {
+func newDBPool(
+	logger *slog.Logger,
+	dsn string,
+	maxConns int,
+) (*pgxpool.Pool, error) {
 	return postgres.Connect(
-		logger, dsn, dbMaxConns, dbMaxIdleTime,
+		logger, dsn, maxConns, dbMaxIdleTime,
 		dbConnectTimeoutSecs, dbRetrySleep, dbMaxRetryDuration,
 	)
 }
 
 func main() {
+	ctx, stop := newRootContext()
+	defer stop()
+
 	cfg := config.New(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 
 	bootLogger := slog.New(sentrytools.NewLogHandler(cfg.Env,
 		slog.NewTextHandler(os.Stdout, nil)))
-	db, err := newDBPool(bootLogger, cfg.DBDsn)
+	db, err := newDBPool(bootLogger, cfg.DBDsn, cfg.DBMaxConns)
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
 
 	// Built after the DB pool, which the log-teeing handler needs.
-	logger := slog.New(observability.NewLogRepoHandler(
+	logHandler := observability.NewLogRepoHandler(
 		sentrytools.NewLogHandler(cfg.Env, slog.NewTextHandler(os.Stdout, nil)),
 		repositories.NewLogsRepository(db),
-	))
+	)
+	// Deferred after db.Close, so it flushes first.
+	defer flushLogs(logHandler)
+	logger := slog.New(logHandler)
 	// Route slog.Default() through the same chain.
 	slog.SetDefault(logger)
 
-	app := NewApplication(logger, cfg, db)
+	app := NewApplication(ctx, logger, cfg, db)
 
 	go observability.WatchHeap(
-		context.Background(), logger, heapWatchThreshold(cfg.Role),
-		heapWatchInterval,
+		ctx, logger, heapWatchThreshold(cfg.Role), heapWatchInterval,
 	)
 
 	handler, err := app.Handler()
@@ -157,10 +167,27 @@ func main() {
 		ReadTimeout:  httpReadTimeout,
 		WriteTimeout: httpWriteTimeout,
 	}
-	err = httptools.Serve(logger, srv, cfg.Env)
+	err = httptools.Serve(ctx, logger, srv, cfg.Env, httpShutdownTimeout)
 	if err != nil {
 		logger.Error("failed to serve server", essentialogger.ErrAttr(err))
 	}
+
+	// Drain background tasks, job pools, email and usage counts here; the
+	// deferred log flush and db.Close then run, in that order. The flush stays
+	// deferred so a panicking boot still writes its logs.
+	stop()
+	if err = app.Shutdown(context.Background()); err != nil {
+		logger.ErrorContext(app.ctx, "shutdown did not drain cleanly",
+			essentialogger.ErrAttr(err))
+	}
+	sentry.Flush(sentryFlushTimeout)
+}
+
+// flushLogs writes the log records still queued for global.log_entries.
+func flushLogs(logHandler *observability.LogRepoHandler) {
+	ctx, cancel := context.WithTimeout(context.Background(), logFlushTimeout)
+	defer cancel()
+	_ = logHandler.Close(ctx)
 }
 
 func heapWatchThreshold(role string) uint64 {
@@ -380,12 +407,11 @@ func startCrossAppJobs(app *Application) error {
 
 //nolint:funlen //composition root: wiring every dependency, not complex logic
 func NewApplication(
+	ctx context.Context,
 	logger *slog.Logger,
 	config config.Config,
 	db *pgxpool.Pool,
 ) *Application {
-	ctx := context.Background()
-
 	sentryHub, err := sentrytools.Init(config.Env, sentry.ClientOptions{
 		Dsn:                   config.SentryDsn,
 		Environment:           config.Env,
@@ -466,6 +492,7 @@ func NewApplication(
 		appUsersRepo:                  appUsersRepo,
 		profileSharesRepo:             repositories.NewProfileSharesRepository(db),
 		usage:                         observability.NewUsageRecorder(logger, db),
+		notifications:                 notificationsSvc,
 		jobRunsRepo:                   repositories.NewJobRunsRepository(db),
 		usageRepo:                     repositories.NewUsageRepository(db),
 		storageRepo:                   storageSnapshotsRepo,
@@ -490,7 +517,7 @@ func NewApplication(
 	spanDB := postgres.NewSpanDB(db)
 	var feedsApp *feeds.Feeds
 	app.apps, app.booksApp, feedsApp = NewApps(
-		app.auth, logger, config, spanDB, notificationsSvc, appUsersRepo,
+		ctx, app.auth, logger, config, spanDB, notificationsSvc, appUsersRepo,
 		familyRepo, authSealer,
 	)
 	app.feedsApp = feedsApp

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useId } from 'react'
 import { cn } from '@/lib/cn'
 import { Input } from '@/components/ui/input'
 
@@ -36,6 +36,7 @@ export function Combobox({
   const [open, setOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
+  const listboxId = useId()
 
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus()
@@ -48,6 +49,8 @@ export function Combobox({
             s.toLowerCase().includes(value.toLowerCase()) && s.toLowerCase() !== value.toLowerCase()
         )
       : suggestions
+  const expanded = open && filtered.length > 0
+  const optionId = (i: number) => `${listboxId}-${i}`
 
   const select = (suggestion: string) => {
     setOpen(false)
@@ -71,11 +74,9 @@ export function Combobox({
       e.preventDefault()
       setHighlightedIndex((i) => Math.max(i - 1, -1))
     } else if (e.key === 'Tab') {
-      const target = highlightedIndex >= 0 ? filtered[highlightedIndex] : filtered[0]
-      if (open && target) {
-        e.preventDefault()
-        select(target)
-      }
+      // Commits only an explicit highlight; focus still moves on.
+      const target = filtered[highlightedIndex]
+      if (open && target) select(target)
     } else if (e.key === 'Enter') {
       e.preventDefault()
       if (highlightedIndex >= 0 && filtered[highlightedIndex]) {
@@ -111,12 +112,27 @@ export function Combobox({
         onBlur={handleBlur}
         placeholder={placeholder}
         aria-label={ariaLabel}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={expanded}
+        aria-controls={expanded ? listboxId : undefined}
+        aria-activedescendant={
+          expanded && filtered[highlightedIndex] ? optionId(highlightedIndex) : undefined
+        }
       />
-      {open && filtered.length > 0 && (
-        <ul className="absolute z-10 w-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-48 overflow-y-auto">
+      {expanded && (
+        <ul
+          id={listboxId}
+          role="listbox"
+          aria-label={ariaLabel ?? 'Suggestions'}
+          className="absolute z-10 w-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-48 overflow-y-auto"
+        >
           {filtered.map((s, i) => (
             <li
               key={`${s}-${i}`}
+              id={optionId(i)}
+              role="option"
+              aria-selected={i === highlightedIndex}
               onMouseDown={() => select(s)}
               className={cn(
                 'flex min-h-11 items-center px-3 py-2 cursor-pointer text-sm transition-colors sm:min-h-9',

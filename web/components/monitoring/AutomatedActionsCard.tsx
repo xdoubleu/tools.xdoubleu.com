@@ -13,6 +13,7 @@ import type { GetAutomatedActionsResponse } from '@/lib/gen/observability/v1/obs
 import { formatDuration, isAutomatedActionStale } from '@/lib/observability'
 import { formatDateTime } from '@/lib/dates'
 import { cn } from '@/lib/cn'
+import { EmptyState } from '@/components/ui/states'
 
 function outcomeBadge(outcome: string, stale: boolean) {
   if (!outcome) {
@@ -47,7 +48,7 @@ export default function AutomatedActionsCard({ data }: { data?: GetAutomatedActi
       }
     >
       {data && actions.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted">No automated action runs yet.</p>
+        <EmptyState>No automated action runs yet.</EmptyState>
       ) : (
         <Table>
           <TableHeader>
@@ -81,6 +82,7 @@ export default function AutomatedActionsCard({ data }: { data?: GetAutomatedActi
                   <TableCell>
                     {outcomeBadge(action.outcome, stale)}
                     {action.error && (
+                      // eslint-disable-next-line ui/use-primitives -- a recorded action's error, not a live failure
                       <p className="mt-1 max-w-xs break-words text-xs text-danger">
                         {action.error}
                       </p>

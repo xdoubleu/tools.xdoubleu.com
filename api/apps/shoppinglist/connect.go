@@ -8,13 +8,13 @@ import (
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/apps/shoppinglist/internal/repositories"
 	"tools.xdoubleu.com/apps/shoppinglist/internal/services"
 	shoppinglistv1 "tools.xdoubleu.com/gen/shoppinglist/v1"
 	"tools.xdoubleu.com/gen/shoppinglist/v1/shoppinglistv1connect"
 	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/format"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
@@ -38,7 +38,10 @@ func (h *shoppingConnectHandler) callerID(ctx context.Context) (string, error) {
 }
 
 func mapError(err error) error {
-	return connecttools.MapError(err)
+	return connecttools.MapError(
+		err,
+		connecttools.Code(repositories.ErrSelfAlias, connect.CodeInvalidArgument),
+	)
 }
 
 func (h *shoppingConnectHandler) GetCustomList(
@@ -60,7 +63,7 @@ func (h *shoppingConnectHandler) GetCustomList(
 		pb[i] = &shoppinglistv1.ShoppingItem{
 			Id:     item.ID,
 			Name:   item.Name,
-			Amount: format.ToAmount(item.Amount),
+			Amount: toAmount(item.Amount),
 			Unit:   item.Unit,
 		}
 	}
@@ -108,7 +111,7 @@ func (h *shoppingConnectHandler) CreateShoppingItem(
 		Item: &shoppinglistv1.ShoppingItem{
 			Id:     item.ID,
 			Name:   item.Name,
-			Amount: format.ToAmount(item.Amount),
+			Amount: toAmount(item.Amount),
 			Unit:   item.Unit,
 		},
 	}, nil
@@ -157,7 +160,7 @@ func (h *shoppingConnectHandler) UpdateShoppingItem(
 		Item: &shoppinglistv1.ShoppingItem{
 			Id:     item.ID,
 			Name:   item.Name,
-			Amount: format.ToAmount(item.Amount),
+			Amount: toAmount(item.Amount),
 			Unit:   item.Unit,
 		},
 	}, nil
@@ -220,7 +223,7 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 	for i, item := range items {
 		pb[i] = &shoppinglistv1.ShoppingItem{
 			Name:       item.Name,
-			Amount:     format.ToAmount(item.Amount),
+			Amount:     toAmount(item.Amount),
 			Unit:       item.Unit,
 			RecipeName: item.RecipeName,
 			GroupName:  item.GroupName,

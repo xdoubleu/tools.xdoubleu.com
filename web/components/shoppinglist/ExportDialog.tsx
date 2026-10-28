@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { useStores, useStoreCategories, useItemCategories } from '@/hooks/useShoppingList'
+import { useStores, useStoreCategories } from '@/hooks/useShoppingList'
+import { useItemCategories } from '@/hooks/useIngredientCatalog'
 import {
   formatForClipboard,
   formatForAppleNotes,
@@ -25,6 +26,7 @@ import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { EmptyState } from '@/components/ui/states'
 
 interface ExportDialogProps {
   customItems: ShoppingItem[]
@@ -113,7 +115,7 @@ export default function ExportDialog({ customItems, mealItems, onClose }: Export
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent side="sheet" className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Export Shopping List</DialogTitle>
           <DialogClose aria-label="Close">×</DialogClose>
@@ -164,7 +166,7 @@ export default function ExportDialog({ customItems, mealItems, onClose }: Export
                 Grouped by store aisle
               </h3>
               {exportGroups.length === 0 ? (
-                <p className="text-sm text-muted">No items to export.</p>
+                <EmptyState compact>No items to export.</EmptyState>
               ) : (
                 <div className="space-y-3">
                   {exportGroups.map((group) => (

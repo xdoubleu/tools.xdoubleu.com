@@ -92,7 +92,9 @@ describe('ConsentPage', () => {
     vi.mocked(getConsentInfo).mockResolvedValue(null)
     renderPage()
 
-    await waitFor(() => expect(screen.getByText(/invalid or has expired/)).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(/invalid or has expired/)
+    )
   })
 
   it('treats a failed lookup as an invalid request', async () => {
@@ -100,6 +102,8 @@ describe('ConsentPage', () => {
     vi.mocked(getConsentInfo).mockRejectedValue(new Error('network'))
     renderPage()
 
-    await waitFor(() => expect(screen.getByText(/invalid or has expired/)).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(/invalid or has expired/)
+    )
   })
 })

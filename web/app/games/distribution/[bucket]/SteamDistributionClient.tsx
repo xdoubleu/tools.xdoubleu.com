@@ -1,20 +1,13 @@
 import { useSteamDistribution } from '@/hooks/useGames'
-import type { GetSteamDistributionResponse } from '@/lib/gen/games/v1/games_pb'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
-import { ErrorState, LoadingState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { GameCard } from '@/components/games/GameCards'
 
-export default function SteamDistributionClient({
-  bucket,
-  initialData
-}: {
-  bucket: string
-  initialData?: GetSteamDistributionResponse
-}) {
+export default function SteamDistributionClient({ bucket }: { bucket: string }) {
   const bucketNum = Number(bucket)
-  const { data, error, isLoading } = useSteamDistribution(bucketNum, initialData)
+  const { data, error, isLoading } = useSteamDistribution(bucketNum)
 
   const label = data?.data?.label ?? `${bucket}% range`
   const games = data?.data?.games ?? []
@@ -29,7 +22,7 @@ export default function SteamDistributionClient({
       {!isLoading && (
         <>
           <PageHeader title={label} className="mt-4" />
-          {games.length === 0 && <p className="text-muted">No games in this range.</p>}
+          {games.length === 0 && <EmptyState>No games in this range.</EmptyState>}
           {games.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {games.map((g) => (

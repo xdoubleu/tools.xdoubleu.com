@@ -44,7 +44,7 @@ var fakeStore *objectstore.FakeClient //nolint:gochecknoglobals //needed for tes
 // mockWebFetch serves canned responses for ingest and feed tests.
 //
 //nolint:gochecknoglobals //needed for tests
-var mockWebFetch *mocks.MockWebFetchClient
+var mockWebFetch *sharedmocks.MockWebFetchClient
 
 func TestMain(m *testing.M) {
 	var err error
@@ -55,7 +55,7 @@ func TestMain(m *testing.M) {
 	testDB = postgresDB
 
 	fakeStore = objectstore.NewFake()
-	mockWebFetch = mocks.NewMockWebFetchClient()
+	mockWebFetch = sharedmocks.NewMockWebFetchClient()
 	clients := books.Clients{
 		UniCat:           nil,
 		Hardcover:        mocks.NewMockHardcoverClient(),
@@ -66,6 +66,7 @@ func TestMain(m *testing.M) {
 	}
 
 	testApp = books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		testCfg,
@@ -130,6 +131,7 @@ func newAppWithKoboUpstream(t *testing.T, upstreamURL string) *books.Books {
 		PublicAPIBaseURL: "",
 	}
 	return books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		testCfg,

@@ -6,8 +6,8 @@ import { swrKeys } from '@/lib/swrKeys'
 
 /**
  * Downloads currently-reading books and evicts unneeded ones after each
- * library fetch. Only live data counts: never server-rendered fallback data
- * before its revalidation, a failed fetch, or a saved copy served offline.
+ * library fetch. Only live data counts: never cached data before its
+ * revalidation, a failed fetch, or a saved copy served offline.
  */
 export default function OfflineBooksSync() {
   // Mounted app-wide: focus refetches are left to the books pages.

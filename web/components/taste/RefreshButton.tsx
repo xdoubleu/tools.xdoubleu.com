@@ -41,7 +41,7 @@ export default function RefreshButton({
         {pending || busy ? 'Refreshing…' : label}
       </Button>
       {waitUntil !== '' && !pending && (
-        <p className="max-w-32 text-right text-xs text-muted" suppressHydrationWarning>
+        <p className="max-w-32 text-right text-xs text-muted">
           Again after {formatDateTime(waitUntil)}
         </p>
       )}

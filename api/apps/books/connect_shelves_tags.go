@@ -2,12 +2,10 @@ package books
 
 import (
 	"context"
-	"errors"
 
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
@@ -39,11 +37,8 @@ func (h *booksConnectHandler) ToggleTag(
 		)
 	}
 	err = h.app.Services.Books.ToggleTag(ctx, user.ID, bookID, req.Tag)
-	if errors.Is(err, services.ErrDerivedTag) {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
-	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.ToggleTagResponse{}, nil
 }
@@ -75,11 +70,8 @@ func (h *booksConnectHandler) SetBookTag(
 	err = h.app.Services.Books.SetTag(
 		ctx, user.ID, bookID, req.Tag, req.Enabled,
 	)
-	if errors.Is(err, services.ErrDerivedTag) {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
-	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.SetBookTagResponse{}, nil
 }
@@ -97,7 +89,7 @@ func (h *booksConnectHandler) CreateShelf(
 	}
 	err := h.app.Services.Books.CreateShelf(ctx, user.ID, req.Name)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.CreateShelfResponse{}, nil
 }
@@ -117,7 +109,7 @@ func (h *booksConnectHandler) RenameShelf(
 		ctx, user.ID, req.OldName, req.NewName,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.RenameShelfResponse{Moved: moved}, nil
 }
@@ -137,7 +129,7 @@ func (h *booksConnectHandler) DeleteShelf(
 		ctx, user.ID, req.Name, req.TargetName,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.DeleteShelfResponse{Moved: moved}, nil
 }
@@ -157,7 +149,7 @@ func (h *booksConnectHandler) RenameTag(
 		ctx, user.ID, req.OldName, req.NewName,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.RenameTagResponse{Affected: affected}, nil
 }
@@ -175,7 +167,7 @@ func (h *booksConnectHandler) DeleteTag(
 	}
 	affected, err := h.app.Services.Books.DeleteTag(ctx, user.ID, req.Name)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.DeleteTagResponse{Affected: affected}, nil
 }

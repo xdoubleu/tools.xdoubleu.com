@@ -15,10 +15,9 @@ vi.mock('@/components/taste/PickActions', () => ({
   __esModule: true,
   default: ({ pick }: { pick: { id: string } }) => <div data-testid="actions" data-id={pick.id} />
 }))
-vi.mock('@/components/taste/PickArtwork', () => ({
-  __esModule: true,
-  default: ({ url, title }: { url: string; title: string }) => (
-    <div data-testid="artwork" data-url={url} data-title={title} />
+vi.mock('@/components/ui/artwork', () => ({
+  Artwork: ({ src, title }: { src: string; title: string }) => (
+    <div data-testid="artwork" data-url={src} data-title={title} />
   )
 }))
 

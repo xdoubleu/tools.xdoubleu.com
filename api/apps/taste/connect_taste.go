@@ -37,6 +37,14 @@ func userID(ctx context.Context) (string, error) {
 	return user.ID, nil
 }
 
+func mapError(err error) error {
+	return connecttools.MapError(
+		err,
+		connecttools.Code(services.ErrNotConfigured, connect.CodeFailedPrecondition),
+		connecttools.Code(services.ErrNoProfile, connect.CodeFailedPrecondition),
+	)
+}
+
 // scope is what a request covers: the subject whose log and picks it reads,
 // which is the caller or, when shared, their family; and the apps it may read.
 type scope struct {
@@ -59,7 +67,7 @@ func (h *tasteConnectHandler) scopeOf(ctx context.Context, shared bool) (scope, 
 	}
 	familyID, err := h.app.family.EnsureFamily(ctx, uid)
 	if err != nil {
-		return scope{}, connecttools.MapError(err)
+		return scope{}, mapError(err)
 	}
 	return scope{
 		user:    uid,
@@ -88,11 +96,11 @@ func (h *tasteConnectHandler) GetStats(
 	}
 	events, err := h.app.log.Events(ctx, sc.subject, sc.access)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, mapError(err)
 	}
 	rates, err := h.app.picks.HitRates(ctx, sc.subject)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, mapError(err)
 	}
 	out := protoStats(services.BuildStats(events, time.Now()))
 	for _, r := range rates {
@@ -127,7 +135,7 @@ func (h *tasteConnectHandler) ListEvents(
 	}
 	events, err := h.app.log.Events(ctx, sc.subject, sc.access)
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, mapError(err)
 	}
 	events = services.Filter(events, domain)
 

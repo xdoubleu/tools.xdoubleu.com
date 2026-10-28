@@ -4,6 +4,8 @@ import { useRouter } from '@/hooks/navigation'
 import { useRecipe, useDeleteRecipe } from '@/hooks/useRecipes'
 import type { DeleteRecipeInput } from '@/hooks/useRecipes'
 import { useWakeLock } from '@/hooks/useWakeLock'
+import { WriteRejectedError } from '@/lib/offline/outbox'
+import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/dialog'
@@ -25,6 +27,7 @@ export default function RecipeClient({ id }: { id: string }) {
   } = useWakeLock()
 
   const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   const recipe = data?.recipe
   const isOwner = data?.isOwner ?? false
@@ -78,7 +81,18 @@ export default function RecipeClient({ id }: { id: string }) {
   const handleDelete = async () => {
     if (!recipe) return
     const req: DeleteRecipeInput = { id: recipe.id }
-    await deleteRecipe(req)
+    setDeleteError('')
+    try {
+      await deleteRecipe(req)
+    } catch (err) {
+      setDeleteConfirm(false)
+      setDeleteError(
+        err instanceof WriteRejectedError && err.reason
+          ? err.reason
+          : 'Couldn’t delete this recipe.'
+      )
+      return
+    }
     router.push('/recipes/list')
   }
 
@@ -91,6 +105,11 @@ export default function RecipeClient({ id }: { id: string }) {
 
       {isLoading && !recipe && <LoadingState label="recipe" />}
       {error && <ErrorState what="recipe" />}
+      {deleteError && (
+        <Alert tone="danger" className="mb-4">
+          {deleteError}
+        </Alert>
+      )}
       {recipe && (
         <>
           <PageHeader

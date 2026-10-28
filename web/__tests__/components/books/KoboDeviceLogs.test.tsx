@@ -41,7 +41,7 @@ it('shows empty state when no entries', () => {
     mutate: mockMutate
   })
   render(<KoboDeviceLogs deviceId="dev-1" />)
-  expect(screen.getByTestId('kobo-logs-empty')).toBeInTheDocument()
+  expect(screen.getByText(/^No requests captured yet/)).toBeInTheDocument()
 })
 
 it('renders captured entries with method, path, status and bodies', () => {

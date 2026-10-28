@@ -2,7 +2,7 @@
 
 - Status: Superseded by [ADR-0034](adr-0034-vite-spa-served-by-the-api.md) (the `web` service is gone; `api` is the root service). Grafana still sits beside it at `/grafana`.
 - Issues: #558, #904, #1038, #1029, #1034, #1113, #1132, #1106, #1111
-- Affects: `config/deploy.api.yml`, `config/deploy.web.yml`, `.github/workflows/main.yml` (`deploy-kamal`), `api/cmd/api/kamal_proxy_shim.go`, `infra/`
+- Affects (historical): `config/deploy.api.yml`, `config/deploy.web.yml`, `.github/workflows/main.yml` (`deploy-kamal`), `api/cmd/api/kamal_proxy_shim.go`, `infra/`
 
 ## Context
 

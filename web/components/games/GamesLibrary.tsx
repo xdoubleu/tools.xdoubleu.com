@@ -2,19 +2,19 @@ import { useCallback, useState } from 'react'
 import { mutate } from 'swr'
 import { useSteam } from '@/hooks/useGames'
 import { useSteamRefresh } from '@/lib/games/steamRefresh'
-import type { Game, GetSteamResponse } from '@/lib/gen/games/v1/games_pb'
+import type { Game } from '@/lib/gen/games/v1/games_pb'
 import { Button } from '@/components/ui/button'
-import { ErrorState, LoadingState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { Input } from '@/components/ui/input'
 import { GameGroup } from '@/components/games/GameCards'
 import { swrKeys } from '@/lib/swrKeys'
 
 const ownerGameHref = (game: Game) => `/games/${game.id}`
 
-export default function GamesLibrary({ initialSteam }: { initialSteam?: GetSteamResponse }) {
+export default function GamesLibrary() {
   const [search, setSearch] = useState('')
 
-  const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam(initialSteam)
+  const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam()
 
   const onSynced = useCallback(() => {
     void mutate(swrKeys.games)
@@ -41,6 +41,7 @@ export default function GamesLibrary({ initialSteam }: { initialSteam?: GetSteam
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          aria-label="Search games"
           placeholder="Search games…"
           className="flex-1"
         />
@@ -68,9 +69,7 @@ export default function GamesLibrary({ initialSteam }: { initialSteam?: GetSteam
           {search.trim() &&
             inProgress.length === 0 &&
             notStarted.length === 0 &&
-            completed.length === 0 && (
-              <p className="text-muted text-sm">No games match your search.</p>
-            )}
+            completed.length === 0 && <EmptyState>No games match your search.</EmptyState>}
         </>
       )}
     </section>

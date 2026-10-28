@@ -1,22 +1,22 @@
 # ADR-0003: Use BuildKit's `type=gha` scoped cache, not hand-computed `hashFiles()` keys
 
-- Status: Accepted
+- Status: Accepted; since [ADR-0034](adr-0034-vite-spa-served-by-the-api.md) there is one image: `build-api.yml` also builds the web stage, and the separate web build workflow is gone.
 - Issues: #948, #900
-- Affects: `.github/workflows/build-api.yml`, `build-web.yml`
+- Affects: `.github/workflows/build-api.yml`
 
 ## Context
 
 `api` and `web` each build a multi-stage image with `docker buildx` and push to
 their own GHCR repo. A hand-computed `hashFiles()` key shared across jobs
-(#948) silently never hit: `build-web.yml` hashed `web/**` after `npm ci`,
+(#948) silently never hit: the web build hashed `web/**` after `npm ci`,
 folding in `node_modules`.
 
 ## Decision
 
 - Cache with BuildKit's `type=gha,scope=<component>`; never reproduce a
   `hashFiles()` key across jobs.
-- `build-api`/`build-web`/`build-kobo-gateway` are gated only on their own
-  subtree (plus `proto`, `kobo_gateway` for web, and `.github/workflows/**`).
+- `build-api`/`build-kobo-gateway` are gated only on the subtrees they build
+  from (including `web`, `proto` and `.github/workflows/**`).
 - Push `:latest` + `:<sha>` only on push to `main`; PRs build without pushing.
 
 ## Alternatives considered

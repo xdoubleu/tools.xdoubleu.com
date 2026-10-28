@@ -14,10 +14,10 @@ import (
 	"tools.xdoubleu.com/apps/learningpaths/internal/mocks"
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
+	"tools.xdoubleu.com/apps/learningpaths/internal/todoist"
 	"tools.xdoubleu.com/internal/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
-	"tools.xdoubleu.com/internal/todoist"
 )
 
 func newTestTodoistService(

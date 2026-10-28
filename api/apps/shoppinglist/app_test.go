@@ -38,12 +38,21 @@ func TestMain(m *testing.M) {
 	familyRepo = sharedrepositories.NewFamilyRepository(postgresDB)
 	auth := sharedmocks.NewMockedAuthService(userID)
 
-	recipesApp := recipes.New(auth, logging.NewNopLogger(), cfg, postgresDB, familyRepo)
+	recipesApp := recipes.New(
+		context.Background(),
+		auth,
+		logging.NewNopLogger(),
+		cfg,
+		postgresDB,
+		familyRepo,
+	)
 	mealPlansApp := mealplans.New(
+		context.Background(),
 		auth, logging.NewNopLogger(), cfg, postgresDB, familyRepo,
 	)
 
 	testApp = shoppinglist.New(
+		context.Background(),
 		auth, logging.NewNopLogger(), cfg, postgresDB, familyRepo,
 	)
 

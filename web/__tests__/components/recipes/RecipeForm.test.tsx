@@ -1,6 +1,6 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import RecipeForm from '@/components/recipes/RecipeForm'
 import { RecipeSchema, IngredientSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 
@@ -21,7 +21,7 @@ vi.mock('@/hooks/useRecipes', () => ({
   useUpdateRecipe: () => mockUpdateRecipe
 }))
 
-vi.mock('@/hooks/useShoppingList', () => ({
+vi.mock('@/hooks/useIngredientCatalog', () => ({
   useItemNames: () => ({ data: { names: mockShopping.itemNames } }),
   useCategories: () => ({ data: { categories: mockShopping.categories } }),
   useItemAliases: () => mockShopping.aliases,
@@ -54,6 +54,20 @@ describe('RecipeForm (new recipe)', () => {
     expect(screen.getByText('Steps')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save Recipe' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+  })
+
+  it('names every field, with ingredient rows grouped under their heading', () => {
+    render(<RecipeForm onSave={vi.fn()} onCancel={vi.fn()} />)
+    expect(screen.getByLabelText('Recipe Name')).toHaveAttribute('type', 'text')
+    expect(screen.getByLabelText('Servings')).toHaveAttribute('type', 'number')
+    expect(screen.getByLabelText('Batch prep servings')).toHaveAccessibleDescription(
+      /shopping list buys for this many servings/
+    )
+    expect(screen.getByLabelText('Steps').tagName).toBe('TEXTAREA')
+    const group = within(screen.getByRole('group', { name: 'Ingredients' }))
+    expect(group.getByRole('textbox', { name: 'Amount' })).toBeInTheDocument()
+    expect(group.getByRole('textbox', { name: 'Unit' })).toBeInTheDocument()
+    expect(group.getByRole('textbox', { name: 'Group' })).toBeInTheDocument()
   })
 
   it('gives the amount and category controls phone-sized tap targets', () => {
@@ -99,6 +113,21 @@ describe('RecipeForm (new recipe)', () => {
     await waitFor(() => expect(error).toHaveBeenCalled())
     expect(onSave).not.toHaveBeenCalled()
     error.mockRestore()
+  })
+
+  it('submits the servings and steps entered through their labels', async () => {
+    mockCreateRecipe.mockResolvedValue({ id: 'new-id', synced: true })
+    render(<RecipeForm onSave={vi.fn()} onCancel={vi.fn()} />)
+
+    fireEvent.change(screen.getByLabelText('Servings'), { target: { value: '4' } })
+    fireEvent.change(screen.getByLabelText('Steps'), { target: { value: 'Boil\nServe' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockCreateRecipe).toHaveBeenCalledWith(
+        expect.objectContaining({ baseServings: 4, steps: ['Boil', 'Serve'] })
+      )
+    })
   })
 
   it('sends batchServings when set', async () => {

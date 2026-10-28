@@ -43,11 +43,13 @@ describe('BookOwnershipToggles', () => {
   it('renders the Ownership label by default', () => {
     render(<BookOwnershipToggles userBook={makeBook()} />)
     expect(screen.getByText('Ownership')).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Ownership' })).toBeInTheDocument()
   })
 
   it('hides the Ownership label when hideLabel is set', () => {
     render(<BookOwnershipToggles userBook={makeBook()} hideLabel />)
     expect(screen.queryByText('Ownership')).not.toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Ownership' })).toBeInTheDocument()
   })
 
   it('does not render a Digital toggle', () => {

@@ -14,6 +14,26 @@ const RAW_ELEMENTS = {
 }
 
 const phoneBases = (attr) => collectTokens(attr.value).map((t) => parseToken(t.token))
+const TEXT_ELEMENTS = new Set(['p', 'span', 'div', 'li'])
+const STATE_TEXT = /^(Loading|Failed to load)\b/
+
+/** True when `node` references the identifier `name` anywhere below it. */
+const mentions = (node, name) => {
+  if (!node || typeof node.type !== 'string') return false
+  if (node.type === 'Identifier') return node.name === name
+  return Object.entries(node).some(
+    ([key, value]) =>
+      key !== 'parent' &&
+      (Array.isArray(value) ? value.some((v) => mentions(v, name)) : mentions(value, name))
+  )
+}
+
+const ownText = (opening) =>
+  opening.parent.children
+    .filter((c) => c.type === 'JSXText')
+    .map((c) => c.value)
+    .join('')
+    .trim()
 
 /** Hand-rolled versions of existing primitives (docs/convention-ui-standards.md). */
 export default {
@@ -23,16 +43,22 @@ export default {
     messages: {
       raw: 'Raw <{{element}}>: {{hint}}',
       tablist: 'Use `SegmentedTabs` from @/components/ui/segmented-tabs for a tablist.',
+      linkCard:
+        'Hand-rolled link card. Use `LinkCard` from @/components/ui/link-card (`linkClassName` for padding and layout, `external` for a full page load).',
       stretchedLink:
         'Stretched `absolute inset-0` link: controls on top of it are easy to miss and open the page instead. Use `LinkCard` (actions go in its non-link footer).',
       card: 'Hand-assembled card surface. Use `Card`/`SectionCard` (@/components/ui/card, section-card).',
       inset: 'Hand-assembled inset panel. Use `<Card variant="inset">`.',
       alert:
         'Hand-made banner. Use `Alert` from @/components/ui/alert (tone danger/success/warn/info).',
+      dangerText:
+        'Unannounced error text. Use `<Alert tone="danger">` (@/components/ui/alert), or add `role="alert"` to an inline error beside its control. Error details shown as data need an eslint-disable with the reason.',
       badge: 'Hand-made pill. Use `Badge` from @/components/ui/badge.',
       textLink:
         'Styled text link. Use `<Button asChild variant="link">` so it gets a 44px row on phones.',
       state: 'Use `{{component}}` from @/components/ui/states for loading/error messages.',
+      empty:
+        'Hand-rolled empty state. Use `EmptyState` from @/components/ui/states (its `action` takes the call to action).',
       pageContainer:
         '`{{token}}` on PageContainer: the shell already pads pages, and width comes from `size` (`narrow`, `form`).'
     },
@@ -47,15 +73,13 @@ export default {
           context.report({ node, messageId: 'raw', data: { element: node.name.name, hint } })
 
         if (node.name.name === 'p') {
-          const text = node.parent.children
-            .filter((c) => c.type === 'JSXText')
-            .map((c) => c.value)
-            .join('')
-            .trim()
+          const text = ownText(node)
           if (/^Loading\b/.test(text)) {
             context.report({ node, messageId: 'state', data: { component: 'LoadingState' } })
           } else if (/^Failed to load\b/.test(text)) {
             context.report({ node, messageId: 'state', data: { component: 'ErrorState' } })
+          } else if (/^No\b/.test(text)) {
+            context.report({ node, messageId: 'empty' })
           }
         }
       },
@@ -78,6 +102,10 @@ export default {
           return
         }
         const isLink = element === 'Link' || element === 'a'
+        if (isLink && mentions(attr.value, 'interactiveCardClass')) {
+          context.report({ node: attr, messageId: 'linkCard' })
+          return
+        }
         if (isLink && bases.has('absolute') && bases.has('inset-0')) {
           context.report({ node: attr, messageId: 'stretchedLink' })
           return
@@ -107,6 +135,14 @@ export default {
           context.report({ node: attr, messageId: 'inset' })
         } else if (has(/^bg-(danger|success|warn)\/\d+$/)) {
           context.report({ node: attr, messageId: 'alert' })
+        } else if (
+          TEXT_ELEMENTS.has(element) &&
+          bases.has('text-danger') &&
+          !(element === 'p' && STATE_TEXT.test(ownText(attr.parent))) &&
+          siblingAttr(attr, 'role') === undefined &&
+          siblingAttr(attr, 'aria-live') === undefined
+        ) {
+          context.report({ node: attr, messageId: 'dangerText' })
         }
       }
     }

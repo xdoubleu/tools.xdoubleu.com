@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { BOOK_STATUSES, BUILT_IN_STATUSES } from '@/lib/books/bookShelves'
+import { Alert } from '@/components/ui/alert'
 
 interface BookDialogProps {
   book: ExternalBookResult | null
@@ -63,7 +64,7 @@ export default function BookDialog({ book, onClose, onAdded }: BookDialogProps) 
 
   return (
     <Dialog open={!!book} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent side="sheet">
         <DialogHeader>
           <DialogTitle>{book?.title ?? ''}</DialogTitle>
           <DialogClose>×</DialogClose>
@@ -89,7 +90,7 @@ export default function BookDialog({ book, onClose, onAdded }: BookDialogProps) 
             </Select>
           </div>
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {error && <Alert tone="danger">{error}</Alert>}
 
           <div className="flex gap-2 pt-2">
             <Button type="submit" disabled={isSubmitting} className="flex-1">

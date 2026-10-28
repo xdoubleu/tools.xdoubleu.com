@@ -70,7 +70,7 @@ func TestConnectSetBookTag_InvalidRequests(t *testing.T) {
 	err = setBookTag(t, "not-a-uuid", "poetry", true)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	err = setBookTag(t, "00000000-0000-0000-0000-000000000001", "poetry", true)
-	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
 
 func countTag(tags []string, tag string) int {

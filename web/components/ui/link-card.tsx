@@ -12,6 +12,8 @@ interface LinkCardProps {
   actions?: ReactNode
   /** Accessible name for the link when `children` has no clear text. */
   'aria-label'?: string
+  /** Full page load, for a same-origin path another service serves (e.g. `/grafana`). */
+  external?: boolean
   className?: string
   linkClassName?: string
 }
@@ -22,9 +24,18 @@ function LinkCard({
   children,
   actions,
   'aria-label': ariaLabel,
+  external = false,
   className,
   linkClassName
 }: LinkCardProps) {
+  const linkProps = {
+    href,
+    'aria-label': ariaLabel,
+    className: cn(
+      'relative block min-w-0 p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
+      linkClassName
+    )
+  }
   return (
     <div
       className={cn(
@@ -33,17 +44,14 @@ function LinkCard({
         className
       )}
     >
-      <Link
-        href={href}
-        aria-label={ariaLabel}
-        className={cn(
-          'relative block min-w-0 p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
-          linkClassName
-        )}
-      >
-        {children}
-        <CardLinkStatus />
-      </Link>
+      {external ? (
+        <a {...linkProps}>{children}</a>
+      ) : (
+        <Link {...linkProps}>
+          {children}
+          <CardLinkStatus />
+        </Link>
+      )}
       {actions && (
         <div className="flex flex-wrap items-center gap-2 border-t border-border px-3 py-2">
           {actions}

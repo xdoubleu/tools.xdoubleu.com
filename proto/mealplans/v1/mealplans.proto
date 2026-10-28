@@ -2,7 +2,12 @@ syntax = "proto3";
 package mealplans.v1;
 option go_package = "tools.xdoubleu.com/gen/mealplans/v1;mealplansv1";
 
-import "recipes/v1/recipes.proto";
+// RecipeRef names a recipe without embedding it; the recipes service owns the
+// full message.
+message RecipeRef {
+  string id = 1;
+  string name = 2;
+}
 
 message PlanMeal {
   string id = 1;
@@ -12,9 +17,12 @@ message PlanMeal {
   string recipe_id = 5;
   string custom_name = 6;
   int32 servings = 7;
-  recipes.v1.Recipe recipe = 8;
+  reserved 8;
+  reserved "recipe";
   // Keeps a custom entry on the calendar/iCal but out of the shopping export.
   bool exclude_from_shopping_list = 9;
+  // Unset for custom entries.
+  RecipeRef recipe_ref = 10;
 }
 
 message Plan {
@@ -45,7 +53,8 @@ message GetPlanRequest {
 }
 message GetPlanResponse {
   Plan plan = 1;
-  repeated recipes.v1.Recipe recipes = 2;
+  reserved 2;
+  reserved "recipes";
   string ical_url = 3;
   bool is_owner = 4;
   int32 offset = 5;

@@ -5,7 +5,6 @@ import { create } from '@bufbuild/protobuf'
 import { mutate as globalMutate } from 'swr'
 import { useSteamGame, useRefreshSteamGame } from '@/hooks/useGames'
 import { GetSteamGameResponseSchema } from '@/lib/gen/games/v1/games_pb'
-import type { GetSteamGameResponse } from '@/lib/gen/games/v1/games_pb'
 import { swrKeys } from '@/lib/swrKeys'
 import { Alert } from '@/components/ui/alert'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
@@ -23,16 +22,10 @@ import { formatDateTime } from '@/lib/dates'
 
 const REFRESH_INTERVAL_MS = 60_000
 
-export default function SteamGameClient({
-  id,
-  initialData
-}: {
-  id: string
-  initialData?: GetSteamGameResponse
-}) {
+export default function SteamGameClient({ id }: { id: string }) {
   const gameId = Number(id)
   const searchParams = useSearchParams()
-  const { data, error, isLoading, mutate } = useSteamGame(gameId, initialData)
+  const { data, error, isLoading, mutate } = useSteamGame(gameId)
   const refreshGame = useRefreshSteamGame()
   const game = data?.data?.game
   const achievements = data?.data?.achievements ?? []

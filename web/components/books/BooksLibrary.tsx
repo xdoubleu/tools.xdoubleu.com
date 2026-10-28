@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { useSearchExternal } from '@/hooks/useBooks'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/books/bookShelves'
 import { buildSeriesSummaries } from '@/lib/books/series'
+import { EmptyState } from '@/components/ui/states'
 
 type Selection = { kind: 'shelf'; id: ShelfId } | { kind: 'tag'; tag: string }
 
@@ -173,7 +174,7 @@ export default function BooksLibrary({
                 <ExternalBookCard key={`${book.provider}-${book.providerId}`} book={book} />
               ))}
               {!isSearchingExternal && resultCount === 0 && (
-                <p className="col-span-full py-16 text-center text-sm text-muted">No results.</p>
+                <EmptyState className="col-span-full">No results.</EmptyState>
               )}
               {isSearchingExternal && (
                 <p className="col-span-full text-sm text-muted">Searching…</p>

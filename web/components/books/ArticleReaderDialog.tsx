@@ -1,6 +1,6 @@
 import ArticleReaderDialog from '@/components/ArticleReaderDialog'
 import { useGetBookContent } from '@/hooks/useBooks'
-import { LoadingState, ErrorState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 interface BookArticleReaderDialogProps {
   bookId: string
@@ -34,10 +34,10 @@ export default function BookArticleReaderDialog({
       {!error && !data && <LoadingState className="p-4 text-sm" />}
 
       {!error && data && !html && (
-        <p className="text-sm text-muted p-4">
+        <EmptyState>
           No in-app content stored for this item.
           {sourceUrl && ' Use "View original" above instead.'}
-        </p>
+        </EmptyState>
       )}
     </ArticleReaderDialog>
   )

@@ -35,6 +35,9 @@ beforeEach(() => {
 describe('WatchPartyRoom', () => {
   it('renders the breadcrumb, status, and room code', () => {
     renderRoom({ crumb: 'Presenter', status: 'connecting' })
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Watch Party Presenter' })
+    ).toBeInTheDocument()
     expect(screen.getByText('Presenter')).toBeInTheDocument()
     expect(screen.getByText('Connecting…')).toBeInTheDocument()
     expect(screen.getByText('Room: ABC123')).toBeInTheDocument()

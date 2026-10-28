@@ -3,6 +3,7 @@ package feeds
 import (
 	"context"
 	"embed"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 	"tools.xdoubleu.com/apps/feeds/internal/jobs"
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
 	"tools.xdoubleu.com/apps/feeds/internal/services"
-	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -20,10 +20,14 @@ import (
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/observability"
 	globalrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/webfetch"
 )
 
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
+
+// userAgent identifies the feeds app's web fetches to origin servers.
+const userAgent = "tools.xdoubleu.com feeds bot"
 
 type Feeds struct {
 	app.Base
@@ -35,6 +39,7 @@ type Feeds struct {
 }
 
 func New(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -43,11 +48,12 @@ func New(
 	appUsersRepo *globalrepositories.AppUsersRepository,
 ) *Feeds {
 	return NewInner(
+		ctx,
 		authService,
 		logger,
 		cfg,
 		db,
-		webfetch.New(logger, cfg.Env != config.ProdEnv),
+		webfetch.New(logger, userAgent, cfg.Env != config.ProdEnv),
 		notifications,
 		appUsersRepo,
 	)
@@ -55,6 +61,7 @@ func New(
 
 // NewInner allows tests to inject a fake webfetch.Client.
 func NewInner(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -65,7 +72,7 @@ func NewInner(
 ) *Feeds {
 	//nolint:exhaustruct // jobQueue/Services/feedPollJob initialised below
 	a := &Feeds{
-		Base: app.NewBase(context.Background(), authService, logger, cfg),
+		Base: app.NewBase(ctx, authService, logger, cfg),
 		db:   db,
 	}
 
@@ -82,6 +89,7 @@ func NewInner(
 	repos := repositories.New(db)
 	a.Services = services.New(
 		logger,
+		a.Background,
 		repos,
 		webFetchClient,
 		cfg.EmailInboundDomain,
@@ -101,6 +109,11 @@ func (a *Feeds) Start() error {
 		observability.NewTrackedJob(a.feedPollJob, a.db),
 		noop,
 	)
+}
+
+// Shutdown drains background tasks, then the job queue.
+func (a *Feeds) Shutdown(ctx context.Context) error {
+	return errors.Join(a.Base.Shutdown(ctx), a.jobQueue.Wait(ctx))
 }
 
 func (a *Feeds) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

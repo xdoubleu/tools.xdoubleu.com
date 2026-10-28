@@ -112,10 +112,22 @@ func (b bearerRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func appsMCPSession(t *testing.T, token string) *mcp.ClientSession {
 	t.Helper()
-	ts := connectServer(t)
+	return mcpSession(t, connectServer(t).URL+appsMCPPath, token)
+}
 
+// mcpSession connects a client to the MCP server at endpoint, without retries.
+func mcpSession(t *testing.T, endpoint, token string) *mcp.ClientSession {
+	t.Helper()
+	return mcpClientSession(t, endpoint, token, nil)
+}
+
+// mcpClientSession is mcpSession with the client's options.
+func mcpClientSession(
+	t *testing.T, endpoint, token string, opts *mcp.ClientOptions,
+) *mcp.ClientSession {
+	t.Helper()
 	transport := &mcp.StreamableClientTransport{
-		Endpoint: ts.URL + appsMCPPath,
+		Endpoint: endpoint,
 		HTTPClient: &http.Client{
 			Transport: bearerRoundTripper{token: token, base: http.DefaultTransport},
 		},
@@ -126,7 +138,7 @@ func appsMCPSession(t *testing.T, token string) *mcp.ClientSession {
 	}
 
 	//nolint:exhaustruct // only Name/Version identify the test client
-	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "0"}, nil)
+	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "0"}, opts)
 	session, err := client.Connect(context.Background(), transport, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = session.Close() })

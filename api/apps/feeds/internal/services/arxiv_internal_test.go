@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/apps/feeds/internal/mocks"
 	"tools.xdoubleu.com/apps/feeds/internal/models"
+	"tools.xdoubleu.com/internal/mocks"
 )
 
 func TestArxivID(t *testing.T) {
@@ -145,7 +145,7 @@ func TestArxivPacer(t *testing.T) {
 func TestBuildItem_ArxivFeedUsesEntryWithoutFetching(t *testing.T) {
 	webFetch := mocks.NewMockWebFetchClient()
 	s := NewFeedService(
-		slog.Default(), nil, nil, nil, webFetch, "", nil, nil, "",
+		slog.Default(), nil, nil, nil, nil, webFetch, "", nil, nil, "",
 	)
 	//nolint:exhaustruct // only the fields buildItem reads
 	item := &gofeed.Item{
@@ -177,7 +177,7 @@ func TestCreate_ArxivAPIErrorRejected(t *testing.T) {
 			`</entry></feed>`,
 	))
 	s := NewFeedService(
-		slog.Default(), nil, nil, nil, webFetch, "", nil, nil, "",
+		slog.Default(), nil, nil, nil, nil, webFetch, "", nil, nil, "",
 	)
 
 	_, err := s.Create(context.Background(), "user", feedURL, "")

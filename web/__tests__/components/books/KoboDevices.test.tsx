@@ -51,7 +51,7 @@ describe('KoboDevices — empty state', () => {
   it('shows empty message when no devices', () => {
     mockUseListKoboDevices.mockReturnValue(makeUseListKoboDevices([]))
     render(<KoboDevices />)
-    expect(screen.getByTestId('kobo-devices-empty')).toBeInTheDocument()
+    expect(screen.getByText(/^No devices connected yet/)).toBeInTheDocument()
   })
 
   it('shows loading state', () => {

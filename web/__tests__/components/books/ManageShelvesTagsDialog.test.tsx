@@ -55,6 +55,11 @@ describe('ManageShelvesTagsDialog', () => {
     mockDeleteTag.mockResolvedValue(undefined)
   })
 
+  it('opens as a wide bottom sheet', () => {
+    renderDialog()
+    expect(screen.getByRole('dialog')).toHaveClass('rounded-t-2xl', 'sm:max-w-lg')
+  })
+
   it('creates a new shelf and mutates on Add', async () => {
     renderDialog()
     const input = screen.getByPlaceholderText('New shelf name…')

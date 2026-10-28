@@ -78,7 +78,7 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
 
   function handleInputChange(value: string) {
     if (isControlled) {
-      // Each commit is a router.replace() that re-runs the RSC, so debounce it.
+      // Each commit replaces the URL and reruns the search, so debounce it.
       setControlledInput(value)
       if (controlledDebounceTimer.current) clearTimeout(controlledDebounceTimer.current)
       controlledDebounceTimer.current = setTimeout(() => onChange?.(value), 300)
@@ -95,6 +95,7 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
         type="search"
         value={controlledInput}
         onChange={(e) => handleInputChange(e.target.value)}
+        aria-label="Search books"
         placeholder="Search books…"
       />
     )
@@ -110,6 +111,7 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
           type="search"
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
+          aria-label="Search books"
           placeholder="Search books…"
         />
         {isSearching && (

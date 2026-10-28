@@ -2,6 +2,7 @@ package app_test
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -47,6 +48,25 @@ func TestNewBase_WithParentContextCancel(t *testing.T) {
 
 	<-b.Ctx.Done()
 	assert.ErrorIs(t, b.Ctx.Err(), context.Canceled)
+}
+
+func TestBase_ShutdownCancelsCtxAndDrainsBackground(t *testing.T) {
+	b := newTestBase(context.Background())
+
+	release := make(chan struct{})
+	var finished atomic.Bool
+	b.Background.Go(t.Context(), "slow", func(context.Context) {
+		<-release
+		finished.Store(true)
+	})
+
+	shutdown := make(chan error, 1)
+	go func() { shutdown <- b.Shutdown(t.Context()) }()
+
+	<-b.Ctx.Done()
+	close(release)
+	require.NoError(t, <-shutdown)
+	assert.True(t, finished.Load())
 }
 
 func TestBase_GetDomain(t *testing.T) {

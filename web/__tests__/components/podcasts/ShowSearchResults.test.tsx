@@ -9,9 +9,8 @@ vi.mock('@/hooks/usePodcasts', () => ({
   usePodcastSearch: vi.fn(),
   usePodcastActions: vi.fn(() => ({ add: mockAdd }))
 }))
-vi.mock('@/components/podcasts/ShowArtwork', () => ({
-  __esModule: true,
-  default: () => <div data-testid="artwork" />
+vi.mock('@/components/ui/artwork', () => ({
+  Artwork: () => <div data-testid="artwork" />
 }))
 
 import ShowSearchResults from '@/components/podcasts/ShowSearchResults'

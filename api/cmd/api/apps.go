@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -38,6 +40,8 @@ type App interface {
 	GetDisplayName() string
 	GetDomain() string
 	Start() error
+	// Shutdown drains the app's background tasks and jobs until ctx is done.
+	Shutdown(ctx context.Context) error
 }
 
 // WorkersStarter is implemented by apps with jobs for the workers role; the
@@ -53,6 +57,7 @@ type MCPToolProvider interface {
 }
 
 func NewApps(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -68,40 +73,42 @@ func NewApps(
 	// schema before games' migration drops it; feeds copies data out of books'
 	// reading-era tables before they're dropped, so it follows books. dashboard
 	// has no migrations and delegates to the other apps' exported methods.
-	booksApp := books.New(authService, logger, cfg, db)
+	booksApp := books.New(ctx, authService, logger, cfg, db)
 	apps.addApp(booksApp)
-	feedsApp := feeds.New(authService, logger, cfg, db, notifications, appUsersRepo)
+	feedsApp := feeds.New(ctx, authService, logger, cfg, db, notifications, appUsersRepo)
 	apps.addApp(feedsApp)
-	gamesApp := games.New(authService, logger, cfg, db)
+	gamesApp := games.New(ctx, authService, logger, cfg, db)
 	apps.addApp(gamesApp)
-	apps.addApp(watchparty.New(authService, logger, cfg))
-	apps.addApp(recipes.New(authService, logger, cfg, db, familyRepo))
-	apps.addApp(mealplans.New(authService, logger, cfg, db, familyRepo))
-	apps.addApp(shoppinglist.New(authService, logger, cfg, db, familyRepo))
+	apps.addApp(watchparty.New(ctx, authService, logger, cfg))
+	apps.addApp(recipes.New(ctx, authService, logger, cfg, db, familyRepo))
+	apps.addApp(mealplans.New(ctx, authService, logger, cfg, db, familyRepo))
+	apps.addApp(shoppinglist.New(ctx, authService, logger, cfg, db, familyRepo))
 	apps.addApp(
-		dashboard.New(authService, logger, cfg, db, gamesApp, booksApp, feedsApp),
+		dashboard.New(ctx, authService, logger, cfg, db, gamesApp, booksApp, feedsApp),
 	)
 	// trains has no schema dependencies, so its position is free.
-	apps.addApp(trains.New(authService, logger, cfg, db))
+	apps.addApp(trains.New(ctx, authService, logger, cfg, db))
 	// learningpaths has no schema dependencies. It takes booksApp/feedsApp to
 	// resolve linked resources, and authSealer for its own per-user Todoist
 	// OAuth connections.
 	apps.addApp(
 		learningpaths.New(
+			ctx,
 			authService, logger, cfg, db, authSealer, booksApp, feedsApp,
 		),
 	)
 	// movies has no schema dependencies.
-	moviesApp := movies.New(authService, logger, cfg, db)
+	moviesApp := movies.New(ctx, authService, logger, cfg, db)
 	apps.addApp(moviesApp)
 
 	// podcasts has no schema dependencies.
-	podcastsApp := podcasts.New(authService, logger, cfg, db)
+	podcastsApp := podcasts.New(ctx, authService, logger, cfg, db)
 	apps.addApp(podcastsApp)
 
 	// taste reads every media app through its exported ListConsumption, so it
 	// follows them.
 	apps.addApp(taste.New(
+		ctx,
 		authService, logger, cfg, db, notifications,
 		taste.Catalogs{
 			Books:    booksApp.FindBook,
@@ -136,6 +143,17 @@ func (apps *Apps) Start(role string) error {
 		}
 	}
 	return nil
+}
+
+// Shutdown drains every app in turn; ctx bounds the whole drain.
+func (apps *Apps) Shutdown(ctx context.Context) error {
+	errs := make([]error, 0, len(*apps))
+	for _, app := range *apps {
+		if err := app.Shutdown(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", app.GetName(), err))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 func (apps *Apps) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

@@ -25,6 +25,7 @@ func TestMCPTools(t *testing.T) {
 	const uid = "mcp-movies-user"
 
 	a := NewWithTMDB(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(uid), logging.NewNopLogger(), cfg, pg, nil,
 	)
 	require.NoError(t, a.ApplyMigrations(context.Background(), pg))

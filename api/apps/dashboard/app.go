@@ -30,6 +30,7 @@ type Dashboard struct {
 // New constructs the dashboard app. gamesApp/booksApp/feedsApp must already
 // be constructed (registration order in cmd/api/apps.go).
 func New(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -39,7 +40,7 @@ func New(
 	feedsApp *feeds.Feeds,
 ) *Dashboard {
 	return &Dashboard{
-		Base:          app.NewBase(context.Background(), authService, logger, cfg),
+		Base:          app.NewBase(ctx, authService, logger, cfg),
 		games:         gamesApp,
 		books:         booksApp,
 		feeds:         feedsApp,

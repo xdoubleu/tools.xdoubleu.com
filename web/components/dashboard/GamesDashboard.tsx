@@ -4,31 +4,24 @@ import { Link } from '@/components/ui/link'
 import { mutate } from 'swr'
 import { useSteam, useSteamProgress, useRecentlyActiveGames } from '@/hooks/useGames'
 import { useSteamRefresh } from '@/lib/games/steamRefresh'
-import type { GetRecentlyActiveGamesResponse, GetSteamResponse } from '@/lib/gen/games/v1/games_pb'
 import GamesSearch from '@/components/games/GamesSearch'
-import GamesDashboardView from '@/components/games/GamesDashboardView'
+import GamesDashboardView from '@/components/dashboard/GamesDashboardView'
 import DashboardShareButton from '@/components/dashboard/DashboardShareButton'
 import { Button } from '@/components/ui/button'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { useDashboardChartState } from '@/hooks/useDashboardChartState'
 import { swrKeys } from '@/lib/swrKeys'
 
-export default function GamesDashboard({
-  initialSteam,
-  initialRecent
-}: {
-  initialSteam?: GetSteamResponse
-  initialRecent?: GetRecentlyActiveGamesResponse
-}) {
+export default function GamesDashboard() {
   const router = useRouter()
   const chart = useDashboardChartState<'progress' | 'distribution'>('distribution')
 
-  const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam(initialSteam)
+  const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam()
   const { data: progressData, isLoading: progressLoading } = useSteamProgress(
     chart.start,
     chart.end
   )
-  const { data: recentData } = useRecentlyActiveGames(initialRecent)
+  const { data: recentData } = useRecentlyActiveGames()
 
   const onSynced = useCallback(() => {
     void mutate(swrKeys.games)

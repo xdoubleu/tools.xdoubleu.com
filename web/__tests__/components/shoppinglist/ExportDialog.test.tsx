@@ -18,7 +18,9 @@ vi.mock('@/hooks/useShoppingList', () => ({
         }
       : undefined,
     isLoading: false
-  }),
+  })
+}))
+vi.mock('@/hooks/useIngredientCatalog', () => ({
   useItemCategories: () => ({
     data: {
       items: [
@@ -55,6 +57,11 @@ beforeEach(() => {
 })
 
 describe('ExportDialog', () => {
+  it('opens as a wide bottom sheet', () => {
+    renderDialog()
+    expect(screen.getByRole('dialog')).toHaveClass('rounded-t-2xl', 'sm:max-w-lg')
+  })
+
   it('renders export buttons', () => {
     renderDialog()
     expect(screen.getByRole('button', { name: /Copy to Clipboard/ })).toBeInTheDocument()

@@ -1,13 +1,15 @@
 // Package taste builds a per-user consumption log across every media app, its
 // cross-domain statistics, and an LLM-written taste profile. A family's shared
 // movies & series list gets its own profile, treating the family as one
-// person. It reaches other apps only through their exported ListConsumption
-// methods.
+// person. It reaches other apps only through their exported methods:
+// ListConsumption to read, Find* to look candidates up, and Want* to add an
+// accepted pick to a backlog (the only write).
 package taste
 
 import (
 	"context"
 	"embed"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -55,6 +57,7 @@ type Taste struct {
 // New builds the app over sources, which must already be constructed
 // (registration order in cmd/api/apps.go).
 func New(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -69,12 +72,13 @@ func New(
 	if mail != nil {
 		sender = mail
 	}
-	return NewInner(authService, logger, cfg, db, llm, sender, catalogs, sources...)
+	return NewInner(ctx, authService, logger, cfg, db, llm, sender, catalogs, sources...)
 }
 
 // NewInner allows tests to inject a fake OpenRouter client and mail sender
 // (nil sends no email); it counts as configured when cfg has a key.
 func NewInner(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -89,7 +93,7 @@ func NewInner(
 	}
 	//nolint:exhaustruct // jobQueue, genJob initialised below
 	a := &Taste{
-		Base:   app.NewBase(context.Background(), authService, logger, cfg),
+		Base:   app.NewBase(ctx, authService, logger, cfg),
 		db:     db,
 		auth:   authService,
 		family: sharedrepositories.NewFamilyRepository(db),
@@ -114,6 +118,11 @@ func NewInner(
 		authService, a.profiles, a.picks, a.notify, a.GetName(),
 	).WithShared(sharedSubjects(sources))
 	return a
+}
+
+// Shutdown drains background tasks, then the job queue.
+func (a *Taste) Shutdown(ctx context.Context) error {
+	return errors.Join(a.Base.Shutdown(ctx), a.jobQueue.Wait(ctx))
 }
 
 func (a *Taste) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

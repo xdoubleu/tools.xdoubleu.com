@@ -8,7 +8,7 @@ import {
   useCategories,
   queueCategory,
   queueItemCategory
-} from '@/hooks/useShoppingList'
+} from '@/hooks/useIngredientCatalog'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { parseFraction } from '@/lib/recipes/parseFraction'
 import { indexIngredientUnits, otherRecipeUnits } from '@/lib/recipes/unitConsistency'
@@ -183,13 +183,20 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label>Recipe Name</Label>
-        <Input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+        <Label htmlFor="recipe-name">Recipe Name</Label>
+        <Input
+          id="recipe-name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
       </div>
 
       <div className="space-y-1.5">
-        <Label>Servings</Label>
+        <Label htmlFor="recipe-servings">Servings</Label>
         <Input
+          id="recipe-servings"
           type="number"
           inputMode="numeric"
           value={servings}
@@ -200,12 +207,14 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
       </div>
 
       <div className="space-y-1.5">
-        <Label>Batch prep servings</Label>
-        <p className="text-xs text-muted">
+        <Label htmlFor="recipe-batch-servings">Batch prep servings</Label>
+        <p id="recipe-batch-servings-hint" className="text-xs text-muted">
           When set, the shopping list buys for this many servings instead of summing scheduled
           occurrences. Leave empty to use the scheduled total.
         </p>
         <Input
+          id="recipe-batch-servings"
+          aria-describedby="recipe-batch-servings-hint"
           type="number"
           inputMode="numeric"
           value={batchServings}
@@ -230,8 +239,8 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
       </div>
 
       <div className="space-y-1.5">
-        <Label>Ingredients</Label>
-        <div className="space-y-2">
+        <Label id="recipe-ingredients">Ingredients</Label>
+        <div role="group" aria-labelledby="recipe-ingredients" className="space-y-2">
           {ingredients.map((ing, idx) => {
             const otherUnits = ing.name.trim()
               ? otherRecipeUnits(ing.name, ing.unit, unitsByName, aliases, recipe?.id)
@@ -240,6 +249,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
               <div key={idx} className="flex flex-wrap gap-2">
                 <Input
                   type="text"
+                  aria-label="Amount"
                   placeholder="e.g. 1/3"
                   value={ing.amount}
                   onChange={(e) => updateIngredient(idx, 'amount', e.target.value)}
@@ -247,6 +257,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
                 />
                 <Input
                   type="text"
+                  aria-label="Unit"
                   placeholder="Unit"
                   value={ing.unit}
                   onChange={(e) => updateIngredient(idx, 'unit', e.target.value)}
@@ -263,6 +274,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
                 />
                 <Input
                   type="text"
+                  aria-label="Group"
                   placeholder="Group (optional)"
                   value={ing.group}
                   onChange={(e) => updateIngredient(idx, 'group', e.target.value)}
@@ -322,8 +334,13 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
       </div>
 
       <div className="space-y-1.5">
-        <Label>Steps</Label>
-        <Textarea value={steps} onChange={(e) => setSteps(e.target.value)} rows={6} />
+        <Label htmlFor="recipe-steps">Steps</Label>
+        <Textarea
+          id="recipe-steps"
+          value={steps}
+          onChange={(e) => setSteps(e.target.value)}
+          rows={6}
+        />
       </div>
 
       <div className="flex gap-2">

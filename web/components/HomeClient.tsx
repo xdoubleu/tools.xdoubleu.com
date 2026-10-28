@@ -157,7 +157,7 @@ export default function HomeClient() {
   const signIn = useSignIn()
   const mFAChallenge = useMFAChallenge()
 
-  // SWRProvider's fallback lets the authenticated view server-render.
+  // A cached user shows the authenticated view straight away.
   const [authState, setAuthState] = useState<AuthState>(data ? 'authenticated' : 'loading')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -250,7 +250,13 @@ export default function HomeClient() {
       apps: names.map((n) => APP_MAP.get(n)!).filter((app) => isVisible(app))
     }))
 
-    return <AppGrid sections={sections} />
+    // The grid's section headings carry the page; the h1 is for screen readers.
+    return (
+      <>
+        <PageHeader title="tools.xdoubleu.com" className="sr-only" />
+        <AppGrid sections={sections} />
+      </>
+    )
   }
 
   if (authState === 'mfa-challenge') {

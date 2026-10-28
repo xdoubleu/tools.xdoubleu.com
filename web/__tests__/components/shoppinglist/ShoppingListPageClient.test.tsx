@@ -28,13 +28,15 @@ vi.mock('@/hooks/useShoppingList', () => ({
     error: mockListError,
     isLoading: mockListLoading
   }),
-  useCategories: () => ({
-    data: { categories: [{ id: 'cat-produce', name: 'Produce' }] }
-  }),
   useAllMealPlanExportItems: () => mockMealExport,
   useAllPlanIngredientGroups: () => mockPlanGroups,
   useStores: () => ({ data: { stores: [] }, isLoading: false }),
-  useStoreCategories: () => ({ data: undefined, isLoading: false }),
+  useStoreCategories: () => ({ data: undefined, isLoading: false })
+}))
+vi.mock('@/hooks/useIngredientCatalog', () => ({
+  useCategories: () => ({
+    data: { categories: [{ id: 'cat-produce', name: 'Produce' }] }
+  }),
   useItemCategories: () => ({ data: { items: [] }, isLoading: false }),
   useItemAliases: () => mockAliases
 }))
@@ -70,7 +72,9 @@ describe('ShoppingPage add form', () => {
   it('assigns the chosen category to the catalog on add', async () => {
     render(<ShoppingListPageClient />)
 
-    fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Apples' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'New item name' }), {
+      target: { value: 'Apples' }
+    })
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'cat-produce' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 

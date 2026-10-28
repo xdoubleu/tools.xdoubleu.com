@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { createServiceClient } from '@/lib/client'
-import { RoomService } from '@/lib/gen/watchparty/v1/rooms_pb'
+import { useRouter } from '@/hooks/navigation'
+import { useCreateRoom, useJoinRoom } from '@/hooks/useWatchPartyRooms'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PageContainer } from '@/components/ui/page-container'
@@ -11,16 +11,16 @@ export default function WatchpartyPage() {
   const [roomCode, setRoomCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const client = createServiceClient(RoomService)
+  const router = useRouter()
+  const createRoom = useCreateRoom()
+  const joinRoom = useJoinRoom()
 
   async function handleCreate() {
     setError(null)
     setLoading(true)
     try {
-      const room = await client.createRoom({})
-      if (room.room?.roomCode) {
-        window.location.href = `/watchparty/${room.room.roomCode}/presenter`
-      }
+      const code = await createRoom()
+      if (code) router.push(`/watchparty/${code}/presenter`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create room')
     } finally {
@@ -34,10 +34,8 @@ export default function WatchpartyPage() {
     setError(null)
     setLoading(true)
     try {
-      const room = await client.joinRoom({ roomCode: roomCode.trim() })
-      if (room.room?.roomCode) {
-        window.location.href = `/watchparty/${room.room.roomCode}`
-      }
+      const code = await joinRoom(roomCode)
+      if (code) router.push(`/watchparty/${code}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to join room')
     } finally {
@@ -69,6 +67,7 @@ export default function WatchpartyPage() {
           type="text"
           value={roomCode}
           onChange={(e) => setRoomCode(e.target.value)}
+          aria-label="Room code"
           placeholder="Room code"
           className="min-w-0 flex-1"
         />

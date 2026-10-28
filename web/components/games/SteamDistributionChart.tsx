@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts'
+import { EmptyState } from '@/components/ui/states'
 
 const BUCKET_LABELS = [
   '0-9%',
@@ -40,7 +41,7 @@ export default function SteamDistributionChart({
   onBucketClick
 }: SteamDistributionChartProps) {
   if (!distribution || distribution.length === 0) {
-    return <p className="text-muted">No distribution data available.</p>
+    return <EmptyState>No distribution data available.</EmptyState>
   }
 
   const chartData = distribution.map((count, i) => ({

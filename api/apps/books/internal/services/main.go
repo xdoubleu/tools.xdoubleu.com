@@ -10,11 +10,12 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
-	"tools.xdoubleu.com/apps/books/pkg/webfetch"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/progressws"
+	"tools.xdoubleu.com/internal/threading"
+	"tools.xdoubleu.com/internal/webfetch"
 )
 
 type Services struct {
@@ -36,6 +37,7 @@ type Services struct {
 func New(
 	ctx context.Context,
 	logger *slog.Logger,
+	background *threading.Background,
 	config config.Config,
 	jobQueue *jobqueue.JobQueue,
 	repositories *repositories.Repositories,
@@ -85,7 +87,7 @@ func New(
 		logger, repositories.BookFiles, objectStore, translateBudget,
 	)
 	booksSvc.physical = newPhysicalService(
-		logger, repositories.Books, repositories.ReadingState, positions,
+		logger, background, repositories.Books, repositories.ReadingState, positions,
 	)
 
 	return &Services{

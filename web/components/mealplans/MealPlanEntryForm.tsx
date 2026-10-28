@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { useSWRConfig } from 'swr'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import type { MealSuggestion } from './useMealCalendarState'
 import RecipeCombobox from '@/components/mealplans/RecipeCombobox'
@@ -11,9 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { cn } from '@/lib/cn'
 import { parseCustomItems, encodeCustomItems, type CustomItem } from '@/lib/customItems'
-import { useCategories, useItemCategories } from '@/hooks/useShoppingList'
-import { createServiceClient } from '@/lib/client'
-import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+import { queueItemCategory, useCategories, useItemCategories } from '@/hooks/useIngredientCatalog'
 import {
   Dialog,
   DialogContent,
@@ -75,7 +72,6 @@ export default function MealPlanEntryForm({
   const { data: categoriesData } = useCategories()
   const { data: itemCategoriesData } = useItemCategories()
   const categories = categoriesData?.categories ?? []
-  const { mutate: globalMutate } = useSWRConfig()
 
   // Catalog assignments by normalized name, for pre-fill and skipping writes.
   const nameToCategoryId = useMemo(() => {
@@ -90,9 +86,7 @@ export default function MealPlanEntryForm({
     item.categoryId ?? nameToCategoryId[item.name.trim().toLowerCase()] ?? ''
 
   const persistCategories = async () => {
-    const client = createServiceClient(ShoppingListService)
     const seen = new Set<string>()
-    let wrote = false
     for (const item of customItems) {
       const name = item.name.trim()
       const categoryId = effectiveCategoryId(item)
@@ -101,12 +95,7 @@ export default function MealPlanEntryForm({
       if (!name || !categoryId || seen.has(key)) continue
       seen.add(key)
       if (nameToCategoryId[key] === categoryId) continue
-      await client.setItemCategory({ name, categoryId })
-      wrote = true
-    }
-    if (wrote) {
-      await globalMutate('/shoppinglist/item-categories')
-      await globalMutate('/shoppinglist/item-names')
+      await queueItemCategory(name, categoryId)
     }
   }
 
@@ -200,6 +189,7 @@ export default function MealPlanEntryForm({
               value={servings}
               onChange={(e) => setServings(parseInt(e.target.value, 10))}
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              aria-label="Servings"
               placeholder="Servings"
             />
           </div>
@@ -254,6 +244,7 @@ export default function MealPlanEntryForm({
                       }
                     }}
                     placeholder={`Item ${i + 1}`}
+                    aria-label={`Name for item ${i + 1}`}
                     autoFocus={i === 0}
                     className={cn('col-span-2 min-w-0 sm:flex-1')}
                   />

@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import { axisTick, tooltipProps } from '@/lib/chartTheme'
 import { useMovieStats } from '@/hooks/useMovies'
-import { monthLabel } from '@/lib/movies/format'
+import { monthLabel } from '@/lib/dates'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RatingStars } from '@/components/ui/rating-stars'
 import { StatTile } from '@/components/ui/stat'
@@ -73,7 +73,7 @@ export default function MoviesStatsClient() {
           </CardHeader>
           <CardContent>
             {data.genres.length === 0 ? (
-              <p className="text-sm text-muted">No genres yet.</p>
+              <EmptyState>No genres yet.</EmptyState>
             ) : (
               <ol className="space-y-1 text-sm">
                 {data.genres.map((g) => (
@@ -102,7 +102,7 @@ export default function MoviesStatsClient() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-muted">No ratings yet.</p>
+              <EmptyState>No ratings yet.</EmptyState>
             )}
           </CardContent>
         </Card>

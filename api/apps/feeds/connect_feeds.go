@@ -12,6 +12,7 @@ import (
 	"tools.xdoubleu.com/apps/feeds/internal/services"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/gen/feeds/v1/feedsv1connect"
+	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
 	"tools.xdoubleu.com/internal/database"
@@ -144,22 +145,18 @@ func parseFeedID(id string) (uuid.UUID, *connect.Error) {
 	return feedID, nil
 }
 
-func feedErrorToConnect(err error) *connect.Error {
-	switch {
-	case errors.Is(err, database.ErrResourceNotFound):
-		return connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
-	case errors.Is(err, database.ErrResourceConflict):
-		return connect.NewError(
-			connect.CodeAlreadyExists,
-			"feed already exists",
-		)
-	case errors.Is(err, services.ErrInvalidFeed),
-		errors.Is(err, services.ErrUnsupportedURL),
-		errors.Is(err, services.ErrNoPostsFound):
-		return connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
-	default:
-		return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
-	}
+func mapError(err error) error {
+	return connecttools.MapError(
+		err,
+		connecttools.Code(services.ErrInvalidFeed, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrUnsupportedURL, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrNoPostsFound, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrInvalidFilterRule, connect.CodeInvalidArgument),
+		connecttools.Code(
+			services.ErrEmailFeedsNotConfigured, connect.CodeFailedPrecondition,
+		),
+		connecttools.Code(services.ErrItemNotFiltered, connect.CodeFailedPrecondition),
+	)
 }
 
 func (h *feedsConnectHandler) ListFeeds(
@@ -173,7 +170,7 @@ func (h *feedsConnectHandler) ListFeeds(
 
 	feeds, err := h.app.Services.Feeds.List(ctx, user.ID)
 	if err != nil {
-		return nil, feedErrorToConnect(err)
+		return nil, mapError(err)
 	}
 
 	out := make([]*feedsv1.Feed, len(feeds))
@@ -198,7 +195,7 @@ func (h *feedsConnectHandler) CreateFeed(
 	if req.Kind == feedsv1.FeedKind_FEED_KIND_SCRAPE {
 		feed, err := h.app.Services.Feeds.CreateScrape(ctx, user.ID, req.Url)
 		if err != nil {
-			return nil, feedErrorToConnect(err)
+			return nil, mapError(err)
 		}
 		return &feedsv1.CreateFeedResponse{
 			Feed: protoFeed(*feed),
@@ -209,7 +206,7 @@ func (h *feedsConnectHandler) CreateFeed(
 		ctx, user.ID, req.Url, req.Title,
 	)
 	if err != nil {
-		return nil, feedErrorToConnect(err)
+		return nil, mapError(err)
 	}
 
 	return &feedsv1.CreateFeedResponse{
@@ -231,11 +228,7 @@ func (h *feedsConnectHandler) createEmailFeed(
 
 	feed, address, err := h.app.Services.Feeds.CreateEmail(ctx, userID, req.Title)
 	if err != nil {
-		if errors.Is(err, services.ErrEmailFeedsNotConfigured) {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).
-				WithCause(err)
-		}
-		return nil, feedErrorToConnect(err)
+		return nil, mapError(err)
 	}
 
 	proto := protoFeed(*feed)
@@ -259,7 +252,7 @@ func (h *feedsConnectHandler) UpdateFeed(
 	if err := h.app.Services.Feeds.Update(
 		ctx, user.ID, feedID, req.Title,
 	); err != nil {
-		return nil, feedErrorToConnect(err)
+		return nil, mapError(err)
 	}
 	return &feedsv1.UpdateFeedResponse{}, nil
 }
@@ -278,7 +271,7 @@ func (h *feedsConnectHandler) DeleteFeed(
 	}
 
 	if err := h.app.Services.Feeds.Delete(ctx, user.ID, feedID); err != nil {
-		return nil, feedErrorToConnect(err)
+		return nil, mapError(err)
 	}
 	return &feedsv1.DeleteFeedResponse{}, nil
 }
@@ -298,7 +291,7 @@ func (h *feedsConnectHandler) RefreshFeed(
 
 	ingested, err := h.app.Services.Feeds.Refresh(ctx, user.ID, feedID)
 	if err != nil {
-		return nil, feedErrorToConnect(err)
+		return nil, mapError(err)
 	}
 	return &feedsv1.RefreshFeedResponse{
 		Ingested: int32(ingested), //nolint:gosec // bounded by per-poll cap
@@ -328,7 +321,7 @@ func (h *feedsConnectHandler) ListFeedItems(
 		feedID, req.GetBookmarkedOnly(), req.GetFilteredOnly(),
 	)
 	if err != nil {
-		return nil, feedErrorToConnect(err)
+		return nil, mapError(err)
 	}
 
 	out := make([]*feedsv1.Item, len(items))
@@ -363,7 +356,7 @@ func (h *feedsConnectHandler) GetFeedItem(
 			h.app.Logger.WarnContext(ctx, "feed item not found",
 				"item_id", itemID, "user_id", user.ID)
 		}
-		return nil, feedErrorToConnect(err)
+		return nil, mapError(err)
 	}
 	return &feedsv1.GetFeedItemResponse{
 		Item: protoItem(*item),
@@ -388,7 +381,7 @@ func (h *feedsConnectHandler) UpdateItem(
 		req.ReadProgressPct,
 	)
 	if err != nil {
-		return nil, feedErrorToConnect(err)
+		return nil, mapError(err)
 	}
 	return &feedsv1.UpdateItemResponse{
 		Item: protoItem(*item),
@@ -406,7 +399,7 @@ func (h *feedsConnectHandler) GetFeedStats(
 
 	stats, perDay, err := h.app.Services.Feeds.GetStats(ctx, user.ID)
 	if err != nil {
-		return nil, feedErrorToConnect(err)
+		return nil, mapError(err)
 	}
 
 	protoStats := make([]*feedsv1.FeedStats, len(stats))
@@ -456,7 +449,7 @@ func (h *feedsConnectHandler) GetUnhealthyFeeds(
 
 	unhealthy, err := h.app.ListUnhealthy(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 
 	protoFeeds := make([]*feedsv1.UnhealthyFeed, len(unhealthy))

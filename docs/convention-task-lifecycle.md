@@ -23,8 +23,8 @@ mechanisms reference this file and add only the *how*:
 1. **Lint** what changed (`AGENTS.md`'s Commands), plus `make lint/docs`.
 2. **≥80% coverage on changed code** — the diff-scoped targets
    (`make test/cov/diff`, `npm run test:cov:diff`) approximate CI's gate.
-3. **`npm run build`** for any web change (only it checks the server/client
-   boundary).
+3. **`npm run build`** for any web change (only it builds the production
+   bundle).
 4. **Proto changed:** `make proto/check` (`api/`) and `npm run
    generate:check` (`web/`).
 5. **Non-draft PR** whose body closes the issue with a keyword

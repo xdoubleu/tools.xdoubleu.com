@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -297,7 +296,7 @@ func TestEnsureKEPUB_PDFConvertError_MarksFailedStatus(t *testing.T) {
 	assert.Equal(t, models.FileStatusFailed, kepubRow.Status)
 }
 
-func TestEnsureKEPUB_NoFiles_FailedPrecondition(t *testing.T) {
+func TestEnsureKEPUB_NoFiles_NoConvertibleSource(t *testing.T) {
 	book := addUniqueBook(t)
 	conv, _ := newTestConversionService(
 		&fakeEPUBConverter{out: []byte("kepub"), err: nil},
@@ -305,11 +304,7 @@ func TestEnsureKEPUB_NoFiles_FailedPrecondition(t *testing.T) {
 	)
 
 	_, err := conv.EnsureKEPUB(context.Background(), userID, book.ID)
-	require.Error(t, err)
-
-	var connectErr *connect.Error
-	require.True(t, errors.As(err, &connectErr))
-	assert.Equal(t, connect.CodeFailedPrecondition, connectErr.Code())
+	require.ErrorIs(t, err, services.ErrNoConvertibleSource)
 }
 
 func TestEnsureKEPUB_ConvertError_MarksFailedStatus(t *testing.T) {

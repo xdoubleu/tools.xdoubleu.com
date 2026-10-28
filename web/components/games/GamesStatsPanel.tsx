@@ -6,7 +6,7 @@ import SteamProgressChart from '@/components/games/SteamProgressChart'
 import { Button } from '@/components/ui/button'
 import { DateRangeFields } from '@/components/ui/date-range-fields'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ErrorState, LoadingState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { cn } from '@/lib/cn'
 import { oneYearAgo, today } from '@/lib/dates'
 
@@ -66,7 +66,7 @@ function GamesStatsPanelContent() {
             </div>
             {progressLoading && <LoadingState label="progress" />}
             {!progressLoading && progressChartData.length === 0 && (
-              <p className="text-muted">No progress data for this range.</p>
+              <EmptyState>No progress data for this range.</EmptyState>
             )}
             {progressChartData.length > 0 && (
               <div className="h-64 w-full">

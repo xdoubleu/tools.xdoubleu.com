@@ -8,8 +8,6 @@ import (
 	"strconv"
 
 	"github.com/joho/godotenv"
-
-	"tools.xdoubleu.com/internal/convert"
 )
 
 // ProdEnv is the production environment name.
@@ -45,7 +43,11 @@ type Config struct {
 	RefreshExpiry string
 	AuthCacheTTL  int // seconds; 0 disables the per-token user cache
 	DBDsn         string
-	Release       string
+	// DBMaxConns caps this process's pgx pool. Old and new containers of both
+	// roles overlap during a deploy, so 2×(web+workers) must stay well under
+	// Postgres' max_connections (100).
+	DBMaxConns int
+	Release    string
 	// JWTSecret signs local session access-token JWTs.
 	JWTSecret string
 	// OAuthHMACSecret keys the embedded OAuth 2.1 server's HMAC token strategy.
@@ -153,14 +155,9 @@ func (c parser) baseEnv(key string) string {
 	return value
 }
 
-func (c parser) logValue(valType string, key string, value any) {
-	strVal, err := convert.AnyToString(value)
-	if err != nil {
-		panic(err)
-	}
-
+func (c parser) logValue(valType, key, value string) {
 	c.logger.Info(
-		fmt.Sprintf("loaded env var '%s'='%s' with type '%s'", key, strVal, valType),
+		fmt.Sprintf("loaded env var '%s'='%s' with type '%s'", key, value, valType),
 	)
 }
 
@@ -203,7 +200,7 @@ func (c parser) envInt(key string, defaultValue int) int {
 		value = intVal
 	}
 
-	c.logValue("int", key, value)
+	c.logValue("int", key, strconv.Itoa(value))
 	return value
 }
 
@@ -219,7 +216,7 @@ func (c parser) envFloat(key string, defaultValue float64) float64 {
 		value = floatVal
 	}
 
-	c.logValue("float64", key, value)
+	c.logValue("float64", key, fmt.Sprintf("%.2f", value))
 	return value
 }
 
@@ -235,7 +232,7 @@ func (c parser) envBool(key string, defaultValue bool) bool {
 		value = boolVal
 	}
 
-	c.logValue("bool", key, value)
+	c.logValue("bool", key, strconv.FormatBool(value))
 	return value
 }
 
@@ -259,6 +256,15 @@ func (c parser) loadWeb(cfg *Config) {
 	cfg.PostHogHost = c.envStr("POSTHOG_HOST", "")
 	cfg.KoboGatewayRelease = c.envStr("KOBO_GATEWAY_RELEASE", "dev")
 	cfg.OfflineDisabled = c.envStr("OFFLINE_DISABLED", "") == "1"
+}
+
+// dbMaxConnsDefault: workers runs two job-queue workers, web serves requests
+// plus the light jobs (Steam sync fans out 10 at once).
+func dbMaxConnsDefault(role string) int {
+	if role == RoleWorkers {
+		return 5
+	}
+	return 15
 }
 
 func (c parser) envRole() string {
@@ -286,6 +292,7 @@ func New(logger *slog.Logger) Config {
 	cfg.RefreshExpiry = p.envStr("REFRESH_EXPIRY", "7d")
 	cfg.AuthCacheTTL = p.envInt("AUTH_CACHE_TTL", 60)
 	cfg.DBDsn = p.envSecret("DB_DSN", "postgres://postgres@localhost/postgres")
+	cfg.DBMaxConns = p.envInt("DB_MAX_CONNS", dbMaxConnsDefault(cfg.Role))
 	// "dev" is the literal "no real deploy" sentinel web and kobo-gateway expect.
 	cfg.Release = p.envStr("RELEASE", "dev")
 

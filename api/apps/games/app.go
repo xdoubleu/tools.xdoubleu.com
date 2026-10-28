@@ -3,6 +3,7 @@ package games
 import (
 	"context"
 	"embed"
+	"errors"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -34,6 +35,7 @@ type Games struct {
 }
 
 func New(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -49,10 +51,11 @@ func New(
 		return steam.New(logger, apiKey)
 	}
 
-	return NewInner(authService, logger, cfg, db, steamFactory)
+	return NewInner(ctx, authService, logger, cfg, db, steamFactory)
 }
 
 func NewInner(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -61,7 +64,7 @@ func NewInner(
 ) *Games {
 	//nolint:exhaustruct //jobQueue, Repositories, Services initialised below
 	a := &Games{
-		Base:  app.NewBase(context.Background(), authService, logger, cfg),
+		Base:  app.NewBase(ctx, authService, logger, cfg),
 		db:    db,
 		Store: steam.NewStore(steam.StoreURL),
 	}
@@ -103,6 +106,11 @@ func (a *Games) Start() error {
 
 	a.Services.WebSocket.RegisterTopics(a.jobQueue.FetchJobIDs())
 	return nil
+}
+
+// Shutdown drains background tasks, then the job queue.
+func (a *Games) Shutdown(ctx context.Context) error {
+	return errors.Join(a.Base.Shutdown(ctx), a.jobQueue.Wait(ctx))
 }
 
 func (a *Games) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

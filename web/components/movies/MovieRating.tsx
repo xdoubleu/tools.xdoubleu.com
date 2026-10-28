@@ -36,7 +36,11 @@ export default function MovieRating({ entry }: { entry: BacklogEntry }) {
         disabled={saving !== null}
         onChange={(r) => void change(r)}
       />
-      {failed && <p className="text-sm text-danger">Couldn&apos;t save. Try again.</p>}
+      {failed && (
+        <p className="text-sm text-danger" role="alert">
+          Couldn&apos;t save. Try again.
+        </p>
+      )}
     </section>
   )
 }

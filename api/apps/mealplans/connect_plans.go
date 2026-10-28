@@ -10,7 +10,7 @@ import (
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
-	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
+	"tools.xdoubleu.com/internal/connecttools"
 )
 
 func (h *mealplansConnectHandler) ListPlans(
@@ -29,7 +29,7 @@ func (h *mealplansConnectHandler) ListPlans(
 		ctx, user.ID, req.Limit, req.Offset,
 	)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	// Only an empty first page means no plans yet.
@@ -43,7 +43,7 @@ func (h *mealplansConnectHandler) ListPlans(
 			},
 		)
 		if createErr != nil {
-			return nil, mapError(createErr)
+			return nil, connecttools.MapError(createErr)
 		}
 		list = []models.Plan{*created}
 	}
@@ -79,12 +79,11 @@ func (h *mealplansConnectHandler) GetPlan(
 		ctx, id, user.ID, offset,
 	)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &mealplansv1.GetPlanResponse{
 		Plan:        protoPlan(plan),
-		Recipes:     []*recipesv1.Recipe{},
 		IcalUrl:     h.icalURL(plan.ICalToken),
 		IsOwner:     plan.OwnerUserID == user.ID,
 		Offset:      int32(offset),     //nolint:gosec // pagination offset fits int32
@@ -123,7 +122,7 @@ func (h *mealplansConnectHandler) UpdatePlan(
 	}
 
 	if err = h.app.services.Plans.Update(ctx, user.ID, plan); err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &mealplansv1.UpdatePlanResponse{}, nil
@@ -151,7 +150,7 @@ func (h *mealplansConnectHandler) RotateICalToken(
 
 	token, err := h.app.services.Plans.RotateICalToken(ctx, id, user.ID)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &mealplansv1.RotateICalTokenResponse{

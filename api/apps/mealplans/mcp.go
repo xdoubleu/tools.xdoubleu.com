@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
+	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/mcptools"
 )
 
@@ -32,7 +33,7 @@ func (a *MealPlans) RegisterMCPTools(srv *mcp.Server) {
 	mcptools.AddReadTool(srv, mcpAppName, "mealplans_list_plans",
 		"The meal plans in the user's family.", h.mcpListPlans)
 	mcptools.AddReadTool(srv, mcpAppName, "mealplans_get_plan",
-		"A single meal plan's week of meals with the referenced recipes.",
+		"A single meal plan's week of meals; recipe meals carry recipe_ref {id, name}.",
 		h.mcpGetPlan)
 	mcptools.AddReadTool(srv, mcpAppName, "mealplans_suggest_recipes",
 		"Recipe suggestions for a given plan slot.", h.mcpSuggestRecipes)
@@ -51,7 +52,7 @@ func (h *mealplansConnectHandler) mcpListPlans(
 	}
 	list, hasMore, err := h.app.services.Plans.List(ctx, user.ID, 0, 0)
 	if err != nil {
-		return nil, mapError(err)
+		return nil, connecttools.MapError(err)
 	}
 	return &mealplansv1.ListPlansResponse{
 		Plans:   protoPlans(list),

@@ -89,7 +89,7 @@ describe('Navbar', () => {
     expect(screen.getByRole('banner')).toHaveClass('pt-[var(--inset-top)]')
   })
 
-  it('renders nothing on a public shared profile page', () => {
+  it('keeps the header clear of a landscape notch at every width', () => {
     // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseCurrentUser.mockReturnValue({
       data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: [] }),
@@ -97,10 +97,43 @@ describe('Navbar', () => {
       error: undefined
     })
     mockUseSignOut.mockReturnValue(vi.fn())
-    mockUsePathname.mockReturnValue('/profile/books/some-token')
 
-    const { container } = render(<Navbar />)
-    expect(container.firstChild).toBeNull()
+    render(<Navbar />)
+
+    const nav = screen.getByRole('navigation')
+    expect(nav).toHaveClass('pl-[var(--inset-left)]', 'sm:pr-[var(--inset-right)]')
+    expect(nav.className).not.toMatch(/\b(sm|lg):px-/)
+  })
+
+  it.each(['/dashboard/reading/some-token', '/dashboard/games/some-token/library'])(
+    'renders nothing on the shared dashboard %s',
+    (pathname) => {
+      // @ts-expect-error -- mock returns partial hook response for test purposes
+      mockUseCurrentUser.mockReturnValue({
+        data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: [] }),
+        isLoading: false,
+        error: undefined
+      })
+      mockUseSignOut.mockReturnValue(vi.fn())
+      mockUsePathname.mockReturnValue(pathname)
+
+      const { container } = render(<Navbar />)
+      expect(container.firstChild).toBeNull()
+    }
+  )
+
+  it("renders on the owner's own dashboard", () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
+    mockUseCurrentUser.mockReturnValue({
+      data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: [] }),
+      isLoading: false,
+      error: undefined
+    })
+    mockUseSignOut.mockReturnValue(vi.fn())
+    mockUsePathname.mockReturnValue('/dashboard/reading')
+
+    render(<Navbar />)
+    expect(screen.getByRole('banner')).toBeInTheDocument()
   })
 
   it('sends queued writes, signs out, then clears offline data', async () => {

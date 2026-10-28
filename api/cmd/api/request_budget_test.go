@@ -12,11 +12,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/internal/communication/httptools"
+	"tools.xdoubleu.com/internal/logging"
 )
 
 // kamalDefaultResponseTimeout is Kamal's proxy.response_timeout when unset.
@@ -82,4 +84,51 @@ func TestMiddlewareLongRouteOutlivesWriteTimeout(t *testing.T) {
 
 	_, err = post(t, srv, booksv1connect.BookFilesServiceGetBookFileProcedure)
 	require.Error(t, err)
+}
+
+// Through production's middleware chain and the SDK's handler, an MCP tool
+// call's context outlives RequestBudget and its response outlives
+// WriteTimeout.
+func TestMCPToolCallGetsLongBudget(t *testing.T) {
+	const writeTimeout = 100 * time.Millisecond
+	budgets := make(chan time.Duration, 1)
+	srv := newMCPServer(logging.NewNopLogger())
+	//nolint:exhaustruct // the name is all the tool needs
+	mcp.AddTool(srv, &mcp.Tool{Name: "slow"}, func(
+		ctx context.Context, _ *mcp.CallToolRequest, _ noArgs,
+	) (*mcp.CallToolResult, any, error) {
+		deadline, _ := ctx.Deadline()
+		budgets <- time.Until(deadline)
+		time.Sleep(3 * writeTimeout)
+		//nolint:exhaustruct // an empty result
+		return &mcp.CallToolResult{}, nil, nil
+	})
+	mux := http.NewServeMux()
+	mux.Handle(appsMCPPath, streamableMCPHandler(logging.NewNopLogger(), srv))
+	ts := httptest.NewUnstartedServer(throttledApp(t).middleware().Then(mux))
+	ts.Config.WriteTimeout = writeTimeout
+	ts.Start()
+	t.Cleanup(ts.Close)
+
+	session := mcpSession(t, ts.URL+appsMCPPath, "")
+	//nolint:exhaustruct // the name is all the tool needs
+	res, err := session.CallTool(context.Background(), &mcp.CallToolParams{Name: "slow"})
+	require.NoError(t, err)
+	assert.False(t, res.IsError, toolMessage(res, err))
+	assert.Greater(t, <-budgets, httptools.RequestBudget)
+}
+
+// Only the routes that need it get the long budget.
+func TestIsLongRequest(t *testing.T) {
+	for path, want := range map[string]bool{
+		appsMCPPath: true,
+		booksv1connect.BookFilesServiceFinalizeBookUploadProcedure: true,
+		appsResourceMetadataPath:                                   false,
+		appsMCPPath + "/x":                                         false,
+		"/books" + appsMCPPath:                                     false,
+		booksv1connect.BookFilesServiceGetBookFileProcedure:        false,
+	} {
+		r := httptest.NewRequest(http.MethodPost, path, nil)
+		assert.Equal(t, want, isLongRequest(r), path)
+	}
 }

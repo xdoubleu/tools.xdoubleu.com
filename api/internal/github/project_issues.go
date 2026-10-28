@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -235,7 +234,7 @@ func filterProjectIssuesByStatus(
 	return issues
 }
 
-// postGraphQL posts a GraphQL query into dst, with doWithRetry's retries.
+// postGraphQL posts a GraphQL query into dst.
 func (c *client) postGraphQL(
 	ctx context.Context, token, query string, variables map[string]any, dst any,
 ) error {
@@ -247,39 +246,17 @@ func (c *client) postGraphQL(
 		return err
 	}
 
-	return c.doWithRetry(ctx, func() (bool, error) {
-		req, reqErr := http.NewRequestWithContext(
-			ctx, http.MethodPost, baseURL+"/graphql", bytes.NewReader(body),
-		)
-		if reqErr != nil {
-			return false, reqErr
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Accept", "application/vnd.github+json")
-		req.Header.Set("Authorization", "Bearer "+token)
+	req := c.newRequest(http.MethodPost, baseURL+"/graphql", token).
+		SetHeader("Content-Type", "application/json").
+		SetBody(body)
 
-		resp, doErr := c.httpClient.Do(req)
-		if doErr != nil {
-			return isTransientErr(doErr), doErr
-		}
-		defer resp.Body.Close()
+	resp, err := c.http.Do(ctx, req)
+	if err != nil {
+		return err
+	}
+	if err = statusError(resp); err != nil {
+		return err
+	}
 
-		if isRetryableStatus(resp.StatusCode) {
-			raw, _ := io.ReadAll(resp.Body)
-			return true, fmt.Errorf(
-				"%w: github API returned %d: %s",
-				errTransientStatus, resp.StatusCode, string(raw),
-			)
-		}
-
-		if resp.StatusCode < http.StatusOK ||
-			resp.StatusCode >= http.StatusMultipleChoices {
-			raw, _ := io.ReadAll(resp.Body)
-			return false, fmt.Errorf(
-				"github API returned %d: %s", resp.StatusCode, string(raw),
-			)
-		}
-
-		return false, json.NewDecoder(resp.Body).Decode(dst)
-	})
+	return json.NewDecoder(bytes.NewReader(resp.Body)).Decode(dst)
 }

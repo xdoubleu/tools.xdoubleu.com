@@ -6,8 +6,10 @@ import (
 	"connectrpc.com/connect/v2"
 
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
+	"tools.xdoubleu.com/apps/watchparty/internal/services"
 	watchpartyv1 "tools.xdoubleu.com/gen/watchparty/v1"
 	"tools.xdoubleu.com/gen/watchparty/v1/watchpartyv1connect"
+	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
 	"tools.xdoubleu.com/internal/models"
@@ -76,13 +78,11 @@ func (h *roomConnectHandler) JoinRoom(
 		return nil, connect.NewError(connect.CodeInvalidArgument, "")
 	}
 
-	if !h.app.Services.Room.RoomExists(req.RoomCode) {
-		return nil, connect.NewError(connect.CodeNotFound, "")
-	}
-
-	ok := h.app.Services.Room.JoinViewer(ctx, req.RoomCode, user.ID)
-	if !ok {
-		return nil, connect.NewError(connect.CodeInternal, "")
+	if err := h.app.Services.Room.JoinViewer(ctx, req.RoomCode, user.ID); err != nil {
+		return nil, connecttools.MapError(
+			err,
+			connecttools.Code(services.ErrSeatTaken, connect.CodeFailedPrecondition),
+		)
 	}
 
 	exists, roomCode, role := h.app.Services.Room.GetRoomForUser(user.ID)

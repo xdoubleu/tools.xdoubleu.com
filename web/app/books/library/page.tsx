@@ -1,7 +1,5 @@
-import { Suspense } from 'react'
 import BooksSection from '@/components/books/BooksSection'
 import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
-import { LoadingState } from '@/components/ui/states'
 import { PageContainer } from '@/components/ui/page-container'
 import LibraryAdminButton from '@/components/books/LibraryAdminButton'
 
@@ -19,9 +17,7 @@ export default function BacklogBooksLibraryPage() {
         }
       />
 
-      <Suspense fallback={<LoadingState />}>
-        <BooksSection />
-      </Suspense>
+      <BooksSection />
     </PageContainer>
   )
 }

@@ -1,7 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useFeedStats } from '@/hooks/useFeeds'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ErrorState, LoadingState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 const tooltipContentStyle = {
   backgroundColor: 'var(--color-surface)',
@@ -27,7 +27,7 @@ export default function FeedStatsClient() {
   if (isLoading) return <LoadingState />
   if (error) return <ErrorState what="feed stats" />
   if (!data || data.stats.length === 0) {
-    return <p className="text-muted">No feed activity yet.</p>
+    return <EmptyState>No feed activity yet.</EmptyState>
   }
 
   const chartData = data.itemsPerDay.map((d) => ({
@@ -43,7 +43,7 @@ export default function FeedStatsClient() {
         </CardHeader>
         <CardContent>
           {chartData.length === 0 ? (
-            <p className="text-muted">No items ingested in the last 90 days.</p>
+            <EmptyState>No items ingested in the last 90 days.</EmptyState>
           ) : (
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">

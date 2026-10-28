@@ -18,7 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/feeds"
-	"tools.xdoubleu.com/apps/feeds/internal/mocks"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/gen/feeds/v1/feedsv1connect"
 	"tools.xdoubleu.com/internal/logging"
@@ -81,7 +80,7 @@ func newNotifyTestApp(
 	t *testing.T,
 ) (
 	feedsv1connect.FeedServiceClient,
-	*mocks.MockWebFetchClient,
+	*sharedmocks.MockWebFetchClient,
 	*capturingMailServer,
 	*notifications.Service,
 	*bytes.Buffer,
@@ -96,7 +95,7 @@ func newNotifyTestApp(
 	cfg.EmailInboundDomain = "mail.example.com"
 	cfg.ResendAPIKey = "test-resend-key"
 
-	webFetch := mocks.NewMockWebFetchClient()
+	webFetch := sharedmocks.NewMockWebFetchClient()
 	var logBuf bytes.Buffer
 	logger := slog.New(logging.NewBufLogHandler(&logBuf, nil))
 	notifSvc := notifications.New(
@@ -105,6 +104,7 @@ func newNotifyTestApp(
 		mailer.New("test-resend-key", "feeds@example.com", ""),
 	)
 	app := feeds.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID),
 		logger,
 		cfg,

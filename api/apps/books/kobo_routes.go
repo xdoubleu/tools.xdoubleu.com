@@ -20,6 +20,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/threading"
 )
 
 // koboUpstreamTimeout caps upstream Kobo store calls so a stalled store still
@@ -291,7 +292,9 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 	// Warm covers in the background (detached so a slow source never stalls
 	// the sync) so the device's subsequent cover fetches during its update
 	// phase are fast R2 hits instead of blocking live fetches.
-	go app.warmKoboCovers(context.WithoutCancel(r.Context()), userID, books)
+	app.Background.Go(r.Context(), "kobo-cover-warm", func(ctx context.Context) {
+		app.warmKoboCovers(ctx, userID, books)
+	})
 
 	stateByBook, err := app.Services.Books.ListReadingStates(r.Context(), userID)
 	if err != nil {
@@ -299,11 +302,14 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// The upstream fetch overlaps the span translation's wait.
-	var upstream koboUpstream
+	// The upstream fetch overlaps the span translation's wait. Not on
+	// Background: its slots must never hold up the response. The note stands
+	// if the fetch panics.
+	upstream := koboUpstream{items: nil, hdrs: nil, note: "upstream: fetch panicked"}
 	upstreamDone := make(chan struct{})
 	go func() {
 		defer close(upstreamDone)
+		defer threading.Recover(r.Context(), app.Logger, "kobo-upstream-sync")
 		upstream = app.koboFetchUpstreamSync(r)
 	}()
 
@@ -398,9 +404,9 @@ func (app *Books) koboLinkStoreBooks(
 	if upstream.note != "" || len(upstream.items) == 0 {
 		return
 	}
-	go app.recordKoboStoreSync(
-		context.WithoutCancel(r.Context()), userID, upstream.items,
-	)
+	app.Background.Go(r.Context(), "kobo-store-sync", func(ctx context.Context) {
+		app.recordKoboStoreSync(ctx, userID, upstream.items)
+	})
 }
 
 // warmKoboCovers caches every book's cover so the device's per-cover fetches

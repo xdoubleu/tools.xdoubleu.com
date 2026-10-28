@@ -6,11 +6,12 @@ import {
 } from '@/hooks/useBooks'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { LoadingState } from '@/components/ui/states'
+import { EmptyState, LoadingState } from '@/components/ui/states'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatDate } from '@/lib/dates'
 import KoboDeviceLogs from '@/components/books/KoboDeviceLogs'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Alert } from '@/components/ui/alert'
 
 function formatLastSeen(lastSeenAt: string): string {
   if (!lastSeenAt) return 'Never synced'
@@ -57,9 +58,9 @@ function DisconnectDialog({ open, deviceName, onCancel, onConfirm }: DisconnectD
           until you reconfigure it.
         </p>
         {error && (
-          <p className="mt-2 text-sm text-danger" data-testid="disconnect-error">
+          <Alert tone="danger" className="mt-2" data-testid="disconnect-error">
             {error}
-          </p>
+          </Alert>
         )}
         <div className="mt-6 flex justify-end gap-2">
           <Button variant="ghost" disabled={disconnecting} onClick={handleCancel}>
@@ -109,9 +110,9 @@ export default function KoboDevices() {
 
   if (devices.length === 0) {
     return (
-      <p className="text-xs text-muted" data-testid="kobo-devices-empty">
+      <EmptyState compact>
         No devices connected yet. Use the button above to configure your Kobo.
-      </p>
+      </EmptyState>
     )
   }
 

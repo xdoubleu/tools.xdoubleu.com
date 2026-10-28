@@ -14,12 +14,12 @@ import (
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
 	"tools.xdoubleu.com/apps/learningpaths/internal/services"
+	"tools.xdoubleu.com/apps/learningpaths/internal/todoist"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/todoist"
 )
 
 //go:embed migrations/*.sql
@@ -35,6 +35,7 @@ type LearningPaths struct {
 // cmd/api/apps.go); only their exported methods are called
 // (docs/adr-0007-dashboard-app-owns-public-sharing.md).
 func New(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -46,7 +47,7 @@ func New(
 	//nolint:exhaustruct //services initialised below
 	a := &LearningPaths{
 		Base: app.NewBase(
-			context.Background(),
+			ctx,
 			authService,
 			logger,
 			cfg,

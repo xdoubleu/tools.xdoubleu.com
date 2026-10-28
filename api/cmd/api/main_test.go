@@ -53,14 +53,14 @@ func TestMain(m *testing.M) {
 	// A fixed key so OAuth tests use the real AES-GCM sealer.
 	cfg.EncryptionKey = base64.StdEncoding.EncodeToString(make([]byte, 32))
 
-	postgresDB, err := newDBPool(logging.NewNopLogger(), cfg.DBDsn)
+	postgresDB, err := newDBPool(logging.NewNopLogger(), cfg.DBDsn, cfg.DBMaxConns)
 	if err != nil {
 		panic(err)
 	}
 
-	testApp = NewApplication(logging.NewNopLogger(), cfg, postgresDB)
-
 	ctx := context.Background()
+	testApp = NewApplication(ctx, logging.NewNopLogger(), cfg, postgresDB)
+
 	if _, err = postgresDB.Exec(
 		ctx,
 		"DELETE FROM global.family_invites WHERE to_user_id = $1",

@@ -4,7 +4,7 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
-	"tools.xdoubleu.com/apps/books/pkg/webfetch"
+	"tools.xdoubleu.com/internal/webfetch"
 )
 
 type Clients struct {

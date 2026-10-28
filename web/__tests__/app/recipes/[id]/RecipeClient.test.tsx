@@ -18,6 +18,7 @@ import RecipeClient from '@/app/recipes/[id]/RecipeClient'
 import { useRecipe, useDeleteRecipe } from '@/hooks/useRecipes'
 import { useWakeLock } from '@/hooks/useWakeLock'
 import { useRouter } from '@/hooks/navigation'
+import { WriteRejectedError } from '@/lib/offline/outbox'
 import { create } from '@bufbuild/protobuf'
 import {
   RecipeSchema,
@@ -446,5 +447,61 @@ describe('RecipeClient', () => {
     expect(field).toHaveAttribute('inputMode', 'numeric')
     fireEvent.change(field, { target: { value: '4' } })
     expect(useRecipe).toHaveBeenLastCalledWith('r1', 4)
+  })
+
+  describe('when the delete is rejected', () => {
+    const confirmDelete = () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+      const dialog = screen.getByRole('dialog', { name: 'Delete Pasta?' })
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
+    }
+
+    const renderOwned = (deleteRecipe: () => Promise<void>) => {
+      vi.mocked(useDeleteRecipe).mockReturnValue(deleteRecipe)
+      const recipe = create(RecipeSchema, { id: 'r1', name: 'Pasta', baseServings: 2 })
+      vi.mocked(useRecipe).mockReturnValue({
+        data: create(GetRecipeResponseSchema, {
+          recipe,
+          isOwner: true,
+          canEdit: true,
+          scaledIngredients: []
+        }),
+        isLoading: false,
+        isValidating: false,
+        error: undefined,
+        mutate: vi.fn()
+      })
+      render(<RecipeClient id="r1" />)
+      confirmDelete()
+    }
+
+    it("stays on the recipe and shows the server's reason", async () => {
+      const reason = 'This recipe is used in a meal plan; remove it there first.'
+      renderOwned(vi.fn().mockRejectedValue(new WriteRejectedError(reason)))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(reason)
+      expect(mockRouter.push).not.toHaveBeenCalled()
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+
+    it('falls back to a generic message for an unexpected failure', async () => {
+      renderOwned(vi.fn().mockRejectedValue(new Error('IndexedDB is unavailable')))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t delete this recipe.')
+      expect(mockRouter.push).not.toHaveBeenCalled()
+    })
+
+    it('clears the message when the delete is retried', async () => {
+      const deleteRecipe = vi
+        .fn()
+        .mockRejectedValueOnce(new WriteRejectedError('On a meal plan.'))
+        .mockResolvedValue(undefined)
+      renderOwned(deleteRecipe)
+      expect(await screen.findByRole('alert')).toHaveTextContent('On a meal plan.')
+
+      confirmDelete()
+      await waitFor(() => expect(mockRouter.push).toHaveBeenCalledWith('/recipes/list'))
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
   })
 })

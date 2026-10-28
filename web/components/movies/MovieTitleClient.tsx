@@ -4,8 +4,8 @@ import { Code, ConnectError } from '@connectrpc/connect'
 import { useMovieTitle, useMoviesActions } from '@/hooks/useMovies'
 import { useSharedList } from '@/hooks/useSharedList'
 import { listHref } from '@/lib/listScope'
-import { mediaTypeLabel, releaseLabel, titleName, todayISO } from '@/lib/movies/format'
-import MoviePoster from '@/components/movies/MoviePoster'
+import { mediaTypeLabel, posterUrl, releaseLabel, titleName, todayISO } from '@/lib/movies/format'
+import { Artwork } from '@/components/ui/artwork'
 import MovieWatches from '@/components/movies/MovieWatches'
 import SeasonChecklist from '@/components/movies/SeasonChecklist'
 import TitleStatus from '@/components/movies/TitleStatus'
@@ -18,6 +18,7 @@ import { ConfirmDialog } from '@/components/ui/dialog'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
+import { Alert } from '@/components/ui/alert'
 
 export default function MovieTitleClient({ id }: { id: string }) {
   const router = useRouter()
@@ -94,11 +95,9 @@ export default function MovieTitleClient({ id }: { id: string }) {
         }
       />
       <div className="flex flex-col gap-6 sm:flex-row">
-        <MoviePoster posterPath={entry.posterPath} title={displayed} size="lg" />
+        <Artwork src={posterUrl(entry.posterPath, 'w342')} title={displayed} size="lg" />
         <div className="min-w-0 flex-1 space-y-4">
-          <p className="text-sm text-muted" suppressHydrationWarning>
-            {facts.join(' · ')}
-          </p>
+          <p className="text-sm text-muted">{facts.join(' · ')}</p>
           {entry.genres.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {entry.genres.map((g) => (
@@ -129,7 +128,11 @@ export default function MovieTitleClient({ id }: { id: string }) {
                   ? 'Adding…'
                   : `Add to ${shared ? 'my' : 'family'} list`}
             </Button>
-            {copyFailed && <p className="text-sm text-danger">Couldn&apos;t add. Try again.</p>}
+            {copyFailed && (
+              <p className="text-sm text-danger" role="alert">
+                Couldn&apos;t add. Try again.
+              </p>
+            )}
           </div>
           <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
             Remove from backlog
@@ -147,7 +150,11 @@ export default function MovieTitleClient({ id }: { id: string }) {
         pending={removing}
         onConfirm={() => void confirmRemove()}
       >
-        {removeFailed && <p className="text-sm text-danger">Couldn&apos;t remove. Try again.</p>}
+        {removeFailed && (
+          <Alert tone="danger" className="mt-2">
+            Couldn&apos;t remove. Try again.
+          </Alert>
+        )}
       </ConfirmDialog>
       <TmdbAttribution />
     </PageContainer>

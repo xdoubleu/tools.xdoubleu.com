@@ -154,16 +154,21 @@ func (app *Application) middleware() alice.Chain {
 	// usageMiddleware runs after domainMiddleware so custom-domain requests
 	// are already rewritten to /<app>/… before their labels are derived.
 	handlers = append(handlers, app.domainMiddleware, app.usageMiddleware)
-	// Feeds http_request_duration_seconds for Grafana's RequestP95High alert.
-	handlers = append(handlers, middleware.RequestDuration())
+	// Budget copies the request (WithContext), so RequestDuration must come
+	// after it and hand the mux that same copy: the mux sets Pattern on it, and
+	// RequestDuration labels with r.Pattern for Grafana's RequestP95High alert.
+	// Nothing may copy the request between RequestDuration and the mux.
 	handlers = append(handlers, httptools.Budget(app.logger, isLongRequest))
+	handlers = append(handlers, middleware.RequestDuration())
 	return alice.New(handlers...)
 }
 
 // isLongRequest marks the routes that legitimately outlast
-// httptools.RequestBudget: FinalizeBookUpload streams up to 250 MB from R2.
+// httptools.RequestBudget: FinalizeBookUpload streams up to 250 MB from R2,
+// and MCP tool calls wait on external APIs.
 func isLongRequest(r *http.Request) bool {
-	return r.URL.Path == booksv1connect.BookFilesServiceFinalizeBookUploadProcedure
+	return r.URL.Path == booksv1connect.BookFilesServiceFinalizeBookUploadProcedure ||
+		r.URL.Path == appsMCPPath
 }
 
 func (app *Application) domainMiddleware(next http.Handler) http.Handler {

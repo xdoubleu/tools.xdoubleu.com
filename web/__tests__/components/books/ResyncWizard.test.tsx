@@ -228,6 +228,17 @@ describe('ResyncWizard', () => {
     expect(mockMutate).toHaveBeenCalledWith('/books/resync-proposals')
   })
 
+  it('announces a failed tweaked search', () => {
+    mockProposalsData.data = {
+      proposals: [makeNotFoundProposal('b1', 'Misspelled Titel')]
+    }
+    mockSourcesData.error = new Error('down')
+    render(<ResyncWizard />)
+
+    fireEvent.click(screen.getByRole('button', { name: /search with these terms/i }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Failed to fetch sources.')
+  })
+
   it('shows an error message when applying fails', async () => {
     mockApplyResyncChoice.mockRejectedValueOnce(new Error('boom'))
     mockProposalsData.data = { proposals: [makeProposal('b1', 'Dune')] }

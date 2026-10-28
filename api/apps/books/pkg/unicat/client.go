@@ -1,11 +1,10 @@
 package unicat
 
 import (
+	"bytes"
 	"context"
 	"encoding/xml"
-	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -17,16 +16,11 @@ import (
 	"golang.org/x/time/rate"
 
 	"tools.xdoubleu.com/apps/books/pkg/authorname"
+	"tools.xdoubleu.com/internal/httpclient"
 )
 
 //nolint:gochecknoglobals // overridable in tests
 var baseURL = "https://www.unicat.be/sru"
-
-//nolint:gochecknoglobals // overridable in tests
-var backoffBase = 500 * time.Millisecond
-
-//nolint:gochecknoglobals // overridable in tests
-var backoffCap = 30 * time.Second
 
 const apiTimeout = 15 * time.Second
 
@@ -45,19 +39,19 @@ const (
 )
 
 type client struct {
-	logger     *slog.Logger
-	httpClient *http.Client
-	limiter    *rate.Limiter
+	http *httpclient.Client
 }
 
 // New creates a UniCat SRU client. No API key is required.
 func New(logger *slog.Logger) Client {
 	return client{
-		logger: logger,
-		httpClient: &http.Client{
-			Timeout: apiTimeout,
-		},
-		limiter: rate.NewLimiter(requestsPerSecond, burst),
+		http: httpclient.New(httpclient.Config{
+			Name:        "unicat",
+			Logger:      logger,
+			Timeout:     apiTimeout,
+			MaxAttempts: maxAttempts,
+			Limiter:     rate.NewLimiter(requestsPerSecond, burst),
+		}),
 	}
 }
 
@@ -120,81 +114,23 @@ func (c client) fetch(ctx context.Context, params url.Values) (*sruResponse, err
 }
 
 func (c client) get(ctx context.Context, endpoint string, dst *sruResponse) error {
-	return c.doWithRetry(ctx, func() (bool, error) {
-		if waitErr := c.limiter.Wait(ctx); waitErr != nil {
-			return false, waitErr
-		}
+	req := httpclient.NewRequest(http.MethodGet, endpoint).
+		SetHeader("Accept", "application/xml")
 
-		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-		if reqErr != nil {
-			return false, reqErr
-		}
-		req.Header.Set("Accept", "application/xml")
-
-		resp, doErr := c.httpClient.Do(req)
-		if doErr != nil {
-			return isTransientErr(doErr), doErr
-		}
-		defer resp.Body.Close()
-
-		if isRetryableStatus(resp.StatusCode) {
-			raw, _ := io.ReadAll(resp.Body)
-			return true, fmt.Errorf(
-				"unicat SRU returned %d: %s",
-				resp.StatusCode,
-				string(raw),
-			)
-		}
-
-		if resp.StatusCode < http.StatusOK ||
-			resp.StatusCode >= http.StatusMultipleChoices {
-			raw, _ := io.ReadAll(resp.Body)
-			return false, fmt.Errorf(
-				"unicat SRU returned %d: %s",
-				resp.StatusCode,
-				string(raw),
-			)
-		}
-
-		return false, xml.NewDecoder(resp.Body).Decode(dst)
-	})
-}
-
-func (c client) doWithRetry(
-	ctx context.Context,
-	attempt func() (retryable bool, err error),
-) error {
-	var lastErr error
-	for i := range maxAttempts {
-		retryable, err := attempt()
-		if err == nil {
-			return nil
-		}
-
-		if errors.Is(err, context.Canceled) {
-			return err
-		}
-
-		lastErr = err
-
-		if !retryable || i == maxAttempts-1 {
-			break
-		}
-
-		delay := backoffDelay(i)
-		c.logger.DebugContext(ctx, "retrying unicat request",
-			slog.Int("attempt", i+1),
-			slog.Duration("backoff", delay),
-			slog.Any("error", err),
-		)
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(delay):
-		}
+	resp, err := c.http.Do(ctx, req)
+	if err != nil {
+		return err
 	}
-	return lastErr
+	if resp.StatusCode < http.StatusOK ||
+		resp.StatusCode >= http.StatusMultipleChoices {
+		return fmt.Errorf(
+			"unicat SRU returned %d: %s", resp.StatusCode, resp.Snippet(),
+		)
+	}
+
+	// encoding/xml never resolves external entities and httpclient caps the body.
+	//nolint:gosec // G709: bounded response from the fixed UniCat host
+	return xml.NewDecoder(bytes.NewReader(resp.Body)).Decode(dst)
 }
 
 // marcToExternalBook maps MARC21: 245$a title (subtitle kept), 100$a/700$a
@@ -312,33 +248,3 @@ func extractQuoted(s, key string) string {
 
 // SetBaseURL overrides the UniCat SRU base URL. Tests only.
 func SetBaseURL(u string) { baseURL = u }
-
-// SetBackoffBase overrides the backoff base delay. Tests only.
-func SetBackoffBase(d time.Duration) { backoffBase = d }
-
-func backoffDelay(attempt int) time.Duration {
-	d := backoffBase * (1 << attempt)
-	if d > backoffCap {
-		return backoffCap
-	}
-	return d
-}
-
-func isRetryableStatus(status int) bool {
-	return status == http.StatusTooManyRequests ||
-		(status >= http.StatusInternalServerError && status < 600)
-}
-
-func isTransientErr(err error) bool {
-	if errors.Is(err, context.Canceled) {
-		return false
-	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		return true
-	}
-	var urlErr *url.Error
-	if errors.As(err, &urlErr) {
-		return urlErr.Timeout()
-	}
-	return false
-}

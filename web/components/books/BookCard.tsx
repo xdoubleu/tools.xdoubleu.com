@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import { Link } from '@/components/ui/link'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
-import BookCover from '@/components/books/BookCover'
+import { Artwork } from '@/components/ui/artwork'
 import BookProgressEditor from '@/components/books/BookProgressEditor'
 import BookRatingStars from '@/components/books/BookRatingStars'
 import BookFavouriteButton from '@/components/books/BookFavouriteButton'
@@ -87,7 +87,7 @@ export default function BookCard({
       }
     >
       <div className="shrink-0">
-        <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />
+        <Artwork src={book.coverUrl} title={book.title} alt={book.title} initials={2} size="sm" />
       </div>
       <div className="min-w-0 flex-1">
         <h3 className="truncate text-sm font-semibold leading-snug">{book.title}</h3>

@@ -8,7 +8,7 @@ type Size = 'sm' | 'md' | 'lg' | 'icon' | 'iconSm'
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant
   size?: Size
-  /** Render the child element as the button (e.g. a Next `<Link>`), inheriting button styles. */
+  /** Render the child element as the button (e.g. a `<Link>`), inheriting button styles. */
   asChild?: boolean
 }
 

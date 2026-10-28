@@ -57,12 +57,26 @@ let queue: QueuedWrite[] = []
 // Keyed by seq, which survives the reload at the start of every drain.
 const attempts = new Map<number | QueuedWrite, number>()
 const settled = new Map<number | QueuedWrite, 'sent' | 'failed'>()
+const rejections = new Map<number | QueuedWrite, string>()
 
 export type WriteStatus = 'queued' | 'sent' | 'failed'
 
 /** Reports a queued write's progress, as of the last drain. */
 export interface WriteHandle {
   status(): WriteStatus
+  /** The server's message once `status` is `failed`. */
+  reason(): string | undefined
+}
+
+/** The server refused a write; `reason` is its message. */
+export class WriteRejectedError extends Error {
+  readonly reason: string
+
+  constructor(reason: string) {
+    super('The server rejected the change')
+    this.name = 'WriteRejectedError'
+    this.reason = reason
+  }
 }
 let loading: Promise<void> | null = null
 let flushing: Promise<void> | null = null
@@ -160,7 +174,11 @@ export async function enqueueWrite<I extends DescMessage>(
   publish({})
   await applyOptimistic(def, write)
   void flushOutbox()
-  return { status: () => settled.get(write.seq ?? write) ?? 'queued' }
+  const handleKey = write.seq ?? write
+  return {
+    status: () => settled.get(handleKey) ?? 'queued',
+    reason: () => rejections.get(handleKey)
+  }
 }
 
 async function remove(write: QueuedWrite) {
@@ -170,6 +188,7 @@ async function remove(write: QueuedWrite) {
 
 async function reject(write: QueuedWrite, failure: FailedWrite) {
   settled.set(write.seq ?? write, 'failed')
+  rejections.set(write.seq ?? write, failure.reason)
   await remove(write)
   await addFailed(failure)
   publish({ failed: [...state.failed, failure] })
@@ -235,7 +254,7 @@ export async function sendWrite(pending: Promise<WriteHandle>): Promise<WriteSta
   const handle = await pending
   await flushOutbox()
   const status = handle.status()
-  if (status === 'failed') throw new Error('The server rejected the change')
+  if (status === 'failed') throw new WriteRejectedError(handle.reason() ?? '')
   return status
 }
 

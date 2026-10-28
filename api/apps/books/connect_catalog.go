@@ -3,18 +3,15 @@ package books
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/repositories"
-	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
@@ -33,10 +30,10 @@ func (h *booksConnectHandler) ImportBooks(
 	reader := bytes.NewReader(req.CsvData)
 	count, err := h.app.Services.Books.ImportFromCSV(importCtx, user.ID, reader)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	if err = h.app.rebuildReadProgress(importCtx, user.ID); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 	return &booksv1.ImportBooksResponse{
 		ImportedCount: int32(count), //nolint:gosec // int32 safe for domain values
@@ -54,7 +51,7 @@ func (h *booksConnectHandler) FindDuplicates(
 
 	groups, err := h.app.Services.Books.FindDuplicates(ctx, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 
 	base := h.app.clients.PublicAPIBaseURL
@@ -131,13 +128,12 @@ func (h *booksConnectHandler) MergeBooks(
 		req.ResolvedStatus,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 
 	for _, uid := range affectedUsers {
 		if rebuildErr := h.app.rebuildReadProgress(ctx, uid); rebuildErr != nil {
-			return nil, connect.NewError(connect.CodeInternal, rebuildErr.Error()).
-				WithCause(rebuildErr)
+			return nil, mapError(rebuildErr)
 		}
 	}
 
@@ -184,7 +180,7 @@ func (h *booksConnectHandler) ListResyncProposals(
 
 	proposals, err := h.app.Services.Books.ListResyncProposals(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 
 	result := make([]*booksv1.ResyncProposal, len(proposals))
@@ -231,11 +227,8 @@ func (h *booksConnectHandler) ApplyResyncChoice(
 		bookID,
 		req.Source,
 	)
-	if errors.Is(err, services.ErrProposalNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
-	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 
 	return &booksv1.ApplyResyncChoiceResponse{}, nil
@@ -257,11 +250,8 @@ func (h *booksConnectHandler) GetBookSources(
 		req.GetOverrideTitle(),
 		req.GetOverrideAuthor(),
 	)
-	if errors.Is(err, services.ErrProposalNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
-	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 
 	return &booksv1.GetBookSourcesResponse{
@@ -287,11 +277,8 @@ func (h *booksConnectHandler) ApplyBookSource(
 		req.GetOverrideTitle(),
 		req.GetOverrideAuthor(),
 	)
-	if errors.Is(err, services.ErrProposalNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
-	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 
 	return &booksv1.ApplyBookSourceResponse{}, nil
@@ -312,17 +299,8 @@ func (h *booksConnectHandler) SetBookISBN(
 	}
 
 	err = h.app.Services.Books.SetBookISBN(ctx, bookID, normalized)
-	if errors.Is(err, database.ErrResourceNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, "book not found")
-	}
-	if errors.Is(err, database.ErrResourceConflict) {
-		return nil, connect.NewError(
-			connect.CodeAlreadyExists,
-			"ISBN is already assigned to another book",
-		)
-	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapISBNError(err)
 	}
 
 	return &booksv1.SetBookISBNResponse{}, nil
@@ -357,17 +335,8 @@ func (h *booksConnectHandler) UpdateBook(
 	updated, err := h.app.Services.Books.UpdateBook(
 		ctx, bookID, *metadata, req.Metadata.CoverUrl,
 	)
-	if errors.Is(err, database.ErrResourceNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, "book not found")
-	}
-	if errors.Is(err, database.ErrResourceConflict) {
-		return nil, connect.NewError(
-			connect.CodeAlreadyExists,
-			"ISBN is already assigned to another book",
-		)
-	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapISBNError(err)
 	}
 
 	return &booksv1.UpdateBookResponse{
@@ -392,7 +361,7 @@ func (h *booksConnectHandler) GetSourceStats(
 
 	stats, err := h.app.Services.Books.GetSourceStats(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 
 	return &booksv1.GetSourceStatsResponse{
@@ -447,14 +416,8 @@ func (h *booksConnectHandler) ListBooksInExactSources(
 	}
 
 	books, err := h.app.Services.Books.ListBooksInExactSources(ctx, req.Sources)
-	if errors.Is(err, database.ErrResourceNotFound) {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			"sources must be 1-2 of unicat, hardcover",
-		)
-	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, mapError(err)
 	}
 
 	out := make([]*booksv1.Book, len(books))

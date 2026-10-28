@@ -19,13 +19,8 @@ vi.mock('@/lib/client', async (importOriginal) => ({
 vi.mock('@/app/watchparty/[id]/ViewerClient', () => ({ default: () => null }))
 vi.mock('@/app/watchparty/[id]/presenter/PresenterClient', () => ({ default: () => null }))
 
-// Pages that redirect or need a live session are covered by their own tests.
-const OWN_TESTS = [
-  'app/books/feed/page.tsx',
-  'app/learningpaths/page.tsx',
-  'app/recipes/page.tsx',
-  'app/oauth/consent/page.tsx'
-]
+// Pages that need a live session are covered by their own tests.
+const OWN_TESTS = ['app/oauth/consent/page.tsx']
 
 describe('pages', () => {
   beforeEach(() => {

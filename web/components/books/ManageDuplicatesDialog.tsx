@@ -26,6 +26,7 @@ import {
 } from '@/components/books/duplicateConflicts'
 import type { DuplicateGroup } from '@/lib/gen/books/v1/catalog_pb'
 import { swrKeys } from '@/lib/swrKeys'
+import { EmptyState } from '@/components/ui/states'
 
 function reasonLabel(reason: string): string {
   switch (reason) {
@@ -238,9 +239,7 @@ export default function ManageDuplicatesDialog({
         <div className="space-y-4">
           {isLoading && <p className="py-4 text-center text-sm text-muted">Scanning library…</p>}
 
-          {!isLoading && groups.length === 0 && (
-            <p className="text-sm text-muted py-4 text-center">No duplicates found.</p>
-          )}
+          {!isLoading && groups.length === 0 && <EmptyState>No duplicates found.</EmptyState>}
 
           {groups.map((g) => {
             const key = groupKey(g)

@@ -5,7 +5,7 @@ import { formatDateTime } from '@/lib/dates'
 import RefreshButton from '@/components/taste/RefreshButton'
 import { Alert } from '@/components/ui/alert'
 import { SectionCard } from '@/components/ui/section-card'
-import { ErrorState, LoadingState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 type ListKey = 'know' | 'like' | 'drifting' | 'bounce'
 
@@ -71,16 +71,16 @@ export default function TasteProfile() {
         {data.sections ? (
           <>
             <Sections sections={data.sections} />
-            <p className="break-all text-xs text-muted" suppressHydrationWarning>
+            <p className="break-all text-xs text-muted">
               Written {formatDateTime(data.generatedAt)} by {data.model}
             </p>
           </>
         ) : (
           !data.pending && (
-            <p className="text-sm text-muted">
+            <EmptyState>
               No profile yet. One is written within the hour and weekly after that; refresh to queue
               it now.
-            </p>
+            </EmptyState>
           )
         )}
       </div>

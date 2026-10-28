@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/models"
 )
@@ -20,21 +22,39 @@ func NewLogsRepository(db postgres.DB) *LogsRepository {
 	return &LogsRepository{db: db}
 }
 
-// Insert records one log entry. AttrsJSON may be nil.
-func (r *LogsRepository) Insert(ctx context.Context, entry models.LogEntry) error {
-	// Bind as string: under the simple protocol (pooler) []byte is sent as bytea
-	// hex, which JSONB rejects.
+const insertLogEntrySQL = `
+	INSERT INTO global.log_entries (occurred_at, source, level, message, attrs)
+	VALUES ($1, $2, $3, $4, $5)
+`
+
+// logEntryArgs binds AttrsJSON as a string: under the simple protocol
+// (pooler) []byte is sent as bytea hex, which JSONB rejects.
+func logEntryArgs(entry models.LogEntry) []any {
 	var attrs *string
 	if entry.AttrsJSON != nil {
 		s := string(entry.AttrsJSON)
 		attrs = &s
 	}
+	return []any{entry.OccurredAt, entry.Source, entry.Level, entry.Message, attrs}
+}
 
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO global.log_entries (occurred_at, source, level, message, attrs)
-		VALUES ($1, $2, $3, $4, $5)
-	`, entry.OccurredAt, entry.Source, entry.Level, entry.Message, attrs)
+// Insert records one log entry. AttrsJSON may be nil.
+func (r *LogsRepository) Insert(ctx context.Context, entry models.LogEntry) error {
+	_, err := r.db.Exec(ctx, insertLogEntrySQL, logEntryArgs(entry)...)
 	return err
+}
+
+// InsertBatch records entries in one round trip, all or none.
+func (r *LogsRepository) InsertBatch(
+	ctx context.Context,
+	entries []models.LogEntry,
+) error {
+	//nolint:exhaustruct //QueuedQueries is populated by Queue below
+	batch := &pgx.Batch{}
+	for _, entry := range entries {
+		batch.Queue(insertLogEntrySQL, logEntryArgs(entry)...)
+	}
+	return r.db.SendBatch(ctx, batch).Close()
 }
 
 // ErrUnknownLogLevel is returned for a MinLevel outside DEBUG/INFO/WARN/ERROR.

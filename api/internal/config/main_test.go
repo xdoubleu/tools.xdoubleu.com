@@ -25,6 +25,16 @@ func TestNewRoleWorkers(t *testing.T) {
 	assert.Equal(t, config.RoleWorkers, config.New(logging.NewNopLogger()).Role)
 }
 
+func TestNewDBMaxConnsDefaultsPerRole(t *testing.T) {
+	assert.Equal(t, 15, config.New(logging.NewNopLogger()).DBMaxConns)
+
+	t.Setenv("ROLE", config.RoleWorkers)
+	assert.Equal(t, 5, config.New(logging.NewNopLogger()).DBMaxConns)
+
+	t.Setenv("DB_MAX_CONNS", "8")
+	assert.Equal(t, 8, config.New(logging.NewNopLogger()).DBMaxConns)
+}
+
 func TestNewPanicsOnInvalidRole(t *testing.T) {
 	t.Setenv("ROLE", "nope")
 	assert.Panics(t, func() { config.New(logging.NewNopLogger()) })
@@ -58,6 +68,22 @@ func TestNewDoesNotLogSecretValues(t *testing.T) {
 	assert.NotContains(t, logs, secret)
 	assert.Contains(t, logs, "DB_DSN'='<redacted>'")
 	assert.Contains(t, logs, "ENCRYPTION_KEY'='<redacted>'")
+}
+
+func TestNewLogsLoadedValuesByType(t *testing.T) {
+	t.Setenv("ENV", "development")
+	t.Setenv("PORT", "9001")
+	t.Setenv("SAMPLE_RATE", "0.5")
+	t.Setenv("THROTTLE", "false")
+
+	var buf bytes.Buffer
+	config.New(slog.New(logging.NewBufLogHandler(&buf, nil)))
+
+	logs := buf.String()
+	assert.Contains(t, logs, "'ENV'='development' with type 'string'")
+	assert.Contains(t, logs, "'PORT'='9001' with type 'int'")
+	assert.Contains(t, logs, "'SAMPLE_RATE'='0.50' with type 'float64'")
+	assert.Contains(t, logs, "'THROTTLE'='false' with type 'bool'")
 }
 
 func TestNewHonorsOverrides(t *testing.T) {

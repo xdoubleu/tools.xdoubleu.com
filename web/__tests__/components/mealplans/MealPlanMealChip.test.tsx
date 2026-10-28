@@ -68,7 +68,7 @@ describe('MealPlanMealChip', () => {
         excludeFromShoppingList: true
       })
     })
-    const items = screen.getAllByRole('listitem')
+    const items = screen.getAllByText(/^• /)
     expect(items).toHaveLength(2)
     expect(items[0]).toHaveClass('text-muted')
     expect(items[0].textContent).not.toMatch(/🚫/)
@@ -171,5 +171,37 @@ describe('MealPlanMealChip', () => {
     expect(screen.queryByRole('button', { name: /Meal actions/i })).not.toBeInTheDocument()
     fireEvent.click(screen.getByText('Spaghetti bolognese'))
     expect(onMealClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'm1' }))
+  })
+
+  it('is a button that toggles the full name, with the actions menu beside it', () => {
+    renderChip()
+    const chip = screen.getByRole('button', { name: 'Spaghetti bolognese' })
+    expect(chip).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(chip)
+    expect(chip).toHaveAttribute('aria-expanded', 'true')
+    expect(chip).not.toContainElement(screen.getByRole('button', { name: 'Meal actions' }))
+  })
+
+  it('names the chip after the swap it performs in swap mode', () => {
+    const { onMealClick } = renderChip({
+      inSwapMode: true,
+      meal: makeMeal({ recipeId: '', customName: 'Chicken\t2\nRice' })
+    })
+    const chip = screen.getByRole('button', { name: 'Swap with 2 Chicken, Rice' })
+    expect(chip).not.toHaveAttribute('aria-expanded')
+    fireEvent.click(chip)
+    expect(onMealClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'm1' }))
+  })
+
+  it('takes focus while it is the meal being swapped, offering to deselect it', () => {
+    renderChip({ inSwapMode: true, isSwapping: true })
+    expect(screen.getByRole('button', { name: 'Deselect Spaghetti bolognese' })).toHaveFocus()
+  })
+
+  it('takes focus when asked to restore it and reports that it did', () => {
+    const onFocusRestored = vi.fn()
+    renderChip({ restoreFocus: true, onFocusRestored })
+    expect(screen.getByRole('button', { name: 'Spaghetti bolognese' })).toHaveFocus()
+    expect(onFocusRestored).toHaveBeenCalled()
   })
 })

@@ -11,11 +11,12 @@ import {
   STATUSES,
   STATUS_LABELS,
   mediaTypeLabel,
+  posterUrl,
   releaseLabel,
   titleName,
   todayISO
 } from '@/lib/movies/format'
-import MoviePoster from '@/components/movies/MoviePoster'
+import { Artwork } from '@/components/ui/artwork'
 import StatusSelect from '@/components/movies/StatusSelect'
 import WatchedWhenDialog from '@/components/movies/WatchedWhenDialog'
 import { Badge } from '@/components/ui/badge'
@@ -103,7 +104,7 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
         </>
       }
     >
-      <MoviePoster posterPath={entry.posterPath} title={displayed} />
+      <Artwork src={posterUrl(entry.posterPath, 'w92')} title={displayed} size="md" />
       <div className="min-w-0">
         <p className="break-words font-medium">{displayed}</p>
         <p className="text-xs text-muted">
@@ -111,7 +112,7 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
           {release && (
             <>
               {' '}
-              &middot; <span suppressHydrationWarning>{release}</span>
+              &middot; <span>{release}</span>
             </>
           )}
         </p>
@@ -120,7 +121,11 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
           {entry.onMyServices && <Badge variant="success">On my services</Badge>}
           {entry.rating !== undefined && <RatingStars value={entry.rating} />}
         </div>
-        {failed && <p className="text-xs text-danger">Couldn&apos;t update status. Try again.</p>}
+        {failed && (
+          <p className="text-xs text-danger" role="alert">
+            Couldn&apos;t update status. Try again.
+          </p>
+        )}
       </div>
     </LinkCard>
   )

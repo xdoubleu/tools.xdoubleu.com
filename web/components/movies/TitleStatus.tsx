@@ -50,7 +50,11 @@ export default function TitleStatus({
       <Field label="Status" htmlFor="movie-status" className="max-w-xs">
         <StatusSelect id="movie-status" value={entry.status} disabled={pending} onChange={select} />
       </Field>
-      {failed && <p className="text-sm text-danger">Couldn&apos;t update status. Try again.</p>}
+      {failed && (
+        <p className="text-sm text-danger" role="alert">
+          Couldn&apos;t update status. Try again.
+        </p>
+      )}
       <WatchedWhenDialog
         open={asking}
         onOpenChange={setAsking}

@@ -2,12 +2,12 @@ package dashboard
 
 import (
 	"context"
-	"errors"
 
 	"connectrpc.com/connect/v2"
 
 	dashboardv1 "tools.xdoubleu.com/gen/dashboard/v1"
 	"tools.xdoubleu.com/gen/dashboard/v1/dashboardv1connect"
+	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
@@ -40,14 +40,10 @@ func (h *publicConnectHandler) resolveToken(
 		)
 	}
 	userID, displayName, err := h.app.profileShares.ResolveToken(ctx, token, kind)
-	if errors.Is(err, database.ErrResourceNotFound) {
-		return "", "", connect.NewError(
-			connect.CodeNotFound,
-			"unknown dashboard",
-		)
-	}
 	if err != nil {
-		return "", "", connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return "", "", connecttools.MapError(err, connecttools.CodeWithMessage(
+			database.ErrResourceNotFound, connect.CodeNotFound, "unknown dashboard",
+		))
 	}
 	return userID, displayName, nil
 }
@@ -72,7 +68,7 @@ func (h *publicConnectHandler) GetSharedSteam(
 		dateEnd,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &dashboardv1.GetSharedSteamResponse{
@@ -96,11 +92,8 @@ func (h *publicConnectHandler) GetSharedSteamGame(
 	}
 
 	data, err := h.app.games.BuildSharedSteamGame(ctx, userID, int(req.GameId))
-	if errors.Is(err, database.ErrResourceNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
-	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &dashboardv1.GetSharedSteamGameResponse{
@@ -123,7 +116,7 @@ func (h *publicConnectHandler) GetSharedRecentlyActiveGames(
 
 	recentGames, err := h.app.games.BuildSharedRecentlyActiveGames(ctx, userID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &dashboardv1.GetSharedRecentlyActiveGamesResponse{
@@ -144,7 +137,7 @@ func (h *publicConnectHandler) GetSharedLibrary(
 
 	library, lastSyncedAt, err := h.app.books.BuildSharedLibrary(ctx, userID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &dashboardv1.GetSharedLibraryResponse{
@@ -170,7 +163,7 @@ func (h *publicConnectHandler) GetSharedBooksProgress(
 	dateStart, dateEnd := parseDateRangeFromStrings(req.DateStart, req.DateEnd)
 	progress, err := h.app.books.BuildSharedProgress(ctx, userID, dateStart, dateEnd)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &dashboardv1.GetSharedBooksProgressResponse{
@@ -193,7 +186,7 @@ func (h *publicConnectHandler) GetSharedFeedsSummary(
 
 	sharedFeeds, err := h.app.feeds.BuildSharedFeeds(ctx, userID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, connecttools.MapError(err)
 	}
 
 	return &dashboardv1.GetSharedFeedsSummaryResponse{

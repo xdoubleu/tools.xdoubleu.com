@@ -26,6 +26,7 @@ func TestMCPTools_CreateRecipeIsDraft(t *testing.T) {
 
 	const mcpUserID = "mcp-recipes-user"
 	app := New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(mcpUserID),
 		logging.NewNopLogger(),
 		cfg,
@@ -100,4 +101,6 @@ func TestMCPTools_CreateRecipeIsDraft(t *testing.T) {
 	listJSON, err := protojson.Marshal(listMsg)
 	require.NoError(t, err)
 	assert.Contains(t, string(listJSON), created.Recipe.Id)
+	assert.NotContains(t, string(listJSON), "Kook de pasta",
+		"the list tool leaves instructions to recipes_get_recipe")
 }

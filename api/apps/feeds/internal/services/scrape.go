@@ -15,7 +15,7 @@ import (
 	"golang.org/x/net/html"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
-	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
+	"tools.xdoubleu.com/internal/webfetch"
 )
 
 // ErrNoPostsFound is returned when discoverPostLinks finds no plausible post
@@ -507,14 +507,16 @@ func (s *FeedService) CreateScrape(
 		return nil, err
 	}
 
-	// Detached, not queued: a restart can drop it; poll-feeds backfills.
+	// Off the request, not queued: a restart can drop it; poll-feeds backfills.
 	importFeed := *feed
-	go s.importScrapeFeed(ctx, importFeed, res)
+	s.background.Go(ctx, "scrape-feed-import", func(ctx context.Context) {
+		s.importScrapeFeed(ctx, importFeed, res)
+	})
 
 	return feed, nil
 }
 
-// importScrapeFeed is CreateScrape's detached import: walk full pagination
+// importScrapeFeed is CreateScrape's background import: walk full pagination
 // (partial results are imported as-is), ingest, and record the fetch result
 // that arms conditional GET.
 func (s *FeedService) importScrapeFeed(
@@ -522,10 +524,9 @@ func (s *FeedService) importScrapeFeed(
 	feed models.Feed,
 	res *webfetch.Result,
 ) {
-	importCtx := context.WithoutCancel(ctx)
-	walked, _ := s.fetchPaginatedPostLinks(importCtx, res.FinalURL, res.Body)
-	s.ingestDiscoveredLinks(importCtx, feed, walked)
-	s.recordFetchResult(importCtx, feed.ID, res, nil)
+	walked, _ := s.fetchPaginatedPostLinks(ctx, res.FinalURL, res.Body)
+	s.ingestDiscoveredLinks(ctx, feed, walked)
+	s.recordFetchResult(ctx, feed.ID, res, nil)
 }
 
 // pollScrapeFeed is the scrape counterpart to pollFeedRSS: a conditional GET

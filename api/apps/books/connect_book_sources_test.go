@@ -30,6 +30,7 @@ func newAdminBooksTestClientWithMockSources(
 ) (booksTestClient, *books.Books) {
 	t.Helper()
 	adminApp := books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAdminAuthService(userID),
 		testApp.Logger,
 		testCfg,
@@ -55,6 +56,7 @@ func newAdminBooksTestClientWithTwoSources(
 ) (booksTestClient, *books.Books) {
 	t.Helper()
 	adminApp := books.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAdminAuthService(userID),
 		testApp.Logger,
 		testCfg,

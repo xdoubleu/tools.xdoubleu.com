@@ -1,4 +1,4 @@
-import { monthLabel } from '@/lib/movies/format'
+import { monthLabel } from '@/lib/dates'
 
 export interface DomainInfo {
   id: string

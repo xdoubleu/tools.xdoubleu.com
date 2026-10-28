@@ -1,7 +1,7 @@
 # Build context is the repo root: api/go.mod's `replace` needs
 # ../sentrytools, and the web build needs web/, so paths are repo-root-relative
 # until WORKDIR /app/api.
-FROM node:24-alpine AS web-builder
+FROM node:26-alpine@sha256:40cd011b55415bc894e45b02fdd5a5dfde056921b7d23a64c74f80497af48797 AS web-builder
 
 ARG RELEASE=dev
 ARG SENTRY_ORG
@@ -43,7 +43,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o ./bin/api ./cmd/api
 
 # distroless/static works because PDF→EPUB is pure Go (go-pdfium's
 # WebAssembly backend under wazero, no CGO). "nonroot" is uid/gid 65532.
-FROM gcr.io/distroless/static-debian12:nonroot AS server
+FROM gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab AS server
 
 # May lag RELEASE when kobo-gateway's build cache-hit (see web/lib/env.ts).
 ARG KOBO_GATEWAY_RELEASE=dev

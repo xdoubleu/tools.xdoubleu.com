@@ -11,6 +11,7 @@ import {
   resetOutbox,
   sendWrite,
   subscribeOutbox,
+  WriteRejectedError,
   type WriteHandle
 } from '@/lib/offline/outbox'
 import { shoppingListWrites } from '@/lib/shoppinglist/offlineWrites'
@@ -193,6 +194,7 @@ describe('outbox', () => {
     const handle = await enqueue('b')
     await act(() => flushOutbox())
     expect(handle?.status()).toBe('failed')
+    expect(handle?.reason()).toBe('item not found')
 
     expect(getOutboxSnapshot()).toMatchObject({
       pending: 0,
@@ -214,7 +216,10 @@ describe('outbox', () => {
 
     send.mockRejectedValue(new ConnectError('item not found', Code.NotFound))
     await act(async () => {
-      await expect(sendWrite(queue('d'))).rejects.toThrow('The server rejected the change')
+      const rejection = sendWrite(queue('d'))
+      await expect(rejection).rejects.toThrow('The server rejected the change')
+      await expect(rejection).rejects.toBeInstanceOf(WriteRejectedError)
+      await expect(rejection).rejects.toMatchObject({ reason: 'item not found' })
     })
   })
 

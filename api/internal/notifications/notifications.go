@@ -26,7 +26,9 @@ type Service struct {
 	mail mailer.Client
 }
 
-// New creates a Service; ctx must be the app's long-lived context.
+// New creates a Service; ctx must be the app's long-lived context. Sends keep
+// its values but not its cancellation, so mail queued before shutdown still
+// goes out while Shutdown drains the queue.
 func New(ctx context.Context, logger *slog.Logger, mail mailer.Client) *Service {
 	return &Service{
 		pool: threading.NewWorkerPool(ctx, logger, singleWorker, queueSize),
@@ -50,6 +52,7 @@ func (s *Service) EnqueueTo(to, subject, body string, onResult OnResult) {
 
 func (s *Service) enqueue(onResult OnResult, send func(ctx context.Context) error) {
 	s.pool.EnqueueWork(func(ctx context.Context, _ *slog.Logger) error {
+		ctx = context.WithoutCancel(ctx)
 		err := send(ctx)
 		if onResult == nil {
 			return err
@@ -61,4 +64,9 @@ func (s *Service) enqueue(onResult OnResult, send func(ctx context.Context) erro
 // WaitUntilDone blocks until the queue is drained (tests only).
 func (s *Service) WaitUntilDone() {
 	s.pool.WaitUntilDone()
+}
+
+// Shutdown blocks until the queue is drained or ctx is done.
+func (s *Service) Shutdown(ctx context.Context) error {
+	return s.pool.Wait(ctx)
 }

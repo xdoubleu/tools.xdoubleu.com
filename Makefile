@@ -25,6 +25,10 @@ lint/workflows:
 lint/watchdog:
 	./scripts/test_routine_watchdog.sh
 
+# Exercise scripts/resolve_deploy_version.sh against a stubbed GitHub and Kamal.
+lint/deploy-version:
+	./scripts/test_resolve_deploy_version.sh
+
 # Exercise scripts/routine_preflight.sh against a mock MCP server.
 lint/preflight:
 	./scripts/test_routine_preflight.sh
@@ -43,6 +47,12 @@ routines/test:
 lint/skills:
 	./scripts/lint_skills.sh
 
-# Word budgets for agent instruction files; no long added comment blocks.
+# Word budgets for agent instruction files; no long added comment blocks;
+# backticked repo paths in the docs must exist.
 lint/docs:
 	./scripts/lint_docs.sh
+	./scripts/lint_doc_paths.sh
+
+# Exercise scripts/lint_doc_paths.sh against a synthetic repo.
+lint/docs/test:
+	./scripts/test_lint_doc_paths.sh

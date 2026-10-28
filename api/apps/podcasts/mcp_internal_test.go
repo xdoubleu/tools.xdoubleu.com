@@ -34,6 +34,7 @@ func TestMCPTools(t *testing.T) {
 	const uid, other = "mcp-podcasts-user", "mcp-podcasts-other"
 
 	a := NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(uid), logging.NewNopLogger(), cfg, pg,
 		nil,
 	)

@@ -16,7 +16,8 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useStores, useStoreCategories, useCategories } from '@/hooks/useShoppingList'
+import { useStores, useStoreCategories } from '@/hooks/useShoppingList'
+import { useCategories } from '@/hooks/useIngredientCatalog'
 import { enqueueWrite } from '@/lib/offline/outbox'
 import { hasName } from '@/lib/shoppinglist/names'
 import {
@@ -30,6 +31,7 @@ import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { EmptyState, LoadingState } from '@/components/ui/states'
+import { Alert } from '@/components/ui/alert'
 
 interface OrderedCategory {
   id: string
@@ -82,6 +84,7 @@ export default function StoreManager() {
     <div className="space-y-4">
       <form onSubmit={handleCreate} className="flex gap-2">
         <Input
+          aria-label="New store"
           placeholder="New store (e.g. Colruyt)"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
@@ -91,7 +94,7 @@ export default function StoreManager() {
         </Button>
       </form>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       {isLoading && <LoadingState className="text-sm" />}
       {!isLoading && stores.length === 0 && <EmptyState>No stores yet.</EmptyState>}
 
@@ -207,7 +210,7 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
       </p>
 
       {order.length === 0 ? (
-        <p className="text-sm text-muted">No categories added to this store yet.</p>
+        <EmptyState>No categories added to this store yet.</EmptyState>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={order.map((o) => o.id)} strategy={verticalListSortingStrategy}>

@@ -1,8 +1,8 @@
 # ADR-0004: `RELEASE` as a runtime container env for api/web; compile-time stamp only for kobo-gateway
 
-- Status: Accepted
+- Status: Accepted; since [ADR-0034](adr-0034-vite-spa-served-by-the-api.md) `web` ships inside the `api` image, so the SPA reads the api's runtime `RELEASE` through `/env.js`.
 - Issues: #1038
-- Affects: `api/internal/config`, `web/lib/env.ts`, `web/Dockerfile`, `.github/workflows/build-kobo-gateway.yml`, `build-web.yml`, `web/lib/books/gatewayClient.ts`, `web/components/Footer.tsx`
+- Affects: `api/internal/config`, `web/lib/env.ts`, `api/Dockerfile`, `.github/workflows/build-kobo-gateway.yml`, `build-api.yml`, `web/lib/books/gatewayClient.ts`, `web/components/Footer.tsx`
 
 ## Context
 
@@ -14,7 +14,7 @@ environment; kobo-gateway runs on users' machines with none.
 - `api`/`web`: `RELEASE` is a runtime container `ENV`, not compiled in.
 - kobo-gateway: compile-time `-X main.Release=...`. Its build is cached, so the
   bundled binary can be older than the deploy. `build-kobo-gateway.yml` writes
-  the SHA it used to `dist/kobo-gateway/RELEASE`; `build-web.yml` passes it as
+  the SHA it used to `dist/kobo-gateway/RELEASE`; `build-api.yml` passes it as
   the `KOBO_GATEWAY_RELEASE` build-arg; `gatewayNeedsUpdate` compares installed
   gateways against what's actually bundled.
 
@@ -27,8 +27,8 @@ environment; kobo-gateway runs on users' machines with none.
 
 ## Consequences
 
-- `api` and `web` can report different release hashes; `Footer.tsx` shows both
-  and a mismatch isn't a bug.
+- `Footer.tsx` shows the web and api releases, which now come from one image;
+  the bundled gateway's release can lag them, which isn't a bug.
 - `REQUIRED_GATEWAY_VERSION` is a separate floor for protocol breaks only —
   bump it with `GatewayVersion` in Go.
 

@@ -117,9 +117,10 @@ func (app *Books) backfillKoboPosition(
 	bookID uuid.UUID,
 	loc models.KoboLocation,
 ) {
-	bgCtx := context.WithoutCancel(ctx)
-	go app.Services.Positions.BackfillKoboPosition(bgCtx, userID, bookID, loc,
-		func(ctx context.Context, pos models.ReadingPosition) error {
-			return app.Services.Books.SetKoboPosition(ctx, userID, bookID, loc, pos)
-		})
+	app.Background.Go(ctx, "kobo-position-backfill", func(ctx context.Context) {
+		app.Services.Positions.BackfillKoboPosition(ctx, userID, bookID, loc,
+			func(ctx context.Context, pos models.ReadingPosition) error {
+				return app.Services.Books.SetKoboPosition(ctx, userID, bookID, loc, pos)
+			})
+	})
 }

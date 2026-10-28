@@ -211,7 +211,10 @@ function FeedReaderCard({
           </div>
           {feedTitle && <p className="text-xs text-muted">{feedTitle}</p>}
           <p className="text-xs text-muted">{formatDate(item.publishedAt)}</p>
-          {noContent && <p className="text-xs text-subtle">No in-app content</p>}
+          {noContent && (
+            // eslint-disable-next-line ui/use-primitives -- item metadata, not an empty list
+            <p className="text-xs text-subtle">No in-app content</p>
+          )}
           <FeedItemCategories categories={item.categories} className="mt-1" />
         </div>
       </div>

@@ -1,7 +1,7 @@
 # Convention: fix the missing MCP tool before investigating the incident
 
 - Enforced by: nothing but review
-- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1397, #1424, #1453, #1459, #1554, #1564, #1616, #1818, #2034, #2226, #2365
+- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1397, #1424, #1453, #1459, #1554, #1564, #1616, #1818, #2034, #2226, #2365, #2656, #2674
 
 ## Rule
 
@@ -64,3 +64,10 @@ working tool would have saved, often requiring direct database access.
   `get_logs` showed `{"error": {}}`: the log tee marshalled `error`,
   `LogValuer` and group attrs as empty objects. They now keep their text. The
   cause was Kamal's env file escaping the PEM's newlines.
+- **#2656** — MCP calls hit the request budget, but `get_logs` named only
+  `/apps/mcp`. A tool call taking 5s or more now logs `slow MCP tool call`
+  with the tool's name, its duration and whether its deadline expired.
+- **#2674** — `/apps/mcp` POSTs held for the whole budget with no tool call,
+  and nothing named what they carried. An MCP request taking 5s or more now
+  logs `slow MCP request` with its JSON-RPC methods and response
+  Content-Type.

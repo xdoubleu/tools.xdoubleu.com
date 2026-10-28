@@ -13,13 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
+	"tools.xdoubleu.com/internal/httpclient"
 	"tools.xdoubleu.com/internal/logging"
 )
 
 const realBaseURL = "https://api.hardcover.app/v1/graphql"
 
 func TestMain(m *testing.M) {
-	hardcover.SetBackoffBase(1 * time.Millisecond)
+	httpclient.SetBackoffBase(time.Millisecond)
 	os.Exit(m.Run())
 }
 
@@ -404,7 +405,7 @@ func TestGetByISBN_ContextCanceled(t *testing.T) {
 }
 
 func TestGetByISBN_NetworkError(t *testing.T) {
-	// Nothing listens here: covers isTransientErr's url.Error path.
+	// Nothing listens here: a transport error that is not retried.
 	hardcover.SetBaseURL("http://127.0.0.1:1")
 	defer hardcover.SetBaseURL(realBaseURL)
 

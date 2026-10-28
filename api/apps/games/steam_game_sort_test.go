@@ -34,6 +34,7 @@ func TestConnectGetSteamGame_SortBranches(t *testing.T) {
 	const isolatedUser = "sort-branch-test-user"
 
 	app2 := games.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(isolatedUser),
 		testApp.Logger,
 		testCfg,
@@ -91,6 +92,7 @@ func TestConnectRefreshSteamGame_SortBranches(t *testing.T) {
 	const isolatedUser = "refresh-sort-branch-user"
 
 	app2 := games.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(isolatedUser),
 		testApp.Logger,
 		testCfg,
@@ -145,6 +147,7 @@ func TestConnectRefreshSteamGame_AllSortBranches(t *testing.T) {
 	ctx := context.Background()
 
 	app2 := games.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(isolatedUser),
 		testApp.Logger,
 		testCfg,

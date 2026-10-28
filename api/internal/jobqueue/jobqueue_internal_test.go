@@ -211,3 +211,39 @@ func TestAddJobRejectsDuplicateID(t *testing.T) {
 	require.NoError(t, q.AddJob(job, noopCallback))
 	require.Error(t, q.AddJob(job, noopCallback))
 }
+
+// ctxJob runs until its context ends.
+type ctxJob struct{ id string }
+
+func (c ctxJob) ID() string { return c.id }
+func (c ctxJob) Run(ctx context.Context, _ *slog.Logger) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+func TestWaitDrainsARunCancelledByTheRootContext(t *testing.T) {
+	rootCtx, cancelRoot := context.WithCancel(t.Context())
+	pool := threading.NewWorkerPool(rootCtx, logging.NewNopLogger(), 1, 10)
+	//nolint:exhaustruct //mu, ticker are zero-value sync.RWMutex/bool
+	q := &JobQueue{
+		ctx:  rootCtx,
+		pool: pool,
+		repo: newFakeRepo(),
+		jobs: make(map[string]*queuedJob),
+	}
+	require.NoError(t, q.AddJob(ctxJob{id: "long"}, noopCallback))
+	q.ForceRun("long")
+	require.Eventually(t, func() bool {
+		running, _ := q.FetchState("long")
+		return running
+	}, time.Second, 5*time.Millisecond)
+
+	short, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
+	defer cancel()
+	require.ErrorIs(t, q.Wait(short), context.DeadlineExceeded)
+
+	cancelRoot()
+	require.NoError(t, q.Wait(t.Context()))
+	running, _ := q.FetchState("long")
+	assert.False(t, running)
+}

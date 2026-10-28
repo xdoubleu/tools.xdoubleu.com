@@ -51,6 +51,7 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 	const mcpUserID = "mcp-learningpaths-user"
 	// booksApp/feedsApp are nil: no resource here is linked.
 	app := New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(mcpUserID),
 		logging.NewNopLogger(),
 		cfg,
@@ -183,6 +184,7 @@ func TestMCPQuiz_RoundTrip(t *testing.T) {
 
 	const quizUserID = "mcp-quiz-user"
 	app := New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(quizUserID),
 		logging.NewNopLogger(),
 		cfg,
@@ -305,6 +307,7 @@ func TestMCPQuiz_MalformedJSONErrors(t *testing.T) {
 
 	const malformedUserID = "mcp-malformed-quiz-user"
 	app := New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(malformedUserID),
 		logging.NewNopLogger(),
 		cfg,

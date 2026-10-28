@@ -1,23 +1,16 @@
 import { useState } from 'react'
 import { useSharedSteam } from '@/hooks/useDashboardShare'
-import type { GetSharedSteamResponse } from '@/lib/gen/dashboard/v1/games_pb'
 import type { Game } from '@/lib/gen/games/v1/games_pb'
 import { GameGroup } from '@/components/games/GameCards'
 import { Input } from '@/components/ui/input'
-import { ErrorState, LoadingState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 // Read-only shared games library: the same grouped game grid as the owner's
 // /games/library, with game cards linking to the public game pages.
-export default function GamesDashboardPublicLibrary({
-  token,
-  initialData
-}: {
-  token: string
-  initialData?: GetSharedSteamResponse
-}) {
+export default function GamesDashboardPublicLibrary({ token }: { token: string }) {
   const [search, setSearch] = useState('')
 
-  const { data, error, isLoading } = useSharedSteam(token, initialData)
+  const { data, error, isLoading } = useSharedSteam(token)
 
   const steam = data?.steam
   const gameHref = (game: Game) => `/dashboard/games/${token}/${game.id}`
@@ -43,6 +36,7 @@ export default function GamesDashboardPublicLibrary({
         type="search"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        aria-label="Search games"
         placeholder="Search games…"
         className="mb-4 max-w-md"
       />
@@ -56,7 +50,7 @@ export default function GamesDashboardPublicLibrary({
       {search.trim() &&
         inProgress.length === 0 &&
         notStarted.length === 0 &&
-        completed.length === 0 && <p className="text-muted text-sm">No games match your search.</p>}
+        completed.length === 0 && <EmptyState>No games match your search.</EmptyState>}
     </div>
   )
 }

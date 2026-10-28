@@ -105,6 +105,7 @@ func newApp(
 	client itunes.Client,
 ) *podcasts.Podcasts {
 	return podcasts.NewInner(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(uid),
 		logging.NewNopLogger(),
 		testCfg,
@@ -148,6 +149,7 @@ func TestAppMetadata(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	a := podcasts.New(
+		context.Background(),
 		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), testCfg, testDB,
 	)
 	assert.NotNil(t, a)

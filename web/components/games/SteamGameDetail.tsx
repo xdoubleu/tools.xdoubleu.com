@@ -3,6 +3,7 @@ import type { Achievement, Game } from '@/lib/gen/games/v1/games_pb'
 import AchievementCard from '@/components/games/AchievementCard'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/states'
 
 // Game detail pieces shared by the owner's page and the public dashboard page.
 
@@ -57,7 +58,7 @@ export function GameAchievements({
   )
 
   if (achievements.length === 0) {
-    return <p className="text-muted">No achievements for this game.</p>
+    return <EmptyState>No achievements for this game.</EmptyState>
   }
 
   const visible = showCompleted ? sorted : sorted.filter((a) => !a.achieved)

@@ -1,5 +1,5 @@
 import { wrapCreateBrowserRouter } from '@sentry/react'
-import { createBrowserRouter, type RouteObject } from 'react-router'
+import { createBrowserRouter, redirect, type RouteObject } from 'react-router'
 import { PageLoading } from '@/components/ui/PageLoading'
 import RootLayout from './RootLayout'
 import { NotFound, RouteError } from './RouteStates'
@@ -23,12 +23,19 @@ export function pageRoutes(modules: Record<string, () => Promise<PageModule>>): 
   }))
 }
 
+// Paths with no page of their own.
+export const redirectRoutes: RouteObject[] = [
+  { path: 'books/feed', loader: () => redirect('/feeds') },
+  { path: 'learningpaths', loader: () => redirect('/learningpaths/list') },
+  { path: 'recipes', loader: () => redirect('/recipes/list') }
+]
+
 export const router = wrapCreateBrowserRouter(createBrowserRouter)([
   {
     Component: RootLayout,
     // Shown while the first page's chunk loads.
     HydrateFallback: PageLoading,
     ErrorBoundary: RouteError,
-    children: [...pageRoutes(pages), { path: '*', Component: NotFound }]
+    children: [...pageRoutes(pages), ...redirectRoutes, { path: '*', Component: NotFound }]
   }
 ])

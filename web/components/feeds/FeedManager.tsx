@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/dialog'
-import { ErrorState, LoadingState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import AddFeedForm from '@/components/feeds/AddFeedForm'
 import { useFeeds, useDeleteFeed, useRefreshFeed } from '@/hooks/useFeeds'
 import type { Feed } from '@/lib/gen/feeds/v1/feeds_pb'
@@ -64,6 +64,7 @@ function FeedRow({ feed }: { feed: Feed }) {
         </div>
         <div className="mt-1 space-y-0.5">
           {feed.lastError && (
+            // eslint-disable-next-line ui/use-primitives -- the last poll's stored error, not a live failure
             <p className="break-words text-xs text-danger">
               {isEmailFeed ? 'Last email failed' : 'Last poll failed'}: {feed.lastError}
             </p>
@@ -110,7 +111,7 @@ export default function FeedManager() {
       {isLoading && <LoadingState className="mt-3" />}
       {error && <ErrorState what="feeds" className="mt-3" />}
       {!isLoading && !error && feeds.length === 0 && (
-        <p className="mt-3 text-sm text-muted">No feed subscriptions yet.</p>
+        <EmptyState className="mt-3">No feed subscriptions yet.</EmptyState>
       )}
       {feeds.length > 0 && (
         <ul className="mt-3 space-y-2">

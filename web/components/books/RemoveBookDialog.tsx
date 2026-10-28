@@ -4,6 +4,7 @@ import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { useRemoveBook } from '@/hooks/useBooks'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { swrKeys } from '@/lib/swrKeys'
+import { Alert } from '@/components/ui/alert'
 
 interface RemoveBookDialogProps {
   userBook: UserBook
@@ -61,9 +62,9 @@ export default function RemoveBookDialog({
       onConfirm={handleConfirm}
     >
       {error && (
-        <p className="mt-2 text-sm text-danger" data-testid="remove-book-error">
+        <Alert tone="danger" className="mt-2" data-testid="remove-book-error">
           {error}
-        </p>
+        </Alert>
       )}
     </ConfirmDialog>
   )

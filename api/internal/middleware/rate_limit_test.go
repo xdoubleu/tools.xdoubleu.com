@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,20 +16,31 @@ import (
 	"tools.xdoubleu.com/internal/middleware"
 )
 
-func newRateLimitedHandler(t *testing.T) http.Handler {
+// newRateLimitedHandler builds a handler with its own limiter. There is no
+// refill, so each IP is served bucketSize requests and rejected after that.
+func newRateLimitedHandler(t *testing.T, bucketSize int) http.Handler {
 	t.Helper()
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	return middleware.RateLimit(0, 1, time.Hour, time.Hour)(next)
+	return middleware.RateLimit(0, bucketSize, time.Hour, time.Hour)(next)
+}
+
+func serveFrom(handler http.Handler, remoteAddr string) *httptest.ResponseRecorder {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/version", nil)
+	req.RemoteAddr = remoteAddr
+	handler.ServeHTTP(rec, req)
+
+	return rec
 }
 
 func TestRateLimitReturnsConnectErrorForRPCRequests(t *testing.T) {
 	t.Parallel()
 
-	handler := newRateLimitedHandler(t)
+	handler := newRateLimitedHandler(t, 1)
 
 	post := func() *httptest.ResponseRecorder {
 		rec := httptest.NewRecorder()
@@ -58,7 +71,7 @@ func TestRateLimitReturnsConnectErrorForRPCRequests(t *testing.T) {
 func TestRateLimitReturnsRESTErrorForNonRPCRequests(t *testing.T) {
 	t.Parallel()
 
-	handler := newRateLimitedHandler(t)
+	handler := newRateLimitedHandler(t, 1)
 
 	get := func() *httptest.ResponseRecorder {
 		rec := httptest.NewRecorder()
@@ -79,6 +92,55 @@ func TestRateLimitReturnsRESTErrorForNonRPCRequests(t *testing.T) {
 	require.NoError(t, json.Unmarshal(second.Body.Bytes(), &body))
 	assert.InEpsilon(t, float64(http.StatusTooManyRequests), body["status"], 0)
 	assert.Equal(t, errortools.MessageTooManyRequests, body["message"])
+}
+
+// Each RateLimit call has its own client table, so repeated runs (-count) and
+// separate chains never see each other's counters.
+func TestRateLimitInstancesDoNotShareState(t *testing.T) {
+	t.Parallel()
+
+	first := newRateLimitedHandler(t, 1)
+	second := newRateLimitedHandler(t, 1)
+
+	assert.Equal(t, http.StatusOK, serveFrom(first, "203.0.113.3:1234").Code)
+	assert.Equal(
+		t, http.StatusTooManyRequests, serveFrom(first, "203.0.113.3:1234").Code,
+	)
+	assert.Equal(t, http.StatusOK, serveFrom(second, "203.0.113.3:1234").Code)
+}
+
+func TestRateLimitLimitsEachIPSeparately(t *testing.T) {
+	t.Parallel()
+
+	handler := newRateLimitedHandler(t, 1)
+
+	assert.Equal(t, http.StatusOK, serveFrom(handler, "203.0.113.4:1").Code)
+	assert.Equal(t, http.StatusOK, serveFrom(handler, "203.0.113.5:1").Code)
+	assert.Equal(
+		t, http.StatusTooManyRequests, serveFrom(handler, "203.0.113.4:2").Code,
+	)
+}
+
+func TestRateLimitConcurrentRequestsShareOneBucket(t *testing.T) {
+	t.Parallel()
+
+	const bucketSize, requests = 5, 100
+
+	handler := newRateLimitedHandler(t, bucketSize)
+
+	var served atomic.Int32
+
+	var wg sync.WaitGroup
+	for range requests {
+		wg.Go(func() {
+			if serveFrom(handler, "203.0.113.6:1234").Code == http.StatusOK {
+				served.Add(1)
+			}
+		})
+	}
+	wg.Wait()
+
+	assert.EqualValues(t, bucketSize, served.Load())
 }
 
 func TestClientIP(t *testing.T) {

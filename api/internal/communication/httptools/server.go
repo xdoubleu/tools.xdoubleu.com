@@ -5,43 +5,50 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 )
 
-// Serve runs srv.ListenAndServe with graceful shutdown handling.
-func Serve(logger *slog.Logger, srv *http.Server, environment string) error {
-	go func() {
-		quit := make(chan os.Signal, 1)
-		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-		s := <-quit
-
-		logger.Info("shutting down server", slog.String("server", s.String()))
-
-		ctx, cancel := context.WithTimeout(
-			context.Background(),
-			30*time.Second, //nolint:mnd // no magic number
-		)
-		defer cancel()
-
-		//nolint:errcheck // not useful to capture for now
-		srv.Shutdown(ctx)
-	}()
-
+// Serve runs srv until ctx is done, then shuts it down and returns once
+// in-flight requests have drained. Connections still open after
+// shutdownTimeout are closed.
+func Serve(
+	ctx context.Context,
+	logger *slog.Logger,
+	srv *http.Server,
+	environment string,
+	shutdownTimeout time.Duration,
+) error {
 	logger.Info(
 		"starting server",
 		slog.String("env", environment),
 		slog.String("addr", srv.Addr),
 	)
 
-	err := srv.ListenAndServe()
-	if !errors.Is(err, http.ErrServerClosed) {
+	listened := make(chan error, 1)
+	go func() { listened <- srv.ListenAndServe() }()
+
+	select {
+	case err := <-listened:
 		return err
+	case <-ctx.Done():
+	}
+
+	logger.Info("shutting down server", slog.String("addr", srv.Addr))
+
+	shutdownCtx, cancel := context.WithTimeout(
+		context.WithoutCancel(ctx), shutdownTimeout,
+	)
+	defer cancel()
+
+	err := srv.Shutdown(shutdownCtx)
+	if err != nil {
+		err = errors.Join(err, srv.Close())
+	}
+	if listenErr := <-listened; !errors.Is(listenErr, http.ErrServerClosed) {
+		err = errors.Join(err, listenErr)
 	}
 
 	logger.Info("stopped server", slog.String("addr", srv.Addr))
 
-	return nil
+	return err
 }

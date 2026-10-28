@@ -1,8 +1,8 @@
 # Convention: web UI standards
 
 - Enforced by:
-  - `npm run lint`, which runs the ESLint raw-control bans and the local `ui/*` rules in `web/eslint-rules/` (`mobile-first-classes`, `theme-tokens`, `no-classname-template`, `touch-targets`, `use-primitives`). It also runs their RuleTester tests (`test:eslint-rules`) and `generate:ui-catalog:check`.
-  - `npm run build`, for the server/client boundary.
+  - `npm run lint`, which runs the ESLint raw-control bans and the local `ui/*` rules in `web/eslint-rules/` (`mobile-first-classes`, `theme-tokens`, `no-classname-template`, `touch-targets`, `use-primitives`, `field-labels`). It also runs their RuleTester tests (`test:eslint-rules`) and `generate:ui-catalog:check`.
+  - `npm run build`, for the production bundle.
   - The `mobile-review` skill, whose `npm run mobile:audit` fails on overflow, sub-44px or crowded tap targets, and sub-16px inputs at 375x667.
   - Review, for everything else.
 - Issues: #1412, #1626
@@ -18,7 +18,8 @@
   - `Card`/`SectionCard`, and `Card variant="inset"`.
   - `LinkCard` for cards that navigate, with controls in its `actions` footer.
   - `Alert`, `LoadingState`/`ErrorState`/`EmptyState`, `Badge`, `SegmentedTabs`.
-  - `Field`/`Label` for labelled controls.
+  - `Field`/`Label` for labelled controls. A field without a visible label gets `aria-label`; a placeholder is not a label.
+  - `Alert tone="danger"` for errors, or `role="alert"` on an inline error beside its control, so they are announced.
   - `Dialog side="sheet"` for edits that should be phone-first.
   - A hidden `<input type="file">` may use `eslint-disable-next-line no-restricted-syntax` with a reason.
 - **Theme tokens only.** Colours, shadows and corner radii come from `app/globals.css`, which `ui/theme-tokens` reads. No `dark:`. Add a token rather than using a palette colour. Corners stay squared: `rounded-full` is only for square circles (`size-*`, equal `h-`/`w-`), never a pill.
@@ -33,7 +34,7 @@
 
 ## Worked examples
 
-- **Tailwind v4, CSS-first**: there is no `tailwind.config.ts`. `app/globals.css` defines RGB-triple variables per scheme via `@theme inline`, plus `@theme` for shadow and radius tokens.
+- **Tailwind v4, CSS-first**: there is no JS config file. `app/globals.css` defines RGB-triple variables per scheme via `@theme inline`, plus `@theme` for shadow and radius tokens.
 - **Light/dark** keys off `:root[data-theme='dark']`.
   - `lib/theme.ts` stores `auto`/`light`/`dark` in localStorage.
   - `public/theme-init.js` repeats its resolution in `index.html`'s `<head>` to avoid a flash.

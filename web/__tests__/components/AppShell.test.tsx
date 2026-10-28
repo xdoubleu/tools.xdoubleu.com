@@ -120,6 +120,15 @@ describe('AppShell', () => {
     expect(screen.getByTestId('child')).toHaveTextContent('content')
   })
 
+  it('keeps the page clear of a landscape notch at every width', () => {
+    signedInAs({ role: 'user', appAccess: [] })
+    render(<AppShell>{null}</AppShell>)
+
+    const main = screen.getByRole('main')
+    expect(main).toHaveClass('pl-[var(--inset-left)]', 'pr-[var(--inset-right)]')
+    expect(main.className).not.toMatch(/\bpx-|(sm|lg):px-/)
+  })
+
   it('passes the signed-in user to the session effects', () => {
     signedInAs({ userId: 'u1', role: 'user', appAccess: [] })
     render(<AppShell>{null}</AppShell>)

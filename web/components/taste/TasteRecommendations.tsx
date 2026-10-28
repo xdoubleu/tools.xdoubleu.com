@@ -10,7 +10,7 @@ import { DOMAINS, SAVED_VIEW, TRACKS, domainLabel, hostLabel, trackLabel } from 
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/dates'
 import PickActions from '@/components/taste/PickActions'
-import PickArtwork from '@/components/taste/PickArtwork'
+import { Artwork } from '@/components/ui/artwork'
 import RefreshButton from '@/components/taste/RefreshButton'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -38,7 +38,7 @@ function PickRow({ pick, saved }: { pick: Recommendation; saved: boolean }) {
   ]
   return (
     <Card variant="inset" className="flex items-start gap-3">
-      <PickArtwork url={pick.imageUrl} title={pick.title} />
+      <Artwork src={pick.imageUrl} title={pick.title} size="square" />
       <div className="min-w-0 flex-1">
         <p className="break-words font-medium">{pick.title}</p>
         <p className="break-words text-xs text-muted">{meta.filter(Boolean).join(' · ')}</p>
@@ -132,7 +132,7 @@ function PickList({ domain, view }: { domain: string; view: string }) {
         </ul>
       )}
       {!saved && data.generatedAt && (
-        <p className="text-xs text-muted" suppressHydrationWarning>
+        <p className="text-xs text-muted">
           Picked {formatDateTime(data.generatedAt)}, each checked against its catalog.
         </p>
       )}

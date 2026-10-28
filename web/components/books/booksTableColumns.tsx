@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from '@/components/ui/link'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import type { SortDir } from '@/components/ui/table'
-import BookCover from '@/components/books/BookCover'
+import { Artwork } from '@/components/ui/artwork'
 import BookRatingStars from '@/components/books/BookRatingStars'
 import BookFavouriteButton from '@/components/books/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
@@ -116,7 +116,13 @@ export const ALL_COLUMNS: BookColumn[] = [
     cellClassName: 'w-12 pr-0',
     renderCell: (ub) => (
       <Link href={`/books/${ub.id}`} tabIndex={-1}>
-        <BookCover coverUrl={ub.book?.coverUrl ?? ''} title={ub.book?.title ?? ''} size="sm" />
+        <Artwork
+          src={ub.book?.coverUrl ?? ''}
+          title={ub.book?.title ?? ''}
+          alt={ub.book?.title ?? ''}
+          initials={2}
+          size="sm"
+        />
       </Link>
     )
   },

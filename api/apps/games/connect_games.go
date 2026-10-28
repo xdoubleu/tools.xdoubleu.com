@@ -2,7 +2,6 @@ package games
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"connectrpc.com/connect/v2"
@@ -138,11 +137,11 @@ func (h *gamesConnectHandler) GetSteamDistribution(
 	label, bucketGames, err := h.app.Services.Progress.GetDistributionBucket(
 		ctx, user.ID, int(req.Bucket),
 	)
-	if errors.Is(err, services.ErrInvalidBucket) {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
-	}
 	if err != nil {
-		return nil, connecttools.MapError(err)
+		return nil, connecttools.MapError(
+			err,
+			connecttools.Code(services.ErrInvalidBucket, connect.CodeInvalidArgument),
+		)
 	}
 
 	return &gamesv1.GetSteamDistributionResponse{

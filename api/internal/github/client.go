@@ -1,35 +1,27 @@
 package github
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
-	"net"
 	"net/http"
-	"net/url"
 	"slices"
-	"strings"
 	"sync"
 	"time"
 
 	"golang.org/x/oauth2"
 
 	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/httpclient"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 
 //nolint:gochecknoglobals // overridable in tests
 var baseURL = "https://api.github.com"
-
-//nolint:gochecknoglobals // overridable in tests
-var backoffBase = 500 * time.Millisecond
-
-//nolint:gochecknoglobals // overridable in tests
-var backoffCap = 30 * time.Second
 
 const apiTimeout = 15 * time.Second
 
@@ -61,8 +53,7 @@ type repoConfig struct {
 }
 
 type client struct {
-	logger     *slog.Logger
-	httpClient *http.Client
+	http       *httpclient.Client
 	tokenFn    oauthconn.TokenFunc
 	configRepo configStore
 
@@ -81,8 +72,12 @@ func New(
 	logger *slog.Logger, tokenFn oauthconn.TokenFunc, configRepo configStore,
 ) Client {
 	return &client{ //nolint:exhaustruct // cache fields start zero-valued
-		logger:     logger,
-		httpClient: &http.Client{Timeout: apiTimeout},
+		http: httpclient.New(httpclient.Config{
+			Name:        "github",
+			Logger:      logger,
+			Timeout:     apiTimeout,
+			MaxAttempts: maxAttempts,
+		}),
 		tokenFn:    tokenFn,
 		configRepo: configRepo,
 	}
@@ -505,170 +500,70 @@ func (c *client) getAllowingNotFound(
 }
 
 func (c *client) get(ctx context.Context, endpoint, token string, dst any) error {
-	return c.doWithRetry(ctx, func() (bool, error) {
-		req, reqErr := http.NewRequestWithContext(
-			ctx, http.MethodGet, endpoint, nil,
+	req := c.newRequest(http.MethodGet, endpoint, token)
+
+	resp, err := c.http.Do(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	switch resp.StatusCode {
+	case http.StatusNotFound:
+		return fmt.Errorf("%w: %s", errNotFound, resp.Snippet())
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return fmt.Errorf(
+			"%w (%d): %s", ErrAccessDenied, resp.StatusCode, resp.Snippet(),
 		)
-		if reqErr != nil {
-			return false, reqErr
-		}
-		req.Header.Set("Accept", "application/vnd.github+json")
-		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	if err = statusError(resp); err != nil {
+		return err
+	}
 
-		resp, doErr := c.httpClient.Do(req)
-		if doErr != nil {
-			return isTransientErr(doErr), doErr
-		}
-		defer resp.Body.Close()
-
-		if isRetryableStatus(resp.StatusCode) {
-			raw, _ := io.ReadAll(resp.Body)
-			return true, fmt.Errorf(
-				"%w: github API returned %d: %s",
-				errTransientStatus, resp.StatusCode, string(raw),
-			)
-		}
-
-		if resp.StatusCode == http.StatusNotFound {
-			raw, _ := io.ReadAll(resp.Body)
-			return false, fmt.Errorf(
-				"%w: %s", errNotFound, string(raw),
-			)
-		}
-
-		if resp.StatusCode == http.StatusUnauthorized ||
-			resp.StatusCode == http.StatusForbidden {
-			raw, _ := io.ReadAll(resp.Body)
-			return false, fmt.Errorf(
-				"%w (%d): %s", ErrAccessDenied, resp.StatusCode, string(raw),
-			)
-		}
-
-		if resp.StatusCode < http.StatusOK ||
-			resp.StatusCode >= http.StatusMultipleChoices {
-			raw, _ := io.ReadAll(resp.Body)
-			return false, fmt.Errorf(
-				"github API returned %d: %s", resp.StatusCode, string(raw),
-			)
-		}
-
-		return false, json.NewDecoder(resp.Body).Decode(dst)
-	})
+	return json.NewDecoder(bytes.NewReader(resp.Body)).Decode(dst)
 }
 
 func (c *client) patch(ctx context.Context, endpoint, token, body string) error {
-	return c.doWithRetry(ctx, func() (bool, error) {
-		req, reqErr := http.NewRequestWithContext(
-			ctx, http.MethodPatch, endpoint, strings.NewReader(body),
-		)
-		if reqErr != nil {
-			return false, reqErr
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Accept", "application/vnd.github+json")
-		req.Header.Set("Authorization", "Bearer "+token)
+	req := c.newRequest(http.MethodPatch, endpoint, token).
+		SetHeader("Content-Type", "application/json").
+		SetBody([]byte(body))
 
-		resp, doErr := c.httpClient.Do(req)
-		if doErr != nil {
-			return isTransientErr(doErr), doErr
-		}
-		defer resp.Body.Close()
-
-		if isRetryableStatus(resp.StatusCode) {
-			raw, _ := io.ReadAll(resp.Body)
-			return true, fmt.Errorf(
-				"%w: github API returned %d: %s",
-				errTransientStatus, resp.StatusCode, string(raw),
-			)
-		}
-
-		if resp.StatusCode < http.StatusOK ||
-			resp.StatusCode >= http.StatusMultipleChoices {
-			raw, _ := io.ReadAll(resp.Body)
-			return false, fmt.Errorf(
-				"github API returned %d: %s", resp.StatusCode, string(raw),
-			)
-		}
-
-		_, _ = io.Copy(io.Discard, resp.Body)
-		return false, nil
-	})
+	resp, err := c.http.Do(ctx, req)
+	if err != nil {
+		return err
+	}
+	return statusError(resp)
 }
 
-func (c *client) doWithRetry(
-	ctx context.Context,
-	attempt func() (retryable bool, err error),
-) error {
-	var lastErr error
-	for i := range maxAttempts {
-		retryable, err := attempt()
-		if err == nil {
-			return nil
-		}
+// newRequest builds an authenticated GitHub API request.
+func (c *client) newRequest(method, endpoint, token string) *httpclient.Request {
+	return httpclient.NewRequest(method, endpoint).
+		SetHeader("Accept", "application/vnd.github+json").
+		SetHeader("Authorization", "Bearer "+token)
+}
 
-		if errors.Is(err, context.Canceled) {
-			return err
-		}
-
-		lastErr = err
-
-		if !retryable || i == maxAttempts-1 {
-			break
-		}
-
-		delay := backoffDelay(i)
-		c.logger.DebugContext(ctx, "retrying github request",
-			slog.Int("attempt", i+1),
-			slog.Duration("backoff", delay),
-			slog.Any("error", err),
+// statusError is nil for a 2xx; a retryable status that outlasted the retries
+// wraps errTransientStatus.
+func statusError(resp *httpclient.Response) error {
+	switch {
+	case httpclient.IsRetryableStatus(resp.StatusCode):
+		return fmt.Errorf(
+			"%w: github API returned %d: %s",
+			errTransientStatus, resp.StatusCode, resp.Snippet(),
 		)
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(delay):
-		}
+	case resp.StatusCode < http.StatusOK ||
+		resp.StatusCode >= http.StatusMultipleChoices:
+		return fmt.Errorf(
+			"github API returned %d: %s", resp.StatusCode, resp.Snippet(),
+		)
 	}
-	return lastErr
+	return nil
 }
 
 // SetBaseURL overrides the GitHub API base URL (tests only).
 func SetBaseURL(u string) { baseURL = u }
 
-// SetBackoffBase overrides the retry backoff base (tests only).
-func SetBackoffBase(d time.Duration) { backoffBase = d }
-
-func backoffDelay(attempt int) time.Duration {
-	d := backoffBase * (1 << attempt)
-	if d > backoffCap {
-		return backoffCap
-	}
-	return d
-}
-
-func isRetryableStatus(status int) bool {
-	return status == http.StatusTooManyRequests ||
-		(status >= http.StatusInternalServerError && status < 600)
-}
-
 // IsTransientAPIError reports whether err is self-healing: a timeout, a DNS
 // lookup failure, or a retryable upstream 5xx/429 that exhausted its retries.
 func IsTransientAPIError(err error) bool {
-	return errors.Is(err, errTransientStatus) || isTransientErr(err)
-}
-
-func isTransientErr(err error) bool {
-	if errors.Is(err, context.Canceled) {
-		return false
-	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		return true
-	}
-	var urlErr *url.Error
-	if errors.As(err, &urlErr) && urlErr.Timeout() {
-		return true
-	}
-	// DNS lookup failures (e.g. a flaky Docker resolver) are transient.
-	var dnsErr *net.DNSError
-	return errors.As(err, &dnsErr)
+	return errors.Is(err, errTransientStatus) || httpclient.IsTransient(err)
 }

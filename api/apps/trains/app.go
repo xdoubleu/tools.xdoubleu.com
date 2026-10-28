@@ -32,6 +32,7 @@ type Trains struct {
 }
 
 func New(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -40,6 +41,7 @@ func New(
 	// iRail asks for a User-Agent that identifies the app and how to reach it.
 	userAgent := fmt.Sprintf("tools.xdoubleu.com (%s)", cfg.WebURL)
 	return NewInner(
+		ctx,
 		authService, logger, cfg, db,
 		irail.New(logger, irail.DefaultBaseURL, userAgent),
 	)
@@ -47,6 +49,7 @@ func New(
 
 // NewInner lets tests inject a fake irail.Client.
 func NewInner(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -55,7 +58,7 @@ func NewInner(
 ) *Trains {
 	//nolint:exhaustruct //Services/Repositories initialised below
 	a := &Trains{
-		Base:  app.NewBase(context.Background(), authService, logger, cfg),
+		Base:  app.NewBase(ctx, authService, logger, cfg),
 		db:    db,
 		irail: client,
 	}

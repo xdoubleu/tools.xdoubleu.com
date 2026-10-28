@@ -3,6 +3,7 @@ package books
 import (
 	"context"
 	"embed"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
-	"tools.xdoubleu.com/apps/books/pkg/webfetch"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -22,10 +22,14 @@ import (
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/observability"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/webfetch"
 )
 
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
+
+// userAgent identifies the books app's web fetches to origin servers.
+const userAgent = "tools.xdoubleu.com reading-library bot"
 
 type Books struct {
 	app.Base
@@ -42,6 +46,7 @@ type Books struct {
 }
 
 func New(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -66,7 +71,7 @@ func New(
 	}
 
 	endpoint := "https://" + cfg.R2AccountID + ".r2.cloudflarestorage.com"
-	webFetchClient := webfetch.New(logger, cfg.Env != config.ProdEnv)
+	webFetchClient := webfetch.New(logger, userAgent, cfg.Env != config.ProdEnv)
 
 	clients := Clients{
 		UniCat:    unicat.New(logger),
@@ -82,10 +87,11 @@ func New(
 		PublicAPIBaseURL: cfg.APIURL,
 	}
 
-	return NewInner(authService, logger, cfg, db, clients)
+	return NewInner(ctx, authService, logger, cfg, db, clients)
 }
 
 func NewInner(
+	ctx context.Context,
 	authService auth.Service,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -94,7 +100,7 @@ func NewInner(
 ) *Books {
 	//nolint:exhaustruct //jobQueue, Repositories, Services initialised below
 	a := &Books{
-		Base:    app.NewBase(context.Background(), authService, logger, cfg),
+		Base:    app.NewBase(ctx, authService, logger, cfg),
 		db:      db,
 		clients: clients,
 	}
@@ -113,6 +119,7 @@ func NewInner(
 	a.Services = services.New(
 		a.Ctx,
 		logger,
+		a.Background,
 		a.Config,
 		a.jobQueue,
 		a.Repositories,
@@ -171,6 +178,11 @@ func (a *Books) StartWorkers() error {
 		observability.NewTrackedJob(a.kepubJob, a.db),
 		noop,
 	)
+}
+
+// Shutdown drains background tasks, then the job queue.
+func (a *Books) Shutdown(ctx context.Context) error {
+	return errors.Join(a.Base.Shutdown(ctx), a.jobQueue.Wait(ctx))
 }
 
 func (a *Books) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
