@@ -1,8 +1,14 @@
 # ADR-0009: Extract the slog→Sentry glue into its own module, consumed via a local `replace`
 
-- Status: Accepted
+- Status: **Superseded** — folded back into `api/internal/sentrytools` (issue #2618)
 - Issues: #926, #1038
 - Affects: `sentrytools/`, `api/go.mod`, `api/Dockerfile`, `.github/workflows/build-api.yml`, `main.yml`
+
+> **Superseded.** The `sentrytools/` module had exactly one consumer (api). It is
+> folded back into `api/internal/sentrytools`; the `replace` and its
+> `sentrytools/` path filter/CI jobs are gone, the mocks no longer sit behind a
+> production `Middleware` path, and the Docker context no longer needs the
+> module.
 
 ## Context
 

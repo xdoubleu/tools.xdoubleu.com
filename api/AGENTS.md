@@ -48,7 +48,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 
 - **`app`** — `Base`, `HTTPError`, `ScrubInternalErrors` (every `New*ServiceHandler` call must pass it). Unawaited request work uses `Base.Background.Go`, never a bare `go`.
 - **`connecttools`** — `MapError`: DB/`HTTPError` errors → Connect codes.
-- **`sentrytools`** — request-scoped Sentry hub middleware, `GoRoutineWrapper`; slog handler/`Init` live in the root `sentrytools/` module → [`adr-0009`](../docs/adr-0009-sentrytools-extracted-module.md).
+- **`sentrytools`** — Sentry hub middleware, `GoRoutineWrapper`, slog→Sentry `Init`/`LogHandler` → [`adr-0009`](../docs/adr-0009-sentrytools-extracted-module.md).
 - **`family`** — the one sharing model; a user with no row is an implicit family-of-one (`EnsureFamily`). `InviteByEmail` requires a registered invitee and emails off the request path. **Leaving cannot un-merge family-scoped data** → [`adr-0008`](../docs/adr-0008-family-as-single-sharing-concept.md).
 - **`crypto`** — AES-256-GCM `Sealer` for OAuth tokens at rest.
 - **`mailer`** — Resend HTTP client; `Send`/`SendTo` return `ErrNotConfigured` when unset.

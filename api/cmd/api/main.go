@@ -34,7 +34,7 @@ import (
 	"tools.xdoubleu.com/internal/observability/jobs"
 	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
-	"tools.xdoubleu.com/sentrytools"
+	"tools.xdoubleu.com/internal/sentrytools"
 )
 
 //go:embed migrations/*.sql

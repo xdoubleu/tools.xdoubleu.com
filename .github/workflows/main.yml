@@ -19,7 +19,6 @@ jobs:
       proto: ${{ steps.proto-workflows.outputs.proto }}
       workflows: ${{ steps.proto-workflows.outputs.workflows }}
       kobo_gateway: ${{ steps.filter.outputs.kobo_gateway }}
-      sentrytools: ${{ steps.filter.outputs.sentrytools }}
       infra: ${{ steps.filter.outputs.infra }}
       config_api: ${{ steps.filter.outputs.config_api }}
       config_grafana: ${{ steps.filter.outputs.config_grafana }}
@@ -43,10 +42,6 @@ jobs:
             kobo_gateway:
               - 'kobo-gateway/**'
               - '!kobo-gateway/**/*.md'
-            # Standalone module pulled into api/ via `replace`; the api gate ORs it in.
-            sentrytools:
-              - 'sentrytools/**'
-              - '!sentrytools/**/*.md'
             infra:
               - 'infra/**'
               - '!infra/**/*.md'
@@ -107,7 +102,6 @@ jobs:
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
       needs.changes.outputs.kobo_gateway == 'true' ||
-      needs.changes.outputs.sentrytools == 'true' ||
       needs.changes.outputs.config_api == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Build API Workflow
@@ -144,7 +138,6 @@ jobs:
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
       needs.changes.outputs.kobo_gateway == 'true' ||
-      needs.changes.outputs.sentrytools == 'true' ||
       needs.changes.outputs.config_api == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Build Kobo Gateway Workflow
@@ -158,7 +151,6 @@ jobs:
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.proto == 'true' ||
-      needs.changes.outputs.sentrytools == 'true' ||
       needs.changes.outputs.config_api == 'true' ||
       needs.changes.outputs.config_grafana == 'true' ||
       needs.changes.outputs.workflows == 'true')
@@ -196,7 +188,6 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.proto == 'true' ||
-      needs.changes.outputs.sentrytools == 'true' ||
       needs.changes.outputs.workflows == 'true'
     name: API Test Workflow
     uses: ./.github/workflows/api-test.yml
@@ -225,18 +216,6 @@ jobs:
     uses: ./.github/workflows/kobo-gateway-test.yml
     secrets: inherit
 
-  # No deployable artifact, but linted/tested standalone.
-  sentrytools-lint:
-    needs: changes
-    if: |
-      github.event_name != 'push' &&
-      (github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.sentrytools == 'true' ||
-      needs.changes.outputs.workflows == 'true')
-    name: Sentrytools Lint Workflow
-    uses: ./.github/workflows/sentrytools-lint.yml
-    secrets: inherit
-
   # Pre-merge gate: infra-apply would not fail on a malformed prometheus.yml
   # (Prometheus just crash-loops).
   infra-lint:
@@ -260,17 +239,6 @@ jobs:
           tofu_wrapper: false
       - name: make lint/infra
         run: make lint/infra
-
-  sentrytools-test:
-    needs: changes
-    # Also runs on main to refresh Codecov's default-branch baseline.
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.sentrytools == 'true' ||
-      needs.changes.outputs.workflows == 'true'
-    name: Sentrytools Test Workflow
-    uses: ./.github/workflows/sentrytools-test.yml
-    secrets: inherit
 
   # Unconditional: a conflict marker can land in any file type.
   conflict-markers:
@@ -361,12 +329,10 @@ jobs:
         api-lint,
         web-lint,
         kobo-gateway-lint,
-        sentrytools-lint,
         infra-lint,
         api-test,
         web-test,
         kobo-gateway-test,
-        sentrytools-test,
         conflict-markers,
         workflow-lint,
         skills-lint,
@@ -394,8 +360,7 @@ jobs:
         if: |
           needs.api-test.result == 'success' ||
           needs.web-test.result == 'success' ||
-          needs.kobo-gateway-test.result == 'success' ||
-          needs.sentrytools-test.result == 'success'
+          needs.kobo-gateway-test.result == 'success'
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           GH_TOKEN: ${{ github.token }}
@@ -773,7 +738,6 @@ jobs:
         api-test,
         web-test,
         kobo-gateway-test,
-        sentrytools-test,
         docs-lint,
         migration-versions,
         infra-apply,

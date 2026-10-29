@@ -1,5 +1,4 @@
-// Package sentrytools reports Error-level slog records to Sentry. It is a
-// standalone module, pulled in via a local `replace`.
+// Package sentrytools reports Error-level slog records to Sentry.
 package sentrytools
 
 import (

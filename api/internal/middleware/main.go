@@ -28,7 +28,7 @@ func Default(
 }
 
 // DefaultWithSentry is [Default] plus [sentrytools.Middleware]. Call
-// [tools.xdoubleu.com/sentrytools.Init] first.
+// [sentrytools.Init] first.
 func DefaultWithSentry(
 	logger *slog.Logger,
 	allowedOrigins []string,
@@ -53,7 +53,7 @@ func defaultBase(
 	handlers = append(handlers, RateLimit(10, 30, time.Minute, 3*time.Minute))
 
 	if useSentry {
-		sentryMiddleware, err := sentrytools.Middleware(*env)
+		sentryMiddleware, err := sentrytools.Middleware()
 		if err != nil {
 			return nil, err
 		}
