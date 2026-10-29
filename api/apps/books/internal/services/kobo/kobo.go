@@ -1,4 +1,4 @@
-package services
+package kobo
 
 import (
 	"context"
@@ -13,11 +13,16 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 )
 
-// KoboService manages Kobo e-reader device registrations and their sync
+// Service manages Kobo e-reader device registrations and their sync
 // tokens. Tokens are high-entropy secrets embedded in the device's
 // api_endpoint URL; only their SHA-256 hash is stored.
-type KoboService struct {
+type Service struct {
 	repo *repositories.KoboDevicesRepository
+}
+
+// NewService wires the device repository into a Service.
+func NewService(repo *repositories.KoboDevicesRepository) *Service {
+	return &Service{repo: repo}
 }
 
 // koboTokenBytes is the number of random bytes for a Kobo sync token
@@ -27,7 +32,7 @@ const koboTokenBytes = 32
 // RegisterKoboDevice generates a new high-entropy random token, stores only
 // its sha256 hash (never the raw token), and returns the persisted device
 // record together with the raw token for one-time display.
-func (s *KoboService) RegisterKoboDevice(
+func (s *Service) RegisterKoboDevice(
 	ctx context.Context,
 	userID, name, serial string,
 ) (models.KoboDevice, string, error) {
@@ -46,7 +51,7 @@ func (s *KoboService) RegisterKoboDevice(
 }
 
 // ListKoboDevices returns all registered devices for a user.
-func (s *KoboService) ListKoboDevices(
+func (s *Service) ListKoboDevices(
 	ctx context.Context,
 	userID string,
 ) ([]models.KoboDevice, error) {
@@ -54,7 +59,7 @@ func (s *KoboService) ListKoboDevices(
 }
 
 // DisconnectKoboDevice deletes the device record, revoking its token.
-func (s *KoboService) DisconnectKoboDevice(
+func (s *Service) DisconnectKoboDevice(
 	ctx context.Context,
 	userID string,
 	deviceID uuid.UUID,
@@ -64,7 +69,7 @@ func (s *KoboService) DisconnectKoboDevice(
 
 // GetKoboAuthByTokenHash looks up the owning user and device ID by a pre-hashed
 // token for authenticating Kobo sync requests.
-func (s *KoboService) GetKoboAuthByTokenHash(
+func (s *Service) GetKoboAuthByTokenHash(
 	ctx context.Context,
 	hash string,
 ) (string, string, error) {
@@ -73,7 +78,7 @@ func (s *KoboService) GetKoboAuthByTokenHash(
 
 // GetKoboDevice returns a single device scoped to the owning user, used to
 // verify ownership before per-device debug-logging operations.
-func (s *KoboService) GetKoboDevice(
+func (s *Service) GetKoboDevice(
 	ctx context.Context,
 	userID string,
 	deviceID uuid.UUID,

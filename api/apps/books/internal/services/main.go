@@ -7,6 +7,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"tools.xdoubleu.com/apps/books/internal/repositories"
+	"tools.xdoubleu.com/apps/books/internal/services/kobo"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
@@ -27,8 +28,8 @@ type Services struct {
 	Positions  *PositionService
 	Physical   *PhysicalService
 	Progress   *ProgressService
-	Kobo       *KoboService
-	KoboLog    *KoboLogStore
+	Kobo       *kobo.Service
+	KoboLog    *kobo.LogStore
 	Ingest     *IngestService
 	WebSocket  *progressws.Service
 	WebPub     *WebPubService
@@ -47,11 +48,9 @@ func New(
 	webFetchClient webfetch.Client,
 	authService auth.Service,
 ) *Services {
-	kobo := &KoboService{
-		repo: repositories.KoboDevices,
-	}
+	koboSvc := kobo.NewService(repositories.KoboDevices)
 
-	koboLog := NewKoboLogStore()
+	koboLog := kobo.NewLogStore()
 
 	booksSvc := &BookService{
 		logger:       logger,
@@ -99,7 +98,7 @@ func New(
 		Positions:  positions,
 		Physical:   booksSvc.physical,
 		Progress:   NewProgressService(repositories.Progress),
-		Kobo:       kobo,
+		Kobo:       koboSvc,
 		KoboLog:    koboLog,
 		Ingest:     ingestSvc,
 		WebPub:     newWebPubService(booksSvc),

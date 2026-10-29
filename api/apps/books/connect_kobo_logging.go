@@ -8,7 +8,7 @@ import (
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/internal/services/kobo"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
@@ -92,7 +92,7 @@ func (h *booksConnectHandler) ClearKoboDeviceLogs(
 // mid-rune, so they are not guaranteed valid UTF-8. proto3 string fields must
 // be valid UTF-8 or marshaling fails, so sanitize here — the single point
 // every captured entry passes through on its way into the response.
-func koboLogEntryProto(e services.KoboLogEntry) *booksv1.KoboLogEntry {
+func koboLogEntryProto(e kobo.LogEntry) *booksv1.KoboLogEntry {
 	return &booksv1.KoboLogEntry{
 		Time:         e.Time.Format(time.RFC3339),
 		Method:       e.Method,

@@ -1,5 +1,5 @@
 //nolint:testpackage // testing unexported store internals (ring-buffer cap)
-package services
+package kobo
 
 import (
 	"testing"
@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// logEntry builds a KoboLogEntry for tests without tripping exhaustruct on
+// logEntry builds a LogEntry for tests without tripping exhaustruct on
 // every call site.
-func logEntry(method, path string) KoboLogEntry {
-	return KoboLogEntry{
+func logEntry(method, path string) LogEntry {
+	return LogEntry{
 		Time:            time.Now(),
 		Method:          method,
 		Path:            path,
@@ -28,7 +28,7 @@ func logEntry(method, path string) KoboLogEntry {
 }
 
 func TestKoboLogStore_DisabledByDefault(t *testing.T) {
-	s := NewKoboLogStore()
+	s := NewLogStore()
 	assert.False(t, s.IsEnabled("dev-1"))
 	// Append is a no-op while disabled.
 	s.Append("dev-1", logEntry("GET", ""))
@@ -36,7 +36,7 @@ func TestKoboLogStore_DisabledByDefault(t *testing.T) {
 }
 
 func TestKoboLogStore_EnableAppendList(t *testing.T) {
-	s := NewKoboLogStore()
+	s := NewLogStore()
 	s.SetEnabled("dev-1", true)
 	require.True(t, s.IsEnabled("dev-1"))
 
@@ -50,7 +50,7 @@ func TestKoboLogStore_EnableAppendList(t *testing.T) {
 }
 
 func TestKoboLogStore_DisableDropsEntries(t *testing.T) {
-	s := NewKoboLogStore()
+	s := NewLogStore()
 	s.SetEnabled("dev-1", true)
 	s.Append("dev-1", logEntry("GET", ""))
 	require.Len(t, s.List("dev-1"), 1)
@@ -62,7 +62,7 @@ func TestKoboLogStore_DisableDropsEntries(t *testing.T) {
 }
 
 func TestKoboLogStore_ClearKeepsEnabled(t *testing.T) {
-	s := NewKoboLogStore()
+	s := NewLogStore()
 	s.SetEnabled("dev-1", true)
 	s.Append("dev-1", logEntry("GET", ""))
 
@@ -76,7 +76,7 @@ func TestKoboLogStore_ClearKeepsEnabled(t *testing.T) {
 }
 
 func TestKoboLogStore_RingBufferCap(t *testing.T) {
-	s := NewKoboLogStore()
+	s := NewLogStore()
 	s.SetEnabled("dev-1", true)
 	for i := 0; i < maxEntriesPerDevice+50; i++ {
 		s.Append("dev-1", logEntry("GET", "/x"))
@@ -85,7 +85,7 @@ func TestKoboLogStore_RingBufferCap(t *testing.T) {
 }
 
 func TestKoboLogStore_ListReturnsCopy(t *testing.T) {
-	s := NewKoboLogStore()
+	s := NewLogStore()
 	s.SetEnabled("dev-1", true)
 	s.Append("dev-1", logEntry("GET", "/orig"))
 
@@ -97,7 +97,7 @@ func TestKoboLogStore_ListReturnsCopy(t *testing.T) {
 }
 
 func TestKoboLogStore_PerDeviceIsolation(t *testing.T) {
-	s := NewKoboLogStore()
+	s := NewLogStore()
 	s.SetEnabled("dev-1", true)
 	s.SetEnabled("dev-2", true)
 	s.Append("dev-1", logEntry("GET", "/one"))

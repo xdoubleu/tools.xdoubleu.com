@@ -1,4 +1,4 @@
-package services
+package kobo
 
 import (
 	"sync"
@@ -9,8 +9,8 @@ import (
 // per device so debug logging can never grow memory without limit.
 const maxEntriesPerDevice = 200
 
-// KoboLogEntry is a single captured device request/response pair.
-type KoboLogEntry struct {
+// LogEntry is a single captured device request/response pair.
+type LogEntry struct {
 	Time         time.Time
 	Method       string
 	Path         string
@@ -28,28 +28,28 @@ type KoboLogEntry struct {
 	UpstreamHeaders map[string]string
 }
 
-// KoboLogStore holds, purely in process memory, which Kobo devices have debug
+// LogStore holds, purely in process memory, which Kobo devices have debug
 // logging enabled and the recent request/response pairs captured for them.
 // Nothing is persisted: the state resets on restart, and disabling logging for
 // a device drops its captured entries immediately.
-type KoboLogStore struct {
+type LogStore struct {
 	mu      sync.Mutex
 	enabled map[string]bool
-	entries map[string][]KoboLogEntry
+	entries map[string][]LogEntry
 }
 
-// NewKoboLogStore creates an empty store.
-func NewKoboLogStore() *KoboLogStore {
+// NewLogStore creates an empty store.
+func NewLogStore() *LogStore {
 	//nolint:exhaustruct // zero-value mutex is the intended initial state
-	return &KoboLogStore{
+	return &LogStore{
 		enabled: make(map[string]bool),
-		entries: make(map[string][]KoboLogEntry),
+		entries: make(map[string][]LogEntry),
 	}
 }
 
 // SetEnabled turns debug logging on or off for a device. Disabling also drops
 // any captured entries so the buffered traffic is freed from memory at once.
-func (s *KoboLogStore) SetEnabled(deviceID string, on bool) {
+func (s *LogStore) SetEnabled(deviceID string, on bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if on {
@@ -61,7 +61,7 @@ func (s *KoboLogStore) SetEnabled(deviceID string, on bool) {
 }
 
 // IsEnabled reports whether debug logging is currently on for a device.
-func (s *KoboLogStore) IsEnabled(deviceID string) bool {
+func (s *LogStore) IsEnabled(deviceID string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.enabled[deviceID]
@@ -69,7 +69,7 @@ func (s *KoboLogStore) IsEnabled(deviceID string) bool {
 
 // Append records a captured entry, evicting the oldest once the per-device cap
 // is reached. It is a no-op if logging is not enabled for the device.
-func (s *KoboLogStore) Append(deviceID string, entry KoboLogEntry) {
+func (s *LogStore) Append(deviceID string, entry LogEntry) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !s.enabled[deviceID] {
@@ -82,17 +82,17 @@ func (s *KoboLogStore) Append(deviceID string, entry KoboLogEntry) {
 }
 
 // List returns a copy of the captured entries for a device, oldest first.
-func (s *KoboLogStore) List(deviceID string) []KoboLogEntry {
+func (s *LogStore) List(deviceID string) []LogEntry {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	src := s.entries[deviceID]
-	out := make([]KoboLogEntry, len(src))
+	out := make([]LogEntry, len(src))
 	copy(out, src)
 	return out
 }
 
 // Clear drops the captured entries for a device but leaves logging enabled.
-func (s *KoboLogStore) Clear(deviceID string) {
+func (s *LogStore) Clear(deviceID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.entries, deviceID)
