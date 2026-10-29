@@ -5,16 +5,11 @@ import (
 	"net/http"
 	"strings"
 
-	"connectrpc.com/connect/v2"
 	"github.com/justinas/alice"
 	mcpauth "github.com/modelcontextprotocol/go-sdk/auth"
 
-	"tools.xdoubleu.com/gen/access/v1/accessv1connect"
-	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
-	dashboardv1connect "tools.xdoubleu.com/gen/dashboard/v1/dashboardv1connect"
-	"tools.xdoubleu.com/gen/family/v1/familyv1connect"
-	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/account"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/middleware"
@@ -33,24 +28,8 @@ func (app *Application) Routes() http.Handler {
 // mux registers every route, without the middleware chain.
 func (app *Application) mux() *http.ServeMux {
 	mux := http.NewServeMux()
-	mountConnect := func(gate iapp.Gate, register func(*connect.Server)) {
-		iapp.MountConnect(mux, app.logger, gate, register)
-	}
 
-	mountConnect(nil, func(s *connect.Server) {
-		authv1connect.RegisterAuthServiceHandler(s, &authConnectHandler{app: app})
-	})
-	mountConnect(app.auth.Access, func(s *connect.Server) {
-		accessv1connect.RegisterAccessServiceHandler(s, &accessConnectHandler{app: app})
-		familyv1connect.RegisterFamilyServiceHandler(
-			s,
-			&familyConnectHandler{app: app},
-		)
-		dashboardv1connect.RegisterDashboardServiceHandler(
-			s,
-			&dashboardConnectHandler{app: app},
-		)
-	})
+	account.Register(mux, app.logger, nil, app.auth.Access, app.accountDeps())
 	obs.Register(mux, app.logger, app.auth.Access, app.obsDeps())
 
 	// MCP behind OAuth 2.1 Bearer auth. The protected-resource metadata is public

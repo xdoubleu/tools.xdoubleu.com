@@ -1,4 +1,4 @@
-package main
+package account
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-func isRelativeURL(url string) bool {
+func IsRelativeURL(url string) bool {
 	return len(url) > 0 && url[0] == '/' &&
 		(len(url) == 1 || (url[1] != '/' && url[1] != '\\'))
 }
@@ -33,23 +33,23 @@ func (h *authConnectHandler) SignIn(
 			"password is required",
 		)
 	}
-	if req.Redirect != "" && !isRelativeURL(req.Redirect) {
+	if req.Redirect != "" && !IsRelativeURL(req.Redirect) {
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument,
 			"redirect must be a relative URL",
 		)
 	}
 
-	accessToken, refreshToken, err := h.app.auth.SignInWithEmail(
+	accessToken, refreshToken, err := h.app.Auth.SignInWithEmail(
 		ctx,
 		req.Email,
 		req.Password,
 	)
 	if err != nil {
-		return nil, connect.NewError(signInErrorCode(err), err.Error()).WithCause(err)
+		return nil, connect.NewError(SignInErrorCode(err), err.Error()).WithCause(err)
 	}
 
-	factorID, hasMFA := h.app.auth.HasVerifiedTOTP(ctx, *accessToken)
+	factorID, hasMFA := h.app.Auth.HasVerifiedTOTP(ctx, *accessToken)
 	if !hasMFA {
 		resp := &authv1.SignInResponse{}
 		if err = h.completeMFA(
@@ -83,10 +83,10 @@ func (h *authConnectHandler) ForgotPassword(
 			"email is required",
 		)
 	}
-	_ = h.app.auth.ForgotPassword(
+	_ = h.app.Auth.ForgotPassword(
 		ctx,
 		req.Email,
-		h.app.config.WebURL+"/auth/reset-password",
+		h.app.Config.WebURL+"/auth/reset-password",
 	)
 	return &authv1.ForgotPasswordResponse{}, nil
 }
@@ -108,7 +108,7 @@ func (h *authConnectHandler) ResetPassword(
 		)
 	}
 
-	if err := h.app.auth.ResetPasswordWithToken(
+	if err := h.app.Auth.ResetPasswordWithToken(
 		ctx, req.Token, req.NewPassword,
 	); err != nil {
 		code := connect.CodeUnauthenticated
@@ -139,7 +139,7 @@ func (h *authConnectHandler) ExchangeToken(
 		)
 	}
 
-	if err := h.app.auth.ValidateAccessToken(req.AccessToken); err != nil {
+	if err := h.app.Auth.ValidateAccessToken(req.AccessToken); err != nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
 			"invalid or expired token",
@@ -148,7 +148,7 @@ func (h *authConnectHandler) ExchangeToken(
 
 	// Like SignIn: a verified TOTP factor must still be challenged, so a reset
 	// can't bypass MFA.
-	factorID, hasMFA := h.app.auth.HasVerifiedTOTP(ctx, req.AccessToken)
+	factorID, hasMFA := h.app.Auth.HasVerifiedTOTP(ctx, req.AccessToken)
 	if hasMFA {
 		resp := &authv1.ExchangeTokenResponse{NeedsMfa: true}
 		h.setMFACookies(info.ResponseHeader(), req.AccessToken, req.RefreshToken, true, "")
@@ -188,10 +188,10 @@ func (h *authConnectHandler) UpdatePassword(
 		)
 	}
 
-	if err = h.app.auth.UpdatePassword(
+	if err = h.app.Auth.UpdatePassword(
 		ctx, accessToken.Value, req.CurrentPassword, req.NewPassword,
 	); err != nil {
-		return nil, connect.NewError(authErrorCode(err), err.Error()).WithCause(err)
+		return nil, connect.NewError(AuthErrorCode(err), err.Error()).WithCause(err)
 	}
 
 	return &authv1.UpdatePasswordResponse{}, nil
@@ -210,7 +210,7 @@ func (h *authConnectHandler) SignOut(
 		)
 	}
 
-	deleteAccess, deleteRefresh, err := h.app.auth.SignOut(
+	deleteAccess, deleteRefresh, err := h.app.Auth.SignOut(
 		ctx, accessToken.Value, h.secure(),
 	)
 	if err != nil {
@@ -232,7 +232,7 @@ func (h *authConnectHandler) GetCurrentUser(
 
 	var user *models.User
 	if cookie, err := h.parseCookie(info.RequestHeader(), "accessToken"); err == nil {
-		user, _ = h.app.auth.GetUser(ctx, cookie.Value)
+		user, _ = h.app.Auth.GetUser(ctx, cookie.Value)
 	}
 
 	if user == nil {
@@ -245,7 +245,7 @@ func (h *authConnectHandler) GetCurrentUser(
 		}
 	}
 
-	enrichedUser, dbErr := h.app.appUsersRepo.GetByID(ctx, user.ID)
+	enrichedUser, dbErr := h.app.AppUsers.GetByID(ctx, user.ID)
 	role := user.Role
 	appAccess := []string{}
 	displayName := ""
@@ -274,7 +274,7 @@ func (h *authConnectHandler) tryRefreshToken(
 		return nil
 	}
 
-	user, accessCookie, refreshTokenCookie, err := h.app.auth.RefreshSession(
+	user, accessCookie, refreshTokenCookie, err := h.app.Auth.RefreshSession(
 		ctx,
 		refreshCookie.Value,
 	)

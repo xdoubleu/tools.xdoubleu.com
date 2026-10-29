@@ -9,8 +9,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"tools.xdoubleu.com/internal/communication/httptools"
-)
+	"tools.xdoubleu.com/internal/communication/httptools")
 
 // grafanaQueryTimeout bounds one Grafana API call. Grafana is reached over the
 // public host via kamal-proxy (Kamal gives no stable network alias), so this
@@ -59,7 +58,7 @@ func registerGrafanaAlertsMCPTool(srv *mcp.Server, deps *Deps) {
 		_ *mcp.CallToolRequest,
 		args grafanaAlertsArgs,
 	) (*mcp.CallToolResult, any, error) {
-		if err := requireObservability(ctx); err != nil {
+		if err := RequireObservability(ctx); err != nil {
 			return nil, nil, err
 		}
 		body, err := GrafanaAlerts(

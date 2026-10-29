@@ -10,8 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
-	"tools.xdoubleu.com/internal/models"
-)
+	"tools.xdoubleu.com/internal/models")
 
 // validTriggerSources/validOutcomes mirror global.automated_actions' CHECK
 // constraints, so bad values return CodeInvalidArgument.
@@ -36,7 +35,7 @@ func (h *obsConnectHandler) OpenAutomatedAction(
 	ctx context.Context,
 	req *observabilityv1.OpenAutomatedActionRequest,
 ) (*observabilityv1.OpenAutomatedActionResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.openAutomatedAction(
@@ -77,7 +76,7 @@ func (h *obsConnectHandler) CloseAutomatedAction(
 	ctx context.Context,
 	req *observabilityv1.CloseAutomatedActionRequest,
 ) (*observabilityv1.CloseAutomatedActionResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.closeAutomatedAction(
@@ -124,7 +123,7 @@ func (h *obsConnectHandler) GetAutomatedActions(
 	ctx context.Context,
 	req *observabilityv1.GetAutomatedActionsRequest,
 ) (*observabilityv1.GetAutomatedActionsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.automatedActions(ctx, req.GetWindowDays())

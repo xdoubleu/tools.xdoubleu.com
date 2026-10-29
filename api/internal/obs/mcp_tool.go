@@ -6,8 +6,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
-	"tools.xdoubleu.com/internal/mcptools"
-)
+	"tools.xdoubleu.com/internal/mcptools")
 
 // addObsTool registers an observability tool: requireObservability, then the
 // proto response marshalled to JSON text.
@@ -42,7 +41,7 @@ func registerObsTool[In any](
 			_ *mcp.CallToolRequest,
 			args In,
 		) (*mcp.CallToolResult, any, error) {
-			if err := requireObservability(ctx); err != nil {
+			if err := RequireObservability(ctx); err != nil {
 				return nil, nil, err
 			}
 			msg, err := produce(ctx, args)

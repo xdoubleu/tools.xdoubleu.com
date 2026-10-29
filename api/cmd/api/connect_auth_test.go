@@ -9,6 +9,7 @@ import (
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
+	account "tools.xdoubleu.com/internal/account"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -142,7 +143,7 @@ func TestIsRelativeURL(t *testing.T) {
 		{"\\/evil.com", false},
 	}
 	for _, tt := range tests {
-		assert.Equal(t, tt.want, isRelativeURL(tt.url), "url=%q", tt.url)
+		assert.Equal(t, tt.want, account.IsRelativeURL(tt.url), "url=%q", tt.url)
 	}
 }
 

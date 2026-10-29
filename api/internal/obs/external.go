@@ -27,7 +27,7 @@ func (h *obsConnectHandler) GetFailingPullRequests(
 	ctx context.Context,
 	_ *observabilityv1.GetFailingPullRequestsRequest,
 ) (*observabilityv1.GetFailingPullRequestsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.failingPullRequests(ctx)
@@ -86,7 +86,7 @@ func (h *obsConnectHandler) GetWorkflowRuns(
 	ctx context.Context,
 	_ *observabilityv1.GetWorkflowRunsRequest,
 ) (*observabilityv1.GetWorkflowRunsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	return h.workflowRuns(ctx), nil
@@ -165,7 +165,7 @@ func (h *obsConnectHandler) GetSecurityAlerts(
 	ctx context.Context,
 	_ *observabilityv1.GetSecurityAlertsRequest,
 ) (*observabilityv1.GetSecurityAlertsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	return h.securityAlerts(ctx), nil
@@ -237,7 +237,7 @@ func (h *obsConnectHandler) DismissSecurityAlert(
 	ctx context.Context,
 	req *observabilityv1.DismissSecurityAlertRequest,
 ) (*observabilityv1.DismissSecurityAlertResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.dismissSecurityAlert(
@@ -297,7 +297,7 @@ func (h *obsConnectHandler) GetSentryIssues(
 	ctx context.Context,
 	_ *observabilityv1.GetSentryIssuesRequest,
 ) (*observabilityv1.GetSentryIssuesResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	return h.sentryIssues(ctx), nil
@@ -345,7 +345,7 @@ func (h *obsConnectHandler) GetSentryIssueEvent(
 	ctx context.Context,
 	req *observabilityv1.GetSentryIssueEventRequest,
 ) (*observabilityv1.GetSentryIssueEventResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	return h.sentryIssueEvent(ctx, req.GetIssueId())
@@ -384,7 +384,7 @@ func (h *obsConnectHandler) ResolveSentryIssue(
 	ctx context.Context,
 	req *observabilityv1.ResolveSentryIssueRequest,
 ) (*observabilityv1.ResolveSentryIssueResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.resolveSentryIssue(ctx, req.GetIssueId())
@@ -420,7 +420,7 @@ func (h *obsConnectHandler) GetSlowTransactions(
 	ctx context.Context,
 	_ *observabilityv1.GetSlowTransactionsRequest,
 ) (*observabilityv1.GetSlowTransactionsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.slowTransactions(ctx)
@@ -503,7 +503,7 @@ func (h *obsConnectHandler) GetLogs(
 	ctx context.Context,
 	req *observabilityv1.GetLogsRequest,
 ) (*observabilityv1.GetLogsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
@@ -574,7 +574,7 @@ func (h *obsConnectHandler) GetHealthOverview(
 	ctx context.Context,
 	_ *observabilityv1.GetHealthOverviewRequest,
 ) (*observabilityv1.GetHealthOverviewResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 

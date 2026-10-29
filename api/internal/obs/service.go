@@ -8,8 +8,7 @@ import (
 	"connectrpc.com/connect/v2"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
-	"tools.xdoubleu.com/internal/models"
-)
+	"tools.xdoubleu.com/internal/models")
 
 const defaultWindowDays = 30
 
@@ -28,7 +27,7 @@ func (h *obsConnectHandler) GetJobStats(
 	ctx context.Context,
 	req *observabilityv1.GetJobStatsRequest,
 ) (*observabilityv1.GetJobStatsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
@@ -89,7 +88,7 @@ func (h *obsConnectHandler) GetUsageStats(
 	ctx context.Context,
 	req *observabilityv1.GetUsageStatsRequest,
 ) (*observabilityv1.GetUsageStatsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
@@ -153,7 +152,7 @@ func (h *obsConnectHandler) GetStorageStats(
 	ctx context.Context,
 	_ *observabilityv1.GetStorageStatsRequest,
 ) (*observabilityv1.GetStorageStatsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
@@ -194,7 +193,7 @@ func (h *obsConnectHandler) TriggerStorageScan(
 	ctx context.Context,
 	_ *observabilityv1.TriggerStorageScanRequest,
 ) (*observabilityv1.TriggerStorageScanResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
@@ -238,7 +237,7 @@ func (h *obsConnectHandler) GetDatabaseStats(
 	ctx context.Context,
 	_ *observabilityv1.GetDatabaseStatsRequest,
 ) (*observabilityv1.GetDatabaseStatsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 

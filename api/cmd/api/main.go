@@ -16,6 +16,7 @@ import (
 	"github.com/pressly/goose/v3"
 
 	"tools.xdoubleu.com/apps/feeds"
+	"tools.xdoubleu.com/internal/account"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/config"
@@ -86,6 +87,18 @@ type Application struct {
 	weeklyDigestJob               *jobs.WeeklyDigestJob
 	logPruneJob                   *jobs.LogPruneJob
 	globalJobQueue                *jobqueue.JobQueue
+}
+
+// accountDeps builds the account module's Deps from the wiring Application
+// already holds.
+func (app *Application) accountDeps() *account.Deps {
+	return &account.Deps{
+		Auth:     app.auth,
+		Config:   app.config,
+		AppUsers: app.appUsersRepo,
+		Family:   app.family,
+		Shares:   app.profileSharesRepo,
+	}
 }
 
 // obsDeps builds the observability module's Deps from the wiring Application

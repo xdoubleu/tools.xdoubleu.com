@@ -9,6 +9,7 @@ import (
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
+	account "tools.xdoubleu.com/internal/account"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -387,7 +388,7 @@ func TestMFAEnroll_PreMFAToken_VerifiedFactor_Unauthenticated(t *testing.T) {
 	_, err := client.MFAEnroll(
 		withCookies(
 			context.Background(),
-			http.Cookie{Name: mfaTokenCookieName, Value: mfaAccessToken.Value},
+			http.Cookie{Name: account.MfaTokenCookieName, Value: mfaAccessToken.Value},
 		),
 		req,
 	)
@@ -401,8 +402,8 @@ func TestMFAEnrollSkip_VerifiedFactor_PermissionDenied(t *testing.T) {
 	_, err := client.MFAEnrollSkip(
 		withCookies(
 			context.Background(),
-			http.Cookie{Name: mfaTokenCookieName, Value: mfaAccessToken.Value},
-			http.Cookie{Name: mfaRefreshTokenCookieName, Value: "unused"},
+			http.Cookie{Name: account.MfaTokenCookieName, Value: mfaAccessToken.Value},
+			http.Cookie{Name: account.MfaRefreshTokenCookieName, Value: "unused"},
 		),
 		req,
 	)
@@ -423,5 +424,5 @@ func TestRegenerateRecoveryCodes_WrongCode_PermissionDenied(t *testing.T) {
 }
 
 func TestAuthErrorCode_UnknownErrorIsInternal(t *testing.T) {
-	assert.Equal(t, connect.CodeInternal, authErrorCode(errors.New("boom")))
+	assert.Equal(t, connect.CodeInternal, account.AuthErrorCode(errors.New("boom")))
 }

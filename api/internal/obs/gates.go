@@ -10,8 +10,8 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// requireAdmin gates admin-only Connect RPCs.
-func requireAdmin(ctx context.Context) error {
+// RequireAdmin gates admin-only Connect RPCs.
+func RequireAdmin(ctx context.Context) error {
 	user := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
 	if user.Role != models.RoleAdmin {
 		return connect.NewError(
@@ -22,9 +22,9 @@ func requireAdmin(ctx context.Context) error {
 	return nil
 }
 
-// requireObservability gates the observability MCP tools: admins and the
+// RequireObservability gates the observability MCP tools: admins and the
 // service role, which has no access to user data.
-func requireObservability(ctx context.Context) error {
+func RequireObservability(ctx context.Context) error {
 	user := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
 	if user.Role != models.RoleAdmin && user.Role != models.RoleService {
 		return connect.NewError(

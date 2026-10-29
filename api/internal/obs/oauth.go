@@ -27,7 +27,7 @@ func (h *obsConnectHandler) ListOAuthConnections(
 	ctx context.Context,
 	_ *observabilityv1.ListOAuthConnectionsRequest,
 ) (*observabilityv1.ListOAuthConnectionsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
@@ -132,7 +132,7 @@ func (h *obsConnectHandler) DisconnectOAuthConnection(
 	ctx context.Context,
 	req *observabilityv1.DisconnectOAuthConnectionRequest,
 ) (*observabilityv1.DisconnectOAuthConnectionResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
@@ -201,7 +201,7 @@ func (h *obsConnectHandler) GetProviderOptions(
 	ctx context.Context,
 	req *observabilityv1.GetProviderOptionsRequest,
 ) (*observabilityv1.GetProviderOptionsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
@@ -289,7 +289,7 @@ func (h *obsConnectHandler) SetProviderConfig(
 	ctx context.Context,
 	req *observabilityv1.SetProviderConfigRequest,
 ) (*observabilityv1.SetProviderConfigResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 

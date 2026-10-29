@@ -21,7 +21,7 @@ func (h *obsConnectHandler) GetNotificationSettings(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	if requireAdmin(ctx) != nil {
+	if RequireAdmin(ctx) != nil {
 		resp.AdminEmail = ""
 	}
 	return resp, nil
@@ -54,7 +54,7 @@ func (h *obsConnectHandler) UpdateNotificationSettings(
 	ctx context.Context,
 	req *observabilityv1.UpdateNotificationSettingsRequest,
 ) (*observabilityv1.UpdateNotificationSettingsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	source := repositories.NotificationSource(req.GetSourceKey())

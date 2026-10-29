@@ -1,4 +1,4 @@
-package main
+package account
 
 import (
 	"context"
@@ -18,7 +18,7 @@ import (
 )
 
 type familyConnectHandler struct {
-	app *Application
+	app *Deps
 }
 
 var _ familyv1connect.FamilyServiceHandler = (*familyConnectHandler)(nil)
@@ -32,7 +32,7 @@ func (h *familyConnectHandler) userID(ctx context.Context) string {
 func (h *familyConnectHandler) emailsByUserID(
 	ctx context.Context,
 ) (map[string]string, error) {
-	users, err := h.app.auth.GetAllUsers(ctx)
+	users, err := h.app.Auth.GetAllUsers(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -50,12 +50,12 @@ func (h *familyConnectHandler) GetFamily(
 ) (*familyv1.GetFamilyResponse, error) {
 	userID := h.userID(ctx)
 
-	membership, err := h.app.family.GetMembership(ctx, userID)
+	membership, err := h.app.Family.GetMembership(ctx, userID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	invite, hasInvite, err := h.app.family.GetIncomingInvite(ctx, userID)
+	invite, hasInvite, err := h.app.Family.GetIncomingInvite(ctx, userID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
@@ -97,7 +97,7 @@ func (h *familyConnectHandler) InviteToFamily(
 ) (*familyv1.InviteToFamilyResponse, error) {
 	userID := h.userID(ctx)
 
-	if err := h.app.family.InviteByEmail(ctx, userID, req.Email); err != nil {
+	if err := h.app.Family.InviteByEmail(ctx, userID, req.Email); err != nil {
 		if family.IsNotFound(err) {
 			return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 		}
@@ -120,7 +120,7 @@ func (h *familyConnectHandler) AcceptFamilyInvite(
 		)
 	}
 
-	if err = h.app.family.Accept(ctx, userID, inviteID); err != nil {
+	if err = h.app.Family.Accept(ctx, userID, inviteID); err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
 			return nil, connect.NewError(
 				connect.CodeNotFound, "invite is no longer pending",
@@ -138,7 +138,7 @@ func (h *familyConnectHandler) DeclineFamilyInvite(
 ) (*familyv1.DeclineFamilyInviteResponse, error) {
 	userID := h.userID(ctx)
 
-	if err := h.app.family.Decline(ctx, userID); err != nil {
+	if err := h.app.Family.Decline(ctx, userID); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
@@ -151,7 +151,7 @@ func (h *familyConnectHandler) SetFamilyDisplayName(
 ) (*familyv1.SetFamilyDisplayNameResponse, error) {
 	userID := h.userID(ctx)
 
-	if err := h.app.family.SetDisplayName(
+	if err := h.app.Family.SetDisplayName(
 		ctx, userID, req.DisplayName,
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
@@ -166,7 +166,7 @@ func (h *familyConnectHandler) LeaveFamily(
 ) (*familyv1.LeaveFamilyResponse, error) {
 	userID := h.userID(ctx)
 
-	if err := h.app.family.Leave(ctx, userID); err != nil {
+	if err := h.app.Family.Leave(ctx, userID); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 

@@ -1,4 +1,4 @@
-package main
+package account
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 const dashboardTokenBytes = 32
 
 type dashboardConnectHandler struct {
-	app *Application
+	app *Deps
 }
 
 var _ dashboardv1connect.DashboardServiceHandler = (*dashboardConnectHandler)(nil)
@@ -51,7 +51,7 @@ func (h *dashboardConnectHandler) GetDashboardShare(
 ) (*dashboardv1.GetDashboardShareResponse, error) {
 	resp := &dashboardv1.GetDashboardShareResponse{}
 
-	share, err := h.app.profileSharesRepo.Get(
+	share, err := h.app.Shares.Get(
 		ctx, h.userID(ctx), dashboardKindFromProto(req.Kind),
 	)
 	if errors.Is(err, database.ErrResourceNotFound) {
@@ -70,7 +70,7 @@ func (h *dashboardConnectHandler) CreateDashboardShare(
 	ctx context.Context,
 	req *dashboardv1.CreateDashboardShareRequest,
 ) (*dashboardv1.CreateDashboardShareResponse, error) {
-	user, err := h.app.appUsersRepo.GetByID(ctx, h.userID(ctx))
+	user, err := h.app.AppUsers.GetByID(ctx, h.userID(ctx))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
@@ -87,7 +87,7 @@ func (h *dashboardConnectHandler) CreateDashboardShare(
 	}
 	token := base64.RawURLEncoding.EncodeToString(raw)
 
-	share, err := h.app.profileSharesRepo.Upsert(
+	share, err := h.app.Shares.Upsert(
 		ctx, h.userID(ctx), dashboardKindFromProto(req.Kind), token,
 	)
 	if err != nil {
@@ -103,7 +103,7 @@ func (h *dashboardConnectHandler) DeleteDashboardShare(
 	ctx context.Context,
 	req *dashboardv1.DeleteDashboardShareRequest,
 ) (*dashboardv1.DeleteDashboardShareResponse, error) {
-	err := h.app.profileSharesRepo.Delete(
+	err := h.app.Shares.Delete(
 		ctx, h.userID(ctx), dashboardKindFromProto(req.Kind),
 	)
 	if err != nil {
@@ -123,7 +123,7 @@ func (h *dashboardConnectHandler) SetDisplayName(
 		)
 	}
 
-	err := h.app.appUsersRepo.SetDisplayName(ctx, h.userID(ctx), req.DisplayName)
+	err := h.app.AppUsers.SetDisplayName(ctx, h.userID(ctx), req.DisplayName)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}

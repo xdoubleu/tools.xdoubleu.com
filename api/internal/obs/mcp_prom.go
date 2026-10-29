@@ -8,8 +8,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"tools.xdoubleu.com/internal/communication/httptools"
-)
+	"tools.xdoubleu.com/internal/communication/httptools")
 
 // promQueryTimeout bounds one instant query so a stuck Prometheus doesn't hang
 // the MCP call.
@@ -35,7 +34,7 @@ func registerPromQueryMCPTool(srv *mcp.Server, deps *Deps) {
 		_ *mcp.CallToolRequest,
 		args promQueryArgs,
 	) (*mcp.CallToolResult, any, error) {
-		if err := requireObservability(ctx); err != nil {
+		if err := RequireObservability(ctx); err != nil {
 			return nil, nil, err
 		}
 		body, err := PromQuery(ctx, deps.Config.PrometheusURL, args.Query)
