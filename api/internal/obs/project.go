@@ -8,7 +8,8 @@ import (
 	"connectrpc.com/connect/v2"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
-	"tools.xdoubleu.com/internal/github")
+	"tools.xdoubleu.com/internal/github"
+)
 
 // GetProjectIssuesByStatus returns GitHub Projects v2 board status; the GitHub
 // MCP server can't resolve custom fields on a user-owned board.

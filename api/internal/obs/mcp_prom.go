@@ -8,7 +8,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"tools.xdoubleu.com/internal/communication/httptools")
+	"tools.xdoubleu.com/internal/communication/httptools"
+)
 
 // promQueryTimeout bounds one instant query so a stuck Prometheus doesn't hang
 // the MCP call.

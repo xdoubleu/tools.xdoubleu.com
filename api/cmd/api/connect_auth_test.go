@@ -9,12 +9,12 @@ import (
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/google/uuid"
-	account "tools.xdoubleu.com/internal/account"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	authv1 "tools.xdoubleu.com/gen/auth/v1"
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
+	account "tools.xdoubleu.com/internal/account"
 )
 
 func authClient(t *testing.T) authv1connect.AuthServiceClient {

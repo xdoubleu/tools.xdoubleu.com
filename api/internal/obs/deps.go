@@ -30,18 +30,18 @@ type StorageScanRunner interface {
 // repositories, clients, logger and config its RPCs, MCP tools and admin OAuth
 // routes need. main builds it from the wiring it already holds.
 type Deps struct {
-	Logger   *slog.Logger
-	Config   config.Config
-	AppUsersRepo *repositories.AppUsersRepository
-	JobRunsRepo  *repositories.JobRunsRepository
-	UsageRepo    *repositories.UsageRepository
-	StorageRepo  *repositories.StorageSnapshotsRepository
-	DBStatsRepo  *repositories.DBStatsRepository
-	AutomatedActionsRepo *repositories.AutomatedActionsRepository
-	LogsRepo             *repositories.LogsRepository
+	Logger                   *slog.Logger
+	Config                   config.Config
+	AppUsersRepo             *repositories.AppUsersRepository
+	JobRunsRepo              *repositories.JobRunsRepository
+	UsageRepo                *repositories.UsageRepository
+	StorageRepo              *repositories.StorageSnapshotsRepository
+	DBStatsRepo              *repositories.DBStatsRepository
+	AutomatedActionsRepo     *repositories.AutomatedActionsRepository
+	LogsRepo                 *repositories.LogsRepository
 	NotificationSettingsRepo *repositories.NotificationSettingsRepository
-	OAuthConnRepo    *repositories.OAuthConnectionsRepository
-	TransactionLatencyRepo *repositories.TransactionLatencyRepository
+	OAuthConnRepo            *repositories.OAuthConnectionsRepository
+	TransactionLatencyRepo   *repositories.TransactionLatencyRepository
 
 	OAuthState   *oauthconn.StateStore
 	GithubClient github.Client

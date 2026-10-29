@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	obs "tools.xdoubleu.com/internal/obs"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/logging"
+	obs "tools.xdoubleu.com/internal/obs"
 )
 
 // requestCountsByStatus totals http_request_duration_seconds_count for a

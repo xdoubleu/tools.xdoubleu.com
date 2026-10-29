@@ -10,7 +10,8 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
-	"tools.xdoubleu.com/internal/models")
+	"tools.xdoubleu.com/internal/models"
+)
 
 // validTriggerSources/validOutcomes mirror global.automated_actions' CHECK
 // constraints, so bad values return CodeInvalidArgument.

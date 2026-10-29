@@ -6,7 +6,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
-	"tools.xdoubleu.com/internal/mcptools")
+	"tools.xdoubleu.com/internal/mcptools"
+)
 
 // addObsTool registers an observability tool: requireObservability, then the
 // proto response marshalled to JSON text.

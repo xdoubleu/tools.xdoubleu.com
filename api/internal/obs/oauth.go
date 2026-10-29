@@ -102,7 +102,7 @@ func (h *obsConnectHandler) scopeIsStale(conn *models.OAuthConnection) bool {
 func (h *obsConnectHandler) requiredScopes(
 	provider models.OAuthProvider,
 ) []string {
-	def, ok := oauthProviderConfig(string(provider), h.deps.Config)
+	def, ok := oauthProviderConfig(string(provider))
 	if !ok {
 		return nil
 	}

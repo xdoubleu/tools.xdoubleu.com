@@ -7,7 +7,6 @@ import (
 
 	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
-	obs "tools.xdoubleu.com/internal/obs"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 
@@ -15,6 +14,7 @@ import (
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
+	obs "tools.xdoubleu.com/internal/obs"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 

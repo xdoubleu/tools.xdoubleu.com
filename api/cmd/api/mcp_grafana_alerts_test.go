@@ -9,9 +9,10 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	obs "tools.xdoubleu.com/internal/obs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	obs "tools.xdoubleu.com/internal/obs"
 )
 
 const grafanaRulesJSON = `{"status":"success","data":{"groups":[` +

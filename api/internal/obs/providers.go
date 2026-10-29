@@ -43,20 +43,13 @@ func oauthConfigForSentry(cfg config.Config) *oauth2.Config {
 	)
 }
 
-// oauthProviderConfig resolves name to its provider and a config built from
-// cfg. ok is false for an unknown provider.
-func oauthProviderConfig(
-	name string, cfg config.Config,
-) (oauthProviderDef, bool) {
+// oauthProviderConfig resolves name to its provider and config-builder. ok is
+// false for an unknown provider.
+func oauthProviderConfig(name string) (oauthProviderDef, bool) {
 	def, ok := oauthProviders[name]
 	if ok {
 		return oauthProviderDef{provider: def.provider, conf: def.conf}, true
 	}
+	//nolint:exhaustruct // unknown provider carries no config
 	return oauthProviderDef{}, false
-}
-
-// oauthProviderFor resolves name to the provider enum, or nil.
-func oauthProviderFor(name string) (models.OAuthProvider, bool) {
-	def, ok := oauthProviders[name]
-	return def.provider, ok
 }

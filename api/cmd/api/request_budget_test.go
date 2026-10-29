@@ -13,13 +13,13 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	obs "tools.xdoubleu.com/internal/obs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/logging"
+	obs "tools.xdoubleu.com/internal/obs"
 )
 
 // kamalDefaultResponseTimeout is Kamal's proxy.response_timeout when unset.

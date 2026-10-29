@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	obs "tools.xdoubleu.com/internal/obs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/logging"
+	obs "tools.xdoubleu.com/internal/obs"
 )
 
 // answerWithin is far below the 25s budget a held /apps/mcp POST runs into.

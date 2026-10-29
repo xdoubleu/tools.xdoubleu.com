@@ -8,7 +8,8 @@ import (
 	"connectrpc.com/connect/v2"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
-	"tools.xdoubleu.com/internal/models")
+	"tools.xdoubleu.com/internal/models"
+)
 
 const defaultWindowDays = 30
 
