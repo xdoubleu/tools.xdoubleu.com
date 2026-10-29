@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	obs "tools.xdoubleu.com/internal/obs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,18 +34,18 @@ func TestGrafanaAlerts_ReturnsRawResponseBodyWithBasicAuth(t *testing.T) {
 	))
 	t.Cleanup(srv.Close)
 
-	body, err := grafanaAlerts(context.Background(), srv.URL, "s3cret")
+	body, err := obs.GrafanaAlerts(context.Background(), srv.URL, "s3cret")
 	require.NoError(t, err)
 	assert.JSONEq(t, grafanaRulesJSON, string(body))
 }
 
 func TestGrafanaAlerts_NotConfigured(t *testing.T) {
-	_, err := grafanaAlerts(context.Background(), "http://grafana", "")
-	require.ErrorIs(t, err, errGrafanaNotConfigured)
+	_, err := obs.GrafanaAlerts(context.Background(), "http://grafana", "")
+	require.ErrorIs(t, err, obs.ErrGrafanaNotConfigured)
 }
 
 func TestGrafanaAlerts_RequestErrorPropagates(t *testing.T) {
-	_, err := grafanaAlerts(
+	_, err := obs.GrafanaAlerts(
 		context.Background(), "http://[::1]:namedport", "s3cret",
 	)
 	require.Error(t, err)
@@ -127,7 +128,7 @@ func TestFilterGrafanaRules_MatchingRuleKeepsWholeGroup(t *testing.T) {
 		`"state":"firing","alerts":[]}]}` +
 		`]}}`
 
-	filtered, err := filterGrafanaRules([]byte(body), "IssueSentryUnresolved")
+	filtered, err := obs.FilterGrafanaRules([]byte(body), "IssueSentryUnresolved")
 	require.NoError(t, err)
 
 	var got map[string]any
@@ -145,7 +146,7 @@ func TestFilterGrafanaRules_MatchingRuleKeepsWholeGroup(t *testing.T) {
 }
 
 func TestFilterGrafanaRules_NoMatchYieldsEmptyGroups(t *testing.T) {
-	filtered, err := filterGrafanaRules([]byte(grafanaRulesJSON), "Nope")
+	filtered, err := obs.FilterGrafanaRules([]byte(grafanaRulesJSON), "Nope")
 	require.NoError(t, err)
 
 	var got map[string]any
@@ -158,13 +159,13 @@ func TestFilterGrafanaRules_NoMatchYieldsEmptyGroups(t *testing.T) {
 }
 
 func TestFilterGrafanaRules_InvalidJSON(t *testing.T) {
-	_, err := filterGrafanaRules([]byte("not json"), "Nope")
+	_, err := obs.FilterGrafanaRules([]byte("not json"), "Nope")
 	require.Error(t, err)
 }
 
 func TestFilterGrafanaRules_MalformedGroup(t *testing.T) {
 	// An invalid group is an error, not an empty match.
-	_, err := filterGrafanaRules(
+	_, err := obs.FilterGrafanaRules(
 		[]byte(`{"data":{"groups":["{oops"]}}`), "Nope",
 	)
 	require.Error(t, err)
@@ -172,7 +173,7 @@ func TestFilterGrafanaRules_MalformedGroup(t *testing.T) {
 
 func TestFilterGrafanaRules_MissingDataEnvelope(t *testing.T) {
 	// No data object still yields an empty data.groups.
-	filtered, err := filterGrafanaRules([]byte(`{"status":"success"}`), "Nope")
+	filtered, err := obs.FilterGrafanaRules([]byte(`{"status":"success"}`), "Nope")
 	require.NoError(t, err)
 
 	var got map[string]any

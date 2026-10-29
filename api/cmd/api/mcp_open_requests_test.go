@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	obs "tools.xdoubleu.com/internal/obs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -68,7 +69,7 @@ func TestMCPPostsEndPromptly(t *testing.T) {
 	srv := newMCPServer(logging.NewNopLogger())
 	//nolint:exhaustruct // the name is all the tool needs
 	mcp.AddTool(srv, &mcp.Tool{Name: "echo"}, func(
-		_ context.Context, _ *mcp.CallToolRequest, _ noArgs,
+		_ context.Context, _ *mcp.CallToolRequest, _ obs.NoArgs,
 	) (*mcp.CallToolResult, any, error) {
 		//nolint:exhaustruct // an empty result
 		return &mcp.CallToolResult{}, nil, nil

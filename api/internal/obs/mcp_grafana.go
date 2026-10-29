@@ -1,4 +1,4 @@
-package main
+package obs
 
 import (
 	"context"
@@ -25,8 +25,8 @@ const grafanaAdminUser = "admin"
 // each rule's current state and active alerts.
 const grafanaRulesPath = "/api/prometheus/grafana/api/v1/rules"
 
-// errGrafanaNotConfigured is returned when GRAFANA_ADMIN_PASSWORD is unset.
-var errGrafanaNotConfigured = errors.New(
+// ErrGrafanaNotConfigured is returned when GRAFANA_ADMIN_PASSWORD is unset.
+var ErrGrafanaNotConfigured = errors.New(
 	"GRAFANA_ADMIN_PASSWORD not configured",
 )
 
@@ -39,7 +39,7 @@ type grafanaAlertsArgs struct {
 // registerGrafanaAlertsMCPTool registers get_grafana_alerts. Grafana-managed
 // alerts never appear in Prometheus ALERTS{}, so prom_query can't answer
 // "is X firing?". Proxies Grafana's JSON unchanged.
-func registerGrafanaAlertsMCPTool(srv *mcp.Server, app *Application) {
+func registerGrafanaAlertsMCPTool(srv *mcp.Server, deps *Deps) {
 	//nolint:exhaustruct // name/description are the only fields tools need
 	mcp.AddTool(srv, &mcp.Tool{
 		Name: "get_grafana_alerts",
@@ -62,11 +62,11 @@ func registerGrafanaAlertsMCPTool(srv *mcp.Server, app *Application) {
 		if err := requireObservability(ctx); err != nil {
 			return nil, nil, err
 		}
-		body, err := grafanaAlerts(
-			ctx, app.config.GrafanaURL, app.config.GrafanaAdminPassword,
+		body, err := GrafanaAlerts(
+			ctx, deps.Config.GrafanaURL, deps.Config.GrafanaAdminPassword,
 		)
 		if err == nil && args.RuleName != "" {
-			body, err = filterGrafanaRules(body, args.RuleName)
+			body, err = FilterGrafanaRules(body, args.RuleName)
 		}
 		if err != nil {
 			return nil, nil, err
@@ -79,13 +79,13 @@ func registerGrafanaAlertsMCPTool(srv *mcp.Server, app *Application) {
 	})
 }
 
-// grafanaAlerts returns the rules endpoint's raw body.
-func grafanaAlerts(
+// GrafanaAlerts returns the rules endpoint's raw body.
+func GrafanaAlerts(
 	ctx context.Context,
 	grafanaURL, adminPassword string,
 ) ([]byte, error) {
 	if adminPassword == "" {
-		return nil, errGrafanaNotConfigured
+		return nil, ErrGrafanaNotConfigured
 	}
 
 	reqCtx, cancel := context.WithTimeout(ctx, grafanaQueryTimeout)
@@ -108,10 +108,10 @@ func grafanaAlerts(
 	return io.ReadAll(resp.Body)
 }
 
-// filterGrafanaRules keeps only groups containing ruleName, preserving the
+// FilterGrafanaRules keeps only groups containing ruleName, preserving the
 // envelope. No match yields empty groups, not an error. Filtering is
 // client-side; the endpoint has no rule filter.
-func filterGrafanaRules(body []byte, ruleName string) ([]byte, error) {
+func FilterGrafanaRules(body []byte, ruleName string) ([]byte, error) {
 	// Groups stay raw JSON and are re-emitted untouched.
 	var payload struct {
 		Data struct {

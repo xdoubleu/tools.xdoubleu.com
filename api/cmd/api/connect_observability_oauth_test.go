@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect/v2"
 	"github.com/stretchr/testify/assert"
+	obs "tools.xdoubleu.com/internal/obs"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 
@@ -23,7 +24,7 @@ import (
 var githubScopes = github.OAuthConfig("", "", "").Scopes
 
 func TestProviderOptionsError_DecryptFailed(t *testing.T) {
-	err := providerOptionsError(models.ErrDecryptFailed)
+	err := obs.ProviderOptionsError(models.ErrDecryptFailed)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.NotErrorIs(
 		t, err, models.ErrDecryptFailed,
@@ -32,12 +33,12 @@ func TestProviderOptionsError_DecryptFailed(t *testing.T) {
 }
 
 func TestProviderOptionsError_NotConnected(t *testing.T) {
-	err := providerOptionsError(oauthconn.ErrNotConnected)
+	err := obs.ProviderOptionsError(oauthconn.ErrNotConnected)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
 
 func TestProviderOptionsError_OtherError(t *testing.T) {
-	err := providerOptionsError(errors.New("boom"))
+	err := obs.ProviderOptionsError(errors.New("boom"))
 	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 }
 
@@ -244,7 +245,7 @@ func TestDisconnectOAuthConnection_NonAdmin(t *testing.T) {
 
 // TestProtoProviderConfig_TodoistReturnsNil hits a case unreachable via RPC.
 func TestProtoProviderConfig_TodoistReturnsNil(t *testing.T) {
-	got := protoProviderConfig(models.OAuthProviderTodoist, []byte(`{"x":1}`))
+	got := obs.ProtoProviderConfig(models.OAuthProviderTodoist, []byte(`{"x":1}`))
 	assert.Nil(t, got)
 }
 

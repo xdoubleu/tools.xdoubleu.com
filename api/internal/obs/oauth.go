@@ -1,4 +1,4 @@
-package main
+package obs
 
 import (
 	"context"
@@ -42,7 +42,7 @@ func (h *obsConnectHandler) ListOAuthConnections(
 func (h *obsConnectHandler) oauthConnections(
 	ctx context.Context,
 ) (*observabilityv1.ListOAuthConnectionsResponse, error) {
-	connections, err := h.app.oauthConnRepo.List(ctx)
+	connections, err := h.deps.OAuthConnRepo.List(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (h *obsConnectHandler) oauthConnections(
 			ConnectedBy:    h.resolveConnectedBy(ctx, conn.ConnectedBy),
 			ConnectedAt:    conn.ConnectedAt.Format(time.RFC3339),
 			ExpiresAt:      formatExpiresAt(conn.ExpiresAt),
-			Config:         protoProviderConfig(provider, conn.Config),
+			Config:         ProtoProviderConfig(provider, conn.Config),
 			RequestedScope: conn.RequestedScope,
 			GrantedScope:   conn.GrantedScope,
 			RequiredScope:  required,
@@ -102,11 +102,11 @@ func (h *obsConnectHandler) scopeIsStale(conn *models.OAuthConnection) bool {
 func (h *obsConnectHandler) requiredScopes(
 	provider models.OAuthProvider,
 ) []string {
-	def, ok := oauthProviders[string(provider)]
+	def, ok := oauthProviderConfig(string(provider), h.deps.Config)
 	if !ok {
 		return nil
 	}
-	return def.conf(h.app).Scopes
+	return def.conf(h.deps.Config).Scopes
 }
 
 // resolveConnectedBy maps a user ID to email, falling back to the ID.
@@ -114,7 +114,7 @@ func (h *obsConnectHandler) resolveConnectedBy(
 	ctx context.Context,
 	userID string,
 ) string {
-	user, err := h.app.appUsersRepo.GetByID(ctx, userID)
+	user, err := h.deps.AppUsersRepo.GetByID(ctx, userID)
 	if err != nil || user == nil {
 		return userID
 	}
@@ -137,8 +137,8 @@ func (h *obsConnectHandler) DisconnectOAuthConnection(
 	}
 
 	provider := models.OAuthProvider(req.GetProvider())
-	if err := h.app.oauthConnRepo.Delete(ctx, provider); err != nil {
-		h.app.logger.WarnContext(ctx, "failed to delete oauth connection",
+	if err := h.deps.OAuthConnRepo.Delete(ctx, provider); err != nil {
+		h.deps.Logger.WarnContext(ctx, "failed to delete oauth connection",
 			slog.String("provider", string(provider)), slog.Any("error", err))
 		return nil, err
 	}
@@ -157,8 +157,8 @@ type sentryConfigJSON struct {
 	Projects []string `json:"projects"`
 }
 
-// protoProviderConfig decodes stored config into the proto oneof, or nil.
-func protoProviderConfig(
+// ProtoProviderConfig decodes stored config into the proto oneof, or nil.
+func ProtoProviderConfig(
 	provider models.OAuthProvider, raw json.RawMessage,
 ) *observabilityv1.ProviderConfig {
 	if len(raw) == 0 {
@@ -233,9 +233,9 @@ func (h *obsConnectHandler) GetProviderOptions(
 func (h *obsConnectHandler) githubOptions(
 	ctx context.Context,
 ) (*observabilityv1.GetProviderOptionsResponse, error) {
-	repos, err := h.app.githubClient.ListRepos(ctx)
+	repos, err := h.deps.GithubClient.ListRepos(ctx)
 	if err != nil {
-		return nil, providerOptionsError(err)
+		return nil, ProviderOptionsError(err)
 	}
 
 	resp := &observabilityv1.GetProviderOptionsResponse{}
@@ -251,9 +251,9 @@ func (h *obsConnectHandler) sentryOptions(
 	resp := &observabilityv1.GetProviderOptionsResponse{}
 
 	if org == "" {
-		orgs, err := h.app.sentryClient.ListOrgs(ctx)
+		orgs, err := h.deps.SentryClient.ListOrgs(ctx)
 		if err != nil {
-			return nil, providerOptionsError(err)
+			return nil, ProviderOptionsError(err)
 		}
 		for _, o := range orgs {
 			resp.SentryOrgs = append(resp.SentryOrgs, o.Slug)
@@ -261,9 +261,9 @@ func (h *obsConnectHandler) sentryOptions(
 		return resp, nil
 	}
 
-	projects, err := h.app.sentryClient.ListProjects(ctx, org)
+	projects, err := h.deps.SentryClient.ListProjects(ctx, org)
 	if err != nil {
-		return nil, providerOptionsError(err)
+		return nil, ProviderOptionsError(err)
 	}
 	for _, p := range projects {
 		resp.SentryProjects = append(resp.SentryProjects, p.Slug)
@@ -271,8 +271,8 @@ func (h *obsConnectHandler) sentryOptions(
 	return resp, nil
 }
 
-// providerOptionsError maps "not connected" to a client error, not a 500.
-func providerOptionsError(err error) error {
+// ProviderOptionsError maps "not connected" to a client error, not a 500.
+func ProviderOptionsError(err error) error {
 	if errors.Is(err, oauthconn.ErrNotConnected) {
 		return connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 	}
@@ -300,8 +300,8 @@ func (h *obsConnectHandler) SetProviderConfig(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	if setErr := h.app.oauthConnRepo.SetConfig(ctx, provider, raw); setErr != nil {
-		h.app.logger.WarnContext(ctx, "failed to set oauth connection config",
+	if setErr := h.deps.OAuthConnRepo.SetConfig(ctx, provider, raw); setErr != nil {
+		h.deps.Logger.WarnContext(ctx, "failed to set oauth connection config",
 			slog.String("provider", string(provider)), slog.Any("error", setErr))
 		return nil, connect.NewError(connect.CodeInternal, setErr.Error()).WithCause(setErr)
 	}

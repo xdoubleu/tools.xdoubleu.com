@@ -1,4 +1,4 @@
-package main
+package obs
 
 import (
 	"context"
@@ -44,7 +44,7 @@ func (h *obsConnectHandler) projectIssuesByStatus(
 		Configured: true,
 	}
 
-	issues, err := h.app.githubClient.ListProjectIssuesByStatus(
+	issues, err := h.deps.GithubClient.ListProjectIssuesByStatus(
 		ctx, int64(projectNumber), status,
 	)
 	if errors.Is(err, github.ErrNotConfigured) {

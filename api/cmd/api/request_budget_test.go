@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	obs "tools.xdoubleu.com/internal/obs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -95,7 +96,7 @@ func TestMCPToolCallGetsLongBudget(t *testing.T) {
 	srv := newMCPServer(logging.NewNopLogger())
 	//nolint:exhaustruct // the name is all the tool needs
 	mcp.AddTool(srv, &mcp.Tool{Name: "slow"}, func(
-		ctx context.Context, _ *mcp.CallToolRequest, _ noArgs,
+		ctx context.Context, _ *mcp.CallToolRequest, _ obs.NoArgs,
 	) (*mcp.CallToolResult, any, error) {
 		deadline, _ := ctx.Deadline()
 		budgets <- time.Until(deadline)

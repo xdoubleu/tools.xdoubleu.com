@@ -1,4 +1,4 @@
-package main
+package obs
 
 import (
 	"context"
@@ -31,7 +31,7 @@ func (h *obsConnectHandler) GetNotificationSettings(
 func (h *obsConnectHandler) notificationSettings(
 	ctx context.Context,
 ) (*observabilityv1.GetNotificationSettingsResponse, error) {
-	settings, err := h.app.notificationSettingsRepo.List(ctx)
+	settings, err := h.deps.NotificationSettingsRepo.List(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (h *obsConnectHandler) notificationSettings(
 
 	return &observabilityv1.GetNotificationSettingsResponse{
 		Settings:   protoSettings,
-		AdminEmail: h.app.config.NotifyEmailTo,
+		AdminEmail: h.deps.Config.NotifyEmailTo,
 	}, nil
 }
 
@@ -58,7 +58,7 @@ func (h *obsConnectHandler) UpdateNotificationSettings(
 		return nil, err
 	}
 	source := repositories.NotificationSource(req.GetSourceKey())
-	if err := h.app.notificationSettingsRepo.SetEnabled(
+	if err := h.deps.NotificationSettingsRepo.SetEnabled(
 		ctx, source, req.GetEnabled(),
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)

@@ -14,12 +14,12 @@ import (
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	dashboardv1connect "tools.xdoubleu.com/gen/dashboard/v1/dashboardv1connect"
 	"tools.xdoubleu.com/gen/family/v1/familyv1connect"
-	"tools.xdoubleu.com/gen/observability/v1/observabilityv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/middleware"
 	"tools.xdoubleu.com/internal/oauth2as"
+	"tools.xdoubleu.com/internal/obs"
 )
 
 // maxRequestBodyBytes bounds every request body, e.g. inbound newsletter
@@ -42,10 +42,6 @@ func (app *Application) mux() *http.ServeMux {
 	})
 	mountConnect(app.auth.Access, func(s *connect.Server) {
 		accessv1connect.RegisterAccessServiceHandler(s, &accessConnectHandler{app: app})
-		observabilityv1connect.RegisterObservabilityServiceHandler(
-			s,
-			&obsConnectHandler{app: app},
-		)
 		familyv1connect.RegisterFamilyServiceHandler(
 			s,
 			&familyConnectHandler{app: app},
@@ -55,6 +51,7 @@ func (app *Application) mux() *http.ServeMux {
 			&dashboardConnectHandler{app: app},
 		)
 	})
+	obs.Register(mux, app.logger, app.auth.Access, app.obsDeps())
 
 	// MCP behind OAuth 2.1 Bearer auth. The protected-resource metadata is public
 	// for discovery.

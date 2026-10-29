@@ -1,4 +1,4 @@
-package main
+package obs
 
 import (
 	"context"
@@ -7,28 +7,9 @@ import (
 
 	"connectrpc.com/connect/v2"
 
-	"tools.xdoubleu.com/apps/feeds"
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
-	"tools.xdoubleu.com/gen/observability/v1/observabilityv1connect"
 	"tools.xdoubleu.com/internal/models"
 )
-
-type obsConnectHandler struct {
-	app *Application
-}
-
-// storageScanRunner is the slice of *books.Books TriggerStorageScan needs.
-type storageScanRunner interface {
-	StartStorageScan()
-}
-
-// unhealthyFeedLister is the slice of *feeds.Feeds GetUnhealthyFeeds needs.
-// Unlike jobs.unhealthyFeedLister, it returns feeds.UnhealthyFeed directly.
-type unhealthyFeedLister interface {
-	ListUnhealthy(ctx context.Context) ([]feeds.UnhealthyFeed, error)
-}
-
-var _ observabilityv1connect.ObservabilityServiceHandler = (*obsConnectHandler)(nil)
 
 const defaultWindowDays = 30
 
@@ -67,11 +48,11 @@ func (h *obsConnectHandler) jobStats(
 ) (*observabilityv1.GetJobStatsResponse, error) {
 	since := windowSince(windowDays)
 
-	stats, err := h.app.jobRunsRepo.Stats(ctx, since)
+	stats, err := h.deps.JobRunsRepo.Stats(ctx, since)
 	if err != nil {
 		return nil, err
 	}
-	runs, err := h.app.jobRunsRepo.ListRecent(ctx, since, recentRunsLimit)
+	runs, err := h.deps.JobRunsRepo.ListRecent(ctx, since, recentRunsLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +105,7 @@ func (h *obsConnectHandler) usageStats(
 	ctx context.Context,
 	windowDays int32,
 ) (*observabilityv1.GetUsageStatsResponse, error) {
-	entries, err := h.app.usageRepo.GetDaily(ctx, windowSince(windowDays))
+	entries, err := h.deps.UsageRepo.GetDaily(ctx, windowSince(windowDays))
 	if err != nil {
 		return nil, err
 	}
@@ -153,14 +134,14 @@ func (h *obsConnectHandler) unusedApps(entries []models.UsageEntry) []string {
 		used[e.App] = true
 	}
 
-	unused := make([]string, 0, len(*h.app.apps))
-	for _, a := range *h.app.apps {
+	unused := make([]string, 0, len(h.deps.AppNames))
+	for _, name := range h.deps.AppNames {
 		// dashboard never logs usage under its own name.
-		if a.GetName() == "dashboard" {
+		if name == "dashboard" {
 			continue
 		}
-		if !used[a.GetName()] {
-			unused = append(unused, a.GetName())
+		if !used[name] {
+			unused = append(unused, name)
 		}
 	}
 	sort.Strings(unused)
@@ -187,12 +168,12 @@ func (h *obsConnectHandler) GetStorageStats(
 func (h *obsConnectHandler) storageStats(
 	ctx context.Context,
 ) (*observabilityv1.GetStorageStatsResponse, error) {
-	latest, err := h.app.storageRepo.Latest(ctx)
+	latest, err := h.deps.StorageRepo.Latest(ctx)
 	if err != nil {
 		latest = nil
 	}
 
-	history, err := h.app.storageRepo.History(ctx, windowSince(defaultWindowDays))
+	history, err := h.deps.StorageRepo.History(ctx, windowSince(defaultWindowDays))
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +200,7 @@ func (h *obsConnectHandler) TriggerStorageScan(
 
 	// The bucket walk outlasts any request budget; GetStorageStats shows the
 	// snapshot once it lands.
-	h.app.booksApp.StartStorageScan()
+	h.deps.StorageScan.StartStorageScan()
 
 	return &observabilityv1.TriggerStorageScanResponse{}, nil
 }
@@ -273,11 +254,11 @@ func (h *obsConnectHandler) GetDatabaseStats(
 func (h *obsConnectHandler) databaseStats(
 	ctx context.Context,
 ) (*observabilityv1.GetDatabaseStatsResponse, error) {
-	total, err := h.app.dbStatsRepo.TotalSize(ctx)
+	total, err := h.deps.DBStatsRepo.TotalSize(ctx)
 	if err != nil {
 		return nil, err
 	}
-	schemas, err := h.app.dbStatsRepo.SchemaSizes(ctx)
+	schemas, err := h.deps.DBStatsRepo.SchemaSizes(ctx)
 	if err != nil {
 		return nil, err
 	}

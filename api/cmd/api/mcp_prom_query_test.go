@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	obs "tools.xdoubleu.com/internal/obs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +25,7 @@ func TestPromQuery_ReturnsRawResponseBody(t *testing.T) {
 	))
 	t.Cleanup(srv.Close)
 
-	body, err := promQuery(context.Background(), srv.URL, `up{job="api"}`)
+	body, err := obs.PromQuery(context.Background(), srv.URL, `up{job="api"}`)
 	require.NoError(t, err)
 	assert.JSONEq(
 		t,
@@ -34,7 +35,7 @@ func TestPromQuery_ReturnsRawResponseBody(t *testing.T) {
 }
 
 func TestPromQuery_RequestErrorPropagates(t *testing.T) {
-	_, err := promQuery(context.Background(), "http://[::1]:namedport", "up")
+	_, err := obs.PromQuery(context.Background(), "http://[::1]:namedport", "up")
 	require.Error(t, err)
 }
 

@@ -1,4 +1,4 @@
-package main
+package obs
 
 import (
 	"context"
@@ -32,7 +32,7 @@ func (h *obsConnectHandler) GetFailingPullRequests(
 	}
 	resp, err := h.failingPullRequests(ctx)
 	if err != nil {
-		h.app.logger.WarnContext(ctx, "failing pull requests unavailable",
+		h.deps.Logger.WarnContext(ctx, "failing pull requests unavailable",
 			slog.Any("error", err))
 	}
 	return resp, nil
@@ -49,7 +49,7 @@ func (h *obsConnectHandler) failingPullRequests(
 		FailingCount: 0,
 	}
 
-	prs, err := h.app.githubClient.ListFailingPullRequests(ctx)
+	prs, err := h.deps.GithubClient.ListFailingPullRequests(ctx)
 	if errors.Is(err, github.ErrNotConfigured) {
 		resp.Configured = false
 		return resp, nil
@@ -100,12 +100,12 @@ func (h *obsConnectHandler) workflowRuns(
 		Configured: true,
 	}
 
-	runs, err := h.app.githubClient.ListWorkflowRuns(ctx)
+	runs, err := h.deps.GithubClient.ListWorkflowRuns(ctx)
 	if err != nil {
 		if errors.Is(err, github.ErrNotConfigured) {
 			resp.Configured = false
 		} else {
-			h.app.logger.WarnContext(ctx, "workflow runs unavailable",
+			h.deps.Logger.WarnContext(ctx, "workflow runs unavailable",
 				slog.Any("error", err))
 		}
 		return resp
@@ -145,9 +145,9 @@ func (h *obsConnectHandler) failedJobNames(
 		return nil
 	}
 
-	jobs, err := h.app.githubClient.ListWorkflowRunJobs(ctx, run.ID)
+	jobs, err := h.deps.GithubClient.ListWorkflowRunJobs(ctx, run.ID)
 	if err != nil {
-		h.app.logger.WarnContext(ctx, "workflow run jobs unavailable",
+		h.deps.Logger.WarnContext(ctx, "workflow run jobs unavailable",
 			slog.Any("error", err), slog.Int64("run_id", run.ID))
 		return nil
 	}
@@ -180,12 +180,12 @@ func (h *obsConnectHandler) securityAlerts(
 		AlertCount: 0,
 	}
 
-	alerts, err := h.app.githubClient.ListSecurityAlerts(ctx)
+	alerts, err := h.deps.GithubClient.ListSecurityAlerts(ctx)
 	if err != nil {
 		if errors.Is(err, github.ErrNotConfigured) {
 			resp.Configured = false
 		} else {
-			h.app.logger.WarnContext(ctx, "security alerts unavailable",
+			h.deps.Logger.WarnContext(ctx, "security alerts unavailable",
 				slog.Any("error", err))
 			resp.Error = h.securityAlertsError(ctx, err)
 		}
@@ -261,7 +261,7 @@ func (h *obsConnectHandler) dismissSecurityAlert(
 	alertNumber int64,
 	reason string,
 ) (*observabilityv1.DismissSecurityAlertResponse, error) {
-	err := h.app.githubClient.DismissSecurityAlert(ctx, alertType, alertNumber, reason)
+	err := h.deps.GithubClient.DismissSecurityAlert(ctx, alertType, alertNumber, reason)
 	if err != nil {
 		if errors.Is(err, github.ErrInvalidDismissReason) {
 			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
@@ -312,12 +312,12 @@ func (h *obsConnectHandler) sentryIssues(
 		UnresolvedCount: 0,
 	}
 
-	issues, err := h.app.sentryClient.ListUnresolvedIssues(ctx)
+	issues, err := h.deps.SentryClient.ListUnresolvedIssues(ctx)
 	if err != nil {
 		if errors.Is(err, sentryapi.ErrNotConfigured) {
 			resp.Configured = false
 		} else {
-			h.app.logger.WarnContext(ctx, "sentry issues unavailable",
+			h.deps.Logger.WarnContext(ctx, "sentry issues unavailable",
 				slog.Any("error", err))
 		}
 		return resp
@@ -354,7 +354,7 @@ func (h *obsConnectHandler) GetSentryIssueEvent(
 func (h *obsConnectHandler) sentryIssueEvent(
 	ctx context.Context, issueID string,
 ) (*observabilityv1.GetSentryIssueEventResponse, error) {
-	ev, err := h.app.sentryClient.GetLatestEvent(ctx, issueID)
+	ev, err := h.deps.SentryClient.GetLatestEvent(ctx, issueID)
 	if err != nil {
 		if errors.Is(err, sentryapi.ErrNotConfigured) {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).
@@ -397,7 +397,7 @@ func (h *obsConnectHandler) ResolveSentryIssue(
 func (h *obsConnectHandler) resolveSentryIssue(
 	ctx context.Context, issueID string,
 ) (*observabilityv1.ResolveSentryIssueResponse, error) {
-	status, err := h.app.sentryClient.ResolveIssue(ctx, issueID)
+	status, err := h.deps.SentryClient.ResolveIssue(ctx, issueID)
 	if err != nil {
 		if errors.Is(err, sentryapi.ErrReauthRequired) {
 			// CodeUnauthenticated (not FailedPrecondition) makes the UI prompt a
@@ -442,7 +442,7 @@ func (h *obsConnectHandler) slowTransactions(
 		Trending:   []*observabilityv1.TransactionTrend{},
 	}
 
-	stats, err := h.app.sentryClient.ListTransactionStats(ctx)
+	stats, err := h.deps.SentryClient.ListTransactionStats(ctx)
 	if err != nil {
 		if errors.Is(err, sentryapi.ErrNotConfigured) {
 			resp.Configured = false
@@ -453,7 +453,7 @@ func (h *obsConnectHandler) slowTransactions(
 		resp.Current = protoSlowTransactions(stats)
 	}
 
-	trends, err := h.app.transactionLatencyRepo.Trends(ctx)
+	trends, err := h.deps.TransactionLatencyRepo.Trends(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -549,7 +549,7 @@ func (h *obsConnectHandler) logs(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	entries, err := h.app.logsRepo.Query(ctx, filter)
+	entries, err := h.deps.LogsRepo.Query(ctx, filter)
 	if errors.Is(err, repositories.ErrUnknownLogLevel) {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
