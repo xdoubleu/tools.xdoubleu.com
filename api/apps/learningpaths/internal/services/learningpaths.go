@@ -48,8 +48,8 @@ type learningPathsStore interface {
 	SetPaused(ctx context.Context, id uuid.UUID, userID string, paused bool) error
 }
 
-// bookLookup is the books surface (*books.Books) for linked resources.
-type bookLookup interface {
+// BookLookup is the books surface (*books.Books) for linked resources.
+type BookLookup interface {
 	GetLibraryBookByID(
 		ctx context.Context, userID string, bookID uuid.UUID,
 	) (*booksv1.UserBook, error)
@@ -58,8 +58,8 @@ type bookLookup interface {
 	) (uuid.UUID, error)
 }
 
-// feedItemLookup is the feeds surface (*feeds.Feeds) for linked resources.
-type feedItemLookup interface {
+// FeedItemLookup is the feeds surface (*feeds.Feeds) for linked resources.
+type FeedItemLookup interface {
 	GetItemByID(
 		ctx context.Context, userID string, itemID uuid.UUID,
 	) (*feeds.SharedItem, error)
@@ -68,8 +68,8 @@ type feedItemLookup interface {
 type LearningPathService struct {
 	logger  *slog.Logger
 	repo    learningPathsStore
-	books   bookLookup
-	feeds   feedItemLookup
+	books   BookLookup
+	feeds   FeedItemLookup
 	todoist *TodoistService
 }
 

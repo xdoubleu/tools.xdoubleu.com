@@ -84,7 +84,7 @@ func TestFindTitle_OnMyServices(t *testing.T) {
 	var logs bytes.Buffer
 	logged := func(client tmdb.Client) *movies.Movies {
 		return movies.NewWithTMDB(context.Background(), sharedmocks.NewMockedAuthService(uid),
-			slog.New(slog.NewTextHandler(&logs, nil)), testCfg, testDB, client)
+			slog.New(slog.NewTextHandler(&logs, nil)), testCfg, testDB, testFamily, client)
 	}
 
 	setServices(t, c)

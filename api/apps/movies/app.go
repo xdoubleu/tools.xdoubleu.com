@@ -42,8 +42,11 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
+	familyRepo *sharedrepositories.FamilyRepository,
 ) *Movies {
-	return NewWithTMDB(ctx, authService, logger, cfg, db, newTMDBClient(logger, cfg))
+	return NewWithTMDB(
+		ctx, authService, logger, cfg, db, familyRepo, newTMDBClient(logger, cfg),
+	)
 }
 
 // NewWithTMDB builds the app around the given TMDB client; nil disables
@@ -54,13 +57,14 @@ func NewWithTMDB(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
+	familyRepo *sharedrepositories.FamilyRepository,
 	tmdbClient tmdb.Client,
 ) *Movies {
 	//nolint:exhaustruct //services, jobs initialised below
 	a := &Movies{
 		Base:   app.NewBase(ctx, authService, logger, cfg),
 		db:     db,
-		family: sharedrepositories.NewFamilyRepository(db),
+		family: familyRepo,
 	}
 	a.services = services.New(repositories.New(db), authService, tmdbClient)
 

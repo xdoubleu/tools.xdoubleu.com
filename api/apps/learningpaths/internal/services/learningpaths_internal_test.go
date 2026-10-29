@@ -222,7 +222,7 @@ func newTestService(store learningPathsStore) *LearningPathService {
 	}
 }
 
-// fakeBookLookup is an in-memory bookLookup for error-propagation tests.
+// fakeBookLookup is an in-memory BookLookup for error-propagation tests.
 // errAfterCall, when nonzero, makes the Nth call onward return genericErr,
 // so Create's second lookup can fail while its validating first one passes.
 type fakeBookLookup struct {
