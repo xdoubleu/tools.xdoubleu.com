@@ -19,10 +19,9 @@ make db/reset                      # recreate the Postgres volume — shared by 
 ## Architecture
 
 - `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after `games`/`books`/`feeds` (reads them); `trains`/`learningpaths`/`movies`/`podcasts`, then `taste` (reads `books`/`feeds`/`games`/`movies`/`podcasts`).
-- `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool. It only wires things together.
+- `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool. Platform handlers: `internal/obs`, `internal/account` (each `Deps`/`Register`).
 - `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
-- `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked PRs can merge migrations out of order; this self-heals instead of panicking at startup.
-- Platform Connect handlers live in app-shaped modules under `internal/`, each exposing a `Deps` struct for the wiring it needs and a `Register` that mounts its handlers: `internal/obs` (ObservabilityService RPCs, its MCP tools and the Prometheus/Grafana proxies) and `internal/account` (auth, access, family and dashboard-share). `cmd/api/routes.go` calls `account.Register`/`obs.Register` and mounts the apps' routes; `main.go` builds each module's `Deps` from the `Application` wiring.
+- `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked PRs can merge migrations out of order; this self-heals.
 
 Per-app layout (`apps/<name>/`):
 
@@ -59,8 +58,6 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - **`notifications`** — email-only: `EnqueueEmail` (fixed recipient), `EnqueueTo` (arbitrary).
 - **`progressws`** / **`progresshistory`** — job-progress WebSocket topics; cumulative progress with carry-forward reads.
 - **`repositories`** — shared repos over the `global` schema.
-- **`account`** — the auth, access, family and dashboard-share Connect handlers, mounted by `account.Register` (`internal/account/deps.go`); holds no schemas of its own.
-- **`obs`** — the ObservabilityService Connect handlers, its MCP tools and the Prometheus/Grafana proxies, mounted by `obs.Register`/`obs.RegisterMCPTools` (`internal/obs/deps.go`); holds no schemas of its own.
 - **`safedial`** — `Client(timeout, maxRedirects, allowPrivate)` blocks non-public IPs at dial time (survives redirects and DNS rebinding); `allowPrivate` is on outside prod. `webfetch` (user-supplied URLs) also dials through it.
 - **`httpclient`** — retrying client behind github, sentryapi, hardcover, unicat, steam; `SetBackoffBase` speeds up tests.
 - **`mcptools`** — `RequireAppAccess`, `AddReadTool`/`AddWriteTool`, `Unwrap`/`Result`, `KeepRequestDeadline`/`BoundToolCalls`/`LogSlowRequests` (tool calls keep their deadline; slow calls/requests logged).

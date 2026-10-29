@@ -2,7 +2,7 @@
 
 - Status: Accepted; [ADR-0034](adr-0034-vite-spa-served-by-the-api.md) moved the Next.js wiring: `web/src/instrument.ts` initializes it and the api serves the runtime env at `/env.js`.
 - Issues: #1638 (part of epic #1637)
-- Affects: `web/src/instrument.ts`, `web/components/SWRProvider.tsx`, `web/lib/env.ts`, `api/internal/spa/`, `web/app/settings/page.tsx`, `proto/auth/v1/auth.proto`, `api/cmd/api/connect_auth_handlers.go`, `config/deploy.api.yml`, `.kamal/secrets`, `.github/workflows/main.yml`
+- Affects: `web/src/instrument.ts`, `web/components/SWRProvider.tsx`, `web/lib/env.ts`, `api/internal/spa/`, `web/app/settings/page.tsx`, `proto/auth/v1/auth.proto`, `api/internal/account/auth_handlers.go`, `config/deploy.api.yml`, `.kamal/secrets`, `.github/workflows/main.yml`
 
 ## Context
 

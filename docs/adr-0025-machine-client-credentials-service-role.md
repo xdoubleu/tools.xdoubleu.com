@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #1901, #1851
-- Affects: `api/internal/oauth2as/`, `api/cmd/api/connect_access.go`
+- Affects: `api/internal/oauth2as/`, `api/internal/account/access.go`
   (`requireObservability`), `api/cmd/api/migrations/00053_*`
 
 ## Context
