@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/internal/services/kobo"
 )
 
 // maxBodyCapture caps the captured copy of each body; the stream is untouched.
@@ -170,7 +170,7 @@ func (app *Books) koboLogged(next http.HandlerFunc) http.HandlerFunc {
 		rec.snapshotHeaders()
 
 		if holder.enabled && holder.deviceID != "" {
-			app.Services.KoboLog.Append(holder.deviceID, services.KoboLogEntry{
+			app.Services.KoboLog.Append(holder.deviceID, kobo.LogEntry{
 				Time:         time.Now(),
 				Method:       r.Method,
 				Path:         redactKoboToken(r.URL.Path, r.PathValue("token")),

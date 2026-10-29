@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books"
-	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/internal/services/kobo"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/testhelper"
 )
@@ -100,7 +100,7 @@ func TestKoboLogging_CapturesPutRequestBody(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	// The append happens after the response is written; poll.
-	var entry services.KoboLogEntry
+	var entry kobo.LogEntry
 	require.Eventually(t, func() bool {
 		for _, e := range testApp.Services.KoboLog.List(deviceID) {
 			if e.Method == http.MethodPut &&
@@ -143,7 +143,7 @@ func TestKoboLogging_BodyCaptureCapped(t *testing.T) {
 
 	// The append happens after the response is written; poll.
 	const cap64KiB = 64 * 1024
-	var entry services.KoboLogEntry
+	var entry kobo.LogEntry
 	require.Eventually(t, func() bool {
 		for _, e := range testApp.Services.KoboLog.List(deviceID) {
 			if e.Method == http.MethodPut {
@@ -245,7 +245,7 @@ func TestConnectGetKoboDeviceLogs_InvalidUTF8ResponseBody(t *testing.T) {
 	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
 
 	// Invalid UTF-8, as captured from a binary/gzip upstream response.
-	testApp.Services.KoboLog.Append(deviceID, services.KoboLogEntry{
+	testApp.Services.KoboLog.Append(deviceID, kobo.LogEntry{
 		Time: time.Now(), Method: "GET", Path: "/x", Query: "",
 		RequestBody: "", Status: 200,
 		ResponseBody:    string([]byte{0xff, 0xfe, 0x00}),
@@ -277,7 +277,7 @@ func TestConnectClearKoboDeviceLogs_Empties(t *testing.T) {
 	_, deviceID := registerDeviceReturningID(t, userID)
 	testApp.Services.KoboLog.SetEnabled(deviceID, true)
 	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
-	testApp.Services.KoboLog.Append(deviceID, services.KoboLogEntry{
+	testApp.Services.KoboLog.Append(deviceID, kobo.LogEntry{
 		Time: time.Now(), Method: "GET", Path: "/x", Query: "",
 		RequestBody: "", Status: 200, ResponseBody: "", Notes: "",
 		RequestHeaders: nil, ResponseHeaders: nil, UpstreamHeaders: nil,
@@ -328,9 +328,9 @@ func waitForLogEntry(
 	t *testing.T,
 	app *books.Books,
 	deviceID, pathSuffix string,
-) services.KoboLogEntry {
+) kobo.LogEntry {
 	t.Helper()
-	var entry services.KoboLogEntry
+	var entry kobo.LogEntry
 	require.Eventually(t, func() bool {
 		for _, e := range app.Services.KoboLog.List(deviceID) {
 			if strings.HasSuffix(e.Path, pathSuffix) {
@@ -343,7 +343,7 @@ func waitForLogEntry(
 	return entry
 }
 
-func assertNoCredentialHeaders(t *testing.T, e services.KoboLogEntry) {
+func assertNoCredentialHeaders(t *testing.T, e kobo.LogEntry) {
 	t.Helper()
 	for _, m := range []map[string]string{
 		e.RequestHeaders, e.ResponseHeaders, e.UpstreamHeaders,
