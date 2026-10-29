@@ -1,0 +1,369 @@
+# route pattern: anonymous status, non-admin user status
+/.well-known/oauth-protected-resource: 200, 200
+/.well-known/oauth-protected-resource/api/apps/mcp: 200, 200
+/.well-known/oauth-protected-resource/apps/mcp: 200, 200
+/apps/mcp: 401, 401
+/books/kobo/{token}/: 403, 403
+GET /.well-known/oauth-authorization-server: 200, 200
+GET /.well-known/oauth-authorization-server/api: 200, 200
+GET /.well-known/openid-configuration: 200, 200
+GET /.well-known/openid-configuration/api: 200, 200
+GET /admin/oauth/{provider}/callback: 401, 303
+GET /admin/oauth/{provider}/start: 401, 303
+GET /api/version: 200, 200
+GET /books/api/book/{bookId}/webpub/manifest.json: 401, 403
+GET /books/api/book/{bookId}/webpub/positions.json: 401, 403
+GET /books/api/book/{bookId}/webpub/res/{path...}: 401, 403
+GET /books/api/cover/{bookId}: 400, 400
+GET /books/api/progress: 401, 426
+GET /books/kobo/{token}/v1/initialization: 403, 403
+GET /books/kobo/{token}/v1/library/sync: 403, 403
+GET /books/kobo/{token}/v1/library/{revisionId}/file: 403, 403
+GET /books/kobo/{token}/v1/library/{revisionId}/metadata: 403, 403
+GET /books/kobo/{token}/v1/library/{revisionId}/state: 403, 403
+GET /books/kobo/{token}/{revisionId}/{width}/{height}/{greyscale}/image.jpg: 403, 403
+GET /books/kobo/{token}/{revisionId}/{width}/{height}/{quality}/{greyscale}/image.jpg: 403, 403
+GET /games/api/progress: 401, 426
+GET /health: 200, 200
+GET /learningpaths/oauth/todoist/callback: 401, 302
+GET /mealplans/ical/: 404, 404
+GET /metrics: 200, 200
+GET /oauth2/authorize: 302, 302
+GET /oauth2/consent-info: 400, 400
+GET /oauth2/jwks: 200, 200
+GET /trains/api/journeys/live: 401, 403
+GET /watchparty/api/signaling: 401, 403
+POST /access.v1.AccessService/: 401, 404
+POST /access.v1.AccessService/ListUsers: 401, 415
+POST /access.v1.AccessService/SetAppAccess: 401, 415
+POST /access.v1.AccessService/SetRole: 401, 415
+POST /auth.v1.AuthService/: 404, 404
+POST /auth.v1.AuthService/ExchangeToken: 415, 415
+POST /auth.v1.AuthService/ForgotPassword: 415, 415
+POST /auth.v1.AuthService/GetCurrentUser: 415, 415
+POST /auth.v1.AuthService/MFAChallenge: 415, 415
+POST /auth.v1.AuthService/MFAEnroll: 415, 415
+POST /auth.v1.AuthService/MFAEnrollSkip: 415, 415
+POST /auth.v1.AuthService/MFAEnrollVerify: 415, 415
+POST /auth.v1.AuthService/MFAUnenroll: 415, 415
+POST /auth.v1.AuthService/RegenerateRecoveryCodes: 415, 415
+POST /auth.v1.AuthService/ResetPassword: 415, 415
+POST /auth.v1.AuthService/SignIn: 415, 415
+POST /auth.v1.AuthService/SignOut: 415, 415
+POST /auth.v1.AuthService/UpdatePassword: 415, 415
+POST /books.v1.BookFilesService/: 401, 403
+POST /books.v1.BookFilesService/CreateBookUpload: 401, 403
+POST /books.v1.BookFilesService/FinalizeBookUpload: 401, 403
+POST /books.v1.BookFilesService/GetBookFile: 401, 403
+POST /books.v1.BookFilesService/GetKEPUBStatus: 401, 403
+POST /books.v1.BookFilesService/RequestKEPUBConversion: 401, 403
+POST /books.v1.CatalogService/: 401, 403
+POST /books.v1.CatalogService/ApplyBookSource: 401, 403
+POST /books.v1.CatalogService/ApplyResyncChoice: 401, 403
+POST /books.v1.CatalogService/CancelResync: 401, 403
+POST /books.v1.CatalogService/FindDuplicates: 401, 403
+POST /books.v1.CatalogService/GetBookSources: 401, 403
+POST /books.v1.CatalogService/GetSourceStats: 401, 403
+POST /books.v1.CatalogService/ImportBooks: 401, 403
+POST /books.v1.CatalogService/ListBooksInExactSources: 401, 403
+POST /books.v1.CatalogService/ListResyncProposals: 401, 403
+POST /books.v1.CatalogService/MergeBooks: 401, 403
+POST /books.v1.CatalogService/SetBookISBN: 401, 403
+POST /books.v1.CatalogService/StartResync: 401, 403
+POST /books.v1.CatalogService/UpdateBook: 401, 403
+POST /books.v1.KoboService/: 401, 403
+POST /books.v1.KoboService/ClearKoboDeviceLogs: 401, 403
+POST /books.v1.KoboService/DisconnectKoboDevice: 401, 403
+POST /books.v1.KoboService/EnableKoboSync: 401, 403
+POST /books.v1.KoboService/GetKoboDeviceLogs: 401, 403
+POST /books.v1.KoboService/ListKoboDevices: 401, 403
+POST /books.v1.KoboService/ListKoboStoreBooks: 401, 403
+POST /books.v1.KoboService/RegisterKoboDevice: 401, 403
+POST /books.v1.KoboService/SetKoboDeviceLogging: 401, 403
+POST /books.v1.LibraryService/: 401, 403
+POST /books.v1.LibraryService/CreateBook: 401, 403
+POST /books.v1.LibraryService/CreateShelf: 401, 403
+POST /books.v1.LibraryService/DeleteShelf: 401, 403
+POST /books.v1.LibraryService/DeleteTag: 401, 403
+POST /books.v1.LibraryService/GetBookContent: 401, 403
+POST /books.v1.LibraryService/GetBooksProgress: 401, 403
+POST /books.v1.LibraryService/GetExternalBook: 401, 403
+POST /books.v1.LibraryService/GetLibrary: 401, 403
+POST /books.v1.LibraryService/GetPhysicalCopy: 401, 403
+POST /books.v1.LibraryService/GetReadingState: 401, 403
+POST /books.v1.LibraryService/GetSeries: 401, 403
+POST /books.v1.LibraryService/RemoveBook: 401, 403
+POST /books.v1.LibraryService/RenameShelf: 401, 403
+POST /books.v1.LibraryService/RenameTag: 401, 403
+POST /books.v1.LibraryService/SearchExternal: 401, 403
+POST /books.v1.LibraryService/SearchLibrary: 401, 403
+POST /books.v1.LibraryService/SetBookTag: 401, 403
+POST /books.v1.LibraryService/ToggleTag: 401, 403
+POST /books.v1.LibraryService/TranslateReadingPosition: 401, 403
+POST /books.v1.LibraryService/UpdateBookStatus: 401, 403
+POST /books.v1.LibraryService/UpdateFinishedAt: 401, 403
+POST /books.v1.LibraryService/UpdatePhysicalCopy: 401, 403
+POST /books.v1.LibraryService/UpdateProgress: 401, 403
+POST /books.v1.LibraryService/UpdateReadingProgress: 401, 403
+POST /books/kobo/{token}/v1/initialization: 403, 403
+POST /dashboard.v1.DashboardService/: 401, 404
+POST /dashboard.v1.DashboardService/CreateDashboardShare: 401, 415
+POST /dashboard.v1.DashboardService/DeleteDashboardShare: 401, 415
+POST /dashboard.v1.DashboardService/GetDashboardShare: 401, 415
+POST /dashboard.v1.DashboardService/SetDisplayName: 401, 415
+POST /dashboard.v1.PublicGamesDashboardService/: 404, 404
+POST /dashboard.v1.PublicGamesDashboardService/GetSharedRecentlyActiveGames: 415, 415
+POST /dashboard.v1.PublicGamesDashboardService/GetSharedSteam: 415, 415
+POST /dashboard.v1.PublicGamesDashboardService/GetSharedSteamGame: 415, 415
+POST /dashboard.v1.PublicReadingDashboardService/: 404, 404
+POST /dashboard.v1.PublicReadingDashboardService/GetSharedBooksProgress: 415, 415
+POST /dashboard.v1.PublicReadingDashboardService/GetSharedFeedsSummary: 415, 415
+POST /dashboard.v1.PublicReadingDashboardService/GetSharedLibrary: 415, 415
+POST /family.v1.FamilyService/: 401, 404
+POST /family.v1.FamilyService/AcceptFamilyInvite: 401, 415
+POST /family.v1.FamilyService/DeclineFamilyInvite: 401, 415
+POST /family.v1.FamilyService/GetFamily: 401, 415
+POST /family.v1.FamilyService/InviteToFamily: 401, 415
+POST /family.v1.FamilyService/LeaveFamily: 401, 415
+POST /family.v1.FamilyService/SetFamilyDisplayName: 401, 415
+POST /feeds.v1.FeedService/: 401, 403
+POST /feeds.v1.FeedService/CreateFeed: 401, 403
+POST /feeds.v1.FeedService/CreateFilterRule: 401, 403
+POST /feeds.v1.FeedService/DeleteFeed: 401, 403
+POST /feeds.v1.FeedService/DeleteFilterRule: 401, 403
+POST /feeds.v1.FeedService/DismissFilterRuleSuggestion: 401, 403
+POST /feeds.v1.FeedService/GetFeedItem: 401, 403
+POST /feeds.v1.FeedService/GetFeedStats: 401, 403
+POST /feeds.v1.FeedService/GetFilterRuleSuggestions: 401, 403
+POST /feeds.v1.FeedService/GetUnhealthyFeeds: 401, 403
+POST /feeds.v1.FeedService/ListFeedItems: 401, 403
+POST /feeds.v1.FeedService/ListFeeds: 401, 403
+POST /feeds.v1.FeedService/ListFilterRules: 401, 403
+POST /feeds.v1.FeedService/RefreshFeed: 401, 403
+POST /feeds.v1.FeedService/RestoreFeedItem: 401, 403
+POST /feeds.v1.FeedService/UpdateFeed: 401, 403
+POST /feeds.v1.FeedService/UpdateItem: 401, 403
+POST /feeds/email/inbound: 503, 503
+POST /games.v1.GamesService/: 401, 403
+POST /games.v1.GamesService/GetIntegrations: 401, 403
+POST /games.v1.GamesService/GetRecentlyActiveGames: 401, 403
+POST /games.v1.GamesService/GetSteam: 401, 403
+POST /games.v1.GamesService/GetSteamDistribution: 401, 403
+POST /games.v1.GamesService/GetSteamGame: 401, 403
+POST /games.v1.GamesService/RefreshSteamGame: 401, 403
+POST /games.v1.GamesService/SaveIntegrations: 401, 403
+POST /games.v1.GamesService/SetGameFavourite: 401, 403
+POST /games/api/progress/steam/refresh: 401, 403
+POST /learningpaths.v1.LearningPathsService/: 401, 403
+POST /learningpaths.v1.LearningPathsService/CreateLearningPath: 401, 403
+POST /learningpaths.v1.LearningPathsService/DeleteLearningPath: 401, 403
+POST /learningpaths.v1.LearningPathsService/GetLearningPath: 401, 403
+POST /learningpaths.v1.LearningPathsService/GetLearningPathProgress: 401, 403
+POST /learningpaths.v1.LearningPathsService/ListLearningPaths: 401, 403
+POST /learningpaths.v1.LearningPathsService/RecordItemProgress: 401, 403
+POST /learningpaths.v1.LearningPathsService/SetLearningPathPaused: 401, 403
+POST /learningpaths.v1.LearningPathsService/UpdateLearningPath: 401, 403
+POST /learningpaths.v1.TodoistService/: 401, 403
+POST /learningpaths.v1.TodoistService/ConnectTodoist: 401, 403
+POST /learningpaths.v1.TodoistService/DisconnectTodoist: 401, 403
+POST /learningpaths.v1.TodoistService/GetTodoistConnectionStatus: 401, 403
+POST /learningpaths.v1.TodoistService/GetTodoistSyncState: 401, 403
+POST /mealplans.v1.MealPlansService/: 401, 403
+POST /mealplans.v1.MealPlansService/CreateMeal: 401, 403
+POST /mealplans.v1.MealPlansService/DeleteMeal: 401, 403
+POST /mealplans.v1.MealPlansService/GetPlan: 401, 403
+POST /mealplans.v1.MealPlansService/ListPlans: 401, 403
+POST /mealplans.v1.MealPlansService/MoveMeal: 401, 403
+POST /mealplans.v1.MealPlansService/RotateICalToken: 401, 403
+POST /mealplans.v1.MealPlansService/SuggestRecipes: 401, 403
+POST /mealplans.v1.MealPlansService/UpdateMeal: 401, 403
+POST /mealplans.v1.MealPlansService/UpdatePlan: 401, 403
+POST /movies.v1.MoviesService/: 401, 403
+POST /movies.v1.MoviesService/AddTitle: 401, 403
+POST /movies.v1.MoviesService/AddWatchDate: 401, 403
+POST /movies.v1.MoviesService/EditWatchDate: 401, 403
+POST /movies.v1.MoviesService/GetSettings: 401, 403
+POST /movies.v1.MoviesService/GetStats: 401, 403
+POST /movies.v1.MoviesService/GetTitle: 401, 403
+POST /movies.v1.MoviesService/ListAvailableProviders: 401, 403
+POST /movies.v1.MoviesService/ListBacklog: 401, 403
+POST /movies.v1.MoviesService/RemoveTitle: 401, 403
+POST /movies.v1.MoviesService/RemoveWatchDate: 401, 403
+POST /movies.v1.MoviesService/SearchTitles: 401, 403
+POST /movies.v1.MoviesService/SetRating: 401, 403
+POST /movies.v1.MoviesService/SetSeasonWatched: 401, 403
+POST /movies.v1.MoviesService/SetSettings: 401, 403
+POST /movies.v1.MoviesService/SetStatus: 401, 403
+POST /oauth2/authorize: 302, 302
+POST /oauth2/register: 400, 400
+POST /oauth2/token: 400, 400
+POST /observability.v1.ObservabilityService/: 401, 404
+POST /observability.v1.ObservabilityService/CloseAutomatedAction: 401, 415
+POST /observability.v1.ObservabilityService/DisconnectOAuthConnection: 401, 415
+POST /observability.v1.ObservabilityService/DismissSecurityAlert: 401, 415
+POST /observability.v1.ObservabilityService/GetAutomatedActions: 401, 415
+POST /observability.v1.ObservabilityService/GetDatabaseStats: 401, 415
+POST /observability.v1.ObservabilityService/GetFailingPullRequests: 401, 415
+POST /observability.v1.ObservabilityService/GetHealthOverview: 401, 415
+POST /observability.v1.ObservabilityService/GetJobStats: 401, 415
+POST /observability.v1.ObservabilityService/GetLogs: 401, 415
+POST /observability.v1.ObservabilityService/GetNotificationSettings: 401, 415
+POST /observability.v1.ObservabilityService/GetProjectIssuesByStatus: 401, 415
+POST /observability.v1.ObservabilityService/GetProviderOptions: 401, 415
+POST /observability.v1.ObservabilityService/GetSecurityAlerts: 401, 415
+POST /observability.v1.ObservabilityService/GetSentryIssueEvent: 401, 415
+POST /observability.v1.ObservabilityService/GetSentryIssues: 401, 415
+POST /observability.v1.ObservabilityService/GetSlowTransactions: 401, 415
+POST /observability.v1.ObservabilityService/GetStorageStats: 401, 415
+POST /observability.v1.ObservabilityService/GetUsageStats: 401, 415
+POST /observability.v1.ObservabilityService/GetWorkflowRuns: 401, 415
+POST /observability.v1.ObservabilityService/ListOAuthConnections: 401, 415
+POST /observability.v1.ObservabilityService/OpenAutomatedAction: 401, 415
+POST /observability.v1.ObservabilityService/ResolveSentryIssue: 401, 415
+POST /observability.v1.ObservabilityService/SetProviderConfig: 401, 415
+POST /observability.v1.ObservabilityService/TriggerStorageScan: 401, 415
+POST /observability.v1.ObservabilityService/UpdateNotificationSettings: 401, 415
+POST /podcasts.v1.PodcastsService/: 401, 403
+POST /podcasts.v1.PodcastsService/AddFavourite: 401, 403
+POST /podcasts.v1.PodcastsService/ListFavourites: 401, 403
+POST /podcasts.v1.PodcastsService/RemoveFavourite: 401, 403
+POST /podcasts.v1.PodcastsService/SearchShows: 401, 403
+POST /recipes.v1.RecipesService/: 401, 403
+POST /recipes.v1.RecipesService/CreateRecipe: 401, 403
+POST /recipes.v1.RecipesService/DeleteRecipe: 401, 403
+POST /recipes.v1.RecipesService/GetRecipe: 401, 403
+POST /recipes.v1.RecipesService/ListRecipes: 401, 403
+POST /recipes.v1.RecipesService/UpdateRecipe: 401, 403
+POST /shoppinglist.v1.ShoppingListService/: 401, 403
+POST /shoppinglist.v1.ShoppingListService/CreateCategory: 401, 403
+POST /shoppinglist.v1.ShoppingListService/CreateShoppingItem: 401, 403
+POST /shoppinglist.v1.ShoppingListService/CreateStore: 401, 403
+POST /shoppinglist.v1.ShoppingListService/DeleteCategory: 401, 403
+POST /shoppinglist.v1.ShoppingListService/DeleteShoppingItem: 401, 403
+POST /shoppinglist.v1.ShoppingListService/DeleteStore: 401, 403
+POST /shoppinglist.v1.ShoppingListService/GetCustomList: 401, 403
+POST /shoppinglist.v1.ShoppingListService/GetMealPlanExportItems: 401, 403
+POST /shoppinglist.v1.ShoppingListService/GetPlanIngredientGroups: 401, 403
+POST /shoppinglist.v1.ShoppingListService/GetStoreCategories: 401, 403
+POST /shoppinglist.v1.ShoppingListService/ListCategories: 401, 403
+POST /shoppinglist.v1.ShoppingListService/ListIngredientUnits: 401, 403
+POST /shoppinglist.v1.ShoppingListService/ListItemCategories: 401, 403
+POST /shoppinglist.v1.ShoppingListService/ListItemNames: 401, 403
+POST /shoppinglist.v1.ShoppingListService/ListStores: 401, 403
+POST /shoppinglist.v1.ShoppingListService/RenameCategory: 401, 403
+POST /shoppinglist.v1.ShoppingListService/RenameStore: 401, 403
+POST /shoppinglist.v1.ShoppingListService/SetItemAlias: 401, 403
+POST /shoppinglist.v1.ShoppingListService/SetItemCategory: 401, 403
+POST /shoppinglist.v1.ShoppingListService/SetItemExcluded: 401, 403
+POST /shoppinglist.v1.ShoppingListService/SetStoreCategories: 401, 403
+POST /shoppinglist.v1.ShoppingListService/UpdateShoppingItem: 401, 403
+POST /taste.v1.TasteService/: 401, 403
+POST /taste.v1.TasteService/AcceptRecommendation: 401, 403
+POST /taste.v1.TasteService/GetProfile: 401, 403
+POST /taste.v1.TasteService/GetStats: 401, 403
+POST /taste.v1.TasteService/ListEvents: 401, 403
+POST /taste.v1.TasteService/ListRecommendations: 401, 403
+POST /taste.v1.TasteService/RefreshProfile: 401, 403
+POST /taste.v1.TasteService/RefreshRecommendations: 401, 403
+POST /taste.v1.TasteService/SetEmailNewPicks: 401, 403
+POST /taste.v1.TasteService/SetFeedback: 401, 403
+POST /taste.v1.TasteService/SetSaved: 401, 403
+POST /trains.v1.TrainService/: 401, 403
+POST /trains.v1.TrainService/CreateSavedCommute: 401, 403
+POST /trains.v1.TrainService/DeleteSavedCommute: 401, 403
+POST /trains.v1.TrainService/GetJourneyDetail: 401, 403
+POST /trains.v1.TrainService/ListSavedCommutes: 401, 403
+POST /trains.v1.TrainService/SearchJourneys: 401, 403
+POST /trains.v1.TrainService/SearchStations: 401, 403
+POST /trains.v1.TrainService/UpdateSavedCommute: 401, 403
+POST /watchparty.v1.RoomService/: 401, 403
+POST /watchparty.v1.RoomService/CreateRoom: 401, 403
+POST /watchparty.v1.RoomService/GetRoom: 401, 403
+POST /watchparty.v1.RoomService/JoinRoom: 401, 403
+POST /watchparty.v1.RoomService/LeaveRoom: 401, 403
+PUT /books/kobo/{token}/v1/library/{revisionId}/state: 403, 403
+# /apps/mcp tools
+books_find_duplicates
+books_get_book_file
+books_get_book_sources
+books_get_books_progress
+books_get_external_book
+books_get_kepub_status
+books_get_kobo_device_logs
+books_get_library
+books_get_reading_state
+books_get_series
+books_get_source_stats
+books_list_books_in_exact_sources
+books_list_kobo_devices
+books_list_kobo_store_books
+books_list_resync_proposals
+books_search_external
+books_search_library
+dismiss_security_alert
+feeds_get_filter_rule_suggestions
+feeds_get_item
+feeds_list_feeds
+feeds_list_filter_rules
+feeds_list_items
+games_get_integrations
+games_get_recently_active_games
+games_get_steam
+games_get_steam_distribution
+games_get_steam_game
+get_automated_actions
+get_database_stats
+get_failing_pull_requests
+get_grafana_alerts
+get_job_stats
+get_logs
+get_notification_settings
+get_oauth_connections
+get_project_issues_by_status
+get_security_alerts
+get_sentry_issue_event
+get_sentry_issues
+get_slow_transactions
+get_storage_stats
+get_usage_stats
+get_workflow_runs
+learningpaths_create_path
+learningpaths_get_path
+learningpaths_get_progress
+learningpaths_get_todoist_status
+learningpaths_list_paths
+learningpaths_record_progress
+learningpaths_update_path
+mealplans_get_plan
+mealplans_list_plans
+mealplans_suggest_recipes
+movies_get_settings
+movies_get_stats
+movies_get_title
+movies_list_backlog
+movies_search_titles
+podcasts_list_favourites
+prom_query
+recipes_create_recipe
+recipes_fetch_video
+recipes_get_recipe
+recipes_list_recipes
+record_action
+resolve_sentry_issue
+shoppinglist_get_custom_list
+shoppinglist_get_meal_plan_export_items
+shoppinglist_get_plan_ingredient_groups
+shoppinglist_get_store_categories
+shoppinglist_list_categories
+shoppinglist_list_ingredient_units
+shoppinglist_list_item_categories
+shoppinglist_list_item_names
+shoppinglist_list_stores
+taste_get_profile
+taste_get_stats
+taste_list_events
+taste_list_recommendations
+trains_get_irail_diagnostic
+trains_get_journey_detail
+trains_search_journeys
+trains_search_stations

@@ -27,6 +27,11 @@ import (
 const maxRequestBodyBytes = 10 << 20
 
 func (app *Application) Routes() http.Handler {
+	return app.middleware().Then(app.mux())
+}
+
+// mux registers every route, without the middleware chain.
+func (app *Application) mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mountConnect := func(gate iapp.Gate, register func(*connect.Server)) {
 		iapp.MountConnect(mux, app.logger, gate, register)
@@ -116,7 +121,7 @@ func (app *Application) Routes() http.Handler {
 
 	app.apps.Routes(mux)
 
-	return app.middleware().Then(mux)
+	return mux
 }
 
 // middleware is the chain in front of every route.
