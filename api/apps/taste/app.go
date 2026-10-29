@@ -62,6 +62,7 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
+	familyRepo *sharedrepositories.FamilyRepository,
 	mail *notifications.Service,
 	catalogs Catalogs,
 	sources ...Source,
@@ -72,7 +73,10 @@ func New(
 	if mail != nil {
 		sender = mail
 	}
-	return NewInner(ctx, authService, logger, cfg, db, llm, sender, catalogs, sources...)
+	return NewInner(
+		ctx, authService, logger, cfg, db, familyRepo, llm, sender, catalogs,
+		sources...,
+	)
 }
 
 // NewInner allows tests to inject a fake OpenRouter client and mail sender
@@ -83,6 +87,7 @@ func NewInner(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
+	familyRepo *sharedrepositories.FamilyRepository,
 	llm openrouter.Client,
 	mail EmailSender,
 	catalogs Catalogs,
@@ -96,7 +101,7 @@ func NewInner(
 		Base:   app.NewBase(ctx, authService, logger, cfg),
 		db:     db,
 		auth:   authService,
-		family: sharedrepositories.NewFamilyRepository(db),
+		family: familyRepo,
 		log:    services.NewLogService(sources),
 	}
 	profiles := repositories.NewProfilesRepository(db)

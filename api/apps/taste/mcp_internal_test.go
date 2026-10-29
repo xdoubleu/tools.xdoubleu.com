@@ -15,6 +15,7 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
+	sharedrepositories "tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
@@ -31,10 +32,11 @@ func (s staticSource) ListConsumption(
 func TestMCPTools(t *testing.T) {
 	const uid = "mcp-taste-user"
 	cfg := testhelper.NewTestConfig()
+	db := testhelper.ConnectTestDB(cfg.DBDsn)
 	a := New(
 		context.Background(),
-		sharedmocks.NewMockedAuthService(uid), logging.NewNopLogger(), cfg,
-		testhelper.ConnectTestDB(cfg.DBDsn), nil,
+		sharedmocks.NewMockedAuthService(uid), logging.NewNopLogger(), cfg, db,
+		sharedrepositories.NewFamilyRepository(db), nil,
 		Catalogs{
 			Books: nil, Movies: nil, Games: nil, Podcasts: nil, Feeds: nil,
 			WantBook: nil, WantTitle: nil,

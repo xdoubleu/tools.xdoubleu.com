@@ -10,8 +10,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"tools.xdoubleu.com/apps/books"
-	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
 	"tools.xdoubleu.com/apps/learningpaths/internal/services"
 	"tools.xdoubleu.com/apps/learningpaths/internal/todoist"
@@ -30,9 +28,9 @@ type LearningPaths struct {
 	services *services.Services
 }
 
-// New builds the app. sealer encrypts per-user Todoist tokens. booksApp and
-// feedsApp must already be constructed (registration order in
-// cmd/api/apps.go); only their exported methods are called
+// New builds the app. sealer encrypts per-user Todoist tokens. books and
+// feeds must already be constructed (registration order in cmd/api/apps.go);
+// only their exported methods are called via the narrow lookup interfaces
 // (docs/adr-0007-dashboard-app-owns-public-sharing.md).
 func New(
 	ctx context.Context,
@@ -41,8 +39,8 @@ func New(
 	cfg config.Config,
 	db postgres.DB,
 	sealer *crypto.Sealer,
-	booksApp *books.Books,
-	feedsApp *feeds.Feeds,
+	books services.BookLookup,
+	feeds services.FeedItemLookup,
 ) *LearningPaths {
 	//nolint:exhaustruct //services initialised below
 	a := &LearningPaths{
@@ -61,8 +59,8 @@ func New(
 		repositories.New(db, sealer),
 		authService,
 		todoistConf,
-		booksApp,
-		feedsApp,
+		books,
+		feeds,
 	)
 
 	return a

@@ -98,7 +98,7 @@ func NewApps(
 		),
 	)
 	// movies has no schema dependencies.
-	moviesApp := movies.New(ctx, authService, logger, cfg, db)
+	moviesApp := movies.New(ctx, authService, logger, cfg, db, familyRepo)
 	apps.addApp(moviesApp)
 
 	// podcasts has no schema dependencies.
@@ -109,7 +109,7 @@ func NewApps(
 	// follows them.
 	apps.addApp(taste.New(
 		ctx,
-		authService, logger, cfg, db, notifications,
+		authService, logger, cfg, db, familyRepo, notifications,
 		taste.Catalogs{
 			Books:    booksApp.FindBook,
 			Movies:   moviesApp.FindTitle,

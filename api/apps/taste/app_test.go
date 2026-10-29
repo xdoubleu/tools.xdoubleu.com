@@ -27,6 +27,7 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/openrouter"
+	sharedrepositories "tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
@@ -34,14 +35,16 @@ const userID = "taste-test-user"
 
 //nolint:gochecknoglobals //needed for tests
 var (
-	testDB  postgres.DB
-	testCfg config.Config
+	testDB     postgres.DB
+	testCfg    config.Config
+	testFamily *sharedrepositories.FamilyRepository
 )
 
 func TestMain(m *testing.M) {
 	testCfg = testhelper.NewTestConfig()
 	pool := testhelper.ConnectTestDB(testCfg.DBDsn)
 	testDB = pool
+	testFamily = sharedrepositories.NewFamilyRepository(pool)
 
 	ctx := context.Background()
 	if _, err := testDB.Exec(ctx, "DROP SCHEMA IF EXISTS taste CASCADE"); err != nil {
@@ -64,8 +67,15 @@ func TestMain(m *testing.M) {
 	}
 	a := taste.New(
 		context.Background(),
-		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), testCfg, testDB,
-		nil, noCatalogs(),
+		sharedmocks.NewMockedAuthService(
+			userID,
+		),
+		logging.NewNopLogger(),
+		testCfg,
+		testDB,
+		testFamily,
+		nil,
+		noCatalogs(),
 	)
 	if err := a.ApplyMigrations(ctx, pool); err != nil {
 		panic(err)
@@ -166,7 +176,14 @@ func newClientAs(
 	t.Helper()
 	a := taste.NewInner(
 		context.Background(),
-		authService, logging.NewNopLogger(), testCfg, testDB, newLLM(""), nil, noCatalogs(),
+		authService,
+		logging.NewNopLogger(),
+		testCfg,
+		testDB,
+		testFamily,
+		newLLM(""),
+		nil,
+		noCatalogs(),
 		sources...,
 	)
 	ts := httptest.NewServer(testhelper.BuildMux(a))
@@ -200,8 +217,15 @@ var (
 func TestAppMetadata(t *testing.T) {
 	a := taste.New(
 		context.Background(),
-		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), testCfg, testDB,
-		nil, noCatalogs(),
+		sharedmocks.NewMockedAuthService(
+			userID,
+		),
+		logging.NewNopLogger(),
+		testCfg,
+		testDB,
+		testFamily,
+		nil,
+		noCatalogs(),
 	)
 	assert.Equal(t, "taste", a.GetName())
 	assert.Equal(t, "Taste", a.GetDisplayName())
@@ -348,6 +372,7 @@ func TestNew_WarnsOnlyWithoutKey(t *testing.T) {
 		logger,
 		testCfg,
 		testDB,
+		testFamily,
 		nil,
 		noCatalogs(),
 	)
@@ -362,6 +387,7 @@ func TestNew_WarnsOnlyWithoutKey(t *testing.T) {
 		logger,
 		cfg,
 		testDB,
+		testFamily,
 		nil,
 		noCatalogs(),
 	)

@@ -21,6 +21,7 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	sharedrepositories "tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
@@ -31,8 +32,9 @@ const (
 
 //nolint:gochecknoglobals //needed for tests
 var (
-	testDB  postgres.DB
-	testCfg config.Config
+	testDB     postgres.DB
+	testCfg    config.Config
+	testFamily *sharedrepositories.FamilyRepository
 )
 
 // fakeTMDB serves a fixed catalog; unknown IDs are tmdb.ErrNotFound.
@@ -194,6 +196,7 @@ func TestMain(m *testing.M) {
 	testCfg = testhelper.NewTestConfig()
 	pool := testhelper.ConnectTestDB(testCfg.DBDsn)
 	testDB = pool
+	testFamily = sharedrepositories.NewFamilyRepository(pool)
 
 	ctx := context.Background()
 	if _, err := testDB.Exec(ctx, "DROP SCHEMA IF EXISTS movies CASCADE"); err != nil {
@@ -228,6 +231,7 @@ func newApp(uid string, client tmdb.Client) *movies.Movies {
 		logging.NewNopLogger(),
 		testCfg,
 		testDB,
+		testFamily,
 		client,
 	)
 }
@@ -279,13 +283,25 @@ func TestNew_WithoutKeyDisablesTMDB(t *testing.T) {
 	cfg.TMDBAPIKey = ""
 	a := movies.New(
 		context.Background(),
-		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), cfg, testDB,
+		sharedmocks.NewMockedAuthService(
+			userID,
+		),
+		logging.NewNopLogger(),
+		cfg,
+		testDB,
+		testFamily,
 	)
 	assert.NotNil(t, a)
 
 	cfg.TMDBAPIKey = "token"
 	assert.NotNil(t, movies.New(
 		context.Background(),
-		sharedmocks.NewMockedAuthService(userID), logging.NewNopLogger(), cfg, testDB,
+		sharedmocks.NewMockedAuthService(
+			userID,
+		),
+		logging.NewNopLogger(),
+		cfg,
+		testDB,
+		testFamily,
 	))
 }

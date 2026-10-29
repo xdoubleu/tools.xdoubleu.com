@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/internal/mcptools"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
+	sharedrepositories "tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
@@ -26,7 +27,8 @@ func TestMCPTools(t *testing.T) {
 
 	a := NewWithTMDB(
 		context.Background(),
-		sharedmocks.NewMockedAuthService(uid), logging.NewNopLogger(), cfg, pg, nil,
+		sharedmocks.NewMockedAuthService(uid), logging.NewNopLogger(), cfg, pg,
+		sharedrepositories.NewFamilyRepository(pg), nil,
 	)
 	require.NoError(t, a.ApplyMigrations(context.Background(), pg))
 	//nolint:exhaustruct // a name is all the server needs
