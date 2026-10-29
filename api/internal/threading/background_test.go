@@ -16,14 +16,15 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 	internalsentry "tools.xdoubleu.com/internal/sentrytools"
 	"tools.xdoubleu.com/internal/threading"
-	"tools.xdoubleu.com/sentrytools"
 )
 
 // Not parallel: points the global Sentry hub at a mocked transport.
 func TestBackgroundRecoversAndReportsPanickingTask(t *testing.T) {
 	require.NoError(t, sentry.Init(internalsentry.MockedSentryClientOptions()))
 	var buf syncBuffer
-	logger := slog.New(sentrytools.NewLogHandler("test", slog.NewTextHandler(&buf, nil)))
+	logger := slog.New(internalsentry.NewLogHandler(
+		"test", slog.NewTextHandler(&buf, nil),
+	))
 	bg := threading.NewBackground(logger, 0)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)

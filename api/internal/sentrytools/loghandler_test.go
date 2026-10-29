@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/sentrytools"
+	"tools.xdoubleu.com/internal/sentrytools"
 )
 
 type transportMock struct {

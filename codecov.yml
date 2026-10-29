@@ -59,7 +59,3 @@ flags:
     paths:
       - kobo-gateway/
     carryforward: true
-  sentrytools:
-    paths:
-      - sentrytools/
-    carryforward: true

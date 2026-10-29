@@ -3,45 +3,18 @@ package sentrytools
 import (
 	"net/http"
 
-	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
-
-	"tools.xdoubleu.com/internal/config"
 )
 
-// Middleware configures and enables Sentry; call
-// [tools.xdoubleu.com/sentrytools.Init] first. In [config.TestEnv] it uses a
-// mocked hub.
-func Middleware(env string) (func(http.Handler) http.Handler, error) {
-	isTestEnv := env == config.TestEnv
-
-	if isTestEnv {
-		if err := sentry.Init(MockedSentryClientOptions()); err != nil {
-			return nil, err
-		}
-	}
-
+// Middleware wires the request-scoped Sentry hub middleware; call [Init]
+// first. Tests point the global hub at a mocked transport via
+// [MockedSentryClientOptions] before building the chain.
+func Middleware() (func(http.Handler) http.Handler, error) {
 	//nolint:exhaustruct //other fields are optional
 	sentryHandler := sentryhttp.New(sentryhttp.Options{
 		Repanic: true,
 	})
-
-	if isTestEnv {
-		return func(next http.Handler) http.Handler {
-			return sentryHandler.Handle(useMockedHub(next))
-		}, nil
-	}
-
 	return func(next http.Handler) http.Handler {
 		return sentryHandler.Handle(next)
 	}, nil
-}
-
-func useMockedHub(next http.Handler) http.Handler {
-	mockedHub := MockedSentryHub()
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sentry.SetHubOnContext(r.Context(), mockedHub)
-		next.ServeHTTP(w, r)
-	})
 }
