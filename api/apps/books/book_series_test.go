@@ -46,7 +46,10 @@ func addBookInSeries(
 
 func getBook(t *testing.T, bookID uuid.UUID) *models.Book {
 	t.Helper()
-	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), bookID)
+	book, err := testApp.TestSeeds().Repositories.Books.GetBookByID(
+		context.Background(),
+		bookID,
+	)
 	require.NoError(t, err)
 	return book
 }
@@ -78,7 +81,7 @@ func TestCreateBook_StoresSeries_FillOnly(t *testing.T) {
 	create("Saga-"+uid, 3, 12)
 	create("Other-"+uid, 9, 0)
 
-	ub, err := testApp.Repositories.Books.FindUserBookByISBN13(
+	ub, err := testApp.TestSeeds().Repositories.Books.FindUserBookByISBN13(
 		context.Background(), userID, isbn,
 	)
 	require.NoError(t, err)
@@ -109,7 +112,7 @@ func TestCreateBook_DropsInvalidSeriesPosition(t *testing.T) {
 	).CreateBook(testhelper.WithCookie(context.Background(), accessToken.String()), req)
 	require.NoError(t, err)
 
-	ub, err := testApp.Repositories.Books.FindUserBookByISBN13(
+	ub, err := testApp.TestSeeds().Repositories.Books.FindUserBookByISBN13(
 		context.Background(), userID, isbn,
 	)
 	require.NoError(t, err)
@@ -165,7 +168,7 @@ func TestGetSeries_EmptyName_InvalidArgument(t *testing.T) {
 func TestUpdateBook_SetsAndClearsSeries(t *testing.T) {
 	uid := uuid.NewString()[:8]
 	ub := addBookInSeries(t, "Edit Series "+uid, "Edit Saga "+uid, f64(1))
-	require.NoError(t, testApp.Repositories.Books.SetSeriesTotal(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.SetSeriesTotal(
 		context.Background(), "Edit Saga "+uid, 7,
 	))
 	client := newAdminBooksTestClient(t)

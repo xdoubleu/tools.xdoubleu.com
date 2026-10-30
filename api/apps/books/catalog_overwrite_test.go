@@ -52,7 +52,7 @@ func TestAddToLibrary_ExistingISBN_KeepsCatalogMetadata(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, first.BookID, second.BookID)
 
-	book, err := testApp.Repositories.Books.GetBookByID(
+	book, err := testApp.TestSeeds().Repositories.Books.GetBookByID(
 		context.Background(), first.BookID,
 	)
 	require.NoError(t, err)

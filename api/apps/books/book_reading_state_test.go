@@ -28,10 +28,10 @@ func TestReadingStateRepo_Upsert_Get(t *testing.T) {
 		Location: &loc,
 	}
 
-	err := testApp.Repositories.ReadingState.Upsert(ctx, state)
+	err := testApp.TestSeeds().Repositories.ReadingState.Upsert(ctx, state)
 	require.NoError(t, err)
 
-	got, err := testApp.Repositories.ReadingState.Get(ctx, userID, book.ID)
+	got, err := testApp.TestSeeds().Repositories.ReadingState.Get(ctx, userID, book.ID)
 	require.NoError(t, err)
 	require.NotNil(t, got)
 	assert.Equal(t, models.ReadingSourceWeb, got.Source)
@@ -44,7 +44,7 @@ func TestReadingStateRepo_Upsert_Updates(t *testing.T) {
 	book := addUniqueBook(t)
 	ctx := context.Background()
 
-	err := testApp.Repositories.ReadingState.Upsert(
+	err := testApp.TestSeeds().Repositories.ReadingState.Upsert(
 		ctx,
 		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
 			UserID:  userID,
@@ -55,7 +55,7 @@ func TestReadingStateRepo_Upsert_Updates(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	err = testApp.Repositories.ReadingState.Upsert(
+	err = testApp.TestSeeds().Repositories.ReadingState.Upsert(
 		ctx,
 		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
 			UserID:  userID,
@@ -66,7 +66,7 @@ func TestReadingStateRepo_Upsert_Updates(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	got, err := testApp.Repositories.ReadingState.Get(ctx, userID, book.ID)
+	got, err := testApp.TestSeeds().Repositories.ReadingState.Get(ctx, userID, book.ID)
 	require.NoError(t, err)
 	assert.Equal(t, models.ReadingSourceKobo, got.Source)
 	assert.Equal(t, 75, got.Percent)
@@ -78,7 +78,7 @@ func TestReadingStateRepo_ListByUser(t *testing.T) {
 	owner := "list-by-user-" + book1.ID.String()
 	ctx := context.Background()
 
-	require.NoError(t, testApp.Repositories.ReadingState.Upsert(ctx,
+	require.NoError(t, testApp.TestSeeds().Repositories.ReadingState.Upsert(ctx,
 		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
 			UserID:  owner,
 			BookID:  book1.ID,
@@ -86,7 +86,7 @@ func TestReadingStateRepo_ListByUser(t *testing.T) {
 			Percent: 30,
 		},
 	))
-	require.NoError(t, testApp.Repositories.ReadingState.Upsert(ctx,
+	require.NoError(t, testApp.TestSeeds().Repositories.ReadingState.Upsert(ctx,
 		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
 			UserID:  owner,
 			BookID:  book2.ID,
@@ -95,7 +95,7 @@ func TestReadingStateRepo_ListByUser(t *testing.T) {
 		},
 	))
 
-	got, err := testApp.Repositories.ReadingState.ListByUser(ctx, owner)
+	got, err := testApp.TestSeeds().Repositories.ReadingState.ListByUser(ctx, owner)
 	require.NoError(t, err)
 	require.Len(t, got, 2)
 
@@ -109,7 +109,7 @@ func TestReadingStateRepo_ListByUser(t *testing.T) {
 
 func TestReadingStateRepo_ListByUser_Empty(t *testing.T) {
 	ctx := context.Background()
-	got, err := testApp.Repositories.ReadingState.ListByUser(
+	got, err := testApp.TestSeeds().Repositories.ReadingState.ListByUser(
 		ctx,
 		"no-states-user-"+uuid.NewString(),
 	)
@@ -121,7 +121,11 @@ func TestReadingStateRepo_Get_NotFound(t *testing.T) {
 	book := addUniqueBook(t)
 	ctx := context.Background()
 
-	got, err := testApp.Repositories.ReadingState.Get(ctx, "nonexistent-user", book.ID)
+	got, err := testApp.TestSeeds().Repositories.ReadingState.Get(
+		ctx,
+		"nonexistent-user",
+		book.ID,
+	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
 	assert.Nil(t, got)
 }
@@ -130,7 +134,7 @@ func TestReadingStateRepo_Upsert_NilLocation(t *testing.T) {
 	book := addUniqueBook(t)
 	ctx := context.Background()
 
-	err := testApp.Repositories.ReadingState.Upsert(
+	err := testApp.TestSeeds().Repositories.ReadingState.Upsert(
 		ctx,
 		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
 			UserID:   userID,
@@ -142,7 +146,7 @@ func TestReadingStateRepo_Upsert_NilLocation(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	got, err := testApp.Repositories.ReadingState.Get(ctx, userID, book.ID)
+	got, err := testApp.TestSeeds().Repositories.ReadingState.Get(ctx, userID, book.ID)
 	require.NoError(t, err)
 	assert.Nil(t, got.Location)
 	assert.Equal(t, models.ReadingSourceManual, got.Source)
@@ -183,7 +187,7 @@ func TestConnectUpdateReadingProgress_PercentClamped(t *testing.T) {
 	_, err := client.UpdateReadingProgress(ctx, req)
 	require.NoError(t, err)
 
-	got, err := testApp.Repositories.ReadingState.Get(ctx, userID, book.ID)
+	got, err := testApp.TestSeeds().Repositories.ReadingState.Get(ctx, userID, book.ID)
 	require.NoError(t, err)
 	assert.Equal(t, 100, got.Percent)
 }
@@ -289,7 +293,7 @@ func TestConnectGetReadingState_InvalidBookID(t *testing.T) {
 // seedUserBook creates a user_book for userID with the given status.
 func seedUserBook(t *testing.T, bookID uuid.UUID, status string) {
 	t.Helper()
-	require.NoError(t, testApp.Repositories.Books.UpsertUserBook(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.UpsertUserBook(
 		context.Background(),
 		models.UserBook{ //nolint:exhaustruct //optional fields
 			UserID:         userID,
@@ -303,7 +307,7 @@ func seedUserBook(t *testing.T, bookID uuid.UUID, status string) {
 
 func getUserBookStatus(t *testing.T, bookID uuid.UUID) string {
 	t.Helper()
-	ub, err := testApp.Repositories.Books.GetUserBook(
+	ub, err := testApp.TestSeeds().Repositories.Books.GetUserBook(
 		context.Background(),
 		userID,
 		bookID,
@@ -318,7 +322,7 @@ func seedUserBookProgress(
 ) {
 	t.Helper()
 	seedUserBook(t, bookID, status)
-	require.NoError(t, testApp.Repositories.Books.UpdateProgress(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.UpdateProgress(
 		context.Background(), userID, bookID, progressMode, currentPage, 0,
 	))
 }
@@ -345,7 +349,7 @@ func TestUpdateReadingProgress_UpdatesLibraryProgress(t *testing.T) {
 		BookID: book.ID, Source: models.ReadingSourceKobo, Percent: 40,
 	})
 
-	ub, err := testApp.Repositories.Books.GetUserBook(
+	ub, err := testApp.TestSeeds().Repositories.Books.GetUserBook(
 		context.Background(),
 		userID,
 		book.ID,
@@ -390,7 +394,7 @@ func TestUpdateReadingProgress_NoPromote_AlreadyRead(t *testing.T) {
 		BookID: book.ID, Source: models.ReadingSourceWeb, Percent: 80,
 	})
 
-	ub, err := testApp.Repositories.Books.GetUserBook(
+	ub, err := testApp.TestSeeds().Repositories.Books.GetUserBook(
 		context.Background(),
 		userID,
 		book.ID,

@@ -283,7 +283,7 @@ func TestConnectGetLibrary_FormatsPopulated(t *testing.T) {
 		SizeBytes:  512,
 		Status:     models.FileStatusReady,
 	}
-	_, err := testApp.Repositories.BookFiles.Insert(ctx, pdfFile)
+	_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(ctx, pdfFile)
 	require.NoError(t, err)
 
 	libReq := &booksv1.GetLibraryRequest{}

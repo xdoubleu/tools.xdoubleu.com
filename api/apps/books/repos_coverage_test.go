@@ -11,7 +11,7 @@ import (
 // TestFindBookByTitleAndAuthor_NotFound exercises the repository method when no
 // matching book exists — covers the 0-coverage path.
 func TestFindBookByTitleAndAuthor_NotFound(t *testing.T) {
-	book, err := testApp.Repositories.Books.FindBookByTitleAndAuthor(
+	book, err := testApp.TestSeeds().Repositories.Books.FindBookByTitleAndAuthor(
 		context.Background(),
 		"nonexistent-title-xyz",
 		"nonexistent-author-xyz",
@@ -25,7 +25,7 @@ func TestFindBookByTitleAndAuthor_Found(t *testing.T) {
 	ub := addTestBook(t, "FindByTitleBook")
 	require.NotNil(t, ub)
 
-	book, err := testApp.Repositories.Books.FindBookByTitleAndAuthor(
+	book, err := testApp.TestSeeds().Repositories.Books.FindBookByTitleAndAuthor(
 		context.Background(),
 		"FindByTitleBook",
 		"Test Author",

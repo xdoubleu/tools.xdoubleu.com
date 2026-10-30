@@ -40,7 +40,7 @@ func addFigureFile(
 
 func insertFigureRow(t *testing.T, user string, bookID uuid.UUID, format, key string) {
 	t.Helper()
-	_, err := testApp.Repositories.BookFiles.Insert(context.Background(),
+	_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(context.Background(),
 		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
 			BookID:     bookID,
 			UserID:     user,
@@ -130,7 +130,10 @@ func TestFigureAnalysis_CopyFailAndRetry(t *testing.T) {
 		files[missing.BookID].Figures[models.FileFormatEPUB],
 	)
 
-	pending, err := testApp.Repositories.BookFiles.ListUnanalysed(ctx, figureAnalysisLimit)
+	pending, err := testApp.TestSeeds().Repositories.BookFiles.ListUnanalysed(
+		ctx,
+		figureAnalysisLimit,
+	)
 	require.NoError(t, err)
 	keys := make([]string, 0, len(pending))
 	for _, p := range pending {
@@ -165,13 +168,16 @@ func TestFigureAnalysis_FetchFailureRetried(t *testing.T) {
 
 	figures := services.NewFigureService(
 		logging.NewNopLogger(),
-		testApp.Repositories.BookFiles,
+		testApp.TestSeeds().Repositories.BookFiles,
 		getFailingStore{fakeStore},
 	)
 	_, err := figures.AnalysePending(ctx, figureAnalysisLimit)
 	require.NoError(t, err)
 
-	pending, err := testApp.Repositories.BookFiles.ListUnanalysed(ctx, figureAnalysisLimit)
+	pending, err := testApp.TestSeeds().Repositories.BookFiles.ListUnanalysed(
+		ctx,
+		figureAnalysisLimit,
+	)
 	require.NoError(t, err)
 	keys := make([]string, 0, len(pending))
 	for _, p := range pending {

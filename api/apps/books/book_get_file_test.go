@@ -42,7 +42,7 @@ func uploadFileForOwner(
 		// Insert the PDF row directly so recognition is not required.
 		book := addUniqueBook(t)
 		// Ensure the user_books row exists (required by tag/status services).
-		require.NoError(t, testApp.Repositories.Books.UpsertUserBook(
+		require.NoError(t, testApp.TestSeeds().Repositories.Books.UpsertUserBook(
 			context.Background(),
 			models.UserBook{ //nolint:exhaustruct //optional fields
 				UserID:         ownerID,
@@ -65,7 +65,7 @@ func uploadFileForOwner(
 			SizeBytes:  9,
 			Status:     models.FileStatusReady,
 		}
-		bf, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+		bf, err := testApp.TestSeeds().Repositories.BookFiles.Insert(context.Background(), f)
 		require.NoError(t, err)
 		return bf, book.ID
 	}
@@ -106,7 +106,7 @@ func insertKEPUBRowWithVersion(
 		Status:           models.FileStatusReady,
 		ConverterVersion: converterVersion,
 	}
-	_, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(context.Background(), f)
 	require.NoError(t, err)
 }
 

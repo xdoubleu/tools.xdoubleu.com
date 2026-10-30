@@ -210,7 +210,7 @@ func TestReadingStateRepo_KoboLocationAndReadAtRoundTrip(t *testing.T) {
 	readAt := time.Date(2026, 9, 30, 8, 15, 42, 0, time.UTC)
 	loc := models.KoboLocation{Source: "a.xhtml", Type: "KoboSpan", Value: "kobo.3.4"}
 
-	require.NoError(t, testApp.Repositories.ReadingState.Upsert(ctx,
+	require.NoError(t, testApp.TestSeeds().Repositories.ReadingState.Upsert(ctx,
 		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
 			UserID:       userID,
 			BookID:       book.ID,
@@ -220,7 +220,7 @@ func TestReadingStateRepo_KoboLocationAndReadAtRoundTrip(t *testing.T) {
 			ReadAt:       &readAt,
 		}))
 
-	states, err := testApp.Repositories.ReadingState.ListByUser(ctx, userID)
+	states, err := testApp.TestSeeds().Repositories.ReadingState.ListByUser(ctx, userID)
 	require.NoError(t, err)
 	var got *models.BookReadingState
 	for i := range states {
@@ -249,7 +249,7 @@ func TestMergeBooks_CopiedReadingStateDropsKoboLocation(t *testing.T) {
 		[]string{},
 	)
 	loser := addMergeBook(t, "KoboLocB", "9780021570002", models.StatusReading, []string{})
-	require.NoError(t, testApp.Repositories.ReadingState.Upsert(ctx,
+	require.NoError(t, testApp.TestSeeds().Repositories.ReadingState.Upsert(ctx,
 		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
 			UserID:  mergeTestUser,
 			BookID:  loser.BookID,
@@ -266,7 +266,7 @@ func TestMergeBooks_CopiedReadingStateDropsKoboLocation(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	got, err := testApp.Repositories.ReadingState.Get(
+	got, err := testApp.TestSeeds().Repositories.ReadingState.Get(
 		ctx, mergeTestUser, winner.BookID,
 	)
 	require.NoError(t, err)

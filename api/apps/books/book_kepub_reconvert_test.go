@@ -79,7 +79,7 @@ func TestKEPUBQueue_RequestsCollapseAndDrainClears(t *testing.T) {
 	).Scan(&queued))
 	assert.Zero(t, queued)
 
-	kepub, err := testApp.Repositories.BookFiles.GetByBookAndFormat(
+	kepub, err := testApp.TestSeeds().Repositories.BookFiles.GetByBookAndFormat(
 		ctx, owner, bookID, models.FileFormatKEPUB,
 	)
 	require.NoError(t, err)
@@ -134,7 +134,7 @@ func insertStaleKEPUBFrom(
 	sourceID uuid.UUID,
 ) *models.BookFile {
 	t.Helper()
-	stale, err := testApp.Repositories.BookFiles.Insert(
+	stale, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
 		context.Background(),
 		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
 			BookID:       bookID,
@@ -152,7 +152,7 @@ func insertStaleKEPUBFrom(
 
 func countKEPUBRows(t *testing.T, bookID uuid.UUID) int {
 	t.Helper()
-	files, err := testApp.Repositories.BookFiles.ListByBook(
+	files, err := testApp.TestSeeds().Repositories.BookFiles.ListByBook(
 		context.Background(), userID, bookID,
 	)
 	require.NoError(t, err)
@@ -203,7 +203,7 @@ func TestBookFilesReplace_FailedInsertKeepsStaleRow(t *testing.T) {
 	source := seedEPUBFile(t, store, book.ID)
 	stale := insertStaleKEPUBFrom(t, book.ID, source.ID)
 
-	_, err := testApp.Repositories.BookFiles.Replace(
+	_, err := testApp.TestSeeds().Repositories.BookFiles.Replace(
 		context.Background(), stale.ID,
 		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
 			BookID: book.ID,
@@ -214,7 +214,10 @@ func TestBookFilesReplace_FailedInsertKeepsStaleRow(t *testing.T) {
 	)
 	require.Error(t, err)
 
-	kept, err := testApp.Repositories.BookFiles.GetByID(context.Background(), stale.ID)
+	kept, err := testApp.TestSeeds().Repositories.BookFiles.GetByID(
+		context.Background(),
+		stale.ID,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, models.FileStatusReady, kept.Status)
 }
@@ -228,7 +231,7 @@ func TestEnsureKEPUB_InProgressPlaceholderIsKept(t *testing.T) {
 	)
 	source := seedEPUBFile(t, store, book.ID)
 	sourceID := source.ID
-	placeholder, err := testApp.Repositories.BookFiles.Insert(
+	placeholder, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
 		context.Background(),
 		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
 			BookID:       book.ID,

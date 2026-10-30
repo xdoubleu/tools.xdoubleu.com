@@ -38,8 +38,8 @@ func newTestConversionService(
 	store := objectstore.NewFake()
 	svc := services.NewConversionService(
 		testApp.Logger,
-		testApp.Repositories.Books,
-		testApp.Repositories.BookFiles,
+		testApp.TestSeeds().Repositories.Books,
+		testApp.TestSeeds().Repositories.BookFiles,
 		store,
 		converter,
 		convertPDF,
@@ -102,7 +102,7 @@ func seedEPUBFile(
 		),
 	)
 
-	bf, err := testApp.Repositories.BookFiles.Insert(
+	bf, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
 		context.Background(),
 		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
 			BookID:     bookID,
@@ -177,7 +177,7 @@ func TestEnsureKEPUB_StaleConverterVersion_Regenerates(t *testing.T) {
 		context.Background(), staleKey,
 		bytes.NewReader([]byte("stale kepub content")), 20, "application/epub+zip",
 	))
-	stale, err := testApp.Repositories.BookFiles.Insert(
+	stale, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
 		context.Background(),
 		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
 			BookID:       book.ID,
@@ -202,7 +202,10 @@ func TestEnsureKEPUB_StaleConverterVersion_Regenerates(t *testing.T) {
 	assert.True(t, ok, "regenerated kepub should be in objectstore")
 	assert.Equal(t, []byte("fresh kepub content"), stored)
 
-	_, getErr := testApp.Repositories.BookFiles.GetByID(context.Background(), stale.ID)
+	_, getErr := testApp.TestSeeds().Repositories.BookFiles.GetByID(
+		context.Background(),
+		stale.ID,
+	)
 	assert.ErrorIs(
 		t,
 		getErr,
@@ -231,7 +234,7 @@ func seedPDFFile(
 		),
 	)
 
-	bf, err := testApp.Repositories.BookFiles.Insert(
+	bf, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
 		context.Background(),
 		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
 			BookID:     bookID,
@@ -281,7 +284,7 @@ func TestEnsureKEPUB_PDFConvertError_MarksFailedStatus(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "prepare epub source")
 
-	files, listErr := testApp.Repositories.BookFiles.ListByBook(
+	files, listErr := testApp.TestSeeds().Repositories.BookFiles.ListByBook(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, listErr)
@@ -320,7 +323,7 @@ func TestEnsureKEPUB_ConvertError_MarksFailedStatus(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "convert epub to kepub")
 
-	files, listErr := testApp.Repositories.BookFiles.ListByBook(
+	files, listErr := testApp.TestSeeds().Repositories.BookFiles.ListByBook(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, listErr)
@@ -347,19 +350,22 @@ func TestBooksFilesRepo_UpdateAfterConversion(t *testing.T) {
 		Status:     models.FileStatusConverting,
 	}
 
-	inserted, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	inserted, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
+		context.Background(),
+		f,
+	)
 	require.NoError(t, err)
 
 	const newKey = "users/test/books/kepub/done.kepub"
 	const newSize = int64(9999)
 	const newVersion = int16(1)
 
-	err = testApp.Repositories.BookFiles.UpdateAfterConversion(
+	err = testApp.TestSeeds().Repositories.BookFiles.UpdateAfterConversion(
 		context.Background(), inserted.ID, newKey, newSize, newVersion,
 	)
 	require.NoError(t, err)
 
-	got, err := testApp.Repositories.BookFiles.GetByID(
+	got, err := testApp.TestSeeds().Repositories.BookFiles.GetByID(
 		context.Background(),
 		inserted.ID,
 	)
@@ -410,7 +416,7 @@ func seedEPUBFileForUser(
 		))
 	}
 
-	bf, err := testApp.Repositories.BookFiles.Insert(
+	bf, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
 		context.Background(),
 		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
 			BookID:     bookID,
@@ -501,7 +507,7 @@ func TestEnsureKEPUB_StaleCanonicalBlob_ReconvertsForNewUser(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, counter.calls)
 
-	require.NoError(t, testApp.Repositories.BookFiles.UpdateAfterConversion(
+	require.NoError(t, testApp.TestSeeds().Repositories.BookFiles.UpdateAfterConversion(
 		context.Background(),
 		canonical.ID,
 		canonical.StorageKey,
@@ -537,7 +543,7 @@ func TestEnsureKEPUB_StorePutFails_MarksFailedStatus(t *testing.T) {
 			"application/epub+zip",
 		),
 	)
-	_, err := testApp.Repositories.BookFiles.Insert(
+	_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
 		context.Background(),
 		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
 			BookID:     book.ID,
@@ -552,8 +558,8 @@ func TestEnsureKEPUB_StorePutFails_MarksFailedStatus(t *testing.T) {
 
 	conv := services.NewConversionService(
 		testApp.Logger,
-		testApp.Repositories.Books,
-		testApp.Repositories.BookFiles,
+		testApp.TestSeeds().Repositories.Books,
+		testApp.TestSeeds().Repositories.BookFiles,
 		store,
 		&fakeEPUBConverter{out: []byte("kepub"), err: nil},
 		nil,
@@ -563,7 +569,7 @@ func TestEnsureKEPUB_StorePutFails_MarksFailedStatus(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "store kepub")
 
-	files, listErr := testApp.Repositories.BookFiles.ListByBook(
+	files, listErr := testApp.TestSeeds().Repositories.BookFiles.ListByBook(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, listErr)
@@ -594,7 +600,7 @@ func TestEnsureKEPUB_StoreGetFails_MarksFailedStatus(t *testing.T) {
 			"application/epub+zip",
 		),
 	)
-	_, err := testApp.Repositories.BookFiles.Insert(
+	_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
 		context.Background(),
 		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
 			BookID:     book.ID,
@@ -609,8 +615,8 @@ func TestEnsureKEPUB_StoreGetFails_MarksFailedStatus(t *testing.T) {
 
 	conv := services.NewConversionService(
 		testApp.Logger,
-		testApp.Repositories.Books,
-		testApp.Repositories.BookFiles,
+		testApp.TestSeeds().Repositories.Books,
+		testApp.TestSeeds().Repositories.BookFiles,
 		store,
 		&fakeEPUBConverter{out: []byte("kepub"), err: nil},
 		nil,
@@ -620,7 +626,7 @@ func TestEnsureKEPUB_StoreGetFails_MarksFailedStatus(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "prepare epub source")
 
-	files, listErr := testApp.Repositories.BookFiles.ListByBook(
+	files, listErr := testApp.TestSeeds().Repositories.BookFiles.ListByBook(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, listErr)

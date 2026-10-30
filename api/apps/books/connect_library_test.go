@@ -433,7 +433,11 @@ func TestConnectUpdateProgress_Pages(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, resp)
 
-	saved, err := testApp.Repositories.Books.GetUserBook(ctx, userID, book.BookID)
+	saved, err := testApp.TestSeeds().Repositories.Books.GetUserBook(
+		ctx,
+		userID,
+		book.BookID,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, models.ProgressModePages, saved.ProgressMode)
 	assert.Equal(t, 120, saved.CurrentPage)
@@ -458,7 +462,11 @@ func TestConnectUpdateProgress_PercentClamped(t *testing.T) {
 	_, err := client.UpdateProgress(ctx, req)
 	require.NoError(t, err)
 
-	saved, err := testApp.Repositories.Books.GetUserBook(ctx, userID, book.BookID)
+	saved, err := testApp.TestSeeds().Repositories.Books.GetUserBook(
+		ctx,
+		userID,
+		book.BookID,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, models.ProgressModePercent, saved.ProgressMode)
 	assert.Equal(t, 100, saved.ProgressPercent)
@@ -484,7 +492,11 @@ func TestConnectUpdateProgress_NegativeValuesClampedToZero(t *testing.T) {
 	_, err := client.UpdateProgress(ctx, req)
 	require.NoError(t, err)
 
-	saved, err := testApp.Repositories.Books.GetUserBook(ctx, userID, book.BookID)
+	saved, err := testApp.TestSeeds().Repositories.Books.GetUserBook(
+		ctx,
+		userID,
+		book.BookID,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, 0, saved.CurrentPage)
 	assert.Equal(t, 0, saved.ProgressPercent)

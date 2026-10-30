@@ -202,7 +202,10 @@ func TestApplyBookSource_Admin_Success(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
+	book, err := testApp.TestSeeds().Repositories.Books.GetBookByID(
+		context.Background(),
+		ub.BookID,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, "The Odyssey", book.Title)
 	assert.Equal(t, []string{"Homer"}, book.Authors)
@@ -246,7 +249,10 @@ func TestApplyBookSource_Admin_Override(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
+	book, err := testApp.TestSeeds().Repositories.Books.GetBookByID(
+		context.Background(),
+		ub.BookID,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, "The Odyssey", book.Title)
 	require.NotNil(t, book.MetadataSource)

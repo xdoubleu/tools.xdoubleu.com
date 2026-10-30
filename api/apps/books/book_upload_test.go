@@ -288,7 +288,7 @@ func TestUploadFile_EnsuresOwnDigitalTag(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	ub, err := testApp.Repositories.Books.GetUserBook(
+	ub, err := testApp.TestSeeds().Repositories.Books.GetUserBook(
 		context.Background(), userID, result.UserBook.BookID,
 	)
 	require.NoError(t, err)
@@ -461,13 +461,13 @@ func TestBookFilesRepo_FindByChecksumForUser(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	got, err := testApp.Repositories.BookFiles.FindByChecksumForUser(
+	got, err := testApp.TestSeeds().Repositories.BookFiles.FindByChecksumForUser(
 		context.Background(), userID, *r1.BookFile.Checksum,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, userID, got.UserID)
 
-	_, err = testApp.Repositories.BookFiles.FindByChecksumForUser(
+	_, err = testApp.TestSeeds().Repositories.BookFiles.FindByChecksumForUser(
 		context.Background(), "someone-else", *r1.BookFile.Checksum,
 	)
 	require.ErrorIs(t, err, database.ErrResourceNotFound)
@@ -476,7 +476,7 @@ func TestBookFilesRepo_FindByChecksumForUser(t *testing.T) {
 func TestBooksRepo_FindUserBookByISBN13_Found(t *testing.T) {
 	ub := addTestBookWithISBN(t, "ISBNRepoFind", "9784444444444")
 
-	got, err := testApp.Repositories.Books.FindUserBookByISBN13(
+	got, err := testApp.TestSeeds().Repositories.Books.FindUserBookByISBN13(
 		context.Background(), userID, "9784444444444",
 	)
 	require.NoError(t, err)
@@ -485,7 +485,7 @@ func TestBooksRepo_FindUserBookByISBN13_Found(t *testing.T) {
 }
 
 func TestBooksRepo_FindUserBookByISBN13_NotFound(t *testing.T) {
-	got, err := testApp.Repositories.Books.FindUserBookByISBN13(
+	got, err := testApp.TestSeeds().Repositories.Books.FindUserBookByISBN13(
 		context.Background(), userID, "9780000000000",
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
@@ -495,7 +495,7 @@ func TestBooksRepo_FindUserBookByISBN13_NotFound(t *testing.T) {
 func TestBooksRepo_FindUserBookByTitleAndAuthor_Found(t *testing.T) {
 	ub := addTestBookWithISBN(t, "TitleAuthorRepoFind", "9785555555555")
 
-	got, err := testApp.Repositories.Books.FindUserBookByTitleAndAuthor(
+	got, err := testApp.TestSeeds().Repositories.Books.FindUserBookByTitleAndAuthor(
 		context.Background(), userID, "TitleAuthorRepoFind", "Coverage Author",
 	)
 	require.NoError(t, err)
@@ -504,7 +504,7 @@ func TestBooksRepo_FindUserBookByTitleAndAuthor_Found(t *testing.T) {
 }
 
 func TestBooksRepo_FindUserBookByTitleAndAuthor_NotFound(t *testing.T) {
-	got, err := testApp.Repositories.Books.FindUserBookByTitleAndAuthor(
+	got, err := testApp.TestSeeds().Repositories.Books.FindUserBookByTitleAndAuthor(
 		context.Background(), userID, "NoSuchTitleXYZ", "NoSuchAuthorXYZ",
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
@@ -523,10 +523,13 @@ func TestBookFilesRepo_FindByChecksum_Found(t *testing.T) {
 		Checksum:   &chk,
 		Status:     models.FileStatusReady,
 	}
-	inserted, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	inserted, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
+		context.Background(),
+		f,
+	)
 	require.NoError(t, err)
 
-	got, err := testApp.Repositories.BookFiles.FindByChecksum(
+	got, err := testApp.TestSeeds().Repositories.BookFiles.FindByChecksum(
 		context.Background(), userID, book.ID, models.FileFormatEPUB, chk,
 	)
 	require.NoError(t, err)
@@ -536,7 +539,7 @@ func TestBookFilesRepo_FindByChecksum_Found(t *testing.T) {
 
 func TestBookFilesRepo_FindByChecksum_NotFound(t *testing.T) {
 	book := addUniqueBook(t)
-	got, err := testApp.Repositories.BookFiles.FindByChecksum(
+	got, err := testApp.TestSeeds().Repositories.BookFiles.FindByChecksum(
 		context.Background(), userID, book.ID, models.FileFormatEPUB, "nonexistent",
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
@@ -556,10 +559,13 @@ func TestBookFilesRepo_FindByChecksumGlobal_Found(t *testing.T) {
 		Checksum:   func() *string { s := chk; return &s }(),
 		Status:     models.FileStatusReady,
 	}
-	inserted, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	inserted, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
+		context.Background(),
+		f,
+	)
 	require.NoError(t, err)
 
-	got, err := testApp.Repositories.BookFiles.FindByChecksumGlobal(
+	got, err := testApp.TestSeeds().Repositories.BookFiles.FindByChecksumGlobal(
 		context.Background(), chk,
 	)
 	require.NoError(t, err)
@@ -568,7 +574,7 @@ func TestBookFilesRepo_FindByChecksumGlobal_Found(t *testing.T) {
 }
 
 func TestBookFilesRepo_FindByChecksumGlobal_NotFound(t *testing.T) {
-	got, err := testApp.Repositories.BookFiles.FindByChecksumGlobal(
+	got, err := testApp.TestSeeds().Repositories.BookFiles.FindByChecksumGlobal(
 		context.Background(), "no-such-global-checksum-xyz",
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
@@ -579,7 +585,7 @@ func TestBookFilesRepo_CountByStorageKey(t *testing.T) {
 	book := addUniqueBook(t)
 	// Unique per run so reruns on the shared DB don't accumulate rows.
 	key := fmt.Sprintf("books/count-test-%s.epub", book.ID)
-	n, err := testApp.Repositories.BookFiles.CountByStorageKey(
+	n, err := testApp.TestSeeds().Repositories.BookFiles.CountByStorageKey(
 		context.Background(), key,
 	)
 	require.NoError(t, err)
@@ -587,7 +593,7 @@ func TestBookFilesRepo_CountByStorageKey(t *testing.T) {
 
 	for i := range 2 {
 		chk := fmt.Sprintf("count-chk-%d", i)
-		_, insertErr := testApp.Repositories.BookFiles.Insert(
+		_, insertErr := testApp.TestSeeds().Repositories.BookFiles.Insert(
 			context.Background(),
 			models.BookFile{ //nolint:exhaustruct //optional fields omitted
 				BookID:     book.ID,
@@ -602,7 +608,7 @@ func TestBookFilesRepo_CountByStorageKey(t *testing.T) {
 		require.NoError(t, insertErr)
 	}
 
-	n, err = testApp.Repositories.BookFiles.CountByStorageKey(
+	n, err = testApp.TestSeeds().Repositories.BookFiles.CountByStorageKey(
 		context.Background(), key,
 	)
 	require.NoError(t, err)
@@ -1235,7 +1241,11 @@ func TestUpload_ChecksumLookupErrors(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := testApp.Repositories.BookFiles.FindByChecksumForUser(ctx, userID, "x")
+	_, err := testApp.TestSeeds().Repositories.BookFiles.FindByChecksumForUser(
+		ctx,
+		userID,
+		"x",
+	)
 	require.Error(t, err)
 	require.NotErrorIs(t, err, database.ErrResourceNotFound)
 

@@ -17,7 +17,7 @@ import (
 // across test runs (no upsert collision).
 func addUniqueBook(t *testing.T) *models.Book {
 	t.Helper()
-	book, err := testApp.Repositories.Books.UpsertBook(
+	book, err := testApp.TestSeeds().Repositories.Books.UpsertBook(
 		context.Background(),
 		models.Book{ //nolint:exhaustruct //only required fields; no ISBN to avoid sharing
 			Title:   fmt.Sprintf("unique-book-%s", uuid.NewString()),
@@ -40,7 +40,10 @@ func TestBookFilesRepo_Insert(t *testing.T) {
 		Status:     models.FileStatusReady,
 	}
 
-	inserted, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	inserted, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
+		context.Background(),
+		f,
+	)
 	require.NoError(t, err)
 	require.NotNil(t, inserted)
 	assert.Equal(t, f.BookID, inserted.BookID)
@@ -64,10 +67,13 @@ func TestBookFilesRepo_GetByID_Found(t *testing.T) {
 		Status:     models.FileStatusReady,
 	}
 
-	inserted, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	inserted, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
+		context.Background(),
+		f,
+	)
 	require.NoError(t, err)
 
-	got, err := testApp.Repositories.BookFiles.GetByID(
+	got, err := testApp.TestSeeds().Repositories.BookFiles.GetByID(
 		context.Background(),
 		inserted.ID,
 	)
@@ -78,7 +84,7 @@ func TestBookFilesRepo_GetByID_Found(t *testing.T) {
 }
 
 func TestBookFilesRepo_GetByID_NotFound(t *testing.T) {
-	got, err := testApp.Repositories.BookFiles.GetByID(
+	got, err := testApp.TestSeeds().Repositories.BookFiles.GetByID(
 		context.Background(),
 		uuid.New(),
 	)
@@ -98,11 +104,11 @@ func TestBookFilesRepo_ListByBook(t *testing.T) {
 			SizeBytes:  512,
 			Status:     models.FileStatusReady,
 		}
-		_, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+		_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(context.Background(), f)
 		require.NoError(t, err)
 	}
 
-	files, err := testApp.Repositories.BookFiles.ListByBook(
+	files, err := testApp.TestSeeds().Repositories.BookFiles.ListByBook(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)
@@ -116,7 +122,7 @@ func TestBookFilesRepo_ListByBook(t *testing.T) {
 func TestBookFilesRepo_ListByBook_Empty(t *testing.T) {
 	book := addUniqueBook(t)
 
-	files, err := testApp.Repositories.BookFiles.ListByBook(
+	files, err := testApp.TestSeeds().Repositories.BookFiles.ListByBook(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)
@@ -135,10 +141,13 @@ func TestBookFilesRepo_GetByBookAndFormat_Found(t *testing.T) {
 		Status:     models.FileStatusConverting,
 	}
 
-	inserted, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	inserted, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
+		context.Background(),
+		f,
+	)
 	require.NoError(t, err)
 
-	got, err := testApp.Repositories.BookFiles.GetByBookAndFormat(
+	got, err := testApp.TestSeeds().Repositories.BookFiles.GetByBookAndFormat(
 		context.Background(), userID, book.ID, models.FileFormatKEPUB,
 	)
 	require.NoError(t, err)
@@ -148,7 +157,7 @@ func TestBookFilesRepo_GetByBookAndFormat_Found(t *testing.T) {
 }
 
 func TestBookFilesRepo_GetByBookAndFormat_NotFound(t *testing.T) {
-	got, err := testApp.Repositories.BookFiles.GetByBookAndFormat(
+	got, err := testApp.TestSeeds().Repositories.BookFiles.GetByBookAndFormat(
 		context.Background(), userID, uuid.New(), models.FileFormatEPUB,
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
@@ -167,15 +176,18 @@ func TestBookFilesRepo_UpdateStatus(t *testing.T) {
 		Status:     models.FileStatusConverting,
 	}
 
-	inserted, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	inserted, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
+		context.Background(),
+		f,
+	)
 	require.NoError(t, err)
 
-	err = testApp.Repositories.BookFiles.UpdateStatus(
+	err = testApp.TestSeeds().Repositories.BookFiles.UpdateStatus(
 		context.Background(), inserted.ID, models.FileStatusReady,
 	)
 	require.NoError(t, err)
 
-	got, err := testApp.Repositories.BookFiles.GetByID(
+	got, err := testApp.TestSeeds().Repositories.BookFiles.GetByID(
 		context.Background(),
 		inserted.ID,
 	)
@@ -195,13 +207,19 @@ func TestBookFilesRepo_Delete(t *testing.T) {
 		Status:     models.FileStatusReady,
 	}
 
-	inserted, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	inserted, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
+		context.Background(),
+		f,
+	)
 	require.NoError(t, err)
 
-	err = testApp.Repositories.BookFiles.Delete(context.Background(), inserted.ID)
+	err = testApp.TestSeeds().Repositories.BookFiles.Delete(
+		context.Background(),
+		inserted.ID,
+	)
 	require.NoError(t, err)
 
-	got, err := testApp.Repositories.BookFiles.GetByID(
+	got, err := testApp.TestSeeds().Repositories.BookFiles.GetByID(
 		context.Background(),
 		inserted.ID,
 	)
@@ -220,10 +238,10 @@ func TestBookFilesRepo_FilesByUser_PDFOnly(t *testing.T) {
 		SizeBytes:  512,
 		Status:     models.FileStatusReady,
 	}
-	_, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(context.Background(), f)
 	require.NoError(t, err)
 
-	result, err := testApp.Repositories.BookFiles.FilesByUser(
+	result, err := testApp.TestSeeds().Repositories.BookFiles.FilesByUser(
 		context.Background(),
 		userID,
 	)
@@ -243,10 +261,10 @@ func TestBookFilesRepo_FilesByUser_EPUBOnly(t *testing.T) {
 		SizeBytes:  512,
 		Status:     models.FileStatusReady,
 	}
-	_, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(context.Background(), f)
 	require.NoError(t, err)
 
-	result, err := testApp.Repositories.BookFiles.FilesByUser(
+	result, err := testApp.TestSeeds().Repositories.BookFiles.FilesByUser(
 		context.Background(),
 		userID,
 	)
@@ -267,11 +285,11 @@ func TestBookFilesRepo_FilesByUser_BothFormats(t *testing.T) {
 			SizeBytes:  512,
 			Status:     models.FileStatusReady,
 		}
-		_, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+		_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(context.Background(), f)
 		require.NoError(t, err)
 	}
 
-	result, err := testApp.Repositories.BookFiles.FilesByUser(
+	result, err := testApp.TestSeeds().Repositories.BookFiles.FilesByUser(
 		context.Background(),
 		userID,
 	)
@@ -294,10 +312,13 @@ func TestBookFilesRepo_FilesByUser_KEPUBExcluded(t *testing.T) {
 		SizeBytes:  512,
 		Status:     models.FileStatusReady,
 	}
-	inserted, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	inserted, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
+		context.Background(),
+		f,
+	)
 	require.NoError(t, err)
 
-	result, err := testApp.Repositories.BookFiles.FilesByUser(
+	result, err := testApp.TestSeeds().Repositories.BookFiles.FilesByUser(
 		context.Background(),
 		userID,
 	)
@@ -321,10 +342,10 @@ func TestBookFilesRepo_FilesByUser_NotReadyExcluded(t *testing.T) {
 		SizeBytes:  512,
 		Status:     models.FileStatusConverting,
 	}
-	_, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(context.Background(), f)
 	require.NoError(t, err)
 
-	result, err := testApp.Repositories.BookFiles.FilesByUser(
+	result, err := testApp.TestSeeds().Repositories.BookFiles.FilesByUser(
 		context.Background(),
 		userID,
 	)
@@ -339,7 +360,7 @@ func TestBookFilesRepo_FilesByUser_VersionsFollowServedFile(t *testing.T) {
 	book := addUniqueBook(t)
 
 	insert := func(format, key string) *models.BookFile {
-		f, err := testApp.Repositories.BookFiles.Insert(
+		f, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
 			context.Background(),
 			models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
 				BookID:     book.ID,
@@ -357,17 +378,17 @@ func TestBookFilesRepo_FilesByUser_VersionsFollowServedFile(t *testing.T) {
 	insert(models.FileFormatEPUB, "users/test/books/epub/v2.epub")
 	kepub := insert(models.FileFormatKEPUB, "users/test/books/kepub/v1.kepub")
 
-	served, err := testApp.Repositories.BookFiles.GetByBookAndFormat(
+	served, err := testApp.TestSeeds().Repositories.BookFiles.GetByBookAndFormat(
 		context.Background(), userID, book.ID, models.FileFormatEPUB,
 	)
 	require.NoError(t, err)
 	require.Equal(t, epub.ID, served.ID)
 
-	require.NoError(t, testApp.Repositories.BookFiles.UpdateAfterConversion(
+	require.NoError(t, testApp.TestSeeds().Repositories.BookFiles.UpdateAfterConversion(
 		context.Background(), kepub.ID, "users/test/books/kepub/v2.kepub", 600, 7,
 	))
 
-	result, err := testApp.Repositories.BookFiles.FilesByUser(
+	result, err := testApp.TestSeeds().Repositories.BookFiles.FilesByUser(
 		context.Background(),
 		userID,
 	)
@@ -385,7 +406,7 @@ func TestBookFilesRepo_FilesByUser_ServedFileNotReady(t *testing.T) {
 	book := addUniqueBook(t)
 
 	for _, status := range []string{models.FileStatusConverting, models.FileStatusReady} {
-		_, err := testApp.Repositories.BookFiles.Insert(
+		_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
 			context.Background(),
 			models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
 				BookID:     book.ID,
@@ -399,7 +420,7 @@ func TestBookFilesRepo_FilesByUser_ServedFileNotReady(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	result, err := testApp.Repositories.BookFiles.FilesByUser(
+	result, err := testApp.TestSeeds().Repositories.BookFiles.FilesByUser(
 		context.Background(),
 		userID,
 	)
