@@ -107,7 +107,7 @@ func TestReadingProgress_NewerWebWriteMovesBackwards(t *testing.T) {
 	require.NotNil(t, got.Position)
 	assert.Equal(t, 12, got.Position.Page)
 
-	ub, err := testApp.Repositories.Books.GetUserBook(
+	ub, err := testApp.TestSeeds().Repositories.Books.GetUserBook(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)
@@ -170,7 +170,7 @@ func TestReadingProgress_WebAtZeroNeverRegresses(t *testing.T) {
 
 	state := readState(t, book.ID)
 	assert.Equal(t, 36, state.Percent)
-	ub, err := testApp.Repositories.Books.GetUserBook(
+	ub, err := testApp.TestSeeds().Repositories.Books.GetUserBook(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)

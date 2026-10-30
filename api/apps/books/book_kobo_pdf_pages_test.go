@@ -28,7 +28,7 @@ func setupPagedBook(t *testing.T, owner string) uuid.UUID {
 	key := fmt.Sprintf("users/%s/books/%s/paged.pdf", owner, bookID)
 	require.NoError(t, fakeStore.Put(ctx, key, bytes.NewReader(pdfData),
 		int64(len(pdfData)), "application/pdf"))
-	_, err := testApp.Repositories.BookFiles.Insert(ctx,
+	_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(ctx,
 		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
 			BookID: bookID, UserID: owner, Format: models.FileFormatPDF,
 			StorageKey: key, SizeBytes: int64(len(pdfData)),
@@ -46,8 +46,12 @@ func setupPagedBook(t *testing.T, owner string) uuid.UUID {
 func convertPaged(t *testing.T, owner string, bookID uuid.UUID, intro int) {
 	t.Helper()
 	conv := services.NewConversionService(
-		testApp.Logger, testApp.Repositories.Books, testApp.Repositories.BookFiles,
-		fakeStore, nil, fakePDFConverter(mocks.PagedEPUB("Paged", "Author", intro)),
+		testApp.Logger,
+		testApp.TestSeeds().Repositories.Books,
+		testApp.TestSeeds().Repositories.BookFiles,
+		fakeStore,
+		nil,
+		fakePDFConverter(mocks.PagedEPUB("Paged", "Author", intro)),
 	)
 	kepub, err := conv.EnsureKEPUB(context.Background(), owner, bookID)
 	require.NoError(t, err)

@@ -81,7 +81,7 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, exists, "a scan must never touch the cover cache — it only reads")
 
-	scanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
+	scanned, err := testApp.TestSeeds().Repositories.Books.GetBookByID(ctx, book.BookID)
 	require.NoError(t, err)
 	require.NotNil(t, scanned.HardcoverFound)
 	assert.True(t, *scanned.HardcoverFound, "the mock provider always finds")
@@ -155,11 +155,11 @@ func TestListCatalogBooks_OrdersLeastCoveredFirst(t *testing.T) {
 		isbnFromUUID(id2),
 	)
 	trueVal := true
-	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.UpdateResyncScanStatus(
 		ctx, fullyCovered.BookID, &trueVal, &trueVal,
 	))
 
-	books, err := testApp.Repositories.Books.ListCatalogBooks(ctx)
+	books, err := testApp.TestSeeds().Repositories.Books.ListCatalogBooks(ctx)
 	require.NoError(t, err)
 
 	var neverIdx, fullIdx = -1, -1
@@ -190,20 +190,20 @@ func TestUpdateResyncScanStatus_NilFlagPreservesPriorValue(t *testing.T) {
 	)
 
 	trueVal := true
-	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.UpdateResyncScanStatus(
 		ctx, book.BookID, &trueVal, &trueVal,
 	))
 
-	scanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
+	scanned, err := testApp.TestSeeds().Repositories.Books.GetBookByID(ctx, book.BookID)
 	require.NoError(t, err)
 	require.NotNil(t, scanned.UniCatFound)
 	assert.True(t, *scanned.UniCatFound)
 
-	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.UpdateResyncScanStatus(
 		ctx, book.BookID, nil, nil,
 	))
 
-	rescanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
+	rescanned, err := testApp.TestSeeds().Repositories.Books.GetBookByID(ctx, book.BookID)
 	require.NoError(t, err)
 	require.NotNil(t, rescanned.UniCatFound)
 	assert.True(

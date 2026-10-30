@@ -32,7 +32,11 @@ func setStatus(t *testing.T, ub *models.UserBook, status string) *models.UserBoo
 	ctx := context.Background()
 	ub.Status = status
 	require.NoError(t, testApp.Services.Books.UpdateStatus(ctx, userID, *ub))
-	saved, err := testApp.Repositories.Books.GetUserBook(ctx, userID, ub.BookID)
+	saved, err := testApp.TestSeeds().Repositories.Books.GetUserBook(
+		ctx,
+		userID,
+		ub.BookID,
+	)
 	require.NoError(t, err)
 	return saved
 }
@@ -66,7 +70,11 @@ func TestReadStatus_ProgressEditStaysFull(t *testing.T) {
 		ctx, userID, ub.BookID, models.ProgressModePercent, 0, 40,
 	))
 
-	saved, err := testApp.Repositories.Books.GetUserBook(ctx, userID, ub.BookID)
+	saved, err := testApp.TestSeeds().Repositories.Books.GetUserBook(
+		ctx,
+		userID,
+		ub.BookID,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, 100, saved.DisplayProgressPercent())
 }

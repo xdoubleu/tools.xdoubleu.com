@@ -150,7 +150,7 @@ func TestPhysical_SetCurrentPageOnlyForTheLatestDigitalState(t *testing.T) {
 		BookID: bookID, Source: models.ReadingSourceWeb, Percent: 10, ReadAt: at(1),
 	})
 	state := readState(t, bookID)
-	books := testApp.Repositories.Books
+	books := testApp.TestSeeds().Repositories.Books
 
 	require.NoError(t, books.SetCurrentPageIfLatest(
 		ctx, userID, bookID, 77, state.UpdatedAt.Add(-time.Second),
@@ -294,7 +294,7 @@ func TestPhysical_KoboBackfillFollowsCurrentPage(t *testing.T) {
 func TestPhysical_SetPhysicalPositionOnlyFillsThatWrite(t *testing.T) {
 	ctx := context.Background()
 	bookID := setupPhysicalBook(t, userID, false, true)
-	states := testApp.Repositories.ReadingState
+	states := testApp.TestSeeds().Repositories.ReadingState
 	updatedAt, err := states.UpsertIfNewer(ctx,
 		models.BookReadingState{ //nolint:exhaustruct //optional fields
 			UserID: userID, BookID: bookID, Source: models.ReadingSourcePhysical,

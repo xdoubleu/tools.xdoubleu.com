@@ -33,7 +33,7 @@ esse cillum dolore eu fugiat nulla pariatur.</p>`
 func seedContentBookInLibrary(t *testing.T, ownerID string) *models.Book {
 	t.Helper()
 	book := addUniqueBook(t)
-	require.NoError(t, testApp.Repositories.Books.UpsertUserBook(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.UpsertUserBook(
 		context.Background(),
 		models.UserBook{ //nolint:exhaustruct //optional fields
 			UserID:         ownerID,
@@ -53,7 +53,7 @@ func seedSourcedBookInLibrary(
 	t *testing.T, ownerID, sourceURL string,
 ) *models.Book {
 	t.Helper()
-	book, err := testApp.Repositories.Books.UpsertBook(
+	book, err := testApp.TestSeeds().Repositories.Books.UpsertBook(
 		context.Background(),
 		models.Book{ //nolint:exhaustruct //only required fields
 			Title:     fmt.Sprintf("unique-sourced-book-%s", uuid.NewString()),
@@ -62,7 +62,7 @@ func seedSourcedBookInLibrary(
 		},
 	)
 	require.NoError(t, err)
-	require.NoError(t, testApp.Repositories.Books.UpsertUserBook(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.UpsertUserBook(
 		context.Background(),
 		models.UserBook{ //nolint:exhaustruct //optional fields
 			UserID:         ownerID,
@@ -80,11 +80,11 @@ func seedSourcedBookInLibrary(
 func TestBookContentRepo_SetAndGet_RoundTrip(t *testing.T) {
 	book := seedContentBookInLibrary(t, userID)
 
-	require.NoError(t, testApp.Repositories.Books.SetBookContentHTML(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.SetBookContentHTML(
 		context.Background(), book.ID, "<p>Hello world</p>",
 	))
 
-	html, err := testApp.Repositories.Books.GetBookContentHTML(
+	html, err := testApp.TestSeeds().Repositories.Books.GetBookContentHTML(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)
@@ -95,7 +95,7 @@ func TestBookContentRepo_SetAndGet_RoundTrip(t *testing.T) {
 func TestBookContentRepo_Get_NilWhenNeverSet(t *testing.T) {
 	book := seedContentBookInLibrary(t, userID)
 
-	html, err := testApp.Repositories.Books.GetBookContentHTML(
+	html, err := testApp.TestSeeds().Repositories.Books.GetBookContentHTML(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)
@@ -105,14 +105,14 @@ func TestBookContentRepo_Get_NilWhenNeverSet(t *testing.T) {
 func TestBookContentRepo_Get_OtherUserBook_ReturnsNotFound(t *testing.T) {
 	book := seedContentBookInLibrary(t, userID)
 
-	_, err := testApp.Repositories.Books.GetBookContentHTML(
+	_, err := testApp.TestSeeds().Repositories.Books.GetBookContentHTML(
 		context.Background(), "other-user-idor-check-getcontent", book.ID,
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
 }
 
 func TestBookContentRepo_Get_UnknownBookID_ReturnsNotFound(t *testing.T) {
-	_, err := testApp.Repositories.Books.GetBookContentHTML(
+	_, err := testApp.TestSeeds().Repositories.Books.GetBookContentHTML(
 		context.Background(), userID, uuid.New(),
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
@@ -123,7 +123,11 @@ func TestBookContentRepo_Get_QueryError_ReturnsErr(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := testApp.Repositories.Books.GetBookContentHTML(ctx, userID, book.ID)
+	_, err := testApp.TestSeeds().Repositories.Books.GetBookContentHTML(
+		ctx,
+		userID,
+		book.ID,
+	)
 	require.Error(t, err)
 	assert.NotErrorIs(t, err, database.ErrResourceNotFound)
 }
@@ -155,7 +159,7 @@ func TestBookService_GetContentHTML_PropagatesRepoError(t *testing.T) {
 func TestConnectGetBookContent_OK(t *testing.T) {
 	client := newBooksTestClient(t)
 	book := seedContentBookInLibrary(t, userID)
-	require.NoError(t, testApp.Repositories.Books.SetBookContentHTML(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.SetBookContentHTML(
 		context.Background(), book.ID, "<p>Article body</p>",
 	))
 
@@ -205,7 +209,7 @@ func TestConnectGetBookContent_BackfillsMissingContentForSourcedItem(t *testing.
 	require.NoError(t, err)
 	assert.Contains(t, resp.Html, "Lorem ipsum")
 
-	stored, err := testApp.Repositories.Books.GetBookContentHTML(
+	stored, err := testApp.TestSeeds().Repositories.Books.GetBookContentHTML(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)
@@ -224,7 +228,7 @@ func TestBackfillContentHTML_LogsWhenPersistFails(t *testing.T) {
 	html := testApp.Services.Ingest.BackfillContentHTML(ctx, book)
 	assert.Contains(t, html, "Lorem ipsum")
 
-	stored, err := testApp.Repositories.Books.GetBookContentHTML(
+	stored, err := testApp.TestSeeds().Repositories.Books.GetBookContentHTML(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)

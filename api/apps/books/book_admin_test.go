@@ -204,7 +204,9 @@ func TestListCatalogBooks_ReturnsAllBooks(t *testing.T) {
 	ub := addTestBook(t, "CatalogListTestBook")
 	require.NotNil(t, ub)
 
-	books, err := testApp.Repositories.Books.ListCatalogBooks(context.Background())
+	books, err := testApp.TestSeeds().Repositories.Books.ListCatalogBooks(
+		context.Background(),
+	)
 	require.NoError(t, err)
 
 	var found bool
@@ -309,7 +311,10 @@ func TestSetBookISBN_Success_UpdatesISBN(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
+	book, err := testApp.TestSeeds().Repositories.Books.GetBookByID(
+		context.Background(),
+		ub.BookID,
+	)
 	require.NoError(t, err)
 	require.NotNil(t, book.ISBN13)
 	assert.Equal(t, newISBN, *book.ISBN13)
@@ -361,7 +366,10 @@ func TestSetBookISBN_WithHyphens_NormalisedAndAccepted(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
+	book, err := testApp.TestSeeds().Repositories.Books.GetBookByID(
+		context.Background(),
+		ub.BookID,
+	)
 	require.NoError(t, err)
 	require.NotNil(t, book.ISBN13)
 	assert.Equal(t, rawISBN, *book.ISBN13, "hyphens must be stripped")
@@ -475,7 +483,10 @@ func TestUpdateBook_Success_UpdatesAllFields(t *testing.T) {
 	assert.Equal(t, "Edited description.", resp.Book.Description)
 	assert.Equal(t, int32(321), resp.Book.PageCount)
 
-	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
+	book, err := testApp.TestSeeds().Repositories.Books.GetBookByID(
+		context.Background(),
+		ub.BookID,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, "Edited Title", book.Title)
 	require.NotNil(t, book.ISBN13)
@@ -502,7 +513,10 @@ func TestUpdateBook_EmptyCoverURL_ClearsCover(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
+	book, err := testApp.TestSeeds().Repositories.Books.GetBookByID(
+		context.Background(),
+		ub.BookID,
+	)
 	require.NoError(t, err)
 	assert.Nil(t, book.CoverURL)
 }
@@ -541,7 +555,7 @@ func TestGetBooksByIDs_ReturnsMatchingBooks(t *testing.T) {
 
 	ctx := context.Background()
 
-	books, err := testApp.Repositories.Books.GetBooksByIDs(
+	books, err := testApp.TestSeeds().Repositories.Books.GetBooksByIDs(
 		ctx,
 		[]uuid.UUID{ub1.BookID, ub2.BookID},
 	)
@@ -558,7 +572,7 @@ func TestGetBooksByIDs_ReturnsMatchingBooks(t *testing.T) {
 		"GetBooksByIDs must return exactly the requested books",
 	)
 
-	none, err := testApp.Repositories.Books.GetBooksByIDs(ctx, nil)
+	none, err := testApp.TestSeeds().Repositories.Books.GetBooksByIDs(ctx, nil)
 	require.NoError(t, err)
 	assert.Nil(t, none)
 }

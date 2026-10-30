@@ -113,7 +113,7 @@ func TestRemoveFromLibrary_Service_OtherUserStillHas_KeepsCatalogRowAndFile(
 	// Seed the shared book for the primary test user, then add removeBookUser
 	// to the same book's library so it is shared.
 	shared := addTestBookWithISBN(t, "RemoveBookShared", "9780316769490")
-	err := testApp.Repositories.Books.UpsertUserBook(
+	err := testApp.TestSeeds().Repositories.Books.UpsertUserBook(
 		context.Background(),
 		models.UserBook{ //nolint:exhaustruct //optional fields
 			UserID: removeBookUser,
@@ -194,7 +194,7 @@ func TestRemoveFromLibrary_Service_SharedStorageKey_KeepsR2Object(t *testing.T) 
 
 	// Two users' book_files rows point at the same content-addressed storage
 	// key (as happens with cross-user dedup on upload).
-	_, err := testApp.Repositories.BookFiles.Insert(
+	_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
 		context.Background(),
 		models.BookFile{ //nolint:exhaustruct //optional fields omitted
 			BookID:     book.ID,
@@ -206,7 +206,7 @@ func TestRemoveFromLibrary_Service_SharedStorageKey_KeepsR2Object(t *testing.T) 
 		},
 	)
 	require.NoError(t, err)
-	_, err = testApp.Repositories.BookFiles.Insert(
+	_, err = testApp.TestSeeds().Repositories.BookFiles.Insert(
 		context.Background(),
 		models.BookFile{ //nolint:exhaustruct //optional fields omitted
 			BookID:     book.ID,
@@ -223,7 +223,7 @@ func TestRemoveFromLibrary_Service_SharedStorageKey_KeepsR2Object(t *testing.T) 
 			`DELETE FROM books.book_files WHERE user_id = $1 AND storage_key = $2`,
 			userID, sharedKey)
 	})
-	err = testApp.Repositories.Books.UpsertUserBook(
+	err = testApp.TestSeeds().Repositories.Books.UpsertUserBook(
 		context.Background(),
 		models.UserBook{ //nolint:exhaustruct //optional fields
 			UserID: removeBookUser,
@@ -233,7 +233,7 @@ func TestRemoveFromLibrary_Service_SharedStorageKey_KeepsR2Object(t *testing.T) 
 		},
 	)
 	require.NoError(t, err)
-	err = testApp.Repositories.Books.UpsertUserBook(
+	err = testApp.TestSeeds().Repositories.Books.UpsertUserBook(
 		context.Background(),
 		models.UserBook{ //nolint:exhaustruct //optional fields
 			UserID: userID,

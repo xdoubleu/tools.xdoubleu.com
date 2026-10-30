@@ -29,7 +29,7 @@ func tokenHash(raw string) string {
 
 func TestGetKEPUBStatus_NoFiles(t *testing.T) {
 	book := addUniqueBook(t)
-	err := testApp.Repositories.Books.UpsertUserBook(
+	err := testApp.TestSeeds().Repositories.Books.UpsertUserBook(
 		context.Background(),
 		models.UserBook{ //nolint:exhaustruct //optional fields
 			UserID: userID,
@@ -111,7 +111,10 @@ func TestGetKEPUBStatus_EPUBAndKEPUBConverting(t *testing.T) {
 		SizeBytes:  0,
 		Status:     models.FileStatusConverting,
 	}
-	_, err := testApp.Repositories.BookFiles.Insert(context.Background(), convertingRow)
+	_, err := testApp.TestSeeds().Repositories.BookFiles.Insert(
+		context.Background(),
+		convertingRow,
+	)
 	require.NoError(t, err)
 
 	result, err := testApp.Services.Books.GetKEPUBStatus(
@@ -263,7 +266,7 @@ func TestConnectGetKEPUBStatus_NoFiles(t *testing.T) {
 	defer cancel()
 
 	book := addUniqueBook(t)
-	err := testApp.Repositories.Books.UpsertUserBook(
+	err := testApp.TestSeeds().Repositories.Books.UpsertUserBook(
 		context.Background(),
 		models.UserBook{ //nolint:exhaustruct //optional fields
 			UserID: userID,
@@ -329,7 +332,7 @@ func TestCreateKoboDevice_AndLookup(t *testing.T) {
 	})
 
 	hash := tokenHash("some-raw-token-value")
-	device, err := testApp.Repositories.KoboDevices.CreateKoboDevice(
+	device, err := testApp.TestSeeds().Repositories.KoboDevices.CreateKoboDevice(
 		ctx, ownerID, "My Kobo", "SN123", hash,
 	)
 	require.NoError(t, err)
@@ -339,7 +342,7 @@ func TestCreateKoboDevice_AndLookup(t *testing.T) {
 	assert.Equal(t, "SN123", device.Serial)
 	assert.Nil(t, device.LastSeenAt)
 
-	gotUserID, gotDeviceID, err := testApp.Repositories.KoboDevices.
+	gotUserID, gotDeviceID, err := testApp.TestSeeds().Repositories.KoboDevices.
 		GetKoboAuthByTokenHash(ctx, hash)
 	require.NoError(t, err)
 	assert.Equal(t, ownerID, gotUserID)
@@ -348,7 +351,7 @@ func TestCreateKoboDevice_AndLookup(t *testing.T) {
 
 func TestGetKoboAuthByTokenHash_NotFound(t *testing.T) {
 	ctx := context.Background()
-	_, _, err := testApp.Repositories.KoboDevices.GetKoboAuthByTokenHash(
+	_, _, err := testApp.TestSeeds().Repositories.KoboDevices.GetKoboAuthByTokenHash(
 		ctx, "nonexistent-hash-xyz",
 	)
 	require.Error(t, err)
@@ -364,13 +367,16 @@ func TestListKoboDevices_ReturnedInCreatedOrder(t *testing.T) {
 	})
 
 	for i, name := range []string{"Device A", "Device B"} {
-		_, err := testApp.Repositories.KoboDevices.CreateKoboDevice(
+		_, err := testApp.TestSeeds().Repositories.KoboDevices.CreateKoboDevice(
 			ctx, ownerID, name, "", tokenHash("tok"+string(rune('a'+i))),
 		)
 		require.NoError(t, err)
 	}
 
-	devices, err := testApp.Repositories.KoboDevices.ListKoboDevices(ctx, ownerID)
+	devices, err := testApp.TestSeeds().Repositories.KoboDevices.ListKoboDevices(
+		ctx,
+		ownerID,
+	)
 	require.NoError(t, err)
 	require.Len(t, devices, 2)
 	assert.Equal(t, "Device A", devices[0].Name)
@@ -386,12 +392,15 @@ func TestDeleteKoboDevice_RevokesToken(t *testing.T) {
 	})
 
 	hash := tokenHash("raw-token-to-revoke")
-	device, err := testApp.Repositories.KoboDevices.CreateKoboDevice(
+	device, err := testApp.TestSeeds().Repositories.KoboDevices.CreateKoboDevice(
 		ctx, ownerID, "Revoke Me", "", hash,
 	)
 	require.NoError(t, err)
 
-	gotUID, _, err := testApp.Repositories.KoboDevices.GetKoboAuthByTokenHash(ctx, hash)
+	gotUID, _, err := testApp.TestSeeds().Repositories.KoboDevices.GetKoboAuthByTokenHash(
+		ctx,
+		hash,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, ownerID, gotUID)
 
@@ -399,10 +408,13 @@ func TestDeleteKoboDevice_RevokesToken(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(
 		t,
-		testApp.Repositories.KoboDevices.DeleteKoboDevice(ctx, ownerID, deviceID),
+		testApp.TestSeeds().Repositories.KoboDevices.DeleteKoboDevice(ctx, ownerID, deviceID),
 	)
 
-	_, _, err = testApp.Repositories.KoboDevices.GetKoboAuthByTokenHash(ctx, hash)
+	_, _, err = testApp.TestSeeds().Repositories.KoboDevices.GetKoboAuthByTokenHash(
+		ctx,
+		hash,
+	)
 	assert.True(t, errors.Is(err, database.ErrResourceNotFound),
 		"token must be invalidated after device deletion")
 }
@@ -415,7 +427,7 @@ func TestDeleteKoboDevice_WrongUser_NotFound(t *testing.T) {
 			`DELETE FROM books.kobo_devices WHERE user_id = $1`, ownerID)
 	})
 
-	device, err := testApp.Repositories.KoboDevices.CreateKoboDevice(
+	device, err := testApp.TestSeeds().Repositories.KoboDevices.CreateKoboDevice(
 		ctx, ownerID, "My Kobo", "", tokenHash("tok-xyz"),
 	)
 	require.NoError(t, err)
@@ -423,7 +435,7 @@ func TestDeleteKoboDevice_WrongUser_NotFound(t *testing.T) {
 	deviceID, err := uuid.Parse(device.ID)
 	require.NoError(t, err)
 
-	err = testApp.Repositories.KoboDevices.DeleteKoboDevice(
+	err = testApp.TestSeeds().Repositories.KoboDevices.DeleteKoboDevice(
 		ctx, "someone-else-"+uuid.NewString(), deviceID,
 	)
 	assert.True(t, errors.Is(err, database.ErrResourceNotFound))
@@ -438,16 +450,22 @@ func TestGetKoboAuthByTokenHash_UpdatesLastSeenAt(t *testing.T) {
 	})
 
 	hash := tokenHash("tok-lastseen")
-	device, err := testApp.Repositories.KoboDevices.CreateKoboDevice(
+	device, err := testApp.TestSeeds().Repositories.KoboDevices.CreateKoboDevice(
 		ctx, ownerID, "Check LastSeen", "", hash,
 	)
 	require.NoError(t, err)
 	assert.Nil(t, device.LastSeenAt, "last_seen_at must be nil before first auth")
 
-	_, _, err = testApp.Repositories.KoboDevices.GetKoboAuthByTokenHash(ctx, hash)
+	_, _, err = testApp.TestSeeds().Repositories.KoboDevices.GetKoboAuthByTokenHash(
+		ctx,
+		hash,
+	)
 	require.NoError(t, err)
 
-	devices, err := testApp.Repositories.KoboDevices.ListKoboDevices(ctx, ownerID)
+	devices, err := testApp.TestSeeds().Repositories.KoboDevices.ListKoboDevices(
+		ctx,
+		ownerID,
+	)
 	require.NoError(t, err)
 	require.Len(t, devices, 1)
 	assert.NotNil(t, devices[0].LastSeenAt, "last_seen_at must be set after first auth")
@@ -462,7 +480,7 @@ func TestListKoboSyncBooks_ReturnsConverterVersion(t *testing.T) {
 	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, owner, bookID))
 	insertKEPUBRowWithVersion(t, bookID, owner, 3)
 
-	books, err := testApp.Repositories.Books.ListKoboSyncBooks(ctx, owner)
+	books, err := testApp.TestSeeds().Repositories.Books.ListKoboSyncBooks(ctx, owner)
 	require.NoError(t, err)
 	require.Len(t, books, 1)
 	assert.Equal(t, int16(3), books[0].ConverterVersion)
@@ -475,7 +493,7 @@ func TestGetKoboSyncBook_ReturnsConverterVersion(t *testing.T) {
 	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, owner, bookID))
 	insertKEPUBRowWithVersion(t, bookID, owner, 4)
 
-	book, err := testApp.Repositories.Books.GetKoboSyncBook(ctx, owner, bookID)
+	book, err := testApp.TestSeeds().Repositories.Books.GetKoboSyncBook(ctx, owner, bookID)
 	require.NoError(t, err)
 	assert.Equal(t, int16(4), book.ConverterVersion)
 }
@@ -633,8 +651,10 @@ func TestConnectRegisterKoboDevice_TokenLookupAfterRegister(t *testing.T) {
 	require.NoError(t, err)
 
 	hash := tokenHash(resp.RawToken)
-	gotUserID, _, err := testApp.Repositories.KoboDevices.GetKoboAuthByTokenHash(
-		ctx, hash,
+	gotUserID, _, err := testApp.TestSeeds().
+		Repositories.KoboDevices.GetKoboAuthByTokenHash(
+		ctx,
+		hash,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, userID, gotUserID)
@@ -685,7 +705,10 @@ func TestConnectDisconnectKoboDevice_RemovesDevice(t *testing.T) {
 	require.NoError(t, err)
 
 	hash := tokenHash(regResp.RawToken)
-	_, _, err = testApp.Repositories.KoboDevices.GetKoboAuthByTokenHash(ctx, hash)
+	_, _, err = testApp.TestSeeds().Repositories.KoboDevices.GetKoboAuthByTokenHash(
+		ctx,
+		hash,
+	)
 	assert.True(t, errors.Is(err, database.ErrResourceNotFound),
 		"token must be revoked after disconnect")
 }
@@ -808,7 +831,7 @@ func TestUpdateTags_SetsKoboSyncEnabledAt(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "TagsEnabledAt-"+uuid.NewString())
 
-	require.NoError(t, testApp.Repositories.Books.UpdateTags(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.UpdateTags(
 		ctx, userID, ub.BookID, []string{models.TagKoboSync},
 		true,
 	))
@@ -833,7 +856,7 @@ func TestUpdateTags_PreservesKoboSyncEnabledAt(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "TagsPreserveAt-"+uuid.NewString())
 
-	require.NoError(t, testApp.Repositories.Books.UpdateTags(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.UpdateTags(
 		ctx, userID, ub.BookID, []string{models.TagKoboSync},
 		true,
 	))
@@ -846,7 +869,7 @@ func TestUpdateTags_PreservesKoboSyncEnabledAt(t *testing.T) {
 		userID, ub.BookID,
 	).Scan(&first))
 
-	require.NoError(t, testApp.Repositories.Books.UpdateTags(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.UpdateTags(
 		ctx, userID, ub.BookID,
 		[]string{models.TagKoboSync, models.TagFavourite},
 		true,
@@ -869,11 +892,11 @@ func TestUpdateTags_ClearsKoboSyncEnabledAt(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "TagsClearAt-"+uuid.NewString())
 
-	require.NoError(t, testApp.Repositories.Books.UpdateTags(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.UpdateTags(
 		ctx, userID, ub.BookID, []string{models.TagKoboSync},
 		true,
 	))
-	require.NoError(t, testApp.Repositories.Books.UpdateTags(
+	require.NoError(t, testApp.TestSeeds().Repositories.Books.UpdateTags(
 		ctx, userID, ub.BookID, []string{},
 		false,
 	))
@@ -896,17 +919,17 @@ func TestKoboRemoval_UpsertListDelete_RoundTrip(t *testing.T) {
 	owner := "kobo-removal-repo-" + uuid.NewString()
 
 	require.NoError(t,
-		testApp.Repositories.Books.UpsertKoboRemoval(ctx, owner, book.ID))
+		testApp.TestSeeds().Repositories.Books.UpsertKoboRemoval(ctx, owner, book.ID))
 
-	removals, err := testApp.Repositories.Books.ListKoboRemovals(ctx, owner)
+	removals, err := testApp.TestSeeds().Repositories.Books.ListKoboRemovals(ctx, owner)
 	require.NoError(t, err)
 	require.Len(t, removals, 1)
 	assert.Equal(t, book.ID, removals[0].BookID)
 
 	require.NoError(t,
-		testApp.Repositories.Books.DeleteKoboRemoval(ctx, owner, book.ID))
+		testApp.TestSeeds().Repositories.Books.DeleteKoboRemoval(ctx, owner, book.ID))
 
-	removals, err = testApp.Repositories.Books.ListKoboRemovals(ctx, owner)
+	removals, err = testApp.TestSeeds().Repositories.Books.ListKoboRemovals(ctx, owner)
 	require.NoError(t, err)
 	assert.Empty(t, removals)
 }
@@ -917,11 +940,11 @@ func TestKoboRemoval_Upsert_IdempotentOnConflict(t *testing.T) {
 	owner := "kobo-removal-idempotent-" + uuid.NewString()
 
 	require.NoError(t,
-		testApp.Repositories.Books.UpsertKoboRemoval(ctx, owner, book.ID))
+		testApp.TestSeeds().Repositories.Books.UpsertKoboRemoval(ctx, owner, book.ID))
 	require.NoError(t,
-		testApp.Repositories.Books.UpsertKoboRemoval(ctx, owner, book.ID))
+		testApp.TestSeeds().Repositories.Books.UpsertKoboRemoval(ctx, owner, book.ID))
 
-	removals, err := testApp.Repositories.Books.ListKoboRemovals(ctx, owner)
+	removals, err := testApp.TestSeeds().Repositories.Books.ListKoboRemovals(ctx, owner)
 	require.NoError(t, err)
 	require.Len(t, removals, 1, "re-upserting the same book must not duplicate")
 }
