@@ -6,6 +6,8 @@ import (
 	"errors"
 	"io"
 	"strings"
+
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 )
 
 const (
@@ -47,10 +49,10 @@ func readTokens(d *xml.Decoder, h tokenHandler) error {
 }
 
 // readNavigation reads the EPUB3 nav document, else the NCX.
-func readNavigation(zr *zip.Reader, pkg opfDoc, opfDir string) []navLink {
+func readNavigation(zr *zip.Reader, pkg ebooks.OPFDoc, opfDir string) []navLink {
 	var ncx string
 	for _, it := range pkg.Items {
-		doc := resolveHref(opfDir, it.Href)
+		doc := ebooks.ResolveHref(opfDir, it.Href)
 		if hasToken(it.Properties, "nav") {
 			if links := readZipNav(zr, doc, newNavDocReader(doc)); len(links) > 0 {
 				return links

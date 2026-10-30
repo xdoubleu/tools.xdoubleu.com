@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 )
 
 // pageAnchorOf is the PDF page whose start e marks, 0 when it marks none.
@@ -21,7 +22,7 @@ func pageAnchorOf(e xml.StartElement) int {
 
 // parsePageAnchorID reads N from a pdfpage-N id, 0 for any other id.
 func parsePageAnchorID(id string) int {
-	rest, ok := strings.CutPrefix(id, pageAnchorPrefix)
+	rest, ok := strings.CutPrefix(id, conversion.PageAnchorPrefix)
 	if !ok {
 		return 0
 	}

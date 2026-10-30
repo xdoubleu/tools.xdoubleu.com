@@ -16,6 +16,8 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 	"tools.xdoubleu.com/internal/database"
 )
 
@@ -161,26 +163,26 @@ func (s *BookService) openStoredZip(
 	ctx context.Context,
 	key string,
 ) (*tempZip, error) {
-	return openTempZip(ctx, s.objectStore, key, maxConversionInputBytes)
+	return openTempZip(ctx, s.objectStore, key, conversion.MaxConversionInputBytes)
 }
 
 // epubCover returns the bytes of the package's cover image: the EPUB 3
 // cover-image item, else the item named by EPUB 2's <meta name="cover">.
 func epubCover(zr *zip.Reader) ([]byte, error) {
-	opfPath, err := findOPFPath(zr)
+	opfPath, err := ebooks.FindOPFPath(zr)
 	if err != nil {
 		return nil, err
 	}
-	var opf opfDoc
-	if err = decodeZipXML(zr, opfPath, &opf); err != nil {
+	var opf ebooks.OPFDoc
+	if err = ebooks.DecodeZipXML(zr, opfPath, &opf); err != nil {
 		return nil, err
 	}
 
-	item, ok := opfCoverItem(opf)
+	item, ok := ebooks.OPFCoverItem(opf)
 	if !ok {
 		return nil, ErrCoverNotFound
 	}
-	name := resolveHref(path.Dir(opfPath), item.Href)
+	name := ebooks.ResolveHref(path.Dir(opfPath), item.Href)
 	f, err := zr.Open(name)
 	if err != nil {
 		return nil, ErrCoverNotFound
@@ -196,23 +198,4 @@ func epubCover(zr *zip.Reader) ([]byte, error) {
 		return nil, ErrCoverNotFound
 	}
 	return data, nil
-}
-
-func opfCoverItem(opf opfDoc) (opfItem, bool) {
-	for _, it := range opf.Items {
-		if strings.Contains(" "+it.Properties+" ", " cover-image ") {
-			return it, true
-		}
-	}
-	for _, m := range opf.Metadata.Metas {
-		if m.Name != "cover" {
-			continue
-		}
-		for _, it := range opf.Items {
-			if it.ID == m.Content && strings.HasPrefix(it.MediaType, "image/") {
-				return it, true
-			}
-		}
-	}
-	return opfItem{}, false //nolint:exhaustruct // zero value on a miss
 }

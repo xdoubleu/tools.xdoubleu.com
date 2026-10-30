@@ -19,6 +19,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/mocks"
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/internal/database"
 )
@@ -109,7 +110,7 @@ func newTranslatorFixture(
 	orig := mocks.ChapterEPUB("Translate", "Author")
 	if kepubData == nil {
 		var err error
-		kepubData, err = newKepubifyConverter().Convert(context.Background(), orig)
+		kepubData, err = conversion.NewKepubifyConverter().Convert(context.Background(), orig)
 		require.NoError(t, err)
 	}
 
@@ -130,7 +131,7 @@ func newTranslatorFixture(
 	kepub := &models.BookFile{ //nolint:exhaustruct //optional fields
 		ID: uuid.New(), Format: models.FileFormatKEPUB, StorageKey: "kepub",
 		Status: models.FileStatusReady, SourceFileID: &src.ID,
-		ConverterVersion: currentKEPUBConverterVersion,
+		ConverterVersion: conversion.CurrentKEPUBConverterVersion(),
 	}
 	files := &fakeKEPUBFiles{
 		byFormat: map[string]*models.BookFile{models.FileFormatKEPUB: kepub},

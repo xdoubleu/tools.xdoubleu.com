@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 )
 
@@ -20,7 +21,7 @@ func coverZip(t *testing.T, opfBody string, files map[string]string) *zip.Reader
 	zw := zip.NewWriter(&buf)
 	entries := map[string]string{
 		"META-INF/container.xml": `<container><rootfiles>` +
-			`<rootfile full-path="OEBPS/content.opf" media-type="` + opfMediaType +
+			`<rootfile full-path="OEBPS/content.opf" media-type="` + ebooks.OPFMediaType +
 			`"/></rootfiles></container>`,
 		"OEBPS/content.opf": `<package xmlns="http://www.idpf.org/2007/opf">` +
 			opfBody + `</package>`,

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"mime"
-	"net/url"
 	"path"
 	"strings"
 	"sync"
@@ -16,6 +15,7 @@ import (
 	xhtml "golang.org/x/net/html"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 	"tools.xdoubleu.com/internal/database"
 )
 
@@ -29,7 +29,6 @@ const (
 	mimePositions   = "application/vnd.readium.position-list+json"
 	positionsHref   = "positions.json"
 	positionLength  = 1024
-	opfMediaType    = "application/oebps-package+xml"
 	maxWebPubEntry  = 100 << 20
 	resourceBaseDir = "res/"
 	tagSpan         = "span"
@@ -105,38 +104,6 @@ func newWebPubService(books *BookService) *WebPubService {
 		books:    books,
 		archives: newArchiveCache(webPubArchiveSlots, books.openStoredZip),
 	}
-}
-
-type opfItem struct {
-	ID         string `xml:"id,attr"`
-	Href       string `xml:"href,attr"`
-	MediaType  string `xml:"media-type,attr"`
-	Properties string `xml:"properties,attr"`
-}
-
-type opfDoc struct {
-	Metadata struct {
-		Titles      []string `xml:"title"`
-		Creators    []string `xml:"creator"`
-		Languages   []string `xml:"language"`
-		Identifiers []string `xml:"identifier"`
-		Metas       []struct {
-			Name    string `xml:"name,attr"`
-			Content string `xml:"content,attr"`
-		} `xml:"meta"`
-	} `xml:"metadata"`
-	Items []opfItem `xml:"manifest>item"`
-	Spine struct {
-		TOC  string `xml:"toc,attr"`
-		Refs []struct {
-			IDRef  string `xml:"idref,attr"`
-			Linear string `xml:"linear,attr"`
-		} `xml:"itemref"`
-	} `xml:"spine"`
-	Guide []struct {
-		Type string `xml:"type,attr"`
-		Href string `xml:"href,attr"`
-	} `xml:"guide>reference"`
 }
 
 // Manifest builds the manifest for the user's original EPUB of bookID.
@@ -240,16 +207,16 @@ func (s *WebPubService) openEPUB(
 }
 
 func buildWebPubManifest(zr *zip.Reader) (*WebPubManifest, error) {
-	opfPath, err := findOPFPath(zr)
+	opfPath, err := ebooks.FindOPFPath(zr)
 	if err != nil {
 		return nil, err
 	}
-	var opf opfDoc
-	if err = decodeZipXML(zr, opfPath, &opf); err != nil {
+	var opf ebooks.OPFDoc
+	if err = ebooks.DecodeZipXML(zr, opfPath, &opf); err != nil {
 		return nil, err
 	}
 	base := path.Dir(opfPath)
-	byID := make(map[string]opfItem, len(opf.Items))
+	byID := make(map[string]ebooks.OPFItem, len(opf.Items))
 	for _, it := range opf.Items {
 		byID[it.ID] = it
 	}
@@ -288,10 +255,10 @@ func buildWebPubManifest(zr *zip.Reader) (*WebPubManifest, error) {
 			link.Rel = []string{"cover"}
 		}
 		if strings.Contains(" "+it.Properties+" ", " nav ") {
-			navPath = resolveHref(base, it.Href)
+			navPath = ebooks.ResolveHref(base, it.Href)
 		}
 		if it.ID == opf.Spine.TOC {
-			ncxPath = resolveHref(base, it.Href)
+			ncxPath = ebooks.ResolveHref(base, it.Href)
 		}
 		if !inSpine[it.ID] {
 			m.Resources = append(m.Resources, link)
@@ -338,24 +305,6 @@ func buildWebPubPositions(zr *zip.Reader, m *WebPubManifest) *WebPubPositions {
 	return out
 }
 
-func findOPFPath(zr *zip.Reader) (string, error) {
-	var container struct {
-		RootFiles []struct {
-			FullPath  string `xml:"full-path,attr"`
-			MediaType string `xml:"media-type,attr"`
-		} `xml:"rootfiles>rootfile"`
-	}
-	if err := decodeZipXML(zr, "META-INF/container.xml", &container); err != nil {
-		return "", err
-	}
-	for _, rf := range container.RootFiles {
-		if rf.MediaType == opfMediaType {
-			return rf.FullPath, nil
-		}
-	}
-	return "", errors.New("container.xml names no package document")
-}
-
 func first(s []string) string {
 	if len(s) == 0 {
 		return ""
@@ -363,16 +312,8 @@ func first(s []string) string {
 	return strings.TrimSpace(s[0])
 }
 
-// resolveHref maps a manifest href to a zip-root path.
-func resolveHref(base, href string) string {
-	if u, err := url.Parse(href); err == nil && u.Path != "" {
-		href = u.Path
-	}
-	return path.Join(base, href)
-}
-
-func itemLink(base string, it opfItem) WebPubLink {
-	return newLink(resourceBaseDir+resolveHref(base, it.Href), it.MediaType)
+func itemLink(base string, it ebooks.OPFItem) WebPubLink {
+	return newLink(resourceBaseDir+ebooks.ResolveHref(base, it.Href), it.MediaType)
 }
 
 func newLink(href, mediaType string, rel ...string) WebPubLink {
@@ -391,7 +332,7 @@ func resourceType(name string) string {
 	case ".xhtml", ".html", ".htm":
 		return mimeXHTML
 	case ".opf":
-		return opfMediaType
+		return ebooks.OPFMediaType
 	case ".ncx":
 		return "application/x-dtbncx+xml"
 	}
@@ -513,7 +454,7 @@ func ncxTOC(zr *zip.Reader, ncxPath string) []WebPubLink {
 	var ncx struct {
 		Points []ncxPoint `xml:"navMap>navPoint"`
 	}
-	if err := decodeZipXML(zr, ncxPath, &ncx); err != nil {
+	if err := ebooks.DecodeZipXML(zr, ncxPath, &ncx); err != nil {
 		return nil
 	}
 	return ncxLinks(ncx.Points, path.Dir(ncxPath))

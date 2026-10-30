@@ -14,6 +14,8 @@ import (
 	"unicode/utf16"
 
 	"golang.org/x/net/html/charset"
+
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 )
 
 // koboSpanType is the KoboLocation.Type of a span bookmark.
@@ -164,7 +166,7 @@ func zipDocText(zr *zip.Reader, name string) (docText, error) {
 // epubContentDocs lists the OPF's XHTML content documents as zip-root paths,
 // with kepubify's rules for which manifest items count.
 func epubContentDocs(zr *zip.Reader) ([]string, error) {
-	opfPath, err := findOPFPath(zr)
+	opfPath, err := ebooks.FindOPFPath(zr)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +177,7 @@ func epubContentDocs(zr *zip.Reader) ([]string, error) {
 			MediaType string `xml:"media-type,attr"`
 		} `xml:"manifest>item"`
 	}
-	if err = decodeZipXML(zr, opfPath, &opf); err != nil {
+	if err = ebooks.DecodeZipXML(zr, opfPath, &opf); err != nil {
 		return nil, err
 	}
 
@@ -198,20 +200,6 @@ func isContentDoc(href, mediaType string) bool {
 	ext := strings.ToLower(path.Ext(href))
 	return mediaType == "application/xhtml+xml" || mediaType == "text/html" ||
 		ext == ".xhtml" || ext == ".html" || ext == ".htm"
-}
-
-func decodeZipXML(zr *zip.Reader, name string, v any) error {
-	f, err := zr.Open(name)
-	if err != nil {
-		return fmt.Errorf("open %s: %w", name, err)
-	}
-	defer func() { _ = f.Close() }()
-	d := xml.NewDecoder(f)
-	d.CharsetReader = charset.NewReaderLabel
-	if err = d.Decode(v); err != nil {
-		return fmt.Errorf("parse %s: %w", name, err)
-	}
-	return nil
 }
 
 // parseBodyText reads a document's body text the way the web reader counts

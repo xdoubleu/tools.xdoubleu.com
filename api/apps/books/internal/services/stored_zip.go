@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 )
 
@@ -59,7 +60,7 @@ func openTempZip(
 		zr, err = zip.NewReader(f, n)
 	}
 	if err == nil {
-		err = checkEPUBSize(zr)
+		err = conversion.CheckEPUBSize(zr)
 	}
 	if err != nil {
 		_ = f.Close()
