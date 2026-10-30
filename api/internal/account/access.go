@@ -1,4 +1,4 @@
-package main
+package account
 
 import (
 	"context"
@@ -6,42 +6,16 @@ import (
 	"connectrpc.com/connect/v2"
 
 	accessv1 "tools.xdoubleu.com/gen/access/v1"
-	"tools.xdoubleu.com/gen/access/v1/accessv1connect"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/contexttools"
+	accessv1connect "tools.xdoubleu.com/gen/access/v1/accessv1connect"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/obs"
 )
 
 type accessConnectHandler struct {
-	app *Application
+	app *Deps
 }
 
 var _ accessv1connect.AccessServiceHandler = (*accessConnectHandler)(nil)
-
-// requireAdmin gates admin-only Connect RPCs.
-func requireAdmin(ctx context.Context) error {
-	user := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
-	if user.Role != models.RoleAdmin {
-		return connect.NewError(
-			connect.CodePermissionDenied,
-			"admin access required",
-		)
-	}
-	return nil
-}
-
-// requireObservability gates the observability MCP tools: admins and the
-// service role, which has no access to user data.
-func requireObservability(ctx context.Context) error {
-	user := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
-	if user.Role != models.RoleAdmin && user.Role != models.RoleService {
-		return connect.NewError(
-			connect.CodePermissionDenied,
-			"admin access required",
-		)
-	}
-	return nil
-}
 
 func protoAppUser(u models.User) *accessv1.AppUser {
 	access := u.AppAccess
@@ -60,11 +34,11 @@ func (h *accessConnectHandler) ListUsers(
 	ctx context.Context,
 	_ *accessv1.ListUsersRequest,
 ) (*accessv1.ListUsersResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := obs.RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	users, err := h.app.appUsersRepo.GetAllWithAccess(ctx)
+	users, err := h.app.AppUsers.GetAllWithAccess(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
@@ -81,7 +55,7 @@ func (h *accessConnectHandler) SetRole(
 	ctx context.Context,
 	req *accessv1.SetRoleRequest,
 ) (*accessv1.SetRoleResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := obs.RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
@@ -93,12 +67,12 @@ func (h *accessConnectHandler) SetRole(
 		)
 	}
 
-	if err := h.app.appUsersRepo.SetRole(ctx, req.UserId, role); err != nil {
+	if err := h.app.AppUsers.SetRole(ctx, req.UserId, role); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	h.app.auth.InvalidateUserCache()
+	h.app.Auth.InvalidateUserCache()
 
-	user, err := h.app.appUsersRepo.GetByID(ctx, req.UserId)
+	user, err := h.app.AppUsers.GetByID(ctx, req.UserId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
@@ -110,18 +84,18 @@ func (h *accessConnectHandler) SetAppAccess(
 	ctx context.Context,
 	req *accessv1.SetAppAccessRequest,
 ) (*accessv1.SetAppAccessResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := obs.RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	if err := h.app.appUsersRepo.SetAppAccess(
+	if err := h.app.AppUsers.SetAppAccess(
 		ctx, req.UserId, req.AppName, req.Grant,
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
-	h.app.auth.InvalidateUserCache()
+	h.app.Auth.InvalidateUserCache()
 
-	user, err := h.app.appUsersRepo.GetByID(ctx, req.UserId)
+	user, err := h.app.AppUsers.GetByID(ctx, req.UserId)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}

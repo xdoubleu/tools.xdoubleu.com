@@ -1,4 +1,4 @@
-package main
+package obs
 
 import (
 	"context"
@@ -17,7 +17,7 @@ func (h *obsConnectHandler) GetProjectIssuesByStatus(
 	ctx context.Context,
 	req *observabilityv1.GetProjectIssuesByStatusRequest,
 ) (*observabilityv1.GetProjectIssuesByStatusResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.projectIssuesByStatus(
@@ -44,7 +44,7 @@ func (h *obsConnectHandler) projectIssuesByStatus(
 		Configured: true,
 	}
 
-	issues, err := h.app.githubClient.ListProjectIssuesByStatus(
+	issues, err := h.deps.GithubClient.ListProjectIssuesByStatus(
 		ctx, int64(projectNumber), status,
 	)
 	if errors.Is(err, github.ErrNotConfigured) {

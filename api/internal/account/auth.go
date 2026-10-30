@@ -1,4 +1,4 @@
-package main
+package account
 
 import (
 	"errors"
@@ -18,15 +18,15 @@ import (
 const mfaCookieTTL = 5 * time.Minute
 
 const (
-	mfaTokenCookieName        = "mfaToken"
-	mfaRefreshTokenCookieName = "mfaRefreshToken"
+	MfaTokenCookieName        = "mfaToken"
+	MfaRefreshTokenCookieName = "mfaRefreshToken"
 	mfaRememberMeCookieName   = "mfaRememberMe"
 	mfaRedirectCookieName     = "mfaRedirect"
 	mfaFactorIDCookieName     = "mfaFactorID"
 )
 
 type authConnectHandler struct {
-	app *Application
+	app *Deps
 }
 
 var _ authv1connect.AuthServiceHandler = (*authConnectHandler)(nil)
@@ -40,9 +40,9 @@ func (h *authConnectHandler) parseCookie(
 	}).Cookie(name)
 }
 
-// authErrorCode maps auth rejections to their Connect codes and anything
+// AuthErrorCode maps auth rejections to their Connect codes and anything
 // else to Internal.
-func authErrorCode(err error) connect.Code {
+func AuthErrorCode(err error) connect.Code {
 	var unauthorized errortools.UnauthorizedError
 	switch {
 	case errors.As(err, &unauthorized):
@@ -58,9 +58,9 @@ func authErrorCode(err error) connect.Code {
 	}
 }
 
-// signInErrorCode maps a failed sign-in or MFA check: Unauthenticated,
+// SignInErrorCode maps a failed sign-in or MFA check: Unauthenticated,
 // except ResourceExhausted during a lockout.
-func signInErrorCode(err error) connect.Code {
+func SignInErrorCode(err error) connect.Code {
 	if errors.Is(err, auth.ErrTooManyAttempts) {
 		return connect.CodeResourceExhausted
 	}
@@ -68,7 +68,7 @@ func signInErrorCode(err error) connect.Code {
 }
 
 func (h *authConnectHandler) secure() bool {
-	return h.app.config.Env == config.ProdEnv
+	return h.app.Config.Env == config.ProdEnv
 }
 
 func (h *authConnectHandler) setMFACookies(
@@ -87,7 +87,7 @@ func (h *authConnectHandler) setMFACookies(
 	for _, c := range []*http.Cookie{
 		//nolint:gosec // Secure is conditionally set based on environment
 		{
-			Name:     mfaTokenCookieName,
+			Name:     MfaTokenCookieName,
 			Value:    accessToken,
 			MaxAge:   ttl,
 			SameSite: http.SameSiteStrictMode,
@@ -97,7 +97,7 @@ func (h *authConnectHandler) setMFACookies(
 		},
 		//nolint:gosec // Secure is conditionally set based on environment
 		{
-			Name:     mfaRefreshTokenCookieName,
+			Name:     MfaRefreshTokenCookieName,
 			Value:    refreshToken,
 			MaxAge:   ttl,
 			SameSite: http.SameSiteStrictMode,
@@ -149,8 +149,8 @@ func (h *authConnectHandler) setMFAFactorIDCookie(
 func (h *authConnectHandler) clearMFACookies(header *connect.Header) {
 	secure := h.secure()
 	mfaCookieNames := []string{
-		mfaTokenCookieName,
-		mfaRefreshTokenCookieName,
+		MfaTokenCookieName,
+		MfaRefreshTokenCookieName,
 		mfaFactorIDCookieName,
 		mfaRememberMeCookieName,
 		mfaRedirectCookieName,
@@ -177,8 +177,8 @@ func (h *authConnectHandler) completeMFA(
 ) error {
 	secure := h.secure()
 
-	accessCookie, err := h.app.auth.CreateCookie(
-		models.AccessScope, accessToken, h.app.config.AccessExpiry, secure,
+	accessCookie, err := h.app.Auth.CreateCookie(
+		models.AccessScope, accessToken, h.app.Config.AccessExpiry, secure,
 	)
 	if err != nil {
 		return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
@@ -187,8 +187,8 @@ func (h *authConnectHandler) completeMFA(
 
 	if rememberMe {
 		var refreshCookie *http.Cookie
-		refreshCookie, err = h.app.auth.CreateCookie(
-			models.RefreshScope, refreshToken, h.app.config.RefreshExpiry, secure,
+		refreshCookie, err = h.app.Auth.CreateCookie(
+			models.RefreshScope, refreshToken, h.app.Config.RefreshExpiry, secure,
 		)
 		if err != nil {
 			return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)

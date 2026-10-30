@@ -19,6 +19,7 @@ import (
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/logging"
+	obs "tools.xdoubleu.com/internal/obs"
 )
 
 // kamalDefaultResponseTimeout is Kamal's proxy.response_timeout when unset.
@@ -95,7 +96,7 @@ func TestMCPToolCallGetsLongBudget(t *testing.T) {
 	srv := newMCPServer(logging.NewNopLogger())
 	//nolint:exhaustruct // the name is all the tool needs
 	mcp.AddTool(srv, &mcp.Tool{Name: "slow"}, func(
-		ctx context.Context, _ *mcp.CallToolRequest, _ noArgs,
+		ctx context.Context, _ *mcp.CallToolRequest, _ obs.NoArgs,
 	) (*mcp.CallToolResult, any, error) {
 		deadline, _ := ctx.Deadline()
 		budgets <- time.Until(deadline)

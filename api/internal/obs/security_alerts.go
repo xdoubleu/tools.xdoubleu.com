@@ -1,4 +1,4 @@
-package main
+package obs
 
 import (
 	"context"
@@ -21,7 +21,7 @@ func (h *obsConnectHandler) securityAlertsError(
 		return fmt.Sprintf("security alerts unavailable: %v", err)
 	}
 
-	_, conn, connErr := h.app.oauthConnRepo.Get(ctx, models.OAuthProviderGithub)
+	_, conn, connErr := h.deps.OAuthConnRepo.Get(ctx, models.OAuthProviderGithub)
 	if connErr == nil &&
 		!oauthconn.HasScopes(conn.GrantedScope, []string{securityEventsScope}) {
 		return fmt.Sprintf(

@@ -1,19 +1,16 @@
 package main
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"google.golang.org/protobuf/proto"
 
-	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
-	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/obs"
 )
 
 // The apps MCP server exposes each app's read RPCs plus admin observability
 // tools over streamable HTTP. Tools are gated by per-app access or
-// requireObservability.
+// obs.requireObservability. The observability tools live in internal/obs.
 // Deliberate mutations: learningpaths' write tools (docs/adr-0023) and the
 // admin tools resolve_sentry_issue, dismiss_security_alert and record_action.
 
@@ -24,102 +21,6 @@ const (
 	// appsResourceMetadataPath is the resource-scoped RFC 9728 metadata document.
 	appsResourceMetadataPath = "/.well-known/oauth-protected-resource/apps/mcp"
 )
-
-// windowArgs/noArgs are structs so their JSON schema is an object, as MCP
-// requires.
-type windowArgs struct {
-	WindowDays int32 `json:"window_days,omitempty" jsonschema:"days to look back"`
-}
-
-type noArgs struct{}
-
-// resolveSentryIssueArgs is the input for resolve_sentry_issue.
-type resolveSentryIssueArgs struct {
-	IssueID string `json:"issue_id" jsonschema:"Sentry issue ID, from get_sentry_issues"`
-}
-
-// getSentryIssueEventArgs is the input for get_sentry_issue_event.
-type getSentryIssueEventArgs struct {
-	IssueID string `json:"issue_id" jsonschema:"Sentry issue ID, from get_sentry_issues"`
-}
-
-// dismissSecurityAlertArgs: AlertType is "dependabot", "code_scanning" or
-// "secret_scanning". Valid Reasons per type:
-// dependabot: fix_started|inaccurate|no_bandwidth|not_used|tolerable_risk.
-// code_scanning: "false positive"|"won't fix"|"used in tests".
-// secret_scanning: false_positive|wont_fix|revoked|used_in_tests|pattern_deleted.
-type dismissSecurityAlertArgs struct {
-	AlertType   string `json:"alert_type"   jsonschema:"see this type's doc comment"`
-	AlertNumber int64  `json:"alert_number" jsonschema:"see get_security_alerts"`
-	Reason      string `json:"reason"       jsonschema:"see this type's doc comment"`
-}
-
-// recordActionArgs: a routine calls "open" first (TriggerSource
-// schedule|api|manual|ci, RoutineName) and "close" last (the returned ID,
-// Outcome succeeded|failed|no_action_needed, optional PRURL/Error/Metrics).
-type recordActionArgs struct {
-	Mode          string `json:"mode"                     jsonschema:"open or close"`
-	TriggerSource string `json:"trigger_source,omitempty" jsonschema:"see doc comment"`
-	RoutineName   string `json:"routine_name,omitempty"   jsonschema:"see doc comment"`
-	ID            int64  `json:"id,omitempty"             jsonschema:"see doc comment"`
-	Outcome       string `json:"outcome,omitempty"        jsonschema:"see doc comment"`
-	PRURL         string `json:"pr_url,omitempty"         jsonschema:"see doc comment"`
-	Error         string `json:"error,omitempty"          jsonschema:"see doc comment"`
-
-	Metrics *runMetricsArgs `json:"metrics,omitempty" jsonschema:"see doc comment"`
-}
-
-// runMetricsArgs mirrors observabilityv1.RunMetrics with its JSON names.
-type runMetricsArgs struct {
-	Requests          int32   `json:"requests"`
-	InputTokens       int64   `json:"input_tokens"`
-	OutputTokens      int64   `json:"output_tokens"`
-	ReasoningTokens   int64   `json:"reasoning_tokens"`
-	CacheReadTokens   int64   `json:"cache_read_tokens"`
-	CostUSD           float64 `json:"cost_usd"`
-	DurationSeconds   float64 `json:"duration_seconds"`
-	ToolCalls         int32   `json:"tool_calls"`
-	ToolErrors        int32   `json:"tool_errors"`
-	RepeatedToolCalls int32   `json:"repeated_tool_calls"`
-}
-
-func (m *runMetricsArgs) proto() *observabilityv1.RunMetrics {
-	if m == nil {
-		return nil
-	}
-	return &observabilityv1.RunMetrics{
-		Requests:          m.Requests,
-		InputTokens:       m.InputTokens,
-		OutputTokens:      m.OutputTokens,
-		ReasoningTokens:   m.ReasoningTokens,
-		CacheReadTokens:   m.CacheReadTokens,
-		CostUsd:           m.CostUSD,
-		DurationSeconds:   m.DurationSeconds,
-		ToolCalls:         m.ToolCalls,
-		ToolErrors:        m.ToolErrors,
-		RepeatedToolCalls: m.RepeatedToolCalls,
-	}
-}
-
-// projectIssuesByStatusArgs is the input for get_project_issues_by_status.
-type projectIssuesByStatusArgs struct {
-	ProjectNumber int32  `json:"project_number"   jsonschema:"board number (required)"`
-	Status        string `json:"status,omitempty" jsonschema:"e.g. Ready"`
-}
-
-// promQueryArgs is the input for prom_query.
-type promQueryArgs struct {
-	Query string `json:"query" jsonschema:"a PromQL expression, e.g. up{job='api'}"`
-}
-
-// logsArgs is the input for get_logs. Empty fields match any.
-type logsArgs struct {
-	Source   string `json:"source,omitempty"    jsonschema:"api, web or web-client"`
-	MinLevel string `json:"min_level,omitempty" jsonschema:"min DEBUG|INFO|WARN|ERROR"`
-	Since    string `json:"since,omitempty"     jsonschema:"RFC3339, inclusive"`
-	Until    string `json:"until,omitempty"     jsonschema:"RFC3339, exclusive"`
-	Contains string `json:"contains,omitempty"  jsonschema:"substring of message or attrs"`
-}
 
 func (app *Application) appsResourceMetadataURL() string {
 	return app.config.APIURL + appsResourceMetadataPath
@@ -143,171 +44,7 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 			provider.RegisterMCPTools(srv)
 		}
 	}
-	registerObservabilityMCPTools(srv, app)
+	obs.RegisterMCPTools(srv, app.obsDeps())
 
 	return srv
-}
-
-// registerObservabilityMCPTools registers the admin tools. Most wrap shared
-// ObservabilityService methods; prom_query and get_grafana_alerts proxy
-// Prometheus/Grafana directly.
-func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
-	h := &obsConnectHandler{app: app}
-
-	addObsTool(srv, "get_job_stats",
-		"Background job run statistics and recent runs (global.job_runs).",
-		func(ctx context.Context, a windowArgs) (proto.Message, error) {
-			return h.jobStats(ctx, a.WindowDays)
-		})
-	addObsTool(srv, "get_automated_actions",
-		"Run history for self-healing routines (global.automated_actions) — "+
-			"distinct from get_job_stats: these run outside api's own process "+
-			"(e.g. on scheduled-agent infrastructure), so a row only exists "+
-			"because the routine itself opened and closed it via record_action.",
-		func(ctx context.Context, a windowArgs) (proto.Message, error) {
-			return h.automatedActions(ctx, a.WindowDays)
-		})
-	addObsTool(srv, "get_usage_stats",
-		"Per-day request counts and response bytes by app and endpoint "+
-			"(global.usage_daily). Bytes measure what left the api, a proxy "+
-			"for what it read out of the database — sort by it to find the "+
-			"endpoints driving database egress.",
-		func(ctx context.Context, a windowArgs) (proto.Message, error) {
-			return h.usageStats(ctx, a.WindowDays)
-		})
-	addObsTool(srv, "get_storage_stats",
-		"Latest R2 object-store snapshot plus recent history.",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.storageStats(ctx)
-		})
-	addObsTool(srv, "get_database_stats",
-		"Total database size and per-schema sizes (live pg_* queries). "+
-			"Growth-over-time now lives in Grafana/Prometheus — use prom_query "+
-			"(e.g. pg_database_size_bytes via postgres_exporter) for a trend.",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.databaseStats(ctx)
-		})
-	addObsToolWithDefaults(srv, "get_failing_pull_requests",
-		"Open pull requests with at least one failing CI check, limited to "+
-			"red-pr-repair's scope: labelled dependencies or on a claude/ "+
-			"branch. An empty pullRequests list means none; an upstream "+
-			"GitHub failure is a tool error.",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.failingPullRequests(ctx)
-		})
-	addObsToolWithDefaults(srv, "get_workflow_runs",
-		"Recent pull-request and push (main branch) GitHub Actions workflow "+
-			"runs, with duration for each completed run.",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.workflowRuns(ctx), nil
-		})
-	addObsToolWithDefaults(srv, "get_security_alerts",
-		"Open GitHub security alerts: Dependabot (dependencies), code "+
-			"scanning (CodeQL/SARIF findings), and secret scanning (leaked "+
-			"credentials). Dependabot alerts carry advisory_id and "+
-			"first_patched_version. A set error means the fetch failed and the alerts "+
-			"are unknown, not zero.",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.securityAlerts(ctx), nil
-		})
-	addObsTool(srv, "get_oauth_connections",
-		"Connection state of each external provider (GitHub, Sentry, "+
-			"DigitalOcean), with the scopes each connection was authorized "+
-			"with, the scopes the provider echoed back, and the scopes "+
-			"required today — the three that explain a provider reporting "+
-			"itself not connected.",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.oauthConnections(ctx)
-		})
-	addObsToolWithDefaults(srv, "get_sentry_issues",
-		"Unresolved Sentry issues for the project. An empty issues list means "+
-			"none.",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.sentryIssues(ctx), nil
-		})
-	addObsToolWithDefaults(srv, "get_sentry_issue_event",
-		"Latest event of a Sentry issue with its database spans (offender=true "+
-			"marks the spans Sentry's N+1/slow-query detector flagged). Use it to "+
-			"find the exact query before fixing a performance issue.",
-		func(ctx context.Context, a getSentryIssueEventArgs) (proto.Message, error) {
-			return h.sentryIssueEvent(ctx, a.IssueID)
-		})
-	addObsTool(srv, "get_slow_transactions",
-		"Slow API endpoints/pages: currently-slowest transactions (live from "+
-			"Sentry) plus ones regressing over time (from stored history).",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.slowTransactions(ctx)
-		})
-	registerMutatingObservabilityMCPTools(srv, h)
-	registerAlertMCPTools(srv, h)
-}
-
-// registerMutatingObservabilityMCPTools registers the three mutating tools
-// (split out for the function-length lint).
-func registerMutatingObservabilityMCPTools(srv *mcp.Server, h *obsConnectHandler) {
-	addObsTool(srv, "resolve_sentry_issue",
-		"Marks a Sentry issue as resolved and returns the status Sentry reports "+
-			"back (\"resolved\" on success). One of three mutating observability "+
-			"tools, alongside dismiss_security_alert and record_action.",
-		func(ctx context.Context, a resolveSentryIssueArgs) (proto.Message, error) {
-			return h.resolveSentryIssue(ctx, a.IssueID)
-		})
-	addObsTool(srv, "dismiss_security_alert",
-		"Dismisses/resolves a GitHub Dependabot, code-scanning, or "+
-			"secret-scanning security alert. One of three mutating observability "+
-			"tools, alongside resolve_sentry_issue and record_action.",
-		func(ctx context.Context, a dismissSecurityAlertArgs) (proto.Message, error) {
-			return h.dismissSecurityAlert(
-				ctx, github.SecurityAlertType(a.AlertType), a.AlertNumber, a.Reason,
-			)
-		})
-	addObsTool(srv, "record_action",
-		"Opens or closes a run record for a self-healing routine "+
-			"(global.automated_actions): mode=open first, mode=close last, "+
-			"since it executes outside api's own process. The routine "+
-			"workflow does this itself and adds the run's metrics on close. "+
-			"One of three mutating observability tools, alongside "+
-			"resolve_sentry_issue and dismiss_security_alert.",
-		func(ctx context.Context, a recordActionArgs) (proto.Message, error) {
-			return h.recordAction(ctx, a)
-		})
-}
-
-// registerAlertMCPTools registers get_logs, get_notification_settings and
-// prom_query (split out for the function-length lint).
-func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
-	addObsTool(srv, "get_logs",
-		"Application logs forwarded from api and web, newest first, at most "+
-			"1000 per call (default: last 30 days). Filter by source, min_level "+
-			"(at least), since/until, and a contains substring over message "+
-			"and attrs; page back by passing the oldest occurred_at as until.",
-		func(ctx context.Context, a logsArgs) (proto.Message, error) {
-			return h.logs(ctx, &observabilityv1.GetLogsRequest{
-				Source:   a.Source,
-				MinLevel: a.MinLevel,
-				Since:    a.Since,
-				Until:    a.Until,
-				Contains: a.Contains,
-			})
-		})
-	addObsTool(srv, "get_notification_settings",
-		"Per-source enabled/disabled state of the email notifications "+
-			"WeeklyDigestJob sends (unhealthy_feeds, open_feed_items) — "+
-			"explains why an expected notification email didn't go out.",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.notificationSettings(ctx)
-		})
-	registerPromQueryMCPTool(srv, h.app)
-	registerGrafanaAlertsMCPTool(srv, h.app)
-	addObsToolWithDefaults(srv, "get_project_issues_by_status",
-		"Open issues on the configured repository owner's GitHub Projects "+
-			"(v2) board whose Status column matches the given name (e.g. "+
-			"\"Ready\"). The generic GitHub MCP server can't resolve custom "+
-			"fields on a personal (user-owned) project board, so this is the "+
-			"only way to answer \"which issues are in column X\". "+
-			"project_number is required — pass the board's number explicitly "+
-			"(there is no configured default).",
-		func(ctx context.Context, a projectIssuesByStatusArgs) (proto.Message, error) {
-			return h.projectIssuesByStatus(ctx, a.ProjectNumber, a.Status)
-		})
 }

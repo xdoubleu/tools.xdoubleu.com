@@ -1,4 +1,4 @@
-package main
+package obs
 
 import (
 	"context"
@@ -17,7 +17,7 @@ const promQueryTimeout = httptools.UpstreamTimeout
 
 // registerPromQueryMCPTool registers prom_query, proxying Prometheus's
 // /api/v1/query directly since the response isn't a proto message.
-func registerPromQueryMCPTool(srv *mcp.Server, app *Application) {
+func registerPromQueryMCPTool(srv *mcp.Server, deps *Deps) {
 	//nolint:exhaustruct // name/description are the only fields tools need
 	mcp.AddTool(srv, &mcp.Tool{
 		Name: "prom_query",
@@ -35,10 +35,10 @@ func registerPromQueryMCPTool(srv *mcp.Server, app *Application) {
 		_ *mcp.CallToolRequest,
 		args promQueryArgs,
 	) (*mcp.CallToolResult, any, error) {
-		if err := requireObservability(ctx); err != nil {
+		if err := RequireObservability(ctx); err != nil {
 			return nil, nil, err
 		}
-		body, err := promQuery(ctx, app.config.PrometheusURL, args.Query)
+		body, err := PromQuery(ctx, deps.Config.PrometheusURL, args.Query)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -50,8 +50,8 @@ func registerPromQueryMCPTool(srv *mcp.Server, app *Application) {
 	})
 }
 
-// promQuery returns Prometheus's raw instant-query JSON.
-func promQuery(ctx context.Context, prometheusURL, query string) ([]byte, error) {
+// PromQuery returns Prometheus's raw instant-query JSON.
+func PromQuery(ctx context.Context, prometheusURL, query string) ([]byte, error) {
 	reqCtx, cancel := context.WithTimeout(ctx, promQueryTimeout)
 	defer cancel()
 

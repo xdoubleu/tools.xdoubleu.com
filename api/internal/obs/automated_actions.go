@@ -1,4 +1,4 @@
-package main
+package obs
 
 import (
 	"context"
@@ -36,7 +36,7 @@ func (h *obsConnectHandler) OpenAutomatedAction(
 	ctx context.Context,
 	req *observabilityv1.OpenAutomatedActionRequest,
 ) (*observabilityv1.OpenAutomatedActionResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.openAutomatedAction(
@@ -65,7 +65,7 @@ func (h *obsConnectHandler) openAutomatedAction(
 		).WithCause(errEmptyRoutineName)
 	}
 
-	id, err := h.app.automatedActionsRepo.Open(ctx, triggerSource, routineName)
+	id, err := h.deps.AutomatedActionsRepo.Open(ctx, triggerSource, routineName)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
@@ -77,7 +77,7 @@ func (h *obsConnectHandler) CloseAutomatedAction(
 	ctx context.Context,
 	req *observabilityv1.CloseAutomatedActionRequest,
 ) (*observabilityv1.CloseAutomatedActionResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.closeAutomatedAction(
@@ -111,7 +111,7 @@ func (h *obsConnectHandler) closeAutomatedAction(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
-	if err = h.app.automatedActionsRepo.Close(
+	if err = h.deps.AutomatedActionsRepo.Close(
 		ctx, id, outcome, prURL, errorText, m,
 	); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
@@ -124,7 +124,7 @@ func (h *obsConnectHandler) GetAutomatedActions(
 	ctx context.Context,
 	req *observabilityv1.GetAutomatedActionsRequest,
 ) (*observabilityv1.GetAutomatedActionsResponse, error) {
-	if err := requireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	resp, err := h.automatedActions(ctx, req.GetWindowDays())
@@ -139,7 +139,7 @@ func (h *obsConnectHandler) automatedActions(
 	ctx context.Context,
 	windowDays int32,
 ) (*observabilityv1.GetAutomatedActionsResponse, error) {
-	runs, err := h.app.automatedActionsRepo.ListRecent(
+	runs, err := h.deps.AutomatedActionsRepo.ListRecent(
 		ctx, windowSince(windowDays), recentRunsLimit,
 	)
 	if err != nil {
@@ -158,7 +158,7 @@ func (h *obsConnectHandler) automatedActions(
 // by a.Mode.
 func (h *obsConnectHandler) recordAction(
 	ctx context.Context,
-	a recordActionArgs,
+	a RecordActionArgs,
 ) (proto.Message, error) {
 	switch a.Mode {
 	case "open":

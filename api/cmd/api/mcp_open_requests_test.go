@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/logging"
+	obs "tools.xdoubleu.com/internal/obs"
 )
 
 // answerWithin is far below the 25s budget a held /apps/mcp POST runs into.
@@ -68,7 +69,7 @@ func TestMCPPostsEndPromptly(t *testing.T) {
 	srv := newMCPServer(logging.NewNopLogger())
 	//nolint:exhaustruct // the name is all the tool needs
 	mcp.AddTool(srv, &mcp.Tool{Name: "echo"}, func(
-		_ context.Context, _ *mcp.CallToolRequest, _ noArgs,
+		_ context.Context, _ *mcp.CallToolRequest, _ obs.NoArgs,
 	) (*mcp.CallToolResult, any, error) {
 		//nolint:exhaustruct // an empty result
 		return &mcp.CallToolResult{}, nil, nil

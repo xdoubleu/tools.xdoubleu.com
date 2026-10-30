@@ -19,9 +19,9 @@ make db/reset                      # recreate the Postgres volume — shared by 
 ## Architecture
 
 - `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after `games`/`books`/`feeds` (reads them); `trains`/`learningpaths`/`movies`/`podcasts`, then `taste` (reads `books`/`feeds`/`games`/`movies`/`podcasts`).
-- `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool.
+- `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool. Platform handlers: `internal/obs`, `internal/account` (each `Deps`/`Register`).
 - `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
-- `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked PRs can merge migrations out of order; this self-heals instead of panicking at startup.
+- `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked PRs can merge migrations out of order; this self-heals.
 
 Per-app layout (`apps/<name>/`):
 
@@ -41,7 +41,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - A per-token TTL cache (`AUTH_CACHE_TTL`, default 60s, `0` disables; tests use 0) fronts every resolution — **role/app-access changes lag up to the TTL**.
 - SignOut/UpdatePassword/VerifyMFA/UnenrollTOTP evict the token. **Admin `SetRole`/`SetAppAccess` must call `InvalidateUserCache()`.**
 - `enrichUser` overlays DB `Role`/`AppAccess`; **a DB failure is returned, never swallowed** — the unenriched user looks like "no access" and would be cached for the TTL.
-- `GetCurrentUser` (`cmd/api/connect_auth_handlers.go`) is the pattern for handlers needing DB-enriched attributes: `auth.GetUser`, then `appUsersRepo.GetByID`, preferring DB values when found.
+- `GetCurrentUser` (`internal/account/auth_handlers.go`) is the pattern for handlers needing DB-enriched attributes: `auth.GetUser`, then `appUsersRepo.GetByID`, preferring DB values when found.
 - `ResolveToken` verifies session JWTs locally, then falls back to an injected `OAuth2TokenResolver` for `oauth2as` tokens → [`adr-0006`](../docs/adr-0006-embedded-oauth21-authorization-server.md).
 
 ### Shared packages (`internal/`)

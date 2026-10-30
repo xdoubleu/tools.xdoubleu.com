@@ -1,4 +1,4 @@
-package main
+package account
 
 import (
 	"context"
@@ -15,7 +15,7 @@ func (h *authConnectHandler) MFAEnroll(
 ) (*authv1.MFAEnrollResponse, error) {
 	info, _ := connect.CallInfoForServerContext(ctx)
 	// Accept mfaToken (sign-in flow) or accessToken (settings flow).
-	tokenCookie, err := h.parseCookie(info.RequestHeader(), mfaTokenCookieName)
+	tokenCookie, err := h.parseCookie(info.RequestHeader(), MfaTokenCookieName)
 	if err != nil {
 		tokenCookie, err = h.parseCookie(info.RequestHeader(), "accessToken")
 		if err != nil {
@@ -26,9 +26,9 @@ func (h *authConnectHandler) MFAEnroll(
 		}
 	}
 
-	enrollment, err := h.app.auth.EnrollTOTP(ctx, tokenCookie.Value)
+	enrollment, err := h.app.Auth.EnrollTOTP(ctx, tokenCookie.Value)
 	if err != nil {
-		return nil, connect.NewError(authErrorCode(err), err.Error()).WithCause(err)
+		return nil, connect.NewError(AuthErrorCode(err), err.Error()).WithCause(err)
 	}
 
 	return &authv1.MFAEnrollResponse{
@@ -44,7 +44,7 @@ func (h *authConnectHandler) MFAEnrollVerify(
 ) (*authv1.MFAEnrollVerifyResponse, error) {
 	info, _ := connect.CallInfoForServerContext(ctx)
 	// Accept mfaToken (sign-in flow) or accessToken (settings flow).
-	tokenCookie, err := h.parseCookie(info.RequestHeader(), mfaTokenCookieName)
+	tokenCookie, err := h.parseCookie(info.RequestHeader(), MfaTokenCookieName)
 	isSettingsFlow := err != nil
 	if isSettingsFlow {
 		tokenCookie, err = h.parseCookie(info.RequestHeader(), "accessToken")
@@ -64,16 +64,16 @@ func (h *authConnectHandler) MFAEnrollVerify(
 		)
 	}
 
-	challenge, err := h.app.auth.ChallengeMFA(ctx, tokenCookie.Value, factorID)
+	challenge, err := h.app.Auth.ChallengeMFA(ctx, tokenCookie.Value, factorID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	accessToken, refreshToken, err := h.app.auth.VerifyMFA(
+	accessToken, refreshToken, err := h.app.Auth.VerifyMFA(
 		ctx, tokenCookie.Value, factorID, challenge.ID, req.Code,
 	)
 	if err != nil {
-		return nil, connect.NewError(signInErrorCode(err), err.Error()).WithCause(err)
+		return nil, connect.NewError(SignInErrorCode(err), err.Error()).WithCause(err)
 	}
 
 	rememberMe := false
@@ -95,7 +95,7 @@ func (h *authConnectHandler) MFAEnrollVerify(
 	}
 
 	// First enrollment: return the one-time recovery codes now.
-	recoveryCodes, codesErr := h.app.auth.GenerateRecoveryCodes(ctx, *accessToken)
+	recoveryCodes, codesErr := h.app.Auth.GenerateRecoveryCodes(ctx, *accessToken)
 	if codesErr != nil {
 		return nil, connect.NewError(connect.CodeInternal, codesErr.Error()).
 			WithCause(codesErr)
@@ -128,15 +128,15 @@ func (h *authConnectHandler) RegenerateRecoveryCodes(
 		)
 	}
 
-	if err = h.app.auth.VerifyCurrentFactor(
+	if err = h.app.Auth.VerifyCurrentFactor(
 		ctx, accessToken.Value, req.Code,
 	); err != nil {
-		return nil, connect.NewError(authErrorCode(err), err.Error()).WithCause(err)
+		return nil, connect.NewError(AuthErrorCode(err), err.Error()).WithCause(err)
 	}
 
-	codes, err := h.app.auth.GenerateRecoveryCodes(ctx, accessToken.Value)
+	codes, err := h.app.Auth.GenerateRecoveryCodes(ctx, accessToken.Value)
 	if err != nil {
-		return nil, connect.NewError(authErrorCode(err), err.Error()).WithCause(err)
+		return nil, connect.NewError(AuthErrorCode(err), err.Error()).WithCause(err)
 	}
 
 	return &authv1.RegenerateRecoveryCodesResponse{
@@ -157,7 +157,7 @@ func (h *authConnectHandler) MFAEnrollSkip(
 		)
 	}
 	// Skipping is only for users with no factor; others must pass the challenge.
-	if _, hasMFA := h.app.auth.HasVerifiedTOTP(ctx, mfaToken.Value); hasMFA {
+	if _, hasMFA := h.app.Auth.HasVerifiedTOTP(ctx, mfaToken.Value); hasMFA {
 		return nil, connect.NewError(
 			connect.CodePermissionDenied,
 			"mfa challenge required",
@@ -219,16 +219,16 @@ func (h *authConnectHandler) MFAChallenge(
 		)
 	}
 
-	challenge, err := h.app.auth.ChallengeMFA(ctx, mfaToken.Value, factorID)
+	challenge, err := h.app.Auth.ChallengeMFA(ctx, mfaToken.Value, factorID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	accessToken, refreshToken, err := h.app.auth.VerifyMFA(
+	accessToken, refreshToken, err := h.app.Auth.VerifyMFA(
 		ctx, mfaToken.Value, factorID, challenge.ID, req.Code,
 	)
 	if err != nil {
-		return nil, connect.NewError(signInErrorCode(err), err.Error()).WithCause(err)
+		return nil, connect.NewError(SignInErrorCode(err), err.Error()).WithCause(err)
 	}
 
 	rememberMe := false
@@ -264,7 +264,7 @@ func (h *authConnectHandler) MFAUnenroll(
 		)
 	}
 
-	factorID, hasMFA := h.app.auth.HasVerifiedTOTP(ctx, accessToken.Value)
+	factorID, hasMFA := h.app.Auth.HasVerifiedTOTP(ctx, accessToken.Value)
 	if !hasMFA {
 		return nil, connect.NewError(
 			connect.CodeFailedPrecondition,
@@ -272,14 +272,14 @@ func (h *authConnectHandler) MFAUnenroll(
 		)
 	}
 
-	if err = h.app.auth.VerifyCurrentFactor(
+	if err = h.app.Auth.VerifyCurrentFactor(
 		ctx, accessToken.Value, req.Code,
 	); err != nil {
-		return nil, connect.NewError(authErrorCode(err), err.Error()).WithCause(err)
+		return nil, connect.NewError(AuthErrorCode(err), err.Error()).WithCause(err)
 	}
 
-	if err = h.app.auth.UnenrollTOTP(ctx, accessToken.Value, factorID); err != nil {
-		return nil, connect.NewError(authErrorCode(err), err.Error()).WithCause(err)
+	if err = h.app.Auth.UnenrollTOTP(ctx, accessToken.Value, factorID); err != nil {
+		return nil, connect.NewError(AuthErrorCode(err), err.Error()).WithCause(err)
 	}
 
 	return &authv1.MFAUnenrollResponse{}, nil

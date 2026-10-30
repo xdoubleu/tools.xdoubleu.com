@@ -22,7 +22,7 @@ had no home.
   opaque token (`global.profile_shares`, keyed `(user_id, app)`) resolving to
   the owner. **Public handlers must never read the user-context key.**
 - Owners manage tokens and display name via `DashboardService`
-  (`cmd/api/connect_dashboard.go`) behind normal `Access`, **not** `dashboard`'s
+  (`api/internal/account/dashboard.go`) behind normal `Access`, **not** `dashboard`'s
   own `AppAccess`. `dashboard.Routes()` registers only the public services.
 
 ## Alternatives considered

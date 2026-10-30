@@ -16,6 +16,7 @@ import (
 	"github.com/pressly/goose/v3"
 
 	"tools.xdoubleu.com/apps/feeds"
+	"tools.xdoubleu.com/internal/account"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/config"
@@ -30,6 +31,7 @@ import (
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/oauth2as"
 	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/obs"
 	"tools.xdoubleu.com/internal/observability"
 	"tools.xdoubleu.com/internal/observability/jobs"
 	"tools.xdoubleu.com/internal/repositories"
@@ -39,6 +41,17 @@ import (
 
 //go:embed migrations/*.sql
 var globalMigrations embed.FS
+
+// storageScanRunner is the slice of *books.Books TriggerStorageScan needs.
+type storageScanRunner interface {
+	StartStorageScan()
+}
+
+// unhealthyFeedLister is the slice of *feeds.Feeds GetUnhealthyFeeds needs.
+// Unlike jobs.unhealthyFeedLister, it returns feeds.UnhealthyFeed directly.
+type unhealthyFeedLister interface {
+	ListUnhealthy(ctx context.Context) ([]feeds.UnhealthyFeed, error)
+}
 
 type Application struct {
 	ctx                           context.Context
@@ -74,6 +87,48 @@ type Application struct {
 	weeklyDigestJob               *jobs.WeeklyDigestJob
 	logPruneJob                   *jobs.LogPruneJob
 	globalJobQueue                *jobqueue.JobQueue
+}
+
+// accountDeps builds the account module's Deps from the wiring Application
+// already holds.
+func (app *Application) accountDeps() *account.Deps {
+	return &account.Deps{
+		Auth:     app.auth,
+		Config:   app.config,
+		AppUsers: app.appUsersRepo,
+		Family:   app.family,
+		Shares:   app.profileSharesRepo,
+	}
+}
+
+// obsDeps builds the observability module's Deps from the wiring Application
+// already holds. booksApp is set after construction, so this is a method, not
+// a struct field.
+func (app *Application) obsDeps() *obs.Deps {
+	appNames := make([]string, 0, len(*app.apps))
+	for _, a := range *app.apps {
+		appNames = append(appNames, a.GetName())
+	}
+
+	return &obs.Deps{
+		Logger:                   app.logger,
+		Config:                   app.config,
+		AppUsersRepo:             app.appUsersRepo,
+		JobRunsRepo:              app.jobRunsRepo,
+		UsageRepo:                app.usageRepo,
+		StorageRepo:              app.storageRepo,
+		DBStatsRepo:              app.dbStatsRepo,
+		AutomatedActionsRepo:     app.automatedActionsRepo,
+		LogsRepo:                 app.logsRepo,
+		NotificationSettingsRepo: app.notificationSettingsRepo,
+		OAuthConnRepo:            app.oauthConnRepo,
+		TransactionLatencyRepo:   app.transactionLatencyRepo,
+		OAuthState:               app.oauthState,
+		GithubClient:             app.githubClient,
+		SentryClient:             app.sentryClient,
+		StorageScan:              app.booksApp,
+		AppNames:                 appNames,
+	}
 }
 
 //	@title			tools

@@ -5,21 +5,16 @@ import (
 	"net/http"
 	"strings"
 
-	"connectrpc.com/connect/v2"
 	"github.com/justinas/alice"
 	mcpauth "github.com/modelcontextprotocol/go-sdk/auth"
 
-	"tools.xdoubleu.com/gen/access/v1/accessv1connect"
-	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
-	dashboardv1connect "tools.xdoubleu.com/gen/dashboard/v1/dashboardv1connect"
-	"tools.xdoubleu.com/gen/family/v1/familyv1connect"
-	"tools.xdoubleu.com/gen/observability/v1/observabilityv1connect"
-	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/account"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/middleware"
 	"tools.xdoubleu.com/internal/oauth2as"
+	"tools.xdoubleu.com/internal/obs"
 )
 
 // maxRequestBodyBytes bounds every request body, e.g. inbound newsletter
@@ -27,29 +22,15 @@ import (
 const maxRequestBodyBytes = 10 << 20
 
 func (app *Application) Routes() http.Handler {
-	mux := http.NewServeMux()
-	mountConnect := func(gate iapp.Gate, register func(*connect.Server)) {
-		iapp.MountConnect(mux, app.logger, gate, register)
-	}
+	return app.middleware().Then(app.mux())
+}
 
-	mountConnect(nil, func(s *connect.Server) {
-		authv1connect.RegisterAuthServiceHandler(s, &authConnectHandler{app: app})
-	})
-	mountConnect(app.auth.Access, func(s *connect.Server) {
-		accessv1connect.RegisterAccessServiceHandler(s, &accessConnectHandler{app: app})
-		observabilityv1connect.RegisterObservabilityServiceHandler(
-			s,
-			&obsConnectHandler{app: app},
-		)
-		familyv1connect.RegisterFamilyServiceHandler(
-			s,
-			&familyConnectHandler{app: app},
-		)
-		dashboardv1connect.RegisterDashboardServiceHandler(
-			s,
-			&dashboardConnectHandler{app: app},
-		)
-	})
+// mux registers every route, without the middleware chain.
+func (app *Application) mux() *http.ServeMux {
+	mux := http.NewServeMux()
+
+	account.Register(mux, app.logger, nil, app.auth.Access, app.accountDeps())
+	obs.Register(mux, app.logger, app.auth.Access, app.obsDeps())
 
 	// MCP behind OAuth 2.1 Bearer auth. The protected-resource metadata is public
 	// for discovery.
@@ -116,7 +97,7 @@ func (app *Application) Routes() http.Handler {
 
 	app.apps.Routes(mux)
 
-	return app.middleware().Then(mux)
+	return mux
 }
 
 // middleware is the chain in front of every route.

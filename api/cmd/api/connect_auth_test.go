@@ -14,6 +14,7 @@ import (
 
 	authv1 "tools.xdoubleu.com/gen/auth/v1"
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
+	account "tools.xdoubleu.com/internal/account"
 )
 
 func authClient(t *testing.T) authv1connect.AuthServiceClient {
@@ -142,7 +143,7 @@ func TestIsRelativeURL(t *testing.T) {
 		{"\\/evil.com", false},
 	}
 	for _, tt := range tests {
-		assert.Equal(t, tt.want, isRelativeURL(tt.url), "url=%q", tt.url)
+		assert.Equal(t, tt.want, account.IsRelativeURL(tt.url), "url=%q", tt.url)
 	}
 }
 

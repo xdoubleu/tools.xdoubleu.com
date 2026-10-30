@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/logging"
+	obs "tools.xdoubleu.com/internal/obs"
 )
 
 // requestCountsByStatus totals http_request_duration_seconds_count for a
@@ -48,7 +49,7 @@ func TestMCPRequestsAreRecordedAs2xx(t *testing.T) {
 	srv := newMCPServer(logging.NewNopLogger())
 	//nolint:exhaustruct // the name is all the tool needs
 	mcp.AddTool(srv, &mcp.Tool{Name: "ping"}, func(
-		_ context.Context, _ *mcp.CallToolRequest, _ noArgs,
+		_ context.Context, _ *mcp.CallToolRequest, _ obs.NoArgs,
 	) (*mcp.CallToolResult, any, error) {
 		//nolint:exhaustruct // an empty result
 		return &mcp.CallToolResult{}, nil, nil

@@ -14,26 +14,27 @@ import (
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
+	obs "tools.xdoubleu.com/internal/obs"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
 func TestProtoProviderConfig(t *testing.T) {
-	assert.Nil(t, protoProviderConfig(models.OAuthProviderGithub, nil), "unset config")
+	assert.Nil(t, obs.ProtoProviderConfig(models.OAuthProviderGithub, nil), "unset config")
 	assert.Nil(
-		t, protoProviderConfig(models.OAuthProviderGithub, []byte(`not json`)),
+		t, obs.ProtoProviderConfig(models.OAuthProviderGithub, []byte(`not json`)),
 		"malformed JSON degrades to unset rather than erroring",
 	)
 	assert.Nil(
-		t, protoProviderConfig(models.OAuthProviderGithub, []byte(`{"repo":""}`)),
+		t, obs.ProtoProviderConfig(models.OAuthProviderGithub, []byte(`{"repo":""}`)),
 		"empty repo degrades to unset",
 	)
 	assert.Nil(
-		t, protoProviderConfig(models.OAuthProviderSentry, []byte(`{"org":""}`)),
+		t, obs.ProtoProviderConfig(models.OAuthProviderSentry, []byte(`{"org":""}`)),
 		"empty org degrades to unset",
 	)
-	assert.Nil(t, protoProviderConfig("unknown", []byte(`{}`)), "unknown provider")
+	assert.Nil(t, obs.ProtoProviderConfig("unknown", []byte(`{}`)), "unknown provider")
 
-	cfg := protoProviderConfig(
+	cfg := obs.ProtoProviderConfig(
 		models.OAuthProviderSentry, []byte(`{"org":"o","projects":["a","b"]}`),
 	)
 	require.NotNil(t, cfg)

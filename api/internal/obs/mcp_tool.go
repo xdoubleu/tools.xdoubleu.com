@@ -1,4 +1,4 @@
-package main
+package obs
 
 import (
 	"context"
@@ -42,7 +42,7 @@ func registerObsTool[In any](
 			_ *mcp.CallToolRequest,
 			args In,
 		) (*mcp.CallToolResult, any, error) {
-			if err := requireObservability(ctx); err != nil {
+			if err := RequireObservability(ctx); err != nil {
 				return nil, nil, err
 			}
 			msg, err := produce(ctx, args)
