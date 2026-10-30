@@ -78,7 +78,7 @@ func (h *gamesConnectHandler) RefreshSteamGame(
 
 	gameID := int(req.GameId)
 
-	if err := h.app.Services.Steam.SyncGame(ctx, user.ID, gameID); err != nil {
+	if err := h.app.services.Steam.SyncGame(ctx, user.ID, gameID); err != nil {
 		return nil, connecttools.MapError(err)
 	}
 
@@ -105,14 +105,14 @@ func (h *gamesConnectHandler) SetGameFavourite(
 
 	gameID := int(req.GameId)
 
-	err := h.app.Services.Steam.SetFavourite(
+	err := h.app.services.Steam.SetFavourite(
 		ctx, user.ID, gameID, req.Favourite,
 	)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
 
-	game, err := h.app.Services.Steam.GetGameByID(ctx, gameID, user.ID)
+	game, err := h.app.services.Steam.GetGameByID(ctx, gameID, user.ID)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
@@ -134,7 +134,7 @@ func (h *gamesConnectHandler) GetSteamDistribution(
 		)
 	}
 
-	label, bucketGames, err := h.app.Services.Progress.GetDistributionBucket(
+	label, bucketGames, err := h.app.services.Progress.GetDistributionBucket(
 		ctx, user.ID, int(req.Bucket),
 	)
 	if err != nil {
@@ -164,7 +164,7 @@ func (h *gamesConnectHandler) GetRecentlyActiveGames(
 		)
 	}
 
-	games, err := h.app.Services.Steam.GetRecentlyActive(ctx, user.ID)
+	games, err := h.app.services.Steam.GetRecentlyActive(ctx, user.ID)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}

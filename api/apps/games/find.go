@@ -19,7 +19,7 @@ func (a *Games) FindGame(
 	ctx context.Context,
 	userID, title string,
 ) (*consumption.CatalogMatch, error) {
-	items, err := a.Store.SearchStore(ctx, title)
+	items, err := a.store.SearchStore(ctx, title)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (a *Games) FindGame(
 	}
 	if i := consumption.BestTitle(names, title); i >= 0 {
 		it := items[i]
-		_, err = a.Repositories.Steam.GetGameByID(ctx, it.ID, userID)
+		_, err = a.repositories.Steam.GetGameByID(ctx, it.ID, userID)
 		known := err == nil
 		if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
 			return nil, err
@@ -56,7 +56,7 @@ func (a *Games) FindGame(
 // reviewCount is appID's review count, or nil when the lookup fails, which is
 // logged.
 func (a *Games) reviewCount(ctx context.Context, appID int) *int {
-	n, err := a.Store.ReviewCount(ctx, appID)
+	n, err := a.store.ReviewCount(ctx, appID)
 	if err != nil {
 		a.Logger.WarnContext(ctx, "steam review count lookup failed",
 			slog.Int("app_id", appID), slog.Any("error", err))

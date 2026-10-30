@@ -16,17 +16,17 @@ func (a *Games) buildSteamResponse(
 	userID string,
 	dateStart, dateEnd time.Time,
 ) (*gamesv1.SteamResponse, error) {
-	notStarted, err := a.Services.Steam.GetBacklog(ctx, userID)
+	notStarted, err := a.services.Steam.GetBacklog(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	inProgress, err := a.Services.Steam.GetInProgress(ctx, userID)
+	inProgress, err := a.services.Steam.GetInProgress(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	distribution, _, err := a.Services.Progress.GetCompletionRateDistribution(
+	distribution, _, err := a.services.Progress.GetCompletionRateDistribution(
 		ctx,
 		userID,
 	)
@@ -34,17 +34,17 @@ func (a *Games) buildSteamResponse(
 		return nil, err
 	}
 
-	completed, err := a.Services.Steam.GetCompleted(ctx, userID)
+	completed, err := a.services.Steam.GetCompleted(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	delisted, err := a.Services.Steam.GetDelisted(ctx, userID)
+	delisted, err := a.services.Steam.GetDelisted(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	currentRate, err := a.Services.Progress.GetCurrentSteamCompletionRate(
+	currentRate, err := a.services.Progress.GetCurrentSteamCompletionRate(
 		ctx,
 		userID,
 	)
@@ -52,7 +52,7 @@ func (a *Games) buildSteamResponse(
 		return nil, err
 	}
 
-	labels, values, err := a.Services.Progress.GetByDates(
+	labels, values, err := a.services.Progress.GetByDates(
 		ctx, userID, dateStart, dateEnd,
 	)
 	if err != nil {
@@ -87,7 +87,7 @@ func (a *Games) BuildSharedSteam(
 		return nil, "", err
 	}
 
-	lastSynced, err := a.Services.Steam.GetLastSyncedAt(ctx, userID)
+	lastSynced, err := a.services.Steam.GetLastSyncedAt(ctx, userID)
 	if err != nil {
 		return nil, "", err
 	}
@@ -115,7 +115,7 @@ func (a *Games) BuildSharedRecentlyActiveGames(
 	ctx context.Context,
 	userID string,
 ) ([]*gamesv1.RecentGame, error) {
-	recentGames, err := a.Services.Steam.GetRecentlyActive(ctx, userID)
+	recentGames, err := a.services.Steam.GetRecentlyActive(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -129,12 +129,12 @@ func (a *Games) buildSteamGameResponse(
 	userID string,
 	gameID int,
 ) (*gamesv1.SteamGameResponse, error) {
-	game, err := a.Services.Steam.GetGameByID(ctx, gameID, userID)
+	game, err := a.services.Steam.GetGameByID(ctx, gameID, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	achievements, err := a.Services.Steam.GetAchievementsForGame(
+	achievements, err := a.services.Steam.GetAchievementsForGame(
 		ctx,
 		gameID,
 		userID,

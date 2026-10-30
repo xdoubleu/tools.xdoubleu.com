@@ -15,7 +15,7 @@ func (app *Games) GetIntegrations(
 	ctx context.Context,
 	userID string,
 ) (Integrations, error) {
-	i, err := app.Services.Integrations.Get(ctx, userID)
+	i, err := app.services.Integrations.Get(ctx, userID)
 	if err != nil {
 		return Integrations{}, err
 	}
@@ -29,7 +29,7 @@ func (app *Games) SaveIntegrations(
 	userID string,
 	i Integrations,
 ) error {
-	return app.Services.Integrations.Save(ctx, repositories.UserIntegrations{
+	return app.services.Integrations.Save(ctx, repositories.UserIntegrations{
 		UserID:      userID,
 		SteamUserID: i.SteamUserID,
 	})

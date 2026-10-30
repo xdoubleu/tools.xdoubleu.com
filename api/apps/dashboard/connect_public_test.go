@@ -77,7 +77,8 @@ func ensureProfileShare(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// seedPublicSteamData syncs the fake Steam library for publicGamesUserID.
+// seedPublicSteamData inserts a minimal Steam library for publicGamesUserID
+// via SQL (games' services are internal; same convention as seedPublicBook).
 func seedPublicSteamData(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()
@@ -88,7 +89,18 @@ func seedPublicSteamData(t *testing.T) {
 			SteamUserID: "76561197960287930",
 		}),
 	)
-	require.NoError(t, testGames.Services.Steam.SyncUser(ctx, publicGamesUserID))
+
+	stmts := []string{
+		`INSERT INTO games.steam_games (id, user_id, name, last_played)
+		 VALUES (1, $1, 'Public Test Game', now())
+		 ON CONFLICT (id, user_id) DO UPDATE SET last_played = now()`,
+		`INSERT INTO games.steam_achievements (name, user_id, game_id, achieved)
+		 VALUES ('first', $1, 1, TRUE) ON CONFLICT DO NOTHING`,
+	}
+	for _, stmt := range stmts {
+		_, err := testDB.Exec(ctx, stmt, publicGamesUserID)
+		require.NoError(t, err)
+	}
 }
 
 // seedPublicBook inserts a wishlist book via SQL (books' services are

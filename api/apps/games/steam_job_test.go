@@ -50,7 +50,7 @@ func (m *noUsersAuthService) SignOut(
 func TestSteamJobNoUsers(t *testing.T) {
 	job := jobs.NewSteamJob(
 		&noUsersAuthService{},
-		testApp.Services.Steam,
+		testApp.TestSeeds().Services.Steam,
 	)
 	err := job.Run(context.Background(), logging.NewNopLogger())
 	assert.Nil(t, err)
@@ -58,8 +58,8 @@ func TestSteamJobNoUsers(t *testing.T) {
 
 func TestSteamJob(t *testing.T) {
 	job := jobs.NewSteamJob(
-		testApp.Services.Auth,
-		testApp.Services.Steam,
+		testApp.TestSeeds().Services.Auth,
+		testApp.TestSeeds().Services.Steam,
 	)
 	assert.NotEmpty(t, job.ID())
 	assert.NotZero(t, job.RunEvery())
