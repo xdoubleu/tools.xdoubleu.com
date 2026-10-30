@@ -68,6 +68,17 @@ the actual criteria (size thresholds, which file patterns count as
   enable auto-merge. Open a normal (non-draft) PR and wait for the user's
   own review.
 
+**Never arm auto-merge unless this PR's `base` is the default branch.**
+When PRs are stacked for review (each opened with `--base <sibling feature
+branch>` instead of the default), GitHub merges every PR into that base
+branch, not the default — arming auto-merge on any one of them strands its
+code in a feature branch and it never reaches `main`. A chain of PRs whose
+bases point at each other must instead be pulled through in dependency
+order into the default branch, retargeting bases and rebasing so `main`
+receives each change; arm auto-merge at most on the final PR once it targets
+the default branch. If a PR's `base` is a non-default branch, skip auto-merge
+entirely, open it non-draft, and merge explicitly against the default.
+
 ## 3. Monitor CI until green, fixing it yourself if it isn't
 
 Wait using `gh`'s own watch and a loop that **exits on the outcome** — never a
