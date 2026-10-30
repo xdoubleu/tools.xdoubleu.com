@@ -16,6 +16,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
+	"tools.xdoubleu.com/apps/books/internal/services/positions"
 	"tools.xdoubleu.com/apps/books/pkg/authorname"
 	"tools.xdoubleu.com/apps/books/pkg/books"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
@@ -63,7 +64,7 @@ type BookService struct {
 	seriesCache  *seriesCache
 	// physical follows digital positions on a physical copy; nil in tests
 	// that build a BookService directly.
-	physical *PhysicalService
+	physical *positions.PhysicalService
 }
 
 // SearchLibrary searches the user's own library by title/author substring.

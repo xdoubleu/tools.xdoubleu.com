@@ -15,7 +15,9 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	"tools.xdoubleu.com/apps/books/pkg/ebookmeta"
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 	"tools.xdoubleu.com/internal/database"
 )
 
@@ -37,36 +39,23 @@ var ErrUploadMissing = errors.New("upload missing: retry the upload")
 // temp object is removed.
 var ErrUnrecognizedBook = errors.New("book could not be recognized from metadata")
 
-// MaxUploadBytes caps one raw upload. Keep in sync with MAX_UPLOAD_BYTES in
-// web/lib/backlog/zipFiles.ts.
-const MaxUploadBytes = 250 * 1024 * 1024
-
 const uploadPresignTTL = 60 * time.Minute
 
 const magicBytesLen = 4
 
 const maxFilenameBytes = 255
 
-// booksFolderPrefix is where every book's files live: books/<bookID>/<name>.
-const booksFolderPrefix = "books/"
-
-// bookFileKey returns books/<bookID>/<checksum><ext>.
-func bookFileKey(bookID fmt.Stringer, checksum, ext string) string {
-	return booksFolderPrefix + bookID.String() + "/" + checksum + ext
-}
-
 func bookCoverKey(bookID fmt.Stringer) string {
-	return booksFolderPrefix + bookID.String() + "/cover.jpg"
+	return ebooks.BooksFolderPrefix + bookID.String() + "/cover.jpg"
 }
 
 // bookCoverMissingKey marks a book as having no cover (negative cache).
 func bookCoverMissingKey(bookID fmt.Stringer) string {
-	return booksFolderPrefix + bookID.String() + "/cover.missing"
+	return ebooks.BooksFolderPrefix + bookID.String() + "/cover.missing"
 }
 
 const extEPUB = ".epub"
 const extPDF = ".pdf"
-const extKEPUB = ".kepub"
 
 // UploadFileResult holds the outcome of a successful FinalizeUpload call.
 type UploadFileResult struct {
@@ -86,7 +75,7 @@ func (s *BookService) CreateUpload(
 	size int64,
 	checksum string,
 ) (string, string, bool, error) {
-	if size > MaxUploadBytes {
+	if size > ebooks.MaxUploadBytes {
 		return "", "", false, ErrFileTooLarge
 	}
 
@@ -303,13 +292,13 @@ func (s *BookService) loadUploadedFile(
 	}
 
 	// The presigned PUT doesn't bind the declared size, so bound it here.
-	size, err := io.Copy(tmp, io.LimitReader(rc, MaxUploadBytes+1))
+	size, err := io.Copy(tmp, io.LimitReader(rc, ebooks.MaxUploadBytes+1))
 	if err != nil {
 		_ = tmp.Close()
 		_ = os.Remove(tmp.Name())
 		return nil, fmt.Errorf("stream upload to disk: %w", err)
 	}
-	if size > MaxUploadBytes {
+	if size > ebooks.MaxUploadBytes {
 		_ = tmp.Close()
 		_ = os.Remove(tmp.Name())
 		_ = s.objectStore.Delete(ctx, uploadID)
@@ -401,7 +390,7 @@ func (s *BookService) finalizeNew(
 		return nil, dupeErr
 	}
 
-	canonicalKey := bookFileKey(ub.BookID, uf.checksum, extForFormat(uf.format))
+	canonicalKey := ebooks.BookFileKey(ub.BookID, uf.checksum, extForFormat(uf.format))
 	bgCtx := context.WithoutCancel(ctx)
 	if copyErr := s.objectStore.Copy(bgCtx, uploadID, canonicalKey); copyErr != nil {
 		return nil, fmt.Errorf("copy to canonical key: %w", copyErr)
@@ -486,7 +475,7 @@ func extForFormat(format string) string {
 	case models.FileFormatEPUB:
 		return extEPUB
 	case models.FileFormatKEPUB:
-		return extKEPUB
+		return ebooks.ExtKEPUB
 	case models.FileFormatPDF:
 		return extPDF
 	}
@@ -645,7 +634,7 @@ func (s *BookService) GetKEPUBStatus(
 	if kepubErr == nil {
 		result.KepubStatus = kepub.Status
 		if kepub.Status == models.FileStatusReady &&
-			kepub.ConverterVersion < currentKEPUBConverterVersion {
+			kepub.ConverterVersion < conversion.CurrentKEPUBConverterVersion() {
 			result.KepubStale = true
 		}
 	} else if !errors.Is(kepubErr, database.ErrResourceNotFound) {

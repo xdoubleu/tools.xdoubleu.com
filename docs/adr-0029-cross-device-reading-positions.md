@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #2156 (part of epic #2154); translation in #2158, #2160
-- Affects: `books.book_reading_state`, `api/apps/books/internal/services/books.go` (`upsertReadingProgress`), `api/apps/books/internal/repositories/book_reading_state.go`, `api/apps/books/internal/services/kepub_spans*.go`, `api/apps/books/internal/services/reading_position_*.go`, `api/apps/books/internal/services/conversion_epubbuild_pages.go`, `web/lib/books/readerPosition.ts`, `web/hooks/useReadingState.ts`
+- Affects: `books.book_reading_state`, `api/apps/books/internal/services/books.go` (`upsertReadingProgress`), `api/apps/books/internal/repositories/book_reading_state.go`, `api/apps/books/internal/services/positions/kepub_spans*.go`, `api/apps/books/internal/services/positions/reading_position_*.go`, `api/apps/books/internal/services/conversion/conversion_epubbuild_pages.go`, `web/lib/books/readerPosition.ts`, `web/hooks/useReadingState.ts`
 
 ## Context
 

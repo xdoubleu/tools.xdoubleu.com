@@ -7,7 +7,10 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"tools.xdoubleu.com/apps/books/internal/repositories"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	"tools.xdoubleu.com/apps/books/internal/services/kobo"
+	"tools.xdoubleu.com/apps/books/internal/services/positions"
+	"tools.xdoubleu.com/apps/books/internal/services/webpub"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
@@ -22,17 +25,17 @@ import (
 type Services struct {
 	Auth       auth.Service
 	Books      *BookService
-	Conversion *ConversionService
-	KEPUBQueue *KEPUBQueue
-	Figures    *FigureService
-	Positions  *PositionService
-	Physical   *PhysicalService
+	Conversion *conversion.Service
+	KEPUBQueue *conversion.KEPUBQueue
+	Figures    *conversion.FigureService
+	Positions  *positions.PositionService
+	Physical   *positions.PhysicalService
 	Progress   *ProgressService
 	Kobo       *kobo.Service
 	KoboLog    *kobo.LogStore
 	Ingest     *IngestService
 	WebSocket  *progressws.Service
-	WebPub     *WebPubService
+	WebPub     *webpub.Service
 }
 
 func New(
@@ -67,7 +70,7 @@ func New(
 		physical:     nil, // set once the position service exists
 	}
 
-	conversionSvc := NewConversionService(
+	conversionSvc := conversion.NewService(
 		logger,
 		repositories.Books,
 		repositories.BookFiles,
@@ -82,26 +85,28 @@ func New(
 		webFetchClient,
 	)
 
-	positions := newPositionService(
-		logger, repositories.BookFiles, objectStore, translateBudget,
+	positionSvc := positions.NewPositionService(
+		logger, repositories.BookFiles, objectStore, positions.TranslateBudget,
 	)
-	booksSvc.physical = newPhysicalService(
-		logger, background, repositories.Books, repositories.ReadingState, positions,
+	booksSvc.physical = positions.NewPhysicalService(
+		logger, background, repositories.Books, repositories.ReadingState, positionSvc,
 	)
 
 	return &Services{
 		Auth:       authService,
 		Books:      booksSvc,
 		Conversion: conversionSvc,
-		KEPUBQueue: NewKEPUBQueue(logger, repositories.KEPUBRequests, conversionSvc),
-		Figures:    NewFigureService(logger, repositories.BookFiles, objectStore),
-		Positions:  positions,
-		Physical:   booksSvc.physical,
-		Progress:   NewProgressService(repositories.Progress),
-		Kobo:       koboSvc,
-		KoboLog:    koboLog,
-		Ingest:     ingestSvc,
-		WebPub:     newWebPubService(booksSvc),
+		KEPUBQueue: conversion.NewKEPUBQueue(
+			logger, repositories.KEPUBRequests, conversionSvc,
+		),
+		Figures:   conversion.NewFigureService(logger, repositories.BookFiles, objectStore),
+		Positions: positionSvc,
+		Physical:  booksSvc.physical,
+		Progress:  NewProgressService(repositories.Progress),
+		Kobo:      koboSvc,
+		KoboLog:   koboLog,
+		Ingest:    ingestSvc,
+		WebPub:    webpub.NewService(repositories.BookFiles, booksSvc.openStoredZip),
 		WebSocket: progressws.NewService(
 			ctx,
 			logger,

@@ -14,7 +14,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/mocks"
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 )
 
 // setupPagedBook gives owner a PDF-only book whose KEPUB is mocks.PagedEPUB
@@ -48,7 +48,7 @@ func setupPagedBook(t *testing.T, owner string) uuid.UUID {
 // extra paragraphs.
 func convertPaged(t *testing.T, owner string, bookID uuid.UUID, intro int) {
 	t.Helper()
-	conv := services.NewConversionService(
+	conv := conversion.NewService(
 		testApp.Logger,
 		testApp.TestSeeds().Repositories.Books,
 		testApp.TestSeeds().Repositories.BookFiles,
@@ -74,7 +74,7 @@ func regeneratePaged(t *testing.T, owner string, bookID uuid.UUID) {
 	_, err = testDB.Exec(ctx,
 		`UPDATE books.user_books SET kobo_last_synced_converter_version = $3
 		 WHERE book_id = $1 AND user_id = $2`,
-		bookID, owner, services.CurrentKEPUBConverterVersion()-1)
+		bookID, owner, conversion.CurrentKEPUBConverterVersion()-1)
 	require.NoError(t, err)
 }
 
