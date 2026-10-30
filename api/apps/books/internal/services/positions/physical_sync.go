@@ -1,4 +1,4 @@
-package services
+package positions
 
 import (
 	"context"
@@ -55,7 +55,7 @@ type PhysicalService struct {
 	buildTimeout time.Duration
 }
 
-func newPhysicalService(
+func NewPhysicalService(
 	logger *slog.Logger,
 	background *threading.Background,
 	copies physicalCopyStore,

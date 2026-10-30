@@ -65,11 +65,11 @@ func smallEPUB(t *testing.T) *zip.Reader {
 
 func TestCheckEPUBSize(t *testing.T) {
 	zr := smallEPUB(t)
-	require.NoError(t, conversion.CheckEPUBSize(zr))
+	require.NoError(t, ebooks.CheckEPUBSize(zr))
 
 	// A zip bomb declares a huge inflated size for a tiny entry.
-	zr.File[0].UncompressedSize64 = conversion.MaxEPUBUncompressedBytes + 1
-	require.Error(t, conversion.CheckEPUBSize(zr))
+	zr.File[0].UncompressedSize64 = ebooks.MaxEPUBUncompressedBytes + 1
+	require.Error(t, ebooks.CheckEPUBSize(zr))
 }
 
 func TestKepubifyConvert_RejectsZipBomb(t *testing.T) {
@@ -81,7 +81,7 @@ func TestKepubifyConvert_RejectsZipBomb(t *testing.T) {
 		Name:               "bomb.xhtml",
 		Method:             zip.Store,
 		CompressedSize64:   1,
-		UncompressedSize64: conversion.MaxEPUBUncompressedBytes + 1,
+		UncompressedSize64: ebooks.MaxEPUBUncompressedBytes + 1,
 	})
 	require.NoError(t, err)
 	_, err = w.Write([]byte("x"))

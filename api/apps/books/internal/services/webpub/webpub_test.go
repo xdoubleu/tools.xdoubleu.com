@@ -1,5 +1,5 @@
 //nolint:testpackage // testing unexported manifest helpers
-package services
+package webpub
 
 import (
 	"archive/zip"
@@ -12,6 +12,25 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/mocks"
 )
+
+// zipOf builds an archive of name → content, stored uncompressed (owned here
+// too because the positions seam's copy is not importable).
+func zipOf(t *testing.T, files map[string]string) *zip.Reader {
+	t.Helper()
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	for name, content := range files {
+		//nolint:exhaustruct // a stored entry needs only these
+		w, err := zw.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Store})
+		require.NoError(t, err)
+		_, err = w.Write([]byte(content))
+		require.NoError(t, err)
+	}
+	require.NoError(t, zw.Close())
+	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	require.NoError(t, err)
+	return zr
+}
 
 func TestBuildWebPubManifest_ChapterEPUB(t *testing.T) {
 	data := mocks.ChapterEPUB("Title", "Author")
@@ -149,7 +168,7 @@ func TestResourceType(t *testing.T) {
 }
 
 func TestWebPubResource_RejectsTraversal(t *testing.T) {
-	svc := newWebPubService(nil)
+	svc := NewService(nil, nil)
 	for _, name := range []string{"../etc/passwd", "", "/.."} {
 		_, err := svc.Resource(t.Context(), "u", [16]byte{}, name)
 		assert.ErrorIs(t, err, ErrWebPubResourceNotFound, name)

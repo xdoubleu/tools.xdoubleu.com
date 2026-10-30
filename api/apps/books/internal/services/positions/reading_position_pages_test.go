@@ -1,5 +1,5 @@
 //nolint:testpackage // testing the unexported translator constructor
-package services
+package positions
 
 import (
 	"context"

@@ -1,5 +1,5 @@
 //nolint:testpackage // testing unexported translator internals
-package services
+package positions
 
 import (
 	"archive/zip"
@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/services/conversion"
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 )
 
 func TestPositionService_PanicCachesEmptyAndLogs(t *testing.T) {
@@ -87,7 +87,7 @@ func TestOpenZip_DownloadSizeCap(t *testing.T) {
 	f.svc.maxDownload = int64(len(kepub))
 	z, err := f.svc.openZip(ctx, "kepub")
 	require.NoError(t, err, "exactly the cap is allowed")
-	z.close()
+	z.Close()
 
 	f.svc.maxDownload = int64(len(kepub)) - 1
 	_, err = f.svc.openZip(ctx, "kepub")
@@ -101,7 +101,7 @@ func TestOpenZip_RejectsZipBomb(t *testing.T) {
 	zw := zip.NewWriter(&buf)
 	w, err := zw.CreateRaw(&zip.FileHeader{ //nolint:exhaustruct //raw entry
 		Name: "bomb.xhtml", Method: zip.Store,
-		CompressedSize64: 1, UncompressedSize64: conversion.MaxEPUBUncompressedBytes + 1,
+		CompressedSize64: 1, UncompressedSize64: ebooks.MaxEPUBUncompressedBytes + 1,
 	})
 	require.NoError(t, err)
 	_, err = w.Write([]byte("x"))

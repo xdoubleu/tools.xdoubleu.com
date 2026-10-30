@@ -1,4 +1,4 @@
-package services
+package positions
 
 import (
 	"context"
@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	// translateBudget is how long a request waits for span maps before
+	// TranslateBudget is how long a request waits for span maps before
 	// falling back to percent (ADR-0017); builds carry on for the next one.
-	translateBudget     = 3 * time.Second
+	TranslateBudget     = 3 * time.Second
 	spanMapBuildTimeout = time.Minute
 	// spanMapPendingGrace bounds how long a span map counts as pending, so a
 	// book that never builds still syncs as percent only.
@@ -56,7 +56,7 @@ type PositionService struct {
 	pendingSince map[any]time.Time
 }
 
-func newPositionService(
+func NewPositionService(
 	logger *slog.Logger,
 	files kepubFileStore,
 	objectStore objectstore.Client,

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #2401 (follows epic #2154)
-- Affects: `books.user_books.physical_*`, `api/apps/books/internal/services/physical_*.go`, `api/apps/books/connect_physical.go`, `web/components/books/BookProgressForm.tsx`, `web/components/books/BookPhysicalCopyFields.tsx`
+- Affects: `books.user_books.physical_*`, `api/apps/books/internal/services/positions/physical_*.go`, `api/apps/books/connect_physical.go`, `web/components/books/BookProgressForm.tsx`, `web/components/books/BookPhysicalCopyFields.tsx`
 
 ## Context
 

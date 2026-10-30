@@ -1,4 +1,4 @@
-package services
+package positions
 
 import (
 	"context"
@@ -129,7 +129,7 @@ func (s *PositionService) parseText(
 	if err != nil {
 		return nil, err
 	}
-	defer zr.close()
+	defer zr.Close()
 	var t *bookText
 	func() {
 		defer func() {
@@ -137,7 +137,7 @@ func (s *PositionService) parseText(
 				err = fmt.Errorf("epub text model build panicked: %v", r)
 			}
 		}()
-		t, err = buildBookText(ctx, zr.zr)
+		t, err = buildBookText(ctx, zr.Reader())
 	}()
 	return t, err
 }

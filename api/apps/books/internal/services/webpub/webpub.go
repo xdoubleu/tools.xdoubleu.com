@@ -1,4 +1,4 @@
-package services
+package webpub
 
 import (
 	"archive/zip"
@@ -15,6 +15,7 @@ import (
 	xhtml "golang.org/x/net/html"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 	"tools.xdoubleu.com/internal/database"
 )
@@ -34,18 +35,18 @@ const (
 	tagSpan         = "span"
 )
 
-// WebPubLink is one Readium link object.
-type WebPubLink struct {
+// Link is one Readium link object.
+type Link struct {
 	Href       string         `json:"href"`
 	Type       string         `json:"type,omitempty"`
 	Title      string         `json:"title,omitempty"`
 	Rel        []string       `json:"rel,omitempty"`
 	Properties map[string]any `json:"properties,omitempty"`
-	Children   []WebPubLink   `json:"children,omitempty"`
+	Children   []Link         `json:"children,omitempty"`
 }
 
-// WebPubMetadata is the subset of Readium metadata the reader needs.
-type WebPubMetadata struct {
+// Metadata is the subset of Readium metadata the reader needs.
+type Metadata struct {
 	Title      string   `json:"title"`
 	Author     []string `json:"author,omitempty"`
 	Language   []string `json:"language,omitempty"`
@@ -53,65 +54,70 @@ type WebPubMetadata struct {
 	ConformsTo string   `json:"conformsTo"`
 }
 
-// WebPubManifest is a Readium Web Publication Manifest. Hrefs are relative to
+// Manifest is a Readium Web Publication Manifest. Hrefs are relative to
 // the manifest URL: resources live under res/<zip path>.
-type WebPubManifest struct {
-	Context      string         `json:"@context"`
-	Metadata     WebPubMetadata `json:"metadata"`
-	Links        []WebPubLink   `json:"links"`
-	ReadingOrder []WebPubLink   `json:"readingOrder"`
-	Resources    []WebPubLink   `json:"resources"`
-	TOC          []WebPubLink   `json:"toc,omitempty"`
+type Manifest struct {
+	Context      string   `json:"@context"`
+	Metadata     Metadata `json:"metadata"`
+	Links        []Link   `json:"links"`
+	ReadingOrder []Link   `json:"readingOrder"`
+	Resources    []Link   `json:"resources"`
+	TOC          []Link   `json:"toc,omitempty"`
 }
 
-// WebPubLocations places a position within its section and the whole book.
-type WebPubLocations struct {
+// Locations places a position within its section and the whole book.
+type Locations struct {
 	Position         int     `json:"position"`
 	Progression      float64 `json:"progression"`
 	TotalProgression float64 `json:"totalProgression"`
 }
 
-// WebPubLocator is one entry of a Readium position list.
-type WebPubLocator struct {
-	Href      string          `json:"href"`
-	Type      string          `json:"type"`
-	Locations WebPubLocations `json:"locations"`
+// Locator is one entry of a Readium position list.
+type Locator struct {
+	Href      string    `json:"href"`
+	Type      string    `json:"type"`
+	Locations Locations `json:"locations"`
 }
 
-// WebPubPositions is a Readium position list. The EPUB navigator needs it to
+// Positions is a Readium position list. The EPUB navigator needs it to
 // place any locator, so a manifest without one renders nothing.
-type WebPubPositions struct {
-	Total     int             `json:"total"`
-	Positions []WebPubLocator `json:"positions"`
+type Positions struct {
+	Total     int       `json:"total"`
+	Positions []Locator `json:"positions"`
 }
 
-// WebPubResource is one entry streamed out of the EPUB zip.
-type WebPubResource struct {
+// Resource is one entry streamed out of the EPUB zip.
+type Resource struct {
 	Body        io.ReadCloser
 	ContentType string
 	Size        int64
 }
 
-// WebPubService derives Readium manifests from stored EPUBs and streams single
+// Service derives Readium manifests from stored EPUBs and streams single
 // zip entries. It reads only stored bytes, never a user-supplied URL.
-type WebPubService struct {
-	books    *BookService
-	archives *archiveCache
+type Service struct {
+	bookFiles *repositories.BookFilesRepository
+	archives  *archiveCache
 }
 
-func newWebPubService(books *BookService) *WebPubService {
-	return &WebPubService{
-		books:    books,
-		archives: newArchiveCache(webPubArchiveSlots, books.openStoredZip),
+// NewService wires the book-file lookup and the stored-zip opener into a
+// Service.
+func NewService(
+	bookFiles *repositories.BookFilesRepository,
+	openStoredZip func(ctx context.Context, key string) (*ebooks.TempZip, error),
+) *Service {
+	return &Service{
+		bookFiles: bookFiles,
+		archives:  newArchiveCache(webPubArchiveSlots, openStoredZip),
 	}
 }
 
 // Manifest builds the manifest for the user's original EPUB of bookID.
-func (s *WebPubService) Manifest(
+func (s *Service) Manifest(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
-) (*WebPubManifest, error) {
+) (*Manifest, error) {
 	zr, release, err := s.openEPUB(ctx, userID, bookID)
 	if err != nil {
 		return nil, err
@@ -121,11 +127,11 @@ func (s *WebPubService) Manifest(
 }
 
 // Positions builds the position list for the user's original EPUB of bookID.
-func (s *WebPubService) Positions(
+func (s *Service) Positions(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
-) (*WebPubPositions, error) {
+) (*Positions, error) {
 	zr, release, err := s.openEPUB(ctx, userID, bookID)
 	if err != nil {
 		return nil, err
@@ -139,12 +145,12 @@ func (s *WebPubService) Positions(
 }
 
 // Resource opens one zip entry of the user's original EPUB.
-func (s *WebPubService) Resource(
+func (s *Service) Resource(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 	name string,
-) (*WebPubResource, error) {
+) (*Resource, error) {
 	name = path.Clean(strings.TrimPrefix(name, "/"))
 	if name == "." || strings.HasPrefix(name, "..") {
 		return nil, ErrWebPubResourceNotFound
@@ -162,7 +168,7 @@ func (s *WebPubService) Resource(
 	return res, nil
 }
 
-func openWebPubEntry(zr *zip.Reader, name string) (*WebPubResource, error) {
+func openWebPubEntry(zr *zip.Reader, name string) (*Resource, error) {
 	for _, f := range zr.File {
 		if f.Name != name {
 			continue
@@ -174,7 +180,7 @@ func openWebPubEntry(zr *zip.Reader, name string) (*WebPubResource, error) {
 		if err != nil {
 			return nil, fmt.Errorf("open %s: %w", name, err)
 		}
-		return &WebPubResource{
+		return &Resource{
 			Body:        rc,
 			ContentType: resourceType(name),
 			Size:        int64(f.UncompressedSize64),
@@ -185,12 +191,12 @@ func openWebPubEntry(zr *zip.Reader, name string) (*WebPubResource, error) {
 
 // openEPUB acquires the user's original EPUB of bookID from the archive cache
 // and returns the func that releases it.
-func (s *WebPubService) openEPUB(
+func (s *Service) openEPUB(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 ) (*zip.Reader, func(), error) {
-	file, err := s.books.bookFiles.GetByBookAndFormat(
+	file, err := s.bookFiles.GetByBookAndFormat(
 		ctx, userID, bookID, models.FileFormatEPUB,
 	)
 	if err != nil {
@@ -203,10 +209,10 @@ func (s *WebPubService) openEPUB(
 	if err != nil {
 		return nil, nil, err
 	}
-	return a.zip.zr, func() { s.archives.release(a) }, nil
+	return a.zip.Reader(), func() { s.archives.release(a) }, nil
 }
 
-func buildWebPubManifest(zr *zip.Reader) (*WebPubManifest, error) {
+func buildWebPubManifest(zr *zip.Reader) (*Manifest, error) {
 	opfPath, err := ebooks.FindOPFPath(zr)
 	if err != nil {
 		return nil, err
@@ -221,21 +227,21 @@ func buildWebPubManifest(zr *zip.Reader) (*WebPubManifest, error) {
 		byID[it.ID] = it
 	}
 
-	m := &WebPubManifest{
+	m := &Manifest{
 		Context: webPubContext,
-		Metadata: WebPubMetadata{
+		Metadata: Metadata{
 			Title:      first(opf.Metadata.Titles),
 			Author:     opf.Metadata.Creators,
 			Language:   opf.Metadata.Languages,
 			Identifier: first(opf.Metadata.Identifiers),
 			ConformsTo: webPubEPUBConf,
 		},
-		Links: []WebPubLink{
+		Links: []Link{
 			newLink("manifest.json", "application/webpub+json", "self"),
 			newLink(positionsHref, mimePositions),
 		},
-		ReadingOrder: []WebPubLink{},
-		Resources:    []WebPubLink{},
+		ReadingOrder: []Link{},
+		Resources:    []Link{},
 		TOC:          nil,
 	}
 
@@ -275,7 +281,7 @@ func buildWebPubManifest(zr *zip.Reader) (*WebPubManifest, error) {
 
 // buildWebPubPositions follows Readium's reflowable rule: one position per
 // positionLength uncompressed bytes of each reading-order entry, at least one.
-func buildWebPubPositions(zr *zip.Reader, m *WebPubManifest) *WebPubPositions {
+func buildWebPubPositions(zr *zip.Reader, m *Manifest) *Positions {
 	sizes := make(map[string]uint64, len(zr.File))
 	for _, f := range zr.File {
 		sizes[f.Name] = f.UncompressedSize64
@@ -287,14 +293,14 @@ func buildWebPubPositions(zr *zip.Reader, m *WebPubManifest) *WebPubPositions {
 		counts[i] = max(1, int((size+positionLength-1)/positionLength))
 		total += counts[i]
 	}
-	out := &WebPubPositions{Total: total, Positions: make([]WebPubLocator, 0, total)}
+	out := &Positions{Total: total, Positions: make([]Locator, 0, total)}
 	for i, link := range m.ReadingOrder {
 		for p := range counts[i] {
 			n := len(out.Positions)
-			out.Positions = append(out.Positions, WebPubLocator{
+			out.Positions = append(out.Positions, Locator{
 				Href: link.Href,
 				Type: link.Type,
-				Locations: WebPubLocations{
+				Locations: Locations{
 					Position:         n + 1,
 					Progression:      float64(p) / float64(counts[i]),
 					TotalProgression: float64(n) / float64(total),
@@ -312,12 +318,12 @@ func first(s []string) string {
 	return strings.TrimSpace(s[0])
 }
 
-func itemLink(base string, it ebooks.OPFItem) WebPubLink {
+func itemLink(base string, it ebooks.OPFItem) Link {
 	return newLink(resourceBaseDir+ebooks.ResolveHref(base, it.Href), it.MediaType)
 }
 
-func newLink(href, mediaType string, rel ...string) WebPubLink {
-	return WebPubLink{
+func newLink(href, mediaType string, rel ...string) Link {
+	return Link{
 		Href:       href,
 		Type:       mediaType,
 		Title:      "",
@@ -343,7 +349,7 @@ func resourceType(name string) string {
 }
 
 // navTOC reads the EPUB3 nav document's toc <nav>.
-func navTOC(zr *zip.Reader, navPath string) []WebPubLink {
+func navTOC(zr *zip.Reader, navPath string) []Link {
 	f, err := zr.Open(navPath)
 	if err != nil {
 		return nil
@@ -376,8 +382,8 @@ func navTOC(zr *zip.Reader, navPath string) []WebPubLink {
 	return navList(nav, path.Dir(navPath))
 }
 
-func navList(n *xhtml.Node, dir string) []WebPubLink {
-	var out []WebPubLink
+func navList(n *xhtml.Node, dir string) []Link {
+	var out []Link
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		if c.Type != xhtml.ElementNode {
 			continue
@@ -392,7 +398,7 @@ func navList(n *xhtml.Node, dir string) []WebPubLink {
 	return out
 }
 
-func navItem(li *xhtml.Node, dir string) WebPubLink {
+func navItem(li *xhtml.Node, dir string) Link {
 	link := newLink("", "")
 	for c := li.FirstChild; c != nil; c = c.NextSibling {
 		if c.Type != xhtml.ElementNode {
@@ -450,7 +456,7 @@ type ncxPoint struct {
 	Children []ncxPoint `xml:"navPoint"`
 }
 
-func ncxTOC(zr *zip.Reader, ncxPath string) []WebPubLink {
+func ncxTOC(zr *zip.Reader, ncxPath string) []Link {
 	var ncx struct {
 		Points []ncxPoint `xml:"navMap>navPoint"`
 	}
@@ -460,8 +466,8 @@ func ncxTOC(zr *zip.Reader, ncxPath string) []WebPubLink {
 	return ncxLinks(ncx.Points, path.Dir(ncxPath))
 }
 
-func ncxLinks(points []ncxPoint, dir string) []WebPubLink {
-	out := make([]WebPubLink, 0, len(points))
+func ncxLinks(points []ncxPoint, dir string) []Link {
+	out := make([]Link, 0, len(points))
 	for _, p := range points {
 		link := newLink(tocHref(dir, p.Content.Src), "")
 		link.Title = strings.TrimSpace(p.Label.Text)

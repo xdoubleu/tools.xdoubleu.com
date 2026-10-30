@@ -1,5 +1,5 @@
 //nolint:testpackage // testing unexported alignment helpers
-package services
+package positions
 
 import (
 	"context"

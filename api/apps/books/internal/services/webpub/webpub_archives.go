@@ -1,10 +1,12 @@
-package services
+package webpub
 
 import (
 	"container/list"
 	"context"
 	"io"
 	"sync"
+
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 )
 
 // webPubArchiveSlots bounds the EPUBs the web reader keeps open. Each is a
@@ -19,13 +21,13 @@ type archiveCache struct {
 	size  int
 	order *list.List // of *archive; front is most recently used
 	items map[string]*list.Element
-	open  func(ctx context.Context, key string) (*tempZip, error)
+	open  func(ctx context.Context, key string) (*ebooks.TempZip, error)
 }
 
 type archive struct {
 	key     string
 	ready   chan struct{} // closed once zip or err is set
-	zip     *tempZip
+	zip     *ebooks.TempZip
 	err     error
 	refs    int
 	evicted bool
@@ -33,7 +35,7 @@ type archive struct {
 
 func newArchiveCache(
 	size int,
-	open func(ctx context.Context, key string) (*tempZip, error),
+	open func(ctx context.Context, key string) (*ebooks.TempZip, error),
 ) *archiveCache {
 	return &archiveCache{
 		mu:    sync.Mutex{},
@@ -87,7 +89,7 @@ func (c *archiveCache) release(a *archive) {
 	defer c.mu.Unlock()
 	a.refs--
 	if a.refs == 0 && a.evicted && a.zip != nil {
-		a.zip.close()
+		a.zip.Close()
 	}
 }
 
@@ -108,7 +110,7 @@ func (c *archiveCache) evictLocked() {
 		delete(c.items, oldest.key)
 		oldest.evicted = true
 		if oldest.refs == 0 && oldest.zip != nil {
-			oldest.zip.close()
+			oldest.zip.Close()
 		}
 	}
 }
