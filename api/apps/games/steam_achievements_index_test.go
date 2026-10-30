@@ -39,7 +39,7 @@ func TestGetAchievementsForGames_Repo(t *testing.T) {
 	seedSteamData(t)
 	ctx := context.Background()
 
-	achievements, err := testApp.Repositories.Steam.GetAchievementsForGames(
+	achievements, err := testApp.TestSeeds().Repositories.Steam.GetAchievementsForGames(
 		ctx,
 		[]int{1},
 		userID,

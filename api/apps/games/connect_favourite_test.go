@@ -72,12 +72,12 @@ func TestSetGameFavourite_SurvivesSync(t *testing.T) {
 	ctx := context.Background()
 
 	require.NoError(t,
-		testApp.Services.Steam.SetFavourite(ctx, userID, 1, true))
+		testApp.TestSeeds().Services.Steam.SetFavourite(ctx, userID, 1, true))
 
 	// Re-run the full library sync, which upserts every game row.
-	require.NoError(t, testApp.Services.Steam.SyncUser(ctx, userID))
+	require.NoError(t, testApp.TestSeeds().Services.Steam.SyncUser(ctx, userID))
 
-	game, err := testApp.Services.Steam.GetGameByID(ctx, 1, userID)
+	game, err := testApp.TestSeeds().Services.Steam.GetGameByID(ctx, 1, userID)
 	require.NoError(t, err)
 	assert.True(t, game.Favourite, "favourite must survive a Steam sync")
 }

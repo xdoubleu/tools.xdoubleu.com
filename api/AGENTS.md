@@ -26,7 +26,7 @@ make db/reset                      # recreate the Postgres volume — shared by 
 Per-app layout (`apps/<name>/`):
 
 ```
-app.go         # embeds app.Base; games/books/watchparty export Services/Repositories for integration-test seeding
+app.go         # embeds app.Base; watchparty exports Services; books/games route test seeding through a test-only TestSeeds handle
 routes.go      # ConnectRPC handler wrapped in the app's own AppAccess gate
 connect_*.go   # service implementations
 mcp.go         # optional MCPToolProvider
