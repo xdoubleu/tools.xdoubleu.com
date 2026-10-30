@@ -1,7 +1,8 @@
 //nolint:testpackage // testing the unexported archive cache
-package services
+package webpub
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"io"
@@ -16,6 +17,26 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 )
+
+// storedZipFake stores a zip with one uncompressed entry of size bytes (owned
+// here too because the services package's copy is not importable).
+func storedZipFake(t *testing.T, key string) *objectstore.FakeClient {
+	t.Helper()
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	w, err := zw.CreateHeader(&zip.FileHeader{ //nolint:exhaustruct // stored entry
+		Name: "big.bin", Method: zip.Store,
+	})
+	require.NoError(t, err)
+	_, err = w.Write(make([]byte, 16))
+	require.NoError(t, err)
+	require.NoError(t, zw.Close())
+	store := objectstore.NewFake()
+	require.NoError(t, store.Put(
+		t.Context(), key, &buf, int64(buf.Len()), "application/epub+zip",
+	))
+	return store
+}
 
 type countingOpener struct {
 	store *objectstore.FakeClient
@@ -46,7 +67,7 @@ func readable(a *archive) bool {
 
 func TestArchiveCache_ConcurrentRequestsOpenOnce(t *testing.T) {
 	//nolint:exhaustruct // opens is zero-value-ready
-	o := &countingOpener{store: storedZipFake(t, "k", 16), gate: make(chan struct{})}
+	o := &countingOpener{store: storedZipFake(t, "k"), gate: make(chan struct{})}
 	c := newArchiveCache(2, o.open)
 
 	var wg sync.WaitGroup
@@ -66,7 +87,7 @@ func TestArchiveCache_ConcurrentRequestsOpenOnce(t *testing.T) {
 }
 
 func TestArchiveCache_EvictedArchiveClosesOnLastRelease(t *testing.T) {
-	store := storedZipFake(t, "a", 16)
+	store := storedZipFake(t, "a")
 	data, _ := store.GetContent("a")
 	require.NoError(t, store.Put(t.Context(), "b", bytes.NewReader(data), 0, ""))
 	o := &countingOpener{store: store} //nolint:exhaustruct // no gate
@@ -96,7 +117,7 @@ func TestArchiveCache_FailedOpenIsRetried(t *testing.T) {
 	_, err := c.acquire(t.Context(), "k")
 	require.ErrorIs(t, err, ebooks.ErrZipDownload)
 
-	o.store = storedZipFake(t, "k", 16)
+	o.store = storedZipFake(t, "k")
 	a, err := c.acquire(t.Context(), "k")
 	require.NoError(t, err)
 	c.release(a)
@@ -105,7 +126,7 @@ func TestArchiveCache_FailedOpenIsRetried(t *testing.T) {
 
 func TestArchiveCache_WaiterHonoursItsContext(t *testing.T) {
 	//nolint:exhaustruct // opens is zero-value-ready
-	o := &countingOpener{store: storedZipFake(t, "k", 16), gate: make(chan struct{})}
+	o := &countingOpener{store: storedZipFake(t, "k"), gate: make(chan struct{})}
 	c := newArchiveCache(1, o.open)
 	opened := make(chan struct{})
 	go func() {
@@ -128,7 +149,7 @@ func TestArchiveCache_WaiterHonoursItsContext(t *testing.T) {
 }
 
 func TestArchiveCache_EvictsUnusedArchiveAndClosesZip(t *testing.T) {
-	store := storedZipFake(t, "a", 16)
+	store := storedZipFake(t, "a")
 	data, _ := store.GetContent("a")
 	require.NoError(t, store.Put(context.Background(), "b", bytes.NewReader(data), 0, ""))
 	o := &countingOpener{store: store} //nolint:exhaustruct // no gate

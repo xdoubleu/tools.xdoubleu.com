@@ -1,5 +1,5 @@
 //nolint:testpackage // testing unexported manifest helpers
-package services
+package webpub
 
 import (
 	"archive/zip"
@@ -168,7 +168,7 @@ func TestResourceType(t *testing.T) {
 }
 
 func TestWebPubResource_RejectsTraversal(t *testing.T) {
-	svc := newWebPubService(nil)
+	svc := NewService(nil, nil)
 	for _, name := range []string{"../etc/passwd", "", "/.."} {
 		_, err := svc.Resource(t.Context(), "u", [16]byte{}, name)
 		assert.ErrorIs(t, err, ErrWebPubResourceNotFound, name)

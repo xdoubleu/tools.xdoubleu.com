@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/internal/services/webpub"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
 	"tools.xdoubleu.com/internal/database"
@@ -55,7 +55,7 @@ func (a *Books) webPubRequest(
 
 func webPubError(w http.ResponseWriter, err error) {
 	if errors.Is(err, database.ErrResourceNotFound) ||
-		errors.Is(err, services.ErrWebPubResourceNotFound) {
+		errors.Is(err, webpub.ErrWebPubResourceNotFound) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
