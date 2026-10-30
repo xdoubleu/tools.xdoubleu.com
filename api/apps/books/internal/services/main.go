@@ -7,6 +7,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"tools.xdoubleu.com/apps/books/internal/repositories"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	"tools.xdoubleu.com/apps/books/internal/services/kobo"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
@@ -22,9 +23,9 @@ import (
 type Services struct {
 	Auth       auth.Service
 	Books      *BookService
-	Conversion *ConversionService
-	KEPUBQueue *KEPUBQueue
-	Figures    *FigureService
+	Conversion *conversion.Service
+	KEPUBQueue *conversion.KEPUBQueue
+	Figures    *conversion.FigureService
 	Positions  *PositionService
 	Physical   *PhysicalService
 	Progress   *ProgressService
@@ -67,7 +68,7 @@ func New(
 		physical:     nil, // set once the position service exists
 	}
 
-	conversionSvc := NewConversionService(
+	conversionSvc := conversion.NewService(
 		logger,
 		repositories.Books,
 		repositories.BookFiles,
@@ -93,15 +94,17 @@ func New(
 		Auth:       authService,
 		Books:      booksSvc,
 		Conversion: conversionSvc,
-		KEPUBQueue: NewKEPUBQueue(logger, repositories.KEPUBRequests, conversionSvc),
-		Figures:    NewFigureService(logger, repositories.BookFiles, objectStore),
-		Positions:  positions,
-		Physical:   booksSvc.physical,
-		Progress:   NewProgressService(repositories.Progress),
-		Kobo:       koboSvc,
-		KoboLog:    koboLog,
-		Ingest:     ingestSvc,
-		WebPub:     newWebPubService(booksSvc),
+		KEPUBQueue: conversion.NewKEPUBQueue(
+			logger, repositories.KEPUBRequests, conversionSvc,
+		),
+		Figures:   conversion.NewFigureService(logger, repositories.BookFiles, objectStore),
+		Positions: positions,
+		Physical:  booksSvc.physical,
+		Progress:  NewProgressService(repositories.Progress),
+		Kobo:      koboSvc,
+		KoboLog:   koboLog,
+		Ingest:    ingestSvc,
+		WebPub:    newWebPubService(booksSvc),
 		WebSocket: progressws.NewService(
 			ctx,
 			logger,

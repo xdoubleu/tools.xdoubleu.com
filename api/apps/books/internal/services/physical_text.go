@@ -9,6 +9,8 @@ import (
 	"path"
 	"sort"
 	"strings"
+
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 )
 
 // bookText is an EPUB's linear reading order, for mapping a physical copy's
@@ -62,12 +64,12 @@ const (
 // buildBookText reads zr's linear spine documents, its navigation and its
 // print page markers. A document that can't be read counts as empty.
 func buildBookText(ctx context.Context, zr *zip.Reader) (*bookText, error) {
-	opfPath, err := findOPFPath(zr)
+	opfPath, err := ebooks.FindOPFPath(zr)
 	if err != nil {
 		return nil, err
 	}
-	var pkg opfDoc
-	if err = decodeZipXML(zr, opfPath, &pkg); err != nil {
+	var pkg ebooks.OPFDoc
+	if err = ebooks.DecodeZipXML(zr, opfPath, &pkg); err != nil {
 		return nil, err
 	}
 	opfDir := path.Dir(opfPath)
@@ -147,7 +149,7 @@ func bodyPrintPages(scans []docScan, cum []int) []printPage {
 
 // spineDocs lists the linear spine's content documents as zip-root paths,
 // with each path's index.
-func spineDocs(pkg opfDoc, opfDir string) ([]string, map[string]int) {
+func spineDocs(pkg ebooks.OPFDoc, opfDir string) ([]string, map[string]int) {
 	items := make(map[string]int, len(pkg.Items))
 	for i, it := range pkg.Items {
 		items[it.ID] = i
@@ -163,7 +165,7 @@ func spineDocs(pkg opfDoc, opfDir string) ([]string, map[string]int) {
 		if !isContentDoc(it.Href, it.MediaType) {
 			continue
 		}
-		doc := resolveHref(opfDir, it.Href)
+		doc := ebooks.ResolveHref(opfDir, it.Href)
 		if _, dup := index[doc]; dup {
 			continue
 		}

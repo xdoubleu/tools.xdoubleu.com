@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 )
 
@@ -29,7 +31,7 @@ type endlessStore struct {
 }
 
 func (s *endlessStore) Get(context.Context, string) (io.ReadCloser, error) {
-	return io.NopCloser(io.LimitReader(zeroReader{}, MaxUploadBytes+10)), nil
+	return io.NopCloser(io.LimitReader(zeroReader{}, ebooks.MaxUploadBytes+10)), nil
 }
 
 func (s *endlessStore) Delete(_ context.Context, key string) error {
@@ -63,11 +65,11 @@ func smallEPUB(t *testing.T) *zip.Reader {
 
 func TestCheckEPUBSize(t *testing.T) {
 	zr := smallEPUB(t)
-	require.NoError(t, checkEPUBSize(zr))
+	require.NoError(t, conversion.CheckEPUBSize(zr))
 
 	// A zip bomb declares a huge inflated size for a tiny entry.
-	zr.File[0].UncompressedSize64 = maxEPUBUncompressedBytes + 1
-	require.Error(t, checkEPUBSize(zr))
+	zr.File[0].UncompressedSize64 = conversion.MaxEPUBUncompressedBytes + 1
+	require.Error(t, conversion.CheckEPUBSize(zr))
 }
 
 func TestKepubifyConvert_RejectsZipBomb(t *testing.T) {
@@ -79,13 +81,13 @@ func TestKepubifyConvert_RejectsZipBomb(t *testing.T) {
 		Name:               "bomb.xhtml",
 		Method:             zip.Store,
 		CompressedSize64:   1,
-		UncompressedSize64: maxEPUBUncompressedBytes + 1,
+		UncompressedSize64: conversion.MaxEPUBUncompressedBytes + 1,
 	})
 	require.NoError(t, err)
 	_, err = w.Write([]byte("x"))
 	require.NoError(t, err)
 	require.NoError(t, zw.Close())
 
-	_, err = newKepubifyConverter().Convert(t.Context(), buf.Bytes())
+	_, err = conversion.NewKepubifyConverter().Convert(t.Context(), buf.Bytes())
 	require.Error(t, err)
 }

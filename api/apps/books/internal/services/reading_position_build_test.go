@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 )
 
 func TestPositionService_PanicCachesEmptyAndLogs(t *testing.T) {
@@ -100,7 +101,7 @@ func TestOpenZip_RejectsZipBomb(t *testing.T) {
 	zw := zip.NewWriter(&buf)
 	w, err := zw.CreateRaw(&zip.FileHeader{ //nolint:exhaustruct //raw entry
 		Name: "bomb.xhtml", Method: zip.Store,
-		CompressedSize64: 1, UncompressedSize64: maxEPUBUncompressedBytes + 1,
+		CompressedSize64: 1, UncompressedSize64: conversion.MaxEPUBUncompressedBytes + 1,
 	})
 	require.NoError(t, err)
 	_, err = w.Write([]byte("x"))

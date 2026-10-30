@@ -19,6 +19,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/mocks"
 	"tools.xdoubleu.com/apps/books/internal/models"
 	bsvc "tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/database"
@@ -678,7 +679,7 @@ func TestUploadFile_WrongMagicBytes_PDF_Rejected(t *testing.T) {
 func TestUploadFile_OverSize_Rejected(t *testing.T) {
 	_, _, _, err := testApp.Services.Books.CreateUpload(
 		context.Background(), userID, "huge.epub", "application/epub+zip",
-		int64(bsvc.MaxUploadBytes)+1, "",
+		int64(ebooks.MaxUploadBytes)+1, "",
 	)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, bsvc.ErrFileTooLarge)
@@ -775,7 +776,7 @@ func TestConnectCreateBookUpload_Oversize_ReturnsResourceExhausted(t *testing.T)
 	req := &booksv1.CreateBookUploadRequest{
 		Filename:    "huge.epub",
 		ContentType: "application/epub+zip",
-		Size:        int64(bsvc.MaxUploadBytes) + 1,
+		Size:        int64(ebooks.MaxUploadBytes) + 1,
 	}
 	ctx, info := connect.NewClientContext(ctx)
 	info.RequestHeader().Set("Cookie", accessToken.String())

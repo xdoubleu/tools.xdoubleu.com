@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 )
 
 // registerTestDevice registers a Kobo device for ownerID and returns its raw token.
@@ -775,7 +775,7 @@ func TestKoboLibrarySync_StaleKEPUB_TriggersRegeneration(t *testing.T) {
 		 WHERE book_id = $1 AND user_id = $2 AND format = 'kepub'`,
 		bookID, owner,
 	).Scan(&version))
-	assert.Equal(t, services.CurrentKEPUBConverterVersion(), version,
+	assert.Equal(t, conversion.CurrentKEPUBConverterVersion(), version,
 		"a stale KEPUB must be regenerated after a library sync")
 }
 

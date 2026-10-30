@@ -14,13 +14,14 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/mocks"
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 )
 
 // chapterZips returns ChapterEPUB and its real kepubify conversion.
 func chapterZips(t *testing.T) (*zip.Reader, *zip.Reader) {
 	t.Helper()
 	orig := mocks.ChapterEPUB("Spans", "Author")
-	kepub, err := newKepubifyConverter().Convert(context.Background(), orig)
+	kepub, err := conversion.NewKepubifyConverter().Convert(context.Background(), orig)
 	require.NoError(t, err)
 	return openZip(t, orig), openZip(t, kepub)
 }

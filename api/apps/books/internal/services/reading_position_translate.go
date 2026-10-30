@@ -11,6 +11,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 )
 
@@ -72,7 +73,7 @@ func newPositionService(
 		budget:       budget,
 		buildTimeout: spanMapBuildTimeout,
 		pendingGrace: spanMapPendingGrace,
-		maxDownload:  maxConversionInputBytes,
+		maxDownload:  conversion.MaxConversionInputBytes,
 		now:          time.Now,
 		pendingMu:    sync.Mutex{},
 		pendingSince: map[any]time.Time{},
