@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/database"
 )
@@ -77,7 +77,7 @@ func uploadFileForOwner(
 func insertKEPUBRow(t *testing.T, bookID uuid.UUID, ownerID string) {
 	t.Helper()
 	insertKEPUBRowWithVersion(
-		t, bookID, ownerID, services.CurrentKEPUBConverterVersion(),
+		t, bookID, ownerID, conversion.CurrentKEPUBConverterVersion(),
 	)
 }
 

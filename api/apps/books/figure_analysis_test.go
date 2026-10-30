@@ -13,7 +13,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/mocks"
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/logging"
@@ -163,7 +163,7 @@ func TestFigureAnalysis_FetchFailureRetried(t *testing.T) {
 		t, userID, book.BookID, models.FileFormatEPUB, mocks.FigureEPUB(1, 100),
 	)
 
-	figures := services.NewFigureService(
+	figures := conversion.NewFigureService(
 		logging.NewNopLogger(),
 		testApp.Repositories.BookFiles,
 		getFailingStore{fakeStore},

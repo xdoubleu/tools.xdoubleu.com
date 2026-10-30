@@ -12,20 +12,6 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 )
 
-// ArticleMeta carries the bibliographic fields passed to the HTML→EPUB
-// converter (see conversion_epubbuild.go, shared by PDF-to-EPUB conversion).
-// Identifier is the EPUB's unique-identifier (the OPF dc:identifier, usually
-// "urn:uuid:<bookID>") — it must be stable across regenerations so the Kobo
-// firmware can correlate a re-downloaded file with the book it already has.
-type ArticleMeta struct {
-	Title      string
-	Authors    []string
-	Identifier string
-	// CoverImage is a cover image's filename beside the source HTML; the
-	// EPUB then opens on a cover page showing it.
-	CoverImage string
-}
-
 // extractedArticle is the readable core of a fetched web page.
 type extractedArticle struct {
 	Title    string

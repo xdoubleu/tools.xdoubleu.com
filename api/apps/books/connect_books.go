@@ -7,6 +7,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/internal/services/positions"
 	booksv1connect "tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/constants"
@@ -55,7 +56,7 @@ func mapError(err error) error {
 		connecttools.Code(services.ErrEmptyTag, connect.CodeInvalidArgument),
 		connecttools.Code(services.ErrInvalidShelf, connect.CodeInvalidArgument),
 		connecttools.Code(services.ErrInvalidReadingSource, connect.CodeInvalidArgument),
-		connecttools.Code(services.ErrInvalidPhysicalCopy, connect.CodeInvalidArgument),
+		connecttools.Code(positions.ErrInvalidPhysicalCopy, connect.CodeInvalidArgument),
 		connecttools.Code(services.ErrInvalidFormat, connect.CodeInvalidArgument),
 		connecttools.Code(services.ErrUnrecognizedBook, connect.CodeInvalidArgument),
 		connecttools.Code(repositories.ErrUnknownSources, connect.CodeInvalidArgument),

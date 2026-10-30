@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 )
 
@@ -22,16 +23,19 @@ type countingOpener struct {
 	gate  chan struct{} // nil, or closed to let opens finish
 }
 
-func (o *countingOpener) open(ctx context.Context, key string) (*tempZip, error) {
+func (o *countingOpener) open(
+	ctx context.Context,
+	key string,
+) (*ebooks.TempZip, error) {
 	o.opens.Add(1)
 	if o.gate != nil {
 		<-o.gate
 	}
-	return openTempZip(ctx, o.store, key, 1<<20)
+	return ebooks.OpenStoredZip(ctx, o.store, key, 1<<20)
 }
 
 func readable(a *archive) bool {
-	rc, err := a.zip.zr.File[0].Open()
+	rc, err := a.zip.Reader().File[0].Open()
 	if err != nil {
 		return false
 	}
@@ -90,7 +94,7 @@ func TestArchiveCache_FailedOpenIsRetried(t *testing.T) {
 	c := newArchiveCache(1, o.open)
 
 	_, err := c.acquire(t.Context(), "k")
-	require.ErrorIs(t, err, errZipDownload)
+	require.ErrorIs(t, err, ebooks.ErrZipDownload)
 
 	o.store = storedZipFake(t, "k", 16)
 	a, err := c.acquire(t.Context(), "k")
@@ -121,4 +125,21 @@ func TestArchiveCache_WaiterHonoursItsContext(t *testing.T) {
 
 	close(o.gate)
 	<-opened
+}
+
+func TestArchiveCache_EvictsUnusedArchiveAndClosesZip(t *testing.T) {
+	store := storedZipFake(t, "a", 16)
+	data, _ := store.GetContent("a")
+	require.NoError(t, store.Put(context.Background(), "b", bytes.NewReader(data), 0, ""))
+	o := &countingOpener{store: store} //nolint:exhaustruct // no gate
+	c := newArchiveCache(1, o.open)
+
+	a, err := c.acquire(t.Context(), "a")
+	require.NoError(t, err)
+	c.release(a)
+
+	b, err := c.acquire(t.Context(), "b")
+	require.NoError(t, err)
+	assert.False(t, readable(a), "evicting an unused archive closes its zip")
+	c.release(b)
 }

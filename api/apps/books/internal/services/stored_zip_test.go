@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 )
 
@@ -45,7 +46,7 @@ func TestOpenStoredZip_StreamsToDisk(t *testing.T) {
 	runtime.ReadMemStats(&after)
 
 	require.NoError(t, err)
-	defer z.close()
+	defer z.Close()
 	assert.Less(t, after.TotalAlloc-before.TotalAlloc, uint64(size/8),
 		"the stored zip is buffered on disk, not in memory")
 }
@@ -57,19 +58,19 @@ func TestOpenTempZip_SizeCapLeavesNoTempFiles(t *testing.T) {
 	data, ok := store.GetContent("k")
 	require.True(t, ok)
 
-	z, err := openTempZip(t.Context(), store, "k", int64(len(data)))
+	z, err := ebooks.OpenStoredZip(t.Context(), store, "k", int64(len(data)))
 	require.NoError(t, err, "exactly the cap is allowed")
 	entries, err := os.ReadDir(tmp)
 	require.NoError(t, err)
 	assert.Empty(t, entries, "the temp file is unlinked while open")
-	z.close()
+	z.Close()
 
-	_, err = openTempZip(t.Context(), store, "k", int64(len(data))-1)
+	_, err = ebooks.OpenStoredZip(t.Context(), store, "k", int64(len(data))-1)
 	require.ErrorContains(t, err, "exceeds")
-	require.NotErrorIs(t, err, errZipDownload)
+	require.NotErrorIs(t, err, ebooks.ErrZipDownload)
 
-	_, err = openTempZip(t.Context(), store, "missing", 1)
-	require.ErrorIs(t, err, errZipDownload)
+	_, err = ebooks.OpenStoredZip(t.Context(), store, "missing", 1)
+	require.ErrorIs(t, err, ebooks.ErrZipDownload)
 
 	entries, err = os.ReadDir(tmp)
 	require.NoError(t, err)
