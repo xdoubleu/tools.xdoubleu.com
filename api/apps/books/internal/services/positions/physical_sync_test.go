@@ -1,5 +1,5 @@
 //nolint:testpackage // testing the unexported physical service constructor
-package services
+package positions
 
 import (
 	"bytes"
@@ -125,9 +125,9 @@ func newPhysicalFixture(
 		err: nil, updated: nil, pages: make(chan int, 1), states: nil, filled: nil,
 	}
 	logger := slog.New(&logRecorder{mu: sync.Mutex{}, msgs: nil})
-	positions := newPositionService(logger, files, blobs, budget)
+	positions := NewPositionService(logger, files, blobs, budget)
 	return &physicalFixture{
-		svc: newPhysicalService(
+		svc: NewPhysicalService(
 			logger, threading.NewBackground(logger, 0), store, store, positions,
 		),
 		store: store, blobs: blobs, files: files,

@@ -1,9 +1,11 @@
-package services
+package positions
 
 import (
 	"context"
 	"errors"
 	"fmt"
+
+	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 )
 
 // errSpanMapRetry marks a build failure worth retrying (download, timeout)
@@ -60,21 +62,24 @@ func (s *PositionService) buildFromStore(
 	if err != nil {
 		return nil, err
 	}
-	defer kepub.close()
+	defer kepub.Close()
 	if ref.pdf {
-		return buildSpanMap(ctx, kepub.zr, nil)
+		return buildSpanMap(ctx, kepub.Reader(), nil)
 	}
 	source, err := s.openZip(ctx, ref.sourceKey)
 	if err != nil {
 		return nil, err
 	}
-	defer source.close()
-	return buildSpanMap(ctx, kepub.zr, source.zr)
+	defer source.Close()
+	return buildSpanMap(ctx, kepub.Reader(), source.Reader())
 }
 
-func (s *PositionService) openZip(ctx context.Context, key string) (*tempZip, error) {
-	z, err := openTempZip(ctx, s.objectStore, key, s.maxDownload)
-	if errors.Is(err, errZipDownload) {
+func (s *PositionService) openZip(
+	ctx context.Context,
+	key string,
+) (*ebooks.TempZip, error) {
+	z, err := ebooks.OpenStoredZip(ctx, s.objectStore, key, s.maxDownload)
+	if errors.Is(err, ebooks.ErrZipDownload) {
 		return nil, fmt.Errorf("%w: %w", errSpanMapRetry, err)
 	}
 	return z, err

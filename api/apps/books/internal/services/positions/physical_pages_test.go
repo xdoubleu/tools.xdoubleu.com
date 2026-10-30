@@ -1,5 +1,5 @@
 //nolint:testpackage // testing the unexported page mapping
-package services
+package positions
 
 import (
 	"context"

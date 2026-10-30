@@ -9,6 +9,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	"tools.xdoubleu.com/apps/books/internal/services/kobo"
+	"tools.xdoubleu.com/apps/books/internal/services/positions"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
@@ -26,8 +27,8 @@ type Services struct {
 	Conversion *conversion.Service
 	KEPUBQueue *conversion.KEPUBQueue
 	Figures    *conversion.FigureService
-	Positions  *PositionService
-	Physical   *PhysicalService
+	Positions  *positions.PositionService
+	Physical   *positions.PhysicalService
 	Progress   *ProgressService
 	Kobo       *kobo.Service
 	KoboLog    *kobo.LogStore
@@ -83,11 +84,11 @@ func New(
 		webFetchClient,
 	)
 
-	positions := newPositionService(
-		logger, repositories.BookFiles, objectStore, translateBudget,
+	positionSvc := positions.NewPositionService(
+		logger, repositories.BookFiles, objectStore, positions.TranslateBudget,
 	)
-	booksSvc.physical = newPhysicalService(
-		logger, background, repositories.Books, repositories.ReadingState, positions,
+	booksSvc.physical = positions.NewPhysicalService(
+		logger, background, repositories.Books, repositories.ReadingState, positionSvc,
 	)
 
 	return &Services{
@@ -98,7 +99,7 @@ func New(
 			logger, repositories.KEPUBRequests, conversionSvc,
 		),
 		Figures:   conversion.NewFigureService(logger, repositories.BookFiles, objectStore),
-		Positions: positions,
+		Positions: positionSvc,
 		Physical:  booksSvc.physical,
 		Progress:  NewProgressService(repositories.Progress),
 		Kobo:      koboSvc,

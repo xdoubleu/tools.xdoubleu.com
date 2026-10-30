@@ -1,5 +1,5 @@
 //nolint:testpackage // testing the unexported translator constructor
-package services
+package positions
 
 import (
 	"bytes"
@@ -139,7 +139,7 @@ func newTranslatorFixture(
 		err:      nil,
 	}
 	logs := &logRecorder{mu: sync.Mutex{}, msgs: nil}
-	svc := newPositionService(slog.New(logs), files, store, budget)
+	svc := NewPositionService(slog.New(logs), files, store, budget)
 	return &translatorFixture{
 		svc: svc, store: store, files: files, logs: logs, bookID: uuid.New(),
 	}

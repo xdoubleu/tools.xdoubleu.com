@@ -1,5 +1,5 @@
 //nolint:testpackage // testing the unexported text model
-package services
+package positions
 
 import (
 	"archive/zip"

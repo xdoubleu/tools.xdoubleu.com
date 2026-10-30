@@ -1,5 +1,5 @@
 //nolint:testpackage // testing unexported span-map helpers
-package services
+package positions
 
 import (
 	"archive/zip"

@@ -118,8 +118,8 @@ func (s *BookService) storedCover(ctx context.Context, key string) ([]byte, erro
 	if err != nil {
 		return nil, err
 	}
-	defer z.close()
-	return epubCover(z.zr)
+	defer z.Close()
+	return epubCover(z.Reader())
 }
 
 // coverlessFiles reads the files bookID's cover.missing marker lists; a
@@ -162,8 +162,13 @@ func (s *BookService) markCoverless(
 func (s *BookService) openStoredZip(
 	ctx context.Context,
 	key string,
-) (*tempZip, error) {
-	return openTempZip(ctx, s.objectStore, key, conversion.MaxConversionInputBytes)
+) (*ebooks.TempZip, error) {
+	return ebooks.OpenStoredZip(
+		ctx,
+		s.objectStore,
+		key,
+		conversion.MaxConversionInputBytes,
+	)
 }
 
 // epubCover returns the bytes of the package's cover image: the EPUB 3

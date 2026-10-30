@@ -203,7 +203,7 @@ func (s *WebPubService) openEPUB(
 	if err != nil {
 		return nil, nil, err
 	}
-	return a.zip.zr, func() { s.archives.release(a) }, nil
+	return a.zip.Reader(), func() { s.archives.release(a) }, nil
 }
 
 func buildWebPubManifest(zr *zip.Reader) (*WebPubManifest, error) {
