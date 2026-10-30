@@ -37,7 +37,7 @@ func addBookInSeries(
 		SeriesName:     series,
 		SeriesPosition: position,
 	}
-	ub, err := testApp.Services.Books.AddToLibrary(
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), userID, ext, models.StatusToRead, []string{},
 	)
 	require.NoError(t, err)
@@ -211,7 +211,7 @@ func TestMergeBooks_KeepsLoserSeries(t *testing.T) {
 	winner := addTestBookNoISBN(t, "Merge Winner "+uid)
 	loser := addBookInSeries(t, "Merge Loser "+uid, "Loser Saga "+uid, f64(4))
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), userID, winner.BookID,
 		[]uuid.UUID{loser.BookID}, nil, nil, nil,
 	)
@@ -228,7 +228,7 @@ func TestMergeBooks_WinnerKeepsOwnSeries(t *testing.T) {
 	winner := addBookInSeries(t, "Own Winner "+uid, "Winner Saga "+uid, f64(1))
 	loser := addBookInSeries(t, "Own Loser "+uid, "Loser Saga "+uid, f64(2))
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), userID, winner.BookID,
 		[]uuid.UUID{loser.BookID}, nil, nil, nil,
 	)
@@ -241,7 +241,7 @@ func TestMergeBooks_ResolvedMetadataKeepsSeries(t *testing.T) {
 	winner := addBookInSeries(t, "Resolved Winner "+uid, "Winner Saga "+uid, f64(1))
 	loser := addTestBookNoISBN(t, "Resolved Loser "+uid)
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), userID, winner.BookID,
 		[]uuid.UUID{loser.BookID},
 		&models.Book{ //nolint:exhaustruct // partial

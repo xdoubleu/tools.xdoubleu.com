@@ -27,7 +27,7 @@ func addConsumptionBook(
 	t.Helper()
 	ctx := context.Background()
 	//nolint:exhaustruct // ISBN intentionally absent
-	ub, err := testApp.Services.Books.AddToLibrary(ctx, consumptionUserID,
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibrary(ctx, consumptionUserID,
 		services.SourceProposal{
 			Source: "manual", Title: title, Authors: []string{"A", "B", "C"},
 		},

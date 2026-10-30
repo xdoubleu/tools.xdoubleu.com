@@ -33,11 +33,10 @@ const userAgent = "tools.xdoubleu.com reading-library bot"
 
 type Books struct {
 	app.Base
-	db      postgres.DB
-	clients Clients
-	// Exported so integration tests can seed through the real service layer.
-	Services       *services.Services
-	Repositories   *repositories.Repositories
+	db             postgres.DB
+	clients        Clients
+	services       *services.Services
+	repositories   *repositories.Repositories
 	jobQueue       *jobqueue.JobQueue
 	resyncBooksJob *jobs.ResyncMetadataJob
 	storageScanJob *jobs.StorageScanJob
@@ -98,7 +97,7 @@ func NewInner(
 	db postgres.DB,
 	clients Clients,
 ) *Books {
-	//nolint:exhaustruct //jobQueue, Repositories, Services initialised below
+	//nolint:exhaustruct //jobQueue, repositories, services initialised below
 	a := &Books{
 		Base:    app.NewBase(ctx, authService, logger, cfg),
 		db:      db,
@@ -115,14 +114,14 @@ func NewInner(
 		a.db,
 	)
 
-	a.Repositories = repositories.New(a.db)
-	a.Services = services.New(
+	a.repositories = repositories.New(a.db)
+	a.services = services.New(
 		a.Ctx,
 		logger,
 		a.Background,
 		a.Config,
 		a.jobQueue,
-		a.Repositories,
+		a.repositories,
 		clients.UniCat,
 		clients.Hardcover,
 		clients.ObjectStore,
@@ -130,16 +129,16 @@ func NewInner(
 		authService,
 	)
 	a.resyncBooksJob = jobs.NewResyncMetadataJob(
-		a.Services.Books,
-		a.Services.WebSocket,
+		a.services.Books,
+		a.services.WebSocket,
 	)
 	a.storageScanJob = jobs.NewStorageScanJob(
 		clients.ObjectStore,
-		a.Repositories.BookFiles,
+		a.repositories.BookFiles,
 		sharedrepos.NewStorageSnapshotsRepository(db),
 	)
-	a.figuresJob = jobs.NewFigureAnalysisJob(a.Services.Figures)
-	a.kepubJob = jobs.NewKEPUBConversionJob(a.Services.KEPUBQueue)
+	a.figuresJob = jobs.NewFigureAnalysisJob(a.services.Figures)
+	a.kepubJob = jobs.NewKEPUBConversionJob(a.services.KEPUBQueue)
 
 	return a
 }
@@ -147,7 +146,7 @@ func NewInner(
 func (a *Books) Start() error {
 	if err := a.jobQueue.AddJob(
 		observability.NewTrackedJob(a.resyncBooksJob, a.db),
-		a.Services.WebSocket.UpdateState,
+		a.services.WebSocket.UpdateState,
 	); err != nil {
 		return err
 	}
@@ -160,7 +159,7 @@ func (a *Books) Start() error {
 		return err
 	}
 
-	a.Services.WebSocket.RegisterTopics(a.jobQueue.FetchJobIDs())
+	a.services.WebSocket.RegisterTopics(a.jobQueue.FetchJobIDs())
 	return nil
 }
 

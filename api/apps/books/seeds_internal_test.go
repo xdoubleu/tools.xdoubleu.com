@@ -17,7 +17,7 @@ type TestSeeds struct {
 // TestSeeds returns the test-only handle to the app's service layer.
 func (a *Books) TestSeeds() *TestSeeds {
 	return &TestSeeds{
-		Services:     a.Services,
-		Repositories: a.Repositories,
+		Services:     a.services,
+		Repositories: a.repositories,
 	}
 }

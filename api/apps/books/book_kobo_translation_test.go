@@ -30,11 +30,11 @@ func setupKoboChapterBook(t *testing.T, ownerID string) (string, uuid.UUID) {
 		mocks.ChapterEPUB(title, "Author"))
 	require.NoError(t, err)
 	bookID := result.UserBook.BookID
-	_, err = testApp.Services.Conversion.EnsureKEPUB(
+	_, err = testApp.TestSeeds().Services.Conversion.EnsureKEPUB(
 		context.Background(), ownerID, bookID,
 	)
 	require.NoError(t, err)
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(
+	require.NoError(t, testApp.TestSeeds().Services.Books.EnableKoboSync(
 		context.Background(), ownerID, bookID,
 	))
 	return registerTestDevice(t, ownerID), bookID
@@ -58,7 +58,7 @@ func chapterTwoPut(source, value string) any {
 func webWrite(t *testing.T, owner string, bookID uuid.UUID, offset int) {
 	t.Helper()
 	readAt := time.Now().Add(-time.Second)
-	require.NoError(t, testApp.Services.Books.UpdateReadingProgress(
+	require.NoError(t, testApp.TestSeeds().Services.Books.UpdateReadingProgress(
 		context.Background(),
 		models.BookReadingState{ //nolint:exhaustruct //optional fields
 			UserID: owner, BookID: bookID, Source: models.ReadingSourceWeb,
@@ -93,7 +93,7 @@ func TestKoboPutState_KoboSpan_StoresNeutralPosition(t *testing.T) {
 
 		koboPutState(t, ts, rawToken, bookID, chapterTwoPut(source, "kobo.1.2"))
 
-		state, err := testApp.Services.Books.GetReadingState(
+		state, err := testApp.TestSeeds().Services.Books.GetReadingState(
 			context.Background(), owner, bookID,
 		)
 		require.NoError(t, err)
@@ -116,7 +116,7 @@ func TestKoboPutState_UnknownSpan_NoPosition(t *testing.T) {
 	koboPutState(t, ts, rawToken, bookID,
 		chapterTwoPut(mocks.ChapterTwoHref, "kobo.99.9"))
 
-	state, err := testApp.Services.Books.GetReadingState(
+	state, err := testApp.TestSeeds().Services.Books.GetReadingState(
 		context.Background(), owner, bookID,
 	)
 	require.NoError(t, err)
@@ -179,10 +179,15 @@ func TestSyncKoboDeviceReadingStates_PendingIsRetried(t *testing.T) {
 	owner := "kobo-pending-" + uuid.NewString()
 	_, onDevice := setupKoboChapterBook(t, owner)
 	_, newBook := setupKoboChapterBook(t, owner)
-	device, _, err := testApp.Services.Kobo.RegisterKoboDevice(ctx, owner, "Kobo", "")
+	device, _, err := testApp.TestSeeds().Services.Kobo.RegisterKoboDevice(
+		ctx,
+		owner,
+		"Kobo",
+		"",
+	)
 	require.NoError(t, err)
 	deviceID := device.ID
-	svc := testApp.Services.Books
+	svc := testApp.TestSeeds().Services.Books
 	ids := []uuid.UUID{onDevice}
 	syncStates := func(
 		states map[uuid.UUID]*models.BookReadingState, pending map[uuid.UUID]bool,
@@ -231,7 +236,7 @@ func TestSetKoboPosition_OnlyFillsTheSameBookmark(t *testing.T) {
 	loc := models.KoboLocation{
 		Source: mocks.ChapterTwoHref, Type: "KoboSpan", Value: "kobo.1.2",
 	}
-	require.NoError(t, testApp.Services.Books.UpdateReadingProgress(ctx,
+	require.NoError(t, testApp.TestSeeds().Services.Books.UpdateReadingProgress(ctx,
 		models.BookReadingState{ //nolint:exhaustruct //optional fields
 			UserID: owner, BookID: bookID, Source: models.ReadingSourceKobo,
 			Percent: 30, Location: &loc.Value, KoboLocation: &loc,
@@ -239,7 +244,7 @@ func TestSetKoboPosition_OnlyFillsTheSameBookmark(t *testing.T) {
 	pos := models.ReadingPosition{Href: mocks.ChapterTwoHref, Offset: 28, Page: 0}
 	other := loc
 	other.Value = "kobo.2.1"
-	svc := testApp.Services.Books
+	svc := testApp.TestSeeds().Services.Books
 
 	require.NoError(t, svc.SetKoboPosition(ctx, owner, bookID, other, pos))
 	state, err := svc.GetReadingState(ctx, owner, bookID)

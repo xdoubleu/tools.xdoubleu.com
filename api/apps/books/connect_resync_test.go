@@ -68,7 +68,7 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 		fakeStore.Put(ctx, coverKey, bytes.NewReader([]byte("img")), 3, "image/jpeg"),
 	)
 
-	n, err := testApp.Services.Books.BuildResyncProposals(
+	n, err := testApp.TestSeeds().Services.Books.BuildResyncProposals(
 		ctx,
 		testApp.Logger,
 		nil,
@@ -88,7 +88,7 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 	assert.Nil(t, scanned.UniCatFound, "unconfigured provider stays NULL")
 	assert.NotNil(t, scanned.LastResyncAt)
 
-	proposals, err := testApp.Services.Books.ListResyncProposals(ctx)
+	proposals, err := testApp.TestSeeds().Services.Books.ListResyncProposals(ctx)
 	require.NoError(t, err)
 	var found bool
 	for _, p := range proposals {
@@ -100,7 +100,12 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 	}
 	assert.True(t, found, "the seeded book must be flagged as differing")
 
-	err = testApp.Services.Books.ApplyResyncChoice(ctx, testApp.Logger, book.BookID, "")
+	err = testApp.TestSeeds().Services.Books.ApplyResyncChoice(
+		ctx,
+		testApp.Logger,
+		book.BookID,
+		"",
+	)
 	require.NoError(t, err)
 
 	exists, err = fakeStore.Exists(ctx, coverKey)

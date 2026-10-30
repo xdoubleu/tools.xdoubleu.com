@@ -53,7 +53,7 @@ func (h *booksConnectHandler) UpdateReadingProgress(
 	if req.Location != "" {
 		location = &req.Location
 	}
-	err = h.app.Services.Books.UpdateReadingProgress(
+	err = h.app.services.Books.UpdateReadingProgress(
 		ctx,
 		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
 			UserID:   user.ID,
@@ -90,7 +90,7 @@ func (h *booksConnectHandler) GetReadingState(
 			"invalid book ID",
 		)
 	}
-	state, err := h.app.Services.Books.GetReadingState(ctx, user.ID, bookID)
+	state, err := h.app.services.Books.GetReadingState(ctx, user.ID, bookID)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return &booksv1.GetReadingStateResponse{}, nil
 	}
@@ -102,7 +102,7 @@ func (h *booksConnectHandler) GetReadingState(
 		out.PhysicalPage, out.PhysicalExcerpt = h.physicalAt(
 			ctx, user.ID, bookID, *state.Position,
 		)
-		out.Position = readingPositionToProto(h.app.Services.Positions.ReaderPosition(
+		out.Position = readingPositionToProto(h.app.services.Positions.ReaderPosition(
 			ctx, user.ID, bookID, *state.Position,
 		))
 	}
@@ -135,7 +135,7 @@ func (h *booksConnectHandler) TranslateReadingPosition(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
-	pos := h.app.Services.Positions.ReaderPosition(ctx, user.ID, bookID, *position)
+	pos := h.app.services.Positions.ReaderPosition(ctx, user.ID, bookID, *position)
 	page, _ := h.physicalAt(ctx, user.ID, bookID, *position)
 	return &booksv1.TranslateReadingPositionResponse{
 		Position:     readingPositionToProto(pos),
@@ -150,7 +150,7 @@ func (h *booksConnectHandler) physicalAt(
 	bookID uuid.UUID,
 	pos models.ReadingPosition,
 ) (int32, string) {
-	page, excerpt := h.app.Services.Physical.Locate(ctx, userID, bookID, pos)
+	page, excerpt := h.app.services.Physical.Locate(ctx, userID, bookID, pos)
 	return int32FromInt(page), excerpt
 }
 

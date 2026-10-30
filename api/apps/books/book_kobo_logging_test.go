@@ -23,7 +23,7 @@ import (
 // registerDeviceReturningID returns a new device's raw token and ID.
 func registerDeviceReturningID(t *testing.T, ownerID string) (string, string) {
 	t.Helper()
-	device, rawToken, err := testApp.Services.Kobo.RegisterKoboDevice(
+	device, rawToken, err := testApp.TestSeeds().Services.Kobo.RegisterKoboDevice(
 		context.Background(), ownerID, "Test Kobo", "",
 	)
 	require.NoError(t, err)
@@ -43,7 +43,7 @@ func TestKoboLogging_DisabledCapturesNothing(t *testing.T) {
 	resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	assert.Empty(t, testApp.Services.KoboLog.List(deviceID),
+	assert.Empty(t, testApp.TestSeeds().Services.KoboLog.List(deviceID),
 		"nothing must be captured while logging is disabled")
 }
 
@@ -55,8 +55,8 @@ func TestKoboLogging_CapturesSyncRequestAndResponse(t *testing.T) {
 		t,
 		"kobo-log-sync-"+uuid.NewString(),
 	)
-	testApp.Services.KoboLog.SetEnabled(deviceID, true)
-	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
+	testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, true)
+	t.Cleanup(func() { testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, false) })
 
 	resp, err := http.DefaultClient.Do(
 		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
@@ -65,7 +65,7 @@ func TestKoboLogging_CapturesSyncRequestAndResponse(t *testing.T) {
 	resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	entries := testApp.Services.KoboLog.List(deviceID)
+	entries := testApp.TestSeeds().Services.KoboLog.List(deviceID)
 	require.Len(t, entries, 1)
 	e := entries[0]
 	assert.Equal(t, http.MethodGet, e.Method)
@@ -83,12 +83,15 @@ func TestKoboLogging_CapturesPutRequestBody(t *testing.T) {
 	owner := "kobo-log-put-" + uuid.NewString()
 	rawToken, bookID := setupKoboSyncBook(t, owner)
 
-	devices, err := testApp.Services.Kobo.ListKoboDevices(context.Background(), owner)
+	devices, err := testApp.TestSeeds().Services.Kobo.ListKoboDevices(
+		context.Background(),
+		owner,
+	)
 	require.NoError(t, err)
 	require.Len(t, devices, 1)
 	deviceID := devices[0].ID
-	testApp.Services.KoboLog.SetEnabled(deviceID, true)
-	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
+	testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, true)
+	t.Cleanup(func() { testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, false) })
 
 	body := `{"ReadingStates":[{"CurrentBookmark":` +
 		`{"ProgressPercent":50,"Location":"chap-2"}}]}`
@@ -102,7 +105,7 @@ func TestKoboLogging_CapturesPutRequestBody(t *testing.T) {
 	// The append happens after the response is written; poll.
 	var entry kobo.LogEntry
 	require.Eventually(t, func() bool {
-		for _, e := range testApp.Services.KoboLog.List(deviceID) {
+		for _, e := range testApp.TestSeeds().Services.KoboLog.List(deviceID) {
 			if e.Method == http.MethodPut &&
 				strings.Contains(e.RequestBody, "ProgressPercent") {
 				entry = e
@@ -124,12 +127,15 @@ func TestKoboLogging_BodyCaptureCapped(t *testing.T) {
 	owner := "kobo-log-cap-" + uuid.NewString()
 	rawToken, bookID := setupKoboSyncBook(t, owner)
 
-	devices, err := testApp.Services.Kobo.ListKoboDevices(context.Background(), owner)
+	devices, err := testApp.TestSeeds().Services.Kobo.ListKoboDevices(
+		context.Background(),
+		owner,
+	)
 	require.NoError(t, err)
 	require.Len(t, devices, 1)
 	deviceID := devices[0].ID
-	testApp.Services.KoboLog.SetEnabled(deviceID, true)
-	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
+	testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, true)
+	t.Cleanup(func() { testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, false) })
 
 	huge := strings.Repeat("x", 200*1024)
 	body := `{"ReadingStates":[{"CurrentBookmark":` +
@@ -145,7 +151,7 @@ func TestKoboLogging_BodyCaptureCapped(t *testing.T) {
 	const cap64KiB = 64 * 1024
 	var entry kobo.LogEntry
 	require.Eventually(t, func() bool {
-		for _, e := range testApp.Services.KoboLog.List(deviceID) {
+		for _, e := range testApp.TestSeeds().Services.KoboLog.List(deviceID) {
 			if e.Method == http.MethodPut {
 				entry = e
 				return true
@@ -163,7 +169,7 @@ func TestConnectSetKoboDeviceLogging_TogglesAndReflectsInList(t *testing.T) {
 	ctx := context.Background()
 
 	_, deviceID := registerDeviceReturningID(t, userID)
-	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
+	t.Cleanup(func() { testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, false) })
 
 	setReq := &booksv1.SetKoboDeviceLoggingRequest{
 		Id: deviceID, Enabled: true,
@@ -173,7 +179,7 @@ func TestConnectSetKoboDeviceLogging_TogglesAndReflectsInList(t *testing.T) {
 		setReq,
 	)
 	require.NoError(t, err)
-	assert.True(t, testApp.Services.KoboLog.IsEnabled(deviceID))
+	assert.True(t, testApp.TestSeeds().Services.KoboLog.IsEnabled(deviceID))
 
 	listReq := &booksv1.ListKoboDevicesRequest{}
 	listResp, err := client.ListKoboDevices(
@@ -205,7 +211,7 @@ func TestConnectSetKoboDeviceLogging_OtherUsersDeviceNotFound(t *testing.T) {
 	_, err := client.SetKoboDeviceLogging(ctx, req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
-	assert.False(t, testApp.Services.KoboLog.IsEnabled(deviceID))
+	assert.False(t, testApp.TestSeeds().Services.KoboLog.IsEnabled(deviceID))
 }
 
 func TestConnectGetKoboDeviceLogs_ReturnsEntries(t *testing.T) {
@@ -216,8 +222,8 @@ func TestConnectGetKoboDeviceLogs_ReturnsEntries(t *testing.T) {
 	t.Cleanup(ts.Close)
 
 	rawToken, deviceID := registerDeviceReturningID(t, userID)
-	testApp.Services.KoboLog.SetEnabled(deviceID, true)
-	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
+	testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, true)
+	t.Cleanup(func() { testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, false) })
 
 	resp, err := http.DefaultClient.Do(
 		koboReq(t, http.MethodPost,
@@ -241,11 +247,11 @@ func TestConnectGetKoboDeviceLogs_InvalidUTF8ResponseBody(t *testing.T) {
 	ctx := context.Background()
 
 	_, deviceID := registerDeviceReturningID(t, userID)
-	testApp.Services.KoboLog.SetEnabled(deviceID, true)
-	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
+	testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, true)
+	t.Cleanup(func() { testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, false) })
 
 	// Invalid UTF-8, as captured from a binary/gzip upstream response.
-	testApp.Services.KoboLog.Append(deviceID, kobo.LogEntry{
+	testApp.TestSeeds().Services.KoboLog.Append(deviceID, kobo.LogEntry{
 		Time: time.Now(), Method: "GET", Path: "/x", Query: "",
 		RequestBody: "", Status: 200,
 		ResponseBody:    string([]byte{0xff, 0xfe, 0x00}),
@@ -275,14 +281,14 @@ func TestConnectClearKoboDeviceLogs_Empties(t *testing.T) {
 	ctx := context.Background()
 
 	_, deviceID := registerDeviceReturningID(t, userID)
-	testApp.Services.KoboLog.SetEnabled(deviceID, true)
-	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
-	testApp.Services.KoboLog.Append(deviceID, kobo.LogEntry{
+	testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, true)
+	t.Cleanup(func() { testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, false) })
+	testApp.TestSeeds().Services.KoboLog.Append(deviceID, kobo.LogEntry{
 		Time: time.Now(), Method: "GET", Path: "/x", Query: "",
 		RequestBody: "", Status: 200, ResponseBody: "", Notes: "",
 		RequestHeaders: nil, ResponseHeaders: nil, UpstreamHeaders: nil,
 	})
-	require.NotEmpty(t, testApp.Services.KoboLog.List(deviceID))
+	require.NotEmpty(t, testApp.TestSeeds().Services.KoboLog.List(deviceID))
 
 	req := &booksv1.ClearKoboDeviceLogsRequest{Id: deviceID}
 	ctx, info := connect.NewClientContext(ctx)
@@ -290,8 +296,8 @@ func TestConnectClearKoboDeviceLogs_Empties(t *testing.T) {
 	_, err := client.ClearKoboDeviceLogs(ctx, req)
 	require.NoError(t, err)
 
-	assert.Empty(t, testApp.Services.KoboLog.List(deviceID))
-	assert.True(t, testApp.Services.KoboLog.IsEnabled(deviceID),
+	assert.Empty(t, testApp.TestSeeds().Services.KoboLog.List(deviceID))
+	assert.True(t, testApp.TestSeeds().Services.KoboLog.IsEnabled(deviceID),
 		"clearing logs must not disable logging")
 }
 
@@ -314,11 +320,11 @@ func enableUpstreamLogging(
 	owner string,
 ) (string, string) {
 	t.Helper()
-	device, rawToken, err := app.Services.Kobo.RegisterKoboDevice(
+	device, rawToken, err := app.TestSeeds().Services.Kobo.RegisterKoboDevice(
 		context.Background(), owner, "Test Kobo", "",
 	)
 	require.NoError(t, err)
-	app.Services.KoboLog.SetEnabled(device.ID, true)
+	app.TestSeeds().Services.KoboLog.SetEnabled(device.ID, true)
 	return rawToken, device.ID
 }
 
@@ -332,7 +338,7 @@ func waitForLogEntry(
 	t.Helper()
 	var entry kobo.LogEntry
 	require.Eventually(t, func() bool {
-		for _, e := range app.Services.KoboLog.List(deviceID) {
+		for _, e := range app.TestSeeds().Services.KoboLog.List(deviceID) {
 			if strings.HasSuffix(e.Path, pathSuffix) {
 				entry = e
 				return true

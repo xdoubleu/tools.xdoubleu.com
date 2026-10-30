@@ -23,7 +23,7 @@ func (app *Books) FindBook(
 	userID, title, author string,
 ) (*consumption.CatalogMatch, error) {
 	query := strings.TrimSpace(title + " " + author)
-	proposals := app.Services.Books.SearchExternal(ctx, query)
+	proposals := app.services.Books.SearchExternal(ctx, query)
 	titles := make([]string, len(proposals))
 	for i, p := range proposals {
 		titles[i] = p.Title
@@ -87,12 +87,12 @@ func (app *Books) inLibrary(
 	userID, title, isbn13 string,
 ) (bool, error) {
 	if isbn13 != "" {
-		has, err := app.Services.Books.HasISBN13(ctx, userID, isbn13)
+		has, err := app.services.Books.HasISBN13(ctx, userID, isbn13)
 		if err != nil || has {
 			return has, err
 		}
 	}
-	books, _, err := app.Services.Books.SearchLibrary(
+	books, _, err := app.services.Books.SearchLibrary(
 		ctx, userID, title, librarySearchLimit, 0,
 	)
 	if err != nil {

@@ -12,14 +12,14 @@ import (
 func (a *Books) booksRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		"GET /"+prefix+"/api/progress",
-		a.Services.Auth.Access(a.Services.WebSocket.Handler()),
+		a.services.Auth.Access(a.services.WebSocket.Handler()),
 	)
 
 	iapp.MountConnect(
 		mux,
 		a.Logger,
 		func(next http.HandlerFunc) http.HandlerFunc {
-			return a.Services.Auth.AppAccess(prefix, next)
+			return a.services.Auth.AppAccess(prefix, next)
 		},
 		func(s *connect.Server) {
 			handler := &booksConnectHandler{app: a}

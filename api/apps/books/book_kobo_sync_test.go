@@ -40,7 +40,7 @@ func TestGetKEPUBStatus_NoFiles(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	result, err := testApp.Services.Books.GetKEPUBStatus(
+	result, err := testApp.TestSeeds().Services.Books.GetKEPUBStatus(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)
@@ -51,7 +51,7 @@ func TestGetKEPUBStatus_NoFiles(t *testing.T) {
 func TestGetKEPUBStatus_EPUBOnly(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 
-	result, err := testApp.Services.Books.GetKEPUBStatus(
+	result, err := testApp.TestSeeds().Services.Books.GetKEPUBStatus(
 		context.Background(), userID, bookID,
 	)
 	require.NoError(t, err)
@@ -62,7 +62,7 @@ func TestGetKEPUBStatus_EPUBOnly(t *testing.T) {
 func TestGetKEPUBStatus_PDFOnly(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatPDF)
 
-	result, err := testApp.Services.Books.GetKEPUBStatus(
+	result, err := testApp.TestSeeds().Services.Books.GetKEPUBStatus(
 		context.Background(), userID, bookID,
 	)
 	require.NoError(t, err)
@@ -75,7 +75,7 @@ func TestGetKEPUBStatus_EPUBAndKEPUBReady(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 	insertKEPUBRow(t, bookID, userID)
 
-	result, err := testApp.Services.Books.GetKEPUBStatus(
+	result, err := testApp.TestSeeds().Services.Books.GetKEPUBStatus(
 		context.Background(), userID, bookID,
 	)
 	require.NoError(t, err)
@@ -90,7 +90,7 @@ func TestGetKEPUBStatus_EPUBAndKEPUBReady_StaleVersion(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 	insertStaleKEPUBRow(t, bookID, userID)
 
-	result, err := testApp.Services.Books.GetKEPUBStatus(
+	result, err := testApp.TestSeeds().Services.Books.GetKEPUBStatus(
 		context.Background(), userID, bookID,
 	)
 	require.NoError(t, err)
@@ -117,7 +117,7 @@ func TestGetKEPUBStatus_EPUBAndKEPUBConverting(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	result, err := testApp.Services.Books.GetKEPUBStatus(
+	result, err := testApp.TestSeeds().Services.Books.GetKEPUBStatus(
 		context.Background(), userID, bookID,
 	)
 	require.NoError(t, err)
@@ -128,12 +128,12 @@ func TestGetKEPUBStatus_EPUBAndKEPUBConverting(t *testing.T) {
 func TestEnableKoboSync_SetsTag(t *testing.T) {
 	ub := addTestBook(t, "KoboSyncTag-"+uuid.NewString())
 
-	err := testApp.Services.Books.EnableKoboSync(
+	err := testApp.TestSeeds().Services.Books.EnableKoboSync(
 		context.Background(), userID, ub.BookID,
 	)
 	require.NoError(t, err)
 
-	updated, err := testApp.Services.Books.GetUserBook(
+	updated, err := testApp.TestSeeds().Services.Books.GetUserBook(
 		context.Background(), userID, ub.BookID,
 	)
 	require.NoError(t, err)
@@ -143,14 +143,14 @@ func TestEnableKoboSync_SetsTag(t *testing.T) {
 func TestEnableKoboSync_Idempotent(t *testing.T) {
 	ub := addTestBook(t, "KoboSyncIdempotent-"+uuid.NewString())
 
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(
+	require.NoError(t, testApp.TestSeeds().Services.Books.EnableKoboSync(
 		context.Background(), userID, ub.BookID,
 	))
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(
+	require.NoError(t, testApp.TestSeeds().Services.Books.EnableKoboSync(
 		context.Background(), userID, ub.BookID,
 	))
 
-	updated, err := testApp.Services.Books.GetUserBook(
+	updated, err := testApp.TestSeeds().Services.Books.GetUserBook(
 		context.Background(), userID, ub.BookID,
 	)
 	require.NoError(t, err)
@@ -180,7 +180,7 @@ func TestConnectEnableKoboSync_EPUBBook_ReturnsConverting(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, models.FileStatusConverting, resp.KepubStatus)
 
-	updated, err := testApp.Services.Books.GetUserBook(ctx, userID, bookID)
+	updated, err := testApp.TestSeeds().Services.Books.GetUserBook(ctx, userID, bookID)
 	require.NoError(t, err)
 	assert.True(t, updated.HasTag(models.TagKoboSync))
 }
@@ -477,7 +477,10 @@ func TestListKoboSyncBooks_ReturnsConverterVersion(t *testing.T) {
 	ctx := context.Background()
 	owner := "kobo-repo-converter-version-list-" + uuid.NewString()
 	_, bookID := uploadFileForOwner(t, owner, models.FileFormatEPUB)
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, owner, bookID))
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.EnableKoboSync(ctx, owner, bookID),
+	)
 	insertKEPUBRowWithVersion(t, bookID, owner, 3)
 
 	books, err := testApp.TestSeeds().Repositories.Books.ListKoboSyncBooks(ctx, owner)
@@ -490,7 +493,10 @@ func TestGetKoboSyncBook_ReturnsConverterVersion(t *testing.T) {
 	ctx := context.Background()
 	owner := "kobo-repo-converter-version-get-" + uuid.NewString()
 	_, bookID := uploadFileForOwner(t, owner, models.FileFormatEPUB)
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, owner, bookID))
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.EnableKoboSync(ctx, owner, bookID),
+	)
 	insertKEPUBRowWithVersion(t, bookID, owner, 4)
 
 	book, err := testApp.TestSeeds().Repositories.Books.GetKoboSyncBook(ctx, owner, bookID)
@@ -506,7 +512,7 @@ func TestRegisterKoboDevice_RawTokenNeverStoredAndLookupWorks(t *testing.T) {
 			`DELETE FROM books.kobo_devices WHERE user_id = $1`, ownerID)
 	})
 
-	device, rawToken, err := testApp.Services.Kobo.RegisterKoboDevice(
+	device, rawToken, err := testApp.TestSeeds().Services.Kobo.RegisterKoboDevice(
 		ctx, ownerID, "My Kobo", "SN9999",
 	)
 	require.NoError(t, err)
@@ -522,7 +528,7 @@ func TestRegisterKoboDevice_RawTokenNeverStoredAndLookupWorks(t *testing.T) {
 	require.NoError(t, err)
 	assert.Zero(t, count, "raw token must not be stored in the database")
 
-	gotUserID, _, err := testApp.Services.Kobo.GetKoboAuthByTokenHash(
+	gotUserID, _, err := testApp.TestSeeds().Services.Kobo.GetKoboAuthByTokenHash(
 		ctx, tokenHash(rawToken),
 	)
 	require.NoError(t, err)
@@ -537,14 +543,14 @@ func TestRegisterKoboDevice_MultipleDevicesIndependent(t *testing.T) {
 			`DELETE FROM books.kobo_devices WHERE user_id = $1`, ownerID)
 	})
 
-	_, rawA, err := testApp.Services.Kobo.RegisterKoboDevice(
+	_, rawA, err := testApp.TestSeeds().Services.Kobo.RegisterKoboDevice(
 		ctx,
 		ownerID,
 		"Kobo A",
 		"",
 	)
 	require.NoError(t, err)
-	_, rawB, err := testApp.Services.Kobo.RegisterKoboDevice(
+	_, rawB, err := testApp.TestSeeds().Services.Kobo.RegisterKoboDevice(
 		ctx,
 		ownerID,
 		"Kobo B",
@@ -552,14 +558,14 @@ func TestRegisterKoboDevice_MultipleDevicesIndependent(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	gotA, _, err := testApp.Services.Kobo.GetKoboAuthByTokenHash(
+	gotA, _, err := testApp.TestSeeds().Services.Kobo.GetKoboAuthByTokenHash(
 		ctx,
 		tokenHash(rawA),
 	)
 	require.NoError(t, err)
 	assert.Equal(t, ownerID, gotA)
 
-	gotB, _, err := testApp.Services.Kobo.GetKoboAuthByTokenHash(
+	gotB, _, err := testApp.TestSeeds().Services.Kobo.GetKoboAuthByTokenHash(
 		ctx,
 		tokenHash(rawB),
 	)
@@ -579,7 +585,7 @@ func TestDisconnectKoboDevice_RevokesToken(t *testing.T) {
 			`DELETE FROM books.kobo_devices WHERE user_id = $1`, ownerID)
 	})
 
-	device, rawToken, err := testApp.Services.Kobo.RegisterKoboDevice(
+	device, rawToken, err := testApp.TestSeeds().Services.Kobo.RegisterKoboDevice(
 		ctx, ownerID, "Revoke E2E", "",
 	)
 	require.NoError(t, err)
@@ -600,7 +606,7 @@ func TestDisconnectKoboDevice_RevokesToken(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(
 		t,
-		testApp.Services.Kobo.DisconnectKoboDevice(ctx, ownerID, deviceID),
+		testApp.TestSeeds().Services.Kobo.DisconnectKoboDevice(ctx, ownerID, deviceID),
 	)
 
 	resp2, err := http.DefaultClient.Do(
@@ -763,7 +769,7 @@ func TestConnectRequestKEPUBConversion_PDFOnly_ReturnsConverting(t *testing.T) {
 	assert.Equal(t, models.FileStatusConverting, resp.KepubStatus)
 
 	// Must not set kobo-sync: this is a pure preview trigger.
-	ub, err := testApp.Services.Books.GetUserBook(ctx, userID, bookID)
+	ub, err := testApp.TestSeeds().Services.Books.GetUserBook(ctx, userID, bookID)
 	require.NoError(t, err)
 	assert.False(t, ub.HasTag(models.TagKoboSync),
 		"RequestKEPUBConversion must not set the kobo-sync tag")
@@ -954,11 +960,21 @@ func TestToggleTag_DisableKoboSync_WritesTombstone(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "KoboRemovalDisable-"+uuid.NewString())
 
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, userID, ub.BookID))
-	require.NoError(t,
-		testApp.Services.Books.ToggleTag(ctx, userID, ub.BookID, models.TagKoboSync))
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.EnableKoboSync(ctx, userID, ub.BookID),
+	)
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.ToggleTag(
+			ctx,
+			userID,
+			ub.BookID,
+			models.TagKoboSync,
+		),
+	)
 
-	removals, err := testApp.Services.Books.ListKoboRemovals(ctx, userID)
+	removals, err := testApp.TestSeeds().Services.Books.ListKoboRemovals(ctx, userID)
 	require.NoError(t, err)
 	found := false
 	for _, r := range removals {
@@ -974,12 +990,25 @@ func TestEnableKoboSync_ClearsStaleTombstone(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "KoboRemovalReenable-"+uuid.NewString())
 
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, userID, ub.BookID))
-	require.NoError(t,
-		testApp.Services.Books.ToggleTag(ctx, userID, ub.BookID, models.TagKoboSync))
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, userID, ub.BookID))
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.EnableKoboSync(ctx, userID, ub.BookID),
+	)
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.ToggleTag(
+			ctx,
+			userID,
+			ub.BookID,
+			models.TagKoboSync,
+		),
+	)
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.EnableKoboSync(ctx, userID, ub.BookID),
+	)
 
-	removals, err := testApp.Services.Books.ListKoboRemovals(ctx, userID)
+	removals, err := testApp.TestSeeds().Services.Books.ListKoboRemovals(ctx, userID)
 	require.NoError(t, err)
 	for _, r := range removals {
 		assert.NotEqual(t, ub.BookID, r.BookID,
@@ -992,13 +1021,30 @@ func TestToggleTag_ReenableViaToggle_ClearsTombstone(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "KoboRemovalToggleReenable-"+uuid.NewString())
 
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, userID, ub.BookID))
-	require.NoError(t, // disable
-		testApp.Services.Books.ToggleTag(ctx, userID, ub.BookID, models.TagKoboSync))
-	require.NoError(t, // re-enable via ToggleTag, not EnableKoboSync
-		testApp.Services.Books.ToggleTag(ctx, userID, ub.BookID, models.TagKoboSync))
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.EnableKoboSync(ctx, userID, ub.BookID),
+	)
+	require.NoError(
+		t, // disable
+		testApp.TestSeeds().Services.Books.ToggleTag(
+			ctx,
+			userID,
+			ub.BookID,
+			models.TagKoboSync,
+		),
+	)
+	require.NoError(
+		t, // re-enable via ToggleTag, not EnableKoboSync
+		testApp.TestSeeds().Services.Books.ToggleTag(
+			ctx,
+			userID,
+			ub.BookID,
+			models.TagKoboSync,
+		),
+	)
 
-	removals, err := testApp.Services.Books.ListKoboRemovals(ctx, userID)
+	removals, err := testApp.TestSeeds().Services.Books.ListKoboRemovals(ctx, userID)
 	require.NoError(t, err)
 	for _, r := range removals {
 		assert.NotEqual(t, ub.BookID, r.BookID,
@@ -1012,7 +1058,7 @@ func TestRemoveFromLibrary_NoUserBookRow_NoError(t *testing.T) {
 	owner := "kobo-removal-no-userbook-" + uuid.NewString()
 	book := addUniqueBook(t)
 
-	err := testApp.Services.Books.RemoveFromLibrary(ctx, owner, book.ID)
+	err := testApp.TestSeeds().Services.Books.RemoveFromLibrary(ctx, owner, book.ID)
 	require.NoError(t, err,
 		"removing a book with no user_books row must not error")
 }
@@ -1022,10 +1068,13 @@ func TestToggleTag_UnrelatedTag_DoesNotTombstone(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "KoboRemovalUnrelated-"+uuid.NewString())
 
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, userID, ub.BookID))
 	require.NoError(
 		t,
-		testApp.Services.Books.ToggleTag(
+		testApp.TestSeeds().Services.Books.EnableKoboSync(ctx, userID, ub.BookID),
+	)
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.ToggleTag(
 			ctx,
 			userID,
 			ub.BookID,
@@ -1033,7 +1082,7 @@ func TestToggleTag_UnrelatedTag_DoesNotTombstone(t *testing.T) {
 		),
 	)
 
-	removals, err := testApp.Services.Books.ListKoboRemovals(ctx, userID)
+	removals, err := testApp.TestSeeds().Services.Books.ListKoboRemovals(ctx, userID)
 	require.NoError(t, err)
 	for _, r := range removals {
 		assert.NotEqual(t, ub.BookID, r.BookID,
@@ -1047,11 +1096,17 @@ func TestRemoveFromLibrary_KoboSyncedBook_WritesTombstone(t *testing.T) {
 	ctx := context.Background()
 	owner := "kobo-removal-delete-" + uuid.NewString()
 	_, bookID := uploadFileForOwner(t, owner, models.FileFormatEPUB)
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, owner, bookID))
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.EnableKoboSync(ctx, owner, bookID),
+	)
 
-	require.NoError(t, testApp.Services.Books.RemoveFromLibrary(ctx, owner, bookID))
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.RemoveFromLibrary(ctx, owner, bookID),
+	)
 
-	removals, err := testApp.Services.Books.ListKoboRemovals(ctx, owner)
+	removals, err := testApp.TestSeeds().Services.Books.ListKoboRemovals(ctx, owner)
 	require.NoError(t, err)
 	found := false
 	for _, r := range removals {
@@ -1069,9 +1124,12 @@ func TestRemoveFromLibrary_NonSyncedBook_NoTombstone(t *testing.T) {
 	owner := "kobo-removal-delete-nosync-" + uuid.NewString()
 	_, bookID := uploadFileForOwner(t, owner, models.FileFormatEPUB)
 
-	require.NoError(t, testApp.Services.Books.RemoveFromLibrary(ctx, owner, bookID))
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.RemoveFromLibrary(ctx, owner, bookID),
+	)
 
-	removals, err := testApp.Services.Books.ListKoboRemovals(ctx, owner)
+	removals, err := testApp.TestSeeds().Services.Books.ListKoboRemovals(ctx, owner)
 	require.NoError(t, err)
 	for _, r := range removals {
 		assert.NotEqual(t, bookID, r.BookID,

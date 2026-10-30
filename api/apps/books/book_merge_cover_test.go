@@ -27,7 +27,7 @@ func TestMergeBooks_CoverSource_CachesCoverEagerly(t *testing.T) {
 	))
 	defer imgServer.Close()
 
-	winner, err := testApp.Services.Books.AddToLibrary(
+	winner, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), mergeTestUser,
 		services.SourceProposal{ //nolint:exhaustruct //only required fields
 			Source:  "manual",
@@ -39,7 +39,7 @@ func TestMergeBooks_CoverSource_CachesCoverEagerly(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	source, err := testApp.Services.Books.AddToLibrary(
+	source, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), mergeTestUser,
 		services.SourceProposal{ //nolint:exhaustruct //only required fields
 			Source:   "manual",
@@ -52,7 +52,7 @@ func TestMergeBooks_CoverSource_CachesCoverEagerly(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	loser, err := testApp.Services.Books.AddToLibrary(
+	loser, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), mergeTestUser,
 		services.SourceProposal{ //nolint:exhaustruct //only required fields
 			Source:  "manual",
@@ -64,7 +64,7 @@ func TestMergeBooks_CoverSource_CachesCoverEagerly(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, _, err = testApp.Services.Books.MergeBooks(
+	_, _, err = testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, &source.BookID, nil,
 	)
@@ -89,7 +89,7 @@ func TestMergeBooks_CoverSource_NoCover_ClearsCache(t *testing.T) {
 	))
 	defer imgServer.Close()
 
-	winner, err := testApp.Services.Books.AddToLibrary(
+	winner, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), mergeTestUser,
 		services.SourceProposal{ //nolint:exhaustruct //only required fields
 			Source:   "manual",
@@ -109,7 +109,7 @@ func TestMergeBooks_CoverSource_NoCover_ClearsCache(t *testing.T) {
 	// No ISBN: enrichByISBN only runs when an ISBN is present, so this book
 	// stays genuinely coverless instead of being auto-enriched with a cover
 	// from the (always-populated) Hardcover mock.
-	source, err := testApp.Services.Books.AddToLibrary(
+	source, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), mergeTestUser,
 		services.SourceProposal{ //nolint:exhaustruct //only required fields
 			Source:  "manual",
@@ -120,7 +120,7 @@ func TestMergeBooks_CoverSource_NoCover_ClearsCache(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	loser, err := testApp.Services.Books.AddToLibrary(
+	loser, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), mergeTestUser,
 		services.SourceProposal{ //nolint:exhaustruct //only required fields
 			Source:  "manual",
@@ -132,7 +132,7 @@ func TestMergeBooks_CoverSource_NoCover_ClearsCache(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, _, err = testApp.Services.Books.MergeBooks(
+	_, _, err = testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, &source.BookID, nil,
 	)

@@ -40,7 +40,7 @@ func TestRemoveFromLibrary_Service_CancelledContext_ReturnsError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel immediately so the first DB call fails
 
-	err := testApp.Services.Books.RemoveFromLibrary(
+	err := testApp.TestSeeds().Services.Books.RemoveFromLibrary(
 		ctx, removeBookUser, uuid.New(),
 	)
 	require.Error(t, err)
@@ -48,7 +48,7 @@ func TestRemoveFromLibrary_Service_CancelledContext_ReturnsError(t *testing.T) {
 
 func TestRemoveFromLibrary_Service_DeletesUserBook(t *testing.T) {
 	cleanupRemoveBookUser(t)
-	book, err := testApp.Services.Books.AddToLibrary(
+	book, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), removeBookUser,
 		services.SourceProposal{ //nolint:exhaustruct //only required fields
 			Source:   "manual",
@@ -62,7 +62,7 @@ func TestRemoveFromLibrary_Service_DeletesUserBook(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	err = testApp.Services.Books.RemoveFromLibrary(
+	err = testApp.TestSeeds().Services.Books.RemoveFromLibrary(
 		context.Background(), removeBookUser, book.BookID,
 	)
 	require.NoError(t, err)
@@ -78,7 +78,7 @@ func TestRemoveFromLibrary_Service_DeletesUserBook(t *testing.T) {
 
 func TestRemoveFromLibrary_Service_LastReference_DeletesOrphanCatalogRow(t *testing.T) {
 	cleanupRemoveBookUser(t)
-	book, err := testApp.Services.Books.AddToLibrary(
+	book, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), removeBookUser,
 		services.SourceProposal{ //nolint:exhaustruct //only required fields
 			Source:   "manual",
@@ -92,7 +92,7 @@ func TestRemoveFromLibrary_Service_LastReference_DeletesOrphanCatalogRow(t *test
 	)
 	require.NoError(t, err)
 
-	err = testApp.Services.Books.RemoveFromLibrary(
+	err = testApp.TestSeeds().Services.Books.RemoveFromLibrary(
 		context.Background(), removeBookUser, book.BookID,
 	)
 	require.NoError(t, err)
@@ -124,7 +124,7 @@ func TestRemoveFromLibrary_Service_OtherUserStillHas_KeepsCatalogRowAndFile(
 	)
 	require.NoError(t, err)
 
-	err = testApp.Services.Books.RemoveFromLibrary(
+	err = testApp.TestSeeds().Services.Books.RemoveFromLibrary(
 		context.Background(), removeBookUser, shared.BookID,
 	)
 	require.NoError(t, err)
@@ -176,7 +176,7 @@ func TestRemoveFromLibrary_Service_DeletesR2ObjectWhenUnreferenced(t *testing.T)
 	require.NoError(t, err)
 	assert.True(t, exists, "uploaded object should exist before removal")
 
-	err = testApp.Services.Books.RemoveFromLibrary(
+	err = testApp.TestSeeds().Services.Books.RemoveFromLibrary(
 		context.Background(), removeBookUser, result.BookFile.BookID,
 	)
 	require.NoError(t, err)
@@ -249,7 +249,7 @@ func TestRemoveFromLibrary_Service_SharedStorageKey_KeepsR2Object(t *testing.T) 
 			userID, book.ID)
 	})
 
-	err = testApp.Services.Books.RemoveFromLibrary(
+	err = testApp.TestSeeds().Services.Books.RemoveFromLibrary(
 		context.Background(), removeBookUser, book.ID,
 	)
 	require.NoError(t, err)
@@ -302,7 +302,7 @@ func TestRemoveFromLibrary_Service_R2DeleteFailsAfterRetries_LogsErrorButSucceed
 
 	fakeStore.FailNextDeletes(4, errors.New("transient R2 failure"))
 
-	err = testApp.Services.Books.RemoveFromLibrary(
+	err = testApp.TestSeeds().Services.Books.RemoveFromLibrary(
 		context.Background(), removeBookUser, result.BookFile.BookID,
 	)
 	require.NoError(t, err, "a leaked R2 object must not fail the library removal")
@@ -320,7 +320,7 @@ func TestRemoveFromLibrary_Service_R2DeleteFailsAfterRetries_LogsErrorButSucceed
 }
 
 func TestConnectRemoveBook_OK(t *testing.T) {
-	book, err := testApp.Services.Books.AddToLibrary(
+	book, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), userID,
 		services.SourceProposal{ //nolint:exhaustruct //only required fields
 			Source:   "manual",

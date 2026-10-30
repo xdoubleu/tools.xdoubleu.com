@@ -23,7 +23,7 @@ func learnProposal(title string) services.SourceProposal {
 }
 
 func TestAddToLibraryIfAbsent_AddsToShelf(t *testing.T) {
-	ub, err := testApp.Services.Books.AddToLibraryIfAbsent(
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibraryIfAbsent(
 		context.Background(), userID, learnProposal("IfAbsent New"), "To Learn",
 	)
 	require.NoError(t, err)
@@ -32,12 +32,12 @@ func TestAddToLibraryIfAbsent_AddsToShelf(t *testing.T) {
 
 func TestAddToLibraryIfAbsent_OwnedBookKeepsShelf(t *testing.T) {
 	ctx := context.Background()
-	owned, err := testApp.Services.Books.AddToLibrary(
+	owned, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		ctx, userID, learnProposal("IfAbsent Owned"), models.StatusReading, []string{},
 	)
 	require.NoError(t, err)
 
-	ub, err := testApp.Services.Books.AddToLibraryIfAbsent(
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibraryIfAbsent(
 		ctx, userID, learnProposal("IfAbsent Owned"), "To Learn",
 	)
 	require.NoError(t, err)
@@ -58,12 +58,12 @@ func TestEnsureLibraryBook_ResolvesIntoLibrary(t *testing.T) {
 		"To Learn",
 	)
 	require.NoError(t, err)
-	first, err := testApp.Services.Books.GetUserBook(ctx, userID, bookID)
+	first, err := testApp.TestSeeds().Services.Books.GetUserBook(ctx, userID, bookID)
 	require.NoError(t, err)
 
 	againID, err := testApp.EnsureLibraryBook(ctx, userID, "hardcover", "978", "Other")
 	require.NoError(t, err)
-	again, err := testApp.Services.Books.GetUserBook(ctx, userID, againID)
+	again, err := testApp.TestSeeds().Services.Books.GetUserBook(ctx, userID, againID)
 	require.NoError(t, err)
 	assert.Equal(t, bookID, againID)
 	assert.Equal(t, first.Status, again.Status)

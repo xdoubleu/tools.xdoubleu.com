@@ -88,7 +88,7 @@ func (app *Books) koboChangedReadingStates(
 	for i, b := range books {
 		bookIDs[i] = b.BookID
 	}
-	changed, err := app.Services.Books.SyncKoboDeviceReadingStates(
+	changed, err := app.services.Books.SyncKoboDeviceReadingStates(
 		ctx, deviceID, bookIDs, stateByBook, held, pending,
 	)
 	if err != nil {
@@ -126,7 +126,7 @@ func (app *Books) koboGetStateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	state, err := app.Services.Books.GetReadingState(r.Context(), userID, bookID)
+	state, err := app.services.Books.GetReadingState(r.Context(), userID, bookID)
 	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -195,7 +195,7 @@ func (app *Books) koboPutStateHandler(w http.ResponseWriter, r *http.Request) {
 			r.Context(), &state, rs.CurrentBookmark.Location, rs.StatusInfo.Status,
 		)
 
-		if err = app.Services.Books.UpdateKoboReadingProgress(
+		if err = app.services.Books.UpdateKoboReadingProgress(
 			r.Context(), deviceID, state,
 		); err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)

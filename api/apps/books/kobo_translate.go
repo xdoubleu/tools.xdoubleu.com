@@ -29,10 +29,10 @@ func (app *Books) koboPutLocation(
 		return false
 	}
 	state.KoboLocation = loc
-	book, err := app.Services.Books.GetKoboSyncBook(ctx, state.UserID, state.BookID)
+	book, err := app.services.Books.GetKoboSyncBook(ctx, state.UserID, state.BookID)
 	outdated := err == nil && koboIsReplace(book)
 	var backfill bool
-	state.Position, backfill = app.Services.Positions.KoboPosition(
+	state.Position, backfill = app.services.Positions.KoboPosition(
 		ctx, state.UserID, state.BookID, *loc, outdated,
 	)
 	return backfill
@@ -47,7 +47,7 @@ func (app *Books) koboSyncSpans(
 	books []models.KoboSyncBook,
 	states map[uuid.UUID]*models.BookReadingState,
 ) (map[uuid.UUID]time.Time, map[uuid.UUID]bool, error) {
-	held, err := app.Services.Books.ListKoboDeviceHeld(ctx, deviceID)
+	held, err := app.services.Books.ListKoboDeviceHeld(ctx, deviceID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -92,11 +92,11 @@ func (app *Books) koboWithSpans(
 		return nil
 	}
 
-	locs, pending := app.Services.Positions.KoboLocations(ctx, userID, sub, replaced)
+	locs, pending := app.services.Positions.KoboLocations(ctx, userID, sub, replaced)
 	for id, loc := range locs {
 		withLoc := *states[id]
 		if stale := withLoc.KoboLocation; stale != nil {
-			if err := app.Services.Books.ClearKoboLocation(
+			if err := app.services.Books.ClearKoboLocation(
 				ctx, userID, id, *stale,
 			); err != nil {
 				app.Logger.WarnContext(ctx, "clearing a stale kobo location failed",
@@ -118,9 +118,9 @@ func (app *Books) backfillKoboPosition(
 	loc models.KoboLocation,
 ) {
 	app.Background.Go(ctx, "kobo-position-backfill", func(ctx context.Context) {
-		app.Services.Positions.BackfillKoboPosition(ctx, userID, bookID, loc,
+		app.services.Positions.BackfillKoboPosition(ctx, userID, bookID, loc,
 			func(ctx context.Context, pos models.ReadingPosition) error {
-				return app.Services.Books.SetKoboPosition(ctx, userID, bookID, loc, pos)
+				return app.services.Books.SetKoboPosition(ctx, userID, bookID, loc, pos)
 			})
 	})
 }

@@ -131,7 +131,7 @@ func TestGetSourceStats_Admin_CountsUnique(t *testing.T) {
 		"a freshly added book has never been scanned")
 
 	// adminApp has both sources configured, so the status actually resolves.
-	_, err := adminApp.Services.Books.BuildResyncProposals(
+	_, err := adminApp.TestSeeds().Services.Books.BuildResyncProposals(
 		context.Background(),
 		adminApp.Logger,
 		nil,
@@ -158,7 +158,7 @@ func TestGetSourceStats_Admin_CountsOverlap(t *testing.T) {
 	id := uuid.New()
 	addTestBookWithISBN(t, "SourceStatsOverlapBook"+id.String()[:8], isbnFromUUID(id))
 
-	_, err := adminApp.Services.Books.BuildResyncProposals(
+	_, err := adminApp.TestSeeds().Services.Books.BuildResyncProposals(
 		context.Background(),
 		adminApp.Logger,
 		nil,
@@ -185,7 +185,7 @@ func TestGetSourceStats_Admin_CountsMissed(t *testing.T) {
 	id := uuid.New()
 	addTestBookWithISBN(t, "SourceStatsMissedBook"+id.String()[:8], isbnFromUUID(id))
 
-	_, err := adminApp.Services.Books.BuildResyncProposals(
+	_, err := adminApp.TestSeeds().Services.Books.BuildResyncProposals(
 		context.Background(),
 		adminApp.Logger,
 		nil,
@@ -269,7 +269,7 @@ func TestListBooksInExactSources_Admin_ReturnsOnlyUniqueBook(t *testing.T) {
 	title := "SourceUniqueBooksTestBook" + id.String()[:8]
 	addTestBookWithISBN(t, title, isbnFromUUID(id))
 
-	_, err := adminApp.Services.Books.BuildResyncProposals(
+	_, err := adminApp.TestSeeds().Services.Books.BuildResyncProposals(
 		context.Background(),
 		adminApp.Logger,
 		nil,
@@ -306,7 +306,7 @@ func TestListBooksInExactSources_Admin_ReturnsOverlapBook(t *testing.T) {
 	title := "SourceOverlapBooksTestBook" + id.String()[:8]
 	addTestBookWithISBN(t, title, isbnFromUUID(id))
 
-	_, err := adminApp.Services.Books.BuildResyncProposals(
+	_, err := adminApp.TestSeeds().Services.Books.BuildResyncProposals(
 		context.Background(),
 		adminApp.Logger,
 		nil,

@@ -403,7 +403,7 @@ func TestUpdateReadingProgress_NoPromote_AlreadyRead(t *testing.T) {
 	assert.Equal(t, models.StatusRead, ub.Status) // not demoted
 	assert.Equal(t, 100, ub.ProgressPercent)      // a read book stays at 100%
 
-	state, err := testApp.Services.Books.GetReadingState(
+	state, err := testApp.TestSeeds().Services.Books.GetReadingState(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)

@@ -170,7 +170,7 @@ func (app *Books) koboLogged(next http.HandlerFunc) http.HandlerFunc {
 		rec.snapshotHeaders()
 
 		if holder.enabled && holder.deviceID != "" {
-			app.Services.KoboLog.Append(holder.deviceID, kobo.LogEntry{
+			app.services.KoboLog.Append(holder.deviceID, kobo.LogEntry{
 				Time:         time.Now(),
 				Method:       r.Method,
 				Path:         redactKoboToken(r.URL.Path, r.PathValue("token")),

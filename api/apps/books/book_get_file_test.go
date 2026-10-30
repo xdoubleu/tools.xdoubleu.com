@@ -116,7 +116,7 @@ func TestGetBookFile_ByFormat_EPUB_Found(t *testing.T) {
 	bf, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 	require.Equal(t, models.FileFormatEPUB, bf.Format)
 
-	result, err := testApp.Services.Books.GetBookFile(
+	result, err := testApp.TestSeeds().Services.Books.GetBookFile(
 		context.Background(), userID, bookID, models.FileFormatEPUB,
 	)
 	require.NoError(t, err)
@@ -130,7 +130,7 @@ func TestGetBookFile_ByFormat_PDF_Found(t *testing.T) {
 	bf, bookID := uploadFileForOwner(t, userID, models.FileFormatPDF)
 	require.Equal(t, models.FileFormatPDF, bf.Format)
 
-	result, err := testApp.Services.Books.GetBookFile(
+	result, err := testApp.TestSeeds().Services.Books.GetBookFile(
 		context.Background(), userID, bookID, models.FileFormatPDF,
 	)
 	require.NoError(t, err)
@@ -141,7 +141,7 @@ func TestGetBookFile_ByFormat_PDF_Found(t *testing.T) {
 func TestGetBookFile_NoFormat_FindsPrimary(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatPDF)
 
-	result, err := testApp.Services.Books.GetBookFile(
+	result, err := testApp.TestSeeds().Services.Books.GetBookFile(
 		context.Background(), userID, bookID, "",
 	)
 	require.NoError(t, err)
@@ -154,7 +154,7 @@ func TestGetBookFile_NoFormat_SkipsKEPUB(t *testing.T) {
 	book := addUniqueBook(t)
 	insertKEPUBRow(t, book.ID, userID)
 
-	_, err := testApp.Services.Books.GetBookFile(
+	_, err := testApp.TestSeeds().Services.Books.GetBookFile(
 		context.Background(), userID, book.ID, "",
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
@@ -163,7 +163,7 @@ func TestGetBookFile_NoFormat_SkipsKEPUB(t *testing.T) {
 func TestGetBookFile_NoFile_ReturnsNotFound(t *testing.T) {
 	book := addUniqueBook(t)
 
-	_, err := testApp.Services.Books.GetBookFile(
+	_, err := testApp.TestSeeds().Services.Books.GetBookFile(
 		context.Background(), userID, book.ID, models.FileFormatEPUB,
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
@@ -175,14 +175,14 @@ func TestGetBookFile_OtherUserBook_ReturnsNotFound(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 
 	const otherUser = "other-user-idor-check-getfile"
-	_, err := testApp.Services.Books.GetBookFile(
+	_, err := testApp.TestSeeds().Services.Books.GetBookFile(
 		context.Background(), otherUser, bookID, models.FileFormatEPUB,
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
 }
 
 func TestGetBookFile_UnknownBookID_ReturnsNotFound(t *testing.T) {
-	_, err := testApp.Services.Books.GetBookFile(
+	_, err := testApp.TestSeeds().Services.Books.GetBookFile(
 		context.Background(), userID, uuid.New(), "",
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
