@@ -10,6 +10,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	"tools.xdoubleu.com/apps/books/internal/services/kobo"
 	"tools.xdoubleu.com/apps/books/internal/services/positions"
+	"tools.xdoubleu.com/apps/books/internal/services/webpub"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
@@ -34,7 +35,7 @@ type Services struct {
 	KoboLog    *kobo.LogStore
 	Ingest     *IngestService
 	WebSocket  *progressws.Service
-	WebPub     *WebPubService
+	WebPub     *webpub.Service
 }
 
 func New(
@@ -105,7 +106,7 @@ func New(
 		Kobo:      koboSvc,
 		KoboLog:   koboLog,
 		Ingest:    ingestSvc,
-		WebPub:    newWebPubService(booksSvc),
+		WebPub:    webpub.NewService(repositories.BookFiles, booksSvc.openStoredZip),
 		WebSocket: progressws.NewService(
 			ctx,
 			logger,

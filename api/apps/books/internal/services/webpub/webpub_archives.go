@@ -1,4 +1,4 @@
-package services
+package webpub
 
 import (
 	"container/list"

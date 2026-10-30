@@ -2,7 +2,7 @@
 
 - Status: Accepted; the reader-chunk warmup was replaced by the app-shell precache in [ADR-0034](adr-0034-vite-spa-served-by-the-api.md).
 - Issues: #2312, #2313, #2314, #2315, #2316, #2317
-- Affects: `api/apps/books/webpub_routes.go`, `api/apps/books/internal/services/webpub.go`, `web/components/books/reader/`, `web/lib/books/{readium,pdf,webpubCache}.ts`
+- Affects: `api/apps/books/webpub_routes.go`, `api/apps/books/internal/services/webpub/webpub.go`, `web/components/books/reader/`, `web/lib/books/{readium,pdf,webpubCache}.ts`
 
 ## Context
 
