@@ -113,7 +113,7 @@ func TestConnectGetSteam_WithBacklogAndInProgress(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		err = app2.Services.Steam.SyncUser(ctx, isolatedUser)
+		err = app2.TestSeeds().Services.Steam.SyncUser(ctx, isolatedUser)
 		require.NoError(t, err)
 		t.Cleanup(func() {
 			_, _ = testDB.Exec(context.Background(),

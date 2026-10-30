@@ -23,7 +23,7 @@ func (a *Games) ListConsumption(
 	ctx context.Context,
 	userID string,
 ) ([]consumption.Event, error) {
-	games, err := a.Services.Steam.GetAllGames(ctx, userID)
+	games, err := a.services.Steam.GetAllGames(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

@@ -53,7 +53,7 @@ func TestConnectGetSteamGame_SortBranches(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	err = app2.Services.Steam.SyncUser(context.Background(), isolatedUser)
+	err = app2.TestSeeds().Services.Steam.SyncUser(context.Background(), isolatedUser)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -106,7 +106,10 @@ func TestConnectRefreshSteamGame_SortBranches(t *testing.T) {
 			SteamUserID: "76561197960287930",
 		},
 	))
-	require.NoError(t, app2.Services.Steam.SyncUser(context.Background(), isolatedUser))
+	require.NoError(
+		t,
+		app2.TestSeeds().Services.Steam.SyncUser(context.Background(), isolatedUser),
+	)
 
 	t.Cleanup(func() {
 		_, _ = testDB.Exec(context.Background(),
@@ -161,7 +164,7 @@ func TestConnectRefreshSteamGame_AllSortBranches(t *testing.T) {
 			SteamUserID: "76561197960287930",
 		},
 	))
-	require.NoError(t, app2.Services.Steam.SyncUser(ctx, isolatedUser))
+	require.NoError(t, app2.TestSeeds().Services.Steam.SyncUser(ctx, isolatedUser))
 
 	t.Cleanup(func() {
 		_, _ = testDB.Exec(ctx,
@@ -209,7 +212,7 @@ func TestConnectRefreshSteamGame_SyncError(t *testing.T) {
 		playerAch: map[int][]steam.Achievement{},
 		schemaErr: map[int]bool{gameID: true},
 	})
-	require.NoError(t, app2.Services.Steam.SyncUser(t.Context(), isolatedUser))
+	require.NoError(t, app2.TestSeeds().Services.Steam.SyncUser(t.Context(), isolatedUser))
 
 	ts := httptest.NewServer(testhelper.BuildMux(app2))
 	t.Cleanup(ts.Close)

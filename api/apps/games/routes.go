@@ -12,18 +12,18 @@ import (
 func (a *Games) Routes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		"GET /"+prefix+"/api/progress",
-		a.Services.Auth.Access(a.Services.WebSocket.Handler()),
+		a.services.Auth.Access(a.services.WebSocket.Handler()),
 	)
 	mux.HandleFunc(
 		"POST /"+prefix+"/api/progress/steam/refresh",
-		a.Services.Auth.AppAccess(prefix, a.refreshSteamHandler),
+		a.services.Auth.AppAccess(prefix, a.refreshSteamHandler),
 	)
 
 	iapp.MountConnect(
 		mux,
 		a.Logger,
 		func(next http.HandlerFunc) http.HandlerFunc {
-			return a.Services.Auth.AppAccess(prefix, next)
+			return a.services.Auth.AppAccess(prefix, next)
 		},
 		func(s *connect.Server) {
 			gamesv1connect.RegisterGamesServiceHandler(

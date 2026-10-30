@@ -28,7 +28,7 @@ func seedSteamData(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	err = testApp.Services.Steam.SyncUser(ctx, userID)
+	err = testApp.TestSeeds().Services.Steam.SyncUser(ctx, userID)
 	require.NoError(t, err)
 }
 
@@ -100,7 +100,7 @@ func (mockEmptyAchievementsSteamClient) GetGlobalAchievementPercentagesForApp(
 // TestSteamCompletionRate_NotFound: no record yields "0.00".
 func TestSteamCompletionRate_NotFound(t *testing.T) {
 	const isolatedUser = "steam-rate-notfound-user"
-	rate, err := testApp.Services.Progress.GetCurrentSteamCompletionRate(
+	rate, err := testApp.TestSeeds().Services.Progress.GetCurrentSteamCompletionRate(
 		context.Background(), isolatedUser,
 	)
 	require.NoError(t, err)
@@ -113,7 +113,7 @@ func TestSteamCompletionRate_WithRecord(t *testing.T) {
 	const isolatedUser = "steam-rate-record-user"
 	today := time.Now().UTC().Format(models.ProgressDateFormat)
 
-	err := testApp.Services.Progress.Save(
+	err := testApp.TestSeeds().Services.Progress.Save(
 		ctx, isolatedUser, []string{today}, []string{"55.00"},
 	)
 	require.NoError(t, err)
@@ -125,7 +125,7 @@ func TestSteamCompletionRate_WithRecord(t *testing.T) {
 		)
 	})
 
-	rate, err := testApp.Services.Progress.GetCurrentSteamCompletionRate(
+	rate, err := testApp.TestSeeds().Services.Progress.GetCurrentSteamCompletionRate(
 		ctx, isolatedUser,
 	)
 	require.NoError(t, err)
@@ -138,7 +138,7 @@ func TestGetRecentlyActiveGames_Repo(t *testing.T) {
 	seedSteamData(t)
 	ctx := context.Background()
 
-	games, err := testApp.Repositories.Steam.GetRecentlyActiveGames(
+	games, err := testApp.TestSeeds().Repositories.Steam.GetRecentlyActiveGames(
 		ctx, userID, 10,
 	)
 	require.NoError(t, err)
@@ -161,7 +161,7 @@ func TestGetRecentlyActiveGames_Repo(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	afterClear, err := testApp.Repositories.Steam.GetRecentlyActiveGames(
+	afterClear, err := testApp.TestSeeds().Repositories.Steam.GetRecentlyActiveGames(
 		ctx, userID, 10,
 	)
 	require.NoError(t, err)
@@ -174,7 +174,7 @@ func TestGetRecentlyActiveGames_Repo(t *testing.T) {
 func TestGetRecentlyActive_Service(t *testing.T) {
 	seedSteamData(t)
 
-	games, err := testApp.Services.Steam.GetRecentlyActive(
+	games, err := testApp.TestSeeds().Services.Steam.GetRecentlyActive(
 		context.Background(), userID,
 	)
 	require.NoError(t, err)
@@ -203,9 +203,14 @@ func TestUpsertGames_SetsLastSyncedAt(t *testing.T) {
 		ImageURL:       "",
 	}
 
-	err := testApp.Repositories.Steam.UpsertGames(ctx, nil, map[int]*models.Game{
-		game.ID: game,
-	}, isolatedUser)
+	err := testApp.TestSeeds().Repositories.Steam.UpsertGames(
+		ctx,
+		nil,
+		map[int]*models.Game{
+			game.ID: game,
+		},
+		isolatedUser,
+	)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -215,7 +220,11 @@ func TestUpsertGames_SetsLastSyncedAt(t *testing.T) {
 		)
 	})
 
-	got, err := testApp.Repositories.Steam.GetGameByID(ctx, game.ID, isolatedUser)
+	got, err := testApp.TestSeeds().Repositories.Steam.GetGameByID(
+		ctx,
+		game.ID,
+		isolatedUser,
+	)
 	require.NoError(t, err)
 	require.NotNil(t, got)
 	assert.False(t, got.LastSyncedAt.IsZero(),
@@ -247,7 +256,7 @@ func TestSyncUser_SchemaOnlyAchievements(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	err = app2.Services.Steam.SyncUser(ctx, isolatedUserID)
+	err = app2.TestSeeds().Services.Steam.SyncUser(ctx, isolatedUserID)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

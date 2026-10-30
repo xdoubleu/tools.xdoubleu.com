@@ -156,9 +156,9 @@ func TestSyncUser_SchemaFailurePreservesPriorCompletion(t *testing.T) {
 		playerAch: playerAch,
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
-	gA, err := app.Services.Steam.GetGameByID(ctx, gameA, user)
+	gA, err := app.TestSeeds().Services.Steam.GetGameByID(ctx, gameA, user)
 	require.NoError(t, err)
 	assert.Equal(t, "50.00", gA.CompletionRate)
 	assert.Equal(
@@ -167,7 +167,7 @@ func TestSyncUser_SchemaFailurePreservesPriorCompletion(t *testing.T) {
 		gA.ImageURL,
 		"game image url is derived from the Steam icon and persisted",
 	)
-	gB, err := app.Services.Steam.GetGameByID(ctx, gameB, user)
+	gB, err := app.TestSeeds().Services.Steam.GetGameByID(ctx, gameB, user)
 	require.NoError(t, err)
 	assert.Equal(t, "100.00", gB.CompletionRate)
 
@@ -177,9 +177,9 @@ func TestSyncUser_SchemaFailurePreservesPriorCompletion(t *testing.T) {
 		playerAch: playerAch,
 		schemaErr: map[int]bool{gameB: true},
 	})
-	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app2.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
-	gA, err = app2.Services.Steam.GetGameByID(ctx, gameA, user)
+	gA, err = app2.TestSeeds().Services.Steam.GetGameByID(ctx, gameA, user)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
@@ -188,7 +188,7 @@ func TestSyncUser_SchemaFailurePreservesPriorCompletion(t *testing.T) {
 		"successfully fetched game stays correct",
 	)
 
-	gB, err = app2.Services.Steam.GetGameByID(ctx, gameB, user)
+	gB, err = app2.TestSeeds().Services.Steam.GetGameByID(ctx, gameB, user)
 	require.NoError(t, err)
 	assert.Equal(t, "100.00", gB.CompletionRate,
 		"game whose fetch failed keeps its prior completion rate, not 0.00")
@@ -217,7 +217,7 @@ func TestSyncUser_NoLongerOwnedGameIsDelisted(t *testing.T) {
 		playerAch: playerAch,
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
 	// Re-sync with the dropped game no longer owned.
 	app2 := newSyncTestApp(t, user, syncFakeClient{
@@ -225,9 +225,9 @@ func TestSyncUser_NoLongerOwnedGameIsDelisted(t *testing.T) {
 		playerAch: playerAch,
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app2.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
-	dropped, err := app2.Services.Steam.GetGameByID(ctx, droppedGame, user)
+	dropped, err := app2.TestSeeds().Services.Steam.GetGameByID(ctx, droppedGame, user)
 	require.NoError(t, err)
 	assert.True(t, dropped.IsDelisted, "no-longer-owned game is marked delisted")
 	assert.Equal(t, "100.00", dropped.CompletionRate, "delisted game keeps its rate")
@@ -252,14 +252,14 @@ func TestSyncUser_RefreshUpdatesListsAndRate(t *testing.T) {
 		},
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
-	inProgress, err := app.Services.Steam.GetInProgress(ctx, user)
+	inProgress, err := app.TestSeeds().Services.Steam.GetInProgress(ctx, user)
 	require.NoError(t, err)
 	require.Len(t, inProgress, 1)
 	assert.Equal(t, "25.00", inProgress[0].CompletionRate)
 
-	rate, err := app.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	rate, err := app.TestSeeds().Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
 	require.NoError(t, err)
 	assert.Equal(t, "25.00", rate)
 
@@ -271,15 +271,15 @@ func TestSyncUser_RefreshUpdatesListsAndRate(t *testing.T) {
 		},
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app2.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
-	inProgress, err = app2.Services.Steam.GetInProgress(ctx, user)
+	inProgress, err = app2.TestSeeds().Services.Steam.GetInProgress(ctx, user)
 	require.NoError(t, err)
 	require.Len(t, inProgress, 1)
 	assert.Equal(t, "50.00", inProgress[0].CompletionRate,
 		"refreshed game must show the updated completion rate")
 
-	rate, err = app2.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	rate, err = app2.TestSeeds().Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
 	require.NoError(t, err)
 	assert.Equal(t, "50.00", rate,
 		"dashboard current rate must reflect the refreshed achievements")
@@ -308,9 +308,9 @@ func TestSyncUser_RatePreservedOnPartialFetchFailure(t *testing.T) {
 	app := newSyncTestApp(t, user, syncFakeClient{
 		games: games, playerAch: playerAch, schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
-	rate, err := app.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	rate, err := app.TestSeeds().Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
 	require.NoError(t, err)
 	require.Equal(t, "62.50", rate)
 
@@ -318,9 +318,9 @@ func TestSyncUser_RatePreservedOnPartialFetchFailure(t *testing.T) {
 	app2 := newSyncTestApp(t, user, syncFakeClient{
 		games: games, playerAch: playerAch, schemaErr: map[int]bool{gameB: true},
 	})
-	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app2.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
-	rate, err = app2.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	rate, err = app2.TestSeeds().Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
 	require.NoError(t, err)
 	assert.Equal(t, "62.50", rate,
 		"current rate must include the game whose fetch failed (kept from DB)")
@@ -345,7 +345,7 @@ func TestSyncUser_RefetchesGameMetadata(t *testing.T) {
 		playerAch: playerAch,
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
 	// Refresh: Steam now reports a new name and more playtime.
 	app2 := newSyncTestApp(t, user, syncFakeClient{
@@ -357,9 +357,9 @@ func TestSyncUser_RefetchesGameMetadata(t *testing.T) {
 		playerAch: playerAch,
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app2.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
-	game, err := app2.Services.Steam.GetGameByID(ctx, gameID, user)
+	game, err := app2.TestSeeds().Services.Steam.GetGameByID(ctx, gameID, user)
 	require.NoError(t, err)
 	assert.Equal(t, "New Name", game.Name, "game name must be refetched")
 	assert.Equal(t, 600, game.Playtime, "game playtime must be refetched")
@@ -368,7 +368,7 @@ func TestSyncUser_RefetchesGameMetadata(t *testing.T) {
 // TestSteamWithTx_CommitAndRollback: nil commits, an error rolls back.
 func TestSteamWithTx_CommitAndRollback(t *testing.T) {
 	ctx := context.Background()
-	repo := testApp.Repositories.Steam
+	repo := testApp.TestSeeds().Repositories.Steam
 	const user = "withtx-user"
 	const committedID = 6001
 	const rolledBackID = 6002
@@ -428,9 +428,9 @@ func TestSyncGame_UpdatesAchievements(t *testing.T) {
 		},
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app1.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app1.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
-	g, err := app1.Services.Steam.GetGameByID(ctx, gameID, user)
+	g, err := app1.TestSeeds().Services.Steam.GetGameByID(ctx, gameID, user)
 	require.NoError(t, err)
 	assert.Equal(t, "25.00", g.CompletionRate)
 
@@ -442,9 +442,9 @@ func TestSyncGame_UpdatesAchievements(t *testing.T) {
 		},
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app2.Services.Steam.SyncGame(ctx, user, gameID))
+	require.NoError(t, app2.TestSeeds().Services.Steam.SyncGame(ctx, user, gameID))
 
-	g, err = app2.Services.Steam.GetGameByID(ctx, gameID, user)
+	g, err = app2.TestSeeds().Services.Steam.GetGameByID(ctx, gameID, user)
 	require.NoError(t, err)
 	assert.Equal(t, "50.00", g.CompletionRate,
 		"SyncGame must update the game's completion rate")
@@ -474,9 +474,9 @@ func TestSyncGame_UpdatesTotalCompletionRate(t *testing.T) {
 		},
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
-	rate, err := app.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	rate, err := app.TestSeeds().Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
 	require.NoError(t, err)
 	require.Equal(t, "62.50", rate)
 
@@ -489,9 +489,9 @@ func TestSyncGame_UpdatesTotalCompletionRate(t *testing.T) {
 		},
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app2.Services.Steam.SyncGame(ctx, user, gameA))
+	require.NoError(t, app2.TestSeeds().Services.Steam.SyncGame(ctx, user, gameA))
 
-	rate, err = app2.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	rate, err = app2.TestSeeds().Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
 	require.NoError(t, err)
 	assert.Equal(t, "75.00", rate,
 		"SyncGame must recompute the total rate, including other games' stored data")
@@ -512,7 +512,7 @@ func TestSyncGame_UnconfiguredCreds(t *testing.T) {
 		func(_ string) steam.Client { return nil },
 	)
 
-	err := app.Services.Steam.SyncGame(ctx, user, 9999)
+	err := app.TestSeeds().Services.Steam.SyncGame(ctx, user, 9999)
 	assert.NoError(t, err, "SyncGame with no credentials must be a no-op")
 }
 
@@ -534,9 +534,9 @@ func TestSyncGame_FetchErrorPropagates(t *testing.T) {
 		},
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app1.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app1.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
-	g, err := app1.Services.Steam.GetGameByID(ctx, gameID, user)
+	g, err := app1.TestSeeds().Services.Steam.GetGameByID(ctx, gameID, user)
 	require.NoError(t, err)
 	assert.Equal(t, "50.00", g.CompletionRate)
 
@@ -546,10 +546,10 @@ func TestSyncGame_FetchErrorPropagates(t *testing.T) {
 		playerAch: map[int][]steam.Achievement{},
 		schemaErr: map[int]bool{gameID: true},
 	})
-	err = app2.Services.Steam.SyncGame(ctx, user, gameID)
+	err = app2.TestSeeds().Services.Steam.SyncGame(ctx, user, gameID)
 	assert.Error(t, err, "SyncGame must propagate Steam fetch errors")
 
-	g, err = app2.Services.Steam.GetGameByID(ctx, gameID, user)
+	g, err = app2.TestSeeds().Services.Steam.GetGameByID(ctx, gameID, user)
 	require.NoError(t, err)
 	assert.Equal(t, "50.00", g.CompletionRate,
 		"stored data must be unchanged after a failed SyncGame")
@@ -583,7 +583,7 @@ func TestSyncUser_DelistedGameStillCountsWhenNothingTookItOver(t *testing.T) {
 		playerAch: playerAch,
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
 	// Re-sync with the third game no longer owned: it becomes delisted at 100%.
 	app2 := newSyncTestApp(t, user, syncFakeClient{
@@ -591,9 +591,9 @@ func TestSyncUser_DelistedGameStillCountsWhenNothingTookItOver(t *testing.T) {
 		playerAch: playerAch,
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app2.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
-	stored, err := app2.Services.Steam.GetGameByID(ctx, delisted, user)
+	stored, err := app2.TestSeeds().Services.Steam.GetGameByID(ctx, delisted, user)
 	require.NoError(t, err)
 	require.True(t, stored.IsDelisted)
 	require.Equal(t, "100.00", stored.CompletionRate)
@@ -601,12 +601,15 @@ func TestSyncUser_DelistedGameStillCountsWhenNothingTookItOver(t *testing.T) {
 		"no listed game carries D1/D2, so the delisted game keeps counting")
 
 	// 25.00, 75.00 and the delisted 100.00 average to 66.66.
-	rate, err := app2.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	rate, err := app2.TestSeeds().Services.Progress.GetCurrentSteamCompletionRate(
+		ctx,
+		user,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, "66.66", rate,
 		"headline rate counts a delisted game nothing took over")
 
-	counts, bucketGames, err := app2.Services.Progress.
+	counts, bucketGames, err := app2.TestSeeds().Services.Progress.
 		GetCompletionRateDistribution(ctx, user)
 	require.NoError(t, err)
 	assert.Equal(t, 1, counts[10],
@@ -671,28 +674,31 @@ func TestSyncUser_SupersededDelistedGameLeavesTheAverage(t *testing.T) {
 		playerAch: playerAch,
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
 	app2 := newSyncTestApp(t, user, syncFakeClient{
 		games:     allGames[:1],
 		playerAch: playerAch,
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app2.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
-	stored, err := app2.Services.Steam.GetGameByID(ctx, episode, user)
+	stored, err := app2.TestSeeds().Services.Steam.GetGameByID(ctx, episode, user)
 	require.NoError(t, err)
 	require.True(t, stored.IsDelisted)
 	assert.False(t, stored.InCompletionAverage,
 		"the successor carries D1/D2, so the episode must leave the average")
 
 	// Only the successor counts: 2 of 4 => 50.00, not 75.00.
-	rate, err := app2.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	rate, err := app2.TestSeeds().Services.Progress.GetCurrentSteamCompletionRate(
+		ctx,
+		user,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, "50.00", rate,
 		"a superseded game must not put its achievements in the average twice")
 
-	counts, _, err := app2.Services.Progress.
+	counts, _, err := app2.TestSeeds().Services.Progress.
 		GetCompletionRateDistribution(ctx, user)
 	require.NoError(t, err)
 	total := 0
@@ -725,14 +731,14 @@ func TestSyncGame_DelistedGameCountsTowardTotalRate(t *testing.T) {
 		playerAch: playerAch,
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
 	app2 := newSyncTestApp(t, user, syncFakeClient{
 		games:     allGames[:1],
 		playerAch: playerAch,
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+	require.NoError(t, app2.TestSeeds().Services.Steam.SyncUser(ctx, user))
 
 	// Live game 2/4 => 50.00, averaged with delisted 100.00 => 75.00.
 	app3 := newSyncTestApp(t, user, syncFakeClient{
@@ -743,9 +749,12 @@ func TestSyncGame_DelistedGameCountsTowardTotalRate(t *testing.T) {
 		},
 		schemaErr: map[int]bool{},
 	})
-	require.NoError(t, app3.Services.Steam.SyncGame(ctx, user, live))
+	require.NoError(t, app3.TestSeeds().Services.Steam.SyncGame(ctx, user, live))
 
-	rate, err := app3.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	rate, err := app3.TestSeeds().Services.Progress.GetCurrentSteamCompletionRate(
+		ctx,
+		user,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, "75.00", rate,
 		"single-game refresh keeps counting a delisted game in the average")

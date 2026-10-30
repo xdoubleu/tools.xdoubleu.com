@@ -25,12 +25,11 @@ var embedMigrations embed.FS
 
 type Games struct {
 	app.Base
-	db postgres.DB
-	// Exported so integration tests can seed through the service layer.
-	Services     *services.Services
-	Repositories *repositories.Repositories
-	// Store finds recommended games; tests swap in a fake.
-	Store    steam.StoreSearcher
+	db           postgres.DB
+	services     *services.Services
+	repositories *repositories.Repositories
+	// store finds recommended games; tests swap in a fake via TestSeeds.
+	store    steam.StoreSearcher
 	jobQueue *jobqueue.JobQueue
 }
 
@@ -62,11 +61,11 @@ func NewInner(
 	db postgres.DB,
 	steamFactory func(apiKey string) steam.Client,
 ) *Games {
-	//nolint:exhaustruct //jobQueue, Repositories, Services initialised below
+	//nolint:exhaustruct //jobQueue, repositories, services initialised below
 	a := &Games{
 		Base:  app.NewBase(ctx, authService, logger, cfg),
 		db:    db,
-		Store: steam.NewStore(steam.StoreURL),
+		store: steam.NewStore(steam.StoreURL),
 	}
 
 	const amountOfWorkers = 1
@@ -79,13 +78,13 @@ func NewInner(
 		a.db,
 	)
 
-	a.Repositories = repositories.New(a.db)
-	a.Services = services.New(
+	a.repositories = repositories.New(a.db)
+	a.services = services.New(
 		a.Ctx,
 		logger,
 		a.Config,
 		a.jobQueue,
-		a.Repositories,
+		a.repositories,
 		steamFactory,
 		authService,
 	)
@@ -96,15 +95,15 @@ func NewInner(
 func (a *Games) Start() error {
 	if err := a.jobQueue.AddJob(
 		observability.NewTrackedJob(
-			jobs.NewSteamJob(a.Services.Auth, a.Services.Steam),
+			jobs.NewSteamJob(a.services.Auth, a.services.Steam),
 			a.db,
 		),
-		a.Services.WebSocket.UpdateState,
+		a.services.WebSocket.UpdateState,
 	); err != nil {
 		return err
 	}
 
-	a.Services.WebSocket.RegisterTopics(a.jobQueue.FetchJobIDs())
+	a.services.WebSocket.RegisterTopics(a.jobQueue.FetchJobIDs())
 	return nil
 }
 

@@ -32,13 +32,16 @@ func TestFindGame(t *testing.T) {
 	_, err := testDB.Exec(ctx, "DELETE FROM games.steam_games WHERE user_id = $1", uid)
 	require.NoError(t, err)
 
-	old := testApp.Store
-	t.Cleanup(func() { testApp.Store = old })
 	items := []steam.StoreItem{
 		{ID: 1, Name: "Outer Wilds - Echoes of the Eye", Type: "app", ImageURL: ""},
 		{ID: 753640, Name: "Outer Wilds", Type: "app", ImageURL: "https://img/ow.jpg"},
 	}
-	testApp.Store = fakeStore{items: items, err: nil, reviews: 4200, reviewsErr: nil}
+	testApp.TestSeeds().SetStore(t, fakeStore{
+		items:      items,
+		err:        nil,
+		reviews:    4200,
+		reviewsErr: nil,
+	})
 
 	m, err := testApp.FindGame(ctx, uid, "Outer Wilds")
 	require.NoError(t, err)
@@ -72,16 +75,16 @@ func TestFindGame(t *testing.T) {
 	_, err = testApp.FindGame(cancelled, uid, "Outer Wilds")
 	require.Error(t, err)
 
-	testApp.Store = fakeStore{
+	testApp.TestSeeds().SetStore(t, fakeStore{
 		items: items, err: nil, reviews: 0, reviewsErr: errors.New("reviews down"),
-	}
+	})
 	m, err = testApp.FindGame(ctx, uid, "Outer Wilds - Echoes of the Eye")
 	require.NoError(t, err, "a failed review count only leaves it out")
 	assert.Nil(t, m.Audience)
 
-	testApp.Store = fakeStore{
+	testApp.TestSeeds().SetStore(t, fakeStore{
 		items: nil, err: errors.New("store down"), reviews: 0, reviewsErr: nil,
-	}
+	})
 	_, err = testApp.FindGame(ctx, uid, "Outer Wilds")
 	require.ErrorContains(t, err, "store down")
 }
