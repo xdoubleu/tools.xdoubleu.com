@@ -55,7 +55,7 @@ func (h *booksConnectHandler) GetBooksProgress(
 		)
 	}
 	dateStart, dateEnd := parseDateRangeFromStrings(req.DateStart, req.DateEnd)
-	labels, values, err := h.app.Services.Progress.GetByDates(
+	labels, values, err := h.app.services.Progress.GetByDates(
 		ctx, user.ID, dateStart, dateEnd,
 	)
 	if err != nil {
@@ -87,7 +87,7 @@ func (h *booksConnectHandler) SearchLibrary(
 			Books: []*booksv1.UserBook{},
 		}, nil
 	}
-	libraryResults, hasMore, err := h.app.Services.Books.SearchLibrary(
+	libraryResults, hasMore, err := h.app.services.Books.SearchLibrary(
 		ctx,
 		user.ID,
 		req.Query,
@@ -119,7 +119,7 @@ func (h *booksConnectHandler) SearchExternal(
 			Results: []*booksv1.ExternalBookResult{},
 		}, nil
 	}
-	results := h.app.Services.Books.SearchExternal(ctx, req.Query)
+	results := h.app.services.Books.SearchExternal(ctx, req.Query)
 	results = services.FilterExternalByQuery(req.Query, results)
 	return &booksv1.SearchExternalResponse{
 		Results: protoExternalBooks(results),
@@ -137,7 +137,7 @@ func (h *booksConnectHandler) GetExternalBook(
 			"unauthorized",
 		)
 	}
-	book, err := h.app.Services.Books.GetExternal(
+	book, err := h.app.services.Books.GetExternal(
 		ctx,
 		req.Provider,
 		req.ProviderId,
@@ -190,7 +190,7 @@ func (h *booksConnectHandler) CreateBook(
 	if req.OwnDigital {
 		initialTags = append(initialTags, models.TagOwnDigital)
 	}
-	_, err := h.app.Services.Books.AddToLibrary(ctx, user.ID, ext, status, initialTags)
+	_, err := h.app.services.Books.AddToLibrary(ctx, user.ID, ext, status, initialTags)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -215,7 +215,7 @@ func (h *booksConnectHandler) UpdateBookStatus(
 			"invalid book ID",
 		)
 	}
-	existing, err := h.app.Services.Books.GetUserBook(ctx, user.ID, bookID)
+	existing, err := h.app.services.Books.GetUserBook(ctx, user.ID, bookID)
 	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
 		return nil, mapError(err)
 	}
@@ -233,7 +233,7 @@ func (h *booksConnectHandler) UpdateBookStatus(
 		Rating:     rating,
 		FinishedAt: buildFinishedAt(existing, req.Status),
 	}
-	if err = h.app.Services.Books.UpdateStatus(ctx, user.ID, ub); err != nil {
+	if err = h.app.services.Books.UpdateStatus(ctx, user.ID, ub); err != nil {
 		return nil, mapError(err)
 	}
 	if req.Status == models.StatusRead {
@@ -279,7 +279,7 @@ func (h *booksConnectHandler) UpdateFinishedAt(
 		}
 		finishedAt = append(finishedAt, t)
 	}
-	err = h.app.Services.Books.UpdateFinishedAt(ctx, user.ID, bookID, finishedAt)
+	err = h.app.services.Books.UpdateFinishedAt(ctx, user.ID, bookID, finishedAt)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -307,7 +307,7 @@ func (h *booksConnectHandler) RemoveBook(
 			"invalid book ID",
 		)
 	}
-	if err = h.app.Services.Books.RemoveFromLibrary(ctx, user.ID, bookID); err != nil {
+	if err = h.app.services.Books.RemoveFromLibrary(ctx, user.ID, bookID); err != nil {
 		return nil, mapError(err)
 	}
 	if rebuildErr := h.app.rebuildReadProgress(ctx, user.ID); rebuildErr != nil {
@@ -348,10 +348,10 @@ func (h *booksConnectHandler) UpdateProgress(
 	// newer, finer digital position back to the page's start.
 	pageChanged := req.ProgressMode == models.ProgressModePages
 	if pageChanged {
-		ub, getErr := h.app.Services.Books.GetUserBook(ctx, user.ID, bookID)
+		ub, getErr := h.app.services.Books.GetUserBook(ctx, user.ID, bookID)
 		pageChanged = getErr != nil || ub.CurrentPage != int(req.CurrentPage)
 	}
-	err = h.app.Services.Books.UpdateProgress(
+	err = h.app.services.Books.UpdateProgress(
 		ctx,
 		user.ID,
 		bookID,
@@ -360,7 +360,7 @@ func (h *booksConnectHandler) UpdateProgress(
 		int(req.ProgressPercent),
 	)
 	if err == nil && pageChanged {
-		err = h.app.Services.Physical.SyncPage(
+		err = h.app.services.Physical.SyncPage(
 			ctx, user.ID, bookID, int(req.CurrentPage), readAt,
 		)
 	}
@@ -388,7 +388,7 @@ func (h *booksConnectHandler) GetBookContent(
 			"invalid book ID",
 		)
 	}
-	html, err := h.app.Services.Books.GetContentHTML(ctx, user.ID, bookID)
+	html, err := h.app.services.Books.GetContentHTML(ctx, user.ID, bookID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -396,11 +396,11 @@ func (h *booksConnectHandler) GetBookContent(
 	if html == "" {
 		// Ownership was already confirmed by GetContentHTML above, so a
 		// failure here is unexpected rather than a legitimate not-found.
-		ub, ubErr := h.app.Services.Books.GetUserBook(ctx, user.ID, bookID)
+		ub, ubErr := h.app.services.Books.GetUserBook(ctx, user.ID, bookID)
 		if ubErr != nil {
 			return nil, mapError(ubErr)
 		}
-		html = h.app.Services.Ingest.BackfillContentHTML(ctx, ub.Book)
+		html = h.app.services.Ingest.BackfillContentHTML(ctx, ub.Book)
 	}
 
 	return &booksv1.GetBookContentResponse{

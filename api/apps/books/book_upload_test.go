@@ -83,7 +83,7 @@ func simulateUpload(
 	fake *objectstore.FakeClient,
 ) (*bsvc.UploadFileResult, error) {
 	t.Helper()
-	uploadID, _, _, err := testApp.Services.Books.CreateUpload(
+	uploadID, _, _, err := testApp.TestSeeds().Services.Books.CreateUpload(
 		ctx, uID, filename, contentType, int64(len(data)), "",
 	)
 	if err != nil {
@@ -93,7 +93,7 @@ func simulateUpload(
 		t,
 		fake.Put(ctx, uploadID, bytes.NewReader(data), int64(len(data)), contentType),
 	)
-	return testApp.Services.Books.FinalizeUpload(
+	return testApp.TestSeeds().Services.Books.FinalizeUpload(
 		ctx,
 		uID,
 		uploadID,
@@ -130,7 +130,7 @@ func seedBookInLibrary(t *testing.T, uid, title, author, isbn string) *models.Us
 	if isbn != "" {
 		ext.ISBN13 = isbn
 	}
-	ub, err := testApp.Services.Books.AddToLibrary(
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), uid, ext, models.StatusToRead, []string{},
 	)
 	require.NoError(t, err)
@@ -166,7 +166,7 @@ func TestUploadFile_PDF_NoMetadata_Rejected(t *testing.T) {
 	app2 := noExternalMatchApp(t, isolatedUser)
 
 	data := minimalPDFData()
-	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+	uploadID, _, _, err := app2.TestSeeds().Services.Books.CreateUpload(
 		context.Background(), isolatedUser, "no-meta.pdf", "application/pdf",
 		int64(len(data)), "",
 	)
@@ -175,7 +175,7 @@ func TestUploadFile_PDF_NoMetadata_Rejected(t *testing.T) {
 		context.Background(), uploadID,
 		bytes.NewReader(data), int64(len(data)), "application/pdf",
 	))
-	_, err = app2.Services.Books.FinalizeUpload(
+	_, err = app2.TestSeeds().Services.Books.FinalizeUpload(
 		context.Background(), isolatedUser, uploadID, "no-meta.pdf",
 		"application/pdf", "", "", "",
 	)
@@ -205,7 +205,7 @@ func TestUploadFile_PDF_NoMetadata_FilenameFallback_Matches(t *testing.T) {
 // override resolves a match when the filename is unusable.
 func TestUploadFile_PDF_NoMetadata_TitleOverride_Matches(t *testing.T) {
 	data := minimalPDFData()
-	uploadID, _, _, err := testApp.Services.Books.CreateUpload(
+	uploadID, _, _, err := testApp.TestSeeds().Services.Books.CreateUpload(
 		context.Background(), userID, "learnyousomeerlangforgreatgood.pdf",
 		"application/pdf", int64(len(data)), "",
 	)
@@ -214,7 +214,7 @@ func TestUploadFile_PDF_NoMetadata_TitleOverride_Matches(t *testing.T) {
 		context.Background(), uploadID,
 		bytes.NewReader(data), int64(len(data)), "application/pdf",
 	))
-	result, err := testApp.Services.Books.FinalizeUpload(
+	result, err := testApp.TestSeeds().Services.Books.FinalizeUpload(
 		context.Background(), userID, uploadID,
 		"learnyousomeerlangforgreatgood.pdf", "application/pdf", "",
 		"Learn You Some Erlang for Great Good", "Fred Hébert",
@@ -341,7 +341,7 @@ func TestUploadFile_GlobalDedup_SameUser_CreateShortcut(t *testing.T) {
 	require.NotNil(t, r1)
 
 	checksum := *r1.BookFile.Checksum
-	_, _, alreadyExists, err := testApp.Services.Books.CreateUpload(
+	_, _, alreadyExists, err := testApp.TestSeeds().Services.Books.CreateUpload(
 		context.Background(), userID, "dedup-cs.epub",
 		"application/epub+zip", int64(len(data)), checksum,
 	)
@@ -384,14 +384,14 @@ func TestUploadFile_GlobalDedup_CrossUser(t *testing.T) {
 		"user A's blob must be at canonical key")
 
 	checksum := *r1.BookFile.Checksum
-	_, _, alreadyExists, err := testApp.Services.Books.CreateUpload(
+	_, _, alreadyExists, err := testApp.TestSeeds().Services.Books.CreateUpload(
 		context.Background(), userB, "cross-user.epub",
 		"application/epub+zip", int64(len(data)), checksum,
 	)
 	require.NoError(t, err)
 	assert.False(t, alreadyExists, "another user's checksum must not skip the upload")
 
-	_, err = testApp.Services.Books.FinalizeUpload(
+	_, err = testApp.TestSeeds().Services.Books.FinalizeUpload(
 		context.Background(), userB, "", "cross-user.epub", "application/epub+zip",
 		checksum, "", "",
 	)
@@ -433,7 +433,7 @@ func TestUploadFile_GlobalDedup_UsesServerChecksum(t *testing.T) {
 
 	seedBookInLibrary(t, userB, "ServerChecksumB", "SC Author B", "9780001005005")
 	own := buildEPUBBytes("ServerChecksumB", "SC Author B", "9780001005005")
-	uploadID, _, _, err := testApp.Services.Books.CreateUpload(
+	uploadID, _, _, err := testApp.TestSeeds().Services.Books.CreateUpload(
 		context.Background(), userB, "b.epub", "application/epub+zip",
 		int64(len(own)), *victim.BookFile.Checksum,
 	)
@@ -443,7 +443,7 @@ func TestUploadFile_GlobalDedup_UsesServerChecksum(t *testing.T) {
 		"application/epub+zip",
 	))
 
-	got, err := testApp.Services.Books.FinalizeUpload(
+	got, err := testApp.TestSeeds().Services.Books.FinalizeUpload(
 		context.Background(), userB, uploadID, "b.epub", "application/epub+zip",
 		*victim.BookFile.Checksum, "", "",
 	)
@@ -640,7 +640,7 @@ func TestUploadFile_EPUB_ExternalSearchFallback(t *testing.T) {
 	})
 
 	data := buildEPUBBytes("No Match Title", "No Match Author HC", "")
-	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+	uploadID, _, _, err := app2.TestSeeds().Services.Books.CreateUpload(
 		context.Background(), isolatedUser, "hc-fallback.epub", "application/epub+zip",
 		int64(len(data)), "",
 	)
@@ -649,7 +649,7 @@ func TestUploadFile_EPUB_ExternalSearchFallback(t *testing.T) {
 		context.Background(), uploadID,
 		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
 	))
-	result, err := app2.Services.Books.FinalizeUpload(
+	result, err := app2.TestSeeds().Services.Books.FinalizeUpload(
 		context.Background(), isolatedUser, uploadID,
 		"hc-fallback.epub", "application/epub+zip", "", "", "",
 	)
@@ -682,7 +682,7 @@ func TestUploadFile_WrongMagicBytes_PDF_Rejected(t *testing.T) {
 }
 
 func TestUploadFile_OverSize_Rejected(t *testing.T) {
-	_, _, _, err := testApp.Services.Books.CreateUpload(
+	_, _, _, err := testApp.TestSeeds().Services.Books.CreateUpload(
 		context.Background(), userID, "huge.epub", "application/epub+zip",
 		int64(bsvc.MaxUploadBytes)+1, "",
 	)
@@ -691,7 +691,7 @@ func TestUploadFile_OverSize_Rejected(t *testing.T) {
 }
 
 func TestUploadFile_OwnershipRejected(t *testing.T) {
-	_, err := testApp.Services.Books.FinalizeUpload(
+	_, err := testApp.TestSeeds().Services.Books.FinalizeUpload(
 		context.Background(), userID,
 		"users/other-user/uploads/uuid.epub",
 		"file.epub", "application/epub+zip", "", "", "",
@@ -937,7 +937,7 @@ func TestUploadFile_Unrecognized_EmptyMetadata_Rejected(t *testing.T) {
 	app2 := noExternalMatchApp(t, isolatedUser)
 
 	data := buildEPUBBytes("", "", "")
-	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+	uploadID, _, _, err := app2.TestSeeds().Services.Books.CreateUpload(
 		context.Background(), isolatedUser, "empty.epub", "application/epub+zip",
 		int64(len(data)), "",
 	)
@@ -947,7 +947,7 @@ func TestUploadFile_Unrecognized_EmptyMetadata_Rejected(t *testing.T) {
 		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
 	))
 
-	_, err = app2.Services.Books.FinalizeUpload(
+	_, err = app2.TestSeeds().Services.Books.FinalizeUpload(
 		context.Background(),
 		isolatedUser,
 		uploadID,
@@ -992,7 +992,7 @@ func TestUploadFile_Unrecognized_NoLibraryMatch_Rejected(t *testing.T) {
 	app2 := noExternalMatchApp(t, isolatedUser)
 
 	data := buildEPUBBytes("NoLibraryMatchTitle", "NoLibraryMatchAuthor", "")
-	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+	uploadID, _, _, err := app2.TestSeeds().Services.Books.CreateUpload(
 		context.Background(), isolatedUser, "no-match.epub", "application/epub+zip",
 		int64(len(data)), "",
 	)
@@ -1002,7 +1002,7 @@ func TestUploadFile_Unrecognized_NoLibraryMatch_Rejected(t *testing.T) {
 		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
 	))
 
-	_, err = app2.Services.Books.FinalizeUpload(
+	_, err = app2.TestSeeds().Services.Books.FinalizeUpload(
 		context.Background(),
 		isolatedUser,
 		uploadID,
@@ -1041,7 +1041,7 @@ func TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle(t *testing.T) {
 		"J.R.R. Tolkien",
 		"",
 	)
-	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+	uploadID, _, _, err := app2.TestSeeds().Services.Books.CreateUpload(
 		context.Background(), isolatedUser, "silm.epub", "application/epub+zip",
 		int64(len(data)), "",
 	)
@@ -1051,7 +1051,7 @@ func TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle(t *testing.T) {
 		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
 	))
 
-	result, err := app2.Services.Books.FinalizeUpload(
+	result, err := app2.TestSeeds().Services.Books.FinalizeUpload(
 		context.Background(), isolatedUser, uploadID,
 		"silm.epub", "application/epub+zip", "", "", "",
 	)
@@ -1081,7 +1081,7 @@ func TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst(t *testing.T) {
 	})
 
 	data := buildEPUBBytes("The Two Towers", "Tolkien, J.R.R.", "")
-	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+	uploadID, _, _, err := app2.TestSeeds().Services.Books.CreateUpload(
 		context.Background(), isolatedUser, "ttt.epub", "application/epub+zip",
 		int64(len(data)), "",
 	)
@@ -1091,7 +1091,7 @@ func TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst(t *testing.T) {
 		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
 	))
 
-	result, err := app2.Services.Books.FinalizeUpload(
+	result, err := app2.TestSeeds().Services.Books.FinalizeUpload(
 		context.Background(), isolatedUser, uploadID,
 		"ttt.epub", "application/epub+zip", "", "", "",
 	)
@@ -1124,7 +1124,7 @@ func TestUploadFile_EPUB_MatchesCatalogBookNotInOwnLibrary(t *testing.T) {
 	})
 
 	data := buildEPUBBytes("The Silmarillion", "J.R.R. Tolkien", "")
-	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+	uploadID, _, _, err := app2.TestSeeds().Services.Books.CreateUpload(
 		context.Background(), uploaderUser, "silm.epub", "application/epub+zip",
 		int64(len(data)), "",
 	)
@@ -1134,7 +1134,7 @@ func TestUploadFile_EPUB_MatchesCatalogBookNotInOwnLibrary(t *testing.T) {
 		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
 	))
 
-	result, err := app2.Services.Books.FinalizeUpload(
+	result, err := app2.TestSeeds().Services.Books.FinalizeUpload(
 		context.Background(), uploaderUser, uploadID,
 		"silm.epub", "application/epub+zip", "", "", "",
 	)
@@ -1151,7 +1151,7 @@ func TestUploadFile_EPUB_MatchesCatalogBookNotInOwnLibrary(t *testing.T) {
 		"the uploader must get their own user_book row, not the owner's",
 	)
 
-	attached, err := testApp.Services.Books.GetUserBook(
+	attached, err := testApp.TestSeeds().Services.Books.GetUserBook(
 		context.Background(), uploaderUser, ub.BookID,
 	)
 	require.NoError(t, err)
@@ -1173,7 +1173,7 @@ func TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive(t *test
 	seedBookInLibrary(t, isolatedUser, "Hamlet", "William Shakespeare", "")
 
 	data := buildEPUBBytes("Hamlet", "George Orwell", "")
-	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+	uploadID, _, _, err := app2.TestSeeds().Services.Books.CreateUpload(
 		context.Background(), isolatedUser, "hamlet.epub", "application/epub+zip",
 		int64(len(data)), "",
 	)
@@ -1183,7 +1183,7 @@ func TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive(t *test
 		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
 	))
 
-	_, err = app2.Services.Books.FinalizeUpload(
+	_, err = app2.TestSeeds().Services.Books.FinalizeUpload(
 		context.Background(), isolatedUser, uploadID,
 		"hamlet.epub", "application/epub+zip", "", "", "",
 	)
@@ -1249,12 +1249,12 @@ func TestUpload_ChecksumLookupErrors(t *testing.T) {
 	require.Error(t, err)
 	require.NotErrorIs(t, err, database.ErrResourceNotFound)
 
-	_, _, _, err = testApp.Services.Books.CreateUpload(
+	_, _, _, err = testApp.TestSeeds().Services.Books.CreateUpload(
 		ctx, userID, "a.epub", "application/epub+zip", 10, "x",
 	)
 	require.Error(t, err)
 
-	_, err = testApp.Services.Books.FinalizeUpload(
+	_, err = testApp.TestSeeds().Services.Books.FinalizeUpload(
 		ctx, userID, "", "a.epub", "application/epub+zip", "x", "", "",
 	)
 	require.Error(t, err)

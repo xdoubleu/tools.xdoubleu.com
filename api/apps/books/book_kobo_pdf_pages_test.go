@@ -37,7 +37,10 @@ func setupPagedBook(t *testing.T, owner string) uuid.UUID {
 	require.NoError(t, err)
 
 	convertPaged(t, owner, bookID, 0)
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, owner, bookID))
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.EnableKoboSync(ctx, owner, bookID),
+	)
 	return bookID
 }
 
@@ -86,7 +89,7 @@ func pagedPut(value string) any {
 func webPage(t *testing.T, owner string, bookID uuid.UUID, page int) {
 	t.Helper()
 	readAt := time.Now().Add(-time.Second)
-	require.NoError(t, testApp.Services.Books.UpdateReadingProgress(
+	require.NoError(t, testApp.TestSeeds().Services.Books.UpdateReadingProgress(
 		context.Background(),
 		models.BookReadingState{ //nolint:exhaustruct //optional fields
 			UserID: owner, BookID: bookID, Source: models.ReadingSourceWeb,
@@ -119,7 +122,7 @@ func TestKoboPutState_PDFSourcedSpan_StoresPage(t *testing.T) {
 
 	koboPutState(t, ts, rawToken, bookID, pagedPut("kobo.3.1"))
 
-	state, err := testApp.Services.Books.GetReadingState(
+	state, err := testApp.TestSeeds().Services.Books.GetReadingState(
 		context.Background(), owner, bookID,
 	)
 	require.NoError(t, err)
@@ -168,7 +171,7 @@ func TestKoboSync_PDFSourcedRegeneration_ReDerivesStaleLocation(t *testing.T) {
 	assert.Equal(t, pagedSpan(mocks.PagedDocOne, "kobo.4.1"),
 		bookmarkLocation(t, changed[0]))
 
-	state, err := testApp.Services.Books.GetReadingState(
+	state, err := testApp.TestSeeds().Services.Books.GetReadingState(
 		context.Background(), owner, bookID,
 	)
 	require.NoError(t, err)
@@ -202,7 +205,7 @@ func TestKoboPutState_PDFSourcedOutdatedDevice_NoPosition(t *testing.T) {
 	regeneratePaged(t, owner, bookID)
 
 	koboPutState(t, ts, rawToken, bookID, pagedPut("kobo.3.1"))
-	state, err := testApp.Services.Books.GetReadingState(
+	state, err := testApp.TestSeeds().Services.Books.GetReadingState(
 		context.Background(), owner, bookID,
 	)
 	require.NoError(t, err)

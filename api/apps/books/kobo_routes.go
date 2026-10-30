@@ -105,7 +105,7 @@ func (app *Books) koboAuthDevice(
 	h := sha256.Sum256([]byte(raw))
 	hash := hex.EncodeToString(h[:])
 
-	userID, deviceID, err := app.Services.Kobo.GetKoboAuthByTokenHash(
+	userID, deviceID, err := app.services.Kobo.GetKoboAuthByTokenHash(
 		r.Context(), hash,
 	)
 	if err != nil {
@@ -120,7 +120,7 @@ func (app *Books) koboAuthDevice(
 	// Arm debug capture here: this runs before any handler touches the body.
 	if holder := koboLogHolderFrom(r.Context()); holder != nil {
 		holder.deviceID = deviceID
-		holder.enabled = app.Services.KoboLog.IsEnabled(deviceID)
+		holder.enabled = app.services.KoboLog.IsEnabled(deviceID)
 	}
 	return userID, deviceID, true
 }
@@ -283,7 +283,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	books, err := app.Services.Books.ListKoboSyncBooks(r.Context(), userID)
+	books, err := app.services.Books.ListKoboSyncBooks(r.Context(), userID)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -296,7 +296,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		app.warmKoboCovers(ctx, userID, books)
 	})
 
-	stateByBook, err := app.Services.Books.ListReadingStates(r.Context(), userID)
+	stateByBook, err := app.services.Books.ListReadingStates(r.Context(), userID)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -328,7 +328,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		ourEntries[i] = app.buildKoboSyncEntry(r, userID, b, stateByBook, libraryBase)
 	}
 
-	removals, err := app.Services.Books.ListKoboRemovals(r.Context(), userID)
+	removals, err := app.services.Books.ListKoboRemovals(r.Context(), userID)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -420,7 +420,7 @@ func (app *Books) warmKoboCovers(
 	for i, b := range books {
 		ids[i] = b.BookID
 	}
-	app.Services.Books.WarmUserCovers(ctx, userID, ids)
+	app.services.Books.WarmUserCovers(ctx, userID, ids)
 }
 
 // buildKoboSyncEntry builds one book's entitlement. RevisionId stays the bare
@@ -444,7 +444,7 @@ func (app *Books) buildKoboSyncEntry(
 	coverID := koboCoverImageID(b.BookID)
 	isChanged := koboIsReplace(b) || koboCoverChanged(b, coverID)
 
-	if app.Services.Conversion.IsKEPUBStale(b.ConverterVersion) {
+	if app.services.Conversion.IsKEPUBStale(b.ConverterVersion) {
 		_ = app.startKEPUBRegeneration(r.Context(), userID, b.BookID, "")
 	}
 
@@ -477,7 +477,7 @@ func (app *Books) buildKoboSyncEntry(
 	if b.LastSyncedConverterVersion == nil ||
 		*b.LastSyncedConverterVersion != b.ConverterVersion ||
 		b.LastSyncedCoverImageID == nil || *b.LastSyncedCoverImageID != coverID {
-		if updErr := app.Services.Books.UpdateKoboLastSynced(
+		if updErr := app.services.Books.UpdateKoboLastSynced(
 			r.Context(), userID, b.BookID, b.ConverterVersion, coverID,
 		); updErr != nil {
 			app.Logger.Error("failed to update kobo last synced state",
@@ -626,7 +626,7 @@ func (app *Books) startKEPUBRegeneration(
 	bookID uuid.UUID,
 	current string,
 ) string {
-	if err := app.Services.KEPUBQueue.Request(ctx, userID, bookID); err != nil {
+	if err := app.services.KEPUBQueue.Request(ctx, userID, bookID); err != nil {
 		app.Logger.ErrorContext(ctx, "queue kepub regeneration",
 			"book_id", bookID, "err", err)
 		return current
@@ -698,7 +698,7 @@ func (app *Books) koboMetadataHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	book, err := app.Services.Books.GetKoboSyncBook(r.Context(), userID, bookID)
+	book, err := app.services.Books.GetKoboSyncBook(r.Context(), userID, bookID)
 	if err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
 			app.koboProxyHandler(w, r)
@@ -726,7 +726,7 @@ func (app *Books) koboFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := app.Services.Books.GetBookFile(
+	result, err := app.services.Books.GetBookFile(
 		r.Context(), userID, bookID, models.FileFormatKEPUB,
 	)
 	if err != nil {
@@ -761,7 +761,7 @@ func (app *Books) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, gErr := app.Services.Books.GetKoboSyncBook(
+	if _, gErr := app.services.Books.GetKoboSyncBook(
 		r.Context(), userID, bookID,
 	); gErr != nil {
 		if errors.Is(gErr, database.ErrResourceNotFound) {
@@ -775,7 +775,7 @@ func (app *Books) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), coverCtxTimeout)
 	defer cancel()
 
-	result, err := app.Services.Books.GetUserBookCover(ctx, userID, bookID)
+	result, err := app.services.Books.GetUserBookCover(ctx, userID, bookID)
 	if err != nil {
 		if errors.Is(err, services.ErrCoverNotFound) {
 			http.Error(w, "cover not found", http.StatusNotFound)

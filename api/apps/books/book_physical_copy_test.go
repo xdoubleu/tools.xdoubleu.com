@@ -31,7 +31,7 @@ func setupPhysicalBook(
 	require.NoError(t, err)
 	bookID := result.UserBook.BookID
 	if physical {
-		require.NoError(t, testApp.Services.Books.ToggleTag(
+		require.NoError(t, testApp.TestSeeds().Services.Books.ToggleTag(
 			context.Background(), owner, bookID, models.TagOwnPhysical,
 		))
 	}
@@ -101,7 +101,7 @@ func TestPhysical_PageSaveWithoutPhysicalCopyWritesNoState(t *testing.T) {
 
 	savePage(t, client, bookID, 3, time.Now())
 
-	_, err := testApp.Services.Books.GetReadingState(
+	_, err := testApp.TestSeeds().Services.Books.GetReadingState(
 		context.Background(), userID, bookID,
 	)
 	require.ErrorIs(t, err, database.ErrResourceNotFound)
@@ -128,7 +128,11 @@ func TestPhysical_DigitalPositionFollowsCurrentPage(t *testing.T) {
 	})
 
 	require.Eventually(t, func() bool {
-		ub, err := testApp.Services.Books.GetUserBook(context.Background(), userID, bookID)
+		ub, err := testApp.TestSeeds().Services.Books.GetUserBook(
+			context.Background(),
+			userID,
+			bookID,
+		)
 		return err == nil && ub.CurrentPage == 4
 	}, 5*time.Second, 20*time.Millisecond)
 
@@ -155,7 +159,7 @@ func TestPhysical_SetCurrentPageOnlyForTheLatestDigitalState(t *testing.T) {
 	require.NoError(t, books.SetCurrentPageIfLatest(
 		ctx, userID, bookID, 77, state.UpdatedAt.Add(-time.Second),
 	))
-	ub, err := testApp.Services.Books.GetUserBook(ctx, userID, bookID)
+	ub, err := testApp.TestSeeds().Services.Books.GetUserBook(ctx, userID, bookID)
 	require.NoError(t, err)
 	assert.NotEqual(t, 77, ub.CurrentPage, "a stale digital write")
 
@@ -163,7 +167,7 @@ func TestPhysical_SetCurrentPageOnlyForTheLatestDigitalState(t *testing.T) {
 		t,
 		books.SetCurrentPageIfLatest(ctx, userID, bookID, 77, state.UpdatedAt),
 	)
-	ub, err = testApp.Services.Books.GetUserBook(ctx, userID, bookID)
+	ub, err = testApp.TestSeeds().Services.Books.GetUserBook(ctx, userID, bookID)
 	require.NoError(t, err)
 	assert.Equal(t, 77, ub.CurrentPage)
 }
@@ -204,7 +208,7 @@ func TestPhysical_CopyDetailsRoundTrip(t *testing.T) {
 	assert.Equal(t, int32(87), got.Copy.Anchors[0].Page)
 	assert.Equal(t, chapterTwo.Position.Href, got.Copy.Anchors[0].Position.Href)
 
-	ub, err := testApp.Services.Books.GetUserBook(ctx, userID, bookID)
+	ub, err := testApp.TestSeeds().Services.Books.GetUserBook(ctx, userID, bookID)
 	require.NoError(t, err)
 	require.NotNil(t, ub.PhysicalPageCount)
 	assert.Equal(t, 320, *ub.PhysicalPageCount)
@@ -252,12 +256,15 @@ func TestPhysical_KoboFollowsPageEntry(t *testing.T) {
 	ctx := context.Background()
 	owner := "physical-kobo-" + uuid.NewString()
 	bookID := setupPhysicalBook(t, owner, true, true)
-	_, err := testApp.Services.Conversion.EnsureKEPUB(ctx, owner, bookID)
+	_, err := testApp.TestSeeds().Services.Conversion.EnsureKEPUB(ctx, owner, bookID)
 	require.NoError(t, err)
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, owner, bookID))
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.Books.EnableKoboSync(ctx, owner, bookID),
+	)
 	rawToken := registerTestDevice(t, owner)
 
-	require.NoError(t, testApp.Services.Physical.SyncPage(
+	require.NoError(t, testApp.TestSeeds().Services.Physical.SyncPage(
 		ctx, owner, bookID, 5, time.Now().Add(-time.Second),
 	))
 
@@ -275,7 +282,7 @@ func TestPhysical_KoboBackfillFollowsCurrentPage(t *testing.T) {
 	loc := models.KoboLocation{
 		Source: mocks.PhysicalCh3Href, Type: "KoboSpan", Value: "kobo.1.1",
 	}
-	svc := testApp.Services.Books
+	svc := testApp.TestSeeds().Services.Books
 	require.NoError(t, svc.UpdateReadingProgress(ctx,
 		models.BookReadingState{ //nolint:exhaustruct //optional fields
 			UserID: owner, BookID: bookID, Source: models.ReadingSourceKobo,

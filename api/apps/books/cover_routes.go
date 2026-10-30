@@ -36,7 +36,7 @@ func (app *Books) coverHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), coverCtxTimeout)
 	defer cancel()
 
-	result, err := app.Services.Books.GetBookCover(ctx, bookID)
+	result, err := app.services.Books.GetBookCover(ctx, bookID)
 	if err != nil {
 		if errors.Is(err, services.ErrCoverNotFound) {
 			http.Error(w, "cover not found", http.StatusNotFound)

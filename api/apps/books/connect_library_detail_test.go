@@ -25,7 +25,7 @@ func addTestBookWithISBN(t *testing.T, title, isbn string) *models.UserBook {
 		ISBN13:   isbn,
 		CoverURL: "https://example.com/cover.jpg",
 	}
-	ub, err := testApp.Services.Books.AddToLibrary(
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), userID, ext, models.StatusToRead, []string{},
 	)
 	require.NoError(t, err)

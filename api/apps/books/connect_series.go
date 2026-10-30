@@ -34,7 +34,7 @@ func (h *booksConnectHandler) GetSeries(
 		)
 	}
 
-	view, err := h.app.Services.Books.GetSeries(ctx, user.ID, name)
+	view, err := h.app.services.Books.GetSeries(ctx, user.ID, name)
 	if err != nil {
 		return nil, mapError(err)
 	}

@@ -29,7 +29,7 @@ func TestAddToLibrary_ExistingISBN_KeepsCatalogMetadata(t *testing.T) {
 	original := cover("\xff\xd8\xfforiginal-cover")
 	defaced := cover("\xff\xd8\xffdefaced-cover")
 
-	first, err := testApp.Services.Books.AddToLibrary(
+	first, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), userID,
 		services.SourceProposal{ //nolint:exhaustruct //only required fields
 			Source: "manual", Title: "Original Title",
@@ -40,7 +40,7 @@ func TestAddToLibrary_ExistingISBN_KeepsCatalogMetadata(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	second, err := testApp.Services.Books.AddToLibrary(
+	second, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), mergeTestUser,
 		services.SourceProposal{ //nolint:exhaustruct //only required fields
 			Source: "manual", Title: "Defaced Title",

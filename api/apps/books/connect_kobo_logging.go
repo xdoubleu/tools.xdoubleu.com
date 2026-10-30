@@ -36,7 +36,7 @@ func (h *booksConnectHandler) koboDeviceForLogging(
 			"invalid device ID",
 		)
 	}
-	if _, err = h.app.Services.Kobo.GetKoboDevice(
+	if _, err = h.app.services.Kobo.GetKoboDevice(
 		ctx, user.ID, deviceID,
 	); err != nil {
 		return uuid.Nil, mapError(err)
@@ -52,7 +52,7 @@ func (h *booksConnectHandler) SetKoboDeviceLogging(
 	if err != nil {
 		return nil, err
 	}
-	h.app.Services.KoboLog.SetEnabled(deviceID.String(), req.Enabled)
+	h.app.services.KoboLog.SetEnabled(deviceID.String(), req.Enabled)
 	return &booksv1.SetKoboDeviceLoggingResponse{}, nil
 }
 
@@ -64,7 +64,7 @@ func (h *booksConnectHandler) GetKoboDeviceLogs(
 	if err != nil {
 		return nil, err
 	}
-	entries := h.app.Services.KoboLog.List(deviceID.String())
+	entries := h.app.services.KoboLog.List(deviceID.String())
 	resp := &booksv1.GetKoboDeviceLogsResponse{
 		Entries: make([]*booksv1.KoboLogEntry, len(entries)),
 	}
@@ -82,7 +82,7 @@ func (h *booksConnectHandler) ClearKoboDeviceLogs(
 	if err != nil {
 		return nil, err
 	}
-	h.app.Services.KoboLog.Clear(deviceID.String())
+	h.app.services.KoboLog.Clear(deviceID.String())
 	return &booksv1.ClearKoboDeviceLogsResponse{}, nil
 }
 

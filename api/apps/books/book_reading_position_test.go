@@ -19,14 +19,14 @@ import (
 func writeProgress(t *testing.T, state models.BookReadingState) {
 	t.Helper()
 	state.UserID = userID
-	require.NoError(t, testApp.Services.Books.UpdateReadingProgress(
+	require.NoError(t, testApp.TestSeeds().Services.Books.UpdateReadingProgress(
 		context.Background(), state,
 	))
 }
 
 func readState(t *testing.T, bookID uuid.UUID) *models.BookReadingState {
 	t.Helper()
-	got, err := testApp.Services.Books.GetReadingState(
+	got, err := testApp.TestSeeds().Services.Books.GetReadingState(
 		context.Background(), userID, bookID,
 	)
 	require.NoError(t, err)

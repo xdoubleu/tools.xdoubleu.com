@@ -102,7 +102,7 @@ func addStoreLibraryBook(
 		Authors: []string{author},
 		ISBN13:  isbn,
 	}
-	ub, err := testApp.Services.Books.AddToLibrary(
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), owner, ext, models.StatusToRead, []string{},
 	)
 	require.NoError(t, err)
@@ -170,7 +170,11 @@ func koboStoreSync(t *testing.T, ts *httptest.Server, rawToken string) {
 
 func hasOwnBol(t *testing.T, owner string, bookID uuid.UUID) bool {
 	t.Helper()
-	ub, err := testApp.Services.Books.GetUserBook(context.Background(), owner, bookID)
+	ub, err := testApp.TestSeeds().Services.Books.GetUserBook(
+		context.Background(),
+		owner,
+		bookID,
+	)
 	require.NoError(t, err)
 	return ub.HasTag(models.TagOwnBol)
 }
@@ -178,7 +182,7 @@ func hasOwnBol(t *testing.T, owner string, bookID uuid.UUID) bool {
 func eventuallyPercent(t *testing.T, owner string, bookID uuid.UUID, want int) {
 	t.Helper()
 	require.Eventually(t, func() bool {
-		st, err := testApp.Services.Books.GetReadingState(
+		st, err := testApp.TestSeeds().Services.Books.GetReadingState(
 			context.Background(), owner, bookID,
 		)
 		return err == nil && st.Percent == want
@@ -208,7 +212,11 @@ func TestKoboSync_OwnedStoreBook_TagsOwnBolAndMirrorsProgress(t *testing.T) {
 
 func progressMode(t *testing.T, owner string, bookID uuid.UUID) string {
 	t.Helper()
-	ub, err := testApp.Services.Books.GetUserBook(context.Background(), owner, bookID)
+	ub, err := testApp.TestSeeds().Services.Books.GetUserBook(
+		context.Background(),
+		owner,
+		bookID,
+	)
 	require.NoError(t, err)
 	return ub.ProgressMode
 }
@@ -222,10 +230,10 @@ func TestKoboSync_OwnedStoreBook_PercentMode(t *testing.T) {
 	fresh := addStoreLibraryBook(t, owner, "Fresh "+owner, "", "A")
 	paged := addStoreLibraryBook(t, owner, "Paged "+owner, "", "A")
 	physical := addStoreLibraryBook(t, owner, "Physical "+owner, "", "A")
-	require.NoError(t, testApp.Services.Books.UpdateProgress(
+	require.NoError(t, testApp.TestSeeds().Services.Books.UpdateProgress(
 		ctx, owner, paged, models.ProgressModePages, 12, 0,
 	))
-	require.NoError(t, testApp.Services.Books.SetTag(
+	require.NoError(t, testApp.TestSeeds().Services.Books.SetTag(
 		ctx, owner, physical, models.TagOwnPhysical, true,
 	))
 
@@ -362,7 +370,11 @@ func TestKoboPutState_StoreBookNoMetadata_LeavesLibraryAlone(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	time.Sleep(200 * time.Millisecond)
-	_, err = testApp.Services.Books.GetReadingState(context.Background(), owner, bookID)
+	_, err = testApp.TestSeeds().Services.Books.GetReadingState(
+		context.Background(),
+		owner,
+		bookID,
+	)
 	assert.Error(t, err)
 }
 
@@ -432,7 +444,7 @@ func TestKoboSync_StoreDBFailures_LeaveLibraryAlone(t *testing.T) {
 				time.Sleep(200 * time.Millisecond)
 				assert.False(t, hasOwnBol(t, owner, bookID))
 			}
-			_, err := testApp.Services.Books.GetReadingState(
+			_, err := testApp.TestSeeds().Services.Books.GetReadingState(
 				context.Background(), owner, bookID,
 			)
 			assert.Error(t, err)

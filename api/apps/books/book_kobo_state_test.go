@@ -57,7 +57,7 @@ func TestKoboPutState_StoresFullLocationAndReadAt(t *testing.T) {
 	koboPutState(t, ts, rawToken, bookID,
 		kepubLocationPut(30, "kobo.12.3", "Reading", "2026-09-30T08:15:42.123Z"))
 
-	state, err := testApp.Services.Books.GetReadingState(
+	state, err := testApp.TestSeeds().Services.Books.GetReadingState(
 		context.Background(), owner, bookID,
 	)
 	require.NoError(t, err)
@@ -87,7 +87,7 @@ func TestKoboPutState_FinishedDropsKoboLocation(t *testing.T) {
 	koboPutState(t, ts, rawToken, bookID,
 		kepubLocationPut(100, "kobo.1.1", "Finished", "2026-09-30T08:15:42Z"))
 
-	state, err := testApp.Services.Books.GetReadingState(
+	state, err := testApp.TestSeeds().Services.Books.GetReadingState(
 		context.Background(), owner, bookID,
 	)
 	require.NoError(t, err)
@@ -113,7 +113,7 @@ func TestKoboPutState_BareStringLocation_ValueOnly(t *testing.T) {
 		}},
 	})
 
-	state, err := testApp.Services.Books.GetReadingState(
+	state, err := testApp.TestSeeds().Services.Books.GetReadingState(
 		context.Background(), owner, bookID,
 	)
 	require.NoError(t, err)
@@ -132,7 +132,7 @@ func TestKoboPutState_UnparseableLastModified_ReadAtIsNow(t *testing.T) {
 	koboPutState(t, ts, rawToken, bookID,
 		kepubLocationPut(30, "kobo.12.3", "Reading", "yesterday"))
 
-	state, err := testApp.Services.Books.GetReadingState(
+	state, err := testApp.TestSeeds().Services.Books.GetReadingState(
 		context.Background(), owner, bookID,
 	)
 	require.NoError(t, err)
@@ -190,7 +190,7 @@ func TestKoboGetState_WebWriteClearsKoboLocation(t *testing.T) {
 
 	koboPutState(t, ts, rawToken, bookID,
 		kepubLocationPut(30, "kobo.12.3", "Reading", "2026-09-30T08:15:42Z"))
-	require.NoError(t, testApp.Services.Books.UpdateReadingProgress(
+	require.NoError(t, testApp.TestSeeds().Services.Books.UpdateReadingProgress(
 		context.Background(),
 		models.BookReadingState{ //nolint:exhaustruct //optional fields
 			UserID: owner, BookID: bookID, Source: models.ReadingSourceWeb, Percent: 55,
@@ -260,7 +260,7 @@ func TestMergeBooks_CopiedReadingStateDropsKoboLocation(t *testing.T) {
 			},
 		}))
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		ctx, mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)

@@ -75,7 +75,7 @@ func TestFigureAnalysis_SuggestsByDensity(t *testing.T) {
 
 	assert.Nil(t, librarySuggestion(t, heavy.BookID), "unanalysed")
 
-	_, err := testApp.Services.Figures.AnalysePending(ctx, figureAnalysisLimit)
+	_, err := testApp.TestSeeds().Services.Figures.AnalysePending(ctx, figureAnalysisLimit)
 	require.NoError(t, err)
 
 	got := librarySuggestion(t, heavy.BookID)
@@ -103,22 +103,22 @@ func TestFigureAnalysis_CopyFailAndRetry(t *testing.T) {
 	addFigureFile(t, userID, broken.BookID, models.FileFormatPDF, []byte("not a pdf"))
 	addFigureFile(t, userID, missing.BookID, models.FileFormatEPUB, nil)
 
-	_, err := testApp.Services.Figures.AnalysePending(ctx, figureAnalysisLimit)
+	_, err := testApp.TestSeeds().Services.Figures.AnalysePending(ctx, figureAnalysisLimit)
 	require.NoError(t, err)
 
 	other := "figure-user-" + uuid.NewString()
 	insertFigureRow(t, other, book.BookID, models.FileFormatEPUB, key)
-	_, err = testApp.Services.Figures.AnalysePending(ctx, figureAnalysisLimit)
+	_, err = testApp.TestSeeds().Services.Figures.AnalysePending(ctx, figureAnalysisLimit)
 	require.NoError(t, err)
 
-	files, err := testApp.Services.Books.FilesByUser(ctx, other)
+	files, err := testApp.TestSeeds().Services.Books.FilesByUser(ctx, other)
 	require.NoError(t, err)
 	assert.Equal(t,
 		models.FigureStats{Figures: 1, Pages: 1},
 		files[book.BookID].Figures[models.FileFormatEPUB],
 	)
 
-	files, err = testApp.Services.Books.FilesByUser(ctx, userID)
+	files, err = testApp.TestSeeds().Services.Books.FilesByUser(ctx, userID)
 	require.NoError(t, err)
 	assert.Equal(t,
 		models.FigureStats{Figures: 0, Pages: 0},
@@ -148,7 +148,7 @@ func TestFigureAnalysis_Cancelled(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err := testApp.Services.Figures.AnalysePending(ctx, figureAnalysisLimit)
+	_, err := testApp.TestSeeds().Services.Figures.AnalysePending(ctx, figureAnalysisLimit)
 	require.ErrorIs(t, err, context.Canceled)
 }
 

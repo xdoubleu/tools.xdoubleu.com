@@ -28,7 +28,7 @@ func (h *booksConnectHandler) ImportBooks(
 	}
 	importCtx := context.WithoutCancel(ctx)
 	reader := bytes.NewReader(req.CsvData)
-	count, err := h.app.Services.Books.ImportFromCSV(importCtx, user.ID, reader)
+	count, err := h.app.services.Books.ImportFromCSV(importCtx, user.ID, reader)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -49,7 +49,7 @@ func (h *booksConnectHandler) FindDuplicates(
 		return nil, err
 	}
 
-	groups, err := h.app.Services.Books.FindDuplicates(ctx, user.ID)
+	groups, err := h.app.services.Books.FindDuplicates(ctx, user.ID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -118,7 +118,7 @@ func (h *booksConnectHandler) MergeBooks(
 		resolvedCoverSourceBookID = &coverSourceID
 	}
 
-	deletedFiles, affectedUsers, err := h.app.Services.Books.MergeBooks(
+	deletedFiles, affectedUsers, err := h.app.services.Books.MergeBooks(
 		ctx,
 		user.ID,
 		winnerID,
@@ -178,7 +178,7 @@ func (h *booksConnectHandler) ListResyncProposals(
 		return nil, err
 	}
 
-	proposals, err := h.app.Services.Books.ListResyncProposals(ctx)
+	proposals, err := h.app.services.Books.ListResyncProposals(ctx)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -221,7 +221,7 @@ func (h *booksConnectHandler) ApplyResyncChoice(
 		return nil, err
 	}
 
-	err = h.app.Services.Books.ApplyResyncChoice(
+	err = h.app.services.Books.ApplyResyncChoice(
 		ctx,
 		h.app.Logger,
 		bookID,
@@ -243,7 +243,7 @@ func (h *booksConnectHandler) GetBookSources(
 		return nil, err
 	}
 
-	proposal, err := h.app.Services.Books.GetBookSources(
+	proposal, err := h.app.services.Books.GetBookSources(
 		ctx,
 		h.app.Logger,
 		bookID,
@@ -268,7 +268,7 @@ func (h *booksConnectHandler) ApplyBookSource(
 		return nil, err
 	}
 
-	err = h.app.Services.Books.SyncBookSource(
+	err = h.app.services.Books.SyncBookSource(
 		ctx,
 		h.app.Logger,
 		bookID,
@@ -298,7 +298,7 @@ func (h *booksConnectHandler) SetBookISBN(
 		return nil, err
 	}
 
-	err = h.app.Services.Books.SetBookISBN(ctx, bookID, normalized)
+	err = h.app.services.Books.SetBookISBN(ctx, bookID, normalized)
 	if err != nil {
 		return nil, mapISBNError(err)
 	}
@@ -332,7 +332,7 @@ func (h *booksConnectHandler) UpdateBook(
 		metadata.ISBN13 = &normalized
 	}
 
-	updated, err := h.app.Services.Books.UpdateBook(
+	updated, err := h.app.services.Books.UpdateBook(
 		ctx, bookID, *metadata, req.Metadata.CoverUrl,
 	)
 	if err != nil {
@@ -359,7 +359,7 @@ func (h *booksConnectHandler) GetSourceStats(
 		return nil, err
 	}
 
-	stats, err := h.app.Services.Books.GetSourceStats(ctx)
+	stats, err := h.app.services.Books.GetSourceStats(ctx)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -415,7 +415,7 @@ func (h *booksConnectHandler) ListBooksInExactSources(
 		return nil, err
 	}
 
-	books, err := h.app.Services.Books.ListBooksInExactSources(ctx, req.Sources)
+	books, err := h.app.services.Books.ListBooksInExactSources(ctx, req.Sources)
 	if err != nil {
 		return nil, mapError(err)
 	}

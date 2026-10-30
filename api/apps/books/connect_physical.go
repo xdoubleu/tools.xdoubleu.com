@@ -22,7 +22,7 @@ func (h *booksConnectHandler) GetPhysicalCopy(
 	if err != nil {
 		return nil, err
 	}
-	view, err := h.app.Services.Physical.Copy(ctx, userID, bookID)
+	view, err := h.app.services.Physical.Copy(ctx, userID, bookID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -62,7 +62,7 @@ func (h *booksConnectHandler) UpdatePhysicalCopy(
 			Offset: int(a.GetPosition().GetOffset()),
 		})
 	}
-	if err = h.app.Services.Physical.UpdateCopy(ctx, userID, bookID, c); err != nil {
+	if err = h.app.services.Physical.UpdateCopy(ctx, userID, bookID, c); err != nil {
 		return nil, mapError(err)
 	}
 	return &booksv1.UpdatePhysicalCopyResponse{}, nil
