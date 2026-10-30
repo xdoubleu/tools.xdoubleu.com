@@ -9,7 +9,7 @@ FROM grafana/grafana:13.3.0@sha256:488984b716c0862639f91a698adbe2862677a5a07bad4
 # renovate: datasource=custom.grafana-plugin depName=grafana-github-datasource
 ARG GRAFANA_GITHUB_DATASOURCE_VERSION=2.9.4
 # renovate: datasource=custom.grafana-plugin depName=grafana-sentry-datasource
-ARG GRAFANA_SENTRY_DATASOURCE_VERSION=2.2.9
+ARG GRAFANA_SENTRY_DATASOURCE_VERSION=2.2.10
 RUN grafana cli --pluginsDir "$GF_PATHS_PLUGINS" plugins install grafana-github-datasource "$GRAFANA_GITHUB_DATASOURCE_VERSION" \
   && grafana cli --pluginsDir "$GF_PATHS_PLUGINS" plugins install grafana-sentry-datasource "$GRAFANA_SENTRY_DATASOURCE_VERSION"
 
