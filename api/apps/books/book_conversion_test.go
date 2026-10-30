@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/internal/database"
 )
@@ -32,11 +32,11 @@ func (f *fakeEPUBConverter) Convert(_ context.Context, _ []byte) ([]byte, error)
 // newTestConversionService uses testApp's DB, a fresh fake store, and the
 // given converters (nil convertPDF selects goPDFConverter).
 func newTestConversionService(
-	converter services.EPUBConverter,
-	convertPDF services.PDFConverter,
-) (*services.ConversionService, *objectstore.FakeClient) {
+	converter conversion.EPUBConverter,
+	convertPDF conversion.PDFConverter,
+) (*conversion.Service, *objectstore.FakeClient) {
 	store := objectstore.NewFake()
-	svc := services.NewConversionService(
+	svc := conversion.NewService(
 		testApp.Logger,
 		testApp.TestSeeds().Repositories.Books,
 		testApp.TestSeeds().Repositories.BookFiles,
@@ -48,7 +48,7 @@ func newTestConversionService(
 }
 
 // fakePDFConverter writes epubBytes to outPath.
-func fakePDFConverter(epubBytes []byte) services.PDFConverter {
+func fakePDFConverter(epubBytes []byte) conversion.PDFConverter {
 	return func(
 		_ context.Context, _, outPath, _, _ string, _ []string,
 	) error {
@@ -307,7 +307,7 @@ func TestEnsureKEPUB_NoFiles_NoConvertibleSource(t *testing.T) {
 	)
 
 	_, err := conv.EnsureKEPUB(context.Background(), userID, book.ID)
-	require.ErrorIs(t, err, services.ErrNoConvertibleSource)
+	require.ErrorIs(t, err, conversion.ErrNoConvertibleSource)
 }
 
 func TestEnsureKEPUB_ConvertError_MarksFailedStatus(t *testing.T) {
@@ -556,7 +556,7 @@ func TestEnsureKEPUB_StorePutFails_MarksFailedStatus(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	conv := services.NewConversionService(
+	conv := conversion.NewService(
 		testApp.Logger,
 		testApp.TestSeeds().Repositories.Books,
 		testApp.TestSeeds().Repositories.BookFiles,
@@ -613,7 +613,7 @@ func TestEnsureKEPUB_StoreGetFails_MarksFailedStatus(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	conv := services.NewConversionService(
+	conv := conversion.NewService(
 		testApp.Logger,
 		testApp.TestSeeds().Repositories.Books,
 		testApp.TestSeeds().Repositories.BookFiles,
