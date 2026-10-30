@@ -23,7 +23,7 @@ import (
 // registerTestDevice registers a Kobo device for ownerID and returns its raw token.
 func registerTestDevice(t *testing.T, ownerID string) string {
 	t.Helper()
-	_, rawToken, err := testApp.Services.Kobo.RegisterKoboDevice(
+	_, rawToken, err := testApp.TestSeeds().Services.Kobo.RegisterKoboDevice(
 		context.Background(), ownerID, "Test Kobo", "",
 	)
 	require.NoError(t, err)
@@ -291,8 +291,8 @@ func TestKoboLibrarySync_UpstreamFailure_NotesDebugLog(t *testing.T) {
 
 	owner := "kobo-upstream-note-" + uuid.NewString()
 	rawToken, deviceID := registerDeviceReturningID(t, owner)
-	testApp.Services.KoboLog.SetEnabled(deviceID, true)
-	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
+	testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, true)
+	t.Cleanup(func() { testApp.TestSeeds().Services.KoboLog.SetEnabled(deviceID, false) })
 
 	resp, err := http.DefaultClient.Do(
 		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
@@ -303,7 +303,7 @@ func TestKoboLibrarySync_UpstreamFailure_NotesDebugLog(t *testing.T) {
 
 	// The append happens after the response is written; poll.
 	require.Eventually(t, func() bool {
-		for _, e := range testApp.Services.KoboLog.List(deviceID) {
+		for _, e := range testApp.TestSeeds().Services.KoboLog.List(deviceID) {
 			if e.Method == http.MethodGet &&
 				strings.HasSuffix(e.Path, "/v1/library/sync") {
 				return strings.Contains(e.Notes, "upstream")
@@ -493,11 +493,11 @@ func koboReq(t *testing.T, method, url string, body []byte) *http.Request {
 func setupKoboSyncBook(t *testing.T, ownerID string) (string, uuid.UUID) {
 	t.Helper()
 	_, bookID := uploadFileForOwner(t, ownerID, models.FileFormatEPUB)
-	_, err := testApp.Services.Conversion.EnsureKEPUB(
+	_, err := testApp.TestSeeds().Services.Conversion.EnsureKEPUB(
 		context.Background(), ownerID, bookID,
 	)
 	require.NoError(t, err)
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(
+	require.NoError(t, testApp.TestSeeds().Services.Books.EnableKoboSync(
 		context.Background(), ownerID, bookID,
 	))
 	rawToken := registerTestDevice(t, ownerID)
@@ -509,7 +509,7 @@ func setupKoboSyncBook(t *testing.T, ownerID string) (string, uuid.UUID) {
 func setupKoboPDFOnlyBook(t *testing.T, ownerID string) (string, uuid.UUID) {
 	t.Helper()
 	_, bookID := uploadFileForOwner(t, ownerID, models.FileFormatPDF)
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(
+	require.NoError(t, testApp.TestSeeds().Services.Books.EnableKoboSync(
 		context.Background(), ownerID, bookID,
 	))
 	rawToken := registerTestDevice(t, ownerID)
@@ -643,7 +643,7 @@ func TestKoboLibrarySync_ConvertingKEPUBSkipped(t *testing.T) {
 
 	// No ready KEPUB row: simulates a book still converting.
 	_, bookID := uploadFileForOwner(t, owner, models.FileFormatEPUB)
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(
+	require.NoError(t, testApp.TestSeeds().Services.Books.EnableKoboSync(
 		context.Background(), owner, bookID,
 	))
 
@@ -1745,7 +1745,7 @@ func TestKoboLibrarySync_DisabledBook_EmitsRemoval(t *testing.T) {
 	owner := "kobo-sync-disabled-removal-" + uuid.NewString()
 	rawToken, bookID := setupKoboSyncBook(t, owner)
 
-	require.NoError(t, testApp.Services.Books.ToggleTag(
+	require.NoError(t, testApp.TestSeeds().Services.Books.ToggleTag(
 		context.Background(), owner, bookID, models.TagKoboSync,
 	))
 
@@ -1796,10 +1796,10 @@ func TestKoboLibrarySync_ReenabledBook_NoRemoval(t *testing.T) {
 	owner := "kobo-sync-reenabled-" + uuid.NewString()
 	rawToken, bookID := setupKoboSyncBook(t, owner)
 
-	require.NoError(t, testApp.Services.Books.ToggleTag(
+	require.NoError(t, testApp.TestSeeds().Services.Books.ToggleTag(
 		context.Background(), owner, bookID, models.TagKoboSync,
 	))
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(
+	require.NoError(t, testApp.TestSeeds().Services.Books.EnableKoboSync(
 		context.Background(), owner, bookID,
 	))
 

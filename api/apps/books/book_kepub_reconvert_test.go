@@ -20,7 +20,7 @@ import (
 func drainKEPUBQueue(t *testing.T) {
 	t.Helper()
 	for {
-		n, err := testApp.Services.KEPUBQueue.Drain(context.Background())
+		n, err := testApp.TestSeeds().Services.KEPUBQueue.Drain(context.Background())
 		require.NoError(t, err)
 		if n == 0 {
 			return
@@ -47,7 +47,7 @@ func TestConnectGetKEPUBStatus_StaleKEPUBReportsConverting(t *testing.T) {
 
 	// The read queued the reconversion; the workers role's drain resolves it.
 	drainKEPUBQueue(t)
-	status, err := testApp.Services.Books.GetKEPUBStatus(
+	status, err := testApp.TestSeeds().Services.Books.GetKEPUBStatus(
 		context.Background(), userID, bookID,
 	)
 	require.NoError(t, err)
@@ -63,7 +63,10 @@ func TestKEPUBQueue_RequestsCollapseAndDrainClears(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, owner, models.FileFormatEPUB)
 
 	for range 2 {
-		require.NoError(t, testApp.Services.KEPUBQueue.Request(ctx, owner, bookID))
+		require.NoError(
+			t,
+			testApp.TestSeeds().Services.KEPUBQueue.Request(ctx, owner, bookID),
+		)
 	}
 	var queued int
 	require.NoError(t, testDB.QueryRow(ctx,
@@ -183,7 +186,7 @@ func TestEnsureKEPUB_StaleReplacementHasNoGap(t *testing.T) {
 	}()
 	waitForBlocked(t, holder, 1)
 
-	status, err := testApp.Services.Books.GetKEPUBStatus(
+	status, err := testApp.TestSeeds().Services.Books.GetKEPUBStatus(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)
@@ -287,7 +290,10 @@ func TestKEPUBQueue_FailedConversionIsDropped(t *testing.T) {
 	ctx := context.Background()
 	owner := "kepub-queue-fail-" + uuid.NewString()
 	book := addUniqueBook(t)
-	require.NoError(t, testApp.Services.KEPUBQueue.Request(ctx, owner, book.ID))
+	require.NoError(
+		t,
+		testApp.TestSeeds().Services.KEPUBQueue.Request(ctx, owner, book.ID),
+	)
 
 	drainKEPUBQueue(t)
 
@@ -303,7 +309,7 @@ func TestKEPUBQueue_CancelledContextErrors(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	require.Error(t, testApp.Services.KEPUBQueue.Request(ctx, "u", uuid.New()))
-	_, err := testApp.Services.KEPUBQueue.Drain(ctx)
+	require.Error(t, testApp.TestSeeds().Services.KEPUBQueue.Request(ctx, "u", uuid.New()))
+	_, err := testApp.TestSeeds().Services.KEPUBQueue.Drain(ctx)
 	require.Error(t, err)
 }

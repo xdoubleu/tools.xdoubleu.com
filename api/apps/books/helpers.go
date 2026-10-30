@@ -74,12 +74,12 @@ func (app *Books) buildLibraryData(
 	ctx context.Context,
 	userID string,
 ) (booksPageData, error) {
-	library, err := app.Services.Books.GetLibrary(ctx, userID)
+	library, err := app.services.Books.GetLibrary(ctx, userID)
 	if err != nil {
 		return booksPageData{}, err
 	}
 
-	files, err := app.Services.Books.FilesByUser(ctx, userID)
+	files, err := app.services.Books.FilesByUser(ctx, userID)
 	if err != nil {
 		return booksPageData{}, err
 	}
@@ -103,7 +103,7 @@ func (app *Books) buildLibraryData(
 		}
 	}
 
-	registeredShelves, err := app.Services.Books.ListShelves(ctx, userID)
+	registeredShelves, err := app.services.Books.ListShelves(ctx, userID)
 	if err != nil {
 		return booksPageData{}, err
 	}
@@ -138,7 +138,7 @@ func (app *Books) BuildSharedLibrary(
 		return nil, "", err
 	}
 
-	lastSeen, err := app.Repositories.KoboDevices.GetLastSeenAt(ctx, userID)
+	lastSeen, err := app.repositories.KoboDevices.GetLastSeenAt(ctx, userID)
 	if err != nil {
 		return nil, "", err
 	}
@@ -169,7 +169,7 @@ func (app *Books) GetLibraryBookByID(
 	userID string,
 	bookID uuid.UUID,
 ) (*booksv1.UserBook, error) {
-	ub, err := app.Services.Books.GetUserBook(ctx, userID, bookID)
+	ub, err := app.services.Books.GetUserBook(ctx, userID, bookID)
 	if err != nil {
 		return nil, err
 	}
@@ -186,11 +186,11 @@ func (app *Books) EnsureLibraryBook(
 	ctx context.Context,
 	userID, provider, providerID, shelf string,
 ) (uuid.UUID, error) {
-	ext, err := app.Services.Books.GetExternal(ctx, provider, providerID)
+	ext, err := app.services.Books.GetExternal(ctx, provider, providerID)
 	if err != nil {
 		return uuid.Nil, err
 	}
-	ub, err := app.Services.Books.AddToLibraryIfAbsent(ctx, userID, *ext, shelf)
+	ub, err := app.services.Books.AddToLibraryIfAbsent(ctx, userID, *ext, shelf)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -203,7 +203,7 @@ func (app *Books) BuildSharedProgress(
 	userID string,
 	dateStart, dateEnd time.Time,
 ) (*booksv1.BooksProgressResponse, error) {
-	labels, values, err := app.Services.Progress.GetByDates(
+	labels, values, err := app.services.Progress.GetByDates(
 		ctx,
 		userID,
 		dateStart,
@@ -221,11 +221,11 @@ func (app *Books) BuildSharedProgress(
 }
 
 func (app *Books) rebuildReadProgress(ctx context.Context, userID string) error {
-	labels, values, err := app.Services.Books.BuildReadProgress(ctx, userID)
+	labels, values, err := app.services.Books.BuildReadProgress(ctx, userID)
 	if err != nil {
 		return err
 	}
-	return app.Services.Progress.Save(ctx, userID, labels, values)
+	return app.services.Progress.Save(ctx, userID, labels, values)
 }
 
 func buildFinishedAt(existing *models.UserBook, newStatus string) []time.Time {

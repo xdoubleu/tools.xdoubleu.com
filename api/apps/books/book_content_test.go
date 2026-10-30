@@ -137,7 +137,7 @@ func TestBookContentRepo_Get_QueryError_ReturnsErr(t *testing.T) {
 func TestBookService_GetContentHTML_EmptyWhenNeverSet(t *testing.T) {
 	book := seedContentBookInLibrary(t, userID)
 
-	html, err := testApp.Services.Books.GetContentHTML(
+	html, err := testApp.TestSeeds().Services.Books.GetContentHTML(
 		context.Background(), userID, book.ID,
 	)
 	require.NoError(t, err)
@@ -149,7 +149,7 @@ func TestBookService_GetContentHTML_PropagatesRepoError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := testApp.Services.Books.GetContentHTML(ctx, userID, book.ID)
+	_, err := testApp.TestSeeds().Services.Books.GetContentHTML(ctx, userID, book.ID)
 	require.Error(t, err)
 	assert.NotErrorIs(t, err, database.ErrResourceNotFound)
 }
@@ -225,7 +225,7 @@ func TestBackfillContentHTML_LogsWhenPersistFails(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	html := testApp.Services.Ingest.BackfillContentHTML(ctx, book)
+	html := testApp.TestSeeds().Services.Ingest.BackfillContentHTML(ctx, book)
 	assert.Contains(t, html, "Lorem ipsum")
 
 	stored, err := testApp.TestSeeds().Repositories.Books.GetBookContentHTML(

@@ -158,7 +158,7 @@ func addTestBookNoISBN(t *testing.T, title string) *models.UserBook {
 		Title:   title,
 		Authors: []string{"Test Author"},
 	}
-	ub, err := testApp.Services.Books.AddToLibrary(
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(),
 		userID,
 		ext,
@@ -199,7 +199,7 @@ func addTestBook(t *testing.T, title string) *models.UserBook {
 		CoverURL:    "https://example.com/cover.jpg",
 		Description: "Test description.",
 	}
-	ub, err := testApp.Services.Books.AddToLibrary(
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(),
 		userID,
 		ext,

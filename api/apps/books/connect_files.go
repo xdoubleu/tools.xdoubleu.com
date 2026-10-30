@@ -34,7 +34,7 @@ func (h *booksConnectHandler) GetBookFile(
 			"invalid book ID",
 		)
 	}
-	result, err := h.app.Services.Books.GetBookFile(
+	result, err := h.app.services.Books.GetBookFile(
 		ctx, user.ID, bookID, req.Format,
 	)
 	if err != nil {
@@ -62,7 +62,7 @@ func (h *booksConnectHandler) maybeStartKEPUBConversion(
 		return kepubStatus
 	}
 
-	if err := h.app.Services.KEPUBQueue.Request(ctx, userID, bookID); err != nil {
+	if err := h.app.services.KEPUBQueue.Request(ctx, userID, bookID); err != nil {
 		h.app.Logger.ErrorContext(ctx, "queue kepub conversion",
 			"book_id", bookID, "err", err)
 		return kepubStatus
@@ -88,7 +88,7 @@ func (h *booksConnectHandler) RequestKEPUBConversion(
 			"invalid book ID",
 		)
 	}
-	statusResult, err := h.app.Services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
+	statusResult, err := h.app.services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -116,7 +116,7 @@ func (h *booksConnectHandler) GetKEPUBStatus(
 			"invalid book ID",
 		)
 	}
-	result, err := h.app.Services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
+	result, err := h.app.services.Books.GetKEPUBStatus(ctx, user.ID, bookID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -144,7 +144,7 @@ func (h *booksConnectHandler) CreateBookUpload(
 			"unauthorized",
 		)
 	}
-	uploadID, url, alreadyExists, err := h.app.Services.Books.CreateUpload(
+	uploadID, url, alreadyExists, err := h.app.services.Books.CreateUpload(
 		ctx,
 		user.ID,
 		req.Filename,
@@ -177,7 +177,7 @@ func (h *booksConnectHandler) FinalizeBookUpload(
 	// fit the route's budget.
 	finalizeCtx, cancel := httptools.Detach(ctx)
 	defer cancel()
-	result, err := h.app.Services.Books.FinalizeUpload(
+	result, err := h.app.services.Books.FinalizeUpload(
 		finalizeCtx,
 		user.ID,
 		req.UploadId,

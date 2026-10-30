@@ -67,7 +67,10 @@ func TestGetBookCover_CacheHit(t *testing.T) {
 		"image/jpeg",
 	))
 
-	result, err := app.Services.Books.GetBookCover(context.Background(), ub.BookID)
+	result, err := app.TestSeeds().Services.Books.GetBookCover(
+		context.Background(),
+		ub.BookID,
+	)
 	require.NoError(t, err)
 	assert.Contains(t, result.URL, coverKey)
 }
@@ -77,7 +80,7 @@ func TestGetBookCover_NotCached(t *testing.T) {
 	ub := addTestBook(t, "CoverNotCachedBook")
 	app, _ := buildCoverApp(t)
 
-	_, err := app.Services.Books.GetBookCover(context.Background(), ub.BookID)
+	_, err := app.TestSeeds().Services.Books.GetBookCover(context.Background(), ub.BookID)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, services.ErrCoverNotFound)
 }
@@ -93,7 +96,7 @@ func TestGetBookCover_SelfHealsOnMiss(t *testing.T) {
 	defer imgServer.Close()
 
 	app, store := buildCoverApp(t)
-	ub, err := app.Services.Books.AddToLibrary(
+	ub, err := app.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(),
 		userID,
 		services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
@@ -112,7 +115,10 @@ func TestGetBookCover_SelfHealsOnMiss(t *testing.T) {
 	_, cached := store.GetContent(coverKey)
 	require.False(t, cached, "precondition: cache should be empty after delete")
 
-	result, err := app.Services.Books.GetBookCover(context.Background(), ub.BookID)
+	result, err := app.TestSeeds().Services.Books.GetBookCover(
+		context.Background(),
+		ub.BookID,
+	)
 	require.NoError(t, err)
 	assert.Contains(t, result.URL, coverKey)
 
@@ -126,7 +132,10 @@ func TestGetBookCover_UnknownBook(t *testing.T) {
 	app, _ := buildCoverApp(t)
 
 	nonExistentID := uuid.New()
-	_, err := app.Services.Books.GetBookCover(context.Background(), nonExistentID)
+	_, err := app.TestSeeds().Services.Books.GetBookCover(
+		context.Background(),
+		nonExistentID,
+	)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, services.ErrCoverNotFound)
 }
@@ -235,7 +244,7 @@ func TestAddToLibrary_CachesCoverEagerly(t *testing.T) {
 	defer imgServer.Close()
 
 	app, store := buildCoverApp(t)
-	ub, err := app.Services.Books.AddToLibrary(
+	ub, err := app.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(),
 		userID,
 		services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
@@ -258,7 +267,7 @@ func TestAddToLibrary_CachesCoverEagerly(t *testing.T) {
 // TestAddToLibrary_CoverFetchFailure_DoesNotBlockAdd checks the add succeeds.
 func TestAddToLibrary_CoverFetchFailure_DoesNotBlockAdd(t *testing.T) {
 	app, store := buildCoverApp(t)
-	ub, err := app.Services.Books.AddToLibrary(
+	ub, err := app.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(),
 		userID,
 		services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
@@ -287,7 +296,10 @@ func TestEnsureCoverCached_AlreadyCached(t *testing.T) {
 		bytes.NewReader([]byte("img")), 3, "image/jpeg",
 	))
 
-	ok, err := app.Services.Books.EnsureCoverCached(context.Background(), ub.BookID)
+	ok, err := app.TestSeeds().Services.Books.EnsureCoverCached(
+		context.Background(),
+		ub.BookID,
+	)
 	require.NoError(t, err)
 	assert.True(t, ok)
 }
@@ -303,7 +315,7 @@ func TestEnsureCoverCached_CachesMissing(t *testing.T) {
 	defer imgServer.Close()
 
 	app, store := buildCoverApp(t)
-	ub, err := app.Services.Books.AddToLibrary(
+	ub, err := app.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(),
 		userID,
 		services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
@@ -322,7 +334,10 @@ func TestEnsureCoverCached_CachesMissing(t *testing.T) {
 	_, cached := store.GetContent(coverKey)
 	require.False(t, cached, "precondition: cover should be missing")
 
-	ok, err := app.Services.Books.EnsureCoverCached(context.Background(), ub.BookID)
+	ok, err := app.TestSeeds().Services.Books.EnsureCoverCached(
+		context.Background(),
+		ub.BookID,
+	)
 	require.NoError(t, err)
 	assert.True(t, ok)
 	_, cached = store.GetContent(coverKey)
@@ -334,7 +349,10 @@ func TestEnsureCoverCached_NoCoverReturnsFalse(t *testing.T) {
 	ub := addTestBookNoISBN(t, "EnsureCachedNoCoverBook")
 	app, _ := buildCoverApp(t)
 
-	ok, err := app.Services.Books.EnsureCoverCached(context.Background(), ub.BookID)
+	ok, err := app.TestSeeds().Services.Books.EnsureCoverCached(
+		context.Background(),
+		ub.BookID,
+	)
 	require.NoError(t, err)
 	assert.False(t, ok)
 }
@@ -343,7 +361,7 @@ func TestEnsureCoverCached_NoCoverReturnsFalse(t *testing.T) {
 // warm must not block enabling kobo-sync.
 func TestEnableKoboSync_CoverFetchFailure_StillEnables(t *testing.T) {
 	app, store := buildCoverApp(t)
-	ub, err := app.Services.Books.AddToLibrary(
+	ub, err := app.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(),
 		userID,
 		services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
@@ -357,7 +375,7 @@ func TestEnableKoboSync_CoverFetchFailure_StillEnables(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	require.NoError(t, app.Services.Books.EnableKoboSync(
+	require.NoError(t, app.TestSeeds().Services.Books.EnableKoboSync(
 		context.Background(), userID, ub.BookID,
 	))
 
@@ -379,7 +397,7 @@ func TestEnableKoboSync_WarmsCover(t *testing.T) {
 	defer imgServer.Close()
 
 	app, store := buildCoverApp(t)
-	ub, err := app.Services.Books.AddToLibrary(
+	ub, err := app.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(),
 		userID,
 		services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
@@ -398,7 +416,7 @@ func TestEnableKoboSync_WarmsCover(t *testing.T) {
 	_, cached := store.GetContent(coverKey)
 	require.False(t, cached, "precondition: cover removed from cache")
 
-	require.NoError(t, app.Services.Books.EnableKoboSync(
+	require.NoError(t, app.TestSeeds().Services.Books.EnableKoboSync(
 		context.Background(), userID, ub.BookID,
 	))
 

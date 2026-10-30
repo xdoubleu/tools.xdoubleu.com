@@ -21,7 +21,7 @@ func (app *Books) ListConsumption(
 	ctx context.Context,
 	userID string,
 ) ([]consumption.Event, error) {
-	library, err := app.Services.Books.GetLibrary(ctx, userID)
+	library, err := app.services.Books.GetLibrary(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

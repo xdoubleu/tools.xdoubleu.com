@@ -62,17 +62,25 @@ func TestEnsureUserCoverCached_SkipsFilesFoundCoverless(t *testing.T) {
 	_, err := testDB.Exec(ctx,
 		`UPDATE books.books SET cover_url = NULL WHERE id = $1`, bookID)
 	require.NoError(t, err)
-	kepub, err := testApp.Services.Conversion.EnsureKEPUB(ctx, owner, bookID)
+	kepub, err := testApp.TestSeeds().Services.Conversion.EnsureKEPUB(ctx, owner, bookID)
 	require.NoError(t, err)
 
-	cached, err := testApp.Services.Books.EnsureUserCoverCached(ctx, owner, bookID)
+	cached, err := testApp.TestSeeds().Services.Books.EnsureUserCoverCached(
+		ctx,
+		owner,
+		bookID,
+	)
 	require.NoError(t, err)
 	require.False(t, cached)
 
 	for _, key := range []string{epub.StorageKey, kepub.StorageKey} {
 		require.NoError(t, fakeStore.Delete(ctx, key))
 	}
-	cached, err = testApp.Services.Books.EnsureUserCoverCached(ctx, owner, bookID)
+	cached, err = testApp.TestSeeds().Services.Books.EnsureUserCoverCached(
+		ctx,
+		owner,
+		bookID,
+	)
 	require.NoError(t, err, "coverless files are not downloaded again")
 	assert.False(t, cached)
 
@@ -83,7 +91,11 @@ func TestEnsureUserCoverCached_SkipsFilesFoundCoverless(t *testing.T) {
 		`UPDATE books.book_files SET converter_version = converter_version + 1
 		 WHERE id = $1`, kepub.ID)
 	require.NoError(t, err)
-	cached, err = testApp.Services.Books.EnsureUserCoverCached(ctx, owner, bookID)
+	cached, err = testApp.TestSeeds().Services.Books.EnsureUserCoverCached(
+		ctx,
+		owner,
+		bookID,
+	)
 	require.NoError(t, err)
 	assert.True(t, cached, "a reconverted KEPUB under the same key is reopened")
 }
@@ -131,12 +143,12 @@ func setupCoveredKoboSyncBook(t *testing.T, ownerID string) (string, uuid.UUID) 
 	_, err = testDB.Exec(context.Background(),
 		`UPDATE books.books SET cover_url = NULL WHERE id = $1`, bookID)
 	require.NoError(t, err)
-	_, err = testApp.Services.Conversion.EnsureKEPUB(
+	_, err = testApp.TestSeeds().Services.Conversion.EnsureKEPUB(
 		context.Background(), ownerID, bookID,
 	)
 	require.NoError(t, err)
 
-	require.NoError(t, testApp.Services.Books.EnableKoboSync(
+	require.NoError(t, testApp.TestSeeds().Services.Books.EnableKoboSync(
 		context.Background(), ownerID, bookID,
 	))
 	return registerTestDevice(t, ownerID), bookID

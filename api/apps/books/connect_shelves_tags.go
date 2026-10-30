@@ -36,7 +36,7 @@ func (h *booksConnectHandler) ToggleTag(
 			"tag cannot be empty",
 		)
 	}
-	err = h.app.Services.Books.ToggleTag(ctx, user.ID, bookID, req.Tag)
+	err = h.app.services.Books.ToggleTag(ctx, user.ID, bookID, req.Tag)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -67,7 +67,7 @@ func (h *booksConnectHandler) SetBookTag(
 			"tag cannot be empty",
 		)
 	}
-	err = h.app.Services.Books.SetTag(
+	err = h.app.services.Books.SetTag(
 		ctx, user.ID, bookID, req.Tag, req.Enabled,
 	)
 	if err != nil {
@@ -87,7 +87,7 @@ func (h *booksConnectHandler) CreateShelf(
 			"unauthorized",
 		)
 	}
-	err := h.app.Services.Books.CreateShelf(ctx, user.ID, req.Name)
+	err := h.app.services.Books.CreateShelf(ctx, user.ID, req.Name)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -105,7 +105,7 @@ func (h *booksConnectHandler) RenameShelf(
 			"unauthorized",
 		)
 	}
-	moved, err := h.app.Services.Books.RenameShelf(
+	moved, err := h.app.services.Books.RenameShelf(
 		ctx, user.ID, req.OldName, req.NewName,
 	)
 	if err != nil {
@@ -125,7 +125,7 @@ func (h *booksConnectHandler) DeleteShelf(
 			"unauthorized",
 		)
 	}
-	moved, err := h.app.Services.Books.DeleteShelf(
+	moved, err := h.app.services.Books.DeleteShelf(
 		ctx, user.ID, req.Name, req.TargetName,
 	)
 	if err != nil {
@@ -145,7 +145,7 @@ func (h *booksConnectHandler) RenameTag(
 			"unauthorized",
 		)
 	}
-	affected, err := h.app.Services.Books.RenameTag(
+	affected, err := h.app.services.Books.RenameTag(
 		ctx, user.ID, req.OldName, req.NewName,
 	)
 	if err != nil {
@@ -165,7 +165,7 @@ func (h *booksConnectHandler) DeleteTag(
 			"unauthorized",
 		)
 	}
-	affected, err := h.app.Services.Books.DeleteTag(ctx, user.ID, req.Name)
+	affected, err := h.app.services.Books.DeleteTag(ctx, user.ID, req.Name)
 	if err != nil {
 		return nil, mapError(err)
 	}

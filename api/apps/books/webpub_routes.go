@@ -22,15 +22,15 @@ func (a *Books) webPubRoutes(prefix string, mux *http.ServeMux) {
 	base := "/" + prefix + "/api/book/{bookId}/webpub/"
 	mux.Handle(
 		"GET "+base+"manifest.json",
-		a.Services.Auth.AppAccess(prefix, a.webPubManifestHandler),
+		a.services.Auth.AppAccess(prefix, a.webPubManifestHandler),
 	)
 	mux.Handle(
 		"GET "+base+"positions.json",
-		a.Services.Auth.AppAccess(prefix, a.webPubPositionsHandler),
+		a.services.Auth.AppAccess(prefix, a.webPubPositionsHandler),
 	)
 	mux.Handle(
 		"GET "+base+"res/{path...}",
-		a.Services.Auth.AppAccess(prefix, a.webPubResourceHandler),
+		a.services.Auth.AppAccess(prefix, a.webPubResourceHandler),
 	)
 }
 
@@ -67,7 +67,7 @@ func (a *Books) webPubManifestHandler(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	m, err := a.Services.WebPub.Manifest(r.Context(), userID, bookID)
+	m, err := a.services.WebPub.Manifest(r.Context(), userID, bookID)
 	if err != nil {
 		webPubError(w, err)
 		return
@@ -82,7 +82,7 @@ func (a *Books) webPubPositionsHandler(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	p, err := a.Services.WebPub.Positions(r.Context(), userID, bookID)
+	p, err := a.services.WebPub.Positions(r.Context(), userID, bookID)
 	if err != nil {
 		webPubError(w, err)
 		return
@@ -97,7 +97,7 @@ func (a *Books) webPubResourceHandler(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	res, err := a.Services.WebPub.Resource(
+	res, err := a.services.WebPub.Resource(
 		r.Context(), userID, bookID, r.PathValue("path"),
 	)
 	if err != nil {

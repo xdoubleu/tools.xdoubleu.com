@@ -119,7 +119,7 @@ func TestKoboLibrarySync_ChangedReadingState_OncePerChange(t *testing.T) {
 	assert.Empty(t, changedReadingStates(koboSync(t, ts, rawToken)),
 		"first delivery carries the state in NewEntitlement only")
 
-	require.NoError(t, testApp.Services.Books.UpdateReadingProgress(
+	require.NoError(t, testApp.TestSeeds().Services.Books.UpdateReadingProgress(
 		context.Background(),
 		models.BookReadingState{ //nolint:exhaustruct //optional fields
 			UserID: owner, BookID: bookID, Source: models.ReadingSourceWeb, Percent: 42,
@@ -144,7 +144,7 @@ func TestKoboLibrarySync_StateBeforeFirstSync_NoChangedReadingState(t *testing.T
 
 	owner := "kobo-state-before-sync-" + uuid.NewString()
 	rawToken, bookID := setupKoboSyncBook(t, owner)
-	require.NoError(t, testApp.Services.Books.UpdateReadingProgress(
+	require.NoError(t, testApp.TestSeeds().Services.Books.UpdateReadingProgress(
 		context.Background(),
 		models.BookReadingState{ //nolint:exhaustruct //optional fields
 			UserID: owner, BookID: bookID, Source: models.ReadingSourceWeb, Percent: 20,
@@ -205,7 +205,7 @@ func TestKoboLibrarySync_RegressedPut_KeepsPendingChange(t *testing.T) {
 	rawToken, bookID := setupKoboSyncBook(t, owner)
 	koboSync(t, ts, rawToken)
 
-	require.NoError(t, testApp.Services.Books.UpdateReadingProgress(
+	require.NoError(t, testApp.TestSeeds().Services.Books.UpdateReadingProgress(
 		context.Background(),
 		models.BookReadingState{ //nolint:exhaustruct //optional fields
 			UserID: owner, BookID: bookID, Source: models.ReadingSourceWeb, Percent: 70,

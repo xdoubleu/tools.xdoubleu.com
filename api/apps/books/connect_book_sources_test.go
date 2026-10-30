@@ -268,7 +268,7 @@ func TestApplyBookSource_Admin_SecondSyncStillSucceeds(t *testing.T) {
 		Title:   "The Odyssey",
 		Authors: []string{"Homer"},
 	}
-	ub, err := testApp.Services.Books.AddToLibrary(
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), userID, ext, models.StatusToRead, []string{},
 	)
 	require.NoError(t, err)

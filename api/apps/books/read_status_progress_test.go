@@ -20,7 +20,7 @@ func addTestBookWithPages(t *testing.T, title string, pages int) *models.UserBoo
 		ISBN13:    testISBN(title),
 		PageCount: pages,
 	}
-	ub, err := testApp.Services.Books.AddToLibrary(
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), userID, ext, models.StatusToRead, []string{},
 	)
 	require.NoError(t, err)
@@ -31,7 +31,7 @@ func setStatus(t *testing.T, ub *models.UserBook, status string) *models.UserBoo
 	t.Helper()
 	ctx := context.Background()
 	ub.Status = status
-	require.NoError(t, testApp.Services.Books.UpdateStatus(ctx, userID, *ub))
+	require.NoError(t, testApp.TestSeeds().Services.Books.UpdateStatus(ctx, userID, *ub))
 	saved, err := testApp.TestSeeds().Repositories.Books.GetUserBook(
 		ctx,
 		userID,
@@ -66,7 +66,7 @@ func TestReadStatus_ProgressEditStaysFull(t *testing.T) {
 	ub := addTestBookWithPages(t, "ReadStatus Progress Edit", 200)
 	setStatus(t, ub, models.StatusRead)
 
-	require.NoError(t, testApp.Services.Books.UpdateProgress(
+	require.NoError(t, testApp.TestSeeds().Services.Books.UpdateProgress(
 		ctx, userID, ub.BookID, models.ProgressModePercent, 0, 40,
 	))
 
@@ -97,7 +97,7 @@ func TestReadStatus_AddedAsReadIsFull(t *testing.T) {
 		Authors: []string{"Test Author"},
 		ISBN13:  testISBN("ReadStatus Added Read"),
 	}
-	ub, err := testApp.Services.Books.AddToLibrary(
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), userID, ext, models.StatusRead, []string{},
 	)
 	require.NoError(t, err)

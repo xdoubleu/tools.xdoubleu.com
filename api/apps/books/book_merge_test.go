@@ -47,7 +47,7 @@ func addMergeBook(
 		ISBN13:   isbn,
 		CoverURL: "https://example.com/cover.jpg",
 	}
-	ub, err := testApp.Services.Books.AddToLibrary(
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), mergeTestUser, ext, status, tags,
 	)
 	require.NoError(t, err)
@@ -110,7 +110,7 @@ func TestMergeBooks_UnionsTagsAndFinishedAt(t *testing.T) {
 		[]time.Time{finB}, mergeTestUser, loser.BookID)
 	require.NoError(t, err)
 
-	_, _, err = testApp.Services.Books.MergeBooks(
+	_, _, err = testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -167,7 +167,7 @@ func TestMergeBooks_PicksMostProgressedStatus(t *testing.T) {
 		[]string{},
 	)
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -210,7 +210,7 @@ func TestMergeBooks_RepointsBookFiles(t *testing.T) {
 		"abc123",
 	)
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -260,7 +260,7 @@ func TestMergeBooks_DeduplicatesIdenticalFiles(t *testing.T) {
 		"dupchk",
 	)
 
-	deletedFiles, _, err := testApp.Services.Books.MergeBooks(
+	deletedFiles, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -301,7 +301,7 @@ func TestMergeBooks_R2DeleteFailsAfterRetries_LogsErrorButSucceeds(t *testing.T)
 
 	fakeStore.FailNextDeletes(4, errors.New("transient R2 failure"))
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -339,7 +339,7 @@ func TestMergeBooks_ConsolidatesReadingState(t *testing.T) {
 	`, mergeTestUser, loser.BookID)
 	require.NoError(t, err)
 
-	_, _, err = testApp.Services.Books.MergeBooks(
+	_, _, err = testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -379,7 +379,7 @@ func TestMergeBooks_NoLosers_IsNoop(t *testing.T) {
 		[]string{},
 	)
 
-	deleted, _, err := testApp.Services.Books.MergeBooks(
+	deleted, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, nil, nil, nil, nil,
 	)
 	require.NoError(t, err)
@@ -413,7 +413,7 @@ func TestMergeBooks_FallsBackToLoserRating(t *testing.T) {
 		rating, mergeTestUser, loser.BookID)
 	require.NoError(t, err)
 
-	_, _, err = testApp.Services.Books.MergeBooks(
+	_, _, err = testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -454,7 +454,7 @@ func TestMergeBooks_WinnerReadingStateNotOverridden(t *testing.T) {
 	insertReadingState(t, mergeTestUser, winner.BookID, 75)
 	insertReadingState(t, mergeTestUser, loser.BookID, 90)
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -487,7 +487,7 @@ func TestMergeBooks_AppliesResolvedMetadata(t *testing.T) {
 		Description: &loserDesc,
 	}
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		resolved, nil, nil,
 	)
@@ -517,7 +517,7 @@ func TestMergeBooks_NilResolvedMetadataPreservesBook(t *testing.T) {
 	).Scan(&originalTitle)
 	require.NoError(t, err)
 
-	_, _, err = testApp.Services.Books.MergeBooks(
+	_, _, err = testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -545,7 +545,7 @@ func TestMergeBooks_OrphanedLoserBookDeleted(t *testing.T) {
 	loser := addMergeBook(t, "OrphanLoser", isbn2, models.StatusToRead, []string{})
 	loserBookID := loser.BookID
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loserBookID},
 		nil, nil, nil,
 	)
@@ -632,7 +632,7 @@ func TestMergeBooks_CustomShelfBeatsBuiltInStatus(t *testing.T) {
 	winner := addMergeBook(t, "ShelfWinA", isbn1, "sci-fi", []string{})
 	loser := addMergeBook(t, "ShelfWinB", isbn2, models.StatusRead, []string{})
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -656,7 +656,7 @@ func TestMergeBooks_CustomShelfBeatsBuiltInStatus_LoserOnShelf(t *testing.T) {
 	winner := addMergeBook(t, "ShelfLoserA", isbn1, models.StatusRead, []string{})
 	loser := addMergeBook(t, "ShelfLoserB", isbn2, "favourites", []string{})
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -680,7 +680,7 @@ func TestMergeBooks_WinnerShelfKeptWhenBothOnCustomShelves(t *testing.T) {
 	winner := addMergeBook(t, "TwoShelvesA", isbn1, "sci-fi", []string{})
 	loser := addMergeBook(t, "TwoShelvesB", isbn2, "fantasy", []string{})
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -705,7 +705,7 @@ func TestMergeBooks_ResolvedStatusOverridesAutoConsolidation(t *testing.T) {
 	loser := addMergeBook(t, "ResolvedStatusB", isbn2, models.StatusToRead, []string{})
 
 	forced := "my-custom-shelf"
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, &forced,
 	)
@@ -735,7 +735,7 @@ func TestConnectMergeBooks_ResolvedStatusApplied(t *testing.T) {
 			ISBN13:   isbn,
 			CoverURL: "https://example.com/cover.jpg",
 		}
-		ub, addErr := testApp.Services.Books.AddToLibrary(
+		ub, addErr := testApp.TestSeeds().Services.Books.AddToLibrary(
 			context.Background(), userID, ext, models.StatusToRead, []string{},
 		)
 		require.NoError(t, addErr)
@@ -804,7 +804,7 @@ func addMergeBookForUser2(
 		ISBN13:   isbn,
 		CoverURL: "https://example.com/cover.jpg",
 	}
-	ub, err := testApp.Services.Books.AddToLibrary(
+	ub, err := testApp.TestSeeds().Services.Books.AddToLibrary(
 		context.Background(), mergeTestUser2, ext, status, tags,
 	)
 	require.NoError(t, err)
@@ -827,7 +827,7 @@ func TestMergeBooks_UnownedLoser_GlobalCatalogDeleted(t *testing.T) {
 	)
 	loserBookID := loser.BookID
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loserBookID},
 		nil, nil, nil,
 	)
@@ -880,7 +880,7 @@ func TestMergeBooks_CrossUserConsolidation(t *testing.T) {
 		[]string{"user2-loser-tag"},
 	)
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -936,7 +936,7 @@ func TestMergeBooks_RepointsOtherUsersLoserEntry(t *testing.T) {
 		[]string{"carried-tag"},
 	)
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
@@ -991,7 +991,7 @@ func TestMergeBooks_CallerOwnsNeither(t *testing.T) {
 	)
 	loserBookID := loser.BookID
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err := testApp.TestSeeds().Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loserBookID},
 		nil, nil, nil,
 	)

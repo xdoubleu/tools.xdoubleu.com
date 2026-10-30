@@ -30,7 +30,7 @@ func setBookTag(
 
 func bookTags(t *testing.T, book *models.UserBook) []string {
 	t.Helper()
-	got, err := testApp.Services.Books.GetUserBook(
+	got, err := testApp.TestSeeds().Services.Books.GetUserBook(
 		context.Background(), book.UserID, book.BookID,
 	)
 	require.NoError(t, err)
