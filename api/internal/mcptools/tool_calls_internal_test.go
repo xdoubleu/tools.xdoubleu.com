@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,14 +26,17 @@ func instant(context.Context, *mcp.CallToolRequest, NoArgs) (
 	return &mcp.CallToolResult{}, nil, nil
 }
 
+// toolSlack is the deadline slack every test server uses.
+const toolSlack = time.Second
+
 // toolServer is a server with one tool, "the_tool", behind boundToolCalls.
 func toolServer(
-	logs *bytes.Buffer, threshold, slack time.Duration, tool toolHandler,
+	logs *bytes.Buffer, threshold time.Duration, tool toolHandler,
 ) *mcp.Server {
 	logger := slog.New(slog.NewTextHandler(logs, nil))
 	//nolint:exhaustruct // only Name/Version identify the test server
 	srv := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "0"}, nil)
-	srv.AddReceivingMiddleware(boundToolCalls(logger, threshold, slack))
+	srv.AddReceivingMiddleware(boundToolCalls(logger, threshold, toolSlack))
 	//nolint:exhaustruct // the name is all the tool needs
 	mcp.AddTool(srv, &mcp.Tool{Name: "the_tool"}, tool)
 	return srv
@@ -73,7 +77,7 @@ func clientSession(t *testing.T, transport mcp.Transport) *mcp.ClientSession {
 func TestBoundToolCallsLogsSlowCall(t *testing.T) {
 	t.Parallel()
 	var logs bytes.Buffer
-	srv := toolServer(&logs, time.Nanosecond, time.Second, instant)
+	srv := toolServer(&logs, time.Nanosecond, instant)
 
 	callTool(t, inMemorySession(t, srv))
 
@@ -87,7 +91,7 @@ func TestBoundToolCallsLogsSlowCall(t *testing.T) {
 func TestBoundToolCallsQuietBelowThreshold(t *testing.T) {
 	t.Parallel()
 	var logs bytes.Buffer
-	srv := toolServer(&logs, time.Hour, time.Second, instant)
+	srv := toolServer(&logs, time.Hour, instant)
 
 	callTool(t, inMemorySession(t, srv))
 
@@ -101,10 +105,9 @@ func TestBoundToolCallsKeepsRequestDeadline(t *testing.T) {
 	t.Parallel()
 	const (
 		budget = 1500 * time.Millisecond
-		slack  = time.Second
 	)
 	var logs bytes.Buffer
-	srv := toolServer(&logs, time.Nanosecond, slack, func(
+	srv := toolServer(&logs, time.Nanosecond, func(
 		ctx context.Context, _ *mcp.CallToolRequest, _ NoArgs,
 	) (*mcp.CallToolResult, any, error) {
 		select {
@@ -140,4 +143,43 @@ func TestBoundToolCallsKeepsRequestDeadline(t *testing.T) {
 	assert.True(t, res.IsError)
 	assert.Contains(t, logs.String(), "tool=the_tool")
 	assert.Contains(t, logs.String(), "expired=true")
+}
+
+func toolDurationCount(t *testing.T, outcome string) uint64 {
+	t.Helper()
+	families, err := prometheus.DefaultGatherer.Gather()
+	require.NoError(t, err)
+	for _, mf := range families {
+		if mf.GetName() != "mcp_tool_duration_seconds" {
+			continue
+		}
+		for _, m := range mf.GetMetric() {
+			labels := map[string]string{}
+			for _, l := range m.GetLabel() {
+				labels[l.GetName()] = l.GetValue()
+			}
+			if labels["tool"] == "the_tool" && labels["outcome"] == outcome {
+				return m.GetHistogram().GetSampleCount()
+			}
+		}
+	}
+	return 0
+}
+
+// Every tool call is observed, below the slow threshold too, split by outcome.
+func TestBoundToolCallsObservesDuration(t *testing.T) {
+	var logs bytes.Buffer
+	failing := func(
+		context.Context, *mcp.CallToolRequest, NoArgs,
+	) (*mcp.CallToolResult, any, error) {
+		return nil, nil, errors.New("boom")
+	}
+	okBefore := toolDurationCount(t, "ok")
+	errBefore := toolDurationCount(t, "error")
+
+	callTool(t, inMemorySession(t, toolServer(&logs, time.Hour, instant)))
+	callTool(t, inMemorySession(t, toolServer(&logs, time.Hour, failing)))
+
+	assert.Equal(t, okBefore+1, toolDurationCount(t, "ok"))
+	assert.Equal(t, errBefore+1, toolDurationCount(t, "error"))
 }
