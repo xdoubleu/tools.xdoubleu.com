@@ -13,6 +13,11 @@ import (
 	"tools.xdoubleu.com/internal/app"
 )
 
+// input builds a TaskInput with every field set.
+func input(title, body string, p models.Priority, labels []string) TaskInput {
+	return TaskInput{Title: title, Body: body, Priority: p, Labels: labels}
+}
+
 func status(t *testing.T, err error) int {
 	t.Helper()
 	var httpErr *app.HTTPError
@@ -21,50 +26,48 @@ func status(t *testing.T, err error) int {
 }
 
 func TestNormaliseTitleBounds(t *testing.T) {
-	_, err := normalise(TaskInput{Title: strings.Repeat("a", maxTitleLen)})
+	_, err := normalise(input(strings.Repeat("a", maxTitleLen), "", "", nil))
 	assert.NoError(t, err)
-	_, err = normalise(TaskInput{Title: strings.Repeat("a", maxTitleLen+1)})
+	_, err = normalise(input(strings.Repeat("a", maxTitleLen+1), "", "", nil))
 	assert.Equal(t, http.StatusBadRequest, status(t, err))
-	_, err = normalise(TaskInput{Title: " \t"})
+	_, err = normalise(input(" \t", "", "", nil))
 	assert.Equal(t, http.StatusBadRequest, status(t, err))
 }
 
 func TestNormaliseBodyBounds(t *testing.T) {
-	_, err := normalise(TaskInput{Title: "x", Body: strings.Repeat("a", maxBodyLen)})
+	_, err := normalise(input("x", strings.Repeat("a", maxBodyLen), "", nil))
 	assert.NoError(t, err)
-	_, err = normalise(TaskInput{Title: "x", Body: strings.Repeat("a", maxBodyLen+1)})
+	_, err = normalise(input("x", strings.Repeat("a", maxBodyLen+1), "", nil))
 	assert.Equal(t, http.StatusBadRequest, status(t, err))
 }
 
 func TestNormalisePriority(t *testing.T) {
-	got, err := normalise(TaskInput{Title: "x"})
+	got, err := normalise(input("x", "", "", nil))
 	require.NoError(t, err)
 	assert.Equal(t, models.PriorityP2, got.Priority)
 
-	got, err = normalise(TaskInput{Title: "x", Priority: models.PriorityP0})
+	got, err = normalise(input("x", "", models.PriorityP0, nil))
 	require.NoError(t, err)
 	assert.Equal(t, models.PriorityP0, got.Priority)
 
-	_, err = normalise(TaskInput{Title: "x", Priority: models.PriorityInvalid})
+	_, err = normalise(input("x", "", models.PriorityInvalid, nil))
 	assert.Equal(t, http.StatusBadRequest, status(t, err))
 }
 
 func TestNormaliseLabels(t *testing.T) {
-	got, err := normalise(TaskInput{Title: "x", Labels: []string{" a ", "a", "", "b"}})
+	got, err := normalise(input("x", "", "", []string{" a ", "a", "", "b"}))
 	require.NoError(t, err)
 	assert.Equal(t, []string{"a", "b"}, got.Labels)
 
-	got, err = normalise(TaskInput{Title: "x"})
+	got, err = normalise(input("x", "", "", nil))
 	require.NoError(t, err)
 	assert.Equal(t, []string{}, got.Labels, "never nil, so the column stays an array")
 
 	_, err = normalise(
-		TaskInput{Title: "x", Labels: []string{strings.Repeat("a", maxLabelLen)}},
+		input("x", "", "", []string{strings.Repeat("a", maxLabelLen)}),
 	)
 	assert.NoError(t, err)
-	_, err = normalise(TaskInput{
-		Title: "x", Labels: []string{strings.Repeat("a", maxLabelLen+1)},
-	})
+	_, err = normalise(input("x", "", "", []string{strings.Repeat("a", maxLabelLen+1)}))
 	assert.Equal(t, http.StatusBadRequest, status(t, err))
 }
 
@@ -76,9 +79,9 @@ func TestNormaliseLabelCountBounds(t *testing.T) {
 		}
 		return out
 	}
-	_, err := normalise(TaskInput{Title: "x", Labels: labels(maxLabels)})
+	_, err := normalise(input("x", "", "", labels(maxLabels)))
 	assert.NoError(t, err)
-	_, err = normalise(TaskInput{Title: "x", Labels: labels(maxLabels + 1)})
+	_, err = normalise(input("x", "", "", labels(maxLabels+1)))
 	assert.Equal(t, http.StatusBadRequest, status(t, err))
 }
 

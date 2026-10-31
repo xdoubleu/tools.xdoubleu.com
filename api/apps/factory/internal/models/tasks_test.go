@@ -35,8 +35,16 @@ func TestActorString(t *testing.T) {
 }
 
 func TestActorChannel(t *testing.T) {
-	assert.Equal(t, "browser", models.Actor{Browser: true}.Channel())
-	assert.Equal(t, "other", models.Actor{Browser: false}.Channel())
+	assert.Equal(
+		t,
+		"browser",
+		models.Actor{Kind: "", ID: "", Browser: true, Admin: false}.Channel(),
+	)
+	assert.Equal(
+		t,
+		"other",
+		models.Actor{Kind: "", ID: "", Browser: false, Admin: false}.Channel(),
+	)
 }
 
 func TestCanMoveToReadyNeedsHumanAdminInBrowser(t *testing.T) {

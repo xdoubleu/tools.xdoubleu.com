@@ -59,42 +59,72 @@ func parseID(id string) (uuid.UUID, error) {
 	return parsed, nil
 }
 
-var statusToProto = map[models.Status]factoryv1.TaskStatus{
-	models.StatusBacklog:    factoryv1.TaskStatus_TASK_STATUS_BACKLOG,
-	models.StatusReady:      factoryv1.TaskStatus_TASK_STATUS_READY,
-	models.StatusInProgress: factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS,
-	models.StatusInReview:   factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW,
-	models.StatusNeedsYou:   factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU,
-	models.StatusDone:       factoryv1.TaskStatus_TASK_STATUS_DONE,
-}
-
-var priorityToProto = map[models.Priority]factoryv1.TaskPriority{
-	models.PriorityP0: factoryv1.TaskPriority_TASK_PRIORITY_P0,
-	models.PriorityP1: factoryv1.TaskPriority_TASK_PRIORITY_P1,
-	models.PriorityP2: factoryv1.TaskPriority_TASK_PRIORITY_P2,
+func statusToProto(s models.Status) factoryv1.TaskStatus {
+	switch s {
+	case models.StatusBacklog:
+		return factoryv1.TaskStatus_TASK_STATUS_BACKLOG
+	case models.StatusReady:
+		return factoryv1.TaskStatus_TASK_STATUS_READY
+	case models.StatusInProgress:
+		return factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS
+	case models.StatusInReview:
+		return factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW
+	case models.StatusNeedsYou:
+		return factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU
+	case models.StatusDone:
+		return factoryv1.TaskStatus_TASK_STATUS_DONE
+	}
+	return factoryv1.TaskStatus_TASK_STATUS_UNSPECIFIED
 }
 
 // statusFromProto maps an unknown or unspecified status to "", which the
 // service rejects.
 func statusFromProto(s factoryv1.TaskStatus) models.Status {
-	for k, v := range statusToProto {
-		if v == s {
-			return k
-		}
+	switch s {
+	case factoryv1.TaskStatus_TASK_STATUS_BACKLOG:
+		return models.StatusBacklog
+	case factoryv1.TaskStatus_TASK_STATUS_READY:
+		return models.StatusReady
+	case factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS:
+		return models.StatusInProgress
+	case factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW:
+		return models.StatusInReview
+	case factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU:
+		return models.StatusNeedsYou
+	case factoryv1.TaskStatus_TASK_STATUS_DONE:
+		return models.StatusDone
+	case factoryv1.TaskStatus_TASK_STATUS_UNSPECIFIED:
+		return ""
 	}
 	return ""
+}
+
+func priorityToProto(p models.Priority) factoryv1.TaskPriority {
+	switch p {
+	case models.PriorityP0:
+		return factoryv1.TaskPriority_TASK_PRIORITY_P0
+	case models.PriorityP1:
+		return factoryv1.TaskPriority_TASK_PRIORITY_P1
+	case models.PriorityP2:
+		return factoryv1.TaskPriority_TASK_PRIORITY_P2
+	case models.PriorityInvalid:
+		return factoryv1.TaskPriority_TASK_PRIORITY_UNSPECIFIED
+	}
+	return factoryv1.TaskPriority_TASK_PRIORITY_UNSPECIFIED
 }
 
 // priorityFromProto maps unspecified to "", which the service defaults on
 // create, and an unknown value to one the service rejects.
 func priorityFromProto(p factoryv1.TaskPriority) models.Priority {
-	if p == factoryv1.TaskPriority_TASK_PRIORITY_UNSPECIFIED {
+	switch p {
+	case factoryv1.TaskPriority_TASK_PRIORITY_P0:
+		return models.PriorityP0
+	case factoryv1.TaskPriority_TASK_PRIORITY_P1:
+		return models.PriorityP1
+	case factoryv1.TaskPriority_TASK_PRIORITY_P2:
+		return models.PriorityP2
+	case factoryv1.TaskPriority_TASK_PRIORITY_UNSPECIFIED:
 		return ""
-	}
-	for k, v := range priorityToProto {
-		if v == p {
-			return k
-		}
 	}
 	return models.PriorityInvalid
 }
@@ -104,8 +134,8 @@ func protoTask(t *models.Task) *factoryv1.Task {
 		Id:           t.ID.String(),
 		Title:        t.Title,
 		Body:         t.Body,
-		Status:       statusToProto[t.Status],
-		Priority:     priorityToProto[t.Priority],
+		Status:       statusToProto(t.Status),
+		Priority:     priorityToProto(t.Priority),
 		Labels:       t.Labels,
 		CreatedBy:    t.CreatedBy,
 		CreatedAt:    t.CreatedAt.Format(time.RFC3339),

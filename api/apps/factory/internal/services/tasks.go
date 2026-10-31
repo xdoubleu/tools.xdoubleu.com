@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -122,7 +123,16 @@ func (s *TaskService) Create(
 		return nil, err
 	}
 	return s.repo.Create(ctx, models.Task{
-		Title: in.Title, Body: in.Body, Priority: in.Priority, Labels: in.Labels,
+		ID:           uuid.Nil,
+		Title:        in.Title,
+		Body:         in.Body,
+		Status:       models.StatusBacklog,
+		Priority:     in.Priority,
+		Labels:       in.Labels,
+		CreatedBy:    "",
+		CreatedAt:    time.Time{},
+		UpdatedAt:    time.Time{},
+		CommentCount: 0,
 	}, actor)
 }
 
@@ -138,8 +148,16 @@ func (s *TaskService) Update(
 		return nil, err
 	}
 	return s.repo.Update(ctx, models.Task{
-		ID: id, Title: in.Title, Body: in.Body,
-		Priority: in.Priority, Labels: in.Labels,
+		ID:           id,
+		Title:        in.Title,
+		Body:         in.Body,
+		Status:       "",
+		Priority:     in.Priority,
+		Labels:       in.Labels,
+		CreatedBy:    "",
+		CreatedAt:    time.Time{},
+		UpdatedAt:    time.Time{},
+		CommentCount: 0,
 	}, actor)
 }
 

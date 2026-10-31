@@ -15,6 +15,7 @@ func NewMockedAuthService(userID string) auth.Service {
 	return &MockedAuthService{
 		userID:  userID,
 		isAdmin: false,
+		channel: "",
 	}
 }
 
@@ -22,6 +23,7 @@ func NewMockedAdminAuthService(userID string) auth.Service {
 	return &MockedAuthService{
 		userID:  userID,
 		isAdmin: true,
+		channel: "",
 	}
 }
 

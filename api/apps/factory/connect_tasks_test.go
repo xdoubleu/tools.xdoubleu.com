@@ -17,12 +17,11 @@ import (
 func create(
 	t *testing.T,
 	c factoryv1connect.TaskServiceClient,
-	title string,
 ) *factoryv1.Task {
 	t.Helper()
 	resp, err := c.CreateTask(
 		context.Background(),
-		&factoryv1.CreateTaskRequest{Title: title, Body: "body of " + title},
+		&factoryv1.CreateTaskRequest{Title: "one", Body: "body of one"},
 	)
 	require.NoError(t, err)
 	return resp.Task
@@ -84,7 +83,7 @@ func TestCreateValidation(t *testing.T) {
 
 func TestListOmitsBodyGetKeepsIt(t *testing.T) {
 	c := browserClient(t)
-	task := create(t, c, "one")
+	task := create(t, c)
 
 	list, err := c.ListTasks(context.Background(), &factoryv1.ListTasksRequest{})
 	require.NoError(t, err)
@@ -98,7 +97,7 @@ func TestListOmitsBodyGetKeepsIt(t *testing.T) {
 
 func TestUpdateReplacesFields(t *testing.T) {
 	c := browserClient(t)
-	task := create(t, c, "one")
+	task := create(t, c)
 
 	resp, err := c.UpdateTask(context.Background(), &factoryv1.UpdateTaskRequest{
 		Id: task.Id, Title: "two", Body: "new", Labels: []string{"x"},
@@ -113,7 +112,7 @@ func TestUpdateReplacesFields(t *testing.T) {
 
 func TestUpdateRecordsBodyEditorOnlyOnBodyChange(t *testing.T) {
 	c := browserClient(t)
-	task := create(t, c, "one")
+	task := create(t, c)
 	read := func() (string, string) {
 		var by, via string
 		require.NoError(t, testDB.QueryRow(context.Background(),
@@ -149,7 +148,7 @@ func TestUpdateRecordsBodyEditorOnlyOnBodyChange(t *testing.T) {
 
 func TestMoveBetweenColumns(t *testing.T) {
 	c := browserClient(t)
-	task := create(t, c, "one")
+	task := create(t, c)
 
 	for _, s := range []factoryv1.TaskStatus{
 		factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS,
@@ -166,7 +165,7 @@ func TestMoveBetweenColumns(t *testing.T) {
 
 func TestMoveRejectsUnspecifiedStatus(t *testing.T) {
 	c := browserClient(t)
-	task := create(t, c, "one")
+	task := create(t, c)
 
 	_, err := move(c, task.Id, factoryv1.TaskStatus_TASK_STATUS_UNSPECIFIED)
 	assert.Equal(t, connect.CodeInvalidArgument, code(err))
@@ -174,7 +173,7 @@ func TestMoveRejectsUnspecifiedStatus(t *testing.T) {
 
 func TestReadyAllowedForAdminInBrowser(t *testing.T) {
 	c := browserClient(t)
-	task := create(t, c, "one")
+	task := create(t, c)
 
 	moved, err := move(c, task.Id, factoryv1.TaskStatus_TASK_STATUS_READY)
 	require.NoError(t, err)
@@ -183,7 +182,7 @@ func TestReadyAllowedForAdminInBrowser(t *testing.T) {
 
 func TestReadyDeniedOverMCP(t *testing.T) {
 	browser := browserClient(t)
-	task := create(t, browser, "one")
+	task := create(t, browser)
 	mcp := newClientKeepingBoard(t, true, constants.ChannelMCP)
 
 	_, err := move(mcp, task.Id, factoryv1.TaskStatus_TASK_STATUS_READY)
@@ -197,7 +196,7 @@ func TestReadyDeniedOverMCP(t *testing.T) {
 
 func TestReadyDeniedWithoutChannel(t *testing.T) {
 	browser := browserClient(t)
-	task := create(t, browser, "one")
+	task := create(t, browser)
 	unknown := newClientKeepingBoard(t, true, "carrier-pigeon")
 
 	_, err := move(unknown, task.Id, factoryv1.TaskStatus_TASK_STATUS_READY)
@@ -206,7 +205,7 @@ func TestReadyDeniedWithoutChannel(t *testing.T) {
 
 func TestNonAdminDeniedEverywhere(t *testing.T) {
 	admin := browserClient(t)
-	task := create(t, admin, "one")
+	task := create(t, admin)
 	user := newClientKeepingBoard(t, false, constants.ChannelBrowser)
 	ctx := context.Background()
 
@@ -226,7 +225,7 @@ func TestNonAdminDeniedEverywhere(t *testing.T) {
 
 func TestCommentsAppearOnGetInOrder(t *testing.T) {
 	c := browserClient(t)
-	task := create(t, c, "one")
+	task := create(t, c)
 	ctx := context.Background()
 
 	for _, body := range []string{"first", "  second  "} {
@@ -247,7 +246,7 @@ func TestCommentsAppearOnGetInOrder(t *testing.T) {
 
 func TestCommentValidation(t *testing.T) {
 	c := browserClient(t)
-	task := create(t, c, "one")
+	task := create(t, c)
 	ctx := context.Background()
 
 	_, err := c.AddComment(ctx, &factoryv1.AddCommentRequest{TaskId: task.Id, Body: " "})
