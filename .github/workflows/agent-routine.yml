@@ -155,6 +155,14 @@ jobs:
             && mkdir -p ~/.local/bin \
             && ln -sf ~/.local/sqlfluff/bin/sqlfluff ~/.local/bin/sqlfluff'
 
+      # So routines verify Go lint fixes without a per-run source compile.
+      # The version is read from api/Makefile, the single pin.
+      - name: Install golangci-lint for the sandbox
+        run: |
+          v=$(sed -n 's|.*golangci-lint/v2/cmd/golangci-lint@||p' api/Makefile | head -n1)
+          test -n "$v"
+          routine-sandbox go install "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$v"
+
       - name: Mint MCP token (client_credentials)
         id: mcp-token
         env:
