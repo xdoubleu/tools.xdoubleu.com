@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -72,12 +73,13 @@ export default function TaskDetail({ id, onClose }: TaskDetailProps) {
       <DialogContent side="sheet" className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{task?.title ?? 'Task'}</DialogTitle>
-          <DialogDescription>
-            {task
-              ? `${statusLabel(task.status)} · ${actorLabel(task.createdBy, agents)}`
-              : 'Task details'}
-          </DialogDescription>
+          <DialogClose />
         </DialogHeader>
+        <DialogDescription className="mb-4">
+          {task
+            ? `${statusLabel(task.status)} · ${actorLabel(task.createdBy, agents)}`
+            : 'Task details'}
+        </DialogDescription>
         {error && !data && <ErrorState what="the task" />}
         {isLoading && !data && <LoadingState label="task" />}
         {task && data && (

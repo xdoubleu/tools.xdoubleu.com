@@ -6,6 +6,7 @@ import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -86,12 +87,13 @@ export default function AgentDialog({ onClose }: { onClose: () => void }) {
       <DialogContent side="sheet" className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{created ? 'Agent created' : 'New agent'}</DialogTitle>
-          <DialogDescription>
-            {created
-              ? 'Use these credentials in the agent’s headersHelper.'
-              : 'An agent works on the board under its own account, never as you.'}
-          </DialogDescription>
+          <DialogClose />
         </DialogHeader>
+        <DialogDescription className="mb-4">
+          {created
+            ? 'Use these credentials in the agent’s headersHelper.'
+            : 'An agent works on the board under its own account, never as you.'}
+        </DialogDescription>
         {created ? (
           <Credentials created={created} onDone={onClose} />
         ) : (

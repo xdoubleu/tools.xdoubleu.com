@@ -212,4 +212,12 @@ describe('TaskDetail', () => {
     expect(screen.getByText('In review · Overnight agent')).toBeInTheDocument()
     expect(screen.getByText('Overnight agent', { selector: 'p' })).toBeInTheDocument()
   })
+
+  it('closes from the close button', () => {
+    mockTask({ data: detail })
+    const onClose = vi.fn()
+    render(<TaskDetail id="t-1" onClose={onClose} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(onClose).toHaveBeenCalled()
+  })
 })

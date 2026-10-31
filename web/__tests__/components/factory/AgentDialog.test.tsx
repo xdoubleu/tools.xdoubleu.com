@@ -160,4 +160,11 @@ describe('AgentDialog', () => {
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(2)
   })
+
+  it('closes from the close button', () => {
+    const onClose = vi.fn()
+    render(<AgentDialog onClose={onClose} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(onClose).toHaveBeenCalled()
+  })
 })
