@@ -180,4 +180,13 @@ describe('TaskDetail', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Comment' }))
     await waitFor(() => expect(screen.queryByText(/Couldn.t post/)).not.toBeInTheDocument())
   })
+
+  it('handles the comment form submit itself, without a page reload', () => {
+    mockTask({ data: detail })
+    render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+    const form = screen.getByLabelText('Add a comment').closest('form')
+    if (!form) throw new Error('no form')
+    // fireEvent returns false when the handler called preventDefault.
+    expect(fireEvent.submit(form)).toBe(false)
+  })
 })

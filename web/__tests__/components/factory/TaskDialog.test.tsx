@@ -169,4 +169,12 @@ describe('TaskDialog', () => {
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     expect(onClose).toHaveBeenCalled()
   })
+
+  it('handles the form submit itself, without a page reload', () => {
+    render(<TaskDialog onClose={vi.fn()} />)
+    const form = screen.getByLabelText('Title').closest('form')
+    if (!form) throw new Error('no form')
+    // fireEvent returns false when the handler called preventDefault.
+    expect(fireEvent.submit(form)).toBe(false)
+  })
 })

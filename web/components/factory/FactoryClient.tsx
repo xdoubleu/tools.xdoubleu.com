@@ -15,8 +15,6 @@ export default function FactoryClient() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
 
-  const columns = data ? groupByStatus(data.tasks) : []
-
   return (
     <PageContainer>
       <PageHeader
@@ -27,7 +25,7 @@ export default function FactoryClient() {
       {isLoading && !data && <LoadingState label="board" />}
       {data && (
         <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 xl:mx-0 xl:grid xl:grid-cols-6 xl:overflow-visible xl:px-0">
-          {columns.map((column) => (
+          {groupByStatus(data.tasks).map((column) => (
             <section
               key={column.status}
               aria-label={column.label}
