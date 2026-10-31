@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -140,4 +141,43 @@ func TestBoundToolCallsKeepsRequestDeadline(t *testing.T) {
 	assert.True(t, res.IsError)
 	assert.Contains(t, logs.String(), "tool=the_tool")
 	assert.Contains(t, logs.String(), "expired=true")
+}
+
+func toolDurationCount(t *testing.T, tool, outcome string) uint64 {
+	t.Helper()
+	families, err := prometheus.DefaultGatherer.Gather()
+	require.NoError(t, err)
+	for _, mf := range families {
+		if mf.GetName() != "mcp_tool_duration_seconds" {
+			continue
+		}
+		for _, m := range mf.GetMetric() {
+			labels := map[string]string{}
+			for _, l := range m.GetLabel() {
+				labels[l.GetName()] = l.GetValue()
+			}
+			if labels["tool"] == tool && labels["outcome"] == outcome {
+				return m.GetHistogram().GetSampleCount()
+			}
+		}
+	}
+	return 0
+}
+
+// Every tool call is observed, below the slow threshold too, split by outcome.
+func TestBoundToolCallsObservesDuration(t *testing.T) {
+	var logs bytes.Buffer
+	failing := func(
+		context.Context, *mcp.CallToolRequest, NoArgs,
+	) (*mcp.CallToolResult, any, error) {
+		return nil, nil, errors.New("boom")
+	}
+	okBefore := toolDurationCount(t, "the_tool", "ok")
+	errBefore := toolDurationCount(t, "the_tool", "error")
+
+	callTool(t, inMemorySession(t, toolServer(&logs, time.Hour, time.Second, instant)))
+	callTool(t, inMemorySession(t, toolServer(&logs, time.Hour, time.Second, failing)))
+
+	assert.Equal(t, okBefore+1, toolDurationCount(t, "the_tool", "ok"))
+	assert.Equal(t, errBefore+1, toolDurationCount(t, "the_tool", "error"))
 }

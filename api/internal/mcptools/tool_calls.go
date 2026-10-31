@@ -8,7 +8,32 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
+
+// toolDuration times tool-call execution on its own: the request-latency
+// metric for POST /apps/mcp measures the same wait, but per route, not tool.
+//
+//nolint:gochecknoglobals //Prometheus collectors are process-wide by design
+var toolDuration = promauto.NewHistogramVec(
+	prometheus.HistogramOpts{
+		Name:    "mcp_tool_duration_seconds",
+		Help:    "Duration of MCP tool calls.",
+		Buckets: []float64{0.1, 0.5, 1, 2.5, 5, 10, 20, 30},
+	},
+	[]string{"tool", "outcome"},
+)
+
+func toolOutcome(res mcp.Result, err error) string {
+	if err != nil {
+		return "error"
+	}
+	if r, ok := res.(*mcp.CallToolResult); ok && r != nil && r.IsError {
+		return "error"
+	}
+	return "ok"
+}
 
 const (
 	// slowCallThreshold matches Grafana's RequestP95High threshold.
@@ -61,7 +86,10 @@ func boundToolCalls(
 
 			start := time.Now()
 			res, err := next(ctx, method, req)
-			if took := time.Since(start); took >= threshold {
+			took := time.Since(start)
+			toolDuration.WithLabelValues(call.Params.Name, toolOutcome(res, err)).
+				Observe(took.Seconds())
+			if took >= threshold {
 				logger.WarnContext(ctx, "slow MCP tool call",
 					slog.String("tool", call.Params.Name),
 					slog.Duration("duration", took),

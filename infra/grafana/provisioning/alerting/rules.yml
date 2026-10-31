@@ -353,7 +353,10 @@ groups:
       # page whose aggregate p95 sits just over 1s is dominated by device mix
       # and cold-Node loads, so a <2s recent p95 reads as artifact even at a 2x
       # trend. The gauge already omits transactions with too few requests in
-      # either week (Trends). No notify label: the nightly sweep picks it up.
+      # either week (Trends). POST /apps/mcp is excluded: its p95 is tool-call
+      # execution time, up to LongRequestBudget by design (see
+      # mcp_tool_duration_seconds). No notify label: the nightly sweep picks it
+      # up.
       - uid: transaction-latency-regression
         title: TransactionLatencyRegression
         condition: C
@@ -377,9 +380,13 @@ groups:
               refId: A
               instant: true
               expr: >-
-                transaction_p95_seconds{window="recent"}
-                / ignoring(window) transaction_p95_seconds{window="prior"} >= 2
-                and ignoring(window) transaction_p95_seconds{window="recent"} >= 2
+                transaction_p95_seconds{window="recent", transaction!="POST /apps/mcp"}
+                / ignoring(window)
+                transaction_p95_seconds{window="prior", transaction!="POST /apps/mcp"}
+                >= 2
+                and ignoring(window)
+                transaction_p95_seconds{window="recent", transaction!="POST /apps/mcp"}
+                >= 2
           - refId: C
             datasourceUid: __expr__
             model:
