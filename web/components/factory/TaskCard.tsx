@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import { Code, ConnectError } from '@connectrpc/connect'
-import { TaskPriority, type Task, type TaskStatus } from '@/lib/gen/factory/v1/factory_pb'
-import { COLUMNS, priorityLabel } from '@/lib/factory/board'
+import {
+  TaskPriority,
+  type Repo,
+  type Task,
+  type TaskStatus
+} from '@/lib/gen/factory/v1/factory_pb'
+import { COLUMNS, priorityLabel, repoLabel } from '@/lib/factory/board'
 import { useFactoryActions } from '@/hooks/useFactory'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,6 +21,8 @@ const PRIORITY_VARIANT: Partial<Record<TaskPriority, 'danger' | 'warn' | 'second
 
 interface TaskCardProps {
   task: Task
+  /** Shown on the card when the board mixes several repos. */
+  repo?: Repo
   onOpen: (id: string) => void
 }
 
@@ -59,7 +66,7 @@ export function MoveSelect({ task }: { task: Task }) {
   )
 }
 
-export default function TaskCard({ task, onOpen }: TaskCardProps) {
+export default function TaskCard({ task, repo, onOpen }: TaskCardProps) {
   return (
     <Card variant="inset" className="space-y-2">
       <Button
@@ -69,6 +76,7 @@ export default function TaskCard({ task, onOpen }: TaskCardProps) {
       >
         {task.title}
       </Button>
+      {repo && <p className="break-words text-xs text-muted">{repoLabel(repo)}</p>}
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant={PRIORITY_VARIANT[task.priority] ?? 'secondary'}>
           {priorityLabel(task.priority)}

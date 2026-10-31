@@ -132,6 +132,7 @@ func priorityFromProto(p factoryv1.TaskPriority) models.Priority {
 func protoTask(t *models.Task) *factoryv1.Task {
 	return &factoryv1.Task{
 		Id:           t.ID.String(),
+		RepoId:       t.RepoID.String(),
 		Title:        t.Title,
 		Body:         t.Body,
 		Status:       statusToProto(t.Status),
@@ -201,7 +202,11 @@ func (h *taskConnectHandler) CreateTask(
 	if err != nil {
 		return nil, err
 	}
-	task, err := h.app.services.Tasks.Create(ctx, actor, services.TaskInput{
+	repoID, err := parseID(req.RepoId)
+	if err != nil {
+		return nil, err
+	}
+	task, err := h.app.services.Tasks.Create(ctx, actor, repoID, services.TaskInput{
 		Title:    req.Title,
 		Body:     req.Body,
 		Priority: priorityFromProto(req.Priority),

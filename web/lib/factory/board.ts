@@ -1,4 +1,11 @@
-import { TaskPriority, TaskStatus, type Task } from '@/lib/gen/factory/v1/factory_pb'
+import {
+  Harness,
+  TaskPriority,
+  TaskStatus,
+  type ListReposResponse,
+  type Repo,
+  type Task
+} from '@/lib/gen/factory/v1/factory_pb'
 
 export const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: TaskStatus.BACKLOG, label: 'Backlog' },
@@ -36,4 +43,27 @@ export function parseLabels(input: string): string[] {
     .split(',')
     .map((l) => l.trim())
     .filter((l) => l !== '')
+}
+
+export const HARNESSES: { harness: Harness; label: string }[] = [
+  { harness: Harness.CLAUDE_CODE, label: 'Claude Code' },
+  { harness: Harness.OPENCODE, label: 'OpenCode' }
+]
+
+export function harnessLabel(harness: Harness): string {
+  return HARNESSES.find((h) => h.harness === harness)?.label ?? 'Unknown'
+}
+
+export function repoLabel(repo: Repo): string {
+  return `${repo.owner}/${repo.name}`
+}
+
+/** Tasks of one repo; an empty id keeps them all. */
+export function filterByRepo(tasks: Task[], repoId: string): Task[] {
+  return repoId === '' ? tasks : tasks.filter((t) => t.repoId === repoId)
+}
+
+/** The repos in a list response, none while it hasn't loaded. */
+export function reposOf(data: ListReposResponse | undefined): Repo[] {
+  return data?.repos ?? []
 }

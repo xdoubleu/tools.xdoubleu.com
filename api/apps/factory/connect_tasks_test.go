@@ -14,6 +14,17 @@ import (
 	"tools.xdoubleu.com/internal/constants"
 )
 
+// seededRepoID is the repo the migration seeds, which tasks default to here.
+func seededRepoID(t *testing.T) string {
+	t.Helper()
+	var id string
+	err := testDB.QueryRow(context.Background(), `
+		SELECT id::text FROM factory.repos
+		WHERE owner = 'xdoubleu' AND name = 'tools.xdoubleu.com'`).Scan(&id)
+	require.NoError(t, err)
+	return id
+}
+
 func create(
 	t *testing.T,
 	c factoryv1connect.TaskServiceClient,
@@ -21,7 +32,9 @@ func create(
 	t.Helper()
 	resp, err := c.CreateTask(
 		context.Background(),
-		&factoryv1.CreateTaskRequest{Title: "one", Body: "body of one"},
+		&factoryv1.CreateTaskRequest{
+			Title: "one", Body: "body of one", RepoId: seededRepoID(t),
+		},
 	)
 	require.NoError(t, err)
 	return resp.Task
@@ -45,13 +58,16 @@ func move(
 func TestCreateStartsInBacklogWithDefaults(t *testing.T) {
 	c := browserClient(t)
 
+	repoID := seededRepoID(t)
 	resp, err := c.CreateTask(context.Background(), &factoryv1.CreateTaskRequest{
 		Title:  "  Fix the thing  ",
 		Labels: []string{"bug", " bug ", "", "ui"},
+		RepoId: repoID,
 	})
 	require.NoError(t, err)
 
 	task := resp.Task
+	assert.Equal(t, repoID, task.RepoId)
 	assert.Equal(t, "Fix the thing", task.Title)
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, task.Status)
 	assert.Equal(t, factoryv1.TaskPriority_TASK_PRIORITY_P2, task.Priority)
@@ -75,10 +91,38 @@ func TestCreateValidation(t *testing.T) {
 		"bad priority": {Title: "x", Priority: 99},
 	} {
 		t.Run(name, func(t *testing.T) {
+			req.RepoId = seededRepoID(t)
 			_, err := c.CreateTask(context.Background(), req)
 			assert.Equal(t, connect.CodeInvalidArgument, code(err))
 		})
 	}
+}
+
+func TestCreateNeedsAKnownRepo(t *testing.T) {
+	c := browserClient(t)
+	ctx := context.Background()
+
+	_, err := c.CreateTask(ctx, &factoryv1.CreateTaskRequest{Title: "x"})
+	assert.Equal(t, connect.CodeInvalidArgument, code(err), "no repo")
+
+	_, err = c.CreateTask(ctx, &factoryv1.CreateTaskRequest{Title: "x", RepoId: "nope"})
+	assert.Equal(t, connect.CodeInvalidArgument, code(err), "malformed repo id")
+
+	_, err = c.CreateTask(ctx, &factoryv1.CreateTaskRequest{
+		Title: "x", RepoId: "00000000-0000-0000-0000-000000000000",
+	})
+	assert.Equal(t, connect.CodeNotFound, code(err), "unknown repo")
+}
+
+func TestUpdateKeepsTheRepo(t *testing.T) {
+	c := browserClient(t)
+	task := create(t, c)
+
+	resp, err := c.UpdateTask(context.Background(), &factoryv1.UpdateTaskRequest{
+		Id: task.Id, Title: "renamed",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, task.RepoId, resp.Task.RepoId)
 }
 
 func TestListOmitsBodyGetKeepsIt(t *testing.T) {

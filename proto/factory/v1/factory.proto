@@ -19,6 +19,12 @@ enum TaskPriority {
   TASK_PRIORITY_P2 = 3;
 }
 
+enum Harness {
+  HARNESS_UNSPECIFIED = 0;
+  HARNESS_CLAUDE_CODE = 1;
+  HARNESS_OPENCODE = 2;
+}
+
 message Task {
   string id = 1;
   string title = 2;
@@ -32,6 +38,7 @@ message Task {
   string created_at = 8;
   string updated_at = 9;
   int32 comment_count = 10;
+  string repo_id = 11;
 }
 
 message Comment {
@@ -56,12 +63,13 @@ message GetTaskResponse {
   repeated Comment comments = 2;
 }
 
-// New tasks always start in Backlog.
+// New tasks always start in Backlog. The repo can't change afterwards.
 message CreateTaskRequest {
   string title = 1;
   string body = 2;
   TaskPriority priority = 3;
   repeated string labels = 4;
+  string repo_id = 5;
 }
 message CreateTaskResponse {
   Task task = 1;
@@ -104,4 +112,44 @@ service TaskService {
   rpc UpdateTask(UpdateTaskRequest) returns (UpdateTaskResponse);
   rpc MoveTask(MoveTaskRequest) returns (MoveTaskResponse);
   rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
+}
+
+message Repo {
+  string id = 1;
+  string owner = 2;
+  string name = 3;
+  string default_branch = 4;
+  Harness default_harness = 5;
+  // Free text, run in the sandbox before the agent.
+  string setup_commands = 6;
+  // Free text added to every prompt for this repo.
+  string agent_instructions = 7;
+  int32 time_limit_minutes = 8;
+}
+
+message ListReposRequest {}
+message ListReposResponse {
+  repeated Repo repos = 1;
+}
+
+// The id is ignored on create.
+message CreateRepoRequest {
+  Repo repo = 1;
+}
+message CreateRepoResponse {
+  Repo repo = 1;
+}
+
+// Replaces every field except the id.
+message UpdateRepoRequest {
+  Repo repo = 1;
+}
+message UpdateRepoResponse {
+  Repo repo = 1;
+}
+
+service RepoService {
+  rpc ListRepos(ListReposRequest) returns (ListReposResponse);
+  rpc CreateRepo(CreateRepoRequest) returns (CreateRepoResponse);
+  rpc UpdateRepo(UpdateRepoRequest) returns (UpdateRepoResponse);
 }

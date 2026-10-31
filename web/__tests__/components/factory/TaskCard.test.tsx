@@ -9,7 +9,7 @@ vi.mock('@/hooks/useFactory', () => ({
 }))
 
 import TaskCard from '@/components/factory/TaskCard'
-import { TaskPriority, TaskSchema, TaskStatus } from '@/lib/gen/factory/v1/factory_pb'
+import { RepoSchema, TaskPriority, TaskSchema, TaskStatus } from '@/lib/gen/factory/v1/factory_pb'
 
 const task = create(TaskSchema, {
   id: 't-1',
@@ -100,5 +100,19 @@ describe('TaskCard', () => {
     await screen.findByRole('alert')
     fireEvent.change(select, { target: { value: String(TaskStatus.DONE) } })
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+  })
+
+  it('names the repo only when one is given', () => {
+    const { rerender } = render(<TaskCard task={task} onOpen={vi.fn()} />)
+    expect(screen.queryByText('octo/cat')).not.toBeInTheDocument()
+
+    rerender(
+      <TaskCard
+        task={task}
+        repo={create(RepoSchema, { owner: 'octo', name: 'cat' })}
+        onOpen={vi.fn()}
+      />
+    )
+    expect(screen.getByText('octo/cat')).toBeInTheDocument()
   })
 })

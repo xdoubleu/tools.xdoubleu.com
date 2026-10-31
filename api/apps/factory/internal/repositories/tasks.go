@@ -18,18 +18,18 @@ type rowScanner interface {
 }
 
 // listColumns leaves out body: list rows never carry the wide column.
-const listColumns = `id, title, '', status, priority, labels, created_by,
+const listColumns = `id, repo_id, title, '', status, priority, labels, created_by,
 	created_at, updated_at,
 	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id)`
 
-const getColumns = `id, title, body, status, priority, labels, created_by,
+const getColumns = `id, repo_id, title, body, status, priority, labels, created_by,
 	created_at, updated_at,
 	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id)`
 
 func scanTask(row rowScanner) (*models.Task, error) {
 	var t models.Task
 	err := row.Scan(
-		&t.ID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Labels,
+		&t.ID, &t.RepoID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Labels,
 		&t.CreatedBy, &t.CreatedAt, &t.UpdatedAt, &t.CommentCount,
 	)
 	if err != nil {
@@ -74,13 +74,14 @@ func (r *TasksRepository) Create(
 	return scanTask(r.db.QueryRow(ctx, `
 		WITH t AS (
 			INSERT INTO factory.tasks
-				(title, body, priority, labels, created_by, body_edited_by,
-				 body_edited_channel)
-			VALUES ($1, $2, $3, $4, $5, $5, $6)
+				(repo_id, title, body, priority, labels, created_by,
+				 body_edited_by, body_edited_channel)
+			VALUES ($1, $2, $3, $4, $5, $6, $6, $7)
 			RETURNING *
 		)
 		SELECT `+getColumns+` FROM t`,
-		t.Title, t.Body, t.Priority, t.Labels, actor.String(), actor.Channel(),
+		t.RepoID, t.Title, t.Body, t.Priority, t.Labels, actor.String(),
+		actor.Channel(),
 	))
 }
 

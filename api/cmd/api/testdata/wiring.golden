@@ -119,6 +119,10 @@ POST /dashboard.v1.PublicReadingDashboardService/: 404, 404
 POST /dashboard.v1.PublicReadingDashboardService/GetSharedBooksProgress: 415, 415
 POST /dashboard.v1.PublicReadingDashboardService/GetSharedFeedsSummary: 415, 415
 POST /dashboard.v1.PublicReadingDashboardService/GetSharedLibrary: 415, 415
+POST /factory.v1.RepoService/: 401, 403
+POST /factory.v1.RepoService/CreateRepo: 401, 403
+POST /factory.v1.RepoService/ListRepos: 401, 403
+POST /factory.v1.RepoService/UpdateRepo: 401, 403
 POST /factory.v1.TaskService/: 401, 403
 POST /factory.v1.TaskService/AddComment: 401, 403
 POST /factory.v1.TaskService/CreateTask: 401, 403

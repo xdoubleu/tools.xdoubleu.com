@@ -115,6 +115,7 @@ export const swrKeys = {
   podcastsSearch: (query: string) => ['/podcasts/search', query] as const,
 
   factoryTasks: '/factory/tasks',
+  factoryRepos: '/factory/repos',
   factoryTask: (id: string) => ['/factory/task', id] as const,
 
   tasteStats: (shared = false) => `/taste/stats${shared ? '/shared' : ''}`,

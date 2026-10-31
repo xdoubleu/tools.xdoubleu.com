@@ -1,10 +1,22 @@
 import { create } from '@bufbuild/protobuf'
-import { TaskPriority, TaskSchema, TaskStatus } from '@/lib/gen/factory/v1/factory_pb'
+import {
+  Harness,
+  ListReposResponseSchema,
+  RepoSchema,
+  TaskPriority,
+  TaskSchema,
+  TaskStatus
+} from '@/lib/gen/factory/v1/factory_pb'
 import {
   COLUMNS,
+  HARNESSES,
+  filterByRepo,
   groupByStatus,
+  harnessLabel,
   parseLabels,
   priorityLabel,
+  repoLabel,
+  reposOf,
   statusLabel
 } from '@/lib/factory/board'
 
@@ -45,5 +57,32 @@ describe('board', () => {
   it('splits labels on commas, trimming and dropping blanks', () => {
     expect(parseLabels(' bug, ui ,, ')).toEqual(['bug', 'ui'])
     expect(parseLabels('')).toEqual([])
+  })
+
+  it('labels harnesses, with a fallback for unknown ones', () => {
+    expect(HARNESSES.map((h) => h.label)).toEqual(['Claude Code', 'OpenCode'])
+    expect(harnessLabel(Harness.CLAUDE_CODE)).toBe('Claude Code')
+    expect(harnessLabel(Harness.OPENCODE)).toBe('OpenCode')
+    expect(harnessLabel(Harness.UNSPECIFIED)).toBe('Unknown')
+  })
+
+  it('names a repo owner/name', () => {
+    expect(repoLabel(create(RepoSchema, { owner: 'octo', name: 'cat' }))).toBe('octo/cat')
+  })
+
+  it('filters tasks by repo, keeping all for an empty id', () => {
+    const tasks = [
+      create(TaskSchema, { id: 'a', repoId: 'r1' }),
+      create(TaskSchema, { id: 'b', repoId: 'r2' })
+    ]
+    expect(filterByRepo(tasks, '')).toBe(tasks)
+    expect(filterByRepo(tasks, 'r2').map((t) => t.id)).toEqual(['b'])
+    expect(filterByRepo(tasks, 'nope')).toEqual([])
+  })
+
+  it('reads the repos of a response, and none before it loads', () => {
+    const repo = create(RepoSchema, { id: 'r1' })
+    expect(reposOf(create(ListReposResponseSchema, { repos: [repo] }))).toEqual([repo])
+    expect(reposOf(undefined)).toEqual([])
   })
 })

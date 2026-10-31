@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file factory/v1/factory.proto.
  */
 export const file_factory_v1_factory: GenFile = /*@__PURE__*/
-  fileDesc("ChhmYWN0b3J5L3YxL2ZhY3RvcnkucHJvdG8SCmZhY3RvcnkudjEi5gEKBFRhc2sSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDAoEYm9keRgDIAEoCRImCgZzdGF0dXMYBCABKA4yFi5mYWN0b3J5LnYxLlRhc2tTdGF0dXMSKgoIcHJpb3JpdHkYBSABKA4yGC5mYWN0b3J5LnYxLlRhc2tQcmlvcml0eRIOCgZsYWJlbHMYBiADKAkSEgoKY3JlYXRlZF9ieRgHIAEoCRISCgpjcmVhdGVkX2F0GAggASgJEhIKCnVwZGF0ZWRfYXQYCSABKAkSFQoNY29tbWVudF9jb3VudBgKIAEoBSJHCgdDb21tZW50EgoKAmlkGAEgASgJEg4KBmF1dGhvchgCIAEoCRIMCgRib2R5GAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAkiEgoQTGlzdFRhc2tzUmVxdWVzdCI0ChFMaXN0VGFza3NSZXNwb25zZRIfCgV0YXNrcxgBIAMoCzIQLmZhY3RvcnkudjEuVGFzayIcCg5HZXRUYXNrUmVxdWVzdBIKCgJpZBgBIAEoCSJYCg9HZXRUYXNrUmVzcG9uc2USHgoEdGFzaxgBIAEoCzIQLmZhY3RvcnkudjEuVGFzaxIlCghjb21tZW50cxgCIAMoCzITLmZhY3RvcnkudjEuQ29tbWVudCJsChFDcmVhdGVUYXNrUmVxdWVzdBINCgV0aXRsZRgBIAEoCRIMCgRib2R5GAIgASgJEioKCHByaW9yaXR5GAMgASgOMhguZmFjdG9yeS52MS5UYXNrUHJpb3JpdHkSDgoGbGFiZWxzGAQgAygJIjQKEkNyZWF0ZVRhc2tSZXNwb25zZRIeCgR0YXNrGAEgASgLMhAuZmFjdG9yeS52MS5UYXNrIngKEVVwZGF0ZVRhc2tSZXF1ZXN0EgoKAmlkGAEgASgJEg0KBXRpdGxlGAIgASgJEgwKBGJvZHkYAyABKAkSKgoIcHJpb3JpdHkYBCABKA4yGC5mYWN0b3J5LnYxLlRhc2tQcmlvcml0eRIOCgZsYWJlbHMYBSADKAkiNAoSVXBkYXRlVGFza1Jlc3BvbnNlEh4KBHRhc2sYASABKAsyEC5mYWN0b3J5LnYxLlRhc2siRQoPTW92ZVRhc2tSZXF1ZXN0EgoKAmlkGAEgASgJEiYKBnN0YXR1cxgCIAEoDjIWLmZhY3RvcnkudjEuVGFza1N0YXR1cyIyChBNb3ZlVGFza1Jlc3BvbnNlEh4KBHRhc2sYASABKAsyEC5mYWN0b3J5LnYxLlRhc2siMgoRQWRkQ29tbWVudFJlcXVlc3QSDwoHdGFza19pZBgBIAEoCRIMCgRib2R5GAIgASgJIjoKEkFkZENvbW1lbnRSZXNwb25zZRIkCgdjb21tZW50GAEgASgLMhMuZmFjdG9yeS52MS5Db21tZW50KsIBCgpUYXNrU3RhdHVzEhsKF1RBU0tfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFwoTVEFTS19TVEFUVVNfQkFDS0xPRxABEhUKEVRBU0tfU1RBVFVTX1JFQURZEAISGwoXVEFTS19TVEFUVVNfSU5fUFJPR1JFU1MQAxIZChVUQVNLX1NUQVRVU19JTl9SRVZJRVcQBBIZChVUQVNLX1NUQVRVU19ORUVEU19ZT1UQBRIUChBUQVNLX1NUQVRVU19ET05FEAYqbwoMVGFza1ByaW9yaXR5Eh0KGVRBU0tfUFJJT1JJVFlfVU5TUEVDSUZJRUQQABIUChBUQVNLX1BSSU9SSVRZX1AwEAESFAoQVEFTS19QUklPUklUWV9QMRACEhQKEFRBU0tfUFJJT1JJVFlfUDIQAzLJAwoLVGFza1NlcnZpY2USSAoJTGlzdFRhc2tzEhwuZmFjdG9yeS52MS5MaXN0VGFza3NSZXF1ZXN0Gh0uZmFjdG9yeS52MS5MaXN0VGFza3NSZXNwb25zZRJCCgdHZXRUYXNrEhouZmFjdG9yeS52MS5HZXRUYXNrUmVxdWVzdBobLmZhY3RvcnkudjEuR2V0VGFza1Jlc3BvbnNlEksKCkNyZWF0ZVRhc2sSHS5mYWN0b3J5LnYxLkNyZWF0ZVRhc2tSZXF1ZXN0Gh4uZmFjdG9yeS52MS5DcmVhdGVUYXNrUmVzcG9uc2USSwoKVXBkYXRlVGFzaxIdLmZhY3RvcnkudjEuVXBkYXRlVGFza1JlcXVlc3QaHi5mYWN0b3J5LnYxLlVwZGF0ZVRhc2tSZXNwb25zZRJFCghNb3ZlVGFzaxIbLmZhY3RvcnkudjEuTW92ZVRhc2tSZXF1ZXN0GhwuZmFjdG9yeS52MS5Nb3ZlVGFza1Jlc3BvbnNlEksKCkFkZENvbW1lbnQSHS5mYWN0b3J5LnYxLkFkZENvbW1lbnRSZXF1ZXN0Gh4uZmFjdG9yeS52MS5BZGRDb21tZW50UmVzcG9uc2VCLVordG9vbHMueGRvdWJsZXUuY29tL2dlbi9mYWN0b3J5L3YxO2ZhY3Rvcnl2MWIGcHJvdG8z");
+  fileDesc("ChhmYWN0b3J5L3YxL2ZhY3RvcnkucHJvdG8SCmZhY3RvcnkudjEi9wEKBFRhc2sSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDAoEYm9keRgDIAEoCRImCgZzdGF0dXMYBCABKA4yFi5mYWN0b3J5LnYxLlRhc2tTdGF0dXMSKgoIcHJpb3JpdHkYBSABKA4yGC5mYWN0b3J5LnYxLlRhc2tQcmlvcml0eRIOCgZsYWJlbHMYBiADKAkSEgoKY3JlYXRlZF9ieRgHIAEoCRISCgpjcmVhdGVkX2F0GAggASgJEhIKCnVwZGF0ZWRfYXQYCSABKAkSFQoNY29tbWVudF9jb3VudBgKIAEoBRIPCgdyZXBvX2lkGAsgASgJIkcKB0NvbW1lbnQSCgoCaWQYASABKAkSDgoGYXV0aG9yGAIgASgJEgwKBGJvZHkYAyABKAkSEgoKY3JlYXRlZF9hdBgEIAEoCSISChBMaXN0VGFza3NSZXF1ZXN0IjQKEUxpc3RUYXNrc1Jlc3BvbnNlEh8KBXRhc2tzGAEgAygLMhAuZmFjdG9yeS52MS5UYXNrIhwKDkdldFRhc2tSZXF1ZXN0EgoKAmlkGAEgASgJIlgKD0dldFRhc2tSZXNwb25zZRIeCgR0YXNrGAEgASgLMhAuZmFjdG9yeS52MS5UYXNrEiUKCGNvbW1lbnRzGAIgAygLMhMuZmFjdG9yeS52MS5Db21tZW50In0KEUNyZWF0ZVRhc2tSZXF1ZXN0Eg0KBXRpdGxlGAEgASgJEgwKBGJvZHkYAiABKAkSKgoIcHJpb3JpdHkYAyABKA4yGC5mYWN0b3J5LnYxLlRhc2tQcmlvcml0eRIOCgZsYWJlbHMYBCADKAkSDwoHcmVwb19pZBgFIAEoCSI0ChJDcmVhdGVUYXNrUmVzcG9uc2USHgoEdGFzaxgBIAEoCzIQLmZhY3RvcnkudjEuVGFzayJ4ChFVcGRhdGVUYXNrUmVxdWVzdBIKCgJpZBgBIAEoCRINCgV0aXRsZRgCIAEoCRIMCgRib2R5GAMgASgJEioKCHByaW9yaXR5GAQgASgOMhguZmFjdG9yeS52MS5UYXNrUHJpb3JpdHkSDgoGbGFiZWxzGAUgAygJIjQKElVwZGF0ZVRhc2tSZXNwb25zZRIeCgR0YXNrGAEgASgLMhAuZmFjdG9yeS52MS5UYXNrIkUKD01vdmVUYXNrUmVxdWVzdBIKCgJpZBgBIAEoCRImCgZzdGF0dXMYAiABKA4yFi5mYWN0b3J5LnYxLlRhc2tTdGF0dXMiMgoQTW92ZVRhc2tSZXNwb25zZRIeCgR0YXNrGAEgASgLMhAuZmFjdG9yeS52MS5UYXNrIjIKEUFkZENvbW1lbnRSZXF1ZXN0Eg8KB3Rhc2tfaWQYASABKAkSDAoEYm9keRgCIAEoCSI6ChJBZGRDb21tZW50UmVzcG9uc2USJAoHY29tbWVudBgBIAEoCzITLmZhY3RvcnkudjEuQ29tbWVudCLFAQoEUmVwbxIKCgJpZBgBIAEoCRINCgVvd25lchgCIAEoCRIMCgRuYW1lGAMgASgJEhYKDmRlZmF1bHRfYnJhbmNoGAQgASgJEiwKD2RlZmF1bHRfaGFybmVzcxgFIAEoDjITLmZhY3RvcnkudjEuSGFybmVzcxIWCg5zZXR1cF9jb21tYW5kcxgGIAEoCRIaChJhZ2VudF9pbnN0cnVjdGlvbnMYByABKAkSGgoSdGltZV9saW1pdF9taW51dGVzGAggASgFIhIKEExpc3RSZXBvc1JlcXVlc3QiNAoRTGlzdFJlcG9zUmVzcG9uc2USHwoFcmVwb3MYASADKAsyEC5mYWN0b3J5LnYxLlJlcG8iMwoRQ3JlYXRlUmVwb1JlcXVlc3QSHgoEcmVwbxgBIAEoCzIQLmZhY3RvcnkudjEuUmVwbyI0ChJDcmVhdGVSZXBvUmVzcG9uc2USHgoEcmVwbxgBIAEoCzIQLmZhY3RvcnkudjEuUmVwbyIzChFVcGRhdGVSZXBvUmVxdWVzdBIeCgRyZXBvGAEgASgLMhAuZmFjdG9yeS52MS5SZXBvIjQKElVwZGF0ZVJlcG9SZXNwb25zZRIeCgRyZXBvGAEgASgLMhAuZmFjdG9yeS52MS5SZXBvKsIBCgpUYXNrU3RhdHVzEhsKF1RBU0tfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFwoTVEFTS19TVEFUVVNfQkFDS0xPRxABEhUKEVRBU0tfU1RBVFVTX1JFQURZEAISGwoXVEFTS19TVEFUVVNfSU5fUFJPR1JFU1MQAxIZChVUQVNLX1NUQVRVU19JTl9SRVZJRVcQBBIZChVUQVNLX1NUQVRVU19ORUVEU19ZT1UQBRIUChBUQVNLX1NUQVRVU19ET05FEAYqbwoMVGFza1ByaW9yaXR5Eh0KGVRBU0tfUFJJT1JJVFlfVU5TUEVDSUZJRUQQABIUChBUQVNLX1BSSU9SSVRZX1AwEAESFAoQVEFTS19QUklPUklUWV9QMRACEhQKEFRBU0tfUFJJT1JJVFlfUDIQAypRCgdIYXJuZXNzEhcKE0hBUk5FU1NfVU5TUEVDSUZJRUQQABIXChNIQVJORVNTX0NMQVVERV9DT0RFEAESFAoQSEFSTkVTU19PUEVOQ09ERRACMskDCgtUYXNrU2VydmljZRJICglMaXN0VGFza3MSHC5mYWN0b3J5LnYxLkxpc3RUYXNrc1JlcXVlc3QaHS5mYWN0b3J5LnYxLkxpc3RUYXNrc1Jlc3BvbnNlEkIKB0dldFRhc2sSGi5mYWN0b3J5LnYxLkdldFRhc2tSZXF1ZXN0GhsuZmFjdG9yeS52MS5HZXRUYXNrUmVzcG9uc2USSwoKQ3JlYXRlVGFzaxIdLmZhY3RvcnkudjEuQ3JlYXRlVGFza1JlcXVlc3QaHi5mYWN0b3J5LnYxLkNyZWF0ZVRhc2tSZXNwb25zZRJLCgpVcGRhdGVUYXNrEh0uZmFjdG9yeS52MS5VcGRhdGVUYXNrUmVxdWVzdBoeLmZhY3RvcnkudjEuVXBkYXRlVGFza1Jlc3BvbnNlEkUKCE1vdmVUYXNrEhsuZmFjdG9yeS52MS5Nb3ZlVGFza1JlcXVlc3QaHC5mYWN0b3J5LnYxLk1vdmVUYXNrUmVzcG9uc2USSwoKQWRkQ29tbWVudBIdLmZhY3RvcnkudjEuQWRkQ29tbWVudFJlcXVlc3QaHi5mYWN0b3J5LnYxLkFkZENvbW1lbnRSZXNwb25zZTLxAQoLUmVwb1NlcnZpY2USSAoJTGlzdFJlcG9zEhwuZmFjdG9yeS52MS5MaXN0UmVwb3NSZXF1ZXN0Gh0uZmFjdG9yeS52MS5MaXN0UmVwb3NSZXNwb25zZRJLCgpDcmVhdGVSZXBvEh0uZmFjdG9yeS52MS5DcmVhdGVSZXBvUmVxdWVzdBoeLmZhY3RvcnkudjEuQ3JlYXRlUmVwb1Jlc3BvbnNlEksKClVwZGF0ZVJlcG8SHS5mYWN0b3J5LnYxLlVwZGF0ZVJlcG9SZXF1ZXN0Gh4uZmFjdG9yeS52MS5VcGRhdGVSZXBvUmVzcG9uc2VCLVordG9vbHMueGRvdWJsZXUuY29tL2dlbi9mYWN0b3J5L3YxO2ZhY3Rvcnl2MWIGcHJvdG8z");
 
 /**
  * @generated from message factory.v1.Task
@@ -69,6 +69,11 @@ export type Task = Message<"factory.v1.Task"> & {
    * @generated from field: int32 comment_count = 10;
    */
   commentCount: number;
+
+  /**
+   * @generated from field: string repo_id = 11;
+   */
+  repoId: string;
 };
 
 /**
@@ -184,7 +189,7 @@ export const GetTaskResponseSchema: GenMessage<GetTaskResponse> = /*@__PURE__*/
   messageDesc(file_factory_v1_factory, 5);
 
 /**
- * New tasks always start in Backlog.
+ * New tasks always start in Backlog. The repo can't change afterwards.
  *
  * @generated from message factory.v1.CreateTaskRequest
  */
@@ -208,6 +213,11 @@ export type CreateTaskRequest = Message<"factory.v1.CreateTaskRequest"> & {
    * @generated from field: repeated string labels = 4;
    */
   labels: string[];
+
+  /**
+   * @generated from field: string repo_id = 5;
+   */
+  repoId: string;
 };
 
 /**
@@ -372,6 +382,164 @@ export const AddCommentResponseSchema: GenMessage<AddCommentResponse> = /*@__PUR
   messageDesc(file_factory_v1_factory, 13);
 
 /**
+ * @generated from message factory.v1.Repo
+ */
+export type Repo = Message<"factory.v1.Repo"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string owner = 2;
+   */
+  owner: string;
+
+  /**
+   * @generated from field: string name = 3;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string default_branch = 4;
+   */
+  defaultBranch: string;
+
+  /**
+   * @generated from field: factory.v1.Harness default_harness = 5;
+   */
+  defaultHarness: Harness;
+
+  /**
+   * Free text, run in the sandbox before the agent.
+   *
+   * @generated from field: string setup_commands = 6;
+   */
+  setupCommands: string;
+
+  /**
+   * Free text added to every prompt for this repo.
+   *
+   * @generated from field: string agent_instructions = 7;
+   */
+  agentInstructions: string;
+
+  /**
+   * @generated from field: int32 time_limit_minutes = 8;
+   */
+  timeLimitMinutes: number;
+};
+
+/**
+ * Describes the message factory.v1.Repo.
+ * Use `create(RepoSchema)` to create a new message.
+ */
+export const RepoSchema: GenMessage<Repo> = /*@__PURE__*/
+  messageDesc(file_factory_v1_factory, 14);
+
+/**
+ * @generated from message factory.v1.ListReposRequest
+ */
+export type ListReposRequest = Message<"factory.v1.ListReposRequest"> & {
+};
+
+/**
+ * Describes the message factory.v1.ListReposRequest.
+ * Use `create(ListReposRequestSchema)` to create a new message.
+ */
+export const ListReposRequestSchema: GenMessage<ListReposRequest> = /*@__PURE__*/
+  messageDesc(file_factory_v1_factory, 15);
+
+/**
+ * @generated from message factory.v1.ListReposResponse
+ */
+export type ListReposResponse = Message<"factory.v1.ListReposResponse"> & {
+  /**
+   * @generated from field: repeated factory.v1.Repo repos = 1;
+   */
+  repos: Repo[];
+};
+
+/**
+ * Describes the message factory.v1.ListReposResponse.
+ * Use `create(ListReposResponseSchema)` to create a new message.
+ */
+export const ListReposResponseSchema: GenMessage<ListReposResponse> = /*@__PURE__*/
+  messageDesc(file_factory_v1_factory, 16);
+
+/**
+ * The id is ignored on create.
+ *
+ * @generated from message factory.v1.CreateRepoRequest
+ */
+export type CreateRepoRequest = Message<"factory.v1.CreateRepoRequest"> & {
+  /**
+   * @generated from field: factory.v1.Repo repo = 1;
+   */
+  repo?: Repo | undefined;
+};
+
+/**
+ * Describes the message factory.v1.CreateRepoRequest.
+ * Use `create(CreateRepoRequestSchema)` to create a new message.
+ */
+export const CreateRepoRequestSchema: GenMessage<CreateRepoRequest> = /*@__PURE__*/
+  messageDesc(file_factory_v1_factory, 17);
+
+/**
+ * @generated from message factory.v1.CreateRepoResponse
+ */
+export type CreateRepoResponse = Message<"factory.v1.CreateRepoResponse"> & {
+  /**
+   * @generated from field: factory.v1.Repo repo = 1;
+   */
+  repo?: Repo | undefined;
+};
+
+/**
+ * Describes the message factory.v1.CreateRepoResponse.
+ * Use `create(CreateRepoResponseSchema)` to create a new message.
+ */
+export const CreateRepoResponseSchema: GenMessage<CreateRepoResponse> = /*@__PURE__*/
+  messageDesc(file_factory_v1_factory, 18);
+
+/**
+ * Replaces every field except the id.
+ *
+ * @generated from message factory.v1.UpdateRepoRequest
+ */
+export type UpdateRepoRequest = Message<"factory.v1.UpdateRepoRequest"> & {
+  /**
+   * @generated from field: factory.v1.Repo repo = 1;
+   */
+  repo?: Repo | undefined;
+};
+
+/**
+ * Describes the message factory.v1.UpdateRepoRequest.
+ * Use `create(UpdateRepoRequestSchema)` to create a new message.
+ */
+export const UpdateRepoRequestSchema: GenMessage<UpdateRepoRequest> = /*@__PURE__*/
+  messageDesc(file_factory_v1_factory, 19);
+
+/**
+ * @generated from message factory.v1.UpdateRepoResponse
+ */
+export type UpdateRepoResponse = Message<"factory.v1.UpdateRepoResponse"> & {
+  /**
+   * @generated from field: factory.v1.Repo repo = 1;
+   */
+  repo?: Repo | undefined;
+};
+
+/**
+ * Describes the message factory.v1.UpdateRepoResponse.
+ * Use `create(UpdateRepoResponseSchema)` to create a new message.
+ */
+export const UpdateRepoResponseSchema: GenMessage<UpdateRepoResponse> = /*@__PURE__*/
+  messageDesc(file_factory_v1_factory, 20);
+
+/**
  * @generated from enum factory.v1.TaskStatus
  */
 export enum TaskStatus {
@@ -449,6 +617,32 @@ export const TaskPrioritySchema: GenEnum<TaskPriority> = /*@__PURE__*/
   enumDesc(file_factory_v1_factory, 1);
 
 /**
+ * @generated from enum factory.v1.Harness
+ */
+export enum Harness {
+  /**
+   * @generated from enum value: HARNESS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: HARNESS_CLAUDE_CODE = 1;
+   */
+  CLAUDE_CODE = 1,
+
+  /**
+   * @generated from enum value: HARNESS_OPENCODE = 2;
+   */
+  OPENCODE = 2,
+}
+
+/**
+ * Describes the enum factory.v1.Harness.
+ */
+export const HarnessSchema: GenEnum<Harness> = /*@__PURE__*/
+  enumDesc(file_factory_v1_factory, 2);
+
+/**
  * @generated from service factory.v1.TaskService
  */
 export const TaskService: GenService<{
@@ -502,4 +696,35 @@ export const TaskService: GenService<{
   },
 }> = /*@__PURE__*/
   serviceDesc(file_factory_v1_factory, 0);
+
+/**
+ * @generated from service factory.v1.RepoService
+ */
+export const RepoService: GenService<{
+  /**
+   * @generated from rpc factory.v1.RepoService.ListRepos
+   */
+  listRepos: {
+    methodKind: "unary";
+    input: typeof ListReposRequestSchema;
+    output: typeof ListReposResponseSchema;
+  },
+  /**
+   * @generated from rpc factory.v1.RepoService.CreateRepo
+   */
+  createRepo: {
+    methodKind: "unary";
+    input: typeof CreateRepoRequestSchema;
+    output: typeof CreateRepoResponseSchema;
+  },
+  /**
+   * @generated from rpc factory.v1.RepoService.UpdateRepo
+   */
+  updateRepo: {
+    methodKind: "unary";
+    input: typeof UpdateRepoRequestSchema;
+    output: typeof UpdateRepoResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_factory_v1_factory, 1);
 
