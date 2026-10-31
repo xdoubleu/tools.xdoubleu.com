@@ -15,6 +15,9 @@ const (
 	// RoleService is a headless machine identity: observability tools only, no
 	// app access or user data.
 	RoleService Role = "service"
+	// RoleAgent is an agent account: only factory_* MCP tools, no app access
+	// or user data.
+	RoleAgent Role = "agent"
 )
 
 type User struct {

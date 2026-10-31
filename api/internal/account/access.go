@@ -51,6 +51,21 @@ func (h *accessConnectHandler) ListUsers(
 	return &accessv1.ListUsersResponse{Users: protoUsers}, nil
 }
 
+// refuseAgent denies a role or access change to an agent account: its
+// identity is fixed to the factory tools.
+func (h *accessConnectHandler) refuseAgent(ctx context.Context, userID string) error {
+	target, err := h.app.AppUsers.GetByID(ctx, userID)
+	if err != nil {
+		return connect.NewError(connect.CodeNotFound, "user not found").WithCause(err)
+	}
+	if target.Role == models.RoleAgent {
+		return connect.NewError(
+			connect.CodePermissionDenied, "agent accounts can't be changed here",
+		)
+	}
+	return nil
+}
+
 func (h *accessConnectHandler) SetRole(
 	ctx context.Context,
 	req *accessv1.SetRoleRequest,
@@ -67,6 +82,9 @@ func (h *accessConnectHandler) SetRole(
 		)
 	}
 
+	if err := h.refuseAgent(ctx, req.UserId); err != nil {
+		return nil, err
+	}
 	if err := h.app.AppUsers.SetRole(ctx, req.UserId, role); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
@@ -88,6 +106,9 @@ func (h *accessConnectHandler) SetAppAccess(
 		return nil, err
 	}
 
+	if err := h.refuseAgent(ctx, req.UserId); err != nil {
+		return nil, err
+	}
 	if err := h.app.AppUsers.SetAppAccess(
 		ctx, req.UserId, req.AppName, req.Grant,
 	); err != nil {

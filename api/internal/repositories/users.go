@@ -29,7 +29,7 @@ func (r *AppUsersRepository) Upsert(ctx context.Context, id, email string) error
 func (r *AppUsersRepository) GetAll(ctx context.Context) ([]models.User, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, email, role FROM global.app_users
-		WHERE role <> 'service'
+		WHERE role NOT IN ('service', 'agent')
 		ORDER BY last_seen DESC
 	`)
 	if err != nil {
@@ -96,6 +96,7 @@ func (r *AppUsersRepository) GetAllWithAccess(
 		       COALESCE(array_agg(a.app_name) FILTER (WHERE a.app_name IS NOT NULL), '{}')
 		FROM global.app_users u
 		LEFT JOIN global.app_access a ON a.user_id = u.id
+		WHERE u.role <> 'agent'
 		GROUP BY u.id, u.email, u.role
 		ORDER BY u.email
 	`)
@@ -123,7 +124,7 @@ func (r *AppUsersRepository) SetRole(
 	role models.Role,
 ) error {
 	_, err := r.db.Exec(ctx,
-		`UPDATE global.app_users SET role = $2 WHERE id = $1`,
+		`UPDATE global.app_users SET role = $2 WHERE id = $1 AND role <> 'agent'`,
 		userID, role,
 	)
 	return err
