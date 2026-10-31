@@ -33,8 +33,33 @@ func TestErrorCodes_Library(t *testing.T) {
 	c := newBooksTestClient(t)
 	unknown := uuid.NewString()
 	owned := addTestBook(t, "CodesBook").BookID.String()
+	foreign := seedContentBookInLibrary(t, "other-user-codes-2720").ID.String()
 
 	runCodeCases(t, []codeCase{
+		{"kepub status of unknown book", func(ctx context.Context) error {
+			_, err := c.GetKEPUBStatus(
+				ctx, &booksv1.GetKEPUBStatusRequest{BookId: unknown},
+			)
+			return err
+		}, connect.CodeNotFound},
+		{"kepub status of another user's book", func(ctx context.Context) error {
+			_, err := c.GetKEPUBStatus(
+				ctx, &booksv1.GetKEPUBStatusRequest{BookId: foreign},
+			)
+			return err
+		}, connect.CodeNotFound},
+		{"kepub conversion of unknown book", func(ctx context.Context) error {
+			_, err := c.RequestKEPUBConversion(
+				ctx, &booksv1.RequestKEPUBConversionRequest{BookId: unknown},
+			)
+			return err
+		}, connect.CodeNotFound},
+		{"kepub conversion of another user's book", func(ctx context.Context) error {
+			_, err := c.RequestKEPUBConversion(
+				ctx, &booksv1.RequestKEPUBConversionRequest{BookId: foreign},
+			)
+			return err
+		}, connect.CodeNotFound},
 		{"status of unknown book", func(ctx context.Context) error {
 			_, err := c.UpdateBookStatus(ctx, &booksv1.UpdateBookStatusRequest{
 				BookId: unknown, Status: "reading",

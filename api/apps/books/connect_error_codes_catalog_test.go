@@ -62,7 +62,21 @@ func TestErrorCodes_Catalog(t *testing.T) {
 	c := newAdminBooksTestClient(t)
 	unknown := uuid.NewString()
 
+	existing := addUniqueBook(t).ID.String()
+
 	runCodeCases(t, []codeCase{
+		{"merge unknown winner", func(ctx context.Context) error {
+			_, err := c.MergeBooks(ctx, &booksv1.MergeBooksRequest{
+				WinnerBookId: unknown, LoserBookIds: []string{existing},
+			})
+			return err
+		}, connect.CodeNotFound},
+		{"merge unknown loser", func(ctx context.Context) error {
+			_, err := c.MergeBooks(ctx, &booksv1.MergeBooksRequest{
+				WinnerBookId: existing, LoserBookIds: []string{unknown},
+			})
+			return err
+		}, connect.CodeNotFound},
 		{"isbn of unknown book", func(ctx context.Context) error {
 			_, err := c.SetBookISBN(ctx, &booksv1.SetBookISBNRequest{
 				BookId: unknown, Isbn13: "9780306406157",

@@ -1200,11 +1200,16 @@ func (s *BookService) MergeBooks(
 	resolvedCoverSourceBookID *uuid.UUID,
 	resolvedStatus *string,
 ) (uint32, []string, error) {
+	allIDs := append([]uuid.UUID{winnerBookID}, loserBookIDs...)
+	for _, id := range allIDs {
+		if _, err := s.books.GetBookByID(ctx, id); err != nil {
+			return 0, nil, err
+		}
+	}
 	if len(loserBookIDs) == 0 {
 		return 0, nil, nil
 	}
 
-	allIDs := append([]uuid.UUID{winnerBookID}, loserBookIDs...)
 	mergedSeries := s.seriesForMerge(ctx, winnerBookID, loserBookIDs)
 	affectedUsers, err := s.books.ListUserBookOwners(ctx, allIDs)
 	if err != nil {
