@@ -8,7 +8,13 @@ import {
   TaskStatus
 } from '@/lib/gen/factory/v1/factory_pb'
 import {
+  AgentAccountSchema,
+  ListAgentAccountsResponseSchema
+} from '@/lib/gen/factory/v1/agent_accounts_pb'
+import {
   COLUMNS,
+  accountsOf,
+  actorLabel,
   HARNESSES,
   filterByRepo,
   groupByStatus,
@@ -84,5 +90,22 @@ describe('board', () => {
     const repo = create(RepoSchema, { id: 'r1' })
     expect(reposOf(create(ListReposResponseSchema, { repos: [repo] }))).toEqual([repo])
     expect(reposOf(undefined)).toEqual([])
+  })
+
+  it('reads the accounts of a response, and none before it loads', () => {
+    const account = create(AgentAccountSchema, { id: 'a1' })
+    expect(accountsOf(create(ListAgentAccountsResponseSchema, { accounts: [account] }))).toEqual([
+      account
+    ])
+    expect(accountsOf(undefined)).toEqual([])
+  })
+
+  it('shows an agent actor by its account name and leaves other actors alone', () => {
+    const agents = [create(AgentAccountSchema, { userId: 'u-1', name: 'Reviewer' })]
+    expect(actorLabel('agent:u-1', agents)).toBe('Reviewer')
+    expect(actorLabel('agent:u-9', agents)).toBe('agent:u-9')
+    expect(actorLabel('human:u-1', agents)).toBe('human:u-1')
+    expect(actorLabel('human:agent:u-1', agents)).toBe('human:agent:u-1')
+    expect(actorLabel('agent:u-1', [])).toBe('agent:u-1')
   })
 })

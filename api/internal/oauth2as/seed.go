@@ -21,13 +21,22 @@ const RoutinesClientID = "routines"
 // RoutinesServiceUserID is the seeded service-role user behind RoutinesClientID.
 const RoutinesServiceUserID = "131220c3-7027-4f72-b714-b6ecb114d19d"
 
-// machineSubject maps a client_credentials client to the user its tokens act
-// as; a token without a subject is rejected by ResolveAccessToken.
-func machineSubject(clientID string) (string, bool) {
-	if clientID == RoutinesClientID {
-		return RoutinesServiceUserID, true
+// MachineSubjects resolves the user a client_credentials client's tokens act
+// as: the static routines client first, then lookup (agent accounts). A token
+// without a subject is rejected by ResolveAccessToken.
+type MachineSubjects func(ctx context.Context, clientID string) (string, bool, error)
+
+// NewMachineSubjects combines the routines client with lookup, which may be nil.
+func NewMachineSubjects(lookup MachineSubjects) MachineSubjects {
+	return func(ctx context.Context, clientID string) (string, bool, error) {
+		if clientID == RoutinesClientID {
+			return RoutinesServiceUserID, true, nil
+		}
+		if lookup == nil {
+			return "", false, nil
+		}
+		return lookup(ctx, clientID)
 	}
-	return "", false
 }
 
 // clientSecretBCryptCost matches fosite's DefaultBCryptWorkFactor.

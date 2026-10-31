@@ -89,7 +89,10 @@ func newOAuth2asTestServerWithConfig(
 			provider, cfg, resolveUser, oauth2as.OIDCKeyID(key), logger,
 		),
 	)
-	mux.HandleFunc("/oauth2/token", oauth2as.TokenHandler(provider, logger))
+	mux.HandleFunc(
+		"/oauth2/token",
+		oauth2as.TokenHandler(provider, oauth2as.NewMachineSubjects(nil), logger),
+	)
 	mux.HandleFunc("/oauth2/register", oauth2as.RegisterHandler(store, logger))
 	mux.HandleFunc(
 		"/oauth2/consent-info",

@@ -116,6 +116,7 @@ export const swrKeys = {
 
   factoryTasks: '/factory/tasks',
   factoryRepos: '/factory/repos',
+  factoryAgents: '/factory/agents',
   factoryTask: (id: string) => ['/factory/task', id] as const,
 
   tasteStats: (shared = false) => `/taste/stats${shared ? '/shared' : ''}`,
