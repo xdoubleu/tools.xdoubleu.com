@@ -20,12 +20,11 @@ export default function AgentsClient() {
   const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)
 
-  const revoke = async () => {
-    if (!revoking) return
+  const revoke = async (account: AgentAccount) => {
     setPending(true)
     setFailed(false)
     try {
-      await revokeAgent(revoking.id)
+      await revokeAgent(account.id)
       setRevoking(null)
     } catch {
       setFailed(true)
@@ -70,17 +69,19 @@ export default function AgentsClient() {
         </ul>
       )}
       {creating && <AgentDialog onClose={() => setCreating(false)} />}
-      <ConfirmDialog
-        open={revoking !== null}
-        onOpenChange={(open) => !open && setRevoking(null)}
-        title={`Revoke ${revoking?.name ?? 'agent'}?`}
-        description="Its access ends at once and it can't be restored. Create a new agent to replace it."
-        confirmLabel="Revoke"
-        pendingLabel="Revoking…"
-        destructive
-        pending={pending}
-        onConfirm={() => void revoke()}
-      />
+      {revoking && (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setRevoking(null)}
+          title={`Revoke ${revoking.name}?`}
+          description="Its access ends at once and it can't be restored. Create a new agent to replace it."
+          confirmLabel="Revoke"
+          pendingLabel="Revoking…"
+          destructive
+          pending={pending}
+          onConfirm={() => void revoke(revoking)}
+        />
+      )}
     </PageContainer>
   )
 }

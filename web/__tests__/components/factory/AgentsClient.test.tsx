@@ -123,4 +123,24 @@ describe('AgentsClient', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Revoke' }))
     expect(await screen.findByText(/Couldn.t revoke the agent/)).toBeInTheDocument()
   })
+
+  it('shows progress while revoking and lets the user retry after a failure', async () => {
+    let finish: () => void = () => undefined
+    mockRevoke.mockReturnValueOnce(new Promise<void>((resolve) => (finish = resolve)))
+    mockAgents({ data: list })
+    render(<AgentsClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Revoke' }))
+    expect(
+      await within(screen.getByRole('dialog')).findByRole('button', { name: 'Revoking…' })
+    ).toBeDisabled()
+    finish()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    mockRevoke.mockRejectedValueOnce(new Error('network'))
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Revoke' }))
+    await screen.findByText(/Couldn.t revoke the agent/)
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Revoke' })).toBeEnabled()
+  })
 })

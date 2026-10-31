@@ -36,6 +36,9 @@ describe('AgentDialog', () => {
   it('starts empty with Create off until a name and code are given', () => {
     render(<AgentDialog onClose={vi.fn()} />)
     expect(screen.getByText('New agent')).toBeInTheDocument()
+    expect(
+      screen.getByText('An agent works on the board under its own account, never as you.')
+    ).toBeInTheDocument()
     expect(screen.getByLabelText('Name')).toHaveValue('')
     expect(screen.getByLabelText('Authenticator code')).toHaveValue('')
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
@@ -61,6 +64,9 @@ describe('AgentDialog', () => {
 
     await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('Reviewer', '123456'))
     expect(await screen.findByText('Agent created')).toBeInTheDocument()
+    expect(
+      screen.getByText('Use these credentials in the agent’s headersHelper.')
+    ).toBeInTheDocument()
     expect(screen.getByLabelText('Client ID')).toHaveValue('agent-abc')
     expect(screen.getByLabelText('Client secret')).toHaveValue('the-secret')
     expect(screen.getByText(/can.t be shown again/)).toBeInTheDocument()
@@ -144,6 +150,23 @@ describe('AgentDialog', () => {
 
     expect(onClose).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Create' })).toBeEnabled()
+  })
+
+  it('hides an earlier failure while the next attempt is in flight', async () => {
+    mockCreate.mockRejectedValueOnce(new Error('network'))
+    let finish: (v: unknown) => void = () => undefined
+    render(<AgentDialog onClose={vi.fn()} />)
+    fill('Name', 'Reviewer')
+    fill('Authenticator code', '1')
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+    await screen.findByRole('alert')
+
+    mockCreate.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)))
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+    expect(await screen.findByRole('button', { name: 'Creating…' })).toBeDisabled()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    finish(created)
+    await screen.findByText('Agent created')
   })
 
   it('clears an earlier failure when trying again', async () => {
