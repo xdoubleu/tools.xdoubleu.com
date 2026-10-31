@@ -47,11 +47,9 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
   const [pending, setPending] = useState(false)
   const [failure, setFailure] = useState('')
   const minutes = Number(limit)
+  // A blank field is 0, which fails the minimum.
   const limitValid =
-    limit.trim() !== '' &&
-    Number.isInteger(minutes) &&
-    minutes >= MIN_LIMIT_MINUTES &&
-    minutes <= MAX_LIMIT_MINUTES
+    Number.isInteger(minutes) && minutes >= MIN_LIMIT_MINUTES && minutes <= MAX_LIMIT_MINUTES
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
