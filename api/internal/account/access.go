@@ -2,11 +2,13 @@ package account
 
 import (
 	"context"
+	"errors"
 
 	"connectrpc.com/connect/v2"
 
 	accessv1 "tools.xdoubleu.com/gen/access/v1"
 	accessv1connect "tools.xdoubleu.com/gen/access/v1/accessv1connect"
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/obs"
 )
@@ -55,8 +57,11 @@ func (h *accessConnectHandler) ListUsers(
 // identity is fixed to the factory tools.
 func (h *accessConnectHandler) refuseAgent(ctx context.Context, userID string) error {
 	target, err := h.app.AppUsers.GetByID(ctx, userID)
-	if err != nil {
+	if errors.Is(err, database.ErrResourceNotFound) {
 		return connect.NewError(connect.CodeNotFound, "user not found").WithCause(err)
+	}
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	if target.Role == models.RoleAgent {
 		return connect.NewError(

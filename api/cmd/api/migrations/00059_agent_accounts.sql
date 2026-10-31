@@ -21,9 +21,13 @@ CREATE TABLE IF NOT EXISTS global.agent_accounts (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS global.agent_accounts;
+DELETE FROM auth.oauth2_clients
+WHERE id IN (SELECT client_id FROM global.agent_accounts);
 DELETE FROM global.app_users
 WHERE role = 'agent';
+DELETE FROM auth.users
+WHERE id IN (SELECT user_id FROM global.agent_accounts);
+DROP TABLE IF EXISTS global.agent_accounts;
 ALTER TABLE global.app_users DROP CONSTRAINT IF EXISTS app_users_role_check;
 ALTER TABLE global.app_users ADD CONSTRAINT app_users_role_check
 CHECK (role IN ('admin', 'user', 'service'));

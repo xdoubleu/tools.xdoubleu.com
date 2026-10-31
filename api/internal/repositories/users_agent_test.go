@@ -69,3 +69,17 @@ func TestAnAgentUsersRoleCannotBeChanged(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, models.RoleAgent, got.Role)
 }
+
+func TestAnAgentUserCannotBeGrantedAppAccess(t *testing.T) {
+	id := seedAgentUser(t)
+	pool := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	t.Cleanup(pool.Close)
+	repo := repositories.NewAppUsersRepository(pool)
+	ctx := context.Background()
+
+	require.NoError(t, repo.SetAppAccess(ctx, id, "books", true))
+
+	got, err := repo.GetByID(ctx, id)
+	require.NoError(t, err)
+	assert.Empty(t, got.AppAccess)
+}

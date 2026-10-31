@@ -138,7 +138,10 @@ func (h *handler) CreateAgentAccount(
 		)
 	}
 
-	info, _ := connect.CallInfoForServerContext(ctx)
+	info, hasInfo := connect.CallInfoForServerContext(ctx)
+	if !hasInfo {
+		return nil, connect.NewError(connect.CodeUnauthenticated, "not signed in")
+	}
 	token, cookieErr := (&http.Request{
 		Header: http.Header{"Cookie": {info.RequestHeader().Get("Cookie")}},
 	}).Cookie("accessToken")

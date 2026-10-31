@@ -139,8 +139,9 @@ func (r *AppUsersRepository) SetAppAccess(
 	if grant {
 		_, err = r.db.Exec(
 			ctx,
-			`INSERT INTO global.app_access (user_id, app_name) 
-			VALUES ($1, $2) 
+			`INSERT INTO global.app_access (user_id, app_name)
+			SELECT id, $2 FROM global.app_users
+			WHERE id = $1 AND role <> 'agent'
 			ON CONFLICT DO NOTHING`,
 			userID,
 			appName,

@@ -235,3 +235,18 @@ func TestRevokeRejectsABadOrUnknownID(t *testing.T) {
 		&factoryv1.RevokeAgentAccountRequest{Id: "00000000-0000-0000-0000-000000000000"})
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
+
+func TestCreateWithoutRequestInfoIsUnauthenticated(t *testing.T) {
+	pool := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	t.Cleanup(pool.Close)
+	stepUp := stepUpReturning(nil)
+	h := &handler{deps: &Deps{Store: NewStore(pool, nil), StepUp: stepUp}}
+
+	_, err := h.CreateAgentAccount(
+		userCtx(models.RoleAdmin, constants.ChannelBrowser),
+		&factoryv1.CreateAgentAccountRequest{Name: "x", TotpCode: "1"},
+	)
+
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+	assert.Zero(t, stepUp.calls)
+}
