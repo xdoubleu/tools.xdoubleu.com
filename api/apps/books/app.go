@@ -12,6 +12,8 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/jobs"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/internal/services/conversion"
+	"tools.xdoubleu.com/apps/books/internal/services/kobo"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
@@ -36,6 +38,7 @@ type Books struct {
 	db             postgres.DB
 	clients        Clients
 	services       *services.Services
+	kobo           *kobo.Protocol
 	repositories   *repositories.Repositories
 	jobQueue       *jobqueue.JobQueue
 	resyncBooksJob *jobs.ResyncMetadataJob
@@ -128,6 +131,15 @@ func NewInner(
 		clients.WebFetch,
 		authService,
 	)
+	a.kobo = kobo.NewProtocol(kobo.Deps{
+		Library:          a.services.Books,
+		Positions:        a.services.Positions,
+		KEPUBs:           kepubs{a.services.Conversion, a.services.KEPUBQueue},
+		Background:       a.Background,
+		Logger:           logger,
+		StoreBaseURL:     clients.KoboStoreBaseURL,
+		PublicAPIBaseURL: clients.PublicAPIBaseURL,
+	})
 	a.resyncBooksJob = jobs.NewResyncMetadataJob(
 		a.services.Books,
 		a.services.WebSocket,
@@ -141,6 +153,12 @@ func NewInner(
 	a.kepubJob = jobs.NewKEPUBConversionJob(a.services.KEPUBQueue)
 
 	return a
+}
+
+// kepubs adapts the conversion service and queue to kobo.KEPUBs.
+type kepubs struct {
+	*conversion.Service
+	*conversion.KEPUBQueue
 }
 
 func (a *Books) Start() error {

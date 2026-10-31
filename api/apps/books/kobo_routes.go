@@ -2,38 +2,25 @@ package books
 
 import (
 	"context"
-	"crypto/sha256"
-	_ "embed"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
-	"tools.xdoubleu.com/internal/communication/httptools"
+	"tools.xdoubleu.com/apps/books/internal/services/kobo"
 	"tools.xdoubleu.com/internal/database"
-	"tools.xdoubleu.com/internal/threading"
 )
-
-// koboUpstreamTimeout caps upstream Kobo store calls so a stalled store still
-// leaves a sync time to answer with our own books.
-const koboUpstreamTimeout = httptools.UpstreamTimeout
-
-//nolint:gochecknoglobals // shared client, Timeout mutated only in tests
-var koboUpstreamClient = &http.Client{Timeout: koboUpstreamTimeout}
 
 // koboRoutes mounts the Kobo sync protocol under /{prefix}/kobo/{token}/. The
 // token is a bearer secret in the device's api_endpoint, SHA-256 hashed before
 // lookup; AppAccess is not used. Unhandled paths are proxied to the real Kobo
-// store so firmware updates, purchases and auth keep working.
+// store so firmware updates, purchases and auth keep working. The protocol
+// itself lives in services/kobo; these handlers authenticate, parse and write.
 func (app *Books) koboRoutes(prefix string, mux *http.ServeMux) {
 	base := "/" + prefix + "/kobo/{token}"
 	// The device fetches initialization with GET; serving POST too is harmless.
@@ -102,11 +89,8 @@ func (app *Books) koboAuthDevice(
 		return "", "", false
 	}
 
-	h := sha256.Sum256([]byte(raw))
-	hash := hex.EncodeToString(h[:])
-
 	userID, deviceID, err := app.services.Kobo.GetKoboAuthByTokenHash(
-		r.Context(), hash,
+		r.Context(), kobo.HashToken(raw),
 	)
 	if err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
@@ -125,99 +109,23 @@ func (app *Books) koboAuthDevice(
 	return userID, deviceID, true
 }
 
-// koboAccessFull is the Accessibility of an entitlement readable in full.
-const koboAccessFull = "Full"
-
-// koboEpoch is LastModified when no server state exists. time.Now() would make
-// the firmware overwrite local progress with 0% and never PUT state.
-const koboEpoch = "1970-01-01T00:00:00Z"
-
 func koboWriteJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-type koboInitResponse struct {
-	Resources map[string]any `json:"Resources"`
-	Settings  koboSettings   `json:"Settings"`
-	TokenList []string       `json:"TokenList"`
+// koboCoverBase and koboLibraryBase are the device-facing URL prefixes for r.
+func (app *Books) koboCoverBase(r *http.Request) string {
+	return app.kobo.CoverBase(
+		r.URL.Path, r.Header.Get("X-Forwarded-Host"), r.Host,
+	)
 }
 
-//go:embed kobo_resources.json
-var koboCatalogJSON []byte
-
-// koboCatalog is the full Kobo onestore resource catalog, decoded once from
-// kobo_resources.json. The payload mirrors Calibre-Web's NATIVE_KOBO_RESOURCES:
-// the firmware reads every key from /v1/initialization, and a truncated set
-// (like the six keys #2298 served) returns 200 on init but never advances the
-// device to /v1/library/sync. Keys we own are overridden in koboInitHandler to
-// point at our endpoints; the rest keep the upstream Kobo store URLs (proxied).
-func koboCatalog() map[string]any {
-	var c map[string]any
-	if err := json.Unmarshal(koboCatalogJSON, &c); err != nil {
-		panic("kobo_resources.json: " + err.Error())
-	}
-	return c
-}
-
-type koboSettings struct {
-	SynchronizationDelay int    `json:"SynchronizationDelay"`
-	TestEmailAddress     string `json:"TestEmailAddress"`
-	UserAgent            string `json:"UserAgent"`
-}
-
-type koboSyncEntry struct {
-	BookEntitlement koboBookEntitlement `json:"BookEntitlement"`
-	BookMetadata    koboBookMetadata    `json:"BookMetadata"`
-	ReadingState    *koboReadingState   `json:"ReadingState"`
-}
-
-// koboNewEntitlement wraps an entry in the change-type key the firmware
-// requires; a bare payload is silently ignored.
-type koboNewEntitlement struct {
-	NewEntitlement koboSyncEntry `json:"NewEntitlement"`
-}
-
-// koboChangedEntitlement signals a removal of a previously synced book.
-type koboChangedEntitlement struct {
-	ChangedEntitlement koboSyncEntry `json:"ChangedEntitlement"`
-}
-
-type koboBookEntitlement struct {
-	Accessibility string            `json:"Accessibility"`
-	ActivePeriod  map[string]string `json:"ActivePeriod"`
-	Created       string            `json:"Created"`
-	//nolint:revive // Kobo protocol field name
-	CrossRevisionId string `json:"CrossRevisionId"`
-	//nolint:revive // Kobo protocol field name
-	Id             string `json:"Id"`
-	IsRemoved      bool   `json:"IsRemoved"`
-	IsHiddenFromUI bool   `json:"IsHiddenFromUI"`
-	PurchasedDate  string `json:"PurchasedDate"`
-	//nolint:revive // Kobo protocol field name
-	RevisionId string `json:"RevisionId"`
-	Status     string `json:"Status"`
-	Type       string `json:"Type"`
-}
-
-type koboBookMetadata struct {
-	Title       string `json:"Title"`
-	ContentType string `json:"ContentType"`
-	//nolint:revive // Kobo protocol field name
-	RevisionId   string            `json:"RevisionId"`
-	Language     string            `json:"Language"`
-	DownloadUrls []koboDownloadURL `json:"DownloadUrls"`
-	// CoverImageId names the image the device requests from
-	// image_url(_quality)_template; see koboCoverImageID.
-	CoverImageID string `json:"CoverImageId"`
-}
-
-type koboDownloadURL struct {
-	Format   string `json:"Format"`
-	Size     int64  `json:"Size"`
-	URL      string `json:"Url"`
-	Platform string `json:"Platform"`
+func (app *Books) koboLibraryBase(r *http.Request) string {
+	return app.kobo.LibraryBase(
+		r.URL.Path, r.Header.Get("X-Forwarded-Host"), r.Host,
+	)
 }
 
 // koboInitHandler handles POST /v1/initialization.
@@ -229,50 +137,7 @@ func (app *Books) koboInitHandler(w http.ResponseWriter, r *http.Request) {
 	// without it the device treats init as incomplete and never advances to
 	// /v1/library/sync. Set before koboWriteJSON writes the response.
 	w.Header().Set("x-kobo-apitoken", "e30=")
-	coverBase := app.koboCoverBase(r)
-	// For init the request path is /v1/initialization (not /v1/library/...), so
-	// koboLibraryBase can't strip it; derive the library prefix from coverBase.
-	libraryBase := coverBase + "/v1/library"
-
-	// Start from the full catalog, then point the keys we own at us (covers and
-	// the library endpoints). The rest keep the upstream Kobo store URLs.
-	resources := koboCatalog()
-	resources["image_host"] = coverBase
-	resources["image_url_quality_template"] = coverBase +
-		"/{ImageId}/{width}/{height}/{Quality}/isGreyscale/image.jpg"
-	resources["image_url_template"] = coverBase +
-		"/{ImageId}/{width}/{height}/false/image.jpg"
-	resources["library_sync"] = libraryBase + "/sync"
-	resources["library_metadata"] = libraryBase + "/{Ids}/metadata"
-	resources["reading_state"] = libraryBase + "/{Ids}/state"
-
-	koboWriteJSON(w, koboInitResponse{
-		Resources: resources,
-		Settings: koboSettings{
-			SynchronizationDelay: 0,
-			TestEmailAddress:     "",
-			UserAgent:            "Kobo",
-		},
-		TokenList: []string{"BookEntitlement", "BookMetadata", "BookReadingState"},
-	})
-}
-
-// koboCoverBase derives the https://…/kobo/{token} prefix used by the cover
-// image templates, by stripping the initialization path from the request. Same
-// origin rules as koboLibraryBase.
-func (app *Books) koboCoverBase(r *http.Request) string {
-	path := r.URL.Path
-	if idx := strings.Index(path, "/v1/initialization"); idx != -1 {
-		path = path[:idx]
-	}
-	if app.clients.PublicAPIBaseURL != "" {
-		return strings.TrimSuffix(app.clients.PublicAPIBaseURL, "/") + path
-	}
-	host := r.Header.Get("X-Forwarded-Host")
-	if host == "" {
-		host = r.Host
-	}
-	return "https://" + host + path
+	koboWriteJSON(w, app.kobo.Init(app.koboCoverBase(r)))
 }
 
 // koboLibrarySyncHandler handles GET /v1/library/sync, adding our kobo-sync
@@ -283,209 +148,26 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	books, err := app.services.Books.ListKoboSyncBooks(r.Context(), userID)
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	// Warm covers in the background (detached so a slow source never stalls
-	// the sync) so the device's subsequent cover fetches during its update
-	// phase are fast R2 hits instead of blocking live fetches.
-	app.Background.Go(r.Context(), "kobo-cover-warm", func(ctx context.Context) {
-		app.warmKoboCovers(ctx, userID, books)
+	res, err := app.kobo.Sync(r.Context(), kobo.SyncRequest{
+		UserID:      userID,
+		DeviceID:    deviceID,
+		LibraryBase: app.koboLibraryBase(r),
+		Header:      r.Header,
+		RawQuery:    r.URL.RawQuery,
 	})
-
-	stateByBook, err := app.services.Books.ListReadingStates(r.Context(), userID)
+	if res.UpstreamFetched {
+		koboSetUpstreamHeaders(r, res.Upstream.Hdrs)
+		koboSetUpstreamNote(r, w, res.Upstream.Note)
+	}
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
-	// The upstream fetch overlaps the span translation's wait. Not on
-	// Background: its slots must never hold up the response. The note stands
-	// if the fetch panics.
-	upstream := koboUpstream{items: nil, hdrs: nil, note: "upstream: fetch panicked"}
-	upstreamDone := make(chan struct{})
-	go func() {
-		defer close(upstreamDone)
-		defer threading.Recover(r.Context(), app.Logger, "kobo-upstream-sync")
-		upstream = app.koboFetchUpstreamSync(r)
-	}()
-
-	held, pending, err := app.koboSyncSpans(
-		r.Context(), userID, deviceID, books, stateByBook,
-	)
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
+	for name, vs := range res.Upstream.PagingHeaders() {
+		w.Header()[name] = vs
 	}
-
-	libraryBase := app.koboLibraryBase(r)
-
-	ourEntries := make([]json.RawMessage, len(books))
-	for i, b := range books {
-		ourEntries[i] = app.buildKoboSyncEntry(r, userID, b, stateByBook, libraryBase)
-	}
-
-	removals, err := app.services.Books.ListKoboRemovals(r.Context(), userID)
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-	removalEntries := make([]json.RawMessage, len(removals))
-	for i, rm := range removals {
-		removalEntries[i] = buildKoboRemovalEntry(rm)
-	}
-
-	<-upstreamDone
-
-	koboSetUpstreamHeaders(r, upstream.hdrs)
-	if upstream.note != "" {
-		koboSetUpstreamNote(r, w, upstream.note)
-		app.Logger.Warn("kobo upstream store sync failed",
-			"device_id", deviceID, "note", upstream.note)
-	}
-
-	// Last before responding: this marks the states as delivered.
-	stateEntries, err := app.koboChangedReadingStates(
-		r.Context(), deviceID, books, stateByBook, held, pending,
-	)
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	koboForwardPaging(w, upstream)
-	app.koboLinkStoreBooks(r, userID, upstream)
-
-	all := append(upstream.items, ourEntries...) //nolint:gocritic // intentional
-	all = append(all, stateEntries...)
-	all = append(all, removalEntries...)
-	if all == nil {
-		// A nil slice encodes as null, which hangs the firmware at "Checking for
-		// updates…".
-		all = []json.RawMessage{}
-	}
-	koboWriteJSON(w, all)
-}
-
-// Kobo sync paging headers.
-const (
-	koboHeaderSync     = "x-kobo-sync"
-	koboHeaderSyncMode = "x-kobo-sync-mode"
-	//nolint:gosec // a header name, not a credential
-	koboHeaderSyncToken = "x-kobo-synctoken"
-)
-
-// koboForwardPaging copies the upstream paging headers onto the response.
-// They only travel with a merged upstream page: a "continue" without one
-// makes the device re-request the same page forever.
-func koboForwardPaging(w http.ResponseWriter, upstream koboUpstream) {
-	if upstream.note != "" {
-		return
-	}
-	for _, hdr := range []string{
-		koboHeaderSync, koboHeaderSyncMode, koboHeaderSyncToken,
-	} {
-		if v := upstream.hdrs.Get(hdr); v != "" {
-			w.Header().Set(hdr, v)
-		}
-	}
-}
-
-// koboLinkStoreBooks links a merged upstream page's store books to the
-// library in the background.
-func (app *Books) koboLinkStoreBooks(
-	r *http.Request,
-	userID string,
-	upstream koboUpstream,
-) {
-	if upstream.note != "" || len(upstream.items) == 0 {
-		return
-	}
-	app.Background.Go(r.Context(), "kobo-store-sync", func(ctx context.Context) {
-		app.recordKoboStoreSync(ctx, userID, upstream.items)
-	})
-}
-
-// warmKoboCovers caches every book's cover so the device's per-cover fetches
-// during its update phase are fast R2 hits.
-func (app *Books) warmKoboCovers(
-	ctx context.Context,
-	userID string,
-	books []models.KoboSyncBook,
-) {
-	ids := make([]uuid.UUID, len(books))
-	for i, b := range books {
-		ids[i] = b.BookID
-	}
-	app.services.Books.WarmUserCovers(ctx, userID, ids)
-}
-
-// buildKoboSyncEntry builds one book's entitlement. RevisionId stays the bare
-// book UUID: the firmware keys on Id and a varying RevisionId adds a second
-// copy. A regenerated KEPUB (ConverterVersion differs from
-// LastSyncedConverterVersion) is sent as ChangedEntitlement so the device
-// invalidates its download instead of duplicating it. So is a CoverImageId the
-// device hasn't received: it ignores metadata in a NewEntitlement it already
-// holds.
-func (app *Books) buildKoboSyncEntry(
-	r *http.Request,
-	userID string,
-	b models.KoboSyncBook,
-	stateByBook map[uuid.UUID]*models.BookReadingState,
-	libraryBase string,
-) json.RawMessage {
-	id := b.BookID.String()
-	// KoboSyncEnabledAt keeps the payload byte-identical across syncs; time.Now()
-	// makes the firmware recreate the entitlement each time (books flicker).
-	enabled := b.KoboSyncEnabledAt.UTC().Format(time.RFC3339)
-	coverID := koboCoverImageID(b.BookID)
-	isChanged := koboIsReplace(b) || koboCoverChanged(b, coverID)
-
-	if app.services.Conversion.IsKEPUBStale(b.ConverterVersion) {
-		_ = app.startKEPUBRegeneration(r.Context(), userID, b.BookID, "")
-	}
-
-	entry := koboSyncEntry{
-		BookEntitlement: koboBookEntitlement{
-			Accessibility:   koboAccessFull,
-			ActivePeriod:    map[string]string{"From": enabled},
-			Created:         enabled,
-			CrossRevisionId: id,
-			Id:              id,
-			IsRemoved:       false,
-			IsHiddenFromUI:  false,
-			PurchasedDate:   enabled,
-			RevisionId:      id,
-			Status:          "Active",
-			Type:            "ebook",
-		},
-		BookMetadata: buildKoboMetadata(b, libraryBase),
-		ReadingState: buildKoboState(id, stateByBook[b.BookID]),
-	}
-
-	// ReadingState must be non-nil so the firmware PUTs state on progress.
-	var raw []byte
-	if isChanged {
-		raw, _ = json.Marshal(koboChangedEntitlement{ChangedEntitlement: entry})
-	} else {
-		raw, _ = json.Marshal(koboNewEntitlement{NewEntitlement: entry})
-	}
-
-	if b.LastSyncedConverterVersion == nil ||
-		*b.LastSyncedConverterVersion != b.ConverterVersion ||
-		b.LastSyncedCoverImageID == nil || *b.LastSyncedCoverImageID != coverID {
-		if updErr := app.services.Books.UpdateKoboLastSynced(
-			r.Context(), userID, b.BookID, b.ConverterVersion, coverID,
-		); updErr != nil {
-			app.Logger.Error("failed to update kobo last synced state",
-				"error", updErr, "bookID", b.BookID)
-		}
-	}
-
-	return raw
+	koboWriteJSON(w, res.Entries)
 }
 
 // koboProxyHandler proxies paths we don't own to the upstream Kobo store,
@@ -498,28 +180,14 @@ func (app *Books) koboProxyHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	_, koboPath, _ := strings.Cut(r.URL.Path, "/kobo/"+token)
 
-	targetURL := app.clients.KoboStoreBaseURL + koboPath
-	if r.URL.RawQuery != "" {
-		targetURL += "?" + r.URL.RawQuery
-	}
-
-	//nolint:gosec // targetURL is built from KoboStoreBaseURL, set by config
-	proxyReq, err := http.NewRequestWithContext(
-		r.Context(), r.Method, targetURL, r.Body,
+	resp, err := app.kobo.Proxy(
+		r.Context(), r.Method, koboPath, r.URL.RawQuery, r.Header, r.Body,
 	)
 	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-	proxyReq.Header = r.Header.Clone()
-	// Go then decompresses gzip itself, so the device and the debug capture
-	// get plain bodies; the device's value would pass brotli through.
-	proxyReq.Header.Del("Accept-Encoding")
-	koboForwardAuth(proxyReq.Header, r.Header)
-
-	//nolint:gosec // intentional proxy to upstream Kobo store
-	resp, err := koboUpstreamClient.Do(proxyReq)
-	if err != nil {
+		if errors.Is(err, kobo.ErrBuildRequest) {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
 		koboSetUpstreamNote(r, w, "upstream: "+err.Error())
 		app.Logger.Warn("kobo upstream proxy failed", "err", err)
 		http.Error(w, "upstream unavailable", http.StatusBadGateway)
@@ -534,154 +202,10 @@ func (app *Books) koboProxyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if resp.StatusCode >= http.StatusBadRequest {
-		koboSetUpstreamNote(r, w, koboUpstreamNote(resp.StatusCode, r.Header))
+		koboSetUpstreamNote(r, w, kobo.UpstreamNote(resp.StatusCode, r.Header))
 	}
 	w.WriteHeader(resp.StatusCode)
 	_, _ = io.Copy(w, resp.Body)
-}
-
-// koboUpstream holds a merged-upstream sync result and a diagnostic note about
-// how the store call went. note is empty on success; on failure it carries the
-// upstream HTTP status (or error) and whether the device's Authorization was
-// present to forward — never the credential value.
-type koboUpstream struct {
-	items []json.RawMessage
-	hdrs  http.Header
-	note  string
-}
-
-// koboForwardAuth copies the device's store credential from the arriving
-// request onto the upstream call. Kobo identifies its account to the real
-// store through the Authorization header on the device request; with none to
-// forward the store answers 401 and the merge silently empties.
-func koboForwardAuth(dst, src http.Header) {
-	if v := src.Get("Authorization"); v != "" {
-		dst.Set("Authorization", v)
-	}
-}
-
-// koboUpstreamNote is the diagnostic for a failed upstream store call: the
-// status and whether an Authorization header was present to forward.
-func koboUpstreamNote(status int, src http.Header) string {
-	auth := "Authorization forwarded"
-	if src.Get("Authorization") == "" {
-		auth = "no Authorization forwarded"
-	}
-	return fmt.Sprintf("upstream %d (%s)", status, auth)
-}
-
-// koboFetchUpstreamSync returns upstream sync items (empty on failure) and
-// headers, with a diagnostic note for the Kobo debug log when the store call
-// fails or is unauthenticated.
-func (app *Books) koboFetchUpstreamSync(
-	r *http.Request,
-) koboUpstream {
-	targetURL := app.clients.KoboStoreBaseURL + "/v1/library/sync"
-	if r.URL.RawQuery != "" {
-		targetURL += "?" + r.URL.RawQuery
-	}
-
-	//nolint:gosec // targetURL is built from KoboStoreBaseURL, set by config
-	req, err := http.NewRequestWithContext(
-		r.Context(), http.MethodGet, targetURL, nil,
-	)
-	if err != nil {
-		//nolint:exhaustruct // failure: items/hdrs stay nil
-		return koboUpstream{note: "upstream: build request failed"}
-	}
-	req.Header = r.Header.Clone()
-	// Go only decompresses gzip transparently when it set Accept-Encoding
-	// itself; the device's value would leave the body compressed.
-	req.Header.Del("Accept-Encoding")
-	koboForwardAuth(req.Header, r.Header)
-
-	//nolint:gosec // intentional call to upstream Kobo store
-	resp, err := koboUpstreamClient.Do(req)
-	if err != nil {
-		//nolint:exhaustruct // failure: items/hdrs stay nil
-		return koboUpstream{note: "upstream: " + err.Error()}
-	}
-	defer resp.Body.Close()
-
-	hdrs := resp.Header.Clone()
-	if resp.StatusCode != http.StatusOK {
-		//nolint:exhaustruct // failure: items stay nil
-		return koboUpstream{hdrs: hdrs, note: koboUpstreamNote(resp.StatusCode, r.Header)}
-	}
-
-	var items []json.RawMessage
-	if decErr := json.NewDecoder(resp.Body).Decode(&items); decErr != nil {
-		//nolint:exhaustruct // failure: items stay nil
-		return koboUpstream{hdrs: hdrs, note: "upstream: decode failed"}
-	}
-	return koboUpstream{items: items, hdrs: hdrs, note: ""}
-}
-
-// startKEPUBRegeneration queues a stale KEPUB's regeneration for the workers
-// role: the sync request must never wait on a PDF conversion (ADR-0017). It
-// returns FileStatusConverting, or current when queueing failed.
-func (app *Books) startKEPUBRegeneration(
-	ctx context.Context,
-	userID string,
-	bookID uuid.UUID,
-	current string,
-) string {
-	if err := app.services.KEPUBQueue.Request(ctx, userID, bookID); err != nil {
-		app.Logger.ErrorContext(ctx, "queue kepub regeneration",
-			"book_id", bookID, "err", err)
-		return current
-	}
-	return models.FileStatusConverting
-}
-
-// buildKoboMetadata builds BookMetadata; shared by sync and the metadata
-// endpoint because the device cross-checks them.
-func buildKoboMetadata(b models.KoboSyncBook, libraryBase string) koboBookMetadata {
-	id := b.BookID.String()
-	return koboBookMetadata{
-		Title:       b.Title,
-		ContentType: "application/x-kobo-epub+zip",
-		RevisionId:  id,
-		Language:    "en",
-		DownloadUrls: []koboDownloadURL{{
-			Format:   "KEPUB",
-			Size:     b.Size,
-			URL:      libraryBase + "/" + id + "/file",
-			Platform: "Generic",
-		}},
-		CoverImageID: koboCoverImageID(b.BookID),
-	}
-}
-
-// buildKoboRemovalEntry builds a ChangedEntitlement telling the device to
-// delete a synced book; the catalog row may be gone, so metadata is minimal.
-// Unverified on a real device.
-func buildKoboRemovalEntry(rm models.KoboRemoval) json.RawMessage {
-	id := rm.BookID.String()
-	removed := rm.RemovedAt.UTC().Format(time.RFC3339)
-	raw, _ := json.Marshal(koboChangedEntitlement{
-		ChangedEntitlement: koboSyncEntry{
-			BookEntitlement: koboBookEntitlement{
-				Accessibility:   koboAccessFull,
-				ActivePeriod:    map[string]string{},
-				Created:         removed,
-				CrossRevisionId: id,
-				Id:              id,
-				IsRemoved:       true,
-				IsHiddenFromUI:  true,
-				PurchasedDate:   removed,
-				RevisionId:      id,
-				Status:          "Active",
-				Type:            "ebook",
-			},
-			BookMetadata: koboBookMetadata{ //nolint:exhaustruct // removal: no
-				// download/content details to give — the book is gone.
-				RevisionId: id,
-			},
-			ReadingState: nil,
-		},
-	})
-	return raw
 }
 
 // koboMetadataHandler handles GET /v1/library/{revisionId}/metadata, serving
@@ -698,7 +222,7 @@ func (app *Books) koboMetadataHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	book, err := app.services.Books.GetKoboSyncBook(r.Context(), userID, bookID)
+	meta, err := app.kobo.Metadata(r.Context(), userID, bookID, app.koboLibraryBase(r))
 	if err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
 			app.koboProxyHandler(w, r)
@@ -708,8 +232,7 @@ func (app *Books) koboMetadataHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	meta := buildKoboMetadata(book, app.koboLibraryBase(r))
-	koboWriteJSON(w, []koboBookMetadata{meta})
+	koboWriteJSON(w, meta)
 }
 
 // koboFileHandler handles GET /v1/library/{revisionId}/file with a 302 to a
@@ -741,6 +264,17 @@ func (app *Books) koboFileHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, result.URL, http.StatusFound)
 }
 
+// koboUpstreamCoverURL is the Kobo CDN URL for the request's image.
+func koboUpstreamCoverURL(r *http.Request) string {
+	return kobo.UpstreamCoverURL(kobo.CoverParams{
+		ImageID:   r.PathValue("revisionId"),
+		Width:     r.PathValue("width"),
+		Height:    r.PathValue("height"),
+		Quality:   r.PathValue("quality"),
+		Greyscale: r.PathValue("greyscale"),
+	})
+}
+
 // koboCoverHandler serves a kobo-sync book's cached cover as a 302 to a
 // presigned R2 URL (mirroring coverHandler); any other image id redirects to
 // the Kobo CDN.
@@ -755,20 +289,19 @@ func (app *Books) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
 
 	// The image templates route every cover here, so store-bought books' ids
 	// (anything not one of our kobo-sync books) go to the Kobo CDN.
-	bookID, err := koboCoverBookID(r.PathValue("revisionId"))
+	bookID, err := kobo.CoverBookID(r.PathValue("revisionId"))
 	if err != nil {
 		http.Redirect(w, r, koboUpstreamCoverURL(r), http.StatusFound)
 		return
 	}
 
-	if _, gErr := app.services.Books.GetKoboSyncBook(
-		r.Context(), userID, bookID,
-	); gErr != nil {
-		if errors.Is(gErr, database.ErrResourceNotFound) {
-			http.Redirect(w, r, koboUpstreamCoverURL(r), http.StatusFound)
-			return
-		}
+	owned, err := app.kobo.HasSyncBook(r.Context(), userID, bookID)
+	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if !owned {
+		http.Redirect(w, r, koboUpstreamCoverURL(r), http.StatusFound)
 		return
 	}
 
@@ -791,66 +324,4 @@ func (app *Books) koboCoverHandler(w http.ResponseWriter, r *http.Request) {
 		Set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400")
 
 	http.Redirect(w, r, result.URL, http.StatusFound)
-}
-
-// koboCoverRevision is appended to our books' CoverImageId. The device caches
-// each image id's covers, misses included, so bumping it makes every device
-// fetch all cover sizes again.
-const koboCoverRevision = "-c1"
-
-func koboCoverImageID(bookID uuid.UUID) string {
-	return bookID.String() + koboCoverRevision
-}
-
-// koboCoverChanged reports whether b was synced before under a CoverImageId
-// other than coverID; an unrecorded one counts as different.
-func koboCoverChanged(b models.KoboSyncBook, coverID string) bool {
-	return b.LastSyncedConverterVersion != nil &&
-		(b.LastSyncedCoverImageID == nil || *b.LastSyncedCoverImageID != coverID)
-}
-
-// koboCoverBookID parses an image id from koboCoverImageID, or a bare book id
-// from before the revision suffix.
-func koboCoverBookID(imageID string) (uuid.UUID, error) {
-	return uuid.Parse(strings.TrimSuffix(imageID, koboCoverRevision))
-}
-
-// koboUpstreamCoverURL fills the store catalog's image template with the
-// request's image id and dimensions.
-func koboUpstreamCoverURL(r *http.Request) string {
-	catalog := koboCatalog()
-	tpl, _ := catalog["image_url_template"].(string)
-	quality := r.PathValue("quality")
-	if quality != "" {
-		tpl, _ = catalog["image_url_quality_template"].(string)
-	}
-	greyscale := "false"
-	if r.PathValue("greyscale") == "true" {
-		greyscale = "true"
-	}
-	return strings.NewReplacer(
-		"{ImageId}", url.PathEscape(r.PathValue("revisionId")),
-		"{Width}", url.PathEscape(r.PathValue("width")),
-		"{Height}", url.PathEscape(r.PathValue("height")),
-		"{Quality}", url.PathEscape(quality),
-		"{IsGreyscale}", greyscale,
-	).Replace(tpl)
-}
-
-// koboLibraryBase derives the https://…/kobo/{token}/v1/library prefix.
-// PublicAPIBaseURL wins when set, since a reverse proxy may strip /api from
-// r.URL.Path. The scheme is always https (koboAuth enforces it).
-func (app *Books) koboLibraryBase(r *http.Request) string {
-	path := r.URL.Path
-	if idx := strings.Index(path, "/v1/library"); idx != -1 {
-		path = path[:idx] + "/v1/library"
-	}
-	if app.clients.PublicAPIBaseURL != "" {
-		return strings.TrimSuffix(app.clients.PublicAPIBaseURL, "/") + path
-	}
-	host := r.Header.Get("X-Forwarded-Host")
-	if host == "" {
-		host = r.Host
-	}
-	return "https://" + host + path
 }

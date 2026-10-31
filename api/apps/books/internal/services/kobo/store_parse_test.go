@@ -1,5 +1,5 @@
 //nolint:testpackage // testing unexported Kobo store parsing
-package books
+package kobo
 
 import (
 	"encoding/json"
@@ -26,7 +26,7 @@ func TestParseKoboStoreItems(t *testing.T) {
 		json.RawMessage(`not json`),
 	}
 
-	storeBooks, readings := parseKoboStoreItems(items)
+	storeBooks, readings := parseStoreItems(items)
 
 	require.Len(t, storeBooks, 2)
 	assert.Equal(t, "a", storeBooks[0].EntitlementID)
@@ -48,17 +48,17 @@ func TestKoboStorePercent(t *testing.T) {
 	for in, want := range map[float64]int{
 		0: 0, 0.01: 1, 0.49: 1, 0.99: 1, 1.4: 1, 12.6: 13, 100: 100,
 	} {
-		assert.Equal(t, want, koboStorePercent(in, "ReadyToRead"), "%v", in)
+		assert.Equal(t, want, storePercent(in, "ReadyToRead"), "%v", in)
 	}
-	assert.Equal(t, 1, koboStorePercent(0, koboStatusReading))
-	assert.Equal(t, 13, koboStorePercent(12.6, koboStatusReading))
+	assert.Equal(t, 1, storePercent(0, statusReading))
+	assert.Equal(t, 13, storePercent(12.6, statusReading))
 }
 
 func TestKoboStoreOwned(t *testing.T) {
 	owned := func(ent string) bool {
-		var e koboStoreEntry
+		var e storeEntry
 		require.NoError(t, json.Unmarshal([]byte(`{"BookEntitlement":`+ent+`}`), &e))
-		return koboStoreOwned(&e)
+		return storeOwned(&e)
 	}
 	assert.True(t, owned(`{"Accessibility":"Full","ActivePeriod":{"From":"x"}}`))
 	assert.False(t, owned(`{"Accessibility":"Preview"}`))
