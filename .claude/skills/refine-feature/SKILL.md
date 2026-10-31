@@ -31,9 +31,8 @@ that change the issue set (naming of a new app/schema, domain scope,
 build-vs-adopt, first-cut slices). Decide the rest yourself and record it in
 the parent's `## Decisions`.
 
-For feature-track work this is the **only** human checkpoint on the code —
-every PR under a feature epic auto-merges unreviewed and a human tests the
-output at the end
+Feature-track PRs pass an automated gate and then wait for the owner's
+review; a human also tests the output at the end
 ([`convention-feature-review-policy`](../../../docs/convention-feature-review-policy.md)).
 Be exhaustive; an unresolved choice ships as whatever the implementer assumed.
 

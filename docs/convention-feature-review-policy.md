@@ -1,33 +1,33 @@
-# Convention: feature-track work skips human review behind an automated quality gate
+# Convention: no PR auto-merges except Renovate's; feature work adds an automated gate
 
 - Enforced by: the `feature` label + `finish-task`'s track branch (#1634); the
   gate itself is `code-review` + Go `depguard` (#1629) + web
   `dependency-cruiser` (#1630) + diff-scoped mutation testing (#1632)
-- Issues: #1627, #1629, #1630, #1631, #1632, #1633, #1634, #1635, #1922
+- Issues: #1627, #1629, #1630, #1631, #1632, #1633, #1634, #1635, #1922, #2774
 
 ## Rule
 
-Two tracks, told apart by the `feature` label (`refine-feature` applies it to
-the epic and every sub-issue; `finish-task` reads it back):
+Every PR waits for the owner's review and merge. The only exception is
+Renovate's dependency PRs, which auto-merge through `renovate.json5`.
+`finish-task` never arms auto-merge, on either track or unattended.
 
-- **Maintenance** (`enhancement`/`bug`/`chore`) — `finish-task`'s tiered
-  rule: small code-only PRs auto-merge; larger or architectural ones wait for
-  human review.
-- **Feature** (`feature`) — no human reviews the PR, regardless of size. An
-  automated quality gate replaces the reviewer, then the PR auto-merges.
+The `feature` label (`refine-feature` applies it to the epic and every
+sub-issue; `finish-task` reads it back) selects the gate, not the merge path:
 
-`ci-pass` is required on both tracks; this removes human *review*, not CI.
+- **Maintenance** (`enhancement`/`bug`/`chore`) — no gate; large or
+  architectural changes get a `## Manual review needed` section.
+- **Feature** (`feature`) — the automated quality gate below runs before the
+  PR opens, so review starts from a checked diff.
 
-**Feature work is never completed headless** (#1922). A human drives the
-implementation: they instruct the code changes and **test the output when the
-epic completes**. No background agent factory picks up refined feature items
-or auto-finishes them. The `feature` label still means "PRs auto-merge
-unreviewed", but the person who started the epic is responsible for verifying
-the result.
+`ci-pass` is required on both tracks.
+
+**Feature work is never completed headless.** A human drives the
+implementation and tests the output when the epic completes; no background
+agent picks up refined feature items or finishes them.
 
 ## The gate
 
-Each check stands in for something a reviewer would catch (also running, when
+Each check catches something a reviewer would otherwise have to (also running, when
 the shape of a change needs one, the generated Mermaid `arch:diagram` targets
 as a manual aid):
 
@@ -47,8 +47,6 @@ as a manual aid):
 
 ## Why
 
-The user wants zero PR-level review for feature work. Their checkpoints are
-an exhaustive grilling interview during refinement and hands-on testing when
-the epic finishes — not GitHub code review. The `feature` label was chosen as
-the discriminator because it leaves existing `enhancement` maintenance work on
-the tiered rule.
+Auto-merged agent PRs deploy on merge with no human in the chain. The owner
+reviews every PR instead, and the gate keeps that review short by catching
+design, boundary and weak-test problems first.

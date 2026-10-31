@@ -2,7 +2,7 @@
 name: finish-task
 description: >-
   Ship a code change on tools.xdoubleu.com — lint, coverage, build, open the
-  PR (with the right auto-merge call), watch CI to green, run the retro. Use
+  PR (never auto-merged), watch CI to green, run the retro. Use
   whenever code changes here are complete, whether or not the user asked for
   a PR; also for "finish up", "wrap this up", "open a PR", "ship this".
   Prefer this over calling `ship-pr` directly.
@@ -68,16 +68,17 @@ as superseded, no PR.
 
 ## 5. Ship via `ship-pr`
 
-`ship-pr` owns rebase → push → non-draft PR → CI watch. Pick the auto-merge
-rule from the issue's **labels**, not the diff
-([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md)).
-**Unattended** (routine or subagent): never auto-merge, either track
-([`docs/convention-unattended-agent-trust.md`](../../../docs/convention-unattended-agent-trust.md)).
+`ship-pr` owns rebase → push → non-draft PR → CI watch. **Never arm
+auto-merge**, on either track or unattended: every PR waits for the owner's
+review and merge. Only Renovate's dependency PRs auto-merge, through
+`renovate.json5`
+([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md),
+[`docs/convention-unattended-agent-trust.md`](../../../docs/convention-unattended-agent-trust.md)).
+Tell `ship-pr` explicitly not to enable it.
 
-**A — `feature` label: quality gate, then unconditional auto-merge.** No
-`## Manual review needed` section. Before opening the PR (or before arming
-auto-merge, if found later) fix everything each of these turns up, for
-whichever side changed:
+**A — `feature` label: run the quality gate first.** No
+`## Manual review needed` section. Before opening the PR fix everything each
+of these turns up, for whichever side changed:
 
 1. `code-review` skill on the diff; apply findings.
 2. `cd api && make lint` (depguard) / `cd web && npm run lint`
@@ -85,28 +86,23 @@ whichever side changed:
 3. `cd api && make test/mutation/diff` / `cd web && npm run
    test:mutation:diff`; kill every surviving mutant.
 
-Then have `ship-pr` enable auto-merge. Feature work is never completed
-headless: a human drives implementation and tests the output; no PR under a
-feature epic is reviewed
+The gate runs before review and doesn't replace it
 ([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md)).
 
-**B — no `feature` label: tiered rule.**
+**B — no `feature` label: flag what needs a closer look.** Append (never
+overwrite: `gh pr view --json body -q .body`, then `gh pr edit <n> --body
+...`) a `## Manual review needed` section naming **every** triggered signal,
+each with a specific "what to double check" (e.g. migration:
+backward-compatible), when the change is tooling/harness or
+larger/architectural:
 
-- **Small, code-only**: tell `ship-pr` it's small and self-contained so it
-  enables auto-merge.
-- **Tooling/harness or larger/architectural**: no auto-merge; wait for the
-  user's review. Tooling/harness: `CLAUDE.md`, Makefile targets, lint config,
-  `.github/workflows/*`, scripts, hooks. Larger/architectural: >~150–200
-  changed lines or >8 files (`git diff --stat main`); a new/changed public
-  interface; `api/internal/*`; a new/modified migration; a new app in
-  `api/cmd/api/apps.go`; a new/changed proto RPC; changes spanning more than
-  one app under `api/apps/*` or `web/`; any `go.mod`/`package.json`
-  dependency change.
-
-  Then append (never overwrite: `gh pr view --json body -q .body`, then
-  `gh pr edit <n> --body ...`) a `## Manual review needed` section naming
-  **every** triggered signal, each with a specific "what to double check"
-  (e.g. migration: backward-compatible).
+- Tooling/harness: `CLAUDE.md`, Makefile targets, lint config,
+  `.github/workflows/*`, scripts, hooks.
+- Larger/architectural: >~150–200 changed lines or >8 files (`git diff --stat
+  main`); a new/changed public interface; `api/internal/*`; a new/modified
+  migration; a new app in `api/cmd/api/apps.go`; a new/changed proto RPC;
+  changes spanning more than one app under `api/apps/*` or `web/`; any
+  `go.mod`/`package.json` dependency change.
 
 Board Status edits (project #8 is personal):
 
@@ -136,7 +132,7 @@ Check both (`command -v gh`); on the web there is neither, so opening the PR is
 on you. Say what's missing:
 
 - **`ship-pr` loaded, no `gh`**: follow its "When `gh` isn't available"
-  section. If auto-merge can't be armed, say so — never merge early.
+  section. Never arm auto-merge or merge early.
 - **No `ship-pr`**: rebase on `origin/main`, push, open the PR, watch CI
   (via `mcp__github__*` if no `gh`); apply step 5 yourself.
 - **No `session-retro`**: analyse by hand.
