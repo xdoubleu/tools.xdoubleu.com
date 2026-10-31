@@ -20,7 +20,7 @@ Read `api/AGENTS.md`, `web/AGENTS.md`, `kobo-gateway/AGENTS.md` before working t
 
 ## Production Safety Rules
 
-- Unattended agents act only on human-approved work: only a human moves an issue to Ready, and routine PRs never auto-merge → [convention-unattended-agent-trust](docs/convention-unattended-agent-trust.md).
+- Unattended agents act only on human-approved work: only a human moves an issue to Ready, and no PR auto-merges except Renovate's → [convention-unattended-agent-trust](docs/convention-unattended-agent-trust.md).
 - **Never push to `main`** — it deploys on every push without re-testing. Merge only PRs with green CI.
 - Every outbound fetch of a **user-supplied URL** goes through `api/internal/safedial` (refuses non-public IPs; SSRF guard), never a bare `http.Client`.
 - Never skip, disable, or quarantine a test, or bypass hooks/signing, unless a human asks for that specific exception.

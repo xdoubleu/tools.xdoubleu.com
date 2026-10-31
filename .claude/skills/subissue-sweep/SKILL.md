@@ -38,7 +38,7 @@ session only triages and dispatches.
      comment, report "already fixed" and close the sub-issue with an
      explanatory comment — no PR, no scope creep.
    - `finish-task` (lint, ≥80% changed-line coverage, build for `web/`,
-     non-draft PR with `Fixes #<n>`, auto-merge decision, CI green).
+     non-draft PR with `Fixes #<n>`, no auto-merge, CI green).
    - Not invent scope; on ambiguity make the smallest reasonable call and
      note it in the PR. **Empty body** → report it needs scoping, no PR.
    - Report: sub-issue number, root cause, already-fixed or not, PR URL,
