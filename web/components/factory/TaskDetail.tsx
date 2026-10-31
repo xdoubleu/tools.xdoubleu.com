@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { useFactoryActions, useFactoryTask } from '@/hooks/useFactory'
-import { priorityLabel, statusLabel } from '@/lib/factory/board'
+import { useFactoryActions, useFactoryAgents, useFactoryTask } from '@/hooks/useFactory'
+import { accountsOf, actorLabel, priorityLabel, statusLabel } from '@/lib/factory/board'
 import { MoveSelect } from '@/components/factory/TaskCard'
 import TaskDialog from '@/components/factory/TaskDialog'
 import { Alert } from '@/components/ui/alert'
@@ -63,6 +63,7 @@ interface TaskDetailProps {
 /** A task's description, comments and controls, in a sheet. */
 export default function TaskDetail({ id, onClose }: TaskDetailProps) {
   const { data, error, isLoading } = useFactoryTask(id)
+  const agents = accountsOf(useFactoryAgents().data)
   const [editing, setEditing] = useState(false)
   const task = data?.task
 
@@ -72,7 +73,9 @@ export default function TaskDetail({ id, onClose }: TaskDetailProps) {
         <DialogHeader>
           <DialogTitle>{task?.title ?? 'Task'}</DialogTitle>
           <DialogDescription>
-            {task ? `${statusLabel(task.status)} · ${task.createdBy}` : 'Task details'}
+            {task
+              ? `${statusLabel(task.status)} · ${actorLabel(task.createdBy, agents)}`
+              : 'Task details'}
           </DialogDescription>
         </DialogHeader>
         {error && !data && <ErrorState what="the task" />}
@@ -100,7 +103,7 @@ export default function TaskDetail({ id, onClose }: TaskDetailProps) {
               ) : (
                 data.comments.map((c) => (
                   <Card key={c.id} variant="inset">
-                    <p className="text-xs text-muted">{c.author}</p>
+                    <p className="text-xs text-muted">{actorLabel(c.author, agents)}</p>
                     <p className="whitespace-pre-wrap break-words text-sm">{c.body}</p>
                   </Card>
                 ))

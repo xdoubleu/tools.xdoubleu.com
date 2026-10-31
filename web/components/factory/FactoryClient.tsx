@@ -25,6 +25,7 @@ export default function FactoryClient() {
         title="Factory"
         actions={
           <>
+            <PageHeaderLink href="/factory/agents">Agents</PageHeaderLink>
             <PageHeaderLink href="/factory/repos">Repos</PageHeaderLink>
             <Button onClick={() => setCreating(true)}>New task</Button>
           </>

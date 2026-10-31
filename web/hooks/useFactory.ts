@@ -1,6 +1,7 @@
 import useSWR, { useSWRConfig } from 'swr'
 import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
+import { AgentAccountService } from '@/lib/gen/factory/v1/agent_accounts_pb'
 import { RepoService, TaskService } from '@/lib/gen/factory/v1/factory_pb'
 import type {
   GetTaskResponse,
@@ -10,6 +11,7 @@ import type {
   TaskPriority,
   TaskStatus
 } from '@/lib/gen/factory/v1/factory_pb'
+import type { ListAgentAccountsResponse } from '@/lib/gen/factory/v1/agent_accounts_pb'
 
 export function useFactoryTasks() {
   const client = createServiceClient(TaskService)
@@ -19,6 +21,13 @@ export function useFactoryTasks() {
 export function useFactoryRepos() {
   const client = createServiceClient(RepoService)
   return useSWR<ListReposResponse, Error>(swrKeys.factoryRepos, () => client.listRepos({}))
+}
+
+export function useFactoryAgents() {
+  const client = createServiceClient(AgentAccountService)
+  return useSWR<ListAgentAccountsResponse, Error>(swrKeys.factoryAgents, () =>
+    client.listAgentAccounts({})
+  )
 }
 
 /** One task with its comments; no fetch without an id. */
@@ -55,6 +64,7 @@ const isFactoryKey = (key: unknown) => {
 export function useFactoryActions() {
   const client = createServiceClient(TaskService)
   const repoClient = createServiceClient(RepoService)
+  const agentClient = createServiceClient(AgentAccountService)
   const { mutate } = useSWRConfig()
   const refresh = () => mutate(isFactoryKey)
 
@@ -82,6 +92,16 @@ export function useFactoryActions() {
     },
     updateRepo: async (id: string, repo: RepoFields) => {
       await repoClient.updateRepo({ repo: { id, ...repo } })
+      await refresh()
+    },
+    /** Returns the new account and its client secret, which is shown once. */
+    createAgent: async (name: string, totpCode: string) => {
+      const created = await agentClient.createAgentAccount({ name, totpCode })
+      await refresh()
+      return created
+    },
+    revokeAgent: async (id: string) => {
+      await agentClient.revokeAgentAccount({ id })
       await refresh()
     }
   }

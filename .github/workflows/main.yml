@@ -271,6 +271,8 @@ jobs:
         run: make lint/preflight
       - name: make lint/deploy-version
         run: make lint/deploy-version
+      - name: make lint/agent-headers
+        run: make lint/agent-headers
 
   # Unconditional: invalid frontmatter makes harnesses silently drop a skill.
   skills-lint:

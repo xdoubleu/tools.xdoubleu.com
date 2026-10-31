@@ -3,8 +3,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 
 const mockComment = vi.fn()
+const mockAgents = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
   useFactoryTask: vi.fn(),
+  useFactoryAgents: () => mockAgents(),
   useFactoryActions: vi.fn(() => ({ comment: mockComment, move: vi.fn() }))
 }))
 vi.mock('@/components/factory/TaskDialog', () => ({
@@ -18,6 +20,7 @@ vi.mock('@/components/factory/TaskDialog', () => ({
 
 import TaskDetail from '@/components/factory/TaskDetail'
 import { useFactoryTask } from '@/hooks/useFactory'
+import { AgentAccountSchema } from '@/lib/gen/factory/v1/agent_accounts_pb'
 import {
   CommentSchema,
   GetTaskResponseSchema,
@@ -46,6 +49,7 @@ const detail = create(GetTaskResponseSchema, {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockAgents.mockReturnValue({ data: undefined })
   mockComment.mockResolvedValue(undefined)
 })
 
@@ -188,5 +192,24 @@ describe('TaskDetail', () => {
     if (!form) throw new Error('no form')
     // fireEvent returns false when the handler called preventDefault.
     expect(fireEvent.submit(form)).toBe(false)
+  })
+
+  it('shows agent actors by account name', () => {
+    mockAgents.mockReturnValue({
+      data: { accounts: [create(AgentAccountSchema, { userId: 'u-7', name: 'Overnight agent' })] }
+    })
+    const byAgent = create(GetTaskResponseSchema, {
+      task: create(TaskSchema, {
+        id: 't-3',
+        title: 'Agent work',
+        status: TaskStatus.IN_REVIEW,
+        createdBy: 'agent:u-7'
+      }),
+      comments: [create(CommentSchema, { id: 'c-9', author: 'agent:u-7', body: 'Done' })]
+    })
+    mockTask({ data: byAgent })
+    render(<TaskDetail id="t-3" onClose={vi.fn()} />)
+    expect(screen.getByText('In review · Overnight agent')).toBeInTheDocument()
+    expect(screen.getByText('Overnight agent', { selector: 'p' })).toBeInTheDocument()
   })
 })

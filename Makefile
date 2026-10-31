@@ -29,6 +29,10 @@ lint/watchdog:
 lint/deploy-version:
 	./scripts/test_resolve_deploy_version.sh
 
+# Exercise scripts/factory_agent_headers.sh against a stubbed token endpoint.
+lint/agent-headers:
+	./scripts/test_factory_agent_headers.sh
+
 # Exercise scripts/routine_preflight.sh against a mock MCP server.
 lint/preflight:
 	./scripts/test_routine_preflight.sh
