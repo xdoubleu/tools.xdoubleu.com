@@ -370,7 +370,7 @@ jobs:
           # PRs: use the head commit, not the merge commit.
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          pip install --quiet codecov-cli==11.3.1
+          pip install --quiet codecov-cli==11.3.2
 
           send_notifications() {
             codecovcli send-notifications --commit-sha "$SHA" --slug "$REPO" --git-service github
