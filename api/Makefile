@@ -10,6 +10,12 @@ db/reset:
 	docker-compose down -v
 	docker-compose up -d
 
+# Build the dev tools with the repo's Go version: a bare `go install` uses the
+# toolchain the tool's own go.mod asks for, and golangci-lint refuses to run
+# against a newer Go than it was built with.
+GO_VERSION := $(shell sed -n 's/^go //p' go.mod)
+tools/lint/go tools/lint/golines tools/proto tools/proto/local tools/mutation tools/vuln: export GOTOOLCHAIN := go$(GO_VERSION)
+
 tools: tools/lint tools/proto
 
 tools/lint: tools/lint/go tools/lint/sql
