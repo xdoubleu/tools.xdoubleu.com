@@ -2,6 +2,7 @@ import {
   Harness,
   TaskPriority,
   TaskStatus,
+  type ListReposResponse,
   type Repo,
   type Task
 } from '@/lib/gen/factory/v1/factory_pb'
