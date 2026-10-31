@@ -114,7 +114,17 @@ describe('AgentDialog', () => {
 
     mockCreate.mockRejectedValueOnce(new ConnectError('no', Code.PermissionDenied))
     submit()
-    expect(await screen.findByRole('alert')).toHaveTextContent("That code didn't work.")
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "That code didn't work, or no authenticator is set up for your account."
+    )
+
+    mockCreate.mockRejectedValueOnce(new ConnectError('gone', Code.Unauthenticated))
+    submit()
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Your session has expired. Sign in again.'
+      )
+    )
 
     mockCreate.mockRejectedValueOnce(new ConnectError('slow', Code.ResourceExhausted))
     submit()
@@ -166,5 +176,40 @@ describe('AgentDialog', () => {
     render(<AgentDialog onClose={onClose} />)
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('keeps the secret on screen until Done, whatever else is tried', async () => {
+    const onClose = vi.fn()
+    render(<AgentDialog onClose={onClose} />)
+    fill('Name', 'Reviewer')
+    fill('Authenticator code', '1')
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+    await screen.findByText('Agent created')
+
+    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Client secret')).toHaveValue('the-secret')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('says so when the secret cannot be copied', async () => {
+    writeText.mockRejectedValueOnce(new Error('denied'))
+    render(<AgentDialog onClose={vi.fn()} />)
+    fill('Name', 'Reviewer')
+    fill('Authenticator code', '1')
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
+    await screen.findByText('Agent created')
+    expect(screen.queryByText(/Couldn.t copy/)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy secret' }))
+    expect(await screen.findByText(/Couldn.t copy/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Copied' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy secret' }))
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument()
+    expect(screen.queryByText(/Couldn.t copy/)).not.toBeInTheDocument()
   })
 })

@@ -15,10 +15,12 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 mkdir "$WORK/bin"
 
-# Records its arguments and answers the discovery and token requests.
+# Records its arguments (and a -K - config from stdin) and answers the
+# discovery and token requests.
 cat > "$WORK/bin/curl" <<'STUB'
 #!/usr/bin/env bash
 echo "$*" >> "$STUB_LOG"
+case " $* " in *" -K - "*) echo "stdin: $(cat)" >> "$STUB_LOG" ;; esac
 case "$*" in
   *oauth-authorization-server*) echo '{"token_endpoint":"https://idp.example/oauth2/token"}' ;;
   *oauth2/token*)
@@ -37,11 +39,22 @@ out=$(run) && [ "$out" = '{"Authorization":"Bearer tok-123"}' ] &&
   pass "prints the bearer token as an Authorization header" ||
   failn "unexpected output: $out"
 
-grep -q -- '-u agent-abc:s3cret' "$WORK/log" &&
+grep -q 'stdin: user = "agent-abc:s3cret"' "$WORK/log" &&
   grep -q 'grant_type=client_credentials' "$WORK/log" &&
   grep -q 'https://idp.example/oauth2/token' "$WORK/log" &&
   pass "posts the client credentials to the discovered token endpoint" ||
   failn "token request was $(cat "$WORK/log")"
+
+grep -q 's3cret' <(grep -v '^stdin:' "$WORK/log") &&
+  failn "the secret reached curl's arguments" ||
+  pass "keeps the secret out of curl's arguments"
+
+: > "$WORK/log"
+PATH="$WORK/bin:$PATH" STUB_LOG="$WORK/log" FACTORY_AGENT_CLIENT_ID="agent-abc" \
+  FACTORY_AGENT_SECRET='we"ird\secret' "$HELPER" >/dev/null
+grep -qF 'stdin: user = "agent-abc:we\"ird\\secret"' "$WORK/log" &&
+  pass "escapes quotes and backslashes in the secret" ||
+  failn "config was $(cat "$WORK/log")"
 
 : > "$WORK/log"
 PATH="$WORK/bin:$PATH" STUB_LOG="$WORK/log" FACTORY_AGENT_CLIENT_ID="agent-abc" \

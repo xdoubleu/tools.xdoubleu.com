@@ -17,7 +17,10 @@ fi
 
 token_url=$(curl -fsS "$base_url/.well-known/oauth-authorization-server" |
   jq -er .token_endpoint)
-token=$(curl -fsS -u "$client_id:$secret" -d grant_type=client_credentials \
-  "$token_url" | jq -er .access_token)
+# The credentials go to curl on stdin, so the secret never shows in `ps`.
+escaped_id=$(printf '%s' "$client_id" | sed 's/[\\"]/\\&/g')
+escaped_secret=$(printf '%s' "$secret" | sed 's/[\\"]/\\&/g')
+token=$(printf 'user = "%s:%s"\n' "$escaped_id" "$escaped_secret" |
+  curl -fsS -K - -d grant_type=client_credentials "$token_url" | jq -er .access_token)
 
 jq -nc --arg token "$token" '{Authorization: ("Bearer " + $token)}'

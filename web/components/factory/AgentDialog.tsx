@@ -18,7 +18,10 @@ import { Input } from '@/components/ui/input'
 
 function failureMessage(err: unknown): string {
   const error = ConnectError.from(err)
-  if (error.code === Code.PermissionDenied) return "That code didn't work."
+  if (error.code === Code.Unauthenticated) return 'Your session has expired. Sign in again.'
+  if (error.code === Code.PermissionDenied) {
+    return "That code didn't work, or no authenticator is set up for your account."
+  }
   if (error.code === Code.ResourceExhausted) return 'Too many attempts. Try again later.'
   if (error.code === Code.InvalidArgument) return error.rawMessage
   return "Couldn't create the agent. Try again."
@@ -33,9 +36,15 @@ function Credentials({
   onDone: () => void
 }) {
   const [copied, setCopied] = useState(false)
+  const [copyFailed, setCopyFailed] = useState(false)
   const copy = async () => {
-    await navigator.clipboard.writeText(created.clientSecret)
-    setCopied(true)
+    try {
+      await navigator.clipboard.writeText(created.clientSecret)
+      setCopied(true)
+      setCopyFailed(false)
+    } catch {
+      setCopyFailed(true)
+    }
   }
 
   return (
@@ -49,6 +58,11 @@ function Credentials({
       <Field label="Client secret" htmlFor="agent-client-secret">
         <Input id="agent-client-secret" readOnly value={created.clientSecret} />
       </Field>
+      {copyFailed && (
+        <Alert tone="danger">
+          Couldn&apos;t copy. Select the secret above and copy it by hand.
+        </Alert>
+      )}
       <DialogFooter>
         <Button type="button" variant="secondary" onClick={() => void copy()}>
           {copied ? 'Copied' : 'Copy secret'}
@@ -82,12 +96,13 @@ export default function AgentDialog({ onClose }: { onClose: () => void }) {
     setPending(false)
   }
 
+  // Once the secret is shown only Done closes the sheet: it can't be shown again.
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog open onOpenChange={(open) => !open && !created && onClose()}>
       <DialogContent side="sheet" className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{created ? 'Agent created' : 'New agent'}</DialogTitle>
-          <DialogClose />
+          {!created && <DialogClose />}
         </DialogHeader>
         <DialogDescription className="mb-4">
           {created

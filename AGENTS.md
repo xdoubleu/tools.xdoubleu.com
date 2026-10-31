@@ -21,7 +21,7 @@ Read the `AGENTS.md` of `api/`, `web/` or `kobo-gateway/` before working there.
 ## Production Safety Rules
 
 - Unattended agents act only on human-approved work: only a human moves an issue to Ready, and no PR auto-merges except Renovate's → [convention-unattended-agent-trust](docs/convention-unattended-agent-trust.md).
-- **Never push to `main`** — it deploys on every push without re-testing. Merge only green PRs.
+- **Never push to `main`** — it deploys on every push without re-testing. Merge only PRs with green CI.
 - Every outbound fetch of a **user-supplied URL** goes through `api/internal/safedial` (refuses non-public IPs; SSRF guard), never a bare `http.Client`.
 - Never skip, disable, or quarantine a test, or bypass hooks/signing, unless a human asks for that specific exception.
 - Deploy secrets are listed in three places that must agree (`make lint/kamal-secrets`) → [convention-deploy-secrets](docs/convention-deploy-secrets.md). `infra/README.md` has the full list.
@@ -32,7 +32,7 @@ Read the `AGENTS.md` of `api/`, `web/` or `kobo-gateway/` before working there.
 - **Prefer `ast-grep` over `grep`/`rg` for code** (e.g. `ast-grep run --pattern 'func Name($$$) $$$' --lang go`); use grep/rg for non-code files.
 - **Concise docs and comments:** say each thing once, don't overexplain, don't restate the code, describe current behavior only, no issue numbers or history inline. `make lint/docs` enforces budgets → [convention-concise-docs-and-comments](docs/convention-concise-docs-and-comments.md).
 - **Don't read generated code** (`api/gen/`, `*/mocks/`, `web/lib/gen/`) — read the `.proto` or source interface.
-- Delegate noisy bulk exploration (grep sweeps, log/CI trawls) to subagents.
+- Delegate noisy bulk exploration to subagents.
 
 ## Commands
 
