@@ -15,6 +15,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"tools.xdoubleu.com/internal/auth"
+	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/contexttools"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/testhelper"
 )
@@ -102,6 +104,23 @@ func TestAccessValidAccessTokenPassesThrough(t *testing.T) {
 		&http.Cookie{Name: "accessToken", Value: token},
 	)
 	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestAccessRecordsBrowserChannel(t *testing.T) {
+	service, token := newTestAccessService(t)
+	var channel *string
+	handler := service.Access(func(_ http.ResponseWriter, r *http.Request) {
+		channel = contexttools.GetValue[string](
+			r.Context(), constants.AuthChannelContextKey,
+		)
+	})
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(&http.Cookie{Name: "accessToken", Value: token})
+
+	handler(httptest.NewRecorder(), req)
+
+	require.NotNil(t, channel)
+	assert.Equal(t, constants.ChannelBrowser, *channel)
 }
 
 func TestAccessExpiredTokenRefreshesSession(t *testing.T) {

@@ -115,6 +115,12 @@ const ALL_APPS: AppLink[] = [
     description: 'Administration'
   },
   {
+    name: 'factory',
+    label: 'Factory',
+    href: '/factory',
+    description: 'Task board for the software factory.'
+  },
+  {
     name: 'monitoring',
     label: 'Monitoring',
     href: '/monitoring/connections',
@@ -144,11 +150,14 @@ const SECTION_DEFS: { title: string; names: string[] }[] = [
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty'] },
   { title: 'Account', names: ['settings', 'family'] },
-  { title: 'Admin', names: ['user-management', 'monitoring', 'observability', 'grafana'] }
+  {
+    title: 'Admin',
+    names: ['user-management', 'factory', 'monitoring', 'observability', 'grafana']
+  }
 ]
 
 const ALWAYS_VISIBLE = new Set(['settings', 'family'])
-const ADMIN_ONLY = new Set(['user-management', 'monitoring', 'observability', 'grafana'])
+const ADMIN_ONLY = new Set(['user-management', 'factory', 'monitoring', 'observability', 'grafana'])
 
 export default function HomeClient() {
   const { data: lastUser, error, isLoading } = useCurrentUser()

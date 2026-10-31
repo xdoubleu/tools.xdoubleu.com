@@ -1,0 +1,107 @@
+syntax = "proto3";
+package factory.v1;
+option go_package = "tools.xdoubleu.com/gen/factory/v1;factoryv1";
+
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_BACKLOG = 1;
+  TASK_STATUS_READY = 2;
+  TASK_STATUS_IN_PROGRESS = 3;
+  TASK_STATUS_IN_REVIEW = 4;
+  TASK_STATUS_NEEDS_YOU = 5;
+  TASK_STATUS_DONE = 6;
+}
+
+enum TaskPriority {
+  TASK_PRIORITY_UNSPECIFIED = 0;
+  TASK_PRIORITY_P0 = 1;
+  TASK_PRIORITY_P1 = 2;
+  TASK_PRIORITY_P2 = 3;
+}
+
+message Task {
+  string id = 1;
+  string title = 2;
+  string body = 3;
+  TaskStatus status = 4;
+  TaskPriority priority = 5;
+  repeated string labels = 6;
+  // Actor that created the task, as "<kind>:<id>".
+  string created_by = 7;
+  // RFC3339.
+  string created_at = 8;
+  string updated_at = 9;
+  int32 comment_count = 10;
+}
+
+message Comment {
+  string id = 1;
+  // Actor as "<kind>:<id>".
+  string author = 2;
+  string body = 3;
+  // RFC3339.
+  string created_at = 4;
+}
+
+message ListTasksRequest {}
+message ListTasksResponse {
+  repeated Task tasks = 1;
+}
+
+message GetTaskRequest {
+  string id = 1;
+}
+message GetTaskResponse {
+  Task task = 1;
+  repeated Comment comments = 2;
+}
+
+// New tasks always start in Backlog.
+message CreateTaskRequest {
+  string title = 1;
+  string body = 2;
+  TaskPriority priority = 3;
+  repeated string labels = 4;
+}
+message CreateTaskResponse {
+  Task task = 1;
+}
+
+// Replaces title, body, priority and labels; status changes go through
+// MoveTask.
+message UpdateTaskRequest {
+  string id = 1;
+  string title = 2;
+  string body = 3;
+  TaskPriority priority = 4;
+  repeated string labels = 5;
+}
+message UpdateTaskResponse {
+  Task task = 1;
+}
+
+// Moving into Ready needs a human admin in a browser session.
+message MoveTaskRequest {
+  string id = 1;
+  TaskStatus status = 2;
+}
+message MoveTaskResponse {
+  Task task = 1;
+}
+
+message AddCommentRequest {
+  string task_id = 1;
+  string body = 2;
+}
+message AddCommentResponse {
+  Comment comment = 1;
+}
+
+service TaskService {
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
+  rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
+  rpc UpdateTask(UpdateTaskRequest) returns (UpdateTaskResponse);
+  rpc MoveTask(MoveTaskRequest) returns (MoveTaskResponse);
+  rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
+}

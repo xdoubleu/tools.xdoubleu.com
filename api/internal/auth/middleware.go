@@ -215,6 +215,7 @@ func (service *LocalService) contextSetUser(
 		})
 	}
 
+	ctx = context.WithValue(ctx, constants.AuthChannelContextKey, constants.ChannelBrowser)
 	return context.WithValue(ctx, constants.UserContextKey, user)
 }
 

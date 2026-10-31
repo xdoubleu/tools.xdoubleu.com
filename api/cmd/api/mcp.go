@@ -84,6 +84,7 @@ func (app *Application) mcpUserContext(next http.Handler) http.Handler {
 			return
 		}
 		ctx := context.WithValue(r.Context(), constants.UserContextKey, user)
+		ctx = context.WithValue(ctx, constants.AuthChannelContextKey, constants.ChannelMCP)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

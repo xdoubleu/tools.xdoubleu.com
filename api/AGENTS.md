@@ -18,7 +18,7 @@ make db/reset                      # recreate the Postgres volume — shared by 
 
 ## Architecture
 
-- `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after `games`/`books`/`feeds` (reads them); `trains`/`learningpaths`/`movies`/`podcasts`, then `taste` (reads `books`/`feeds`/`games`/`movies`/`podcasts`).
+- `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after `games`/`books`/`feeds` (reads them); `trains`/`learningpaths`/`movies`/`podcasts`/`factory`, then `taste` (reads `books`/`feeds`/`games`/`movies`/`podcasts`).
 - `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool. Platform handlers: `internal/obs`, `internal/account` (each `Deps`/`Register`).
 - `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
 - `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked PRs can merge migrations out of order; this self-heals.
@@ -42,6 +42,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - SignOut/UpdatePassword/VerifyMFA/UnenrollTOTP evict the token. **Admin `SetRole`/`SetAppAccess` must call `InvalidateUserCache()`.**
 - `enrichUser` overlays DB `Role`/`AppAccess`; **a DB failure is returned, never swallowed** — the unenriched user looks like "no access" and would be cached for the TTL.
 - `GetCurrentUser` (`internal/account/auth_handlers.go`) is the pattern for handlers needing DB-enriched attributes: `auth.GetUser`, then `appUsersRepo.GetByID`, preferring DB values when found.
+- `constants.AuthChannelContextKey` is `browser` (cookies) or `mcp` (bearer); both yield the same `models.User`. A missing channel is not a browser.
 - `ResolveToken` verifies session JWTs locally, then falls back to an injected `OAuth2TokenResolver` for `oauth2as` tokens → [`adr-0006`](../docs/adr-0006-embedded-oauth21-authorization-server.md).
 
 ### Shared packages (`internal/`)
@@ -102,15 +103,15 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 - No DB mocking: integration tests hit real Postgres (17 in CI, as in production). Mocks live in `internal/mocks/`.
 - `make test/cov/diff` (`tools/diff_coverage_go.py`) prints a primary (gate) and a conservative number per file; Codecov's patch figure usually lands between them — treat it as a heuristic.
 - `make test/cov/report` runs `tools/extend_signature_coverage.py` so wrapped signatures aren't reported as missed → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md).
-- **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions — never stop it when finishing. `relation ... does not exist` failures may be leftover state (`db/reset`) or a concurrent teardown (check `docker ps` uptime).
-- **`relation "X" already exists` panic** = another worktree's DDL applied without its `goose_db_version` row. Check with `docker exec api-db-1 psql -U postgres -d postgres -c "SET search_path=global; SELECT version_id, is_applied FROM goose_db_version ORDER BY version_id DESC LIMIT 8;"`; if the schema already matches, insert the missing row there.
+- **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions; never stop it when finishing. `relation ... does not exist` may be leftover state or a concurrent teardown (check `docker ps` uptime).
+- **`relation "X" already exists` panic** = another worktree's DDL ran without its `goose_db_version` row (in `global`; check via `docker exec api-db-1 psql`). If the schema matches, insert the row.
 - **Concurrent `go test` runs from two worktrees race on shared fixtures** (`-p 1` is per-invocation), e.g. `TestAppsMCPCallAllToolsAsAdmin`. Re-run in isolation first.
-- `git stash` is repo-global: never blind-`pop`.
 - No Docker? `.claude/hooks/session-start.sh` has a `pg_ctlcluster` fallback — try it before reporting tests blocked.
 - Bug fixes: failing test first. Reproduce production state via the MCP read tools; for external input, commit the **real bytes** as gzipped `testdata/` fetched with the app's own client (example: `apps/feeds/internal/services/scrape_live_internal_test.go`).
 - A bug closes on a production observation or user confirmation, not a green suite.
+- `git stash` is repo-global: never blind-`pop`.
 - Backfill migrations: test against a row built to predate the migration, not only fresh rows.
-- Kobo-firmware behavior can't be verified server-side — say so in the PR and treat the user's on-device retest as acceptance.
+- Kobo-firmware behavior can't be verified server-side: say so in the PR; the user's on-device retest is acceptance.
 
 - `make test/cov/report` failing with `go: no such tool "covdata"` is a sandbox artifact; re-run `.claude/hooks/session-start.sh`.
 
