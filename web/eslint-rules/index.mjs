@@ -1,3 +1,4 @@
+import dialogDescription from './dialog-description.mjs'
 import fieldLabels from './field-labels.mjs'
 import mobileFirstClasses from './mobile-first-classes.mjs'
 import noClassnameTemplate from './no-classname-template.mjs'
@@ -9,6 +10,7 @@ import usePrimitives from './use-primitives.mjs'
 export default {
   meta: { name: 'ui' },
   rules: {
+    'dialog-description': dialogDescription,
     'field-labels': fieldLabels,
     'mobile-first-classes': mobileFirstClasses,
     'no-classname-template': noClassnameTemplate,

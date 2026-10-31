@@ -1,7 +1,7 @@
 # Convention: web UI standards
 
 - Enforced by:
-  - `npm run lint`, which runs the ESLint raw-control bans and the local `ui/*` rules in `web/eslint-rules/` (`mobile-first-classes`, `theme-tokens`, `no-classname-template`, `touch-targets`, `use-primitives`, `field-labels`). It also runs their RuleTester tests (`test:eslint-rules`) and `generate:ui-catalog:check`.
+  - `npm run lint`, which runs the ESLint raw-control bans and the local `ui/*` rules in `web/eslint-rules/` (`mobile-first-classes`, `theme-tokens`, `no-classname-template`, `touch-targets`, `use-primitives`, `field-labels`, `dialog-description`). It also runs their RuleTester tests (`test:eslint-rules`) and `generate:ui-catalog:check`.
   - `npm run build`, for the production bundle.
   - The `mobile-review` skill, whose `npm run mobile:audit` fails on overflow, sub-44px or crowded tap targets, and sub-16px inputs at 375x667.
   - Review, for everything else.
@@ -21,6 +21,7 @@
   - `Field`/`Label` for labelled controls. A field without a visible label gets `aria-label`; a placeholder is not a label.
   - `Alert tone="danger"` for errors, or `role="alert"` on an inline error beside its control, so they are announced.
   - `Dialog side="sheet"` for edits that should be phone-first.
+  - `DialogDescription` goes after `DialogHeader`, or wrapped with the title in a `div`; as a direct child it lands beside the title and squeezes it (`ui/dialog-description`).
   - A hidden `<input type="file">` may use `eslint-disable-next-line no-restricted-syntax` with a reason.
 - **Theme tokens only.** Colours, shadows and corner radii come from `app/globals.css`, which `ui/theme-tokens` reads. No `dark:`. Add a token rather than using a palette colour. Corners stay squared: `rounded-full` is only for square circles (`size-*`, equal `h-`/`w-`), never a pill.
 - **Class overrides** go through `cn()` (`lib/cn.ts`), never through a template literal.
