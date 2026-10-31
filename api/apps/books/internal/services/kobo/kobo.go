@@ -25,6 +25,13 @@ func NewService(repo *repositories.KoboDevicesRepository) *Service {
 	return &Service{repo: repo}
 }
 
+// HashToken is the SHA-256 hex digest under which a raw token is stored and
+// looked up.
+func HashToken(raw string) string {
+	h := sha256.Sum256([]byte(raw))
+	return hex.EncodeToString(h[:])
+}
+
 // koboTokenBytes is the number of random bytes for a Kobo sync token
 // (256 bits of entropy — URL-safe base64 yields a 43-character string).
 const koboTokenBytes = 32
@@ -41,9 +48,9 @@ func (s *Service) RegisterKoboDevice(
 		return models.KoboDevice{}, "", err
 	}
 	rawToken := base64.RawURLEncoding.EncodeToString(raw)
-	h := sha256.Sum256([]byte(rawToken))
-	hash := hex.EncodeToString(h[:])
-	device, err := s.repo.CreateKoboDevice(ctx, userID, name, serial, hash)
+	device, err := s.repo.CreateKoboDevice(
+		ctx, userID, name, serial, HashToken(rawToken),
+	)
 	if err != nil {
 		return models.KoboDevice{}, "", err
 	}

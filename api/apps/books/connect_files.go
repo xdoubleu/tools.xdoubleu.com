@@ -198,3 +198,20 @@ func (h *booksConnectHandler) FinalizeBookUpload(
 		Format:          result.BookFile.Format,
 	}, nil
 }
+
+// startKEPUBRegeneration queues a stale KEPUB's regeneration for the workers
+// role: the request must never wait on a PDF conversion (ADR-0017). It
+// returns FileStatusConverting, or current when queueing failed.
+func (app *Books) startKEPUBRegeneration(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	current string,
+) string {
+	if err := app.services.KEPUBQueue.Request(ctx, userID, bookID); err != nil {
+		app.Logger.ErrorContext(ctx, "queue kepub regeneration",
+			"book_id", bookID, "err", err)
+		return current
+	}
+	return models.FileStatusConverting
+}

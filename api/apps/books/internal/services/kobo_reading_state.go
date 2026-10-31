@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services/kobo"
 )
 
 // UpdateKoboReadingProgress stores a Kobo device's position. When applied, the
@@ -34,17 +35,6 @@ func (s *BookService) ListKoboDeviceHeld(
 	return s.readingState.ListKoboDeviceHeld(ctx, deviceID)
 }
 
-// KoboDeviceLacks reports whether a device holding held lacks state: the
-// book is new to it, or the state changed since.
-func KoboDeviceLacks(
-	held map[uuid.UUID]time.Time,
-	bookID uuid.UUID,
-	state *models.BookReadingState,
-) bool {
-	prev, onDevice := held[bookID]
-	return !onDevice || (state != nil && state.UpdatedAt.After(prev))
-}
-
 // SyncKoboDeviceReadingStates returns the states that changed since deviceID
 // last held them (held, from ListKoboDeviceHeld), for books it already has,
 // then records every book's current state as held. A book new to the device
@@ -69,7 +59,7 @@ func (s *BookService) SyncKoboDeviceReadingStates(
 		if state != nil {
 			at = state.UpdatedAt
 		}
-		if !KoboDeviceLacks(held, bookID, state) {
+		if !kobo.DeviceLacks(held, bookID, state) {
 			continue
 		}
 		_, onDevice := held[bookID]
