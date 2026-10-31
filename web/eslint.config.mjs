@@ -12,6 +12,7 @@ const uiEverywhere = {
 }
 const uiCallSites = {
   ...uiEverywhere,
+  'ui/dialog-description': 'error',
   'ui/field-labels': 'error',
   'ui/touch-targets': 'error',
   'ui/use-primitives': 'error'
@@ -92,6 +93,7 @@ export default [
         }
       ],
       ...uiEverywhere,
+      'ui/dialog-description': 'off',
       'ui/field-labels': 'off',
       'ui/touch-targets': 'off',
       'ui/use-primitives': 'off'
