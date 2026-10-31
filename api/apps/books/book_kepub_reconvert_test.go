@@ -171,7 +171,7 @@ func countKEPUBRows(t *testing.T, bookID uuid.UUID) int {
 // TestEnsureKEPUB_StaleReplacementHasNoGap: a status read while EnsureKEPUB
 // swaps a stale row for its placeholder still finds a KEPUB row.
 func TestEnsureKEPUB_StaleReplacementHasNoGap(t *testing.T) {
-	book := addUniqueBook(t)
+	book := seedContentBookInLibrary(t, userID)
 	conv, store := newTestConversionService(
 		&fakeEPUBConverter{out: []byte("fresh kepub"), err: nil}, nil,
 	)

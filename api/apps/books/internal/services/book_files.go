@@ -599,6 +599,10 @@ func (s *BookService) GetKEPUBStatus(
 	userID string,
 	bookID uuid.UUID,
 ) (*KEPUBStatusResult, error) {
+	if _, err := s.books.GetUserBook(ctx, userID, bookID); err != nil {
+		return nil, err
+	}
+
 	result := &KEPUBStatusResult{} //nolint:exhaustruct //fields set below conditionally
 
 	_, epubErr := s.bookFiles.GetByBookAndFormat(
