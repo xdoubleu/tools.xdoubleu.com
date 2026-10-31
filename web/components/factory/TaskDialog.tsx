@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { TaskPriority, type Task } from '@/lib/gen/factory/v1/factory_pb'
-import { PRIORITIES, parseLabels, repoLabel } from '@/lib/factory/board'
+import { PRIORITIES, parseLabels, repoLabel, reposOf } from '@/lib/factory/board'
 import { useFactoryActions, useFactoryRepos } from '@/hooks/useFactory'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -36,7 +36,7 @@ export default function TaskDialog({
   onSaved
 }: TaskDialogProps) {
   const { create, update } = useFactoryActions()
-  const repos = useFactoryRepos().data?.repos ?? []
+  const repos = reposOf(useFactoryRepos().data)
   const [pickedRepoId, setPickedRepoId] = useState(defaultRepoId)
   const repoId = pickedRepoId || repos[0]?.id || ''
   const [title, setTitle] = useState(task?.title ?? '')

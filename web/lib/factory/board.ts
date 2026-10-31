@@ -61,3 +61,8 @@ export function repoLabel(repo: Repo): string {
 export function filterByRepo(tasks: Task[], repoId: string): Task[] {
   return repoId === '' ? tasks : tasks.filter((t) => t.repoId === repoId)
 }
+
+/** The repos in a list response, none while it hasn't loaded. */
+export function reposOf(data: ListReposResponse | undefined): Repo[] {
+  return data?.repos ?? []
+}

@@ -1,6 +1,7 @@
 import { create } from '@bufbuild/protobuf'
 import {
   Harness,
+  ListReposResponseSchema,
   RepoSchema,
   TaskPriority,
   TaskSchema,
@@ -15,6 +16,7 @@ import {
   parseLabels,
   priorityLabel,
   repoLabel,
+  reposOf,
   statusLabel
 } from '@/lib/factory/board'
 
@@ -76,5 +78,11 @@ describe('board', () => {
     expect(filterByRepo(tasks, '')).toBe(tasks)
     expect(filterByRepo(tasks, 'r2').map((t) => t.id)).toEqual(['b'])
     expect(filterByRepo(tasks, 'nope')).toEqual([])
+  })
+
+  it('reads the repos of a response, and none before it loads', () => {
+    const repo = create(RepoSchema, { id: 'r1' })
+    expect(reposOf(create(ListReposResponseSchema, { repos: [repo] }))).toEqual([repo])
+    expect(reposOf(undefined)).toEqual([])
   })
 })

@@ -51,6 +51,7 @@ describe('ReposClient', () => {
     expect(screen.getByText('octo/dog')).toBeInTheDocument()
     expect(screen.getByText('dev · OpenCode · 15 min')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Factory' })).toHaveAttribute('href', '/factory')
+    expect(screen.getByText('Repos', { selector: '[aria-current="page"]' })).toBeInTheDocument()
   })
 
   it('shows loading, error and empty states', () => {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { filterByRepo, groupByStatus, repoLabel } from '@/lib/factory/board'
+import { filterByRepo, groupByStatus, repoLabel, reposOf } from '@/lib/factory/board'
 import { useFactoryRepos, useFactoryTasks } from '@/hooks/useFactory'
 import TaskCard from '@/components/factory/TaskCard'
 import TaskDetail from '@/components/factory/TaskDetail'
@@ -14,7 +14,7 @@ import { Select } from '@/components/ui/select'
 /** The task board: one column per swipe on a phone, side by side on a wide screen. */
 export default function FactoryClient() {
   const { data, error, isLoading } = useFactoryTasks()
-  const repos = useFactoryRepos().data?.repos ?? []
+  const repos = reposOf(useFactoryRepos().data)
   const [repoFilter, setRepoFilter] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)

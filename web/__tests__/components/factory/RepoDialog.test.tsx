@@ -27,6 +27,8 @@ describe('RepoDialog', () => {
     const onClose = vi.fn()
     render(<RepoDialog onClose={onClose} />)
     expect(screen.getByText('Add repo')).toBeInTheDocument()
+    expect(screen.getByLabelText('Owner')).toHaveValue('')
+    expect(screen.getByLabelText('Name')).toHaveValue('')
     expect(screen.getByLabelText('Default branch')).toHaveValue('main')
     expect(screen.getByLabelText('Default harness')).toHaveValue(String(Harness.CLAUDE_CODE))
     expect(screen.getByLabelText('Time limit (minutes)')).toHaveValue(60)
