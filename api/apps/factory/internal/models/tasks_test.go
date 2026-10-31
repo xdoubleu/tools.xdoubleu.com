@@ -63,3 +63,10 @@ func TestCanMoveToReadyNeedsHumanAdminInBrowser(t *testing.T) {
 	otherKind.Kind = "agent"
 	assert.False(t, otherKind.CanMoveToReady())
 }
+
+func TestHarnessValid(t *testing.T) {
+	assert.True(t, models.HarnessClaudeCode.Valid())
+	assert.True(t, models.HarnessOpenCode.Valid())
+	assert.False(t, models.Harness("").Valid())
+	assert.False(t, models.HarnessInvalid.Valid())
+}

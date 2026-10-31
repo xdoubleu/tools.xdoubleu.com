@@ -112,10 +112,11 @@ func (s *TaskService) Get(
 	return task, comments, nil
 }
 
-// Create adds a task to Backlog.
+// Create adds a task for a repo to Backlog; an unknown repo is not found.
 func (s *TaskService) Create(
 	ctx context.Context,
 	actor models.Actor,
+	repoID uuid.UUID,
 	in TaskInput,
 ) (*models.Task, error) {
 	in, err := normalise(in)
@@ -124,6 +125,7 @@ func (s *TaskService) Create(
 	}
 	return s.repo.Create(ctx, models.Task{
 		ID:           uuid.Nil,
+		RepoID:       repoID,
 		Title:        in.Title,
 		Body:         in.Body,
 		Status:       models.StatusBacklog,
@@ -149,6 +151,7 @@ func (s *TaskService) Update(
 	}
 	return s.repo.Update(ctx, models.Task{
 		ID:           id,
+		RepoID:       uuid.Nil,
 		Title:        in.Title,
 		Body:         in.Body,
 		Status:       "",

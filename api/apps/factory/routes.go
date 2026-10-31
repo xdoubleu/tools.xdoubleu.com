@@ -21,6 +21,10 @@ func (a *Factory) Routes(prefix string, mux *http.ServeMux) {
 				s,
 				&taskConnectHandler{app: a},
 			)
+			factoryv1connect.RegisterRepoServiceHandler(
+				s,
+				&repoConnectHandler{app: a},
+			)
 		},
 	)
 }

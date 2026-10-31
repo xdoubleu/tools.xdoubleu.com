@@ -4,8 +4,12 @@ import "tools.xdoubleu.com/internal/database/postgres"
 
 type Repositories struct {
 	Tasks *TasksRepository
+	Repos *ReposRepository
 }
 
 func New(db postgres.DB) *Repositories {
-	return &Repositories{Tasks: &TasksRepository{db: db}}
+	return &Repositories{
+		Tasks: &TasksRepository{db: db},
+		Repos: &ReposRepository{db: db},
+	}
 }

@@ -4,8 +4,14 @@ import { create } from '@bufbuild/protobuf'
 
 const mockCreate = vi.fn()
 const mockUpdate = vi.fn()
+const repos = [
+  { id: 'r-1', owner: 'octo', name: 'cat' },
+  { id: 'r-2', owner: 'octo', name: 'dog' }
+]
+const mockRepos = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
-  useFactoryActions: vi.fn(() => ({ create: mockCreate, update: mockUpdate }))
+  useFactoryActions: vi.fn(() => ({ create: mockCreate, update: mockUpdate })),
+  useFactoryRepos: () => mockRepos()
 }))
 
 import TaskDialog from '@/components/factory/TaskDialog'
@@ -15,6 +21,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockCreate.mockResolvedValue({ id: 'new' })
   mockUpdate.mockResolvedValue(undefined)
+  mockRepos.mockReturnValue({ data: { repos } })
 })
 
 describe('TaskDialog', () => {
@@ -37,7 +44,8 @@ describe('TaskDialog', () => {
         title: 'New thing',
         body: 'details',
         priority: TaskPriority.P0,
-        labels: ['a', 'b']
+        labels: ['a', 'b'],
+        repoId: 'r-1'
       })
     )
     await waitFor(() => expect(onClose).toHaveBeenCalled())
@@ -176,5 +184,37 @@ describe('TaskDialog', () => {
     if (!form) throw new Error('no form')
     // fireEvent returns false when the handler called preventDefault.
     expect(fireEvent.submit(form)).toBe(false)
+  })
+
+  it('files a new task under the chosen repo', async () => {
+    render(<TaskDialog onClose={vi.fn()} />)
+    expect(screen.getByLabelText('Repo')).toHaveValue('r-1')
+    expect(screen.getByRole('option', { name: 'octo/dog' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Repo'), { target: { value: 'r-2' } })
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'a' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() =>
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ repoId: 'r-2' }))
+    )
+  })
+
+  it('preselects the repo the board is filtered to', () => {
+    render(<TaskDialog defaultRepoId="r-2" onClose={vi.fn()} />)
+    expect(screen.getByLabelText('Repo')).toHaveValue('r-2')
+  })
+
+  it('has no repo to choose when editing, since a task keeps its repo', () => {
+    render(<TaskDialog task={create(TaskSchema, { id: 't', title: 'x' })} onClose={vi.fn()} />)
+    expect(screen.queryByLabelText('Repo')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+  })
+
+  it('cannot save a new task before any repo is known', () => {
+    mockRepos.mockReturnValue({ data: undefined })
+    render(<TaskDialog onClose={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'a' } })
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
   })
 })

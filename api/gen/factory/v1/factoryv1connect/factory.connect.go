@@ -14,6 +14,8 @@ import (
 const (
 	// TaskServiceName is the fully-qualified name of the TaskService service.
 	TaskServiceName = "factory.v1.TaskService"
+	// RepoServiceName is the fully-qualified name of the RepoService service.
+	RepoServiceName = "factory.v1.RepoService"
 )
 
 // These constants are the procedure names of the RPCs defined in this package. They're exposed at
@@ -36,6 +38,12 @@ const (
 	TaskServiceMoveTaskProcedure = "/factory.v1.TaskService/MoveTask"
 	// TaskServiceAddCommentProcedure is the procedure name of the TaskService's AddComment RPC.
 	TaskServiceAddCommentProcedure = "/factory.v1.TaskService/AddComment"
+	// RepoServiceListReposProcedure is the procedure name of the RepoService's ListRepos RPC.
+	RepoServiceListReposProcedure = "/factory.v1.RepoService/ListRepos"
+	// RepoServiceCreateRepoProcedure is the procedure name of the RepoService's CreateRepo RPC.
+	RepoServiceCreateRepoProcedure = "/factory.v1.RepoService/CreateRepo"
+	// RepoServiceUpdateRepoProcedure is the procedure name of the RepoService's UpdateRepo RPC.
+	RepoServiceUpdateRepoProcedure = "/factory.v1.RepoService/UpdateRepo"
 )
 
 var (
@@ -269,6 +277,141 @@ func (h taskServiceHandler) addComment(ctx context.Context, _ connect.Spec, stre
 		return err
 	}
 	res, err := h.svc.AddComment(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+var (
+	repoServiceListReposSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("RepoService").Methods().ByName("ListRepos"),
+			Procedure:  RepoServiceListReposProcedure,
+		}
+	})
+	repoServiceCreateRepoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("RepoService").Methods().ByName("CreateRepo"),
+			Procedure:  RepoServiceCreateRepoProcedure,
+		}
+	})
+	repoServiceUpdateRepoSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("RepoService").Methods().ByName("UpdateRepo"),
+			Procedure:  RepoServiceUpdateRepoProcedure,
+		}
+	})
+)
+
+// RepoServiceClient is a client for the factory.v1.RepoService service.
+type RepoServiceClient interface {
+	ListRepos(context.Context, *v1.ListReposRequest) (*v1.ListReposResponse, error)
+	CreateRepo(context.Context, *v1.CreateRepoRequest) (*v1.CreateRepoResponse, error)
+	UpdateRepo(context.Context, *v1.UpdateRepoRequest) (*v1.UpdateRepoResponse, error)
+}
+
+// NewRepoServiceClient constructs a client for the factory.v1.RepoService service. Multiple service
+// clients may share a single connect.Client.
+func NewRepoServiceClient(client *connect.Client) RepoServiceClient {
+	return &repoServiceClient{client: client}
+}
+
+// RepoServiceHandler is an implementation of the factory.v1.RepoService service.
+type RepoServiceHandler interface {
+	ListRepos(context.Context, *v1.ListReposRequest) (*v1.ListReposResponse, error)
+	CreateRepo(context.Context, *v1.CreateRepoRequest) (*v1.CreateRepoResponse, error)
+	UpdateRepo(context.Context, *v1.UpdateRepoRequest) (*v1.UpdateRepoResponse, error)
+}
+
+// RegisterRepoServiceHandler registers svc as the factory.v1.RepoService implementation on server.
+func RegisterRepoServiceHandler(server *connect.Server, svc RepoServiceHandler) {
+	adapter := repoServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: repoServiceListReposSpec(), Handler: adapter.listRepos},
+		connect.Method{Spec: repoServiceCreateRepoSpec(), Handler: adapter.createRepo},
+		connect.Method{Spec: repoServiceUpdateRepoSpec(), Handler: adapter.updateRepo},
+	)
+}
+
+// UnimplementedRepoServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedRepoServiceHandler struct{}
+
+func (UnimplementedRepoServiceHandler) ListRepos(context.Context, *v1.ListReposRequest) (*v1.ListReposResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RepoService.ListRepos is not implemented")
+}
+
+func (UnimplementedRepoServiceHandler) CreateRepo(context.Context, *v1.CreateRepoRequest) (*v1.CreateRepoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RepoService.CreateRepo is not implemented")
+}
+
+func (UnimplementedRepoServiceHandler) UpdateRepo(context.Context, *v1.UpdateRepoRequest) (*v1.UpdateRepoResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RepoService.UpdateRepo is not implemented")
+}
+
+type repoServiceClient struct {
+	client *connect.Client
+}
+
+func (c *repoServiceClient) ListRepos(ctx context.Context, req *v1.ListReposRequest) (*v1.ListReposResponse, error) {
+	var res v1.ListReposResponse
+	if err := c.client.CallUnary(ctx, repoServiceListReposSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *repoServiceClient) CreateRepo(ctx context.Context, req *v1.CreateRepoRequest) (*v1.CreateRepoResponse, error) {
+	var res v1.CreateRepoResponse
+	if err := c.client.CallUnary(ctx, repoServiceCreateRepoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *repoServiceClient) UpdateRepo(ctx context.Context, req *v1.UpdateRepoRequest) (*v1.UpdateRepoResponse, error) {
+	var res v1.UpdateRepoResponse
+	if err := c.client.CallUnary(ctx, repoServiceUpdateRepoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type repoServiceHandler struct{ svc RepoServiceHandler }
+
+func (h repoServiceHandler) listRepos(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListReposRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListRepos(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h repoServiceHandler) createRepo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateRepoRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateRepo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h repoServiceHandler) updateRepo(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateRepoRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateRepo(ctx, &req)
 	if err != nil {
 		return err
 	}

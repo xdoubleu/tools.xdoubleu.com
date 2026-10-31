@@ -9,11 +9,13 @@ import (
 type Services struct {
 	Auth  auth.Service
 	Tasks *TaskService
+	Repos *RepoService
 }
 
 func New(repos *repositories.Repositories, authService auth.Service) *Services {
 	return &Services{
 		Auth:  authService,
 		Tasks: &TaskService{repo: repos.Tasks},
+		Repos: &RepoService{repo: repos.Repos},
 	}
 }

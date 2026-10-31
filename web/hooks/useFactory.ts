@@ -1,9 +1,11 @@
 import useSWR, { useSWRConfig } from 'swr'
 import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
-import { TaskService } from '@/lib/gen/factory/v1/factory_pb'
+import { RepoService, TaskService } from '@/lib/gen/factory/v1/factory_pb'
 import type {
   GetTaskResponse,
+  Harness,
+  ListReposResponse,
   ListTasksResponse,
   TaskPriority,
   TaskStatus
@@ -12,6 +14,11 @@ import type {
 export function useFactoryTasks() {
   const client = createServiceClient(TaskService)
   return useSWR<ListTasksResponse, Error>(swrKeys.factoryTasks, () => client.listTasks({}))
+}
+
+export function useFactoryRepos() {
+  const client = createServiceClient(RepoService)
+  return useSWR<ListReposResponse, Error>(swrKeys.factoryRepos, () => client.listRepos({}))
 }
 
 /** One task with its comments; no fetch without an id. */
@@ -29,6 +36,16 @@ interface TaskFields {
   labels: string[]
 }
 
+export interface RepoFields {
+  owner: string
+  name: string
+  defaultBranch: string
+  defaultHarness: Harness
+  setupCommands: string
+  agentInstructions: string
+  timeLimitMinutes: number
+}
+
 const isFactoryKey = (key: unknown) => {
   const path: unknown = Array.isArray(key) ? key[0] : key
   return typeof path === 'string' && path.startsWith('/factory/')
@@ -37,11 +54,12 @@ const isFactoryKey = (key: unknown) => {
 /** Board writes; each revalidates the board and every open task. */
 export function useFactoryActions() {
   const client = createServiceClient(TaskService)
+  const repoClient = createServiceClient(RepoService)
   const { mutate } = useSWRConfig()
   const refresh = () => mutate(isFactoryKey)
 
   return {
-    create: async (fields: TaskFields) => {
+    create: async (fields: TaskFields & { repoId: string }) => {
       const { task } = await client.createTask(fields)
       await refresh()
       return task
@@ -56,6 +74,14 @@ export function useFactoryActions() {
     },
     comment: async (taskId: string, body: string) => {
       await client.addComment({ taskId, body })
+      await refresh()
+    },
+    createRepo: async (repo: RepoFields) => {
+      await repoClient.createRepo({ repo })
+      await refresh()
+    },
+    updateRepo: async (id: string, repo: RepoFields) => {
+      await repoClient.updateRepo({ repo: { id, ...repo } })
       await refresh()
     }
   }

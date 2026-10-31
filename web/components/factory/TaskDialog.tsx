@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { TaskPriority, type Task } from '@/lib/gen/factory/v1/factory_pb'
-import { PRIORITIES, parseLabels } from '@/lib/factory/board'
-import { useFactoryActions } from '@/hooks/useFactory'
+import { PRIORITIES, parseLabels, repoLabel } from '@/lib/factory/board'
+import { useFactoryActions, useFactoryRepos } from '@/hooks/useFactory'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,13 +21,24 @@ interface TaskDialogProps {
   task?: Task
   /** The task's body, which the list leaves empty. */
   body?: string
+  /** Repo preselected for a new task; the first repo when empty. */
+  defaultRepoId?: string
   onClose: () => void
   onSaved?: (id: string) => void
 }
 
 /** Create or edit sheet for a task's title, body, priority and labels. */
-export default function TaskDialog({ task, body, onClose, onSaved }: TaskDialogProps) {
+export default function TaskDialog({
+  task,
+  body,
+  defaultRepoId = '',
+  onClose,
+  onSaved
+}: TaskDialogProps) {
   const { create, update } = useFactoryActions()
+  const repos = useFactoryRepos().data?.repos ?? []
+  const [pickedRepoId, setPickedRepoId] = useState(defaultRepoId)
+  const repoId = pickedRepoId || repos[0]?.id || ''
   const [title, setTitle] = useState(task?.title ?? '')
   const [text, setText] = useState(body ?? '')
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? TaskPriority.P2)
@@ -45,7 +56,7 @@ export default function TaskDialog({ task, body, onClose, onSaved }: TaskDialogP
         await update(task.id, fields)
         onSaved?.(task.id)
       } else {
-        const created = await create(fields)
+        const created = await create({ ...fields, repoId })
         onSaved?.(created?.id ?? '')
       }
       onClose()
@@ -62,6 +73,21 @@ export default function TaskDialog({ task, body, onClose, onSaved }: TaskDialogP
           <DialogTitle>{task ? 'Edit task' : 'New task'}</DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={(e) => void submit(e)}>
+          {!task && (
+            <Field label="Repo" htmlFor="task-repo">
+              <Select
+                id="task-repo"
+                value={repoId}
+                onChange={(e) => setPickedRepoId(e.target.value)}
+              >
+                {repos.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {repoLabel(r)}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
           <Field label="Title" htmlFor="task-title">
             <Input
               id="task-title"
@@ -100,7 +126,10 @@ export default function TaskDialog({ task, body, onClose, onSaved }: TaskDialogP
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending || title.trim() === ''}>
+            <Button
+              type="submit"
+              disabled={pending || title.trim() === '' || (!task && repoId === '')}
+            >
               {pending ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>

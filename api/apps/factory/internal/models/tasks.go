@@ -79,6 +79,7 @@ func (a Actor) CanMoveToReady() bool {
 
 type Task struct {
 	ID       uuid.UUID
+	RepoID   uuid.UUID
 	Title    string
 	Body     string
 	Status   Status

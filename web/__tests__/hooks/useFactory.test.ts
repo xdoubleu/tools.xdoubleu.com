@@ -1,6 +1,12 @@
 import { renderHook } from '@testing-library/react'
 
-const sampleKeys = ['/factory/tasks', ['/factory/task', 't-1'], '/podcasts/favourites', undefined]
+const sampleKeys = [
+  '/factory/tasks',
+  '/factory/repos',
+  ['/factory/task', 't-1'],
+  '/podcasts/favourites',
+  undefined
+]
 let revalidated: unknown[] = []
 const mockMutate = vi.fn(async (match: (key: unknown) => boolean) => {
   revalidated = sampleKeys.filter(match)
@@ -16,18 +22,35 @@ const mockClient = {
   createTask: vi.fn().mockResolvedValue({ task: { id: 'new' } }),
   updateTask: vi.fn().mockResolvedValue({}),
   moveTask: vi.fn().mockResolvedValue({}),
-  addComment: vi.fn().mockResolvedValue({})
+  addComment: vi.fn().mockResolvedValue({}),
+  listRepos: vi.fn().mockResolvedValue({ repos: [] }),
+  createRepo: vi.fn().mockResolvedValue({}),
+  updateRepo: vi.fn().mockResolvedValue({})
 }
 vi.mock('@/lib/client', () => ({
   createServiceClient: vi.fn(() => mockClient)
 }))
-vi.mock('@/lib/gen/factory/v1/factory_pb', () => ({ TaskService: {} }))
+vi.mock('@/lib/gen/factory/v1/factory_pb', () => ({ TaskService: {}, RepoService: {} }))
 
 import useSWR from 'swr'
-import { useFactoryActions, useFactoryTask, useFactoryTasks } from '@/hooks/useFactory'
+import {
+  useFactoryActions,
+  useFactoryRepos,
+  useFactoryTask,
+  useFactoryTasks
+} from '@/hooks/useFactory'
 
 const mockUseSWR = vi.mocked(useSWR)
 const fields = { title: 't', body: 'b', priority: 3, labels: ['x'] }
+const repoFields = {
+  owner: 'o',
+  name: 'n',
+  defaultBranch: 'main',
+  defaultHarness: 1,
+  setupCommands: 'make',
+  agentInstructions: 'be nice',
+  timeLimitMinutes: 30
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -48,6 +71,14 @@ describe('useFactoryTasks', () => {
   })
 })
 
+describe('useFactoryRepos', () => {
+  it('fetches the repos', () => {
+    renderHook(() => useFactoryRepos())
+    expect(mockUseSWR).toHaveBeenCalledWith('/factory/repos', expect.any(Function))
+    expect(mockClient.listRepos).toHaveBeenCalledWith({})
+  })
+})
+
 describe('useFactoryTask', () => {
   it('fetches one task', () => {
     renderHook(() => useFactoryTask('t-1'))
@@ -65,10 +96,10 @@ describe('useFactoryTask', () => {
 describe('useFactoryActions', () => {
   it('creates, returns the task and revalidates only factory keys', async () => {
     const { result } = renderHook(() => useFactoryActions())
-    const task = await result.current.create(fields)
-    expect(mockClient.createTask).toHaveBeenCalledWith(fields)
+    const task = await result.current.create({ ...fields, repoId: 'r-1' })
+    expect(mockClient.createTask).toHaveBeenCalledWith({ ...fields, repoId: 'r-1' })
     expect(task).toEqual({ id: 'new' })
-    expect(revalidated).toEqual(['/factory/tasks', ['/factory/task', 't-1']])
+    expect(revalidated).toEqual(['/factory/tasks', '/factory/repos', ['/factory/task', 't-1']])
   })
 
   it('updates, moves and comments, each revalidating', async () => {
@@ -84,5 +115,17 @@ describe('useFactoryActions', () => {
     expect(mockClient.addComment).toHaveBeenCalledWith({ taskId: 't-1', body: 'hi' })
 
     expect(mockMutate).toHaveBeenCalledTimes(3)
+  })
+
+  it('adds and edits repos, each revalidating', async () => {
+    const { result } = renderHook(() => useFactoryActions())
+
+    await result.current.createRepo(repoFields)
+    expect(mockClient.createRepo).toHaveBeenCalledWith({ repo: repoFields })
+
+    await result.current.updateRepo('r-1', repoFields)
+    expect(mockClient.updateRepo).toHaveBeenCalledWith({ repo: { id: 'r-1', ...repoFields } })
+
+    expect(mockMutate).toHaveBeenCalledTimes(2)
   })
 })
