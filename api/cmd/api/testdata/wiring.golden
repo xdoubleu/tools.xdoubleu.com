@@ -119,6 +119,13 @@ POST /dashboard.v1.PublicReadingDashboardService/: 404, 404
 POST /dashboard.v1.PublicReadingDashboardService/GetSharedBooksProgress: 415, 415
 POST /dashboard.v1.PublicReadingDashboardService/GetSharedFeedsSummary: 415, 415
 POST /dashboard.v1.PublicReadingDashboardService/GetSharedLibrary: 415, 415
+POST /factory.v1.TaskService/: 401, 403
+POST /factory.v1.TaskService/AddComment: 401, 403
+POST /factory.v1.TaskService/CreateTask: 401, 403
+POST /factory.v1.TaskService/GetTask: 401, 403
+POST /factory.v1.TaskService/ListTasks: 401, 403
+POST /factory.v1.TaskService/MoveTask: 401, 403
+POST /factory.v1.TaskService/UpdateTask: 401, 403
 POST /family.v1.FamilyService/: 401, 404
 POST /family.v1.FamilyService/AcceptFamilyInvite: 401, 415
 POST /family.v1.FamilyService/DeclineFamilyInvite: 401, 415

@@ -24,6 +24,7 @@ const DOMAIN_HOOKS = {
   monitoring: ['useMonitoring'],
   movies: ['useMovies'],
   podcasts: ['usePodcasts'],
+  factory: ['useFactory'],
   recipes: ['useRecipes'],
   shoppinglist: ['useShoppingList'],
   taste: ['useTaste'],

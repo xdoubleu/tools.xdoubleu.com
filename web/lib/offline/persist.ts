@@ -15,6 +15,7 @@ const NOT_PERSISTED = [
   '/movies/search',
   '/podcasts/search',
   '/monitoring/',
+  '/factory/',
   '/user-management/'
 ]
 

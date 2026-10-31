@@ -12,6 +12,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/dashboard"
+	"tools.xdoubleu.com/apps/factory"
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/games"
 	"tools.xdoubleu.com/apps/learningpaths"
@@ -104,6 +105,9 @@ func NewApps(
 	// podcasts has no schema dependencies.
 	podcastsApp := podcasts.New(ctx, authService, logger, cfg, db)
 	apps.addApp(podcastsApp)
+
+	// factory has no schema dependencies and imports no other app.
+	apps.addApp(factory.New(ctx, authService, logger, cfg, db))
 
 	// taste reads every media app through its exported ListConsumption, so it
 	// follows them.

@@ -317,6 +317,41 @@ describe('HomeClient', () => {
     expect(screen.queryByRole('heading', { name: 'Admin' })).not.toBeInTheDocument()
   })
 
+  it('shows the Factory card to admins only, even when access is granted', async () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
+    mockUseSettings.mockReturnValue({
+      data: create(GetCurrentUserResponseSchema, { role: 'admin', appAccess: [] }),
+      isLoading: false,
+      error: undefined
+    })
+    const { unmount } = render(<HomeClient />)
+    const link = await screen.findByRole('link', { name: /Factory/ })
+    expect(link).toHaveAttribute('href', '/factory')
+    expect(screen.getByText('Task board for the software factory.')).toBeInTheDocument()
+    unmount()
+
+    // @ts-expect-error -- mock returns partial hook response for test purposes
+    mockUseSettings.mockReturnValue({
+      data: create(GetCurrentUserResponseSchema, {
+        role: 'user',
+        appAccess: ['factory', 'user-management', 'monitoring', 'observability', 'grafana']
+      }),
+      isLoading: false,
+      error: undefined
+    })
+    render(<HomeClient />)
+    await screen.findByText('Settings')
+    for (const name of [
+      'Factory',
+      'User management',
+      'Monitoring',
+      'Automated actions',
+      'Grafana'
+    ]) {
+      expect(screen.queryByText(name)).not.toBeInTheDocument()
+    }
+  })
+
   it('hides Feeds for a non-admin user with only books access', async () => {
     // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
