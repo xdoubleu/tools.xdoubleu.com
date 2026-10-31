@@ -24,6 +24,8 @@ describe('board', () => {
     expect(statusLabel(TaskStatus.NEEDS_YOU)).toBe('Needs you')
     expect(statusLabel(TaskStatus.UNSPECIFIED)).toBe('Unknown')
     expect(priorityLabel(TaskPriority.P0)).toBe('P0')
+    expect(priorityLabel(TaskPriority.P1)).toBe('P1')
+    expect(priorityLabel(TaskPriority.P2)).toBe('P2')
     expect(priorityLabel(TaskPriority.UNSPECIFIED)).toBe('')
   })
 

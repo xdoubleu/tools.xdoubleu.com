@@ -90,4 +90,30 @@ describe('FactoryClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'close' }))
     expect(screen.queryByTestId('create')).not.toBeInTheDocument()
   })
+
+  it('shows no columns until the board arrives, and no error or spinner beside data', () => {
+    mockTasks({ isLoading: true })
+    const { unmount } = render(<FactoryClient />)
+    expect(screen.queryAllByRole('region')).toHaveLength(0)
+    unmount()
+
+    mockTasks({ data: board, error: new Error('refetch failed'), isLoading: true })
+    render(<FactoryClient />)
+    expect(screen.queryByText(/Failed to load/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Loading board/)).not.toBeInTheDocument()
+    expect(screen.getAllByRole('region')).toHaveLength(6)
+  })
+
+  it('starts without the create sheet or an open task', () => {
+    mockTasks({ data: board })
+    render(<FactoryClient />)
+    expect(screen.queryByTestId('create')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('detail')).not.toBeInTheDocument()
+  })
+
+  it('does not show an error while the board has not failed', () => {
+    mockTasks({ isLoading: true })
+    render(<FactoryClient />)
+    expect(screen.queryByText(/Failed to load/)).not.toBeInTheDocument()
+  })
 })

@@ -72,4 +72,33 @@ describe('TaskCard', () => {
     })
     expect(await screen.findByRole('alert')).toHaveTextContent(/Only you, in the browser/)
   })
+
+  it('shows no message before any move', () => {
+    render(<TaskCard task={task} onOpen={vi.fn()} />)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('colours the priority badge by level', () => {
+    const badgeClass = (priority: TaskPriority, label: string) => {
+      const { unmount } = render(
+        <TaskCard task={create(TaskSchema, { ...task, priority, labels: [] })} onOpen={vi.fn()} />
+      )
+      const cls = screen.getByText(label).className
+      unmount()
+      return cls
+    }
+    expect(badgeClass(TaskPriority.P0, 'P0')).toContain('text-danger')
+    expect(badgeClass(TaskPriority.P1, 'P1')).toContain('text-warn')
+    expect(badgeClass(TaskPriority.P2, 'P2')).toContain('text-subtle')
+  })
+
+  it('clears an earlier refusal when the next move starts', async () => {
+    mockMove.mockRejectedValueOnce(new Error('denied'))
+    render(<TaskCard task={task} onOpen={vi.fn()} />)
+    const select = screen.getByLabelText('Move Fix login')
+    fireEvent.change(select, { target: { value: String(TaskStatus.READY) } })
+    await screen.findByRole('alert')
+    fireEvent.change(select, { target: { value: String(TaskStatus.DONE) } })
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+  })
 })

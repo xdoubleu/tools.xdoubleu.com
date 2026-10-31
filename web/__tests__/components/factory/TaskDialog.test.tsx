@@ -90,4 +90,83 @@ describe('TaskDialog', () => {
     expect(onClose).toHaveBeenCalled()
     expect(mockCreate).not.toHaveBeenCalled()
   })
+
+  it('starts a new task empty, titled "New task", with no alert', () => {
+    render(<TaskDialog onClose={vi.fn()} />)
+    expect(screen.getByText('New task')).toBeInTheDocument()
+    expect(screen.getByLabelText('Description')).toHaveValue('')
+    expect(screen.getByLabelText('Labels')).toHaveValue('')
+    expect(screen.getByLabelText('Priority')).toHaveValue(String(TaskPriority.P2))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('titles an existing task "Edit task"', () => {
+    render(<TaskDialog task={create(TaskSchema, { id: 't', title: 'x' })} onClose={vi.fn()} />)
+    expect(screen.getByText('Edit task')).toBeInTheDocument()
+    expect(screen.getByLabelText('Description')).toHaveValue('')
+    expect(screen.getByLabelText('Labels')).toHaveValue('')
+  })
+
+  it('keeps Save off for a blank title and shows progress while saving', async () => {
+    let finish: (v: { id: string }) => void = () => undefined
+    mockCreate.mockReturnValue(new Promise((resolve) => (finish = resolve)))
+    render(<TaskDialog onClose={vi.fn()} />)
+    const title = screen.getByLabelText('Title')
+
+    fireEvent.change(title, { target: { value: '   ' } })
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+
+    fireEvent.change(title, { target: { value: 'real' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('button', { name: 'Saving…' })).toBeDisabled()
+    finish({ id: 'x' })
+  })
+
+  it('creates without an onSaved callback, and reports an empty id when none comes back', async () => {
+    const onClose = vi.fn()
+    const { unmount } = render(<TaskDialog onClose={onClose} />)
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'a' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    unmount()
+
+    mockCreate.mockResolvedValue(undefined)
+    const onSaved = vi.fn()
+    render(<TaskDialog onClose={vi.fn()} onSaved={onSaved} />)
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'a' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith(''))
+  })
+
+  it('reports the edited task id', async () => {
+    const onSaved = vi.fn()
+    render(
+      <TaskDialog
+        task={create(TaskSchema, { id: 't-9', title: 'x' })}
+        onClose={vi.fn()}
+        onSaved={onSaved}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith('t-9'))
+  })
+
+  it('clears an earlier failure when saving again', async () => {
+    mockCreate.mockRejectedValueOnce(new Error('nope'))
+    render(<TaskDialog onClose={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'a' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByRole('alert')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+  })
+
+  it('closes on Escape', () => {
+    const onClose = vi.fn()
+    render(<TaskDialog onClose={onClose} />)
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(onClose).toHaveBeenCalled()
+  })
 })

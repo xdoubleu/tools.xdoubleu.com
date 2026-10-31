@@ -9,7 +9,11 @@ vi.mock('@/hooks/useFactory', () => ({
 }))
 vi.mock('@/components/factory/TaskDialog', () => ({
   __esModule: true,
-  default: () => <div data-testid="edit-dialog" />
+  default: ({ onClose }: { onClose: () => void }) => (
+    <button data-testid="edit-dialog" onClick={onClose}>
+      close edit
+    </button>
+  )
 }))
 
 import TaskDetail from '@/components/factory/TaskDetail'
@@ -106,5 +110,74 @@ describe('TaskDetail', () => {
     render(<TaskDetail id="t-1" onClose={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     expect(screen.getByTestId('edit-dialog')).toBeInTheDocument()
+  })
+
+  it('closes the sheet on Escape', () => {
+    mockTask({ data: detail })
+    const onClose = vi.fn()
+    render(<TaskDetail id="t-1" onClose={onClose} />)
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('starts with no edit sheet, no alert and no spinner', () => {
+    mockTask({ data: detail, error: new Error('refetch'), isLoading: true })
+    render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+    expect(screen.queryByTestId('edit-dialog')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Failed to load/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Loading task/)).not.toBeInTheDocument()
+  })
+
+  it('names the sheet generically until the task loads', () => {
+    mockTask({ isLoading: true })
+    render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+    expect(screen.getByText('Task')).toBeInTheDocument()
+    expect(screen.getByText('Task details')).toBeInTheDocument()
+  })
+
+  it('shows nothing of a response that has no task', () => {
+    mockTask({ data: create(GetTaskResponseSchema, {}) })
+    render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Add a comment')).not.toBeInTheDocument()
+  })
+
+  it('closes the edit sheet again', () => {
+    mockTask({ data: detail })
+    render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+    fireEvent.click(screen.getByTestId('edit-dialog'))
+    expect(screen.queryByTestId('edit-dialog')).not.toBeInTheDocument()
+  })
+
+  it('does not post a blank comment, and shows progress while posting', async () => {
+    let finish: () => void = () => undefined
+    mockComment.mockReturnValue(new Promise<void>((resolve) => (finish = resolve)))
+    mockTask({ data: detail })
+    render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+    const box = screen.getByLabelText('Add a comment')
+
+    fireEvent.change(box, { target: { value: '   ' } })
+    expect(screen.getByRole('button', { name: 'Comment' })).toBeDisabled()
+
+    fireEvent.change(box, { target: { value: 'real' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Comment' }))
+    expect(await screen.findByRole('button', { name: 'Posting…' })).toBeDisabled()
+    finish()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Comment' })).toBeDisabled())
+  })
+
+  it('clears an earlier failure when the next comment is sent', async () => {
+    mockComment.mockRejectedValueOnce(new Error('nope'))
+    mockTask({ data: detail })
+    render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+    const box = screen.getByLabelText('Add a comment')
+    fireEvent.change(box, { target: { value: 'x' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Comment' }))
+    await screen.findByText(/Couldn.t post the comment/)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Comment' }))
+    await waitFor(() => expect(screen.queryByText(/Couldn.t post/)).not.toBeInTheDocument())
   })
 })
