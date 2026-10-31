@@ -2,7 +2,7 @@ services:
   postgres:
     # Vanilla postgres: supabase/postgres bootstraps schemas that collide with a
     # restored dump, and its `postgres` role isn't a real superuser.
-    image: postgres:17
+    image: postgres:17@sha256:31ba9c94a03ada9988f2bb493a22a75eef3a185884533e5cdbcd498ea835b08f
     restart: unless-stopped
     # Well above shared_buffers (128 MiB) + max_connections × work_mem
     # (100 × 4 MiB); a cgroup OOM resets every connection.
