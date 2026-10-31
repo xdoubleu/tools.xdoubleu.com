@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Code, ConnectError } from '@connectrpc/connect'
 import { TaskPriority, type Task, type TaskStatus } from '@/lib/gen/factory/v1/factory_pb'
 import { COLUMNS, priorityLabel } from '@/lib/factory/board'
 import { useFactoryActions } from '@/hooks/useFactory'
@@ -21,14 +22,18 @@ interface TaskCardProps {
 /** Select that moves a task between columns; shows a message when the move is refused. */
 export function MoveSelect({ task }: { task: Task }) {
   const { move } = useFactoryActions()
-  const [failed, setFailed] = useState(false)
+  const [failure, setFailure] = useState('')
 
   const onChange = async (status: TaskStatus) => {
-    setFailed(false)
+    setFailure('')
     try {
       await move(task.id, status)
-    } catch {
-      setFailed(true)
+    } catch (err) {
+      setFailure(
+        ConnectError.from(err).code === Code.PermissionDenied
+          ? 'Only you, in the browser, can mark a task Ready.'
+          : "Couldn't move the task. Try again."
+      )
     }
   }
 
@@ -45,9 +50,9 @@ export function MoveSelect({ task }: { task: Task }) {
           </option>
         ))}
       </Select>
-      {failed && (
+      {failure && (
         <p className="text-xs text-danger" role="alert">
-          Couldn&apos;t move the task. Try again.
+          {failure}
         </p>
       )}
     </>

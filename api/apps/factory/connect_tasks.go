@@ -43,7 +43,7 @@ func actorFrom(ctx context.Context) (models.Actor, error) {
 		Kind:    models.ActorHuman,
 		ID:      user.ID,
 		Browser: channel != nil && *channel == constants.ChannelBrowser,
-		Admin:   true,
+		Admin:   user.Role == sharedmodels.RoleAdmin,
 	}, nil
 }
 
@@ -96,7 +96,7 @@ func priorityFromProto(p factoryv1.TaskPriority) models.Priority {
 			return k
 		}
 	}
-	return "unknown"
+	return models.PriorityInvalid
 }
 
 func protoTask(t *models.Task) *factoryv1.Task {

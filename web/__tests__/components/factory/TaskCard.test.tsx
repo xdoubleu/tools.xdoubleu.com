@@ -1,6 +1,7 @@
 import React from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
+import { Code, ConnectError } from '@connectrpc/connect'
 
 const mockMove = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
@@ -61,5 +62,14 @@ describe('TaskCard', () => {
       target: { value: String(TaskStatus.READY) }
     })
     expect(await screen.findByRole('alert')).toHaveTextContent(/Couldn.t move/)
+  })
+
+  it('explains a permission refusal', async () => {
+    mockMove.mockRejectedValue(new ConnectError('no', Code.PermissionDenied))
+    render(<TaskCard task={task} onOpen={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Move Fix login'), {
+      target: { value: String(TaskStatus.READY) }
+    })
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Only you, in the browser/)
   })
 })

@@ -34,6 +34,8 @@ const (
 	PriorityP0 Priority = "p0"
 	PriorityP1 Priority = "p1"
 	PriorityP2 Priority = "p2"
+	// PriorityInvalid stands for an unrecognised value; Valid rejects it.
+	PriorityInvalid Priority = "invalid"
 )
 
 // Valid reports whether p is a known priority.

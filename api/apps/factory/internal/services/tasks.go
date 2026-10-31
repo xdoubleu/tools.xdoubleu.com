@@ -79,6 +79,17 @@ func normalise(in TaskInput) (TaskInput, error) {
 	return in, nil
 }
 
+func normaliseComment(body string) (string, error) {
+	body = strings.TrimSpace(body)
+	switch {
+	case body == "":
+		return "", badRequest("comment is required")
+	case utf8.RuneCountInString(body) > maxCommentLen:
+		return "", badRequest("comment is too long")
+	}
+	return body, nil
+}
+
 // List returns every task without its body.
 func (s *TaskService) List(ctx context.Context) ([]models.Task, error) {
 	return s.repo.List(ctx)
@@ -132,6 +143,18 @@ func (s *TaskService) Update(
 	}, actor)
 }
 
+// checkMove rejects an unknown column, and Ready for anyone but a human admin
+// in a browser session.
+func checkMove(actor models.Actor, status models.Status) error {
+	if !status.Valid() {
+		return badRequest("invalid status")
+	}
+	if status == models.StatusReady && !actor.CanMoveToReady() {
+		return forbidden("only a human in a browser session can mark a task Ready")
+	}
+	return nil
+}
+
 // Move changes a task's column. Only a human admin in a browser session may
 // move a task into Ready.
 func (s *TaskService) Move(
@@ -140,11 +163,8 @@ func (s *TaskService) Move(
 	id uuid.UUID,
 	status models.Status,
 ) (*models.Task, error) {
-	if !status.Valid() {
-		return nil, badRequest("invalid status")
-	}
-	if status == models.StatusReady && !actor.CanMoveToReady() {
-		return nil, forbidden("only a human in a browser session can mark a task Ready")
+	if err := checkMove(actor, status); err != nil {
+		return nil, err
 	}
 	return s.repo.Move(ctx, id, status)
 }
@@ -156,12 +176,9 @@ func (s *TaskService) Comment(
 	id uuid.UUID,
 	body string,
 ) (*models.Comment, error) {
-	body = strings.TrimSpace(body)
-	switch {
-	case body == "":
-		return nil, badRequest("comment is required")
-	case utf8.RuneCountInString(body) > maxCommentLen:
-		return nil, badRequest("comment is too long")
+	body, err := normaliseComment(body)
+	if err != nil {
+		return nil, err
 	}
 	return s.repo.AddComment(ctx, id, actor.String(), body)
 }
