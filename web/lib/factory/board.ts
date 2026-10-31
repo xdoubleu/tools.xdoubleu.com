@@ -6,6 +6,10 @@ import {
   type Repo,
   type Task
 } from '@/lib/gen/factory/v1/factory_pb'
+import type {
+  AgentAccount,
+  ListAgentAccountsResponse
+} from '@/lib/gen/factory/v1/agent_accounts_pb'
 
 export const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: TaskStatus.BACKLOG, label: 'Backlog' },
@@ -66,4 +70,18 @@ export function filterByRepo(tasks: Task[], repoId: string): Task[] {
 /** The repos in a list response, none while it hasn't loaded. */
 export function reposOf(data: ListReposResponse | undefined): Repo[] {
   return data?.repos ?? []
+}
+
+/** The accounts in a list response, none while it hasn't loaded. */
+export function accountsOf(data: ListAgentAccountsResponse | undefined): AgentAccount[] {
+  return data?.accounts ?? []
+}
+
+const AGENT_ACTOR_PREFIX = 'agent:'
+
+/** An actor ("<kind>:<id>") as shown to people: an agent by its account name. */
+export function actorLabel(actor: string, agents: AgentAccount[]): string {
+  if (!actor.startsWith(AGENT_ACTOR_PREFIX)) return actor
+  const userId = actor.slice(AGENT_ACTOR_PREFIX.length)
+  return agents.find((a) => a.userId === userId)?.name ?? actor
 }

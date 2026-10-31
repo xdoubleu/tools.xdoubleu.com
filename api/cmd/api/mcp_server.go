@@ -31,7 +31,7 @@ func newMCPServer(logger *slog.Logger) *mcp.Server {
 		Name:    appsMCPServerName,
 		Version: mcpServerVersion,
 	}, &mcp.ServerOptions{Capabilities: staticListCapabilities()})
-	srv.AddReceivingMiddleware(mcptools.BoundToolCalls(logger))
+	srv.AddReceivingMiddleware(mcptools.AgentToolsOnly(), mcptools.BoundToolCalls(logger))
 	return srv
 }
 

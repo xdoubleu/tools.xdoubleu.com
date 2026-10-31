@@ -156,6 +156,12 @@ describe('FactoryClient', () => {
     expect(screen.queryByText(/Failed to load/)).not.toBeInTheDocument()
   })
 
+  it('links to the agent accounts', () => {
+    mockTasks({ data: board })
+    render(<FactoryClient />)
+    expect(screen.getByRole('link', { name: 'Agents' })).toHaveAttribute('href', '/factory/agents')
+  })
+
   it('links to the repo settings', () => {
     mockTasks({ data: board })
     render(<FactoryClient />)

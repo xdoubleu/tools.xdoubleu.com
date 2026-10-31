@@ -3,6 +3,7 @@ import { renderHook } from '@testing-library/react'
 const sampleKeys = [
   '/factory/tasks',
   '/factory/repos',
+  '/factory/agents',
   ['/factory/task', 't-1'],
   '/podcasts/favourites',
   undefined
@@ -25,16 +26,21 @@ const mockClient = {
   addComment: vi.fn().mockResolvedValue({}),
   listRepos: vi.fn().mockResolvedValue({ repos: [] }),
   createRepo: vi.fn().mockResolvedValue({}),
-  updateRepo: vi.fn().mockResolvedValue({})
+  updateRepo: vi.fn().mockResolvedValue({}),
+  listAgentAccounts: vi.fn().mockResolvedValue({ accounts: [] }),
+  createAgentAccount: vi.fn().mockResolvedValue({ clientSecret: 's3cret' }),
+  revokeAgentAccount: vi.fn().mockResolvedValue({})
 }
 vi.mock('@/lib/client', () => ({
   createServiceClient: vi.fn(() => mockClient)
 }))
 vi.mock('@/lib/gen/factory/v1/factory_pb', () => ({ TaskService: {}, RepoService: {} }))
+vi.mock('@/lib/gen/factory/v1/agent_accounts_pb', () => ({ AgentAccountService: {} }))
 
 import useSWR from 'swr'
 import {
   useFactoryActions,
+  useFactoryAgents,
   useFactoryRepos,
   useFactoryTask,
   useFactoryTasks
@@ -79,6 +85,14 @@ describe('useFactoryRepos', () => {
   })
 })
 
+describe('useFactoryAgents', () => {
+  it('fetches the agent accounts', () => {
+    renderHook(() => useFactoryAgents())
+    expect(mockUseSWR).toHaveBeenCalledWith('/factory/agents', expect.any(Function))
+    expect(mockClient.listAgentAccounts).toHaveBeenCalledWith({})
+  })
+})
+
 describe('useFactoryTask', () => {
   it('fetches one task', () => {
     renderHook(() => useFactoryTask('t-1'))
@@ -99,7 +113,12 @@ describe('useFactoryActions', () => {
     const task = await result.current.create({ ...fields, repoId: 'r-1' })
     expect(mockClient.createTask).toHaveBeenCalledWith({ ...fields, repoId: 'r-1' })
     expect(task).toEqual({ id: 'new' })
-    expect(revalidated).toEqual(['/factory/tasks', '/factory/repos', ['/factory/task', 't-1']])
+    expect(revalidated).toEqual([
+      '/factory/tasks',
+      '/factory/repos',
+      '/factory/agents',
+      ['/factory/task', 't-1']
+    ])
   })
 
   it('updates, moves and comments, each revalidating', async () => {
@@ -125,6 +144,22 @@ describe('useFactoryActions', () => {
 
     await result.current.updateRepo('r-1', repoFields)
     expect(mockClient.updateRepo).toHaveBeenCalledWith({ repo: { id: 'r-1', ...repoFields } })
+
+    expect(mockMutate).toHaveBeenCalledTimes(2)
+  })
+
+  it('creates an agent, returning its one-time secret, and revokes one', async () => {
+    const { result } = renderHook(() => useFactoryActions())
+
+    const created = await result.current.createAgent('Reviewer', '123456')
+    expect(mockClient.createAgentAccount).toHaveBeenCalledWith({
+      name: 'Reviewer',
+      totpCode: '123456'
+    })
+    expect(created).toEqual({ clientSecret: 's3cret' })
+
+    await result.current.revokeAgent('a-1')
+    expect(mockClient.revokeAgentAccount).toHaveBeenCalledWith({ id: 'a-1' })
 
     expect(mockMutate).toHaveBeenCalledTimes(2)
   })

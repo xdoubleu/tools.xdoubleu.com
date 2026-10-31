@@ -119,6 +119,10 @@ POST /dashboard.v1.PublicReadingDashboardService/: 404, 404
 POST /dashboard.v1.PublicReadingDashboardService/GetSharedBooksProgress: 415, 415
 POST /dashboard.v1.PublicReadingDashboardService/GetSharedFeedsSummary: 415, 415
 POST /dashboard.v1.PublicReadingDashboardService/GetSharedLibrary: 415, 415
+POST /factory.v1.AgentAccountService/: 401, 404
+POST /factory.v1.AgentAccountService/CreateAgentAccount: 401, 415
+POST /factory.v1.AgentAccountService/ListAgentAccounts: 401, 415
+POST /factory.v1.AgentAccountService/RevokeAgentAccount: 401, 415
 POST /factory.v1.RepoService/: 401, 403
 POST /factory.v1.RepoService/CreateRepo: 401, 403
 POST /factory.v1.RepoService/ListRepos: 401, 403

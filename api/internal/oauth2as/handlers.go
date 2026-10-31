@@ -131,6 +131,7 @@ func (l *locationAsJSON) Write(p []byte) (int, error) {
 // client_credentials for machine clients).
 func TokenHandler(
 	provider fosite.Provider,
+	subjects MachineSubjects,
 	logger *slog.Logger,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -147,7 +148,13 @@ func TokenHandler(
 		}
 
 		if ar.GetGrantTypes().ExactOne("client_credentials") {
-			subject, ok := machineSubject(ar.GetClient().GetID())
+			subject, ok, lookupErr := subjects(ctx, ar.GetClient().GetID())
+			if lookupErr != nil {
+				err = fosite.ErrServerError.WithWrap(lookupErr)
+				logOAuthError(ctx, logger, endpointToken, ar, err)
+				provider.WriteAccessError(ctx, w, ar, err)
+				return
+			}
 			if !ok {
 				err = fosite.ErrUnauthorizedClient.WithHint(
 					"The client has no machine identity.",

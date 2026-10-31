@@ -10,6 +10,7 @@ import (
 
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/internal/account"
+	"tools.xdoubleu.com/internal/agentaccounts"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/middleware"
@@ -30,6 +31,11 @@ func (app *Application) mux() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	account.Register(mux, app.logger, nil, app.auth.Access, app.accountDeps())
+	agents := agentaccounts.NewStore(app.db, app.auth.InvalidateUserCache)
+	agentaccounts.Register(mux, app.logger, app.auth.Access, &agentaccounts.Deps{
+		Store:  agents,
+		StepUp: app.auth,
+	})
 	obs.Register(mux, app.logger, app.auth.Access, app.obsDeps())
 
 	// MCP behind OAuth 2.1 Bearer auth. The protected-resource metadata is public
@@ -63,7 +69,11 @@ func (app *Application) mux() *http.ServeMux {
 	)
 	mux.HandleFunc(
 		"POST "+oauth2TokenPath,
-		oauth2as.TokenHandler(app.oauth2as.provider, app.logger),
+		oauth2as.TokenHandler(
+			app.oauth2as.provider,
+			oauth2as.NewMachineSubjects(agents.ClientSubject),
+			app.logger,
+		),
 	)
 	mux.HandleFunc(
 		"POST "+oauth2RegisterPath,
