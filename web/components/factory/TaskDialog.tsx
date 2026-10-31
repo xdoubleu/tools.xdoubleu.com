@@ -38,7 +38,8 @@ export default function TaskDialog({
   const { create, update } = useFactoryActions()
   const repos = reposOf(useFactoryRepos().data)
   const [pickedRepoId, setPickedRepoId] = useState(defaultRepoId)
-  const repoId = pickedRepoId || repos[0]?.id || ''
+  // The only repo is chosen for the user; with several, they pick one.
+  const repoId = pickedRepoId || (repos.length === 1 ? repos[0].id : '')
   const [title, setTitle] = useState(task?.title ?? '')
   const [text, setText] = useState(body ?? '')
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? TaskPriority.P2)
@@ -80,6 +81,9 @@ export default function TaskDialog({
                 value={repoId}
                 onChange={(e) => setPickedRepoId(e.target.value)}
               >
+                <option value="" disabled>
+                  Choose a repo
+                </option>
                 {repos.map((r) => (
                   <option key={r.id} value={r.id}>
                     {repoLabel(r)}

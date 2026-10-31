@@ -1,10 +1,12 @@
 package services
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -27,11 +29,12 @@ func repoInput(mod func(*RepoInput)) RepoInput {
 }
 
 func TestValidBranch(t *testing.T) {
-	for _, ok := range []string{"main", "release/1.2", "feat_x-1", "a.b"} {
+	for _, ok := range []string{"main", "release/1.2", "feat_x-1", "a.b", "a.lockx"} {
 		assert.True(t, validBranch(ok), ok)
 	}
 	for _, bad := range []string{
 		"", "-x", "--upload-pack=x", "/a", "a/", "a..b", "a//b", "a b", "a~b", "a:b",
+		".hidden", "a/.b", "a.lock", "feature/x.lock", "foo.", "@",
 		strings.Repeat("a", maxBranchLen+1),
 	} {
 		assert.False(t, validBranch(bad), bad)
@@ -114,4 +117,16 @@ func TestNormaliseRepoBounds(t *testing.T) {
 	ok(func(r *RepoInput) { r.DefaultHarness = models.HarnessOpenCode })
 	bad(func(r *RepoInput) { r.DefaultHarness = models.HarnessInvalid })
 	bad(func(r *RepoInput) { r.DefaultBranch = "-x" })
+}
+
+func TestUpdateRequiresEverySetting(t *testing.T) {
+	svc := &RepoService{repo: nil}
+	for name, mod := range map[string]func(*RepoInput){
+		"no branch":     func(r *RepoInput) { r.DefaultBranch = "  " },
+		"no harness":    func(r *RepoInput) { r.DefaultHarness = "" },
+		"no time limit": func(r *RepoInput) { r.TimeLimitMinutes = 0 },
+	} {
+		_, err := svc.Update(context.Background(), uuid.New(), repoInput(mod))
+		assert.Equal(t, http.StatusBadRequest, status(t, err), name)
+	}
 }

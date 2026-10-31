@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockCreate.mockResolvedValue({ id: 'new' })
   mockUpdate.mockResolvedValue(undefined)
-  mockRepos.mockReturnValue({ data: { repos } })
+  mockRepos.mockReturnValue({ data: { repos: [repos[0]] } })
 })
 
 describe('TaskDialog', () => {
@@ -187,8 +187,9 @@ describe('TaskDialog', () => {
   })
 
   it('files a new task under the chosen repo', async () => {
+    mockRepos.mockReturnValue({ data: { repos } })
     render(<TaskDialog onClose={vi.fn()} />)
-    expect(screen.getByLabelText('Repo')).toHaveValue('r-1')
+    expect(screen.getByLabelText('Repo')).toHaveValue('')
     expect(screen.getByRole('option', { name: 'octo/dog' })).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('Repo'), { target: { value: 'r-2' } })
@@ -201,6 +202,7 @@ describe('TaskDialog', () => {
   })
 
   it('preselects the repo the board is filtered to', () => {
+    mockRepos.mockReturnValue({ data: { repos } })
     render(<TaskDialog defaultRepoId="r-2" onClose={vi.fn()} />)
     expect(screen.getByLabelText('Repo')).toHaveValue('r-2')
   })
@@ -216,5 +218,27 @@ describe('TaskDialog', () => {
     render(<TaskDialog onClose={vi.fn()} />)
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'a' } })
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+  })
+
+  it('makes the user choose a repo when there are several', () => {
+    mockRepos.mockReturnValue({ data: { repos } })
+    render(<TaskDialog onClose={vi.fn()} />)
+    expect(screen.getByRole('option', { name: 'Choose a repo' })).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'a' } })
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+
+    fireEvent.change(screen.getByLabelText('Repo'), { target: { value: 'r-1' } })
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+  })
+
+  it('files under the only repo without asking', async () => {
+    mockRepos.mockReturnValue({ data: { repos: [repos[0]] } })
+    render(<TaskDialog onClose={vi.fn()} />)
+    expect(screen.getByLabelText('Repo')).toHaveValue('r-1')
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'a' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() =>
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ repoId: 'r-1' }))
+    )
   })
 })

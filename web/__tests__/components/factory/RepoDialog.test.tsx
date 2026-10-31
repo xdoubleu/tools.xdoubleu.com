@@ -173,4 +173,22 @@ describe('RepoDialog', () => {
     expect(onClose).toHaveBeenCalledTimes(2)
     expect(mockCreate).not.toHaveBeenCalled()
   })
+
+  it('only saves a whole-number time limit from 1 to 1440', () => {
+    render(<RepoDialog onClose={vi.fn()} />)
+    fill('Owner', 'octo')
+    fill('Name', 'cat')
+    const save = screen.getByRole('button', { name: 'Save' })
+    expect(screen.queryByText('Enter a whole number from 1 to 1440.')).not.toBeInTheDocument()
+
+    for (const bad of ['', '  ', '0', '-5', '1441', '1.5', 'abc']) {
+      fill('Time limit (minutes)', bad)
+      expect(save, bad).toBeDisabled()
+      expect(screen.getByText('Enter a whole number from 1 to 1440.')).toBeInTheDocument()
+    }
+    for (const ok of ['1', '1440', '90']) {
+      fill('Time limit (minutes)', ok)
+      expect(save, ok).toBeEnabled()
+    }
+  })
 })

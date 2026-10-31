@@ -43,15 +43,24 @@ type RepoInput struct {
 }
 
 // validBranch accepts the characters git allows in the common cases, and
-// refuses what could be read as a git option or a path escape.
+// refuses what git rejects as a ref name or could be read as a git option.
 func validBranch(b string) bool {
-	return len(b) <= maxBranchLen &&
-		branchPattern.MatchString(b) &&
-		!strings.HasPrefix(b, "-") &&
-		!strings.HasPrefix(b, "/") &&
-		!strings.HasSuffix(b, "/") &&
-		!strings.Contains(b, "..") &&
-		!strings.Contains(b, "//")
+	if len(b) > maxBranchLen ||
+		!branchPattern.MatchString(b) ||
+		strings.HasPrefix(b, "-") ||
+		strings.HasPrefix(b, "/") ||
+		strings.HasSuffix(b, "/") ||
+		strings.HasSuffix(b, ".") ||
+		strings.Contains(b, "..") ||
+		strings.Contains(b, "//") {
+		return false
+	}
+	for _, part := range strings.Split(b, "/") {
+		if strings.HasPrefix(part, ".") || strings.HasSuffix(part, ".lock") {
+			return false
+		}
+	}
+	return true
 }
 
 // normaliseRepo trims and validates in, defaulting an unset branch to main,
@@ -127,12 +136,20 @@ func (s *RepoService) Create(
 	return s.repo.Create(ctx, repoFrom(uuid.Nil, in))
 }
 
-// Update replaces every setting of a repo.
+// Update replaces every setting of a repo. Unlike Create it applies no
+// defaults: a field left unset would silently overwrite the stored value.
 func (s *RepoService) Update(
 	ctx context.Context,
 	id uuid.UUID,
 	in RepoInput,
 ) (*models.Repo, error) {
+	if strings.TrimSpace(in.DefaultBranch) == "" ||
+		in.DefaultHarness == "" ||
+		in.TimeLimitMinutes == 0 {
+		return nil, badRequest(
+			"default branch, harness and time limit are required",
+		)
+	}
 	in, err := normaliseRepo(in)
 	if err != nil {
 		return nil, err

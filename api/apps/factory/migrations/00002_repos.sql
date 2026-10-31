@@ -14,13 +14,18 @@ CREATE TABLE IF NOT EXISTS factory.repos (
         time_limit_minutes BETWEEN 1 AND 1440
     ),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (owner, name)
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- GitHub owner and repo names are case-insensitive.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_repos_owner_name
+ON factory.repos (
+    lower(owner), lower(name)
 );
 
 INSERT INTO factory.repos (owner, name, agent_instructions)
 VALUES ('xdoubleu', 'tools.xdoubleu.com', 'Follow AGENTS.md.')
-ON CONFLICT (owner, name) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Every task so far was filed for this repo, the only one the factory knows,
 -- so pointing them all at the seeded row is the whole backfill.

@@ -18,6 +18,8 @@ import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 
 const DEFAULT_LIMIT_MINUTES = 60
+const MIN_LIMIT_MINUTES = 1
+const MAX_LIMIT_MINUTES = 1440
 
 function failureMessage(err: unknown): string {
   const code = ConnectError.from(err).code
@@ -44,6 +46,12 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
   const [instructions, setInstructions] = useState(repo?.agentInstructions ?? '')
   const [pending, setPending] = useState(false)
   const [failure, setFailure] = useState('')
+  const minutes = Number(limit)
+  const limitValid =
+    limit.trim() !== '' &&
+    Number.isInteger(minutes) &&
+    minutes >= MIN_LIMIT_MINUTES &&
+    minutes <= MAX_LIMIT_MINUTES
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -56,7 +64,7 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
       defaultHarness: harness,
       setupCommands: setup,
       agentInstructions: instructions,
-      timeLimitMinutes: Number(limit)
+      timeLimitMinutes: minutes
     }
     try {
       if (repo) await updateRepo(repo.id, fields)
@@ -117,7 +125,12 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
               ))}
             </Select>
           </Field>
-          <Field label="Time limit (minutes)" htmlFor="repo-limit" hint="1 to 1440.">
+          <Field
+            label="Time limit (minutes)"
+            htmlFor="repo-limit"
+            hint="1 to 1440."
+            error={limitValid ? undefined : 'Enter a whole number from 1 to 1440.'}
+          >
             <Input
               id="repo-limit"
               type="number"
@@ -158,7 +171,10 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending || owner.trim() === '' || name.trim() === ''}>
+            <Button
+              type="submit"
+              disabled={pending || owner.trim() === '' || name.trim() === '' || !limitValid}
+            >
               {pending ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>
