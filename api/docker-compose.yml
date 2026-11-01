@@ -1,7 +1,7 @@
 services:
   db:
     # Matches production; one volume per major (data dirs don't carry over).
-    image: postgres:17
+    image: postgres:17@sha256:31ba9c94a03ada9988f2bb493a22a75eef3a185884533e5cdbcd498ea835b08f
     volumes:
       - postgres17_data:/var/lib/postgresql/data
     ports:
