@@ -2,6 +2,8 @@ syntax = "proto3";
 package factory.v1;
 option go_package = "tools.xdoubleu.com/gen/factory/v1;factoryv1";
 
+import "factory/v1/factory.proto";
+
 message Runner {
   string id = 1;
   string name = 2;
@@ -66,11 +68,57 @@ message HeartbeatRequest {
 }
 message HeartbeatResponse {}
 
-// The runner's own calls. Pair is authenticated by the pairing code, Heartbeat
-// by the device token; neither takes a cookie or MCP token, and nothing here
+// What the runner needs to run one job. The prompt is the frozen task part; the
+// runner adds its own preamble, and validates repo, branch and base itself.
+message ClaimedJob {
+  string id = 1;
+  string task_id = 2;
+  string repo_owner = 3;
+  string repo_name = 4;
+  string default_branch = 5;
+  Harness harness = 6;
+  string prompt = 7;
+  string branch = 8;
+  // Free text, run in the sandbox before the agent.
+  string setup_commands = 9;
+  int32 time_limit_minutes = 10;
+}
+
+message ClaimJobRequest {}
+message ClaimJobResponse {
+  // Unset when no job was queued within the hold.
+  ClaimedJob job = 1;
+}
+
+message CheckInRequest {
+  string job_id = 1;
+  // The harness's session id once it has one.
+  string session_id = 2;
+}
+message CheckInResponse {
+  // True when the job is no longer running (lost or cancelled): stop it.
+  bool stop = 1;
+}
+
+message CompleteJobRequest {
+  string job_id = 1;
+  bool succeeded = 2;
+  // What the agent wrote, or why it failed. Posted on the task as a comment.
+  string outcome = 3;
+  string session_id = 4;
+}
+message CompleteJobResponse {}
+
+// The runner's own calls. Pair is authenticated by the pairing code, the rest
+// by the device token; none takes a cookie or MCP token, and nothing here
 // reaches TaskService.
 service RunnerService {
   rpc Pair(PairRequest) returns (PairResponse);
   // Held open for up to 20 seconds, then answered; the runner calls again.
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  // Held open for up to 20 seconds waiting for the oldest queued job.
+  rpc ClaimJob(ClaimJobRequest) returns (ClaimJobResponse);
+  // Every 30 seconds while a job runs; 5 minutes of silence marks it lost.
+  rpc CheckIn(CheckInRequest) returns (CheckInResponse);
+  rpc CompleteJob(CompleteJobRequest) returns (CompleteJobResponse);
 }

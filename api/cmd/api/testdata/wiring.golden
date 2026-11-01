@@ -132,6 +132,9 @@ POST /factory.v1.RunnerAdminService/CreateRunner: 401, 403
 POST /factory.v1.RunnerAdminService/ListRunners: 401, 403
 POST /factory.v1.RunnerAdminService/RevokeRunner: 401, 403
 POST /factory.v1.RunnerService/: 404, 404
+POST /factory.v1.RunnerService/CheckIn: 415, 415
+POST /factory.v1.RunnerService/ClaimJob: 415, 415
+POST /factory.v1.RunnerService/CompleteJob: 415, 415
 POST /factory.v1.RunnerService/Heartbeat: 415, 415
 POST /factory.v1.RunnerService/Pair: 415, 415
 POST /factory.v1.TaskService/: 401, 403
@@ -140,6 +143,7 @@ POST /factory.v1.TaskService/CreateTask: 401, 403
 POST /factory.v1.TaskService/GetTask: 401, 403
 POST /factory.v1.TaskService/ListTasks: 401, 403
 POST /factory.v1.TaskService/MoveTask: 401, 403
+POST /factory.v1.TaskService/RunTask: 401, 403
 POST /factory.v1.TaskService/UpdateTask: 401, 403
 POST /family.v1.FamilyService/: 401, 404
 POST /family.v1.FamilyService/AcceptFamilyInvite: 401, 415

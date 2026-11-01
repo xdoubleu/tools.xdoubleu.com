@@ -183,3 +183,18 @@ func (r *TasksRepository) Comments(
 	}
 	return out, rows.Err()
 }
+
+// BodyEditedChannel is how the task's body was last edited ("browser" or not).
+func (r *TasksRepository) BodyEditedChannel(
+	ctx context.Context,
+	id uuid.UUID,
+) (string, error) {
+	var channel string
+	err := r.db.QueryRow(ctx,
+		`SELECT body_edited_channel FROM factory.tasks WHERE id = $1`, id,
+	).Scan(&channel)
+	if err != nil {
+		return "", postgres.PgxErrorToHTTPError(err)
+	}
+	return channel, nil
+}

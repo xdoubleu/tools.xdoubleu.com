@@ -39,6 +39,12 @@ const (
 	RunnerServicePairProcedure = "/factory.v1.RunnerService/Pair"
 	// RunnerServiceHeartbeatProcedure is the procedure name of the RunnerService's Heartbeat RPC.
 	RunnerServiceHeartbeatProcedure = "/factory.v1.RunnerService/Heartbeat"
+	// RunnerServiceClaimJobProcedure is the procedure name of the RunnerService's ClaimJob RPC.
+	RunnerServiceClaimJobProcedure = "/factory.v1.RunnerService/ClaimJob"
+	// RunnerServiceCheckInProcedure is the procedure name of the RunnerService's CheckIn RPC.
+	RunnerServiceCheckInProcedure = "/factory.v1.RunnerService/CheckIn"
+	// RunnerServiceCompleteJobProcedure is the procedure name of the RunnerService's CompleteJob RPC.
+	RunnerServiceCompleteJobProcedure = "/factory.v1.RunnerService/CompleteJob"
 )
 
 var (
@@ -192,6 +198,27 @@ var (
 			Procedure:  RunnerServiceHeartbeatProcedure,
 		}
 	})
+	runnerServiceClaimJobSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_runners_proto.Services().ByName("RunnerService").Methods().ByName("ClaimJob"),
+			Procedure:  RunnerServiceClaimJobProcedure,
+		}
+	})
+	runnerServiceCheckInSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_runners_proto.Services().ByName("RunnerService").Methods().ByName("CheckIn"),
+			Procedure:  RunnerServiceCheckInProcedure,
+		}
+	})
+	runnerServiceCompleteJobSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_runners_proto.Services().ByName("RunnerService").Methods().ByName("CompleteJob"),
+			Procedure:  RunnerServiceCompleteJobProcedure,
+		}
+	})
 )
 
 // RunnerServiceClient is a client for the factory.v1.RunnerService service.
@@ -199,6 +226,11 @@ type RunnerServiceClient interface {
 	Pair(context.Context, *v1.PairRequest) (*v1.PairResponse, error)
 	// Held open for up to 20 seconds, then answered; the runner calls again.
 	Heartbeat(context.Context, *v1.HeartbeatRequest) (*v1.HeartbeatResponse, error)
+	// Held open for up to 20 seconds waiting for the oldest queued job.
+	ClaimJob(context.Context, *v1.ClaimJobRequest) (*v1.ClaimJobResponse, error)
+	// Every 30 seconds while a job runs; 5 minutes of silence marks it lost.
+	CheckIn(context.Context, *v1.CheckInRequest) (*v1.CheckInResponse, error)
+	CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error)
 }
 
 // NewRunnerServiceClient constructs a client for the factory.v1.RunnerService service. Multiple
@@ -212,6 +244,11 @@ type RunnerServiceHandler interface {
 	Pair(context.Context, *v1.PairRequest) (*v1.PairResponse, error)
 	// Held open for up to 20 seconds, then answered; the runner calls again.
 	Heartbeat(context.Context, *v1.HeartbeatRequest) (*v1.HeartbeatResponse, error)
+	// Held open for up to 20 seconds waiting for the oldest queued job.
+	ClaimJob(context.Context, *v1.ClaimJobRequest) (*v1.ClaimJobResponse, error)
+	// Every 30 seconds while a job runs; 5 minutes of silence marks it lost.
+	CheckIn(context.Context, *v1.CheckInRequest) (*v1.CheckInResponse, error)
+	CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error)
 }
 
 // RegisterRunnerServiceHandler registers svc as the factory.v1.RunnerService implementation on
@@ -221,6 +258,9 @@ func RegisterRunnerServiceHandler(server *connect.Server, svc RunnerServiceHandl
 	server.Register(
 		connect.Method{Spec: runnerServicePairSpec(), Handler: adapter.pair},
 		connect.Method{Spec: runnerServiceHeartbeatSpec(), Handler: adapter.heartbeat},
+		connect.Method{Spec: runnerServiceClaimJobSpec(), Handler: adapter.claimJob},
+		connect.Method{Spec: runnerServiceCheckInSpec(), Handler: adapter.checkIn},
+		connect.Method{Spec: runnerServiceCompleteJobSpec(), Handler: adapter.completeJob},
 	)
 }
 
@@ -233,6 +273,18 @@ func (UnimplementedRunnerServiceHandler) Pair(context.Context, *v1.PairRequest) 
 
 func (UnimplementedRunnerServiceHandler) Heartbeat(context.Context, *v1.HeartbeatRequest) (*v1.HeartbeatResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RunnerService.Heartbeat is not implemented")
+}
+
+func (UnimplementedRunnerServiceHandler) ClaimJob(context.Context, *v1.ClaimJobRequest) (*v1.ClaimJobResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RunnerService.ClaimJob is not implemented")
+}
+
+func (UnimplementedRunnerServiceHandler) CheckIn(context.Context, *v1.CheckInRequest) (*v1.CheckInResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RunnerService.CheckIn is not implemented")
+}
+
+func (UnimplementedRunnerServiceHandler) CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RunnerService.CompleteJob is not implemented")
 }
 
 type runnerServiceClient struct {
@@ -250,6 +302,30 @@ func (c *runnerServiceClient) Pair(ctx context.Context, req *v1.PairRequest) (*v
 func (c *runnerServiceClient) Heartbeat(ctx context.Context, req *v1.HeartbeatRequest) (*v1.HeartbeatResponse, error) {
 	var res v1.HeartbeatResponse
 	if err := c.client.CallUnary(ctx, runnerServiceHeartbeatSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) ClaimJob(ctx context.Context, req *v1.ClaimJobRequest) (*v1.ClaimJobResponse, error) {
+	var res v1.ClaimJobResponse
+	if err := c.client.CallUnary(ctx, runnerServiceClaimJobSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) CheckIn(ctx context.Context, req *v1.CheckInRequest) (*v1.CheckInResponse, error) {
+	var res v1.CheckInResponse
+	if err := c.client.CallUnary(ctx, runnerServiceCheckInSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) CompleteJob(ctx context.Context, req *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error) {
+	var res v1.CompleteJobResponse
+	if err := c.client.CallUnary(ctx, runnerServiceCompleteJobSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -275,6 +351,42 @@ func (h runnerServiceHandler) heartbeat(ctx context.Context, _ connect.Spec, str
 		return err
 	}
 	res, err := h.svc.Heartbeat(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) claimJob(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ClaimJobRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ClaimJob(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) checkIn(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CheckInRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CheckIn(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) completeJob(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CompleteJobRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CompleteJob(ctx, &req)
 	if err != nil {
 		return err
 	}

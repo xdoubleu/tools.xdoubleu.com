@@ -105,6 +105,39 @@ message AddCommentResponse {
   Comment comment = 1;
 }
 
+enum JobStatus {
+  JOB_STATUS_UNSPECIFIED = 0;
+  JOB_STATUS_QUEUED = 1;
+  JOB_STATUS_RUNNING = 2;
+  JOB_STATUS_SUCCEEDED = 3;
+  JOB_STATUS_FAILED = 4;
+  JOB_STATUS_CANCELLED = 5;
+  // A running job that stopped checking in.
+  JOB_STATUS_LOST = 6;
+}
+
+// One run of a harness on a task, on the runner's Mac.
+message Job {
+  string id = 1;
+  string task_id = 2;
+  JobStatus status = 3;
+  // The agent/<task-id>-<slug> branch the job commits to in the Mac's clone.
+  string branch = 4;
+  // RFC3339.
+  string created_at = 5;
+}
+
+// Queues a job for the task and moves it to In progress. A human admin in a
+// browser session only: running an agent is the approval Ready stands for.
+message RunTaskRequest {
+  string task_id = 1;
+  // Added to the prompt after the task; optional.
+  string text = 2;
+}
+message RunTaskResponse {
+  Job job = 1;
+}
+
 service TaskService {
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
   rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
@@ -112,6 +145,7 @@ service TaskService {
   rpc UpdateTask(UpdateTaskRequest) returns (UpdateTaskResponse);
   rpc MoveTask(MoveTaskRequest) returns (MoveTaskResponse);
   rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
+  rpc RunTask(RunTaskRequest) returns (RunTaskResponse);
 }
 
 message Repo {
