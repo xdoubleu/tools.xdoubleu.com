@@ -70,3 +70,11 @@ func TestJobStatusFinished(t *testing.T) {
 		assert.Equal(t, want, status.Finished(), string(status))
 	}
 }
+
+// The ends of each kept range survive: a, z, 0 and 9 are letters and digits, and
+// the characters just outside them (` { / :) are separators.
+func TestSlugKeepsTheEndsOfItsRanges(t *testing.T) {
+	assert.Equal(t, "az09", slug("az09"))
+	assert.Equal(t, "a-z-0-9", slug("a`z{0/9:"))
+	assert.Equal(t, "b-y", slug("b`{y"))
+}

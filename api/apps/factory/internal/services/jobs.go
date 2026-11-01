@@ -58,10 +58,8 @@ func slug(title string) string {
 			dash = true
 		}
 	}
-	out := strings.TrimRight(b.String(), "-")
-	if len(out) > maxSlugLen {
-		out = strings.TrimRight(out[:maxSlugLen], "-")
-	}
+	out := b.String()
+	out = strings.TrimRight(out[:min(len(out), maxSlugLen)], "-")
 	if out == "" {
 		return "task"
 	}

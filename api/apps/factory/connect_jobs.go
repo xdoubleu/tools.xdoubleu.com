@@ -94,13 +94,13 @@ func (h *runnerHandler) ClaimJob(
 		if claimed != nil {
 			return &factoryv1.ClaimJobResponse{Job: claimedJobToProto(claimed)}, nil
 		}
-		wait := min(claimPoll, time.Until(deadline))
-		if wait <= 0 {
+		// A negative wait fires at once, so the last look happens after the hold.
+		select {
+		case <-time.After(min(claimPoll, time.Until(deadline))):
+		case <-ctx.Done():
 			return &factoryv1.ClaimJobResponse{}, nil
 		}
-		select {
-		case <-time.After(wait):
-		case <-ctx.Done():
+		if time.Now().After(deadline) {
 			return &factoryv1.ClaimJobResponse{}, nil
 		}
 	}
