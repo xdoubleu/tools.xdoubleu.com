@@ -92,7 +92,7 @@
     "browserslist": "4.29.5",
     "baseline-browser-mapping": "2.11.34",
     "postcss-selector-parser": "7.1.7",
-    "qs": "6.17.0"
+    "qs": "6.17.1"
   },
   "engines": {
     "node": "26.x"
