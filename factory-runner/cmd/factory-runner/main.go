@@ -4,14 +4,19 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
 )
 
-// Release is set at build time.
-var Release = "dev" //nolint:gochecknoglobals // stamped by -ldflags
+// Release and UpdatePublicKey are set at build time. An empty key disables
+// self-update.
+var (
+	Release         = runner.DevRelease //nolint:gochecknoglobals // stamped by -ldflags
+	UpdatePublicKey = ""                //nolint:gochecknoglobals // stamped by -ldflags
+)
 
 // exitUsage is the exit status for a command line that makes no sense.
 const exitUsage = 2
@@ -35,9 +40,18 @@ type app struct {
 	stderr   io.Writer
 	store    runner.TokenStore
 	newBeat  func(server string) pairHeartbeater
-	daemon   func(ctx context.Context, hb runner.Heartbeater, token string) error
+	daemon   daemonFunc
+	updater  func(server string) (runner.SelfUpdater, error)
+	activity *runner.Activity
 	load     func(plistPath string) error
 }
+
+type daemonFunc func(
+	ctx context.Context,
+	hb runner.Heartbeater,
+	token string,
+	opts runner.Options,
+) error
 
 // pairHeartbeater is the server side the commands need.
 type pairHeartbeater interface {
@@ -111,11 +125,25 @@ func (a *app) runDaemon(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return a.daemon(ctx, a.newBeat(cfg.Server), token)
+	upd, err := a.updater(cfg.Server)
+	if err != nil {
+		return err
+	}
+	opts := runner.Options{Updater: upd, Activity: a.activity}
+	err = a.daemon(ctx, a.newBeat(cfg.Server), token, opts)
+	if errors.Is(err, runner.ErrRestart) {
+		fmt.Fprintln(a.stdout, "Updated to a new release; restarting.")
+		return nil
+	}
+	return err
 }
 
 func (a *app) install() error {
-	path, err := runner.InstallLaunchAgent(a.home, a.execPath)
+	installed, err := runner.InstallBinary(a.home, a.execPath)
+	if err != nil {
+		return err
+	}
+	path, err := runner.InstallLaunchAgent(a.home, installed)
 	if err != nil {
 		return err
 	}

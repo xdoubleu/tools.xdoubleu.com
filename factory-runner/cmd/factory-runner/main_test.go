@@ -69,10 +69,14 @@ func newEnv(t *testing.T) env {
 				server.servers = append(server.servers, s)
 				return server
 			},
-			daemon: func(_ context.Context, _ runner.Heartbeater, token string) error {
+			daemon: func(
+				_ context.Context, _ runner.Heartbeater, token string, _ runner.Options,
+			) error {
 				ran = append(ran, token)
 				return nil
 			},
+			updater:  func(string) (runner.SelfUpdater, error) { return nil, nil },
+			activity: runner.NewActivity(nil),
 			load: func(p string) error {
 				loaded = append(loaded, p)
 				return nil
@@ -150,7 +154,9 @@ func TestRunNeedsAToken(t *testing.T) {
 
 func TestRunReportsARevokedToken(t *testing.T) {
 	e := newEnv(t)
-	e.app.daemon = func(context.Context, runner.Heartbeater, string) error {
+	e.app.daemon = func(
+		context.Context, runner.Heartbeater, string, runner.Options,
+	) error {
 		return runner.ErrRevoked
 	}
 	assert.Equal(t, 1, e.do("run"))
@@ -159,11 +165,14 @@ func TestRunReportsARevokedToken(t *testing.T) {
 
 func TestInstallWritesAndLoadsThePlist(t *testing.T) {
 	e := newEnv(t)
+	src := filepath.Join(t.TempDir(), "factory-runner")
+	require.NoError(t, os.WriteFile(src, []byte("b"), 0o755))
+	e.app.execPath = src
 	assert.Equal(t, 0, e.do("install"))
 	assert.Equal(t, []string{runner.LaunchAgentPath(e.app.home)}, *e.loaded)
 	data, err := os.ReadFile(runner.LaunchAgentPath(e.app.home))
 	require.NoError(t, err)
-	assert.Contains(t, string(data), "/bin/factory-runner")
+	assert.Contains(t, string(data), "factory-runner")
 
 	e.app.load = func(string) error { return errors.New("launchctl failed") }
 	assert.Equal(t, 1, e.do("install"))
@@ -216,4 +225,57 @@ func TestConfigSaveFailure(t *testing.T) {
 	e := newEnv(t)
 	require.NoError(t, os.WriteFile(filepath.Join(e.app.home, "Library"), nil, 0o600))
 	assert.Equal(t, 1, e.do("config", "repos", "add", "a/b"))
+}
+
+func TestRunRestartsAfterASelfUpdate(t *testing.T) {
+	e := newEnv(t)
+	e.app.daemon = func(
+		context.Context, runner.Heartbeater, string, runner.Options,
+	) error {
+		return runner.ErrRestart
+	}
+	assert.Equal(t, 0, e.do("run"), "launchd restarts the new binary")
+	assert.Contains(t, e.out.String(), "restarting")
+}
+
+func TestRunPassesTheUpdaterAndActivityToTheDaemon(t *testing.T) {
+	e := newEnv(t)
+	var got runner.Options
+	e.app.daemon = func(
+		_ context.Context, _ runner.Heartbeater, _ string, opts runner.Options,
+	) error {
+		got = opts
+		return nil
+	}
+	assert.Equal(t, 0, e.do("run"))
+	assert.Same(t, e.app.activity, got.Activity)
+}
+
+func TestRunFailsWhenTheUpdaterCannotBeBuilt(t *testing.T) {
+	e := newEnv(t)
+	e.app.updater = func(string) (runner.SelfUpdater, error) {
+		return nil, errors.New("invalid server URL")
+	}
+	assert.Equal(t, 1, e.do("run"))
+	assert.Empty(t, *e.ran)
+}
+
+func TestInstallCopiesTheBinaryAndRunsTheAgentFromThere(t *testing.T) {
+	e := newEnv(t)
+	src := filepath.Join(t.TempDir(), "factory-runner")
+	require.NoError(t, os.WriteFile(src, []byte("binary"), 0o755))
+	e.app.execPath = src
+
+	assert.Equal(t, 0, e.do("install"))
+	installed := runner.InstalledBinaryPath(e.app.home)
+	assert.FileExists(t, installed)
+	plist, err := os.ReadFile(runner.LaunchAgentPath(e.app.home))
+	require.NoError(t, err)
+	assert.Contains(t, string(plist), installed)
+}
+
+func TestInstallFailsWithoutAnExecutableToCopy(t *testing.T) {
+	e := newEnv(t)
+	e.app.execPath = filepath.Join(t.TempDir(), "missing")
+	assert.Equal(t, 1, e.do("install"))
 }

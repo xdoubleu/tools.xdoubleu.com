@@ -43,6 +43,14 @@ export function useFactoryRunners() {
   })
 }
 
+/** The release the served runner binary was built from; empty when none is published. */
+export function useRunnerRelease() {
+  return useSWR<string, Error>(swrKeys.factoryRunnerRelease, async () => {
+    const res = await fetch(swrKeys.factoryRunnerRelease, { cache: 'no-store' })
+    return res.ok ? (await res.text()).trim() : ''
+  })
+}
+
 /** One task with its comments; no fetch without an id. */
 export function useFactoryTask(id: string | null) {
   const client = createServiceClient(TaskService)

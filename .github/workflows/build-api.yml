@@ -1,7 +1,8 @@
 name: Build API Workflow
 
-# No workflow_dispatch: the kobo-gateway-dist artifact only exists when
-# main.yml ran build-kobo-gateway in the same run. Dispatch main.yml instead.
+# No workflow_dispatch: the kobo-gateway-dist and factory-runner-dist artifacts
+# only exist when main.yml ran their builds in the same run. Dispatch main.yml
+# instead.
 on:
   workflow_call:
 
@@ -24,10 +25,17 @@ jobs:
           name: kobo-gateway-dist
           path: kobo-gateway/dist/kobo-gateway
 
-      - name: Arrange kobo-gateway files for the Docker build context
+      # Built on macOS by build-factory-runner in this run, always at this SHA.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: factory-runner-dist
+          path: factory-runner/dist
+
+      - name: Arrange downloads for the Docker build context
         run: |
           mkdir -p web/public/downloads
           cp -r kobo-gateway/dist/kobo-gateway/. web/public/downloads/
+          cp -r factory-runner/dist/. web/public/downloads/
 
       - name: Read kobo-gateway's bundled release
         id: kobo-gateway-release

@@ -48,6 +48,7 @@ import {
   useFactoryAgents,
   useFactoryRepos,
   useFactoryRunners,
+  useRunnerRelease,
   RUNNER_POLL_MS,
   useFactoryTask,
   useFactoryTasks
@@ -109,6 +110,35 @@ describe('useFactoryRunners', () => {
     expect(mockClient.listRunners).toHaveBeenCalledWith({})
     // Under the 45 s window the server counts a runner online for.
     expect(RUNNER_POLL_MS).toBe(15_000)
+  })
+})
+
+describe('useRunnerRelease', () => {
+  const load = async () => {
+    renderHook(() => useRunnerRelease())
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      '/downloads/factory-runner-release.txt',
+      expect.any(Function)
+    )
+    const fetcher = mockUseSWR.mock.calls.at(-1)?.[1]
+    if (typeof fetcher !== 'function') throw new Error('no fetcher')
+    return String(await fetcher(''))
+  }
+
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('reads the served release without caching it', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: async () => 'abc123\n' })
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await load()).toBe('abc123')
+    expect(fetchMock).toHaveBeenCalledWith('/downloads/factory-runner-release.txt', {
+      cache: 'no-store'
+    })
+  })
+
+  it('is empty when no release is published', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, text: async () => '<html>' }))
+    expect(await load()).toBe('')
   })
 })
 

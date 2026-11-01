@@ -11,22 +11,49 @@ const (
 	minLoop       = time.Second
 	maxBackoff    = 30 * time.Second
 	backoffFactor = 2
+	// UpdateEvery is how often an idle runner looks for a newer release.
+	UpdateEvery = time.Hour
 )
 
-// ErrRevoked ends the daemon: the server no longer accepts its token.
-var ErrRevoked = errors.New("device token revoked: pair again with a new code")
+var (
+	// ErrRevoked ends the daemon: the server no longer accepts its token.
+	ErrRevoked = errors.New("device token revoked: pair again with a new code")
+	// ErrRestart ends the daemon after a self-update; launchd starts the new
+	// binary.
+	ErrRestart = errors.New("updated: restarting")
+)
 
 // Heartbeater is the server call the daemon repeats.
 type Heartbeater interface {
 	Heartbeat(ctx context.Context, token string) error
 }
 
-// Run heartbeats until ctx ends or the token is revoked. The server holds each
-// call open, so a healthy loop makes one call per hold; a failing one backs off
-// up to 30 seconds, and a fast answer is never repeated faster than once a
-// second. now and sleep are injected for tests.
-func Run(ctx context.Context, hb Heartbeater, token string, log *slog.Logger) error {
-	return run(ctx, hb, token, log, sleepCtx)
+// Options are the daemon's optional parts. A nil Updater never self-updates; a
+// nil Activity counts the runner as always idle.
+type Options struct {
+	Updater  SelfUpdater
+	Activity *Activity
+}
+
+// clock is what the loop waits and reads time with, swapped in tests.
+type clock struct {
+	sleep func(context.Context, time.Duration)
+	now   func() time.Time
+}
+
+// Run heartbeats until ctx ends, the token is revoked or a self-update replaced
+// the binary. The server holds each call open, so a healthy loop makes one call
+// per hold; a failing one backs off up to 30 seconds, and a fast answer is never
+// repeated faster than once a second. While idle it checks for a newer release
+// every UpdateEvery.
+func Run(
+	ctx context.Context,
+	hb Heartbeater,
+	token string,
+	log *slog.Logger,
+	opts Options,
+) error {
+	return run(ctx, hb, token, log, opts, clock{sleep: sleepCtx, now: time.Now})
 }
 
 func run(
@@ -34,17 +61,26 @@ func run(
 	hb Heartbeater,
 	token string,
 	log *slog.Logger,
-	sleep func(context.Context, time.Duration),
+	opts Options,
+	clk clock,
 ) error {
 	backoff := minLoop
+	var lastCheck time.Time
 	for ctx.Err() == nil {
-		started := time.Now()
+		if due(opts, clk.now(), lastCheck) {
+			lastCheck = clk.now()
+			if tryUpdate(ctx, opts.Updater, log) {
+				return ErrRestart
+			}
+		}
+
+		started := clk.now()
 		err := hb.Heartbeat(ctx, token)
 		switch {
 		case err == nil:
 			backoff = minLoop
-			if wait := minLoop - time.Since(started); wait > 0 {
-				sleep(ctx, wait)
+			if wait := minLoop - clk.now().Sub(started); wait > 0 {
+				clk.sleep(ctx, wait)
 			}
 		case ctx.Err() != nil:
 			return nil //nolint:nilerr // a stop is not a failure
@@ -52,11 +88,27 @@ func run(
 			return ErrRevoked
 		default:
 			log.Warn("heartbeat failed", "error", err, "retry_in", backoff)
-			sleep(ctx, backoff)
+			clk.sleep(ctx, backoff)
 			backoff = min(backoff*backoffFactor, maxBackoff)
 		}
 	}
 	return nil
+}
+
+func due(opts Options, now, lastCheck time.Time) bool {
+	if opts.Updater == nil || now.Sub(lastCheck) < UpdateEvery {
+		return false
+	}
+	return opts.Activity == nil || opts.Activity.Idle()
+}
+
+func tryUpdate(ctx context.Context, upd SelfUpdater, log *slog.Logger) bool {
+	updated, err := upd.Update(ctx)
+	if err != nil {
+		log.Warn("self-update failed", "error", err)
+		return false
+	}
+	return updated
 }
 
 func sleepCtx(ctx context.Context, d time.Duration) {

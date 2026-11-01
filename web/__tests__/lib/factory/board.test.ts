@@ -26,6 +26,8 @@ import {
   repoLabel,
   reposOf,
   runnerState,
+  runnerUpdate,
+  shortRelease,
   runnersOf,
   statusLabel
 } from '@/lib/factory/board'
@@ -156,5 +158,22 @@ describe('board', () => {
     expect(
       runnerState(create(RunnerSchema, { ...paired, lastSeen: '2026-11-01T11:55:00Z' }), now)
     ).toEqual({ label: 'Offline · seen 5 min ago', online: false })
+  })
+
+  it('shortens a release for people', () => {
+    expect(shortRelease('0123456789abcdef')).toBe('0123456')
+    expect(shortRelease('dev')).toBe('dev')
+    expect(shortRelease('')).toBe('')
+  })
+
+  it('compares the running runner with the served release', () => {
+    const at = (version: string) => create(RunnerSchema, { version })
+    expect(runnerUpdate(at('a'), 'a')).toBe('current')
+    expect(runnerUpdate(at('a'), 'b')).toBe('pending')
+    expect(runnerUpdate(at('dev'), 'b')).toBe('unknown')
+    expect(runnerUpdate(at(''), 'b')).toBe('unknown')
+    expect(runnerUpdate(at('a'), '')).toBe('unknown')
+    expect(runnerUpdate(at('a'), undefined)).toBe('unknown')
+    expect(runnerUpdate(undefined, 'b')).toBe('unknown')
   })
 })

@@ -5,6 +5,7 @@ import { create } from '@bufbuild/protobuf'
 const mockRevoke = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
   useFactoryRunners: vi.fn(),
+  useRunnerRelease: vi.fn(() => ({ data: undefined })),
   useFactoryActions: vi.fn(() => ({ revokeRunner: mockRevoke }))
 }))
 vi.mock('@/components/factory/RunnerDialog', () => ({
@@ -13,7 +14,7 @@ vi.mock('@/components/factory/RunnerDialog', () => ({
 }))
 
 import RunnersClient from '@/components/factory/RunnersClient'
-import { useFactoryRunners } from '@/hooks/useFactory'
+import { useFactoryRunners, useRunnerRelease } from '@/hooks/useFactory'
 import { ListRunnersResponseSchema, RunnerSchema } from '@/lib/gen/factory/v1/runners_pb'
 
 function mockRunners(value: { data?: unknown; error?: Error; isLoading?: boolean }) {
@@ -67,6 +68,58 @@ describe('RunnersClient', () => {
     expect(screen.queryByText(/Couldn't revoke/)).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Factory' })).toHaveAttribute('href', '/factory')
     expect(screen.getByText('Runner', { selector: '[aria-current="page"]' })).toBeInTheDocument()
+  })
+
+  it('offers the download and the install steps', () => {
+    mockRunners({ data: create(ListRunnersResponseSchema, {}) })
+    render(<RunnersClient />)
+    expect(screen.getByRole('link', { name: 'Download factory-runner' })).toHaveAttribute(
+      'href',
+      '/downloads/factory-runner-darwin-arm64'
+    )
+    expect(screen.getByText(/xattr -d com.apple.quarantine/)).toBeInTheDocument()
+    expect(screen.getByText(/closed lid only stays awake on AC power/)).toBeInTheDocument()
+    expect(screen.queryByTestId('runner-version')).not.toBeInTheDocument()
+  })
+
+  it('shows the running and the latest release, and that an update waits for idle', () => {
+    const release = (data?: string) =>
+      // @ts-expect-error -- partial SWRResponse
+      vi.mocked(useRunnerRelease).mockReturnValue({ data })
+    const withVersion = (version: string) =>
+      create(ListRunnersResponseSchema, {
+        runners: [create(RunnerSchema, { id: 'r', name: 'Mac', version, pairedAt: 'x' })]
+      })
+
+    release('bbbbbbbcccc')
+    mockRunners({ data: withVersion('aaaaaaaabbbb') })
+    const first = render(<RunnersClient />)
+    expect(screen.getByTestId('runner-version')).toHaveTextContent(
+      'Running aaaaaaa · latest bbbbbbb · updates when idle'
+    )
+    first.unmount()
+
+    release('aaaaaaaabbbb')
+    mockRunners({ data: withVersion('aaaaaaaabbbb') })
+    const second = render(<RunnersClient />)
+    expect(screen.getByTestId('runner-version')).toHaveTextContent(
+      'Running aaaaaaa · latest aaaaaaa'
+    )
+    expect(screen.getByTestId('runner-version')).not.toHaveTextContent('updates when idle')
+    second.unmount()
+
+    release(undefined)
+    mockRunners({ data: withVersion('dev') })
+    render(<RunnersClient />)
+    expect(screen.getByTestId('runner-version')).toHaveTextContent('Running dev · latest unknown')
+  })
+
+  it('shows the latest release before any runner is paired', () => {
+    // @ts-expect-error -- partial SWRResponse
+    vi.mocked(useRunnerRelease).mockReturnValue({ data: 'abcdef0123' })
+    mockRunners({ data: create(ListRunnersResponseSchema, {}) })
+    render(<RunnersClient />)
+    expect(screen.getByTestId('runner-version')).toHaveTextContent('Running none · latest abcdef0')
   })
 
   it('shows loading, error and empty states', () => {

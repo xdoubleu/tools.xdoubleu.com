@@ -11,9 +11,10 @@ WORKDIR /app/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 
-# build-api.yml stages the kobo-gateway downloads into web/public/downloads
-# before `docker build`; Vite copies public/ into dist/, so the api serves them
-# at /downloads/. The .sig is present only on signed (main) builds.
+# build-api.yml stages the kobo-gateway and factory-runner downloads into
+# web/public/downloads before `docker build`; Vite copies public/ into dist/, so
+# the api serves them at /downloads/. The .sig is present only on signed (main)
+# builds.
 COPY web ./
 
 ENV RELEASE=${RELEASE} \
