@@ -7,12 +7,13 @@ The repository contract for any coding agent. Harness mechanics live in `CLAUDE.
 - `api/` — Go 1.27, one binary serving every app over ConnectRPC on a shared mux, plus the web build (`internal/spa`). Each app owns a PostgreSQL schema; protos live in `proto/`.
 - `web/` — Vite 8 / React 19 SPA served by the api.
 - `kobo-gateway/` — separate macOS-only Go module, a downloadable menu-bar helper.
+- `factory-runner/` — separate Go module, the Mac helper that pairs with the factory board and heartbeats.
 
 Apps: games, books, feeds, watchparty, recipes, mealplans, shoppinglist, dashboard (no schema; owns public dashboards and share tokens, using other apps only through exported methods → [adr-0007](docs/adr-0007-dashboard-app-owns-public-sharing.md)), trains (iRail journeys and live delays), learningpaths (agent-authored curricula, per-user, no family sharing), movies (TMDB-backed movies & series backlog, per-user plus a family-shared list), podcasts (per-user favourite iTunes shows), taste (per-user stats, LLM profile and picks over apps' `ListConsumption`/`Find*`/`Want*`), factory (admin-only task board, imports no other app). All are registered in `api/cmd/api/apps.go`; **migrations run in registration order**, so schema dependencies dictate the order.
 
 Shared Go code: `api/internal/`. Each app: `api/apps/<name>/internal/{models,repositories,services,jobs,helper,mocks}`, `migrations/`, optional `pkg/`.
 
-Read the `AGENTS.md` of `api/`, `web/` or `kobo-gateway/` before working there.
+Read the `AGENTS.md` of `api/`, `web/`, `kobo-gateway/` or `factory-runner/` before working there.
 
 **Deploy:** `api` is the root Kamal service and strips `/api` in-process (`api/cmd/api/kamal_proxy_shim.go`). `grafana` is a second service at `/grafana` → [adr-0034](docs/adr-0034-vite-spa-served-by-the-api.md), [adr-0022](docs/adr-0022-prometheus-grafana-metrics.md).
 
@@ -50,6 +51,9 @@ npx vitest run path/to/file.test.ts -t "test name"
 # kobo-gateway/ (macOS only)
 make build | dist | test | lint/fix
 
+# factory-runner/
+make build | test | lint/fix
+
 # repo root
 make lint/docs | lint/skills | lint/workflows | lint/infra | lint/grafana | grafana/verify | hooks/test | routines/test | lint/deploy-version | lint/agent-headers
 
@@ -72,7 +76,7 @@ Fresh branch off up-to-date `main`, tracking issue before the first edit, lint/c
 
 ## CI
 
-`.github/workflows/main.yml` runs reusable build/lint/test workflows behind a `changes` path filter (`**/*.md` excluded); kobo-gateway jobs run on macOS. **`ci-pass` is the required check.** Pushes to `main` rebuild and deploy but skip lint, except the docs word budgets. If `ci-pass` times out waiting for Codecov, push a new commit — re-running never helps.
+`.github/workflows/main.yml` runs reusable build/lint/test workflows behind a `changes` path filter (`**/*.md` excluded); kobo-gateway and factory-runner jobs run on macOS. **`ci-pass` is the required check.** Pushes to `main` rebuild and deploy but skip lint, except the docs word budgets. If `ci-pass` times out waiting for Codecov, push a new commit — re-running never helps.
 
 ## Docs
 

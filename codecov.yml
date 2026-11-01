@@ -32,6 +32,9 @@ comment:
 # manually, not by go test, so it's permanently 0% and shouldn't count
 # against patch coverage on every kobo-gateway PR that touches it.
 #
+# entry.go is process wiring (signals, os.Exit, launchctl) with no logic of its
+# own; everything it calls is tested through the app type in main.go.
+#
 # api/gen and web/lib/gen are generated stubs whose accessors tests rarely
 # call directly, so new proto fields alone could sink patch coverage.
 #
@@ -41,6 +44,7 @@ comment:
 # coverage checks just because it added/changed go.mod/go.sum lines.
 ignore:
   - "kobo-gateway/cmd/kobo-gateway/menubar_darwin.go"
+  - "factory-runner/cmd/factory-runner/entry.go"
   - "api/gen/**"
   - "web/lib/gen/**"
   - "api/go.mod"
@@ -58,4 +62,8 @@ flags:
   kobo_gateway:
     paths:
       - kobo-gateway/
+    carryforward: true
+  factory_runner:
+    paths:
+      - factory-runner/
     carryforward: true

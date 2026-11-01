@@ -19,6 +19,7 @@ jobs:
       proto: ${{ steps.proto-workflows.outputs.proto }}
       workflows: ${{ steps.proto-workflows.outputs.workflows }}
       kobo_gateway: ${{ steps.filter.outputs.kobo_gateway }}
+      factory_runner: ${{ steps.filter.outputs.factory_runner }}
       infra: ${{ steps.filter.outputs.infra }}
       config_api: ${{ steps.filter.outputs.config_api }}
       config_grafana: ${{ steps.filter.outputs.config_grafana }}
@@ -42,6 +43,9 @@ jobs:
             kobo_gateway:
               - 'kobo-gateway/**'
               - '!kobo-gateway/**/*.md'
+            factory_runner:
+              - 'factory-runner/**'
+              - '!factory-runner/**/*.md'
             infra:
               - 'infra/**'
               - '!infra/**/*.md'
@@ -181,6 +185,17 @@ jobs:
     uses: ./.github/workflows/kobo-gateway-lint.yml
     secrets: inherit
 
+  factory-runner-lint:
+    needs: changes
+    if: |
+      github.event_name != 'push' &&
+      (github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.factory_runner == 'true' ||
+      needs.changes.outputs.workflows == 'true')
+    name: Factory Runner Lint Workflow
+    uses: ./.github/workflows/factory-runner-lint.yml
+    secrets: inherit
+
   api-test:
     needs: changes
     # Also runs on main to refresh Codecov's default-branch baseline.
@@ -214,6 +229,17 @@ jobs:
       needs.changes.outputs.workflows == 'true'
     name: Kobo Gateway Test Workflow
     uses: ./.github/workflows/kobo-gateway-test.yml
+    secrets: inherit
+
+  factory-runner-test:
+    needs: changes
+    # Also runs on main to refresh Codecov's default-branch baseline.
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.factory_runner == 'true' ||
+      needs.changes.outputs.workflows == 'true'
+    name: Factory Runner Test Workflow
+    uses: ./.github/workflows/factory-runner-test.yml
     secrets: inherit
 
   # Pre-merge gate: infra-apply would not fail on a malformed prometheus.yml
@@ -331,10 +357,12 @@ jobs:
         api-lint,
         web-lint,
         kobo-gateway-lint,
+        factory-runner-lint,
         infra-lint,
         api-test,
         web-test,
         kobo-gateway-test,
+        factory-runner-test,
         conflict-markers,
         workflow-lint,
         skills-lint,
@@ -362,7 +390,8 @@ jobs:
         if: |
           needs.api-test.result == 'success' ||
           needs.web-test.result == 'success' ||
-          needs.kobo-gateway-test.result == 'success'
+          needs.kobo-gateway-test.result == 'success' ||
+          needs.factory-runner-test.result == 'success'
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           GH_TOKEN: ${{ github.token }}
@@ -740,6 +769,7 @@ jobs:
         api-test,
         web-test,
         kobo-gateway-test,
+        factory-runner-test,
         docs-lint,
         migration-versions,
         infra-apply,
