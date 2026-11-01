@@ -51,14 +51,14 @@ write `$ROUTINE_OUTCOME_PATH` (step 9).
 2. **Sentry resolution backstop** (inline): for each unresolved Sentry id
    from step 1, `factory_list_tasks(status: "done", query:
    "sentry.io/issues/<id>/")`; a hit is a task whose fix shipped.
-   - `resolve_sentry_issue(issue_id)` only on evidence the fix shipped and
-     the error stopped (Sentry `lastSeen` predating the task's `updated_at`,
-     or its comments confirming it). Done may mean "won't fix"; otherwise flag
-     it. Its `status: "resolved"` confirms it; don't re-list.
-   - **Reopen** the task (`factory_move_task` to backlog), with an evidence
-     comment (`lastSeen` vs `updated_at`), when its Sentry id is still
-     unresolved and `lastSeen` is after `updated_at`. Fix PRs only reference
-     the task for Sentry issues until post-deploy verification passes.
+   - `resolve_sentry_issue(issue_id)` only when the error stopped: Sentry
+     `lastSeen` is **over 3 days old**, since a task's `updated_at` moves with
+     every comment and is no fix date. Done may mean "won't fix"; otherwise
+     flag it. Its `status: "resolved"` confirms it; don't re-list.
+   - `lastSeen` within 3 days: the fix didn't hold or isn't deployed. Leave the
+     Sentry issue open; its workstream files a new task linking the Done one
+     (`refine-task`). Fix PRs only reference the task for Sentry issues until
+     post-deploy verification passes.
 
 3. **Cluster into independent workstreams** by root cause and files touched,
    so parallel subagents never collide:

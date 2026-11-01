@@ -161,7 +161,7 @@ func (h *taskConnectHandler) ListTasks(
 	if _, err := actorFrom(ctx); err != nil {
 		return nil, err
 	}
-	tasks, err := h.app.services.Tasks.List(ctx)
+	tasks, err := h.app.services.Tasks.List(ctx, "")
 	if err != nil {
 		return nil, mapError(err)
 	}

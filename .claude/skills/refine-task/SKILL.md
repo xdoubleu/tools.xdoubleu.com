@@ -28,9 +28,12 @@ Labels, scopes and the priority rule live in `.claude/github-triage.config.json`
    next step:
    - A task in Backlog, Ready, In progress, In review or Needs you already covers
      it: `factory_comment_task` with only what is new, and stop.
-   - A Done task covers it and the finding is back: create a new task that links
-     the old one.
+   - A Done task covers it and the finding is back (a regression): create a new
+     task that links the old one; don't reopen it.
    - None: step 3.
+
+   Ignore a task labelled `posthog-provisional` unless you are filing or
+   moving one; it is bookkeeping, not coverage.
 3. **Investigate before writing:** the body states the real cause, as
    `file:line`, not a paraphrase of the alert title.
 4. **Create it** with `factory_create_task`:

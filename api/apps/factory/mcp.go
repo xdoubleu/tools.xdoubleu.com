@@ -132,7 +132,7 @@ func (t *mcpTools) listTasks(
 			return nil, err
 		}
 	}
-	tasks, err := t.app.services.Tasks.Search(ctx, args.Query)
+	tasks, err := t.app.services.Tasks.List(ctx, args.Query)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}

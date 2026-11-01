@@ -38,7 +38,6 @@ func scanTask(row rowScanner) (*models.Task, error) {
 	return &t, nil
 }
 
-// List returns every task without its body, most recently updated first.
 // List returns tasks without their bodies, newest first. A non-empty query keeps
 // only tasks whose title or body contains it, ignoring case: the match runs in
 // SQL so bodies needn't be loaded.

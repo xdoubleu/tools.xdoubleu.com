@@ -91,14 +91,9 @@ func normaliseComment(body string) (string, error) {
 	return body, nil
 }
 
-// List returns every task without its body.
-func (s *TaskService) List(ctx context.Context) ([]models.Task, error) {
-	return s.repo.List(ctx, "")
-}
-
-// Search is List limited to tasks whose title or body contains query, ignoring
-// case.
-func (s *TaskService) Search(ctx context.Context, query string) ([]models.Task, error) {
+// List returns tasks without their bodies, limited to those whose title or body
+// contains query (ignoring case) when it is not empty.
+func (s *TaskService) List(ctx context.Context, query string) ([]models.Task, error) {
 	return s.repo.List(ctx, query)
 }
 

@@ -66,14 +66,14 @@ create a PR, or edit a repo file.
        <flow name> — <step name> drop-off`, label `posthog-provisional`, body
        with flow/step, entrant/drop numbers, run date.
      - Later run, still dropping (title match among Backlog
-       `posthog-provisional` tasks) → genuine finding (step 4); move the
-       provisional to done with a comment linking the real task.
+       `posthog-provisional` tasks) → genuine finding (steps 4–5); once filed,
+       move the provisional to done with a comment linking the real task.
      - Recovered → move the provisional to done with a one-line comment.
    - **Unused feature:** **zero events** over 30 days, for an event whose
      earliest occurrence is **≥30 days** old.
 
 4. **Dedup** with `refine-task`'s search on the insight/flow name, Done
-   included:
+   included, ignoring `posthog-provisional` tasks:
    - Open match → comment with fresh numbers.
    - Done match → skip unless there's new evidence of material change.
    - No match → step 5.
