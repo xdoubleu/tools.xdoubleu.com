@@ -42,7 +42,8 @@ const list = create(ListRunnersResponseSchema, {
     create(RunnerSchema, {
       id: 'r2',
       name: 'Waiting Mac',
-      pairingExpiresAt: '2026-11-01T12:10:00Z'
+      // Relative, so the code never counts as expired however late the test runs.
+      pairingExpiresAt: new Date(Date.now() + 10 * 60_000).toISOString()
     })
   ]
 })
