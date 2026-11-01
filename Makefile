@@ -33,6 +33,10 @@ lint/deploy-version:
 lint/agent-headers:
 	./scripts/test_factory_agent_headers.sh
 
+# The Mac sandbox probe needs macOS 26 and `container`; CI only parses it.
+lint/sandbox-probe:
+	bash -n scripts/factory_sandbox_probe.sh
+
 # Exercise scripts/routine_preflight.sh against a mock MCP server.
 lint/preflight:
 	./scripts/test_routine_preflight.sh
