@@ -80,16 +80,21 @@ func (h *runnerHandler) ClaimJob(
 	ctx context.Context,
 	_ *factoryv1.ClaimJobRequest,
 ) (*factoryv1.ClaimJobResponse, error) {
-	if _, err := h.runnerFrom(ctx); err != nil {
+	runner, err := h.runnerFrom(ctx)
+	if err != nil {
 		return nil, err
+	}
+	// A claiming runner is a live one, whether or not its heartbeat is running.
+	if err = h.app.services.Runners.Heartbeat(ctx, runner.ID, ""); err != nil {
+		return nil, mapError(err)
 	}
 	// Held open so the runner needs no inbound port and learns of a job within a
 	// second of it being queued; answered empty when the hold ends.
 	deadline := time.Now().Add(h.app.heartbeatHold)
 	for {
-		claimed, err := h.app.services.Jobs.Claim(ctx)
-		if err != nil {
-			return nil, mapError(err)
+		claimed, claimErr := h.app.services.Jobs.Claim(ctx)
+		if claimErr != nil {
+			return nil, mapError(claimErr)
 		}
 		if claimed != nil {
 			return &factoryv1.ClaimJobResponse{Job: claimedJobToProto(claimed)}, nil

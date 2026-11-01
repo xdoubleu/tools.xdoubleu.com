@@ -32,6 +32,10 @@ ON factory.jobs (created_at) WHERE status = 'queued';
 CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_one_running
 ON factory.jobs ((TRUE)) WHERE status = 'running';
 
+-- A task has at most one unfinished job, whatever races to queue it.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_one_active_per_task
+ON factory.jobs (task_id) WHERE status IN ('queued', 'running');
+
 CREATE INDEX IF NOT EXISTS idx_jobs_task
 ON factory.jobs (task_id, created_at DESC);
 -- +goose StatementEnd

@@ -332,3 +332,45 @@ func TestTheRunnerCallsNeedADeviceToken(t *testing.T) {
 		assert.Equal(t, connect.CodeInvalidArgument, code(call()), name+": bad id")
 	}
 }
+
+func TestTheDatabaseKeepsOneUnfinishedJobPerTask(t *testing.T) {
+	env := browserJobEnv(t)
+	task := env.newTask(t, "raced")
+	env.run(t, task.Id, "")
+
+	_, err := testDB.Exec(context.Background(), `
+		INSERT INTO factory.jobs (task_id, repo_id, harness, prompt, branch, created_by)
+		SELECT task_id, repo_id, harness, prompt, branch, created_by
+		FROM factory.jobs WHERE task_id = $1`, task.Id)
+	require.Error(t, err, "a second queued job for the task is refused")
+}
+
+func TestARepeatedRefusalCommentsOnce(t *testing.T) {
+	agent := newClientKeepingBoard(t, true, constants.ChannelMCP)
+	created, err := agent.CreateTask(context.Background(), &factoryv1.CreateTaskRequest{
+		Title: "from an agent", Body: "Do the thing.", RepoId: seededRepoID(t),
+	})
+	require.NoError(t, err)
+
+	browser := browserJobEnv(t)
+	for range 3 {
+		_, err = browser.tasks.RunTask(context.Background(),
+			&factoryv1.RunTaskRequest{TaskId: created.Task.Id})
+		assert.Equal(t, connect.CodeInvalidArgument, code(err))
+	}
+	assert.Len(t, browser.task(t, created.Task.Id).Comments, 1)
+}
+
+func TestClaimingMarksTheRunnerSeen(t *testing.T) {
+	env := browserJobEnv(t)
+	_, err := testDB.Exec(context.Background(),
+		`UPDATE factory.runners SET last_seen = now() - interval '10 minutes'`)
+	require.NoError(t, err)
+
+	env.claim(t)
+
+	var fresh bool
+	require.NoError(t, testDB.QueryRow(context.Background(),
+		`SELECT last_seen > now() - interval '1 minute' FROM factory.runners`).Scan(&fresh))
+	assert.True(t, fresh)
+}

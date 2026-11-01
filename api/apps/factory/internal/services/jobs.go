@@ -126,7 +126,7 @@ func (s *JobService) Run(
 		return nil, err
 	}
 	if channel != browserChannel {
-		return nil, s.refuse(ctx, taskID)
+		return nil, s.refuse(ctx, task)
 	}
 
 	job, err := s.jobs.Create(ctx, models.Job{
@@ -144,15 +144,19 @@ func (s *JobService) Run(
 	return job, nil
 }
 
-// refuse comments why a task wasn't run and parks it in Needs you.
-func (s *JobService) refuse(ctx context.Context, taskID uuid.UUID) error {
+// refuse comments why a task wasn't run and parks it in Needs you, once: a task
+// already there has the comment, and another press must not repeat it.
+func (s *JobService) refuse(ctx context.Context, task *models.Task) error {
 	const reason = "Not run: the task's body was last edited outside a browser " +
 		"session, so what an agent would be told isn't what you approved. Open the " +
 		"task in the app and save its body, then run it again."
-	if _, err := s.tasks.AddComment(ctx, taskID, systemAuthor, reason); err != nil {
+	if task.Status == models.StatusNeedsYou {
+		return badRequest(reason)
+	}
+	if _, err := s.tasks.AddComment(ctx, task.ID, systemAuthor, reason); err != nil {
 		return err
 	}
-	if _, err := s.tasks.Move(ctx, taskID, models.StatusNeedsYou); err != nil {
+	if _, err := s.tasks.Move(ctx, task.ID, models.StatusNeedsYou); err != nil {
 		return err
 	}
 	return badRequest(reason)
