@@ -4,6 +4,7 @@ const sampleKeys = [
   '/factory/tasks',
   '/factory/repos',
   '/factory/agents',
+  '/factory/runners',
   ['/factory/task', 't-1'],
   '/podcasts/favourites',
   undefined
@@ -29,19 +30,25 @@ const mockClient = {
   updateRepo: vi.fn().mockResolvedValue({}),
   listAgentAccounts: vi.fn().mockResolvedValue({ accounts: [] }),
   createAgentAccount: vi.fn().mockResolvedValue({ clientSecret: 's3cret' }),
-  revokeAgentAccount: vi.fn().mockResolvedValue({})
+  revokeAgentAccount: vi.fn().mockResolvedValue({}),
+  listRunners: vi.fn().mockResolvedValue({ runners: [] }),
+  createRunner: vi.fn().mockResolvedValue({ pairingCode: 'ABCDE-FGHJK' }),
+  revokeRunner: vi.fn().mockResolvedValue({})
 }
 vi.mock('@/lib/client', () => ({
   createServiceClient: vi.fn(() => mockClient)
 }))
 vi.mock('@/lib/gen/factory/v1/factory_pb', () => ({ TaskService: {}, RepoService: {} }))
 vi.mock('@/lib/gen/factory/v1/agent_accounts_pb', () => ({ AgentAccountService: {} }))
+vi.mock('@/lib/gen/factory/v1/runners_pb', () => ({ RunnerAdminService: {} }))
 
 import useSWR from 'swr'
 import {
   useFactoryActions,
   useFactoryAgents,
   useFactoryRepos,
+  useFactoryRunners,
+  RUNNER_POLL_MS,
   useFactoryTask,
   useFactoryTasks
 } from '@/hooks/useFactory'
@@ -93,6 +100,18 @@ describe('useFactoryAgents', () => {
   })
 })
 
+describe('useFactoryRunners', () => {
+  it('fetches the runners and refreshes them on a timer', () => {
+    renderHook(() => useFactoryRunners())
+    expect(mockUseSWR).toHaveBeenCalledWith('/factory/runners', expect.any(Function), {
+      refreshInterval: RUNNER_POLL_MS
+    })
+    expect(mockClient.listRunners).toHaveBeenCalledWith({})
+    // Under the 45 s window the server counts a runner online for.
+    expect(RUNNER_POLL_MS).toBe(15_000)
+  })
+})
+
 describe('useFactoryTask', () => {
   it('fetches one task', () => {
     renderHook(() => useFactoryTask('t-1'))
@@ -117,6 +136,7 @@ describe('useFactoryActions', () => {
       '/factory/tasks',
       '/factory/repos',
       '/factory/agents',
+      '/factory/runners',
       ['/factory/task', 't-1']
     ])
   })
@@ -160,6 +180,19 @@ describe('useFactoryActions', () => {
 
     await result.current.revokeAgent('a-1')
     expect(mockClient.revokeAgentAccount).toHaveBeenCalledWith({ id: 'a-1' })
+
+    expect(mockMutate).toHaveBeenCalledTimes(2)
+  })
+
+  it('creates a runner, returning its one-time pairing code, and revokes one', async () => {
+    const { result } = renderHook(() => useFactoryActions())
+
+    const created = await result.current.createRunner('Home Mac', '123456')
+    expect(mockClient.createRunner).toHaveBeenCalledWith({ name: 'Home Mac', totpCode: '123456' })
+    expect(created).toEqual({ pairingCode: 'ABCDE-FGHJK' })
+
+    await result.current.revokeRunner('r-1')
+    expect(mockClient.revokeRunner).toHaveBeenCalledWith({ id: 'r-1' })
 
     expect(mockMutate).toHaveBeenCalledTimes(2)
   })

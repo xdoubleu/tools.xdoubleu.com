@@ -7,6 +7,7 @@ import {
   TaskSchema,
   TaskStatus
 } from '@/lib/gen/factory/v1/factory_pb'
+import { ListRunnersResponseSchema, RunnerSchema } from '@/lib/gen/factory/v1/runners_pb'
 import {
   AgentAccountSchema,
   ListAgentAccountsResponseSchema
@@ -14,6 +15,7 @@ import {
 import {
   COLUMNS,
   accountsOf,
+  activeRunner,
   actorLabel,
   HARNESSES,
   filterByRepo,
@@ -23,6 +25,8 @@ import {
   priorityLabel,
   repoLabel,
   reposOf,
+  runnerState,
+  runnersOf,
   statusLabel
 } from '@/lib/factory/board'
 
@@ -107,5 +111,44 @@ describe('board', () => {
     expect(actorLabel('human:u-1', agents)).toBe('human:u-1')
     expect(actorLabel('human:agent:u-1', agents)).toBe('human:agent:u-1')
     expect(actorLabel('agent:u-1', [])).toBe('agent:u-1')
+  })
+
+  it('reads the runners of a response, and none before it loads', () => {
+    const runner = create(RunnerSchema, { id: 'r1' })
+    expect(runnersOf(create(ListRunnersResponseSchema, { runners: [runner] }))).toEqual([runner])
+    expect(runnersOf(undefined)).toEqual([])
+  })
+
+  it('finds the one runner that is not revoked', () => {
+    const revoked = create(RunnerSchema, { id: 'old', revokedAt: '2026-10-01T00:00:00Z' })
+    const active = create(RunnerSchema, { id: 'new' })
+    expect(activeRunner([revoked, active])).toBe(active)
+    expect(activeRunner([revoked])).toBeUndefined()
+    expect(activeRunner([])).toBeUndefined()
+  })
+
+  it('describes a runner in words', () => {
+    const now = Date.parse('2026-11-01T12:00:00Z')
+    const paired = { pairedAt: '2026-11-01T10:00:00Z' }
+
+    expect(runnerState(undefined, now)).toEqual({ label: 'No runner', online: false })
+    expect(runnerState(create(RunnerSchema, { revokedAt: 'x', ...paired }), now)).toEqual({
+      label: 'Revoked',
+      online: false
+    })
+    expect(runnerState(create(RunnerSchema, {}), now)).toEqual({
+      label: 'Waiting to pair',
+      online: false
+    })
+    expect(
+      runnerState(create(RunnerSchema, { ...paired, online: true, lastSeen: 'x' }), now)
+    ).toEqual({ label: 'Online', online: true })
+    expect(runnerState(create(RunnerSchema, paired), now)).toEqual({
+      label: 'Offline',
+      online: false
+    })
+    expect(
+      runnerState(create(RunnerSchema, { ...paired, lastSeen: '2026-11-01T11:55:00Z' }), now)
+    ).toEqual({ label: 'Offline · seen 5 min ago', online: false })
   })
 })

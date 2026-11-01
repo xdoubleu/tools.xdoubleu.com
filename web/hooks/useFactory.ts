@@ -3,6 +3,7 @@ import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
 import { AgentAccountService } from '@/lib/gen/factory/v1/agent_accounts_pb'
 import { RepoService, TaskService } from '@/lib/gen/factory/v1/factory_pb'
+import { RunnerAdminService } from '@/lib/gen/factory/v1/runners_pb'
 import type {
   GetTaskResponse,
   Harness,
@@ -12,6 +13,7 @@ import type {
   TaskStatus
 } from '@/lib/gen/factory/v1/factory_pb'
 import type { ListAgentAccountsResponse } from '@/lib/gen/factory/v1/agent_accounts_pb'
+import type { ListRunnersResponse } from '@/lib/gen/factory/v1/runners_pb'
 
 export function useFactoryTasks() {
   const client = createServiceClient(TaskService)
@@ -28,6 +30,17 @@ export function useFactoryAgents() {
   return useSWR<ListAgentAccountsResponse, Error>(swrKeys.factoryAgents, () =>
     client.listAgentAccounts({})
   )
+}
+
+/** How often the runner's state is refreshed: a little under its 45 s online window. */
+export const RUNNER_POLL_MS = 15_000
+
+/** The runners, refreshed on a timer so the board shows when one drops offline. */
+export function useFactoryRunners() {
+  const client = createServiceClient(RunnerAdminService)
+  return useSWR<ListRunnersResponse, Error>(swrKeys.factoryRunners, () => client.listRunners({}), {
+    refreshInterval: RUNNER_POLL_MS
+  })
 }
 
 /** One task with its comments; no fetch without an id. */
@@ -65,6 +78,7 @@ export function useFactoryActions() {
   const client = createServiceClient(TaskService)
   const repoClient = createServiceClient(RepoService)
   const agentClient = createServiceClient(AgentAccountService)
+  const runnerClient = createServiceClient(RunnerAdminService)
   const { mutate } = useSWRConfig()
   const refresh = () => mutate(isFactoryKey)
 
@@ -102,6 +116,16 @@ export function useFactoryActions() {
     },
     revokeAgent: async (id: string) => {
       await agentClient.revokeAgentAccount({ id })
+      await refresh()
+    },
+    /** Returns the new runner and its pairing code, which is shown once. */
+    createRunner: async (name: string, totpCode: string) => {
+      const created = await runnerClient.createRunner({ name, totpCode })
+      await refresh()
+      return created
+    },
+    revokeRunner: async (id: string) => {
+      await runnerClient.revokeRunner({ id })
       await refresh()
     }
   }

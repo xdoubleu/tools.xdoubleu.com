@@ -10,6 +10,8 @@ import type {
   AgentAccount,
   ListAgentAccountsResponse
 } from '@/lib/gen/factory/v1/agent_accounts_pb'
+import type { ListRunnersResponse, Runner } from '@/lib/gen/factory/v1/runners_pb'
+import { formatAge } from '@/lib/offline/formatAge'
 
 export const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: TaskStatus.BACKLOG, label: 'Backlog' },
@@ -84,4 +86,27 @@ export function actorLabel(actor: string, agents: AgentAccount[]): string {
   if (!actor.startsWith(AGENT_ACTOR_PREFIX)) return actor
   const userId = actor.slice(AGENT_ACTOR_PREFIX.length)
   return agents.find((a) => a.userId === userId)?.name ?? actor
+}
+
+/** The runners in a list response, none while it hasn't loaded. */
+export function runnersOf(data: ListRunnersResponse | undefined): Runner[] {
+  return data?.runners ?? []
+}
+
+/** The runner that isn't revoked, if any: only one can be active. */
+export function activeRunner(runners: Runner[]): Runner | undefined {
+  return runners.find((r) => r.revokedAt === '')
+}
+
+/** A runner as people read it; `now` is epoch milliseconds. */
+export function runnerState(
+  runner: Runner | undefined,
+  now: number
+): { label: string; online: boolean } {
+  if (!runner) return { label: 'No runner', online: false }
+  if (runner.revokedAt !== '') return { label: 'Revoked', online: false }
+  if (runner.pairedAt === '') return { label: 'Waiting to pair', online: false }
+  if (runner.online) return { label: 'Online', online: true }
+  if (runner.lastSeen === '') return { label: 'Offline', online: false }
+  return { label: `Offline · seen ${formatAge(now - Date.parse(runner.lastSeen))}`, online: false }
 }
