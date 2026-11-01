@@ -1,13 +1,13 @@
 ---
 name: dependabot-triage
-description: Go through every open Dependabot/code-scanning/secret-scanning alert, bump whatever has an available fix (grouped into a small number of reviewable PRs), and file a tracking issue for whatever doesn't. Use whenever the user asks to "triage security alerts", "go through Dependabot", "check security alerts", or as part of a monitoring-sweep.
+description: Go through every open Dependabot/code-scanning/secret-scanning alert, bump whatever has an available fix (grouped into a small number of reviewable PRs), and file a board task for whatever doesn't. Use whenever the user asks to "triage security alerts", "go through Dependabot", "check security alerts", or as part of a monitoring-sweep.
 ---
 
 # Dependabot Triage
 
 Bulk triage of Dependabot, code-scanning, and secret-scanning alerts from
-`get_security_alerts`. Every alert ends fixed, dismissed, or tracked in an
-issue — never silently skipped.
+`get_security_alerts`. Every alert ends fixed, dismissed, or tracked in a
+task — never silently skipped.
 
 `dismiss_security_alert(alert_type, alert_number, reason)` valid reasons:
 
@@ -27,10 +27,10 @@ issue — never silently skipped.
      <module>@<fixed>` + `go mod tidy`, then `make test`/`make lint`), one
      for npm (`npm install <pkg>@<fixed>`, then `npm run lint`/`npm test`/`npm
      run build`). Each goes through `start-task`/`finish-task`; list the
-     alert numbers it resolves in the issue/PR body.
-   - **No upstream fix:** no workarounds. Collect into one tracking issue
-     (`issue_write`) listing alert/package/reason; leave alerts open. Dismiss
-     as `tolerable_risk` only once a human accepted the risk in that issue,
+     alert numbers it resolves in the task/PR body.
+   - **No upstream fix:** no workarounds. Collect into one task (via
+     `refine-task`) listing alert/package/reason; leave alerts open. Dismiss
+     as `tolerable_risk` only once a human accepted the risk in that task,
      never during the sweep.
    - **Breaking major bump** as the only fix → flag for a human decision.
 
@@ -45,10 +45,10 @@ issue — never silently skipped.
      fake value via a normal PR; after merge, dismiss each resolved alert as
      `false_positive`.
    - Looks real → **don't dismiss, don't treat as safe.** File a tracking
-     issue titled as a live credential exposure (rotation needs a human with
+     task titled as a live credential exposure (rotation needs a human with
      provider access) and move on.
 
 5. **Report** a table: alert → fixed in PR #N / dismissed (number + reason) /
-   tracked in issue #M awaiting a human / open pending PR merge.
+   tracked in task <id> awaiting a human / open pending PR merge.
 
 Usually run from `monitoring-sweep`'s security workstream; also standalone.

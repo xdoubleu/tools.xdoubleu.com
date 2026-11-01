@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Exercises scripts/routine_preflight.sh: it must pass when the apps MCP server
-# exposes the required tools and fail when it exposes none.
+# exposes the required tools for both tokens and fail when either token lacks its
+# tools.
 set -uo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -32,9 +33,11 @@ class H(BaseHTTPRequestHandler):
         ln = int(self.headers.get('Content-Length', 0))
         body = json.loads(self.rfile.read(ln) or b'{}')
         if body.get('method') == 'tools/list':
+            # An agent token sees the board tools, the service token the rest.
+            agent = self.headers.get('Authorization') == 'Bearer agent-token'
+            names = os.environ.get("AGENT_TOOLS" if agent else "TOOLS", "").split()
             tools = [{"name": n, "description": "x",
-                      "inputSchema": {"type": "object"}}
-                     for n in os.environ.get("TOOLS", "").split()]
+                      "inputSchema": {"type": "object"}} for n in names]
             self._s({"jsonrpc": "2.0", "id": body.get("id"),
                      "result": {"tools": tools}})
         else:
@@ -43,10 +46,12 @@ HTTPServer(('127.0.0.1', int(os.environ["PORT"])), H).serve_forever()
 PY
 
 export APPS_BASE_URL="http://127.0.0.1:$PORT" TOOLS_APPS_MCP_TOKEN="probe-token"
+export FACTORY_AGENT_MCP_TOKEN="agent-token"
 export PORT
+BOARD="factory_list_repos factory_list_tasks factory_get_task factory_create_task factory_comment_task"
 run_preflight() {
-  local tools="$1"
-  TOOLS="$tools" python3 "$WORK/mock.py" > "$WORK/srv.log" 2>&1 &
+  local tools="$1" agent_tools="${2-$BOARD}"
+  TOOLS="$tools" AGENT_TOOLS="$agent_tools" python3 "$WORK/mock.py" > "$WORK/srv.log" 2>&1 &
   local sp=$!
   sleep 0.5
   if "$PREFLIGHT" > "$WORK/out.log" 2>&1; then local rc=0; else local rc=$?; fi
@@ -67,6 +72,24 @@ if run_preflight ""; then
   failn "succeeded although no tools were exposed"
 else
   pass "fails when no tools are exposed"
+fi
+
+if run_preflight "record_action get_grafana_alerts get_sentry_issues" ""; then
+  failn "succeeded although the agent account sees no board tools"
+else
+  pass "fails when the agent token lacks the board tools"
+fi
+
+if run_preflight "record_action get_grafana_alerts get_sentry_issues" "factory_list_tasks"; then
+  failn "succeeded although the agent account lacks factory_create_task"
+else
+  pass "fails when one board tool is missing"
+fi
+
+if env -u FACTORY_AGENT_MCP_TOKEN "$PREFLIGHT" > "$WORK/out.log" 2>&1; then
+  failn "succeeded without a board token"
+else
+  pass "fails without FACTORY_AGENT_MCP_TOKEN"
 fi
 
 exit "$fail"

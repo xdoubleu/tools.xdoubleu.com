@@ -12,10 +12,13 @@ workflow:
    (GitHub, OpenRouter, `tools.xdoubleu.com`, the npm/Go/PyPI registries,
    PostHog, Slack, StepSecurity) are listed in the workflow, so a new host a
    routine needs must be added there,
-2. mints a one-hour GitHub App token and a client_credentials MCP token
-   ([ADR-0025](adr-0025-machine-client-credentials-service-role.md)); with
-   `issues_only` (the detection routines) the App token can file issues but
-   not push or edit PRs,
+2. mints a one-hour GitHub App token and two client_credentials MCP tokens: the
+   `service` client's ([ADR-0025](adr-0025-machine-client-credentials-service-role.md),
+   observability tools) and the routines' agent account's
+   ([ADR-0039](adr-0039-agent-accounts.md), `factory_*` board tools, the second
+   `tools-apps-agent` MCP entry). With `detection_only` (the detection
+   routines) the App token is read-only: they file board tasks instead of
+   GitHub issues,
 3. sets up the dependency sandbox (`scripts/routine_sandbox_setup.sh`, see
    Constraints),
 4. opens the run's `automated_actions` row through `record_action`
@@ -25,7 +28,7 @@ workflow:
    `@opencode/cli`) on OpenRouter with the routine's prompt, writing the
    transcript to a file rather than the public job log,
 6. preflights the apps MCP server (`scripts/routine_preflight.sh`): fails the
-   job before the agent starts if the required tools aren't exposed,
+   job before the agent starts if either token lacks its required tools,
 7. runs `scripts/routine_watchdog.sh` beside the agent; it kills opencode and
    fails the step if the agent loops on the same tool call (a degenerate loop
    would otherwise spin until the step timeout since every call "succeeds"),
@@ -49,14 +52,13 @@ The collector exports each routine's latest measured run as
 `automated_action_last_run{routine,metric}`; `AutomatedRoutineRunHeavy` flags a
 run with over 3x its 14-day average requests.
 
-## Feedback issues
+## Feedback tasks
 
 The agent ends each run with a retro. It reports blockers and concrete waste
-from that run as `routine-feedback` issues, commenting on an open match
-instead of duplicating, at most 2 per run. They never go to Ready: the owner
-triages them like any Backlog issue, and `ready-issues-sweep` fixes one
-only after the owner moves it to Ready. They hold no log excerpts or copied
-input text, since the inputs are untrusted.
+from that run as `routine-feedback` board tasks, commenting on an open match
+instead of duplicating, at most 2 per run. An agent can't mark a task Ready, so
+the owner triages them like any Backlog task. They hold no log excerpts or
+copied input text, since the inputs are untrusted.
 
 A red `main` also starts red-PR repair: `main.yml`'s `notify-main-ci-red` job
 calls `agent-routine.yml` directly.
@@ -82,6 +84,9 @@ Rules the routines follow: [convention-unattended-agent-trust](convention-unatte
    - `OPENROUTER_API_KEY`: a key with a credit limit, since the agent's shell
      can read it.
    - `OAUTH_ROUTINES_CLIENT_SECRET`: the same value as the deploy secret.
+   - `FACTORY_ROUTINES_AGENT_CLIENT_SECRET`: the secret of the "routines"
+     agent account (Factory → Agents; shown once). Without the account every
+     routine fails its preflight.
    - `SLACK_WEBHOOK_URL`: a Slack Incoming Webhook the routine steps post
      their outcome notice to.
    - `ROUTINE_TRANSCRIPT_PASSPHRASE`: `openssl rand -hex 32`. Without it, no
@@ -90,6 +95,7 @@ Rules the routines follow: [convention-unattended-agent-trust](convention-unatte
      project, for the PostHog UX discovery routine only.
 4. **Repository variables**:
    - `ROUTINES_APP_ID`.
+   - `FACTORY_ROUTINES_AGENT_CLIENT_ID`: that account's client id.
    - `ROUTINES_MODEL`: an OpenRouter model id without the `openrouter/`
      prefix, e.g. a GLM or DeepSeek flash model.
    - `POSTHOG_MCP_URL`: PostHog's remote MCP endpoint for your region, from
