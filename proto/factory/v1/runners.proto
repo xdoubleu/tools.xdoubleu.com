@@ -1,0 +1,76 @@
+syntax = "proto3";
+package factory.v1;
+option go_package = "tools.xdoubleu.com/gen/factory/v1;factoryv1";
+
+message Runner {
+  string id = 1;
+  string name = 2;
+  // RFC3339; empty until the runner has paired.
+  string paired_at = 3;
+  // RFC3339; empty until the first heartbeat.
+  string last_seen = 4;
+  string version = 5;
+  // RFC3339; empty while the runner is active.
+  string revoked_at = 6;
+  // RFC3339; set while the pairing code is still valid.
+  string pairing_expires_at = 7;
+  // Paired, not revoked, and heard from recently.
+  bool online = 8;
+}
+
+message ListRunnersRequest {}
+message ListRunnersResponse {
+  repeated Runner runners = 1;
+}
+
+// Only one runner can be active at a time: revoke the current one first.
+// totp_code is the step-up check: a current TOTP or an unused recovery code.
+message CreateRunnerRequest {
+  string name = 1;
+  string totp_code = 2;
+}
+message CreateRunnerResponse {
+  Runner runner = 1;
+  // Single use, valid for ten minutes, shown once; only its hash is stored.
+  string pairing_code = 2;
+}
+
+// Ends a runner's device token at once. It stays listed as revoked.
+message RevokeRunnerRequest {
+  string id = 1;
+}
+message RevokeRunnerResponse {
+  Runner runner = 1;
+}
+
+// Admin side of pairing, behind the browser session.
+service RunnerAdminService {
+  rpc ListRunners(ListRunnersRequest) returns (ListRunnersResponse);
+  rpc CreateRunner(CreateRunnerRequest) returns (CreateRunnerResponse);
+  rpc RevokeRunner(RevokeRunnerRequest) returns (RevokeRunnerResponse);
+}
+
+message PairRequest {
+  string code = 1;
+  string version = 2;
+}
+message PairResponse {
+  // Sent as a bearer token on every later call; shown once, only its hash is
+  // stored.
+  string device_token = 1;
+  string runner_name = 2;
+}
+
+message HeartbeatRequest {
+  string version = 1;
+}
+message HeartbeatResponse {}
+
+// The runner's own calls. Pair is authenticated by the pairing code, Heartbeat
+// by the device token; neither takes a cookie or MCP token, and nothing here
+// reaches TaskService.
+service RunnerService {
+  rpc Pair(PairRequest) returns (PairResponse);
+  // Held open for up to 20 seconds, then answered; the runner calls again.
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+}

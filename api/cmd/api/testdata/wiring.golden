@@ -127,6 +127,13 @@ POST /factory.v1.RepoService/: 401, 403
 POST /factory.v1.RepoService/CreateRepo: 401, 403
 POST /factory.v1.RepoService/ListRepos: 401, 403
 POST /factory.v1.RepoService/UpdateRepo: 401, 403
+POST /factory.v1.RunnerAdminService/: 401, 403
+POST /factory.v1.RunnerAdminService/CreateRunner: 401, 403
+POST /factory.v1.RunnerAdminService/ListRunners: 401, 403
+POST /factory.v1.RunnerAdminService/RevokeRunner: 401, 403
+POST /factory.v1.RunnerService/: 404, 404
+POST /factory.v1.RunnerService/Heartbeat: 415, 415
+POST /factory.v1.RunnerService/Pair: 415, 415
 POST /factory.v1.TaskService/: 401, 403
 POST /factory.v1.TaskService/AddComment: 401, 403
 POST /factory.v1.TaskService/CreateTask: 401, 403

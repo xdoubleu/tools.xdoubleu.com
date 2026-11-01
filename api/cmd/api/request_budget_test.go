@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
+	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/logging"
 	obs "tools.xdoubleu.com/internal/obs"
@@ -128,6 +129,11 @@ func TestIsLongRequest(t *testing.T) {
 		appsMCPPath + "/x":                                         false,
 		"/books" + appsMCPPath:                                     false,
 		booksv1connect.BookFilesServiceGetBookFileProcedure:        false,
+		// The runner's heartbeat is held open for 20 seconds; its other calls
+		// are ordinary.
+		factoryv1connect.RunnerServiceHeartbeatProcedure:        true,
+		factoryv1connect.RunnerServicePairProcedure:             false,
+		factoryv1connect.RunnerAdminServiceListRunnersProcedure: false,
 	} {
 		r := httptest.NewRequest(http.MethodPost, path, nil)
 		assert.Equal(t, want, isLongRequest(r), path)
