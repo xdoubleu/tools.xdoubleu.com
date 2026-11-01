@@ -117,7 +117,7 @@ func TestAgentCannotReadResourcesOrPrompts(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestOtherCallersKeepEveryTool(t *testing.T) {
+func TestOtherCallersDoNotSeeTheAgentTools(t *testing.T) {
 	for name, u := range map[string]*models.User{
 		"admin":   user(models.RoleAdmin),
 		"user":    user(models.RoleUser),
@@ -126,9 +126,31 @@ func TestOtherCallersKeepEveryTool(t *testing.T) {
 	} {
 		session := connectAs(t, u)
 		assert.ElementsMatch(t,
-			[]string{"factory_list_tasks", "books_get_library", "get_logs"},
+			[]string{"books_get_library", "get_logs"},
 			toolNames(t, session), name)
 		_, err := session.CallTool(context.Background(), callParams("books_get_library"))
 		assert.NoError(t, err, name)
+	}
+}
+
+func TestRequireAgentAdmitsOnlyAnAgentAccount(t *testing.T) {
+	ctxWith := func(u *models.User) context.Context {
+		ctx := context.Background()
+		if u != nil {
+			ctx = context.WithValue(ctx, constants.UserContextKey, *u)
+		}
+		return ctx
+	}
+
+	assert.NoError(t, mcptools.RequireAgent(ctxWith(user(models.RoleAgent))))
+	for name, u := range map[string]*models.User{
+		"admin":   user(models.RoleAdmin),
+		"user":    user(models.RoleUser),
+		"service": user(models.RoleService),
+		"nobody":  nil,
+	} {
+		err := mcptools.RequireAgent(ctxWith(u))
+		require.Error(t, err, name)
+		assert.Contains(t, err.Error(), "agent accounts only", name)
 	}
 }

@@ -37,6 +37,19 @@ func RequireAppAccess(ctx context.Context, appName string) error {
 	)
 }
 
+// RequireAgent admits only an agent account, not an admin or a user: agents
+// never act as a person, so a person's session gets no agent-only tool.
+func RequireAgent(ctx context.Context) error {
+	user := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
+	if user != nil && user.Role == models.RoleAgent {
+		return nil
+	}
+	return connect.NewError(
+		connect.CodePermissionDenied,
+		"this tool is for agent accounts only",
+	)
+}
+
 // AddReadTool registers a read-only tool with the app-access gate and JSON
 // result marshaling.
 func AddReadTool[In any](
@@ -44,7 +57,28 @@ func AddReadTool[In any](
 	appName, name, description string,
 	produce func(context.Context, In) (proto.Message, error),
 ) {
-	addTool(srv, appName, name, description, produce)
+	addTool(srv, name, description, produce, func(ctx context.Context) error {
+		return RequireAppAccess(ctx, appName)
+	})
+}
+
+// AddAgentReadTool registers a read-only tool for agent accounts only.
+func AddAgentReadTool[In any](
+	srv *mcp.Server,
+	name, description string,
+	produce func(context.Context, In) (proto.Message, error),
+) {
+	addTool(srv, name, description, produce, RequireAgent)
+}
+
+// AddAgentWriteTool registers a mutating tool for agent accounts only. Like
+// AddWriteTool, each app's mutating tools need their own ADR.
+func AddAgentWriteTool[In any](
+	srv *mcp.Server,
+	name, description string,
+	produce func(context.Context, In) (proto.Message, error),
+) {
+	addTool(srv, name, description, produce, RequireAgent)
 }
 
 // AddWriteTool registers a mutating tool behind the same gate as AddReadTool.
@@ -54,13 +88,16 @@ func AddWriteTool[In any](
 	appName, name, description string,
 	produce func(context.Context, In) (proto.Message, error),
 ) {
-	addTool(srv, appName, name, description, produce)
+	addTool(srv, name, description, produce, func(ctx context.Context) error {
+		return RequireAppAccess(ctx, appName)
+	})
 }
 
 func addTool[In any](
 	srv *mcp.Server,
-	appName, name, description string,
+	name, description string,
 	produce func(context.Context, In) (proto.Message, error),
+	gate func(context.Context) error,
 ) {
 	//nolint:exhaustruct // name/description are the only fields tools need
 	mcp.AddTool(srv, &mcp.Tool{Name: name, Description: description},
@@ -69,7 +106,7 @@ func addTool[In any](
 			_ *mcp.CallToolRequest,
 			args In,
 		) (*mcp.CallToolResult, any, error) {
-			if err := RequireAppAccess(ctx, appName); err != nil {
+			if err := gate(ctx); err != nil {
 				return nil, nil, err
 			}
 			msg, err := produce(ctx, args)

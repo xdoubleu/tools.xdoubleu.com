@@ -19,8 +19,9 @@ var errUnknownTool = errors.New("unknown tool")
 
 // AgentToolsOnly limits an agent account to the factory_ tools, whatever the
 // per-app gates say: other tools are left out of its tool list and refused when
-// called, as if they didn't exist, and resources and prompts are refused. Other
-// callers pass through unchanged.
+// called, as if they didn't exist, and resources and prompts are refused. Every
+// other caller's tool list leaves the factory_ tools out, since they are for
+// agents alone (RequireAgent refuses their calls).
 func AgentToolsOnly() mcp.Middleware {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(
@@ -28,7 +29,7 @@ func AgentToolsOnly() mcp.Middleware {
 		) (mcp.Result, error) {
 			user := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
 			if user == nil || user.Role != models.RoleAgent {
-				return next(ctx, method, req)
+				return hideAgentTools(ctx, method, req, next)
 			}
 
 			switch {
@@ -44,7 +45,7 @@ func AgentToolsOnly() mcp.Middleware {
 			case method == "tools/list":
 				res, err := next(ctx, method, req)
 				if list, ok := res.(*mcp.ListToolsResult); ok && err == nil {
-					list.Tools = factoryTools(list.Tools)
+					list.Tools = filterTools(list.Tools, true)
 				}
 				return res, err
 			}
@@ -53,10 +54,23 @@ func AgentToolsOnly() mcp.Middleware {
 	}
 }
 
-func factoryTools(tools []*mcp.Tool) []*mcp.Tool {
+// hideAgentTools leaves the factory_ tools out of a non-agent's tool list.
+func hideAgentTools(
+	ctx context.Context, method string, req mcp.Request, next mcp.MethodHandler,
+) (mcp.Result, error) {
+	res, err := next(ctx, method, req)
+	if list, ok := res.(*mcp.ListToolsResult); ok && err == nil && method == "tools/list" {
+		list.Tools = filterTools(list.Tools, false)
+	}
+	return res, err
+}
+
+// filterTools keeps the factory_ tools when keepFactory is set, the others
+// when it isn't.
+func filterTools(tools []*mcp.Tool, keepFactory bool) []*mcp.Tool {
 	kept := make([]*mcp.Tool, 0, len(tools))
 	for _, t := range tools {
-		if strings.HasPrefix(t.Name, AgentToolPrefix) {
+		if strings.HasPrefix(t.Name, AgentToolPrefix) == keepFactory {
 			kept = append(kept, t)
 		}
 	}

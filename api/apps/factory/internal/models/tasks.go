@@ -45,8 +45,11 @@ func (p Priority) Valid() bool {
 
 type ActorKind string
 
-// ActorHuman is the only kind so far; agents and runners come later.
-const ActorHuman ActorKind = "human"
+const (
+	ActorHuman ActorKind = "human"
+	// ActorAgent is an agent account acting through MCP; the runner comes later.
+	ActorAgent ActorKind = "agent"
+)
 
 // Actor is who performs a request: a kind plus an id, and how the request
 // authenticated.
