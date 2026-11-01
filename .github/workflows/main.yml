@@ -91,21 +91,23 @@ jobs:
     uses: ./.github/workflows/proto-check.yml
     secrets: inherit
 
-  # The api image also builds web/ and bundles the kobo-gateway downloads, so
-  # it needs build-kobo-gateway to have succeeded (not skipped); that job's gate
-  # is a superset of this one. A skipped build leaves Kamal deploying the last
-  # pushed tag.
+  # The api image also builds web/ and bundles the kobo-gateway and
+  # factory-runner downloads, so it needs both builds to have succeeded (not
+  # skipped); their gates are supersets of this one. A skipped build leaves
+  # Kamal deploying the last pushed tag.
   build-api:
-    needs: [changes, proto-check, build-kobo-gateway]
+    needs: [changes, proto-check, build-kobo-gateway, build-factory-runner]
     if: |
       always() &&
       (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped') &&
       needs.build-kobo-gateway.result == 'success' &&
+      needs.build-factory-runner.result == 'success' &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
       needs.changes.outputs.kobo_gateway == 'true' ||
+      needs.changes.outputs.factory_runner == 'true' ||
       needs.changes.outputs.config_api == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Build API Workflow
@@ -146,6 +148,23 @@ jobs:
       needs.changes.outputs.workflows == 'true')
     name: Build Kobo Gateway Workflow
     uses: ./.github/workflows/build-kobo-gateway.yml
+    secrets: inherit
+
+  # macOS runner, gated as a superset of build-api like build-kobo-gateway.
+  build-factory-runner:
+    needs: changes
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.web == 'true' ||
+      needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.kobo_gateway == 'true' ||
+      needs.changes.outputs.factory_runner == 'true' ||
+      needs.changes.outputs.config_api == 'true' ||
+      needs.changes.outputs.workflows == 'true')
+    name: Build Factory Runner Workflow
+    uses: ./.github/workflows/build-factory-runner.yml
     secrets: inherit
 
   api-lint:
@@ -354,6 +373,7 @@ jobs:
         build-api,
         build-grafana,
         build-kobo-gateway,
+        build-factory-runner,
         api-lint,
         web-lint,
         kobo-gateway-lint,
@@ -624,14 +644,15 @@ jobs:
   # rebuilds from the snapshot if apply fails (lossy rollback, no approval
   # gate). Waits for build jobs only; test flakiness says nothing about infra.
   infra-apply:
-    needs: [changes, build-api, build-kobo-gateway]
+    needs: [changes, build-api, build-kobo-gateway, build-factory-runner]
     if: |
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       (needs.changes.outputs.infra == 'true' || needs.changes.outputs.workflows == 'true') &&
       (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
-      (needs.build-kobo-gateway.result == 'success' || needs.build-kobo-gateway.result == 'skipped')
+      (needs.build-kobo-gateway.result == 'success' || needs.build-kobo-gateway.result == 'skipped') &&
+      (needs.build-factory-runner.result == 'success' || needs.build-factory-runner.result == 'skipped')
     # Shares deploy-kamal's group: both SSH into the same host.
     concurrency:
       group: hetzner-vps-deploy
@@ -766,6 +787,7 @@ jobs:
         build-api,
         build-grafana,
         build-kobo-gateway,
+        build-factory-runner,
         api-test,
         web-test,
         kobo-gateway-test,

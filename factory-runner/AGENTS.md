@@ -15,7 +15,10 @@ internal/runner/
   token.go     # device token in the login keychain via `security`
   config.go    # server URL + repo allowlist, owner-only JSON
   validate.go  # job validator
-  launchagent.go
+  launchagent.go  # plist, copy to a stable install path
+  update.go       # signed self-update from /downloads/
+  activity.go     # running jobs; caffeinate while any runs
+internal/updatesig/  # copy of kobo-gateway's (Go forbids importing its internal/)
 ```
 
 ## Trust
@@ -25,6 +28,10 @@ The server is not trusted. The runner's own allowlist (`config repos add owner/n
 - The device token lives only in the keychain; the server keeps its hash. A revoked token ends `run` with `ErrRevoked` — pair again.
 - `config server` accepts https only (http for localhost).
 - Heartbeat is held open by the server (about 20 s); `Client` times out at 35 s.
+
+## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
+
+`build-factory-runner.yml` builds on macOS and, on `main`, signs with `kobo-sign` using `FACTORY_RUNNER_SIGNING_KEY`; `build-api.yml` stages the binary, `.sig` and `factory-runner-release.txt` into the image's `/downloads/`. `-X main.UpdatePublicKey` (variable `FACTORY_RUNNER_UPDATE_PUBKEY`) is what the runner trusts; empty disables self-update. Self-update runs only while `Activity` is idle. Jobs call `Activity.Begin`/`End`.
 
 ## Building
 

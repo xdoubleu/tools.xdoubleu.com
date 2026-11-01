@@ -57,3 +57,43 @@ func InstallLaunchAgent(homeDir, execPath string) (string, error) {
 	}
 	return path, nil
 }
+
+const (
+	installDirPerm  = 0o755
+	installFilePerm = 0o755
+)
+
+// InstalledBinaryPath is the stable place the LaunchAgent runs the runner from,
+// so a download in ~/Downloads can be deleted and self-update has one file to
+// replace.
+func InstalledBinaryPath(homeDir string) string {
+	return filepath.Join(
+		homeDir, "Library", "Application Support", "factory-runner", "factory-runner",
+	)
+}
+
+// InstallBinary copies the running executable to InstalledBinaryPath and
+// returns it. Running the installed copy already is a no-op.
+func InstallBinary(homeDir, src string) (string, error) {
+	dst := InstalledBinaryPath(homeDir)
+	if filepath.Clean(src) == dst {
+		return dst, nil
+	}
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return "", fmt.Errorf("read executable: %w", err)
+	}
+	if err = os.MkdirAll(filepath.Dir(dst), installDirPerm); err != nil {
+		return "", fmt.Errorf("create install dir: %w", err)
+	}
+	tmp := dst + ".install"
+	//nolint:gosec // must be executable
+	if err = os.WriteFile(tmp, data, installFilePerm); err != nil {
+		return "", fmt.Errorf("write binary: %w", err)
+	}
+	if err = os.Rename(tmp, dst); err != nil {
+		_ = os.Remove(tmp)
+		return "", fmt.Errorf("install binary: %w", err)
+	}
+	return dst, nil
+}

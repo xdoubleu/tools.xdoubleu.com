@@ -113,3 +113,26 @@ export function runnerState(
   if (runner.lastSeen === '') return { label: 'Offline', online: false }
   return { label: `Offline · seen ${formatAge(now - Date.parse(runner.lastSeen))}`, online: false }
 }
+
+export const RUNNER_DOWNLOAD_PATH = '/downloads/factory-runner-darwin-arm64'
+
+const DEV_RELEASE = 'dev'
+const SHORT_RELEASE_LENGTH = 7
+
+/** A release (a commit SHA) as shown to people. */
+export function shortRelease(release: string): string {
+  return release.slice(0, SHORT_RELEASE_LENGTH)
+}
+
+/**
+ * Whether the paired runner runs the served release: "current", "pending" (a
+ * newer one is served), or "unknown" when either side has no real release.
+ */
+export function runnerUpdate(
+  runner: Runner | undefined,
+  latest: string | undefined
+): 'current' | 'pending' | 'unknown' {
+  const running = runner?.version ?? ''
+  if (running === '' || running === DEV_RELEASE || !latest) return 'unknown'
+  return running === latest ? 'current' : 'pending'
+}

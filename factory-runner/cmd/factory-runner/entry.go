@@ -33,10 +33,23 @@ func main() {
 		newBeat: func(server string) pairHeartbeater {
 			return runner.NewClient(server, Release)
 		},
-		daemon: func(ctx context.Context, hb runner.Heartbeater, token string) error {
-			return runner.Run(ctx, hb, token, log)
+		daemon: func(
+			ctx context.Context,
+			hb runner.Heartbeater,
+			token string,
+			opts runner.Options,
+		) error {
+			return runner.Run(ctx, hb, token, log, opts)
 		},
-		load: loadLaunchAgent,
+		updater: func(server string) (runner.SelfUpdater, error) {
+			origin, originErr := runner.Origin(server)
+			if originErr != nil {
+				return nil, originErr
+			}
+			return runner.NewUpdater(origin, Release, UpdatePublicKey), nil
+		},
+		activity: runner.NewActivity(runner.NewCaffeinate()),
+		load:     loadLaunchAgent,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

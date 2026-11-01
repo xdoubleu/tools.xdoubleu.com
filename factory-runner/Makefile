@@ -17,5 +17,5 @@ lint/fix: tools/lint
 	golangci-lint run --fix
 
 build:
-	go build -ldflags="-w -s -X main.Release=$(RELEASE)" \
+	go build -ldflags="-w -s -X main.Release=$(RELEASE) -X main.UpdatePublicKey=$(UPDATE_PUBLIC_KEY)" \
 		-o=./bin/factory-runner-darwin-arm64 ./cmd/factory-runner

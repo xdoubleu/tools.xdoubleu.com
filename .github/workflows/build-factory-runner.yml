@@ -1,0 +1,53 @@
+name: Build Factory Runner Workflow
+
+# macOS runner, like kobo-gateway. No build cache: the module is pure Go and
+# builds in seconds, so the release stamp is always this commit.
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-factory-runner:
+    name: Build factory-runner (macOS)
+    runs-on: macos-26
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: './factory-runner/go.mod'
+          cache-dependency-path: './factory-runner/go.sum'
+      - name: Build
+        working-directory: './factory-runner'
+        run: |
+          make build RELEASE=${{ github.sha }} \
+            UPDATE_PUBLIC_KEY=${{ vars.FACTORY_RUNNER_UPDATE_PUBKEY }}
+          mkdir -p dist
+          cp bin/factory-runner-darwin-arm64 dist/
+          echo -n "${{ github.sha }}" > dist/factory-runner-release.txt
+      # Runners only install self-updates signed by the release key. Signed only
+      # for main (what deploys), by kobo-sign: it signs any file with the key in
+      # KOBO_GATEWAY_SIGNING_KEY, and this job points that at the runner's own
+      # key, so PR code never sees it.
+      - name: Sign the self-update binary
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          FACTORY_RUNNER_SIGNING_KEY: ${{ secrets.FACTORY_RUNNER_SIGNING_KEY }}
+        working-directory: './kobo-gateway'
+        run: |
+          if [ -z "$FACTORY_RUNNER_SIGNING_KEY" ]; then
+            echo "::warning::FACTORY_RUNNER_SIGNING_KEY is unset; runner self-update stays disabled."
+            exit 0
+          fi
+          KOBO_GATEWAY_SIGNING_KEY="$FACTORY_RUNNER_SIGNING_KEY" \
+            go run ./cmd/kobo-sign sign ../factory-runner/dist/factory-runner-darwin-arm64
+      # build-api downloads this artifact.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: factory-runner-dist
+          path: factory-runner/dist
+          retention-days: 1

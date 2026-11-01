@@ -118,6 +118,7 @@ export const swrKeys = {
   factoryRepos: '/factory/repos',
   factoryAgents: '/factory/agents',
   factoryRunners: '/factory/runners',
+  factoryRunnerRelease: '/downloads/factory-runner-release.txt',
   factoryTask: (id: string) => ['/factory/task', id] as const,
 
   tasteStats: (shared = false) => `/taste/stats${shared ? '/shared' : ''}`,
