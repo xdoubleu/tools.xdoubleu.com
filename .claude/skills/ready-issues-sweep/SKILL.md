@@ -109,6 +109,5 @@ run: handle issues sequentially via `git checkout -B <branch> origin/main`
 
 ## Related
 
-`monitoring-sweep` handles `/monitoring` problems; `issue-triage`/
-`refine-issue` groom Backlog. Routine setup:
+`monitoring-sweep` handles `/monitoring` problems. Routine setup:
 `.github/workflows/routine-ready-issues-executor.yml`.

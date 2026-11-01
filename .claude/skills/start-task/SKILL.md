@@ -65,7 +65,10 @@ unless they say to proceed without a task.
   settled design tree into `## Plan` — unless the plan was already grilled in
   plan mode (root `CLAUDE.md`), then say so in one line.
 - **Plan:** agents can't edit a body, so on an existing task comment the
-  `## Plan` (`factory_comment_task`) before the first edit.
+  `## Plan` (`factory_comment_task`) before the first edit. That comment is for
+  people and this session; the sandbox runner's prompt is the body only
+  ([#2701](https://github.com/xdoubleu/tools.xdoubleu.com/issues/2701) decision
+  15), so a plan it must follow belongs in the body.
 - **Claim:** `factory_move_task(id, "in_progress")`. You can't move a task
   into Ready; that is the human's approval.
 

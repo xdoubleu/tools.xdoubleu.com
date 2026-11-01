@@ -53,20 +53,18 @@ keyword**. Put `Task: <title> (<id>)` at the top of the PR body, and after
 Done after merging (automatic Done waits for #2712).
 
 - **`## Follow-up: your turn` in the task body** (only the heading counts, not
-  prose): say in the PR body that the task stays open for that step, and
-  comment it on the task. Instead of In review, move it to `needs_you`.
+  prose): say in the PR body that the task stays open for that step. Move it to
+  In review as usual, then to `needs_you` once the PR has merged.
 - **Bug report**: a green suite doesn't close it. Verify the symptom is gone in
   production after deploy (MCP read tools or UI); name that check as a
   post-deploy step in the PR body. If unverifiable (third party, hardware), say
   so; the user's confirmation is acceptance.
 
 **GitHub-issue mode (until #2779):** when the prompt named a GitHub issue,
-reference it as before: `Part of #123` under a follow-up heading (then set its
-Project #8 Status to "Needs you", option id `f83bddc3`), otherwise `Fixes
-#123`. Status edits: `gh project item-edit --id <ITEM_ID> --field-id
-PVTSSF_lAHOAzw7nc4BdsAmzhYLzDw --project-id PVT_kwHOAzw7nc4BdsAm
---single-select-option-id <OPTION_ID>`, with `<ITEM_ID>` from `gh project
-item-list 8 --owner xdoubleu --format json`; unattended, leave Status as-is.
+reference it as before: `Part of #123` under a follow-up heading (then, after
+merge, set its Project #8 Status to "Needs you", option id `f83bddc3`),
+otherwise `Fixes #123`. The Status command is in `start-task`'s GitHub-issue
+mode; unattended, leave Status as-is.
 
 ## 4b. Check for supersession
 
@@ -82,7 +80,8 @@ review and merge. Only Renovate's dependency PRs auto-merge, through
 `renovate.json5`
 ([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md),
 [`docs/convention-unattended-agent-trust.md`](../../../docs/convention-unattended-agent-trust.md)).
-Tell `ship-pr` explicitly not to enable it.
+Tell `ship-pr` explicitly not to enable it, and that the PR references the task
+as in step 4 (the `Task:` line, no closing keyword, no issue number).
 
 **A — `feature` label: run the quality gate first.** No
 `## Manual review needed` section. Before opening the PR fix everything each
