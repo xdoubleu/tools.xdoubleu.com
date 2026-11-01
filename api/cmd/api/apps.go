@@ -107,7 +107,11 @@ func NewApps(
 	apps.addApp(podcastsApp)
 
 	// factory has no schema dependencies and imports no other app.
-	apps.addApp(factory.New(ctx, authService, logger, cfg, db))
+	var factoryOpts []factory.Option
+	if stepUp, ok := authService.(factory.StepUp); ok {
+		factoryOpts = append(factoryOpts, factory.WithStepUp(stepUp))
+	}
+	apps.addApp(factory.New(ctx, authService, logger, cfg, db, factoryOpts...))
 
 	// taste reads every media app through its exported ListConsumption, so it
 	// follows them.

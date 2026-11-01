@@ -1,9 +1,18 @@
 import { useState } from 'react'
-import { filterByRepo, groupByStatus, repoLabel, reposOf } from '@/lib/factory/board'
-import { useFactoryRepos, useFactoryTasks } from '@/hooks/useFactory'
+import {
+  activeRunner,
+  filterByRepo,
+  groupByStatus,
+  repoLabel,
+  reposOf,
+  runnersOf,
+  runnerState
+} from '@/lib/factory/board'
+import { useFactoryRepos, useFactoryRunners, useFactoryTasks } from '@/hooks/useFactory'
 import TaskCard from '@/components/factory/TaskCard'
 import TaskDetail from '@/components/factory/TaskDetail'
 import TaskDialog from '@/components/factory/TaskDialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { PageContainer } from '@/components/ui/page-container'
@@ -15,6 +24,7 @@ import { Select } from '@/components/ui/select'
 export default function FactoryClient() {
   const { data, error, isLoading } = useFactoryTasks()
   const repos = reposOf(useFactoryRepos().data)
+  const runner = runnerState(activeRunner(runnersOf(useFactoryRunners().data)), Date.now())
   const [repoFilter, setRepoFilter] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -25,12 +35,16 @@ export default function FactoryClient() {
         title="Factory"
         actions={
           <>
+            <PageHeaderLink href="/factory/runners">Runner</PageHeaderLink>
             <PageHeaderLink href="/factory/agents">Agents</PageHeaderLink>
             <PageHeaderLink href="/factory/repos">Repos</PageHeaderLink>
             <Button onClick={() => setCreating(true)}>New task</Button>
           </>
         }
       />
+      <p className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted">
+        Runner <Badge variant={runner.online ? 'success' : 'secondary'}>{runner.label}</Badge>
+      </p>
       {repos.length > 1 && (
         <Field label="Repo" htmlFor="factory-repo-filter" className="mb-4">
           <Select

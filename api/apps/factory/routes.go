@@ -25,6 +25,15 @@ func (a *Factory) Routes(prefix string, mux *http.ServeMux) {
 				s,
 				&repoConnectHandler{app: a},
 			)
+			factoryv1connect.RegisterRunnerAdminServiceHandler(
+				s,
+				&runnerAdminHandler{app: a},
+			)
 		},
 	)
+	// The runner authenticates itself (pairing code, device token), so this
+	// mount has no cookie gate.
+	iapp.MountConnect(mux, a.Logger, nil, func(s *connect.Server) {
+		factoryv1connect.RegisterRunnerServiceHandler(s, &runnerHandler{app: a})
+	})
 }

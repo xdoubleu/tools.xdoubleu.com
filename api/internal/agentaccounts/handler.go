@@ -138,18 +138,12 @@ func (h *handler) CreateAgentAccount(
 		)
 	}
 
-	info, hasInfo := connect.CallInfoForServerContext(ctx)
-	if !hasInfo {
-		return nil, connect.NewError(connect.CodeUnauthenticated, "not signed in")
-	}
-	token, cookieErr := (&http.Request{
-		Header: http.Header{"Cookie": {info.RequestHeader().Get("Cookie")}},
-	}).Cookie("accessToken")
-	if cookieErr != nil {
+	token, ok := connecttools.RequestCookie(ctx, "accessToken")
+	if !ok {
 		return nil, connect.NewError(connect.CodeUnauthenticated, "not signed in")
 	}
 	if err = h.deps.StepUp.VerifyCurrentFactor(
-		ctx, token.Value, req.GetTotpCode(),
+		ctx, token, req.GetTotpCode(),
 	); err != nil {
 		return nil, connect.NewError(stepUpCode(err), err.Error()).WithCause(err)
 	}

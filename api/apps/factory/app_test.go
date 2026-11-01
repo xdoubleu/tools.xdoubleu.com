@@ -74,12 +74,22 @@ func newClient(
 // newApp is the app acting as the admin or a plain user, authenticated
 // through channel.
 func newApp(admin bool, channel string) *factory.Factory {
+	return newAppWith(admin, channel)
+}
+
+// newAppWith is newApp with factory options.
+func newAppWith(
+	admin bool,
+	channel string,
+	opts ...factory.Option,
+) *factory.Factory {
 	return factory.New(
 		context.Background(),
 		sharedmocks.NewMockedChannelAuthService(adminID, admin, channel),
 		logging.NewNopLogger(),
 		testCfg,
 		testDB,
+		opts...,
 	)
 }
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"embed"
 	"log/slog"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -22,6 +23,23 @@ var embedMigrations embed.FS
 type Factory struct {
 	app.Base
 	services *services.Services
+	// stepUp checks the TOTP code that creating a runner needs.
+	stepUp        StepUp
+	heartbeatHold time.Duration
+}
+
+// Option adjusts a Factory.
+type Option func(*Factory)
+
+// WithStepUp sets the check run before a runner is created. Without it,
+// creating a runner is refused.
+func WithStepUp(stepUp StepUp) Option {
+	return func(a *Factory) { a.stepUp = stepUp }
+}
+
+// WithHeartbeatHold sets how long a Heartbeat is held open; tests shorten it.
+func WithHeartbeatHold(d time.Duration) Option {
+	return func(a *Factory) { a.heartbeatHold = d }
 }
 
 func New(
@@ -30,11 +48,18 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
+	opts ...Option,
 ) *Factory {
-	return &Factory{
-		Base:     app.NewBase(ctx, authService, logger, cfg),
-		services: services.New(repositories.New(db), authService),
+	a := &Factory{
+		Base:          app.NewBase(ctx, authService, logger, cfg),
+		services:      services.New(repositories.New(db), authService),
+		stepUp:        nil,
+		heartbeatHold: DefaultHeartbeatHold,
 	}
+	for _, opt := range opts {
+		opt(a)
+	}
+	return a
 }
 
 func (a *Factory) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

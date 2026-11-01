@@ -9,6 +9,7 @@ import (
 	mcpauth "github.com/modelcontextprotocol/go-sdk/auth"
 
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
+	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/account"
 	"tools.xdoubleu.com/internal/agentaccounts"
 	"tools.xdoubleu.com/internal/communication/httptools"
@@ -156,10 +157,12 @@ func (app *Application) middleware() alice.Chain {
 
 // isLongRequest marks the routes that legitimately outlast
 // httptools.RequestBudget: FinalizeBookUpload streams up to 250 MB from R2,
-// and MCP tool calls wait on external APIs.
+// MCP tool calls wait on external APIs, and the runner's Heartbeat is held
+// open for 20 seconds.
 func isLongRequest(r *http.Request) bool {
 	return r.URL.Path == booksv1connect.BookFilesServiceFinalizeBookUploadProcedure ||
-		r.URL.Path == appsMCPPath
+		r.URL.Path == appsMCPPath ||
+		r.URL.Path == factoryv1connect.RunnerServiceHeartbeatProcedure
 }
 
 func (app *Application) domainMiddleware(next http.Handler) http.Handler {

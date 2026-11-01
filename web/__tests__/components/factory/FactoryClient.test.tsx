@@ -2,7 +2,11 @@ import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 
-vi.mock('@/hooks/useFactory', () => ({ useFactoryTasks: vi.fn(), useFactoryRepos: vi.fn() }))
+vi.mock('@/hooks/useFactory', () => ({
+  useFactoryTasks: vi.fn(),
+  useFactoryRepos: vi.fn(),
+  useFactoryRunners: vi.fn()
+}))
 vi.mock('@/components/factory/TaskCard', () => ({
   __esModule: true,
   default: ({
@@ -47,7 +51,8 @@ vi.mock('@/components/factory/TaskDialog', () => ({
 }))
 
 import FactoryClient from '@/components/factory/FactoryClient'
-import { useFactoryRepos, useFactoryTasks } from '@/hooks/useFactory'
+import { useFactoryRepos, useFactoryRunners, useFactoryTasks } from '@/hooks/useFactory'
+import { ListRunnersResponseSchema, RunnerSchema } from '@/lib/gen/factory/v1/runners_pb'
 import {
   ListReposResponseSchema,
   ListTasksResponseSchema,
@@ -78,6 +83,11 @@ const twoRepos = create(ListReposResponseSchema, {
   ]
 })
 
+function mockRunners(data?: unknown) {
+  // @ts-expect-error -- partial SWRResponse
+  vi.mocked(useFactoryRunners).mockReturnValue({ data })
+}
+
 function mockRepos(data?: unknown) {
   // @ts-expect-error -- partial SWRResponse
   vi.mocked(useFactoryRepos).mockReturnValue({ data })
@@ -86,6 +96,7 @@ function mockRepos(data?: unknown) {
 beforeEach(() => {
   vi.clearAllMocks()
   mockRepos(undefined)
+  mockRunners(undefined)
 })
 
 describe('FactoryClient', () => {
@@ -154,6 +165,24 @@ describe('FactoryClient', () => {
     mockTasks({ isLoading: true })
     render(<FactoryClient />)
     expect(screen.queryByText(/Failed to load/)).not.toBeInTheDocument()
+  })
+
+  it('shows whether the runner is online, and links to its page', () => {
+    mockTasks({ data: board })
+    const { unmount } = render(<FactoryClient />)
+    expect(screen.getByText('No runner')).toBeInTheDocument()
+    expect(screen.getByText('No runner').className).toContain('text-subtle')
+    expect(screen.getByRole('link', { name: 'Runner' })).toHaveAttribute('href', '/factory/runners')
+    unmount()
+
+    mockRunners(
+      create(ListRunnersResponseSchema, {
+        runners: [create(RunnerSchema, { id: 'r1', pairedAt: 'x', online: true, lastSeen: 'x' })]
+      })
+    )
+    render(<FactoryClient />)
+    expect(screen.getByText('Online')).toBeInTheDocument()
+    expect(screen.getByText('Online').className).toContain('text-success')
   })
 
   it('links to the agent accounts', () => {
