@@ -7,10 +7,14 @@
 
 ## Rule
 
-- **Only a human moves an issue to Ready.** Agents file or re-triage into
-  Backlog. The move to Ready is the approval an unattended run relies on.
-  This includes `routine-feedback` issues, which the executor fixes only
-  after that human move.
+- **Only a human moves an issue or task to Ready.** Agents file or re-triage
+  into Backlog. The move to Ready is the approval an unattended run relies on.
+  This includes `routine-feedback` items, which the executor fixes only after
+  that human move. On the factory board the service enforces it (an agent
+  account's move into Ready is refused); on GitHub it rests on the rules above.
+- **Routines file to the board as their own agent account**, never as the
+  person, and never to GitHub issues: the account sees only `factory_*` tools
+  and can't mark a task Ready ([ADR-0039](adr-0039-agent-accounts.md)).
 - **The executor trusts only known authors.** `ready-issues-sweep` skips an
   issue not opened by the owner (`author_association: OWNER`) or the routines
   App (`xdoubleu-routines[bot]`), and gives subagents only comments whose

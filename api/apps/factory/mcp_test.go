@@ -215,6 +215,42 @@ func TestListTasksFiltersAndOmitsBodies(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestListTasksFindsATaskByLabelAndText(t *testing.T) {
+	browserClient(t)
+	session := mcpSessionAs(t, asUser(models.RoleAgent))
+	repoID := seededRepoID(t)
+	for _, in := range []map[string]any{
+		{"repo_id": repoID, "title": "Fix login", "labels": []string{"Bug"},
+			"body": "Sentry: https://example.sentry.io/issues/42/"},
+		{"repo_id": repoID, "title": "Add dark mode", "labels": []string{"enhancement"},
+			"body": "Needs a toggle"},
+	} {
+		_, err := callTool(t, session, "factory_create_task", in)
+		require.NoError(t, err)
+	}
+	titles := func(args map[string]any) []string {
+		out, err := callTool(t, session, "factory_list_tasks", args)
+		require.NoError(t, err)
+		found := []string{}
+		if tasks, ok := at(t, out, "tasks").([]any); ok {
+			for i := range tasks {
+				found = append(found, str(t, out, "tasks", i, "title"))
+			}
+		}
+		return found
+	}
+
+	assert.Equal(t, []string{"Fix login"}, titles(map[string]any{"label": "bug"}))
+	assert.Equal(t, []string{"Fix login"},
+		titles(map[string]any{"query": "SENTRY.IO/issues/42"}), "body, any case")
+	assert.Equal(t, []string{"Add dark mode"}, titles(map[string]any{"query": "dark"}),
+		"title")
+	assert.Empty(t, titles(map[string]any{"query": "no such text"}))
+	assert.Empty(t, titles(map[string]any{"label": "bug", "query": "dark"}),
+		"both must match")
+	assert.Len(t, titles(map[string]any{"label": "", "query": ""}), 2)
+}
+
 func TestListReposGivesAgentsNoSetupCommandsOrInstructions(t *testing.T) {
 	session := mcpSessionAs(t, asUser(models.RoleAgent))
 

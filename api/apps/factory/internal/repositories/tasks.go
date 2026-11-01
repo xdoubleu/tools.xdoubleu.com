@@ -38,12 +38,18 @@ func scanTask(row rowScanner) (*models.Task, error) {
 	return &t, nil
 }
 
-// List returns every task without its body, most recently updated first.
-func (r *TasksRepository) List(ctx context.Context) ([]models.Task, error) {
+// List returns tasks without their bodies, newest first. A non-empty query keeps
+// only tasks whose title or body contains it, ignoring case: the match runs in
+// SQL so bodies needn't be loaded.
+func (r *TasksRepository) List(
+	ctx context.Context,
+	query string,
+) ([]models.Task, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT `+listColumns+`
 		FROM factory.tasks t
-		ORDER BY updated_at DESC, id`)
+		WHERE $1 = '' OR position(lower($1) in lower(t.title || E'\n' || t.body)) > 0
+		ORDER BY updated_at DESC, id`, query)
 	if err != nil {
 		return nil, err
 	}

@@ -3,6 +3,8 @@ package factory
 import (
 	"context"
 	"errors"
+	"slices"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -24,6 +26,8 @@ const statusNames = "backlog, ready, in_progress, in_review, needs_you or done"
 type mcpListTasksArgs struct {
 	Status string `json:"status,omitempty"  jsonschema:"only tasks in this column: backlog, ready, in_progress, in_review, needs_you or done"`
 	RepoID string `json:"repo_id,omitempty" jsonschema:"only tasks of this repo id, from factory_list_repos"`
+	Label  string `json:"label,omitempty"   jsonschema:"only tasks with this label, ignoring case"`
+	Query  string `json:"query,omitempty"   jsonschema:"only tasks whose title or body contains this text, ignoring case"`
 }
 
 type mcpTaskArgs struct {
@@ -62,7 +66,8 @@ func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
 			"Use the id when creating a task.", t.listRepos)
 	mcptools.AddAgentReadTool(srv, "factory_list_tasks",
 		"Tasks on the board, most recently updated first, without their bodies. "+
-			"Filter by status (one of "+statusNames+") or repo_id.", t.listTasks)
+			"Filter by status (one of "+statusNames+"), repo_id, label, or query, "+
+			"which searches titles and bodies.", t.listTasks)
 	mcptools.AddAgentReadTool(srv, "factory_get_task",
 		"A task with its body and comments.", t.getTask)
 	mcptools.AddAgentWriteTool(srv, "factory_create_task",
@@ -127,7 +132,7 @@ func (t *mcpTools) listTasks(
 			return nil, err
 		}
 	}
-	tasks, err := t.app.services.Tasks.List(ctx)
+	tasks, err := t.app.services.Tasks.List(ctx, args.Query)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
@@ -139,9 +144,22 @@ func (t *mcpTools) listTasks(
 		if args.RepoID != "" && tasks[i].RepoID != repoID {
 			continue
 		}
+		if !matchesLabel(&tasks[i], args.Label) {
+			continue
+		}
 		out = append(out, protoTask(&tasks[i]))
 	}
 	return &factoryv1.ListTasksResponse{Tasks: out}, nil
+}
+
+// matchesLabel keeps every task when label is empty.
+func matchesLabel(task *models.Task, label string) bool {
+	if label == "" {
+		return true
+	}
+	return slices.ContainsFunc(task.Labels, func(l string) bool {
+		return strings.EqualFold(l, label)
+	})
 }
 
 func (t *mcpTools) getTask(

@@ -26,6 +26,10 @@ the opposite of what the board needs.
   neither a browser nor an admin. A move into Ready is refused by
   `TaskService.Move`, the same guard as the web UI, not by the tool, so no tool
   can forget it.
+- `factory_list_tasks` filters by status, repo, label (any case) and `query`,
+  a case-insensitive search of titles and bodies run in SQL, so a routine finds
+  the task it filed earlier by a stable key (a Sentry permalink) without
+  reading every body.
 - A new task always starts in Backlog. `factory_list_repos` returns id, owner,
   name and default branch only: the setup commands and instructions are for the
   sandbox, not the agent. List results leave out task bodies.
