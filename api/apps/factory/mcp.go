@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
@@ -57,6 +58,7 @@ func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
 
 	mcptools.AddAgentReadTool(srv, "factory_list_repos",
 		"The repos the factory works on: id, owner, name and default branch. "+
+			"Setup commands and instructions are withheld. "+
 			"Use the id when creating a task.", t.listRepos)
 	mcptools.AddAgentReadTool(srv, "factory_list_tasks",
 		"Tasks on the board, most recently updated first, without their bodies. "+
@@ -118,6 +120,13 @@ func (t *mcpTools) listTasks(
 	if args.Status != "" && !models.Status(args.Status).Valid() {
 		return nil, errors.New("status must be one of " + statusNames)
 	}
+	var repoID uuid.UUID
+	if args.RepoID != "" {
+		var err error
+		if repoID, err = parseID(args.RepoID); err != nil {
+			return nil, err
+		}
+	}
 	tasks, err := t.app.services.Tasks.List(ctx)
 	if err != nil {
 		return nil, connecttools.MapError(err)
@@ -127,7 +136,7 @@ func (t *mcpTools) listTasks(
 		if args.Status != "" && string(tasks[i].Status) != args.Status {
 			continue
 		}
-		if args.RepoID != "" && tasks[i].RepoID.String() != args.RepoID {
+		if args.RepoID != "" && tasks[i].RepoID != repoID {
 			continue
 		}
 		out = append(out, protoTask(&tasks[i]))

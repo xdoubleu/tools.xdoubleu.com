@@ -45,7 +45,7 @@ func AgentToolsOnly() mcp.Middleware {
 			case method == "tools/list":
 				res, err := next(ctx, method, req)
 				if list, ok := res.(*mcp.ListToolsResult); ok && err == nil {
-					list.Tools = factoryTools(list.Tools)
+					list.Tools = filterTools(list.Tools, true)
 				}
 				return res, err
 			}
@@ -60,21 +60,17 @@ func hideAgentTools(
 ) (mcp.Result, error) {
 	res, err := next(ctx, method, req)
 	if list, ok := res.(*mcp.ListToolsResult); ok && err == nil && method == "tools/list" {
-		kept := make([]*mcp.Tool, 0, len(list.Tools))
-		for _, t := range list.Tools {
-			if !strings.HasPrefix(t.Name, AgentToolPrefix) {
-				kept = append(kept, t)
-			}
-		}
-		list.Tools = kept
+		list.Tools = filterTools(list.Tools, false)
 	}
 	return res, err
 }
 
-func factoryTools(tools []*mcp.Tool) []*mcp.Tool {
+// filterTools keeps the factory_ tools when keepFactory is set, the others
+// when it isn't.
+func filterTools(tools []*mcp.Tool, keepFactory bool) []*mcp.Tool {
 	kept := make([]*mcp.Tool, 0, len(tools))
 	for _, t := range tools {
-		if strings.HasPrefix(t.Name, AgentToolPrefix) {
+		if strings.HasPrefix(t.Name, AgentToolPrefix) == keepFactory {
 			kept = append(kept, t)
 		}
 	}

@@ -3,6 +3,7 @@ package factory_test
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -198,6 +199,16 @@ func TestListTasksFiltersAndOmitsBodies(t *testing.T) {
 		map[string]any{"repo_id": "00000000-0000-0000-0000-000000000000"})
 	require.NoError(t, err)
 	assert.Nil(t, at(t, other, "tasks"))
+
+	// The filter is by id, whatever its letter case; a bad id is an error, not
+	// an empty list.
+	same, err := callTool(t, session, "factory_list_tasks",
+		map[string]any{"repo_id": strings.ToUpper(repoID)})
+	require.NoError(t, err)
+	assert.Len(t, at(t, same, "tasks"), 2)
+	_, err = callTool(t, session, "factory_list_tasks",
+		map[string]any{"repo_id": "not-a-uuid"})
+	assert.Error(t, err)
 
 	_, err = callTool(t, session, "factory_list_tasks",
 		map[string]any{"status": "archived"})
