@@ -1,6 +1,7 @@
 # ADR-0043: Jobs run in one Apple `container` VM each, on a host-only network behind a host proxy
 
-- Status: Proposed. The choices below rest on documentation; the Mac checks
+- Status: Accepted (owner's decision, in chat): Apple's own tooling, no third-party
+  VM layer. The choices rest on documentation; the Mac checks
   (`scripts/factory_sandbox_probe.sh` and the manual list in it) have not been run.
 - Issues: #2704, #2701 (decisions 11 and 12)
 - Affects: `factory-runner/` (the sandbox interface #2706 builds), future
@@ -16,7 +17,7 @@ and keeps credentials out of reach. Docker Desktop and Claude Code's own
 `/sandbox` are out: the first is a shared VM, and the second covers only the Bash
 tool and reads anywhere by default.
 
-## Decision (proposed)
+## Decision
 
 - **VM: Apple `container`** (Apache-2.0, macOS 26, Apple silicon). Each container
   is its own lightweight VM, so the boundary is a hypervisor's, per job. Its CLI
@@ -69,8 +70,8 @@ possible breaking changes, so pin the CLI version.
 
 ## Alternatives considered
 
-- **Lima** (CNCF, Apache-2.0, `vz` driver, virtiofs mounts): mature and the
-  fallback if `container` networking misbehaves. It runs a VM, not a VM per
+- **Lima** (CNCF, Apache-2.0, `vz` driver, virtiofs mounts): mature, but not
+  Apple's own tooling, which the owner wants to stay on. It runs a VM, not a VM per
   container, and its network isolation needs `socket_vmnet` plus extra setup.
 - **Tart** (Functional Source License, Apache-2.0 after two years; owned by OpenAI
   since 2026): permits internal use, strong for macOS CI images, but aimed at
@@ -87,5 +88,6 @@ possible breaking changes, so pin the CLI version.
 
 ## Revisit when
 
-The probe fails on networking (switch to Lima), Anthropic answers on credential
-intermediation, or `container` changes its networking or CLI.
+The probe fails on networking (then fix it on Apple's tooling, for example with a
+host firewall rule on the network's subnet, or revisit this ADR), Anthropic answers
+on credential intermediation, or `container` changes its networking or CLI.
