@@ -19,8 +19,9 @@ var errUnknownTool = errors.New("unknown tool")
 
 // AgentToolsOnly limits an agent account to the factory_ tools, whatever the
 // per-app gates say: other tools are left out of its tool list and refused when
-// called, as if they didn't exist, and resources and prompts are refused. Other
-// callers pass through unchanged.
+// called, as if they didn't exist, and resources and prompts are refused. Every
+// other caller's tool list leaves the factory_ tools out, since they are for
+// agents alone (RequireAgent refuses their calls).
 func AgentToolsOnly() mcp.Middleware {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(
@@ -28,7 +29,7 @@ func AgentToolsOnly() mcp.Middleware {
 		) (mcp.Result, error) {
 			user := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
 			if user == nil || user.Role != models.RoleAgent {
-				return next(ctx, method, req)
+				return hideAgentTools(ctx, method, req, next)
 			}
 
 			switch {
@@ -51,6 +52,23 @@ func AgentToolsOnly() mcp.Middleware {
 			return next(ctx, method, req)
 		}
 	}
+}
+
+// hideAgentTools leaves the factory_ tools out of a non-agent's tool list.
+func hideAgentTools(
+	ctx context.Context, method string, req mcp.Request, next mcp.MethodHandler,
+) (mcp.Result, error) {
+	res, err := next(ctx, method, req)
+	if list, ok := res.(*mcp.ListToolsResult); ok && err == nil && method == "tools/list" {
+		kept := make([]*mcp.Tool, 0, len(list.Tools))
+		for _, t := range list.Tools {
+			if !strings.HasPrefix(t.Name, AgentToolPrefix) {
+				kept = append(kept, t)
+			}
+		}
+		list.Tools = kept
+	}
+	return res, err
 }
 
 func factoryTools(tools []*mcp.Tool) []*mcp.Tool {

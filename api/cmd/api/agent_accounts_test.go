@@ -138,6 +138,14 @@ func mcpStatus(t *testing.T, token string) int {
 	return resp.StatusCode
 }
 
+// factoryToolNames are the tools an agent account gets on /apps/mcp.
+//
+//nolint:gochecknoglobals // shared expectation for the agent MCP tests
+var factoryToolNames = []string{
+	"factory_list_repos", "factory_list_tasks", "factory_get_task",
+	"factory_create_task", "factory_comment_task", "factory_move_task",
+}
+
 func TestAgentAccount_LifeCycle(t *testing.T) {
 	admin := newAgentAdmin(t, models.RoleAdmin)
 	client := agentAccountClient(t)
@@ -174,12 +182,15 @@ func TestAgentAccount_LifeCycle(t *testing.T) {
 	_, status = agentToken(t, account.ClientId, "wrong-secret")
 	assert.Equal(t, http.StatusUnauthorized, status)
 
-	// It connects to /apps/mcp but sees none of the other tools, and can't call
-	// them either.
+	// It connects to /apps/mcp but sees only the factory tools, and can't call
+	// the others.
 	session := appsMCPSession(t, token)
 	tools, err := session.ListTools(context.Background(), nil)
 	require.NoError(t, err)
-	assert.Empty(t, tools.Tools)
+	for _, tool := range tools.Tools {
+		assert.True(t, strings.HasPrefix(tool.Name, "factory_"), tool.Name)
+	}
+	assert.Len(t, tools.Tools, len(factoryToolNames))
 	for _, name := range []string{"get_job_stats", "books_get_library", "get_logs"} {
 		_, callErr := session.CallTool(context.Background(), toolCall(name))
 		require.Error(t, callErr, name)
