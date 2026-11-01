@@ -14,14 +14,14 @@ python3 - "$@" <<'PY'
 import glob, os, re, subprocess, sys
 
 TOP_DIRS = ("api", "web", "docs", "infra", "config", "scripts", "proto",
-            "kobo-gateway", "sentrytools", "tools", ".github", ".claude",
+            "kobo-gateway", "factory-runner", "sentrytools", "tools", ".github", ".claude",
             ".kamal", ".opencode", ".agents")
 TOP_DIRS_PREFIX = tuple(d + "/" for d in TOP_DIRS)
 EXTENSIONS = (".go", ".ts", ".tsx", ".js", ".mjs", ".json", ".md", ".yml",
               ".yaml", ".toml", ".sql", ".proto", ".sh", ".py", ".tf", ".css",
               ".html", ".mod")
 INSTRUCTION_FILES = ["AGENTS.md", "CLAUDE.md", "api/AGENTS.md", "web/AGENTS.md",
-                     "kobo-gateway/AGENTS.md"]
+                     "kobo-gateway/AGENTS.md", "factory-runner/AGENTS.md"]
 MARKER = "<!-- historical -->"
 HISTORICAL_LINE = "- Affects (historical):"
 

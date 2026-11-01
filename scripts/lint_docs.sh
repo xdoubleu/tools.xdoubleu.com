@@ -21,6 +21,7 @@ BUDGETS = {
     "api/AGENTS.md": 1400,
     "web/AGENTS.md": 650,
     "kobo-gateway/AGENTS.md": 350,
+    "factory-runner/AGENTS.md": 350,
 }
 for skill in glob.glob(".claude/skills/*/SKILL.md"):
     BUDGETS.setdefault(skill, SKILL_BUDGET)

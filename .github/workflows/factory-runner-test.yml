@@ -1,0 +1,27 @@
+name: Factory Runner Test Workflow
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  test:
+    name: Factory Runner Test
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: './factory-runner/go.mod'
+          cache-dependency-path: './factory-runner/go.sum'
+      - run: make test/cov/report
+        working-directory: './factory-runner'
+      - name: Upload coverage reports to Codecov
+        if: always()
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: factory_runner
