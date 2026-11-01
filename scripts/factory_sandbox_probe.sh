@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 # Probes the Mac sandbox the factory runner would use (docs/adr-0043): Apple
-# `container` on a host-only network. Run it on the Mac that will host jobs;
-# it needs macOS 26, Apple silicon and the `container` CLI. A cloud agent
-# can't run it, and it was written from the CLI's documentation without a Mac,
-# so a flag the CLI rejects is the script's bug: fix it and note it in the ADR.
-#
-# It prints PASS/FAIL per check and a summary. Paste the output into #2704.
+# `container` on a host-only network. Run it on the Mac that will host jobs
+# (macOS 26, Apple silicon, the `container` CLI); a cloud agent can't. It was
+# written from the CLI docs without a Mac, so a flag the CLI rejects is the
+# script's bug. It prints PASS/FAIL per check; paste the output into #2704.
 set -uo pipefail
 
 IMAGE=${PROBE_IMAGE:-docker.io/curlimages/curl:latest} # non-root (uid 100), has curl and sh
