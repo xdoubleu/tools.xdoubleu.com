@@ -178,6 +178,19 @@ func (s *oauth2asTestServer) authorizeAndGetCodeWithScope(
 	t *testing.T, client *fosite.DefaultClient, challenge, state, scope string,
 ) string {
 	t.Helper()
+	extra := url.Values{}
+	if scope != "" {
+		extra.Set("scope", scope)
+	}
+	return s.authorizeAndGetCodeWithParams(t, client, challenge, state, extra)
+}
+
+// authorizeAndGetCodeWithParams adds extra to the authorize query.
+func (s *oauth2asTestServer) authorizeAndGetCodeWithParams(
+	t *testing.T, client *fosite.DefaultClient, challenge, state string,
+	extra url.Values,
+) string {
+	t.Helper()
 	client2 := noRedirectClient()
 
 	q := url.Values{
@@ -188,8 +201,8 @@ func (s *oauth2asTestServer) authorizeAndGetCodeWithScope(
 		"code_challenge_method": {"S256"},
 		"state":                 {state},
 	}
-	if scope != "" {
-		q.Set("scope", scope)
+	for k, v := range extra {
+		q[k] = v
 	}
 
 	resp, err := client2.Get(s.ts.URL + "/oauth2/authorize?" + q.Encode())
@@ -328,6 +341,40 @@ func TestOAuth2Flow_AuthorizationCodePKCE_RefreshAndFailure(t *testing.T) {
 		"client_id":     {client.ID},
 	})
 	assert.NotEqual(t, http.StatusOK, staleResp.StatusCode)
+}
+
+// MCP clients send an RFC 8707 resource indicator on both legs.
+func TestOAuth2Flow_ResourceIndicator(t *testing.T) {
+	cfg := testhelper.NewTestConfig()
+	srv := newOAuth2asTestServerWithConfig(t, cfg)
+	client := srv.registerClient(t)
+	resource := cfg.APIURL + "/apps/mcp"
+
+	verifier, challenge := pkcePair(t)
+	code := srv.authorizeAndGetCodeWithParams(
+		t, client, challenge, "resource-state-123",
+		url.Values{"scope": {"offline_access"}, "resource": {resource}},
+	)
+
+	resp, out := srv.exchangeToken(t, url.Values{
+		"grant_type":    {"authorization_code"},
+		"code":          {code},
+		"redirect_uri":  {client.RedirectURIs[0]},
+		"client_id":     {client.ID},
+		"code_verifier": {verifier},
+		"resource":      {resource},
+	})
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.NotEmpty(t, out.AccessToken)
+
+	refreshResp, refreshOut := srv.exchangeToken(t, url.Values{
+		"grant_type":    {"refresh_token"},
+		"refresh_token": {out.RefreshToken},
+		"client_id":     {client.ID},
+		"resource":      {resource},
+	})
+	require.Equal(t, http.StatusOK, refreshResp.StatusCode)
+	assert.NotEmpty(t, refreshOut.AccessToken)
 }
 
 func TestOAuth2Flow_MissingPKCEVerifier(t *testing.T) {

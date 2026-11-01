@@ -2,6 +2,7 @@ package oauth2as
 
 import (
 	"crypto/rsa"
+	"net/url"
 	"time"
 
 	fosite "authelia.com/provider/oauth2"
@@ -43,6 +44,7 @@ func NewProvider(
 		IDTokenIssuer:                  cfg.AuthIssuer,
 		EnforcePKCE:                    true,
 		EnablePKCEPlainChallengeMethod: false,
+		ResourceStrategy:               ownResourceStrategy(cfg.APIURL),
 	}
 
 	signer := &jwt.DefaultStrategy{
@@ -80,4 +82,25 @@ func NewProvider(
 		// ResolveAccessToken.
 		compose.OAuth2TokenIntrospectionFactory,
 	)
+}
+
+// ownResourceStrategy accepts RFC 8707 resource indicators that name this api
+// (e.g. its MCP endpoints). Clients carry no audience list, so the library
+// default would reject every indicator.
+func ownResourceStrategy(apiURL string) fosite.ResourceStrategy {
+	return func(_, needle []string) error {
+		base, err := url.Parse(apiURL)
+		if err != nil {
+			return fosite.ErrInvalidTarget.WithWrap(err)
+		}
+		for _, n := range needle {
+			u, parseErr := url.Parse(n)
+			if parseErr != nil || !fosite.IsMatchingResourceIndicator(base, u) {
+				return fosite.ErrInvalidTarget.WithDebugf(
+					"Resource '%s' is not served by this authorization server.", n,
+				)
+			}
+		}
+		return nil
+	}
 }
