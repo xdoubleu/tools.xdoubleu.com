@@ -25,9 +25,11 @@ without the server being able to push arbitrary code.
   so no proto, config or image variable carries the version. It is always this
   commit: no build cache, because a pure-Go build takes seconds.
 - **Update only when idle.** Hourly, if no job runs, the runner reads the release
-  file; if it differs it downloads the binary and signature, verifies, checks it
-  is Mach-O, atomically renames it over itself and exits so launchd restarts it.
-  A failure leaves the old binary running.
+  file; if it differs it downloads the binary and signature beside the heartbeat
+  loop (so a slow download never makes it look offline), verifies, checks it is
+  Mach-O, re-checks that it is still idle, atomically renames it over itself and
+  exits so launchd restarts it. A failure leaves the old binary running; a build
+  without the public key skips updating quietly.
 - **`install` copies the binary** to `~/Library/Application Support/factory-runner/`
   and runs the LaunchAgent from there, so a download can be deleted and the update
   has one file to replace.
@@ -40,5 +42,10 @@ without the server being able to push arbitrary code.
   an older validly signed binary; the release file is unsigned, so the server can
   also withhold updates. Accepted: the key is the owner's, and a rollback needs the
   server to be compromised as well.
+- If the release file and the served binary ever disagree, the runner re-downloads
+  hourly until they match. CI stages both from one build, so they match by
+  construction.
+- The board says "update available", not that it will happen: it can't see
+  whether the runner has a key or the release was signed.
 - A first download is quarantined by Gatekeeper: the install steps clear it with `xattr`.
 - Nothing calls `Activity.Begin` yet; the job runner (#2706) does.

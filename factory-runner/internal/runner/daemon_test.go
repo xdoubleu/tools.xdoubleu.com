@@ -1,10 +1,13 @@
 package runner_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
 	"log/slog"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -113,18 +116,31 @@ func TestRealRunReturnsOnCancel(t *testing.T) {
 func noOpts() runner.Options { return runner.Options{Updater: nil, Activity: nil} }
 
 func newFakeUpdater(updated bool, err error) *fakeUpdater {
-	return &fakeUpdater{calls: 0, updated: updated, err: err}
+	return &fakeUpdater{
+		calls: atomic.Int32{}, updated: updated, err: err,
+		called: make(chan struct{}), once: sync.Once{},
+	}
 }
 
 type fakeUpdater struct {
-	calls   int
+	calls   atomic.Int32
 	updated bool
 	err     error
+	called  chan struct{}
+	once    sync.Once
 }
 
-func (f *fakeUpdater) Update(context.Context) (bool, error) {
-	f.calls++
+func (f *fakeUpdater) Update(context.Context, func() bool) (bool, error) {
+	f.calls.Add(1)
+	f.once.Do(func() { close(f.called) })
 	return f.updated, f.err
+}
+
+// waitCalled blocks until the update has started, and a moment more so what it
+// does on return (a log line) has happened.
+func (f *fakeUpdater) waitCalled() {
+	<-f.called
+	time.Sleep(10 * time.Millisecond)
 }
 
 // ticking is a clock that moves a minute per read, so a few loops pass an hour.
@@ -143,13 +159,14 @@ func TestDaemonRestartsAfterASelfUpdate(t *testing.T) {
 		runner.Options{Updater: upd, Activity: nil},
 		func(context.Context, time.Duration) {}, ticking())
 	require.ErrorIs(t, err, runner.ErrRestart)
-	assert.Equal(t, 1, upd.calls)
-	assert.Equal(t, 0, hb.calls, "it updates before the first heartbeat")
+	assert.Equal(t, 1, int(upd.calls.Load()))
+	assert.Positive(t, hb.calls, "heartbeats go on while the update runs")
 }
 
 func TestDaemonChecksForUpdatesOncePerInterval(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	hb := newScripted(func(call int) error {
+		time.Sleep(time.Millisecond) // lets the update goroutine run
 		if call == 130 {
 			cancel()
 		}
@@ -159,24 +176,25 @@ func TestDaemonChecksForUpdatesOncePerInterval(t *testing.T) {
 	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
 		runner.Options{Updater: upd, Activity: nil},
 		func(context.Context, time.Duration) {}, ticking()))
-	// The clock moves 2-3 minutes per loop: about 130 loops is ~5 hours.
-	assert.Greater(t, upd.calls, 2)
-	assert.Less(t, upd.calls, 8)
+	// The clock moves 3-4 minutes per loop: about 130 loops is 6 to 8 hours.
+	assert.Greater(t, int(upd.calls.Load()), 2)
+	assert.Less(t, int(upd.calls.Load()), 10)
 }
 
 func TestDaemonKeepsRunningWhenAnUpdateFails(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
+	upd := newFakeUpdater(false, errors.New("no signature"))
 	hb := newScripted(func(call int) error {
 		if call == 2 {
+			upd.waitCalled()
 			cancel()
 		}
 		return nil
 	}, cancel)
-	upd := newFakeUpdater(false, errors.New("no signature"))
 	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
 		runner.Options{Updater: upd, Activity: nil},
 		func(context.Context, time.Duration) {}, ticking()))
-	assert.Equal(t, 1, upd.calls)
+	assert.Equal(t, 1, int(upd.calls.Load()))
 	assert.Equal(t, 2, hb.calls)
 }
 
@@ -194,5 +212,49 @@ func TestDaemonDoesNotUpdateWhileAJobRuns(t *testing.T) {
 	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
 		runner.Options{Updater: upd, Activity: activity},
 		func(context.Context, time.Duration) {}, ticking()))
-	assert.Equal(t, 0, upd.calls)
+	assert.Equal(t, 0, int(upd.calls.Load()))
+}
+
+// syncBuffer is a log sink the update goroutine and the test can share.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
+func TestDaemonLogsAFailedUpdateButNotAMissingKey(t *testing.T) {
+	for name, tc := range map[string]struct {
+		err    error
+		logged bool
+	}{
+		"no key":         {runner.ErrUpdateSigningUnset, false},
+		"a real failure": {errors.New("bad signature"), true},
+	} {
+		sink := &syncBuffer{mu: sync.Mutex{}, buf: bytes.Buffer{}}
+		log := slog.New(slog.NewTextHandler(sink, nil))
+		ctx, cancel := context.WithCancel(context.Background())
+		upd := newFakeUpdater(false, tc.err)
+		hb := newScripted(func(call int) error {
+			if call == 3 {
+				upd.waitCalled()
+				cancel()
+			}
+			return nil
+		}, cancel)
+		require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", log,
+			runner.Options{Updater: upd, Activity: nil},
+			func(context.Context, time.Duration) {}, ticking()))
+		assert.Equal(t, tc.logged, sink.String() != "", name)
+	}
 }

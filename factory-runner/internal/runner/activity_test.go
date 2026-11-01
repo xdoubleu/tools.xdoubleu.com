@@ -78,3 +78,17 @@ func TestRealCaffeinateFailsCleanlyWithoutTheBinary(t *testing.T) {
 	_, err := runner.NewCaffeinate().Start()
 	require.Error(t, err)
 }
+
+func TestActivityRetriesTheHoldOnTheNextJob(t *testing.T) {
+	awake := &stubAwake{starts: 0, stops: 0, err: errors.New("no caffeinate")}
+	a := runner.NewActivity(awake)
+	require.Error(t, a.Begin())
+
+	awake.err = nil
+	require.NoError(t, a.Begin(), "a second job tries again")
+	assert.Equal(t, 1, awake.starts)
+	a.End()
+	assert.Equal(t, 0, awake.stops)
+	a.End()
+	assert.Equal(t, 1, awake.stops)
+}

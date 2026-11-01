@@ -59,13 +59,14 @@ func NewActivity(awake Awake) *Activity {
 	return &Activity{mu: sync.Mutex{}, n: 0, awake: awake, stop: nil}
 }
 
-// Begin records a job starting. A failure to hold the Mac awake is returned
-// but doesn't stop the job: it only risks the Mac sleeping.
+// Begin records a job starting; the caller must still call End, whatever it
+// returns. A failure to hold the Mac awake is returned but doesn't stop the job
+// (it only risks the Mac sleeping), and the next Begin tries again.
 func (a *Activity) Begin() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.n++
-	if a.n != 1 {
+	if a.stop != nil {
 		return nil
 	}
 	stop, err := a.awake.Start()

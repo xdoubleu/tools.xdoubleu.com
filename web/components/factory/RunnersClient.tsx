@@ -130,7 +130,7 @@ function RunnerVersion({ runners, latest }: { runners: Runner[]; latest: string 
     <p className="text-xs text-muted" data-testid="runner-version">
       Running {runner?.version ? shortRelease(runner.version) : 'none'} · latest{' '}
       {latest ? shortRelease(latest) : 'unknown'}
-      {update === 'pending' && ' · updates when idle'}
+      {update === 'pending' && ' · update available'}
     </p>
   )
 }

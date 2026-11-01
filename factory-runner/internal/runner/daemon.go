@@ -66,12 +66,23 @@ func run(
 ) error {
 	backoff := minLoop
 	var lastCheck time.Time
+	// The update downloads for minutes at worst, so it runs beside the heartbeat
+	// loop; its answer (replaced or not) arrives here.
+	updated := make(chan bool, 1)
+	updating := false
 	for ctx.Err() == nil {
-		if due(opts, clk.now(), lastCheck) {
-			lastCheck = clk.now()
-			if tryUpdate(ctx, opts.Updater, log) {
+		select {
+		case replaced := <-updated:
+			updating = false
+			if replaced {
 				return ErrRestart
 			}
+		default:
+		}
+		if !updating && due(opts, clk.now(), lastCheck) {
+			lastCheck = clk.now()
+			updating = true
+			go func() { updated <- tryUpdate(ctx, opts, log) }()
 		}
 
 		started := clk.now()
@@ -102,13 +113,16 @@ func due(opts Options, now, lastCheck time.Time) bool {
 	return opts.Activity == nil || opts.Activity.Idle()
 }
 
-func tryUpdate(ctx context.Context, upd SelfUpdater, log *slog.Logger) bool {
-	updated, err := upd.Update(ctx)
-	if err != nil {
+func tryUpdate(ctx context.Context, opts Options, log *slog.Logger) bool {
+	idle := func() bool { return opts.Activity == nil || opts.Activity.Idle() }
+	replaced, err := opts.Updater.Update(ctx, idle)
+	switch {
+	case errors.Is(err, ErrUpdateSigningUnset):
+		// A build without the key never updates; that is not a fault.
+	case err != nil:
 		log.Warn("self-update failed", "error", err)
-		return false
 	}
-	return updated
+	return replaced
 }
 
 func sleepCtx(ctx context.Context, d time.Duration) {

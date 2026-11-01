@@ -78,11 +78,12 @@ describe('RunnersClient', () => {
       '/downloads/factory-runner-darwin-arm64'
     )
     expect(screen.getByText(/xattr -d com.apple.quarantine/)).toBeInTheDocument()
+    expect(screen.getByTestId('runner-install')).toHaveTextContent('then run xattr -d')
     expect(screen.getByText(/closed lid only stays awake on AC power/)).toBeInTheDocument()
     expect(screen.queryByTestId('runner-version')).not.toBeInTheDocument()
   })
 
-  it('shows the running and the latest release, and that an update waits for idle', () => {
+  it('shows the running and the latest release, and that an update is available', () => {
     const release = (data?: string) =>
       // @ts-expect-error -- partial SWRResponse
       vi.mocked(useRunnerRelease).mockReturnValue({ data })
@@ -95,7 +96,7 @@ describe('RunnersClient', () => {
     mockRunners({ data: withVersion('aaaaaaaabbbb') })
     const first = render(<RunnersClient />)
     expect(screen.getByTestId('runner-version')).toHaveTextContent(
-      'Running aaaaaaa · latest bbbbbbb · updates when idle'
+      'Running aaaaaaa · latest bbbbbbb · update available'
     )
     first.unmount()
 
@@ -105,7 +106,7 @@ describe('RunnersClient', () => {
     expect(screen.getByTestId('runner-version')).toHaveTextContent(
       'Running aaaaaaa · latest aaaaaaa'
     )
-    expect(screen.getByTestId('runner-version')).not.toHaveTextContent('updates when idle')
+    expect(screen.getByTestId('runner-version')).not.toHaveTextContent('update available')
     second.unmount()
 
     release(undefined)

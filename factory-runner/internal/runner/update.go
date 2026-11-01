@@ -25,8 +25,9 @@ const (
 	// DevRelease marks a build with no release stamp; it never self-updates.
 	DevRelease = "dev"
 
-	downloadsPath    = "/downloads/"
-	downloadTimeout  = 60 * time.Second
+	downloadsPath = "/downloads/"
+	// The update runs off the heartbeat path, so a slow link just takes longer.
+	downloadTimeout  = 5 * time.Minute
 	maxBinarySize    = 512 << 20
 	maxSmallDownload = 1 << 10
 	binaryPerm       = 0o755
@@ -41,8 +42,9 @@ var ErrUpdateSigningUnset = errors.New(
 // SelfUpdater replaces the running binary with a newer signed release.
 type SelfUpdater interface {
 	// Update installs the latest release if it differs from the running one, and
-	// reports whether it replaced the binary.
-	Update(ctx context.Context) (bool, error)
+	// reports whether it replaced the binary. It re-checks idle right before
+	// replacing it, so a job that started during a slow download isn't killed.
+	Update(ctx context.Context, idle func() bool) (bool, error)
 }
 
 // Updater downloads origin/downloads/<BinaryName>, checks its ed25519 signature
@@ -84,12 +86,12 @@ func NewUpdater(origin, current, publicKeyB64 string) *Updater {
 }
 
 // Update installs the latest release when it differs from the running one.
-func (u *Updater) Update(ctx context.Context) (bool, error) {
-	if u.publicKey == nil {
-		return false, ErrUpdateSigningUnset
-	}
+func (u *Updater) Update(ctx context.Context, idle func() bool) (bool, error) {
 	if u.current == DevRelease || u.current == "" {
 		return false, nil
+	}
+	if u.publicKey == nil {
+		return false, ErrUpdateSigningUnset
 	}
 
 	raw, err := u.download(ctx, u.origin+downloadsPath+ReleaseFile, maxSmallDownload)
@@ -122,8 +124,13 @@ func (u *Updater) Update(ctx context.Context) (bool, error) {
 		return false, errors.New("downloaded file is not a valid runner binary")
 	}
 
+	if !idle() {
+		return false, nil
+	}
+
 	tmp := executable + ".update"
 	if err = os.WriteFile(tmp, data, binaryPerm); err != nil {
+		_ = os.Remove(tmp)
 		return false, fmt.Errorf("write updated binary: %w", err)
 	}
 	if err = os.Rename(tmp, executable); err != nil {

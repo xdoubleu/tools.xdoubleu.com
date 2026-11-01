@@ -121,14 +121,12 @@ const SHORT_RELEASE_LENGTH = 7
 
 /** A release (a commit SHA) as shown to people. */
 export function shortRelease(release: string): string {
-  return release === '' || release === DEV_RELEASE
-    ? release
-    : release.slice(0, SHORT_RELEASE_LENGTH)
+  return release.slice(0, SHORT_RELEASE_LENGTH)
 }
 
 /**
- * Whether the paired runner runs the served release: "current", "pending" (it
- * updates itself once idle), or "unknown" when either side has no real release.
+ * Whether the paired runner runs the served release: "current", "pending" (a
+ * newer one is served), or "unknown" when either side has no real release.
  */
 export function runnerUpdate(
   runner: Runner | undefined,

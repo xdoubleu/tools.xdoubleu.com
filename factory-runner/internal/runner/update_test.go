@@ -17,6 +17,8 @@ import (
 	"tools.xdoubleu.com/factory-runner/internal/updatesig"
 )
 
+func always() bool { return true }
+
 func machO(payload string) []byte {
 	return append([]byte{0xcf, 0xfa, 0xed, 0xfe}, []byte(payload)...)
 }
@@ -91,7 +93,12 @@ func TestUpdateInstallsANewerSignedRelease(t *testing.T) {
 	srv := serveRelease(t, newRelease("new", machO("new"), key, false))
 	exe := fakeExecutable(t)
 
-	updated, err := newUpdater(srv, "old", key.pubB64, exe).Update(context.Background())
+	updated, err := newUpdater(
+		srv,
+		"old",
+		key.pubB64,
+		exe,
+	).Update(context.Background(), always)
 	require.NoError(t, err)
 	assert.True(t, updated)
 
@@ -108,7 +115,12 @@ func TestUpdateDoesNothingWhenCurrent(t *testing.T) {
 	key := newSigner(t)
 	srv := serveRelease(t, newRelease("same", machO("x"), key, false))
 	exe := fakeExecutable(t)
-	updated, err := newUpdater(srv, "same", key.pubB64, exe).Update(context.Background())
+	updated, err := newUpdater(
+		srv,
+		"same",
+		key.pubB64,
+		exe,
+	).Update(context.Background(), always)
 	require.NoError(t, err)
 	assert.False(t, updated)
 	got, _ := os.ReadFile(exe)
@@ -121,11 +133,16 @@ func TestUpdateIsDisabledWithoutAKeyOrOnADevBuild(t *testing.T) {
 	exe := fakeExecutable(t)
 
 	for _, badKey := range []string{"", "not-base64!"} {
-		_, err := newUpdater(srv, "old", badKey, exe).Update(context.Background())
+		_, err := newUpdater(srv, "old", badKey, exe).Update(context.Background(), always)
 		require.ErrorIs(t, err, runner.ErrUpdateSigningUnset)
 	}
 	for _, current := range []string{runner.DevRelease, ""} {
-		updated, err := newUpdater(srv, current, key.pubB64, exe).Update(context.Background())
+		updated, err := newUpdater(
+			srv,
+			current,
+			key.pubB64,
+			exe,
+		).Update(context.Background(), always)
 		require.NoError(t, err)
 		assert.False(t, updated)
 	}
@@ -140,7 +157,12 @@ func TestUpdateRefusesWhatItCannotTrust(t *testing.T) {
 		"missing signature":     newRelease("new", machO("new"), key, true),
 	} {
 		srv := serveRelease(t, r)
-		updated, err := newUpdater(srv, "old", key.pubB64, exe).Update(context.Background())
+		updated, err := newUpdater(
+			srv,
+			"old",
+			key.pubB64,
+			exe,
+		).Update(context.Background(), always)
 		require.Error(t, err, name)
 		assert.False(t, updated, name)
 		got, _ := os.ReadFile(exe)
@@ -154,33 +176,33 @@ func TestUpdateFailures(t *testing.T) {
 
 	missing := httptest.NewServer(http.NotFoundHandler())
 	t.Cleanup(missing.Close)
-	_, err := newUpdater(missing, "old", key.pubB64, fakeExecutable(t)).Update(ctx)
+	_, err := newUpdater(missing, "old", key.pubB64, fakeExecutable(t)).Update(ctx, always)
 	require.Error(t, err, "no release file")
 
 	srv := serveRelease(t, newRelease("new", machO("new"), key, false))
 	u := newUpdater(srv, "old", key.pubB64, "")
 	u.SetExecutableError(errors.New("no executable"))
-	_, err = u.Update(ctx)
+	_, err = u.Update(ctx, always)
 	require.Error(t, err)
 
 	// The executable's directory can't be written.
 	_, err = newUpdater(srv, "old", key.pubB64,
-		filepath.Join(t.TempDir(), "gone", "factory-runner")).Update(ctx)
+		filepath.Join(t.TempDir(), "gone", "factory-runner")).Update(ctx, always)
 	require.Error(t, err)
 
 	// Renaming over a directory fails and leaves no temp file behind.
 	dir := filepath.Join(t.TempDir(), "factory-runner")
 	require.NoError(t, os.MkdirAll(filepath.Join(dir, "child"), 0o755))
-	_, err = newUpdater(srv, "old", key.pubB64, dir).Update(ctx)
+	_, err = newUpdater(srv, "old", key.pubB64, dir).Update(ctx, always)
 	require.Error(t, err)
 	assert.NoFileExists(t, dir+".update")
 
 	down := runner.NewUpdater("http://127.0.0.1:1", "old", key.pubB64)
-	_, err = down.Update(ctx)
+	_, err = down.Update(ctx, always)
 	require.Error(t, err)
 
 	bad := runner.NewUpdater("http://bad host", "old", key.pubB64)
-	_, err = bad.Update(ctx)
+	_, err = bad.Update(ctx, always)
 	require.Error(t, err)
 }
 
@@ -197,4 +219,26 @@ func TestOrigin(t *testing.T) {
 		_, err = runner.Origin(bad)
 		require.Error(t, err, bad)
 	}
+}
+
+func TestUpdateWaitsIfAJobStartedDuringTheDownload(t *testing.T) {
+	key := newSigner(t)
+	srv := serveRelease(t, newRelease("new", machO("new"), key, false))
+	exe := fakeExecutable(t)
+
+	updated, err := newUpdater(srv, "old", key.pubB64, exe).
+		Update(context.Background(), func() bool { return false })
+	require.NoError(t, err)
+	assert.False(t, updated)
+	got, _ := os.ReadFile(exe)
+	assert.Equal(t, machO("old"), got, "the binary is untouched")
+	assert.NoFileExists(t, exe+".update")
+}
+
+func TestADevBuildNeverUpdatesEvenWithoutAKey(t *testing.T) {
+	srv := serveRelease(t, newRelease("new", machO("new"), newSigner(t), false))
+	updated, err := newUpdater(srv, runner.DevRelease, "", fakeExecutable(t)).
+		Update(context.Background(), always)
+	require.NoError(t, err)
+	assert.False(t, updated)
 }
