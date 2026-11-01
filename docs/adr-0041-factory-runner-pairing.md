@@ -45,8 +45,8 @@ from anyone else, and the runner must not trust what the server sends
 
 ## Consequences
 
-- The pairing code is brute-forceable only within ten minutes against the global
-  rate limit; 50 bits makes that impractical, and a used or expired code is gone.
+- The pairing code is guessable only within ten minutes, at the API's
+  per-client throttle (on by default); 50 bits makes that impractical, and a used or expired code is gone.
 - Losing a pairing code or a device token means revoking and pairing again.
 - The runner side (`factory-runner pair`, the Keychain, its own repo allowlist and
   job validator) lands in the next slice.

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
 	"tools.xdoubleu.com/internal/database/postgres"
@@ -80,16 +81,24 @@ func (r *RunnersRepository) ByToken(
 		WHERE token_hash = $1 AND revoked_at IS NULL`, tokenHash))
 }
 
-// Touch records that the runner was heard from.
+// Touch records that the runner was heard from; a runner revoked meanwhile is
+// not found. An empty version keeps the last one.
 func (r *RunnersRepository) Touch(
 	ctx context.Context,
 	id uuid.UUID,
 	version string,
 ) error {
-	_, err := r.db.Exec(ctx, `
-		UPDATE factory.runners SET last_seen = now(), version = $2
+	tag, err := r.db.Exec(ctx, `
+		UPDATE factory.runners
+		SET last_seen = now(), version = COALESCE(NULLIF($2, ''), version)
 		WHERE id = $1 AND revoked_at IS NULL`, id, version)
-	return err
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return postgres.PgxErrorToHTTPError(pgx.ErrNoRows)
+	}
+	return nil
 }
 
 // List returns every runner, newest first, revoked ones included.

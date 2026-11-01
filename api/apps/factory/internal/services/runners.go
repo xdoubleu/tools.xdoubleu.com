@@ -86,7 +86,8 @@ func newToken() (string, error) {
 	return TokenPrefix + base64.RawURLEncoding.EncodeToString(buf), nil
 }
 
-func validRunnerName(name string) (string, bool) {
+// ValidRunnerName trims a runner name and reports whether it is usable.
+func ValidRunnerName(name string) (string, bool) {
 	name = strings.TrimSpace(name)
 	if name == "" || utf8.RuneCountInString(name) > maxRunnerName {
 		return "", false
@@ -105,7 +106,7 @@ func (s *RunnerService) Create(
 	ctx context.Context,
 	createdBy, name string,
 ) (*models.Runner, string, error) {
-	name, ok := validRunnerName(name)
+	name, ok := ValidRunnerName(name)
 	if !ok {
 		return nil, "", badRequest("name must be 1 to 80 printable characters")
 	}

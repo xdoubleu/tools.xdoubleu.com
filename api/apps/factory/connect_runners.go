@@ -9,6 +9,7 @@ import (
 	"connectrpc.com/connect/v2"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
+	"tools.xdoubleu.com/apps/factory/internal/services"
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/auth"
@@ -95,6 +96,11 @@ func (h *runnerAdminHandler) CreateRunner(
 	actor, err := browserAdmin(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if _, valid := services.ValidRunnerName(req.GetName()); !valid {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument, "name must be 1 to 80 printable characters",
+		)
 	}
 	token, ok := connecttools.RequestCookie(ctx, "accessToken")
 	if !ok {

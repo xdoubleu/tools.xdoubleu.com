@@ -141,6 +141,12 @@ describe('board', () => {
       online: false
     })
     expect(
+      runnerState(create(RunnerSchema, { pairingExpiresAt: '2026-11-01T11:00:00Z' }), now)
+    ).toEqual({ label: 'Pairing code expired', online: false })
+    expect(
+      runnerState(create(RunnerSchema, { pairingExpiresAt: '2026-11-01T13:00:00Z' }), now)
+    ).toEqual({ label: 'Waiting to pair', online: false })
+    expect(
       runnerState(create(RunnerSchema, { ...paired, online: true, lastSeen: 'x' }), now)
     ).toEqual({ label: 'Online', online: true })
     expect(runnerState(create(RunnerSchema, paired), now)).toEqual({

@@ -410,3 +410,44 @@ func TestARunnerTokenReachesNoTaskCalls(t *testing.T) {
 	_, err := tasks.ListTasks(bearer(paired.DeviceToken), &factoryv1.ListTasksRequest{})
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 }
+
+func TestABadNameIsRefusedBeforeTheStepUpCheck(t *testing.T) {
+	env := browserRunnerEnv(
+		t,
+		factory.WithStepUp(stepUpReturning(auth.ErrWrongCredential)),
+	)
+	_, err := env.admin.CreateRunner(signedIn(),
+		&factoryv1.CreateRunnerRequest{Name: "", TotpCode: "1"})
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestAnEmptyHeartbeatVersionKeepsTheLastOne(t *testing.T) {
+	env := browserRunnerEnv(t, factory.WithHeartbeatHold(time.Millisecond))
+	created := createRunner(t, env, "Home Mac")
+	paired := pair(t, env, created.PairingCode)
+
+	_, err := env.runner.Heartbeat(
+		bearer(paired.DeviceToken),
+		&factoryv1.HeartbeatRequest{},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "1.2.3", listRunners(t, env)[0].Version)
+}
+
+func TestARunnerRevokedDuringAHeartbeatGetsAnError(t *testing.T) {
+	env := browserRunnerEnv(t, factory.WithHeartbeatHold(300*time.Millisecond))
+	created := createRunner(t, env, "Home Mac")
+	paired := pair(t, env, created.PairingCode)
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := env.runner.Heartbeat(
+			bearer(paired.DeviceToken), &factoryv1.HeartbeatRequest{})
+		done <- err
+	}()
+	time.Sleep(50 * time.Millisecond)
+	_, err := env.admin.RevokeRunner(signedIn(),
+		&factoryv1.RevokeRunnerRequest{Id: created.Runner.Id})
+	require.NoError(t, err)
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(<-done))
+}

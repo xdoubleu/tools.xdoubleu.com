@@ -60,18 +60,18 @@ func TestNewTokenHasThePrefixAndIsRandom(t *testing.T) {
 }
 
 func TestValidRunnerName(t *testing.T) {
-	got, ok := validRunnerName("  Home Mac ")
+	got, ok := ValidRunnerName("  Home Mac ")
 	assert.True(t, ok)
 	assert.Equal(t, "Home Mac", got)
 
-	_, ok = validRunnerName(strings.Repeat("a", maxRunnerName))
+	_, ok = ValidRunnerName(strings.Repeat("a", maxRunnerName))
 	assert.True(t, ok)
-	_, ok = validRunnerName(strings.Repeat("é", maxRunnerName))
+	_, ok = ValidRunnerName(strings.Repeat("é", maxRunnerName))
 	assert.True(t, ok, "characters, not bytes")
 	for _, bad := range []string{
 		"", "  ", strings.Repeat("a", maxRunnerName+1), "two\nlines", "nul\x00",
 	} {
-		_, ok = validRunnerName(bad)
+		_, ok = ValidRunnerName(bad)
 		assert.False(t, ok, bad)
 	}
 }

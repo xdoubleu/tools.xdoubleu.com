@@ -105,7 +105,10 @@ export function runnerState(
 ): { label: string; online: boolean } {
   if (!runner) return { label: 'No runner', online: false }
   if (runner.revokedAt !== '') return { label: 'Revoked', online: false }
-  if (runner.pairedAt === '') return { label: 'Waiting to pair', online: false }
+  if (runner.pairedAt === '') {
+    const expired = Date.parse(runner.pairingExpiresAt) <= now
+    return { label: expired ? 'Pairing code expired' : 'Waiting to pair', online: false }
+  }
   if (runner.online) return { label: 'Online', online: true }
   if (runner.lastSeen === '') return { label: 'Offline', online: false }
   return { label: `Offline · seen ${formatAge(now - Date.parse(runner.lastSeen))}`, online: false }

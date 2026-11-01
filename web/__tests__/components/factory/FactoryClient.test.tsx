@@ -171,6 +171,7 @@ describe('FactoryClient', () => {
     mockTasks({ data: board })
     const { unmount } = render(<FactoryClient />)
     expect(screen.getByText('No runner')).toBeInTheDocument()
+    expect(screen.getByText('No runner').className).toContain('text-subtle')
     expect(screen.getByRole('link', { name: 'Runner' })).toHaveAttribute('href', '/factory/runners')
     unmount()
 
@@ -181,6 +182,7 @@ describe('FactoryClient', () => {
     )
     render(<FactoryClient />)
     expect(screen.getByText('Online')).toBeInTheDocument()
+    expect(screen.getByText('Online').className).toContain('text-success')
   })
 
   it('links to the agent accounts', () => {
