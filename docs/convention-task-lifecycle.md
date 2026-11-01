@@ -14,9 +14,10 @@ mechanisms reference this file and add only the *how*:
    task's branch.
 2. **Fresh branch/worktree per task** — never reuse one, even from earlier in
    the same session.
-3. **A tracking issue with a real scope before the first edit.** A title is
+3. **A board task with a real scope before the first edit.** A title is
    not a scope: if the body is empty, find out what's wanted first. Record
-   the plan in the issue body.
+   the plan in the task (its body, or a `## Plan` comment: agents can't edit a
+   body) and move it to In progress.
 
 ## Finishing
 
@@ -27,7 +28,9 @@ mechanisms reference this file and add only the *how*:
    bundle).
 4. **Proto changed:** `make proto/check` (`api/`) and `npm run
    generate:check` (`web/`).
-5. **Non-draft PR** whose body closes the issue with a keyword
-   (`Fixes #123`). Pushed without a PR is not finished.
+5. **Non-draft PR** that links the task (`Task: <title> (<id>)`, no closing
+   keyword) and moves it to In review; the owner moves it to Done. Pushed
+   without a PR is not finished. Work started from a GitHub issue (the sweeps,
+   until #2779) closes it with `Fixes #123` instead.
 6. **Never merge on red CI; never push to `main`.**
 7. **Watch CI to green** and fix what it finds.

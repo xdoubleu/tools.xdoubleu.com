@@ -8,7 +8,7 @@ description: Review freshly-written frontend code in web/ for mobile usability a
 [`docs/convention-ui-standards.md`](../../../docs/convention-ui-standards.md)'s
 mobile-first rule is review-only; this skill is that review. Runs before
 `finish-task`; it opens no issues or PRs (deferred findings go on the
-tracking issue or a `refine-issue` follow-up).
+task or a `refine-task` follow-up).
 
 ## Scope
 
