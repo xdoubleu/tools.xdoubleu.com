@@ -820,7 +820,7 @@ jobs:
         branch off origin/main and open a PR gated by normal CI — never push to
         main. A transient infrastructure flake goes in the outcome file's
         rerun_run_ids instead. Otherwise, with no determinable fix, file a
-        tracking issue describing the investigation.
+        board task describing the investigation (refine-task skill).
 
   # The red run is this one, so the dispatched workflow waits for it to end.
   rerun-main-ci-red:

@@ -120,7 +120,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"REMINDER: approving a plan does NOT start the task. Run the start-task skill now - a fresh worktree off latest main, plus a tracking issue with this approved plan recorded in its ## Plan section - BEFORE the first edit. When the work is done, run finish-task (lint, coverage, build, PR, CI). Opening the PR is standing pre-authorized workflow here and does not need to be requested.\"}}'",
+            "command": "printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"REMINDER: approving a plan does NOT start the task. Run the start-task skill now - a fresh worktree off latest main, plus a claimed board task with this approved plan recorded in it - BEFORE the first edit. When the work is done, run finish-task (lint, coverage, build, PR, CI). Opening the PR is standing pre-authorized workflow here and does not need to be requested.\"}}'",
             "statusMessage": "Reminding to run start-task..."
           }
         ]

@@ -109,7 +109,7 @@ Diagnose like step 3, except:
   job ids from `gh api …/actions/runs/<run-id>/jobs`.
 - The Codecov stall can't apply: `ci-pass` doesn't run on `push`.
 - Infrastructure flake → `rerun_run_ids` only; no PR or issue.
-- No determinable fix → file a tracking issue describing the investigation.
+- No determinable fix → file a board task describing the investigation (`refine-task`).
 - Write the outcome file as in step 6.
 
 ## Related

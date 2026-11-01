@@ -1,6 +1,6 @@
 ---
 name: start-task
-description: Set up a fresh worktree off up-to-date main and create/refine the GitHub tracking issue before starting a code change on tools.xdoubleu.com. Use when beginning a new coding task, feature, bug fix, or any change here that doesn't yet have a tracking issue and worktree, and pair with finish-task when the work wraps up.
+description: Set up a fresh worktree off up-to-date main and claim or create the factory board task before starting a code change on tools.xdoubleu.com. Use when beginning a new coding task, feature, bug fix, or any change here that doesn't yet have a task and worktree, and pair with finish-task when the work wraps up.
 ---
 
 # Start Task
@@ -11,17 +11,18 @@ on top of `task-worktree` (`git-task-flow` plugin).
 
 ## 1. Check for a prior attempt first
 
-Before any setup, if the issue exists:
+Before any setup, if the task exists:
 
-- `gh issue view <n> --json state,stateReason,comments` — the live state and
-  comments are the truth. A merged PR proves nothing; the issue may have been
-  reopened. Never report "already fixed" from PR history alone.
-- `gh pr list --search "<n>" --state all` and `git log --all --grep=<n>`.
+- `factory_get_task` — the live status and comments are the truth. A Done task
+  or a merged PR proves nothing; the symptom may be back. Never report
+  "already fixed" from history alone.
+- Search PRs for the task id (`gh pr list --search "<id>" --state all`, or
+  `mcp__github__search_pull_requests`) and `git log --all --grep=<id>`.
 
-If a previous attempt exists (even merged and closed), read its diff, review
-comments and CI failures, and record a short "Why attempt #N failed" on the
-issue (via `refine-issue`, in or before `## Plan`) before writing code. The
-new attempt must differ in response to that analysis.
+If a previous attempt exists (even merged), read its diff, review comments and
+CI failures, and comment "Why attempt failed" on the task
+(`factory_comment_task`) before writing code. The new attempt must differ in
+response to that analysis.
 
 ## 2. Fresh worktree off up-to-date main
 
@@ -48,19 +49,37 @@ path gets the first edit rejected), then re-point the session with
 `tools.opencode.session_move` before the first edit. If it refuses a second
 re-point, apply changes there with `git apply` from the current session.
 
-## 3. Create (or find) the tracking issue
+## 3. Claim (or create) the board task
 
-Always via `refine-issue` (`github-issue-triage` plugin, config in
-`.claude/github-triage.config.json`), never a bare `gh issue create` — even
-for tooling/doc work.
+The board is the tracker ([#2701](https://github.com/xdoubleu/tools.xdoubleu.com/issues/2701)).
+The `factory_*` tools come from your agent account's MCP server
+(`tools-apps-agent`, [adr-0039](../../../docs/adr-0039-agent-accounts.md) Setup).
+**Without them stop and tell the user**; never fall back to a GitHub issue
+unless they say to proceed without a task.
 
-- **Empty body** (title only): stop and ask the user what they want before
-  planning or editing; record the answer in the body via `refine-issue`.
-- **Grilling**: run the `grilling` skill on the scope and plan, feeding its
-  settled design tree into `## Plan` — unless the plan was already grilled
-  in plan mode (root `CLAUDE.md`), then say so in one line.
-- Record the plan in `## Plan` before the first edit and move Status to
-  "In progress".
+- **A named task:** `factory_get_task`. Empty body: stop and ask what they
+  want. Already In progress: ask whether someone else is on it.
+- **No task:** create one with `refine-task` (interactive mode); its body
+  carries the plan. Even tooling and doc work gets one.
+- **Grilling:** run the `grilling` skill on the scope and plan, feeding its
+  settled design tree into `## Plan` — unless the plan was already grilled in
+  plan mode (root `CLAUDE.md`), then say so in one line.
+- **Plan:** agents can't edit a body, so on an existing task comment the
+  `## Plan` (`factory_comment_task`) before the first edit. That comment is for
+  people and this session; the sandbox runner's prompt is the body only
+  ([#2701](https://github.com/xdoubleu/tools.xdoubleu.com/issues/2701) decision
+  15), so a plan it must follow belongs in the body.
+- **Claim:** `factory_move_task(id, "in_progress")`. You can't move a task
+  into Ready; that is the human's approval.
+
+**GitHub-issue mode (until #2779 retires it):** `ready-issues-sweep`,
+`subissue-sweep` and `red-pr-repair` still work from GitHub issues. When the
+prompt names one, use `gh issue view <n> --json state,stateReason,comments` in
+step 1, skip the board, and set Project #8 Status to In progress (`gh project
+item-edit --id <ITEM_ID> --field-id PVTSSF_lAHOAzw7nc4BdsAmzhYLzDw --project-id
+PVT_kwHOAzw7nc4BdsAm --single-select-option-id 47fc9ee4`; `<ITEM_ID>` from
+`gh project item-list 8 --owner xdoubleu --format json`; unattended, the
+App token can't write it, so leave it).
 
 ## 4. Bug fix: reproduce production state before planning
 
@@ -71,25 +90,6 @@ for tooling/doc work.
   **through the app's own HTTP client** and commit them gzipped under
   `testdata/`. A synthetic or plain-`curl` fixture is not a reproduction.
 - Name the cleanup and real-bytes fixture in `## Plan`.
-
-## Board Status: "In progress"
-
-Project #8 is personal, so GitHub MCP field tools can't write it:
-
-```
-gh project item-edit --id <ITEM_ID> \
-  --field-id PVTSSF_lAHOAzw7nc4BdsAmzhYLzDw \
-  --project-id PVT_kwHOAzw7nc4BdsAm \
-  --single-select-option-id 47fc9ee4
-```
-
-`<ITEM_ID>`: `gh project item-list 8 --owner xdoubleu --format json`,
-matched on `content.number`. Without `gh`, use the
-`updateProjectV2ItemFieldValue` GraphQL mutation.
-
-**Unattended:** the routine's GitHub App token can't write this user-owned
-board (`updateProjectV2ItemFieldValue` is denied) — leave Status as-is and
-let the open PR be the in-progress signal.
 
 ## Missing skills or `gh`
 
@@ -103,11 +103,8 @@ the plugins nor `gh`.
   don't edit before this.
 - **No `task-worktree`**: create the branch off up-to-date `origin/main`
   yourself (`EnterWorktree` or `git worktree add`); needs no `gh`.
-- **`refine-issue` loaded, no `gh`**: follow its "When `gh` isn't available"
-  section.
-- **No `refine-issue`**: still create/find the issue and record `## Plan`
-  before the first edit (via `mcp__github__*` if no `gh`); report what
-  couldn't be set (board fields).
+- **No `refine-task`**: create the task with `factory_create_task` yourself
+  (Backlog, plan in the body) and report what you couldn't set.
 
-`refine-issue` owns labels, Priority and board config — don't redefine them
-here. Hand off to `finish-task` when done.
+`refine-task` owns labels and priority — don't redefine them here. Hand off to
+`finish-task` when done.

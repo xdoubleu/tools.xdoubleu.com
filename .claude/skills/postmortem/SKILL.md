@@ -34,10 +34,10 @@ one incident. Read-mostly plus issue filing — no code fixes; those go through
 
    Don't invent a gap; but call out "no gap" explicitly, since it's rare.
 
-5. **File the detection-gap issue first** via `refine-issue`, separate from
-   the fix issue so it survives the fix shipping. Skip if "no gap".
+5. **File the detection-gap task first** via `refine-task`, separate from
+   the fix task so it survives the fix shipping. Skip if "no gap".
 
-6. **File the root-cause fix issue** via `refine-issue` (priority per
+6. **File the root-cause fix task** via `refine-task` (priority per
    `.claude/github-triage.config.json` — a live incident is almost always P0).
 
 7. **Record the gap** in `docs/convention-mcp-gap-first.md`'s gap list once

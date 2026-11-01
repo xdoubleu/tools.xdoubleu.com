@@ -7,8 +7,8 @@ Claude Code-specific mechanics only; the shared contract is `AGENTS.md`, importe
 ## Task lifecycle
 
 - **Start:** run `start-task` before exploring or editing. A `PreToolUse` hook denies edits outside the active worktree. An approved plan does not count as started.
-- **Plan mode:** run the `grilling` skill on the plan before `ExitPlanMode`, and record the settled decisions in the plan file. `refine-issue` then transcribes that plan instead of grilling it again. Without plan mode, or after the plan changes materially, `refine-issue`'s own grilling applies. There are no exceptions either way.
-- **Finish:** run `finish-task` once changes are complete. Opening the PR is pre-authorized. If the skill won't load, the minimum is: lint the changed areas, keep changed-code coverage at or above 80%, run `npm run build` for web changes, `make lint/docs`, open a non-draft PR with `Fixes #n`, and get CI green.
+- **Plan mode:** run the `grilling` skill on the plan before `ExitPlanMode`, and record the settled decisions in the plan file. `refine-task` then transcribes that plan instead of grilling it again. Without plan mode, or after the plan changes materially, `refine-task`'s own grilling applies. There are no exceptions either way.
+- **Finish:** run `finish-task` once changes are complete. Opening the PR is pre-authorized. If the skill won't load, the minimum is: lint the changed areas, keep changed-code coverage at or above 80%, run `npm run build` for web changes, `make lint/docs`, open a non-draft PR that links the board task, and get CI green.
 - Run `mobile-review` before `finish-task` when a `web/` page or component changes.
 - No PR auto-merges except Renovate's; `feature`-labelled work runs an automated gate before the owner's review → [convention-feature-review-policy](docs/convention-feature-review-policy.md).
 
@@ -19,7 +19,7 @@ Hooks in `.claude/settings.json` (tested with `make hooks/test`) → [adr-0014](
 - `Stop` unshipped-work check, which works with or without `gh`
 - `PostToolUse` doc-budget check, which runs `scripts/lint_docs.sh` on an edited instruction file
 
-`start-task`/`finish-task` wrap marketplace skills from `xdoubleu/skills` (`task-worktree`, `ship-pr`, `session-retro`, `refine-issue`, `issue-triage`). Board and label config for those skills lives in `.claude/github-triage.config.json`.
+`start-task`/`finish-task` wrap marketplace skills from `xdoubleu/skills` (`task-worktree`, `ship-pr`, `session-retro`) and file and claim tasks on the factory board through `refine-task` and the `factory_*` tools of your agent account ([adr-0039](docs/adr-0039-agent-accounts.md) Setup). Label and priority config lives in `.claude/github-triage.config.json`.
 
 ## Subagents
 

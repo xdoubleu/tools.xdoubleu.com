@@ -66,7 +66,7 @@ Generated stubs are committed and never linted. If a check isn't covered by a `m
 
 ## Task Lifecycle
 
-Fresh branch off up-to-date `main`, tracking issue before the first edit, lint/coverage/build gates, PR, CI green → [convention-task-lifecycle](docs/convention-task-lifecycle.md). Both harnesses use the `start-task`/`finish-task` skills.
+Fresh branch off up-to-date `main`, board task before the first edit, lint/coverage/build gates, PR, CI green → [convention-task-lifecycle](docs/convention-task-lifecycle.md). Both harnesses use the `start-task`/`finish-task` skills.
 
 ## MCP
 

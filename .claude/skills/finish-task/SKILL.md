@@ -45,20 +45,26 @@ rely on CI's Build Grafana job, and say so in the PR body.
 
 `cd web && npm run build` checks the server/client boundary.
 
-## 4. Decide the issue reference
+## 4. Link the task
 
-Check the tracking issue before handing `ship-pr` a reference:
+A board task isn't a GitHub issue: the PR links it and carries **no closing
+keyword**. Put `Task: <title> (<id>)` at the top of the PR body, and after
+`ship-pr` opens it `factory_move_task(id, "in_review")`. The owner moves it to
+Done after merging (automatic Done waits for #2712).
 
-- **`## Follow-up: your turn` heading in the issue body** (only the heading
-  counts, not prose): use `Part of #123`, never a closing keyword, and say
-  in the PR body the issue stays open for that step. After merge, set its
-  board Status to **"Needs you"** (step 5's command, option id `f83bddc3`)
-  and leave it open.
-- **Bug report**: a green suite doesn't close it. Verify the symptom is
-  gone in production after deploy (MCP read tools or UI); name that check as
-  a post-deploy step in the PR body. If unverifiable
-  (third party, hardware), say so; the user's confirmation is acceptance.
-- Otherwise: closing keyword (`Fixes #123`).
+- **`## Follow-up: your turn` in the task body** (only the heading counts, not
+  prose): say in the PR body that the task stays open for that step. Move it to
+  In review as usual, then to `needs_you` once the PR has merged.
+- **Bug report**: a green suite doesn't close it. Verify the symptom is gone in
+  production after deploy (MCP read tools or UI); name that check as a
+  post-deploy step in the PR body. If unverifiable (third party, hardware), say
+  so; the user's confirmation is acceptance.
+
+**GitHub-issue mode (until #2779):** when the prompt named a GitHub issue,
+reference it as before: `Part of #123` under a follow-up heading (then, after
+merge, set its Project #8 Status to "Needs you", option id `f83bddc3`),
+otherwise `Fixes #123`. The Status command is in `start-task`'s GitHub-issue
+mode; unattended, leave Status as-is.
 
 ## 4b. Check for supersession
 
@@ -74,7 +80,8 @@ review and merge. Only Renovate's dependency PRs auto-merge, through
 `renovate.json5`
 ([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md),
 [`docs/convention-unattended-agent-trust.md`](../../../docs/convention-unattended-agent-trust.md)).
-Tell `ship-pr` explicitly not to enable it.
+Tell `ship-pr` explicitly not to enable it, and that the PR references the task
+as in step 4 (the `Task:` line, no closing keyword, no issue number).
 
 **A — `feature` label: run the quality gate first.** No
 `## Manual review needed` section. Before opening the PR fix everything each
@@ -104,27 +111,15 @@ larger/architectural:
   changes spanning more than one app under `api/apps/*` or `web/`; any
   `go.mod`/`package.json` dependency change.
 
-Board Status edits (project #8 is personal):
-
-```
-gh project item-edit --id <ITEM_ID> --field-id PVTSSF_lAHOAzw7nc4BdsAmzhYLzDw \
-  --project-id PVT_kwHOAzw7nc4BdsAm --single-select-option-id <OPTION_ID>
-```
-
-`<ITEM_ID>`: `gh project item-list 8 --owner xdoubleu --format json`,
-matched on `content.number`. Without `gh`, use the
-`updateProjectV2ItemFieldValue` mutation, or report you couldn't.
-Unattended: the routine's token is denied this board — leave Status as-is and
-report the skipped edits.
-
 ## 6. Resolve linked Sentry issues once merged
 
-For each `https://xdoubleu.sentry.io/issues/<id>/` permalink in the tracking
-issue, call `resolve_sentry_issue` (`issue_id` = `<id>`).
+For each `https://xdoubleu.sentry.io/issues/<id>/` permalink in the task body
+(`factory_get_task`), call `resolve_sentry_issue` (`issue_id` = `<id>`).
 
 ## 7. Session retro
 
-Once CI is green, run `session-retro`; its fixes ship as their own issue and PR.
+Once CI is green, run `session-retro`; its fixes ship as their own board task
+(file it with `refine-task`, not a GitHub issue) and PR.
 
 ## Missing skills or `gh`
 
