@@ -374,3 +374,39 @@ func TestClaimingMarksTheRunnerSeen(t *testing.T) {
 		`SELECT last_seen > now() - interval '1 minute' FROM factory.runners`).Scan(&fresh))
 	assert.True(t, fresh)
 }
+
+func TestGetTaskListsItsJobsNewestFirst(t *testing.T) {
+	env := browserJobEnv(t)
+	task := env.newTask(t, "has jobs")
+	assert.Empty(t, env.task(t, task.Id).Jobs)
+
+	first := env.run(t, task.Id, "")
+	claimed := env.claim(t)
+	_, err := env.runner.CompleteJob(bearer(env.token),
+		&factoryv1.CompleteJobRequest{JobId: claimed.Id, Succeeded: true, Outcome: "done"})
+	require.NoError(t, err)
+	second := env.run(t, task.Id, "again")
+
+	jobs := env.task(t, task.Id).Jobs
+	require.Len(t, jobs, 2)
+	assert.Equal(t, second.Id, jobs[0].Id, "newest first")
+	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_QUEUED, jobs[0].Status)
+	assert.Equal(t, first.Id, jobs[1].Id)
+	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_SUCCEEDED, jobs[1].Status)
+}
+
+func TestReadingATaskNoticesALostJob(t *testing.T) {
+	env := browserJobEnv(t)
+	task := env.newTask(t, "polled")
+	env.run(t, task.Id, "")
+	claimed := env.claim(t)
+	_, err := testDB.Exec(context.Background(),
+		`UPDATE factory.jobs SET last_check_in = now() - interval '6 minutes'
+		 WHERE id = $1`, claimed.Id)
+	require.NoError(t, err)
+
+	got := env.task(t, task.Id)
+	require.Len(t, got.Jobs, 1)
+	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_LOST, got.Jobs[0].Status)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Task.Status)
+}

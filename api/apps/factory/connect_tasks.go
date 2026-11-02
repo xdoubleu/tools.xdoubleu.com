@@ -186,6 +186,9 @@ func (h *taskConnectHandler) GetTask(
 	if err != nil {
 		return nil, err
 	}
+	// The sheet polls this while a job runs, so a dead runner's job must be
+	// marked lost here too.
+	h.app.services.Jobs.SweepLost(ctx)
 	task, comments, err := h.app.services.Tasks.Get(ctx, id)
 	if err != nil {
 		return nil, mapError(err)
@@ -194,7 +197,17 @@ func (h *taskConnectHandler) GetTask(
 	for i := range comments {
 		out[i] = protoComment(&comments[i])
 	}
-	return &factoryv1.GetTaskResponse{Task: protoTask(task), Comments: out}, nil
+	jobs, err := h.app.services.Jobs.ByTask(ctx, id)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	jobOut := make([]*factoryv1.Job, len(jobs))
+	for i := range jobs {
+		jobOut[i] = protoJob(&jobs[i])
+	}
+	return &factoryv1.GetTaskResponse{
+		Task: protoTask(task), Comments: out, Jobs: jobOut,
+	}, nil
 }
 
 func (h *taskConnectHandler) CreateTask(

@@ -566,9 +566,11 @@ func (x *GetTaskRequest) GetId() string {
 }
 
 type GetTaskResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Task          *Task                  `protobuf:"bytes,1,opt,name=task,proto3" json:"task,omitempty"`
-	Comments      []*Comment             `protobuf:"bytes,2,rep,name=comments,proto3" json:"comments,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Task     *Task                  `protobuf:"bytes,1,opt,name=task,proto3" json:"task,omitempty"`
+	Comments []*Comment             `protobuf:"bytes,2,rep,name=comments,proto3" json:"comments,omitempty"`
+	// The task's jobs, newest first. Left out by the MCP tool.
+	Jobs          []*Job `protobuf:"bytes,3,rep,name=jobs,proto3" json:"jobs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -613,6 +615,13 @@ func (x *GetTaskResponse) GetTask() *Task {
 func (x *GetTaskResponse) GetComments() []*Comment {
 	if x != nil {
 		return x.Comments
+	}
+	return nil
+}
+
+func (x *GetTaskResponse) GetJobs() []*Job {
+	if x != nil {
+		return x.Jobs
 	}
 	return nil
 }
@@ -1623,10 +1632,11 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x11ListTasksResponse\x12&\n" +
 	"\x05tasks\x18\x01 \x03(\v2\x10.factory.v1.TaskR\x05tasks\" \n" +
 	"\x0eGetTaskRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"h\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x8d\x01\n" +
 	"\x0fGetTaskResponse\x12$\n" +
 	"\x04task\x18\x01 \x01(\v2\x10.factory.v1.TaskR\x04task\x12/\n" +
-	"\bcomments\x18\x02 \x03(\v2\x13.factory.v1.CommentR\bcomments\"\xa4\x01\n" +
+	"\bcomments\x18\x02 \x03(\v2\x13.factory.v1.CommentR\bcomments\x12#\n" +
+	"\x04jobs\x18\x03 \x03(\v2\x0f.factory.v1.JobR\x04jobs\"\xa4\x01\n" +
 	"\x11CreateTaskRequest\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\x124\n" +
@@ -1779,46 +1789,47 @@ var file_factory_v1_factory_proto_depIdxs = []int32{
 	4,  // 2: factory.v1.ListTasksResponse.tasks:type_name -> factory.v1.Task
 	4,  // 3: factory.v1.GetTaskResponse.task:type_name -> factory.v1.Task
 	5,  // 4: factory.v1.GetTaskResponse.comments:type_name -> factory.v1.Comment
-	1,  // 5: factory.v1.CreateTaskRequest.priority:type_name -> factory.v1.TaskPriority
-	4,  // 6: factory.v1.CreateTaskResponse.task:type_name -> factory.v1.Task
-	1,  // 7: factory.v1.UpdateTaskRequest.priority:type_name -> factory.v1.TaskPriority
-	4,  // 8: factory.v1.UpdateTaskResponse.task:type_name -> factory.v1.Task
-	0,  // 9: factory.v1.MoveTaskRequest.status:type_name -> factory.v1.TaskStatus
-	4,  // 10: factory.v1.MoveTaskResponse.task:type_name -> factory.v1.Task
-	5,  // 11: factory.v1.AddCommentResponse.comment:type_name -> factory.v1.Comment
-	3,  // 12: factory.v1.Job.status:type_name -> factory.v1.JobStatus
-	18, // 13: factory.v1.RunTaskResponse.job:type_name -> factory.v1.Job
-	2,  // 14: factory.v1.Repo.default_harness:type_name -> factory.v1.Harness
-	21, // 15: factory.v1.ListReposResponse.repos:type_name -> factory.v1.Repo
-	21, // 16: factory.v1.CreateRepoRequest.repo:type_name -> factory.v1.Repo
-	21, // 17: factory.v1.CreateRepoResponse.repo:type_name -> factory.v1.Repo
-	21, // 18: factory.v1.UpdateRepoRequest.repo:type_name -> factory.v1.Repo
-	21, // 19: factory.v1.UpdateRepoResponse.repo:type_name -> factory.v1.Repo
-	6,  // 20: factory.v1.TaskService.ListTasks:input_type -> factory.v1.ListTasksRequest
-	8,  // 21: factory.v1.TaskService.GetTask:input_type -> factory.v1.GetTaskRequest
-	10, // 22: factory.v1.TaskService.CreateTask:input_type -> factory.v1.CreateTaskRequest
-	12, // 23: factory.v1.TaskService.UpdateTask:input_type -> factory.v1.UpdateTaskRequest
-	14, // 24: factory.v1.TaskService.MoveTask:input_type -> factory.v1.MoveTaskRequest
-	16, // 25: factory.v1.TaskService.AddComment:input_type -> factory.v1.AddCommentRequest
-	19, // 26: factory.v1.TaskService.RunTask:input_type -> factory.v1.RunTaskRequest
-	22, // 27: factory.v1.RepoService.ListRepos:input_type -> factory.v1.ListReposRequest
-	24, // 28: factory.v1.RepoService.CreateRepo:input_type -> factory.v1.CreateRepoRequest
-	26, // 29: factory.v1.RepoService.UpdateRepo:input_type -> factory.v1.UpdateRepoRequest
-	7,  // 30: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
-	9,  // 31: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
-	11, // 32: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
-	13, // 33: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
-	15, // 34: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
-	17, // 35: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
-	20, // 36: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
-	23, // 37: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
-	25, // 38: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
-	27, // 39: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
-	30, // [30:40] is the sub-list for method output_type
-	20, // [20:30] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	18, // 5: factory.v1.GetTaskResponse.jobs:type_name -> factory.v1.Job
+	1,  // 6: factory.v1.CreateTaskRequest.priority:type_name -> factory.v1.TaskPriority
+	4,  // 7: factory.v1.CreateTaskResponse.task:type_name -> factory.v1.Task
+	1,  // 8: factory.v1.UpdateTaskRequest.priority:type_name -> factory.v1.TaskPriority
+	4,  // 9: factory.v1.UpdateTaskResponse.task:type_name -> factory.v1.Task
+	0,  // 10: factory.v1.MoveTaskRequest.status:type_name -> factory.v1.TaskStatus
+	4,  // 11: factory.v1.MoveTaskResponse.task:type_name -> factory.v1.Task
+	5,  // 12: factory.v1.AddCommentResponse.comment:type_name -> factory.v1.Comment
+	3,  // 13: factory.v1.Job.status:type_name -> factory.v1.JobStatus
+	18, // 14: factory.v1.RunTaskResponse.job:type_name -> factory.v1.Job
+	2,  // 15: factory.v1.Repo.default_harness:type_name -> factory.v1.Harness
+	21, // 16: factory.v1.ListReposResponse.repos:type_name -> factory.v1.Repo
+	21, // 17: factory.v1.CreateRepoRequest.repo:type_name -> factory.v1.Repo
+	21, // 18: factory.v1.CreateRepoResponse.repo:type_name -> factory.v1.Repo
+	21, // 19: factory.v1.UpdateRepoRequest.repo:type_name -> factory.v1.Repo
+	21, // 20: factory.v1.UpdateRepoResponse.repo:type_name -> factory.v1.Repo
+	6,  // 21: factory.v1.TaskService.ListTasks:input_type -> factory.v1.ListTasksRequest
+	8,  // 22: factory.v1.TaskService.GetTask:input_type -> factory.v1.GetTaskRequest
+	10, // 23: factory.v1.TaskService.CreateTask:input_type -> factory.v1.CreateTaskRequest
+	12, // 24: factory.v1.TaskService.UpdateTask:input_type -> factory.v1.UpdateTaskRequest
+	14, // 25: factory.v1.TaskService.MoveTask:input_type -> factory.v1.MoveTaskRequest
+	16, // 26: factory.v1.TaskService.AddComment:input_type -> factory.v1.AddCommentRequest
+	19, // 27: factory.v1.TaskService.RunTask:input_type -> factory.v1.RunTaskRequest
+	22, // 28: factory.v1.RepoService.ListRepos:input_type -> factory.v1.ListReposRequest
+	24, // 29: factory.v1.RepoService.CreateRepo:input_type -> factory.v1.CreateRepoRequest
+	26, // 30: factory.v1.RepoService.UpdateRepo:input_type -> factory.v1.UpdateRepoRequest
+	7,  // 31: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
+	9,  // 32: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
+	11, // 33: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
+	13, // 34: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
+	15, // 35: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
+	17, // 36: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
+	20, // 37: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
+	23, // 38: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
+	25, // 39: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
+	27, // 40: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
+	31, // [31:41] is the sub-list for method output_type
+	21, // [21:31] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_factory_v1_factory_proto_init() }

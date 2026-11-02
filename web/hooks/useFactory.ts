@@ -14,6 +14,7 @@ import type {
 } from '@/lib/gen/factory/v1/factory_pb'
 import type { ListAgentAccountsResponse } from '@/lib/gen/factory/v1/agent_accounts_pb'
 import type { ListRunnersResponse } from '@/lib/gen/factory/v1/runners_pb'
+import { JOB_POLL_MS, jobActive } from '@/lib/factory/board'
 
 export function useFactoryTasks() {
   const client = createServiceClient(TaskService)
@@ -54,8 +55,11 @@ export function useRunnerRelease() {
 /** One task with its comments; no fetch without an id. */
 export function useFactoryTask(id: string | null) {
   const client = createServiceClient(TaskService)
-  return useSWR<GetTaskResponse, Error>(id ? swrKeys.factoryTask(id) : null, () =>
-    client.getTask({ id: id ?? '' })
+  return useSWR<GetTaskResponse, Error>(
+    id ? swrKeys.factoryTask(id) : null,
+    () => client.getTask({ id: id ?? '' }),
+    // Refreshed while its newest job is on the way, so the sheet shows it finish.
+    { refreshInterval: (data) => (jobActive(data?.jobs[0]) ? JOB_POLL_MS : 0) }
   )
 }
 
@@ -107,6 +111,15 @@ export function useFactoryActions() {
     comment: async (taskId: string, body: string) => {
       await client.addComment({ taskId, body })
       await refresh()
+    },
+    /** Queues a job for the task; refused unless the body was last edited in a browser. */
+    run: async (taskId: string, text: string) => {
+      try {
+        await client.runTask({ taskId, text })
+      } finally {
+        // A refusal still comments on the task and moves it to Needs you.
+        await refresh()
+      }
     },
     createRepo: async (repo: RepoFields) => {
       await repoClient.createRepo({ repo })

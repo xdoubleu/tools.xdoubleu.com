@@ -1,6 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { useFactoryActions, useFactoryAgents, useFactoryTask } from '@/hooks/useFactory'
-import { accountsOf, actorLabel, priorityLabel, statusLabel } from '@/lib/factory/board'
+import type { Job } from '@/lib/gen/factory/v1/factory_pb'
+import {
+  accountsOf,
+  actorLabel,
+  jobActive,
+  jobStatusLabel,
+  priorityLabel,
+  statusLabel
+} from '@/lib/factory/board'
 import { MoveSelect } from '@/components/factory/TaskCard'
 import TaskDialog from '@/components/factory/TaskDialog'
 import { Alert } from '@/components/ui/alert'
@@ -56,6 +64,52 @@ function CommentForm({ taskId }: { taskId: string }) {
   )
 }
 
+/** Run the task on the runner, and what its latest job is doing. */
+function RunSection({ taskId, latest }: { taskId: string; latest: Job | undefined }) {
+  const { run } = useFactoryActions()
+  const [text, setText] = useState('')
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
+  const active = jobActive(latest)
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setPending(true)
+    setError('')
+    try {
+      await run(taskId, text)
+      setText('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Couldn\u2019t run the task. Try again.')
+    }
+    setPending(false)
+  }
+
+  return (
+    <Card variant="inset" className="space-y-2 px-4 py-3" aria-label="Run">
+      {latest && (
+        <p className="break-words text-xs text-muted" data-testid="job-status">
+          Job {jobStatusLabel(latest.status).toLowerCase()} · {latest.branch}
+        </p>
+      )}
+      <form className="space-y-2" onSubmit={(e) => void submit(e)}>
+        <Field label="Instructions for this run (optional)" htmlFor="task-run-text">
+          <Textarea
+            id="task-run-text"
+            rows={2}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+        </Field>
+        {error && <Alert tone="danger">{error}</Alert>}
+        <Button type="submit" disabled={pending || active}>
+          {pending ? 'Queuing…' : active ? 'Running…' : 'Run'}
+        </Button>
+      </form>
+    </Card>
+  )
+}
+
 interface TaskDetailProps {
   id: string
   onClose: () => void
@@ -99,6 +153,7 @@ export default function TaskDetail({ id, onClose }: TaskDetailProps) {
             <Button variant="secondary" onClick={() => setEditing(true)}>
               Edit
             </Button>
+            <RunSection taskId={task.id} latest={data.jobs[0]} />
             <section className="space-y-2" aria-label="Comments">
               {data.comments.length === 0 ? (
                 <EmptyState compact>No comments yet.</EmptyState>

@@ -25,6 +25,7 @@ const mockClient = {
   updateTask: vi.fn().mockResolvedValue({}),
   moveTask: vi.fn().mockResolvedValue({}),
   addComment: vi.fn().mockResolvedValue({}),
+  runTask: vi.fn().mockResolvedValue({}),
   listRepos: vi.fn().mockResolvedValue({ repos: [] }),
   createRepo: vi.fn().mockResolvedValue({}),
   updateRepo: vi.fn().mockResolvedValue({}),
@@ -38,7 +39,11 @@ const mockClient = {
 vi.mock('@/lib/client', () => ({
   createServiceClient: vi.fn(() => mockClient)
 }))
-vi.mock('@/lib/gen/factory/v1/factory_pb', () => ({ TaskService: {}, RepoService: {} }))
+vi.mock('@/lib/gen/factory/v1/factory_pb', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  TaskService: {},
+  RepoService: {}
+}))
 vi.mock('@/lib/gen/factory/v1/agent_accounts_pb', () => ({ AgentAccountService: {} }))
 vi.mock('@/lib/gen/factory/v1/runners_pb', () => ({ RunnerAdminService: {} }))
 
@@ -53,6 +58,9 @@ import {
   useFactoryTask,
   useFactoryTasks
 } from '@/hooks/useFactory'
+import { create } from '@bufbuild/protobuf'
+import { GetTaskResponseSchema, JobSchema } from '@/lib/gen/factory/v1/factory_pb'
+import { JOB_POLL_MS } from '@/lib/factory/board'
 
 const mockUseSWR = vi.mocked(useSWR)
 const fields = { title: 't', body: 'b', priority: 3, labels: ['x'] }
@@ -145,13 +153,31 @@ describe('useRunnerRelease', () => {
 describe('useFactoryTask', () => {
   it('fetches one task', () => {
     renderHook(() => useFactoryTask('t-1'))
-    expect(mockUseSWR).toHaveBeenCalledWith(['/factory/task', 't-1'], expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      ['/factory/task', 't-1'],
+      expect.any(Function),
+      expect.objectContaining({ refreshInterval: expect.any(Function) })
+    )
     expect(mockClient.getTask).toHaveBeenCalledWith({ id: 't-1' })
+  })
+
+  it('refreshes only while the newest job is queued or running', () => {
+    renderHook(() => useFactoryTask('t-1'))
+    const options = mockUseSWR.mock.calls.at(-1)?.[2]
+    const interval = typeof options === 'object' ? options.refreshInterval : undefined
+    if (typeof interval !== 'function') throw new Error('no refresh interval')
+    const withJob = (status: number) =>
+      create(GetTaskResponseSchema, { jobs: [create(JobSchema, { status })] })
+    expect(interval(withJob(1))).toBe(JOB_POLL_MS)
+    expect(interval(withJob(2))).toBe(JOB_POLL_MS)
+    expect(interval(withJob(3))).toBe(0)
+    expect(interval(create(GetTaskResponseSchema, {}))).toBe(0)
+    expect(interval(undefined)).toBe(0)
   })
 
   it('does not fetch without an id', () => {
     renderHook(() => useFactoryTask(null))
-    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function), expect.anything())
     expect(mockClient.getTask).not.toHaveBeenCalled()
   })
 })
@@ -184,6 +210,20 @@ describe('useFactoryActions', () => {
     expect(mockClient.addComment).toHaveBeenCalledWith({ taskId: 't-1', body: 'hi' })
 
     expect(mockMutate).toHaveBeenCalledTimes(3)
+  })
+
+  it('runs a task and revalidates', async () => {
+    const { result } = renderHook(() => useFactoryActions())
+    await result.current.run('t-1', 'go')
+    expect(mockClient.runTask).toHaveBeenCalledWith({ taskId: 't-1', text: 'go' })
+    expect(mockMutate).toHaveBeenCalledTimes(1)
+  })
+
+  it('revalidates when a run is refused, since the server still moves the task', async () => {
+    mockClient.runTask.mockRejectedValueOnce(new Error('Not run'))
+    const { result } = renderHook(() => useFactoryActions())
+    await expect(result.current.run('t-1', '')).rejects.toThrow('Not run')
+    expect(mockMutate).toHaveBeenCalledTimes(1)
   })
 
   it('adds and edits repos, each revalidating', async () => {
