@@ -11,6 +11,7 @@ internal/runner/
   daemon.go                   heartbeat loop, backoff, ErrRevoked
   jobrunner.go                claim loop: validate, clone, sandbox, check in, report
   gitclone.go                 host mirror and a standalone job clone
+  hostcheck.go                host checks on a finished job's work
   harness.go, sandbox.go      Claude Code's command; the Sandbox interface
   validate.go, config.go      job validator; server URL and repo allowlist
   token.go, launchagent.go    keychain; plist and install path
@@ -23,13 +24,14 @@ internal/updatesig/           copy of kobo-gateway's (Go forbids importing its i
 The server is not trusted. Before anything runs, the runner itself checks a claimed job: a UUID id (it names a directory), the local repo allowlist (`config repos add owner/name`), an `agent/*` branch, no value starting with `-`, and a harness it can run. The prompt's preamble is the runner's.
 
 - A job's clone belongs to the agent once the sandbox starts: it can write `.git/hooks` and `.git/config`. The host never runs git in it without `-c core.hooksPath=/dev/null` and a clean config, and reads the outcome as a file.
-- The device token lives only in the keychain; a revoked one ends `run` with `ErrRevoked`.
-- `config server` accepts https only (http for localhost). `Client` times out at 35 s, above the server's 20 s holds.
+- A finished job is checked on the host before it counts (`hostcheck.go`): commits exist, no `.github/workflows/` change, no secret in commits or outcome. It reads a fetched copy.
+- The device token lives only in the keychain; a revoked one ends `run`.
+- `config server` takes https only (http for localhost). `Client` times out at 35 s, above the server's 20 s holds.
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
-`build-factory-runner.yml` signs on `main` with `kobo-sign` (`FACTORY_RUNNER_SIGNING_KEY`); `build-api.yml` stages binary, `.sig` and `factory-runner-release.txt` into `/downloads/`. `-X main.UpdatePublicKey` is what the runner trusts; empty disables self-update, which waits for `Activity` to be idle.
+`build-factory-runner.yml` signs on `main` with `kobo-sign` (`FACTORY_RUNNER_SIGNING_KEY`); `build-api.yml` stages binary, `.sig` and `factory-runner-release.txt` into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key (empty disables self-update, which waits for idle `Activity`).
 
 ## Building
 
-`make build | test | lint | lint/fix`. Tests need no keychain, network, VM or launchd; CI runs lint and test on macOS.
+`make build | test | lint | lint/fix`. Tests need no keychain, network, VM or launchd.

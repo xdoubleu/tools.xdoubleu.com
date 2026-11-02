@@ -62,6 +62,9 @@ type JobRunner struct {
 	Activity *Activity
 	// DataDir holds <DataDir>/jobs/<job id>/{clone,outcome}.
 	DataDir string
+	// Secrets are values that must never reach a commit, a commit message or the
+	// outcome; the device token is always one.
+	Secrets []string
 	// CheckInEvery and Minute are the check-in period and the unit of a repo's
 	// time limit; zero means CheckInEvery and time.Minute. Tests shorten them.
 	CheckInEvery time.Duration
@@ -262,12 +265,47 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	case text == "":
 		reason = "The agent exited cleanly but wrote no outcome file."
 	default:
-		res.succeeded = true
-		res.outcome = text
-		return res
+		return r.publishable(ctx, job, cloneDir, text, res)
 	}
 	res.outcome = strings.TrimSpace(reason + "\n\n" + text)
 	return res
+}
+
+// publishable runs the host's checks on a job the agent says it finished. A job
+// that fails them is failed, with the reason ahead of the agent's own outcome.
+func (r *JobRunner) publishable(
+	ctx context.Context,
+	job *ClaimedJob,
+	cloneDir, text string,
+	res result,
+) result {
+	secrets := append([]string{r.Token}, r.Secrets...)
+	err := r.Git.Inspect(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
+		job.Branch, job.ID, cloneDir, secrets)
+	if err == nil && leaks(text, secrets) {
+		err = fmt.Errorf("%w: the outcome contains a credential value", ErrHostCheck)
+	}
+	if err != nil {
+		res.outcome = "Not published: " + strings.TrimPrefix(
+			err.Error(), ErrHostCheck.Error()+": ")
+		if !leaks(text, secrets) {
+			res.outcome += "\n\n" + text
+		}
+		return res
+	}
+	res.succeeded = true
+	res.outcome = text
+	return res
+}
+
+// leaks reports whether text contains any secret long enough to search for.
+func leaks(text string, secrets []string) bool {
+	for _, secret := range secrets {
+		if len(secret) >= minSecretLen && strings.Contains(text, secret) {
+			return true
+		}
+	}
+	return false
 }
 
 // checkIns reports the job alive until ctx ends, and cancels the run when the
