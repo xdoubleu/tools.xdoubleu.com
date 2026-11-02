@@ -49,3 +49,12 @@ func LaunchAgentPlistForTest(
 ) string {
 	return launchAgentPlist(execPath)
 }
+
+// LoopForTest runs the job loop with a stubbed sleep and a ticking clock.
+func (r *JobRunner) LoopForTest(
+	ctx context.Context,
+	sleep func(context.Context, time.Duration),
+	now func() time.Time,
+) error {
+	return r.loop(ctx, clock{sleep: sleep, now: now})
+}

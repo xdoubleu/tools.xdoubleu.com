@@ -1,38 +1,35 @@
 # factory-runner/ — the Mac-side helper of the software factory
 
-Pairs this Mac with the board and keeps a heartbeat so the board shows it online → [`adr-0041`](../docs/adr-0041-factory-runner-pairing.md). **Separate Go module**, pure Go, no cgo. It doesn't import `api/`: it speaks the Connect protocol's JSON encoding to `RunnerService` (`internal/runner/client.go`), so it carries no generated code.
+Pairs this Mac with the board, keeps a heartbeat and runs jobs → [`adr-0041`](../docs/adr-0041-factory-runner-pairing.md), [`adr-0044`](../docs/adr-0044-factory-jobs-queue.md). **Separate Go module**, pure Go, no cgo. It doesn't import `api/`: it speaks Connect's JSON encoding to `RunnerService` (`internal/runner/client.go`), so it carries no generated code.
 
 ## Structure
 
 ```text
-cmd/factory-runner/
-  main.go      # app type: pair, run, install, config subcommands (tested)
-  config.go    # `config` subcommands
-  entry.go     # main(): signals, os.Exit, launchctl (untested wiring)
+cmd/factory-runner/   main.go (the tested app type), config.go, entry.go (untested wiring)
 internal/runner/
-  client.go    # Pair, Heartbeat; Connect errors keep their code
-  daemon.go    # heartbeat loop: backoff, ends when the token is revoked
-  token.go     # device token in the login keychain via `security`
-  config.go    # server URL + repo allowlist, owner-only JSON
-  validate.go  # job validator
-  launchagent.go  # plist, copy to a stable install path
-  update.go       # signed self-update from /downloads/
-  activity.go     # running jobs; caffeinate while any runs
-internal/updatesig/  # copy of kobo-gateway's (Go forbids importing its internal/)
+  client.go, jobs_client.go   Pair, Heartbeat, ClaimJob, CheckIn, CompleteJob
+  daemon.go                   heartbeat loop, backoff, ErrRevoked
+  jobrunner.go                claim loop: validate, clone, sandbox, check in, report
+  gitclone.go                 host mirror and a standalone job clone
+  harness.go, sandbox.go      Claude Code's command; the Sandbox interface
+  validate.go, config.go      job validator; server URL and repo allowlist
+  token.go, launchagent.go    keychain; plist and install path
+  update.go, activity.go      signed self-update; running jobs, caffeinate
+internal/updatesig/           copy of kobo-gateway's (Go forbids importing its internal/)
 ```
 
 ## Trust
 
-The server is not trusted. The runner's own allowlist (`config repos add owner/name`) and `Validate` decide what runs: a repo outside the allowlist, a branch outside `agent/*`, or any value starting with `-` is refused. Every job must pass `Validate` before anything runs.
+The server is not trusted. Before anything runs, the runner itself checks a claimed job: a UUID id (it names a directory), the local repo allowlist (`config repos add owner/name`), an `agent/*` branch, no value starting with `-`, and a harness it can run. The prompt's preamble is the runner's.
 
-- The device token lives only in the keychain; the server keeps its hash. A revoked token ends `run` with `ErrRevoked` — pair again.
-- `config server` accepts https only (http for localhost).
-- Heartbeat is held open by the server (about 20 s); `Client` times out at 35 s.
+- A job's clone belongs to the agent once the sandbox starts: it can write `.git/hooks` and `.git/config`. The host never runs git in it without `-c core.hooksPath=/dev/null` and a clean config, and reads the outcome as a file.
+- The device token lives only in the keychain; a revoked one ends `run` with `ErrRevoked`.
+- `config server` accepts https only (http for localhost). `Client` times out at 35 s, above the server's 20 s holds.
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
-`build-factory-runner.yml` builds on macOS and, on `main`, signs with `kobo-sign` using `FACTORY_RUNNER_SIGNING_KEY`; `build-api.yml` stages the binary, `.sig` and `factory-runner-release.txt` into the image's `/downloads/`. `-X main.UpdatePublicKey` (variable `FACTORY_RUNNER_UPDATE_PUBKEY`) is what the runner trusts; empty disables self-update. Self-update runs only while `Activity` is idle. Jobs call `Activity.Begin`/`End`.
+`build-factory-runner.yml` signs on `main` with `kobo-sign` (`FACTORY_RUNNER_SIGNING_KEY`); `build-api.yml` stages binary, `.sig` and `factory-runner-release.txt` into `/downloads/`. `-X main.UpdatePublicKey` is what the runner trusts; empty disables self-update, which waits for `Activity` to be idle.
 
 ## Building
 
-`make build | test | lint | lint/fix`. Tests need no keychain, network or launchd. CI runs lint and test on macOS behind the `changes` filter.
+`make build | test | lint | lint/fix`. Tests need no keychain, network, VM or launchd; CI runs lint and test on macOS.
