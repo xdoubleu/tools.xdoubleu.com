@@ -219,6 +219,13 @@ describe('useFactoryActions', () => {
     expect(mockMutate).toHaveBeenCalledTimes(1)
   })
 
+  it('revalidates when a run is refused, since the server still moves the task', async () => {
+    mockClient.runTask.mockRejectedValueOnce(new Error('Not run'))
+    const { result } = renderHook(() => useFactoryActions())
+    await expect(result.current.run('t-1', '')).rejects.toThrow('Not run')
+    expect(mockMutate).toHaveBeenCalledTimes(1)
+  })
+
   it('adds and edits repos, each revalidating', async () => {
     const { result } = renderHook(() => useFactoryActions())
 

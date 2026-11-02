@@ -186,6 +186,9 @@ func (h *taskConnectHandler) GetTask(
 	if err != nil {
 		return nil, err
 	}
+	// The sheet polls this while a job runs, so a dead runner's job must be
+	// marked lost here too.
+	h.app.services.Jobs.SweepLost(ctx)
 	task, comments, err := h.app.services.Tasks.Get(ctx, id)
 	if err != nil {
 		return nil, mapError(err)

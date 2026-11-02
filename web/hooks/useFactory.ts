@@ -114,8 +114,12 @@ export function useFactoryActions() {
     },
     /** Queues a job for the task; refused unless the body was last edited in a browser. */
     run: async (taskId: string, text: string) => {
-      await client.runTask({ taskId, text })
-      await refresh()
+      try {
+        await client.runTask({ taskId, text })
+      } finally {
+        // A refusal still comments on the task and moves it to Needs you.
+        await refresh()
+      }
     },
     createRepo: async (repo: RepoFields) => {
       await repoClient.createRepo({ repo })

@@ -394,3 +394,19 @@ func TestGetTaskListsItsJobsNewestFirst(t *testing.T) {
 	assert.Equal(t, first.Id, jobs[1].Id)
 	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_SUCCEEDED, jobs[1].Status)
 }
+
+func TestReadingATaskNoticesALostJob(t *testing.T) {
+	env := browserJobEnv(t)
+	task := env.newTask(t, "polled")
+	env.run(t, task.Id, "")
+	claimed := env.claim(t)
+	_, err := testDB.Exec(context.Background(),
+		`UPDATE factory.jobs SET last_check_in = now() - interval '6 minutes'
+		 WHERE id = $1`, claimed.Id)
+	require.NoError(t, err)
+
+	got := env.task(t, task.Id)
+	require.Len(t, got.Jobs, 1)
+	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_LOST, got.Jobs[0].Status)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Task.Status)
+}
