@@ -130,6 +130,7 @@ func writes(
 ) func(context.Context, runner.SandboxSpec) (int, error) {
 	return func(_ context.Context, spec runner.SandboxSpec) (int, error) {
 		_, _ = io.WriteString(spec.Log, `{"type":"system","session_id":"sess-9"}`+"\n")
+		commitFile(spec.CloneDir, "agent.txt", "work")
 		if outcome != "" {
 			_ = os.WriteFile(
 				filepath.Join(spec.OutcomeDir, "outcome.md"),
@@ -139,6 +140,21 @@ func writes(
 		}
 		return exit, nil
 	}
+}
+
+// commitFile commits one file in dir, as the agent would. Errors are ignored: a
+// test whose clone is broken on purpose still gets its outcome file.
+func commitFile(dir, name, content string) {
+	run := func(args ...string) {
+		cmd := exec.Command("git", append([]string{"-c", "user.name=a",
+			"-c", "user.email=a@example.com"}, args...)...)
+		cmd.Dir = dir
+		_ = cmd.Run()
+	}
+	_ = os.MkdirAll(filepath.Dir(filepath.Join(dir, name)), 0o755)
+	_ = os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644)
+	run("add", "-A")
+	run("commit", "-m", "work on "+name)
 }
 
 func newJob() *runner.ClaimedJob {
@@ -177,8 +193,8 @@ func newEnv(
 			Git: &runner.Git{
 				Dir: dir, RemoteURL: func(string, string) string { return remote }, Run: nil,
 			},
-			Sandbox: sb, Harness: runner.ClaudeCode{}, Activity: nil, DataDir: dir,
-			CheckInEvery: 10 * time.Millisecond, Minute: 50 * time.Millisecond,
+			Sandbox: sb, Harness: runner.ClaudeCode{}, Activity: nil, DataDir: dir, Secrets: nil,
+			CheckInEvery: 10 * time.Millisecond, Minute: time.Second,
 			Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		},
 	}
