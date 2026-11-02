@@ -165,6 +165,7 @@ POST /feeds.v1.FeedService/GetUnhealthyFeeds: 401, 403
 POST /feeds.v1.FeedService/ListFeedItems: 401, 403
 POST /feeds.v1.FeedService/ListFeeds: 401, 403
 POST /feeds.v1.FeedService/ListFilterRules: 401, 403
+POST /feeds.v1.FeedService/ListTopFeedItems: 401, 403
 POST /feeds.v1.FeedService/RefreshFeed: 401, 403
 POST /feeds.v1.FeedService/RestoreFeedItem: 401, 403
 POST /feeds.v1.FeedService/UpdateFeed: 401, 403

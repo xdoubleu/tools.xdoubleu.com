@@ -8,6 +8,7 @@ import {
   ListFeedItemsResponseSchema,
   ListFeedsResponseSchema,
   ListFilterRulesResponseSchema,
+  ListTopFeedItemsResponseSchema,
   type Item,
   type UpdateItemRequest
 } from '@/lib/gen/feeds/v1/feeds_pb'
@@ -15,6 +16,7 @@ import {
 const { method } = FeedService
 const REVALIDATE = '/feeds'
 const FILTERED = swrKeys.feedFilteredItems().split('?')[0]
+const EXPIRED = swrKeys.feedExpiredItems().split('?')[0]
 
 /** Applies UpdateItem's set fields; `readAt` stamps an item newly read. */
 function patchItem(item: Item, req: UpdateItemRequest, readAt: string): Item {
@@ -31,10 +33,12 @@ function patchItem(item: Item, req: UpdateItemRequest, readAt: string): Item {
   }
 }
 
-/** Runs `fn` on the items of any cached item list (inbox, filtered, summary). */
+/** Runs `fn` on the items of any cached item list (inbox, filtered, expired, top, summary). */
 function onItemLists(key: unknown, data: unknown, fn: (items: Item[]) => Item[]): unknown {
   if (typeof key !== 'string' || !key.startsWith(REVALIDATE)) return data
-  return isMessage(data, ListFeedItemsResponseSchema) ? { ...data, items: fn(data.items) } : data
+  if (isMessage(data, ListFeedItemsResponseSchema)) return { ...data, items: fn(data.items) }
+  if (isMessage(data, ListTopFeedItemsResponseSchema)) return { ...data, items: fn(data.items) }
+  return data
 }
 
 export const updateItemWrite = defineOfflineWrite({
@@ -56,10 +60,10 @@ export const updateItemWrite = defineOfflineWrite({
 export const restoreFeedItemWrite = defineOfflineWrite({
   method: method.restoreFeedItem,
   apply: (key, data, req) =>
-    typeof key === 'string' && key.startsWith(FILTERED)
+    typeof key === 'string' && (key.startsWith(FILTERED) || key.startsWith(EXPIRED))
       ? onItemLists(key, data, (items) => items.filter((i) => i.id !== req.itemId))
       : data,
-  describe: () => 'Restore a filtered article',
+  describe: () => 'Restore an article',
   revalidate: REVALIDATE
 })
 

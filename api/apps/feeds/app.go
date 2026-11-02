@@ -36,6 +36,7 @@ type Feeds struct {
 	Services    *services.Services
 	jobQueue    *jobqueue.JobQueue
 	feedPollJob *jobs.FeedPollJob
+	expiryJob   *jobs.FeedExpiryJob
 }
 
 func New(
@@ -99,14 +100,21 @@ func NewInner(
 		cfg.WebURL,
 	)
 	a.feedPollJob = jobs.NewFeedPollJob(a.Services.Feeds)
+	a.expiryJob = jobs.NewFeedExpiryJob(a.Services.Feeds)
 
 	return a
 }
 
 func (a *Feeds) Start() error {
 	noop := func(_ string, _ bool, _ *time.Time) {}
-	return a.jobQueue.AddJob(
+	if err := a.jobQueue.AddJob(
 		observability.NewTrackedJob(a.feedPollJob, a.db),
+		noop,
+	); err != nil {
+		return err
+	}
+	return a.jobQueue.AddJob(
+		observability.NewTrackedJob(a.expiryJob, a.db),
 		noop,
 	)
 }
@@ -124,6 +132,11 @@ func (a *Feeds) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
 // global.job_runs.
 func (a *Feeds) RunPollNow(ctx context.Context) error {
 	return observability.NewTrackedJob(a.feedPollJob, a.db).Run(ctx, a.Logger)
+}
+
+// RunExpiryNow runs the expiry synchronously as a TrackedJob.
+func (a *Feeds) RunExpiryNow(ctx context.Context) error {
+	return observability.NewTrackedJob(a.expiryJob, a.db).Run(ctx, a.Logger)
 }
 
 func (a *Feeds) GetName() string {

@@ -233,7 +233,7 @@ func TestDeleteFilterRule_ItemsStayFiltered(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
 
-func TestFilteredItems_ExcludedFromOpenItemCounts(t *testing.T) {
+func TestFilteredItems_ExcludedFromDigest(t *testing.T) {
 	client := newFeedsClient(t)
 	base := uniqueBlogBase()
 	feedURL := base + "/feed.xml"
@@ -241,22 +241,19 @@ func TestFilteredItems_ExcludedFromOpenItemCounts(t *testing.T) {
 		ruleRSSItem{"Hidden", base + "/hidden", []string{"Noise"}, itemContent},
 		ruleRSSItem{"Shown", base + "/shown", nil, itemContent},
 	)
-	openCount := func() int {
-		open, err := testApp.ListOpenItems(context.Background())
+	digestURLs := func() []string {
+		digest, err := testApp.ListDigestItems(context.Background())
 		require.NoError(t, err)
-		for _, o := range open {
-			if o.URL == feedURL {
-				return o.Count
-			}
+		var urls []string
+		for _, d := range digest.Newest {
+			urls = append(urls, d.URL)
 		}
-		return 0
+		return urls
 	}
-	require.Equal(t, 2, openCount())
-
 	createRule(t, client, feedID,
 		feedsv1.FilterRuleKind_FILTER_RULE_KIND_CATEGORY, "Noise")
 
-	assert.Equal(t, 1, openCount())
+	assert.NotContains(t, digestURLs(), base+"/hidden")
 }
 
 func TestCreateFilterRule_Errors(t *testing.T) {

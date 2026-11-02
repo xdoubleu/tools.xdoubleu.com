@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import {
   useFeeds,
   useFeedItems,
@@ -6,17 +6,14 @@ import {
   usePrefetchFeedBodies
 } from '@/hooks/useFeeds'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
-import ArticleReaderDialog from '@/components/feeds/ArticleReaderDialog'
-import FeedBookmarkButton from '@/components/feeds/FeedBookmarkButton'
-import FeedItemCategories from '@/components/feeds/FeedItemCategories'
-import { Badge } from '@/components/ui/badge'
+import { useLastChanceFeedItems } from '@/hooks/useFeedExpiry'
+import FeedLastChanceStrip from '@/components/feeds/FeedLastChanceStrip'
+import FeedReaderCard from '@/components/feeds/FeedReaderCard'
+import FeedTopItems from '@/components/feeds/FeedTopItems'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import { Select } from '@/components/ui/select'
 import { ErrorState, LoadingState } from '@/components/ui/states'
-import { cn } from '@/lib/cn'
-import { formatDate } from '@/lib/dates'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
 
 const LAST_VISIT_KEY = 'feeds:lastVisit'
@@ -29,7 +26,31 @@ function readAndBumpLastVisit(): number {
   return stored ? Number(stored) : Date.now()
 }
 
+// The inbox, or today's ranked top ten behind a toggle.
 export default function FeedReaderClient() {
+  const [topMode, setTopMode] = useState(false)
+  const toggle = (
+    <Button
+      variant={topMode ? 'default' : 'secondary'}
+      size="sm"
+      aria-pressed={topMode}
+      onClick={() => setTopMode((v) => !v)}
+    >
+      {topMode ? 'Show inbox' : 'Today’s top 10'}
+    </Button>
+  )
+  if (topMode) {
+    return (
+      <div>
+        <div className="mb-4 flex justify-end">{toggle}</div>
+        <FeedTopItems />
+      </div>
+    )
+  }
+  return <FeedInbox topToggle={toggle} />
+}
+
+function FeedInbox({ topToggle }: { topToggle: ReactNode }) {
   usePrefetchFeedBodies()
   const [showRead, setShowRead] = useState(false)
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false)
@@ -66,6 +87,21 @@ export default function FeedReaderClient() {
   }, [page, pendingRead, unreadOnly])
 
   const [lastVisit] = useState(readAndBumpLastVisit)
+
+  // Only the plain unread inbox shows the strip; its items leave the grid.
+  const { data: lastChanceData } = useLastChanceFeedItems(unreadOnly)
+  const lastChance = useMemo(
+    () =>
+      (lastChanceData?.items ?? []).filter(
+        (item) => !selectedFeedId || item.feedId === selectedFeedId
+      ),
+    [lastChanceData, selectedFeedId]
+  )
+  const gridItems = useMemo(() => {
+    if (lastChance.length === 0) return items
+    const stripIds = new Set(lastChance.map((item) => item.id))
+    return items.filter((item) => !stripIds.has(item.id))
+  }, [items, lastChance])
 
   const feedTitleById = useMemo(() => {
     const map = new Map<string, string>()
@@ -112,6 +148,7 @@ export default function FeedReaderClient() {
             {showRead ? 'Show unread only' : 'Show read items'}
           </Button>
         )}
+        {topToggle}
         <Button
           variant={bookmarkedOnly ? 'default' : 'secondary'}
           size="sm"
@@ -121,7 +158,18 @@ export default function FeedReaderClient() {
         </Button>
       </div>
 
-      {items.length === 0 ? (
+      {unreadOnly && (
+        <FeedLastChanceStrip
+          items={lastChance}
+          feedTitleById={feedTitleById}
+          lastVisit={lastVisit}
+          pendingRead={pendingRead}
+          onMarkRead={handleMarkRead}
+          onSettled={handleSettled}
+        />
+      )}
+
+      {gridItems.length === 0 && lastChance.length === 0 ? (
         <p className="py-16 text-center text-sm text-muted">
           {bookmarkedOnly
             ? 'No bookmarked feed items.'
@@ -132,7 +180,7 @@ export default function FeedReaderClient() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {items.map((item) => (
+            {gridItems.map((item) => (
               <FeedReaderCard
                 key={item.id}
                 item={item}
@@ -148,84 +196,5 @@ export default function FeedReaderClient() {
         </>
       )}
     </div>
-  )
-}
-
-interface FeedReaderCardProps {
-  item: Item
-  feedTitle?: string
-  isNew: boolean
-  isRead: boolean
-  onMarkRead: (item: Item) => void
-  onSettled: (itemId: string) => void
-}
-
-function FeedReaderCard({
-  item,
-  feedTitle,
-  isNew,
-  isRead,
-  onMarkRead,
-  onSettled
-}: FeedReaderCardProps) {
-  const [readerOpen, setReaderOpen] = useState(false)
-  const noContent = !item.hasContent
-  const handleMarkRead = useCallback(() => onMarkRead(item), [onMarkRead, item])
-
-  // Settling while the reader is open would unmount its dialog, so wait.
-  const handleReaderSettled = useCallback(
-    (itemId: string) => {
-      if (!readerOpen) onSettled(itemId)
-    },
-    [readerOpen, onSettled]
-  )
-  // Closing the reader always settles (Undo only lives in the reader).
-  const handleOpenChange = useCallback(
-    (next: boolean) => {
-      setReaderOpen(next)
-      if (!next) onSettled(item.id)
-    },
-    [item.id, onSettled]
-  )
-
-  return (
-    <Card
-      className={cn('flex flex-col gap-2 p-3', isNew && 'border-accent', isRead && 'opacity-60')}
-    >
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <Button
-              type="button"
-              variant="link"
-              onClick={() => handleOpenChange(true)}
-              // A wrapped title still inherits the button's text-align: center.
-              className="h-auto min-w-0 justify-start p-0 wrap-anywhere text-left font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
-            >
-              {item.title}
-            </Button>
-            <div className="flex shrink-0 items-center gap-2">
-              {isNew && <Badge variant="default">New</Badge>}
-              <FeedBookmarkButton itemId={item.id} bookmarked={item.bookmarked} />
-            </div>
-          </div>
-          {feedTitle && <p className="text-xs text-muted">{feedTitle}</p>}
-          <p className="text-xs text-muted">{formatDate(item.publishedAt)}</p>
-          {noContent && (
-            // eslint-disable-next-line ui/use-primitives -- item metadata, not an empty list
-            <p className="text-xs text-subtle">No in-app content</p>
-          )}
-          <FeedItemCategories categories={item.categories} className="mt-1" />
-        </div>
-      </div>
-
-      <ArticleReaderDialog
-        item={item}
-        open={readerOpen}
-        onOpenChange={handleOpenChange}
-        onMarkRead={handleMarkRead}
-        onSettled={handleReaderSettled}
-      />
-    </Card>
   )
 }

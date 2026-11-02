@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import { ItemSchema, FeedSchema } from '@/lib/gen/feeds/v1/feeds_pb'
 
@@ -14,6 +14,13 @@ vi.mock('@/hooks/useFeeds', () => ({
   useFetchFeedItemsPage: (unreadOnly: boolean, feedId?: string, bookmarkedOnly?: boolean) =>
     mockUseFetchFeedItemsPage(unreadOnly, feedId, bookmarkedOnly),
   useUpdateItem: () => vi.fn()
+}))
+
+const mockLastChance = vi.fn()
+const mockTopItems = vi.fn()
+vi.mock('@/hooks/useFeedExpiry', () => ({
+  useLastChanceFeedItems: (enabled: boolean) => mockLastChance(enabled),
+  useTopFeedItems: (enabled: boolean) => mockTopItems(enabled)
 }))
 
 vi.mock('@/components/feeds/ArticleReaderDialog', () => ({
@@ -58,6 +65,8 @@ describe('FeedReaderClient', () => {
       data: { feeds: [create(FeedSchema, { id: 'feed-1', title: 'Example Blog' })] }
     })
     mockUseFetchFeedItemsPage.mockReturnValue(vi.fn())
+    mockLastChance.mockReturnValue({ data: undefined })
+    mockTopItems.mockReturnValue({ data: undefined, error: undefined, isLoading: false })
   })
 
   it('shows a loading state', () => {
@@ -383,5 +392,77 @@ describe('FeedReaderClient', () => {
 
     await waitFor(() => expect(screen.getByText('Item 2')).toBeInTheDocument())
     expect(fetchPage).toHaveBeenCalledWith(1)
+  })
+
+  describe('last chance strip', () => {
+    const inbox = () =>
+      mockUseFeedItems.mockReturnValue({
+        data: { items: [item('a'), item('b')], hasMore: false },
+        error: undefined,
+        isLoading: false
+      })
+
+    it('shows items about to expire above the list and out of the grid', () => {
+      inbox()
+      const soon = new Date(Date.now() + 3 * 3_600_000).toISOString()
+      mockLastChance.mockReturnValue({
+        data: { items: [create(ItemSchema, { ...item('a'), expiresAt: soon })] }
+      })
+      render(<FeedReaderClient />)
+
+      const strip = screen.getByRole('region', { name: 'Last chance' })
+      expect(within(strip).getByText('Item a')).toBeInTheDocument()
+      expect(within(strip).getByText('Expires in 2h')).toBeInTheDocument()
+      // Item a appears once (strip), item b stays in the grid.
+      expect(screen.getAllByText('Item a')).toHaveLength(1)
+      expect(screen.getByText('Item b')).toBeInTheDocument()
+    })
+
+    it('only loads for the plain unread inbox', () => {
+      inbox()
+      render(<FeedReaderClient />)
+      expect(mockLastChance).toHaveBeenLastCalledWith(true)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Show read items' }))
+      expect(mockLastChance).toHaveBeenLastCalledWith(false)
+      expect(screen.queryByRole('region', { name: 'Last chance' })).not.toBeInTheDocument()
+    })
+
+    it('narrows to the selected feed', () => {
+      inbox()
+      mockLastChance.mockReturnValue({
+        data: { items: [create(ItemSchema, { ...item('a'), feedId: 'feed-2' })] }
+      })
+      render(<FeedReaderClient />)
+      expect(screen.getByRole('region', { name: 'Last chance' })).toBeInTheDocument()
+
+      fireEvent.change(screen.getByLabelText('Filter by feed'), { target: { value: 'feed-1' } })
+      expect(screen.queryByRole('region', { name: 'Last chance' })).not.toBeInTheDocument()
+    })
+  })
+
+  describe("today's top view", () => {
+    it('swaps the inbox for the ranked list and back', () => {
+      mockUseFeedItems.mockReturnValue({
+        data: { items: [item('a')], hasMore: false },
+        error: undefined,
+        isLoading: false
+      })
+      mockTopItems.mockReturnValue({
+        data: { items: [item('t1'), item('t2', { readAt: '2026-07-02T00:00:00Z' })] },
+        error: undefined,
+        isLoading: false
+      })
+      render(<FeedReaderClient />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Today’s top 10' }))
+      expect(screen.getByText('Item t1')).toBeInTheDocument()
+      expect(screen.getByText('#2')).toBeInTheDocument()
+      expect(screen.queryByText('Item a')).not.toBeInTheDocument()
+      expect(screen.queryByText('You’re done for today.')).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Show inbox' }))
+      expect(screen.getByText('Item a')).toBeInTheDocument()
+    })
   })
 })

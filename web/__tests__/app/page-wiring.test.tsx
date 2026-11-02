@@ -31,6 +31,11 @@ vi.mock('@/components/feeds/FeedFilteredItemsClient', () => ({
     <div data-testid="filtered">{initialFeedId ?? 'all'}</div>
   )
 }))
+vi.mock('@/components/feeds/FeedExpiredItemsClient', () => ({
+  default: ({ initialFeedId }: { initialFeedId?: string }) => (
+    <div data-testid="expired">{initialFeedId ?? 'all'}</div>
+  )
+}))
 vi.mock('@/components/movies/MoviesStatsClient', () => ({ default: () => <i /> }))
 
 import GamesPublicPage from '@/app/dashboard/games/[token]/page'
@@ -39,6 +44,7 @@ import GamesPublicGamePage from '@/app/dashboard/games/[token]/[id]/page'
 import ReadingPublicPage from '@/app/dashboard/reading/[token]/page'
 import ReadingPublicLibraryPage from '@/app/dashboard/reading/[token]/library/page'
 import FeedFilteredPage from '@/app/feeds/filtered/page'
+import FeedExpiredPage from '@/app/feeds/expired/page'
 import MoviesStatsPage from '@/app/movies/stats/page'
 
 function mount(page: React.ReactNode) {
@@ -143,6 +149,22 @@ describe('FeedFilteredPage', () => {
     mount(<FeedFilteredPage />)
 
     expect(screen.getByTestId('filtered')).toHaveTextContent('all')
+  })
+})
+
+describe('FeedExpiredPage', () => {
+  it('opens on the feed named in the query string', () => {
+    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams('feed=f-3'))
+    mount(<FeedExpiredPage />)
+
+    expect(screen.getByTestId('expired')).toHaveTextContent('f-3')
+  })
+
+  it('shows every feed without one', () => {
+    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams())
+    mount(<FeedExpiredPage />)
+
+    expect(screen.getByTestId('expired')).toHaveTextContent('all')
   })
 })
 

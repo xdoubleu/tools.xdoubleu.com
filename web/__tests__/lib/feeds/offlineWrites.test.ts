@@ -107,7 +107,7 @@ describe('feed offline writes', () => {
     expect(run(updateItemWrite, { itemId: 'i1' }, swrKeys.feedItem('i1'), empty)).toBe(empty)
   })
 
-  it('removes a restored item from filtered lists only', () => {
+  it('removes a restored item from filtered and expired lists only', () => {
     const filtered = run(
       restoreFeedItemWrite,
       { itemId: 'i1' },
@@ -115,6 +115,14 @@ describe('feed offline writes', () => {
       items()
     )
     expect(listed(filtered).map((i) => i.id)).toEqual(['i2'])
+
+    const expired = run(
+      restoreFeedItemWrite,
+      { itemId: 'i1' },
+      swrKeys.feedExpiredItems('f1'),
+      items()
+    )
+    expect(listed(expired).map((i) => i.id)).toEqual(['i2'])
 
     const data = items()
     expect(run(restoreFeedItemWrite, { itemId: 'i1' }, inbox, data)).toBe(data)
@@ -190,7 +198,7 @@ describe('feed offline writes', () => {
   it('describes each write', () => {
     expect(updateItemWrite.describe(updateItemWrite.encode({}))).toBe('Update an article')
     expect(restoreFeedItemWrite.describe(restoreFeedItemWrite.encode({}))).toBe(
-      'Restore a filtered article'
+      'Restore an article'
     )
     expect(deleteFeedWrite.describe(deleteFeedWrite.encode({}))).toBe('Remove a feed')
     expect(deleteFilterRuleWrite.describe(deleteFilterRuleWrite.encode({}))).toBe(

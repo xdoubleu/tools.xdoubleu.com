@@ -37,6 +37,9 @@ type Feed struct {
 	// NotifiedAt marks an outstanding problem email; cleared on recovery so
 	// at most one is outstanding.
 	NotifiedAt *time.Time
+	// ExpiryDays is how long an unread item lives after arrival before it
+	// expires; 0 means never.
+	ExpiryDays int
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
@@ -77,7 +80,12 @@ type Item struct {
 	FilterRule *FilterRule
 	// RestoredAt is set once the item was restored; no rule filters it again.
 	RestoredAt *time.Time
-	CreatedAt  time.Time
+	// ExpiredAt is set while an unread item sits in the Expired view.
+	ExpiredAt *time.Time
+	// ExpiresAt is when the item will expire; nil when it never will (read,
+	// bookmarked, filtered, restored, expired or a feed that never expires).
+	ExpiresAt *time.Time
+	CreatedAt time.Time
 }
 
 // FilterRuleKindCategory/Title are the FilterRule.Kind values.
@@ -112,13 +120,12 @@ type FilterRuleSuggestion struct {
 	ReadCount int
 }
 
-// FeedUnreadCount is one feed's open (unread, non-dismissed, ingested) item
-// count.
-type FeedUnreadCount struct {
-	FeedID      uuid.UUID
-	FeedTitle   string
-	FeedURL     string
-	UnreadCount int
+// DigestItem is an unread item listed in the weekly digest.
+type DigestItem struct {
+	Title     string
+	FeedTitle string
+	URL       string
+	ExpiresAt *time.Time
 }
 
 // FeedStats aggregates one feed's posting cadence and read metrics.
@@ -151,4 +158,12 @@ type EngagedItem struct {
 	Dismissed       bool
 	Bookmarked      bool
 	ReadProgressPct int
+}
+
+// ReadStat counts a feed's or category's recent items and how many of them
+// the user read or bookmarked.
+type ReadStat struct {
+	Items      int
+	Read       int
+	Bookmarked int
 }

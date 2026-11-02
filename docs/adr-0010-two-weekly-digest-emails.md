@@ -1,7 +1,7 @@
 # ADR-0010: Send the weekly digest as two emails, not one
 
 - Status: Accepted; narrowed by #1597 (monitoring email removed)
-- Issues: #1014, #1253, #1355, #1214, #1597
+- Issues: #1014, #1253, #1355, #1214, #1597, #2799
 - Affects: `api/internal/observability/jobs/` (`WeeklyDigestJob`), `api/cmd/api/main.go`
 
 ## Context
@@ -14,8 +14,11 @@ domain.
 ## Decision
 
 - One email per domain. Only the **feeds** email remains: unhealthy feeds
-  (`Feeds.ListUnhealthy`) and feeds with unread items (`Feeds.ListOpenItems`,
-  own `open_feed_items` toggle, #1355).
+  (`Feeds.ListUnhealthy`) and feed items (`Feeds.ListDigestItems`, own
+  `open_feed_items` toggle, #1355). Unread items expire after a per-feed
+  lifetime (#2799), so the item section lists the five newest unread items
+  and the five closest to expiring ("last chance", within 48h) with titles
+  and links, not per-feed unread counts.
 - The **monitoring** email (Sentry, failing dependency PRs, security alerts,
   slow transactions) was removed in #1597 (migration `00051`): Grafana alerts
   on all four in real time (ADR-0022). Feeds has no Grafana equivalent.
@@ -34,7 +37,7 @@ domain.
 
 - If a new unrelated digest domain appears, give it its own email rather than
   growing the feeds one.
-- `main.go`'s `feedsHealthAdapter`/`feedsOpenItemsAdapter` bridge `*feeds.Feeds`
+- `main.go`'s `feedsHealthAdapter`/`feedsDigestAdapter` bridge `*feeds.Feeds`
   to narrow interfaces so `internal/` never imports `apps/*`.
 
 ## Revisit when

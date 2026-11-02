@@ -41,7 +41,7 @@ func (repo *FilterRulesRepository) ListSuggestions(
 		    CROSS JOIN LATERAL unnest(i.categories) AS c (label)
 		    WHERE f.user_id = $1 AND i.published_at >= $2
 		      AND i.ingest_error IS NULL AND i.filtered_at IS NULL
-		      AND i.restored_at IS NULL
+		      AND i.restored_at IS NULL AND i.expired_at IS NULL
 		    GROUP BY i.feed_id, lower(c.label)
 		)
 		SELECT s.feed_id, f.title, COALESCE(f.url, ''), s.category,
