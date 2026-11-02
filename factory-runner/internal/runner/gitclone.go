@@ -14,7 +14,7 @@ const gitDirPerm = 0o700
 // Git prepares a job's clone on the host before the sandbox starts. After that
 // the clone belongs to the agent: it can write .git/hooks and .git/config, which
 // the host's git would run. So the host never runs git inside a job clone
-// without `-c core.hooksPath=/dev/null` and a clean config (the PR step, #2775).
+// without `-c core.hooksPath=/dev/null` and a clean config.
 type Git struct {
 	// Dir holds the mirrors: <Dir>/mirrors/<owner>/<name>.git.
 	Dir string
@@ -50,6 +50,24 @@ func (g *Git) mustGit(ctx context.Context, dir string, args ...string) error {
 	return nil
 }
 
+// updateMirror brings the mirror up to date, cloning it when it is missing. A
+// mirror that can't be updated (an interrupted first clone leaves one that never
+// works) is removed and cloned again once.
+func (g *Git) updateMirror(ctx context.Context, remote, mirror string) error {
+	if _, err := os.Stat(mirror); err == nil {
+		if g.mustGit(ctx, mirror, "remote", "update", "--prune") == nil {
+			return nil
+		}
+		if err = os.RemoveAll(mirror); err != nil {
+			return fmt.Errorf("remove a broken mirror: %w", err)
+		}
+	}
+	if err := os.MkdirAll(filepath.Dir(mirror), gitDirPerm); err != nil {
+		return fmt.Errorf("create mirror dir: %w", err)
+	}
+	return g.mustGit(ctx, "", "clone", "--mirror", "--", remote, mirror)
+}
+
 // Clone makes a standalone clone of owner/name at dest, on a new branch off base.
 // The repo is mirrored on the host first (fetched, never exposed to the sandbox)
 // and the clone copies from the mirror without hard links, so a write through the
@@ -59,17 +77,8 @@ func (g *Git) Clone(ctx context.Context, owner, name, base, branch, dest string)
 	remote := g.RemoteURL(owner, name)
 	mirror := filepath.Join(g.Dir, "mirrors", owner, name+".git")
 
-	if _, err := os.Stat(mirror); err == nil {
-		if err = g.mustGit(ctx, mirror, "remote", "update", "--prune"); err != nil {
-			return err
-		}
-	} else {
-		if err = os.MkdirAll(filepath.Dir(mirror), gitDirPerm); err != nil {
-			return fmt.Errorf("create mirror dir: %w", err)
-		}
-		if err = g.mustGit(ctx, "", "clone", "--mirror", "--", remote, mirror); err != nil {
-			return err
-		}
+	if err := g.updateMirror(ctx, remote, mirror); err != nil {
+		return err
 	}
 
 	if err := os.MkdirAll(filepath.Dir(dest), gitDirPerm); err != nil {

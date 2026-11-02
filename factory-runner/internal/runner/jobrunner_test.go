@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -225,13 +226,13 @@ func TestAJobRunsInACloneOnItsBranchAndReportsItsOutcome(t *testing.T) {
 	assert.NoDirExists(t, filepath.Join(spec.CloneDir, ".git", "worktrees"))
 }
 
-func TestAJobWithoutAnOutcomeFileStillSucceedsOnExitZero(t *testing.T) {
+func TestACleanExitWithoutAnOutcomeFileIsAFailure(t *testing.T) {
 	env := newEnv(t, writes("", 0), newJob())
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
 	got := env.api.done()[0]
-	assert.True(t, got.succeeded)
-	assert.Empty(t, got.outcome)
+	assert.False(t, got.succeeded, "nothing for the PR step to use")
+	assert.Contains(t, got.outcome, "wrote no outcome file")
 }
 
 func TestTheRunnerRefusesWhatItsOwnRulesForbid(t *testing.T) {
@@ -466,4 +467,102 @@ func TestLoopWaitsOutAFastEmptyClaim(t *testing.T) {
 		slept,
 		"an instant empty answer isn't repeated at once",
 	)
+}
+
+func TestTheOutcomeIsOnlyReadFromARegularFileUpToItsCap(t *testing.T) {
+	secret := filepath.Join(t.TempDir(), "secret")
+	require.NoError(t, os.WriteFile(secret, []byte("host secret"), 0o600))
+
+	for name, plant := range map[string]func(path string){
+		"a symlink to a host file": func(p string) {
+			require.NoError(t, os.Symlink(secret, p))
+		},
+		"a fifo": func(p string) { require.NoError(t, syscall.Mkfifo(p, 0o600)) },
+	} {
+		env := newEnv(t, func(_ context.Context, spec runner.SandboxSpec) (int, error) {
+			plant(filepath.Join(spec.OutcomeDir, "outcome.md"))
+			return 0, nil
+		}, newJob())
+		_, err := env.runner.Next(context.Background())
+		require.NoError(t, err, name)
+		got := env.api.done()[0]
+		assert.False(t, got.succeeded, name)
+		assert.NotContains(t, got.outcome, "host secret", name)
+	}
+
+	env := newEnv(t, writes(strings.Repeat("x", 50000), 0), newJob())
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Len(t, env.api.done()[0].outcome, 9000, "capped")
+}
+
+func TestATimeoutNamesTheLimitThatApplied(t *testing.T) {
+	hang := func(ctx context.Context, _ runner.SandboxSpec) (int, error) {
+		<-ctx.Done()
+		return 0, ctx.Err()
+	}
+	job := newJob()
+	job.TimeLimitMinutes = 2
+	env := newEnv(t, hang, job)
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Contains(t, env.api.done()[0].outcome, "Timed out after 2 minutes")
+}
+
+func TestTheServerCannotStretchTheTimeLimit(t *testing.T) {
+	job := newJob()
+	job.TimeLimitMinutes = 1 << 40
+	var deadline time.Time
+	env := newEnv(t, func(ctx context.Context, _ runner.SandboxSpec) (int, error) {
+		deadline, _ = ctx.Deadline()
+		return 0, nil
+	}, job)
+	env.runner.Minute = time.Minute
+	start := time.Now()
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.WithinDuration(t, start.Add(24*time.Hour), deadline, time.Minute)
+}
+
+func TestAJobClaimedAgainStartsFromACleanDirectory(t *testing.T) {
+	env := newEnv(t, writes("ok", 0), newJob(), newJob())
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	stale := filepath.Join(env.dir, "jobs", jobID, "clone", "STALE")
+	require.NoError(t, os.WriteFile(stale, []byte("x"), 0o644))
+
+	_, err = env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.True(
+		t,
+		env.api.done()[1].succeeded,
+		"the second clone did not collide with the first",
+	)
+	assert.NoFileExists(t, stale)
+}
+
+func TestABrokenMirrorIsReplaced(t *testing.T) {
+	env := newEnv(t, writes("ok", 0), newJob())
+	// An interrupted first clone leaves a directory that is no repository.
+	broken := filepath.Join(env.dir, "mirrors", "xdoubleu", "tools.xdoubleu.com.git")
+	require.NoError(t, os.MkdirAll(broken, 0o755))
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.True(t, env.api.done()[0].succeeded)
+}
+
+func TestAJobWithoutARepoLimitGetsTheDefault(t *testing.T) {
+	job := newJob()
+	job.TimeLimitMinutes = 0
+	var deadline time.Time
+	env := newEnv(t, func(ctx context.Context, _ runner.SandboxSpec) (int, error) {
+		deadline, _ = ctx.Deadline()
+		return 0, nil
+	}, job)
+	env.runner.Minute = time.Minute
+	start := time.Now()
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.WithinDuration(t, start.Add(runner.DefaultTimeLimit), deadline, time.Minute)
 }

@@ -59,12 +59,22 @@ func TestCloneUpdatesAnExistingMirrorFirst(t *testing.T) {
 		filepath.Join(t.TempDir(), "d")))
 	assert.Equal(t, []string{"remote", "clone", "remote", "checkout"}, calls)
 
+	// A mirror that can't be updated is cloned afresh, once.
+	require.NoError(t, os.MkdirAll(filepath.Join(dir, "mirrors", "o", "n.git"), 0o755))
 	calls = nil
 	g = failingGit(dir, 1, &calls)
+	require.NoError(t, g.Clone(context.Background(), "o", "n", "main", "agent/x",
+		filepath.Join(t.TempDir(), "d")))
+	assert.Equal(t, []string{"remote", "clone", "clone", "remote", "checkout"}, calls)
+
+	// And if that clone fails too, the error says so.
+	require.NoError(t, os.MkdirAll(filepath.Join(dir, "mirrors", "o", "n.git"), 0o755))
+	calls = nil
+	g = failingGit(dir, 2, &calls)
 	err := g.Clone(context.Background(), "o", "n", "main", "agent/x",
 		filepath.Join(t.TempDir(), "d"))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "git remote")
+	assert.Contains(t, err.Error(), "git clone")
 }
 
 func TestCloneCannotCreateItsDirectories(t *testing.T) {
@@ -91,17 +101,24 @@ func TestLoopReturnsWhenItsContextIsAlreadyDone(t *testing.T) {
 	require.NoError(t, env.runner.Loop(ctx))
 }
 
-func TestPrepareOutcomeDirFailsUnderAFile(t *testing.T) {
+func TestAJobWhoseOutcomeDirectoryCannotBeMadeFails(t *testing.T) {
 	env := newEnv(t, writes("ok", 0), newJob())
-	// A job whose outcome directory can't be made fails with a reason.
-	require.NoError(t, os.MkdirAll(filepath.Join(env.dir, "jobs", jobID), 0o755))
-	require.NoError(
-		t,
-		os.WriteFile(filepath.Join(env.dir, "jobs", jobID, "outcome"), nil, 0o600),
-	)
+	// A clone that leaves a file where the outcome directory goes.
+	env.runner.Git.Run = func(
+		_ context.Context, _ string, args ...string,
+	) ([]byte, error) {
+		if args[0] == "checkout" {
+			path := filepath.Join(env.dir, "jobs", jobID, "outcome")
+			if err := os.WriteFile(path, nil, 0o600); err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
+	}
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
 	got := env.api.done()[0]
 	assert.False(t, got.succeeded)
 	assert.Contains(t, got.outcome, "outcome directory")
+	assert.Empty(t, env.sandbox.specs)
 }

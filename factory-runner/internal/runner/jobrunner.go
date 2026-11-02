@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 )
 
@@ -30,6 +32,8 @@ const (
 	// outcomeDirPerm lets the sandbox's non-root user write the outcome.
 	outcomeDirPerm = 0o777
 	outcomeFile    = "outcome.md"
+	// maxTimeLimitMinutes caps a job at a day, whatever the server says.
+	maxTimeLimitMinutes = 24 * 60
 )
 
 var jobIDPattern = regexp.MustCompile(
@@ -178,6 +182,19 @@ func (r *JobRunner) check(job *ClaimedJob) error {
 	}, allowed)
 }
 
+func (r *JobRunner) minute() time.Duration {
+	return cmp.Or(r.Minute, time.Minute)
+}
+
+// limitFor is how long a job may run. The server is untrusted: its number can
+// neither stretch the limit past a day nor overflow it.
+func (r *JobRunner) limitFor(job *ClaimedJob) time.Duration {
+	if job.TimeLimitMinutes <= 0 {
+		return DefaultTimeLimit
+	}
+	return time.Duration(min(job.TimeLimitMinutes, maxTimeLimitMinutes)) * r.minute()
+}
+
 func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	if err := r.check(job); err != nil {
 		return failed("Refused by the runner: " + err.Error())
@@ -186,6 +203,10 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	dir := filepath.Join(r.DataDir, "jobs", job.ID)
 	cloneDir := filepath.Join(dir, "clone")
 	outcomeDir := filepath.Join(dir, "outcome")
+	// A job claimed again (after a restart) starts from a clean directory.
+	if err := os.RemoveAll(dir); err != nil {
+		return failed("Could not clear the job directory: " + err.Error())
+	}
 	err := r.Git.Clone(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
 		job.Branch, cloneDir)
 	if err != nil {
@@ -195,11 +216,7 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		return failed("Could not prepare the outcome directory: " + err.Error())
 	}
 
-	minute := cmp.Or(r.Minute, time.Minute)
-	limit := DefaultTimeLimit
-	if job.TimeLimitMinutes > 0 {
-		limit = time.Duration(job.TimeLimitMinutes) * minute
-	}
+	limit := r.limitFor(job)
 	runCtx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
 
@@ -235,13 +252,15 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	case stopped.Load():
 		reason = "Stopped: the server no longer counts this job as running."
 	case timedOut:
-		reason = fmt.Sprintf("Timed out after %d minutes.", job.TimeLimitMinutes)
+		reason = fmt.Sprintf("Timed out after %d minutes.", limit/r.minute())
 	case ctx.Err() != nil:
 		reason = "The runner shut down while the job ran."
 	case runErr != nil:
 		reason = "The sandbox could not run the job: " + runErr.Error()
 	case exit != 0:
 		reason = fmt.Sprintf("The agent exited with status %d.", exit)
+	case text == "":
+		reason = "The agent exited cleanly but wrote no outcome file."
 	default:
 		res.succeeded = true
 		res.outcome = text
@@ -270,7 +289,9 @@ func (r *JobRunner) checkIns(
 		case <-ticker.C:
 			stop, err := r.API.CheckIn(ctx, r.Token, jobID, tap.Session())
 			if err != nil {
-				r.Log.Warn("check-in failed", "job", jobID, "error", err)
+				if ctx.Err() == nil {
+					r.Log.Warn("check-in failed", "job", jobID, "error", err)
+				}
 				continue
 			}
 			if stop {
@@ -282,14 +303,22 @@ func (r *JobRunner) checkIns(
 	}
 }
 
-// readOutcome reads what the agent wrote, capped; a missing file is "".
+// readOutcome reads what the agent wrote, capped; a missing file is "". The agent
+// controls that directory, so only a regular file counts: a symlink to a host
+// file, a FIFO or a device is ignored, and a huge file is read only up to the cap.
 func readOutcome(path string) string {
-	data, err := os.ReadFile(path)
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() {
+		return ""
+	}
+	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		return ""
 	}
-	if len(data) > maxOutcomeBytes {
-		data = data[:maxOutcomeBytes]
+	defer f.Close()
+	data, err := io.ReadAll(io.LimitReader(f, maxOutcomeBytes))
+	if err != nil {
+		return ""
 	}
 	return strings.TrimSpace(strings.ToValidUTF8(string(data), ""))
 }
