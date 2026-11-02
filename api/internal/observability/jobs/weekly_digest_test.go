@@ -23,15 +23,35 @@ func (f fakeFeedsLister) ListUnhealthy(
 	return f.unhealthy, f.err
 }
 
-type fakeOpenFeedItemsLister struct {
-	open []jobs.OpenFeedItem
-	err  error
+type fakeDigestItemsLister struct {
+	items jobs.FeedDigestItems
+	err   error
 }
 
-func (f fakeOpenFeedItemsLister) ListOpenItems(
+func (f fakeDigestItemsLister) ListDigestItems(
 	_ context.Context,
-) ([]jobs.OpenFeedItem, error) {
-	return f.open, f.err
+) (jobs.FeedDigestItems, error) {
+	return f.items, f.err
+}
+
+func noDigestItems() jobs.FeedDigestItems {
+	return jobs.FeedDigestItems{Newest: nil, LastChance: nil}
+}
+
+func digestItem(title string, expires *time.Time) jobs.FeedDigestItem {
+	return jobs.FeedDigestItem{
+		Title:     title,
+		FeedTitle: "My Feed",
+		URL:       "https://example.com/" + title,
+		ExpiresAt: expires,
+	}
+}
+
+func newestOnly(title string) jobs.FeedDigestItems {
+	return jobs.FeedDigestItems{
+		Newest:     []jobs.FeedDigestItem{digestItem(title, nil)},
+		LastChance: nil,
+	}
 }
 
 func TestWeeklyDigestSendsAllClearWhenNothingWrong(t *testing.T) {
@@ -40,7 +60,7 @@ func TestWeeklyDigestSendsAllClearWhenNothingWrong(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeFeedsLister{unhealthy: nil, err: nil},
-		fakeOpenFeedItemsLister{open: nil, err: nil},
+		fakeDigestItemsLister{items: noDigestItems(), err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 	)
@@ -57,7 +77,7 @@ func TestWeeklyDigestAlwaysSendsEvenWhenPreviouslySeen(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeFeedsLister{unhealthy: nil, err: nil},
-		fakeOpenFeedItemsLister{open: nil, err: nil},
+		fakeDigestItemsLister{items: noDigestItems(), err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 	)
@@ -79,7 +99,7 @@ func TestWeeklyDigestIncludesUnhealthyFeeds(t *testing.T) {
 				LastError: "timeout", ConsecutiveFailures: 4,
 			},
 		}, err: nil},
-		fakeOpenFeedItemsLister{open: nil, err: nil},
+		fakeDigestItemsLister{items: noDigestItems(), err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 	)
@@ -96,7 +116,7 @@ func TestWeeklyDigestFeedsErrorDoesNotFailRun(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeFeedsLister{unhealthy: nil, err: assert.AnError},
-		fakeOpenFeedItemsLister{open: nil, err: nil},
+		fakeDigestItemsLister{items: noDigestItems(), err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 	)
@@ -106,14 +126,34 @@ func TestWeeklyDigestFeedsErrorDoesNotFailRun(t *testing.T) {
 	assert.Len(t, mail.sent, 1)
 }
 
-func TestWeeklyDigestIncludesOpenFeedItems(t *testing.T) {
+func TestWeeklyDigestIncludesNewestItems(t *testing.T) {
 	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeFeedsLister{unhealthy: nil, err: nil},
-		fakeOpenFeedItemsLister{open: []jobs.OpenFeedItem{
-			{Title: "My Feed", URL: "https://example.com/feed", Count: 3},
+		fakeDigestItemsLister{items: newestOnly("Post"), err: nil},
+		notifSvc,
+		alwaysEnabledSettings{},
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	require.Len(t, mail.sent, 1)
+	assert.Contains(t, mail.bodies[0], "newest unread")
+	assert.Contains(t, mail.bodies[0], "https://example.com/Post")
+}
+
+func TestWeeklyDigestListsLastChanceItemsWithExpiry(t *testing.T) {
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+	expires := time.Date(2026, 11, 3, 9, 30, 0, 0, time.UTC)
+
+	job := jobs.NewWeeklyDigestJob(
+		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeDigestItemsLister{items: jobs.FeedDigestItems{
+			Newest:     nil,
+			LastChance: []jobs.FeedDigestItem{digestItem("Fading", &expires)},
 		}, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
@@ -122,16 +162,19 @@ func TestWeeklyDigestIncludesOpenFeedItems(t *testing.T) {
 	notifSvc.WaitUntilDone()
 
 	require.Len(t, mail.sent, 1)
-	assert.Contains(t, mail.bodies[0], "My Feed")
+	assert.Contains(t, mail.bodies[0], "last chance")
+	assert.Contains(t, mail.bodies[0], "https://example.com/Fading")
+	assert.Contains(t, mail.bodies[0], "expires Tue 3 Nov 09:30 UTC")
+	assert.NotContains(t, mail.bodies[0], "newest unread")
 }
 
-func TestWeeklyDigestOpenFeedItemsErrorOmitsSection(t *testing.T) {
+func TestWeeklyDigestFeedItemsErrorOmitsSection(t *testing.T) {
 	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeFeedsLister{unhealthy: nil, err: nil},
-		fakeOpenFeedItemsLister{open: nil, err: assert.AnError},
+		fakeDigestItemsLister{items: noDigestItems(), err: assert.AnError},
 		notifSvc,
 		alwaysEnabledSettings{},
 	)
@@ -141,7 +184,7 @@ func TestWeeklyDigestOpenFeedItemsErrorOmitsSection(t *testing.T) {
 	assert.Len(t, mail.sent, 1)
 }
 
-func TestWeeklyDigestOmitsOpenFeedItemsSectionForDisabledSource(t *testing.T) {
+func TestWeeklyDigestOmitsFeedItemsSectionForDisabledSource(t *testing.T) {
 	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notifSvc := testNotifications(t, mail)
 	//nolint:exhaustive //only unhealthy_feeds needs to be enabled here
@@ -153,9 +196,7 @@ func TestWeeklyDigestOmitsOpenFeedItemsSectionForDisabledSource(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeFeedsLister{unhealthy: nil, err: nil},
-		fakeOpenFeedItemsLister{open: []jobs.OpenFeedItem{
-			{Title: "My Feed", URL: "https://example.com/feed", Count: 3},
-		}, err: nil},
+		fakeDigestItemsLister{items: newestOnly("Post"), err: nil},
 		notifSvc,
 		settings,
 	)
@@ -163,7 +204,7 @@ func TestWeeklyDigestOmitsOpenFeedItemsSectionForDisabledSource(t *testing.T) {
 	notifSvc.WaitUntilDone()
 
 	require.Len(t, mail.sent, 1)
-	assert.NotContains(t, mail.bodies[0], "My Feed")
+	assert.NotContains(t, mail.bodies[0], "https://example.com/Post")
 }
 
 func TestWeeklyDigestOmitsUnhealthyFeedsSectionForDisabledSource(t *testing.T) {
@@ -183,7 +224,7 @@ func TestWeeklyDigestOmitsUnhealthyFeedsSectionForDisabledSource(t *testing.T) {
 				LastError: "timeout", ConsecutiveFailures: 4,
 			},
 		}, err: nil},
-		fakeOpenFeedItemsLister{open: nil, err: nil},
+		fakeDigestItemsLister{items: noDigestItems(), err: nil},
 		notifSvc,
 		settings,
 	)
@@ -191,7 +232,7 @@ func TestWeeklyDigestOmitsUnhealthyFeedsSectionForDisabledSource(t *testing.T) {
 	notifSvc.WaitUntilDone()
 
 	require.Len(t, mail.sent, 1)
-	assert.NotContains(t, mail.bodies[0], "My Feed")
+	assert.NotContains(t, mail.bodies[0], "https://example.com/Post")
 }
 
 func TestWeeklyDigestSkipsSendWhenAllSourcesDisabled(t *testing.T) {
@@ -209,7 +250,7 @@ func TestWeeklyDigestSkipsSendWhenAllSourcesDisabled(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		feeds,
-		fakeOpenFeedItemsLister{open: nil, err: nil},
+		fakeDigestItemsLister{items: noDigestItems(), err: nil},
 		notifSvc,
 		settings,
 	)
@@ -225,9 +266,7 @@ func TestWeeklyDigestSettingsErrorOmitsSection(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeFeedsLister{unhealthy: nil, err: nil},
-		fakeOpenFeedItemsLister{open: []jobs.OpenFeedItem{
-			{Title: "My Feed", URL: "https://example.com/feed", Count: 3},
-		}, err: nil},
+		fakeDigestItemsLister{items: newestOnly("Post"), err: nil},
 		notifSvc,
 		settingsErrFake{err: assert.AnError},
 	)
@@ -237,7 +276,7 @@ func TestWeeklyDigestSettingsErrorOmitsSection(t *testing.T) {
 	// IsEnabled errors fail open (enabled) but render empty, so the all-clear
 	// still sends.
 	require.Len(t, mail.sent, 1)
-	assert.NotContains(t, mail.bodies[0], "My Feed")
+	assert.NotContains(t, mail.bodies[0], "https://example.com/Post")
 }
 
 type settingsErrFake struct {
@@ -254,7 +293,7 @@ func (s settingsErrFake) IsEnabled(
 func TestWeeklyDigestID(t *testing.T) {
 	job := jobs.NewWeeklyDigestJob(
 		fakeFeedsLister{unhealthy: nil, err: nil},
-		fakeOpenFeedItemsLister{open: nil, err: nil},
+		fakeDigestItemsLister{items: noDigestItems(), err: nil},
 		testNotifications(t, &fakeMailer{sent: nil, bodies: nil, err: nil}),
 		alwaysEnabledSettings{},
 	)

@@ -393,28 +393,29 @@ func (a feedsHealthAdapter) ListUnhealthy(
 	return out, nil
 }
 
-// feedsOpenItemsAdapter bridges *feeds.Feeds to jobs.openFeedItemsLister.
-type feedsOpenItemsAdapter struct {
+// feedsDigestAdapter bridges *feeds.Feeds to jobs.feedDigestItemsLister.
+type feedsDigestAdapter struct {
 	feeds *feeds.Feeds
 }
 
-func (a feedsOpenItemsAdapter) ListOpenItems(
+func (a feedsDigestAdapter) ListDigestItems(
 	ctx context.Context,
-) ([]jobs.OpenFeedItem, error) {
-	open, err := a.feeds.ListOpenItems(ctx)
+) (jobs.FeedDigestItems, error) {
+	items, err := a.feeds.ListDigestItems(ctx)
 	if err != nil {
-		return nil, err
+		return jobs.FeedDigestItems{}, err
 	}
-
-	out := make([]jobs.OpenFeedItem, len(open))
-	for i, feed := range open {
-		out[i] = jobs.OpenFeedItem{
-			Title: feed.Title,
-			URL:   feed.URL,
-			Count: feed.Count,
+	convert := func(in []feeds.DigestItem) []jobs.FeedDigestItem {
+		out := make([]jobs.FeedDigestItem, len(in))
+		for i, d := range in {
+			out[i] = jobs.FeedDigestItem(d)
 		}
+		return out
 	}
-	return out, nil
+	return jobs.FeedDigestItems{
+		Newest:     convert(items.Newest),
+		LastChance: convert(items.LastChance),
+	}, nil
 }
 
 func newWeeklyDigestJob(
@@ -424,7 +425,7 @@ func newWeeklyDigestJob(
 ) *jobs.WeeklyDigestJob {
 	return jobs.NewWeeklyDigestJob(
 		feedsHealthAdapter{feeds: feedsApp},
-		feedsOpenItemsAdapter{feeds: feedsApp},
+		feedsDigestAdapter{feeds: feedsApp},
 		notificationsSvc,
 		notificationSettingsRepo,
 	)

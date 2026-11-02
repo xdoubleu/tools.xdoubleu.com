@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import AddFeedForm from '@/components/feeds/AddFeedForm'
+import FeedExpirySelect from '@/components/feeds/FeedExpirySelect'
 import { useFeeds, useDeleteFeed, useRefreshFeed } from '@/hooks/useFeeds'
 import type { Feed } from '@/lib/gen/feeds/v1/feeds_pb'
 
@@ -61,6 +62,9 @@ function FeedRow({ feed }: { feed: Feed }) {
           >
             Remove
           </Button>
+        </div>
+        <div className="mt-2">
+          <FeedExpirySelect feed={feed} />
         </div>
         <div className="mt-1 space-y-0.5">
           {feed.lastError && (

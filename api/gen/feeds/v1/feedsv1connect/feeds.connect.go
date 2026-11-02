@@ -57,6 +57,9 @@ const (
 	// FeedServiceRestoreFeedItemProcedure is the procedure name of the FeedService's RestoreFeedItem
 	// RPC.
 	FeedServiceRestoreFeedItemProcedure = "/feeds.v1.FeedService/RestoreFeedItem"
+	// FeedServiceListTopFeedItemsProcedure is the procedure name of the FeedService's ListTopFeedItems
+	// RPC.
+	FeedServiceListTopFeedItemsProcedure = "/feeds.v1.FeedService/ListTopFeedItems"
 	// FeedServiceGetFilterRuleSuggestionsProcedure is the procedure name of the FeedService's
 	// GetFilterRuleSuggestions RPC.
 	FeedServiceGetFilterRuleSuggestionsProcedure = "/feeds.v1.FeedService/GetFilterRuleSuggestions"
@@ -164,6 +167,13 @@ var (
 			Procedure:  FeedServiceRestoreFeedItemProcedure,
 		}
 	})
+	feedServiceListTopFeedItemsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_feeds_v1_feeds_proto.Services().ByName("FeedService").Methods().ByName("ListTopFeedItems"),
+			Procedure:  FeedServiceListTopFeedItemsProcedure,
+		}
+	})
 	feedServiceGetFilterRuleSuggestionsSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -196,6 +206,7 @@ type FeedServiceClient interface {
 	CreateFilterRule(context.Context, *v1.CreateFilterRuleRequest) (*v1.CreateFilterRuleResponse, error)
 	DeleteFilterRule(context.Context, *v1.DeleteFilterRuleRequest) (*v1.DeleteFilterRuleResponse, error)
 	RestoreFeedItem(context.Context, *v1.RestoreFeedItemRequest) (*v1.RestoreFeedItemResponse, error)
+	ListTopFeedItems(context.Context, *v1.ListTopFeedItemsRequest) (*v1.ListTopFeedItemsResponse, error)
 	GetFilterRuleSuggestions(context.Context, *v1.GetFilterRuleSuggestionsRequest) (*v1.GetFilterRuleSuggestionsResponse, error)
 	DismissFilterRuleSuggestion(context.Context, *v1.DismissFilterRuleSuggestionRequest) (*v1.DismissFilterRuleSuggestionResponse, error)
 }
@@ -222,6 +233,7 @@ type FeedServiceHandler interface {
 	CreateFilterRule(context.Context, *v1.CreateFilterRuleRequest) (*v1.CreateFilterRuleResponse, error)
 	DeleteFilterRule(context.Context, *v1.DeleteFilterRuleRequest) (*v1.DeleteFilterRuleResponse, error)
 	RestoreFeedItem(context.Context, *v1.RestoreFeedItemRequest) (*v1.RestoreFeedItemResponse, error)
+	ListTopFeedItems(context.Context, *v1.ListTopFeedItemsRequest) (*v1.ListTopFeedItemsResponse, error)
 	GetFilterRuleSuggestions(context.Context, *v1.GetFilterRuleSuggestionsRequest) (*v1.GetFilterRuleSuggestionsResponse, error)
 	DismissFilterRuleSuggestion(context.Context, *v1.DismissFilterRuleSuggestionRequest) (*v1.DismissFilterRuleSuggestionResponse, error)
 }
@@ -244,6 +256,7 @@ func RegisterFeedServiceHandler(server *connect.Server, svc FeedServiceHandler) 
 		connect.Method{Spec: feedServiceCreateFilterRuleSpec(), Handler: adapter.createFilterRule},
 		connect.Method{Spec: feedServiceDeleteFilterRuleSpec(), Handler: adapter.deleteFilterRule},
 		connect.Method{Spec: feedServiceRestoreFeedItemSpec(), Handler: adapter.restoreFeedItem},
+		connect.Method{Spec: feedServiceListTopFeedItemsSpec(), Handler: adapter.listTopFeedItems},
 		connect.Method{Spec: feedServiceGetFilterRuleSuggestionsSpec(), Handler: adapter.getFilterRuleSuggestions},
 		connect.Method{Spec: feedServiceDismissFilterRuleSuggestionSpec(), Handler: adapter.dismissFilterRuleSuggestion},
 	)
@@ -306,6 +319,10 @@ func (UnimplementedFeedServiceHandler) DeleteFilterRule(context.Context, *v1.Del
 
 func (UnimplementedFeedServiceHandler) RestoreFeedItem(context.Context, *v1.RestoreFeedItemRequest) (*v1.RestoreFeedItemResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.RestoreFeedItem is not implemented")
+}
+
+func (UnimplementedFeedServiceHandler) ListTopFeedItems(context.Context, *v1.ListTopFeedItemsRequest) (*v1.ListTopFeedItemsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "feeds.v1.FeedService.ListTopFeedItems is not implemented")
 }
 
 func (UnimplementedFeedServiceHandler) GetFilterRuleSuggestions(context.Context, *v1.GetFilterRuleSuggestionsRequest) (*v1.GetFilterRuleSuggestionsResponse, error) {
@@ -427,6 +444,14 @@ func (c *feedServiceClient) DeleteFilterRule(ctx context.Context, req *v1.Delete
 func (c *feedServiceClient) RestoreFeedItem(ctx context.Context, req *v1.RestoreFeedItemRequest) (*v1.RestoreFeedItemResponse, error) {
 	var res v1.RestoreFeedItemResponse
 	if err := c.client.CallUnary(ctx, feedServiceRestoreFeedItemSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *feedServiceClient) ListTopFeedItems(ctx context.Context, req *v1.ListTopFeedItemsRequest) (*v1.ListTopFeedItemsResponse, error) {
+	var res v1.ListTopFeedItemsResponse
+	if err := c.client.CallUnary(ctx, feedServiceListTopFeedItemsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -612,6 +637,18 @@ func (h feedServiceHandler) restoreFeedItem(ctx context.Context, _ connect.Spec,
 		return err
 	}
 	res, err := h.svc.RestoreFeedItem(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h feedServiceHandler) listTopFeedItems(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListTopFeedItemsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListTopFeedItems(ctx, &req)
 	if err != nil {
 		return err
 	}

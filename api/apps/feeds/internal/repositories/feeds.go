@@ -18,7 +18,7 @@ type FeedsRepository struct {
 
 const feedColumns = `id, user_id, url, title, source_type,
 	inbound_token, etag, last_modified, last_fetched_at, last_error,
-	consecutive_failures, notified_at, created_at, updated_at`
+	consecutive_failures, notified_at, expiry_days, created_at, updated_at`
 
 func scanFeed(row pgx.Row) (*models.Feed, error) {
 	var f models.Feed
@@ -36,6 +36,7 @@ func scanFeed(row pgx.Row) (*models.Feed, error) {
 		&f.LastError,
 		&f.ConsecutiveFailures,
 		&f.NotifiedAt,
+		&f.ExpiryDays,
 		&f.CreatedAt,
 		&f.UpdatedAt,
 	)
@@ -177,19 +178,21 @@ func (repo *FeedsRepository) GetByInboundTokenHash(
 	return f, nil
 }
 
-// Update changes the feed's title.
+// Update changes the feed's title and, when expiryDays is non-nil, its item
+// lifetime in days (0 = never).
 func (repo *FeedsRepository) Update(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
 	title string,
+	expiryDays *int,
 ) error {
 	query := `
 		UPDATE feeds.feeds
-		SET title = $3
+		SET title = $3, expiry_days = COALESCE($4, expiry_days)
 		WHERE user_id = $1 AND id = $2
 	`
-	tag, err := repo.db.Exec(ctx, query, userID, id, title)
+	tag, err := repo.db.Exec(ctx, query, userID, id, title, expiryDays)
 	if err != nil {
 		return postgres.PgxErrorToHTTPError(err)
 	}

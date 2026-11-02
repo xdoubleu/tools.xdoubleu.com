@@ -25,6 +25,9 @@ message Feed {
   int32 consecutive_failures = 11;
   // RFC3339; set while a problem email is outstanding.
   string notified_at = 12;
+  // Days an unread item lives after arrival before it expires into the
+  // Expired view; 0 means never.
+  int32 expiry_days = 13;
 }
 
 message ListFeedsRequest {}
@@ -52,6 +55,8 @@ message CreateFeedResponse { Feed feed = 1; }
 message UpdateFeedRequest {
   string feed_id = 1;
   string title = 2;
+  // Item lifetime in days, 0-3650 (0 = never); unset leaves it unchanged.
+  optional int32 expiry_days = 3;
 }
 message UpdateFeedResponse {}
 
@@ -94,6 +99,11 @@ message Item {
   FilterRule filter_rule = 16;
   // RFC3339; set once the item was restored, which no rule filters again.
   string restored_at = 17;
+  // RFC3339; set only while the item sits in the Expired view.
+  string expired_at = 18;
+  // RFC3339 time the item will expire; empty when it never will (read,
+  // bookmarked, filtered, restored or on a feed that never expires).
+  string expires_at = 19;
 }
 
 message ListFeedItemsRequest {
@@ -108,6 +118,13 @@ message ListFeedItemsRequest {
   // When true, returns only filtered items, newest filtered_at first;
   // unread_only and bookmarked_only are ignored.
   optional bool filtered_only = 6;
+  // When true, returns only expired items, most recently expired first;
+  // unread_only and bookmarked_only are ignored. Wins over filtered_only.
+  optional bool expired_only = 7;
+  // When true, returns only unread items expiring within 48h, soonest
+  // first; unread_only and bookmarked_only are ignored. Wins over
+  // expired_only and filtered_only.
+  optional bool last_chance_only = 8;
 }
 message ListFeedItemsResponse {
   repeated Item items = 1;
@@ -208,8 +225,9 @@ message CreateFilterRuleResponse { FilterRule rule = 1; }
 message DeleteFilterRuleRequest { string rule_id = 1; }
 message DeleteFilterRuleResponse {}
 
-// RestoreFeedItem returns a filtered item to the inbox as unread, fetching
-// its content when it has none; no rule filters it again.
+// RestoreFeedItem returns a filtered or expired item to the inbox as unread,
+// fetching a filtered item's content when it has none; no rule filters it
+// and it never expires again.
 message RestoreFeedItemRequest { string item_id = 1; }
 message RestoreFeedItemResponse { Item item = 1; }
 
@@ -240,6 +258,12 @@ message DismissFilterRuleSuggestionRequest {
 }
 message DismissFilterRuleSuggestionResponse {}
 
+// ListTopFeedItems returns today's ten best items ranked from the caller's
+// own reading history: unread items plus those read since midnight UTC, so
+// the list ends instead of refilling. Best first; read items carry read_at.
+message ListTopFeedItemsRequest {}
+message ListTopFeedItemsResponse { repeated Item items = 1; }
+
 service FeedService {
   rpc ListFeeds(ListFeedsRequest) returns (ListFeedsResponse);
   rpc CreateFeed(CreateFeedRequest) returns (CreateFeedResponse);
@@ -260,6 +284,8 @@ service FeedService {
       returns (DeleteFilterRuleResponse);
   rpc RestoreFeedItem(RestoreFeedItemRequest)
       returns (RestoreFeedItemResponse);
+  rpc ListTopFeedItems(ListTopFeedItemsRequest)
+      returns (ListTopFeedItemsResponse);
   rpc GetFilterRuleSuggestions(GetFilterRuleSuggestionsRequest)
       returns (GetFilterRuleSuggestionsResponse);
   rpc DismissFilterRuleSuggestion(DismissFilterRuleSuggestionRequest)

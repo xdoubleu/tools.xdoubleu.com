@@ -11,16 +11,18 @@ import (
 	"tools.xdoubleu.com/apps/feeds/internal/models"
 )
 
-// ErrItemNotFiltered is returned when restoring an item no rule filters.
-var ErrItemNotFiltered = errors.New("item is not filtered")
+// ErrItemNotFiltered is returned when restoring an item that is neither
+// filtered nor expired.
+var ErrItemNotFiltered = errors.New("item is not filtered or expired")
 
 // restoreFetchTimeout keeps RestoreItem's content fetch under the server's
 // write timeout (httpWriteTimeout in cmd/api/main.go), so the client always
 // gets a response; a timed-out fetch restores without content.
 const restoreFetchTimeout = 7 * time.Second
 
-// RestoreItem returns one of the user's filtered items to the inbox as
-// unread at its original date; no rule filters it again. An item without
+// RestoreItem returns one of the user's filtered or expired items to the
+// inbox as unread at its original date; no rule filters it and it never
+// expires again. An expired item is just unhidden. A filtered item without
 // content gets its linked page fetched as ingest would; a failed fetch still
 // restores it, without content.
 func (s *FeedService) RestoreItem(
@@ -31,6 +33,9 @@ func (s *FeedService) RestoreItem(
 	item, err := s.items.GetByIDForUser(ctx, userID, itemID)
 	if err != nil {
 		return nil, err
+	}
+	if item.ExpiredAt != nil {
+		return s.items.RestoreExpired(ctx, userID, itemID)
 	}
 	if item.FilteredAt == nil {
 		return nil, ErrItemNotFiltered

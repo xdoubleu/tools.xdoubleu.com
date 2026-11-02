@@ -10,6 +10,7 @@ vi.mock('@/hooks/useFeeds', () => ({
   useRefreshFeed: () => refreshFeed,
   useCreateFeed: () => vi.fn()
 }))
+vi.mock('@/components/feeds/FeedExpirySelect', () => ({ default: () => <i /> }))
 vi.mock('@/lib/gen/feeds/v1/feeds_pb', () => ({
   FeedKind: { RSS: 1, EMAIL: 2 }
 }))

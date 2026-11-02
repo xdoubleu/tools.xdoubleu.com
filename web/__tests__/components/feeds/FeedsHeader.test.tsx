@@ -48,6 +48,11 @@ describe('FeedsHeader', () => {
     )
   })
 
+  it('links to the expired items view', () => {
+    render(<FeedsHeader />)
+    expect(screen.getByRole('link', { name: 'Expired' })).toHaveAttribute('href', '/feeds/expired')
+  })
+
   it('links to the feed stats page', () => {
     render(<FeedsHeader />)
     expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute('href', '/feeds/stats')

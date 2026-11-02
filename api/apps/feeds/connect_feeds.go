@@ -60,6 +60,7 @@ func protoFeed(f models.Feed) *feedsv1.Feed {
 		Etag:                etag,
 		LastModified:        lastModified,
 		ConsecutiveFailures: consecutiveFailures,
+		ExpiryDays:          int32(f.ExpiryDays), //nolint:gosec // capped at 3650
 		NotifiedAt:          notifiedAt,
 	}
 }
@@ -99,6 +100,8 @@ func protoItem(item models.Item) *feedsv1.Item {
 		FilteredAt:      formatOptionalTime(item.FilteredAt),
 		FilterRule:      filterRule,
 		RestoredAt:      formatOptionalTime(item.RestoredAt),
+		ExpiredAt:       formatOptionalTime(item.ExpiredAt),
+		ExpiresAt:       formatOptionalTime(item.ExpiresAt),
 	}
 }
 
@@ -152,6 +155,7 @@ func mapError(err error) error {
 		connecttools.Code(services.ErrUnsupportedURL, connect.CodeInvalidArgument),
 		connecttools.Code(services.ErrNoPostsFound, connect.CodeInvalidArgument),
 		connecttools.Code(services.ErrInvalidFilterRule, connect.CodeInvalidArgument),
+		connecttools.Code(services.ErrInvalidExpiryDays, connect.CodeInvalidArgument),
 		connecttools.Code(
 			services.ErrEmailFeedsNotConfigured, connect.CodeFailedPrecondition,
 		),
@@ -249,8 +253,13 @@ func (h *feedsConnectHandler) UpdateFeed(
 		return nil, cerr
 	}
 
+	var expiryDays *int
+	if req.ExpiryDays != nil {
+		days := int(req.GetExpiryDays())
+		expiryDays = &days
+	}
 	if err := h.app.Services.Feeds.Update(
-		ctx, user.ID, feedID, req.Title,
+		ctx, user.ID, feedID, req.Title, expiryDays,
 	); err != nil {
 		return nil, mapError(err)
 	}
@@ -318,7 +327,7 @@ func (h *feedsConnectHandler) ListFeedItems(
 
 	items, hasMore, err := h.app.Services.Feeds.ListItems(
 		ctx, user.ID, req.Limit, req.Offset, req.GetUnreadOnly(),
-		feedID, req.GetBookmarkedOnly(), req.GetFilteredOnly(),
+		feedID, req.GetBookmarkedOnly(), listView(req),
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -463,4 +472,39 @@ func (h *feedsConnectHandler) GetUnhealthyFeeds(
 		}
 	}
 	return &feedsv1.GetUnhealthyFeedsResponse{Feeds: protoFeeds}, nil
+}
+
+// listView maps the request's view flags to a service view; last chance wins
+// over expired, which wins over filtered.
+func listView(req *feedsv1.ListFeedItemsRequest) services.ListView {
+	switch {
+	case req.GetLastChanceOnly():
+		return services.ViewLastChance
+	case req.GetExpiredOnly():
+		return services.ViewExpired
+	case req.GetFilteredOnly():
+		return services.ViewFiltered
+	default:
+		return services.ViewInbox
+	}
+}
+
+// ListTopFeedItems ranks today's best items from the caller's history.
+func (h *feedsConnectHandler) ListTopFeedItems(
+	ctx context.Context,
+	_ *feedsv1.ListTopFeedItemsRequest,
+) (*feedsv1.ListTopFeedItemsResponse, error) {
+	user, cerr := feedUser(ctx)
+	if cerr != nil {
+		return nil, cerr
+	}
+	items, err := h.app.Services.Feeds.ListTopItems(ctx, user.ID)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	out := make([]*feedsv1.Item, len(items))
+	for i, item := range items {
+		out[i] = protoItem(item)
+	}
+	return &feedsv1.ListTopFeedItemsResponse{Items: out}, nil
 }

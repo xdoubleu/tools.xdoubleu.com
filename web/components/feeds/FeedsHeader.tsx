@@ -24,6 +24,7 @@ export default function FeedsHeader() {
         title="Feeds"
         actions={
           <>
+            <PageHeaderLink href="/feeds/expired">Expired</PageHeaderLink>
             <PageHeaderLink href="/feeds/filtered">Filtered</PageHeaderLink>
             <PageHeaderLink href="/feeds/stats">Stats</PageHeaderLink>
             {isAdmin && <PageHeaderLink href="/feeds/health">Health</PageHeaderLink>}

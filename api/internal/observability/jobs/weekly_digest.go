@@ -29,20 +29,28 @@ type unhealthyFeedLister interface {
 	ListUnhealthy(ctx context.Context) ([]UnhealthyFeed, error)
 }
 
-// OpenFeedItem is a feed with unread items.
-type OpenFeedItem struct {
-	Title string
-	URL   string
-	Count int
+// FeedDigestItem is an unread feed item listed in the digest; ExpiresAt is
+// set for items about to expire.
+type FeedDigestItem struct {
+	Title     string
+	FeedTitle string
+	URL       string
+	ExpiresAt *time.Time
 }
 
-type openFeedItemsLister interface {
-	ListOpenItems(ctx context.Context) ([]OpenFeedItem, error)
+// FeedDigestItems are the digest's newest and last-chance item lists.
+type FeedDigestItems struct {
+	Newest     []FeedDigestItem
+	LastChance []FeedDigestItem
 }
 
-// WeeklyDigestJob emails an admin a weekly feed-backlog reminder (failing
-// feeds, feeds with unread items). Every run sends, including an "all clear",
-// so a missing email signals a stopped job; it's skipped only when every
+type feedDigestItemsLister interface {
+	ListDigestItems(ctx context.Context) (FeedDigestItems, error)
+}
+
+// WeeklyDigestJob emails an admin a weekly feed digest (failing feeds, the
+// newest unread items, items about to expire). Every run sends, including an
+// "all clear", so a missing email signals a stopped job; it's skipped only when every
 // source is disabled in global.notification_settings.
 
 type notificationSettingsRepo interface {
@@ -54,20 +62,20 @@ type notificationSettingsRepo interface {
 
 type WeeklyDigestJob struct {
 	feeds         unhealthyFeedLister
-	openFeedItems openFeedItemsLister
+	digestItems   feedDigestItemsLister
 	notifications *notifications.Service
 	settings      notificationSettingsRepo
 }
 
 func NewWeeklyDigestJob(
 	feeds unhealthyFeedLister,
-	openFeedItems openFeedItemsLister,
+	digestItems feedDigestItemsLister,
 	notifications *notifications.Service,
 	settings notificationSettingsRepo,
 ) *WeeklyDigestJob {
 	return &WeeklyDigestJob{
 		feeds:         feeds,
-		openFeedItems: openFeedItems,
+		digestItems:   digestItems,
 		notifications: notifications,
 		settings:      settings,
 	}
@@ -99,13 +107,13 @@ func (d *digest) add(section string, enabled bool) {
 
 func (j *WeeklyDigestJob) Run(ctx context.Context, logger *slog.Logger) error {
 	feeds := &digest{
-		subject:    "[Weekly Digest] Feeds — open items and failing feeds",
+		subject:    "[Weekly Digest] Feeds — newest, last chance and failing feeds",
 		emptyBody:  "No feeds need attention this week.",
 		sections:   nil,
 		anyEnabled: false,
 	}
 	feeds.add(j.feedsSection(ctx, logger))
-	feeds.add(j.openFeedItemsSection(ctx, logger))
+	feeds.add(j.feedItemsSection(ctx, logger))
 
 	j.send(feeds)
 
@@ -177,9 +185,9 @@ func (j *WeeklyDigestJob) feedsSection(
 		len(unhealthy), strings.Join(lines, "\n")), true
 }
 
-// openFeedItemsSection lists every feed with open items, across all users;
-// same (text, enabled) contract as feedsSection.
-func (j *WeeklyDigestJob) openFeedItemsSection(
+// feedItemsSection lists the newest unread items and those about to expire,
+// across all users; same (text, enabled) contract as feedsSection.
+func (j *WeeklyDigestJob) feedItemsSection(
 	ctx context.Context, logger *slog.Logger,
 ) (string, bool) {
 	enabled, err := j.settings.IsEnabled(
@@ -196,27 +204,32 @@ func (j *WeeklyDigestJob) openFeedItemsSection(
 		return "", false
 	}
 
-	open, err := j.openFeedItems.ListOpenItems(ctx)
+	items, err := j.digestItems.ListDigestItems(ctx)
 	if err != nil {
-		logger.ErrorContext(ctx, "weekly-digest: failed to list open feed items",
+		logger.ErrorContext(ctx, "weekly-digest: failed to list feed items",
 			"error", err)
 		return "", true
 	}
-	if len(open) == 0 {
-		return "", true
-	}
 
-	total := 0
-	lines := make([]string, len(open))
-	for i, feed := range open {
-		total += feed.Count
-		lines[i] = fmt.Sprintf(
-			"- %s (%s) — %d unread",
-			feed.Title,
-			feed.URL,
-			feed.Count,
-		)
+	var sections []string
+	if len(items.Newest) > 0 {
+		sections = append(sections, "Feeds — newest unread:\n"+
+			formatDigestItems(items.Newest))
 	}
-	return fmt.Sprintf("Feeds — %d unread item(s) across %d feed(s):\n%s",
-		total, len(open), strings.Join(lines, "\n")), true
+	if len(items.LastChance) > 0 {
+		sections = append(sections, "Feeds — last chance, expiring soon:\n"+
+			formatDigestItems(items.LastChance))
+	}
+	return strings.Join(sections, "\n\n"), true
+}
+
+func formatDigestItems(items []FeedDigestItem) string {
+	lines := make([]string, len(items))
+	for i, item := range items {
+		lines[i] = fmt.Sprintf("- %s (%s) — %s", item.Title, item.FeedTitle, item.URL)
+		if item.ExpiresAt != nil {
+			lines[i] += " — expires " + item.ExpiresAt.UTC().Format("Mon 2 Jan 15:04 UTC")
+		}
+	}
+	return strings.Join(lines, "\n")
 }

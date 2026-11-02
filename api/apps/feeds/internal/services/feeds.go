@@ -108,19 +108,42 @@ func (s *FeedService) List(
 	return s.feeds.List(ctx, userID)
 }
 
+// ListView picks which items ListItems returns besides the default inbox.
+type ListView int
+
+const (
+	// ViewInbox is the default: visible items, newest first.
+	ViewInbox ListView = iota
+	// ViewFiltered lists items filter rules hid, with their rule.
+	ViewFiltered
+	// ViewExpired lists items that expired.
+	ViewExpired
+	// ViewLastChance lists unread items expiring within LastChanceWindow.
+	ViewLastChance
+)
+
 // ListItems returns a page of the user's items, optionally restricted to one
-// feed or to bookmarked items. filteredOnly instead lists the filtered items
-// with their rule, ignoring unreadOnly and bookmarkedOnly.
+// feed or to bookmarked items. A non-inbox view ignores unreadOnly and
+// bookmarkedOnly.
 func (s *FeedService) ListItems(
 	ctx context.Context,
 	userID string,
 	limit, offset int32,
 	unreadOnly bool,
 	feedID *uuid.UUID,
-	bookmarkedOnly, filteredOnly bool,
+	bookmarkedOnly bool,
+	view ListView,
 ) ([]models.Item, bool, error) {
-	if filteredOnly {
+	switch view {
+	case ViewFiltered:
 		return s.items.ListFilteredByUser(ctx, userID, limit, offset, feedID)
+	case ViewExpired:
+		return s.items.ListExpiredByUser(ctx, userID, limit, offset, feedID)
+	case ViewLastChance:
+		return s.items.ListLastChance(
+			ctx, userID, limit, offset, LastChanceWindow, feedID,
+		)
+	case ViewInbox:
 	}
 	return s.items.ListByUser(
 		ctx, userID, limit, offset, unreadOnly, feedID, bookmarkedOnly,
@@ -285,14 +308,25 @@ func (s *FeedService) RecordEmailFetchFailure(
 	s.recordFetchResultRaw(ctx, feedID, nil, nil, &errStr)
 }
 
-// Update changes the feed's title.
+// MaxExpiryDays bounds a feed's item lifetime.
+const MaxExpiryDays = 3650
+
+// ErrInvalidExpiryDays is returned for a negative or oversized lifetime.
+var ErrInvalidExpiryDays = errors.New("expiry days must be 0-3650")
+
+// Update changes the feed's title and, when expiryDays is non-nil, its item
+// lifetime in days (0 = never).
 func (s *FeedService) Update(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
 	title string,
+	expiryDays *int,
 ) error {
-	return s.feeds.Update(ctx, userID, id, title)
+	if expiryDays != nil && (*expiryDays < 0 || *expiryDays > MaxExpiryDays) {
+		return ErrInvalidExpiryDays
+	}
+	return s.feeds.Update(ctx, userID, id, title, expiryDays)
 }
 
 // UpdateItem partially updates an item's state; nil fields are unchanged.
@@ -421,13 +455,6 @@ func (s *FeedService) pollFeedSpan(ctx context.Context, feed models.Feed) error 
 // ListUnhealthy returns every failing feed across all users.
 func (s *FeedService) ListUnhealthy(ctx context.Context) ([]models.Feed, error) {
 	return s.feeds.ListUnhealthy(ctx)
-}
-
-// CountUnreadByFeed returns unread item counts per feed across all users.
-func (s *FeedService) CountUnreadByFeed(
-	ctx context.Context,
-) ([]models.FeedUnreadCount, error) {
-	return s.items.CountUnreadByFeed(ctx)
 }
 
 // pollFeed fetches one feed (conditional GET) and ingests new items.

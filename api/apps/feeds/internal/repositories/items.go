@@ -20,11 +20,24 @@ type ItemsRepository struct {
 	db postgres.DB
 }
 
+// expirableCond holds for an item the expiry job may hide: unread,
+// non-bookmarked, unfiltered, never restored, on a feed with a lifetime.
+// Needs the items alias i and feeds alias f.
+const expirableCond = `f.expiry_days > 0 AND i.read_at IS NULL
+	AND NOT i.bookmarked AND NOT i.dismissed AND i.filtered_at IS NULL
+	AND i.restored_at IS NULL AND i.expired_at IS NULL
+	AND i.ingest_error IS NULL`
+
+// expiresAtExpr is an item's expiry time, NULL when it never expires.
+const expiresAtExpr = `CASE WHEN ` + expirableCond + `
+	THEN i.created_at + make_interval(days => f.expiry_days) END`
+
 // itemColumns includes the article body; only GetByIDForUser may use it.
 const itemColumns = `i.id, i.feed_id, i.guid, i.title, i.source_url,
 	i.content_html, i.published_at, i.read_at, i.dismissed, i.bookmarked,
 	i.read_progress_pct, i.ingest_error, i.created_at, i.categories,
-	i.filtered_at, i.filtered_rule_id, i.restored_at`
+	i.filtered_at, i.filtered_rule_id, i.restored_at, i.expired_at,
+	` + expiresAtExpr
 
 // itemListColumns replaces the body with a has-content boolean. Every
 // multi-row read and RETURNING clause must use it: bodies are tens of MB per
@@ -32,7 +45,8 @@ const itemColumns = `i.id, i.feed_id, i.guid, i.title, i.source_url,
 const itemListColumns = `i.id, i.feed_id, i.guid, i.title, i.source_url,
 	i.content_html <> '', i.published_at, i.read_at, i.dismissed, i.bookmarked,
 	i.read_progress_pct, i.ingest_error, i.created_at, i.categories,
-	i.filtered_at, i.filtered_rule_id, i.restored_at`
+	i.filtered_at, i.filtered_rule_id, i.restored_at, i.expired_at,
+	` + expiresAtExpr
 
 // scanItem scans an itemColumns row, deriving HasContent.
 func scanItem(row pgx.Row) (*models.Item, error) {
@@ -75,6 +89,8 @@ func scanItemInto(
 		&item.FilteredAt,
 		&item.FilteredRuleID,
 		&item.RestoredAt,
+		&item.ExpiredAt,
+		&item.ExpiresAt,
 	}, extra...)
 	if err := row.Scan(dest...); err != nil {
 		return nil, err
@@ -358,7 +374,7 @@ func (repo *ItemsRepository) ListByUser(
 		FROM feeds.items i
 		JOIN feeds.feeds f ON f.id = i.feed_id
 		WHERE f.user_id = $1 AND i.ingest_error IS NULL AND i.dismissed = false
-		  AND i.filtered_at IS NULL
+		  AND i.filtered_at IS NULL AND i.expired_at IS NULL
 		  AND ($4::bool = false OR i.read_at IS NULL)
 		  AND ($5::uuid IS NULL OR i.feed_id = $5)
 		  AND ($6::bool = false OR i.bookmarked = true)
@@ -402,52 +418,12 @@ func (repo *ItemsRepository) CountUnread(
 		JOIN feeds.feeds f ON f.id = i.feed_id
 		WHERE f.user_id = $1 AND i.ingest_error IS NULL AND i.dismissed = false
 		  AND i.read_at IS NULL AND i.filtered_at IS NULL
+		  AND i.expired_at IS NULL
 	`, userID).Scan(&count)
 	if err != nil {
 		return 0, postgres.PgxErrorToHTTPError(err)
 	}
 	return count, nil
-}
-
-// CountUnreadByFeed counts non-dismissed, unfiltered, ingested, unread items
-// per feed across all users, omitting feeds with none.
-func (repo *ItemsRepository) CountUnreadByFeed(
-	ctx context.Context,
-) ([]models.FeedUnreadCount, error) {
-	query := `
-		SELECT f.id, f.title, f.url, count(i.id)
-		FROM feeds.items i
-		JOIN feeds.feeds f ON f.id = i.feed_id
-		WHERE i.ingest_error IS NULL AND i.dismissed = false
-		  AND i.read_at IS NULL AND i.filtered_at IS NULL
-		GROUP BY f.id, f.user_id, f.title, f.url
-		ORDER BY f.user_id, f.title, f.url
-	`
-	rows, err := repo.db.Query(ctx, query)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-	defer rows.Close()
-
-	var out []models.FeedUnreadCount
-	for rows.Next() {
-		var c models.FeedUnreadCount
-		// url is nullable: email feeds have none.
-		var url *string
-		if scanErr := rows.Scan(
-			&c.FeedID, &c.FeedTitle, &url, &c.UnreadCount,
-		); scanErr != nil {
-			return nil, postgres.PgxErrorToHTTPError(scanErr)
-		}
-		if url != nil {
-			c.FeedURL = *url
-		}
-		out = append(out, c)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-	return out, nil
 }
 
 // RecentPublishedAt returns the publish times of the feed's most recent
@@ -501,6 +477,7 @@ func (repo *ItemsRepository) Stats(
 				)) / 3600.0 AS gap_hours
 			FROM feeds.items
 			WHERE ingest_error IS NULL AND filtered_at IS NULL
+			  AND expired_at IS NULL
 		),
 		avg_gaps AS (
 			SELECT feed_id, AVG(gap_hours) AS avg_interval_hours
@@ -517,7 +494,7 @@ func (repo *ItemsRepository) Stats(
 			COALESCE(AVG(i.read_progress_pct), 0)
 		FROM feeds.feeds f
 		LEFT JOIN feeds.items i ON i.feed_id = f.id AND i.ingest_error IS NULL
-		    AND i.filtered_at IS NULL
+		    AND i.filtered_at IS NULL AND i.expired_at IS NULL
 		LEFT JOIN avg_gaps ag ON ag.feed_id = f.id
 		WHERE f.user_id = $1
 		GROUP BY f.id, f.title, ag.avg_interval_hours
