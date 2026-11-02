@@ -17,7 +17,7 @@ const DOMAIN_HOOKS = {
   ],
   dashboard: ['useDashboardChartState', 'useDashboardShare'],
   family: ['useFamily'],
-  feeds: ['useFeeds', 'useFeedFilteredItems', 'useFeedRuleSuggestions'],
+  feeds: ['useFeeds', 'useFeedExpiry', 'useFeedFilteredItems', 'useFeedRuleSuggestions'],
   games: ['useGames'],
   learningpaths: ['useLearningPaths', 'useTodoistConnection'],
   mealplans: ['useMealPlans'],
