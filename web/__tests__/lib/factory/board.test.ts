@@ -1,6 +1,7 @@
 import { create } from '@bufbuild/protobuf'
 import {
   Harness,
+  JobSchema,
   ListReposResponseSchema,
   RepoSchema,
   TaskPriority,
@@ -26,6 +27,9 @@ import {
   repoLabel,
   reposOf,
   runnerState,
+  jobActive,
+  jobStatusLabel,
+  JOB_POLL_MS,
   runnerUpdate,
   shortRelease,
   runnersOf,
@@ -175,5 +179,24 @@ describe('board', () => {
     expect(runnerUpdate(at('a'), '')).toBe('unknown')
     expect(runnerUpdate(at('a'), undefined)).toBe('unknown')
     expect(runnerUpdate(undefined, 'b')).toBe('unknown')
+  })
+
+  it('names every job status and flags the ones still on the way', () => {
+    expect([1, 2, 3, 4, 5, 6, 0].map((n) => jobStatusLabel(n))).toEqual([
+      'Queued',
+      'Running',
+      'Succeeded',
+      'Failed',
+      'Cancelled',
+      'Lost',
+      'Unknown'
+    ])
+    const at = (status: number) => create(JobSchema, { status })
+    expect(jobActive(at(1))).toBe(true)
+    expect(jobActive(at(2))).toBe(true)
+    expect(jobActive(at(3))).toBe(false)
+    expect(jobActive(at(6))).toBe(false)
+    expect(jobActive(undefined)).toBe(false)
+    expect(JOB_POLL_MS).toBe(5000)
   })
 })

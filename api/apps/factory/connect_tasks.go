@@ -194,7 +194,17 @@ func (h *taskConnectHandler) GetTask(
 	for i := range comments {
 		out[i] = protoComment(&comments[i])
 	}
-	return &factoryv1.GetTaskResponse{Task: protoTask(task), Comments: out}, nil
+	jobs, err := h.app.services.Jobs.ByTask(ctx, id)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	jobOut := make([]*factoryv1.Job, len(jobs))
+	for i := range jobs {
+		jobOut[i] = protoJob(&jobs[i])
+	}
+	return &factoryv1.GetTaskResponse{
+		Task: protoTask(task), Comments: out, Jobs: jobOut,
+	}, nil
 }
 
 func (h *taskConnectHandler) CreateTask(

@@ -3,11 +3,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 
 const mockComment = vi.fn()
+const mockRun = vi.fn()
 const mockAgents = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
   useFactoryTask: vi.fn(),
   useFactoryAgents: () => mockAgents(),
-  useFactoryActions: vi.fn(() => ({ comment: mockComment, move: vi.fn() }))
+  useFactoryActions: vi.fn(() => ({ comment: mockComment, move: vi.fn(), run: mockRun }))
 }))
 vi.mock('@/components/factory/TaskDialog', () => ({
   __esModule: true,
@@ -24,6 +25,8 @@ import { AgentAccountSchema } from '@/lib/gen/factory/v1/agent_accounts_pb'
 import {
   CommentSchema,
   GetTaskResponseSchema,
+  JobSchema,
+  JobStatus,
   TaskPriority,
   TaskSchema,
   TaskStatus
@@ -51,6 +54,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockAgents.mockReturnValue({ data: undefined })
   mockComment.mockResolvedValue(undefined)
+  mockRun.mockResolvedValue(undefined)
 })
 
 describe('TaskDetail', () => {
@@ -107,6 +111,71 @@ describe('TaskDetail', () => {
 
     expect(await screen.findByText(/Couldn.t post the comment/)).toBeInTheDocument()
     expect(box).toHaveValue('Looks good')
+  })
+
+  describe('running the task', () => {
+    const withJob = (status: JobStatus) =>
+      create(GetTaskResponseSchema, {
+        ...detail,
+        jobs: [create(JobSchema, { id: 'j-1', status, branch: 'agent/t-1-fix-login' })]
+      })
+
+    it('queues a job with the optional instructions and clears the box', async () => {
+      mockTask({ data: detail })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      expect(screen.queryByTestId('job-status')).not.toBeInTheDocument()
+      const box = screen.getByLabelText(/Instructions for this run/)
+      fireEvent.change(box, { target: { value: 'Mind the tests' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+      await waitFor(() => expect(mockRun).toHaveBeenCalledWith('t-1', 'Mind the tests'))
+      await waitFor(() => expect(box).toHaveValue(''))
+    })
+
+    it('can run with no instructions', async () => {
+      mockTask({ data: detail })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+      await waitFor(() => expect(mockRun).toHaveBeenCalledWith('t-1', ''))
+    })
+
+    it('shows the reason the server gives when the run is refused, and keeps the text', async () => {
+      mockRun.mockRejectedValue(new Error('Not run: the body was edited outside a browser'))
+      mockTask({ data: detail })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      const box = screen.getByLabelText(/Instructions for this run/)
+      fireEvent.change(box, { target: { value: 'go' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+      expect(await screen.findByText(/edited outside a browser/)).toBeInTheDocument()
+      expect(box).toHaveValue('go')
+    })
+
+    it('shows the newest job and blocks another run while it is active', () => {
+      mockTask({ data: withJob(JobStatus.RUNNING) })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      expect(screen.getByTestId('job-status')).toHaveTextContent(
+        'Job running · agent/t-1-fix-login'
+      )
+      expect(screen.getByRole('button', { name: 'Running…' })).toBeDisabled()
+    })
+
+    it('allows another run once the job has finished', () => {
+      mockTask({ data: withJob(JobStatus.FAILED) })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      expect(screen.getByTestId('job-status')).toHaveTextContent('Job failed')
+      expect(screen.getByRole('button', { name: 'Run' })).toBeEnabled()
+    })
+
+    it('says it is queuing while the call is in flight', async () => {
+      let finish: () => void = () => undefined
+      mockRun.mockReturnValue(new Promise<void>((resolve) => (finish = resolve)))
+      mockTask({ data: detail })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+      expect(await screen.findByRole('button', { name: 'Queuing…' })).toBeDisabled()
+      finish()
+    })
   })
 
   it('opens the edit sheet', () => {

@@ -1,7 +1,9 @@
 import {
   Harness,
+  JobStatus,
   TaskPriority,
   TaskStatus,
+  type Job,
   type ListReposResponse,
   type Repo,
   type Task
@@ -135,4 +137,25 @@ export function runnerUpdate(
   const running = runner?.version ?? ''
   if (running === '' || running === DEV_RELEASE || !latest) return 'unknown'
   return running === latest ? 'current' : 'pending'
+}
+
+/** How often an open task is refreshed while its job is queued or running. */
+export const JOB_POLL_MS = 5_000
+
+const JOB_LABELS = new Map<JobStatus, string>([
+  [JobStatus.QUEUED, 'Queued'],
+  [JobStatus.RUNNING, 'Running'],
+  [JobStatus.SUCCEEDED, 'Succeeded'],
+  [JobStatus.FAILED, 'Failed'],
+  [JobStatus.CANCELLED, 'Cancelled'],
+  [JobStatus.LOST, 'Lost']
+])
+
+export function jobStatusLabel(status: JobStatus): string {
+  return JOB_LABELS.get(status) ?? 'Unknown'
+}
+
+/** Whether the job is still waiting for or on the runner. */
+export function jobActive(job: Job | undefined): boolean {
+  return job?.status === JobStatus.QUEUED || job?.status === JobStatus.RUNNING
 }

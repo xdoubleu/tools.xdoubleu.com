@@ -61,6 +61,8 @@ message GetTaskRequest {
 message GetTaskResponse {
   Task task = 1;
   repeated Comment comments = 2;
+  // The task's jobs, newest first. Left out by the MCP tool.
+  repeated Job jobs = 3;
 }
 
 // New tasks always start in Backlog. The repo can't change afterwards.
