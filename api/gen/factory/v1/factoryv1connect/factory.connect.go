@@ -38,6 +38,8 @@ const (
 	TaskServiceMoveTaskProcedure = "/factory.v1.TaskService/MoveTask"
 	// TaskServiceAddCommentProcedure is the procedure name of the TaskService's AddComment RPC.
 	TaskServiceAddCommentProcedure = "/factory.v1.TaskService/AddComment"
+	// TaskServiceRunTaskProcedure is the procedure name of the TaskService's RunTask RPC.
+	TaskServiceRunTaskProcedure = "/factory.v1.TaskService/RunTask"
 	// RepoServiceListReposProcedure is the procedure name of the RepoService's ListRepos RPC.
 	RepoServiceListReposProcedure = "/factory.v1.RepoService/ListRepos"
 	// RepoServiceCreateRepoProcedure is the procedure name of the RepoService's CreateRepo RPC.
@@ -89,6 +91,13 @@ var (
 			Procedure:  TaskServiceAddCommentProcedure,
 		}
 	})
+	taskServiceRunTaskSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("TaskService").Methods().ByName("RunTask"),
+			Procedure:  TaskServiceRunTaskProcedure,
+		}
+	})
 )
 
 // TaskServiceClient is a client for the factory.v1.TaskService service.
@@ -99,6 +108,7 @@ type TaskServiceClient interface {
 	UpdateTask(context.Context, *v1.UpdateTaskRequest) (*v1.UpdateTaskResponse, error)
 	MoveTask(context.Context, *v1.MoveTaskRequest) (*v1.MoveTaskResponse, error)
 	AddComment(context.Context, *v1.AddCommentRequest) (*v1.AddCommentResponse, error)
+	RunTask(context.Context, *v1.RunTaskRequest) (*v1.RunTaskResponse, error)
 }
 
 // NewTaskServiceClient constructs a client for the factory.v1.TaskService service. Multiple service
@@ -115,6 +125,7 @@ type TaskServiceHandler interface {
 	UpdateTask(context.Context, *v1.UpdateTaskRequest) (*v1.UpdateTaskResponse, error)
 	MoveTask(context.Context, *v1.MoveTaskRequest) (*v1.MoveTaskResponse, error)
 	AddComment(context.Context, *v1.AddCommentRequest) (*v1.AddCommentResponse, error)
+	RunTask(context.Context, *v1.RunTaskRequest) (*v1.RunTaskResponse, error)
 }
 
 // RegisterTaskServiceHandler registers svc as the factory.v1.TaskService implementation on server.
@@ -127,6 +138,7 @@ func RegisterTaskServiceHandler(server *connect.Server, svc TaskServiceHandler) 
 		connect.Method{Spec: taskServiceUpdateTaskSpec(), Handler: adapter.updateTask},
 		connect.Method{Spec: taskServiceMoveTaskSpec(), Handler: adapter.moveTask},
 		connect.Method{Spec: taskServiceAddCommentSpec(), Handler: adapter.addComment},
+		connect.Method{Spec: taskServiceRunTaskSpec(), Handler: adapter.runTask},
 	)
 }
 
@@ -155,6 +167,10 @@ func (UnimplementedTaskServiceHandler) MoveTask(context.Context, *v1.MoveTaskReq
 
 func (UnimplementedTaskServiceHandler) AddComment(context.Context, *v1.AddCommentRequest) (*v1.AddCommentResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.AddComment is not implemented")
+}
+
+func (UnimplementedTaskServiceHandler) RunTask(context.Context, *v1.RunTaskRequest) (*v1.RunTaskResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.RunTask is not implemented")
 }
 
 type taskServiceClient struct {
@@ -204,6 +220,14 @@ func (c *taskServiceClient) MoveTask(ctx context.Context, req *v1.MoveTaskReques
 func (c *taskServiceClient) AddComment(ctx context.Context, req *v1.AddCommentRequest) (*v1.AddCommentResponse, error) {
 	var res v1.AddCommentResponse
 	if err := c.client.CallUnary(ctx, taskServiceAddCommentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *taskServiceClient) RunTask(ctx context.Context, req *v1.RunTaskRequest) (*v1.RunTaskResponse, error) {
+	var res v1.RunTaskResponse
+	if err := c.client.CallUnary(ctx, taskServiceRunTaskSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -277,6 +301,18 @@ func (h taskServiceHandler) addComment(ctx context.Context, _ connect.Spec, stre
 		return err
 	}
 	res, err := h.svc.AddComment(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h taskServiceHandler) runTask(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RunTaskRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RunTask(ctx, &req)
 	if err != nil {
 		return err
 	}

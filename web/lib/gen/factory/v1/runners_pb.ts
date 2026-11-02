@@ -4,13 +4,15 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Harness } from "./factory_pb";
+import { file_factory_v1_factory } from "./factory_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file factory/v1/runners.proto.
  */
 export const file_factory_v1_runners: GenFile = /*@__PURE__*/
-  fileDesc("ChhmYWN0b3J5L3YxL3J1bm5lcnMucHJvdG8SCmZhY3RvcnkudjEimQEKBlJ1bm5lchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCXBhaXJlZF9hdBgDIAEoCRIRCglsYXN0X3NlZW4YBCABKAkSDwoHdmVyc2lvbhgFIAEoCRISCgpyZXZva2VkX2F0GAYgASgJEhoKEnBhaXJpbmdfZXhwaXJlc19hdBgHIAEoCRIOCgZvbmxpbmUYCCABKAgiFAoSTGlzdFJ1bm5lcnNSZXF1ZXN0IjoKE0xpc3RSdW5uZXJzUmVzcG9uc2USIwoHcnVubmVycxgBIAMoCzISLmZhY3RvcnkudjEuUnVubmVyIjYKE0NyZWF0ZVJ1bm5lclJlcXVlc3QSDAoEbmFtZRgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiUAoUQ3JlYXRlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXISFAoMcGFpcmluZ19jb2RlGAIgASgJIiEKE1Jldm9rZVJ1bm5lclJlcXVlc3QSCgoCaWQYASABKAkiOgoUUmV2b2tlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXIiLAoLUGFpclJlcXVlc3QSDAoEY29kZRgBIAEoCRIPCgd2ZXJzaW9uGAIgASgJIjkKDFBhaXJSZXNwb25zZRIUCgxkZXZpY2VfdG9rZW4YASABKAkSEwoLcnVubmVyX25hbWUYAiABKAkiIwoQSGVhcnRiZWF0UmVxdWVzdBIPCgd2ZXJzaW9uGAEgASgJIhMKEUhlYXJ0YmVhdFJlc3BvbnNlMooCChJSdW5uZXJBZG1pblNlcnZpY2USTgoLTGlzdFJ1bm5lcnMSHi5mYWN0b3J5LnYxLkxpc3RSdW5uZXJzUmVxdWVzdBofLmZhY3RvcnkudjEuTGlzdFJ1bm5lcnNSZXNwb25zZRJRCgxDcmVhdGVSdW5uZXISHy5mYWN0b3J5LnYxLkNyZWF0ZVJ1bm5lclJlcXVlc3QaIC5mYWN0b3J5LnYxLkNyZWF0ZVJ1bm5lclJlc3BvbnNlElEKDFJldm9rZVJ1bm5lchIfLmZhY3RvcnkudjEuUmV2b2tlUnVubmVyUmVxdWVzdBogLmZhY3RvcnkudjEuUmV2b2tlUnVubmVyUmVzcG9uc2UylAEKDVJ1bm5lclNlcnZpY2USOQoEUGFpchIXLmZhY3RvcnkudjEuUGFpclJlcXVlc3QaGC5mYWN0b3J5LnYxLlBhaXJSZXNwb25zZRJICglIZWFydGJlYXQSHC5mYWN0b3J5LnYxLkhlYXJ0YmVhdFJlcXVlc3QaHS5mYWN0b3J5LnYxLkhlYXJ0YmVhdFJlc3BvbnNlQi1aK3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vZmFjdG9yeS92MTtmYWN0b3J5djFiBnByb3RvMw");
+  fileDesc("ChhmYWN0b3J5L3YxL3J1bm5lcnMucHJvdG8SCmZhY3RvcnkudjEimQEKBlJ1bm5lchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCXBhaXJlZF9hdBgDIAEoCRIRCglsYXN0X3NlZW4YBCABKAkSDwoHdmVyc2lvbhgFIAEoCRISCgpyZXZva2VkX2F0GAYgASgJEhoKEnBhaXJpbmdfZXhwaXJlc19hdBgHIAEoCRIOCgZvbmxpbmUYCCABKAgiFAoSTGlzdFJ1bm5lcnNSZXF1ZXN0IjoKE0xpc3RSdW5uZXJzUmVzcG9uc2USIwoHcnVubmVycxgBIAMoCzISLmZhY3RvcnkudjEuUnVubmVyIjYKE0NyZWF0ZVJ1bm5lclJlcXVlc3QSDAoEbmFtZRgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiUAoUQ3JlYXRlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXISFAoMcGFpcmluZ19jb2RlGAIgASgJIiEKE1Jldm9rZVJ1bm5lclJlcXVlc3QSCgoCaWQYASABKAkiOgoUUmV2b2tlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXIiLAoLUGFpclJlcXVlc3QSDAoEY29kZRgBIAEoCRIPCgd2ZXJzaW9uGAIgASgJIjkKDFBhaXJSZXNwb25zZRIUCgxkZXZpY2VfdG9rZW4YASABKAkSEwoLcnVubmVyX25hbWUYAiABKAkiIwoQSGVhcnRiZWF0UmVxdWVzdBIPCgd2ZXJzaW9uGAEgASgJIhMKEUhlYXJ0YmVhdFJlc3BvbnNlIuIBCgpDbGFpbWVkSm9iEgoKAmlkGAEgASgJEg8KB3Rhc2tfaWQYAiABKAkSEgoKcmVwb19vd25lchgDIAEoCRIRCglyZXBvX25hbWUYBCABKAkSFgoOZGVmYXVsdF9icmFuY2gYBSABKAkSJAoHaGFybmVzcxgGIAEoDjITLmZhY3RvcnkudjEuSGFybmVzcxIOCgZwcm9tcHQYByABKAkSDgoGYnJhbmNoGAggASgJEhYKDnNldHVwX2NvbW1hbmRzGAkgASgJEhoKEnRpbWVfbGltaXRfbWludXRlcxgKIAEoBSIRCg9DbGFpbUpvYlJlcXVlc3QiNwoQQ2xhaW1Kb2JSZXNwb25zZRIjCgNqb2IYASABKAsyFi5mYWN0b3J5LnYxLkNsYWltZWRKb2IiNAoOQ2hlY2tJblJlcXVlc3QSDgoGam9iX2lkGAEgASgJEhIKCnNlc3Npb25faWQYAiABKAkiHwoPQ2hlY2tJblJlc3BvbnNlEgwKBHN0b3AYASABKAgiXAoSQ29tcGxldGVKb2JSZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCRIRCglzdWNjZWVkZWQYAiABKAgSDwoHb3V0Y29tZRgDIAEoCRISCgpzZXNzaW9uX2lkGAQgASgJIhUKE0NvbXBsZXRlSm9iUmVzcG9uc2UyigIKElJ1bm5lckFkbWluU2VydmljZRJOCgtMaXN0UnVubmVycxIeLmZhY3RvcnkudjEuTGlzdFJ1bm5lcnNSZXF1ZXN0Gh8uZmFjdG9yeS52MS5MaXN0UnVubmVyc1Jlc3BvbnNlElEKDENyZWF0ZVJ1bm5lchIfLmZhY3RvcnkudjEuQ3JlYXRlUnVubmVyUmVxdWVzdBogLmZhY3RvcnkudjEuQ3JlYXRlUnVubmVyUmVzcG9uc2USUQoMUmV2b2tlUnVubmVyEh8uZmFjdG9yeS52MS5SZXZva2VSdW5uZXJSZXF1ZXN0GiAuZmFjdG9yeS52MS5SZXZva2VSdW5uZXJSZXNwb25zZTLvAgoNUnVubmVyU2VydmljZRI5CgRQYWlyEhcuZmFjdG9yeS52MS5QYWlyUmVxdWVzdBoYLmZhY3RvcnkudjEuUGFpclJlc3BvbnNlEkgKCUhlYXJ0YmVhdBIcLmZhY3RvcnkudjEuSGVhcnRiZWF0UmVxdWVzdBodLmZhY3RvcnkudjEuSGVhcnRiZWF0UmVzcG9uc2USRQoIQ2xhaW1Kb2ISGy5mYWN0b3J5LnYxLkNsYWltSm9iUmVxdWVzdBocLmZhY3RvcnkudjEuQ2xhaW1Kb2JSZXNwb25zZRJCCgdDaGVja0luEhouZmFjdG9yeS52MS5DaGVja0luUmVxdWVzdBobLmZhY3RvcnkudjEuQ2hlY2tJblJlc3BvbnNlEk4KC0NvbXBsZXRlSm9iEh4uZmFjdG9yeS52MS5Db21wbGV0ZUpvYlJlcXVlc3QaHy5mYWN0b3J5LnYxLkNvbXBsZXRlSm9iUmVzcG9uc2VCLVordG9vbHMueGRvdWJsZXUuY29tL2dlbi9mYWN0b3J5L3YxO2ZhY3Rvcnl2MWIGcHJvdG8z", [file_factory_v1_factory]);
 
 /**
  * @generated from message factory.v1.Runner
@@ -267,6 +269,195 @@ export const HeartbeatResponseSchema: GenMessage<HeartbeatResponse> = /*@__PURE_
   messageDesc(file_factory_v1_runners, 10);
 
 /**
+ * What the runner needs to run one job. The prompt is the frozen task part; the
+ * runner adds its own preamble, and validates repo, branch and base itself.
+ *
+ * @generated from message factory.v1.ClaimedJob
+ */
+export type ClaimedJob = Message<"factory.v1.ClaimedJob"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string task_id = 2;
+   */
+  taskId: string;
+
+  /**
+   * @generated from field: string repo_owner = 3;
+   */
+  repoOwner: string;
+
+  /**
+   * @generated from field: string repo_name = 4;
+   */
+  repoName: string;
+
+  /**
+   * @generated from field: string default_branch = 5;
+   */
+  defaultBranch: string;
+
+  /**
+   * @generated from field: factory.v1.Harness harness = 6;
+   */
+  harness: Harness;
+
+  /**
+   * @generated from field: string prompt = 7;
+   */
+  prompt: string;
+
+  /**
+   * @generated from field: string branch = 8;
+   */
+  branch: string;
+
+  /**
+   * Free text, run in the sandbox before the agent.
+   *
+   * @generated from field: string setup_commands = 9;
+   */
+  setupCommands: string;
+
+  /**
+   * @generated from field: int32 time_limit_minutes = 10;
+   */
+  timeLimitMinutes: number;
+};
+
+/**
+ * Describes the message factory.v1.ClaimedJob.
+ * Use `create(ClaimedJobSchema)` to create a new message.
+ */
+export const ClaimedJobSchema: GenMessage<ClaimedJob> = /*@__PURE__*/
+  messageDesc(file_factory_v1_runners, 11);
+
+/**
+ * @generated from message factory.v1.ClaimJobRequest
+ */
+export type ClaimJobRequest = Message<"factory.v1.ClaimJobRequest"> & {
+};
+
+/**
+ * Describes the message factory.v1.ClaimJobRequest.
+ * Use `create(ClaimJobRequestSchema)` to create a new message.
+ */
+export const ClaimJobRequestSchema: GenMessage<ClaimJobRequest> = /*@__PURE__*/
+  messageDesc(file_factory_v1_runners, 12);
+
+/**
+ * @generated from message factory.v1.ClaimJobResponse
+ */
+export type ClaimJobResponse = Message<"factory.v1.ClaimJobResponse"> & {
+  /**
+   * Unset when no job was queued within the hold.
+   *
+   * @generated from field: factory.v1.ClaimedJob job = 1;
+   */
+  job?: ClaimedJob | undefined;
+};
+
+/**
+ * Describes the message factory.v1.ClaimJobResponse.
+ * Use `create(ClaimJobResponseSchema)` to create a new message.
+ */
+export const ClaimJobResponseSchema: GenMessage<ClaimJobResponse> = /*@__PURE__*/
+  messageDesc(file_factory_v1_runners, 13);
+
+/**
+ * @generated from message factory.v1.CheckInRequest
+ */
+export type CheckInRequest = Message<"factory.v1.CheckInRequest"> & {
+  /**
+   * @generated from field: string job_id = 1;
+   */
+  jobId: string;
+
+  /**
+   * The harness's session id once it has one.
+   *
+   * @generated from field: string session_id = 2;
+   */
+  sessionId: string;
+};
+
+/**
+ * Describes the message factory.v1.CheckInRequest.
+ * Use `create(CheckInRequestSchema)` to create a new message.
+ */
+export const CheckInRequestSchema: GenMessage<CheckInRequest> = /*@__PURE__*/
+  messageDesc(file_factory_v1_runners, 14);
+
+/**
+ * @generated from message factory.v1.CheckInResponse
+ */
+export type CheckInResponse = Message<"factory.v1.CheckInResponse"> & {
+  /**
+   * True when the job is no longer running (lost or cancelled): stop it.
+   *
+   * @generated from field: bool stop = 1;
+   */
+  stop: boolean;
+};
+
+/**
+ * Describes the message factory.v1.CheckInResponse.
+ * Use `create(CheckInResponseSchema)` to create a new message.
+ */
+export const CheckInResponseSchema: GenMessage<CheckInResponse> = /*@__PURE__*/
+  messageDesc(file_factory_v1_runners, 15);
+
+/**
+ * @generated from message factory.v1.CompleteJobRequest
+ */
+export type CompleteJobRequest = Message<"factory.v1.CompleteJobRequest"> & {
+  /**
+   * @generated from field: string job_id = 1;
+   */
+  jobId: string;
+
+  /**
+   * @generated from field: bool succeeded = 2;
+   */
+  succeeded: boolean;
+
+  /**
+   * What the agent wrote, or why it failed. Posted on the task as a comment.
+   *
+   * @generated from field: string outcome = 3;
+   */
+  outcome: string;
+
+  /**
+   * @generated from field: string session_id = 4;
+   */
+  sessionId: string;
+};
+
+/**
+ * Describes the message factory.v1.CompleteJobRequest.
+ * Use `create(CompleteJobRequestSchema)` to create a new message.
+ */
+export const CompleteJobRequestSchema: GenMessage<CompleteJobRequest> = /*@__PURE__*/
+  messageDesc(file_factory_v1_runners, 16);
+
+/**
+ * @generated from message factory.v1.CompleteJobResponse
+ */
+export type CompleteJobResponse = Message<"factory.v1.CompleteJobResponse"> & {
+};
+
+/**
+ * Describes the message factory.v1.CompleteJobResponse.
+ * Use `create(CompleteJobResponseSchema)` to create a new message.
+ */
+export const CompleteJobResponseSchema: GenMessage<CompleteJobResponse> = /*@__PURE__*/
+  messageDesc(file_factory_v1_runners, 17);
+
+/**
  * Admin side of pairing, behind the browser session.
  *
  * @generated from service factory.v1.RunnerAdminService
@@ -300,8 +491,8 @@ export const RunnerAdminService: GenService<{
   serviceDesc(file_factory_v1_runners, 0);
 
 /**
- * The runner's own calls. Pair is authenticated by the pairing code, Heartbeat
- * by the device token; neither takes a cookie or MCP token, and nothing here
+ * The runner's own calls. Pair is authenticated by the pairing code, the rest
+ * by the device token; none takes a cookie or MCP token, and nothing here
  * reaches TaskService.
  *
  * @generated from service factory.v1.RunnerService
@@ -324,6 +515,34 @@ export const RunnerService: GenService<{
     methodKind: "unary";
     input: typeof HeartbeatRequestSchema;
     output: typeof HeartbeatResponseSchema;
+  },
+  /**
+   * Held open for up to 20 seconds waiting for the oldest queued job.
+   *
+   * @generated from rpc factory.v1.RunnerService.ClaimJob
+   */
+  claimJob: {
+    methodKind: "unary";
+    input: typeof ClaimJobRequestSchema;
+    output: typeof ClaimJobResponseSchema;
+  },
+  /**
+   * Every 30 seconds while a job runs; 5 minutes of silence marks it lost.
+   *
+   * @generated from rpc factory.v1.RunnerService.CheckIn
+   */
+  checkIn: {
+    methodKind: "unary";
+    input: typeof CheckInRequestSchema;
+    output: typeof CheckInResponseSchema;
+  },
+  /**
+   * @generated from rpc factory.v1.RunnerService.CompleteJob
+   */
+  completeJob: {
+    methodKind: "unary";
+    input: typeof CompleteJobRequestSchema;
+    output: typeof CompleteJobResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_factory_v1_runners, 1);

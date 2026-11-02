@@ -161,6 +161,9 @@ func (h *taskConnectHandler) ListTasks(
 	if _, err := actorFrom(ctx); err != nil {
 		return nil, err
 	}
+	// The board is polled while a runner may be gone, so this is where a job that
+	// stopped checking in gets noticed and its task parked in Needs you.
+	h.app.services.Jobs.SweepLost(ctx)
 	tasks, err := h.app.services.Tasks.List(ctx, "")
 	if err != nil {
 		return nil, mapError(err)

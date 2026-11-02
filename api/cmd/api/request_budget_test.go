@@ -129,9 +129,12 @@ func TestIsLongRequest(t *testing.T) {
 		appsMCPPath + "/x":                                         false,
 		"/books" + appsMCPPath:                                     false,
 		booksv1connect.BookFilesServiceGetBookFileProcedure:        false,
-		// The runner's heartbeat is held open for 20 seconds; its other calls
-		// are ordinary.
+		// The runner's heartbeat and job claim are held open for 20 seconds; its
+		// other calls are ordinary.
 		factoryv1connect.RunnerServiceHeartbeatProcedure:        true,
+		factoryv1connect.RunnerServiceClaimJobProcedure:         true,
+		factoryv1connect.RunnerServiceCheckInProcedure:          false,
+		factoryv1connect.RunnerServiceCompleteJobProcedure:      false,
 		factoryv1connect.RunnerServicePairProcedure:             false,
 		factoryv1connect.RunnerAdminServiceListRunnersProcedure: false,
 	} {
