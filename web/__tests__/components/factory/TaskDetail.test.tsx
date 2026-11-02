@@ -132,6 +132,15 @@ describe('TaskDetail', () => {
       await waitFor(() => expect(box).toHaveValue(''))
     })
 
+    it('handles the submit itself instead of reloading the page', () => {
+      mockTask({ data: detail })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      const form = screen.getByLabelText(/Instructions for this run/).closest('form')
+      if (!form) throw new Error('no form')
+      // fireEvent returns false when a handler called preventDefault.
+      expect(fireEvent.submit(form)).toBe(false)
+    })
+
     it('can run with no instructions', async () => {
       mockTask({ data: detail })
       render(<TaskDetail id="t-1" onClose={vi.fn()} />)
@@ -149,6 +158,28 @@ describe('TaskDetail', () => {
 
       expect(await screen.findByText(/edited outside a browser/)).toBeInTheDocument()
       expect(box).toHaveValue('go')
+    })
+
+    it('clears an earlier refusal on the next try, and the button comes back', async () => {
+      mockRun.mockRejectedValueOnce(new Error('Not run: nope'))
+      mockTask({ data: detail })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+      expect(await screen.findByText(/Not run: nope/)).toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+      await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+      expect(await screen.findByRole('button', { name: 'Run' })).toBeEnabled()
+    })
+
+    it('has its own words when the failure carries none', async () => {
+      mockRun.mockRejectedValueOnce('plain string')
+      mockTask({ data: detail })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Couldn’t run the task. Try again.'
+      )
     })
 
     it('shows the newest job and blocks another run while it is active', () => {
