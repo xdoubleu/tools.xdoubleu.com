@@ -120,12 +120,16 @@ func (r *JobsRepository) Complete(
 		RETURNING `+jobColumns, id, status, outcome, sessionID))
 }
 
-// Cancel ends a queued or running job. A job that already ended is not found.
-func (r *JobsRepository) Cancel(ctx context.Context, id uuid.UUID) (*models.Job, error) {
+// CancelForTask ends the task's queued or running job (a task has at most one).
+// A task with none is not found.
+func (r *JobsRepository) CancelForTask(
+	ctx context.Context,
+	taskID uuid.UUID,
+) (*models.Job, error) {
 	return scanJob(r.db.QueryRow(ctx, `
 		UPDATE factory.jobs SET status = 'cancelled', finished_at = now()
-		WHERE id = $1 AND status IN ('queued', 'running')
-		RETURNING `+jobColumns, id))
+		WHERE task_id = $1 AND status IN ('queued', 'running')
+		RETURNING `+jobColumns, taskID))
 }
 
 // ExpireLost marks every running job that hasn't checked in since cutoff as

@@ -155,29 +155,24 @@ func (s *JobService) Stop(
 	if !actor.CanMoveToReady() {
 		return nil, forbidden("only a human admin in a browser session can stop a job")
 	}
-	existing, err := s.jobs.ByTask(ctx, taskID)
+	if _, err := s.tasks.Get(ctx, taskID); err != nil {
+		return nil, err
+	}
+	job, err := s.jobs.CancelForTask(ctx, taskID)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return nil, conflict("this task has no queued or running job")
+	}
 	if err != nil {
 		return nil, err
 	}
-	for i := range existing {
-		if existing[i].Status.Finished() {
-			continue
-		}
-		job, cancelErr := s.jobs.Cancel(ctx, existing[i].ID)
-		if errors.Is(cancelErr, database.ErrResourceNotFound) {
-			break // it ended meanwhile
-		}
-		if cancelErr != nil {
-			return nil, cancelErr
-		}
-		body := "Job stopped by " + actor.String() + ". Its branch `" + job.Branch +
-			"` may hold partial work on the Mac."
-		if err = s.finishTask(ctx, taskID, systemAuthor, body); err != nil {
-			return nil, err
-		}
-		return job, nil
+	body := "Job stopped by " + actor.String() + "."
+	if job.StartedAt != nil {
+		body += " Its branch `" + job.Branch + "` may hold partial work on the Mac."
 	}
-	return nil, conflict("this task has no queued or running job")
+	if err = s.finishTask(ctx, taskID, systemAuthor, body); err != nil {
+		return nil, err
+	}
+	return job, nil
 }
 
 // refuse comments why a task wasn't run and parks it in Needs you, once: a task

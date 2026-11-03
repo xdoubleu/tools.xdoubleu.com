@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -431,6 +432,7 @@ func TestStopCancelsAQueuedJobAndParksTheTask(t *testing.T) {
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Task.Status)
 	require.Len(t, got.Comments, 1)
 	assert.Contains(t, got.Comments[0].Body, "Job stopped by")
+	assert.NotContains(t, got.Comments[0].Body, "branch", "it never started")
 	assert.Nil(t, env.claim(t), "a stopped job is never claimed")
 }
 
@@ -442,6 +444,7 @@ func TestStopTellsTheRunnerOnItsNextCheckIn(t *testing.T) {
 
 	_, err := env.stop(t, task.Id)
 	require.NoError(t, err)
+	assert.Contains(t, env.task(t, task.Id).Comments[0].Body, "partial work")
 
 	resp, err := env.runner.CheckIn(bearer(env.token),
 		&factoryv1.CheckInRequest{JobId: claimed.Id})
@@ -473,6 +476,9 @@ func TestStopNeedsAJobAndAHumanAdminInABrowser(t *testing.T) {
 
 	_, err = env.stop(t, "not-a-uuid")
 	assert.Equal(t, connect.CodeInvalidArgument, code(err))
+
+	_, err = env.stop(t, uuid.NewString())
+	assert.Equal(t, connect.CodeNotFound, code(err))
 }
 
 func TestStopSkipsFinishedJobs(t *testing.T) {
