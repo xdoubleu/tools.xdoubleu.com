@@ -16,6 +16,12 @@ vi.mock('@/hooks/useFactory', () => ({
     stop: mockStop
   }))
 }))
+vi.mock('@/components/factory/JobLog', () => ({
+  __esModule: true,
+  default: ({ jobId, active }: { jobId: string; active: boolean }) => (
+    <div data-testid="job-log">{`${jobId} ${active ? 'active' : 'idle'}`}</div>
+  )
+}))
 vi.mock('@/components/factory/TaskDialog', () => ({
   __esModule: true,
   default: ({ onClose }: { onClose: () => void }) => (
@@ -235,6 +241,22 @@ describe('TaskDetail', () => {
       mockTask({ data: withJob(JobStatus.FAILED) })
       render(<TaskDetail id="t-1" onClose={vi.fn()} />)
       expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
+    })
+
+    it('shows the latest jobs log, followed while it is active', () => {
+      mockTask({ data: withJob(JobStatus.RUNNING) })
+      const { rerender } = render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      expect(screen.getByTestId('job-log')).toHaveTextContent('j-1 active')
+
+      mockTask({ data: withJob(JobStatus.FAILED) })
+      rerender(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      expect(screen.getByTestId('job-log')).toHaveTextContent('j-1 idle')
+    })
+
+    it('has no log before the first run', () => {
+      mockTask({ data: detail })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      expect(screen.queryByTestId('job-log')).not.toBeInTheDocument()
     })
 
     it('allows another run once the job has finished', () => {

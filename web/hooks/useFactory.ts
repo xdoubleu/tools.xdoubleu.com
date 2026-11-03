@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { swrKeys } from '@/lib/swrKeys'
 import { createServiceClient } from '@/lib/client'
@@ -6,6 +7,7 @@ import { RepoService, TaskService } from '@/lib/gen/factory/v1/factory_pb'
 import { RunnerAdminService } from '@/lib/gen/factory/v1/runners_pb'
 import type {
   GetTaskResponse,
+  JobEvent,
   Harness,
   ListReposResponse,
   ListTasksResponse,
@@ -15,6 +17,7 @@ import type {
 import type { ListAgentAccountsResponse } from '@/lib/gen/factory/v1/agent_accounts_pb'
 import type { ListRunnersResponse } from '@/lib/gen/factory/v1/runners_pb'
 import { JOB_POLL_MS, jobActive } from '@/lib/factory/board'
+import { LOG_POLL_MS } from '@/lib/factory/joblog'
 
 export function useFactoryTasks() {
   const client = createServiceClient(TaskService)
@@ -61,6 +64,53 @@ export function useFactoryTask(id: string | null) {
     // Refreshed while its newest job is on the way, so the sheet shows it finish.
     { refreshInterval: (data) => (jobActive(data?.jobs[0]) ? JOB_POLL_MS : 0) }
   )
+}
+
+/** The server returns at most this many events per call. */
+const EVENTS_PAGE = 500
+
+/**
+ * Keeps the longest read of a job's log: overlapping fetches (a refresh while
+ * one is in flight) finish in any order, and a slower one must not roll back.
+ */
+function remember(cache: Map<string, JobEvent[]>, jobId: string, events: JobEvent[]): JobEvent[] {
+  const longest = cache.get(jobId)
+  if (longest && longest.length > events.length) return longest
+  cache.set(jobId, events)
+  return events
+}
+
+/**
+ * A job's log, fetched a page at a time after the last event seen, so a poll
+ * costs what is new. Refreshed while the job is active, and once more when it
+ * stops, to pick up what it said last.
+ */
+export function useJobLog(jobId: string | null, active: boolean) {
+  const client = createServiceClient(TaskService)
+  const kept = useRef(new Map<string, JobEvent[]>())
+
+  const result = useSWR<JobEvent[], Error, ReturnType<typeof swrKeys.factoryJobEvents> | null>(
+    jobId ? swrKeys.factoryJobEvents(jobId) : null,
+    async ([, id]) => {
+      let events = kept.current.get(id) ?? []
+      for (;;) {
+        const afterSeq = events.at(-1)?.seq ?? 0
+        const page = (await client.listJobEvents({ jobId: id, afterSeq })).events
+        events = remember(kept.current, id, [...events, ...page])
+        if (page.length < EVENTS_PAGE) return events
+      }
+    },
+    { refreshInterval: active ? LOG_POLL_MS : 0 }
+  )
+
+  const { mutate } = result
+  const wasActive = useRef(active)
+  useEffect(() => {
+    if (wasActive.current && !active) void mutate()
+    wasActive.current = active
+  }, [active, mutate])
+
+  return result
 }
 
 interface TaskFields {
