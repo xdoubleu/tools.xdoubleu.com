@@ -59,6 +59,25 @@ func (h *taskConnectHandler) RunTask(
 	return &factoryv1.RunTaskResponse{Job: protoJob(job)}, nil
 }
 
+func (h *taskConnectHandler) StopJob(
+	ctx context.Context,
+	req *factoryv1.StopJobRequest,
+) (*factoryv1.StopJobResponse, error) {
+	actor, err := actorFrom(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := parseID(req.GetTaskId())
+	if err != nil {
+		return nil, err
+	}
+	job, err := h.app.services.Jobs.Stop(ctx, actor, id)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &factoryv1.StopJobResponse{Job: protoJob(job)}, nil
+}
+
 // claimedJobToProto is the job as the runner receives it.
 func claimedJobToProto(c *services.ClaimedJob) *factoryv1.ClaimedJob {
 	timeLimit := int32(c.Repo.TimeLimitMinutes) //nolint:gosec // minutes, far below 2^31

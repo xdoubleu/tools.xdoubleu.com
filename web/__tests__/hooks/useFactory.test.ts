@@ -26,6 +26,7 @@ const mockClient = {
   moveTask: vi.fn().mockResolvedValue({}),
   addComment: vi.fn().mockResolvedValue({}),
   runTask: vi.fn().mockResolvedValue({}),
+  stopJob: vi.fn().mockResolvedValue({}),
   listRepos: vi.fn().mockResolvedValue({ repos: [] }),
   createRepo: vi.fn().mockResolvedValue({}),
   updateRepo: vi.fn().mockResolvedValue({}),
@@ -223,6 +224,13 @@ describe('useFactoryActions', () => {
     mockClient.runTask.mockRejectedValueOnce(new Error('Not run'))
     const { result } = renderHook(() => useFactoryActions())
     await expect(result.current.run('t-1', '')).rejects.toThrow('Not run')
+    expect(mockMutate).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops the job and revalidates', async () => {
+    const { result } = renderHook(() => useFactoryActions())
+    await result.current.stop('t-1')
+    expect(mockClient.stopJob).toHaveBeenCalledWith({ taskId: 't-1' })
     expect(mockMutate).toHaveBeenCalledTimes(1)
   })
 
