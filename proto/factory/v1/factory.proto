@@ -129,6 +129,28 @@ message Job {
   string created_at = 5;
 }
 
+// One event of a job's log: a line of the harness's stream-json output.
+message JobEvent {
+  // 1, 2, 3, … per job.
+  int32 seq = 1;
+  // The event's `type` ("assistant", "user", "system", "result", …) or "raw".
+  string kind = 2;
+  // The JSON line, credential values removed.
+  string payload = 3;
+  // RFC3339.
+  string created_at = 4;
+}
+
+// A job's log after seq `after_seq` (0 for all), oldest first, at most 500.
+// Human admin, browser session only: the log can hold code and file contents.
+message ListJobEventsRequest {
+  string job_id = 1;
+  int32 after_seq = 2;
+}
+message ListJobEventsResponse {
+  repeated JobEvent events = 1;
+}
+
 // Queues a job for the task and moves it to In progress. A human admin in a
 // browser session only: running an agent is the approval Ready stands for.
 message RunTaskRequest {
@@ -158,6 +180,7 @@ service TaskService {
   rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
   rpc RunTask(RunTaskRequest) returns (RunTaskResponse);
   rpc StopJob(StopJobRequest) returns (StopJobResponse);
+  rpc ListJobEvents(ListJobEventsRequest) returns (ListJobEventsResponse);
 }
 
 message Repo {

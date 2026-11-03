@@ -69,7 +69,9 @@ type JobRunner struct {
 	// time limit; zero means CheckInEvery and time.Minute. Tests shorten them.
 	CheckInEvery time.Duration
 	Minute       time.Duration
-	Log          *slog.Logger
+	// EventsEvery is how often the job's log is forwarded; zero means EventsEvery.
+	EventsEvery time.Duration
+	Log         *slog.Logger
 }
 
 // failed is a result for a job that never reached the agent.
@@ -224,13 +226,11 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	defer cancel()
 
 	tap := &sessionTap{harness: r.Harness, mu: sync.Mutex{}, partial: nil, session: ""}
+	events := &eventTap{
+		secrets: r.secrets(), mu: sync.Mutex{}, partial: nil, queue: nil,
+	}
 	var stopped atomic.Bool
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		r.checkIns(runCtx, cancel, job.ID, tap, &stopped)
-	}()
+	wait := r.watch(runCtx, cancel, job.ID, tap, events, &stopped)
 
 	exit, runErr := r.Sandbox.Run(runCtx, SandboxSpec{
 		CloneDir:   cloneDir,
@@ -242,11 +242,13 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		SetupCommands: job.SetupCommands,
 		Command:       r.Harness.Command(),
 		Stdin:         fmt.Sprintf(preamble, job.Branch) + "\n\n" + job.Prompt,
-		Log:           tap,
+		Log:           io.MultiWriter(tap, events),
 	})
 	timedOut := errors.Is(runCtx.Err(), context.DeadlineExceeded)
 	cancel()
-	wg.Wait()
+	wait()
+	// What the agent said last is what you most want to read.
+	r.flush(ctx, job.ID, events)
 
 	text := readOutcome(filepath.Join(outcomeDir, outcomeFile))
 	res := result{succeeded: false, outcome: "", session: tap.Session()}
@@ -279,7 +281,7 @@ func (r *JobRunner) publishable(
 	cloneDir, text string,
 	res result,
 ) result {
-	secrets := append([]string{r.Token}, r.Secrets...)
+	secrets := r.secrets()
 	err := r.Git.Inspect(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
 		job.Branch, job.ID, cloneDir, secrets)
 	if err == nil && leaks(text, secrets) {
@@ -298,6 +300,11 @@ func (r *JobRunner) publishable(
 	return res
 }
 
+// secrets are the values that must not leave the Mac in a log, commit or outcome.
+func (r *JobRunner) secrets() []string {
+	return append([]string{r.Token}, r.Secrets...)
+}
+
 // leaks reports whether text contains any secret long enough to search for.
 func leaks(text string, secrets []string) bool {
 	for _, secret := range secrets {
@@ -306,6 +313,22 @@ func leaks(text string, secrets []string) bool {
 		}
 	}
 	return false
+}
+
+// watch starts the check-ins and the log forwarding of a running job, and
+// returns what waits for both to end once ctx does.
+func (r *JobRunner) watch(
+	ctx context.Context,
+	cancel context.CancelFunc,
+	jobID string,
+	tap *sessionTap,
+	events *eventTap,
+	stopped *atomic.Bool,
+) func() {
+	var wg sync.WaitGroup
+	wg.Go(func() { r.checkIns(ctx, cancel, jobID, tap, stopped) })
+	wg.Go(func() { r.forwardEvents(ctx, jobID, events) })
+	return wg.Wait
 }
 
 // checkIns reports the job alive until ctx ends, and cancels the run when the

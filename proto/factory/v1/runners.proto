@@ -100,6 +100,14 @@ message CheckInResponse {
   bool stop = 1;
 }
 
+// A batch of the harness's stream-json lines, credential values already
+// removed by the runner. At most 200 lines per call; the server caps a job's log.
+message AppendJobEventsRequest {
+  string job_id = 1;
+  repeated string lines = 2;
+}
+message AppendJobEventsResponse {}
+
 message CompleteJobRequest {
   string job_id = 1;
   bool succeeded = 2;
@@ -120,5 +128,6 @@ service RunnerService {
   rpc ClaimJob(ClaimJobRequest) returns (ClaimJobResponse);
   // Every 30 seconds while a job runs; 5 minutes of silence marks it lost.
   rpc CheckIn(CheckInRequest) returns (CheckInResponse);
+  rpc AppendJobEvents(AppendJobEventsRequest) returns (AppendJobEventsResponse);
   rpc CompleteJob(CompleteJobRequest) returns (CompleteJobResponse);
 }

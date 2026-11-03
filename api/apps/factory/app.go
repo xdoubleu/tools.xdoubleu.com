@@ -4,17 +4,22 @@ package factory
 import (
 	"context"
 	"embed"
+	"errors"
 	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"tools.xdoubleu.com/apps/factory/internal/jobs"
 	"tools.xdoubleu.com/apps/factory/internal/repositories"
 	"tools.xdoubleu.com/apps/factory/internal/services"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/jobqueue"
+	"tools.xdoubleu.com/internal/observability"
+	"tools.xdoubleu.com/internal/threading"
 )
 
 //go:embed migrations/*.sql
@@ -23,6 +28,8 @@ var embedMigrations embed.FS
 type Factory struct {
 	app.Base
 	services *services.Services
+	db       postgres.DB
+	jobQueue *jobqueue.JobQueue
 	// stepUp checks the TOTP code that creating a runner needs.
 	stepUp        StepUp
 	heartbeatHold time.Duration
@@ -42,6 +49,11 @@ func WithHeartbeatHold(d time.Duration) Option {
 	return func(a *Factory) { a.heartbeatHold = d }
 }
 
+const (
+	amountOfWorkers = 1
+	jobQueueSize    = 10
+)
+
 func New(
 	ctx context.Context,
 	authService auth.Service,
@@ -53,6 +65,8 @@ func New(
 	a := &Factory{
 		Base:          app.NewBase(ctx, authService, logger, cfg),
 		services:      services.New(repositories.New(db), authService),
+		db:            db,
+		jobQueue:      jobqueue.NewJobQueue(ctx, logger, amountOfWorkers, jobQueueSize, db),
 		stepUp:        nil,
 		heartbeatHold: DefaultHeartbeatHold,
 	}
@@ -75,5 +89,21 @@ func (a *Factory) GetDisplayName() string {
 }
 
 func (a *Factory) Start() error {
-	return nil
+	noop := func(_ string, _ bool, _ *time.Time) {}
+	return a.jobQueue.AddJob(a.pruneJob(), noop)
+}
+
+func (a *Factory) pruneJob() threading.Job {
+	prune := jobs.NewPruneJobEventsJob(a.services.Jobs)
+	return observability.NewTrackedJob(prune, a.db)
+}
+
+// PruneEventsNow runs the job-log retention job once, outside its schedule.
+func (a *Factory) PruneEventsNow(ctx context.Context) error {
+	return a.pruneJob().Run(ctx, a.Logger)
+}
+
+// Shutdown drains background tasks, then the job queue.
+func (a *Factory) Shutdown(ctx context.Context) error {
+	return errors.Join(a.Base.Shutdown(ctx), a.jobQueue.Wait(ctx))
 }

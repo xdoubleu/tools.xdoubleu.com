@@ -7,6 +7,7 @@ type Repositories struct {
 	Repos   *ReposRepository
 	Runners *RunnersRepository
 	Jobs    *JobsRepository
+	Events  *JobEventsRepository
 }
 
 func New(db postgres.DB) *Repositories {
@@ -15,5 +16,6 @@ func New(db postgres.DB) *Repositories {
 		Repos:   &ReposRepository{db: db},
 		Runners: &RunnersRepository{db: db},
 		Jobs:    &JobsRepository{db: db},
+		Events:  &JobEventsRepository{db: db},
 	}
 }

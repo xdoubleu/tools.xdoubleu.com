@@ -42,3 +42,12 @@ type Job struct {
 	LastCheckIn *time.Time
 	FinishedAt  *time.Time
 }
+
+// JobEvent is one line of a job's log.
+type JobEvent struct {
+	JobID     uuid.UUID
+	Seq       int
+	Kind      string
+	Payload   string
+	CreatedAt time.Time
+}

@@ -29,6 +29,8 @@ type JobAPI interface {
 	ClaimJob(ctx context.Context, token string) (*ClaimedJob, error)
 	// CheckIn reports a running job alive and says whether to stop it.
 	CheckIn(ctx context.Context, token, jobID, sessionID string) (bool, error)
+	// AppendJobEvents sends a batch of the harness's output lines, already redacted.
+	AppendJobEvents(ctx context.Context, token, jobID string, lines []string) error
 	CompleteJob(
 		ctx context.Context,
 		token, jobID string,
@@ -48,6 +50,11 @@ type checkInRequest struct {
 
 type checkInResponse struct {
 	Stop bool `json:"stop"`
+}
+
+type appendJobEventsRequest struct {
+	JobID string   `json:"jobId"`
+	Lines []string `json:"lines"`
 }
 
 type completeJobRequest struct {
@@ -76,6 +83,16 @@ func (c *Client) CheckIn(
 	err := c.call(ctx, "CheckIn", token, pairTimeout,
 		checkInRequest{JobID: jobID, SessionID: sessionID}, &resp)
 	return resp.Stop, err
+}
+
+// AppendJobEvents implements JobAPI.
+func (c *Client) AppendJobEvents(
+	ctx context.Context,
+	token, jobID string,
+	lines []string,
+) error {
+	return c.call(ctx, "AppendJobEvents", token, pairTimeout,
+		appendJobEventsRequest{JobID: jobID, Lines: lines}, &struct{}{})
 }
 
 // CompleteJob implements JobAPI.
