@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -409,4 +410,86 @@ func TestReadingATaskNoticesALostJob(t *testing.T) {
 	require.Len(t, got.Jobs, 1)
 	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_LOST, got.Jobs[0].Status)
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Task.Status)
+}
+
+func (e jobEnv) stop(t *testing.T, taskID string) (*factoryv1.StopJobResponse, error) {
+	t.Helper()
+	return e.tasks.StopJob(context.Background(),
+		&factoryv1.StopJobRequest{TaskId: taskID})
+}
+
+func TestStopCancelsAQueuedJobAndParksTheTask(t *testing.T) {
+	env := browserJobEnv(t)
+	task := env.newTask(t, "never started")
+	queued := env.run(t, task.Id, "")
+
+	stopped, err := env.stop(t, task.Id)
+	require.NoError(t, err)
+	assert.Equal(t, queued.Id, stopped.Job.Id)
+	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_CANCELLED, stopped.Job.Status)
+
+	got := env.task(t, task.Id)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Task.Status)
+	require.Len(t, got.Comments, 1)
+	assert.Contains(t, got.Comments[0].Body, "Job stopped by")
+	assert.NotContains(t, got.Comments[0].Body, "branch", "it never started")
+	assert.Nil(t, env.claim(t), "a stopped job is never claimed")
+}
+
+func TestStopTellsTheRunnerOnItsNextCheckIn(t *testing.T) {
+	env := browserJobEnv(t)
+	task := env.newTask(t, "running")
+	env.run(t, task.Id, "")
+	claimed := env.claim(t)
+
+	_, err := env.stop(t, task.Id)
+	require.NoError(t, err)
+	assert.Contains(t, env.task(t, task.Id).Comments[0].Body, "partial work")
+
+	resp, err := env.runner.CheckIn(bearer(env.token),
+		&factoryv1.CheckInRequest{JobId: claimed.Id})
+	require.NoError(t, err)
+	assert.True(t, resp.Stop)
+	_, err = env.runner.CompleteJob(bearer(env.token),
+		&factoryv1.CompleteJobRequest{JobId: claimed.Id, Succeeded: true})
+	assert.Equal(t, connect.CodeAlreadyExists, code(err), "too late to complete")
+
+	// And the task can be run again.
+	env.run(t, task.Id, "again")
+}
+
+func TestStopNeedsAJobAndAHumanAdminInABrowser(t *testing.T) {
+	env := browserJobEnv(t)
+	task := env.newTask(t, "nothing to stop")
+	_, err := env.stop(t, task.Id)
+	assert.Equal(t, connect.CodeAlreadyExists, code(err))
+
+	env.run(t, task.Id, "")
+	for name, other := range map[string]factoryv1connect.TaskServiceClient{
+		"not an admin":  newClientKeepingBoard(t, false, constants.ChannelBrowser),
+		"not a browser": newClientKeepingBoard(t, true, constants.ChannelMCP),
+	} {
+		_, err = other.StopJob(context.Background(),
+			&factoryv1.StopJobRequest{TaskId: task.Id})
+		assert.Equal(t, connect.CodePermissionDenied, code(err), name)
+	}
+
+	_, err = env.stop(t, "not-a-uuid")
+	assert.Equal(t, connect.CodeInvalidArgument, code(err))
+
+	_, err = env.stop(t, uuid.NewString())
+	assert.Equal(t, connect.CodeNotFound, code(err))
+}
+
+func TestStopSkipsFinishedJobs(t *testing.T) {
+	env := browserJobEnv(t)
+	task := env.newTask(t, "done already")
+	env.run(t, task.Id, "")
+	claimed := env.claim(t)
+	_, err := env.runner.CompleteJob(bearer(env.token),
+		&factoryv1.CompleteJobRequest{JobId: claimed.Id, Succeeded: true})
+	require.NoError(t, err)
+
+	_, err = env.stop(t, task.Id)
+	assert.Equal(t, connect.CodeAlreadyExists, code(err))
 }

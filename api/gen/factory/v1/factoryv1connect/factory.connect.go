@@ -40,6 +40,8 @@ const (
 	TaskServiceAddCommentProcedure = "/factory.v1.TaskService/AddComment"
 	// TaskServiceRunTaskProcedure is the procedure name of the TaskService's RunTask RPC.
 	TaskServiceRunTaskProcedure = "/factory.v1.TaskService/RunTask"
+	// TaskServiceStopJobProcedure is the procedure name of the TaskService's StopJob RPC.
+	TaskServiceStopJobProcedure = "/factory.v1.TaskService/StopJob"
 	// RepoServiceListReposProcedure is the procedure name of the RepoService's ListRepos RPC.
 	RepoServiceListReposProcedure = "/factory.v1.RepoService/ListRepos"
 	// RepoServiceCreateRepoProcedure is the procedure name of the RepoService's CreateRepo RPC.
@@ -98,6 +100,13 @@ var (
 			Procedure:  TaskServiceRunTaskProcedure,
 		}
 	})
+	taskServiceStopJobSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("TaskService").Methods().ByName("StopJob"),
+			Procedure:  TaskServiceStopJobProcedure,
+		}
+	})
 )
 
 // TaskServiceClient is a client for the factory.v1.TaskService service.
@@ -109,6 +118,7 @@ type TaskServiceClient interface {
 	MoveTask(context.Context, *v1.MoveTaskRequest) (*v1.MoveTaskResponse, error)
 	AddComment(context.Context, *v1.AddCommentRequest) (*v1.AddCommentResponse, error)
 	RunTask(context.Context, *v1.RunTaskRequest) (*v1.RunTaskResponse, error)
+	StopJob(context.Context, *v1.StopJobRequest) (*v1.StopJobResponse, error)
 }
 
 // NewTaskServiceClient constructs a client for the factory.v1.TaskService service. Multiple service
@@ -126,6 +136,7 @@ type TaskServiceHandler interface {
 	MoveTask(context.Context, *v1.MoveTaskRequest) (*v1.MoveTaskResponse, error)
 	AddComment(context.Context, *v1.AddCommentRequest) (*v1.AddCommentResponse, error)
 	RunTask(context.Context, *v1.RunTaskRequest) (*v1.RunTaskResponse, error)
+	StopJob(context.Context, *v1.StopJobRequest) (*v1.StopJobResponse, error)
 }
 
 // RegisterTaskServiceHandler registers svc as the factory.v1.TaskService implementation on server.
@@ -139,6 +150,7 @@ func RegisterTaskServiceHandler(server *connect.Server, svc TaskServiceHandler) 
 		connect.Method{Spec: taskServiceMoveTaskSpec(), Handler: adapter.moveTask},
 		connect.Method{Spec: taskServiceAddCommentSpec(), Handler: adapter.addComment},
 		connect.Method{Spec: taskServiceRunTaskSpec(), Handler: adapter.runTask},
+		connect.Method{Spec: taskServiceStopJobSpec(), Handler: adapter.stopJob},
 	)
 }
 
@@ -171,6 +183,10 @@ func (UnimplementedTaskServiceHandler) AddComment(context.Context, *v1.AddCommen
 
 func (UnimplementedTaskServiceHandler) RunTask(context.Context, *v1.RunTaskRequest) (*v1.RunTaskResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.RunTask is not implemented")
+}
+
+func (UnimplementedTaskServiceHandler) StopJob(context.Context, *v1.StopJobRequest) (*v1.StopJobResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.StopJob is not implemented")
 }
 
 type taskServiceClient struct {
@@ -228,6 +244,14 @@ func (c *taskServiceClient) AddComment(ctx context.Context, req *v1.AddCommentRe
 func (c *taskServiceClient) RunTask(ctx context.Context, req *v1.RunTaskRequest) (*v1.RunTaskResponse, error) {
 	var res v1.RunTaskResponse
 	if err := c.client.CallUnary(ctx, taskServiceRunTaskSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *taskServiceClient) StopJob(ctx context.Context, req *v1.StopJobRequest) (*v1.StopJobResponse, error) {
+	var res v1.StopJobResponse
+	if err := c.client.CallUnary(ctx, taskServiceStopJobSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -313,6 +337,18 @@ func (h taskServiceHandler) runTask(ctx context.Context, _ connect.Spec, stream 
 		return err
 	}
 	res, err := h.svc.RunTask(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h taskServiceHandler) stopJob(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StopJobRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.StopJob(ctx, &req)
 	if err != nil {
 		return err
 	}

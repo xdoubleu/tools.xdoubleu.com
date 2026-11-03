@@ -121,6 +121,11 @@ export function useFactoryActions() {
         await refresh()
       }
     },
+    /** Cancels the task's queued or running job; the runner stops on its next check-in. */
+    stop: async (taskId: string) => {
+      await client.stopJob({ taskId })
+      await refresh()
+    },
     createRepo: async (repo: RepoFields) => {
       await repoClient.createRepo({ repo })
       await refresh()

@@ -15,7 +15,7 @@ its own work ([ADR-0041](adr-0041-factory-runner-pairing.md)).
 
 - **A `jobs` table is the queue.** `RunTask` (a human admin in a browser session,
   as for Ready) adds a row and moves the task to In progress. The oldest queued
-  row is claimed first, and a unique index allows one running job at a time.
+  row is claimed first, and a unique index allows one running job at a time. `StopJob` (same actor rule) cancels a queued or running job; the runner's next check-in finds it not running, which is how it learns to stop.
 - **The runner pulls.** `ClaimJob` is held open for up to 20 seconds (a long
   route, [ADR-0017](adr-0017-long-request-handler-deadlines.md)) and polls the
   queue each second. `CheckIn` every 30 seconds keeps a job alive and tells the

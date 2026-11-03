@@ -66,9 +66,10 @@ function CommentForm({ taskId }: { taskId: string }) {
 
 /** Run the task on the runner, and what its latest job is doing. */
 function RunSection({ taskId, latest }: { taskId: string; latest: Job | undefined }) {
-  const { run } = useFactoryActions()
+  const { run, stop } = useFactoryActions()
   const [text, setText] = useState('')
   const [pending, setPending] = useState(false)
+  const [stopping, setStopping] = useState(false)
   const [error, setError] = useState('')
   const active = jobActive(latest)
 
@@ -83,6 +84,17 @@ function RunSection({ taskId, latest }: { taskId: string; latest: Job | undefine
       setError(err instanceof Error ? err.message : 'Couldn\u2019t run the task. Try again.')
     }
     setPending(false)
+  }
+
+  const halt = async () => {
+    setStopping(true)
+    setError('')
+    try {
+      await stop(taskId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Couldn\u2019t stop the job. Try again.')
+    }
+    setStopping(false)
   }
 
   return (
@@ -105,6 +117,16 @@ function RunSection({ taskId, latest }: { taskId: string; latest: Job | undefine
         <Button type="submit" disabled={pending || active}>
           {pending ? 'Queuing…' : active ? 'Running…' : 'Run'}
         </Button>
+        {active && (
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={stopping}
+            onClick={() => void halt()}
+          >
+            {stopping ? 'Stopping…' : 'Stop'}
+          </Button>
+        )}
       </form>
     </Card>
   )

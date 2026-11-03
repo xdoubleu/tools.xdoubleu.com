@@ -4,11 +4,17 @@ import { create } from '@bufbuild/protobuf'
 
 const mockComment = vi.fn()
 const mockRun = vi.fn()
+const mockStop = vi.fn()
 const mockAgents = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
   useFactoryTask: vi.fn(),
   useFactoryAgents: () => mockAgents(),
-  useFactoryActions: vi.fn(() => ({ comment: mockComment, move: vi.fn(), run: mockRun }))
+  useFactoryActions: vi.fn(() => ({
+    comment: mockComment,
+    move: vi.fn(),
+    run: mockRun,
+    stop: mockStop
+  }))
 }))
 vi.mock('@/components/factory/TaskDialog', () => ({
   __esModule: true,
@@ -55,6 +61,7 @@ beforeEach(() => {
   mockAgents.mockReturnValue({ data: undefined })
   mockComment.mockResolvedValue(undefined)
   mockRun.mockResolvedValue(undefined)
+  mockStop.mockResolvedValue(undefined)
 })
 
 describe('TaskDetail', () => {
@@ -189,6 +196,45 @@ describe('TaskDetail', () => {
         'Job running · agent/t-1-fix-login'
       )
       expect(screen.getByRole('button', { name: 'Running…' })).toBeDisabled()
+    })
+
+    it('stops an active job', async () => {
+      mockTask({ data: withJob(JobStatus.RUNNING) })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+      await waitFor(() => expect(mockStop).toHaveBeenCalledWith('t-1'))
+      expect(await screen.findByRole('button', { name: 'Stop' })).toBeEnabled()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    })
+
+    it('shows Stopping… while the stop is in flight', async () => {
+      mockStop.mockReturnValue(new Promise(() => {}))
+      mockTask({ data: withJob(JobStatus.QUEUED) })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+      expect(await screen.findByRole('button', { name: 'Stopping…' })).toBeDisabled()
+    })
+
+    it('says why a stop failed, and has its own words when there are none', async () => {
+      mockStop.mockRejectedValueOnce(new Error('this task has no queued or running job'))
+      mockTask({ data: withJob(JobStatus.RUNNING) })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('no queued or running job')
+
+      mockStop.mockRejectedValueOnce('plain string')
+      fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+      await waitFor(() =>
+        expect(screen.getByRole('alert')).toHaveTextContent(
+          'Couldn\u2019t stop the job. Try again.'
+        )
+      )
+    })
+
+    it('has no Stop button when nothing is running', () => {
+      mockTask({ data: withJob(JobStatus.FAILED) })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
     })
 
     it('allows another run once the job has finished', () => {

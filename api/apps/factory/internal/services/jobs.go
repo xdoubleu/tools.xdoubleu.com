@@ -144,6 +144,37 @@ func (s *JobService) Run(
 	return job, nil
 }
 
+// Stop cancels the task's queued or running job and parks the task in Needs you.
+// A running job's runner learns of it on its next check-in, which no longer finds
+// the job running. Only a human admin in a browser may stop, as for Run.
+func (s *JobService) Stop(
+	ctx context.Context,
+	actor models.Actor,
+	taskID uuid.UUID,
+) (*models.Job, error) {
+	if !actor.CanMoveToReady() {
+		return nil, forbidden("only a human admin in a browser session can stop a job")
+	}
+	if _, err := s.tasks.Get(ctx, taskID); err != nil {
+		return nil, err
+	}
+	job, err := s.jobs.CancelForTask(ctx, taskID)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return nil, conflict("this task has no queued or running job")
+	}
+	if err != nil {
+		return nil, err
+	}
+	body := "Job stopped by " + actor.String() + "."
+	if job.StartedAt != nil {
+		body += " Its branch `" + job.Branch + "` may hold partial work on the Mac."
+	}
+	if err = s.finishTask(ctx, taskID, systemAuthor, body); err != nil {
+		return nil, err
+	}
+	return job, nil
+}
+
 // refuse comments why a task wasn't run and parks it in Needs you, once: a task
 // already there has the comment, and another press must not repeat it.
 func (s *JobService) refuse(ctx context.Context, task *models.Task) error {

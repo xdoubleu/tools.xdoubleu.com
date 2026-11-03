@@ -140,6 +140,15 @@ message RunTaskResponse {
   Job job = 1;
 }
 
+// Stops the task's queued or running job; the runner sees it on its next
+// check-in. Human admin, browser session only, like Run.
+message StopJobRequest {
+  string task_id = 1;
+}
+message StopJobResponse {
+  Job job = 1;
+}
+
 service TaskService {
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
   rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
@@ -148,6 +157,7 @@ service TaskService {
   rpc MoveTask(MoveTaskRequest) returns (MoveTaskResponse);
   rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
   rpc RunTask(RunTaskRequest) returns (RunTaskResponse);
+  rpc StopJob(StopJobRequest) returns (StopJobResponse);
 }
 
 message Repo {
