@@ -157,3 +157,26 @@ func (r *JobsRepository) ExpireLost(
 	}
 	return out, rows.Err()
 }
+
+// Running returns which of the jobs are running.
+func (r *JobsRepository) Running(
+	ctx context.Context,
+	ids []uuid.UUID,
+) ([]uuid.UUID, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id FROM factory.jobs WHERE id = ANY($1) AND status = 'running'`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err = rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}

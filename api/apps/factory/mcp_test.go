@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/factory"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
 )
@@ -27,11 +28,21 @@ func asUser(role models.Role) *models.User {
 // the given user.
 func mcpSessionAs(t *testing.T, user *models.User) *mcp.ClientSession {
 	t.Helper()
+	return mcpSessionOn(t, newApp(true, constants.ChannelBrowser), user)
+}
+
+// mcpSessionOn is mcpSessionAs on a given app.
+func mcpSessionOn(
+	t *testing.T,
+	app *factory.Factory,
+	user *models.User,
+) *mcp.ClientSession {
+	t.Helper()
 	ctx := context.Background()
 
 	//nolint:exhaustruct // only Name/Version identify the test server
 	srv := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "0"}, nil)
-	newApp(true, constants.ChannelBrowser).RegisterMCPTools(srv)
+	app.RegisterMCPTools(srv)
 	srv.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
 			ctx = context.WithValue(ctx, constants.UserContextKey, *user)

@@ -226,7 +226,7 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	defer cancel()
 
 	tap := &sessionTap{harness: r.Harness, mu: sync.Mutex{}, partial: nil, session: ""}
-	events := newEventTap(r.secrets())
+	events := newEventTap(append(r.secrets(), job.MCPClientSecret))
 	var stopped atomic.Bool
 	wait := r.watch(runCtx, cancel, job.ID, tap, events, &stopped)
 
@@ -279,7 +279,7 @@ func (r *JobRunner) publishable(
 	cloneDir, text string,
 	res result,
 ) result {
-	secrets := r.secrets()
+	secrets := append(r.secrets(), job.MCPClientSecret)
 	err := r.Git.Inspect(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
 		job.Branch, job.ID, cloneDir, secrets)
 	if err == nil && leaks(text, secrets) {

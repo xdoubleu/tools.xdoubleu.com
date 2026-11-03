@@ -200,6 +200,7 @@ func newJob() *runner.ClaimedJob {
 		ID: jobID, TaskID: "t", RepoOwner: "xdoubleu", RepoName: "tools.xdoubleu.com",
 		DefaultBranch: "main", Harness: runner.HarnessClaudeCode, Prompt: "# Task: Fix it",
 		Branch: branch, SetupCommands: "make setup", TimeLimitMinutes: 1,
+		MCPClientID: "", MCPClientSecret: "",
 	}
 }
 

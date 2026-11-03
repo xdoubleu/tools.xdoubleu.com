@@ -33,6 +33,13 @@ type Factory struct {
 	// stepUp checks the TOTP code that creating a runner needs.
 	stepUp        StepUp
 	heartbeatHold time.Duration
+	jobAccounts   services.JobAccounts
+}
+
+// WithJobAccounts makes every claimed job run as an agent account of its own,
+// confined to its task. Without it a job gets no MCP identity.
+func WithJobAccounts(accounts services.JobAccounts) Option {
+	return func(a *Factory) { a.jobAccounts = accounts }
 }
 
 // Option adjusts a Factory.
@@ -64,15 +71,17 @@ func New(
 ) *Factory {
 	a := &Factory{
 		Base:          app.NewBase(ctx, authService, logger, cfg),
-		services:      services.New(repositories.New(db), authService),
+		services:      nil,
 		db:            db,
 		jobQueue:      jobqueue.NewJobQueue(ctx, logger, amountOfWorkers, jobQueueSize, db),
 		stepUp:        nil,
 		heartbeatHold: DefaultHeartbeatHold,
+		jobAccounts:   nil,
 	}
 	for _, opt := range opts {
 		opt(a)
 	}
+	a.services = services.New(repositories.New(db), authService, a.jobAccounts)
 	return a
 }
 

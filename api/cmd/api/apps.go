@@ -24,6 +24,7 @@ import (
 	"tools.xdoubleu.com/apps/taste"
 	"tools.xdoubleu.com/apps/trains"
 	"tools.xdoubleu.com/apps/watchparty"
+	"tools.xdoubleu.com/internal/agentaccounts"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/crypto"
@@ -110,6 +111,10 @@ func NewApps(
 	var factoryOpts []factory.Option
 	if stepUp, ok := authService.(factory.StepUp); ok {
 		factoryOpts = append(factoryOpts, factory.WithStepUp(stepUp))
+	}
+	if invalidator, ok := authService.(interface{ InvalidateUserCache() }); ok {
+		jobAccounts := agentaccounts.NewStore(db, invalidator.InvalidateUserCache)
+		factoryOpts = append(factoryOpts, factory.WithJobAccounts(jobAccounts))
 	}
 	apps.addApp(factory.New(ctx, authService, logger, cfg, db, factoryOpts...))
 

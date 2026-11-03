@@ -16,7 +16,11 @@ type Services struct {
 	Jobs    *JobService
 }
 
-func New(repos *repositories.Repositories, authService auth.Service) *Services {
+func New(
+	repos *repositories.Repositories,
+	authService auth.Service,
+	accounts JobAccounts,
+) *Services {
 	return &Services{
 		Auth:    authService,
 		Tasks:   &TaskService{repo: repos.Tasks},
@@ -24,7 +28,7 @@ func New(repos *repositories.Repositories, authService auth.Service) *Services {
 		Runners: &RunnerService{repo: repos.Runners, now: time.Now},
 		Jobs: &JobService{
 			jobs: repos.Jobs, tasks: repos.Tasks, repos: repos.Repos,
-			events: repos.Events, now: time.Now,
+			events: repos.Events, accounts: accounts, now: time.Now,
 		},
 	}
 }

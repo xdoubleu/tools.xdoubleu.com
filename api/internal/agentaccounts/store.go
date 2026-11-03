@@ -29,7 +29,8 @@ const (
 	clientIDPrefix       = "agent-"
 )
 
-// Account is an agent account. RevokedAt is nil while it is active.
+// Account is an agent account. RevokedAt is nil while it is active. A job's own
+// account has JobID and TaskID set and may act on that task only.
 type Account struct {
 	ID        uuid.UUID
 	Name      string
@@ -38,6 +39,14 @@ type Account struct {
 	CreatedBy string
 	CreatedAt time.Time
 	RevokedAt *time.Time
+	JobID     *uuid.UUID
+	TaskID    *uuid.UUID
+}
+
+// Scope is what a job's account is confined to.
+type Scope struct {
+	JobID  uuid.UUID
+	TaskID uuid.UUID
 }
 
 // Store persists agent accounts in the global and auth schemas.
@@ -61,7 +70,7 @@ func randomString(n int, encode func([]byte) string) (string, error) {
 }
 
 const accountColumns = `id, name, user_id, client_id, created_by, created_at,
-	revoked_at`
+	revoked_at, job_id, task_id`
 
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -71,7 +80,7 @@ func scanAccount(row rowScanner) (*Account, error) {
 	var a Account
 	err := row.Scan(
 		&a.ID, &a.Name, &a.UserID, &a.ClientID, &a.CreatedBy, &a.CreatedAt,
-		&a.RevokedAt,
+		&a.RevokedAt, &a.JobID, &a.TaskID,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -84,6 +93,23 @@ func scanAccount(row rowScanner) (*Account, error) {
 func (s *Store) Create(
 	ctx context.Context,
 	createdBy, name string,
+) (*Account, string, error) {
+	return s.create(ctx, createdBy, name, nil)
+}
+
+// CreateForJob is Create for a job's own account, confined to the job's task.
+func (s *Store) CreateForJob(
+	ctx context.Context,
+	createdBy, name string,
+	scope Scope,
+) (*Account, string, error) {
+	return s.create(ctx, createdBy, name, &scope)
+}
+
+func (s *Store) create(
+	ctx context.Context,
+	createdBy, name string,
+	scope *Scope,
 ) (*Account, string, error) {
 	secret, err := randomString(secretBytes, base64.RawURLEncoding.EncodeToString)
 	if err != nil {
@@ -129,11 +155,16 @@ func (s *Store) Create(
 	); err != nil {
 		return nil, "", err
 	}
+	var jobID, taskID *uuid.UUID
+	if scope != nil {
+		jobID, taskID = &scope.JobID, &scope.TaskID
+	}
 	account, err := scanAccount(tx.QueryRow(ctx, `
-		INSERT INTO global.agent_accounts (user_id, client_id, name, created_by)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO global.agent_accounts
+			(user_id, client_id, name, created_by, job_id, task_id)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING `+accountColumns,
-		userID, clientID, name, createdBy,
+		userID, clientID, name, createdBy, jobID, taskID,
 	))
 	if err != nil {
 		return nil, "", err
@@ -144,11 +175,13 @@ func (s *Store) Create(
 	return account, secret, nil
 }
 
-// List returns every account, newest first, revoked ones included.
+// List returns the accounts a person made, newest first, revoked ones included.
+// A job's own accounts come and go with their jobs and stay out of it.
 func (s *Store) List(ctx context.Context) ([]Account, error) {
 	rows, err := s.db.Query(ctx, `
 		SELECT `+accountColumns+`
 		FROM global.agent_accounts
+		WHERE job_id IS NULL
 		ORDER BY created_at DESC, id`)
 	if err != nil {
 		return nil, err
@@ -223,4 +256,60 @@ func (s *Store) ClientSubject(
 		return "", false, err
 	}
 	return userID, true, nil
+}
+
+// RevokeForJob ends the job's account, if it has one and it is still active.
+func (s *Store) RevokeForJob(ctx context.Context, jobID uuid.UUID) error {
+	var id uuid.UUID
+	err := s.db.QueryRow(ctx, `
+		SELECT id FROM global.agent_accounts
+		WHERE job_id = $1 AND revoked_at IS NULL`, jobID).Scan(&id)
+	if errors.Is(postgres.PgxErrorToHTTPError(err), database.ErrResourceNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	_, err = s.Revoke(ctx, id)
+	return err
+}
+
+// ActiveJobs lists the jobs that still have an active account.
+func (s *Store) ActiveJobs(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := s.db.Query(ctx, `
+		SELECT job_id FROM global.agent_accounts
+		WHERE job_id IS NOT NULL AND revoked_at IS NULL`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err = rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
+// ScopeOf is what the user's account is confined to; an account made by a person
+// (or no account) has none. A revoked job account keeps its scope, so a request
+// that is already past authentication when the job ends can't widen into a
+// person's agent account.
+func (s *Store) ScopeOf(ctx context.Context, userID uuid.UUID) (*Scope, error) {
+	var scope Scope
+	err := s.db.QueryRow(ctx, `
+		SELECT job_id, task_id FROM global.agent_accounts
+		WHERE user_id = $1 AND job_id IS NOT NULL`, userID,
+	).Scan(&scope.JobID, &scope.TaskID)
+	if errors.Is(postgres.PgxErrorToHTTPError(err), database.ErrResourceNotFound) {
+		return nil, nil //nolint:nilnil // no scope is an answer, not an error
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &scope, nil
 }
