@@ -42,8 +42,9 @@ machine identity, but only one, seeded by hand.
   any a revoke missed. Its `factory_*` tools reach that task only: other tasks
   answer as if they don't exist, it can't move tasks (the server moves its task
   from the job's outcome), and it can still file into Backlog. Job accounts stay
-  out of the admin's list. A job that can't get an account is failed, not run
-  without one.
+  out of the admin's list, and a revoked one keeps its scope, so a request in
+  flight when the job ends is never widened. A job that can't get an account is
+  failed, not run without one.
 - An agent connects through a `headersHelper`
   (`scripts/factory_agent_headers.sh`): it reads the secret from the macOS
   Keychain item `factory-agent-<client id>`, mints a token and prints the

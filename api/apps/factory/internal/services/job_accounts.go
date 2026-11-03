@@ -2,13 +2,12 @@ package services
 
 import (
 	"context"
-	"errors"
+	"slices"
 
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
 	"tools.xdoubleu.com/internal/agentaccounts"
-	"tools.xdoubleu.com/internal/database"
 )
 
 const shortJobIDLen = 8
@@ -35,7 +34,8 @@ func (s *JobService) issueAccount(ctx context.Context, claimed *ClaimedJob) erro
 	account, secret, err := s.accounts.CreateForJob(ctx, systemAuthor, name,
 		agentaccounts.Scope{JobID: job.ID, TaskID: job.TaskID})
 	if err != nil {
-		reason := "Could not create the job's agent account: " + err.Error()
+		// The reason names no internals: it is posted on the task.
+		reason := "Could not create the job's agent account."
 		if _, failErr := s.jobs.Complete(
 			ctx, job.ID, models.JobFailed, reason, "",
 		); failErr == nil {
@@ -63,13 +63,15 @@ func (s *JobService) sweepAccounts(ctx context.Context) {
 		return
 	}
 	active, err := s.accounts.ActiveJobs(ctx)
+	if err != nil || len(active) == 0 {
+		return
+	}
+	running, err := s.jobs.Running(ctx, active)
 	if err != nil {
 		return
 	}
 	for _, id := range active {
-		job, getErr := s.jobs.Get(ctx, id)
-		if errors.Is(getErr, database.ErrResourceNotFound) ||
-			(getErr == nil && job.Status != models.JobRunning) {
+		if !slices.Contains(running, id) {
 			_ = s.accounts.RevokeForJob(ctx, id)
 		}
 	}

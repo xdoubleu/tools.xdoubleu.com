@@ -279,6 +279,8 @@ func (s *JobService) Complete(
 // ExpireLost marks running jobs that stopped checking in as lost and parks their
 // tasks in Needs you.
 func (s *JobService) ExpireLost(ctx context.Context) error {
+	// Whatever else fails, no ended job keeps a working secret.
+	defer s.sweepAccounts(ctx)
 	lost, err := s.jobs.ExpireLost(ctx, s.now().Add(-LostAfter))
 	if err != nil {
 		return err
@@ -290,7 +292,6 @@ func (s *JobService) ExpireLost(ctx context.Context) error {
 			return err
 		}
 	}
-	s.sweepAccounts(ctx)
 	return nil
 }
 

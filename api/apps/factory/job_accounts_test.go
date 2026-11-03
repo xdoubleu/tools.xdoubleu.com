@@ -250,3 +250,30 @@ func TestAnAgentAccountMadeByAPersonStillSeesTheWholeBoard(t *testing.T) {
 		map[string]any{"id": a.Id, "status": "in_progress"})
 	require.NoError(t, err)
 }
+
+func TestAJobAccountStaysConfinedAfterItsJobEnds(t *testing.T) {
+	env := accountsEnv(t)
+	mine := env.newTask(t, "mine")
+	other := env.newTask(t, "not mine")
+	env.run(t, mine.Id, "")
+	claimed := env.claim(t)
+	acc := jobAccount(t, claimed.Id)
+	_, err := env.runner.CompleteJob(bearer(env.token),
+		&factoryv1.CompleteJobRequest{JobId: claimed.Id, Succeeded: true})
+	require.NoError(t, err)
+	require.False(t, jobAccount(t, claimed.Id).active)
+
+	// A request already past authentication when the job ended is not widened
+	// into a person's agent account.
+	session := mcpSessionOn(t, env.app, &models.User{
+		ID: acc.userID, Email: "job@agent.invalid", Role: models.RoleAgent,
+		AppAccess: nil, HasMFA: false, DisplayName: "",
+	})
+	_, err = callTool(t, session, "factory_get_task", map[string]any{"id": other.Id})
+	require.Error(t, err)
+	_, err = callTool(t, session, "factory_move_task",
+		map[string]any{"id": other.Id, "status": "done"})
+	require.Error(t, err)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG,
+		env.task(t, other.Id).Task.Status)
+}

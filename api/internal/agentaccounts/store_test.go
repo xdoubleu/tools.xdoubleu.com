@@ -189,7 +189,7 @@ func TestAJobsAccountIsConfinedToItsTaskAndKeptOutOfTheList(t *testing.T) {
 	assert.Equal(t, account.UserID.String(), subject)
 }
 
-func TestARevokedJobAccountStopsWorkingAndLosesItsScope(t *testing.T) {
+func TestARevokedJobAccountStopsWorkingButKeepsItsScope(t *testing.T) {
 	var dropped int
 	store, db := newStore(t, func() { dropped++ })
 	ctx := context.Background()
@@ -206,9 +206,11 @@ func TestARevokedJobAccountStopsWorkingAndLosesItsScope(t *testing.T) {
 	_, ok, err := store.ClientSubject(ctx, account.ClientID)
 	require.NoError(t, err)
 	assert.False(t, ok)
+	// Fail closed: a request already past authentication stays confined.
 	got, err := store.ScopeOf(ctx, account.UserID)
 	require.NoError(t, err)
-	assert.Nil(t, got)
+	require.NotNil(t, got)
+	assert.Equal(t, scope, *got)
 	active, err = store.ActiveJobs(ctx)
 	require.NoError(t, err)
 	assert.NotContains(t, active, scope.JobID)

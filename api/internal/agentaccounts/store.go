@@ -296,12 +296,14 @@ func (s *Store) ActiveJobs(ctx context.Context) ([]uuid.UUID, error) {
 }
 
 // ScopeOf is what the user's account is confined to; an account made by a person
-// (or no account) has none.
+// (or no account) has none. A revoked job account keeps its scope, so a request
+// that is already past authentication when the job ends can't widen into a
+// person's agent account.
 func (s *Store) ScopeOf(ctx context.Context, userID uuid.UUID) (*Scope, error) {
 	var scope Scope
 	err := s.db.QueryRow(ctx, `
 		SELECT job_id, task_id FROM global.agent_accounts
-		WHERE user_id = $1 AND job_id IS NOT NULL AND revoked_at IS NULL`, userID,
+		WHERE user_id = $1 AND job_id IS NOT NULL`, userID,
 	).Scan(&scope.JobID, &scope.TaskID)
 	if errors.Is(postgres.PgxErrorToHTTPError(err), database.ErrResourceNotFound) {
 		return nil, nil //nolint:nilnil // no scope is an answer, not an error
