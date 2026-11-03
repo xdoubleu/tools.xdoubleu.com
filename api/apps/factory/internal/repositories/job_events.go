@@ -14,23 +14,19 @@ type JobEventsRepository struct {
 	db postgres.DB
 }
 
-// Append stores events after the job's last one, numbering them on. Events past
-// maxEvents are dropped, so a job's log can't grow without bound.
+// Append stores events under the seq the runner gave them; one the job already
+// has is ignored, so a retried batch adds nothing twice.
 func (r *JobEventsRepository) Append(
 	ctx context.Context,
 	jobID uuid.UUID,
+	seqs []int32,
 	kinds, payloads []string,
-	maxEvents int,
 ) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO factory.job_events (job_id, seq, kind, payload)
-		SELECT $1, last.n + t.ord, t.kind, t.payload
-		FROM (
-			SELECT COALESCE(MAX(seq), 0) AS n
-			FROM factory.job_events WHERE job_id = $1
-		) AS last,
-		unnest($2::text[], $3::text[]) WITH ORDINALITY AS t(kind, payload, ord)
-		WHERE last.n + t.ord <= $4`, jobID, kinds, payloads, maxEvents)
+		SELECT $1, t.seq, t.kind, t.payload
+		FROM unnest($2::int[], $3::text[], $4::text[]) AS t(seq, kind, payload)
+		ON CONFLICT (job_id, seq) DO NOTHING`, jobID, seqs, kinds, payloads)
 	return postgres.PgxErrorToHTTPError(err)
 }
 

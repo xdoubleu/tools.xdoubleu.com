@@ -187,7 +187,11 @@ func (h *runnerHandler) AppendJobEvents(
 	if err != nil {
 		return nil, err
 	}
-	if err = h.app.services.Jobs.AppendEvents(ctx, id, req.GetLines()); err != nil {
+	lines := make([]models.JobLine, len(req.GetLines()))
+	for i, l := range req.GetLines() {
+		lines[i] = models.JobLine{Seq: int(l.GetSeq()), Line: l.GetLine()}
+	}
+	if err = h.app.services.Jobs.AppendEvents(ctx, id, lines); err != nil {
 		return nil, mapError(err)
 	}
 	return &factoryv1.AppendJobEventsResponse{}, nil

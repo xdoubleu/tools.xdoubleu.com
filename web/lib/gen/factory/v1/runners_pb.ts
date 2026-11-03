@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file factory/v1/runners.proto.
  */
 export const file_factory_v1_runners: GenFile = /*@__PURE__*/
-  fileDesc("ChhmYWN0b3J5L3YxL3J1bm5lcnMucHJvdG8SCmZhY3RvcnkudjEimQEKBlJ1bm5lchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCXBhaXJlZF9hdBgDIAEoCRIRCglsYXN0X3NlZW4YBCABKAkSDwoHdmVyc2lvbhgFIAEoCRISCgpyZXZva2VkX2F0GAYgASgJEhoKEnBhaXJpbmdfZXhwaXJlc19hdBgHIAEoCRIOCgZvbmxpbmUYCCABKAgiFAoSTGlzdFJ1bm5lcnNSZXF1ZXN0IjoKE0xpc3RSdW5uZXJzUmVzcG9uc2USIwoHcnVubmVycxgBIAMoCzISLmZhY3RvcnkudjEuUnVubmVyIjYKE0NyZWF0ZVJ1bm5lclJlcXVlc3QSDAoEbmFtZRgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiUAoUQ3JlYXRlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXISFAoMcGFpcmluZ19jb2RlGAIgASgJIiEKE1Jldm9rZVJ1bm5lclJlcXVlc3QSCgoCaWQYASABKAkiOgoUUmV2b2tlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXIiLAoLUGFpclJlcXVlc3QSDAoEY29kZRgBIAEoCRIPCgd2ZXJzaW9uGAIgASgJIjkKDFBhaXJSZXNwb25zZRIUCgxkZXZpY2VfdG9rZW4YASABKAkSEwoLcnVubmVyX25hbWUYAiABKAkiIwoQSGVhcnRiZWF0UmVxdWVzdBIPCgd2ZXJzaW9uGAEgASgJIhMKEUhlYXJ0YmVhdFJlc3BvbnNlIuIBCgpDbGFpbWVkSm9iEgoKAmlkGAEgASgJEg8KB3Rhc2tfaWQYAiABKAkSEgoKcmVwb19vd25lchgDIAEoCRIRCglyZXBvX25hbWUYBCABKAkSFgoOZGVmYXVsdF9icmFuY2gYBSABKAkSJAoHaGFybmVzcxgGIAEoDjITLmZhY3RvcnkudjEuSGFybmVzcxIOCgZwcm9tcHQYByABKAkSDgoGYnJhbmNoGAggASgJEhYKDnNldHVwX2NvbW1hbmRzGAkgASgJEhoKEnRpbWVfbGltaXRfbWludXRlcxgKIAEoBSIRCg9DbGFpbUpvYlJlcXVlc3QiNwoQQ2xhaW1Kb2JSZXNwb25zZRIjCgNqb2IYASABKAsyFi5mYWN0b3J5LnYxLkNsYWltZWRKb2IiNAoOQ2hlY2tJblJlcXVlc3QSDgoGam9iX2lkGAEgASgJEhIKCnNlc3Npb25faWQYAiABKAkiHwoPQ2hlY2tJblJlc3BvbnNlEgwKBHN0b3AYASABKAgiNwoWQXBwZW5kSm9iRXZlbnRzUmVxdWVzdBIOCgZqb2JfaWQYASABKAkSDQoFbGluZXMYAiADKAkiGQoXQXBwZW5kSm9iRXZlbnRzUmVzcG9uc2UiXAoSQ29tcGxldGVKb2JSZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCRIRCglzdWNjZWVkZWQYAiABKAgSDwoHb3V0Y29tZRgDIAEoCRISCgpzZXNzaW9uX2lkGAQgASgJIhUKE0NvbXBsZXRlSm9iUmVzcG9uc2UyigIKElJ1bm5lckFkbWluU2VydmljZRJOCgtMaXN0UnVubmVycxIeLmZhY3RvcnkudjEuTGlzdFJ1bm5lcnNSZXF1ZXN0Gh8uZmFjdG9yeS52MS5MaXN0UnVubmVyc1Jlc3BvbnNlElEKDENyZWF0ZVJ1bm5lchIfLmZhY3RvcnkudjEuQ3JlYXRlUnVubmVyUmVxdWVzdBogLmZhY3RvcnkudjEuQ3JlYXRlUnVubmVyUmVzcG9uc2USUQoMUmV2b2tlUnVubmVyEh8uZmFjdG9yeS52MS5SZXZva2VSdW5uZXJSZXF1ZXN0GiAuZmFjdG9yeS52MS5SZXZva2VSdW5uZXJSZXNwb25zZTLLAwoNUnVubmVyU2VydmljZRI5CgRQYWlyEhcuZmFjdG9yeS52MS5QYWlyUmVxdWVzdBoYLmZhY3RvcnkudjEuUGFpclJlc3BvbnNlEkgKCUhlYXJ0YmVhdBIcLmZhY3RvcnkudjEuSGVhcnRiZWF0UmVxdWVzdBodLmZhY3RvcnkudjEuSGVhcnRiZWF0UmVzcG9uc2USRQoIQ2xhaW1Kb2ISGy5mYWN0b3J5LnYxLkNsYWltSm9iUmVxdWVzdBocLmZhY3RvcnkudjEuQ2xhaW1Kb2JSZXNwb25zZRJCCgdDaGVja0luEhouZmFjdG9yeS52MS5DaGVja0luUmVxdWVzdBobLmZhY3RvcnkudjEuQ2hlY2tJblJlc3BvbnNlEloKD0FwcGVuZEpvYkV2ZW50cxIiLmZhY3RvcnkudjEuQXBwZW5kSm9iRXZlbnRzUmVxdWVzdBojLmZhY3RvcnkudjEuQXBwZW5kSm9iRXZlbnRzUmVzcG9uc2USTgoLQ29tcGxldGVKb2ISHi5mYWN0b3J5LnYxLkNvbXBsZXRlSm9iUmVxdWVzdBofLmZhY3RvcnkudjEuQ29tcGxldGVKb2JSZXNwb25zZUItWit0b29scy54ZG91YmxldS5jb20vZ2VuL2ZhY3RvcnkvdjE7ZmFjdG9yeXYxYgZwcm90bzM", [file_factory_v1_factory]);
+  fileDesc("ChhmYWN0b3J5L3YxL3J1bm5lcnMucHJvdG8SCmZhY3RvcnkudjEimQEKBlJ1bm5lchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCXBhaXJlZF9hdBgDIAEoCRIRCglsYXN0X3NlZW4YBCABKAkSDwoHdmVyc2lvbhgFIAEoCRISCgpyZXZva2VkX2F0GAYgASgJEhoKEnBhaXJpbmdfZXhwaXJlc19hdBgHIAEoCRIOCgZvbmxpbmUYCCABKAgiFAoSTGlzdFJ1bm5lcnNSZXF1ZXN0IjoKE0xpc3RSdW5uZXJzUmVzcG9uc2USIwoHcnVubmVycxgBIAMoCzISLmZhY3RvcnkudjEuUnVubmVyIjYKE0NyZWF0ZVJ1bm5lclJlcXVlc3QSDAoEbmFtZRgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiUAoUQ3JlYXRlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXISFAoMcGFpcmluZ19jb2RlGAIgASgJIiEKE1Jldm9rZVJ1bm5lclJlcXVlc3QSCgoCaWQYASABKAkiOgoUUmV2b2tlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXIiLAoLUGFpclJlcXVlc3QSDAoEY29kZRgBIAEoCRIPCgd2ZXJzaW9uGAIgASgJIjkKDFBhaXJSZXNwb25zZRIUCgxkZXZpY2VfdG9rZW4YASABKAkSEwoLcnVubmVyX25hbWUYAiABKAkiIwoQSGVhcnRiZWF0UmVxdWVzdBIPCgd2ZXJzaW9uGAEgASgJIhMKEUhlYXJ0YmVhdFJlc3BvbnNlIuIBCgpDbGFpbWVkSm9iEgoKAmlkGAEgASgJEg8KB3Rhc2tfaWQYAiABKAkSEgoKcmVwb19vd25lchgDIAEoCRIRCglyZXBvX25hbWUYBCABKAkSFgoOZGVmYXVsdF9icmFuY2gYBSABKAkSJAoHaGFybmVzcxgGIAEoDjITLmZhY3RvcnkudjEuSGFybmVzcxIOCgZwcm9tcHQYByABKAkSDgoGYnJhbmNoGAggASgJEhYKDnNldHVwX2NvbW1hbmRzGAkgASgJEhoKEnRpbWVfbGltaXRfbWludXRlcxgKIAEoBSIRCg9DbGFpbUpvYlJlcXVlc3QiNwoQQ2xhaW1Kb2JSZXNwb25zZRIjCgNqb2IYASABKAsyFi5mYWN0b3J5LnYxLkNsYWltZWRKb2IiNAoOQ2hlY2tJblJlcXVlc3QSDgoGam9iX2lkGAEgASgJEhIKCnNlc3Npb25faWQYAiABKAkiHwoPQ2hlY2tJblJlc3BvbnNlEgwKBHN0b3AYASABKAgiJAoHSm9iTGluZRILCgNzZXEYASABKAUSDAoEbGluZRgCIAEoCSJMChZBcHBlbmRKb2JFdmVudHNSZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCRIiCgVsaW5lcxgCIAMoCzITLmZhY3RvcnkudjEuSm9iTGluZSIZChdBcHBlbmRKb2JFdmVudHNSZXNwb25zZSJcChJDb21wbGV0ZUpvYlJlcXVlc3QSDgoGam9iX2lkGAEgASgJEhEKCXN1Y2NlZWRlZBgCIAEoCBIPCgdvdXRjb21lGAMgASgJEhIKCnNlc3Npb25faWQYBCABKAkiFQoTQ29tcGxldGVKb2JSZXNwb25zZTKKAgoSUnVubmVyQWRtaW5TZXJ2aWNlEk4KC0xpc3RSdW5uZXJzEh4uZmFjdG9yeS52MS5MaXN0UnVubmVyc1JlcXVlc3QaHy5mYWN0b3J5LnYxLkxpc3RSdW5uZXJzUmVzcG9uc2USUQoMQ3JlYXRlUnVubmVyEh8uZmFjdG9yeS52MS5DcmVhdGVSdW5uZXJSZXF1ZXN0GiAuZmFjdG9yeS52MS5DcmVhdGVSdW5uZXJSZXNwb25zZRJRCgxSZXZva2VSdW5uZXISHy5mYWN0b3J5LnYxLlJldm9rZVJ1bm5lclJlcXVlc3QaIC5mYWN0b3J5LnYxLlJldm9rZVJ1bm5lclJlc3BvbnNlMssDCg1SdW5uZXJTZXJ2aWNlEjkKBFBhaXISFy5mYWN0b3J5LnYxLlBhaXJSZXF1ZXN0GhguZmFjdG9yeS52MS5QYWlyUmVzcG9uc2USSAoJSGVhcnRiZWF0EhwuZmFjdG9yeS52MS5IZWFydGJlYXRSZXF1ZXN0Gh0uZmFjdG9yeS52MS5IZWFydGJlYXRSZXNwb25zZRJFCghDbGFpbUpvYhIbLmZhY3RvcnkudjEuQ2xhaW1Kb2JSZXF1ZXN0GhwuZmFjdG9yeS52MS5DbGFpbUpvYlJlc3BvbnNlEkIKB0NoZWNrSW4SGi5mYWN0b3J5LnYxLkNoZWNrSW5SZXF1ZXN0GhsuZmFjdG9yeS52MS5DaGVja0luUmVzcG9uc2USWgoPQXBwZW5kSm9iRXZlbnRzEiIuZmFjdG9yeS52MS5BcHBlbmRKb2JFdmVudHNSZXF1ZXN0GiMuZmFjdG9yeS52MS5BcHBlbmRKb2JFdmVudHNSZXNwb25zZRJOCgtDb21wbGV0ZUpvYhIeLmZhY3RvcnkudjEuQ29tcGxldGVKb2JSZXF1ZXN0Gh8uZmFjdG9yeS52MS5Db21wbGV0ZUpvYlJlc3BvbnNlQi1aK3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vZmFjdG9yeS92MTtmYWN0b3J5djFiBnByb3RvMw", [file_factory_v1_factory]);
 
 /**
  * @generated from message factory.v1.Runner
@@ -411,8 +411,33 @@ export const CheckInResponseSchema: GenMessage<CheckInResponse> = /*@__PURE__*/
   messageDesc(file_factory_v1_runners, 15);
 
 /**
- * A batch of the harness's stream-json lines, credential values already
- * removed by the runner. At most 200 lines per call; the server caps a job's log.
+ * One line of the harness's stream-json output, numbered by the runner from 1.
+ *
+ * @generated from message factory.v1.JobLine
+ */
+export type JobLine = Message<"factory.v1.JobLine"> & {
+  /**
+   * @generated from field: int32 seq = 1;
+   */
+  seq: number;
+
+  /**
+   * @generated from field: string line = 2;
+   */
+  line: string;
+};
+
+/**
+ * Describes the message factory.v1.JobLine.
+ * Use `create(JobLineSchema)` to create a new message.
+ */
+export const JobLineSchema: GenMessage<JobLine> = /*@__PURE__*/
+  messageDesc(file_factory_v1_runners, 16);
+
+/**
+ * A batch of the harness's stream-json lines, credential values already removed
+ * by the runner. At most 200 lines per call. A seq the server already has is
+ * ignored, so a retry can't duplicate; seqs past the per-job cap are dropped.
  *
  * @generated from message factory.v1.AppendJobEventsRequest
  */
@@ -423,9 +448,9 @@ export type AppendJobEventsRequest = Message<"factory.v1.AppendJobEventsRequest"
   jobId: string;
 
   /**
-   * @generated from field: repeated string lines = 2;
+   * @generated from field: repeated factory.v1.JobLine lines = 2;
    */
-  lines: string[];
+  lines: JobLine[];
 };
 
 /**
@@ -433,7 +458,7 @@ export type AppendJobEventsRequest = Message<"factory.v1.AppendJobEventsRequest"
  * Use `create(AppendJobEventsRequestSchema)` to create a new message.
  */
 export const AppendJobEventsRequestSchema: GenMessage<AppendJobEventsRequest> = /*@__PURE__*/
-  messageDesc(file_factory_v1_runners, 16);
+  messageDesc(file_factory_v1_runners, 17);
 
 /**
  * @generated from message factory.v1.AppendJobEventsResponse
@@ -446,7 +471,7 @@ export type AppendJobEventsResponse = Message<"factory.v1.AppendJobEventsRespons
  * Use `create(AppendJobEventsResponseSchema)` to create a new message.
  */
 export const AppendJobEventsResponseSchema: GenMessage<AppendJobEventsResponse> = /*@__PURE__*/
-  messageDesc(file_factory_v1_runners, 17);
+  messageDesc(file_factory_v1_runners, 18);
 
 /**
  * @generated from message factory.v1.CompleteJobRequest
@@ -480,7 +505,7 @@ export type CompleteJobRequest = Message<"factory.v1.CompleteJobRequest"> & {
  * Use `create(CompleteJobRequestSchema)` to create a new message.
  */
 export const CompleteJobRequestSchema: GenMessage<CompleteJobRequest> = /*@__PURE__*/
-  messageDesc(file_factory_v1_runners, 18);
+  messageDesc(file_factory_v1_runners, 19);
 
 /**
  * @generated from message factory.v1.CompleteJobResponse
@@ -493,7 +518,7 @@ export type CompleteJobResponse = Message<"factory.v1.CompleteJobResponse"> & {
  * Use `create(CompleteJobResponseSchema)` to create a new message.
  */
 export const CompleteJobResponseSchema: GenMessage<CompleteJobResponse> = /*@__PURE__*/
-  messageDesc(file_factory_v1_runners, 19);
+  messageDesc(file_factory_v1_runners, 20);
 
 /**
  * Admin side of pairing, behind the browser session.

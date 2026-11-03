@@ -15,14 +15,21 @@ import (
 	"tools.xdoubleu.com/internal/constants"
 )
 
+// append sends lines numbered first, first+1, and so on.
 func (e jobEnv) append(
 	t *testing.T,
 	jobID string,
+	first int32,
 	lines ...string,
 ) error {
 	t.Helper()
+	numbered := make([]*factoryv1.JobLine, len(lines))
+	for i, l := range lines {
+		seq := first + int32(i)
+		numbered[i] = &factoryv1.JobLine{Seq: seq, Line: l}
+	}
 	_, err := e.runner.AppendJobEvents(bearer(e.token),
-		&factoryv1.AppendJobEventsRequest{JobId: jobID, Lines: lines})
+		&factoryv1.AppendJobEventsRequest{JobId: jobID, Lines: numbered})
 	return err
 }
 
@@ -45,9 +52,11 @@ func TestARunningJobsLogIsStoredInOrderAndReadAfterASeq(t *testing.T) {
 	env := browserJobEnv(t)
 	job := env.runningJob(t)
 
-	require.NoError(t, env.append(t, job.Id,
+	require.NoError(t, env.append(t, job.Id, 1,
 		`{"type":"system","session_id":"s"}`, `{"type":"assistant","text":"hi"}`))
-	require.NoError(t, env.append(t, job.Id, `not json`, `{"type":""}`))
+	require.NoError(t, env.append(t, job.Id, 3, `not json`, `{"type":""}`))
+	// A retried batch adds nothing.
+	require.NoError(t, env.append(t, job.Id, 3, `not json`, `{"type":""}`))
 
 	all := env.events(t, job.Id, 0)
 	require.Len(t, all, 4)
@@ -69,13 +78,14 @@ func TestARunningJobsLogIsStoredInOrderAndReadAfterASeq(t *testing.T) {
 func TestAJobLogTakesNothingOnceTheJobIsNotRunning(t *testing.T) {
 	env := browserJobEnv(t)
 	job := env.runningJob(t)
-	require.NoError(t, env.append(t, job.Id, `{"type":"system"}`))
+	require.NoError(t, env.append(t, job.Id, 1, `{"type":"system"}`))
 
 	_, err := env.runner.CompleteJob(bearer(env.token),
 		&factoryv1.CompleteJobRequest{JobId: job.Id, Succeeded: true})
 	require.NoError(t, err)
 
-	assert.Equal(t, connect.CodeAlreadyExists, code(env.append(t, job.Id, `{"type":"x"}`)))
+	err = env.append(t, job.Id, 2, `{"type":"x"}`)
+	assert.Equal(t, connect.CodeAlreadyExists, code(err))
 	assert.Len(t, env.events(t, job.Id, 0), 1, "the log stays readable")
 }
 
@@ -84,19 +94,26 @@ func TestAppendedEventsAreBoundedAndValidated(t *testing.T) {
 	job := env.runningJob(t)
 
 	tooMany := make([]string, 201)
-	assert.Equal(t, connect.CodeInvalidArgument, code(env.append(t, job.Id, tooMany...)))
-	assert.Equal(t, connect.CodeInvalidArgument, code(env.append(t, "nope", "x")))
-	assert.Equal(t, connect.CodeNotFound, code(env.append(t, uuid.NewString(), "x")))
+	err := env.append(t, job.Id, 1, tooMany...)
+	assert.Equal(t, connect.CodeInvalidArgument, code(err))
+	assert.Equal(t, connect.CodeInvalidArgument, code(env.append(t, "nope", 1, "x")))
+	assert.Equal(t, connect.CodeNotFound, code(env.append(t, uuid.NewString(), 1, "x")))
 
-	// A long line is cut on a rune boundary, a long type is "raw".
+	// A long line is cut on a rune boundary but keeps its type; a long type is
+	// "raw"; a NUL is dropped; seqs outside 1..5000 are ignored.
 	long := `{"type":"assistant","text":"` + strings.Repeat("é", 20000) + `"}`
 	longKind := `{"type":"` + strings.Repeat("k", 41) + `"}`
-	require.NoError(t, env.append(t, job.Id, long, longKind))
+	require.NoError(t, env.append(t, job.Id, 1, long, longKind, "a\x00b"))
+	require.NoError(t, env.append(t, job.Id, 0, "zero"))
+	require.NoError(t, env.append(t, job.Id, -3, "negative"))
+	require.NoError(t, env.append(t, job.Id, 5001, "past the cap"))
+
 	got := env.events(t, job.Id, 0)
-	require.Len(t, got, 2)
+	require.Len(t, got, 3)
 	assert.LessOrEqual(t, len(got[0].Payload), 32*1024)
-	assert.True(t, strings.HasPrefix(got[0].Payload, `{"type":"assistant"`))
+	assert.Equal(t, "assistant", got[0].Kind, "a cut line keeps its type")
 	assert.Equal(t, "raw", got[1].Kind)
+	assert.Equal(t, "ab", got[2].Payload)
 }
 
 func TestAJobLogStopsGrowingAtItsCap(t *testing.T) {
@@ -107,9 +124,11 @@ func TestAJobLogStopsGrowingAtItsCap(t *testing.T) {
 	for i := range batch {
 		batch[i] = `{"type":"assistant"}`
 	}
-	for range 26 {
-		require.NoError(t, env.append(t, job.Id, batch...))
+	for i := range 25 {
+		first := int32(i*200 + 1)
+		require.NoError(t, env.append(t, job.Id, first, batch...))
 	}
+	require.NoError(t, env.append(t, job.Id, 5001, batch...))
 	last := env.events(t, job.Id, 4999)
 	require.Len(t, last, 1)
 	assert.EqualValues(t, 5000, last[0].Seq)
@@ -139,14 +158,16 @@ func TestTheRunnerCallsForLogsNeedADeviceToken(t *testing.T) {
 	env := browserJobEnv(t)
 	job := env.runningJob(t)
 	_, err := env.runner.AppendJobEvents(context.Background(),
-		&factoryv1.AppendJobEventsRequest{JobId: job.Id, Lines: []string{"x"}})
+		&factoryv1.AppendJobEventsRequest{
+			JobId: job.Id, Lines: []*factoryv1.JobLine{{Seq: 1, Line: "x"}},
+		})
 	assert.Equal(t, connect.CodeUnauthenticated, code(err))
 }
 
 func TestOldJobLogsArePrunedAndRecentOnesKept(t *testing.T) {
 	env := browserJobEnv(t)
 	job := env.runningJob(t)
-	require.NoError(t, env.append(t, job.Id, `{"type":"a"}`, `{"type":"b"}`))
+	require.NoError(t, env.append(t, job.Id, 1, `{"type":"a"}`, `{"type":"b"}`))
 	_, err := testDB.Exec(context.Background(),
 		`UPDATE factory.job_events SET created_at = now() - interval '31 days'
 		 WHERE job_id = $1 AND seq = 1`, job.Id)

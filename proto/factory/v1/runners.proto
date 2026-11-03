@@ -100,11 +100,18 @@ message CheckInResponse {
   bool stop = 1;
 }
 
-// A batch of the harness's stream-json lines, credential values already
-// removed by the runner. At most 200 lines per call; the server caps a job's log.
+// One line of the harness's stream-json output, numbered by the runner from 1.
+message JobLine {
+  int32 seq = 1;
+  string line = 2;
+}
+
+// A batch of the harness's stream-json lines, credential values already removed
+// by the runner. At most 200 lines per call. A seq the server already has is
+// ignored, so a retry can't duplicate; seqs past the per-job cap are dropped.
 message AppendJobEventsRequest {
   string job_id = 1;
-  repeated string lines = 2;
+  repeated JobLine lines = 2;
 }
 message AppendJobEventsResponse {}
 

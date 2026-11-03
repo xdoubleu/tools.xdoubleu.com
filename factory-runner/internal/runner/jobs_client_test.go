@@ -113,9 +113,11 @@ func TestAppendJobEventsSendsTheLinesWithTheDeviceToken(t *testing.T) {
 		assert.Equal(t, "/factory.v1.RunnerService/AppendJobEvents", r.URL.Path)
 		assert.Equal(t, "Bearer frt_x", r.Header.Get("Authorization"))
 		body, _ := io.ReadAll(r.Body)
-		assert.JSONEq(t, `{"jobId":"j1","lines":["a","b"]}`, string(body))
+		assert.JSONEq(t,
+			`{"jobId":"j1","lines":[{"seq":4,"line":"a"},{"seq":5,"line":"b"}]}`, string(body))
 		_, _ = w.Write([]byte(`{}`))
 	})
-	err := c.AppendJobEvents(context.Background(), "frt_x", "j1", []string{"a", "b"})
+	lines := []runner.EventLine{{Seq: 4, Line: "a"}, {Seq: 5, Line: "b"}}
+	err := c.AppendJobEvents(context.Background(), "frt_x", "j1", lines)
 	require.NoError(t, err)
 }

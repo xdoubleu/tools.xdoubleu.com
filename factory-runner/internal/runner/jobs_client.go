@@ -30,7 +30,7 @@ type JobAPI interface {
 	// CheckIn reports a running job alive and says whether to stop it.
 	CheckIn(ctx context.Context, token, jobID, sessionID string) (bool, error)
 	// AppendJobEvents sends a batch of the harness's output lines, already redacted.
-	AppendJobEvents(ctx context.Context, token, jobID string, lines []string) error
+	AppendJobEvents(ctx context.Context, token, jobID string, lines []EventLine) error
 	CompleteJob(
 		ctx context.Context,
 		token, jobID string,
@@ -53,8 +53,8 @@ type checkInResponse struct {
 }
 
 type appendJobEventsRequest struct {
-	JobID string   `json:"jobId"`
-	Lines []string `json:"lines"`
+	JobID string      `json:"jobId"`
+	Lines []EventLine `json:"lines"`
 }
 
 type completeJobRequest struct {
@@ -89,7 +89,7 @@ func (c *Client) CheckIn(
 func (c *Client) AppendJobEvents(
 	ctx context.Context,
 	token, jobID string,
-	lines []string,
+	lines []EventLine,
 ) error {
 	return c.call(ctx, "AppendJobEvents", token, pairTimeout,
 		appendJobEventsRequest{JobID: jobID, Lines: lines}, &struct{}{})

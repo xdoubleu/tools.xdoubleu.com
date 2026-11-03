@@ -51,3 +51,9 @@ type JobEvent struct {
 	Payload   string
 	CreatedAt time.Time
 }
+
+// JobLine is one numbered line of harness output, as the runner sends it.
+type JobLine struct {
+	Seq  int
+	Line string
+}

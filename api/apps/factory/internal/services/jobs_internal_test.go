@@ -90,10 +90,23 @@ func TestTruncateCutsOnARuneBoundary(t *testing.T) {
 	assert.True(t, utf8.ValidString(got))
 }
 
+func TestTheLimitsAreInclusive(t *testing.T) {
+	exact := strings.Repeat("a", maxEventBytes)
+	assert.Equal(t, exact, truncate(exact), "a line of exactly the limit is kept whole")
+	assert.Len(t, truncate(exact+"a"), maxEventBytes)
+
+	kind := strings.Repeat("k", maxKindLen)
+	assert.Equal(t, kind, kindOf(`{"type":"`+kind+`"}`))
+	assert.Equal(t, kind, kindOf(`{"type":"`+kind+`","cut`))
+}
+
 func TestKindOfIsTheLinesTypeOrRaw(t *testing.T) {
 	assert.Equal(t, "assistant", kindOf(`{"type":"assistant"}`))
 	assert.Equal(t, rawKind, kindOf(`{"type":""}`))
 	assert.Equal(t, rawKind, kindOf(`{"other":1}`))
 	assert.Equal(t, rawKind, kindOf(`not json`))
+	// A cut line is no longer JSON, but its type is still at the front.
+	assert.Equal(t, "user", kindOf(`{"type":"user","message":{"content":"cut o`))
+	assert.Equal(t, rawKind, kindOf(`{"message":"cut`))
 	assert.Equal(t, rawKind, kindOf(`{"type":"`+strings.Repeat("k", maxKindLen+1)+`"}`))
 }

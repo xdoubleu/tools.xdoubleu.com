@@ -226,9 +226,7 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	defer cancel()
 
 	tap := &sessionTap{harness: r.Harness, mu: sync.Mutex{}, partial: nil, session: ""}
-	events := &eventTap{
-		secrets: r.secrets(), mu: sync.Mutex{}, partial: nil, queue: nil,
-	}
+	events := newEventTap(r.secrets())
 	var stopped atomic.Bool
 	wait := r.watch(runCtx, cancel, job.ID, tap, events, &stopped)
 

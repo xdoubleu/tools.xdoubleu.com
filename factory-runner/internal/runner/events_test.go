@@ -1,7 +1,9 @@
 package runner_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"strconv"
@@ -36,6 +38,8 @@ func TestTheHarnessLogIsForwardedWithSecretsRemoved(t *testing.T) {
 
 	got := env.api.logged()
 	require.Len(t, got, 2)
+	assert.Equal(t, []int{1, 2},
+		[]int{env.api.numbered()[0].Seq, env.api.numbered()[1].Seq})
 	assert.Equal(t, `{"type":"system","session_id":"s"}`, got[0])
 	assert.Equal(t,
 		`{"type":"assistant","text":"key [redacted] and device [redacted]"}`, got[1])
@@ -111,6 +115,58 @@ func TestAQueueOfUnsentLinesIsBoundedAndSentInBatches(t *testing.T) {
 	got := env.api.logged()
 	require.Len(t, got, 2000, "the oldest lines are dropped past the bound")
 	assert.Equal(t, `{"n":101}`, got[0])
+	assert.Equal(t, 102, env.api.numbered()[0].Seq, "numbers survive the drop")
 	assert.Len(t, got[len(got)-1], 32*1024, "a long line is cut")
 	assert.GreaterOrEqual(t, env.api.batches, 10, "200 lines at a time")
+}
+
+func TestSecretsAreRedactedAsJSONHoldsThem(t *testing.T) {
+	multi := "-----BEGIN KEY-----\nabc\"def\\ghi<>&\n-----END KEY-----"
+	env := newEnv(t, func(_ context.Context, spec runner.SandboxSpec) (int, error) {
+		quoted, _ := json.Marshal(multi) // as Go escapes it
+		var plain bytes.Buffer
+		enc := json.NewEncoder(&plain)
+		enc.SetEscapeHTML(false) // as JSON.stringify does
+		_ = enc.Encode(multi)
+		_, _ = io.WriteString(spec.Log, `{"a":`+string(quoted)+"}\n")
+		_, _ = io.WriteString(spec.Log, `{"b":`+strings.TrimSpace(plain.String())+"}\n")
+		return 0, nil
+	}, newJob())
+	env.runner.Secrets = []string{multi}
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, []string{`{"a":"[redacted]"}`, `{"b":"[redacted]"}`}, env.api.logged())
+}
+
+func TestALineLongerThanTheBufferIsDroppedWholeAndNulsAreRemoved(t *testing.T) {
+	env := newEnv(t, func(_ context.Context, spec runner.SandboxSpec) (int, error) {
+		_, _ = io.WriteString(spec.Log, "before\n")
+		// 1.2 MiB with a secret straddling the 1 MiB mark, then its tail.
+		_, _ = io.WriteString(spec.Log, strings.Repeat("x", 1<<20-5)+eventSecret[:10])
+		_, _ = io.WriteString(spec.Log, eventSecret[10:]+strings.Repeat("y", 200<<10)+"\n")
+		_, _ = io.WriteString(spec.Log, "a\x00b\n")
+		return 0, nil
+	}, newJob())
+	env.runner.Secrets = []string{eventSecret}
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, []string{"before", "ab"}, env.api.logged())
+}
+
+func TestLinesAreNotNumberedPastTheJobCap(t *testing.T) {
+	env := newEnv(t, func(_ context.Context, spec runner.SandboxSpec) (int, error) {
+		for range 5100 {
+			_, _ = io.WriteString(spec.Log, "line\n")
+		}
+		return 0, nil
+	}, newJob())
+	env.runner.EventsEvery = 2 * time.Millisecond
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	got := env.api.numbered()
+	require.NotEmpty(t, got)
+	assert.Equal(t, 5000, got[len(got)-1].Seq, "numbering stops at the job cap")
 }
