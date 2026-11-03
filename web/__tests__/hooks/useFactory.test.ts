@@ -346,6 +346,23 @@ describe('useJobLog', () => {
     expect(mockClient.listJobEvents).toHaveBeenLastCalledWith({ jobId: 'j-1', afterSeq: 2 })
   })
 
+  it('keeps each jobs log apart and resumes one it comes back to', async () => {
+    mockClient.listJobEvents.mockResolvedValue({ events: [event(1), event(2), event(3)] })
+    const { rerender } = renderHook(({ id }) => useJobLog(id, false), {
+      initialProps: { id: 'j-1' }
+    })
+    await fetcher()
+    rerender({ id: 'j-2' })
+    mockClient.listJobEvents.mockResolvedValue({ events: [event(1)] })
+    expect(await fetcher()).toHaveLength(1)
+
+    // Back to j-1: it resumes after its own last event.
+    rerender({ id: 'j-1' })
+    mockClient.listJobEvents.mockResolvedValue({ events: [event(4)] })
+    expect(await fetcher()).toHaveLength(4)
+    expect(mockClient.listJobEvents).toHaveBeenLastCalledWith({ jobId: 'j-1', afterSeq: 3 })
+  })
+
   it('starts over for another job', async () => {
     mockClient.listJobEvents.mockResolvedValue({ events: [event(1)] })
     const { rerender } = renderHook(({ id }) => useJobLog(id, false), {

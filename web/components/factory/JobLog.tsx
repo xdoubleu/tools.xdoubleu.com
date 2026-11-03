@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, type UIEvent } from 'react'
 import { useJobLog } from '@/hooks/useFactory'
 import { logEntries, type LogEntry } from '@/lib/factory/joblog'
 import { Alert } from '@/components/ui/alert'
@@ -12,7 +12,7 @@ const FOLLOW_SLACK = 40
 /** A tool call is titled by what it ran, so a closed list can be told apart. */
 function disclosureTitle(entry: LogEntry): string {
   if (entry.kind !== 'tool' || entry.body === '') return entry.title
-  const line = entry.body.split('\n')[0] ?? ''
+  const line = entry.body.replace(/\n[\s\S]*/, '')
   const short = line.length > TITLE_SUMMARY ? `${line.slice(0, TITLE_SUMMARY)}…` : line
   return `${entry.title} · ${short}`
 }
@@ -56,9 +56,9 @@ export default function JobLog({ jobId, active }: { jobId: string; active: boole
     }
   }, [active, entries.length])
 
-  const onScroll = () => {
-    const el = box.current
-    if (el) following.current = el.scrollHeight - el.scrollTop - el.clientHeight < FOLLOW_SLACK
+  const onScroll = (e: UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget
+    following.current = el.scrollHeight - el.scrollTop - el.clientHeight < FOLLOW_SLACK
   }
 
   if (error && !data) return <ErrorState what="the log" />

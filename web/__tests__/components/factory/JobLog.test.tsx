@@ -69,7 +69,8 @@ describe('JobLog', () => {
     expect(screen.getByRole('log', { name: 'Job log' })).toBeInTheDocument()
     expect(screen.getByText('Looking around.')).toBeInTheDocument()
     // A failing tool is routine: closed like any tool output, not a red alert.
-    expect(screen.getByRole('button', { name: /Tool error/ })).toBeInTheDocument()
+    // Output is titled as output, whatever it holds; only calls carry a summary.
+    expect(screen.getByRole('button', { name: 'Tool error' })).toBeInTheDocument()
     expect(screen.getAllByRole('alert')).toHaveLength(1) // only the failed run
     expect(screen.getByRole('status')).toHaveTextContent(/^Finished$/)
     expect(screen.getByRole('status')).toHaveClass('text-success')
@@ -116,7 +117,8 @@ describe('JobLog', () => {
           message: {
             content: [
               { type: 'tool_use', name: 'Bash', input: { command: `${long}\nsecond line` } },
-              { type: 'tool_use', name: 'Read', input: { file_path: 'x'.repeat(60) } }
+              { type: 'tool_use', name: 'Read', input: { file_path: 'x'.repeat(60) } },
+              { type: 'tool_use', name: 'Echo', input: { command: 'echo hi\nand more' } }
             ]
           }
         })
@@ -127,6 +129,8 @@ describe('JobLog', () => {
     expect(screen.getByRole('button', { name: `Bash · ${'a'.repeat(60)}…` })).toBeInTheDocument()
     // Exactly the limit is kept whole.
     expect(screen.getByRole('button', { name: `Read · ${'x'.repeat(60)}` })).toBeInTheDocument()
+    // A short first line stands alone: the rest is for when it is opened.
+    expect(screen.getByRole('button', { name: 'Echo · echo hi' })).toBeInTheDocument()
   })
 
   it('shows what it has while a refresh is loading', () => {

@@ -66,14 +66,19 @@ export function useFactoryTask(id: string | null) {
   )
 }
 
-/** What a log hook has read so far, and for which job. */
-interface LogCache {
-  jobId: string
-  events: JobEvent[]
-}
-
 /** The server returns at most this many events per call. */
 const EVENTS_PAGE = 500
+
+/**
+ * Keeps the longest read of a job's log: overlapping fetches (a refresh while
+ * one is in flight) finish in any order, and a slower one must not roll back.
+ */
+function remember(cache: Map<string, JobEvent[]>, jobId: string, events: JobEvent[]): JobEvent[] {
+  const longest = cache.get(jobId)
+  if (longest && longest.length > events.length) return longest
+  cache.set(jobId, events)
+  return events
+}
 
 /**
  * A job's log, fetched a page at a time after the last event seen, so a poll
@@ -82,23 +87,16 @@ const EVENTS_PAGE = 500
  */
 export function useJobLog(jobId: string | null, active: boolean) {
   const client = createServiceClient(TaskService)
-  const seen = useRef<LogCache | null>(null)
+  const kept = useRef(new Map<string, JobEvent[]>())
 
   const result = useSWR<JobEvent[], Error, ReturnType<typeof swrKeys.factoryJobEvents> | null>(
     jobId ? swrKeys.factoryJobEvents(jobId) : null,
     async ([, id]) => {
-      if (seen.current?.jobId !== id) seen.current = { jobId: id, events: [] }
-      let events = seen.current.events
+      let events = kept.current.get(id) ?? []
       for (;;) {
         const afterSeq = events.at(-1)?.seq ?? 0
         const page = (await client.listJobEvents({ jobId: id, afterSeq })).events
-        events = [...events, ...page]
-        // A slower overlapping fetch must not roll back a newer one's progress.
-        const latest: LogCache | null = seen.current
-        if (latest?.jobId === id && latest.events.length > events.length) {
-          return latest.events
-        }
-        seen.current = { jobId: id, events }
+        events = remember(kept.current, id, [...events, ...page])
         if (page.length < EVENTS_PAGE) return events
       }
     },
