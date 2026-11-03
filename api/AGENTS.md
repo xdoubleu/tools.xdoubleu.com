@@ -95,24 +95,24 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 
 ## Linting
 
-- Config is the repo-root `.golangci.yml` (shared with `kobo-gateway/`). Limits: line length 88, `gci` order standard → default → `prefix(tools.xdoubleu.com)`, `funlen` 100 lines/50 statements, `cyclop` 30. `nolintlint` requires a reason except for `funlen`/`gocognit`/`lll`.
+- Config: repo-root `.golangci.yml` (shared with `kobo-gateway/`). Limits: line length 88, `gci` order standard → default → `prefix(tools.xdoubleu.com)`, `funlen` 100 lines/50 statements, `cyclop` 30. `nolintlint` requires a reason except for `funlen`/`gocognit`/`lll`.
 - `depguard`: `apps/<name>/internal/...` is app-private; services can't import Connect, repositories `net/http`.
 - Run `make lint/fix` last; `GOLANGCI_LINT_CACHE` is per-checkout.
 
 ## Testing
 
-- No DB mocking: integration tests hit real Postgres (17 in CI, as in production). Mocks live in `internal/mocks/`.
-- `make test/cov/diff` (`tools/diff_coverage_go.py`) prints a primary (gate) and a conservative number per file; Codecov's patch figure usually lands between them — treat it as a heuristic.
-- `make test/cov/report` runs `tools/extend_signature_coverage.py` so wrapped signatures aren't reported as missed → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md).
-- **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions; never stop it when finishing. `relation ... does not exist` may be leftover state or a concurrent teardown (check `docker ps` uptime).
+- No DB mocking: integration tests hit real Postgres (17, as in production); other mocks: `internal/mocks/`.
+- `make test/cov/diff` (`tools/diff_coverage_go.py`) prints a gate and a conservative number per file; Codecov's patch figure usually lands between them.
+- `make test/cov/report` runs `tools/extend_signature_coverage.py`, so wrapped signatures aren't missed → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md).
+- **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions; never stop it. `relation ... does not exist` may be leftover state, a teardown (check `docker ps` uptime), or, in CI only, a `global.*` table a test assumed: `cmd/api` creates them and package order isn't fixed; fake the interface or create it (`feeds` does).
 - **`relation "X" already exists` panic** = another worktree's DDL ran without its `goose_db_version` row (in `global`; check via `docker exec api-db-1 psql`). If the schema matches, insert the row.
 - **Concurrent `go test` runs from two worktrees race on shared fixtures** (`-p 1` is per-invocation), e.g. `TestAppsMCPCallAllToolsAsAdmin`. Re-run in isolation first.
-- No Docker? `.claude/hooks/session-start.sh` has a `pg_ctlcluster` fallback — try it before reporting tests blocked.
-- Bug fixes: failing test first. Reproduce production state via the MCP read tools; for external input, commit the **real bytes** as gzipped `testdata/` fetched with the app's own client (example: `apps/feeds/internal/services/scrape_live_internal_test.go`).
+- No Docker? `.claude/hooks/session-start.sh` has a `pg_ctlcluster` fallback; try it first.
+- Bug fixes: failing test first. Reproduce production state via the MCP read tools; commit external input's **real bytes** as gzipped `testdata/` from the app's own client (example: `apps/feeds/internal/services/scrape_live_internal_test.go`).
 - A bug closes on a production observation or user confirmation, not a green suite.
 - `git stash` is repo-global: never blind-`pop`.
 - Backfill migrations: test against a row built to predate the migration, not only fresh rows.
-- Kobo-firmware behavior can't be verified server-side: say so in the PR; the user's on-device retest is acceptance.
+- Kobo firmware can't be verified server-side: say so in the PR; the user's on-device retest is acceptance.
 
 - `make test/cov/report` failing with `go: no such tool "covdata"` is a sandbox artifact; re-run `.claude/hooks/session-start.sh`.
 
