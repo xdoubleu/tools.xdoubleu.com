@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -17,37 +19,102 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-func accountsEnv(t *testing.T) jobEnv {
-	t.Helper()
-	return newJobEnvWith(t, true, "browser",
-		factory.WithJobAccounts(agentaccounts.NewStore(testDB, nil)))
+// fakeAccounts stands in for the agent account store: the factory only knows it
+// through services.JobAccounts, and the store itself is tested against its own
+// tables in internal/agentaccounts.
+type fakeAccounts struct {
+	mu       sync.Mutex
+	accounts map[uuid.UUID]*accountOf
 }
 
-// accountOf is the account row of a job.
 type accountOf struct {
-	userID    string
-	clientID  string
-	name      string
-	taskID    string
-	active    bool
-	rowsFound int
+	userID   string
+	clientID string
+	name     string
+	taskID   uuid.UUID
+	active   bool
 }
 
-func jobAccount(t *testing.T, jobID string) accountOf {
-	t.Helper()
-	var a accountOf
-	err := testDB.QueryRow(context.Background(), `
-		SELECT user_id::text, client_id, name, task_id::text, revoked_at IS NULL
-		FROM global.agent_accounts WHERE job_id = $1`, jobID,
-	).Scan(&a.userID, &a.clientID, &a.name, &a.taskID, &a.active)
-	if err == nil {
-		a.rowsFound = 1
+func newFakeAccounts() *fakeAccounts {
+	return &fakeAccounts{mu: sync.Mutex{}, accounts: map[uuid.UUID]*accountOf{}}
+}
+
+func (f *fakeAccounts) CreateForJob(
+	_ context.Context, _, name string, scope agentaccounts.Scope,
+) (*agentaccounts.Account, string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if _, taken := f.accounts[scope.JobID]; taken {
+		return nil, "", errors.New("a job has at most one account")
 	}
-	return a
+	acc := &accountOf{
+		userID: uuid.NewString(), clientID: "agent-" + uuid.NewString(),
+		name: name, taskID: scope.TaskID, active: true,
+	}
+	f.accounts[scope.JobID] = acc
+	account := &agentaccounts.Account{
+		ID: uuid.New(), Name: name, UserID: uuid.MustParse(acc.userID),
+		ClientID: acc.clientID, CreatedBy: "", CreatedAt: time.Time{},
+		RevokedAt: nil, JobID: &scope.JobID, TaskID: &scope.TaskID,
+	}
+	return account, "secret-" + acc.clientID, nil
+}
+
+func (f *fakeAccounts) RevokeForJob(_ context.Context, jobID uuid.UUID) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if acc, ok := f.accounts[jobID]; ok {
+		acc.active = false
+	}
+	return nil
+}
+
+func (f *fakeAccounts) ActiveJobs(context.Context) ([]uuid.UUID, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := []uuid.UUID{}
+	for id, acc := range f.accounts {
+		if acc.active {
+			out = append(out, id)
+		}
+	}
+	return out, nil
+}
+
+// ScopeOf keeps the scope of a revoked account, like the store.
+func (f *fakeAccounts) ScopeOf(
+	_ context.Context, userID uuid.UUID,
+) (*agentaccounts.Scope, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for jobID, acc := range f.accounts {
+		if acc.userID == userID.String() {
+			return &agentaccounts.Scope{JobID: jobID, TaskID: acc.taskID}, nil
+		}
+	}
+	return nil, nil //nolint:nilnil // not scoped
+}
+
+var _ services.JobAccounts = (*fakeAccounts)(nil)
+
+// of is the account the job has, failing the test if it has none.
+func (f *fakeAccounts) of(t *testing.T, jobID string) accountOf {
+	t.Helper()
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	acc, ok := f.accounts[uuid.MustParse(jobID)]
+	require.True(t, ok, "job %s has no account", jobID)
+	return *acc
+}
+
+func accountsEnv(t *testing.T) (jobEnv, *fakeAccounts) {
+	t.Helper()
+	accounts := newFakeAccounts()
+	return newJobEnvWith(t, true, "browser", factory.WithJobAccounts(accounts)), accounts
 }
 
 func TestAClaimedJobGetsItsOwnAgentAccount(t *testing.T) {
-	env := accountsEnv(t)
+	env, accounts := accountsEnv(t)
 	task := env.newTask(t, "gets an identity")
 	env.run(t, task.Id, "")
 
@@ -55,10 +122,9 @@ func TestAClaimedJobGetsItsOwnAgentAccount(t *testing.T) {
 	assert.NotEmpty(t, claimed.McpClientId)
 	assert.NotEmpty(t, claimed.McpClientSecret)
 
-	acc := jobAccount(t, claimed.Id)
-	require.Equal(t, 1, acc.rowsFound)
+	acc := accounts.of(t, claimed.Id)
 	assert.Equal(t, claimed.McpClientId, acc.clientID)
-	assert.Equal(t, task.Id, acc.taskID)
+	assert.Equal(t, task.Id, acc.taskID.String())
 	assert.True(t, acc.active)
 	assert.True(t, strings.HasPrefix(acc.name, "job #"+claimed.Id[:8]+" · "), acc.name)
 }
@@ -72,7 +138,7 @@ func TestWithoutJobAccountsAClaimedJobHasNoIdentity(t *testing.T) {
 }
 
 func TestAJobsAccountEndsWithTheJob(t *testing.T) {
-	env := accountsEnv(t)
+	env, accounts := accountsEnv(t)
 
 	// Completed.
 	done := env.newTask(t, "completes")
@@ -81,8 +147,7 @@ func TestAJobsAccountEndsWithTheJob(t *testing.T) {
 	_, err := env.runner.CompleteJob(bearer(env.token),
 		&factoryv1.CompleteJobRequest{JobId: first.Id, Succeeded: true})
 	require.NoError(t, err)
-	assert.False(t, jobAccount(t, first.Id).active)
-	assert.Equal(t, 1, jobAccount(t, first.Id).rowsFound, "the record stays")
+	assert.False(t, accounts.of(t, first.Id).active)
 
 	// Stopped.
 	stopped := env.newTask(t, "stops")
@@ -90,7 +155,7 @@ func TestAJobsAccountEndsWithTheJob(t *testing.T) {
 	second := env.claim(t)
 	_, err = env.stop(t, stopped.Id)
 	require.NoError(t, err)
-	assert.False(t, jobAccount(t, second.Id).active)
+	assert.False(t, accounts.of(t, second.Id).active)
 
 	// Lost: noticed when the board is read.
 	lost := env.newTask(t, "vanishes")
@@ -102,14 +167,15 @@ func TestAJobsAccountEndsWithTheJob(t *testing.T) {
 	require.NoError(t, err)
 	_, err = env.tasks.ListTasks(context.Background(), &factoryv1.ListTasksRequest{})
 	require.NoError(t, err)
-	assert.False(t, jobAccount(t, third.Id).active)
+	assert.False(t, accounts.of(t, third.Id).active)
 
 	// Each job had an account of its own.
-	assert.NotEqual(t, jobAccount(t, first.Id).clientID, jobAccount(t, second.Id).clientID)
+	assert.NotEqual(t,
+		accounts.of(t, first.Id).clientID, accounts.of(t, second.Id).clientID)
 }
 
 func TestAnAccountThatWasNotRevokedIsSweptOnTheNextRead(t *testing.T) {
-	env := accountsEnv(t)
+	env, accounts := accountsEnv(t)
 	task := env.newTask(t, "leaks")
 	env.run(t, task.Id, "")
 	job := env.claim(t)
@@ -119,10 +185,10 @@ func TestAnAccountThatWasNotRevokedIsSweptOnTheNextRead(t *testing.T) {
 		`UPDATE factory.jobs SET status = 'failed', finished_at = now()
 		 WHERE id = $1`, job.Id)
 	require.NoError(t, err)
-	require.True(t, jobAccount(t, job.Id).active)
+	require.True(t, accounts.of(t, job.Id).active)
 
 	env.task(t, task.Id) // any read sweeps
-	assert.False(t, jobAccount(t, job.Id).active)
+	assert.False(t, accounts.of(t, job.Id).active)
 
 	// And one whose job row is gone altogether.
 	other := env.newTask(t, "orphan")
@@ -132,7 +198,7 @@ func TestAnAccountThatWasNotRevokedIsSweptOnTheNextRead(t *testing.T) {
 		`DELETE FROM factory.jobs WHERE id = $1`, orphan.Id)
 	require.NoError(t, err)
 	env.task(t, task.Id)
-	assert.False(t, jobAccount(t, orphan.Id).active)
+	assert.False(t, accounts.of(t, orphan.Id).active)
 }
 
 type brokenAccounts struct{}
@@ -174,12 +240,12 @@ func TestAJobThatCannotHaveAnAccountIsFailedNotRun(t *testing.T) {
 }
 
 func TestAJobAccountSeesAndActsOnItsOwnTaskOnly(t *testing.T) {
-	env := accountsEnv(t)
+	env, accounts := accountsEnv(t)
 	mine := env.newTask(t, "my task")
 	other := env.newTask(t, "someone else's task")
 	env.run(t, mine.Id, "")
 	claimed := env.claim(t)
-	acc := jobAccount(t, claimed.Id)
+	acc := accounts.of(t, claimed.Id)
 	jobUser := &models.User{
 		ID: acc.userID, Email: "job@agent.invalid", Role: models.RoleAgent,
 		AppAccess: nil, HasMFA: false, DisplayName: "",
@@ -234,7 +300,7 @@ func TestAJobAccountSeesAndActsOnItsOwnTaskOnly(t *testing.T) {
 }
 
 func TestAnAgentAccountMadeByAPersonStillSeesTheWholeBoard(t *testing.T) {
-	env := accountsEnv(t)
+	env, _ := accountsEnv(t)
 	a := env.newTask(t, "first")
 	b := env.newTask(t, "second")
 	session := mcpSessionOn(t, env.app, asUser(models.RoleAgent))
@@ -252,16 +318,16 @@ func TestAnAgentAccountMadeByAPersonStillSeesTheWholeBoard(t *testing.T) {
 }
 
 func TestAJobAccountStaysConfinedAfterItsJobEnds(t *testing.T) {
-	env := accountsEnv(t)
+	env, accounts := accountsEnv(t)
 	mine := env.newTask(t, "mine")
 	other := env.newTask(t, "not mine")
 	env.run(t, mine.Id, "")
 	claimed := env.claim(t)
-	acc := jobAccount(t, claimed.Id)
+	acc := accounts.of(t, claimed.Id)
 	_, err := env.runner.CompleteJob(bearer(env.token),
 		&factoryv1.CompleteJobRequest{JobId: claimed.Id, Succeeded: true})
 	require.NoError(t, err)
-	require.False(t, jobAccount(t, claimed.Id).active)
+	require.False(t, accounts.of(t, claimed.Id).active)
 
 	// A request already past authentication when the job ended is not widened
 	// into a person's agent account.
