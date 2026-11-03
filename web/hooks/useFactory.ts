@@ -76,18 +76,19 @@ const EVENTS_PAGE = 500
  */
 export function useJobLog(jobId: string | null, active: boolean) {
   const client = createServiceClient(TaskService)
-  const seen = useRef<{ jobId: string; events: JobEvent[] }>({ jobId: '', events: [] })
+  const seen = useRef<{ jobId: string; events: JobEvent[] } | null>(null)
 
-  const result = useSWR<JobEvent[], Error>(
+  const result = useSWR<JobEvent[], Error, ReturnType<typeof swrKeys.factoryJobEvents> | null>(
     jobId ? swrKeys.factoryJobEvents(jobId) : null,
-    async () => {
-      if (!jobId) return []
-      if (seen.current.jobId !== jobId) seen.current = { jobId, events: [] }
+    async ([, id]) => {
+      if (seen.current?.jobId !== id) seen.current = { jobId: id, events: [] }
+      let events = seen.current.events
       for (;;) {
-        const after = seen.current.events.at(-1)?.seq ?? 0
-        const { events } = await client.listJobEvents({ jobId, afterSeq: after })
-        seen.current = { jobId, events: [...seen.current.events, ...events] }
-        if (events.length < EVENTS_PAGE) return seen.current.events
+        const afterSeq = events.at(-1)?.seq ?? 0
+        const page = (await client.listJobEvents({ jobId: id, afterSeq })).events
+        events = [...events, ...page]
+        seen.current = { jobId: id, events }
+        if (page.length < EVENTS_PAGE) return events
       }
     },
     { refreshInterval: active ? LOG_POLL_MS : 0 }

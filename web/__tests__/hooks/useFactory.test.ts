@@ -287,7 +287,7 @@ describe('useJobLog', () => {
   const fetcher = async (): Promise<unknown> => {
     const call = mockUseSWR.mock.calls.at(-1)
     if (!call || typeof call[1] !== 'function') throw new Error('no fetcher')
-    return await call[1]()
+    return await call[1](call[0])
   }
 
   beforeEach(() => {

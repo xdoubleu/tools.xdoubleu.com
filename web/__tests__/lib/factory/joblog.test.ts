@@ -22,6 +22,8 @@ describe('logEntries', () => {
             { type: 'tool_use', name: 'Odd', input: { other: 1 } },
             { type: 'tool_use', name: 'Bare', input: 'nope' },
             { type: 'tool_use', name: 'Idle', input: {} },
+            { type: 'thinking', text: 'not shown' },
+            null,
             { type: 'text', text: '' },
             'not a block'
           ]
@@ -36,6 +38,22 @@ describe('logEntries', () => {
       { key: '4.4', kind: 'tool', title: 'Bare', body: '' },
       { key: '4.5', kind: 'tool', title: 'Idle', body: '' }
     ])
+  })
+
+  it('summarises a tool call by the field a person would look for', () => {
+    const call = (input: unknown) =>
+      logEntries(
+        event(1, {
+          type: 'assistant',
+          message: { content: [{ type: 'tool_use', name: 'T', input }] }
+        })
+      )[0]?.body
+    expect(call({ command: 'ls', path: '/x' })).toBe('ls')
+    expect(call({ file_path: '/f', path: '/x' })).toBe('/f')
+    expect(call({ path: '/p', pattern: 'q' })).toBe('/p')
+    expect(call({ pattern: 'foo', url: 'u' })).toBe('foo')
+    expect(call({ url: 'http://x', description: 'd' })).toBe('http://x')
+    expect(call({ description: 'what it does' })).toBe('what it does')
   })
 
   it('reads a plain-string message and ignores an empty or odd one', () => {
@@ -59,7 +77,12 @@ describe('logEntries', () => {
             { type: 'tool_result', content: 'plain output' },
             {
               type: 'tool_result',
-              content: [{ type: 'text', text: 'a' }, { type: 'image' }, { type: 'text', text: 'b' }]
+              content: [
+                { type: 'text', text: 'a' },
+                { type: 'image' },
+                'stray',
+                { type: 'text', text: 'b' }
+              ]
             },
             { type: 'tool_result', content: 'boom', is_error: true },
             { type: 'tool_result', content: 12 }

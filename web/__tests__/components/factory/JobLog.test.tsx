@@ -68,6 +68,8 @@ describe('JobLog', () => {
     expect(screen.getByText('Tool error')).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent('Tool error · boom')
     expect(screen.getByRole('status')).toHaveTextContent('Finished · Fixed it.')
+    expect(screen.getByRole('status')).toHaveClass('text-success')
+    expect(screen.getByRole('alert')).toHaveClass('text-danger')
 
     // A tool call is a closed disclosure until opened.
     expect(screen.queryByText('ls')).not.toBeInTheDocument()
@@ -90,5 +92,53 @@ describe('JobLog', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/^Finished$/)
     fireEvent.click(screen.getByRole('button', { name: /Idle/ }))
     expect(screen.getByText('(empty)')).toBeInTheDocument()
+  })
+
+  it('shows what it has while a refresh is loading', () => {
+    show({ data: [event(1, { type: 'result', result: 'Done' })], isLoading: true })
+    render(<JobLog jobId="j-1" active />)
+    expect(screen.getByText(/Done/)).toBeInTheDocument()
+    expect(screen.queryByText(/Loading log/)).not.toBeInTheDocument()
+  })
+
+  it('shows events as they arrive', () => {
+    show({ data: [], isLoading: false })
+    const { rerender } = render(<JobLog jobId="j-1" active />)
+    show({ data: [event(1, { type: 'result', result: 'Done' })], isLoading: false })
+    rerender(<JobLog jobId="j-1" active />)
+    expect(screen.getByText(/Done/)).toBeInTheDocument()
+  })
+
+  describe('following a running job', () => {
+    const logWith = (count: number) =>
+      Array.from({ length: count }, (_, i) =>
+        event(i + 1, {
+          type: 'assistant',
+          message: { content: [{ type: 'text', text: `step ${i}` }] }
+        })
+      )
+
+    beforeEach(() => {
+      vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(900)
+    })
+    afterEach(() => vi.restoreAllMocks())
+
+    it('scrolls to the end as lines arrive', () => {
+      show({ data: logWith(2), isLoading: false })
+      const { rerender } = render(<JobLog jobId="j-1" active />)
+      const box = screen.getByRole('log')
+      expect(box.scrollTop).toBe(900)
+
+      box.scrollTop = 10
+      show({ data: logWith(3), isLoading: false })
+      rerender(<JobLog jobId="j-1" active />)
+      expect(box.scrollTop).toBe(900)
+    })
+
+    it('leaves a finished job where the reader put it', () => {
+      show({ data: logWith(2), isLoading: false })
+      render(<JobLog jobId="j-1" active={false} />)
+      expect(screen.getByRole('log').scrollTop).toBe(0)
+    })
   })
 })

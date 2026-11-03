@@ -47,10 +47,10 @@ function toolSummary(input: unknown): string {
   return Object.keys(input).length > 0 ? JSON.stringify(input) : ''
 }
 
-function entriesOf(seq: number, message: unknown, role: 'assistant' | 'user'): LogEntry[] {
+function entriesOf(seq: number, message: unknown, fromAgent: boolean): LogEntry[] {
   const content = isRecord(message) ? message.content : undefined
   if (typeof content === 'string') {
-    return role === 'assistant' && content !== ''
+    return fromAgent && content !== ''
       ? [{ key: `${seq}.0`, kind: 'text', title: 'Agent', body: clip(content) }]
       : []
   }
@@ -60,7 +60,7 @@ function entriesOf(seq: number, message: unknown, role: 'assistant' | 'user'): L
   content.forEach((block: unknown, i) => {
     if (!isRecord(block)) return
     const key = `${seq}.${i}`
-    if (block.type === 'text' && role === 'assistant' && str(block.text) !== '') {
+    if (block.type === 'text' && fromAgent && str(block.text) !== '') {
       out.push({ key, kind: 'text', title: 'Agent', body: clip(str(block.text)) })
     } else if (block.type === 'tool_use') {
       out.push({
@@ -95,9 +95,9 @@ export function logEntries(event: JobEvent): LogEntry[] {
 
   switch (parsed.type) {
     case 'assistant':
-      return entriesOf(event.seq, parsed.message, 'assistant')
+      return entriesOf(event.seq, parsed.message, true)
     case 'user':
-      return entriesOf(event.seq, parsed.message, 'user')
+      return entriesOf(event.seq, parsed.message, false)
     case 'result': {
       const isError = parsed.is_error === true
       const text = str(parsed.result)
