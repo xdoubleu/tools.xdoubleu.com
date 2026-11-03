@@ -327,6 +327,25 @@ describe('useJobLog', () => {
     expect(mockClient.listJobEvents).toHaveBeenNthCalledWith(2, { jobId: 'j-1', afterSeq: 500 })
   })
 
+  it('does not let a slower overlapping read roll back a newer one', async () => {
+    let releaseSlow: (value: unknown) => void = () => {}
+    mockClient.listJobEvents
+      .mockImplementationOnce(() => new Promise((resolve) => (releaseSlow = resolve)))
+      .mockResolvedValueOnce({ events: [event(1), event(2)] })
+    renderHook(() => useJobLog('j-1', true))
+
+    const slow = fetcher()
+    const fast = await fetcher()
+    expect(fast).toHaveLength(2)
+    releaseSlow({ events: [event(1)] })
+    expect(await slow).toHaveLength(2)
+
+    // And what is kept is the newer read: the next poll starts after seq 2.
+    mockClient.listJobEvents.mockResolvedValueOnce({ events: [] })
+    await fetcher()
+    expect(mockClient.listJobEvents).toHaveBeenLastCalledWith({ jobId: 'j-1', afterSeq: 2 })
+  })
+
   it('starts over for another job', async () => {
     mockClient.listJobEvents.mockResolvedValue({ events: [event(1)] })
     const { rerender } = renderHook(({ id }) => useJobLog(id, false), {

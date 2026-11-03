@@ -66,6 +66,12 @@ export function useFactoryTask(id: string | null) {
   )
 }
 
+/** What a log hook has read so far, and for which job. */
+interface LogCache {
+  jobId: string
+  events: JobEvent[]
+}
+
 /** The server returns at most this many events per call. */
 const EVENTS_PAGE = 500
 
@@ -76,7 +82,7 @@ const EVENTS_PAGE = 500
  */
 export function useJobLog(jobId: string | null, active: boolean) {
   const client = createServiceClient(TaskService)
-  const seen = useRef<{ jobId: string; events: JobEvent[] } | null>(null)
+  const seen = useRef<LogCache | null>(null)
 
   const result = useSWR<JobEvent[], Error, ReturnType<typeof swrKeys.factoryJobEvents> | null>(
     jobId ? swrKeys.factoryJobEvents(jobId) : null,
@@ -87,6 +93,11 @@ export function useJobLog(jobId: string | null, active: boolean) {
         const afterSeq = events.at(-1)?.seq ?? 0
         const page = (await client.listJobEvents({ jobId: id, afterSeq })).events
         events = [...events, ...page]
+        // A slower overlapping fetch must not roll back a newer one's progress.
+        const latest: LogCache | null = seen.current
+        if (latest?.jobId === id && latest.events.length > events.length) {
+          return latest.events
+        }
         seen.current = { jobId: id, events }
         if (page.length < EVENTS_PAGE) return events
       }

@@ -73,7 +73,8 @@ function entriesOf(seq: number, message: unknown, fromAgent: boolean): LogEntry[
       const text = resultText(block.content)
       out.push({
         key,
-        kind: block.is_error === true ? 'error' : 'note',
+        // A failing command is routine work; only the run's own result is a failure.
+        kind: 'note',
         title: block.is_error === true ? 'Tool error' : 'Tool output',
         body: clip(text)
       })
@@ -100,13 +101,13 @@ export function logEntries(event: JobEvent): LogEntry[] {
       return entriesOf(event.seq, parsed.message, false)
     case 'result': {
       const isError = parsed.is_error === true
-      const text = str(parsed.result)
       return [
         {
           key: `${event.seq}.0`,
           kind: isError ? 'error' : 'result',
           title: isError ? 'Failed' : 'Finished',
-          body: clip(text)
+          // On success the text repeats the agent's last message, already shown.
+          body: isError ? clip(str(parsed.result)) : ''
         }
       ]
     }

@@ -93,14 +93,15 @@ describe('logEntries', () => {
     expect(entries.map((e) => [e.kind, e.title, e.body])).toEqual([
       ['note', 'Tool output', 'plain output'],
       ['note', 'Tool output', 'a\nb'],
-      ['error', 'Tool error', 'boom'],
+      ['note', 'Tool error', 'boom'],
       ['note', 'Tool output', '']
     ])
   })
 
   it('shows how the run ended', () => {
+    // The text of a success repeats the agent's last message, so it is left out.
     expect(logEntries(event(9, { type: 'result', result: 'All done' }))).toEqual([
-      { key: '9.0', kind: 'result', title: 'Finished', body: 'All done' }
+      { key: '9.0', kind: 'result', title: 'Finished', body: '' }
     ])
     expect(logEntries(event(9, { type: 'result', is_error: true, result: 'Nope' }))).toEqual([
       { key: '9.0', kind: 'error', title: 'Failed', body: 'Nope' }
@@ -117,10 +118,14 @@ describe('logEntries', () => {
   })
 
   it('cuts a very long body', () => {
-    const [entry] = logEntries(event(1, { type: 'result', result: 'x'.repeat(5000) }))
+    const [entry] = logEntries(
+      event(1, { type: 'result', is_error: true, result: 'x'.repeat(5000) })
+    )
     expect(entry?.body).toHaveLength(4001)
     expect(entry?.body.endsWith('…')).toBe(true)
-    const [exact] = logEntries(event(1, { type: 'result', result: 'x'.repeat(4000) }))
+    const [exact] = logEntries(
+      event(1, { type: 'result', is_error: true, result: 'x'.repeat(4000) })
+    )
     expect(exact?.body).toHaveLength(4000)
   })
 })

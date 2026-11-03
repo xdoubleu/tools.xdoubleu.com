@@ -5,6 +5,18 @@ import { Alert } from '@/components/ui/alert'
 import { Collapsible } from '@/components/ui/collapsible'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
+const TITLE_SUMMARY = 60
+/** How far from the end still counts as reading the end, in px. */
+const FOLLOW_SLACK = 40
+
+/** A tool call is titled by what it ran, so a closed list can be told apart. */
+function disclosureTitle(entry: LogEntry): string {
+  if (entry.kind !== 'tool' || entry.body === '') return entry.title
+  const line = entry.body.split('\n')[0] ?? ''
+  const short = line.length > TITLE_SUMMARY ? `${line.slice(0, TITLE_SUMMARY)}…` : line
+  return `${entry.title} · ${short}`
+}
+
 function Entry({ entry }: { entry: LogEntry }) {
   switch (entry.kind) {
     case 'text':
@@ -20,7 +32,7 @@ function Entry({ entry }: { entry: LogEntry }) {
     default:
       // Tool calls and their output stay closed: they are long and mostly noise.
       return (
-        <Collapsible title={entry.title} triggerClassName="text-sm">
+        <Collapsible title={disclosureTitle(entry)} triggerClassName="text-sm break-all">
           <p className="whitespace-pre-wrap break-all font-mono text-xs text-muted">
             {entry.body || '(empty)'}
           </p>
@@ -34,11 +46,20 @@ export default function JobLog({ jobId, active }: { jobId: string; active: boole
   const { data, error, isLoading } = useJobLog(jobId, active)
   const entries = useMemo(() => (data ?? []).flatMap(logEntries), [data])
   const box = useRef<HTMLDivElement>(null)
+  // Whether the reader is at the end; one who scrolled up to read is left alone.
+  const following = useRef(true)
 
   // Follow the end of a running job's log.
   useEffect(() => {
-    if (active && box.current) box.current.scrollTop = box.current.scrollHeight
+    if (active && following.current && box.current) {
+      box.current.scrollTop = box.current.scrollHeight
+    }
   }, [active, entries.length])
+
+  const onScroll = () => {
+    const el = box.current
+    if (el) following.current = el.scrollHeight - el.scrollTop - el.clientHeight < FOLLOW_SLACK
+  }
 
   if (error && !data) return <ErrorState what="the log" />
   if (isLoading && !data) return <LoadingState label="log" />
@@ -46,7 +67,13 @@ export default function JobLog({ jobId, active }: { jobId: string; active: boole
     return <EmptyState compact>{active ? 'No output yet.' : 'No log kept.'}</EmptyState>
   }
   return (
-    <div ref={box} role="log" aria-label="Job log" className="max-h-80 space-y-2 overflow-y-auto">
+    <div
+      ref={box}
+      role="log"
+      aria-label="Job log"
+      onScroll={onScroll}
+      className="max-h-80 space-y-2 overflow-y-auto"
+    >
       {entries.map((entry) => (
         <Entry key={entry.key} entry={entry} />
       ))}
