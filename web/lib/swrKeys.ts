@@ -123,6 +123,7 @@ export const swrKeys = {
   factoryRunners: '/factory/runners',
   factoryRunnerRelease: '/downloads/factory-runner-release.txt',
   factoryTask: (id: string) => ['/factory/task', id] as const,
+  factoryJobEvents: (jobId: string) => ['/factory/job-events', jobId] as const,
 
   tasteStats: (shared = false) => `/taste/stats${shared ? '/shared' : ''}`,
   tasteProfile: (shared = false) => `/taste/profile${shared ? '/shared' : ''}`,

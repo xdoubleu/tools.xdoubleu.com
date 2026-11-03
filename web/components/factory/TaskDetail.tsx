@@ -10,6 +10,7 @@ import {
   statusLabel
 } from '@/lib/factory/board'
 import { MoveSelect } from '@/components/factory/TaskCard'
+import JobLog from '@/components/factory/JobLog'
 import TaskDialog from '@/components/factory/TaskDialog'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -104,6 +105,7 @@ function RunSection({ taskId, latest }: { taskId: string; latest: Job | undefine
           Job {jobStatusLabel(latest.status).toLowerCase()} · {latest.branch}
         </p>
       )}
+      {latest && <JobLog jobId={latest.id} active={active} />}
       <form className="space-y-2" onSubmit={(e) => void submit(e)}>
         <Field label="Instructions for this run (optional)" htmlFor="task-run-text">
           <Textarea
@@ -114,19 +116,21 @@ function RunSection({ taskId, latest }: { taskId: string; latest: Job | undefine
           />
         </Field>
         {error && <Alert tone="danger">{error}</Alert>}
-        <Button type="submit" disabled={pending || active}>
-          {pending ? 'Queuing…' : active ? 'Running…' : 'Run'}
-        </Button>
-        {active && (
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={stopping}
-            onClick={() => void halt()}
-          >
-            {stopping ? 'Stopping…' : 'Stop'}
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" disabled={pending || active}>
+            {pending ? 'Queuing…' : active ? 'Running…' : 'Run'}
           </Button>
-        )}
+          {active && (
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={stopping}
+              onClick={() => void halt()}
+            >
+              {stopping ? 'Stopping…' : 'Stop'}
+            </Button>
+          )}
+        </div>
       </form>
     </Card>
   )

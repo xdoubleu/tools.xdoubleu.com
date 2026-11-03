@@ -23,6 +23,7 @@ const mockClient = {
   getTask: vi.fn().mockResolvedValue({ comments: [] }),
   createTask: vi.fn().mockResolvedValue({ task: { id: 'new' } }),
   updateTask: vi.fn().mockResolvedValue({}),
+  listJobEvents: vi.fn(),
   moveTask: vi.fn().mockResolvedValue({}),
   addComment: vi.fn().mockResolvedValue({}),
   runTask: vi.fn().mockResolvedValue({}),
@@ -57,11 +58,13 @@ import {
   useRunnerRelease,
   RUNNER_POLL_MS,
   useFactoryTask,
-  useFactoryTasks
+  useFactoryTasks,
+  useJobLog
 } from '@/hooks/useFactory'
 import { create } from '@bufbuild/protobuf'
-import { GetTaskResponseSchema, JobSchema } from '@/lib/gen/factory/v1/factory_pb'
+import { GetTaskResponseSchema, JobEventSchema, JobSchema } from '@/lib/gen/factory/v1/factory_pb'
 import { JOB_POLL_MS } from '@/lib/factory/board'
+import { LOG_POLL_MS } from '@/lib/factory/joblog'
 
 const mockUseSWR = vi.mocked(useSWR)
 const fields = { title: 't', body: 'b', priority: 3, labels: ['x'] }
@@ -273,5 +276,86 @@ describe('useFactoryActions', () => {
     expect(mockClient.revokeRunner).toHaveBeenCalledWith({ id: 'r-1' })
 
     expect(mockMutate).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('useJobLog', () => {
+  const event = (seq: number) => create(JobEventSchema, { seq, kind: 'assistant', payload: '{}' })
+  const mockSwrMutate = vi.fn()
+
+  // The fetcher the hook gave SWR on its latest render.
+  const fetcher = async (): Promise<unknown> => {
+    const call = mockUseSWR.mock.calls.at(-1)
+    if (!call || typeof call[1] !== 'function') throw new Error('no fetcher')
+    return await call[1]()
+  }
+
+  beforeEach(() => {
+    mockClient.listJobEvents.mockReset()
+    mockSwrMutate.mockReset()
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseSWR.mockImplementation(() => ({ data: undefined, mutate: mockSwrMutate }))
+  })
+
+  it('fetches nothing without a job', () => {
+    renderHook(() => useJobLog(null, false))
+    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function), expect.anything())
+    expect(mockClient.listJobEvents).not.toHaveBeenCalled()
+  })
+
+  it('reads only what is new after the last event seen, and keeps what it had', async () => {
+    mockClient.listJobEvents
+      .mockResolvedValueOnce({ events: [event(1), event(2)] })
+      .mockResolvedValueOnce({ events: [event(3)] })
+    renderHook(() => useJobLog('j-1', true))
+
+    expect(await fetcher()).toHaveLength(2)
+    expect(mockClient.listJobEvents).toHaveBeenLastCalledWith({ jobId: 'j-1', afterSeq: 0 })
+    const all = await fetcher()
+    expect(mockClient.listJobEvents).toHaveBeenLastCalledWith({ jobId: 'j-1', afterSeq: 2 })
+    expect(all).toHaveLength(3)
+  })
+
+  it('keeps reading while the server answers with a full page', async () => {
+    const page = Array.from({ length: 500 }, (_, i) => event(i + 1))
+    mockClient.listJobEvents
+      .mockResolvedValueOnce({ events: page })
+      .mockResolvedValueOnce({ events: [event(501)] })
+    renderHook(() => useJobLog('j-1', true))
+
+    expect(await fetcher()).toHaveLength(501)
+    expect(mockClient.listJobEvents).toHaveBeenNthCalledWith(2, { jobId: 'j-1', afterSeq: 500 })
+  })
+
+  it('starts over for another job', async () => {
+    mockClient.listJobEvents.mockResolvedValue({ events: [event(1)] })
+    const { rerender } = renderHook(({ id }) => useJobLog(id, false), {
+      initialProps: { id: 'j-1' }
+    })
+    await fetcher()
+    rerender({ id: 'j-2' })
+    await fetcher()
+    expect(mockClient.listJobEvents).toHaveBeenLastCalledWith({ jobId: 'j-2', afterSeq: 0 })
+  })
+
+  it('polls while the job is active and refreshes once more when it stops', () => {
+    const { rerender } = renderHook(({ active }) => useJobLog('j-1', active), {
+      initialProps: { active: true }
+    })
+    const options = () => mockUseSWR.mock.calls.at(-1)?.[2]
+    expect(options()).toEqual({ refreshInterval: LOG_POLL_MS })
+    expect(mockSwrMutate).not.toHaveBeenCalled()
+
+    rerender({ active: false })
+    expect(options()).toEqual({ refreshInterval: 0 })
+    expect(mockSwrMutate).toHaveBeenCalledTimes(1)
+
+    rerender({ active: false })
+    expect(mockSwrMutate).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not refresh a log that was never active', () => {
+    renderHook(() => useJobLog('j-1', false))
+    expect(mockSwrMutate).not.toHaveBeenCalled()
   })
 })
