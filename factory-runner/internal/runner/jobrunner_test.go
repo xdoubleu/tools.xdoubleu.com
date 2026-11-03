@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"syscall"
@@ -60,6 +61,9 @@ type fakeAPI struct {
 	checkIns  []string
 	completed []completion
 	completes chan struct{}
+	events    []runner.EventLine
+	appendErr error
+	batches   int
 }
 
 type completion struct {
@@ -73,6 +77,7 @@ func newFakeAPI(jobs ...*runner.ClaimedJob) *fakeAPI {
 	return &fakeAPI{
 		mu: sync.Mutex{}, jobs: jobs, claimErr: nil, stop: false, checkIns: nil,
 		completed: nil, completes: make(chan struct{}, 10),
+		events: nil, appendErr: nil, batches: 0,
 	}
 }
 
@@ -95,6 +100,39 @@ func (f *fakeAPI) CheckIn(_ context.Context, _, _, session string) (bool, error)
 	defer f.mu.Unlock()
 	f.checkIns = append(f.checkIns, session)
 	return f.stop, nil
+}
+
+// AppendJobEvents stores lines like the server: a seq it has is ignored.
+func (f *fakeAPI) AppendJobEvents(
+	_ context.Context, _, _ string, lines []runner.EventLine,
+) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.batches++
+	if f.appendErr != nil {
+		return f.appendErr
+	}
+	for _, l := range lines {
+		seen := func(e runner.EventLine) bool { return e.Seq == l.Seq }
+		if !slices.ContainsFunc(f.events, seen) {
+			f.events = append(f.events, l)
+		}
+	}
+	return nil
+}
+
+func (f *fakeAPI) numbered() []runner.EventLine {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]runner.EventLine(nil), f.events...)
+}
+
+func (f *fakeAPI) logged() []string {
+	lines := []string{}
+	for _, e := range f.numbered() {
+		lines = append(lines, e.Line)
+	}
+	return lines
 }
 
 func (f *fakeAPI) CompleteJob(
@@ -194,7 +232,7 @@ func newEnv(
 				Dir: dir, RemoteURL: func(string, string) string { return remote }, Run: nil,
 			},
 			Sandbox: sb, Harness: runner.ClaudeCode{}, Activity: nil, DataDir: dir, Secrets: nil,
-			CheckInEvery: 10 * time.Millisecond, Minute: time.Second,
+			CheckInEvery: 10 * time.Millisecond, Minute: time.Second, EventsEvery: 0,
 			Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		},
 	}

@@ -29,10 +29,11 @@ const (
 )
 
 type JobService struct {
-	jobs  *repositories.JobsRepository
-	tasks *repositories.TasksRepository
-	repos *repositories.ReposRepository
-	now   func() time.Time
+	jobs   *repositories.JobsRepository
+	tasks  *repositories.TasksRepository
+	repos  *repositories.ReposRepository
+	events *repositories.JobEventsRepository
+	now    func() time.Time
 }
 
 // ClaimedJob is a job with the repo it runs against.

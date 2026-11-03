@@ -78,6 +78,34 @@ func (h *taskConnectHandler) StopJob(
 	return &factoryv1.StopJobResponse{Job: protoJob(job)}, nil
 }
 
+func (h *taskConnectHandler) ListJobEvents(
+	ctx context.Context,
+	req *factoryv1.ListJobEventsRequest,
+) (*factoryv1.ListJobEventsResponse, error) {
+	actor, err := actorFrom(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := parseID(req.GetJobId())
+	if err != nil {
+		return nil, err
+	}
+	events, err := h.app.services.Jobs.ListEvents(ctx, actor, id, int(req.GetAfterSeq()))
+	if err != nil {
+		return nil, mapError(err)
+	}
+	out := make([]*factoryv1.JobEvent, len(events))
+	for i := range events {
+		out[i] = &factoryv1.JobEvent{
+			Seq:       int32(events[i].Seq), //nolint:gosec // capped per job
+			Kind:      events[i].Kind,
+			Payload:   events[i].Payload,
+			CreatedAt: events[i].CreatedAt.Format(time.RFC3339),
+		}
+	}
+	return &factoryv1.ListJobEventsResponse{Events: out}, nil
+}
+
 // claimedJobToProto is the job as the runner receives it.
 func claimedJobToProto(c *services.ClaimedJob) *factoryv1.ClaimedJob {
 	timeLimit := int32(c.Repo.TimeLimitMinutes) //nolint:gosec // minutes, far below 2^31
@@ -146,6 +174,27 @@ func (h *runnerHandler) CheckIn(
 		return nil, mapError(err)
 	}
 	return &factoryv1.CheckInResponse{Stop: stop}, nil
+}
+
+func (h *runnerHandler) AppendJobEvents(
+	ctx context.Context,
+	req *factoryv1.AppendJobEventsRequest,
+) (*factoryv1.AppendJobEventsResponse, error) {
+	if _, err := h.runnerFrom(ctx); err != nil {
+		return nil, err
+	}
+	id, err := parseID(req.GetJobId())
+	if err != nil {
+		return nil, err
+	}
+	lines := make([]models.JobLine, len(req.GetLines()))
+	for i, l := range req.GetLines() {
+		lines[i] = models.JobLine{Seq: int(l.GetSeq()), Line: l.GetLine()}
+	}
+	if err = h.app.services.Jobs.AppendEvents(ctx, id, lines); err != nil {
+		return nil, mapError(err)
+	}
+	return &factoryv1.AppendJobEventsResponse{}, nil
 }
 
 func (h *runnerHandler) CompleteJob(

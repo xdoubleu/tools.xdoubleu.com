@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file factory/v1/factory.proto.
  */
 export const file_factory_v1_factory: GenFile = /*@__PURE__*/
-  fileDesc("ChhmYWN0b3J5L3YxL2ZhY3RvcnkucHJvdG8SCmZhY3RvcnkudjEi9wEKBFRhc2sSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDAoEYm9keRgDIAEoCRImCgZzdGF0dXMYBCABKA4yFi5mYWN0b3J5LnYxLlRhc2tTdGF0dXMSKgoIcHJpb3JpdHkYBSABKA4yGC5mYWN0b3J5LnYxLlRhc2tQcmlvcml0eRIOCgZsYWJlbHMYBiADKAkSEgoKY3JlYXRlZF9ieRgHIAEoCRISCgpjcmVhdGVkX2F0GAggASgJEhIKCnVwZGF0ZWRfYXQYCSABKAkSFQoNY29tbWVudF9jb3VudBgKIAEoBRIPCgdyZXBvX2lkGAsgASgJIkcKB0NvbW1lbnQSCgoCaWQYASABKAkSDgoGYXV0aG9yGAIgASgJEgwKBGJvZHkYAyABKAkSEgoKY3JlYXRlZF9hdBgEIAEoCSISChBMaXN0VGFza3NSZXF1ZXN0IjQKEUxpc3RUYXNrc1Jlc3BvbnNlEh8KBXRhc2tzGAEgAygLMhAuZmFjdG9yeS52MS5UYXNrIhwKDkdldFRhc2tSZXF1ZXN0EgoKAmlkGAEgASgJIncKD0dldFRhc2tSZXNwb25zZRIeCgR0YXNrGAEgASgLMhAuZmFjdG9yeS52MS5UYXNrEiUKCGNvbW1lbnRzGAIgAygLMhMuZmFjdG9yeS52MS5Db21tZW50Eh0KBGpvYnMYAyADKAsyDy5mYWN0b3J5LnYxLkpvYiJ9ChFDcmVhdGVUYXNrUmVxdWVzdBINCgV0aXRsZRgBIAEoCRIMCgRib2R5GAIgASgJEioKCHByaW9yaXR5GAMgASgOMhguZmFjdG9yeS52MS5UYXNrUHJpb3JpdHkSDgoGbGFiZWxzGAQgAygJEg8KB3JlcG9faWQYBSABKAkiNAoSQ3JlYXRlVGFza1Jlc3BvbnNlEh4KBHRhc2sYASABKAsyEC5mYWN0b3J5LnYxLlRhc2sieAoRVXBkYXRlVGFza1JlcXVlc3QSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDAoEYm9keRgDIAEoCRIqCghwcmlvcml0eRgEIAEoDjIYLmZhY3RvcnkudjEuVGFza1ByaW9yaXR5Eg4KBmxhYmVscxgFIAMoCSI0ChJVcGRhdGVUYXNrUmVzcG9uc2USHgoEdGFzaxgBIAEoCzIQLmZhY3RvcnkudjEuVGFzayJFCg9Nb3ZlVGFza1JlcXVlc3QSCgoCaWQYASABKAkSJgoGc3RhdHVzGAIgASgOMhYuZmFjdG9yeS52MS5UYXNrU3RhdHVzIjIKEE1vdmVUYXNrUmVzcG9uc2USHgoEdGFzaxgBIAEoCzIQLmZhY3RvcnkudjEuVGFzayIyChFBZGRDb21tZW50UmVxdWVzdBIPCgd0YXNrX2lkGAEgASgJEgwKBGJvZHkYAiABKAkiOgoSQWRkQ29tbWVudFJlc3BvbnNlEiQKB2NvbW1lbnQYASABKAsyEy5mYWN0b3J5LnYxLkNvbW1lbnQibQoDSm9iEgoKAmlkGAEgASgJEg8KB3Rhc2tfaWQYAiABKAkSJQoGc3RhdHVzGAMgASgOMhUuZmFjdG9yeS52MS5Kb2JTdGF0dXMSDgoGYnJhbmNoGAQgASgJEhIKCmNyZWF0ZWRfYXQYBSABKAkiLwoOUnVuVGFza1JlcXVlc3QSDwoHdGFza19pZBgBIAEoCRIMCgR0ZXh0GAIgASgJIi8KD1J1blRhc2tSZXNwb25zZRIcCgNqb2IYASABKAsyDy5mYWN0b3J5LnYxLkpvYiIhCg5TdG9wSm9iUmVxdWVzdBIPCgd0YXNrX2lkGAEgASgJIi8KD1N0b3BKb2JSZXNwb25zZRIcCgNqb2IYASABKAsyDy5mYWN0b3J5LnYxLkpvYiLFAQoEUmVwbxIKCgJpZBgBIAEoCRINCgVvd25lchgCIAEoCRIMCgRuYW1lGAMgASgJEhYKDmRlZmF1bHRfYnJhbmNoGAQgASgJEiwKD2RlZmF1bHRfaGFybmVzcxgFIAEoDjITLmZhY3RvcnkudjEuSGFybmVzcxIWCg5zZXR1cF9jb21tYW5kcxgGIAEoCRIaChJhZ2VudF9pbnN0cnVjdGlvbnMYByABKAkSGgoSdGltZV9saW1pdF9taW51dGVzGAggASgFIhIKEExpc3RSZXBvc1JlcXVlc3QiNAoRTGlzdFJlcG9zUmVzcG9uc2USHwoFcmVwb3MYASADKAsyEC5mYWN0b3J5LnYxLlJlcG8iMwoRQ3JlYXRlUmVwb1JlcXVlc3QSHgoEcmVwbxgBIAEoCzIQLmZhY3RvcnkudjEuUmVwbyI0ChJDcmVhdGVSZXBvUmVzcG9uc2USHgoEcmVwbxgBIAEoCzIQLmZhY3RvcnkudjEuUmVwbyIzChFVcGRhdGVSZXBvUmVxdWVzdBIeCgRyZXBvGAEgASgLMhAuZmFjdG9yeS52MS5SZXBvIjQKElVwZGF0ZVJlcG9SZXNwb25zZRIeCgRyZXBvGAEgASgLMhAuZmFjdG9yeS52MS5SZXBvKsIBCgpUYXNrU3RhdHVzEhsKF1RBU0tfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFwoTVEFTS19TVEFUVVNfQkFDS0xPRxABEhUKEVRBU0tfU1RBVFVTX1JFQURZEAISGwoXVEFTS19TVEFUVVNfSU5fUFJPR1JFU1MQAxIZChVUQVNLX1NUQVRVU19JTl9SRVZJRVcQBBIZChVUQVNLX1NUQVRVU19ORUVEU19ZT1UQBRIUChBUQVNLX1NUQVRVU19ET05FEAYqbwoMVGFza1ByaW9yaXR5Eh0KGVRBU0tfUFJJT1JJVFlfVU5TUEVDSUZJRUQQABIUChBUQVNLX1BSSU9SSVRZX1AwEAESFAoQVEFTS19QUklPUklUWV9QMRACEhQKEFRBU0tfUFJJT1JJVFlfUDIQAypRCgdIYXJuZXNzEhcKE0hBUk5FU1NfVU5TUEVDSUZJRUQQABIXChNIQVJORVNTX0NMQVVERV9DT0RFEAESFAoQSEFSTkVTU19PUEVOQ09ERRACKrYBCglKb2JTdGF0dXMSGgoWSk9CX1NUQVRVU19VTlNQRUNJRklFRBAAEhUKEUpPQl9TVEFUVVNfUVVFVUVEEAESFgoSSk9CX1NUQVRVU19SVU5OSU5HEAISGAoUSk9CX1NUQVRVU19TVUNDRUVERUQQAxIVChFKT0JfU1RBVFVTX0ZBSUxFRBAEEhgKFEpPQl9TVEFUVVNfQ0FOQ0VMTEVEEAUSEwoPSk9CX1NUQVRVU19MT1NUEAYy0QQKC1Rhc2tTZXJ2aWNlEkgKCUxpc3RUYXNrcxIcLmZhY3RvcnkudjEuTGlzdFRhc2tzUmVxdWVzdBodLmZhY3RvcnkudjEuTGlzdFRhc2tzUmVzcG9uc2USQgoHR2V0VGFzaxIaLmZhY3RvcnkudjEuR2V0VGFza1JlcXVlc3QaGy5mYWN0b3J5LnYxLkdldFRhc2tSZXNwb25zZRJLCgpDcmVhdGVUYXNrEh0uZmFjdG9yeS52MS5DcmVhdGVUYXNrUmVxdWVzdBoeLmZhY3RvcnkudjEuQ3JlYXRlVGFza1Jlc3BvbnNlEksKClVwZGF0ZVRhc2sSHS5mYWN0b3J5LnYxLlVwZGF0ZVRhc2tSZXF1ZXN0Gh4uZmFjdG9yeS52MS5VcGRhdGVUYXNrUmVzcG9uc2USRQoITW92ZVRhc2sSGy5mYWN0b3J5LnYxLk1vdmVUYXNrUmVxdWVzdBocLmZhY3RvcnkudjEuTW92ZVRhc2tSZXNwb25zZRJLCgpBZGRDb21tZW50Eh0uZmFjdG9yeS52MS5BZGRDb21tZW50UmVxdWVzdBoeLmZhY3RvcnkudjEuQWRkQ29tbWVudFJlc3BvbnNlEkIKB1J1blRhc2sSGi5mYWN0b3J5LnYxLlJ1blRhc2tSZXF1ZXN0GhsuZmFjdG9yeS52MS5SdW5UYXNrUmVzcG9uc2USQgoHU3RvcEpvYhIaLmZhY3RvcnkudjEuU3RvcEpvYlJlcXVlc3QaGy5mYWN0b3J5LnYxLlN0b3BKb2JSZXNwb25zZTLxAQoLUmVwb1NlcnZpY2USSAoJTGlzdFJlcG9zEhwuZmFjdG9yeS52MS5MaXN0UmVwb3NSZXF1ZXN0Gh0uZmFjdG9yeS52MS5MaXN0UmVwb3NSZXNwb25zZRJLCgpDcmVhdGVSZXBvEh0uZmFjdG9yeS52MS5DcmVhdGVSZXBvUmVxdWVzdBoeLmZhY3RvcnkudjEuQ3JlYXRlUmVwb1Jlc3BvbnNlEksKClVwZGF0ZVJlcG8SHS5mYWN0b3J5LnYxLlVwZGF0ZVJlcG9SZXF1ZXN0Gh4uZmFjdG9yeS52MS5VcGRhdGVSZXBvUmVzcG9uc2VCLVordG9vbHMueGRvdWJsZXUuY29tL2dlbi9mYWN0b3J5L3YxO2ZhY3Rvcnl2MWIGcHJvdG8z");
+  fileDesc("ChhmYWN0b3J5L3YxL2ZhY3RvcnkucHJvdG8SCmZhY3RvcnkudjEi9wEKBFRhc2sSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDAoEYm9keRgDIAEoCRImCgZzdGF0dXMYBCABKA4yFi5mYWN0b3J5LnYxLlRhc2tTdGF0dXMSKgoIcHJpb3JpdHkYBSABKA4yGC5mYWN0b3J5LnYxLlRhc2tQcmlvcml0eRIOCgZsYWJlbHMYBiADKAkSEgoKY3JlYXRlZF9ieRgHIAEoCRISCgpjcmVhdGVkX2F0GAggASgJEhIKCnVwZGF0ZWRfYXQYCSABKAkSFQoNY29tbWVudF9jb3VudBgKIAEoBRIPCgdyZXBvX2lkGAsgASgJIkcKB0NvbW1lbnQSCgoCaWQYASABKAkSDgoGYXV0aG9yGAIgASgJEgwKBGJvZHkYAyABKAkSEgoKY3JlYXRlZF9hdBgEIAEoCSISChBMaXN0VGFza3NSZXF1ZXN0IjQKEUxpc3RUYXNrc1Jlc3BvbnNlEh8KBXRhc2tzGAEgAygLMhAuZmFjdG9yeS52MS5UYXNrIhwKDkdldFRhc2tSZXF1ZXN0EgoKAmlkGAEgASgJIncKD0dldFRhc2tSZXNwb25zZRIeCgR0YXNrGAEgASgLMhAuZmFjdG9yeS52MS5UYXNrEiUKCGNvbW1lbnRzGAIgAygLMhMuZmFjdG9yeS52MS5Db21tZW50Eh0KBGpvYnMYAyADKAsyDy5mYWN0b3J5LnYxLkpvYiJ9ChFDcmVhdGVUYXNrUmVxdWVzdBINCgV0aXRsZRgBIAEoCRIMCgRib2R5GAIgASgJEioKCHByaW9yaXR5GAMgASgOMhguZmFjdG9yeS52MS5UYXNrUHJpb3JpdHkSDgoGbGFiZWxzGAQgAygJEg8KB3JlcG9faWQYBSABKAkiNAoSQ3JlYXRlVGFza1Jlc3BvbnNlEh4KBHRhc2sYASABKAsyEC5mYWN0b3J5LnYxLlRhc2sieAoRVXBkYXRlVGFza1JlcXVlc3QSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDAoEYm9keRgDIAEoCRIqCghwcmlvcml0eRgEIAEoDjIYLmZhY3RvcnkudjEuVGFza1ByaW9yaXR5Eg4KBmxhYmVscxgFIAMoCSI0ChJVcGRhdGVUYXNrUmVzcG9uc2USHgoEdGFzaxgBIAEoCzIQLmZhY3RvcnkudjEuVGFzayJFCg9Nb3ZlVGFza1JlcXVlc3QSCgoCaWQYASABKAkSJgoGc3RhdHVzGAIgASgOMhYuZmFjdG9yeS52MS5UYXNrU3RhdHVzIjIKEE1vdmVUYXNrUmVzcG9uc2USHgoEdGFzaxgBIAEoCzIQLmZhY3RvcnkudjEuVGFzayIyChFBZGRDb21tZW50UmVxdWVzdBIPCgd0YXNrX2lkGAEgASgJEgwKBGJvZHkYAiABKAkiOgoSQWRkQ29tbWVudFJlc3BvbnNlEiQKB2NvbW1lbnQYASABKAsyEy5mYWN0b3J5LnYxLkNvbW1lbnQibQoDSm9iEgoKAmlkGAEgASgJEg8KB3Rhc2tfaWQYAiABKAkSJQoGc3RhdHVzGAMgASgOMhUuZmFjdG9yeS52MS5Kb2JTdGF0dXMSDgoGYnJhbmNoGAQgASgJEhIKCmNyZWF0ZWRfYXQYBSABKAkiSgoISm9iRXZlbnQSCwoDc2VxGAEgASgFEgwKBGtpbmQYAiABKAkSDwoHcGF5bG9hZBgDIAEoCRISCgpjcmVhdGVkX2F0GAQgASgJIjkKFExpc3RKb2JFdmVudHNSZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCRIRCglhZnRlcl9zZXEYAiABKAUiPQoVTGlzdEpvYkV2ZW50c1Jlc3BvbnNlEiQKBmV2ZW50cxgBIAMoCzIULmZhY3RvcnkudjEuSm9iRXZlbnQiLwoOUnVuVGFza1JlcXVlc3QSDwoHdGFza19pZBgBIAEoCRIMCgR0ZXh0GAIgASgJIi8KD1J1blRhc2tSZXNwb25zZRIcCgNqb2IYASABKAsyDy5mYWN0b3J5LnYxLkpvYiIhCg5TdG9wSm9iUmVxdWVzdBIPCgd0YXNrX2lkGAEgASgJIi8KD1N0b3BKb2JSZXNwb25zZRIcCgNqb2IYASABKAsyDy5mYWN0b3J5LnYxLkpvYiLFAQoEUmVwbxIKCgJpZBgBIAEoCRINCgVvd25lchgCIAEoCRIMCgRuYW1lGAMgASgJEhYKDmRlZmF1bHRfYnJhbmNoGAQgASgJEiwKD2RlZmF1bHRfaGFybmVzcxgFIAEoDjITLmZhY3RvcnkudjEuSGFybmVzcxIWCg5zZXR1cF9jb21tYW5kcxgGIAEoCRIaChJhZ2VudF9pbnN0cnVjdGlvbnMYByABKAkSGgoSdGltZV9saW1pdF9taW51dGVzGAggASgFIhIKEExpc3RSZXBvc1JlcXVlc3QiNAoRTGlzdFJlcG9zUmVzcG9uc2USHwoFcmVwb3MYASADKAsyEC5mYWN0b3J5LnYxLlJlcG8iMwoRQ3JlYXRlUmVwb1JlcXVlc3QSHgoEcmVwbxgBIAEoCzIQLmZhY3RvcnkudjEuUmVwbyI0ChJDcmVhdGVSZXBvUmVzcG9uc2USHgoEcmVwbxgBIAEoCzIQLmZhY3RvcnkudjEuUmVwbyIzChFVcGRhdGVSZXBvUmVxdWVzdBIeCgRyZXBvGAEgASgLMhAuZmFjdG9yeS52MS5SZXBvIjQKElVwZGF0ZVJlcG9SZXNwb25zZRIeCgRyZXBvGAEgASgLMhAuZmFjdG9yeS52MS5SZXBvKsIBCgpUYXNrU3RhdHVzEhsKF1RBU0tfU1RBVFVTX1VOU1BFQ0lGSUVEEAASFwoTVEFTS19TVEFUVVNfQkFDS0xPRxABEhUKEVRBU0tfU1RBVFVTX1JFQURZEAISGwoXVEFTS19TVEFUVVNfSU5fUFJPR1JFU1MQAxIZChVUQVNLX1NUQVRVU19JTl9SRVZJRVcQBBIZChVUQVNLX1NUQVRVU19ORUVEU19ZT1UQBRIUChBUQVNLX1NUQVRVU19ET05FEAYqbwoMVGFza1ByaW9yaXR5Eh0KGVRBU0tfUFJJT1JJVFlfVU5TUEVDSUZJRUQQABIUChBUQVNLX1BSSU9SSVRZX1AwEAESFAoQVEFTS19QUklPUklUWV9QMRACEhQKEFRBU0tfUFJJT1JJVFlfUDIQAypRCgdIYXJuZXNzEhcKE0hBUk5FU1NfVU5TUEVDSUZJRUQQABIXChNIQVJORVNTX0NMQVVERV9DT0RFEAESFAoQSEFSTkVTU19PUEVOQ09ERRACKrYBCglKb2JTdGF0dXMSGgoWSk9CX1NUQVRVU19VTlNQRUNJRklFRBAAEhUKEUpPQl9TVEFUVVNfUVVFVUVEEAESFgoSSk9CX1NUQVRVU19SVU5OSU5HEAISGAoUSk9CX1NUQVRVU19TVUNDRUVERUQQAxIVChFKT0JfU1RBVFVTX0ZBSUxFRBAEEhgKFEpPQl9TVEFUVVNfQ0FOQ0VMTEVEEAUSEwoPSk9CX1NUQVRVU19MT1NUEAYypwUKC1Rhc2tTZXJ2aWNlEkgKCUxpc3RUYXNrcxIcLmZhY3RvcnkudjEuTGlzdFRhc2tzUmVxdWVzdBodLmZhY3RvcnkudjEuTGlzdFRhc2tzUmVzcG9uc2USQgoHR2V0VGFzaxIaLmZhY3RvcnkudjEuR2V0VGFza1JlcXVlc3QaGy5mYWN0b3J5LnYxLkdldFRhc2tSZXNwb25zZRJLCgpDcmVhdGVUYXNrEh0uZmFjdG9yeS52MS5DcmVhdGVUYXNrUmVxdWVzdBoeLmZhY3RvcnkudjEuQ3JlYXRlVGFza1Jlc3BvbnNlEksKClVwZGF0ZVRhc2sSHS5mYWN0b3J5LnYxLlVwZGF0ZVRhc2tSZXF1ZXN0Gh4uZmFjdG9yeS52MS5VcGRhdGVUYXNrUmVzcG9uc2USRQoITW92ZVRhc2sSGy5mYWN0b3J5LnYxLk1vdmVUYXNrUmVxdWVzdBocLmZhY3RvcnkudjEuTW92ZVRhc2tSZXNwb25zZRJLCgpBZGRDb21tZW50Eh0uZmFjdG9yeS52MS5BZGRDb21tZW50UmVxdWVzdBoeLmZhY3RvcnkudjEuQWRkQ29tbWVudFJlc3BvbnNlEkIKB1J1blRhc2sSGi5mYWN0b3J5LnYxLlJ1blRhc2tSZXF1ZXN0GhsuZmFjdG9yeS52MS5SdW5UYXNrUmVzcG9uc2USQgoHU3RvcEpvYhIaLmZhY3RvcnkudjEuU3RvcEpvYlJlcXVlc3QaGy5mYWN0b3J5LnYxLlN0b3BKb2JSZXNwb25zZRJUCg1MaXN0Sm9iRXZlbnRzEiAuZmFjdG9yeS52MS5MaXN0Sm9iRXZlbnRzUmVxdWVzdBohLmZhY3RvcnkudjEuTGlzdEpvYkV2ZW50c1Jlc3BvbnNlMvEBCgtSZXBvU2VydmljZRJICglMaXN0UmVwb3MSHC5mYWN0b3J5LnYxLkxpc3RSZXBvc1JlcXVlc3QaHS5mYWN0b3J5LnYxLkxpc3RSZXBvc1Jlc3BvbnNlEksKCkNyZWF0ZVJlcG8SHS5mYWN0b3J5LnYxLkNyZWF0ZVJlcG9SZXF1ZXN0Gh4uZmFjdG9yeS52MS5DcmVhdGVSZXBvUmVzcG9uc2USSwoKVXBkYXRlUmVwbxIdLmZhY3RvcnkudjEuVXBkYXRlUmVwb1JlcXVlc3QaHi5mYWN0b3J5LnYxLlVwZGF0ZVJlcG9SZXNwb25zZUItWit0b29scy54ZG91YmxldS5jb20vZ2VuL2ZhY3RvcnkvdjE7ZmFjdG9yeXYxYgZwcm90bzM");
 
 /**
  * @generated from message factory.v1.Task
@@ -432,6 +432,90 @@ export const JobSchema: GenMessage<Job> = /*@__PURE__*/
   messageDesc(file_factory_v1_factory, 14);
 
 /**
+ * One event of a job's log: a line of the harness's stream-json output.
+ *
+ * @generated from message factory.v1.JobEvent
+ */
+export type JobEvent = Message<"factory.v1.JobEvent"> & {
+  /**
+   * 1, 2, 3, … per job.
+   *
+   * @generated from field: int32 seq = 1;
+   */
+  seq: number;
+
+  /**
+   * The event's `type` ("assistant", "user", "system", "result", …) or "raw".
+   *
+   * @generated from field: string kind = 2;
+   */
+  kind: string;
+
+  /**
+   * The JSON line, credential values removed.
+   *
+   * @generated from field: string payload = 3;
+   */
+  payload: string;
+
+  /**
+   * RFC3339.
+   *
+   * @generated from field: string created_at = 4;
+   */
+  createdAt: string;
+};
+
+/**
+ * Describes the message factory.v1.JobEvent.
+ * Use `create(JobEventSchema)` to create a new message.
+ */
+export const JobEventSchema: GenMessage<JobEvent> = /*@__PURE__*/
+  messageDesc(file_factory_v1_factory, 15);
+
+/**
+ * A job's log after seq `after_seq` (0 for all), oldest first, at most 500.
+ * Human admin, browser session only: the log can hold code and file contents.
+ *
+ * @generated from message factory.v1.ListJobEventsRequest
+ */
+export type ListJobEventsRequest = Message<"factory.v1.ListJobEventsRequest"> & {
+  /**
+   * @generated from field: string job_id = 1;
+   */
+  jobId: string;
+
+  /**
+   * @generated from field: int32 after_seq = 2;
+   */
+  afterSeq: number;
+};
+
+/**
+ * Describes the message factory.v1.ListJobEventsRequest.
+ * Use `create(ListJobEventsRequestSchema)` to create a new message.
+ */
+export const ListJobEventsRequestSchema: GenMessage<ListJobEventsRequest> = /*@__PURE__*/
+  messageDesc(file_factory_v1_factory, 16);
+
+/**
+ * @generated from message factory.v1.ListJobEventsResponse
+ */
+export type ListJobEventsResponse = Message<"factory.v1.ListJobEventsResponse"> & {
+  /**
+   * @generated from field: repeated factory.v1.JobEvent events = 1;
+   */
+  events: JobEvent[];
+};
+
+/**
+ * Describes the message factory.v1.ListJobEventsResponse.
+ * Use `create(ListJobEventsResponseSchema)` to create a new message.
+ */
+export const ListJobEventsResponseSchema: GenMessage<ListJobEventsResponse> = /*@__PURE__*/
+  messageDesc(file_factory_v1_factory, 17);
+
+/**
  * Queues a job for the task and moves it to In progress. A human admin in a
  * browser session only: running an agent is the approval Ready stands for.
  *
@@ -456,7 +540,7 @@ export type RunTaskRequest = Message<"factory.v1.RunTaskRequest"> & {
  * Use `create(RunTaskRequestSchema)` to create a new message.
  */
 export const RunTaskRequestSchema: GenMessage<RunTaskRequest> = /*@__PURE__*/
-  messageDesc(file_factory_v1_factory, 15);
+  messageDesc(file_factory_v1_factory, 18);
 
 /**
  * @generated from message factory.v1.RunTaskResponse
@@ -473,7 +557,7 @@ export type RunTaskResponse = Message<"factory.v1.RunTaskResponse"> & {
  * Use `create(RunTaskResponseSchema)` to create a new message.
  */
 export const RunTaskResponseSchema: GenMessage<RunTaskResponse> = /*@__PURE__*/
-  messageDesc(file_factory_v1_factory, 16);
+  messageDesc(file_factory_v1_factory, 19);
 
 /**
  * Stops the task's queued or running job; the runner sees it on its next
@@ -493,7 +577,7 @@ export type StopJobRequest = Message<"factory.v1.StopJobRequest"> & {
  * Use `create(StopJobRequestSchema)` to create a new message.
  */
 export const StopJobRequestSchema: GenMessage<StopJobRequest> = /*@__PURE__*/
-  messageDesc(file_factory_v1_factory, 17);
+  messageDesc(file_factory_v1_factory, 20);
 
 /**
  * @generated from message factory.v1.StopJobResponse
@@ -510,7 +594,7 @@ export type StopJobResponse = Message<"factory.v1.StopJobResponse"> & {
  * Use `create(StopJobResponseSchema)` to create a new message.
  */
 export const StopJobResponseSchema: GenMessage<StopJobResponse> = /*@__PURE__*/
-  messageDesc(file_factory_v1_factory, 18);
+  messageDesc(file_factory_v1_factory, 21);
 
 /**
  * @generated from message factory.v1.Repo
@@ -566,7 +650,7 @@ export type Repo = Message<"factory.v1.Repo"> & {
  * Use `create(RepoSchema)` to create a new message.
  */
 export const RepoSchema: GenMessage<Repo> = /*@__PURE__*/
-  messageDesc(file_factory_v1_factory, 19);
+  messageDesc(file_factory_v1_factory, 22);
 
 /**
  * @generated from message factory.v1.ListReposRequest
@@ -579,7 +663,7 @@ export type ListReposRequest = Message<"factory.v1.ListReposRequest"> & {
  * Use `create(ListReposRequestSchema)` to create a new message.
  */
 export const ListReposRequestSchema: GenMessage<ListReposRequest> = /*@__PURE__*/
-  messageDesc(file_factory_v1_factory, 20);
+  messageDesc(file_factory_v1_factory, 23);
 
 /**
  * @generated from message factory.v1.ListReposResponse
@@ -596,7 +680,7 @@ export type ListReposResponse = Message<"factory.v1.ListReposResponse"> & {
  * Use `create(ListReposResponseSchema)` to create a new message.
  */
 export const ListReposResponseSchema: GenMessage<ListReposResponse> = /*@__PURE__*/
-  messageDesc(file_factory_v1_factory, 21);
+  messageDesc(file_factory_v1_factory, 24);
 
 /**
  * The id is ignored on create.
@@ -615,7 +699,7 @@ export type CreateRepoRequest = Message<"factory.v1.CreateRepoRequest"> & {
  * Use `create(CreateRepoRequestSchema)` to create a new message.
  */
 export const CreateRepoRequestSchema: GenMessage<CreateRepoRequest> = /*@__PURE__*/
-  messageDesc(file_factory_v1_factory, 22);
+  messageDesc(file_factory_v1_factory, 25);
 
 /**
  * @generated from message factory.v1.CreateRepoResponse
@@ -632,7 +716,7 @@ export type CreateRepoResponse = Message<"factory.v1.CreateRepoResponse"> & {
  * Use `create(CreateRepoResponseSchema)` to create a new message.
  */
 export const CreateRepoResponseSchema: GenMessage<CreateRepoResponse> = /*@__PURE__*/
-  messageDesc(file_factory_v1_factory, 23);
+  messageDesc(file_factory_v1_factory, 26);
 
 /**
  * Replaces every field except the id.
@@ -651,7 +735,7 @@ export type UpdateRepoRequest = Message<"factory.v1.UpdateRepoRequest"> & {
  * Use `create(UpdateRepoRequestSchema)` to create a new message.
  */
 export const UpdateRepoRequestSchema: GenMessage<UpdateRepoRequest> = /*@__PURE__*/
-  messageDesc(file_factory_v1_factory, 24);
+  messageDesc(file_factory_v1_factory, 27);
 
 /**
  * @generated from message factory.v1.UpdateRepoResponse
@@ -668,7 +752,7 @@ export type UpdateRepoResponse = Message<"factory.v1.UpdateRepoResponse"> & {
  * Use `create(UpdateRepoResponseSchema)` to create a new message.
  */
 export const UpdateRepoResponseSchema: GenMessage<UpdateRepoResponse> = /*@__PURE__*/
-  messageDesc(file_factory_v1_factory, 25);
+  messageDesc(file_factory_v1_factory, 28);
 
 /**
  * @generated from enum factory.v1.TaskStatus
@@ -888,6 +972,14 @@ export const TaskService: GenService<{
     methodKind: "unary";
     input: typeof StopJobRequestSchema;
     output: typeof StopJobResponseSchema;
+  },
+  /**
+   * @generated from rpc factory.v1.TaskService.ListJobEvents
+   */
+  listJobEvents: {
+    methodKind: "unary";
+    input: typeof ListJobEventsRequestSchema;
+    output: typeof ListJobEventsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_factory_v1_factory, 0);

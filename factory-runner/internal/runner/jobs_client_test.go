@@ -107,3 +107,17 @@ func TestClaudeCodeReadsTheSessionIDFromItsStream(t *testing.T) {
 func TestGitHubURL(t *testing.T) {
 	assert.Equal(t, "https://github.com/o/n.git", runner.GitHubURL("o", "n"))
 }
+
+func TestAppendJobEventsSendsTheLinesWithTheDeviceToken(t *testing.T) {
+	c := serve(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/factory.v1.RunnerService/AppendJobEvents", r.URL.Path)
+		assert.Equal(t, "Bearer frt_x", r.Header.Get("Authorization"))
+		body, _ := io.ReadAll(r.Body)
+		assert.JSONEq(t,
+			`{"jobId":"j1","lines":[{"seq":4,"line":"a"},{"seq":5,"line":"b"}]}`, string(body))
+		_, _ = w.Write([]byte(`{}`))
+	})
+	lines := []runner.EventLine{{Seq: 4, Line: "a"}, {Seq: 5, Line: "b"}}
+	err := c.AppendJobEvents(context.Background(), "frt_x", "j1", lines)
+	require.NoError(t, err)
+}

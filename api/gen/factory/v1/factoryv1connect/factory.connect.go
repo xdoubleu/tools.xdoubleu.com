@@ -42,6 +42,8 @@ const (
 	TaskServiceRunTaskProcedure = "/factory.v1.TaskService/RunTask"
 	// TaskServiceStopJobProcedure is the procedure name of the TaskService's StopJob RPC.
 	TaskServiceStopJobProcedure = "/factory.v1.TaskService/StopJob"
+	// TaskServiceListJobEventsProcedure is the procedure name of the TaskService's ListJobEvents RPC.
+	TaskServiceListJobEventsProcedure = "/factory.v1.TaskService/ListJobEvents"
 	// RepoServiceListReposProcedure is the procedure name of the RepoService's ListRepos RPC.
 	RepoServiceListReposProcedure = "/factory.v1.RepoService/ListRepos"
 	// RepoServiceCreateRepoProcedure is the procedure name of the RepoService's CreateRepo RPC.
@@ -107,6 +109,13 @@ var (
 			Procedure:  TaskServiceStopJobProcedure,
 		}
 	})
+	taskServiceListJobEventsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("TaskService").Methods().ByName("ListJobEvents"),
+			Procedure:  TaskServiceListJobEventsProcedure,
+		}
+	})
 )
 
 // TaskServiceClient is a client for the factory.v1.TaskService service.
@@ -119,6 +128,7 @@ type TaskServiceClient interface {
 	AddComment(context.Context, *v1.AddCommentRequest) (*v1.AddCommentResponse, error)
 	RunTask(context.Context, *v1.RunTaskRequest) (*v1.RunTaskResponse, error)
 	StopJob(context.Context, *v1.StopJobRequest) (*v1.StopJobResponse, error)
+	ListJobEvents(context.Context, *v1.ListJobEventsRequest) (*v1.ListJobEventsResponse, error)
 }
 
 // NewTaskServiceClient constructs a client for the factory.v1.TaskService service. Multiple service
@@ -137,6 +147,7 @@ type TaskServiceHandler interface {
 	AddComment(context.Context, *v1.AddCommentRequest) (*v1.AddCommentResponse, error)
 	RunTask(context.Context, *v1.RunTaskRequest) (*v1.RunTaskResponse, error)
 	StopJob(context.Context, *v1.StopJobRequest) (*v1.StopJobResponse, error)
+	ListJobEvents(context.Context, *v1.ListJobEventsRequest) (*v1.ListJobEventsResponse, error)
 }
 
 // RegisterTaskServiceHandler registers svc as the factory.v1.TaskService implementation on server.
@@ -151,6 +162,7 @@ func RegisterTaskServiceHandler(server *connect.Server, svc TaskServiceHandler) 
 		connect.Method{Spec: taskServiceAddCommentSpec(), Handler: adapter.addComment},
 		connect.Method{Spec: taskServiceRunTaskSpec(), Handler: adapter.runTask},
 		connect.Method{Spec: taskServiceStopJobSpec(), Handler: adapter.stopJob},
+		connect.Method{Spec: taskServiceListJobEventsSpec(), Handler: adapter.listJobEvents},
 	)
 }
 
@@ -187,6 +199,10 @@ func (UnimplementedTaskServiceHandler) RunTask(context.Context, *v1.RunTaskReque
 
 func (UnimplementedTaskServiceHandler) StopJob(context.Context, *v1.StopJobRequest) (*v1.StopJobResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.StopJob is not implemented")
+}
+
+func (UnimplementedTaskServiceHandler) ListJobEvents(context.Context, *v1.ListJobEventsRequest) (*v1.ListJobEventsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.ListJobEvents is not implemented")
 }
 
 type taskServiceClient struct {
@@ -252,6 +268,14 @@ func (c *taskServiceClient) RunTask(ctx context.Context, req *v1.RunTaskRequest)
 func (c *taskServiceClient) StopJob(ctx context.Context, req *v1.StopJobRequest) (*v1.StopJobResponse, error) {
 	var res v1.StopJobResponse
 	if err := c.client.CallUnary(ctx, taskServiceStopJobSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *taskServiceClient) ListJobEvents(ctx context.Context, req *v1.ListJobEventsRequest) (*v1.ListJobEventsResponse, error) {
+	var res v1.ListJobEventsResponse
+	if err := c.client.CallUnary(ctx, taskServiceListJobEventsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -349,6 +373,18 @@ func (h taskServiceHandler) stopJob(ctx context.Context, _ connect.Spec, stream 
 		return err
 	}
 	res, err := h.svc.StopJob(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h taskServiceHandler) listJobEvents(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListJobEventsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListJobEvents(ctx, &req)
 	if err != nil {
 		return err
 	}

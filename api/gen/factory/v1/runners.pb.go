@@ -886,6 +886,150 @@ func (x *CheckInResponse) GetStop() bool {
 	return false
 }
 
+// One line of the harness's stream-json output, numbered by the runner from 1.
+type JobLine struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Seq           int32                  `protobuf:"varint,1,opt,name=seq,proto3" json:"seq,omitempty"`
+	Line          string                 `protobuf:"bytes,2,opt,name=line,proto3" json:"line,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JobLine) Reset() {
+	*x = JobLine{}
+	mi := &file_factory_v1_runners_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JobLine) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JobLine) ProtoMessage() {}
+
+func (x *JobLine) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_runners_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JobLine.ProtoReflect.Descriptor instead.
+func (*JobLine) Descriptor() ([]byte, []int) {
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *JobLine) GetSeq() int32 {
+	if x != nil {
+		return x.Seq
+	}
+	return 0
+}
+
+func (x *JobLine) GetLine() string {
+	if x != nil {
+		return x.Line
+	}
+	return ""
+}
+
+// A batch of the harness's stream-json lines, credential values already removed
+// by the runner. At most 200 lines per call. A seq the server already has is
+// ignored, so a retry can't duplicate; seqs past the per-job cap are dropped.
+type AppendJobEventsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Lines         []*JobLine             `protobuf:"bytes,2,rep,name=lines,proto3" json:"lines,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AppendJobEventsRequest) Reset() {
+	*x = AppendJobEventsRequest{}
+	mi := &file_factory_v1_runners_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppendJobEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppendJobEventsRequest) ProtoMessage() {}
+
+func (x *AppendJobEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_runners_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppendJobEventsRequest.ProtoReflect.Descriptor instead.
+func (*AppendJobEventsRequest) Descriptor() ([]byte, []int) {
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *AppendJobEventsRequest) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *AppendJobEventsRequest) GetLines() []*JobLine {
+	if x != nil {
+		return x.Lines
+	}
+	return nil
+}
+
+type AppendJobEventsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AppendJobEventsResponse) Reset() {
+	*x = AppendJobEventsResponse{}
+	mi := &file_factory_v1_runners_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppendJobEventsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppendJobEventsResponse) ProtoMessage() {}
+
+func (x *AppendJobEventsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_runners_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppendJobEventsResponse.ProtoReflect.Descriptor instead.
+func (*AppendJobEventsResponse) Descriptor() ([]byte, []int) {
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{18}
+}
+
 type CompleteJobRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	JobId     string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
@@ -899,7 +1043,7 @@ type CompleteJobRequest struct {
 
 func (x *CompleteJobRequest) Reset() {
 	*x = CompleteJobRequest{}
-	mi := &file_factory_v1_runners_proto_msgTypes[16]
+	mi := &file_factory_v1_runners_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -911,7 +1055,7 @@ func (x *CompleteJobRequest) String() string {
 func (*CompleteJobRequest) ProtoMessage() {}
 
 func (x *CompleteJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_runners_proto_msgTypes[16]
+	mi := &file_factory_v1_runners_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -924,7 +1068,7 @@ func (x *CompleteJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteJobRequest.ProtoReflect.Descriptor instead.
 func (*CompleteJobRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_runners_proto_rawDescGZIP(), []int{16}
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CompleteJobRequest) GetJobId() string {
@@ -963,7 +1107,7 @@ type CompleteJobResponse struct {
 
 func (x *CompleteJobResponse) Reset() {
 	*x = CompleteJobResponse{}
-	mi := &file_factory_v1_runners_proto_msgTypes[17]
+	mi := &file_factory_v1_runners_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -975,7 +1119,7 @@ func (x *CompleteJobResponse) String() string {
 func (*CompleteJobResponse) ProtoMessage() {}
 
 func (x *CompleteJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_runners_proto_msgTypes[17]
+	mi := &file_factory_v1_runners_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -988,7 +1132,7 @@ func (x *CompleteJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteJobResponse.ProtoReflect.Descriptor instead.
 func (*CompleteJobResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_runners_proto_rawDescGZIP(), []int{17}
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{20}
 }
 
 var File_factory_v1_runners_proto protoreflect.FileDescriptor
@@ -1052,7 +1196,14 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x02 \x01(\tR\tsessionId\"%\n" +
 	"\x0fCheckInResponse\x12\x12\n" +
-	"\x04stop\x18\x01 \x01(\bR\x04stop\"\x82\x01\n" +
+	"\x04stop\x18\x01 \x01(\bR\x04stop\"/\n" +
+	"\aJobLine\x12\x10\n" +
+	"\x03seq\x18\x01 \x01(\x05R\x03seq\x12\x12\n" +
+	"\x04line\x18\x02 \x01(\tR\x04line\"Z\n" +
+	"\x16AppendJobEventsRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12)\n" +
+	"\x05lines\x18\x02 \x03(\v2\x13.factory.v1.JobLineR\x05lines\"\x19\n" +
+	"\x17AppendJobEventsResponse\"\x82\x01\n" +
 	"\x12CompleteJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1c\n" +
 	"\tsucceeded\x18\x02 \x01(\bR\tsucceeded\x12\x18\n" +
@@ -1063,12 +1214,13 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\x12RunnerAdminService\x12N\n" +
 	"\vListRunners\x12\x1e.factory.v1.ListRunnersRequest\x1a\x1f.factory.v1.ListRunnersResponse\x12Q\n" +
 	"\fCreateRunner\x12\x1f.factory.v1.CreateRunnerRequest\x1a .factory.v1.CreateRunnerResponse\x12Q\n" +
-	"\fRevokeRunner\x12\x1f.factory.v1.RevokeRunnerRequest\x1a .factory.v1.RevokeRunnerResponse2\xef\x02\n" +
+	"\fRevokeRunner\x12\x1f.factory.v1.RevokeRunnerRequest\x1a .factory.v1.RevokeRunnerResponse2\xcb\x03\n" +
 	"\rRunnerService\x129\n" +
 	"\x04Pair\x12\x17.factory.v1.PairRequest\x1a\x18.factory.v1.PairResponse\x12H\n" +
 	"\tHeartbeat\x12\x1c.factory.v1.HeartbeatRequest\x1a\x1d.factory.v1.HeartbeatResponse\x12E\n" +
 	"\bClaimJob\x12\x1b.factory.v1.ClaimJobRequest\x1a\x1c.factory.v1.ClaimJobResponse\x12B\n" +
-	"\aCheckIn\x12\x1a.factory.v1.CheckInRequest\x1a\x1b.factory.v1.CheckInResponse\x12N\n" +
+	"\aCheckIn\x12\x1a.factory.v1.CheckInRequest\x1a\x1b.factory.v1.CheckInResponse\x12Z\n" +
+	"\x0fAppendJobEvents\x12\".factory.v1.AppendJobEventsRequest\x1a#.factory.v1.AppendJobEventsResponse\x12N\n" +
 	"\vCompleteJob\x12\x1e.factory.v1.CompleteJobRequest\x1a\x1f.factory.v1.CompleteJobResponseB-Z+tools.xdoubleu.com/gen/factory/v1;factoryv1b\x06proto3"
 
 var (
@@ -1083,55 +1235,61 @@ func file_factory_v1_runners_proto_rawDescGZIP() []byte {
 	return file_factory_v1_runners_proto_rawDescData
 }
 
-var file_factory_v1_runners_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_factory_v1_runners_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_factory_v1_runners_proto_goTypes = []any{
-	(*Runner)(nil),               // 0: factory.v1.Runner
-	(*ListRunnersRequest)(nil),   // 1: factory.v1.ListRunnersRequest
-	(*ListRunnersResponse)(nil),  // 2: factory.v1.ListRunnersResponse
-	(*CreateRunnerRequest)(nil),  // 3: factory.v1.CreateRunnerRequest
-	(*CreateRunnerResponse)(nil), // 4: factory.v1.CreateRunnerResponse
-	(*RevokeRunnerRequest)(nil),  // 5: factory.v1.RevokeRunnerRequest
-	(*RevokeRunnerResponse)(nil), // 6: factory.v1.RevokeRunnerResponse
-	(*PairRequest)(nil),          // 7: factory.v1.PairRequest
-	(*PairResponse)(nil),         // 8: factory.v1.PairResponse
-	(*HeartbeatRequest)(nil),     // 9: factory.v1.HeartbeatRequest
-	(*HeartbeatResponse)(nil),    // 10: factory.v1.HeartbeatResponse
-	(*ClaimedJob)(nil),           // 11: factory.v1.ClaimedJob
-	(*ClaimJobRequest)(nil),      // 12: factory.v1.ClaimJobRequest
-	(*ClaimJobResponse)(nil),     // 13: factory.v1.ClaimJobResponse
-	(*CheckInRequest)(nil),       // 14: factory.v1.CheckInRequest
-	(*CheckInResponse)(nil),      // 15: factory.v1.CheckInResponse
-	(*CompleteJobRequest)(nil),   // 16: factory.v1.CompleteJobRequest
-	(*CompleteJobResponse)(nil),  // 17: factory.v1.CompleteJobResponse
-	(Harness)(0),                 // 18: factory.v1.Harness
+	(*Runner)(nil),                  // 0: factory.v1.Runner
+	(*ListRunnersRequest)(nil),      // 1: factory.v1.ListRunnersRequest
+	(*ListRunnersResponse)(nil),     // 2: factory.v1.ListRunnersResponse
+	(*CreateRunnerRequest)(nil),     // 3: factory.v1.CreateRunnerRequest
+	(*CreateRunnerResponse)(nil),    // 4: factory.v1.CreateRunnerResponse
+	(*RevokeRunnerRequest)(nil),     // 5: factory.v1.RevokeRunnerRequest
+	(*RevokeRunnerResponse)(nil),    // 6: factory.v1.RevokeRunnerResponse
+	(*PairRequest)(nil),             // 7: factory.v1.PairRequest
+	(*PairResponse)(nil),            // 8: factory.v1.PairResponse
+	(*HeartbeatRequest)(nil),        // 9: factory.v1.HeartbeatRequest
+	(*HeartbeatResponse)(nil),       // 10: factory.v1.HeartbeatResponse
+	(*ClaimedJob)(nil),              // 11: factory.v1.ClaimedJob
+	(*ClaimJobRequest)(nil),         // 12: factory.v1.ClaimJobRequest
+	(*ClaimJobResponse)(nil),        // 13: factory.v1.ClaimJobResponse
+	(*CheckInRequest)(nil),          // 14: factory.v1.CheckInRequest
+	(*CheckInResponse)(nil),         // 15: factory.v1.CheckInResponse
+	(*JobLine)(nil),                 // 16: factory.v1.JobLine
+	(*AppendJobEventsRequest)(nil),  // 17: factory.v1.AppendJobEventsRequest
+	(*AppendJobEventsResponse)(nil), // 18: factory.v1.AppendJobEventsResponse
+	(*CompleteJobRequest)(nil),      // 19: factory.v1.CompleteJobRequest
+	(*CompleteJobResponse)(nil),     // 20: factory.v1.CompleteJobResponse
+	(Harness)(0),                    // 21: factory.v1.Harness
 }
 var file_factory_v1_runners_proto_depIdxs = []int32{
 	0,  // 0: factory.v1.ListRunnersResponse.runners:type_name -> factory.v1.Runner
 	0,  // 1: factory.v1.CreateRunnerResponse.runner:type_name -> factory.v1.Runner
 	0,  // 2: factory.v1.RevokeRunnerResponse.runner:type_name -> factory.v1.Runner
-	18, // 3: factory.v1.ClaimedJob.harness:type_name -> factory.v1.Harness
+	21, // 3: factory.v1.ClaimedJob.harness:type_name -> factory.v1.Harness
 	11, // 4: factory.v1.ClaimJobResponse.job:type_name -> factory.v1.ClaimedJob
-	1,  // 5: factory.v1.RunnerAdminService.ListRunners:input_type -> factory.v1.ListRunnersRequest
-	3,  // 6: factory.v1.RunnerAdminService.CreateRunner:input_type -> factory.v1.CreateRunnerRequest
-	5,  // 7: factory.v1.RunnerAdminService.RevokeRunner:input_type -> factory.v1.RevokeRunnerRequest
-	7,  // 8: factory.v1.RunnerService.Pair:input_type -> factory.v1.PairRequest
-	9,  // 9: factory.v1.RunnerService.Heartbeat:input_type -> factory.v1.HeartbeatRequest
-	12, // 10: factory.v1.RunnerService.ClaimJob:input_type -> factory.v1.ClaimJobRequest
-	14, // 11: factory.v1.RunnerService.CheckIn:input_type -> factory.v1.CheckInRequest
-	16, // 12: factory.v1.RunnerService.CompleteJob:input_type -> factory.v1.CompleteJobRequest
-	2,  // 13: factory.v1.RunnerAdminService.ListRunners:output_type -> factory.v1.ListRunnersResponse
-	4,  // 14: factory.v1.RunnerAdminService.CreateRunner:output_type -> factory.v1.CreateRunnerResponse
-	6,  // 15: factory.v1.RunnerAdminService.RevokeRunner:output_type -> factory.v1.RevokeRunnerResponse
-	8,  // 16: factory.v1.RunnerService.Pair:output_type -> factory.v1.PairResponse
-	10, // 17: factory.v1.RunnerService.Heartbeat:output_type -> factory.v1.HeartbeatResponse
-	13, // 18: factory.v1.RunnerService.ClaimJob:output_type -> factory.v1.ClaimJobResponse
-	15, // 19: factory.v1.RunnerService.CheckIn:output_type -> factory.v1.CheckInResponse
-	17, // 20: factory.v1.RunnerService.CompleteJob:output_type -> factory.v1.CompleteJobResponse
-	13, // [13:21] is the sub-list for method output_type
-	5,  // [5:13] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	16, // 5: factory.v1.AppendJobEventsRequest.lines:type_name -> factory.v1.JobLine
+	1,  // 6: factory.v1.RunnerAdminService.ListRunners:input_type -> factory.v1.ListRunnersRequest
+	3,  // 7: factory.v1.RunnerAdminService.CreateRunner:input_type -> factory.v1.CreateRunnerRequest
+	5,  // 8: factory.v1.RunnerAdminService.RevokeRunner:input_type -> factory.v1.RevokeRunnerRequest
+	7,  // 9: factory.v1.RunnerService.Pair:input_type -> factory.v1.PairRequest
+	9,  // 10: factory.v1.RunnerService.Heartbeat:input_type -> factory.v1.HeartbeatRequest
+	12, // 11: factory.v1.RunnerService.ClaimJob:input_type -> factory.v1.ClaimJobRequest
+	14, // 12: factory.v1.RunnerService.CheckIn:input_type -> factory.v1.CheckInRequest
+	17, // 13: factory.v1.RunnerService.AppendJobEvents:input_type -> factory.v1.AppendJobEventsRequest
+	19, // 14: factory.v1.RunnerService.CompleteJob:input_type -> factory.v1.CompleteJobRequest
+	2,  // 15: factory.v1.RunnerAdminService.ListRunners:output_type -> factory.v1.ListRunnersResponse
+	4,  // 16: factory.v1.RunnerAdminService.CreateRunner:output_type -> factory.v1.CreateRunnerResponse
+	6,  // 17: factory.v1.RunnerAdminService.RevokeRunner:output_type -> factory.v1.RevokeRunnerResponse
+	8,  // 18: factory.v1.RunnerService.Pair:output_type -> factory.v1.PairResponse
+	10, // 19: factory.v1.RunnerService.Heartbeat:output_type -> factory.v1.HeartbeatResponse
+	13, // 20: factory.v1.RunnerService.ClaimJob:output_type -> factory.v1.ClaimJobResponse
+	15, // 21: factory.v1.RunnerService.CheckIn:output_type -> factory.v1.CheckInResponse
+	18, // 22: factory.v1.RunnerService.AppendJobEvents:output_type -> factory.v1.AppendJobEventsResponse
+	20, // 23: factory.v1.RunnerService.CompleteJob:output_type -> factory.v1.CompleteJobResponse
+	15, // [15:24] is the sub-list for method output_type
+	6,  // [6:15] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_factory_v1_runners_proto_init() }
@@ -1146,7 +1304,7 @@ func file_factory_v1_runners_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_factory_v1_runners_proto_rawDesc), len(file_factory_v1_runners_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

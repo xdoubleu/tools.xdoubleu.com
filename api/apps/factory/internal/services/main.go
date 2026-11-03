@@ -23,7 +23,8 @@ func New(repos *repositories.Repositories, authService auth.Service) *Services {
 		Repos:   &RepoService{repo: repos.Repos},
 		Runners: &RunnerService{repo: repos.Runners, now: time.Now},
 		Jobs: &JobService{
-			jobs: repos.Jobs, tasks: repos.Tasks, repos: repos.Repos, now: time.Now,
+			jobs: repos.Jobs, tasks: repos.Tasks, repos: repos.Repos,
+			events: repos.Events, now: time.Now,
 		},
 	}
 }
