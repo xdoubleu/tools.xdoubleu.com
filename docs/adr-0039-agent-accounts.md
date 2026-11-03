@@ -35,6 +35,15 @@ machine identity, but only one, seeded by hand.
   secret is shown once and stored only as a bcrypt hash.
 - Revoking stamps `revoked_at` and deletes the client. Its tokens cascade away,
   so they stop working at once. The account row stays for history.
+- **A job gets an account of its own** (`global.agent_accounts.job_id` and
+  `task_id`, migration 00060). The server makes it when the runner claims the job,
+  hands its client id and secret over on the claim, and revokes it when the job
+  completes, is stopped or is lost; a sweep on every claim and board read revokes
+  any a revoke missed. Its `factory_*` tools reach that task only: other tasks
+  answer as if they don't exist, it can't move tasks (the server moves its task
+  from the job's outcome), and it can still file into Backlog. Job accounts stay
+  out of the admin's list. A job that can't get an account is failed, not run
+  without one.
 - An agent connects through a `headersHelper`
   (`scripts/factory_agent_headers.sh`): it reads the secret from the macOS
   Keychain item `factory-agent-<client id>`, mints a token and prints the

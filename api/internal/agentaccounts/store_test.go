@@ -143,3 +143,94 @@ func TestClientSubjectIsTheUserOfAnActiveAccount(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, ok, "a revoked account has no identity")
 }
+
+func TestAJobsAccountIsConfinedToItsTaskAndKeptOutOfTheList(t *testing.T) {
+	store, _ := newStore(t, nil)
+	ctx := context.Background()
+	scope := agentaccounts.Scope{JobID: uuid.New(), TaskID: uuid.New()}
+
+	account, secret, err := store.CreateForJob(
+		ctx, "system:factory", "job #1 · claude", scope)
+	require.NoError(t, err)
+	require.NotNil(t, account.JobID)
+	assert.Equal(t, scope.JobID, *account.JobID)
+	assert.Equal(t, scope.TaskID, *account.TaskID)
+	assert.NotEmpty(t, secret)
+
+	got, err := store.ScopeOf(ctx, account.UserID)
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, scope, *got)
+
+	// A person's account has no scope, and neither does an unknown user.
+	plain, _, err := store.Create(ctx, "human:creator", "Night shift")
+	require.NoError(t, err)
+	none, err := store.ScopeOf(ctx, plain.UserID)
+	require.NoError(t, err)
+	assert.Nil(t, none)
+	none, err = store.ScopeOf(ctx, uuid.New())
+	require.NoError(t, err)
+	assert.Nil(t, none)
+
+	// Job accounts stay out of the admin's list; the person's does not.
+	list, err := store.List(ctx)
+	require.NoError(t, err)
+	ids := []uuid.UUID{}
+	for _, a := range list {
+		ids = append(ids, a.ID)
+	}
+	assert.Contains(t, ids, plain.ID)
+	assert.NotContains(t, ids, account.ID)
+
+	// It acts as an agent like any other account.
+	subject, ok, err := store.ClientSubject(ctx, account.ClientID)
+	require.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, account.UserID.String(), subject)
+}
+
+func TestARevokedJobAccountStopsWorkingAndLosesItsScope(t *testing.T) {
+	var dropped int
+	store, db := newStore(t, func() { dropped++ })
+	ctx := context.Background()
+	scope := agentaccounts.Scope{JobID: uuid.New(), TaskID: uuid.New()}
+	account, _, err := store.CreateForJob(ctx, "system:factory", "job", scope)
+	require.NoError(t, err)
+
+	active, err := store.ActiveJobs(ctx)
+	require.NoError(t, err)
+	assert.Contains(t, active, scope.JobID)
+
+	require.NoError(t, store.RevokeForJob(ctx, scope.JobID))
+	assert.Equal(t, 1, dropped)
+	_, ok, err := store.ClientSubject(ctx, account.ClientID)
+	require.NoError(t, err)
+	assert.False(t, ok)
+	got, err := store.ScopeOf(ctx, account.UserID)
+	require.NoError(t, err)
+	assert.Nil(t, got)
+	active, err = store.ActiveJobs(ctx)
+	require.NoError(t, err)
+	assert.NotContains(t, active, scope.JobID)
+
+	var kept int
+	require.NoError(t, db.QueryRow(ctx,
+		`SELECT count(*) FROM global.agent_accounts WHERE job_id = $1`, scope.JobID,
+	).Scan(&kept))
+	assert.Equal(t, 1, kept, "the record stays for history")
+
+	// Revoking again, or for a job without an account, does nothing.
+	require.NoError(t, store.RevokeForJob(ctx, scope.JobID))
+	require.NoError(t, store.RevokeForJob(ctx, uuid.New()))
+	assert.Equal(t, 1, dropped)
+}
+
+func TestAJobHasAtMostOneAccount(t *testing.T) {
+	store, _ := newStore(t, nil)
+	ctx := context.Background()
+	scope := agentaccounts.Scope{JobID: uuid.New(), TaskID: uuid.New()}
+	_, _, err := store.CreateForJob(ctx, "system:factory", "job", scope)
+	require.NoError(t, err)
+	_, _, err = store.CreateForJob(ctx, "system:factory", "job again", scope)
+	require.Error(t, err)
+}

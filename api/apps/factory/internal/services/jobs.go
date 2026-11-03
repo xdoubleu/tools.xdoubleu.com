@@ -33,13 +33,18 @@ type JobService struct {
 	tasks  *repositories.TasksRepository
 	repos  *repositories.ReposRepository
 	events *repositories.JobEventsRepository
-	now    func() time.Time
+	// accounts is nil when jobs get no agent account of their own.
+	accounts JobAccounts
+	now      func() time.Time
 }
 
 // ClaimedJob is a job with the repo it runs against.
 type ClaimedJob struct {
 	Job  models.Job
 	Repo models.Repo
+	// MCPClientID and MCPClientSecret are the job's own agent account, when it has one.
+	MCPClientID     string
+	MCPClientSecret string
 }
 
 func conflict(msg string) error {
@@ -166,6 +171,7 @@ func (s *JobService) Stop(
 	if err != nil {
 		return nil, err
 	}
+	s.revokeAccount(ctx, job.ID)
 	body := "Job stopped by " + actor.String() + "."
 	if job.StartedAt != nil {
 		body += " Its branch `" + job.Branch + "` may hold partial work on the Mac."
@@ -212,7 +218,13 @@ func (s *JobService) Claim(ctx context.Context) (*ClaimedJob, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ClaimedJob{Job: *job, Repo: *repo}, nil
+	claimed := &ClaimedJob{Job: *job, Repo: *repo, MCPClientID: "", MCPClientSecret: ""}
+	if s.accounts != nil {
+		if err = s.issueAccount(ctx, claimed); err != nil {
+			return nil, err
+		}
+	}
+	return claimed, nil
 }
 
 // CheckIn records that the job is alive. It reports stop when the job is no
@@ -253,6 +265,7 @@ func (s *JobService) Complete(
 	if err != nil {
 		return nil, err
 	}
+	s.revokeAccount(ctx, job.ID)
 	if outcome == "" {
 		outcome = "(the agent wrote no outcome)"
 	}
@@ -277,6 +290,7 @@ func (s *JobService) ExpireLost(ctx context.Context) error {
 			return err
 		}
 	}
+	s.sweepAccounts(ctx)
 	return nil
 }
 

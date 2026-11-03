@@ -603,8 +603,12 @@ type ClaimedJob struct {
 	// Free text, run in the sandbox before the agent.
 	SetupCommands    string `protobuf:"bytes,9,opt,name=setup_commands,json=setupCommands,proto3" json:"setup_commands,omitempty"`
 	TimeLimitMinutes int32  `protobuf:"varint,10,opt,name=time_limit_minutes,json=timeLimitMinutes,proto3" json:"time_limit_minutes,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// The job's own agent account: it may read and comment on this job's task only,
+	// and ends with the job. Empty when the server makes none.
+	McpClientId     string `protobuf:"bytes,11,opt,name=mcp_client_id,json=mcpClientId,proto3" json:"mcp_client_id,omitempty"`
+	McpClientSecret string `protobuf:"bytes,12,opt,name=mcp_client_secret,json=mcpClientSecret,proto3" json:"mcp_client_secret,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ClaimedJob) Reset() {
@@ -705,6 +709,20 @@ func (x *ClaimedJob) GetTimeLimitMinutes() int32 {
 		return x.TimeLimitMinutes
 	}
 	return 0
+}
+
+func (x *ClaimedJob) GetMcpClientId() string {
+	if x != nil {
+		return x.McpClientId
+	}
+	return ""
+}
+
+func (x *ClaimedJob) GetMcpClientSecret() string {
+	if x != nil {
+		return x.McpClientSecret
+	}
+	return ""
 }
 
 type ClaimJobRequest struct {
@@ -1173,7 +1191,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"runnerName\",\n" +
 	"\x10HeartbeatRequest\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\"\x13\n" +
-	"\x11HeartbeatResponse\"\xcc\x02\n" +
+	"\x11HeartbeatResponse\"\x9c\x03\n" +
 	"\n" +
 	"ClaimedJob\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
@@ -1187,7 +1205,9 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\x06branch\x18\b \x01(\tR\x06branch\x12%\n" +
 	"\x0esetup_commands\x18\t \x01(\tR\rsetupCommands\x12,\n" +
 	"\x12time_limit_minutes\x18\n" +
-	" \x01(\x05R\x10timeLimitMinutes\"\x11\n" +
+	" \x01(\x05R\x10timeLimitMinutes\x12\"\n" +
+	"\rmcp_client_id\x18\v \x01(\tR\vmcpClientId\x12*\n" +
+	"\x11mcp_client_secret\x18\f \x01(\tR\x0fmcpClientSecret\"\x11\n" +
 	"\x0fClaimJobRequest\"<\n" +
 	"\x10ClaimJobResponse\x12(\n" +
 	"\x03job\x18\x01 \x01(\v2\x16.factory.v1.ClaimedJobR\x03job\"F\n" +

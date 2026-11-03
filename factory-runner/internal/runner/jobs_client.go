@@ -21,6 +21,10 @@ type ClaimedJob struct {
 	Branch           string `json:"branch"`
 	SetupCommands    string `json:"setupCommands"`
 	TimeLimitMinutes int    `json:"timeLimitMinutes"`
+	// MCPClientID and MCPClientSecret are the job's own agent account for the board
+	// (empty if the server made none). The secret is a credential like any other.
+	MCPClientID     string `json:"mcpClientId"`
+	MCPClientSecret string `json:"mcpClientSecret"`
 }
 
 // JobAPI is the server side of running jobs.

@@ -25,18 +25,31 @@ type jobEnv struct {
 	tasks  factoryv1connect.TaskServiceClient
 	runner factoryv1connect.RunnerServiceClient
 	token  string
+	app    *factory.Factory
 }
 
 func newJobEnv(t *testing.T, asAdmin bool, channel string) jobEnv {
+	t.Helper()
+	return newJobEnvWith(t, asAdmin, channel)
+}
+
+// newJobEnvWith is newJobEnv with more factory options.
+func newJobEnvWith(
+	t *testing.T,
+	asAdmin bool,
+	channel string,
+	extra ...factory.Option,
+) jobEnv {
 	t.Helper()
 	cleanRunners(t)
 	_, err := testDB.Exec(context.Background(), "DELETE FROM factory.jobs")
 	require.NoError(t, err)
 
-	app := newAppWith(asAdmin, channel,
+	opts := append([]factory.Option{
 		factory.WithStepUp(stepUpReturning(nil)),
-		factory.WithHeartbeatHold(20*time.Millisecond),
-	)
+		factory.WithHeartbeatHold(20 * time.Millisecond),
+	}, extra...)
+	app := newAppWith(asAdmin, channel, opts...)
 	ts := httptest.NewServer(testhelper.BuildMux(app))
 	t.Cleanup(ts.Close)
 	transport := connecthttp.NewTransport(
@@ -51,6 +64,7 @@ func newJobEnv(t *testing.T, asAdmin bool, channel string) jobEnv {
 		tasks:  factoryv1connect.NewTaskServiceClient(connect.NewClient(transport)),
 		runner: env.runner,
 		token:  pair(t, env, created.PairingCode).DeviceToken,
+		app:    app,
 	}
 }
 

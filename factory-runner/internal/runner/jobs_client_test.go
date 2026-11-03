@@ -19,7 +19,8 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 		_, _ = w.Write(
 			[]byte(`{"job":{"id":"j1","taskId":"t1","repoOwner":"o","repoName":"n",` +
 				`"defaultBranch":"main","harness":"HARNESS_CLAUDE_CODE","prompt":"p",` +
-				`"branch":"agent/x","setupCommands":"make","timeLimitMinutes":45}}`),
+				`"branch":"agent/x","setupCommands":"make","timeLimitMinutes":45,` +
+				`"mcpClientId":"agent-1","mcpClientSecret":"s3cret-value"}}`),
 		)
 	})
 	job, err := c.ClaimJob(context.Background(), "frt_x")
@@ -28,6 +29,7 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 		ID: "j1", TaskID: "t1", RepoOwner: "o", RepoName: "n", DefaultBranch: "main",
 		Harness: runner.HarnessClaudeCode, Prompt: "p", Branch: "agent/x",
 		SetupCommands: "make", TimeLimitMinutes: 45,
+		MCPClientID: "agent-1", MCPClientSecret: "s3cret-value",
 	}, job)
 
 	none := serve(

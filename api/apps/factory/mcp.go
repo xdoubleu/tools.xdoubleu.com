@@ -16,6 +16,7 @@ import (
 	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/mcptools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
@@ -99,6 +100,43 @@ func agentActor(ctx context.Context) (models.Actor, error) {
 	}, nil
 }
 
+// errTaskNotFound is what a job's account hears for any task but its own: the
+// same as for one that doesn't exist, so it can't tell them apart.
+var errTaskNotFound = connecttools.MapError(database.ErrResourceNotFound)
+
+// scopedTask is the one task the calling account is confined to: a job's own
+// account. The bool is false for an account made by a person.
+func (t *mcpTools) scopedTask(ctx context.Context) (uuid.UUID, bool, error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return uuid.Nil, false, errors.New("this tool is for agent accounts only")
+	}
+	userID, err := uuid.Parse(user.ID)
+	if err != nil {
+		return uuid.Nil, false, errors.New("this tool is for agent accounts only")
+	}
+	id, err := t.app.services.Jobs.TaskScope(ctx, userID)
+	if err != nil {
+		return uuid.Nil, false, connecttools.MapError(err)
+	}
+	if id == nil {
+		return uuid.Nil, false, nil
+	}
+	return *id, true, nil
+}
+
+// onlyOwnTask refuses a task other than the scoped one, if there is a scope.
+func (t *mcpTools) onlyOwnTask(ctx context.Context, id uuid.UUID) error {
+	own, scoped, err := t.scopedTask(ctx)
+	if err != nil {
+		return err
+	}
+	if scoped && id != own {
+		return errTaskNotFound
+	}
+	return nil
+}
+
 func (t *mcpTools) listRepos(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
@@ -132,12 +170,19 @@ func (t *mcpTools) listTasks(
 			return nil, err
 		}
 	}
+	own, scoped, err := t.scopedTask(ctx)
+	if err != nil {
+		return nil, err
+	}
 	tasks, err := t.app.services.Tasks.List(ctx, args.Query)
 	if err != nil {
 		return nil, connecttools.MapError(err)
 	}
 	out := []*factoryv1.Task{}
 	for i := range tasks {
+		if scoped && tasks[i].ID != own {
+			continue
+		}
 		if args.Status != "" && string(tasks[i].Status) != args.Status {
 			continue
 		}
@@ -167,6 +212,9 @@ func (t *mcpTools) getTask(
 ) (proto.Message, error) {
 	id, err := parseID(args.ID)
 	if err != nil {
+		return nil, err
+	}
+	if err = t.onlyOwnTask(ctx, id); err != nil {
 		return nil, err
 	}
 	task, comments, err := t.app.services.Tasks.Get(ctx, id)
@@ -214,6 +262,9 @@ func (t *mcpTools) commentTask(
 	if err != nil {
 		return nil, err
 	}
+	if err = t.onlyOwnTask(ctx, id); err != nil {
+		return nil, err
+	}
 	comment, err := t.app.services.Tasks.Comment(ctx, actor, id, args.Body)
 	if err != nil {
 		return nil, connecttools.MapError(err)
@@ -231,6 +282,14 @@ func (t *mcpTools) moveTask(
 	id, err := parseID(args.ID)
 	if err != nil {
 		return nil, err
+	}
+	_, scoped, err := t.scopedTask(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if scoped {
+		return nil, errors.New(
+			"a job can't move tasks: the factory moves its task when the job ends")
 	}
 	task, err := t.app.services.Tasks.Move(ctx, actor, id, models.Status(args.Status))
 	if err != nil {

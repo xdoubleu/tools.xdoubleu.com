@@ -170,3 +170,30 @@ func TestLinesAreNotNumberedPastTheJobCap(t *testing.T) {
 	require.NotEmpty(t, got)
 	assert.Equal(t, 5000, got[len(got)-1].Seq, "numbering stops at the job cap")
 }
+
+func TestTheJobsOwnAccountSecretNeverLeavesTheMac(t *testing.T) {
+	const mcpSecret = "job-account-secret-value"
+	job := newJob()
+	job.MCPClientID, job.MCPClientSecret = "agent-1", mcpSecret
+
+	// In the log.
+	env := newEnv(t, func(_ context.Context, spec runner.SandboxSpec) (int, error) {
+		_, _ = io.WriteString(spec.Log, `{"type":"assistant","text":"`+mcpSecret+`"}`+"\n")
+		commitFile(spec.CloneDir, "a.txt", "x")
+		return 0, nil
+	}, job)
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, []string{`{"type":"assistant","text":"[redacted]"}`}, env.api.logged())
+
+	// In a commit.
+	job = newJob()
+	job.MCPClientSecret = mcpSecret
+	env = newEnv(t, agentDoes("done", func(clone string) {
+		commitFile(clone, "a.txt", mcpSecret)
+	}), job)
+	got := finish(t, env)
+	assert.False(t, got.succeeded)
+	assert.Contains(t, got.outcome, "a credential value appears")
+	assert.NotContains(t, got.outcome, mcpSecret)
+}

@@ -82,6 +82,10 @@ message ClaimedJob {
   // Free text, run in the sandbox before the agent.
   string setup_commands = 9;
   int32 time_limit_minutes = 10;
+  // The job's own agent account: it may read and comment on this job's task only,
+  // and ends with the job. Empty when the server makes none.
+  string mcp_client_id = 11;
+  string mcp_client_secret = 12;
 }
 
 message ClaimJobRequest {}
