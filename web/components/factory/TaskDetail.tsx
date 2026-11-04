@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react'
 import { useFactoryActions, useFactoryAgents, useFactoryTask } from '@/hooks/useFactory'
-import type { Job } from '@/lib/gen/factory/v1/factory_pb'
+import { TaskStatus, type Job } from '@/lib/gen/factory/v1/factory_pb'
 import {
   accountsOf,
   actorLabel,
+  FIX_CI_REPLY,
+  canFixCi,
   jobActive,
   jobStatusLabel,
   prStatusLine,
@@ -66,8 +68,70 @@ function CommentForm({ taskId }: { taskId: string }) {
   )
 }
 
+/** Reply to the agent: resumes the last job's session on the same branch. */
+function ReplyForm({ taskId, latest }: { taskId: string; latest: Job }) {
+  const { reply } = useFactoryActions()
+  const [text, setText] = useState('')
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
+
+  const send = async (body: string) => {
+    setPending(true)
+    setError('')
+    try {
+      await reply(taskId, body)
+      setText('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Couldn\u2019t send the reply. Try again.')
+    }
+    setPending(false)
+  }
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    void send(text)
+  }
+
+  return (
+    <form className="space-y-2" aria-label="Reply" onSubmit={submit}>
+      <Field label="Reply to the agent" htmlFor="task-reply-text">
+        <Textarea
+          id="task-reply-text"
+          rows={2}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+      </Field>
+      {error && <Alert tone="danger">{error}</Alert>}
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" disabled={pending || text.trim() === ''}>
+          {pending ? 'Sending…' : 'Reply'}
+        </Button>
+        {canFixCi(latest) && (
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={pending}
+            onClick={() => void send(FIX_CI_REPLY)}
+          >
+            Reply: fix CI
+          </Button>
+        )}
+      </div>
+    </form>
+  )
+}
+
 /** Run the task on the runner, and what its latest job is doing. */
-function RunSection({ taskId, latest }: { taskId: string; latest: Job | undefined }) {
+function RunSection({
+  taskId,
+  latest,
+  done
+}: {
+  taskId: string
+  latest: Job | undefined
+  done: boolean
+}) {
   const { run, stop } = useFactoryActions()
   const [text, setText] = useState('')
   const [pending, setPending] = useState(false)
@@ -117,6 +181,7 @@ function RunSection({ taskId, latest }: { taskId: string; latest: Job | undefine
         </p>
       )}
       {latest && <JobLog jobId={latest.id} active={active} />}
+      {latest && !active && !done && <ReplyForm taskId={taskId} latest={latest} />}
       <form className="space-y-2" onSubmit={(e) => void submit(e)}>
         <Field label="Instructions for this run (optional)" htmlFor="task-run-text">
           <Textarea
@@ -190,7 +255,11 @@ export default function TaskDetail({ id, onClose }: TaskDetailProps) {
             <Button variant="secondary" onClick={() => setEditing(true)}>
               Edit
             </Button>
-            <RunSection taskId={task.id} latest={data.jobs[0]} />
+            <RunSection
+              taskId={task.id}
+              latest={data.jobs[0]}
+              done={task.status === TaskStatus.DONE}
+            />
             <section className="space-y-2" aria-label="Comments">
               {data.comments.length === 0 ? (
                 <EmptyState compact>No comments yet.</EmptyState>

@@ -171,6 +171,14 @@ export function useFactoryActions() {
         await refresh()
       }
     },
+    /** Queues a job that resumes the last job's session with the reply as its prompt. */
+    reply: async (taskId: string, text: string) => {
+      try {
+        await client.replyTask({ taskId, text })
+      } finally {
+        await refresh()
+      }
+    },
     /** Cancels the task's queued or running job; the runner stops on its next check-in. */
     stop: async (taskId: string) => {
       await client.stopJob({ taskId })
