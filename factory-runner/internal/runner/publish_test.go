@@ -122,7 +122,7 @@ func TestAJobThatPassesTheChecksIsPushedAndGetsItsPullRequest(t *testing.T) {
 	assert.Equal(t, "main", pr.Base)
 	assert.Equal(t, "Fix the login redirect", pr.Title)
 	assert.Contains(t, pr.Body, "Changed the handler.")
-	assert.Contains(t, pr.Body, "task `t`")
+	assert.Contains(t, pr.Body, "task `"+taskID+"`")
 	assert.Contains(t, pr.Body, "https://tools.example.com/factory")
 	assert.Equal(t, []string{pushToken}, p.gh.tokens)
 
@@ -281,6 +281,7 @@ func TestPullRequestTextTakesTheTitleFromTheFirstLine(t *testing.T) {
 		ID: "job-1", TaskID: "task-1", Branch: "agent/x",
 		RepoOwner: "", RepoName: "", DefaultBranch: "", Harness: "", Prompt: "",
 		SetupCommands: "", TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
+		ResumeSessionID: "",
 	}
 	for name, tc := range map[string]struct{ outcome, title string }{
 		"plain":            {"Fix it\n\nbody", "Fix it"},
@@ -568,7 +569,7 @@ func TestAPullRequestTitleLabelWinsWhereverItIs(t *testing.T) {
 	job := &runner.ClaimedJob{
 		ID: "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
 		DefaultBranch: "", Harness: "", Prompt: "", SetupCommands: "",
-		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
+		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "", ResumeSessionID: "",
 	}
 	title, _ := runner.PullRequestTextForTest(
 		"Summary of the work\n\nI did a lot.\n\nPR title: Fix the redirect\nmore", job, "")
@@ -607,7 +608,7 @@ func TestMentionsAndClosingKeywordsInAgentTextAreDefused(t *testing.T) {
 	job := &runner.ClaimedJob{
 		ID: "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
 		DefaultBranch: "", Harness: "", Prompt: "", SetupCommands: "",
-		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
+		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "", ResumeSessionID: "",
 	}
 	_, body := runner.PullRequestTextForTest("Title\n\nFixes #1, cc @bob", job, "")
 	assert.NotContains(t, body, "Fixes #1")

@@ -26,6 +26,9 @@ type ClaimedJob struct {
 	// (empty if the server made none). The secret is a credential like any other.
 	MCPClientID     string `json:"mcpClientId"`
 	MCPClientSecret string `json:"mcpClientSecret"`
+	// ResumeSessionID is set for a Reply's job: the harness session to continue
+	// on the task's existing branch.
+	ResumeSessionID string `json:"resumeSessionId"`
 }
 
 // JobAPI is the server side of running jobs.

@@ -43,7 +43,7 @@ func (r *Reviewed) Close() { _ = os.RemoveAll(r.dir) }
 // comes back as that copy, for pushing; the caller closes it.
 func (g *Git) Inspect(
 	ctx context.Context,
-	owner, name, base, branch, jobID, cloneDir string,
+	owner, name, base, branch, jobID, cloneDir, since string,
 	secrets []string,
 ) (*Reviewed, error) {
 	if err := plainGitDir(cloneDir); err != nil {
@@ -55,7 +55,8 @@ func (g *Git) Inspect(
 		return nil, fmt.Errorf("clear the review repo: %w", err)
 	}
 	reviewed := &Reviewed{g: g, dir: review, branch: branch}
-	if err := g.review(ctx, mirror, review, base, branch, cloneDir, secrets); err != nil {
+	err := g.review(ctx, mirror, review, base, branch, cloneDir, since, secrets)
+	if err != nil {
 		reviewed.Close()
 		return nil, err
 	}
@@ -64,7 +65,7 @@ func (g *Git) Inspect(
 
 func (g *Git) review(
 	ctx context.Context,
-	mirror, review, base, branch, cloneDir string,
+	mirror, review, base, branch, cloneDir, since string,
 	secrets []string,
 ) error {
 	if err := os.MkdirAll(filepath.Dir(review), gitDirPerm); err != nil {
@@ -84,6 +85,15 @@ func (g *Git) review(
 	}
 
 	from, to := "refs/heads/"+base, "refs/heads/"+branch
+	if since != "" {
+		// A Reply's job answers for the commits it added, not the earlier ones.
+		from = since
+		err = g.mustGit(ctx, review, "merge-base", "--is-ancestor", since, to)
+		if err != nil {
+			return fmt.Errorf("%w: the branch no longer builds on where the job began",
+				ErrHostCheck)
+		}
+	}
 	span := from + ".." + to
 	if err = g.hasChanges(ctx, review, span, from+"..."+to); err != nil {
 		return err
