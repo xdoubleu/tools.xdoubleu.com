@@ -177,8 +177,9 @@ const PR_REVIEW = new Map([
 
 /** The job's pull request as a short line, "" while it has none or no status yet. */
 export function prStatusLine(job: Job | undefined): string {
-  const state = PR_STATES.get(job?.prState ?? '')
-  if (!job || !state) return ''
+  if (!job) return ''
+  const state = PR_STATES.get(job.prState)
+  if (!state) return ''
   const parts = [`PR ${state}`]
   // CI and review only matter while the PR can still change.
   if (state === 'open') {
