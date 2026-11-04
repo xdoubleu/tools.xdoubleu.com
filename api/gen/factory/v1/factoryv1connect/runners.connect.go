@@ -50,6 +50,9 @@ const (
 	RunnerServiceGetPushTokenProcedure = "/factory.v1.RunnerService/GetPushToken"
 	// RunnerServiceCompleteJobProcedure is the procedure name of the RunnerService's CompleteJob RPC.
 	RunnerServiceCompleteJobProcedure = "/factory.v1.RunnerService/CompleteJob"
+	// RunnerServiceListFinishedTasksProcedure is the procedure name of the RunnerService's
+	// ListFinishedTasks RPC.
+	RunnerServiceListFinishedTasksProcedure = "/factory.v1.RunnerService/ListFinishedTasks"
 )
 
 var (
@@ -238,6 +241,13 @@ var (
 			Procedure:  RunnerServiceCompleteJobProcedure,
 		}
 	})
+	runnerServiceListFinishedTasksSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_runners_proto.Services().ByName("RunnerService").Methods().ByName("ListFinishedTasks"),
+			Procedure:  RunnerServiceListFinishedTasksProcedure,
+		}
+	})
 )
 
 // RunnerServiceClient is a client for the factory.v1.RunnerService service.
@@ -252,6 +262,7 @@ type RunnerServiceClient interface {
 	AppendJobEvents(context.Context, *v1.AppendJobEventsRequest) (*v1.AppendJobEventsResponse, error)
 	GetPushToken(context.Context, *v1.GetPushTokenRequest) (*v1.GetPushTokenResponse, error)
 	CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error)
+	ListFinishedTasks(context.Context, *v1.ListFinishedTasksRequest) (*v1.ListFinishedTasksResponse, error)
 }
 
 // NewRunnerServiceClient constructs a client for the factory.v1.RunnerService service. Multiple
@@ -272,6 +283,7 @@ type RunnerServiceHandler interface {
 	AppendJobEvents(context.Context, *v1.AppendJobEventsRequest) (*v1.AppendJobEventsResponse, error)
 	GetPushToken(context.Context, *v1.GetPushTokenRequest) (*v1.GetPushTokenResponse, error)
 	CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error)
+	ListFinishedTasks(context.Context, *v1.ListFinishedTasksRequest) (*v1.ListFinishedTasksResponse, error)
 }
 
 // RegisterRunnerServiceHandler registers svc as the factory.v1.RunnerService implementation on
@@ -286,6 +298,7 @@ func RegisterRunnerServiceHandler(server *connect.Server, svc RunnerServiceHandl
 		connect.Method{Spec: runnerServiceAppendJobEventsSpec(), Handler: adapter.appendJobEvents},
 		connect.Method{Spec: runnerServiceGetPushTokenSpec(), Handler: adapter.getPushToken},
 		connect.Method{Spec: runnerServiceCompleteJobSpec(), Handler: adapter.completeJob},
+		connect.Method{Spec: runnerServiceListFinishedTasksSpec(), Handler: adapter.listFinishedTasks},
 	)
 }
 
@@ -318,6 +331,10 @@ func (UnimplementedRunnerServiceHandler) GetPushToken(context.Context, *v1.GetPu
 
 func (UnimplementedRunnerServiceHandler) CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RunnerService.CompleteJob is not implemented")
+}
+
+func (UnimplementedRunnerServiceHandler) ListFinishedTasks(context.Context, *v1.ListFinishedTasksRequest) (*v1.ListFinishedTasksResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RunnerService.ListFinishedTasks is not implemented")
 }
 
 type runnerServiceClient struct {
@@ -375,6 +392,14 @@ func (c *runnerServiceClient) GetPushToken(ctx context.Context, req *v1.GetPushT
 func (c *runnerServiceClient) CompleteJob(ctx context.Context, req *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error) {
 	var res v1.CompleteJobResponse
 	if err := c.client.CallUnary(ctx, runnerServiceCompleteJobSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) ListFinishedTasks(ctx context.Context, req *v1.ListFinishedTasksRequest) (*v1.ListFinishedTasksResponse, error) {
+	var res v1.ListFinishedTasksResponse
+	if err := c.client.CallUnary(ctx, runnerServiceListFinishedTasksSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -460,6 +485,18 @@ func (h runnerServiceHandler) completeJob(ctx context.Context, _ connect.Spec, s
 		return err
 	}
 	res, err := h.svc.CompleteJob(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) listFinishedTasks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListFinishedTasksRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListFinishedTasks(ctx, &req)
 	if err != nil {
 		return err
 	}

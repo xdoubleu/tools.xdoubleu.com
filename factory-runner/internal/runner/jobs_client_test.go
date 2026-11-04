@@ -164,3 +164,16 @@ func TestGetPushTokenReadsTheTokenAndTellsWhenPushingIsNotSetUp(t *testing.T) {
 	assert.False(t, runner.PushUnavailable(err), "a retryable failure is not final")
 	assert.False(t, runner.PushUnavailable(errors.New("plain")))
 }
+
+func TestListFinishedTasksSendsTheIdsAndReadsTheDoneOnes(t *testing.T) {
+	c := serve(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/factory.v1.RunnerService/ListFinishedTasks", r.URL.Path)
+		assert.Equal(t, "Bearer frt_x", r.Header.Get("Authorization"))
+		body, _ := io.ReadAll(r.Body)
+		assert.JSONEq(t, `{"taskIds":["t1","t2"]}`, string(body))
+		_, _ = w.Write([]byte(`{"taskIds":["t2"]}`))
+	})
+	done, err := c.ListFinishedTasks(context.Background(), "frt_x", []string{"t1", "t2"})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"t2"}, done)
+}

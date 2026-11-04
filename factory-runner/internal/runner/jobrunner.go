@@ -119,6 +119,7 @@ func (r *JobRunner) Next(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	r.run(ctx, job)
+	r.CleanSessions(ctx)
 	return true, nil
 }
 
@@ -129,6 +130,7 @@ func (r *JobRunner) Loop(ctx context.Context) error {
 }
 
 func (r *JobRunner) loop(ctx context.Context, clk clock) error {
+	r.CleanSessions(ctx)
 	backoff := minLoop
 	for ctx.Err() == nil {
 		started := clk.now()

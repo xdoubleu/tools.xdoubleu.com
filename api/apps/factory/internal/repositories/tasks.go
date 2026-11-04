@@ -81,6 +81,30 @@ func (r *TasksRepository) List(
 	return out, rows.Err()
 }
 
+// Statuses returns the status of each of the given tasks that exists.
+func (r *TasksRepository) Statuses(
+	ctx context.Context,
+	ids []uuid.UUID,
+) (map[uuid.UUID]models.Status, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT id, status FROM factory.tasks WHERE id = ANY($1)`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make(map[uuid.UUID]models.Status, len(ids))
+	for rows.Next() {
+		var id uuid.UUID
+		var status models.Status
+		if err = rows.Scan(&id, &status); err != nil {
+			return nil, err
+		}
+		out[id] = status
+	}
+	return out, rows.Err()
+}
+
 func (r *TasksRepository) Get(ctx context.Context, id uuid.UUID) (*models.Task, error) {
 	return scanTask(r.db.QueryRow(ctx, `
 		SELECT `+getColumns+` FROM factory.tasks t WHERE id = $1`, id))

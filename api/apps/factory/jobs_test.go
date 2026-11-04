@@ -329,6 +329,11 @@ func TestTheRunnerCallsNeedADeviceToken(t *testing.T) {
 			_, err := env.runner.CompleteJob(ctx, &factoryv1.CompleteJobRequest{})
 			return err
 		},
+		"list finished tasks": func(ctx context.Context) error {
+			_, err := env.runner.ListFinishedTasks(ctx,
+				&factoryv1.ListFinishedTasksRequest{})
+			return err
+		},
 	} {
 		assert.Equal(t, connect.CodeUnauthenticated, code(call(context.Background())), name)
 		assert.Equal(t, connect.CodeUnauthenticated, code(call(bearer("frt_unknown"))), name)

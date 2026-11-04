@@ -134,6 +134,16 @@ message CompleteJobRequest {
 }
 message CompleteJobResponse {}
 
+// Of the tasks the runner keeps session state for, the ones that are Done or no
+// longer exist, whose state it can delete. At most 500 ids; unknown ids count as
+// gone.
+message ListFinishedTasksRequest {
+  repeated string task_ids = 1;
+}
+message ListFinishedTasksResponse {
+  repeated string task_ids = 1;
+}
+
 // A short-lived GitHub token for the job's repo alone (contents and pull requests
 // write), minted by the factory GitHub App. Only for a running job, and only after
 // the runner's own checks pass; the sandbox never sees it. FailedPrecondition when
@@ -161,4 +171,5 @@ service RunnerService {
   rpc AppendJobEvents(AppendJobEventsRequest) returns (AppendJobEventsResponse);
   rpc GetPushToken(GetPushTokenRequest) returns (GetPushTokenResponse);
   rpc CompleteJob(CompleteJobRequest) returns (CompleteJobResponse);
+  rpc ListFinishedTasks(ListFinishedTasksRequest) returns (ListFinishedTasksResponse);
 }
