@@ -127,6 +127,8 @@ message Job {
   string branch = 4;
   // RFC3339.
   string created_at = 5;
+  // The pull request the job opened; empty if it opened none.
+  string pr_url = 6;
 }
 
 // One event of a job's log: a line of the harness's stream-json output.

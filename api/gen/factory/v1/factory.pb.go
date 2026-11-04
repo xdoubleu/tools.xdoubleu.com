@@ -1071,7 +1071,9 @@ type Job struct {
 	// The agent/<task-id>-<slug> branch the job commits to in the Mac's clone.
 	Branch string `protobuf:"bytes,4,opt,name=branch,proto3" json:"branch,omitempty"`
 	// RFC3339.
-	CreatedAt     string `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	CreatedAt string `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// The pull request the job opened; empty if it opened none.
+	PrUrl         string `protobuf:"bytes,6,opt,name=pr_url,json=prUrl,proto3" json:"pr_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1137,6 +1139,13 @@ func (x *Job) GetBranch() string {
 func (x *Job) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *Job) GetPrUrl() string {
+	if x != nil {
+		return x.PrUrl
 	}
 	return ""
 }
@@ -1923,14 +1932,15 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\"C\n" +
 	"\x12AddCommentResponse\x12-\n" +
-	"\acomment\x18\x01 \x01(\v2\x13.factory.v1.CommentR\acomment\"\x94\x01\n" +
+	"\acomment\x18\x01 \x01(\v2\x13.factory.v1.CommentR\acomment\"\xab\x01\n" +
 	"\x03Job\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12-\n" +
 	"\x06status\x18\x03 \x01(\x0e2\x15.factory.v1.JobStatusR\x06status\x12\x16\n" +
 	"\x06branch\x18\x04 \x01(\tR\x06branch\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x05 \x01(\tR\tcreatedAt\"i\n" +
+	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12\x15\n" +
+	"\x06pr_url\x18\x06 \x01(\tR\x05prUrl\"i\n" +
 	"\bJobEvent\x12\x10\n" +
 	"\x03seq\x18\x01 \x01(\x05R\x03seq\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x18\n" +

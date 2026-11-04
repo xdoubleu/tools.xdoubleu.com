@@ -29,6 +29,7 @@ import (
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/githubapp"
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/repositories"
 )
@@ -115,6 +116,13 @@ func NewApps(
 	if invalidator, ok := authService.(interface{ InvalidateUserCache() }); ok {
 		jobAccounts := agentaccounts.NewStore(db, invalidator.InvalidateUserCache)
 		factoryOpts = append(factoryOpts, factory.WithJobAccounts(jobAccounts))
+	}
+	gh, err := githubapp.New(cfg.FactoryGitHubAppID, cfg.FactoryGitHubAppKey)
+	if err == nil {
+		factoryOpts = append(factoryOpts, factory.WithGitHub(gh))
+	} else if cfg.FactoryGitHubAppID != "" || cfg.FactoryGitHubAppKey != "" {
+		// Half set, or a key that doesn't parse: say so, and leave pushing off.
+		logger.Warn("factory GitHub App is not usable; jobs will not push", "error", err)
 	}
 	apps.addApp(factory.New(ctx, authService, logger, cfg, db, factoryOpts...))
 

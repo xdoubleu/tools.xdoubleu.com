@@ -16,14 +16,14 @@ type JobsRepository struct {
 
 const jobColumns = `id, task_id, repo_id, harness, prompt, status, branch,
 	session_id, outcome, created_by, created_at, started_at, last_check_in,
-	finished_at`
+	finished_at, pr_url`
 
 func scanJob(row rowScanner) (*models.Job, error) {
 	var j models.Job
 	err := row.Scan(
 		&j.ID, &j.TaskID, &j.RepoID, &j.Harness, &j.Prompt, &j.Status, &j.Branch,
 		&j.SessionID, &j.Outcome, &j.CreatedBy, &j.CreatedAt, &j.StartedAt,
-		&j.LastCheckIn, &j.FinishedAt,
+		&j.LastCheckIn, &j.FinishedAt, &j.PRURL,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -110,14 +110,15 @@ func (r *JobsRepository) Complete(
 	ctx context.Context,
 	id uuid.UUID,
 	status models.JobStatus,
-	outcome, sessionID string,
+	outcome, sessionID, prURL string,
 ) (*models.Job, error) {
 	return scanJob(r.db.QueryRow(ctx, `
 		UPDATE factory.jobs SET
 			status = $2, outcome = $3, finished_at = now(),
-			session_id = COALESCE(NULLIF($4, ''), session_id)
+			session_id = COALESCE(NULLIF($4, ''), session_id),
+			pr_url = $5
 		WHERE id = $1 AND status = 'running'
-		RETURNING `+jobColumns, id, status, outcome, sessionID))
+		RETURNING `+jobColumns, id, status, outcome, sessionID, prURL))
 }
 
 // CancelForTask ends the task's queued or running job (a task has at most one).

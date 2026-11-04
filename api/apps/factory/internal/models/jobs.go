@@ -35,6 +35,8 @@ type Job struct {
 	Branch    string
 	SessionID string
 	Outcome   string
+	// PRURL is the pull request the job opened, if it did.
+	PRURL     string
 	CreatedBy string
 	CreatedAt time.Time
 	// StartedAt, LastCheckIn and FinishedAt are nil until they happen.

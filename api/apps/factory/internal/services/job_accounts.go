@@ -37,7 +37,7 @@ func (s *JobService) issueAccount(ctx context.Context, claimed *ClaimedJob) erro
 		// The reason names no internals: it is posted on the task.
 		reason := "Could not create the job's agent account."
 		if _, failErr := s.jobs.Complete(
-			ctx, job.ID, models.JobFailed, reason, "",
+			ctx, job.ID, models.JobFailed, reason, "", "",
 		); failErr == nil {
 			_ = s.finishTask(ctx, job.TaskID, systemAuthor, "Job failed: "+reason)
 		}

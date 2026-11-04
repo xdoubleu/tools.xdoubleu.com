@@ -35,7 +35,9 @@ type JobService struct {
 	events *repositories.JobEventsRepository
 	// accounts is nil when jobs get no agent account of their own.
 	accounts JobAccounts
-	now      func() time.Time
+	// github is nil when no GitHub App is set up.
+	github JobGitHub
+	now    func() time.Time
 }
 
 // ClaimedJob is a job with the repo it runs against.
@@ -138,8 +140,8 @@ func (s *JobService) Run(
 	job, err := s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: taskID, RepoID: repo.ID, Harness: repo.DefaultHarness,
 		Prompt: promptFor(repo, task, text), Status: "", Branch: branchFor(task),
-		SessionID: "", Outcome: "", CreatedBy: actor.String(), CreatedAt: time.Time{},
-		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
+		SessionID: "", Outcome: "", PRURL: "", CreatedBy: actor.String(),
+		CreatedAt: time.Time{}, StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
 	})
 	if err != nil {
 		return nil, err
@@ -241,14 +243,16 @@ func (s *JobService) CheckIn(
 	return false, err
 }
 
-// Complete finishes a running job, comments its outcome on the task and moves
-// the task to Needs you: without a PR the branch stays in the Mac's clone.
+// Complete finishes a running job and comments its outcome on the task. A
+// succeeded job that opened a pull request of its own repo moves the task to In
+// review, with the link; any other job moves it to Needs you, because the branch
+// is then only in the Mac's clone.
 func (s *JobService) Complete(
 	ctx context.Context,
 	runnerID uuid.UUID,
 	id uuid.UUID,
 	succeeded bool,
-	outcome, sessionID string,
+	outcome, sessionID, prURL string,
 ) (*models.Job, error) {
 	status := models.JobFailed
 	if succeeded {
@@ -258,7 +262,11 @@ func (s *JobService) Complete(
 	if utf8.RuneCountInString(outcome) > maxCommentLen {
 		outcome = string([]rune(outcome)[:maxCommentLen])
 	}
-	job, err := s.jobs.Complete(ctx, id, status, outcome, sessionID)
+	prURL, note, err := s.checkedPullRequest(ctx, id, succeeded, strings.TrimSpace(prURL))
+	if err != nil {
+		return nil, err
+	}
+	job, err := s.jobs.Complete(ctx, id, status, outcome, sessionID, prURL)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return nil, conflict("the job is no longer running")
 	}
@@ -269,11 +277,47 @@ func (s *JobService) Complete(
 	if outcome == "" {
 		outcome = "(the agent wrote no outcome)"
 	}
-	body := "Job " + string(status) + " on branch `" + job.Branch + "`:\n\n" + outcome
-	if err = s.finishTask(ctx, job.TaskID, "runner:"+runnerID.String(), body); err != nil {
+	body := "Job " + string(status) + " on branch `" + job.Branch + "`"
+	next := models.StatusNeedsYou
+	if prURL != "" {
+		body += ", pull request: " + prURL
+		next = models.StatusInReview
+	}
+	body += ":\n\n" + outcome + note
+	author := "runner:" + runnerID.String()
+	if err = s.finishTask(ctx, job.TaskID, author, body, next); err != nil {
 		return nil, err
 	}
 	return job, nil
+}
+
+// checkedPullRequest keeps a reported pull request only for a succeeded job and
+// only if it is the job repo's own; a link it drops is mentioned on the task.
+func (s *JobService) checkedPullRequest(
+	ctx context.Context,
+	jobID uuid.UUID,
+	succeeded bool,
+	prURL string,
+) (string, string, error) {
+	if prURL == "" || !succeeded {
+		return "", "", nil
+	}
+	job, err := s.jobs.Get(ctx, jobID)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return "", "", conflict("the job is no longer running")
+	}
+	if err != nil {
+		return "", "", err
+	}
+	repo, err := s.repos.Get(ctx, job.RepoID)
+	if err != nil {
+		return "", "", err
+	}
+	if !ownPullRequest(prURL, repo) {
+		return "", "\n\n(The runner reported a pull request link that is not a pull " +
+			"request of this repo, so it was left out.)", nil
+	}
+	return prURL, "", nil
 }
 
 // ExpireLost marks running jobs that stopped checking in as lost and parks their
@@ -301,15 +345,21 @@ func (s *JobService) SweepLost(ctx context.Context) {
 	_ = s.ExpireLost(ctx)
 }
 
+// finishTask comments on the task and moves it on; Needs you unless told otherwise.
 func (s *JobService) finishTask(
 	ctx context.Context,
 	taskID uuid.UUID,
 	author, body string,
+	next ...models.Status,
 ) error {
 	if _, err := s.tasks.AddComment(ctx, taskID, author, body); err != nil {
 		return err
 	}
-	_, err := s.tasks.Move(ctx, taskID, models.StatusNeedsYou)
+	to := models.StatusNeedsYou
+	if len(next) > 0 {
+		to = next[0]
+	}
+	_, err := s.tasks.Move(ctx, taskID, to)
 	return err
 }
 

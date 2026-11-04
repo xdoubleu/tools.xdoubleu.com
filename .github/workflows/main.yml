@@ -597,6 +597,8 @@ jobs:
           # GitHub Actions rejects secret names starting with GITHUB_.
           GITHUB_OAUTH_CLIENT_ID: ${{ secrets.KAMAL_GITHUB_OAUTH_CLIENT_ID }}
           GITHUB_OAUTH_CLIENT_SECRET: ${{ secrets.KAMAL_GITHUB_OAUTH_CLIENT_SECRET }}
+          FACTORY_GITHUB_APP_ID: ${{ secrets.FACTORY_GITHUB_APP_ID }}
+          FACTORY_GITHUB_APP_PRIVATE_KEY: ${{ secrets.FACTORY_GITHUB_APP_PRIVATE_KEY }}
           SENTRY_OAUTH_CLIENT_ID: ${{ secrets.SENTRY_OAUTH_CLIENT_ID }}
           SENTRY_OAUTH_CLIENT_SECRET: ${{ secrets.SENTRY_OAUTH_CLIENT_SECRET }}
           TODOIST_OAUTH_CLIENT_ID: ${{ secrets.TODOIST_OAUTH_CLIENT_ID }}

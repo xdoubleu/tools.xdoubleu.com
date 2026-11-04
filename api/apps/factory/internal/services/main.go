@@ -20,6 +20,7 @@ func New(
 	repos *repositories.Repositories,
 	authService auth.Service,
 	accounts JobAccounts,
+	github JobGitHub,
 ) *Services {
 	return &Services{
 		Auth:    authService,
@@ -28,7 +29,7 @@ func New(
 		Runners: &RunnerService{repo: repos.Runners, now: time.Now},
 		Jobs: &JobService{
 			jobs: repos.Jobs, tasks: repos.Tasks, repos: repos.Repos,
-			events: repos.Events, accounts: accounts, now: time.Now,
+			events: repos.Events, accounts: accounts, github: github, now: time.Now,
 		},
 	}
 }

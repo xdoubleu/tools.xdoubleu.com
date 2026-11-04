@@ -34,12 +34,19 @@ type Factory struct {
 	stepUp        StepUp
 	heartbeatHold time.Duration
 	jobAccounts   services.JobAccounts
+	github        services.JobGitHub
 }
 
 // WithJobAccounts makes every claimed job run as an agent account of its own,
 // confined to its task. Without it a job gets no MCP identity.
 func WithJobAccounts(accounts services.JobAccounts) Option {
 	return func(a *Factory) { a.jobAccounts = accounts }
+}
+
+// WithGitHub lets a running job fetch a short-lived token to push its branch and
+// open its pull request. Without it jobs end in Needs you with the work on the Mac.
+func WithGitHub(github services.JobGitHub) Option {
+	return func(a *Factory) { a.github = github }
 }
 
 // Option adjusts a Factory.
@@ -77,11 +84,12 @@ func New(
 		stepUp:        nil,
 		heartbeatHold: DefaultHeartbeatHold,
 		jobAccounts:   nil,
+		github:        nil,
 	}
 	for _, opt := range opts {
 		opt(a)
 	}
-	a.services = services.New(repositories.New(db), authService, a.jobAccounts)
+	a.services = services.New(repositories.New(db), authService, a.jobAccounts, a.github)
 	return a
 }
 

@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file factory/v1/runners.proto.
  */
 export const file_factory_v1_runners: GenFile = /*@__PURE__*/
-  fileDesc("ChhmYWN0b3J5L3YxL3J1bm5lcnMucHJvdG8SCmZhY3RvcnkudjEimQEKBlJ1bm5lchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCXBhaXJlZF9hdBgDIAEoCRIRCglsYXN0X3NlZW4YBCABKAkSDwoHdmVyc2lvbhgFIAEoCRISCgpyZXZva2VkX2F0GAYgASgJEhoKEnBhaXJpbmdfZXhwaXJlc19hdBgHIAEoCRIOCgZvbmxpbmUYCCABKAgiFAoSTGlzdFJ1bm5lcnNSZXF1ZXN0IjoKE0xpc3RSdW5uZXJzUmVzcG9uc2USIwoHcnVubmVycxgBIAMoCzISLmZhY3RvcnkudjEuUnVubmVyIjYKE0NyZWF0ZVJ1bm5lclJlcXVlc3QSDAoEbmFtZRgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiUAoUQ3JlYXRlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXISFAoMcGFpcmluZ19jb2RlGAIgASgJIiEKE1Jldm9rZVJ1bm5lclJlcXVlc3QSCgoCaWQYASABKAkiOgoUUmV2b2tlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXIiLAoLUGFpclJlcXVlc3QSDAoEY29kZRgBIAEoCRIPCgd2ZXJzaW9uGAIgASgJIjkKDFBhaXJSZXNwb25zZRIUCgxkZXZpY2VfdG9rZW4YASABKAkSEwoLcnVubmVyX25hbWUYAiABKAkiIwoQSGVhcnRiZWF0UmVxdWVzdBIPCgd2ZXJzaW9uGAEgASgJIhMKEUhlYXJ0YmVhdFJlc3BvbnNlIpQCCgpDbGFpbWVkSm9iEgoKAmlkGAEgASgJEg8KB3Rhc2tfaWQYAiABKAkSEgoKcmVwb19vd25lchgDIAEoCRIRCglyZXBvX25hbWUYBCABKAkSFgoOZGVmYXVsdF9icmFuY2gYBSABKAkSJAoHaGFybmVzcxgGIAEoDjITLmZhY3RvcnkudjEuSGFybmVzcxIOCgZwcm9tcHQYByABKAkSDgoGYnJhbmNoGAggASgJEhYKDnNldHVwX2NvbW1hbmRzGAkgASgJEhoKEnRpbWVfbGltaXRfbWludXRlcxgKIAEoBRIVCg1tY3BfY2xpZW50X2lkGAsgASgJEhkKEW1jcF9jbGllbnRfc2VjcmV0GAwgASgJIhEKD0NsYWltSm9iUmVxdWVzdCI3ChBDbGFpbUpvYlJlc3BvbnNlEiMKA2pvYhgBIAEoCzIWLmZhY3RvcnkudjEuQ2xhaW1lZEpvYiI0Cg5DaGVja0luUmVxdWVzdBIOCgZqb2JfaWQYASABKAkSEgoKc2Vzc2lvbl9pZBgCIAEoCSIfCg9DaGVja0luUmVzcG9uc2USDAoEc3RvcBgBIAEoCCIkCgdKb2JMaW5lEgsKA3NlcRgBIAEoBRIMCgRsaW5lGAIgASgJIkwKFkFwcGVuZEpvYkV2ZW50c1JlcXVlc3QSDgoGam9iX2lkGAEgASgJEiIKBWxpbmVzGAIgAygLMhMuZmFjdG9yeS52MS5Kb2JMaW5lIhkKF0FwcGVuZEpvYkV2ZW50c1Jlc3BvbnNlIlwKEkNvbXBsZXRlSm9iUmVxdWVzdBIOCgZqb2JfaWQYASABKAkSEQoJc3VjY2VlZGVkGAIgASgIEg8KB291dGNvbWUYAyABKAkSEgoKc2Vzc2lvbl9pZBgEIAEoCSIVChNDb21wbGV0ZUpvYlJlc3BvbnNlMooCChJSdW5uZXJBZG1pblNlcnZpY2USTgoLTGlzdFJ1bm5lcnMSHi5mYWN0b3J5LnYxLkxpc3RSdW5uZXJzUmVxdWVzdBofLmZhY3RvcnkudjEuTGlzdFJ1bm5lcnNSZXNwb25zZRJRCgxDcmVhdGVSdW5uZXISHy5mYWN0b3J5LnYxLkNyZWF0ZVJ1bm5lclJlcXVlc3QaIC5mYWN0b3J5LnYxLkNyZWF0ZVJ1bm5lclJlc3BvbnNlElEKDFJldm9rZVJ1bm5lchIfLmZhY3RvcnkudjEuUmV2b2tlUnVubmVyUmVxdWVzdBogLmZhY3RvcnkudjEuUmV2b2tlUnVubmVyUmVzcG9uc2UyywMKDVJ1bm5lclNlcnZpY2USOQoEUGFpchIXLmZhY3RvcnkudjEuUGFpclJlcXVlc3QaGC5mYWN0b3J5LnYxLlBhaXJSZXNwb25zZRJICglIZWFydGJlYXQSHC5mYWN0b3J5LnYxLkhlYXJ0YmVhdFJlcXVlc3QaHS5mYWN0b3J5LnYxLkhlYXJ0YmVhdFJlc3BvbnNlEkUKCENsYWltSm9iEhsuZmFjdG9yeS52MS5DbGFpbUpvYlJlcXVlc3QaHC5mYWN0b3J5LnYxLkNsYWltSm9iUmVzcG9uc2USQgoHQ2hlY2tJbhIaLmZhY3RvcnkudjEuQ2hlY2tJblJlcXVlc3QaGy5mYWN0b3J5LnYxLkNoZWNrSW5SZXNwb25zZRJaCg9BcHBlbmRKb2JFdmVudHMSIi5mYWN0b3J5LnYxLkFwcGVuZEpvYkV2ZW50c1JlcXVlc3QaIy5mYWN0b3J5LnYxLkFwcGVuZEpvYkV2ZW50c1Jlc3BvbnNlEk4KC0NvbXBsZXRlSm9iEh4uZmFjdG9yeS52MS5Db21wbGV0ZUpvYlJlcXVlc3QaHy5mYWN0b3J5LnYxLkNvbXBsZXRlSm9iUmVzcG9uc2VCLVordG9vbHMueGRvdWJsZXUuY29tL2dlbi9mYWN0b3J5L3YxO2ZhY3Rvcnl2MWIGcHJvdG8z", [file_factory_v1_factory]);
+  fileDesc("ChhmYWN0b3J5L3YxL3J1bm5lcnMucHJvdG8SCmZhY3RvcnkudjEimQEKBlJ1bm5lchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCXBhaXJlZF9hdBgDIAEoCRIRCglsYXN0X3NlZW4YBCABKAkSDwoHdmVyc2lvbhgFIAEoCRISCgpyZXZva2VkX2F0GAYgASgJEhoKEnBhaXJpbmdfZXhwaXJlc19hdBgHIAEoCRIOCgZvbmxpbmUYCCABKAgiFAoSTGlzdFJ1bm5lcnNSZXF1ZXN0IjoKE0xpc3RSdW5uZXJzUmVzcG9uc2USIwoHcnVubmVycxgBIAMoCzISLmZhY3RvcnkudjEuUnVubmVyIjYKE0NyZWF0ZVJ1bm5lclJlcXVlc3QSDAoEbmFtZRgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiUAoUQ3JlYXRlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXISFAoMcGFpcmluZ19jb2RlGAIgASgJIiEKE1Jldm9rZVJ1bm5lclJlcXVlc3QSCgoCaWQYASABKAkiOgoUUmV2b2tlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXIiLAoLUGFpclJlcXVlc3QSDAoEY29kZRgBIAEoCRIPCgd2ZXJzaW9uGAIgASgJIjkKDFBhaXJSZXNwb25zZRIUCgxkZXZpY2VfdG9rZW4YASABKAkSEwoLcnVubmVyX25hbWUYAiABKAkiIwoQSGVhcnRiZWF0UmVxdWVzdBIPCgd2ZXJzaW9uGAEgASgJIhMKEUhlYXJ0YmVhdFJlc3BvbnNlIpQCCgpDbGFpbWVkSm9iEgoKAmlkGAEgASgJEg8KB3Rhc2tfaWQYAiABKAkSEgoKcmVwb19vd25lchgDIAEoCRIRCglyZXBvX25hbWUYBCABKAkSFgoOZGVmYXVsdF9icmFuY2gYBSABKAkSJAoHaGFybmVzcxgGIAEoDjITLmZhY3RvcnkudjEuSGFybmVzcxIOCgZwcm9tcHQYByABKAkSDgoGYnJhbmNoGAggASgJEhYKDnNldHVwX2NvbW1hbmRzGAkgASgJEhoKEnRpbWVfbGltaXRfbWludXRlcxgKIAEoBRIVCg1tY3BfY2xpZW50X2lkGAsgASgJEhkKEW1jcF9jbGllbnRfc2VjcmV0GAwgASgJIhEKD0NsYWltSm9iUmVxdWVzdCI3ChBDbGFpbUpvYlJlc3BvbnNlEiMKA2pvYhgBIAEoCzIWLmZhY3RvcnkudjEuQ2xhaW1lZEpvYiI0Cg5DaGVja0luUmVxdWVzdBIOCgZqb2JfaWQYASABKAkSEgoKc2Vzc2lvbl9pZBgCIAEoCSIfCg9DaGVja0luUmVzcG9uc2USDAoEc3RvcBgBIAEoCCIkCgdKb2JMaW5lEgsKA3NlcRgBIAEoBRIMCgRsaW5lGAIgASgJIkwKFkFwcGVuZEpvYkV2ZW50c1JlcXVlc3QSDgoGam9iX2lkGAEgASgJEiIKBWxpbmVzGAIgAygLMhMuZmFjdG9yeS52MS5Kb2JMaW5lIhkKF0FwcGVuZEpvYkV2ZW50c1Jlc3BvbnNlImwKEkNvbXBsZXRlSm9iUmVxdWVzdBIOCgZqb2JfaWQYASABKAkSEQoJc3VjY2VlZGVkGAIgASgIEg8KB291dGNvbWUYAyABKAkSEgoKc2Vzc2lvbl9pZBgEIAEoCRIOCgZwcl91cmwYBSABKAkiFQoTQ29tcGxldGVKb2JSZXNwb25zZSIlChNHZXRQdXNoVG9rZW5SZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCSI5ChRHZXRQdXNoVG9rZW5SZXNwb25zZRINCgV0b2tlbhgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgJMooCChJSdW5uZXJBZG1pblNlcnZpY2USTgoLTGlzdFJ1bm5lcnMSHi5mYWN0b3J5LnYxLkxpc3RSdW5uZXJzUmVxdWVzdBofLmZhY3RvcnkudjEuTGlzdFJ1bm5lcnNSZXNwb25zZRJRCgxDcmVhdGVSdW5uZXISHy5mYWN0b3J5LnYxLkNyZWF0ZVJ1bm5lclJlcXVlc3QaIC5mYWN0b3J5LnYxLkNyZWF0ZVJ1bm5lclJlc3BvbnNlElEKDFJldm9rZVJ1bm5lchIfLmZhY3RvcnkudjEuUmV2b2tlUnVubmVyUmVxdWVzdBogLmZhY3RvcnkudjEuUmV2b2tlUnVubmVyUmVzcG9uc2UyngQKDVJ1bm5lclNlcnZpY2USOQoEUGFpchIXLmZhY3RvcnkudjEuUGFpclJlcXVlc3QaGC5mYWN0b3J5LnYxLlBhaXJSZXNwb25zZRJICglIZWFydGJlYXQSHC5mYWN0b3J5LnYxLkhlYXJ0YmVhdFJlcXVlc3QaHS5mYWN0b3J5LnYxLkhlYXJ0YmVhdFJlc3BvbnNlEkUKCENsYWltSm9iEhsuZmFjdG9yeS52MS5DbGFpbUpvYlJlcXVlc3QaHC5mYWN0b3J5LnYxLkNsYWltSm9iUmVzcG9uc2USQgoHQ2hlY2tJbhIaLmZhY3RvcnkudjEuQ2hlY2tJblJlcXVlc3QaGy5mYWN0b3J5LnYxLkNoZWNrSW5SZXNwb25zZRJaCg9BcHBlbmRKb2JFdmVudHMSIi5mYWN0b3J5LnYxLkFwcGVuZEpvYkV2ZW50c1JlcXVlc3QaIy5mYWN0b3J5LnYxLkFwcGVuZEpvYkV2ZW50c1Jlc3BvbnNlElEKDEdldFB1c2hUb2tlbhIfLmZhY3RvcnkudjEuR2V0UHVzaFRva2VuUmVxdWVzdBogLmZhY3RvcnkudjEuR2V0UHVzaFRva2VuUmVzcG9uc2USTgoLQ29tcGxldGVKb2ISHi5mYWN0b3J5LnYxLkNvbXBsZXRlSm9iUmVxdWVzdBofLmZhY3RvcnkudjEuQ29tcGxldGVKb2JSZXNwb25zZUItWit0b29scy54ZG91YmxldS5jb20vZ2VuL2ZhY3RvcnkvdjE7ZmFjdG9yeXYxYgZwcm90bzM", [file_factory_v1_factory]);
 
 /**
  * @generated from message factory.v1.Runner
@@ -511,6 +511,15 @@ export type CompleteJobRequest = Message<"factory.v1.CompleteJobRequest"> & {
    * @generated from field: string session_id = 4;
    */
   sessionId: string;
+
+  /**
+   * The pull request the runner opened for the job's branch. The server keeps it
+   * only if it is a pull request of the job's own repo; the task then moves to In
+   * review instead of Needs you.
+   *
+   * @generated from field: string pr_url = 5;
+   */
+  prUrl: string;
 };
 
 /**
@@ -532,6 +541,52 @@ export type CompleteJobResponse = Message<"factory.v1.CompleteJobResponse"> & {
  */
 export const CompleteJobResponseSchema: GenMessage<CompleteJobResponse> = /*@__PURE__*/
   messageDesc(file_factory_v1_runners, 20);
+
+/**
+ * A short-lived GitHub token for the job's repo alone (contents and pull requests
+ * write), minted by the factory GitHub App. Only for a running job, and only after
+ * the runner's own checks pass; the sandbox never sees it. FailedPrecondition when
+ * pushing is not configured, so the runner leaves the work on the Mac.
+ *
+ * @generated from message factory.v1.GetPushTokenRequest
+ */
+export type GetPushTokenRequest = Message<"factory.v1.GetPushTokenRequest"> & {
+  /**
+   * @generated from field: string job_id = 1;
+   */
+  jobId: string;
+};
+
+/**
+ * Describes the message factory.v1.GetPushTokenRequest.
+ * Use `create(GetPushTokenRequestSchema)` to create a new message.
+ */
+export const GetPushTokenRequestSchema: GenMessage<GetPushTokenRequest> = /*@__PURE__*/
+  messageDesc(file_factory_v1_runners, 21);
+
+/**
+ * @generated from message factory.v1.GetPushTokenResponse
+ */
+export type GetPushTokenResponse = Message<"factory.v1.GetPushTokenResponse"> & {
+  /**
+   * @generated from field: string token = 1;
+   */
+  token: string;
+
+  /**
+   * RFC3339.
+   *
+   * @generated from field: string expires_at = 2;
+   */
+  expiresAt: string;
+};
+
+/**
+ * Describes the message factory.v1.GetPushTokenResponse.
+ * Use `create(GetPushTokenResponseSchema)` to create a new message.
+ */
+export const GetPushTokenResponseSchema: GenMessage<GetPushTokenResponse> = /*@__PURE__*/
+  messageDesc(file_factory_v1_runners, 22);
 
 /**
  * Admin side of pairing, behind the browser session.
@@ -619,6 +674,14 @@ export const RunnerService: GenService<{
     methodKind: "unary";
     input: typeof AppendJobEventsRequestSchema;
     output: typeof AppendJobEventsResponseSchema;
+  },
+  /**
+   * @generated from rpc factory.v1.RunnerService.GetPushToken
+   */
+  getPushToken: {
+    methodKind: "unary";
+    input: typeof GetPushTokenRequestSchema;
+    output: typeof GetPushTokenResponseSchema;
   },
   /**
    * @generated from rpc factory.v1.RunnerService.CompleteJob
