@@ -23,6 +23,11 @@ type Git struct {
 	// Run executes git with args in dir (empty: the current directory) and returns
 	// its combined output. Nil runs the real git.
 	Run func(ctx context.Context, dir string, args ...string) ([]byte, error)
+	// RunWithEnv, when set, runs the git that needs extra environment (a push's
+	// token), so a test can look at both.
+	RunWithEnv func(
+		ctx context.Context, dir string, env []string, args ...string,
+	) ([]byte, error)
 }
 
 // GitHubURL is the usual remote.

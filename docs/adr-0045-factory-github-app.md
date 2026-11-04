@@ -41,8 +41,10 @@ deploy key can push but can't open a pull request.
 - Revoking the App's installation stops all pushing at once.
 - The installation id is remembered per repo and forgotten on any failure to
   mint a token, so a reinstall needs no restart.
-- The runner's half (push from the host-owned review copy with the token in an
-  environment-supplied header, never argv; open the PR) lands separately.
+- The runner pushes the host-owned review copy, never the agent's clone, with the
+  token in git's environment (never argv), never forces, and opens the PR (or finds
+  the branch's open one). Any failure there leaves the work on the Mac and the task
+  in Needs you, with the reason ahead of the agent's own text.
 
 ## Revisit when
 

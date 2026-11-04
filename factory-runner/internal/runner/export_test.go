@@ -58,3 +58,25 @@ func (r *JobRunner) LoopForTest(
 ) error {
 	return r.loop(ctx, clock{sleep: sleep, now: now})
 }
+
+// PullRequestTextForTest is the title and body of a job's pull request.
+func PullRequestTextForTest(
+	outcome string,
+	job *ClaimedJob,
+	server string,
+) (string, string) {
+	return pullRequestText(outcome, job, server)
+}
+
+// PushEnvForTest is the environment a push carries its token in.
+func PushEnvForTest(token string) []string { return pushEnv(token) }
+
+// ScrubForTest removes a token from text.
+func ScrubForTest(text, token string) string { return scrub(text, token) }
+
+// GitEnvForTest runs git with extra environment, as a push does.
+func (g *Git) GitEnvForTest(
+	ctx context.Context, dir string, env []string, args ...string,
+) ([]byte, error) {
+	return g.gitEnv(ctx, dir, env, args...)
+}

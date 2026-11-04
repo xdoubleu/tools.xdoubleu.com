@@ -65,6 +65,11 @@ type JobRunner struct {
 	// Secrets are values that must never reach a commit, a commit message or the
 	// outcome; the device token is always one.
 	Secrets []string
+	// GitHub opens the pull request of a job that passed the host's checks. Nil
+	// leaves the work on the Mac, as before; ServerURL is the board's address in
+	// the pull request's footer.
+	GitHub    GitHubAPI
+	ServerURL string
 	// CheckInEvery and Minute are the check-in period and the unit of a repo's
 	// time limit; zero means CheckInEvery and time.Minute. Tests shorten them.
 	CheckInEvery time.Duration
@@ -76,7 +81,7 @@ type JobRunner struct {
 
 // failed is a result for a job that never reached the agent.
 func failed(outcome string) result {
-	return result{succeeded: false, outcome: outcome, session: ""}
+	return result{succeeded: false, outcome: outcome, session: "", prURL: ""}
 }
 
 // prepareOutcomeDir makes the directory the sandbox's non-root user writes the
@@ -96,6 +101,8 @@ type result struct {
 	succeeded bool
 	outcome   string
 	session   string
+	// prURL is the pull request opened for the job's branch, if one was.
+	prURL string
 }
 
 // Next claims one job and runs it to the end, reporting whether there was one.
@@ -160,6 +167,7 @@ func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {
 		res.succeeded,
 		res.outcome,
 		res.session,
+		res.prURL,
 	)
 	if err != nil {
 		r.Log.Warn("could not report the job", "job", job.ID, "error", err)
@@ -249,7 +257,7 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	r.flush(ctx, job.ID, events)
 
 	text := readOutcome(filepath.Join(outcomeDir, outcomeFile))
-	res := result{succeeded: false, outcome: "", session: tap.Session()}
+	res := result{succeeded: false, outcome: "", session: tap.Session(), prURL: ""}
 	var reason string
 	switch {
 	case stopped.Load():
@@ -272,7 +280,8 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 }
 
 // publishable runs the host's checks on a job the agent says it finished. A job
-// that fails them is failed, with the reason ahead of the agent's own outcome.
+// that fails them is failed, with the reason ahead of the agent's own outcome. One
+// that passes is pushed and gets its pull request, when pushing is set up.
 func (r *JobRunner) publishable(
 	ctx context.Context,
 	job *ClaimedJob,
@@ -280,9 +289,10 @@ func (r *JobRunner) publishable(
 	res result,
 ) result {
 	secrets := append(r.secrets(), job.MCPClientSecret)
-	err := r.Git.Inspect(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
+	reviewed, err := r.Git.Inspect(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
 		job.Branch, job.ID, cloneDir, secrets)
 	if err == nil && leaks(text, secrets) {
+		reviewed.Close()
 		err = fmt.Errorf("%w: the outcome contains a credential value", ErrHostCheck)
 	}
 	if err != nil {
@@ -293,9 +303,61 @@ func (r *JobRunner) publishable(
 		}
 		return res
 	}
+	defer reviewed.Close()
+
 	res.succeeded = true
 	res.outcome = text
+	if r.GitHub == nil {
+		return res
+	}
+	prURL, why := r.publish(ctx, job, reviewed, text)
+	if why != "" {
+		// The agent's work is fine, so the job still succeeded; the task just goes
+		// to Needs you with the branch on the Mac, and the reason ahead of the text.
+		res.outcome = "Not pushed: " + why + "\n\n" + text
+		return res
+	}
+	res.prURL = prURL
 	return res
+}
+
+// publish pushes the reviewed branch and opens its pull request. It returns the
+// pull request's address, or why that didn't happen: no secret is ever in it.
+func (r *JobRunner) publish(
+	ctx context.Context,
+	job *ClaimedJob,
+	reviewed *Reviewed,
+	text string,
+) (string, string) {
+	ctx, cancel := context.WithTimeout(ctx, publishTimeout)
+	defer cancel()
+
+	token, err := r.API.GetPushToken(ctx, r.Token, job.ID)
+	if PushUnavailable(err) {
+		return "", "pushing is not set up for this repo, so the work stays in the " +
+			"Mac's clone."
+	}
+	if err != nil || token == "" {
+		r.Log.Warn("could not get a push token", "job", job.ID, "error", err)
+		return "", "could not get a push token from the server, so the work stays " +
+			"in the Mac's clone."
+	}
+	remote := r.Git.RemoteURL(job.RepoOwner, job.RepoName)
+	if err = reviewed.Push(ctx, remote, token); err != nil {
+		r.Log.Warn("push failed", "job", job.ID, "error", scrub(err.Error(), token))
+		return "", "the branch could not be pushed (it may already hold other work " +
+			"on GitHub, which is never overwritten), so the work stays in the Mac's clone."
+	}
+	title, body := pullRequestText(text, job, r.ServerURL)
+	prURL, err := r.GitHub.OpenPullRequest(ctx, token, PullRequest{
+		Owner: job.RepoOwner, Repo: job.RepoName, Head: job.Branch,
+		Base: job.DefaultBranch, Title: title, Body: body,
+	})
+	if err != nil {
+		r.Log.Warn("pull request failed", "job", job.ID, "error", scrub(err.Error(), token))
+		return "", "the branch was pushed, but its pull request could not be opened."
+	}
+	return prURL, ""
 }
 
 // secrets are the values that must not leave the Mac in a log, commit or outcome.

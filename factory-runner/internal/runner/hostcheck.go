@@ -22,27 +22,51 @@ const (
 	shortHashLen  = 12
 )
 
+// Reviewed is the host's copy of a job's branch after it passed the checks. It
+// lives in a repo of the host's own, so pushing it never involves the agent's
+// clone; Close removes it.
+type Reviewed struct {
+	g      *Git
+	dir    string
+	branch string
+}
+
+// Close removes the host's copy.
+func (r *Reviewed) Close() { _ = os.RemoveAll(r.dir) }
+
 // Inspect checks the work an agent left on branch before anything is pushed: it
 // has commits that change something, none touches .github/workflows/, and no
 // secret value is in any commit, message or author. The clone belongs to the
 // agent, so nothing runs in it: the branch is fetched, objects verified, into a
 // throwaway repo of the host's (so a rejected commit never reaches the mirror
-// later jobs clone from) and every check reads that copy.
+// later jobs clone from) and every check reads that copy. A branch that passes
+// comes back as that copy, for pushing; the caller closes it.
 func (g *Git) Inspect(
 	ctx context.Context,
 	owner, name, base, branch, jobID, cloneDir string,
 	secrets []string,
-) error {
+) (*Reviewed, error) {
 	if err := plainGitDir(cloneDir); err != nil {
-		return err
+		return nil, err
 	}
 	mirror := filepath.Join(g.Dir, "mirrors", owner, name+".git")
 	review := filepath.Join(g.Dir, "reviews", jobID+".git")
 	if err := os.RemoveAll(review); err != nil {
-		return fmt.Errorf("clear the review repo: %w", err)
+		return nil, fmt.Errorf("clear the review repo: %w", err)
 	}
-	defer os.RemoveAll(review)
+	reviewed := &Reviewed{g: g, dir: review, branch: branch}
+	if err := g.review(ctx, mirror, review, base, branch, cloneDir, secrets); err != nil {
+		reviewed.Close()
+		return nil, err
+	}
+	return reviewed, nil
+}
 
+func (g *Git) review(
+	ctx context.Context,
+	mirror, review, base, branch, cloneDir string,
+	secrets []string,
+) error {
 	if err := os.MkdirAll(filepath.Dir(review), gitDirPerm); err != nil {
 		return fmt.Errorf("create the review dir: %w", err)
 	}
