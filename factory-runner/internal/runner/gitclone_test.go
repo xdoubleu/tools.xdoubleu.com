@@ -26,6 +26,7 @@ func failingGit(dir string, failAt int, calls *[]string) *runner.Git {
 			}
 			return nil, nil
 		},
+		RunWithEnv: nil,
 	}
 }
 

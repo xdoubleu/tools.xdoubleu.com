@@ -2,6 +2,7 @@ package runner_test
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"testing"
@@ -72,13 +73,18 @@ func TestCompleteJobSendsTheResult(t *testing.T) {
 	c := serve(t, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/factory.v1.RunnerService/CompleteJob", r.URL.Path)
 		body, _ := io.ReadAll(r.Body)
-		assert.JSONEq(t,
-			`{"jobId":"j1","succeeded":true,"outcome":"done","sessionId":"s1"}`, string(body))
+		assert.JSONEq(
+			t,
+			`{"jobId":"j1","succeeded":true,"outcome":"done","sessionId":"s1",`+
+				`"prUrl":"https://x/pr"}`,
+			string(body),
+		)
 		_, _ = w.Write([]byte(`{}`))
 	})
 	require.NoError(
 		t,
-		c.CompleteJob(context.Background(), "frt_x", "j1", true, "done", "s1"),
+		c.CompleteJob(context.Background(), "frt_x", "j1", true, "done", "s1",
+			"https://x/pr"),
 	)
 
 	late := serve(t, func(w http.ResponseWriter, _ *http.Request) {
@@ -87,7 +93,10 @@ func TestCompleteJobSendsTheResult(t *testing.T) {
 			[]byte(`{"code":"already_exists","message":"the job is no longer running"}`),
 		)
 	})
-	require.Error(t, late.CompleteJob(context.Background(), "frt_x", "j1", true, "", ""))
+	require.Error(
+		t,
+		late.CompleteJob(context.Background(), "frt_x", "j1", true, "", "", ""),
+	)
 }
 
 func TestClaudeCodeRunsPrintModeWithoutTheAgentSDKOrAPromptInArgv(t *testing.T) {
@@ -122,4 +131,34 @@ func TestAppendJobEventsSendsTheLinesWithTheDeviceToken(t *testing.T) {
 	lines := []runner.EventLine{{Seq: 4, Line: "a"}, {Seq: 5, Line: "b"}}
 	err := c.AppendJobEvents(context.Background(), "frt_x", "j1", lines)
 	require.NoError(t, err)
+}
+
+func TestGetPushTokenReadsTheTokenAndTellsWhenPushingIsNotSetUp(t *testing.T) {
+	c := serve(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/factory.v1.RunnerService/GetPushToken", r.URL.Path)
+		assert.Equal(t, "Bearer frt_x", r.Header.Get("Authorization"))
+		body, _ := io.ReadAll(r.Body)
+		assert.JSONEq(t, `{"jobId":"j1"}`, string(body))
+		_, _ = w.Write([]byte(`{"token":"ghs_abc","expiresAt":"2026-11-04T10:00:00Z"}`))
+	})
+	token, err := c.GetPushToken(context.Background(), "frt_x", "j1")
+	require.NoError(t, err)
+	assert.Equal(t, "ghs_abc", token)
+
+	notSetUp := serve(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		_, _ = w.Write([]byte(`{"code":"failed_precondition","message":"not configured"}`))
+	})
+	_, err = notSetUp.GetPushToken(context.Background(), "frt_x", "j1")
+	require.Error(t, err)
+	assert.True(t, runner.PushUnavailable(err))
+
+	down := serve(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"code":"unavailable","message":"retry"}`))
+	})
+	_, err = down.GetPushToken(context.Background(), "frt_x", "j1")
+	require.Error(t, err)
+	assert.False(t, runner.PushUnavailable(err), "a retryable failure is not final")
+	assert.False(t, runner.PushUnavailable(errors.New("plain")))
 }

@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -35,11 +36,13 @@ type JobAPI interface {
 	CheckIn(ctx context.Context, token, jobID, sessionID string) (bool, error)
 	// AppendJobEvents sends a batch of the harness's output lines, already redacted.
 	AppendJobEvents(ctx context.Context, token, jobID string, lines []EventLine) error
+	// GetPushToken returns a short-lived GitHub token for the job's repo.
+	GetPushToken(ctx context.Context, token, jobID string) (string, error)
 	CompleteJob(
 		ctx context.Context,
 		token, jobID string,
 		succeeded bool,
-		outcome, sessionID string,
+		outcome, sessionID, prURL string,
 	) error
 }
 
@@ -66,6 +69,34 @@ type completeJobRequest struct {
 	Succeeded bool   `json:"succeeded"`
 	Outcome   string `json:"outcome"`
 	SessionID string `json:"sessionId"`
+	PRURL     string `json:"prUrl"`
+}
+
+type pushTokenRequest struct {
+	JobID string `json:"jobId"`
+}
+
+type pushTokenResponse struct {
+	Token string `json:"token"`
+}
+
+// PushUnavailable reports that the server can't give a push token for good: no
+// GitHub App is set up, or it isn't installed on the repo. The work then stays
+// on the Mac.
+func PushUnavailable(err error) bool {
+	var e *Error
+	return errors.As(err, &e) && e.Code == "failed_precondition"
+}
+
+// GetPushToken implements JobAPI.
+func (c *Client) GetPushToken(
+	ctx context.Context,
+	token, jobID string,
+) (string, error) {
+	var resp pushTokenResponse
+	err := c.call(ctx, "GetPushToken", token, pairTimeout,
+		pushTokenRequest{JobID: jobID}, &resp)
+	return resp.Token, err
 }
 
 // ClaimJob implements JobAPI.
@@ -104,9 +135,10 @@ func (c *Client) CompleteJob(
 	ctx context.Context,
 	token, jobID string,
 	succeeded bool,
-	outcome, sessionID string,
+	outcome, sessionID, prURL string,
 ) error {
 	return c.call(ctx, "CompleteJob", token, pairTimeout, completeJobRequest{
 		JobID: jobID, Succeeded: succeeded, Outcome: outcome, SessionID: sessionID,
+		PRURL: prURL,
 	}, &struct{}{})
 }

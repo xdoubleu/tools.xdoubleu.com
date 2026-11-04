@@ -64,6 +64,12 @@ type fakeAPI struct {
 	events    []runner.EventLine
 	appendErr error
 	batches   int
+	// pushToken and pushErr answer GetPushToken; tokenAsks counts the calls.
+	pushToken string
+	pushErr   error
+	tokenAsks int
+	// pushHook, when set, answers GetPushToken instead.
+	pushHook func() (string, error)
 }
 
 type completion struct {
@@ -71,6 +77,7 @@ type completion struct {
 	succeeded bool
 	outcome   string
 	session   string
+	prURL     string
 }
 
 func newFakeAPI(jobs ...*runner.ClaimedJob) *fakeAPI {
@@ -78,6 +85,7 @@ func newFakeAPI(jobs ...*runner.ClaimedJob) *fakeAPI {
 		mu: sync.Mutex{}, jobs: jobs, claimErr: nil, stop: false, checkIns: nil,
 		completed: nil, completes: make(chan struct{}, 10),
 		events: nil, appendErr: nil, batches: 0,
+		pushToken: "", pushErr: nil, tokenAsks: 0, pushHook: nil,
 	}
 }
 
@@ -135,12 +143,22 @@ func (f *fakeAPI) logged() []string {
 	return lines
 }
 
+func (f *fakeAPI) GetPushToken(context.Context, string, string) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.tokenAsks++
+	if f.pushHook != nil {
+		return f.pushHook()
+	}
+	return f.pushToken, f.pushErr
+}
+
 func (f *fakeAPI) CompleteJob(
-	_ context.Context, _, id string, ok bool, outcome, session string,
+	_ context.Context, _, id string, ok bool, outcome, session, prURL string,
 ) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.completed = append(f.completed, completion{id, ok, outcome, session})
+	f.completed = append(f.completed, completion{id, ok, outcome, session, prURL})
 	f.completes <- struct{}{}
 	return nil
 }
@@ -231,8 +249,10 @@ func newEnv(
 			},
 			Git: &runner.Git{
 				Dir: dir, RemoteURL: func(string, string) string { return remote }, Run: nil,
+				RunWithEnv: nil,
 			},
 			Sandbox: sb, Harness: runner.ClaudeCode{}, Activity: nil, DataDir: dir, Secrets: nil,
+			GitHub: nil, ServerURL: "", PublishRetry: 0,
 			CheckInEvery: 10 * time.Millisecond, Minute: time.Second, EventsEvery: 0,
 			Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		},
