@@ -93,6 +93,12 @@ type Task struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	CommentCount int
+	// PRURL, PRState, PRCI and PRReview are the pull request of the task's newest
+	// job that opened one, as last read from GitHub; empty when there is none.
+	PRURL    string
+	PRState  string
+	PRCI     string
+	PRReview string
 }
 
 type Comment struct {

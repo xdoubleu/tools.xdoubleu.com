@@ -39,6 +39,12 @@ message Task {
   string updated_at = 9;
   int32 comment_count = 10;
   string repo_id = 11;
+  // The pull request of the task's newest job that opened one, as last read from
+  // GitHub; all empty when no job did. Same values as Job.pr_*.
+  string pr_url = 12;
+  string pr_state = 13;
+  string pr_ci = 14;
+  string pr_review = 15;
 }
 
 message Comment {

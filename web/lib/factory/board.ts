@@ -160,6 +160,9 @@ export function jobActive(job: Job | undefined): boolean {
   return job?.status === JobStatus.QUEUED || job?.status === JobStatus.RUNNING
 }
 
+/** The pull request status a Job or a Task carries. */
+type PullRequestFields = Pick<Job, 'prState' | 'prCi' | 'prReview'>
+
 const PR_STATES = new Map([
   ['open', 'open'],
   ['merged', 'merged'],
@@ -176,7 +179,7 @@ const PR_REVIEW = new Map([
 ])
 
 /** The job's pull request as a short line, "" while it has none or no status yet. */
-export function prStatusLine(job: Job | undefined): string {
+export function prStatusLine(job: PullRequestFields | undefined): string {
   if (!job) return ''
   const state = PR_STATES.get(job.prState)
   if (!state) return ''
@@ -196,6 +199,30 @@ export const FIX_CI_REPLY =
   'CI is red on the pull request. Find out why the checks fail, fix it, and push.'
 
 /** Whether the job's pull request is open with failing checks, so a Reply can fix it. */
-export function canFixCi(job: Job | undefined): boolean {
+export function canFixCi(job: PullRequestFields | undefined): boolean {
   return job?.prState === 'open' && job.prCi === 'failing'
+}
+
+/** What a board card says about the task's pull request, most pressing first. */
+export function prBadge(
+  task: PullRequestFields
+): { label: string; variant: 'danger' | 'warn' | 'success' | 'secondary' } | undefined {
+  switch (task.prState) {
+    case 'merged':
+      return { label: 'PR merged', variant: 'secondary' }
+    case 'closed':
+      return { label: 'PR closed', variant: 'secondary' }
+    case 'open':
+      break
+    default:
+      return undefined
+  }
+  if (task.prCi === 'failing') return { label: 'CI failing', variant: 'danger' }
+  if (task.prReview === 'changes_requested') {
+    return { label: 'Changes requested', variant: 'warn' }
+  }
+  if (task.prCi === 'pending') return { label: 'CI running', variant: 'warn' }
+  if (task.prReview === 'approved') return { label: 'Approved', variant: 'success' }
+  if (task.prCi === 'passing') return { label: 'CI passing', variant: 'success' }
+  return { label: 'PR open', variant: 'secondary' }
 }

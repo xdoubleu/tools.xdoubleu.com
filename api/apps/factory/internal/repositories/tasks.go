@@ -9,6 +9,9 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
+// prFields is how many values prColumn holds.
+const prFields = 4
+
 type TasksRepository struct {
 	db postgres.DB
 }
@@ -17,23 +20,35 @@ type rowScanner interface {
 	Scan(dest ...any) error
 }
 
+// prColumn is the pull request of the task's newest job that opened one, as
+// {url, state, ci, review}; null when no job did.
+const prColumn = `(SELECT ARRAY[j.pr_url, j.pr_state, j.pr_ci, j.pr_review]
+		FROM factory.jobs j WHERE j.task_id = t.id AND j.pr_url <> ''
+		ORDER BY j.created_at DESC, j.id LIMIT 1)`
+
 // listColumns leaves out body: list rows never carry the wide column.
 const listColumns = `id, repo_id, title, '', status, priority, labels, created_by,
 	created_at, updated_at,
-	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id)`
+	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id),
+	` + prColumn
 
 const getColumns = `id, repo_id, title, body, status, priority, labels, created_by,
 	created_at, updated_at,
-	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id)`
+	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id),
+	` + prColumn
 
 func scanTask(row rowScanner) (*models.Task, error) {
 	var t models.Task
+	var pr []string
 	err := row.Scan(
 		&t.ID, &t.RepoID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Labels,
-		&t.CreatedBy, &t.CreatedAt, &t.UpdatedAt, &t.CommentCount,
+		&t.CreatedBy, &t.CreatedAt, &t.UpdatedAt, &t.CommentCount, &pr,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	if len(pr) == prFields {
+		t.PRURL, t.PRState, t.PRCI, t.PRReview = pr[0], pr[1], pr[2], pr[3]
 	}
 	return &t, nil
 }

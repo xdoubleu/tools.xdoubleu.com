@@ -31,6 +31,7 @@ import {
   FIX_CI_REPLY,
   canFixCi,
   jobStatusLabel,
+  prBadge,
   prStatusLine,
   JOB_POLL_MS,
   runnerUpdate,
@@ -228,5 +229,33 @@ describe('board', () => {
     expect(pr('merged', 'failing')).toBe(false)
     expect(pr('', 'failing')).toBe(false)
     expect(FIX_CI_REPLY).toContain('CI is red')
+  })
+
+  it('picks the most pressing thing to say about a pull request', () => {
+    const badge = (prState: string, prCi = '', prReview = '') =>
+      prBadge(create(JobSchema, { prState, prCi, prReview }))
+    expect(badge('')).toBeUndefined()
+    expect(badge('weird', 'failing')).toBeUndefined()
+    expect(badge('merged', 'failing')).toEqual({ label: 'PR merged', variant: 'secondary' })
+    expect(badge('closed')).toEqual({ label: 'PR closed', variant: 'secondary' })
+    expect(badge('open', 'failing', 'changes_requested')).toEqual({
+      label: 'CI failing',
+      variant: 'danger'
+    })
+    expect(badge('open', 'pending', 'changes_requested')).toEqual({
+      label: 'Changes requested',
+      variant: 'warn'
+    })
+    expect(badge('open', 'pending', 'approved')).toEqual({
+      label: 'CI running',
+      variant: 'warn'
+    })
+    expect(badge('open', 'passing', 'approved')).toEqual({
+      label: 'Approved',
+      variant: 'success'
+    })
+    expect(badge('open', 'passing')).toEqual({ label: 'CI passing', variant: 'success' })
+    expect(badge('open', '', 'approved')).toEqual({ label: 'Approved', variant: 'success' })
+    expect(badge('open')).toEqual({ label: 'PR open', variant: 'secondary' })
   })
 })

@@ -33,7 +33,8 @@ func testTask(id uuid.UUID, title, body string) *models.Task {
 	return &models.Task{
 		ID: id, RepoID: uuid.Nil, Title: title, Body: body, Status: "",
 		Priority: "", Labels: nil, CreatedBy: "", CreatedAt: time.Time{},
-		UpdatedAt: time.Time{}, CommentCount: 0,
+		UpdatedAt: time.Time{}, CommentCount: 0, PRURL: "", PRState: "", PRCI: "",
+		PRReview: "",
 	}
 }
 
