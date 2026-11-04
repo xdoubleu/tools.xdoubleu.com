@@ -6,6 +6,7 @@ import {
   actorLabel,
   jobActive,
   jobStatusLabel,
+  prStatusLine,
   priorityLabel,
   statusLabel
 } from '@/lib/factory/board'
@@ -103,6 +104,16 @@ function RunSection({ taskId, latest }: { taskId: string; latest: Job | undefine
       {latest && (
         <p className="break-words text-xs text-muted" data-testid="job-status">
           Job {jobStatusLabel(latest.status).toLowerCase()} · {latest.branch}
+        </p>
+      )}
+      {latest?.prUrl && (
+        <p className="flex flex-wrap items-center break-words text-xs" data-testid="job-pr">
+          <Button asChild variant="link" className="h-auto p-0 text-xs">
+            <a href={latest.prUrl} target="_blank" rel="noopener noreferrer">
+              Pull request
+            </a>
+          </Button>
+          {prStatusLine(latest) && <span className="text-muted"> · {prStatusLine(latest)}</span>}
         </p>
       )}
       {latest && <JobLog jobId={latest.id} active={active} />}
