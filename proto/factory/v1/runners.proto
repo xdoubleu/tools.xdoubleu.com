@@ -86,6 +86,8 @@ message ClaimedJob {
   // and ends with the job. Empty when the server makes none.
   string mcp_client_id = 11;
   string mcp_client_secret = 12;
+  // Set for a Reply's job: the harness session to resume on the existing branch.
+  string resume_session_id = 13;
 }
 
 message ClaimJobRequest {}

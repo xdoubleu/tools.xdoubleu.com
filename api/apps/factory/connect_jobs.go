@@ -67,6 +67,25 @@ func (h *taskConnectHandler) RunTask(
 	return &factoryv1.RunTaskResponse{Job: protoJob(job)}, nil
 }
 
+func (h *taskConnectHandler) ReplyTask(
+	ctx context.Context,
+	req *factoryv1.ReplyTaskRequest,
+) (*factoryv1.ReplyTaskResponse, error) {
+	actor, err := actorFrom(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := parseID(req.GetTaskId())
+	if err != nil {
+		return nil, err
+	}
+	job, err := h.app.services.Jobs.Reply(ctx, actor, id, req.GetText())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &factoryv1.ReplyTaskResponse{Job: protoJob(job)}, nil
+}
+
 func (h *taskConnectHandler) StopJob(
 	ctx context.Context,
 	req *factoryv1.StopJobRequest,
@@ -130,6 +149,7 @@ func claimedJobToProto(c *services.ClaimedJob) *factoryv1.ClaimedJob {
 		TimeLimitMinutes: timeLimit,
 		McpClientId:      c.MCPClientID,
 		McpClientSecret:  c.MCPClientSecret,
+		ResumeSessionId:  c.ResumeSessionID,
 	}
 }
 

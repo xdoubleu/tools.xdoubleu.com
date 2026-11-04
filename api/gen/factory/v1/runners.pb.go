@@ -607,6 +607,8 @@ type ClaimedJob struct {
 	// and ends with the job. Empty when the server makes none.
 	McpClientId     string `protobuf:"bytes,11,opt,name=mcp_client_id,json=mcpClientId,proto3" json:"mcp_client_id,omitempty"`
 	McpClientSecret string `protobuf:"bytes,12,opt,name=mcp_client_secret,json=mcpClientSecret,proto3" json:"mcp_client_secret,omitempty"`
+	// Set for a Reply's job: the harness session to resume on the existing branch.
+	ResumeSessionId string `protobuf:"bytes,13,opt,name=resume_session_id,json=resumeSessionId,proto3" json:"resume_session_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -721,6 +723,13 @@ func (x *ClaimedJob) GetMcpClientId() string {
 func (x *ClaimedJob) GetMcpClientSecret() string {
 	if x != nil {
 		return x.McpClientSecret
+	}
+	return ""
+}
+
+func (x *ClaimedJob) GetResumeSessionId() string {
+	if x != nil {
+		return x.ResumeSessionId
 	}
 	return ""
 }
@@ -1303,7 +1312,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"runnerName\",\n" +
 	"\x10HeartbeatRequest\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\"\x13\n" +
-	"\x11HeartbeatResponse\"\x9c\x03\n" +
+	"\x11HeartbeatResponse\"\xc8\x03\n" +
 	"\n" +
 	"ClaimedJob\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
@@ -1319,7 +1328,8 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\x12time_limit_minutes\x18\n" +
 	" \x01(\x05R\x10timeLimitMinutes\x12\"\n" +
 	"\rmcp_client_id\x18\v \x01(\tR\vmcpClientId\x12*\n" +
-	"\x11mcp_client_secret\x18\f \x01(\tR\x0fmcpClientSecret\"\x11\n" +
+	"\x11mcp_client_secret\x18\f \x01(\tR\x0fmcpClientSecret\x12*\n" +
+	"\x11resume_session_id\x18\r \x01(\tR\x0fresumeSessionId\"\x11\n" +
 	"\x0fClaimJobRequest\"<\n" +
 	"\x10ClaimJobResponse\x12(\n" +
 	"\x03job\x18\x01 \x01(\v2\x16.factory.v1.ClaimedJobR\x03job\"F\n" +

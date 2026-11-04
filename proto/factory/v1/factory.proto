@@ -172,6 +172,15 @@ message RunTaskResponse {
   Job job = 1;
 }
 
+message ReplyTaskRequest {
+  string task_id = 1;
+  // The follow-up prompt for the task's last job's session; required.
+  string text = 2;
+}
+message ReplyTaskResponse {
+  Job job = 1;
+}
+
 // Stops the task's queued or running job; the runner sees it on its next
 // check-in. Human admin, browser session only, like Run.
 message StopJobRequest {
@@ -189,6 +198,7 @@ service TaskService {
   rpc MoveTask(MoveTaskRequest) returns (MoveTaskResponse);
   rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
   rpc RunTask(RunTaskRequest) returns (RunTaskResponse);
+  rpc ReplyTask(ReplyTaskRequest) returns (ReplyTaskResponse);
   rpc StopJob(StopJobRequest) returns (StopJobResponse);
   rpc ListJobEvents(ListJobEventsRequest) returns (ListJobEventsResponse);
 }

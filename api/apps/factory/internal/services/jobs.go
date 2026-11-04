@@ -47,6 +47,8 @@ type ClaimedJob struct {
 	// MCPClientID and MCPClientSecret are the job's own agent account, when it has one.
 	MCPClientID     string
 	MCPClientSecret string
+	// ResumeSessionID is the harness session to continue, for a Reply's job.
+	ResumeSessionID string
 }
 
 func conflict(msg string) error {
@@ -140,7 +142,67 @@ func (s *JobService) Run(
 	job, err := s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: taskID, RepoID: repo.ID, Harness: repo.DefaultHarness,
 		Prompt: promptFor(repo, task, text), Status: "", Branch: branchFor(task),
-		SessionID: "", Outcome: "", PRURL: "", RunnerID: nil, PRState: "", PRCI: "",
+		SessionID: "", Outcome: "", ParentJobID: nil, PRURL: "", RunnerID: nil,
+		PRState: "", PRCI: "", PRReview: "", CreatedBy: actor.String(),
+		CreatedAt: time.Time{},
+		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if _, err = s.tasks.Move(ctx, taskID, models.StatusInProgress); err != nil {
+		return nil, err
+	}
+	return job, nil
+}
+
+// Reply queues a job that resumes the harness session of the task's newest job,
+// on the same branch, with the reply as its prompt: "CI is red, fix it", or an
+// answer to the agent's question. Only a human admin in a browser may reply, as
+// for Run. The reply is typed there, so it needs no check of the task's body.
+func (s *JobService) Reply(
+	ctx context.Context,
+	actor models.Actor,
+	taskID uuid.UUID,
+	text string,
+) (*models.Job, error) {
+	if !actor.CanMoveToReady() {
+		return nil, forbidden("only a human admin in a browser session can reply")
+	}
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return nil, badRequest("a reply needs text")
+	}
+	if utf8.RuneCountInString(text) > maxRunText {
+		return nil, badRequest("reply is too long")
+	}
+	task, err := s.tasks.Get(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	if task.Status == models.StatusDone {
+		return nil, conflict("this task is done; its session is gone")
+	}
+	existing, err := s.jobs.ByTask(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	if len(existing) == 0 {
+		return nil, conflict("this task has no job to reply to")
+	}
+	for i := range existing {
+		if !existing[i].Status.Finished() {
+			return nil, conflict("this task already has a job queued or running")
+		}
+	}
+	last := existing[0]
+	if last.SessionID == "" {
+		return nil, conflict("the last job left no session to resume")
+	}
+	job, err := s.jobs.Create(ctx, models.Job{
+		ID: uuid.Nil, TaskID: taskID, RepoID: last.RepoID, Harness: last.Harness,
+		Prompt: text, Status: "", Branch: last.Branch, SessionID: "", Outcome: "",
+		ParentJobID: &last.ID, PRURL: "", RunnerID: nil, PRState: "", PRCI: "",
 		PRReview: "", CreatedBy: actor.String(), CreatedAt: time.Time{},
 		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
 	})
@@ -226,7 +288,16 @@ func (s *JobService) Claim(
 	if err != nil {
 		return nil, err
 	}
-	claimed := &ClaimedJob{Job: *job, Repo: *repo, MCPClientID: "", MCPClientSecret: ""}
+	resume := ""
+	if job.ParentJobID != nil {
+		parent, parentErr := s.jobs.Get(ctx, *job.ParentJobID)
+		if parentErr != nil {
+			return nil, parentErr
+		}
+		resume = parent.SessionID
+	}
+	claimed := &ClaimedJob{Job: *job, Repo: *repo, MCPClientID: "", MCPClientSecret: "",
+		ResumeSessionID: resume}
 	if s.accounts != nil {
 		if err = s.issueAccount(ctx, claimed, runnerID); err != nil {
 			return nil, err
