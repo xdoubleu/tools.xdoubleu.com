@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -25,6 +26,11 @@ const (
 	maxTitleRunes  = 200
 	maxBodyRunes   = 60000
 	maxGitHubBody  = 1 << 20
+	// publishTries is how often a transient failure is tried before giving up.
+	publishTries = 3
+	// PublishRetry is the default pause between those tries.
+	PublishRetry = 2 * time.Second
+	zeroWidth    = "\u200b"
 )
 
 // PullRequest is what the runner opens for a job's branch.
@@ -154,7 +160,26 @@ func (c *GitHubClient) existing(
 	return found[0].HTMLURL, nil
 }
 
-var titlePrefix = regexp.MustCompile(`(?i)^\s*(?:#+\s*)?(?:pr\s+title|title)\s*:\s*`)
+var (
+	titlePrefix = regexp.MustCompile(`(?i)^\s*(?:#+\s*)?(?:pr\s+title|title)\s*:\s*`)
+	// titleLabel is an explicit "PR title:" line, which wins wherever it is.
+	titleLabel = regexp.MustCompile(`(?i)^\s*(?:#+\s*)?pr\s+title\s*:\s*\S`)
+	// mention is an @name GitHub would notify.
+	mention = regexp.MustCompile(`(^|[^\w` + "`" + `@/])@([A-Za-z0-9])`)
+	// closing is a keyword GitHub reads as "close this issue on merge", followed by
+	// an issue or pull request reference or address.
+	closing = regexp.MustCompile(
+		`(?i)\b(clos(?:e|es|ed)|fix(?:es|ed)?|resolv(?:e|es|ed))(\s*:?\s+)` +
+			`((?:[\w.-]+/[\w.-]+)?#\d+|https?://github\.com/\S+)`)
+)
+
+// neutralize defuses what GitHub acts on in text an agent wrote: a mention would
+// notify someone, and a closing keyword would close an issue on merge. A
+// zero-width space breaks both and shows as nothing.
+func neutralize(text string) string {
+	text = mention.ReplaceAllString(text, "${1}@"+zeroWidth+"${2}")
+	return closing.ReplaceAllString(text, "${1}${2}"+zeroWidth+"${3}")
+}
 
 // pullRequestText is the title and body of a job's pull request: the title is the
 // first line of what the agent wrote, without a "PR title:" label or heading
@@ -167,9 +192,12 @@ func pullRequestText(
 ) (string, string) {
 	title := ""
 	for line := range strings.SplitSeq(outcome, "\n") {
-		if strings.TrimSpace(line) != "" {
+		if titleLabel.MatchString(line) {
 			title = line
 			break
+		}
+		if title == "" && strings.TrimSpace(line) != "" {
+			title = line
 		}
 	}
 	title = titlePrefix.ReplaceAllString(title, "")
@@ -182,7 +210,7 @@ func pullRequestText(
 	if title == "" {
 		title = "Factory job on " + job.Branch
 	}
-	body := strings.TrimSpace(outcome)
+	body := neutralize(strings.TrimSpace(outcome))
 	if utf8.RuneCountInString(body) > maxBodyRunes {
 		body = string([]rune(body)[:maxBodyRunes]) + "…"
 	}
@@ -195,12 +223,16 @@ func pullRequestText(
 }
 
 // pushEnv puts the token where git reads config without it appearing in argv,
-// which any process on the Mac can list: as an HTTP header for this push only.
+// which any process on the Mac can list: as an HTTP header for this push only. The
+// Mac's own git config is switched off for the push: a developer's
+// `url.<ssh>.insteadOf` would send it over SSH with a personal key, not the token.
 func pushEnv(token string) []string {
 	header := "AUTHORIZATION: basic " +
 		base64.StdEncoding.EncodeToString([]byte("x-access-token:"+token))
 	return []string{
 		"GIT_TERMINAL_PROMPT=0",
+		"GIT_CONFIG_GLOBAL=/dev/null",
+		"GIT_CONFIG_SYSTEM=/dev/null",
 		"GIT_CONFIG_COUNT=1",
 		"GIT_CONFIG_KEY_0=http.extraHeader",
 		"GIT_CONFIG_VALUE_0=" + header,
@@ -253,4 +285,60 @@ func (g *Git) gitEnv(
 	cmd.Stdout, cmd.Stderr = &out, &out
 	err := cmd.Run()
 	return out.Bytes(), err //nolint:wrapcheck // the caller names it
+}
+
+// pushToken asks the server for the job's push token, trying again when the
+// failure may pass (the server reaching GitHub). A final answer is not retried.
+func (r *JobRunner) pushToken(ctx context.Context, jobID string) (string, error) {
+	var token string
+	err := r.retry(ctx, func() error {
+		var err error
+		token, err = r.API.GetPushToken(ctx, r.Token, jobID)
+		if PushUnavailable(err) {
+			return &finalError{err}
+		}
+		return err
+	})
+	return token, err
+}
+
+// openPullRequest is GitHub's call, tried again a few times: the branch is
+// already pushed by now, so a hiccup shouldn't waste it.
+func (r *JobRunner) openPullRequest(
+	ctx context.Context,
+	token string,
+	pr PullRequest,
+) (string, error) {
+	var url string
+	err := r.retry(ctx, func() error {
+		var err error
+		url, err = r.GitHub.OpenPullRequest(ctx, token, pr)
+		return err
+	})
+	return url, err
+}
+
+// finalError marks a failure that trying again can't change.
+type finalError struct{ err error }
+
+func (e *finalError) Error() string { return e.err.Error() }
+func (e *finalError) Unwrap() error { return e.err }
+
+func (r *JobRunner) retry(ctx context.Context, fn func() error) error {
+	var err error
+	for try := range publishTries {
+		if err = fn(); err == nil {
+			return nil
+		}
+		var final *finalError
+		if errors.As(err, &final) || try == publishTries-1 {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(cmp.Or(r.PublishRetry, PublishRetry)):
+		}
+	}
+	return err
 }

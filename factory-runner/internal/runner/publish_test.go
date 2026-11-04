@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,6 +30,8 @@ type fakeGitHub struct {
 	tokens []string
 	url    string
 	err    error
+	// failFirst makes the first calls fail with err, then succeed.
+	failFirst int
 }
 
 func (f *fakeGitHub) OpenPullRequest(
@@ -38,6 +41,9 @@ func (f *fakeGitHub) OpenPullRequest(
 	defer f.mu.Unlock()
 	f.opened = append(f.opened, pr)
 	f.tokens = append(f.tokens, token)
+	if f.failFirst > 0 && len(f.opened) > f.failFirst {
+		return f.url, nil
+	}
 	return f.url, f.err
 }
 
@@ -63,13 +69,14 @@ func newPublishing(
 	p := &publishing{
 		jobEnv: env, logs: &bytes.Buffer{}, mu: sync.Mutex{}, args: nil, envs: nil,
 		gh: &fakeGitHub{
-			mu: sync.Mutex{}, opened: nil, tokens: nil, err: nil,
+			mu: sync.Mutex{}, opened: nil, tokens: nil, err: nil, failFirst: 0,
 			url: "https://github.com/xdoubleu/tools.xdoubleu.com/pull/7",
 		},
 	}
 	env.api.pushToken = pushToken
 	env.runner.GitHub = p.gh
 	env.runner.ServerURL = "https://tools.example.com/"
+	env.runner.PublishRetry = time.Millisecond
 	env.runner.Log = slog.New(slog.NewTextHandler(p.logs, nil))
 	env.runner.Git.RunWithEnv = func(
 		ctx context.Context, dir string, extra []string, args ...string,
@@ -133,6 +140,9 @@ func TestThePushTokenIsInTheEnvironmentAndNeverInArgv(t *testing.T) {
 		assert.NotContains(t, a, pushToken)
 	}
 	assert.Equal(t, "push", p.args[0][4])
+	assert.Contains(t, joined(p.envs[0]), "GIT_CONFIG_GLOBAL=/dev/null",
+		"the Mac's own git config is off for the push")
+	assert.Contains(t, joined(p.envs[0]), "GIT_CONFIG_SYSTEM=/dev/null")
 	assert.NotContains(t, p.args[0], "--force")
 	assert.NotContains(t, p.args[0], "-f")
 	assert.Contains(t, p.args[0], "--no-verify")
@@ -190,7 +200,7 @@ func TestAServerThatCannotPushLeavesTheWorkOnTheMac(t *testing.T) {
 		got := p.api.done()[0]
 		assert.True(t, got.succeeded, name+": the agent's work is fine")
 		assert.Empty(t, got.prURL, name)
-		assert.Contains(t, got.outcome, "Not pushed: "+tc.want, name)
+		assert.Contains(t, got.outcome, "Not published: "+tc.want, name)
 		assert.Contains(t, got.outcome, "Did it.", name)
 		assert.Empty(t, p.remoteBranch(t), name)
 		assert.Empty(t, p.gh.opened, name)
@@ -439,7 +449,7 @@ func TestAJobIsPushedByTheRealGitToo(t *testing.T) {
 	// No test hook: the push runs git itself, with the token in its environment.
 	env := newEnv(t, writes("Real push", 0), newJob())
 	gh := &fakeGitHub{
-		mu: sync.Mutex{}, opened: nil, tokens: nil, err: nil,
+		mu: sync.Mutex{}, opened: nil, tokens: nil, err: nil, failFirst: 0,
 		url: "https://github.com/xdoubleu/tools.xdoubleu.com/pull/8",
 	}
 	env.api.pushToken = pushToken
@@ -487,4 +497,150 @@ func TestGitWithEnvironmentUsesTheHooksInOrderOfPreference(t *testing.T) {
 		"var", "GIT_AUTHOR_IDENT")
 	require.NoError(t, err)
 	assert.Contains(t, string(out), "zed", "the environment reaches git")
+}
+
+func joined(env []string) string { return strings.Join(env, "\n") }
+
+func TestATransientTokenFailureIsRetriedButAFinalOneIsNot(t *testing.T) {
+	// Fails twice, then the third try works.
+	p := newPublishing(t, writes("Did it.", 0))
+	calls := 0
+	p.api.pushHook = func() (string, error) {
+		calls++
+		if calls < 3 {
+			return "", &runner.Error{Code: "unavailable", Message: "retry"}
+		}
+		return pushToken, nil
+	}
+	_, err := p.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 3, calls)
+	assert.NotEmpty(t, p.api.done()[0].prURL)
+
+	// Always unavailable: three tries, then the work stays on the Mac.
+	p = newPublishing(t, writes("Did it.", 0))
+	p.api.pushErr, p.api.pushToken = &runner.Error{Code: "unavailable", Message: "x"}, ""
+	_, err = p.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 3, p.api.tokenAsks)
+	assert.Contains(t, p.api.done()[0].outcome, "could not get a push token")
+
+	// Not set up is final: asked once.
+	p = newPublishing(t, writes("Did it.", 0))
+	p.api.pushErr = &runner.Error{Code: "failed_precondition", Message: "x"}
+	_, err = p.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 1, p.api.tokenAsks)
+}
+
+func TestATransientPullRequestFailureIsRetriedAfterThePush(t *testing.T) {
+	p := newPublishing(t, writes("Did it.", 0))
+	p.gh.err, p.gh.failFirst = errors.New("status 502"), 2
+
+	_, err := p.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	assert.Len(t, p.gh.opened, 3)
+	assert.NotEmpty(t, p.api.done()[0].prURL)
+	assert.Len(t, p.args, 1, "the branch is pushed once, not once per try")
+}
+
+func TestAStoppedRunnerDoesNotWaitOutItsRetries(t *testing.T) {
+	p := newPublishing(t, writes("Did it.", 0))
+	p.runner.PublishRetry = time.Hour
+	p.api.pushErr = errors.New("down")
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(50*time.Millisecond, cancel)
+
+	done := make(chan struct{})
+	go func() {
+		_, _ = p.runner.Next(ctx)
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the runner kept waiting between tries after it was stopped")
+	}
+}
+
+func TestAPullRequestTitleLabelWinsWhereverItIs(t *testing.T) {
+	job := &runner.ClaimedJob{
+		ID: "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
+		DefaultBranch: "", Harness: "", Prompt: "", SetupCommands: "",
+		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
+	}
+	title, _ := runner.PullRequestTextForTest(
+		"Summary of the work\n\nI did a lot.\n\nPR title: Fix the redirect\nmore", job, "")
+	assert.Equal(t, "Fix the redirect", title)
+
+	// A bare "Title:" is not a label; the first line still is the title.
+	title, _ = runner.PullRequestTextForTest("First line\nTitle: other", job, "")
+	assert.Equal(t, "First line", title)
+}
+
+func TestMentionsAndClosingKeywordsInAgentTextAreDefused(t *testing.T) {
+	z := "\u200b"
+	for name, tc := range map[string]struct{ in, out string }{
+		"mention":          {"ping @someone now", "ping @" + z + "someone now"},
+		"mention at start": {"@someone hi", "@" + z + "someone hi"},
+		"team":             {"cc @org/team", "cc @" + z + "org/team"},
+		"email":            {"mail me@example.com", "mail me@example.com"},
+		"in code":          {"`@decorator`", "`@decorator`"},
+		"closes":           {"Closes #12", "Closes " + z + "#12"},
+		"fixes lower": {
+			"fixes #3 and Resolved: other/repo#4",
+			"fixes " + z + "#3 and Resolved: " + z + "other/repo#4",
+		},
+		"closing url": {
+			"Fixes https://github.com/o/r/issues/9",
+			"Fixes " + z + "https://github.com/o/r/issues/9",
+		},
+		"plain reference": {"see #12", "see #12"},
+		"not a keyword":   {"prefixes #12", "prefixes #12"},
+		"nothing":         {"plain text", "plain text"},
+	} {
+		assert.Equal(t, tc.out, runner.NeutralizeForTest(tc.in), name)
+	}
+
+	// And it reaches the pull request's body.
+	job := &runner.ClaimedJob{
+		ID: "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
+		DefaultBranch: "", Harness: "", Prompt: "", SetupCommands: "",
+		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
+	}
+	_, body := runner.PullRequestTextForTest("Title\n\nFixes #1, cc @bob", job, "")
+	assert.NotContains(t, body, "Fixes #1")
+	assert.NotContains(t, body, "@bob")
+}
+
+func TestAHostileGlobalGitConfigDoesNotRedirectThePush(t *testing.T) {
+	// The Mac's ~/.gitconfig rewrites the remote to somewhere that does not exist,
+	// as `url.<ssh>.insteadOf` would. It appears only after the agent has run, so
+	// the clone is unaffected and the push alone must ignore it.
+	home := t.TempDir()
+	var remote string
+	sandbox := func(ctx context.Context, spec runner.SandboxSpec) (int, error) {
+		code, err := writes("Real push", 0)(ctx, spec)
+		rewrite := "[url \"/nonexistent-elsewhere/\"]\n\tinsteadOf = " + remote + "\n"
+		require.NoError(t,
+			os.WriteFile(filepath.Join(home, ".gitconfig"), []byte(rewrite), 0o600))
+		t.Setenv("HOME", home)
+		return code, err
+	}
+	env := newEnv(t, sandbox, newJob())
+	remote = env.remote
+	env.api.pushToken = pushToken
+	env.runner.GitHub = &fakeGitHub{
+		mu: sync.Mutex{}, opened: nil, tokens: nil, err: nil, failFirst: 0,
+		url: "https://github.com/xdoubleu/tools.xdoubleu.com/pull/8",
+	}
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	assert.NotEmpty(t, env.api.done()[0].prURL, env.api.done()[0].outcome)
+	out, err := exec.Command("git", "-C", env.remote, "rev-parse", "--verify", "-q",
+		"refs/heads/"+branch).CombinedOutput()
+	require.NoError(t, err, string(out))
 }

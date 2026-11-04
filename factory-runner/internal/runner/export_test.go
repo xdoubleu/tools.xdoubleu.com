@@ -71,6 +71,9 @@ func PullRequestTextForTest(
 // PushEnvForTest is the environment a push carries its token in.
 func PushEnvForTest(token string) []string { return pushEnv(token) }
 
+// NeutralizeForTest defuses mentions and closing keywords in agent text.
+func NeutralizeForTest(text string) string { return neutralize(text) }
+
 // ScrubForTest removes a token from text.
 func ScrubForTest(text, token string) string { return scrub(text, token) }
 

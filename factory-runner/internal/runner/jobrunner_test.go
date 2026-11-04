@@ -68,6 +68,8 @@ type fakeAPI struct {
 	pushToken string
 	pushErr   error
 	tokenAsks int
+	// pushHook, when set, answers GetPushToken instead.
+	pushHook func() (string, error)
 }
 
 type completion struct {
@@ -83,7 +85,7 @@ func newFakeAPI(jobs ...*runner.ClaimedJob) *fakeAPI {
 		mu: sync.Mutex{}, jobs: jobs, claimErr: nil, stop: false, checkIns: nil,
 		completed: nil, completes: make(chan struct{}, 10),
 		events: nil, appendErr: nil, batches: 0,
-		pushToken: "", pushErr: nil, tokenAsks: 0,
+		pushToken: "", pushErr: nil, tokenAsks: 0, pushHook: nil,
 	}
 }
 
@@ -145,6 +147,9 @@ func (f *fakeAPI) GetPushToken(context.Context, string, string) (string, error) 
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.tokenAsks++
+	if f.pushHook != nil {
+		return f.pushHook()
+	}
 	return f.pushToken, f.pushErr
 }
 
@@ -247,7 +252,7 @@ func newEnv(
 				RunWithEnv: nil,
 			},
 			Sandbox: sb, Harness: runner.ClaudeCode{}, Activity: nil, DataDir: dir, Secrets: nil,
-			GitHub: nil, ServerURL: "",
+			GitHub: nil, ServerURL: "", PublishRetry: 0,
 			CheckInEvery: 10 * time.Millisecond, Minute: time.Second, EventsEvery: 0,
 			Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		},

@@ -46,9 +46,9 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`except the model. ` +
 	`There is no GitHub: do not try to push or open a pull request. Commit your ` +
 	`work locally on the current branch (%s). When you are done, write a short ` +
-	`outcome (what you did, what is left, the PR title and body you would use) ` +
-	`to the file named by $FACTORY_OUTCOME_PATH. Nobody can answer questions ` +
-	`while you run.`
+	`outcome to the file named by $FACTORY_OUTCOME_PATH: its first line is the ` +
+	`pull request title, then what you did and what is left. Nobody can answer ` +
+	`questions while you run.`
 
 // JobRunner claims jobs from the server and runs each one in a sandbox.
 type JobRunner struct {
@@ -70,6 +70,9 @@ type JobRunner struct {
 	// the pull request's footer.
 	GitHub    GitHubAPI
 	ServerURL string
+	// PublishRetry is the pause between tries of the server's token and GitHub's
+	// pull request call; zero means PublishRetry (two seconds).
+	PublishRetry time.Duration
 	// CheckInEvery and Minute are the check-in period and the unit of a repo's
 	// time limit; zero means CheckInEvery and time.Minute. Tests shorten them.
 	CheckInEvery time.Duration
@@ -314,7 +317,7 @@ func (r *JobRunner) publishable(
 	if why != "" {
 		// The agent's work is fine, so the job still succeeded; the task just goes
 		// to Needs you with the branch on the Mac, and the reason ahead of the text.
-		res.outcome = "Not pushed: " + why + "\n\n" + text
+		res.outcome = "Not published: " + why + "\n\n" + text
 		return res
 	}
 	res.prURL = prURL
@@ -332,7 +335,7 @@ func (r *JobRunner) publish(
 	ctx, cancel := context.WithTimeout(ctx, publishTimeout)
 	defer cancel()
 
-	token, err := r.API.GetPushToken(ctx, r.Token, job.ID)
+	token, err := r.pushToken(ctx, job.ID)
 	if PushUnavailable(err) {
 		return "", "pushing is not set up for this repo, so the work stays in the " +
 			"Mac's clone."
@@ -349,7 +352,7 @@ func (r *JobRunner) publish(
 			"on GitHub, which is never overwritten), so the work stays in the Mac's clone."
 	}
 	title, body := pullRequestText(text, job, r.ServerURL)
-	prURL, err := r.GitHub.OpenPullRequest(ctx, token, PullRequest{
+	prURL, err := r.openPullRequest(ctx, token, PullRequest{
 		Owner: job.RepoOwner, Repo: job.RepoName, Head: job.Branch,
 		Base: job.DefaultBranch, Title: title, Body: body,
 	})
