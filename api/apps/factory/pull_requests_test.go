@@ -110,16 +110,39 @@ func TestAPullRequestClosedWithoutMergingSendsItsTaskBackToNeedsYou(t *testing.T
 	assert.Contains(t, got.Comments[1].Body, "closed without merging")
 }
 
-func TestAPullRequestDeletedOnGitHubCountsAsClosed(t *testing.T) {
+func TestAPullRequestGitHubCannotFindIsNotCalledClosed(t *testing.T) {
 	env, gh := githubEnv(t)
-	task := inReview(t, env, "gone", 42)
+	task := inReview(t, env, "unseen", 42)
 	gh.answer(42, ended(""), githubapp.ErrPullRequestGone)
 
-	require.NoError(t, env.poll(t))
+	err := env.poll(t)
+	require.ErrorIs(t, err, githubapp.ErrPullRequestGone)
 
+	// The App may have lost sight of it (a rename, changed access): the task stays
+	// where it is, and the pull request is tracked on.
 	got := env.task(t, task.Id)
-	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Task.Status)
-	assert.Equal(t, "closed", got.Jobs[0].PrState)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW, got.Task.Status)
+	assert.Empty(t, got.Jobs[0].PrState)
+	assert.Len(t, got.Comments, 1)
+}
+
+func TestAFailingPullRequestTakesItsTurnAtTheBackOfTheBatch(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := inReview(t, env, "stuck", 42)
+	gh.answer(42, ended(""), errors.New("status 502"))
+
+	var checked bool
+	require.NoError(t, testDB.QueryRow(context.Background(),
+		`SELECT pr_checked_at IS NOT NULL FROM factory.jobs WHERE task_id = $1`,
+		task.Id).Scan(&checked))
+	require.False(t, checked, "never read")
+
+	require.Error(t, env.poll(t))
+
+	require.NoError(t, testDB.QueryRow(context.Background(),
+		`SELECT pr_checked_at IS NOT NULL FROM factory.jobs WHERE task_id = $1`,
+		task.Id).Scan(&checked))
+	assert.True(t, checked, "tried, so the ones not yet tried go first next time")
 }
 
 func TestATaskAPersonMovedOnIsLeftWhereTheyPutIt(t *testing.T) {

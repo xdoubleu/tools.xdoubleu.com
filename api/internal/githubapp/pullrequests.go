@@ -9,8 +9,14 @@ import (
 	"time"
 )
 
-// refreshBefore is how long before a read token expires it is replaced.
-const refreshBefore = 5 * time.Minute
+const (
+	// refreshBefore is how long before a read token expires it is replaced.
+	refreshBefore = 5 * time.Minute
+	// pageSize and maxPages bound what is read of a long list: 500 is far more than
+	// any pull request here has.
+	pageSize = 100
+	maxPages = 5
+)
 
 // Pull request, CI and review states, as the factory shows them.
 const (
@@ -129,22 +135,32 @@ func (c *Client) checks(
 	if sha == "" {
 		return "", nil
 	}
-	var runs struct {
-		CheckRuns []struct {
-			Status     string `json:"status"`
-			Conclusion string `json:"conclusion"`
-		} `json:"check_runs"`
+	type checkRun struct {
+		Status     string `json:"status"`
+		Conclusion string `json:"conclusion"`
 	}
-	_, err := c.do(ctx, http.MethodGet,
-		base+"/commits/"+sha+"/check-runs?per_page=100", token, nil, &runs)
-	if err != nil {
-		return "", fmt.Errorf("checks: %w", err)
+	var all []checkRun
+	for page := 1; page <= maxPages; page++ {
+		var runs struct {
+			Total     int        `json:"total_count"`
+			CheckRuns []checkRun `json:"check_runs"`
+		}
+		_, err := c.do(ctx, http.MethodGet,
+			base+"/commits/"+sha+"/check-runs?per_page=100&page="+strconv.Itoa(page),
+			token, nil, &runs)
+		if err != nil {
+			return "", fmt.Errorf("checks: %w", err)
+		}
+		all = append(all, runs.CheckRuns...)
+		if len(runs.CheckRuns) == 0 || len(all) >= runs.Total {
+			break
+		}
 	}
-	if len(runs.CheckRuns) == 0 {
+	if len(all) == 0 {
 		return "", nil
 	}
 	pending := false
-	for _, run := range runs.CheckRuns {
+	for _, run := range all {
 		switch {
 		case run.Status != "completed":
 			pending = true
@@ -167,16 +183,26 @@ func (c *Client) reviews(
 	number int,
 	token string,
 ) (string, error) {
-	var all []struct {
+	type review struct {
 		User struct {
 			Login string `json:"login"`
 		} `json:"user"`
 		State string `json:"state"`
 	}
-	_, err := c.do(ctx, http.MethodGet,
-		base+"/pulls/"+strconv.Itoa(number)+"/reviews?per_page=100", token, nil, &all)
-	if err != nil {
-		return "", fmt.Errorf("reviews: %w", err)
+	var all []review
+	for page := 1; page <= maxPages; page++ {
+		var got []review
+		_, err := c.do(ctx, http.MethodGet,
+			base+"/pulls/"+strconv.Itoa(number)+"/reviews?per_page="+
+				strconv.Itoa(pageSize)+"&page="+strconv.Itoa(page),
+			token, nil, &got)
+		if err != nil {
+			return "", fmt.Errorf("reviews: %w", err)
+		}
+		all = append(all, got...)
+		if len(got) < pageSize {
+			break
+		}
 	}
 	// GitHub lists a pull request's reviews oldest first.
 	latest := map[string]string{}

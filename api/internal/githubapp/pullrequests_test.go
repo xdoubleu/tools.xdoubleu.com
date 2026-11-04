@@ -3,6 +3,7 @@ package githubapp_test
 import (
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -23,12 +24,15 @@ type pulls struct {
 	pullStatus int
 	asked      atomic.Int32
 	tokens     []string
+	// checkPages and reviewPages, when set, answer by the page asked for.
+	checkPages  []string
+	reviewPages []string
 }
 
 func newPulls(pull, checks, reviews string) *pulls {
 	return &pulls{
 		pull: pull, checks: checks, reviews: reviews, pullStatus: 0,
-		asked: atomic.Int32{}, tokens: nil,
+		asked: atomic.Int32{}, tokens: nil, checkPages: nil, reviewPages: nil,
 	}
 }
 
@@ -56,13 +60,26 @@ func servePulls(f *fakeGitHub, p *pulls) {
 		func(w http.ResponseWriter, r *http.Request) {
 			record(r)
 			assert.Equal(f.t, "abc123", r.PathValue("sha"))
-			_, _ = io.WriteString(w, p.checks)
+			_, _ = io.WriteString(w, pageOf(r, p.checkPages, p.checks))
 		})
 	f.mux.HandleFunc("GET /repos/{o}/{r}/pulls/{n}/reviews",
 		func(w http.ResponseWriter, r *http.Request) {
 			record(r)
-			_, _ = io.WriteString(w, p.reviews)
+			_, _ = io.WriteString(w, pageOf(r, p.reviewPages, p.reviews))
 		})
+}
+
+// pageOf is the body for the page the request asks for, or fallback if the fake
+// isn't paged.
+func pageOf(r *http.Request, pages []string, fallback string) string {
+	if pages == nil {
+		return fallback
+	}
+	n, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if n < 1 || n > len(pages) {
+		return `{"check_runs":[]}`
+	}
+	return pages[n-1]
 }
 
 const (
@@ -269,4 +286,39 @@ func TestPullRequestFailures(t *testing.T) {
 	f.installStatus = http.StatusNotFound
 	_, err = newClient(t, f, pkcs1).PullRequest(t.Context(), "o", "r", 1)
 	require.ErrorIs(t, err, githubapp.ErrNotInstalled)
+}
+
+func TestChecksAndReviewsBeyondTheFirstPageAreRead(t *testing.T) {
+	// 100 passing runs on page one and a failing one on page two.
+	hundred := make([]string, 100)
+	for i := range hundred {
+		hundred[i] = run("completed", "success")
+	}
+	p := newPulls(openPull, "", "")
+	p.checkPages = []string{
+		`{"total_count":101,"check_runs":[` + strings.Join(hundred, ",") + `]}`,
+		`{"total_count":101,"check_runs":[` + run("completed", "failure") + `]}`,
+	}
+	p.reviewPages = []string{`[]`}
+	assert.Equal(t, "failing", status(t, p).CI)
+
+	// A total that is never reached stops at an empty page.
+	p = newPulls(openPull, "", "")
+	p.checkPages = []string{
+		`{"total_count":900,"check_runs":[` + run("completed", "success") + `]}`,
+	}
+	p.reviewPages = []string{`[]`}
+	assert.Equal(t, "passing", status(t, p).CI)
+
+	// 100 comments on page one, a change request on page two.
+	comments := make([]string, 100)
+	for i := range comments {
+		comments[i] = review("someone", "COMMENTED")
+	}
+	p = newPulls(openPull, noChecks, "")
+	p.reviewPages = []string{
+		reviews(comments...),
+		reviews(review("boss", "CHANGES_REQUESTED")),
+	}
+	assert.Equal(t, "changes_requested", status(t, p).Review)
 }

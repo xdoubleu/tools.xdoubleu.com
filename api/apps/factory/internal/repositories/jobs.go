@@ -217,6 +217,14 @@ func (r *JobsRepository) WithOpenPullRequest(
 	return out, rows.Err()
 }
 
+// MarkPullRequestPolled notes that the poller tried the job, so one that keeps
+// failing takes its turn at the back instead of holding the front of every batch.
+func (r *JobsRepository) MarkPullRequestPolled(ctx context.Context, id uuid.UUID) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE factory.jobs SET pr_checked_at = now() WHERE id = $1`, id)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 // SetPullRequestStatus records what the poller read.
 func (r *JobsRepository) SetPullRequestStatus(
 	ctx context.Context,

@@ -30,6 +30,9 @@ func (s *JobService) PollPullRequests(ctx context.Context) (int, error) {
 	for i := range jobs {
 		if err = s.pollPullRequest(ctx, &jobs[i]); err != nil {
 			failures = append(failures, fmt.Errorf("job %s: %w", jobs[i].ID, err))
+			// Take its turn at the back: a few that always fail must not starve the
+			// healthy ones of every batch.
+			_ = s.jobs.MarkPullRequestPolled(ctx, jobs[i].ID)
 		}
 	}
 	return len(jobs), errors.Join(failures...)
@@ -44,13 +47,10 @@ func (s *JobService) pollPullRequest(ctx context.Context, job *models.Job) error
 	if !ok {
 		return errors.New("its pull request address is not this repo's")
 	}
+	// A pull request can't be deleted, only closed, so "not found" means the App can
+	// no longer see it (a rename, a transfer, changed access): that is a failure to
+	// look into, never a reason to call the pull request closed.
 	status, err := s.github.PullRequest(ctx, repo.Owner, repo.Name, number)
-	if errors.Is(err, githubapp.ErrPullRequestGone) {
-		// Deleted on GitHub: as good as closed.
-		status, err = githubapp.PullRequestStatus{
-			State: githubapp.StateClosed, CI: "", Review: "",
-		}, nil
-	}
 	if err != nil {
 		return err
 	}
@@ -86,10 +86,15 @@ func (s *JobService) pullRequestEnded(
 	if len(jobs) > 0 && jobs[0].ID != job.ID {
 		return nil
 	}
+	to, body := models.StatusNeedsYou, "The pull request was closed without merging: "
 	if state == githubapp.StateMerged {
-		return s.finishTask(ctx, job.TaskID, systemAuthor,
-			"The pull request was merged: "+job.PRURL, models.StatusDone)
+		to, body = models.StatusDone, "The pull request was merged: "
 	}
-	return s.finishTask(ctx, job.TaskID, systemAuthor,
-		"The pull request was closed without merging: "+job.PRURL, models.StatusNeedsYou)
+	// Move first: a failure after it loses a comment, where a failure before it
+	// would repeat the comment on every poll until the move worked.
+	if _, err = s.tasks.Move(ctx, job.TaskID, to); err != nil {
+		return err
+	}
+	_, err = s.tasks.AddComment(ctx, job.TaskID, systemAuthor, body+job.PRURL)
+	return err
 }
