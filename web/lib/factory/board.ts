@@ -159,3 +159,33 @@ export function jobStatusLabel(status: JobStatus): string {
 export function jobActive(job: Job | undefined): boolean {
   return job?.status === JobStatus.QUEUED || job?.status === JobStatus.RUNNING
 }
+
+const PR_STATES = new Map([
+  ['open', 'open'],
+  ['merged', 'merged'],
+  ['closed', 'closed']
+])
+const PR_CI = new Map([
+  ['pending', 'CI running'],
+  ['passing', 'CI passing'],
+  ['failing', 'CI failing']
+])
+const PR_REVIEW = new Map([
+  ['approved', 'approved'],
+  ['changes_requested', 'changes requested']
+])
+
+/** The job's pull request as a short line, "" while it has none or no status yet. */
+export function prStatusLine(job: Job | undefined): string {
+  const state = PR_STATES.get(job?.prState ?? '')
+  if (!job || !state) return ''
+  const parts = [`PR ${state}`]
+  // CI and review only matter while the PR can still change.
+  if (state === 'open') {
+    const ci = PR_CI.get(job.prCi)
+    const review = PR_REVIEW.get(job.prReview)
+    if (ci) parts.push(ci)
+    if (review) parts.push(review)
+  }
+  return parts.join(' · ')
+}

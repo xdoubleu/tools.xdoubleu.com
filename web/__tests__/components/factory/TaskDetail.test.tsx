@@ -204,6 +204,32 @@ describe('TaskDetail', () => {
       expect(screen.getByRole('button', { name: 'Running…' })).toBeDisabled()
     })
 
+    it('links the job\u2019s pull request with its status', () => {
+      const job = create(JobSchema, {
+        id: 'j-1',
+        status: JobStatus.SUCCEEDED,
+        branch: 'agent/t-1-fix-login',
+        prUrl: 'https://github.com/o/n/pull/7',
+        prState: 'open',
+        prCi: 'failing',
+        prReview: 'changes_requested'
+      })
+      mockTask({ data: create(GetTaskResponseSchema, { ...detail, jobs: [job] }) })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      const line = screen.getByTestId('job-pr')
+      expect(line).toHaveTextContent('Pull request · PR open · CI failing · changes requested')
+      expect(screen.getByRole('link', { name: 'Pull request' })).toHaveAttribute(
+        'href',
+        'https://github.com/o/n/pull/7'
+      )
+    })
+
+    it('shows no pull request line before the job has one', () => {
+      mockTask({ data: withJob(JobStatus.RUNNING) })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      expect(screen.queryByTestId('job-pr')).not.toBeInTheDocument()
+    })
+
     it('stops an active job', async () => {
       mockTask({ data: withJob(JobStatus.RUNNING) })
       render(<TaskDetail id="t-1" onClose={vi.fn()} />)

@@ -29,6 +29,7 @@ import {
   runnerState,
   jobActive,
   jobStatusLabel,
+  prStatusLine,
   JOB_POLL_MS,
   runnerUpdate,
   shortRelease,
@@ -198,5 +199,21 @@ describe('board', () => {
     expect(jobActive(at(6))).toBe(false)
     expect(jobActive(undefined)).toBe(false)
     expect(JOB_POLL_MS).toBe(5000)
+  })
+
+  it("words the status of a job's pull request", () => {
+    const pr = (prState: string, prCi = '', prReview = '') =>
+      prStatusLine(create(JobSchema, { prState, prCi, prReview }))
+    expect(prStatusLine(undefined)).toBe('')
+    expect(pr('')).toBe('')
+    expect(pr('open')).toBe('PR open')
+    expect(pr('open', 'failing', 'changes_requested')).toBe(
+      'PR open · CI failing · changes requested'
+    )
+    expect(pr('open', 'pending', 'approved')).toBe('PR open · CI running · approved')
+    expect(pr('open', 'passing')).toBe('PR open · CI passing')
+    expect(pr('merged', 'passing', 'approved')).toBe('PR merged')
+    expect(pr('closed', 'failing')).toBe('PR closed')
+    expect(pr('weird')).toBe('')
   })
 })
