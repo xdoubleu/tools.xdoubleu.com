@@ -39,6 +39,11 @@ its own work ([ADR-0041](adr-0041-factory-runner-pairing.md)).
 - The branch is `agent/<task-id>-<slug>`, chosen by the server and checked again
   by the runner.
 
+- **Reply** queues a child job (`parent_job_id`) with the reply as its prompt, the
+  parent's harness and branch. The runner receives the parent's session id as
+  `resume_session_id`. It needs a finished newest job that left a session, and a
+  task that isn't Done.
+
 ## Consequences
 
 - A lost job is only marked when something reads the board or a runner claims;

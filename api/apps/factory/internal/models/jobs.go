@@ -35,6 +35,8 @@ type Job struct {
 	Branch    string
 	SessionID string
 	Outcome   string
+	// ParentJobID is the job a Reply resumes; nil for a job started by Run.
+	ParentJobID *uuid.UUID
 	// PRURL is the pull request the job opened, if it did.
 	PRURL string
 	// RunnerID is the runner that claimed the job; nil until it is claimed.
