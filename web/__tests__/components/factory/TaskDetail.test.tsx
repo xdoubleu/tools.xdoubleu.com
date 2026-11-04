@@ -166,6 +166,41 @@ describe('TaskDetail', () => {
       await waitFor(() => expect(box).toHaveValue(''))
     })
 
+    it('is busy while sending, and a retry clears the earlier error', async () => {
+      let finish: () => void = () => {}
+      mockReply.mockRejectedValueOnce(new Error('nope'))
+      mockReply.mockReturnValueOnce(new Promise<void>((resolve) => (finish = resolve)))
+      mockTask({ data: finished({ prState: 'open', prCi: 'failing' }) })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      const box = screen.getByLabelText('Reply to the agent')
+      fireEvent.change(box, { target: { value: '   ' } })
+      expect(screen.getByRole('button', { name: 'Reply' })).toBeDisabled()
+
+      fireEvent.change(box, { target: { value: 'Go' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Reply' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('nope')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Reply' }))
+      expect(await screen.findByRole('button', { name: 'Sending…' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Reply: fix CI' })).toBeDisabled()
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      finish()
+      expect(await screen.findByRole('button', { name: 'Reply' })).toBeDisabled()
+      expect(box).toHaveValue('')
+    })
+
+    it('does not submit the page', async () => {
+      mockTask({ data: finished() })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      fireEvent.change(screen.getByLabelText('Reply to the agent'), {
+        target: { value: 'Go' }
+      })
+      const form = screen.getByRole('form', { name: 'Reply' })
+      expect(fireEvent.submit(form)).toBe(false)
+      await waitFor(() => expect(mockReply).toHaveBeenCalledWith('t-1', 'Go'))
+    })
+
     it('keeps the text and shows why the reply was refused', async () => {
       mockReply.mockRejectedValueOnce(new Error('the last job left no session to resume'))
       mockTask({ data: finished() })
