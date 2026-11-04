@@ -27,12 +27,16 @@ type pulls struct {
 	// checkPages and reviewPages, when set, answer by the page asked for.
 	checkPages  []string
 	reviewPages []string
+	// checkAsked and reviewAsked count the calls for those lists.
+	checkAsked  atomic.Int32
+	reviewAsked atomic.Int32
 }
 
 func newPulls(pull, checks, reviews string) *pulls {
 	return &pulls{
 		pull: pull, checks: checks, reviews: reviews, pullStatus: 0,
 		asked: atomic.Int32{}, tokens: nil, checkPages: nil, reviewPages: nil,
+		checkAsked: atomic.Int32{}, reviewAsked: atomic.Int32{},
 	}
 }
 
@@ -60,11 +64,13 @@ func servePulls(f *fakeGitHub, p *pulls) {
 		func(w http.ResponseWriter, r *http.Request) {
 			record(r)
 			assert.Equal(f.t, "abc123", r.PathValue("sha"))
+			p.checkAsked.Add(1)
 			_, _ = io.WriteString(w, pageOf(r, p.checkPages, p.checks))
 		})
 	f.mux.HandleFunc("GET /repos/{o}/{r}/pulls/{n}/reviews",
 		func(w http.ResponseWriter, r *http.Request) {
 			record(r)
+			p.reviewAsked.Add(1)
 			_, _ = io.WriteString(w, pageOf(r, p.reviewPages, p.reviews))
 		})
 }
@@ -321,4 +327,62 @@ func TestChecksAndReviewsBeyondTheFirstPageAreRead(t *testing.T) {
 		reviews(review("boss", "CHANGES_REQUESTED")),
 	}
 	assert.Equal(t, "changes_requested", status(t, p).Review)
+}
+
+func TestReadingStopsAtTheLastPageAndAtTheBound(t *testing.T) {
+	passing := run("completed", "success")
+	page := func(runs ...string) string {
+		return `{"total_count":2,"check_runs":[` + strings.Join(runs, ",") + `]}`
+	}
+
+	// Two runs on two pages: exactly two requests, none for a third.
+	p := newPulls(openPull, "", "")
+	p.checkPages = []string{page(passing), page(passing)}
+	p.reviewPages = []string{`[]`}
+	assert.Equal(t, "passing", status(t, p).CI)
+	assert.EqualValues(t, 2, p.checkAsked.Load())
+
+	// The fifth page is read, the sixth is not.
+	many := func(last string) []string {
+		pages := make([]string, 6)
+		for i := range pages {
+			pages[i] = `{"total_count":600,"check_runs":[` + passing + `]}`
+		}
+		pages[5] = last
+		return pages
+	}
+	p = newPulls(openPull, "", "")
+	p.checkPages = many(
+		`{"total_count":600,"check_runs":[` + run("completed", "failure") + `]}`,
+	)
+	p.reviewPages = []string{`[]`}
+	assert.Equal(t, "passing", status(t, p).CI, "page six is past the bound")
+	assert.EqualValues(t, 5, p.checkAsked.Load())
+
+	fifth := many("")
+	fifth[4] = `{"total_count":600,"check_runs":[` + run("completed", "failure") + `]}`
+	p = newPulls(openPull, "", "")
+	p.checkPages = fifth
+	p.reviewPages = []string{`[]`}
+	assert.Equal(t, "failing", status(t, p).CI, "page five is read")
+
+	// Reviews the same: a full page asks for the next, a short one does not.
+	full := make([]string, 100)
+	for i := range full {
+		full[i] = review("someone", "COMMENTED")
+	}
+	p = newPulls(openPull, noChecks, "")
+	p.reviewPages = []string{reviews(full...), reviews(review("a", "APPROVED"))}
+	assert.Equal(t, "approved", status(t, p).Review)
+	assert.EqualValues(t, 2, p.reviewAsked.Load())
+
+	p = newPulls(openPull, noChecks, "")
+	pages := make([]string, 6)
+	for i := range pages {
+		pages[i] = reviews(full...)
+	}
+	pages[4] = reviews(append([]string{review("a", "APPROVED")}, full[1:]...)...)
+	p.reviewPages = pages
+	assert.Equal(t, "approved", status(t, p).Review, "page five is read")
+	assert.EqualValues(t, 5, p.reviewAsked.Load(), "and not a sixth")
 }
