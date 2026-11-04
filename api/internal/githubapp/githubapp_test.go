@@ -204,6 +204,11 @@ func TestGitHubFailuresDoNotLeakItsText(t *testing.T) {
 	assert.Contains(t, err.Error(), "500")
 
 	f = newFake(t, key)
+	f.mintStatus = http.StatusMultipleChoices
+	_, err = newClient(t, f, pkcs1).InstallationToken(t.Context(), "o", "r")
+	require.ErrorContains(t, err, "status 300", "a redirect is not a token")
+
+	f = newFake(t, key)
 	f.installStatus = http.StatusBadGateway
 	_, err = newClient(t, f, pkcs1).InstallationToken(t.Context(), "o", "r")
 	require.Error(t, err)

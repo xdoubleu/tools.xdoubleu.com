@@ -117,13 +117,7 @@ func NewApps(
 		jobAccounts := agentaccounts.NewStore(db, invalidator.InvalidateUserCache)
 		factoryOpts = append(factoryOpts, factory.WithJobAccounts(jobAccounts))
 	}
-	gh, err := githubapp.New(cfg.FactoryGitHubAppID, cfg.FactoryGitHubAppKey)
-	if err == nil {
-		factoryOpts = append(factoryOpts, factory.WithGitHub(gh))
-	} else if cfg.FactoryGitHubAppID != "" || cfg.FactoryGitHubAppKey != "" {
-		// Half set, or a key that doesn't parse: say so, and leave pushing off.
-		logger.Warn("factory GitHub App is not usable; jobs will not push", "error", err)
-	}
+	factoryOpts = append(factoryOpts, factoryGitHubOptions(cfg, logger)...)
 	apps.addApp(factory.New(ctx, authService, logger, cfg, db, factoryOpts...))
 
 	// taste reads every media app through its exported ListConsumption, so it
@@ -196,4 +190,18 @@ func (apps *Apps) Routes(mux *http.ServeMux) http.Handler {
 
 func (apps *Apps) addApp(app App) {
 	*apps = append(*apps, app)
+}
+
+// factoryGitHubOptions lets jobs push when the factory GitHub App is set up. Unset,
+// there is nothing to do; half set, or a key that doesn't parse, it says so and
+// leaves pushing off rather than refusing to start.
+func factoryGitHubOptions(cfg config.Config, logger *slog.Logger) []factory.Option {
+	gh, err := githubapp.New(cfg.FactoryGitHubAppID, cfg.FactoryGitHubAppKey)
+	if err == nil {
+		return []factory.Option{factory.WithGitHub(gh)}
+	}
+	if cfg.FactoryGitHubAppID != "" || cfg.FactoryGitHubAppKey != "" {
+		logger.Warn("factory GitHub App is not usable; jobs will not push", "error", err)
+	}
+	return nil
 }
