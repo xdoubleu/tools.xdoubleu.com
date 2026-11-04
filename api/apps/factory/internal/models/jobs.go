@@ -36,7 +36,9 @@ type Job struct {
 	SessionID string
 	Outcome   string
 	// PRURL is the pull request the job opened, if it did.
-	PRURL     string
+	PRURL string
+	// RunnerID is the runner that claimed the job; nil until it is claimed.
+	RunnerID  *uuid.UUID
 	CreatedBy string
 	CreatedAt time.Time
 	// StartedAt, LastCheckIn and FinishedAt are nil until they happen.

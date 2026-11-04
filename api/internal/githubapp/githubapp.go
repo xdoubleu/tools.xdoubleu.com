@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -43,6 +44,11 @@ var ErrNotInstalled = errors.New("github app is not installed on the repository"
 // namePattern is what a GitHub owner or repository name may contain; anything
 // else is refused before it reaches a URL path.
 var namePattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,100}$`)
+
+// validName is a GitHub owner or repository name, and not a path step.
+func validName(name string) bool {
+	return name != "." && name != ".." && namePattern.MatchString(name)
+}
 
 // Token is an installation access token and when GitHub stops honouring it.
 type Token struct {
@@ -96,6 +102,8 @@ func New(appID, privateKeyPEM string, opts ...Option) (*Client, error) {
 }
 
 func parseKey(pemText string) (*rsa.PrivateKey, error) {
+	// An env file may carry the key's newlines as the two characters \n.
+	pemText = strings.ReplaceAll(pemText, `\n`, "\n")
 	block, _ := pem.Decode([]byte(pemText))
 	if block == nil {
 		return nil, errors.New("not a PEM block")
@@ -225,7 +233,7 @@ func (c *Client) InstallationToken(
 	ctx context.Context,
 	owner, repo string,
 ) (Token, error) {
-	if !namePattern.MatchString(owner) || !namePattern.MatchString(repo) {
+	if !validName(owner) || !validName(repo) {
 		return Token{}, errors.New("github: invalid repository name")
 	}
 	jwt, err := c.appJWT()
@@ -246,14 +254,16 @@ func (c *Client) InstallationToken(
 			"repositories": []string{repo},
 			"permissions":  map[string]string{"contents": "write", "pull_requests": "write"},
 		}, &minted)
-	if status == http.StatusNotFound {
-		// The App was uninstalled or reinstalled: the remembered id is stale.
+	if err != nil {
+		// Whatever went wrong, don't keep the id: after a reinstall GitHub may
+		// answer for the old one with 404, 403 or 422, and a stale id must not
+		// outlive the next call.
 		c.mu.Lock()
 		delete(c.installations, owner+"/"+repo)
 		c.mu.Unlock()
-		return Token{}, ErrNotInstalled
-	}
-	if err != nil {
+		if status == http.StatusNotFound {
+			return Token{}, ErrNotInstalled
+		}
 		return Token{}, err
 	}
 	if minted.Token == "" {

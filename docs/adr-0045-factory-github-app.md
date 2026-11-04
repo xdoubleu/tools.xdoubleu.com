@@ -24,20 +24,23 @@ deploy key can push but can't open a pull request.
   installation of the job's repo and asks for an installation token limited to
   that repo, with `contents` and `pull_requests` write and nothing else: no
   workflows, issues or administration. It lives under an hour.
-- **The runner asks for it, only for a running job.** `GetPushToken` needs the
-  device token and a job in `running`; the runner calls it after its own checks
-  pass, and the sandbox never sees it.
+- **The runner asks for it, only for its own running job.** `GetPushToken` needs
+  the device token, a job in `running` and that the runner claimed it (a job
+  records its runner; so does `CompleteJob`). The runner calls it after its own
+  checks pass, and the sandbox never sees it. GitHub's own error text never
+  reaches the runner; a failure there is `Unavailable`, to retry.
 - **The server checks what the runner reports.** A pull request link is kept only
-  for a succeeded job and only if it is `https://github.com/<owner>/<repo>/pull/<n>`
-  of the job's own repo; the task then moves to In review, otherwise to Needs you.
+  if it is `https://github.com/<owner>/<repo>/pull/<n>` of the job's own repo, for
+  a failed job too so no open PR is orphaned. A succeeded job with one moves its
+  task to In review; every other job goes to Needs you.
 - **Never auto-merge.** The App may open a PR but nothing here merges one.
   `main`'s ruleset must not list the App as a bypass actor.
 
 ## Consequences
 
 - Revoking the App's installation stops all pushing at once.
-- The installation id is remembered per repo and forgotten when GitHub says it
-  is gone, so a reinstall needs no restart.
+- The installation id is remembered per repo and forgotten on any failure to
+  mint a token, so a reinstall needs no restart.
 - The runner's half (push from the host-owned review copy with the token in an
   environment-supplied header, never argv; open the PR) lands separately.
 

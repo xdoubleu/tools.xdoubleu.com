@@ -113,7 +113,8 @@ func TestGitHubTroubleIsToldApartFromEachOther(t *testing.T) {
 
 	gh.err = errors.New("github: POST /app/installations/1/access_tokens: status 502")
 	_, err = env.pushToken(t, job.Id)
-	assert.Equal(t, connect.CodeInternal, code(err), "anything else is a failure to retry")
+	assert.Equal(t, connect.CodeUnavailable, code(err), "anything else is worth a retry")
+	assert.NotContains(t, err.Error(), "access_tokens", "none of GitHub's text")
 }
 
 func complete(t *testing.T, env jobEnv, jobID string, ok bool, prURL string) {
@@ -155,6 +156,7 @@ func TestAPullRequestLinkThatIsNotThisReposIsLeftOut(t *testing.T) {
 		"with a hash":    ownPull + "#top",
 		"with user info": "https://user@github.com/xdoubleu/tools.xdoubleu.com/pull/42",
 		"not a url":      "%zz",
+		"double slash":   "https://github.com//xdoubleu/tools.xdoubleu.com/pull/42",
 	} {
 		env := browserJobEnv(t)
 		task := env.newTask(t, "link "+name)
@@ -184,7 +186,7 @@ func TestTheRepoNameInALinkIsMatchedIgnoringCase(t *testing.T) {
 	)
 }
 
-func TestAFailedJobKeepsNoPullRequestAndGoesToNeedsYou(t *testing.T) {
+func TestAFailedJobKeepsItsPullRequestButStillGoesToNeedsYou(t *testing.T) {
 	env := browserJobEnv(t)
 	task := env.newTask(t, "failed")
 	env.run(t, task.Id, "")
@@ -194,8 +196,66 @@ func TestAFailedJobKeepsNoPullRequestAndGoesToNeedsYou(t *testing.T) {
 
 	got := env.task(t, task.Id)
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Task.Status)
-	assert.Empty(t, got.Jobs[0].PrUrl)
-	assert.NotContains(t, got.Comments[0].Body, "left out", "nothing was reported to drop")
+	assert.Equal(t, ownPull, got.Jobs[0].PrUrl, "an open PR is not orphaned")
+	assert.Contains(t, got.Comments[0].Body, "pull request: "+ownPull)
+}
+
+// replacementRunner revokes the paired runner and pairs a new one, as when the
+// Mac is replaced, and returns the new device token.
+func replacementRunner(t *testing.T, env jobEnv) string {
+	t.Helper()
+	both := runnerEnv{admin: env.admin, runner: env.runner}
+	for _, r := range listRunners(t, both) {
+		_, err := env.admin.RevokeRunner(signedIn(), &factoryv1.RevokeRunnerRequest{Id: r.Id})
+		require.NoError(t, err)
+	}
+	created := createRunner(t, both, "New Mac")
+	return pair(t, both, created.PairingCode).DeviceToken
+}
+
+func TestAReplacementRunnerCannotGetTheTokenOrFinishAnotherRunnersJob(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := env.newTask(t, "mine")
+	env.run(t, task.Id, "")
+	job := env.claim(t)
+	other := replacementRunner(t, env)
+
+	_, err := env.runner.GetPushToken(bearer(other),
+		&factoryv1.GetPushTokenRequest{JobId: job.Id})
+	assert.Equal(t, connect.CodePermissionDenied, code(err))
+	assert.Empty(t, gh.asked, "GitHub is not asked for the wrong runner")
+
+	_, err = env.runner.CompleteJob(bearer(other), &factoryv1.CompleteJobRequest{
+		JobId: job.Id, Succeeded: true, PrUrl: ownPull,
+	})
+	assert.Equal(t, connect.CodeAlreadyExists, code(err), "not theirs to finish")
+	assert.Equal(
+		t,
+		factoryv1.JobStatus_JOB_STATUS_RUNNING,
+		env.task(t, task.Id).Jobs[0].Status,
+	)
+
+	// The runner that claimed it is revoked, so its token no longer works either:
+	// the job is left for the lost sweep, not for whoever pairs next.
+	_, err = env.pushToken(t, job.Id)
+	assert.Equal(t, connect.CodeUnauthenticated, code(err))
+}
+
+func TestAJobClaimedBeforeRunnersWereRecordedCanStillBeCompleted(t *testing.T) {
+	env := browserJobEnv(t)
+	task := env.newTask(t, "old")
+	env.run(t, task.Id, "")
+	job := env.claim(t)
+	_, err := testDB.Exec(context.Background(),
+		`UPDATE factory.jobs SET runner_id = NULL WHERE id = $1`, job.Id)
+	require.NoError(t, err)
+
+	complete(t, env, job.Id, true, "")
+	assert.Equal(
+		t,
+		factoryv1.JobStatus_JOB_STATUS_SUCCEEDED,
+		env.task(t, task.Id).Jobs[0].Status,
+	)
 }
 
 func TestAJobWithoutAPullRequestStillGoesToNeedsYou(t *testing.T) {

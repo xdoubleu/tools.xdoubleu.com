@@ -146,7 +146,7 @@ func (h *runnerHandler) ClaimJob(
 	// second of it being queued; answered empty when the hold ends.
 	deadline := time.Now().Add(h.app.heartbeatHold)
 	for {
-		claimed, claimErr := h.app.services.Jobs.Claim(ctx)
+		claimed, claimErr := h.app.services.Jobs.Claim(ctx, runner.ID)
 		if claimErr != nil {
 			return nil, mapError(claimErr)
 		}
@@ -208,19 +208,22 @@ func (h *runnerHandler) GetPushToken(
 	ctx context.Context,
 	req *factoryv1.GetPushTokenRequest,
 ) (*factoryv1.GetPushTokenResponse, error) {
-	if _, err := h.runnerFrom(ctx); err != nil {
+	runner, err := h.runnerFrom(ctx)
+	if err != nil {
 		return nil, err
 	}
 	id, err := parseID(req.GetJobId())
 	if err != nil {
 		return nil, err
 	}
-	token, err := h.app.services.Jobs.PushToken(ctx, id)
+	token, err := h.app.services.Jobs.PushToken(ctx, runner.ID, id)
 	switch {
-	case errors.Is(err, services.ErrPushNotConfigured):
+	case errors.Is(err, services.ErrPushNotConfigured),
+		errors.Is(err, githubapp.ErrNotInstalled):
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error())
-	case errors.Is(err, githubapp.ErrNotInstalled):
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error())
+	case errors.Is(err, services.ErrGitHubFailed):
+		// Retryable, and none of GitHub's own text goes to the runner.
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error())
 	case err != nil:
 		return nil, mapError(err)
 	}

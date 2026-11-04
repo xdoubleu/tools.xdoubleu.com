@@ -16,7 +16,7 @@ type JobsRepository struct {
 
 const jobColumns = `id, task_id, repo_id, harness, prompt, status, branch,
 	session_id, outcome, created_by, created_at, started_at, last_check_in,
-	finished_at, pr_url`
+	finished_at, pr_url, runner_id`
 
 func scanJob(row rowScanner) (*models.Job, error) {
 	var j models.Job
@@ -24,6 +24,7 @@ func scanJob(row rowScanner) (*models.Job, error) {
 		&j.ID, &j.TaskID, &j.RepoID, &j.Harness, &j.Prompt, &j.Status, &j.Branch,
 		&j.SessionID, &j.Outcome, &j.CreatedBy, &j.CreatedAt, &j.StartedAt,
 		&j.LastCheckIn, &j.FinishedAt, &j.PRURL,
+		&j.RunnerID,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -75,16 +76,20 @@ func (r *JobsRepository) ByTask(
 
 // Claim starts the oldest queued job. Nothing queued, or a job already running
 // (the one-running index), is not found.
-func (r *JobsRepository) Claim(ctx context.Context) (*models.Job, error) {
+func (r *JobsRepository) Claim(
+	ctx context.Context,
+	runnerID uuid.UUID,
+) (*models.Job, error) {
 	return scanJob(r.db.QueryRow(ctx, `
 		UPDATE factory.jobs SET
-			status = 'running', started_at = now(), last_check_in = now()
+			status = 'running', started_at = now(), last_check_in = now(),
+			runner_id = $1
 		WHERE id = (
 			SELECT id FROM factory.jobs WHERE status = 'queued'
 			ORDER BY created_at, id LIMIT 1 FOR UPDATE SKIP LOCKED
 		)
 		AND NOT EXISTS (SELECT 1 FROM factory.jobs WHERE status = 'running')
-		RETURNING `+jobColumns))
+		RETURNING `+jobColumns, runnerID))
 }
 
 // CheckIn records that a running job is alive and keeps its session id. A job
@@ -104,13 +109,15 @@ func (r *JobsRepository) CheckIn(
 	return err
 }
 
-// Complete finishes a running job. A job that is no longer running (it was
-// lost or cancelled meanwhile) is not found.
+// Complete finishes a running job, for the runner that claimed it (or any runner,
+// if the job was claimed before runners were recorded). A job that is no longer
+// running (it was lost or cancelled meanwhile) or is another runner's is not found.
 func (r *JobsRepository) Complete(
 	ctx context.Context,
 	id uuid.UUID,
 	status models.JobStatus,
 	outcome, sessionID, prURL string,
+	runnerID uuid.UUID,
 ) (*models.Job, error) {
 	return scanJob(r.db.QueryRow(ctx, `
 		UPDATE factory.jobs SET
@@ -118,7 +125,8 @@ func (r *JobsRepository) Complete(
 			session_id = COALESCE(NULLIF($4, ''), session_id),
 			pr_url = $5
 		WHERE id = $1 AND status = 'running'
-		RETURNING `+jobColumns, id, status, outcome, sessionID, prURL))
+			AND (runner_id IS NULL OR runner_id = $6)
+		RETURNING `+jobColumns, id, status, outcome, sessionID, prURL, runnerID))
 }
 
 // CancelForTask ends the task's queued or running job (a task has at most one).

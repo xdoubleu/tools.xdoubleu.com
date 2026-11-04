@@ -245,7 +245,7 @@ func TestARepositoryNameCannotReachTheURLPath(t *testing.T) {
 	f := newFake(t, key)
 	c := newClient(t, f, pkcs1)
 	tooLong := strings.Repeat("a", 101)
-	for _, bad := range []string{"", "a/b", "..%2f", "a b", "x?y", tooLong} {
+	for _, bad := range []string{"", ".", "..", "a/b", "..%2f", "a b", "x?y", tooLong} {
 		_, err := c.InstallationToken(t.Context(), bad, "r")
 		require.Error(t, err, bad)
 		_, err = c.InstallationToken(t.Context(), "o", bad)
@@ -276,6 +276,36 @@ func TestNewNeedsAnIDAndAUsableKey(t *testing.T) {
 	junk := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: []byte("garbage")})
 	_, err = githubapp.New("1", string(junk))
 	require.ErrorIs(t, err, githubapp.ErrNotConfigured)
+}
+
+func TestAKeyWhoseNewlinesArriveEscapedStillParses(t *testing.T) {
+	key, pkcs1, _ := newKey(t)
+	f := newFake(t, key)
+	escaped := strings.ReplaceAll(strings.TrimSpace(pkcs1), "\n", `\n`)
+	require.NotContains(t, escaped, "\n")
+	c := newClient(t, f, escaped)
+	_, err := c.InstallationToken(t.Context(), "o", "r")
+	require.NoError(t, err)
+}
+
+func TestAStaleInstallationIsForgottenWhateverGitHubAnswers(t *testing.T) {
+	key, pkcs1, _ := newKey(t)
+	for _, status := range []int{http.StatusForbidden, http.StatusUnprocessableEntity} {
+		f := newFake(t, key)
+		c := newClient(t, f, pkcs1)
+		_, err := c.InstallationToken(t.Context(), "o", "r")
+		require.NoError(t, err)
+
+		f.mintStatus = status
+		_, err = c.InstallationToken(t.Context(), "o", "r")
+		require.Error(t, err)
+		assert.NotErrorIs(t, err, githubapp.ErrNotInstalled, status)
+
+		f.mintStatus = http.StatusCreated
+		_, err = c.InstallationToken(t.Context(), "o", "r")
+		require.NoError(t, err)
+		assert.EqualValues(t, 2, f.installations.Load(), "looked up again after %d", status)
+	}
 }
 
 func TestARequestThatCannotBeSentFails(t *testing.T) {

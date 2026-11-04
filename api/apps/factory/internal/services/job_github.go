@@ -23,11 +23,16 @@ type JobGitHub interface {
 	InstallationToken(ctx context.Context, owner, repo string) (githubapp.Token, error)
 }
 
+// ErrGitHubFailed is any failure to get a token from GitHub other than the App
+// not being installed: worth retrying, and with none of GitHub's text.
+var ErrGitHubFailed = errors.New("could not get a token from GitHub")
+
 // PushToken is a short-lived token for the repo of a running job: contents and
-// pull requests write on that repo alone.
+// pull requests write on that repo alone. Only the runner that claimed the job
+// may ask for it.
 func (s *JobService) PushToken(
 	ctx context.Context,
-	jobID uuid.UUID,
+	runnerID, jobID uuid.UUID,
 ) (githubapp.Token, error) {
 	if s.github == nil {
 		return githubapp.Token{}, ErrPushNotConfigured
@@ -39,11 +44,21 @@ func (s *JobService) PushToken(
 	if job.Status != models.JobRunning {
 		return githubapp.Token{}, conflict("the job is no longer running")
 	}
+	if job.RunnerID == nil || *job.RunnerID != runnerID {
+		return githubapp.Token{}, forbidden("the job was claimed by another runner")
+	}
 	repo, err := s.repos.Get(ctx, job.RepoID)
 	if err != nil {
 		return githubapp.Token{}, err
 	}
-	return s.github.InstallationToken(ctx, repo.Owner, repo.Name)
+	token, err := s.github.InstallationToken(ctx, repo.Owner, repo.Name)
+	if errors.Is(err, githubapp.ErrNotInstalled) {
+		return githubapp.Token{}, err
+	}
+	if err != nil {
+		return githubapp.Token{}, ErrGitHubFailed
+	}
+	return token, nil
 }
 
 var pullPath = regexp.MustCompile(`^/([^/]+)/([^/]+)/pull/[1-9][0-9]*$`)

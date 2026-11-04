@@ -27,7 +27,11 @@ type JobAccounts interface {
 
 // issueAccount gives a claimed job its own agent account and puts the client
 // credentials on the claim. A job that can't have one is failed, not run without.
-func (s *JobService) issueAccount(ctx context.Context, claimed *ClaimedJob) error {
+func (s *JobService) issueAccount(
+	ctx context.Context,
+	claimed *ClaimedJob,
+	runnerID uuid.UUID,
+) error {
 	job := &claimed.Job
 	name := "job #" + job.ID.String()[:shortJobIDLen] + " · " +
 		string(claimed.Repo.DefaultHarness)
@@ -37,9 +41,11 @@ func (s *JobService) issueAccount(ctx context.Context, claimed *ClaimedJob) erro
 		// The reason names no internals: it is posted on the task.
 		reason := "Could not create the job's agent account."
 		if _, failErr := s.jobs.Complete(
-			ctx, job.ID, models.JobFailed, reason, "", "",
+			ctx, job.ID, models.JobFailed, reason, "", "", runnerID,
 		); failErr == nil {
-			_ = s.finishTask(ctx, job.TaskID, systemAuthor, "Job failed: "+reason)
+			_ = s.finishTask(
+				ctx, job.TaskID, systemAuthor, "Job failed: "+reason, models.StatusNeedsYou,
+			)
 		}
 		return err
 	}
