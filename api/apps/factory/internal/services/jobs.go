@@ -35,7 +35,9 @@ type JobService struct {
 	events *repositories.JobEventsRepository
 	// accounts is nil when jobs get no agent account of their own.
 	accounts JobAccounts
-	now      func() time.Time
+	// github is nil when no GitHub App is set up.
+	github JobGitHub
+	now    func() time.Time
 }
 
 // ClaimedJob is a job with the repo it runs against.
@@ -138,8 +140,8 @@ func (s *JobService) Run(
 	job, err := s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: taskID, RepoID: repo.ID, Harness: repo.DefaultHarness,
 		Prompt: promptFor(repo, task, text), Status: "", Branch: branchFor(task),
-		SessionID: "", Outcome: "", CreatedBy: actor.String(), CreatedAt: time.Time{},
-		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
+		SessionID: "", Outcome: "", PRURL: "", RunnerID: nil, CreatedBy: actor.String(),
+		CreatedAt: time.Time{}, StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
 	})
 	if err != nil {
 		return nil, err
@@ -176,7 +178,9 @@ func (s *JobService) Stop(
 	if job.StartedAt != nil {
 		body += " Its branch `" + job.Branch + "` may hold partial work on the Mac."
 	}
-	if err = s.finishTask(ctx, taskID, systemAuthor, body); err != nil {
+	if err = s.finishTask(
+		ctx, taskID, systemAuthor, body, models.StatusNeedsYou,
+	); err != nil {
 		return nil, err
 	}
 	return job, nil
@@ -202,11 +206,14 @@ func (s *JobService) refuse(ctx context.Context, task *models.Task) error {
 
 // Claim starts the oldest queued job, or returns nil when there is none or one is
 // already running. It first marks jobs that stopped checking in as lost.
-func (s *JobService) Claim(ctx context.Context) (*ClaimedJob, error) {
+func (s *JobService) Claim(
+	ctx context.Context,
+	runnerID uuid.UUID,
+) (*ClaimedJob, error) {
 	if err := s.ExpireLost(ctx); err != nil {
 		return nil, err
 	}
-	job, err := s.jobs.Claim(ctx)
+	job, err := s.jobs.Claim(ctx, runnerID)
 	if errors.Is(err, database.ErrResourceNotFound) ||
 		errors.Is(err, database.ErrResourceConflict) {
 		return nil, nil //nolint:nilnil // no job is an answer, not an error
@@ -220,7 +227,7 @@ func (s *JobService) Claim(ctx context.Context) (*ClaimedJob, error) {
 	}
 	claimed := &ClaimedJob{Job: *job, Repo: *repo, MCPClientID: "", MCPClientSecret: ""}
 	if s.accounts != nil {
-		if err = s.issueAccount(ctx, claimed); err != nil {
+		if err = s.issueAccount(ctx, claimed, runnerID); err != nil {
 			return nil, err
 		}
 	}
@@ -241,14 +248,18 @@ func (s *JobService) CheckIn(
 	return false, err
 }
 
-// Complete finishes a running job, comments its outcome on the task and moves
-// the task to Needs you: without a PR the branch stays in the Mac's clone.
+// Complete finishes a running job and comments its outcome on the task. A
+// succeeded job that opened a pull request of its own repo moves the task to In
+// review, with the link; any other job moves it to Needs you, because the branch
+// is then only in the Mac's clone. A pull request link is kept for a failed job
+// too, so an open PR is never orphaned. Only the runner that claimed the job may
+// complete it.
 func (s *JobService) Complete(
 	ctx context.Context,
 	runnerID uuid.UUID,
 	id uuid.UUID,
 	succeeded bool,
-	outcome, sessionID string,
+	outcome, sessionID, prURL string,
 ) (*models.Job, error) {
 	status := models.JobFailed
 	if succeeded {
@@ -258,7 +269,8 @@ func (s *JobService) Complete(
 	if utf8.RuneCountInString(outcome) > maxCommentLen {
 		outcome = string([]rune(outcome)[:maxCommentLen])
 	}
-	job, err := s.jobs.Complete(ctx, id, status, outcome, sessionID)
+	prURL, note := s.checkedPullRequest(ctx, id, strings.TrimSpace(prURL))
+	job, err := s.jobs.Complete(ctx, id, status, outcome, sessionID, prURL, runnerID)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return nil, conflict("the job is no longer running")
 	}
@@ -269,11 +281,49 @@ func (s *JobService) Complete(
 	if outcome == "" {
 		outcome = "(the agent wrote no outcome)"
 	}
-	body := "Job " + string(status) + " on branch `" + job.Branch + "`:\n\n" + outcome
-	if err = s.finishTask(ctx, job.TaskID, "runner:"+runnerID.String(), body); err != nil {
+	body := "Job " + string(status) + " on branch `" + job.Branch + "`"
+	next := models.StatusNeedsYou
+	if prURL != "" {
+		body += ", pull request: " + prURL
+		if succeeded {
+			next = models.StatusInReview
+		}
+	}
+	body += ":\n\n" + outcome + note
+	author := "runner:" + runnerID.String()
+	if err = s.finishTask(ctx, job.TaskID, author, body, next); err != nil {
 		return nil, err
 	}
 	return job, nil
+}
+
+// checkedPullRequest keeps a reported pull request only if it is the job repo's
+// own. A link it drops is mentioned on the task, and a failure to check never
+// stops the job from completing: the link is dropped with a note instead.
+func (s *JobService) checkedPullRequest(
+	ctx context.Context,
+	jobID uuid.UUID,
+	prURL string,
+) (string, string) {
+	if prURL == "" {
+		return "", ""
+	}
+	job, err := s.jobs.Get(ctx, jobID)
+	if err != nil {
+		return "", noteDropped("it could not be checked")
+	}
+	repo, err := s.repos.Get(ctx, job.RepoID)
+	if err != nil {
+		return "", noteDropped("it could not be checked")
+	}
+	if !ownPullRequest(prURL, repo) {
+		return "", noteDropped("it is not a pull request of this repo")
+	}
+	return prURL, ""
+}
+
+func noteDropped(why string) string {
+	return "\n\n(The runner reported a pull request link, left out because " + why + ".)"
 }
 
 // ExpireLost marks running jobs that stopped checking in as lost and parks their
@@ -288,7 +338,9 @@ func (s *JobService) ExpireLost(ctx context.Context) error {
 	for i := range lost {
 		body := "Job lost: the runner stopped checking in. Its branch `" +
 			lost[i].Branch + "` may hold partial work on the Mac."
-		if err = s.finishTask(ctx, lost[i].TaskID, systemAuthor, body); err != nil {
+		if err = s.finishTask(
+			ctx, lost[i].TaskID, systemAuthor, body, models.StatusNeedsYou,
+		); err != nil {
 			return err
 		}
 	}
@@ -301,15 +353,17 @@ func (s *JobService) SweepLost(ctx context.Context) {
 	_ = s.ExpireLost(ctx)
 }
 
+// finishTask comments on the task and moves it to the column the job leaves it in.
 func (s *JobService) finishTask(
 	ctx context.Context,
 	taskID uuid.UUID,
 	author, body string,
+	to models.Status,
 ) error {
 	if _, err := s.tasks.AddComment(ctx, taskID, author, body); err != nil {
 		return err
 	}
-	_, err := s.tasks.Move(ctx, taskID, models.StatusNeedsYou)
+	_, err := s.tasks.Move(ctx, taskID, to)
 	return err
 }
 

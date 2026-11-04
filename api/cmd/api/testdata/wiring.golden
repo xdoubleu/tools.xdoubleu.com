@@ -136,6 +136,7 @@ POST /factory.v1.RunnerService/AppendJobEvents: 415, 415
 POST /factory.v1.RunnerService/CheckIn: 415, 415
 POST /factory.v1.RunnerService/ClaimJob: 415, 415
 POST /factory.v1.RunnerService/CompleteJob: 415, 415
+POST /factory.v1.RunnerService/GetPushToken: 415, 415
 POST /factory.v1.RunnerService/Heartbeat: 415, 415
 POST /factory.v1.RunnerService/Pair: 415, 415
 POST /factory.v1.TaskService/: 401, 403

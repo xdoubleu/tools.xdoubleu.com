@@ -46,6 +46,8 @@ const (
 	// RunnerServiceAppendJobEventsProcedure is the procedure name of the RunnerService's
 	// AppendJobEvents RPC.
 	RunnerServiceAppendJobEventsProcedure = "/factory.v1.RunnerService/AppendJobEvents"
+	// RunnerServiceGetPushTokenProcedure is the procedure name of the RunnerService's GetPushToken RPC.
+	RunnerServiceGetPushTokenProcedure = "/factory.v1.RunnerService/GetPushToken"
 	// RunnerServiceCompleteJobProcedure is the procedure name of the RunnerService's CompleteJob RPC.
 	RunnerServiceCompleteJobProcedure = "/factory.v1.RunnerService/CompleteJob"
 )
@@ -222,6 +224,13 @@ var (
 			Procedure:  RunnerServiceAppendJobEventsProcedure,
 		}
 	})
+	runnerServiceGetPushTokenSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_runners_proto.Services().ByName("RunnerService").Methods().ByName("GetPushToken"),
+			Procedure:  RunnerServiceGetPushTokenProcedure,
+		}
+	})
 	runnerServiceCompleteJobSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -241,6 +250,7 @@ type RunnerServiceClient interface {
 	// Every 30 seconds while a job runs; 5 minutes of silence marks it lost.
 	CheckIn(context.Context, *v1.CheckInRequest) (*v1.CheckInResponse, error)
 	AppendJobEvents(context.Context, *v1.AppendJobEventsRequest) (*v1.AppendJobEventsResponse, error)
+	GetPushToken(context.Context, *v1.GetPushTokenRequest) (*v1.GetPushTokenResponse, error)
 	CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error)
 }
 
@@ -260,6 +270,7 @@ type RunnerServiceHandler interface {
 	// Every 30 seconds while a job runs; 5 minutes of silence marks it lost.
 	CheckIn(context.Context, *v1.CheckInRequest) (*v1.CheckInResponse, error)
 	AppendJobEvents(context.Context, *v1.AppendJobEventsRequest) (*v1.AppendJobEventsResponse, error)
+	GetPushToken(context.Context, *v1.GetPushTokenRequest) (*v1.GetPushTokenResponse, error)
 	CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error)
 }
 
@@ -273,6 +284,7 @@ func RegisterRunnerServiceHandler(server *connect.Server, svc RunnerServiceHandl
 		connect.Method{Spec: runnerServiceClaimJobSpec(), Handler: adapter.claimJob},
 		connect.Method{Spec: runnerServiceCheckInSpec(), Handler: adapter.checkIn},
 		connect.Method{Spec: runnerServiceAppendJobEventsSpec(), Handler: adapter.appendJobEvents},
+		connect.Method{Spec: runnerServiceGetPushTokenSpec(), Handler: adapter.getPushToken},
 		connect.Method{Spec: runnerServiceCompleteJobSpec(), Handler: adapter.completeJob},
 	)
 }
@@ -298,6 +310,10 @@ func (UnimplementedRunnerServiceHandler) CheckIn(context.Context, *v1.CheckInReq
 
 func (UnimplementedRunnerServiceHandler) AppendJobEvents(context.Context, *v1.AppendJobEventsRequest) (*v1.AppendJobEventsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RunnerService.AppendJobEvents is not implemented")
+}
+
+func (UnimplementedRunnerServiceHandler) GetPushToken(context.Context, *v1.GetPushTokenRequest) (*v1.GetPushTokenResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RunnerService.GetPushToken is not implemented")
 }
 
 func (UnimplementedRunnerServiceHandler) CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error) {
@@ -343,6 +359,14 @@ func (c *runnerServiceClient) CheckIn(ctx context.Context, req *v1.CheckInReques
 func (c *runnerServiceClient) AppendJobEvents(ctx context.Context, req *v1.AppendJobEventsRequest) (*v1.AppendJobEventsResponse, error) {
 	var res v1.AppendJobEventsResponse
 	if err := c.client.CallUnary(ctx, runnerServiceAppendJobEventsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) GetPushToken(ctx context.Context, req *v1.GetPushTokenRequest) (*v1.GetPushTokenResponse, error) {
+	var res v1.GetPushTokenResponse
+	if err := c.client.CallUnary(ctx, runnerServiceGetPushTokenSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -412,6 +436,18 @@ func (h runnerServiceHandler) appendJobEvents(ctx context.Context, _ connect.Spe
 		return err
 	}
 	res, err := h.svc.AppendJobEvents(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) getPushToken(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetPushTokenRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetPushToken(ctx, &req)
 	if err != nil {
 		return err
 	}

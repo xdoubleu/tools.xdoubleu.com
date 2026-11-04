@@ -82,6 +82,10 @@ type Config struct {
 	// connections themselves live in global.oauth_connections.
 	GithubOAuthClientID     string
 	GithubOAuthClientSecret string
+	// FactoryGitHubAppID and FactoryGitHubAppKey are the "factory" GitHub App's id and
+	// PEM private key (adr-0045). Both empty turns pushing and PRs off.
+	FactoryGitHubAppID      string
+	FactoryGitHubAppKey     string
 	SentryOAuthClientID     string
 	SentryOAuthClientSecret string
 	// TodoistOAuthClientID/Secret: per-user connections live in
@@ -321,6 +325,8 @@ func New(logger *slog.Logger) Config {
 
 	cfg.GithubOAuthClientID = p.envStr("GITHUB_OAUTH_CLIENT_ID", "")
 	cfg.GithubOAuthClientSecret = p.envSecret("GITHUB_OAUTH_CLIENT_SECRET", "")
+	cfg.FactoryGitHubAppID = p.envStr("FACTORY_GITHUB_APP_ID", "")
+	cfg.FactoryGitHubAppKey = p.envSecret("FACTORY_GITHUB_APP_PRIVATE_KEY", "")
 	cfg.SentryOAuthClientID = p.envStr("SENTRY_OAUTH_CLIENT_ID", "")
 	cfg.SentryOAuthClientSecret = p.envSecret("SENTRY_OAUTH_CLIENT_SECRET", "")
 	cfg.TodoistOAuthClientID = p.envStr("TODOIST_OAUTH_CLIENT_ID", "")

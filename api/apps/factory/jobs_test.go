@@ -26,6 +26,7 @@ type jobEnv struct {
 	runner factoryv1connect.RunnerServiceClient
 	token  string
 	app    *factory.Factory
+	admin  factoryv1connect.RunnerAdminServiceClient
 }
 
 func newJobEnv(t *testing.T, asAdmin bool, channel string) jobEnv {
@@ -65,6 +66,7 @@ func newJobEnvWith(
 		runner: env.runner,
 		token:  pair(t, env, created.PairingCode).DeviceToken,
 		app:    app,
+		admin:  env.admin,
 	}
 }
 

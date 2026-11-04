@@ -2,11 +2,15 @@ package factory
 
 import (
 	"context"
+	"errors"
 	"time"
+
+	"connectrpc.com/connect/v2"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
 	"tools.xdoubleu.com/apps/factory/internal/services"
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
+	"tools.xdoubleu.com/internal/githubapp"
 )
 
 // claimPoll is how often a held ClaimJob looks for a queued job.
@@ -37,6 +41,7 @@ func protoJob(j *models.Job) *factoryv1.Job {
 		Status:    jobStatusToProto(j.Status),
 		Branch:    j.Branch,
 		CreatedAt: j.CreatedAt.Format(time.RFC3339),
+		PrUrl:     j.PRURL,
 	}
 }
 
@@ -141,7 +146,7 @@ func (h *runnerHandler) ClaimJob(
 	// second of it being queued; answered empty when the hold ends.
 	deadline := time.Now().Add(h.app.heartbeatHold)
 	for {
-		claimed, claimErr := h.app.services.Jobs.Claim(ctx)
+		claimed, claimErr := h.app.services.Jobs.Claim(ctx, runner.ID)
 		if claimErr != nil {
 			return nil, mapError(claimErr)
 		}
@@ -199,6 +204,35 @@ func (h *runnerHandler) AppendJobEvents(
 	return &factoryv1.AppendJobEventsResponse{}, nil
 }
 
+func (h *runnerHandler) GetPushToken(
+	ctx context.Context,
+	req *factoryv1.GetPushTokenRequest,
+) (*factoryv1.GetPushTokenResponse, error) {
+	runner, err := h.runnerFrom(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := parseID(req.GetJobId())
+	if err != nil {
+		return nil, err
+	}
+	token, err := h.app.services.Jobs.PushToken(ctx, runner.ID, id)
+	switch {
+	case errors.Is(err, services.ErrPushNotConfigured),
+		errors.Is(err, githubapp.ErrNotInstalled):
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error())
+	case errors.Is(err, services.ErrGitHubFailed):
+		// Retryable, and none of GitHub's own text goes to the runner.
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error())
+	case err != nil:
+		return nil, mapError(err)
+	}
+	return &factoryv1.GetPushTokenResponse{
+		Token:     token.Value,
+		ExpiresAt: token.ExpiresAt.Format(time.RFC3339),
+	}, nil
+}
+
 func (h *runnerHandler) CompleteJob(
 	ctx context.Context,
 	req *factoryv1.CompleteJobRequest,
@@ -213,6 +247,7 @@ func (h *runnerHandler) CompleteJob(
 	}
 	_, err = h.app.services.Jobs.Complete(
 		ctx, runner.ID, id, req.GetSucceeded(), req.GetOutcome(), req.GetSessionId(),
+		req.GetPrUrl(),
 	)
 	if err != nil {
 		return nil, mapError(err)

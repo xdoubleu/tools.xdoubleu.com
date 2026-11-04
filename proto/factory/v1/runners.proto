@@ -125,8 +125,25 @@ message CompleteJobRequest {
   // What the agent wrote, or why it failed. Posted on the task as a comment.
   string outcome = 3;
   string session_id = 4;
+  // The pull request the runner opened for the job's branch. The server keeps it
+  // only if it is a pull request of the job's own repo; the task then moves to In
+  // review instead of Needs you.
+  string pr_url = 5;
 }
 message CompleteJobResponse {}
+
+// A short-lived GitHub token for the job's repo alone (contents and pull requests
+// write), minted by the factory GitHub App. Only for a running job, and only after
+// the runner's own checks pass; the sandbox never sees it. FailedPrecondition when
+// pushing is not configured, so the runner leaves the work on the Mac.
+message GetPushTokenRequest {
+  string job_id = 1;
+}
+message GetPushTokenResponse {
+  string token = 1;
+  // RFC3339.
+  string expires_at = 2;
+}
 
 // The runner's own calls. Pair is authenticated by the pairing code, the rest
 // by the device token; none takes a cookie or MCP token, and nothing here
@@ -140,5 +157,6 @@ service RunnerService {
   // Every 30 seconds while a job runs; 5 minutes of silence marks it lost.
   rpc CheckIn(CheckInRequest) returns (CheckInResponse);
   rpc AppendJobEvents(AppendJobEventsRequest) returns (AppendJobEventsResponse);
+  rpc GetPushToken(GetPushTokenRequest) returns (GetPushTokenResponse);
   rpc CompleteJob(CompleteJobRequest) returns (CompleteJobResponse);
 }
