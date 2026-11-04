@@ -1073,7 +1073,15 @@ type Job struct {
 	// RFC3339.
 	CreatedAt string `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// The pull request the job opened; empty if it opened none.
-	PrUrl         string `protobuf:"bytes,6,opt,name=pr_url,json=prUrl,proto3" json:"pr_url,omitempty"`
+	PrUrl string `protobuf:"bytes,6,opt,name=pr_url,json=prUrl,proto3" json:"pr_url,omitempty"`
+	// Where that pull request stands, as the server last read it from GitHub:
+	// "open", "merged" or "closed"; empty until it has been read.
+	PrState string `protobuf:"bytes,7,opt,name=pr_state,json=prState,proto3" json:"pr_state,omitempty"`
+	// The head commit's checks while it is open: "pending", "passing" or "failing";
+	// empty when there are none.
+	PrCi string `protobuf:"bytes,8,opt,name=pr_ci,json=prCi,proto3" json:"pr_ci,omitempty"`
+	// The standing review while it is open: "approved" or "changes_requested".
+	PrReview      string `protobuf:"bytes,9,opt,name=pr_review,json=prReview,proto3" json:"pr_review,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1146,6 +1154,27 @@ func (x *Job) GetCreatedAt() string {
 func (x *Job) GetPrUrl() string {
 	if x != nil {
 		return x.PrUrl
+	}
+	return ""
+}
+
+func (x *Job) GetPrState() string {
+	if x != nil {
+		return x.PrState
+	}
+	return ""
+}
+
+func (x *Job) GetPrCi() string {
+	if x != nil {
+		return x.PrCi
+	}
+	return ""
+}
+
+func (x *Job) GetPrReview() string {
+	if x != nil {
+		return x.PrReview
 	}
 	return ""
 }
@@ -1932,7 +1961,7 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\"C\n" +
 	"\x12AddCommentResponse\x12-\n" +
-	"\acomment\x18\x01 \x01(\v2\x13.factory.v1.CommentR\acomment\"\xab\x01\n" +
+	"\acomment\x18\x01 \x01(\v2\x13.factory.v1.CommentR\acomment\"\xf8\x01\n" +
 	"\x03Job\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12-\n" +
@@ -1940,7 +1969,10 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x06branch\x18\x04 \x01(\tR\x06branch\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12\x15\n" +
-	"\x06pr_url\x18\x06 \x01(\tR\x05prUrl\"i\n" +
+	"\x06pr_url\x18\x06 \x01(\tR\x05prUrl\x12\x19\n" +
+	"\bpr_state\x18\a \x01(\tR\aprState\x12\x13\n" +
+	"\x05pr_ci\x18\b \x01(\tR\x04prCi\x12\x1b\n" +
+	"\tpr_review\x18\t \x01(\tR\bprReview\"i\n" +
 	"\bJobEvent\x12\x10\n" +
 	"\x03seq\x18\x01 \x01(\x05R\x03seq\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x18\n" +

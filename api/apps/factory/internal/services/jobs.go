@@ -36,7 +36,7 @@ type JobService struct {
 	// accounts is nil when jobs get no agent account of their own.
 	accounts JobAccounts
 	// github is nil when no GitHub App is set up.
-	github JobGitHub
+	github GitHub
 	now    func() time.Time
 }
 
@@ -140,8 +140,9 @@ func (s *JobService) Run(
 	job, err := s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: taskID, RepoID: repo.ID, Harness: repo.DefaultHarness,
 		Prompt: promptFor(repo, task, text), Status: "", Branch: branchFor(task),
-		SessionID: "", Outcome: "", PRURL: "", RunnerID: nil, CreatedBy: actor.String(),
-		CreatedAt: time.Time{}, StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
+		SessionID: "", Outcome: "", PRURL: "", RunnerID: nil, PRState: "", PRCI: "",
+		PRReview: "", CreatedBy: actor.String(), CreatedAt: time.Time{},
+		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
 	})
 	if err != nil {
 		return nil, err

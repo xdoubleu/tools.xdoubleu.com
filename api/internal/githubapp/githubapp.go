@@ -66,6 +66,8 @@ type Client struct {
 
 	mu            sync.Mutex
 	installations map[string]int64
+	// readTokens are the read-only tokens of pullrequests.go, by owner/repo.
+	readTokens map[string]Token
 }
 
 // Option adjusts a Client; tests point it at a fake GitHub.
@@ -94,6 +96,7 @@ func New(appID, privateKeyPEM string, opts ...Option) (*Client, error) {
 		appID: appID, key: key, baseURL: defaultBaseURL,
 		http: &http.Client{Timeout: requestTimeout}, now: time.Now,
 		mu: sync.Mutex{}, installations: map[string]int64{},
+		readTokens: map[string]Token{},
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -233,6 +236,16 @@ func (c *Client) InstallationToken(
 	ctx context.Context,
 	owner, repo string,
 ) (Token, error) {
+	return c.mint(ctx, owner, repo,
+		map[string]string{"contents": "write", "pull_requests": "write"})
+}
+
+// mint asks for an installation token limited to owner/repo and the permissions.
+func (c *Client) mint(
+	ctx context.Context,
+	owner, repo string,
+	permissions map[string]string,
+) (Token, error) {
 	if !validName(owner) || !validName(repo) {
 		return Token{}, errors.New("github: invalid repository name")
 	}
@@ -250,10 +263,8 @@ func (c *Client) InstallationToken(
 	}
 	status, err := c.do(ctx, http.MethodPost,
 		"/app/installations/"+strconv.FormatInt(id, 10)+"/access_tokens", jwt,
-		map[string]any{
-			"repositories": []string{repo},
-			"permissions":  map[string]string{"contents": "write", "pull_requests": "write"},
-		}, &minted)
+		map[string]any{"repositories": []string{repo}, "permissions": permissions},
+		&minted)
 	if err != nil {
 		// Whatever went wrong, don't keep the id: after a reinstall GitHub may
 		// answer for the old one with 404, 403 or 422, and a stale id must not

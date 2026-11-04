@@ -50,6 +50,7 @@ type fakeGitHub struct {
 	mintBody      string
 	lastMint      map[string]any
 	server        *httptest.Server
+	mux           *http.ServeMux
 }
 
 func newFake(t *testing.T, key *rsa.PrivateKey) *fakeGitHub {
@@ -58,7 +59,7 @@ func newFake(t *testing.T, key *rsa.PrivateKey) *fakeGitHub {
 		t: t, pub: &key.PublicKey, appID: "12345",
 		installStatus: http.StatusOK, mintStatus: http.StatusCreated,
 		installations: atomic.Int32{}, mints: atomic.Int32{}, mintBody: "",
-		lastMint: nil, server: nil,
+		lastMint: nil, server: nil, mux: nil,
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc(
@@ -97,6 +98,7 @@ func newFake(t *testing.T, key *rsa.PrivateKey) *fakeGitHub {
 			_, _ = io.WriteString(w, body2)
 		},
 	)
+	f.mux = mux
 	f.server = httptest.NewServer(mux)
 	t.Cleanup(f.server.Close)
 	return f

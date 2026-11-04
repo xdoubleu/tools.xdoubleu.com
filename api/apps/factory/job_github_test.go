@@ -24,6 +24,27 @@ type fakeGitHub struct {
 	mu    sync.Mutex
 	asked [][2]string
 	err   error
+	// pulls answers PullRequest by number; polled records which were asked.
+	pulls  map[int]pullAnswer
+	polled []int
+}
+
+// pullAnswer is what the fake says about a pull request.
+type pullAnswer struct {
+	status githubapp.PullRequestStatus
+	err    error
+}
+
+func (f *fakeGitHub) PullRequest(
+	_ context.Context, _, _ string, number int,
+) (githubapp.PullRequestStatus, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.polled = append(f.polled, number)
+	if answer, ok := f.pulls[number]; ok {
+		return answer.status, answer.err
+	}
+	return ended(githubapp.StateOpen), nil
 }
 
 func (f *fakeGitHub) InstallationToken(
@@ -45,7 +66,9 @@ var _ services.JobGitHub = (*fakeGitHub)(nil)
 
 func githubEnv(t *testing.T) (jobEnv, *fakeGitHub) {
 	t.Helper()
-	gh := &fakeGitHub{mu: sync.Mutex{}, asked: nil, err: nil}
+	gh := &fakeGitHub{
+		mu: sync.Mutex{}, asked: nil, err: nil, pulls: map[int]pullAnswer{}, polled: nil,
+	}
 	return newJobEnvWith(t, true, "browser", factory.WithGitHub(gh)), gh
 }
 

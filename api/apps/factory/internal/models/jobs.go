@@ -38,7 +38,12 @@ type Job struct {
 	// PRURL is the pull request the job opened, if it did.
 	PRURL string
 	// RunnerID is the runner that claimed the job; nil until it is claimed.
-	RunnerID  *uuid.UUID
+	RunnerID *uuid.UUID
+	// PRState, PRCI and PRReview are where the pull request stands, as last read
+	// from GitHub; empty until it has been read.
+	PRState   string
+	PRCI      string
+	PRReview  string
 	CreatedBy string
 	CreatedAt time.Time
 	// StartedAt, LastCheckIn and FinishedAt are nil until they happen.

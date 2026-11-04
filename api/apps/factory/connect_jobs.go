@@ -42,6 +42,9 @@ func protoJob(j *models.Job) *factoryv1.Job {
 		Branch:    j.Branch,
 		CreatedAt: j.CreatedAt.Format(time.RFC3339),
 		PrUrl:     j.PRURL,
+		PrState:   j.PRState,
+		PrCi:      j.PRCI,
+		PrReview:  j.PRReview,
 	}
 }
 

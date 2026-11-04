@@ -20,7 +20,7 @@ func New(
 	repos *repositories.Repositories,
 	authService auth.Service,
 	accounts JobAccounts,
-	github JobGitHub,
+	github GitHub,
 ) *Services {
 	return &Services{
 		Auth:    authService,

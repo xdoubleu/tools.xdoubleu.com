@@ -33,6 +33,12 @@ deploy key can push but can't open a pull request.
   if it is `https://github.com/<owner>/<repo>/pull/<n>` of the job's own repo, for
   a failed job too so no open PR is orphaned. A succeeded job with one moves its
   task to In review; every other job goes to Needs you.
+- **Status is polled, with a read-only token.** Every five minutes a job reads
+  each open pull request of a job (`pull_requests` and `checks` read, minted per
+  repo and reused until shortly before it expires) and keeps its state, a CI
+  rollup and the standing review on the job. No public webhook endpoint is needed.
+  A merge moves a task that is still In review to Done and a close without a merge
+  to Needs you; a task a person has moved on, or one a newer job is on, is left.
 - **Never auto-merge.** The App may open a PR but nothing here merges one.
   `main`'s ruleset must not list the App as a bypass actor.
 
