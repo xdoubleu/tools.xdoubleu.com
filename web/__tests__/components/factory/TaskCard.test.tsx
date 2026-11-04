@@ -34,6 +34,15 @@ describe('TaskCard', () => {
     expect(screen.getByText('2 comments')).toBeInTheDocument()
   })
 
+  it('shows where the pull request stands, only when there is one', () => {
+    const { rerender } = render(<TaskCard task={task} onOpen={vi.fn()} />)
+    expect(screen.queryByTestId('pr-badge')).not.toBeInTheDocument()
+
+    const failing = create(TaskSchema, { ...task, prState: 'open', prCi: 'failing' })
+    rerender(<TaskCard task={failing} onOpen={vi.fn()} />)
+    expect(screen.getByTestId('pr-badge')).toHaveTextContent('CI failing')
+  })
+
   it('omits the comment count when there are no comments', () => {
     render(<TaskCard task={create(TaskSchema, { ...task, commentCount: 0 })} onOpen={vi.fn()} />)
     expect(screen.queryByText(/comments/)).not.toBeInTheDocument()

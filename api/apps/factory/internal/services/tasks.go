@@ -136,6 +136,10 @@ func (s *TaskService) Create(
 		CreatedAt:    time.Time{},
 		UpdatedAt:    time.Time{},
 		CommentCount: 0,
+		PRURL:        "",
+		PRState:      "",
+		PRCI:         "",
+		PRReview:     "",
 	}, actor)
 }
 
@@ -162,6 +166,10 @@ func (s *TaskService) Update(
 		CreatedAt:    time.Time{},
 		UpdatedAt:    time.Time{},
 		CommentCount: 0,
+		PRURL:        "",
+		PRState:      "",
+		PRCI:         "",
+		PRReview:     "",
 	}, actor)
 }
 

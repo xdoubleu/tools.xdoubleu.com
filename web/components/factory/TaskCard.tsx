@@ -6,7 +6,7 @@ import {
   type Task,
   type TaskStatus
 } from '@/lib/gen/factory/v1/factory_pb'
-import { COLUMNS, priorityLabel, repoLabel } from '@/lib/factory/board'
+import { COLUMNS, prBadge, priorityLabel, repoLabel } from '@/lib/factory/board'
 import { useFactoryActions } from '@/hooks/useFactory'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -67,6 +67,7 @@ export function MoveSelect({ task }: { task: Task }) {
 }
 
 export default function TaskCard({ task, repo, onOpen }: TaskCardProps) {
+  const pr = prBadge(task)
   return (
     <Card variant="inset" className="space-y-2">
       <Button
@@ -81,6 +82,11 @@ export default function TaskCard({ task, repo, onOpen }: TaskCardProps) {
         <Badge variant={PRIORITY_VARIANT[task.priority] ?? 'secondary'}>
           {priorityLabel(task.priority)}
         </Badge>
+        {pr && (
+          <Badge variant={pr.variant} data-testid="pr-badge">
+            {pr.label}
+          </Badge>
+        )}
         {task.labels.map((l) => (
           <Badge key={l} variant="default">
             {l}

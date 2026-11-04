@@ -231,3 +231,33 @@ func TestAStoredPullRequestAddressOfAnotherRepoIsNeverAsked(t *testing.T) {
 	require.ErrorContains(t, err, "not this repo's")
 	assert.Empty(t, gh.polled)
 }
+
+func TestATasksPullRequestStatusIsOnTheBoardAndTheTask(t *testing.T) {
+	env, gh := githubEnv(t)
+	plain := env.newTask(t, "no pull request")
+	task := inReview(t, env, "with one", 7)
+	gh.answer(7, githubapp.PullRequestStatus{
+		State: githubapp.StateOpen, CI: githubapp.CIFailing,
+		Review: githubapp.ReviewApproved,
+	}, nil)
+	require.NoError(t, env.poll(t))
+
+	list, err := env.tasks.ListTasks(context.Background(), &factoryv1.ListTasksRequest{})
+	require.NoError(t, err)
+	byID := map[string]*factoryv1.Task{}
+	for _, listed := range list.Tasks {
+		byID[listed.Id] = listed
+	}
+	assert.Empty(t, byID[plain.Id].PrUrl, "a task without a pull request")
+	assert.Empty(t, byID[plain.Id].PrState)
+	with := byID[task.Id]
+	assert.Equal(t, pullURL(7), with.PrUrl)
+	assert.Equal(t, "open", with.PrState)
+	assert.Equal(t, "failing", with.PrCi)
+	assert.Equal(t, "approved", with.PrReview)
+	assert.Equal(t, with.PrCi, env.task(t, task.Id).Task.PrCi, "GetTask says the same")
+
+	// A newer job that opened no pull request doesn't hide the older one's.
+	env.run(t, task.Id, "")
+	assert.Equal(t, pullURL(7), env.task(t, task.Id).Task.PrUrl)
+}

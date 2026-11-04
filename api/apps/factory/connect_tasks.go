@@ -142,6 +142,10 @@ func protoTask(t *models.Task) *factoryv1.Task {
 		CreatedAt:    t.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:    t.UpdatedAt.Format(time.RFC3339),
 		CommentCount: int32(t.CommentCount), //nolint:gosec // a count, far below 2^31
+		PrUrl:        t.PRURL,
+		PrState:      t.PRState,
+		PrCi:         t.PRCI,
+		PrReview:     t.PRReview,
 	}
 }
 
