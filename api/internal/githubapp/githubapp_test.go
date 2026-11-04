@@ -66,6 +66,7 @@ func newFake(t *testing.T, key *rsa.PrivateKey) *fakeGitHub {
 		func(w http.ResponseWriter, r *http.Request) {
 			f.installations.Add(1)
 			f.checkJWT(r)
+			assert.Empty(t, r.Header.Get("Content-Type"), "a GET has no body")
 			assert.Equal(t, "application/vnd.github+json", r.Header.Get("Accept"))
 			if f.installStatus != http.StatusOK {
 				w.WriteHeader(f.installStatus)
@@ -79,6 +80,7 @@ func newFake(t *testing.T, key *rsa.PrivateKey) *fakeGitHub {
 		func(w http.ResponseWriter, r *http.Request) {
 			f.mints.Add(1)
 			f.checkJWT(r)
+			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 			assert.Equal(t, "777", r.PathValue("id"))
 			body, _ := io.ReadAll(r.Body)
 			require.NoError(t, json.Unmarshal(body, &f.lastMint))
