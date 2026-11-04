@@ -123,3 +123,43 @@ func TestAJobWhoseOutcomeDirectoryCannotBeMadeFails(t *testing.T) {
 	assert.Contains(t, got.outcome, "outcome directory")
 	assert.Empty(t, env.sandbox.specs)
 }
+
+func TestRestoreNamesTheGitStepThatFailed(t *testing.T) {
+	// A mirror that is already there: update, clone, set-url, rev-parse.
+	for step, want := range []string{"remote", "clone", "remote", "rev-parse"} {
+		dir := t.TempDir()
+		require.NoError(t, os.MkdirAll(filepath.Join(dir, "mirrors", "o", "n.git"), 0o755))
+		var calls []string
+		g := failingGit(dir, step+1, &calls)
+		// Updating the mirror failing falls back to cloning it afresh, which is a
+		// further call; only the later steps are asserted by name.
+		_, err := g.Restore(
+			context.Background(), "o", "n", "agent/x", filepath.Join(t.TempDir(), "d"),
+		)
+		if step == 0 {
+			require.NoError(t, err, "a mirror that can't update is cloned again")
+			continue
+		}
+		require.Error(t, err, want)
+		assert.Contains(t, err.Error(), "git "+want)
+	}
+}
+
+func TestRestoreReturnsTheBranchTip(t *testing.T) {
+	g := &runner.Git{
+		Dir:       t.TempDir(),
+		RemoteURL: func(string, string) string { return "https://example.com/o/n.git" },
+		Run: func(_ context.Context, _ string, args ...string) ([]byte, error) {
+			if args[0] == "rev-parse" {
+				return []byte("abc123\n"), nil
+			}
+			return nil, nil
+		},
+		RunWithEnv: nil,
+	}
+	tip, err := g.Restore(
+		context.Background(), "o", "n", "agent/x", filepath.Join(t.TempDir(), "d"),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "abc123", tip)
+}

@@ -23,6 +23,7 @@ import (
 
 const (
 	jobID  = "11111111-2222-3333-4444-555555555555"
+	taskID = "66666666-7777-8888-9999-000000000000"
 	branch = "agent/22222222-3333-4444-5555-666666666666-fix-it"
 )
 
@@ -215,10 +216,10 @@ func commitFile(dir, name, content string) {
 
 func newJob() *runner.ClaimedJob {
 	return &runner.ClaimedJob{
-		ID: jobID, TaskID: "t", RepoOwner: "xdoubleu", RepoName: "tools.xdoubleu.com",
+		ID: jobID, TaskID: taskID, RepoOwner: "xdoubleu", RepoName: "tools.xdoubleu.com",
 		DefaultBranch: "main", Harness: runner.HarnessClaudeCode, Prompt: "# Task: Fix it",
 		Branch: branch, SetupCommands: "make setup", TimeLimitMinutes: 1,
-		MCPClientID: "", MCPClientSecret: "",
+		MCPClientID: "", MCPClientSecret: "", ResumeSessionID: "",
 	}
 }
 
@@ -317,8 +318,12 @@ func TestTheRunnerRefusesWhatItsOwnRulesForbid(t *testing.T) {
 		"an option as the branch": func(j *runner.ClaimedJob) {
 			j.Branch = "--upload-pack=x"
 		},
-		"an option as the base":      func(j *runner.ClaimedJob) { j.DefaultBranch = "-x" },
-		"a job id that names a path": func(j *runner.ClaimedJob) { j.ID = "../../etc" },
+		"an option as the base":       func(j *runner.ClaimedJob) { j.DefaultBranch = "-x" },
+		"a job id that names a path":  func(j *runner.ClaimedJob) { j.ID = "../../etc" },
+		"a task id that names a path": func(j *runner.ClaimedJob) { j.TaskID = "../x" },
+		"a session id that is an option": func(j *runner.ClaimedJob) {
+			j.ResumeSessionID = "--dangerously-skip-permissions"
+		},
 		"a harness it can't run": func(j *runner.ClaimedJob) {
 			j.Harness = "HARNESS_OPENCODE"
 		},
@@ -640,4 +645,147 @@ func TestAJobWithoutARepoLimitGetsTheDefault(t *testing.T) {
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
 	assert.WithinDuration(t, start.Add(runner.DefaultTimeLimit), deadline, time.Minute)
+}
+
+const replyJobID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+
+// replyJob is the job a Reply queues after newJob's: same task and branch, the
+// first job's session to resume.
+func replyJob() *runner.ClaimedJob {
+	job := newJob()
+	job.ID = replyJobID
+	job.Prompt = "CI is red, fix it"
+	job.ResumeSessionID = "sess-9"
+	return job
+}
+
+// ranFirstJob runs newJob to the end and pushes its branch, as the publish step
+// would have, so a Reply has something to restore.
+func ranFirstJob(t *testing.T, env *jobEnv) {
+	t.Helper()
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	clone := env.sandbox.specs[0].CloneDir
+	gitIn(t, clone, "push", "origin", branch)
+}
+
+func TestEveryJobGetsItsTasksSessionDirectory(t *testing.T) {
+	env := newEnv(t, writes("ok", 0), newJob())
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	spec := env.sandbox.specs[0]
+	assert.Equal(t, filepath.Join(env.dir, "sessions", taskID), spec.SessionDir)
+	assert.DirExists(t, spec.SessionDir)
+	assert.Equal(t, runner.SandboxSessionDir, spec.Env["CLAUDE_CONFIG_DIR"])
+	assert.Equal(
+		t,
+		runner.ClaudeCode{}.Command(),
+		spec.Command,
+		"a first job starts fresh",
+	)
+}
+
+func TestAReplyResumesTheSessionOnTheTasksBranch(t *testing.T) {
+	var runs int
+	env := newEnv(t, func(
+		ctx context.Context, spec runner.SandboxSpec,
+	) (int, error) {
+		runs++
+		if runs == 1 {
+			return writes("First.", 0)(ctx, spec)
+		}
+		commitFile(spec.CloneDir, "fix.txt", "fixed")
+		_ = os.WriteFile(
+			filepath.Join(spec.OutcomeDir, "outcome.md"),
+			[]byte("Fixed."),
+			0o644,
+		)
+		return 0, nil
+	}, newJob())
+	ranFirstJob(t, env)
+	env.api.jobs = append(env.api.jobs, replyJob())
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	first, second := env.sandbox.specs[0], env.sandbox.specs[1]
+	assert.Equal(t, first.SessionDir, second.SessionDir, "the same task, the same session")
+	assert.Equal(t, runner.ClaudeCode{}.Resume("sess-9"), second.Command)
+	assert.Contains(t, second.Command, "--resume")
+	assert.True(t, strings.HasSuffix(second.Stdin, "CI is red, fix it"))
+	assert.Equal(t, branch, gitIn(t, second.CloneDir, "branch", "--show-current"))
+	assert.FileExists(t, filepath.Join(second.CloneDir, "agent.txt"), "the earlier work")
+	assert.Equal(t, env.remote, gitIn(t, second.CloneDir, "remote", "get-url", "origin"))
+
+	got := env.api.done()[1]
+	assert.Equal(t, replyJobID, got.jobID)
+	assert.True(t, got.succeeded, got.outcome)
+	assert.Equal(t, "Fixed.", got.outcome)
+}
+
+func TestAReplyThatAddsNoCommitIsNotPublishable(t *testing.T) {
+	var runs int
+	env := newEnv(t, func(
+		ctx context.Context, spec runner.SandboxSpec,
+	) (int, error) {
+		runs++
+		if runs == 1 {
+			return writes("First.", 0)(ctx, spec)
+		}
+		_ = os.WriteFile(
+			filepath.Join(spec.OutcomeDir, "outcome.md"),
+			[]byte("Nothing."),
+			0o644,
+		)
+		return 0, nil
+	}, newJob())
+	ranFirstJob(t, env)
+	env.api.jobs = append(env.api.jobs, replyJob())
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	got := env.api.done()[1]
+	assert.False(t, got.succeeded, "the earlier commits don't count for the reply")
+	assert.Contains(t, got.outcome, "no commits")
+}
+
+func TestAReplyThatRewritesTheBranchIsRefused(t *testing.T) {
+	var runs int
+	env := newEnv(t, func(
+		ctx context.Context, spec runner.SandboxSpec,
+	) (int, error) {
+		runs++
+		if runs == 1 {
+			return writes("First.", 0)(ctx, spec)
+		}
+		gitIn(t, spec.CloneDir, "reset", "--hard", "HEAD~1")
+		commitFile(spec.CloneDir, "other.txt", "x")
+		_ = os.WriteFile(
+			filepath.Join(spec.OutcomeDir, "outcome.md"),
+			[]byte("Redone."),
+			0o644,
+		)
+		return 0, nil
+	}, newJob())
+	ranFirstJob(t, env)
+	env.api.jobs = append(env.api.jobs, replyJob())
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	got := env.api.done()[1]
+	assert.False(t, got.succeeded)
+	assert.Contains(t, got.outcome, "no longer builds on where the job began")
+}
+
+func TestAReplyNeedsTheEarlierWorkOnGitHub(t *testing.T) {
+	env := newEnv(t, writes("ok", 0), replyJob())
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	got := env.api.done()[0]
+	assert.False(t, got.succeeded)
+	assert.Contains(t, got.outcome, "Could not prepare the clone")
+	assert.Contains(t, got.outcome, "pushed to GitHub")
+	assert.Empty(t, env.sandbox.specs, "the agent never ran")
 }

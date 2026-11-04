@@ -73,6 +73,36 @@ func (g *Git) updateMirror(ctx context.Context, remote, mirror string) error {
 	return g.mustGit(ctx, "", "clone", "--mirror", "--", remote, mirror)
 }
 
+// Restore makes a standalone clone of owner/name at dest on the existing branch,
+// as a Reply's job continues it, and returns the commit the branch is at. The
+// branch comes from the mirror, so it must have been pushed.
+func (g *Git) Restore(
+	ctx context.Context,
+	owner, name, branch, dest string,
+) (string, error) {
+	remote := g.RemoteURL(owner, name)
+	mirror := filepath.Join(g.Dir, "mirrors", owner, name+".git")
+	if err := g.updateMirror(ctx, remote, mirror); err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(filepath.Dir(dest), gitDirPerm); err != nil {
+		return "", fmt.Errorf("create job dir: %w", err)
+	}
+	err := g.mustGit(ctx, "", "clone", "--no-hardlinks", "--branch", branch,
+		"--", mirror, dest)
+	if err != nil {
+		return "", err
+	}
+	if err = g.mustGit(ctx, dest, "remote", "set-url", "origin", remote); err != nil {
+		return "", err
+	}
+	out, err := g.git(ctx, dest, "rev-parse", "HEAD")
+	if err != nil {
+		return "", fmt.Errorf("git rev-parse: %w: %s", err, bytes.TrimSpace(out))
+	}
+	return string(bytes.TrimSpace(out)), nil
+}
+
 // Clone makes a standalone clone of owner/name at dest, on a new branch off base.
 // The repo is mirrored on the host first (fetched, never exposed to the sandbox)
 // and the clone copies from the mirror without hard links, so a write through the

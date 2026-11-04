@@ -40,6 +40,10 @@ var jobIDPattern = regexp.MustCompile(
 	`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`,
 )
 
+// sessionIDPattern is what a harness session id may look like: it goes into the
+// harness's argv, so nothing that could be read as a flag or a path.
+var sessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$`)
+
 // preamble is the runner's own, repo-agnostic part of every prompt; the server
 // can't change it. %s is the job's branch.
 const preamble = `You are running unattended in a sandbox with no network ` +
@@ -184,6 +188,12 @@ func (r *JobRunner) check(job *ClaimedJob) error {
 	if !jobIDPattern.MatchString(job.ID) {
 		return fmt.Errorf("%w: invalid job id", ErrRefused)
 	}
+	if !jobIDPattern.MatchString(job.TaskID) {
+		return fmt.Errorf("%w: invalid task id", ErrRefused)
+	}
+	if job.ResumeSessionID != "" && !sessionIDPattern.MatchString(job.ResumeSessionID) {
+		return fmt.Errorf("%w: invalid session id", ErrRefused)
+	}
 	if job.Harness != HarnessClaudeCode {
 		return fmt.Errorf("%w: harness %q is not supported yet", ErrRefused, job.Harness)
 	}
@@ -219,18 +229,23 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	dir := filepath.Join(r.DataDir, "jobs", job.ID)
 	cloneDir := filepath.Join(dir, "clone")
 	outcomeDir := filepath.Join(dir, "outcome")
+	// The session state belongs to the task, not the job: a Reply resumes it.
+	sessionDir := filepath.Join(r.DataDir, "sessions", job.TaskID)
 	// A job claimed again (after a restart) starts from a clean directory.
 	if err := os.RemoveAll(dir); err != nil {
 		return failed("Could not clear the job directory: " + err.Error())
 	}
-	err := r.Git.Clone(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
-		job.Branch, cloneDir)
+	since, err := r.prepareClone(ctx, job, cloneDir)
 	if err != nil {
 		return failed("Could not prepare the clone: " + err.Error())
 	}
 	if err = prepareOutcomeDir(outcomeDir); err != nil {
 		return failed("Could not prepare the outcome directory: " + err.Error())
 	}
+	if err = prepareOutcomeDir(sessionDir); err != nil {
+		return failed("Could not prepare the session directory: " + err.Error())
+	}
+	command, env := r.invocation(job)
 
 	limit := r.limitFor(job)
 	runCtx, cancel := context.WithTimeout(ctx, limit)
@@ -242,14 +257,12 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	wait := r.watch(runCtx, cancel, job.ID, tap, events, &stopped)
 
 	exit, runErr := r.Sandbox.Run(runCtx, SandboxSpec{
-		CloneDir:   cloneDir,
-		OutcomeDir: outcomeDir,
-		Env: map[string]string{
-			"FACTORY_JOB":          job.ID,
-			"FACTORY_OUTCOME_PATH": SandboxOutcomePath,
-		},
+		CloneDir:      cloneDir,
+		OutcomeDir:    outcomeDir,
+		SessionDir:    sessionDir,
+		Env:           env,
 		SetupCommands: job.SetupCommands,
-		Command:       r.Harness.Command(),
+		Command:       command,
 		Stdin:         fmt.Sprintf(preamble, job.Branch) + "\n\n" + job.Prompt,
 		Log:           io.MultiWriter(tap, events),
 	})
@@ -276,10 +289,47 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	case text == "":
 		reason = "The agent exited cleanly but wrote no outcome file."
 	default:
-		return r.publishable(ctx, job, cloneDir, text, res)
+		return r.publishable(ctx, job, cloneDir, since, text, res)
 	}
 	res.outcome = strings.TrimSpace(reason + "\n\n" + text)
 	return res
+}
+
+// invocation is what the sandbox runs for the job, and its environment: a fresh
+// session, or a Reply's resumed one.
+func (r *JobRunner) invocation(job *ClaimedJob) ([]string, map[string]string) {
+	command := r.Harness.Command()
+	if job.ResumeSessionID != "" {
+		command = r.Harness.Resume(job.ResumeSessionID)
+	}
+	env := r.Harness.SessionEnv(SandboxSessionDir)
+	env["FACTORY_JOB"] = job.ID
+	env["FACTORY_OUTCOME_PATH"] = SandboxOutcomePath
+	return command, env
+}
+
+// prepareClone makes the job's clone: a new branch off the base, or for a Reply's
+// job the task's existing branch. It also returns the commit a Reply began at ("" for
+// a new branch), where the host's checks start.
+func (r *JobRunner) prepareClone(
+	ctx context.Context,
+	job *ClaimedJob,
+	cloneDir string,
+) (string, error) {
+	if job.ResumeSessionID == "" {
+		err := r.Git.Clone(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
+			job.Branch, cloneDir)
+		if err != nil {
+			return "", err
+		}
+		return "", nil
+	}
+	tip, err := r.Git.Restore(ctx, job.RepoOwner, job.RepoName, job.Branch, cloneDir)
+	if err != nil {
+		return "", fmt.Errorf("restore the branch %s (a Reply needs the earlier work "+
+			"pushed to GitHub): %w", job.Branch, err)
+	}
+	return tip, nil
 }
 
 // publishable runs the host's checks on a job the agent says it finished. A job
@@ -288,12 +338,12 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 func (r *JobRunner) publishable(
 	ctx context.Context,
 	job *ClaimedJob,
-	cloneDir, text string,
+	cloneDir, since, text string,
 	res result,
 ) result {
 	secrets := append(r.secrets(), job.MCPClientSecret)
 	reviewed, err := r.Git.Inspect(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
-		job.Branch, job.ID, cloneDir, secrets)
+		job.Branch, job.ID, cloneDir, since, secrets)
 	if err == nil && leaks(text, secrets) {
 		reviewed.Close()
 		err = fmt.Errorf("%w: the outcome contains a credential value", ErrHostCheck)

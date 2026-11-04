@@ -11,6 +11,8 @@ const (
 	SandboxOutcomePath = "/outcome/outcome.md"
 	// SandboxCloneDir is where the job's clone is mounted inside the sandbox.
 	SandboxCloneDir = "/work"
+	// SandboxSessionDir is where the task's harness session state is mounted.
+	SandboxSessionDir = "/session"
 )
 
 // SandboxSpec is everything one job gets: its clone, an outcome directory, its
@@ -19,7 +21,10 @@ type SandboxSpec struct {
 	// CloneDir is mounted read-write at SandboxCloneDir.
 	CloneDir string
 	// OutcomeDir is mounted read-write at the directory of SandboxOutcomePath.
-	OutcomeDir    string
+	OutcomeDir string
+	// SessionDir is mounted read-write at SandboxSessionDir; it outlives the job,
+	// so a Reply can resume the session.
+	SessionDir    string
 	Env           map[string]string
 	SetupCommands string
 	Command       []string
