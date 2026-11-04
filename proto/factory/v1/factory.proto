@@ -129,6 +129,14 @@ message Job {
   string created_at = 5;
   // The pull request the job opened; empty if it opened none.
   string pr_url = 6;
+  // Where that pull request stands, as the server last read it from GitHub:
+  // "open", "merged" or "closed"; empty until it has been read.
+  string pr_state = 7;
+  // The head commit's checks while it is open: "pending", "passing" or "failing";
+  // empty when there are none.
+  string pr_ci = 8;
+  // The standing review while it is open: "approved" or "changes_requested".
+  string pr_review = 9;
 }
 
 // One event of a job's log: a line of the harness's stream-json output.

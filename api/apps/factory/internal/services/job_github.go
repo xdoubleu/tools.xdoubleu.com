@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -21,6 +22,21 @@ var ErrPushNotConfigured = errors.New("pushing is not configured")
 // optional: without it no job can push.
 type JobGitHub interface {
 	InstallationToken(ctx context.Context, owner, repo string) (githubapp.Token, error)
+}
+
+// PullRequestSource reads where a pull request stands (adr-0045).
+type PullRequestSource interface {
+	PullRequest(
+		ctx context.Context,
+		owner, repo string,
+		number int,
+	) (githubapp.PullRequestStatus, error)
+}
+
+// GitHub is everything the factory asks of the GitHub App.
+type GitHub interface {
+	JobGitHub
+	PullRequestSource
 }
 
 // ErrGitHubFailed is any failure to get a token from GitHub other than the App
@@ -61,18 +77,27 @@ func (s *JobService) PushToken(
 	return token, nil
 }
 
-var pullPath = regexp.MustCompile(`^/([^/]+)/([^/]+)/pull/[1-9][0-9]*$`)
+var pullPath = regexp.MustCompile(`^/([^/]+)/([^/]+)/pull/([1-9][0-9]*)$`)
 
-// ownPullRequest reports whether raw is the address of a pull request of the
+// pullNumber is the number of raw, if it is the address of a pull request of the
 // repo, as GitHub writes it. The runner reports it, so it is checked: a link on a
 // task must lead to GitHub and to this repo's pulls, nowhere else.
-func ownPullRequest(raw string, repo *models.Repo) bool {
+func pullNumber(raw string, repo *models.Repo) (int, bool) {
 	u, err := url.Parse(raw)
 	if err != nil || u.Scheme != "https" || u.Host != "github.com" ||
 		u.User != nil || u.RawQuery != "" || u.Fragment != "" {
-		return false
+		return 0, false
 	}
 	m := pullPath.FindStringSubmatch(u.Path)
-	return m != nil && strings.EqualFold(m[1], repo.Owner) &&
-		strings.EqualFold(m[2], repo.Name)
+	if m == nil || !strings.EqualFold(m[1], repo.Owner) ||
+		!strings.EqualFold(m[2], repo.Name) {
+		return 0, false
+	}
+	n, err := strconv.Atoi(m[3])
+	return n, err == nil
+}
+
+func ownPullRequest(raw string, repo *models.Repo) bool {
+	_, ok := pullNumber(raw, repo)
+	return ok
 }

@@ -34,7 +34,7 @@ type Factory struct {
 	stepUp        StepUp
 	heartbeatHold time.Duration
 	jobAccounts   services.JobAccounts
-	github        services.JobGitHub
+	github        services.GitHub
 }
 
 // WithJobAccounts makes every claimed job run as an agent account of its own,
@@ -45,7 +45,7 @@ func WithJobAccounts(accounts services.JobAccounts) Option {
 
 // WithGitHub lets a running job fetch a short-lived token to push its branch and
 // open its pull request. Without it jobs end in Needs you with the work on the Mac.
-func WithGitHub(github services.JobGitHub) Option {
+func WithGitHub(github services.GitHub) Option {
 	return func(a *Factory) { a.github = github }
 }
 
@@ -107,7 +107,20 @@ func (a *Factory) GetDisplayName() string {
 
 func (a *Factory) Start() error {
 	noop := func(_ string, _ bool, _ *time.Time) {}
-	return a.jobQueue.AddJob(a.pruneJob(), noop)
+	return errors.Join(
+		a.jobQueue.AddJob(a.pruneJob(), noop),
+		a.jobQueue.AddJob(a.pollJob(), noop),
+	)
+}
+
+func (a *Factory) pollJob() threading.Job {
+	poll := jobs.NewPollPullRequestsJob(a.services.Jobs)
+	return observability.NewTrackedJob(poll, a.db)
+}
+
+// PollPullRequestsNow reads every open pull request once, outside the schedule.
+func (a *Factory) PollPullRequestsNow(ctx context.Context) error {
+	return a.pollJob().Run(ctx, a.Logger)
 }
 
 func (a *Factory) pruneJob() threading.Job {

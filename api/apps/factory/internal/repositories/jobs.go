@@ -16,7 +16,7 @@ type JobsRepository struct {
 
 const jobColumns = `id, task_id, repo_id, harness, prompt, status, branch,
 	session_id, outcome, created_by, created_at, started_at, last_check_in,
-	finished_at, pr_url, runner_id`
+	finished_at, pr_url, runner_id, pr_state, pr_ci, pr_review`
 
 func scanJob(row rowScanner) (*models.Job, error) {
 	var j models.Job
@@ -24,7 +24,7 @@ func scanJob(row rowScanner) (*models.Job, error) {
 		&j.ID, &j.TaskID, &j.RepoID, &j.Harness, &j.Prompt, &j.Status, &j.Branch,
 		&j.SessionID, &j.Outcome, &j.CreatedBy, &j.CreatedAt, &j.StartedAt,
 		&j.LastCheckIn, &j.FinishedAt, &j.PRURL,
-		&j.RunnerID,
+		&j.RunnerID, &j.PRState, &j.PRCI, &j.PRReview,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -188,4 +188,44 @@ func (r *JobsRepository) Running(
 		out = append(out, id)
 	}
 	return out, rows.Err()
+}
+
+// WithOpenPullRequest lists jobs whose pull request is not over, the ones read
+// longest ago first, so a limit still gets to all of them in turn.
+func (r *JobsRepository) WithOpenPullRequest(
+	ctx context.Context,
+	limit int,
+) ([]models.Job, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT `+jobColumns+` FROM factory.jobs
+		WHERE pr_url <> '' AND pr_state NOT IN ('merged', 'closed')
+		ORDER BY pr_checked_at NULLS FIRST, created_at
+		LIMIT $1`, limit)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	out := []models.Job{}
+	for rows.Next() {
+		j, scanErr := scanJob(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		out = append(out, *j)
+	}
+	return out, rows.Err()
+}
+
+// SetPullRequestStatus records what the poller read.
+func (r *JobsRepository) SetPullRequestStatus(
+	ctx context.Context,
+	id uuid.UUID,
+	state, ci, review string,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE factory.jobs
+		SET pr_state = $2, pr_ci = $3, pr_review = $4, pr_checked_at = now()
+		WHERE id = $1`, id, state, ci, review)
+	return postgres.PgxErrorToHTTPError(err)
 }
