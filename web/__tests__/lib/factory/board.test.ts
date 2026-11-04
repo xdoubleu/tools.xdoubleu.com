@@ -28,6 +28,8 @@ import {
   reposOf,
   runnerState,
   jobActive,
+  FIX_CI_REPLY,
+  canFixCi,
   jobStatusLabel,
   prStatusLine,
   JOB_POLL_MS,
@@ -215,5 +217,16 @@ describe('board', () => {
     expect(pr('merged', 'passing', 'approved')).toBe('PR merged')
     expect(pr('closed', 'failing')).toBe('PR closed')
     expect(pr('weird')).toBe('')
+  })
+
+  it('offers a CI fix only for an open pull request with failing checks', () => {
+    const pr = (prState: string, prCi: string) => canFixCi(create(JobSchema, { prState, prCi }))
+    expect(canFixCi(undefined)).toBe(false)
+    expect(pr('open', 'failing')).toBe(true)
+    expect(pr('open', 'passing')).toBe(false)
+    expect(pr('open', 'pending')).toBe(false)
+    expect(pr('merged', 'failing')).toBe(false)
+    expect(pr('', 'failing')).toBe(false)
+    expect(FIX_CI_REPLY).toContain('CI is red')
   })
 })

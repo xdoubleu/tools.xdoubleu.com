@@ -190,3 +190,12 @@ export function prStatusLine(job: Job | undefined): string {
   }
   return parts.join(' · ')
 }
+
+/** What "Reply: fix CI" sends. */
+export const FIX_CI_REPLY =
+  'CI is red on the pull request. Find out why the checks fail, fix it, and push.'
+
+/** Whether the job's pull request is open with failing checks, so a Reply can fix it. */
+export function canFixCi(job: Job | undefined): boolean {
+  return job?.prState === 'open' && job.prCi === 'failing'
+}
