@@ -589,7 +589,7 @@ func approvedTask(c *repositories.PickupCandidate) *models.Task {
 		ID: c.TaskID, RepoID: c.RepoID, Title: c.Title, Body: c.Body, Status: "",
 		Priority: "", Labels: nil, CreatedBy: "", CreatedAt: time.Time{},
 		UpdatedAt: time.Time{}, CommentCount: 0, PRURL: "", PRState: "", PRCI: "",
-		PRReview: "",
+		PRReview: "", PickupApproved: true,
 	}
 }
 

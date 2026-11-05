@@ -233,3 +233,12 @@ export function jobRunner(job: Pick<Job, 'harness' | 'model'>): string {
   const label = harnessLabel(job.harness)
   return job.model ? `${label} · ${job.model}` : label
 }
+
+/**
+ * Whether a Ready task of a repo with auto pickup is waiting for a human to approve
+ * its text: it was last edited by an agent, or is from before approvals existed.
+ */
+export function awaitingPickupApproval(task: Task, repos: Repo[]): boolean {
+  if (task.status !== TaskStatus.READY || task.pickupApproved) return false
+  return repos.find((r) => r.id === task.repoId)?.autoPickup === true
+}

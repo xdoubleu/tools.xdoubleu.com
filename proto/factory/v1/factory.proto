@@ -45,6 +45,10 @@ message Task {
   string pr_state = 13;
   string pr_ci = 14;
   string pr_review = 15;
+  // Whether a human approved this Ready task's text for auto pickup: set when it
+  // is moved to Ready (or saved while Ready) from a browser, so false for a Ready
+  // task whose body an agent last edited. Always false outside Ready.
+  bool pickup_approved = 16;
 }
 
 message Comment {

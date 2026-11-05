@@ -23,6 +23,8 @@ interface TaskCardProps {
   task: Task
   /** Shown on the card when the board mixes several repos. */
   repo?: Repo
+  /** A Ready task of a repo with auto pickup whose text no human has approved yet. */
+  awaitingApproval?: boolean
   onOpen: (id: string) => void
 }
 
@@ -66,7 +68,7 @@ export function MoveSelect({ task }: { task: Task }) {
   )
 }
 
-export default function TaskCard({ task, repo, onOpen }: TaskCardProps) {
+export default function TaskCard({ task, repo, awaitingApproval, onOpen }: TaskCardProps) {
   const pr = prBadge(task)
   return (
     <Card variant="inset" className="space-y-2">
@@ -96,6 +98,11 @@ export default function TaskCard({ task, repo, onOpen }: TaskCardProps) {
           <span className="text-xs text-muted">{task.commentCount} comments</span>
         )}
       </div>
+      {awaitingApproval && (
+        <p className="text-xs text-warn" data-testid="approval-hint">
+          Not approved for auto pickup. Edit and save its text in the app to approve it.
+        </p>
+      )}
       <MoveSelect task={task} />
     </Card>
   )

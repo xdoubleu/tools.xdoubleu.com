@@ -262,12 +262,16 @@ type Task struct {
 	RepoId       string `protobuf:"bytes,11,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
 	// The pull request of the task's newest job that opened one, as last read from
 	// GitHub; all empty when no job did. Same values as Job.pr_*.
-	PrUrl         string `protobuf:"bytes,12,opt,name=pr_url,json=prUrl,proto3" json:"pr_url,omitempty"`
-	PrState       string `protobuf:"bytes,13,opt,name=pr_state,json=prState,proto3" json:"pr_state,omitempty"`
-	PrCi          string `protobuf:"bytes,14,opt,name=pr_ci,json=prCi,proto3" json:"pr_ci,omitempty"`
-	PrReview      string `protobuf:"bytes,15,opt,name=pr_review,json=prReview,proto3" json:"pr_review,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	PrUrl    string `protobuf:"bytes,12,opt,name=pr_url,json=prUrl,proto3" json:"pr_url,omitempty"`
+	PrState  string `protobuf:"bytes,13,opt,name=pr_state,json=prState,proto3" json:"pr_state,omitempty"`
+	PrCi     string `protobuf:"bytes,14,opt,name=pr_ci,json=prCi,proto3" json:"pr_ci,omitempty"`
+	PrReview string `protobuf:"bytes,15,opt,name=pr_review,json=prReview,proto3" json:"pr_review,omitempty"`
+	// Whether a human approved this Ready task's text for auto pickup: set when it
+	// is moved to Ready (or saved while Ready) from a browser, so false for a Ready
+	// task whose body an agent last edited. Always false outside Ready.
+	PickupApproved bool `protobuf:"varint,16,opt,name=pickup_approved,json=pickupApproved,proto3" json:"pickup_approved,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Task) Reset() {
@@ -403,6 +407,13 @@ func (x *Task) GetPrReview() string {
 		return x.PrReview
 	}
 	return ""
+}
+
+func (x *Task) GetPickupApproved() bool {
+	if x != nil {
+		return x.PickupApproved
+	}
+	return false
 }
 
 type Comment struct {
@@ -2189,7 +2200,7 @@ var File_factory_v1_factory_proto protoreflect.FileDescriptor
 const file_factory_v1_factory_proto_rawDesc = "" +
 	"\n" +
 	"\x18factory/v1/factory.proto\x12\n" +
-	"factory.v1\"\xbd\x03\n" +
+	"factory.v1\"\xe6\x03\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x12\n" +
@@ -2209,7 +2220,8 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x06pr_url\x18\f \x01(\tR\x05prUrl\x12\x19\n" +
 	"\bpr_state\x18\r \x01(\tR\aprState\x12\x13\n" +
 	"\x05pr_ci\x18\x0e \x01(\tR\x04prCi\x12\x1b\n" +
-	"\tpr_review\x18\x0f \x01(\tR\bprReview\"d\n" +
+	"\tpr_review\x18\x0f \x01(\tR\bprReview\x12'\n" +
+	"\x0fpickup_approved\x18\x10 \x01(\bR\x0epickupApproved\"d\n" +
 	"\aComment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06author\x18\x02 \x01(\tR\x06author\x12\x12\n" +

@@ -132,6 +132,7 @@ export interface RepoFields {
   defaultBranch: string
   defaultHarness: Harness
   defaultModel: string
+  autoPickup: boolean
   setupCommands: string
   agentInstructions: string
   timeLimitMinutes: number
@@ -185,6 +186,11 @@ export function useFactoryActions() {
       } finally {
         await refresh()
       }
+    },
+    /** Pauses or resumes auto pickup for the whole board; resuming takes a human in a browser. */
+    setPickupPaused: async (paused: boolean) => {
+      await client.setPickupPaused({ paused })
+      await refresh()
     },
     /** Cancels the task's queued or running job; the runner stops on its next check-in. */
     stop: async (taskId: string) => {

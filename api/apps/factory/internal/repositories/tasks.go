@@ -30,19 +30,21 @@ const prColumn = `(SELECT ARRAY[j.pr_url, j.pr_state, j.pr_ci, j.pr_review]
 const listColumns = `id, repo_id, title, '', status, priority, labels, created_by,
 	created_at, updated_at,
 	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id),
-	` + prColumn
+	` + prColumn + `,
+	ready_body IS NOT NULL`
 
 const getColumns = `id, repo_id, title, body, status, priority, labels, created_by,
 	created_at, updated_at,
 	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id),
-	` + prColumn
+	` + prColumn + `,
+	ready_body IS NOT NULL`
 
 func scanTask(row rowScanner) (*models.Task, error) {
 	var t models.Task
 	var pr []string
 	err := row.Scan(
 		&t.ID, &t.RepoID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Labels,
-		&t.CreatedBy, &t.CreatedAt, &t.UpdatedAt, &t.CommentCount, &pr,
+		&t.CreatedBy, &t.CreatedAt, &t.UpdatedAt, &t.CommentCount, &pr, &t.PickupApproved,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)

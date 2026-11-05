@@ -1,12 +1,14 @@
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 
 let mockQuery = ''
 vi.mock('@/hooks/navigation', () => ({
   useSearchParams: () => new URLSearchParams(mockQuery)
 }))
+const mockSetPaused = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
+  useFactoryActions: () => ({ setPickupPaused: mockSetPaused }),
   useFactoryTasks: vi.fn(),
   useFactoryRepos: vi.fn(),
   useFactoryRunners: vi.fn()
@@ -16,15 +18,18 @@ vi.mock('@/components/factory/TaskCard', () => ({
   default: ({
     task,
     repo,
+    awaitingApproval,
     onOpen
   }: {
     task: { id: string; title: string }
     repo?: { name: string }
+    awaitingApproval?: boolean
     onOpen: (id: string) => void
   }) => (
     <button onClick={() => onOpen(task.id)}>
       {task.title}
       {repo && <span data-testid="repo">{repo.name}</span>}
+      {awaitingApproval && <span data-testid="awaiting">awaiting</span>}
     </button>
   )
 }))
@@ -100,6 +105,7 @@ function mockRepos(data?: unknown) {
 beforeEach(() => {
   vi.clearAllMocks()
   mockQuery = ''
+  mockSetPaused.mockResolvedValue(undefined)
   mockRepos(undefined)
   mockRunners(undefined)
 })
@@ -213,6 +219,91 @@ describe('FactoryClient', () => {
     mockTasks({ data: board })
     render(<FactoryClient />)
     expect(screen.getByRole('link', { name: 'Repos' })).toHaveAttribute('href', '/factory/repos')
+  })
+
+  describe('auto pickup', () => {
+    const pickupRepos = create(ListReposResponseSchema, {
+      repos: [create(RepoSchema, { id: 'r1', owner: 'octo', name: 'cat', autoPickup: true })]
+    })
+
+    it('shows nothing about it while no repo has it on', () => {
+      mockTasks({ data: board })
+      mockRepos(oneRepo)
+      render(<FactoryClient />)
+      expect(screen.queryByText('Auto pickup')).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Pause' })).not.toBeInTheDocument()
+    })
+
+    it('shows it once any one of several repos has it on, and not while loading', () => {
+      const mixed = create(ListReposResponseSchema, {
+        repos: [
+          create(RepoSchema, { id: 'r1', owner: 'octo', name: 'cat', autoPickup: false }),
+          create(RepoSchema, { id: 'r2', owner: 'octo', name: 'dog', autoPickup: true })
+        ]
+      })
+      mockRepos(mixed)
+      mockTasks({ isLoading: true })
+      const { unmount } = render(<FactoryClient />)
+      expect(screen.queryByText(/Auto pickup/)).not.toBeInTheDocument()
+      unmount()
+
+      mockTasks({ data: board })
+      render(<FactoryClient />)
+      expect(screen.getByText(/Auto pickup/)).toHaveTextContent('Auto pickup On')
+    })
+
+    it('pauses it from the board, and resumes it', async () => {
+      mockTasks({ data: board })
+      mockRepos(pickupRepos)
+      const { unmount } = render(<FactoryClient />)
+      expect(screen.getByText('On').className).toContain('text-success')
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+      await waitFor(() => expect(mockSetPaused).toHaveBeenCalledWith(true))
+      unmount()
+
+      mockTasks({ data: create(ListTasksResponseSchema, { tasks: [], pickupPaused: true }) })
+      render(<FactoryClient />)
+      expect(screen.getByText('Paused').className).toContain('text-warn')
+      fireEvent.click(screen.getByRole('button', { name: 'Resume' }))
+      await waitFor(() => expect(mockSetPaused).toHaveBeenLastCalledWith(false))
+    })
+
+    it('says why it could not be changed', async () => {
+      mockSetPaused.mockRejectedValueOnce(new Error('only a human can resume'))
+      mockTasks({ data: board })
+      mockRepos(pickupRepos)
+      render(<FactoryClient />)
+      fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+      expect(await screen.findByRole('alert')).toHaveTextContent('only a human can resume')
+
+      mockSetPaused.mockRejectedValueOnce('boom')
+      fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+      await waitFor(() =>
+        expect(screen.getByRole('alert')).toHaveTextContent('Couldn\u2019t change auto pickup')
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+      await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+    })
+
+    it('flags a Ready task of such a repo whose text is not approved', () => {
+      const ready = (id: string, pickupApproved: boolean) =>
+        create(TaskSchema, {
+          id,
+          title: id,
+          status: TaskStatus.READY,
+          repoId: 'r1',
+          pickupApproved
+        })
+      mockTasks({
+        data: create(ListTasksResponseSchema, { tasks: [ready('A', false), ready('B', true)] })
+      })
+      mockRepos(pickupRepos)
+      render(<FactoryClient />)
+      expect(screen.getAllByTestId('awaiting')).toHaveLength(1)
+      expect(screen.getByRole('button', { name: /A/ })).toHaveTextContent('awaiting')
+    })
   })
 
   it('offers no repo filter or repo names with a single repo', () => {

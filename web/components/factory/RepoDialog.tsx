@@ -5,6 +5,7 @@ import { HARNESSES } from '@/lib/factory/board'
 import { useFactoryActions } from '@/hooks/useFactory'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,7 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
   const [branch, setBranch] = useState(repo?.defaultBranch ?? 'main')
   const [harness, setHarness] = useState<Harness>(repo?.defaultHarness ?? Harness.CLAUDE_CODE)
   const [model, setModel] = useState(repo?.defaultModel ?? '')
+  const [autoPickup, setAutoPickup] = useState(repo?.autoPickup ?? false)
   const [limit, setLimit] = useState(String(repo?.timeLimitMinutes ?? DEFAULT_LIMIT_MINUTES))
   const [setup, setSetup] = useState(repo?.setupCommands ?? '')
   const [instructions, setInstructions] = useState(repo?.agentInstructions ?? '')
@@ -63,6 +65,7 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
       defaultHarness: harness,
       // Claude Code chooses its own model.
       defaultModel: harness === Harness.OPENCODE ? model.trim() : '',
+      autoPickup,
       setupCommands: setup,
       agentInstructions: instructions,
       timeLimitMinutes: minutes
@@ -142,6 +145,18 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
               />
             </Field>
           )}
+          <div className="space-y-1">
+            <Checkbox
+              id="repo-auto-pickup"
+              label="Pick up Ready tasks automatically"
+              checked={autoPickup}
+              onChange={(e) => setAutoPickup(e.target.checked)}
+            />
+            <p className="text-xs text-muted">
+              When the runner is idle it starts the oldest highest-priority Ready task, using its
+              text as it was when you moved it to Ready. Pull requests are never merged for you.
+            </p>
+          </div>
           <Field
             label="Time limit (minutes)"
             htmlFor="repo-limit"
