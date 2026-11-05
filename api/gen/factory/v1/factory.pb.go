@@ -31,6 +31,7 @@ const (
 	TaskStatus_TASK_STATUS_IN_REVIEW   TaskStatus = 4
 	TaskStatus_TASK_STATUS_NEEDS_YOU   TaskStatus = 5
 	TaskStatus_TASK_STATUS_DONE        TaskStatus = 6
+	TaskStatus_TASK_STATUS_TESTING     TaskStatus = 7
 )
 
 // Enum value maps for TaskStatus.
@@ -43,6 +44,7 @@ var (
 		4: "TASK_STATUS_IN_REVIEW",
 		5: "TASK_STATUS_NEEDS_YOU",
 		6: "TASK_STATUS_DONE",
+		7: "TASK_STATUS_TESTING",
 	}
 	TaskStatus_value = map[string]int32{
 		"TASK_STATUS_UNSPECIFIED": 0,
@@ -52,6 +54,7 @@ var (
 		"TASK_STATUS_IN_REVIEW":   4,
 		"TASK_STATUS_NEEDS_YOU":   5,
 		"TASK_STATUS_DONE":        6,
+		"TASK_STATUS_TESTING":     7,
 	}
 )
 
@@ -2332,7 +2335,7 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x11UpdateRepoRequest\x12$\n" +
 	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo\":\n" +
 	"\x12UpdateRepoResponse\x12$\n" +
-	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo*\xc2\x01\n" +
+	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo*\xdb\x01\n" +
 	"\n" +
 	"TaskStatus\x12\x1b\n" +
 	"\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\x17\n" +
@@ -2341,7 +2344,8 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x17TASK_STATUS_IN_PROGRESS\x10\x03\x12\x19\n" +
 	"\x15TASK_STATUS_IN_REVIEW\x10\x04\x12\x19\n" +
 	"\x15TASK_STATUS_NEEDS_YOU\x10\x05\x12\x14\n" +
-	"\x10TASK_STATUS_DONE\x10\x06*o\n" +
+	"\x10TASK_STATUS_DONE\x10\x06\x12\x17\n" +
+	"\x13TASK_STATUS_TESTING\x10\a*o\n" +
 	"\fTaskPriority\x12\x1d\n" +
 	"\x19TASK_PRIORITY_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10TASK_PRIORITY_P0\x10\x01\x12\x14\n" +

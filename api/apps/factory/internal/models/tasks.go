@@ -16,13 +16,15 @@ const (
 	StatusInReview   Status = "in_review"
 	StatusNeedsYou   Status = "needs_you"
 	StatusDone       Status = "done"
+	// StatusTesting is merged work waiting for a person to check it.
+	StatusTesting Status = "testing"
 )
 
 // Valid reports whether s is a board column.
 func (s Status) Valid() bool {
 	switch s {
 	case StatusBacklog, StatusReady, StatusInProgress, StatusInReview,
-		StatusNeedsYou, StatusDone:
+		StatusNeedsYou, StatusDone, StatusTesting:
 		return true
 	}
 	return false

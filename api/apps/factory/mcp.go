@@ -21,11 +21,11 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-const statusNames = "backlog, ready, in_progress, in_review, needs_you or done"
+const statusNames = "backlog, ready, in_progress, in_review, needs_you, testing or done"
 
 //nolint:lll // struct tags can't wrap
 type mcpListTasksArgs struct {
-	Status string `json:"status,omitempty"  jsonschema:"only tasks in this column: backlog, ready, in_progress, in_review, needs_you or done"`
+	Status string `json:"status,omitempty"  jsonschema:"only tasks in this column: backlog, ready, in_progress, in_review, needs_you, testing or done"`
 	RepoID string `json:"repo_id,omitempty" jsonschema:"only tasks of this repo id, from factory_list_repos"`
 	Label  string `json:"label,omitempty"   jsonschema:"only tasks with this label, ignoring case"`
 	Query  string `json:"query,omitempty"   jsonschema:"only tasks whose title or body contains this text, ignoring case"`
@@ -52,7 +52,7 @@ type mcpCommentArgs struct {
 //nolint:lll // struct tags can't wrap
 type mcpMoveArgs struct {
 	ID     string `json:"id"     jsonschema:"task id"`
-	Status string `json:"status" jsonschema:"target column: backlog, in_progress, in_review, needs_you or done; ready is refused"`
+	Status string `json:"status" jsonschema:"target column: backlog, in_progress, in_review, needs_you, testing or done; ready is refused"`
 }
 
 // RegisterMCPTools exposes the board to agent accounts (docs/adr-0040). The

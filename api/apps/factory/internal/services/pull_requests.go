@@ -88,7 +88,7 @@ func (s *JobService) pullRequestEnded(
 	}
 	to, body := models.StatusNeedsYou, "The pull request was closed without merging: "
 	if state == githubapp.StateMerged {
-		to, body = models.StatusDone, "The pull request was merged: "
+		to, body = models.StatusTesting, "The pull request was merged: "
 	}
 	// Move first: a failure after it loses a comment, where a failure before it
 	// would repeat the comment on every poll until the move worked.
