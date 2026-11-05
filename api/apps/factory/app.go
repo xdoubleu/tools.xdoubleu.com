@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/apps/factory/internal/jobs"
 	"tools.xdoubleu.com/apps/factory/internal/repositories"
 	"tools.xdoubleu.com/apps/factory/internal/services"
+	"tools.xdoubleu.com/apps/factory/internal/slack"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -35,6 +36,9 @@ type Factory struct {
 	heartbeatHold time.Duration
 	jobAccounts   services.JobAccounts
 	github        services.GitHub
+	notifier      services.Notifier
+	slackURL      string
+	webURL        string
 }
 
 // WithJobAccounts makes every claimed job run as an agent account of its own,
@@ -47,6 +51,19 @@ func WithJobAccounts(accounts services.JobAccounts) Option {
 // open its pull request. Without it jobs end in Needs you with the work on the Mac.
 func WithGitHub(github services.GitHub) Option {
 	return func(a *Factory) { a.github = github }
+}
+
+// WithNotifier posts job outcomes and runner pairings to a notifier (Slack), with
+// task links under webURL. Without it nothing is posted.
+func WithNotifier(notifier services.Notifier, webURL string) Option {
+	return func(a *Factory) { a.notifier, a.webURL = notifier, webURL }
+}
+
+// WithSlack posts job outcomes and runner pairings to the Slack incoming webhook,
+// with task links under webURL. An empty address posts nothing; one that isn't
+// https is refused with a warning.
+func WithSlack(webhookURL, webURL string) Option {
+	return func(a *Factory) { a.slackURL, a.webURL = webhookURL, webURL }
 }
 
 // Option adjusts a Factory.
@@ -85,12 +102,31 @@ func New(
 		heartbeatHold: DefaultHeartbeatHold,
 		jobAccounts:   nil,
 		github:        nil,
+		notifier:      nil,
+		slackURL:      "",
+		webURL:        "",
 	}
 	for _, opt := range opts {
 		opt(a)
 	}
-	a.services = services.New(repositories.New(db), authService, a.jobAccounts, a.github)
+	a.connectSlack(logger)
+	a.services = services.New(
+		repositories.New(db), authService, a.jobAccounts, a.github, a.notifier, a.webURL,
+	)
 	return a
+}
+
+// connectSlack turns a webhook address into the notifier, unless a test set one.
+func (a *Factory) connectSlack(logger *slog.Logger) {
+	if a.notifier != nil || a.slackURL == "" {
+		return
+	}
+	sender := slack.New(a.slackURL, logger)
+	if sender == nil {
+		logger.Warn("FACTORY_SLACK_WEBHOOK_URL is not an https address; not posting")
+		return
+	}
+	a.notifier = sender
 }
 
 func (a *Factory) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

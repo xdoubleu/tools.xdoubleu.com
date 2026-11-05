@@ -21,15 +21,18 @@ func New(
 	authService auth.Service,
 	accounts JobAccounts,
 	github GitHub,
+	notifier Notifier,
+	webURL string,
 ) *Services {
+	say := notices{out: notifier, webURL: webURL}
 	return &Services{
 		Auth:    authService,
 		Tasks:   &TaskService{repo: repos.Tasks},
 		Repos:   &RepoService{repo: repos.Repos},
-		Runners: &RunnerService{repo: repos.Runners, now: time.Now},
+		Runners: &RunnerService{repo: repos.Runners, now: time.Now, say: say},
 		Jobs: &JobService{
 			jobs: repos.Jobs, tasks: repos.Tasks, repos: repos.Repos,
-			events: repos.Events, accounts: accounts, github: github, now: time.Now,
+			events: repos.Events, accounts: accounts, github: github, now: time.Now, say: say,
 		},
 	}
 }

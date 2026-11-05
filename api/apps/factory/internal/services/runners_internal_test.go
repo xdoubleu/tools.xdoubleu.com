@@ -78,7 +78,7 @@ func TestValidRunnerName(t *testing.T) {
 
 // These need no database: each is refused before the repository is reached.
 func TestRunnerServiceRefusesBadInputBeforeTheDatabase(t *testing.T) {
-	svc := &RunnerService{repo: nil, now: nil}
+	svc := &RunnerService{repo: nil, now: nil, say: notices{out: nil, webURL: ""}}
 	ctx := context.Background()
 
 	_, _, err := svc.Create(ctx, "human:x", " ")

@@ -84,8 +84,11 @@ type Config struct {
 	GithubOAuthClientSecret string
 	// FactoryGitHubAppID and FactoryGitHubAppKey are the "factory" GitHub App's id and
 	// PEM private key (adr-0045). Both empty turns pushing and PRs off.
-	FactoryGitHubAppID      string
-	FactoryGitHubAppKey     string
+	FactoryGitHubAppID  string
+	FactoryGitHubAppKey string
+	// FactorySlackWebhookURL is the Slack incoming webhook the factory posts job
+	// outcomes to. Empty, or not https, turns the notifications off.
+	FactorySlackWebhookURL  string
 	SentryOAuthClientID     string
 	SentryOAuthClientSecret string
 	// TodoistOAuthClientID/Secret: per-user connections live in
@@ -142,6 +145,13 @@ type parser struct {
 const errorMessage = "can't convert env var '%s' with value '%s' to %s"
 
 // newParser loads env vars, including from a .env file.
+// factory reads the factory's integrations: the GitHub App and the Slack webhook.
+func (c parser) factory(cfg *Config) {
+	cfg.FactoryGitHubAppID = c.envStr("FACTORY_GITHUB_APP_ID", "")
+	cfg.FactoryGitHubAppKey = c.envSecret("FACTORY_GITHUB_APP_PRIVATE_KEY", "")
+	cfg.FactorySlackWebhookURL = c.envSecret("FACTORY_SLACK_WEBHOOK_URL", "")
+}
+
 func newParser(logger *slog.Logger) parser {
 	_ = godotenv.Load()
 
@@ -325,8 +335,7 @@ func New(logger *slog.Logger) Config {
 
 	cfg.GithubOAuthClientID = p.envStr("GITHUB_OAUTH_CLIENT_ID", "")
 	cfg.GithubOAuthClientSecret = p.envSecret("GITHUB_OAUTH_CLIENT_SECRET", "")
-	cfg.FactoryGitHubAppID = p.envStr("FACTORY_GITHUB_APP_ID", "")
-	cfg.FactoryGitHubAppKey = p.envSecret("FACTORY_GITHUB_APP_PRIVATE_KEY", "")
+	p.factory(&cfg)
 	cfg.SentryOAuthClientID = p.envStr("SENTRY_OAUTH_CLIENT_ID", "")
 	cfg.SentryOAuthClientSecret = p.envSecret("SENTRY_OAUTH_CLIENT_SECRET", "")
 	cfg.TodoistOAuthClientID = p.envStr("TODOIST_OAUTH_CLIENT_ID", "")

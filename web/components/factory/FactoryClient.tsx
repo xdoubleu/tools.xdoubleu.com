@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from '@/hooks/navigation'
 import {
   activeRunner,
   filterByRepo,
@@ -26,7 +27,8 @@ export default function FactoryClient() {
   const repos = reposOf(useFactoryRepos().data)
   const runner = runnerState(activeRunner(runnersOf(useFactoryRunners().data)), Date.now())
   const [repoFilter, setRepoFilter] = useState('')
-  const [openId, setOpenId] = useState<string | null>(null)
+  // A link such as /factory?task=<id> (from a Slack message) opens that task.
+  const [openId, setOpenId] = useState<string | null>(useSearchParams().get('task'))
   const [creating, setCreating] = useState(false)
 
   return (
