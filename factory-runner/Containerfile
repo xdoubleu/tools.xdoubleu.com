@@ -4,7 +4,7 @@
 # so a rebuild picks up their current skills. Runs as the unprivileged `node` user (uid 1000).
 FROM docker.io/library/golang:1.27@sha256:0c050feb47802ae436b9030833694a0b80160d08e3b3049ad30bf7c9e724e09d AS go
 
-FROM docker.io/library/node:22-bookworm-slim@sha256:5ec23b7c622b00547753bc6ffd78085dd868a68aeb41c8e0a1418f033e13d96d
+FROM docker.io/library/node:26-bookworm-slim@sha256:add5c17c14752c54d2f3d519ec46a3815684d41c33f198bcb09fb998f7dcbf68
 
 ARG CLAUDE_CODE_VERSION=2.1.285
 # Only @opencode/cli: the `opencode-ai` package ships the same binary name.
