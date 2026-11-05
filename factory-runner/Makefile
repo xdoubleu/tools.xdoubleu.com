@@ -19,3 +19,6 @@ lint/fix: tools/lint
 build:
 	go build -ldflags="-w -s -X main.Release=$(RELEASE) -X main.UpdatePublicKey=$(UPDATE_PUBLIC_KEY)" \
 		-o=./bin/factory-runner-darwin-arm64 ./cmd/factory-runner
+
+image:
+	container build -t factory-job:dev -f Containerfile .
