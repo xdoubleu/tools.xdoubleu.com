@@ -215,6 +215,25 @@ func (s *JobService) Reply(
 	return job, nil
 }
 
+// FinishedTasks returns those of the given tasks that are Done or no longer exist:
+// the runner's session state for them can go.
+func (s *JobService) FinishedTasks(
+	ctx context.Context,
+	ids []uuid.UUID,
+) ([]uuid.UUID, error) {
+	statuses, err := s.tasks.Statuses(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	out := []uuid.UUID{}
+	for _, id := range ids {
+		if status, ok := statuses[id]; !ok || status == models.StatusDone {
+			out = append(out, id)
+		}
+	}
+	return out, nil
+}
+
 // Stop cancels the task's queued or running job and parks the task in Needs you.
 // A running job's runner learns of it on its next check-in, which no longer finds
 // the job running. Only a human admin in a browser may stop, as for Run.

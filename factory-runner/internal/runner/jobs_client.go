@@ -41,6 +41,13 @@ type JobAPI interface {
 	AppendJobEvents(ctx context.Context, token, jobID string, lines []EventLine) error
 	// GetPushToken returns a short-lived GitHub token for the job's repo.
 	GetPushToken(ctx context.Context, token, jobID string) (string, error)
+	// ListFinishedTasks returns those of the given task ids that are Done or gone,
+	// whose session state can be deleted.
+	ListFinishedTasks(
+		ctx context.Context,
+		token string,
+		taskIDs []string,
+	) ([]string, error)
 	CompleteJob(
 		ctx context.Context,
 		token, jobID string,
@@ -75,6 +82,14 @@ type completeJobRequest struct {
 	PRURL     string `json:"prUrl"`
 }
 
+type finishedTasksRequest struct {
+	TaskIDs []string `json:"taskIds"`
+}
+
+type finishedTasksResponse struct {
+	TaskIDs []string `json:"taskIds"`
+}
+
 type pushTokenRequest struct {
 	JobID string `json:"jobId"`
 }
@@ -100,6 +115,18 @@ func (c *Client) GetPushToken(
 	err := c.call(ctx, "GetPushToken", token, pairTimeout,
 		pushTokenRequest{JobID: jobID}, &resp)
 	return resp.Token, err
+}
+
+// ListFinishedTasks implements JobAPI.
+func (c *Client) ListFinishedTasks(
+	ctx context.Context,
+	token string,
+	taskIDs []string,
+) ([]string, error) {
+	var resp finishedTasksResponse
+	err := c.call(ctx, "ListFinishedTasks", token, pairTimeout,
+		finishedTasksRequest{TaskIDs: taskIDs}, &resp)
+	return resp.TaskIDs, err
 }
 
 // ClaimJob implements JobAPI.

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect/v2"
+	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
 	"tools.xdoubleu.com/apps/factory/internal/services"
@@ -254,6 +255,38 @@ func (h *runnerHandler) GetPushToken(
 		Token:     token.Value,
 		ExpiresAt: token.ExpiresAt.Format(time.RFC3339),
 	}, nil
+}
+
+// maxFinishedQuery bounds one ListFinishedTasks call.
+const maxFinishedQuery = 500
+
+func (h *runnerHandler) ListFinishedTasks(
+	ctx context.Context,
+	req *factoryv1.ListFinishedTasksRequest,
+) (*factoryv1.ListFinishedTasksResponse, error) {
+	if _, err := h.runnerFrom(ctx); err != nil {
+		return nil, err
+	}
+	if len(req.GetTaskIds()) > maxFinishedQuery {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "too many task ids")
+	}
+	ids := make([]uuid.UUID, len(req.GetTaskIds()))
+	for i, raw := range req.GetTaskIds() {
+		id, err := parseID(raw)
+		if err != nil {
+			return nil, err
+		}
+		ids[i] = id
+	}
+	done, err := h.app.services.Jobs.FinishedTasks(ctx, ids)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	out := make([]string, len(done))
+	for i, id := range done {
+		out[i] = id.String()
+	}
+	return &factoryv1.ListFinishedTasksResponse{TaskIds: out}, nil
 }
 
 func (h *runnerHandler) CompleteJob(

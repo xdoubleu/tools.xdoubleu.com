@@ -71,6 +71,11 @@ type fakeAPI struct {
 	tokenAsks int
 	// pushHook, when set, answers GetPushToken instead.
 	pushHook func() (string, error)
+	// finished answers ListFinishedTasks with the asked ids it contains (or an
+	// error); asked records each call's ids.
+	finished    []string
+	finishedErr error
+	asked       [][]string
 }
 
 type completion struct {
@@ -87,6 +92,7 @@ func newFakeAPI(jobs ...*runner.ClaimedJob) *fakeAPI {
 		completed: nil, completes: make(chan struct{}, 10),
 		events: nil, appendErr: nil, batches: 0,
 		pushToken: "", pushErr: nil, tokenAsks: 0, pushHook: nil,
+		finished: nil, finishedErr: nil, asked: nil,
 	}
 }
 
@@ -152,6 +158,15 @@ func (f *fakeAPI) GetPushToken(context.Context, string, string) (string, error) 
 		return f.pushHook()
 	}
 	return f.pushToken, f.pushErr
+}
+
+func (f *fakeAPI) ListFinishedTasks(
+	_ context.Context, _ string, ids []string,
+) ([]string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.asked = append(f.asked, append([]string(nil), ids...))
+	return f.finished, f.finishedErr
 }
 
 func (f *fakeAPI) CompleteJob(
@@ -496,6 +511,18 @@ func TestLoopRunsJobsUntilItsContextEnds(t *testing.T) {
 	require.NoError(t, env.runner.LoopForTest(ctx,
 		func(context.Context, time.Duration) {}, ticking()))
 	assert.Len(t, env.api.done(), 2)
+}
+
+func TestLoopCleansStaleSessionsBeforeItClaims(t *testing.T) {
+	env := newEnv(t, writes("ok", 0))
+	root := sessionDirs(t, env, doneTask)
+	env.api.finished = []string{doneTask}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	require.NoError(t, env.runner.LoopForTest(ctx,
+		func(context.Context, time.Duration) {}, ticking()))
+	assert.NoDirExists(t, filepath.Join(root, doneTask))
 }
 
 func TestLoopBacksOffOnErrorsAndEndsWhenRevoked(t *testing.T) {
