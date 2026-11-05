@@ -41,6 +41,15 @@ const (
 	envDirPerm     = 0o700
 )
 
+// subnetPools are the /16s a job network is taken from, in order, so a VPN that
+// holds one (10/8 is common) still leaves another.
+//
+//nolint:gochecknoglobals // a constant table
+var subnetPools = []string{"10.231.%d.0/24", "172.29.%d.0/24", "192.168.%d.0/24"}
+
+// envKeyPattern is a name `container --env-file` reads as a variable.
+var envKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
 // Execer runs a host command; ContainerSandbox's only way to touch the host, so
 // tests replace it. It returns the exit code, and an error only if the command
 // could not run at all.
@@ -76,7 +85,8 @@ func (OSExecer) Exec(
 // ContainerSandbox runs each job in its own Apple `container` VM on its own
 // host-only network (docs/adr-0043). The VM starts as a placeholder so the host side
 // of its network exists, OnReady can bind the egress proxy there, and then the job
-// runs in it with `container exec`.
+// runs in it with `container exec`. The job gets the gateway address as
+// FACTORY_GATEWAY.
 type ContainerSandbox struct {
 	// Image is the job image, built from the Containerfile.
 	Image string
@@ -94,6 +104,8 @@ type ContainerSandbox struct {
 	// TempDir holds the per-job env file; empty means os.TempDir().
 	TempDir string
 
+	// mu covers choosing a subnet through the VM starting: a network's route
+	// exists only once its VM does, so a second job must wait to see it.
 	mu sync.Mutex
 }
 
@@ -114,28 +126,28 @@ func (s *ContainerSandbox) Check(ctx context.Context) error {
 
 // Run implements Sandbox.
 func (s *ContainerSandbox) Run(ctx context.Context, spec SandboxSpec) (int, error) {
+	if err := checkSpec(spec); err != nil {
+		return -1, err
+	}
 	name := "factory-job-" + shortID(spec.Env["FACTORY_JOB"])
 	// A crashed runner may have left these behind.
 	s.cleanup(name)
+	defer s.cleanup(name)
 
-	subnet, err := s.createNetwork(ctx, name)
+	subnet, err := s.provision(ctx, name, spec)
 	if err != nil {
 		return -1, err
 	}
-	defer s.cleanup(name)
+	gateway := gatewayOf(subnet)
 
-	envFile, err := s.writeEnvFile(spec.Env)
+	envFile, err := s.writeEnvFile(spec.Env, gateway)
 	if err != nil {
 		return -1, err
 	}
 	defer os.Remove(envFile)
 
-	if err = s.start(ctx, name, spec); err != nil {
-		return -1, err
-	}
-
 	if s.OnReady != nil {
-		stop, readyErr := s.OnReady(ctx, gatewayOf(subnet))
+		stop, readyErr := s.OnReady(ctx, gateway)
 		if readyErr != nil {
 			return -1, fmt.Errorf("starting the egress proxy: %w", readyErr)
 		}
@@ -146,6 +158,45 @@ func (s *ContainerSandbox) Run(ctx context.Context, spec SandboxSpec) (int, erro
 		spec.Log)
 }
 
+// checkSpec refuses a spec the VM's command line or env file could not carry
+// faithfully, before anything is started.
+func checkSpec(spec SandboxSpec) error {
+	for k, v := range spec.Env {
+		if !envKeyPattern.MatchString(k) {
+			return fmt.Errorf("environment variable name %q is not valid", k)
+		}
+		if strings.ContainsAny(v, "\n\r") {
+			return fmt.Errorf("environment variable %q has a line break", k)
+		}
+	}
+	// A comma would add mount options to the comma-separated --mount value.
+	for _, dir := range []string{spec.CloneDir, spec.OutcomeDir, spec.SessionDir} {
+		if strings.ContainsAny(dir, ",\n\r") {
+			return fmt.Errorf("directory %q cannot be mounted", dir)
+		}
+	}
+	return nil
+}
+
+// provision creates the job's host-only network and starts its idle VM. One job
+// at a time chooses a subnet, so each sees the routes of the jobs before it.
+func (s *ContainerSandbox) provision(
+	ctx context.Context,
+	name string,
+	spec SandboxSpec,
+) (netip.Prefix, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	subnet, err := s.createNetwork(ctx, name)
+	if err != nil {
+		return netip.Prefix{}, err
+	}
+	if err = s.start(ctx, name, spec); err != nil {
+		return netip.Prefix{}, err
+	}
+	return subnet, nil
+}
+
 // createNetwork makes the job's host-only network on a subnet no host route
 // overlaps: the default pick once collided with the Mac's LAN, and the host then sent
 // the gateway's traffic to the router.
@@ -153,9 +204,6 @@ func (s *ContainerSandbox) createNetwork(
 	ctx context.Context,
 	name string,
 ) (netip.Prefix, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	var routes bytes.Buffer
 	if _, err := s.Exec.Exec(ctx, []string{"netstat", "-rn", "-f", "inet"}, nil,
 		&routes); err != nil {
@@ -195,11 +243,16 @@ func (s *ContainerSandbox) start(
 		mountFlag, mount(spec.OutcomeDir, path.Dir(SandboxOutcomePath), false),
 		mountFlag, mount(spec.SessionDir, SandboxSessionDir, false),
 	}
-	if s.GoModCache != "" {
-		args = append(args, mountFlag, mount(s.GoModCache, sandboxGoCache, true))
-	}
-	if s.NPMCache != "" {
-		args = append(args, mountFlag, mount(s.NPMCache, sandboxNPMCache, true))
+	for _, cache := range []struct{ dir, target string }{
+		{s.GoModCache, sandboxGoCache}, {s.NPMCache, sandboxNPMCache},
+	} {
+		if cache.dir == "" {
+			continue
+		}
+		if strings.ContainsAny(cache.dir, ",\n\r") {
+			return fmt.Errorf("directory %q cannot be mounted", cache.dir)
+		}
+		args = append(args, mountFlag, mount(cache.dir, cache.target, true))
 	}
 	args = append(args, "--entrypoint", "sleep", s.Image, "infinity")
 
@@ -216,12 +269,13 @@ func (s *ContainerSandbox) start(
 
 // execArgv runs the job's setup commands and then its command in the VM. The
 // environment goes in a file, never argv, which any process on the Mac can read.
+// Setup reads no stdin, so it cannot swallow the prompt meant for the command.
 func execArgv(name, envFile string, spec SandboxSpec) []string {
 	// The clone belongs to another uid on the host, so git must be told to trust it.
 	script := "set -e\nmkdir -p \"$HOME\"\n" +
 		"git config --global --add safe.directory " + SandboxCloneDir + "\n"
 	if strings.TrimSpace(spec.SetupCommands) != "" {
-		script += spec.SetupCommands + "\n"
+		script += "(\n" + spec.SetupCommands + "\n) </dev/null\n"
 	}
 	script += `exec "$@"`
 	argv := []string{
@@ -233,8 +287,12 @@ func execArgv(name, envFile string, spec SandboxSpec) []string {
 }
 
 // writeEnvFile writes the job's environment for `container exec --env-file`, with
-// the fixed variables of the sandbox.
-func (s *ContainerSandbox) writeEnvFile(env map[string]string) (string, error) {
+// the fixed variables of the sandbox. The file is gone again unless it was written
+// whole, so a failure leaves no half-written secrets behind.
+func (s *ContainerSandbox) writeEnvFile(
+	env map[string]string,
+	gateway string,
+) (string, error) {
 	dir := s.TempDir
 	if dir == "" {
 		dir = os.TempDir()
@@ -242,13 +300,9 @@ func (s *ContainerSandbox) writeEnvFile(env map[string]string) (string, error) {
 	if err := os.MkdirAll(dir, envDirPerm); err != nil {
 		return "", fmt.Errorf("env file directory: %w", err)
 	}
-	file, err := os.CreateTemp(dir, "job-env-*")
+	file, err := os.CreateTemp(dir, "job-env-*") // 0600
 	if err != nil {
 		return "", fmt.Errorf("env file: %w", err)
-	}
-	defer file.Close()
-	if err = os.Chmod(file.Name(), envFilePerm); err != nil {
-		return "", fmt.Errorf("env file mode: %w", err)
 	}
 	fixed := map[string]string{
 		"HOME":               sandboxHome,
@@ -263,25 +317,28 @@ func (s *ContainerSandbox) writeEnvFile(env map[string]string) (string, error) {
 			fmt.Fprintf(&b, "%s=%s\n", k, v)
 		}
 	}
+	fmt.Fprintf(&b, "FACTORY_GATEWAY=%s\n", gateway)
 	for k, v := range env {
-		if strings.ContainsAny(k+v, "\n\r") {
-			return "", fmt.Errorf("environment variable %q has a line break", k)
-		}
 		fmt.Fprintf(&b, "%s=%s\n", k, v)
 	}
-	if _, err = file.WriteString(b.String()); err != nil {
+	_, werr := file.WriteString(b.String())
+	cerr := file.Close()
+	if err = errors.Join(werr, cerr); err != nil {
+		_ = os.Remove(file.Name())
 		return "", fmt.Errorf("env file: %w", err)
 	}
 	return file.Name(), nil
 }
 
-// cleanup stops the VM and removes the network, both named after the job. It is
-// best effort and runs on its own context, so a cancelled job is still cleaned up.
+// cleanup kills the VM and removes it and its network, both named after the job. It
+// is best effort and runs on its own context, so a cancelled job is still cleaned
+// up. Kill, not stop: the idle VM's `sleep` ignores SIGTERM as PID 1 and stop would
+// wait out its grace period.
 func (s *ContainerSandbox) cleanup(name string) {
 	ctx, cancel := context.WithTimeout(context.Background(), cleanupTimeout)
 	defer cancel()
 	var sink bytes.Buffer
-	_, _ = s.Exec.Exec(ctx, []string{containerCLI, "stop", name}, nil, &sink)
+	_, _ = s.Exec.Exec(ctx, []string{containerCLI, "kill", name}, nil, &sink)
 	_, _ = s.Exec.Exec(ctx, []string{containerCLI, "delete", "--force", name}, nil,
 		&sink)
 	_, _ = s.Exec.Exec(ctx, []string{containerCLI, "network", "delete", name}, nil,
@@ -324,8 +381,8 @@ func gatewayOf(subnet netip.Prefix) string {
 	return subnet.Addr().Next().String()
 }
 
-// freeSubnets lists up to n 10.231.N.0/24 subnets that overlap no route in the
-// output of `netstat -rn -f inet`.
+// freeSubnets lists up to n /24 job subnets, from the pools in order, that overlap
+// no route in the output of `netstat -rn -f inet`.
 func freeSubnets(routes string, n int) []netip.Prefix {
 	var taken []netip.Prefix
 	for _, line := range strings.Split(routes, "\n") {
@@ -338,20 +395,24 @@ func freeSubnets(routes string, n int) []netip.Prefix {
 		}
 	}
 	var out []netip.Prefix
-	for i := subnetFirst; i <= subnetLast && len(out) < n; i++ {
-		cand := netip.MustParsePrefix(fmt.Sprintf("10.231.%d.0/24", i))
-		overlap := false
-		for _, t := range taken {
-			if t.Overlaps(cand) {
-				overlap = true
-				break
+	for _, pool := range subnetPools {
+		for i := subnetFirst; i <= subnetLast && len(out) < n; i++ {
+			cand := netip.MustParsePrefix(fmt.Sprintf(pool, i))
+			if !overlapsAny(taken, cand) {
+				out = append(out, cand)
 			}
-		}
-		if !overlap {
-			out = append(out, cand)
 		}
 	}
 	return out
+}
+
+func overlapsAny(taken []netip.Prefix, cand netip.Prefix) bool {
+	for _, t := range taken {
+		if t.Overlaps(cand) {
+			return true
+		}
+	}
+	return false
 }
 
 // parseRouteDestination reads a netstat destination: "10.231.7/24", "10/8",

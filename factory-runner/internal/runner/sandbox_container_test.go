@@ -162,10 +162,10 @@ func TestTheSandboxStartsAPlaceholderVMOnItsOwnNetworkThenRunsTheJobInIt(t *test
 
 	assert.Equal(t, "10.231.7.1", gateway)
 	assert.Equal(t, []string{
-		"stop", "delete", "network delete", // whatever a crash left behind
+		"kill", "delete", "network delete", // whatever a crash left behind
 		"netstat -rn", "network create", "run", "exec",
 		"proxy stop", // before the VM goes
-		"stop", "delete", "network delete",
+		"kill", "delete", "network delete",
 	}, exec.steps())
 
 	create := exec.find("network")[1]
@@ -186,6 +186,7 @@ func TestTheSandboxStartsAPlaceholderVMOnItsOwnNetworkThenRunsTheJobInIt(t *test
 
 	assert.Contains(t, envBody, "FACTORY_JOB=0a1b2c3d-4e5f\n")
 	assert.Contains(t, envBody, "GOPROXY=off\n")
+	assert.Contains(t, envBody, "FACTORY_GATEWAY=10.231.7.1\n")
 	assert.NoFileExists(t, envFile, "the env file is removed afterwards")
 
 	// The secret is in the file, never in argv.
@@ -257,7 +258,8 @@ func TestANetworkThatCannotBeCreatedOnOneSubnetTriesTheNext(t *testing.T) {
 func TestNoFreeSubnetFailsBeforeAnyVMStarts(t *testing.T) {
 	exec := newExecScript(func(argv []string) (int, string, error) {
 		if argv[0] == "netstat" {
-			return 0, "10/8   10.0.0.1   UGSc   en0\n", nil
+			return 0, "10/8   10.0.0.1   UGSc   en0\n172.16/12 x UGSc en1\n" +
+				"192.168/16 x UGSc en2\n", nil
 		}
 		return 0, "", nil
 	})
@@ -314,7 +316,7 @@ func TestAProxyThatCannotStartStopsTheJobBeforeTheAgentRuns(t *testing.T) {
 	_, err := box.Run(context.Background(), spec(t, io.Discard))
 	require.ErrorContains(t, err, "address in use")
 	assert.Empty(t, exec.find("exec"))
-	assert.NotEmpty(t, exec.find("stop"))
+	assert.NotEmpty(t, exec.find("kill"))
 }
 
 func TestAnEnvironmentValueWithALineBreakIsRefused(t *testing.T) {
@@ -363,4 +365,54 @@ func TestSubnetsAvoidEveryHostRouteThatOverlaps(t *testing.T) {
 
 func TestARouteTableWithNoOverlapStartsAtTheFirstSubnet(t *testing.T) {
 	assert.Equal(t, []string{"10.231.7.0/24"}, runner.FreeSubnets(hostRoutes, 1))
+}
+
+func TestAVPNHoldingTenSlashEightMovesTheJobNetworkToAnotherRange(t *testing.T) {
+	exec := newExecScript(func(argv []string) (int, string, error) {
+		if argv[0] == "netstat" {
+			return 0, "10/8   10.0.0.1   UGSc   utun3\n", nil
+		}
+		return 0, "", nil
+	})
+	var gateway string
+	box := sandboxWith(t, exec)
+	box.OnReady = func(_ context.Context, g string) (func(), error) {
+		gateway = g
+		return func() {}, nil
+	}
+	_, err := box.Run(context.Background(), spec(t, io.Discard))
+	require.NoError(t, err)
+	assert.Equal(t, "172.29.7.1", gateway)
+}
+
+func TestSetupCommandsReadNoStdinSoThePromptReachesTheAgent(t *testing.T) {
+	exec := newExecScript(routesAnswer)
+	_, err := sandboxWith(t, exec).Run(context.Background(), spec(t, io.Discard))
+	require.NoError(t, err)
+	script := exec.find("exec")[0][len(exec.find("exec")[0])-4]
+	assert.Contains(t, script, "(\nnpm ci\n) </dev/null\nexec \"$@\"")
+}
+
+func TestASpecTheVMCannotCarryFaithfullyIsRefusedBeforeAnythingStarts(t *testing.T) {
+	for name, mutate := range map[string]func(*runner.SandboxSpec){
+		"bad env name":  func(s *runner.SandboxSpec) { s.Env["A=B"] = "x" },
+		"empty env":     func(s *runner.SandboxSpec) { s.Env[""] = "x" },
+		"comma clone":   func(s *runner.SandboxSpec) { s.CloneDir = "/data/a,b/clone" },
+		"comma outcome": func(s *runner.SandboxSpec) { s.OutcomeDir = "/data/a,b" },
+		"newline home":  func(s *runner.SandboxSpec) { s.SessionDir = "/data/a\nb" },
+	} {
+		exec := newExecScript(routesAnswer)
+		s := spec(t, io.Discard)
+		mutate(&s)
+		_, err := sandboxWith(t, exec).Run(context.Background(), s)
+		require.Error(t, err, name)
+		assert.Empty(t, exec.calls, name)
+	}
+
+	exec := newExecScript(routesAnswer)
+	box := sandboxWith(t, exec)
+	box.GoModCache = "/cache/a,readonly=false"
+	_, err := box.Run(context.Background(), spec(t, io.Discard))
+	require.ErrorContains(t, err, "cannot be mounted")
+	assert.Empty(t, exec.find("exec"))
 }
