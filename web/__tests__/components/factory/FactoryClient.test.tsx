@@ -119,7 +119,7 @@ describe('FactoryClient', () => {
     }
     expect(screen.getByRole('region', { name: 'Backlog' })).toHaveTextContent('Alpha')
     expect(screen.getByRole('region', { name: 'Done' })).toHaveTextContent('Beta')
-    expect(screen.getAllByText('Nothing here.')).toHaveLength(4)
+    expect(screen.getAllByText('Nothing here.')).toHaveLength(5)
   })
 
   it('shows loading and error states', () => {
@@ -175,7 +175,7 @@ describe('FactoryClient', () => {
     render(<FactoryClient />)
     expect(screen.queryByText(/Failed to load/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Loading board/)).not.toBeInTheDocument()
-    expect(screen.getAllByRole('region')).toHaveLength(6)
+    expect(screen.getAllByRole('region')).toHaveLength(7)
   })
 
   it('starts without the create sheet or an open task', () => {

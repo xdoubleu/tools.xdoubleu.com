@@ -37,7 +37,7 @@ deploy key can push but can't open a pull request.
   each open pull request of a job (`pull_requests` and `checks` read, minted per
   repo and reused until shortly before it expires) and keeps its state, a CI
   rollup and the standing review on the job. No public webhook endpoint is needed.
-  A merge moves a task that is still In review to Done and a close without a merge
+  A merge moves a task that is still In review to Testing and a close without a merge
   to Needs you; a task a person has moved on, or one a newer job is on, is left.
 - **Never auto-merge.** The App may open a PR but nothing here merges one.
   `main`'s ruleset must not list the App as a bypass actor.

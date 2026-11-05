@@ -198,6 +198,7 @@ func TestMoveBetweenColumns(t *testing.T) {
 		factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS,
 		factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW,
 		factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU,
+		factoryv1.TaskStatus_TASK_STATUS_TESTING,
 		factoryv1.TaskStatus_TASK_STATUS_DONE,
 		factoryv1.TaskStatus_TASK_STATUS_BACKLOG,
 	} {

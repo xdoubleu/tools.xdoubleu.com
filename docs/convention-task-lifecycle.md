@@ -29,8 +29,8 @@ mechanisms reference this file and add only the *how*:
 4. **Proto changed:** `make proto/check` (`api/`) and `npm run
    generate:check` (`web/`).
 5. **Non-draft PR** that links the task (`Task: <title> (<id>)`, no closing
-   keyword) and moves it to In review; the owner moves it to Done. Pushed
-   without a PR is not finished. Work started from a GitHub issue (the sweeps,
+   keyword) and moves it to In review; a merge moves it to Testing, and the owner moves it to
+   Done. Pushed without a PR is not finished. Work started from a GitHub issue (the sweeps,
    until #2779) closes it with `Fixes #123` instead.
 6. **Never merge on red CI; never push to `main`.**
 7. **Watch CI to green** and fix what it finds.

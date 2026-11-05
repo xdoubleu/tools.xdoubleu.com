@@ -12,6 +12,7 @@ func TestStatusValid(t *testing.T) {
 	for _, s := range []models.Status{
 		models.StatusBacklog, models.StatusReady, models.StatusInProgress,
 		models.StatusInReview, models.StatusNeedsYou, models.StatusDone,
+		models.StatusTesting,
 	} {
 		assert.True(t, s.Valid(), s)
 	}

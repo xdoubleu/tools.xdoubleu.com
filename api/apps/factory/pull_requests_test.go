@@ -77,7 +77,7 @@ func TestAnOpenPullRequestsChecksAndReviewAreKeptOnItsJob(t *testing.T) {
 	assert.Equal(t, []int{42, 42}, gh.polled)
 }
 
-func TestAMergedPullRequestMovesItsTaskToDoneOnce(t *testing.T) {
+func TestAMergedPullRequestMovesItsTaskToTestingOnce(t *testing.T) {
 	env, gh := githubEnv(t)
 	task := inReview(t, env, "merged", 42)
 	gh.answer(42, ended(githubapp.StateMerged), nil)
@@ -85,7 +85,7 @@ func TestAMergedPullRequestMovesItsTaskToDoneOnce(t *testing.T) {
 	require.NoError(t, env.poll(t))
 
 	got := env.task(t, task.Id)
-	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_DONE, got.Task.Status)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_TESTING, got.Task.Status)
 	assert.Equal(t, "merged", got.Jobs[0].PrState)
 	require.Len(t, got.Comments, 2)
 	assert.Equal(t, "system:factory", got.Comments[1].Author)
@@ -193,7 +193,7 @@ func TestOnePullRequestFailingDoesNotStopTheOthers(t *testing.T) {
 
 	assert.Equal(
 		t,
-		factoryv1.TaskStatus_TASK_STATUS_DONE,
+		factoryv1.TaskStatus_TASK_STATUS_TESTING,
 		env.task(t, fine.Id).Task.Status,
 	)
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW,

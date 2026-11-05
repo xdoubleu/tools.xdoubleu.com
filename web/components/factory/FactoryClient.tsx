@@ -101,12 +101,12 @@ export default function FactoryClient() {
       {error && !data && <ErrorState what="the board" />}
       {isLoading && !data && <LoadingState label="board" />}
       {data && (
-        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 xl:mx-0 xl:grid xl:grid-cols-6 xl:overflow-visible xl:px-0">
+        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 2xl:mx-0 2xl:grid 2xl:grid-cols-7 2xl:overflow-visible 2xl:px-0">
           {groupByStatus(filterByRepo(data.tasks, repoFilter)).map((column) => (
             <section
               key={column.status}
               aria-label={column.label}
-              className="w-4/5 shrink-0 snap-center space-y-2 sm:w-1/2 xl:w-auto"
+              className="w-4/5 shrink-0 snap-center space-y-2 sm:w-1/2 2xl:w-auto"
             >
               <h2 className="text-sm font-semibold">
                 {column.label} <span className="text-muted">{column.tasks.length}</span>

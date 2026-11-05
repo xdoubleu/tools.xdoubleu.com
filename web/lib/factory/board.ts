@@ -21,6 +21,7 @@ export const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: TaskStatus.IN_PROGRESS, label: 'In progress' },
   { status: TaskStatus.IN_REVIEW, label: 'In review' },
   { status: TaskStatus.NEEDS_YOU, label: 'Needs you' },
+  { status: TaskStatus.TESTING, label: 'Testing' },
   { status: TaskStatus.DONE, label: 'Done' }
 ]
 

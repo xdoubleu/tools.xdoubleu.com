@@ -73,6 +73,8 @@ func statusToProto(s models.Status) factoryv1.TaskStatus {
 		return factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU
 	case models.StatusDone:
 		return factoryv1.TaskStatus_TASK_STATUS_DONE
+	case models.StatusTesting:
+		return factoryv1.TaskStatus_TASK_STATUS_TESTING
 	}
 	return factoryv1.TaskStatus_TASK_STATUS_UNSPECIFIED
 }
@@ -93,6 +95,8 @@ func statusFromProto(s factoryv1.TaskStatus) models.Status {
 		return models.StatusNeedsYou
 	case factoryv1.TaskStatus_TASK_STATUS_DONE:
 		return models.StatusDone
+	case factoryv1.TaskStatus_TASK_STATUS_TESTING:
+		return models.StatusTesting
 	case factoryv1.TaskStatus_TASK_STATUS_UNSPECIFIED:
 		return ""
 	}

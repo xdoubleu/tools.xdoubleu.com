@@ -50,6 +50,7 @@ describe('board', () => {
       'In progress',
       'In review',
       'Needs you',
+      'Testing',
       'Done'
     ])
   })
@@ -70,10 +71,10 @@ describe('board', () => {
       create(TaskSchema, { id: 'c', status: TaskStatus.DONE })
     ]
     const groups = groupByStatus(tasks)
-    expect(groups).toHaveLength(6)
+    expect(groups).toHaveLength(7)
     expect(groups[0].tasks.map((t) => t.id)).toEqual(['b'])
     expect(groups[1].tasks).toEqual([])
-    expect(groups[5].tasks.map((t) => t.id)).toEqual(['a', 'c'])
+    expect(groups[6].tasks.map((t) => t.id)).toEqual(['a', 'c'])
   })
 
   it('splits labels on commas, trimming and dropping blanks', () => {

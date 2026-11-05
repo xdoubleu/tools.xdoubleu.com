@@ -10,6 +10,7 @@ enum TaskStatus {
   TASK_STATUS_IN_REVIEW = 4;
   TASK_STATUS_NEEDS_YOU = 5;
   TASK_STATUS_DONE = 6;
+  TASK_STATUS_TESTING = 7;
 }
 
 enum TaskPriority {
