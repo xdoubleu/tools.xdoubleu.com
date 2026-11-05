@@ -36,6 +36,8 @@ Reset in place: confirm `git status --porcelain` is clean (else `git stash
 push -u -m <tag>`), then `git fetch origin main && git checkout -B
 <new-branch> origin/main`.
 
+**Factory job (`FACTORY_JOB` set):** skip this skill, see [Factory jobs](../../../docs/convention-task-lifecycle.md).
+
 **Actions routine (`GITHUB_ACTIONS` set):** no worktree. The sandbox user
 can't write under `.claude/`, so `routine-sandbox npm ci` fails in
 `.claude/worktrees/`, and the edit guard is off here. Work in the runner's
