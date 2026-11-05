@@ -48,11 +48,13 @@ type app struct {
 	store    runner.TokenStore
 	secrets  runner.SecretStore
 	stdin    io.Reader
-	newBeat  func(server string) pairHeartbeater
-	daemon   daemonFunc
-	updater  func(server string) (runner.SelfUpdater, error)
-	activity *runner.Activity
-	load     func(plistPath string) error
+	// interactive is whether stdin is a terminal, where a secret would be echoed.
+	interactive bool
+	newBeat     func(server string) pairHeartbeater
+	daemon      daemonFunc
+	updater     func(server string) (runner.SelfUpdater, error)
+	activity    *runner.Activity
+	load        func(plistPath string) error
 	// jobs builds the claim loop; nil runs the heartbeat alone.
 	jobs jobsFunc
 }

@@ -99,10 +99,16 @@ holds. OpenCode reads its per-job config from `OPENCODE_CONFIG`; the repo's own
 
 Still unverified: a model call that succeeds with the owner's real tokens (and so
 `claude -p` end to end, and `claude --resume` inside the VM); whether the heartbeat's
-long-poll survives sleep and wake; and wildcard listeners. OpenCode `--session` resume, the top-level `sessionID` and
-sessions under `XDG_DATA_HOME` hold with `@opencode/cli` 2.2.2, which must be the
-only package providing `opencode` in the image. Apple's docs call the project under
-active development with possible breaking changes, so pin the CLI version.
+long-poll survives sleep and wake; and wildcard listeners. OpenCode `--session`
+resume, the top-level `sessionID` and sessions under `XDG_DATA_HOME` hold with
+`@opencode/cli` 2.2.2, which must be the only package providing `opencode` in the
+image. Apple's docs call the project under active development with possible
+breaking changes, so pin the CLI version.
+
+Two limits are accepted. Commit authors are set by environment variables the agent
+can override, so an author is a label, not proof; the App opens the pull request.
+And the Claude token is injected only when the job has a proxy, but once there the
+agent can read it and send it to Anthropic, the conservative route above.
 
 ## Alternatives considered
 

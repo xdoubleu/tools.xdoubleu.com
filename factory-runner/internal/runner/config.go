@@ -16,8 +16,8 @@ const (
 	DefaultServer = "https://tools.xdoubleu.com/api"
 
 	// DefaultBotEmail is the address commits carry until `config bot-email` sets the
-	// factory GitHub App's.
-	DefaultBotEmail = "factory-bot@users.noreply.github.com"
+	// factory App's. It is on a reserved domain, so it matches no GitHub account.
+	DefaultBotEmail = "factory-bot@users.invalid"
 
 	// DefaultImage is the job image `make image` builds.
 	DefaultImage = "factory-job:dev"

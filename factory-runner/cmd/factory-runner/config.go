@@ -64,6 +64,11 @@ const maxSecretBytes = 4096
 // storeSecret reads a credential from stdin, never from argv (which other processes
 // can read) or the shell history, and keeps it in the keychain.
 func (a *app) storeSecret(name string) error {
+	if a.interactive {
+		fmt.Fprintf(a.stderr, "Reading the %s secret from the terminal until Ctrl-D "+
+			"(it is echoed). Prefer: pbpaste | factory-runner config secret %s\n",
+			name, name)
+	}
 	raw, err := io.ReadAll(io.LimitReader(a.stdin, maxSecretBytes+1))
 	if err != nil {
 		return fmt.Errorf("read the %s secret: %w", name, err)

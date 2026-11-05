@@ -24,14 +24,16 @@ func main() {
 		os.Exit(1)
 	}
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	keychain := runner.NewKeychain()
 	a := &app{
-		home:     home,
-		execPath: execPath,
-		stdout:   os.Stdout,
-		stderr:   os.Stderr,
-		store:    runner.NewKeychain(),
-		secrets:  runner.NewKeychain(),
-		stdin:    os.Stdin,
+		home:        home,
+		execPath:    execPath,
+		stdout:      os.Stdout,
+		stderr:      os.Stderr,
+		store:       keychain,
+		secrets:     keychain,
+		stdin:       os.Stdin,
+		interactive: isTerminal(os.Stdin),
 		newBeat: func(server string) pairHeartbeater {
 			return runner.NewClient(server, Release)
 		},
@@ -62,6 +64,12 @@ func main() {
 	code := a.run(ctx, os.Args[1:])
 	stop()
 	os.Exit(code)
+}
+
+// isTerminal reports whether f is a terminal rather than a pipe or file.
+func isTerminal(f *os.File) bool {
+	info, err := f.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }
 
 func loadLaunchAgent(plistPath string) error {

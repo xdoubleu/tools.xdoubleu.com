@@ -100,6 +100,7 @@ func TestAProxyThatCannotBeBuiltFailsTheJob(t *testing.T) {
 func TestTheClaudeTokenNeverReachesTheOutcome(t *testing.T) {
 	env := newEnv(t, writes("I used "+claudeToken+" to log in.", 0), newJob())
 	env.runner.ClaudeToken = func() (string, error) { return claudeToken, nil }
+	env.runner.Proxy = proxyOK
 
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)

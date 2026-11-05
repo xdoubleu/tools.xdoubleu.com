@@ -275,11 +275,10 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	if err != nil {
 		return failed("Could not prepare the clone: " + err.Error())
 	}
-	if err = prepareOutcomeDir(outcomeDir); err != nil {
-		return failed("Could not prepare the outcome directory: " + err.Error())
-	}
-	if err = prepareOutcomeDir(sessionDir); err != nil {
-		return failed("Could not prepare the session directory: " + err.Error())
+	for name, d := range map[string]string{"outcome": outcomeDir, "session": sessionDir} {
+		if err = prepareOutcomeDir(d); err != nil {
+			return failed("Could not prepare the " + name + " directory: " + err.Error())
+		}
 	}
 	launch, err := r.launchOf(job)
 	if err != nil {
@@ -296,7 +295,8 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		partial: nil,
 		session: "",
 	}
-	events := newEventTap(append(r.secrets(), job.MCPClientSecret))
+	secrets := append(r.secrets(), launch.secrets...)
+	events := newEventTap(secrets)
 	var stopped atomic.Bool
 	wait := r.watch(runCtx, cancel, job.ID, tap, events, &stopped)
 
@@ -334,7 +334,7 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	case text == "":
 		reason = "The agent exited cleanly but wrote no outcome file."
 	default:
-		return r.publishable(ctx, job, cloneDir, since, text, res)
+		return r.publishable(ctx, job, cloneDir, since, text, res, secrets)
 	}
 	res.outcome = strings.TrimSpace(reason + "\n\n" + text)
 	return res
@@ -345,6 +345,9 @@ type launch struct {
 	command []string
 	env     map[string]string
 	proxy   ProxyListener
+	// secrets are this job's own credentials, which must never reach a commit, a
+	// log line or the outcome.
+	secrets []string
 }
 
 // launchOf gathers a job's launch inputs; an error says why it cannot start.
@@ -353,13 +356,22 @@ func (r *JobRunner) launchOf(job *ClaimedJob) (launch, error) {
 	if err != nil {
 		return launch{}, fmt.Errorf("prepare the job: %w", err)
 	}
+	secrets := []string{job.MCPClientSecret}
+	if token := env["CLAUDE_CODE_OAUTH_TOKEN"]; token != "" {
+		// The token is in the VM only to be sent to Anthropic through the proxy;
+		// without one it would sit there for nothing.
+		if r.Proxy == nil {
+			return launch{}, errors.New("prepare the job: a Claude token needs the egress proxy")
+		}
+		secrets = append(secrets, token)
+	}
 	var proxy ProxyListener
 	if r.Proxy != nil {
 		if proxy, err = r.Proxy(job); err != nil {
 			return launch{}, fmt.Errorf("prepare the egress proxy: %w", err)
 		}
 	}
-	return launch{command: command, env: env, proxy: proxy}, nil
+	return launch{command: command, env: env, proxy: proxy, secrets: secrets}, nil
 }
 
 // invocation is what the sandbox runs for the job, and its environment: a fresh
@@ -421,8 +433,8 @@ func (r *JobRunner) publishable(
 	job *ClaimedJob,
 	cloneDir, since, text string,
 	res result,
+	secrets []string,
 ) result {
-	secrets := append(r.secrets(), job.MCPClientSecret)
 	reviewed, err := r.Git.Inspect(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
 		job.Branch, job.ID, cloneDir, since, secrets)
 	if err == nil && leaks(text, secrets) {
@@ -496,13 +508,7 @@ func (r *JobRunner) publish(
 
 // secrets are the values that must not leave the Mac in a log, commit or outcome.
 func (r *JobRunner) secrets() []string {
-	all := append([]string{r.Token}, r.Secrets...)
-	if r.ClaudeToken != nil {
-		if token, err := r.ClaudeToken(); err == nil {
-			all = append(all, token)
-		}
-	}
-	return all
+	return append([]string{r.Token}, r.Secrets...)
 }
 
 // leaks reports whether text contains any secret long enough to search for.

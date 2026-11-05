@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -149,7 +150,7 @@ func (s *ContainerSandbox) Run(ctx context.Context, spec SandboxSpec) (int, erro
 	gateway := gatewayOf(subnet)
 
 	proxyURL := ""
-	if proxy := cmpProxy(spec.Proxy, s.Proxy); proxy != nil {
+	if proxy := cmp.Or(spec.Proxy, s.Proxy); proxy != nil {
 		stop, addr, listenErr := proxy.Listen(gateway, s.ProxyPort)
 		if listenErr != nil {
 			return -1, fmt.Errorf("starting the egress proxy: %w", listenErr)
@@ -364,14 +365,6 @@ func (s *ContainerSandbox) cleanup(name string) {
 		&sink)
 	_, _ = s.Exec.Exec(ctx, []string{containerCLI, "network", "delete", name}, nil,
 		&sink)
-}
-
-// cmpProxy is the job's own proxy if it has one, else the sandbox's.
-func cmpProxy(job, fallback ProxyListener) ProxyListener {
-	if job != nil {
-		return job
-	}
-	return fallback
 }
 
 func mount(source, target string, readonly bool) string {

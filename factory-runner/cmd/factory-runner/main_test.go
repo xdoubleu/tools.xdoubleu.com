@@ -61,13 +61,14 @@ func newEnv(t *testing.T) env {
 	var ran, loaded []string
 	return env{
 		app: &app{
-			home:     t.TempDir(),
-			execPath: "/bin/factory-runner",
-			stdout:   out,
-			stderr:   errs,
-			store:    store,
-			secrets:  newMemSecrets(),
-			stdin:    strings.NewReader(""),
+			home:        t.TempDir(),
+			execPath:    "/bin/factory-runner",
+			stdout:      out,
+			stderr:      errs,
+			store:       store,
+			secrets:     newMemSecrets(),
+			stdin:       strings.NewReader(""),
+			interactive: false,
 			newBeat: func(s string) pairHeartbeater {
 				server.servers = append(server.servers, s)
 				return server

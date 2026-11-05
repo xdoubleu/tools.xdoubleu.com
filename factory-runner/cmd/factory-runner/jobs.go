@@ -60,7 +60,7 @@ func newJobRunner(
 		ClaudeToken: func() (string, error) {
 			return a.secrets.GetSecret(runner.SecretClaude)
 		},
-		AuthorEmail: cfg.AuthorEmail(),
+		AuthorEmail: cfg.BotEmail,
 		Proxy: func(job *runner.ClaimedJob) (runner.ProxyListener, error) {
 			return newJobProxy(cfg, job, a.secrets, log)
 		},
