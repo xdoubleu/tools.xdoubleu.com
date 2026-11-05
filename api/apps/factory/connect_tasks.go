@@ -176,7 +176,11 @@ func (h *taskConnectHandler) ListTasks(
 	for i := range tasks {
 		out[i] = protoTask(&tasks[i])
 	}
-	return &factoryv1.ListTasksResponse{Tasks: out}, nil
+	paused, err := h.app.services.Jobs.PickupPaused(ctx)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &factoryv1.ListTasksResponse{Tasks: out, PickupPaused: paused}, nil
 }
 
 func (h *taskConnectHandler) GetTask(

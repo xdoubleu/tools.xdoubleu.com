@@ -12,6 +12,11 @@
   This includes `routine-feedback` items, which the executor fixes only after
   that human move. On the factory board the service enforces it (an agent
   account's move into Ready is refused); on GitHub it rests on the rules above.
+- **The factory runner picks up a Ready task only if its repo opted in** (auto
+  pickup, off by default) and the board isn't paused. It runs the title and body as
+  they stood at the Ready move, not later edits, and skips a task whose body was
+  last edited outside a browser at that move. A human admin in a browser also
+  resumes a paused board. The PR it opens never auto-merges.
 - **Routines file to the board as their own agent account**, never as the
   person, and never to GitHub issues: the account sees only `factory_*` tools
   and can't mark a task Ready ([ADR-0039](adr-0039-agent-accounts.md)).

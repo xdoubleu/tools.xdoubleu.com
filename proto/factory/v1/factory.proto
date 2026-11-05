@@ -59,6 +59,17 @@ message Comment {
 message ListTasksRequest {}
 message ListTasksResponse {
   repeated Task tasks = 1;
+  // Whether auto pickup is paused for the whole board.
+  bool pickup_paused = 2;
+}
+
+// Pauses or resumes auto pickup for the whole board. A human admin in a browser
+// session only.
+message SetPickupPausedRequest {
+  bool paused = 1;
+}
+message SetPickupPausedResponse {
+  bool paused = 1;
 }
 
 message GetTaskRequest {
@@ -205,6 +216,7 @@ message StopJobResponse {
 
 service TaskService {
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  rpc SetPickupPaused(SetPickupPausedRequest) returns (SetPickupPausedResponse);
   rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
   rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
   rpc UpdateTask(UpdateTaskRequest) returns (UpdateTaskResponse);
@@ -230,6 +242,9 @@ message Repo {
   // The OpenRouter model OpenCode runs on, "vendor/model"; required when the
   // default harness is OpenCode, empty for Claude Code.
   string default_model = 9;
+  // Lets the runner take this repo's Ready tasks without a press of Run, as the
+  // human approved them at the Ready move. Off by default.
+  bool auto_pickup = 10;
 }
 
 message ListReposRequest {}

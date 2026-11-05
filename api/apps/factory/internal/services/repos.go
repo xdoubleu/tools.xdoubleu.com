@@ -41,6 +41,7 @@ type RepoInput struct {
 	SetupCommands     string
 	AgentInstructions string
 	TimeLimitMinutes  int
+	AutoPickup        bool
 }
 
 // validBranch accepts the characters git allows in the common cases, and
@@ -120,6 +121,7 @@ func repoFrom(id uuid.UUID, in RepoInput) models.Repo {
 		SetupCommands:     in.SetupCommands,
 		AgentInstructions: in.AgentInstructions,
 		TimeLimitMinutes:  in.TimeLimitMinutes,
+		AutoPickup:        in.AutoPickup,
 		CreatedAt:         time.Time{},
 		UpdatedAt:         time.Time{},
 	}

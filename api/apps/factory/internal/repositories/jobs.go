@@ -97,6 +97,19 @@ func (r *JobsRepository) Claim(
 		RETURNING `+jobColumns, runnerID))
 }
 
+// AnyUnfinished reports whether a job is queued or running.
+func (r *JobsRepository) AnyUnfinished(ctx context.Context) (bool, error) {
+	var busy bool
+	err := r.db.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM factory.jobs WHERE status IN ('queued', 'running')
+		)`).Scan(&busy)
+	if err != nil {
+		return false, postgres.PgxErrorToHTTPError(err)
+	}
+	return busy, nil
+}
+
 // OldestQueued returns the job that has waited longest for a runner; none queued
 // is not found.
 func (r *JobsRepository) OldestQueued(ctx context.Context) (*models.Job, error) {

@@ -57,6 +57,12 @@ its own work ([ADR-0041](adr-0041-factory-runner-pairing.md)).
   read from stdin by a shell step). A Run can pick a harness and model for that job alone, and a
   Reply keeps the job it continues, because a session belongs to its harness.
 
+- **Auto pickup** (`repos.auto_pickup`, off by default) lets a claiming runner take the
+  oldest highest-priority Ready task when nothing is queued or running. The Ready
+  move snapshots the task's title and body (`ready_title`, `ready_body`); the job
+  is built from that, never from later edits. A board-wide pause switch overrides
+  every repo.
+
 ## Consequences
 
 - A lost job is only marked when something reads the board or a runner claims;
