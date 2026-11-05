@@ -38,6 +38,7 @@ type JobService struct {
 	// github is nil when no GitHub App is set up.
 	github GitHub
 	now    func() time.Time
+	say    notices
 }
 
 // ClaimedJob is a job with the repo it runs against.
@@ -385,7 +386,39 @@ func (s *JobService) Complete(
 	if err = s.finishTask(ctx, job.TaskID, author, body, next); err != nil {
 		return nil, err
 	}
+	s.announceEnd(ctx, job, succeeded, prURL, outcome)
 	return job, nil
+}
+
+// announceEnd tells Slack how a job ended: a pull request to review, or a task
+// that needs the owner. Only the task's title, a link and the outcome's first line
+// leave; none of the job's log or diff does.
+func (s *JobService) announceEnd(
+	ctx context.Context,
+	job *models.Job,
+	succeeded bool,
+	prURL, outcome string,
+) {
+	link := s.taskLink(ctx, job.TaskID)
+	switch {
+	case succeeded && prURL != "":
+		s.say.say(ctx, ":white_check_mark: Pull request opened for "+link+": <"+
+			prURL+"|review it>")
+	case succeeded:
+		s.say.say(ctx, ":warning: A job finished with no pull request for "+link+
+			", which needs you: "+slackText(firstLine(outcome)))
+	default:
+		s.say.say(ctx, ":x: A job failed on "+link+": "+slackText(firstLine(outcome)))
+	}
+}
+
+// taskLink is the task as a Slack link, or plain words when it can't be read.
+func (s *JobService) taskLink(ctx context.Context, taskID uuid.UUID) string {
+	task, err := s.tasks.Get(ctx, taskID)
+	if err != nil {
+		return "a task"
+	}
+	return s.say.taskLink(task.ID, task.Title)
 }
 
 // checkedPullRequest keeps a reported pull request only if it is the job repo's
@@ -434,6 +467,8 @@ func (s *JobService) ExpireLost(ctx context.Context) error {
 		); err != nil {
 			return err
 		}
+		s.say.say(ctx, ":x: A job was lost on "+s.taskLink(ctx, lost[i].TaskID)+
+			": the runner stopped checking in.")
 	}
 	return nil
 }

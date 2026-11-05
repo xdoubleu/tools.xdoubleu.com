@@ -370,6 +370,8 @@ KAMAL_GITHUB_OAUTH_CLIENT_SECRET   (→ GITHUB_OAUTH_CLIENT_SECRET)
 FACTORY_GITHUB_APP_ID        (the "factory" GitHub App, adr-0045: pushes a job's
                               branch and opens its PR; unset, jobs end in Needs you)
 FACTORY_GITHUB_APP_PRIVATE_KEY   (its PEM key; contents and pull requests write only)
+FACTORY_SLACK_WEBHOOK_URL    (Slack incoming webhook for job outcomes, adr-0044; unset,
+                              nothing is posted)
 SENTRY_OAUTH_CLIENT_ID
 SENTRY_OAUTH_CLIENT_SECRET
 TODOIST_OAUTH_CLIENT_ID      (learningpaths' Todoist connect flow; the app's own

@@ -2,6 +2,10 @@ import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 
+let mockQuery = ''
+vi.mock('@/hooks/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(mockQuery)
+}))
 vi.mock('@/hooks/useFactory', () => ({
   useFactoryTasks: vi.fn(),
   useFactoryRepos: vi.fn(),
@@ -95,6 +99,7 @@ function mockRepos(data?: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockQuery = ''
   mockRepos(undefined)
   mockRunners(undefined)
 })
@@ -126,6 +131,19 @@ describe('FactoryClient', () => {
     mockTasks({ data: board })
     render(<FactoryClient />)
     fireEvent.click(screen.getByRole('button', { name: 'Alpha' }))
+    expect(screen.getByTestId('detail')).toHaveTextContent('a')
+    fireEvent.click(screen.getByTestId('detail'))
+    expect(screen.queryByTestId('detail')).not.toBeInTheDocument()
+  })
+
+  it('opens the task a link names, and nothing without one', () => {
+    mockTasks({ data: board })
+    const plain = render(<FactoryClient />)
+    expect(screen.queryByTestId('detail')).not.toBeInTheDocument()
+    plain.unmount()
+
+    mockQuery = '?task=a'
+    render(<FactoryClient />)
     expect(screen.getByTestId('detail')).toHaveTextContent('a')
     fireEvent.click(screen.getByTestId('detail'))
     expect(screen.queryByTestId('detail')).not.toBeInTheDocument()

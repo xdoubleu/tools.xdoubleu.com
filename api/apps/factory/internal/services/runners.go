@@ -35,6 +35,7 @@ const (
 type RunnerService struct {
 	repo *repositories.RunnersRepository
 	now  func() time.Time
+	say  notices
 }
 
 // newCode returns a pairing code as two groups of five characters.
@@ -139,6 +140,7 @@ func (s *RunnerService) Pair(
 	if err != nil {
 		return "", nil, err
 	}
+	s.say.say(ctx, ":link: A runner paired: "+slackText(runner.Name))
 	return token, runner, nil
 }
 

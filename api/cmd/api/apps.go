@@ -118,6 +118,8 @@ func NewApps(
 		factoryOpts = append(factoryOpts, factory.WithJobAccounts(jobAccounts))
 	}
 	factoryOpts = append(factoryOpts, factoryGitHubOptions(cfg, logger)...)
+	factoryOpts = append(factoryOpts,
+		factory.WithSlack(cfg.FactorySlackWebhookURL, cfg.WebURL))
 	apps.addApp(factory.New(ctx, authService, logger, cfg, db, factoryOpts...))
 
 	// taste reads every media app through its exported ListConsumption, so it
