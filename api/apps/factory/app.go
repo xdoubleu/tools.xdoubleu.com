@@ -13,13 +13,13 @@ import (
 	"tools.xdoubleu.com/apps/factory/internal/jobs"
 	"tools.xdoubleu.com/apps/factory/internal/repositories"
 	"tools.xdoubleu.com/apps/factory/internal/services"
-	"tools.xdoubleu.com/apps/factory/internal/slack"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/observability"
+	"tools.xdoubleu.com/internal/slack"
 	"tools.xdoubleu.com/internal/threading"
 )
 

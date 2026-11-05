@@ -19,6 +19,12 @@ const (
 	sendAttempts = 3
 )
 
+// Escape makes text safe to put in a Slack message: Slack reads <...> as a link or
+// a mention (<!channel>), so the brackets and & are escaped.
+func Escape(text string) string {
+	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;").Replace(text)
+}
+
 // Sender posts text to one webhook. It is safe for concurrent use.
 type Sender struct {
 	url  string

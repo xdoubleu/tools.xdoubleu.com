@@ -16,6 +16,7 @@ import (
 	"tools.xdoubleu.com/apps/factory/internal/models"
 	"tools.xdoubleu.com/apps/factory/internal/repositories"
 	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/slack"
 )
 
 const (
@@ -140,7 +141,7 @@ func (s *RunnerService) Pair(
 	if err != nil {
 		return "", nil, err
 	}
-	s.say.say(ctx, ":link: A runner paired: "+slackText(runner.Name))
+	s.say.say(ctx, ":link: A runner paired: "+slack.Escape(runner.Name))
 	return token, runner, nil
 }
 

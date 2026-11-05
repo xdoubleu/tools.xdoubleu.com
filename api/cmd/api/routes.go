@@ -17,6 +17,7 @@ import (
 	"tools.xdoubleu.com/internal/middleware"
 	"tools.xdoubleu.com/internal/oauth2as"
 	"tools.xdoubleu.com/internal/obs"
+	"tools.xdoubleu.com/internal/slack"
 )
 
 // maxRequestBodyBytes bounds every request body, e.g. inbound newsletter
@@ -36,6 +37,7 @@ func (app *Application) mux() *http.ServeMux {
 	agentaccounts.Register(mux, app.logger, app.auth.Access, &agentaccounts.Deps{
 		Store:  agents,
 		StepUp: app.auth,
+		Notify: app.slackNotify(),
 	})
 	obs.Register(mux, app.logger, app.auth.Access, app.obsDeps())
 
@@ -200,4 +202,13 @@ func (app *Application) domainMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// slackNotify posts to the factory's Slack webhook, or is nil when none is set.
+func (app *Application) slackNotify() func(ctx context.Context, text string) {
+	sender := slack.New(app.config.FactorySlackWebhookURL, app.logger)
+	if sender == nil {
+		return nil
+	}
+	return sender.Notify
 }
