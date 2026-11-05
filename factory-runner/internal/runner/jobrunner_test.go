@@ -234,7 +234,7 @@ func newJob() *runner.ClaimedJob {
 		ID: jobID, TaskID: taskID, RepoOwner: "xdoubleu", RepoName: "tools.xdoubleu.com",
 		DefaultBranch: "main", Harness: runner.HarnessClaudeCode, Prompt: "# Task: Fix it",
 		Branch: branch, SetupCommands: "make setup", TimeLimitMinutes: 1,
-		MCPClientID: "", MCPClientSecret: "", ResumeSessionID: "",
+		MCPClientID: "", MCPClientSecret: "", ResumeSessionID: "", Model: "",
 	}
 }
 
@@ -336,11 +336,23 @@ func TestTheRunnerRefusesWhatItsOwnRulesForbid(t *testing.T) {
 		"an option as the base":       func(j *runner.ClaimedJob) { j.DefaultBranch = "-x" },
 		"a job id that names a path":  func(j *runner.ClaimedJob) { j.ID = "../../etc" },
 		"a task id that names a path": func(j *runner.ClaimedJob) { j.TaskID = "../x" },
+		"claude code with a model": func(j *runner.ClaimedJob) {
+			j.Model = "vendor/model"
+		},
+		"opencode without a model": func(j *runner.ClaimedJob) {
+			j.Harness, j.Model = runner.HarnessOpenCode, ""
+		},
+		"opencode with a model that is an option": func(j *runner.ClaimedJob) {
+			j.Harness, j.Model = runner.HarnessOpenCode, "-x/model"
+		},
+		"opencode with a model that has a space": func(j *runner.ClaimedJob) {
+			j.Harness, j.Model = runner.HarnessOpenCode, "a/b c"
+		},
 		"a session id that is an option": func(j *runner.ClaimedJob) {
 			j.ResumeSessionID = "--dangerously-skip-permissions"
 		},
 		"a harness it can't run": func(j *runner.ClaimedJob) {
-			j.Harness = "HARNESS_OPENCODE"
+			j.Harness = "HARNESS_AIDER"
 		},
 	}
 	for name, change := range mutate {
@@ -815,4 +827,84 @@ func TestAReplyNeedsTheEarlierWorkOnGitHub(t *testing.T) {
 	assert.Contains(t, got.outcome, "Could not prepare the clone")
 	assert.Contains(t, got.outcome, "pushed to GitHub")
 	assert.Empty(t, env.sandbox.specs, "the agent never ran")
+}
+
+func openCodeJob() *runner.ClaimedJob {
+	job := newJob()
+	job.Harness, job.Model = runner.HarnessOpenCode, "vendor/model"
+	return job
+}
+
+// writesOpenCode is a sandbox run that logs an OpenCode-shaped event with a session
+// id and writes an outcome, as `opencode run --format json` would.
+func writesOpenCode(
+	outcome string,
+) func(context.Context, runner.SandboxSpec) (int, error) {
+	return func(_ context.Context, spec runner.SandboxSpec) (int, error) {
+		_, _ = io.WriteString(spec.Log,
+			`{"type":"step_start","sessionID":"ses_42","part":{}}`+"\n")
+		commitFile(spec.CloneDir, "agent.txt", "work")
+		_ = os.WriteFile(filepath.Join(spec.OutcomeDir, "outcome.md"), []byte(outcome), 0o644)
+		return 0, nil
+	}
+}
+
+func TestAnOpenCodeJobRunsTheOpenCodeCommandAndReportsItsSession(t *testing.T) {
+	env := newEnv(t, writesOpenCode("Did it."), openCodeJob())
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	spec := env.sandbox.specs[0]
+	assert.Equal(t, runner.OpenCode{Model: "vendor/model"}.Command(), spec.Command)
+	assert.Equal(t, runner.SandboxSessionDir, spec.Env["XDG_DATA_HOME"])
+	assert.NotContains(t, spec.Env, "CLAUDE_CONFIG_DIR")
+	assert.Equal(t, runner.SandboxOutcomePath, spec.Env["FACTORY_OUTCOME_PATH"])
+
+	got := env.api.done()[0]
+	assert.True(t, got.succeeded, got.outcome)
+	assert.Equal(t, "ses_42", got.session, "the OpenCode session id is what gets reported")
+}
+
+func TestAnOpenCodeReplyResumesItsSession(t *testing.T) {
+	var runs int
+	env := newEnv(t, func(
+		ctx context.Context, spec runner.SandboxSpec,
+	) (int, error) {
+		runs++
+		if runs == 1 {
+			return writesOpenCode("First.")(ctx, spec)
+		}
+		commitFile(spec.CloneDir, "fix.txt", "fixed")
+		_ = os.WriteFile(
+			filepath.Join(spec.OutcomeDir, "outcome.md"),
+			[]byte("Fixed."),
+			0o644,
+		)
+		return 0, nil
+	}, openCodeJob())
+	ranFirstJob(t, env)
+
+	reply := replyJob()
+	reply.Harness, reply.Model = runner.HarnessOpenCode, "vendor/model"
+	reply.ResumeSessionID = "ses_42"
+	env.api.jobs = append(env.api.jobs, reply)
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	second := env.sandbox.specs[1]
+	assert.Equal(
+		t,
+		runner.OpenCode{Model: "vendor/model"}.Resume("ses_42"),
+		second.Command,
+	)
+	assert.Equal(t, env.sandbox.specs[0].SessionDir, second.SessionDir)
+	assert.True(t, env.api.done()[1].succeeded, env.api.done()[1].outcome)
+}
+
+func TestAClaudeCodeJobStillRunsClaudeCode(t *testing.T) {
+	env := newEnv(t, writes("ok", 0), newJob())
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, runner.ClaudeCode{}.Command(), env.sandbox.specs[0].Command)
+	assert.Contains(t, env.sandbox.specs[0].Env, "CLAUDE_CONFIG_DIR")
 }

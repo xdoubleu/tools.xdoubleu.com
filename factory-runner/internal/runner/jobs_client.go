@@ -29,6 +29,8 @@ type ClaimedJob struct {
 	// ResumeSessionID is set for a Reply's job: the harness session to continue
 	// on the task's existing branch.
 	ResumeSessionID string `json:"resumeSessionId"`
+	// Model is the OpenRouter model of an OpenCode job; empty for Claude Code.
+	Model string `json:"model"`
 }
 
 // JobAPI is the server side of running jobs.

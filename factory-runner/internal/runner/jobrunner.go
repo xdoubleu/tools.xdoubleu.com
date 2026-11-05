@@ -196,8 +196,8 @@ func (r *JobRunner) check(job *ClaimedJob) error {
 	if job.ResumeSessionID != "" && !sessionIDPattern.MatchString(job.ResumeSessionID) {
 		return fmt.Errorf("%w: invalid session id", ErrRefused)
 	}
-	if job.Harness != HarnessClaudeCode {
-		return fmt.Errorf("%w: harness %q is not supported yet", ErrRefused, job.Harness)
+	if err := checkHarness(job); err != nil {
+		return err
 	}
 	allowed, err := r.Allowed()
 	if err != nil {
@@ -208,6 +208,32 @@ func (r *JobRunner) check(job *ClaimedJob) error {
 		Branch:     job.Branch,
 		BaseBranch: job.DefaultBranch,
 	}, allowed)
+}
+
+// checkHarness refuses a harness the runner can't run, and a model that doesn't fit
+// it: Claude Code takes none, OpenCode needs a well-formed OpenRouter id.
+func checkHarness(job *ClaimedJob) error {
+	switch job.Harness {
+	case HarnessClaudeCode:
+		if job.Model != "" {
+			return fmt.Errorf("%w: Claude Code takes no model", ErrRefused)
+		}
+	case HarnessOpenCode:
+		if !validModel(job.Model) {
+			return fmt.Errorf("%w: invalid model", ErrRefused)
+		}
+	default:
+		return fmt.Errorf("%w: harness %q is not supported yet", ErrRefused, job.Harness)
+	}
+	return nil
+}
+
+// harnessFor is the harness a job runs on; the server's choice is already checked.
+func (r *JobRunner) harnessFor(job *ClaimedJob) Harness {
+	if job.Harness == HarnessOpenCode {
+		return OpenCode{Model: job.Model}
+	}
+	return r.Harness
 }
 
 func (r *JobRunner) minute() time.Duration {
@@ -253,7 +279,12 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	runCtx, cancel := context.WithTimeout(ctx, limit)
 	defer cancel()
 
-	tap := &sessionTap{harness: r.Harness, mu: sync.Mutex{}, partial: nil, session: ""}
+	tap := &sessionTap{
+		harness: r.harnessFor(job),
+		mu:      sync.Mutex{},
+		partial: nil,
+		session: "",
+	}
 	events := newEventTap(append(r.secrets(), job.MCPClientSecret))
 	var stopped atomic.Bool
 	wait := r.watch(runCtx, cancel, job.ID, tap, events, &stopped)
@@ -300,11 +331,12 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 // invocation is what the sandbox runs for the job, and its environment: a fresh
 // session, or a Reply's resumed one.
 func (r *JobRunner) invocation(job *ClaimedJob) ([]string, map[string]string) {
-	command := r.Harness.Command()
+	harness := r.harnessFor(job)
+	command := harness.Command()
 	if job.ResumeSessionID != "" {
-		command = r.Harness.Resume(job.ResumeSessionID)
+		command = harness.Resume(job.ResumeSessionID)
 	}
-	env := r.Harness.SessionEnv(SandboxSessionDir)
+	env := harness.SessionEnv(SandboxSessionDir)
 	env["FACTORY_JOB"] = job.ID
 	env["FACTORY_OUTCOME_PATH"] = SandboxOutcomePath
 	return command, env
