@@ -22,7 +22,7 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 				`"defaultBranch":"main","harness":"HARNESS_CLAUDE_CODE","prompt":"p",` +
 				`"branch":"agent/x","setupCommands":"make","timeLimitMinutes":45,` +
 				`"mcpClientId":"agent-1","mcpClientSecret":"s3cret-value",` +
-				`"resumeSessionId":"sess-1"}}`),
+				`"resumeSessionId":"sess-1","model":"vendor/model"}}`),
 		)
 	})
 	job, err := c.ClaimJob(context.Background(), "frt_x")
@@ -32,7 +32,7 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 		Harness: runner.HarnessClaudeCode, Prompt: "p", Branch: "agent/x",
 		SetupCommands: "make", TimeLimitMinutes: 45,
 		MCPClientID: "agent-1", MCPClientSecret: "s3cret-value",
-		ResumeSessionID: "sess-1",
+		ResumeSessionID: "sess-1", Model: "vendor/model",
 	}, job)
 
 	none := serve(

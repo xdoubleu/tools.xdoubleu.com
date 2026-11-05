@@ -14,7 +14,7 @@ internal/runner/
   hostcheck.go                host checks on finished work
   events.go                   redacted log lines to the board
   publish.go                  push the reviewed branch, open its PR
-  harness.go, sandbox.go      Claude Code's command; the Sandbox interface
+  harness.go, sandbox.go      Claude Code and OpenCode commands; Sandbox
   validate.go, config.go      job validator; server URL and repo allowlist
   token.go, launchagent.go    keychain; plist
   update.go, activity.go      signed self-update; caffeinate
@@ -23,13 +23,13 @@ internal/updatesig/           copy of kobo-gateway's (Go forbids importing its i
 
 ## Trust
 
-The server is not trusted; the runner checks each claimed job: UUID job and task ids, the local repo allowlist (`config repos add owner/name`), an `agent/*` branch, no value starting with `-`, a harness it can run.
+The server is not trusted; the runner checks each claimed job: UUID job and task ids, the local repo allowlist (`config repos add owner/name`), an `agent/*` branch, no value starting with `-`, a harness it can run (a model only for OpenCode).
 
-- A Reply's job restores the task's pushed branch and resumes its session (`sessions/<task id>`, deleted when the task is Done); only new commits are host-checked.
+- A Reply's job restores the task's pushed branch and resumes its session (`sessions/<task id>`, deleted when Done); only new commits are host-checked.
 - A job's clone is the agent's once the sandbox starts: it can write `.git/hooks` and `.git/config`, so the host runs git in it only with `-c core.hooksPath=/dev/null` and a clean config.
 - A finished job is host-checked before it counts: real commits, no workflow change, no secret in commits or outcome, read from a fetched copy. A pass is pushed and opened as a PR → [`adr-0045`](../docs/adr-0045-factory-github-app.md).
 - The device token lives only in the keychain; a revoked one ends `run`.
-- `config server` takes https only (http for localhost). `Client` times out at 35 s, above the server's 20 s hold.
+- `config server` takes https only (http: localhost). `Client` waits 35 s, above the server's 20 s hold.
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
