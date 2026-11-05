@@ -143,6 +143,9 @@ message Job {
   string pr_ci = 8;
   // The standing review while it is open: "approved" or "changes_requested".
   string pr_review = 9;
+  // What ran it: the harness, and for OpenCode its OpenRouter model.
+  Harness harness = 10;
+  string model = 11;
 }
 
 // One event of a job's log: a line of the harness's stream-json output.
@@ -173,6 +176,10 @@ message RunTaskRequest {
   string task_id = 1;
   // Added to the prompt after the task; optional.
   string text = 2;
+  // Overrides the repo's default harness for this job; unspecified keeps it.
+  Harness harness = 3;
+  // The OpenRouter model for an OpenCode job; empty uses the repo's default.
+  string model = 4;
 }
 message RunTaskResponse {
   Job job = 1;
@@ -220,6 +227,9 @@ message Repo {
   // Free text added to every prompt for this repo.
   string agent_instructions = 7;
   int32 time_limit_minutes = 8;
+  // The OpenRouter model OpenCode runs on, "vendor/model"; required when the
+  // default harness is OpenCode, empty for Claude Code.
+  string default_model = 9;
 }
 
 message ListReposRequest {}

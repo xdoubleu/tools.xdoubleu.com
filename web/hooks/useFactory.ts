@@ -120,11 +120,18 @@ interface TaskFields {
   labels: string[]
 }
 
+/** A per-job choice of harness; the model is for OpenCode only. */
+export interface HarnessPick {
+  harness: Harness
+  model: string
+}
+
 export interface RepoFields {
   owner: string
   name: string
   defaultBranch: string
   defaultHarness: Harness
+  defaultModel: string
   setupCommands: string
   agentInstructions: string
   timeLimitMinutes: number
@@ -163,9 +170,9 @@ export function useFactoryActions() {
       await refresh()
     },
     /** Queues a job for the task; refused unless the body was last edited in a browser. */
-    run: async (taskId: string, text: string) => {
+    run: async (taskId: string, text: string, pick?: HarnessPick) => {
       try {
-        await client.runTask({ taskId, text })
+        await client.runTask({ taskId, text, ...pick })
       } finally {
         // A refusal still comments on the task and moves it to Needs you.
         await refresh()

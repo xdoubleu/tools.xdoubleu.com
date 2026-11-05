@@ -34,7 +34,7 @@ func (s *JobService) issueAccount(
 ) error {
 	job := &claimed.Job
 	name := "job #" + job.ID.String()[:shortJobIDLen] + " · " +
-		string(claimed.Repo.DefaultHarness)
+		string(job.Harness)
 	account, secret, err := s.accounts.CreateForJob(ctx, systemAuthor, name,
 		agentaccounts.Scope{JobID: job.ID, TaskID: job.TaskID})
 	if err != nil {

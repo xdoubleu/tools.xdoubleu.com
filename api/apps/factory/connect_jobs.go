@@ -46,6 +46,8 @@ func protoJob(j *models.Job) *factoryv1.Job {
 		PrState:   j.PRState,
 		PrCi:      j.PRCI,
 		PrReview:  j.PRReview,
+		Harness:   harnessToProto(j.Harness),
+		Model:     j.Model,
 	}
 }
 
@@ -61,7 +63,16 @@ func (h *taskConnectHandler) RunTask(
 	if err != nil {
 		return nil, err
 	}
-	job, err := h.app.services.Jobs.Run(ctx, actor, id, req.GetText())
+	job, err := h.app.services.Jobs.Run(
+		ctx,
+		actor,
+		id,
+		req.GetText(),
+		services.HarnessPick{
+			Harness: harnessFromProtoOptional(req.GetHarness()),
+			Model:   req.GetModel(),
+		},
+	)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -151,6 +162,7 @@ func claimedJobToProto(c *services.ClaimedJob) *factoryv1.ClaimedJob {
 		McpClientId:      c.MCPClientID,
 		McpClientSecret:  c.MCPClientSecret,
 		ResumeSessionId:  c.ResumeSessionID,
+		Model:            c.Job.Model,
 	}
 }
 

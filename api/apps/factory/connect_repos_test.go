@@ -27,6 +27,7 @@ func validRepo(name string) *factoryv1.Repo {
 		Name:              name,
 		DefaultBranch:     "trunk",
 		DefaultHarness:    factoryv1.Harness_HARNESS_OPENCODE,
+		DefaultModel:      "vendor/model",
 		SetupCommands:     "npm ci",
 		AgentInstructions: "Be careful.",
 		TimeLimitMinutes:  15,
@@ -87,6 +88,7 @@ func TestCreateRepoStoresEverySetting(t *testing.T) {
 	assert.Equal(t, "alpha", got.Name)
 	assert.Equal(t, "trunk", got.DefaultBranch)
 	assert.Equal(t, factoryv1.Harness_HARNESS_OPENCODE, got.DefaultHarness)
+	assert.Equal(t, "vendor/model", got.DefaultModel)
 	assert.Equal(t, "npm ci", got.SetupCommands)
 	assert.Equal(t, "Be careful.", got.AgentInstructions)
 	assert.EqualValues(t, 15, got.TimeLimitMinutes)
@@ -127,10 +129,33 @@ func TestCreateRepoValidation(t *testing.T) {
 		"branch option": with(func(r *factoryv1.Repo) {
 			r.DefaultBranch = "--upload-pack=x"
 		}),
-		"branch dotdot": with(func(r *factoryv1.Repo) { r.DefaultBranch = "a..b" }),
-		"branch space":  with(func(r *factoryv1.Repo) { r.DefaultBranch = "a b" }),
-		"branch slash":  with(func(r *factoryv1.Repo) { r.DefaultBranch = "/a" }),
-		"bad harness":   with(func(r *factoryv1.Repo) { r.DefaultHarness = 99 }),
+		"branch dotdot": with(func(r *factoryv1.Repo) {
+			r.DefaultBranch = "a..b"
+		}),
+		"branch space": with(func(r *factoryv1.Repo) {
+			r.DefaultBranch = "a b"
+		}),
+		"branch slash": with(func(r *factoryv1.Repo) {
+			r.DefaultBranch = "/a"
+		}),
+		"bad harness": with(func(r *factoryv1.Repo) {
+			r.DefaultHarness = 99
+		}),
+		"opencode without a model": with(func(r *factoryv1.Repo) {
+			r.DefaultModel = ""
+		}),
+		"model without a vendor": with(func(r *factoryv1.Repo) {
+			r.DefaultModel = "model"
+		}),
+		"model as an option": with(func(r *factoryv1.Repo) {
+			r.DefaultModel = "-x/model"
+		}),
+		"model with a space": with(func(r *factoryv1.Repo) {
+			r.DefaultModel = "a/b c"
+		}),
+		"claude code with a model": with(func(r *factoryv1.Repo) {
+			r.DefaultHarness = factoryv1.Harness_HARNESS_CLAUDE_CODE
+		}),
 		"long setup": with(func(r *factoryv1.Repo) {
 			r.SetupCommands = strings.Repeat("a", 10001)
 		}),
@@ -167,6 +192,7 @@ func TestUpdateRepoReplacesEverySetting(t *testing.T) {
 
 	repo.DefaultBranch = "develop"
 	repo.DefaultHarness = factoryv1.Harness_HARNESS_CLAUDE_CODE
+	repo.DefaultModel = ""
 	repo.SetupCommands = "make deps"
 	repo.AgentInstructions = "Follow AGENTS.md."
 	repo.TimeLimitMinutes = 90

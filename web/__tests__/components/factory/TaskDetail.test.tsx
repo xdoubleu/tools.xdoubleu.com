@@ -39,6 +39,7 @@ import { AgentAccountSchema } from '@/lib/gen/factory/v1/agent_accounts_pb'
 import {
   CommentSchema,
   GetTaskResponseSchema,
+  Harness,
   JobSchema,
   JobStatus,
   TaskPriority,
@@ -269,6 +270,41 @@ describe('TaskDetail', () => {
         jobs: [create(JobSchema, { id: 'j-1', status, branch: 'agent/t-1-fix-login' })]
       })
 
+    it('runs on a picked harness and model, and only then asks for a model', async () => {
+      mockTask({ data: detail })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      const harness = screen.getByLabelText('Harness')
+      expect(harness).toHaveValue(String(Harness.UNSPECIFIED))
+      expect(screen.queryByLabelText('Model')).not.toBeInTheDocument()
+
+      fireEvent.change(harness, { target: { value: String(Harness.OPENCODE) } })
+      fireEvent.change(screen.getByLabelText('Model'), { target: { value: ' vendor/m ' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+      await waitFor(() =>
+        expect(mockRun).toHaveBeenCalledWith('t-1', '', {
+          harness: Harness.OPENCODE,
+          model: 'vendor/m'
+        })
+      )
+    })
+
+    it('runs on Claude Code without a model', async () => {
+      mockTask({ data: detail })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      fireEvent.change(screen.getByLabelText('Harness'), {
+        target: { value: String(Harness.CLAUDE_CODE) }
+      })
+      expect(screen.queryByLabelText('Model')).not.toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+      await waitFor(() =>
+        expect(mockRun).toHaveBeenCalledWith('t-1', '', {
+          harness: Harness.CLAUDE_CODE,
+          model: ''
+        })
+      )
+    })
+
     it('queues a job with the optional instructions and clears the box', async () => {
       mockTask({ data: detail })
       render(<TaskDetail id="t-1" onClose={vi.fn()} />)
@@ -364,6 +400,21 @@ describe('TaskDetail', () => {
       mockTask({ data: withJob(JobStatus.RUNNING) })
       render(<TaskDetail id="t-1" onClose={vi.fn()} />)
       expect(screen.queryByTestId('job-pr')).not.toBeInTheDocument()
+    })
+
+    it('says which harness and model the job ran on', () => {
+      const job = create(JobSchema, {
+        id: 'j-1',
+        status: JobStatus.RUNNING,
+        branch: 'agent/t-1-fix-login',
+        harness: Harness.OPENCODE,
+        model: 'vendor/model'
+      })
+      mockTask({ data: create(GetTaskResponseSchema, { ...detail, jobs: [job] }) })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      expect(screen.getByTestId('job-status')).toHaveTextContent(
+        'Job running · agent/t-1-fix-login · OpenCode · vendor/model'
+      )
     })
 
     it('stops an active job', async () => {

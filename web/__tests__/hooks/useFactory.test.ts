@@ -73,6 +73,7 @@ const repoFields = {
   name: 'n',
   defaultBranch: 'main',
   defaultHarness: 1,
+  defaultModel: '',
   setupCommands: 'make',
   agentInstructions: 'be nice',
   timeLimitMinutes: 30
@@ -214,6 +215,17 @@ describe('useFactoryActions', () => {
     expect(mockClient.addComment).toHaveBeenCalledWith({ taskId: 't-1', body: 'hi' })
 
     expect(mockMutate).toHaveBeenCalledTimes(3)
+  })
+
+  it('runs a task on a picked harness', async () => {
+    const { result } = renderHook(() => useFactoryActions())
+    await result.current.run('t-1', 'go', { harness: 2, model: 'vendor/model' })
+    expect(mockClient.runTask).toHaveBeenCalledWith({
+      taskId: 't-1',
+      text: 'go',
+      harness: 2,
+      model: 'vendor/model'
+    })
   })
 
   it('runs a task and revalidates', async () => {

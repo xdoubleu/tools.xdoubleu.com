@@ -1115,7 +1115,10 @@ type Job struct {
 	// empty when there are none.
 	PrCi string `protobuf:"bytes,8,opt,name=pr_ci,json=prCi,proto3" json:"pr_ci,omitempty"`
 	// The standing review while it is open: "approved" or "changes_requested".
-	PrReview      string `protobuf:"bytes,9,opt,name=pr_review,json=prReview,proto3" json:"pr_review,omitempty"`
+	PrReview string `protobuf:"bytes,9,opt,name=pr_review,json=prReview,proto3" json:"pr_review,omitempty"`
+	// What ran it: the harness, and for OpenCode its OpenRouter model.
+	Harness       Harness `protobuf:"varint,10,opt,name=harness,proto3,enum=factory.v1.Harness" json:"harness,omitempty"`
+	Model         string  `protobuf:"bytes,11,opt,name=model,proto3" json:"model,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1209,6 +1212,20 @@ func (x *Job) GetPrCi() string {
 func (x *Job) GetPrReview() string {
 	if x != nil {
 		return x.PrReview
+	}
+	return ""
+}
+
+func (x *Job) GetHarness() Harness {
+	if x != nil {
+		return x.Harness
+	}
+	return Harness_HARNESS_UNSPECIFIED
+}
+
+func (x *Job) GetModel() string {
+	if x != nil {
+		return x.Model
 	}
 	return ""
 }
@@ -1390,7 +1407,11 @@ type RunTaskRequest struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	TaskId string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
 	// Added to the prompt after the task; optional.
-	Text          string `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	Text string `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
+	// Overrides the repo's default harness for this job; unspecified keeps it.
+	Harness Harness `protobuf:"varint,3,opt,name=harness,proto3,enum=factory.v1.Harness" json:"harness,omitempty"`
+	// The OpenRouter model for an OpenCode job; empty uses the repo's default.
+	Model         string `protobuf:"bytes,4,opt,name=model,proto3" json:"model,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1435,6 +1456,20 @@ func (x *RunTaskRequest) GetTaskId() string {
 func (x *RunTaskRequest) GetText() string {
 	if x != nil {
 		return x.Text
+	}
+	return ""
+}
+
+func (x *RunTaskRequest) GetHarness() Harness {
+	if x != nil {
+		return x.Harness
+	}
+	return Harness_HARNESS_UNSPECIFIED
+}
+
+func (x *RunTaskRequest) GetModel() string {
+	if x != nil {
+		return x.Model
 	}
 	return ""
 }
@@ -1682,8 +1717,11 @@ type Repo struct {
 	// Free text added to every prompt for this repo.
 	AgentInstructions string `protobuf:"bytes,7,opt,name=agent_instructions,json=agentInstructions,proto3" json:"agent_instructions,omitempty"`
 	TimeLimitMinutes  int32  `protobuf:"varint,8,opt,name=time_limit_minutes,json=timeLimitMinutes,proto3" json:"time_limit_minutes,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// The OpenRouter model OpenCode runs on, "vendor/model"; required when the
+	// default harness is OpenCode, empty for Claude Code.
+	DefaultModel  string `protobuf:"bytes,9,opt,name=default_model,json=defaultModel,proto3" json:"default_model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Repo) Reset() {
@@ -1770,6 +1808,13 @@ func (x *Repo) GetTimeLimitMinutes() int32 {
 		return x.TimeLimitMinutes
 	}
 	return 0
+}
+
+func (x *Repo) GetDefaultModel() string {
+	if x != nil {
+		return x.DefaultModel
+	}
+	return ""
 }
 
 type ListReposRequest struct {
@@ -2096,7 +2141,7 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\"C\n" +
 	"\x12AddCommentResponse\x12-\n" +
-	"\acomment\x18\x01 \x01(\v2\x13.factory.v1.CommentR\acomment\"\xf8\x01\n" +
+	"\acomment\x18\x01 \x01(\v2\x13.factory.v1.CommentR\acomment\"\xbd\x02\n" +
 	"\x03Job\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12-\n" +
@@ -2107,7 +2152,10 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x06pr_url\x18\x06 \x01(\tR\x05prUrl\x12\x19\n" +
 	"\bpr_state\x18\a \x01(\tR\aprState\x12\x13\n" +
 	"\x05pr_ci\x18\b \x01(\tR\x04prCi\x12\x1b\n" +
-	"\tpr_review\x18\t \x01(\tR\bprReview\"i\n" +
+	"\tpr_review\x18\t \x01(\tR\bprReview\x12-\n" +
+	"\aharness\x18\n" +
+	" \x01(\x0e2\x13.factory.v1.HarnessR\aharness\x12\x14\n" +
+	"\x05model\x18\v \x01(\tR\x05model\"i\n" +
 	"\bJobEvent\x12\x10\n" +
 	"\x03seq\x18\x01 \x01(\x05R\x03seq\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x18\n" +
@@ -2118,10 +2166,12 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1b\n" +
 	"\tafter_seq\x18\x02 \x01(\x05R\bafterSeq\"E\n" +
 	"\x15ListJobEventsResponse\x12,\n" +
-	"\x06events\x18\x01 \x03(\v2\x14.factory.v1.JobEventR\x06events\"=\n" +
+	"\x06events\x18\x01 \x03(\v2\x14.factory.v1.JobEventR\x06events\"\x82\x01\n" +
 	"\x0eRunTaskRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
-	"\x04text\x18\x02 \x01(\tR\x04text\"4\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\x12-\n" +
+	"\aharness\x18\x03 \x01(\x0e2\x13.factory.v1.HarnessR\aharness\x12\x14\n" +
+	"\x05model\x18\x04 \x01(\tR\x05model\"4\n" +
 	"\x0fRunTaskResponse\x12!\n" +
 	"\x03job\x18\x01 \x01(\v2\x0f.factory.v1.JobR\x03job\"?\n" +
 	"\x10ReplyTaskRequest\x12\x17\n" +
@@ -2132,7 +2182,7 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x0eStopJobRequest\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\"4\n" +
 	"\x0fStopJobResponse\x12!\n" +
-	"\x03job\x18\x01 \x01(\v2\x0f.factory.v1.JobR\x03job\"\xa9\x02\n" +
+	"\x03job\x18\x01 \x01(\v2\x0f.factory.v1.JobR\x03job\"\xce\x02\n" +
 	"\x04Repo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x12\n" +
@@ -2141,7 +2191,8 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x0fdefault_harness\x18\x05 \x01(\x0e2\x13.factory.v1.HarnessR\x0edefaultHarness\x12%\n" +
 	"\x0esetup_commands\x18\x06 \x01(\tR\rsetupCommands\x12-\n" +
 	"\x12agent_instructions\x18\a \x01(\tR\x11agentInstructions\x12,\n" +
-	"\x12time_limit_minutes\x18\b \x01(\x05R\x10timeLimitMinutes\"\x12\n" +
+	"\x12time_limit_minutes\x18\b \x01(\x05R\x10timeLimitMinutes\x12#\n" +
+	"\rdefault_model\x18\t \x01(\tR\fdefaultModel\"\x12\n" +
 	"\x10ListReposRequest\";\n" +
 	"\x11ListReposResponse\x12&\n" +
 	"\x05repos\x18\x01 \x03(\v2\x10.factory.v1.RepoR\x05repos\"9\n" +
@@ -2266,47 +2317,49 @@ var file_factory_v1_factory_proto_depIdxs = []int32{
 	4,  // 11: factory.v1.MoveTaskResponse.task:type_name -> factory.v1.Task
 	5,  // 12: factory.v1.AddCommentResponse.comment:type_name -> factory.v1.Comment
 	3,  // 13: factory.v1.Job.status:type_name -> factory.v1.JobStatus
-	19, // 14: factory.v1.ListJobEventsResponse.events:type_name -> factory.v1.JobEvent
-	18, // 15: factory.v1.RunTaskResponse.job:type_name -> factory.v1.Job
-	18, // 16: factory.v1.ReplyTaskResponse.job:type_name -> factory.v1.Job
-	18, // 17: factory.v1.StopJobResponse.job:type_name -> factory.v1.Job
-	2,  // 18: factory.v1.Repo.default_harness:type_name -> factory.v1.Harness
-	28, // 19: factory.v1.ListReposResponse.repos:type_name -> factory.v1.Repo
-	28, // 20: factory.v1.CreateRepoRequest.repo:type_name -> factory.v1.Repo
-	28, // 21: factory.v1.CreateRepoResponse.repo:type_name -> factory.v1.Repo
-	28, // 22: factory.v1.UpdateRepoRequest.repo:type_name -> factory.v1.Repo
-	28, // 23: factory.v1.UpdateRepoResponse.repo:type_name -> factory.v1.Repo
-	6,  // 24: factory.v1.TaskService.ListTasks:input_type -> factory.v1.ListTasksRequest
-	8,  // 25: factory.v1.TaskService.GetTask:input_type -> factory.v1.GetTaskRequest
-	10, // 26: factory.v1.TaskService.CreateTask:input_type -> factory.v1.CreateTaskRequest
-	12, // 27: factory.v1.TaskService.UpdateTask:input_type -> factory.v1.UpdateTaskRequest
-	14, // 28: factory.v1.TaskService.MoveTask:input_type -> factory.v1.MoveTaskRequest
-	16, // 29: factory.v1.TaskService.AddComment:input_type -> factory.v1.AddCommentRequest
-	22, // 30: factory.v1.TaskService.RunTask:input_type -> factory.v1.RunTaskRequest
-	24, // 31: factory.v1.TaskService.ReplyTask:input_type -> factory.v1.ReplyTaskRequest
-	26, // 32: factory.v1.TaskService.StopJob:input_type -> factory.v1.StopJobRequest
-	20, // 33: factory.v1.TaskService.ListJobEvents:input_type -> factory.v1.ListJobEventsRequest
-	29, // 34: factory.v1.RepoService.ListRepos:input_type -> factory.v1.ListReposRequest
-	31, // 35: factory.v1.RepoService.CreateRepo:input_type -> factory.v1.CreateRepoRequest
-	33, // 36: factory.v1.RepoService.UpdateRepo:input_type -> factory.v1.UpdateRepoRequest
-	7,  // 37: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
-	9,  // 38: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
-	11, // 39: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
-	13, // 40: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
-	15, // 41: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
-	17, // 42: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
-	23, // 43: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
-	25, // 44: factory.v1.TaskService.ReplyTask:output_type -> factory.v1.ReplyTaskResponse
-	27, // 45: factory.v1.TaskService.StopJob:output_type -> factory.v1.StopJobResponse
-	21, // 46: factory.v1.TaskService.ListJobEvents:output_type -> factory.v1.ListJobEventsResponse
-	30, // 47: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
-	32, // 48: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
-	34, // 49: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
-	37, // [37:50] is the sub-list for method output_type
-	24, // [24:37] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	2,  // 14: factory.v1.Job.harness:type_name -> factory.v1.Harness
+	19, // 15: factory.v1.ListJobEventsResponse.events:type_name -> factory.v1.JobEvent
+	2,  // 16: factory.v1.RunTaskRequest.harness:type_name -> factory.v1.Harness
+	18, // 17: factory.v1.RunTaskResponse.job:type_name -> factory.v1.Job
+	18, // 18: factory.v1.ReplyTaskResponse.job:type_name -> factory.v1.Job
+	18, // 19: factory.v1.StopJobResponse.job:type_name -> factory.v1.Job
+	2,  // 20: factory.v1.Repo.default_harness:type_name -> factory.v1.Harness
+	28, // 21: factory.v1.ListReposResponse.repos:type_name -> factory.v1.Repo
+	28, // 22: factory.v1.CreateRepoRequest.repo:type_name -> factory.v1.Repo
+	28, // 23: factory.v1.CreateRepoResponse.repo:type_name -> factory.v1.Repo
+	28, // 24: factory.v1.UpdateRepoRequest.repo:type_name -> factory.v1.Repo
+	28, // 25: factory.v1.UpdateRepoResponse.repo:type_name -> factory.v1.Repo
+	6,  // 26: factory.v1.TaskService.ListTasks:input_type -> factory.v1.ListTasksRequest
+	8,  // 27: factory.v1.TaskService.GetTask:input_type -> factory.v1.GetTaskRequest
+	10, // 28: factory.v1.TaskService.CreateTask:input_type -> factory.v1.CreateTaskRequest
+	12, // 29: factory.v1.TaskService.UpdateTask:input_type -> factory.v1.UpdateTaskRequest
+	14, // 30: factory.v1.TaskService.MoveTask:input_type -> factory.v1.MoveTaskRequest
+	16, // 31: factory.v1.TaskService.AddComment:input_type -> factory.v1.AddCommentRequest
+	22, // 32: factory.v1.TaskService.RunTask:input_type -> factory.v1.RunTaskRequest
+	24, // 33: factory.v1.TaskService.ReplyTask:input_type -> factory.v1.ReplyTaskRequest
+	26, // 34: factory.v1.TaskService.StopJob:input_type -> factory.v1.StopJobRequest
+	20, // 35: factory.v1.TaskService.ListJobEvents:input_type -> factory.v1.ListJobEventsRequest
+	29, // 36: factory.v1.RepoService.ListRepos:input_type -> factory.v1.ListReposRequest
+	31, // 37: factory.v1.RepoService.CreateRepo:input_type -> factory.v1.CreateRepoRequest
+	33, // 38: factory.v1.RepoService.UpdateRepo:input_type -> factory.v1.UpdateRepoRequest
+	7,  // 39: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
+	9,  // 40: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
+	11, // 41: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
+	13, // 42: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
+	15, // 43: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
+	17, // 44: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
+	23, // 45: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
+	25, // 46: factory.v1.TaskService.ReplyTask:output_type -> factory.v1.ReplyTaskResponse
+	27, // 47: factory.v1.TaskService.StopJob:output_type -> factory.v1.StopJobResponse
+	21, // 48: factory.v1.TaskService.ListJobEvents:output_type -> factory.v1.ListJobEventsResponse
+	30, // 49: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
+	32, // 50: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
+	34, // 51: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
+	39, // [39:52] is the sub-list for method output_type
+	26, // [26:39] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_factory_v1_factory_proto_init() }

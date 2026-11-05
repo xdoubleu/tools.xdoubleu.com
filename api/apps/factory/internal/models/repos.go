@@ -23,11 +23,13 @@ func (h Harness) Valid() bool {
 // Repo is a GitHub repository the factory runs jobs for, with the settings
 // those jobs need.
 type Repo struct {
-	ID                uuid.UUID
-	Owner             string
-	Name              string
-	DefaultBranch     string
-	DefaultHarness    Harness
+	ID             uuid.UUID
+	Owner          string
+	Name           string
+	DefaultBranch  string
+	DefaultHarness Harness
+	// DefaultModel is the OpenRouter model OpenCode runs on; empty for Claude Code.
+	DefaultModel      string
 	SetupCommands     string
 	AgentInstructions string
 	TimeLimitMinutes  int

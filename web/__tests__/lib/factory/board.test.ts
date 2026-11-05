@@ -30,6 +30,7 @@ import {
   jobActive,
   FIX_CI_REPLY,
   canFixCi,
+  jobRunner,
   jobStatusLabel,
   prBadge,
   prStatusLine,
@@ -257,5 +258,13 @@ describe('board', () => {
     expect(badge('open', 'passing')).toEqual({ label: 'CI passing', variant: 'success' })
     expect(badge('open', '', 'approved')).toEqual({ label: 'Approved', variant: 'success' })
     expect(badge('open')).toEqual({ label: 'PR open', variant: 'secondary' })
+  })
+
+  it('says what ran a job', () => {
+    const ran = (harness: number, model = '') => jobRunner(create(JobSchema, { harness, model }))
+    expect(ran(0)).toBe('')
+    expect(ran(1)).toBe('Claude Code')
+    expect(ran(2, 'vendor/model')).toBe('OpenCode · vendor/model')
+    expect(ran(2)).toBe('OpenCode')
   })
 })

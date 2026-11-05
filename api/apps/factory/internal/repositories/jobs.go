@@ -16,7 +16,8 @@ type JobsRepository struct {
 
 const jobColumns = `id, task_id, repo_id, harness, prompt, status, branch,
 	session_id, outcome, created_by, created_at, started_at, last_check_in,
-	finished_at, pr_url, runner_id, pr_state, pr_ci, pr_review, parent_job_id`
+	finished_at, pr_url, runner_id, pr_state, pr_ci, pr_review, parent_job_id,
+	model`
 
 func scanJob(row rowScanner) (*models.Job, error) {
 	var j models.Job
@@ -25,6 +26,7 @@ func scanJob(row rowScanner) (*models.Job, error) {
 		&j.SessionID, &j.Outcome, &j.CreatedBy, &j.CreatedAt, &j.StartedAt,
 		&j.LastCheckIn, &j.FinishedAt, &j.PRURL,
 		&j.RunnerID, &j.PRState, &j.PRCI, &j.PRReview, &j.ParentJobID,
+		&j.Model,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -39,11 +41,12 @@ func (r *JobsRepository) Create(
 ) (*models.Job, error) {
 	return scanJob(r.db.QueryRow(ctx, `
 		INSERT INTO factory.jobs (
-			task_id, repo_id, harness, prompt, branch, created_by, parent_job_id
+			task_id, repo_id, harness, prompt, branch, created_by, parent_job_id, model
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING `+jobColumns,
-		j.TaskID, j.RepoID, j.Harness, j.Prompt, j.Branch, j.CreatedBy, j.ParentJobID))
+		j.TaskID, j.RepoID, j.Harness, j.Prompt, j.Branch, j.CreatedBy, j.ParentJobID,
+		j.Model))
 }
 
 // Get returns one job.
