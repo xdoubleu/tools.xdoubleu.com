@@ -67,7 +67,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.2.1",
-    "@vitest/coverage-v8": "5.0.5",
+    "@vitest/coverage-v8": "5.1.0",
     "dependency-cruiser": "18.7.1",
     "eslint": "10.14.0",
     "fake-indexeddb": "6.2.7",
@@ -80,7 +80,7 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.1",
     "vite": "8.3.5",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   },
   "overrides": {
     "@readium/shared": "2.8.0",
