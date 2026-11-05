@@ -1,8 +1,9 @@
 # ADR-0043: Jobs run in one Apple `container` VM each, on a host-only network behind a host proxy
 
 - Status: Accepted (owner's decision, in chat): Apple's own tooling, no third-party
-  VM layer. The choices rest on documentation; the Mac checks
-  (`scripts/factory_sandbox_probe.sh` and the manual list in it) have not been run.
+  VM layer. The network and isolation checks of
+  `scripts/factory_sandbox_probe.sh` pass on macOS 27.0 with `container` 1.6.1; the
+  manual list in it is still open.
 - Issues: #2704, #2701 (decisions 11 and 12)
 - Affects: `factory-runner/` (the sandbox interface #2706 builds), future
   `Containerfile` for the job image
@@ -59,14 +60,30 @@ tool and reads anywhere by default.
 Documented: the flags above, one VM per container, Apache-2.0, macOS 26 only,
 `--internal`, `claude setup-token` scope and `ANTHROPIC_BASE_URL`.
 
-Unverified, and the probe's job: that a VM on an `--internal` network can reach the
-host gateway address (the proxy) and nothing else, including no other host
-listener; that a blocked host really fails; that a non-root uid can write a
-bind-mounted clone and the file lands owned by you; start-up time per job; that
-`claude -p` works through the base URL, with plugins and skills loaded; and
-whether the heartbeat's long-poll survives sleep and wake. Apple's docs describe
-macOS 15 networking as limited and call the project under active development with
-possible breaking changes, so pin the CLI version.
+Verified by the probe: a VM on an `--internal` network reaches a host listener
+bound to the gateway address, and direct egress fails; a non-root uid (100) writes a
+bind-mounted clone and the file lands owned by the host user; the root filesystem
+and a read-only mount refuse writes; no `/Users`; a job's VM starts and ends in
+under a second.
+
+- **Pick the subnet.** `container` chose `192.168.128.0/24`, which overlapped the
+  Mac's LAN; the host then routed the gateway address to the router and the VM
+  reached nothing. The runner passes `--subnet` from a private range that no host
+  route overlaps.
+- **The gateway exists only while a VM runs.** The host bridge appears with the first
+  VM on the network, so the proxy binds after that VM starts (or the runner keeps a
+  placeholder VM).
+- **Bind to the gateway address only.** A wildcard listener on the host may be
+  reachable from the VM; that is untested.
+
+Still unverified: that `claude -p` works through the base URL, with plugins and
+skills loaded; `claude --resume` inside the VM, which needs the image's config
+copied into `CLAUDE_CONFIG_DIR` (that variable replaces the whole config dir);
+OpenCode model calls; whether the heartbeat's long-poll survives sleep and wake; and
+wildcard listeners. OpenCode `--session` resume, the top-level `sessionID` and
+sessions under `XDG_DATA_HOME` hold with `@opencode/cli` 2.2.2, which must be the
+only package providing `opencode` in the image. Apple's docs call the project under
+active development with possible breaking changes, so pin the CLI version.
 
 ## Alternatives considered
 
