@@ -103,7 +103,7 @@ func TestCompleteJobSendsTheResult(t *testing.T) {
 
 func TestClaudeCodeRunsPrintModeWithoutTheAgentSDKOrAPromptInArgv(t *testing.T) {
 	cmd := runner.ClaudeCode{}.Command()
-	assert.Equal(t, "claude", cmd[0])
+	assert.Equal(t, []string{"claude", "claude", "-p"}, cmd[3:6])
 	assert.Contains(t, cmd, "-p")
 	assert.Contains(t, cmd, "stream-json")
 	assert.Contains(t, cmd, "bypassPermissions")
