@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -65,6 +66,8 @@ func newEnv(t *testing.T) env {
 			stdout:   out,
 			stderr:   errs,
 			store:    store,
+			secrets:  newMemSecrets(),
+			stdin:    strings.NewReader(""),
 			newBeat: func(s string) pairHeartbeater {
 				server.servers = append(server.servers, s)
 				return server

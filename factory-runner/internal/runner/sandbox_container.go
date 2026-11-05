@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/netip"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -147,8 +149,8 @@ func (s *ContainerSandbox) Run(ctx context.Context, spec SandboxSpec) (int, erro
 	gateway := gatewayOf(subnet)
 
 	proxyURL := ""
-	if s.Proxy != nil {
-		stop, addr, listenErr := s.Proxy.Listen(gateway, s.ProxyPort)
+	if proxy := cmpProxy(spec.Proxy, s.Proxy); proxy != nil {
+		stop, addr, listenErr := proxy.Listen(gateway, s.ProxyPort)
 		if listenErr != nil {
 			return -1, fmt.Errorf("starting the egress proxy: %w", listenErr)
 		}
@@ -169,7 +171,15 @@ func (s *ContainerSandbox) Run(ctx context.Context, spec SandboxSpec) (int, erro
 // checkSpec refuses a spec the VM's command line or env file could not carry
 // faithfully, before anything is started.
 func checkSpec(spec SandboxSpec) error {
+	// The VM and its network are named after the job, and two jobs without a name
+	// would collide.
+	if spec.Env["FACTORY_JOB"] == "" {
+		return errors.New("the job has no FACTORY_JOB id")
+	}
 	for k, v := range spec.Env {
+		if k == "FACTORY_GATEWAY" || k == "FACTORY_PROXY" {
+			return fmt.Errorf("environment variable %q is set by the sandbox", k)
+		}
 		if !envKeyPattern.MatchString(k) {
 			return fmt.Errorf("environment variable name %q is not valid", k)
 		}
@@ -320,17 +330,17 @@ func (s *ContainerSandbox) writeEnvFile(
 		"npm_config_offline": "true",
 	}
 	var b strings.Builder
-	for k, v := range fixed {
+	for _, k := range slices.Sorted(maps.Keys(fixed)) {
 		if _, set := env[k]; !set {
-			fmt.Fprintf(&b, "%s=%s\n", k, v)
+			fmt.Fprintf(&b, "%s=%s\n", k, fixed[k])
 		}
 	}
 	fmt.Fprintf(&b, "FACTORY_GATEWAY=%s\n", gateway)
 	if proxyURL != "" {
 		fmt.Fprintf(&b, "FACTORY_PROXY=%s\n", proxyURL)
 	}
-	for k, v := range env {
-		fmt.Fprintf(&b, "%s=%s\n", k, v)
+	for _, k := range slices.Sorted(maps.Keys(env)) {
+		fmt.Fprintf(&b, "%s=%s\n", k, env[k])
 	}
 	_, werr := file.WriteString(b.String())
 	cerr := file.Close()
@@ -354,6 +364,14 @@ func (s *ContainerSandbox) cleanup(name string) {
 		&sink)
 	_, _ = s.Exec.Exec(ctx, []string{containerCLI, "network", "delete", name}, nil,
 		&sink)
+}
+
+// cmpProxy is the job's own proxy if it has one, else the sandbox's.
+func cmpProxy(job, fallback ProxyListener) ProxyListener {
+	if job != nil {
+		return job
+	}
+	return fallback
 }
 
 func mount(source, target string, readonly bool) string {

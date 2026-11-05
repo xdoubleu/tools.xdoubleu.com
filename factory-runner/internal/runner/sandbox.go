@@ -28,6 +28,9 @@ type SandboxSpec struct {
 	Env           map[string]string
 	SetupCommands string
 	Command       []string
+	// Proxy, when set, is this job's egress proxy (it holds the job's credentials);
+	// it replaces the sandbox's own.
+	Proxy ProxyListener
 	// Stdin is fed to Command: the prompt.
 	Stdin string
 	// Log receives what the command writes to stdout and stderr.

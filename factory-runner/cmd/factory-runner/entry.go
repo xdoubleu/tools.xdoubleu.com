@@ -30,6 +30,8 @@ func main() {
 		stdout:   os.Stdout,
 		stderr:   os.Stderr,
 		store:    runner.NewKeychain(),
+		secrets:  runner.NewKeychain(),
+		stdin:    os.Stdin,
 		newBeat: func(server string) pairHeartbeater {
 			return runner.NewClient(server, Release)
 		},

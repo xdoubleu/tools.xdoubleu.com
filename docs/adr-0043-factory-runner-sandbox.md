@@ -90,9 +90,16 @@ Verified with the real image (`go test -tags container`): the seeded session
 directory shows the image's marketplaces and plugins, although `CLAUDE_CONFIG_DIR`
 replaces the whole config dir.
 
-Still unverified: that `claude -p` works through the base URL with those skills
-loaded; `claude --resume` inside the VM; OpenCode model calls; whether the heartbeat's long-poll survives sleep and wake; and
-wildcard listeners. OpenCode `--session` resume, the top-level `sessionID` and
+The real `claude` 2.1.285 and `opencode` 2.2.2, run in the VM against a fake
+upstream, send their model calls through the proxy and reach the board's MCP
+endpoint through `/mcp`: Claude with its own token passed through, OpenCode with the
+host's key in place of its placeholder, and the board with a token the VM never
+holds. OpenCode reads its per-job config from `OPENCODE_CONFIG`; the repo's own
+`tools-apps` server stays in its config and is unreachable from the VM.
+
+Still unverified: a model call that succeeds with the owner's real tokens (and so
+`claude -p` end to end, and `claude --resume` inside the VM); whether the heartbeat's
+long-poll survives sleep and wake; and wildcard listeners. OpenCode `--session` resume, the top-level `sessionID` and
 sessions under `XDG_DATA_HOME` hold with `@opencode/cli` 2.2.2, which must be the
 only package providing `opencode` in the image. Apple's docs call the project under
 active development with possible breaking changes, so pin the CLI version.

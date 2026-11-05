@@ -43,9 +43,20 @@ func (ClaudeCode) Command() []string {
 // so a new session directory is filled from here once; a resumed one is left alone.
 const ClaudeConfigSeed = "/opt/claude-config"
 
+// claudeStart seeds the config once, then, when the sandbox has a proxy, points Claude
+// at it: the API through /anthropic and the board's MCP server through /mcp with no
+// credential (the host adds it).
 const claudeStart = `[ -e "$CLAUDE_CONFIG_DIR/.seeded" ] || ` +
 	`{ cp -R "$CLAUDE_CONFIG_SEED/." "$CLAUDE_CONFIG_DIR/" && ` +
-	`touch "$CLAUDE_CONFIG_DIR/.seeded"; } && exec "$@"`
+	`touch "$CLAUDE_CONFIG_DIR/.seeded"; } || exit 1
+if [ -n "${FACTORY_PROXY:-}" ]; then
+  export ANTHROPIC_BASE_URL="$FACTORY_PROXY/anthropic"
+  mcp="$HOME/factory-mcp.json"
+  printf '{"mcpServers":{"board":{"type":"http","url":"%s/mcp"}}}\n' ` +
+	`"$FACTORY_PROXY" > "$mcp" || exit 1
+  exec "$@" --mcp-config "$mcp"
+fi
+exec "$@"`
 
 // Resume implements Harness.
 func (c ClaudeCode) Resume(sessionID string) []string {
@@ -104,11 +115,24 @@ type OpenCode struct {
 	Model string
 }
 
+// openCodePrelude writes the job's OpenCode config when the sandbox has a proxy:
+// OpenRouter through /openrouter (the model is declared, as the catalogue needs the
+// network) and the board's MCP server through /mcp. The model id is validated, so it
+// is safe inside the JSON string.
+const openCodePrelude = `if [ -n "${FACTORY_PROXY:-}" ]; then
+  cfg="$HOME/opencode-job.json"
+  printf '{"provider":{"openrouter":{"options":{"baseURL":"%s/openrouter/v1"},` +
+	`"models":{"%s":{}}}},"mcp":{"board":{"type":"remote","url":"%s/mcp"}}}\n' ` +
+	`"$FACTORY_PROXY" "$1" "$FACTORY_PROXY" > "$cfg" || exit 1
+  export OPENCODE_CONFIG="$cfg"
+fi
+`
+
 const (
-	openCodeStart = `exec opencode run --standalone --format json --auto ` +
-		`-m "openrouter/$1" "$(cat)"`
-	openCodeAgain = `exec opencode run --standalone --format json --auto ` +
-		`-m "openrouter/$1" --session "$2" "$(cat)"`
+	openCodeStart = openCodePrelude + `exec opencode run --standalone --format json ` +
+		`--auto -m "openrouter/$1" "$(cat)"`
+	openCodeAgain = openCodePrelude + `exec opencode run --standalone --format json ` +
+		`--auto -m "openrouter/$1" --session "$2" "$(cat)"`
 )
 
 // Command implements Harness.

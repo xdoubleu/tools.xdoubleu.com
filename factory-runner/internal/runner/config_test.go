@@ -61,6 +61,7 @@ func TestBrokenOrUnreadableConfigIsAnError(t *testing.T) {
 		DataDir:    "",
 		GoModCache: "",
 		NPMCache:   "",
+		BotEmail:   "",
 	}
 	blocker := filepath.Join(dir, "file")
 	require.NoError(t, os.WriteFile(blocker, nil, 0o600))
@@ -75,6 +76,7 @@ func TestAddAndRemoveRepos(t *testing.T) {
 		DataDir:    "",
 		GoModCache: "",
 		NPMCache:   "",
+		BotEmail:   "",
 	}
 	require.Error(t, cfg.AddRepo("not-a-repo"))
 	require.Error(t, cfg.AddRepo("-a/b"))
@@ -92,6 +94,7 @@ func TestServerMustBeHTTPSOrLoopback(t *testing.T) {
 		DataDir:    "",
 		GoModCache: "",
 		NPMCache:   "",
+		BotEmail:   "",
 	}
 	for _, ok := range []string{
 		"https://example.com/api/", "http://localhost:8080", "http://127.0.0.1",

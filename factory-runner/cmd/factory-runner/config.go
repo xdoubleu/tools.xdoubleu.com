@@ -3,8 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"slices"
+	"strings"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
 )
@@ -12,7 +14,7 @@ import (
 var errConfigUsage = errors.New(
 	"usage: factory-runner config show | server <url> | " +
 		"repos add|remove <owner/name> | repos list | image <ref> | " +
-		"data|gocache|npmcache <dir>",
+		"data|gocache|npmcache <dir> | bot-email <address> | secret claude|openrouter",
 )
 
 func (a *app) config(args []string) error {
@@ -28,13 +30,17 @@ func (a *app) config(args []string) error {
 	case verb == "show" && len(rest) == 0:
 		fmt.Fprintf(a.stdout, "server: %s\nrepos: %v\nimage: %s\ndata: %s\n",
 			cfg.Server, cfg.Repos, cfg.JobImage(), cfg.DataPath(a.home))
-		fmt.Fprintf(a.stdout, "gocache: %s\nnpmcache: %s\n",
-			orNone(cfg.GoModCache), orNone(cfg.NPMCache))
+		fmt.Fprintf(a.stdout, "gocache: %s\nnpmcache: %s\nbot-email: %s\n",
+			orNone(cfg.GoModCache), orNone(cfg.NPMCache), cfg.AuthorEmail())
 		return nil
 	case verb == "server" && len(rest) == 1:
 		err = cfg.SetServer(rest[0])
 	case verb == "image" && len(rest) == 1:
 		err = cfg.SetImage(rest[0])
+	case verb == "bot-email" && len(rest) == 1:
+		err = cfg.SetBotEmail(rest[0])
+	case verb == "secret" && len(rest) == 1:
+		return a.storeSecret(rest[0])
 	case slices.Contains([]string{"data", "gocache", "npmcache"}, verb) &&
 		len(rest) == 1:
 		err = a.setDir(&cfg, verb, rest[0])
@@ -50,6 +56,26 @@ func (a *app) config(args []string) error {
 		return err
 	}
 	return cfg.Save(path)
+}
+
+// maxSecretBytes bounds what is read from stdin as a secret.
+const maxSecretBytes = 4096
+
+// storeSecret reads a credential from stdin, never from argv (which other processes
+// can read) or the shell history, and keeps it in the keychain.
+func (a *app) storeSecret(name string) error {
+	raw, err := io.ReadAll(io.LimitReader(a.stdin, maxSecretBytes+1))
+	if err != nil {
+		return fmt.Errorf("read the %s secret: %w", name, err)
+	}
+	if len(raw) > maxSecretBytes {
+		return fmt.Errorf("the %s secret is longer than %d bytes", name, maxSecretBytes)
+	}
+	if err = a.secrets.SetSecret(name, strings.TrimSpace(string(raw))); err != nil {
+		return err
+	}
+	fmt.Fprintf(a.stdout, "Stored the %s secret in the keychain.\n", name)
+	return nil
 }
 
 // orNone says what an unset cache means: the VM has no registry access, so a job
