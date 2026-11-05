@@ -26,10 +26,12 @@ func (s JobStatus) Finished() bool {
 
 // Job is one run of a harness on a task, on the runner's Mac.
 type Job struct {
-	ID        uuid.UUID
-	TaskID    uuid.UUID
-	RepoID    uuid.UUID
-	Harness   Harness
+	ID      uuid.UUID
+	TaskID  uuid.UUID
+	RepoID  uuid.UUID
+	Harness Harness
+	// Model is the OpenRouter model of an OpenCode job; empty for Claude Code.
+	Model     string
 	Prompt    string
 	Status    JobStatus
 	Branch    string

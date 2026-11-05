@@ -51,6 +51,11 @@ its own work ([ADR-0041](adr-0041-factory-runner-pairing.md)).
   and the outcome's first line, escaped so a title can't mention the channel. It is
   sent in the background and never fails the work it reports.
 
+- **Harness and model** are frozen on each job. A repo has a default harness and, for
+  OpenCode, a default OpenRouter model (`vendor/model`; Claude Code chooses its own
+  and takes none). A Run can pick a harness and model for that job alone, and a
+  Reply keeps the job it continues, because a session belongs to its harness.
+
 ## Consequences
 
 - A lost job is only marked when something reads the board or a runner claims;

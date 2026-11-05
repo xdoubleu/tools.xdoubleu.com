@@ -41,8 +41,9 @@ func testTask(id uuid.UUID, title, body string) *models.Task {
 func testRepo(instructions string) *models.Repo {
 	return &models.Repo{
 		ID: uuid.Nil, Owner: "", Name: "", DefaultBranch: "", DefaultHarness: "",
-		SetupCommands: "", AgentInstructions: instructions, TimeLimitMinutes: 0,
-		CreatedAt: time.Time{}, UpdatedAt: time.Time{},
+		DefaultModel: "", SetupCommands: "", AgentInstructions: instructions,
+		TimeLimitMinutes: 0,
+		CreatedAt:        time.Time{}, UpdatedAt: time.Time{},
 	}
 }
 

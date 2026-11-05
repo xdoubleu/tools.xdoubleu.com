@@ -60,6 +60,15 @@ func harnessFromProto(h factoryv1.Harness) models.Harness {
 	return models.HarnessInvalid
 }
 
+// harnessFromProtoOptional is harnessFromProto where unspecified means "the repo's
+// default", not an error.
+func harnessFromProtoOptional(h factoryv1.Harness) models.Harness {
+	if h == factoryv1.Harness_HARNESS_UNSPECIFIED {
+		return ""
+	}
+	return harnessFromProto(h)
+}
+
 func protoRepo(r *models.Repo) *factoryv1.Repo {
 	return &factoryv1.Repo{
 		Id:                r.ID.String(),
@@ -67,6 +76,7 @@ func protoRepo(r *models.Repo) *factoryv1.Repo {
 		Name:              r.Name,
 		DefaultBranch:     r.DefaultBranch,
 		DefaultHarness:    harnessToProto(r.DefaultHarness),
+		DefaultModel:      r.DefaultModel,
 		SetupCommands:     r.SetupCommands,
 		AgentInstructions: r.AgentInstructions,
 		//nolint:gosec // bounded to 1..1440 by the service and the column
@@ -80,6 +90,7 @@ func repoInput(r *factoryv1.Repo) services.RepoInput {
 		Name:              r.GetName(),
 		DefaultBranch:     r.GetDefaultBranch(),
 		DefaultHarness:    harnessFromProto(r.GetDefaultHarness()),
+		DefaultModel:      r.GetDefaultModel(),
 		SetupCommands:     r.GetSetupCommands(),
 		AgentInstructions: r.GetAgentInstructions(),
 		TimeLimitMinutes:  int(r.GetTimeLimitMinutes()),

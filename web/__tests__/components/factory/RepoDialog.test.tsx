@@ -40,7 +40,9 @@ describe('RepoDialog', () => {
     fill('Owner', 'octo')
     fill('Name', 'cat')
     fill('Default branch', 'dev')
+    expect(screen.queryByLabelText('Default model')).not.toBeInTheDocument()
     fill('Default harness', String(Harness.OPENCODE))
+    fill('Default model', ' vendor/model ')
     fill('Time limit (minutes)', '15')
     fill('Setup commands', 'npm ci')
     fill('Agent instructions', 'Be careful.')
@@ -52,6 +54,7 @@ describe('RepoDialog', () => {
         name: 'cat',
         defaultBranch: 'dev',
         defaultHarness: Harness.OPENCODE,
+        defaultModel: 'vendor/model',
         setupCommands: 'npm ci',
         agentInstructions: 'Be careful.',
         timeLimitMinutes: 15
@@ -68,6 +71,7 @@ describe('RepoDialog', () => {
       name: 'cat',
       defaultBranch: 'trunk',
       defaultHarness: Harness.OPENCODE,
+      defaultModel: 'vendor/old',
       setupCommands: 'make deps',
       agentInstructions: 'Follow AGENTS.md.',
       timeLimitMinutes: 90
@@ -80,6 +84,7 @@ describe('RepoDialog', () => {
     expect(screen.getByLabelText('Name')).toHaveValue('cat')
     expect(screen.getByLabelText('Default branch')).toHaveValue('trunk')
     expect(screen.getByLabelText('Default harness')).toHaveValue(String(Harness.OPENCODE))
+    expect(screen.getByLabelText('Default model')).toHaveValue('vendor/old')
     expect(screen.getByLabelText('Time limit (minutes)')).toHaveValue(90)
     expect(screen.getByLabelText('Setup commands')).toHaveValue('make deps')
     expect(screen.getByLabelText('Agent instructions')).toHaveValue('Follow AGENTS.md.')
@@ -95,6 +100,34 @@ describe('RepoDialog', () => {
     )
     await waitFor(() => expect(onClose).toHaveBeenCalled())
     expect(mockCreate).not.toHaveBeenCalled()
+  })
+
+  it('starts the model empty and drops it when the repo goes back to Claude Code', async () => {
+    const { unmount } = render(<RepoDialog onClose={vi.fn()} />)
+    fill('Default harness', String(Harness.OPENCODE))
+    expect(screen.getByLabelText('Default model')).toHaveValue('')
+    unmount()
+
+    const repo = create(RepoSchema, {
+      id: 'r1',
+      owner: 'octo',
+      name: 'cat',
+      defaultBranch: 'main',
+      defaultHarness: Harness.OPENCODE,
+      defaultModel: 'vendor/old',
+      timeLimitMinutes: 60
+    })
+    render(<RepoDialog repo={repo} onClose={vi.fn()} />)
+    fill('Default harness', String(Harness.CLAUDE_CODE))
+    expect(screen.queryByLabelText('Default model')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() =>
+      expect(mockUpdate).toHaveBeenCalledWith(
+        'r1',
+        expect.objectContaining({ defaultHarness: Harness.CLAUDE_CODE, defaultModel: '' })
+      )
+    )
   })
 
   it('keeps Save off for a blank owner or name', () => {

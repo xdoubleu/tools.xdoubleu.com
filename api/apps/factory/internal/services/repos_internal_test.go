@@ -20,6 +20,7 @@ func repoInput(mod func(*RepoInput)) RepoInput {
 		Name:              "repo",
 		DefaultBranch:     "main",
 		DefaultHarness:    models.HarnessClaudeCode,
+		DefaultModel:      "",
 		SetupCommands:     "",
 		AgentInstructions: "",
 		TimeLimitMinutes:  60,
@@ -114,7 +115,24 @@ func TestNormaliseRepoBounds(t *testing.T) {
 		r.AgentInstructions = strings.Repeat("a", maxInstructionsLen+1)
 	})
 
-	ok(func(r *RepoInput) { r.DefaultHarness = models.HarnessOpenCode })
+	ok(func(r *RepoInput) {
+		r.DefaultHarness, r.DefaultModel = models.HarnessOpenCode, "vendor/model"
+	})
+	ok(func(r *RepoInput) {
+		r.DefaultHarness, r.DefaultModel = models.HarnessOpenCode, " vendor/model:free "
+	})
+	bad(func(r *RepoInput) { r.DefaultHarness = models.HarnessOpenCode })
+	bad(func(r *RepoInput) {
+		r.DefaultHarness, r.DefaultModel = models.HarnessOpenCode, "no-vendor"
+	})
+	bad(func(r *RepoInput) {
+		r.DefaultHarness, r.DefaultModel = models.HarnessOpenCode, "-x/model"
+	})
+	bad(func(r *RepoInput) {
+		r.DefaultHarness = models.HarnessOpenCode
+		r.DefaultModel = "vendor/" + strings.Repeat("m", maxModelLen)
+	})
+	bad(func(r *RepoInput) { r.DefaultModel = "vendor/model" })
 	bad(func(r *RepoInput) { r.DefaultHarness = models.HarnessInvalid })
 	bad(func(r *RepoInput) { r.DefaultBranch = "-x" })
 }

@@ -104,6 +104,41 @@ func promptFor(repo *models.Repo, task *models.Task, text string) string {
 	return b.String()
 }
 
+// HarnessPick is a per-job choice of harness and model; the zero value keeps the
+// repo's defaults.
+type HarnessPick struct {
+	Harness models.Harness
+	Model   string
+}
+
+// resolveHarness is the harness and model a job runs on: the pick where it names
+// one, else the repo's defaults. A pick of OpenCode without a model takes the repo's
+// default model when the repo's default harness is OpenCode too.
+func resolveHarness(
+	repo *models.Repo,
+	pick HarnessPick,
+) (models.Harness, string, error) {
+	harness := pick.Harness
+	model := strings.TrimSpace(pick.Model)
+	if harness == "" {
+		harness = repo.DefaultHarness
+		if model == "" {
+			model = repo.DefaultModel
+		}
+	}
+	if !harness.Valid() {
+		return "", "", badRequest("invalid harness")
+	}
+	if harness == models.HarnessOpenCode && model == "" &&
+		repo.DefaultHarness == models.HarnessOpenCode {
+		model = repo.DefaultModel
+	}
+	if err := checkModel(harness, model); err != nil {
+		return "", "", err
+	}
+	return harness, model, nil
+}
+
 // Run queues a job for a task and moves the task to In progress. Only a human
 // admin in a browser may run a task, as for Ready. A task whose body was last
 // edited outside a browser session is refused, with a comment, and moved to
@@ -113,6 +148,7 @@ func (s *JobService) Run(
 	actor models.Actor,
 	taskID uuid.UUID,
 	text string,
+	pick HarnessPick,
 ) (*models.Job, error) {
 	if !actor.CanMoveToReady() {
 		return nil, forbidden("only a human admin in a browser session can run a task")
@@ -127,6 +163,10 @@ func (s *JobService) Run(
 		return nil, err
 	}
 	repo, err := s.repos.Get(ctx, task.RepoID)
+	if err != nil {
+		return nil, err
+	}
+	harness, model, err := resolveHarness(repo, pick)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +189,7 @@ func (s *JobService) Run(
 	}
 
 	job, err := s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: taskID, RepoID: repo.ID, Harness: repo.DefaultHarness,
+		ID: uuid.Nil, TaskID: taskID, RepoID: repo.ID, Harness: harness, Model: model,
 		Prompt: promptFor(repo, task, text), Status: "", Branch: branchFor(task),
 		SessionID: "", Outcome: "", ParentJobID: nil, PRURL: "", RunnerID: nil,
 		PRState: "", PRCI: "", PRReview: "", CreatedBy: actor.String(),
@@ -210,6 +250,7 @@ func (s *JobService) Reply(
 	}
 	job, err := s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: taskID, RepoID: last.RepoID, Harness: last.Harness,
+		Model:  last.Model,
 		Prompt: text, Status: "", Branch: last.Branch, SessionID: "", Outcome: "",
 		ParentJobID: &last.ID, PRURL: "", RunnerID: nil, PRState: "", PRCI: "",
 		PRReview: "", CreatedBy: actor.String(), CreatedAt: time.Time{},

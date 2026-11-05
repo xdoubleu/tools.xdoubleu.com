@@ -88,6 +88,8 @@ message ClaimedJob {
   string mcp_client_secret = 12;
   // Set for a Reply's job: the harness session to resume on the existing branch.
   string resume_session_id = 13;
+  // The OpenRouter model, "vendor/model", when the harness is OpenCode.
+  string model = 14;
 }
 
 message ClaimJobRequest {}

@@ -41,6 +41,7 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
   const [name, setName] = useState(repo?.name ?? '')
   const [branch, setBranch] = useState(repo?.defaultBranch ?? 'main')
   const [harness, setHarness] = useState<Harness>(repo?.defaultHarness ?? Harness.CLAUDE_CODE)
+  const [model, setModel] = useState(repo?.defaultModel ?? '')
   const [limit, setLimit] = useState(String(repo?.timeLimitMinutes ?? DEFAULT_LIMIT_MINUTES))
   const [setup, setSetup] = useState(repo?.setupCommands ?? '')
   const [instructions, setInstructions] = useState(repo?.agentInstructions ?? '')
@@ -60,6 +61,8 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
       name,
       defaultBranch: branch,
       defaultHarness: harness,
+      // Claude Code chooses its own model.
+      defaultModel: harness === Harness.OPENCODE ? model.trim() : '',
       setupCommands: setup,
       agentInstructions: instructions,
       timeLimitMinutes: minutes
@@ -123,6 +126,22 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
               ))}
             </Select>
           </Field>
+          {harness === Harness.OPENCODE && (
+            <Field
+              label="Default model"
+              htmlFor="repo-model"
+              hint="An OpenRouter model, such as vendor/model."
+            >
+              <Input
+                id="repo-model"
+                value={model}
+                required
+                autoCapitalize="none"
+                autoCorrect="off"
+                onChange={(e) => setModel(e.target.value)}
+              />
+            </Field>
+          )}
           <Field
             label="Time limit (minutes)"
             htmlFor="repo-limit"

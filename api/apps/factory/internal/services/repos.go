@@ -37,6 +37,7 @@ type RepoInput struct {
 	Name              string
 	DefaultBranch     string
 	DefaultHarness    models.Harness
+	DefaultModel      string
 	SetupCommands     string
 	AgentInstructions string
 	TimeLimitMinutes  int
@@ -85,6 +86,10 @@ func normaliseRepo(in RepoInput) (RepoInput, error) {
 	if in.DefaultHarness == "" {
 		in.DefaultHarness = models.HarnessClaudeCode
 	}
+	in.DefaultModel = strings.TrimSpace(in.DefaultModel)
+	if err := checkModel(in.DefaultHarness, in.DefaultModel); err != nil {
+		return in, err
+	}
 	switch {
 	case !in.DefaultHarness.Valid():
 		return in, badRequest("invalid harness")
@@ -111,6 +116,7 @@ func repoFrom(id uuid.UUID, in RepoInput) models.Repo {
 		Name:              in.Name,
 		DefaultBranch:     in.DefaultBranch,
 		DefaultHarness:    in.DefaultHarness,
+		DefaultModel:      in.DefaultModel,
 		SetupCommands:     in.SetupCommands,
 		AgentInstructions: in.AgentInstructions,
 		TimeLimitMinutes:  in.TimeLimitMinutes,
@@ -155,4 +161,26 @@ func (s *RepoService) Update(
 		return nil, err
 	}
 	return s.repo.Update(ctx, repoFrom(id, in))
+}
+
+// modelPattern is an OpenRouter model id, "vendor/model" with an optional tag.
+// It goes into the runner's argv, so it can't start with a dash or hold spaces.
+var modelPattern = regexp.MustCompile(
+	`^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._:-]*$`,
+)
+
+const maxModelLen = 100
+
+// checkModel enforces that OpenCode has an OpenRouter model and Claude Code none.
+func checkModel(harness models.Harness, model string) error {
+	switch {
+	case harness == models.HarnessOpenCode && model == "":
+		return badRequest("OpenCode needs an OpenRouter model, such as vendor/model")
+	case harness == models.HarnessOpenCode &&
+		(len(model) > maxModelLen || !modelPattern.MatchString(model)):
+		return badRequest("the model must look like vendor/model")
+	case harness == models.HarnessClaudeCode && model != "":
+		return badRequest("Claude Code chooses its own model")
+	}
+	return nil
 }

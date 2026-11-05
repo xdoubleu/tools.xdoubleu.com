@@ -226,3 +226,10 @@ export function prBadge(
   if (task.prCi === 'passing') return { label: 'CI passing', variant: 'success' }
   return { label: 'PR open', variant: 'secondary' }
 }
+
+/** What ran a job, "OpenCode · vendor/model"; "" while the server didn't say. */
+export function jobRunner(job: Pick<Job, 'harness' | 'model'>): string {
+  if (job.harness === Harness.UNSPECIFIED) return ''
+  const label = harnessLabel(job.harness)
+  return job.model ? `${label} · ${job.model}` : label
+}
