@@ -31,6 +31,7 @@ import {
   FIX_CI_REPLY,
   canFixCi,
   jobRunner,
+  awaitingPickupApproval,
   jobStatusLabel,
   prBadge,
   prStatusLine,
@@ -266,5 +267,20 @@ describe('board', () => {
     expect(ran(1)).toBe('Claude Code')
     expect(ran(2, 'vendor/model')).toBe('OpenCode · vendor/model')
     expect(ran(2)).toBe('OpenCode')
+  })
+
+  it('flags only an unapproved Ready task of a repo with auto pickup on', () => {
+    const repos = [
+      create(RepoSchema, { id: 'on', autoPickup: true }),
+      create(RepoSchema, { id: 'off', autoPickup: false })
+    ]
+    const task = (repoId: string, status: TaskStatus, pickupApproved: boolean) =>
+      create(TaskSchema, { repoId, status, pickupApproved })
+
+    expect(awaitingPickupApproval(task('on', TaskStatus.READY, false), repos)).toBe(true)
+    expect(awaitingPickupApproval(task('on', TaskStatus.READY, true), repos)).toBe(false)
+    expect(awaitingPickupApproval(task('on', TaskStatus.BACKLOG, false), repos)).toBe(false)
+    expect(awaitingPickupApproval(task('off', TaskStatus.READY, false), repos)).toBe(false)
+    expect(awaitingPickupApproval(task('gone', TaskStatus.READY, false), repos)).toBe(false)
   })
 })

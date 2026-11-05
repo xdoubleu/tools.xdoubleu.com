@@ -43,6 +43,14 @@ describe('TaskCard', () => {
     expect(screen.getByTestId('pr-badge')).toHaveTextContent('CI failing')
   })
 
+  it('says when a Ready task is waiting for its text to be approved', () => {
+    const { rerender } = render(<TaskCard task={task} onOpen={vi.fn()} />)
+    expect(screen.queryByTestId('approval-hint')).not.toBeInTheDocument()
+
+    rerender(<TaskCard task={task} awaitingApproval onOpen={vi.fn()} />)
+    expect(screen.getByTestId('approval-hint')).toHaveTextContent('Not approved for auto pickup')
+  })
+
   it('omits the comment count when there are no comments', () => {
     render(<TaskCard task={create(TaskSchema, { ...task, commentCount: 0 })} onOpen={vi.fn()} />)
     expect(screen.queryByText(/comments/)).not.toBeInTheDocument()

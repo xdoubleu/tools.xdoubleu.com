@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSearchParams } from '@/hooks/navigation'
 import {
   activeRunner,
+  awaitingPickupApproval,
   filterByRepo,
   groupByStatus,
   repoLabel,
@@ -9,10 +10,16 @@ import {
   runnersOf,
   runnerState
 } from '@/lib/factory/board'
-import { useFactoryRepos, useFactoryRunners, useFactoryTasks } from '@/hooks/useFactory'
+import {
+  useFactoryActions,
+  useFactoryRepos,
+  useFactoryRunners,
+  useFactoryTasks
+} from '@/hooks/useFactory'
 import TaskCard from '@/components/factory/TaskCard'
 import TaskDetail from '@/components/factory/TaskDetail'
 import TaskDialog from '@/components/factory/TaskDialog'
+import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
@@ -30,6 +37,20 @@ export default function FactoryClient() {
   // A link such as /factory?task=<id> (from a Slack message) opens that task.
   const [openId, setOpenId] = useState<string | null>(useSearchParams().get('task'))
   const [creating, setCreating] = useState(false)
+  const { setPickupPaused } = useFactoryActions()
+  const [pickupError, setPickupError] = useState('')
+  const paused = data?.pickupPaused === true
+
+  const togglePickup = async () => {
+    setPickupError('')
+    try {
+      await setPickupPaused(!paused)
+    } catch (err) {
+      setPickupError(
+        err instanceof Error ? err.message : 'Couldn\u2019t change auto pickup. Try again.'
+      )
+    }
+  }
 
   return (
     <PageContainer>
@@ -47,6 +68,20 @@ export default function FactoryClient() {
       <p className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted">
         Runner <Badge variant={runner.online ? 'success' : 'secondary'}>{runner.label}</Badge>
       </p>
+      {data && repos.some((r) => r.autoPickup) && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted">
+          Auto pickup{' '}
+          <Badge variant={paused ? 'warn' : 'success'}>{paused ? 'Paused' : 'On'}</Badge>
+          <Button variant="secondary" onClick={() => void togglePickup()}>
+            {paused ? 'Resume' : 'Pause'}
+          </Button>
+        </div>
+      )}
+      {pickupError && (
+        <Alert tone="danger" className="mb-4">
+          {pickupError}
+        </Alert>
+      )}
       {repos.length > 1 && (
         <Field label="Repo" htmlFor="factory-repo-filter" className="mb-4">
           <Select
@@ -84,6 +119,7 @@ export default function FactoryClient() {
                     key={task.id}
                     task={task}
                     repo={repos.length > 1 ? repos.find((r) => r.id === task.repoId) : undefined}
+                    awaitingApproval={awaitingPickupApproval(task, repos)}
                     onOpen={setOpenId}
                   />
                 ))

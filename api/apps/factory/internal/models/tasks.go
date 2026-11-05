@@ -99,6 +99,9 @@ type Task struct {
 	PRState  string
 	PRCI     string
 	PRReview string
+	// PickupApproved is whether a human approved this Ready task's text for auto
+	// pickup: it holds a snapshot made from a browser.
+	PickupApproved bool
 }
 
 type Comment struct {

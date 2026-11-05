@@ -43,6 +43,8 @@ describe('RepoDialog', () => {
     expect(screen.queryByLabelText('Default model')).not.toBeInTheDocument()
     fill('Default harness', String(Harness.OPENCODE))
     fill('Default model', ' vendor/model ')
+    expect(screen.getByLabelText('Pick up Ready tasks automatically')).not.toBeChecked()
+    fireEvent.click(screen.getByLabelText('Pick up Ready tasks automatically'))
     fill('Time limit (minutes)', '15')
     fill('Setup commands', 'npm ci')
     fill('Agent instructions', 'Be careful.')
@@ -55,6 +57,7 @@ describe('RepoDialog', () => {
         defaultBranch: 'dev',
         defaultHarness: Harness.OPENCODE,
         defaultModel: 'vendor/model',
+        autoPickup: true,
         setupCommands: 'npm ci',
         agentInstructions: 'Be careful.',
         timeLimitMinutes: 15
@@ -72,6 +75,7 @@ describe('RepoDialog', () => {
       defaultBranch: 'trunk',
       defaultHarness: Harness.OPENCODE,
       defaultModel: 'vendor/old',
+      autoPickup: true,
       setupCommands: 'make deps',
       agentInstructions: 'Follow AGENTS.md.',
       timeLimitMinutes: 90
@@ -85,6 +89,7 @@ describe('RepoDialog', () => {
     expect(screen.getByLabelText('Default branch')).toHaveValue('trunk')
     expect(screen.getByLabelText('Default harness')).toHaveValue(String(Harness.OPENCODE))
     expect(screen.getByLabelText('Default model')).toHaveValue('vendor/old')
+    expect(screen.getByLabelText('Pick up Ready tasks automatically')).toBeChecked()
     expect(screen.getByLabelText('Time limit (minutes)')).toHaveValue(90)
     expect(screen.getByLabelText('Setup commands')).toHaveValue('make deps')
     expect(screen.getByLabelText('Agent instructions')).toHaveValue('Follow AGENTS.md.')

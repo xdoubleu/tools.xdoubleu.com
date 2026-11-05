@@ -28,6 +28,7 @@ const mockClient = {
   addComment: vi.fn().mockResolvedValue({}),
   runTask: vi.fn().mockResolvedValue({}),
   stopJob: vi.fn().mockResolvedValue({}),
+  setPickupPaused: vi.fn().mockResolvedValue({}),
   listRepos: vi.fn().mockResolvedValue({ repos: [] }),
   createRepo: vi.fn().mockResolvedValue({}),
   updateRepo: vi.fn().mockResolvedValue({}),
@@ -74,6 +75,7 @@ const repoFields = {
   defaultBranch: 'main',
   defaultHarness: 1,
   defaultModel: '',
+  autoPickup: false,
   setupCommands: 'make',
   agentInstructions: 'be nice',
   timeLimitMinutes: 30
@@ -240,6 +242,15 @@ describe('useFactoryActions', () => {
     const { result } = renderHook(() => useFactoryActions())
     await expect(result.current.run('t-1', '')).rejects.toThrow('Not run')
     expect(mockMutate).toHaveBeenCalledTimes(1)
+  })
+
+  it('pauses and resumes auto pickup, revalidating each time', async () => {
+    const { result } = renderHook(() => useFactoryActions())
+    await result.current.setPickupPaused(true)
+    expect(mockClient.setPickupPaused).toHaveBeenCalledWith({ paused: true })
+    await result.current.setPickupPaused(false)
+    expect(mockClient.setPickupPaused).toHaveBeenLastCalledWith({ paused: false })
+    expect(mockMutate).toHaveBeenCalledTimes(2)
   })
 
   it('stops the job and revalidates', async () => {

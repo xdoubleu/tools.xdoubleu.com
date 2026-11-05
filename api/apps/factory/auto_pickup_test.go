@@ -352,3 +352,43 @@ func TestTheBoardFailsLoudlyWhenThePauseSwitchCannotBeRead(t *testing.T) {
 	require.Error(t, err, "a board that can't say whether it is paused isn't shown")
 	assert.NotEqual(t, connect.CodePermissionDenied, code(err))
 }
+
+func TestATaskSaysWhetherItsTextIsApprovedForPickup(t *testing.T) {
+	env := browserJobEnv(t)
+	agent := newClientKeepingBoard(t, true, constants.ChannelMCP)
+	approved := func(task *factoryv1.Task) (bool, bool) {
+		list, err := env.tasks.ListTasks(context.Background(), &factoryv1.ListTasksRequest{})
+		require.NoError(t, err)
+		var inList bool
+		for _, listed := range list.Tasks {
+			if listed.Id == task.Id {
+				inList = listed.PickupApproved
+			}
+		}
+		return inList, env.task(t, task.Id).Task.PickupApproved
+	}
+
+	task := env.newTask(t, "approval shown")
+	inList, inGet := approved(task)
+	assert.False(t, inList || inGet, "a Backlog task is not approved")
+
+	env.ready(t, task.Id)
+	inList, inGet = approved(task)
+	assert.True(t, inList && inGet, "moved to Ready from a browser")
+
+	_, err := env.tasks.MoveTask(context.Background(), &factoryv1.MoveTaskRequest{
+		Id: task.Id, Status: factoryv1.TaskStatus_TASK_STATUS_BACKLOG,
+	})
+	require.NoError(t, err)
+	inList, inGet = approved(task)
+	assert.False(t, inList || inGet, "leaving Ready drops the approval")
+
+	env.editBody(t, agent, task, "An agent's text.")
+	env.ready(t, task.Id)
+	inList, inGet = approved(task)
+	assert.False(t, inList || inGet, "an agent last edited the body")
+
+	env.editBody(t, env.tasks, task, "An agent's text, reviewed.")
+	inList, inGet = approved(task)
+	assert.True(t, inList && inGet, "a human saved it in a browser")
+}

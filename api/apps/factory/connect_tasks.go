@@ -131,21 +131,22 @@ func priorityFromProto(p factoryv1.TaskPriority) models.Priority {
 
 func protoTask(t *models.Task) *factoryv1.Task {
 	return &factoryv1.Task{
-		Id:           t.ID.String(),
-		RepoId:       t.RepoID.String(),
-		Title:        t.Title,
-		Body:         t.Body,
-		Status:       statusToProto(t.Status),
-		Priority:     priorityToProto(t.Priority),
-		Labels:       t.Labels,
-		CreatedBy:    t.CreatedBy,
-		CreatedAt:    t.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:    t.UpdatedAt.Format(time.RFC3339),
-		CommentCount: int32(t.CommentCount), //nolint:gosec // a count, far below 2^31
-		PrUrl:        t.PRURL,
-		PrState:      t.PRState,
-		PrCi:         t.PRCI,
-		PrReview:     t.PRReview,
+		Id:             t.ID.String(),
+		RepoId:         t.RepoID.String(),
+		Title:          t.Title,
+		Body:           t.Body,
+		Status:         statusToProto(t.Status),
+		Priority:       priorityToProto(t.Priority),
+		Labels:         t.Labels,
+		CreatedBy:      t.CreatedBy,
+		CreatedAt:      t.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:      t.UpdatedAt.Format(time.RFC3339),
+		CommentCount:   int32(t.CommentCount), //nolint:gosec // a count, far below 2^31
+		PrUrl:          t.PRURL,
+		PrState:        t.PRState,
+		PrCi:           t.PRCI,
+		PrReview:       t.PRReview,
+		PickupApproved: t.PickupApproved,
 	}
 }
 
