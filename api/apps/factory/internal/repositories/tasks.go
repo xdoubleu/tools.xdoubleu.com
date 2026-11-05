@@ -147,10 +147,14 @@ func (r *TasksRepository) Update(
 					THEN $6 ELSE body_edited_by END,
 				body_edited_channel = CASE WHEN body IS DISTINCT FROM $3
 					THEN $7 ELSE body_edited_channel END,
-				ready_title = CASE WHEN status = 'ready' AND $7 = 'browser'
-					THEN $2 ELSE ready_title END,
-				ready_body = CASE WHEN status = 'ready' AND $7 = 'browser'
-					THEN $3 ELSE ready_body END,
+				ready_title = CASE WHEN status = 'ready' AND (
+					CASE WHEN body IS DISTINCT FROM $3 THEN $7
+						ELSE body_edited_channel END
+				) = 'browser' THEN $2 ELSE ready_title END,
+				ready_body = CASE WHEN status = 'ready' AND (
+					CASE WHEN body IS DISTINCT FROM $3 THEN $7
+						ELSE body_edited_channel END
+				) = 'browser' THEN $3 ELSE ready_body END,
 				body = $3,
 				updated_at = now()
 			WHERE id = $1
@@ -255,8 +259,9 @@ type PickupCandidate struct {
 }
 
 // NextReady is the oldest highest-priority Ready task of a repo that has auto pickup
-// on, with its approved text, and no job queued or running. A task whose body was
-// last edited outside a browser when it went Ready has no approved text and is
+// on, with its approved text. It finds none while the board is paused or any job is
+// queued or running, so it is the only query a quiet claim needs. A task whose body
+// was last edited outside a browser when it went Ready has no approved text and is
 // skipped. None is not found.
 func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, error) {
 	var c PickupCandidate
@@ -265,9 +270,11 @@ func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, erro
 		FROM factory.tasks t
 		JOIN factory.repos r ON r.id = t.repo_id
 		WHERE t.status = 'ready' AND r.auto_pickup AND t.ready_body IS NOT NULL
+			AND NOT COALESCE(
+				(SELECT pickup_paused FROM factory.board_settings), false
+			)
 			AND NOT EXISTS (
-				SELECT 1 FROM factory.jobs j
-				WHERE j.task_id = t.id AND j.status IN ('queued', 'running')
+				SELECT 1 FROM factory.jobs j WHERE j.status IN ('queued', 'running')
 			)
 		ORDER BY t.priority, t.created_at, t.id
 		LIMIT 1`).Scan(&c.TaskID, &c.RepoID, &c.Title, &c.Body)

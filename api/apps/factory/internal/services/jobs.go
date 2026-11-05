@@ -535,14 +535,6 @@ const autoPickupAuthor = "system:auto-pickup"
 // then, not the task's current text. The runner calling Claim is the online runner
 // the job is for.
 func (s *JobService) pickUp(ctx context.Context) error {
-	paused, err := s.settings.PickupPaused(ctx)
-	if err != nil || paused {
-		return err
-	}
-	busy, err := s.jobs.AnyUnfinished(ctx)
-	if err != nil || busy {
-		return err
-	}
 	next, err := s.tasks.NextReady(ctx)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return nil
@@ -556,7 +548,7 @@ func (s *JobService) pickUp(ctx context.Context) error {
 	}
 	harness, model, err := resolveHarness(repo, HarnessPick{Harness: "", Model: ""})
 	if err != nil {
-		return err
+		return s.cannotPickUp(ctx, next.TaskID, err)
 	}
 	approved := approvedTask(next)
 	_, err = s.jobs.Create(ctx, models.Job{
@@ -571,6 +563,22 @@ func (s *JobService) pickUp(ctx context.Context) error {
 		return err
 	}
 	_, err = s.tasks.Move(ctx, next.TaskID, models.StatusInProgress)
+	return err
+}
+
+// cannotPickUp parks a Ready task the repo's settings can't run, with the reason on
+// the task, so one such task doesn't hold up every other and the owner can see why.
+func (s *JobService) cannotPickUp(
+	ctx context.Context,
+	taskID uuid.UUID,
+	reason error,
+) error {
+	body := "Not picked up automatically: " + reason.Error() +
+		". Fix the repo's settings, then move the task to Ready again."
+	if _, err := s.tasks.AddComment(ctx, taskID, systemAuthor, body); err != nil {
+		return err
+	}
+	_, err := s.tasks.Move(ctx, taskID, models.StatusNeedsYou)
 	return err
 }
 
@@ -590,15 +598,16 @@ func (s *JobService) PickupPaused(ctx context.Context) (bool, error) {
 	return s.settings.PickupPaused(ctx)
 }
 
-// SetPickupPaused pauses or resumes auto pickup. Resuming lets agents start work
-// unattended again, so like the Ready move it takes a human admin in a browser.
+// SetPickupPaused pauses or resumes auto pickup. Pausing is the emergency stop, so
+// anyone who can reach the board may. Resuming lets agents start work unattended
+// again, so like the Ready move it takes a human admin in a browser.
 func (s *JobService) SetPickupPaused(
 	ctx context.Context,
 	actor models.Actor,
 	paused bool,
 ) error {
-	if !actor.CanMoveToReady() {
-		return forbidden("only a human admin in a browser session can pause pickup")
+	if !paused && !actor.CanMoveToReady() {
+		return forbidden("only a human admin in a browser session can resume pickup")
 	}
 	return s.settings.SetPickupPaused(ctx, paused)
 }
