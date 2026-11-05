@@ -33,10 +33,19 @@ type ClaudeCode struct{}
 // Command implements Harness.
 func (ClaudeCode) Command() []string {
 	return []string{
-		"claude", "-p", "--output-format", "stream-json", "--verbose",
-		"--permission-mode", "bypassPermissions",
+		"sh", "-c", claudeStart, "claude", "claude", "-p", "--output-format", "stream-json",
+		"--verbose", "--permission-mode", "bypassPermissions",
 	}
 }
+
+// ClaudeConfigSeed is where the job image keeps the Claude Code config (plugins,
+// marketplaces, settings). CLAUDE_CONFIG_DIR replaces the whole config directory,
+// so a new session directory is filled from here once; a resumed one is left alone.
+const ClaudeConfigSeed = "/opt/claude-config"
+
+const claudeStart = `[ -e "$CLAUDE_CONFIG_DIR/.seeded" ] || ` +
+	`{ cp -a "$CLAUDE_CONFIG_SEED/." "$CLAUDE_CONFIG_DIR/" && ` +
+	`touch "$CLAUDE_CONFIG_DIR/.seeded"; } && exec "$@"`
 
 // Resume implements Harness.
 func (c ClaudeCode) Resume(sessionID string) []string {
@@ -46,7 +55,10 @@ func (c ClaudeCode) Resume(sessionID string) []string {
 // SessionEnv implements Harness: Claude Code keeps its sessions under its config
 // directory, keyed by the working directory, which is the same in every sandbox.
 func (ClaudeCode) SessionEnv(dir string) map[string]string {
-	return map[string]string{"CLAUDE_CONFIG_DIR": dir}
+	return map[string]string{
+		"CLAUDE_CONFIG_DIR":  dir,
+		"CLAUDE_CONFIG_SEED": ClaudeConfigSeed,
+	}
 }
 
 // SessionID implements Harness: the init event of the stream carries it.
@@ -93,9 +105,10 @@ type OpenCode struct {
 }
 
 const (
-	openCodeStart = `exec opencode run --format json --auto -m "openrouter/$1" "$(cat)"`
-	openCodeAgain = `exec opencode run --format json --auto -m "openrouter/$1" ` +
-		`--session "$2" "$(cat)"`
+	openCodeStart = `exec opencode run --standalone --format json --auto ` +
+		`-m "openrouter/$1" "$(cat)"`
+	openCodeAgain = `exec opencode run --standalone --format json --auto ` +
+		`-m "openrouter/$1" --session "$2" "$(cat)"`
 )
 
 // Command implements Harness.

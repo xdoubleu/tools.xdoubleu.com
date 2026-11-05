@@ -19,7 +19,7 @@ func TestOpenCodeRunsHeadlessOnOpenRouterWithTheModelAsAParameter(t *testing.T) 
 	start := h.Command()
 	assert.Equal(t, []string{"sh", "-c"}, start[:2])
 	assert.Equal(t, []string{"opencode", "vendor/model:free"}, start[3:])
-	assert.Contains(t, start[2], "opencode run --format json --auto")
+	assert.Contains(t, start[2], "opencode run --standalone --format json --auto")
 	assert.Contains(t, start[2], `-m "openrouter/$1"`)
 	assert.NotContains(t, start[2], "vendor/model", "the model is a parameter, not script")
 	assert.NotContains(t, start[2], "--session")
@@ -83,7 +83,8 @@ func TestTheShellStepHandsOpenCodeTheModelAndPromptAsSingleArguments(t *testing.
 	got := runScript(t, runner.OpenCode{Model: "vendor/model"}.Command(), prompt)
 
 	assert.Equal(t, strings.Join([]string{
-		"[run]", "[--format]", "[json]", "[--auto]", "[-m]", "[openrouter/vendor/model]",
+		"[run]", "[--standalone]", "[--format]", "[json]", "[--auto]", "[-m]",
+		"[openrouter/vendor/model]",
 		"[" + strings.TrimRight(prompt, "\n") + "]",
 	}, "\n")+"\n", got)
 	assert.NoFileExists(t, "pwned")
