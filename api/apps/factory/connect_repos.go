@@ -77,6 +77,7 @@ func protoRepo(r *models.Repo) *factoryv1.Repo {
 		DefaultBranch:     r.DefaultBranch,
 		DefaultHarness:    harnessToProto(r.DefaultHarness),
 		DefaultModel:      r.DefaultModel,
+		AutoPickup:        r.AutoPickup,
 		SetupCommands:     r.SetupCommands,
 		AgentInstructions: r.AgentInstructions,
 		//nolint:gosec // bounded to 1..1440 by the service and the column
@@ -91,6 +92,7 @@ func repoInput(r *factoryv1.Repo) services.RepoInput {
 		DefaultBranch:     r.GetDefaultBranch(),
 		DefaultHarness:    harnessFromProto(r.GetDefaultHarness()),
 		DefaultModel:      r.GetDefaultModel(),
+		AutoPickup:        r.GetAutoPickup(),
 		SetupCommands:     r.GetSetupCommands(),
 		AgentInstructions: r.GetAgentInstructions(),
 		TimeLimitMinutes:  int(r.GetTimeLimitMinutes()),

@@ -147,6 +147,14 @@ func (r *TasksRepository) Update(
 					THEN $6 ELSE body_edited_by END,
 				body_edited_channel = CASE WHEN body IS DISTINCT FROM $3
 					THEN $7 ELSE body_edited_channel END,
+				ready_title = CASE WHEN status = 'ready' AND (
+					CASE WHEN body IS DISTINCT FROM $3 THEN $7
+						ELSE body_edited_channel END
+				) = 'browser' THEN $2 ELSE ready_title END,
+				ready_body = CASE WHEN status = 'ready' AND (
+					CASE WHEN body IS DISTINCT FROM $3 THEN $7
+						ELSE body_edited_channel END
+				) = 'browser' THEN $3 ELSE ready_body END,
 				body = $3,
 				updated_at = now()
 			WHERE id = $1
@@ -165,7 +173,11 @@ func (r *TasksRepository) Move(
 ) (*models.Task, error) {
 	return scanTask(r.db.QueryRow(ctx, `
 		WITH t AS (
-			UPDATE factory.tasks SET status = $2, updated_at = now()
+			UPDATE factory.tasks SET status = $2, updated_at = now(),
+				ready_title = CASE WHEN $2 = 'ready' AND body_edited_channel = 'browser'
+					THEN title END,
+				ready_body = CASE WHEN $2 = 'ready' AND body_edited_channel = 'browser'
+					THEN body END
 			WHERE id = $1
 			RETURNING *
 		)
@@ -236,4 +248,38 @@ func (r *TasksRepository) BodyEditedChannel(
 		return "", postgres.PgxErrorToHTTPError(err)
 	}
 	return channel, nil
+}
+
+// PickupCandidate is a Ready task as a human approved it.
+type PickupCandidate struct {
+	TaskID uuid.UUID
+	RepoID uuid.UUID
+	Title  string
+	Body   string
+}
+
+// NextReady is the oldest highest-priority Ready task of a repo that has auto pickup
+// on, with its approved text. It finds none while the board is paused or any job is
+// queued or running, so it is the only query a quiet claim needs. A task whose body
+// was last edited outside a browser when it went Ready has no approved text and is
+// skipped. None is not found.
+func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, error) {
+	var c PickupCandidate
+	err := r.db.QueryRow(ctx, `
+		SELECT t.id, t.repo_id, t.ready_title, t.ready_body
+		FROM factory.tasks t
+		JOIN factory.repos r ON r.id = t.repo_id
+		WHERE t.status = 'ready' AND r.auto_pickup AND t.ready_body IS NOT NULL
+			AND NOT COALESCE(
+				(SELECT pickup_paused FROM factory.board_settings), false
+			)
+			AND NOT EXISTS (
+				SELECT 1 FROM factory.jobs j WHERE j.status IN ('queued', 'running')
+			)
+		ORDER BY t.priority, t.created_at, t.id
+		LIMIT 1`).Scan(&c.TaskID, &c.RepoID, &c.Title, &c.Body)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return &c, nil
 }

@@ -33,6 +33,8 @@ type Repo struct {
 	SetupCommands     string
 	AgentInstructions string
 	TimeLimitMinutes  int
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	// AutoPickup lets the runner take this repo's Ready tasks without a press of Run.
+	AutoPickup bool
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }

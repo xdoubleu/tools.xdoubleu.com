@@ -39,10 +39,11 @@ type JobService struct {
 	// accounts is nil when jobs get no agent account of their own.
 	accounts JobAccounts
 	// github is nil when no GitHub App is set up.
-	github  GitHub
-	now     func() time.Time
-	say     notices
-	runners *repositories.RunnersRepository
+	github   GitHub
+	now      func() time.Time
+	say      notices
+	runners  *repositories.RunnersRepository
+	settings *repositories.SettingsRepository
 	// alertedOffline is the queued job the offline-runner notice was last sent for,
 	// so one waiting job is announced once.
 	offlineMu      sync.Mutex
@@ -345,6 +346,9 @@ func (s *JobService) Claim(
 	if err := s.ExpireLost(ctx); err != nil {
 		return nil, err
 	}
+	// Best effort: a failure here leaves the queue as it was, and the next claim
+	// looks again.
+	_ = s.pickUp(ctx)
 	job, err := s.jobs.Claim(ctx, runnerID)
 	if errors.Is(err, database.ErrResourceNotFound) ||
 		errors.Is(err, database.ErrResourceConflict) {
@@ -520,6 +524,92 @@ func (s *JobService) ExpireLost(ctx context.Context) error {
 			": the runner stopped checking in.")
 	}
 	return nil
+}
+
+// autoPickupAuthor is who a job queued by auto pickup is attributed to.
+const autoPickupAuthor = "system:auto-pickup"
+
+// pickUp queues a job for the oldest highest-priority Ready task of a repo with auto
+// pickup on, when nothing is queued or running and the board isn't paused. The
+// Ready move was the approval, so the prompt is built from the text as it stood
+// then, not the task's current text. The runner calling Claim is the online runner
+// the job is for.
+func (s *JobService) pickUp(ctx context.Context) error {
+	next, err := s.tasks.NextReady(ctx)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	repo, err := s.repos.Get(ctx, next.RepoID)
+	if err != nil {
+		return err
+	}
+	harness, model, err := resolveHarness(repo, HarnessPick{Harness: "", Model: ""})
+	if err != nil {
+		return s.cannotPickUp(ctx, next.TaskID, err)
+	}
+	approved := approvedTask(next)
+	_, err = s.jobs.Create(ctx, models.Job{
+		ID: uuid.Nil, TaskID: next.TaskID, RepoID: repo.ID, Harness: harness,
+		Model: model, Prompt: promptFor(repo, approved, ""), Status: "",
+		Branch: branchFor(approved), SessionID: "", Outcome: "", ParentJobID: nil,
+		PRURL: "", RunnerID: nil, PRState: "", PRCI: "", PRReview: "",
+		CreatedBy: autoPickupAuthor, CreatedAt: time.Time{}, StartedAt: nil,
+		LastCheckIn: nil, FinishedAt: nil,
+	})
+	if err != nil {
+		return err
+	}
+	_, err = s.tasks.Move(ctx, next.TaskID, models.StatusInProgress)
+	return err
+}
+
+// cannotPickUp parks a Ready task the repo's settings can't run, with the reason on
+// the task, so one such task doesn't hold up every other and the owner can see why.
+func (s *JobService) cannotPickUp(
+	ctx context.Context,
+	taskID uuid.UUID,
+	reason error,
+) error {
+	body := "Not picked up automatically: " + reason.Error() +
+		". Fix the repo's settings, then move the task to Ready again."
+	if _, err := s.tasks.AddComment(ctx, taskID, systemAuthor, body); err != nil {
+		return err
+	}
+	_, err := s.tasks.Move(ctx, taskID, models.StatusNeedsYou)
+	return err
+}
+
+// approvedTask is the task as a human approved it at the Ready move: only the text
+// a prompt and a branch name are built from.
+func approvedTask(c *repositories.PickupCandidate) *models.Task {
+	return &models.Task{
+		ID: c.TaskID, RepoID: c.RepoID, Title: c.Title, Body: c.Body, Status: "",
+		Priority: "", Labels: nil, CreatedBy: "", CreatedAt: time.Time{},
+		UpdatedAt: time.Time{}, CommentCount: 0, PRURL: "", PRState: "", PRCI: "",
+		PRReview: "",
+	}
+}
+
+// PickupPaused reports whether auto pickup is paused for the whole board.
+func (s *JobService) PickupPaused(ctx context.Context) (bool, error) {
+	return s.settings.PickupPaused(ctx)
+}
+
+// SetPickupPaused pauses or resumes auto pickup. Pausing is the emergency stop, so
+// anyone who can reach the board may. Resuming lets agents start work unattended
+// again, so like the Ready move it takes a human admin in a browser.
+func (s *JobService) SetPickupPaused(
+	ctx context.Context,
+	actor models.Actor,
+	paused bool,
+) error {
+	if !paused && !actor.CanMoveToReady() {
+		return forbidden("only a human admin in a browser session can resume pickup")
+	}
+	return s.settings.SetPickupPaused(ctx, paused)
 }
 
 // OfflineAfter is how long a job may wait with no runner online before Slack hears

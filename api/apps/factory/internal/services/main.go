@@ -35,8 +35,9 @@ func New(
 		Runners: &RunnerService{repo: repos.Runners, now: time.Now, say: say},
 		Jobs: &JobService{
 			jobs: repos.Jobs, tasks: repos.Tasks, repos: repos.Repos,
-			events: repos.Events, accounts: accounts, github: github, now: time.Now, say: say,
-			runners: repos.Runners, offlineMu: sync.Mutex{}, alertedOffline: uuid.Nil,
+			events: repos.Events, accounts: accounts, github: github, now: time.Now,
+			say: say, runners: repos.Runners, settings: repos.Settings,
+			offlineMu: sync.Mutex{}, alertedOffline: uuid.Nil,
 		},
 	}
 }

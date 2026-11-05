@@ -28,6 +28,7 @@ func validRepo(name string) *factoryv1.Repo {
 		DefaultBranch:     "trunk",
 		DefaultHarness:    factoryv1.Harness_HARNESS_OPENCODE,
 		DefaultModel:      "vendor/model",
+		AutoPickup:        true,
 		SetupCommands:     "npm ci",
 		AgentInstructions: "Be careful.",
 		TimeLimitMinutes:  15,
@@ -89,6 +90,7 @@ func TestCreateRepoStoresEverySetting(t *testing.T) {
 	assert.Equal(t, "trunk", got.DefaultBranch)
 	assert.Equal(t, factoryv1.Harness_HARNESS_OPENCODE, got.DefaultHarness)
 	assert.Equal(t, "vendor/model", got.DefaultModel)
+	assert.True(t, got.AutoPickup)
 	assert.Equal(t, "npm ci", got.SetupCommands)
 	assert.Equal(t, "Be careful.", got.AgentInstructions)
 	assert.EqualValues(t, 15, got.TimeLimitMinutes)
@@ -105,6 +107,7 @@ func TestCreateRepoDefaults(t *testing.T) {
 	assert.Equal(t, "main", got.DefaultBranch)
 	assert.Equal(t, factoryv1.Harness_HARNESS_CLAUDE_CODE, got.DefaultHarness)
 	assert.EqualValues(t, 60, got.TimeLimitMinutes)
+	assert.False(t, got.AutoPickup, "off unless asked for")
 }
 
 func TestCreateRepoValidation(t *testing.T) {
@@ -193,6 +196,7 @@ func TestUpdateRepoReplacesEverySetting(t *testing.T) {
 	repo.DefaultBranch = "develop"
 	repo.DefaultHarness = factoryv1.Harness_HARNESS_CLAUDE_CODE
 	repo.DefaultModel = ""
+	repo.AutoPickup = false
 	repo.SetupCommands = "make deps"
 	repo.AgentInstructions = "Follow AGENTS.md."
 	repo.TimeLimitMinutes = 90

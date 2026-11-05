@@ -28,6 +28,9 @@ const (
 const (
 	// TaskServiceListTasksProcedure is the procedure name of the TaskService's ListTasks RPC.
 	TaskServiceListTasksProcedure = "/factory.v1.TaskService/ListTasks"
+	// TaskServiceSetPickupPausedProcedure is the procedure name of the TaskService's SetPickupPaused
+	// RPC.
+	TaskServiceSetPickupPausedProcedure = "/factory.v1.TaskService/SetPickupPaused"
 	// TaskServiceGetTaskProcedure is the procedure name of the TaskService's GetTask RPC.
 	TaskServiceGetTaskProcedure = "/factory.v1.TaskService/GetTask"
 	// TaskServiceCreateTaskProcedure is the procedure name of the TaskService's CreateTask RPC.
@@ -60,6 +63,13 @@ var (
 			StreamType: connect.StreamTypeUnary,
 			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("TaskService").Methods().ByName("ListTasks"),
 			Procedure:  TaskServiceListTasksProcedure,
+		}
+	})
+	taskServiceSetPickupPausedSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("TaskService").Methods().ByName("SetPickupPaused"),
+			Procedure:  TaskServiceSetPickupPausedProcedure,
 		}
 	})
 	taskServiceGetTaskSpec = sync.OnceValue(func() connect.Spec {
@@ -130,6 +140,7 @@ var (
 // TaskServiceClient is a client for the factory.v1.TaskService service.
 type TaskServiceClient interface {
 	ListTasks(context.Context, *v1.ListTasksRequest) (*v1.ListTasksResponse, error)
+	SetPickupPaused(context.Context, *v1.SetPickupPausedRequest) (*v1.SetPickupPausedResponse, error)
 	GetTask(context.Context, *v1.GetTaskRequest) (*v1.GetTaskResponse, error)
 	CreateTask(context.Context, *v1.CreateTaskRequest) (*v1.CreateTaskResponse, error)
 	UpdateTask(context.Context, *v1.UpdateTaskRequest) (*v1.UpdateTaskResponse, error)
@@ -150,6 +161,7 @@ func NewTaskServiceClient(client *connect.Client) TaskServiceClient {
 // TaskServiceHandler is an implementation of the factory.v1.TaskService service.
 type TaskServiceHandler interface {
 	ListTasks(context.Context, *v1.ListTasksRequest) (*v1.ListTasksResponse, error)
+	SetPickupPaused(context.Context, *v1.SetPickupPausedRequest) (*v1.SetPickupPausedResponse, error)
 	GetTask(context.Context, *v1.GetTaskRequest) (*v1.GetTaskResponse, error)
 	CreateTask(context.Context, *v1.CreateTaskRequest) (*v1.CreateTaskResponse, error)
 	UpdateTask(context.Context, *v1.UpdateTaskRequest) (*v1.UpdateTaskResponse, error)
@@ -166,6 +178,7 @@ func RegisterTaskServiceHandler(server *connect.Server, svc TaskServiceHandler) 
 	adapter := taskServiceHandler{svc: svc}
 	server.Register(
 		connect.Method{Spec: taskServiceListTasksSpec(), Handler: adapter.listTasks},
+		connect.Method{Spec: taskServiceSetPickupPausedSpec(), Handler: adapter.setPickupPaused},
 		connect.Method{Spec: taskServiceGetTaskSpec(), Handler: adapter.getTask},
 		connect.Method{Spec: taskServiceCreateTaskSpec(), Handler: adapter.createTask},
 		connect.Method{Spec: taskServiceUpdateTaskSpec(), Handler: adapter.updateTask},
@@ -183,6 +196,10 @@ type UnimplementedTaskServiceHandler struct{}
 
 func (UnimplementedTaskServiceHandler) ListTasks(context.Context, *v1.ListTasksRequest) (*v1.ListTasksResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.ListTasks is not implemented")
+}
+
+func (UnimplementedTaskServiceHandler) SetPickupPaused(context.Context, *v1.SetPickupPausedRequest) (*v1.SetPickupPausedResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.SetPickupPaused is not implemented")
 }
 
 func (UnimplementedTaskServiceHandler) GetTask(context.Context, *v1.GetTaskRequest) (*v1.GetTaskResponse, error) {
@@ -228,6 +245,14 @@ type taskServiceClient struct {
 func (c *taskServiceClient) ListTasks(ctx context.Context, req *v1.ListTasksRequest) (*v1.ListTasksResponse, error) {
 	var res v1.ListTasksResponse
 	if err := c.client.CallUnary(ctx, taskServiceListTasksSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *taskServiceClient) SetPickupPaused(ctx context.Context, req *v1.SetPickupPausedRequest) (*v1.SetPickupPausedResponse, error) {
+	var res v1.SetPickupPausedResponse
+	if err := c.client.CallUnary(ctx, taskServiceSetPickupPausedSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -313,6 +338,18 @@ func (h taskServiceHandler) listTasks(ctx context.Context, _ connect.Spec, strea
 		return err
 	}
 	res, err := h.svc.ListTasks(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h taskServiceHandler) setPickupPaused(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetPickupPausedRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetPickupPaused(ctx, &req)
 	if err != nil {
 		return err
 	}

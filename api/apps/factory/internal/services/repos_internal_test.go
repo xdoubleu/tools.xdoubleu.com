@@ -24,6 +24,7 @@ func repoInput(mod func(*RepoInput)) RepoInput {
 		SetupCommands:     "",
 		AgentInstructions: "",
 		TimeLimitMinutes:  60,
+		AutoPickup:        false,
 	}
 	mod(&in)
 	return in

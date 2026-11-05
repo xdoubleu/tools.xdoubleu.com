@@ -98,6 +98,20 @@ func (h *taskConnectHandler) ReplyTask(
 	return &factoryv1.ReplyTaskResponse{Job: protoJob(job)}, nil
 }
 
+func (h *taskConnectHandler) SetPickupPaused(
+	ctx context.Context,
+	req *factoryv1.SetPickupPausedRequest,
+) (*factoryv1.SetPickupPausedResponse, error) {
+	actor, err := actorFrom(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err = h.app.services.Jobs.SetPickupPaused(ctx, actor, req.GetPaused()); err != nil {
+		return nil, mapError(err)
+	}
+	return &factoryv1.SetPickupPausedResponse{Paused: req.GetPaused()}, nil
+}
+
 func (h *taskConnectHandler) StopJob(
 	ctx context.Context,
 	req *factoryv1.StopJobRequest,
