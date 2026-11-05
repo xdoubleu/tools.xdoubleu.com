@@ -46,7 +46,8 @@ its own work ([ADR-0041](adr-0041-factory-runner-pairing.md)).
 
 - **Slack** (`FACTORY_SLACK_WEBHOOK_URL`, https only; unset, nothing is posted) gets a
   message when a job opens a PR, fails, finishes without one, or is lost, when a
-  runner pairs, and once when a job has waited ten minutes with no runner online. A message carries the task title as a link to `/factory?task=<id>`
+  runner pairs or an agent account is created, and once when a job has waited ten
+  minutes with no runner online. A message carries the task title as a link to `/factory?task=<id>`
   and the outcome's first line, escaped so a title can't mention the channel. It is
   sent in the background and never fails the work it reports.
 

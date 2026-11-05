@@ -16,6 +16,7 @@ import (
 	"tools.xdoubleu.com/apps/factory/internal/repositories"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/slack"
 )
 
 const (
@@ -413,9 +414,9 @@ func (s *JobService) announceEnd(
 			prURL+"|review it>")
 	case succeeded:
 		s.say.say(ctx, ":warning: A job finished with no pull request for "+link+
-			", which needs you: "+slackText(firstLine(outcome)))
+			", which needs you: "+slack.Escape(firstLine(outcome)))
 	default:
-		s.say.say(ctx, ":x: A job failed on "+link+": "+slackText(firstLine(outcome)))
+		s.say.say(ctx, ":x: A job failed on "+link+": "+slack.Escape(firstLine(outcome)))
 	}
 }
 

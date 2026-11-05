@@ -21,6 +21,7 @@ import (
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/slack"
 )
 
 const maxNameLen = 80
@@ -34,6 +35,8 @@ type StepUp interface {
 type Deps struct {
 	Store  *Store
 	StepUp StepUp
+	// Notify, when set, is told in Slack's text format that an account was created.
+	Notify func(ctx context.Context, text string)
 }
 
 // Register mounts the AgentAccountService behind gate.
@@ -151,6 +154,9 @@ func (h *handler) CreateAgentAccount(
 	account, secret, err := h.deps.Store.Create(ctx, "human:"+user.ID, name)
 	if err != nil {
 		return nil, connecttools.MapError(err)
+	}
+	if h.deps.Notify != nil {
+		h.deps.Notify(ctx, ":key: An agent account was created: "+slack.Escape(account.Name))
 	}
 	return &factoryv1.CreateAgentAccountResponse{
 		Account:      protoAccount(account),

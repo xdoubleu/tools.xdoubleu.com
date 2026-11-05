@@ -14,6 +14,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestEscapeCannotMakeALinkOrAMention(t *testing.T) {
+	assert.Equal(t, "&lt;!channel&gt; &amp; &lt;http://x|y&gt;",
+		Escape("<!channel> & <http://x|y>"))
+	assert.Equal(t, "plain text", Escape("plain text"))
+}
+
 func TestOnlyAnHTTPSAddressMakesASender(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	assert.Nil(t, New("", logger))

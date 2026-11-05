@@ -109,6 +109,14 @@ func agentClient(
 	t *testing.T, channel string, stepUp StepUp,
 ) factoryv1connect.AgentAccountServiceClient {
 	t.Helper()
+	return agentClientNotifying(t, channel, stepUp, nil)
+}
+
+// agentClientNotifying is agentClient with a Notify hook.
+func agentClientNotifying(
+	t *testing.T, channel string, stepUp StepUp, notify func(context.Context, string),
+) factoryv1connect.AgentAccountServiceClient {
+	t.Helper()
 	pool := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
 	t.Cleanup(pool.Close)
 	mux := http.NewServeMux()
@@ -118,7 +126,7 @@ func agentClient(
 				next(w, r.WithContext(userCtx(models.RoleAdmin, channel)))
 			}
 		},
-		&Deps{Store: NewStore(pool, nil), StepUp: stepUp},
+		&Deps{Store: NewStore(pool, nil), StepUp: stepUp, Notify: notify},
 	)
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
@@ -152,6 +160,31 @@ func TestCreateChecksTheStepUpWithTheSessionToken(t *testing.T) {
 	assert.Empty(t, resp.Account.RevokedAt)
 	assert.NotEmpty(t, resp.Account.CreatedAt)
 	assert.NotEmpty(t, resp.ClientSecret)
+}
+
+func TestCreatingAnAccountIsPostedWithItsEscapedName(t *testing.T) {
+	var posted []string
+	c := agentClientNotifying(t, constants.ChannelBrowser, stepUpReturning(nil),
+		func(_ context.Context, text string) { posted = append(posted, text) })
+
+	_, err := c.CreateAgentAccount(withToken(context.Background()),
+		&factoryv1.CreateAgentAccountRequest{Name: "<!channel> bot", TotpCode: "1"})
+	require.NoError(t, err)
+
+	assert.Equal(t,
+		[]string{":key: An agent account was created: &lt;!channel&gt; bot"}, posted)
+}
+
+func TestARefusedCreateIsNotPosted(t *testing.T) {
+	var posted []string
+	c := agentClientNotifying(t, constants.ChannelBrowser,
+		stepUpReturning(auth.ErrWrongCredential),
+		func(_ context.Context, text string) { posted = append(posted, text) })
+
+	_, err := c.CreateAgentAccount(withToken(context.Background()),
+		&factoryv1.CreateAgentAccountRequest{Name: "bot", TotpCode: "bad"})
+	require.Error(t, err)
+	assert.Empty(t, posted)
 }
 
 func TestCreateRefusesWithoutAPassingStepUp(t *testing.T) {
@@ -240,7 +273,7 @@ func TestCreateWithoutRequestInfoIsUnauthenticated(t *testing.T) {
 	pool := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
 	t.Cleanup(pool.Close)
 	stepUp := stepUpReturning(nil)
-	h := &handler{deps: &Deps{Store: NewStore(pool, nil), StepUp: stepUp}}
+	h := &handler{deps: &Deps{Store: NewStore(pool, nil), StepUp: stepUp, Notify: nil}}
 
 	_, err := h.CreateAgentAccount(
 		userCtx(models.RoleAdmin, constants.ChannelBrowser),

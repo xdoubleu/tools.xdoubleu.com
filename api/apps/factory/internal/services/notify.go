@@ -6,6 +6,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
+
+	"tools.xdoubleu.com/internal/slack"
 )
 
 // maxNotifyDetail caps the outcome quoted in a notification.
@@ -24,12 +26,6 @@ type notices struct {
 	webURL string
 }
 
-// slackText makes text safe to put in a Slack message: Slack reads <...> as a link
-// or a mention (<!channel>), so the brackets and & are escaped.
-func slackText(text string) string {
-	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;").Replace(text)
-}
-
 // firstLine is the start of text's first line, cut to maxNotifyDetail runes.
 func firstLine(text string) string {
 	line, _, _ := strings.Cut(strings.TrimSpace(text), "\n")
@@ -41,7 +37,9 @@ func firstLine(text string) string {
 
 // taskLink is a Slack link to the task on the board, labelled with its title.
 func (n notices) taskLink(id uuid.UUID, title string) string {
-	return "<" + n.webURL + "/factory?task=" + id.String() + "|" + slackText(title) + ">"
+	return "<" + n.webURL + "/factory?task=" + id.String() + "|" + slack.Escape(
+		title,
+	) + ">"
 }
 
 // say sends text if a Notifier is set.

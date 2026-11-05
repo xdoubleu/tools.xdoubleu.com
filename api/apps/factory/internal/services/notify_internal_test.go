@@ -9,12 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSlackTextCannotMakeALinkOrAMention(t *testing.T) {
-	assert.Equal(t, "&lt;!channel&gt; &amp; &lt;http://x|y&gt;",
-		slackText("<!channel> & <http://x|y>"))
-	assert.Equal(t, "plain text", slackText("plain text"))
-}
-
 func TestFirstLineIsTheStartOfTheFirstLineOnly(t *testing.T) {
 	assert.Equal(t, "Did it.", firstLine("  Did it.\nSecret details\nmore"))
 	assert.Empty(t, firstLine("  \n "))
