@@ -50,6 +50,10 @@ func main() {
 		},
 		activity: runner.NewActivity(runner.NewCaffeinate()),
 		load:     loadLaunchAgent,
+		jobs:     nil,
+	}
+	a.jobs = func(ctx context.Context, cfg runner.Config, token string) (jobLoop, error) {
+		return newJobRunner(ctx, a, cfg, token, log, runner.OSExecer{})
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

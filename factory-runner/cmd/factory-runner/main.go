@@ -1,8 +1,10 @@
 // Command factory-runner is the Mac-side helper of the software factory: it
-// pairs with the board and keeps its heartbeat so the board shows it online.
+// pairs with the board, keeps its heartbeat so the board shows it online, and runs
+// the jobs it claims, each in its own VM.
 package main
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -23,12 +25,14 @@ const exitUsage = 2
 
 const usage = `usage:
   factory-runner pair <code>          pair this Mac with the code shown on the board
-  factory-runner run                  heartbeat until stopped (run by the LaunchAgent)
+  factory-runner run                  heartbeat and run jobs (run by the LaunchAgent)
   factory-runner install              install and load the LaunchAgent
   factory-runner config show
   factory-runner config server <url>
   factory-runner config repos add|remove <owner/name>
   factory-runner config repos list
+  factory-runner config image <ref>
+  factory-runner config data|gocache|npmcache <dir>
   factory-runner version
 `
 
@@ -44,7 +48,22 @@ type app struct {
 	updater  func(server string) (runner.SelfUpdater, error)
 	activity *runner.Activity
 	load     func(plistPath string) error
+	// jobs builds the claim loop; nil runs the heartbeat alone.
+	jobs jobsFunc
 }
+
+// jobLoop claims and runs jobs until its context ends.
+type jobLoop interface {
+	Loop(ctx context.Context) error
+}
+
+// jobsFunc builds the job loop for a config and device token, and fails if jobs
+// cannot run on this Mac (no container CLI, say).
+type jobsFunc func(
+	ctx context.Context,
+	cfg runner.Config,
+	token string,
+) (jobLoop, error)
 
 type daemonFunc func(
 	ctx context.Context,
@@ -130,12 +149,36 @@ func (a *app) runDaemon(ctx context.Context) error {
 		return err
 	}
 	opts := runner.Options{Updater: upd, Activity: a.activity}
-	err = a.daemon(ctx, a.newBeat(cfg.Server), token, opts)
+	beat := func(ctx context.Context) error {
+		return a.daemon(ctx, a.newBeat(cfg.Server), token, opts)
+	}
+	if a.jobs == nil {
+		err = beat(ctx)
+	} else {
+		var loop jobLoop
+		if loop, err = a.jobs(ctx, cfg, token); err != nil {
+			return err
+		}
+		err = alongside(ctx, beat, loop.Loop)
+	}
 	if errors.Is(err, runner.ErrRestart) {
 		fmt.Fprintln(a.stdout, "Updated to a new release; restarting.")
 		return nil
 	}
 	return err
+}
+
+// alongside runs two loops until either ends, then stops the other and returns the
+// first error: a revoked token, or a restart after an update, ends both.
+func alongside(ctx context.Context, first, second func(context.Context) error) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	errs := make(chan error, 2) //nolint:mnd // one result per loop
+	go func() { errs <- first(ctx) }()
+	go func() { errs <- second(ctx) }()
+	one := <-errs
+	cancel()
+	return cmp.Or(one, <-errs)
 }
 
 func (a *app) install() error {

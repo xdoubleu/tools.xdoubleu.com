@@ -81,6 +81,7 @@ func newEnv(t *testing.T) env {
 				loaded = append(loaded, p)
 				return nil
 			},
+			jobs: nil,
 		},
 		out: out, errs: errs, store: store, server: server, ran: &ran, loaded: &loaded,
 	}

@@ -54,14 +54,28 @@ func TestBrokenOrUnreadableConfigIsAnError(t *testing.T) {
 	_, err = runner.LoadConfig(dir) // a directory can't be read as a file
 	require.Error(t, err)
 
-	cfg := runner.Config{Server: "x", Repos: nil}
+	cfg := runner.Config{
+		Server:     "x",
+		Repos:      nil,
+		Image:      "",
+		DataDir:    "",
+		GoModCache: "",
+		NPMCache:   "",
+	}
 	blocker := filepath.Join(dir, "file")
 	require.NoError(t, os.WriteFile(blocker, nil, 0o600))
 	require.Error(t, cfg.Save(filepath.Join(blocker, "sub", "c.json")))
 }
 
 func TestAddAndRemoveRepos(t *testing.T) {
-	cfg := runner.Config{Server: "x", Repos: []string{}}
+	cfg := runner.Config{
+		Server:     "x",
+		Repos:      []string{},
+		Image:      "",
+		DataDir:    "",
+		GoModCache: "",
+		NPMCache:   "",
+	}
 	require.Error(t, cfg.AddRepo("not-a-repo"))
 	require.Error(t, cfg.AddRepo("-a/b"))
 	require.NoError(t, cfg.AddRepo("a/b"))
@@ -71,7 +85,14 @@ func TestAddAndRemoveRepos(t *testing.T) {
 }
 
 func TestServerMustBeHTTPSOrLoopback(t *testing.T) {
-	cfg := runner.Config{Server: "x", Repos: nil}
+	cfg := runner.Config{
+		Server:     "x",
+		Repos:      nil,
+		Image:      "",
+		DataDir:    "",
+		GoModCache: "",
+		NPMCache:   "",
+	}
 	for _, ok := range []string{
 		"https://example.com/api/", "http://localhost:8080", "http://127.0.0.1",
 		"http://localhost/api",
