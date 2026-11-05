@@ -8,6 +8,7 @@ set -uo pipefail
 
 IMAGE=${PROBE_IMAGE:-docker.io/curlimages/curl:latest} # non-root (uid 100), has curl and sh
 NET=factory-probe-net
+KEEP=factory-probe-keep
 WORK=$(mktemp -d)
 PROXY_PORT=${PROBE_PROXY_PORT:-18080}
 fails=0
@@ -17,7 +18,9 @@ fail() { printf 'FAIL: %s\n' "$1"; fails=$((fails + 1)); }
 note() { printf 'NOTE: %s\n' "$1"; }
 
 cleanup() {
-  [ -n "${SRV_PID:-}" ] && kill "$SRV_PID" 2>/dev/null
+  [ -n "${SRV_PID:-}" ] && { kill "$SRV_PID"; wait "$SRV_PID"; } 2>/dev/null
+  container stop "$KEEP" >/dev/null 2>&1
+  container rm "$KEEP" >/dev/null 2>&1
   container network delete "$NET" >/dev/null 2>&1
   rm -rf "$WORK"
 }
@@ -47,8 +50,25 @@ chmod 777 "$WORK/clone"
 
 # 1. A host-only network, and an image pulled while the host still has internet.
 container image pull "$IMAGE" >/dev/null 2>&1 && pass "image pulled" || fail "image pull"
-container network create --internal "$NET" >/dev/null 2>&1 \
-  && pass "network create --internal" || fail "network create --internal"
+# The subnet must not overlap a host route: the default pick (192.168.128.0/24)
+# collided with a LAN on en0, and the host then sent gateway traffic to the router.
+if [ -z "${PROBE_SUBNET:-}" ]; then
+  routes=$(netstat -rn -f inet)
+  for i in $(seq 7 60); do
+    echo "$routes" | grep -q "10\.231\.$i\b" || { PROBE_SUBNET=10.231.$i.0/24; break; }
+  done
+fi
+note "probe subnet ${PROBE_SUBNET:-none}"
+[ -n "${PROBE_SUBNET:-}" ] \
+  && container network create --internal --subnet "$PROBE_SUBNET" "$NET" >/dev/null 2>&1 \
+  && pass "network create --internal --subnet $PROBE_SUBNET" \
+  || fail "network create --internal --subnet"
+
+# The host side of the network (bridge100 with the gateway address) exists only
+# while a VM runs on it, so keep one running until the end.
+container run -d --name "$KEEP" --network "$NET" --entrypoint sh "$IMAGE" \
+  -c 'sleep 900' >/dev/null 2>&1 || fail "placeholder VM"
+sleep 2
 
 # 2. The gateway the VM sees: the host side of the network, where the proxy lives.
 GATEWAY=$(run_in "ip route | awk '/default/ {print \$3}'" 2>/dev/null | head -n 1)
@@ -80,7 +100,7 @@ PY
   python3 "$WORK/stub.py" 2>"$WORK/stub.log" &
   SRV_PID=$!
   sleep 1
-  out=$(run_in "curl -sS -m 5 -H 'Authorization: Bearer dummy' http://$GATEWAY:$PROXY_PORT/" 2>&1)
+  out=$(run_in "curl -sS -m 5 -H 'Authorization: Bearer dummy' http://$GATEWAY:$PROXY_PORT/" 2>&1 | tail -n 1)
   [ "$out" = ok ] && pass "VM reaches the host stub on $GATEWAY:$PROXY_PORT" \
     || fail "VM can't reach the host stub ($out)"
   grep -q 'AUTH=Bearer dummy' "$WORK/stub.log" \
@@ -109,7 +129,9 @@ start=$(date +%s)
 for _ in 1 2 3 4 5; do run_in true >/dev/null 2>&1; done
 note "five create+run+destroy cycles took $(($(date +%s) - start))s"
 
-# 7. Destroyed afterwards.
+# 7. Destroyed afterwards (the placeholder VM is stopped first).
+container stop "$KEEP" >/dev/null 2>&1
+container rm "$KEEP" >/dev/null 2>&1
 left=$(container ls -a 2>/dev/null | grep -c "$IMAGE" || true)
 [ "$left" = 0 ] && pass "no container left behind (--rm)" \
   || fail "$left container(s) left behind"
