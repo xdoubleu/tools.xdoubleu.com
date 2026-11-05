@@ -103,6 +103,7 @@ func sandboxWith(t *testing.T, exec *scriptedExec) *runner.ContainerSandbox {
 		NPMCache:   "",
 		CPUs:       "",
 		Memory:     "",
+		ProxyPort:  0,
 		TempDir:    t.TempDir(),
 	}
 }

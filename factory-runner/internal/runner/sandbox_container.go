@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/netip"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -101,6 +103,9 @@ type ContainerSandbox struct {
 	NPMCache   string
 	CPUs       string
 	Memory     string
+	// ProxyPort, when set, is where OnReady's proxy listens; the VM learns it as
+	// FACTORY_PROXY.
+	ProxyPort int
 	// TempDir holds the per-job env file; empty means os.TempDir().
 	TempDir string
 
@@ -318,6 +323,10 @@ func (s *ContainerSandbox) writeEnvFile(
 		}
 	}
 	fmt.Fprintf(&b, "FACTORY_GATEWAY=%s\n", gateway)
+	if s.ProxyPort > 0 {
+		fmt.Fprintf(&b, "FACTORY_PROXY=http://%s\n", net.JoinHostPort(gateway,
+			strconv.Itoa(s.ProxyPort)))
+	}
 	for k, v := range env {
 		fmt.Fprintf(&b, "%s=%s\n", k, v)
 	}

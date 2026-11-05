@@ -16,6 +16,7 @@ internal/runner/
   publish.go                  push the reviewed branch, open its PR
   harness.go, sandbox.go      Claude Code and OpenCode commands; Sandbox
   sandbox_container.go        one Apple `container` VM per job
+  egress_proxy.go, mcp_token.go  the VM's only way out; the job's board token
   validate.go, config.go      job validator; server URL and repo allowlist
   token.go, launchagent.go    keychain; plist
   update.go, activity.go      signed self-update; caffeinate
@@ -24,9 +25,9 @@ internal/updatesig/           copy of kobo-gateway's
 
 ## Trust
 
-The server is not trusted; the runner checks each claimed job: UUID job and task ids, the local repo allowlist, an `agent/*` branch, no value starting with `-`, a harness it can run (a model only for OpenCode).
+The server is not trusted; the runner checks each claimed job: UUID job and task ids, the local repo allowlist, an `agent/*` branch, no value starting with `-`, a harness it can run.
 
-- A Reply's job restores the task's pushed branch and resumes its session (`sessions/<task id>`, deleted when Done); only new commits are host-checked.
+- A Reply's job restores the task's pushed branch and resumes its session; only new commits are host-checked.
 - A job's clone is the agent's once the sandbox starts: it can write `.git/hooks` and `.git/config`, so the host runs git in it only with `-c core.hooksPath=/dev/null` and a clean config.
 - A finished job is host-checked before it counts: real commits, no workflow change, no secret in commits or outcome. A pass is pushed and opened as a PR → [`adr-0045`](../docs/adr-0045-factory-github-app.md).
 - A new session dir is seeded from the image's `/opt/claude-config`; it installs only `@opencode/cli`.
