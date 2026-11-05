@@ -22,7 +22,7 @@ func TestRealVMRunsAJobIsolatedAndCleansUp(t *testing.T) {
 	box := &runner.ContainerSandbox{
 		Image:      "factory-job:dev",
 		Exec:       runner.OSExecer{},
-		OnReady:    nil,
+		Proxy:      nil,
 		GoModCache: "",
 		NPMCache:   "",
 		CPUs:       "",
@@ -87,7 +87,7 @@ func TestRealVMSeedsClaudesConfigSoThePluginsAreVisible(t *testing.T) {
 	box := &runner.ContainerSandbox{
 		Image:      "factory-job:dev",
 		Exec:       runner.OSExecer{},
-		OnReady:    nil,
+		Proxy:      nil,
 		GoModCache: "",
 		NPMCache:   "",
 		CPUs:       "",

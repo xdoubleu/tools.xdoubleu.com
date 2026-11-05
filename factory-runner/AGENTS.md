@@ -1,11 +1,11 @@
 # factory-runner/ — the Mac-side helper of the software factory
 
-Pairs this Mac with the board; runs jobs → [`adr-0041`](../docs/adr-0041-factory-runner-pairing.md), [`adr-0044`](../docs/adr-0044-factory-jobs-queue.md). **Separate Go module**, pure Go, no cgo. It speaks Connect's JSON to `RunnerService` (`client.go`), never importing `api/`.
+Pairs this Mac with the board; runs jobs → [`adr-0041`](../docs/adr-0041-factory-runner-pairing.md), [`adr-0044`](../docs/adr-0044-factory-jobs-queue.md). **Separate Go module**, no cgo. It speaks Connect's JSON to `RunnerService` (`client.go`), never importing `api/`.
 
 ## Structure
 
 ```text
-cmd/factory-runner/   main.go (the tested app type), config.go, entry.go (untested wiring)
+cmd/factory-runner/   main.go (the tested app type), config.go, entry.go
 internal/runner/
   client.go, jobs_client.go   the server calls
   daemon.go                   heartbeat loop, backoff
@@ -16,6 +16,7 @@ internal/runner/
   publish.go                  push the reviewed branch, open its PR
   harness.go, sandbox.go      Claude Code and OpenCode commands; Sandbox
   sandbox_container.go        one Apple `container` VM per job
+  egress_proxy.go, mcp_token.go  the VM's only way out; the job's board token
   validate.go, config.go      job validator; server URL and repo allowlist
   token.go, launchagent.go    keychain; plist
   update.go, activity.go      signed self-update; caffeinate
@@ -34,7 +35,7 @@ The server is not trusted; the runner checks each claimed job: UUID job and task
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
-`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the binary, `.sig` and release file into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key.
+`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the binary, `.sig` and release file into `/downloads/`.
 
 ## Building
 

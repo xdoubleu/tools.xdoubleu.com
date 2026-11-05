@@ -50,6 +50,11 @@ var subnetPools = []string{"10.231.%d.0/24", "172.29.%d.0/24", "192.168.%d.0/24"
 // envKeyPattern is a name `container --env-file` reads as a variable.
 var envKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
+// ProxyListener serves the egress proxy on an address and reports where it bound.
+type ProxyListener interface {
+	Listen(gateway string, port int) (stop func(), addr string, err error)
+}
+
 // Execer runs a host command; ContainerSandbox's only way to touch the host, so
 // tests replace it. It returns the exit code, and an error only if the command
 // could not run at all.
@@ -84,17 +89,18 @@ func (OSExecer) Exec(
 
 // ContainerSandbox runs each job in its own Apple `container` VM on its own
 // host-only network (docs/adr-0043). The VM starts as a placeholder so the host side
-// of its network exists, OnReady can bind the egress proxy there, and then the job
-// runs in it with `container exec`. The job gets the gateway address as
-// FACTORY_GATEWAY.
+// of its network exists, Proxy is served there, and then the job runs in it with
+// `container exec`. The job gets the gateway address as FACTORY_GATEWAY and the
+// proxy's bound address as FACTORY_PROXY.
 type ContainerSandbox struct {
 	// Image is the job image, built from the Containerfile.
 	Image string
 	Exec  Execer
-	// OnReady, when set, is called once the VM runs with the network's gateway
-	// address, which is bindable on the host. The returned stop func runs when the
-	// job ends. An error ends the job before the agent starts.
-	OnReady func(ctx context.Context, gateway string) (func(), error)
+	// Proxy, when set, is served on the network's gateway at ProxyPort once the VM
+	// runs, and stopped when the job ends. An error ends the job before the agent
+	// starts. The one place that listens is also the one that tells the VM where.
+	Proxy     ProxyListener
+	ProxyPort int
 	// GoModCache and NPMCache, when set, are mounted read-only: the VM has no
 	// registry access, so the host fills them from the lockfiles.
 	GoModCache string
@@ -140,19 +146,21 @@ func (s *ContainerSandbox) Run(ctx context.Context, spec SandboxSpec) (int, erro
 	}
 	gateway := gatewayOf(subnet)
 
-	envFile, err := s.writeEnvFile(spec.Env, gateway)
+	proxyURL := ""
+	if s.Proxy != nil {
+		stop, addr, listenErr := s.Proxy.Listen(gateway, s.ProxyPort)
+		if listenErr != nil {
+			return -1, fmt.Errorf("starting the egress proxy: %w", listenErr)
+		}
+		defer stop()
+		proxyURL = "http://" + addr
+	}
+
+	envFile, err := s.writeEnvFile(spec.Env, gateway, proxyURL)
 	if err != nil {
 		return -1, err
 	}
 	defer os.Remove(envFile)
-
-	if s.OnReady != nil {
-		stop, readyErr := s.OnReady(ctx, gateway)
-		if readyErr != nil {
-			return -1, fmt.Errorf("starting the egress proxy: %w", readyErr)
-		}
-		defer stop()
-	}
 
 	return s.Exec.Exec(ctx, execArgv(name, envFile, spec), strings.NewReader(spec.Stdin),
 		spec.Log)
@@ -291,7 +299,7 @@ func execArgv(name, envFile string, spec SandboxSpec) []string {
 // whole, so a failure leaves no half-written secrets behind.
 func (s *ContainerSandbox) writeEnvFile(
 	env map[string]string,
-	gateway string,
+	gateway, proxyURL string,
 ) (string, error) {
 	dir := s.TempDir
 	if dir == "" {
@@ -318,6 +326,9 @@ func (s *ContainerSandbox) writeEnvFile(
 		}
 	}
 	fmt.Fprintf(&b, "FACTORY_GATEWAY=%s\n", gateway)
+	if proxyURL != "" {
+		fmt.Fprintf(&b, "FACTORY_PROXY=%s\n", proxyURL)
+	}
 	for k, v := range env {
 		fmt.Fprintf(&b, "%s=%s\n", k, v)
 	}
