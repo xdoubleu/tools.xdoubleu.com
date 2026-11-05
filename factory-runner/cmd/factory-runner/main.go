@@ -1,12 +1,15 @@
 // Command factory-runner is the Mac-side helper of the software factory: it
-// pairs with the board and keeps its heartbeat so the board shows it online.
+// pairs with the board, keeps its heartbeat so the board shows it online, and runs
+// the jobs it claims, each in its own VM.
 package main
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
 )
@@ -23,12 +26,14 @@ const exitUsage = 2
 
 const usage = `usage:
   factory-runner pair <code>          pair this Mac with the code shown on the board
-  factory-runner run                  heartbeat until stopped (run by the LaunchAgent)
+  factory-runner run                  heartbeat and run jobs (run by the LaunchAgent)
   factory-runner install              install and load the LaunchAgent
   factory-runner config show
   factory-runner config server <url>
   factory-runner config repos add|remove <owner/name>
   factory-runner config repos list
+  factory-runner config image <ref>
+  factory-runner config data|gocache|npmcache <dir>
   factory-runner version
 `
 
@@ -44,7 +49,22 @@ type app struct {
 	updater  func(server string) (runner.SelfUpdater, error)
 	activity *runner.Activity
 	load     func(plistPath string) error
+	// jobs builds the claim loop; nil runs the heartbeat alone.
+	jobs jobsFunc
 }
+
+// jobLoop claims and runs jobs until its context ends.
+type jobLoop interface {
+	Loop(ctx context.Context) error
+}
+
+// jobsFunc builds the job loop for a config and device token, and fails if jobs
+// cannot run on this Mac (no container CLI, say).
+type jobsFunc func(
+	ctx context.Context,
+	cfg runner.Config,
+	token string,
+) (jobLoop, error)
 
 type daemonFunc func(
 	ctx context.Context,
@@ -130,12 +150,79 @@ func (a *app) runDaemon(ctx context.Context) error {
 		return err
 	}
 	opts := runner.Options{Updater: upd, Activity: a.activity}
-	err = a.daemon(ctx, a.newBeat(cfg.Server), token, opts)
+	beat := func(ctx context.Context) error {
+		return a.daemon(ctx, a.newBeat(cfg.Server), token, opts)
+	}
+	var loop jobLoop
+	if a.jobs != nil {
+		if loop, err = a.jobs(ctx, cfg, token); err != nil {
+			// The heartbeat and self-update still run: a newer release may be what
+			// fixes this, and the board should show the runner is alive.
+			fmt.Fprintln(a.stderr, "factory-runner: jobs are off:", err)
+			loop = nil
+		}
+	}
+	if loop == nil {
+		err = beat(ctx)
+	} else {
+		err = alongside(ctx, beat, loop.Loop, a.activity.Idle, idlePoll)
+	}
 	if errors.Is(err, runner.ErrRestart) {
 		fmt.Fprintln(a.stdout, "Updated to a new release; restarting.")
 		return nil
 	}
 	return err
+}
+
+// idlePoll is how often a restart checks whether the last job has finished.
+const idlePoll = time.Second
+
+// alongside runs two loops until either ends, then stops the other. A revoked
+// token ends both; so does a restart after an update, but only once no job runs,
+// as stopping the loop would kill it. The error returned is the most telling one
+// (revoked, then restart), not whichever loop happened to finish first.
+func alongside(
+	ctx context.Context,
+	first, second func(context.Context) error,
+	idle func() bool,
+	poll time.Duration,
+) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	errs := make(chan error, 2) //nolint:mnd // one result per loop
+	go func() { errs <- first(ctx) }()
+	go func() { errs <- second(ctx) }()
+	one := <-errs
+	if errors.Is(one, runner.ErrRestart) {
+		waitIdle(ctx, idle, poll)
+	}
+	cancel()
+	return mostTelling(one, <-errs)
+}
+
+// waitIdle returns once idle reports true, or ctx ends.
+func waitIdle(ctx context.Context, idle func() bool, poll time.Duration) {
+	tick := time.NewTicker(poll)
+	defer tick.Stop()
+	for !idle() {
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+		}
+	}
+}
+
+func mostTelling(a, b error) error {
+	for _, target := range []error{runner.ErrRevoked, runner.ErrRestart} {
+		if errors.Is(a, target) {
+			return a
+		}
+		if errors.Is(b, target) {
+			return b
+		}
+	}
+	return cmp.Or(a, b)
 }
 
 func (a *app) install() error {

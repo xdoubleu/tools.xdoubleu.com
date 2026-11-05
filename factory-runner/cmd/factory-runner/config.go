@@ -3,52 +3,91 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
+	"slices"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
 )
 
 var errConfigUsage = errors.New(
 	"usage: factory-runner config show | server <url> | " +
-		"repos add|remove <owner/name> | repos list",
+		"repos add|remove <owner/name> | repos list | image <ref> | " +
+		"data|gocache|npmcache <dir>",
 )
 
 func (a *app) config(args []string) error {
+	if len(args) == 0 {
+		return errConfigUsage
+	}
 	cfg, path, err := a.loadConfig()
 	if err != nil {
 		return err
 	}
+	verb, rest := args[0], args[1:]
 	switch {
-	case len(args) == 1 && args[0] == "show":
-		fmt.Fprintf(a.stdout, "server: %s\nrepos: %v\n", cfg.Server, cfg.Repos)
+	case verb == "show" && len(rest) == 0:
+		fmt.Fprintf(a.stdout, "server: %s\nrepos: %v\nimage: %s\ndata: %s\n",
+			cfg.Server, cfg.Repos, cfg.JobImage(), cfg.DataPath(a.home))
+		fmt.Fprintf(a.stdout, "gocache: %s\nnpmcache: %s\n",
+			orNone(cfg.GoModCache), orNone(cfg.NPMCache))
 		return nil
-	case len(args) == 2 && args[0] == "server":
-		if err = cfg.SetServer(args[1]); err != nil {
-			return err
+	case verb == "server" && len(rest) == 1:
+		err = cfg.SetServer(rest[0])
+	case verb == "image" && len(rest) == 1:
+		err = cfg.SetImage(rest[0])
+	case slices.Contains([]string{"data", "gocache", "npmcache"}, verb) &&
+		len(rest) == 1:
+		err = a.setDir(&cfg, verb, rest[0])
+	case verb == "repos" && len(rest) > 0:
+		if rest[0] == "list" && len(rest) == 1 {
+			return a.listRepos()
 		}
-	case len(args) >= 2 && args[0] == "repos":
-		if err = a.configRepos(&cfg, args[1:]); err != nil {
-			return err
-		}
-		if args[1] == "list" {
-			return nil
-		}
+		err = a.configRepos(&cfg, rest)
 	default:
 		return errConfigUsage
+	}
+	if err != nil {
+		return err
 	}
 	return cfg.Save(path)
 }
 
+// orNone says what an unset cache means: the VM has no registry access, so a job
+// that needs dependencies fails without one.
+func orNone(dir string) string {
+	if dir == "" {
+		return "none (jobs get no dependencies from the registry)"
+	}
+	return dir
+}
+
+// setDir sets a directory; the caches must exist already, as the VM mounts them.
+func (a *app) setDir(cfg *runner.Config, which, dir string) error {
+	if err := cfg.SetDir(which, dir); err != nil {
+		return err
+	}
+	if which == "data" {
+		return nil
+	}
+	info, err := os.Stat(dir) //nolint:gosec // the operator's own directory
+	if err != nil || !info.IsDir() {
+		return fmt.Errorf("%s is not a directory that exists", dir)
+	}
+	return nil
+}
+
 func (a *app) configRepos(cfg *runner.Config, args []string) error {
-	switch {
-	case len(args) == 2 && args[0] == "add":
+	if len(args) != 2 { //nolint:mnd // a verb and a repo
+		return errConfigUsage
+	}
+	switch args[0] {
+	case "add":
 		return cfg.AddRepo(args[1])
-	case len(args) == 2 && args[0] == "remove":
+	case "remove":
 		if !cfg.RemoveRepo(args[1]) {
 			return fmt.Errorf("%s is not in the allowlist", args[1])
 		}
 		return nil
-	case len(args) == 1 && args[0] == "list":
-		return a.listRepos()
 	default:
 		return errConfigUsage
 	}
