@@ -146,12 +146,24 @@ func (a *Factory) Start() error {
 	return errors.Join(
 		a.jobQueue.AddJob(a.pruneJob(), noop),
 		a.jobQueue.AddJob(a.pollJob(), noop),
+		a.jobQueue.AddJob(a.checkRunnerJob(), noop),
 	)
 }
 
 func (a *Factory) pollJob() threading.Job {
 	poll := jobs.NewPollPullRequestsJob(a.services.Jobs)
 	return observability.NewTrackedJob(poll, a.db)
+}
+
+func (a *Factory) checkRunnerJob() threading.Job {
+	check := jobs.NewCheckRunnerJob(a.services.Jobs)
+	return observability.NewTrackedJob(check, a.db)
+}
+
+// CheckRunnerNow looks for a job waiting on an offline runner once, outside the
+// schedule.
+func (a *Factory) CheckRunnerNow(ctx context.Context) error {
+	return a.checkRunnerJob().Run(ctx, a.Logger)
 }
 
 // PollPullRequestsNow reads every open pull request once, outside the schedule.

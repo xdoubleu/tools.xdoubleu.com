@@ -94,6 +94,14 @@ func (r *JobsRepository) Claim(
 		RETURNING `+jobColumns, runnerID))
 }
 
+// OldestQueued returns the job that has waited longest for a runner; none queued
+// is not found.
+func (r *JobsRepository) OldestQueued(ctx context.Context) (*models.Job, error) {
+	return scanJob(r.db.QueryRow(ctx, `
+		SELECT `+jobColumns+` FROM factory.jobs WHERE status = 'queued'
+		ORDER BY created_at, id LIMIT 1`))
+}
+
 // CheckIn records that a running job is alive and keeps its session id. A job
 // that isn't running (lost, cancelled) is not found, which tells the runner to
 // stop.

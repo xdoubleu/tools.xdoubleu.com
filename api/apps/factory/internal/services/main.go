@@ -2,7 +2,10 @@
 package services
 
 import (
+	"sync"
 	"time"
+
+	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/factory/internal/repositories"
 	"tools.xdoubleu.com/internal/auth"
@@ -33,6 +36,7 @@ func New(
 		Jobs: &JobService{
 			jobs: repos.Jobs, tasks: repos.Tasks, repos: repos.Repos,
 			events: repos.Events, accounts: accounts, github: github, now: time.Now, say: say,
+			runners: repos.Runners, offlineMu: sync.Mutex{}, alertedOffline: uuid.Nil,
 		},
 	}
 }

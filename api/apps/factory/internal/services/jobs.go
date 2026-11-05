@@ -3,8 +3,10 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -36,9 +38,14 @@ type JobService struct {
 	// accounts is nil when jobs get no agent account of their own.
 	accounts JobAccounts
 	// github is nil when no GitHub App is set up.
-	github GitHub
-	now    func() time.Time
-	say    notices
+	github  GitHub
+	now     func() time.Time
+	say     notices
+	runners *repositories.RunnersRepository
+	// alertedOffline is the queued job the offline-runner notice was last sent for,
+	// so one waiting job is announced once.
+	offlineMu      sync.Mutex
+	alertedOffline uuid.UUID
 }
 
 // ClaimedJob is a job with the repo it runs against.
@@ -471,6 +478,55 @@ func (s *JobService) ExpireLost(ctx context.Context) error {
 			": the runner stopped checking in.")
 	}
 	return nil
+}
+
+// OfflineAfter is how long a job may wait with no runner online before Slack hears
+// of it.
+const OfflineAfter = 10 * time.Minute
+
+// CheckRunnerOffline tells Slack once when the oldest queued job has waited longer
+// than OfflineAfter and no runner is online. A runner that is online but busy
+// with another job is not offline.
+func (s *JobService) CheckRunnerOffline(ctx context.Context) error {
+	job, err := s.jobs.OldestQueued(ctx)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		s.setAlerted(uuid.Nil)
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	now := s.now()
+	waited := now.Sub(job.CreatedAt)
+	if waited < OfflineAfter {
+		return nil
+	}
+	runners, err := s.runners.List(ctx)
+	if err != nil {
+		return err
+	}
+	for i := range runners {
+		if runners[i].Online(now) {
+			return nil
+		}
+	}
+	if !s.setAlerted(job.ID) {
+		return nil
+	}
+	s.say.say(ctx, fmt.Sprintf(
+		":zzz: No runner is online, and %s has waited %d minutes for one.",
+		s.taskLink(ctx, job.TaskID), int(waited.Minutes())))
+	return nil
+}
+
+// setAlerted records the job the offline notice is for and reports whether that
+// is a change, so the caller sends it once.
+func (s *JobService) setAlerted(id uuid.UUID) bool {
+	s.offlineMu.Lock()
+	defer s.offlineMu.Unlock()
+	changed := s.alertedOffline != id
+	s.alertedOffline = id
+	return changed
 }
 
 // SweepLost is ExpireLost for callers that can't act on a failure: reading the
