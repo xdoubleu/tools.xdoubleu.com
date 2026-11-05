@@ -30,7 +30,6 @@ The server is not trusted; the runner checks each claimed job: UUID job and task
 - A Reply's job restores the task's pushed branch and resumes its session (`sessions/<task id>`, deleted when Done); only new commits are host-checked.
 - A job's clone is the agent's once the sandbox starts: it can write `.git/hooks` and `.git/config`, so the host runs git in it only with `-c core.hooksPath=/dev/null` and a clean config.
 - A finished job is host-checked before it counts: real commits, no workflow change, no secret in commits or outcome. A pass is pushed and opened as a PR → [`adr-0045`](../docs/adr-0045-factory-github-app.md).
-- A new session dir is seeded from the image's `/opt/claude-config`; it installs only `@opencode/cli`.
 - The device token lives only in the keychain; a revoked one ends `run`.
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)

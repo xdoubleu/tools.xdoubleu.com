@@ -26,7 +26,8 @@ func newJobRunner(
 	box := &runner.ContainerSandbox{
 		Image:      cfg.JobImage(),
 		Exec:       exec,
-		OnReady:    nil,
+		Proxy:      nil,
+		ProxyPort:  0,
 		GoModCache: cfg.GoModCache,
 		NPMCache:   cfg.NPMCache,
 		CPUs:       "",
