@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -79,15 +81,16 @@ func TestASelfUpdateStopsTheJobLoopToo(t *testing.T) {
 	assert.True(t, stopped)
 }
 
-func TestAMacThatCannotRunJobsFailsRunBeforeAnyHeartbeat(t *testing.T) {
+func TestAMacThatCannotRunJobsSaysSoButKeepsTheHeartbeatAndUpdates(t *testing.T) {
 	e := newEnv(t)
 	e = withJobs(e, func(context.Context, runner.Config, string) (jobLoop, error) {
 		return nil, errors.New("jobs cannot run on this Mac: container is required")
 	})
 
-	assert.Equal(t, 1, e.do("run"))
+	assert.Equal(t, 0, e.do("run"))
+	assert.Contains(t, e.errs.String(), "jobs are off")
 	assert.Contains(t, e.errs.String(), "container is required")
-	assert.Empty(t, *e.ran, "no heartbeat claims the Mac is ready when it is not")
+	assert.Equal(t, []string{"frt_stored"}, *e.ran, "a newer release can still arrive")
 }
 
 func TestARunWithoutJobsKeepsTheHeartbeatAlone(t *testing.T) {
@@ -118,18 +121,19 @@ func TestACleanShutdownEndsBothLoopsWithoutAnError(t *testing.T) {
 
 func TestConfigSetsTheImageAndTheDirectories(t *testing.T) {
 	e := newEnv(t)
+	goCache, npmCache := t.TempDir(), t.TempDir()
 	require.Equal(t, 0, e.do("config", "image", "factory-job:v2"))
 	require.Equal(t, 0, e.do("config", "data", "/Volumes/ssd/factory"))
-	require.Equal(t, 0, e.do("config", "gocache", "/cache/go"))
-	require.Equal(t, 0, e.do("config", "npmcache", "/cache/npm"))
+	require.Equal(t, 0, e.do("config", "gocache", goCache))
+	require.Equal(t, 0, e.do("config", "npmcache", npmCache))
 
 	e.out.Reset()
 	require.Equal(t, 0, e.do("config", "show"))
 	out := e.out.String()
 	assert.Contains(t, out, "image: factory-job:v2\n")
 	assert.Contains(t, out, "data: /Volumes/ssd/factory\n")
-	assert.Contains(t, out, "gocache: /cache/go\n")
-	assert.Contains(t, out, "npmcache: /cache/npm\n")
+	assert.Contains(t, out, "gocache: "+goCache+"\n")
+	assert.Contains(t, out, "npmcache: "+npmCache+"\n")
 }
 
 func TestConfigRefusesAnImageOrDirectoryThatCouldBeMisread(t *testing.T) {
@@ -141,9 +145,15 @@ func TestConfigRefusesAnImageOrDirectoryThatCouldBeMisread(t *testing.T) {
 		{"config", "data", "relative/dir"},
 		{"config", "gocache", "/cache/a,b"},
 		{"config", "npmcache", "/cache/a\nb"},
+		{"config", "gocache", "/no/such/cache/dir"},
 	} {
 		assert.Equal(t, 1, e.do(args...), args)
 	}
+	assert.Contains(t, e.errs.String(), "not a directory that exists")
+
+	file := filepath.Join(t.TempDir(), "f")
+	require.NoError(t, os.WriteFile(file, nil, 0o600))
+	assert.Equal(t, 1, e.do("config", "npmcache", file), "a file is not a cache")
 }
 
 func TestConfigShowDefaultsToTheStandardImageAndDataDirectory(t *testing.T) {
@@ -151,5 +161,7 @@ func TestConfigShowDefaultsToTheStandardImageAndDataDirectory(t *testing.T) {
 	require.Equal(t, 0, e.do("config", "show"))
 	out := e.out.String()
 	assert.Contains(t, out, "image: "+runner.DefaultImage+"\n")
+	assert.Contains(t, out, "gocache: none (jobs get no dependencies")
+	assert.Contains(t, out, "npmcache: none (jobs get no dependencies")
 	assert.Contains(t, out, "data: "+runner.DefaultDataDir(e.app.home)+"\n")
 }

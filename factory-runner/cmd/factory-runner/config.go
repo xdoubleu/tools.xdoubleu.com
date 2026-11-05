@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
@@ -27,7 +28,8 @@ func (a *app) config(args []string) error {
 	case verb == "show" && len(rest) == 0:
 		fmt.Fprintf(a.stdout, "server: %s\nrepos: %v\nimage: %s\ndata: %s\n",
 			cfg.Server, cfg.Repos, cfg.JobImage(), cfg.DataPath(a.home))
-		fmt.Fprintf(a.stdout, "gocache: %s\nnpmcache: %s\n", cfg.GoModCache, cfg.NPMCache)
+		fmt.Fprintf(a.stdout, "gocache: %s\nnpmcache: %s\n",
+			orNone(cfg.GoModCache), orNone(cfg.NPMCache))
 		return nil
 	case verb == "server" && len(rest) == 1:
 		err = cfg.SetServer(rest[0])
@@ -35,7 +37,7 @@ func (a *app) config(args []string) error {
 		err = cfg.SetImage(rest[0])
 	case slices.Contains([]string{"data", "gocache", "npmcache"}, verb) &&
 		len(rest) == 1:
-		err = cfg.SetDir(verb, rest[0])
+		err = a.setDir(&cfg, verb, rest[0])
 	case verb == "repos" && len(rest) > 0:
 		if rest[0] == "list" && len(rest) == 1 {
 			return a.listRepos()
@@ -48,6 +50,30 @@ func (a *app) config(args []string) error {
 		return err
 	}
 	return cfg.Save(path)
+}
+
+// orNone says what an unset cache means: the VM has no registry access, so a job
+// that needs dependencies fails without one.
+func orNone(dir string) string {
+	if dir == "" {
+		return "none (jobs get no dependencies from the registry)"
+	}
+	return dir
+}
+
+// setDir sets a directory; the caches must exist already, as the VM mounts them.
+func (a *app) setDir(cfg *runner.Config, which, dir string) error {
+	if err := cfg.SetDir(which, dir); err != nil {
+		return err
+	}
+	if which == "data" {
+		return nil
+	}
+	info, err := os.Stat(dir) //nolint:gosec // the operator's own directory
+	if err != nil || !info.IsDir() {
+		return fmt.Errorf("%s is not a directory that exists", dir)
+	}
+	return nil
 }
 
 func (a *app) configRepos(cfg *runner.Config, args []string) error {

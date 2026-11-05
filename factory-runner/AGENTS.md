@@ -35,8 +35,8 @@ The server is not trusted; the runner checks each claimed job: UUID job and task
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
-`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the binary, `.sig` and release file into `/downloads/`.
+`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the binary, `.sig` and release file into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key.
 
 ## Building
 
-`make build | test | lint | lint/fix | image` (job image from `Containerfile`). Tests need no keychain, network, VM or launchd; `go test -tags container` runs real VMs on a Mac.
+`make build | test | lint | lint/fix | image`. Tests need no keychain, network, VM or launchd; `go test -tags container` runs real VMs on a Mac.

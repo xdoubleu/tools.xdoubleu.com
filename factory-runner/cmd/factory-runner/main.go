@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
 )
@@ -152,14 +153,19 @@ func (a *app) runDaemon(ctx context.Context) error {
 	beat := func(ctx context.Context) error {
 		return a.daemon(ctx, a.newBeat(cfg.Server), token, opts)
 	}
-	if a.jobs == nil {
+	var loop jobLoop
+	if a.jobs != nil {
+		if loop, err = a.jobs(ctx, cfg, token); err != nil {
+			// The heartbeat and self-update still run: a newer release may be what
+			// fixes this, and the board should show the runner is alive.
+			fmt.Fprintln(a.stderr, "factory-runner: jobs are off:", err)
+			loop = nil
+		}
+	}
+	if loop == nil {
 		err = beat(ctx)
 	} else {
-		var loop jobLoop
-		if loop, err = a.jobs(ctx, cfg, token); err != nil {
-			return err
-		}
-		err = alongside(ctx, beat, loop.Loop)
+		err = alongside(ctx, beat, loop.Loop, a.activity.Idle, idlePoll)
 	}
 	if errors.Is(err, runner.ErrRestart) {
 		fmt.Fprintln(a.stdout, "Updated to a new release; restarting.")
@@ -168,17 +174,55 @@ func (a *app) runDaemon(ctx context.Context) error {
 	return err
 }
 
-// alongside runs two loops until either ends, then stops the other and returns the
-// first error: a revoked token, or a restart after an update, ends both.
-func alongside(ctx context.Context, first, second func(context.Context) error) error {
+// idlePoll is how often a restart checks whether the last job has finished.
+const idlePoll = time.Second
+
+// alongside runs two loops until either ends, then stops the other. A revoked
+// token ends both; so does a restart after an update, but only once no job runs,
+// as stopping the loop would kill it. The error returned is the most telling one
+// (revoked, then restart), not whichever loop happened to finish first.
+func alongside(
+	ctx context.Context,
+	first, second func(context.Context) error,
+	idle func() bool,
+	poll time.Duration,
+) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	errs := make(chan error, 2) //nolint:mnd // one result per loop
 	go func() { errs <- first(ctx) }()
 	go func() { errs <- second(ctx) }()
 	one := <-errs
+	if errors.Is(one, runner.ErrRestart) {
+		waitIdle(ctx, idle, poll)
+	}
 	cancel()
-	return cmp.Or(one, <-errs)
+	return mostTelling(one, <-errs)
+}
+
+// waitIdle returns once idle reports true, or ctx ends.
+func waitIdle(ctx context.Context, idle func() bool, poll time.Duration) {
+	tick := time.NewTicker(poll)
+	defer tick.Stop()
+	for !idle() {
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+		}
+	}
+}
+
+func mostTelling(a, b error) error {
+	for _, target := range []error{runner.ErrRevoked, runner.ErrRestart} {
+		if errors.Is(a, target) {
+			return a
+		}
+		if errors.Is(b, target) {
+			return b
+		}
+	}
+	return cmp.Or(a, b)
 }
 
 func (a *app) install() error {
