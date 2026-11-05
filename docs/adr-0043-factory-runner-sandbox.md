@@ -51,6 +51,11 @@ tool and reads anywhere by default.
 - **Image:** git, Go, Node, Postgres, the `claude` CLI and `opencode`, the repo's
   marketplace plugins, built with `container build` from a pinned `Containerfile`
   and rebuilt on a schedule or when it changes; the job runs as a non-root user.
+  `ContainerSandbox` starts the VM idle on a per-job `--internal` network, lets the
+  proxy bind the gateway, then runs the job in it with `container exec` and its
+  environment in a 0600 file, never argv. Claude's config sits in `/opt/claude-config`
+  and is copied into a new session directory (with `cp -R`: `-a` fails on the
+  bind mount's owner).
 - **CI:** GitHub's macOS runners can't run VMs, so the runner talks to a `Sandbox`
   interface and CI tests a fake. What stays manual: the probe script and the
   `claude -p` checks.
@@ -76,10 +81,12 @@ under a second.
 - **Bind to the gateway address only.** A wildcard listener on the host may be
   reachable from the VM; that is untested.
 
-Still unverified: that `claude -p` works through the base URL, with plugins and
-skills loaded; `claude --resume` inside the VM, which needs the image's config
-copied into `CLAUDE_CONFIG_DIR` (that variable replaces the whole config dir);
-OpenCode model calls; whether the heartbeat's long-poll survives sleep and wake; and
+Verified with the real image (`go test -tags container`): the seeded session
+directory shows the image's marketplaces and plugins, although `CLAUDE_CONFIG_DIR`
+replaces the whole config dir.
+
+Still unverified: that `claude -p` works through the base URL with those skills
+loaded; `claude --resume` inside the VM; OpenCode model calls; whether the heartbeat's long-poll survives sleep and wake; and
 wildcard listeners. OpenCode `--session` resume, the top-level `sessionID` and
 sessions under `XDG_DATA_HOME` hold with `@opencode/cli` 2.2.2, which must be the
 only package providing `opencode` in the image. Apple's docs call the project under

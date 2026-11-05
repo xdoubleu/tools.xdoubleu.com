@@ -44,7 +44,7 @@ func (ClaudeCode) Command() []string {
 const ClaudeConfigSeed = "/opt/claude-config"
 
 const claudeStart = `[ -e "$CLAUDE_CONFIG_DIR/.seeded" ] || ` +
-	`{ cp -a "$CLAUDE_CONFIG_SEED/." "$CLAUDE_CONFIG_DIR/" && ` +
+	`{ cp -R "$CLAUDE_CONFIG_SEED/." "$CLAUDE_CONFIG_DIR/" && ` +
 	`touch "$CLAUDE_CONFIG_DIR/.seeded"; } && exec "$@"`
 
 // Resume implements Harness.

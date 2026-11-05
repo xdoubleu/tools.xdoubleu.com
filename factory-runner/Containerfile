@@ -1,0 +1,41 @@
+# The job image (docs/adr-0043). Build on the Mac: `make image`. It has no registry
+# access when a job runs, so everything a job needs is installed here. Base images and
+# CLIs are pinned; the plugin marketplaces are not (they track their default branch),
+# so a rebuild picks up their current skills. Runs as the unprivileged `node` user (uid 1000).
+FROM docker.io/library/golang:1.27@sha256:0c050feb47802ae436b9030833694a0b80160d08e3b3049ad30bf7c9e724e09d AS go
+
+FROM docker.io/library/node:22-bookworm-slim@sha256:5ec23b7c622b00547753bc6ffd78085dd868a68aeb41c8e0a1418f033e13d96d
+
+ARG CLAUDE_CODE_VERSION=2.1.285
+# Only @opencode/cli: the `opencode-ai` package ships the same binary name.
+ARG OPENCODE_VERSION=2.2.2
+ARG GOLANGCI_LINT_VERSION=v2.15.0
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates curl git jq make postgresql postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=go /usr/local/go /usr/local/go
+ENV PATH=/usr/local/go/bin:/home/node/go/bin:$PATH
+
+RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
+    && npm install -g "@opencode/cli@${OPENCODE_VERSION}"
+
+# Claude's config (marketplaces and the plugins .claude/settings.json enables) lives
+# here; the runner copies it into a new session directory, because CLAUDE_CONFIG_DIR
+# replaces the whole config directory.
+RUN mkdir -p /opt/claude-config && chown node:node /opt/claude-config
+USER node
+ENV CLAUDE_CONFIG_DIR=/opt/claude-config
+RUN claude plugin marketplace add xdoubleu/skills \
+    && claude plugin marketplace add anthropics/claude-plugins-official \
+    && claude plugin marketplace add mattpocock/skills \
+    && for p in git-task-flow session-retro git-cleanup github-issue-triage \
+        skill-lifecycle; do claude plugin install "$p@xdoubleu-skills"; done \
+    && claude plugin install claude-md-management@claude-plugins-official \
+    && claude plugin install mattpocock-skills@mattpocock
+RUN go install \
+    "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}"
+
+WORKDIR /work

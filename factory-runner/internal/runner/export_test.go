@@ -83,3 +83,12 @@ func (g *Git) GitEnvForTest(
 ) ([]byte, error) {
 	return g.gitEnv(ctx, dir, env, args...)
 }
+
+// FreeSubnets lists the job subnets free of the given `netstat` routes.
+func FreeSubnets(routes string, n int) []string {
+	var out []string
+	for _, p := range freeSubnets(routes, n) {
+		out = append(out, p.String())
+	}
+	return out
+}
