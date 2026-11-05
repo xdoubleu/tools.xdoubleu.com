@@ -51,8 +51,8 @@ rely on CI's Build Grafana job, and say so in the PR body.
 
 A board task isn't a GitHub issue: the PR links it and carries **no closing
 keyword**. Put `Task: <title> (<id>)` at the top of the PR body, and after
-`ship-pr` opens it `factory_move_task(id, "in_review")`. A merge moves it to
-Testing; the owner moves it to Done after checking it.
+`ship-pr` opens it `factory_move_task(id, "in_review")`. After the merge move it
+to `testing` (the runner moves only its own PRs); the owner moves it to Done.
 
 - **`## Follow-up: your turn` in the task body** (only the heading counts, not
   prose): say in the PR body that the task stays open for that step. Move it to

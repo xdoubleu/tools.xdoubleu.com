@@ -345,6 +345,19 @@ fi
 out=$(FACTORY_JOB=0a1b2c3d run_editguard "$(jq -n --arg cwd "$wt" --arg fp "$repo_root/docs/x.md" '{cwd:$cwd, tool_input:{file_path:$fp}}')")
 [ -z "$out" ] && pass "a factory job is exempt inside a worktree too" || fail "a factory job is exempt inside a worktree too" "$out"
 
+# case: the Stop hook does not nag a factory job, even in a worktree-shaped path with
+# commits ahead (the host ships a job's work, not the agent)
+repo=$(setup_repo "factory-stop")
+git -C "$repo" checkout -q -b agent/job
+echo y > "$repo/g.txt" && git -C "$repo" add g.txt && git -C "$repo" commit -q -m work
+gh_stub 0
+out=$(FACTORY_JOB=0a1b2c3d PATH="$STUB_DIR:$PATH" run_stop "$(jq -n --arg cwd "$repo" '{cwd:$cwd, stop_hook_active:false}')")
+[ -z "$out" ] && pass "Stop hook is silent for a factory job" || fail "Stop hook is silent for a factory job" "$out"
+out=$(PATH="$STUB_DIR:$PATH" run_stop "$(jq -n --arg cwd "$repo" '{cwd:$cwd, stop_hook_active:false}')")
+printf '%s' "$out" | jq -e '.decision == "block"' > /dev/null 2>&1 &&
+  pass "the same work blocks Stop outside a factory job" ||
+  fail "the same work blocks Stop outside a factory job" "$out"
+
 # --- PostToolUse lint/docs hook -----------------------------------------
 LINTDOCS_HOOK="$ROOT_DIR/.claude/hooks/post-edit-lint-docs.sh"
 stub=$(mktemp -d)

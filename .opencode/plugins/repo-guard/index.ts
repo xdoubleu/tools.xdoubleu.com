@@ -123,13 +123,14 @@ export default {
   async setup(ctx: PluginContext) {
     // An Actions runner's checkout is throwaway and routines edit it in place.
     if (process.env.GITHUB_ACTIONS === "true") return
-    // A factory job runs in a sandbox on a branch the host cloned; the sandbox is the
-    // boundary, and nothing there is a worktree to guard or a PR to nudge toward.
-    if (process.env.FACTORY_JOB) return
-    fastForwardMain(ctx.location.directory)
+    // A factory job runs in a sandbox on a branch the host cloned: the sandbox is the
+    // boundary, and nothing there is a worktree to guard or a PR to nudge toward. The
+    // doc-budget check below still applies, as it does under Claude Code.
+    const factoryJob = Boolean(process.env.FACTORY_JOB)
+    if (!factoryJob) fastForwardMain(ctx.location.directory)
 
     // 1. Worktree-scope edit guard.
-    await ctx.permission.hook("evaluate", async (event) => {
+    if (!factoryJob) await ctx.permission.hook("evaluate", async (event) => {
       if (event.action !== "edit") return
       let dir: string
       try {
@@ -169,7 +170,7 @@ export default {
             })
           }
           lastLintDocs.set(sessionID, lint ?? "")
-          const reason = unshippedWorkReason(dir)
+          const reason = factoryJob ? undefined : unshippedWorkReason(dir)
           if (reason) {
             await ctx.session.synthetic({
               sessionID,

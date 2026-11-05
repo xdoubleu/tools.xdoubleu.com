@@ -11,21 +11,14 @@ mechanisms reference this file and add only the *how*:
 ## Factory jobs
 
 A job on the factory runner (`FACTORY_JOB` set) runs unattended in a sandbox on a
-branch the host cloned. It skips the worktree, claim and PR steps: it commits
-locally and writes its outcome to `$FACTORY_OUTCOME_PATH`; the host checks the work,
-pushes it and opens the PR ([`adr-0045`](adr-0045-factory-github-app.md)). The edit
-guard stands aside when `FACTORY_JOB` is set; the sandbox is the boundary.
-
-## Factory jobs
-
-A job on the factory runner (`FACTORY_JOB` set) runs unattended in a sandbox on a
 branch the host cloned. It skips the worktree, claim and PR steps and the retro,
 and doesn't push, move the task or resolve Sentry issues. It does the lint,
 coverage and build steps as far as the offline sandbox allows, commits locally, and
 writes its outcome to `$FACTORY_OUTCOME_PATH`: the first line is the PR title, then
 what it did and what is left. The host checks the work, pushes it and opens the PR
-([`adr-0045`](adr-0045-factory-github-app.md)). The edit guard (both harnesses) stands aside when
-`FACTORY_JOB` is set; the sandbox is the boundary.
+([`adr-0045`](adr-0045-factory-github-app.md)). The edit guards (both harnesses) and
+the unshipped-work nudge stand aside when `FACTORY_JOB` is set; the sandbox is the
+boundary.
 
 ## Starting
 
@@ -48,8 +41,9 @@ what it did and what is left. The host checks the work, pushes it and opens the 
 4. **Proto changed:** `make proto/check` (`api/`) and `npm run
    generate:check` (`web/`).
 5. **Non-draft PR** that links the task (`Task: <title> (<id>)`, no closing
-   keyword) and moves it to In review; a merge moves it to Testing, and the owner moves it to
-   Done. Pushed without a PR is not finished. Work started from a GitHub issue (the sweeps,
+   keyword) and moves it to In review; after the merge it goes to Testing (the runner
+   moves only its own PRs' tasks), and the owner moves it to Done. Pushed without a
+   PR is not finished. Work started from a GitHub issue (the sweeps,
    until #2779) closes it with `Fixes #123` instead.
 6. **Never merge on red CI; never push to `main`.**
 7. **Watch CI to green** and fix what it finds.
