@@ -49,6 +49,7 @@ func proxyFor(
 		Server:        up.srv.URL,
 		MCPToken:      func(context.Context) (string, error) { return "mcp-token", nil },
 		OpenRouterKey: func() (string, error) { return "real-or-key", nil },
+		MCPRejected:   nil,
 		Transport:     nil,
 		Anthropic:     up.srv.URL,
 		OpenRouter:    up.srv.URL + "/api",
@@ -225,8 +226,8 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 	up := httptest.NewServer(http.HandlerFunc(events))
 	defer up.Close()
 	p, err := runner.NewEgressProxy(runner.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, Transport: nil,
-		Anthropic: up.URL, OpenRouter: "", Log: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, MCPRejected: nil,
+		Transport: nil, Anthropic: up.URL, OpenRouter: "", Log: nil,
 	})
 	require.NoError(t, err)
 	front := httptest.NewServer(p)
@@ -247,8 +248,8 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 
 func TestABadUpstreamBaseIsRejectedWhenBuildingTheProxy(t *testing.T) {
 	_, err := runner.NewEgressProxy(runner.EgressConfig{
-		Server: "", MCPToken: nil, OpenRouterKey: nil, Transport: nil,
-		Anthropic: "not a url", OpenRouter: "", Log: nil,
+		Server: "", MCPToken: nil, OpenRouterKey: nil, MCPRejected: nil,
+		Transport: nil, Anthropic: "not a url", OpenRouter: "", Log: nil,
 	})
 	require.ErrorContains(t, err, "bad upstream")
 }

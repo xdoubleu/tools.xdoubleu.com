@@ -98,7 +98,7 @@ func sandboxWith(t *testing.T, exec *scriptedExec) *runner.ContainerSandbox {
 	return &runner.ContainerSandbox{
 		Image:      "factory-job:test",
 		Exec:       exec,
-		OnReady:    nil,
+		Proxy:      nil,
 		GoModCache: "",
 		NPMCache:   "",
 		CPUs:       "",
@@ -148,13 +148,13 @@ func TestTheSandboxStartsAPlaceholderVMOnItsOwnNetworkThenRunsTheJobInIt(t *test
 	}
 	var gateway string
 	box := sandboxWith(t, exec)
-	box.OnReady = func(_ context.Context, g string) (func(), error) {
-		gateway = g
-		return func() {
+	box.Proxy = &fakeProxy{
+		gateway: &gateway, err: nil, port: nil,
+		onStop: func() {
 			exec.mu.Lock()
 			defer exec.mu.Unlock()
 			exec.calls = append(exec.calls, []string{"proxy", "stop"})
-		}, nil
+		},
 	}
 
 	code, err := box.Run(context.Background(), spec(t, &bytes.Buffer{}))
@@ -311,8 +311,9 @@ func TestAVMThatFailsToStartFailsTheJobAndIsCleanedUp(t *testing.T) {
 func TestAProxyThatCannotStartStopsTheJobBeforeTheAgentRuns(t *testing.T) {
 	exec := newExecScript(routesAnswer)
 	box := sandboxWith(t, exec)
-	box.OnReady = func(context.Context, string) (func(), error) {
-		return nil, errors.New("address in use")
+	box.Proxy = &fakeProxy{
+		gateway: new(string), err: errors.New("address in use"), port: nil,
+		onStop: func() {},
 	}
 	_, err := box.Run(context.Background(), spec(t, io.Discard))
 	require.ErrorContains(t, err, "address in use")
@@ -377,9 +378,8 @@ func TestAVPNHoldingTenSlashEightMovesTheJobNetworkToAnotherRange(t *testing.T) 
 	})
 	var gateway string
 	box := sandboxWith(t, exec)
-	box.OnReady = func(_ context.Context, g string) (func(), error) {
-		gateway = g
-		return func() {}, nil
+	box.Proxy = &fakeProxy{
+		gateway: &gateway, err: nil, port: nil, onStop: func() {},
 	}
 	_, err := box.Run(context.Background(), spec(t, io.Discard))
 	require.NoError(t, err)

@@ -14,8 +14,10 @@ import (
 )
 
 const (
-	// tokenRefreshMargin is how long before expiry a cached token is replaced.
+	// tokenRefreshMargin is how long before expiry a cached token is replaced, or a
+	// tenth of its life if that is shorter.
 	tokenRefreshMargin = time.Minute
+	tokenMarginShare   = 10
 	// tokenFallbackLife is used when the server omits expires_in.
 	tokenFallbackLife = 5 * time.Minute
 	tokenTimeout      = 15 * time.Second
@@ -33,17 +35,25 @@ type MCPTokenSource struct {
 	// Now is the clock; nil means time.Now.
 	Now func() time.Time
 
-	mu       sync.Mutex
-	token    string
-	expires  time.Time
-	endpoint string
+	mu        sync.Mutex
+	token     string
+	refreshAt time.Time
+	endpoint  string
+}
+
+// Invalidate drops the cached token, for when the board rejected it before it
+// expired (a revoked secret, a restarted server).
+func (s *MCPTokenSource) Invalidate() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.token = ""
 }
 
 // Token returns a token with at least tokenRefreshMargin left.
 func (s *MCPTokenSource) Token(ctx context.Context) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.token != "" && s.now().Add(tokenRefreshMargin).Before(s.expires) {
+	if s.token != "" && s.now().Before(s.refreshAt) {
 		return s.token, nil
 	}
 	if s.ClientID == "" || s.ClientSecret == "" {
@@ -60,7 +70,8 @@ func (s *MCPTokenSource) Token(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	s.token, s.expires = token, s.now().Add(life)
+	margin := min(tokenRefreshMargin, life/tokenMarginShare)
+	s.token, s.refreshAt = token, s.now().Add(life-margin)
 	return token, nil
 }
 
@@ -92,10 +103,33 @@ func (s *MCPTokenSource) discover(ctx context.Context) (string, error) {
 	if err = s.do(req, &meta); err != nil {
 		return "", fmt.Errorf("token discovery: %w", err)
 	}
-	if meta.TokenEndpoint == "" {
-		return "", errors.New("token discovery: no token endpoint")
+	if err = s.checkEndpoint(meta.TokenEndpoint); err != nil {
+		return "", fmt.Errorf("token discovery: %w", err)
 	}
 	return meta.TokenEndpoint, nil
+}
+
+// checkEndpoint holds the server to what the runner would accept as its own: the
+// client secret goes only over https (http for a loopback test server) and only to
+// the host the runner was configured with, whatever the metadata claims.
+func (s *MCPTokenSource) checkEndpoint(endpoint string) error {
+	if endpoint == "" {
+		return errors.New("no token endpoint")
+	}
+	got, err := url.Parse(endpoint)
+	if err != nil {
+		return errors.New("bad token endpoint")
+	}
+	want, err := url.Parse(s.ServerURL)
+	if err != nil || got.Host != want.Host {
+		return errors.New("the token endpoint is not on the configured server")
+	}
+	loopback := got.Hostname() == "127.0.0.1" || got.Hostname() == "localhost" ||
+		got.Hostname() == "::1"
+	if got.Scheme != "https" && (got.Scheme != "http" || !loopback) {
+		return errors.New("the token endpoint is not https")
+	}
+	return nil
 }
 
 // mint asks the token endpoint for a fresh token.

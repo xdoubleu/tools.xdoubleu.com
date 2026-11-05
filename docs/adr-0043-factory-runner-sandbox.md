@@ -59,8 +59,8 @@ tool and reads anywhere by default.
   The proxy (`EgressProxy`) serves three fixed routes on the gateway: `/anthropic/`
   passes the VM's own token through, `/openrouter/` gets the real key, and exactly
   `/mcp` gets the job account's token, which the host mints and refreshes. Any other
-  path, a `..`, or an encoded character is refused, and the request's host never picks
-  the destination. A real VM reached it and nothing else.
+  path, a `.` or `..` segment, or a non-canonical encoding is refused, paths otherwise
+  reach the upstream as sent, and the request's host never picks the destination. A real VM reached it and nothing else.
 - **CI:** GitHub's macOS runners can't run VMs, so the runner talks to a `Sandbox`
   interface and CI tests a fake. What stays manual: the probe script and the
   `claude -p` checks.

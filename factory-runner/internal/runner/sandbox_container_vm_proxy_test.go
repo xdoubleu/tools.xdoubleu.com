@@ -37,10 +37,7 @@ func TestRealVMReachesOnlyTheProxyAndTheProxyAddsTheKey(t *testing.T) {
 	box := &runner.ContainerSandbox{
 		Image: "factory-job:dev", Exec: runner.OSExecer{}, GoModCache: "", NPMCache: "",
 		CPUs: "", Memory: "", TempDir: t.TempDir(), ProxyPort: runner.EgressProxyPort,
-		OnReady: func(_ context.Context, gateway string) (func(), error) {
-			stop, _, listenErr := proxy.Listen(gateway, runner.EgressProxyPort)
-			return stop, listenErr
-		},
+		Proxy: proxy,
 	}
 	dir := t.TempDir()
 	dirs := []string{

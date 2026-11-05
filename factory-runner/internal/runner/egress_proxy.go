@@ -10,7 +10,6 @@ import (
 	"net/http/httputil"
 	"net/netip"
 	"net/url"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -38,6 +37,9 @@ type EgressConfig struct {
 	// its route out: the VM then cannot reach that service at all.
 	MCPToken      func(ctx context.Context) (string, error)
 	OpenRouterKey func() (string, error)
+	// MCPRejected, when set, is called when the board answers 401, so a token it
+	// revoked early is not served again.
+	MCPRejected func()
 	// Transport is how the upstream is reached; nil means a TLS default.
 	Transport http.RoundTripper
 	// Anthropic and OpenRouter override the upstream bases, for tests.
@@ -56,6 +58,8 @@ type route struct {
 	// auth, when set, replaces the request's Authorization with its result;
 	// otherwise the request's own passes through.
 	auth func(ctx context.Context) (string, error)
+	// rejected, when set, hears of a 401 from the upstream.
+	rejected func()
 }
 
 // EgressProxy is the only way out of a job's VM (docs/adr-0043): a handful of fixed
@@ -76,7 +80,7 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		p.log = slog.New(slog.DiscardHandler)
 	}
 	add := func(name, prefix string, exact bool, base string,
-		auth func(context.Context) (string, error),
+		auth func(context.Context) (string, error), rejected func(),
 	) error {
 		target, err := url.Parse(base)
 		if err != nil || target.Scheme == "" || target.Host == "" {
@@ -84,11 +88,12 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		}
 		p.routes = append(p.routes, route{
 			name: name, prefix: prefix, exact: exact, target: target, auth: auth,
+			rejected: rejected,
 		})
 		return nil
 	}
 	if err := add("anthropic", "/anthropic/", false,
-		orDefault(cfg.Anthropic, anthropicURL), nil); err != nil {
+		orDefault(cfg.Anthropic, anthropicURL), nil, nil); err != nil {
 		return nil, err
 	}
 	if cfg.OpenRouterKey != nil {
@@ -98,7 +103,7 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 			func(context.Context) (string, error) {
 				k, err := key()
 				return "Bearer " + k, err
-			})
+			}, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -109,7 +114,7 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 			func(ctx context.Context) (string, error) {
 				t, err := token(ctx)
 				return "Bearer " + t, err
-			})
+			}, cfg.MCPRejected)
 		if err != nil {
 			return nil, err
 		}
@@ -121,6 +126,9 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 			return nil, errors.New("no default transport")
 		}
 		t := base.Clone()
+		// The destinations are fixed; the host's HTTPS_PROXY must not reroute the
+		// credentials that are added here.
+		t.Proxy = nil
 		t.ResponseHeaderTimeout = upstreamHeaderMax
 		transport = t
 	}
@@ -128,7 +136,7 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		Rewrite:        p.rewrite,
 		Transport:      transport,
 		FlushInterval:  -1, // stream events as they come
-		ModifyResponse: dropCookies,
+		ModifyResponse: p.modifyResponse,
 		ErrorHandler:   p.upstreamError,
 	}
 	return p, nil
@@ -156,9 +164,9 @@ func (p *EgressProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	// A route's base is a prefix, so a path that climbs out of it is refused rather
-	// than cleaned.
-	if strings.Contains(r.URL.Path, "..") || strings.Contains(r.URL.RawPath, "%") {
+	// A route's base is a prefix, so a path that climbs out of it, or that is encoded
+	// in a way other than the canonical one, is refused rather than cleaned.
+	if r.URL.RawPath != "" || hasDotSegment(r.URL.Path) {
 		http.Error(w, "bad path", http.StatusBadRequest)
 		return
 	}
@@ -172,7 +180,8 @@ func (p *EgressProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if rt.auth != nil {
 		header, err := rt.auth(ctx)
 		if err != nil || header == "Bearer " {
-			p.log.Error("egress credential unavailable", "route", rt.name)
+			// The error never carries a response body or a secret, so it is safe to log.
+			p.log.Error("egress credential unavailable", "route", rt.name, "err", err)
 			http.Error(w, "credential unavailable", http.StatusBadGateway)
 			return
 		}
@@ -198,7 +207,8 @@ func (p *EgressProxy) rewrite(pr *httputil.ProxyRequest) {
 	out.URL.Scheme = rt.target.Scheme
 	out.URL.Host = rt.target.Host
 	out.Host = rt.target.Host
-	out.URL.Path = path.Join(rt.target.Path, got.rest)
+	// Joined as sent, not cleaned: a trailing slash or a double one is the VM's own.
+	out.URL.Path = strings.TrimSuffix(rt.target.Path, "/") + got.rest
 	out.URL.RawPath = ""
 	for _, h := range []string{
 		"Cookie", "Proxy-Authorization", "Proxy-Connection", "Forwarded", "Via",
@@ -212,9 +222,16 @@ func (p *EgressProxy) rewrite(pr *httputil.ProxyRequest) {
 	p.log.Info("egress", "route", rt.name, "method", out.Method)
 }
 
-// dropCookies keeps an upstream from planting state in the VM.
-func dropCookies(resp *http.Response) error {
+// modifyResponse keeps an upstream from planting state in the VM, and tells a route
+// whose credential was refused.
+func (p *EgressProxy) modifyResponse(resp *http.Response) error {
 	resp.Header.Del("Set-Cookie")
+	if resp.StatusCode == http.StatusUnauthorized {
+		if got, ok := resp.Request.Context().Value(routeKey{}).(routed); ok &&
+			got.route.rejected != nil {
+			got.route.rejected()
+		}
+	}
 	return nil
 }
 
@@ -230,6 +247,16 @@ func (p *EgressProxy) upstreamError(w http.ResponseWriter, r *http.Request, err 
 	http.Error(w, "upstream unavailable", http.StatusBadGateway)
 }
 
+// hasDotSegment reports a "." or ".." path segment.
+func hasDotSegment(p string) bool {
+	for _, seg := range strings.Split(p, "/") {
+		if seg == "." || seg == ".." {
+			return true
+		}
+	}
+	return false
+}
+
 // safePath is a request path fit for a log line.
 func safePath(p string) string {
 	const maxLogPath = 80
@@ -242,8 +269,8 @@ func safePath(p string) string {
 
 // Listen serves the proxy on the job network's gateway address, and only there: a
 // wildcard address would also be reachable from the VM through the host's other
-// services. The returned func stops it and the string is the bound address. Use it
-// as ContainerSandbox.OnReady.
+// services. The returned func stops it and the string is the bound address. It is
+// ContainerSandbox's Proxy.
 func (p *EgressProxy) Listen(gateway string, port int) (func(), string, error) {
 	addr, err := netip.ParseAddr(gateway)
 	if err != nil || addr.IsUnspecified() || addr.IsLoopback() || addr.IsMulticast() {
