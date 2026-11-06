@@ -3,7 +3,7 @@
 - Status: Accepted
 - Issues: #2715, #2701
 - Affects: `factory-runner/` (`internal/runner/update.go`, `activity.go`,
-  `internal/updatesig/`), `.github/workflows/build-factory-runner.yml`,
+  `internal/updatesig/`, `cmd/factory-runner/assets/`), `.github/workflows/build-factory-runner.yml`,
   `build-api.yml`, `web/components/factory/RunnersClient.tsx`
 
 ## Context
@@ -20,6 +20,11 @@ without the server being able to push arbitrary code.
   own key: secret `FACTORY_RUNNER_SIGNING_KEY`), and stages it into the web build's `downloads/`.
   The public key is compiled in (`FACTORY_RUNNER_UPDATE_PUBKEY`); with none, the
   runner never self-updates.
+- **A drag-to-Applications dmg for first install.** `make dist` also packages
+  `FactoryRunner.app` into `factory-runner.dmg`; opening the app runs `install`
+  (copy the binary, write and load the LaunchAgent) and opens the board's Runner
+  page to pair. The app bundle is ad-hoc signed for Gatekeeper; the ed25519
+  signature above guards the self-update binary, not the dmg.
 - **A release file, not an api setting.** `factory-runner-release.txt` holds the
   commit the served binary was built from. The runner and the board both read it,
   so no proto, config or image variable carries the version. It is always this
@@ -47,5 +52,6 @@ without the server being able to push arbitrary code.
   construction.
 - The board says "update available", not that it will happen: it can't see
   whether the runner has a key or the release was signed.
-- A first download is quarantined by Gatekeeper: the install steps clear it with `xattr`.
+- A first download is quarantined by Gatekeeper: the dmg's app needs a right-click
+  -> Open once; terminal installs clear it with `xattr`.
 - Nothing calls `Activity.Begin` yet; the job runner (#2706) does.

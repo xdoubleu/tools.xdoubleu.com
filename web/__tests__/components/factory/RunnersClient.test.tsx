@@ -76,10 +76,10 @@ describe('RunnersClient', () => {
     render(<RunnersClient />)
     expect(screen.getByRole('link', { name: 'Download factory-runner' })).toHaveAttribute(
       'href',
-      '/downloads/factory-runner-darwin-arm64'
+      '/downloads/factory-runner.dmg'
     )
-    expect(screen.getByText(/xattr -d com.apple.quarantine/)).toBeInTheDocument()
-    expect(screen.getByTestId('runner-install')).toHaveTextContent('then run xattr -d')
+    expect(screen.getByText(/drag FactoryRunner.app to Applications/)).toBeInTheDocument()
+    expect(screen.getByText(/opens this page to pair/)).toBeInTheDocument()
     expect(screen.getByText(/closed lid only stays awake on AC power/)).toBeInTheDocument()
     expect(screen.queryByTestId('runner-version')).not.toBeInTheDocument()
   })

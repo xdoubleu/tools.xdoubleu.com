@@ -117,7 +117,7 @@ export function runnerState(
   return { label: `Offline · seen ${formatAge(now - Date.parse(runner.lastSeen))}`, online: false }
 }
 
-export const RUNNER_DOWNLOAD_PATH = '/downloads/factory-runner-darwin-arm64'
+export const RUNNER_DOWNLOAD_PATH = '/downloads/factory-runner.dmg'
 
 const DEV_RELEASE = 'dev'
 const SHORT_RELEASE_LENGTH = 7

@@ -24,10 +24,8 @@ jobs:
       - name: Build
         working-directory: './factory-runner'
         run: |
-          make build RELEASE=${{ github.sha }} \
+          make dist RELEASE=${{ github.sha }} \
             UPDATE_PUBLIC_KEY=${{ vars.FACTORY_RUNNER_UPDATE_PUBKEY }}
-          mkdir -p dist
-          cp bin/factory-runner-darwin-arm64 dist/
           echo -n "${{ github.sha }}" > dist/factory-runner-release.txt
       # Runners only install self-updates signed by the release key. Signed only
       # for main (what deploys), by kobo-sign: it signs any file with the key in

@@ -51,12 +51,8 @@ export default function RunnersClient() {
       <Card variant="inset" className="mb-4 space-y-2 px-4 py-3" data-testid="runner-install">
         <p className="text-sm font-medium">Install the runner</p>
         <p className="text-xs text-muted">
-          Apple Silicon Mac. Download it, then run{' '}
-          <code className="break-all">
-            xattr -d com.apple.quarantine factory-runner-darwin-arm64
-          </code>
-          , make it executable and run <code>./factory-runner-darwin-arm64 install</code>. It
-          updates itself once idle.
+          Apple Silicon Mac. Download the dmg, drag FactoryRunner.app to Applications, then open it
+          once: it installs the runner and opens this page to pair.
         </p>
         <Button asChild>
           <a href={RUNNER_DOWNLOAD_PATH} download>

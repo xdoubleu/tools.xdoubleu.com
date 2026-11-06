@@ -20,5 +20,10 @@ build:
 	go build -ldflags="-w -s -X main.Release=$(RELEASE) -X main.UpdatePublicKey=$(UPDATE_PUBLIC_KEY)" \
 		-o=./bin/factory-runner-darwin-arm64 ./cmd/factory-runner
 
+# Packages FactoryRunner.app + the drag-to-Applications .dmg plus the raw binary
+# into ./dist/.  (macOS only: sips/iconutil/hdiutil.)
+dist: build
+	RELEASE=$(RELEASE) ./cmd/factory-runner/assets/package.sh
+
 image:
 	container build -t factory-job:dev -f Containerfile .
