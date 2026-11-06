@@ -2,6 +2,7 @@ package factory
 
 import (
 	"context"
+	"sort"
 
 	"connectrpc.com/connect/v2"
 
@@ -147,4 +148,22 @@ func (h *repoConnectHandler) UpdateRepo(
 		return nil, mapError(err)
 	}
 	return &factoryv1.UpdateRepoResponse{Repo: protoRepo(repo)}, nil
+}
+
+func (h *repoConnectHandler) ListOpenRouterModels(
+	ctx context.Context,
+	_ *factoryv1.ListOpenRouterModelsRequest,
+) (*factoryv1.ListOpenRouterModelsResponse, error) {
+	if _, err := actorFrom(ctx); err != nil {
+		return nil, err
+	}
+	if h.app.models == nil {
+		return &factoryv1.ListOpenRouterModelsResponse{}, nil
+	}
+	ids, err := h.app.models.ListModels(ctx)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	sort.Strings(ids)
+	return &factoryv1.ListOpenRouterModelsResponse{ModelIds: ids}, nil
 }

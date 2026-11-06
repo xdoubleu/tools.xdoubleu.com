@@ -78,6 +78,12 @@ type Client interface {
 	Complete(ctx context.Context, req Request) (*Response, error)
 }
 
+// ModelLister lists the models OpenRouter serves, for a picker. It is separate
+// from Client so taste's Client fakes don't need a models method.
+type ModelLister interface {
+	ListModels(ctx context.Context) ([]string, error)
+}
+
 type client struct {
 	apiKey  string
 	referer string
@@ -88,7 +94,19 @@ type client struct {
 // New returns a client sending requests as referer (the app's public URL);
 // with an empty apiKey every call returns ErrNotConfigured.
 func New(apiKey, referer string, logger *slog.Logger) Client {
-	return &client{
+	c := newClientFields(apiKey, referer, logger)
+	return &c
+}
+
+// NewLister returns a client that can list OpenRouter models; with an empty
+// apiKey ListModels returns ErrNotConfigured.
+func NewLister(apiKey, referer string, logger *slog.Logger) ModelLister {
+	c := newClientFields(apiKey, referer, logger)
+	return &c
+}
+
+func newClientFields(apiKey, referer string, logger *slog.Logger) client {
+	return client{
 		apiKey:  apiKey,
 		referer: referer,
 		http:    &http.Client{Timeout: requestTimeout},
@@ -170,6 +188,46 @@ func (c *client) Complete(ctx context.Context, req Request) (*Response, error) {
 		return nil, fmt.Errorf("openrouter: decode: %w", err)
 	}
 	return c.toResponse(req.Model, wire)
+}
+
+func (c *client) ListModels(ctx context.Context) ([]string, error) {
+	if c.apiKey == "" {
+		return nil, ErrNotConfigured
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/models", nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
+	httpReq.Header.Set("HTTP-Referer", c.referer)
+	httpReq.Header.Set("X-Title", "tools.xdoubleu.com")
+
+	resp, err := c.http.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("openrouter: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		msg, _ := io.ReadAll(io.LimitReader(resp.Body, maxErrorBody))
+		return nil, fmt.Errorf("openrouter: status %d: %s", resp.StatusCode, msg)
+	}
+
+	var wire struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&wire)
+	if err != nil {
+		return nil, fmt.Errorf("openrouter: decode: %w", err)
+	}
+	ids := make([]string, 0, len(wire.Data))
+	for _, m := range wire.Data {
+		ids = append(ids, m.ID)
+	}
+	return ids, nil
 }
 
 func wireBody(req Request) wireRequest {

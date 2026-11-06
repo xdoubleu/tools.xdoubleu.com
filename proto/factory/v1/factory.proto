@@ -278,8 +278,18 @@ message UpdateRepoResponse {
   Repo repo = 1;
 }
 
+// The OpenRouter models OpenCode jobs can run on, for a picker. A call from a
+// client with no fetched list gets an empty response.
+message ListOpenRouterModelsRequest {}
+message ListOpenRouterModelsResponse {
+  // Model ids, "vendor/model", sorted.
+  repeated string model_ids = 1;
+}
+
 service RepoService {
   rpc ListRepos(ListReposRequest) returns (ListReposResponse);
   rpc CreateRepo(CreateRepoRequest) returns (CreateRepoResponse);
   rpc UpdateRepo(UpdateRepoRequest) returns (UpdateRepoResponse);
+  rpc ListOpenRouterModels(ListOpenRouterModelsRequest)
+      returns (ListOpenRouterModelsResponse);
 }

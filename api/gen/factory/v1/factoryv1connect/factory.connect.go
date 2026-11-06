@@ -55,6 +55,9 @@ const (
 	RepoServiceCreateRepoProcedure = "/factory.v1.RepoService/CreateRepo"
 	// RepoServiceUpdateRepoProcedure is the procedure name of the RepoService's UpdateRepo RPC.
 	RepoServiceUpdateRepoProcedure = "/factory.v1.RepoService/UpdateRepo"
+	// RepoServiceListOpenRouterModelsProcedure is the procedure name of the RepoService's
+	// ListOpenRouterModels RPC.
+	RepoServiceListOpenRouterModelsProcedure = "/factory.v1.RepoService/ListOpenRouterModels"
 )
 
 var (
@@ -486,6 +489,13 @@ var (
 			Procedure:  RepoServiceUpdateRepoProcedure,
 		}
 	})
+	repoServiceListOpenRouterModelsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("RepoService").Methods().ByName("ListOpenRouterModels"),
+			Procedure:  RepoServiceListOpenRouterModelsProcedure,
+		}
+	})
 )
 
 // RepoServiceClient is a client for the factory.v1.RepoService service.
@@ -493,6 +503,7 @@ type RepoServiceClient interface {
 	ListRepos(context.Context, *v1.ListReposRequest) (*v1.ListReposResponse, error)
 	CreateRepo(context.Context, *v1.CreateRepoRequest) (*v1.CreateRepoResponse, error)
 	UpdateRepo(context.Context, *v1.UpdateRepoRequest) (*v1.UpdateRepoResponse, error)
+	ListOpenRouterModels(context.Context, *v1.ListOpenRouterModelsRequest) (*v1.ListOpenRouterModelsResponse, error)
 }
 
 // NewRepoServiceClient constructs a client for the factory.v1.RepoService service. Multiple service
@@ -506,6 +517,7 @@ type RepoServiceHandler interface {
 	ListRepos(context.Context, *v1.ListReposRequest) (*v1.ListReposResponse, error)
 	CreateRepo(context.Context, *v1.CreateRepoRequest) (*v1.CreateRepoResponse, error)
 	UpdateRepo(context.Context, *v1.UpdateRepoRequest) (*v1.UpdateRepoResponse, error)
+	ListOpenRouterModels(context.Context, *v1.ListOpenRouterModelsRequest) (*v1.ListOpenRouterModelsResponse, error)
 }
 
 // RegisterRepoServiceHandler registers svc as the factory.v1.RepoService implementation on server.
@@ -515,6 +527,7 @@ func RegisterRepoServiceHandler(server *connect.Server, svc RepoServiceHandler) 
 		connect.Method{Spec: repoServiceListReposSpec(), Handler: adapter.listRepos},
 		connect.Method{Spec: repoServiceCreateRepoSpec(), Handler: adapter.createRepo},
 		connect.Method{Spec: repoServiceUpdateRepoSpec(), Handler: adapter.updateRepo},
+		connect.Method{Spec: repoServiceListOpenRouterModelsSpec(), Handler: adapter.listOpenRouterModels},
 	)
 }
 
@@ -531,6 +544,10 @@ func (UnimplementedRepoServiceHandler) CreateRepo(context.Context, *v1.CreateRep
 
 func (UnimplementedRepoServiceHandler) UpdateRepo(context.Context, *v1.UpdateRepoRequest) (*v1.UpdateRepoResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RepoService.UpdateRepo is not implemented")
+}
+
+func (UnimplementedRepoServiceHandler) ListOpenRouterModels(context.Context, *v1.ListOpenRouterModelsRequest) (*v1.ListOpenRouterModelsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RepoService.ListOpenRouterModels is not implemented")
 }
 
 type repoServiceClient struct {
@@ -556,6 +573,14 @@ func (c *repoServiceClient) CreateRepo(ctx context.Context, req *v1.CreateRepoRe
 func (c *repoServiceClient) UpdateRepo(ctx context.Context, req *v1.UpdateRepoRequest) (*v1.UpdateRepoResponse, error) {
 	var res v1.UpdateRepoResponse
 	if err := c.client.CallUnary(ctx, repoServiceUpdateRepoSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *repoServiceClient) ListOpenRouterModels(ctx context.Context, req *v1.ListOpenRouterModelsRequest) (*v1.ListOpenRouterModelsResponse, error) {
+	var res v1.ListOpenRouterModelsResponse
+	if err := c.client.CallUnary(ctx, repoServiceListOpenRouterModelsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -593,6 +618,18 @@ func (h repoServiceHandler) updateRepo(ctx context.Context, _ connect.Spec, stre
 		return err
 	}
 	res, err := h.svc.UpdateRepo(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h repoServiceHandler) listOpenRouterModels(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListOpenRouterModelsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListOpenRouterModels(ctx, &req)
 	if err != nil {
 		return err
 	}

@@ -2,10 +2,11 @@ import { useState, type FormEvent } from 'react'
 import { Code, ConnectError } from '@connectrpc/connect'
 import { Harness, type Repo } from '@/lib/gen/factory/v1/factory_pb'
 import { HARNESSES } from '@/lib/factory/board'
-import { useFactoryActions } from '@/hooks/useFactory'
+import { useFactoryActions, useFactoryModels } from '@/hooks/useFactory'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Combobox } from '@/components/ui/combobox'
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ interface RepoDialogProps {
 /** Add or edit sheet for a repo and the settings its jobs run with. */
 export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
   const { createRepo, updateRepo } = useFactoryActions()
+  const { data: models } = useFactoryModels()
   const [owner, setOwner] = useState(repo?.owner ?? '')
   const [name, setName] = useState(repo?.name ?? '')
   const [branch, setBranch] = useState(repo?.defaultBranch ?? 'main')
@@ -133,15 +135,14 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
             <Field
               label="Default model"
               htmlFor="repo-model"
-              hint="An OpenRouter model, such as vendor/model."
+              hint="An OpenRouter model, such as vendor/model. Pick one or type a custom id."
             >
-              <Input
+              <Combobox
                 id="repo-model"
                 value={model}
-                required
-                autoCapitalize="none"
-                autoCorrect="off"
-                onChange={(e) => setModel(e.target.value)}
+                suggestions={models ?? []}
+                onChange={(v) => setModel(v)}
+                onSelect={(v) => setModel(v)}
               />
             </Field>
           )}

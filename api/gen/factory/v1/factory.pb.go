@@ -2224,6 +2224,89 @@ func (x *UpdateRepoResponse) GetRepo() *Repo {
 	return nil
 }
 
+// The OpenRouter models OpenCode jobs can run on, for a picker. A call from a
+// client with no fetched list gets an empty response.
+type ListOpenRouterModelsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOpenRouterModelsRequest) Reset() {
+	*x = ListOpenRouterModelsRequest{}
+	mi := &file_factory_v1_factory_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOpenRouterModelsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOpenRouterModelsRequest) ProtoMessage() {}
+
+func (x *ListOpenRouterModelsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOpenRouterModelsRequest.ProtoReflect.Descriptor instead.
+func (*ListOpenRouterModelsRequest) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{33}
+}
+
+type ListOpenRouterModelsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Model ids, "vendor/model", sorted.
+	ModelIds      []string `protobuf:"bytes,1,rep,name=model_ids,json=modelIds,proto3" json:"model_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOpenRouterModelsResponse) Reset() {
+	*x = ListOpenRouterModelsResponse{}
+	mi := &file_factory_v1_factory_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOpenRouterModelsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOpenRouterModelsResponse) ProtoMessage() {}
+
+func (x *ListOpenRouterModelsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOpenRouterModelsResponse.ProtoReflect.Descriptor instead.
+func (*ListOpenRouterModelsResponse) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *ListOpenRouterModelsResponse) GetModelIds() []string {
+	if x != nil {
+		return x.ModelIds
+	}
+	return nil
+}
+
 var File_factory_v1_factory_proto protoreflect.FileDescriptor
 
 const file_factory_v1_factory_proto_rawDesc = "" +
@@ -2364,7 +2447,10 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x11UpdateRepoRequest\x12$\n" +
 	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo\":\n" +
 	"\x12UpdateRepoResponse\x12$\n" +
-	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo*\xdb\x01\n" +
+	"\x04repo\x18\x01 \x01(\v2\x10.factory.v1.RepoR\x04repo\"\x1d\n" +
+	"\x1bListOpenRouterModelsRequest\";\n" +
+	"\x1cListOpenRouterModelsResponse\x12\x1b\n" +
+	"\tmodel_ids\x18\x01 \x03(\tR\bmodelIds*\xdb\x01\n" +
 	"\n" +
 	"TaskStatus\x12\x1b\n" +
 	"\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\x17\n" +
@@ -2406,13 +2492,14 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\aRunTask\x12\x1a.factory.v1.RunTaskRequest\x1a\x1b.factory.v1.RunTaskResponse\x12H\n" +
 	"\tReplyTask\x12\x1c.factory.v1.ReplyTaskRequest\x1a\x1d.factory.v1.ReplyTaskResponse\x12B\n" +
 	"\aStopJob\x12\x1a.factory.v1.StopJobRequest\x1a\x1b.factory.v1.StopJobResponse\x12T\n" +
-	"\rListJobEvents\x12 .factory.v1.ListJobEventsRequest\x1a!.factory.v1.ListJobEventsResponse2\xf1\x01\n" +
+	"\rListJobEvents\x12 .factory.v1.ListJobEventsRequest\x1a!.factory.v1.ListJobEventsResponse2\xdc\x02\n" +
 	"\vRepoService\x12H\n" +
 	"\tListRepos\x12\x1c.factory.v1.ListReposRequest\x1a\x1d.factory.v1.ListReposResponse\x12K\n" +
 	"\n" +
 	"CreateRepo\x12\x1d.factory.v1.CreateRepoRequest\x1a\x1e.factory.v1.CreateRepoResponse\x12K\n" +
 	"\n" +
-	"UpdateRepo\x12\x1d.factory.v1.UpdateRepoRequest\x1a\x1e.factory.v1.UpdateRepoResponseB-Z+tools.xdoubleu.com/gen/factory/v1;factoryv1b\x06proto3"
+	"UpdateRepo\x12\x1d.factory.v1.UpdateRepoRequest\x1a\x1e.factory.v1.UpdateRepoResponse\x12i\n" +
+	"\x14ListOpenRouterModels\x12'.factory.v1.ListOpenRouterModelsRequest\x1a(.factory.v1.ListOpenRouterModelsResponseB-Z+tools.xdoubleu.com/gen/factory/v1;factoryv1b\x06proto3"
 
 var (
 	file_factory_v1_factory_proto_rawDescOnce sync.Once
@@ -2427,45 +2514,47 @@ func file_factory_v1_factory_proto_rawDescGZIP() []byte {
 }
 
 var file_factory_v1_factory_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_factory_v1_factory_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_factory_v1_factory_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_factory_v1_factory_proto_goTypes = []any{
-	(TaskStatus)(0),                 // 0: factory.v1.TaskStatus
-	(TaskPriority)(0),               // 1: factory.v1.TaskPriority
-	(Harness)(0),                    // 2: factory.v1.Harness
-	(JobStatus)(0),                  // 3: factory.v1.JobStatus
-	(*Task)(nil),                    // 4: factory.v1.Task
-	(*Comment)(nil),                 // 5: factory.v1.Comment
-	(*ListTasksRequest)(nil),        // 6: factory.v1.ListTasksRequest
-	(*ListTasksResponse)(nil),       // 7: factory.v1.ListTasksResponse
-	(*SetPickupPausedRequest)(nil),  // 8: factory.v1.SetPickupPausedRequest
-	(*SetPickupPausedResponse)(nil), // 9: factory.v1.SetPickupPausedResponse
-	(*GetTaskRequest)(nil),          // 10: factory.v1.GetTaskRequest
-	(*GetTaskResponse)(nil),         // 11: factory.v1.GetTaskResponse
-	(*CreateTaskRequest)(nil),       // 12: factory.v1.CreateTaskRequest
-	(*CreateTaskResponse)(nil),      // 13: factory.v1.CreateTaskResponse
-	(*UpdateTaskRequest)(nil),       // 14: factory.v1.UpdateTaskRequest
-	(*UpdateTaskResponse)(nil),      // 15: factory.v1.UpdateTaskResponse
-	(*MoveTaskRequest)(nil),         // 16: factory.v1.MoveTaskRequest
-	(*MoveTaskResponse)(nil),        // 17: factory.v1.MoveTaskResponse
-	(*AddCommentRequest)(nil),       // 18: factory.v1.AddCommentRequest
-	(*AddCommentResponse)(nil),      // 19: factory.v1.AddCommentResponse
-	(*Job)(nil),                     // 20: factory.v1.Job
-	(*JobEvent)(nil),                // 21: factory.v1.JobEvent
-	(*ListJobEventsRequest)(nil),    // 22: factory.v1.ListJobEventsRequest
-	(*ListJobEventsResponse)(nil),   // 23: factory.v1.ListJobEventsResponse
-	(*RunTaskRequest)(nil),          // 24: factory.v1.RunTaskRequest
-	(*RunTaskResponse)(nil),         // 25: factory.v1.RunTaskResponse
-	(*ReplyTaskRequest)(nil),        // 26: factory.v1.ReplyTaskRequest
-	(*ReplyTaskResponse)(nil),       // 27: factory.v1.ReplyTaskResponse
-	(*StopJobRequest)(nil),          // 28: factory.v1.StopJobRequest
-	(*StopJobResponse)(nil),         // 29: factory.v1.StopJobResponse
-	(*Repo)(nil),                    // 30: factory.v1.Repo
-	(*ListReposRequest)(nil),        // 31: factory.v1.ListReposRequest
-	(*ListReposResponse)(nil),       // 32: factory.v1.ListReposResponse
-	(*CreateRepoRequest)(nil),       // 33: factory.v1.CreateRepoRequest
-	(*CreateRepoResponse)(nil),      // 34: factory.v1.CreateRepoResponse
-	(*UpdateRepoRequest)(nil),       // 35: factory.v1.UpdateRepoRequest
-	(*UpdateRepoResponse)(nil),      // 36: factory.v1.UpdateRepoResponse
+	(TaskStatus)(0),                      // 0: factory.v1.TaskStatus
+	(TaskPriority)(0),                    // 1: factory.v1.TaskPriority
+	(Harness)(0),                         // 2: factory.v1.Harness
+	(JobStatus)(0),                       // 3: factory.v1.JobStatus
+	(*Task)(nil),                         // 4: factory.v1.Task
+	(*Comment)(nil),                      // 5: factory.v1.Comment
+	(*ListTasksRequest)(nil),             // 6: factory.v1.ListTasksRequest
+	(*ListTasksResponse)(nil),            // 7: factory.v1.ListTasksResponse
+	(*SetPickupPausedRequest)(nil),       // 8: factory.v1.SetPickupPausedRequest
+	(*SetPickupPausedResponse)(nil),      // 9: factory.v1.SetPickupPausedResponse
+	(*GetTaskRequest)(nil),               // 10: factory.v1.GetTaskRequest
+	(*GetTaskResponse)(nil),              // 11: factory.v1.GetTaskResponse
+	(*CreateTaskRequest)(nil),            // 12: factory.v1.CreateTaskRequest
+	(*CreateTaskResponse)(nil),           // 13: factory.v1.CreateTaskResponse
+	(*UpdateTaskRequest)(nil),            // 14: factory.v1.UpdateTaskRequest
+	(*UpdateTaskResponse)(nil),           // 15: factory.v1.UpdateTaskResponse
+	(*MoveTaskRequest)(nil),              // 16: factory.v1.MoveTaskRequest
+	(*MoveTaskResponse)(nil),             // 17: factory.v1.MoveTaskResponse
+	(*AddCommentRequest)(nil),            // 18: factory.v1.AddCommentRequest
+	(*AddCommentResponse)(nil),           // 19: factory.v1.AddCommentResponse
+	(*Job)(nil),                          // 20: factory.v1.Job
+	(*JobEvent)(nil),                     // 21: factory.v1.JobEvent
+	(*ListJobEventsRequest)(nil),         // 22: factory.v1.ListJobEventsRequest
+	(*ListJobEventsResponse)(nil),        // 23: factory.v1.ListJobEventsResponse
+	(*RunTaskRequest)(nil),               // 24: factory.v1.RunTaskRequest
+	(*RunTaskResponse)(nil),              // 25: factory.v1.RunTaskResponse
+	(*ReplyTaskRequest)(nil),             // 26: factory.v1.ReplyTaskRequest
+	(*ReplyTaskResponse)(nil),            // 27: factory.v1.ReplyTaskResponse
+	(*StopJobRequest)(nil),               // 28: factory.v1.StopJobRequest
+	(*StopJobResponse)(nil),              // 29: factory.v1.StopJobResponse
+	(*Repo)(nil),                         // 30: factory.v1.Repo
+	(*ListReposRequest)(nil),             // 31: factory.v1.ListReposRequest
+	(*ListReposResponse)(nil),            // 32: factory.v1.ListReposResponse
+	(*CreateRepoRequest)(nil),            // 33: factory.v1.CreateRepoRequest
+	(*CreateRepoResponse)(nil),           // 34: factory.v1.CreateRepoResponse
+	(*UpdateRepoRequest)(nil),            // 35: factory.v1.UpdateRepoRequest
+	(*UpdateRepoResponse)(nil),           // 36: factory.v1.UpdateRepoResponse
+	(*ListOpenRouterModelsRequest)(nil),  // 37: factory.v1.ListOpenRouterModelsRequest
+	(*ListOpenRouterModelsResponse)(nil), // 38: factory.v1.ListOpenRouterModelsResponse
 }
 var file_factory_v1_factory_proto_depIdxs = []int32{
 	0,  // 0: factory.v1.Task.status:type_name -> factory.v1.TaskStatus
@@ -2508,22 +2597,24 @@ var file_factory_v1_factory_proto_depIdxs = []int32{
 	31, // 37: factory.v1.RepoService.ListRepos:input_type -> factory.v1.ListReposRequest
 	33, // 38: factory.v1.RepoService.CreateRepo:input_type -> factory.v1.CreateRepoRequest
 	35, // 39: factory.v1.RepoService.UpdateRepo:input_type -> factory.v1.UpdateRepoRequest
-	7,  // 40: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
-	9,  // 41: factory.v1.TaskService.SetPickupPaused:output_type -> factory.v1.SetPickupPausedResponse
-	11, // 42: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
-	13, // 43: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
-	15, // 44: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
-	17, // 45: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
-	19, // 46: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
-	25, // 47: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
-	27, // 48: factory.v1.TaskService.ReplyTask:output_type -> factory.v1.ReplyTaskResponse
-	29, // 49: factory.v1.TaskService.StopJob:output_type -> factory.v1.StopJobResponse
-	23, // 50: factory.v1.TaskService.ListJobEvents:output_type -> factory.v1.ListJobEventsResponse
-	32, // 51: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
-	34, // 52: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
-	36, // 53: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
-	40, // [40:54] is the sub-list for method output_type
-	26, // [26:40] is the sub-list for method input_type
+	37, // 40: factory.v1.RepoService.ListOpenRouterModels:input_type -> factory.v1.ListOpenRouterModelsRequest
+	7,  // 41: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
+	9,  // 42: factory.v1.TaskService.SetPickupPaused:output_type -> factory.v1.SetPickupPausedResponse
+	11, // 43: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
+	13, // 44: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
+	15, // 45: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
+	17, // 46: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
+	19, // 47: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
+	25, // 48: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
+	27, // 49: factory.v1.TaskService.ReplyTask:output_type -> factory.v1.ReplyTaskResponse
+	29, // 50: factory.v1.TaskService.StopJob:output_type -> factory.v1.StopJobResponse
+	23, // 51: factory.v1.TaskService.ListJobEvents:output_type -> factory.v1.ListJobEventsResponse
+	32, // 52: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
+	34, // 53: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
+	36, // 54: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
+	38, // 55: factory.v1.RepoService.ListOpenRouterModels:output_type -> factory.v1.ListOpenRouterModelsResponse
+	41, // [41:56] is the sub-list for method output_type
+	26, // [26:41] is the sub-list for method input_type
 	26, // [26:26] is the sub-list for extension type_name
 	26, // [26:26] is the sub-list for extension extendee
 	0,  // [0:26] is the sub-list for field type_name
@@ -2540,7 +2631,7 @@ func file_factory_v1_factory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_factory_v1_factory_proto_rawDesc), len(file_factory_v1_factory_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   33,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
