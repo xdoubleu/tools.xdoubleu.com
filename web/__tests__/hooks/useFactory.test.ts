@@ -116,10 +116,7 @@ describe('useFactoryModels', () => {
       modelIds: ['vendor/alpha', 'vendor/zeta']
     })
     renderHook(() => useFactoryModels())
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      '/factory/openrouter-models',
-      expect.any(Function)
-    )
+    expect(mockUseSWR).toHaveBeenCalledWith('/factory/openrouter-models', expect.any(Function))
     expect(mockClient.listOpenRouterModels).toHaveBeenCalledWith({})
   })
 })

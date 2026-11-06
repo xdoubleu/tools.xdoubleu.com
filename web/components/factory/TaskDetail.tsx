@@ -1,10 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import {
-  useFactoryActions,
-  useFactoryAgents,
-  useFactoryModels,
-  useFactoryTask
-} from '@/hooks/useFactory'
+import { useFactoryActions, useFactoryAgents, useFactoryTask } from '@/hooks/useFactory'
 import { Harness, TaskStatus, type Job } from '@/lib/gen/factory/v1/factory_pb'
 import {
   accountsOf,
@@ -36,7 +31,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
-import { Combobox } from '@/components/ui/combobox'
+import { FactoryModelPicker } from '@/components/factory/FactoryModelPicker'
 import { Select } from '@/components/ui/select'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { Textarea } from '@/components/ui/textarea'
@@ -143,7 +138,6 @@ function RunSection({
   done: boolean
 }) {
   const { run, stop } = useFactoryActions()
-  const { data: models } = useFactoryModels()
   const [text, setText] = useState('')
   // Harness.UNSPECIFIED is "the repo's default".
   const [harness, setHarness] = useState<Harness>(Harness.UNSPECIFIED)
@@ -223,19 +217,13 @@ function RunSection({
           </Select>
         </Field>
         {harness === Harness.OPENCODE && (
-          <Field
+          <FactoryModelPicker
+            id="task-run-model"
             label="Model"
-            htmlFor="task-run-model"
             hint="An OpenRouter model, such as vendor/model. Pick one or type a custom id; blank uses the repo's default."
-          >
-            <Combobox
-              id="task-run-model"
-              value={model}
-              suggestions={models ?? []}
-              onChange={(v) => setModel(v)}
-              onSelect={(v) => setModel(v)}
-            />
-          </Field>
+            value={model}
+            onChange={setModel}
+          />
         )}
         {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex flex-wrap gap-2">

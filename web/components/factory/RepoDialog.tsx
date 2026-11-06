@@ -2,11 +2,11 @@ import { useState, type FormEvent } from 'react'
 import { Code, ConnectError } from '@connectrpc/connect'
 import { Harness, type Repo } from '@/lib/gen/factory/v1/factory_pb'
 import { HARNESSES } from '@/lib/factory/board'
-import { useFactoryActions, useFactoryModels } from '@/hooks/useFactory'
+import { useFactoryActions } from '@/hooks/useFactory'
+import { FactoryModelPicker } from '@/components/factory/FactoryModelPicker'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Combobox } from '@/components/ui/combobox'
 import {
   Dialog,
   DialogContent,
@@ -39,7 +39,6 @@ interface RepoDialogProps {
 /** Add or edit sheet for a repo and the settings its jobs run with. */
 export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
   const { createRepo, updateRepo } = useFactoryActions()
-  const { data: models } = useFactoryModels()
   const [owner, setOwner] = useState(repo?.owner ?? '')
   const [name, setName] = useState(repo?.name ?? '')
   const [branch, setBranch] = useState(repo?.defaultBranch ?? 'main')
@@ -132,19 +131,14 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
             </Select>
           </Field>
           {harness === Harness.OPENCODE && (
-            <Field
+            <FactoryModelPicker
+              id="repo-model"
               label="Default model"
-              htmlFor="repo-model"
               hint="An OpenRouter model, such as vendor/model. Pick one or type a custom id."
-            >
-              <Combobox
-                id="repo-model"
-                value={model}
-                suggestions={models ?? []}
-                onChange={(v) => setModel(v)}
-                onSelect={(v) => setModel(v)}
-              />
-            </Field>
+              value={model}
+              onChange={setModel}
+              required
+            />
           )}
           <div className="space-y-1">
             <Checkbox

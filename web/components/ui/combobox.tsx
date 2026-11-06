@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useId } from 'react'
+import { useState, useRef, useEffect, useId, type InputHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
 import { Input } from '@/components/ui/input'
 
@@ -18,6 +18,8 @@ interface ComboboxProps {
   'aria-label'?: string
   /** `false` shows `suggestions` as given, for results already filtered elsewhere (e.g. a server search). */
   filterSuggestions?: boolean
+  /** Passed to the field's own input, e.g. `required` or autocomplete hints. */
+  inputProps?: InputHTMLAttributes<HTMLInputElement>
 }
 
 export function Combobox({
@@ -31,7 +33,8 @@ export function Combobox({
   autoFocus,
   onEnter,
   'aria-label': ariaLabel,
-  filterSuggestions = true
+  filterSuggestions = true,
+  inputProps
 }: ComboboxProps) {
   const [open, setOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
@@ -106,6 +109,7 @@ export function Combobox({
         id={id}
         type="text"
         value={value}
+        {...inputProps}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         onFocus={() => setOpen(value.length > 0)}

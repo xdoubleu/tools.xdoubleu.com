@@ -165,6 +165,7 @@ Disclosure section with a chevron trigger and its own open state.
 | `onEnter` | `() => void` |  | Called when Enter is pressed and no suggestion is highlighted. |
 | `'aria-label'` | `string` |  |  |
 | `filterSuggestions` | `boolean` |  | `false` shows `suggestions` as given, for results already filtered elsewhere (e.g. a server search). |
+| `inputProps` | `InputHTMLAttributes<HTMLInputElement>` |  | Passed to the field's own input, e.g. `required` or autocomplete hints. |
 
 ### `connection-row.tsx`
 
