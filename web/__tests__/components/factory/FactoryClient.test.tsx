@@ -1,14 +1,16 @@
 import React from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
+import { Code, ConnectError } from '@connectrpc/connect'
 
 let mockQuery = ''
 vi.mock('@/hooks/navigation', () => ({
   useSearchParams: () => new URLSearchParams(mockQuery)
 }))
 const mockSetPaused = vi.fn()
+const mockMove = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
-  useFactoryActions: () => ({ setPickupPaused: mockSetPaused }),
+  useFactoryActions: () => ({ setPickupPaused: mockSetPaused, move: mockMove }),
   useFactoryTasks: vi.fn(),
   useFactoryRepos: vi.fn(),
   useFactoryRunners: vi.fn()
@@ -19,14 +21,23 @@ vi.mock('@/components/factory/TaskCard', () => ({
     task,
     repo,
     awaitingApproval,
-    onOpen
+    onOpen,
+    onDragStart,
+    onDragEnd
   }: {
     task: { id: string; title: string }
     repo?: { name: string }
     awaitingApproval?: boolean
     onOpen: (id: string) => void
+    onDragStart: (event: unknown, task: { id: string }) => void
+    onDragEnd: () => void
   }) => (
-    <button onClick={() => onOpen(task.id)}>
+    <button
+      data-task-id={task.id}
+      onClick={() => onOpen(task.id)}
+      onDragStart={() => onDragStart({ dataTransfer: { setData: () => {} } }, task)}
+      onDragEnd={() => onDragEnd()}
+    >
       {task.title}
       {repo && <span data-testid="repo">{repo.name}</span>}
       {awaitingApproval && <span data-testid="awaiting">awaiting</span>}
@@ -106,6 +117,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockQuery = ''
   mockSetPaused.mockResolvedValue(undefined)
+  mockMove.mockResolvedValue(undefined)
   mockRepos(undefined)
   mockRunners(undefined)
 })
@@ -374,5 +386,77 @@ describe('FactoryClient', () => {
     fireEvent.change(screen.getByLabelText('Repo'), { target: { value: 'r2' } })
     fireEvent.click(screen.getByRole('button', { name: 'New task' }))
     expect(screen.getByTestId('create')).toHaveAttribute('data-default-repo', 'r2')
+  })
+
+  it('offers a label filter once a task has a label, and shows only matching tasks', () => {
+    const labelled = (labels: string[]) =>
+      create(TaskSchema, {
+        id: labels[0] ?? 'x',
+        title: labels.join('+') || 'Plain',
+        status: TaskStatus.BACKLOG,
+        labels
+      })
+    mockTasks({
+      data: create(ListTasksResponseSchema, {
+        tasks: [labelled(['bug']), labelled(['ui']), labelled([])]
+      })
+    })
+    render(<FactoryClient />)
+
+    const filter = screen.getByLabelText('Label')
+    expect(screen.getByRole('option', { name: 'All labels' })).toBeInTheDocument()
+    fireEvent.change(filter, { target: { value: 'ui' } })
+    expect(screen.getByRole('button', { name: 'ui' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'bug' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Plain' })).not.toBeInTheDocument()
+
+    fireEvent.change(filter, { target: { value: '' } })
+    expect(screen.getByRole('button', { name: 'bug' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Plain' })).toBeInTheDocument()
+  })
+
+  it('moves a card dropped on another column', async () => {
+    mockTasks({ data: board })
+    render(<FactoryClient />)
+    const dt = { getData: vi.fn(() => 'a'), setData: vi.fn() }
+    fireEvent.drop(screen.getByRole('region', { name: 'Done' }), {
+      dataTransfer: dt
+    })
+    await waitFor(() => expect(mockMove).toHaveBeenCalledWith('a', TaskStatus.DONE))
+  })
+
+  it('tracks a card drag through start, over and end', async () => {
+    mockTasks({ data: board })
+    render(<FactoryClient />)
+    // Star a drag on the Backlog card.
+    fireEvent.dragStart(screen.getByRole('button', { name: 'Alpha' }))
+    // Dragging over a column highlights it.
+    fireEvent.dragOver(screen.getByRole('region', { name: 'Done' }))
+    expect(screen.getByRole('region', { name: 'Done' }).className).toContain('ring-accent')
+    fireEvent.dragLeave(screen.getByRole('region', { name: 'Done' }))
+    expect(screen.getByRole('region', { name: 'Done' }).className).not.toContain('ring-accent')
+    fireEvent.dragEnd(screen.getByRole('button', { name: 'Alpha' }))
+  })
+
+  it('does not move a card dropped back onto its own column', async () => {
+    mockTasks({ data: board })
+    render(<FactoryClient />)
+    const dt = { getData: vi.fn(() => 'a'), setData: vi.fn() }
+    // Alpha sits in Backlog; dropping there should be a no-op.
+    fireEvent.drop(screen.getByRole('region', { name: 'Backlog' }), {
+      dataTransfer: dt
+    })
+    expect(mockMove).not.toHaveBeenCalled()
+  })
+
+  it('says so when a dropped move is refused', async () => {
+    mockMove.mockRejectedValue(new ConnectError('no', Code.PermissionDenied))
+    mockTasks({ data: board })
+    render(<FactoryClient />)
+    const dt = { getData: vi.fn(() => 'a'), setData: vi.fn() }
+    fireEvent.drop(screen.getByRole('region', { name: 'Done' }), {
+      dataTransfer: dt
+    })
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Only you, in the browser/)
   })
 })

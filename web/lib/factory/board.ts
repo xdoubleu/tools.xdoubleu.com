@@ -67,9 +67,22 @@ export function repoLabel(repo: Repo): string {
   return `${repo.owner}/${repo.name}`
 }
 
+/** How a dragged card announces its task to the board's drop targets. */
+export const TASK_DATA_TYPE = 'text/plain'
+
 /** Tasks of one repo; an empty id keeps them all. */
 export function filterByRepo(tasks: Task[], repoId: string): Task[] {
   return repoId === '' ? tasks : tasks.filter((t) => t.repoId === repoId)
+}
+
+/** The tasks that carry a label; an empty label keeps them all. */
+export function filterByLabel(tasks: Task[], label: string): Task[] {
+  return label === '' ? tasks : tasks.filter((t) => t.labels.includes(label))
+}
+
+/** The distinct labels across tasks, sorted. */
+export function distinctLabels(tasks: Task[]): string[] {
+  return [...new Set(tasks.flatMap((t) => t.labels))].sort()
 }
 
 /** The repos in a list response, none while it hasn't loaded. */
