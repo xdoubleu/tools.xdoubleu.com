@@ -432,8 +432,13 @@ jobs:
           echo "Waiting for Codecov checks on $SHA"
           deadline=$(( $(date +%s) + 600 ))
           while true; do
-            checks=$(gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
-              --jq '.check_runs[] | select(.name | startswith("codecov")) | "\(.name)=\(.status):\(.conclusion)"')
+            # A failed or empty answer ("unexpected end of JSON input") counts as no
+            # checks yet, so one bad response doesn't end the step; the deadline does.
+            if ! checks=$(gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
+              --jq '.check_runs[] | select(.name | startswith("codecov")) | "\(.name)=\(.status):\(.conclusion)"'); then
+              echo "The check-runs call failed; trying again."
+              checks=""
+            fi
 
             if [[ -z "$checks" ]]; then
               echo "No Codecov checks yet; waiting..."
