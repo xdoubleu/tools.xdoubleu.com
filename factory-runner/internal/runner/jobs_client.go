@@ -50,12 +50,7 @@ type JobAPI interface {
 		token string,
 		taskIDs []string,
 	) ([]string, error)
-	CompleteJob(
-		ctx context.Context,
-		token, jobID string,
-		succeeded bool,
-		outcome, sessionID, prURL string,
-	) error
+	CompleteJob(ctx context.Context, token, jobID string, end JobEnd) error
 }
 
 type claimJobResponse struct {
@@ -76,12 +71,27 @@ type appendJobEventsRequest struct {
 	Lines []EventLine `json:"lines"`
 }
 
+// JobEnd is how a job ended.
+type JobEnd struct {
+	Succeeded bool
+	Outcome   string
+	SessionID string
+	// PRURL is the pull request opened for the job's branch, if one was.
+	PRURL string
+	// Limited says the harness stopped on its provider's usage limit; ResetsAt is
+	// when it lifts, zero if the harness did not say.
+	Limited  bool
+	ResetsAt time.Time
+}
+
 type completeJobRequest struct {
-	JobID     string `json:"jobId"`
-	Succeeded bool   `json:"succeeded"`
-	Outcome   string `json:"outcome"`
-	SessionID string `json:"sessionId"`
-	PRURL     string `json:"prUrl"`
+	JobID         string `json:"jobId"`
+	Succeeded     bool   `json:"succeeded"`
+	Outcome       string `json:"outcome"`
+	SessionID     string `json:"sessionId"`
+	PRURL         string `json:"prUrl"`
+	Limited       bool   `json:"limited,omitempty"`
+	LimitResetsAt string `json:"limitResetsAt,omitempty"`
 }
 
 type finishedTasksRequest struct {
@@ -166,11 +176,15 @@ func (c *Client) AppendJobEvents(
 func (c *Client) CompleteJob(
 	ctx context.Context,
 	token, jobID string,
-	succeeded bool,
-	outcome, sessionID, prURL string,
+	end JobEnd,
 ) error {
-	return c.call(ctx, "CompleteJob", token, pairTimeout, completeJobRequest{
-		JobID: jobID, Succeeded: succeeded, Outcome: outcome, SessionID: sessionID,
-		PRURL: prURL,
-	}, &struct{}{})
+	req := completeJobRequest{
+		JobID: jobID, Succeeded: end.Succeeded, Outcome: end.Outcome,
+		SessionID: end.SessionID, PRURL: end.PRURL, Limited: end.Limited,
+		LimitResetsAt: "",
+	}
+	if !end.ResetsAt.IsZero() {
+		req.LimitResetsAt = end.ResetsAt.UTC().Format(time.RFC3339)
+	}
+	return c.call(ctx, "CompleteJob", token, pairTimeout, req, &struct{}{})
 }

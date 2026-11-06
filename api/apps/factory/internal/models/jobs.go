@@ -45,11 +45,15 @@ type Job struct {
 	RunnerID *uuid.UUID
 	// PRState, PRCI and PRReview are where the pull request stands, as last read
 	// from GitHub; empty until it has been read.
-	PRState   string
-	PRCI      string
-	PRReview  string
-	CreatedBy string
-	CreatedAt time.Time
+	PRState  string
+	PRCI     string
+	PRReview string
+	// Limited says the harness's provider stopped the job on a usage limit;
+	// LimitResetsAt is when it lifts, nil if unsaid.
+	Limited       bool
+	LimitResetsAt *time.Time
+	CreatedBy     string
+	CreatedAt     time.Time
 	// StartedAt, LastCheckIn and FinishedAt are nil until they happen.
 	StartedAt   *time.Time
 	LastCheckIn *time.Time

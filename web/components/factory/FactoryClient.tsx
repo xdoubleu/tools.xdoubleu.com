@@ -5,6 +5,7 @@ import {
   awaitingPickupApproval,
   filterByRepo,
   groupByStatus,
+  limitNotice,
   repoLabel,
   reposOf,
   runnersOf,
@@ -40,6 +41,7 @@ export default function FactoryClient() {
   const { setPickupPaused } = useFactoryActions()
   const [pickupError, setPickupError] = useState('')
   const paused = data?.pickupPaused === true
+  const limit = limitNotice(data?.claudeLimitedUntil ?? '', Date.now())
 
   const togglePickup = async () => {
     setPickupError('')
@@ -68,6 +70,11 @@ export default function FactoryClient() {
       <p className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted">
         Runner <Badge variant={runner.online ? 'success' : 'secondary'}>{runner.label}</Badge>
       </p>
+      {limit && (
+        <p className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted">
+          Claude <Badge variant="warn">{limit}</Badge>
+        </p>
+      )}
       {data && repos.some((r) => r.autoPickup) && (
         <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted">
           Auto pickup{' '}

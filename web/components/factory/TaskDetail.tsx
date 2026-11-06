@@ -8,6 +8,7 @@ import {
   HARNESSES,
   canFixCi,
   jobActive,
+  jobLimitNote,
   jobRunner,
   jobStatusLabel,
   prStatusLine,
@@ -177,6 +178,7 @@ function RunSection({
         <p className="break-words text-xs text-muted" data-testid="job-status">
           Job {jobStatusLabel(latest.status).toLowerCase()} · {latest.branch}
           {jobRunner(latest) && ` · ${jobRunner(latest)}`}
+          {jobLimitNote(latest) && ` · ${jobLimitNote(latest)}`}
         </p>
       )}
       {latest?.prUrl && (

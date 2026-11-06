@@ -1076,7 +1076,12 @@ type CompleteJobRequest struct {
 	// The pull request the runner opened for the job's branch. The server keeps it
 	// only if it is a pull request of the job's own repo; the task then moves to In
 	// review instead of Needs you.
-	PrUrl         string `protobuf:"bytes,5,opt,name=pr_url,json=prUrl,proto3" json:"pr_url,omitempty"`
+	PrUrl string `protobuf:"bytes,5,opt,name=pr_url,json=prUrl,proto3" json:"pr_url,omitempty"`
+	// The harness stopped on its provider's usage limit. The job counts as failed,
+	// its task goes to Needs you, and limit_resets_at (RFC3339, empty if the harness
+	// did not say) feeds the board's "Claude limited until" notice.
+	Limited       bool   `protobuf:"varint,6,opt,name=limited,proto3" json:"limited,omitempty"`
+	LimitResetsAt string `protobuf:"bytes,7,opt,name=limit_resets_at,json=limitResetsAt,proto3" json:"limit_resets_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1142,6 +1147,20 @@ func (x *CompleteJobRequest) GetSessionId() string {
 func (x *CompleteJobRequest) GetPrUrl() string {
 	if x != nil {
 		return x.PrUrl
+	}
+	return ""
+}
+
+func (x *CompleteJobRequest) GetLimited() bool {
+	if x != nil {
+		return x.Limited
+	}
+	return false
+}
+
+func (x *CompleteJobRequest) GetLimitResetsAt() string {
+	if x != nil {
+		return x.LimitResetsAt
 	}
 	return ""
 }
@@ -1446,14 +1465,16 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\x16AppendJobEventsRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12)\n" +
 	"\x05lines\x18\x02 \x03(\v2\x13.factory.v1.JobLineR\x05lines\"\x19\n" +
-	"\x17AppendJobEventsResponse\"\x99\x01\n" +
+	"\x17AppendJobEventsResponse\"\xdb\x01\n" +
 	"\x12CompleteJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1c\n" +
 	"\tsucceeded\x18\x02 \x01(\bR\tsucceeded\x12\x18\n" +
 	"\aoutcome\x18\x03 \x01(\tR\aoutcome\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x04 \x01(\tR\tsessionId\x12\x15\n" +
-	"\x06pr_url\x18\x05 \x01(\tR\x05prUrl\"\x15\n" +
+	"\x06pr_url\x18\x05 \x01(\tR\x05prUrl\x12\x18\n" +
+	"\alimited\x18\x06 \x01(\bR\alimited\x12&\n" +
+	"\x0flimit_resets_at\x18\a \x01(\tR\rlimitResetsAt\"\x15\n" +
 	"\x13CompleteJobResponse\"5\n" +
 	"\x18ListFinishedTasksRequest\x12\x19\n" +
 	"\btask_ids\x18\x01 \x03(\tR\ataskIds\"6\n" +

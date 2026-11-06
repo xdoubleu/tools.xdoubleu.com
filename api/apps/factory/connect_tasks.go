@@ -185,7 +185,17 @@ func (h *taskConnectHandler) ListTasks(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &factoryv1.ListTasksResponse{Tasks: out, PickupPaused: paused}, nil
+	until, err := h.app.services.Jobs.ActiveLimit(ctx)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	limited := ""
+	if until != nil {
+		limited = until.UTC().Format(time.RFC3339)
+	}
+	return &factoryv1.ListTasksResponse{
+		Tasks: out, PickupPaused: paused, ClaudeLimitedUntil: limited,
+	}, nil
 }
 
 func (h *taskConnectHandler) GetTask(

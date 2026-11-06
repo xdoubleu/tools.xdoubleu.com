@@ -36,6 +36,10 @@ func jobStatusToProto(s models.JobStatus) factoryv1.JobStatus {
 }
 
 func protoJob(j *models.Job) *factoryv1.Job {
+	limitResetsAt := ""
+	if j.LimitResetsAt != nil {
+		limitResetsAt = j.LimitResetsAt.UTC().Format(time.RFC3339)
+	}
 	return &factoryv1.Job{
 		Id:        j.ID.String(),
 		TaskId:    j.TaskID.String(),
@@ -48,6 +52,9 @@ func protoJob(j *models.Job) *factoryv1.Job {
 		PrReview:  j.PRReview,
 		Harness:   harnessToProto(j.Harness),
 		Model:     j.Model,
+
+		Limited:       j.Limited,
+		LimitResetsAt: limitResetsAt,
 	}
 }
 
@@ -327,9 +334,13 @@ func (h *runnerHandler) CompleteJob(
 	if err != nil {
 		return nil, err
 	}
+	var resetsAt *time.Time
+	if at, parseErr := time.Parse(time.RFC3339, req.GetLimitResetsAt()); parseErr == nil {
+		resetsAt = &at
+	}
 	_, err = h.app.services.Jobs.Complete(
 		ctx, runner.ID, id, req.GetSucceeded(), req.GetOutcome(), req.GetSessionId(),
-		req.GetPrUrl(),
+		req.GetPrUrl(), req.GetLimited(), resetsAt,
 	)
 	if err != nil {
 		return nil, mapError(err)

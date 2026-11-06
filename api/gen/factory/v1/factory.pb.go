@@ -529,9 +529,11 @@ type ListTasksResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Tasks []*Task                `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
 	// Whether auto pickup is paused for the whole board.
-	PickupPaused  bool `protobuf:"varint,2,opt,name=pickup_paused,json=pickupPaused,proto3" json:"pickup_paused,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	PickupPaused bool `protobuf:"varint,2,opt,name=pickup_paused,json=pickupPaused,proto3" json:"pickup_paused,omitempty"`
+	// While a job's Claude usage limit is still to lift: when (RFC3339); else empty.
+	ClaudeLimitedUntil string `protobuf:"bytes,3,opt,name=claude_limited_until,json=claudeLimitedUntil,proto3" json:"claude_limited_until,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *ListTasksResponse) Reset() {
@@ -576,6 +578,13 @@ func (x *ListTasksResponse) GetPickupPaused() bool {
 		return x.PickupPaused
 	}
 	return false
+}
+
+func (x *ListTasksResponse) GetClaudeLimitedUntil() string {
+	if x != nil {
+		return x.ClaudeLimitedUntil
+	}
+	return ""
 }
 
 // Pauses or resumes auto pickup for the whole board. A human admin in a browser
@@ -1230,8 +1239,11 @@ type Job struct {
 	// The standing review while it is open: "approved" or "changes_requested".
 	PrReview string `protobuf:"bytes,9,opt,name=pr_review,json=prReview,proto3" json:"pr_review,omitempty"`
 	// What ran it: the harness, and for OpenCode its OpenRouter model.
-	Harness       Harness `protobuf:"varint,10,opt,name=harness,proto3,enum=factory.v1.Harness" json:"harness,omitempty"`
-	Model         string  `protobuf:"bytes,11,opt,name=model,proto3" json:"model,omitempty"`
+	Harness Harness `protobuf:"varint,10,opt,name=harness,proto3,enum=factory.v1.Harness" json:"harness,omitempty"`
+	Model   string  `protobuf:"bytes,11,opt,name=model,proto3" json:"model,omitempty"`
+	// The provider's usage limit stopped it; RFC3339 reset time, empty if unknown.
+	Limited       bool   `protobuf:"varint,12,opt,name=limited,proto3" json:"limited,omitempty"`
+	LimitResetsAt string `protobuf:"bytes,13,opt,name=limit_resets_at,json=limitResetsAt,proto3" json:"limit_resets_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1339,6 +1351,20 @@ func (x *Job) GetHarness() Harness {
 func (x *Job) GetModel() string {
 	if x != nil {
 		return x.Model
+	}
+	return ""
+}
+
+func (x *Job) GetLimited() bool {
+	if x != nil {
+		return x.Limited
+	}
+	return false
+}
+
+func (x *Job) GetLimitResetsAt() string {
+	if x != nil {
+		return x.LimitResetsAt
 	}
 	return ""
 }
@@ -2231,10 +2257,11 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x04body\x18\x03 \x01(\tR\x04body\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x04 \x01(\tR\tcreatedAt\"\x12\n" +
-	"\x10ListTasksRequest\"`\n" +
+	"\x10ListTasksRequest\"\x92\x01\n" +
 	"\x11ListTasksResponse\x12&\n" +
 	"\x05tasks\x18\x01 \x03(\v2\x10.factory.v1.TaskR\x05tasks\x12#\n" +
-	"\rpickup_paused\x18\x02 \x01(\bR\fpickupPaused\"0\n" +
+	"\rpickup_paused\x18\x02 \x01(\bR\fpickupPaused\x120\n" +
+	"\x14claude_limited_until\x18\x03 \x01(\tR\x12claudeLimitedUntil\"0\n" +
 	"\x16SetPickupPausedRequest\x12\x16\n" +
 	"\x06paused\x18\x01 \x01(\bR\x06paused\"1\n" +
 	"\x17SetPickupPausedResponse\x12\x16\n" +
@@ -2270,7 +2297,7 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\"C\n" +
 	"\x12AddCommentResponse\x12-\n" +
-	"\acomment\x18\x01 \x01(\v2\x13.factory.v1.CommentR\acomment\"\xbd\x02\n" +
+	"\acomment\x18\x01 \x01(\v2\x13.factory.v1.CommentR\acomment\"\xff\x02\n" +
 	"\x03Job\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12-\n" +
@@ -2284,7 +2311,9 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\tpr_review\x18\t \x01(\tR\bprReview\x12-\n" +
 	"\aharness\x18\n" +
 	" \x01(\x0e2\x13.factory.v1.HarnessR\aharness\x12\x14\n" +
-	"\x05model\x18\v \x01(\tR\x05model\"i\n" +
+	"\x05model\x18\v \x01(\tR\x05model\x12\x18\n" +
+	"\alimited\x18\f \x01(\bR\alimited\x12&\n" +
+	"\x0flimit_resets_at\x18\r \x01(\tR\rlimitResetsAt\"i\n" +
 	"\bJobEvent\x12\x10\n" +
 	"\x03seq\x18\x01 \x01(\x05R\x03seq\x12\x12\n" +
 	"\x04kind\x18\x02 \x01(\tR\x04kind\x12\x18\n" +

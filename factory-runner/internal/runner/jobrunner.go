@@ -96,7 +96,10 @@ type JobRunner struct {
 
 // failed is a result for a job that never reached the agent.
 func failed(outcome string) result {
-	return result{succeeded: false, outcome: outcome, session: "", prURL: ""}
+	return result{
+		succeeded: false, outcome: outcome, session: "", prURL: "",
+		limited: false, resetsAt: time.Time{},
+	}
 }
 
 // prepareOutcomeDir makes the directory the sandbox's non-root user writes the
@@ -118,6 +121,10 @@ type result struct {
 	session   string
 	// prURL is the pull request opened for the job's branch, if one was.
 	prURL string
+	// limited says the harness stopped on its provider's usage limit, until resetsAt
+	// when that is known.
+	limited  bool
+	resetsAt time.Time
 }
 
 // Next claims one job and runs it to the end, reporting whether there was one.
@@ -177,15 +184,10 @@ func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {
 	// five minutes to call the job lost.
 	done, cancel := context.WithTimeout(context.WithoutCancel(ctx), completeTimeout)
 	defer cancel()
-	err := r.API.CompleteJob(
-		done,
-		r.Token,
-		job.ID,
-		res.succeeded,
-		res.outcome,
-		res.session,
-		res.prURL,
-	)
+	err := r.API.CompleteJob(done, r.Token, job.ID, JobEnd{
+		Succeeded: res.succeeded, Outcome: res.outcome, SessionID: res.session,
+		PRURL: res.prURL, Limited: res.limited, ResetsAt: res.resetsAt,
+	})
 	if err != nil {
 		r.Log.Warn("could not report the job", "job", job.ID, "error", err)
 	}
@@ -262,24 +264,11 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		return failed("Refused by the runner: " + err.Error())
 	}
 
-	dir := filepath.Join(r.DataDir, "jobs", job.ID)
-	cloneDir := filepath.Join(dir, "clone")
-	outcomeDir := filepath.Join(dir, "outcome")
-	// The session state belongs to the task, not the job: a Reply resumes it.
-	sessionDir := filepath.Join(r.DataDir, "sessions", job.TaskID)
-	// A job claimed again (after a restart) starts from a clean directory.
-	if err := os.RemoveAll(dir); err != nil {
-		return failed("Could not clear the job directory: " + err.Error())
-	}
-	since, err := r.prepareClone(ctx, job, cloneDir)
+	dirs, since, err := r.prepareDirs(ctx, job)
 	if err != nil {
-		return failed("Could not prepare the clone: " + err.Error())
+		return failed("Could not " + err.Error())
 	}
-	for name, d := range map[string]string{"outcome": outcomeDir, "session": sessionDir} {
-		if err = prepareOutcomeDir(d); err != nil {
-			return failed("Could not prepare the " + name + " directory: " + err.Error())
-		}
-	}
+	cloneDir, outcomeDir, sessionDir := dirs.clone, dirs.outcome, dirs.session
 	launch, err := r.launchOf(job)
 	if err != nil {
 		return failed("Could not " + err.Error())
@@ -294,6 +283,7 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		mu:      sync.Mutex{},
 		partial: nil,
 		session: "",
+		limited: false, resetsAt: time.Time{},
 	}
 	secrets := append(r.secrets(), launch.secrets...)
 	events := newEventTap(secrets)
@@ -318,7 +308,11 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	r.flush(ctx, job.ID, events)
 
 	text := readOutcome(filepath.Join(outcomeDir, outcomeFile))
-	res := result{succeeded: false, outcome: "", session: tap.Session(), prURL: ""}
+	limited, resetsAt := tap.Limit()
+	res := result{
+		succeeded: false, outcome: "", session: tap.Session(), prURL: "",
+		limited: false, resetsAt: time.Time{},
+	}
 	var reason string
 	switch {
 	case stopped.Load():
@@ -327,6 +321,10 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		reason = fmt.Sprintf("Timed out after %d minutes.", limit/r.minute())
 	case ctx.Err() != nil:
 		reason = "The runner shut down while the job ran."
+	case limited && (exit != 0 || text == ""):
+		// A rejection the agent worked past, to a finished outcome, is not a stop.
+		reason = limitReason(resetsAt)
+		res.limited, res.resetsAt = true, resetsAt
 	case runErr != nil:
 		reason = "The sandbox could not run the job: " + runErr.Error()
 	case exit != 0:
@@ -338,6 +336,40 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	}
 	res.outcome = strings.TrimSpace(reason + "\n\n" + text)
 	return res
+}
+
+// jobDirs are a job's directories on the host.
+type jobDirs struct{ clone, outcome, session string }
+
+// prepareDirs clears the job's directory, makes its clone and the outcome and
+// session directories, and returns where a Reply's host checks start. An error says
+// which step failed.
+func (r *JobRunner) prepareDirs(
+	ctx context.Context,
+	job *ClaimedJob,
+) (jobDirs, string, error) {
+	dir := filepath.Join(r.DataDir, "jobs", job.ID)
+	dirs := jobDirs{
+		clone:   filepath.Join(dir, "clone"),
+		outcome: filepath.Join(dir, "outcome"),
+		// The session state belongs to the task, not the job: a Reply resumes it.
+		session: filepath.Join(r.DataDir, "sessions", job.TaskID),
+	}
+	// A job claimed again (after a restart) starts from a clean directory.
+	if err := os.RemoveAll(dir); err != nil {
+		return jobDirs{}, "", fmt.Errorf("clear the job directory: %w", err)
+	}
+	since, err := r.prepareClone(ctx, job, dirs.clone)
+	if err != nil {
+		return jobDirs{}, "", fmt.Errorf("prepare the clone: %w", err)
+	}
+	named := map[string]string{"outcome": dirs.outcome, "session": dirs.session}
+	for name, d := range named {
+		if err = prepareOutcomeDir(d); err != nil {
+			return jobDirs{}, "", fmt.Errorf("prepare the %s directory: %w", name, err)
+		}
+	}
+	return dirs, since, nil
 }
 
 // launch is what a job starts with: its command, environment and egress proxy.
@@ -590,12 +622,23 @@ func readOutcome(path string) string {
 	return strings.TrimSpace(strings.ToValidUTF8(string(data), ""))
 }
 
-// sessionTap watches the harness's output for its session id.
+// limitReason is the outcome's first line for a job a usage limit stopped.
+func limitReason(resetsAt time.Time) string {
+	if resetsAt.IsZero() {
+		return "Stopped: the Claude usage limit was reached."
+	}
+	return "Stopped: the Claude usage limit was reached; it resets at " +
+		resetsAt.UTC().Format("2006-01-02 15:04 MST") + "."
+}
+
+// sessionTap watches the harness's output for its session id and for a usage limit.
 type sessionTap struct {
-	harness Harness
-	mu      sync.Mutex
-	partial []byte
-	session string
+	harness  Harness
+	mu       sync.Mutex
+	partial  []byte
+	session  string
+	limited  bool
+	resetsAt time.Time
 }
 
 // Write implements io.Writer: it splits the output into lines and keeps the
@@ -612,12 +655,25 @@ func (t *sessionTap) Write(p []byte) (int, error) {
 		if t.session == "" {
 			t.session = t.harness.SessionID(t.partial[:i])
 		}
+		if hit, at := t.harness.LimitFrom(t.partial[:i]); hit {
+			t.limited = true
+			if !at.IsZero() {
+				t.resetsAt = at
+			}
+		}
 		t.partial = t.partial[i+1:]
 	}
 	if len(t.partial) > maxTapLine {
 		t.partial = nil
 	}
 	return len(p), nil
+}
+
+// Limit reports whether a usage limit was seen, and when it lifts (zero if unsaid).
+func (t *sessionTap) Limit() (bool, time.Time) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.limited, t.resetsAt
 }
 
 // Session is the session id seen so far, or "".

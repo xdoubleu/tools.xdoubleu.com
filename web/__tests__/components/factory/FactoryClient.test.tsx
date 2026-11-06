@@ -122,6 +122,24 @@ describe('FactoryClient', () => {
     expect(screen.getAllByText('Nothing here.')).toHaveLength(5)
   })
 
+  it('shows when the Claude limit lifts, only while it is still in force', () => {
+    const inTwoHours = new Date(Date.now() + 2 * 3600_000).toISOString()
+    mockTasks({
+      data: create(ListTasksResponseSchema, { tasks: [], claudeLimitedUntil: inTwoHours })
+    })
+    const { rerender } = render(<FactoryClient />)
+    expect(screen.getByText(/^Limited until /)).toBeInTheDocument()
+
+    const gone = new Date(Date.now() - 3600_000).toISOString()
+    mockTasks({ data: create(ListTasksResponseSchema, { tasks: [], claudeLimitedUntil: gone }) })
+    rerender(<FactoryClient />)
+    expect(screen.queryByText(/Limited until/)).not.toBeInTheDocument()
+
+    mockTasks({ data: board })
+    rerender(<FactoryClient />)
+    expect(screen.queryByText(/Limited until/)).not.toBeInTheDocument()
+  })
+
   it('shows loading and error states', () => {
     mockTasks({ isLoading: true })
     const { unmount } = render(<FactoryClient />)

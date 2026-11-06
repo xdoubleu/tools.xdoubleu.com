@@ -31,6 +31,9 @@ import {
   FIX_CI_REPLY,
   canFixCi,
   jobRunner,
+  formatLimitTime,
+  limitNotice,
+  jobLimitNote,
   awaitingPickupApproval,
   jobStatusLabel,
   prBadge,
@@ -283,5 +286,31 @@ describe('board', () => {
     expect(awaitingPickupApproval(task('on', TaskStatus.BACKLOG, false), repos)).toBe(false)
     expect(awaitingPickupApproval(task('off', TaskStatus.READY, false), repos)).toBe(false)
     expect(awaitingPickupApproval(task('gone', TaskStatus.READY, false), repos)).toBe(false)
+  })
+})
+
+describe('the Claude usage limit', () => {
+  it('formats a reset time in the given zone, and says nothing for a bad one', () => {
+    expect(formatLimitTime('2030-01-02T14:30:00Z', 'UTC', 'en-GB')).toBe('Wed 14:30')
+    expect(formatLimitTime('2030-01-02T14:30:00Z', 'Asia/Tokyo', 'en-GB')).toBe('Wed 23:30')
+    expect(formatLimitTime('', 'UTC')).toBe('')
+    expect(formatLimitTime('tomorrow-ish', 'UTC')).toBe('')
+  })
+
+  it('shows the board notice only while the limit is still to lift', () => {
+    const now = Date.parse('2030-01-02T12:00:00Z')
+    expect(limitNotice('2030-01-02T14:30:00Z', now, 'UTC', 'en-GB')).toBe('Limited until Wed 14:30')
+    expect(limitNotice('2030-01-02T11:00:00Z', now, 'UTC')).toBe('')
+    expect(limitNotice('2030-01-02T12:00:00Z', now, 'UTC')).toBe('')
+    expect(limitNotice('', now)).toBe('')
+    expect(limitNotice('not a time', now)).toBe('')
+  })
+
+  it('explains a stopped job, with the reset time when known', () => {
+    expect(jobLimitNote({ limited: false, limitResetsAt: '2030-01-02T14:30:00Z' })).toBe('')
+    expect(jobLimitNote({ limited: true, limitResetsAt: '' })).toBe('stopped by the Claude limit')
+    expect(jobLimitNote({ limited: true, limitResetsAt: '2030-01-02T14:30:00Z' })).toMatch(
+      /^stopped by the Claude limit, resets \w{3},? /
+    )
   })
 })

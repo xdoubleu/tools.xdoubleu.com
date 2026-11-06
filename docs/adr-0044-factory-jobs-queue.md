@@ -32,6 +32,11 @@ its own work ([ADR-0041](adr-0041-factory-runner-pairing.md)).
   so a dead runner is noticed the next time the owner looks.
 - **Every finished job moves its task to Needs you** with the outcome as a
   comment, because without a PR (#2775) the branch stays in the Mac's clone.
+- **A job the Claude usage limit stopped** is `failed` with `limited` and, if the
+  CLI said, `limit_resets_at` (kept only within the next 15 days). The runner reads
+  it from the stream's `rate_limit_event` (status `rejected`) or an error result;
+  those shapes come from the CLI's own strings, not a capture of a real hit. The
+  board shows the latest reset in force as "Limited until ...".
 - **The log is polled, not pushed.** The runner forwards the harness's stream-json
   lines every 2 seconds, secrets removed, to `AppendJobEvents`; `ListJobEvents`
   serves them to a human admin in a browser. A job keeps at most 5000 events, for

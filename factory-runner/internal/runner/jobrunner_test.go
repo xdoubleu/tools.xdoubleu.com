@@ -84,6 +84,8 @@ type completion struct {
 	outcome   string
 	session   string
 	prURL     string
+	limited   bool
+	resetsAt  time.Time
 }
 
 func newFakeAPI(jobs ...*runner.ClaimedJob) *fakeAPI {
@@ -170,11 +172,15 @@ func (f *fakeAPI) ListFinishedTasks(
 }
 
 func (f *fakeAPI) CompleteJob(
-	_ context.Context, _, id string, ok bool, outcome, session, prURL string,
+	_ context.Context, _, id string, end runner.JobEnd,
 ) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.completed = append(f.completed, completion{id, ok, outcome, session, prURL})
+	f.completed = append(f.completed, completion{
+		jobID: id, succeeded: end.Succeeded, outcome: end.Outcome,
+		session: end.SessionID, prURL: end.PRURL, limited: end.Limited,
+		resetsAt: end.ResetsAt,
+	})
 	f.completes <- struct{}{}
 	return nil
 }
