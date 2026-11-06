@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/factory"
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/constants"
@@ -294,6 +295,41 @@ func TestNonAdminDeniedRepos(t *testing.T) {
 	assert.Equal(t, connect.CodePermissionDenied, code(err))
 	_, err = c.UpdateRepo(ctx, &factoryv1.UpdateRepoRequest{Repo: validRepo("x")})
 	assert.Equal(t, connect.CodePermissionDenied, code(err))
+}
+
+// modelLister serves fixed ids for the model picker test.
+type modelLister struct{ ids []string }
+
+func (m modelLister) ListModels(context.Context) ([]string, error) { return m.ids, nil }
+
+func newModelsRepoClient(
+	t *testing.T, ids []string,
+) factoryv1connect.RepoServiceClient {
+	t.Helper()
+	app := newAppWith(
+		true, constants.ChannelBrowser, factory.WithModels(modelLister{ids: ids}),
+	)
+	return factoryv1connect.NewRepoServiceClient(
+		connect.NewClient(newTransport(t, app)),
+	)
+}
+
+func TestListOpenRouterModelsSorted(t *testing.T) {
+	c := newModelsRepoClient(t, []string{"vendor/zeta", "vendor/alpha"})
+	resp, err := c.ListOpenRouterModels(
+		context.Background(), &factoryv1.ListOpenRouterModelsRequest{},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"vendor/alpha", "vendor/zeta"}, resp.ModelIds)
+}
+
+func TestListOpenRouterModelsEmptyWithoutALister(t *testing.T) {
+	c := repoClient(t)
+	resp, err := c.ListOpenRouterModels(
+		context.Background(), &factoryv1.ListOpenRouterModelsRequest{},
+	)
+	require.NoError(t, err)
+	assert.Empty(t, resp.ModelIds)
 }
 
 // upSection returns a goose migration's Up statements without its markers.

@@ -29,6 +29,15 @@ export function useFactoryRepos() {
   return useSWR<ListReposResponse, Error>(swrKeys.factoryRepos, () => client.listRepos({}))
 }
 
+/** The OpenRouter models OpenCode jobs can run on, for the model pickers. */
+export function useFactoryModels() {
+  const client = createServiceClient(RepoService)
+  return useSWR<string[], Error>(
+    swrKeys.factoryOpenRouterModels,
+    async () => (await client.listOpenRouterModels({})).modelIds
+  )
+}
+
 export function useFactoryAgents() {
   const client = createServiceClient(AgentAccountService)
   return useSWR<ListAgentAccountsResponse, Error>(swrKeys.factoryAgents, () =>

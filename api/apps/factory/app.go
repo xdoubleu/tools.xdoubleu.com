@@ -19,6 +19,7 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/observability"
+	"tools.xdoubleu.com/internal/openrouter"
 	"tools.xdoubleu.com/internal/slack"
 	"tools.xdoubleu.com/internal/threading"
 )
@@ -39,6 +40,7 @@ type Factory struct {
 	notifier      services.Notifier
 	slackURL      string
 	webURL        string
+	models        openrouter.ModelLister
 }
 
 // WithJobAccounts makes every claimed job run as an agent account of its own,
@@ -64,6 +66,12 @@ func WithNotifier(notifier services.Notifier, webURL string) Option {
 // https is refused with a warning.
 func WithSlack(webhookURL, webURL string) Option {
 	return func(a *Factory) { a.slackURL, a.webURL = webhookURL, webURL }
+}
+
+// WithModels sets how the board lists OpenRouter models for the model picker.
+// Without it a lister is built from OPENROUTER_API_KEY.
+func WithModels(models openrouter.ModelLister) Option {
+	return func(a *Factory) { a.models = models }
 }
 
 // Option adjusts a Factory.
@@ -105,9 +113,13 @@ func New(
 		notifier:      nil,
 		slackURL:      "",
 		webURL:        "",
+		models:        nil,
 	}
 	for _, opt := range opts {
 		opt(a)
+	}
+	if a.models == nil && cfg.OpenRouterAPIKey != "" {
+		a.models = openrouter.NewLister(cfg.OpenRouterAPIKey, cfg.WebURL, a.Logger)
 	}
 	a.connectSlack(logger)
 	a.services = services.New(

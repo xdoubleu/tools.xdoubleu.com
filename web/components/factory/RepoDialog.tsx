@@ -3,6 +3,7 @@ import { Code, ConnectError } from '@connectrpc/connect'
 import { Harness, type Repo } from '@/lib/gen/factory/v1/factory_pb'
 import { HARNESSES } from '@/lib/factory/board'
 import { useFactoryActions } from '@/hooks/useFactory'
+import { FactoryModelPicker } from '@/components/factory/FactoryModelPicker'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -130,20 +131,14 @@ export default function RepoDialog({ repo, onClose }: RepoDialogProps) {
             </Select>
           </Field>
           {harness === Harness.OPENCODE && (
-            <Field
+            <FactoryModelPicker
+              id="repo-model"
               label="Default model"
-              htmlFor="repo-model"
-              hint="An OpenRouter model, such as vendor/model."
-            >
-              <Input
-                id="repo-model"
-                value={model}
-                required
-                autoCapitalize="none"
-                autoCorrect="off"
-                onChange={(e) => setModel(e.target.value)}
-              />
-            </Field>
+              hint="An OpenRouter model, such as vendor/model. Pick one or type a custom id."
+              value={model}
+              onChange={setModel}
+              required
+            />
           )}
           <div className="space-y-1">
             <Checkbox

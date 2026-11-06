@@ -7,9 +7,11 @@ const mockRun = vi.fn()
 const mockStop = vi.fn()
 const mockReply = vi.fn()
 const mockAgents = vi.fn()
+const mockModels = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
   useFactoryTask: vi.fn(),
   useFactoryAgents: () => mockAgents(),
+  useFactoryModels: () => mockModels(),
   useFactoryActions: vi.fn(() => ({
     comment: mockComment,
     move: vi.fn(),
@@ -68,6 +70,7 @@ const detail = create(GetTaskResponseSchema, {
 beforeEach(() => {
   vi.clearAllMocks()
   mockAgents.mockReturnValue({ data: undefined })
+  mockModels.mockReturnValue({ data: undefined })
   mockComment.mockResolvedValue(undefined)
   mockRun.mockResolvedValue(undefined)
   mockStop.mockResolvedValue(undefined)
@@ -287,6 +290,21 @@ describe('TaskDetail', () => {
           model: 'vendor/m'
         })
       )
+    })
+
+    it('offers the OpenRouter models as run suggestions', async () => {
+      mockModels.mockReturnValue({ data: ['vendor/alpha', 'vendor/zeta'] })
+      mockTask({ data: detail })
+      render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      fireEvent.change(screen.getByLabelText('Harness'), {
+        target: { value: String(Harness.OPENCODE) }
+      })
+      const model = screen.getByLabelText('Model')
+      fireEvent.change(model, { target: { value: 'vendor' } })
+      expect(screen.getByText('vendor/alpha')).toBeInTheDocument()
+      fireEvent.keyDown(model, { key: 'ArrowDown' })
+      fireEvent.keyDown(model, { key: 'Enter' })
+      expect(screen.getByLabelText('Model')).toHaveValue('vendor/alpha')
     })
 
     it('runs on Claude Code without a model', async () => {

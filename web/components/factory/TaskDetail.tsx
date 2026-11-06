@@ -31,7 +31,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { FactoryModelPicker } from '@/components/factory/FactoryModelPicker'
 import { Select } from '@/components/ui/select'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { Textarea } from '@/components/ui/textarea'
@@ -217,19 +217,13 @@ function RunSection({
           </Select>
         </Field>
         {harness === Harness.OPENCODE && (
-          <Field
+          <FactoryModelPicker
+            id="task-run-model"
             label="Model"
-            htmlFor="task-run-model"
-            hint="An OpenRouter model, such as vendor/model. Blank uses the repo's default."
-          >
-            <Input
-              id="task-run-model"
-              value={model}
-              autoCapitalize="none"
-              autoCorrect="off"
-              onChange={(e) => setModel(e.target.value)}
-            />
-          </Field>
+            hint="An OpenRouter model, such as vendor/model. Pick one or type a custom id; blank uses the repo's default."
+            value={model}
+            onChange={setModel}
+          />
         )}
         {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex flex-wrap gap-2">

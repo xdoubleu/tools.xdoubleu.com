@@ -135,3 +135,48 @@ func TestComplete_TransportError(t *testing.T) {
 	_, err := c.Complete(context.Background(), Request{Model: "m"})
 	assert.ErrorContains(t, err, "openrouter:")
 }
+
+func TestListModels_NotConfigured(t *testing.T) {
+	c := NewLister("", "", logging.NewNopLogger())
+	_, err := c.ListModels(context.Background())
+	assert.ErrorIs(t, err, ErrNotConfigured)
+}
+
+func TestListModels(t *testing.T) {
+	serve(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/models", r.URL.Path)
+		assert.Equal(t, "Bearer key", r.Header.Get("Authorization"))
+		assert.Equal(t, "https://tools.example", r.Header.Get("HTTP-Referer"))
+		_, _ = w.Write([]byte(`{"data": [
+			{"id": "vendor/zeta"},
+			{"id": "vendor/alpha"}
+		]}`))
+	})
+	c := NewLister("key", "https://tools.example", logging.NewNopLogger())
+	ids, err := c.ListModels(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, []string{"vendor/zeta", "vendor/alpha"}, ids)
+}
+
+func TestListModels_Errors(t *testing.T) {
+	tests := []struct {
+		name   string
+		status int
+		body   string
+		want   string
+	}{
+		{"http status", http.StatusTooManyRequests, `slow down`, "status 429: slow down"},
+		{"bad json", http.StatusOK, `{`, "decode"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			serve(t, func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.status)
+				_, _ = w.Write([]byte(tt.body))
+			})
+			c := NewLister("key", "", logging.NewNopLogger())
+			_, err := c.ListModels(context.Background())
+			assert.ErrorContains(t, err, tt.want)
+		})
+	}
+}

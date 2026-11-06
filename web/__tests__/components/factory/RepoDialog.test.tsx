@@ -5,8 +5,10 @@ import { Code, ConnectError } from '@connectrpc/connect'
 
 const mockCreate = vi.fn()
 const mockUpdate = vi.fn()
+const mockModels = vi.fn()
 vi.mock('@/hooks/useFactory', () => ({
-  useFactoryActions: vi.fn(() => ({ createRepo: mockCreate, updateRepo: mockUpdate }))
+  useFactoryActions: vi.fn(() => ({ createRepo: mockCreate, updateRepo: mockUpdate })),
+  useFactoryModels: () => mockModels()
 }))
 
 import RepoDialog from '@/components/factory/RepoDialog'
@@ -16,6 +18,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockCreate.mockResolvedValue(undefined)
   mockUpdate.mockResolvedValue(undefined)
+  mockModels.mockReturnValue({ data: undefined })
 })
 
 function fill(label: string, value: string) {
@@ -228,5 +231,25 @@ describe('RepoDialog', () => {
       fill('Time limit (minutes)', ok)
       expect(save, ok).toBeEnabled()
     }
+  })
+
+  it('offers the OpenRouter models as suggestions and keeps a custom id', () => {
+    mockModels.mockReturnValue({ data: ['vendor/alpha', 'vendor/zeta', 'vendor/model'] })
+    render(<RepoDialog onClose={vi.fn()} />)
+    fill('Default harness', String(Harness.OPENCODE))
+    const model = screen.getByLabelText('Default model')
+    expect(model).toHaveValue('')
+
+    // The catalog's suggestions are shown once something is typed, and the
+    // first (alphabetically) is pickable.
+    fireEvent.change(model, { target: { value: 'vendor' } })
+    expect(screen.getByText('vendor/alpha')).toBeInTheDocument()
+    fireEvent.keyDown(model, { key: 'ArrowDown' })
+    fireEvent.keyDown(model, { key: 'Enter' })
+    expect(screen.getByLabelText('Default model')).toHaveValue('vendor/alpha')
+
+    // An id the catalog doesn't know can still be typed.
+    fireEvent.change(screen.getByLabelText('Default model'), { target: { value: 'custom/v1' } })
+    expect(screen.getByLabelText('Default model')).toHaveValue('custom/v1')
   })
 })

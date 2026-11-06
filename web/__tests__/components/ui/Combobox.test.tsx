@@ -122,6 +122,21 @@ describe('Combobox', () => {
     expect(input).toHaveValue('ap')
   })
 
+  it('passes inputProps to the underlying input', () => {
+    render(
+      <Combobox
+        value=""
+        onChange={vi.fn()}
+        suggestions={['Apple']}
+        aria-label="picker"
+        inputProps={{ required: true, autoCapitalize: 'none' }}
+      />
+    )
+    const input = screen.getByRole('combobox') as HTMLInputElement
+    expect(input.required).toBe(true)
+    expect(input).toHaveAttribute('autocapitalize', 'none')
+  })
+
   it('commits the highlighted option on Tab without blocking the focus move', () => {
     const onSelect = vi.fn()
     render(<Harness suggestions={suggestions} onSelect={onSelect} />)
