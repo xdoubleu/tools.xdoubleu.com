@@ -291,15 +291,17 @@ describe('board', () => {
 
 describe('the Claude usage limit', () => {
   it('formats a reset time in the given zone, and says nothing for a bad one', () => {
-    expect(formatLimitTime('2030-01-02T14:30:00Z', 'UTC', 'en-GB')).toBe('Wed 14:30')
-    expect(formatLimitTime('2030-01-02T14:30:00Z', 'Asia/Tokyo', 'en-GB')).toBe('Wed 23:30')
+    expect(formatLimitTime('2030-01-02T14:30:00Z', 'UTC', 'en-GB')).toBe('Wed 2 Jan, 14:30')
+    expect(formatLimitTime('2030-01-02T14:30:00Z', 'Asia/Tokyo', 'en-GB')).toBe('Wed 2 Jan, 23:30')
     expect(formatLimitTime('', 'UTC')).toBe('')
     expect(formatLimitTime('tomorrow-ish', 'UTC')).toBe('')
   })
 
   it('shows the board notice only while the limit is still to lift', () => {
     const now = Date.parse('2030-01-02T12:00:00Z')
-    expect(limitNotice('2030-01-02T14:30:00Z', now, 'UTC', 'en-GB')).toBe('Limited until Wed 14:30')
+    expect(limitNotice('2030-01-02T14:30:00Z', now, 'UTC', 'en-GB')).toBe(
+      'Limited until Wed 2 Jan, 14:30'
+    )
     expect(limitNotice('2030-01-02T11:00:00Z', now, 'UTC')).toBe('')
     expect(limitNotice('2030-01-02T12:00:00Z', now, 'UTC')).toBe('')
     expect(limitNotice('', now)).toBe('')

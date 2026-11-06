@@ -145,13 +145,17 @@ func (r *JobsRepository) Complete(
 		limited, limitResetsAt))
 }
 
-// ActiveLimit is the latest reset time among limited jobs whose limit has not yet
-// lifted, or nil when none is in force.
+// ActiveLimit is the latest time a limited job's limit lifts, among those still in
+// force, or nil when none is. A limit whose reset time the CLI did not say is held
+// for an hour after the job ended, so the board does not pretend it has lifted.
 func (r *JobsRepository) ActiveLimit(ctx context.Context) (*time.Time, error) {
 	var until *time.Time
 	err := r.db.QueryRow(ctx, `
-		SELECT max(limit_resets_at) FROM factory.jobs
-		WHERE limited AND limit_resets_at > now()`).Scan(&until)
+		SELECT max(until) FROM (
+			SELECT COALESCE(limit_resets_at, finished_at + interval '1 hour') AS until
+			FROM factory.jobs WHERE limited
+		) limits
+		WHERE until > now()`).Scan(&until)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}

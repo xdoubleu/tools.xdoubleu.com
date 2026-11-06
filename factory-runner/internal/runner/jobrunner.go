@@ -321,12 +321,12 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		reason = fmt.Sprintf("Timed out after %d minutes.", limit/r.minute())
 	case ctx.Err() != nil:
 		reason = "The runner shut down while the job ran."
+	case runErr != nil:
+		reason = "The sandbox could not run the job: " + runErr.Error()
 	case limited && (exit != 0 || text == ""):
 		// A rejection the agent worked past, to a finished outcome, is not a stop.
 		reason = limitReason(resetsAt)
 		res.limited, res.resetsAt = true, resetsAt
-	case runErr != nil:
-		reason = "The sandbox could not run the job: " + runErr.Error()
 	case exit != 0:
 		reason = fmt.Sprintf("The agent exited with status %d.", exit)
 	case text == "":
@@ -673,7 +673,15 @@ func (t *sessionTap) Write(p []byte) (int, error) {
 func (t *sessionTap) Limit() (bool, time.Time) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return t.limited, t.resetsAt
+	limited, resetsAt := t.limited, t.resetsAt
+	// The harness's last line may end without a newline.
+	if hit, at := t.harness.LimitFrom(t.partial); hit {
+		limited = true
+		if !at.IsZero() {
+			resetsAt = at
+		}
+	}
+	return limited, resetsAt
 }
 
 // Session is the session id seen so far, or "".

@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 
 let mockQuery = ''
@@ -138,6 +138,25 @@ describe('FactoryClient', () => {
     mockTasks({ data: board })
     rerender(<FactoryClient />)
     expect(screen.queryByText(/Limited until/)).not.toBeInTheDocument()
+  })
+
+  it('takes the notice down by itself once the limit has lifted', () => {
+    vi.useFakeTimers()
+    try {
+      const inOneMinute = new Date(Date.now() + 60_000).toISOString()
+      mockTasks({
+        data: create(ListTasksResponseSchema, { tasks: [], claudeLimitedUntil: inOneMinute })
+      })
+      render(<FactoryClient />)
+      expect(screen.getByText(/^Limited until /)).toBeInTheDocument()
+
+      act(() => {
+        vi.advanceTimersByTime(90_000)
+      })
+      expect(screen.queryByText(/Limited until/)).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('shows loading and error states', () => {

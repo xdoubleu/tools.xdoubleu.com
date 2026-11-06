@@ -36,7 +36,9 @@ its own work ([ADR-0041](adr-0041-factory-runner-pairing.md)).
   CLI said, `limit_resets_at` (kept only within the next 15 days). The runner reads
   it from the stream's `rate_limit_event` (status `rejected`) or an error result;
   those shapes come from the CLI's own strings, not a capture of a real hit. The
-  board shows the latest reset in force as "Limited until ...".
+  board shows the latest limit in force as "Limited until ...", an hour after the
+  job ended when the CLI gave no time. While one is in force auto pickup leaves a
+  Ready task that would run on Claude Code waiting, instead of failing it too.
 - **The log is polled, not pushed.** The runner forwards the harness's stream-json
   lines every 2 seconds, secrets removed, to `AppendJobEvents`; `ListJobEvents`
   serves them to a human admin in a browser. A job keeps at most 5000 events, for

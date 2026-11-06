@@ -185,10 +185,8 @@ func (h *taskConnectHandler) ListTasks(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	until, err := h.app.services.Jobs.ActiveLimit(ctx)
-	if err != nil {
-		return nil, mapError(err)
-	}
+	// The limit notice is a hint: if it cannot be read, the board still loads.
+	until, _ := h.app.services.Jobs.ActiveLimit(ctx)
 	limited := ""
 	if until != nil {
 		limited = until.UTC().Format(time.RFC3339)

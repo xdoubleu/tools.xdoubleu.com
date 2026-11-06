@@ -140,11 +140,12 @@ func limitInText(text string) (bool, time.Time) {
 	return true, time.Time{}
 }
 
-// maxLimitAhead bounds a reset time worth believing: weekly caps are the longest.
-const maxLimitAhead = 14 * 24 * time.Hour
+// maxLimitAhead bounds a reset time worth believing: weekly caps are the longest. The
+// server keeps the same window.
+const maxLimitAhead = 15 * 24 * time.Hour
 
 // epochSeconds is a reset time from epoch seconds, or zero if it is not a plausible
-// time in the next two weeks.
+// time in the next fifteen days.
 func epochSeconds(secs float64) time.Time {
 	if secs <= 0 {
 		return time.Time{}

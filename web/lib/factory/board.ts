@@ -228,12 +228,14 @@ export function prBadge(
   return { label: 'PR open', variant: 'secondary' }
 }
 
-/** A reset time as "Fri 14:30" in the viewer's zone; "" for an empty or unreadable one. */
+/** A reset time as "Fri 7 Nov, 14:30" in the viewer's zone; "" for an empty or bad one. */
 export function formatLimitTime(iso: string, timeZone?: string, locale?: string): string {
   const ms = Date.parse(iso)
   if (Number.isNaN(ms)) return ''
   return new Intl.DateTimeFormat(locale, {
     weekday: 'short',
+    day: 'numeric',
+    month: 'short',
     hour: '2-digit',
     minute: '2-digit',
     timeZone
@@ -242,7 +244,7 @@ export function formatLimitTime(iso: string, timeZone?: string, locale?: string)
 
 /**
  * The board notice while the Claude usage limit is still to lift ("Limited until Fri
- * 14:30"); "" when there is none or it has already lifted.
+ * 7 Nov, 14:30"); "" when there is none or it has already lifted.
  */
 export function limitNotice(
   until: string,

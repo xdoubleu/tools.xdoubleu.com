@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from '@/hooks/navigation'
 import {
   activeRunner,
@@ -29,6 +29,8 @@ import { PageHeader, PageHeaderLink } from '@/components/ui/page-header'
 import { Field } from '@/components/ui/field'
 import { Select } from '@/components/ui/select'
 
+const LIMIT_TICK_MS = 30_000
+
 /** The task board: one column per swipe on a phone, side by side on a wide screen. */
 export default function FactoryClient() {
   const { data, error, isLoading } = useFactoryTasks()
@@ -41,7 +43,13 @@ export default function FactoryClient() {
   const { setPickupPaused } = useFactoryActions()
   const [pickupError, setPickupError] = useState('')
   const paused = data?.pickupPaused === true
-  const limit = limitNotice(data?.claudeLimitedUntil ?? '', Date.now())
+  // Ticks, so the notice goes away by itself when the limit lifts.
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), LIMIT_TICK_MS)
+    return () => clearInterval(id)
+  }, [])
+  const limit = limitNotice(data?.claudeLimitedUntil ?? '', now)
 
   const togglePickup = async () => {
     setPickupError('')

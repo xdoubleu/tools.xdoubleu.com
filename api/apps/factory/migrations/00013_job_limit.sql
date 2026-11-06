@@ -6,10 +6,14 @@
 ALTER TABLE factory.jobs
 ADD COLUMN IF NOT EXISTS limited BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN IF NOT EXISTS limit_resets_at TIMESTAMPTZ;
+-- The board asks for the limits still in force on every poll.
+CREATE INDEX IF NOT EXISTS idx_jobs_limited ON factory.jobs (finished_at)
+WHERE limited;
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
+DROP INDEX IF EXISTS factory.idx_jobs_limited;
 ALTER TABLE factory.jobs
 DROP COLUMN IF EXISTS limit_resets_at,
 DROP COLUMN IF EXISTS limited;

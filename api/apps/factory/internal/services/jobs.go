@@ -589,6 +589,13 @@ func (s *JobService) pickUp(ctx context.Context) error {
 	if err != nil {
 		return s.cannotPickUp(ctx, next.TaskID, err)
 	}
+	// While Claude is limited a Claude job would only fail the same way, and each
+	// one would park its task in Needs you. The oldest Ready task waits.
+	if harness == models.HarnessClaudeCode {
+		if until, limitErr := s.jobs.ActiveLimit(ctx); limitErr == nil && until != nil {
+			return nil
+		}
+	}
 	approved := approvedTask(next)
 	_, err = s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: next.TaskID, RepoID: repo.ID, Harness: harness,

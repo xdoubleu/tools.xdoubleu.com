@@ -84,7 +84,8 @@ func TestOrdinaryOutputIsNotALimit(t *testing.T) {
 func TestAResetTimeThatCannotBeRightIsLeftUnsaid(t *testing.T) {
 	for name, secs := range map[string]int64{
 		"zero": 0, "negative": -5, "in the past": epochIn(-time.Hour),
-		"months ahead": epochIn(90 * 24 * time.Hour),
+		"months ahead":    epochIn(90 * 24 * time.Hour),
+		"past the window": epochIn(16 * 24 * time.Hour),
 	} {
 		line := fmt.Sprintf(`{"type":"rate_limit_event","rate_limit_info":`+
 			`{"status":"rejected","resetsAt":%d}}`, secs)

@@ -21,6 +21,24 @@ func completeLimited(t *testing.T, env jobEnv, jobID, resetsAt string, succeeded
 	require.NoError(t, err)
 }
 
+// clearLimits forgets every Claude limit: they are board-wide, so a test that sets
+// one must not leave it for the next.
+func clearLimits(t *testing.T) {
+	t.Helper()
+	_, err := testDB.Exec(context.Background(),
+		`UPDATE factory.jobs SET limited = false, limit_resets_at = NULL
+		WHERE limited`)
+	require.NoError(t, err)
+}
+
+// limitedBoard starts from a board with no limit and leaves it that way.
+func limitedBoard(t *testing.T) jobEnv {
+	t.Helper()
+	clearLimits(t)
+	t.Cleanup(func() { clearLimits(t) })
+	return browserJobEnv(t)
+}
+
 func claudeLimitedUntil(t *testing.T, env jobEnv) string {
 	t.Helper()
 	board, err := env.tasks.ListTasks(context.Background(), &factoryv1.ListTasksRequest{})
@@ -29,7 +47,7 @@ func claudeLimitedUntil(t *testing.T, env jobEnv) string {
 }
 
 func TestAJobTheClaudeLimitStoppedParksItsTaskAndShowsWhenTheLimitLifts(t *testing.T) {
-	env := browserJobEnv(t)
+	env := limitedBoard(t)
 	task := env.newTask(t, "hits the limit")
 	env.run(t, task.Id, "")
 	job := env.claim(t)
@@ -52,7 +70,7 @@ func TestAJobTheClaudeLimitStoppedParksItsTaskAndShowsWhenTheLimitLifts(t *testi
 }
 
 func TestALimitedJobNeverCountsAsSucceededWhateverTheRunnerSays(t *testing.T) {
-	env := browserJobEnv(t)
+	env := limitedBoard(t)
 	task := env.newTask(t, "claims success")
 	env.run(t, task.Id, "")
 	job := env.claim(t)
@@ -62,7 +80,15 @@ func TestALimitedJobNeverCountsAsSucceededWhateverTheRunnerSays(t *testing.T) {
 	got := env.task(t, task.Id)
 	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_FAILED, got.Jobs[0].Status)
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Task.Status)
-	assert.Empty(t, claudeLimitedUntil(t, env), "no reset time, nothing to show")
+	assertHeldForAnHour(t, claudeLimitedUntil(t, env))
+}
+
+// assertHeldForAnHour checks the board assumes an hour when no reset time was said.
+func assertHeldForAnHour(t *testing.T, until string) {
+	t.Helper()
+	at, err := time.Parse(time.RFC3339, until)
+	require.NoError(t, err, "the limit is still shown: %q", until)
+	assert.WithinDuration(t, time.Now().Add(time.Hour), at, 2*time.Minute)
 }
 
 func TestAResetTimeThatCannotBeRightIsDropped(t *testing.T) {
@@ -72,7 +98,7 @@ func TestAResetTimeThatCannotBeRightIsDropped(t *testing.T) {
 		"not a time":       "tomorrow-ish",
 		"a date, no clock": "2030-01-01",
 	} {
-		env := browserJobEnv(t)
+		env := limitedBoard(t)
 		task := env.newTask(t, "odd reset "+name)
 		env.run(t, task.Id, "")
 		job := env.claim(t)
@@ -82,12 +108,12 @@ func TestAResetTimeThatCannotBeRightIsDropped(t *testing.T) {
 		got := env.task(t, task.Id)
 		assert.True(t, got.Jobs[0].Limited, name)
 		assert.Empty(t, got.Jobs[0].LimitResetsAt, name)
-		assert.Empty(t, claudeLimitedUntil(t, env), name)
+		assertHeldForAnHour(t, claudeLimitedUntil(t, env))
 	}
 }
 
 func TestOnlyTheLatestLimitStillInForceIsShown(t *testing.T) {
-	env := browserJobEnv(t)
+	env := limitedBoard(t)
 	soon := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
 	later := time.Now().Add(5 * time.Hour).UTC().Truncate(time.Second)
 	for _, at := range []time.Time{later, soon} {
@@ -100,7 +126,7 @@ func TestOnlyTheLatestLimitStillInForceIsShown(t *testing.T) {
 }
 
 func TestAPlainFailureLeavesTheBoardUnlimited(t *testing.T) {
-	env := browserJobEnv(t)
+	env := limitedBoard(t)
 	task := env.newTask(t, "just fails")
 	env.run(t, task.Id, "")
 	_, err := env.runner.CompleteJob(bearer(env.token),
@@ -113,6 +139,8 @@ func TestAPlainFailureLeavesTheBoardUnlimited(t *testing.T) {
 }
 
 func TestSlackSaysClaudesLimitStoppedAJobAndUntilWhen(t *testing.T) {
+	clearLimits(t)
+	t.Cleanup(func() { clearLimits(t) })
 	env, slack := slackEnv(t)
 	task := env.newTask(t, "limit in slack")
 	env.run(t, task.Id, "")
@@ -128,4 +156,31 @@ func TestSlackSaysClaudesLimitStoppedAJobAndUntilWhen(t *testing.T) {
 	)
 	assert.Contains(t, slack.last(), "limit in slack")
 	assert.Contains(t, slack.last(), "(until "+resets.Format("2006-01-02 15:04")+" UTC)")
+}
+
+func TestAClaudeLimitInForceHoldsBackAutoPickupOfAClaudeTask(t *testing.T) {
+	env := limitedBoard(t)
+	first := env.newTask(t, "hits the limit")
+	env.run(t, first.Id, "")
+	completeLimited(t, env, env.claim(t).Id,
+		time.Now().Add(2*time.Hour).UTC().Format(time.RFC3339), false)
+
+	autoPickup(t, true)
+	// autoPickup clears limits to start clean; set the limit again for this test.
+	second := env.newTask(t, "waits for the limit")
+	env.ready(t, second.Id)
+	_, err := testDB.Exec(context.Background(), `
+		UPDATE factory.jobs SET limited = true,
+			limit_resets_at = now() + interval '2 hours'
+		WHERE task_id = $1`, first.Id)
+	require.NoError(t, err)
+
+	assert.Nil(t, env.claim(t), "a Claude job would only hit the same limit")
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY,
+		env.task(t, second.Id).Task.Status, "it waits, it is not parked")
+
+	clearLimits(t)
+	picked := env.claim(t)
+	require.NotNil(t, picked, "once the limit has lifted it is picked up")
+	assert.Equal(t, second.Id, picked.TaskId)
 }

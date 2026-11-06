@@ -3,6 +3,7 @@ package runner_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -143,4 +144,34 @@ func TestTheServerIsToldAboutALimitInTheRequestBody(t *testing.T) {
 	}))
 	assert.NotContains(t, body, "limited", "absent when not limited")
 	assert.NotContains(t, body, "limitResetsAt")
+}
+
+func TestALimitLineWithoutATrailingNewlineIsStillSeen(t *testing.T) {
+	reset := time.Now().Add(time.Hour).Unix()
+	env := newEnv(t, func(_ context.Context, spec runner.SandboxSpec) (int, error) {
+		// The CLI's last line, cut off without a newline.
+		_, _ = io.WriteString(spec.Log, rejectedAt(reset))
+		return 1, nil
+	}, newJob())
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	got := env.api.done()[0]
+	assert.True(t, got.limited)
+	assert.Equal(t, time.Unix(reset, 0).UTC(), got.resetsAt)
+}
+
+func TestASandboxFailureIsNotHiddenBehindAnEarlierRejection(t *testing.T) {
+	env := newEnv(t, func(_ context.Context, spec runner.SandboxSpec) (int, error) {
+		_, _ = io.WriteString(spec.Log, rejectedAt(time.Now().Add(time.Hour).Unix())+"\n")
+		return -1, errors.New("the VM died")
+	}, newJob())
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	got := env.api.done()[0]
+	assert.False(t, got.limited, "the real error is what the owner needs to see")
+	assert.Contains(t, got.outcome, "The sandbox could not run the job: the VM died")
 }
