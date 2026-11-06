@@ -4,6 +4,11 @@
 # See docs/adr-0014-start-finish-task-enforcement.md.
 set -uo pipefail
 
+# A factory job never ships its own work: the host pushes it and opens the PR.
+if [ -n "${FACTORY_JOB:-}" ]; then
+  exit 0
+fi
+
 input=$(cat)
 stop_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // false')
 if [ "$stop_active" = "true" ]; then

@@ -325,6 +325,39 @@ else
   fail "edit in the main checkout of a repo, never having entered a worktree -> denied" "$out"
 fi
 
+# case: a factory job (FACTORY_JOB set by the runner) edits in its own checkout, which is
+# not a worktree, and writes its outcome outside it; the guard stands aside
+out=$(FACTORY_JOB=0a1b2c3d run_editguard "$(jq -n --arg cwd "$main_repo" --arg fp "$main_repo/docs/x.md" '{cwd:$cwd, tool_input:{file_path:$fp}}')")
+[ -z "$out" ] && pass "edit in a factory job's checkout is silent" || fail "edit in a factory job's checkout is silent" "$out"
+
+out=$(FACTORY_JOB=0a1b2c3d run_editguard "$(jq -n --arg cwd "$main_repo" '{cwd:$cwd, tool_input:{file_path:"/outcome/outcome.md"}}')")
+[ -z "$out" ] && pass "a factory job writes its outcome file" || fail "a factory job writes its outcome file" "$out"
+
+# case: an empty FACTORY_JOB does not switch the guard off
+out=$(FACTORY_JOB="" run_editguard "$(jq -n --arg cwd "$main_repo" --arg fp "$main_repo/docs/x.md" '{cwd:$cwd, tool_input:{file_path:$fp}}')")
+if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' > /dev/null 2>&1; then
+  pass "an empty FACTORY_JOB leaves the guard on"
+else
+  fail "an empty FACTORY_JOB leaves the guard on" "$out"
+fi
+
+# case: in a worktree, a factory job is exempt too (the job's env decides, not the path)
+out=$(FACTORY_JOB=0a1b2c3d run_editguard "$(jq -n --arg cwd "$wt" --arg fp "$repo_root/docs/x.md" '{cwd:$cwd, tool_input:{file_path:$fp}}')")
+[ -z "$out" ] && pass "a factory job is exempt inside a worktree too" || fail "a factory job is exempt inside a worktree too" "$out"
+
+# case: the Stop hook does not nag a factory job, even in a worktree-shaped path with
+# commits ahead (the host ships a job's work, not the agent)
+repo=$(setup_repo "factory-stop")
+git -C "$repo" checkout -q -b agent/job
+echo y > "$repo/g.txt" && git -C "$repo" add g.txt && git -C "$repo" commit -q -m work
+gh_stub 0
+out=$(FACTORY_JOB=0a1b2c3d PATH="$STUB_DIR:$PATH" run_stop "$(jq -n --arg cwd "$repo" '{cwd:$cwd, stop_hook_active:false}')")
+[ -z "$out" ] && pass "Stop hook is silent for a factory job" || fail "Stop hook is silent for a factory job" "$out"
+out=$(PATH="$STUB_DIR:$PATH" run_stop "$(jq -n --arg cwd "$repo" '{cwd:$cwd, stop_hook_active:false}')")
+printf '%s' "$out" | jq -e '.decision == "block"' > /dev/null 2>&1 &&
+  pass "the same work blocks Stop outside a factory job" ||
+  fail "the same work blocks Stop outside a factory job" "$out"
+
 # --- PostToolUse lint/docs hook -----------------------------------------
 LINTDOCS_HOOK="$ROOT_DIR/.claude/hooks/post-edit-lint-docs.sh"
 stub=$(mktemp -d)

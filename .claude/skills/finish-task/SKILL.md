@@ -12,6 +12,8 @@ description: >-
 
 Closing half of every task (pairs with `start-task`); implements
 [`docs/convention-task-lifecycle.md`](../../../docs/convention-task-lifecycle.md).
+**Factory job (`FACTORY_JOB` set):** follow [Factory jobs](../../../docs/convention-task-lifecycle.md) instead.
+
 Run the steps in order. Opening the PR is pre-authorized; a pushed branch
 without a PR, or running CI, isn't done.
 
@@ -49,8 +51,8 @@ rely on CI's Build Grafana job, and say so in the PR body.
 
 A board task isn't a GitHub issue: the PR links it and carries **no closing
 keyword**. Put `Task: <title> (<id>)` at the top of the PR body, and after
-`ship-pr` opens it `factory_move_task(id, "in_review")`. A merge moves it to
-Testing; the owner moves it to Done after checking it.
+`ship-pr` opens it `factory_move_task(id, "in_review")`. After the merge move it
+to `testing` (the runner moves only its own PRs); the owner moves it to Done.
 
 - **`## Follow-up: your turn` in the task body** (only the heading counts, not
   prose): say in the PR body that the task stays open for that step. Move it to
@@ -99,8 +101,7 @@ The gate runs before review and doesn't replace it
 **B — no `feature` label: flag what needs a closer look.** Append (never
 overwrite: `gh pr view --json body -q .body`, then `gh pr edit <n> --body
 ...`) a `## Manual review needed` section naming **every** triggered signal,
-each with a specific "what to double check" (e.g. migration:
-backward-compatible), when the change is tooling/harness or
+each with a specific "what to double check", when the change is tooling/harness or
 larger/architectural:
 
 - Tooling/harness: `CLAUDE.md`, Makefile targets, lint config,
@@ -123,8 +124,7 @@ Once CI is green, run `session-retro`; its fixes ship as their own board task
 
 ## Missing skills or `gh`
 
-Check both (`command -v gh`); on the web there is neither, so opening the PR is
-on you. Say what's missing:
+Check both (`command -v gh`); the web has neither. Say what's missing:
 
 - **`ship-pr` loaded, no `gh`**: follow its "When `gh` isn't available"
   section. Never arm auto-merge or merge early.
