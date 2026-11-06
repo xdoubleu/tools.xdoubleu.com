@@ -15,6 +15,10 @@ const (
 	// DefaultServer is the API root the runner talks to.
 	DefaultServer = "https://tools.xdoubleu.com/api"
 
+	// DefaultBotEmail is the address commits carry until `config bot-email` sets the
+	// factory App's. It is on a reserved domain, so it matches no GitHub account.
+	DefaultBotEmail = "factory-bot@users.invalid"
+
 	// DefaultImage is the job image `make image` builds.
 	DefaultImage = "factory-job:dev"
 
@@ -39,6 +43,31 @@ type Config struct {
 	// registry access; empty means the job gets none.
 	GoModCache string `json:"goModCache,omitempty"`
 	NPMCache   string `json:"npmCache,omitempty"`
+	// BotEmail is the author email of a job's commits; empty means DefaultBotEmail.
+	BotEmail string `json:"botEmail,omitempty"`
+}
+
+// emailPattern is a plain address, nothing a commit header could be bent by. Brackets
+// are allowed for an App's "<id>+<slug>[bot]" noreply address.
+var emailPattern = regexp.MustCompile(
+	`^[A-Za-z0-9._+\[\]-]+@[A-Za-z0-9.-]+$`,
+)
+
+// AuthorEmail is the address job commits carry.
+func (c Config) AuthorEmail() string {
+	if c.BotEmail == "" {
+		return DefaultBotEmail
+	}
+	return c.BotEmail
+}
+
+// SetBotEmail chooses the commit author address.
+func (c *Config) SetBotEmail(email string) error {
+	if !emailPattern.MatchString(email) {
+		return fmt.Errorf("%q is not an email address", email)
+	}
+	c.BotEmail = email
+	return nil
 }
 
 // JobImage is the image jobs run in.
@@ -112,6 +141,7 @@ func LoadConfig(path string) (Config, error) {
 		DataDir:    "",
 		GoModCache: "",
 		NPMCache:   "",
+		BotEmail:   "",
 	}
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {

@@ -41,6 +41,7 @@ func TestTheJobRunnerIsBuiltFromTheConfigOnAMacThatCanRunJobs(t *testing.T) {
 	cfg := runner.Config{
 		Server: "https://example.com/api", Repos: []string{"a/b"}, Image: "job:v2",
 		DataDir: filepath.Join(e.app.home, "data"), GoModCache: "/c/go", NPMCache: "/c/npm",
+		BotEmail: "",
 	}
 	require.NoError(t, cfg.Save(runner.ConfigPath(e.app.home)))
 
@@ -75,6 +76,7 @@ func TestAMacWithoutTheRightContainerCLICannotBuildTheJobRunner(t *testing.T) {
 	cfg := runner.Config{
 		Server: runner.DefaultServer, Repos: nil, Image: "", DataDir: "",
 		GoModCache: "", NPMCache: "",
+		BotEmail: "",
 	}
 	for name, exec := range map[string]versionExec{
 		"missing":      {out: "", err: errors.New("container: not found")},
@@ -92,7 +94,8 @@ func TestADataDirectoryThatCannotBeCreatedFailsTheBuild(t *testing.T) {
 	require.NoError(t, os.WriteFile(blocker, nil, 0o600))
 	cfg := runner.Config{
 		Server: runner.DefaultServer, Repos: nil, Image: "", GoModCache: "", NPMCache: "",
-		DataDir: filepath.Join(blocker, "d"),
+		DataDir:  filepath.Join(blocker, "d"),
+		BotEmail: "",
 	}
 
 	_, err := newJobRunner(context.Background(), e.app, cfg, "t", quietLog(),

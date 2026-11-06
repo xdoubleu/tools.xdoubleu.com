@@ -62,6 +62,14 @@ type JobRunner struct {
 	Git     *Git
 	Sandbox Sandbox
 	Harness Harness
+	// ClaudeToken returns the Claude setup-token a Claude Code job runs on; it is
+	// put in the VM's environment (adr-0043's conservative route) and kept out of
+	// commits and the outcome like any secret. Nil sets none.
+	ClaudeToken func() (string, error)
+	// AuthorEmail is the address commits carry; the name is the job's board account.
+	AuthorEmail string
+	// Proxy builds a job's egress proxy; nil gives the job none.
+	Proxy func(job *ClaimedJob) (ProxyListener, error)
 	// Activity, when set, holds the Mac awake and blocks self-update while a job runs.
 	Activity *Activity
 	// DataDir holds <DataDir>/jobs/<job id>/{clone,outcome}.
@@ -267,13 +275,15 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	if err != nil {
 		return failed("Could not prepare the clone: " + err.Error())
 	}
-	if err = prepareOutcomeDir(outcomeDir); err != nil {
-		return failed("Could not prepare the outcome directory: " + err.Error())
+	for name, d := range map[string]string{"outcome": outcomeDir, "session": sessionDir} {
+		if err = prepareOutcomeDir(d); err != nil {
+			return failed("Could not prepare the " + name + " directory: " + err.Error())
+		}
 	}
-	if err = prepareOutcomeDir(sessionDir); err != nil {
-		return failed("Could not prepare the session directory: " + err.Error())
+	launch, err := r.launchOf(job)
+	if err != nil {
+		return failed("Could not " + err.Error())
 	}
-	command, env := r.invocation(job)
 
 	limit := r.limitFor(job)
 	runCtx, cancel := context.WithTimeout(ctx, limit)
@@ -285,7 +295,8 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		partial: nil,
 		session: "",
 	}
-	events := newEventTap(append(r.secrets(), job.MCPClientSecret))
+	secrets := append(r.secrets(), launch.secrets...)
+	events := newEventTap(secrets)
 	var stopped atomic.Bool
 	wait := r.watch(runCtx, cancel, job.ID, tap, events, &stopped)
 
@@ -293,9 +304,10 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		CloneDir:      cloneDir,
 		OutcomeDir:    outcomeDir,
 		SessionDir:    sessionDir,
-		Env:           env,
+		Env:           launch.env,
 		SetupCommands: job.SetupCommands,
-		Command:       command,
+		Command:       launch.command,
+		Proxy:         launch.proxy,
 		Stdin:         fmt.Sprintf(preamble, job.Branch) + "\n\n" + job.Prompt,
 		Log:           io.MultiWriter(tap, events),
 	})
@@ -322,15 +334,51 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	case text == "":
 		reason = "The agent exited cleanly but wrote no outcome file."
 	default:
-		return r.publishable(ctx, job, cloneDir, since, text, res)
+		return r.publishable(ctx, job, cloneDir, since, text, res, secrets)
 	}
 	res.outcome = strings.TrimSpace(reason + "\n\n" + text)
 	return res
 }
 
+// launch is what a job starts with: its command, environment and egress proxy.
+type launch struct {
+	command []string
+	env     map[string]string
+	proxy   ProxyListener
+	// secrets are this job's own credentials, which must never reach a commit, a
+	// log line or the outcome.
+	secrets []string
+}
+
+// launchOf gathers a job's launch inputs; an error says why it cannot start.
+func (r *JobRunner) launchOf(job *ClaimedJob) (launch, error) {
+	command, env, err := r.invocation(job)
+	if err != nil {
+		return launch{}, fmt.Errorf("prepare the job: %w", err)
+	}
+	secrets := []string{job.MCPClientSecret}
+	if token := env["CLAUDE_CODE_OAUTH_TOKEN"]; token != "" {
+		// The token is in the VM only to be sent to Anthropic through the proxy;
+		// without one it would sit there for nothing.
+		if r.Proxy == nil {
+			return launch{}, errors.New("prepare the job: a Claude token needs the egress proxy")
+		}
+		secrets = append(secrets, token)
+	}
+	var proxy ProxyListener
+	if r.Proxy != nil {
+		if proxy, err = r.Proxy(job); err != nil {
+			return launch{}, fmt.Errorf("prepare the egress proxy: %w", err)
+		}
+	}
+	return launch{command: command, env: env, proxy: proxy, secrets: secrets}, nil
+}
+
 // invocation is what the sandbox runs for the job, and its environment: a fresh
 // session, or a Reply's resumed one.
-func (r *JobRunner) invocation(job *ClaimedJob) ([]string, map[string]string) {
+func (r *JobRunner) invocation(
+	job *ClaimedJob,
+) ([]string, map[string]string, error) {
 	harness := r.harnessFor(job)
 	command := harness.Command()
 	if job.ResumeSessionID != "" {
@@ -339,7 +387,18 @@ func (r *JobRunner) invocation(job *ClaimedJob) ([]string, map[string]string) {
 	env := harness.SessionEnv(SandboxSessionDir)
 	env["FACTORY_JOB"] = job.ID
 	env["FACTORY_OUTCOME_PATH"] = SandboxOutcomePath
-	return command, env
+	author := cmp.Or(job.MCPClientID, "factory")
+	email := cmp.Or(r.AuthorEmail, DefaultBotEmail)
+	env["GIT_AUTHOR_NAME"], env["GIT_COMMITTER_NAME"] = author, author
+	env["GIT_AUTHOR_EMAIL"], env["GIT_COMMITTER_EMAIL"] = email, email
+	if _, claude := harness.(ClaudeCode); claude && r.ClaudeToken != nil {
+		token, err := r.ClaudeToken()
+		if err != nil {
+			return nil, nil, fmt.Errorf("the Claude token: %w", err)
+		}
+		env["CLAUDE_CODE_OAUTH_TOKEN"] = token
+	}
+	return command, env, nil
 }
 
 // prepareClone makes the job's clone: a new branch off the base, or for a Reply's
@@ -374,8 +433,8 @@ func (r *JobRunner) publishable(
 	job *ClaimedJob,
 	cloneDir, since, text string,
 	res result,
+	secrets []string,
 ) result {
-	secrets := append(r.secrets(), job.MCPClientSecret)
 	reviewed, err := r.Git.Inspect(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
 		job.Branch, job.ID, cloneDir, since, secrets)
 	if err == nil && leaks(text, secrets) {

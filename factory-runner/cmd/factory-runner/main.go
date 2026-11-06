@@ -34,6 +34,8 @@ const usage = `usage:
   factory-runner config repos list
   factory-runner config image <ref>
   factory-runner config data|gocache|npmcache <dir>
+  factory-runner config bot-email <address>
+  factory-runner config secret claude|openrouter   (the value is read from stdin)
   factory-runner version
 `
 
@@ -44,11 +46,15 @@ type app struct {
 	stdout   io.Writer
 	stderr   io.Writer
 	store    runner.TokenStore
-	newBeat  func(server string) pairHeartbeater
-	daemon   daemonFunc
-	updater  func(server string) (runner.SelfUpdater, error)
-	activity *runner.Activity
-	load     func(plistPath string) error
+	secrets  runner.SecretStore
+	stdin    io.Reader
+	// interactive is whether stdin is a terminal, where a secret would be echoed.
+	interactive bool
+	newBeat     func(server string) pairHeartbeater
+	daemon      daemonFunc
+	updater     func(server string) (runner.SelfUpdater, error)
+	activity    *runner.Activity
+	load        func(plistPath string) error
 	// jobs builds the claim loop; nil runs the heartbeat alone.
 	jobs jobsFunc
 }

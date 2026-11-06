@@ -117,6 +117,7 @@ func spec(t *testing.T, log io.Writer) runner.SandboxSpec {
 		Env:           map[string]string{"FACTORY_JOB": "0a1b2c3d-4e5f", "SECRET": "s3cret"},
 		SetupCommands: "npm ci",
 		Command:       []string{"claude", "-p"},
+		Proxy:         nil,
 		Stdin:         "do the thing",
 		Log:           log,
 	}

@@ -27,7 +27,7 @@ func newJobRunner(
 		Image:      cfg.JobImage(),
 		Exec:       exec,
 		Proxy:      nil,
-		ProxyPort:  0,
+		ProxyPort:  runner.EgressProxyPort,
 		GoModCache: cfg.GoModCache,
 		NPMCache:   cfg.NPMCache,
 		CPUs:       "",
@@ -55,8 +55,15 @@ func newJobRunner(
 			Run:        nil,
 			RunWithEnv: nil,
 		},
-		Sandbox:      box,
-		Harness:      runner.ClaudeCode{},
+		Sandbox: box,
+		Harness: runner.ClaudeCode{},
+		ClaudeToken: func() (string, error) {
+			return a.secrets.GetSecret(runner.SecretClaude)
+		},
+		AuthorEmail: cfg.BotEmail,
+		Proxy: func(job *runner.ClaimedJob) (runner.ProxyListener, error) {
+			return newJobProxy(cfg, job, a.secrets, log)
+		},
 		Activity:     a.activity,
 		DataDir:      dataDir,
 		Secrets:      []string{token},

@@ -5,7 +5,7 @@ Pairs this Mac with the board; runs jobs → [`adr-0041`](../docs/adr-0041-facto
 ## Structure
 
 ```text
-cmd/factory-runner/   main.go (the tested app type), config.go, entry.go, jobs.go (builds the claim loop)
+cmd/factory-runner/   main.go (the tested app type), config.go, entry.go, jobs.go, jobproxy.go (the claim loop; a job's proxy)
 internal/runner/
   client.go, jobs_client.go   the server calls
   daemon.go                   heartbeat loop, backoff
