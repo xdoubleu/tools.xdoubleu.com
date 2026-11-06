@@ -15,7 +15,7 @@ import {
   priorityLabel,
   statusLabel
 } from '@/lib/factory/board'
-import { MoveSelect } from '@/components/factory/TaskCard'
+import { MoveSelect } from '@/components/factory/MoveSelect'
 import JobLog from '@/components/factory/JobLog'
 import TaskDialog from '@/components/factory/TaskDialog'
 import { Alert } from '@/components/ui/alert'

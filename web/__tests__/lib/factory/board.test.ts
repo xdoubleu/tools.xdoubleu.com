@@ -19,6 +19,8 @@ import {
   activeRunner,
   actorLabel,
   HARNESSES,
+  distinctLabels,
+  filterByLabel,
   filterByRepo,
   groupByStatus,
   harnessLabel,
@@ -104,6 +106,19 @@ describe('board', () => {
     expect(filterByRepo(tasks, '')).toBe(tasks)
     expect(filterByRepo(tasks, 'r2').map((t) => t.id)).toEqual(['b'])
     expect(filterByRepo(tasks, 'nope')).toEqual([])
+  })
+
+  it('filters tasks by label, and lists the distinct labels across them sorted', () => {
+    const tasks = [
+      create(TaskSchema, { id: 'a', labels: ['ui', 'bug'] }),
+      create(TaskSchema, { id: 'b', labels: ['bug'] }),
+      create(TaskSchema, { id: 'c', labels: [] })
+    ]
+    expect(distinctLabels(tasks)).toEqual(['bug', 'ui'])
+    expect(distinctLabels([])).toEqual([])
+    expect(filterByLabel(tasks, '')).toBe(tasks)
+    expect(filterByLabel(tasks, 'bug').map((t) => t.id)).toEqual(['a', 'b'])
+    expect(filterByLabel(tasks, 'nope')).toEqual([])
   })
 
   it('reads the repos of a response, and none before it loads', () => {

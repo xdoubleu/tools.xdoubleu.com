@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type DragEvent } from 'react'
 import { useSearchParams } from '@/hooks/navigation'
 import {
   activeRunner,
   awaitingPickupApproval,
+  distinctLabels,
+  filterByLabel,
   filterByRepo,
   groupByStatus,
   limitNotice,
   repoLabel,
   reposOf,
   runnersOf,
-  runnerState
+  runnerState,
+  TASK_DATA_TYPE
 } from '@/lib/factory/board'
 import {
   useFactoryActions,
@@ -17,9 +20,11 @@ import {
   useFactoryRunners,
   useFactoryTasks
 } from '@/hooks/useFactory'
+import type { Task } from '@/lib/gen/factory/v1/factory_pb'
 import TaskCard from '@/components/factory/TaskCard'
 import TaskDetail from '@/components/factory/TaskDetail'
 import TaskDialog from '@/components/factory/TaskDialog'
+import { Code, ConnectError } from '@connectrpc/connect'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,6 +33,7 @@ import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader, PageHeaderLink } from '@/components/ui/page-header'
 import { Field } from '@/components/ui/field'
 import { Select } from '@/components/ui/select'
+import { cn } from '@/lib/cn'
 
 const LIMIT_TICK_MS = 30_000
 
@@ -37,11 +43,15 @@ export default function FactoryClient() {
   const repos = reposOf(useFactoryRepos().data)
   const runner = runnerState(activeRunner(runnersOf(useFactoryRunners().data)), Date.now())
   const [repoFilter, setRepoFilter] = useState('')
+  const [labelFilter, setLabelFilter] = useState('')
   // A link such as /factory?task=<id> (from a Slack message) opens that task.
   const [openId, setOpenId] = useState<string | null>(useSearchParams().get('task'))
   const [creating, setCreating] = useState(false)
-  const { setPickupPaused } = useFactoryActions()
+  const { setPickupPaused, move } = useFactoryActions()
   const [pickupError, setPickupError] = useState('')
+  const [dragError, setDragError] = useState('')
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOverStatus, setDragOverStatus] = useState<number | null>(null)
   const paused = data?.pickupPaused === true
   // Ticks, so the notice goes away by itself when the limit lifts.
   const [now, setNow] = useState(() => Date.now())
@@ -62,8 +72,34 @@ export default function FactoryClient() {
     }
   }
 
+  const visible = data ? filterByLabel(filterByRepo(data.tasks, repoFilter), labelFilter) : []
+  const labels = distinctLabels(data?.tasks ?? [])
+
+  const dropTask = async (task: Task, status: number) => {
+    setDragError('')
+    if (task.status === status) return
+    try {
+      await move(task.id, status)
+    } catch (err) {
+      setDragError(
+        ConnectError.from(err).code === Code.PermissionDenied
+          ? 'Only you, in the browser, can mark a task Ready.'
+          : 'Couldn\u2019t move the task. Try again.'
+      )
+    }
+  }
+
+  const onDrop = (status: number) => (event: DragEvent<HTMLElement>) => {
+    event.preventDefault()
+    setDragOverStatus(null)
+    const id = event.dataTransfer.getData(TASK_DATA_TYPE)
+    const task = data?.tasks.find((t) => t.id === id)
+    setDraggingId(null)
+    if (task) void dropTask(task, status)
+  }
+
   return (
-    <PageContainer>
+    <PageContainer className="flex h-dvh flex-col lg:h-[calc(100dvh-9rem)]">
       <PageHeader
         title="Factory"
         actions={
@@ -97,48 +133,92 @@ export default function FactoryClient() {
           {pickupError}
         </Alert>
       )}
-      {repos.length > 1 && (
-        <Field label="Repo" htmlFor="factory-repo-filter" className="mb-4">
-          <Select
-            id="factory-repo-filter"
-            value={repoFilter}
-            onChange={(e) => setRepoFilter(e.target.value)}
-          >
-            <option value="">All repos</option>
-            {repos.map((r) => (
-              <option key={r.id} value={r.id}>
-                {repoLabel(r)}
-              </option>
-            ))}
-          </Select>
-        </Field>
+      <div className="mb-4 flex flex-wrap gap-4">
+        {repos.length > 1 && (
+          <Field label="Repo" htmlFor="factory-repo-filter" className="min-w-40">
+            <Select
+              id="factory-repo-filter"
+              value={repoFilter}
+              onChange={(e) => setRepoFilter(e.target.value)}
+            >
+              <option value="">All repos</option>
+              {repos.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {repoLabel(r)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
+        {labels.length > 0 && (
+          <Field label="Label" htmlFor="factory-label-filter" className="min-w-40">
+            <Select
+              id="factory-label-filter"
+              value={labelFilter}
+              onChange={(e) => setLabelFilter(e.target.value)}
+            >
+              <option value="">All labels</option>
+              {labels.map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
+      </div>
+      {dragError && (
+        <Alert tone="danger" className="mb-4">
+          {dragError}
+        </Alert>
       )}
       {error && !data && <ErrorState what="the board" />}
       {isLoading && !data && <LoadingState label="board" />}
       {data && (
-        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 2xl:mx-0 2xl:grid 2xl:grid-cols-7 2xl:overflow-visible 2xl:px-0">
-          {groupByStatus(filterByRepo(data.tasks, repoFilter)).map((column) => (
+        <div className="-mx-4 flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 2xl:mx-0 2xl:grid 2xl:grid-cols-7 2xl:overflow-visible 2xl:px-0">
+          {groupByStatus(visible).map((column) => (
             <section
               key={column.status}
               aria-label={column.label}
-              className="w-4/5 shrink-0 snap-center space-y-2 sm:w-1/2 2xl:w-auto"
+              className={cn(
+                'flex w-4/5 min-h-0 shrink-0 snap-center flex-col space-y-2 rounded-2xl sm:w-1/2 2xl:w-auto',
+                dragOverStatus === column.status && 'ring-2 ring-accent/60'
+              )}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragOverStatus(column.status)
+              }}
+              onDragLeave={() => setDragOverStatus(null)}
+              onDrop={onDrop(column.status)}
             >
               <h2 className="text-sm font-semibold">
                 {column.label} <span className="text-muted">{column.tasks.length}</span>
               </h2>
-              {column.tasks.length === 0 ? (
-                <EmptyState compact>Nothing here.</EmptyState>
-              ) : (
-                column.tasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    repo={repos.length > 1 ? repos.find((r) => r.id === task.repoId) : undefined}
-                    awaitingApproval={awaitingPickupApproval(task, repos)}
-                    onOpen={setOpenId}
-                  />
-                ))
-              )}
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+                {column.tasks.length === 0 ? (
+                  <EmptyState compact>Nothing here.</EmptyState>
+                ) : (
+                  column.tasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      repo={repos.length > 1 ? repos.find((r) => r.id === task.repoId) : undefined}
+                      awaitingApproval={awaitingPickupApproval(task, repos)}
+                      dragging={draggingId === task.id}
+                      onOpen={setOpenId}
+                      onDragStart={(e, t) => {
+                        e.dataTransfer.setData(TASK_DATA_TYPE, t.id)
+                        e.dataTransfer.effectAllowed = 'move'
+                        setDraggingId(t.id)
+                      }}
+                      onDragEnd={() => {
+                        setDraggingId(null)
+                        setDragOverStatus(null)
+                      }}
+                    />
+                  ))
+                )}
+              </div>
             </section>
           ))}
         </div>

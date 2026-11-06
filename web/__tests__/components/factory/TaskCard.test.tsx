@@ -1,13 +1,6 @@
-import React from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
-import { Code, ConnectError } from '@connectrpc/connect'
-
-const mockMove = vi.fn()
-vi.mock('@/hooks/useFactory', () => ({
-  useFactoryActions: vi.fn(() => ({ move: mockMove }))
-}))
-
+import { TASK_DATA_TYPE } from '@/lib/factory/board'
 import TaskCard from '@/components/factory/TaskCard'
 import { RepoSchema, TaskPriority, TaskSchema, TaskStatus } from '@/lib/gen/factory/v1/factory_pb'
 
@@ -20,14 +13,16 @@ const task = create(TaskSchema, {
   commentCount: 2
 })
 
-beforeEach(() => {
-  vi.clearAllMocks()
-  mockMove.mockResolvedValue(undefined)
-})
+const props = {
+  task,
+  onOpen: vi.fn(),
+  onDragStart: vi.fn(),
+  onDragEnd: vi.fn()
+}
 
 describe('TaskCard', () => {
   it('shows title, priority, labels and comment count', () => {
-    render(<TaskCard task={task} onOpen={vi.fn()} />)
+    render(<TaskCard {...props} />)
     expect(screen.getByText('Fix login')).toBeInTheDocument()
     expect(screen.getByText('P0')).toBeInTheDocument()
     expect(screen.getByText('bug')).toBeInTheDocument()
@@ -35,70 +30,63 @@ describe('TaskCard', () => {
   })
 
   it('shows where the pull request stands, only when there is one', () => {
-    const { rerender } = render(<TaskCard task={task} onOpen={vi.fn()} />)
+    const { rerender } = render(<TaskCard {...props} />)
     expect(screen.queryByTestId('pr-badge')).not.toBeInTheDocument()
 
     const failing = create(TaskSchema, { ...task, prState: 'open', prCi: 'failing' })
-    rerender(<TaskCard task={failing} onOpen={vi.fn()} />)
+    rerender(<TaskCard {...props} task={failing} />)
     expect(screen.getByTestId('pr-badge')).toHaveTextContent('CI failing')
   })
 
   it('says when a Ready task is waiting for its text to be approved', () => {
-    const { rerender } = render(<TaskCard task={task} onOpen={vi.fn()} />)
+    const { rerender } = render(<TaskCard {...props} />)
     expect(screen.queryByTestId('approval-hint')).not.toBeInTheDocument()
 
-    rerender(<TaskCard task={task} awaitingApproval onOpen={vi.fn()} />)
+    rerender(<TaskCard {...props} awaitingApproval />)
     expect(screen.getByTestId('approval-hint')).toHaveTextContent('Not approved for auto pickup')
   })
 
   it('omits the comment count when there are no comments', () => {
-    render(<TaskCard task={create(TaskSchema, { ...task, commentCount: 0 })} onOpen={vi.fn()} />)
+    render(<TaskCard {...props} task={create(TaskSchema, { ...task, commentCount: 0 })} />)
     expect(screen.queryByText(/comments/)).not.toBeInTheDocument()
   })
 
   it('opens the task from its title', () => {
     const onOpen = vi.fn()
-    render(<TaskCard task={task} onOpen={onOpen} />)
+    render(<TaskCard {...props} onOpen={onOpen} />)
     fireEvent.click(screen.getByRole('button', { name: 'Fix login' }))
     expect(onOpen).toHaveBeenCalledWith('t-1')
   })
 
-  it('moves the task through the menu', async () => {
-    render(<TaskCard task={task} onOpen={vi.fn()} />)
-    fireEvent.change(screen.getByLabelText('Move Fix login'), {
-      target: { value: String(TaskStatus.READY) }
-    })
-    await waitFor(() => expect(mockMove).toHaveBeenCalledWith('t-1', TaskStatus.READY))
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  it('is draggable and announces its task on drag start', () => {
+    render(<TaskCard {...props} />)
+    expect(screen.getByText('Fix login').closest('[draggable]')).not.toBeNull()
+    const dt = { setData: vi.fn(), effectAllowed: '' }
+    const card = screen.getByText('Fix login').closest('div[draggable]')
+    if (!card) throw new Error('no draggable card')
+    fireEvent.dragStart(card, { dataTransfer: dt })
+    expect(props.onDragStart).toHaveBeenCalledWith(expect.anything(), task)
   })
 
-  it('says so when a move is refused', async () => {
-    mockMove.mockRejectedValue(new Error('denied'))
-    render(<TaskCard task={task} onOpen={vi.fn()} />)
-    fireEvent.change(screen.getByLabelText('Move Fix login'), {
-      target: { value: String(TaskStatus.READY) }
-    })
-    expect(await screen.findByRole('alert')).toHaveTextContent(/Couldn.t move/)
+  it('dims the card while it is being dragged', () => {
+    const { rerender } = render(<TaskCard {...props} />)
+    expect(screen.getByText('Fix login').closest('div[draggable]')?.className).not.toContain(
+      'opacity-40'
+    )
+    rerender(<TaskCard {...props} dragging />)
+    expect(screen.getByText('Fix login').closest('div[draggable]')?.className).toContain(
+      'opacity-40'
+    )
   })
 
-  it('explains a permission refusal', async () => {
-    mockMove.mockRejectedValue(new ConnectError('no', Code.PermissionDenied))
-    render(<TaskCard task={task} onOpen={vi.fn()} />)
-    fireEvent.change(screen.getByLabelText('Move Fix login'), {
-      target: { value: String(TaskStatus.READY) }
-    })
-    expect(await screen.findByRole('alert')).toHaveTextContent(/Only you, in the browser/)
-  })
-
-  it('shows no message before any move', () => {
-    render(<TaskCard task={task} onOpen={vi.fn()} />)
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  it('exposes the data type the board reads dropped task ids from', () => {
+    expect(TASK_DATA_TYPE).toBe('text/plain')
   })
 
   it('colours the priority badge by level', () => {
     const badgeClass = (priority: TaskPriority, label: string) => {
       const { unmount } = render(
-        <TaskCard task={create(TaskSchema, { ...task, priority, labels: [] })} onOpen={vi.fn()} />
+        <TaskCard {...props} task={create(TaskSchema, { ...task, priority, labels: [] })} />
       )
       const cls = screen.getByText(label).className
       unmount()
@@ -109,27 +97,11 @@ describe('TaskCard', () => {
     expect(badgeClass(TaskPriority.P2, 'P2')).toContain('text-subtle')
   })
 
-  it('clears an earlier refusal when the next move starts', async () => {
-    mockMove.mockRejectedValueOnce(new Error('denied'))
-    render(<TaskCard task={task} onOpen={vi.fn()} />)
-    const select = screen.getByLabelText('Move Fix login')
-    fireEvent.change(select, { target: { value: String(TaskStatus.READY) } })
-    await screen.findByRole('alert')
-    fireEvent.change(select, { target: { value: String(TaskStatus.DONE) } })
-    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
-  })
-
   it('names the repo only when one is given', () => {
-    const { rerender } = render(<TaskCard task={task} onOpen={vi.fn()} />)
+    const { rerender } = render(<TaskCard {...props} />)
     expect(screen.queryByText('octo/cat')).not.toBeInTheDocument()
 
-    rerender(
-      <TaskCard
-        task={task}
-        repo={create(RepoSchema, { owner: 'octo', name: 'cat' })}
-        onOpen={vi.fn()}
-      />
-    )
+    rerender(<TaskCard {...props} repo={create(RepoSchema, { owner: 'octo', name: 'cat' })} />)
     expect(screen.getByText('octo/cat')).toBeInTheDocument()
   })
 })

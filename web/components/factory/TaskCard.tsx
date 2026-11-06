@@ -1,17 +1,10 @@
-import { useState } from 'react'
-import { Code, ConnectError } from '@connectrpc/connect'
-import {
-  TaskPriority,
-  type Repo,
-  type Task,
-  type TaskStatus
-} from '@/lib/gen/factory/v1/factory_pb'
-import { COLUMNS, prBadge, priorityLabel, repoLabel } from '@/lib/factory/board'
-import { useFactoryActions } from '@/hooks/useFactory'
+import { type DragEvent } from 'react'
+import { TaskPriority, type Repo, type Task } from '@/lib/gen/factory/v1/factory_pb'
+import { prBadge, priorityLabel, repoLabel } from '@/lib/factory/board'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Select } from '@/components/ui/select'
+import { cn } from '@/lib/cn'
 
 const PRIORITY_VARIANT: Partial<Record<TaskPriority, 'danger' | 'warn' | 'secondary'>> = {
   [TaskPriority.P0]: 'danger',
@@ -25,53 +18,31 @@ interface TaskCardProps {
   repo?: Repo
   /** A Ready task of a repo with auto pickup whose text no human has approved yet. */
   awaitingApproval?: boolean
+  /** Set by the board while this task is being dragged, to dim the source card. */
+  dragging?: boolean
   onOpen: (id: string) => void
+  onDragStart: (event: DragEvent<HTMLDivElement>, task: Task) => void
+  onDragEnd: () => void
 }
 
-/** Select that moves a task between columns; shows a message when the move is refused. */
-export function MoveSelect({ task }: { task: Task }) {
-  const { move } = useFactoryActions()
-  const [failure, setFailure] = useState('')
-
-  const onChange = async (status: TaskStatus) => {
-    setFailure('')
-    try {
-      await move(task.id, status)
-    } catch (err) {
-      setFailure(
-        ConnectError.from(err).code === Code.PermissionDenied
-          ? 'Only you, in the browser, can mark a task Ready.'
-          : "Couldn't move the task. Try again."
-      )
-    }
-  }
-
-  return (
-    <>
-      <Select
-        aria-label={`Move ${task.title}`}
-        value={task.status}
-        onChange={(e) => void onChange(Number(e.target.value))}
-      >
-        {COLUMNS.map((c) => (
-          <option key={c.status} value={c.status}>
-            {c.label}
-          </option>
-        ))}
-      </Select>
-      {failure && (
-        <p className="text-xs text-danger" role="alert">
-          {failure}
-        </p>
-      )}
-    </>
-  )
-}
-
-export default function TaskCard({ task, repo, awaitingApproval, onOpen }: TaskCardProps) {
+export default function TaskCard({
+  task,
+  repo,
+  awaitingApproval,
+  dragging,
+  onOpen,
+  onDragStart,
+  onDragEnd
+}: TaskCardProps) {
   const pr = prBadge(task)
   return (
-    <Card variant="inset" className="space-y-2">
+    <Card
+      variant="inset"
+      className={cn('space-y-2', dragging && 'opacity-40')}
+      draggable
+      onDragStart={(e) => onDragStart(e, task)}
+      onDragEnd={onDragEnd}
+    >
       <Button
         variant="link"
         className="h-auto w-full justify-start whitespace-normal p-0 text-left font-medium"
@@ -103,7 +74,8 @@ export default function TaskCard({ task, repo, awaitingApproval, onOpen }: TaskC
           Not approved for auto pickup. Edit and save its text in the app to approve it.
         </p>
       )}
-      <MoveSelect task={task} />
     </Card>
   )
 }
+
+export type { TaskCardProps }
