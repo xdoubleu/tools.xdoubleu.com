@@ -86,6 +86,7 @@ func newEnv(t *testing.T) env {
 				return nil
 			},
 			jobs: nil,
+			open: func(context.Context, string) error { return nil },
 		},
 		out: out, errs: errs, store: store, server: server, ran: &ran, loaded: &loaded,
 	}
@@ -100,6 +101,131 @@ func TestNoOrUnknownCommandPrintsUsage(t *testing.T) {
 	assert.Equal(t, 2, e.do())
 	assert.Contains(t, e.errs.String(), "usage:")
 	assert.Equal(t, 2, e.do("nope"))
+}
+
+func TestNoArgsInsideAnAppBundleInstallsAndOpensTheRunnerPage(t *testing.T) {
+	e := newEnv(t)
+	bundle := filepath.Join(t.TempDir(), "FactoryRunner.app", "Contents", "MacOS",
+		"factory-runner")
+	require.NoError(t, os.MkdirAll(filepath.Dir(bundle), 0o755))
+	require.NoError(t, os.WriteFile(bundle, []byte("b"), 0o755))
+	e.app.execPath = bundle
+
+	var opened []string
+	e.app.open = func(_ context.Context, u string) error {
+		opened = append(opened, u)
+		return nil
+	}
+
+	assert.Equal(t, 0, e.do())
+	assert.Equal(t, []string{runner.LaunchAgentPath(e.app.home)}, *e.loaded)
+	require.Len(t, opened, 1)
+	assert.Equal(t, "https://tools.xdoubleu.com/factory/runners", opened[0])
+}
+
+func TestNoArgsInAnAppBundleStillInstallsWhenOpeningThePageFails(t *testing.T) {
+	e := newEnv(t)
+	bundle := filepath.Join(t.TempDir(), "FactoryRunner.app", "Contents", "MacOS",
+		"factory-runner")
+	require.NoError(t, os.MkdirAll(filepath.Dir(bundle), 0o755))
+	require.NoError(t, os.WriteFile(bundle, []byte("b"), 0o755))
+	e.app.execPath = bundle
+
+	e.app.open = func(context.Context, string) error { return errors.New("open: nope") }
+	assert.Equal(t, 0, e.do())
+	assert.Len(t, *e.loaded, 1, "the LaunchAgent is loaded even when the page can't open")
+}
+
+func TestNoArgsInAnAppBundleDoesNotDowngradeAnInstalledBinary(t *testing.T) {
+	e := newEnv(t)
+	bundle := filepath.Join(t.TempDir(), "FactoryRunner.app", "Contents", "MacOS",
+		"factory-runner")
+	require.NoError(t, os.MkdirAll(filepath.Dir(bundle), 0o755))
+	require.NoError(t, os.WriteFile(bundle, []byte("stale"), 0o755))
+	e.app.execPath = bundle
+	installed := runner.InstalledBinaryPath(e.app.home)
+	require.NoError(t, os.MkdirAll(filepath.Dir(installed), 0o700))
+	require.NoError(t, os.WriteFile(installed, []byte("newer"), 0o755))
+
+	assert.Equal(t, 0, e.do())
+	data, err := os.ReadFile(installed)
+	require.NoError(t, err)
+	assert.Equal(t, "newer", string(data), "a second open keeps the installed binary")
+}
+
+func TestNoArgsInAnAppBundleSkipsOpeningThePageWhenConfigIsBroken(t *testing.T) {
+	e := newEnv(t)
+	bundle := filepath.Join(t.TempDir(), "FactoryRunner.app", "Contents", "MacOS",
+		"factory-runner")
+	require.NoError(t, os.MkdirAll(filepath.Dir(bundle), 0o755))
+	require.NoError(t, os.WriteFile(bundle, []byte("b"), 0o755))
+	e.app.execPath = bundle
+
+	path := runner.ConfigPath(e.app.home)
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o700))
+	require.NoError(t, os.WriteFile(path, []byte("{"), 0o600))
+
+	var opened []string
+	e.app.open = func(_ context.Context, u string) error {
+		opened = append(opened, u)
+		return nil
+	}
+	assert.Equal(t, 0, e.do(), "install still succeeds with a broken config")
+	assert.Empty(t, opened, "an invalid server never opens a page")
+}
+
+func TestNoArgsInAnAppBundleSkipsOpeningThePageWhenTheServerIsUnusable(t *testing.T) {
+	e := newEnv(t)
+	bundle := filepath.Join(t.TempDir(), "FactoryRunner.app", "Contents", "MacOS",
+		"factory-runner")
+	require.NoError(t, os.MkdirAll(filepath.Dir(bundle), 0o755))
+	require.NoError(t, os.WriteFile(bundle, []byte("b"), 0o755))
+	e.app.execPath = bundle
+	// A config whose server can't yield an origin (no scheme) — past the CLI's
+	// own validation, which only happens when the user configures it.
+	path := runner.ConfigPath(e.app.home)
+	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o700))
+	require.NoError(t, os.WriteFile(path, []byte(`{"server":"not-a-url"}`), 0o600))
+
+	var opened []string
+	e.app.open = func(_ context.Context, u string) error {
+		opened = append(opened, u)
+		return nil
+	}
+	assert.Equal(t, 0, e.do())
+	assert.Empty(t, opened, "a malformed server never opens a page")
+}
+
+func TestNoArgsInAnAppBundleReportsInstallFailures(t *testing.T) {
+	t.Run("binary copy", func(t *testing.T) {
+		e := newEnv(t)
+		bundle := filepath.Join(t.TempDir(), "FactoryRunner.app", "Contents", "MacOS",
+			"factory-runner")
+		require.NoError(t, os.MkdirAll(filepath.Dir(bundle), 0o755))
+		e.app.execPath = bundle // missing file: InstallBinary fails
+		assert.Equal(t, 1, e.do())
+		assert.Contains(t, e.errs.String(), "factory-runner:")
+	})
+	t.Run("LaunchAgent write", func(t *testing.T) {
+		e := newEnv(t)
+		bundle := filepath.Join(t.TempDir(), "FactoryRunner.app", "Contents", "MacOS",
+			"factory-runner")
+		require.NoError(t, os.MkdirAll(filepath.Dir(bundle), 0o755))
+		require.NoError(t, os.WriteFile(bundle, []byte("b"), 0o755))
+		e.app.execPath = bundle
+		require.NoError(t, os.WriteFile(filepath.Join(e.app.home, "Library"), nil, 0o600))
+		assert.Equal(t, 1, e.do())
+	})
+	t.Run("launchctl load", func(t *testing.T) {
+		e := newEnv(t)
+		bundle := filepath.Join(t.TempDir(), "FactoryRunner.app", "Contents", "MacOS",
+			"factory-runner")
+		require.NoError(t, os.MkdirAll(filepath.Dir(bundle), 0o755))
+		require.NoError(t, os.WriteFile(bundle, []byte("b"), 0o755))
+		e.app.execPath = bundle
+		e.app.load = func(string) error { return errors.New("launchctl failed") }
+		assert.Equal(t, 1, e.do())
+	})
 }
 
 func TestVersion(t *testing.T) {
@@ -283,4 +409,10 @@ func TestInstallFailsWithoutAnExecutableToCopy(t *testing.T) {
 	e := newEnv(t)
 	e.app.execPath = filepath.Join(t.TempDir(), "missing")
 	assert.Equal(t, 1, e.do("install"))
+}
+
+func TestOpenURL(t *testing.T) {
+	t.Setenv("PATH", "")
+	err := openURL(context.Background(), "https://example.com")
+	assert.Error(t, err, "without `open` on PATH openURL reports the failure")
 }

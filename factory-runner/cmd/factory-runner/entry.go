@@ -54,6 +54,7 @@ func main() {
 		},
 		activity: runner.NewActivity(runner.NewCaffeinate()),
 		load:     loadLaunchAgent,
+		open:     openURL,
 		jobs:     nil,
 	}
 	a.jobs = func(ctx context.Context, cfg runner.Config, token string) (jobLoop, error) {
@@ -70,6 +71,11 @@ func main() {
 func isTerminal(f *os.File) bool {
 	info, err := f.Stat()
 	return err == nil && info.Mode()&os.ModeCharDevice != 0
+}
+
+// openURL opens u in the user's default browser.
+func openURL(ctx context.Context, u string) error {
+	return exec.CommandContext(ctx, "open", u).Run()
 }
 
 func loadLaunchAgent(plistPath string) error {

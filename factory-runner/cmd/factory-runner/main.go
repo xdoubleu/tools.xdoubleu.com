@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
@@ -55,6 +56,8 @@ type app struct {
 	updater     func(server string) (runner.SelfUpdater, error)
 	activity    *runner.Activity
 	load        func(plistPath string) error
+	// open launches a URL in the user's browser, for the app install's pairing step.
+	open func(ctx context.Context, url string) error
 	// jobs builds the claim loop; nil runs the heartbeat alone.
 	jobs jobsFunc
 }
@@ -87,6 +90,11 @@ type pairHeartbeater interface {
 
 func (a *app) run(ctx context.Context, args []string) int {
 	if len(args) == 0 {
+		// Double-clicking the installed app runs the binary with no args; that
+		// is the drag-to-Applications install, not a bare binary usage error.
+		if runner.AppBundlePath(a.execPath) != "" {
+			return a.installFromApp(ctx)
+		}
 		fmt.Fprint(a.stderr, usage)
 		return exitUsage
 	}
@@ -245,4 +253,40 @@ func (a *app) install() error {
 	}
 	fmt.Fprintln(a.stdout, "Installed and loaded", path)
 	return nil
+}
+
+// installFromApp runs `install` as a double-clicked .app, then opens the board's
+// Runner page so the user can pair. Opening the page is best-effort: installing
+// and loading the LaunchAgent is the point, and a windowless app can't tell the
+// user anything else. A second open after a self-update leaves the newer
+// installed binary in place: only the first open copies the bundle's binary,
+// while the plist is rewritten and reloaded every time.
+func (a *app) installFromApp(ctx context.Context) int {
+	installed := runner.InstalledBinaryPath(a.home)
+	if _, err := os.Stat(installed); errors.Is(err, os.ErrNotExist) {
+		installed, err = runner.InstallBinary(a.home, a.execPath)
+		if err != nil {
+			fmt.Fprintln(a.stderr, "factory-runner:", err)
+			return 1
+		}
+	}
+	if path, err := runner.InstallLaunchAgent(a.home, installed); err != nil {
+		fmt.Fprintln(a.stderr, "factory-runner:", err)
+		return 1
+	} else if err = a.load(path); err != nil {
+		fmt.Fprintln(a.stderr, "factory-runner:", err)
+		return 1
+	}
+	cfg, _, err := a.loadConfig()
+	if err != nil {
+		return 0
+	}
+	root, err := runner.Origin(cfg.Server)
+	if err != nil {
+		return 0
+	}
+	if err = a.open(ctx, root+"/factory/runners"); err != nil {
+		fmt.Fprintln(a.stderr, "factory-runner: open the runner page:", err)
+	}
+	return 0
 }
