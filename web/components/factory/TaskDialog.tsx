@@ -1,9 +1,17 @@
 import { useState, type FormEvent } from 'react'
 import { TaskPriority, type Task } from '@/lib/gen/factory/v1/factory_pb'
-import { PRIORITIES, parseLabels, repoLabel, reposOf } from '@/lib/factory/board'
+import {
+  PRODUCT_LABELS,
+  PRIORITIES,
+  isProductLabel,
+  parseLabels,
+  repoLabel,
+  reposOf
+} from '@/lib/factory/board'
 import { useFactoryActions, useFactoryRepos } from '@/hooks/useFactory'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -43,15 +51,29 @@ export default function TaskDialog({
   const [title, setTitle] = useState(task?.title ?? '')
   const [text, setText] = useState(body ?? '')
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? TaskPriority.P2)
-  const [labels, setLabels] = useState(task?.labels.join(', ') ?? '')
+  const [productLabels, setProductLabels] = useState<string[]>(
+    task ? task.labels.filter(isProductLabel) : []
+  )
+  const [otherLabels, setOtherLabels] = useState<string>(
+    task ? task.labels.filter((l) => !isProductLabel(l)).join(', ') : ''
+  )
   const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)
+
+  const toggleProduct = (product: string, on: boolean) => {
+    setProductLabels((cur) => (on ? [...cur, product] : cur.filter((p) => p !== product)))
+  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setPending(true)
     setFailed(false)
-    const fields = { title, body: text, priority, labels: parseLabels(labels) }
+    const fields = {
+      title,
+      body: text,
+      priority,
+      labels: [...productLabels, ...parseLabels(otherLabels)]
+    }
     try {
       if (task) {
         await update(task.id, fields)
@@ -122,8 +144,25 @@ export default function TaskDialog({
               ))}
             </Select>
           </Field>
-          <Field label="Labels" htmlFor="task-labels" hint="Comma-separated.">
-            <Input id="task-labels" value={labels} onChange={(e) => setLabels(e.target.value)} />
+          <Field label="Product" htmlFor="task-product-books" hint="The app this work lives in.">
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {PRODUCT_LABELS.map((p) => (
+                <Checkbox
+                  key={p}
+                  id={`task-product-${p}`}
+                  checked={productLabels.includes(p)}
+                  onChange={(e) => toggleProduct(p, e.target.checked)}
+                  label={p}
+                />
+              ))}
+            </div>
+          </Field>
+          <Field label="Other labels" htmlFor="task-other-labels" hint="Comma-separated.">
+            <Input
+              id="task-other-labels"
+              value={otherLabels}
+              onChange={(e) => setOtherLabels(e.target.value)}
+            />
           </Field>
           {failed && <Alert tone="danger">Couldn&apos;t save the task. Try again.</Alert>}
           <DialogFooter>

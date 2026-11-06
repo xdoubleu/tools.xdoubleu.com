@@ -50,6 +50,9 @@ message Task {
   // is moved to Ready (or saved while Ready) from a browser, so false for a Ready
   // task whose body an agent last edited. Always false outside Ready.
   bool pickup_approved = 16;
+  // Why auto pickup skipped this Ready task (bad repo settings); empty when it
+  // can be picked up. It stays in Ready, not "needs you", while this is set.
+  string pickup_block_reason = 17;
 }
 
 message Comment {

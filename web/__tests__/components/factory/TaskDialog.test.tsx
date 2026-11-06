@@ -36,7 +36,7 @@ describe('TaskDialog', () => {
     fireEvent.change(screen.getByLabelText('Priority'), {
       target: { value: String(TaskPriority.P0) }
     })
-    fireEvent.change(screen.getByLabelText('Labels'), { target: { value: 'a, b' } })
+    fireEvent.change(screen.getByLabelText('Other labels'), { target: { value: 'a, b' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
@@ -52,6 +52,17 @@ describe('TaskDialog', () => {
     expect(onSaved).toHaveBeenCalledWith('new')
   })
 
+  it('files a product checkbox as a label', async () => {
+    const onClose = vi.fn()
+    render(<TaskDialog onClose={onClose} />)
+    fireEvent.click(screen.getByLabelText('books'))
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'New thing' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() =>
+      expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ labels: ['books'] }))
+    )
+  })
+
   it('edits an existing task, starting from its values', async () => {
     const task = create(TaskSchema, {
       id: 't-1',
@@ -64,7 +75,7 @@ describe('TaskDialog', () => {
 
     expect(screen.getByLabelText('Title')).toHaveValue('Old')
     expect(screen.getByLabelText('Description')).toHaveValue('old body')
-    expect(screen.getByLabelText('Labels')).toHaveValue('x, y')
+    expect(screen.getByLabelText('Other labels')).toHaveValue('x, y')
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Renamed' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
@@ -103,7 +114,7 @@ describe('TaskDialog', () => {
     render(<TaskDialog onClose={vi.fn()} />)
     expect(screen.getByText('New task')).toBeInTheDocument()
     expect(screen.getByLabelText('Description')).toHaveValue('')
-    expect(screen.getByLabelText('Labels')).toHaveValue('')
+    expect(screen.getByLabelText('Other labels')).toHaveValue('')
     expect(screen.getByLabelText('Priority')).toHaveValue(String(TaskPriority.P2))
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
@@ -112,7 +123,7 @@ describe('TaskDialog', () => {
     render(<TaskDialog task={create(TaskSchema, { id: 't', title: 'x' })} onClose={vi.fn()} />)
     expect(screen.getByText('Edit task')).toBeInTheDocument()
     expect(screen.getByLabelText('Description')).toHaveValue('')
-    expect(screen.getByLabelText('Labels')).toHaveValue('')
+    expect(screen.getByLabelText('Other labels')).toHaveValue('')
   })
 
   it('keeps Save off for a blank title and shows progress while saving', async () => {

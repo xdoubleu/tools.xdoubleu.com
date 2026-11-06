@@ -141,6 +141,7 @@ func (s *TaskService) Create(
 		PRCI:           "",
 		PRReview:       "",
 		PickupApproved: false,
+		PickupBlocked:  "",
 	}, actor)
 }
 
@@ -172,6 +173,7 @@ func (s *TaskService) Update(
 		PRCI:           "",
 		PRReview:       "",
 		PickupApproved: false,
+		PickupBlocked:  "",
 	}, actor)
 }
 

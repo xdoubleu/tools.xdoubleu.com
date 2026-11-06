@@ -21,11 +21,14 @@ import {
   HARNESSES,
   distinctLabels,
   filterByLabel,
+  filterByProduct,
   filterByRepo,
   groupByStatus,
   harnessLabel,
+  isProductLabel,
   parseLabels,
   priorityLabel,
+  PRODUCT_LABELS,
   repoLabel,
   reposOf,
   runnerState,
@@ -301,6 +304,26 @@ describe('board', () => {
     expect(awaitingPickupApproval(task('on', TaskStatus.BACKLOG, false), repos)).toBe(false)
     expect(awaitingPickupApproval(task('off', TaskStatus.READY, false), repos)).toBe(false)
     expect(awaitingPickupApproval(task('gone', TaskStatus.READY, false), repos)).toBe(false)
+  })
+
+  it('recognises the fixed product labels and filters tasks to one product', () => {
+    expect(PRODUCT_LABELS).toContain('books')
+    expect(PRODUCT_LABELS).toContain('platform')
+    expect(isProductLabel('books')).toBe(true)
+    expect(isProductLabel('Books')).toBe(true)
+    expect(isProductLabel('platform')).toBe(true)
+    expect(isProductLabel('bug')).toBe(false)
+    expect(isProductLabel('')).toBe(false)
+
+    const tasks = [
+      create(TaskSchema, { id: 'a', labels: ['books', 'bug'] }),
+      create(TaskSchema, { id: 'b', labels: ['platform'] }),
+      create(TaskSchema, { id: 'c', labels: [] })
+    ]
+    expect(filterByProduct(tasks, '')).toBe(tasks)
+    expect(filterByProduct(tasks, 'books').map((t) => t.id)).toEqual(['a'])
+    expect(filterByProduct(tasks, 'platform').map((t) => t.id)).toEqual(['b'])
+    expect(filterByProduct(tasks, 'BUG').map((t) => t.id)).toEqual(['a'])
   })
 })
 

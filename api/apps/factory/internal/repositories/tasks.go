@@ -31,20 +31,21 @@ const listColumns = `id, repo_id, title, '', status, priority, labels, created_b
 	created_at, updated_at,
 	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id),
 	` + prColumn + `,
-	ready_body IS NOT NULL`
+	ready_body IS NOT NULL, pickup_blocked`
 
 const getColumns = `id, repo_id, title, body, status, priority, labels, created_by,
 	created_at, updated_at,
 	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id),
 	` + prColumn + `,
-	ready_body IS NOT NULL`
+	ready_body IS NOT NULL, pickup_blocked`
 
 func scanTask(row rowScanner) (*models.Task, error) {
 	var t models.Task
 	var pr []string
 	err := row.Scan(
 		&t.ID, &t.RepoID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Labels,
-		&t.CreatedBy, &t.CreatedAt, &t.UpdatedAt, &t.CommentCount, &pr, &t.PickupApproved,
+		&t.CreatedBy, &t.CreatedAt, &t.UpdatedAt, &t.CommentCount, &pr,
+		&t.PickupApproved, &t.PickupBlocked,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -179,11 +180,31 @@ func (r *TasksRepository) Move(
 				ready_title = CASE WHEN $2 = 'ready' AND body_edited_channel = 'browser'
 					THEN title END,
 				ready_body = CASE WHEN $2 = 'ready' AND body_edited_channel = 'browser'
-					THEN body END
+					THEN body END,
+				-- Retry pickup is a fresh Ready move: clear the block reason when the
+				-- task is opened for work again or returned to Backlog.
+				pickup_blocked = CASE WHEN $2 IN ('ready', 'backlog')
+					THEN '' ELSE pickup_blocked END
 			WHERE id = $1
 			RETURNING *
 		)
 		SELECT `+getColumns+` FROM t`, id, status))
+}
+
+// BlockPickup records why a Ready task can't be auto-picked up, so NextReady
+// passes it by. It never changes the status: the task stays where it is.
+func (r *TasksRepository) BlockPickup(
+	ctx context.Context,
+	id uuid.UUID,
+	reason string,
+) (*models.Task, error) {
+	return scanTask(r.db.QueryRow(ctx, `
+		WITH t AS (
+			UPDATE factory.tasks SET pickup_blocked = $2, updated_at = now()
+			WHERE id = $1
+			RETURNING *
+		)
+		SELECT `+getColumns+` FROM t`, id, reason))
 }
 
 // AddComment appends a comment and bumps the task's updated_at.
@@ -272,6 +293,7 @@ func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, erro
 		FROM factory.tasks t
 		JOIN factory.repos r ON r.id = t.repo_id
 		WHERE t.status = 'ready' AND r.auto_pickup AND t.ready_body IS NOT NULL
+			AND t.pickup_blocked = ''
 			AND NOT COALESCE(
 				(SELECT pickup_paused FROM factory.board_settings), false
 			)
