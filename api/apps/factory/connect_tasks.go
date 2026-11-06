@@ -185,7 +185,15 @@ func (h *taskConnectHandler) ListTasks(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return &factoryv1.ListTasksResponse{Tasks: out, PickupPaused: paused}, nil
+	// The limit notice is a hint: if it cannot be read, the board still loads.
+	until, _ := h.app.services.Jobs.ActiveLimit(ctx)
+	limited := ""
+	if until != nil {
+		limited = until.UTC().Format(time.RFC3339)
+	}
+	return &factoryv1.ListTasksResponse{
+		Tasks: out, PickupPaused: paused, ClaudeLimitedUntil: limited,
+	}, nil
 }
 
 func (h *taskConnectHandler) GetTask(

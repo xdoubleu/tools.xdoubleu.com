@@ -133,6 +133,11 @@ message CompleteJobRequest {
   // only if it is a pull request of the job's own repo; the task then moves to In
   // review instead of Needs you.
   string pr_url = 5;
+  // The harness stopped on its provider's usage limit. The job counts as failed,
+  // its task goes to Needs you, and limit_resets_at (RFC3339, empty if the harness
+  // did not say) feeds the board's "Claude limited until" notice.
+  bool limited = 6;
+  string limit_resets_at = 7;
 }
 message CompleteJobResponse {}
 

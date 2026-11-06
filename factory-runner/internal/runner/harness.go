@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"regexp"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // HarnessClaudeCode is the server's name for Claude Code (the proto enum).
@@ -23,6 +26,9 @@ type Harness interface {
 	SessionEnv(dir string) map[string]string
 	// SessionID reads the harness's session id from one line of its output, or "".
 	SessionID(line []byte) string
+	// LimitFrom reports whether one line of output says the harness's provider
+	// refused further use for a usage limit, and when it lifts (zero if unsaid).
+	LimitFrom(line []byte) (bool, time.Time)
 }
 
 // ClaudeCode runs the unmodified `claude` CLI headless on the subscription: never
@@ -85,6 +91,75 @@ func (ClaudeCode) SessionID(line []byte) string {
 	}
 	return event.SessionID
 }
+
+// LimitFrom implements Harness. Claude Code's stream carries a `rate_limit_event`
+// whose `rate_limit_info` has a status ("allowed", "allowed_warning" or "rejected")
+// and `resetsAt` in epoch seconds; only "rejected" is a stop. A limit can also show
+// as an error result reading "usage limit reached" or "You've hit your ... limit".
+// Both forms come from the CLI's own strings, not from a limit hit on the wire.
+func (ClaudeCode) LimitFrom(line []byte) (bool, time.Time) {
+	if !bytes.Contains(line, []byte("rate_limit")) &&
+		!bytes.Contains(line, []byte("is_error")) {
+		return false, time.Time{}
+	}
+	var event struct {
+		Type    string `json:"type"`
+		IsError bool   `json:"is_error"`
+		Result  string `json:"result"`
+		Info    struct {
+			Status   string  `json:"status"`
+			ResetsAt float64 `json:"resetsAt"`
+		} `json:"rate_limit_info"`
+	}
+	if json.Unmarshal(line, &event) != nil {
+		return false, time.Time{}
+	}
+	switch {
+	case event.Type == "rate_limit_event" && event.Info.Status == "rejected":
+		return true, epochSeconds(event.Info.ResetsAt)
+	case event.Type == "result" && event.IsError:
+		return limitInText(event.Result)
+	}
+	return false, time.Time{}
+}
+
+// limitInText reads an error result's text for a usage limit. The older form is
+// "Claude AI usage limit reached|<epoch seconds>".
+func limitInText(text string) (bool, time.Time) {
+	lower := strings.ToLower(strings.ReplaceAll(text, "\u2019", "'"))
+	hitYourLimit := strings.Contains(lower, "you've hit your") &&
+		strings.Contains(lower, "limit")
+	if !strings.Contains(lower, "usage limit reached") && !hitYourLimit {
+		return false, time.Time{}
+	}
+	if _, after, found := strings.Cut(lower, "usage limit reached|"); found {
+		if secs, err := strconv.ParseFloat(strings.TrimSpace(after), 64); err == nil {
+			return true, epochSeconds(secs)
+		}
+	}
+	return true, time.Time{}
+}
+
+// maxLimitAhead bounds a reset time worth believing: weekly caps are the longest. The
+// server keeps the same window.
+const maxLimitAhead = 15 * 24 * time.Hour
+
+// epochSeconds is a reset time from epoch seconds, or zero if it is not a plausible
+// time in the next fifteen days.
+func epochSeconds(secs float64) time.Time {
+	if secs <= 0 {
+		return time.Time{}
+	}
+	at := time.Unix(int64(secs), 0).UTC()
+	if at.Before(time.Now()) || at.After(time.Now().Add(maxLimitAhead)) {
+		return time.Time{}
+	}
+	return at
+}
+
+// LimitFrom implements Harness: OpenRouter's limits are credits the key's own cap
+// enforces, and a job that runs out simply fails.
+func (OpenCode) LimitFrom([]byte) (bool, time.Time) { return false, time.Time{} }
 
 // modelPattern is an OpenRouter model id, "vendor/model" with an optional tag. It is
 // matched again here because the server is untrusted and the id goes into argv.

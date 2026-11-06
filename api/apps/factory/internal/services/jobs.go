@@ -194,7 +194,7 @@ func (s *JobService) Run(
 		Prompt: promptFor(repo, task, text), Status: "", Branch: branchFor(task),
 		SessionID: "", Outcome: "", ParentJobID: nil, PRURL: "", RunnerID: nil,
 		PRState: "", PRCI: "", PRReview: "", CreatedBy: actor.String(),
-		CreatedAt: time.Time{},
+		CreatedAt: time.Time{}, Limited: false, LimitResetsAt: nil,
 		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
 	})
 	if err != nil {
@@ -255,6 +255,7 @@ func (s *JobService) Reply(
 		Prompt: text, Status: "", Branch: last.Branch, SessionID: "", Outcome: "",
 		ParentJobID: &last.ID, PRURL: "", RunnerID: nil, PRState: "", PRCI: "",
 		PRReview: "", CreatedBy: actor.String(), CreatedAt: time.Time{},
+		Limited: false, LimitResetsAt: nil,
 		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
 	})
 	if err != nil {
@@ -405,7 +406,11 @@ func (s *JobService) Complete(
 	id uuid.UUID,
 	succeeded bool,
 	outcome, sessionID, prURL string,
+	limited bool,
+	limitResetsAt *time.Time,
 ) (*models.Job, error) {
+	// A job a usage limit stopped did not succeed, whatever the runner says.
+	succeeded = succeeded && !limited
 	status := models.JobFailed
 	if succeeded {
 		status = models.JobSucceeded
@@ -415,7 +420,9 @@ func (s *JobService) Complete(
 		outcome = string([]rune(outcome)[:maxCommentLen])
 	}
 	prURL, note := s.checkedPullRequest(ctx, id, strings.TrimSpace(prURL))
-	job, err := s.jobs.Complete(ctx, id, status, outcome, sessionID, prURL, runnerID)
+	resetsAt := plausibleReset(limitResetsAt, time.Now())
+	job, err := s.jobs.Complete(ctx, id, status, outcome, sessionID, prURL, runnerID,
+		limited, resetsAt)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return nil, conflict("the job is no longer running")
 	}
@@ -427,6 +434,9 @@ func (s *JobService) Complete(
 		outcome = "(the agent wrote no outcome)"
 	}
 	body := "Job " + string(status) + " on branch `" + job.Branch + "`"
+	if limited {
+		body = "Job stopped by Claude's usage limit on branch `" + job.Branch + "`"
+	}
 	next := models.StatusNeedsYou
 	if prURL != "" {
 		body += ", pull request: " + prURL
@@ -443,6 +453,32 @@ func (s *JobService) Complete(
 	return job, nil
 }
 
+// maxLimitAhead bounds a reset time worth keeping: weekly caps are the longest.
+const maxLimitAhead = 15 * 24 * time.Hour
+
+// plausibleReset is a runner's reset time if it is in the coming fifteen days, else
+// nil: the header must not show a nonsense time.
+func plausibleReset(at *time.Time, now time.Time) *time.Time {
+	if at == nil || at.Before(now.Add(-time.Minute)) || at.After(now.Add(maxLimitAhead)) {
+		return nil
+	}
+	utc := at.UTC()
+	return &utc
+}
+
+// limitUntil is " (until <time>)" for a known reset, else nothing.
+func limitUntil(at *time.Time) string {
+	if at == nil {
+		return ""
+	}
+	return " (until " + at.UTC().Format("2006-01-02 15:04 MST") + ")"
+}
+
+// ActiveLimit is when the latest Claude usage limit lifts, nil if none is in force.
+func (s *JobService) ActiveLimit(ctx context.Context) (*time.Time, error) {
+	return s.jobs.ActiveLimit(ctx)
+}
+
 // announceEnd tells Slack how a job ended: a pull request to review, or a task
 // that needs the owner. Only the task's title, a link and the outcome's first line
 // leave; none of the job's log or diff does.
@@ -454,6 +490,9 @@ func (s *JobService) announceEnd(
 ) {
 	link := s.taskLink(ctx, job.TaskID)
 	switch {
+	case job.Limited:
+		s.say.say(ctx, ":hourglass_flowing_sand: Claude's usage limit stopped a job on "+
+			link+limitUntil(job.LimitResetsAt))
 	case succeeded && prURL != "":
 		s.say.say(ctx, ":white_check_mark: Pull request opened for "+link+": <"+
 			prURL+"|review it>")
@@ -550,6 +589,13 @@ func (s *JobService) pickUp(ctx context.Context) error {
 	if err != nil {
 		return s.cannotPickUp(ctx, next.TaskID, err)
 	}
+	// While Claude is limited a Claude job would only fail the same way, and each
+	// one would park its task in Needs you. The oldest Ready task waits.
+	if harness == models.HarnessClaudeCode {
+		if until, limitErr := s.jobs.ActiveLimit(ctx); limitErr == nil && until != nil {
+			return nil
+		}
+	}
 	approved := approvedTask(next)
 	_, err = s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: next.TaskID, RepoID: repo.ID, Harness: harness,
@@ -557,7 +603,7 @@ func (s *JobService) pickUp(ctx context.Context) error {
 		Branch: branchFor(approved), SessionID: "", Outcome: "", ParentJobID: nil,
 		PRURL: "", RunnerID: nil, PRState: "", PRCI: "", PRReview: "",
 		CreatedBy: autoPickupAuthor, CreatedAt: time.Time{}, StartedAt: nil,
-		LastCheckIn: nil, FinishedAt: nil,
+		Limited: false, LimitResetsAt: nil, LastCheckIn: nil, FinishedAt: nil,
 	})
 	if err != nil {
 		return err

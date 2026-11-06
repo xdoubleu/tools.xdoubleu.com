@@ -17,7 +17,7 @@ type JobsRepository struct {
 const jobColumns = `id, task_id, repo_id, harness, prompt, status, branch,
 	session_id, outcome, created_by, created_at, started_at, last_check_in,
 	finished_at, pr_url, runner_id, pr_state, pr_ci, pr_review, parent_job_id,
-	model`
+	model, limited, limit_resets_at`
 
 func scanJob(row rowScanner) (*models.Job, error) {
 	var j models.Job
@@ -26,7 +26,7 @@ func scanJob(row rowScanner) (*models.Job, error) {
 		&j.SessionID, &j.Outcome, &j.CreatedBy, &j.CreatedAt, &j.StartedAt,
 		&j.LastCheckIn, &j.FinishedAt, &j.PRURL,
 		&j.RunnerID, &j.PRState, &j.PRCI, &j.PRReview, &j.ParentJobID,
-		&j.Model,
+		&j.Model, &j.Limited, &j.LimitResetsAt,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -131,15 +131,35 @@ func (r *JobsRepository) Complete(
 	status models.JobStatus,
 	outcome, sessionID, prURL string,
 	runnerID uuid.UUID,
+	limited bool,
+	limitResetsAt *time.Time,
 ) (*models.Job, error) {
 	return scanJob(r.db.QueryRow(ctx, `
 		UPDATE factory.jobs SET
 			status = $2, outcome = $3, finished_at = now(),
 			session_id = COALESCE(NULLIF($4, ''), session_id),
-			pr_url = $5
+			pr_url = $5, limited = $7, limit_resets_at = $8
 		WHERE id = $1 AND status = 'running'
 			AND (runner_id IS NULL OR runner_id = $6)
-		RETURNING `+jobColumns, id, status, outcome, sessionID, prURL, runnerID))
+		RETURNING `+jobColumns, id, status, outcome, sessionID, prURL, runnerID,
+		limited, limitResetsAt))
+}
+
+// ActiveLimit is the latest time a limited job's limit lifts, among those still in
+// force, or nil when none is. A limit whose reset time the CLI did not say is held
+// for an hour after the job ended, so the board does not pretend it has lifted.
+func (r *JobsRepository) ActiveLimit(ctx context.Context) (*time.Time, error) {
+	var until *time.Time
+	err := r.db.QueryRow(ctx, `
+		SELECT max(until) FROM (
+			SELECT COALESCE(limit_resets_at, finished_at + interval '1 hour') AS until
+			FROM factory.jobs WHERE limited
+		) limits
+		WHERE until > now()`).Scan(&until)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return until, nil
 }
 
 // CancelForTask ends the task's queued or running job (a task has at most one).

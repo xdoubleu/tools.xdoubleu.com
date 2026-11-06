@@ -25,6 +25,7 @@ func autoPickup(t *testing.T, on bool) {
 		_, err = testDB.Exec(context.Background(),
 			`UPDATE factory.board_settings SET pickup_paused = false`)
 		require.NoError(t, err)
+		clearLimits(t)
 	}
 	reset()
 	_, err := testDB.Exec(context.Background(),

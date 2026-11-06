@@ -228,6 +228,42 @@ export function prBadge(
   return { label: 'PR open', variant: 'secondary' }
 }
 
+/** A reset time as "Fri 7 Nov, 14:30" in the viewer's zone; "" for an empty or bad one. */
+export function formatLimitTime(iso: string, timeZone?: string, locale?: string): string {
+  const ms = Date.parse(iso)
+  if (Number.isNaN(ms)) return ''
+  return new Intl.DateTimeFormat(locale, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone
+  }).format(ms)
+}
+
+/**
+ * The board notice while the Claude usage limit is still to lift ("Limited until Fri
+ * 7 Nov, 14:30"); "" when there is none or it has already lifted.
+ */
+export function limitNotice(
+  until: string,
+  now: number,
+  timeZone?: string,
+  locale?: string
+): string {
+  const ms = Date.parse(until)
+  if (!until || Number.isNaN(ms) || ms <= now) return ''
+  return `Limited until ${formatLimitTime(until, timeZone, locale)}`
+}
+
+/** Why a job stopped, when the Claude usage limit did it; "" otherwise. */
+export function jobLimitNote(job: Pick<Job, 'limited' | 'limitResetsAt'>): string {
+  if (!job.limited) return ''
+  const when = formatLimitTime(job.limitResetsAt)
+  return when ? `stopped by the Claude limit, resets ${when}` : 'stopped by the Claude limit'
+}
+
 /** What ran a job, "OpenCode · vendor/model"; "" while the server didn't say. */
 export function jobRunner(job: Pick<Job, 'harness' | 'model'>): string {
   if (job.harness === Harness.UNSPECIFIED) return ''

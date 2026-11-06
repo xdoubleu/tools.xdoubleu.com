@@ -66,6 +66,8 @@ message ListTasksResponse {
   repeated Task tasks = 1;
   // Whether auto pickup is paused for the whole board.
   bool pickup_paused = 2;
+  // While a job's Claude usage limit is still to lift: when (RFC3339); else empty.
+  string claude_limited_until = 3;
 }
 
 // Pauses or resumes auto pickup for the whole board. A human admin in a browser
@@ -162,6 +164,9 @@ message Job {
   // What ran it: the harness, and for OpenCode its OpenRouter model.
   Harness harness = 10;
   string model = 11;
+  // The provider's usage limit stopped it; RFC3339 reset time, empty if unknown.
+  bool limited = 12;
+  string limit_resets_at = 13;
 }
 
 // One event of a job's log: a line of the harness's stream-json output.

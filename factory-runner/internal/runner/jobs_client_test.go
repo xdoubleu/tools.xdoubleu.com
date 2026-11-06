@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -85,8 +86,10 @@ func TestCompleteJobSendsTheResult(t *testing.T) {
 	})
 	require.NoError(
 		t,
-		c.CompleteJob(context.Background(), "frt_x", "j1", true, "done", "s1",
-			"https://x/pr"),
+		c.CompleteJob(context.Background(), "frt_x", "j1", runner.JobEnd{
+			Succeeded: true, Outcome: "done", SessionID: "s1", PRURL: "https://x/pr",
+			Limited: false, ResetsAt: time.Time{},
+		}),
 	)
 
 	late := serve(t, func(w http.ResponseWriter, _ *http.Request) {
@@ -97,7 +100,10 @@ func TestCompleteJobSendsTheResult(t *testing.T) {
 	})
 	require.Error(
 		t,
-		late.CompleteJob(context.Background(), "frt_x", "j1", true, "", "", ""),
+		late.CompleteJob(context.Background(), "frt_x", "j1", runner.JobEnd{
+			Succeeded: true, Outcome: "", SessionID: "", PRURL: "",
+			Limited: false, ResetsAt: time.Time{},
+		}),
 	)
 }
 

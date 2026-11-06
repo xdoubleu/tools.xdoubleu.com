@@ -472,6 +472,32 @@ describe('TaskDetail', () => {
       expect(screen.queryByTestId('job-log')).not.toBeInTheDocument()
     })
 
+    it('says when the Claude limit stopped the latest job, and when it lifts', () => {
+      const limited = (limitResetsAt: string) =>
+        create(GetTaskResponseSchema, {
+          ...detail,
+          jobs: [
+            create(JobSchema, {
+              id: 'j-1',
+              status: JobStatus.FAILED,
+              branch: 'agent/t-1-fix-login',
+              limited: true,
+              limitResetsAt
+            })
+          ]
+        })
+      mockTask({ data: limited('2030-01-02T14:30:00Z') })
+      const { rerender } = render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      expect(screen.getByTestId('job-status')).toHaveTextContent(
+        'stopped by the Claude limit, resets'
+      )
+
+      mockTask({ data: limited('') })
+      rerender(<TaskDetail id="t-1" onClose={vi.fn()} />)
+      expect(screen.getByTestId('job-status')).toHaveTextContent('stopped by the Claude limit')
+      expect(screen.getByTestId('job-status')).not.toHaveTextContent('resets')
+    })
+
     it('allows another run once the job has finished', () => {
       mockTask({ data: withJob(JobStatus.FAILED) })
       render(<TaskDetail id="t-1" onClose={vi.fn()} />)
