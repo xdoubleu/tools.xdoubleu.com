@@ -1,8 +1,13 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import { TASK_DATA_TYPE } from '@/lib/factory/board'
 import TaskCard from '@/components/factory/TaskCard'
 import { RepoSchema, TaskPriority, TaskSchema, TaskStatus } from '@/lib/gen/factory/v1/factory_pb'
+
+const mockMove = vi.fn()
+vi.mock('@/hooks/useFactory', () => ({
+  useFactoryActions: () => ({ move: mockMove })
+}))
 
 const task = create(TaskSchema, {
   id: 't-1',
@@ -19,6 +24,11 @@ const props = {
   onDragStart: vi.fn(),
   onDragEnd: vi.fn()
 }
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockMove.mockResolvedValue(undefined)
+})
 
 describe('TaskCard', () => {
   it('shows title, priority, labels and comment count', () => {
@@ -49,6 +59,43 @@ describe('TaskCard', () => {
   it('omits the comment count when there are no comments', () => {
     render(<TaskCard {...props} task={create(TaskSchema, { ...task, commentCount: 0 })} />)
     expect(screen.queryByText(/comments/)).not.toBeInTheDocument()
+  })
+
+  it('shows why a Ready task was not picked up, and retries on a fresh Ready move', async () => {
+    const blocked = create(TaskSchema, {
+      ...task,
+      status: TaskStatus.READY,
+      pickupBlockReason: 'OpenCode needs an OpenRouter model'
+    })
+    const { rerender } = render(<TaskCard {...props} />)
+    expect(screen.queryByTestId('pickup-block')).not.toBeInTheDocument()
+
+    rerender(<TaskCard {...props} task={blocked} />)
+    expect(screen.getByTestId('pickup-block')).toHaveTextContent(
+      'OpenCode needs an OpenRouter model'
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry pickup' }))
+    await waitFor(() => expect(mockMove).toHaveBeenCalledWith('t-1', TaskStatus.READY))
+  })
+
+  it('says so when retrying pickup fails', async () => {
+    mockMove.mockRejectedValueOnce(new Error('nope'))
+    const blocked = create(TaskSchema, {
+      ...task,
+      status: TaskStatus.READY,
+      pickupBlockReason: 'OpenCode needs an OpenRouter model'
+    })
+    render(<TaskCard {...props} task={blocked} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Retry pickup' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Couldn.t retry pickup/)
+  })
+
+  it('marks predefined product labels distinctly from free-form ones', () => {
+    const mixed = create(TaskSchema, { ...task, labels: ['books', 'bug'] })
+    render(<TaskCard {...props} task={mixed} />)
+    expect(screen.getByTestId('product-label')).toHaveTextContent('books')
+    expect(screen.getAllByText('bug').length).toBeGreaterThan(0)
   })
 
   it('opens the task from its title', () => {

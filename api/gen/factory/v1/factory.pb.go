@@ -273,8 +273,11 @@ type Task struct {
 	// is moved to Ready (or saved while Ready) from a browser, so false for a Ready
 	// task whose body an agent last edited. Always false outside Ready.
 	PickupApproved bool `protobuf:"varint,16,opt,name=pickup_approved,json=pickupApproved,proto3" json:"pickup_approved,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Why auto pickup skipped this Ready task (bad repo settings); empty when it
+	// can be picked up. It stays in Ready, not "needs you", while this is set.
+	PickupBlockReason string `protobuf:"bytes,17,opt,name=pickup_block_reason,json=pickupBlockReason,proto3" json:"pickup_block_reason,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Task) Reset() {
@@ -417,6 +420,13 @@ func (x *Task) GetPickupApproved() bool {
 		return x.PickupApproved
 	}
 	return false
+}
+
+func (x *Task) GetPickupBlockReason() string {
+	if x != nil {
+		return x.PickupBlockReason
+	}
+	return ""
 }
 
 type Comment struct {
@@ -2312,7 +2322,7 @@ var File_factory_v1_factory_proto protoreflect.FileDescriptor
 const file_factory_v1_factory_proto_rawDesc = "" +
 	"\n" +
 	"\x18factory/v1/factory.proto\x12\n" +
-	"factory.v1\"\xe6\x03\n" +
+	"factory.v1\"\x96\x04\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x12\n" +
@@ -2333,7 +2343,8 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\bpr_state\x18\r \x01(\tR\aprState\x12\x13\n" +
 	"\x05pr_ci\x18\x0e \x01(\tR\x04prCi\x12\x1b\n" +
 	"\tpr_review\x18\x0f \x01(\tR\bprReview\x12'\n" +
-	"\x0fpickup_approved\x18\x10 \x01(\bR\x0epickupApproved\"d\n" +
+	"\x0fpickup_approved\x18\x10 \x01(\bR\x0epickupApproved\x12.\n" +
+	"\x13pickup_block_reason\x18\x11 \x01(\tR\x11pickupBlockReason\"d\n" +
 	"\aComment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06author\x18\x02 \x01(\tR\x06author\x12\x12\n" +

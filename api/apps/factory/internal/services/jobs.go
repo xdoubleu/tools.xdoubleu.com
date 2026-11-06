@@ -612,19 +612,21 @@ func (s *JobService) pickUp(ctx context.Context) error {
 	return err
 }
 
-// cannotPickUp parks a Ready task the repo's settings can't run, with the reason on
-// the task, so one such task doesn't hold up every other and the owner can see why.
+// cannotPickUp records why a Ready task the repo's settings can't run is passed
+// over, so one such task doesn't hold up every other and the owner can see why.
+// It leaves the task in Ready (the factory skipped it; it isn't waiting on you);
+// a fresh Ready move clears the reason and retries.
 func (s *JobService) cannotPickUp(
 	ctx context.Context,
 	taskID uuid.UUID,
 	reason error,
 ) error {
 	body := "Not picked up automatically: " + reason.Error() +
-		". Fix the repo's settings, then move the task to Ready again."
+		". Fix the repo's settings, then move the task to Ready again to retry."
 	if _, err := s.tasks.AddComment(ctx, taskID, systemAuthor, body); err != nil {
 		return err
 	}
-	_, err := s.tasks.Move(ctx, taskID, models.StatusNeedsYou)
+	_, err := s.tasks.BlockPickup(ctx, taskID, reason.Error())
 	return err
 }
 
@@ -635,7 +637,7 @@ func approvedTask(c *repositories.PickupCandidate) *models.Task {
 		ID: c.TaskID, RepoID: c.RepoID, Title: c.Title, Body: c.Body, Status: "",
 		Priority: "", Labels: nil, CreatedBy: "", CreatedAt: time.Time{},
 		UpdatedAt: time.Time{}, CommentCount: 0, PRURL: "", PRState: "", PRCI: "",
-		PRReview: "", PickupApproved: true,
+		PRReview: "", PickupApproved: true, PickupBlocked: "",
 	}
 }
 

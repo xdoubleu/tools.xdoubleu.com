@@ -1,6 +1,7 @@
-import { type DragEvent } from 'react'
-import { TaskPriority, type Repo, type Task } from '@/lib/gen/factory/v1/factory_pb'
-import { prBadge, priorityLabel, repoLabel } from '@/lib/factory/board'
+import { useState, type DragEvent } from 'react'
+import { TaskPriority, TaskStatus, type Repo, type Task } from '@/lib/gen/factory/v1/factory_pb'
+import { isProductLabel, prBadge, priorityLabel, repoLabel } from '@/lib/factory/board'
+import { useFactoryActions } from '@/hooks/useFactory'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -35,6 +36,23 @@ export default function TaskCard({
   onDragEnd
 }: TaskCardProps) {
   const pr = prBadge(task)
+  const { move } = useFactoryActions()
+  const [retrying, setRetrying] = useState(false)
+  const [retryError, setRetryError] = useState('')
+
+  // Retry pickup is a fresh Ready move: it clears the block reason server-side.
+  const retryPickup = async () => {
+    setRetryError('')
+    setRetrying(true)
+    try {
+      await move(task.id, TaskStatus.READY)
+    } catch {
+      setRetryError('Couldn\u2019t retry pickup. Try again.')
+    } finally {
+      setRetrying(false)
+    }
+  }
+
   return (
     <Card
       variant="inset"
@@ -61,7 +79,11 @@ export default function TaskCard({
           </Badge>
         )}
         {task.labels.map((l) => (
-          <Badge key={l} variant="default">
+          <Badge
+            key={l}
+            variant={isProductLabel(l) ? 'secondary' : 'default'}
+            data-testid={isProductLabel(l) ? 'product-label' : undefined}
+          >
             {l}
           </Badge>
         ))}
@@ -73,6 +95,26 @@ export default function TaskCard({
         <p className="text-xs text-warn" data-testid="approval-hint">
           Not approved for auto pickup. Edit and save its text in the app to approve it.
         </p>
+      )}
+      {task.pickupBlockReason && (
+        <div className="space-y-2">
+          <p className="text-xs text-warn" data-testid="pickup-block">
+            Not picked up: {task.pickupBlockReason}
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={retrying}
+            onClick={() => void retryPickup()}
+          >
+            {retrying ? 'Retrying…' : 'Retry pickup'}
+          </Button>
+          {retryError && (
+            <p className="text-xs text-danger" role="alert">
+              {retryError}
+            </p>
+          )}
+        </div>
       )}
     </Card>
   )

@@ -5,9 +5,11 @@ import {
   awaitingPickupApproval,
   distinctLabels,
   filterByLabel,
+  filterByProduct,
   filterByRepo,
   groupByStatus,
   limitNotice,
+  PRODUCT_LABELS,
   repoLabel,
   reposOf,
   runnersOf,
@@ -43,6 +45,7 @@ export default function FactoryClient() {
   const repos = reposOf(useFactoryRepos().data)
   const runner = runnerState(activeRunner(runnersOf(useFactoryRunners().data)), Date.now())
   const [repoFilter, setRepoFilter] = useState('')
+  const [productFilter, setProductFilter] = useState('')
   const [labelFilter, setLabelFilter] = useState('')
   // A link such as /factory?task=<id> (from a Slack message) opens that task.
   const [openId, setOpenId] = useState<string | null>(useSearchParams().get('task'))
@@ -72,7 +75,12 @@ export default function FactoryClient() {
     }
   }
 
-  const visible = data ? filterByLabel(filterByRepo(data.tasks, repoFilter), labelFilter) : []
+  const visible = data
+    ? filterByProduct(
+        filterByLabel(filterByRepo(data.tasks, repoFilter), labelFilter),
+        productFilter
+      )
+    : []
   const labels = distinctLabels(data?.tasks ?? [])
 
   const dropTask = async (task: Task, status: number) => {
@@ -134,6 +142,20 @@ export default function FactoryClient() {
         </Alert>
       )}
       <div className="mb-4 flex flex-wrap gap-4">
+        <Field label="Product" htmlFor="factory-product-filter" className="min-w-40">
+          <Select
+            id="factory-product-filter"
+            value={productFilter}
+            onChange={(e) => setProductFilter(e.target.value)}
+          >
+            <option value="">All products</option>
+            {PRODUCT_LABELS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </Select>
+        </Field>
         {repos.length > 1 && (
           <Field label="Repo" htmlFor="factory-repo-filter" className="min-w-40">
             <Select
@@ -175,13 +197,13 @@ export default function FactoryClient() {
       {error && !data && <ErrorState what="the board" />}
       {isLoading && !data && <LoadingState label="board" />}
       {data && (
-        <div className="-mx-4 flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 2xl:mx-0 2xl:grid 2xl:grid-cols-7 2xl:overflow-visible 2xl:px-0">
+        <div className="grid min-h-0 flex-1 grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
           {groupByStatus(visible).map((column) => (
             <section
               key={column.status}
               aria-label={column.label}
               className={cn(
-                'flex w-4/5 min-h-0 shrink-0 snap-center flex-col space-y-2 rounded-2xl sm:w-1/2 2xl:w-auto',
+                'flex min-h-0 min-w-0 flex-col space-y-2 rounded-2xl',
                 dragOverStatus === column.status && 'ring-2 ring-accent/60'
               )}
               onDragOver={(e) => {

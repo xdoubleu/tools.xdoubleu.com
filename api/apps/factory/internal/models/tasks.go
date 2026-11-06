@@ -104,6 +104,9 @@ type Task struct {
 	// PickupApproved is whether a human approved this Ready task's text for auto
 	// pickup: it holds a snapshot made from a browser.
 	PickupApproved bool
+	// PickupBlocked is why auto pickup skipped a Ready task (bad repo settings),
+	// "" while it can be picked up.
+	PickupBlocked string
 }
 
 type Comment struct {

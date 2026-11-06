@@ -75,6 +75,41 @@ export function filterByRepo(tasks: Task[], repoId: string): Task[] {
   return repoId === '' ? tasks : tasks.filter((t) => t.repoId === repoId)
 }
 
+/**
+ * The product a task belongs to, from a fixed set so the board can focus on one
+ * app at a time. "platform" covers cross-cutting work (auth, deploy, runners).
+ * Lower-case; the label check ignores case. Kept alongside free-form labels.
+ */
+export const PRODUCT_LABELS: string[] = [
+  'books',
+  'games',
+  'feeds',
+  'watchparty',
+  'recipes',
+  'mealplans',
+  'shoppinglist',
+  'dashboard',
+  'trains',
+  'learningpaths',
+  'movies',
+  'podcasts',
+  'taste',
+  'factory',
+  'platform'
+]
+
+/** Whether a label is one of the predefined products, so it renders distinctly. */
+export function isProductLabel(label: string): boolean {
+  const l = label.trim().toLowerCase()
+  return PRODUCT_LABELS.some((p) => p === l)
+}
+
+/** Tasks of one product; an empty product keeps them all. */
+export function filterByProduct(tasks: Task[], product: string): Task[] {
+  const p = product.trim().toLowerCase()
+  return p === '' ? tasks : tasks.filter((t) => t.labels.some((l) => l.trim().toLowerCase() === p))
+}
+
 /** The tasks that carry a label; an empty label keeps them all. */
 export function filterByLabel(tasks: Task[], label: string): Task[] {
   return label === '' ? tasks : tasks.filter((t) => t.labels.includes(label))

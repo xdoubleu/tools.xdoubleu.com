@@ -220,7 +220,7 @@ func TestSavingAReadyTasksPriorityDoesNotApproveAnAgentsEdit(t *testing.T) {
 	assert.NotContains(t, claimed.Prompt, "exfiltrate")
 }
 
-func TestATaskTheReposSettingsCannotRunIsParkedWithTheReason(t *testing.T) {
+func TestATaskTheReposSettingsCannotRunStaysReadyWithTheReason(t *testing.T) {
 	env := browserJobEnv(t)
 	autoPickup(t, true)
 	// OpenCode without a model: as a repo from before models existed would be.
@@ -240,11 +240,30 @@ func TestATaskTheReposSettingsCannotRunIsParkedWithTheReason(t *testing.T) {
 	assert.Nil(t, env.claim(t))
 
 	got := env.task(t, task.Id)
-	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_NEEDS_YOU, got.Task.Status)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY, got.Task.Status,
+		"a task the factory can't pick up stays in Ready, not Needs you")
+	require.Contains(t, got.Task.PickupBlockReason, "OpenCode needs an OpenRouter model")
 	require.Len(t, got.Comments, 1)
 	assert.Equal(t, "system:factory", got.Comments[0].Author)
 	assert.Contains(t, got.Comments[0].Body, "Not picked up automatically")
 	assert.Contains(t, got.Comments[0].Body, "OpenCode needs an OpenRouter model")
+
+	// Fixing the repo and making a fresh Ready move retries pickup.
+	_, err = testDB.Exec(context.Background(),
+		`UPDATE factory.repos SET default_harness = 'claude_code' WHERE id = $1`,
+		seededRepoID(t))
+	require.NoError(t, err)
+	_, err = env.tasks.MoveTask(context.Background(), &factoryv1.MoveTaskRequest{
+		Id: task.Id, Status: factoryv1.TaskStatus_TASK_STATUS_BACKLOG,
+	})
+	require.NoError(t, err)
+	env.ready(t, task.Id)
+	assert.Equal(t, "", env.task(t, task.Id).Task.PickupBlockReason,
+		"a fresh Ready move clears the reason")
+
+	claimed := env.claim(t)
+	require.NotNil(t, claimed, "the fresh Ready move makes it pickable again")
+	assert.Equal(t, task.Id, claimed.TaskId)
 }
 
 func TestAMissingSettingsRowReadsAsNotPausedAndIsRecreatedByPausing(t *testing.T) {

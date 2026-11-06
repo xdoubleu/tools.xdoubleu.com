@@ -270,6 +270,36 @@ describe('FactoryClient', () => {
     expect(screen.getByRole('link', { name: 'Repos' })).toHaveAttribute('href', '/factory/repos')
   })
 
+  it('filters the board to one product', () => {
+    mockTasks({
+      data: create(ListTasksResponseSchema, {
+        tasks: [
+          create(TaskSchema, {
+            id: 'b1',
+            title: 'Book task',
+            status: TaskStatus.BACKLOG,
+            repoId: 'r1',
+            labels: ['books']
+          }),
+          create(TaskSchema, {
+            id: 'p1',
+            title: 'Platform task',
+            status: TaskStatus.BACKLOG,
+            repoId: 'r1',
+            labels: ['platform']
+          })
+        ]
+      })
+    })
+    render(<FactoryClient />)
+    expect(screen.getByRole('button', { name: 'Book task' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Platform task' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Product'), { target: { value: 'books' } })
+    expect(screen.getByRole('button', { name: 'Book task' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Platform task' })).not.toBeInTheDocument()
+  })
+
   describe('auto pickup', () => {
     const pickupRepos = create(ListReposResponseSchema, {
       repos: [create(RepoSchema, { id: 'r1', owner: 'octo', name: 'cat', autoPickup: true })]
