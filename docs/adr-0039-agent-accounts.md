@@ -4,7 +4,8 @@
 - Issues: #2776, #2701
 - Affects: `api/internal/agentaccounts/`, `api/internal/oauth2as/seed.go`
   (`MachineSubjects`), `api/internal/mcptools/agent_tools.go`,
-  `api/cmd/api/migrations/00059_*`, `scripts/factory_agent_headers.sh`
+  `api/cmd/api/migrations/00059_*`, `scripts/factory_agent_headers.sh`,
+  `scripts/opencode_agent.sh`, `opencode.json`
 
 ## Context
 
@@ -60,10 +61,25 @@ claude mcp add-json tools-apps-agent '{"type":"http",
   "headersHelper":"FACTORY_AGENT_CLIENT_ID=<client id> /path/to/scripts/factory_agent_headers.sh"}'
 ```
 
-OpenCode takes a static header, so mint a token first
-(`FACTORY_MCP_TOKEN=$(FACTORY_AGENT_CLIENT_ID=… scripts/factory_agent_headers.sh | jq -r '.Authorization | sub("Bearer "; "")')`)
-and set `headers: {Authorization: "Bearer {env:FACTORY_MCP_TOKEN}"}` on the
-`tools-apps` server in `opencode.json`.
+OpenCode takes a static `{env:…}` header, resolved from the service's process
+env at launch. The committed `opencode.json` already declares a `tools-apps-agent`
+server with `"oauth": false` and a `{env:FACTORY_MCP_TOKEN}` header — no token in
+the file. Mint a token before launching, and export it:
+
+```bash
+eval "$(FACTORY_AGENT_CLIENT_ID=<client id> scripts/opencode_agent.sh)"
+```
+
+`oauth: false` is required: without it a remote MCP server defaults to the OAuth
+flow and signs the session in as the person, silently ignoring the header, so the
+session looks connected but lists the owner's user tools instead of `factory_*`.
+If that happens the header was dropped (or the token expired); the server answers
+identically either way. A person session lists user tools while an agent session
+lists only `factory_*`, so a fresh, correctly-exported token is the check. For a
+one-shot static-token session, `opencode_agent.sh --static` bakes the fresh token
+into `opencode.json` and marks it skip-worktree, so the committed skeleton never
+hardcodes one. `scripts/opencode_agent.sh` wraps
+`scripts/factory_agent_headers.sh`; see `make opencode/agent`.
 
 ## Alternatives considered
 

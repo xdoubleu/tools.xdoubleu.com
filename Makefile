@@ -33,6 +33,15 @@ lint/deploy-version:
 lint/agent-headers:
 	./scripts/test_factory_agent_headers.sh
 
+# Exercise scripts/opencode_agent.sh against a stubbed token endpoint.
+lint/opencode-agent:
+	./scripts/test_opencode_agent.sh
+
+# Mint an agent token for an OpenCode session (docs/adr-0039). Prints the
+# FACTORY_MCP_TOKEN export line; `--static` writes a one-shot header instead.
+opencode/agent:
+	./scripts/opencode_agent.sh
+
 # The Mac sandbox probe needs macOS 26 and `container`; CI only parses it.
 lint/sandbox-probe:
 	bash -n scripts/factory_sandbox_probe.sh
