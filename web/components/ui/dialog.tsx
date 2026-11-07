@@ -1,8 +1,18 @@
 import * as RadixDialog from '@radix-ui/react-dialog'
-import { type CSSProperties, type ReactNode } from 'react'
+import {
+  type CSSProperties,
+  type PointerEvent,
+  type ReactNode,
+  createContext,
+  useContext,
+  useRef
+} from 'react'
 import { Button } from '@/components/ui/button'
+import { dragVelocity, shouldDismissSheet } from '@/components/ui/sheetDrag'
 import { useKeyboardInset } from '@/hooks/useKeyboardInset'
 import { cn } from '@/lib/cn'
+
+const CloseContext = createContext<(open: boolean) => void>(() => {})
 
 interface DialogProps {
   open: boolean
@@ -13,22 +23,24 @@ interface DialogProps {
 
 function Dialog({ open, onOpenChange, modal = true, children }: DialogProps) {
   return (
-    <RadixDialog.Root open={open} onOpenChange={onOpenChange} modal={modal}>
-      {children}
-    </RadixDialog.Root>
+    <CloseContext.Provider value={onOpenChange}>
+      <RadixDialog.Root open={open} onOpenChange={onOpenChange} modal={modal}>
+        {children}
+      </RadixDialog.Root>
+    </CloseContext.Provider>
   )
 }
 
 function DialogOverlay() {
   return (
-    <RadixDialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+    <RadixDialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[state=open]:animate-fade-in" />
   )
 }
 
 interface DialogContentProps {
   children: ReactNode
   className?: string
-  /** `sheet` is a bottom sheet on phones and a centered dialog from `sm` up. */
+  /** `sheet` (default) docks to the bottom on phones and centers from `sm` up; `center` opts out. */
   side?: 'center' | 'right' | 'fullscreen' | 'sheet'
 }
 
@@ -36,9 +48,7 @@ const centerContentClass = [
   'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
   'w-[calc(100%-2rem)] max-w-md max-h-[85dvh]',
   'rounded-2xl p-5',
-  'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-  'data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]',
-  'data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]'
+  'data-[state=open]:animate-pop-in'
 ]
 
 const rightContentClass = [
@@ -47,8 +57,7 @@ const rightContentClass = [
   'rounded-l-2xl p-5',
   'pt-[calc(1.25rem+var(--inset-top))] pb-[calc(1.25rem+env(safe-area-inset-bottom))]',
   'pr-[calc(1.25rem+env(safe-area-inset-right))]',
-  'data-[state=closed]:slide-out-to-right',
-  'data-[state=open]:slide-in-from-right'
+  'data-[state=open]:animate-panel-in'
 ]
 
 // Full-screen on mobile (no floating popup box), centered modal from `sm` up.
@@ -58,7 +67,7 @@ const fullscreenContentClass = [
   'sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-auto sm:w-[calc(100%-2rem)]',
   'sm:max-w-2xl sm:max-h-[85dvh] sm:-translate-x-1/2 sm:-translate-y-1/2',
   'sm:rounded-2xl sm:p-5',
-  'data-[state=closed]:sm:zoom-out-95 data-[state=open]:sm:zoom-in-95'
+  'data-[state=open]:animate-pop-in'
 ]
 
 // Bottom sheet within thumb reach on phones, riding above the on-screen
@@ -67,7 +76,8 @@ const sheetContentClass = [
   'inset-x-0 bottom-(--keyboard-inset) w-full rounded-t-2xl p-5',
   'max-h-[min(85dvh,calc(100dvh-var(--keyboard-inset)-var(--inset-top)-1rem))]',
   'pb-[calc(1.25rem+max(0px,env(safe-area-inset-bottom)-var(--keyboard-inset)))]',
-  'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
+  'bg-glass backdrop-blur-xl backdrop-saturate-150 sm:bg-card sm:backdrop-blur-none',
+  'motion-safe:data-[state=open]:animate-sheet-in sm:motion-safe:data-[state=open]:animate-pop-in',
   'sm:inset-auto sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[calc(100%-2rem)] sm:max-w-md',
   'sm:max-h-[85dvh]',
   'sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:pb-5'
@@ -80,7 +90,7 @@ const sideContentClass = {
   sheet: sheetContentClass
 }
 
-function DialogContent({ children, className = '', side = 'center' }: DialogContentProps) {
+function DialogContent({ children, className = '', side = 'sheet' }: DialogContentProps) {
   return (
     <RadixDialog.Portal>
       {side !== 'right' && <DialogOverlay />}
@@ -102,8 +112,58 @@ function SheetContent({ children, className }: { children: ReactNode; className:
   }
   return (
     <ContentPanel side="sheet" className={className} style={style}>
+      <SheetHandle />
       {children}
     </ContentPanel>
+  )
+}
+
+// Phone-only drag handle: pull the sheet down; a fling or long pull closes it.
+function SheetHandle() {
+  const onOpenChange = useContext(CloseContext)
+  const drag = useRef<{ y: number; lastY: number; lastT: number; v: number } | null>(null)
+  const panel = (e: PointerEvent<HTMLDivElement>) =>
+    e.currentTarget.closest<HTMLElement>('[data-sheet]')
+
+  const onDown = (e: PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId)
+    drag.current = { y: e.clientY, lastY: e.clientY, lastT: e.timeStamp, v: 0 }
+    const el = panel(e)
+    if (el) el.style.transition = 'none'
+  }
+  const onMove = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current
+    const el = panel(e)
+    if (!d || !el) return
+    d.v = dragVelocity(e.clientY - d.lastY, e.timeStamp - d.lastT)
+    d.lastY = e.clientY
+    d.lastT = e.timeStamp
+    el.style.transform = `translateY(${Math.max(0, e.clientY - d.y)}px)`
+  }
+  const onUp = (e: PointerEvent<HTMLDivElement>) => {
+    const d = drag.current
+    const el = panel(e)
+    drag.current = null
+    if (!d || !el) return
+    if (shouldDismissSheet(e.clientY - d.y, d.v, el.offsetHeight)) {
+      onOpenChange(false)
+      return
+    }
+    el.style.transition = 'transform var(--duration-settle) var(--ease-spring)'
+    el.style.transform = ''
+  }
+
+  return (
+    <div
+      aria-hidden="true"
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onPointerCancel={onUp}
+      className="-mx-5 -mt-5 mb-1 flex h-7 cursor-grab touch-none justify-center pt-2.5 sm:hidden"
+    >
+      <span className="h-1 w-9 rounded-xl bg-border" />
+    </div>
   )
 }
 
@@ -122,13 +182,14 @@ function ContentPanel({
     <RadixDialog.Content
       onInteractOutside={side === 'right' ? (e) => e.preventDefault() : undefined}
       style={style}
+      data-sheet={side === 'sheet' ? '' : undefined}
       className={cn(
         'fixed z-50 overflow-x-hidden overflow-y-auto',
-        'border border-border bg-card shadow-elevated',
+        'border border-border shadow-elevated',
+        side !== 'sheet' && 'bg-card',
         'focus:outline-none',
-        'data-[state=open]:animate-in data-[state=closed]:animate-out',
-        'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         sideContentClass[side],
+        'motion-reduce:data-[state=open]:animate-fade-in',
         className
       )}
     >

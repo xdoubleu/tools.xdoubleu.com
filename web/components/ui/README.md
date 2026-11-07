@@ -67,6 +67,17 @@ Small inline status pill. Pick the variant by meaning, not colour.
 
 Also accepts: `HTMLAttributes<HTMLSpanElement>`
 
+### `bottom-tabs.tsx`
+
+#### `BottomTabs`
+
+An app's section navigation, docked to the bottom of phones in a glass bar above the safe area (hidden from `sm` up). The active tab is a filled pill. It publishes its height as `--bottom-offset`, which `ThumbAction` docks above, and leaves a spacer so the footer stays reachable.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `tabs` | `BottomTab[]` | yes |  |
+| `'aria-label'` | `string` | yes | Names the navigation landmark for screen readers. |
+
 ### `breadcrumb.tsx`
 
 #### `Breadcrumb`
@@ -251,7 +262,7 @@ Confirmation prompt for an irreversible action. Prefer this over composing `Dial
 |---|---|---|---|
 | `children` | `ReactNode` | yes |  |
 | `className` | `string` |  |  |
-| `side` | `'center' \| 'right' \| 'fullscreen' \| 'sheet'` |  | `sheet` is a bottom sheet on phones and a centered dialog from `sm` up. |
+| `side` | `'center' \| 'right' \| 'fullscreen' \| 'sheet'` |  | `sheet` (default) docks to the bottom on phones and centers from `sm` up; `center` opts out. |
 
 #### `DialogDescription`
 
@@ -516,6 +527,16 @@ Also accepts: `Omit<ThHTMLAttributes<HTMLTableCellElement>, 'dir'>`
 ### `textarea.tsx`
 
 #### `Textarea`
+
+### `thumb-action.tsx`
+
+#### `ThumbAction`
+
+A page's one primary action. On phones it docks to the bottom thumb zone in a glass bar, above the safe area and `--bottom-offset` (set by a bottom tab bar); from `sm` up it is an ordinary inline child. Pass a `Button`, and add `ThumbActionSpacer` at the end of the page so the bar covers no content.
+
+#### `ThumbActionSpacer`
+
+Clears the docked `ThumbAction` bar at the end of the page (phones only).
 
 ### `toggle-icon-button.tsx`
 

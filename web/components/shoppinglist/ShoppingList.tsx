@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/cn'
+import { focusById } from '@/lib/focusById'
 import { EmptyState } from '@/components/ui/states'
 
 export interface ShoppingItemEdit {
@@ -79,7 +80,15 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
       )}
 
       {items.length === 0 ? (
-        <EmptyState>No items yet. Add something above.</EmptyState>
+        <EmptyState
+          action={
+            <Button size="sm" onClick={() => focusById('shopping-item-name')}>
+              Add your first item
+            </Button>
+          }
+        >
+          No items yet.
+        </EmptyState>
       ) : (
         <div className="space-y-2">
           {items.map((item, idx) => {

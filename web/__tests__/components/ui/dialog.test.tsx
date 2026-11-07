@@ -1,4 +1,4 @@
-import { act, render, screen, fireEvent } from '@testing-library/react'
+import { act, createEvent, render, screen, fireEvent } from '@testing-library/react'
 import {
   ConfirmDialog,
   Dialog,
@@ -148,12 +148,131 @@ describe('DialogContent sheet', () => {
   it('leaves other sides without a keyboard inset', () => {
     render(
       <Dialog open onOpenChange={vi.fn()}>
-        <DialogContent>
+        <DialogContent side="center">
           <DialogTitle>Centered</DialogTitle>
         </DialogContent>
       </Dialog>
     )
     expect(screen.getByRole('dialog').style.getPropertyValue('--keyboard-inset')).toBe('')
+  })
+
+  it('is the default and renders a drag handle', () => {
+    const { baseElement } = render(
+      <Dialog open onOpenChange={vi.fn()}>
+        <DialogContent>
+          <DialogTitle>Default</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    )
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-sheet')
+    expect(baseElement.querySelector('[aria-hidden="true"].touch-none')).not.toBeNull()
+  })
+
+  it('drags down and closes on a fling, snaps back on a short pull', () => {
+    const onOpenChange = vi.fn()
+    const { baseElement } = render(
+      <Dialog open onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogTitle>Drag</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    )
+    const handle = baseElement.querySelector<HTMLElement>('.touch-none')!
+    handle.setPointerCapture = vi.fn()
+    const sheet = screen.getByRole('dialog')
+    Object.defineProperty(sheet, 'offsetHeight', { value: 500 })
+
+    // Velocity derives from event timestamps, so pin them instead of using wall-clock time.
+    // React treats a 0 timeStamp as missing and substitutes Date.now(), so stay above 0.
+    const pointer = (
+      type: 'pointerDown' | 'pointerMove' | 'pointerUp',
+      clientY: number,
+      timeStamp: number
+    ) => {
+      const event = createEvent[type](handle, { clientY, pointerId: 1 })
+      Object.defineProperty(event, 'timeStamp', { value: timeStamp })
+      fireEvent(handle, event)
+    }
+
+    pointer('pointerDown', 100, 1000)
+    expect(handle.setPointerCapture).toHaveBeenCalledWith(1)
+    expect(sheet.style.transition).toBe('none')
+    pointer('pointerMove', 110, 1100)
+    expect(sheet.style.transform).toBe('translateY(10px)')
+    pointer('pointerUp', 110, 1100)
+    expect(onOpenChange).not.toHaveBeenCalled()
+    expect(sheet.style.transform).toBe('')
+    expect(sheet.style.transition).toContain('--ease-spring')
+
+    // 150px of 500 is under the pull threshold; 150px in 100ms is a fling.
+    pointer('pointerDown', 100, 5000)
+    pointer('pointerMove', 250, 5100)
+    pointer('pointerUp', 250, 5100)
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('ignores moves and releases that were not preceded by a press', () => {
+    const onOpenChange = vi.fn()
+    const { baseElement } = render(
+      <Dialog open onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogTitle>Idle</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    )
+    const handle = baseElement.querySelector<HTMLElement>('.touch-none')!
+    const sheet = screen.getByRole('dialog')
+    fireEvent.pointerMove(handle, { clientY: 300, pointerId: 1 })
+    fireEvent.pointerUp(handle, { clientY: 300, pointerId: 1 })
+    expect(sheet.style.transform).toBe('')
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('never translates the sheet upward', () => {
+    const { baseElement } = render(
+      <Dialog open onOpenChange={vi.fn()}>
+        <DialogContent>
+          <DialogTitle>Up</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    )
+    const handle = baseElement.querySelector<HTMLElement>('.touch-none')!
+    handle.setPointerCapture = vi.fn()
+    fireEvent.pointerDown(handle, { clientY: 200, pointerId: 1 })
+    fireEvent.pointerMove(handle, { clientY: 150, pointerId: 1 })
+    expect(screen.getByRole('dialog').style.transform).toBe('translateY(0px)')
+  })
+
+  it('styles each side', () => {
+    const open = (side: 'sheet' | 'center' | 'right' | 'fullscreen') => {
+      const { unmount } = render(
+        <Dialog open onOpenChange={vi.fn()}>
+          <DialogContent side={side}>
+            <DialogTitle>{side}</DialogTitle>
+          </DialogContent>
+        </Dialog>
+      )
+      const el = screen.getByRole('dialog')
+      return { el, unmount }
+    }
+    const sheet = open('sheet')
+    expect(sheet.el).toHaveAttribute('data-sheet', '')
+    expect(sheet.el).toHaveClass('bg-glass', 'border', 'shadow-elevated', 'overflow-y-auto')
+    expect(sheet.el.className).toContain('animate-sheet-in')
+    expect(sheet.el).not.toHaveClass('bg-card')
+    sheet.unmount()
+    for (const [side, animation] of [
+      ['center', 'animate-pop-in'],
+      ['right', 'animate-panel-in'],
+      ['fullscreen', 'animate-pop-in']
+    ] as const) {
+      const { el, unmount } = open(side)
+      expect(el).not.toHaveAttribute('data-sheet')
+      expect(el).toHaveClass('bg-card', 'border', 'shadow-elevated')
+      expect(el.className).toContain(animation)
+      expect(el.className).toContain('motion-reduce:data-[state=open]:animate-fade-in')
+      unmount()
+    }
   })
 })
 

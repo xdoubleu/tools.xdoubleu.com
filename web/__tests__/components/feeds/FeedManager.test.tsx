@@ -58,6 +58,13 @@ describe('FeedManager', () => {
     expect(screen.getByText('No feed subscriptions yet.')).toBeInTheDocument()
   })
 
+  it('offers an action that focuses the feed URL field', () => {
+    mockUseFeeds.mockReturnValue({ data: { feeds: [] }, error: undefined, isLoading: false })
+    render(<FeedManager />)
+    fireEvent.click(screen.getByRole('button', { name: 'Add a feed' }))
+    expect(document.getElementById('feed-url')).toHaveFocus()
+  })
+
   it('lists an RSS feed with a Refresh button and refreshes it', async () => {
     mockUseFeeds.mockReturnValue({ data: { feeds: [rssFeed] }, error: undefined, isLoading: false })
     refreshFeed.mockResolvedValue({ ingested: 2 })

@@ -13,7 +13,18 @@ describe('ShoppingList', () => {
 
   it('renders empty state when items list is empty', () => {
     render(<ShoppingList items={[]} />)
-    expect(screen.getByText('No items yet. Add something above.')).toBeInTheDocument()
+    expect(screen.getByText('No items yet.')).toBeInTheDocument()
+  })
+
+  it('points the empty state at the add form', () => {
+    render(
+      <>
+        <input id="shopping-item-name" aria-label="name" />
+        <ShoppingList items={[]} />
+      </>
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Add your first item' }))
+    expect(screen.getByLabelText('name')).toHaveFocus()
   })
 
   it('renders items', () => {
