@@ -9,6 +9,9 @@ describe('shouldDismissSheet', () => {
   it('dismisses on a downward fling', () => {
     expect(shouldDismissSheet(20, 0.6, 400)).toBe(true)
   })
+  it('dismisses at exactly the fling speed', () => {
+    expect(shouldDismissSheet(20, 0.5, 400)).toBe(true)
+  })
   it('dismisses past the distance threshold', () => {
     expect(shouldDismissSheet(160, 0.1, 400)).toBe(true)
   })

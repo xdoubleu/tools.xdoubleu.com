@@ -230,7 +230,7 @@ export default function ManageDuplicatesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Find duplicates</DialogTitle>
           <DialogClose />

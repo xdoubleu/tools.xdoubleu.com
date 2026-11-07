@@ -12,16 +12,23 @@ describe('BottomTabs', () => {
     expect(screen.getByRole('navigation', { name: 'Sections' })).toHaveClass('sm:hidden')
     const alpha = screen.getByRole('link', { name: 'Alpha' })
     expect(alpha).toHaveAttribute('aria-current', 'page')
-    expect(alpha).toHaveClass('bg-fg')
-    expect(screen.getByRole('link', { name: 'Beta' })).not.toHaveAttribute('aria-current')
+    expect(alpha).toHaveClass('bg-fg', 'text-bg', 'min-h-11', 'focus-visible:ring-2')
+    expect(alpha.className).toContain('duration-press')
+    const beta = screen.getByRole('link', { name: 'Beta' })
+    expect(beta).not.toHaveAttribute('aria-current')
+    expect(beta).toHaveClass('text-muted')
+    expect(beta).not.toHaveClass('bg-fg')
   })
 
   it('publishes its height as --bottom-offset and clears it on unmount', () => {
     const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(56)
     const { unmount } = render(<BottomTabs tabs={tabs} aria-label="Sections" />)
-    expect(document.documentElement.style.getPropertyValue('--bottom-offset')).toBe('56px')
+    const root = document.documentElement.style
+    expect(root.getPropertyValue('--bottom-offset')).toBe('56px')
+    expect(root.getPropertyValue('--bottom-safe')).toBe('0px')
     unmount()
-    expect(document.documentElement.style.getPropertyValue('--bottom-offset')).toBe('')
+    expect(root.getPropertyValue('--bottom-offset')).toBe('')
+    expect(root.getPropertyValue('--bottom-safe')).toBe('')
     height.mockRestore()
   })
 

@@ -11,6 +11,9 @@ describe('ThumbAction', () => {
       </ThumbAction>
     )
     expect(screen.getByTestId('bar')).toHaveClass('max-sm:fixed', 'extra')
+    expect(screen.getByTestId('bar').className).toContain('max-sm:bg-glass')
+    expect(screen.getByTestId('bar').className).toContain('max-sm:pb-[max(0.75rem')
+    expect(screen.getByTestId('bar')).toHaveClass('max-sm:*:w-full')
     expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument()
   })
 
@@ -32,6 +35,14 @@ describe('focusById', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: 'Go' }))
     expect(screen.getByLabelText('target')).toHaveFocus()
+  })
+
+  it('centers the target when scrolling it into view', () => {
+    const scroll = vi.fn()
+    render(<input id="t2" aria-label="t2" />)
+    screen.getByLabelText('t2').scrollIntoView = scroll
+    focusById('t2')
+    expect(scroll).toHaveBeenCalledWith({ block: 'center' })
   })
 
   it('ignores a missing id', () => {
