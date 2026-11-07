@@ -28,13 +28,18 @@ function BottomTabs({ tabs, 'aria-label': ariaLabel }: BottomTabsProps) {
     const el = bar.current
     if (!el) return
     const root = document.documentElement
-    const publish = () => root.style.setProperty('--bottom-offset', `${el.offsetHeight}px`)
+    const publish = () => {
+      root.style.setProperty('--bottom-offset', `${el.offsetHeight}px`)
+      // The bar already clears the home indicator; docked content above it must not.
+      root.style.setProperty('--bottom-safe', '0px')
+    }
     publish()
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(publish)
     observer?.observe(el)
     return () => {
       observer?.disconnect()
       root.style.removeProperty('--bottom-offset')
+      root.style.removeProperty('--bottom-safe')
     }
   }, [])
 
@@ -46,7 +51,7 @@ function BottomTabs({ tabs, 'aria-label': ariaLabel }: BottomTabsProps) {
         aria-label={ariaLabel}
         className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-glass pb-[env(safe-area-inset-bottom)] pl-[var(--inset-left)] pr-[var(--inset-right)] pt-1 shadow-glass backdrop-blur-xl backdrop-saturate-150 sm:hidden"
       >
-        <ul className="flex gap-1">
+        <ul className="flex gap-2">
           {tabs.map((tab) => (
             <li key={tab.href} className="min-w-0 flex-1">
               <Link

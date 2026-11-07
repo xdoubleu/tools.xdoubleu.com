@@ -13,7 +13,7 @@ export function ThumbAction({ className, ...props }: HTMLAttributes<HTMLDivEleme
       className={cn(
         'max-sm:fixed max-sm:inset-x-0 max-sm:bottom-[var(--bottom-offset,0px)] max-sm:z-40',
         'max-sm:border-t max-sm:border-border/60 max-sm:bg-glass max-sm:shadow-glass max-sm:backdrop-blur-xl',
-        'max-sm:px-[var(--inset-left)] max-sm:pt-3 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]',
+        'max-sm:px-[var(--inset-left)] max-sm:pt-3 max-sm:pb-[max(0.75rem,var(--bottom-safe,env(safe-area-inset-bottom)))]',
         'max-sm:*:w-full',
         className
       )}
@@ -27,7 +27,7 @@ export function ThumbActionSpacer() {
   return (
     <div
       aria-hidden
-      className="h-[calc(5rem+var(--bottom-offset,0px)+env(safe-area-inset-bottom))] sm:hidden"
+      className="h-[calc(5rem+var(--bottom-offset,0px)+var(--bottom-safe,env(safe-area-inset-bottom)))] sm:hidden"
     />
   )
 }
