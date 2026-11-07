@@ -85,6 +85,7 @@ export default function AddItemForm({ categories }: AddItemFormProps) {
         className="min-w-0 flex-1 sm:w-24 sm:flex-none"
       />
       <Input
+        id="shopping-item-name"
         type="text"
         aria-label="New item name"
         placeholder="Item name"

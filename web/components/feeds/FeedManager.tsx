@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
+import { focusById } from '@/lib/focusById'
 import AddFeedForm from '@/components/feeds/AddFeedForm'
 import FeedExpirySelect from '@/components/feeds/FeedExpirySelect'
 import { useFeeds, useDeleteFeed, useRefreshFeed } from '@/hooks/useFeeds'
@@ -115,7 +116,16 @@ export default function FeedManager() {
       {isLoading && <LoadingState className="mt-3" />}
       {error && <ErrorState what="feeds" className="mt-3" />}
       {!isLoading && !error && feeds.length === 0 && (
-        <EmptyState className="mt-3">No feed subscriptions yet.</EmptyState>
+        <EmptyState
+          className="mt-3"
+          action={
+            <Button size="sm" onClick={() => focusById('feed-url')}>
+              Add a feed
+            </Button>
+          }
+        >
+          No feed subscriptions yet.
+        </EmptyState>
       )}
       {feeds.length > 0 && (
         <ul className="mt-3 space-y-2">

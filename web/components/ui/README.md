@@ -517,6 +517,16 @@ Also accepts: `Omit<ThHTMLAttributes<HTMLTableCellElement>, 'dir'>`
 
 #### `Textarea`
 
+### `thumb-action.tsx`
+
+#### `ThumbAction`
+
+A page's one primary action. On phones it docks to the bottom thumb zone in a glass bar, above the safe area and `--bottom-offset` (set by a bottom tab bar); from `sm` up it is an ordinary inline child. Pass a `Button`, and add `ThumbActionSpacer` at the end of the page so the bar covers no content.
+
+#### `ThumbActionSpacer`
+
+Clears the docked `ThumbAction` bar at the end of the page (phones only).
+
 ### `toggle-icon-button.tsx`
 
 #### `ToggleIconButton`

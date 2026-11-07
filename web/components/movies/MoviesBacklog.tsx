@@ -27,6 +27,8 @@ import { LinkCard } from '@/components/ui/link-card'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { Select } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { focusById } from '@/lib/focusById'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 // "New seasons" narrows Watched, so it sits right after it.
@@ -185,7 +187,15 @@ export default function MoviesBacklog() {
       {isLoading && !data && <LoadingState label="backlog" />}
       {error && <ErrorState what="backlog" />}
       {data && entries.length === 0 && (
-        <EmptyState>Nothing here yet. Search above to add a movie or series.</EmptyState>
+        <EmptyState
+          action={
+            <Button size="sm" onClick={() => focusById('movies-search')}>
+              Add a movie or series
+            </Button>
+          }
+        >
+          Nothing here yet. Search TMDB to add your first title.
+        </EmptyState>
       )}
       {entries.length > 0 && (
         <>

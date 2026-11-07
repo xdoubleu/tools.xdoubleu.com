@@ -116,6 +116,7 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
       >
         {(mode === 'rss' || mode === 'scrape') && (
           <Input
+            id="feed-url"
             type="url"
             required
             placeholder={URL_PLACEHOLDER[mode]}

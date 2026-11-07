@@ -15,6 +15,7 @@ import { useSearchExternal } from '@/hooks/useBooks'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/books/bookShelves'
 import { buildSeriesSummaries } from '@/lib/books/series'
 import { EmptyState } from '@/components/ui/states'
+import { ThumbAction, ThumbActionSpacer } from '@/components/ui/thumb-action'
 
 type Selection = { kind: 'shelf'; id: ShelfId } | { kind: 'tag'; tag: string }
 
@@ -155,14 +156,11 @@ export default function BooksLibrary({
               <span className="ml-2 text-sm font-normal text-muted">{resultCount}</span>
             </h2>
             {/* Always visible: it's the only way to reach manual add. */}
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => setManualAddOpen(true)}
-            >
-              Add book
-            </Button>
+            <ThumbAction>
+              <Button type="button" size="sm" onClick={() => setManualAddOpen(true)}>
+                Add book
+              </Button>
+            </ThumbAction>
           </div>
 
           {isSearching ? (
@@ -190,6 +188,7 @@ export default function BooksLibrary({
           )}
         </div>
       </div>
+      <ThumbActionSpacer />
 
       <ManageShelvesTagsDialog
         open={manageOpen}
