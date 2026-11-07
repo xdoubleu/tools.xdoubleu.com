@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dragVelocity, shouldDismissSheet } from './sheetDrag'
+import { dragVelocity, shouldDismissSheet } from '@/components/ui/sheetDrag'
 
 describe('shouldDismissSheet', () => {
   it('ignores upward or zero offsets even when fast', () => {

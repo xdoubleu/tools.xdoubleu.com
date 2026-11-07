@@ -67,6 +67,17 @@ Small inline status pill. Pick the variant by meaning, not colour.
 
 Also accepts: `HTMLAttributes<HTMLSpanElement>`
 
+### `bottom-tabs.tsx`
+
+#### `BottomTabs`
+
+An app's section navigation, docked to the bottom of phones in a glass bar above the safe area (hidden from `sm` up). The active tab is a filled pill. It publishes its height as `--bottom-offset`, which `ThumbAction` docks above, and leaves a spacer so the footer stays reachable.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `tabs` | `BottomTab[]` | yes |  |
+| `'aria-label'` | `string` | yes | Names the navigation landmark for screen readers. |
+
 ### `breadcrumb.tsx`
 
 #### `Breadcrumb`

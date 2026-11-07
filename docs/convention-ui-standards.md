@@ -24,6 +24,15 @@
   - `DialogDescription` goes after `DialogHeader`, or wrapped with the title in a `div`; as a direct child it lands beside the title and squeezes it (`ui/dialog-description`).
   - A hidden `<input type="file">` may use `eslint-disable-next-line no-restricted-syntax` with a reason.
 - **Theme tokens only.** Colours, shadows and corner radii come from `app/globals.css`, which `ui/theme-tokens` reads. No `dark:`. Add a token rather than using a palette colour. Corners stay squared: `rounded-full` is only for square circles (`size-*`, equal `h-`/`w-`), never a pill.
+- **Warm glass + editorial look.**
+  - Palette is warm paper and ink with a terracotta accent (`--accent-rgb`), in light and dark. Chrome (navbar, footer, thumb and tab bars) is `bg-glass` with `backdrop-blur-xl` and `shadow-glass`.
+  - Display type is the self-hosted Fraunces serif (`font-display`); body stays sans.
+  - Radii are the `rounded-xl`/`2xl` tokens (continuous-curvature feel), with no accent-ring aura on focus or hover.
+  - Motion is the spring spec: `ease-spring`, `duration-press` for taps (`active:scale-[0.97]`) and `duration-settle` for entrances, with plain fades under `motion-reduce`. Reuse these tokens, not ad-hoc curves.
+- **Phone layout.**
+  - `Dialog` docks as a bottom sheet on phones with a drag handle; pull down or fling to dismiss.
+  - A page's one primary action is a `ThumbAction` (docked in the thumb zone) with a `ThumbActionSpacer` at the end of the page.
+  - Apps with real sections get `BottomTabs`, wired in `components/AppTabs.tsx` (books, dashboard). It keeps the top brand bar, shows on phones only, and sets `--bottom-offset` so `ThumbAction` docks above it. Add an app by adding its sections there; a single-flow app (trains) gets none.
 - **Class overrides** go through `cn()` (`lib/cn.ts`), never through a template literal.
 - **Pending buttons** use `Saving…`. Always `…`, never `...`.
 - **Pinch-zoom is disabled** for an app-like feel (the viewport meta in `web/index.html`). That makes 16px fields and 44px targets mandatory.

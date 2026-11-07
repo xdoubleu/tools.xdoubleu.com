@@ -137,6 +137,18 @@ describe('MoviesBacklog rows', () => {
 })
 
 describe('MoviesBacklog states', () => {
+  it('offers an empty-state action that focuses the search field', () => {
+    mockBacklog({ data: page([]) })
+    render(
+      <>
+        <input id="movies-search" aria-label="Search" />
+        <MoviesBacklog />
+      </>
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Add a movie or series' }))
+    expect(screen.getByLabelText('Search')).toHaveFocus()
+  })
+
   it('shows no loading or empty state alongside data', () => {
     mockBacklog({ data: page([matrix]), isLoading: true })
     render(<MoviesBacklog />)

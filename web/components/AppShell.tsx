@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import OfflineBooksSync from '@/components/books/OfflineBooksSync'
+import AppTabs from '@/components/AppTabs'
 import DeployNotification from '@/components/DeployNotification'
 import Footer from '@/components/Footer'
 import Navbar from '@/components/Navbar'
@@ -41,6 +42,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </main>
       <Footer />
+      <AppTabs />
       <DeployNotification />
       <ServiceWorkerRegistrar />
       <OutboxSync />
