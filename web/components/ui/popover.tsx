@@ -204,7 +204,7 @@ export function Popover({
             }}
             className={cn(
               'z-50 min-w-55 max-w-[calc(100vw-1rem)] rounded-2xl border border-border bg-card shadow-elevated p-3',
-              'overflow-y-auto outline-none',
+              'overflow-y-auto outline-none animate-pop-in motion-reduce:animate-fade-in',
               className
             )}
             role="dialog"

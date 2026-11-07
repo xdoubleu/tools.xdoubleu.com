@@ -21,7 +21,7 @@ function Dialog({ open, onOpenChange, modal = true, children }: DialogProps) {
 
 function DialogOverlay() {
   return (
-    <RadixDialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+    <RadixDialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm data-[state=open]:animate-fade-in" />
   )
 }
 
@@ -36,9 +36,7 @@ const centerContentClass = [
   'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
   'w-[calc(100%-2rem)] max-w-md max-h-[85dvh]',
   'rounded-2xl p-5',
-  'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-  'data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]',
-  'data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]'
+  'data-[state=open]:animate-pop-in'
 ]
 
 const rightContentClass = [
@@ -47,8 +45,7 @@ const rightContentClass = [
   'rounded-l-2xl p-5',
   'pt-[calc(1.25rem+var(--inset-top))] pb-[calc(1.25rem+env(safe-area-inset-bottom))]',
   'pr-[calc(1.25rem+env(safe-area-inset-right))]',
-  'data-[state=closed]:slide-out-to-right',
-  'data-[state=open]:slide-in-from-right'
+  'data-[state=open]:animate-panel-in'
 ]
 
 // Full-screen on mobile (no floating popup box), centered modal from `sm` up.
@@ -58,7 +55,7 @@ const fullscreenContentClass = [
   'sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-auto sm:w-[calc(100%-2rem)]',
   'sm:max-w-2xl sm:max-h-[85dvh] sm:-translate-x-1/2 sm:-translate-y-1/2',
   'sm:rounded-2xl sm:p-5',
-  'data-[state=closed]:sm:zoom-out-95 data-[state=open]:sm:zoom-in-95'
+  'data-[state=open]:animate-pop-in'
 ]
 
 // Bottom sheet within thumb reach on phones, riding above the on-screen
@@ -67,7 +64,7 @@ const sheetContentClass = [
   'inset-x-0 bottom-(--keyboard-inset) w-full rounded-t-2xl p-5',
   'max-h-[min(85dvh,calc(100dvh-var(--keyboard-inset)-var(--inset-top)-1rem))]',
   'pb-[calc(1.25rem+max(0px,env(safe-area-inset-bottom)-var(--keyboard-inset)))]',
-  'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
+  'data-[state=open]:animate-sheet-in sm:data-[state=open]:animate-pop-in',
   'sm:inset-auto sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[calc(100%-2rem)] sm:max-w-md',
   'sm:max-h-[85dvh]',
   'sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:pb-5'
@@ -126,9 +123,8 @@ function ContentPanel({
         'fixed z-50 overflow-x-hidden overflow-y-auto',
         'border border-border bg-card shadow-elevated',
         'focus:outline-none',
-        'data-[state=open]:animate-in data-[state=closed]:animate-out',
-        'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         sideContentClass[side],
+        'motion-reduce:data-[state=open]:animate-fade-in',
         className
       )}
     >

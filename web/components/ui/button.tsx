@@ -42,7 +42,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={cn(
           'inline-flex items-center justify-center font-medium cursor-pointer',
-          'transition-[color,background-color,box-shadow,transform] active:scale-[0.98]',
+          'transition-[color,background-color,box-shadow,transform] duration-press ease-spring active:scale-[0.97] motion-reduce:ease-linear motion-reduce:active:scale-100',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
           'disabled:pointer-events-none disabled:opacity-50',
           variantClasses[variant],

@@ -44,7 +44,7 @@ describe('Button', () => {
   it('gives touch devices a pressed state via active: classes, not just hover:', () => {
     render(<Button>Save</Button>)
     const btn = screen.getByRole('button', { name: 'Save' })
-    expect(btn).toHaveClass('active:bg-accent-hover', 'active:scale-[0.98]')
+    expect(btn).toHaveClass('active:bg-accent-hover', 'active:scale-[0.97]')
   })
 
   it('pairs the ghost variant hover with a matching active state', () => {
