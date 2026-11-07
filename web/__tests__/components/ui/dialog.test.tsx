@@ -148,12 +148,51 @@ describe('DialogContent sheet', () => {
   it('leaves other sides without a keyboard inset', () => {
     render(
       <Dialog open onOpenChange={vi.fn()}>
-        <DialogContent>
+        <DialogContent side="center">
           <DialogTitle>Centered</DialogTitle>
         </DialogContent>
       </Dialog>
     )
     expect(screen.getByRole('dialog').style.getPropertyValue('--keyboard-inset')).toBe('')
+  })
+
+  it('is the default and renders a drag handle', () => {
+    const { baseElement } = render(
+      <Dialog open onOpenChange={vi.fn()}>
+        <DialogContent>
+          <DialogTitle>Default</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    )
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-sheet')
+    expect(baseElement.querySelector('[aria-hidden="true"].touch-none')).not.toBeNull()
+  })
+
+  it('drags down and closes on a fling, snaps back on a short pull', () => {
+    const onOpenChange = vi.fn()
+    const { baseElement } = render(
+      <Dialog open onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogTitle>Drag</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    )
+    const handle = baseElement.querySelector<HTMLElement>('.touch-none')!
+    handle.setPointerCapture = vi.fn()
+    const sheet = screen.getByRole('dialog')
+    Object.defineProperty(sheet, 'offsetHeight', { value: 500 })
+
+    fireEvent.pointerDown(handle, { clientY: 100, pointerId: 1 })
+    fireEvent.pointerMove(handle, { clientY: 110, pointerId: 1 })
+    expect(sheet.style.transform).toBe('translateY(10px)')
+    fireEvent.pointerUp(handle, { clientY: 110, pointerId: 1 })
+    expect(onOpenChange).not.toHaveBeenCalled()
+    expect(sheet.style.transform).toBe('')
+
+    fireEvent.pointerDown(handle, { clientY: 100, pointerId: 1 })
+    fireEvent.pointerMove(handle, { clientY: 400, pointerId: 1 })
+    fireEvent.pointerUp(handle, { clientY: 400, pointerId: 1 })
+    expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 })
 

@@ -251,7 +251,7 @@ Confirmation prompt for an irreversible action. Prefer this over composing `Dial
 |---|---|---|---|
 | `children` | `ReactNode` | yes |  |
 | `className` | `string` |  |  |
-| `side` | `'center' \| 'right' \| 'fullscreen' \| 'sheet'` |  | `sheet` is a bottom sheet on phones and a centered dialog from `sm` up. |
+| `side` | `'center' \| 'right' \| 'fullscreen' \| 'sheet'` |  | `sheet` (default) docks to the bottom on phones and centers from `sm` up; `center` opts out. |
 
 #### `DialogDescription`
 
