@@ -6,7 +6,7 @@ import { cn } from '@/lib/cn'
  * cards read as interactive on touch; it intensifies on hover/active.
  */
 const interactiveCardClass =
-  'rounded-2xl border border-border bg-card shadow-card ring-1 ring-accent/20 transition-[box-shadow,transform] duration-200 hover:shadow-elevated hover:ring-accent/40 active:shadow-elevated active:ring-accent/40 active:scale-[0.98]'
+  'rounded-2xl border border-border bg-card shadow-card transition-[box-shadow,transform] duration-200 hover:shadow-elevated active:shadow-elevated active:scale-[0.98]'
 
 const cardVariants = {
   default: 'rounded-2xl border border-border bg-card shadow-card',
