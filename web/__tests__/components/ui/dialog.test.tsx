@@ -1,4 +1,4 @@
-import { act, render, screen, fireEvent } from '@testing-library/react'
+import { act, createEvent, render, screen, fireEvent } from '@testing-library/react'
 import {
   ConfirmDialog,
   Dialog,
@@ -182,16 +182,28 @@ describe('DialogContent sheet', () => {
     const sheet = screen.getByRole('dialog')
     Object.defineProperty(sheet, 'offsetHeight', { value: 500 })
 
-    fireEvent.pointerDown(handle, { clientY: 100, pointerId: 1 })
-    fireEvent.pointerMove(handle, { clientY: 110, pointerId: 1 })
+    // Velocity derives from event timestamps, so pin them instead of using wall-clock time.
+    const pointer = (
+      type: 'pointerDown' | 'pointerMove' | 'pointerUp',
+      clientY: number,
+      timeStamp: number
+    ) => {
+      const event = createEvent[type](handle, { clientY, pointerId: 1 })
+      Object.defineProperty(event, 'timeStamp', { value: timeStamp })
+      fireEvent(handle, event)
+    }
+
+    pointer('pointerDown', 100, 0)
+    pointer('pointerMove', 110, 100)
     expect(sheet.style.transform).toBe('translateY(10px)')
-    fireEvent.pointerUp(handle, { clientY: 110, pointerId: 1 })
+    pointer('pointerUp', 110, 100)
     expect(onOpenChange).not.toHaveBeenCalled()
     expect(sheet.style.transform).toBe('')
 
-    fireEvent.pointerDown(handle, { clientY: 100, pointerId: 1 })
-    fireEvent.pointerMove(handle, { clientY: 400, pointerId: 1 })
-    fireEvent.pointerUp(handle, { clientY: 400, pointerId: 1 })
+    // 150px of 500 is under the pull threshold; 150px in 100ms is a fling.
+    pointer('pointerDown', 100, 1000)
+    pointer('pointerMove', 250, 1100)
+    pointer('pointerUp', 250, 1100)
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 })
