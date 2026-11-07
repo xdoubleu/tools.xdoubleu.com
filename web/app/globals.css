@@ -138,7 +138,18 @@
   --color-glass: rgb(var(--glass-rgb) / var(--glass-opacity));
 }
 
+/* Latin subset of Fraunces (SIL OFL, see public/fonts/OFL.txt). */
+@font-face {
+  font-family: 'Fraunces';
+  src: url('/fonts/fraunces-variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+
   --shadow-glass: 0 1px 3px 0 rgb(40 25 10 / 0.08), 0 1px 2px -1px rgb(40 25 10 / 0.05);
   --shadow-card: 0 1px 3px 0 rgb(40 25 10 / 0.06), 0 1px 2px -1px rgb(40 25 10 / 0.04);
   --shadow-elevated: 0 4px 16px 0 rgb(40 25 10 / 0.1), 0 2px 4px -1px rgb(40 25 10 / 0.06);

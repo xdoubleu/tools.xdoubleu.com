@@ -30,7 +30,7 @@ function StatTile({ label, value, tone = 'default', hint, href, className }: Sta
   const body = (
     <>
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className={cn('mt-1 text-xl font-semibold', toneClasses[tone])}>{value}</p>
+      <p className={cn('mt-1 font-display text-2xl font-medium', toneClasses[tone])}>{value}</p>
       {hint !== undefined && <p className="mt-0.5 text-xs text-muted">{hint}</p>}
     </>
   )
