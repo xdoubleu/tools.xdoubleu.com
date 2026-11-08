@@ -1,7 +1,7 @@
 # Convention: web UI standards
 
 - Enforced by:
-  - `npm run lint`, which runs the ESLint raw-control bans and the local `ui/*` rules in `web/eslint-rules/` (`mobile-first-classes`, `theme-tokens`, `no-classname-template`, `touch-targets`, `use-primitives`, `field-labels`, `dialog-description`). It also runs their RuleTester tests (`test:eslint-rules`) and `generate:ui-catalog:check`.
+  - `npm run lint`, which runs the ESLint raw-control bans and the local `ui/*` rules in `web/eslint-rules/` (`mobile-first-classes`, `theme-tokens`, `no-classname-template`, `touch-targets`, `use-primitives`, `field-labels`, `dialog-description`, `control-overrides`, `card-padding`, `shared-patterns`), their RuleTester tests (`test:eslint-rules`) and `generate:ui-catalog:check`.
   - `npm run build`, for the production bundle.
   - The `mobile-review` skill, whose `npm run mobile:audit` fails on overflow, sub-44px or crowded tap targets, and sub-16px inputs at 375x667.
   - Review, for everything else.
@@ -9,33 +9,27 @@
 
 ## Rule
 
-- **Mobile-first.**
-  - Primitives are 44px tall below `sm` and compact above it. Fields are ≥16px.
-  - No fixed pixel sizes, no `vh`/`h-screen` (use `dvh`), and no bare `grid-cols-N≥3`.
-- **Primitives for every control and repeated pattern.** The inventory is [`web/components/ui/README.md`](../web/components/ui/README.md) (generated). If nothing fits, add a primitive.
-  - `PageHeader` for the page `<h1>`. Its `actions` are all bordered: `PageHeaderLink`/`PageHeaderSettingsLink` to navigate, `secondary` buttons for commands. Only create (default) and delete (destructive) stand out.
-  - `PageContainer size` for page width. The shell owns padding.
-  - `Card`/`SectionCard`, and `Card variant="inset"`.
-  - `LinkCard` for cards that navigate, with controls in its `actions` footer.
-  - `Alert`, `LoadingState`/`ErrorState`/`EmptyState`, `Badge`, `SegmentedTabs`.
-  - `Field`/`Label` for labelled controls. A field without a visible label gets `aria-label`; a placeholder is not a label.
-  - `Alert tone="danger"` for errors, or `role="alert"` on an inline error beside its control, so they are announced.
-  - `Dialog side="sheet"` for edits that should be phone-first.
-  - `DialogDescription` goes after `DialogHeader`, or wrapped with the title in a `div`; as a direct child it lands beside the title and squeezes it (`ui/dialog-description`).
-  - A hidden `<input type="file">` may use `eslint-disable-next-line no-restricted-syntax` with a reason.
-- **Theme tokens only.** Colours, shadows and corner radii come from `app/globals.css`, which `ui/theme-tokens` reads. No `dark:`. Add a token rather than using a palette colour. Corners stay squared: `rounded-full` is only for square circles (`size-*`, equal `h-`/`w-`), never a pill.
-- **Warm glass + editorial look.**
-  - Palette is warm paper and ink with a terracotta accent (`--accent-rgb`), in light and dark. Chrome (navbar, footer, thumb and tab bars) is `bg-glass` with `backdrop-blur-xl` and `shadow-glass`.
-  - Display type is the self-hosted Fraunces serif (`font-display`); body stays sans.
-  - Radii are the `rounded-xl`/`2xl` tokens (continuous-curvature feel), with no accent-ring aura on focus or hover.
-  - Motion is the spring spec: `ease-spring`, `duration-press` for taps (`active:scale-[0.97]`) and `duration-settle` for entrances, with plain fades under `motion-reduce`. Reuse these tokens, not ad-hoc curves.
-- **Phone layout.**
-  - `Dialog` docks as a bottom sheet on phones with a drag handle; pull down or fling to dismiss.
-  - A page's one primary action is a `ThumbAction` (docked in the thumb zone) with a `ThumbActionSpacer` at the end of the page.
-  - Apps with real sections get `BottomTabs`, wired in `components/AppTabs.tsx` (books, dashboard). It keeps the top brand bar, shows on phones only, and sets `--bottom-offset` so `ThumbAction` docks above it. Add an app by adding its sections there; a single-flow app (trains) gets none.
-- **Class overrides** go through `cn()` (`lib/cn.ts`), never through a template literal.
-- **Pending buttons** use `Saving…`. Always `…`, never `...`.
-- **Pinch-zoom is disabled** for an app-like feel (the viewport meta in `web/index.html`). That makes 16px fields and 44px targets mandatory.
+The same job uses the same primitive everywhere. The inventory is [`web/components/ui/README.md`](../web/components/ui/README.md) (generated); if nothing fits, add a primitive rather than styling a raw element.
+
+- **One height scale** (`components/ui/control.ts`): every control is 44px below `sm` and 36px from `sm`, so a row of controls lines up. `Button size="sm"`/`iconSm` stay 44px on phones and compact only from `sm` (32px, 28px), for dense rows and tables. Don't resize a control with `h-*`, `py-*` or text-size classes; a multi-line button uses `h-auto`. Fields are ≥16px. No fixed pixel sizes, no `vh` (use `dvh`), no bare `grid-cols-N≥3`.
+- **Page structure.**
+  - `PageContainer size` sets the width; settings pages are `narrow`. The shell owns padding.
+  - `PageHeader` owns the `<h1>`, the `description` line, a `breadcrumb` on every detail and settings page, and the page's `actions`. Actions are bordered (`PageHeaderLink`, `PageHeaderSettingsLink`, `secondary` buttons) at the default size; only create (default) and delete (destructive) stand out. Titles are sentence case.
+  - `SectionHeading` for every heading under it: `section` (serif) or `eyebrow` (small uppercase).
+  - Settings pages stack `SettingsSection`s in `SettingsSections`, with no dividers.
+  - `Toolbar` holds the search and filters between `PageHeader` and a list, with `aria-label`led `Select`s, `TogglePill`s or `SegmentedTabs`.
+  - `SegmentedTabs` switches between views; with `router.push` it switches between sibling pages.
+- **Surfaces.** `Card`/`SectionCard`/`Card variant="inset"` take spacing from `padding` (`none`/`sm`/`md`), never `p-*` or `rounded-*` classes. `LinkCard` for cards that navigate, with controls in its `actions` footer.
+- **States.** `LoadingState`/`ErrorState`/`EmptyState` with `placement` (`page` for a whole page, `inline` inside a card, panel or dialog), never hand-rolled centred paragraphs or text-size classes.
+- **Shared patterns** (`ui/shared-patterns`): `ProgressBar`; `FieldError` for an error under a control (with `aria-describedby`), `Alert tone="danger"` for a form-level one; `RemoveButton` for an icon-only ×; `useCopyFeedback` (`web/hooks/`) for Copy → Copied.
+- **One height per row.** Controls sharing a row share a size; Refresh is a `secondary` button at its neighbours' size. `sm` is only for dense rows or tables, never beside default-size controls.
+- **Create in `PageHeader` actions, edit in a sheet.** `Dialog` defaults to `side="sheet"`, a bottom sheet on phones with a drag handle. `DialogDescription` goes after `DialogHeader` or wrapped with the title.
+- **`ConfirmDialog` before every destructive action**: delete, disconnect, disable, leave, clear.
+- **Labels.** `Field`/`Label` for labelled controls; a control without a visible label gets `aria-label` (a placeholder is not a label).
+- **Theme tokens only.** Colours, shadows and radii come from `app/globals.css` (`ui/theme-tokens`). No `dark:`. `rounded-full` only for square circles, never a pill.
+- **Type and motion.** The Fraunces display face appears only through `PageHeader`, `SectionHeading` and `StatTile`; body stays sans. Motion uses the `ease-spring`, `duration-press` and `duration-settle` tokens, with plain fades under `motion-reduce`.
+- Class overrides go through `cn()`, never a template literal. Pending labels end in `…`, never `...`. A hidden `<input type="file">` may disable `no-restricted-syntax` with a reason.
+- **Pinch-zoom is disabled** (the viewport meta in `web/index.html`), which makes 16px fields and 44px targets mandatory.
 
 ## Why
 

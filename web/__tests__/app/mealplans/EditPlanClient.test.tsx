@@ -54,6 +54,6 @@ describe('EditPlanClient', () => {
     })
     render(<EditPlanClient id="plan-1" />)
     expect(screen.getByTestId('plan-form')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Edit plan' })).toBeInTheDocument()
   })
 })

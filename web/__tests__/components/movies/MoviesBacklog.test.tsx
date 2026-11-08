@@ -12,6 +12,8 @@ vi.mock('@/hooks/useMovies', () => ({
 }))
 
 import MoviesBacklog from '@/components/movies/MoviesBacklog'
+import MoviesBacklogFilters from '@/components/movies/MoviesBacklogFilters'
+import { DEFAULT_BACKLOG_FILTER } from '@/lib/movies/format'
 import { useMoviesBacklog } from '@/hooks/useMovies'
 import { BacklogEntrySchema, ListBacklogResponseSchema } from '@/lib/gen/movies/v1/movies_pb'
 
@@ -41,30 +43,18 @@ function deferred() {
 
 beforeEach(() => vi.clearAllMocks())
 
-describe('MoviesBacklog filters', () => {
-  it('offers every status and type tab and filters by them', () => {
-    mockBacklog({ data: page([]) })
-    render(<MoviesBacklog />)
-    const last = () => vi.mocked(useMoviesBacklog).mock.lastCall?.[0]
+describe('MoviesBacklogFilters', () => {
+  const renderFilters = () => {
+    const onChange = vi.fn()
+    render(<MoviesBacklogFilters filter={DEFAULT_BACKLOG_FILTER} onChange={onChange} />)
+    return onChange
+  }
+  const options = (label: string) =>
+    Array.from((screen.getByLabelText(label) as HTMLSelectElement).options).map((o) => o.text)
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Watched' }))
-    fireEvent.click(screen.getByRole('tab', { name: 'All statuses' }))
-    expect(last()?.status).toBe('')
-    for (const name of ['Want', 'Watching', 'Dropped']) {
-      expect(screen.getByRole('tab', { name })).toBeInTheDocument()
-    }
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Movies' }))
-    expect(last()?.mediaType).toBe('movie')
-    fireEvent.click(screen.getByRole('tab', { name: 'All types' }))
-    expect(last()?.mediaType).toBe('')
-  })
-
-  it('offers New seasons right after Watched', () => {
-    mockBacklog({ data: page([]) })
-    render(<MoviesBacklog />)
-    const tabs = screen.getAllByRole('tab').map((t) => t.textContent)
-    expect(tabs.slice(0, 6)).toEqual([
+  it('offers every status, with New seasons right after Watched', () => {
+    const onChange = renderFilters()
+    expect(options('Status')).toEqual([
       'All statuses',
       'Want',
       'Watching',
@@ -72,23 +62,50 @@ describe('MoviesBacklog filters', () => {
       'New seasons',
       'Dropped'
     ])
-    fireEvent.click(screen.getByRole('tab', { name: 'New seasons' }))
-    expect(vi.mocked(useMoviesBacklog).mock.lastCall?.[0].status).toBe('new')
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'new' } })
+    expect(onChange).toHaveBeenLastCalledWith({ ...DEFAULT_BACKLOG_FILTER, status: 'new' })
   })
 
-  it('sorts by rating', () => {
-    mockBacklog({ data: page([]) })
-    render(<MoviesBacklog />)
+  it('filters by type and sorts', () => {
+    const onChange = renderFilters()
+    expect(options('Type')).toEqual(['All types', 'Movies', 'Series'])
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'movie' } })
+    expect(onChange).toHaveBeenLastCalledWith({ ...DEFAULT_BACKLOG_FILTER, mediaType: 'movie' })
     fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'rating' } })
-    expect(vi.mocked(useMoviesBacklog).mock.lastCall?.[0].sort).toBe('rating')
-    expect(screen.getByRole('option', { name: 'Rating' })).toBeInTheDocument()
+    expect(onChange).toHaveBeenLastCalledWith({ ...DEFAULT_BACKLOG_FILTER, sort: 'rating' })
+  })
+
+  it('toggles titles on my services', () => {
+    const onChange = renderFilters()
+    fireEvent.click(screen.getByRole('button', { name: 'On my services' }))
+    expect(onChange).toHaveBeenLastCalledWith({ ...DEFAULT_BACKLOG_FILTER, onMyServices: true })
+  })
+})
+
+describe('MoviesBacklog count', () => {
+  it.each([
+    [[matrix], false, '1 title'],
+    [[matrix, avatar], false, '2 titles'],
+    [[matrix], true, '1+ titles']
+  ])('reports %#', (entries, hasMore, label) => {
+    mockBacklog({ data: page(entries, hasMore) })
+    const onCount = vi.fn()
+    render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} onCount={onCount} />)
+    expect(onCount).toHaveBeenLastCalledWith(label)
+  })
+
+  it('reports nothing before data arrives', () => {
+    mockBacklog({})
+    const onCount = vi.fn()
+    render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} onCount={onCount} />)
+    expect(onCount).toHaveBeenLastCalledWith(null)
   })
 })
 
 describe('MoviesBacklog rows', () => {
   it('shows type and release, or type alone when undated', () => {
     mockBacklog({ data: page([matrix, avatar]) })
-    render(<MoviesBacklog />)
+    render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
     const metas = screen.getAllByText(/^Movie/, { selector: 'p' })
     expect(metas.map((p) => p.textContent)).toEqual(['Movie · 1999', 'Movie'])
     expect(screen.getByLabelText('Status of The Matrix')).toHaveAttribute('id', 'status-e-1')
@@ -98,7 +115,7 @@ describe('MoviesBacklog rows', () => {
     const caughtUp = create(BacklogEntrySchema, { ...matrix, hasNewSeason: false })
     const behind = create(BacklogEntrySchema, { ...avatar, hasNewSeason: true })
     mockBacklog({ data: page([caughtUp, behind]) })
-    render(<MoviesBacklog />)
+    render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
     const [first, second] = screen.getAllByRole('link')
     expect(first).not.toHaveTextContent('New season')
     expect(second).toHaveTextContent('New season')
@@ -108,7 +125,7 @@ describe('MoviesBacklog rows', () => {
   it('shows a rating read-only, and nothing when unrated', () => {
     const rated = create(BacklogEntrySchema, { ...matrix, rating: 4 })
     mockBacklog({ data: page([rated, avatar]) })
-    render(<MoviesBacklog />)
+    render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
     expect(screen.getByRole('img', { name: '4 out of 5 stars' })).toBeInTheDocument()
     expect(screen.getAllByRole('img', { name: /stars|No rating/ })).toHaveLength(1)
     expect(screen.queryByRole('button', { name: /^Rate/ })).not.toBeInTheDocument()
@@ -116,7 +133,7 @@ describe('MoviesBacklog rows', () => {
 
   it('disables the status while saving and clears an old error on success', async () => {
     mockBacklog({ data: page([matrix]) })
-    render(<MoviesBacklog />)
+    render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
     const select = () => screen.getByLabelText('Status of The Matrix')
     expect(select()).toBeEnabled()
     expect(screen.queryByText(/Couldn.t update status/)).not.toBeInTheDocument()
@@ -142,7 +159,7 @@ describe('MoviesBacklog states', () => {
     render(
       <>
         <input id="movies-search" aria-label="Search" />
-        <MoviesBacklog />
+        <MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />
       </>
     )
     fireEvent.click(screen.getByRole('button', { name: 'Add a movie or series' }))
@@ -151,28 +168,28 @@ describe('MoviesBacklog states', () => {
 
   it('shows no loading or empty state alongside data', () => {
     mockBacklog({ data: page([matrix]), isLoading: true })
-    render(<MoviesBacklog />)
+    render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
     expect(screen.queryByText('Loading backlog…')).not.toBeInTheDocument()
     expect(screen.queryByText(/Nothing here yet/)).not.toBeInTheDocument()
   })
 
   it('shows no empty state before data arrives', () => {
     mockBacklog({})
-    render(<MoviesBacklog />)
+    render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
     expect(screen.queryByText(/Nothing here yet/)).not.toBeInTheDocument()
   })
 
   it('offers no load more for an empty page', () => {
     mockBacklog({ data: page([], true) })
-    render(<MoviesBacklog />)
+    render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
     expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
   })
 
   it('follows new data from SWR', () => {
     mockBacklog({ data: page([matrix]) })
-    const { rerender } = render(<MoviesBacklog />)
+    const { rerender } = render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
     mockBacklog({ data: page([avatar]) })
-    rerender(<MoviesBacklog />)
+    rerender(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
     expect(screen.getByText('Avatar 5')).toBeInTheDocument()
     expect(screen.queryByText('The Matrix')).not.toBeInTheDocument()
   })
@@ -182,7 +199,7 @@ describe('MoviesBacklog pagination on revalidation', () => {
   async function loadSecondPage() {
     mockFetchPage.mockResolvedValue({ items: [dune], hasMore: false })
     mockBacklog({ data: page([matrix], true) })
-    const view = render(<MoviesBacklog />)
+    const view = render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Load more' })))
     expect(screen.getByText('Dune')).toBeInTheDocument()
     return view
@@ -191,14 +208,14 @@ describe('MoviesBacklog pagination on revalidation', () => {
   it('keeps loaded pages when the first page is unchanged', async () => {
     const { rerender } = await loadSecondPage()
     mockBacklog({ data: page([matrix], true) })
-    rerender(<MoviesBacklog />)
+    rerender(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
     expect(screen.getByText('Dune')).toBeInTheDocument()
   })
 
   it('drops loaded pages when the first page changed', async () => {
     const { rerender } = await loadSecondPage()
     mockBacklog({ data: page([avatar], true) })
-    rerender(<MoviesBacklog />)
+    rerender(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
     expect(screen.queryByText('Dune')).not.toBeInTheDocument()
   })
 })
@@ -216,7 +233,7 @@ describe('MoviesBacklog series status', () => {
   it('asks when a multi-season series was watched', async () => {
     mockSetStatus.mockResolvedValue(undefined)
     mockBacklog({ data: page([series(2)]) })
-    render(<MoviesBacklog />)
+    render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
 
     fireEvent.change(screen.getByLabelText('Status of Dark'), { target: { value: 'watched' } })
     expect(mockSetStatus).not.toHaveBeenCalled()
@@ -231,7 +248,7 @@ describe('MoviesBacklog series status', () => {
   ])('marks %s watched today in one step', async (_name, seasonCount) => {
     mockSetStatus.mockResolvedValue(undefined)
     mockBacklog({ data: page([series(seasonCount)]) })
-    render(<MoviesBacklog />)
+    render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
 
     await act(async () =>
       fireEvent.change(screen.getByLabelText('Status of Dark'), { target: { value: 'watched' } })
@@ -242,7 +259,7 @@ describe('MoviesBacklog series status', () => {
   it('asks only for watched', async () => {
     mockSetStatus.mockResolvedValue(undefined)
     mockBacklog({ data: page([series(2)]) })
-    render(<MoviesBacklog />)
+    render(<MoviesBacklog filter={DEFAULT_BACKLOG_FILTER} />)
 
     await act(async () =>
       fireEvent.change(screen.getByLabelText('Status of Dark'), { target: { value: 'dropped' } })

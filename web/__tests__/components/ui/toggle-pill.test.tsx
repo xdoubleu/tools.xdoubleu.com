@@ -28,6 +28,11 @@ describe('TogglePill', () => {
     expect(pill).not.toHaveClass('rounded-full')
   })
 
+  it('shares the control height', () => {
+    render(<TogglePill label="Physical" active={false} onClick={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Physical' })).toHaveClass('h-11', 'sm:h-9')
+  })
+
   it('fires onClick when clicked', () => {
     const onClick = vi.fn()
     render(<TogglePill label="Physical" active={false} onClick={onClick} />)

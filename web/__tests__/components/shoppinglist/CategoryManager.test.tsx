@@ -109,4 +109,12 @@ describe('CategoryManager', () => {
     expect(screen.getByText('That name is already in use.')).toBeInTheDocument()
     expect(enqueue).not.toHaveBeenCalled()
   })
+
+  it('cancels a rename without saving', () => {
+    render(<CategoryManager />)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Rename' })[0])
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('textbox', { name: 'Category name' })).not.toBeInTheDocument()
+    expect(enqueue).not.toHaveBeenCalled()
+  })
 })

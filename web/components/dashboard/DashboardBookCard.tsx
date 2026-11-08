@@ -11,7 +11,7 @@ export default function DashboardBookCard({ userBook }: { userBook: UserBook }) 
   if (!book) return null
   const tags = displayTags(userBook.tags)
   return (
-    <Card className="flex gap-3 p-4">
+    <Card className="flex gap-3">
       <Artwork src={book.coverUrl} title={book.title} alt={book.title} initials={2} size="md" />
       <div className="min-w-0 flex-1">
         <h3 className="font-semibold truncate">

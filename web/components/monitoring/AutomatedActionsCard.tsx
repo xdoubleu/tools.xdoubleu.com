@@ -48,7 +48,7 @@ export default function AutomatedActionsCard({ data }: { data?: GetAutomatedActi
       }
     >
       {data && actions.length === 0 ? (
-        <EmptyState>No automated action runs yet.</EmptyState>
+        <EmptyState placement="inline">No automated action runs yet.</EmptyState>
       ) : (
         <Table>
           <TableHeader>

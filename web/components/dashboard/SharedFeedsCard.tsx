@@ -9,7 +9,7 @@ export default function SharedFeedsCard({ feeds }: { feeds?: SharedFeed[] }) {
   if (!feeds || feeds.length === 0) return null
 
   return (
-    <Card className="flex flex-col gap-2 p-3">
+    <Card padding="sm" className="flex flex-col gap-2">
       <span className="flex items-center gap-2 font-semibold">
         <RssIcon className="text-muted" />
         Feeds

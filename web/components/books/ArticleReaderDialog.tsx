@@ -29,9 +29,9 @@ export default function BookArticleReaderDialog({
       onOpenChange={onOpenChange}
       html={html}
     >
-      {error && <ErrorState what="article" className="p-4 text-sm" />}
+      {error && <ErrorState what="article" className="p-4" />}
 
-      {!error && !data && <LoadingState className="p-4 text-sm" />}
+      {!error && !data && <LoadingState className="p-4" />}
 
       {!error && data && !html && (
         <EmptyState>

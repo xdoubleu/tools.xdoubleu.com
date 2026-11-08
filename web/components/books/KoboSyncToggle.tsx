@@ -3,6 +3,7 @@ import { mutate } from 'swr'
 import { useEnableKoboSync, useSetBookTag, useKEPUBStatus } from '@/hooks/useBooks'
 import { swrKeys } from '@/lib/swrKeys'
 import { Checkbox } from '@/components/ui/checkbox'
+import { FieldError } from '@/components/ui/field-error'
 import { cn } from '@/lib/cn'
 
 interface KoboSyncToggleProps {
@@ -80,11 +81,7 @@ export default function KoboSyncToggle({ bookId, enabled, onChanged }: KoboSyncT
         </p>
       )}
 
-      {error && (
-        <p className="text-xs text-danger" role="alert">
-          {error}
-        </p>
-      )}
+      <FieldError>{error}</FieldError>
     </div>
   )
 }

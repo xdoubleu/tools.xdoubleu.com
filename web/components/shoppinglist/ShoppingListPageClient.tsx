@@ -94,8 +94,8 @@ export default function ShoppingListPageClient() {
 
       <AddItemForm categories={categories} />
 
-      {isLoading && <LoadingState />}
-      {error && !data && <ErrorState what="shopping list" />}
+      {isLoading && <LoadingState placement="page" />}
+      {error && !data && <ErrorState placement="page" what="shopping list" />}
       {data && (
         <ShoppingList
           items={items}

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import Favourites from '@/components/podcasts/Favourites'
 import ShowSearchResults from '@/components/podcasts/ShowSearchResults'
-import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
+import { Toolbar } from '@/components/ui/toolbar'
 
 // Each search is an iTunes request; wait for typing to pause.
 const SEARCH_DEBOUNCE_MS = 300
@@ -24,16 +24,20 @@ export default function PodcastsClient() {
   return (
     <PageContainer>
       <PageHeader title="Podcasts" />
-      <Field label="Search podcasts" htmlFor="podcasts-search" className="mb-6">
-        <Input
-          id="podcasts-search"
-          type="search"
-          placeholder="Name of a show"
-          autoComplete="off"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </Field>
+      <Toolbar
+        aria-label="Find a show"
+        search={
+          <Input
+            id="podcasts-search"
+            type="search"
+            aria-label="Search podcasts"
+            placeholder="Search podcasts by show name…"
+            autoComplete="off"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        }
+      />
       {searching ? <ShowSearchResults query={debouncedQuery} /> : <Favourites />}
     </PageContainer>
   )

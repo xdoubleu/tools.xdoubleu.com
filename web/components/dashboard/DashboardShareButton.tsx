@@ -2,6 +2,7 @@ import { Link } from '@/components/ui/link'
 import { useState } from 'react'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useCurrentUser } from '@/hooks/useAuth'
+import { useCopyFeedback } from '@/hooks/useCopyFeedback'
 import {
   useDashboardShare,
   useCreateDashboardShare,
@@ -13,7 +14,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose
+  DialogClose,
+  ConfirmDialog
 } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -32,7 +34,8 @@ export default function DashboardShareButton({ kind }: { kind: DashboardShareKin
   const deleteShare = useDeleteDashboardShare(kind)
   const [open, setOpen] = useState(false)
   const { run, pending: busy, error } = useAsyncAction()
-  const [copied, setCopied] = useState(false)
+  const { copy, copied } = useCopyFeedback()
+  const [confirmingDisable, setConfirmingDisable] = useState(false)
 
   const token = data?.share?.token
   const hasDisplayName = !!user?.displayName
@@ -42,13 +45,6 @@ export default function DashboardShareButton({ kind }: { kind: DashboardShareKin
       await action()
       await mutate()
     }, failure)
-
-  const copyLink = async () => {
-    if (!token) return
-    await navigator.clipboard.writeText(shareUrl(kind, token))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
 
   return (
     <>
@@ -87,7 +83,11 @@ export default function DashboardShareButton({ kind }: { kind: DashboardShareKin
                       value={shareUrl(kind, token)}
                       aria-label="Public dashboard link"
                     />
-                    <Button variant="secondary" onClick={copyLink} disabled={busy}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => void copy(shareUrl(kind, token))}
+                      disabled={busy}
+                    >
                       {copied ? 'Copied!' : 'Copy link'}
                     </Button>
                   </div>
@@ -104,7 +104,7 @@ export default function DashboardShareButton({ kind }: { kind: DashboardShareKin
                       variant="destructive"
                       size="sm"
                       disabled={busy}
-                      onClick={() => save(deleteShare, "Couldn't disable sharing. Try again.")}
+                      onClick={() => setConfirmingDisable(true)}
                     >
                       Disable sharing
                     </Button>
@@ -125,6 +125,21 @@ export default function DashboardShareButton({ kind }: { kind: DashboardShareKin
           )}
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        open={confirmingDisable}
+        onOpenChange={setConfirmingDisable}
+        title="Disable sharing?"
+        description="The public link stops working for anyone who has it."
+        confirmLabel="Disable sharing"
+        pendingLabel="Disabling…"
+        destructive
+        pending={busy}
+        onConfirm={() =>
+          void save(deleteShare, "Couldn't disable sharing. Try again.").finally(() =>
+            setConfirmingDisable(false)
+          )
+        }
+      />
     </>
   )
 }

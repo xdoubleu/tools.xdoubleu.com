@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 
 const mockDisconnectKoboDevice = vi.fn()
 const mockSetKoboDeviceLogging = vi.fn()
@@ -28,16 +28,10 @@ vi.mock('@/components/books/KoboDeviceLogs', () => ({
   )
 }))
 
-// Inline dialog avoids jsdom portal issues.
-vi.mock('@/components/ui/dialog', () => ({
-  Dialog: ({ children, open }: { children: React.ReactNode; open: boolean }) =>
-    open ? <div data-testid="dialog">{children}</div> : null,
-  DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  DialogTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>
-}))
-
 import KoboDevices from '@/components/books/KoboDevices'
+
+const confirmButton = () =>
+  within(screen.getByRole('dialog')).getByRole('button', { name: 'Disconnect' })
 
 beforeEach(() => {
   mockDisconnectKoboDevice.mockReset()
@@ -133,8 +127,7 @@ describe('KoboDevices — disconnect flow', () => {
   it('opens confirmation dialog when Disconnect is clicked', () => {
     render(<KoboDevices />)
     fireEvent.click(screen.getByTestId(`kobo-disconnect-btn-${device.id}`))
-    expect(screen.getByTestId('dialog')).toBeInTheDocument()
-    expect(screen.getByText(/Disconnect My Kobo/)).toBeInTheDocument()
+    expect(within(screen.getByRole('dialog')).getByText(/Disconnect My Kobo/)).toBeInTheDocument()
   })
 
   it('calls disconnectKoboDevice and mutates on confirm', async () => {
@@ -142,7 +135,7 @@ describe('KoboDevices — disconnect flow', () => {
     fireEvent.click(screen.getByTestId(`kobo-disconnect-btn-${device.id}`))
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId('disconnect-confirm-btn'))
+      fireEvent.click(confirmButton())
     })
 
     await waitFor(() => {
@@ -151,16 +144,24 @@ describe('KoboDevices — disconnect flow', () => {
     expect(mockMutate).toHaveBeenCalled()
   })
 
+  it('cancels without disconnecting', async () => {
+    render(<KoboDevices />)
+    fireEvent.click(screen.getByTestId(`kobo-disconnect-btn-${device.id}`))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(mockDisconnectKoboDevice).not.toHaveBeenCalled()
+  })
+
   it('closes dialog when disconnect succeeds', async () => {
     render(<KoboDevices />)
     fireEvent.click(screen.getByTestId(`kobo-disconnect-btn-${device.id}`))
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId('disconnect-confirm-btn'))
+      fireEvent.click(confirmButton())
     })
 
     await waitFor(() => {
-      expect(screen.queryByTestId('dialog')).not.toBeInTheDocument()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
   })
 
@@ -170,7 +171,7 @@ describe('KoboDevices — disconnect flow', () => {
     fireEvent.click(screen.getByTestId(`kobo-disconnect-btn-${device.id}`))
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId('disconnect-confirm-btn'))
+      fireEvent.click(confirmButton())
     })
 
     await waitFor(() => {

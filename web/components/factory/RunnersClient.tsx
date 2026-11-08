@@ -48,7 +48,7 @@ export default function RunnersClient() {
         breadcrumb={[{ label: 'Factory', href: '/factory' }, { label: 'Runner' }]}
         actions={<Button onClick={() => setCreating(true)}>Pair a runner</Button>}
       />
-      <Card variant="inset" className="mb-4 space-y-2 px-4 py-3" data-testid="runner-install">
+      <Card variant="inset" padding="md" className="mb-4 space-y-2" data-testid="runner-install">
         <p className="text-sm font-medium">Install the runner</p>
         <p className="text-xs text-muted">
           Apple Silicon Mac. Download the dmg, drag FactoryRunner.app to Applications, then open it

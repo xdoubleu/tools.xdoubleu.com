@@ -9,7 +9,12 @@ describe('LoadingState', () => {
 
   it('names what is loading', () => {
     render(<LoadingState label="recipe" />)
-    expect(screen.getByText('Loading recipe…')).toHaveClass('text-muted')
+    expect(screen.getByText('Loading recipe…')).toHaveClass('text-sm', 'text-muted')
+  })
+
+  it('centres itself with page placement', () => {
+    render(<LoadingState placement="page" />)
+    expect(screen.getByRole('status')).toHaveClass('py-16', 'text-center')
   })
 })
 
@@ -17,6 +22,13 @@ describe('ErrorState', () => {
   it('reports what failed to load', () => {
     render(<ErrorState what="books" />)
     expect(screen.getByRole('alert')).toHaveTextContent('Failed to load books.')
+  })
+
+  it('sits in flow by default and centres with page placement', () => {
+    const { rerender } = render(<ErrorState what="books" />)
+    expect(screen.getByRole('alert')).not.toHaveClass('py-16')
+    rerender(<ErrorState what="books" placement="page" />)
+    expect(screen.getByRole('alert')).toHaveClass('py-16', 'text-center')
   })
 })
 
@@ -28,22 +40,31 @@ describe('EmptyState', () => {
   })
 
   it('renders without an action', () => {
-    render(<EmptyState>Nothing here.</EmptyState>)
+    const { container } = render(<EmptyState>Nothing here.</EmptyState>)
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(container.firstElementChild?.children).toHaveLength(1)
+  })
+
+  it('centres the action with page placement', () => {
+    render(<EmptyState action={<button>New</button>}>Nothing here.</EmptyState>)
+    expect(screen.getByRole('button', { name: 'New' }).parentElement).toHaveClass(
+      'flex',
+      'justify-center'
+    )
   })
 
   it('centres a padded block by default', () => {
     const { container } = render(<EmptyState>Nothing here.</EmptyState>)
-    expect(container.firstElementChild).toHaveClass('py-8', 'text-center')
+    expect(container.firstElementChild).toHaveClass('py-16', 'text-center')
   })
 
-  it('sits flush and left-aligned when compact', () => {
+  it('sits flush and left-aligned inline', () => {
     const { container } = render(
-      <EmptyState compact action={<button>New</button>}>
+      <EmptyState placement="inline" action={<button>New</button>}>
         Nothing here.
       </EmptyState>
     )
-    expect(container.firstElementChild).not.toHaveClass('py-8', 'text-center')
+    expect(container.firstElementChild).not.toHaveClass('py-16', 'text-center')
     expect(container.firstElementChild).toHaveClass('space-y-2')
     expect(screen.getByRole('button', { name: 'New' }).parentElement).not.toHaveClass(
       'justify-center'

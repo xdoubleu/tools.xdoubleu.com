@@ -200,7 +200,6 @@ export default function BulkBookUploader() {
         <Button
           type="button"
           variant="secondary"
-          size="sm"
           disabled={busy}
           onClick={() => document.getElementById('bulk-file-input')?.click()}
         >
@@ -209,14 +208,13 @@ export default function BulkBookUploader() {
         <Button
           type="button"
           variant="secondary"
-          size="sm"
           disabled={busy}
           onClick={() => document.getElementById('bulk-folder-input')?.click()}
         >
           Browse folder
         </Button>
         {(phase.kind === 'done' || phase.kind === 'error') && (
-          <Button type="button" variant="secondary" size="sm" onClick={handleReset}>
+          <Button type="button" variant="secondary" onClick={handleReset}>
             Import more
           </Button>
         )}
@@ -236,7 +234,7 @@ function UploadProgressDisplay({ progress, done, onRetry }: UploadProgressDispla
   const allFailed = done && failed === total
 
   return (
-    <Card className="space-y-2 p-3">
+    <Card padding="sm" className="space-y-2">
       <div className="flex items-center justify-between text-sm">
         <span className="text-fg">
           {processed} / {total} uploaded
@@ -324,7 +322,6 @@ function FailedFileRecovery({ item, onRetry }: FailedFileRecoveryProps) {
       <Button
         type="button"
         variant="secondary"
-        size="sm"
         disabled={retrying || title.trim() === ''}
         onClick={handleRetry}
       >

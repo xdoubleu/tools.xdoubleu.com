@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alert } from '@/components/ui/alert'
+import { ConfirmDialog } from '@/components/ui/dialog'
 
 interface PlanFormProps {
   plan: Plan
@@ -23,18 +24,21 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
   const [resetDone, setResetDone] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   const updatePlan = useUpdatePlan()
   const rotateICalToken = useRotateICalToken()
 
   const handleResetLink = async () => {
     setError(null)
+    setResetting(true)
     try {
       await rotateICalToken(plan.id)
       setResetDone(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reset iCal link.')
     } finally {
+      setResetting(false)
       setConfirmReset(false)
     }
   }
@@ -102,26 +106,23 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
           <p className="text-sm text-subtle">
             Link reset. Copy the new one from the plan page; the old one no longer works.
           </p>
-        ) : confirmReset ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm">Calendars subscribed to the old link stop updating.</p>
-            <Button type="button" variant="destructive" size="sm" onClick={handleResetLink}>
-              Reset link
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => setConfirmReset(false)}
-            >
-              Keep link
-            </Button>
-          </div>
         ) : (
-          <Button type="button" variant="secondary" size="sm" onClick={() => setConfirmReset(true)}>
+          <Button type="button" variant="secondary" onClick={() => setConfirmReset(true)}>
             Reset iCal link
           </Button>
         )}
+        <ConfirmDialog
+          open={confirmReset}
+          onOpenChange={setConfirmReset}
+          title="Reset the iCal link?"
+          description="Calendars subscribed to the old link stop updating."
+          confirmLabel="Reset link"
+          cancelLabel="Keep link"
+          pendingLabel="Resetting…"
+          destructive
+          pending={resetting}
+          onConfirm={() => void handleResetLink()}
+        />
       </div>
 
       {error && <Alert tone="danger">{error}</Alert>}

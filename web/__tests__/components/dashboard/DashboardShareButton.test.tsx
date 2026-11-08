@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import {
   GetDashboardShareResponseSchema,
@@ -130,6 +130,19 @@ describe('DashboardShareButton', () => {
     })
   })
 
+  it('keeps sharing when the disable confirm is cancelled', async () => {
+    mockUseCurrentUser.mockReturnValue({ data: { displayName: 'Alice' } })
+    mockUseDashboardShare.mockReturnValue({ data: withShare('tok-123'), mutate: mockMutate })
+    render(<DashboardShareButton kind="reading" />)
+    openDialog()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Disable sharing' }))
+    const confirm = screen.getAllByRole('dialog').at(-1)!
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.getAllByRole('dialog')).toHaveLength(1))
+    expect(mockDeleteShare).not.toHaveBeenCalled()
+  })
+
   it('disables sharing', async () => {
     mockUseCurrentUser.mockReturnValue({ data: { displayName: 'Alice' } })
     mockUseDashboardShare.mockReturnValue({ data: withShare('tok-123'), mutate: mockMutate })
@@ -137,6 +150,9 @@ describe('DashboardShareButton', () => {
     openDialog()
 
     fireEvent.click(screen.getByRole('button', { name: 'Disable sharing' }))
+    expect(mockDeleteShare).not.toHaveBeenCalled()
+    const confirm = screen.getAllByRole('dialog').at(-1)!
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Disable sharing' }))
 
     await waitFor(() => {
       expect(mockDeleteShare).toHaveBeenCalled()

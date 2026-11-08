@@ -173,7 +173,7 @@ function RunSection({
   }
 
   return (
-    <Card variant="inset" className="space-y-2 px-4 py-3" aria-label="Run">
+    <Card variant="inset" padding="md" className="space-y-2" aria-label="Run">
       {latest && (
         <p className="break-words text-xs text-muted" data-testid="job-status">
           Job {jobStatusLabel(latest.status).toLowerCase()} · {latest.branch}
@@ -296,7 +296,7 @@ export default function TaskDetail({ id, onClose }: TaskDetailProps) {
             />
             <section className="space-y-2" aria-label="Comments">
               {data.comments.length === 0 ? (
-                <EmptyState compact>No comments yet.</EmptyState>
+                <EmptyState placement="inline">No comments yet.</EmptyState>
               ) : (
                 data.comments.map((c) => (
                   <Card key={c.id} variant="inset">

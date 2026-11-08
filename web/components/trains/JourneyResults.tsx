@@ -27,7 +27,7 @@ export function JourneyRow({ journey }: { journey: Journey }) {
   if (!journey.journeyId) {
     // The api always sets journey_id; without one there's no detail page.
     return (
-      <Card className="p-4">
+      <Card>
         <JourneyRowContent journey={journey} trains={trains} />
       </Card>
     )
@@ -70,10 +70,10 @@ interface JourneyResultsProps {
 /** Route overview list plus its empty/degraded states. */
 export default function JourneyResults({ ready, isLoading, error, journeys }: JourneyResultsProps) {
   if (!ready) return null
-  if (isLoading) return <LoadingState label="journeys" />
-  if (error) return <ErrorState what="journeys" />
+  if (isLoading) return <LoadingState placement="page" label="journeys" />
+  if (error) return <ErrorState placement="page" what="journeys" />
   if (journeys.length === 0) {
-    return <EmptyState>No trains found for this station pair and time.</EmptyState>
+    return <EmptyState placement="page">No trains found for this station pair and time.</EmptyState>
   }
 
   return (

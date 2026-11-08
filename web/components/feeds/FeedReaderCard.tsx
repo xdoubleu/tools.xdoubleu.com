@@ -50,7 +50,8 @@ export default function FeedReaderCard({
 
   return (
     <Card
-      className={cn('flex flex-col gap-2 p-3', isNew && 'border-accent', isRead && 'opacity-60')}
+      padding="sm"
+      className={cn('flex flex-col gap-2', isNew && 'border-accent', isRead && 'opacity-60')}
     >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">

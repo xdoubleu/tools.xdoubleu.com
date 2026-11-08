@@ -2,6 +2,7 @@ import BooksSection from '@/components/books/BooksSection'
 import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
 import { PageContainer } from '@/components/ui/page-container'
 import LibraryAdminButton from '@/components/books/LibraryAdminButton'
+import AddBookButton from '@/components/books/AddBookButton'
 
 export default function BacklogBooksLibraryPage() {
   return (
@@ -13,6 +14,7 @@ export default function BacklogBooksLibraryPage() {
           <>
             <LibraryAdminButton />
             <PageHeaderSettingsLink href="/books/settings" />
+            <AddBookButton />
           </>
         }
       />

@@ -28,7 +28,7 @@ export function DateInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onBlur={onBlur}
-      className={cn('h-11 w-full', className)}
+      className={cn('w-full', className)}
     />
   )
 }

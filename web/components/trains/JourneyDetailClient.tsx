@@ -11,12 +11,12 @@ export default function JourneyDetailClient({ journeyId }: { journeyId: string }
   const { data, error, isLoading, mutate } = useJourneyDetail(journeyId)
   const { connected, pushedDetail } = useJourneyLive(journeyId, () => mutate())
 
-  if (isLoading) return <LoadingState label="journey" />
-  if (error) return <ErrorState what="journey" />
+  if (isLoading) return <LoadingState placement="page" label="journey" />
+  if (error) return <ErrorState placement="page" what="journey" />
 
   // A websocket push is the latest rebuild and wins over the SWR fetch.
   const journey = pushedDetail ?? data?.journey
-  if (!journey) return <ErrorState what="journey" />
+  if (!journey) return <ErrorState placement="page" what="journey" />
 
   return (
     <PageContainer size="narrow">

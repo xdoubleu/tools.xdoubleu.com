@@ -7,6 +7,7 @@ import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { FieldError } from '@/components/ui/field-error'
 import { EmptyState, LoadingState } from '@/components/ui/states'
 
 function errorMessage(err: unknown): string {
@@ -39,11 +40,7 @@ function SearchResultRow({ result }: { result: SearchResult }) {
       <div className="min-w-0 flex-1">
         <p className="break-words font-medium">{result.title}</p>
         {result.author && <p className="break-words text-xs text-muted">{result.author}</p>}
-        {failed && (
-          <p className="text-xs text-danger" role="alert">
-            Couldn&apos;t add. Try again.
-          </p>
-        )}
+        <FieldError>{failed && 'Couldn’t add. Try again.'}</FieldError>
       </div>
       {result.favourite ? (
         <Badge variant="secondary">Favourite</Badge>
@@ -60,9 +57,9 @@ export default function ShowSearchResults({ query }: { query: string }) {
   const { data, error, isLoading } = usePodcastSearch(query)
 
   if (error) return <Alert tone="danger">{errorMessage(error)}</Alert>
-  if (isLoading && !data) return <LoadingState label="results" />
+  if (isLoading && !data) return <LoadingState placement="page" label="results" />
   if (!data || data.results.length === 0) {
-    return <EmptyState>No podcasts match &ldquo;{query.trim()}&rdquo;.</EmptyState>
+    return <EmptyState placement="page">No podcasts match &ldquo;{query.trim()}&rdquo;.</EmptyState>
   }
 
   return (

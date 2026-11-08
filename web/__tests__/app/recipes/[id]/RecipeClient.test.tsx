@@ -311,6 +311,25 @@ describe('RecipeClient', () => {
     expect(screen.getByText('Meat')).toBeInTheDocument()
   })
 
+  it('resets scaled servings back to the base amount', () => {
+    const recipe = create(RecipeSchema, { id: 'r1', name: 'Pasta', baseServings: 2 })
+    vi.mocked(useRecipe).mockReturnValue({
+      data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }),
+      isLoading: false,
+      isValidating: false,
+      error: undefined,
+      mutate: vi.fn()
+    })
+
+    render(<RecipeClient id="r1" />)
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Servings' }), {
+      target: { value: '5' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to 2' }))
+    expect(screen.getByRole('spinbutton', { name: 'Servings' })).toHaveValue(2)
+    expect(screen.queryByRole('button', { name: 'Reset to 2' })).not.toBeInTheDocument()
+  })
+
   it('shows a Cooking Mode toggle when the Wake Lock API is supported', async () => {
     const recipe = create(RecipeSchema, { id: 'r1', name: 'Pasta', baseServings: 2 })
     vi.mocked(useRecipe).mockReturnValue({

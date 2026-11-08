@@ -1,12 +1,13 @@
 import TmdbLogo from '@/components/movies/TmdbLogo'
+import { SectionHeading } from '@/components/ui/section-heading'
 
 /** Credits block required by TMDB's API terms (logo and notice). */
 export default function TmdbAttribution() {
   return (
     <section aria-labelledby="tmdb-credits" className="mt-8 text-xs text-muted">
-      <h2 id="tmdb-credits" className="mb-2 font-semibold">
+      <SectionHeading level="eyebrow" as="h2" id="tmdb-credits" className="mb-2">
         Credits
-      </h2>
+      </SectionHeading>
       <a
         href="https://www.themoviedb.org/"
         target="_blank"

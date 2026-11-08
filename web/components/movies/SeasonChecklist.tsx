@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible } from '@/components/ui/collapsible'
+import { FieldError } from '@/components/ui/field-error'
+import { SectionHeading } from '@/components/ui/section-heading'
 
 function seasonMeta(season: Season): string {
   const parts = [
@@ -57,11 +59,7 @@ function SeasonRow({
         {isNew && <Badge variant="warn">New</Badge>}
       </div>
       <p className="text-xs text-muted">{seasonMeta(season)}</p>
-      {failed && (
-        <p className="text-xs text-danger" role="alert">
-          Couldn&apos;t save. Try again.
-        </p>
-      )}
+      <FieldError>{failed && 'Couldn’t save. Try again.'}</FieldError>
       {ticked && (
         <Collapsible title={`Watch dates (${season.watchedAt.length})`} triggerClassName="text-sm">
           <WatchDates
@@ -96,7 +94,9 @@ export default function SeasonChecklist({
   if (seasons.length === 0) return null
   return (
     <section className="space-y-2" aria-label="Seasons">
-      <h2 className="text-sm text-subtle">Seasons</h2>
+      <SectionHeading level="eyebrow" as="h2">
+        Seasons
+      </SectionHeading>
       <ul className="space-y-2">
         {seasons.map((s) => (
           <li key={s.number}>

@@ -77,10 +77,7 @@ describe('QuizClient', () => {
       'href',
       '/learningpaths/lp1'
     )
-    expect(screen.getByRole('link', { name: 'Back to path' })).toHaveAttribute(
-      'href',
-      '/learningpaths/lp1'
-    )
+    expect(screen.queryByRole('link', { name: 'Back to path' })).not.toBeInTheDocument()
   })
 
   it('records the checkpoint complete when the quiz is passed', async () => {
@@ -98,6 +95,9 @@ describe('QuizClient', () => {
     mockPath({ data: pathResponse() })
     render(<QuizClient id="lp1" moduleId={moduleId} />)
     expect(screen.getByText('This module has no quiz.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Back to path' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Learn Go' })).toHaveAttribute(
+      'href',
+      '/learningpaths/lp1'
+    )
   })
 })

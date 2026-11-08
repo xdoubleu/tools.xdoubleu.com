@@ -126,11 +126,44 @@ describe('FeedReaderClient', () => {
     })
     render(<FeedReaderClient />)
 
+    expect(screen.getByRole('combobox')).toHaveValue('')
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'All feeds',
+      'Example Blog'
+    ])
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'feed-1' } })
     expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, 'feed-1', false)
+    expect(screen.getByRole('combobox')).toHaveValue('feed-1')
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } })
     expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined, false)
+  })
+
+  it('lists only the empty choice while feeds are loading', () => {
+    mockUseFeeds.mockReturnValue({ data: undefined })
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+    expect(screen.getAllByRole('option')).toHaveLength(1)
+    expect(screen.getByText('Item 1')).toBeInTheDocument()
+  })
+
+  it('picks up feed titles that load after the items', () => {
+    mockUseFeeds.mockReturnValue({ data: { feeds: [] } })
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    const { rerender } = render(<FeedReaderClient />)
+    mockUseFeeds.mockReturnValue({
+      data: { feeds: [create(FeedSchema, { id: 'feed-1', title: 'Late Blog' })] }
+    })
+    rerender(<FeedReaderClient />)
+    expect(screen.getAllByText('Late Blog')).toHaveLength(2)
   })
 
   it('lists items with their feed title (server already filters read/dismissed)', () => {
@@ -317,22 +350,23 @@ describe('FeedReaderClient', () => {
     expect(screen.getByText('Item 1').closest('.rounded-2xl')).toHaveClass('opacity-60')
   })
 
-  it('toggles to show read items and back, switching the unread_only query', () => {
+  it('switches between unread and all items, changing the unread_only query', () => {
     mockUseFeedItems.mockReturnValue({
       data: { items: [item('1')], hasMore: false },
       error: undefined,
       isLoading: false
     })
     render(<FeedReaderClient />)
+    expect(screen.getByRole('tab', { name: 'Unread' })).toHaveAttribute('aria-selected', 'true')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Show read items' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'All' }))
     expect(mockUseFeedItems).toHaveBeenLastCalledWith(false, undefined, false)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Show unread only' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Unread' }))
     expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined, false)
   })
 
-  it('toggles to show bookmarked items and back, switching the bookmarked_only query', () => {
+  it('shows bookmarked items, read or not, and back', () => {
     mockUseFeedItems.mockReturnValue({
       data: { items: [item('1')], hasMore: false },
       error: undefined,
@@ -340,29 +374,22 @@ describe('FeedReaderClient', () => {
     })
     render(<FeedReaderClient />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Show bookmarked' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Bookmarked' }))
     expect(mockUseFeedItems).toHaveBeenLastCalledWith(false, undefined, true)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Show all' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Unread' }))
     expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined, false)
   })
 
-  it('keeps read items in the bookmarked view and hides the read/unread toggle', () => {
+  it('shows an empty state for all items when none match', () => {
     mockUseFeedItems.mockReturnValue({
-      data: { items: [item('1')], hasMore: false },
+      data: { items: [], hasMore: false },
       error: undefined,
       isLoading: false
     })
     render(<FeedReaderClient />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Show read items' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Show bookmarked' }))
-    expect(mockUseFeedItems).toHaveBeenLastCalledWith(false, undefined, true)
-    expect(screen.queryByRole('button', { name: 'Show unread only' })).toBeNull()
-
-    // The pre-bookmark unread/read choice is restored on the way out.
-    fireEvent.click(screen.getByRole('button', { name: 'Show all' }))
-    expect(mockUseFeedItems).toHaveBeenLastCalledWith(false, undefined, false)
+    fireEvent.click(screen.getByRole('tab', { name: 'All' }))
+    expect(screen.getByText('No feed items.')).toBeInTheDocument()
   })
 
   it('shows an empty state specific to bookmarked items when none match', () => {
@@ -373,7 +400,7 @@ describe('FeedReaderClient', () => {
     })
     render(<FeedReaderClient />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Show bookmarked' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Bookmarked' }))
     expect(screen.getByText('No bookmarked feed items.')).toBeInTheDocument()
   })
 
@@ -423,7 +450,7 @@ describe('FeedReaderClient', () => {
       render(<FeedReaderClient />)
       expect(mockLastChance).toHaveBeenLastCalledWith(true)
 
-      fireEvent.click(screen.getByRole('button', { name: 'Show read items' }))
+      fireEvent.click(screen.getByRole('tab', { name: 'All' }))
       expect(mockLastChance).toHaveBeenLastCalledWith(false)
       expect(screen.queryByRole('region', { name: 'Last chance' })).not.toBeInTheDocument()
     })
@@ -455,13 +482,14 @@ describe('FeedReaderClient', () => {
       })
       render(<FeedReaderClient />)
 
-      fireEvent.click(screen.getByRole('button', { name: 'Today’s top 10' }))
+      fireEvent.click(screen.getByRole('tab', { name: 'Today’s top 10' }))
+      expect(screen.queryByLabelText('Filter by feed')).not.toBeInTheDocument()
       expect(screen.getByText('Item t1')).toBeInTheDocument()
       expect(screen.getByText('#2')).toBeInTheDocument()
       expect(screen.queryByText('Item a')).not.toBeInTheDocument()
       expect(screen.queryByText('You’re done for today.')).not.toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', { name: 'Show inbox' }))
+      fireEvent.click(screen.getByRole('tab', { name: 'Unread' }))
       expect(screen.getByText('Item a')).toBeInTheDocument()
     })
   })

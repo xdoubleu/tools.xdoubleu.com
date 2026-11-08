@@ -1,3 +1,4 @@
+import DashboardSwitch from '@/components/dashboard/DashboardSwitch'
 import ReadingDashboard from '@/components/dashboard/ReadingDashboard'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
@@ -8,7 +9,12 @@ export default function ReadingDashboardPage() {
       <PageHeader
         title="Books"
         className="mb-4 lg:mb-3"
-        actions={<PageHeaderSettingsLink href="/books/settings" />}
+        actions={
+          <>
+            <DashboardSwitch current="reading" />
+            <PageHeaderSettingsLink href="/books/settings" />
+          </>
+        }
       />
 
       <ReadingDashboard />

@@ -20,8 +20,8 @@ export default function EditRecipeClient({ id }: { id: string }) {
           { label: 'Edit' }
         ]}
       />
-      {isLoading && <LoadingState label="recipe" />}
-      {error && <ErrorState what="recipe" />}
+      {isLoading && <LoadingState placement="page" label="recipe" />}
+      {error && <ErrorState placement="page" what="recipe" />}
       {recipe && (
         <RecipeForm
           recipe={recipe}

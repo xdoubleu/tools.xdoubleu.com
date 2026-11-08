@@ -83,13 +83,15 @@ export default function CategoryManager() {
       </form>
 
       {error && <Alert tone="danger">{error}</Alert>}
-      {isLoading && <LoadingState className="text-sm" />}
-      {!isLoading && categories.length === 0 && <EmptyState>No categories yet.</EmptyState>}
+      {isLoading && <LoadingState placement="inline" />}
+      {!isLoading && categories.length === 0 && (
+        <EmptyState placement="inline">No categories yet.</EmptyState>
+      )}
 
       <ul className="space-y-2">
         {categories.map((category) => (
           <li key={category.id}>
-            <Card variant="inset" className="flex flex-wrap items-center gap-2 p-2">
+            <Card variant="inset" className="flex flex-wrap items-center gap-2">
               {editingId === category.id ? (
                 <>
                   <Input
@@ -98,10 +100,10 @@ export default function CategoryManager() {
                     onChange={(e) => setEditName(e.target.value)}
                     className="min-w-0 flex-1 basis-40"
                   />
-                  <Button size="sm" disabled={busy} onClick={() => handleRename(category.id)}>
+                  <Button disabled={busy} onClick={() => handleRename(category.id)}>
                     Save
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditingId('')}>
+                  <Button variant="ghost" onClick={() => setEditingId('')}>
                     Cancel
                   </Button>
                 </>
@@ -111,7 +113,6 @@ export default function CategoryManager() {
                     {category.name}
                   </span>
                   <Button
-                    size="sm"
                     variant="ghost"
                     onClick={() => {
                       setEditingId(category.id)
@@ -121,7 +122,6 @@ export default function CategoryManager() {
                     Rename
                   </Button>
                   <Button
-                    size="sm"
                     variant="ghost"
                     disabled={busy}
                     onClick={() => setDeletingId(category.id)}

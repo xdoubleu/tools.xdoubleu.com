@@ -41,14 +41,14 @@ describe('BookSourceSync', () => {
   it('shows a button and does not fetch until clicked', () => {
     render(<BookSourceSync bookId="b1" />)
     expect(screen.getByRole('button', { name: /sync metadata source/i })).toBeInTheDocument()
-    expect(screen.queryByText(/fetching sources/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/loading sources/i)).not.toBeInTheDocument()
   })
 
   it('shows a loading state after the button is clicked', () => {
     mockSourcesData.isLoading = true
     render(<BookSourceSync bookId="b1" />)
     fireEvent.click(screen.getByRole('button', { name: /sync metadata source/i }))
-    expect(screen.getByText(/fetching sources/i)).toBeInTheDocument()
+    expect(screen.getByText(/loading sources/i)).toBeInTheDocument()
   })
 
   it('shows an error state when the fetch fails', () => {

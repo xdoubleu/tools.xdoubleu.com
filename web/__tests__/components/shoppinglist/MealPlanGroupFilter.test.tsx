@@ -8,27 +8,26 @@ const groups = [
 ]
 
 describe('MealPlanGroupFilter', () => {
-  it('renders a checkbox per group with the recipe name', () => {
+  it('renders a toggle per group with the recipe name', () => {
     render(<MealPlanGroupFilter groups={groups} excludedGroups={new Set()} onToggle={vi.fn()} />)
-    expect(screen.getByText('Sauce')).toBeInTheDocument()
-    expect(screen.getByText('(Pasta)')).toBeInTheDocument()
-    expect(screen.getByText('Dressing')).toBeInTheDocument()
-    expect(screen.getAllByRole('checkbox')).toHaveLength(2)
+    expect(screen.getByRole('toolbar', { name: 'Include ingredient groups' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sauce (Pasta)' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Dressing (Salad)' })).toBeInTheDocument()
   })
 
-  it('checks included groups and unchecks excluded ones', () => {
+  it('presses included groups and releases excluded ones', () => {
     render(
       <MealPlanGroupFilter groups={groups} excludedGroups={new Set(['Sauce'])} onToggle={vi.fn()} />
     )
-    const [sauce, dressing] = screen.getAllByRole('checkbox')
-    expect(sauce).not.toBeChecked()
-    expect(dressing).toBeChecked()
+    const [sauce, dressing] = screen.getAllByRole('button')
+    expect(sauce).toHaveAttribute('aria-pressed', 'false')
+    expect(dressing).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('calls onToggle with the group name when clicked', () => {
     const onToggle = vi.fn()
     render(<MealPlanGroupFilter groups={groups} excludedGroups={new Set()} onToggle={onToggle} />)
-    fireEvent.click(screen.getAllByRole('checkbox')[0])
+    fireEvent.click(screen.getAllByRole('button')[0])
     expect(onToggle).toHaveBeenCalledWith('Sauce')
   })
 

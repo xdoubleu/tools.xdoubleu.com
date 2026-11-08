@@ -8,7 +8,7 @@ export default function KoboGatewayDownload() {
 
   if (!isMac) {
     return (
-      <Card variant="inset" className="space-y-2 px-4 py-3" data-testid="kobo-gateway-non-mac">
+      <Card variant="inset" className="space-y-2" data-testid="kobo-gateway-non-mac">
         <p className="text-sm text-muted">
           Kobo setup requires the kobo-gateway app, which is only available for Apple Silicon Macs.
         </p>
@@ -17,7 +17,7 @@ export default function KoboGatewayDownload() {
   }
 
   return (
-    <Card variant="inset" className="space-y-2 px-4 py-3" data-testid="kobo-gateway-download">
+    <Card variant="inset" className="space-y-2" data-testid="kobo-gateway-download">
       <p className="text-sm font-medium">Set up your Kobo</p>
       <p className="text-xs text-muted">
         Download the gateway app: a small menu-bar helper that lets this page configure your

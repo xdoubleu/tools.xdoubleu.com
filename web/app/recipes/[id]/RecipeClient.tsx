@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { Card } from '@/components/ui/card'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
@@ -98,13 +99,14 @@ export default function RecipeClient({ id }: { id: string }) {
 
   return (
     <PageContainer>
-      <Breadcrumb
-        className="mb-4"
-        items={[{ label: 'Recipes', href: '/recipes/list' }, { label: recipe?.name ?? 'Recipe' }]}
-      />
-
-      {isLoading && !recipe && <LoadingState label="recipe" />}
-      {error && <ErrorState what="recipe" />}
+      {!recipe && (
+        <PageHeader
+          title="Recipe"
+          breadcrumb={[{ label: 'Recipes', href: '/recipes/list' }, { label: 'Recipe' }]}
+        />
+      )}
+      {isLoading && !recipe && <LoadingState placement="page" label="recipe" />}
+      {error && <ErrorState placement="page" what="recipe" />}
       {deleteError && (
         <Alert tone="danger" className="mb-4">
           {deleteError}
@@ -115,14 +117,15 @@ export default function RecipeClient({ id }: { id: string }) {
           <PageHeader
             className="mb-2"
             title={recipe.name}
+            breadcrumb={[{ label: 'Recipes', href: '/recipes/list' }, { label: recipe.name }]}
             actions={
               canEdit && (
                 <>
-                  <Button asChild variant="secondary" size="sm">
+                  <Button asChild variant="secondary">
                     <Link href={`/recipes/${recipe.id}/edit`}>Edit</Link>
                   </Button>
                   {isOwner && (
-                    <Button variant="destructive" size="sm" onClick={() => setDeleteConfirm(true)}>
+                    <Button variant="destructive" onClick={() => setDeleteConfirm(true)}>
                       Delete
                     </Button>
                   )}
@@ -152,12 +155,7 @@ export default function RecipeClient({ id }: { id: string }) {
               className="w-16 px-2"
             />
             {servings > 0 && servings !== recipe.baseServings && (
-              <Button
-                variant="link"
-                size="sm"
-                onClick={() => setServings(0)}
-                className="h-auto px-0 text-xs"
-              >
+              <Button variant="link" onClick={() => setServings(0)} className="px-0">
                 Reset to {recipe.baseServings}
               </Button>
             )}
@@ -168,7 +166,6 @@ export default function RecipeClient({ id }: { id: string }) {
             {wakeLockSupported && (
               <Button
                 variant={cookingModeActive ? 'default' : 'secondary'}
-                size="sm"
                 onClick={toggleCookingMode}
                 className="ml-auto"
               >
@@ -179,7 +176,7 @@ export default function RecipeClient({ id }: { id: string }) {
 
           {displayIngredients.length > 0 && (
             <section className="mb-6">
-              <h2 className="text-xl font-semibold mb-3">Ingredients</h2>
+              <SectionHeading className="mb-3">Ingredients</SectionHeading>
               <div className="space-y-3">
                 {groupedIngredients.map((section, sIdx) => {
                   const list = (
@@ -198,17 +195,17 @@ export default function RecipeClient({ id }: { id: string }) {
                     </ul>
                   )
                   return (
-                    <div
-                      key={sIdx}
-                      className="rounded-2xl border border-border bg-surface/50 overflow-hidden"
-                    >
+                    <Card key={sIdx} variant="inset" padding="none" className="overflow-hidden">
                       {section.groupName && (
-                        <h3 className="bg-surface px-3 py-1.5 text-sm font-semibold text-subtle border-b border-border">
+                        <SectionHeading
+                          level="eyebrow"
+                          className="border-b border-border px-3 py-1.5"
+                        >
                           {section.groupName}
-                        </h3>
+                        </SectionHeading>
                       )}
                       <div className="px-3 py-1">{list}</div>
-                    </div>
+                    </Card>
                   )
                 })}
               </div>
@@ -217,7 +214,7 @@ export default function RecipeClient({ id }: { id: string }) {
 
           {recipe.instructions && (
             <section className="mb-6">
-              <h2 className="text-xl font-semibold mb-3">Instructions</h2>
+              <SectionHeading className="mb-3">Instructions</SectionHeading>
               <div className="prose max-w-none whitespace-pre-wrap text-subtle">
                 {recipe.instructions}
               </div>

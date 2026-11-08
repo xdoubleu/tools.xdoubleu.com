@@ -19,6 +19,7 @@ import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { Alert } from '@/components/ui/alert'
+import { FieldError } from '@/components/ui/field-error'
 
 export default function MovieTitleClient({ id }: { id: string }) {
   const router = useRouter()
@@ -32,16 +33,16 @@ export default function MovieTitleClient({ id }: { id: string }) {
   const [removing, setRemoving] = useState(false)
   const [removeFailed, setRemoveFailed] = useState(false)
 
-  const breadcrumb = [{ label: 'Movies & Series', href: listHref('/movies', shared) }]
+  const breadcrumb = [{ label: 'Movies & series', href: listHref('/movies', shared) }]
 
-  if (isLoading && !data) return <LoadingState label="title" />
+  if (isLoading && !data) return <LoadingState label="title" placement="page" />
   // Other failed revalidations (e.g. offline) keep showing the loaded data.
   const removed = ConnectError.from(error).code === Code.NotFound
   if (removed || !data?.entry) {
     return (
       <PageContainer>
-        <PageHeader title="Movies & Series" breadcrumb={breadcrumb} />
-        <ErrorState what="title" />
+        <PageHeader title="Movies & series" breadcrumb={breadcrumb} />
+        <ErrorState what="title" placement="page" />
       </PageContainer>
     )
   }
@@ -128,11 +129,7 @@ export default function MovieTitleClient({ id }: { id: string }) {
                   ? 'Adding…'
                   : `Add to ${shared ? 'my' : 'family'} list`}
             </Button>
-            {copyFailed && (
-              <p className="text-sm text-danger" role="alert">
-                Couldn&apos;t add. Try again.
-              </p>
-            )}
+            <FieldError>{copyFailed && 'Couldn’t add. Try again.'}</FieldError>
           </div>
           <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
             Remove from backlog

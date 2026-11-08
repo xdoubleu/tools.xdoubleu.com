@@ -36,6 +36,7 @@ const SHARED_HOOKS = [
   'navigation',
   'useAsyncAction',
   'useAuth',
+  'useCopyFeedback',
   'useIngredientCatalog',
   'useKeyboardInset',
   'useLocalStorage',

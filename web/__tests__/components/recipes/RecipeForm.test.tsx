@@ -190,7 +190,7 @@ describe('RecipeForm (new recipe)', () => {
     render(<RecipeForm onSave={vi.fn()} onCancel={vi.fn()} />)
     // A second row makes Remove appear.
     fireEvent.click(screen.getByRole('button', { name: 'Add Ingredient' }))
-    const removeButtons = screen.getAllByRole('button', { name: 'Remove' })
+    const removeButtons = screen.getAllByRole('button', { name: /^Remove ingredient/ })
     expect(removeButtons.length).toBe(2)
     fireEvent.click(removeButtons[0])
     expect(screen.getAllByPlaceholderText('Name')).toHaveLength(1)

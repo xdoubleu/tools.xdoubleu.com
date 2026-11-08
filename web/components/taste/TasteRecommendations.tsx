@@ -117,7 +117,7 @@ function PickList({ domain, view }: { domain: string; view: string }) {
       {data.lastError && <Alert tone="warn">{data.lastError}</Alert>}
       {data.pending && <p className="text-sm text-muted">Writing new picks…</p>}
       {data.recommendations.length === 0 ? (
-        <EmptyState>
+        <EmptyState placement="inline">
           {saved
             ? 'Nothing saved yet. Saved picks stay here across runs.'
             : 'No picks yet. They are written after your profile, weekly or when you refresh either.'}

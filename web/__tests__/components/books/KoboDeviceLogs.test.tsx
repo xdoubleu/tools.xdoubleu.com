@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 
 const mockClearKoboDeviceLogs = vi.fn()
 const mockMutate = vi.fn()
@@ -11,6 +11,9 @@ vi.mock('@/hooks/useBooks', () => ({
 }))
 
 import KoboDeviceLogs from '@/components/books/KoboDeviceLogs'
+
+const confirmInDialog = (name: string) =>
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name }))
 
 const entry = {
   time: '2024-06-01T12:00:00Z',
@@ -89,8 +92,10 @@ it('clears logs and revalidates on Clear', async () => {
   })
   render(<KoboDeviceLogs deviceId="dev-1" />)
 
+  fireEvent.click(screen.getByTestId('kobo-logs-clear'))
+  expect(mockClearKoboDeviceLogs).not.toHaveBeenCalled()
   await act(async () => {
-    fireEvent.click(screen.getByTestId('kobo-logs-clear'))
+    confirmInDialog('Clear')
   })
 
   await waitFor(() => {
@@ -118,6 +123,7 @@ it('shows an alert when clearing the logs fails', async () => {
   })
   render(<KoboDeviceLogs deviceId="dev-1" />)
   fireEvent.click(screen.getByTestId('kobo-logs-clear'))
+  confirmInDialog('Clear')
   expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't clear the logs.")
   expect(screen.getByTestId('kobo-logs-clear')).toBeEnabled()
 })

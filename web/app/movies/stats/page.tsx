@@ -12,7 +12,7 @@ export default function MoviesStatsPage() {
       <PageHeader
         title="Stats"
         breadcrumb={[
-          { label: 'Movies & Series', href: listHref('/movies', shared) },
+          { label: 'Movies & series', href: listHref('/movies', shared) },
           { label: 'Stats' }
         ]}
       />

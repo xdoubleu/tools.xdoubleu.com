@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { seriesHref, seriesLabel } from '@/lib/books/series'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
@@ -81,9 +82,9 @@ export default function BookDetailClient({ id }: { id: string }) {
     <PageContainer>
       <Breadcrumb items={breadcrumbItems} />
 
-      {isLoading && <LoadingState label="book" className="mt-6" />}
-      {error && <ErrorState what="book" className="mt-6" />}
-      {!isLoading && !error && !userBook && <p className="mt-6 text-muted">Book not found.</p>}
+      {isLoading && <LoadingState label="book" placement="page" />}
+      {error && <ErrorState what="book" placement="page" />}
+      {!isLoading && !error && !userBook && <EmptyState>Book not found.</EmptyState>}
 
       {book && userBook && (
         <>
@@ -105,11 +106,13 @@ export default function BookDetailClient({ id }: { id: string }) {
                 className="mb-0"
               />
               {book.seriesName && (
-                <Button asChild variant="link" className="mt-1 max-w-full text-sm">
-                  <Link href={seriesHref(book.seriesName)}>
-                    <span className="truncate">{seriesLabel(book)}</span>
-                  </Link>
-                </Button>
+                <p className="mt-1 text-sm">
+                  <Button asChild variant="link" className="max-w-full">
+                    <Link href={seriesHref(book.seriesName)}>
+                      <span className="truncate">{seriesLabel(book)}</span>
+                    </Link>
+                  </Button>
+                </p>
               )}
 
               <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -127,15 +130,10 @@ export default function BookDetailClient({ id }: { id: string }) {
               {book.isbn13 && <p className="mt-2 text-xs text-muted">ISBN: {book.isbn13}</p>}
               {book.sourceUrl && (
                 <p className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">
-                  <Button
-                    type="button"
-                    variant="link"
-                    onClick={() => setReaderOpen(true)}
-                    className="text-xs"
-                  >
+                  <Button type="button" variant="link" onClick={() => setReaderOpen(true)}>
                     Read in app
                   </Button>
-                  <Button asChild variant="link" className="text-xs">
+                  <Button asChild variant="link">
                     <a href={book.sourceUrl} target="_blank" rel="noopener noreferrer">
                       Open original ↗
                     </a>
@@ -156,38 +154,44 @@ export default function BookDetailClient({ id }: { id: string }) {
           </div>
 
           <section className="mt-8">
-            <h2 className="text-lg font-semibold mb-2">Description</h2>
+            <SectionHeading className="mb-3">Description</SectionHeading>
             {book.description ? (
               <BookDescription description={book.description} />
             ) : (
-              <EmptyState compact>No description available.</EmptyState>
+              <EmptyState placement="inline">No description available.</EmptyState>
             )}
           </section>
 
           {/* Admin: manual edit + live metadata source sync */}
           {isAdmin && (
             <section className="mt-8">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold">Metadata source</h2>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setEditOpen(true)}
-                >
-                  Edit book
-                </Button>
-              </div>
+              <SectionHeading
+                className="mb-3"
+                actions={
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setEditOpen(true)}
+                  >
+                    Edit book
+                  </Button>
+                }
+              >
+                Metadata source
+              </SectionHeading>
               <BookSourceSync bookId={userBook.bookId} />
             </section>
           )}
 
           <section className="mt-8">
-            <h2 className="text-lg font-semibold mb-3">Your reading</h2>
-            <Card className="flex flex-col gap-4 p-4">
+            <SectionHeading className="mb-3">Your reading</SectionHeading>
+            <Card className="flex flex-col gap-4">
               {userBook.status === 'currently-reading' && (
                 <div>
-                  <p className="text-xs text-muted mb-1">Progress</p>
+                  <SectionHeading level="eyebrow" className="mb-1">
+                    Progress
+                  </SectionHeading>
                   <BookProgressEditor userBook={userBook} onSaved={handleSaved} />
                 </div>
               )}
@@ -198,7 +202,9 @@ export default function BookDetailClient({ id }: { id: string }) {
 
               {suggestion && (
                 <div>
-                  <p className="text-xs text-muted mb-1">Device</p>
+                  <SectionHeading level="eyebrow" className="mb-1">
+                    Device
+                  </SectionHeading>
                   <p className="text-sm">
                     {suggestion.label}
                     <span className="text-muted"> · {suggestion.detail}</span>
@@ -209,7 +215,9 @@ export default function BookDetailClient({ id }: { id: string }) {
               {/* Keyed off actual files, not the own-digital tag, which can drift. */}
               {readerFormatList.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted mb-1">Kobo sync</p>
+                  <SectionHeading level="eyebrow" className="mb-1">
+                    Kobo sync
+                  </SectionHeading>
                   <KoboSyncToggle
                     bookId={userBook.bookId}
                     enabled={userBook.tags.includes('kobo-sync')}
@@ -220,22 +228,18 @@ export default function BookDetailClient({ id }: { id: string }) {
 
               {readerFormatList.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted mb-1">Read</p>
+                  <SectionHeading level="eyebrow" className="mb-1">
+                    Read
+                  </SectionHeading>
                   <div className="flex gap-2 flex-wrap items-center">
                     <OfflineBookBadge bookId={userBook.bookId} />
                     {readerFormatList.length === 1 ? (
-                      <Button asChild variant="secondary" size="sm" className="text-xs">
+                      <Button asChild variant="secondary" size="sm">
                         <Link href={`/books/${userBook.id}/read`}>Open reader</Link>
                       </Button>
                     ) : (
                       readerFormatList.map((format) => (
-                        <Button
-                          key={format}
-                          asChild
-                          variant="secondary"
-                          size="sm"
-                          className="text-xs"
-                        >
+                        <Button key={format} asChild variant="secondary" size="sm">
                           <Link href={`/books/${userBook.id}/read?format=${format}`}>
                             Open {format.toUpperCase()}
                           </Link>
@@ -244,7 +248,7 @@ export default function BookDetailClient({ id }: { id: string }) {
                     )}
                     {/* A PDF-only book also links straight to its reflowable KEPUB. */}
                     {!userBook.formats.includes('epub') && (
-                      <Button asChild variant="secondary" size="sm" className="text-xs">
+                      <Button asChild variant="secondary" size="sm">
                         <Link href={`/books/${userBook.id}/read?format=kepub`}>Open KEPUB</Link>
                       </Button>
                     )}
@@ -261,7 +265,6 @@ export default function BookDetailClient({ id }: { id: string }) {
                   type="button"
                   variant="destructive"
                   size="sm"
-                  className="text-xs"
                   onClick={() => setRemoveOpen(true)}
                 >
                   Remove from library

@@ -3,9 +3,9 @@ import type { LibraryResponse, UserBook } from '@/lib/gen/books/v1/library_pb'
 import { StatTile } from '@/components/ui/stat'
 import BooksProgressChart from '@/components/books/BooksProgressChart'
 import BooksSeriesProgress from '@/components/books/BooksSeriesProgress'
-import { Field } from '@/components/ui/field'
+import { DateRangeFields } from '@/components/ui/date-range-fields'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
-import { DateInput } from '@/components/ui/date-input'
 import { ytdProgress } from '@/lib/books/ytdProgress'
 import { statusLabel } from '@/lib/books/bookShelves'
 import { buildSeriesSummaries } from '@/lib/books/series'
@@ -52,8 +52,10 @@ export default function BooksDashboardView({
       <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
         <div className="flex min-h-0 flex-col gap-3">
           <div className="flex min-h-0 flex-col lg:flex-1">
-            <h2 className="mb-2 text-base font-semibold">Currently reading</h2>
-            {reading.length === 0 && <EmptyState compact>No books in progress.</EmptyState>}
+            <SectionHeading className="mb-2">Currently reading</SectionHeading>
+            {reading.length === 0 && (
+              <EmptyState placement="inline">No books in progress.</EmptyState>
+            )}
             {reading.length > 0 && (
               <div className="flex min-h-0 flex-wrap content-start gap-3 overflow-y-auto pr-1 lg:flex-1">
                 {reading.map((ub) => (
@@ -65,7 +67,7 @@ export default function BooksDashboardView({
 
           {series.length > 0 && (
             <div className="flex min-h-0 flex-col lg:max-h-[40%]">
-              <h2 className="mb-2 text-base font-semibold">Series</h2>
+              <SectionHeading className="mb-2">Series</SectionHeading>
               <div className="min-h-0 overflow-y-auto pr-1">
                 <BooksSeriesProgress series={series} />
               </div>
@@ -86,26 +88,20 @@ export default function BooksDashboardView({
             />
 
             {view === 'all' && (
-              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-                <Field label="From" htmlFor="books-dash-from">
-                  <DateInput
-                    id="books-dash-from"
-                    value={start}
-                    onChange={setStart}
-                    className="sm:w-40"
-                  />
-                </Field>
-                <Field label="To" htmlFor="books-dash-to">
-                  <DateInput id="books-dash-to" value={end} onChange={setEnd} className="sm:w-40" />
-                </Field>
-              </div>
+              <DateRangeFields
+                idPrefix="books-dash"
+                start={start}
+                onStartChange={setStart}
+                end={end}
+                onEndChange={setEnd}
+              />
             )}
           </div>
 
           {view === 'ytd' && (
             <>
               {ytd.series.length === 0 && (
-                <EmptyState compact>No books finished this year yet.</EmptyState>
+                <EmptyState placement="inline">No books finished this year yet.</EmptyState>
               )}
               {ytd.series.length > 0 && <BooksProgressChart data={ytd.series} />}
             </>

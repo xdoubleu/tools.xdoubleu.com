@@ -16,7 +16,8 @@ import { PageHeader } from '@/components/ui/page-header'
 import { Alert } from '@/components/ui/alert'
 import { Card } from '@/components/ui/card'
 import { SectionCard } from '@/components/ui/section-card'
-import { ErrorState, LoadingState } from '@/components/ui/states'
+import { ConfirmDialog } from '@/components/ui/dialog'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 export default function FamilyPageClient() {
   const { data, isLoading, error } = useFamily()
@@ -32,6 +33,7 @@ export default function FamilyPageClient() {
   const [accepting, setAccepting] = useState(false)
   const [declining, setDeclining] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const [confirmingLeave, setConfirmingLeave] = useState(false)
 
   const [name, setName] = useState('')
   const [savingName, setSavingName] = useState(false)
@@ -106,15 +108,16 @@ export default function FamilyPageClient() {
       // ignore
     } finally {
       setLeaving(false)
+      setConfirmingLeave(false)
     }
   }
 
   if (isLoading) {
-    return <LoadingState className="py-16 text-center text-sm" />
+    return <LoadingState placement="page" />
   }
 
   if (error) {
-    return <ErrorState what="family" className="py-16 text-center text-sm" />
+    return <ErrorState what="family" placement="page" />
   }
 
   return (
@@ -195,23 +198,33 @@ export default function FamilyPageClient() {
             ))}
           </ul>
         ) : (
-          <p className="mb-4 text-sm text-muted">
+          <EmptyState placement="inline">
             Just you for now. Invite someone by email to share your recipes, meal plans and shopping
             list with them.
-          </p>
+          </EmptyState>
         )}
 
         {members.length > 0 && (
           <Button
-            variant="link"
+            variant="destructive"
             size="sm"
-            onClick={handleLeave}
+            onClick={() => setConfirmingLeave(true)}
             disabled={leaving}
-            className="text-xs text-danger focus-visible:ring-danger/50"
           >
-            {leaving ? 'Leaving…' : 'Leave family'}
+            Leave family
           </Button>
         )}
+        <ConfirmDialog
+          open={confirmingLeave}
+          onOpenChange={setConfirmingLeave}
+          title="Leave your family?"
+          description="You stop seeing the shared recipe book, meal plan and shopping list. Someone in the family has to invite you again to rejoin."
+          confirmLabel="Leave family"
+          pendingLabel="Leaving…"
+          destructive
+          pending={leaving}
+          onConfirm={() => void handleLeave()}
+        />
       </SectionCard>
     </PageContainer>
   )

@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { ConnectError, Code } from '@connectrpc/connect'
 
 const mockUseCurrentUser = vi.fn()
@@ -24,6 +24,9 @@ vi.mock('@/hooks/useAuth', () => ({
 }))
 
 import SettingsPage from '@/app/settings/page'
+
+const confirmInDialog = (name: string) =>
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name }))
 
 describe('SettingsPage', () => {
   beforeEach(() => {
@@ -232,6 +235,7 @@ describe('SettingsPage', () => {
 
       enterFactorCode()
       fireEvent.click(screen.getByRole('button', { name: 'Disable MFA' }))
+      confirmInDialog('Disable MFA')
 
       await waitFor(() => expect(mockMFAUnenroll).toHaveBeenCalledWith('123456'))
     })
@@ -242,8 +246,14 @@ describe('SettingsPage', () => {
 
       enterFactorCode()
       fireEvent.click(screen.getByRole('button', { name: 'Disable MFA' }))
+      confirmInDialog('Disable MFA')
 
       expect(await screen.findByText('Failed to disable MFA.')).toBeInTheDocument()
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('dialog', { name: 'Disable two-factor authentication?' })
+        ).not.toBeInTheDocument()
+      )
     })
 
     it('shows an error when regenerating fails', async () => {

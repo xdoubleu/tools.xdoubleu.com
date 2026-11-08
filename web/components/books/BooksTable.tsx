@@ -13,77 +13,36 @@ import {
 import { Button } from '@/components/ui/button'
 import BookCard from '@/components/books/BookCard'
 import BooksTableRow from '@/components/books/BooksTableRow'
-import BooksTableToolbar, { type LibraryFilters } from '@/components/books/BooksTableToolbar'
 import {
   ALL_COLUMNS,
-  DEFAULT_VISIBLE_COLUMNS,
   sortBooks,
   nextDir,
-  type ColumnKey,
   type SortKey,
   type SortState
 } from '@/components/books/booksTableColumns'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { applyFilters, type LibraryTableState } from '@/components/books/useLibraryTableState'
 import { EmptyState } from '@/components/ui/states'
 
 const PAGE_SIZE = 20
-
-function applyFilters(books: UserBook[], filters: LibraryFilters): UserBook[] {
-  return books.filter((ub) => {
-    // own-bol (Kobo store) is a kind of digital ownership, so it also matches the Digital filter.
-    const owned = new Set(ub.tags)
-    if (owned.has('own-bol')) owned.add('own-digital')
-    if (filters.ownership.size > 0 && ![...filters.ownership].some((tag) => owned.has(tag))) {
-      return false
-    }
-    if (filters.format.size > 0 && ![...filters.format].some((fmt) => ub.formats.includes(fmt))) {
-      return false
-    }
-    if (filters.kobo.size > 0 && !ub.tags.includes('kobo-sync')) {
-      return false
-    }
-    return true
-  })
-}
 
 interface BooksTableProps {
   books: UserBook[]
   knownShelves: string[]
   knownTags: string[]
   onSaved?: () => void
+  /** Columns, filters and page, shared with the library toolbar. */
+  state: LibraryTableState
 }
 
-export default function BooksTable({ books, knownShelves, knownTags, onSaved }: BooksTableProps) {
+export default function BooksTable({
+  books,
+  knownShelves,
+  knownTags,
+  onSaved,
+  state
+}: BooksTableProps) {
   const [sort, setSort] = useState<SortState>({ key: 'added', dir: null })
-  const [page, setPage] = useState(1)
-
-  // Stored as an array for JSON.
-  const [visibleColumnKeys, setVisibleColumnKeys] = useLocalStorage<ColumnKey[]>(
-    'backlog:library:columns',
-    DEFAULT_VISIBLE_COLUMNS
-  )
-  const visibleColumns = useMemo(() => new Set(visibleColumnKeys), [visibleColumnKeys])
-
-  const [ownershipFilterKeys, setOwnershipFilterKeys] = useLocalStorage<string[]>(
-    'backlog:library:filter:ownership',
-    []
-  )
-  const [formatFilterKeys, setFormatFilterKeys] = useLocalStorage<string[]>(
-    'backlog:library:filter:format',
-    []
-  )
-  const [koboFilterKeys, setKoboFilterKeys] = useLocalStorage<string[]>(
-    'backlog:library:filter:kobo',
-    []
-  )
-  const filters: LibraryFilters = useMemo(
-    () => ({
-      ownership: new Set(ownershipFilterKeys),
-      format: new Set(formatFilterKeys),
-      kobo: new Set(koboFilterKeys)
-    }),
-    [ownershipFilterKeys, formatFilterKeys, koboFilterKeys]
-  )
+  const { visibleColumns, filters, page, setPage } = state
 
   function handleSort(key: SortKey) {
     setSort((prev) => ({
@@ -95,56 +54,6 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
 
   function sortDir(key: SortKey): SortDir {
     return sort.key === key ? sort.dir : null
-  }
-
-  function handleToggleColumn(key: ColumnKey) {
-    const next = new Set(visibleColumns)
-    if (next.has(key)) {
-      next.delete(key)
-    } else {
-      next.add(key)
-    }
-    setVisibleColumnKeys(Array.from(next))
-  }
-
-  function handleToggleOwnership(tag: string) {
-    const next = new Set(filters.ownership)
-    if (next.has(tag)) {
-      next.delete(tag)
-    } else {
-      next.add(tag)
-    }
-    setOwnershipFilterKeys(Array.from(next))
-    setPage(1)
-  }
-
-  function handleToggleFormat(fmt: string) {
-    const next = new Set(filters.format)
-    if (next.has(fmt)) {
-      next.delete(fmt)
-    } else {
-      next.add(fmt)
-    }
-    setFormatFilterKeys(Array.from(next))
-    setPage(1)
-  }
-
-  function handleToggleKobo(tag: string) {
-    const next = new Set(filters.kobo)
-    if (next.has(tag)) {
-      next.delete(tag)
-    } else {
-      next.add(tag)
-    }
-    setKoboFilterKeys(Array.from(next))
-    setPage(1)
-  }
-
-  function handleClearFilters() {
-    setOwnershipFilterKeys([])
-    setFormatFilterKeys([])
-    setKoboFilterKeys([])
-    setPage(1)
   }
 
   const activeColumns = useMemo(
@@ -162,17 +71,6 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
 
   return (
     <div className="space-y-3">
-      <BooksTableToolbar
-        columns={ALL_COLUMNS}
-        visibleColumns={visibleColumns}
-        onToggleColumn={handleToggleColumn}
-        filters={filters}
-        onToggleOwnership={handleToggleOwnership}
-        onToggleFormat={handleToggleFormat}
-        onToggleKobo={handleToggleKobo}
-        onClearFilters={handleClearFilters}
-      />
-
       {/* Mobile-first card-per-row view; the rich table would force a ~1167px
           wide sideways scroll below `sm`. */}
       <ul className="grid grid-cols-1 gap-3 sm:hidden">

@@ -31,6 +31,8 @@ function SegmentedTabs<T extends string>({
           key={option.value}
           role="tab"
           aria-selected={option.value === value}
+          // `aria-pressed` isn't allowed on a tab; `aria-selected` carries the state.
+          aria-pressed={undefined}
           active={option.value === value}
           label={option.label}
           onClick={() => onChange(option.value)}

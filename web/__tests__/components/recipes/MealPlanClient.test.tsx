@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 vi.mock('@/hooks/useMealPlans', () => ({
   useMealPlan: vi.fn(),
@@ -73,7 +73,24 @@ beforeEach(() => {
 describe('MealPlanClient', () => {
   it('renders the plan name', () => {
     render(<MealPlanClient id="plan-1" />)
-    expect(screen.getByText('Test Plan')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Test Plan' })).toBeInTheDocument()
+  })
+
+  it('shows loading and error states', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    vi.mocked(useMealPlan).mockReturnValue({
+      data: undefined,
+      error: new Error('x'),
+      isLoading: true
+    })
+    render(<MealPlanClient id="plan-1" />)
+    expect(screen.getByText('Loading meal plan…')).toBeInTheDocument()
+    expect(screen.getByText('Failed to load meal plan.')).toBeInTheDocument()
+  })
+
+  it('shows a breadcrumb back to meal plans', () => {
+    render(<MealPlanClient id="plan-1" />)
+    expect(screen.getByRole('link', { name: 'Meal Plans' })).toHaveAttribute('href', '/mealplans')
   })
 
   it('does not render a shopping list toggle button', () => {
@@ -98,9 +115,18 @@ describe('MealPlanClient', () => {
     expect(screen.getByRole('button', { name: 'iCal Link' })).toBeInTheDocument()
   })
 
-  it('shows Settings link instead of Edit for owner', () => {
+  it('copies the iCal link and confirms it', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
     render(<MealPlanClient id="plan-1" />)
-    expect(screen.getByRole('link', { name: 'Settings' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'iCal Link' }))
+    expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument()
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/'))
+  })
+
+  it('links to the plan editor', () => {
+    render(<MealPlanClient id="plan-1" />)
+    expect(screen.getByRole('link', { name: 'Edit plan' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument()
   })
 

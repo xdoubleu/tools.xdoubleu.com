@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { BacklogEntry } from '@/lib/gen/movies/v1/movies_pb'
 import { useFetchMoviesBacklogPage, useMoviesActions, useMoviesBacklog } from '@/hooks/useMovies'
 import { useSharedList } from '@/hooks/useSharedList'
@@ -6,10 +6,6 @@ import { listHref } from '@/lib/listScope'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import {
   type BacklogFilter,
-  DEFAULT_BACKLOG_FILTER,
-  NEW_SEASONS,
-  STATUSES,
-  STATUS_LABELS,
   mediaTypeLabel,
   posterUrl,
   releaseLabel,
@@ -20,31 +16,13 @@ import { Artwork } from '@/components/ui/artwork'
 import StatusSelect from '@/components/movies/StatusSelect'
 import WatchedWhenDialog from '@/components/movies/WatchedWhenDialog'
 import { Badge } from '@/components/ui/badge'
-import { Field } from '@/components/ui/field'
-import { TogglePill } from '@/components/ui/toggle-pill'
+import { FieldError } from '@/components/ui/field-error'
 import { RatingStars } from '@/components/ui/rating-stars'
 import { LinkCard } from '@/components/ui/link-card'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
-import { SegmentedTabs } from '@/components/ui/segmented-tabs'
-import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { focusById } from '@/lib/focusById'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
-
-// "New seasons" narrows Watched, so it sits right after it.
-const STATUS_TABS = [
-  { value: '', label: 'All statuses' },
-  ...STATUSES.flatMap((s) => [
-    { value: s, label: STATUS_LABELS[s] },
-    ...(s === 'watched' ? [{ value: NEW_SEASONS, label: 'New seasons' }] : [])
-  ])
-]
-
-const TYPE_TABS = [
-  { value: '', label: 'All types' },
-  { value: 'movie', label: 'Movies' },
-  { value: 'series', label: 'Series' }
-]
 
 function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
   const { setStatus } = useMoviesActions()
@@ -92,6 +70,7 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
           <StatusSelect
             id={`status-${entry.id}`}
             aria-label={`Status of ${displayed}`}
+            aria-describedby={failed ? `status-${entry.id}-error` : undefined}
             value={status}
             disabled={pending}
             onChange={select}
@@ -123,18 +102,21 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
           {entry.onMyServices && <Badge variant="success">On my services</Badge>}
           {entry.rating !== undefined && <RatingStars value={entry.rating} />}
         </div>
-        {failed && (
-          <p className="text-xs text-danger" role="alert">
-            Couldn&apos;t update status. Try again.
-          </p>
-        )}
+        <FieldError id={`status-${entry.id}-error`}>
+          {failed && 'Couldn’t update status. Try again.'}
+        </FieldError>
       </div>
     </LinkCard>
   )
 }
 
-export default function MoviesBacklog() {
-  const [filter, setFilter] = useState<BacklogFilter>(DEFAULT_BACKLOG_FILTER)
+interface MoviesBacklogProps {
+  filter: BacklogFilter
+  /** Receives the loaded-entries label for the toolbar. */
+  onCount?: (label: string | null) => void
+}
+
+export default function MoviesBacklog({ filter, onCount }: MoviesBacklogProps) {
   const { data, error, isLoading } = useMoviesBacklog(filter)
   const fetchPage = useFetchMoviesBacklogPage(filter)
   const initialPage = useMemo(
@@ -149,45 +131,21 @@ export default function MoviesBacklog() {
     loadMore
   } = usePaginatedList(initialPage, fetchPage, (a, b) => a.id === b.id)
   const today = todayISO()
+  const countLabel = data
+    ? `${entries.length}${hasMore ? '+' : ''} ${entries.length === 1 && !hasMore ? 'title' : 'titles'}`
+    : null
+
+  useEffect(() => {
+    onCount?.(countLabel)
+  }, [onCount, countLabel])
 
   return (
     <section className="space-y-4" aria-label="Backlog">
-      <SegmentedTabs
-        aria-label="Filter by status"
-        value={filter.status}
-        options={STATUS_TABS}
-        onChange={(status) => setFilter((f) => ({ ...f, status }))}
-      />
-      <div className="flex flex-wrap items-end gap-3">
-        <SegmentedTabs
-          aria-label="Filter by type"
-          value={filter.mediaType}
-          options={TYPE_TABS}
-          onChange={(mediaType) => setFilter((f) => ({ ...f, mediaType }))}
-        />
-        <TogglePill
-          label="On my services"
-          active={filter.onMyServices}
-          onClick={() => setFilter((f) => ({ ...f, onMyServices: !f.onMyServices }))}
-        />
-        <Field label="Sort" htmlFor="movies-sort" className="w-44">
-          <Select
-            id="movies-sort"
-            value={filter.sort}
-            onChange={(e) => setFilter((f) => ({ ...f, sort: e.target.value }))}
-          >
-            <option value="added">Recently added</option>
-            <option value="title">Title</option>
-            <option value="release">Release date</option>
-            <option value="rating">Rating</option>
-          </Select>
-        </Field>
-      </div>
-
-      {isLoading && !data && <LoadingState label="backlog" />}
-      {error && <ErrorState what="backlog" />}
+      {isLoading && !data && <LoadingState placement="page" label="backlog" />}
+      {error && <ErrorState placement="page" what="backlog" />}
       {data && entries.length === 0 && (
         <EmptyState
+          placement="page"
           action={
             <Button size="sm" onClick={() => focusById('movies-search')}>
               Add a movie or series

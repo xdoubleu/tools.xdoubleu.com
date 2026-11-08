@@ -31,6 +31,20 @@ describe('Button', () => {
     expect(btn).toHaveClass('h-11', 'sm:h-8')
   })
 
+  it('puts the default size on the shared control height', () => {
+    render(<Button>Save</Button>)
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('h-11', 'sm:h-9')
+  })
+
+  it('makes the icon size a control-height square', () => {
+    render(
+      <Button size="icon" aria-label="more">
+        ⋯
+      </Button>
+    )
+    expect(screen.getByRole('button', { name: 'more' })).toHaveClass('size-11', 'sm:size-9')
+  })
+
   it('renders the small icon size as a 44px square on phones, compact from sm', () => {
     render(
       <Button size="iconSm" aria-label="remove">
@@ -38,7 +52,7 @@ describe('Button', () => {
       </Button>
     )
     const btn = screen.getByRole('button', { name: 'remove' })
-    expect(btn).toHaveClass('size-11', 'sm:size-6', 'rounded-lg')
+    expect(btn).toHaveClass('size-11', 'sm:size-7', 'rounded-lg')
   })
 
   it('gives touch devices a pressed state via active: classes, not just hover:', () => {

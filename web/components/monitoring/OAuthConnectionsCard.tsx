@@ -1,7 +1,11 @@
+import { useState } from 'react'
 import { SectionCard } from '@/components/ui/section-card'
 import { ConnectionRow } from '@/components/ui/connection-row'
 import { LoadingState } from '@/components/ui/states'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/dialog'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
+import { Alert } from '@/components/ui/alert'
 import { useDisconnectOAuthConnection } from '@/hooks/useMonitoring'
 import type { ListOAuthConnectionsResponse } from '@/lib/gen/observability/v1/observability_pb'
 import { formatDateTime } from '@/lib/dates'
@@ -25,14 +29,27 @@ export default function OAuthConnectionsCard({
   onConfiguringProviderChange
 }: OAuthConnectionsCardProps) {
   const disconnect = useDisconnectOAuthConnection()
+  const [disconnecting, setDisconnecting] = useState<string | null>(null)
+  const { run, pending, error } = useAsyncAction()
+
+  const confirmDisconnect = (provider: string) =>
+    run(
+      () => disconnect(provider),
+      `Couldn't disconnect ${PROVIDER_LABELS[provider] ?? provider}. Try again.`
+    ).finally(() => setDisconnecting(null))
 
   return (
     <SectionCard
       title="Integrations"
       description="Connect GitHub and Sentry via OAuth so this dashboard can read their data."
     >
+      {error && (
+        <Alert tone="danger" className="mb-3">
+          {error}
+        </Alert>
+      )}
       {!data ? (
-        <LoadingState className="py-8 text-center text-sm" />
+        <LoadingState placement="inline" />
       ) : (
         <ul className="space-y-2">
           {data.connections.map((c) => (
@@ -58,7 +75,7 @@ export default function OAuthConnectionsCard({
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => disconnect(c.provider)}
+                        onClick={() => setDisconnecting(c.provider)}
                       >
                         Disconnect
                       </Button>
@@ -74,6 +91,22 @@ export default function OAuthConnectionsCard({
           ))}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={disconnecting !== null}
+        onOpenChange={(open) => {
+          if (!open) setDisconnecting(null)
+        }}
+        title={`Disconnect ${disconnecting ? (PROVIDER_LABELS[disconnecting] ?? disconnecting) : ''}?`}
+        description="This dashboard stops reading its data until you connect it again."
+        confirmLabel="Disconnect"
+        pendingLabel="Disconnecting…"
+        destructive
+        pending={pending}
+        onConfirm={() => {
+          if (disconnecting) void confirmDisconnect(disconnecting)
+        }}
+      />
 
       {configuringProvider && (
         <ProviderConfigDialog

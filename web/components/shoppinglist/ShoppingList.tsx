@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ConfirmDialog } from '@/components/ui/dialog'
+import { RemoveButton } from '@/components/ui/remove-button'
 import { cn } from '@/lib/cn'
 import { focusById } from '@/lib/focusById'
 import { EmptyState } from '@/components/ui/states'
@@ -32,6 +34,9 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<ShoppingItemEdit>({ name: '', amount: '', unit: '' })
   const [saving, setSaving] = useState(false)
+  // Kept after the confirm closes so its title doesn't change mid-animation.
+  const [removing, setRemoving] = useState<ShoppingItem | null>(null)
+  const [confirmingRemove, setConfirmingRemove] = useState(false)
 
   // Ticks of items no longer on the list are ignored, and dropped on the next write.
   const keys = new Set(items.map(itemKey))
@@ -74,17 +79,16 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
   return (
     <div className="space-y-4">
       {onExport && (
-        <Button variant="secondary" size="sm" onClick={onExport}>
+        <Button variant="secondary" onClick={onExport}>
           Export
         </Button>
       )}
 
       {items.length === 0 ? (
         <EmptyState
+          placement="inline"
           action={
-            <Button size="sm" onClick={() => focusById('shopping-item-name')}>
-              Add your first item
-            </Button>
+            <Button onClick={() => focusById('shopping-item-name')}>Add your first item</Button>
           }
         >
           No items yet.
@@ -127,13 +131,12 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
                     className="min-w-0 flex-1 basis-full sm:basis-32"
                   />
                   <Button
-                    size="sm"
                     onClick={() => saveEdit(item.id!)}
                     disabled={saving || !draft.name.trim()}
                   >
                     Save
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={cancelEdit} disabled={saving}>
+                  <Button variant="ghost" onClick={cancelEdit} disabled={saving}>
                     Cancel
                   </Button>
                 </Card>
@@ -141,49 +144,62 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
             }
 
             return (
-              <Card key={key} variant="inset" className="flex flex-wrap items-center gap-x-3 py-0">
-                <Checkbox
-                  checked={isChecked}
-                  onChange={() => toggleItem(key)}
-                  labelClassName="min-w-0 flex-1"
-                  label={
-                    <span
-                      className={cn(
-                        'min-w-0 break-words text-sm',
-                        isChecked ? 'text-muted line-through' : 'text-fg'
-                      )}
+              <Card key={key} variant="inset" padding="none">
+                <div className="flex flex-wrap items-center gap-x-3 pl-3 pr-1">
+                  <Checkbox
+                    checked={isChecked}
+                    onChange={() => toggleItem(key)}
+                    labelClassName="min-w-0 flex-1"
+                    label={
+                      <span
+                        className={cn(
+                          'min-w-0 break-words text-sm',
+                          isChecked ? 'text-muted line-through' : 'text-fg'
+                        )}
+                      >
+                        {item.amount} {item.unit} - {item.name}
+                      </span>
+                    }
+                  />
+                  {item.id && onEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => startEdit(item)}
+                      aria-label={`Edit ${item.name}`}
+                      className="text-muted hover:text-accent"
                     >
-                      {item.amount} {item.unit} - {item.name}
-                    </span>
-                  }
-                />
-                {item.id && onEdit && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => startEdit(item)}
-                    aria-label={`Edit ${item.name}`}
-                    className="text-muted hover:text-accent"
-                  >
-                    Edit
-                  </Button>
-                )}
-                {item.id && onDelete && (
-                  <Button
-                    variant="ghost"
-                    size="iconSm"
-                    onClick={() => onDelete(item.id!)}
-                    aria-label={`Remove ${item.name}`}
-                    className="text-muted hover:bg-transparent hover:text-danger focus-visible:ring-danger/50"
-                  >
-                    ×
-                  </Button>
-                )}
+                      Edit
+                    </Button>
+                  )}
+                  {item.id && onDelete && (
+                    <RemoveButton
+                      onClick={() => {
+                        setRemoving(item)
+                        setConfirmingRemove(true)
+                      }}
+                      aria-label={`Remove ${item.name}`}
+                    />
+                  )}
+                </div>
               </Card>
             )
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmingRemove}
+        onOpenChange={setConfirmingRemove}
+        title={`Remove ${removing?.name ?? 'item'}?`}
+        description="It's taken off the shopping list."
+        confirmLabel="Remove"
+        destructive
+        onConfirm={() => {
+          setConfirmingRemove(false)
+          if (removing?.id && onDelete) void onDelete(removing.id)
+        }}
+      />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/card'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { SectionHeading } from '@/components/ui/section-heading'
 import StopStatusBadge from '@/components/trains/StopStatusBadge'
 import type { LegDetail } from '@/lib/gen/trains/v1/trains_pb'
 
@@ -29,11 +30,11 @@ function StopRow({ stop }: { stop: LegDetail['stops'][number] }) {
 /** One boarded leg: header, cancellation banner, stops, and alerts. */
 export default function JourneyLegCard({ leg }: { leg: LegDetail }) {
   return (
-    <Card className="p-4">
+    <Card>
       <div className="flex items-center justify-between gap-3">
-        <h2 className="min-w-0 break-words font-semibold text-fg">
+        <SectionHeading>
           {leg.routeShortName} {leg.tripShortName} → {leg.headsign}
-        </h2>
+        </SectionHeading>
         {leg.cancelled && <Badge variant="danger">Cancelled</Badge>}
       </div>
 

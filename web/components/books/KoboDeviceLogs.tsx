@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useKoboDeviceLogs, useClearKoboDeviceLogs } from '@/hooks/useBooks'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { EmptyState, LoadingState } from '@/components/ui/states'
 
 interface KoboDeviceLogsProps {
@@ -42,6 +44,7 @@ export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
   const { data, isLoading, mutate } = useKoboDeviceLogs(deviceId, true)
   const clearLogs = useClearKoboDeviceLogs()
   const { run, pending: clearing, error } = useAsyncAction()
+  const [confirming, setConfirming] = useState(false)
 
   const entries = data?.entries ?? []
 
@@ -49,7 +52,7 @@ export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
     run(async () => {
       await clearLogs(deviceId)
       await mutate()
-    }, "Couldn't clear the logs. Try again.")
+    }, "Couldn't clear the logs. Try again.").finally(() => setConfirming(false))
 
   return (
     <Card variant="inset" className="mt-3" data-testid="kobo-logs">
@@ -60,7 +63,7 @@ export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
         <div className="flex items-center gap-2">
           <Button
             type="button"
-            variant="ghost"
+            variant="secondary"
             size="sm"
             onClick={() => mutate()}
             data-testid="kobo-logs-refresh"
@@ -72,13 +75,24 @@ export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
             variant="destructive"
             size="sm"
             disabled={clearing || entries.length === 0}
-            onClick={handleClear}
+            onClick={() => setConfirming(true)}
             data-testid="kobo-logs-clear"
           >
-            {clearing ? 'Clearing…' : 'Clear'}
+            Clear
           </Button>
         </div>
       </div>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title="Clear the captured logs?"
+        description="Every request captured for this device is deleted."
+        confirmLabel="Clear"
+        pendingLabel="Clearing…"
+        destructive
+        pending={clearing}
+        onConfirm={() => void handleClear()}
+      />
 
       {error && (
         <Alert tone="danger" className="mb-2">
@@ -87,9 +101,11 @@ export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
       )}
 
       {isLoading ? (
-        <LoadingState label="logs" className="text-xs" />
+        <LoadingState label="logs" />
       ) : entries.length === 0 ? (
-        <EmptyState>No requests captured yet. Sync your Kobo, then refresh.</EmptyState>
+        <EmptyState placement="inline">
+          No requests captured yet. Sync your Kobo, then refresh.
+        </EmptyState>
       ) : (
         <ul className="space-y-2" data-testid="kobo-logs-list">
           {entries
@@ -97,7 +113,7 @@ export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
             .reverse()
             .map((entry, i) => (
               <li key={`${entry.time}-${i}`}>
-                <Card className="rounded-lg p-2 text-xs">
+                <Card padding="sm" className="text-xs">
                   <div className="flex flex-wrap items-center gap-2 font-mono">
                     <span className="font-semibold">{entry.method}</span>
                     <span className="min-w-0 break-all">{entry.path}</span>

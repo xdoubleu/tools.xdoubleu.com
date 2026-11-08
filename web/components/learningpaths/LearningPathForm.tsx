@@ -3,6 +3,7 @@ import { useCreateLearningPath, useUpdateLearningPath } from '@/hooks/useLearnin
 import type { CreateLearningPathInput, UpdateLearningPathInput } from '@/hooks/useLearningPaths'
 import type { LearningPath, QuizQuestion } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
 import { Button } from '@/components/ui/button'
+import { RemoveButton } from '@/components/ui/remove-button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Field } from '@/components/ui/field'
@@ -311,15 +312,11 @@ export default function LearningPathForm({
                   className="flex-1"
                 />
                 {modules.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="iconSm"
+                  <RemoveButton
                     aria-label="Remove module"
+                    className="self-center"
                     onClick={() => removeModule(mIdx)}
-                  >
-                    ×
-                  </Button>
+                  />
                 )}
               </div>
               <div className="space-y-2 pl-2">
@@ -351,13 +348,10 @@ export default function LearningPathForm({
                       />
                     ) : item.linkedBookTitle ? (
                       <span className="inline-flex items-center gap-1 text-sm">
-                        <Badge className="max-w-full break-words text-sm">
-                          📚 {item.linkedBookTitle}
-                        </Badge>
+                        <Badge className="max-w-full break-words">📚 {item.linkedBookTitle}</Badge>
                         <Button
                           type="button"
                           variant="ghost"
-                          size="sm"
                           onClick={() => unlinkItemBook(mIdx, iIdx)}
                         >
                           Unlink
@@ -367,33 +361,28 @@ export default function LearningPathForm({
                       <Button
                         type="button"
                         variant="secondary"
-                        size="sm"
                         onClick={() => setPickingBook({ m: mIdx, i: iIdx })}
                       >
                         Link book
                       </Button>
                     )}
                     {module.items.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="iconSm"
+                      <RemoveButton
                         aria-label="Remove item"
+                        className="self-center"
                         onClick={() => removeItem(mIdx, iIdx)}
-                      >
-                        ×
-                      </Button>
+                      />
                     )}
                   </div>
                 ))}
-                <Button type="button" variant="secondary" size="sm" onClick={() => addItem(mIdx)}>
+                <Button type="button" variant="secondary" onClick={() => addItem(mIdx)}>
                   Add Item
                 </Button>
               </div>
             </Card>
           ))}
         </div>
-        <Button type="button" variant="secondary" size="sm" onClick={addModule}>
+        <Button type="button" variant="secondary" onClick={addModule}>
           Add Module
         </Button>
       </div>
@@ -440,15 +429,11 @@ export default function LearningPathForm({
                   className="flex-1"
                 />
                 {resources.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="iconSm"
+                  <RemoveButton
                     aria-label="Remove resource"
+                    className="self-center"
                     onClick={() => removeResource(idx)}
-                  >
-                    ×
-                  </Button>
+                  />
                 )}
               </div>
               <ResourceLinkPicker
@@ -469,7 +454,7 @@ export default function LearningPathForm({
             </Card>
           ))}
         </div>
-        <Button type="button" variant="secondary" size="sm" onClick={addResource}>
+        <Button type="button" variant="secondary" onClick={addResource}>
           Add Resource
         </Button>
       </div>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Card } from '@/components/ui/card'
+import { RemoveButton } from '@/components/ui/remove-button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { cn } from '@/lib/cn'
@@ -165,7 +166,6 @@ export default function MealPlanEntryForm({
                       key={suggestion.recipe.id}
                       variant={suggestion.recipe.id === recipeId ? 'default' : 'secondary'}
                       size="sm"
-                      className="rounded-lg"
                       onClick={() => selectSuggestion(suggestion)}
                     >
                       {suggestion.recipe.name}
@@ -196,7 +196,7 @@ export default function MealPlanEntryForm({
         ) : (
           <div className="space-y-2">
             {customItems.map((item, i) => (
-              <Card key={i} variant="inset" className="space-y-2 p-2">
+              <Card key={i} variant="inset" className="space-y-2">
                 <div className="grid grid-cols-2 gap-2 sm:flex">
                   {!excludeFromShoppingList && (
                     <>
@@ -249,14 +249,11 @@ export default function MealPlanEntryForm({
                     className={cn('col-span-2 min-w-0 sm:flex-1')}
                   />
                   {customItems.length > 1 && (
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      aria-label="Remove item"
+                    <RemoveButton
+                      aria-label={`Remove item ${i + 1}`}
+                      className="self-center"
                       onClick={() => removeCustomItem(i)}
-                    >
-                      ×
-                    </Button>
+                    />
                   )}
                 </div>
                 {categories.length > 0 && !excludeFromShoppingList && (

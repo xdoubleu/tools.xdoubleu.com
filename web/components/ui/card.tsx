@@ -10,20 +10,32 @@ const interactiveCardClass =
 
 const cardVariants = {
   default: 'rounded-2xl border border-border bg-card shadow-card',
-  inset: 'rounded-2xl border border-border bg-surface p-3'
+  inset: 'rounded-2xl border border-border bg-surface'
+} as const
+
+const cardPadding = {
+  none: '',
+  sm: 'p-3',
+  md: 'p-4'
 } as const
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  /** `inset` is a flat, padded panel nested inside a card or dialog (list rows, notes). */
+  /** `inset` is a flat panel nested inside a card or dialog (list rows, notes). */
   variant?: keyof typeof cardVariants
+  /**
+   * Inner padding; `md` by default, `sm` for `inset`. Use `none` when the card
+   * holds `CardHeader`/`CardContent` or edge-to-edge rows, never a `p-*` class.
+   */
+  padding?: keyof typeof cardPadding
 }
 
 /**
  * Static surface for grouped content. Use `LinkCard` when the card navigates,
  * `interactiveCardClass` for other clickable cards.
  */
-function Card({ variant = 'default', className, ...props }: CardProps) {
-  return <div className={cn(cardVariants[variant], className)} {...props} />
+function Card({ variant = 'default', padding, className, ...props }: CardProps) {
+  const pad = padding ?? (variant === 'inset' ? 'sm' : 'md')
+  return <div className={cn(cardVariants[variant], cardPadding[pad], className)} {...props} />
 }
 
 /** Title/description block at the top of a `Card`. */

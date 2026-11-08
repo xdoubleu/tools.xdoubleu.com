@@ -41,9 +41,9 @@ describe('BooksSettingsClient', () => {
     expect(screen.getByTestId('offline-books-settings')).toBeInTheDocument()
   })
 
-  it('renders the Books Settings heading', () => {
+  it('renders the Books settings heading', () => {
     render(<BooksSettingsClient />)
-    expect(screen.getByRole('heading', { name: 'Books Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Books settings' })).toBeInTheDocument()
   })
 
   it('renders a breadcrumb link back to /dashboard/reading', () => {
@@ -103,5 +103,14 @@ describe('BooksSettingsClient', () => {
   it('does not show an RSS feeds section (feed management moved to /feeds)', () => {
     render(<BooksSettingsClient />)
     expect(screen.queryByText('RSS feeds')).not.toBeInTheDocument()
+  })
+
+  it('announces the CSV import result', async () => {
+    mockImportBooks.mockResolvedValue({ importedCount: 2 })
+    render(<BooksSettingsClient />)
+    fireEvent.change(screen.getByTestId('csv-input'), {
+      target: { files: [new File(['title\nDune'], 'books.csv', { type: 'text/csv' })] }
+    })
+    expect(await screen.findByText('Imported 2 book(s).')).toHaveAttribute('role', 'status')
   })
 })

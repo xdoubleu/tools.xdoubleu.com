@@ -1,4 +1,5 @@
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
+import { ProgressBar } from '@/components/ui/progress-bar'
 import {
   displayProgressPercent,
   ownsPhysical,
@@ -27,18 +28,7 @@ export default function BookProgressBar({ userBook }: { userBook: UserBook }) {
 
   return (
     <div>
-      <div
-        className="h-2 w-full overflow-hidden rounded-sm bg-surface"
-        role="progressbar"
-        aria-valuenow={percent}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
-        <div
-          className="h-full rounded-sm bg-accent transition-[width] duration-300"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
+      <ProgressBar value={percent} aria-label="Reading progress" valueText={label} />
       <p className="mt-1 text-xs text-muted">{label}</p>
     </div>
   )

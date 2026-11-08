@@ -12,6 +12,9 @@ const uiEverywhere = {
 }
 const uiCallSites = {
   ...uiEverywhere,
+  'ui/card-padding': 'error',
+  'ui/shared-patterns': 'error',
+  'ui/control-overrides': 'error',
   'ui/dialog-description': 'error',
   'ui/field-labels': 'error',
   'ui/touch-targets': 'error',
@@ -20,15 +23,7 @@ const uiCallSites = {
 
 export default [
   {
-    ignores: [
-      'node_modules',
-      'dist',
-      'public',
-      'coverage',
-      'lib/gen/**',
-      '.stryker-tmp',
-      'reports',
-    ]
+    ignores: ['node_modules', 'dist', 'public', 'coverage', 'lib/gen/**', '.stryker-tmp', 'reports']
   },
   js.configs.recommended,
   ...typescriptEslint.configs.recommended,
@@ -93,6 +88,9 @@ export default [
         }
       ],
       ...uiEverywhere,
+      'ui/card-padding': 'off',
+      'ui/control-overrides': 'off',
+      'ui/shared-patterns': 'off',
       'ui/dialog-description': 'off',
       'ui/field-labels': 'off',
       'ui/touch-targets': 'off',

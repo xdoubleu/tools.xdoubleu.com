@@ -3,12 +3,15 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 const mockSaveSettings = vi.fn()
 
+const loaded = {
+  data: { integrations: { steamUserId: '12345678' } },
+  isLoading: false,
+  error: null as Error | null
+}
+const mockUseIntegrations = vi.fn(() => loaded)
+
 vi.mock('@/hooks/useGames', () => ({
-  useIntegrations: () => ({
-    data: { integrations: { steamUserId: '12345678' } },
-    isLoading: false,
-    error: null
-  }),
+  useIntegrations: () => mockUseIntegrations(),
   useSaveIntegrations: () => mockSaveSettings
 }))
 
@@ -23,11 +26,22 @@ import GamesSettingsClient from '@/components/games/GamesSettingsClient'
 describe('GamesSettingsClient', () => {
   beforeEach(() => {
     mockSaveSettings.mockReset()
+    mockUseIntegrations.mockReturnValue(loaded)
   })
 
-  it('renders the Games Settings heading', () => {
+  it('shows loading and error states', () => {
+    mockUseIntegrations.mockReturnValue({ ...loaded, isLoading: true })
+    const { rerender } = render(<GamesSettingsClient />)
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+
+    mockUseIntegrations.mockReturnValue({ ...loaded, error: new Error('x') })
+    rerender(<GamesSettingsClient />)
+    expect(screen.getByText('Failed to load settings.')).toBeInTheDocument()
+  })
+
+  it('renders the Games settings heading', () => {
     render(<GamesSettingsClient />)
-    expect(screen.getByRole('heading', { name: 'Games Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Games settings' })).toBeInTheDocument()
   })
 
   it('renders a breadcrumb link back to /dashboard/games', () => {
@@ -40,9 +54,11 @@ describe('GamesSettingsClient', () => {
     expect(screen.getByText('Steam')).toBeInTheDocument()
   })
 
-  it('renders the Steam User ID input', () => {
+  it('renders the Steam user ID input and takes edits', () => {
     render(<GamesSettingsClient />)
-    expect(screen.getByLabelText('Steam User ID')).toBeInTheDocument()
+    const input = screen.getByLabelText('Steam user ID')
+    fireEvent.change(input, { target: { value: '999' } })
+    expect(input).toHaveValue('999')
   })
 
   it('renders the Save button', () => {

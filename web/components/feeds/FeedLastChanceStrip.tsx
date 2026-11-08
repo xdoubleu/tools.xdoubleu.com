@@ -1,4 +1,5 @@
 import FeedReaderCard from '@/components/feeds/FeedReaderCard'
+import { SectionHeading } from '@/components/ui/section-heading'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
 
 interface FeedLastChanceStripProps {
@@ -22,9 +23,9 @@ export default function FeedLastChanceStrip({
   if (items.length === 0) return null
   return (
     <section aria-label="Last chance" className="mb-6">
-      <h2 className="mb-2 text-sm font-semibold text-fg">
-        Last chance <span className="font-normal text-muted">· expiring within 48 hours</span>
-      </h2>
+      <SectionHeading level="eyebrow" as="h2" className="mb-2">
+        Last chance · expiring within 48 hours
+      </SectionHeading>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => (
           <FeedReaderCard

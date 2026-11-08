@@ -4,6 +4,7 @@ import { isProductLabel, prBadge, priorityLabel, repoLabel } from '@/lib/factory
 import { useFactoryActions } from '@/hooks/useFactory'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { FieldError } from '@/components/ui/field-error'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/cn'
 
@@ -109,11 +110,7 @@ export default function TaskCard({
           >
             {retrying ? 'Retrying…' : 'Retry pickup'}
           </Button>
-          {retryError && (
-            <p className="text-xs text-danger" role="alert">
-              {retryError}
-            </p>
-          )}
+          <FieldError>{retryError}</FieldError>
         </div>
       )}
     </Card>

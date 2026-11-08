@@ -34,7 +34,7 @@ function FeedRow({ feed }: { feed: Feed }) {
 
   return (
     <li>
-      <Card className="p-3">
+      <Card padding="sm">
         <div className="flex flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{name}</p>
@@ -113,10 +113,11 @@ export default function FeedManager() {
     <div>
       <AddFeedForm />
 
-      {isLoading && <LoadingState className="mt-3" />}
-      {error && <ErrorState what="feeds" className="mt-3" />}
+      {isLoading && <LoadingState placement="inline" className="mt-3" />}
+      {error && <ErrorState placement="inline" what="feeds" className="mt-3" />}
       {!isLoading && !error && feeds.length === 0 && (
         <EmptyState
+          placement="inline"
           className="mt-3"
           action={
             <Button size="sm" onClick={() => focusById('feed-url')}>

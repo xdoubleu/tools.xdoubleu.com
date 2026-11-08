@@ -14,6 +14,7 @@ describe('SegmentedTabs', () => {
     expect(screen.getByRole('tablist', { name: 'Mode' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Pages' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('tab', { name: 'Percent' })).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByRole('tab', { name: 'Pages' })).not.toHaveAttribute('aria-pressed')
   })
 
   it('reports the chosen value', () => {

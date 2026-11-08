@@ -41,7 +41,7 @@ export default function JourneyAlternativePanel({
           )}
         </>
       ) : (
-        <EmptyState compact className="mt-3">
+        <EmptyState placement="inline" className="mt-3">
           No alternative route found from {alternative.fromStopName} right now.
         </EmptyState>
       )}

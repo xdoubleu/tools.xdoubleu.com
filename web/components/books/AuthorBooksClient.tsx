@@ -5,6 +5,9 @@ import { type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
 import { LoadingState, ErrorState } from '@/components/ui/states'
 import BooksTable from '@/components/books/BooksTable'
+import { LibraryTableControls } from '@/components/books/BooksTableToolbar'
+import { useLibraryTableState } from '@/components/books/useLibraryTableState'
+import { Toolbar } from '@/components/ui/toolbar'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/books/bookShelves'
 import { PageContainer } from '@/components/ui/page-container'
 import { swrKeys } from '@/lib/swrKeys'
@@ -15,6 +18,7 @@ interface AuthorBooksClientProps {
 
 export default function AuthorBooksClient({ name }: AuthorBooksClientProps) {
   const { data, error, isLoading } = useLibrary()
+  const table = useLibraryTableState()
 
   const authorBooks = useMemo(() => {
     if (!data?.library) return []
@@ -51,16 +55,22 @@ export default function AuthorBooksClient({ name }: AuthorBooksClientProps) {
         description={`${authorBooks.length} book${authorBooks.length !== 1 ? 's' : ''} in your library`}
       />
 
-      {isLoading && <LoadingState className="text-sm" />}
-      {error && <ErrorState what="library" className="text-sm" />}
+      {isLoading && <LoadingState placement="page" />}
+      {error && <ErrorState what="library" placement="page" />}
 
       {!isLoading && !error && (
-        <BooksTable
-          books={authorBooks}
-          knownShelves={knownShelves}
-          knownTags={knownTags}
-          onSaved={handleSaved}
-        />
+        <>
+          <Toolbar aria-label="Filter books">
+            <LibraryTableControls state={table} />
+          </Toolbar>
+          <BooksTable
+            books={authorBooks}
+            knownShelves={knownShelves}
+            knownTags={knownTags}
+            onSaved={handleSaved}
+            state={table}
+          />
+        </>
       )}
     </PageContainer>
   )

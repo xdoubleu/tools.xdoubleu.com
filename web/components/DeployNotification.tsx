@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import useSWR from 'swr'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { RemoveButton } from '@/components/ui/remove-button'
 import { swrKeys } from '@/lib/swrKeys'
 import { getRelease } from '@/lib/env'
 
@@ -27,19 +28,12 @@ export default function DeployNotification() {
 
   return (
     <div className="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-50 max-w-xs">
-      <Card className="flex items-center gap-3 p-4">
+      <Card className="flex items-center gap-3">
         <p className="flex-1 text-sm text-fg">A new version is available.</p>
         <Button size="sm" onClick={() => window.location.reload()}>
           Reload
         </Button>
-        <Button
-          variant="ghost"
-          size="iconSm"
-          aria-label="Dismiss"
-          onClick={() => setDismissed(true)}
-        >
-          ×
-        </Button>
+        <RemoveButton aria-label="Dismiss" onClick={() => setDismissed(true)} />
       </Card>
     </div>
   )

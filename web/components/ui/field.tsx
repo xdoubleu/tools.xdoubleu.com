@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react'
+import { FieldError } from '@/components/ui/field-error'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/cn'
 
@@ -8,7 +9,7 @@ interface FieldProps {
   htmlFor: string
   /** Muted help text under the control. */
   hint?: ReactNode
-  /** Validation message; replaces `hint` while set. */
+  /** Validation message; replaces `hint` while set. Its id is `{htmlFor}-error`, for `aria-describedby`. */
   error?: ReactNode
   children: ReactNode
   className?: string
@@ -23,9 +24,7 @@ function Field({ label, htmlFor, hint, error, children, className }: FieldProps)
       </Label>
       {children}
       {error ? (
-        <p className="text-xs text-danger" role="alert">
-          {error}
-        </p>
+        <FieldError id={`${htmlFor}-error`}>{error}</FieldError>
       ) : (
         hint && <p className="text-xs text-muted">{hint}</p>
       )}

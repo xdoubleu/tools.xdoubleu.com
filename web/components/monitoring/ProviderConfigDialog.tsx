@@ -117,7 +117,7 @@ export default function ProviderConfigDialog({
         </DialogHeader>
 
         {loading ? (
-          <LoadingState className="py-8 text-center text-sm" />
+          <LoadingState placement="inline" />
         ) : (
           <div className="space-y-4">
             {provider === 'github' && (
@@ -156,7 +156,7 @@ export default function ProviderConfigDialog({
                       Projects
                     </p>
                     {projects.length === 0 ? (
-                      <EmptyState compact>No projects found in {org}.</EmptyState>
+                      <EmptyState placement="inline">No projects found in {org}.</EmptyState>
                     ) : (
                       <div className="flex flex-col gap-2">
                         {projects.map((p) => (

@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/ui/page-header'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
+import { SectionHeading } from '@/components/ui/section-heading'
+import { SettingsSection, SettingsSections } from '@/components/ui/settings-section'
 
 export default function BooksSettingsClient() {
   const importBooks = useImportBooks()
@@ -40,66 +42,57 @@ export default function BooksSettingsClient() {
     <PageContainer size="narrow">
       <PageHeader
         breadcrumb={[{ label: 'Books', href: '/dashboard/reading' }, { label: 'Settings' }]}
-        title="Books Settings"
+        title="Books settings"
       />
 
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Import books
-        </h2>
-        <p className="mb-3 text-xs text-muted">
-          Import your library from a Goodreads (or compatible) CSV export.
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => csvInputRef.current?.click()}
-          >
-            Import CSV
-          </Button>
-          {/* eslint-disable-next-line no-restricted-syntax -- a file picker must be a real hidden <input type="file">; no primitive can wrap it */}
-          <input
-            ref={csvInputRef}
-            type="file"
-            accept=".csv"
-            onChange={handleImport}
-            className="hidden"
-            data-testid="csv-input"
-          />
-          {importStatus && <span className="text-sm text-muted">{importStatus}</span>}
-        </div>
-      </section>
+      <SettingsSections>
+        <SettingsSection
+          title="Import books"
+          description="Import your library from a Goodreads (or compatible) CSV export."
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="secondary" onClick={() => csvInputRef.current?.click()}>
+              Import CSV
+            </Button>
+            {/* eslint-disable-next-line no-restricted-syntax -- a file picker must be a real hidden <input type="file">; no primitive can wrap it */}
+            <input
+              ref={csvInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleImport}
+              className="hidden"
+              data-testid="csv-input"
+            />
+            {importStatus && (
+              <span className="text-sm text-muted" role="status">
+                {importStatus}
+              </span>
+            )}
+          </div>
+        </SettingsSection>
 
-      <section className="mt-10 border-t border-border pt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Upload ebooks
-        </h2>
-        <p className="mb-3 text-xs text-muted">
-          Upload EPUB or PDF files to your digital library. Books are auto-recognized and added as
-          own-digital.
-        </p>
-        <BulkBookUploader />
-      </section>
+        <SettingsSection
+          title="Upload ebooks"
+          description="Upload EPUB or PDF files to your digital library. Books are auto-recognized and added as own-digital."
+        >
+          <BulkBookUploader />
+        </SettingsSection>
 
-      <section className="mt-10 border-t border-border pt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Kobo</h2>
-        <p className="mb-3 text-xs text-muted">
-          Connect your Kobo device for wireless sync via the kobo-gateway menu-bar app. Each device
-          gets its own sync token; disconnecting a device immediately revokes its access.
-        </p>
-        <KoboSetup />
+        <SettingsSection
+          title="Kobo"
+          description="Connect your Kobo device for wireless sync via the kobo-gateway menu-bar app. Each device gets its own sync token; disconnecting a device immediately revokes its access."
+        >
+          <KoboSetup />
+          <div className="pt-3">
+            <SectionHeading level="eyebrow" className="mb-3">
+              Connected devices
+            </SectionHeading>
+            <KoboDevices />
+          </div>
+        </SettingsSection>
 
-        <div className="mt-6">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
-            Connected devices
-          </h3>
-          <KoboDevices />
-        </div>
-      </section>
-
-      <OfflineBooksSettings />
+        <OfflineBooksSettings />
+      </SettingsSections>
     </PageContainer>
   )
 }

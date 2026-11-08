@@ -64,9 +64,13 @@ export default function ResyncWizard() {
     // The list shrinks, so the same index shows the next book.
   }
 
-  if (isLoading) return <LoadingState className="text-xs" />
+  if (isLoading) return <LoadingState label="flagged books" />
   if (proposals.length === 0) {
-    return <EmptyState compact>No flagged differences. Run a scan to check for updates.</EmptyState>
+    return (
+      <EmptyState placement="inline">
+        No flagged differences. Run a scan to check for updates.
+      </EmptyState>
+    )
   }
 
   const filterPill = (
@@ -82,9 +86,9 @@ export default function ResyncWizard() {
 
   if (visible.length === 0) {
     return (
-      <Card className="mt-2 rounded-2xl p-4">
+      <Card className="space-y-3">
         {filterPill}
-        <p className="mt-3 text-xs text-muted">Every source found every flagged book.</p>
+        <EmptyState placement="inline">Every source found every flagged book.</EmptyState>
       </Card>
     )
   }
@@ -94,7 +98,7 @@ export default function ResyncWizard() {
   const displayed = override && liveData?.proposal ? liveData.proposal : current
 
   return (
-    <Card className="mt-2 rounded-2xl p-4">
+    <Card>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
         <span className="flex items-center gap-2">
           <span>
@@ -122,7 +126,7 @@ export default function ResyncWizard() {
         </span>
       </div>
 
-      {override && liveLoading && <p className="text-sm text-muted">Fetching sources…</p>}
+      {override && liveLoading && <LoadingState label="sources" />}
       {override && liveError && <Alert tone="danger">Failed to fetch sources.</Alert>}
       <SourceCompare
         key={current.bookId + (override ? '-override' : '')}

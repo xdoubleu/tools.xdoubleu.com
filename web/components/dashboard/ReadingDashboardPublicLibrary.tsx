@@ -9,6 +9,7 @@ import LibrarySidebar, {
 import DashboardBookCard from '@/components/dashboard/DashboardBookCard'
 import { Input } from '@/components/ui/input'
 import { flattenLibrary } from '@/lib/books/bookShelves'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 function booksForShelf(library: LibraryResponse, shelfId: ShelfId): UserBook[] {
@@ -92,10 +93,12 @@ export default function ReadingDashboardPublicLibrary({ token }: { token: string
           }
         />
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold mb-3">
+          <SectionHeading className="mb-3">
             {headerLabel}
-            <span className="ml-2 text-sm font-normal text-muted">{filteredBooks.length}</span>
-          </h2>
+            <span className="ml-2 font-sans text-sm font-normal text-muted">
+              {filteredBooks.length}
+            </span>
+          </SectionHeading>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {filteredBooks.map((ub) => (
               <DashboardBookCard key={ub.id} userBook={ub} />

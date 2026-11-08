@@ -27,12 +27,12 @@ function LearningPathCard({ path }: { path: LearningPath }) {
       href={`/learningpaths/${path.id}`}
       linkClassName="p-4"
       actions={
-        <Button asChild variant="secondary" size="sm" className="min-h-11 min-w-11">
+        <Button asChild variant="secondary" size="sm">
           <Link href={`/learningpaths/${path.id}/edit`}>Edit</Link>
         </Button>
       }
     >
-      <h2 className="break-words text-lg font-semibold">{path.title}</h2>
+      <p className="break-words font-medium">{path.title}</p>
       {path.goal && <p className="mt-1 break-words text-sm text-muted">{path.goal}</p>}
       <p className="text-xs text-muted mt-2">
         {moduleCount} module{moduleCount === 1 ? '' : 's'}
@@ -76,14 +76,14 @@ export default function LearningPathsListClient() {
         }
       />
 
-      {isLoading && <LoadingState label="learning paths" />}
-      {error && <ErrorState what="learning paths" />}
+      {isLoading && <LoadingState placement="page" label="learning paths" />}
+      {error && <ErrorState placement="page" what="learning paths" />}
       {data && learningPaths.length === 0 && (
-        <EmptyState>No learning paths yet. Create your first one!</EmptyState>
+        <EmptyState placement="page">No learning paths yet. Create your first one!</EmptyState>
       )}
       {data && learningPaths.length > 0 && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {learningPaths.map((path) => (
               <LearningPathCard key={path.id} path={path} />
             ))}

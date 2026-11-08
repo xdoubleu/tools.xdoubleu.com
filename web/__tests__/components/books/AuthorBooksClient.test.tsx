@@ -165,4 +165,29 @@ describe('AuthorBooksClient', () => {
     render(<AuthorBooksClient name="Frank Herbert" />)
     expect(screen.queryByRole('link', { name: 'Backlog' })).not.toBeInTheDocument()
   })
+
+  it('shows a loading state, and the filter toolbar once loaded', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseBacklogLibrary.mockReturnValue({ data: undefined, error: undefined, isLoading: true })
+    const { rerender } = render(<AuthorBooksClient name="Frank Herbert" />)
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…')
+    expect(screen.queryByRole('toolbar')).not.toBeInTheDocument()
+
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseBacklogLibrary.mockReturnValue(makeLibraryWith([herbertBook], []))
+    rerender(<AuthorBooksClient name="Frank Herbert" />)
+    expect(screen.getByRole('toolbar', { name: 'Filter books' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument()
+  })
+
+  it('shows an error state', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseBacklogLibrary.mockReturnValue({
+      data: undefined,
+      error: new Error('boom'),
+      isLoading: false
+    })
+    render(<AuthorBooksClient name="Frank Herbert" />)
+    expect(screen.getByText('Failed to load library.')).toBeInTheDocument()
+  })
 })

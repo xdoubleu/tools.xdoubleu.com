@@ -12,12 +12,15 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose
+  DialogClose,
+  ConfirmDialog
 } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { isBuiltInShelfId, BOOK_STATUSES } from '@/lib/books/bookShelves'
 import type { Shelf } from '@/components/books/LibrarySidebar'
 import { swrKeys } from '@/lib/swrKeys'
@@ -41,6 +44,7 @@ export default function ManageShelvesTagsDialog({
 }: ManageShelvesTagsDialogProps) {
   const [renaming, setRenaming] = useState<RenameState | null>(null)
   const [deletingShelf, setDeletingShelf] = useState<DeleteShelfState | null>(null)
+  const [deletingTag, setDeletingTag] = useState<string | null>(null)
   const [newShelfName, setNewShelfName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -105,18 +109,22 @@ export default function ManageShelvesTagsDialog({
     }
   }
 
-  const handleDeleteTag = async (name: string) => {
+  const handleDeleteTag = async () => {
+    if (!deletingTag) return
     setBusy(true)
     setError(null)
     try {
-      await deleteTag(name)
+      await deleteTag(deletingTag)
       mutate(swrKeys.books)
+      setDeletingTag(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Delete failed.')
     } finally {
       setBusy(false)
     }
   }
+
+  const deletingShelfInfo = customShelves.find((s) => s.id === deletingShelf?.name)
 
   const deleteTargets = [
     ...BOOK_STATUSES,
@@ -140,9 +148,9 @@ export default function ManageShelvesTagsDialog({
         )}
 
         <section className="mb-4">
-          <h3 className="mb-2 text-xs font-semibold text-muted uppercase tracking-wide">
+          <SectionHeading level="eyebrow" className="mb-2">
             Built-in shelves
-          </h3>
+          </SectionHeading>
           <div className="flex flex-col gap-1">
             {builtInShelves.map((shelf) => (
               <div
@@ -157,9 +165,9 @@ export default function ManageShelvesTagsDialog({
         </section>
 
         <section className="mb-4">
-          <h3 className="mb-2 text-xs font-semibold text-muted uppercase tracking-wide">
+          <SectionHeading level="eyebrow" className="mb-2">
             Custom shelves
-          </h3>
+          </SectionHeading>
           <div className="mb-2 flex flex-wrap gap-2">
             <Input
               value={newShelfName}
@@ -172,14 +180,15 @@ export default function ManageShelvesTagsDialog({
               className="min-w-0 flex-1 basis-40"
             />
             <Button
-              size="sm"
               onClick={() => void handleCreateShelf()}
               disabled={busy || !newShelfName.trim()}
             >
               Add
             </Button>
           </div>
-          {customShelves.length === 0 && <EmptyState compact>No custom shelves yet.</EmptyState>}
+          {customShelves.length === 0 && (
+            <EmptyState placement="inline">No custom shelves yet.</EmptyState>
+          )}
           <div className="flex flex-col gap-2">
             {customShelves.map((shelf) => (
               <div key={shelf.id}>
@@ -196,46 +205,13 @@ export default function ManageShelvesTagsDialog({
                       aria-label="New name"
                       className="min-w-0 flex-1 basis-40"
                     />
-                    <Button size="sm" onClick={() => void handleRename()} disabled={busy}>
+                    <Button onClick={() => void handleRename()} disabled={busy}>
                       Save
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setRenaming(null)}>
+                    <Button variant="ghost" onClick={() => setRenaming(null)}>
                       Cancel
                     </Button>
                   </div>
-                ) : deletingShelf?.name === shelf.id ? (
-                  <Alert tone="danger" role="group" className="space-y-2 p-3 text-fg">
-                    <p>
-                      Move {shelf.count} book{shelf.count !== 1 ? 's' : ''} from{' '}
-                      <strong>{shelf.label}</strong> to:
-                    </p>
-                    <Select
-                      value={deletingShelf.targetName}
-                      onChange={(e) =>
-                        setDeletingShelf({ ...deletingShelf, targetName: e.target.value })
-                      }
-                      aria-label="Move books to"
-                    >
-                      {deleteTargets.map(({ value, label }) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </Select>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => void handleDeleteShelf()}
-                        disabled={busy || !deletingShelf.targetName}
-                      >
-                        Delete & move
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setDeletingShelf(null)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </Alert>
                 ) : (
                   <div className="flex flex-wrap items-center justify-between gap-x-2 rounded-xl bg-surface px-3 py-1 text-sm">
                     <span className="min-w-0 break-words">
@@ -273,8 +249,10 @@ export default function ManageShelvesTagsDialog({
         </section>
 
         <section>
-          <h3 className="mb-2 text-xs font-semibold text-muted uppercase tracking-wide">Tags</h3>
-          {tags.length === 0 && <EmptyState compact>No tags yet.</EmptyState>}
+          <SectionHeading level="eyebrow" className="mb-2">
+            Tags
+          </SectionHeading>
+          {tags.length === 0 && <EmptyState placement="inline">No tags yet.</EmptyState>}
           <div className="flex flex-col gap-2">
             {tags.map((tag) => (
               <div key={tag}>
@@ -291,10 +269,10 @@ export default function ManageShelvesTagsDialog({
                       aria-label="New name"
                       className="min-w-0 flex-1 basis-40"
                     />
-                    <Button size="sm" onClick={() => void handleRename()} disabled={busy}>
+                    <Button onClick={() => void handleRename()} disabled={busy}>
                       Save
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setRenaming(null)}>
+                    <Button variant="ghost" onClick={() => setRenaming(null)}>
                       Cancel
                     </Button>
                   </div>
@@ -312,8 +290,7 @@ export default function ManageShelvesTagsDialog({
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => void handleDeleteTag(tag)}
-                        disabled={busy}
+                        onClick={() => setDeletingTag(tag)}
                         className="text-danger hover:text-danger"
                       >
                         Delete
@@ -325,6 +302,52 @@ export default function ManageShelvesTagsDialog({
             ))}
           </div>
         </section>
+        <ConfirmDialog
+          open={deletingShelf !== null}
+          onOpenChange={(o) => {
+            if (!o) setDeletingShelf(null)
+          }}
+          title={`Delete ${deletingShelfInfo?.label ?? 'shelf'}?`}
+          description={`Move ${deletingShelfInfo?.count ?? 0} book${deletingShelfInfo?.count === 1 ? '' : 's'} from ${deletingShelfInfo?.label ?? 'it'} to the shelf below.`}
+          confirmLabel="Delete & move"
+          pendingLabel="Deleting…"
+          destructive
+          pending={busy}
+          confirmDisabled={!deletingShelf?.targetName}
+          onConfirm={() => void handleDeleteShelf()}
+        >
+          {error && <Alert tone="danger">{error}</Alert>}
+          {deletingShelf && (
+            <Field label="Move books to" htmlFor="delete-shelf-target">
+              <Select
+                id="delete-shelf-target"
+                value={deletingShelf.targetName}
+                onChange={(e) => setDeletingShelf({ ...deletingShelf, targetName: e.target.value })}
+              >
+                {deleteTargets.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
+        </ConfirmDialog>
+        <ConfirmDialog
+          open={deletingTag !== null}
+          onOpenChange={(o) => {
+            if (!o) setDeletingTag(null)
+          }}
+          title={`Delete ${deletingTag ?? 'tag'}?`}
+          description="The tag is removed from every book that has it."
+          confirmLabel="Delete"
+          pendingLabel="Deleting…"
+          destructive
+          pending={busy}
+          onConfirm={() => void handleDeleteTag()}
+        >
+          {error && <Alert tone="danger">{error}</Alert>}
+        </ConfirmDialog>
       </DialogContent>
     </Dialog>
   )

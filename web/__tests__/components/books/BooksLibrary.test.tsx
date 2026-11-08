@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import BooksLibrary from '@/components/books/BooksLibrary'
 import {
@@ -10,19 +10,9 @@ import {
 } from '@/lib/gen/books/v1/library_pb'
 
 const mockSearchExternal = vi.fn()
-const mockCreateBook = vi.fn()
-
-// AddManualBookDialog also calls useLibrary; vi.mock factories can't use
-// imports, so stub a minimal shape.
 vi.mock('@/hooks/useBooks', async () => ({
   ...(await vi.importActual('@/hooks/useBooks')),
-  useSearchExternal: () => mockSearchExternal,
-  useCreateBook: () => mockCreateBook,
-  useLibrary: () => ({
-    data: { library: { shelves: [] } },
-    isLoading: false,
-    error: undefined
-  })
+  useSearchExternal: () => mockSearchExternal
 }))
 
 vi.useFakeTimers()
@@ -102,6 +92,7 @@ function renderLibrary(
       library={library}
       knownShelves={[]}
       searchQuery={opts.searchQuery ?? ''}
+      onSearchChange={vi.fn()}
       onSaved={vi.fn()}
     />
   )
@@ -111,7 +102,6 @@ describe('BooksLibrary', () => {
   beforeEach(() => {
     mockSearchExternal.mockReset()
     mockSearchExternal.mockResolvedValue({ results: [] })
-    mockCreateBook.mockReset()
   })
 
   afterEach(() => {
@@ -408,40 +398,26 @@ describe('BooksLibrary', () => {
     })
   })
 
-  it('shows a persistent "Add book" button even when not searching', () => {
+  it('puts search, filters and the result count in one toolbar', () => {
     renderLibrary(makeLibrary())
-    expect(screen.getByRole('button', { name: 'Add book' })).toBeInTheDocument()
+    const toolbar = screen.getByRole('toolbar', { name: 'Filter books' })
+    expect(within(toolbar).getByRole('searchbox', { name: 'Search books' })).toBeInTheDocument()
+    expect(within(toolbar).getByRole('button', { name: 'Filters' })).toBeInTheDocument()
+    expect(within(toolbar).getByRole('button', { name: 'Columns' })).toBeInTheDocument()
+    expect(within(toolbar).getByText('4 books')).toBeInTheDocument()
   })
 
-  it('opens the manual-add dialog from the persistent button, prefilled with the search query', async () => {
-    renderLibrary(makeLibrary(), { searchQuery: 'Dungeon Crawler Carl' })
-    await act(async () => {
-      vi.advanceTimersByTime(300)
-    })
-    await waitFor(() => {
-      expect(screen.getByText('No results.')).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: 'Add book' }))
-
-    expect(screen.getByRole('heading', { name: 'Add book manually' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Title')).toHaveValue('Dungeon Crawler Carl')
-  })
-
-  it('opens the manual-add dialog even when a search returns an (unwanted) match', () => {
-    // Shown even when the search found something.
-    renderLibrary(makeLibrary(), { searchQuery: 'dune' })
-    fireEvent.click(screen.getByRole('button', { name: 'Add book' }))
-    expect(screen.getByRole('heading', { name: 'Add book manually' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Title')).toHaveValue('dune')
-  })
-
-  it('closes the manual-add dialog via its Cancel button', () => {
+  it('counts only the books the table filters leave', () => {
+    localStorage.setItem('backlog:library:filter:kobo', JSON.stringify(['kobo-sync']))
     renderLibrary(makeLibrary())
-    fireEvent.click(screen.getByRole('button', { name: 'Add book' }))
-    expect(screen.getByRole('heading', { name: 'Add book manually' })).toBeInTheDocument()
+    expect(screen.getByText('0 books')).toBeInTheDocument()
+    localStorage.clear()
+  })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByRole('heading', { name: 'Add book manually' })).not.toBeInTheDocument()
+  it('drops the table filters while searching', () => {
+    renderLibrary(makeLibrary(), { searchQuery: 'Dune' })
+    const toolbar = screen.getByRole('toolbar', { name: 'Filter books' })
+    expect(within(toolbar).queryByRole('button', { name: 'Filters' })).not.toBeInTheDocument()
+    expect(within(toolbar).getByText('1 book')).toBeInTheDocument()
   })
 })

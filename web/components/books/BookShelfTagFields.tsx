@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Combobox } from '@/components/ui/combobox'
 import { Button } from '@/components/ui/button'
 import { TogglePill } from '@/components/ui/toggle-pill'
+import { FieldError } from '@/components/ui/field-error'
 import {
   SPECIAL_TAGS,
   BOOK_STATUSES,
@@ -124,13 +125,7 @@ export default function BookShelfTagFields({
             />
           ))}
           {!showShelfInput && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-xs"
-              onClick={() => setShowShelfInput(true)}
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={() => setShowShelfInput(true)}>
               + Add shelf
             </Button>
           )}
@@ -158,7 +153,7 @@ export default function BookShelfTagFields({
           Tags
         </Label>
         {allTags.length === 0 ? (
-          <EmptyState compact>No tags yet.</EmptyState>
+          <EmptyState placement="inline">No tags yet.</EmptyState>
         ) : (
           <div className="flex flex-wrap gap-2 sm:gap-1.5">
             {allTags.map((tag) => {
@@ -187,23 +182,13 @@ export default function BookShelfTagFields({
             autoFocus
           />
         ) : (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="text-xs"
-            onClick={() => setShowTagInput(true)}
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={() => setShowTagInput(true)}>
             + Add tag
           </Button>
         )}
       </div>
 
-      {error && (
-        <p className="text-xs text-danger" role="alert">
-          {error}
-        </p>
-      )}
+      <FieldError>{error}</FieldError>
     </div>
   )
 }

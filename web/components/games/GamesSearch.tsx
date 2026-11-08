@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Link } from '@/components/ui/link'
 import { useSteam } from '@/hooks/useGames'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/cn'
 
 const MAX_RESULTS = 5
@@ -13,6 +14,7 @@ interface GamesSearchProps {
 
 export default function GamesSearch({ className }: GamesSearchProps) {
   const [query, setQuery] = useState('')
+  const inputId = useId()
   const { data } = useSteam()
 
   const steam = data?.steam
@@ -27,15 +29,21 @@ export default function GamesSearch({ className }: GamesSearchProps) {
 
   return (
     <div className={cn('relative', className)}>
+      <Label htmlFor={inputId} className="sr-only">
+        Search games
+      </Label>
       <Input
+        id={inputId}
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        aria-label="Search games"
         placeholder="Search games…"
       />
       {results.length > 0 && (
-        <Card className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto shadow-elevated">
+        <Card
+          padding="none"
+          className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto shadow-elevated"
+        >
           <ul>
             {results.map((game) => (
               <li key={game.id}>

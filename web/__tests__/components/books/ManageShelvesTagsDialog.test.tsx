@@ -159,6 +159,58 @@ describe('ManageShelvesTagsDialog', () => {
     await waitFor(() => expect(mockMutate).toHaveBeenCalledWith('/books'))
   })
 
+  it('names the shelf and its book count in the delete confirm', () => {
+    renderDialog()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    const confirm = screen.getByRole('dialog', { name: 'Delete classics?' })
+    expect(confirm).toHaveTextContent('Move 3 books from classics to the shelf below.')
+    expect(screen.queryByText('No custom shelves yet.')).not.toBeInTheDocument()
+  })
+
+  it('says "book" for a shelf holding one', () => {
+    render(
+      <ManageShelvesTagsDialog
+        open={true}
+        onOpenChange={vi.fn()}
+        shelves={[...builtInShelves, { id: 'poetry', label: 'poetry', count: 1 }]}
+        tags={[]}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(screen.getByText('Move 1 book from poetry to the shelf below.')).toBeInTheDocument()
+  })
+
+  it('moves the books to the chosen shelf', async () => {
+    renderDialog()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.change(screen.getByLabelText('Move books to'), { target: { value: 'read' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Delete & move' }))
+    await waitFor(() => expect(mockDeleteShelf).toHaveBeenCalledWith('classics', 'read'))
+  })
+
+  it('keeps the shelf confirm open with the error when deleting fails', async () => {
+    mockDeleteShelf.mockRejectedValue(new Error('Shelf busy'))
+    renderDialog()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete & move' }))
+    const confirm = screen.getByRole('dialog', { name: 'Delete classics?' })
+    await waitFor(() => expect(confirm).toHaveTextContent('Shelf busy'))
+  })
+
+  it('keeps the tag confirm open with the error when deleting fails', async () => {
+    mockDeleteTag.mockRejectedValue(new Error('Tag busy'))
+    renderDialog(['fantasy'])
+    const deleteButtons = screen.getAllByRole('button', { name: 'Delete' })
+    fireEvent.click(deleteButtons[deleteButtons.length - 1])
+    const confirm = screen.getByRole('dialog', { name: 'Delete fantasy?' })
+    expect(confirm).not.toHaveTextContent('Tag busy')
+    const buttons = screen.getAllByRole('button', { name: 'Delete' })
+    fireEvent.click(buttons[buttons.length - 1])
+    await waitFor(() => expect(confirm).toHaveTextContent('Tag busy'))
+    expect(screen.queryByText('No tags yet.')).not.toBeInTheDocument()
+  })
+
   it('cancels delete when Cancel is clicked', () => {
     renderDialog()
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
@@ -192,11 +244,16 @@ describe('ManageShelvesTagsDialog', () => {
     await waitFor(() => expect(mockMutate).toHaveBeenCalledWith('/books'))
   })
 
-  it('calls deleteTag and mutates when tag Delete is clicked', async () => {
+  it('confirms before deleting a tag, then calls deleteTag and mutates', async () => {
     renderDialog(['fantasy'])
     const deleteButtons = screen.getAllByRole('button', { name: 'Delete' })
     fireEvent.click(deleteButtons[deleteButtons.length - 1])
+    expect(mockDeleteTag).not.toHaveBeenCalled()
+    expect(screen.getByText('Delete fantasy?')).toBeInTheDocument()
+    const confirm = screen.getAllByRole('button', { name: 'Delete' })
+    fireEvent.click(confirm[confirm.length - 1])
     await waitFor(() => expect(mockDeleteTag).toHaveBeenCalledWith('fantasy'))
+    await waitFor(() => expect(screen.queryByText('Delete fantasy?')).not.toBeInTheDocument())
     await waitFor(() => expect(mockMutate).toHaveBeenCalledWith('/books'))
   })
 
@@ -206,5 +263,14 @@ describe('ManageShelvesTagsDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(screen.getByText('Server error')).toBeInTheDocument())
+  })
+
+  it('cancels a tag rename', () => {
+    renderDialog(['fantasy'])
+    const renameButtons = screen.getAllByRole('button', { name: 'Rename' })
+    fireEvent.click(renameButtons[renameButtons.length - 1])
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByDisplayValue('fantasy')).not.toBeInTheDocument()
+    expect(mockRenameTag).not.toHaveBeenCalled()
   })
 })

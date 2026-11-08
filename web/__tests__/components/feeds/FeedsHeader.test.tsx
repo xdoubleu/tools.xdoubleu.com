@@ -40,17 +40,19 @@ describe('FeedsHeader', () => {
     expect(screen.queryByRole('link', { name: /books/i })).not.toBeInTheDocument()
   })
 
-  it('links to the filtered items view', () => {
+  const openMore = () => fireEvent.click(screen.getByRole('button', { name: 'More' }))
+
+  it('links to the filtered and expired views from the More menu', () => {
     render(<FeedsHeader />)
-    expect(screen.getByRole('link', { name: 'Filtered' })).toHaveAttribute(
+    openMore()
+    expect(screen.getByRole('menuitem', { name: 'Filtered' })).toHaveAttribute(
       'href',
       '/feeds/filtered'
     )
-  })
-
-  it('links to the expired items view', () => {
-    render(<FeedsHeader />)
-    expect(screen.getByRole('link', { name: 'Expired' })).toHaveAttribute('href', '/feeds/expired')
+    expect(screen.getByRole('menuitem', { name: 'Expired' })).toHaveAttribute(
+      'href',
+      '/feeds/expired'
+    )
   })
 
   it('links to the feed stats page', () => {
@@ -68,42 +70,41 @@ describe('FeedsHeader', () => {
 
   it('hides the health link from a non-admin viewer', () => {
     render(<FeedsHeader />)
-    expect(screen.queryByRole('link', { name: 'Health' })).not.toBeInTheDocument()
+    openMore()
+    expect(screen.queryByRole('menuitem', { name: 'Health' })).not.toBeInTheDocument()
   })
 
   it('links to the feed health page for an admin viewer', () => {
     mockUseCurrentUser.mockReturnValue({ data: { role: 'admin' } })
     render(<FeedsHeader />)
-    expect(screen.getByRole('link', { name: 'Health' })).toHaveAttribute('href', '/feeds/health')
-  })
-
-  it('starts collapsed when the user already has feeds', () => {
-    render(<FeedsHeader />)
-    expect(screen.queryByTestId('feed-manager')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Manage feeds' })).toHaveAttribute(
-      'aria-expanded',
-      'false'
+    openMore()
+    expect(screen.getByRole('menuitem', { name: 'Health' })).toHaveAttribute(
+      'href',
+      '/feeds/health'
     )
   })
 
-  it('expands to show FeedManager when the toggle is clicked', () => {
+  it('starts closed when the user already has feeds', () => {
     render(<FeedsHeader />)
-    fireEvent.click(screen.getByRole('button', { name: 'Manage feeds' }))
-    expect(screen.getByTestId('feed-manager')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Hide' })).toHaveAttribute('aria-expanded', 'true')
-  })
-
-  it('collapses again when the toggle is clicked a second time', () => {
-    render(<FeedsHeader />)
-    fireEvent.click(screen.getByRole('button', { name: 'Manage feeds' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Hide' }))
     expect(screen.queryByTestId('feed-manager')).not.toBeInTheDocument()
   })
 
-  it('starts expanded when the user has no feeds yet', () => {
-    feedsData.data = { feeds: [] }
+  it('opens FeedManager in a dialog and closes it again', () => {
     render(<FeedsHeader />)
+    fireEvent.click(screen.getByRole('button', { name: 'Manage feeds' }))
+    expect(screen.getByRole('dialog', { name: 'Manage feeds' })).toBeInTheDocument()
     expect(screen.getByTestId('feed-manager')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Hide' })).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByTestId('feed-manager')).not.toBeInTheDocument()
+  })
+
+  it('starts open when the user has no feeds yet, and stays closed once dismissed', () => {
+    feedsData.data = { feeds: [] }
+    const { rerender } = render(<FeedsHeader />)
+    expect(screen.getByTestId('feed-manager')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    feedsData.data = { feeds: [] }
+    rerender(<FeedsHeader />)
+    expect(screen.queryByTestId('feed-manager')).not.toBeInTheDocument()
   })
 })

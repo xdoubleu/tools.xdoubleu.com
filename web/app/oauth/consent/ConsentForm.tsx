@@ -48,7 +48,7 @@ export default function ConsentForm({
   }
 
   return (
-    <Card className="mx-auto max-w-md">
+    <Card padding="none" className="mx-auto max-w-md">
       <CardHeader>
         <CardTitle className="text-xl">Authorize {clientName}</CardTitle>
         <p className="text-sm text-muted">

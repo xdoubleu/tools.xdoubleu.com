@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from '@/components/ui/link'
 import { useForgotPassword } from '@/hooks/useAuth'
 import { ConnectError } from '@connectrpc/connect'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -38,7 +39,7 @@ export default function ForgotPasswordPage() {
   return (
     <PageContainer size="narrow">
       <PageHeader title="Reset your password" />
-      <Card className="p-6">
+      <Card>
         {sent ? (
           <div className="space-y-4">
             <p className="text-sm text-subtle">
@@ -61,11 +62,7 @@ export default function ForgotPasswordPage() {
               />
             </Field>
 
-            {error && (
-              <p role="alert" className="text-sm text-danger">
-                {error}
-              </p>
-            )}
+            {error && <Alert tone="danger">{error}</Alert>}
 
             <Button type="submit" disabled={submitting} className="w-full">
               {submitting ? 'Sending…' : 'Send reset link'}

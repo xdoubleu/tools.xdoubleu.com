@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Code, ConnectError } from '@connectrpc/connect'
 import type { CreateAgentAccountResponse } from '@/lib/gen/factory/v1/agent_accounts_pb'
+import { useCopyFeedback } from '@/hooks/useCopyFeedback'
 import { useFactoryActions } from '@/hooks/useFactory'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -35,17 +36,7 @@ function Credentials({
   created: CreateAgentAccountResponse
   onDone: () => void
 }) {
-  const [copied, setCopied] = useState(false)
-  const [copyFailed, setCopyFailed] = useState(false)
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(created.clientSecret)
-      setCopied(true)
-      setCopyFailed(false)
-    } catch {
-      setCopyFailed(true)
-    }
-  }
+  const { copy, copied, failed: copyFailed } = useCopyFeedback()
 
   return (
     <div className="space-y-4">
@@ -64,7 +55,7 @@ function Credentials({
         </Alert>
       )}
       <DialogFooter>
-        <Button type="button" variant="secondary" onClick={() => void copy()}>
+        <Button type="button" variant="secondary" onClick={() => void copy(created.clientSecret)}>
           {copied ? 'Copied' : 'Copy secret'}
         </Button>
         <Button type="button" onClick={onDone}>

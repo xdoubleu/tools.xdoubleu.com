@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card } from '@/components/ui/card'
+import { useCopyFeedback } from '@/hooks/useCopyFeedback'
 
 interface RecoveryCodesDialogProps {
   codes: string[]
@@ -12,14 +13,10 @@ interface RecoveryCodesDialogProps {
 // One-time display of recovery codes (never shown again); only the
 // "I've saved these" confirmation closes it.
 export default function RecoveryCodesDialog({ codes, onDismiss }: RecoveryCodesDialogProps) {
-  const [copied, setCopied] = useState(false)
+  const { copy, copied } = useCopyFeedback()
   const [confirmed, setConfirmed] = useState(false)
 
-  const copyCodes = async () => {
-    await navigator.clipboard.writeText(codes.join('\n'))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const copyCodes = () => copy(codes.join('\n'))
 
   return (
     // Fixed open and no-op onOpenChange: Escape/outside clicks can't close it.
@@ -37,7 +34,8 @@ export default function RecoveryCodesDialog({ codes, onDismiss }: RecoveryCodesD
 
           <Card
             variant="inset"
-            className="ph-no-capture grid grid-cols-2 gap-2 p-4 font-mono text-sm"
+            padding="md"
+            className="ph-no-capture grid grid-cols-2 gap-2 font-mono text-sm"
           >
             {codes.map((code) => (
               <span key={code}>{code}</span>

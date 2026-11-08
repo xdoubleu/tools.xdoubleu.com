@@ -11,10 +11,12 @@ import {
   useRegenerateRecoveryCodes
 } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { Field } from '@/components/ui/field'
 import { PageHeader } from '@/components/ui/page-header'
+import { SettingsSection, SettingsSections } from '@/components/ui/settings-section'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
@@ -59,14 +61,15 @@ export default function SettingsPage() {
   const [factorCode, setFactorCode] = useState('')
   const [mfaBusy, setMfaBusy] = useState(false)
   const [mfaError, setMfaMfaError] = useState('')
+  const [confirmingMfaDisable, setConfirmingMfaDisable] = useState(false)
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null)
   const [recoveryCodesError, setRecoveryCodesError] = useState('')
 
   if (error && !data) {
-    return <ErrorState what="your account" className="py-16 text-center text-sm" />
+    return <ErrorState what="your account" placement="page" />
   }
   if (isLoading || !data) {
-    return <LoadingState className="py-16 text-center text-sm" />
+    return <LoadingState placement="page" />
   }
 
   const hasMFA = data.hasMfa
@@ -194,212 +197,195 @@ export default function SettingsPage() {
       }
     } finally {
       setMfaBusy(false)
+      setConfirmingMfaDisable(false)
     }
   }
 
   return (
-    <PageContainer size="narrow" className="space-y-10">
-      <PageHeader title="Account Settings" className="mb-0" />
+    <PageContainer size="narrow">
+      <PageHeader title="Account settings" />
 
-      <section>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
-          Display Name
-        </h2>
-        <p className="mb-4 text-sm text-subtle">
-          Shown on your public profile when you share your books or games. Required before you can
-          create a share link.
-        </p>
+      <SettingsSections>
+        <SettingsSection
+          title="Display name"
+          description="Shown on your public profile when you share your books or games. Required before you can create a share link."
+        >
+          {nameSaved && <Alert tone="success">Display name updated successfully.</Alert>}
+          {nameError && <Alert tone="danger">{nameError}</Alert>}
 
-        {nameSaved && (
-          <Alert tone="success" className="mb-4">
-            Display name updated successfully.
-          </Alert>
-        )}
-        {nameError && (
-          <Alert tone="danger" className="mb-4">
-            {nameError}
-          </Alert>
-        )}
-
-        <form onSubmit={handleDisplayNameSave} className="space-y-3">
-          <Field label="Display name" htmlFor="display_name">
-            <Input
-              id="display_name"
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              required
-            />
-          </Field>
-          <Button type="submit" size="sm" disabled={nameSaving || !displayName.trim()}>
-            {nameSaving ? 'Saving…' : 'Save display name'}
-          </Button>
-        </form>
-      </section>
-
-      <section>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
-          Change Password
-        </h2>
-
-        {pwSaved && (
-          <Alert tone="success" className="mb-4">
-            Password updated successfully.
-          </Alert>
-        )}
-        {pwError && (
-          <Alert tone="danger" className="mb-4">
-            {pwError}
-          </Alert>
-        )}
-
-        <form onSubmit={handlePasswordSave} className="space-y-3">
-          <Field label="Current password" htmlFor="current_password">
-            <Input
-              id="current_password"
-              type="password"
-              autoComplete="current-password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              required
-            />
-          </Field>
-          <Field label="New password" htmlFor="new_password">
-            <Input
-              id="new_password"
-              type="password"
-              autoComplete="new-password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-            />
-          </Field>
-          <Field label="Confirm new password" htmlFor="confirm_password">
-            <Input
-              id="confirm_password"
-              type="password"
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-          </Field>
-          <Button type="submit" size="sm" disabled={pwSaving}>
-            {pwSaving ? 'Updating…' : 'Update password'}
-          </Button>
-        </form>
-      </section>
-
-      <section>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
-          Two-Factor Authentication
-        </h2>
-
-        {mfaError && (
-          <Alert tone="danger" className="mb-4">
-            {mfaError}
-          </Alert>
-        )}
-
-        {mfaState === 'done' && (
-          <Alert tone="success" className="mb-4">
-            Two-factor authentication enabled successfully.
-          </Alert>
-        )}
-
-        {hasMFA && mfaState === 'idle' ? (
-          <div className="space-y-3">
-            <p className="text-sm text-subtle">
-              Two-factor authentication is <span className="font-medium text-fg">enabled</span>.
-            </p>
-            {recoveryCodesError && <Alert tone="danger">{recoveryCodesError} </Alert>}
-            <Field label="Authenticator or recovery code" htmlFor="factor_code">
+          <form onSubmit={handleDisplayNameSave} className="space-y-3">
+            <Field label="Display name" htmlFor="display_name">
               <Input
-                id="factor_code"
+                id="display_name"
                 type="text"
-                autoComplete="one-time-code"
-                value={factorCode}
-                onChange={(e) => setFactorCode(e.target.value.trim())}
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                required
               />
             </Field>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleRegenerateRecoveryCodes}
-                disabled={mfaBusy || !factorCode}
-              >
-                {mfaBusy ? 'Generating…' : 'Regenerate recovery codes'}
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleMFADisable}
-                disabled={mfaBusy || !factorCode}
-              >
-                {mfaBusy ? 'Disabling…' : 'Disable MFA'}
-              </Button>
-            </div>
-          </div>
-        ) : mfaState === 'qr' ? (
-          <div className="ph-no-capture space-y-4">
-            <p className="text-sm text-subtle">
-              Scan this QR code with your authenticator app, then enter the 6-digit code below.
-            </p>
-            <div
-              className="w-48 rounded-xl border border-border bg-white p-2"
-              dangerouslySetInnerHTML={{ __html: mfaQr }}
-            />
-            <p className="text-xs text-muted">
-              Can&apos;t scan? Enter this key manually:{' '}
-              <span className="font-mono text-fg">{mfaSecret}</span>
-            </p>
-            <form onSubmit={handleMFAVerify} className="space-y-3">
-              <Field label="Authenticator code" htmlFor="mfa_code">
+            <Button type="submit" size="sm" disabled={nameSaving || !displayName.trim()}>
+              {nameSaving ? 'Saving…' : 'Save display name'}
+            </Button>
+          </form>
+        </SettingsSection>
+
+        <SettingsSection title="Change password">
+          {pwSaved && <Alert tone="success">Password updated successfully.</Alert>}
+          {pwError && <Alert tone="danger">{pwError}</Alert>}
+
+          <form onSubmit={handlePasswordSave} className="space-y-3">
+            <Field label="Current password" htmlFor="current_password">
+              <Input
+                id="current_password"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+              />
+            </Field>
+            <Field label="New password" htmlFor="new_password">
+              <Input
+                id="new_password"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+            </Field>
+            <Field label="Confirm new password" htmlFor="confirm_password">
+              <Input
+                id="confirm_password"
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </Field>
+            <Button type="submit" size="sm" disabled={pwSaving}>
+              {pwSaving ? 'Updating…' : 'Update password'}
+            </Button>
+          </form>
+        </SettingsSection>
+
+        <SettingsSection title="Two-factor authentication">
+          {mfaError && <Alert tone="danger">{mfaError}</Alert>}
+
+          {mfaState === 'done' && (
+            <Alert tone="success">Two-factor authentication enabled successfully.</Alert>
+          )}
+
+          {hasMFA && mfaState === 'idle' ? (
+            <div className="space-y-3">
+              <p className="text-sm text-subtle">
+                Two-factor authentication is <span className="font-medium text-fg">enabled</span>.
+              </p>
+              {recoveryCodesError && <Alert tone="danger">{recoveryCodesError}</Alert>}
+              <Field label="Authenticator or recovery code" htmlFor="factor_code">
                 <Input
-                  id="mfa_code"
+                  id="factor_code"
                   type="text"
-                  inputMode="numeric"
                   autoComplete="one-time-code"
-                  maxLength={6}
-                  value={mfaCode}
-                  onChange={(e) => setMfaCode(e.target.value)}
-                  required
+                  value={factorCode}
+                  onChange={(e) => setFactorCode(e.target.value.trim())}
                 />
               </Field>
               <div className="flex flex-wrap gap-2">
-                <Button type="submit" size="sm" disabled={mfaBusy || mfaCode.length < 6}>
-                  {mfaBusy ? 'Verifying…' : 'Verify & enable'}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleRegenerateRecoveryCodes}
+                  disabled={mfaBusy || !factorCode}
+                >
+                  {mfaBusy ? 'Generating…' : 'Regenerate recovery codes'}
                 </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setMfaState('idle')}>
-                  Cancel
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setConfirmingMfaDisable(true)}
+                  disabled={mfaBusy || !factorCode}
+                >
+                  Disable MFA
                 </Button>
               </div>
-            </form>
-          </div>
-        ) : !hasMFA && mfaState !== 'done' ? (
-          <div className="space-y-3">
-            <p className="text-sm text-subtle">
-              Two-factor authentication is <span className="font-medium text-fg">disabled</span>.
-              Enable it for additional security.
-            </p>
-            <Button size="sm" onClick={handleMFAEnable} disabled={mfaBusy}>
-              {mfaBusy ? 'Loading…' : 'Enable MFA'}
-            </Button>
-          </div>
-        ) : null}
-      </section>
+              <ConfirmDialog
+                open={confirmingMfaDisable}
+                onOpenChange={setConfirmingMfaDisable}
+                title="Disable two-factor authentication?"
+                description="Signing in will need only your password, and your recovery codes stop working."
+                confirmLabel="Disable MFA"
+                pendingLabel="Disabling…"
+                destructive
+                pending={mfaBusy}
+                onConfirm={() => void handleMFADisable()}
+              />
+            </div>
+          ) : mfaState === 'qr' ? (
+            <div className="ph-no-capture space-y-4">
+              <p className="text-sm text-subtle">
+                Scan this QR code with your authenticator app, then enter the 6-digit code below.
+              </p>
+              <div
+                className="w-48 rounded-xl border border-border bg-white p-2"
+                dangerouslySetInnerHTML={{ __html: mfaQr }}
+              />
+              <p className="text-xs text-muted">
+                Can&apos;t scan? Enter this key manually:{' '}
+                <span className="font-mono text-fg">{mfaSecret}</span>
+              </p>
+              <form onSubmit={handleMFAVerify} className="space-y-3">
+                <Field label="Authenticator code" htmlFor="mfa_code">
+                  <Input
+                    id="mfa_code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
+                    required
+                  />
+                </Field>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" size="sm" disabled={mfaBusy || mfaCode.length < 6}>
+                    {mfaBusy ? 'Verifying…' : 'Verify & enable'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setMfaState('idle')}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </div>
+          ) : !hasMFA && mfaState !== 'done' ? (
+            <div className="space-y-3">
+              <p className="text-sm text-subtle">
+                Two-factor authentication is <span className="font-medium text-fg">disabled</span>.
+                Enable it for additional security.
+              </p>
+              <Button size="sm" onClick={handleMFAEnable} disabled={mfaBusy}>
+                {mfaBusy ? 'Loading…' : 'Enable MFA'}
+              </Button>
+            </div>
+          ) : null}
+        </SettingsSection>
 
-      <AppearanceSection />
+        <AppearanceSection />
 
-      <section>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Privacy</h2>
-        <p className="text-sm text-subtle">
-          Usage analytics and session recording are enabled to help improve the app.
-        </p>
-      </section>
+        <SettingsSection title="Privacy">
+          <p className="text-sm text-subtle">
+            Usage analytics and session recording are enabled to help improve the app.
+          </p>
+        </SettingsSection>
 
-      <McpSetupSection />
+        <McpSetupSection />
+      </SettingsSections>
 
       {recoveryCodes && (
         <RecoveryCodesDialog codes={recoveryCodes} onDismiss={() => setRecoveryCodes(null)} />

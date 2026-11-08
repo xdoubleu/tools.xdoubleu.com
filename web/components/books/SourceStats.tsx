@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSourceStats, useBooksInExactSources } from '@/hooks/useBooks'
 import { SOURCE_LABELS } from '@/components/books/SourceCompare'
 import { Card } from '@/components/ui/card'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { LoadingState, ErrorState } from '@/components/ui/states'
 import {
   Table,
@@ -54,8 +55,8 @@ function ExactSourcesDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogClose />
         </DialogHeader>
-        {isLoading && <LoadingState className="text-xs" />}
-        {error && <ErrorState what="books" className="text-xs" />}
+        {isLoading && <LoadingState />}
+        {error && <ErrorState what="books" />}
         {data && (
           <ul className="space-y-2">
             {data.books.map((b) => (
@@ -82,8 +83,8 @@ export default function SourceStats() {
   const { data, isLoading, error } = useSourceStats()
   const [openSources, setOpenSources] = useState<string[] | null>(null)
 
-  if (isLoading) return <LoadingState className="text-xs" />
-  if (error || !data) return <ErrorState what="source stats" className="text-xs" />
+  if (isLoading) return <LoadingState />
+  if (error || !data) return <ErrorState what="source stats" />
 
   const overlaps = data.overlaps.filter((o) => o.count > 0)
   const missedOverlaps = data.missedOverlaps.filter((o) => o.count > 0)
@@ -124,7 +125,7 @@ export default function SourceStats() {
           ))}
         </TableBody>
       </Table>
-      <Card className="rounded-2xl p-4">
+      <Card>
         <div className="space-y-0.5 text-xs text-muted">
           <p className="font-medium text-fg">
             {foundTotal} found across all sources (in at least one).
@@ -135,9 +136,9 @@ export default function SourceStats() {
         </div>
         {overlaps.length > 0 && (
           <div className="mt-4 border-t border-border pt-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+            <SectionHeading level="eyebrow" className="mb-2">
               Overlap — found in exactly these sources
-            </p>
+            </SectionHeading>
             <ul className="space-y-1">
               {overlaps.map((o) => (
                 <li key={o.sources.join('+')} className="flex items-center justify-between gap-2">
@@ -157,9 +158,9 @@ export default function SourceStats() {
         )}
         {missedOverlaps.length > 0 && (
           <div className="mt-4 border-t border-border pt-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+            <SectionHeading level="eyebrow" className="mb-2">
               Missed overlaps — missed by exactly these sources
-            </p>
+            </SectionHeading>
             <ul className="space-y-1">
               {missedOverlaps.map((o) => (
                 <li key={o.sources.join('+')} className="flex items-center justify-between gap-2">

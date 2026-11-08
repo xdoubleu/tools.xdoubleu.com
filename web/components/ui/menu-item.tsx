@@ -1,5 +1,6 @@
 import { forwardRef, type ButtonHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
+import { controlMinHeightClass } from '@/components/ui/control'
 
 type MenuItemProps = ButtonHTMLAttributes<HTMLButtonElement>
 
@@ -10,7 +11,8 @@ const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(
         ref={ref}
         type={type}
         className={cn(
-          'flex min-h-11 w-full items-center gap-2 rounded-lg px-4 py-2 text-left text-sm text-fg sm:min-h-9',
+          'flex w-full items-center gap-2 rounded-lg px-4 py-2 text-left text-sm text-fg',
+          controlMinHeightClass,
           'transition-[color,background-color,transform] duration-press ease-spring hover:bg-hover active:bg-hover active:scale-[0.98]',
           'motion-reduce:ease-linear motion-reduce:active:scale-100',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',

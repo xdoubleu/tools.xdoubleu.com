@@ -163,6 +163,7 @@ describe('ShoppingPage edit', () => {
     render(<ShoppingListPageClient />)
 
     fireEvent.click(screen.getByRole('button', { name: /Remove Milk/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
 
     await waitFor(() =>
       expect(enqueue).toHaveBeenCalledWith(deleteShoppingItemWrite, { itemId: 'i1' })
@@ -197,17 +198,16 @@ describe('ShoppingPage meal-plan section', () => {
     mockPlanGroups = { data: { groups: [{ recipeName: 'Pasta', groupName: 'Sauce' }] } }
     render(<ShoppingListPageClient />)
 
-    expect(screen.getByText('Exclude ingredient groups')).toBeInTheDocument()
-    // The group filter's checkbox label carries the group + recipe name.
-    const checkbox = screen.getByRole('checkbox', { name: /Sauce/ })
-    expect(checkbox).toBeChecked()
-    fireEvent.click(checkbox)
-    expect(checkbox).not.toBeChecked()
+    expect(screen.getByRole('heading', { name: 'Include ingredient groups' })).toBeInTheDocument()
+    const toggle = screen.getByRole('button', { name: 'Sauce (Pasta)' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
   })
 
   it('hides the group filter when no ingredient groups exist', () => {
     render(<ShoppingListPageClient />)
-    expect(screen.queryByText('Exclude ingredient groups')).not.toBeInTheDocument()
+    expect(screen.queryByText('Include ingredient groups')).not.toBeInTheDocument()
   })
 
   it('opens the export dialog (store-only) with the meal items passed in', () => {
@@ -224,7 +224,7 @@ describe('ShoppingPage meal-plan section', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Export' }))
     expect(screen.getByText('Export Shopping List')).toBeInTheDocument()
     expect(screen.getByText('Order by store (optional)')).toBeInTheDocument()
-    expect(screen.queryByText('Exclude ingredient groups')).not.toBeInTheDocument()
+    expect(screen.queryByText('Include ingredient groups')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(screen.queryByText('Export Shopping List')).not.toBeInTheDocument()

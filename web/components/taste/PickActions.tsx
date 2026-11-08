@@ -4,6 +4,7 @@ import { usePickActions } from '@/hooks/useTaste'
 import { FEEDBACK } from '@/lib/taste/format'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { FieldError } from '@/components/ui/field-error'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { ToggleIconButton } from '@/components/ui/toggle-icon-button'
@@ -81,11 +82,7 @@ export default function PickActions({ pick }: { pick: Recommendation }) {
           )
         )}
       </div>
-      {failed && (
-        <p className="text-xs text-danger" role="alert">
-          That didn&apos;t save. Try again.
-        </p>
-      )}
+      {failed && <FieldError>That didn&apos;t save. Try again.</FieldError>}
     </div>
   )
 }

@@ -3,12 +3,14 @@ import { Code, ConnectError } from '@connectrpc/connect'
 import { type Task, type TaskStatus } from '@/lib/gen/factory/v1/factory_pb'
 import { COLUMNS } from '@/lib/factory/board'
 import { useFactoryActions } from '@/hooks/useFactory'
+import { FieldError } from '@/components/ui/field-error'
 import { Select } from '@/components/ui/select'
 
 /** Select that moves a task between columns; shows a message when the move is refused. */
 export function MoveSelect({ task }: { task: Task }) {
   const { move } = useFactoryActions()
   const [failure, setFailure] = useState('')
+  const errorId = `move-${task.id}-error`
 
   const onChange = async (status: TaskStatus) => {
     setFailure('')
@@ -27,6 +29,7 @@ export function MoveSelect({ task }: { task: Task }) {
     <>
       <Select
         aria-label={`Move ${task.title}`}
+        aria-describedby={failure ? errorId : undefined}
         value={task.status}
         onChange={(e) => void onChange(Number(e.target.value))}
       >
@@ -36,11 +39,7 @@ export function MoveSelect({ task }: { task: Task }) {
           </option>
         ))}
       </Select>
-      {failure && (
-        <p className="text-xs text-danger" role="alert">
-          {failure}
-        </p>
-      )}
+      <FieldError id={errorId}>{failure}</FieldError>
     </>
   )
 }

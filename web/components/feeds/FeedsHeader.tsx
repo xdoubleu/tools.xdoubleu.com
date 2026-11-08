@@ -3,10 +3,48 @@ import { useFeeds } from '@/hooks/useFeeds'
 import { useCurrentUser } from '@/hooks/useAuth'
 import FeedManager from '@/components/feeds/FeedManager'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import { Link } from '@/components/ui/link'
 import { PageHeader, PageHeaderLink, PageHeaderSettingsLink } from '@/components/ui/page-header'
+import { Popover } from '@/components/ui/popover'
 
-// The feed-management toggle sits by the title; the panel starts collapsed
-// unless there are no feeds. useFeeds() is deduped by SWR.
+function MoreMenu({ isAdmin }: { isAdmin: boolean }) {
+  const links = [
+    { href: '/feeds/expired', label: 'Expired' },
+    { href: '/feeds/filtered', label: 'Filtered' },
+    ...(isAdmin ? [{ href: '/feeds/health', label: 'Health' }] : [])
+  ]
+  return (
+    <Popover
+      aria-label="More feed pages"
+      trigger={({ open, onClick }) => (
+        <Button variant="secondary" aria-haspopup="menu" aria-expanded={open} onClick={onClick}>
+          More
+        </Button>
+      )}
+    >
+      <div role="menu" className="flex min-w-36 flex-col">
+        {links.map((l) => (
+          <Button key={l.href} asChild variant="ghost" className="justify-start">
+            <Link href={l.href} role="menuitem">
+              {l.label}
+            </Link>
+          </Button>
+        ))}
+      </div>
+    </Popover>
+  )
+}
+
+// Feed management opens as a sheet; it opens itself while there are no feeds.
+// useFeeds() is deduped by SWR.
 export default function FeedsHeader() {
   const { data } = useFeeds()
   const { data: currentUser } = useCurrentUser()
@@ -18,42 +56,40 @@ export default function FeedsHeader() {
     if (!touched && data && data.feeds.length === 0) setOpen(true)
   }, [touched, data])
 
+  const change = (next: boolean) => {
+    setTouched(true)
+    setOpen(next)
+  }
+
   return (
     <>
       <PageHeader
         title="Feeds"
         actions={
           <>
-            <PageHeaderLink href="/feeds/expired">Expired</PageHeaderLink>
-            <PageHeaderLink href="/feeds/filtered">Filtered</PageHeaderLink>
-            <PageHeaderLink href="/feeds/stats">Stats</PageHeaderLink>
-            {isAdmin && <PageHeaderLink href="/feeds/health">Health</PageHeaderLink>}
-            <PageHeaderSettingsLink href="/feeds/settings" />
-            <Button
-              variant="secondary"
-              size="sm"
-              aria-expanded={open}
-              aria-controls="manage-feeds-panel"
-              onClick={() => {
-                setTouched(true)
-                setOpen((v) => !v)
-              }}
-            >
-              {open ? 'Hide' : 'Manage feeds'}
+            <Button variant="secondary" aria-haspopup="dialog" onClick={() => change(true)}>
+              Manage feeds
             </Button>
+            <PageHeaderLink href="/feeds/stats">Stats</PageHeaderLink>
+            <PageHeaderSettingsLink href="/feeds/settings" />
+            <MoreMenu isAdmin={isAdmin} />
           </>
         }
       />
 
-      {open && (
-        <div id="manage-feeds-panel" className="mb-6 border-b border-border pb-6">
-          <p className="mb-3 text-xs text-muted">
+      <Dialog open={open} onOpenChange={change}>
+        <DialogContent side="sheet" className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage feeds</DialogTitle>
+            <DialogClose />
+          </DialogHeader>
+          <DialogDescription className="mb-3">
             Subscribe to blogs, news feeds, and email newsletters. New posts land here as items to
             read.
-          </p>
+          </DialogDescription>
           <FeedManager />
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

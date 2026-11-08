@@ -14,7 +14,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
     <LinkCard href={`/recipes/${recipe.id}`} linkClassName="p-4">
-      <h2 className="font-semibold text-lg">{recipe.name}</h2>
+      <p className="break-words font-medium">{recipe.name}</p>
       <p className="text-sm text-muted mt-1">
         Serves {recipe.baseServings}
         {recipe.isDraft && (
@@ -53,14 +53,14 @@ export default function RecipesListClient() {
         }
       />
 
-      {isLoading && <LoadingState label="recipes" />}
-      {error && <ErrorState what="recipes" />}
+      {isLoading && <LoadingState placement="page" label="recipes" />}
+      {error && <ErrorState placement="page" what="recipes" />}
       {data && recipes.length === 0 && (
-        <EmptyState>No recipes yet. Create your first one!</EmptyState>
+        <EmptyState placement="page">No recipes yet. Create your first one!</EmptyState>
       )}
       {data && recipes.length > 0 && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {recipes.map((recipe) => (
               <RecipeCard key={recipe.id} recipe={recipe} />
             ))}

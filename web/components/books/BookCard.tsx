@@ -68,16 +68,17 @@ export default function BookCard({
           {isReading && <BookProgressEditor userBook={userBook} onSaved={onSaved} />}
           {canPeek && (
             <>
-              <Button
-                type="button"
-                variant="link"
-                className="text-sm"
-                aria-expanded={descriptionOpen}
-                aria-controls={descriptionId}
-                onClick={() => setDescriptionOpen((open) => !open)}
-              >
-                {descriptionOpen ? 'Hide description' : 'Show description'}
-              </Button>
+              <p className="text-sm">
+                <Button
+                  type="button"
+                  variant="link"
+                  aria-expanded={descriptionOpen}
+                  aria-controls={descriptionId}
+                  onClick={() => setDescriptionOpen((open) => !open)}
+                >
+                  {descriptionOpen ? 'Hide description' : 'Show description'}
+                </Button>
+              </p>
               {descriptionOpen && (
                 <BookDescription id={descriptionId} description={book.description} />
               )}

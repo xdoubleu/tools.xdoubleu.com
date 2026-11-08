@@ -53,7 +53,7 @@ export default function GamesDashboard() {
       favouritesHref="/games/library"
       actions={
         <>
-          <GamesSearch className="mr-auto flex-1 max-w-xs" />
+          <GamesSearch className="basis-full sm:mr-auto sm:max-w-xs sm:flex-1 sm:basis-auto" />
           {lastRefresh && (
             <span className="text-xs text-muted">Last: {lastRefresh.toLocaleString('en-GB')}</span>
           )}

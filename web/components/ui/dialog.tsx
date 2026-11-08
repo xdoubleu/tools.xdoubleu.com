@@ -8,6 +8,7 @@ import {
   useRef
 } from 'react'
 import { Button } from '@/components/ui/button'
+import { controlSquareClass } from '@/components/ui/control'
 import { dragVelocity, shouldDismissSheet } from '@/components/ui/sheetDrag'
 import { useKeyboardInset } from '@/hooks/useKeyboardInset'
 import { cn } from '@/lib/cn'
@@ -242,7 +243,8 @@ function DialogClose({
     <RadixDialog.Close
       aria-label={ariaLabel}
       className={cn(
-        '-m-2 inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-xl leading-none text-muted',
+        '-m-2 inline-flex shrink-0 items-center justify-center rounded-xl text-xl leading-none text-muted',
+        controlSquareClass,
         'transition-colors hover:bg-hover hover:text-fg active:bg-hover',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         className

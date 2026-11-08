@@ -141,8 +141,8 @@ describe('MoviesClient backlog', () => {
     mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [] }) })
     render(<MoviesClient />)
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Watched' }))
-    fireEvent.click(screen.getByRole('tab', { name: 'Series' }))
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'watched' } })
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'series' } })
     fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'title' } })
 
     expect(vi.mocked(useMoviesBacklog)).toHaveBeenLastCalledWith({
@@ -152,6 +152,31 @@ describe('MoviesClient backlog', () => {
       onMyServices: false
     })
     expect(screen.getByText(/Nothing here yet/)).toBeInTheDocument()
+    expect(screen.getByRole('toolbar')).toHaveTextContent('0 titles')
+  })
+
+  it('offers every filter option, starting from all titles by recency', () => {
+    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [] }) })
+    render(<MoviesClient />)
+    const options = (label: string) =>
+      Array.from((screen.getByLabelText(label) as HTMLSelectElement).options).map((o) => [
+        o.value,
+        o.textContent
+      ])
+
+    expect(options('Type')).toEqual([
+      ['', 'All types'],
+      ['movie', 'Movies'],
+      ['series', 'Series']
+    ])
+    expect(options('Status')[0]).toEqual(['', 'All statuses'])
+    expect(options('Sort')).toEqual([
+      ['added', 'Recently added'],
+      ['title', 'Title'],
+      ['release', 'Release date'],
+      ['rating', 'Rating']
+    ])
+    expect(screen.getByLabelText('Sort')).toHaveValue('added')
   })
 
   it('filters to titles on my services, and marks them', () => {
@@ -271,6 +296,8 @@ describe('MoviesClient search', () => {
 
     expect(screen.getByText('Breaking Bad')).toBeInTheDocument()
     expect(screen.getByText('2008')).toBeInTheDocument()
+    expect(screen.getByRole('toolbar')).toHaveTextContent('2 results')
+    expect(screen.queryByLabelText('Sort')).not.toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Want' })).toHaveLength(1)
     expect(screen.getByText('Watched', { selector: 'span' })).toBeInTheDocument()
   })

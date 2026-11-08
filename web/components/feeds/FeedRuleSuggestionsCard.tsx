@@ -101,7 +101,7 @@ export default function FeedRuleSuggestionsCard({ className }: { className?: str
   if (suggestions.length === 0 && !status) return null
 
   return (
-    <Card className={className}>
+    <Card padding="none" className={className}>
       <CardHeader>
         <CardTitle>Suggested filters</CardTitle>
         <CardDescription>
