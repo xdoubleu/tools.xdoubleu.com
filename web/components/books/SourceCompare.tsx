@@ -3,6 +3,7 @@ import type { SourceBook, ResyncProposal } from '@/lib/gen/books/v1/catalog_pb'
 import { Artwork } from '@/components/ui/artwork'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { Field } from '@/components/ui/field'
 import { cn } from '@/lib/cn'
 import { Input } from '@/components/ui/input'
@@ -37,7 +38,7 @@ function fieldValue(s: SourceBook, field: string): string {
 // Highlights fields differing from the library row.
 function SourceCard({ label, source }: { label: string; source: SourceBook }) {
   return (
-    <Card variant="inset" className="rounded-xl text-sm">
+    <Card variant="inset" className="text-sm">
       <div className="mb-2 flex items-center gap-2">
         <Artwork
           src={source.coverUrl}
@@ -46,7 +47,9 @@ function SourceCard({ label, source }: { label: string; source: SourceBook }) {
           initials={2}
           size="sm"
         />
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
+        <SectionHeading level="eyebrow" as="h4">
+          {label}
+        </SectionHeading>
       </div>
       <ul className="space-y-1">
         {FIELDS.map((field) => {
@@ -174,7 +177,7 @@ export default function SourceCompare({
       {onSearch && <SearchOverrideForm proposal={proposal} onSearch={onSearch} />}
 
       {proposal.sources.length === 0 ? (
-        <Card variant="inset" className="rounded-xl text-sm text-muted">
+        <Card variant="inset" className="text-sm text-muted">
           No configured source (UniCat, Hardcover) has this book. Consider adding a new source, or
           dismiss if this is expected.
         </Card>
@@ -190,9 +193,9 @@ export default function SourceCompare({
               />
             ) : (
               <div key={source} className="sm:col-span-2">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                <SectionHeading level="eyebrow" as="h4" className="mb-2">
                   {SOURCE_LABELS[source] ?? source} ({candidates.length} candidates)
-                </p>
+                </SectionHeading>
                 <div className="grid grid-cols-1 max-h-80 gap-3 overflow-y-auto sm:grid-cols-2">
                   {candidates.map((s) => (
                     <SourceCard key={s.index} label={`Candidate ${s.index + 1}`} source={s} />

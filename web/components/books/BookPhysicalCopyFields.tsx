@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Collapsible } from '@/components/ui/collapsible'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { RemoveButton } from '@/components/ui/remove-button'
 import { Select } from '@/components/ui/select'
 import type { PhysicalChapter } from '@/lib/gen/books/v1/library_pb'
 import {
@@ -92,16 +93,12 @@ export default function BookPhysicalCopyFields({
                     onChange={(e) => setAnchor(i, { ...anchor, page: Number(e.target.value) })}
                   />
                 </Field>
-                <Button
-                  variant="ghost"
-                  size="icon"
+                <RemoveButton
                   aria-label="Remove chapter anchor"
                   onClick={() =>
                     onChange({ ...draft, anchors: draft.anchors.filter((_, j) => j !== i) })
                   }
-                >
-                  ✕
-                </Button>
+                />
               </div>
             ))}
             {options.length > 0 && (

@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import BooksLibrary from '@/components/books/BooksLibrary'
 import {
@@ -92,6 +92,7 @@ function renderLibrary(
       library={library}
       knownShelves={[]}
       searchQuery={opts.searchQuery ?? ''}
+      onSearchChange={vi.fn()}
       onSaved={vi.fn()}
     />
   )
@@ -395,5 +396,28 @@ describe('BooksLibrary', () => {
     await waitFor(() => {
       expect(screen.getByText('No results.')).toBeInTheDocument()
     })
+  })
+
+  it('puts search, filters and the result count in one toolbar', () => {
+    renderLibrary(makeLibrary())
+    const toolbar = screen.getByRole('toolbar', { name: 'Filter books' })
+    expect(within(toolbar).getByRole('searchbox', { name: 'Search books' })).toBeInTheDocument()
+    expect(within(toolbar).getByRole('button', { name: 'Filters' })).toBeInTheDocument()
+    expect(within(toolbar).getByRole('button', { name: 'Columns' })).toBeInTheDocument()
+    expect(within(toolbar).getByText('4 books')).toBeInTheDocument()
+  })
+
+  it('counts only the books the table filters leave', () => {
+    localStorage.setItem('backlog:library:filter:kobo', JSON.stringify(['kobo-sync']))
+    renderLibrary(makeLibrary())
+    expect(screen.getByText('0 books')).toBeInTheDocument()
+    localStorage.clear()
+  })
+
+  it('drops the table filters while searching', () => {
+    renderLibrary(makeLibrary(), { searchQuery: 'Dune' })
+    const toolbar = screen.getByRole('toolbar', { name: 'Filter books' })
+    expect(within(toolbar).queryByRole('button', { name: 'Filters' })).not.toBeInTheDocument()
+    expect(within(toolbar).getByText('1 book')).toBeInTheDocument()
   })
 })

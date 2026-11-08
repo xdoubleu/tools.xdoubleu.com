@@ -3,6 +3,8 @@ import { render, screen, fireEvent, within } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import { UserBookSchema, BookSchema } from '@/lib/gen/books/v1/library_pb'
 import BooksTable from '@/components/books/BooksTable'
+import { LibraryTableControls } from '@/components/books/BooksTableToolbar'
+import { useLibraryTableState } from '@/components/books/useLibraryTableState'
 
 vi.mock('@/components/books/BookRatingStars', () => {
   return {
@@ -61,6 +63,17 @@ beforeEach(() => {
   localStorage.clear()
 })
 
+// BooksLibrary owns the table state and renders the toolbar; mirror that here.
+function TableHarness(props: Omit<React.ComponentProps<typeof BooksTable>, 'state'>) {
+  const state = useLibraryTableState()
+  return (
+    <>
+      <LibraryTableControls state={state} />
+      <BooksTable {...props} state={state} />
+    </>
+  )
+}
+
 // BooksTable renders a mobile-first card list (`sm:hidden`) *and* the desktop
 // table; jsdom can't apply responsive hiding, so table-behaviour tests scope
 // their queries to the table.
@@ -70,7 +83,7 @@ function withinTable() {
 
 describe('BooksTable', () => {
   it('renders a table with all column headers', () => {
-    render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={[]} knownShelves={[]} knownTags={[]} />)
     expect(screen.getByRole('table')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Title' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Author' })).toBeInTheDocument()
@@ -94,25 +107,25 @@ describe('BooksTable', () => {
         isbn13: '9780441013593'
       })
     })
-    render(<BooksTable books={[book]} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={[book]} knownShelves={[]} knownTags={[]} />)
     expect(screen.getByText('ISBN 9780441013593')).toBeInTheDocument()
   })
 
   it('renders ownership toggles for each book row', () => {
     const books = [makeBook('1', 'Dune'), makeBook('2', 'Hyperion')]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     expect(withinTable().getAllByTestId('ownership-toggles')).toHaveLength(2)
   })
 
   it('renders a remove action for each book row', () => {
     const books = [makeBook('1', 'Dune'), makeBook('2', 'Hyperion')]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     expect(screen.getAllByTestId('remove-action')).toHaveLength(2)
   })
 
   it('renders books in rows', () => {
     const books = [makeBook('1', 'Dune', 'Frank Herbert'), makeBook('2', 'Hyperion')]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     const table = withinTable()
     expect(table.getByText('Dune')).toBeInTheDocument()
     expect(table.getByText('Hyperion')).toBeInTheDocument()
@@ -120,13 +133,13 @@ describe('BooksTable', () => {
   })
 
   it('shows empty message when no books', () => {
-    render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={[]} knownShelves={[]} knownTags={[]} />)
     expect(withinTable().getByText('No books match the current filters.')).toBeInTheDocument()
   })
 
   it('title links to the book detail page', () => {
     const books = [makeBook('abc', 'Dune')]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     // The cover and the title both link to the book.
     for (const link of screen.getAllByRole('link', { name: 'Dune' })) {
       expect(link).toHaveAttribute('href', '/books/abc')
@@ -135,14 +148,14 @@ describe('BooksTable', () => {
 
   it('author links to the author page', () => {
     const books = [makeBook('1', 'Dune', 'Frank Herbert')]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     const link = screen.getByRole('link', { name: 'Frank Herbert' })
     expect(link).toHaveAttribute('href', '/books/author/Frank%20Herbert')
   })
 
   it('sorts by title asc when Title header is clicked once', () => {
     const books = [makeBook('z', 'Zebra'), makeBook('a', 'Aardvark')]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Title' }))
     const cells = screen.getAllByRole('cell')
     const titles = cells.map((c) => c.textContent).filter((t) => t === 'Aardvark' || t === 'Zebra')
@@ -151,7 +164,7 @@ describe('BooksTable', () => {
 
   it('sorts by title desc when Title header is clicked twice', () => {
     const books = [makeBook('a', 'Aardvark'), makeBook('z', 'Zebra')]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Title' }))
     fireEvent.click(screen.getByRole('button', { name: 'Title' }))
     const cells = screen.getAllByRole('cell')
@@ -161,20 +174,20 @@ describe('BooksTable', () => {
 
   it('shows pagination when books exceed page size', () => {
     const books = Array.from({ length: 25 }, (_, i) => makeBook(`b${i}`, `Book ${i}`))
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     expect(screen.getByText('1 / 2')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled()
   })
 
   it('hides pagination when books fit on one page', () => {
     const books = [makeBook('1', 'One')]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
   })
 
   it('navigates to next page and back with Prev', () => {
     const books = Array.from({ length: 25 }, (_, i) => makeBook(`b${i}`, `Book ${i}`))
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Next' }))
     expect(screen.getByText('2 / 2')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Prev' }))
@@ -194,7 +207,7 @@ describe('BooksTable', () => {
         pageCount: 300
       })
     })
-    render(<BooksTable books={[book]} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={[book]} knownShelves={[]} knownTags={[]} />)
 
     expect(screen.getByRole('link', { name: 'Author One' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Author Two' })).toBeInTheDocument()
@@ -205,7 +218,7 @@ describe('BooksTable', () => {
 
   it('sorts by author asc when Author header is clicked', () => {
     const books = [makeBook('1', 'Book A', 'Zoe'), makeBook('2', 'Book B', 'Alice')]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Author' }))
     const cells = screen.getAllByRole('cell')
     const authors = cells.map((c) => c.textContent).filter((t) => t === 'Alice' || t === 'Zoe')
@@ -221,7 +234,7 @@ describe('BooksTable', () => {
         book: create(BookSchema, { title: 'Short Book', authors: ['B'], pageCount: 100 })
       })
     ]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Pages' }))
     const cells = screen.getAllByRole('cell')
     const pages = cells.map((c) => c.textContent).filter((t) => t === '500' || t === '100')
@@ -233,7 +246,7 @@ describe('BooksTable', () => {
       makeBook('1', 'High', 'A', { rating: 5 }),
       makeBook('2', 'Low', 'B', { rating: 1 })
     ]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Rating' }))
     const ratingCells = screen.getAllByTestId('rating-stars')
     expect(ratingCells[0]).toHaveAttribute('data-rating', '1')
@@ -244,7 +257,7 @@ describe('BooksTable', () => {
       makeBook('1', 'Not Fav', 'A', { tags: [] }),
       makeBook('2', 'Fav', 'B', { tags: ['favourite'] })
     ]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Fav' }))
     const cells = screen.getAllByRole('cell')
     const titles = cells.map((c) => c.textContent).filter((t) => t === 'Not Fav' || t === 'Fav')
@@ -256,7 +269,7 @@ describe('BooksTable', () => {
       makeBook('1', 'Z Book', 'A', { status: 'to-read' }),
       makeBook('2', 'A Book', 'B', { status: 'currently-reading' })
     ]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Shelf & tags' }))
     // 'currently-reading' < 'to-read' alphabetically
     const cells = screen.getAllByRole('cell')
@@ -266,7 +279,7 @@ describe('BooksTable', () => {
 
   it('opens the shelf/tags editor from the list row without navigating', () => {
     const books = [makeBook('1', 'Dune', 'Frank Herbert', { status: 'to-read', tags: ['sci-fi'] })]
-    render(<BooksTable books={books} knownShelves={['owned']} knownTags={['sci-fi']} />)
+    render(<TableHarness books={books} knownShelves={['owned']} knownTags={['sci-fi']} />)
     const trigger = screen.getByRole('button', { name: /Edit shelf and tags for Dune/ })
     // Trigger shows the current shelf and tags before it's clicked.
     expect(trigger).toHaveTextContent('sci-fi')
@@ -282,7 +295,7 @@ describe('BooksTable', () => {
       formats: [],
       addedAt: '2024-01-01T00:00:00Z'
     })
-    render(<BooksTable books={[book]} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={[book]} knownShelves={[]} knownTags={[]} />)
     expect(screen.getByRole('button', { name: 'Edit shelf and tags for book' })).toBeInTheDocument()
   })
 
@@ -291,7 +304,7 @@ describe('BooksTable', () => {
       makeBook('1', 'Newer', 'A', { addedAt: '2024-06-01T00:00:00Z' }),
       makeBook('2', 'Older', 'B', { addedAt: '2023-01-01T00:00:00Z' })
     ]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Date added' }))
     const cells = screen.getAllByRole('cell')
     const titles = cells.map((c) => c.textContent).filter((t) => t === 'Newer' || t === 'Older')
@@ -303,7 +316,7 @@ describe('BooksTable', () => {
       makeBook('1', 'Early Read', 'A', { finishedAt: ['2022-01-01T00:00:00Z'] }),
       makeBook('2', 'Late Read', 'B', { finishedAt: ['2025-01-01T00:00:00Z'] })
     ]
-    render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Date read' }))
     const cells = screen.getAllByRole('cell')
     const titles = cells
@@ -313,7 +326,7 @@ describe('BooksTable', () => {
   })
 
   it('cycles sort direction through asc -> desc -> none on triple click', () => {
-    render(<BooksTable books={[makeBook('1', 'A')]} knownShelves={[]} knownTags={[]} />)
+    render(<TableHarness books={[makeBook('1', 'A')]} knownShelves={[]} knownTags={[]} />)
     const btn = screen.getByRole('button', { name: 'Author' })
     fireEvent.click(btn) // asc
     fireEvent.click(btn) // desc
@@ -323,7 +336,7 @@ describe('BooksTable', () => {
 
   describe('column visibility', () => {
     it('hides a column when toggled off via Columns popover', () => {
-      render(<BooksTable books={[makeBook('1', 'Dune')]} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={[makeBook('1', 'Dune')]} knownShelves={[]} knownTags={[]} />)
 
       fireEvent.click(screen.getByRole('button', { name: 'Columns' }))
 
@@ -350,7 +363,7 @@ describe('BooksTable', () => {
           'read'
         ])
       )
-      render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={[]} knownShelves={[]} knownTags={[]} />)
 
       fireEvent.click(screen.getByRole('button', { name: 'Columns' }))
       const isbnCheckbox = screen.getByRole('checkbox', { name: 'ISBN' })
@@ -361,7 +374,7 @@ describe('BooksTable', () => {
     })
 
     it('cover and title columns are always visible and not in the toggle list', () => {
-      render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={[]} knownShelves={[]} knownTags={[]} />)
       fireEvent.click(screen.getByRole('button', { name: 'Columns' }))
       // alwaysVisible columns are not in the toggleable list
       expect(screen.queryByRole('checkbox', { name: 'Cover' })).not.toBeInTheDocument()
@@ -371,7 +384,7 @@ describe('BooksTable', () => {
     it('empty-state colSpan matches visible column count', () => {
       // Only the description toggle + cover + title + actions remain.
       localStorage.setItem('backlog:library:columns', JSON.stringify([]))
-      render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={[]} knownShelves={[]} knownTags={[]} />)
       const emptyCell = withinTable().getByText('No books match the current filters.').closest('td')
       expect(emptyCell).toHaveAttribute('colspan', '4')
     })
@@ -386,7 +399,7 @@ describe('BooksTable', () => {
 
     it('expands and collapses the description in a row below the book', () => {
       render(
-        <BooksTable
+        <TableHarness
           books={[withDescription('1', 'Dune', 'A desert planet.')]}
           knownShelves={[]}
           knownTags={[]}
@@ -413,7 +426,7 @@ describe('BooksTable', () => {
 
     it('expands each book independently', () => {
       render(
-        <BooksTable
+        <TableHarness
           books={[
             withDescription('1', 'Dune', 'Desert.'),
             withDescription('2', 'Emma', 'Regency.')
@@ -429,14 +442,14 @@ describe('BooksTable', () => {
     })
 
     it('has no toggle for a book without a description', () => {
-      render(<BooksTable books={[makeBook('1', 'Bare')]} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={[makeBook('1', 'Bare')]} knownShelves={[]} knownTags={[]} />)
       expect(screen.queryByRole('button', { name: /description of Bare/ })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Show description' })).not.toBeInTheDocument()
     })
 
     it('offers the toggle on the mobile cards', () => {
       render(
-        <BooksTable
+        <TableHarness
           books={[withDescription('1', 'Dune', 'Desert.')]}
           knownShelves={[]}
           knownTags={[]}
@@ -452,7 +465,7 @@ describe('BooksTable', () => {
         makeBook('1', 'Physical Book', 'A', { tags: ['own-physical'] }),
         makeBook('2', 'No Physical', 'B', { tags: [] })
       ]
-      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
 
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
@@ -466,7 +479,7 @@ describe('BooksTable', () => {
         makeBook('1', 'Bol Book', 'A', { tags: ['own-bol'] }),
         makeBook('2', 'Not Digital', 'B', { tags: ['own-physical'] })
       ]
-      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
 
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'Digital' }))
@@ -480,7 +493,7 @@ describe('BooksTable', () => {
         makeBook('1', 'Bol Book', 'A', { tags: ['own-bol'] }),
         makeBook('2', 'Other', 'B', { tags: ['own-digital'] })
       ]
-      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
 
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'Kobo store' }))
@@ -494,7 +507,7 @@ describe('BooksTable', () => {
         makeBook('1', 'Physical Book', 'A', { tags: ['own-physical'] }),
         makeBook('2', 'Other', 'B', { tags: [] })
       ]
-      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
 
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
@@ -509,7 +522,7 @@ describe('BooksTable', () => {
         makeBook('1', 'Epub Book', 'A', { formats: ['epub'] }),
         makeBook('2', 'PDF Only', 'B', { formats: ['pdf'] })
       ]
-      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
 
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'EPUB' }))
@@ -523,7 +536,7 @@ describe('BooksTable', () => {
         makeBook('1', 'Physical Book', 'A', { tags: ['own-physical'] }),
         makeBook('2', 'No Physical', 'B', { tags: [] })
       ]
-      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
 
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
@@ -537,7 +550,7 @@ describe('BooksTable', () => {
     })
 
     it('shows active filter count badge on Filters button', () => {
-      render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={[]} knownShelves={[]} knownTags={[]} />)
 
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
@@ -551,7 +564,7 @@ describe('BooksTable', () => {
         makeBook('1', 'Kobo Book', 'A', { tags: ['kobo-sync'] }),
         makeBook('2', 'Non-Kobo Book', 'B', { tags: [] })
       ]
-      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
 
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'Synced to Kobo' }))
@@ -565,7 +578,7 @@ describe('BooksTable', () => {
         makeBook('1', 'Kobo Book', 'A', { tags: ['kobo-sync'] }),
         makeBook('2', 'Non-Kobo Book', 'B', { tags: [] })
       ]
-      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
 
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'Synced to Kobo' }))
@@ -584,7 +597,7 @@ describe('BooksTable', () => {
         makeBook('2', 'Physical no epub', 'B', { tags: ['own-physical'], formats: ['pdf'] }),
         makeBook('3', 'Epub no physical', 'C', { tags: [], formats: ['epub'] })
       ]
-      render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
+      render(<TableHarness books={books} knownShelves={[]} knownTags={[]} />)
 
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))

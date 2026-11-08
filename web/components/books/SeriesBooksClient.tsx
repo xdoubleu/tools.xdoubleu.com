@@ -31,8 +31,8 @@ export default function SeriesBooksClient({ name }: { name: string }) {
         description={data ? seriesDescription(data) : undefined}
       />
 
-      {isLoading && <LoadingState label="series" className="text-sm" />}
-      {error && <ErrorState what="series" className="text-sm" />}
+      {isLoading && <LoadingState label="series" placement="page" />}
+      {error && <ErrorState what="series" placement="page" />}
 
       {data?.externalUnavailable && (
         <Alert tone="info">

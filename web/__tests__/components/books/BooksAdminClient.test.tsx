@@ -106,4 +106,58 @@ describe('BooksAdminClient', () => {
     fireEvent.click(stopBtn)
     expect(mockCancelResync).toHaveBeenCalledTimes(1)
   })
+
+  it('shows scan progress as a progress bar once the total is known', () => {
+    mockUseResyncRefresh.mockReturnValueOnce({
+      connected: true,
+      isRefreshing: true,
+      lastRefresh: null,
+      processed: 25,
+      total: 100,
+      refresh: vi.fn()
+    })
+    render(<BooksAdminClient />)
+    const bar = screen.getByRole('progressbar', { name: 'Resync progress' })
+    expect(bar).toHaveAttribute('aria-valuenow', '25')
+    expect(bar).toHaveAttribute('aria-valuemax', '100')
+    expect(bar).toHaveAttribute('aria-valuetext', '25 of 100 books')
+  })
+
+  it('shows a loading state while the scan total is unknown', () => {
+    mockUseResyncRefresh.mockReturnValueOnce({
+      connected: true,
+      isRefreshing: true,
+      lastRefresh: null,
+      processed: null,
+      total: null,
+      refresh: vi.fn()
+    })
+    render(<BooksAdminClient />)
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…')
+  })
+
+  it('counts an unreported processed total as zero', () => {
+    mockUseResyncRefresh.mockReturnValueOnce({
+      connected: true,
+      isRefreshing: true,
+      lastRefresh: null,
+      processed: null,
+      total: 40,
+      refresh: vi.fn()
+    })
+    render(<BooksAdminClient />)
+    expect(screen.getByText('0 / 40')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Resync progress' })).toHaveAttribute(
+      'aria-valuetext',
+      '0 of 40 books'
+    )
+  })
+
+  it('opens the duplicates dialog from Find duplicates', () => {
+    render(<BooksAdminClient />)
+    expect(screen.queryByTestId('duplicates-dialog')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('find-duplicates-btn'))
+    expect(screen.getByTestId('duplicates-dialog')).toBeInTheDocument()
+  })
 })

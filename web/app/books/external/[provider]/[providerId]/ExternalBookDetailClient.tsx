@@ -10,6 +10,7 @@ import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
 import { providerLabel } from '@/lib/books/bookShelves'
@@ -39,9 +40,9 @@ export default function ExternalBookDetailClient({
     <PageContainer>
       <Breadcrumb items={breadcrumbItems} />
 
-      {isLoading && <LoadingState label="book" className="mt-6" />}
-      {error && <ErrorState what="book" className="mt-6" />}
-      {!isLoading && !error && !book && <p className="mt-6 text-muted">Book not found.</p>}
+      {isLoading && <LoadingState label="book" placement="page" />}
+      {error && <ErrorState what="book" placement="page" />}
+      {!isLoading && !error && !book && <EmptyState>Book not found.</EmptyState>}
 
       {book && (
         <>
@@ -78,7 +79,7 @@ export default function ExternalBookDetailClient({
           </div>
 
           <section className="mt-8">
-            <h2 className="text-lg font-semibold mb-2">Description</h2>
+            <SectionHeading className="mb-3">Description</SectionHeading>
             {book.description ? (
               <BookDescription description={book.description} />
             ) : (

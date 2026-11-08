@@ -18,36 +18,17 @@ vi.mock('@/hooks/navigation', () => ({
   useSearchParams: () => currentSearchParams
 }))
 
-vi.mock('@/components/books/BookSearchBar', () => {
-  return {
-    default: function MockBookSearchBar({
-      query,
-      onChange
-    }: {
-      query: string
-      onChange: (v: string) => void
-    }) {
-      return (
-        <input
-          data-testid="book-search-bar"
-          value={query}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Search books…"
-        />
-      )
-    }
-  }
-})
-
 vi.mock('@/components/books/BooksLibrary', () => {
   return {
     default: function MockBooksLibrary({
       library,
       searchQuery,
+      onSearchChange,
       onSaved
     }: {
       library: { reading: unknown[] }
       searchQuery: string
+      onSearchChange: (v: string) => void
       onSaved: () => void
     }) {
       return (
@@ -56,6 +37,12 @@ vi.mock('@/components/books/BooksLibrary', () => {
           data-reading-count={library.reading.length}
           data-search-query={searchQuery}
         >
+          <input
+            data-testid="book-search-bar"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search books…"
+          />
           <button data-testid="trigger-saved" onClick={onSaved}>
             save
           </button>
@@ -109,7 +96,7 @@ describe('BooksSection', () => {
     currentSearchParams = new URLSearchParams()
   })
 
-  it('renders the search bar', () => {
+  it('hands the search to BooksLibrary', () => {
     mockLibrary()
     render(<BooksSection />)
     expect(screen.getByTestId('book-search-bar')).toBeInTheDocument()

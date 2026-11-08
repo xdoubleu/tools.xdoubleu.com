@@ -4,6 +4,9 @@ import { useUpdateFinishedAt } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { DateInput } from '@/components/ui/date-input'
 import { Button } from '@/components/ui/button'
+import { FieldError } from '@/components/ui/field-error'
+import { RemoveButton } from '@/components/ui/remove-button'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { swrKeys } from '@/lib/swrKeys'
 
 interface BookReadDatesEditorProps {
@@ -37,7 +40,9 @@ export default function BookReadDatesEditor({ userBook, onSaved }: BookReadDates
 
   return (
     <div>
-      <p className="text-xs text-muted mb-1">{dates.length === 1 ? 'Finished' : 'Read dates'}</p>
+      <SectionHeading level="eyebrow" className="mb-1">
+        {dates.length === 1 ? 'Finished' : 'Read dates'}
+      </SectionHeading>
       <div className="flex flex-col gap-2">
         {dates.map((date, i) => (
           <div key={i} className="flex items-center gap-2">
@@ -52,15 +57,10 @@ export default function BookReadDatesEditor({ userBook, onSaved }: BookReadDates
               className="min-w-0 flex-1 sm:w-40 sm:flex-none"
               aria-label={`Read date ${i + 1}`}
             />
-            <Button
-              type="button"
-              variant="ghost"
-              size="iconSm"
+            <RemoveButton
               aria-label="Remove this date"
               onClick={() => void save(dates.filter((_, j) => j !== i))}
-            >
-              ×
-            </Button>
+            />
           </div>
         ))}
         <Button
@@ -73,11 +73,7 @@ export default function BookReadDatesEditor({ userBook, onSaved }: BookReadDates
           Add date
         </Button>
       </div>
-      {error && (
-        <p className="mt-1 text-xs text-danger" role="alert">
-          {error}
-        </p>
-      )}
+      <FieldError className="mt-1">{error}</FieldError>
     </div>
   )
 }

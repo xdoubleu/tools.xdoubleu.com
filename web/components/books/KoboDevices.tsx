@@ -93,7 +93,7 @@ export default function KoboDevices() {
   }
 
   if (isLoading) {
-    return <LoadingState label="devices" className="text-xs" />
+    return <LoadingState label="devices" />
   }
 
   if (devices.length === 0) {
@@ -109,7 +109,7 @@ export default function KoboDevices() {
       <ul className="space-y-2" data-testid="kobo-devices-list">
         {devices.map((device) => (
           <li key={device.id}>
-            <Card className="rounded-xl px-4 py-3" data-testid={`kobo-device-${device.id}`}>
+            <Card data-testid={`kobo-device-${device.id}`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{device.name}</p>

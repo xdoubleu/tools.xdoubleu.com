@@ -24,10 +24,10 @@ const variantClasses: Record<Variant, string> = {
   link: 'text-accent underline-offset-4 hover:underline active:underline focus-visible:ring-accent/50'
 }
 
-// `md` and `icon` sit on the shared control height; `sm` is the compact size
-// for dense rows and tables only, `iconSm` the compact square for glyphs in them.
+// `md` and `icon` sit on the shared control height. `sm` and `iconSm` are 44px
+// on phones too and compact from `sm:` up, for dense rows and tables.
 const sizeClasses: Record<Size, string> = {
-  sm: 'h-9 px-3 text-sm sm:h-8 sm:text-xs rounded-xl',
+  sm: 'h-11 px-3 text-sm sm:h-8 sm:text-xs rounded-xl',
   md: cn(controlHeightClass, 'px-4 text-sm rounded-xl'),
   lg: 'h-12 px-6 text-base rounded-xl',
   icon: cn(controlSquareClass, 'rounded-xl'),

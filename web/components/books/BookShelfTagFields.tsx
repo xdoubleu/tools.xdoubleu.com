@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Combobox } from '@/components/ui/combobox'
 import { Button } from '@/components/ui/button'
 import { TogglePill } from '@/components/ui/toggle-pill'
+import { FieldError } from '@/components/ui/field-error'
 import {
   SPECIAL_TAGS,
   BOOK_STATUSES,
@@ -187,11 +188,7 @@ export default function BookShelfTagFields({
         )}
       </div>
 
-      {error && (
-        <p className="text-xs text-danger" role="alert">
-          {error}
-        </p>
-      )}
+      <FieldError>{error}</FieldError>
     </div>
   )
 }

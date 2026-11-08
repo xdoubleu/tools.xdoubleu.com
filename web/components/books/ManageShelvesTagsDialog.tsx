@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { isBuiltInShelfId, BOOK_STATUSES } from '@/lib/books/bookShelves'
 import type { Shelf } from '@/components/books/LibrarySidebar'
 import { swrKeys } from '@/lib/swrKeys'
@@ -144,9 +145,9 @@ export default function ManageShelvesTagsDialog({
         )}
 
         <section className="mb-4">
-          <h3 className="mb-2 text-xs font-semibold text-muted uppercase tracking-wide">
+          <SectionHeading level="eyebrow" className="mb-2">
             Built-in shelves
-          </h3>
+          </SectionHeading>
           <div className="flex flex-col gap-1">
             {builtInShelves.map((shelf) => (
               <div
@@ -161,9 +162,9 @@ export default function ManageShelvesTagsDialog({
         </section>
 
         <section className="mb-4">
-          <h3 className="mb-2 text-xs font-semibold text-muted uppercase tracking-wide">
+          <SectionHeading level="eyebrow" className="mb-2">
             Custom shelves
-          </h3>
+          </SectionHeading>
           <div className="mb-2 flex flex-wrap gap-2">
             <Input
               value={newShelfName}
@@ -176,7 +177,6 @@ export default function ManageShelvesTagsDialog({
               className="min-w-0 flex-1 basis-40"
             />
             <Button
-              size="sm"
               onClick={() => void handleCreateShelf()}
               disabled={busy || !newShelfName.trim()}
             >
@@ -202,10 +202,10 @@ export default function ManageShelvesTagsDialog({
                       aria-label="New name"
                       className="min-w-0 flex-1 basis-40"
                     />
-                    <Button size="sm" onClick={() => void handleRename()} disabled={busy}>
+                    <Button onClick={() => void handleRename()} disabled={busy}>
                       Save
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setRenaming(null)}>
+                    <Button variant="ghost" onClick={() => setRenaming(null)}>
                       Cancel
                     </Button>
                   </div>
@@ -246,7 +246,9 @@ export default function ManageShelvesTagsDialog({
         </section>
 
         <section>
-          <h3 className="mb-2 text-xs font-semibold text-muted uppercase tracking-wide">Tags</h3>
+          <SectionHeading level="eyebrow" className="mb-2">
+            Tags
+          </SectionHeading>
           {tags.length === 0 && <EmptyState placement="inline">No tags yet.</EmptyState>}
           <div className="flex flex-col gap-2">
             {tags.map((tag) => (
@@ -264,10 +266,10 @@ export default function ManageShelvesTagsDialog({
                       aria-label="New name"
                       className="min-w-0 flex-1 basis-40"
                     />
-                    <Button size="sm" onClick={() => void handleRename()} disabled={busy}>
+                    <Button onClick={() => void handleRename()} disabled={busy}>
                       Save
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setRenaming(null)}>
+                    <Button variant="ghost" onClick={() => setRenaming(null)}>
                       Cancel
                     </Button>
                   </div>

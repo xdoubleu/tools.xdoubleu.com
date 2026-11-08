@@ -10,6 +10,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { PageHeader } from '@/components/ui/page-header'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
+import { ProgressBar } from '@/components/ui/progress-bar'
+import { SettingsSection, SettingsSections } from '@/components/ui/settings-section'
+import { LoadingState } from '@/components/ui/states'
 import { formatDateTime } from '@/lib/dates'
 
 export default function BooksAdminClient() {
@@ -29,35 +32,25 @@ export default function BooksAdminClient() {
         title="Books admin tools"
       />
 
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Find duplicates
-        </h2>
-        <p className="mb-3 text-xs text-muted">
-          Detect duplicate library entries and merge them. Matching is based on ISBN or normalised
-          title and author. Files, tags, and reading progress are consolidated onto the entry you
-          choose to keep.
-        </p>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => setDuplicatesDialogOpen(true)}
-          data-testid="find-duplicates-btn"
+      <SettingsSections>
+        <SettingsSection
+          title="Find duplicates"
+          description="Detect duplicate library entries and merge them. Matching is based on ISBN or normalised title and author. Files, tags, and reading progress are consolidated onto the entry you choose to keep."
         >
-          Find duplicates
-        </Button>
-      </section>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setDuplicatesDialogOpen(true)}
+            data-testid="find-duplicates-btn"
+          >
+            Find duplicates
+          </Button>
+        </SettingsSection>
 
-      <section className="mt-10 border-t border-border pt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Scan for metadata differences
-        </h2>
-        <p className="mb-3 text-xs text-muted">
-          Fetch UniCat and Hardcover for every book and flag any that differ from your library.
-          Nothing is written automatically — review each flagged book below and pick which source
-          (or your existing library value) should win.
-        </p>
-        <div className="mb-3">
+        <SettingsSection
+          title="Scan for metadata differences"
+          description="Fetch UniCat and Hardcover for every book and flag any that differ from your library. Nothing is written automatically — review each flagged book below and pick which source (or your existing library value) should win."
+        >
           <Checkbox
             id="resync-force"
             checked={force}
@@ -66,80 +59,70 @@ export default function BooksAdminClient() {
             label="Force re-check all sources (ignore cache)"
             data-testid="resync-force-checkbox"
           />
-        </div>
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={isRefreshing}
-            onClick={refresh}
-            data-testid="resync-books-btn"
-          >
-            {isRefreshing ? 'Scanning…' : 'Start resync'}
-          </Button>
-          {isRefreshing && (
+          <div className="flex gap-2">
             <Button
               type="button"
-              variant="destructive"
-              onClick={() => void cancelResync()}
-              data-testid="resync-cancel-btn"
+              variant="secondary"
+              disabled={isRefreshing}
+              onClick={refresh}
+              data-testid="resync-books-btn"
             >
-              Stop
+              {isRefreshing ? 'Scanning…' : 'Start resync'}
             </Button>
-          )}
-        </div>
-        {isRefreshing && (
-          <div className="mt-3" data-testid="resync-books-progress">
-            {total !== null ? (
-              <>
-                <div className="mb-1 flex justify-between text-xs text-muted">
-                  <span>Scanning books…</span>
-                  <span>
-                    {processed ?? 0} / {total}
-                  </span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-sm bg-border">
-                  <div
-                    className="h-full rounded-sm bg-fg transition-all duration-300"
-                    style={{
-                      width: `${total > 0 ? (((processed ?? 0) / total) * 100).toFixed(1) : 0}%`
-                    }}
-                  />
-                </div>
-              </>
-            ) : (
-              <p className="text-xs text-muted">Scanning…</p>
+            {isRefreshing && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => void cancelResync()}
+                data-testid="resync-cancel-btn"
+              >
+                Stop
+              </Button>
             )}
           </div>
-        )}
-        {!isRefreshing && lastRefresh && (
-          <p className="mt-2 text-xs text-muted" data-testid="resync-books-status">
-            Last scanned {formatDateTime(lastRefresh)}
-          </p>
-        )}
-      </section>
+          {isRefreshing && (
+            <div data-testid="resync-books-progress">
+              {total !== null ? (
+                <>
+                  <div className="mb-1 flex justify-between text-xs text-muted">
+                    <span>Scanning books…</span>
+                    <span>
+                      {processed ?? 0} / {total}
+                    </span>
+                  </div>
+                  <ProgressBar
+                    value={processed ?? 0}
+                    max={total}
+                    aria-label="Resync progress"
+                    valueText={`${processed ?? 0} of ${total} books`}
+                  />
+                </>
+              ) : (
+                <LoadingState />
+              )}
+            </div>
+          )}
+          {!isRefreshing && lastRefresh && (
+            <p className="text-xs text-muted" data-testid="resync-books-status">
+              Last scanned {formatDateTime(lastRefresh)}
+            </p>
+          )}
+        </SettingsSection>
 
-      <section className="mt-10 border-t border-border pt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Review flagged books
-        </h2>
-        <p className="mb-4 text-xs text-muted">
-          Step through books flagged by the last scan. For each one, pick the source you trust — or
-          keep your library value — and apply.
-        </p>
-        <ResyncWizard />
-      </section>
+        <SettingsSection
+          title="Review flagged books"
+          description="Step through books flagged by the last scan. For each one, pick the source you trust — or keep your library value — and apply."
+        >
+          <ResyncWizard />
+        </SettingsSection>
 
-      <section className="mt-10 border-t border-border pt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-          Source stats
-        </h2>
-        <p className="mb-4 text-xs text-muted">
-          Found counts how many books the last scan located in each source; Applied counts how many
-          books currently use that source&apos;s metadata (recorded whenever you apply one).
-        </p>
-        <SourceStats />
-      </section>
+        <SettingsSection
+          title="Source stats"
+          description="Found counts how many books the last scan located in each source; Applied counts how many books currently use that source’s metadata (recorded whenever you apply one)."
+        >
+          <SourceStats />
+        </SettingsSection>
+      </SettingsSections>
 
       <ManageDuplicatesDialog open={duplicatesDialogOpen} onOpenChange={setDuplicatesDialogOpen} />
     </PageContainer>

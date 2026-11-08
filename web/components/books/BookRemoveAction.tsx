@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
-import { Button } from '@/components/ui/button'
+import { RemoveButton } from '@/components/ui/remove-button'
 import RemoveBookDialog from '@/components/books/RemoveBookDialog'
 
 interface BookRemoveActionProps {
@@ -13,16 +13,10 @@ export default function BookRemoveAction({ userBook, onSaved }: BookRemoveAction
 
   return (
     <>
-      <Button
-        type="button"
-        variant="ghost"
-        size="iconSm"
-        className="text-danger hover:text-danger"
+      <RemoveButton
         aria-label={`Remove ${userBook.book?.title ?? 'book'} from library`}
         onClick={() => setOpen(true)}
-      >
-        ✕
-      </Button>
+      />
       <RemoveBookDialog
         userBook={userBook}
         title={userBook.book?.title ?? 'this book'}

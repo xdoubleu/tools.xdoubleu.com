@@ -1,4 +1,5 @@
 import type { ReactNode, RefObject } from 'react'
+import { ProgressBar } from '@/components/ui/progress-bar'
 import { Button } from '@/components/ui/button'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { readerBackground, type ReaderTheme } from '@/lib/books/readerSettings'
@@ -69,16 +70,7 @@ export default function ReaderShell({
       </div>
 
       <div className="shrink-0 border-t border-border bg-card px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-        <div
-          className="h-1 w-full overflow-hidden rounded-sm bg-surface"
-          role="progressbar"
-          aria-label="Reading progress"
-          aria-valuenow={percent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        >
-          <div className="h-full bg-accent" style={{ width: `${percent}%` }} />
-        </div>
+        <ProgressBar value={percent} aria-label="Reading progress" className="h-1" />
         <div className="mt-1 flex justify-between gap-3 text-xs text-muted">
           <span className="min-w-0 truncate">{tocLabel}</span>
           <span className="shrink-0 tabular-nums">{percent}%</span>

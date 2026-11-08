@@ -28,7 +28,7 @@ describe('Button', () => {
     )
     const btn = screen.getByRole('button', { name: 'Delete' })
     expect(btn).toHaveClass('bg-danger')
-    expect(btn).toHaveClass('h-9', 'sm:h-8')
+    expect(btn).toHaveClass('h-11', 'sm:h-8')
   })
 
   it('puts the default size on the shared control height', () => {

@@ -11,7 +11,7 @@
 
 - **Mobile-first.**
   - One control height (`components/ui/control.ts`): 44px below `sm`, 36px from `sm`. `Button` (default and `icon`), `Input`, `Select`, `Combobox`, `TogglePill`, `SegmentedTabs` and `MenuItem` all use it, so a row of controls lines up. Fields are ≥16px.
-  - `Button size="sm"` (36px, 32px from `sm`) and `iconSm` are for dense rows and tables only. Don't resize a control with `h-*`, `py-*` or `text-xs`/`text-sm` (`ui/control-overrides`); a multi-line button uses `h-auto`.
+  - `Button size="sm"` and `iconSm` are 44px on phones too; they are compact only from `sm` (32px, 28px), for dense rows and tables. Don't resize a control with `h-*`, `py-*` or `text-xs`/`text-sm` (`ui/control-overrides`); a multi-line button uses `h-auto`.
   - No fixed pixel sizes, no `vh`/`h-screen` (use `dvh`), and no bare `grid-cols-N≥3`.
 - **Primitives for every control and repeated pattern.** The inventory is [`web/components/ui/README.md`](../web/components/ui/README.md) (generated). If nothing fits, add a primitive.
   - `PageHeader` for the page `<h1>`. Its `actions` are all bordered: `PageHeaderLink`/`PageHeaderSettingsLink` to navigate, `secondary` buttons for commands. Only create (default) and delete (destructive) stand out.

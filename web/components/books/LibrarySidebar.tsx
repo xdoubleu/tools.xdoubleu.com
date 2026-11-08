@@ -1,5 +1,6 @@
 import { Link } from '@/components/ui/link'
 import { cn } from '@/lib/cn'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { Button } from '@/components/ui/button'
 import { MenuItem } from '@/components/ui/menu-item'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
@@ -126,9 +127,9 @@ export default function LibrarySidebar({
         className="hidden md:flex flex-col gap-1 min-w-44 shrink-0"
         aria-label="Library navigation"
       >
-        <p className="px-3 py-1 text-xs font-semibold text-muted uppercase tracking-wide">
+        <SectionHeading level="eyebrow" className="px-3 py-1">
           Shelves
-        </p>
+        </SectionHeading>
         {shelves.map((shelf) => (
           <NavItem
             key={shelf.id}
@@ -142,9 +143,9 @@ export default function LibrarySidebar({
         {allTags.length > 0 && (
           <>
             <div className="my-1 h-px bg-border" />
-            <p className="px-3 py-1 text-xs font-semibold text-muted uppercase tracking-wide">
+            <SectionHeading level="eyebrow" className="px-3 py-1">
               Tags
-            </p>
+            </SectionHeading>
             {allTags.map((tag) => (
               <NavItem
                 key={tag.name}
@@ -160,9 +161,9 @@ export default function LibrarySidebar({
         {series.length > 0 && (
           <>
             <div className="my-1 h-px bg-border" />
-            <p className="px-3 py-1 text-xs font-semibold text-muted uppercase tracking-wide">
+            <SectionHeading level="eyebrow" className="px-3 py-1">
               Series
-            </p>
+            </SectionHeading>
             {series.map((s) => (
               <Button
                 key={s.name}

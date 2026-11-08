@@ -6,13 +6,18 @@ import LibrarySidebar, {
   type ShelfId
 } from '@/components/books/LibrarySidebar'
 import BooksTable from '@/components/books/BooksTable'
+import { LibraryTableControls } from '@/components/books/BooksTableToolbar'
+import BookSearchBar from '@/components/books/BookSearchBar'
+import { applyFilters, useLibraryTableState } from '@/components/books/useLibraryTableState'
 import BookCard from '@/components/books/BookCard'
 import ExternalBookCard from '@/components/books/ExternalBookCard'
 import ManageShelvesTagsDialog from '@/components/books/ManageShelvesTagsDialog'
 import { useSearchExternal } from '@/hooks/useBooks'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/books/bookShelves'
 import { buildSeriesSummaries } from '@/lib/books/series'
-import { EmptyState } from '@/components/ui/states'
+import { EmptyState, LoadingState } from '@/components/ui/states'
+import { SectionHeading } from '@/components/ui/section-heading'
+import { Toolbar } from '@/components/ui/toolbar'
 
 type Selection = { kind: 'shelf'; id: ShelfId } | { kind: 'tag'; tag: string }
 
@@ -30,6 +35,7 @@ interface BooksLibraryProps {
   library: LibraryResponse
   knownShelves: string[]
   searchQuery: string
+  onSearchChange: (query: string) => void
   onSaved: () => void
 }
 
@@ -37,6 +43,7 @@ export default function BooksLibrary({
   library,
   knownShelves,
   searchQuery,
+  onSearchChange,
   onSaved
 }: BooksLibraryProps) {
   const shelves = buildShelves(library)
@@ -45,6 +52,7 @@ export default function BooksLibrary({
 
   const [selection, setSelection] = useState<Selection>({ kind: 'shelf', id: 'all' })
   const [manageOpen, setManageOpen] = useState(false)
+  const table = useLibraryTableState()
   const searchExternal = useSearchExternal()
   const [externalResults, setExternalResults] = useState<ExternalBookResult[]>([])
   const [isSearchingExternal, setIsSearchingExternal] = useState(false)
@@ -129,10 +137,20 @@ export default function BooksLibrary({
     : selection.kind === 'tag'
       ? selection.tag
       : (currentShelf?.label ?? '')
-  const resultCount = filteredBooks.length + externalResults.length
+  const resultCount = isSearching
+    ? filteredBooks.length + externalResults.length
+    : applyFilters(filteredBooks, table.filters).length
 
   return (
     <>
+      <Toolbar
+        aria-label="Filter books"
+        search={<BookSearchBar query={searchQuery} onChange={onSearchChange} />}
+        trailing={`${resultCount} ${resultCount === 1 ? 'book' : 'books'}`}
+      >
+        {!isSearching && <LibraryTableControls state={table} />}
+      </Toolbar>
+
       <div className="flex flex-col md:flex-row gap-6">
         <LibrarySidebar
           shelves={shelves}
@@ -146,10 +164,7 @@ export default function BooksLibrary({
         />
 
         <div className="flex-1 min-w-0">
-          <h2 className="mb-3 min-w-0 truncate text-lg font-semibold">
-            {headerLabel}
-            <span className="ml-2 text-sm font-normal text-muted">{resultCount}</span>
-          </h2>
+          <SectionHeading className="mb-3 truncate">{headerLabel}</SectionHeading>
 
           {isSearching ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -162,9 +177,7 @@ export default function BooksLibrary({
               {!isSearchingExternal && resultCount === 0 && (
                 <EmptyState className="col-span-full">No results.</EmptyState>
               )}
-              {isSearchingExternal && (
-                <p className="col-span-full text-sm text-muted">Searching…</p>
-              )}
+              {isSearchingExternal && <LoadingState label="results" className="col-span-full" />}
             </div>
           ) : (
             <BooksTable
@@ -172,6 +185,7 @@ export default function BooksLibrary({
               knownShelves={knownShelves}
               knownTags={knownTags}
               onSaved={onSaved}
+              state={table}
             />
           )}
         </div>

@@ -1,7 +1,6 @@
 import { useRouter, useSearchParams } from '@/hooks/navigation'
 import { mutate } from 'swr'
 import { useLibrary } from '@/hooks/useBooks'
-import BookSearchBar from '@/components/books/BookSearchBar'
 import BooksLibrary from '@/components/books/BooksLibrary'
 import { swrKeys } from '@/lib/swrKeys'
 import { LoadingState, ErrorState } from '@/components/ui/states'
@@ -31,17 +30,14 @@ export default function BooksSection() {
 
   return (
     <section>
-      <div className="mb-4 w-full max-w-md">
-        <BookSearchBar query={query} onChange={setQuery} />
-      </div>
-
-      {libLoading && <LoadingState label="books" />}
-      {libError && <ErrorState what="books" />}
+      {libLoading && <LoadingState label="books" placement="page" />}
+      {libError && <ErrorState what="books" placement="page" />}
       {library && (
         <BooksLibrary
           library={library}
           knownShelves={knownShelves}
           searchQuery={query}
+          onSearchChange={setQuery}
           onSaved={handleLibraryRefresh}
         />
       )}

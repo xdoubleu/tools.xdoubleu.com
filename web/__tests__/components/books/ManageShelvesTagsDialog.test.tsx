@@ -207,4 +207,13 @@ describe('ManageShelvesTagsDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(screen.getByText('Server error')).toBeInTheDocument())
   })
+
+  it('cancels a tag rename', () => {
+    renderDialog(['fantasy'])
+    const renameButtons = screen.getAllByRole('button', { name: 'Rename' })
+    fireEvent.click(renameButtons[renameButtons.length - 1])
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByDisplayValue('fantasy')).not.toBeInTheDocument()
+    expect(mockRenameTag).not.toHaveBeenCalled()
+  })
 })

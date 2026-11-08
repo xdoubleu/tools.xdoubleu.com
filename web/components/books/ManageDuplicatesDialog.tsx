@@ -63,7 +63,7 @@ function DuplicateGroupCard({
   const conflicts = detectConflicts(group)
 
   return (
-    <Card className="space-y-3 rounded-xl p-4">
+    <Card className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-muted">{reasonLabel(group.reason)}</span>
         <Button type="button" variant="secondary" size="sm" disabled={merging} onClick={onMerge}>

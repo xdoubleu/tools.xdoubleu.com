@@ -29,7 +29,11 @@ export default function ExternalBookCard({ book }: ExternalBookCardProps) {
   )
 
   if (!book.providerId) {
-    return <Card className="flex items-start gap-3 p-3">{content}</Card>
+    return (
+      <Card padding="sm" className="flex items-start gap-3">
+        {content}
+      </Card>
+    )
   }
 
   return (

@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { swrKeys } from '@/lib/swrKeys'
 import { Alert } from '@/components/ui/alert'
+import { LoadingState } from '@/components/ui/states'
 
 // Admin control to live-fetch and apply an external source to any one book
 // (the resync wizard only covers flagged books).
@@ -31,8 +32,8 @@ export default function BookSourceSync({ bookId }: { bookId: string }) {
   }
 
   return (
-    <Card className="p-4">
-      {isLoading && <p className="text-sm text-muted">Fetching sources…</p>}
+    <Card>
+      {isLoading && <LoadingState label="sources" />}
       {fetchError && <Alert tone="danger">Failed to fetch sources.</Alert>}
       {data?.proposal && (
         <SourceCompare

@@ -104,4 +104,13 @@ describe('BooksSettingsClient', () => {
     render(<BooksSettingsClient />)
     expect(screen.queryByText('RSS feeds')).not.toBeInTheDocument()
   })
+
+  it('announces the CSV import result', async () => {
+    mockImportBooks.mockResolvedValue({ importedCount: 2 })
+    render(<BooksSettingsClient />)
+    fireEvent.change(screen.getByTestId('csv-input'), {
+      target: { files: [new File(['title\nDune'], 'books.csv', { type: 'text/csv' })] }
+    })
+    expect(await screen.findByText('Imported 2 book(s).')).toHaveAttribute('role', 'status')
+  })
 })

@@ -63,7 +63,7 @@ export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
         <div className="flex items-center gap-2">
           <Button
             type="button"
-            variant="ghost"
+            variant="secondary"
             size="sm"
             onClick={() => mutate()}
             data-testid="kobo-logs-refresh"
@@ -101,9 +101,11 @@ export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
       )}
 
       {isLoading ? (
-        <LoadingState label="logs" className="text-xs" />
+        <LoadingState label="logs" />
       ) : entries.length === 0 ? (
-        <EmptyState>No requests captured yet. Sync your Kobo, then refresh.</EmptyState>
+        <EmptyState placement="inline">
+          No requests captured yet. Sync your Kobo, then refresh.
+        </EmptyState>
       ) : (
         <ul className="space-y-2" data-testid="kobo-logs-list">
           {entries
@@ -111,7 +113,7 @@ export default function KoboDeviceLogs({ deviceId }: KoboDeviceLogsProps) {
             .reverse()
             .map((entry, i) => (
               <li key={`${entry.time}-${i}`}>
-                <Card className="rounded-lg p-2 text-xs">
+                <Card padding="sm" className="text-xs">
                   <div className="flex flex-wrap items-center gap-2 font-mono">
                     <span className="font-semibold">{entry.method}</span>
                     <span className="min-w-0 break-all">{entry.path}</span>

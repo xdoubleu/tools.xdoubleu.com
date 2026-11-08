@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { SeriesEntry } from '@/lib/gen/books/v1/library_pb'
 import { Artwork } from '@/components/ui/artwork'
+import { FieldError } from '@/components/ui/field-error'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -87,7 +88,8 @@ function MissingEntry({
 
   return (
     <Card
-      className="flex flex-col gap-3 p-3 sm:flex-row sm:items-start"
+      padding="sm"
+      className="flex flex-col gap-3 sm:flex-row sm:items-start"
       data-testid="series-missing"
     >
       <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -99,11 +101,7 @@ function MissingEntry({
           <Badge variant="warn" className="mt-1">
             Not in library
           </Badge>
-          {error && (
-            <p className="mt-1 text-xs text-danger" role="alert">
-              Failed to add. Try again.
-            </p>
-          )}
+          {error && <FieldError className="mt-1">Failed to add. Try again.</FieldError>}
         </div>
       </div>
       <Button size="sm" variant="secondary" disabled={adding} onClick={handleAdd}>

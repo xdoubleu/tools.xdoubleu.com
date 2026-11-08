@@ -2,7 +2,9 @@ import { Popover } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import type { ColumnKey, BookColumn } from '@/components/books/booksTableColumns'
+import { SectionHeading } from '@/components/ui/section-heading'
+import { ALL_COLUMNS, type ColumnKey, type BookColumn } from '@/components/books/booksTableColumns'
+import type { LibraryTableState } from '@/components/books/useLibraryTableState'
 
 export interface LibraryFilters {
   /** Special ownership tags: 'own-physical' | 'own-digital' | 'own-bol'. */
@@ -38,19 +40,19 @@ export default function BooksTableToolbar({
   const toggleableColumns = columns.filter((c) => !c.alwaysVisible)
 
   return (
-    <div className="flex items-center gap-2">
+    <>
       <Popover
         align="left"
         trigger={({ open, onClick }) => (
-          <Button variant="secondary" size="sm" onClick={onClick} aria-expanded={open}>
+          <Button variant="secondary" onClick={onClick} aria-expanded={open}>
             Columns
           </Button>
         )}
       >
         <div className="space-y-1.5">
-          <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">
+          <SectionHeading level="eyebrow" className="mb-2">
             Show columns
-          </p>
+          </SectionHeading>
           <div className="flex flex-col gap-1">
             {toggleableColumns.map((col) => (
               <Checkbox
@@ -68,7 +70,7 @@ export default function BooksTableToolbar({
       <Popover
         align="left"
         trigger={({ open, onClick }) => (
-          <Button variant="secondary" size="sm" onClick={onClick} aria-expanded={open}>
+          <Button variant="secondary" onClick={onClick} aria-expanded={open}>
             Filters
             {activeFilterCount > 0 && (
               <Badge variant="default" className="ml-1.5 px-1.5 py-0 text-xs">
@@ -80,7 +82,7 @@ export default function BooksTableToolbar({
       >
         <div className="space-y-3 min-w-40">
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-muted uppercase tracking-wide">Ownership</p>
+            <SectionHeading level="eyebrow">Ownership</SectionHeading>
             <div className="flex flex-col gap-1">
               <Checkbox
                 id="filter-own-physical"
@@ -104,7 +106,7 @@ export default function BooksTableToolbar({
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-muted uppercase tracking-wide">Format</p>
+            <SectionHeading level="eyebrow">Format</SectionHeading>
             <div className="flex flex-col gap-1">
               <Checkbox
                 id="filter-format-pdf"
@@ -122,7 +124,7 @@ export default function BooksTableToolbar({
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-muted uppercase tracking-wide">Kobo</p>
+            <SectionHeading level="eyebrow">Kobo</SectionHeading>
             <div className="flex flex-col gap-1">
               <Checkbox
                 id="filter-kobo-sync"
@@ -134,12 +136,28 @@ export default function BooksTableToolbar({
           </div>
 
           {activeFilterCount > 0 && (
-            <Button variant="secondary" size="sm" onClick={onClearFilters} className="w-full">
+            <Button variant="secondary" onClick={onClearFilters} className="w-full">
               Clear filters
             </Button>
           )}
         </div>
       </Popover>
-    </div>
+    </>
+  )
+}
+
+/** The Columns and Filters popovers bound to the library table's state, for a `Toolbar`. */
+export function LibraryTableControls({ state }: { state: LibraryTableState }) {
+  return (
+    <BooksTableToolbar
+      columns={ALL_COLUMNS}
+      visibleColumns={state.visibleColumns}
+      onToggleColumn={state.toggleColumn}
+      filters={state.filters}
+      onToggleOwnership={state.toggleOwnership}
+      onToggleFormat={state.toggleFormat}
+      onToggleKobo={state.toggleKobo}
+      onClearFilters={state.clearFilters}
+    />
   )
 }

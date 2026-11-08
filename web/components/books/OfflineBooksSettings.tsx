@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/dialog'
+import { SettingsSection } from '@/components/ui/settings-section'
 import {
   deleteAllStoredBooks,
   listStoredBooks,
@@ -47,15 +48,10 @@ export default function OfflineBooksSettings() {
   }
 
   return (
-    <section className="mt-10 border-t border-border pt-8">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
-        Offline books
-      </h2>
-      <p className="mb-3 text-xs text-muted">
-        Books you open in the reader, and books you&apos;re currently reading, are kept on this
-        device for offline reading. Finished books are removed. On iPhone and iPad they&apos;re kept
-        reliably only when this app is added to the Home Screen.
-      </p>
+    <SettingsSection
+      title="Offline books"
+      description="Books you open in the reader, and books you’re currently reading, are kept on this device for offline reading. Finished books are removed. On iPhone and iPad they’re kept reliably only when this app is added to the Home Screen."
+    >
       {summary && (
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm">
@@ -64,12 +60,7 @@ export default function OfflineBooksSettings() {
               : `${summary.books} ${summary.books === 1 ? 'book' : 'books'} stored on this device (${formatStorageSize(summary.bytes)}).`}
           </p>
           {summary.books > 0 && (
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={() => setConfirming(true)}
-            >
+            <Button type="button" variant="destructive" onClick={() => setConfirming(true)}>
               Remove offline books
             </Button>
           )}
@@ -86,6 +77,6 @@ export default function OfflineBooksSettings() {
         pending={removing}
         onConfirm={() => void handleRemove()}
       />
-    </section>
+    </SettingsSection>
   )
 }
