@@ -4,43 +4,43 @@
 /* RGB triples swap per theme and reach Tailwind via `@theme inline`, so
  * utilities and opacity modifiers track the active scheme. */
 :root {
-  --bg-rgb: 250 247 243;
-  --surface-rgb: 255 253 249;
-  --card-rgb: 255 253 249;
+  --bg-rgb: 242 242 247;
+  --surface-rgb: 255 255 255;
+  --card-rgb: 255 255 255;
   /* Hover fill for surface/ghost controls */
-  --hover-rgb: 241 235 225;
+  --hover-rgb: 229 229 234;
 
-  --fg-rgb: 31 28 23;
-  --muted-rgb: 107 101 92;
-  --subtle-rgb: 69 64 58;
+  --fg-rgb: 0 0 0;
+  --muted-rgb: 99 99 102;
+  --subtle-rgb: 60 60 67;
 
-  --border-rgb: 229 221 210;
+  --border-rgb: 209 209 214;
 
-  --input-rgb: 255 253 249;
-  --input-border-rgb: 196 187 174;
-  --input-text-rgb: 31 28 23;
+  --input-rgb: 255 255 255;
+  --input-border-rgb: 174 174 178;
+  --input-text-rgb: 0 0 0;
 
-  /* Terracotta */
-  --accent-rgb: 180 69 38;
-  --accent-hover-rgb: 153 56 28;
+  /* Apple system blue */
+  --accent-rgb: 0 122 255;
+  --accent-hover-rgb: 0 102 214;
 
-  --success-rgb: 74 138 70;
-  --warn-rgb: 217 119 6;
-  --danger-rgb: 200 50 40;
+  --success-rgb: 52 199 89;
+  --warn-rgb: 255 149 0;
+  --danger-rgb: 255 59 48;
   /* Favourite hearts and rating stars */
-  --star-rgb: 224 150 20;
+  --star-rgb: 245 158 11;
 
-  /* Categorical chart series (warm family); charts read the
+  /* Categorical chart series (Apple system colours); charts read the
    * triples directly, since no utility uses them. */
-  --series-1-rgb: 180 69 38;
-  --series-2-rgb: 94 130 70;
-  --series-3-rgb: 217 140 30;
-  --series-4-rgb: 130 80 120;
-  --series-5-rgb: 200 70 90;
-  --series-6-rgb: 60 130 130;
+  --series-1-rgb: 0 122 255;
+  --series-2-rgb: 52 199 89;
+  --series-3-rgb: 255 149 0;
+  --series-4-rgb: 175 82 222;
+  --series-5-rgb: 255 45 85;
+  --series-6-rgb: 48 176 199;
 
   /* Translucent sticky navbar/footer */
-  --glass-rgb: 255 253 249;
+  --glass-rgb: 255 255 255;
   --glass-opacity: 0.72;
 
   /* Top padding for surfaces under the status bar. */
@@ -83,37 +83,37 @@
 /* Keyed off `data-theme` so the Appearance setting can force a scheme;
  * `themeInitScript` (lib/theme.ts) sets it before first paint. */
 :root[data-theme='dark'] {
-  --bg-rgb: 20 18 16;
-  --surface-rgb: 30 27 23;
-  --card-rgb: 30 27 23;
-  --hover-rgb: 46 42 36;
+  --bg-rgb: 0 0 0;
+  --surface-rgb: 28 28 30;
+  --card-rgb: 28 28 30;
+  --hover-rgb: 44 44 46;
 
-  --fg-rgb: 245 241 233;
-  --muted-rgb: 160 153 142;
-  --subtle-rgb: 184 177 166;
+  --fg-rgb: 255 255 255;
+  --muted-rgb: 152 152 157;
+  --subtle-rgb: 174 174 178;
 
-  --border-rgb: 58 53 46;
+  --border-rgb: 58 58 60;
 
-  --input-rgb: 46 42 36;
-  --input-border-rgb: 78 72 63;
-  --input-text-rgb: 245 241 233;
+  --input-rgb: 44 44 46;
+  --input-border-rgb: 72 72 74;
+  --input-text-rgb: 255 255 255;
 
-  --accent-rgb: 224 112 74;
-  --accent-hover-rgb: 236 140 108;
+  --accent-rgb: 10 132 255;
+  --accent-hover-rgb: 64 156 255;
 
-  --success-rgb: 108 170 100;
-  --warn-rgb: 240 150 40;
-  --danger-rgb: 240 90 75;
-  --star-rgb: 245 185 50;
+  --success-rgb: 48 209 88;
+  --warn-rgb: 255 159 10;
+  --danger-rgb: 255 69 58;
+  --star-rgb: 251 191 36;
 
-  --series-1-rgb: 224 112 74;
-  --series-2-rgb: 130 170 100;
-  --series-3-rgb: 240 165 60;
-  --series-4-rgb: 178 120 170;
-  --series-5-rgb: 235 105 125;
-  --series-6-rgb: 95 175 170;
+  --series-1-rgb: 10 132 255;
+  --series-2-rgb: 48 209 88;
+  --series-3-rgb: 255 159 10;
+  --series-4-rgb: 191 90 242;
+  --series-5-rgb: 255 55 95;
+  --series-6-rgb: 64 200 224;
 
-  --glass-rgb: 30 27 23;
+  --glass-rgb: 28 28 30;
   --glass-opacity: 0.8;
 }
 
@@ -150,9 +150,9 @@
 @theme {
   --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
 
-  --shadow-glass: 0 1px 3px 0 rgb(40 25 10 / 0.08), 0 1px 2px -1px rgb(40 25 10 / 0.05);
-  --shadow-card: 0 1px 3px 0 rgb(40 25 10 / 0.06), 0 1px 2px -1px rgb(40 25 10 / 0.04);
-  --shadow-elevated: 0 4px 16px 0 rgb(40 25 10 / 0.1), 0 2px 4px -1px rgb(40 25 10 / 0.06);
+  --shadow-glass: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-elevated: 0 4px 16px 0 rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06);
 
   /* Motion spec: an overshoot spring, a press (tap answer) and a settle (entrance). */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);

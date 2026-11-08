@@ -10,19 +10,9 @@ import {
 } from '@/lib/gen/books/v1/library_pb'
 
 const mockSearchExternal = vi.fn()
-const mockCreateBook = vi.fn()
-
-// AddManualBookDialog also calls useLibrary; vi.mock factories can't use
-// imports, so stub a minimal shape.
 vi.mock('@/hooks/useBooks', async () => ({
   ...(await vi.importActual('@/hooks/useBooks')),
-  useSearchExternal: () => mockSearchExternal,
-  useCreateBook: () => mockCreateBook,
-  useLibrary: () => ({
-    data: { library: { shelves: [] } },
-    isLoading: false,
-    error: undefined
-  })
+  useSearchExternal: () => mockSearchExternal
 }))
 
 vi.useFakeTimers()
@@ -111,7 +101,6 @@ describe('BooksLibrary', () => {
   beforeEach(() => {
     mockSearchExternal.mockReset()
     mockSearchExternal.mockResolvedValue({ results: [] })
-    mockCreateBook.mockReset()
   })
 
   afterEach(() => {
@@ -406,42 +395,5 @@ describe('BooksLibrary', () => {
     await waitFor(() => {
       expect(screen.getByText('No results.')).toBeInTheDocument()
     })
-  })
-
-  it('shows a persistent "Add book" button even when not searching', () => {
-    renderLibrary(makeLibrary())
-    expect(screen.getByRole('button', { name: 'Add book' })).toBeInTheDocument()
-  })
-
-  it('opens the manual-add dialog from the persistent button, prefilled with the search query', async () => {
-    renderLibrary(makeLibrary(), { searchQuery: 'Dungeon Crawler Carl' })
-    await act(async () => {
-      vi.advanceTimersByTime(300)
-    })
-    await waitFor(() => {
-      expect(screen.getByText('No results.')).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: 'Add book' }))
-
-    expect(screen.getByRole('heading', { name: 'Add book manually' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Title')).toHaveValue('Dungeon Crawler Carl')
-  })
-
-  it('opens the manual-add dialog even when a search returns an (unwanted) match', () => {
-    // Shown even when the search found something.
-    renderLibrary(makeLibrary(), { searchQuery: 'dune' })
-    fireEvent.click(screen.getByRole('button', { name: 'Add book' }))
-    expect(screen.getByRole('heading', { name: 'Add book manually' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Title')).toHaveValue('dune')
-  })
-
-  it('closes the manual-add dialog via its Cancel button', () => {
-    renderLibrary(makeLibrary())
-    fireEvent.click(screen.getByRole('button', { name: 'Add book' }))
-    expect(screen.getByRole('heading', { name: 'Add book manually' })).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByRole('heading', { name: 'Add book manually' })).not.toBeInTheDocument()
   })
 })

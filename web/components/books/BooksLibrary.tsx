@@ -9,13 +9,10 @@ import BooksTable from '@/components/books/BooksTable'
 import BookCard from '@/components/books/BookCard'
 import ExternalBookCard from '@/components/books/ExternalBookCard'
 import ManageShelvesTagsDialog from '@/components/books/ManageShelvesTagsDialog'
-import AddManualBookDialog from '@/components/books/AddManualBookDialog'
-import { Button } from '@/components/ui/button'
 import { useSearchExternal } from '@/hooks/useBooks'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/books/bookShelves'
 import { buildSeriesSummaries } from '@/lib/books/series'
 import { EmptyState } from '@/components/ui/states'
-import { ThumbAction, ThumbActionSpacer } from '@/components/ui/thumb-action'
 
 type Selection = { kind: 'shelf'; id: ShelfId } | { kind: 'tag'; tag: string }
 
@@ -48,7 +45,6 @@ export default function BooksLibrary({
 
   const [selection, setSelection] = useState<Selection>({ kind: 'shelf', id: 'all' })
   const [manageOpen, setManageOpen] = useState(false)
-  const [manualAddOpen, setManualAddOpen] = useState(false)
   const searchExternal = useSearchExternal()
   const [externalResults, setExternalResults] = useState<ExternalBookResult[]>([])
   const [isSearchingExternal, setIsSearchingExternal] = useState(false)
@@ -150,18 +146,10 @@ export default function BooksLibrary({
         />
 
         <div className="flex-1 min-w-0">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="min-w-0 truncate text-lg font-semibold">
-              {headerLabel}
-              <span className="ml-2 text-sm font-normal text-muted">{resultCount}</span>
-            </h2>
-            {/* Always visible: it's the only way to reach manual add. */}
-            <ThumbAction>
-              <Button type="button" size="sm" onClick={() => setManualAddOpen(true)}>
-                Add book
-              </Button>
-            </ThumbAction>
-          </div>
+          <h2 className="mb-3 min-w-0 truncate text-lg font-semibold">
+            {headerLabel}
+            <span className="ml-2 text-sm font-normal text-muted">{resultCount}</span>
+          </h2>
 
           {isSearching ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -188,7 +176,6 @@ export default function BooksLibrary({
           )}
         </div>
       </div>
-      <ThumbActionSpacer />
 
       <ManageShelvesTagsDialog
         open={manageOpen}
@@ -196,14 +183,6 @@ export default function BooksLibrary({
         shelves={shelves}
         tags={allTags.map((t) => t.name)}
       />
-
-      {manualAddOpen && (
-        <AddManualBookDialog
-          initialTitle={searchQuery.trim()}
-          onClose={() => setManualAddOpen(false)}
-          onAdded={onSaved}
-        />
-      )}
     </>
   )
 }
