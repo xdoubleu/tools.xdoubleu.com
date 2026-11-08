@@ -92,10 +92,14 @@ export default function ItemCatalog() {
   const handleMerge = (name: string, canonical: string) =>
     enqueueWrite(setItemAliasWrite, { name, canonical })
 
-  if (isLoading) return <LoadingState className="text-sm" />
-  if (error && !namesData) return <ErrorState what="items" className="text-sm" />
+  if (isLoading) return <LoadingState placement="inline" />
+  if (error && !namesData) return <ErrorState placement="inline" what="items" />
   if (names.length === 0) {
-    return <EmptyState>No items yet. Add custom items or recipe ingredients first.</EmptyState>
+    return (
+      <EmptyState placement="inline">
+        No items yet. Add custom items or recipe ingredients first.
+      </EmptyState>
+    )
   }
 
   return (
@@ -115,7 +119,7 @@ export default function ItemCatalog() {
           <ul className="space-y-2">
             {group.items.map((item) => (
               <li key={item.name}>
-                <Card variant="inset" className="flex flex-wrap items-center gap-2 p-2">
+                <Card variant="inset" className="flex flex-wrap items-center gap-2">
                   <span
                     className={cn(
                       'min-w-0 flex-1 basis-32 break-words text-sm',
@@ -129,7 +133,6 @@ export default function ItemCatalog() {
                       <span className="text-xs text-muted">→ {item.mergedInto}</span>
                       <Button
                         variant="secondary"
-                        size="sm"
                         aria-label={`Unmerge ${item.name}`}
                         onClick={() => handleMerge(item.name, '')}
                       >

@@ -13,16 +13,16 @@ export default function EditPlanClient({ id }: { id: string }) {
   return (
     <PageContainer size="form">
       <PageHeader
-        title="Settings"
+        title="Edit plan"
         breadcrumb={[
           { label: 'Meal Plans', href: '/mealplans' },
           { label: plan?.name ?? 'Plan', href: `/mealplans/${id}` },
-          { label: 'Settings' }
+          { label: 'Edit plan' }
         ]}
       />
 
-      {isLoading && <LoadingState label="plan" />}
-      {error && <ErrorState what="plan" />}
+      {isLoading && <LoadingState placement="page" label="plan" />}
+      {error && <ErrorState placement="page" what="plan" />}
       {plan && (
         <PlanForm
           plan={plan}

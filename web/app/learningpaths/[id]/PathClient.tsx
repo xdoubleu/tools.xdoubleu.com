@@ -15,7 +15,9 @@ import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { PageContainer } from '@/components/ui/page-container'
-import { PageHeader } from '@/components/ui/page-header'
+import { PageHeader, PageHeaderLink } from '@/components/ui/page-header'
+import { ProgressBar } from '@/components/ui/progress-bar'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { cn } from '@/lib/cn'
 import { isQuizPassed, moduleQuiz } from '@/lib/learningpaths/quiz'
@@ -74,19 +76,15 @@ export default function PathClient({ id }: { id: string }) {
           learningPath && (
             <>
               {(!todoistStatus?.connected || todoistStatus.needsReconnect) && (
-                <Button asChild variant="secondary" size="sm">
-                  <Link href="/learningpaths/settings">
-                    {todoistStatus?.needsReconnect ? 'Reconnect Todoist' : 'Connect Todoist'}
-                  </Link>
-                </Button>
+                <PageHeaderLink href="/learningpaths/settings">
+                  {todoistStatus?.needsReconnect ? 'Reconnect Todoist' : 'Connect Todoist'}
+                </PageHeaderLink>
               )}
-              <Button variant="secondary" size="sm" onClick={handleTogglePaused} disabled={pausing}>
+              <Button variant="secondary" onClick={handleTogglePaused} disabled={pausing}>
                 {learningPath.paused ? 'Resume' : 'Pause'}
               </Button>
-              <Button asChild variant="secondary" size="sm">
-                <Link href={`/learningpaths/${learningPath.id}/edit`}>Edit</Link>
-              </Button>
-              <Button variant="destructive" size="sm" onClick={() => setDeleteConfirm(true)}>
+              <PageHeaderLink href={`/learningpaths/${learningPath.id}/edit`}>Edit</PageHeaderLink>
+              <Button variant="destructive" onClick={() => setDeleteConfirm(true)}>
                 Delete
               </Button>
             </>
@@ -105,8 +103,8 @@ export default function PathClient({ id }: { id: string }) {
         />
       )}
 
-      {isLoading && !learningPath && <LoadingState label="learning path" />}
-      {error && <ErrorState what="learning path" />}
+      {isLoading && !learningPath && <LoadingState placement="page" label="learning path" />}
+      {error && <ErrorState placement="page" what="learning path" />}
       {learningPath && (
         <>
           {learningPath.goal && <p className="text-subtle mb-2">{learningPath.goal}</p>}
@@ -127,16 +125,24 @@ export default function PathClient({ id }: { id: string }) {
             )
           )}
           {totalItems > 0 && (
-            <p className="text-sm text-muted mb-6">
-              {completedItems}/{totalItems} items complete
-            </p>
+            <div className="mb-6 space-y-1">
+              <ProgressBar
+                value={completedItems}
+                max={totalItems}
+                aria-label="Path progress"
+                valueText={`${completedItems} of ${totalItems} items`}
+              />
+              <p className="text-sm text-muted">
+                {completedItems}/{totalItems} items complete
+              </p>
+            </div>
           )}
 
           {learningPath.modules.length > 0 && (
             <section className="mb-6 space-y-4">
               {learningPath.modules.map((module) => (
                 <Card key={module.id} variant="inset">
-                  <h2 className="text-lg font-semibold">{module.title}</h2>
+                  <SectionHeading className="mb-2">{module.title}</SectionHeading>
                   <ul>
                     {module.items.map((item) => (
                       <li
@@ -144,7 +150,7 @@ export default function PathClient({ id }: { id: string }) {
                         className="flex flex-wrap items-center gap-x-2 border-b border-border py-1 last:border-0"
                       >
                         {item.linkedBook ? (
-                          <Badge className="max-w-full flex-wrap gap-1.5 self-start text-sm">
+                          <Badge className="max-w-full flex-wrap gap-1.5 self-start">
                             <span className="min-w-0 break-words">
                               {item.type && (
                                 <span className="mr-2 text-xs uppercase tracking-wide text-muted">
@@ -201,13 +207,13 @@ export default function PathClient({ id }: { id: string }) {
 
           {learningPath.resources.length > 0 && (
             <section className="mb-6">
-              <h2 className="text-xl font-semibold mb-3">Resources</h2>
+              <SectionHeading className="mb-3">Resources</SectionHeading>
               <ul className="space-y-2">
                 {learningPath.resources.map((resource) => (
                   <li key={resource.id} className="flex flex-col gap-1">
                     {resource.text && <span className="break-words">{resource.text}</span>}
                     {resource.linkedBook && (
-                      <Badge className="max-w-full flex-wrap gap-1.5 self-start text-sm">
+                      <Badge className="max-w-full flex-wrap gap-1.5 self-start">
                         <span className="break-words">📚 {resource.linkedBook.title}</span>
                         <span className="text-muted">
                           — {resource.linkedBook.status.replace('_', ' ')}
@@ -217,7 +223,7 @@ export default function PathClient({ id }: { id: string }) {
                       </Badge>
                     )}
                     {resource.linkedFeedItem && (
-                      <Badge className="max-w-full flex-wrap gap-1.5 self-start text-sm">
+                      <Badge className="max-w-full flex-wrap gap-1.5 self-start">
                         <span className="break-words">📰 {resource.linkedFeedItem.title}</span>
                         <span className="text-muted">
                           — {resource.linkedFeedItem.read ? 'read' : 'unread'}

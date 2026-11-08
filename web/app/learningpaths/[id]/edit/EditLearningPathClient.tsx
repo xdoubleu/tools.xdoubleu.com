@@ -20,7 +20,7 @@ export default function EditLearningPathClient({ id }: { id: string }) {
           { label: 'Edit' }
         ]}
       />
-      {isLoading && !learningPath && <LoadingState />}
+      {isLoading && !learningPath && <LoadingState placement="page" />}
       {learningPath && (
         <LearningPathForm
           learningPath={learningPath}

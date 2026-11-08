@@ -95,7 +95,10 @@ export default function MealPlanCalendar({
       </div>
 
       {swappingMeal && (
-        <Card className="fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 mx-auto flex w-fit max-w-[calc(100vw-2rem)] items-center gap-3 border-accent/30 px-4 py-2.5 text-sm text-accent shadow-elevated">
+        <Card
+          padding="sm"
+          className="fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 mx-auto flex w-fit max-w-[calc(100vw-2rem)] items-center gap-3 border-accent/30 text-sm text-accent shadow-elevated"
+        >
           <span className="min-w-0 truncate">
             Swapping <strong>{swappingMealName}</strong> — tap another meal or an empty cell
           </span>

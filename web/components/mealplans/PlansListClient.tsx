@@ -18,15 +18,20 @@ export default function PlansListClient() {
 
   return (
     <PageContainer>
-      <PageHeader title="Meal Plan" />
+      <PageHeader
+        title="Meal Plan"
+        actions={
+          // Listing creates the first plan, so a re-list fills an empty list.
+          data?.plans.length === 0 && (
+            <Button onClick={() => void mutate()}>Create Meal Plan</Button>
+          )
+        }
+      />
 
-      {isLoading && <LoadingState />}
-      {error && <ErrorState what="meal plan" />}
-      {/* Listing creates the first plan, so a retry fills an empty list. */}
+      {isLoading && <LoadingState placement="page" />}
+      {error && <ErrorState placement="page" what="meal plan" />}
       {data && data.plans.length === 0 && (
-        <EmptyState action={<Button onClick={() => void mutate()}>Create Meal Plan</Button>}>
-          You don&apos;t have a meal plan yet.
-        </EmptyState>
+        <EmptyState placement="page">You don&apos;t have a meal plan yet.</EmptyState>
       )}
     </PageContainer>
   )

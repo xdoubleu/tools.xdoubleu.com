@@ -1,9 +1,9 @@
 import CategoryManager from '@/components/shoppinglist/CategoryManager'
 import ItemCatalog from '@/components/shoppinglist/ItemCatalog'
 import StoreManager from '@/components/shoppinglist/StoreManager'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
+import { SettingsSection, SettingsSections } from '@/components/ui/settings-section'
 
 export default function ShoppingListSettingsPage() {
   return (
@@ -13,44 +13,28 @@ export default function ShoppingListSettingsPage() {
         breadcrumb={[{ label: 'Shopping List', href: '/shoppinglist' }, { label: 'Settings' }]}
       />
 
-      <div className="space-y-6">
-        <Card padding="none">
-          <CardHeader>
-            <CardTitle>Categories</CardTitle>
-            <CardDescription>
-              Group items into aisles like Produce, Dairy or Bakery.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CategoryManager />
-          </CardContent>
-        </Card>
+      <SettingsSections>
+        <SettingsSection
+          title="Categories"
+          description="Group items into aisles like Produce, Dairy or Bakery."
+        >
+          <CategoryManager />
+        </SettingsSection>
 
-        <Card padding="none">
-          <CardHeader>
-            <CardTitle>Item catalog</CardTitle>
-            <CardDescription>
-              Assign each item a category once. It applies to custom items and recipe ingredients
-              everywhere.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ItemCatalog />
-          </CardContent>
-        </Card>
+        <SettingsSection
+          title="Item catalog"
+          description="Assign each item a category once. It applies to custom items and recipe ingredients everywhere."
+        >
+          <ItemCatalog />
+        </SettingsSection>
 
-        <Card padding="none">
-          <CardHeader>
-            <CardTitle>Stores</CardTitle>
-            <CardDescription>
-              Set the aisle order for each store. Exports follow the selected store&apos;s order.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <StoreManager />
-          </CardContent>
-        </Card>
-      </div>
+        <SettingsSection
+          title="Stores"
+          description="Set the aisle order for each store. Exports follow the selected store’s order."
+        >
+          <StoreManager />
+        </SettingsSection>
+      </SettingsSections>
     </PageContainer>
   )
 }

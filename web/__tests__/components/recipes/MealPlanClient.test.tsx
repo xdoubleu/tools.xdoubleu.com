@@ -73,7 +73,24 @@ beforeEach(() => {
 describe('MealPlanClient', () => {
   it('renders the plan name', () => {
     render(<MealPlanClient id="plan-1" />)
-    expect(screen.getByText('Test Plan')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Test Plan' })).toBeInTheDocument()
+  })
+
+  it('shows loading and error states', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    vi.mocked(useMealPlan).mockReturnValue({
+      data: undefined,
+      error: new Error('x'),
+      isLoading: true
+    })
+    render(<MealPlanClient id="plan-1" />)
+    expect(screen.getByText('Loading meal plan…')).toBeInTheDocument()
+    expect(screen.getByText('Failed to load meal plan.')).toBeInTheDocument()
+  })
+
+  it('shows a breadcrumb back to meal plans', () => {
+    render(<MealPlanClient id="plan-1" />)
+    expect(screen.getByRole('link', { name: 'Meal Plans' })).toHaveAttribute('href', '/mealplans')
   })
 
   it('does not render a shopping list toggle button', () => {
@@ -107,9 +124,9 @@ describe('MealPlanClient', () => {
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/'))
   })
 
-  it('shows Settings link instead of Edit for owner', () => {
+  it('links to the plan editor', () => {
     render(<MealPlanClient id="plan-1" />)
-    expect(screen.getByRole('link', { name: 'Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Edit plan' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument()
   })
 

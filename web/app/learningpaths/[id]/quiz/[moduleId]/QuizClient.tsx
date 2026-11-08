@@ -1,7 +1,5 @@
-import { Link } from '@/components/ui/link'
 import { useLearningPath, useRecordItemProgress } from '@/hooks/useLearningPaths'
 import ModuleQuiz from '@/components/learningpaths/ModuleQuiz'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
@@ -32,28 +30,15 @@ export default function QuizClient({ id, moduleId }: { id: string; moduleId: str
         ]}
       />
 
-      {isLoading && !learningPath && <LoadingState label="quiz" />}
-      {error && !learningPath && <ErrorState what="quiz" />}
+      {isLoading && !learningPath && <LoadingState placement="page" label="quiz" />}
+      {error && !learningPath && <ErrorState placement="page" what="quiz" />}
       {learningPath && (!quizModule || !moduleQuiz(quizModule)) && (
-        <EmptyState
-          action={
-            <Button asChild variant="secondary" size="sm">
-              <Link href={pathHref}>Back to path</Link>
-            </Button>
-          }
-        >
-          This module has no quiz.
-        </EmptyState>
+        <EmptyState placement="page">This module has no quiz.</EmptyState>
       )}
       {quizModule && moduleQuiz(quizModule) && (
-        <>
-          <Card variant="inset" className="mb-4">
-            <ModuleQuiz module={quizModule} onPassed={completeCheckpoint} />
-          </Card>
-          <Button asChild variant="secondary" size="sm">
-            <Link href={pathHref}>Back to path</Link>
-          </Button>
-        </>
+        <Card variant="inset">
+          <ModuleQuiz module={quizModule} onPassed={completeCheckpoint} />
+        </Card>
       )}
     </PageContainer>
   )

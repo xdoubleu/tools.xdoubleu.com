@@ -52,58 +52,57 @@ export default function MealPlanWeekGrid({
     return (
       <Card
         key={`${formattedDate}-${slot}`}
+        padding="none"
         className={cn(
-          'min-h-14 min-w-0 space-y-1 rounded-xl p-1.5 shadow-none',
+          'min-h-14 min-w-0 shadow-none',
           swappingMeal && 'border-dashed border-accent/50 bg-accent/5 hover:bg-accent/10'
         )}
         onClick={() => onCellClick(formattedDate, slot)}
       >
-        {meals.map((meal) => (
-          <MealPlanMealChip
-            key={meal.id}
-            meal={meal}
-            recipe={recipes.find((r) => r.id === meal.recipeId)}
-            isSwapping={swappingMeal?.id === meal.id}
-            inSwapMode={!!swappingMeal}
-            onMealClick={onMealClick}
-            onSwapClick={onStartSwap}
-            onEditClick={onEditClick}
-            onDeleteMeal={onDeleteMeal}
-            restoreFocus={meal.id === focusMealId}
-            onFocusRestored={onMealFocused}
-          />
-        ))}
-        {swappingMeal ? (
-          !hasMeals && (
+        <div className="flex h-full min-h-14 flex-col gap-1 p-1.5">
+          {meals.map((meal) => (
+            <MealPlanMealChip
+              key={meal.id}
+              meal={meal}
+              recipe={recipes.find((r) => r.id === meal.recipeId)}
+              isSwapping={swappingMeal?.id === meal.id}
+              inSwapMode={!!swappingMeal}
+              onMealClick={onMealClick}
+              onSwapClick={onStartSwap}
+              onEditClick={onEditClick}
+              onDeleteMeal={onDeleteMeal}
+              restoreFocus={meal.id === focusMealId}
+              onFocusRestored={onMealFocused}
+            />
+          ))}
+          {swappingMeal ? (
+            !hasMeals && (
+              <Button
+                variant="ghost"
+                aria-label={`Place here: ${slotLabel(slot)}, ${formatDate(formattedDate)}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onCellClick(formattedDate, slot)
+                }}
+                className="h-full min-h-11 w-full px-0 font-normal text-muted hover:bg-transparent active:bg-transparent"
+              >
+                Place here
+              </Button>
+            )
+          ) : (
             <Button
               variant="ghost"
-              aria-label={`Place here: ${slotLabel(slot)}, ${formatDate(formattedDate)}`}
+              aria-label={hasMeals ? 'Add another meal' : 'Add meal'}
               onClick={(e) => {
                 e.stopPropagation()
-                onCellClick(formattedDate, slot)
+                onAddClick(formattedDate, slot)
               }}
-              // eslint-disable-next-line ui/control-overrides -- fills a narrow calendar cell, not a control row
-              className="h-full min-h-11 w-full px-0 text-xs font-normal text-muted hover:bg-transparent active:bg-transparent"
+              className={cn('min-h-11 w-full px-0 text-muted', !hasMeals && 'flex-1')}
             >
-              Place here
+              +
             </Button>
-          )
-        ) : (
-          <Button
-            variant="ghost"
-            aria-label={hasMeals ? 'Add another meal' : 'Add meal'}
-            onClick={(e) => {
-              e.stopPropagation()
-              onAddClick(formattedDate, slot)
-            }}
-            className={cn(
-              'min-h-11 w-full px-0 text-muted',
-              hasMeals ? 'text-base' : 'h-full text-lg'
-            )}
-          >
-            +
-          </Button>
-        )}
+          )}
+        </div>
       </Card>
     )
   }
@@ -116,7 +115,7 @@ export default function MealPlanWeekGrid({
             const formattedDate = formatMealDate(date)
             const isToday = formattedDate === today
             return (
-              <Card key={formattedDate} className="rounded-xl p-2 shadow-none">
+              <Card key={formattedDate} padding="sm" className="shadow-none">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div className={cn('text-sm font-semibold', isToday ? 'text-accent' : 'text-fg')}>
                     {DAY_NAMES[date.getDay()]} {date.getDate()}
@@ -125,7 +124,7 @@ export default function MealPlanWeekGrid({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="rounded-lg text-muted"
+                    className="text-muted"
                     onClick={() => onFillDay(formattedDate)}
                   >
                     Fill day
@@ -167,7 +166,7 @@ export default function MealPlanWeekGrid({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="rounded-lg px-1.5 font-normal text-muted"
+                    className="px-1.5 font-normal text-muted"
                     onClick={() => onFillDay(formattedDate)}
                   >
                     Fill day

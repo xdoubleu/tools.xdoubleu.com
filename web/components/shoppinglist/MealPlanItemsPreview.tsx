@@ -1,5 +1,6 @@
 import { prepareForExport, formatOrigins } from '@/lib/shoppinglist/shoppingExport'
 import type { ShoppingItem } from '@/lib/shoppinglist/shoppingExport'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { LoadingState } from '@/components/ui/states'
 
 interface MealPlanItemsPreviewProps {
@@ -11,7 +12,7 @@ interface MealPlanItemsPreviewProps {
 // (custom items render in the editable list above).
 export default function MealPlanItemsPreview({ mealItems, isLoading }: MealPlanItemsPreviewProps) {
   if (isLoading) {
-    return <LoadingState className="text-sm" />
+    return <LoadingState placement="inline" />
   }
 
   const items = prepareForExport([], mealItems)
@@ -19,9 +20,9 @@ export default function MealPlanItemsPreview({ mealItems, isLoading }: MealPlanI
 
   return (
     <div>
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
+      <SectionHeading level="eyebrow" as="h2" className="mb-2">
         From meal plans
-      </h2>
+      </SectionHeading>
       <ul className="space-y-1">
         {items.map((item, i) => (
           <li key={i} className="text-sm text-subtle">

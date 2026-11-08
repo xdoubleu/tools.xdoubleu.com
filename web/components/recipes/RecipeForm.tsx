@@ -13,6 +13,7 @@ import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { parseFraction } from '@/lib/recipes/parseFraction'
 import { indexIngredientUnits, otherRecipeUnits } from '@/lib/recipes/unitConsistency'
 import { Button } from '@/components/ui/button'
+import { RemoveButton } from '@/components/ui/remove-button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -305,15 +306,11 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
                   />
                 )}
                 {ingredients.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    aria-label="Remove"
+                  <RemoveButton
+                    aria-label={`Remove ingredient ${idx + 1}`}
+                    className="self-center"
                     onClick={() => removeIngredient(idx)}
-                  >
-                    ×
-                  </Button>
+                  />
                 )}
                 {otherUnits && (
                   <p className="w-full text-xs text-muted">
@@ -328,7 +325,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
             )
           })}
         </div>
-        <Button type="button" variant="secondary" size="sm" onClick={addIngredient}>
+        <Button type="button" variant="secondary" onClick={addIngredient}>
           Add Ingredient
         </Button>
       </div>

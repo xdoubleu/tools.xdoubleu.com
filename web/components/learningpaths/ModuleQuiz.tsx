@@ -115,7 +115,7 @@ export default function ModuleQuiz({ module, onPassed }: ModuleQuizProps) {
             Not quite — {percentCorrect(questions, selection)}% (need {QUIZ_PASS_THRESHOLD_PERCENT}
             %)
           </Badge>
-          <Button variant="secondary" size="sm" onClick={retake}>
+          <Button variant="secondary" onClick={retake}>
             Retake
           </Button>
         </div>

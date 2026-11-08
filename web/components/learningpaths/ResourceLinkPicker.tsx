@@ -37,8 +37,8 @@ export default function ResourceLinkPicker({
   if (linkedBook) {
     return (
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <Badge className="max-w-full break-words text-sm">📚 {linkedBook.title}</Badge>
-        <Button type="button" variant="ghost" size="sm" onClick={onUnlink}>
+        <Badge className="max-w-full break-words">📚 {linkedBook.title}</Badge>
+        <Button type="button" variant="ghost" onClick={onUnlink}>
           Unlink
         </Button>
       </div>
@@ -48,8 +48,8 @@ export default function ResourceLinkPicker({
   if (linkedFeedItem) {
     return (
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <Badge className="max-w-full break-words text-sm">📰 {linkedFeedItem.title}</Badge>
-        <Button type="button" variant="ghost" size="sm" onClick={onUnlink}>
+        <Badge className="max-w-full break-words">📰 {linkedFeedItem.title}</Badge>
+        <Button type="button" variant="ghost" onClick={onUnlink}>
           Unlink
         </Button>
       </div>
@@ -82,10 +82,10 @@ export default function ResourceLinkPicker({
 
   return (
     <div className="flex gap-2">
-      <Button type="button" variant="secondary" size="sm" onClick={() => setMode('book')}>
+      <Button type="button" variant="secondary" onClick={() => setMode('book')}>
         Link a book
       </Button>
-      <Button type="button" variant="secondary" size="sm" onClick={() => setMode('feed')}>
+      <Button type="button" variant="secondary" onClick={() => setMode('feed')}>
         Link a feed item
       </Button>
     </div>
@@ -186,7 +186,7 @@ function SearchRow({ onCancel, children }: { onCancel: () => void; children: Rea
   return (
     <div className="flex gap-2">
       {children}
-      <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+      <Button type="button" variant="ghost" onClick={onCancel}>
         Cancel
       </Button>
     </div>

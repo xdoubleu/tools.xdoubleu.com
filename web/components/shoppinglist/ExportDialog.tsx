@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { EmptyState } from '@/components/ui/states'
@@ -162,9 +163,9 @@ export default function ExportDialog({ customItems, mealItems, onClose }: Export
 
           {selectedStoreId && exportGroups && (
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
+              <SectionHeading level="eyebrow" className="mb-2">
                 Grouped by store aisle
-              </h3>
+              </SectionHeading>
               {exportGroups.length === 0 ? (
                 <EmptyState placement="inline">No items to export.</EmptyState>
               ) : (
@@ -191,9 +192,9 @@ export default function ExportDialog({ customItems, mealItems, onClose }: Export
 
           {!selectedStoreId && (
             <div>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">
+              <SectionHeading level="eyebrow" className="mb-2">
                 Export preview
-              </h3>
+              </SectionHeading>
               <ul className="space-y-1">
                 {prepareForExport(customItems, mealItems).map((item, i) => (
                   <li key={i} className="text-sm text-subtle">
@@ -214,15 +215,11 @@ export default function ExportDialog({ customItems, mealItems, onClose }: Export
               {copyFeedback}
             </span>
           )}
-          <Button size="sm" variant="secondary" onClick={handleExportTxt}>
+          <Button variant="secondary" onClick={handleExportTxt}>
             Download .txt
           </Button>
-          <Button size="sm" onClick={handleExportAppleNotes}>
-            Share to Apple Notes
-          </Button>
-          <Button size="sm" onClick={handleExportClipboard}>
-            Copy to Clipboard
-          </Button>
+          <Button onClick={handleExportAppleNotes}>Share to Apple Notes</Button>
+          <Button onClick={handleExportClipboard}>Copy to Clipboard</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

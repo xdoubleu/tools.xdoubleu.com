@@ -27,6 +27,8 @@ import {
 } from '@/lib/shoppinglist/offlineWrites'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { RemoveButton } from '@/components/ui/remove-button'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -95,23 +97,23 @@ export default function StoreManager() {
       </form>
 
       {error && <Alert tone="danger">{error}</Alert>}
-      {isLoading && <LoadingState className="text-sm" />}
-      {!isLoading && stores.length === 0 && <EmptyState>No stores yet.</EmptyState>}
+      {isLoading && <LoadingState placement="inline" />}
+      {!isLoading && stores.length === 0 && (
+        <EmptyState placement="inline">No stores yet.</EmptyState>
+      )}
 
       <ul className="space-y-2">
         {stores.map((store) => (
           <li key={store.id}>
-            <Card variant="inset" className="flex flex-wrap items-center gap-2 p-2">
+            <Card variant="inset" className="flex flex-wrap items-center gap-2">
               <span className="min-w-0 flex-1 break-words text-sm text-fg">{store.name}</span>
               <Button
-                size="sm"
                 variant={selectedStoreId === store.id ? 'default' : 'ghost'}
                 onClick={() => setSelectedStoreId(selectedStoreId === store.id ? '' : store.id)}
               >
                 {selectedStoreId === store.id ? 'Editing' : 'Edit order'}
               </Button>
               <Button
-                size="sm"
                 variant="ghost"
                 disabled={busy}
                 onClick={() => setDeletingId(store.id)}
@@ -203,14 +205,14 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
   }
 
   return (
-    <Card className="space-y-3 p-3">
-      <h3 className="text-sm font-semibold text-fg">Aisle order</h3>
+    <Card padding="sm" className="space-y-3">
+      <SectionHeading level="eyebrow">Aisle order</SectionHeading>
       <p className="text-xs text-muted">
         Arrange categories in the order you walk this store. Items export in this order.
       </p>
 
       {order.length === 0 ? (
-        <EmptyState>No categories added to this store yet.</EmptyState>
+        <EmptyState placement="inline">No categories added to this store yet.</EmptyState>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={order.map((o) => o.id)} strategy={verticalListSortingStrategy}>
@@ -244,7 +246,7 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
       )}
 
       <div className="flex items-center gap-2">
-        <Button size="sm" disabled={busy} onClick={save}>
+        <Button disabled={busy} onClick={save}>
           Save order
         </Button>
         {saved && <span className="text-sm text-success">Saved!</span>}
@@ -274,7 +276,7 @@ function SortableCategoryRow({
 
   return (
     <li ref={setNodeRef} style={style}>
-      <Card variant="inset" className="flex items-center gap-2 rounded-xl p-2">
+      <Card variant="inset" className="flex items-center gap-2">
         <Button
           size="iconSm"
           variant="ghost"
@@ -287,14 +289,10 @@ function SortableCategoryRow({
         </Button>
         <span className="w-6 text-xs text-muted">{index + 1}.</span>
         <span className="min-w-0 flex-1 break-words text-sm text-fg">{category.name}</span>
-        <Button
-          size="sm"
-          variant="ghost"
+        <RemoveButton
           onClick={() => onRemove(category.id)}
           aria-label={`Remove ${category.name}`}
-        >
-          ×
-        </Button>
+        />
       </Card>
     </li>
   )
