@@ -62,8 +62,8 @@ describe('MoviesSettingsClient', () => {
       'false'
     )
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    expect(screen.getByRole('navigation')).toHaveTextContent('Movies & Series/Settings')
-    expect(screen.getByRole('link', { name: 'Movies & Series' })).toHaveAttribute('href', '/movies')
+    expect(screen.getByRole('navigation')).toHaveTextContent('Movies & series/Settings')
+    expect(screen.getByRole('link', { name: 'Movies & series' })).toHaveAttribute('href', '/movies')
   })
 
   it('shows a logo only for providers that have one', () => {

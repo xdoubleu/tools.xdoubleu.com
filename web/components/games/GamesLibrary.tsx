@@ -6,6 +6,8 @@ import type { Game } from '@/lib/gen/games/v1/games_pb'
 import { Button } from '@/components/ui/button'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Toolbar } from '@/components/ui/toolbar'
 import { GameGroup } from '@/components/games/GameCards'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -36,27 +38,36 @@ export default function GamesLibrary() {
 
   return (
     <section>
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          aria-label="Search games"
-          placeholder="Search games…"
-          className="flex-1"
-        />
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={refresh} disabled={isRefreshing}>
-            {isRefreshing ? 'Refreshing…' : 'Refresh'}
-          </Button>
-          {lastRefresh && !isRefreshing && (
-            <span className="text-xs text-muted">Last: {lastRefresh.toLocaleString('en-GB')}</span>
-          )}
-        </div>
-      </div>
+      <Toolbar
+        aria-label="Filter games"
+        search={
+          <>
+            <Label htmlFor="games-library-search" className="sr-only">
+              Search games
+            </Label>
+            <Input
+              id="games-library-search"
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search games…"
+            />
+          </>
+        }
+        trailing={
+          <>
+            {lastRefresh && !isRefreshing && (
+              <span className="text-xs">Last: {lastRefresh.toLocaleString('en-GB')}</span>
+            )}
+            <Button variant="secondary" size="sm" onClick={refresh} disabled={isRefreshing}>
+              {isRefreshing ? 'Refreshing…' : 'Refresh'}
+            </Button>
+          </>
+        }
+      />
 
-      {steamLoading && <LoadingState label="Steam library" />}
-      {steamError && <ErrorState what="Steam data" />}
+      {steamLoading && <LoadingState label="Steam library" placement="page" />}
+      {steamError && <ErrorState what="Steam data" placement="page" />}
       {steam && (
         <>
           <p className="mb-4 text-muted text-sm">
@@ -69,7 +80,9 @@ export default function GamesLibrary() {
           {search.trim() &&
             inProgress.length === 0 &&
             notStarted.length === 0 &&
-            completed.length === 0 && <EmptyState>No games match your search.</EmptyState>}
+            completed.length === 0 && (
+              <EmptyState placement="page">No games match your search.</EmptyState>
+            )}
         </>
       )}
     </section>

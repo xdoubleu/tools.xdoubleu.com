@@ -4,6 +4,7 @@ import { usePodcastActions, usePodcastFavourites } from '@/hooks/usePodcasts'
 import { Artwork } from '@/components/ui/artwork'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { FieldError } from '@/components/ui/field-error'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 function FavouriteRow({ favourite }: { favourite: Favourite }) {
@@ -28,11 +29,7 @@ function FavouriteRow({ favourite }: { favourite: Favourite }) {
       <div className="min-w-0 flex-1">
         <p className="break-words font-medium">{favourite.title}</p>
         {favourite.author && <p className="break-words text-xs text-muted">{favourite.author}</p>}
-        {failed && (
-          <p className="text-xs text-danger" role="alert">
-            Couldn&apos;t remove. Try again.
-          </p>
-        )}
+        <FieldError>{failed && 'Couldn’t remove. Try again.'}</FieldError>
       </div>
       <Button variant="secondary" disabled={pending} onClick={() => void unfavourite()}>
         {pending ? 'Removing…' : 'Remove'}
@@ -44,10 +41,12 @@ function FavouriteRow({ favourite }: { favourite: Favourite }) {
 export default function Favourites() {
   const { data, error, isLoading } = usePodcastFavourites()
 
-  if (error && !data) return <ErrorState what="favourites" />
-  if (isLoading && !data) return <LoadingState label="favourites" />
+  if (error && !data) return <ErrorState placement="page" what="favourites" />
+  if (isLoading && !data) return <LoadingState placement="page" label="favourites" />
   if (!data || data.favourites.length === 0) {
-    return <EmptyState>No favourite podcasts yet. Search above to add one.</EmptyState>
+    return (
+      <EmptyState placement="page">No favourite podcasts yet. Search above to add one.</EmptyState>
+    )
   }
 
   return (

@@ -122,16 +122,10 @@ describe('TrainsClient', () => {
   it('toggles between depart-at and arrive-by', () => {
     render(<TrainsClient />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Arrive by' }))
-    expect(screen.getByRole('button', { name: 'Arrive by' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    )
+    fireEvent.click(screen.getByRole('tab', { name: 'Arrive by' }))
+    expect(screen.getByRole('tab', { name: 'Arrive by' })).toHaveAttribute('aria-selected', 'true')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Depart at' }))
-    expect(screen.getByRole('button', { name: 'Depart at' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    )
+    fireEvent.click(screen.getByRole('tab', { name: 'Depart at' }))
+    expect(screen.getByRole('tab', { name: 'Depart at' })).toHaveAttribute('aria-selected', 'true')
   })
 })

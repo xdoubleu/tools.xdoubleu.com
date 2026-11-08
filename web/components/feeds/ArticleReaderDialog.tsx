@@ -120,7 +120,7 @@ export default function FeedArticleReaderDialog({
         <FeedItemCategories categories={item.categories} className="px-1 pb-2" />
 
         {!item.hasContent && (
-          <EmptyState>
+          <EmptyState placement="inline">
             No in-app content stored for this item.
             {item.sourceUrl && ' Use "View original" above instead.'}
           </EmptyState>
@@ -132,8 +132,12 @@ export default function FeedArticleReaderDialog({
           </p>
         )}
 
-        {item.hasContent && isLoading && !error && <LoadingState className="p-4" />}
-        {item.hasContent && error && !notFound && <ErrorState what="the article" className="p-4" />}
+        {item.hasContent && isLoading && !error && (
+          <LoadingState placement="inline" className="p-4" />
+        )}
+        {item.hasContent && error && !notFound && (
+          <ErrorState placement="inline" what="the article" className="p-4" />
+        )}
       </ArticleReaderDialog>
 
       <Dialog open={zoomedSrc !== null} onOpenChange={() => setZoomedSrc(null)}>

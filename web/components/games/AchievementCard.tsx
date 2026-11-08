@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card'
 // Shared by the owner's game detail page and the public profile game page.
 export default function AchievementCard({ achievement }: { achievement: Achievement }) {
   return (
-    <Card className="flex items-start gap-3 p-3">
+    <Card padding="sm" className="flex items-start gap-3">
       {achievement.iconUrl && (
         <img
           src={achievement.iconUrl}

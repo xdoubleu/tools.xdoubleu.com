@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSteam, useSteamProgress } from '@/hooks/useGames'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { StatTile } from '@/components/ui/stat'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import SteamProgressChart from '@/components/games/SteamProgressChart'
@@ -34,8 +35,8 @@ function GamesStatsPanelContent() {
 
   return (
     <>
-      {steamLoading && <LoadingState label="stats" />}
-      {steamError && <ErrorState what="Steam data" />}
+      {steamLoading && <LoadingState placement="inline" label="stats" />}
+      {steamError && <ErrorState placement="inline" what="Steam data" />}
 
       {steam && (
         <div className="flex flex-col gap-6">
@@ -47,7 +48,9 @@ function GamesStatsPanelContent() {
           </div>
 
           <div>
-            <h3 className="mb-2 text-sm font-semibold">Distribution</h3>
+            <SectionHeading level="eyebrow" className="mb-2">
+              Distribution
+            </SectionHeading>
             <div className="h-64 w-full">
               <SteamDistributionChart distribution={steam.distribution} />
             </div>
@@ -55,7 +58,7 @@ function GamesStatsPanelContent() {
 
           <div>
             <div className="mb-2 flex flex-wrap items-end justify-between gap-3">
-              <h3 className="text-sm font-semibold">Progress</h3>
+              <SectionHeading level="eyebrow">Progress</SectionHeading>
               <DateRangeFields
                 idPrefix="panel"
                 start={progressStart}
@@ -64,9 +67,9 @@ function GamesStatsPanelContent() {
                 onEndChange={setProgressEnd}
               />
             </div>
-            {progressLoading && <LoadingState label="progress" />}
+            {progressLoading && <LoadingState placement="inline" label="progress" />}
             {!progressLoading && progressChartData.length === 0 && (
-              <EmptyState>No progress data for this range.</EmptyState>
+              <EmptyState placement="inline">No progress data for this range.</EmptyState>
             )}
             {progressChartData.length > 0 && (
               <div className="h-64 w-full">

@@ -9,6 +9,7 @@ import { Field } from '@/components/ui/field'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
+import { SettingsSection, SettingsSections } from '@/components/ui/settings-section'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 
 export default function GamesSettingsClient() {
@@ -27,11 +28,11 @@ export default function GamesSettingsClient() {
   }
 
   if (isLoading) {
-    return <LoadingState className="py-16 text-center text-sm" />
+    return <LoadingState placement="page" />
   }
 
   if (error) {
-    return <ErrorState what="settings" className="py-16 text-center text-sm" />
+    return <ErrorState what="settings" placement="page" />
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -57,7 +58,7 @@ export default function GamesSettingsClient() {
   return (
     <PageContainer size="narrow">
       <PageHeader
-        title="Games Settings"
+        title="Games settings"
         breadcrumb={[{ label: 'Games', href: '/dashboard/games' }, { label: 'Settings' }]}
       />
 
@@ -73,18 +74,19 @@ export default function GamesSettingsClient() {
       )}
 
       <form onSubmit={handleSave} className="space-y-6">
-        <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Steam</h2>
-          <Field label="Steam User ID" htmlFor="steam_user_id">
-            <Input
-              id="steam_user_id"
-              type="text"
-              inputMode="numeric"
-              value={steamUserId}
-              onChange={(e) => setSteamUserId(e.target.value)}
-            />
-          </Field>
-        </section>
+        <SettingsSections>
+          <SettingsSection title="Steam">
+            <Field label="Steam user ID" htmlFor="steam_user_id">
+              <Input
+                id="steam_user_id"
+                type="text"
+                inputMode="numeric"
+                value={steamUserId}
+                onChange={(e) => setSteamUserId(e.target.value)}
+              />
+            </Field>
+          </SettingsSection>
+        </SettingsSections>
 
         <Button type="submit" disabled={saving}>
           {saving ? 'Saving…' : 'Save'}

@@ -20,13 +20,15 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 export default function MoviesStatsClient() {
   const { data, error, isLoading } = useMovieStats()
 
-  if (isLoading && !data) return <LoadingState label="stats" />
-  if (error && !data) return <ErrorState what="stats" />
+  if (isLoading && !data) return <LoadingState label="stats" placement="page" />
+  if (error && !data) return <ErrorState what="stats" placement="page" />
   if (!data) return null
   const rated = data.ratings.some((n) => n > 0)
   if (data.moviesWatched + data.seriesWatched + data.seasonsWatched === 0 && !rated) {
     return (
-      <EmptyState>Nothing watched yet. Mark a movie or season watched to see stats.</EmptyState>
+      <EmptyState placement="page">
+        Nothing watched yet. Mark a movie or season watched to see stats.
+      </EmptyState>
     )
   }
 
@@ -73,7 +75,7 @@ export default function MoviesStatsClient() {
           </CardHeader>
           <CardContent>
             {data.genres.length === 0 ? (
-              <EmptyState>No genres yet.</EmptyState>
+              <EmptyState placement="inline">No genres yet.</EmptyState>
             ) : (
               <ol className="space-y-1 text-sm">
                 {data.genres.map((g) => (
@@ -102,7 +104,7 @@ export default function MoviesStatsClient() {
                 ))}
               </ul>
             ) : (
-              <EmptyState>No ratings yet.</EmptyState>
+              <EmptyState placement="inline">No ratings yet.</EmptyState>
             )}
           </CardContent>
         </Card>

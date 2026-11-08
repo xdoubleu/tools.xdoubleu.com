@@ -23,13 +23,20 @@ describe('SteamGameHeader', () => {
       completionRate: '40',
       isDelisted: true
     })
-    render(<SteamGameHeader game={game} meta={<span>extra</span>} />)
+    render(
+      <SteamGameHeader
+        game={game}
+        breadcrumb={[{ label: 'Games', href: '/dashboard/games' }, { label: 'Old Game' }]}
+        meta={<span>extra</span>}
+      />
+    )
 
     expect(screen.getByRole('heading', { level: 1, name: 'Old Game' })).toBeInTheDocument()
     expect(screen.getByText('3 hrs played')).toBeInTheDocument()
     expect(screen.getByText('Completion: 40%')).toBeInTheDocument()
     expect(screen.getByText('Delisted')).toBeInTheDocument()
     expect(screen.getByText('extra')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Games' })).toHaveAttribute('href', '/dashboard/games')
   })
 })
 

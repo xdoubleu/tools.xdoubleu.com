@@ -6,6 +6,7 @@ import TmdbAttribution from '@/components/movies/TmdbAttribution'
 import { Alert } from '@/components/ui/alert'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
+import { SettingsSection, SettingsSections } from '@/components/ui/settings-section'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { TogglePill } from '@/components/ui/toggle-pill'
 
@@ -73,9 +74,9 @@ export default function MoviesSettingsClient() {
   if (!settings.data || !providers.data) {
     body =
       settings.error || providers.error ? (
-        <ErrorState what="services" />
+        <ErrorState what="services" placement="inline" />
       ) : (
-        <LoadingState label="services" />
+        <LoadingState label="services" placement="inline" />
       )
   } else {
     body = (
@@ -86,14 +87,17 @@ export default function MoviesSettingsClient() {
   return (
     <PageContainer>
       <PageHeader
-        title="Movies & Series settings"
-        breadcrumb={[{ label: 'Movies & Series', href: '/movies' }, { label: 'Settings' }]}
+        title="Movies & series settings"
+        breadcrumb={[{ label: 'Movies & series', href: '/movies' }, { label: 'Settings' }]}
       />
-      <p className="mb-4 text-sm text-muted">
-        Pick your streaming services. Titles you can watch on them without renting or buying are
-        marked in your backlog and can be filtered.
-      </p>
-      {body}
+      <SettingsSections>
+        <SettingsSection
+          title="Streaming services"
+          description="Titles you can watch on them without renting or buying are marked in your backlog and can be filtered."
+        >
+          {body}
+        </SettingsSection>
+      </SettingsSections>
       <TmdbAttribution />
     </PageContainer>
   )

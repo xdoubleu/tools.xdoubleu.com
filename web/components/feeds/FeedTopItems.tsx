@@ -21,8 +21,8 @@ export default function FeedTopItems() {
   }, [])
   const handleSettled = useCallback(() => undefined, [])
 
-  if (isLoading) return <LoadingState />
-  if (error) return <ErrorState what="today's top items" />
+  if (isLoading) return <LoadingState placement="page" />
+  if (error) return <ErrorState placement="page" what="today's top items" />
 
   const items = data?.items ?? []
   const done = items.every((item) => Boolean(item.readAt) || pendingRead.has(item.id))

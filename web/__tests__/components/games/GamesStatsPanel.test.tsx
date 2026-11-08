@@ -87,6 +87,26 @@ describe('GamesStatsPanel', () => {
     expect(screen.getByText('No progress data for this range.')).toBeInTheDocument()
   })
 
+  it('shows loading, error and progress-loading states', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseSteam.mockReturnValue({ data: undefined, error: undefined, isLoading: true })
+    mockProgress()
+    const { rerender } = render(<GamesStatsPanel />)
+    fireEvent.click(screen.getByRole('button', { name: 'Open library stats' }))
+    expect(screen.getByText('Loading stats…')).toBeInTheDocument()
+
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseSteam.mockReturnValue({ data: undefined, error: new Error('x'), isLoading: false })
+    rerender(<GamesStatsPanel />)
+    expect(screen.getByText('Failed to load Steam data.')).toBeInTheDocument()
+
+    mockSteam()
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    mockUseSteamProgress.mockReturnValue({ data: undefined, isLoading: true })
+    rerender(<GamesStatsPanel />)
+    expect(screen.getByText('Loading progress…')).toBeInTheDocument()
+  })
+
   it('closes via the close chevron', () => {
     mockSteam()
     mockProgress()

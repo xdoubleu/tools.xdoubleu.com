@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { logoUrl } from '@/lib/movies/format'
 import type { ProviderOffers } from '@/lib/gen/movies/v1/movies_pb'
 
@@ -19,18 +20,18 @@ interface WhereToWatchProps {
 export default function WhereToWatch({ offers, watchLink }: WhereToWatchProps) {
   return (
     <section aria-labelledby="where-to-watch" className="space-y-2">
-      <h2 id="where-to-watch" className="text-sm font-semibold">
+      <SectionHeading level="eyebrow" as="h2" id="where-to-watch">
         Where to watch (BE)
-      </h2>
+      </SectionHeading>
       {offers.length === 0 ? (
         <p className="text-sm text-muted">Not available to stream in Belgium</p>
       ) : (
         <div className="space-y-3">
           {offers.map((group) => (
             <div key={group.offerType}>
-              <h3 className="mb-1 text-xs font-medium text-muted">
+              <SectionHeading level="eyebrow" as="h3" className="mb-1">
                 {OFFER_LABELS[group.offerType] ?? group.offerType}
-              </h3>
+              </SectionHeading>
               <ul className="flex flex-wrap gap-2">
                 {group.providers.map((p) => (
                   <li key={p.id} className="flex items-center gap-2 text-sm">

@@ -6,9 +6,9 @@ import TrainsAttribution from '@/components/trains/TrainsAttribution'
 import { Button } from '@/components/ui/button'
 import { DateInput } from '@/components/ui/date-input'
 import { Input } from '@/components/ui/input'
-import { TogglePill } from '@/components/ui/toggle-pill'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
+import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { useJourneySearch, useSavedCommutes } from '@/hooks/useTrains'
 
 function nowParts(): { date: string; time: string } {
@@ -129,10 +129,15 @@ export default function TrainsClient() {
           </Button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <TogglePill label="Depart at" active={!arriveBy} onClick={() => setArriveBy(false)} />
-          <TogglePill label="Arrive by" active={arriveBy} onClick={() => setArriveBy(true)} />
-        </div>
+        <SegmentedTabs
+          aria-label="Time means"
+          value={arriveBy ? 'arrive' : 'depart'}
+          options={[
+            { value: 'depart', label: 'Depart at' },
+            { value: 'arrive', label: 'Arrive by' }
+          ]}
+          onChange={(v) => setArriveBy(v === 'arrive')}
+        />
 
         <div className="flex gap-2">
           <DateInput value={date} onChange={setDate} className="min-w-0 flex-1" aria-label="Date" />

@@ -7,6 +7,7 @@ interface StatusSelectProps {
   onChange: (status: string) => void
   /** Needed when no visible label names the control. */
   'aria-label'?: string
+  'aria-describedby'?: string
   disabled?: boolean
 }
 
@@ -15,12 +16,14 @@ export default function StatusSelect({
   value,
   onChange,
   disabled,
-  'aria-label': ariaLabel
+  'aria-label': ariaLabel,
+  'aria-describedby': describedBy
 }: StatusSelectProps) {
   return (
     <Select
       id={id}
       aria-label={ariaLabel}
+      aria-describedby={describedBy}
       value={value}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value)}

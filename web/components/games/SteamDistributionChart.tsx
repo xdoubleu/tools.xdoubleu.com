@@ -41,7 +41,7 @@ export default function SteamDistributionChart({
   onBucketClick
 }: SteamDistributionChartProps) {
   if (!distribution || distribution.length === 0) {
-    return <EmptyState>No distribution data available.</EmptyState>
+    return <EmptyState placement="inline">No distribution data available.</EmptyState>
   }
 
   const chartData = distribution.map((count, i) => ({

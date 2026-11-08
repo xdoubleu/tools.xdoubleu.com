@@ -7,6 +7,7 @@ import FeedItemCategories from '@/components/feeds/FeedItemCategories'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { FieldError } from '@/components/ui/field-error'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import { Select } from '@/components/ui/select'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
@@ -41,7 +42,7 @@ function ExpiredItemRow({ item, feedTitles, onRestored }: ExpiredItemRowProps) {
 
   return (
     <li>
-      <Card className="flex flex-col gap-2 p-3 sm:flex-row sm:items-start">
+      <Card padding="sm" className="flex flex-col gap-2 sm:flex-row sm:items-start">
         <div className="min-w-0 flex-1 space-y-1">
           <Button
             asChild
@@ -59,11 +60,7 @@ function ExpiredItemRow({ item, feedTitles, onRestored }: ExpiredItemRowProps) {
           <p className="text-xs text-subtle">
             Arrived {formatDate(item.createdAt)} · expired {formatDate(item.expiredAt)}
           </p>
-          {failed && (
-            <p className="text-xs text-danger" role="alert">
-              Restoring failed. Please try again.
-            </p>
-          )}
+          <FieldError>{failed && 'Restoring failed. Please try again.'}</FieldError>
         </div>
         <Button
           size="sm"
@@ -127,9 +124,11 @@ export default function FeedExpiredItemsClient({ initialFeedId }: { initialFeedI
 
       {restoredTitle && <Alert tone="success">Restored “{restoredTitle}” to the inbox.</Alert>}
 
-      {isLoading && <LoadingState label="expired items" />}
-      {error && <ErrorState what="expired items" />}
-      {!isLoading && !error && visible.length === 0 && <EmptyState>No expired items.</EmptyState>}
+      {isLoading && <LoadingState placement="page" label="expired items" />}
+      {error && <ErrorState placement="page" what="expired items" />}
+      {!isLoading && !error && visible.length === 0 && (
+        <EmptyState placement="page">No expired items.</EmptyState>
+      )}
       {visible.length > 0 && (
         <ul className="space-y-2">
           {visible.map((item) => (

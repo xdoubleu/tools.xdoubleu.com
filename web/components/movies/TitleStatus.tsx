@@ -5,6 +5,7 @@ import { titleName } from '@/lib/movies/format'
 import StatusSelect from '@/components/movies/StatusSelect'
 import WatchedWhenDialog from '@/components/movies/WatchedWhenDialog'
 import { Field } from '@/components/ui/field'
+import { FieldError } from '@/components/ui/field-error'
 
 /** How many seasons marking the series watched would date at once. */
 function countedAiredSeasons(seasons: Season[]): number {
@@ -48,13 +49,17 @@ export default function TitleStatus({
   return (
     <>
       <Field label="Status" htmlFor="movie-status" className="max-w-xs">
-        <StatusSelect id="movie-status" value={entry.status} disabled={pending} onChange={select} />
+        <StatusSelect
+          id="movie-status"
+          value={entry.status}
+          disabled={pending}
+          onChange={select}
+          aria-describedby={failed ? 'movie-status-error' : undefined}
+        />
       </Field>
-      {failed && (
-        <p className="text-sm text-danger" role="alert">
-          Couldn&apos;t update status. Try again.
-        </p>
-      )}
+      <FieldError id="movie-status-error">
+        {failed && 'Couldn’t update status. Try again.'}
+      </FieldError>
       <WatchedWhenDialog
         open={asking}
         onOpenChange={setAsking}

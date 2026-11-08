@@ -60,7 +60,7 @@ const ALL_APPS: AppLink[] = [
   },
   {
     name: 'movies',
-    label: 'Movies & Series',
+    label: 'Movies & series',
     href: '/movies',
     description: 'Watch backlog with TMDB search.'
   },

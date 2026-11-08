@@ -7,9 +7,10 @@ import { useSteamGame, useRefreshSteamGame } from '@/hooks/useGames'
 import { GetSteamGameResponseSchema } from '@/lib/gen/games/v1/games_pb'
 import { swrKeys } from '@/lib/swrKeys'
 import { Alert } from '@/components/ui/alert'
-import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
+import type { BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import GamesStatsPanel from '@/components/games/GamesStatsPanel'
 import GameFavouriteButton from '@/components/games/GameFavouriteButton'
@@ -69,64 +70,56 @@ export default function SteamGameClient({ id }: { id: string }) {
 
   const achievedCount = countAchieved(achievements)
 
+  if (isLoading && !game) return <LoadingState label="game" placement="page" />
+  if (!game) {
+    return (
+      <PageContainer>
+        <PageHeader title="Game" breadcrumb={breadcrumbItems} />
+        {error && <ErrorState what="game" placement="page" />}
+      </PageContainer>
+    )
+  }
+
   return (
     <PageContainer>
-      <Breadcrumb items={breadcrumbItems} />
+      <SteamGameHeader
+        game={game}
+        breadcrumb={breadcrumbItems}
+        actions={<GameFavouriteButton game={game} className="text-2xl" />}
+        meta={game.lastSyncedAt && <span>Last synced: {formatDateTime(game.lastSyncedAt)}</span>}
+      />
 
-      {isLoading && <LoadingState label="game" className="mt-6" />}
-      {error && <ErrorState what="game" className="mt-6" />}
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => void refetch()}
+          disabled={isRefetching}
+        >
+          {isRefetching ? 'Refreshing…' : 'Refresh'}
+        </Button>
+        <Button
+          variant={highPollMode ? 'default' : 'secondary'}
+          size="sm"
+          onClick={() => setHighPollMode((prev) => !prev)}
+        >
+          {highPollMode ? 'High poll: on' : 'High poll: off'}
+        </Button>
+        {achievedCount > 0 && (
+          <Button variant="secondary" size="sm" onClick={() => setShowCompleted((prev) => !prev)}>
+            {showCompleted ? 'Hide completed' : 'Show completed'}
+          </Button>
+        )}
+        <GamesStatsPanel />
+      </div>
 
-      {game && (
-        <>
-          <SteamGameHeader
-            game={game}
-            actions={<GameFavouriteButton game={game} className="text-2xl" />}
-          />
-
-          <div className="flex items-center gap-3 mb-6 flex-wrap">
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-auto min-h-11 flex-col gap-0.5 py-1.5"
-              aria-label={isRefetching ? 'Refreshing…' : 'Refresh'}
-              onClick={() => void refetch()}
-              disabled={isRefetching}
-            >
-              <span>{isRefetching ? 'Refreshing…' : 'Refresh'}</span>
-              {game.lastSyncedAt && (
-                <span className="text-xs font-normal text-muted">
-                  Last synced: {formatDateTime(game.lastSyncedAt)}
-                </span>
-              )}
-            </Button>
-            <Button
-              variant={highPollMode ? 'default' : 'secondary'}
-              size="sm"
-              onClick={() => setHighPollMode((prev) => !prev)}
-            >
-              {highPollMode ? 'High poll: on' : 'High poll: off'}
-            </Button>
-            {achievedCount > 0 && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowCompleted((prev) => !prev)}
-              >
-                {showCompleted ? 'Hide completed' : 'Show completed'}
-              </Button>
-            )}
-            <GamesStatsPanel />
-          </div>
-
-          {refreshError && (
-            <Alert tone="danger" className="mb-6">
-              {refreshError}
-            </Alert>
-          )}
-
-          <GameAchievements achievements={achievements} showCompleted={showCompleted} />
-        </>
+      {refreshError && (
+        <Alert tone="danger" className="mb-6">
+          {refreshError}
+        </Alert>
       )}
+
+      <GameAchievements achievements={achievements} showCompleted={showCompleted} />
     </PageContainer>
   )
 }

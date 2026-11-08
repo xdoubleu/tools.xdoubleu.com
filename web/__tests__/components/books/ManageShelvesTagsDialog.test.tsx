@@ -192,11 +192,16 @@ describe('ManageShelvesTagsDialog', () => {
     await waitFor(() => expect(mockMutate).toHaveBeenCalledWith('/books'))
   })
 
-  it('calls deleteTag and mutates when tag Delete is clicked', async () => {
+  it('confirms before deleting a tag, then calls deleteTag and mutates', async () => {
     renderDialog(['fantasy'])
     const deleteButtons = screen.getAllByRole('button', { name: 'Delete' })
     fireEvent.click(deleteButtons[deleteButtons.length - 1])
+    expect(mockDeleteTag).not.toHaveBeenCalled()
+    expect(screen.getByText('Delete fantasy?')).toBeInTheDocument()
+    const confirm = screen.getAllByRole('button', { name: 'Delete' })
+    fireEvent.click(confirm[confirm.length - 1])
     await waitFor(() => expect(mockDeleteTag).toHaveBeenCalledWith('fantasy'))
+    await waitFor(() => expect(screen.queryByText('Delete fantasy?')).not.toBeInTheDocument())
     await waitFor(() => expect(mockMutate).toHaveBeenCalledWith('/books'))
   })
 

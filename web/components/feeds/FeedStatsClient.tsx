@@ -24,10 +24,10 @@ function formatPct(fraction: number): string {
 export default function FeedStatsClient() {
   const { data, error, isLoading } = useFeedStats()
 
-  if (isLoading) return <LoadingState />
-  if (error) return <ErrorState what="feed stats" />
+  if (isLoading) return <LoadingState placement="page" />
+  if (error) return <ErrorState placement="page" what="feed stats" />
   if (!data || data.stats.length === 0) {
-    return <EmptyState>No feed activity yet.</EmptyState>
+    return <EmptyState placement="page">No feed activity yet.</EmptyState>
   }
 
   const chartData = data.itemsPerDay.map((d) => ({
@@ -43,7 +43,7 @@ export default function FeedStatsClient() {
         </CardHeader>
         <CardContent>
           {chartData.length === 0 ? (
-            <EmptyState>No items ingested in the last 90 days.</EmptyState>
+            <EmptyState placement="inline">No items ingested in the last 90 days.</EmptyState>
           ) : (
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -68,7 +68,7 @@ export default function FeedStatsClient() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {data.stats.map((s) => (
-          <Card key={s.feedId} className="p-3">
+          <Card key={s.feedId} padding="sm">
             <p className="truncate text-sm font-semibold">{s.feedTitle || 'Untitled feed'}</p>
             <dl className="mt-2 space-y-1 text-xs text-muted">
               <div className="flex justify-between">

@@ -2,7 +2,9 @@ import { Link } from '@/components/ui/link'
 import { useState } from 'react'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
+import { FieldError } from '@/components/ui/field-error'
+import { SettingsSection } from '@/components/ui/settings-section'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -51,17 +53,13 @@ function RuleRow({ rule, scope }: { rule: FilterRule; scope: string }) {
             <span className="break-words">
               {kind} · {scope} ·{' '}
             </span>
-            <Button asChild variant="link" className="text-xs">
+            <Button asChild variant="link">
               <Link href={rule.feedId ? `/feeds/filtered?feed=${rule.feedId}` : '/feeds/filtered'}>
                 {rule.filteredCount} filtered
               </Link>
             </Button>
           </div>
-          {failed && (
-            <p className="text-xs text-danger" role="alert">
-              Deleting the rule failed.
-            </p>
-          )}
+          <FieldError>{failed && 'Deleting the rule failed.'}</FieldError>
         </div>
         <Button
           size="sm"
@@ -123,15 +121,11 @@ export default function FeedFilterRulesCard() {
   }
 
   return (
-    <Card padding="none">
-      <CardHeader>
-        <CardTitle>Filter rules</CardTitle>
-        <CardDescription>
-          Hide items from the inbox, unread counts and stats. A new rule also hides matching unread
-          items you already have; read, bookmarked and dismissed items are never touched.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <SettingsSection
+      title="Filter rules"
+      description="Hide items from the inbox, unread counts and stats. A new rule also hides matching unread items you already have; read, bookmarked and dismissed items are never touched."
+    >
+      <div className="space-y-4">
         <form
           className="grid grid-cols-1 gap-3 sm:grid-cols-2"
           onSubmit={(e) => {
@@ -184,10 +178,10 @@ export default function FeedFilterRulesCard() {
         </form>
         {status && <Alert tone={status.ok ? 'success' : 'danger'}>{status.message}</Alert>}
 
-        {isLoading && <LoadingState label="filter rules" />}
-        {error && <ErrorState what="filter rules" />}
+        {isLoading && <LoadingState label="filter rules" placement="inline" />}
+        {error && <ErrorState what="filter rules" placement="inline" />}
         {!isLoading && !error && rules.length === 0 && (
-          <EmptyState>No filter rules yet.</EmptyState>
+          <EmptyState placement="inline">No filter rules yet.</EmptyState>
         )}
         {rules.length > 0 && (
           <ul className="space-y-2">
@@ -196,7 +190,7 @@ export default function FeedFilterRulesCard() {
             ))}
           </ul>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsSection>
   )
 }

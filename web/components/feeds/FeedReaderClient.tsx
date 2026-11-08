@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   useFeeds,
   useFeedItems,
@@ -10,11 +10,12 @@ import { useLastChanceFeedItems } from '@/hooks/useFeedExpiry'
 import FeedLastChanceStrip from '@/components/feeds/FeedLastChanceStrip'
 import FeedReaderCard from '@/components/feeds/FeedReaderCard'
 import FeedTopItems from '@/components/feeds/FeedTopItems'
-import { Button } from '@/components/ui/button'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
+import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { Select } from '@/components/ui/select'
-import { ErrorState, LoadingState } from '@/components/ui/states'
-import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
+import { Toolbar } from '@/components/ui/toolbar'
+import type { Feed, Item } from '@/lib/gen/feeds/v1/feeds_pb'
 
 const LAST_VISIT_KEY = 'feeds:lastVisit'
 
@@ -26,39 +27,67 @@ function readAndBumpLastVisit(): number {
   return stored ? Number(stored) : Date.now()
 }
 
-// The inbox, or today's ranked top ten behind a toggle.
+type View = 'unread' | 'all' | 'bookmarked' | 'top'
+
+const VIEWS: { value: View; label: string }[] = [
+  { value: 'unread', label: 'Unread' },
+  { value: 'all', label: 'All' },
+  { value: 'bookmarked', label: 'Bookmarked' },
+  { value: 'top', label: 'Today’s top 10' }
+]
+
+// The inbox (unread, all or bookmarked), or today's ranked top ten.
 export default function FeedReaderClient() {
-  const [topMode, setTopMode] = useState(false)
-  const toggle = (
-    <Button
-      variant={topMode ? 'default' : 'secondary'}
-      size="sm"
-      aria-pressed={topMode}
-      onClick={() => setTopMode((v) => !v)}
-    >
-      {topMode ? 'Show inbox' : 'Today’s top 10'}
-    </Button>
-  )
-  if (topMode) {
-    return (
-      <div>
-        <div className="mb-4 flex justify-end">{toggle}</div>
+  const [view, setView] = useState<View>('unread')
+  const [selectedFeedId, setSelectedFeedId] = useState<string | undefined>(undefined)
+  const { data: feedsData } = useFeeds()
+
+  return (
+    <>
+      <Toolbar aria-label="Filter feed items">
+        <SegmentedTabs aria-label="Show" value={view} options={VIEWS} onChange={setView} />
+        {view !== 'top' && (
+          <Select
+            value={selectedFeedId ?? ''}
+            onChange={(e) => setSelectedFeedId(e.target.value || undefined)}
+            aria-label="Filter by feed"
+            className="w-full cursor-pointer sm:w-auto"
+          >
+            <option value="">All feeds</option>
+            {(feedsData?.feeds ?? []).map((feed) => (
+              <option key={feed.id} value={feed.id}>
+                {feed.title || feed.url}
+              </option>
+            ))}
+          </Select>
+        )}
+      </Toolbar>
+      {view === 'top' ? (
         <FeedTopItems />
-      </div>
-    )
-  }
-  return <FeedInbox topToggle={toggle} />
+      ) : (
+        <FeedInbox
+          bookmarkedOnly={view === 'bookmarked'}
+          showRead={view === 'all'}
+          selectedFeedId={selectedFeedId}
+          feeds={feedsData?.feeds ?? []}
+        />
+      )}
+    </>
+  )
 }
 
-function FeedInbox({ topToggle }: { topToggle: ReactNode }) {
+interface FeedInboxProps {
+  bookmarkedOnly: boolean
+  showRead: boolean
+  selectedFeedId?: string
+  feeds: Feed[]
+}
+
+function FeedInbox({ bookmarkedOnly, showRead, selectedFeedId, feeds }: FeedInboxProps) {
   usePrefetchFeedBodies()
-  const [showRead, setShowRead] = useState(false)
-  const [bookmarkedOnly, setBookmarkedOnly] = useState(false)
   // Bookmarks are a keep-list, so that view ignores the unread filter.
   const unreadOnly = !showRead && !bookmarkedOnly
-  const [selectedFeedId, setSelectedFeedId] = useState<string | undefined>(undefined)
 
-  const { data: feedsData } = useFeeds()
   const {
     data: itemsData,
     error,
@@ -105,11 +134,11 @@ function FeedInbox({ topToggle }: { topToggle: ReactNode }) {
 
   const feedTitleById = useMemo(() => {
     const map = new Map<string, string>()
-    for (const feed of feedsData?.feeds ?? []) {
+    for (const feed of feeds) {
       map.set(feed.id, feed.title || feed.url)
     }
     return map
-  }, [feedsData])
+  }, [feeds])
 
   const handleMarkRead = useCallback((item: Item) => {
     setPendingRead((prev) => new Map(prev).set(item.id, item))
@@ -124,40 +153,11 @@ function FeedInbox({ topToggle }: { topToggle: ReactNode }) {
     })
   }, [])
 
-  if (isLoading) return <LoadingState />
-  if (error) return <ErrorState what="feed items" />
+  if (isLoading) return <LoadingState placement="page" />
+  if (error) return <ErrorState what="feed items" placement="page" />
 
   return (
-    <div>
-      <div className="mb-4 flex flex-wrap justify-end gap-2">
-        <Select
-          value={selectedFeedId ?? ''}
-          onChange={(e) => setSelectedFeedId(e.target.value || undefined)}
-          aria-label="Filter by feed"
-          className="w-full cursor-pointer sm:w-auto"
-        >
-          <option value="">All feeds</option>
-          {(feedsData?.feeds ?? []).map((feed) => (
-            <option key={feed.id} value={feed.id}>
-              {feed.title || feed.url}
-            </option>
-          ))}
-        </Select>
-        {!bookmarkedOnly && (
-          <Button variant="secondary" size="sm" onClick={() => setShowRead((v) => !v)}>
-            {showRead ? 'Show unread only' : 'Show read items'}
-          </Button>
-        )}
-        {topToggle}
-        <Button
-          variant={bookmarkedOnly ? 'default' : 'secondary'}
-          size="sm"
-          onClick={() => setBookmarkedOnly((v) => !v)}
-        >
-          {bookmarkedOnly ? 'Show all' : 'Show bookmarked'}
-        </Button>
-      </div>
-
+    <>
       {unreadOnly && (
         <FeedLastChanceStrip
           items={lastChance}
@@ -170,13 +170,13 @@ function FeedInbox({ topToggle }: { topToggle: ReactNode }) {
       )}
 
       {gridItems.length === 0 && lastChance.length === 0 ? (
-        <p className="py-16 text-center text-sm text-muted">
+        <EmptyState placement="page">
           {bookmarkedOnly
             ? 'No bookmarked feed items.'
             : showRead
               ? 'No feed items.'
               : 'No unread feed items.'}
-        </p>
+        </EmptyState>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -195,6 +195,6 @@ function FeedInbox({ topToggle }: { topToggle: ReactNode }) {
           {hasMore && <LoadMoreButton onClick={loadMore} loading={loadingMore} />}
         </>
       )}
-    </div>
+    </>
   )
 }

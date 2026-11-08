@@ -44,6 +44,7 @@ export default function ManageShelvesTagsDialog({
 }: ManageShelvesTagsDialogProps) {
   const [renaming, setRenaming] = useState<RenameState | null>(null)
   const [deletingShelf, setDeletingShelf] = useState<DeleteShelfState | null>(null)
+  const [deletingTag, setDeletingTag] = useState<string | null>(null)
   const [newShelfName, setNewShelfName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -108,12 +109,14 @@ export default function ManageShelvesTagsDialog({
     }
   }
 
-  const handleDeleteTag = async (name: string) => {
+  const handleDeleteTag = async () => {
+    if (!deletingTag) return
     setBusy(true)
     setError(null)
     try {
-      await deleteTag(name)
+      await deleteTag(deletingTag)
       mutate(swrKeys.books)
+      setDeletingTag(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Delete failed.')
     } finally {
@@ -287,8 +290,7 @@ export default function ManageShelvesTagsDialog({
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => void handleDeleteTag(tag)}
-                        disabled={busy}
+                        onClick={() => setDeletingTag(tag)}
                         className="text-danger hover:text-danger"
                       >
                         Delete
@@ -330,6 +332,21 @@ export default function ManageShelvesTagsDialog({
               </Select>
             </Field>
           )}
+        </ConfirmDialog>
+        <ConfirmDialog
+          open={deletingTag !== null}
+          onOpenChange={(o) => {
+            if (!o) setDeletingTag(null)
+          }}
+          title={`Delete ${deletingTag ?? 'tag'}?`}
+          description="The tag is removed from every book that has it."
+          confirmLabel="Delete"
+          pendingLabel="Deleting…"
+          destructive
+          pending={busy}
+          onConfirm={() => void handleDeleteTag()}
+        >
+          {error && <Alert tone="danger">{error}</Alert>}
         </ConfirmDialog>
       </DialogContent>
     </Dialog>

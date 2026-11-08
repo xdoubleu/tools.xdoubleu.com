@@ -1,6 +1,7 @@
 import type { Game } from '@/lib/gen/games/v1/games_pb'
 import { LinkCard } from '@/components/ui/link-card'
 import GameFavouriteButton from '@/components/games/GameFavouriteButton'
+import { SectionHeading } from '@/components/ui/section-heading'
 
 // Shared by the owner library and public profiles; the caller picks the link
 // target and whether the favourite is an interactive toggle.
@@ -58,9 +59,9 @@ export function GameGroup({
   if (games.length === 0) return null
   return (
     <div className="mb-6">
-      <h2 className="text-lg font-semibold mb-3">
+      <SectionHeading className="mb-3">
         {title} ({games.length})
-      </h2>
+      </SectionHeading>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {games.map((g) => (
           <GameCard key={g.id} game={g} href={hrefFor(g)} showFavourite={showFavourite} />

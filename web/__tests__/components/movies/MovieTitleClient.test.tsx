@@ -129,7 +129,7 @@ describe('MovieTitleClient', () => {
     render(<MovieTitleClient id="e-1" />)
 
     expect(screen.getByRole('button', { name: 'Add to my list' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Movies & Series' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Movies & series' })).toHaveAttribute(
       'href',
       '/movies?list=shared'
     )
@@ -177,7 +177,7 @@ describe('MovieTitleClient', () => {
     rerender(<MovieTitleClient id="e-1" />)
     expect(screen.getByText('Failed to load title.')).toBeInTheDocument()
     // Heading plus the breadcrumb's current page.
-    expect(screen.getAllByText('Movies & Series')).toHaveLength(2)
+    expect(screen.getAllByText('Movies & series')).toHaveLength(2)
 
     mockTitle({})
     rerender(<MovieTitleClient id="e-1" />)
@@ -199,7 +199,7 @@ describe('MovieTitleClient', () => {
   it('links back and names the title in the breadcrumb and dialog', () => {
     mockTitle({ data: spirited })
     render(<MovieTitleClient id="e-1" />)
-    expect(screen.getByRole('link', { name: 'Movies & Series' })).toHaveAttribute('href', '/movies')
+    expect(screen.getByRole('link', { name: 'Movies & series' })).toHaveAttribute('href', '/movies')
     expect(screen.getAllByText('Spirited Away')).toHaveLength(2)
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove from backlog' }))

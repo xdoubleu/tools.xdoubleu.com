@@ -5,9 +5,10 @@ import {
   SteamGameHeader,
   countAchieved
 } from '@/components/games/SteamGameDetail'
-import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
+import type { BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { formatDateTime } from '@/lib/dates'
 
@@ -31,44 +32,40 @@ export default function GamesDashboardPublicGameClient({
     { label: game?.name ?? 'Game' }
   ]
 
+  if (isLoading && !game) return <LoadingState label="game" placement="page" />
+  if (!game) {
+    return (
+      <PageContainer>
+        <PageHeader title="Game" breadcrumb={breadcrumbItems} />
+        {error && <ErrorState what="game" placement="page" />}
+      </PageContainer>
+    )
+  }
+
   return (
     <PageContainer>
-      <Breadcrumb items={breadcrumbItems} />
+      <SteamGameHeader
+        game={game}
+        breadcrumb={breadcrumbItems}
+        titleSuffix={
+          game.favourite && (
+            <span className="ml-3 text-star" aria-label="Favourite">
+              ♥
+            </span>
+          )
+        }
+        meta={game.lastSyncedAt && <span>Last synced: {formatDateTime(game.lastSyncedAt)}</span>}
+      />
 
-      {isLoading && !game && <LoadingState label="game" className="mt-6" />}
-      {error && !game && <ErrorState what="game" className="mt-6" />}
-
-      {game && (
-        <>
-          <SteamGameHeader
-            game={game}
-            titleSuffix={
-              game.favourite && (
-                <span className="ml-3 text-star" aria-label="Favourite">
-                  ♥
-                </span>
-              )
-            }
-            meta={
-              game.lastSyncedAt && <span>Last synced: {formatDateTime(game.lastSyncedAt)}</span>
-            }
-          />
-
-          {countAchieved(achievements) > 0 && (
-            <div className="mb-6">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowCompleted((prev) => !prev)}
-              >
-                {showCompleted ? 'Hide completed' : 'Show completed'}
-              </Button>
-            </div>
-          )}
-
-          <GameAchievements achievements={achievements} showCompleted={showCompleted} />
-        </>
+      {countAchieved(achievements) > 0 && (
+        <div className="mb-6">
+          <Button variant="secondary" size="sm" onClick={() => setShowCompleted((prev) => !prev)}>
+            {showCompleted ? 'Hide completed' : 'Show completed'}
+          </Button>
+        </div>
       )}
+
+      <GameAchievements achievements={achievements} showCompleted={showCompleted} />
     </PageContainer>
   )
 }

@@ -176,6 +176,6 @@ describe('MoviesStatsPage', () => {
     vi.mocked(useSharedList).mockReturnValue(shared)
     mount(<MoviesStatsPage />)
 
-    expect(screen.getByRole('link', { name: 'Movies & Series' })).toHaveAttribute('href', href)
+    expect(screen.getByRole('link', { name: 'Movies & series' })).toHaveAttribute('href', href)
   })
 })
