@@ -280,7 +280,7 @@ jobs:
       - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2
         with:
           # renovate: datasource=github-releases depName=opentofu/opentofu
-          tofu_version: v1.13.8
+          tofu_version: v1.13.9
           tofu_wrapper: false
       - name: make lint/infra
         run: make lint/infra
@@ -679,7 +679,7 @@ jobs:
       - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2
         with:
           # renovate: datasource=github-releases depName=opentofu/opentofu
-          tofu_version: v1.13.8
+          tofu_version: v1.13.9
 
       # Same key as deploy-kamal; already authorized for Tofu's provisioners.
       - name: Load the deploy SSH key
