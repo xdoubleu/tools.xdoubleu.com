@@ -54,13 +54,15 @@ keyword**. Put `Task: <title> (<id>)` at the top of the PR body, and after
 `ship-pr` opens it `factory_move_task(id, "in_review")`. After the merge move it
 to `testing` (the runner moves only its own PRs); the owner moves it to Done.
 
+- **Epic or child** (`epic:<slug>`): `factory_list_tasks(label)` lists the
+  tree; move every task this PR delivered or superseded like its own.
 - **`## Follow-up: your turn` in the task body** (only the heading counts, not
   prose): say in the PR body that the task stays open for that step. Move it to
   In review as usual, then to `needs_you` once the PR has merged.
 - **Bug report**: a green suite doesn't close it. Verify the symptom is gone in
   production after deploy (MCP read tools or UI); name that check as a
-  post-deploy step in the PR body. If unverifiable (third party, hardware), say
-  so; the user's confirmation is acceptance.
+  post-deploy step in the PR body. If unverifiable, say so; the user's
+  confirmation is acceptance.
 
 **GitHub-issue mode (until #2779):** when the prompt named a GitHub issue,
 reference it as before: `Part of #123` under a follow-up heading (then, after
@@ -70,9 +72,8 @@ mode; unattended, leave Status as-is.
 
 ## 4b. Check for supersession
 
-Before opening the PR or pushing: `git fetch origin main`, diff the touched
-files against it, re-run the PR search. If deleted or already resolved, close
-as superseded, no PR.
+Before pushing: `git fetch origin main`, diff the touched files against it,
+re-run the PR search. If deleted or already resolved, close as superseded.
 
 ## 5. Ship via `ship-pr`
 
@@ -82,8 +83,7 @@ review and merge. Only Renovate's dependency PRs auto-merge, through
 `renovate.json5`
 ([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md),
 [`docs/convention-unattended-agent-trust.md`](../../../docs/convention-unattended-agent-trust.md)).
-Tell `ship-pr` explicitly not to enable it, and that the PR references the task
-as in step 4 (the `Task:` line, no closing keyword, no issue number).
+Tell `ship-pr` not to enable it, and to reference the task as in step 4.
 
 **A — `feature` label: run the quality gate first.** No
 `## Manual review needed` section. Before opening the PR fix everything each
