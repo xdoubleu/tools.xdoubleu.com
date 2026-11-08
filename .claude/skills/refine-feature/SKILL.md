@@ -70,6 +70,8 @@ the map has titles; ids go in a closing comment (step 5).
   maintenance track.
 - Everything lands in Backlog; you can't make a task Ready, so say that the
   owner moves them.
+- If slices later merge into one PR, comment on each child then, naming the PR
+  and its parent; `finish-task` closes them with the PR.
 
 ## 6. Close the loop
 
