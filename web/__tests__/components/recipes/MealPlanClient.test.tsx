@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 vi.mock('@/hooks/useMealPlans', () => ({
   useMealPlan: vi.fn(),
@@ -96,6 +96,15 @@ describe('MealPlanClient', () => {
   it('shows iCal Link button when icalUrl is available', () => {
     render(<MealPlanClient id="plan-1" />)
     expect(screen.getByRole('button', { name: 'iCal Link' })).toBeInTheDocument()
+  })
+
+  it('copies the iCal link and confirms it', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    render(<MealPlanClient id="plan-1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'iCal Link' }))
+    expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument()
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/'))
   })
 
   it('shows Settings link instead of Edit for owner', () => {

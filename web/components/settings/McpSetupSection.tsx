@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { useCopyFeedback } from '@/hooks/useCopyFeedback'
 
 type McpCommand = {
   key: string
@@ -18,13 +18,9 @@ const APPS_MCP: McpCommand = {
 }
 
 export function McpSetupSection() {
-  const [copiedKey, setCopiedKey] = useState('')
+  const { copy, copiedKey } = useCopyFeedback()
 
-  const handleCopy = async (cmd: McpCommand) => {
-    await navigator.clipboard.writeText(cmd.command)
-    setCopiedKey(cmd.key)
-    setTimeout(() => setCopiedKey(''), 2000)
-  }
+  const handleCopy = (cmd: McpCommand) => copy(cmd.command, cmd.key)
 
   const commands = [APPS_MCP]
 

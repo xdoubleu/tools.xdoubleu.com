@@ -296,7 +296,7 @@ export default function TaskDetail({ id, onClose }: TaskDetailProps) {
             />
             <section className="space-y-2" aria-label="Comments">
               {data.comments.length === 0 ? (
-                <EmptyState compact>No comments yet.</EmptyState>
+                <EmptyState placement="inline">No comments yet.</EmptyState>
               ) : (
                 data.comments.map((c) => (
                   <Card key={c.id} variant="inset">

@@ -156,7 +156,7 @@ export default function ProviderConfigDialog({
                       Projects
                     </p>
                     {projects.length === 0 ? (
-                      <EmptyState compact>No projects found in {org}.</EmptyState>
+                      <EmptyState placement="inline">No projects found in {org}.</EmptyState>
                     ) : (
                       <div className="flex flex-col gap-2">
                         {projects.map((p) => (

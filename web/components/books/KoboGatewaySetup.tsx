@@ -157,7 +157,7 @@ export default function KoboGatewaySetup({ status, pollIntervalMs = 1500 }: Kobo
       </p>
 
       {kobos.length === 0 && state !== 'error' && (
-        <EmptyState compact>
+        <EmptyState placement="inline">
           No Kobo detected. Plug it in via USB — this updates automatically.
         </EmptyState>
       )}

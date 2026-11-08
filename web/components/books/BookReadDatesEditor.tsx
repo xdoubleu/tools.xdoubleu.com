@@ -67,7 +67,7 @@ export default function BookReadDatesEditor({ userBook, onSaved }: BookReadDates
           type="button"
           variant="secondary"
           size="sm"
-          className="self-start text-xs"
+          className="self-start"
           onClick={() => setDates([...dates, ''])}
         >
           Add date

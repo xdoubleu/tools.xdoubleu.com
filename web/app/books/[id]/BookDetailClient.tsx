@@ -160,7 +160,7 @@ export default function BookDetailClient({ id }: { id: string }) {
             {book.description ? (
               <BookDescription description={book.description} />
             ) : (
-              <EmptyState compact>No description available.</EmptyState>
+              <EmptyState placement="inline">No description available.</EmptyState>
             )}
           </section>
 
@@ -224,18 +224,12 @@ export default function BookDetailClient({ id }: { id: string }) {
                   <div className="flex gap-2 flex-wrap items-center">
                     <OfflineBookBadge bookId={userBook.bookId} />
                     {readerFormatList.length === 1 ? (
-                      <Button asChild variant="secondary" size="sm" className="text-xs">
+                      <Button asChild variant="secondary" size="sm">
                         <Link href={`/books/${userBook.id}/read`}>Open reader</Link>
                       </Button>
                     ) : (
                       readerFormatList.map((format) => (
-                        <Button
-                          key={format}
-                          asChild
-                          variant="secondary"
-                          size="sm"
-                          className="text-xs"
-                        >
+                        <Button key={format} asChild variant="secondary" size="sm">
                           <Link href={`/books/${userBook.id}/read?format=${format}`}>
                             Open {format.toUpperCase()}
                           </Link>
@@ -244,7 +238,7 @@ export default function BookDetailClient({ id }: { id: string }) {
                     )}
                     {/* A PDF-only book also links straight to its reflowable KEPUB. */}
                     {!userBook.formats.includes('epub') && (
-                      <Button asChild variant="secondary" size="sm" className="text-xs">
+                      <Button asChild variant="secondary" size="sm">
                         <Link href={`/books/${userBook.id}/read?format=kepub`}>Open KEPUB</Link>
                       </Button>
                     )}
@@ -261,7 +255,6 @@ export default function BookDetailClient({ id }: { id: string }) {
                   type="button"
                   variant="destructive"
                   size="sm"
-                  className="text-xs"
                   onClick={() => setRemoveOpen(true)}
                 >
                   Remove from library

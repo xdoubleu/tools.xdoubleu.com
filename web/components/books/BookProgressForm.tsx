@@ -139,6 +139,7 @@ export default function BookProgressForm({
           onFocus={(e) => e.target.select()}
           autoFocus
           aria-label={isPages ? 'Current page' : 'Progress percent'}
+          // eslint-disable-next-line ui/control-overrides -- the page's one hero number entry
           className="h-14 min-w-0 flex-1 text-2xl font-semibold md:text-2xl"
         />
         <span className="shrink-0 text-muted">

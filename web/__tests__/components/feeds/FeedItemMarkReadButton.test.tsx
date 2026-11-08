@@ -60,7 +60,7 @@ describe('FeedItemMarkReadButton', () => {
     render(<FeedItemMarkReadButton itemId="item-1" onMarkRead={vi.fn()} onSettled={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
     const undo = await screen.findByRole('button', { name: 'Undo' })
-    expect(undo).toHaveClass('h-11', 'min-w-11')
+    expect(undo).toHaveClass('h-9', 'min-w-11')
   })
 
   it('reverts to the prior state and never settles when Undo is clicked', async () => {

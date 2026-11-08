@@ -28,7 +28,7 @@ function RankedList({
   empty: string
 }) {
   return (
-    <Card>
+    <Card padding="none">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
@@ -61,7 +61,7 @@ function RankedList({
 
 function HitRates({ rates }: { rates: HitRate[] }) {
   return (
-    <Card>
+    <Card padding="none">
       <CardHeader>
         <CardTitle>Recommendation hit rate</CardTitle>
       </CardHeader>
@@ -118,7 +118,7 @@ export default function TasteStats() {
         ))}
       </div>
 
-      <Card>
+      <Card padding="none">
         <CardHeader>
           <CardTitle>Consumed per month</CardTitle>
         </CardHeader>

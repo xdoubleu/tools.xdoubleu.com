@@ -35,7 +35,10 @@ export default function GamesSearch({ className }: GamesSearchProps) {
         placeholder="Search games…"
       />
       {results.length > 0 && (
-        <Card className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto shadow-elevated">
+        <Card
+          padding="none"
+          className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto shadow-elevated"
+        >
           <ul>
             {results.map((game) => (
               <li key={game.id}>

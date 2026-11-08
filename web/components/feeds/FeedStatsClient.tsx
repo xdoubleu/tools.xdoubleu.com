@@ -37,7 +37,7 @@ export default function FeedStatsClient() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card>
+      <Card padding="none">
         <CardHeader>
           <CardTitle>New items per day (last 90 days)</CardTitle>
         </CardHeader>

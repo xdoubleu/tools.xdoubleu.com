@@ -82,7 +82,7 @@ export default function ExternalBookDetailClient({
             {book.description ? (
               <BookDescription description={book.description} />
             ) : (
-              <EmptyState compact>No description available.</EmptyState>
+              <EmptyState placement="inline">No description available.</EmptyState>
             )}
           </section>
         </>

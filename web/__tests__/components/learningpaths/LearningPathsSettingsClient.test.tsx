@@ -1,7 +1,7 @@
 import type { Mock } from 'vitest'
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import LearningPathsSettingsClient from '@/components/learningpaths/LearningPathsSettingsClient'
 import {
   useTodoistConnection,
@@ -12,6 +12,9 @@ import {
   GetTodoistConnectionStatusResponseSchema,
   type GetTodoistConnectionStatusResponse
 } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
+
+const confirmInDialog = (name: string) =>
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name }))
 
 vi.mock('@/hooks/useTodoistConnection', () => ({
   useTodoistConnection: vi.fn(),
@@ -84,6 +87,8 @@ describe('LearningPathsSettingsClient', () => {
     render(<LearningPathsSettingsClient />)
     expect(screen.getByText(/^Connected on /)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    expect(disconnect).not.toHaveBeenCalled()
+    confirmInDialog('Disconnect')
     await waitFor(() => expect(mutate).toHaveBeenCalled())
     expect(disconnect).toHaveBeenCalled()
   })
@@ -101,6 +106,7 @@ describe('LearningPathsSettingsClient', () => {
     mockConnection({ data: create(GetTodoistConnectionStatusResponseSchema, { connected: true }) })
     render(<LearningPathsSettingsClient />)
     fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
+    confirmInDialog('Disconnect')
     expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't disconnect Todoist.")
   })
 

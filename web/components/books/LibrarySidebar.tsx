@@ -168,7 +168,7 @@ export default function LibrarySidebar({
                 key={s.name}
                 asChild
                 variant="ghost"
-                className="justify-between rounded-xl px-3 py-2 font-normal text-subtle hover:text-fg"
+                className="justify-between rounded-xl px-3 font-normal text-subtle hover:text-fg"
               >
                 <Link href={seriesHref(s.name)}>
                   <span className="truncate">{s.name}</span>

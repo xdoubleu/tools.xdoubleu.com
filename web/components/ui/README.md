@@ -93,7 +93,8 @@ Static surface for grouped content. Use `LinkCard` when the card navigates, `int
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
-| `variant` | `keyof typeof cardVariants` |  | `inset` is a flat, padded panel nested inside a card or dialog (list rows, notes). |
+| `variant` | `keyof typeof cardVariants` |  | `inset` is a flat panel nested inside a card or dialog (list rows, notes). |
+| `padding` | `keyof typeof cardPadding` |  | Inner padding; `md` by default, `sm` for `inset`. Use `none` when the card holds `CardHeader`/`CardContent` or edge-to-edge rows, never a `p-*` class. |
 
 Also accepts: `HTMLAttributes<HTMLDivElement>`
 
@@ -263,6 +264,18 @@ Right-aligned action row, pinned to the bottom of a scrolling dialog so its acti
 
 #### `DialogTitle`
 
+### `field-error.tsx`
+
+#### `FieldError`
+
+Small announced error line under a form control. Use `Alert tone="danger"` for a form-level error.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `id` | `string` |  | Point the control's `aria-describedby` at this. |
+| `children` | `ReactNode` |  | Nothing renders while empty, so it can sit beside a field permanently. |
+| `className` | `string` |  |  |
+
 ### `field.tsx`
 
 #### `Field`
@@ -274,7 +287,7 @@ A form control with its label and hint/error, stacked.
 | `label` | `ReactNode` | yes |  |
 | `htmlFor` | `string` | yes | The control's `id`, so tapping the label focuses it. |
 | `hint` | `ReactNode` |  | Muted help text under the control. |
-| `error` | `ReactNode` |  | Validation message; replaces `hint` while set. |
+| `error` | `ReactNode` |  | Validation message; replaces `hint` while set. Its id is `{htmlFor}-error`, for `aria-describedby`. |
 | `children` | `ReactNode` | yes |  |
 | `className` | `string` |  |  |
 
@@ -374,6 +387,21 @@ Trigger plus a portalled fixed panel (never clipped by overflow ancestors) that 
 
 A plain button styled for use as a popover trigger.
 
+### `progress-bar.tsx`
+
+#### `ProgressBar`
+
+Thin horizontal `role="progressbar"` track; `value` is clamped to `0…max`.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `value` | `number` | yes |  |
+| `max` | `number` |  | Defaults to 100, so `value` reads as a percentage. |
+| `'aria-label'` | `string` | yes | Names the bar for screen readers, e.g. "Reading progress". |
+| `valueText` | `string` |  | Text read out instead of the bare number, e.g. "12 of 30 chapters". |
+| `tone` | `'accent' \| 'success' \| 'warn' \| 'danger'` |  | Fill colour token; defaults to the accent. |
+| `className` | `string` |  |  |
+
 ### `radio-group.tsx`
 
 #### `Radio`
@@ -417,6 +445,18 @@ Five-star rating; an image when read-only, star buttons otherwise.
 | `disabled` | `boolean` |  |  |
 | `size` | `'sm' \| 'md'` |  | Glyph size: "sm" (default) for cards, "md" for detail pages. Interactive stars are 44px targets on phones. |
 
+### `remove-button.tsx`
+
+#### `RemoveButton`
+
+Icon-only × that removes a row, chip or attachment; turns danger on hover and focus.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `'aria-label'` | `string` | yes | Names what goes, e.g. "Remove Flour". |
+
+Also accepts: `Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'>`
+
 ### `section-card.tsx`
 
 #### `SectionCard`
@@ -431,6 +471,21 @@ A `Card` with the standard title/description/action header; don't hand-assemble 
 | `children` | `ReactNode` | yes |  |
 | `className` | `string` |  |  |
 | `contentClassName` | `string` |  | Applied to the body wrapper, not the card. |
+
+### `section-heading.tsx`
+
+#### `SectionHeading`
+
+Heading for a section of a page. Use it instead of a hand-styled `<h2>`/`<h3>`.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `children` | `ReactNode` | yes |  |
+| `level` | `'section' \| 'eyebrow'` |  | `section` is the serif heading under `PageHeader`; `eyebrow` the small uppercase label. |
+| `as` | `'h2' \| 'h3' \| 'h4'` |  | Heading element; defaults to `h2` for `section`, `h3` for `eyebrow`. |
+| `actions` | `ReactNode` |  | Right-aligned controls on the heading row; they wrap under it on narrow screens. |
+| `id` | `string` |  |  |
+| `className` | `string` |  |  |
 
 ### `segmented-tabs.tsx`
 
@@ -449,6 +504,24 @@ Single-choice switch between a few views or modes, rendered as a tablist.
 ### `select.tsx`
 
 #### `Select`
+
+### `settings-section.tsx`
+
+#### `SettingsSection`
+
+One group on a settings page. Stack them in `SettingsSections`, which owns the spacing between groups; don't add dividers.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `title` | `ReactNode` | yes |  |
+| `description` | `ReactNode` |  | Muted line under the title. |
+| `actions` | `ReactNode` |  | Controls on the title row. |
+| `children` | `ReactNode` | yes |  |
+| `className` | `string` |  |  |
+
+#### `SettingsSections`
+
+Vertical stack of `SettingsSection`s with the standard gap between them.
 
 ### `stat.tsx`
 
@@ -473,14 +546,14 @@ Responsive grid for a row of `StatTile`s — two up on mobile, four from `sm`.
 
 #### `EmptyState`
 
-Message for a list or section with nothing in it yet.
+Message for a list or section with nothing in it yet. Centred (`page`) by default; `inline` for an empty list inside a field, dialog section or panel.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
 | `children` | `ReactNode` | yes |  |
 | `action` | `ReactNode` |  | Optional call to action under the message, e.g. a "New recipe" button. |
-| `compact` | `boolean` |  | Flush and left-aligned, for an empty list inside a field, dialog section or panel. |
-| `className` | `string` |  |  |
+
+Also accepts: `StateProps`
 
 #### `ErrorState`
 
@@ -549,4 +622,18 @@ Pill for selectable attributes and filter chips: filled when active, outlined wh
 | `className` | `string` |  |  |
 
 Also accepts: `Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'>`
+
+### `toolbar.tsx`
+
+#### `Toolbar`
+
+The search-and-filter row between `PageHeader` and a list; every list page uses this one.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `search` | `ReactNode` |  | Leading search field; it takes the remaining width and wraps to its own row on phones. |
+| `children` | `ReactNode` |  | Filter controls (`Select`, `TogglePill`s, `SegmentedTabs`) after the search. |
+| `trailing` | `ReactNode` |  | Right-aligned trailing slot: a result count or a view toggle. |
+| `'aria-label'` | `string` |  | Names the toolbar for screen readers, e.g. "Filter books". |
+| `className` | `string` |  |  |
 

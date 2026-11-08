@@ -12,6 +12,10 @@ const uiEverywhere = {
 }
 const uiCallSites = {
   ...uiEverywhere,
+  // warn until the per-app slices migrate their call sites.
+  'ui/card-padding': 'warn',
+  'ui/shared-patterns': 'warn',
+  'ui/control-overrides': 'error',
   'ui/dialog-description': 'error',
   'ui/field-labels': 'error',
   'ui/touch-targets': 'error',
@@ -93,6 +97,9 @@ export default [
         }
       ],
       ...uiEverywhere,
+      'ui/card-padding': 'off',
+      'ui/control-overrides': 'off',
+      'ui/shared-patterns': 'off',
       'ui/dialog-description': 'off',
       'ui/field-labels': 'off',
       'ui/touch-targets': 'off',

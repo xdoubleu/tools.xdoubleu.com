@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useSearchParams } from '@/hooks/navigation'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import {
@@ -8,6 +9,7 @@ import {
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { Alert } from '@/components/ui/alert'
 import { ConnectionRow } from '@/components/ui/connection-row'
 import { LoadingState } from '@/components/ui/states'
@@ -20,6 +22,7 @@ export default function LearningPathsSettingsClient() {
   const searchParams = useSearchParams()
 
   const { run, pending: busy, error } = useAsyncAction()
+  const [confirmingDisconnect, setConfirmingDisconnect] = useState(false)
 
   const todoistError = searchParams.get('todoist_error') !== null
 
@@ -29,7 +32,7 @@ export default function LearningPathsSettingsClient() {
     run(async () => {
       await disconnectTodoist()
       await mutate()
-    }, "Couldn't disconnect Todoist. Try again.")
+    }, "Couldn't disconnect Todoist. Try again.").finally(() => setConfirmingDisconnect(false))
 
   return (
     <PageContainer size="narrow">
@@ -91,7 +94,7 @@ export default function LearningPathsSettingsClient() {
                     variant="destructive"
                     size="sm"
                     disabled={busy}
-                    onClick={handleDisconnect}
+                    onClick={() => setConfirmingDisconnect(true)}
                   >
                     Disconnect
                   </Button>
@@ -104,6 +107,17 @@ export default function LearningPathsSettingsClient() {
             }
           />
         )}
+        <ConfirmDialog
+          open={confirmingDisconnect}
+          onOpenChange={setConfirmingDisconnect}
+          title="Disconnect Todoist?"
+          description="Reminders stop, and the projects already created in Todoist stay there."
+          confirmLabel="Disconnect"
+          pendingLabel="Disconnecting…"
+          destructive
+          pending={busy}
+          onConfirm={() => void handleDisconnect()}
+        />
       </section>
     </PageContainer>
   )

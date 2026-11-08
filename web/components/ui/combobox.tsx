@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useId, type InputHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
 import { Input } from '@/components/ui/input'
+import { controlMinHeightClass } from '@/components/ui/control'
 
 interface ComboboxProps {
   value: string
@@ -139,7 +140,8 @@ export function Combobox({
               aria-selected={i === highlightedIndex}
               onMouseDown={() => select(s)}
               className={cn(
-                'flex min-h-11 items-center px-3 py-2 cursor-pointer text-sm transition-colors sm:min-h-9',
+                'flex items-center px-3 py-2 cursor-pointer text-sm transition-colors',
+                controlMinHeightClass,
                 i === highlightedIndex
                   ? 'bg-accent text-white'
                   : 'text-fg hover:bg-hover active:bg-hover'

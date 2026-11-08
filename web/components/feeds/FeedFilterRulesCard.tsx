@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -26,6 +27,7 @@ function RuleRow({ rule, scope }: { rule: FilterRule; scope: string }) {
   const deleteRule = useDeleteFilterRule()
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const kind = kindLabel(rule.kind)
 
   const remove = async () => {
@@ -36,6 +38,7 @@ function RuleRow({ rule, scope }: { rule: FilterRule; scope: string }) {
     } catch {
       setFailed(true)
       setBusy(false)
+      setConfirming(false)
     }
   }
 
@@ -65,11 +68,22 @@ function RuleRow({ rule, scope }: { rule: FilterRule; scope: string }) {
           variant="destructive"
           disabled={busy}
           aria-label={`Delete rule ${kind}: ${rule.value}`}
-          onClick={() => void remove()}
+          onClick={() => setConfirming(true)}
         >
           Delete
         </Button>
       </Card>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={`Delete the rule “${rule.value}”?`}
+        description="Items it already hid stay hidden; new matching items show up again."
+        confirmLabel="Delete"
+        pendingLabel="Deleting…"
+        destructive
+        pending={busy}
+        onConfirm={() => void remove()}
+      />
     </li>
   )
 }
@@ -109,7 +123,7 @@ export default function FeedFilterRulesCard() {
   }
 
   return (
-    <Card>
+    <Card padding="none">
       <CardHeader>
         <CardTitle>Filter rules</CardTitle>
         <CardDescription>

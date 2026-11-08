@@ -11,6 +11,9 @@ import { ConnectError, Code } from '@connectrpc/connect'
 import FeedFilterRulesCard from '@/components/feeds/FeedFilterRulesCard'
 import { FilterRuleKind } from '@/lib/gen/feeds/v1/feeds_pb'
 
+const confirmInDialog = (name: string) =>
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name }))
+
 const mockUseFeeds = vi.fn()
 const mockUseFilterRules = vi.fn()
 const mockCreate = vi.fn()
@@ -212,6 +215,7 @@ describe('FeedFilterRulesCard', () => {
       name: 'Delete rule Category: Product announcements'
     })
     fireEvent.click(button)
+    confirmInDialog('Delete')
     expect(mockDelete).toHaveBeenCalledWith('rule-1')
     expect(button).toBeDisabled()
     await act(async () => pending.resolve())
@@ -223,11 +227,13 @@ describe('FeedFilterRulesCard', () => {
 
     const button = screen.getByRole('button', { name: 'Delete rule Title contains: sponsored' })
     fireEvent.click(button)
+    confirmInDialog('Delete')
     expect(await screen.findByRole('alert')).toHaveTextContent('Deleting the rule failed.')
     expect(button).toBeEnabled()
 
     mockDelete.mockReturnValue(new Promise(() => {}))
     fireEvent.click(button)
+    confirmInDialog('Delete')
     await waitFor(() =>
       expect(screen.queryByText('Deleting the rule failed.')).not.toBeInTheDocument()
     )

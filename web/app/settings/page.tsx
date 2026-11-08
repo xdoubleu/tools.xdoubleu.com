@@ -11,6 +11,7 @@ import {
   useRegenerateRecoveryCodes
 } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { Field } from '@/components/ui/field'
@@ -59,6 +60,7 @@ export default function SettingsPage() {
   const [factorCode, setFactorCode] = useState('')
   const [mfaBusy, setMfaBusy] = useState(false)
   const [mfaError, setMfaMfaError] = useState('')
+  const [confirmingMfaDisable, setConfirmingMfaDisable] = useState(false)
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null)
   const [recoveryCodesError, setRecoveryCodesError] = useState('')
 
@@ -194,6 +196,7 @@ export default function SettingsPage() {
       }
     } finally {
       setMfaBusy(false)
+      setConfirmingMfaDisable(false)
     }
   }
 
@@ -334,12 +337,23 @@ export default function SettingsPage() {
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={handleMFADisable}
+                onClick={() => setConfirmingMfaDisable(true)}
                 disabled={mfaBusy || !factorCode}
               >
-                {mfaBusy ? 'Disabling…' : 'Disable MFA'}
+                Disable MFA
               </Button>
             </div>
+            <ConfirmDialog
+              open={confirmingMfaDisable}
+              onOpenChange={setConfirmingMfaDisable}
+              title="Disable two-factor authentication?"
+              description="Signing in will need only your password, and your recovery codes stop working."
+              confirmLabel="Disable MFA"
+              pendingLabel="Disabling…"
+              destructive
+              pending={mfaBusy}
+              onConfirm={() => void handleMFADisable()}
+            />
           </div>
         ) : mfaState === 'qr' ? (
           <div className="ph-no-capture space-y-4">

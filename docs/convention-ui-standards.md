@@ -1,7 +1,7 @@
 # Convention: web UI standards
 
 - Enforced by:
-  - `npm run lint`, which runs the ESLint raw-control bans and the local `ui/*` rules in `web/eslint-rules/` (`mobile-first-classes`, `theme-tokens`, `no-classname-template`, `touch-targets`, `use-primitives`, `field-labels`, `dialog-description`). It also runs their RuleTester tests (`test:eslint-rules`) and `generate:ui-catalog:check`.
+  - `npm run lint`, which runs the ESLint raw-control bans and the local `ui/*` rules in `web/eslint-rules/` (`mobile-first-classes`, `theme-tokens`, `no-classname-template`, `touch-targets`, `use-primitives`, `field-labels`, `dialog-description`, `control-overrides`, and the warn-level `card-padding` and `shared-patterns` until each app is migrated). It also runs their RuleTester tests (`test:eslint-rules`) and `generate:ui-catalog:check`.
   - `npm run build`, for the production bundle.
   - The `mobile-review` skill, whose `npm run mobile:audit` fails on overflow, sub-44px or crowded tap targets, and sub-16px inputs at 375x667.
   - Review, for everything else.
@@ -10,14 +10,20 @@
 ## Rule
 
 - **Mobile-first.**
-  - Primitives are 44px tall below `sm` and compact above it. Fields are ≥16px.
+  - One control height (`components/ui/control.ts`): 44px below `sm`, 36px from `sm`. `Button` (default and `icon`), `Input`, `Select`, `Combobox`, `TogglePill`, `SegmentedTabs` and `MenuItem` all use it, so a row of controls lines up. Fields are ≥16px.
+  - `Button size="sm"` (36px, 32px from `sm`) and `iconSm` are for dense rows and tables only. Don't resize a control with `h-*`, `py-*` or `text-xs`/`text-sm` (`ui/control-overrides`); a multi-line button uses `h-auto`.
   - No fixed pixel sizes, no `vh`/`h-screen` (use `dvh`), and no bare `grid-cols-N≥3`.
 - **Primitives for every control and repeated pattern.** The inventory is [`web/components/ui/README.md`](../web/components/ui/README.md) (generated). If nothing fits, add a primitive.
   - `PageHeader` for the page `<h1>`. Its `actions` are all bordered: `PageHeaderLink`/`PageHeaderSettingsLink` to navigate, `secondary` buttons for commands. Only create (default) and delete (destructive) stand out.
   - `PageContainer size` for page width. The shell owns padding.
-  - `Card`/`SectionCard`, and `Card variant="inset"`.
+  - `Card`/`SectionCard`, and `Card variant="inset"`. Spacing comes from `padding` (`none`/`sm`/`md`), never `p-*` or `rounded-*` classes (`ui/card-padding`).
+  - `SectionHeading` for every heading under `PageHeader` (`section` serif, `eyebrow` uppercase label); `SettingsSection` inside `SettingsSections` for settings pages, with no divider borders.
+  - `Toolbar` for the search-and-filter row between `PageHeader` and a list.
+  - `ProgressBar`, `FieldError` (with `aria-describedby`), and `RemoveButton` for an icon-only ×. `ui/shared-patterns` flags hand-built ones.
+  - `useCopyFeedback` (`web/hooks/`) for a Copy → Copied button.
+  - `ConfirmDialog` before any destructive action: delete, disconnect, disable, clear.
   - `LinkCard` for cards that navigate, with controls in its `actions` footer.
-  - `Alert`, `LoadingState`/`ErrorState`/`EmptyState`, `Badge`, `SegmentedTabs`.
+  - `Alert`, `LoadingState`/`ErrorState`/`EmptyState` (`placement` `page` or `inline`, no text-size classes), `Badge`, `SegmentedTabs`.
   - `Field`/`Label` for labelled controls. A field without a visible label gets `aria-label`; a placeholder is not a label.
   - `Alert tone="danger"` for errors, or `role="alert"` on an inline error beside its control, so they are announced.
   - `Dialog side="sheet"` for edits that should be phone-first.

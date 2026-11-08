@@ -24,7 +24,7 @@ export default function BookSourceSync({ bookId }: { bookId: string }) {
 
   if (!open) {
     return (
-      <Button variant="secondary" size="sm" className="text-xs" onClick={() => setOpen(true)}>
+      <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
         Sync metadata source
       </Button>
     )

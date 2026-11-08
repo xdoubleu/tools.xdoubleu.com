@@ -124,13 +124,7 @@ export default function BookShelfTagFields({
             />
           ))}
           {!showShelfInput && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-xs"
-              onClick={() => setShowShelfInput(true)}
-            >
+            <Button type="button" variant="ghost" size="sm" onClick={() => setShowShelfInput(true)}>
               + Add shelf
             </Button>
           )}
@@ -158,7 +152,7 @@ export default function BookShelfTagFields({
           Tags
         </Label>
         {allTags.length === 0 ? (
-          <EmptyState compact>No tags yet.</EmptyState>
+          <EmptyState placement="inline">No tags yet.</EmptyState>
         ) : (
           <div className="flex flex-wrap gap-2 sm:gap-1.5">
             {allTags.map((tag) => {
@@ -187,13 +181,7 @@ export default function BookShelfTagFields({
             autoFocus
           />
         ) : (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="text-xs"
-            onClick={() => setShowTagInput(true)}
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={() => setShowTagInput(true)}>
             + Add tag
           </Button>
         )}

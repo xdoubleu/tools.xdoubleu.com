@@ -8,7 +8,7 @@ export default function FeedsCard({ data }: { data?: GetUnhealthyFeedsResponse }
   const feeds = data?.feeds ?? []
 
   return (
-    <Card>
+    <Card padding="none">
       <CardHeader>
         <div className="flex items-center gap-2">
           <CardTitle>Unhealthy feeds</CardTitle>

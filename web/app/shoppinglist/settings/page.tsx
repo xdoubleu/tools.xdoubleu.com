@@ -14,7 +14,7 @@ export default function ShoppingListSettingsPage() {
       />
 
       <div className="space-y-6">
-        <Card>
+        <Card padding="none">
           <CardHeader>
             <CardTitle>Categories</CardTitle>
             <CardDescription>
@@ -26,7 +26,7 @@ export default function ShoppingListSettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card padding="none">
           <CardHeader>
             <CardTitle>Item catalog</CardTitle>
             <CardDescription>
@@ -39,7 +39,7 @@ export default function ShoppingListSettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card padding="none">
           <CardHeader>
             <CardTitle>Stores</CardTitle>
             <CardDescription>

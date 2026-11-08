@@ -30,7 +30,7 @@ export default function ReadingFeedsSummaryCard({
 
   const items =
     summary.items.length === 0 ? (
-      <EmptyState compact>No unread items.</EmptyState>
+      <EmptyState placement="inline">No unread items.</EmptyState>
     ) : (
       <ul className="flex flex-col gap-1">
         {summary.items.slice(0, 3).map((item) => (

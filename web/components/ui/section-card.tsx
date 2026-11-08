@@ -24,7 +24,7 @@ function SectionCard({
   contentClassName
 }: SectionCardProps) {
   return (
-    <Card className={className}>
+    <Card padding="none" className={className}>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col space-y-1">

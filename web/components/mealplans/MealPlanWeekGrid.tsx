@@ -82,6 +82,7 @@ export default function MealPlanWeekGrid({
                 e.stopPropagation()
                 onCellClick(formattedDate, slot)
               }}
+              // eslint-disable-next-line ui/control-overrides -- fills a narrow calendar cell, not a control row
               className="h-full min-h-11 w-full px-0 text-xs font-normal text-muted hover:bg-transparent active:bg-transparent"
             >
               Place here
@@ -124,7 +125,7 @@ export default function MealPlanWeekGrid({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="rounded-lg text-xs text-muted"
+                    className="rounded-lg text-muted"
                     onClick={() => onFillDay(formattedDate)}
                   >
                     Fill day
@@ -166,7 +167,7 @@ export default function MealPlanWeekGrid({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="rounded-lg px-1.5 text-xs font-normal text-muted"
+                    className="rounded-lg px-1.5 font-normal text-muted"
                     onClick={() => onFillDay(formattedDate)}
                   >
                     Fill day

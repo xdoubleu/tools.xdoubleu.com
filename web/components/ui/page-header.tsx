@@ -47,7 +47,7 @@ interface PageHeaderLinkProps {
  */
 function PageHeaderLink({ href, children, icon }: PageHeaderLinkProps) {
   return (
-    <Button asChild variant="secondary" size="sm" className="gap-2">
+    <Button asChild variant="secondary" className="gap-2">
       <Link href={href}>
         {icon}
         {children}

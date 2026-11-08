@@ -218,7 +218,7 @@ export default function FactoryClient() {
               </h2>
               <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
                 {column.tasks.length === 0 ? (
-                  <EmptyState compact>Nothing here.</EmptyState>
+                  <EmptyState placement="inline">Nothing here.</EmptyState>
                 ) : (
                   column.tasks.map((task) => (
                     <TaskCard

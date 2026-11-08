@@ -121,7 +121,10 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
         )}
 
         {(showLibraryDropdown || showExternalDropdown) && (
-          <Card className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto shadow-elevated">
+          <Card
+            padding="none"
+            className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto shadow-elevated"
+          >
             <ul>
               {showLibraryDropdown
                 ? libraryHits.map((ub) => (

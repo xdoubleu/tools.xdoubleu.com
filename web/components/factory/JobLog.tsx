@@ -64,7 +64,7 @@ export default function JobLog({ jobId, active }: { jobId: string; active: boole
   if (error && !data) return <ErrorState what="the log" />
   if (isLoading && !data) return <LoadingState label="log" />
   if (entries.length === 0) {
-    return <EmptyState compact>{active ? 'No output yet.' : 'No log kept.'}</EmptyState>
+    return <EmptyState placement="inline">{active ? 'No output yet.' : 'No log kept.'}</EmptyState>
   }
   return (
     <div

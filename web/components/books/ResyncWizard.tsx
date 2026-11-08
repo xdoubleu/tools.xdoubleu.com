@@ -66,7 +66,11 @@ export default function ResyncWizard() {
 
   if (isLoading) return <LoadingState className="text-xs" />
   if (proposals.length === 0) {
-    return <EmptyState compact>No flagged differences. Run a scan to check for updates.</EmptyState>
+    return (
+      <EmptyState placement="inline">
+        No flagged differences. Run a scan to check for updates.
+      </EmptyState>
+    )
   }
 
   const filterPill = (

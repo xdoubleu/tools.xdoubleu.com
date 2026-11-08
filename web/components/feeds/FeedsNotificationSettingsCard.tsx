@@ -14,7 +14,7 @@ export default function FeedsNotificationSettingsCard() {
   if (currentUser?.role !== 'admin') return null
 
   return (
-    <Card>
+    <Card padding="none">
       <CardHeader>
         <CardTitle>Email notifications</CardTitle>
         <CardDescription>

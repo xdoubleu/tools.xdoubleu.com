@@ -53,7 +53,9 @@ export default function BooksDashboardView({
         <div className="flex min-h-0 flex-col gap-3">
           <div className="flex min-h-0 flex-col lg:flex-1">
             <h2 className="mb-2 text-base font-semibold">Currently reading</h2>
-            {reading.length === 0 && <EmptyState compact>No books in progress.</EmptyState>}
+            {reading.length === 0 && (
+              <EmptyState placement="inline">No books in progress.</EmptyState>
+            )}
             {reading.length > 0 && (
               <div className="flex min-h-0 flex-wrap content-start gap-3 overflow-y-auto pr-1 lg:flex-1">
                 {reading.map((ub) => (
@@ -105,7 +107,7 @@ export default function BooksDashboardView({
           {view === 'ytd' && (
             <>
               {ytd.series.length === 0 && (
-                <EmptyState compact>No books finished this year yet.</EmptyState>
+                <EmptyState placement="inline">No books finished this year yet.</EmptyState>
               )}
               {ytd.series.length > 0 && <BooksProgressChart data={ytd.series} />}
             </>

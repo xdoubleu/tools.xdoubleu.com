@@ -7,7 +7,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { EmptyState, LoadingState } from '@/components/ui/states'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { formatDate } from '@/lib/dates'
 import KoboDeviceLogs from '@/components/books/KoboDeviceLogs'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -48,35 +48,23 @@ function DisconnectDialog({ open, deviceName, onCancel, onConfirm }: DisconnectD
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && handleCancel()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Disconnect {deviceName}</DialogTitle>
-        </DialogHeader>
-        <p className="text-sm text-muted">
-          This will revoke the device&apos;s sync token. The Kobo will no longer be able to sync
-          until you reconfigure it.
-        </p>
-        {error && (
-          <Alert tone="danger" className="mt-2" data-testid="disconnect-error">
-            {error}
-          </Alert>
-        )}
-        <div className="mt-6 flex justify-end gap-2">
-          <Button variant="ghost" disabled={disconnecting} onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={disconnecting}
-            onClick={handleConfirm}
-            data-testid="disconnect-confirm-btn"
-          >
-            {disconnecting ? 'Disconnecting…' : 'Disconnect'}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      open={open}
+      onOpenChange={(o) => !o && handleCancel()}
+      title={`Disconnect ${deviceName}`}
+      description="This will revoke the device's sync token. The Kobo will no longer be able to sync until you reconfigure it."
+      confirmLabel="Disconnect"
+      pendingLabel="Disconnecting…"
+      destructive
+      pending={disconnecting}
+      onConfirm={() => void handleConfirm()}
+    >
+      {error && (
+        <Alert tone="danger" data-testid="disconnect-error">
+          {error}
+        </Alert>
+      )}
+    </ConfirmDialog>
   )
 }
 
@@ -110,7 +98,7 @@ export default function KoboDevices() {
 
   if (devices.length === 0) {
     return (
-      <EmptyState compact>
+      <EmptyState placement="inline">
         No devices connected yet. Use the button above to configure your Kobo.
       </EmptyState>
     )

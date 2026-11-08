@@ -166,7 +166,7 @@ export default function ExportDialog({ customItems, mealItems, onClose }: Export
                 Grouped by store aisle
               </h3>
               {exportGroups.length === 0 ? (
-                <EmptyState compact>No items to export.</EmptyState>
+                <EmptyState placement="inline">No items to export.</EmptyState>
               ) : (
                 <div className="space-y-3">
                   {exportGroups.map((group) => (

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getApiUrl } from '@/lib/env'
+import { useCopyFeedback } from '@/hooks/useCopyFeedback'
 import { useMealPlan } from '@/hooks/useMealPlans'
 import { useAllRecipes } from '@/hooks/useRecipes'
 import MealPlanCalendar from '@/components/mealplans/MealPlanCalendar'
@@ -13,15 +14,11 @@ export default function MealPlanClient({ id }: { id: string }) {
   const { data, error, isLoading, mutate } = useMealPlan(id, offset)
   const { data: recipesData } = useAllRecipes()
 
-  const [icalCopied, setIcalCopied] = useState(false)
+  const { copy, copied: icalCopied } = useCopyFeedback()
 
   const handleCopyIcal = () => {
     if (!data?.icalUrl) return
-    const url = `${getApiUrl()}${data.icalUrl}`
-    navigator.clipboard.writeText(url).then(() => {
-      setIcalCopied(true)
-      setTimeout(() => setIcalCopied(false), 2000)
-    })
+    void copy(`${getApiUrl()}${data.icalUrl}`)
   }
 
   const plan = data?.plan

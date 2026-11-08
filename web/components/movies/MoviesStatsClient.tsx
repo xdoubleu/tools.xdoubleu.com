@@ -44,7 +44,7 @@ export default function MoviesStatsClient() {
         <StatTile label="Seasons watched" value={data.seasonsWatched} />
       </div>
 
-      <Card>
+      <Card padding="none">
         <CardHeader>
           <CardTitle>Watched per month</CardTitle>
         </CardHeader>
@@ -67,7 +67,7 @@ export default function MoviesStatsClient() {
       </Card>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <Card>
+        <Card padding="none">
           <CardHeader>
             <CardTitle>Top genres</CardTitle>
           </CardHeader>
@@ -87,7 +87,7 @@ export default function MoviesStatsClient() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card padding="none">
           <CardHeader>
             <CardTitle>Ratings</CardTitle>
           </CardHeader>

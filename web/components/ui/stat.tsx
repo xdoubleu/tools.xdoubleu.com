@@ -44,7 +44,7 @@ function StatTile({ label, value, tone = 'default', hint, href, className }: Sta
     )
   }
 
-  return <Card className={cn('p-4', className)}>{body}</Card>
+  return <Card className={className}>{body}</Card>
 }
 
 /** Responsive grid for a row of `StatTile`s — two up on mobile, four from `sm`. */
