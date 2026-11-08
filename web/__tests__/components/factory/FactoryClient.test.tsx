@@ -24,6 +24,7 @@ vi.mock('@/components/factory/TaskCard', () => ({
     task,
     repo,
     awaitingApproval,
+    onCloseEpic,
     onOpen,
     onDragStart,
     onDragEnd
@@ -31,6 +32,7 @@ vi.mock('@/components/factory/TaskCard', () => ({
     task: { id: string; title: string }
     repo?: { name: string }
     awaitingApproval?: boolean
+    onCloseEpic?: () => void
     onOpen: (id: string) => void
     onDragStart: (event: unknown, task: { id: string }) => void
     onDragEnd: () => void
@@ -44,6 +46,7 @@ vi.mock('@/components/factory/TaskCard', () => ({
       {task.title}
       {repo && <span data-testid="repo">{repo.name}</span>}
       {awaitingApproval && <span data-testid="awaiting">awaiting</span>}
+      {onCloseEpic && <span data-testid="card-close-epic" onClick={onCloseEpic} />}
     </button>
   )
 }))
@@ -129,12 +132,22 @@ describe('FactoryClient', () => {
   it('shows every column with its tasks and counts', () => {
     mockTasks({ data: board })
     render(<FactoryClient />)
-    for (const name of ['Backlog', 'Ready', 'In progress', 'In review', 'Needs you', 'Done']) {
+    for (const name of ['Backlog', 'Ready', 'In progress', 'In review', 'Needs you']) {
       expect(screen.getByRole('region', { name })).toBeInTheDocument()
     }
     expect(screen.getByRole('region', { name: 'Backlog' })).toHaveTextContent('Alpha')
-    expect(screen.getByRole('region', { name: 'Done' })).toHaveTextContent('Beta')
     expect(screen.getAllByText('Nothing here.')).toHaveLength(5)
+  })
+
+  it('keeps Done tasks off the board until the Done toggle is on', () => {
+    mockTasks({ data: board })
+    render(<FactoryClient />)
+    expect(screen.queryByRole('region', { name: 'Done' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Beta')).not.toBeInTheDocument()
+    const toggle = screen.getByRole('button', { name: 'Show done tasks' })
+    expect(toggle).toHaveTextContent('Done 1')
+    fireEvent.click(toggle)
+    expect(screen.getByRole('region', { name: 'Done' })).toHaveTextContent('Beta')
   })
 
   it('shows when the Claude limit lifts, only while it is still in force', () => {
@@ -227,7 +240,7 @@ describe('FactoryClient', () => {
     render(<FactoryClient />)
     expect(screen.queryByText(/Failed to load/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Loading board/)).not.toBeInTheDocument()
-    expect(screen.getAllByRole('region')).toHaveLength(7)
+    expect(screen.getAllByRole('region')).toHaveLength(6)
   })
 
   it('starts without the create sheet or an open task', () => {
@@ -464,6 +477,7 @@ describe('FactoryClient', () => {
     mockTasks({ data: board })
     mockRepos(twoRepos)
     render(<FactoryClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Show done tasks' }))
     expect(screen.getAllByTestId('repo').map((e) => e.textContent)).toEqual(['cat', 'dog'])
     expect(screen.getByRole('option', { name: 'All repos' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'octo/dog' })).toBeInTheDocument()
@@ -514,6 +528,7 @@ describe('FactoryClient', () => {
   it('moves a card dropped on another column', async () => {
     mockTasks({ data: board })
     render(<FactoryClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Show done tasks' }))
     const dt = { getData: vi.fn(() => 'a'), setData: vi.fn() }
     fireEvent.drop(screen.getByRole('region', { name: 'Done' }), {
       dataTransfer: dt
@@ -524,6 +539,7 @@ describe('FactoryClient', () => {
   it('tracks a card drag through start, over and end', async () => {
     mockTasks({ data: board })
     render(<FactoryClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Show done tasks' }))
     // Star a drag on the Backlog card.
     fireEvent.dragStart(screen.getByRole('button', { name: 'Alpha' }))
     // Dragging over a column highlights it.
@@ -545,14 +561,110 @@ describe('FactoryClient', () => {
     expect(mockMove).not.toHaveBeenCalled()
   })
 
+  it('clears a move error when the next drop works', async () => {
+    mockMove.mockRejectedValueOnce(new ConnectError('no', Code.PermissionDenied))
+    mockTasks({ data: board })
+    render(<FactoryClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Show done tasks' }))
+    const dt = { getData: vi.fn(() => 'a'), setData: vi.fn() }
+    const done = screen.getByRole('region', { name: 'Done' })
+    fireEvent.drop(done, { dataTransfer: dt })
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    fireEvent.drop(done, { dataTransfer: dt })
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+  })
+
   it('says so when a dropped move is refused', async () => {
     mockMove.mockRejectedValue(new ConnectError('no', Code.PermissionDenied))
     mockTasks({ data: board })
     render(<FactoryClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Show done tasks' }))
     const dt = { getData: vi.fn(() => 'a'), setData: vi.fn() }
     fireEvent.drop(screen.getByRole('region', { name: 'Done' }), {
       dataTransfer: dt
     })
     expect(await screen.findByRole('alert')).toHaveTextContent(/Only you, in the browser/)
+  })
+})
+
+describe('closing an epic', () => {
+  const epicTask = (id: string, labels: string[], status: TaskStatus) =>
+    create(TaskSchema, { id, title: id, labels, status })
+  const epicBoard = (childStatuses: TaskStatus[]) =>
+    create(ListTasksResponseSchema, {
+      tasks: [
+        epicTask('parent', ['epic', 'epic:reader'], TaskStatus.IN_PROGRESS),
+        ...childStatuses.map((s, i) => epicTask(`child${i}`, ['epic:reader'], s))
+      ]
+    })
+
+  it('offers Close epic on the epic-filtered board once every child is Done', async () => {
+    mockQuery = '?label=epic:reader'
+    mockTasks({ data: epicBoard([TaskStatus.DONE, TaskStatus.DONE]) })
+    render(<FactoryClient />)
+    expect(screen.getByText('2 of 2 done')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Close epic' }))
+    await waitFor(() => expect(mockMove).toHaveBeenCalledWith('parent', TaskStatus.DONE))
+  })
+
+  it('closes the epic from its own card, with the board unfiltered', async () => {
+    mockTasks({ data: epicBoard([TaskStatus.DONE]) })
+    render(<FactoryClient />)
+    expect(screen.queryByText(/of \d+ done/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Close epic' })).not.toBeInTheDocument()
+    expect(screen.getAllByTestId('card-close-epic')).toHaveLength(1)
+    fireEvent.click(screen.getByTestId('card-close-epic'))
+    await waitFor(() => expect(mockMove).toHaveBeenCalledWith('parent', TaskStatus.DONE))
+  })
+
+  it('counts the Done tasks on the toggle', () => {
+    mockTasks({ data: epicBoard([TaskStatus.DONE, TaskStatus.DONE]) })
+    render(<FactoryClient />)
+    expect(screen.getByRole('button', { name: 'Show done tasks' })).toHaveTextContent('Done 2')
+  })
+
+  it('shows no progress for an epic without sub-tasks', () => {
+    mockQuery = '?label=epic:reader'
+    mockTasks({ data: epicBoard([]) })
+    render(<FactoryClient />)
+    expect(screen.queryByText(/of \d+ done/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Close epic' })).not.toBeInTheDocument()
+  })
+
+  it('clears an earlier close error when the next close works', async () => {
+    mockMove.mockRejectedValueOnce(new Error('boom'))
+    mockQuery = '?label=epic:reader'
+    mockTasks({ data: epicBoard([TaskStatus.DONE]) })
+    render(<FactoryClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Close epic' }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Close epic' }))
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+  })
+
+  it('makes room for the Done column when it is shown', () => {
+    mockTasks({ data: epicBoard([TaskStatus.DONE]) })
+    render(<FactoryClient />)
+    const grid = () => screen.getByRole('region', { name: 'Backlog' }).parentElement
+    expect(grid()).toHaveClass('grid', 'xl:grid-cols-6')
+    fireEvent.click(screen.getByRole('button', { name: 'Show done tasks' }))
+    expect(grid()).toHaveClass('grid', 'xl:grid-cols-7')
+  })
+
+  it('holds back Close epic while a child is open', () => {
+    mockQuery = '?label=epic:reader'
+    mockTasks({ data: epicBoard([TaskStatus.DONE, TaskStatus.TESTING]) })
+    render(<FactoryClient />)
+    expect(screen.getByText('1 of 2 done')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Close epic' })).not.toBeInTheDocument()
+  })
+
+  it('says so when closing the epic fails', async () => {
+    mockMove.mockRejectedValue(new Error('boom'))
+    mockQuery = '?label=epic:reader'
+    mockTasks({ data: epicBoard([TaskStatus.DONE]) })
+    render(<FactoryClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Close epic' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Couldn.t close the epic/)
   })
 })

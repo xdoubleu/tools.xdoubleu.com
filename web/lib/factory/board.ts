@@ -39,11 +39,18 @@ export function priorityLabel(priority: TaskPriority): string {
   return PRIORITIES.find((p) => p.priority === priority)?.label ?? ''
 }
 
-/** Tasks per column, in column order; the server already orders each by recency. */
+/**
+ * Tasks per column, in column order; the server already orders each by recency.
+ * Done tasks stay off the board unless `withDone`.
+ */
 export function groupByStatus(
-  tasks: Task[]
+  tasks: Task[],
+  withDone = false
 ): { status: TaskStatus; label: string; tasks: Task[] }[] {
-  return COLUMNS.map((c) => ({ ...c, tasks: tasks.filter((t) => t.status === c.status) }))
+  return COLUMNS.filter((c) => withDone || c.status !== TaskStatus.DONE).map((c) => ({
+    ...c,
+    tasks: tasks.filter((t) => t.status === c.status)
+  }))
 }
 
 /** Splits a comma-separated label field into trimmed, non-empty labels. */
@@ -127,6 +134,36 @@ export function isEpicLabel(label: string): boolean {
 /** The epic's slug, "" for a label that isn't an epic. */
 export function epicName(label: string): string {
   return isEpicLabel(label) ? label.trim().slice(EPIC_PREFIX.length) : ''
+}
+
+/** The plain `epic` label that marks an epic's parent task. */
+const EPIC_PARENT_LABEL = 'epic'
+
+/** Whether a task is an epic's parent, not one of its sub-tasks. */
+export function isEpicParent(task: Task): boolean {
+  return task.labels.some((l) => normLabel(l) === EPIC_PARENT_LABEL)
+}
+
+/** How many of an epic's sub-tasks (every other task with its `epic:<slug>` label) are Done. */
+export function epicProgress(epicLabel: string, tasks: Task[]): { done: number; total: number } {
+  const children = filterByLabels(tasks, [epicLabel]).filter((t) => !isEpicParent(t))
+  return {
+    done: children.filter((t) => t.status === TaskStatus.DONE).length,
+    total: children.length
+  }
+}
+
+/** The parent task of an epic label, if there is one. */
+export function epicParent(epicLabel: string, tasks: Task[]): Task | undefined {
+  return filterByLabels(tasks, [epicLabel]).find((t) => isEpicParent(t))
+}
+
+/** Whether the epic can be closed: its parent is open and it has sub-tasks, all Done. */
+export function canCloseEpic(parent: Task, tasks: Task[]): boolean {
+  const label = parent.labels.find(isEpicLabel)
+  if (label === undefined || parent.status === TaskStatus.DONE) return false
+  const { done, total } = epicProgress(label, tasks)
+  return total > 0 && done === total
 }
 
 /** The filter labels with one group's pick swapped: the group's labels go, `next` ("" for none) comes. */

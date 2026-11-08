@@ -3,8 +3,11 @@ import { usePathname, useRouter, useSearchParams } from '@/hooks/navigation'
 import {
   activeRunner,
   awaitingPickupApproval,
+  canCloseEpic,
   distinctLabels,
   epicName,
+  epicParent,
+  epicProgress,
   filterByLabels,
   filterByRepo,
   groupByStatus,
@@ -26,7 +29,7 @@ import {
   useFactoryRunners,
   useFactoryTasks
 } from '@/hooks/useFactory'
-import type { Task } from '@/lib/gen/factory/v1/factory_pb'
+import { TaskStatus, type Task } from '@/lib/gen/factory/v1/factory_pb'
 import TaskCard from '@/components/factory/TaskCard'
 import TaskDetail from '@/components/factory/TaskDetail'
 import TaskDialog from '@/components/factory/TaskDialog'
@@ -63,7 +66,8 @@ export default function FactoryClient() {
   const [creating, setCreating] = useState(false)
   const { setPickupPaused, move } = useFactoryActions()
   const [pickupError, setPickupError] = useState('')
-  const [dragError, setDragError] = useState('')
+  const [moveError, setMoveError] = useState('')
+  const [showDone, setShowDone] = useState(false)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverStatus, setDragOverStatus] = useState<number | null>(null)
   const paused = data?.pickupPaused === true
@@ -111,13 +115,28 @@ export default function FactoryClient() {
     (l) => isOther(l) && !labelFilter.some((f) => lower(f) === lower(l))
   )
 
+  const allTasks = data?.tasks ?? []
+  const epicLabel = picked(isEpicLabel)
+  const parent = epicLabel === '' ? undefined : epicParent(epicLabel, allTasks)
+  const progress = epicLabel === '' ? undefined : epicProgress(epicLabel, allTasks)
+  const closable = (task: Task) => canCloseEpic(task, allTasks)
+
+  const closeEpic = async (task: Task) => {
+    setMoveError('')
+    try {
+      await move(task.id, TaskStatus.DONE)
+    } catch {
+      setMoveError('Couldn\u2019t close the epic. Try again.')
+    }
+  }
+
   const dropTask = async (task: Task, status: number) => {
-    setDragError('')
+    setMoveError('')
     if (task.status === status) return
     try {
       await move(task.id, status)
     } catch (err) {
-      setDragError(
+      setMoveError(
         ConnectError.from(err).code === Code.PermissionDenied
           ? 'Only you, in the browser, can mark a task Ready.'
           : 'Couldn\u2019t move the task. Try again.'
@@ -237,6 +256,22 @@ export default function FactoryClient() {
             ))}
           </Select>
         )}
+        <TogglePill
+          active={showDone}
+          label={`Done ${allTasks.filter((t) => t.status === TaskStatus.DONE).length}`}
+          aria-label="Show done tasks"
+          onClick={() => setShowDone(!showDone)}
+        />
+        {progress && progress.total > 0 && (
+          <span className="flex items-center gap-2 text-sm text-muted">
+            {progress.done} of {progress.total} done
+            {parent && closable(parent) && (
+              <Button size="sm" onClick={() => void closeEpic(parent)}>
+                Close epic
+              </Button>
+            )}
+          </span>
+        )}
         {labelFilter.filter(isOther).map((l) => (
           <TogglePill
             key={l}
@@ -248,16 +283,21 @@ export default function FactoryClient() {
           />
         ))}
       </Toolbar>
-      {dragError && (
+      {moveError && (
         <Alert tone="danger" className="mb-4">
-          {dragError}
+          {moveError}
         </Alert>
       )}
       {error && !data && <ErrorState what="the board" />}
       {isLoading && !data && <LoadingState label="board" />}
       {data && (
-        <div className="grid min-h-0 flex-1 grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
-          {groupByStatus(visible).map((column) => (
+        <div
+          className={cn(
+            'grid min-h-0 flex-1 grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5',
+            showDone ? 'xl:grid-cols-7' : 'xl:grid-cols-6'
+          )}
+        >
+          {groupByStatus(visible, showDone).map((column) => (
             <section
               key={column.status}
               aria-label={column.label}
@@ -286,6 +326,7 @@ export default function FactoryClient() {
                       repo={repos.length > 1 ? repos.find((r) => r.id === task.repoId) : undefined}
                       awaitingApproval={awaitingPickupApproval(task, repos)}
                       dragging={draggingId === task.id}
+                      onCloseEpic={closable(task) ? () => void closeEpic(task) : undefined}
                       onOpen={setOpenId}
                       onDragStart={(e, t) => {
                         e.dataTransfer.setData(TASK_DATA_TYPE, t.id)

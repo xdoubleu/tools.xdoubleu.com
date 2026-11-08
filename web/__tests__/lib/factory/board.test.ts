@@ -20,7 +20,11 @@ import {
   actorLabel,
   HARNESSES,
   distinctLabels,
+  canCloseEpic,
   epicName,
+  epicParent,
+  epicProgress,
+  isEpicParent,
   isEpicLabel,
   toggleLabel,
   withGroupLabel,
@@ -81,11 +85,46 @@ describe('board', () => {
       create(TaskSchema, { id: 'b', status: TaskStatus.BACKLOG }),
       create(TaskSchema, { id: 'c', status: TaskStatus.DONE })
     ]
-    const groups = groupByStatus(tasks)
+    const groups = groupByStatus(tasks, true)
     expect(groups).toHaveLength(7)
     expect(groups[0].tasks.map((t) => t.id)).toEqual(['b'])
     expect(groups[1].tasks).toEqual([])
     expect(groups[6].tasks.map((t) => t.id)).toEqual(['a', 'c'])
+  })
+
+  it('leaves the Done column off by default', () => {
+    const groups = groupByStatus([create(TaskSchema, { id: 'a', status: TaskStatus.DONE })])
+    expect(groups.map((g) => g.label)).not.toContain('Done')
+    expect(groups.flatMap((g) => g.tasks)).toEqual([])
+  })
+
+  it('counts an epic through its parent and sub-tasks, and closes only when all are Done', () => {
+    const parent = create(TaskSchema, {
+      id: 'p',
+      labels: ['Epic', 'epic:reader'],
+      status: TaskStatus.IN_PROGRESS
+    })
+    const done = create(TaskSchema, { id: 'a', labels: ['epic:reader'], status: TaskStatus.DONE })
+    const open = create(TaskSchema, {
+      id: 'b',
+      labels: ['epic:reader'],
+      status: TaskStatus.TESTING
+    })
+    const other = create(TaskSchema, {
+      id: 'c',
+      labels: ['epic:shelf'],
+      status: TaskStatus.BACKLOG
+    })
+    expect(isEpicParent(parent)).toBe(true)
+    expect(isEpicParent(done)).toBe(false)
+    expect(epicParent('epic:reader', [done, parent, other])).toBe(parent)
+    expect(epicParent('epic:none', [done, parent])).toBeUndefined()
+    expect(epicProgress('epic:reader', [parent, done, open, other])).toEqual({ done: 1, total: 2 })
+    expect(canCloseEpic(parent, [parent, done, open])).toBe(false)
+    expect(canCloseEpic(parent, [parent, done])).toBe(true)
+    expect(canCloseEpic(parent, [parent])).toBe(false)
+    expect(canCloseEpic({ ...parent, status: TaskStatus.DONE }, [parent, done])).toBe(false)
+    expect(canCloseEpic(create(TaskSchema, { id: 'x', labels: ['epic'] }), [done])).toBe(false)
   })
 
   it('splits labels on commas, trimming and dropping blanks', () => {
