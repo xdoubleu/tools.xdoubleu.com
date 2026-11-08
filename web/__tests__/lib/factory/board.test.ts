@@ -20,8 +20,11 @@ import {
   actorLabel,
   HARNESSES,
   distinctLabels,
-  filterByLabel,
-  filterByProduct,
+  epicName,
+  isEpicLabel,
+  toggleLabel,
+  withGroupLabel,
+  filterByLabels,
   filterByRepo,
   groupByStatus,
   harnessLabel,
@@ -119,9 +122,35 @@ describe('board', () => {
     ]
     expect(distinctLabels(tasks)).toEqual(['bug', 'ui'])
     expect(distinctLabels([])).toEqual([])
-    expect(filterByLabel(tasks, '')).toBe(tasks)
-    expect(filterByLabel(tasks, 'bug').map((t) => t.id)).toEqual(['a', 'b'])
-    expect(filterByLabel(tasks, 'nope')).toEqual([])
+    expect(filterByLabels(tasks, [])).toBe(tasks)
+    expect(filterByLabels(tasks, ['bug']).map((t) => t.id)).toEqual(['a', 'b'])
+    expect(filterByLabels(tasks, ['nope'])).toEqual([])
+  })
+
+  it('requires every filter label (AND, ignoring case and blanks)', () => {
+    const tasks = [
+      create(TaskSchema, { id: 'a', labels: ['books', 'epic:reader', 'bug'] }),
+      create(TaskSchema, { id: 'b', labels: ['books'] })
+    ]
+    expect(filterByLabels(tasks, ['Books', ' EPIC:reader ']).map((t) => t.id)).toEqual(['a'])
+    expect(filterByLabels(tasks, ['books', 'bug', 'nope'])).toEqual([])
+    expect(filterByLabels(tasks, ['', ' '])).toBe(tasks)
+  })
+
+  it('reads epic labels and swaps one filter group at a time', () => {
+    expect(isEpicLabel('epic:reader')).toBe(true)
+    expect(isEpicLabel('Epic:Reader')).toBe(true)
+    expect(isEpicLabel('epic')).toBe(false)
+    expect(epicName('epic:reader')).toBe('reader')
+    expect(epicName('bug')).toBe('')
+    expect(withGroupLabel(['books', 'epic:a', 'bug'], isEpicLabel, 'epic:b')).toEqual([
+      'books',
+      'bug',
+      'epic:b'
+    ])
+    expect(withGroupLabel(['epic:a', 'bug'], isEpicLabel, '')).toEqual(['bug'])
+    expect(toggleLabel(['bug'], 'Bug', true)).toEqual(['Bug'])
+    expect(toggleLabel(['bug', 'ui'], 'bug', false)).toEqual(['ui'])
   })
 
   it('reads the repos of a response, and none before it loads', () => {
@@ -306,7 +335,7 @@ describe('board', () => {
     expect(awaitingPickupApproval(task('gone', TaskStatus.READY, false), repos)).toBe(false)
   })
 
-  it('recognises the fixed product labels and filters tasks to one product', () => {
+  it('recognises the fixed product labels and filters tasks by them', () => {
     expect(PRODUCT_LABELS).toContain('books')
     expect(PRODUCT_LABELS).toContain('platform')
     expect(isProductLabel('books')).toBe(true)
@@ -320,10 +349,8 @@ describe('board', () => {
       create(TaskSchema, { id: 'b', labels: ['platform'] }),
       create(TaskSchema, { id: 'c', labels: [] })
     ]
-    expect(filterByProduct(tasks, '')).toBe(tasks)
-    expect(filterByProduct(tasks, 'books').map((t) => t.id)).toEqual(['a'])
-    expect(filterByProduct(tasks, 'platform').map((t) => t.id)).toEqual(['b'])
-    expect(filterByProduct(tasks, 'BUG').map((t) => t.id)).toEqual(['a'])
+    expect(filterByLabels(tasks, ['books']).map((t) => t.id)).toEqual(['a'])
+    expect(filterByLabels(tasks, ['platform']).map((t) => t.id)).toEqual(['b'])
   })
 })
 

@@ -104,15 +104,45 @@ export function isProductLabel(label: string): boolean {
   return PRODUCT_LABELS.some((p) => p === l)
 }
 
-/** Tasks of one product; an empty product keeps them all. */
-export function filterByProduct(tasks: Task[], product: string): Task[] {
-  const p = product.trim().toLowerCase()
-  return p === '' ? tasks : tasks.filter((t) => t.labels.some((l) => l.trim().toLowerCase() === p))
+const normLabel = (label: string) => label.trim().toLowerCase()
+
+/** The tasks that carry every one of the labels (AND, ignoring case); none keeps them all. */
+export function filterByLabels(tasks: Task[], labels: string[]): Task[] {
+  const wanted = labels.map(normLabel).filter((l) => l !== '')
+  if (wanted.length === 0) return tasks
+  return tasks.filter((t) => {
+    const have = t.labels.map(normLabel)
+    return wanted.every((l) => have.includes(l))
+  })
 }
 
-/** The tasks that carry a label; an empty label keeps them all. */
-export function filterByLabel(tasks: Task[], label: string): Task[] {
-  return label === '' ? tasks : tasks.filter((t) => t.labels.includes(label))
+/** `refine-feature` tags an epic's parent and sub-tasks `epic:<slug>`. */
+const EPIC_PREFIX = 'epic:'
+
+/** Whether a label names an epic. */
+export function isEpicLabel(label: string): boolean {
+  return normLabel(label).startsWith(EPIC_PREFIX)
+}
+
+/** The epic's slug, "" for a label that isn't an epic. */
+export function epicName(label: string): string {
+  return isEpicLabel(label) ? label.trim().slice(EPIC_PREFIX.length) : ''
+}
+
+/** The filter labels with one group's pick swapped: the group's labels go, `next` ("" for none) comes. */
+export function withGroupLabel(
+  labels: string[],
+  inGroup: (label: string) => boolean,
+  next: string
+): string[] {
+  const rest = labels.filter((l) => !inGroup(l))
+  return next === '' ? rest : [...rest, next]
+}
+
+/** The filter labels with `label` added (once, ignoring case) or removed. */
+export function toggleLabel(labels: string[], label: string, on: boolean): string[] {
+  const rest = labels.filter((l) => normLabel(l) !== normLabel(label))
+  return on ? [...rest, label] : rest
 }
 
 /** The distinct labels across tasks, sorted. */

@@ -1,20 +1,24 @@
 import { useEffect, useState, type DragEvent } from 'react'
-import { useSearchParams } from '@/hooks/navigation'
+import { usePathname, useRouter, useSearchParams } from '@/hooks/navigation'
 import {
   activeRunner,
   awaitingPickupApproval,
   distinctLabels,
-  filterByLabel,
-  filterByProduct,
+  epicName,
+  filterByLabels,
   filterByRepo,
   groupByStatus,
+  isEpicLabel,
+  isProductLabel,
   limitNotice,
   PRODUCT_LABELS,
   repoLabel,
   reposOf,
   runnersOf,
   runnerState,
-  TASK_DATA_TYPE
+  TASK_DATA_TYPE,
+  toggleLabel,
+  withGroupLabel
 } from '@/lib/factory/board'
 import {
   useFactoryActions,
@@ -35,21 +39,27 @@ import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader, PageHeaderLink } from '@/components/ui/page-header'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { Select } from '@/components/ui/select'
+import { TogglePill } from '@/components/ui/toggle-pill'
 import { Toolbar } from '@/components/ui/toolbar'
 import { cn } from '@/lib/cn'
 
 const LIMIT_TICK_MS = 30_000
+const REPO_PARAM = 'repo'
+const LABEL_PARAM = 'label'
 
 /** The task board: one column per swipe on a phone, side by side on a wide screen. */
 export default function FactoryClient() {
   const { data, error, isLoading } = useFactoryTasks()
   const repos = reposOf(useFactoryRepos().data)
   const runner = runnerState(activeRunner(runnersOf(useFactoryRunners().data)), Date.now())
-  const [repoFilter, setRepoFilter] = useState('')
-  const [productFilter, setProductFilter] = useState('')
-  const [labelFilter, setLabelFilter] = useState('')
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  // The filter lives in the URL (?repo=<id>&label=a&label=b), so a refresh or a shared link keeps it.
+  const [repoFilter, setRepoFilter] = useState(searchParams.get('repo') ?? '')
+  const [labelFilter, setLabelFilter] = useState(searchParams.getAll(LABEL_PARAM))
   // A link such as /factory?task=<id> (from a Slack message) opens that task.
-  const [openId, setOpenId] = useState<string | null>(useSearchParams().get('task'))
+  const [openId, setOpenId] = useState<string | null>(searchParams.get('task'))
   const [creating, setCreating] = useState(false)
   const { setPickupPaused, move } = useFactoryActions()
   const [pickupError, setPickupError] = useState('')
@@ -65,6 +75,18 @@ export default function FactoryClient() {
   }, [])
   const limit = limitNotice(data?.claudeLimitedUntil ?? '', now)
 
+  const applyFilter = (repo: string, labels: string[]) => {
+    setRepoFilter(repo)
+    setLabelFilter(labels)
+    const next = new URLSearchParams(searchParams)
+    next.delete(REPO_PARAM)
+    next.delete(LABEL_PARAM)
+    if (repo !== '') next.set(REPO_PARAM, repo)
+    labels.forEach((l) => next.append(LABEL_PARAM, l))
+    const query = next.toString()
+    router.replace(query === '' ? pathname : `${pathname}?${query}`)
+  }
+
   const togglePickup = async () => {
     setPickupError('')
     try {
@@ -76,13 +98,18 @@ export default function FactoryClient() {
     }
   }
 
-  const visible = data
-    ? filterByProduct(
-        filterByLabel(filterByRepo(data.tasks, repoFilter), labelFilter),
-        productFilter
-      )
-    : []
-  const labels = distinctLabels(data?.tasks ?? [])
+  const visible = data ? filterByLabels(filterByRepo(data.tasks, repoFilter), labelFilter) : []
+  const lower = (l: string) => l.trim().toLowerCase()
+  const picked = (inGroup: (l: string) => boolean) => labelFilter.find(inGroup) ?? ''
+  const isOther = (l: string) => !isProductLabel(l) && !isEpicLabel(l)
+  const allLabels = distinctLabels(data?.tasks ?? [])
+  // A stale epic from the URL stays selectable, so the select never shows a blank.
+  const epics = [
+    ...new Set([...allLabels.filter(isEpicLabel), ...labelFilter.filter(isEpicLabel)])
+  ].sort()
+  const addable = allLabels.filter(
+    (l) => isOther(l) && !labelFilter.some((f) => lower(f) === lower(l))
+  )
 
   const dropTask = async (task: Task, status: number) => {
     setDragError('')
@@ -147,8 +174,10 @@ export default function FactoryClient() {
       <Toolbar aria-label="Filter tasks">
         <Select
           aria-label="Product"
-          value={productFilter}
-          onChange={(e) => setProductFilter(e.target.value)}
+          value={picked(isProductLabel)}
+          onChange={(e) =>
+            applyFilter(repoFilter, withGroupLabel(labelFilter, isProductLabel, e.target.value))
+          }
           className="w-full sm:w-auto"
         >
           <option value="">All products</option>
@@ -162,7 +191,7 @@ export default function FactoryClient() {
           <Select
             aria-label="Repo"
             value={repoFilter}
-            onChange={(e) => setRepoFilter(e.target.value)}
+            onChange={(e) => applyFilter(e.target.value, labelFilter)}
             className="w-full sm:w-auto"
           >
             <option value="">All repos</option>
@@ -173,21 +202,51 @@ export default function FactoryClient() {
             ))}
           </Select>
         )}
-        {labels.length > 0 && (
+        {epics.length > 0 && (
           <Select
-            aria-label="Label"
-            value={labelFilter}
-            onChange={(e) => setLabelFilter(e.target.value)}
+            aria-label="Epic"
+            value={picked(isEpicLabel)}
+            onChange={(e) =>
+              applyFilter(repoFilter, withGroupLabel(labelFilter, isEpicLabel, e.target.value))
+            }
             className="w-full sm:w-auto"
           >
-            <option value="">All labels</option>
-            {labels.map((l) => (
+            <option value="">All epics</option>
+            {epics.map((l) => (
+              <option key={l} value={l}>
+                {epicName(l)}
+              </option>
+            ))}
+          </Select>
+        )}
+        {addable.length > 0 && (
+          <Select
+            aria-label="Add label filter"
+            value=""
+            onChange={(e) =>
+              e.target.value !== '' &&
+              applyFilter(repoFilter, toggleLabel(labelFilter, e.target.value, true))
+            }
+            className="w-full sm:w-auto"
+          >
+            <option value="">Add label…</option>
+            {addable.map((l) => (
               <option key={l} value={l}>
                 {l}
               </option>
             ))}
           </Select>
         )}
+        {labelFilter.filter(isOther).map((l) => (
+          <TogglePill
+            key={l}
+            active
+            className="max-w-full truncate"
+            label={`${l} ×`}
+            aria-label={`Remove label filter ${l}`}
+            onClick={() => applyFilter(repoFilter, toggleLabel(labelFilter, l, false))}
+          />
+        ))}
       </Toolbar>
       {dragError && (
         <Alert tone="danger" className="mb-4">
