@@ -24,18 +24,21 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
   const [resetDone, setResetDone] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   const updatePlan = useUpdatePlan()
   const rotateICalToken = useRotateICalToken()
 
   const handleResetLink = async () => {
     setError(null)
+    setResetting(true)
     try {
       await rotateICalToken(plan.id)
       setResetDone(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reset iCal link.')
     } finally {
+      setResetting(false)
       setConfirmReset(false)
     }
   }
@@ -115,7 +118,9 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
           description="Calendars subscribed to the old link stop updating."
           confirmLabel="Reset link"
           cancelLabel="Keep link"
+          pendingLabel="Resetting…"
           destructive
+          pending={resetting}
           onConfirm={() => void handleResetLink()}
         />
       </div>

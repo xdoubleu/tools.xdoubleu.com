@@ -95,6 +95,20 @@ describe('PlanForm', () => {
     expect(await screen.findByText(/Link reset/i)).toBeInTheDocument()
   })
 
+  it('disables the confirm while the reset is in flight', async () => {
+    let resolve: (v: unknown) => void = () => {}
+    mockRotate.mockReturnValue(new Promise((r) => (resolve = r)))
+    render(<PlanForm plan={existingPlan} onSave={vi.fn()} onCancel={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: /Reset iCal link/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Reset link$/i }))
+    const pending = await screen.findByRole('button', { name: 'Resetting…' })
+    expect(pending).toBeDisabled()
+    fireEvent.click(pending)
+    expect(mockRotate).toHaveBeenCalledTimes(1)
+    resolve({})
+    expect(await screen.findByText(/Link reset/i)).toBeInTheDocument()
+  })
+
   it('keeps the iCal link when the reset is cancelled', () => {
     render(<PlanForm plan={existingPlan} onSave={vi.fn()} onCancel={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: /Reset iCal link/i }))

@@ -155,6 +155,30 @@ describe('MoviesClient backlog', () => {
     expect(screen.getByRole('toolbar')).toHaveTextContent('0 titles')
   })
 
+  it('offers every filter option, starting from all titles by recency', () => {
+    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [] }) })
+    render(<MoviesClient />)
+    const options = (label: string) =>
+      Array.from((screen.getByLabelText(label) as HTMLSelectElement).options).map((o) => [
+        o.value,
+        o.textContent
+      ])
+
+    expect(options('Type')).toEqual([
+      ['', 'All types'],
+      ['movie', 'Movies'],
+      ['series', 'Series']
+    ])
+    expect(options('Status')[0]).toEqual(['', 'All statuses'])
+    expect(options('Sort')).toEqual([
+      ['added', 'Recently added'],
+      ['title', 'Title'],
+      ['release', 'Release date'],
+      ['rating', 'Rating']
+    ])
+    expect(screen.getByLabelText('Sort')).toHaveValue('added')
+  })
+
   it('filters to titles on my services, and marks them', () => {
     const streaming = create(BacklogEntrySchema, { ...matrix, onMyServices: true })
     mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [avatar] }) })

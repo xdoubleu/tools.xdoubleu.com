@@ -22,7 +22,7 @@ The same job uses the same primitive everywhere. The inventory is [`web/componen
 - **Surfaces.** `Card`/`SectionCard`/`Card variant="inset"` take spacing from `padding` (`none`/`sm`/`md`), never `p-*` or `rounded-*` classes. `LinkCard` for cards that navigate, with controls in its `actions` footer.
 - **States.** `LoadingState`/`ErrorState`/`EmptyState` with `placement` (`page` for a whole page, `inline` inside a card, panel or dialog), never hand-rolled centred paragraphs or text-size classes.
 - **Shared patterns** (`ui/shared-patterns`): `ProgressBar`; `FieldError` for an error under a control (with `aria-describedby`), `Alert tone="danger"` for a form-level one; `RemoveButton` for an icon-only ×; `useCopyFeedback` (`web/hooks/`) for Copy → Copied.
-- **Refresh** is a `secondary` `sm` button.
+- **One height per row.** Controls sharing a row share a size; Refresh is a `secondary` button at its neighbours' size. `sm` is only for dense rows or tables, never beside default-size controls.
 - **Create in `PageHeader` actions, edit in a sheet.** `Dialog` defaults to `side="sheet"`, a bottom sheet on phones with a drag handle. `DialogDescription` goes after `DialogHeader` or wrapped with the title.
 - **`ConfirmDialog` before every destructive action**: delete, disconnect, disable, leave, clear.
 - **Labels.** `Field`/`Label` for labelled controls; a control without a visible label gets `aria-label` (a placeholder is not a label).

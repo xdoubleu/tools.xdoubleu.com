@@ -11,8 +11,13 @@ describe('FieldError', () => {
     expect(error).toHaveClass('text-danger')
   })
 
-  it('renders nothing while empty', () => {
-    const { container } = render(<FieldError id="x">{''}</FieldError>)
+  it.each([
+    ['an empty string', ''],
+    ['undefined', undefined],
+    ['null', null],
+    ['false', false]
+  ])('renders nothing for %s', (_, value) => {
+    const { container } = render(<FieldError id="x">{value}</FieldError>)
     expect(container).toBeEmptyDOMElement()
   })
 

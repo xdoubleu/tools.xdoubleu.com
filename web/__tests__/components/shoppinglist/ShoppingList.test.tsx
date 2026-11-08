@@ -118,6 +118,15 @@ describe('ShoppingList', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
       await waitFor(() => expect(onDelete).toHaveBeenCalledWith('custom-1'))
     })
+
+    it('names the item in the confirm and closes it on confirm', async () => {
+      const onDelete = vi.fn().mockResolvedValue(undefined)
+      render(<ShoppingList items={items} onDelete={onDelete} />)
+      fireEvent.click(screen.getByRole('button', { name: /Remove milk/ }))
+      expect(screen.getByRole('dialog', { name: 'Remove milk?' })).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
   })
 
   describe('edit button', () => {

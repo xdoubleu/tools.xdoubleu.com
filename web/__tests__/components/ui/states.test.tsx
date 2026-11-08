@@ -40,8 +40,17 @@ describe('EmptyState', () => {
   })
 
   it('renders without an action', () => {
-    render(<EmptyState>Nothing here.</EmptyState>)
+    const { container } = render(<EmptyState>Nothing here.</EmptyState>)
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(container.firstElementChild?.children).toHaveLength(1)
+  })
+
+  it('centres the action with page placement', () => {
+    render(<EmptyState action={<button>New</button>}>Nothing here.</EmptyState>)
+    expect(screen.getByRole('button', { name: 'New' }).parentElement).toHaveClass(
+      'flex',
+      'justify-center'
+    )
   })
 
   it('centres a padded block by default', () => {

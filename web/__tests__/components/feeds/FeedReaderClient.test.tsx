@@ -126,11 +126,44 @@ describe('FeedReaderClient', () => {
     })
     render(<FeedReaderClient />)
 
+    expect(screen.getByRole('combobox')).toHaveValue('')
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'All feeds',
+      'Example Blog'
+    ])
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'feed-1' } })
     expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, 'feed-1', false)
+    expect(screen.getByRole('combobox')).toHaveValue('feed-1')
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } })
     expect(mockUseFeedItems).toHaveBeenLastCalledWith(true, undefined, false)
+  })
+
+  it('lists only the empty choice while feeds are loading', () => {
+    mockUseFeeds.mockReturnValue({ data: undefined })
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+    expect(screen.getAllByRole('option')).toHaveLength(1)
+    expect(screen.getByText('Item 1')).toBeInTheDocument()
+  })
+
+  it('picks up feed titles that load after the items', () => {
+    mockUseFeeds.mockReturnValue({ data: { feeds: [] } })
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [item('1')], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    const { rerender } = render(<FeedReaderClient />)
+    mockUseFeeds.mockReturnValue({
+      data: { feeds: [create(FeedSchema, { id: 'feed-1', title: 'Late Blog' })] }
+    })
+    rerender(<FeedReaderClient />)
+    expect(screen.getAllByText('Late Blog')).toHaveLength(2)
   })
 
   it('lists items with their feed title (server already filters read/dismissed)', () => {

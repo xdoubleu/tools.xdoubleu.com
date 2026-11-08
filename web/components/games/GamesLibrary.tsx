@@ -59,7 +59,7 @@ export default function GamesLibrary() {
             {lastRefresh && !isRefreshing && (
               <span className="text-xs">Last: {lastRefresh.toLocaleString('en-GB')}</span>
             )}
-            <Button variant="secondary" size="sm" onClick={refresh} disabled={isRefreshing}>
+            <Button variant="secondary" onClick={refresh} disabled={isRefreshing}>
               {isRefreshing ? 'Refreshing…' : 'Refresh'}
             </Button>
           </>

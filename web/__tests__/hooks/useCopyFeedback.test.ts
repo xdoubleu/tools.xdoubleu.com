@@ -35,6 +35,65 @@ describe('useCopyFeedback', () => {
     expect(result.current.copiedKey).toBe('apps')
   })
 
+  it('uses an empty key by default', async () => {
+    const { result } = renderHook(() => useCopyFeedback())
+    await act(async () => {
+      await result.current.copy('cmd')
+    })
+    expect(result.current.copiedKey).toBe('')
+  })
+
+  it('restarts the reset delay on a second copy', async () => {
+    const { result } = renderHook(() => useCopyFeedback(1000))
+    await act(async () => {
+      await result.current.copy('a', 'one')
+    })
+    act(() => vi.advanceTimersByTime(600))
+    await act(async () => {
+      await result.current.copy('b', 'two')
+    })
+    act(() => vi.advanceTimersByTime(600))
+    expect(result.current.copiedKey).toBe('two')
+    act(() => vi.advanceTimersByTime(400))
+    expect(result.current.copied).toBe(false)
+  })
+
+  it('follows a changed reset delay', async () => {
+    const { result, rerender } = renderHook(({ ms }) => useCopyFeedback(ms), {
+      initialProps: { ms: 1000 }
+    })
+    rerender({ ms: 200 })
+    await act(async () => {
+      await result.current.copy('a')
+    })
+    act(() => vi.advanceTimersByTime(200))
+    expect(result.current.copied).toBe(false)
+  })
+
+  it('clears the earlier copied state when a later copy fails', async () => {
+    const { result } = renderHook(() => useCopyFeedback())
+    await act(async () => {
+      await result.current.copy('a', 'one')
+    })
+    writeText.mockRejectedValueOnce(new Error('denied'))
+    await act(async () => {
+      await result.current.copy('b', 'two')
+    })
+    expect(result.current.copiedKey).toBeNull()
+  })
+
+  it('cancels the pending reset on unmount', async () => {
+    const clear = vi.spyOn(globalThis, 'clearTimeout')
+    const { result, unmount } = renderHook(() => useCopyFeedback())
+    await act(async () => {
+      await result.current.copy('a')
+    })
+    clear.mockClear()
+    unmount()
+    expect(clear).toHaveBeenCalled()
+    clear.mockRestore()
+  })
+
   it('reports a failed copy', async () => {
     writeText.mockRejectedValueOnce(new Error('denied'))
     const { result } = renderHook(() => useCopyFeedback())

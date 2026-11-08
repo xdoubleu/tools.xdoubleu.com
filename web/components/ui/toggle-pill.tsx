@@ -20,7 +20,8 @@ function TogglePill({ label, active, className, ...props }: TogglePillProps) {
       type="button"
       variant={active ? 'default' : 'secondary'}
       className={cn(
-        'px-3',
+        // A one-word label ("All") would otherwise fall under the 44px tap width.
+        'px-3 min-w-11 sm:min-w-9',
         // The selected pill is inert: re-tapping it changes nothing, so don't advertise it.
         active && 'cursor-default active:scale-100',
         className

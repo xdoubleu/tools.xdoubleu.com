@@ -249,6 +249,11 @@ describe('SettingsPage', () => {
       confirmInDialog('Disable MFA')
 
       expect(await screen.findByText('Failed to disable MFA.')).toBeInTheDocument()
+      await waitFor(() =>
+        expect(
+          screen.queryByRole('dialog', { name: 'Disable two-factor authentication?' })
+        ).not.toBeInTheDocument()
+      )
     })
 
     it('shows an error when regenerating fails', async () => {
