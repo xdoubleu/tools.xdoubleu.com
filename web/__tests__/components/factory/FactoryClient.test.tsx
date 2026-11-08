@@ -4,8 +4,11 @@ import { create } from '@bufbuild/protobuf'
 import { Code, ConnectError } from '@connectrpc/connect'
 
 let mockQuery = ''
+const mockReplace = vi.fn()
 vi.mock('@/hooks/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(mockQuery)
+  useSearchParams: () => new URLSearchParams(mockQuery),
+  usePathname: () => '/factory',
+  useRouter: () => ({ replace: mockReplace })
 }))
 const mockSetPaused = vi.fn()
 const mockMove = vi.fn()
@@ -298,6 +301,70 @@ describe('FactoryClient', () => {
     fireEvent.change(screen.getByLabelText('Product'), { target: { value: 'books' } })
     expect(screen.getByRole('button', { name: 'Book task' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Platform task' })).not.toBeInTheDocument()
+    expect(mockReplace).toHaveBeenLastCalledWith('/factory?label=books')
+  })
+
+  describe('label and epic filters', () => {
+    const labelled = (id: string, labels: string[]) =>
+      create(TaskSchema, { id, title: id, status: TaskStatus.BACKLOG, labels })
+    const board = () =>
+      mockTasks({
+        data: create(ListTasksResponseSchema, {
+          tasks: [
+            labelled('a', ['books', 'epic:reader', 'bug']),
+            labelled('b', ['books', 'epic:shelf']),
+            labelled('c', ['feeds', 'epic:reader', 'bug'])
+          ]
+        })
+      })
+    const shown = () =>
+      ['a', 'b', 'c'].filter((id) => screen.queryByRole('button', { name: id }) !== null)
+
+    it('combines product, epic and extra labels with AND, one chip per extra label', () => {
+      board()
+      render(<FactoryClient />)
+      expect(screen.getByRole('option', { name: 'reader' })).toBeInTheDocument()
+
+      fireEvent.change(screen.getByLabelText('Epic'), { target: { value: 'epic:reader' } })
+      expect(shown()).toEqual(['a', 'c'])
+      fireEvent.change(screen.getByLabelText('Product'), { target: { value: 'books' } })
+      expect(shown()).toEqual(['a'])
+
+      fireEvent.change(screen.getByLabelText('Add label filter'), { target: { value: 'bug' } })
+      expect(shown()).toEqual(['a'])
+      expect(mockReplace).toHaveBeenLastCalledWith(
+        '/factory?label=epic%3Areader&label=books&label=bug'
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Remove label filter bug' }))
+      expect(shown()).toEqual(['a'])
+      fireEvent.change(screen.getByLabelText('Epic'), { target: { value: '' } })
+      expect(shown()).toEqual(['a', 'b'])
+      expect(mockReplace).toHaveBeenLastCalledWith('/factory?label=books')
+    })
+
+    it('restores the filter from the URL and keeps an open task link', () => {
+      board()
+      mockQuery = '?task=a&label=epic:reader&label=bug'
+      render(<FactoryClient />)
+      expect(shown()).toEqual(['a', 'c'])
+      expect(screen.getByLabelText('Epic')).toHaveValue('epic:reader')
+      expect(screen.getByRole('button', { name: 'Remove label filter bug' })).toBeInTheDocument()
+
+      fireEvent.change(screen.getByLabelText('Product'), { target: { value: 'feeds' } })
+      expect(shown()).toEqual(['c'])
+      expect(mockReplace).toHaveBeenLastCalledWith(
+        '/factory?task=a&label=epic%3Areader&label=bug&label=feeds'
+      )
+    })
+
+    it('clears the query when nothing is filtered any more', () => {
+      board()
+      mockQuery = '?label=books'
+      render(<FactoryClient />)
+      fireEvent.change(screen.getByLabelText('Product'), { target: { value: '' } })
+      expect(mockReplace).toHaveBeenLastCalledWith('/factory')
+    })
   })
 
   describe('auto pickup', () => {
@@ -433,14 +500,13 @@ describe('FactoryClient', () => {
     })
     render(<FactoryClient />)
 
-    const filter = screen.getByLabelText('Label')
-    expect(screen.getByRole('option', { name: 'All labels' })).toBeInTheDocument()
-    fireEvent.change(filter, { target: { value: 'ui' } })
+    expect(screen.getByRole('option', { name: 'Add label…' })).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Add label filter'), { target: { value: 'ui' } })
     expect(screen.getByRole('button', { name: 'ui' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'bug' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Plain' })).not.toBeInTheDocument()
 
-    fireEvent.change(filter, { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove label filter ui' }))
     expect(screen.getByRole('button', { name: 'bug' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Plain' })).toBeInTheDocument()
   })
