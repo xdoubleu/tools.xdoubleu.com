@@ -39,6 +39,16 @@ describe('TaskCard', () => {
     expect(screen.getByText('2 comments')).toBeInTheDocument()
   })
 
+  it('offers Close epic only when the board says the epic can be closed', () => {
+    const onCloseEpic = vi.fn()
+    const { rerender } = render(<TaskCard {...props} />)
+    expect(screen.queryByRole('button', { name: 'Close epic' })).not.toBeInTheDocument()
+
+    rerender(<TaskCard {...props} onCloseEpic={onCloseEpic} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Close epic' }))
+    expect(onCloseEpic).toHaveBeenCalledTimes(1)
+  })
+
   it('shows where the pull request stands, only when there is one', () => {
     const { rerender } = render(<TaskCard {...props} />)
     expect(screen.queryByTestId('pr-badge')).not.toBeInTheDocument()

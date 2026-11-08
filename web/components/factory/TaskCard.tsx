@@ -22,6 +22,8 @@ interface TaskCardProps {
   awaitingApproval?: boolean
   /** Set by the board while this task is being dragged, to dim the source card. */
   dragging?: boolean
+  /** Set when this is an epic whose sub-tasks are all Done: closes the epic. */
+  onCloseEpic?: () => void
   onOpen: (id: string) => void
   onDragStart: (event: DragEvent<HTMLDivElement>, task: Task) => void
   onDragEnd: () => void
@@ -32,6 +34,7 @@ export default function TaskCard({
   repo,
   awaitingApproval,
   dragging,
+  onCloseEpic,
   onOpen,
   onDragStart,
   onDragEnd
@@ -92,6 +95,11 @@ export default function TaskCard({
           <span className="text-xs text-muted">{task.commentCount} comments</span>
         )}
       </div>
+      {onCloseEpic && (
+        <Button variant="secondary" size="sm" onClick={onCloseEpic}>
+          Close epic
+        </Button>
+      )}
       {awaitingApproval && (
         <p className="text-xs text-warn" data-testid="approval-hint">
           Not approved for auto pickup. Edit and save its text in the app to approve it.
