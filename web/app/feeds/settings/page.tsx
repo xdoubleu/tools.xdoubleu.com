@@ -6,7 +6,7 @@ import FeedsNotificationSettingsCard from '@/components/feeds/FeedsNotificationS
 
 export default function FeedsSettingsPage() {
   return (
-    <PageContainer>
+    <PageContainer size="narrow">
       <PageHeader
         title="Feed settings"
         breadcrumb={[{ label: 'Feeds', href: '/feeds' }, { label: 'Settings' }]}

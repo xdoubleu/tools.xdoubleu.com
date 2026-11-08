@@ -49,7 +49,7 @@ export default function OAuthConnectionsCard({
         </Alert>
       )}
       {!data ? (
-        <LoadingState className="py-8 text-center text-sm" />
+        <LoadingState placement="inline" />
       ) : (
         <ul className="space-y-2">
           {data.connections.map((c) => (

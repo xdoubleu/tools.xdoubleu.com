@@ -117,7 +117,7 @@ export default function ProviderConfigDialog({
         </DialogHeader>
 
         {loading ? (
-          <LoadingState className="py-8 text-center text-sm" />
+          <LoadingState placement="inline" />
         ) : (
           <div className="space-y-4">
             {provider === 'github' && (

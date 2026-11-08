@@ -57,7 +57,7 @@ export default function GamesDashboard() {
           {lastRefresh && (
             <span className="text-xs text-muted">Last: {lastRefresh.toLocaleString('en-GB')}</span>
           )}
-          <Button variant="secondary" onClick={refresh} disabled={isRefreshing}>
+          <Button variant="secondary" size="sm" onClick={refresh} disabled={isRefreshing}>
             {isRefreshing ? 'Refreshing…' : 'Refresh'}
           </Button>
           <DashboardShareButton kind="games" />

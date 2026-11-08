@@ -38,7 +38,7 @@ export default function LearningPathsSettingsClient() {
   return (
     <PageContainer size="narrow">
       <PageHeader
-        title="Learning Paths Settings"
+        title="Learning paths settings"
         breadcrumb={[
           { label: 'Learning Paths', href: '/learningpaths/list' },
           { label: 'Settings' }

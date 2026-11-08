@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ConnectError } from '@connectrpc/connect'
 import { formatDateTime } from '@/lib/dates'
 import { Button } from '@/components/ui/button'
+import { FieldError } from '@/components/ui/field-error'
 
 /** Queues a run, disabled while one is pending or until waitUntil (RFC3339; '' for now). */
 export default function RefreshButton({
@@ -45,11 +46,7 @@ export default function RefreshButton({
           Again after {formatDateTime(waitUntil)}
         </p>
       )}
-      {error && (
-        <p role="alert" className="text-xs text-danger">
-          {error}
-        </p>
-      )}
+      <FieldError>{error}</FieldError>
     </div>
   )
 }

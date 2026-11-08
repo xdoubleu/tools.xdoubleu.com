@@ -33,8 +33,9 @@ import { Button } from '@/components/ui/button'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader, PageHeaderLink } from '@/components/ui/page-header'
-import { Field } from '@/components/ui/field'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { Select } from '@/components/ui/select'
+import { Toolbar } from '@/components/ui/toolbar'
 import { cn } from '@/lib/cn'
 
 const LIMIT_TICK_MS = 30_000
@@ -119,76 +120,75 @@ export default function FactoryClient() {
           </>
         }
       />
-      <p className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted">
-        Runner <Badge variant={runner.online ? 'success' : 'secondary'}>{runner.label}</Badge>
-      </p>
-      {limit && (
-        <p className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted">
-          Claude <Badge variant="warn">{limit}</Badge>
-        </p>
-      )}
-      {data && repos.some((r) => r.autoPickup) && (
-        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted">
-          Auto pickup{' '}
-          <Badge variant={paused ? 'warn' : 'success'}>{paused ? 'Paused' : 'On'}</Badge>
-          <Button variant="secondary" onClick={() => void togglePickup()}>
-            {paused ? 'Resume' : 'Pause'}
-          </Button>
-        </div>
-      )}
+      <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+        <span className="flex items-center gap-2">
+          Runner <Badge variant={runner.online ? 'success' : 'secondary'}>{runner.label}</Badge>
+        </span>
+        {limit && (
+          <span className="flex items-center gap-2">
+            Claude <Badge variant="warn">{limit}</Badge>
+          </span>
+        )}
+        {data && repos.some((r) => r.autoPickup) && (
+          <span className="flex items-center gap-2">
+            Auto pickup{' '}
+            <Badge variant={paused ? 'warn' : 'success'}>{paused ? 'Paused' : 'On'}</Badge>
+            <Button variant="secondary" size="sm" onClick={() => void togglePickup()}>
+              {paused ? 'Resume' : 'Pause'}
+            </Button>
+          </span>
+        )}
+      </div>
       {pickupError && (
         <Alert tone="danger" className="mb-4">
           {pickupError}
         </Alert>
       )}
-      <div className="mb-4 flex flex-wrap gap-4">
-        <Field label="Product" htmlFor="factory-product-filter" className="min-w-40">
+      <Toolbar aria-label="Filter tasks">
+        <Select
+          aria-label="Product"
+          value={productFilter}
+          onChange={(e) => setProductFilter(e.target.value)}
+          className="w-full sm:w-auto"
+        >
+          <option value="">All products</option>
+          {PRODUCT_LABELS.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </Select>
+        {repos.length > 1 && (
           <Select
-            id="factory-product-filter"
-            value={productFilter}
-            onChange={(e) => setProductFilter(e.target.value)}
+            aria-label="Repo"
+            value={repoFilter}
+            onChange={(e) => setRepoFilter(e.target.value)}
+            className="w-full sm:w-auto"
           >
-            <option value="">All products</option>
-            {PRODUCT_LABELS.map((p) => (
-              <option key={p} value={p}>
-                {p}
+            <option value="">All repos</option>
+            {repos.map((r) => (
+              <option key={r.id} value={r.id}>
+                {repoLabel(r)}
               </option>
             ))}
           </Select>
-        </Field>
-        {repos.length > 1 && (
-          <Field label="Repo" htmlFor="factory-repo-filter" className="min-w-40">
-            <Select
-              id="factory-repo-filter"
-              value={repoFilter}
-              onChange={(e) => setRepoFilter(e.target.value)}
-            >
-              <option value="">All repos</option>
-              {repos.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {repoLabel(r)}
-                </option>
-              ))}
-            </Select>
-          </Field>
         )}
         {labels.length > 0 && (
-          <Field label="Label" htmlFor="factory-label-filter" className="min-w-40">
-            <Select
-              id="factory-label-filter"
-              value={labelFilter}
-              onChange={(e) => setLabelFilter(e.target.value)}
-            >
-              <option value="">All labels</option>
-              {labels.map((l) => (
-                <option key={l} value={l}>
-                  {l}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <Select
+            aria-label="Label"
+            value={labelFilter}
+            onChange={(e) => setLabelFilter(e.target.value)}
+            className="w-full sm:w-auto"
+          >
+            <option value="">All labels</option>
+            {labels.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+          </Select>
         )}
-      </div>
+      </Toolbar>
       {dragError && (
         <Alert tone="danger" className="mb-4">
           {dragError}
@@ -213,9 +213,9 @@ export default function FactoryClient() {
               onDragLeave={() => setDragOverStatus(null)}
               onDrop={onDrop(column.status)}
             >
-              <h2 className="text-sm font-semibold">
-                {column.label} <span className="text-muted">{column.tasks.length}</span>
-              </h2>
+              <SectionHeading level="eyebrow" as="h2">
+                {column.label} <span className="font-normal">{column.tasks.length}</span>
+              </SectionHeading>
               <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
                 {column.tasks.length === 0 ? (
                   <EmptyState placement="inline">Nothing here.</EmptyState>

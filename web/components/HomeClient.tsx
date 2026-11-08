@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from '@/components/ui/link'
 import { useCurrentUser, useSignIn, useMFAChallenge } from '@/hooks/useAuth'
 import AppGrid, { type AppLink, type AppSection } from '@/components/AppGrid'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -271,11 +272,12 @@ export default function HomeClient() {
   if (authState === 'mfa-challenge') {
     return (
       <PageContainer size="narrow">
-        <PageHeader title="tools.xdoubleu.com" />
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-fg">Two-factor authentication</h2>
-          <div className="mt-6 space-y-4">
-            <p className="text-sm text-subtle">Enter the code from your authenticator app.</p>
+        <PageHeader
+          title="Two-factor authentication"
+          description="Enter the code from your authenticator app."
+        />
+        <Card>
+          <div className="space-y-4">
             <Field label="Authenticator code" htmlFor="mfaChallengeCode">
               <Input
                 id="mfaChallengeCode"
@@ -287,11 +289,7 @@ export default function HomeClient() {
                 onChange={(e) => setMfaCode(e.target.value)}
               />
             </Field>
-            {mfaError && (
-              <p role="alert" className="text-sm text-danger">
-                {mfaError}
-              </p>
-            )}
+            {mfaError && <Alert tone="danger">{mfaError}</Alert>}
             <Button onClick={handleMfaChallenge} disabled={mfaSubmitting} className="w-full">
               {mfaSubmitting ? 'Verifying…' : 'Verify'}
             </Button>
@@ -303,10 +301,9 @@ export default function HomeClient() {
 
   return (
     <PageContainer size="narrow">
-      <PageHeader title="tools.xdoubleu.com" />
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold text-fg">Sign In</h2>
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+      <PageHeader title="Sign in" description="tools.xdoubleu.com" />
+      <Card>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <Field label="Email" htmlFor="email">
             <Input
               id="email"
@@ -343,11 +340,7 @@ export default function HomeClient() {
             onChange={(e) => setRememberMe(e.target.checked)}
           />
 
-          {signInError && (
-            <p role="alert" className="text-sm text-danger">
-              {signInError}
-            </p>
-          )}
+          {signInError && <Alert tone="danger">{signInError}</Alert>}
 
           <Button type="submit" disabled={submitting} className="w-full">
             {submitting ? 'Signing in…' : 'Sign in'}

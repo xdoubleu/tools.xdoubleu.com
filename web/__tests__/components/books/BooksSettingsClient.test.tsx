@@ -41,9 +41,9 @@ describe('BooksSettingsClient', () => {
     expect(screen.getByTestId('offline-books-settings')).toBeInTheDocument()
   })
 
-  it('renders the Books Settings heading', () => {
+  it('renders the Books settings heading', () => {
     render(<BooksSettingsClient />)
-    expect(screen.getByRole('heading', { name: 'Books Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Books settings' })).toBeInTheDocument()
   })
 
   it('renders a breadcrumb link back to /dashboard/reading', () => {

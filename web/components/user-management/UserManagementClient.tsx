@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { TogglePill } from '@/components/ui/toggle-pill'
 import { swrKeys } from '@/lib/swrKeys'
 
 const APP_NAMES = [
@@ -79,21 +80,33 @@ function AppAccessButton({ user, appName }: { user: AppUser; appName: string }) 
   )
 }
 
+/** One app's access as a pill named after the app, for the mobile card where no column header names it. */
+function AppAccessPill({ user, appName }: { user: AppUser; appName: string }) {
+  const { handleAccessToggle } = useUserActions(user)
+  return (
+    <TogglePill
+      label={appName}
+      active={user.appAccess.includes(appName)}
+      onClick={() => void handleAccessToggle(appName)}
+    />
+  )
+}
+
 export default function UserManagementClient() {
   const { data, isLoading, error } = useUsers()
   const users = data?.users ?? []
 
   if (isLoading) {
-    return <LoadingState className="py-16 text-center text-sm" />
+    return <LoadingState placement="page" />
   }
 
   if (error) {
-    return <ErrorState what="users" className="py-16 text-center text-sm" />
+    return <ErrorState what="users" placement="page" />
   }
 
   return (
     <PageContainer>
-      <PageHeader title="User Management" />
+      <PageHeader title="User management" />
 
       {/* Mobile-first card-per-row view; the 9-column table would force a
           wide sideways scroll below `sm`. */}
@@ -102,12 +115,18 @@ export default function UserManagementClient() {
           <EmptyState>No users found.</EmptyState>
         ) : (
           users.map((user) => (
-            <Card key={user.id} className="space-y-3 p-4">
+            <Card key={user.id} className="space-y-3">
               <p className="break-all text-sm font-medium text-fg">{user.email}</p>
               <div className="flex flex-wrap items-center gap-2">
                 <RoleSelect user={user} />
+              </div>
+              <div
+                role="group"
+                className="flex flex-wrap gap-2"
+                aria-label={`App access for ${user.email}`}
+              >
                 {APP_NAMES.map((appName) => (
-                  <AppAccessButton key={appName} user={user} appName={appName} />
+                  <AppAccessPill key={appName} user={user} appName={appName} />
                 ))}
               </div>
             </Card>

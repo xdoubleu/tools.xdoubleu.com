@@ -7,9 +7,9 @@ import { SettingsSection, SettingsSections } from '@/components/ui/settings-sect
 
 export default function ShoppingListSettingsPage() {
   return (
-    <PageContainer size="form">
+    <PageContainer size="narrow">
       <PageHeader
-        title="Shopping List Settings"
+        title="Shopping list settings"
         breadcrumb={[{ label: 'Shopping List', href: '/shoppinglist' }, { label: 'Settings' }]}
       />
 

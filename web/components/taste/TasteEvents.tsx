@@ -47,7 +47,7 @@ function EventList({ domain }: { domain: string }) {
 
   if (error && !data) return <ErrorState what="log" />
   if (isLoading && !data) return <LoadingState label="log" />
-  if (events.length === 0) return <EmptyState>Nothing here yet.</EmptyState>
+  if (events.length === 0) return <EmptyState placement="inline">Nothing here yet.</EmptyState>
 
   return (
     <>

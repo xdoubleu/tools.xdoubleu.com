@@ -12,9 +12,8 @@ const uiEverywhere = {
 }
 const uiCallSites = {
   ...uiEverywhere,
-  // warn until the per-app slices migrate their call sites.
-  'ui/card-padding': 'warn',
-  'ui/shared-patterns': 'warn',
+  'ui/card-padding': 'error',
+  'ui/shared-patterns': 'error',
   'ui/control-overrides': 'error',
   'ui/dialog-description': 'error',
   'ui/field-labels': 'error',
@@ -24,15 +23,7 @@ const uiCallSites = {
 
 export default [
   {
-    ignores: [
-      'node_modules',
-      'dist',
-      'public',
-      'coverage',
-      'lib/gen/**',
-      '.stryker-tmp',
-      'reports',
-    ]
+    ignores: ['node_modules', 'dist', 'public', 'coverage', 'lib/gen/**', '.stryker-tmp', 'reports']
   },
   js.configs.recommended,
   ...typescriptEslint.configs.recommended,

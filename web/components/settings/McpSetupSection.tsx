@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { SettingsSection } from '@/components/ui/settings-section'
 import { useCopyFeedback } from '@/hooks/useCopyFeedback'
 
 type McpCommand = {
@@ -25,20 +26,17 @@ export function McpSetupSection() {
   const commands = [APPS_MCP]
 
   return (
-    <section>
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">MCP Setup</h2>
-      <p className="mb-4 text-sm text-subtle">
-        Connect a local Claude Code CLI to this app&apos;s read-only MCP servers. Running the
-        command opens a browser consent screen the first time — OAuth is handled automatically.
-      </p>
-
+    <SettingsSection
+      title="MCP setup"
+      description="Connect a local Claude Code CLI to this app's read-only MCP servers. Running the command opens a browser consent screen the first time — OAuth is handled automatically."
+    >
       <div className="space-y-4">
         {commands.map((cmd) => (
           <div key={cmd.key}>
             <p className="mb-1 text-sm font-medium text-fg">{cmd.title}</p>
             <p className="mb-2 text-sm text-subtle">{cmd.description}</p>
             <div className="flex items-center gap-2">
-              <Card variant="inset" className="min-w-0 flex-1 overflow-x-auto px-3 py-2">
+              <Card variant="inset" padding="sm" className="min-w-0 flex-1 overflow-x-auto">
                 <code className="whitespace-nowrap font-mono text-xs">{cmd.command}</code>
               </Card>
               <Button variant="secondary" size="sm" onClick={() => handleCopy(cmd)}>
@@ -48,6 +46,6 @@ export function McpSetupSection() {
           </div>
         ))}
       </div>
-    </section>
+    </SettingsSection>
   )
 }

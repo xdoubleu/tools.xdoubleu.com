@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
   return (
     <PageContainer size="narrow">
       <PageHeader title="Set new password" />
-      <Card className="p-6">
+      <Card>
         {state === 'invalid' && (
           <div className="space-y-4">
             <Alert tone="danger">{error ?? 'Invalid or expired reset link.'}</Alert>

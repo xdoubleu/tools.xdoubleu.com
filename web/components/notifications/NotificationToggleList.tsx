@@ -55,7 +55,7 @@ export default function NotificationToggleList({
   }
 
   if (!data) {
-    return <LoadingState className="py-8 text-center text-sm" />
+    return <LoadingState placement="inline" />
   }
 
   const settings = data.settings.filter((s) => sourceKeys.includes(s.sourceKey))

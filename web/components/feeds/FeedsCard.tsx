@@ -1,3 +1,4 @@
+import { EmptyState } from '@/components/ui/states'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -20,7 +21,7 @@ export default function FeedsCard({ data }: { data?: GetUnhealthyFeedsResponse }
       </CardHeader>
       <CardContent>
         {feeds.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted">All feeds are healthy.</p>
+          <EmptyState placement="inline">All feeds are healthy.</EmptyState>
         ) : (
           <ul className="space-y-2">
             {feeds.map((feed) => (

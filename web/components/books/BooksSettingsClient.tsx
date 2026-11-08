@@ -42,7 +42,7 @@ export default function BooksSettingsClient() {
     <PageContainer size="narrow">
       <PageHeader
         breadcrumb={[{ label: 'Books', href: '/dashboard/reading' }, { label: 'Settings' }]}
-        title="Books Settings"
+        title="Books settings"
       />
 
       <SettingsSections>

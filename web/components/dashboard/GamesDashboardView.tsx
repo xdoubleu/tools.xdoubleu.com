@@ -4,6 +4,7 @@ import { StatTile } from '@/components/ui/stat'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import SteamProgressChart from '@/components/games/SteamProgressChart'
 import { DateRangeFields } from '@/components/ui/date-range-fields'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { EmptyState, LoadingState } from '@/components/ui/states'
 import { LinkCard } from '@/components/ui/link-card'
@@ -77,7 +78,7 @@ export default function GamesDashboardView({
 
       <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
         <div className="flex min-h-0 flex-col">
-          <h2 className="mb-2 text-base font-semibold">Recently active</h2>
+          <SectionHeading className="mb-2">Recently active</SectionHeading>
           {recentGames.length === 0 && (
             <EmptyState placement="inline">No recently played games.</EmptyState>
           )}

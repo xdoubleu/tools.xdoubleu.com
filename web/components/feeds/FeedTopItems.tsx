@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useFeeds } from '@/hooks/useFeeds'
 import { useTopFeedItems } from '@/hooks/useFeedExpiry'
 import FeedReaderCard from '@/components/feeds/FeedReaderCard'
-import { ErrorState, LoadingState } from '@/components/ui/states'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
 
 // Today's ten best items, ranked from your own reading history. A finite
@@ -47,9 +47,9 @@ export default function FeedTopItems() {
         </div>
       )}
       {done && (
-        <p className="py-12 text-center text-sm text-muted">
+        <EmptyState>
           {items.length === 0 ? 'Nothing unread today.' : 'You’re done for today.'}
-        </p>
+        </EmptyState>
       )}
     </div>
   )

@@ -5,6 +5,7 @@ import { formatDateTime } from '@/lib/dates'
 import RefreshButton from '@/components/taste/RefreshButton'
 import { Alert } from '@/components/ui/alert'
 import { SectionCard } from '@/components/ui/section-card'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 type ListKey = 'know' | 'like' | 'drifting' | 'bounce'
@@ -23,7 +24,7 @@ function Sections({ sections }: { sections: ProfileSections }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {SECTIONS.filter((s) => sections[s.key].length > 0).map((s) => (
           <section key={s.key}>
-            <h3 className="text-sm font-semibold">{s.title}</h3>
+            <SectionHeading level="eyebrow">{s.title}</SectionHeading>
             <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-subtle">
               {sections[s.key].map((bullet, i) => (
                 <li key={`${i}:${bullet}`} className="break-words">
@@ -77,7 +78,7 @@ export default function TasteProfile() {
           </>
         ) : (
           !data.pending && (
-            <EmptyState>
+            <EmptyState placement="inline">
               No profile yet. One is written within the hour and weekly after that; refresh to queue
               it now.
             </EmptyState>

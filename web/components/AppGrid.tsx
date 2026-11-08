@@ -1,4 +1,5 @@
 import { LinkCard } from '@/components/ui/link-card'
+import { SectionHeading } from '@/components/ui/section-heading'
 
 export interface AppLink {
   name: string
@@ -42,9 +43,9 @@ export default function AppGrid({ apps, sections }: AppGridProps) {
       <div className="space-y-8">
         {visibleSections.map((section) => (
           <section key={section.title}>
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted">
+            <SectionHeading level="eyebrow" as="h2" className="mb-3">
               {section.title}
-            </h2>
+            </SectionHeading>
             <AppCards apps={section.apps} />
           </section>
         ))}

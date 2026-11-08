@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 
 const inviteToFamily = vi.fn().mockResolvedValue({})
 const acceptFamilyInvite = vi.fn().mockResolvedValue({})
@@ -144,6 +144,9 @@ describe('FamilyPageClient', () => {
     render(<FamilyPageClient />)
 
     fireEvent.click(screen.getByRole('button', { name: /Leave family/ }))
+    expect(leaveFamily).not.toHaveBeenCalled()
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Leave family' }))
     await waitFor(() => expect(leaveFamily).toHaveBeenCalled())
   })
 })

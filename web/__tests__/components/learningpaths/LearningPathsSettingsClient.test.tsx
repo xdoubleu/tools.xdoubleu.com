@@ -56,7 +56,7 @@ describe('LearningPathsSettingsClient', () => {
     mockConnection({ isLoading: true })
     render(<LearningPathsSettingsClient />)
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Learning Paths Settings' })
+      screen.getByRole('heading', { level: 1, name: 'Learning paths settings' })
     ).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('Loading…')
   })

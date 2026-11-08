@@ -39,10 +39,10 @@ describe('UserManagementClient', () => {
     expect(screen.getByText('Failed to load users.')).toBeInTheDocument()
   })
 
-  it('renders the User Management heading without an Observability button', () => {
+  it('renders the User management heading without an Observability button', () => {
     mockUseUsers.mockReturnValue({ data: { users: [] }, isLoading: false, error: undefined })
     render(<UserManagementClient />)
-    expect(screen.getByRole('heading', { name: 'User Management' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'User management' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Observability/ })).not.toBeInTheDocument()
   })
 
@@ -73,6 +73,20 @@ describe('UserManagementClient', () => {
     await waitFor(() => expect(mockSetAppAccess).toHaveBeenCalledWith('1', 'games', false))
 
     expect(mockMutate).toHaveBeenCalledWith('/user-management/users')
+  })
+
+  it('toggles app access from the mobile card pills', async () => {
+    const users = [
+      create(AppUserSchema, { id: '1', email: 'a@b.com', role: 'user', appAccess: ['games'] })
+    ]
+    mockUseUsers.mockReturnValue({ data: { users }, isLoading: false, error: undefined })
+    mockSetAppAccess.mockResolvedValue(undefined)
+
+    render(<UserManagementClient />)
+
+    expect(screen.getByRole('button', { name: 'games' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'books' }))
+    await waitFor(() => expect(mockSetAppAccess).toHaveBeenCalledWith('1', 'books', true))
   })
 
   it('offers podcasts access', () => {

@@ -85,7 +85,7 @@ export default function MoviesSettingsClient() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer size="narrow">
       <PageHeader
         title="Movies & series settings"
         breadcrumb={[{ label: 'Movies & series', href: '/movies' }, { label: 'Settings' }]}

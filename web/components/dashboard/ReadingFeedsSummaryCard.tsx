@@ -51,7 +51,7 @@ export default function ReadingFeedsSummaryCard({
   }
 
   return (
-    <Card className="flex flex-col gap-2 p-3">
+    <Card padding="sm" className="flex flex-col gap-2">
       {header}
       {items}
     </Card>

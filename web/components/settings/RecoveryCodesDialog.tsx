@@ -34,7 +34,8 @@ export default function RecoveryCodesDialog({ codes, onDismiss }: RecoveryCodesD
 
           <Card
             variant="inset"
-            className="ph-no-capture grid grid-cols-2 gap-2 p-4 font-mono text-sm"
+            padding="md"
+            className="ph-no-capture grid grid-cols-2 gap-2 font-mono text-sm"
           >
             {codes.map((code) => (
               <span key={code}>{code}</span>
