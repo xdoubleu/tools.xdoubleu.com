@@ -158,9 +158,15 @@ export function epicParent(epicLabel: string, tasks: Task[]): Task | undefined {
   return filterByLabels(tasks, [epicLabel]).find((t) => isEpicParent(t))
 }
 
-/** Whether the epic can be closed: its parent is open and it has sub-tasks, all Done. */
-export function canCloseEpic(parent: Task, tasks: Task[]): boolean {
-  const label = parent.labels.find(isEpicLabel)
+/**
+ * Whether the epic can be closed: its parent is open and it has sub-tasks, all Done.
+ * `label` picks which of the parent's `epic:<slug>` labels counts; the first by default.
+ */
+export function canCloseEpic(
+  parent: Task,
+  tasks: Task[],
+  label: string | undefined = parent.labels.find(isEpicLabel)
+): boolean {
   if (label === undefined || parent.status === TaskStatus.DONE) return false
   const { done, total } = epicProgress(label, tasks)
   return total > 0 && done === total
