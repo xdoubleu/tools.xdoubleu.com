@@ -333,10 +333,27 @@ describe('FactoryClient', () => {
     const shown = () =>
       ['a', 'b', 'c'].filter((id) => screen.queryByRole('button', { name: id }) !== null)
 
+    it('counts tasks per option and lists only the picked product\u2019s epics', () => {
+      board()
+      render(<FactoryClient />)
+      const options = (name: string) =>
+        within(screen.getByLabelText(name))
+          .getAllByRole('option')
+          .map((o) => o.textContent)
+      expect(options('Product')).toContain('books (2)')
+      expect(options('Product')).toContain('feeds (1)')
+      expect(options('Product')).toContain('trains (0)')
+      expect(options('Epic')).toEqual(['All epics', 'reader (2)', 'shelf (1)'])
+
+      fireEvent.change(screen.getByLabelText('Product'), { target: { value: 'feeds' } })
+      expect(options('Epic')).toEqual(['All epics', 'reader (1)'])
+      expect(options('Product')).toContain('books (2)')
+    })
+
     it('combines product, epic and extra labels with AND, one chip per extra label', () => {
       board()
       render(<FactoryClient />)
-      expect(screen.getByRole('option', { name: 'reader' })).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: 'reader (2)' })).toBeInTheDocument()
 
       fireEvent.change(screen.getByLabelText('Epic'), { target: { value: 'epic:reader' } })
       expect(shown()).toEqual(['a', 'c'])
@@ -633,9 +650,9 @@ describe('closing an epic', () => {
       within(screen.getByLabelText('Epic'))
         .getAllByRole('option')
         .map((o) => o.textContent)
-    expect(options()).toEqual(['All epics', 'loose', 'new'])
+    expect(options()).toEqual(['All epics', 'loose (1)', 'new (1)'])
     fireEvent.click(screen.getByRole('button', { name: 'Show done tasks' }))
-    expect(options()).toEqual(['All epics', 'loose', 'new', 'old'])
+    expect(options()).toEqual(['All epics', 'loose (1)', 'new (1)', 'old (2)'])
   })
 
   it('counts the Done tasks on the toggle', () => {
