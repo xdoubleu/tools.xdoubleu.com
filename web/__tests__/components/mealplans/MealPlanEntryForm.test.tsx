@@ -125,6 +125,45 @@ describe('MealPlanEntryForm category picker', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledWith('r1', '', 4, false))
   })
 
+  it('styles the selected suggestion differently from the others', () => {
+    render(
+      <MealPlanEntryForm
+        open
+        title="Add"
+        recipes={[recipe('r1', 'Pasta'), recipe('r2', 'Curry')]}
+        suggestedRecipes={[suggestion('r1', 'Pasta'), suggestion('r2', 'Curry')]}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Pasta' })).toHaveClass('bg-surface')
+    expect(screen.getByRole('button', { name: 'Curry' })).toHaveClass('bg-surface')
+    fireEvent.click(screen.getByRole('button', { name: 'Pasta' }))
+    expect(screen.getByRole('button', { name: 'Pasta' })).toHaveClass('bg-accent')
+    expect(screen.getByRole('button', { name: 'Curry' })).toHaveClass('bg-surface')
+  })
+
+  it('shows the New badge only on fresh suggestions', () => {
+    render(
+      <MealPlanEntryForm
+        open
+        title="Add"
+        recipes={[recipe('r1', 'Pasta'), recipe('r2', 'Curry')]}
+        suggestedRecipes={[suggestion('r1', 'Pasta'), suggestion('r2', 'Curry', 2, true)]}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    )
+    const curry = screen.getByRole('button', { name: 'Curry (new)' })
+    expect(curry.parentElement).toHaveTextContent('New')
+    expect(screen.getByRole('button', { name: 'Pasta' }).parentElement).not.toHaveTextContent('New')
+    expect(screen.getByRole('button', { name: 'Pasta' })).not.toHaveAttribute('aria-label')
+    expect(screen.getByRole('button', { name: 'Curry (new)' })).toHaveAttribute(
+      'aria-label',
+      'Curry (new)'
+    )
+  })
+
   it('labels fresh suggestions as new', () => {
     render(
       <MealPlanEntryForm

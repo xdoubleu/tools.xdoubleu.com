@@ -295,3 +295,49 @@ func (h *mealplansConnectHandler) SuggestRecipes(
 		Suggestions: pbSuggestions,
 	}, nil
 }
+
+func (h *mealplansConnectHandler) SuggestWeek(
+	ctx context.Context,
+	req *mealplansv1.SuggestWeekRequest,
+) (*mealplansv1.SuggestWeekResponse, error) {
+	user := getUser(ctx)
+	if user == nil {
+		return nil, connect.Errorf(
+			connect.CodeUnauthenticated,
+			"user not authenticated",
+		)
+	}
+
+	planID, err := uuid.Parse(req.PlanId)
+	if err != nil {
+		return nil, connect.Errorf(
+			connect.CodeInvalidArgument,
+			"invalid plan ID",
+		)
+	}
+
+	start, err := time.Parse(time.DateOnly, req.StartDate)
+	if err != nil {
+		return nil, connect.Errorf(
+			connect.CodeInvalidArgument,
+			"invalid start date",
+		)
+	}
+
+	suggestions, err := h.app.services.Plans.SuggestWeek(ctx, planID, user.ID, start)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+
+	pbSuggestions := make([]*mealplansv1.WeekSuggestion, len(suggestions))
+	for i, s := range suggestions {
+		pbSuggestions[i] = &mealplansv1.WeekSuggestion{
+			MealDate: s.MealDate.Format(time.DateOnly),
+			MealSlot: s.MealSlot,
+			RecipeId: s.RecipeID.String(),
+			Servings: int32(s.Servings), //nolint:gosec // int32 safe for domain values
+		}
+	}
+
+	return &mealplansv1.SuggestWeekResponse{Suggestions: pbSuggestions}, nil
+}

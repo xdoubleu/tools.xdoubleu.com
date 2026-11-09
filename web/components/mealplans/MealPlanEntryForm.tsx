@@ -3,6 +3,7 @@ import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import type { MealSuggestion } from './useMealCalendarState'
 import RecipeCombobox from '@/components/mealplans/RecipeCombobox'
 import { Alert } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/components/ui/link'
 import { Input } from '@/components/ui/input'
@@ -164,18 +165,29 @@ export default function MealPlanEntryForm({
             {suggestedRecipes.length > 0 && (
               <div className="space-y-1.5">
                 <span className="text-xs font-medium text-muted">Suggestions</span>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-x-1.5 gap-y-2.5 pt-1.5">
                   {suggestedRecipes.map((suggestion) => (
-                    <Button
-                      key={suggestion.recipe.id}
-                      variant={suggestion.recipe.id === recipeId ? 'default' : 'secondary'}
-                      size="sm"
-                      aria-label={suggestion.fresh ? `${suggestion.recipe.name} (new)` : undefined}
-                      onClick={() => selectSuggestion(suggestion)}
-                    >
-                      {suggestion.recipe.name}
-                      {suggestion.fresh && <span className="ml-1.5 text-xs opacity-70">new</span>}
-                    </Button>
+                    <div key={suggestion.recipe.id} className="relative">
+                      <Button
+                        variant={suggestion.recipe.id === recipeId ? 'default' : 'secondary'}
+                        size="sm"
+                        aria-label={
+                          suggestion.fresh ? `${suggestion.recipe.name} (new)` : undefined
+                        }
+                        onClick={() => selectSuggestion(suggestion)}
+                      >
+                        {suggestion.recipe.name}
+                      </Button>
+                      {suggestion.fresh && (
+                        <Badge
+                          variant="success"
+                          aria-hidden="true"
+                          className="pointer-events-none absolute -right-1 -top-2 px-1.5 py-0 text-[10px] leading-4"
+                        >
+                          New
+                        </Badge>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

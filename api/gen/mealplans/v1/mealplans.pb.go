@@ -1366,6 +1366,173 @@ func (x *SuggestRecipesResponse) GetSuggestions() []*RecipeSuggestion {
 	return nil
 }
 
+// SuggestWeekRequest covers the seven days from start_date.
+type SuggestWeekRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PlanId        string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	StartDate     string                 `protobuf:"bytes,2,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SuggestWeekRequest) Reset() {
+	*x = SuggestWeekRequest{}
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SuggestWeekRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SuggestWeekRequest) ProtoMessage() {}
+
+func (x *SuggestWeekRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SuggestWeekRequest.ProtoReflect.Descriptor instead.
+func (*SuggestWeekRequest) Descriptor() ([]byte, []int) {
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *SuggestWeekRequest) GetPlanId() string {
+	if x != nil {
+		return x.PlanId
+	}
+	return ""
+}
+
+func (x *SuggestWeekRequest) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
+	}
+	return ""
+}
+
+// WeekSuggestion is the recipe most often planned on a cell's weekday and slot
+// before start_date; only cells without a meal appear.
+type WeekSuggestion struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MealDate      string                 `protobuf:"bytes,1,opt,name=meal_date,json=mealDate,proto3" json:"meal_date,omitempty"`
+	MealSlot      string                 `protobuf:"bytes,2,opt,name=meal_slot,json=mealSlot,proto3" json:"meal_slot,omitempty"`
+	RecipeId      string                 `protobuf:"bytes,3,opt,name=recipe_id,json=recipeId,proto3" json:"recipe_id,omitempty"`
+	Servings      int32                  `protobuf:"varint,4,opt,name=servings,proto3" json:"servings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WeekSuggestion) Reset() {
+	*x = WeekSuggestion{}
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WeekSuggestion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WeekSuggestion) ProtoMessage() {}
+
+func (x *WeekSuggestion) ProtoReflect() protoreflect.Message {
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WeekSuggestion.ProtoReflect.Descriptor instead.
+func (*WeekSuggestion) Descriptor() ([]byte, []int) {
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *WeekSuggestion) GetMealDate() string {
+	if x != nil {
+		return x.MealDate
+	}
+	return ""
+}
+
+func (x *WeekSuggestion) GetMealSlot() string {
+	if x != nil {
+		return x.MealSlot
+	}
+	return ""
+}
+
+func (x *WeekSuggestion) GetRecipeId() string {
+	if x != nil {
+		return x.RecipeId
+	}
+	return ""
+}
+
+func (x *WeekSuggestion) GetServings() int32 {
+	if x != nil {
+		return x.Servings
+	}
+	return 0
+}
+
+type SuggestWeekResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Suggestions   []*WeekSuggestion      `protobuf:"bytes,1,rep,name=suggestions,proto3" json:"suggestions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SuggestWeekResponse) Reset() {
+	*x = SuggestWeekResponse{}
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SuggestWeekResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SuggestWeekResponse) ProtoMessage() {}
+
+func (x *SuggestWeekResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_mealplans_v1_mealplans_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SuggestWeekResponse.ProtoReflect.Descriptor instead.
+func (*SuggestWeekResponse) Descriptor() ([]byte, []int) {
+	return file_mealplans_v1_mealplans_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *SuggestWeekResponse) GetSuggestions() []*WeekSuggestion {
+	if x != nil {
+		return x.Suggestions
+	}
+	return nil
+}
+
 var File_mealplans_v1_mealplans_proto protoreflect.FileDescriptor
 
 const file_mealplans_v1_mealplans_proto_rawDesc = "" +
@@ -1473,7 +1640,18 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\bservings\x18\x02 \x01(\x05R\bservings\x12\x14\n" +
 	"\x05fresh\x18\x03 \x01(\bR\x05fresh\"Z\n" +
 	"\x16SuggestRecipesResponse\x12@\n" +
-	"\vsuggestions\x18\x01 \x03(\v2\x1e.mealplans.v1.RecipeSuggestionR\vsuggestions2\xf4\x05\n" +
+	"\vsuggestions\x18\x01 \x03(\v2\x1e.mealplans.v1.RecipeSuggestionR\vsuggestions\"L\n" +
+	"\x12SuggestWeekRequest\x12\x17\n" +
+	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\x02 \x01(\tR\tstartDate\"\x83\x01\n" +
+	"\x0eWeekSuggestion\x12\x1b\n" +
+	"\tmeal_date\x18\x01 \x01(\tR\bmealDate\x12\x1b\n" +
+	"\tmeal_slot\x18\x02 \x01(\tR\bmealSlot\x12\x1b\n" +
+	"\trecipe_id\x18\x03 \x01(\tR\brecipeId\x12\x1a\n" +
+	"\bservings\x18\x04 \x01(\x05R\bservings\"U\n" +
+	"\x13SuggestWeekResponse\x12>\n" +
+	"\vsuggestions\x18\x01 \x03(\v2\x1c.mealplans.v1.WeekSuggestionR\vsuggestions2\xc8\x06\n" +
 	"\x10MealPlansService\x12L\n" +
 	"\tListPlans\x12\x1e.mealplans.v1.ListPlansRequest\x1a\x1f.mealplans.v1.ListPlansResponse\x12F\n" +
 	"\aGetPlan\x12\x1c.mealplans.v1.GetPlanRequest\x1a\x1d.mealplans.v1.GetPlanResponse\x12O\n" +
@@ -1487,7 +1665,8 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\n" +
 	"DeleteMeal\x12\x1f.mealplans.v1.DeleteMealRequest\x1a .mealplans.v1.DeleteMealResponse\x12I\n" +
 	"\bMoveMeal\x12\x1d.mealplans.v1.MoveMealRequest\x1a\x1e.mealplans.v1.MoveMealResponse\x12[\n" +
-	"\x0eSuggestRecipes\x12#.mealplans.v1.SuggestRecipesRequest\x1a$.mealplans.v1.SuggestRecipesResponseB1Z/tools.xdoubleu.com/gen/mealplans/v1;mealplansv1b\x06proto3"
+	"\x0eSuggestRecipes\x12#.mealplans.v1.SuggestRecipesRequest\x1a$.mealplans.v1.SuggestRecipesResponse\x12R\n" +
+	"\vSuggestWeek\x12 .mealplans.v1.SuggestWeekRequest\x1a!.mealplans.v1.SuggestWeekResponseB1Z/tools.xdoubleu.com/gen/mealplans/v1;mealplansv1b\x06proto3"
 
 var (
 	file_mealplans_v1_mealplans_proto_rawDescOnce sync.Once
@@ -1501,7 +1680,7 @@ func file_mealplans_v1_mealplans_proto_rawDescGZIP() []byte {
 	return file_mealplans_v1_mealplans_proto_rawDescData
 }
 
-var file_mealplans_v1_mealplans_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_mealplans_v1_mealplans_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_mealplans_v1_mealplans_proto_goTypes = []any{
 	(*RecipeRef)(nil),               // 0: mealplans.v1.RecipeRef
 	(*PlanMeal)(nil),                // 1: mealplans.v1.PlanMeal
@@ -1525,6 +1704,9 @@ var file_mealplans_v1_mealplans_proto_goTypes = []any{
 	(*SuggestRecipesRequest)(nil),   // 19: mealplans.v1.SuggestRecipesRequest
 	(*RecipeSuggestion)(nil),        // 20: mealplans.v1.RecipeSuggestion
 	(*SuggestRecipesResponse)(nil),  // 21: mealplans.v1.SuggestRecipesResponse
+	(*SuggestWeekRequest)(nil),      // 22: mealplans.v1.SuggestWeekRequest
+	(*WeekSuggestion)(nil),          // 23: mealplans.v1.WeekSuggestion
+	(*SuggestWeekResponse)(nil),     // 24: mealplans.v1.SuggestWeekResponse
 }
 var file_mealplans_v1_mealplans_proto_depIdxs = []int32{
 	0,  // 0: mealplans.v1.PlanMeal.recipe_ref:type_name -> mealplans.v1.RecipeRef
@@ -1532,29 +1714,32 @@ var file_mealplans_v1_mealplans_proto_depIdxs = []int32{
 	2,  // 2: mealplans.v1.ListPlansResponse.plans:type_name -> mealplans.v1.Plan
 	2,  // 3: mealplans.v1.GetPlanResponse.plan:type_name -> mealplans.v1.Plan
 	20, // 4: mealplans.v1.SuggestRecipesResponse.suggestions:type_name -> mealplans.v1.RecipeSuggestion
-	3,  // 5: mealplans.v1.MealPlansService.ListPlans:input_type -> mealplans.v1.ListPlansRequest
-	5,  // 6: mealplans.v1.MealPlansService.GetPlan:input_type -> mealplans.v1.GetPlanRequest
-	7,  // 7: mealplans.v1.MealPlansService.UpdatePlan:input_type -> mealplans.v1.UpdatePlanRequest
-	9,  // 8: mealplans.v1.MealPlansService.RotateICalToken:input_type -> mealplans.v1.RotateICalTokenRequest
-	11, // 9: mealplans.v1.MealPlansService.CreateMeal:input_type -> mealplans.v1.CreateMealRequest
-	13, // 10: mealplans.v1.MealPlansService.UpdateMeal:input_type -> mealplans.v1.UpdateMealRequest
-	15, // 11: mealplans.v1.MealPlansService.DeleteMeal:input_type -> mealplans.v1.DeleteMealRequest
-	17, // 12: mealplans.v1.MealPlansService.MoveMeal:input_type -> mealplans.v1.MoveMealRequest
-	19, // 13: mealplans.v1.MealPlansService.SuggestRecipes:input_type -> mealplans.v1.SuggestRecipesRequest
-	4,  // 14: mealplans.v1.MealPlansService.ListPlans:output_type -> mealplans.v1.ListPlansResponse
-	6,  // 15: mealplans.v1.MealPlansService.GetPlan:output_type -> mealplans.v1.GetPlanResponse
-	8,  // 16: mealplans.v1.MealPlansService.UpdatePlan:output_type -> mealplans.v1.UpdatePlanResponse
-	10, // 17: mealplans.v1.MealPlansService.RotateICalToken:output_type -> mealplans.v1.RotateICalTokenResponse
-	12, // 18: mealplans.v1.MealPlansService.CreateMeal:output_type -> mealplans.v1.CreateMealResponse
-	14, // 19: mealplans.v1.MealPlansService.UpdateMeal:output_type -> mealplans.v1.UpdateMealResponse
-	16, // 20: mealplans.v1.MealPlansService.DeleteMeal:output_type -> mealplans.v1.DeleteMealResponse
-	18, // 21: mealplans.v1.MealPlansService.MoveMeal:output_type -> mealplans.v1.MoveMealResponse
-	21, // 22: mealplans.v1.MealPlansService.SuggestRecipes:output_type -> mealplans.v1.SuggestRecipesResponse
-	14, // [14:23] is the sub-list for method output_type
-	5,  // [5:14] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	23, // 5: mealplans.v1.SuggestWeekResponse.suggestions:type_name -> mealplans.v1.WeekSuggestion
+	3,  // 6: mealplans.v1.MealPlansService.ListPlans:input_type -> mealplans.v1.ListPlansRequest
+	5,  // 7: mealplans.v1.MealPlansService.GetPlan:input_type -> mealplans.v1.GetPlanRequest
+	7,  // 8: mealplans.v1.MealPlansService.UpdatePlan:input_type -> mealplans.v1.UpdatePlanRequest
+	9,  // 9: mealplans.v1.MealPlansService.RotateICalToken:input_type -> mealplans.v1.RotateICalTokenRequest
+	11, // 10: mealplans.v1.MealPlansService.CreateMeal:input_type -> mealplans.v1.CreateMealRequest
+	13, // 11: mealplans.v1.MealPlansService.UpdateMeal:input_type -> mealplans.v1.UpdateMealRequest
+	15, // 12: mealplans.v1.MealPlansService.DeleteMeal:input_type -> mealplans.v1.DeleteMealRequest
+	17, // 13: mealplans.v1.MealPlansService.MoveMeal:input_type -> mealplans.v1.MoveMealRequest
+	19, // 14: mealplans.v1.MealPlansService.SuggestRecipes:input_type -> mealplans.v1.SuggestRecipesRequest
+	22, // 15: mealplans.v1.MealPlansService.SuggestWeek:input_type -> mealplans.v1.SuggestWeekRequest
+	4,  // 16: mealplans.v1.MealPlansService.ListPlans:output_type -> mealplans.v1.ListPlansResponse
+	6,  // 17: mealplans.v1.MealPlansService.GetPlan:output_type -> mealplans.v1.GetPlanResponse
+	8,  // 18: mealplans.v1.MealPlansService.UpdatePlan:output_type -> mealplans.v1.UpdatePlanResponse
+	10, // 19: mealplans.v1.MealPlansService.RotateICalToken:output_type -> mealplans.v1.RotateICalTokenResponse
+	12, // 20: mealplans.v1.MealPlansService.CreateMeal:output_type -> mealplans.v1.CreateMealResponse
+	14, // 21: mealplans.v1.MealPlansService.UpdateMeal:output_type -> mealplans.v1.UpdateMealResponse
+	16, // 22: mealplans.v1.MealPlansService.DeleteMeal:output_type -> mealplans.v1.DeleteMealResponse
+	18, // 23: mealplans.v1.MealPlansService.MoveMeal:output_type -> mealplans.v1.MoveMealResponse
+	21, // 24: mealplans.v1.MealPlansService.SuggestRecipes:output_type -> mealplans.v1.SuggestRecipesResponse
+	24, // 25: mealplans.v1.MealPlansService.SuggestWeek:output_type -> mealplans.v1.SuggestWeekResponse
+	16, // [16:26] is the sub-list for method output_type
+	6,  // [6:16] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_mealplans_v1_mealplans_proto_init() }
@@ -1568,7 +1753,7 @@ func file_mealplans_v1_mealplans_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mealplans_v1_mealplans_proto_rawDesc), len(file_mealplans_v1_mealplans_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   22,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
