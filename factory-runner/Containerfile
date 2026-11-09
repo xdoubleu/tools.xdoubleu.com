@@ -2,7 +2,7 @@
 # access when a job runs, so everything a job needs is installed here. Base images and
 # CLIs are pinned; the plugin marketplaces are not (they track their default branch),
 # so a rebuild picks up their current skills. Runs as the unprivileged `node` user (uid 1000).
-FROM docker.io/library/golang:1.27@sha256:0c050feb47802ae436b9030833694a0b80160d08e3b3049ad30bf7c9e724e09d AS go
+FROM docker.io/library/golang:1.27@sha256:e519d3b0a5b285e5aa53ab9eef02bc6bbb9cb04608389b743a136a9ce75f0d1e AS go
 
 FROM docker.io/library/node:26-bookworm-slim@sha256:add5c17c14752c54d2f3d519ec46a3815684d41c33f198bcb09fb998f7dcbf68
 
