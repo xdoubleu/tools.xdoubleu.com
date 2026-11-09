@@ -1,6 +1,6 @@
 # ADR-0047: Agents are platform users with granted app access
 
-- Status: Proposed
+- Status: Accepted
 - Issues: epic `first-class-agents`, spike 453c1c64
 - Affects: `api/internal/agentaccounts/`, `api/internal/mcptools/`,
   `api/internal/account/access.go`, `api/internal/oauth2as/seed.go`,
