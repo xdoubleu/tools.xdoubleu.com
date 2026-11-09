@@ -188,7 +188,7 @@ func TestAgentMovesManyTasksAndHearsWhichFailed(t *testing.T) {
 	missing := "00000000-0000-0000-0000-000000000000"
 
 	res, err := callTool(t, session, "factory_move_tasks", map[string]any{
-		"ids": append(ids, missing, "nope"), "status": "done",
+		"ids": append(ids, ids[0], missing, "nope"), "status": "done",
 	})
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []any{ids[0], ids[1]}, at(t, res, "moved"))

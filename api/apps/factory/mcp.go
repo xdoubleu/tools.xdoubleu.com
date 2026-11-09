@@ -333,11 +333,11 @@ func (t *mcpTools) updateTask(
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(args.ID)
-	if err != nil {
+	if err = t.refuseScoped(ctx, "edit tasks"); err != nil {
 		return nil, err
 	}
-	if err = t.refuseScoped(ctx, "edit tasks"); err != nil {
+	id, err := parseID(args.ID)
+	if err != nil {
 		return nil, err
 	}
 	current, _, err := t.app.services.Tasks.Get(ctx, id)
@@ -413,19 +413,22 @@ func (t *mcpTools) moveTasks(
 	if err != nil {
 		return nil, err
 	}
-	if len(args.IDs) == 0 || len(args.IDs) > maxBulkMove {
-		return nil, errors.New("ids must hold between 1 and 200 task ids")
-	}
 	if err = t.refuseScoped(ctx, "move tasks"); err != nil {
 		return nil, err
 	}
+	if len(args.IDs) == 0 || len(args.IDs) > maxBulkMove {
+		return nil, errors.New("ids must hold between 1 and 200 task ids")
+	}
 	status := models.Status(args.Status)
+	if !status.Valid() {
+		return nil, errors.New("status must be one of " + statusNames)
+	}
 	if status == models.StatusReady {
 		return nil, errors.New("only a person in a browser can move a task to ready")
 	}
 	moved := make([]any, 0, len(args.IDs))
 	failed := []any{}
-	for _, raw := range args.IDs {
+	for _, raw := range slices.Compact(slices.Sorted(slices.Values(args.IDs))) {
 		id, perr := parseID(raw)
 		if perr == nil {
 			_, perr = t.app.services.Tasks.Move(ctx, actor, id, status)
