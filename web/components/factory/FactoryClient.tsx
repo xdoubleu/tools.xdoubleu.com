@@ -111,12 +111,22 @@ export default function FactoryClient() {
   // Closed epics drop out of the select unless Done is shown. A stale or selected
   // epic from the URL stays selectable, so the select never shows a blank.
   const isClosedEpic = (l: string) => epicParent(l, allTasks)?.status === TaskStatus.DONE
+  // Only the picked product's epics are offered.
+  const productTasks = filterByLabels(allTasks, labelFilter.filter(isProductLabel))
   const epics = [
     ...new Set([
-      ...allLabels.filter((l) => isEpicLabel(l) && (showDone || !isClosedEpic(l))),
+      ...distinctLabels(productTasks).filter(
+        (l) => isEpicLabel(l) && (showDone || !isClosedEpic(l))
+      ),
       ...labelFilter.filter(isEpicLabel)
     ])
   ].sort()
+  // Tasks the board would show with `label` picked in its group, other filters kept.
+  const countWith = (inGroup: (l: string) => boolean, label: string) =>
+    filterByLabels(
+      filterByRepo(allTasks, repoFilter),
+      withGroupLabel(labelFilter, inGroup, label)
+    ).filter((t) => showDone || t.status !== TaskStatus.DONE).length
   const addable = allLabels.filter(
     (l) => isOther(l) && !labelFilter.some((f) => lower(f) === lower(l))
   )
@@ -207,7 +217,7 @@ export default function FactoryClient() {
           <option value="">All products</option>
           {PRODUCT_LABELS.map((p) => (
             <option key={p} value={p}>
-              {p}
+              {p} ({countWith(isProductLabel, p)})
             </option>
           ))}
         </Select>
@@ -238,7 +248,7 @@ export default function FactoryClient() {
             <option value="">All epics</option>
             {epics.map((l) => (
               <option key={l} value={l}>
-                {epicName(l)}
+                {epicName(l)} ({countWith(isEpicLabel, l)})
               </option>
             ))}
           </Select>
