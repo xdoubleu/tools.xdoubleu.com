@@ -1261,9 +1261,12 @@ func (x *SuggestRecipesRequest) GetMealSlot() string {
 }
 
 type RecipeSuggestion struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RecipeId      string                 `protobuf:"bytes,1,opt,name=recipe_id,json=recipeId,proto3" json:"recipe_id,omitempty"`
-	Servings      int32                  `protobuf:"varint,2,opt,name=servings,proto3" json:"servings,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	RecipeId string                 `protobuf:"bytes,1,opt,name=recipe_id,json=recipeId,proto3" json:"recipe_id,omitempty"`
+	Servings int32                  `protobuf:"varint,2,opt,name=servings,proto3" json:"servings,omitempty"`
+	// fresh marks a recipe the plan rarely or never used, as opposed to one
+	// planned before on this weekday and slot.
+	Fresh         bool `protobuf:"varint,3,opt,name=fresh,proto3" json:"fresh,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1310,6 +1313,13 @@ func (x *RecipeSuggestion) GetServings() int32 {
 		return x.Servings
 	}
 	return 0
+}
+
+func (x *RecipeSuggestion) GetFresh() bool {
+	if x != nil {
+		return x.Fresh
+	}
+	return false
 }
 
 type SuggestRecipesResponse struct {
@@ -1457,10 +1467,11 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\x15SuggestRecipesRequest\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x1b\n" +
 	"\tmeal_date\x18\x02 \x01(\tR\bmealDate\x12\x1b\n" +
-	"\tmeal_slot\x18\x03 \x01(\tR\bmealSlot\"K\n" +
+	"\tmeal_slot\x18\x03 \x01(\tR\bmealSlot\"a\n" +
 	"\x10RecipeSuggestion\x12\x1b\n" +
 	"\trecipe_id\x18\x01 \x01(\tR\brecipeId\x12\x1a\n" +
-	"\bservings\x18\x02 \x01(\x05R\bservings\"Z\n" +
+	"\bservings\x18\x02 \x01(\x05R\bservings\x12\x14\n" +
+	"\x05fresh\x18\x03 \x01(\bR\x05fresh\"Z\n" +
 	"\x16SuggestRecipesResponse\x12@\n" +
 	"\vsuggestions\x18\x01 \x03(\v2\x1e.mealplans.v1.RecipeSuggestionR\vsuggestions2\xf4\x05\n" +
 	"\x10MealPlansService\x12L\n" +
