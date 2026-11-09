@@ -1,6 +1,7 @@
 # ADR-0039: Agents act on the factory board under their own accounts
 
-- Status: Accepted
+- Status: Accepted; the "only `factory_*` tools" rule is superseded by
+  [ADR-0047](adr-0047-first-class-agent-users.md)
 - Issues: #2776, #2701
 - Affects: `api/internal/agentaccounts/`, `api/internal/oauth2as/seed.go`
   (`MachineSubjects`), `api/internal/mcptools/agent_grants.go`,
@@ -28,9 +29,10 @@ machine identity, but only one, seeded by hand.
   `MachineSubjects`: the static `routines` client first, then active agent
   accounts (`global.agent_accounts`). Tokens last an hour; there is no refresh
   token.
-- An agent sees and calls only `factory_*` tools. `mcptools.AgentToolsOnly`
-  filters the tool listing, refuses other tool calls as unknown, and refuses
-  resources and prompts, so the rule holds without each tool remembering it.
+- An agent sees and calls only the tools and resources of the apps it was
+  granted; `mcptools.AgentGrants` filters the listing and refuses the rest as
+  unknown, so the rule holds without each tool remembering it
+  ([ADR-0047](adr-0047-first-class-agent-users.md)).
 - Only an admin in a browser session creates, lists or revokes accounts, and
   creating one needs a TOTP or recovery code (`VerifyCurrentFactor`). The client
   secret is shown once and stored only as a bcrypt hash.

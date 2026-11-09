@@ -1,9 +1,10 @@
 # ADR-0040: The board's MCP tools are for agent accounts and can't mark a task Ready
 
-- Status: Accepted
+- Status: Accepted; the `AgentToolsOnly` gate is superseded by
+  [ADR-0047](adr-0047-first-class-agent-users.md)
 - Issues: #2714, #2701
 - Affects: `api/apps/factory/mcp.go`, `api/internal/mcptools/` (`RequireAgent`,
-  `AddAgentReadTool`, `AddAgentWriteTool`, `AgentToolsOnly`)
+  `AddAgentReadTool`, `AddAgentWriteTool`, `AgentGrants`)
 
 ## Context
 
@@ -23,9 +24,10 @@ the opposite of what the board needs.
   column. It refuses a title or body change once a task is Ready, because a
   person approved that text. `factory_move_tasks` moves many tasks and returns
   only the ids moved and failed. A job's own account can use neither.
-- Each tool is gated by `RequireAgent`: the `agent` role only. An admin or a user
-  gets a permission error, and `AgentToolsOnly` also leaves the `factory_` tools
-  out of every non-agent's tool list.
+- Each tool is gated by `RequireAgent` (the `agent` role only) and the `factory`
+  grant, write tools at the write level. An admin or a user gets a permission
+  error, and `AgentGrants` leaves the `factory_` tools out of every non-agent's
+  tool list.
 - The tools call the services as an agent actor (`agent:<user id>`), which is
   neither a browser nor an admin. A move into Ready is refused by
   `TaskService.Move`, the same guard as the web UI, not by the tool, so no tool
