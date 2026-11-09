@@ -30,8 +30,8 @@ that change the task set (naming of a new app/schema, domain scope,
 build-vs-adopt, first-cut slices). Decide the rest yourself and record it in
 the parent's `## Decisions`.
 
-Feature-track PRs pass an automated gate and then wait for the owner's
-review; a human also tests the output at the end
+Feature-track PRs pass an automated gate and then auto-merge on green CI; a
+human reviews and tests the output at the end
 ([`convention-feature-review-policy`](../../../docs/convention-feature-review-policy.md)).
 Be exhaustive; an unresolved choice ships as whatever the implementer assumed.
 

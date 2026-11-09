@@ -1,4 +1,4 @@
-# Convention: no PR auto-merges except Renovate's; feature work adds an automated gate
+# Convention: every PR auto-merges on green CI; feature work adds an automated gate
 
 - Enforced by: the `feature` label + `finish-task`'s track branch (#1634); the
   gate itself is `code-review` + Go `depguard` (#1629) + web
@@ -7,17 +7,19 @@
 
 ## Rule
 
-Every PR waits for the owner's review and merge. The only exception is
-Renovate's dependency PRs, which auto-merge through `renovate.json5`.
-`finish-task` never arms auto-merge, on either track or unattended.
+Every PR merges itself once `ci-pass` is green; the owner reviews afterwards
+and checks the task in Testing. `finish-task` arms `gh pr merge --auto
+--squash` on both tracks and unattended. Renovate's PRs auto-merge through
+`renovate.json5`. Never merge on red CI.
 
 The `feature` label (`refine-feature` applies it to the epic and every
 sub-issue; `finish-task` reads it back) selects the gate, not the merge path:
 
 - **Maintenance** (`enhancement`/`bug`/`chore`) — no gate; large or
-  architectural changes get a `## Manual review needed` section.
+  architectural changes get a `## Manual review needed` section for the
+  owner's later review.
 - **Feature** (`feature`) — the automated quality gate below runs before the
-  PR opens, so review starts from a checked diff.
+  PR opens, since nothing else checks the diff before it merges.
 
 `ci-pass` is required on both tracks.
 
@@ -47,6 +49,8 @@ as a manual aid):
 
 ## Why
 
-Auto-merged agent PRs deploy on merge with no human in the chain. The owner
-reviews every PR instead, and the gate keeps that review short by catching
-design, boundary and weak-test problems first.
+Merges deploy with no human in the chain: the owner chose speed over a
+pre-merge review and reviews retroactively. Green CI is the only merge gate, so
+the feature gate catches design, boundary and weak-test problems first, and
+the human Ready move stays the approval for unattended work
+([`convention-unattended-agent-trust`](convention-unattended-agent-trust.md)).

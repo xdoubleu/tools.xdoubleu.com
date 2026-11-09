@@ -21,8 +21,8 @@ Read the `AGENTS.md` of `api/`, `web/`, `kobo-gateway/` or `factory-runner/` bef
 
 ## Production Safety Rules
 
-- Unattended agents act only on human-approved work: only a human moves an issue to Ready, and no PR auto-merges except Renovate's → [convention-unattended-agent-trust](docs/convention-unattended-agent-trust.md).
-- **Never push to `main`** — it deploys on every push without re-testing. Merge only PRs with green CI.
+- Unattended agents act only on human-approved work: only a human moves an issue to Ready. Every PR auto-merges on green CI → [convention-unattended-agent-trust](docs/convention-unattended-agent-trust.md).
+- **Never push to `main`** — it deploys on every push without re-testing. Merge only on green CI.
 - Every outbound fetch of a **user-supplied URL** goes through `api/internal/safedial` (refuses non-public IPs; SSRF guard), never a bare `http.Client`.
 - Never skip, disable, or quarantine a test, or bypass hooks/signing, unless a human asks for that specific exception.
 - Deploy secrets are listed in three places that must agree (`make lint/kamal-secrets`) → [convention-deploy-secrets](docs/convention-deploy-secrets.md). `infra/README.md` has the full list.

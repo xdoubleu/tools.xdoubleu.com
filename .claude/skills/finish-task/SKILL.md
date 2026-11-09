@@ -2,7 +2,7 @@
 name: finish-task
 description: >-
   Ship a code change on tools.xdoubleu.com — lint, coverage, build, open the
-  PR (never auto-merged), watch CI to green, run the retro. Use
+  PR with auto-merge armed, watch CI to green and the merge, run the retro. Use
   whenever code changes here are complete, whether or not the user asked for
   a PR; also for "finish up", "wrap this up", "open a PR", "ship this".
   Prefer this over calling `ship-pr` directly.
@@ -28,7 +28,7 @@ without a PR, or running CI, isn't done.
 - `infra/grafana` changed: `make lint/grafana` and `make grafana/verify`.
 - Always: `make lint/docs` from the repo root must pass (rule:
   [`docs/convention-concise-docs-and-comments.md`](../../../docs/convention-concise-docs-and-comments.md)).
-- Re-read the diff; cut comment/doc text that restates the code.
+- Cut comment/doc text that restates the code.
 - `.proto` changed: `cd api && make proto/check` and `cd web && npm run
   generate:check`, commit the result.
 
@@ -49,10 +49,9 @@ rely on CI's Build Grafana job, and say so in the PR body.
 
 ## 4. Link the task
 
-A board task isn't a GitHub issue: the PR links it and carries **no closing
-keyword**. Put `Task: <title> (<id>)` at the top of the PR body, and after
-`ship-pr` opens it `factory_move_task(id, "in_review")`. After the merge move it
-to `testing` (the runner moves only its own PRs); the owner moves it to Done.
+The PR links the board task with **no closing keyword**. Put `Task: <title> (<id>)` at the top of the PR body, and after
+`ship-pr` opens it `factory_move_task(id, "in_review")`. Once the PR has merged move it
+to `testing` (the runner moves only its own PRs); the owner checks it there and moves it to Done.
 
 - **Epic or child** (`epic:<slug>`): `factory_list_tasks(label)` lists the
   tree; move every task this PR delivered or superseded like its own.
@@ -61,8 +60,7 @@ to `testing` (the runner moves only its own PRs); the owner moves it to Done.
   In review as usual, then to `needs_you` once the PR has merged.
 - **Bug report**: a green suite doesn't close it. Verify the symptom is gone in
   production after deploy (MCP read tools or UI); name that check as a
-  post-deploy step in the PR body. If unverifiable, say so; the user's
-  confirmation is acceptance.
+  post-deploy step in the PR body. If unverifiable, say so.
 
 **GitHub-issue mode (until #2779):** when the prompt named a GitHub issue,
 reference it as before: `Part of #123` under a follow-up heading (then, after
@@ -72,18 +70,17 @@ mode; unattended, leave Status as-is.
 
 ## 4b. Check for supersession
 
-Before pushing: `git fetch origin main`, diff the touched files against it,
-re-run the PR search. If deleted or already resolved, close as superseded.
+Before pushing: `git fetch origin main`, diff the touched files, re-run the PR
+search. If deleted or already resolved, close as superseded.
 
 ## 5. Ship via `ship-pr`
 
-`ship-pr` owns rebase → push → non-draft PR → CI watch. **Never arm
-auto-merge**, on either track or unattended: every PR waits for the owner's
-review and merge. Only Renovate's dependency PRs auto-merge, through
-`renovate.json5`
+`ship-pr` owns rebase → push → non-draft PR → CI watch. **Always arm
+auto-merge** (`gh pr merge --auto --squash`) on a PR targeting `main`, either
+track and unattended: green `ci-pass` merges it
 ([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md),
 [`docs/convention-unattended-agent-trust.md`](../../../docs/convention-unattended-agent-trust.md)).
-Tell `ship-pr` not to enable it, and to reference the task as in step 4.
+Tell `ship-pr` to arm it and reference the task as in step 4. Move the task to `testing` only once the merge lands.
 
 **A — `feature` label: run the quality gate first.** No
 `## Manual review needed` section. Before opening the PR fix everything each
@@ -95,7 +92,7 @@ of these turns up, for whichever side changed:
 3. `cd api && make test/mutation/diff` / `cd web && npm run
    test:mutation:diff`; kill every surviving mutant.
 
-The gate runs before review and doesn't replace it
+Nothing else checks the diff before it merges
 ([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md)).
 
 **B — no `feature` label: flag what needs a closer look.** Append (never
@@ -127,7 +124,7 @@ Once CI is green, run `session-retro`; its fixes ship as their own board task
 Check both (`command -v gh`); the web has neither. Say what's missing:
 
 - **`ship-pr` loaded, no `gh`**: follow its "When `gh` isn't available"
-  section. Never arm auto-merge or merge early.
+  section. Arm auto-merge as in step 5; never merge early.
 - **No `ship-pr`**: rebase on `origin/main`, push, open the PR, watch CI
   (via `mcp__github__*` if no `gh`); apply step 5 yourself.
 - **No `session-retro`**: analyse by hand.
