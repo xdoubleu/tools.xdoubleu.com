@@ -19,6 +19,8 @@ import { MEAL_SLOTS } from '@/lib/mealplans/mealPlanCalendar'
 export interface MealSuggestion {
   recipe: Recipe
   servings: number
+  /** Rarely or never planned, as opposed to planned before in this cell. */
+  fresh: boolean
 }
 
 export type PickMode = 'move' | 'swap'
@@ -47,12 +49,12 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
   const moveMeal = useMoveMeal()
 
   // Suggestions load only while adding; unavailable recipes are dropped and
-  // each carries its most-used servings.
+  // each carries its most-used servings and whether it is a fresh pick.
   const { data: suggestData } = useMealSuggestions(plan.id, selectedDate ?? '', selectedSlot ?? '')
   const suggestedRecipes: MealSuggestion[] = (suggestData?.suggestions ?? [])
     .map((s) => {
       const recipe = recipes.find((r) => r.id === s.recipeId)
-      return recipe ? { recipe, servings: s.servings } : undefined
+      return recipe ? { recipe, servings: s.servings, fresh: s.fresh } : undefined
     })
     .filter((s): s is MealSuggestion => s !== undefined)
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { MenuItem } from '@/components/ui/menu-item'
 import { Popover } from '@/components/ui/popover'
@@ -44,7 +45,9 @@ export default function MealPlanMealChip({
   const [expanded, setExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const bodyRef = useRef<HTMLButtonElement>(null)
-  const name = isCustom ? customItems.map(formatCustomItemLabel).join(', ') : recipe?.name || '?'
+  const name = isCustom
+    ? customItems.map(formatCustomItemLabel).join(', ')
+    : recipe?.name || meal.recipeRef?.name || '?'
 
   useEffect(() => {
     if (inSwapMode) {
@@ -128,6 +131,11 @@ export default function MealPlanMealChip({
             <span className={cn('wrap-break-word text-sm text-fg', clamp)}>{name}</span>
           )}
         </span>
+        {!isCustom && recipe?.isDraft && (
+          <Badge variant="warn" className="shrink-0">
+            Draft
+          </Badge>
+        )}
         {!isCustom && meal.servings > 1 && (
           <span className="shrink-0 pt-0.5 text-xs text-muted">×{meal.servings}</span>
         )}

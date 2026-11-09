@@ -62,7 +62,7 @@ export default function MealPlanCalendar({
   const mealName = (meal: PlanMeal | null | undefined) =>
     meal?.customName
       ? formatCustomNameLabel(meal.customName)
-      : recipes.find((r) => r.id === meal?.recipeId)?.name || '?'
+      : recipes.find((r) => r.id === meal?.recipeId)?.name || meal?.recipeRef?.name || '?'
   const swappingMealName = mealName(swappingMeal)
 
   const confirmDeleteMeal = (mealId: string) => {

@@ -965,11 +965,65 @@ func TestSuggestRecipes_RanksByWeekdayAndSlot(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	require.Len(t, resp.Suggestions, 2)
+	require.GreaterOrEqual(t, len(resp.Suggestions), 2)
 	assert.Equal(t, recipeA.String(), resp.Suggestions[0].RecipeId)
 	assert.Equal(t, int32(4), resp.Suggestions[0].Servings)
+	assert.False(t, resp.Suggestions[0].Fresh)
 	assert.Equal(t, recipeB.String(), resp.Suggestions[1].RecipeId)
 	assert.Equal(t, int32(2), resp.Suggestions[1].Servings)
+	assert.False(t, resp.Suggestions[1].Fresh)
+	for _, s := range resp.Suggestions[2:] {
+		assert.True(t, s.Fresh)
+	}
+}
+
+func TestSuggestRecipes_OffersUnplannedRecipes(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	planned := createRecipeInDB(t, "Fresh Planned")
+	unplanned := createRecipeInDB(t, "Fresh Unplanned")
+	sameWeek := createRecipeInDB(t, "Fresh Same Week")
+	draft := createRecipeInDB(t, "Fresh Draft")
+	_, err := testDB.Exec(context.Background(),
+		`UPDATE recipes.recipes SET is_draft = TRUE WHERE id = $1`, draft)
+	require.NoError(t, err)
+
+	planID := createPlanInDB(t, "Fresh Suggest Plan")
+	add := func(date string, recipe uuid.UUID) {
+		_, err = client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
+			PlanId: planID, MealDate: date, MealSlot: "noon",
+			RecipeId: recipe.String(), Servings: 2,
+		})
+		require.NoError(t, err)
+	}
+	add("2024-01-01", planned)  // Monday, familiar for the Monday below
+	add("2024-02-06", sameWeek) // same week as the requested date
+
+	resp, err := client.SuggestRecipes(ctx, &mealplansv1.SuggestRecipesRequest{
+		PlanId: planID, MealDate: "2024-02-05", MealSlot: "noon", // a Monday
+	})
+	require.NoError(t, err)
+
+	byID := map[string]*mealplansv1.RecipeSuggestion{}
+	for _, s := range resp.Suggestions {
+		byID[s.RecipeId] = s
+	}
+	require.Contains(t, byID, planned.String())
+	assert.False(t, byID[planned.String()].Fresh)
+	assert.NotContains(t, byID, draft.String())
+	assert.NotContains(t, byID, sameWeek.String())
+	assert.LessOrEqual(t, len(resp.Suggestions), 5)
+	// Never-planned recipes rank ahead of any recipe planned before.
+	if fresh, ok := byID[unplanned.String()]; ok {
+		assert.True(t, fresh.Fresh)
+	}
+	assert.Equal(t, planned.String(), resp.Suggestions[0].RecipeId)
 }
 
 func TestSuggestRecipes_ExcludesDrafts(t *testing.T) {
@@ -1004,10 +1058,12 @@ func TestSuggestRecipes_ExcludesDrafts(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Suggestions)
+	for _, s := range resp.Suggestions {
+		assert.NotEqual(t, draftRecipe.String(), s.RecipeId)
+	}
 }
 
-func TestSuggestRecipes_EmptyWhenNoHistory(t *testing.T) {
+func TestSuggestRecipes_OnlyFreshWhenNoHistory(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(
 		context.Background(),
@@ -1025,7 +1081,9 @@ func TestSuggestRecipes_EmptyWhenNoHistory(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	assert.Empty(t, resp.Suggestions)
+	for _, s := range resp.Suggestions {
+		assert.True(t, s.Fresh)
+	}
 }
 
 func TestSuggestRecipes_PlanNotFound(t *testing.T) {

@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import type { MealSuggestion } from './useMealCalendarState'
 import RecipeCombobox from '@/components/mealplans/RecipeCombobox'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Link } from '@/components/ui/link'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Card } from '@/components/ui/card'
@@ -118,6 +120,8 @@ export default function MealPlanEntryForm({
     }
   }
 
+  const draftRecipe = recipes.find((r) => r.id === recipeId && r.isDraft)
+
   const selectSuggestion = (suggestion: MealSuggestion) => {
     setRecipeId(suggestion.recipe.id)
     setServings(suggestion.servings)
@@ -166,9 +170,11 @@ export default function MealPlanEntryForm({
                       key={suggestion.recipe.id}
                       variant={suggestion.recipe.id === recipeId ? 'default' : 'secondary'}
                       size="sm"
+                      aria-label={suggestion.fresh ? `${suggestion.recipe.name} (new)` : undefined}
                       onClick={() => selectSuggestion(suggestion)}
                     >
                       {suggestion.recipe.name}
+                      {suggestion.fresh && <span className="ml-1.5 text-xs opacity-70">new</span>}
                     </Button>
                   ))}
                 </div>
@@ -192,6 +198,20 @@ export default function MealPlanEntryForm({
               aria-label="Servings"
               placeholder="Servings"
             />
+            {draftRecipe && (
+              <Alert tone="warn">
+                {draftRecipe.name} is a draft. Double-check its ingredients and steps before
+                planning it.{' '}
+                <Link
+                  href={`/recipes/${draftRecipe.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block py-2 underline"
+                >
+                  Open recipe
+                </Link>
+              </Alert>
+            )}
           </div>
         ) : (
           <div className="space-y-2">

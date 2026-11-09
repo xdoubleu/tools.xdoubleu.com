@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router'
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
@@ -26,9 +27,10 @@ const onSave = vi.fn()
 const onCancel = vi.fn()
 
 const recipe = (id: string, name: string) => create(RecipeSchema, { id, name })
-const suggestion = (id: string, name: string, servings = 1) => ({
+const suggestion = (id: string, name: string, servings = 1, fresh = false) => ({
   recipe: recipe(id, name),
-  servings
+  servings,
+  fresh
 })
 
 function renderForm(initialCustomName: string) {
@@ -121,6 +123,43 @@ describe('MealPlanEntryForm category picker', () => {
     expect(servingsInput.value).toBe('4')
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     await waitFor(() => expect(onSave).toHaveBeenCalledWith('r1', '', 4, false))
+  })
+
+  it('labels fresh suggestions as new', () => {
+    render(
+      <MealPlanEntryForm
+        open
+        title="Add"
+        recipes={[recipe('r1', 'Pasta'), recipe('r2', 'Curry')]}
+        suggestedRecipes={[suggestion('r1', 'Pasta'), suggestion('r2', 'Curry', 2, true)]}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Curry (new)' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pasta' })).toBeInTheDocument()
+  })
+
+  it('warns when the selected recipe is a draft', () => {
+    const draft = create(RecipeSchema, { id: 'd1', name: 'Soup', isDraft: true })
+    render(
+      <MemoryRouter>
+        <MealPlanEntryForm
+          open
+          title="Add"
+          recipes={[draft, recipe('r1', 'Pasta')]}
+          suggestedRecipes={[suggestion('d1', 'Soup'), suggestion('r1', 'Pasta')]}
+          onSave={onSave}
+          onCancel={onCancel}
+        />
+      </MemoryRouter>
+    )
+    expect(screen.queryByText(/is a draft/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Soup' }))
+    expect(screen.getByText(/Soup is a draft/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open recipe' })).toHaveAttribute('href', '/recipes/d1')
+    fireEvent.click(screen.getByRole('button', { name: 'Pasta' }))
+    expect(screen.queryByText(/is a draft/)).not.toBeInTheDocument()
   })
 
   it('renders no suggestions when none are provided', () => {

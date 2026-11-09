@@ -265,7 +265,7 @@ func (r *PlansRepository) GetMealsInWindow(
 		rows, err = r.db.Query(ctx,
 			baseCols+`
 			WHERE pm.plan_id = $1
-			ORDER BY pm.meal_date, pm.meal_slot`,
+			ORDER BY pm.meal_date, pm.meal_slot, pm.created_at, pm.id`,
 			planID,
 		)
 	} else {
@@ -273,7 +273,7 @@ func (r *PlansRepository) GetMealsInWindow(
 			baseCols+`
 			WHERE pm.plan_id = $1
 			  AND pm.meal_date BETWEEN $2 AND $3
-			ORDER BY pm.meal_date, pm.meal_slot`,
+			ORDER BY pm.meal_date, pm.meal_slot, pm.created_at, pm.id`,
 			planID, start, end,
 		)
 	}
@@ -307,9 +307,39 @@ func (r *PlansRepository) GetMealsInWindow(
 	return result, rows.Err()
 }
 
-// SuggestRecipes returns recipe IDs planned before on the same weekday and
-// slot, ranked by frequency then recency.
+// freshSuggestions is how many of a cell's suggestions are reserved for
+// rarely used recipes; unused familiar slots go to them as well.
+const freshSuggestions = 2
+
+// SuggestRecipes returns recipes planned before on the same weekday and slot,
+// ranked by frequency then recency, followed by the family's non-draft recipes
+// this plan used least, which are marked Fresh.
 func (r *PlansRepository) SuggestRecipes(
+	ctx context.Context,
+	planID uuid.UUID,
+	mealDate time.Time,
+	slot string,
+	limit int,
+) ([]models.RecipeSuggestion, error) {
+	familiar, err := r.familiarSuggestions(
+		ctx, planID, mealDate, slot, max(limit-freshSuggestions, 0),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	exclude := make([]uuid.UUID, len(familiar))
+	for i, s := range familiar {
+		exclude[i] = s.RecipeID
+	}
+	fresh, err := r.freshSuggestions(ctx, planID, mealDate, exclude, limit-len(familiar))
+	if err != nil {
+		return nil, err
+	}
+	return append(familiar, fresh...), nil
+}
+
+func (r *PlansRepository) familiarSuggestions(
 	ctx context.Context,
 	planID uuid.UUID,
 	mealDate time.Time,
@@ -340,6 +370,54 @@ func (r *PlansRepository) SuggestRecipes(
 		if err = rows.Scan(&s.RecipeID, &s.Servings); err != nil {
 			return nil, err
 		}
+		result = append(result, s)
+	}
+	return result, rows.Err()
+}
+
+// freshSuggestions orders the plan family's recipes by how often this plan used
+// them, then by how long ago, skipping the excluded ones and any already
+// planned in mealDate's week.
+func (r *PlansRepository) freshSuggestions(
+	ctx context.Context,
+	planID uuid.UUID,
+	mealDate time.Time,
+	exclude []uuid.UUID,
+	limit int,
+) ([]models.RecipeSuggestion, error) {
+	if limit <= 0 {
+		return nil, nil
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT r.id, r.base_servings
+		FROM mealplans.plans p
+		JOIN recipes.recipes r ON r.family_id = p.family_id AND NOT r.is_draft
+		LEFT JOIN mealplans.plan_meals m
+		  ON m.plan_id = p.id AND m.recipe_id = r.id
+		WHERE p.id = $1
+		  AND r.id <> ALL($3::uuid[])
+		  AND NOT EXISTS (
+		    SELECT 1 FROM mealplans.plan_meals w
+		    WHERE w.plan_id = p.id AND w.recipe_id = r.id
+		      AND date_trunc('week', w.meal_date) = date_trunc('week', $2::date)
+		  )
+		GROUP BY r.id, r.base_servings
+		ORDER BY COUNT(m.id), MAX(m.meal_date) NULLS FIRST, r.id
+		LIMIT $4`,
+		planID, mealDate, exclude, limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []models.RecipeSuggestion
+	for rows.Next() {
+		var s models.RecipeSuggestion
+		if err = rows.Scan(&s.RecipeID, &s.Servings); err != nil {
+			return nil, err
+		}
+		s.Fresh = true
 		result = append(result, s)
 	}
 	return result, rows.Err()

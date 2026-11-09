@@ -287,6 +287,7 @@ func (h *mealplansConnectHandler) SuggestRecipes(
 		pbSuggestions[i] = &mealplansv1.RecipeSuggestion{
 			RecipeId: s.RecipeID.String(),
 			Servings: int32(s.Servings), //nolint:gosec // int32 safe for domain values
+			Fresh:    s.Fresh,
 		}
 	}
 

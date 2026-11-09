@@ -29,6 +29,8 @@ type Plan struct {
 type RecipeSuggestion struct {
 	RecipeID uuid.UUID
 	Servings int
+	// Fresh marks a recipe the plan rarely or never used.
+	Fresh bool
 }
 
 type PlanMeal struct {

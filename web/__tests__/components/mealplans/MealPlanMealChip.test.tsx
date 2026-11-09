@@ -41,6 +41,34 @@ function renderChip(props: Partial<React.ComponentProps<typeof MealPlanMealChip>
 }
 
 describe('MealPlanMealChip', () => {
+  it('shows the server-sent recipe name before the recipe list has loaded', () => {
+    renderChip({
+      recipe: undefined,
+      meal: makeMeal({ recipeRef: { id: 'r1', name: 'Spaghetti bolognese' } })
+    })
+    expect(screen.getByText('Spaghetti bolognese')).toBeInTheDocument()
+    expect(screen.queryByText('?')).not.toBeInTheDocument()
+  })
+
+  it('marks a draft recipe and not a published one', () => {
+    const { unmount } = render(
+      <MealPlanMealChip
+        meal={makeMeal()}
+        recipe={create(RecipeSchema, { id: 'r1', name: 'Soup', isDraft: true })}
+        isSwapping={false}
+        inSwapMode={false}
+        onMealClick={vi.fn()}
+        onSwapClick={vi.fn()}
+        onEditClick={vi.fn()}
+        onDeleteMeal={vi.fn()}
+      />
+    )
+    expect(screen.getByText('Draft')).toBeInTheDocument()
+    unmount()
+    renderChip()
+    expect(screen.queryByText('Draft')).not.toBeInTheDocument()
+  })
+
   it('clamps the name by default and expands on body tap', () => {
     renderChip()
     const name = screen.getByText('Spaghetti bolognese')
