@@ -272,20 +272,39 @@ func TestEveryRPCNeedsAnAdminInABrowser(t *testing.T) {
 }
 
 func TestAnAdminAddsAndRemovesAnAgentInTheirFamily(t *testing.T) {
-	c := agentClient(t, constants.ChannelBrowser, stepUpReturning(nil))
+	stepUp := stepUpReturning(nil)
+	c := agentClient(t, constants.ChannelBrowser, stepUp)
 	ctx := withToken(context.Background())
+	pool := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	t.Cleanup(pool.Close)
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `
+			DELETE FROM global.families WHERE id IN (
+				SELECT family_id FROM global.family_members WHERE user_id = 'u1')`)
+	})
 	created, err := c.CreateAgentAccount(ctx,
 		&factoryv1.CreateAgentAccountRequest{Name: "family bot", TotpCode: "1"})
 	require.NoError(t, err)
 
 	added, err := c.AddAgentAccountToFamily(ctx,
-		&factoryv1.AddAgentAccountToFamilyRequest{Id: created.Account.Id})
+		&factoryv1.AddAgentAccountToFamilyRequest{
+			Id: created.Account.Id, TotpCode: "424242",
+		})
 	require.NoError(t, err)
 	assert.Equal(t, created.Account.Id, added.Account.Id)
+	assert.Equal(t, "424242", stepUp.code)
 
 	_, err = c.AddAgentAccountToFamily(ctx,
-		&factoryv1.AddAgentAccountToFamilyRequest{Id: "nope"})
+		&factoryv1.AddAgentAccountToFamilyRequest{Id: "nope", TotpCode: "1"})
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	_, err = c.AddAgentAccountToFamily(context.Background(),
+		&factoryv1.AddAgentAccountToFamilyRequest{Id: created.Account.Id})
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+	denied := agentClient(t, constants.ChannelBrowser,
+		stepUpReturning(auth.ErrWrongCredential))
+	_, err = denied.AddAgentAccountToFamily(ctx,
+		&factoryv1.AddAgentAccountToFamilyRequest{Id: created.Account.Id})
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 
 	removed, err := c.RemoveAgentAccountFromFamily(ctx,
 		&factoryv1.RemoveAgentAccountFromFamilyRequest{Id: created.Account.Id})

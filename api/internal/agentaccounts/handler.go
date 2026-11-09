@@ -231,6 +231,15 @@ func (h *handler) AddAgentAccountToFamily(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, "invalid id")
 	}
+	token, ok := connecttools.RequestCookie(ctx, "accessToken")
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnauthenticated, "not signed in")
+	}
+	if err = h.deps.StepUp.VerifyCurrentFactor(
+		ctx, token, req.GetTotpCode(),
+	); err != nil {
+		return nil, connect.NewError(stepUpCode(err), err.Error()).WithCause(err)
+	}
 	familyID, err := h.deps.Families.EnsureFamily(ctx, user.ID)
 	if err != nil {
 		return nil, connecttools.MapError(err)
@@ -238,6 +247,10 @@ func (h *handler) AddAgentAccountToFamily(
 	account, err := h.deps.Store.JoinFamily(ctx, id, familyID)
 	if err != nil {
 		return nil, connecttools.MapError(err)
+	}
+	if h.deps.Notify != nil {
+		h.deps.Notify(ctx, ":family: An agent account joined a family: "+
+			slack.Escape(account.Name))
 	}
 	return &factoryv1.AddAgentAccountToFamilyResponse{
 		Account: protoAccount(account),

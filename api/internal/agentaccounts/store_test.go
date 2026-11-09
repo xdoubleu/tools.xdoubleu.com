@@ -361,6 +361,14 @@ func TestAStandingAccountJoinsAndLeavesAFamilyAndRevokingLeavesIt(t *testing.T) 
 	assert.Equal(t, familyID, got)
 	assert.Equal(t, "Family bot", name)
 
+	_, err = db.Exec(ctx, `UPDATE global.family_members SET display_name = 'Renamed'
+		WHERE user_id = $1`, account.UserID.String())
+	require.NoError(t, err)
+	_, err = store.JoinFamily(ctx, account.ID, familyID)
+	require.NoError(t, err)
+	_, name, _ = familyOf(t, db, account.UserID)
+	assert.Equal(t, "Renamed", name, "joining the same family again changes nothing")
+
 	_, err = store.LeaveFamily(ctx, account.ID)
 	require.NoError(t, err)
 	_, _, ok = familyOf(t, db, account.UserID)

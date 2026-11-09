@@ -317,7 +317,8 @@ func (s *Store) JoinFamily(
 		ON CONFLICT (user_id) DO UPDATE
 		SET family_id = EXCLUDED.family_id,
 		    display_name = EXCLUDED.display_name,
-		    joined_at = now()`,
+		    joined_at = now()
+		WHERE global.family_members.family_id <> EXCLUDED.family_id`,
 		account.UserID.String(), familyID, account.Name,
 	); err != nil {
 		return nil, err

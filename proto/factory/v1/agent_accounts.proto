@@ -57,8 +57,10 @@ message RotateAgentAccountSecretResponse {
 // Puts the standing account in the signed-in admin's family, in place of its
 // own family-of-one, so it shares what the admin's family shares (only for the
 // apps it holds). It joins without an invite, since an agent can't accept one.
+// totp_code is the step-up check, as for create: joining exposes family data.
 message AddAgentAccountToFamilyRequest {
   string id = 1;
+  string totp_code = 2;
 }
 message AddAgentAccountToFamilyResponse {
   AgentAccount account = 1;

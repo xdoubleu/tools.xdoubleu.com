@@ -504,9 +504,11 @@ func (x *RotateAgentAccountSecretResponse) GetClientSecret() string {
 // Puts the standing account in the signed-in admin's family, in place of its
 // own family-of-one, so it shares what the admin's family shares (only for the
 // apps it holds). It joins without an invite, since an agent can't accept one.
+// totp_code is the step-up check, as for create: joining exposes family data.
 type AddAgentAccountToFamilyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TotpCode      string                 `protobuf:"bytes,2,opt,name=totp_code,json=totpCode,proto3" json:"totp_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -544,6 +546,13 @@ func (*AddAgentAccountToFamilyRequest) Descriptor() ([]byte, []int) {
 func (x *AddAgentAccountToFamilyRequest) GetId() string {
 	if x != nil {
 		return x.Id
+	}
+	return ""
+}
+
+func (x *AddAgentAccountToFamilyRequest) GetTotpCode() string {
+	if x != nil {
+		return x.TotpCode
 	}
 	return ""
 }
@@ -716,9 +725,10 @@ const file_factory_v1_agent_accounts_proto_rawDesc = "" +
 	"\ttotp_code\x18\x02 \x01(\tR\btotpCode\"{\n" +
 	" RotateAgentAccountSecretResponse\x122\n" +
 	"\aaccount\x18\x01 \x01(\v2\x18.factory.v1.AgentAccountR\aaccount\x12#\n" +
-	"\rclient_secret\x18\x02 \x01(\tR\fclientSecret\"0\n" +
+	"\rclient_secret\x18\x02 \x01(\tR\fclientSecret\"M\n" +
 	"\x1eAddAgentAccountToFamilyRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"U\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
+	"\ttotp_code\x18\x02 \x01(\tR\btotpCode\"U\n" +
 	"\x1fAddAgentAccountToFamilyResponse\x122\n" +
 	"\aaccount\x18\x01 \x01(\v2\x18.factory.v1.AgentAccountR\aaccount\"5\n" +
 	"#RemoveAgentAccountFromFamilyRequest\x12\x0e\n" +
