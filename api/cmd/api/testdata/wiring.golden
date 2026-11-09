@@ -35,6 +35,7 @@ GET /trains/api/journeys/live: 401, 403
 GET /watchparty/api/signaling: 401, 403
 POST /access.v1.AccessService/: 401, 404
 POST /access.v1.AccessService/ListUsers: 401, 415
+POST /access.v1.AccessService/SetAgentAppAccess: 401, 415
 POST /access.v1.AccessService/SetAppAccess: 401, 415
 POST /access.v1.AccessService/SetRole: 401, 415
 POST /auth.v1.AuthService/: 404, 404
