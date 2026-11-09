@@ -129,21 +129,6 @@ message RecipeSuggestion {
 }
 message SuggestRecipesResponse { repeated RecipeSuggestion suggestions = 1; }
 
-// SuggestWeekRequest covers the seven days from start_date.
-message SuggestWeekRequest {
-  string plan_id = 1;
-  string start_date = 2;
-}
-// WeekSuggestion is the recipe most often planned on a cell's weekday and slot
-// before start_date; only cells without a meal appear.
-message WeekSuggestion {
-  string meal_date = 1;
-  string meal_slot = 2;
-  string recipe_id = 3;
-  int32 servings = 4;
-}
-message SuggestWeekResponse { repeated WeekSuggestion suggestions = 1; }
-
 service MealPlansService {
   rpc ListPlans(ListPlansRequest) returns (ListPlansResponse);
   rpc GetPlan(GetPlanRequest) returns (GetPlanResponse);
@@ -154,5 +139,4 @@ service MealPlansService {
   rpc DeleteMeal(DeleteMealRequest) returns (DeleteMealResponse);
   rpc MoveMeal(MoveMealRequest) returns (MoveMealResponse);
   rpc SuggestRecipes(SuggestRecipesRequest) returns (SuggestRecipesResponse);
-  rpc SuggestWeek(SuggestWeekRequest) returns (SuggestWeekResponse);
 }

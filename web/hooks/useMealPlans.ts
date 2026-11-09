@@ -52,13 +52,6 @@ export function useMealSuggestions(planId: string, mealDate: string, mealSlot: s
   )
 }
 
-// useSuggestWeek asks for the usual meal of every empty slot in the seven days
-// from startDate; called on demand, so it is not cached.
-export function useSuggestWeek() {
-  const client = createServiceClient(MealPlansService)
-  return (planId: string, startDate: string) => client.suggestWeek({ planId, startDate })
-}
-
 export function useRotateICalToken() {
   const client = createServiceClient(MealPlansService)
   return (id: string) => client.rotateICalToken({ id })

@@ -6,8 +6,7 @@ vi.mock('@/hooks/useMealPlans', () => ({
   useUpdateMeal: vi.fn(),
   useDeleteMeal: vi.fn(),
   useMoveMeal: vi.fn(),
-  useMealSuggestions: vi.fn(() => ({ data: undefined })),
-  useSuggestWeek: vi.fn()
+  useMealSuggestions: vi.fn(() => ({ data: undefined }))
 }))
 vi.mock('@/hooks/useIngredientCatalog', () => ({
   useCategories: () => ({ data: undefined }),
@@ -32,8 +31,7 @@ import {
   useUpdateMeal,
   useDeleteMeal,
   useMoveMeal,
-  useMealSuggestions,
-  useSuggestWeek
+  useMealSuggestions
 } from '@/hooks/useMealPlans'
 import MealPlanCalendar from '@/components/mealplans/MealPlanCalendar'
 import { create } from '@bufbuild/protobuf'
@@ -48,7 +46,6 @@ const mockAddMeal = vi.fn()
 const mockUpdateMeal = vi.fn()
 const mockDeleteMeal = vi.fn()
 const mockMoveMeal = vi.fn()
-const mockSuggestWeek = vi.fn()
 
 const basePlan = create(PlanSchema, {
   id: 'plan-1',
@@ -83,8 +80,6 @@ beforeEach(() => {
   vi.mocked(useUpdateMeal).mockReturnValue(mockUpdateMeal)
   vi.mocked(useDeleteMeal).mockReturnValue(mockDeleteMeal)
   vi.mocked(useMoveMeal).mockReturnValue(mockMoveMeal)
-  vi.mocked(useSuggestWeek).mockReturnValue(mockSuggestWeek)
-  mockSuggestWeek.mockResolvedValue({ suggestions: [] })
   mockAddMeal.mockResolvedValue({})
   mockUpdateMeal.mockResolvedValue({})
   mockDeleteMeal.mockResolvedValue({})
@@ -1141,160 +1136,5 @@ describe('MealPlanCalendar', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(mockDeleteMeal).not.toHaveBeenCalled()
-  })
-
-  it('fills empty slots with the usual meals', async () => {
-    mockSuggestWeek.mockResolvedValue({
-      suggestions: [
-        { mealDate: '2026-05-25', mealSlot: 'breakfast', recipeId: 'r1', servings: 3 },
-        { mealDate: '2026-05-26', mealSlot: 'breakfast', recipeId: 'r1', servings: 2 }
-      ]
-    })
-    const onMutate = vi.fn()
-    render(
-      <MealPlanCalendar
-        plan={basePlan}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onMutate={onMutate}
-      />
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Fill empty slots from usual' }))
-
-    expect(await screen.findByText('Added 2 meals')).toBeInTheDocument()
-    expect(mockSuggestWeek).toHaveBeenCalledWith('plan-1', '2026-05-25')
-    expect(mockAddMeal).toHaveBeenCalledTimes(2)
-    expect(mockAddMeal).toHaveBeenCalledWith(
-      expect.objectContaining({ mealDate: '2026-05-25', recipeId: 'r1', servings: 3 }),
-      'Pasta'
-    )
-    expect(onMutate).toHaveBeenCalled()
-  })
-
-  it('says so when there is nothing to fill', async () => {
-    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Fill empty slots from usual' }))
-
-    expect(await screen.findByText('Nothing to fill')).toBeInTheDocument()
-    expect(mockAddMeal).not.toHaveBeenCalled()
-  })
-
-  it('reports a failed fill', async () => {
-    mockSuggestWeek.mockRejectedValue(new Error('boom'))
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Fill empty slots from usual' }))
-
-    expect(await screen.findByText('Could not fill the week')).toBeInTheDocument()
-    spy.mockRestore()
-  })
-
-  it('fills quietly with the exact meal fields and a singular count', async () => {
-    mockSuggestWeek.mockResolvedValue({
-      suggestions: [{ mealDate: '2026-05-25', mealSlot: 'breakfast', recipeId: 'r1', servings: 3 }]
-    })
-    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Fill empty slots from usual' }))
-
-    expect(await screen.findByText('Added 1 meal')).toBeInTheDocument()
-    expect(mockAddMeal).toHaveBeenCalledWith(
-      {
-        planId: 'plan-1',
-        mealDate: '2026-05-25',
-        mealSlot: 'breakfast',
-        recipeId: 'r1',
-        customName: '',
-        servings: 3,
-        excludeFromShoppingList: false
-      },
-      'Pasta'
-    )
-  })
-
-  it('does not refresh the plan when nothing was added', async () => {
-    const onMutate = vi.fn()
-    render(
-      <MealPlanCalendar
-        plan={basePlan}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onMutate={onMutate}
-      />
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Fill empty slots from usual' }))
-    await screen.findByText('Nothing to fill')
-    expect(onMutate).not.toHaveBeenCalled()
-  })
-
-  it('fills without an onMutate callback', async () => {
-    mockSuggestWeek.mockResolvedValue({
-      suggestions: [{ mealDate: '2026-05-25', mealSlot: 'breakfast', recipeId: 'r1', servings: 1 }]
-    })
-    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Fill empty slots from usual' }))
-    expect(await screen.findByText('Added 1 meal')).toBeInTheDocument()
-  })
-
-  it('disables the fill button while filling and re-enables it after', async () => {
-    let resolve: (v: { suggestions: never[] }) => void = () => {}
-    mockSuggestWeek.mockReturnValue(
-      new Promise((r) => {
-        resolve = r
-      })
-    )
-    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Fill empty slots from usual' }))
-
-    expect(screen.getByRole('button', { name: 'Filling…' })).toBeDisabled()
-    resolve({ suggestions: [] })
-    const button = await screen.findByRole('button', { name: 'Fill empty slots from usual' })
-    expect(button).toBeEnabled()
-  })
-
-  it('logs why a fill failed', async () => {
-    const err = new Error('boom')
-    mockSuggestWeek.mockRejectedValue(err)
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Fill empty slots from usual' }))
-    await screen.findByText('Could not fill the week')
-    expect(spy).toHaveBeenCalledWith('Failed to fill week:', err)
-    spy.mockRestore()
-  })
-
-  it('clears the previous fill message when filling again', async () => {
-    render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Fill empty slots from usual' }))
-    await screen.findByText('Nothing to fill')
-    mockSuggestWeek.mockReturnValue(new Promise(() => {}))
-    fireEvent.click(screen.getByRole('button', { name: 'Fill empty slots from usual' }))
-    await waitFor(() => expect(screen.queryByText('Nothing to fill')).not.toBeInTheDocument())
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
-  })
-
-  it('refreshes the plan when a fill fails part way', async () => {
-    mockSuggestWeek.mockResolvedValue({
-      suggestions: [
-        { mealDate: '2026-05-25', mealSlot: 'breakfast', recipeId: 'r1', servings: 1 },
-        { mealDate: '2026-05-26', mealSlot: 'breakfast', recipeId: 'r1', servings: 1 }
-      ]
-    })
-    mockAddMeal.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('boom'))
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const onMutate = vi.fn()
-    render(
-      <MealPlanCalendar
-        plan={basePlan}
-        recipes={baseRecipes}
-        {...defaultNavProps}
-        onMutate={onMutate}
-      />
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Fill empty slots from usual' }))
-
-    expect(await screen.findByText('Could not fill the week')).toBeInTheDocument()
-    expect(onMutate).toHaveBeenCalledTimes(1)
-    spy.mockRestore()
   })
 })

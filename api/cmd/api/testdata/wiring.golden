@@ -212,7 +212,6 @@ POST /mealplans.v1.MealPlansService/ListPlans: 401, 403
 POST /mealplans.v1.MealPlansService/MoveMeal: 401, 403
 POST /mealplans.v1.MealPlansService/RotateICalToken: 401, 403
 POST /mealplans.v1.MealPlansService/SuggestRecipes: 401, 403
-POST /mealplans.v1.MealPlansService/SuggestWeek: 401, 403
 POST /mealplans.v1.MealPlansService/UpdateMeal: 401, 403
 POST /mealplans.v1.MealPlansService/UpdatePlan: 401, 403
 POST /movies.v1.MoviesService/: 401, 403
