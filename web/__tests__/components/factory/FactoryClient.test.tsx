@@ -623,7 +623,8 @@ describe('closing an epic', () => {
         tasks: [
           epicTask('old', ['epic', 'epic:old'], TaskStatus.DONE),
           epicTask('oldChild', ['epic:old'], TaskStatus.DONE),
-          epicTask('new', ['epic', 'epic:new'], TaskStatus.IN_PROGRESS)
+          epicTask('new', ['epic', 'epic:new'], TaskStatus.IN_PROGRESS),
+          epicTask('loose', ['epic:loose'], TaskStatus.BACKLOG)
         ]
       })
     })
@@ -632,9 +633,9 @@ describe('closing an epic', () => {
       within(screen.getByLabelText('Epic'))
         .getAllByRole('option')
         .map((o) => o.textContent)
-    expect(options()).toEqual(['All epics', 'new'])
+    expect(options()).toEqual(['All epics', 'loose', 'new'])
     fireEvent.click(screen.getByRole('button', { name: 'Show done tasks' }))
-    expect(options()).toEqual(['All epics', 'new', 'old'])
+    expect(options()).toEqual(['All epics', 'loose', 'new', 'old'])
   })
 
   it('counts the Done tasks on the toggle', () => {
