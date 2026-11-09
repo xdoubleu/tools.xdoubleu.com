@@ -106,16 +106,21 @@ export default function FactoryClient() {
   const lower = (l: string) => l.trim().toLowerCase()
   const picked = (inGroup: (l: string) => boolean) => labelFilter.find(inGroup) ?? ''
   const isOther = (l: string) => !isProductLabel(l) && !isEpicLabel(l)
-  const allLabels = distinctLabels(data?.tasks ?? [])
-  // A stale epic from the URL stays selectable, so the select never shows a blank.
+  const allTasks = data?.tasks ?? []
+  const allLabels = distinctLabels(allTasks)
+  // Closed epics drop out of the select unless Done is shown. A stale or selected
+  // epic from the URL stays selectable, so the select never shows a blank.
+  const isClosedEpic = (l: string) => epicParent(l, allTasks)?.status === TaskStatus.DONE
   const epics = [
-    ...new Set([...allLabels.filter(isEpicLabel), ...labelFilter.filter(isEpicLabel)])
+    ...new Set([
+      ...allLabels.filter((l) => isEpicLabel(l) && (showDone || !isClosedEpic(l))),
+      ...labelFilter.filter(isEpicLabel)
+    ])
   ].sort()
   const addable = allLabels.filter(
     (l) => isOther(l) && !labelFilter.some((f) => lower(f) === lower(l))
   )
 
-  const allTasks = data?.tasks ?? []
   const epicLabel = picked(isEpicLabel)
   const parent = epicLabel === '' ? undefined : epicParent(epicLabel, allTasks)
   const progress = epicLabel === '' ? undefined : epicProgress(epicLabel, allTasks)
