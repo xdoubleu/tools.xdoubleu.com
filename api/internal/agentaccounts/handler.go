@@ -182,6 +182,36 @@ func (h *handler) RevokeAgentAccount(
 	return &factoryv1.RevokeAgentAccountResponse{Account: protoAccount(account)}, nil
 }
 
+func (h *handler) RotateAgentAccountSecret(
+	ctx context.Context,
+	req *factoryv1.RotateAgentAccountSecretRequest,
+) (*factoryv1.RotateAgentAccountSecretResponse, error) {
+	if _, err := adminFrom(ctx); err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "invalid id")
+	}
+	token, ok := connecttools.RequestCookie(ctx, "accessToken")
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnauthenticated, "not signed in")
+	}
+	if err = h.deps.StepUp.VerifyCurrentFactor(
+		ctx, token, req.GetTotpCode(),
+	); err != nil {
+		return nil, connect.NewError(stepUpCode(err), err.Error()).WithCause(err)
+	}
+	account, secret, err := h.deps.Store.RotateSecret(ctx, id)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return &factoryv1.RotateAgentAccountSecretResponse{
+		Account:      protoAccount(account),
+		ClientSecret: secret,
+	}, nil
+}
+
 // stepUpCode maps a failed step-up check to the code the account RPCs use.
 func stepUpCode(err error) connect.Code {
 	switch {

@@ -124,6 +124,7 @@ POST /factory.v1.AgentAccountService/: 401, 404
 POST /factory.v1.AgentAccountService/CreateAgentAccount: 401, 415
 POST /factory.v1.AgentAccountService/ListAgentAccounts: 401, 415
 POST /factory.v1.AgentAccountService/RevokeAgentAccount: 401, 415
+POST /factory.v1.AgentAccountService/RotateAgentAccountSecret: 401, 415
 POST /factory.v1.RepoService/: 401, 403
 POST /factory.v1.RepoService/CreateRepo: 401, 403
 POST /factory.v1.RepoService/ListOpenRouterModels: 401, 403

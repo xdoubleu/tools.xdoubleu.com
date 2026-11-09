@@ -393,6 +393,114 @@ func (x *RevokeAgentAccountResponse) GetAccount() *AgentAccount {
 	return nil
 }
 
+// Issues a new client secret. The old one keeps working for 24 hours, so the
+// agent's stored credential can be swapped without downtime. totp_code is the
+// same step-up as for create.
+type RotateAgentAccountSecretRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TotpCode      string                 `protobuf:"bytes,2,opt,name=totp_code,json=totpCode,proto3" json:"totp_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RotateAgentAccountSecretRequest) Reset() {
+	*x = RotateAgentAccountSecretRequest{}
+	mi := &file_factory_v1_agent_accounts_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RotateAgentAccountSecretRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RotateAgentAccountSecretRequest) ProtoMessage() {}
+
+func (x *RotateAgentAccountSecretRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_agent_accounts_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RotateAgentAccountSecretRequest.ProtoReflect.Descriptor instead.
+func (*RotateAgentAccountSecretRequest) Descriptor() ([]byte, []int) {
+	return file_factory_v1_agent_accounts_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RotateAgentAccountSecretRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RotateAgentAccountSecretRequest) GetTotpCode() string {
+	if x != nil {
+		return x.TotpCode
+	}
+	return ""
+}
+
+type RotateAgentAccountSecretResponse struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Account *AgentAccount          `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
+	// Shown once; only its hash is stored.
+	ClientSecret  string `protobuf:"bytes,2,opt,name=client_secret,json=clientSecret,proto3" json:"client_secret,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RotateAgentAccountSecretResponse) Reset() {
+	*x = RotateAgentAccountSecretResponse{}
+	mi := &file_factory_v1_agent_accounts_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RotateAgentAccountSecretResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RotateAgentAccountSecretResponse) ProtoMessage() {}
+
+func (x *RotateAgentAccountSecretResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_agent_accounts_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RotateAgentAccountSecretResponse.ProtoReflect.Descriptor instead.
+func (*RotateAgentAccountSecretResponse) Descriptor() ([]byte, []int) {
+	return file_factory_v1_agent_accounts_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *RotateAgentAccountSecretResponse) GetAccount() *AgentAccount {
+	if x != nil {
+		return x.Account
+	}
+	return nil
+}
+
+func (x *RotateAgentAccountSecretResponse) GetClientSecret() string {
+	if x != nil {
+		return x.ClientSecret
+	}
+	return ""
+}
+
 var File_factory_v1_agent_accounts_proto protoreflect.FileDescriptor
 
 const file_factory_v1_agent_accounts_proto_rawDesc = "" +
@@ -422,11 +530,18 @@ const file_factory_v1_agent_accounts_proto_rawDesc = "" +
 	"\x19RevokeAgentAccountRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"P\n" +
 	"\x1aRevokeAgentAccountResponse\x122\n" +
-	"\aaccount\x18\x01 \x01(\v2\x18.factory.v1.AgentAccountR\aaccount2\xc1\x02\n" +
+	"\aaccount\x18\x01 \x01(\v2\x18.factory.v1.AgentAccountR\aaccount\"N\n" +
+	"\x1fRotateAgentAccountSecretRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
+	"\ttotp_code\x18\x02 \x01(\tR\btotpCode\"{\n" +
+	" RotateAgentAccountSecretResponse\x122\n" +
+	"\aaccount\x18\x01 \x01(\v2\x18.factory.v1.AgentAccountR\aaccount\x12#\n" +
+	"\rclient_secret\x18\x02 \x01(\tR\fclientSecret2\xb8\x03\n" +
 	"\x13AgentAccountService\x12`\n" +
 	"\x11ListAgentAccounts\x12$.factory.v1.ListAgentAccountsRequest\x1a%.factory.v1.ListAgentAccountsResponse\x12c\n" +
 	"\x12CreateAgentAccount\x12%.factory.v1.CreateAgentAccountRequest\x1a&.factory.v1.CreateAgentAccountResponse\x12c\n" +
-	"\x12RevokeAgentAccount\x12%.factory.v1.RevokeAgentAccountRequest\x1a&.factory.v1.RevokeAgentAccountResponseB-Z+tools.xdoubleu.com/gen/factory/v1;factoryv1b\x06proto3"
+	"\x12RevokeAgentAccount\x12%.factory.v1.RevokeAgentAccountRequest\x1a&.factory.v1.RevokeAgentAccountResponse\x12u\n" +
+	"\x18RotateAgentAccountSecret\x12+.factory.v1.RotateAgentAccountSecretRequest\x1a,.factory.v1.RotateAgentAccountSecretResponseB-Z+tools.xdoubleu.com/gen/factory/v1;factoryv1b\x06proto3"
 
 var (
 	file_factory_v1_agent_accounts_proto_rawDescOnce sync.Once
@@ -440,31 +555,36 @@ func file_factory_v1_agent_accounts_proto_rawDescGZIP() []byte {
 	return file_factory_v1_agent_accounts_proto_rawDescData
 }
 
-var file_factory_v1_agent_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_factory_v1_agent_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_factory_v1_agent_accounts_proto_goTypes = []any{
-	(*AgentAccount)(nil),               // 0: factory.v1.AgentAccount
-	(*ListAgentAccountsRequest)(nil),   // 1: factory.v1.ListAgentAccountsRequest
-	(*ListAgentAccountsResponse)(nil),  // 2: factory.v1.ListAgentAccountsResponse
-	(*CreateAgentAccountRequest)(nil),  // 3: factory.v1.CreateAgentAccountRequest
-	(*CreateAgentAccountResponse)(nil), // 4: factory.v1.CreateAgentAccountResponse
-	(*RevokeAgentAccountRequest)(nil),  // 5: factory.v1.RevokeAgentAccountRequest
-	(*RevokeAgentAccountResponse)(nil), // 6: factory.v1.RevokeAgentAccountResponse
+	(*AgentAccount)(nil),                     // 0: factory.v1.AgentAccount
+	(*ListAgentAccountsRequest)(nil),         // 1: factory.v1.ListAgentAccountsRequest
+	(*ListAgentAccountsResponse)(nil),        // 2: factory.v1.ListAgentAccountsResponse
+	(*CreateAgentAccountRequest)(nil),        // 3: factory.v1.CreateAgentAccountRequest
+	(*CreateAgentAccountResponse)(nil),       // 4: factory.v1.CreateAgentAccountResponse
+	(*RevokeAgentAccountRequest)(nil),        // 5: factory.v1.RevokeAgentAccountRequest
+	(*RevokeAgentAccountResponse)(nil),       // 6: factory.v1.RevokeAgentAccountResponse
+	(*RotateAgentAccountSecretRequest)(nil),  // 7: factory.v1.RotateAgentAccountSecretRequest
+	(*RotateAgentAccountSecretResponse)(nil), // 8: factory.v1.RotateAgentAccountSecretResponse
 }
 var file_factory_v1_agent_accounts_proto_depIdxs = []int32{
 	0, // 0: factory.v1.ListAgentAccountsResponse.accounts:type_name -> factory.v1.AgentAccount
 	0, // 1: factory.v1.CreateAgentAccountResponse.account:type_name -> factory.v1.AgentAccount
 	0, // 2: factory.v1.RevokeAgentAccountResponse.account:type_name -> factory.v1.AgentAccount
-	1, // 3: factory.v1.AgentAccountService.ListAgentAccounts:input_type -> factory.v1.ListAgentAccountsRequest
-	3, // 4: factory.v1.AgentAccountService.CreateAgentAccount:input_type -> factory.v1.CreateAgentAccountRequest
-	5, // 5: factory.v1.AgentAccountService.RevokeAgentAccount:input_type -> factory.v1.RevokeAgentAccountRequest
-	2, // 6: factory.v1.AgentAccountService.ListAgentAccounts:output_type -> factory.v1.ListAgentAccountsResponse
-	4, // 7: factory.v1.AgentAccountService.CreateAgentAccount:output_type -> factory.v1.CreateAgentAccountResponse
-	6, // 8: factory.v1.AgentAccountService.RevokeAgentAccount:output_type -> factory.v1.RevokeAgentAccountResponse
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0, // 3: factory.v1.RotateAgentAccountSecretResponse.account:type_name -> factory.v1.AgentAccount
+	1, // 4: factory.v1.AgentAccountService.ListAgentAccounts:input_type -> factory.v1.ListAgentAccountsRequest
+	3, // 5: factory.v1.AgentAccountService.CreateAgentAccount:input_type -> factory.v1.CreateAgentAccountRequest
+	5, // 6: factory.v1.AgentAccountService.RevokeAgentAccount:input_type -> factory.v1.RevokeAgentAccountRequest
+	7, // 7: factory.v1.AgentAccountService.RotateAgentAccountSecret:input_type -> factory.v1.RotateAgentAccountSecretRequest
+	2, // 8: factory.v1.AgentAccountService.ListAgentAccounts:output_type -> factory.v1.ListAgentAccountsResponse
+	4, // 9: factory.v1.AgentAccountService.CreateAgentAccount:output_type -> factory.v1.CreateAgentAccountResponse
+	6, // 10: factory.v1.AgentAccountService.RevokeAgentAccount:output_type -> factory.v1.RevokeAgentAccountResponse
+	8, // 11: factory.v1.AgentAccountService.RotateAgentAccountSecret:output_type -> factory.v1.RotateAgentAccountSecretResponse
+	8, // [8:12] is the sub-list for method output_type
+	4, // [4:8] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_factory_v1_agent_accounts_proto_init() }
@@ -478,7 +598,7 @@ func file_factory_v1_agent_accounts_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_factory_v1_agent_accounts_proto_rawDesc), len(file_factory_v1_agent_accounts_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

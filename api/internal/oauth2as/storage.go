@@ -416,16 +416,22 @@ func (s *Store) GetClient(ctx context.Context, id string) (fosite.Client, error)
 	var (
 		c            fosite.DefaultClient
 		secretHash   *string
+		prevHash     *string
 		redirectURIs []string
 		grantTypes   []string
 		respTypes    []string
 		scopes       []string
 	)
 	err := s.db.QueryRow(ctx, `
-		SELECT id, secret_hash, redirect_uris, grant_types, response_types, scopes, public
+		SELECT id, secret_hash,
+		       CASE WHEN previous_secret_expires_at > now()
+		            THEN previous_secret_hash END,
+		       redirect_uris, grant_types, response_types, scopes,
+		       public
 		FROM auth.oauth2_clients WHERE id = $1
 	`, id).Scan(
-		&c.ID, &secretHash, &redirectURIs, &grantTypes, &respTypes, &scopes, &c.Public,
+		&c.ID, &secretHash, &prevHash, &redirectURIs, &grantTypes, &respTypes,
+		&scopes, &c.Public,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -435,6 +441,11 @@ func (s *Store) GetClient(ctx context.Context, id string) (fosite.Client, error)
 	}
 	if secretHash != nil {
 		c.ClientSecret = fosite.NewBCryptClientSecret(*secretHash)
+	}
+	if prevHash != nil {
+		c.RotatedClientSecrets = []fosite.ClientSecret{
+			fosite.NewBCryptClientSecret(*prevHash),
+		}
 	}
 	c.RedirectURIs = redirectURIs
 	c.GrantTypes = grantTypes
