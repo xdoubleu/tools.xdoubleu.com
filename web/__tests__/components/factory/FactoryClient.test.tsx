@@ -1,5 +1,5 @@
 import React from 'react'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import { Code, ConnectError } from '@connectrpc/connect'
 
@@ -615,6 +615,26 @@ describe('closing an epic', () => {
     expect(screen.getAllByTestId('card-close-epic')).toHaveLength(1)
     fireEvent.click(screen.getByTestId('card-close-epic'))
     await waitFor(() => expect(mockMove).toHaveBeenCalledWith('parent', TaskStatus.DONE))
+  })
+
+  it('drops a closed epic from the select until Done is shown', () => {
+    mockTasks({
+      data: create(ListTasksResponseSchema, {
+        tasks: [
+          epicTask('old', ['epic', 'epic:old'], TaskStatus.DONE),
+          epicTask('oldChild', ['epic:old'], TaskStatus.DONE),
+          epicTask('new', ['epic', 'epic:new'], TaskStatus.IN_PROGRESS)
+        ]
+      })
+    })
+    render(<FactoryClient />)
+    const options = () =>
+      within(screen.getByLabelText('Epic'))
+        .getAllByRole('option')
+        .map((o) => o.textContent)
+    expect(options()).toEqual(['All epics', 'new'])
+    fireEvent.click(screen.getByRole('button', { name: 'Show done tasks' }))
+    expect(options()).toEqual(['All epics', 'new', 'old'])
   })
 
   it('counts the Done tasks on the toggle', () => {
