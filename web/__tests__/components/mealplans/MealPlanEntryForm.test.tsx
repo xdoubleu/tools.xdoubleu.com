@@ -143,7 +143,7 @@ describe('MealPlanEntryForm category picker', () => {
     expect(screen.getByRole('button', { name: 'Curry' })).toHaveClass('bg-surface')
   })
 
-  it('shows the New badge only on fresh suggestions', () => {
+  it('marks only fresh suggestions', () => {
     render(
       <MealPlanEntryForm
         open
@@ -155,8 +155,10 @@ describe('MealPlanEntryForm category picker', () => {
       />
     )
     const curry = screen.getByRole('button', { name: 'Curry (new)' })
-    expect(curry.parentElement).toHaveTextContent('New')
-    expect(screen.getByRole('button', { name: 'Pasta' }).parentElement).not.toHaveTextContent('New')
+    expect(curry.parentElement?.querySelector('[data-fresh-dot]')).not.toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Pasta' }).parentElement?.querySelector('[data-fresh-dot]')
+    ).toBeNull()
     expect(screen.getByRole('button', { name: 'Pasta' })).not.toHaveAttribute('aria-label')
     expect(screen.getByRole('button', { name: 'Curry (new)' })).toHaveAttribute(
       'aria-label',
