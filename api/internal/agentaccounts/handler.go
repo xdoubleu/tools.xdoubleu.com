@@ -105,13 +105,15 @@ func protoAccount(a *Account) *factoryv1.AgentAccount {
 		revoked = a.RevokedAt.Format(time.RFC3339)
 	}
 	return &factoryv1.AgentAccount{
-		Id:        a.ID.String(),
-		Name:      a.Name,
-		UserId:    a.UserID.String(),
-		ClientId:  a.ClientID,
-		CreatedBy: a.CreatedBy,
-		CreatedAt: a.CreatedAt.Format(time.RFC3339),
-		RevokedAt: revoked,
+		Id:          a.ID.String(),
+		Name:        a.Name,
+		UserId:      a.UserID.String(),
+		ClientId:    a.ClientID,
+		CreatedBy:   a.CreatedBy,
+		CreatedAt:   a.CreatedAt.Format(time.RFC3339),
+		RevokedAt:   revoked,
+		AppAccess:   a.AppAccess,
+		WriteAccess: a.WriteAccess,
 	}
 }
 

@@ -46,6 +46,15 @@ describe('UserManagementClient', () => {
     expect(screen.queryByRole('link', { name: /Observability/ })).not.toBeInTheDocument()
   })
 
+  it('links to the agents page', () => {
+    mockUseUsers.mockReturnValue({ data: { users: [] }, isLoading: false, error: undefined })
+    render(<UserManagementClient />)
+    expect(screen.getByRole('link', { name: 'Agents' })).toHaveAttribute(
+      'href',
+      '/user-management/agents'
+    )
+  })
+
   it('shows an empty state when there are no users', () => {
     mockUseUsers.mockReturnValue({ data: { users: [] }, isLoading: false, error: undefined })
     render(<UserManagementClient />)

@@ -38,9 +38,10 @@ export function useFactoryModels() {
   )
 }
 
+/** The agent accounts, to name the actors on the board. Shares the user-management cache. */
 export function useFactoryAgents() {
   const client = createServiceClient(AgentAccountService)
-  return useSWR<ListAgentAccountsResponse, Error>(swrKeys.factoryAgents, () =>
+  return useSWR<ListAgentAccountsResponse, Error>(swrKeys.userManagementAgents, () =>
     client.listAgentAccounts({})
   )
 }
@@ -156,7 +157,6 @@ const isFactoryKey = (key: unknown) => {
 export function useFactoryActions() {
   const client = createServiceClient(TaskService)
   const repoClient = createServiceClient(RepoService)
-  const agentClient = createServiceClient(AgentAccountService)
   const runnerClient = createServiceClient(RunnerAdminService)
   const { mutate } = useSWRConfig()
   const refresh = () => mutate(isFactoryKey)
@@ -212,16 +212,6 @@ export function useFactoryActions() {
     },
     updateRepo: async (id: string, repo: RepoFields) => {
       await repoClient.updateRepo({ repo: { id, ...repo } })
-      await refresh()
-    },
-    /** Returns the new account and its client secret, which is shown once. */
-    createAgent: async (name: string, totpCode: string) => {
-      const created = await agentClient.createAgentAccount({ name, totpCode })
-      await refresh()
-      return created
-    },
-    revokeAgent: async (id: string) => {
-      await agentClient.revokeAgentAccount({ id })
       await refresh()
     },
     /** Returns the new runner and its pairing code, which is shown once. */

@@ -96,6 +96,33 @@ func TestListShowsNewestFirstIncludingRevoked(t *testing.T) {
 	assert.True(t, revokedFirst)
 }
 
+func TestListCarriesTheAgentsGrants(t *testing.T) {
+	store, db := newStore(t, nil)
+	ctx := context.Background()
+	account, _, err := store.Create(ctx, "human:a", "granted")
+	require.NoError(t, err)
+	_, err = db.Exec(ctx, `
+		INSERT INTO global.app_access (user_id, app_name, level)
+		VALUES ($1, 'books', 'read'), ($1, 'learningpaths', 'write')
+		ON CONFLICT (user_id, app_name) DO UPDATE SET level = EXCLUDED.level`,
+		account.UserID)
+	require.NoError(t, err)
+
+	accounts, err := store.List(ctx)
+	require.NoError(t, err)
+	var got *agentaccounts.Account
+	for i := range accounts {
+		if accounts[i].ID == account.ID {
+			got = &accounts[i]
+		}
+	}
+	require.NotNil(t, got)
+	assert.Contains(t, got.AppAccess, "books")
+	assert.Contains(t, got.AppAccess, "learningpaths")
+	assert.ElementsMatch(t, []string{"factory", "learningpaths"}, got.WriteAccess,
+		"a standing account always holds the factory write grant")
+}
+
 func TestRevokeEndsTheClientOnceAndKeepsTheAccount(t *testing.T) {
 	revoked := 0
 	store, db := newStore(t, func() { revoked++ })

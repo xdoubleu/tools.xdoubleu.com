@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Code, ConnectError } from '@connectrpc/connect'
-import type { CreateAgentAccountResponse } from '@/lib/gen/factory/v1/agent_accounts_pb'
+import type { AgentAccount } from '@/lib/gen/factory/v1/agent_accounts_pb'
 import { useCopyFeedback } from '@/hooks/useCopyFeedback'
-import { useFactoryActions } from '@/hooks/useFactory'
+import { useAgentActions } from '@/hooks/useUserManagement'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,7 +17,7 @@ import {
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 
-function failureMessage(err: unknown): string {
+export function failureMessage(err: unknown, fallback: string): string {
   const error = ConnectError.from(err)
   if (error.code === Code.Unauthenticated) return 'Your session has expired. Sign in again.'
   if (error.code === Code.PermissionDenied) {
@@ -25,15 +25,15 @@ function failureMessage(err: unknown): string {
   }
   if (error.code === Code.ResourceExhausted) return 'Too many attempts. Try again later.'
   if (error.code === Code.InvalidArgument) return error.rawMessage
-  return "Couldn't create the agent. Try again."
+  return fallback
 }
 
-/** The credentials of a new agent account; the secret can't be shown again. */
-function Credentials({
+/** The credentials of a new or rotated agent secret; it can't be shown again. */
+export function Credentials({
   created,
   onDone
 }: {
-  created: CreateAgentAccountResponse
+  created: { account?: AgentAccount; clientSecret: string }
   onDone: () => void
 }) {
   const { copy, copied, failed: copyFailed } = useCopyFeedback()
@@ -68,12 +68,12 @@ function Credentials({
 
 /** Create sheet: a name and the step-up code, then the credentials once. */
 export default function AgentDialog({ onClose }: { onClose: () => void }) {
-  const { createAgent } = useFactoryActions()
+  const { create: createAgent } = useAgentActions()
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [pending, setPending] = useState(false)
   const [failure, setFailure] = useState('')
-  const [created, setCreated] = useState<CreateAgentAccountResponse | null>(null)
+  const [created, setCreated] = useState<Awaited<ReturnType<typeof createAgent>> | null>(null)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -82,7 +82,7 @@ export default function AgentDialog({ onClose }: { onClose: () => void }) {
     try {
       setCreated(await createAgent(name, code.trim()))
     } catch (err) {
-      setFailure(failureMessage(err))
+      setFailure(failureMessage(err, "Couldn't create the agent. Try again."))
     }
     setPending(false)
   }
@@ -98,7 +98,7 @@ export default function AgentDialog({ onClose }: { onClose: () => void }) {
         <DialogDescription className="mb-4">
           {created
             ? 'Use these credentials in the agent’s headersHelper.'
-            : 'An agent works on the board under its own account, never as you.'}
+            : 'An agent acts under its own account, never as you, and reaches only the apps you grant it.'}
         </DialogDescription>
         {created ? (
           <Credentials created={created} onDone={onClose} />

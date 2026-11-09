@@ -14,6 +14,10 @@ message AgentAccount {
   string created_at = 6;
   // RFC3339; empty while the account is active.
   string revoked_at = 7;
+  // The apps the agent holds, and the part of them at the write level. Set by
+  // ListAgentAccounts only.
+  repeated string app_access = 8;
+  repeated string write_access = 9;
 }
 
 message ListAgentAccountsRequest {}
