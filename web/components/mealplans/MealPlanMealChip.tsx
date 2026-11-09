@@ -40,7 +40,9 @@ export default function MealPlanMealChip({
   const [expanded, setExpanded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const bodyRef = useRef<HTMLButtonElement>(null)
-  const name = isCustom ? customItems.map(formatCustomItemLabel).join(', ') : recipe?.name || '?'
+  const name = isCustom
+    ? customItems.map(formatCustomItemLabel).join(', ')
+    : recipe?.name || meal.recipeRef?.name || '?'
 
   useEffect(() => {
     if (inSwapMode) {

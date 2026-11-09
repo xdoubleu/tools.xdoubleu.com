@@ -265,7 +265,7 @@ func (r *PlansRepository) GetMealsInWindow(
 		rows, err = r.db.Query(ctx,
 			baseCols+`
 			WHERE pm.plan_id = $1
-			ORDER BY pm.meal_date, pm.meal_slot`,
+			ORDER BY pm.meal_date, pm.meal_slot, pm.created_at, pm.id`,
 			planID,
 		)
 	} else {
@@ -273,7 +273,7 @@ func (r *PlansRepository) GetMealsInWindow(
 			baseCols+`
 			WHERE pm.plan_id = $1
 			  AND pm.meal_date BETWEEN $2 AND $3
-			ORDER BY pm.meal_date, pm.meal_slot`,
+			ORDER BY pm.meal_date, pm.meal_slot, pm.created_at, pm.id`,
 			planID, start, end,
 		)
 	}
