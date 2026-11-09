@@ -4,6 +4,7 @@ import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { Button } from '@/components/ui/button'
 import { MenuItem } from '@/components/ui/menu-item'
 import { Popover } from '@/components/ui/popover'
+import type { PickMode } from './useMealCalendarState'
 import { cn } from '@/lib/cn'
 import { parseCustomItems, formatCustomItemLabel } from '@/lib/customItems'
 
@@ -12,7 +13,9 @@ interface MealPlanMealChipProps {
   recipe: Recipe | undefined
   isSwapping: boolean
   inSwapMode: boolean
+  pickMode: PickMode
   onMealClick: (meal: PlanMeal) => void
+  onMoveClick: (meal: PlanMeal) => void
   onSwapClick: (meal: PlanMeal) => void
   onEditClick: (meal: PlanMeal) => void
   onDeleteMeal: (mealId: string) => void
@@ -26,7 +29,9 @@ export default function MealPlanMealChip({
   recipe,
   isSwapping,
   inSwapMode,
+  pickMode,
   onMealClick,
+  onMoveClick,
   onSwapClick,
   onEditClick,
   onDeleteMeal,
@@ -94,7 +99,11 @@ export default function MealPlanMealChip({
         variant="ghost"
         onClick={handleBodyClick}
         aria-expanded={!inSwapMode ? expanded : undefined}
-        aria-label={inSwapMode ? `${isSwapping ? 'Deselect' : 'Swap with'} ${name}` : undefined}
+        aria-label={
+          inSwapMode
+            ? `${isSwapping ? 'Deselect' : pickMode === 'move' ? 'Move next to' : 'Swap with'} ${name}`
+            : undefined
+        }
         className={cn(
           'h-auto min-h-11 min-w-0 flex-1 items-start justify-between gap-1 rounded-lg p-0 text-left font-normal sm:min-h-0',
           'hover:bg-transparent active:bg-transparent active:scale-100 focus-visible:ring-accent'
@@ -150,6 +159,9 @@ export default function MealPlanMealChip({
             )}
           >
             <div role="menu">
+              <MenuItem role="menuitem" onClick={runAction(() => onMoveClick(meal))}>
+                Move
+              </MenuItem>
               <MenuItem role="menuitem" onClick={runAction(() => onSwapClick(meal))}>
                 Swap
               </MenuItem>

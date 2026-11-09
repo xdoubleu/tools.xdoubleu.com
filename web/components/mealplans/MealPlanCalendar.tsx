@@ -32,6 +32,7 @@ export default function MealPlanCalendar({
     selectedSlot,
     selectedDate,
     swappingMeal,
+    pickMode,
     cancelSwap,
     focusMealId,
     clearFocusMeal,
@@ -46,7 +47,7 @@ export default function MealPlanCalendar({
     handleSaveEdit,
     handleSaveFillDay,
     handleDeleteMeal,
-    handleStartSwap,
+    handleStartPick,
     handleMealClick,
     handleCellClick,
     handleEditClick
@@ -100,7 +101,13 @@ export default function MealPlanCalendar({
           className="fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 mx-auto flex w-fit max-w-[calc(100vw-2rem)] items-center gap-3 border-accent/30 text-sm text-accent shadow-elevated"
         >
           <span className="min-w-0 truncate">
-            Swapping <strong>{swappingMealName}</strong> — tap another meal or an empty cell
+            {pickMode === 'move' ? 'Moving' : 'Swapping'}{' '}
+            <strong>
+              {pickMode === 'move'
+                ? swappingMealName
+                : `${swappingMeal.mealSlot} on ${formatDate(swappingMeal.mealDate)}`}
+            </strong>{' '}
+            — tap another meal or an empty cell
           </span>
           <Button
             variant="secondary"
@@ -117,10 +124,12 @@ export default function MealPlanCalendar({
         weekDates={weekDates}
         recipes={recipes}
         swappingMeal={swappingMeal}
+        pickMode={pickMode}
         getMealsForSlot={getMealsForSlot}
         onCellClick={handleCellClick}
         onMealClick={handleMealClick}
-        onStartSwap={handleStartSwap}
+        onStartMove={(meal) => handleStartPick(meal, 'move')}
+        onStartSwap={(meal) => handleStartPick(meal, 'swap')}
         onEditClick={handleEditClick}
         onDeleteMeal={confirmDeleteMeal}
         onAddClick={startAdd}

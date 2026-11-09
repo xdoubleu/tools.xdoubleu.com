@@ -464,6 +464,77 @@ describe('MealPlanCalendar', () => {
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
+  const twoSlotsPlan = {
+    ...basePlan,
+    meals: [
+      makePlanMeal({
+        id: 'm1',
+        mealDate: '2026-05-25',
+        mealSlot: 'breakfast',
+        customName: 'Eggs',
+        recipeId: '',
+        servings: 1
+      }),
+      makePlanMeal({
+        id: 'm2',
+        mealDate: '2026-05-25',
+        mealSlot: 'breakfast',
+        customName: 'Toast',
+        recipeId: '',
+        servings: 1
+      }),
+      makePlanMeal({
+        id: 'm3',
+        mealDate: '2026-05-26',
+        mealSlot: 'breakfast',
+        customName: 'Pancakes',
+        recipeId: '',
+        servings: 1
+      }),
+      makePlanMeal({
+        id: 'm4',
+        mealDate: '2026-05-26',
+        mealSlot: 'breakfast',
+        customName: 'Jam',
+        recipeId: '',
+        servings: 1
+      })
+    ]
+  }
+
+  const clickChipText = (text: RegExp) =>
+    fireEvent.click(
+      screen.getAllByText(text).find((el) => el.classList.contains('wrap-break-word'))!
+    )
+
+  it('swap exchanges every meal of both slots', async () => {
+    render(<MealPlanCalendar plan={twoSlotsPlan} recipes={baseRecipes} {...defaultNavProps} />)
+
+    startSwap()
+    clickChipText(/Pancakes/)
+
+    await waitFor(() => expect(mockMoveMeal).toHaveBeenCalledTimes(4))
+    const moved = Object.fromEntries(mockMoveMeal.mock.calls.map(([r]) => [r.mealId, r.newDate]))
+    expect(moved).toEqual({
+      m1: '2026-05-26',
+      m2: '2026-05-26',
+      m3: '2026-05-25',
+      m4: '2026-05-25'
+    })
+  })
+
+  it('move relocates only the picked meal and does not swap back', async () => {
+    render(<MealPlanCalendar plan={twoSlotsPlan} recipes={baseRecipes} {...defaultNavProps} />)
+
+    openMealMenu()
+    fireEvent.click(screen.getAllByRole('menuitem', { name: /Move/i })[0])
+    expect(screen.getByText(/Moving/i)).toBeInTheDocument()
+    clickChipText(/Pancakes/)
+
+    await waitFor(() => expect(mockMoveMeal).toHaveBeenCalledTimes(1))
+    expect(mockMoveMeal.mock.calls[0][0]).toMatchObject({ mealId: 'm1', newDate: '2026-05-26' })
+  })
+
   it('deselects meal when clicking it again', () => {
     const planWithMeal = {
       ...basePlan,
@@ -492,7 +563,7 @@ describe('MealPlanCalendar', () => {
     expect(screen.queryByText(/Swapping/i)).not.toBeInTheDocument()
   })
 
-  it('completes a swap from the keyboard and returns focus to the moved meal', async () => {
+  it('completes a move from the keyboard and returns focus to the moved meal', async () => {
     const planWithMeal = {
       ...basePlan,
       meals: [
@@ -512,7 +583,7 @@ describe('MealPlanCalendar', () => {
 
     screen.getAllByRole('button', { name: 'Meal actions' })[0].focus()
     press()
-    expect(screen.getByRole('menuitem', { name: 'Swap' })).toHaveFocus()
+    expect(screen.getByRole('menuitem', { name: 'Move' })).toHaveFocus()
     press()
     expect(document.activeElement).toHaveAccessibleName('Deselect Eggs')
 

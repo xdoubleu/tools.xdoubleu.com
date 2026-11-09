@@ -21,12 +21,16 @@ export interface MealSuggestion {
   servings: number
 }
 
-// useMealCalendarState owns the calendar's add/swap/edit state so the
+export type PickMode = 'move' | 'swap'
+
+// useMealCalendarState owns the calendar's add/move/swap/edit state so the
 // calendar stays presentational.
 export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: () => void) {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  // The picked meal: `move` relocates it alone, `swap` exchanges its whole slot.
   const [swappingMeal, setSwappingMeal] = useState<PlanMeal | null>(null)
+  const [pickMode, setPickMode] = useState<PickMode>('swap')
   const [editingMeal, setEditingMeal] = useState<PlanMeal | null>(null)
   const [fillingDate, setFillingDate] = useState<string | null>(null)
   // The chip to refocus once swap mode ends, since its target control unmounts.
@@ -119,7 +123,8 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     }
   }
 
-  const handleStartSwap = (meal: PlanMeal) => {
+  const handleStartPick = (meal: PlanMeal, mode: PickMode) => {
+    setPickMode(mode)
     setSwappingMeal(meal)
     setSelectedSlot(null)
     setSelectedDate(null)
@@ -131,48 +136,44 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
       setSwappingMeal(null)
       return
     }
-    handlePlaceSwap(meal.mealDate, meal.mealSlot)
+    handlePlace(meal.mealDate, meal.mealSlot)
   }
 
   const handleCellClick = (date: string, slot: string) => {
     if (swappingMeal) {
-      handlePlaceSwap(date, slot)
+      handlePlace(date, slot)
       return
     }
     startAdd(date, slot)
   }
 
-  // Moves the picked meal; if the target holds exactly one meal, they swap.
-  const handlePlaceSwap = async (newDate: string, newSlot: string) => {
+  // Move relocates the picked meal alone; swap exchanges every meal of its
+  // slot with every meal of the target slot, empty or not.
+  const handlePlace = async (newDate: string, newSlot: string) => {
     if (!swappingMeal) return
-    if (swappingMeal.mealDate === newDate && swappingMeal.mealSlot === newSlot) {
+    const { mealDate, mealSlot } = swappingMeal
+    if (mealDate === newDate && mealSlot === newSlot) {
       setSwappingMeal(null)
       return
     }
     try {
-      const occupants = getMealsForSlot(newDate, newSlot).filter((m) => m.id !== swappingMeal.id)
-      const target = occupants.length === 1 ? occupants[0] : undefined
-      const moveSelf: MoveMealInput = {
-        planId: plan.id,
-        mealId: swappingMeal.id,
-        newDate,
-        newSlot
-      }
-      await moveMeal(moveSelf)
-      if (target) {
-        const moveTarget: MoveMealInput = {
-          planId: plan.id,
-          mealId: target.id,
-          newDate: swappingMeal.mealDate,
-          newSlot: swappingMeal.mealSlot
+      const toMove: MoveMealInput[] = []
+      if (pickMode === 'move') {
+        toMove.push({ planId: plan.id, mealId: swappingMeal.id, newDate, newSlot })
+      } else {
+        for (const m of getMealsForSlot(mealDate, mealSlot)) {
+          toMove.push({ planId: plan.id, mealId: m.id, newDate, newSlot })
         }
-        await moveMeal(moveTarget)
+        for (const m of getMealsForSlot(newDate, newSlot)) {
+          toMove.push({ planId: plan.id, mealId: m.id, newDate: mealDate, newSlot: mealSlot })
+        }
       }
+      for (const req of toMove) await moveMeal(req)
       setFocusMealId(swappingMeal.id)
       setSwappingMeal(null)
       onMutate?.()
     } catch (err) {
-      console.error('Failed to swap meal:', err)
+      console.error('Failed to move meal:', err)
     }
   }
 
@@ -253,6 +254,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     selectedSlot,
     selectedDate,
     swappingMeal,
+    pickMode,
     cancelSwap,
     focusMealId,
     clearFocusMeal,
@@ -267,7 +269,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     handleSaveEdit,
     handleSaveFillDay,
     handleDeleteMeal,
-    handleStartSwap,
+    handleStartPick,
     handleMealClick,
     handleCellClick,
     handleEditClick
