@@ -38,8 +38,8 @@ Labels, scopes and the priority rule live in `.claude/github-triage.config.json`
    `file:line`, not a paraphrase of the alert title.
 4. **Create it** with `factory_create_task`:
    - `title`: short, imperative, no prefix (a routine's name goes in a label).
-   - `body`: **complete at creation**, because an agent can't edit a body later,
-     only comment. Put the key you searched on in it (it is what the next run
+   - `body`: **complete at creation**: `factory_update_task` can fix it later,
+     but not once the task is Ready. Put the key you searched on in it (it is what the next run
      dedupes on), then `## Summary` (what and why), the evidence, `## Plan`
      (the concrete fix, files), and what "done" means.
    - `priority`: `p0`, `p1` or `p2` by the config's `priorityRule`. When

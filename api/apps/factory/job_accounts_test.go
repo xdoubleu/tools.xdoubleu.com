@@ -291,6 +291,15 @@ func TestAJobAccountSeesAndActsOnItsOwnTaskOnly(t *testing.T) {
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS,
 		env.task(t, mine.Id).Task.Status)
 
+	// Nor edit tasks or move them in bulk.
+	_, err = callTool(t, session, "factory_update_task",
+		map[string]any{"id": mine.Id, "title": "Renamed"})
+	require.Error(t, err)
+	_, err = callTool(t, session, "factory_move_tasks",
+		map[string]any{"ids": []string{mine.Id}, "status": "done"})
+	require.Error(t, err)
+	assert.Equal(t, "my task", env.task(t, mine.Id).Task.Title)
+
 	// It can file new tasks into Backlog.
 	made, err := callTool(t, session, "factory_create_task", map[string]any{
 		"repo_id": seededRepoID(t), "title": "Follow-up", "body": "Found on the way.",

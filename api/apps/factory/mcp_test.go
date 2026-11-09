@@ -121,7 +121,113 @@ func TestAgentSeesTheBoardTools(t *testing.T) {
 	assert.ElementsMatch(t, []string{
 		"factory_list_repos", "factory_list_tasks", "factory_get_task",
 		"factory_create_task", "factory_comment_task", "factory_move_task",
+		"factory_update_task", "factory_move_tasks",
 	}, names)
+}
+
+func TestAgentUpdatesATaskKeepingWhatItLeavesOut(t *testing.T) {
+	browserClient(t)
+	session := mcpSessionAs(t, asUser(models.RoleAgent))
+	created, err := callTool(t, session, "factory_create_task", map[string]any{
+		"repo_id": seededRepoID(t), "title": "Old title", "body": "old body",
+		"priority": "p1", "labels": []string{"bug", "Platform"},
+	})
+	require.NoError(t, err)
+	id := str(t, created, "task", "id")
+
+	updated, err := callTool(t, session, "factory_update_task", map[string]any{
+		"id": id, "title": "New title",
+		"add_labels": []string{"epic:x", "BUG"}, "remove_labels": []string{"platform"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "New title", str(t, updated, "task", "title"))
+	assert.Equal(t, "old body", str(t, updated, "task", "body"))
+	assert.Equal(t, "TASK_PRIORITY_P1", str(t, updated, "task", "priority"))
+	assert.Equal(t, []any{"bug", "epic:x"}, at(t, updated, "task", "labels"))
+	assert.Equal(t, "TASK_STATUS_BACKLOG", str(t, updated, "task", "status"))
+
+	rewritten, err := callTool(t, session, "factory_update_task",
+		map[string]any{"id": id, "body": "new body", "priority": "p0"})
+	require.NoError(t, err)
+	assert.Equal(t, "new body", str(t, rewritten, "task", "body"))
+	assert.Equal(t, "TASK_PRIORITY_P0", str(t, rewritten, "task", "priority"))
+
+	// What a person approved by moving it to Ready can't be reworded, but the
+	// labels can still change.
+	_, err = testDB.Exec(context.Background(),
+		`UPDATE factory.tasks SET status = 'ready' WHERE id = $1`, id)
+	require.NoError(t, err)
+	_, err = callTool(t, session, "factory_update_task",
+		map[string]any{"id": id, "body": "sneaky rewrite"})
+	require.Error(t, err)
+	relabelled, err := callTool(t, session, "factory_update_task",
+		map[string]any{"id": id, "add_labels": []string{"extra"}})
+	require.NoError(t, err)
+	assert.Equal(t, "new body", str(t, relabelled, "task", "body"))
+	assert.Equal(t, "TASK_STATUS_READY", str(t, relabelled, "task", "status"))
+
+	_, err = callTool(t, session, "factory_update_task",
+		map[string]any{"id": id, "priority": "urgent"})
+	require.Error(t, err)
+	_, err = callTool(t, session, "factory_update_task",
+		map[string]any{"id": "00000000-0000-0000-0000-000000000000", "title": "x"})
+	require.Error(t, err)
+}
+
+func TestAgentMovesManyTasksAndHearsWhichFailed(t *testing.T) {
+	browserClient(t)
+	session := mcpSessionAs(t, asUser(models.RoleAgent))
+	repoID := seededRepoID(t)
+	ids := []string{}
+	for _, title := range []string{"one", "two"} {
+		created, err := callTool(t, session, "factory_create_task",
+			map[string]any{"repo_id": repoID, "title": title})
+		require.NoError(t, err)
+		ids = append(ids, str(t, created, "task", "id"))
+	}
+	missing := "00000000-0000-0000-0000-000000000000"
+
+	res, err := callTool(t, session, "factory_move_tasks", map[string]any{
+		"ids": append(ids, missing, "nope"), "status": "done",
+	})
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []any{ids[0], ids[1]}, at(t, res, "moved"))
+	failed, ok := at(t, res, "failed").([]any)
+	require.True(t, ok)
+	assert.Len(t, failed, 2)
+	assert.Nil(t, at(t, res, "task"), "the result carries ids, not task bodies")
+
+	var done int
+	require.NoError(t, testDB.QueryRow(context.Background(),
+		`SELECT count(*) FROM factory.tasks WHERE status = 'done'`).Scan(&done))
+	assert.Equal(t, 2, done)
+}
+
+func TestBulkMoveRefusesReadyAndBadInput(t *testing.T) {
+	browserClient(t)
+	session := mcpSessionAs(t, asUser(models.RoleAgent))
+	created, err := callTool(t, session, "factory_create_task",
+		map[string]any{"repo_id": seededRepoID(t), "title": "needs a human"})
+	require.NoError(t, err)
+	id := str(t, created, "task", "id")
+
+	for name, args := range map[string]map[string]any{
+		"ready":     {"ids": []string{id}, "status": "ready"},
+		"no ids":    {"ids": []string{}, "status": "done"},
+		"too many":  {"ids": make([]string, 201), "status": "done"},
+		"bad state": {"ids": []string{id}, "status": "later"},
+	} {
+		res, callErr := callTool(t, session, "factory_move_tasks", args)
+		if callErr == nil {
+			// A bad status is reported per id rather than failing the call.
+			assert.Empty(t, at(t, res, "moved"), name)
+		}
+	}
+
+	var status string
+	require.NoError(t, testDB.QueryRow(context.Background(),
+		`SELECT status FROM factory.tasks WHERE id = $1`, id).Scan(&status))
+	assert.Equal(t, "backlog", status)
 }
 
 func TestAgentFilesCommentsAndMovesATask(t *testing.T) {
@@ -348,6 +454,8 @@ func TestPeopleAreRefusedTheAgentTools(t *testing.T) {
 			{"factory_create_task", map[string]any{"repo_id": repoID, "title": "sneaky"}},
 			{"factory_comment_task", map[string]any{"task_id": id, "body": "sneaky"}},
 			{"factory_move_task", map[string]any{"id": id, "status": "done"}},
+			{"factory_update_task", map[string]any{"id": id, "title": "sneaky"}},
+			{"factory_move_tasks", map[string]any{"ids": []string{id}, "status": "done"}},
 		} {
 			_, callErr := callTool(t, session, tc.tool, tc.args)
 			assert.Error(t, callErr, string(role)+" "+tc.tool)
