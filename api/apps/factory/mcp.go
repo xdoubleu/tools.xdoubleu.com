@@ -373,7 +373,7 @@ func (t *mcpTools) updateTask(
 // mergeLabels applies the removals (ignoring case) and then the additions,
 // keeping order and dropping duplicates.
 func mergeLabels(current, add, remove []string) []string {
-	out := make([]string, 0, len(current)+len(add))
+	out := []string{}
 	for _, l := range current {
 		if !containsFold(remove, l) {
 			out = append(out, l)

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -217,17 +218,26 @@ func TestBulkMoveRefusesReadyAndBadInput(t *testing.T) {
 		"too many":  {"ids": make([]string, 201), "status": "done"},
 		"bad state": {"ids": []string{id}, "status": "later"},
 	} {
-		res, callErr := callTool(t, session, "factory_move_tasks", args)
-		if callErr == nil {
-			// A bad status is reported per id rather than failing the call.
-			assert.Empty(t, at(t, res, "moved"), name)
-		}
+		_, callErr := callTool(t, session, "factory_move_tasks", args)
+		assert.Error(t, callErr, name)
 	}
 
 	var status string
 	require.NoError(t, testDB.QueryRow(context.Background(),
 		`SELECT status FROM factory.tasks WHERE id = $1`, id).Scan(&status))
 	assert.Equal(t, "backlog", status)
+
+	// Exactly 200 ids is still accepted; each unknown one just fails.
+	ids := make([]string, 200)
+	for i := range ids {
+		ids[i] = uuid.NewString()
+	}
+	res, err := callTool(t, session, "factory_move_tasks",
+		map[string]any{"ids": ids, "status": "done"})
+	require.NoError(t, err)
+	failed, ok := at(t, res, "failed").([]any)
+	require.True(t, ok)
+	assert.Len(t, failed, 200)
 }
 
 func TestAgentFilesCommentsAndMovesATask(t *testing.T) {
