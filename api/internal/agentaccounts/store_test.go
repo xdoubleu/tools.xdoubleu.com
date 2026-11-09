@@ -293,6 +293,18 @@ func TestRotateSecretIssuesANewSecretAndKeepsTheOldOneForADay(t *testing.T) {
 	assert.InDelta(t, agentaccounts.SecretOverlap.Seconds(), expiresIn, 60)
 }
 
+func TestRotateSecretRefusesASecondRotationInsideTheWindow(t *testing.T) {
+	store, _ := newStore(t, nil)
+	ctx := context.Background()
+	account, _, err := store.Create(ctx, "human:creator", "Twice")
+	require.NoError(t, err)
+	_, _, err = store.RotateSecret(ctx, account.ID)
+	require.NoError(t, err)
+
+	_, _, err = store.RotateSecret(ctx, account.ID)
+	require.ErrorIs(t, err, database.ErrResourceConflict)
+}
+
 func TestRotateSecretRefusesRevokedJobAndUnknownAccounts(t *testing.T) {
 	store, _ := newStore(t, nil)
 	ctx := context.Background()

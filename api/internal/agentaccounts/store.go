@@ -222,8 +222,9 @@ func (s *Store) List(ctx context.Context) ([]Account, error) {
 }
 
 // RotateSecret issues a new client secret for a standing account. The old one
-// keeps working for SecretOverlap, so a second rotation inside the window drops
-// the first secret. A revoked account or a job's is refused.
+// keeps working for SecretOverlap. A second rotation inside the window is
+// refused, since it would cut off the secret the agent still uses; a revoked
+// account or a job's is refused too. Revoking is the way to end a leaked secret.
 func (s *Store) RotateSecret(
 	ctx context.Context,
 	id uuid.UUID,
@@ -250,15 +251,23 @@ func (s *Store) RotateSecret(
 			database.ErrResourceConflict,
 		)
 	}
-	if _, err = tx.Exec(ctx, `
+	tag, err := tx.Exec(ctx, `
 		UPDATE auth.oauth2_clients
 		SET previous_secret_hash = secret_hash,
 		    previous_secret_expires_at = now() + make_interval(secs => $3),
 		    secret_hash = $2
-		WHERE id = $1`,
+		WHERE id = $1
+		  AND (previous_secret_expires_at IS NULL OR previous_secret_expires_at <= now())`,
 		account.ClientID, string(hash), SecretOverlap.Seconds(),
-	); err != nil {
+	)
+	if err != nil {
 		return nil, "", err
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, "", fmt.Errorf(
+			"%w: the previous secret is still valid, or the client is gone",
+			database.ErrResourceConflict,
+		)
 	}
 	if err = tx.Commit(ctx); err != nil {
 		return nil, "", err

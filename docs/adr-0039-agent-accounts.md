@@ -62,7 +62,7 @@ claude mcp add-json tools-apps-agent '{"type":"http",
 ```
 
 To rotate the secret, an admin calls `RotateAgentAccountSecret` (TOTP step-up,
-as for create). The old secret keeps working for 24 hours, so replace the
+as for create). The old secret keeps working for 24 hours (a second rotation waits until then; revoke to end a leaked secret), so replace the
 Keychain item (`security add-generic-password -U …`) inside that window
 ([adr-0047](adr-0047-first-class-agent-users.md)).
 
