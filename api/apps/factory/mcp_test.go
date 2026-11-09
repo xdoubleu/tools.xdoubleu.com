@@ -18,10 +18,16 @@ import (
 
 const agentUserID = "9b7c3f0e-52d6-4f1c-8a58-1f4e2d7b6a11"
 
+// asUser is a caller of the given role; an agent holds the factory app, as an
+// account made by a person does.
 func asUser(role models.Role) *models.User {
+	grants := []string(nil)
+	if role == models.RoleAgent {
+		grants = []string{"factory"}
+	}
 	return &models.User{
 		ID: agentUserID, Email: "agent@agent.invalid", Role: role,
-		AppAccess: nil, WriteAccess: nil, HasMFA: false, DisplayName: "",
+		AppAccess: grants, WriteAccess: grants, HasMFA: false, DisplayName: "",
 	}
 }
 
@@ -482,4 +488,22 @@ func TestPeopleAreRefusedTheAgentTools(t *testing.T) {
 	assert.Equal(t, 1, tasks)
 	assert.Zero(t, comments)
 	assert.Equal(t, "backlog", status)
+}
+
+func TestAgentNeedsTheFactoryGrantAndWriteLevel(t *testing.T) {
+	browserClient(t)
+	noGrant := asUser(models.RoleAgent)
+	noGrant.AppAccess, noGrant.WriteAccess = nil, nil
+	_, err := callTool(t, mcpSessionAs(t, noGrant), "factory_list_tasks", map[string]any{})
+	require.Error(t, err)
+
+	readOnly := asUser(models.RoleAgent)
+	readOnly.WriteAccess = nil
+	session := mcpSessionAs(t, readOnly)
+	_, err = callTool(t, session, "factory_list_tasks", map[string]any{})
+	require.NoError(t, err)
+	_, err = callTool(t, session, "factory_create_task", map[string]any{
+		"repo_id": seededRepoID(t), "title": "read-only can't",
+	})
+	require.Error(t, err)
 }

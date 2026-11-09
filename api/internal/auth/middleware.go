@@ -243,6 +243,11 @@ func (service *LocalService) AppAccess(
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
+		// Agents reach apps through MCP only, where the grant level binds them.
+		if user.Role == models.RoleAgent {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
 		if user.Role == models.RoleAdmin || slices.Contains(user.AppAccess, appName) {
 			next(w, r)
 			return

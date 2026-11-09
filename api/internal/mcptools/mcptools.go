@@ -23,8 +23,8 @@ import (
 type NoArgs struct{}
 
 // RequireAppAccess mirrors auth.AppAccess: admin, or the app in the user's
-// app access. Read handlers scope queries to the user, so a tool grants
-// exactly the caller's HTTP access.
+// app access (an agent's at either level). Read handlers scope queries to the
+// user, so a tool grants exactly the caller's HTTP access.
 func RequireAppAccess(ctx context.Context, appName string) error {
 	user := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
 	if user != nil &&
@@ -34,6 +34,26 @@ func RequireAppAccess(ctx context.Context, appName string) error {
 	return connect.NewError(
 		connect.CodePermissionDenied,
 		"access to "+appName+" required",
+	)
+}
+
+// RequireAppWrite is RequireAppAccess for mutating tools: an agent needs the
+// write level, since it can hold an app read-only (adr-0047). A person's access
+// is always both.
+func RequireAppWrite(ctx context.Context, appName string) error {
+	user := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
+	if user != nil {
+		granted := user.AppAccess
+		if user.Role == models.RoleAgent {
+			granted = user.WriteAccess
+		}
+		if user.Role == models.RoleAdmin || slices.Contains(granted, appName) {
+			return nil
+		}
+	}
+	return connect.NewError(
+		connect.CodePermissionDenied,
+		"write access to "+appName+" required",
 	)
 }
 
@@ -62,34 +82,47 @@ func AddReadTool[In any](
 	})
 }
 
-// AddAgentReadTool registers a read-only tool for agent accounts only.
+// AddAgentReadTool registers a read-only tool for agent accounts that hold
+// the app.
 func AddAgentReadTool[In any](
 	srv *mcp.Server,
-	name, description string,
+	appName, name, description string,
 	produce func(context.Context, In) (proto.Message, error),
 ) {
-	addTool(srv, name, description, produce, RequireAgent)
+	addTool(srv, name, description, produce, agentGate(appName, RequireAppAccess))
 }
 
-// AddAgentWriteTool registers a mutating tool for agent accounts only. Like
-// AddWriteTool, each app's mutating tools need their own ADR.
+// AddAgentWriteTool registers a mutating tool for agent accounts with write
+// access to the app. Like AddWriteTool, each app's mutating tools need their
+// own ADR.
 func AddAgentWriteTool[In any](
 	srv *mcp.Server,
-	name, description string,
+	appName, name, description string,
 	produce func(context.Context, In) (proto.Message, error),
 ) {
-	addTool(srv, name, description, produce, RequireAgent)
+	addTool(srv, name, description, produce, agentGate(appName, RequireAppWrite))
 }
 
-// AddWriteTool registers a mutating tool behind the same gate as AddReadTool.
-// Each app's mutating tools need their own ADR (adr-0023, adr-0026).
+func agentGate(
+	appName string, app func(context.Context, string) error,
+) func(context.Context) error {
+	return func(ctx context.Context) error {
+		if err := RequireAgent(ctx); err != nil {
+			return err
+		}
+		return app(ctx, appName)
+	}
+}
+
+// AddWriteTool registers a mutating tool behind RequireAppWrite. Each app's
+// mutating tools need their own ADR (adr-0023, adr-0026).
 func AddWriteTool[In any](
 	srv *mcp.Server,
 	appName, name, description string,
 	produce func(context.Context, In) (proto.Message, error),
 ) {
 	addTool(srv, name, description, produce, func(ctx context.Context) error {
-		return RequireAppAccess(ctx, appName)
+		return RequireAppWrite(ctx, appName)
 	})
 }
 

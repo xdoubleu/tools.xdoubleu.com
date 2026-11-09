@@ -248,7 +248,8 @@ func TestAJobAccountSeesAndActsOnItsOwnTaskOnly(t *testing.T) {
 	acc := accounts.of(t, claimed.Id)
 	jobUser := &models.User{
 		ID: acc.userID, Email: "job@agent.invalid", Role: models.RoleAgent,
-		AppAccess: nil, WriteAccess: nil, HasMFA: false, DisplayName: "",
+		AppAccess: []string{"factory"}, WriteAccess: []string{"factory"},
+		HasMFA: false, DisplayName: "",
 	}
 	session := mcpSessionOn(t, env.app, jobUser)
 
@@ -342,7 +343,8 @@ func TestAJobAccountStaysConfinedAfterItsJobEnds(t *testing.T) {
 	// into a person's agent account.
 	session := mcpSessionOn(t, env.app, &models.User{
 		ID: acc.userID, Email: "job@agent.invalid", Role: models.RoleAgent,
-		AppAccess: nil, WriteAccess: nil, HasMFA: false, DisplayName: "",
+		AppAccess: []string{"factory"}, WriteAccess: []string{"factory"},
+		HasMFA: false, DisplayName: "",
 	})
 	_, err = callTool(t, session, "factory_get_task", map[string]any{"id": other.Id})
 	require.Error(t, err)
