@@ -15,6 +15,22 @@ WINDOW=${DEPLOY_WINDOW:-15}
 
 log() { echo "$*" >&2; }
 
+# gh_api ARGS...: `gh api` retried on failure; GitHub's API sheds load with
+# transient 5xx, and one failed call would fail the whole deploy.
+gh_api() {
+  local try out
+  for try in 1 2 3 4; do
+    if out=$(gh api "$@"); then
+      printf '%s\n' "$out"
+      return
+    fi
+    [[ $try -lt 4 ]] || break
+    log "gh api $1 failed (attempt $try); retrying"
+    sleep "$((${GH_RETRY_SLEEP:-5} * try))"
+  done
+  return 1
+}
+
 # conclusion NAME JOBS: a job's conclusion; "pending" until it has one, which
 # includes jobs GitHub hasn't created yet (they appear once their needs end).
 # Reusable-workflow jobs are listed as "<caller> / <job>", skipped ones as
@@ -29,7 +45,7 @@ conclusion() {
 #   <sha> <run id|-> <ok|no: deploy-kamal's needs passed> <api built> <grafana built>
 candidates() {
   local runs sha run jobs gates mig infra bapi bgraf
-  runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/main.yml/runs?branch=main&event=push&per_page=100" \
+  runs=$(gh_api "repos/$GITHUB_REPOSITORY/actions/workflows/main.yml/runs?branch=main&event=push&per_page=$((WINDOW * 2))" \
     --jq '[.workflow_runs[] | {sha: .head_sha, id: .id}]')
   while read -r sha; do
     run=$(jq -r --arg s "$sha" '[.[] | select(.sha == $s)][0].id // empty' <<<"$runs")
@@ -37,7 +53,7 @@ candidates() {
       echo "$sha - no no no"
       continue
     fi
-    jobs=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/jobs?filter=latest&per_page=100")
+    jobs=$(gh_api "repos/$GITHUB_REPOSITORY/actions/runs/$run/jobs?filter=latest&per_page=100")
     mig=$(conclusion 'Migration Versions on Main' "$jobs")
     infra=$(conclusion 'Apply Infra via OpenTofu' "$jobs")
     bapi=$(conclusion 'Build API Workflow' "$jobs")
@@ -48,7 +64,7 @@ candidates() {
       gates=ok
     fi
     echo "$sha $run $gates $([[ $bapi == success ]] && echo yes || echo no) $([[ $bgraf == success ]] && echo yes || echo no)"
-  done < <(gh api "repos/$GITHUB_REPOSITORY/commits?sha=main&per_page=$WINDOW" --jq '.[].sha')
+  done < <(gh_api "repos/$GITHUB_REPOSITORY/commits?sha=main&per_page=$WINDOW" --jq '.[].sha')
 }
 
 # decide SERVICE DEPLOYED OWN ATTEMPT < candidates: the sha to deploy or "skip".

@@ -702,6 +702,7 @@ jobs:
         run: mkdir -p ~/.ssh && ssh-keyscan "$KAMAL_SERVER_IP" >> ~/.ssh/known_hosts
 
       # endpoints.s3 embeds the Cloudflare account ID (see infra/backend.hcl.example).
+      # Retried: provider zips download from GitHub releases, which fail transiently.
       - name: tofu init
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_R2_ACCESS_KEY_ID }}
@@ -711,7 +712,11 @@ jobs:
           cat > backend.hcl <<EOF
           endpoints = { s3 = "$TF_STATE_R2_ENDPOINT" }
           EOF
-          tofu init -backend-config=backend.hcl
+          for try in 1 2 3 4; do
+            tofu init -backend-config=backend.hcl && exit 0
+            [ "$try" -lt 4 ] && sleep $((15 * try))
+          done
+          exit 1
 
       # create_image is async: poll until ready (can take >5 minutes) before
       # publishing image_id, so a restore never uses a half-built image. Labeled

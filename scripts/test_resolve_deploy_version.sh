@@ -43,6 +43,7 @@ cat > "$WORK/bin/gh" <<'SH'
 ep=$2
 shift 2
 if [ -e "$FX/gh.fail" ]; then echo "gh: HTTP 500" >&2; exit 1; fi
+if [ -e "$FX/gh.flaky" ]; then rm -f "$FX/gh.flaky"; echo "gh: Server Error (HTTP 502)" >&2; exit 1; fi
 case $ep in
   repos/*/commits\?sha=main*)
     body=$(jq -R '{sha: .}' "$FX/commits.txt" | jq -s .) ;;
@@ -121,7 +122,7 @@ resolve() {
   : > "$WORK/out"
   (cd "$WORK/ws" && PATH="$WORK/bin:$PATH" FX="$FX" GH_TOKEN=x GITHUB_REPOSITORY=o/r \
     GITHUB_SHA="${S[$own]}" GITHUB_RUN_ATTEMPT="$attempt" GITHUB_OUTPUT="$WORK/out" \
-    GITHUB_SERVER_URL=https://github.example "$SCRIPT" "$@") 2> "$WORK/err"
+    GITHUB_SERVER_URL=https://github.example GH_RETRY_SLEEP=0 "$SCRIPT" "$@") 2> "$WORK/err"
   RC=$?
 }
 got() { sed -n "s/^$1=//p" "$WORK/out"; }
@@ -278,6 +279,9 @@ touch "$FX/gh.fail"
 resolve 6 1 api
 if [ "$RC" != 0 ] && [ ! -s "$WORK/out" ]; then pass "GitHub API failure: fails, writes nothing"; else failn "GitHub API failure: fails, writes nothing (rc=$RC)"; fi
 rm -f "$FX/gh.fail"
+touch "$FX/gh.flaky"
+resolve 6 1 api
+if [ "$RC" = 0 ] && [ -n "$(got api)" ] && [ ! -e "$FX/gh.flaky" ]; then pass "transient GitHub API failure: retried"; else failn "transient GitHub API failure: retried (rc=$RC)"; fi
 resolve 6 1 web
 if [ "$RC" = 2 ]; then pass "unknown service: usage error"; else failn "unknown service: usage error (rc=$RC)"; fi
 
