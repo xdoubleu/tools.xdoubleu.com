@@ -76,11 +76,10 @@ search. If deleted or already resolved, close as superseded.
 ## 5. Ship via `ship-pr`
 
 `ship-pr` owns rebase → push → non-draft PR → CI watch. **Always arm
-auto-merge** (`gh pr merge --auto --squash`) on a PR targeting `main`, either
-track and unattended: green `ci-pass` merges it
+auto-merge** (`gh pr merge --auto --squash`) on a PR targeting `main`: green `ci-pass` merges it
 ([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md),
 [`docs/convention-unattended-agent-trust.md`](../../../docs/convention-unattended-agent-trust.md)).
-Tell `ship-pr` to arm it and reference the task as in step 4. Move the task to `testing` only once the merge lands.
+This overrides `ship-pr`'s "larger or tooling changes: don't arm" default: arm every PR right after creating it, whatever its size. Reference the task as in step 4.
 
 **A — `feature` label: run the quality gate first.** No
 `## Manual review needed` section. Before opening the PR fix everything each
