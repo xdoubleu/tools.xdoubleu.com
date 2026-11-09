@@ -21,6 +21,7 @@ function makeMeal(overrides: Partial<Record<string, unknown>> = {}) {
 function renderChip(props: Partial<React.ComponentProps<typeof MealPlanMealChip>> = {}) {
   const handlers = {
     onMealClick: vi.fn(),
+    onMoveClick: vi.fn(),
     onSwapClick: vi.fn(),
     onEditClick: vi.fn(),
     onDeleteMeal: vi.fn()
@@ -31,6 +32,7 @@ function renderChip(props: Partial<React.ComponentProps<typeof MealPlanMealChip>
       recipe={recipe}
       isSwapping={false}
       inSwapMode={false}
+      pickMode="swap"
       {...handlers}
       {...props}
     />
@@ -81,7 +83,7 @@ describe('MealPlanMealChip', () => {
     expect(screen.queryByText('×4')).not.toBeInTheDocument()
   })
 
-  it('opens the actions menu with Swap, Edit and Delete', () => {
+  it('opens the actions menu with Move, Swap, Edit and Delete', () => {
     renderChip()
     fireEvent.click(screen.getByRole('button', { name: /Meal actions/i }))
     expect(screen.getByRole('menuitem', { name: /Swap/i })).toBeInTheDocument()

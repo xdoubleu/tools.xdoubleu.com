@@ -3,6 +3,7 @@ import { formatMealDate, MEAL_SLOTS } from '@/lib/mealplans/mealPlanCalendar'
 import type { PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import MealPlanMealChip from './MealPlanMealChip'
+import type { PickMode } from './useMealCalendarState'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/cn'
@@ -15,9 +16,11 @@ interface MealPlanWeekGridProps {
   weekDates: Date[]
   recipes: Recipe[]
   swappingMeal: PlanMeal | null
+  pickMode: PickMode
   getMealsForSlot: (date: string, slot: string) => PlanMeal[]
   onCellClick: (date: string, slot: string) => void
   onMealClick: (meal: PlanMeal) => void
+  onStartMove: (meal: PlanMeal) => void
   onStartSwap: (meal: PlanMeal) => void
   onEditClick: (meal: PlanMeal) => void
   onDeleteMeal: (mealId: string) => void
@@ -33,9 +36,11 @@ export default function MealPlanWeekGrid({
   weekDates,
   recipes,
   swappingMeal,
+  pickMode,
   getMealsForSlot,
   onCellClick,
   onMealClick,
+  onStartMove,
   onStartSwap,
   onEditClick,
   onDeleteMeal,
@@ -67,7 +72,9 @@ export default function MealPlanWeekGrid({
               recipe={recipes.find((r) => r.id === meal.recipeId)}
               isSwapping={swappingMeal?.id === meal.id}
               inSwapMode={!!swappingMeal}
+              pickMode={pickMode}
               onMealClick={onMealClick}
+              onMoveClick={onStartMove}
               onSwapClick={onStartSwap}
               onEditClick={onEditClick}
               onDeleteMeal={onDeleteMeal}
