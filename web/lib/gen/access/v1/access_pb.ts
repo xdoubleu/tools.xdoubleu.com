@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file access/v1/access.proto.
  */
 export const file_access_v1_access: GenFile = /*@__PURE__*/
-  fileDesc("ChZhY2Nlc3MvdjEvYWNjZXNzLnByb3RvEglhY2Nlc3MudjEiRgoHQXBwVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRyb2xlGAMgASgJEhIKCmFwcF9hY2Nlc3MYBCADKAkiEgoQTGlzdFVzZXJzUmVxdWVzdCI2ChFMaXN0VXNlcnNSZXNwb25zZRIhCgV1c2VycxgBIAMoCzISLmFjY2Vzcy52MS5BcHBVc2VyIi8KDlNldFJvbGVSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkSDAoEcm9sZRgCIAEoCSIzCg9TZXRSb2xlUmVzcG9uc2USIAoEdXNlchgBIAEoCzISLmFjY2Vzcy52MS5BcHBVc2VyIkcKE1NldEFwcEFjY2Vzc1JlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIQCghhcHBfbmFtZRgCIAEoCRINCgVncmFudBgDIAEoCCI4ChRTZXRBcHBBY2Nlc3NSZXNwb25zZRIgCgR1c2VyGAEgASgLMhIuYWNjZXNzLnYxLkFwcFVzZXIy6gEKDUFjY2Vzc1NlcnZpY2USRgoJTGlzdFVzZXJzEhsuYWNjZXNzLnYxLkxpc3RVc2Vyc1JlcXVlc3QaHC5hY2Nlc3MudjEuTGlzdFVzZXJzUmVzcG9uc2USQAoHU2V0Um9sZRIZLmFjY2Vzcy52MS5TZXRSb2xlUmVxdWVzdBoaLmFjY2Vzcy52MS5TZXRSb2xlUmVzcG9uc2USTwoMU2V0QXBwQWNjZXNzEh4uYWNjZXNzLnYxLlNldEFwcEFjY2Vzc1JlcXVlc3QaHy5hY2Nlc3MudjEuU2V0QXBwQWNjZXNzUmVzcG9uc2VCK1opdG9vbHMueGRvdWJsZXUuY29tL2dlbi9hY2Nlc3MvdjE7YWNjZXNzdjFiBnByb3RvMw");
+  fileDesc("ChZhY2Nlc3MvdjEvYWNjZXNzLnByb3RvEglhY2Nlc3MudjEiXAoHQXBwVXNlchIKCgJpZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRyb2xlGAMgASgJEhIKCmFwcF9hY2Nlc3MYBCADKAkSFAoMd3JpdGVfYWNjZXNzGAUgAygJIhIKEExpc3RVc2Vyc1JlcXVlc3QiNgoRTGlzdFVzZXJzUmVzcG9uc2USIQoFdXNlcnMYASADKAsyEi5hY2Nlc3MudjEuQXBwVXNlciIvCg5TZXRSb2xlUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEgwKBHJvbGUYAiABKAkiMwoPU2V0Um9sZVJlc3BvbnNlEiAKBHVzZXIYASABKAsyEi5hY2Nlc3MudjEuQXBwVXNlciJHChNTZXRBcHBBY2Nlc3NSZXF1ZXN0Eg8KB3VzZXJfaWQYASABKAkSEAoIYXBwX25hbWUYAiABKAkSDQoFZ3JhbnQYAyABKAgiOAoUU2V0QXBwQWNjZXNzUmVzcG9uc2USIAoEdXNlchgBIAEoCzISLmFjY2Vzcy52MS5BcHBVc2VyIkwKGFNldEFnZW50QXBwQWNjZXNzUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhAKCGFwcF9uYW1lGAIgASgJEg0KBWxldmVsGAMgASgJIj0KGVNldEFnZW50QXBwQWNjZXNzUmVzcG9uc2USIAoEdXNlchgBIAEoCzISLmFjY2Vzcy52MS5BcHBVc2VyMsoCCg1BY2Nlc3NTZXJ2aWNlEkYKCUxpc3RVc2VycxIbLmFjY2Vzcy52MS5MaXN0VXNlcnNSZXF1ZXN0GhwuYWNjZXNzLnYxLkxpc3RVc2Vyc1Jlc3BvbnNlEkAKB1NldFJvbGUSGS5hY2Nlc3MudjEuU2V0Um9sZVJlcXVlc3QaGi5hY2Nlc3MudjEuU2V0Um9sZVJlc3BvbnNlEk8KDFNldEFwcEFjY2VzcxIeLmFjY2Vzcy52MS5TZXRBcHBBY2Nlc3NSZXF1ZXN0Gh8uYWNjZXNzLnYxLlNldEFwcEFjY2Vzc1Jlc3BvbnNlEl4KEVNldEFnZW50QXBwQWNjZXNzEiMuYWNjZXNzLnYxLlNldEFnZW50QXBwQWNjZXNzUmVxdWVzdBokLmFjY2Vzcy52MS5TZXRBZ2VudEFwcEFjY2Vzc1Jlc3BvbnNlQitaKXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vYWNjZXNzL3YxO2FjY2Vzc3YxYgZwcm90bzM");
 
 /**
  * @generated from message access.v1.AppUser
@@ -35,6 +35,13 @@ export type AppUser = Message<"access.v1.AppUser"> & {
    * @generated from field: repeated string app_access = 4;
    */
   appAccess: string[];
+
+  /**
+   * write_access is the part of app_access granted at the write level.
+   *
+   * @generated from field: repeated string write_access = 5;
+   */
+  writeAccess: string[];
 };
 
 /**
@@ -158,6 +165,52 @@ export const SetAppAccessResponseSchema: GenMessage<SetAppAccessResponse> = /*@_
   messageDesc(file_access_v1_access, 6);
 
 /**
+ * @generated from message access.v1.SetAgentAppAccessRequest
+ */
+export type SetAgentAppAccessRequest = Message<"access.v1.SetAgentAppAccessRequest"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: string app_name = 2;
+   */
+  appName: string;
+
+  /**
+   * level is "read", "write" or "none" (revoke).
+   *
+   * @generated from field: string level = 3;
+   */
+  level: string;
+};
+
+/**
+ * Describes the message access.v1.SetAgentAppAccessRequest.
+ * Use `create(SetAgentAppAccessRequestSchema)` to create a new message.
+ */
+export const SetAgentAppAccessRequestSchema: GenMessage<SetAgentAppAccessRequest> = /*@__PURE__*/
+  messageDesc(file_access_v1_access, 7);
+
+/**
+ * @generated from message access.v1.SetAgentAppAccessResponse
+ */
+export type SetAgentAppAccessResponse = Message<"access.v1.SetAgentAppAccessResponse"> & {
+  /**
+   * @generated from field: access.v1.AppUser user = 1;
+   */
+  user?: AppUser | undefined;
+};
+
+/**
+ * Describes the message access.v1.SetAgentAppAccessResponse.
+ * Use `create(SetAgentAppAccessResponseSchema)` to create a new message.
+ */
+export const SetAgentAppAccessResponseSchema: GenMessage<SetAgentAppAccessResponse> = /*@__PURE__*/
+  messageDesc(file_access_v1_access, 8);
+
+/**
  * @generated from service access.v1.AccessService
  */
 export const AccessService: GenService<{
@@ -184,6 +237,16 @@ export const AccessService: GenService<{
     methodKind: "unary";
     input: typeof SetAppAccessRequestSchema;
     output: typeof SetAppAccessResponseSchema;
+  },
+  /**
+   * SetAgentAppAccess grants or revokes a standing agent's access to an app.
+   *
+   * @generated from rpc access.v1.AccessService.SetAgentAppAccess
+   */
+  setAgentAppAccess: {
+    methodKind: "unary";
+    input: typeof SetAgentAppAccessRequestSchema;
+    output: typeof SetAgentAppAccessResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_access_v1_access, 0);

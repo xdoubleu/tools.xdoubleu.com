@@ -60,15 +60,19 @@ func (r *AppUsersRepository) GetByID(
 ) (*models.User, error) {
 	var u models.User
 	u.AppAccess = []string{}
+	u.WriteAccess = []string{}
 
 	err := r.db.QueryRow(ctx, `
 		SELECT u.id, u.email, u.role, COALESCE(u.display_name, ''),
-		       COALESCE(array_agg(a.app_name) FILTER (WHERE a.app_name IS NOT NULL), '{}')
+		       COALESCE(array_agg(a.app_name) FILTER (WHERE a.app_name IS NOT NULL), '{}'),
+		       COALESCE(array_agg(a.app_name) FILTER (WHERE a.level = 'write'), '{}')
 		FROM global.app_users u
 		LEFT JOIN global.app_access a ON a.user_id = u.id
 		WHERE u.id = $1
 		GROUP BY u.id, u.email, u.role
-	`, id).Scan(&u.ID, &u.Email, &u.Role, &u.DisplayName, &u.AppAccess)
+	`, id).Scan(
+		&u.ID, &u.Email, &u.Role, &u.DisplayName, &u.AppAccess, &u.WriteAccess,
+	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
@@ -128,6 +132,58 @@ func (r *AppUsersRepository) SetRole(
 		userID, role,
 	)
 	return err
+}
+
+// Agent access levels; AgentNoAccess revokes the grant (adr-0047).
+const (
+	AgentNoAccess = "none"
+	AgentRead     = "read"
+	AgentWrite    = "write"
+)
+
+// SetAgentAppAccess grants a standing agent an app at AgentRead or AgentWrite,
+// or revokes it with AgentNoAccess. A person, a job's own account and a revoked
+// account hold no agent grants: the bool is false, and nothing changes, when
+// userID is not an active standing agent. The account row is locked for the
+// write, so it can't race a revoke.
+func (r *AppUsersRepository) SetAgentAppAccess(
+	ctx context.Context,
+	userID, appName, level string,
+) (bool, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var found bool
+	err = tx.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM global.agent_accounts
+			WHERE user_id::text = $1 AND job_id IS NULL AND revoked_at IS NULL
+			FOR UPDATE
+		)`, userID).Scan(&found)
+	if err != nil || !found {
+		return false, err
+	}
+
+	if level == AgentNoAccess {
+		_, err = tx.Exec(ctx,
+			`DELETE FROM global.app_access WHERE user_id = $1 AND app_name = $2`,
+			userID, appName,
+		)
+	} else {
+		_, err = tx.Exec(ctx, `
+			INSERT INTO global.app_access (user_id, app_name, level)
+			VALUES ($1, $2, $3)
+			ON CONFLICT (user_id, app_name) DO UPDATE SET level = EXCLUDED.level`,
+			userID, appName, level,
+		)
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, tx.Commit(ctx)
 }
 
 func (r *AppUsersRepository) SetAppAccess(

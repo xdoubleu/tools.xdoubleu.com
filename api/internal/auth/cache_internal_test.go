@@ -15,6 +15,7 @@ func testUser(id string) models.User {
 		Email:       id + "@example.com",
 		Role:        models.RoleUser,
 		AppAccess:   []string{},
+		WriteAccess: []string{},
 		HasMFA:      false,
 		DisplayName: "",
 	}

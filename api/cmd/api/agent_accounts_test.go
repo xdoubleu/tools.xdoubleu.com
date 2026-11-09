@@ -294,5 +294,48 @@ func TestAgentUser_CannotBePromoted(t *testing.T) {
 	stored, err := testApp.appUsersRepo.GetByID(context.Background(), account.UserId)
 	require.NoError(t, err)
 	assert.Equal(t, models.RoleAgent, stored.Role)
-	assert.Empty(t, stored.AppAccess)
+	assert.Equal(t, []string{"factory"}, stored.AppAccess)
+}
+
+// TestAgentUser_AdminGrantsAndRevokesAppAccess: the dedicated RPC changes an
+// agent's grants, and refuses a person and an unknown level.
+func TestAgentUser_AdminGrantsAndRevokesAppAccess(t *testing.T) {
+	admin := newAgentAdmin(t, models.RoleAdmin)
+	account := createAgent(t, admin, "grantee").Account
+	ts := connectServer(t)
+	access := accessv1connect.NewAccessServiceClient(connect.NewClient(
+		connecthttp.NewTransport(ts.Client(), ts.URL, connecthttp.WithReadMaxBytes(0)),
+	))
+
+	resp, err := access.SetAgentAppAccess(admin.ctx(), &accessv1.SetAgentAppAccessRequest{
+		UserId: account.UserId, AppName: "books", Level: "read",
+	})
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"factory", "books"}, resp.User.AppAccess)
+	assert.Equal(t, []string{"factory"}, resp.User.WriteAccess)
+
+	resp, err = access.SetAgentAppAccess(admin.ctx(), &accessv1.SetAgentAppAccessRequest{
+		UserId: account.UserId, AppName: "books", Level: "none",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"factory"}, resp.User.AppAccess)
+
+	_, err = access.SetAgentAppAccess(admin.ctx(), &accessv1.SetAgentAppAccessRequest{
+		UserId: account.UserId, AppName: "books", Level: "owner",
+	})
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	_, err = access.SetAgentAppAccess(admin.ctx(), &accessv1.SetAgentAppAccessRequest{
+		UserId: account.UserId, AppName: "", Level: "read",
+	})
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	_, err = access.SetAgentAppAccess(admin.ctx(), &accessv1.SetAgentAppAccessRequest{
+		UserId: admin.userID, AppName: "books", Level: "read",
+	})
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+
+	person := newAgentAdmin(t, models.RoleUser)
+	_, err = access.SetAgentAppAccess(person.ctx(), &accessv1.SetAgentAppAccessRequest{
+		UserId: account.UserId, AppName: "books", Level: "read",
+	})
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 }

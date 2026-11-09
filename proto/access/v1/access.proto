@@ -6,6 +6,8 @@ service AccessService {
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
   rpc SetRole(SetRoleRequest) returns (SetRoleResponse);
   rpc SetAppAccess(SetAppAccessRequest) returns (SetAppAccessResponse);
+  // SetAgentAppAccess grants or revokes a standing agent's access to an app.
+  rpc SetAgentAppAccess(SetAgentAppAccessRequest) returns (SetAgentAppAccessResponse);
 }
 
 message AppUser {
@@ -13,6 +15,8 @@ message AppUser {
   string email = 2;
   string role = 3;
   repeated string app_access = 4;
+  // write_access is the part of app_access granted at the write level.
+  repeated string write_access = 5;
 }
 
 message ListUsersRequest {}
@@ -37,5 +41,16 @@ message SetAppAccessRequest {
 }
 
 message SetAppAccessResponse {
+  AppUser user = 1;
+}
+
+message SetAgentAppAccessRequest {
+  string user_id = 1;
+  string app_name = 2;
+  // level is "read", "write" or "none" (revoke).
+  string level = 3;
+}
+
+message SetAgentAppAccessResponse {
   AppUser user = 1;
 }

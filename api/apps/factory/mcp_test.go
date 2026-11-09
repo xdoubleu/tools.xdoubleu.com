@@ -21,7 +21,7 @@ const agentUserID = "9b7c3f0e-52d6-4f1c-8a58-1f4e2d7b6a11"
 func asUser(role models.Role) *models.User {
 	return &models.User{
 		ID: agentUserID, Email: "agent@agent.invalid", Role: role,
-		AppAccess: nil, HasMFA: false, DisplayName: "",
+		AppAccess: nil, WriteAccess: nil, HasMFA: false, DisplayName: "",
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/obs"
+	"tools.xdoubleu.com/internal/repositories"
 )
 
 type accessConnectHandler struct {
@@ -24,12 +25,54 @@ func protoAppUser(u models.User) *accessv1.AppUser {
 	if access == nil {
 		access = []string{}
 	}
-	return &accessv1.AppUser{
-		Id:        u.ID,
-		Email:     u.Email,
-		Role:      string(u.Role),
-		AppAccess: access,
+	write := u.WriteAccess
+	if write == nil {
+		write = []string{}
 	}
+	return &accessv1.AppUser{
+		Id:          u.ID,
+		Email:       u.Email,
+		Role:        string(u.Role),
+		AppAccess:   access,
+		WriteAccess: write,
+	}
+}
+
+// SetAgentAppAccess is the only way to change what a standing agent reaches;
+// SetAppAccess and SetRole keep refusing agents (adr-0047).
+func (h *accessConnectHandler) SetAgentAppAccess(
+	ctx context.Context,
+	req *accessv1.SetAgentAppAccessRequest,
+) (*accessv1.SetAgentAppAccessResponse, error) {
+	if err := obs.RequireAdmin(ctx); err != nil {
+		return nil, err
+	}
+
+	switch req.Level {
+	case repositories.AgentRead, repositories.AgentWrite, repositories.AgentNoAccess:
+	default:
+		return nil, connect.NewError(connect.CodeInvalidArgument, "invalid level")
+	}
+	if req.AppName == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "app_name required")
+	}
+
+	ok, err := h.app.AppUsers.SetAgentAppAccess(
+		ctx, req.UserId, req.AppName, req.Level,
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	}
+	if !ok {
+		return nil, connect.NewError(connect.CodeNotFound, "agent account not found")
+	}
+	h.app.Auth.InvalidateUserCache()
+
+	user, err := h.app.AppUsers.GetByID(ctx, req.UserId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	}
+	return &accessv1.SetAgentAppAccessResponse{User: protoAppUser(*user)}, nil
 }
 
 func (h *accessConnectHandler) ListUsers(
