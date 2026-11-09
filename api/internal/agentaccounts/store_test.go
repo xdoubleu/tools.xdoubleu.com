@@ -237,7 +237,7 @@ func TestAJobHasAtMostOneAccount(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestAStandingAccountHoldsTheFactoryAppAndAJobsAccountNone(t *testing.T) {
+func TestEveryAccountHoldsTheFactoryApp(t *testing.T) {
 	store, db := newStore(t, nil)
 	ctx := context.Background()
 
@@ -263,7 +263,7 @@ func TestAStandingAccountHoldsTheFactoryAppAndAJobsAccountNone(t *testing.T) {
 		return apps
 	}
 	assert.Equal(t, []string{"factory:write"}, access(standing.UserID))
-	assert.Empty(t, access(job.UserID))
+	assert.Equal(t, []string{"factory:write"}, access(job.UserID))
 
 	_, err = store.Revoke(ctx, standing.ID)
 	require.NoError(t, err)

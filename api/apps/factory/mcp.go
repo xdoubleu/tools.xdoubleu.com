@@ -22,6 +22,9 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
+// mcpAppName is the app whose grant the factory_ tools need.
+const mcpAppName = "factory"
+
 const statusNames = "backlog, ready, in_progress, in_review, needs_you, testing or done"
 
 //nolint:lll // struct tags can't wrap
@@ -81,29 +84,29 @@ const maxBulkMove = 200
 func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
 	t := &mcpTools{app: a}
 
-	mcptools.AddAgentReadTool(srv, "factory_list_repos",
+	mcptools.AddAgentReadTool(srv, mcpAppName, "factory_list_repos",
 		"The repos the factory works on: id, owner, name and default branch. "+
 			"Setup commands and instructions are withheld. "+
 			"Use the id when creating a task.", t.listRepos)
-	mcptools.AddAgentReadTool(srv, "factory_list_tasks",
+	mcptools.AddAgentReadTool(srv, mcpAppName, "factory_list_tasks",
 		"Tasks on the board, most recently updated first, without their bodies. "+
 			"Filter by status (one of "+statusNames+"), repo_id, label, or query, "+
 			"which searches titles and bodies.", t.listTasks)
-	mcptools.AddAgentReadTool(srv, "factory_get_task",
+	mcptools.AddAgentReadTool(srv, mcpAppName, "factory_get_task",
 		"A task with its body and comments.", t.getTask)
-	mcptools.AddAgentWriteTool(srv, "factory_create_task",
+	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_create_task",
 		"Create a task for a repo. It always starts in Backlog; only a person "+
 			"can mark it Ready.", t.createTask)
-	mcptools.AddAgentWriteTool(srv, "factory_comment_task",
+	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_comment_task",
 		"Add a comment to a task, as this agent.", t.commentTask)
-	mcptools.AddAgentWriteTool(srv, "factory_move_task",
+	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_move_task",
 		"Move a task to another column ("+statusNames+"). Moving into ready is "+
 			"refused: only a person in a browser can do that.", t.moveTask)
-	mcptools.AddAgentWriteTool(srv, "factory_update_task",
+	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_update_task",
 		"Change a task's title, body, priority or labels (add_labels and "+
 			"remove_labels). Fields left out stay as they are. It never changes "+
 			"the column.", t.updateTask)
-	mcptools.AddAgentWriteTool(srv, "factory_move_tasks",
+	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_move_tasks",
 		"Move many tasks to one column ("+statusNames+") and get back only the "+
 			"ids moved and the ones that failed. Moving into ready is refused.",
 		t.moveTasks)

@@ -641,7 +641,10 @@ describe('closing an epic', () => {
           epicTask('old', ['epic', 'epic:old'], TaskStatus.DONE),
           epicTask('oldChild', ['epic:old'], TaskStatus.DONE),
           epicTask('new', ['epic', 'epic:new'], TaskStatus.IN_PROGRESS),
-          epicTask('loose', ['epic:loose'], TaskStatus.BACKLOG)
+          epicTask('loose', ['epic:loose'], TaskStatus.BACKLOG),
+          // A finished spike labelled `epic` doesn't close an epic with open work.
+          epicTask('spike', ['epic', 'epic:agents'], TaskStatus.DONE),
+          epicTask('slice', ['epic:agents'], TaskStatus.BACKLOG)
         ]
       })
     })
@@ -650,9 +653,9 @@ describe('closing an epic', () => {
       within(screen.getByLabelText('Epic'))
         .getAllByRole('option')
         .map((o) => o.textContent)
-    expect(options()).toEqual(['All epics', 'loose (1)', 'new (1)'])
+    expect(options()).toEqual(['All epics', 'agents (1)', 'loose (1)', 'new (1)'])
     fireEvent.click(screen.getByRole('button', { name: 'Show done tasks' }))
-    expect(options()).toEqual(['All epics', 'loose (1)', 'new (1)', 'old (2)'])
+    expect(options()).toEqual(['All epics', 'agents (2)', 'loose (1)', 'new (1)', 'old (2)'])
   })
 
   it('counts the Done tasks on the toggle', () => {

@@ -108,9 +108,11 @@ export default function FactoryClient() {
   const isOther = (l: string) => !isProductLabel(l) && !isEpicLabel(l)
   const allTasks = data?.tasks ?? []
   const allLabels = distinctLabels(allTasks)
-  // Closed epics drop out of the select unless Done is shown. A stale or selected
-  // epic from the URL stays selectable, so the select never shows a blank.
-  const isClosedEpic = (l: string) => epicParent(l, allTasks)?.status === TaskStatus.DONE
+  // An epic drops out of the select unless Done is shown once every task in it is
+  // Done. A stale or selected epic from the URL stays selectable, so the select
+  // never shows a blank.
+  const isClosedEpic = (l: string) =>
+    filterByLabels(allTasks, [l]).every((t) => t.status === TaskStatus.DONE)
   // Only the picked product's epics are offered.
   const productTasks = filterByLabels(allTasks, labelFilter.filter(isProductLabel))
   const epics = [
