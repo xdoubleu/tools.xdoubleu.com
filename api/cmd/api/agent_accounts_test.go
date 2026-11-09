@@ -144,6 +144,7 @@ func mcpStatus(t *testing.T, token string) int {
 var factoryToolNames = []string{
 	"factory_list_repos", "factory_list_tasks", "factory_get_task",
 	"factory_create_task", "factory_comment_task", "factory_move_task",
+	"factory_update_task", "factory_move_tasks",
 }
 
 func TestAgentAccount_LifeCycle(t *testing.T) {
