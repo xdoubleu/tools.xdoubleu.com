@@ -237,6 +237,12 @@ func (s *Store) Revoke(ctx context.Context, id uuid.UUID) (*Account, error) {
 		); err != nil {
 			return nil, err
 		}
+		if _, err = tx.Exec(ctx,
+			`DELETE FROM global.app_access WHERE user_id = $1`,
+			account.UserID.String(),
+		); err != nil {
+			return nil, err
+		}
 	}
 	if err = tx.Commit(ctx); err != nil {
 		return nil, err

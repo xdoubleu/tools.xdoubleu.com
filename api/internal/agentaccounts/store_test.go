@@ -264,4 +264,8 @@ func TestAStandingAccountHoldsTheFactoryAppAndAJobsAccountNone(t *testing.T) {
 	}
 	assert.Equal(t, []string{"factory:write"}, access(standing.UserID))
 	assert.Empty(t, access(job.UserID))
+
+	_, err = store.Revoke(ctx, standing.ID)
+	require.NoError(t, err)
+	assert.Empty(t, access(standing.UserID), "revoking drops the grants")
 }

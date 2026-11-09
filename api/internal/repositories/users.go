@@ -142,41 +142,48 @@ const (
 )
 
 // SetAgentAppAccess grants a standing agent an app at AgentRead or AgentWrite,
-// or revokes it with AgentNoAccess. A person and a job's own account hold no
-// agent grants: the bool is false, and nothing changes, when userID is not a
-// standing agent.
+// or revokes it with AgentNoAccess. A person, a job's own account and a revoked
+// account hold no agent grants: the bool is false, and nothing changes, when
+// userID is not an active standing agent. The account row is locked for the
+// write, so it can't race a revoke.
 func (r *AppUsersRepository) SetAgentAppAccess(
 	ctx context.Context,
 	userID, appName, level string,
 ) (bool, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
 	var found bool
-	err := r.db.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		SELECT EXISTS (
-			SELECT 1 FROM global.app_users u
-			WHERE u.id = $1 AND u.role = 'agent'
-			AND NOT EXISTS (
-				SELECT 1 FROM global.agent_accounts g
-				WHERE g.user_id::text = u.id AND g.job_id IS NOT NULL
-			)
+			SELECT 1 FROM global.agent_accounts
+			WHERE user_id::text = $1 AND job_id IS NULL AND revoked_at IS NULL
+			FOR UPDATE
 		)`, userID).Scan(&found)
 	if err != nil || !found {
 		return false, err
 	}
 
 	if level == AgentNoAccess {
-		_, err = r.db.Exec(ctx,
+		_, err = tx.Exec(ctx,
 			`DELETE FROM global.app_access WHERE user_id = $1 AND app_name = $2`,
 			userID, appName,
 		)
-		return true, err
+	} else {
+		_, err = tx.Exec(ctx, `
+			INSERT INTO global.app_access (user_id, app_name, level)
+			VALUES ($1, $2, $3)
+			ON CONFLICT (user_id, app_name) DO UPDATE SET level = EXCLUDED.level`,
+			userID, appName, level,
+		)
 	}
-	_, err = r.db.Exec(ctx, `
-		INSERT INTO global.app_access (user_id, app_name, level)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (user_id, app_name) DO UPDATE SET level = EXCLUDED.level`,
-		userID, appName, level,
-	)
-	return true, err
+	if err != nil {
+		return false, err
+	}
+	return true, tx.Commit(ctx)
 }
 
 func (r *AppUsersRepository) SetAppAccess(

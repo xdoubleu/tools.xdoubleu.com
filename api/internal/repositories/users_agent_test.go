@@ -29,7 +29,15 @@ func seedAgentUser(t *testing.T) string {
 		`INSERT INTO global.app_users (id, email, role) VALUES ($1, $2, 'agent')`,
 		id, email)
 	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `
+		INSERT INTO global.agent_accounts (user_id, client_id, name, created_by)
+		VALUES ($1, $2, 'seeded', 'test')`, id, "agent-"+id)
+	require.NoError(t, err)
 	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(),
+			`DELETE FROM global.agent_accounts WHERE user_id = $1`, id)
+		_, _ = pool.Exec(context.Background(),
+			`DELETE FROM global.app_access WHERE user_id = $1`, id)
 		_, _ = pool.Exec(context.Background(),
 			`DELETE FROM global.app_users WHERE id = $1`, id)
 		_, _ = pool.Exec(context.Background(),
@@ -116,6 +124,33 @@ func TestAStandingAgentIsGrantedReadAndWriteAccess(t *testing.T) {
 	got, err = repo.GetByID(ctx, id)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"feeds"}, got.AppAccess)
+}
+
+func TestAgentAccessIsRefusedForARevokedOrJobAccount(t *testing.T) {
+	revoked := seedAgentUser(t)
+	job := seedAgentUser(t)
+	pool := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	t.Cleanup(pool.Close)
+	repo := repositories.NewAppUsersRepository(pool)
+	ctx := context.Background()
+
+	_, err := pool.Exec(ctx,
+		`UPDATE global.agent_accounts SET revoked_at = now() WHERE user_id = $1`,
+		revoked)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx,
+		`UPDATE global.agent_accounts SET job_id = $2, task_id = $2
+		 WHERE user_id = $1`, job, uuid.New())
+	require.NoError(t, err)
+
+	for _, id := range []string{revoked, job} {
+		ok, grantErr := repo.SetAgentAppAccess(ctx, id, "books", repositories.AgentWrite)
+		require.NoError(t, grantErr)
+		assert.False(t, ok)
+		got, getErr := repo.GetByID(ctx, id)
+		require.NoError(t, getErr)
+		assert.Empty(t, got.AppAccess)
+	}
 }
 
 func TestAgentAccessIsRefusedForAPerson(t *testing.T) {
