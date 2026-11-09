@@ -70,12 +70,6 @@ func (f *fakePlansStore) SuggestRecipes(
 	return nil, nil
 }
 
-func (f *fakePlansStore) SuggestWeek(
-	_ context.Context, _ uuid.UUID, _ time.Time,
-) ([]models.WeekSuggestion, error) {
-	return nil, nil
-}
-
 func (f *fakePlansStore) GetByICalToken(
 	_ context.Context, _ uuid.UUID,
 ) (*models.Plan, error) {
@@ -200,18 +194,6 @@ func TestPlanUpdate_OtherFamilyForbidden(t *testing.T) {
 	err := svc.Update(t.Context(), "other", *store.plan)
 	assert.Equal(t, http.StatusNotFound, planHTTPStatus(t, err))
 	assert.False(t, store.updated)
-}
-
-func TestPlanSuggestWeek_OtherFamilyForbidden(t *testing.T) {
-	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakePlansStore{plan: newPlanFixture()}
-	svc := &PlanService{repo: store, family: newFamilyStore()}
-
-	_, err := svc.SuggestWeek(t.Context(), store.plan.ID, "other", time.Now())
-	assert.Equal(t, http.StatusNotFound, planHTTPStatus(t, err))
-
-	_, err = svc.SuggestWeek(t.Context(), store.plan.ID, "editor", time.Now())
-	require.NoError(t, err)
 }
 
 func TestPlanDelete_OtherFamilyForbidden(t *testing.T) {

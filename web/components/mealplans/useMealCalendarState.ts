@@ -4,8 +4,7 @@ import {
   useUpdateMeal,
   useDeleteMeal,
   useMoveMeal,
-  useMealSuggestions,
-  useSuggestWeek
+  useMealSuggestions
 } from '@/hooks/useMealPlans'
 import type {
   AddMealInput,
@@ -48,7 +47,6 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
   const updateMeal = useUpdateMeal()
   const deleteMeal = useDeleteMeal()
   const moveMeal = useMoveMeal()
-  const suggestWeek = useSuggestWeek()
 
   // Suggestions load only while adding; unavailable recipes are dropped and
   // each carries its most-used servings and whether it is a fresh pick.
@@ -247,37 +245,6 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     }
   }
 
-  // Adds each slot's usual meal to the empty slots of the week starting at
-  // startDate; returns how many were added. Existing meals stay untouched.
-  const handleFillWeek = async (startDate: string) => {
-    let added = 0
-    try {
-      const { suggestions } = await suggestWeek(plan.id, startDate)
-      for (const s of suggestions) {
-        await createMeal(
-          {
-            planId: plan.id,
-            mealDate: s.mealDate,
-            mealSlot: s.mealSlot,
-            recipeId: s.recipeId,
-            customName: '',
-            servings: s.servings,
-            excludeFromShoppingList: false
-          },
-          recipeName(s.recipeId)
-        )
-        added++
-      }
-      return added
-    } catch (err) {
-      console.error('Failed to fill week:', err)
-      return -1
-    } finally {
-      // Meals added before a failure still show.
-      if (added > 0) onMutate?.()
-    }
-  }
-
   const cancelForm = () => {
     setSelectedSlot(null)
     setSelectedDate(null)
@@ -303,7 +270,6 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     handleSaveAdd,
     handleSaveEdit,
     handleSaveFillDay,
-    handleFillWeek,
     handleDeleteMeal,
     handleStartPick,
     handleMealClick,

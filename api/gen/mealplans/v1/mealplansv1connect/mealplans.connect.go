@@ -48,9 +48,6 @@ const (
 	// MealPlansServiceSuggestRecipesProcedure is the procedure name of the MealPlansService's
 	// SuggestRecipes RPC.
 	MealPlansServiceSuggestRecipesProcedure = "/mealplans.v1.MealPlansService/SuggestRecipes"
-	// MealPlansServiceSuggestWeekProcedure is the procedure name of the MealPlansService's SuggestWeek
-	// RPC.
-	MealPlansServiceSuggestWeekProcedure = "/mealplans.v1.MealPlansService/SuggestWeek"
 )
 
 var (
@@ -117,13 +114,6 @@ var (
 			Procedure:  MealPlansServiceSuggestRecipesProcedure,
 		}
 	})
-	mealPlansServiceSuggestWeekSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_mealplans_v1_mealplans_proto.Services().ByName("MealPlansService").Methods().ByName("SuggestWeek"),
-			Procedure:  MealPlansServiceSuggestWeekProcedure,
-		}
-	})
 )
 
 // MealPlansServiceClient is a client for the mealplans.v1.MealPlansService service.
@@ -137,7 +127,6 @@ type MealPlansServiceClient interface {
 	DeleteMeal(context.Context, *v1.DeleteMealRequest) (*v1.DeleteMealResponse, error)
 	MoveMeal(context.Context, *v1.MoveMealRequest) (*v1.MoveMealResponse, error)
 	SuggestRecipes(context.Context, *v1.SuggestRecipesRequest) (*v1.SuggestRecipesResponse, error)
-	SuggestWeek(context.Context, *v1.SuggestWeekRequest) (*v1.SuggestWeekResponse, error)
 }
 
 // NewMealPlansServiceClient constructs a client for the mealplans.v1.MealPlansService service.
@@ -157,7 +146,6 @@ type MealPlansServiceHandler interface {
 	DeleteMeal(context.Context, *v1.DeleteMealRequest) (*v1.DeleteMealResponse, error)
 	MoveMeal(context.Context, *v1.MoveMealRequest) (*v1.MoveMealResponse, error)
 	SuggestRecipes(context.Context, *v1.SuggestRecipesRequest) (*v1.SuggestRecipesResponse, error)
-	SuggestWeek(context.Context, *v1.SuggestWeekRequest) (*v1.SuggestWeekResponse, error)
 }
 
 // RegisterMealPlansServiceHandler registers svc as the mealplans.v1.MealPlansService implementation
@@ -174,7 +162,6 @@ func RegisterMealPlansServiceHandler(server *connect.Server, svc MealPlansServic
 		connect.Method{Spec: mealPlansServiceDeleteMealSpec(), Handler: adapter.deleteMeal},
 		connect.Method{Spec: mealPlansServiceMoveMealSpec(), Handler: adapter.moveMeal},
 		connect.Method{Spec: mealPlansServiceSuggestRecipesSpec(), Handler: adapter.suggestRecipes},
-		connect.Method{Spec: mealPlansServiceSuggestWeekSpec(), Handler: adapter.suggestWeek},
 	)
 }
 
@@ -215,10 +202,6 @@ func (UnimplementedMealPlansServiceHandler) MoveMeal(context.Context, *v1.MoveMe
 
 func (UnimplementedMealPlansServiceHandler) SuggestRecipes(context.Context, *v1.SuggestRecipesRequest) (*v1.SuggestRecipesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "mealplans.v1.MealPlansService.SuggestRecipes is not implemented")
-}
-
-func (UnimplementedMealPlansServiceHandler) SuggestWeek(context.Context, *v1.SuggestWeekRequest) (*v1.SuggestWeekResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "mealplans.v1.MealPlansService.SuggestWeek is not implemented")
 }
 
 type mealPlansServiceClient struct {
@@ -292,14 +275,6 @@ func (c *mealPlansServiceClient) MoveMeal(ctx context.Context, req *v1.MoveMealR
 func (c *mealPlansServiceClient) SuggestRecipes(ctx context.Context, req *v1.SuggestRecipesRequest) (*v1.SuggestRecipesResponse, error) {
 	var res v1.SuggestRecipesResponse
 	if err := c.client.CallUnary(ctx, mealPlansServiceSuggestRecipesSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *mealPlansServiceClient) SuggestWeek(ctx context.Context, req *v1.SuggestWeekRequest) (*v1.SuggestWeekResponse, error) {
-	var res v1.SuggestWeekResponse
-	if err := c.client.CallUnary(ctx, mealPlansServiceSuggestWeekSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -409,18 +384,6 @@ func (h mealPlansServiceHandler) suggestRecipes(ctx context.Context, _ connect.S
 		return err
 	}
 	res, err := h.svc.SuggestRecipes(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h mealPlansServiceHandler) suggestWeek(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.SuggestWeekRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.SuggestWeek(ctx, &req)
 	if err != nil {
 		return err
 	}

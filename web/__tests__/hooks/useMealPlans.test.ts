@@ -30,7 +30,6 @@ import {
   useMealPlans,
   useMealPlan,
   useMealSuggestions,
-  useSuggestWeek,
   useUpdatePlan,
   useRotateICalToken,
   useAddMeal,
@@ -83,17 +82,6 @@ describe('useMealSuggestions', () => {
   it('passes null as key when any argument is missing', () => {
     renderHook(() => useMealSuggestions('plan-1', '', 'noon'))
     expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
-  })
-})
-
-describe('useSuggestWeek', () => {
-  it('calls client.suggestWeek with the plan and start date', () => {
-    const suggestWeek = vi.fn()
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- only the RPC under test
-    vi.mocked(createServiceClient).mockReturnValueOnce({ suggestWeek } as never)
-    const { result } = renderHook(() => useSuggestWeek())
-    result.current('p1', '2024-01-22')
-    expect(suggestWeek).toHaveBeenCalledWith({ planId: 'p1', startDate: '2024-01-22' })
   })
 })
 
