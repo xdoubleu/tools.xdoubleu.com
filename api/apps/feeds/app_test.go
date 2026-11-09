@@ -99,6 +99,7 @@ func ensureGlobalAppUsers(db postgres.DB) {
 		`CREATE TABLE IF NOT EXISTS global.app_access (
 			user_id  TEXT NOT NULL,
 			app_name TEXT NOT NULL,
+			level    TEXT NOT NULL DEFAULT 'write',
 			PRIMARY KEY (user_id, app_name)
 		)`,
 		// Mirrors cmd/api/migrations/00005_observability.sql for jobqueue.
