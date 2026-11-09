@@ -198,11 +198,32 @@ describe('AgentsClient', () => {
     expect(screen.getByLabelText('factory access for Reviewer')).toHaveValue('write')
     expect(screen.getByLabelText('books access for Reviewer')).toHaveValue('read')
     expect(screen.getByLabelText('trains access for Reviewer')).toHaveValue('none')
+    expect(screen.getByRole('group', { name: 'App access for Reviewer' })).toBeInTheDocument()
+    for (const app of [
+      'factory',
+      'books',
+      'feeds',
+      'games',
+      'learningpaths',
+      'mealplans',
+      'movies',
+      'podcasts',
+      'recipes',
+      'shoppinglist',
+      'taste',
+      'trains'
+    ]) {
+      expect(screen.getByLabelText(`${app} access for Reviewer`)).toBeInTheDocument()
+    }
+    const select = screen.getByLabelText('books access for Reviewer')
+    expect(select).toHaveAttribute('id', 'a1-books')
+    expect(screen.getByText('books')).toHaveAttribute('for', 'a1-books')
   })
 
   it('changes a grant for the agent user, and says so when it fails', async () => {
     mockAgents({ data: list })
     render(<AgentsClient />)
+    expect(screen.queryByText(/Couldn.t change the access/)).not.toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('books access for Reviewer'), {
       target: { value: 'read' }
     })
@@ -214,6 +235,13 @@ describe('AgentsClient', () => {
       target: { value: 'write' }
     })
     expect(await screen.findByText(/Couldn.t change the access/)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('feeds access for Reviewer'), {
+      target: { value: 'read' }
+    })
+    await waitFor(() =>
+      expect(screen.queryByText(/Couldn.t change the access/)).not.toBeInTheDocument()
+    )
   })
 
   it('rotates the secret and joins the family behind the step-up sheet', async () => {
@@ -231,6 +259,8 @@ describe('AgentsClient', () => {
     expect(screen.getByText('Add Reviewer to your family')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'run' }))
     await waitFor(() => expect(mockJoin).toHaveBeenCalledWith('a1', '123456'))
+    fireEvent.click(screen.getByRole('button', { name: 'close' }))
+    expect(screen.queryByTestId('step-up')).not.toBeInTheDocument()
   })
 
   it('takes the agent out of the family, and says so when that fails', async () => {
