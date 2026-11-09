@@ -15,7 +15,7 @@ ON CONFLICT DO NOTHING;
 -- +goose Down
 -- +goose StatementBegin
 DELETE FROM global.app_access
-WHERE user_id IN (
+WHERE app_name = 'factory' AND user_id IN (
     SELECT user_id::TEXT
     FROM global.agent_accounts
     WHERE job_id IS NOT NULL

@@ -55,7 +55,7 @@ func agentCall(
 	case "tools/list":
 		res, err := next(ctx, method, req)
 		if list, ok := res.(*mcp.ListToolsResult); ok && err == nil {
-			list.Tools = slices.DeleteFunc(list.Tools, func(t *mcp.Tool) bool {
+			list.Tools = slices.DeleteFunc(slices.Clone(list.Tools), func(t *mcp.Tool) bool {
 				return !held(apps, t.Name, "_")
 			})
 		}
@@ -63,14 +63,16 @@ func agentCall(
 	case "resources/list":
 		res, err := next(ctx, method, req)
 		if list, ok := res.(*mcp.ListResourcesResult); ok && err == nil {
-			list.Resources = slices.DeleteFunc(list.Resources, func(r *mcp.Resource) bool {
-				return !held(apps, r.URI, "://")
-			})
+			list.Resources = slices.DeleteFunc(
+				slices.Clone(list.Resources), func(r *mcp.Resource) bool {
+					return !held(apps, r.URI, "://")
+				})
 		}
 		return res, err
 	default:
 		if strings.HasPrefix(method, "resources/") ||
-			strings.HasPrefix(method, "prompts/") {
+			strings.HasPrefix(method, "prompts/") ||
+			strings.HasPrefix(method, "completion/") {
 			return nil, errUnknownTool
 		}
 	}
@@ -90,7 +92,7 @@ func hideAgentTools(
 ) (mcp.Result, error) {
 	res, err := next(ctx, method, req)
 	if list, ok := res.(*mcp.ListToolsResult); ok && err == nil && method == "tools/list" {
-		list.Tools = slices.DeleteFunc(list.Tools, func(t *mcp.Tool) bool {
+		list.Tools = slices.DeleteFunc(slices.Clone(list.Tools), func(t *mcp.Tool) bool {
 			return strings.HasPrefix(t.Name, factoryApp+"_")
 		})
 	}
