@@ -66,7 +66,7 @@ unless they say to proceed without a task.
 - **Grilling:** run the `grilling` skill on the scope and plan, feeding its
   settled design tree into `## Plan` — unless the plan was already grilled in
   plan mode (root `CLAUDE.md`), then say so in one line.
-- **Plan:** agents can't edit a body, so on an existing task comment the
+- **Plan:** a Ready task's body is frozen, so on an existing task comment the
   `## Plan` (`factory_comment_task`) before the first edit. That comment is for
   people and this session; the sandbox runner's prompt is the body only
   ([#2701](https://github.com/xdoubleu/tools.xdoubleu.com/issues/2701) decision

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
 	"tools.xdoubleu.com/apps/factory/internal/services"
@@ -55,6 +56,25 @@ type mcpMoveArgs struct {
 	Status string `json:"status" jsonschema:"target column: backlog, in_progress, in_review, needs_you, testing or done; ready is refused"`
 }
 
+//nolint:lll // struct tags can't wrap
+type mcpUpdateArgs struct {
+	ID           string   `json:"id"                      jsonschema:"task id"`
+	Title        string   `json:"title,omitempty"         jsonschema:"new title; omit to keep it"`
+	Body         string   `json:"body,omitempty"          jsonschema:"new body in markdown, replacing the old one; omit to keep it"`
+	Priority     string   `json:"priority,omitempty"      jsonschema:"p0, p1 or p2; omit to keep it"`
+	AddLabels    []string `json:"add_labels,omitempty"    jsonschema:"labels to add"`
+	RemoveLabels []string `json:"remove_labels,omitempty" jsonschema:"labels to remove, ignoring case"`
+}
+
+//nolint:lll // struct tags can't wrap
+type mcpMoveManyArgs struct {
+	IDs    []string `json:"ids"    jsonschema:"task ids, at most 200"`
+	Status string   `json:"status" jsonschema:"target column: backlog, in_progress, in_review, needs_you, testing or done; ready is refused"`
+}
+
+// maxBulkMove bounds one factory_move_tasks call.
+const maxBulkMove = 200
+
 // RegisterMCPTools exposes the board to agent accounts (docs/adr-0040). The
 // tools act as the agent; moving a task into Ready is refused by the service,
 // which only lets a human in a browser do that.
@@ -79,6 +99,14 @@ func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
 	mcptools.AddAgentWriteTool(srv, "factory_move_task",
 		"Move a task to another column ("+statusNames+"). Moving into ready is "+
 			"refused: only a person in a browser can do that.", t.moveTask)
+	mcptools.AddAgentWriteTool(srv, "factory_update_task",
+		"Change a task's title, body, priority or labels (add_labels and "+
+			"remove_labels). Fields left out stay as they are. It never changes "+
+			"the column.", t.updateTask)
+	mcptools.AddAgentWriteTool(srv, "factory_move_tasks",
+		"Move many tasks to one column ("+statusNames+") and get back only the "+
+			"ids moved and the ones that failed. Moving into ready is refused.",
+		t.moveTasks)
 }
 
 type mcpTools struct {
@@ -296,4 +324,120 @@ func (t *mcpTools) moveTask(
 		return nil, connecttools.MapError(err)
 	}
 	return &factoryv1.MoveTaskResponse{Task: protoTask(task)}, nil
+}
+
+func (t *mcpTools) updateTask(
+	ctx context.Context, args mcpUpdateArgs,
+) (proto.Message, error) {
+	actor, err := agentActor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err = t.refuseScoped(ctx, "edit tasks"); err != nil {
+		return nil, err
+	}
+	id, err := parseID(args.ID)
+	if err != nil {
+		return nil, err
+	}
+	current, _, err := t.app.services.Tasks.Get(ctx, id)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	// A person approved this title and body when moving it to Ready.
+	if current.Status == models.StatusReady && (args.Title != "" || args.Body != "") {
+		return nil, errors.New("the title and body of a Ready task can't be changed")
+	}
+	in := services.TaskInput{
+		Title:    current.Title,
+		Body:     current.Body,
+		Priority: current.Priority,
+		Labels:   mergeLabels(current.Labels, args.AddLabels, args.RemoveLabels),
+	}
+	if args.Title != "" {
+		in.Title = args.Title
+	}
+	if args.Body != "" {
+		in.Body = args.Body
+	}
+	if args.Priority != "" {
+		in.Priority = models.Priority(args.Priority)
+	}
+	task, err := t.app.services.Tasks.Update(ctx, actor, id, in)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return &factoryv1.UpdateTaskResponse{Task: protoTask(task)}, nil
+}
+
+// mergeLabels applies the removals (ignoring case) and then the additions,
+// keeping order and dropping duplicates.
+func mergeLabels(current, add, remove []string) []string {
+	out := []string{}
+	for _, l := range current {
+		if !containsFold(remove, l) {
+			out = append(out, l)
+		}
+	}
+	for _, l := range add {
+		if !containsFold(out, l) {
+			out = append(out, l)
+		}
+	}
+	return out
+}
+
+func containsFold(list []string, label string) bool {
+	return slices.ContainsFunc(list, func(l string) bool {
+		return strings.EqualFold(l, label)
+	})
+}
+
+// refuseScoped stops a job's own account from doing what only a board-wide
+// account may.
+func (t *mcpTools) refuseScoped(ctx context.Context, what string) error {
+	_, scoped, err := t.scopedTask(ctx)
+	if err != nil {
+		return err
+	}
+	if scoped {
+		return errors.New("a job can't " + what)
+	}
+	return nil
+}
+
+func (t *mcpTools) moveTasks(
+	ctx context.Context, args mcpMoveManyArgs,
+) (proto.Message, error) {
+	actor, err := agentActor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err = t.refuseScoped(ctx, "move tasks"); err != nil {
+		return nil, err
+	}
+	if len(args.IDs) == 0 || len(args.IDs) > maxBulkMove {
+		return nil, errors.New("ids must hold between 1 and 200 task ids")
+	}
+	status := models.Status(args.Status)
+	if !status.Valid() {
+		return nil, errors.New("status must be one of " + statusNames)
+	}
+	if status == models.StatusReady {
+		return nil, errors.New("only a person in a browser can move a task to ready")
+	}
+	moved := make([]any, 0, len(args.IDs))
+	failed := []any{}
+	for _, raw := range slices.Compact(slices.Sorted(slices.Values(args.IDs))) {
+		id, perr := parseID(raw)
+		if perr == nil {
+			_, perr = t.app.services.Tasks.Move(ctx, actor, id, status)
+		}
+		if perr != nil {
+			failed = append(failed, map[string]any{"id": raw, "error": perr.Error()})
+			continue
+		}
+		moved = append(moved, raw)
+	}
+	return structpb.NewStruct(map[string]any{"moved": moved, "failed": failed})
 }

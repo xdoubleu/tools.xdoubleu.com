@@ -15,10 +15,14 @@ the opposite of what the board needs.
 
 ## Decision
 
-- Six tools on `/apps/mcp`: `factory_list_repos`, `factory_list_tasks`,
+- Eight tools on `/apps/mcp`: `factory_list_repos`, `factory_list_tasks`,
   `factory_get_task` (read) and `factory_create_task`, `factory_comment_task`,
-  `factory_move_task` (write). `factory_list_jobs` waits for jobs to exist
-  (#2706).
+  `factory_move_task`, `factory_move_tasks`, `factory_update_task` (write).
+  `factory_list_jobs` waits for jobs to exist (#2706).
+- `factory_update_task` edits title, body, priority and labels but never the
+  column. It refuses a title or body change once a task is Ready, because a
+  person approved that text. `factory_move_tasks` moves many tasks and returns
+  only the ids moved and failed. A job's own account can use neither.
 - Each tool is gated by `RequireAgent`: the `agent` role only. An admin or a user
   gets a permission error, and `AgentToolsOnly` also leaves the `factory_` tools
   out of every non-agent's tool list.
@@ -49,5 +53,4 @@ the opposite of what the board needs.
 
 ## Revisit when
 
-An agent needs to edit a task's body (the executor reads it frozen at Ready), or
-when jobs exist and agents should see them.
+Agents should see jobs, or edits to a Ready task's text become necessary.
