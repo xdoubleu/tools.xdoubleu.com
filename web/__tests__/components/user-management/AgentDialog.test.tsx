@@ -4,11 +4,11 @@ import { create } from '@bufbuild/protobuf'
 import { Code, ConnectError } from '@connectrpc/connect'
 
 const mockCreate = vi.fn()
-vi.mock('@/hooks/useFactory', () => ({
-  useFactoryActions: vi.fn(() => ({ createAgent: mockCreate }))
+vi.mock('@/hooks/useUserManagement', () => ({
+  useAgentActions: vi.fn(() => ({ create: mockCreate }))
 }))
 
-import AgentDialog from '@/components/factory/AgentDialog'
+import AgentDialog from '@/components/user-management/AgentDialog'
 import {
   AgentAccountSchema,
   CreateAgentAccountResponseSchema
@@ -37,7 +37,9 @@ describe('AgentDialog', () => {
     render(<AgentDialog onClose={vi.fn()} />)
     expect(screen.getByText('New agent')).toBeInTheDocument()
     expect(
-      screen.getByText('An agent works on the board under its own account, never as you.')
+      screen.getByText(
+        'An agent acts under its own account, never as you, and reaches only the apps you grant it.'
+      )
     ).toBeInTheDocument()
     expect(screen.getByLabelText('Name')).toHaveValue('')
     expect(screen.getByLabelText('Authenticator code')).toHaveValue('')

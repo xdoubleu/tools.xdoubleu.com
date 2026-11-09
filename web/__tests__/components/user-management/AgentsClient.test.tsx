@@ -3,17 +3,27 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { create } from '@bufbuild/protobuf'
 
 const mockRevoke = vi.fn()
-vi.mock('@/hooks/useFactory', () => ({
-  useFactoryAgents: vi.fn(),
-  useFactoryActions: vi.fn(() => ({ revokeAgent: mockRevoke }))
+const mockRotate = vi.fn()
+const mockJoin = vi.fn()
+const mockLeave = vi.fn()
+const mockSetAccess = vi.fn()
+vi.mock('@/hooks/useUserManagement', () => ({
+  useAgents: vi.fn(),
+  useAgentActions: vi.fn(() => ({
+    revoke: mockRevoke,
+    rotate: mockRotate,
+    joinFamily: mockJoin,
+    leaveFamily: mockLeave,
+    setAccess: mockSetAccess
+  }))
 }))
-vi.mock('@/components/factory/AgentDialog', () => ({
+vi.mock('@/components/user-management/AgentDialog', () => ({
   __esModule: true,
   default: ({ onClose }: { onClose: () => void }) => <div data-testid="dialog" onClick={onClose} />
 }))
 
-import AgentsClient from '@/components/factory/AgentsClient'
-import { useFactoryAgents } from '@/hooks/useFactory'
+import AgentsClient from '@/components/user-management/AgentsClient'
+import { useAgents } from '@/hooks/useUserManagement'
 import {
   AgentAccountSchema,
   ListAgentAccountsResponseSchema
@@ -21,7 +31,7 @@ import {
 
 function mockAgents(value: { data?: unknown; error?: Error; isLoading?: boolean }) {
   // @ts-expect-error -- partial SWRResponse
-  vi.mocked(useFactoryAgents).mockReturnValue({ isLoading: false, ...value })
+  vi.mocked(useAgents).mockReturnValue({ isLoading: false, ...value })
 }
 
 const list = create(ListAgentAccountsResponseSchema, {
@@ -36,9 +46,32 @@ const list = create(ListAgentAccountsResponseSchema, {
   ]
 })
 
+vi.mock('@/components/user-management/AgentStepUpDialog', () => ({
+  __esModule: true,
+  default: ({
+    title,
+    run,
+    onClose
+  }: {
+    title: string
+    run: (code: string) => Promise<unknown>
+    onClose: () => void
+  }) => (
+    <div data-testid="step-up">
+      <span>{title}</span>
+      <button onClick={() => void run('123456')}>run</button>
+      <button onClick={onClose}>close</button>
+    </div>
+  )
+}))
+
 beforeEach(() => {
   vi.clearAllMocks()
   mockRevoke.mockResolvedValue(undefined)
+  mockRotate.mockResolvedValue(undefined)
+  mockJoin.mockResolvedValue(undefined)
+  mockLeave.mockResolvedValue(undefined)
+  mockSetAccess.mockResolvedValue(undefined)
 })
 
 describe('AgentsClient', () => {
@@ -50,7 +83,10 @@ describe('AgentsClient', () => {
     expect(screen.getByText('Old agent')).toBeInTheDocument()
     expect(screen.getByText('Revoked')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Revoke' })).toHaveLength(1)
-    expect(screen.getByRole('link', { name: 'Factory' })).toHaveAttribute('href', '/factory')
+    expect(screen.getByRole('link', { name: 'User management' })).toHaveAttribute(
+      'href',
+      '/user-management'
+    )
     expect(screen.getByText('Agents', { selector: '[aria-current="page"]' })).toBeInTheDocument()
   })
 
@@ -101,7 +137,7 @@ describe('AgentsClient', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Revoke' }))
     await waitFor(() => expect(mockRevoke).toHaveBeenCalledWith('a1'))
     await waitFor(() => expect(screen.queryByText('Revoke Reviewer?')).not.toBeInTheDocument())
-    expect(screen.queryByText(/Couldn.t revoke/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Couldn.t complete that/)).not.toBeInTheDocument()
   })
 
   it('cancels a revoke', () => {
@@ -117,11 +153,11 @@ describe('AgentsClient', () => {
     mockRevoke.mockRejectedValueOnce(new Error('network'))
     mockAgents({ data: list })
     render(<AgentsClient />)
-    expect(screen.queryByText(/Couldn.t revoke/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Couldn.t complete that/)).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Revoke' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Revoke' }))
-    expect(await screen.findByText(/Couldn.t revoke the agent/)).toBeInTheDocument()
+    expect(await screen.findByText(/Couldn.t complete that/)).toBeInTheDocument()
   })
 
   it('shows progress while revoking and lets the user retry after a failure', async () => {
@@ -140,7 +176,72 @@ describe('AgentsClient', () => {
     mockRevoke.mockRejectedValueOnce(new Error('network'))
     fireEvent.click(screen.getByRole('button', { name: 'Revoke' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Revoke' }))
-    await screen.findByText(/Couldn.t revoke the agent/)
+    await screen.findByText(/Couldn.t complete that/)
     expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Revoke' })).toBeEnabled()
+  })
+
+  it('shows each app at the level the agent holds it', () => {
+    mockAgents({
+      data: create(ListAgentAccountsResponseSchema, {
+        accounts: [
+          create(AgentAccountSchema, {
+            id: 'a1',
+            name: 'Reviewer',
+            userId: 'u1',
+            appAccess: ['factory', 'books'],
+            writeAccess: ['factory']
+          })
+        ]
+      })
+    })
+    render(<AgentsClient />)
+    expect(screen.getByLabelText('factory access for Reviewer')).toHaveValue('write')
+    expect(screen.getByLabelText('books access for Reviewer')).toHaveValue('read')
+    expect(screen.getByLabelText('trains access for Reviewer')).toHaveValue('none')
+  })
+
+  it('changes a grant for the agent user, and says so when it fails', async () => {
+    mockAgents({ data: list })
+    render(<AgentsClient />)
+    fireEvent.change(screen.getByLabelText('books access for Reviewer'), {
+      target: { value: 'read' }
+    })
+    await waitFor(() => expect(mockSetAccess).toHaveBeenCalledWith('', 'books', 'read'))
+    expect(screen.queryByText(/Couldn.t change the access/)).not.toBeInTheDocument()
+
+    mockSetAccess.mockRejectedValueOnce(new Error('network'))
+    fireEvent.change(screen.getByLabelText('feeds access for Reviewer'), {
+      target: { value: 'write' }
+    })
+    expect(await screen.findByText(/Couldn.t change the access/)).toBeInTheDocument()
+  })
+
+  it('rotates the secret and joins the family behind the step-up sheet', async () => {
+    mockAgents({ data: list })
+    render(<AgentsClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rotate secret' }))
+    expect(screen.getByText("Rotate Reviewer's secret")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'run' }))
+    await waitFor(() => expect(mockRotate).toHaveBeenCalledWith('a1', '123456'))
+    fireEvent.click(screen.getByRole('button', { name: 'close' }))
+    expect(screen.queryByTestId('step-up')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Join my family' }))
+    expect(screen.getByText('Add Reviewer to your family')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'run' }))
+    await waitFor(() => expect(mockJoin).toHaveBeenCalledWith('a1', '123456'))
+  })
+
+  it('takes the agent out of the family, and says so when that fails', async () => {
+    mockAgents({ data: list })
+    render(<AgentsClient />)
+    fireEvent.click(screen.getByRole('button', { name: 'Leave family' }))
+    await waitFor(() => expect(mockLeave).toHaveBeenCalledWith('a1'))
+    expect(screen.queryByText(/Couldn.t complete that/)).not.toBeInTheDocument()
+
+    mockLeave.mockRejectedValueOnce(new Error('network'))
+    fireEvent.click(screen.getByRole('button', { name: 'Leave family' }))
+    expect(await screen.findByText(/Couldn.t complete that/)).toBeInTheDocument()
   })
 })

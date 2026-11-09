@@ -48,6 +48,9 @@ type Account struct {
 	RevokedAt *time.Time
 	JobID     *uuid.UUID
 	TaskID    *uuid.UUID
+	// AppAccess and WriteAccess are filled by List only.
+	AppAccess   []string
+	WriteAccess []string
 }
 
 // Scope is what a job's account is confined to.
@@ -219,7 +222,48 @@ func (s *Store) List(ctx context.Context) ([]Account, error) {
 		}
 		out = append(out, *a)
 	}
-	return out, rows.Err()
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, s.loadGrants(ctx, out)
+}
+
+// loadGrants fills each account's app grants from global.app_access.
+func (s *Store) loadGrants(ctx context.Context, accounts []Account) error {
+	ids := make([]uuid.UUID, len(accounts))
+	for i := range accounts {
+		ids[i] = accounts[i].UserID
+		accounts[i].AppAccess = []string{}
+		accounts[i].WriteAccess = []string{}
+	}
+	rows, err := s.db.Query(ctx, `
+		SELECT user_id, app_name, level
+		FROM global.app_access
+		WHERE user_id = ANY($1)
+		ORDER BY app_name`, ids)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	byUser := map[uuid.UUID]*Account{}
+	for i := range accounts {
+		byUser[accounts[i].UserID] = &accounts[i]
+	}
+	for rows.Next() {
+		var userID uuid.UUID
+		var app, level string
+		if err = rows.Scan(&userID, &app, &level); err != nil {
+			return err
+		}
+		if a := byUser[userID]; a != nil {
+			a.AppAccess = append(a.AppAccess, app)
+			if level == "write" {
+				a.WriteAccess = append(a.WriteAccess, app)
+			}
+		}
+	}
+	return rows.Err()
 }
 
 // RotateSecret issues a new client secret for a standing account. The old one

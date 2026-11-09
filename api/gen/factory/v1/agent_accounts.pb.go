@@ -33,7 +33,11 @@ type AgentAccount struct {
 	// RFC3339.
 	CreatedAt string `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// RFC3339; empty while the account is active.
-	RevokedAt     string `protobuf:"bytes,7,opt,name=revoked_at,json=revokedAt,proto3" json:"revoked_at,omitempty"`
+	RevokedAt string `protobuf:"bytes,7,opt,name=revoked_at,json=revokedAt,proto3" json:"revoked_at,omitempty"`
+	// The apps the agent holds, and the part of them at the write level. Set by
+	// ListAgentAccounts only.
+	AppAccess     []string `protobuf:"bytes,8,rep,name=app_access,json=appAccess,proto3" json:"app_access,omitempty"`
+	WriteAccess   []string `protobuf:"bytes,9,rep,name=write_access,json=writeAccess,proto3" json:"write_access,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -115,6 +119,20 @@ func (x *AgentAccount) GetRevokedAt() string {
 		return x.RevokedAt
 	}
 	return ""
+}
+
+func (x *AgentAccount) GetAppAccess() []string {
+	if x != nil {
+		return x.AppAccess
+	}
+	return nil
+}
+
+func (x *AgentAccount) GetWriteAccess() []string {
+	if x != nil {
+		return x.WriteAccess
+	}
+	return nil
 }
 
 type ListAgentAccountsRequest struct {
@@ -695,7 +713,7 @@ var File_factory_v1_agent_accounts_proto protoreflect.FileDescriptor
 const file_factory_v1_agent_accounts_proto_rawDesc = "" +
 	"\n" +
 	"\x1ffactory/v1/agent_accounts.proto\x12\n" +
-	"factory.v1\"\xc5\x01\n" +
+	"factory.v1\"\x87\x02\n" +
 	"\fAgentAccount\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x17\n" +
@@ -706,7 +724,10 @@ const file_factory_v1_agent_accounts_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"revoked_at\x18\a \x01(\tR\trevokedAt\"\x1a\n" +
+	"revoked_at\x18\a \x01(\tR\trevokedAt\x12\x1d\n" +
+	"\n" +
+	"app_access\x18\b \x03(\tR\tappAccess\x12!\n" +
+	"\fwrite_access\x18\t \x03(\tR\vwriteAccess\"\x1a\n" +
 	"\x18ListAgentAccountsRequest\"Q\n" +
 	"\x19ListAgentAccountsResponse\x124\n" +
 	"\baccounts\x18\x01 \x03(\v2\x18.factory.v1.AgentAccountR\baccounts\"L\n" +

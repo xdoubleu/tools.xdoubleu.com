@@ -6,6 +6,7 @@ const tasteRecommendations = '/taste/recommendations'
 export const swrKeys = {
   currentUser: '/auth/current-user',
   userManagementUsers: '/user-management/users',
+  userManagementAgents: '/user-management/agents',
   monitoringOAuthConnections: '/monitoring/oauth-connections',
   monitoringNotificationSettings: '/monitoring/notification-settings',
   monitoringAutomatedActions: '/monitoring/automated-actions',
@@ -120,7 +121,6 @@ export const swrKeys = {
   factoryTasks: '/factory/tasks',
   factoryRepos: '/factory/repos',
   factoryOpenRouterModels: '/factory/openrouter-models',
-  factoryAgents: '/factory/agents',
   factoryRunners: '/factory/runners',
   factoryRunnerRelease: '/downloads/factory-runner-release.txt',
   factoryTask: (id: string) => ['/factory/task', id] as const,

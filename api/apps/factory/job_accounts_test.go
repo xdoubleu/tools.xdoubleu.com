@@ -56,6 +56,7 @@ func (f *fakeAccounts) CreateForJob(
 		ID: uuid.New(), Name: name, UserID: uuid.MustParse(acc.userID),
 		ClientID: acc.clientID, CreatedBy: "", CreatedAt: time.Time{},
 		RevokedAt: nil, JobID: &scope.JobID, TaskID: &scope.TaskID,
+		AppAccess: nil, WriteAccess: nil,
 	}
 	return account, "secret-" + acc.clientID, nil
 }

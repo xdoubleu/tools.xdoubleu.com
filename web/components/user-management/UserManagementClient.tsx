@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Card } from '@/components/ui/card'
 import { PageContainer } from '@/components/ui/page-container'
-import { PageHeader } from '@/components/ui/page-header'
+import { PageHeader, PageHeaderLink } from '@/components/ui/page-header'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import {
   Table,
@@ -106,7 +106,10 @@ export default function UserManagementClient() {
 
   return (
     <PageContainer>
-      <PageHeader title="User management" />
+      <PageHeader
+        title="User management"
+        actions={<PageHeaderLink href="/user-management/agents">Agents</PageHeaderLink>}
+      />
 
       {/* Mobile-first card-per-row view; the 9-column table would force a
           wide sideways scroll below `sm`. */}

@@ -274,10 +274,10 @@ describe('FactoryClient', () => {
     expect(screen.getByText('Online').className).toContain('text-success')
   })
 
-  it('links to the agent accounts', () => {
+  it('no longer links to the agent accounts', () => {
     mockTasks({ data: board })
     render(<FactoryClient />)
-    expect(screen.getByRole('link', { name: 'Agents' })).toHaveAttribute('href', '/factory/agents')
+    expect(screen.queryByRole('link', { name: 'Agents' })).not.toBeInTheDocument()
   })
 
   it('links to the repo settings', () => {

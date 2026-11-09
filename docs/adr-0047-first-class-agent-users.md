@@ -20,8 +20,9 @@ it does for people: granted per app, revoked the same way.
 - **Identity.** An agent stays a user row with role `agent` (one user and one
   client_credentials client). The distinct role is the invariant that keeps
   person-only actions closed to it; a `user` row with an "is agent" flag would
-  leave each check to remember the flag. Agents are shown in an Agents section,
-  not the people list.
+  leave each check to remember the flag. Agents are managed on
+  `/user-management/agents` (grants, rotation, family, revoke), not the people
+  list and not the factory.
 - **App access.** Agents use `global.app_access` like people, with a new
   `level` column (`read` | `write`; existing rows `write`, since a person's
   access has always been both). A new agent has no rows. A dedicated admin RPC

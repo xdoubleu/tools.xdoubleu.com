@@ -1,16 +1,16 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 
-vi.mock('@/components/factory/AgentsClient', () => ({
+vi.mock('@/components/user-management/AgentsClient', () => ({
   __esModule: true,
   default: () => <div data-testid="agents" />
 }))
 
-import FactoryAgentsPage from '@/app/factory/agents/page'
+import UserManagementAgentsPage from '@/app/user-management/agents/page'
 
-describe('FactoryAgentsPage', () => {
+describe('UserManagementAgentsPage', () => {
   it('renders the agent accounts', () => {
-    render(<FactoryAgentsPage />)
+    render(<UserManagementAgentsPage />)
     expect(screen.getByTestId('agents')).toBeInTheDocument()
   })
 })
