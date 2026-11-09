@@ -330,6 +330,7 @@ func (service *LocalService) GetUser(
 		Email:       row.Email,
 		Role:        models.RoleUser,
 		AppAccess:   []string{},
+		WriteAccess: []string{},
 		HasMFA:      hasMFA,
 		DisplayName: "",
 	}, nil

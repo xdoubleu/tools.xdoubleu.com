@@ -27,6 +27,9 @@ const (
 	// unusablePasswordHash can't match any password, so the user can't sign in.
 	unusablePasswordHash = "!"
 	clientIDPrefix       = "agent-"
+	// StandingApp is the app a new standing account holds; a job's own account
+	// holds none (adr-0047).
+	StandingApp = "factory"
 )
 
 // Account is an agent account. RevokedAt is nil while it is active. A job's own
@@ -158,6 +161,12 @@ func (s *Store) create(
 	var jobID, taskID *uuid.UUID
 	if scope != nil {
 		jobID, taskID = &scope.JobID, &scope.TaskID
+	} else if _, err = tx.Exec(ctx,
+		`INSERT INTO global.app_access (user_id, app_name, level)
+		 VALUES ($1, $2, 'write')`,
+		userID.String(), StandingApp,
+	); err != nil {
+		return nil, "", err
 	}
 	account, err := scanAccount(tx.QueryRow(ctx, `
 		INSERT INTO global.agent_accounts

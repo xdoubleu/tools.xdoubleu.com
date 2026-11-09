@@ -22,11 +22,13 @@ const (
 )
 
 type AppUser struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Role          string                 `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
-	AppAccess     []string               `protobuf:"bytes,4,rep,name=app_access,json=appAccess,proto3" json:"app_access,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Email     string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Role      string                 `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
+	AppAccess []string               `protobuf:"bytes,4,rep,name=app_access,json=appAccess,proto3" json:"app_access,omitempty"`
+	// write_access is the part of app_access granted at the write level.
+	WriteAccess   []string `protobuf:"bytes,5,rep,name=write_access,json=writeAccess,proto3" json:"write_access,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -85,6 +87,13 @@ func (x *AppUser) GetRole() string {
 func (x *AppUser) GetAppAccess() []string {
 	if x != nil {
 		return x.AppAccess
+	}
+	return nil
+}
+
+func (x *AppUser) GetWriteAccess() []string {
+	if x != nil {
+		return x.WriteAccess
 	}
 	return nil
 }
@@ -369,17 +378,123 @@ func (x *SetAppAccessResponse) GetUser() *AppUser {
 	return nil
 }
 
+type SetAgentAppAccessRequest struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	UserId  string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	AppName string                 `protobuf:"bytes,2,opt,name=app_name,json=appName,proto3" json:"app_name,omitempty"`
+	// level is "read", "write" or "none" (revoke).
+	Level         string `protobuf:"bytes,3,opt,name=level,proto3" json:"level,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetAgentAppAccessRequest) Reset() {
+	*x = SetAgentAppAccessRequest{}
+	mi := &file_access_v1_access_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetAgentAppAccessRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetAgentAppAccessRequest) ProtoMessage() {}
+
+func (x *SetAgentAppAccessRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_access_v1_access_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetAgentAppAccessRequest.ProtoReflect.Descriptor instead.
+func (*SetAgentAppAccessRequest) Descriptor() ([]byte, []int) {
+	return file_access_v1_access_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *SetAgentAppAccessRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *SetAgentAppAccessRequest) GetAppName() string {
+	if x != nil {
+		return x.AppName
+	}
+	return ""
+}
+
+func (x *SetAgentAppAccessRequest) GetLevel() string {
+	if x != nil {
+		return x.Level
+	}
+	return ""
+}
+
+type SetAgentAppAccessResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *AppUser               `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetAgentAppAccessResponse) Reset() {
+	*x = SetAgentAppAccessResponse{}
+	mi := &file_access_v1_access_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetAgentAppAccessResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetAgentAppAccessResponse) ProtoMessage() {}
+
+func (x *SetAgentAppAccessResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_access_v1_access_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetAgentAppAccessResponse.ProtoReflect.Descriptor instead.
+func (*SetAgentAppAccessResponse) Descriptor() ([]byte, []int) {
+	return file_access_v1_access_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *SetAgentAppAccessResponse) GetUser() *AppUser {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
 var File_access_v1_access_proto protoreflect.FileDescriptor
 
 const file_access_v1_access_proto_rawDesc = "" +
 	"\n" +
-	"\x16access/v1/access.proto\x12\taccess.v1\"b\n" +
+	"\x16access/v1/access.proto\x12\taccess.v1\"\x85\x01\n" +
 	"\aAppUser\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
 	"\x04role\x18\x03 \x01(\tR\x04role\x12\x1d\n" +
 	"\n" +
-	"app_access\x18\x04 \x03(\tR\tappAccess\"\x12\n" +
+	"app_access\x18\x04 \x03(\tR\tappAccess\x12!\n" +
+	"\fwrite_access\x18\x05 \x03(\tR\vwriteAccess\"\x12\n" +
 	"\x10ListUsersRequest\"=\n" +
 	"\x11ListUsersResponse\x12(\n" +
 	"\x05users\x18\x01 \x03(\v2\x12.access.v1.AppUserR\x05users\"=\n" +
@@ -393,11 +508,18 @@ const file_access_v1_access_proto_rawDesc = "" +
 	"\bapp_name\x18\x02 \x01(\tR\aappName\x12\x14\n" +
 	"\x05grant\x18\x03 \x01(\bR\x05grant\">\n" +
 	"\x14SetAppAccessResponse\x12&\n" +
-	"\x04user\x18\x01 \x01(\v2\x12.access.v1.AppUserR\x04user2\xea\x01\n" +
+	"\x04user\x18\x01 \x01(\v2\x12.access.v1.AppUserR\x04user\"d\n" +
+	"\x18SetAgentAppAccessRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x19\n" +
+	"\bapp_name\x18\x02 \x01(\tR\aappName\x12\x14\n" +
+	"\x05level\x18\x03 \x01(\tR\x05level\"C\n" +
+	"\x19SetAgentAppAccessResponse\x12&\n" +
+	"\x04user\x18\x01 \x01(\v2\x12.access.v1.AppUserR\x04user2\xca\x02\n" +
 	"\rAccessService\x12F\n" +
 	"\tListUsers\x12\x1b.access.v1.ListUsersRequest\x1a\x1c.access.v1.ListUsersResponse\x12@\n" +
 	"\aSetRole\x12\x19.access.v1.SetRoleRequest\x1a\x1a.access.v1.SetRoleResponse\x12O\n" +
-	"\fSetAppAccess\x12\x1e.access.v1.SetAppAccessRequest\x1a\x1f.access.v1.SetAppAccessResponseB+Z)tools.xdoubleu.com/gen/access/v1;accessv1b\x06proto3"
+	"\fSetAppAccess\x12\x1e.access.v1.SetAppAccessRequest\x1a\x1f.access.v1.SetAppAccessResponse\x12^\n" +
+	"\x11SetAgentAppAccess\x12#.access.v1.SetAgentAppAccessRequest\x1a$.access.v1.SetAgentAppAccessResponseB+Z)tools.xdoubleu.com/gen/access/v1;accessv1b\x06proto3"
 
 var (
 	file_access_v1_access_proto_rawDescOnce sync.Once
@@ -411,31 +533,36 @@ func file_access_v1_access_proto_rawDescGZIP() []byte {
 	return file_access_v1_access_proto_rawDescData
 }
 
-var file_access_v1_access_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_access_v1_access_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_access_v1_access_proto_goTypes = []any{
-	(*AppUser)(nil),              // 0: access.v1.AppUser
-	(*ListUsersRequest)(nil),     // 1: access.v1.ListUsersRequest
-	(*ListUsersResponse)(nil),    // 2: access.v1.ListUsersResponse
-	(*SetRoleRequest)(nil),       // 3: access.v1.SetRoleRequest
-	(*SetRoleResponse)(nil),      // 4: access.v1.SetRoleResponse
-	(*SetAppAccessRequest)(nil),  // 5: access.v1.SetAppAccessRequest
-	(*SetAppAccessResponse)(nil), // 6: access.v1.SetAppAccessResponse
+	(*AppUser)(nil),                   // 0: access.v1.AppUser
+	(*ListUsersRequest)(nil),          // 1: access.v1.ListUsersRequest
+	(*ListUsersResponse)(nil),         // 2: access.v1.ListUsersResponse
+	(*SetRoleRequest)(nil),            // 3: access.v1.SetRoleRequest
+	(*SetRoleResponse)(nil),           // 4: access.v1.SetRoleResponse
+	(*SetAppAccessRequest)(nil),       // 5: access.v1.SetAppAccessRequest
+	(*SetAppAccessResponse)(nil),      // 6: access.v1.SetAppAccessResponse
+	(*SetAgentAppAccessRequest)(nil),  // 7: access.v1.SetAgentAppAccessRequest
+	(*SetAgentAppAccessResponse)(nil), // 8: access.v1.SetAgentAppAccessResponse
 }
 var file_access_v1_access_proto_depIdxs = []int32{
 	0, // 0: access.v1.ListUsersResponse.users:type_name -> access.v1.AppUser
 	0, // 1: access.v1.SetRoleResponse.user:type_name -> access.v1.AppUser
 	0, // 2: access.v1.SetAppAccessResponse.user:type_name -> access.v1.AppUser
-	1, // 3: access.v1.AccessService.ListUsers:input_type -> access.v1.ListUsersRequest
-	3, // 4: access.v1.AccessService.SetRole:input_type -> access.v1.SetRoleRequest
-	5, // 5: access.v1.AccessService.SetAppAccess:input_type -> access.v1.SetAppAccessRequest
-	2, // 6: access.v1.AccessService.ListUsers:output_type -> access.v1.ListUsersResponse
-	4, // 7: access.v1.AccessService.SetRole:output_type -> access.v1.SetRoleResponse
-	6, // 8: access.v1.AccessService.SetAppAccess:output_type -> access.v1.SetAppAccessResponse
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0, // 3: access.v1.SetAgentAppAccessResponse.user:type_name -> access.v1.AppUser
+	1, // 4: access.v1.AccessService.ListUsers:input_type -> access.v1.ListUsersRequest
+	3, // 5: access.v1.AccessService.SetRole:input_type -> access.v1.SetRoleRequest
+	5, // 6: access.v1.AccessService.SetAppAccess:input_type -> access.v1.SetAppAccessRequest
+	7, // 7: access.v1.AccessService.SetAgentAppAccess:input_type -> access.v1.SetAgentAppAccessRequest
+	2, // 8: access.v1.AccessService.ListUsers:output_type -> access.v1.ListUsersResponse
+	4, // 9: access.v1.AccessService.SetRole:output_type -> access.v1.SetRoleResponse
+	6, // 10: access.v1.AccessService.SetAppAccess:output_type -> access.v1.SetAppAccessResponse
+	8, // 11: access.v1.AccessService.SetAgentAppAccess:output_type -> access.v1.SetAgentAppAccessResponse
+	8, // [8:12] is the sub-list for method output_type
+	4, // [4:8] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_access_v1_access_proto_init() }
@@ -449,7 +576,7 @@ func file_access_v1_access_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_access_v1_access_proto_rawDesc), len(file_access_v1_access_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

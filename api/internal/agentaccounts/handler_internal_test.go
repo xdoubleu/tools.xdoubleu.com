@@ -26,7 +26,7 @@ func userCtx(role models.Role, channel string) context.Context {
 	ctx := context.WithValue(context.Background(), constants.UserContextKey,
 		models.User{
 			ID: "u1", Email: "u@example.com", Role: role,
-			AppAccess: nil, HasMFA: false, DisplayName: "",
+			AppAccess: nil, WriteAccess: nil, HasMFA: false, DisplayName: "",
 		})
 	if channel != "" {
 		ctx = context.WithValue(ctx, constants.AuthChannelContextKey, channel)

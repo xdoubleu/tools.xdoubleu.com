@@ -30,6 +30,9 @@ const (
 	AccessServiceSetRoleProcedure = "/access.v1.AccessService/SetRole"
 	// AccessServiceSetAppAccessProcedure is the procedure name of the AccessService's SetAppAccess RPC.
 	AccessServiceSetAppAccessProcedure = "/access.v1.AccessService/SetAppAccess"
+	// AccessServiceSetAgentAppAccessProcedure is the procedure name of the AccessService's
+	// SetAgentAppAccess RPC.
+	AccessServiceSetAgentAppAccessProcedure = "/access.v1.AccessService/SetAgentAppAccess"
 )
 
 var (
@@ -54,6 +57,13 @@ var (
 			Procedure:  AccessServiceSetAppAccessProcedure,
 		}
 	})
+	accessServiceSetAgentAppAccessSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_access_v1_access_proto.Services().ByName("AccessService").Methods().ByName("SetAgentAppAccess"),
+			Procedure:  AccessServiceSetAgentAppAccessProcedure,
+		}
+	})
 )
 
 // AccessServiceClient is a client for the access.v1.AccessService service.
@@ -61,6 +71,8 @@ type AccessServiceClient interface {
 	ListUsers(context.Context, *v1.ListUsersRequest) (*v1.ListUsersResponse, error)
 	SetRole(context.Context, *v1.SetRoleRequest) (*v1.SetRoleResponse, error)
 	SetAppAccess(context.Context, *v1.SetAppAccessRequest) (*v1.SetAppAccessResponse, error)
+	// SetAgentAppAccess grants or revokes a standing agent's access to an app.
+	SetAgentAppAccess(context.Context, *v1.SetAgentAppAccessRequest) (*v1.SetAgentAppAccessResponse, error)
 }
 
 // NewAccessServiceClient constructs a client for the access.v1.AccessService service. Multiple
@@ -74,6 +86,8 @@ type AccessServiceHandler interface {
 	ListUsers(context.Context, *v1.ListUsersRequest) (*v1.ListUsersResponse, error)
 	SetRole(context.Context, *v1.SetRoleRequest) (*v1.SetRoleResponse, error)
 	SetAppAccess(context.Context, *v1.SetAppAccessRequest) (*v1.SetAppAccessResponse, error)
+	// SetAgentAppAccess grants or revokes a standing agent's access to an app.
+	SetAgentAppAccess(context.Context, *v1.SetAgentAppAccessRequest) (*v1.SetAgentAppAccessResponse, error)
 }
 
 // RegisterAccessServiceHandler registers svc as the access.v1.AccessService implementation on
@@ -84,6 +98,7 @@ func RegisterAccessServiceHandler(server *connect.Server, svc AccessServiceHandl
 		connect.Method{Spec: accessServiceListUsersSpec(), Handler: adapter.listUsers},
 		connect.Method{Spec: accessServiceSetRoleSpec(), Handler: adapter.setRole},
 		connect.Method{Spec: accessServiceSetAppAccessSpec(), Handler: adapter.setAppAccess},
+		connect.Method{Spec: accessServiceSetAgentAppAccessSpec(), Handler: adapter.setAgentAppAccess},
 	)
 }
 
@@ -100,6 +115,10 @@ func (UnimplementedAccessServiceHandler) SetRole(context.Context, *v1.SetRoleReq
 
 func (UnimplementedAccessServiceHandler) SetAppAccess(context.Context, *v1.SetAppAccessRequest) (*v1.SetAppAccessResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "access.v1.AccessService.SetAppAccess is not implemented")
+}
+
+func (UnimplementedAccessServiceHandler) SetAgentAppAccess(context.Context, *v1.SetAgentAppAccessRequest) (*v1.SetAgentAppAccessResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "access.v1.AccessService.SetAgentAppAccess is not implemented")
 }
 
 type accessServiceClient struct {
@@ -125,6 +144,14 @@ func (c *accessServiceClient) SetRole(ctx context.Context, req *v1.SetRoleReques
 func (c *accessServiceClient) SetAppAccess(ctx context.Context, req *v1.SetAppAccessRequest) (*v1.SetAppAccessResponse, error) {
 	var res v1.SetAppAccessResponse
 	if err := c.client.CallUnary(ctx, accessServiceSetAppAccessSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *accessServiceClient) SetAgentAppAccess(ctx context.Context, req *v1.SetAgentAppAccessRequest) (*v1.SetAgentAppAccessResponse, error) {
+	var res v1.SetAgentAppAccessResponse
+	if err := c.client.CallUnary(ctx, accessServiceSetAgentAppAccessSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -162,6 +189,18 @@ func (h accessServiceHandler) setAppAccess(ctx context.Context, _ connect.Spec, 
 		return err
 	}
 	res, err := h.svc.SetAppAccess(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h accessServiceHandler) setAgentAppAccess(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetAgentAppAccessRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetAgentAppAccess(ctx, &req)
 	if err != nil {
 		return err
 	}

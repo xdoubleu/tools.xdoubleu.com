@@ -236,3 +236,32 @@ func TestAJobHasAtMostOneAccount(t *testing.T) {
 	_, _, err = store.CreateForJob(ctx, "system:factory", "job again", scope)
 	require.Error(t, err)
 }
+
+func TestAStandingAccountHoldsTheFactoryAppAndAJobsAccountNone(t *testing.T) {
+	store, db := newStore(t, nil)
+	ctx := context.Background()
+
+	standing, _, err := store.Create(ctx, "human:creator", "Standing")
+	require.NoError(t, err)
+	job, _, err := store.CreateForJob(ctx, "system", "Job", agentaccounts.Scope{
+		JobID: uuid.New(), TaskID: uuid.New(),
+	})
+	require.NoError(t, err)
+
+	access := func(userID uuid.UUID) []string {
+		rows, qErr := db.Query(ctx,
+			`SELECT app_name || ':' || level FROM global.app_access
+			 WHERE user_id = $1`, userID.String())
+		require.NoError(t, qErr)
+		defer rows.Close()
+		var apps []string
+		for rows.Next() {
+			var a string
+			require.NoError(t, rows.Scan(&a))
+			apps = append(apps, a)
+		}
+		return apps
+	}
+	assert.Equal(t, []string{"factory:write"}, access(standing.UserID))
+	assert.Empty(t, access(job.UserID))
+}

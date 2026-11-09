@@ -102,6 +102,7 @@ func (service *LocalService) ResolveToken(
 		Email:       row.Email,
 		Role:        models.RoleUser,
 		AppAccess:   []string{},
+		WriteAccess: []string{},
 		HasMFA:      hasMFA,
 		DisplayName: "",
 	}

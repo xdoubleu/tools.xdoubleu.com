@@ -83,3 +83,58 @@ func TestAnAgentUserCannotBeGrantedAppAccess(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, got.AppAccess)
 }
+
+func TestAStandingAgentIsGrantedReadAndWriteAccess(t *testing.T) {
+	id := seedAgentUser(t)
+	pool := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	t.Cleanup(pool.Close)
+	repo := repositories.NewAppUsersRepository(pool)
+	ctx := context.Background()
+
+	ok, err := repo.SetAgentAppAccess(ctx, id, "books", repositories.AgentRead)
+	require.NoError(t, err)
+	require.True(t, ok)
+	ok, err = repo.SetAgentAppAccess(ctx, id, "feeds", repositories.AgentWrite)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	got, err := repo.GetByID(ctx, id)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"books", "feeds"}, got.AppAccess)
+	assert.Equal(t, []string{"feeds"}, got.WriteAccess)
+
+	ok, err = repo.SetAgentAppAccess(ctx, id, "books", repositories.AgentWrite)
+	require.NoError(t, err)
+	require.True(t, ok)
+	got, err = repo.GetByID(ctx, id)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"books", "feeds"}, got.WriteAccess)
+
+	ok, err = repo.SetAgentAppAccess(ctx, id, "books", repositories.AgentNoAccess)
+	require.NoError(t, err)
+	require.True(t, ok)
+	got, err = repo.GetByID(ctx, id)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"feeds"}, got.AppAccess)
+}
+
+func TestAgentAccessIsRefusedForAPerson(t *testing.T) {
+	pool := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	t.Cleanup(pool.Close)
+	repo := repositories.NewAppUsersRepository(pool)
+	ctx := context.Background()
+	id := uuid.NewString()
+	require.NoError(t, repo.Upsert(ctx, id, id+"@example.com"))
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(),
+			`DELETE FROM global.app_users WHERE id = $1`, id)
+	})
+
+	ok, err := repo.SetAgentAppAccess(ctx, id, "books", repositories.AgentWrite)
+	require.NoError(t, err)
+	assert.False(t, ok)
+
+	got, err := repo.GetByID(ctx, id)
+	require.NoError(t, err)
+	assert.Empty(t, got.AppAccess)
+}

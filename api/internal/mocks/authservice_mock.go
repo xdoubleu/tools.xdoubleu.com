@@ -64,6 +64,7 @@ func (m *MockedAuthService) mockUser() models.User {
 		Email:       mockUserEmail,
 		Role:        role,
 		AppAccess:   []string{"backlog", "watchparty", "recipes"},
+		WriteAccess: []string{"backlog", "watchparty", "recipes"},
 		HasMFA:      false,
 		DisplayName: "",
 	}

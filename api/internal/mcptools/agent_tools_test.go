@@ -88,7 +88,7 @@ func toolNames(t *testing.T, session *mcp.ClientSession) []string {
 func user(role models.Role) *models.User {
 	return &models.User{
 		ID: "u", Email: "u@example.com", Role: role,
-		AppAccess: nil, HasMFA: false, DisplayName: "",
+		AppAccess: nil, WriteAccess: nil, HasMFA: false, DisplayName: "",
 	}
 }
 
