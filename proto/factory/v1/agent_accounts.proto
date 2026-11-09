@@ -41,8 +41,22 @@ message RevokeAgentAccountResponse {
   AgentAccount account = 1;
 }
 
+// Issues a new client secret. The old one keeps working for 24 hours, so the
+// agent's stored credential can be swapped without downtime. totp_code is the
+// same step-up as for create.
+message RotateAgentAccountSecretRequest {
+  string id = 1;
+  string totp_code = 2;
+}
+message RotateAgentAccountSecretResponse {
+  AgentAccount account = 1;
+  // Shown once; only its hash is stored.
+  string client_secret = 2;
+}
+
 service AgentAccountService {
   rpc ListAgentAccounts(ListAgentAccountsRequest) returns (ListAgentAccountsResponse);
   rpc CreateAgentAccount(CreateAgentAccountRequest) returns (CreateAgentAccountResponse);
   rpc RevokeAgentAccount(RevokeAgentAccountRequest) returns (RevokeAgentAccountResponse);
+  rpc RotateAgentAccountSecret(RotateAgentAccountSecretRequest) returns (RotateAgentAccountSecretResponse);
 }

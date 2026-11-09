@@ -201,3 +201,36 @@ func TestMachineSubjects(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, ok, "without a lookup only routines has an identity")
 }
+
+func TestClientCredentials_RotatedSecretWorksUntilItExpires(t *testing.T) {
+	srv := newOAuth2asTestServer(t)
+	const id, oldSecret = "rotated-machine-client", "the-previous-secret-0123456789"
+	insertMachineClient(t, srv, id)
+	prev, err := bcrypt.GenerateFromPassword([]byte(oldSecret), bcrypt.MinCost)
+	require.NoError(t, err)
+	setPrevious := func(expiry string) {
+		_, err = srv.db.Exec(context.Background(), `
+			UPDATE auth.oauth2_clients
+			SET previous_secret_hash = $2,
+			    previous_secret_expires_at = `+expiry+`
+			WHERE id = $1`, id, string(prev))
+		require.NoError(t, err)
+	}
+	const subjectID = "5a1c0a1e-2d0e-4a57-9b56-6f8d1d3b9a10"
+	lookup := func(_ context.Context, clientID string) (string, bool, error) {
+		return subjectID, clientID == id, nil
+	}
+	ts := tokenServer(t, srv, lookup)
+
+	setPrevious("now() + interval '1 hour'")
+	status, _ := postClientCredentials(t, ts, id, oldSecret)
+	assert.Equal(t, http.StatusOK, status, "the old secret works inside the window")
+	status, _ = postClientCredentials(t, ts, id, routinesTestSecret)
+	assert.Equal(t, http.StatusOK, status, "the current secret works too")
+
+	setPrevious("now() - interval '1 second'")
+	status, _ = postClientCredentials(t, ts, id, oldSecret)
+	assert.Equal(t, http.StatusUnauthorized, status, "the old secret is rejected after")
+	status, _ = postClientCredentials(t, ts, id, routinesTestSecret)
+	assert.Equal(t, http.StatusOK, status)
+}

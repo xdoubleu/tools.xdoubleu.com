@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file factory/v1/agent_accounts.proto.
  */
 export const file_factory_v1_agent_accounts: GenFile = /*@__PURE__*/
-  fileDesc("Ch9mYWN0b3J5L3YxL2FnZW50X2FjY291bnRzLnByb3RvEgpmYWN0b3J5LnYxIogBCgxBZ2VudEFjY291bnQSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIPCgd1c2VyX2lkGAMgASgJEhEKCWNsaWVudF9pZBgEIAEoCRISCgpjcmVhdGVkX2J5GAUgASgJEhIKCmNyZWF0ZWRfYXQYBiABKAkSEgoKcmV2b2tlZF9hdBgHIAEoCSIaChhMaXN0QWdlbnRBY2NvdW50c1JlcXVlc3QiRwoZTGlzdEFnZW50QWNjb3VudHNSZXNwb25zZRIqCghhY2NvdW50cxgBIAMoCzIYLmZhY3RvcnkudjEuQWdlbnRBY2NvdW50IjwKGUNyZWF0ZUFnZW50QWNjb3VudFJlcXVlc3QSDAoEbmFtZRgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiXgoaQ3JlYXRlQWdlbnRBY2NvdW50UmVzcG9uc2USKQoHYWNjb3VudBgBIAEoCzIYLmZhY3RvcnkudjEuQWdlbnRBY2NvdW50EhUKDWNsaWVudF9zZWNyZXQYAiABKAkiJwoZUmV2b2tlQWdlbnRBY2NvdW50UmVxdWVzdBIKCgJpZBgBIAEoCSJHChpSZXZva2VBZ2VudEFjY291bnRSZXNwb25zZRIpCgdhY2NvdW50GAEgASgLMhguZmFjdG9yeS52MS5BZ2VudEFjY291bnQywQIKE0FnZW50QWNjb3VudFNlcnZpY2USYAoRTGlzdEFnZW50QWNjb3VudHMSJC5mYWN0b3J5LnYxLkxpc3RBZ2VudEFjY291bnRzUmVxdWVzdBolLmZhY3RvcnkudjEuTGlzdEFnZW50QWNjb3VudHNSZXNwb25zZRJjChJDcmVhdGVBZ2VudEFjY291bnQSJS5mYWN0b3J5LnYxLkNyZWF0ZUFnZW50QWNjb3VudFJlcXVlc3QaJi5mYWN0b3J5LnYxLkNyZWF0ZUFnZW50QWNjb3VudFJlc3BvbnNlEmMKElJldm9rZUFnZW50QWNjb3VudBIlLmZhY3RvcnkudjEuUmV2b2tlQWdlbnRBY2NvdW50UmVxdWVzdBomLmZhY3RvcnkudjEuUmV2b2tlQWdlbnRBY2NvdW50UmVzcG9uc2VCLVordG9vbHMueGRvdWJsZXUuY29tL2dlbi9mYWN0b3J5L3YxO2ZhY3Rvcnl2MWIGcHJvdG8z");
+  fileDesc("Ch9mYWN0b3J5L3YxL2FnZW50X2FjY291bnRzLnByb3RvEgpmYWN0b3J5LnYxIogBCgxBZ2VudEFjY291bnQSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIPCgd1c2VyX2lkGAMgASgJEhEKCWNsaWVudF9pZBgEIAEoCRISCgpjcmVhdGVkX2J5GAUgASgJEhIKCmNyZWF0ZWRfYXQYBiABKAkSEgoKcmV2b2tlZF9hdBgHIAEoCSIaChhMaXN0QWdlbnRBY2NvdW50c1JlcXVlc3QiRwoZTGlzdEFnZW50QWNjb3VudHNSZXNwb25zZRIqCghhY2NvdW50cxgBIAMoCzIYLmZhY3RvcnkudjEuQWdlbnRBY2NvdW50IjwKGUNyZWF0ZUFnZW50QWNjb3VudFJlcXVlc3QSDAoEbmFtZRgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiXgoaQ3JlYXRlQWdlbnRBY2NvdW50UmVzcG9uc2USKQoHYWNjb3VudBgBIAEoCzIYLmZhY3RvcnkudjEuQWdlbnRBY2NvdW50EhUKDWNsaWVudF9zZWNyZXQYAiABKAkiJwoZUmV2b2tlQWdlbnRBY2NvdW50UmVxdWVzdBIKCgJpZBgBIAEoCSJHChpSZXZva2VBZ2VudEFjY291bnRSZXNwb25zZRIpCgdhY2NvdW50GAEgASgLMhguZmFjdG9yeS52MS5BZ2VudEFjY291bnQiQAofUm90YXRlQWdlbnRBY2NvdW50U2VjcmV0UmVxdWVzdBIKCgJpZBgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiZAogUm90YXRlQWdlbnRBY2NvdW50U2VjcmV0UmVzcG9uc2USKQoHYWNjb3VudBgBIAEoCzIYLmZhY3RvcnkudjEuQWdlbnRBY2NvdW50EhUKDWNsaWVudF9zZWNyZXQYAiABKAkyuAMKE0FnZW50QWNjb3VudFNlcnZpY2USYAoRTGlzdEFnZW50QWNjb3VudHMSJC5mYWN0b3J5LnYxLkxpc3RBZ2VudEFjY291bnRzUmVxdWVzdBolLmZhY3RvcnkudjEuTGlzdEFnZW50QWNjb3VudHNSZXNwb25zZRJjChJDcmVhdGVBZ2VudEFjY291bnQSJS5mYWN0b3J5LnYxLkNyZWF0ZUFnZW50QWNjb3VudFJlcXVlc3QaJi5mYWN0b3J5LnYxLkNyZWF0ZUFnZW50QWNjb3VudFJlc3BvbnNlEmMKElJldm9rZUFnZW50QWNjb3VudBIlLmZhY3RvcnkudjEuUmV2b2tlQWdlbnRBY2NvdW50UmVxdWVzdBomLmZhY3RvcnkudjEuUmV2b2tlQWdlbnRBY2NvdW50UmVzcG9uc2USdQoYUm90YXRlQWdlbnRBY2NvdW50U2VjcmV0EisuZmFjdG9yeS52MS5Sb3RhdGVBZ2VudEFjY291bnRTZWNyZXRSZXF1ZXN0GiwuZmFjdG9yeS52MS5Sb3RhdGVBZ2VudEFjY291bnRTZWNyZXRSZXNwb25zZUItWit0b29scy54ZG91YmxldS5jb20vZ2VuL2ZhY3RvcnkvdjE7ZmFjdG9yeXYxYgZwcm90bzM");
 
 /**
  * @generated from message factory.v1.AgentAccount
@@ -182,6 +182,56 @@ export const RevokeAgentAccountResponseSchema: GenMessage<RevokeAgentAccountResp
   messageDesc(file_factory_v1_agent_accounts, 6);
 
 /**
+ * Issues a new client secret. The old one keeps working for 24 hours, so the
+ * agent's stored credential can be swapped without downtime. totp_code is the
+ * same step-up as for create.
+ *
+ * @generated from message factory.v1.RotateAgentAccountSecretRequest
+ */
+export type RotateAgentAccountSecretRequest = Message<"factory.v1.RotateAgentAccountSecretRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string totp_code = 2;
+   */
+  totpCode: string;
+};
+
+/**
+ * Describes the message factory.v1.RotateAgentAccountSecretRequest.
+ * Use `create(RotateAgentAccountSecretRequestSchema)` to create a new message.
+ */
+export const RotateAgentAccountSecretRequestSchema: GenMessage<RotateAgentAccountSecretRequest> = /*@__PURE__*/
+  messageDesc(file_factory_v1_agent_accounts, 7);
+
+/**
+ * @generated from message factory.v1.RotateAgentAccountSecretResponse
+ */
+export type RotateAgentAccountSecretResponse = Message<"factory.v1.RotateAgentAccountSecretResponse"> & {
+  /**
+   * @generated from field: factory.v1.AgentAccount account = 1;
+   */
+  account?: AgentAccount | undefined;
+
+  /**
+   * Shown once; only its hash is stored.
+   *
+   * @generated from field: string client_secret = 2;
+   */
+  clientSecret: string;
+};
+
+/**
+ * Describes the message factory.v1.RotateAgentAccountSecretResponse.
+ * Use `create(RotateAgentAccountSecretResponseSchema)` to create a new message.
+ */
+export const RotateAgentAccountSecretResponseSchema: GenMessage<RotateAgentAccountSecretResponse> = /*@__PURE__*/
+  messageDesc(file_factory_v1_agent_accounts, 8);
+
+/**
  * @generated from service factory.v1.AgentAccountService
  */
 export const AgentAccountService: GenService<{
@@ -208,6 +258,14 @@ export const AgentAccountService: GenService<{
     methodKind: "unary";
     input: typeof RevokeAgentAccountRequestSchema;
     output: typeof RevokeAgentAccountResponseSchema;
+  },
+  /**
+   * @generated from rpc factory.v1.AgentAccountService.RotateAgentAccountSecret
+   */
+  rotateAgentAccountSecret: {
+    methodKind: "unary";
+    input: typeof RotateAgentAccountSecretRequestSchema;
+    output: typeof RotateAgentAccountSecretResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_factory_v1_agent_accounts, 0);

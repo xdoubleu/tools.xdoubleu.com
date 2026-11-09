@@ -61,6 +61,11 @@ claude mcp add-json tools-apps-agent '{"type":"http",
   "headersHelper":"FACTORY_AGENT_CLIENT_ID=<client id> /path/to/scripts/factory_agent_headers.sh"}'
 ```
 
+To rotate the secret, an admin calls `RotateAgentAccountSecret` (TOTP step-up,
+as for create). The old secret keeps working for 24 hours (a second rotation waits until then; revoke to end a leaked secret), so replace the
+Keychain item (`security add-generic-password -U …`) inside that window
+([adr-0047](adr-0047-first-class-agent-users.md)).
+
 OpenCode takes a static `{env:…}` header, resolved from the service's process
 env at launch. The committed `opencode.json` already declares a `tools-apps-agent`
 server with `"oauth": false` and a `{env:FACTORY_MCP_TOKEN}` header — no token in

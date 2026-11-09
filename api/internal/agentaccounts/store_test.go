@@ -269,3 +269,59 @@ func TestEveryAccountHoldsTheFactoryApp(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, access(standing.UserID), "revoking drops the grants")
 }
+
+func TestRotateSecretIssuesANewSecretAndKeepsTheOldOneForADay(t *testing.T) {
+	store, db := newStore(t, nil)
+	ctx := context.Background()
+	account, oldSecret, err := store.Create(ctx, "human:creator", "Rotating")
+	require.NoError(t, err)
+
+	rotated, newSecret, err := store.RotateSecret(ctx, account.ID)
+	require.NoError(t, err)
+	assert.Equal(t, account.ID, rotated.ID)
+	assert.NotEqual(t, oldSecret, newSecret)
+
+	var current, previous string
+	var expiresIn float64
+	require.NoError(t, db.QueryRow(ctx, `
+		SELECT secret_hash, previous_secret_hash,
+		       EXTRACT(EPOCH FROM previous_secret_expires_at - now())
+		FROM auth.oauth2_clients WHERE id = $1`, account.ClientID,
+	).Scan(&current, &previous, &expiresIn))
+	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(current), []byte(newSecret)))
+	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(previous), []byte(oldSecret)))
+	assert.InDelta(t, agentaccounts.SecretOverlap.Seconds(), expiresIn, 60)
+}
+
+func TestRotateSecretRefusesASecondRotationInsideTheWindow(t *testing.T) {
+	store, _ := newStore(t, nil)
+	ctx := context.Background()
+	account, _, err := store.Create(ctx, "human:creator", "Twice")
+	require.NoError(t, err)
+	_, _, err = store.RotateSecret(ctx, account.ID)
+	require.NoError(t, err)
+
+	_, _, err = store.RotateSecret(ctx, account.ID)
+	require.ErrorIs(t, err, database.ErrResourceConflict)
+}
+
+func TestRotateSecretRefusesRevokedJobAndUnknownAccounts(t *testing.T) {
+	store, _ := newStore(t, nil)
+	ctx := context.Background()
+
+	revoked, _, err := store.Create(ctx, "human:creator", "Revoked")
+	require.NoError(t, err)
+	_, err = store.Revoke(ctx, revoked.ID)
+	require.NoError(t, err)
+	job, _, err := store.CreateForJob(ctx, "system", "Job", agentaccounts.Scope{
+		JobID: uuid.New(), TaskID: uuid.New(),
+	})
+	require.NoError(t, err)
+
+	for name, id := range map[string]uuid.UUID{"revoked": revoked.ID, "job": job.ID} {
+		_, _, err = store.RotateSecret(ctx, id)
+		require.ErrorIs(t, err, database.ErrResourceConflict, name)
+	}
+	_, _, err = store.RotateSecret(ctx, uuid.New())
+	require.ErrorIs(t, err, database.ErrResourceNotFound)
+}

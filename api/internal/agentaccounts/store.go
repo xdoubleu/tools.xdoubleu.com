@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,6 +25,8 @@ const (
 	clientIDBytes = 16
 	// clientSecretBCryptCost matches fosite's DefaultBCryptWorkFactor.
 	clientSecretBCryptCost = 12
+	// SecretOverlap is how long a rotated-out client secret keeps working.
+	SecretOverlap = 24 * time.Hour
 	// unusablePasswordHash can't match any password, so the user can't sign in.
 	unusablePasswordHash = "!"
 	clientIDPrefix       = "agent-"
@@ -109,12 +112,25 @@ func (s *Store) CreateForJob(
 	return s.create(ctx, createdBy, name, &scope)
 }
 
+// newSecret is a fresh client secret and its bcrypt hash.
+func newSecret() (string, []byte, error) {
+	secret, err := randomString(secretBytes, base64.RawURLEncoding.EncodeToString)
+	if err != nil {
+		return "", nil, err
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(secret), clientSecretBCryptCost)
+	if err != nil {
+		return "", nil, err
+	}
+	return secret, hash, nil
+}
+
 func (s *Store) create(
 	ctx context.Context,
 	createdBy, name string,
 	scope *Scope,
 ) (*Account, string, error) {
-	secret, err := randomString(secretBytes, base64.RawURLEncoding.EncodeToString)
+	secret, hash, err := newSecret()
 	if err != nil {
 		return nil, "", err
 	}
@@ -123,10 +139,6 @@ func (s *Store) create(
 		return nil, "", err
 	}
 	clientID := clientIDPrefix + suffix
-	hash, err := bcrypt.GenerateFromPassword([]byte(secret), clientSecretBCryptCost)
-	if err != nil {
-		return nil, "", err
-	}
 
 	userID := uuid.New()
 	email := "agent-" + userID.String() + "@agent.invalid"
@@ -207,6 +219,60 @@ func (s *Store) List(ctx context.Context) ([]Account, error) {
 		out = append(out, *a)
 	}
 	return out, rows.Err()
+}
+
+// RotateSecret issues a new client secret for a standing account. The old one
+// keeps working for SecretOverlap. A second rotation inside the window is
+// refused, since it would cut off the secret the agent still uses; a revoked
+// account or a job's is refused too. Revoking is the way to end a leaked secret.
+func (s *Store) RotateSecret(
+	ctx context.Context,
+	id uuid.UUID,
+) (*Account, string, error) {
+	secret, hash, err := newSecret()
+	if err != nil {
+		return nil, "", err
+	}
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	account, err := scanAccount(tx.QueryRow(ctx, `
+		SELECT `+accountColumns+` FROM global.agent_accounts
+		WHERE id = $1 FOR UPDATE`, id))
+	if err != nil {
+		return nil, "", err
+	}
+	if account.RevokedAt != nil || account.JobID != nil {
+		return nil, "", fmt.Errorf(
+			"%w: only an active standing account has a secret to rotate",
+			database.ErrResourceConflict,
+		)
+	}
+	tag, err := tx.Exec(ctx, `
+		UPDATE auth.oauth2_clients
+		SET previous_secret_hash = secret_hash,
+		    previous_secret_expires_at = now() + make_interval(secs => $3),
+		    secret_hash = $2
+		WHERE id = $1
+		  AND (previous_secret_expires_at IS NULL OR previous_secret_expires_at <= now())`,
+		account.ClientID, string(hash), SecretOverlap.Seconds(),
+	)
+	if err != nil {
+		return nil, "", err
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, "", fmt.Errorf(
+			"%w: the previous secret is still valid, or the client is gone",
+			database.ErrResourceConflict,
+		)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return nil, "", err
+	}
+	return account, secret, nil
 }
 
 // Revoke ends an account: it stamps revoked_at and deletes the client, whose

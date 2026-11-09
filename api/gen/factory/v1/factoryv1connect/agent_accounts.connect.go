@@ -33,6 +33,9 @@ const (
 	// AgentAccountServiceRevokeAgentAccountProcedure is the procedure name of the AgentAccountService's
 	// RevokeAgentAccount RPC.
 	AgentAccountServiceRevokeAgentAccountProcedure = "/factory.v1.AgentAccountService/RevokeAgentAccount"
+	// AgentAccountServiceRotateAgentAccountSecretProcedure is the procedure name of the
+	// AgentAccountService's RotateAgentAccountSecret RPC.
+	AgentAccountServiceRotateAgentAccountSecretProcedure = "/factory.v1.AgentAccountService/RotateAgentAccountSecret"
 )
 
 var (
@@ -57,6 +60,13 @@ var (
 			Procedure:  AgentAccountServiceRevokeAgentAccountProcedure,
 		}
 	})
+	agentAccountServiceRotateAgentAccountSecretSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_agent_accounts_proto.Services().ByName("AgentAccountService").Methods().ByName("RotateAgentAccountSecret"),
+			Procedure:  AgentAccountServiceRotateAgentAccountSecretProcedure,
+		}
+	})
 )
 
 // AgentAccountServiceClient is a client for the factory.v1.AgentAccountService service.
@@ -64,6 +74,7 @@ type AgentAccountServiceClient interface {
 	ListAgentAccounts(context.Context, *v1.ListAgentAccountsRequest) (*v1.ListAgentAccountsResponse, error)
 	CreateAgentAccount(context.Context, *v1.CreateAgentAccountRequest) (*v1.CreateAgentAccountResponse, error)
 	RevokeAgentAccount(context.Context, *v1.RevokeAgentAccountRequest) (*v1.RevokeAgentAccountResponse, error)
+	RotateAgentAccountSecret(context.Context, *v1.RotateAgentAccountSecretRequest) (*v1.RotateAgentAccountSecretResponse, error)
 }
 
 // NewAgentAccountServiceClient constructs a client for the factory.v1.AgentAccountService service.
@@ -77,6 +88,7 @@ type AgentAccountServiceHandler interface {
 	ListAgentAccounts(context.Context, *v1.ListAgentAccountsRequest) (*v1.ListAgentAccountsResponse, error)
 	CreateAgentAccount(context.Context, *v1.CreateAgentAccountRequest) (*v1.CreateAgentAccountResponse, error)
 	RevokeAgentAccount(context.Context, *v1.RevokeAgentAccountRequest) (*v1.RevokeAgentAccountResponse, error)
+	RotateAgentAccountSecret(context.Context, *v1.RotateAgentAccountSecretRequest) (*v1.RotateAgentAccountSecretResponse, error)
 }
 
 // RegisterAgentAccountServiceHandler registers svc as the factory.v1.AgentAccountService
@@ -87,6 +99,7 @@ func RegisterAgentAccountServiceHandler(server *connect.Server, svc AgentAccount
 		connect.Method{Spec: agentAccountServiceListAgentAccountsSpec(), Handler: adapter.listAgentAccounts},
 		connect.Method{Spec: agentAccountServiceCreateAgentAccountSpec(), Handler: adapter.createAgentAccount},
 		connect.Method{Spec: agentAccountServiceRevokeAgentAccountSpec(), Handler: adapter.revokeAgentAccount},
+		connect.Method{Spec: agentAccountServiceRotateAgentAccountSecretSpec(), Handler: adapter.rotateAgentAccountSecret},
 	)
 }
 
@@ -103,6 +116,10 @@ func (UnimplementedAgentAccountServiceHandler) CreateAgentAccount(context.Contex
 
 func (UnimplementedAgentAccountServiceHandler) RevokeAgentAccount(context.Context, *v1.RevokeAgentAccountRequest) (*v1.RevokeAgentAccountResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.AgentAccountService.RevokeAgentAccount is not implemented")
+}
+
+func (UnimplementedAgentAccountServiceHandler) RotateAgentAccountSecret(context.Context, *v1.RotateAgentAccountSecretRequest) (*v1.RotateAgentAccountSecretResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.AgentAccountService.RotateAgentAccountSecret is not implemented")
 }
 
 type agentAccountServiceClient struct {
@@ -128,6 +145,14 @@ func (c *agentAccountServiceClient) CreateAgentAccount(ctx context.Context, req 
 func (c *agentAccountServiceClient) RevokeAgentAccount(ctx context.Context, req *v1.RevokeAgentAccountRequest) (*v1.RevokeAgentAccountResponse, error) {
 	var res v1.RevokeAgentAccountResponse
 	if err := c.client.CallUnary(ctx, agentAccountServiceRevokeAgentAccountSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *agentAccountServiceClient) RotateAgentAccountSecret(ctx context.Context, req *v1.RotateAgentAccountSecretRequest) (*v1.RotateAgentAccountSecretResponse, error) {
+	var res v1.RotateAgentAccountSecretResponse
+	if err := c.client.CallUnary(ctx, agentAccountServiceRotateAgentAccountSecretSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -165,6 +190,18 @@ func (h agentAccountServiceHandler) revokeAgentAccount(ctx context.Context, _ co
 		return err
 	}
 	res, err := h.svc.RevokeAgentAccount(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h agentAccountServiceHandler) rotateAgentAccountSecret(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RotateAgentAccountSecretRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RotateAgentAccountSecret(ctx, &req)
 	if err != nil {
 		return err
 	}

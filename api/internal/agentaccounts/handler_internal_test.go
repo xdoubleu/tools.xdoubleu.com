@@ -256,6 +256,41 @@ func TestEveryRPCNeedsAnAdminInABrowser(t *testing.T) {
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 	_, err = c.RevokeAgentAccount(ctx, &factoryv1.RevokeAgentAccountRequest{Id: "x"})
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+	_, err = c.RotateAgentAccountSecret(ctx,
+		&factoryv1.RotateAgentAccountSecretRequest{Id: "x", TotpCode: "1"})
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+}
+
+func TestRotatingASecretNeedsTheStepUpAndReturnsANewOne(t *testing.T) {
+	stepUp := stepUpReturning(nil)
+	c := agentClient(t, constants.ChannelBrowser, stepUp)
+	ctx := withToken(context.Background())
+	created, err := c.CreateAgentAccount(ctx,
+		&factoryv1.CreateAgentAccountRequest{Name: "rotating", TotpCode: "1"})
+	require.NoError(t, err)
+
+	rotated, err := c.RotateAgentAccountSecret(ctx,
+		&factoryv1.RotateAgentAccountSecretRequest{
+			Id: created.Account.Id, TotpCode: "654321",
+		})
+	require.NoError(t, err)
+	assert.Equal(t, created.Account.Id, rotated.Account.Id)
+	assert.NotEmpty(t, rotated.ClientSecret)
+	assert.NotEqual(t, created.ClientSecret, rotated.ClientSecret)
+	assert.Equal(t, "654321", stepUp.code)
+
+	_, err = c.RotateAgentAccountSecret(ctx,
+		&factoryv1.RotateAgentAccountSecretRequest{Id: "nope", TotpCode: "1"})
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	_, err = c.RotateAgentAccountSecret(context.Background(),
+		&factoryv1.RotateAgentAccountSecretRequest{Id: created.Account.Id, TotpCode: "1"})
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+
+	failing := agentClient(t, constants.ChannelBrowser,
+		stepUpReturning(auth.ErrWrongCredential))
+	_, err = failing.RotateAgentAccountSecret(ctx,
+		&factoryv1.RotateAgentAccountSecretRequest{Id: created.Account.Id, TotpCode: "1"})
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 }
 
 func TestRevokeRejectsABadOrUnknownID(t *testing.T) {
