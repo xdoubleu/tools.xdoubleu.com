@@ -325,3 +325,83 @@ func TestRotateSecretRefusesRevokedJobAndUnknownAccounts(t *testing.T) {
 	_, _, err = store.RotateSecret(ctx, uuid.New())
 	require.ErrorIs(t, err, database.ErrResourceNotFound)
 }
+
+func familyOf(
+	t *testing.T, db postgres.DB, userID uuid.UUID,
+) (uuid.UUID, string, bool) {
+	t.Helper()
+	var familyID uuid.UUID
+	var name string
+	err := db.QueryRow(context.Background(), `
+		SELECT family_id, display_name FROM global.family_members
+		WHERE user_id = $1`, userID.String()).Scan(&familyID, &name)
+	if err != nil {
+		return uuid.Nil, "", false
+	}
+	return familyID, name, true
+}
+
+func TestAStandingAccountJoinsAndLeavesAFamilyAndRevokingLeavesIt(t *testing.T) {
+	store, db := newStore(t, nil)
+	ctx := context.Background()
+	account, _, err := store.Create(ctx, "human:creator", "Family bot")
+	require.NoError(t, err)
+	var familyID uuid.UUID
+	require.NoError(t, db.QueryRow(ctx,
+		`INSERT INTO global.families DEFAULT VALUES RETURNING id`).Scan(&familyID))
+	t.Cleanup(func() {
+		_, _ = db.Exec(context.Background(),
+			`DELETE FROM global.families WHERE id = $1`, familyID)
+	})
+
+	_, err = store.JoinFamily(ctx, account.ID, familyID)
+	require.NoError(t, err)
+	got, name, ok := familyOf(t, db, account.UserID)
+	require.True(t, ok)
+	assert.Equal(t, familyID, got)
+	assert.Equal(t, "Family bot", name)
+
+	_, err = db.Exec(ctx, `UPDATE global.family_members SET display_name = 'Renamed'
+		WHERE user_id = $1`, account.UserID.String())
+	require.NoError(t, err)
+	_, err = store.JoinFamily(ctx, account.ID, familyID)
+	require.NoError(t, err)
+	_, name, _ = familyOf(t, db, account.UserID)
+	assert.Equal(t, "Renamed", name, "joining the same family again changes nothing")
+
+	_, err = store.LeaveFamily(ctx, account.ID)
+	require.NoError(t, err)
+	_, _, ok = familyOf(t, db, account.UserID)
+	assert.False(t, ok)
+
+	_, err = store.JoinFamily(ctx, account.ID, familyID)
+	require.NoError(t, err)
+	_, err = store.Revoke(ctx, account.ID)
+	require.NoError(t, err)
+	_, _, ok = familyOf(t, db, account.UserID)
+	assert.False(t, ok, "revoking takes the account out of the family")
+}
+
+func TestFamilyChangesRefuseRevokedJobAndUnknownAccounts(t *testing.T) {
+	store, _ := newStore(t, nil)
+	ctx := context.Background()
+	revoked, _, err := store.Create(ctx, "human:creator", "Revoked")
+	require.NoError(t, err)
+	_, err = store.Revoke(ctx, revoked.ID)
+	require.NoError(t, err)
+	job, _, err := store.CreateForJob(ctx, "system", "Job", agentaccounts.Scope{
+		JobID: uuid.New(), TaskID: uuid.New(),
+	})
+	require.NoError(t, err)
+
+	for name, id := range map[string]uuid.UUID{"revoked": revoked.ID, "job": job.ID} {
+		_, err = store.JoinFamily(ctx, id, uuid.New())
+		require.ErrorIs(t, err, database.ErrResourceConflict, name)
+		_, err = store.LeaveFamily(ctx, id)
+		require.ErrorIs(t, err, database.ErrResourceConflict, name)
+	}
+	_, err = store.JoinFamily(ctx, uuid.New(), uuid.New())
+	require.ErrorIs(t, err, database.ErrResourceNotFound)
+	_, err = store.LeaveFamily(ctx, uuid.New())
+	require.ErrorIs(t, err, database.ErrResourceNotFound)
+}

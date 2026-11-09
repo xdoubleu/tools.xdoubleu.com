@@ -501,6 +501,195 @@ func (x *RotateAgentAccountSecretResponse) GetClientSecret() string {
 	return ""
 }
 
+// Puts the standing account in the signed-in admin's family, in place of its
+// own family-of-one, so it shares what the admin's family shares (only for the
+// apps it holds). It joins without an invite, since an agent can't accept one.
+// totp_code is the step-up check, as for create: joining exposes family data.
+type AddAgentAccountToFamilyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TotpCode      string                 `protobuf:"bytes,2,opt,name=totp_code,json=totpCode,proto3" json:"totp_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddAgentAccountToFamilyRequest) Reset() {
+	*x = AddAgentAccountToFamilyRequest{}
+	mi := &file_factory_v1_agent_accounts_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddAgentAccountToFamilyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddAgentAccountToFamilyRequest) ProtoMessage() {}
+
+func (x *AddAgentAccountToFamilyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_agent_accounts_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddAgentAccountToFamilyRequest.ProtoReflect.Descriptor instead.
+func (*AddAgentAccountToFamilyRequest) Descriptor() ([]byte, []int) {
+	return file_factory_v1_agent_accounts_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *AddAgentAccountToFamilyRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AddAgentAccountToFamilyRequest) GetTotpCode() string {
+	if x != nil {
+		return x.TotpCode
+	}
+	return ""
+}
+
+type AddAgentAccountToFamilyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Account       *AgentAccount          `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddAgentAccountToFamilyResponse) Reset() {
+	*x = AddAgentAccountToFamilyResponse{}
+	mi := &file_factory_v1_agent_accounts_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddAgentAccountToFamilyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddAgentAccountToFamilyResponse) ProtoMessage() {}
+
+func (x *AddAgentAccountToFamilyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_agent_accounts_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddAgentAccountToFamilyResponse.ProtoReflect.Descriptor instead.
+func (*AddAgentAccountToFamilyResponse) Descriptor() ([]byte, []int) {
+	return file_factory_v1_agent_accounts_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AddAgentAccountToFamilyResponse) GetAccount() *AgentAccount {
+	if x != nil {
+		return x.Account
+	}
+	return nil
+}
+
+// Takes the account out of whichever family it is in.
+type RemoveAgentAccountFromFamilyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveAgentAccountFromFamilyRequest) Reset() {
+	*x = RemoveAgentAccountFromFamilyRequest{}
+	mi := &file_factory_v1_agent_accounts_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveAgentAccountFromFamilyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveAgentAccountFromFamilyRequest) ProtoMessage() {}
+
+func (x *RemoveAgentAccountFromFamilyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_agent_accounts_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveAgentAccountFromFamilyRequest.ProtoReflect.Descriptor instead.
+func (*RemoveAgentAccountFromFamilyRequest) Descriptor() ([]byte, []int) {
+	return file_factory_v1_agent_accounts_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *RemoveAgentAccountFromFamilyRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type RemoveAgentAccountFromFamilyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Account       *AgentAccount          `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveAgentAccountFromFamilyResponse) Reset() {
+	*x = RemoveAgentAccountFromFamilyResponse{}
+	mi := &file_factory_v1_agent_accounts_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveAgentAccountFromFamilyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveAgentAccountFromFamilyResponse) ProtoMessage() {}
+
+func (x *RemoveAgentAccountFromFamilyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_agent_accounts_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveAgentAccountFromFamilyResponse.ProtoReflect.Descriptor instead.
+func (*RemoveAgentAccountFromFamilyResponse) Descriptor() ([]byte, []int) {
+	return file_factory_v1_agent_accounts_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *RemoveAgentAccountFromFamilyResponse) GetAccount() *AgentAccount {
+	if x != nil {
+		return x.Account
+	}
+	return nil
+}
+
 var File_factory_v1_agent_accounts_proto protoreflect.FileDescriptor
 
 const file_factory_v1_agent_accounts_proto_rawDesc = "" +
@@ -536,12 +725,23 @@ const file_factory_v1_agent_accounts_proto_rawDesc = "" +
 	"\ttotp_code\x18\x02 \x01(\tR\btotpCode\"{\n" +
 	" RotateAgentAccountSecretResponse\x122\n" +
 	"\aaccount\x18\x01 \x01(\v2\x18.factory.v1.AgentAccountR\aaccount\x12#\n" +
-	"\rclient_secret\x18\x02 \x01(\tR\fclientSecret2\xb8\x03\n" +
+	"\rclient_secret\x18\x02 \x01(\tR\fclientSecret\"M\n" +
+	"\x1eAddAgentAccountToFamilyRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
+	"\ttotp_code\x18\x02 \x01(\tR\btotpCode\"U\n" +
+	"\x1fAddAgentAccountToFamilyResponse\x122\n" +
+	"\aaccount\x18\x01 \x01(\v2\x18.factory.v1.AgentAccountR\aaccount\"5\n" +
+	"#RemoveAgentAccountFromFamilyRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"Z\n" +
+	"$RemoveAgentAccountFromFamilyResponse\x122\n" +
+	"\aaccount\x18\x01 \x01(\v2\x18.factory.v1.AgentAccountR\aaccount2\xb0\x05\n" +
 	"\x13AgentAccountService\x12`\n" +
 	"\x11ListAgentAccounts\x12$.factory.v1.ListAgentAccountsRequest\x1a%.factory.v1.ListAgentAccountsResponse\x12c\n" +
 	"\x12CreateAgentAccount\x12%.factory.v1.CreateAgentAccountRequest\x1a&.factory.v1.CreateAgentAccountResponse\x12c\n" +
 	"\x12RevokeAgentAccount\x12%.factory.v1.RevokeAgentAccountRequest\x1a&.factory.v1.RevokeAgentAccountResponse\x12u\n" +
-	"\x18RotateAgentAccountSecret\x12+.factory.v1.RotateAgentAccountSecretRequest\x1a,.factory.v1.RotateAgentAccountSecretResponseB-Z+tools.xdoubleu.com/gen/factory/v1;factoryv1b\x06proto3"
+	"\x18RotateAgentAccountSecret\x12+.factory.v1.RotateAgentAccountSecretRequest\x1a,.factory.v1.RotateAgentAccountSecretResponse\x12r\n" +
+	"\x17AddAgentAccountToFamily\x12*.factory.v1.AddAgentAccountToFamilyRequest\x1a+.factory.v1.AddAgentAccountToFamilyResponse\x12\x81\x01\n" +
+	"\x1cRemoveAgentAccountFromFamily\x12/.factory.v1.RemoveAgentAccountFromFamilyRequest\x1a0.factory.v1.RemoveAgentAccountFromFamilyResponseB-Z+tools.xdoubleu.com/gen/factory/v1;factoryv1b\x06proto3"
 
 var (
 	file_factory_v1_agent_accounts_proto_rawDescOnce sync.Once
@@ -555,36 +755,46 @@ func file_factory_v1_agent_accounts_proto_rawDescGZIP() []byte {
 	return file_factory_v1_agent_accounts_proto_rawDescData
 }
 
-var file_factory_v1_agent_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_factory_v1_agent_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_factory_v1_agent_accounts_proto_goTypes = []any{
-	(*AgentAccount)(nil),                     // 0: factory.v1.AgentAccount
-	(*ListAgentAccountsRequest)(nil),         // 1: factory.v1.ListAgentAccountsRequest
-	(*ListAgentAccountsResponse)(nil),        // 2: factory.v1.ListAgentAccountsResponse
-	(*CreateAgentAccountRequest)(nil),        // 3: factory.v1.CreateAgentAccountRequest
-	(*CreateAgentAccountResponse)(nil),       // 4: factory.v1.CreateAgentAccountResponse
-	(*RevokeAgentAccountRequest)(nil),        // 5: factory.v1.RevokeAgentAccountRequest
-	(*RevokeAgentAccountResponse)(nil),       // 6: factory.v1.RevokeAgentAccountResponse
-	(*RotateAgentAccountSecretRequest)(nil),  // 7: factory.v1.RotateAgentAccountSecretRequest
-	(*RotateAgentAccountSecretResponse)(nil), // 8: factory.v1.RotateAgentAccountSecretResponse
+	(*AgentAccount)(nil),                         // 0: factory.v1.AgentAccount
+	(*ListAgentAccountsRequest)(nil),             // 1: factory.v1.ListAgentAccountsRequest
+	(*ListAgentAccountsResponse)(nil),            // 2: factory.v1.ListAgentAccountsResponse
+	(*CreateAgentAccountRequest)(nil),            // 3: factory.v1.CreateAgentAccountRequest
+	(*CreateAgentAccountResponse)(nil),           // 4: factory.v1.CreateAgentAccountResponse
+	(*RevokeAgentAccountRequest)(nil),            // 5: factory.v1.RevokeAgentAccountRequest
+	(*RevokeAgentAccountResponse)(nil),           // 6: factory.v1.RevokeAgentAccountResponse
+	(*RotateAgentAccountSecretRequest)(nil),      // 7: factory.v1.RotateAgentAccountSecretRequest
+	(*RotateAgentAccountSecretResponse)(nil),     // 8: factory.v1.RotateAgentAccountSecretResponse
+	(*AddAgentAccountToFamilyRequest)(nil),       // 9: factory.v1.AddAgentAccountToFamilyRequest
+	(*AddAgentAccountToFamilyResponse)(nil),      // 10: factory.v1.AddAgentAccountToFamilyResponse
+	(*RemoveAgentAccountFromFamilyRequest)(nil),  // 11: factory.v1.RemoveAgentAccountFromFamilyRequest
+	(*RemoveAgentAccountFromFamilyResponse)(nil), // 12: factory.v1.RemoveAgentAccountFromFamilyResponse
 }
 var file_factory_v1_agent_accounts_proto_depIdxs = []int32{
-	0, // 0: factory.v1.ListAgentAccountsResponse.accounts:type_name -> factory.v1.AgentAccount
-	0, // 1: factory.v1.CreateAgentAccountResponse.account:type_name -> factory.v1.AgentAccount
-	0, // 2: factory.v1.RevokeAgentAccountResponse.account:type_name -> factory.v1.AgentAccount
-	0, // 3: factory.v1.RotateAgentAccountSecretResponse.account:type_name -> factory.v1.AgentAccount
-	1, // 4: factory.v1.AgentAccountService.ListAgentAccounts:input_type -> factory.v1.ListAgentAccountsRequest
-	3, // 5: factory.v1.AgentAccountService.CreateAgentAccount:input_type -> factory.v1.CreateAgentAccountRequest
-	5, // 6: factory.v1.AgentAccountService.RevokeAgentAccount:input_type -> factory.v1.RevokeAgentAccountRequest
-	7, // 7: factory.v1.AgentAccountService.RotateAgentAccountSecret:input_type -> factory.v1.RotateAgentAccountSecretRequest
-	2, // 8: factory.v1.AgentAccountService.ListAgentAccounts:output_type -> factory.v1.ListAgentAccountsResponse
-	4, // 9: factory.v1.AgentAccountService.CreateAgentAccount:output_type -> factory.v1.CreateAgentAccountResponse
-	6, // 10: factory.v1.AgentAccountService.RevokeAgentAccount:output_type -> factory.v1.RevokeAgentAccountResponse
-	8, // 11: factory.v1.AgentAccountService.RotateAgentAccountSecret:output_type -> factory.v1.RotateAgentAccountSecretResponse
-	8, // [8:12] is the sub-list for method output_type
-	4, // [4:8] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0,  // 0: factory.v1.ListAgentAccountsResponse.accounts:type_name -> factory.v1.AgentAccount
+	0,  // 1: factory.v1.CreateAgentAccountResponse.account:type_name -> factory.v1.AgentAccount
+	0,  // 2: factory.v1.RevokeAgentAccountResponse.account:type_name -> factory.v1.AgentAccount
+	0,  // 3: factory.v1.RotateAgentAccountSecretResponse.account:type_name -> factory.v1.AgentAccount
+	0,  // 4: factory.v1.AddAgentAccountToFamilyResponse.account:type_name -> factory.v1.AgentAccount
+	0,  // 5: factory.v1.RemoveAgentAccountFromFamilyResponse.account:type_name -> factory.v1.AgentAccount
+	1,  // 6: factory.v1.AgentAccountService.ListAgentAccounts:input_type -> factory.v1.ListAgentAccountsRequest
+	3,  // 7: factory.v1.AgentAccountService.CreateAgentAccount:input_type -> factory.v1.CreateAgentAccountRequest
+	5,  // 8: factory.v1.AgentAccountService.RevokeAgentAccount:input_type -> factory.v1.RevokeAgentAccountRequest
+	7,  // 9: factory.v1.AgentAccountService.RotateAgentAccountSecret:input_type -> factory.v1.RotateAgentAccountSecretRequest
+	9,  // 10: factory.v1.AgentAccountService.AddAgentAccountToFamily:input_type -> factory.v1.AddAgentAccountToFamilyRequest
+	11, // 11: factory.v1.AgentAccountService.RemoveAgentAccountFromFamily:input_type -> factory.v1.RemoveAgentAccountFromFamilyRequest
+	2,  // 12: factory.v1.AgentAccountService.ListAgentAccounts:output_type -> factory.v1.ListAgentAccountsResponse
+	4,  // 13: factory.v1.AgentAccountService.CreateAgentAccount:output_type -> factory.v1.CreateAgentAccountResponse
+	6,  // 14: factory.v1.AgentAccountService.RevokeAgentAccount:output_type -> factory.v1.RevokeAgentAccountResponse
+	8,  // 15: factory.v1.AgentAccountService.RotateAgentAccountSecret:output_type -> factory.v1.RotateAgentAccountSecretResponse
+	10, // 16: factory.v1.AgentAccountService.AddAgentAccountToFamily:output_type -> factory.v1.AddAgentAccountToFamilyResponse
+	12, // 17: factory.v1.AgentAccountService.RemoveAgentAccountFromFamily:output_type -> factory.v1.RemoveAgentAccountFromFamilyResponse
+	12, // [12:18] is the sub-list for method output_type
+	6,  // [6:12] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_factory_v1_agent_accounts_proto_init() }
@@ -598,7 +808,7 @@ func file_factory_v1_agent_accounts_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_factory_v1_agent_accounts_proto_rawDesc), len(file_factory_v1_agent_accounts_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

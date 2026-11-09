@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 
 	"tools.xdoubleu.com/internal/database"
@@ -275,6 +276,77 @@ func (s *Store) RotateSecret(
 	return account, secret, nil
 }
 
+// standing returns the active standing account, locked for the transaction;
+// a revoked account or a job's is a conflict.
+func standing(ctx context.Context, tx pgx.Tx, id uuid.UUID) (*Account, error) {
+	account, err := scanAccount(tx.QueryRow(ctx, `
+		SELECT `+accountColumns+` FROM global.agent_accounts
+		WHERE id = $1 FOR UPDATE`, id))
+	if err != nil {
+		return nil, err
+	}
+	if account.RevokedAt != nil || account.JobID != nil {
+		return nil, fmt.Errorf(
+			"%w: only an active standing account can be changed",
+			database.ErrResourceConflict,
+		)
+	}
+	return account, nil
+}
+
+// JoinFamily puts a standing account in familyID, replacing the family it was
+// in, and names it after the account. It joins without an invite, since an
+// agent can't accept one; family data still needs the account's app grants.
+func (s *Store) JoinFamily(
+	ctx context.Context,
+	id, familyID uuid.UUID,
+) (*Account, error) {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	account, err := standing(ctx, tx, id)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = tx.Exec(ctx, `
+		INSERT INTO global.family_members (user_id, family_id, display_name)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (user_id) DO UPDATE
+		SET family_id = EXCLUDED.family_id,
+		    display_name = EXCLUDED.display_name,
+		    joined_at = now()
+		WHERE global.family_members.family_id <> EXCLUDED.family_id`,
+		account.UserID.String(), familyID, account.Name,
+	); err != nil {
+		return nil, err
+	}
+	return account, tx.Commit(ctx)
+}
+
+// LeaveFamily takes a standing account out of its family.
+func (s *Store) LeaveFamily(ctx context.Context, id uuid.UUID) (*Account, error) {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	account, err := standing(ctx, tx, id)
+	if err != nil {
+		return nil, err
+	}
+	if _, err = tx.Exec(ctx,
+		`DELETE FROM global.family_members WHERE user_id = $1`,
+		account.UserID.String(),
+	); err != nil {
+		return nil, err
+	}
+	return account, tx.Commit(ctx)
+}
+
 // Revoke ends an account: it stamps revoked_at and deletes the client, whose
 // cascade removes the tokens it issued, so they stop working at once. Revoking
 // a revoked account does nothing; an unknown id is not found.
@@ -306,6 +378,12 @@ func (s *Store) Revoke(ctx context.Context, id uuid.UUID) (*Account, error) {
 		}
 		if _, err = tx.Exec(ctx,
 			`DELETE FROM global.app_access WHERE user_id = $1`,
+			account.UserID.String(),
+		); err != nil {
+			return nil, err
+		}
+		if _, err = tx.Exec(ctx,
+			`DELETE FROM global.family_members WHERE user_id = $1`,
 			account.UserID.String(),
 		); err != nil {
 			return nil, err

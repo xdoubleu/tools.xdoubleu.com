@@ -54,9 +54,31 @@ message RotateAgentAccountSecretResponse {
   string client_secret = 2;
 }
 
+// Puts the standing account in the signed-in admin's family, in place of its
+// own family-of-one, so it shares what the admin's family shares (only for the
+// apps it holds). It joins without an invite, since an agent can't accept one.
+// totp_code is the step-up check, as for create: joining exposes family data.
+message AddAgentAccountToFamilyRequest {
+  string id = 1;
+  string totp_code = 2;
+}
+message AddAgentAccountToFamilyResponse {
+  AgentAccount account = 1;
+}
+
+// Takes the account out of whichever family it is in.
+message RemoveAgentAccountFromFamilyRequest {
+  string id = 1;
+}
+message RemoveAgentAccountFromFamilyResponse {
+  AgentAccount account = 1;
+}
+
 service AgentAccountService {
   rpc ListAgentAccounts(ListAgentAccountsRequest) returns (ListAgentAccountsResponse);
   rpc CreateAgentAccount(CreateAgentAccountRequest) returns (CreateAgentAccountResponse);
   rpc RevokeAgentAccount(RevokeAgentAccountRequest) returns (RevokeAgentAccountResponse);
   rpc RotateAgentAccountSecret(RotateAgentAccountSecretRequest) returns (RotateAgentAccountSecretResponse);
+  rpc AddAgentAccountToFamily(AddAgentAccountToFamilyRequest) returns (AddAgentAccountToFamilyResponse);
+  rpc RemoveAgentAccountFromFamily(RemoveAgentAccountFromFamilyRequest) returns (RemoveAgentAccountFromFamilyResponse);
 }
