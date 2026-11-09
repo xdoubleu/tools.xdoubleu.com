@@ -423,6 +423,54 @@ func (r *PlansRepository) freshSuggestions(
 	return result, rows.Err()
 }
 
+// SuggestWeek returns, for each empty slot in the seven days from start, the
+// non-draft recipe most often planned on that weekday and slot before start,
+// ranked by frequency then recency.
+func (r *PlansRepository) SuggestWeek(
+	ctx context.Context,
+	planID uuid.UUID,
+	start time.Time,
+) ([]models.WeekSuggestion, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT d.day, s.slot, h.recipe_id, h.servings
+		FROM (SELECT $2::date + n AS day FROM generate_series(0, 6) AS g(n)) AS d
+		CROSS JOIN unnest($3::text[]) AS s(slot)
+		CROSS JOIN LATERAL (
+		  SELECT m.recipe_id, mode() WITHIN GROUP (ORDER BY m.servings) AS servings
+		  FROM mealplans.plan_meals m
+		  WHERE m.plan_id = $1
+		    AND m.recipe_id IS NOT NULL
+		    AND m.meal_slot = s.slot
+		    AND m.meal_date < $2::date
+		    AND EXTRACT(DOW FROM m.meal_date) = EXTRACT(DOW FROM d.day)
+		    AND m.recipe_id NOT IN (SELECT id FROM recipes.recipes WHERE is_draft)
+		  GROUP BY m.recipe_id
+		  ORDER BY COUNT(*) DESC, MAX(m.meal_date) DESC
+		  LIMIT 1
+		) h
+		WHERE NOT EXISTS (
+		  SELECT 1 FROM mealplans.plan_meals e
+		  WHERE e.plan_id = $1 AND e.meal_date = d.day AND e.meal_slot = s.slot
+		)
+		ORDER BY 1, 2`,
+		planID, start, []string{models.SlotBreakfast, models.SlotNoon, models.SlotEvening},
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []models.WeekSuggestion
+	for rows.Next() {
+		var s models.WeekSuggestion
+		if err = rows.Scan(&s.MealDate, &s.MealSlot, &s.RecipeID, &s.Servings); err != nil {
+			return nil, err
+		}
+		result = append(result, s)
+	}
+	return result, rows.Err()
+}
+
 func (r *PlansRepository) MoveMeal(
 	ctx context.Context,
 	mealID uuid.UUID,

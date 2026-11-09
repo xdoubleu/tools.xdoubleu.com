@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { getWeekDates } from '@/lib/mealplans/mealPlanCalendar'
+import { formatMealDate, getWeekDates } from '@/lib/mealplans/mealPlanCalendar'
 import type { Plan, PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import MealPlanEntryForm from './MealPlanEntryForm'
@@ -46,6 +46,7 @@ export default function MealPlanCalendar({
     handleSaveAdd,
     handleSaveEdit,
     handleSaveFillDay,
+    handleFillWeek,
     handleDeleteMeal,
     handleStartPick,
     handleMealClick,
@@ -58,6 +59,22 @@ export default function MealPlanCalendar({
   const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const weekDates = getWeekDates(weekOffset)
+
+  const [filling, setFilling] = useState(false)
+  const [fillResult, setFillResult] = useState('')
+  const fillWeek = async (startDate: string) => {
+    setFilling(true)
+    setFillResult('')
+    const added = await handleFillWeek(startDate)
+    setFilling(false)
+    setFillResult(
+      added < 0
+        ? 'Could not fill the week'
+        : added === 0
+          ? 'Nothing to fill'
+          : `Added ${added} ${added === 1 ? 'meal' : 'meals'}`
+    )
+  }
 
   const mealName = (meal: PlanMeal | null | undefined) =>
     meal?.customName
@@ -93,6 +110,22 @@ export default function MealPlanCalendar({
         <Button variant="secondary" size="sm" onClick={onNextWeek}>
           Next →
         </Button>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={filling}
+          onClick={() => void fillWeek(formatMealDate(weekDates[0]))}
+        >
+          {filling ? 'Filling…' : 'Fill empty slots from usual'}
+        </Button>
+        {fillResult && (
+          <span role="status" className="text-sm text-muted">
+            {fillResult}
+          </span>
+        )}
       </div>
 
       {swappingMeal && (

@@ -44,3 +44,11 @@ type PlanMeal struct {
 	RecipeName              string
 	ExcludeFromShoppingList bool
 }
+
+// WeekSuggestion is the recipe most often planned on a weekday and slot.
+type WeekSuggestion struct {
+	MealDate time.Time
+	MealSlot string
+	RecipeID uuid.UUID
+	Servings int
+}

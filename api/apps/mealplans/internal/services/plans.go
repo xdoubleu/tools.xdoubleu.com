@@ -42,6 +42,11 @@ type plansStore interface {
 		slot string,
 		limit int,
 	) ([]models.RecipeSuggestion, error)
+	SuggestWeek(
+		ctx context.Context,
+		planID uuid.UUID,
+		start time.Time,
+	) ([]models.WeekSuggestion, error)
 	GetByICalToken(ctx context.Context, token uuid.UUID) (*models.Plan, error)
 	Create(ctx context.Context, plan models.Plan) (*models.Plan, error)
 	Update(ctx context.Context, plan models.Plan) error
@@ -144,6 +149,20 @@ func (s *PlanService) SuggestRecipes(
 		return nil, err
 	}
 	return s.repo.SuggestRecipes(ctx, planID, mealDate, slot, suggestRecipesLimit)
+}
+
+// SuggestWeek proposes a usual meal for every empty slot in the seven days
+// from start.
+func (s *PlanService) SuggestWeek(
+	ctx context.Context,
+	planID uuid.UUID,
+	userID string,
+	start time.Time,
+) ([]models.WeekSuggestion, error) {
+	if _, err := s.Get(ctx, planID, userID); err != nil {
+		return nil, err
+	}
+	return s.repo.SuggestWeek(ctx, planID, start)
 }
 
 func (s *PlanService) GetByICalToken(
