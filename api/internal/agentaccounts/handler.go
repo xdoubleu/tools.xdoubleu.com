@@ -31,10 +31,17 @@ type StepUp interface {
 	VerifyCurrentFactor(ctx context.Context, accessToken, code string) error
 }
 
+// Families resolves a person's family, created as a family-of-one if needed.
+type Families interface {
+	EnsureFamily(ctx context.Context, userID string) (uuid.UUID, error)
+}
+
 // Deps is what the agent account RPCs need.
 type Deps struct {
 	Store  *Store
 	StepUp StepUp
+	// Families resolves the family an agent is added to.
+	Families Families
 	// Notify, when set, is told in Slack's text format that an account was created.
 	Notify func(ctx context.Context, text string)
 }
@@ -209,6 +216,51 @@ func (h *handler) RotateAgentAccountSecret(
 	return &factoryv1.RotateAgentAccountSecretResponse{
 		Account:      protoAccount(account),
 		ClientSecret: secret,
+	}, nil
+}
+
+func (h *handler) AddAgentAccountToFamily(
+	ctx context.Context,
+	req *factoryv1.AddAgentAccountToFamilyRequest,
+) (*factoryv1.AddAgentAccountToFamilyResponse, error) {
+	user, err := adminFrom(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "invalid id")
+	}
+	familyID, err := h.deps.Families.EnsureFamily(ctx, user.ID)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	account, err := h.deps.Store.JoinFamily(ctx, id, familyID)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return &factoryv1.AddAgentAccountToFamilyResponse{
+		Account: protoAccount(account),
+	}, nil
+}
+
+func (h *handler) RemoveAgentAccountFromFamily(
+	ctx context.Context,
+	req *factoryv1.RemoveAgentAccountFromFamilyRequest,
+) (*factoryv1.RemoveAgentAccountFromFamilyResponse, error) {
+	if _, err := adminFrom(ctx); err != nil {
+		return nil, err
+	}
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "invalid id")
+	}
+	account, err := h.deps.Store.LeaveFamily(ctx, id)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return &factoryv1.RemoveAgentAccountFromFamilyResponse{
+		Account: protoAccount(account),
 	}, nil
 }
 

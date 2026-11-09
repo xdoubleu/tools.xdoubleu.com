@@ -36,6 +36,12 @@ const (
 	// AgentAccountServiceRotateAgentAccountSecretProcedure is the procedure name of the
 	// AgentAccountService's RotateAgentAccountSecret RPC.
 	AgentAccountServiceRotateAgentAccountSecretProcedure = "/factory.v1.AgentAccountService/RotateAgentAccountSecret"
+	// AgentAccountServiceAddAgentAccountToFamilyProcedure is the procedure name of the
+	// AgentAccountService's AddAgentAccountToFamily RPC.
+	AgentAccountServiceAddAgentAccountToFamilyProcedure = "/factory.v1.AgentAccountService/AddAgentAccountToFamily"
+	// AgentAccountServiceRemoveAgentAccountFromFamilyProcedure is the procedure name of the
+	// AgentAccountService's RemoveAgentAccountFromFamily RPC.
+	AgentAccountServiceRemoveAgentAccountFromFamilyProcedure = "/factory.v1.AgentAccountService/RemoveAgentAccountFromFamily"
 )
 
 var (
@@ -67,6 +73,20 @@ var (
 			Procedure:  AgentAccountServiceRotateAgentAccountSecretProcedure,
 		}
 	})
+	agentAccountServiceAddAgentAccountToFamilySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_agent_accounts_proto.Services().ByName("AgentAccountService").Methods().ByName("AddAgentAccountToFamily"),
+			Procedure:  AgentAccountServiceAddAgentAccountToFamilyProcedure,
+		}
+	})
+	agentAccountServiceRemoveAgentAccountFromFamilySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_agent_accounts_proto.Services().ByName("AgentAccountService").Methods().ByName("RemoveAgentAccountFromFamily"),
+			Procedure:  AgentAccountServiceRemoveAgentAccountFromFamilyProcedure,
+		}
+	})
 )
 
 // AgentAccountServiceClient is a client for the factory.v1.AgentAccountService service.
@@ -75,6 +95,8 @@ type AgentAccountServiceClient interface {
 	CreateAgentAccount(context.Context, *v1.CreateAgentAccountRequest) (*v1.CreateAgentAccountResponse, error)
 	RevokeAgentAccount(context.Context, *v1.RevokeAgentAccountRequest) (*v1.RevokeAgentAccountResponse, error)
 	RotateAgentAccountSecret(context.Context, *v1.RotateAgentAccountSecretRequest) (*v1.RotateAgentAccountSecretResponse, error)
+	AddAgentAccountToFamily(context.Context, *v1.AddAgentAccountToFamilyRequest) (*v1.AddAgentAccountToFamilyResponse, error)
+	RemoveAgentAccountFromFamily(context.Context, *v1.RemoveAgentAccountFromFamilyRequest) (*v1.RemoveAgentAccountFromFamilyResponse, error)
 }
 
 // NewAgentAccountServiceClient constructs a client for the factory.v1.AgentAccountService service.
@@ -89,6 +111,8 @@ type AgentAccountServiceHandler interface {
 	CreateAgentAccount(context.Context, *v1.CreateAgentAccountRequest) (*v1.CreateAgentAccountResponse, error)
 	RevokeAgentAccount(context.Context, *v1.RevokeAgentAccountRequest) (*v1.RevokeAgentAccountResponse, error)
 	RotateAgentAccountSecret(context.Context, *v1.RotateAgentAccountSecretRequest) (*v1.RotateAgentAccountSecretResponse, error)
+	AddAgentAccountToFamily(context.Context, *v1.AddAgentAccountToFamilyRequest) (*v1.AddAgentAccountToFamilyResponse, error)
+	RemoveAgentAccountFromFamily(context.Context, *v1.RemoveAgentAccountFromFamilyRequest) (*v1.RemoveAgentAccountFromFamilyResponse, error)
 }
 
 // RegisterAgentAccountServiceHandler registers svc as the factory.v1.AgentAccountService
@@ -100,6 +124,8 @@ func RegisterAgentAccountServiceHandler(server *connect.Server, svc AgentAccount
 		connect.Method{Spec: agentAccountServiceCreateAgentAccountSpec(), Handler: adapter.createAgentAccount},
 		connect.Method{Spec: agentAccountServiceRevokeAgentAccountSpec(), Handler: adapter.revokeAgentAccount},
 		connect.Method{Spec: agentAccountServiceRotateAgentAccountSecretSpec(), Handler: adapter.rotateAgentAccountSecret},
+		connect.Method{Spec: agentAccountServiceAddAgentAccountToFamilySpec(), Handler: adapter.addAgentAccountToFamily},
+		connect.Method{Spec: agentAccountServiceRemoveAgentAccountFromFamilySpec(), Handler: adapter.removeAgentAccountFromFamily},
 	)
 }
 
@@ -120,6 +146,14 @@ func (UnimplementedAgentAccountServiceHandler) RevokeAgentAccount(context.Contex
 
 func (UnimplementedAgentAccountServiceHandler) RotateAgentAccountSecret(context.Context, *v1.RotateAgentAccountSecretRequest) (*v1.RotateAgentAccountSecretResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.AgentAccountService.RotateAgentAccountSecret is not implemented")
+}
+
+func (UnimplementedAgentAccountServiceHandler) AddAgentAccountToFamily(context.Context, *v1.AddAgentAccountToFamilyRequest) (*v1.AddAgentAccountToFamilyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.AgentAccountService.AddAgentAccountToFamily is not implemented")
+}
+
+func (UnimplementedAgentAccountServiceHandler) RemoveAgentAccountFromFamily(context.Context, *v1.RemoveAgentAccountFromFamilyRequest) (*v1.RemoveAgentAccountFromFamilyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.AgentAccountService.RemoveAgentAccountFromFamily is not implemented")
 }
 
 type agentAccountServiceClient struct {
@@ -153,6 +187,22 @@ func (c *agentAccountServiceClient) RevokeAgentAccount(ctx context.Context, req 
 func (c *agentAccountServiceClient) RotateAgentAccountSecret(ctx context.Context, req *v1.RotateAgentAccountSecretRequest) (*v1.RotateAgentAccountSecretResponse, error) {
 	var res v1.RotateAgentAccountSecretResponse
 	if err := c.client.CallUnary(ctx, agentAccountServiceRotateAgentAccountSecretSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *agentAccountServiceClient) AddAgentAccountToFamily(ctx context.Context, req *v1.AddAgentAccountToFamilyRequest) (*v1.AddAgentAccountToFamilyResponse, error) {
+	var res v1.AddAgentAccountToFamilyResponse
+	if err := c.client.CallUnary(ctx, agentAccountServiceAddAgentAccountToFamilySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *agentAccountServiceClient) RemoveAgentAccountFromFamily(ctx context.Context, req *v1.RemoveAgentAccountFromFamilyRequest) (*v1.RemoveAgentAccountFromFamilyResponse, error) {
+	var res v1.RemoveAgentAccountFromFamilyResponse
+	if err := c.client.CallUnary(ctx, agentAccountServiceRemoveAgentAccountFromFamilySpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -202,6 +252,30 @@ func (h agentAccountServiceHandler) rotateAgentAccountSecret(ctx context.Context
 		return err
 	}
 	res, err := h.svc.RotateAgentAccountSecret(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h agentAccountServiceHandler) addAgentAccountToFamily(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AddAgentAccountToFamilyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AddAgentAccountToFamily(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h agentAccountServiceHandler) removeAgentAccountFromFamily(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RemoveAgentAccountFromFamilyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RemoveAgentAccountFromFamily(ctx, &req)
 	if err != nil {
 		return err
 	}

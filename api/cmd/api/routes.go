@@ -17,6 +17,7 @@ import (
 	"tools.xdoubleu.com/internal/middleware"
 	"tools.xdoubleu.com/internal/oauth2as"
 	"tools.xdoubleu.com/internal/obs"
+	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/slack"
 )
 
@@ -35,9 +36,10 @@ func (app *Application) mux() *http.ServeMux {
 	account.Register(mux, app.logger, nil, app.auth.Access, app.accountDeps())
 	agents := agentaccounts.NewStore(app.db, app.auth.InvalidateUserCache)
 	agentaccounts.Register(mux, app.logger, app.auth.Access, &agentaccounts.Deps{
-		Store:  agents,
-		StepUp: app.auth,
-		Notify: app.slackNotify(),
+		Store:    agents,
+		StepUp:   app.auth,
+		Families: repositories.NewFamilyRepository(app.db),
+		Notify:   app.slackNotify(),
 	})
 	obs.Register(mux, app.logger, app.auth.Access, app.obsDeps())
 

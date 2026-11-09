@@ -19,6 +19,7 @@ import (
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
@@ -126,7 +127,10 @@ func agentClientNotifying(
 				next(w, r.WithContext(userCtx(models.RoleAdmin, channel)))
 			}
 		},
-		&Deps{Store: NewStore(pool, nil), StepUp: stepUp, Notify: notify},
+		&Deps{
+			Store: NewStore(pool, nil), StepUp: stepUp, Notify: notify,
+			Families: repositories.NewFamilyRepository(pool),
+		},
 	)
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
@@ -259,6 +263,37 @@ func TestEveryRPCNeedsAnAdminInABrowser(t *testing.T) {
 	_, err = c.RotateAgentAccountSecret(ctx,
 		&factoryv1.RotateAgentAccountSecretRequest{Id: "x", TotpCode: "1"})
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+	_, err = c.AddAgentAccountToFamily(ctx,
+		&factoryv1.AddAgentAccountToFamilyRequest{Id: "x"})
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+	_, err = c.RemoveAgentAccountFromFamily(ctx,
+		&factoryv1.RemoveAgentAccountFromFamilyRequest{Id: "x"})
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+}
+
+func TestAnAdminAddsAndRemovesAnAgentInTheirFamily(t *testing.T) {
+	c := agentClient(t, constants.ChannelBrowser, stepUpReturning(nil))
+	ctx := withToken(context.Background())
+	created, err := c.CreateAgentAccount(ctx,
+		&factoryv1.CreateAgentAccountRequest{Name: "family bot", TotpCode: "1"})
+	require.NoError(t, err)
+
+	added, err := c.AddAgentAccountToFamily(ctx,
+		&factoryv1.AddAgentAccountToFamilyRequest{Id: created.Account.Id})
+	require.NoError(t, err)
+	assert.Equal(t, created.Account.Id, added.Account.Id)
+
+	_, err = c.AddAgentAccountToFamily(ctx,
+		&factoryv1.AddAgentAccountToFamilyRequest{Id: "nope"})
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+
+	removed, err := c.RemoveAgentAccountFromFamily(ctx,
+		&factoryv1.RemoveAgentAccountFromFamilyRequest{Id: created.Account.Id})
+	require.NoError(t, err)
+	assert.Equal(t, created.Account.Id, removed.Account.Id)
+	_, err = c.RemoveAgentAccountFromFamily(ctx,
+		&factoryv1.RemoveAgentAccountFromFamilyRequest{Id: "nope"})
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
 func TestRotatingASecretNeedsTheStepUpAndReturnsANewOne(t *testing.T) {
@@ -308,7 +343,9 @@ func TestCreateWithoutRequestInfoIsUnauthenticated(t *testing.T) {
 	pool := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
 	t.Cleanup(pool.Close)
 	stepUp := stepUpReturning(nil)
-	h := &handler{deps: &Deps{Store: NewStore(pool, nil), StepUp: stepUp, Notify: nil}}
+	h := &handler{deps: &Deps{
+		Store: NewStore(pool, nil), StepUp: stepUp, Families: nil, Notify: nil,
+	}}
 
 	_, err := h.CreateAgentAccount(
 		userCtx(models.RoleAdmin, constants.ChannelBrowser),

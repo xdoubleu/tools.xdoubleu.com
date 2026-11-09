@@ -45,7 +45,9 @@ it does for people: granted per app, revoked the same way.
   `factory` grant.
 - **Family.** An agent has a family-of-one like any user. It joins a person's
   family only when that person adds it (no email invite; an agent can't
-  accept). Family data then needs both membership and the app grant.
+  accept). Family data then needs both membership and the app grant. An admin
+  adds a standing agent to their own family through `AddAgentAccountToFamily`;
+  revoking the agent removes it.
 - **Connection.** Keep client_credentials with no refresh token (RFC 6749
   §4.4.3): the client secret is the long-lived credential and the
   `headersHelper` already mints a token on a 401. What ends the manual dance is

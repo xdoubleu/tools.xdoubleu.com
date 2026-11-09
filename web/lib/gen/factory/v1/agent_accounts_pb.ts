@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file factory/v1/agent_accounts.proto.
  */
 export const file_factory_v1_agent_accounts: GenFile = /*@__PURE__*/
-  fileDesc("Ch9mYWN0b3J5L3YxL2FnZW50X2FjY291bnRzLnByb3RvEgpmYWN0b3J5LnYxIogBCgxBZ2VudEFjY291bnQSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIPCgd1c2VyX2lkGAMgASgJEhEKCWNsaWVudF9pZBgEIAEoCRISCgpjcmVhdGVkX2J5GAUgASgJEhIKCmNyZWF0ZWRfYXQYBiABKAkSEgoKcmV2b2tlZF9hdBgHIAEoCSIaChhMaXN0QWdlbnRBY2NvdW50c1JlcXVlc3QiRwoZTGlzdEFnZW50QWNjb3VudHNSZXNwb25zZRIqCghhY2NvdW50cxgBIAMoCzIYLmZhY3RvcnkudjEuQWdlbnRBY2NvdW50IjwKGUNyZWF0ZUFnZW50QWNjb3VudFJlcXVlc3QSDAoEbmFtZRgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiXgoaQ3JlYXRlQWdlbnRBY2NvdW50UmVzcG9uc2USKQoHYWNjb3VudBgBIAEoCzIYLmZhY3RvcnkudjEuQWdlbnRBY2NvdW50EhUKDWNsaWVudF9zZWNyZXQYAiABKAkiJwoZUmV2b2tlQWdlbnRBY2NvdW50UmVxdWVzdBIKCgJpZBgBIAEoCSJHChpSZXZva2VBZ2VudEFjY291bnRSZXNwb25zZRIpCgdhY2NvdW50GAEgASgLMhguZmFjdG9yeS52MS5BZ2VudEFjY291bnQiQAofUm90YXRlQWdlbnRBY2NvdW50U2VjcmV0UmVxdWVzdBIKCgJpZBgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiZAogUm90YXRlQWdlbnRBY2NvdW50U2VjcmV0UmVzcG9uc2USKQoHYWNjb3VudBgBIAEoCzIYLmZhY3RvcnkudjEuQWdlbnRBY2NvdW50EhUKDWNsaWVudF9zZWNyZXQYAiABKAkyuAMKE0FnZW50QWNjb3VudFNlcnZpY2USYAoRTGlzdEFnZW50QWNjb3VudHMSJC5mYWN0b3J5LnYxLkxpc3RBZ2VudEFjY291bnRzUmVxdWVzdBolLmZhY3RvcnkudjEuTGlzdEFnZW50QWNjb3VudHNSZXNwb25zZRJjChJDcmVhdGVBZ2VudEFjY291bnQSJS5mYWN0b3J5LnYxLkNyZWF0ZUFnZW50QWNjb3VudFJlcXVlc3QaJi5mYWN0b3J5LnYxLkNyZWF0ZUFnZW50QWNjb3VudFJlc3BvbnNlEmMKElJldm9rZUFnZW50QWNjb3VudBIlLmZhY3RvcnkudjEuUmV2b2tlQWdlbnRBY2NvdW50UmVxdWVzdBomLmZhY3RvcnkudjEuUmV2b2tlQWdlbnRBY2NvdW50UmVzcG9uc2USdQoYUm90YXRlQWdlbnRBY2NvdW50U2VjcmV0EisuZmFjdG9yeS52MS5Sb3RhdGVBZ2VudEFjY291bnRTZWNyZXRSZXF1ZXN0GiwuZmFjdG9yeS52MS5Sb3RhdGVBZ2VudEFjY291bnRTZWNyZXRSZXNwb25zZUItWit0b29scy54ZG91YmxldS5jb20vZ2VuL2ZhY3RvcnkvdjE7ZmFjdG9yeXYxYgZwcm90bzM");
+  fileDesc("Ch9mYWN0b3J5L3YxL2FnZW50X2FjY291bnRzLnByb3RvEgpmYWN0b3J5LnYxIogBCgxBZ2VudEFjY291bnQSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIPCgd1c2VyX2lkGAMgASgJEhEKCWNsaWVudF9pZBgEIAEoCRISCgpjcmVhdGVkX2J5GAUgASgJEhIKCmNyZWF0ZWRfYXQYBiABKAkSEgoKcmV2b2tlZF9hdBgHIAEoCSIaChhMaXN0QWdlbnRBY2NvdW50c1JlcXVlc3QiRwoZTGlzdEFnZW50QWNjb3VudHNSZXNwb25zZRIqCghhY2NvdW50cxgBIAMoCzIYLmZhY3RvcnkudjEuQWdlbnRBY2NvdW50IjwKGUNyZWF0ZUFnZW50QWNjb3VudFJlcXVlc3QSDAoEbmFtZRgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiXgoaQ3JlYXRlQWdlbnRBY2NvdW50UmVzcG9uc2USKQoHYWNjb3VudBgBIAEoCzIYLmZhY3RvcnkudjEuQWdlbnRBY2NvdW50EhUKDWNsaWVudF9zZWNyZXQYAiABKAkiJwoZUmV2b2tlQWdlbnRBY2NvdW50UmVxdWVzdBIKCgJpZBgBIAEoCSJHChpSZXZva2VBZ2VudEFjY291bnRSZXNwb25zZRIpCgdhY2NvdW50GAEgASgLMhguZmFjdG9yeS52MS5BZ2VudEFjY291bnQiQAofUm90YXRlQWdlbnRBY2NvdW50U2VjcmV0UmVxdWVzdBIKCgJpZBgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiZAogUm90YXRlQWdlbnRBY2NvdW50U2VjcmV0UmVzcG9uc2USKQoHYWNjb3VudBgBIAEoCzIYLmZhY3RvcnkudjEuQWdlbnRBY2NvdW50EhUKDWNsaWVudF9zZWNyZXQYAiABKAkiLAoeQWRkQWdlbnRBY2NvdW50VG9GYW1pbHlSZXF1ZXN0EgoKAmlkGAEgASgJIkwKH0FkZEFnZW50QWNjb3VudFRvRmFtaWx5UmVzcG9uc2USKQoHYWNjb3VudBgBIAEoCzIYLmZhY3RvcnkudjEuQWdlbnRBY2NvdW50IjEKI1JlbW92ZUFnZW50QWNjb3VudEZyb21GYW1pbHlSZXF1ZXN0EgoKAmlkGAEgASgJIlEKJFJlbW92ZUFnZW50QWNjb3VudEZyb21GYW1pbHlSZXNwb25zZRIpCgdhY2NvdW50GAEgASgLMhguZmFjdG9yeS52MS5BZ2VudEFjY291bnQysAUKE0FnZW50QWNjb3VudFNlcnZpY2USYAoRTGlzdEFnZW50QWNjb3VudHMSJC5mYWN0b3J5LnYxLkxpc3RBZ2VudEFjY291bnRzUmVxdWVzdBolLmZhY3RvcnkudjEuTGlzdEFnZW50QWNjb3VudHNSZXNwb25zZRJjChJDcmVhdGVBZ2VudEFjY291bnQSJS5mYWN0b3J5LnYxLkNyZWF0ZUFnZW50QWNjb3VudFJlcXVlc3QaJi5mYWN0b3J5LnYxLkNyZWF0ZUFnZW50QWNjb3VudFJlc3BvbnNlEmMKElJldm9rZUFnZW50QWNjb3VudBIlLmZhY3RvcnkudjEuUmV2b2tlQWdlbnRBY2NvdW50UmVxdWVzdBomLmZhY3RvcnkudjEuUmV2b2tlQWdlbnRBY2NvdW50UmVzcG9uc2USdQoYUm90YXRlQWdlbnRBY2NvdW50U2VjcmV0EisuZmFjdG9yeS52MS5Sb3RhdGVBZ2VudEFjY291bnRTZWNyZXRSZXF1ZXN0GiwuZmFjdG9yeS52MS5Sb3RhdGVBZ2VudEFjY291bnRTZWNyZXRSZXNwb25zZRJyChdBZGRBZ2VudEFjY291bnRUb0ZhbWlseRIqLmZhY3RvcnkudjEuQWRkQWdlbnRBY2NvdW50VG9GYW1pbHlSZXF1ZXN0GisuZmFjdG9yeS52MS5BZGRBZ2VudEFjY291bnRUb0ZhbWlseVJlc3BvbnNlEoEBChxSZW1vdmVBZ2VudEFjY291bnRGcm9tRmFtaWx5Ei8uZmFjdG9yeS52MS5SZW1vdmVBZ2VudEFjY291bnRGcm9tRmFtaWx5UmVxdWVzdBowLmZhY3RvcnkudjEuUmVtb3ZlQWdlbnRBY2NvdW50RnJvbUZhbWlseVJlc3BvbnNlQi1aK3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vZmFjdG9yeS92MTtmYWN0b3J5djFiBnByb3RvMw");
 
 /**
  * @generated from message factory.v1.AgentAccount
@@ -232,6 +232,80 @@ export const RotateAgentAccountSecretResponseSchema: GenMessage<RotateAgentAccou
   messageDesc(file_factory_v1_agent_accounts, 8);
 
 /**
+ * Puts the standing account in the signed-in admin's family, in place of its
+ * own family-of-one, so it shares what the admin's family shares (only for the
+ * apps it holds). It joins without an invite, since an agent can't accept one.
+ *
+ * @generated from message factory.v1.AddAgentAccountToFamilyRequest
+ */
+export type AddAgentAccountToFamilyRequest = Message<"factory.v1.AddAgentAccountToFamilyRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message factory.v1.AddAgentAccountToFamilyRequest.
+ * Use `create(AddAgentAccountToFamilyRequestSchema)` to create a new message.
+ */
+export const AddAgentAccountToFamilyRequestSchema: GenMessage<AddAgentAccountToFamilyRequest> = /*@__PURE__*/
+  messageDesc(file_factory_v1_agent_accounts, 9);
+
+/**
+ * @generated from message factory.v1.AddAgentAccountToFamilyResponse
+ */
+export type AddAgentAccountToFamilyResponse = Message<"factory.v1.AddAgentAccountToFamilyResponse"> & {
+  /**
+   * @generated from field: factory.v1.AgentAccount account = 1;
+   */
+  account?: AgentAccount | undefined;
+};
+
+/**
+ * Describes the message factory.v1.AddAgentAccountToFamilyResponse.
+ * Use `create(AddAgentAccountToFamilyResponseSchema)` to create a new message.
+ */
+export const AddAgentAccountToFamilyResponseSchema: GenMessage<AddAgentAccountToFamilyResponse> = /*@__PURE__*/
+  messageDesc(file_factory_v1_agent_accounts, 10);
+
+/**
+ * Takes the account out of whichever family it is in.
+ *
+ * @generated from message factory.v1.RemoveAgentAccountFromFamilyRequest
+ */
+export type RemoveAgentAccountFromFamilyRequest = Message<"factory.v1.RemoveAgentAccountFromFamilyRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message factory.v1.RemoveAgentAccountFromFamilyRequest.
+ * Use `create(RemoveAgentAccountFromFamilyRequestSchema)` to create a new message.
+ */
+export const RemoveAgentAccountFromFamilyRequestSchema: GenMessage<RemoveAgentAccountFromFamilyRequest> = /*@__PURE__*/
+  messageDesc(file_factory_v1_agent_accounts, 11);
+
+/**
+ * @generated from message factory.v1.RemoveAgentAccountFromFamilyResponse
+ */
+export type RemoveAgentAccountFromFamilyResponse = Message<"factory.v1.RemoveAgentAccountFromFamilyResponse"> & {
+  /**
+   * @generated from field: factory.v1.AgentAccount account = 1;
+   */
+  account?: AgentAccount | undefined;
+};
+
+/**
+ * Describes the message factory.v1.RemoveAgentAccountFromFamilyResponse.
+ * Use `create(RemoveAgentAccountFromFamilyResponseSchema)` to create a new message.
+ */
+export const RemoveAgentAccountFromFamilyResponseSchema: GenMessage<RemoveAgentAccountFromFamilyResponse> = /*@__PURE__*/
+  messageDesc(file_factory_v1_agent_accounts, 12);
+
+/**
  * @generated from service factory.v1.AgentAccountService
  */
 export const AgentAccountService: GenService<{
@@ -266,6 +340,22 @@ export const AgentAccountService: GenService<{
     methodKind: "unary";
     input: typeof RotateAgentAccountSecretRequestSchema;
     output: typeof RotateAgentAccountSecretResponseSchema;
+  },
+  /**
+   * @generated from rpc factory.v1.AgentAccountService.AddAgentAccountToFamily
+   */
+  addAgentAccountToFamily: {
+    methodKind: "unary";
+    input: typeof AddAgentAccountToFamilyRequestSchema;
+    output: typeof AddAgentAccountToFamilyResponseSchema;
+  },
+  /**
+   * @generated from rpc factory.v1.AgentAccountService.RemoveAgentAccountFromFamily
+   */
+  removeAgentAccountFromFamily: {
+    methodKind: "unary";
+    input: typeof RemoveAgentAccountFromFamilyRequestSchema;
+    output: typeof RemoveAgentAccountFromFamilyResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_factory_v1_agent_accounts, 0);
