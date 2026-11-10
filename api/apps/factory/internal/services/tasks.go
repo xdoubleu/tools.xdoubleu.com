@@ -212,6 +212,15 @@ func (s *TaskService) Move(
 	if err := checkMove(actor, status); err != nil {
 		return nil, err
 	}
+	if status == models.StatusReady {
+		task, err := s.repo.Get(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		if err = checkRenderable(task.Title, task.Body); err != nil {
+			return nil, err
+		}
+	}
 	return s.repo.Move(ctx, id, status)
 }
 

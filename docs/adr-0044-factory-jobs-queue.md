@@ -23,9 +23,10 @@ its own work ([ADR-0041](adr-0041-factory-runner-pairing.md)).
 - **The prompt is frozen at Run.** It holds the repo's agent instructions, the
   task's title and body, and the Run text; the runner adds its own preamble and
   validates the repo and branch itself. Agent comments never enter it. If the
-  task's body was last edited outside a browser session, Run is refused with a
-  comment and the task goes to Needs you: an agent could have written text the
-  owner never saw.
+  task's title or body holds text that isn't rendered (an HTML comment, an invisible
+  character), Run and the Ready move are refused: an agent could have written text
+  the owner never saw. Who last edited the body doesn't matter, so an agent-refined
+  task runs once the owner moves it to Ready.
 - **Five minutes of silence is lost.** A running job whose last check-in is that
   old becomes `lost` and its task moves to Needs you. No timer runs on the
   server; the sweep runs when a runner claims a job and when the board is read,

@@ -213,10 +213,8 @@ func (r *TasksRepository) Move(
 	return scanTask(r.db.QueryRow(ctx, `
 		WITH t AS (
 			UPDATE factory.tasks SET status = $2, updated_at = now(),
-				ready_title = CASE WHEN $2 = 'ready' AND body_edited_channel = 'browser'
-					THEN title END,
-				ready_body = CASE WHEN $2 = 'ready' AND body_edited_channel = 'browser'
-					THEN body END,
+				ready_title = CASE WHEN $2 = 'ready' THEN title END,
+				ready_body = CASE WHEN $2 = 'ready' THEN body END,
 				-- Retry pickup is a fresh Ready move: clear the block reason when the
 				-- task is opened for work again or returned to Backlog.
 				pickup_blocked = CASE WHEN $2 IN ('ready', 'backlog')
@@ -294,21 +292,6 @@ func (r *TasksRepository) Comments(
 	return out, rows.Err()
 }
 
-// BodyEditedChannel is how the task's body was last edited ("browser" or not).
-func (r *TasksRepository) BodyEditedChannel(
-	ctx context.Context,
-	id uuid.UUID,
-) (string, error) {
-	var channel string
-	err := r.db.QueryRow(ctx,
-		`SELECT body_edited_channel FROM factory.tasks WHERE id = $1`, id,
-	).Scan(&channel)
-	if err != nil {
-		return "", postgres.PgxErrorToHTTPError(err)
-	}
-	return channel, nil
-}
-
 // PickupCandidate is a Ready task as a human approved it.
 type PickupCandidate struct {
 	TaskID uuid.UUID
@@ -319,9 +302,8 @@ type PickupCandidate struct {
 
 // NextReady is the oldest highest-priority Ready task of a repo that has auto pickup
 // on, with its approved text. It finds none while the board is paused or any job is
-// queued or running, so it is the only query a quiet claim needs. A task whose body
-// was last edited outside a browser when it went Ready has no approved text and is
-// skipped. None is not found.
+// queued or running, so it is the only query a quiet claim needs. A task from before
+// the Ready snapshots existed has no approved text and is skipped. None is not found.
 func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, error) {
 	var c PickupCandidate
 	err := r.db.QueryRow(ctx, `

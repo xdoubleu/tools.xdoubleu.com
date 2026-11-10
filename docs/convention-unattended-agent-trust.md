@@ -14,8 +14,9 @@
   account's move into Ready is refused); on GitHub it rests on the rules above.
 - **The factory runner picks up a Ready task only if its repo opted in** (auto
   pickup, off by default) and the board isn't paused. It runs the title and body as
-  they stood at the Ready move, not later edits, and skips a task whose body was
-  last edited outside a browser at that move. A human admin in a browser also
+  they stood at the Ready move, not later edits, and skips a task whose title or
+  body holds text a reader can't see (an HTML comment, an invisible character), as
+  Run and the Ready move refuse it. A human admin in a browser also
   resumes a paused board. Its PRs are not armed by `finish-task`, so they wait for
 a manual merge until the host arms them.
 - **Routines file to the board as their own agent account**, never as the

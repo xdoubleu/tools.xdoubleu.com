@@ -25,9 +25,7 @@ const (
 	LostAfter = 5 * time.Minute
 
 	maxRunText = 10000
-	// browserChannel is what a body edit from a browser session is stored as.
-	browserChannel = "browser"
-	maxSlugLen     = 30
+	maxSlugLen = 30
 	// systemAuthor signs the comments the factory writes itself.
 	systemAuthor = "system:factory"
 )
@@ -143,9 +141,9 @@ func resolveHarness(
 }
 
 // Run queues a job for a task and moves the task to In progress. Only a human
-// admin in a browser may run a task, as for Ready. A task whose body was last
-// edited outside a browser session is refused, with a comment, and moved to
-// Needs you: an agent could have put text there the owner never saw.
+// admin in a browser may run a task, as for Ready. A task whose title or body holds
+// text that isn't rendered (an HTML comment, an invisible character) is refused:
+// an agent could have put instructions there the owner never saw.
 func (s *JobService) Run(
 	ctx context.Context,
 	actor models.Actor,
@@ -183,12 +181,8 @@ func (s *JobService) Run(
 		}
 	}
 
-	channel, err := s.tasks.BodyEditedChannel(ctx, taskID)
-	if err != nil {
+	if err = checkRenderable(task.Title, task.Body); err != nil {
 		return nil, err
-	}
-	if channel != browserChannel {
-		return nil, s.refuse(ctx, task)
 	}
 
 	job, err := s.jobs.Create(ctx, models.Job{
@@ -322,24 +316,6 @@ func (s *JobService) Stop(
 		return nil, err
 	}
 	return job, nil
-}
-
-// refuse comments why a task wasn't run and parks it in Needs you, once: a task
-// already there has the comment, and another press must not repeat it.
-func (s *JobService) refuse(ctx context.Context, task *models.Task) error {
-	const reason = "Not run: the task's body was last edited outside a browser " +
-		"session, so what an agent would be told isn't what you approved. Open the " +
-		"task in the app and save its body, then run it again."
-	if task.Status == models.StatusNeedsYou {
-		return badRequest(reason)
-	}
-	if _, err := s.tasks.AddComment(ctx, task.ID, systemAuthor, reason); err != nil {
-		return err
-	}
-	if _, err := s.tasks.Move(ctx, task.ID, models.StatusNeedsYou); err != nil {
-		return err
-	}
-	return badRequest(reason)
 }
 
 // Claim starts the oldest queued job, or returns nil when there is none or one is
@@ -601,6 +577,9 @@ func (s *JobService) pickUp(ctx context.Context) error {
 		}
 	}
 	approved := approvedTask(next)
+	if err = checkRenderable(approved.Title, approved.Body); err != nil {
+		return s.blockPickup(ctx, next.TaskID, err.Error())
+	}
 	_, err = s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: next.TaskID, TaskNumber: 0, RepoID: repo.ID,
 		Harness: harness,
@@ -626,12 +605,22 @@ func (s *JobService) cannotPickUp(
 	taskID uuid.UUID,
 	reason error,
 ) error {
-	body := "Not picked up automatically: " + reason.Error() +
-		". Fix the repo's settings, then move the task to Ready again to retry."
+	return s.blockPickup(ctx, taskID, reason.Error()+
+		". Fix the repo's settings, then move the task to Ready again to retry.")
+}
+
+// blockPickup comments why a Ready task was passed over and records it so
+// NextReady skips the task until its next Ready move.
+func (s *JobService) blockPickup(
+	ctx context.Context,
+	taskID uuid.UUID,
+	reason string,
+) error {
+	body := "Not picked up automatically: " + reason
 	if _, err := s.tasks.AddComment(ctx, taskID, systemAuthor, body); err != nil {
 		return err
 	}
-	_, err := s.tasks.BlockPickup(ctx, taskID, reason.Error())
+	_, err := s.tasks.BlockPickup(ctx, taskID, reason)
 	return err
 }
 
