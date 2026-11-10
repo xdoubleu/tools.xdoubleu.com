@@ -50,7 +50,7 @@ const LIMIT_TICK_MS = 30_000
 const REPO_PARAM = 'repo'
 const LABEL_PARAM = 'label'
 
-/** The task board: one column per swipe on a phone, side by side on a wide screen. */
+/** The task board: collapsible sections per state on a phone, columns side by side on a wide screen. */
 export default function FactoryClient() {
   const { data, error, isLoading } = useFactoryTasks()
   const repos = reposOf(useFactoryRepos().data)
@@ -70,6 +70,8 @@ export default function FactoryClient() {
   const [showDone, setShowDone] = useState(false)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverStatus, setDragOverStatus] = useState<number | null>(null)
+  // Phone sections: a state the user hasn't toggled is open only when it has tasks.
+  const [sectionOpen, setSectionOpen] = useState<Record<number, boolean>>({})
   const paused = data?.pickupPaused === true
   // Ticks, so the notice goes away by itself when the limit lifts.
   const [now, setNow] = useState(() => Date.now())
@@ -321,56 +323,77 @@ export default function FactoryClient() {
       {data && (
         <div
           className={cn(
-            'grid min-h-0 flex-1 grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5',
+            'grid min-h-0 flex-1 auto-rows-min grid-cols-1 gap-3 overflow-y-auto md:auto-rows-auto md:grid-cols-3 lg:grid-cols-5 md:overflow-visible',
             showDone ? 'xl:grid-cols-7' : 'xl:grid-cols-6'
           )}
         >
-          {groupByStatus(visible, showDone).map((column) => (
-            <section
-              key={column.status}
-              aria-label={column.label}
-              className={cn(
-                'flex min-h-0 min-w-0 flex-col space-y-2 rounded-2xl',
-                dragOverStatus === column.status && 'ring-2 ring-accent/60'
-              )}
-              onDragOver={(e) => {
-                e.preventDefault()
-                setDragOverStatus(column.status)
-              }}
-              onDragLeave={() => setDragOverStatus(null)}
-              onDrop={onDrop(column.status)}
-            >
-              <SectionHeading level="eyebrow" as="h2">
-                {column.label} <span className="font-normal">{column.tasks.length}</span>
-              </SectionHeading>
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
-                {column.tasks.length === 0 ? (
-                  <EmptyState placement="inline">Nothing here.</EmptyState>
-                ) : (
-                  column.tasks.map((task) => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      repo={repos.length > 1 ? repos.find((r) => r.id === task.repoId) : undefined}
-                      awaitingApproval={awaitingPickupApproval(task, repos)}
-                      dragging={draggingId === task.id}
-                      onCloseEpic={closable(task) ? () => void closeEpic(task) : undefined}
-                      onOpen={setOpenId}
-                      onDragStart={(e, t) => {
-                        e.dataTransfer.setData(TASK_DATA_TYPE, t.id)
-                        e.dataTransfer.effectAllowed = 'move'
-                        setDraggingId(t.id)
-                      }}
-                      onDragEnd={() => {
-                        setDraggingId(null)
-                        setDragOverStatus(null)
-                      }}
-                    />
-                  ))
+          {groupByStatus(visible, showDone).map((column) => {
+            const expanded = sectionOpen[column.status] ?? column.tasks.length > 0
+            return (
+              <section
+                key={column.status}
+                aria-label={column.label}
+                className={cn(
+                  'flex min-w-0 flex-col space-y-2 rounded-2xl md:min-h-0',
+                  dragOverStatus === column.status && 'ring-2 ring-accent/60'
                 )}
-              </div>
-            </section>
-          ))}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  setDragOverStatus(column.status)
+                }}
+                onDragLeave={() => setDragOverStatus(null)}
+                onDrop={onDrop(column.status)}
+              >
+                <SectionHeading level="eyebrow" as="h2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    aria-expanded={expanded}
+                    onClick={() => setSectionOpen({ ...sectionOpen, [column.status]: !expanded })}
+                    className="h-auto min-h-11 w-full justify-start gap-2 px-0 text-left md:pointer-events-none md:min-h-0"
+                  >
+                    <span aria-hidden className={cn('md:hidden', expanded && 'rotate-90')}>
+                      ▸
+                    </span>
+                    {column.label} <span className="font-normal">{column.tasks.length}</span>
+                  </Button>
+                </SectionHeading>
+                <div
+                  className={cn(
+                    'space-y-2 md:block md:min-h-0 md:flex-1 md:overflow-y-auto',
+                    !expanded && 'hidden'
+                  )}
+                >
+                  {column.tasks.length === 0 ? (
+                    <EmptyState placement="inline">Nothing here.</EmptyState>
+                  ) : (
+                    column.tasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        repo={
+                          repos.length > 1 ? repos.find((r) => r.id === task.repoId) : undefined
+                        }
+                        awaitingApproval={awaitingPickupApproval(task, repos)}
+                        dragging={draggingId === task.id}
+                        onCloseEpic={closable(task) ? () => void closeEpic(task) : undefined}
+                        onOpen={setOpenId}
+                        onDragStart={(e, t) => {
+                          e.dataTransfer.setData(TASK_DATA_TYPE, t.id)
+                          e.dataTransfer.effectAllowed = 'move'
+                          setDraggingId(t.id)
+                        }}
+                        onDragEnd={() => {
+                          setDraggingId(null)
+                          setDragOverStatus(null)
+                        }}
+                      />
+                    ))
+                  )}
+                </div>
+              </section>
+            )
+          })}
         </div>
       )}
       {openId && <TaskDetail id={openId} onClose={() => setOpenId(null)} />}

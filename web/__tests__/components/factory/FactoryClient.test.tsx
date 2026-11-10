@@ -139,6 +139,23 @@ describe('FactoryClient', () => {
     expect(screen.getAllByText('Nothing here.')).toHaveLength(5)
   })
 
+  it('collapses empty sections by default and toggles a section on tap', () => {
+    mockTasks({ data: board })
+    render(<FactoryClient />)
+    const backlog = within(screen.getByRole('region', { name: 'Backlog' })).getByRole('button', {
+      name: /Backlog/
+    })
+    expect(backlog).toHaveAttribute('aria-expanded', 'true')
+    const empty = within(screen.getByRole('region', { name: 'Needs you' })).getByRole('button', {
+      name: /Needs you/
+    })
+    expect(empty).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(backlog)
+    expect(backlog).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(empty)
+    expect(empty).toHaveAttribute('aria-expanded', 'true')
+  })
+
   it('keeps Done tasks off the board until the Done toggle is on', () => {
     mockTasks({ data: board })
     render(<FactoryClient />)
