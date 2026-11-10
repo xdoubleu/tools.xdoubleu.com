@@ -24,6 +24,7 @@ vi.mock('@/components/factory/TaskCard', () => ({
     task,
     repo,
     awaitingApproval,
+    dragging,
     onCloseEpic,
     onOpen,
     onDragStart,
@@ -32,6 +33,7 @@ vi.mock('@/components/factory/TaskCard', () => ({
     task: { id: string; title: string }
     repo?: { name: string }
     awaitingApproval?: boolean
+    dragging?: boolean
     onCloseEpic?: () => void
     onOpen: (id: string) => void
     onDragStart: (event: unknown, task: { id: string }) => void
@@ -39,8 +41,9 @@ vi.mock('@/components/factory/TaskCard', () => ({
   }) => (
     <button
       data-task-id={task.id}
+      data-dragging={dragging}
       onClick={() => onOpen(task.id)}
-      onDragStart={() => onDragStart({ dataTransfer: { setData: () => {} } }, task)}
+      onDragStart={(e) => onDragStart(e, task)}
       onDragEnd={() => onDragEnd()}
     >
       {task.title}
@@ -150,10 +153,21 @@ describe('FactoryClient', () => {
       name: /Needs you/
     })
     expect(empty).toHaveAttribute('aria-expanded', 'false')
+    const body = (button: HTMLElement) => button.closest('section')!.lastElementChild!
+    const chevron = (button: HTMLElement) => button.querySelector('[aria-hidden]')!
+    expect(body(backlog)).not.toHaveClass('hidden')
+    expect(body(backlog)).toHaveClass('md:block', 'md:overflow-y-auto', 'space-y-2')
+    expect(chevron(backlog)).toHaveClass('md:hidden', 'rotate-90')
+    expect(body(empty)).toHaveClass('hidden')
+    expect(chevron(empty)).toHaveClass('md:hidden')
+    expect(chevron(empty)).not.toHaveClass('rotate-90')
+    expect(screen.getByRole('region', { name: 'Backlog' })).toHaveClass('flex', 'md:min-h-0')
     fireEvent.click(backlog)
     expect(backlog).toHaveAttribute('aria-expanded', 'false')
+    expect(body(backlog)).toHaveClass('hidden')
     fireEvent.click(empty)
     expect(empty).toHaveAttribute('aria-expanded', 'true')
+    expect(body(empty)).not.toHaveClass('hidden')
   })
 
   it('keeps Done tasks off the board until the Done toggle is on', () => {
@@ -575,13 +589,22 @@ describe('FactoryClient', () => {
     render(<FactoryClient />)
     fireEvent.click(screen.getByRole('button', { name: 'Show done tasks' }))
     // Star a drag on the Backlog card.
-    fireEvent.dragStart(screen.getByRole('button', { name: 'Alpha' }))
-    // Dragging over a column highlights it.
-    fireEvent.dragOver(screen.getByRole('region', { name: 'Done' }))
+    const dt = { setData: vi.fn(), effectAllowed: '' }
+    const alpha = screen.getByRole('button', { name: 'Alpha' })
+    fireEvent.dragStart(alpha, { dataTransfer: dt })
+    expect(dt.setData).toHaveBeenCalledWith(expect.any(String), 'a')
+    expect(dt.effectAllowed).toBe('move')
+    expect(alpha).toHaveAttribute('data-dragging', 'true')
+    expect(screen.getByRole('button', { name: 'Beta' })).toHaveAttribute('data-dragging', 'false')
+    // Dragging over a column highlights it; the default is cancelled so a drop is allowed.
+    expect(fireEvent.dragOver(screen.getByRole('region', { name: 'Done' }))).toBe(false)
     expect(screen.getByRole('region', { name: 'Done' }).className).toContain('ring-accent')
     fireEvent.dragLeave(screen.getByRole('region', { name: 'Done' }))
     expect(screen.getByRole('region', { name: 'Done' }).className).not.toContain('ring-accent')
-    fireEvent.dragEnd(screen.getByRole('button', { name: 'Alpha' }))
+    fireEvent.dragOver(screen.getByRole('region', { name: 'Done' }))
+    fireEvent.dragEnd(alpha)
+    expect(alpha).toHaveAttribute('data-dragging', 'false')
+    expect(screen.getByRole('region', { name: 'Done' }).className).not.toContain('ring-accent')
   })
 
   it('does not move a card dropped back onto its own column', async () => {
