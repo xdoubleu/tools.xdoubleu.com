@@ -361,6 +361,20 @@ export function prBadge(
   return { label: 'PR open', variant: 'secondary' }
 }
 
+/** Whether a merged task's change is live; nothing when the server couldn't say. */
+export function deployBadge(task: {
+  deployState: string
+}): { label: string; variant: 'success' | 'warn' } | undefined {
+  switch (task.deployState) {
+    case 'deployed':
+      return { label: 'Deployed', variant: 'success' }
+    case 'pending':
+      return { label: 'Deploying…', variant: 'warn' }
+    default:
+      return undefined
+  }
+}
+
 /** A reset time as "Fri 7 Nov, 14:30" in the viewer's zone; "" for an empty or bad one. */
 export function formatLimitTime(iso: string, timeZone?: string, locale?: string): string {
   const ms = Date.parse(iso)

@@ -25,7 +25,7 @@ func New(
 	accounts JobAccounts,
 	github GitHub,
 	notifier Notifier,
-	webURL string,
+	webURL, release string,
 ) *Services {
 	say := notices{out: notifier, webURL: webURL}
 	return &Services{
@@ -35,7 +35,8 @@ func New(
 		Runners: &RunnerService{repo: repos.Runners, now: time.Now, say: say},
 		Jobs: &JobService{
 			jobs: repos.Jobs, tasks: repos.Tasks, repos: repos.Repos,
-			events: repos.Events, accounts: accounts, github: github, now: time.Now,
+			events: repos.Events, accounts: accounts, github: github, release: release,
+			deploys: newDeployCache(), now: time.Now,
 			say: say, runners: repos.Runners, settings: repos.Settings,
 			linked:    repos.Linked,
 			offlineMu: sync.Mutex{}, alertedOffline: uuid.Nil,

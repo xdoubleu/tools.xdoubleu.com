@@ -89,6 +89,20 @@ describe('TaskDetail', () => {
     expect(screen.getByText('On it')).toBeInTheDocument()
   })
 
+  it('shows whether the merged change is live', () => {
+    mockTask({ data: detail })
+    const { rerender } = render(<TaskDetail id="t-1" onClose={vi.fn()} />)
+    expect(screen.queryByTestId('deploy-badge')).not.toBeInTheDocument()
+
+    mockTask({
+      data: create(GetTaskResponseSchema, {
+        task: create(TaskSchema, { id: 't-1', title: 'Fix login', deployState: 'deployed' })
+      })
+    })
+    rerender(<TaskDetail id="t-1" onClose={vi.fn()} />)
+    expect(screen.getByTestId('deploy-badge')).toHaveTextContent('Deployed')
+  })
+
   it('shows the task id and copies it', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.assign(navigator, { clipboard: { writeText } })

@@ -111,7 +111,21 @@ type Task struct {
 	// PickupBlocked is why auto pickup skipped a Ready task (bad repo settings),
 	// "" while it can be picked up.
 	PickupBlocked string
+	// MergeSHA is the commit the task's pull request merged as; empty before a merge.
+	MergeSHA string
+	// Deploy is whether that commit is live, filled for the board and never stored.
+	Deploy DeployState
 }
+
+// DeployState is whether a merged change is live in production.
+type DeployState string
+
+const (
+	// DeployUnknown is the zero value: not merged, too old, or GitHub couldn't say.
+	DeployUnknown DeployState = ""
+	DeployPending DeployState = "pending"
+	DeployLive    DeployState = "deployed"
+)
 
 type Comment struct {
 	ID        uuid.UUID

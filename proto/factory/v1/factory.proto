@@ -54,6 +54,9 @@ message Task {
   // Why auto pickup skipped this Ready task (bad repo settings); empty when it
   // can be picked up. It stays in Ready, not "needs you", while this is set.
   string pickup_block_reason = 17;
+  // Whether the merged change is live: "deployed", or "pending" while the running
+  // release lacks the merge commit; empty when unmerged, old, or unknown.
+  string deploy_state = 18;
 }
 
 message Comment {

@@ -34,7 +34,7 @@ deploy key can push but can't open a pull request.
   a failed job too so no open PR is orphaned. A succeeded job with one moves its
   task to In review; every other job goes to Needs you.
 - **Status is polled, with a read-only token.** Every five minutes a job reads
-  each open pull request of a job (`pull_requests` and `checks` read, minted per
+  each open pull request of a job (`pull_requests`, `checks` and `contents` read, minted per
   repo and reused until shortly before it expires) and keeps its state, a CI
   rollup and the standing review on the job. No public webhook endpoint is needed.
   A merge moves a task that is still In review to Testing and a close without a merge
@@ -48,6 +48,10 @@ deploy key can push but can't open a pull request.
   `Pull request` event, its webhook URL set to `https://tools.xdoubleu.com/api/factory/github-webhook`,
   and the same secret in `FACTORY_GITHUB_WEBHOOK_SECRET`. The `X-Hub-Signature-256`
   HMAC is the only authentication; unset, the endpoint answers 503.
+- **Deploy state:** a task moved to Testing keeps its PR's merge commit. The board
+  shows "Deployed" once GitHub's compare API says the running `RELEASE` is that
+  commit or a descendant, "Deploying…" before, and nothing on a dev build, an
+  error, or a task untouched for a week. Answers are cached 30 s; a live one stays.
 - **The App never merges.** It may open a PR but nothing here merges or arms one.
   `main`'s ruleset must not list the App as a bypass actor, so `ci-pass` still
   gates any merge.

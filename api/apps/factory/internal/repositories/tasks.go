@@ -38,13 +38,13 @@ const listColumns = `id, number, repo_id, title, '', status, priority, labels,
 	created_by, created_at, updated_at,
 	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id),
 	` + prColumn + `,
-	ready_body IS NOT NULL, pickup_blocked`
+	ready_body IS NOT NULL, pickup_blocked, merge_sha`
 
 const getColumns = `id, number, repo_id, title, body, status, priority, labels,
 	created_by, created_at, updated_at,
 	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id),
 	` + prColumn + `,
-	ready_body IS NOT NULL, pickup_blocked`
+	ready_body IS NOT NULL, pickup_blocked, merge_sha`
 
 func scanTask(row rowScanner) (*models.Task, error) {
 	var t models.Task
@@ -52,7 +52,7 @@ func scanTask(row rowScanner) (*models.Task, error) {
 	err := row.Scan(
 		&t.ID, &t.Number, &t.RepoID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Labels,
 		&t.CreatedBy, &t.CreatedAt, &t.UpdatedAt, &t.CommentCount, &pr,
-		&t.PickupApproved, &t.PickupBlocked,
+		&t.PickupApproved, &t.PickupBlocked, &t.MergeSHA,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -225,6 +225,17 @@ func (r *TasksRepository) Move(
 			RETURNING *
 		)
 		SELECT `+getColumns+` FROM t`, id, status))
+}
+
+// SetMergeSHA records the commit a task's pull request merged as.
+func (r *TasksRepository) SetMergeSHA(
+	ctx context.Context,
+	id uuid.UUID,
+	sha string,
+) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE factory.tasks SET merge_sha = $2 WHERE id = $1`, id, sha)
+	return err
 }
 
 // BlockPickup records why a Ready task can't be auto-picked up, so NextReady

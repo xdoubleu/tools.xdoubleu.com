@@ -153,6 +153,8 @@ func (s *TaskService) Create(
 		PRReview:       "",
 		PickupApproved: false,
 		PickupBlocked:  "",
+		MergeSHA:       "",
+		Deploy:         "",
 	}, actor)
 }
 
@@ -186,6 +188,8 @@ func (s *TaskService) Update(
 		PRReview:       "",
 		PickupApproved: false,
 		PickupBlocked:  "",
+		MergeSHA:       "",
+		Deploy:         "",
 	}, actor)
 }
 

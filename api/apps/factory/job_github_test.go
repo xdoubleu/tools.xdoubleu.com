@@ -29,7 +29,13 @@ type fakeGitHub struct {
 	polled []int
 	merged []githubapp.MergedPullRequest
 	open   []githubapp.OpenPullRequest
+	// live is the set of merge commits the release contains; deployErr fails the check.
+	live      map[string]bool
+	deployErr error
 }
+
+// testRelease is the release the factory under test says it runs.
+const testRelease = "release-sha"
 
 func (f *fakeGitHub) OpenPullRequests(
 	_ context.Context, _, _ string,
@@ -37,6 +43,17 @@ func (f *fakeGitHub) OpenPullRequests(
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.open, nil
+}
+
+func (f *fakeGitHub) Deployed(
+	_ context.Context, _, _, sha, release string,
+) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if release != testRelease {
+		return false, errors.New("unexpected release " + release)
+	}
+	return f.live[sha], f.deployErr
 }
 
 func (f *fakeGitHub) MergedPullRequests(
@@ -86,7 +103,7 @@ func githubEnv(t *testing.T) (jobEnv, *fakeGitHub) {
 	t.Helper()
 	gh := &fakeGitHub{
 		mu: sync.Mutex{}, asked: nil, err: nil, pulls: map[int]pullAnswer{},
-		polled: nil, merged: nil, open: nil,
+		polled: nil, merged: nil, open: nil, live: map[string]bool{}, deployErr: nil,
 	}
 	return newJobEnvWith(t, true, "browser", factory.WithGitHub(gh)), gh
 }

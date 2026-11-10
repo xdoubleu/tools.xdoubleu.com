@@ -1,6 +1,7 @@
 import { useState, type DragEvent } from 'react'
 import { TaskPriority, TaskStatus, type Repo, type Task } from '@/lib/gen/factory/v1/factory_pb'
 import {
+  deployBadge,
   isProductLabel,
   prBadge,
   priorityLabel,
@@ -46,6 +47,7 @@ export default function TaskCard({
   onDragEnd
 }: TaskCardProps) {
   const pr = prBadge(task)
+  const deploy = deployBadge(task)
   const { move } = useFactoryActions()
   const [retrying, setRetrying] = useState(false)
   const [retryError, setRetryError] = useState('')
@@ -108,6 +110,11 @@ export default function TaskCard({
               {pullRequestLabel(task.prUrl)} ↗
             </a>
           </Button>
+        )}
+        {deploy && (
+          <Badge variant={deploy.variant} data-testid="deploy-badge">
+            {deploy.label}
+          </Badge>
         )}
         {task.labels.map((l) => (
           <Badge

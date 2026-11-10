@@ -40,7 +40,10 @@ type JobService struct {
 	// accounts is nil when jobs get no agent account of their own.
 	accounts JobAccounts
 	// github is nil when no GitHub App is set up.
-	github   GitHub
+	github GitHub
+	// release is the commit the running deployment was built from.
+	release  string
+	deploys  *deployCache
 	now      func() time.Time
 	say      notices
 	runners  *repositories.RunnersRepository
@@ -642,7 +645,7 @@ func approvedTask(c *repositories.PickupCandidate) *models.Task {
 		ID: c.TaskID, Number: 0, RepoID: c.RepoID, Title: c.Title, Body: c.Body, Status: "",
 		Priority: "", Labels: nil, CreatedBy: "", CreatedAt: time.Time{},
 		UpdatedAt: time.Time{}, CommentCount: 0, PRURL: "", PRState: "", PRCI: "",
-		PRReview: "", PickupApproved: true, PickupBlocked: "",
+		PRReview: "", PickupApproved: true, PickupBlocked: "", MergeSHA: "", Deploy: "",
 	}
 }
 

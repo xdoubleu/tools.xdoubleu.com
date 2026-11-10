@@ -74,6 +74,19 @@ describe('TaskCard', () => {
     expect(screen.getByTestId('pr-link')).toHaveTextContent('#7')
   })
 
+  it('shows whether the merged change is live, only when known', () => {
+    const { rerender } = render(<TaskCard {...props} />)
+    expect(screen.queryByTestId('deploy-badge')).not.toBeInTheDocument()
+
+    const pending = create(TaskSchema, { ...task, deployState: 'pending' })
+    rerender(<TaskCard {...props} task={pending} />)
+    expect(screen.getByTestId('deploy-badge')).toHaveTextContent('Deploying…')
+
+    const live = create(TaskSchema, { ...task, deployState: 'deployed' })
+    rerender(<TaskCard {...props} task={live} />)
+    expect(screen.getByTestId('deploy-badge')).toHaveTextContent('Deployed')
+  })
+
   it('says when a Ready task is waiting for its text to be approved', () => {
     const { rerender } = render(<TaskCard {...props} />)
     expect(screen.queryByTestId('approval-hint')).not.toBeInTheDocument()

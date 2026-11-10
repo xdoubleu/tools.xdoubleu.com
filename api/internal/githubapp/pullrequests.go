@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	permRead = "read"
 	// refreshBefore is how long before a read token expires it is replaced.
 	refreshBefore = 5 * time.Minute
 	// pageSize and maxPages bound what is read of a long list: 500 is far more than
@@ -55,7 +56,9 @@ func (c *Client) readToken(ctx context.Context, owner, repo string) (string, err
 		return cached.Value, nil
 	}
 	token, err := c.mint(ctx, owner, repo,
-		map[string]string{"pull_requests": "read", "checks": "read"})
+		map[string]string{
+			"pull_requests": permRead, "checks": permRead, "contents": permRead,
+		})
 	if err != nil {
 		c.mu.Lock()
 		delete(c.readTokens, key)
@@ -232,6 +235,8 @@ func (c *Client) reviews(
 type MergedPullRequest struct {
 	URL  string
 	Body string
+	// MergeSHA is the commit the merge produced on the base branch.
+	MergeSHA string
 }
 
 // MergedPullRequests lists the most recently updated merged pull requests of
@@ -249,6 +254,7 @@ func (c *Client) MergedPullRequests(
 		URL      string  `json:"html_url"`
 		Body     *string `json:"body"`
 		MergedAt *string `json:"merged_at"`
+		MergeSHA string  `json:"merge_commit_sha"`
 	}
 	_, err = c.do(ctx, http.MethodGet,
 		"/repos/"+owner+"/"+repo+
@@ -267,7 +273,7 @@ func (c *Client) MergedPullRequests(
 		if p.Body != nil {
 			body = *p.Body
 		}
-		out = append(out, MergedPullRequest{URL: p.URL, Body: body})
+		out = append(out, MergedPullRequest{URL: p.URL, Body: body, MergeSHA: p.MergeSHA})
 	}
 	return out, nil
 }
@@ -309,4 +315,28 @@ func (c *Client) OpenPullRequests(
 		out = append(out, OpenPullRequest{URL: p.URL, Number: p.Number, Body: body})
 	}
 	return out, nil
+}
+
+// Deployed reports whether the commit sha is part of release, the commit a
+// deployment runs: release is the same commit or a descendant of it. A sha
+// GitHub doesn't know (or any failure) is an error, never "not deployed".
+func (c *Client) Deployed(
+	ctx context.Context,
+	owner, repo, sha, release string,
+) (bool, error) {
+	token, err := c.readToken(ctx, owner, repo)
+	if err != nil {
+		return false, err
+	}
+	var cmp struct {
+		Status string `json:"status"`
+	}
+	// per_page=1 keeps the commit list, which this doesn't read, to one entry.
+	_, err = c.do(ctx, http.MethodGet,
+		"/repos/"+owner+"/"+repo+"/compare/"+sha+"..."+release+"?per_page=1",
+		token, nil, &cmp)
+	if err != nil {
+		return false, err
+	}
+	return cmp.Status == "ahead" || cmp.Status == "identical", nil
 }

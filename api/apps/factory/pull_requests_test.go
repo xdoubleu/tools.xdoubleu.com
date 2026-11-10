@@ -271,9 +271,15 @@ func (e jobEnv) putInReview(t *testing.T, id string) {
 }
 
 func (gh *fakeGitHub) merge(url, body string) {
+	gh.mergeAs(url, body, "abc123")
+}
+
+func (gh *fakeGitHub) mergeAs(url, body, sha string) {
 	gh.mu.Lock()
 	defer gh.mu.Unlock()
-	gh.merged = append(gh.merged, githubapp.MergedPullRequest{URL: url, Body: body})
+	gh.merged = append(gh.merged, githubapp.MergedPullRequest{
+		URL: url, Body: body, MergeSHA: sha,
+	})
 }
 
 func TestAMergedPullRequestLinkingAJoblessTaskMovesItToTestingOnce(t *testing.T) {
@@ -355,4 +361,41 @@ func TestATasksJobAndLinkedPullRequestsAreAllListed(t *testing.T) {
 		urls = append(urls, p.Url)
 	}
 	assert.ElementsMatch(t, []string{pullURL(42), pullURL(43)}, urls)
+}
+
+func TestAMergedTaskShowsWhetherItsMergeCommitIsDeployed(t *testing.T) {
+	env, gh := githubEnv(t)
+	live := env.newTask(t, "shipped")
+	waiting := env.newTask(t, "waiting")
+	env.putInReview(t, live.Id)
+	env.putInReview(t, waiting.Id)
+	gh.mergeAs(pullURL(7), "Task: shipped ("+live.Id+")\n", "live-sha")
+	gh.mergeAs(pullURL(8), "Task: waiting ("+waiting.Id+")\n", "new-sha")
+	gh.mu.Lock()
+	gh.live["live-sha"] = true
+	gh.mu.Unlock()
+	require.NoError(t, env.poll(t))
+
+	assert.Equal(t, "deployed", env.task(t, live.Id).Task.DeployState)
+	assert.Equal(t, "pending", env.task(t, waiting.Id).Task.DeployState)
+}
+
+func TestADeployCheckThatFailsLeavesTheStateUnknown(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := env.newTask(t, "unsure")
+	env.putInReview(t, task.Id)
+	gh.merge(pullURL(7), "Task: unsure ("+task.Id+")\n\nbody")
+	gh.mu.Lock()
+	gh.deployErr = errors.New("github is down")
+	gh.mu.Unlock()
+	require.NoError(t, env.poll(t))
+
+	assert.Empty(t, env.task(t, task.Id).Task.DeployState)
+}
+
+func TestATaskWithoutAMergeCommitHasNoDeployState(t *testing.T) {
+	env, _ := githubEnv(t)
+	task := env.newTask(t, "unmerged")
+
+	assert.Empty(t, env.task(t, task.Id).Task.DeployState)
 }
