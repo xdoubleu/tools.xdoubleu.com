@@ -15,7 +15,7 @@ import (
 
 func TestOSExecerRunsAHostCommandAndReportsItsExitCode(t *testing.T) {
 	var out bytes.Buffer
-	code, err := runner.OSExecer{}.Exec(
+	code, err := runner.OSExecer{BinDirs: nil}.Exec(
 		context.Background(),
 		[]string{"sh", "-c", "cat; echo err >&2; exit 3"},
 		strings.NewReader("in\n"),
@@ -27,7 +27,7 @@ func TestOSExecerRunsAHostCommandAndReportsItsExitCode(t *testing.T) {
 }
 
 func TestOSExecerErrorsWhenTheCommandCannotRunAtAll(t *testing.T) {
-	code, err := runner.OSExecer{}.Exec(
+	code, err := runner.OSExecer{BinDirs: nil}.Exec(
 		context.Background(), []string{"no-such-binary-xyz"}, nil, io.Discard)
 	require.ErrorContains(t, err, "no-such-binary-xyz")
 	assert.Equal(t, -1, code)

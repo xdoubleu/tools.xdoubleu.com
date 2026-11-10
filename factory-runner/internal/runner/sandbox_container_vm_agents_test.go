@@ -75,7 +75,7 @@ func agentRun(
 	require.NoError(t, err)
 
 	box := &runner.ContainerSandbox{
-		Image: "factory-job:dev", Exec: runner.OSExecer{}, Proxy: nil,
+		Image: "factory-job:dev", Exec: runner.OSExecer{BinDirs: nil}, Proxy: nil,
 		ProxyPort: runner.EgressProxyPort, GoModCache: "", NPMCache: "",
 		CPUs: "", Memory: "", TempDir: t.TempDir(),
 	}

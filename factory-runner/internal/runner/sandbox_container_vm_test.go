@@ -21,7 +21,7 @@ import (
 func TestRealVMRunsAJobIsolatedAndCleansUp(t *testing.T) {
 	box := &runner.ContainerSandbox{
 		Image:      "factory-job:dev",
-		Exec:       runner.OSExecer{},
+		Exec:       runner.OSExecer{BinDirs: nil},
 		Proxy:      nil,
 		GoModCache: "",
 		NPMCache:   "",
@@ -77,7 +77,7 @@ echo "STDIN=$(cat)"
 	}
 
 	var left bytes.Buffer
-	_, err = runner.OSExecer{}.Exec(context.Background(),
+	_, err = runner.OSExecer{BinDirs: nil}.Exec(context.Background(),
 		[]string{"container", "ls", "-a", "--quiet"}, nil, &left)
 	require.NoError(t, err)
 	assert.NotContains(t, left.String(), "factory-job-realvm")
@@ -86,7 +86,7 @@ echo "STDIN=$(cat)"
 func TestRealVMSeedsClaudesConfigSoThePluginsAreVisible(t *testing.T) {
 	box := &runner.ContainerSandbox{
 		Image:      "factory-job:dev",
-		Exec:       runner.OSExecer{},
+		Exec:       runner.OSExecer{BinDirs: nil},
 		Proxy:      nil,
 		GoModCache: "",
 		NPMCache:   "",
