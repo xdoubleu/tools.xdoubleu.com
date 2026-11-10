@@ -15,7 +15,7 @@ cmd/kobo-gateway/
   assets/            # Info.plist, icons, package.sh (.app/.dmg)
 cmd/kobo-sign/       # self-update key generation and signing (CI)
 internal/kobogateway/  # loopback HTTPS server; no AppKit
-internal/updatesig/    # ed25519 sign/verify for self-updates
+# self-update download, verify and swap, and updatesig, live in ../selfupdate
 ```
 
 `conf.go` is the only parser/serializer of `Kobo eReader.conf` — the browser never reads it (`web/lib/books/koboConf.ts` does only string checks).

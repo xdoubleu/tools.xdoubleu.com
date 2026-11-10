@@ -32,12 +32,12 @@ func NewCaffeinateWith(start func(pid int) (func(), error)) *Caffeinate {
 
 // SetExecutable points an Updater at another executable.
 func (u *Updater) SetExecutable(path string) {
-	u.executablePath = func() (string, error) { return path, nil }
+	u.inner.ExecutablePath = func() (string, error) { return path, nil }
 }
 
 // SetExecutableError makes an Updater fail to find its executable.
 func (u *Updater) SetExecutableError(err error) {
-	u.executablePath = func() (string, error) { return "", err }
+	u.inner.ExecutablePath = func() (string, error) { return "", err }
 }
 
 // SleepForTest exposes the real sleep.

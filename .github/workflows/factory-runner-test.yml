@@ -19,6 +19,8 @@ jobs:
           cache-dependency-path: './factory-runner/go.sum'
       - run: make test/cov/report
         working-directory: './factory-runner'
+      - run: make test/cov/report
+        working-directory: './selfupdate'
       - name: Upload coverage reports to Codecov
         if: always()
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7

@@ -18,8 +18,9 @@ jobs:
       web: ${{ steps.filter.outputs.web }}
       proto: ${{ steps.proto-workflows.outputs.proto }}
       workflows: ${{ steps.proto-workflows.outputs.workflows }}
-      kobo_gateway: ${{ steps.filter.outputs.kobo_gateway }}
-      factory_runner: ${{ steps.filter.outputs.factory_runner }}
+      # selfupdate/ is compiled into both menu-bar helpers.
+      kobo_gateway: ${{ steps.filter.outputs.kobo_gateway == 'true' || steps.proto-workflows.outputs.selfupdate == 'true' }}
+      factory_runner: ${{ steps.filter.outputs.factory_runner == 'true' || steps.proto-workflows.outputs.selfupdate == 'true' }}
       infra: ${{ steps.filter.outputs.infra }}
       config_api: ${{ steps.filter.outputs.config_api }}
       config_grafana: ${{ steps.filter.outputs.config_grafana }}
@@ -69,6 +70,8 @@ jobs:
               - 'web/package.json'
             workflows:
               - '.github/workflows/**'
+            selfupdate:
+              - 'selfupdate/**'
             # Rebuilds the Grafana wrapper image when its Dockerfile or baked-in
             # provisioning changes.
             grafana_dockerfile:

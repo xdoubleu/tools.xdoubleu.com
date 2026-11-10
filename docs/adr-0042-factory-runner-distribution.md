@@ -3,7 +3,7 @@
 - Status: Accepted
 - Issues: #2715, #2701
 - Affects: `factory-runner/` (`internal/runner/update.go`, `activity.go`,
-  `internal/updatesig/`, `cmd/factory-runner/assets/`), `.github/workflows/build-factory-runner.yml`,
+  `../selfupdate/`, `cmd/factory-runner/assets/`), `.github/workflows/build-factory-runner.yml`,
   `build-api.yml`, `web/components/factory/RunnersClient.tsx`
 
 ## Context

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/kobo-gateway/internal/updatesig"
+	"tools.xdoubleu.com/selfupdate/updatesig"
 )
 
 func TestKeygenThenSign(t *testing.T) {

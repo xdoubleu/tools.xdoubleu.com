@@ -28,7 +28,7 @@ jobs:
         with:
           path: kobo-gateway/dist/kobo-gateway
           # The public key is compiled in, so it's part of the key.
-          key: build-kobo-gateway-${{ hashFiles('kobo-gateway/**') }}-${{ vars.KOBO_GATEWAY_UPDATE_PUBKEY }}
+          key: build-kobo-gateway-${{ hashFiles('kobo-gateway/**', 'selfupdate/**') }}-${{ vars.KOBO_GATEWAY_UPDATE_PUBKEY }}
       - if: steps.cache.outputs.cache-hit != 'true'
         run: |
           make dist RELEASE=${{ github.sha }} SENTRY_DSN=${{ secrets.GATEWAY_SENTRY_DSN }} \

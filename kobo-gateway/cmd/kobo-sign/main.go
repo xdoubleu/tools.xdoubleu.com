@@ -11,7 +11,7 @@ import (
 	"io"
 	"os"
 
-	"tools.xdoubleu.com/kobo-gateway/internal/updatesig"
+	"tools.xdoubleu.com/selfupdate/updatesig"
 )
 
 func main() {
