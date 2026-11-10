@@ -45,6 +45,7 @@ comment:
 ignore:
   - "kobo-gateway/cmd/kobo-gateway/menubar_darwin.go"
   - "factory-runner/cmd/factory-runner/entry.go"
+  - "factory-runner/cmd/factory-runner/menubar_darwin.go"
   - "api/gen/**"
   - "web/lib/gen/**"
   - "api/go.mod"
