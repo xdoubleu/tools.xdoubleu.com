@@ -101,3 +101,10 @@ func TestLoginItemFollowsThePlist(t *testing.T) {
 func TestDisableLoginItemWhenNeverEnabled(t *testing.T) {
 	require.NoError(t, runner.DisableLoginItem(t.TempDir()))
 }
+
+func TestBinaryReleaseReadsTheVersionOutput(t *testing.T) {
+	bin := filepath.Join(t.TempDir(), "factory-runner")
+	require.NoError(t, os.WriteFile(bin, []byte("#!/bin/sh\necho abc123\n"), 0o755))
+	assert.Equal(t, "abc123", runner.BinaryRelease(bin))
+	assert.Empty(t, runner.BinaryRelease(filepath.Join(t.TempDir(), "missing")))
+}

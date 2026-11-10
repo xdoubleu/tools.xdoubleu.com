@@ -85,10 +85,11 @@ func newEnv(t *testing.T) env {
 				loaded = append(loaded, p)
 				return nil
 			},
-			control: nil,
-			menu:    nil,
-			jobs:    nil,
-			open:    func(context.Context, string) error { return nil },
+			control:          nil,
+			menu:             nil,
+			jobs:             nil,
+			installedRelease: func(string) string { return Release },
+			open:             func(context.Context, string) error { return nil },
 		},
 		out: out, errs: errs, store: store, server: server, ran: &ran, loaded: &loaded,
 	}
@@ -138,21 +139,39 @@ func TestNoArgsInAnAppBundleStillInstallsWhenOpeningThePageFails(t *testing.T) {
 	assert.Len(t, *e.loaded, 1, "the LaunchAgent is loaded even when the page can't open")
 }
 
-func TestNoArgsInAnAppBundleDoesNotDowngradeAnInstalledBinary(t *testing.T) {
+func TestNoArgsInAnAppBundleKeepsAnInstalledBinaryOfTheSameRelease(t *testing.T) {
 	e := newEnv(t)
-	bundle := filepath.Join(t.TempDir(), "FactoryRunner.app", "Contents", "MacOS",
-		"factory-runner")
-	require.NoError(t, os.MkdirAll(filepath.Dir(bundle), 0o755))
-	require.NoError(t, os.WriteFile(bundle, []byte("stale"), 0o755))
-	e.app.execPath = bundle
-	installed := runner.InstalledBinaryPath(e.app.home)
-	require.NoError(t, os.MkdirAll(filepath.Dir(installed), 0o700))
-	require.NoError(t, os.WriteFile(installed, []byte("newer"), 0o755))
+	installed := installWithBundle(t, &e, "bundle", "installed")
 
 	assert.Equal(t, 0, e.do())
 	data, err := os.ReadFile(installed)
 	require.NoError(t, err)
-	assert.Equal(t, "newer", string(data), "a second open keeps the installed binary")
+	assert.Equal(t, "installed", string(data))
+}
+
+func TestNoArgsInAnAppBundleUpgradesAnInstalledBinaryOfAnotherRelease(t *testing.T) {
+	e := newEnv(t)
+	installed := installWithBundle(t, &e, "bundle", "old")
+	e.app.installedRelease = func(string) string { return "c5a3861" }
+
+	assert.Equal(t, 0, e.do())
+	data, err := os.ReadFile(installed)
+	require.NoError(t, err)
+	assert.Equal(t, "bundle", string(data), "reinstalling the app upgrades the runner")
+	assert.Len(t, *e.loaded, 1, "the agent is reloaded onto the new binary")
+}
+
+func installWithBundle(t *testing.T, e *env, bundleData, installedData string) string {
+	t.Helper()
+	bundle := filepath.Join(t.TempDir(), "FactoryRunner.app", "Contents", "MacOS",
+		"factory-runner")
+	require.NoError(t, os.MkdirAll(filepath.Dir(bundle), 0o755))
+	require.NoError(t, os.WriteFile(bundle, []byte(bundleData), 0o755))
+	e.app.execPath = bundle
+	installed := runner.InstalledBinaryPath(e.app.home)
+	require.NoError(t, os.MkdirAll(filepath.Dir(installed), 0o700))
+	require.NoError(t, os.WriteFile(installed, []byte(installedData), 0o755))
+	return installed
 }
 
 func TestNoArgsInAnAppBundleSkipsOpeningThePageWhenConfigIsBroken(t *testing.T) {

@@ -64,6 +64,8 @@ type app struct {
 	open func(ctx context.Context, url string) error
 	// jobs builds the claim loop; nil runs the heartbeat alone.
 	jobs jobsFunc
+	// installedRelease reports the release stamped into the binary at path.
+	installedRelease func(path string) string
 }
 
 // jobLoop claims and runs jobs until its context ends.
@@ -290,12 +292,14 @@ func (a *app) install() error {
 // installFromApp runs `install` as a double-clicked .app, then opens the board's
 // Runner page so the user can pair. Opening the page is best-effort: installing
 // and loading the LaunchAgent is the point, and a windowless app can't tell the
-// user anything else. A second open after a self-update leaves the newer
-// installed binary in place: only the first open copies the bundle's binary,
-// while the plist is rewritten and reloaded every time.
+// user anything else. The bundle's binary replaces the installed one when their
+// releases differ, so reinstalling the app upgrades it; a stale bundle is put
+// right again by the next self-update. The plist is rewritten and reloaded
+// every time, which restarts the runner on the new binary.
 func (a *app) installFromApp(ctx context.Context) int {
 	installed := runner.InstalledBinaryPath(a.home)
-	if _, err := os.Stat(installed); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(installed); errors.Is(err, os.ErrNotExist) ||
+		a.installedRelease(installed) != Release {
 		installed, err = runner.InstallBinary(a.home, a.execPath)
 		if err != nil {
 			fmt.Fprintln(a.stderr, "factory-runner:", err)
