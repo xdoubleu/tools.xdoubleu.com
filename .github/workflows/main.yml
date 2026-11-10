@@ -144,6 +144,7 @@ jobs:
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
       needs.changes.outputs.kobo_gateway == 'true' ||
+      needs.changes.outputs.factory_runner == 'true' ||
       needs.changes.outputs.config_api == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Build Kobo Gateway Workflow
