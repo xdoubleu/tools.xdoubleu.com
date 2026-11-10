@@ -318,4 +318,3 @@ func TestRevokeRejectsABadOrUnknownID(t *testing.T) {
 		&factoryv1.RevokeAgentAccountRequest{Id: "00000000-0000-0000-0000-000000000000"})
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
-
