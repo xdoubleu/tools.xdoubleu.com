@@ -12,9 +12,13 @@ import (
 )
 
 func TestPlistEscapesThePathAndRunsTheDaemon(t *testing.T) {
-	plist := runner.LaunchAgentPlistForTest("/Users/a&b/<bin>/factory-runner")
+	plist := runner.LaunchAgentPlistForTest(
+		"/Users/a&b", "/Users/a&b/<bin>/factory-runner",
+	)
 	assert.Contains(t, plist, "<string>/Users/a&amp;b/&lt;bin&gt;/factory-runner</string>")
 	assert.Contains(t, plist, "<string>run</string>")
+	assert.Contains(t, plist, "<key>StandardErrorPath</key>")
+	assert.Contains(t, plist, "/Users/a&amp;b/Library/Logs/factory-runner.log")
 	assert.Contains(t, plist, runner.LaunchAgentLabel)
 }
 

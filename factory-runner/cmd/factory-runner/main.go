@@ -55,7 +55,11 @@ type app struct {
 	daemon      daemonFunc
 	updater     func(server string) (runner.SelfUpdater, error)
 	activity    *runner.Activity
-	load        func(plistPath string) error
+	// control is the pause flag and status the menu bar shows; nil in tests.
+	control *runner.Control
+	// menu runs work beside the menu bar icon; nil runs it bare.
+	menu menuFunc
+	load func(plistPath string) error
 	// open launches a URL in the user's browser, for the app install's pairing step.
 	open func(ctx context.Context, url string) error
 	// jobs builds the claim loop; nil runs the heartbeat alone.
@@ -163,10 +167,42 @@ func (a *app) runDaemon(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	opts := runner.Options{Updater: upd, Activity: a.activity}
+	opts := runner.Options{Updater: upd, Activity: a.activity, Control: a.control}
 	beat := func(ctx context.Context) error {
 		return a.daemon(ctx, a.newBeat(cfg.Server), token, opts)
 	}
+	return a.withMenu(ctx, cfg, func(ctx context.Context) error {
+		return a.serve(ctx, cfg, token, beat)
+	})
+}
+
+// withMenu runs work beside the menu bar icon when there is one.
+func (a *app) withMenu(
+	ctx context.Context,
+	cfg runner.Config,
+	work func(context.Context) error,
+) error {
+	if a.menu == nil || a.control == nil {
+		return work(ctx)
+	}
+	root, err := runner.Origin(cfg.Server)
+	if err != nil {
+		return work(ctx)
+	}
+	return a.menu(ctx, menuInfo{
+		Control:  a.control,
+		Release:  Release,
+		BoardURL: root + "/factory/runners",
+	}, work)
+}
+
+func (a *app) serve(
+	ctx context.Context,
+	cfg runner.Config,
+	token string,
+	beat func(context.Context) error,
+) error {
+	var err error
 	var loop jobLoop
 	if a.jobs != nil {
 		if loop, err = a.jobs(ctx, cfg, token); err != nil {

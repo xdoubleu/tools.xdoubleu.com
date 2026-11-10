@@ -16,8 +16,9 @@ lint: tools/lint
 lint/fix: tools/lint
 	golangci-lint run --fix
 
+# CGO_ENABLED=1 fails a cgo-less build rather than shipping the no-menu-bar stub.
 build:
-	go build -ldflags="-w -s -X main.Release=$(RELEASE) -X main.UpdatePublicKey=$(UPDATE_PUBLIC_KEY)" \
+	CGO_ENABLED=1 go build -ldflags="-w -s -X main.Release=$(RELEASE) -X main.UpdatePublicKey=$(UPDATE_PUBLIC_KEY)" \
 		-o=./bin/factory-runner-darwin-arm64 ./cmd/factory-runner
 
 # Packages FactoryRunner.app + the drag-to-Applications .dmg plus the raw binary

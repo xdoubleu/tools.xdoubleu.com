@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -113,7 +114,9 @@ func TestRealRunReturnsOnCancel(t *testing.T) {
 	require.NoError(t, runner.Run(ctx, hb, "frt_x", newQuiet(), noOpts()))
 }
 
-func noOpts() runner.Options { return runner.Options{Updater: nil, Activity: nil} }
+func noOpts() runner.Options {
+	return runner.Options{Updater: nil, Activity: nil, Control: nil}
+}
 
 func newFakeUpdater(updated bool, err error) *fakeUpdater {
 	return &fakeUpdater{
@@ -156,7 +159,7 @@ func TestDaemonRestartsAfterASelfUpdate(t *testing.T) {
 	hb := newScripted(func(int) error { return nil }, nil)
 	upd := newFakeUpdater(true, nil)
 	err := runner.RunForTest(context.Background(), hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: nil},
+		runner.Options{Updater: upd, Activity: nil, Control: nil},
 		func(context.Context, time.Duration) {}, ticking())
 	require.ErrorIs(t, err, runner.ErrRestart)
 	assert.Equal(t, 1, int(upd.calls.Load()))
@@ -174,7 +177,7 @@ func TestDaemonChecksForUpdatesOncePerInterval(t *testing.T) {
 	}, cancel)
 	upd := newFakeUpdater(false, nil)
 	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: nil},
+		runner.Options{Updater: upd, Activity: nil, Control: nil},
 		func(context.Context, time.Duration) {}, ticking()))
 	// The clock moves 3-4 minutes per loop: about 130 loops is 6 to 8 hours.
 	assert.Greater(t, int(upd.calls.Load()), 2)
@@ -192,7 +195,7 @@ func TestDaemonKeepsRunningWhenAnUpdateFails(t *testing.T) {
 		return nil
 	}, cancel)
 	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: nil},
+		runner.Options{Updater: upd, Activity: nil, Control: nil},
 		func(context.Context, time.Duration) {}, ticking()))
 	assert.Equal(t, 1, int(upd.calls.Load()))
 	assert.Equal(t, 2, hb.calls)
@@ -210,7 +213,7 @@ func TestDaemonDoesNotUpdateWhileAJobRuns(t *testing.T) {
 	activity := runner.NewActivity(awakeStub())
 	require.NoError(t, activity.Begin())
 	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: activity},
+		runner.Options{Updater: upd, Activity: activity, Control: nil},
 		func(context.Context, time.Duration) {}, ticking()))
 	assert.Equal(t, 0, int(upd.calls.Load()))
 }
@@ -233,13 +236,14 @@ func (b *syncBuffer) String() string {
 	return b.buf.String()
 }
 
-func TestDaemonLogsAFailedUpdateButNotAMissingKey(t *testing.T) {
+func TestDaemonLogsEveryUpdateOutcomeAndRecordsIt(t *testing.T) {
 	for name, tc := range map[string]struct {
-		err    error
-		logged bool
+		err  error
+		note string
 	}{
-		"no key":         {runner.ErrUpdateSigningUnset, false},
-		"a real failure": {errors.New("bad signature"), true},
+		"no key":         {runner.ErrUpdateSigningUnset, "disabled"},
+		"a real failure": {errors.New("bad signature"), "failed: bad signature"},
+		"up to date":     {nil, "no newer release"},
 	} {
 		sink := &syncBuffer{mu: sync.Mutex{}, buf: bytes.Buffer{}}
 		log := slog.New(slog.NewTextHandler(sink, nil))
@@ -252,9 +256,30 @@ func TestDaemonLogsAFailedUpdateButNotAMissingKey(t *testing.T) {
 			}
 			return nil
 		}, cancel)
+		control := runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
 		require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", log,
-			runner.Options{Updater: upd, Activity: nil},
+			runner.Options{Updater: upd, Activity: nil, Control: control},
 			func(context.Context, time.Duration) {}, ticking()))
-		assert.Equal(t, tc.logged, sink.String() != "", name)
+		assert.Contains(t, sink.String(), "self-update", name)
+		assert.Contains(t, control.Snapshot().Update, tc.note, name)
+		assert.False(t, control.Snapshot().LastHeartbeat.IsZero(), name)
 	}
+}
+
+func TestDaemonStaysSilentWhileStoppedAndIdle(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	control := runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
+	require.NoError(t, control.SetPaused(true))
+	hb := newScripted(func(int) error { return nil }, cancel)
+	upd := newFakeUpdater(true, nil)
+	sleeps := 0
+	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
+		runner.Options{Updater: upd, Activity: nil, Control: control},
+		func(context.Context, time.Duration) {
+			if sleeps++; sleeps == 3 {
+				cancel()
+			}
+		}, ticking()))
+	assert.Zero(t, hb.calls)
+	assert.Zero(t, int(upd.calls.Load()))
 }

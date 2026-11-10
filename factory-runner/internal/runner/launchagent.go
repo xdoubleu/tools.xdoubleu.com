@@ -16,10 +16,10 @@ const launchAgentTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>%s</string>
+	<string>%[1]s</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>%s</string>
+		<string>%[2]s</string>
 		<string>run</string>
 	</array>
 	<key>RunAtLoad</key>
@@ -28,6 +28,10 @@ const launchAgentTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 	<true/>
 	<key>ThrottleInterval</key>
 	<integer>10</integer>
+	<key>StandardErrorPath</key>
+	<string>%[3]s</string>
+	<key>StandardOutPath</key>
+	<string>%[3]s</string>
 </dict>
 </plist>
 `
@@ -37,10 +41,22 @@ func LaunchAgentPath(homeDir string) string {
 	return filepath.Join(homeDir, "Library", "LaunchAgents", LaunchAgentLabel+".plist")
 }
 
-func launchAgentPlist(execPath string) string {
+// LogPath is where the LaunchAgent sends the runner's output.
+func LogPath(homeDir string) string {
+	return filepath.Join(homeDir, "Library", "Logs", "factory-runner.log")
+}
+
+func xmlEscape(s string) string {
 	var escaped bytes.Buffer
-	_ = xml.EscapeText(&escaped, []byte(execPath))
-	return fmt.Sprintf(launchAgentTemplate, LaunchAgentLabel, escaped.String())
+	_ = xml.EscapeText(&escaped, []byte(s))
+	return escaped.String()
+}
+
+func launchAgentPlist(homeDir, execPath string) string {
+	return fmt.Sprintf(
+		launchAgentTemplate,
+		LaunchAgentLabel, xmlEscape(execPath), xmlEscape(LogPath(homeDir)),
+	)
 }
 
 // InstallLaunchAgent writes the plist that keeps `factory-runner run` alive at
@@ -50,7 +66,7 @@ func InstallLaunchAgent(homeDir, execPath string) (string, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return "", fmt.Errorf("create LaunchAgents dir: %w", err)
 	}
-	plist := []byte(launchAgentPlist(execPath))
+	plist := []byte(launchAgentPlist(homeDir, execPath))
 	//nolint:gosec // a LaunchAgent plist is world-readable
 	if err := os.WriteFile(path, plist, 0o644); err != nil {
 		return "", fmt.Errorf("write LaunchAgent: %w", err)
