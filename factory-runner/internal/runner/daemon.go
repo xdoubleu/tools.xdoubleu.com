@@ -33,6 +33,9 @@ type Heartbeater interface {
 type Options struct {
 	Updater  SelfUpdater
 	Activity *Activity
+	// Control, when set, pauses the heartbeat and update checks and records what
+	// the menu bar shows.
+	Control *Control
 }
 
 // clock is what the loop waits and reads time with, swapped in tests.
@@ -85,11 +88,19 @@ func run(
 			go func() { updated <- tryUpdate(ctx, opts, log) }()
 		}
 
+		if opts.Control != nil && opts.Control.Quiet() {
+			clk.sleep(ctx, minLoop)
+			continue
+		}
+
 		started := clk.now()
 		err := hb.Heartbeat(ctx, token)
 		switch {
 		case err == nil:
 			backoff = minLoop
+			if opts.Control != nil {
+				opts.Control.RecordBeat()
+			}
 			if wait := minLoop - clk.now().Sub(started); wait > 0 {
 				clk.sleep(ctx, wait)
 			}
@@ -107,20 +118,36 @@ func run(
 }
 
 func due(opts Options, now, lastCheck time.Time) bool {
-	if opts.Updater == nil || now.Sub(lastCheck) < UpdateEvery {
+	if opts.Updater == nil || (opts.Control != nil && opts.Control.Paused()) {
 		return false
 	}
-	return opts.Activity == nil || opts.Activity.Idle()
+	if opts.Activity != nil && !opts.Activity.Idle() {
+		return false
+	}
+	// A requested check is only consumed once it can run.
+	requested := opts.Control != nil && opts.Control.takeCheck()
+	return requested || now.Sub(lastCheck) >= UpdateEvery
 }
 
 func tryUpdate(ctx context.Context, opts Options, log *slog.Logger) bool {
 	idle := func() bool { return opts.Activity == nil || opts.Activity.Idle() }
 	replaced, err := opts.Updater.Update(ctx, idle)
+	outcome := "no newer release"
 	switch {
 	case errors.Is(err, ErrUpdateSigningUnset):
-		// A build without the key never updates; that is not a fault.
+		outcome = "disabled: this build has no signing key"
+		log.Warn("self-update skipped", "reason", outcome)
 	case err != nil:
+		outcome = "failed: " + err.Error()
 		log.Warn("self-update failed", "error", err)
+	case replaced:
+		outcome = "installed a newer release"
+		log.Info("self-update installed a newer release")
+	default:
+		log.Info("self-update checked", "result", outcome)
+	}
+	if opts.Control != nil {
+		opts.Control.RecordUpdate(outcome)
 	}
 	return replaced
 }

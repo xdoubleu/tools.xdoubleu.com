@@ -45,9 +45,9 @@ func SleepForTest(ctx context.Context, d time.Duration) { sleepCtx(ctx, d) }
 
 // LaunchAgentPlistForTest exposes the plist renderer.
 func LaunchAgentPlistForTest(
-	execPath string,
+	homeDir, execPath string,
 ) string {
-	return launchAgentPlist(execPath)
+	return launchAgentPlist(homeDir, execPath)
 }
 
 // LoopForTest runs the job loop with a stubbed sleep and a ticking clock.

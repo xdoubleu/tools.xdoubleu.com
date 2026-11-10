@@ -56,6 +56,7 @@ func newJobRunner(
 			RunWithEnv: nil,
 		},
 		Sandbox: box,
+		Paused:  a.paused,
 		Harness: runner.ClaudeCode{},
 		ClaudeToken: func() (string, error) {
 			return a.secrets.GetSecret(runner.SecretClaude)
@@ -75,4 +76,9 @@ func newJobRunner(
 		EventsEvery:  0,
 		Log:          log,
 	}, nil
+}
+
+// paused is whether the owner stopped this runner from the menu bar.
+func (a *app) paused() bool {
+	return a.control != nil && a.control.Paused()
 }

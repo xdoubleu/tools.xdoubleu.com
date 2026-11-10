@@ -85,8 +85,10 @@ func newEnv(t *testing.T) env {
 				loaded = append(loaded, p)
 				return nil
 			},
-			jobs: nil,
-			open: func(context.Context, string) error { return nil },
+			control: nil,
+			menu:    nil,
+			jobs:    nil,
+			open:    func(context.Context, string) error { return nil },
 		},
 		out: out, errs: errs, store: store, server: server, ran: &ran, loaded: &loaded,
 	}
@@ -415,4 +417,28 @@ func TestOpenURL(t *testing.T) {
 	t.Setenv("PATH", "")
 	err := openURL(context.Background(), "https://example.com")
 	assert.Error(t, err, "without `open` on PATH openURL reports the failure")
+}
+
+func TestTheDaemonRunsBesideTheMenuBarWithTheBoardPage(t *testing.T) {
+	e := newEnv(t)
+	e.app.control = runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
+	var got menuInfo
+	e.app.menu = func(
+		ctx context.Context, info menuInfo, work func(context.Context) error,
+	) error {
+		got = info
+		return work(ctx)
+	}
+	assert.Equal(t, 0, e.do("run"))
+	assert.Equal(t, "https://tools.xdoubleu.com/factory/runners", got.BoardURL)
+	assert.Same(t, e.app.control, got.Control)
+	assert.Equal(t, []string{"frt_stored"}, *e.ran)
+}
+
+func TestPausedFollowsTheControl(t *testing.T) {
+	e := newEnv(t)
+	assert.False(t, e.app.paused(), "no control, never paused")
+	e.app.control = runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
+	require.NoError(t, e.app.control.SetPaused(true))
+	assert.True(t, e.app.paused())
 }

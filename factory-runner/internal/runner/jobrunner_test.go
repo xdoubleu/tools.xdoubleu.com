@@ -265,7 +265,7 @@ func newEnv(
 	return &jobEnv{
 		api: api, sandbox: sb, dir: dir, remote: remote,
 		runner: &runner.JobRunner{
-			API: api, Token: "frt_x",
+			API: api, Token: "frt_x", Paused: nil,
 			Allowed: func() ([]string, error) {
 				return []string{"xdoubleu/tools.xdoubleu.com"}, nil
 			},
@@ -914,4 +914,25 @@ func TestAClaudeCodeJobStillRunsClaudeCode(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, runner.ClaudeCode{}.Command(), env.sandbox.specs[0].Command)
 	assert.Contains(t, env.sandbox.specs[0].Env, "CLAUDE_CONFIG_DIR")
+}
+
+func TestLoopClaimsNothingWhileStopped(t *testing.T) {
+	env := newEnv(t, writes("ok", 0), newJob())
+	ctx, cancel := context.WithCancel(context.Background())
+	stopped := true
+	env.runner.Paused = func() bool { return stopped }
+
+	sleeps := 0
+	require.NoError(t, env.runner.LoopForTest(ctx,
+		func(context.Context, time.Duration) {
+			if sleeps++; sleeps == 3 {
+				stopped = false
+				go func() {
+					<-env.api.completes
+					cancel()
+				}()
+			}
+		}, ticking()))
+	assert.Equal(t, 3, sleeps, "claimed only after the start")
+	assert.Len(t, env.api.done(), 1)
 }

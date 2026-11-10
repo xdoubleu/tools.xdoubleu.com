@@ -62,6 +62,8 @@ type JobRunner struct {
 	Git     *Git
 	Sandbox Sandbox
 	Harness Harness
+	// Paused, when it reports true, stops the loop claiming new jobs.
+	Paused func() bool
 	// ClaudeToken returns the Claude setup-token a Claude Code job runs on; it is
 	// put in the VM's environment (adr-0043's conservative route) and kept out of
 	// commits and the outcome like any secret. Nil sets none.
@@ -148,6 +150,10 @@ func (r *JobRunner) loop(ctx context.Context, clk clock) error {
 	r.CleanSessions(ctx)
 	backoff := minLoop
 	for ctx.Err() == nil {
+		if r.Paused != nil && r.Paused() {
+			clk.sleep(ctx, minLoop)
+			continue
+		}
 		started := clk.now()
 		ran, err := r.Next(ctx)
 		switch {

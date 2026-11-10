@@ -52,11 +52,15 @@ func main() {
 			}
 			return runner.NewUpdater(origin, Release, UpdatePublicKey), nil
 		},
-		activity: runner.NewActivity(runner.NewCaffeinate()),
+		activity: nil,
+		control:  nil,
+		menu:     runMenu,
 		load:     loadLaunchAgent,
 		open:     openURL,
 		jobs:     nil,
 	}
+	a.activity = runner.NewActivity(runner.NewCaffeinate())
+	a.control = runner.NewControl(runner.PausePath(home), Release, a.activity)
 	a.jobs = func(ctx context.Context, cfg runner.Config, token string) (jobLoop, error) {
 		return newJobRunner(ctx, a, cfg, token, log, runner.OSExecer{})
 	}

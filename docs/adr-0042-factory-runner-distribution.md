@@ -33,8 +33,9 @@ without the server being able to push arbitrary code.
   file; if it differs it downloads the binary and signature beside the heartbeat
   loop (so a slow download never makes it look offline), verifies, checks it is
   Mach-O, re-checks that it is still idle, atomically renames it over itself and
-  exits so launchd restarts it. A failure leaves the old binary running; a build
-  without the public key skips updating quietly.
+  exits so launchd restarts it. A failure leaves the old binary running. Every
+  check logs its outcome (newer release installed, none, failed, or no key in
+  the build) to the LaunchAgent log and the menu bar → [adr-0049](adr-0049-factory-runner-menu-bar.md).
 - **`install` copies the binary** to `~/Library/Application Support/factory-runner/`
   and runs the LaunchAgent from there, so a download can be deleted and the update
   has one file to replace.
