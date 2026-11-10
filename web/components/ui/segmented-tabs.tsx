@@ -8,7 +8,8 @@ interface SegmentedTabsOption<T extends string> {
 }
 
 interface SegmentedTabsProps<T extends string> {
-  value: T
+  /** `null` when no option is selected. */
+  value: T | null
   onChange: (value: T) => void
   options: SegmentedTabsOption<T>[]
   /** Names the tablist for screen readers. */

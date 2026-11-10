@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Toolbar } from '@/components/ui/toolbar'
 import GamesWishlist from '@/components/games/GamesWishlist'
-import { SegmentedTabs } from '@/components/ui/segmented-tabs'
+import { ShelfSidebar } from '@/components/ui/shelf-sidebar'
 import { GameGroup } from '@/components/games/GameCards'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -86,13 +86,6 @@ export default function GamesLibrary() {
 
   return (
     <section>
-      <SegmentedTabs
-        aria-label="Shelves"
-        className="mb-4"
-        value={shelf}
-        onChange={setShelf}
-        options={SHELVES.map((s) => ({ value: s, label: `${labels[s]} (${counts[s]})` }))}
-      />
       <Toolbar
         aria-label="Filter games"
         search={
@@ -121,36 +114,47 @@ export default function GamesLibrary() {
         }
       />
 
-      {(shelf === 'all' || onWishlist) && wishlistError && (
-        <ErrorState what="Steam wishlist" placement="page" />
-      )}
-      {!onWishlist && steamLoading && <LoadingState label="Steam library" placement="page" />}
-      {!onWishlist && steamError && <ErrorState what="Steam data" placement="page" />}
-      {!onWishlist && steam && (
-        <>
-          <p className="mb-4 text-muted text-sm">
-            Total backlog: {steam.totalBacklog} games &mdash; Current rate: {steam.currentRate}
-          </p>
-          {visible.map((g) => (
-            <GameGroup
-              key={g.shelf}
-              title={g.title}
-              games={g.games}
-              hrefFor={ownerGameHref}
-              showFavourite
-            />
-          ))}
-          {visible.every((g) => g.games.length === 0) &&
-            (shelf !== 'all' || wishlist.length === 0) && (
-              <EmptyState placement="page">
-                {search.trim() ? 'No games match your search.' : 'No games on this shelf.'}
-              </EmptyState>
-            )}
-        </>
-      )}
-      {(shelf === 'all' || onWishlist) && !wishlistError && (
-        <GamesWishlist games={wishlist} showEmpty={onWishlist} />
-      )}
+      <div className="flex flex-col md:flex-row gap-6">
+        <ShelfSidebar
+          shelves={SHELVES.map((s) => ({ id: s, label: labels[s], count: counts[s] }))}
+          selectedShelfId={shelf}
+          selectedTag={null}
+          onSelectShelf={(id) => setShelf(SHELVES.find((s) => s === id) ?? 'all')}
+          onSelectTag={() => {}}
+        />
+        <div className="flex-1 min-w-0">
+          {(shelf === 'all' || onWishlist) && wishlistError && (
+            <ErrorState what="Steam wishlist" placement="page" />
+          )}
+          {!onWishlist && steamLoading && <LoadingState label="Steam library" placement="page" />}
+          {!onWishlist && steamError && <ErrorState what="Steam data" placement="page" />}
+          {!onWishlist && steam && (
+            <>
+              <p className="mb-4 text-muted text-sm">
+                Total backlog: {steam.totalBacklog} games &mdash; Current rate: {steam.currentRate}
+              </p>
+              {visible.map((g) => (
+                <GameGroup
+                  key={g.shelf}
+                  title={g.title}
+                  games={g.games}
+                  hrefFor={ownerGameHref}
+                  showFavourite
+                />
+              ))}
+              {visible.every((g) => g.games.length === 0) &&
+                (shelf !== 'all' || wishlist.length === 0) && (
+                  <EmptyState placement="page">
+                    {search.trim() ? 'No games match your search.' : 'No games on this shelf.'}
+                  </EmptyState>
+                )}
+            </>
+          )}
+          {(shelf === 'all' || onWishlist) && !wishlistError && (
+            <GamesWishlist games={wishlist} showEmpty={onWishlist} />
+          )}
+        </div>
+      </div>
     </section>
   )
 }

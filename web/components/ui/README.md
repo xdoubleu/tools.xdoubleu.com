@@ -495,7 +495,7 @@ Single-choice switch between a few views or modes, rendered as a tablist.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
-| `value` | `T` | yes |  |
+| `value` | `T \| null` | yes | `null` when no option is selected. |
 | `onChange` | `(value: T) => void` | yes |  |
 | `options` | `SegmentedTabsOption<T>[]` | yes |  |
 | `'aria-label'` | `string` | yes | Names the tablist for screen readers. |
@@ -522,6 +522,21 @@ One group on a settings page. Stack them in `SettingsSections`, which owns the s
 #### `SettingsSections`
 
 Vertical stack of `SettingsSection`s with the standard gap between them.
+
+### `shelf-sidebar.tsx`
+
+#### `ShelfSidebar`
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `shelves` | `SidebarShelf[]` | yes |  |
+| `allTags` | `SidebarTag[]` |  |  |
+| `selectedShelfId` | `string \| null` | yes |  |
+| `selectedTag` | `string \| null` | yes |  |
+| `onSelectShelf` | `(id: string) => void` | yes |  |
+| `onSelectTag` | `(tag: string) => void` | yes |  |
+| `onManage` | `() => void` |  | Omit on read-only views (public profile) to hide shelf/tag editing. |
+| `series` | `SidebarSeries[]` |  | Links to each series page; omit where those pages aren't reachable. |
 
 ### `skeleton.tsx`
 

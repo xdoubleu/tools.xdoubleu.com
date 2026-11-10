@@ -132,12 +132,12 @@ describe('GamesLibrary', () => {
     render(<GamesLibrary />)
     const names = screen.getAllByRole('tab').map((t) => t.textContent)
     expect(names).toEqual([
-      'All (2)',
-      'Wishlist (1)',
-      'Not started (1)',
-      'In progress (1)',
-      'Done (0)',
-      'Favourites (0)'
+      'All2',
+      'Wishlist1',
+      'Not started1',
+      'In progress1',
+      'Done0',
+      'Favourites0'
     ])
   })
 
@@ -159,7 +159,7 @@ describe('GamesLibrary', () => {
     expect(screen.getByText('Portal')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Favourites (1)' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Completed (1)' })).not.toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'All (3)' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'All3' })).toBeInTheDocument()
     expect(screen.queryByText('Celeste')).not.toBeInTheDocument()
   })
 
@@ -176,7 +176,7 @@ describe('GamesLibrary', () => {
     mockSteam()
     mockShelf = 'done'
     render(<GamesLibrary />)
-    fireEvent.click(screen.getByRole('tab', { name: 'All (2)' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'All2' }))
     expect(mockReplace).toHaveBeenCalledWith('/games/library')
   })
 
@@ -236,8 +236,8 @@ describe('GamesLibrary', () => {
     mockSteam()
     render(<GamesLibrary />)
     fireEvent.change(screen.getByPlaceholderText('Search games…'), { target: { value: 'zz' } })
-    expect(screen.getByRole('tab', { name: 'All (2)' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Wishlist (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'All2' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Wishlist1' })).toBeInTheDocument()
   })
 
   it('does not report no matches when only the wishlist matches', () => {
@@ -269,9 +269,9 @@ describe('GamesLibrary', () => {
     mockWishlist = []
     render(<GamesLibrary />)
     expect(screen.queryByText(/No games/)).not.toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'All (3)' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Done (1)' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Favourites (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'All3' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Done1' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Favourites1' })).toBeInTheDocument()
   })
 
   it('shows no empty message when only some groups are empty', () => {
@@ -292,8 +292,8 @@ describe('GamesLibrary', () => {
     // @ts-expect-error -- partial SWRResponse
     mockUseBacklogSteam.mockReturnValue({ data: undefined, error: undefined, isLoading: true })
     render(<GamesLibrary />)
-    expect(screen.getByRole('tab', { name: 'All (0)' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Favourites (0)' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'All0' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Favourites0' })).toBeInTheDocument()
   })
 
   it('hides Steam loading and error states on the wishlist shelf only', () => {
@@ -324,7 +324,7 @@ describe('GamesLibrary', () => {
   it('writes the chosen shelf to the URL', () => {
     mockSteam()
     render(<GamesLibrary />)
-    fireEvent.click(screen.getByRole('tab', { name: 'Not started (1)' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Not started1' }))
     expect(mockReplace).toHaveBeenCalledWith('/games/library?shelf=not-started')
   })
 
