@@ -5,6 +5,7 @@ go 1.27.3
 require (
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/stretchr/testify v1.12.1
+	tools.xdoubleu.com/selfupdate v0.0.0
 )
 
 require (
@@ -12,3 +13,5 @@ require (
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 )
+
+replace tools.xdoubleu.com/selfupdate => ../selfupdate

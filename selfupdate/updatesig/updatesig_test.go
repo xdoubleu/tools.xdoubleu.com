@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/factory-runner/internal/updatesig"
+	"tools.xdoubleu.com/selfupdate/updatesig"
 )
 
 func TestSignVerifyRoundTrip(t *testing.T) {

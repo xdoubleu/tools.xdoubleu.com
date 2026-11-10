@@ -1,131 +1,63 @@
 package kobogateway
 
 import (
-	"bytes"
 	"context"
-	"crypto/ed25519"
-	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
-	"tools.xdoubleu.com/kobo-gateway/internal/updatesig"
+	"tools.xdoubleu.com/selfupdate"
 )
 
 const (
 	// BinaryName is the artifact the web app serves under /downloads/.
 	BinaryName = "kobo-gateway-darwin-arm64"
 
-	// DownloadPath is where the web app serves the latest gateway binary.
-	DownloadPath = "/downloads/" + BinaryName
-
-	// SignaturePath serves DownloadPath's base64 ed25519 signature.
-	SignaturePath = DownloadPath + ".sig"
-
-	// ReleasePath serves the release (commit) DownloadPath was built from.
-	ReleasePath = "/downloads/kobo-gateway-release.txt"
+	// ReleaseFile names the text file holding the release BinaryName was built
+	// from.
+	ReleaseFile = "kobo-gateway-release.txt"
 
 	downloadTimeout = 60 * time.Second
-
-	// maxBinarySize caps the download (the real binary is a few MB).
-	maxBinarySize = 512 << 20
-
-	maxSignatureSize = 1 << 10
 )
 
 // ErrUpdateSigningUnset means the build carries no update public key, so no
 // download can be trusted.
-var ErrUpdateSigningUnset = errors.New("self-update is disabled: no update signing key")
+var ErrUpdateSigningUnset = selfupdate.ErrSigningUnset
 
 // Updater implements UpdateRunner by atomically replacing the running
-// executable with a download signed by the release key. Go's HTTP client sets
-// no quarantine attribute, so Gatekeeper isn't re-triggered.
+// executable with a download signed by the release key.
 type Updater struct {
-	client *http.Client
-	// executablePath is os.Executable, injectable for tests.
-	executablePath func() (string, error)
-	// publicKey verifies downloads; nil disables self-update.
-	publicKey ed25519.PublicKey
+	inner *selfupdate.Updater
 }
 
 // NewUpdater builds an Updater that replaces the current executable, trusting
 // binaries signed by publicKeyB64 (base64 ed25519). An empty or invalid key
 // disables self-update.
 func NewUpdater(publicKeyB64 string) *Updater {
-	publicKey, err := updatesig.ParsePublicKey(publicKeyB64)
-	if err != nil {
-		publicKey = nil
-	}
-
-	return &Updater{
-		client:         &http.Client{Timeout: downloadTimeout},
-		executablePath: os.Executable,
-		publicKey:      publicKey,
-	}
+	return &Updater{inner: selfupdate.New(
+		"gateway", BinaryName, ReleaseFile, publicKeyB64, downloadTimeout,
+	)}
 }
 
 // LatestRelease returns the release origin currently serves.
 func (u *Updater) LatestRelease(ctx context.Context, origin string) (string, error) {
-	raw, err := u.download(ctx, origin+ReleasePath, maxSignatureSize)
-	if err != nil {
-		return "", err
-	}
-
-	return strings.TrimSpace(string(raw)), nil
+	return u.inner.Release(ctx, origin)
 }
 
-// SelfUpdate downloads origin+DownloadPath, verifies its signature, writes it
-// to a temp file next to the current executable, and atomically renames it
-// over the executable. On any failure the running binary is left untouched.
+// SelfUpdate installs origin's gateway binary over the current executable and
+// re-signs its app bundle. On any failure the running binary is left untouched.
 func (u *Updater) SelfUpdate(ctx context.Context, origin string) error {
-	if u.publicKey == nil {
-		return ErrUpdateSigningUnset
+	if _, err := u.inner.Install(ctx, origin, nil); err != nil {
+		return err
 	}
-
-	executable, err := u.executablePath()
+	executable, err := u.inner.ExecutablePath()
 	if err != nil {
 		return fmt.Errorf("could not resolve executable path: %w", err)
 	}
-
-	data, err := u.download(ctx, origin+DownloadPath, maxBinarySize)
-	if err != nil {
-		return err
-	}
-
-	sig, err := u.download(ctx, origin+SignaturePath, maxSignatureSize)
-	if err != nil {
-		return err
-	}
-
-	if err = updatesig.Verify(u.publicKey, data, string(sig)); err != nil {
-		return err
-	}
-
-	if !isMachO(data) {
-		return errors.New("downloaded file is not a valid gateway binary")
-	}
-
-	tmpPath := executable + ".update"
-	//nolint:gosec //the downloaded gateway binary must be executable
-	if err = os.WriteFile(tmpPath, data, 0o755); err != nil {
-		return fmt.Errorf("could not write updated binary: %w", err)
-	}
-
-	if err = os.Rename(tmpPath, executable); err != nil {
-		_ = os.Remove(tmpPath)
-
-		return fmt.Errorf("could not replace running binary: %w", err)
-	}
-
 	if err = resignBundle(ctx, executable); err != nil {
 		return fmt.Errorf("could not re-sign updated app bundle: %w", err)
 	}
-
 	return nil
 }
 
@@ -149,46 +81,4 @@ func AppBundlePath(executable string) string {
 	}
 
 	return appDir
-}
-
-func (u *Updater) download(
-	ctx context.Context,
-	downloadURL string,
-	maxSize int64,
-) ([]byte, error) {
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodGet,
-		downloadURL,
-		nil,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("could not build download request: %w", err)
-	}
-
-	resp, err := u.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("could not download update: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("update download failed: %s", resp.Status)
-	}
-
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxSize))
-	if err != nil {
-		return nil, fmt.Errorf("could not read update: %w", err)
-	}
-
-	return data, nil
-}
-
-// isMachO accepts 64-bit Mach-O binaries (little endian, as produced for
-// darwin/arm64) and universal fat binaries.
-func isMachO(data []byte) bool {
-	machO64 := []byte{0xcf, 0xfa, 0xed, 0xfe}
-	fat := []byte{0xca, 0xfe, 0xba, 0xbe}
-
-	return bytes.HasPrefix(data, machO64) || bytes.HasPrefix(data, fat)
 }

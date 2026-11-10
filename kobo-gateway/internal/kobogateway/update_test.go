@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
-	"tools.xdoubleu.com/kobo-gateway/internal/updatesig"
+	"tools.xdoubleu.com/selfupdate/updatesig"
 )
 
 // machO64Header is the magic prefix of a darwin/arm64 binary.
@@ -39,8 +39,8 @@ func newTestKey(t *testing.T) testKey {
 	return testKey{pub: pub, seed: seed}
 }
 
-// signedDownloads serves body at DownloadPath and its signature (by signer)
-// at SignaturePath.
+// signedDownloads serves body at the binary path and its signature (by signer)
+// at its .sig path.
 func signedDownloads(t *testing.T, signer testKey, body []byte) *httptest.Server {
 	t.Helper()
 
@@ -50,9 +50,9 @@ func signedDownloads(t *testing.T, signer testKey, body []byte) *httptest.Server
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			switch r.URL.Path {
-			case kobogateway.DownloadPath:
+			case "/downloads/" + kobogateway.BinaryName:
 				_, _ = w.Write(body)
-			case kobogateway.SignaturePath:
+			case "/downloads/" + kobogateway.BinaryName + ".sig":
 				_, _ = w.Write([]byte(sig))
 			default:
 				w.WriteHeader(http.StatusNotFound)
@@ -139,7 +139,7 @@ func TestSelfUpdateRejectsBadSignatures(t *testing.T) {
 		"signed by another key": signedDownloads(t, newTestKey(t), machO64Header("evil")),
 		"signature missing": httptest.NewServer(http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path == kobogateway.DownloadPath {
+				if r.URL.Path == "/downloads/"+kobogateway.BinaryName {
 					_, _ = w.Write(machO64Header("evil"))
 					return
 				}
@@ -282,7 +282,7 @@ func TestSelfUpdateAcceptsFatBinary(t *testing.T) {
 func TestLatestRelease(t *testing.T) {
 	downloads := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path != kobogateway.ReleasePath {
+			if r.URL.Path != "/downloads/"+kobogateway.ReleaseFile {
 				w.WriteHeader(http.StatusNotFound)
 
 				return

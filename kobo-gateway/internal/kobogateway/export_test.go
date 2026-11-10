@@ -22,9 +22,9 @@ func NewUpdaterFor(
 	client *http.Client,
 	publicKey ed25519.PublicKey,
 ) *Updater {
-	return &Updater{
-		client:         client,
-		executablePath: func() (string, error) { return executable, nil },
-		publicKey:      publicKey,
-	}
+	u := NewUpdater("")
+	u.inner.Client = client
+	u.inner.ExecutablePath = func() (string, error) { return executable, nil }
+	u.inner.PublicKey = publicKey
+	return u
 }

@@ -21,7 +21,6 @@ internal/runner/
   validate.go, config.go      job validator; server URL and repo allowlist
   token.go, launchagent.go    keychain; plist
   update.go, activity.go      signed self-update; caffeinate
-internal/updatesig/           copy of kobo-gateway's
 ```
 
 ## Trust
@@ -35,7 +34,7 @@ The server is untrusted; each claimed job is checked for UUID ids, the local rep
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
-`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature and release file into `/downloads/`. The dmg's app installs the LaunchAgent; `-X main.UpdatePublicKey` is the trusted key.
+`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature and release file into `/downloads/`. The dmg's app installs the LaunchAgent; `-X main.UpdatePublicKey` is the trusted key. Self-update is `../selfupdate`.
 
 Menu bar Stop writes a `paused` flag; logs go to `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
 
