@@ -2,30 +2,19 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 
-vi.mock('@/hooks/useGames', () => ({ useWishlist: vi.fn() }))
-
 import GamesWishlist from '@/components/games/GamesWishlist'
-import { useWishlist } from '@/hooks/useGames'
-import { GetWishlistResponseSchema, WishlistGameSchema } from '@/lib/gen/games/v1/games_pb'
-
-const mockUseWishlist = vi.mocked(useWishlist)
-
-function mockState(state: { data?: unknown; error?: Error }) {
-  // @ts-expect-error -- partial SWRResponse
-  mockUseWishlist.mockReturnValue(state)
-}
+import { WishlistGameSchema } from '@/lib/gen/games/v1/games_pb'
 
 describe('GamesWishlist', () => {
   it('lists wishlisted games linking to the store', () => {
-    mockState({
-      data: create(GetWishlistResponseSchema, {
-        games: [
+    const { container } = render(
+      <GamesWishlist
+        games={[
           create(WishlistGameSchema, { id: 620, name: 'Portal 2', imageUrl: 'https://i/p.jpg' }),
           create(WishlistGameSchema, { id: 10, name: 'No Art' })
-        ]
-      })
-    })
-    const { container } = render(<GamesWishlist />)
+        ]}
+      />
+    )
     const images = container.querySelectorAll('img')
     expect(images).toHaveLength(1)
     expect(images[0]).toHaveAttribute('src', 'https://i/p.jpg')
@@ -36,15 +25,13 @@ describe('GamesWishlist', () => {
     )
   })
 
-  it('renders nothing while empty or loading', () => {
-    mockState({})
-    const { container } = render(<GamesWishlist />)
+  it('renders nothing while empty', () => {
+    const { container } = render(<GamesWishlist games={[]} />)
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('shows an error state when the fetch fails', () => {
-    mockState({ error: new Error('boom') })
-    render(<GamesWishlist />)
-    expect(screen.getByText(/Steam wishlist/i)).toBeInTheDocument()
+  it('says so when empty and asked to show it', () => {
+    render(<GamesWishlist games={[]} showEmpty />)
+    expect(screen.getByText('Nothing on your wishlist.')).toBeInTheDocument()
   })
 })
