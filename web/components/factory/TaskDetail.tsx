@@ -13,6 +13,7 @@ import {
   jobStatusLabel,
   prStatusLine,
   priorityLabel,
+  shortTaskId,
   statusLabel
 } from '@/lib/factory/board'
 import { MoveSelect } from '@/components/factory/MoveSelect'
@@ -246,6 +247,30 @@ function RunSection({
   )
 }
 
+/** The short id with a button that copies the full one. */
+function TaskId({ id }: { id: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(id)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard access can be denied; the short id stays visible.
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2 text-xs text-muted">
+      <span data-testid="task-id">{shortTaskId(id)}</span>
+      <Button variant="secondary" size="sm" onClick={() => void copy()}>
+        {copied ? 'Copied' : 'Copy id'}
+      </Button>
+    </div>
+  )
+}
+
 interface TaskDetailProps {
   id: string
   onClose: () => void
@@ -274,6 +299,7 @@ export default function TaskDetail({ id, onClose }: TaskDetailProps) {
         {isLoading && !data && <LoadingState label="task" />}
         {task && data && (
           <div className="space-y-4">
+            <TaskId id={task.id} />
             <div className="flex flex-wrap items-center gap-2">
               <Badge>{priorityLabel(task.priority)}</Badge>
               {task.labels.map((l) => (

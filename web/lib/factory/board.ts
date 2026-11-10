@@ -74,6 +74,11 @@ export function repoLabel(repo: Repo): string {
   return `${repo.owner}/${repo.name}`
 }
 
+/** The first 8 characters of a task's uuid, enough to tell tasks apart on the board. */
+export function shortTaskId(id: string): string {
+  return id.slice(0, 8)
+}
+
 /** How a dragged card announces its task to the board's drop targets. */
 export const TASK_DATA_TYPE = 'text/plain'
 

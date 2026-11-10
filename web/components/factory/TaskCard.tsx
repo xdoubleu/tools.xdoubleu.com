@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from 'react'
 import { TaskPriority, TaskStatus, type Repo, type Task } from '@/lib/gen/factory/v1/factory_pb'
-import { isProductLabel, prBadge, priorityLabel, repoLabel } from '@/lib/factory/board'
+import { isProductLabel, prBadge, priorityLabel, repoLabel, shortTaskId } from '@/lib/factory/board'
 import { useFactoryActions } from '@/hooks/useFactory'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -72,7 +72,15 @@ export default function TaskCard({
       >
         {task.title}
       </Button>
-      {repo && <p className="break-words text-xs text-muted">{repoLabel(repo)}</p>}
+      <p className="break-words text-xs text-muted">
+        <span data-testid="task-id">{shortTaskId(task.id)}</span>
+        {repo && (
+          <>
+            {' · '}
+            <span>{repoLabel(repo)}</span>
+          </>
+        )}
+      </p>
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant={PRIORITY_VARIANT[task.priority] ?? 'secondary'}>
           {priorityLabel(task.priority)}
