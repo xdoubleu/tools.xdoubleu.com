@@ -139,6 +139,27 @@ func TestOnlyMergedPullRequestsAreListedWithTheirBodies(t *testing.T) {
 	}, got)
 }
 
+func TestAPageOfMergedPullRequestsOverOneMebibyteIsRead(t *testing.T) {
+	key, pkcs1, _ := newKey(t)
+	f := newFake(t, key)
+	long := strings.Repeat("x", 30<<10)
+	f.mux.HandleFunc("GET /repos/{o}/{r}/pulls",
+		func(w http.ResponseWriter, _ *http.Request) {
+			items := make([]string, 100)
+			for i := range items {
+				items[i] = `{"html_url":"u","body":"` + long +
+					`","merged_at":"2026-11-10T09:00:00Z"}`
+			}
+			_, _ = io.WriteString(w, "["+strings.Join(items, ",")+"]")
+		})
+	c := newClient(t, f, pkcs1)
+
+	got, err := c.MergedPullRequests(t.Context(), "xdoubleu", "tools.xdoubleu.com")
+
+	require.NoError(t, err)
+	assert.Len(t, got, 100)
+}
+
 func run(state, conclusion string) string {
 	return `{"status":"` + state + `","conclusion":"` + conclusion + `"}`
 }
