@@ -34,7 +34,8 @@ machine identity, but only one, seeded by hand.
   unknown, so the rule holds without each tool remembering it
   ([ADR-0047](adr-0047-first-class-agent-users.md)).
 - Only an admin in a browser session creates, lists or revokes accounts, and
-  creating one needs a TOTP or recovery code (`VerifyCurrentFactor`). The client
+  creating one needs no extra code (rotating and joining a family still need a
+  TOTP or recovery code via `VerifyCurrentFactor`). The client
   secret is shown once and stored only as a bcrypt hash.
 - Revoking stamps `revoked_at` and deletes the client. Its tokens cascade away,
   so they stop working at once. The account row stays for history.
@@ -108,8 +109,8 @@ hardcodes one. `scripts/opencode_agent.sh` wraps
   it is revoked.
 - An agent with no `factory_*` tools yet sees an empty tool list; the tools
   arrive with the board MCP slice (#2714).
-- The step-up needs a verified TOTP factor, so an admin without one can't create
-  accounts.
+- The step-up needs a verified TOTP factor, so an admin without one can't rotate
+  a secret or join an agent to a family.
 
 ## Revisit when
 

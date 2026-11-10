@@ -33,7 +33,7 @@ beforeEach(() => {
 })
 
 describe('AgentDialog', () => {
-  it('starts empty with Create off until a name and code are given', () => {
+  it('starts empty with Create off until a name is given', () => {
     render(<AgentDialog onClose={vi.fn()} />)
     expect(screen.getByText('New agent')).toBeInTheDocument()
     expect(
@@ -42,29 +42,24 @@ describe('AgentDialog', () => {
       )
     ).toBeInTheDocument()
     expect(screen.getByLabelText('Name')).toHaveValue('')
-    expect(screen.getByLabelText('Authenticator code')).toHaveValue('')
+    expect(screen.queryByLabelText('Authenticator code')).not.toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 
     const create = screen.getByRole('button', { name: 'Create' })
     expect(create).toBeDisabled()
     fill('Name', 'Reviewer')
-    expect(create).toBeDisabled()
-    fill('Authenticator code', '   ')
-    expect(create).toBeDisabled()
-    fill('Authenticator code', '123456')
     expect(create).toBeEnabled()
     fill('Name', '  ')
     expect(create).toBeDisabled()
   })
 
-  it('creates the agent with the trimmed code and shows the credentials once', async () => {
+  it('creates the agent and shows the credentials once', async () => {
     const onClose = vi.fn()
     render(<AgentDialog onClose={onClose} />)
     fill('Name', 'Reviewer')
-    fill('Authenticator code', ' 123456 ')
     fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('Reviewer', '123456'))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('Reviewer'))
     expect(await screen.findByText('Agent created')).toBeInTheDocument()
     expect(
       screen.getByText('Use these credentials in the agent’s headersHelper.')
@@ -81,7 +76,6 @@ describe('AgentDialog', () => {
   it('copies the secret', async () => {
     render(<AgentDialog onClose={vi.fn()} />)
     fill('Name', 'Reviewer')
-    fill('Authenticator code', '1')
     fireEvent.click(screen.getByRole('button', { name: 'Create' }))
     await screen.findByText('Agent created')
     expect(screen.getByRole('button', { name: 'Copy secret' })).toBeInTheDocument()
@@ -95,7 +89,6 @@ describe('AgentDialog', () => {
     mockCreate.mockResolvedValue(create(CreateAgentAccountResponseSchema, { clientSecret: 's' }))
     render(<AgentDialog onClose={vi.fn()} />)
     fill('Name', 'Reviewer')
-    fill('Authenticator code', '1')
     fireEvent.click(screen.getByRole('button', { name: 'Create' }))
     await screen.findByText('Agent created')
     expect(screen.getByLabelText('Client ID')).toHaveValue('')
@@ -106,7 +99,6 @@ describe('AgentDialog', () => {
     mockCreate.mockReturnValue(new Promise((resolve) => (finish = resolve)))
     render(<AgentDialog onClose={vi.fn()} />)
     fill('Name', 'Reviewer')
-    fill('Authenticator code', '1')
     fireEvent.click(screen.getByRole('button', { name: 'Create' }))
     expect(await screen.findByRole('button', { name: 'Creating…' })).toBeDisabled()
     finish(created)
@@ -117,7 +109,6 @@ describe('AgentDialog', () => {
     const onClose = vi.fn()
     render(<AgentDialog onClose={onClose} />)
     fill('Name', 'Reviewer')
-    fill('Authenticator code', '1')
     const submit = () => fireEvent.click(screen.getByRole('button', { name: 'Create' }))
 
     mockCreate.mockRejectedValueOnce(new ConnectError('no', Code.PermissionDenied))
@@ -159,7 +150,6 @@ describe('AgentDialog', () => {
     let finish: (v: unknown) => void = () => undefined
     render(<AgentDialog onClose={vi.fn()} />)
     fill('Name', 'Reviewer')
-    fill('Authenticator code', '1')
     fireEvent.click(screen.getByRole('button', { name: 'Create' }))
     await screen.findByRole('alert')
 
@@ -175,7 +165,6 @@ describe('AgentDialog', () => {
     mockCreate.mockRejectedValueOnce(new Error('network'))
     render(<AgentDialog onClose={vi.fn()} />)
     fill('Name', 'Reviewer')
-    fill('Authenticator code', '1')
     fireEvent.click(screen.getByRole('button', { name: 'Create' }))
     await screen.findByRole('alert')
 
@@ -207,7 +196,6 @@ describe('AgentDialog', () => {
     const onClose = vi.fn()
     render(<AgentDialog onClose={onClose} />)
     fill('Name', 'Reviewer')
-    fill('Authenticator code', '1')
     fireEvent.click(screen.getByRole('button', { name: 'Create' }))
     await screen.findByText('Agent created')
 
@@ -224,7 +212,6 @@ describe('AgentDialog', () => {
     writeText.mockRejectedValueOnce(new Error('denied'))
     render(<AgentDialog onClose={vi.fn()} />)
     fill('Name', 'Reviewer')
-    fill('Authenticator code', '1')
     fireEvent.click(screen.getByRole('button', { name: 'Create' }))
     await screen.findByText('Agent created')
     expect(screen.queryByText(/Couldn.t copy/)).not.toBeInTheDocument()

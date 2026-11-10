@@ -66,11 +66,10 @@ export function Credentials({
   )
 }
 
-/** Create sheet: a name and the step-up code, then the credentials once. */
+/** Create sheet: a name, then the credentials once. */
 export default function AgentDialog({ onClose }: { onClose: () => void }) {
   const { create: createAgent } = useAgentActions()
   const [name, setName] = useState('')
-  const [code, setCode] = useState('')
   const [pending, setPending] = useState(false)
   const [failure, setFailure] = useState('')
   const [created, setCreated] = useState<Awaited<ReturnType<typeof createAgent>> | null>(null)
@@ -80,7 +79,7 @@ export default function AgentDialog({ onClose }: { onClose: () => void }) {
     setPending(true)
     setFailure('')
     try {
-      setCreated(await createAgent(name, code.trim()))
+      setCreated(await createAgent(name))
     } catch (err) {
       setFailure(failureMessage(err, "Couldn't create the agent. Try again."))
     }
@@ -113,27 +112,12 @@ export default function AgentDialog({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setName(e.target.value)}
               />
             </Field>
-            <Field
-              label="Authenticator code"
-              htmlFor="agent-code"
-              hint="A code from your authenticator app, or a recovery code."
-            >
-              <Input
-                id="agent-code"
-                value={code}
-                autoComplete="one-time-code"
-                autoCapitalize="none"
-                autoCorrect="off"
-                required
-                onChange={(e) => setCode(e.target.value)}
-              />
-            </Field>
             {failure && <Alert tone="danger">{failure}</Alert>}
             <DialogFooter>
               <Button type="button" variant="secondary" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={pending || name.trim() === '' || code.trim() === ''}>
+              <Button type="submit" disabled={pending || name.trim() === ''}>
                 {pending ? 'Creating…' : 'Create'}
               </Button>
             </DialogFooter>

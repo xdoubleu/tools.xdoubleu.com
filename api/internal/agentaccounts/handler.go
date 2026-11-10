@@ -150,16 +150,6 @@ func (h *handler) CreateAgentAccount(
 		)
 	}
 
-	token, ok := connecttools.RequestCookie(ctx, "accessToken")
-	if !ok {
-		return nil, connect.NewError(connect.CodeUnauthenticated, "not signed in")
-	}
-	if err = h.deps.StepUp.VerifyCurrentFactor(
-		ctx, token, req.GetTotpCode(),
-	); err != nil {
-		return nil, connect.NewError(stepUpCode(err), err.Error()).WithCause(err)
-	}
-
 	account, secret, err := h.deps.Store.Create(ctx, "human:"+user.ID, name)
 	if err != nil {
 		return nil, connecttools.MapError(err)

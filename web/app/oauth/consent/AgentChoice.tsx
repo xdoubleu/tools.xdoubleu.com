@@ -12,7 +12,6 @@ export interface AgentChoiceState {
   mode: Mode
   name: string
   grants: Record<string, AgentLevel>
-  code: string
   existingId: string
 }
 
@@ -65,20 +64,6 @@ export default function AgentChoice({
             levelOf={(app) => state.grants[app] ?? 'none'}
             onChange={(app, level) => onChange({ grants: { ...state.grants, [app]: level } })}
           />
-          <Field
-            label="Authenticator code"
-            htmlFor="consent-agent-code"
-            hint="A code from your authenticator app, or a recovery code."
-          >
-            <Input
-              id="consent-agent-code"
-              value={state.code}
-              autoComplete="one-time-code"
-              autoCapitalize="none"
-              autoCorrect="off"
-              onChange={(e) => onChange({ code: e.target.value })}
-            />
-          </Field>
         </div>
       )}
 

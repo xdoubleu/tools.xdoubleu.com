@@ -16,8 +16,8 @@ natural place to choose who the client acts as.
 
 - The consent page asks an admin who the client signs in as: themselves, a new
   agent account, or an existing standing one. People see no choice.
-- A new agent is created on the page through `CreateAgentAccount` (TOTP step-up,
-  as before), with the per-app none/read/write grants picked there. Its
+- A new agent is created on the page through `CreateAgentAccount` (no step-up
+  code), with the per-app none/read/write grants picked there. Its
   client_credentials secret is never shown; rotating it later gives a headless
   credential.
 - The approving POST carries `agent_account_id`. `AuthorizeHandler` refuses it

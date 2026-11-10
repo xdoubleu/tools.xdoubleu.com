@@ -38,8 +38,8 @@ export function useAgentActions() {
   const refresh = () => mutate(swrKeys.userManagementAgents)
 
   return {
-    create: async (name: string, totpCode: string) => {
-      const created = await agents.createAgentAccount({ name, totpCode })
+    create: async (name: string) => {
+      const created = await agents.createAgentAccount({ name })
       await refresh()
       return created
     },
