@@ -219,3 +219,21 @@ func TestConnectRefreshSteamGame_WithSeededData(t *testing.T) {
 	assert.NotEmpty(t, resp.Data.Game.LastSyncedAt,
 		"RefreshSteamGame should populate last_synced_at")
 }
+
+func TestConnectGetWishlist(t *testing.T) {
+	seedSteamData(t)
+
+	client := newGamesTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	ctx, info := connect.NewClientContext(ctx)
+	info.RequestHeader().Set("Cookie", accessToken.String())
+
+	resp, err := client.GetWishlist(ctx, &gamesv1.GetWishlistRequest{})
+	require.NoError(t, err)
+	require.Len(t, resp.Games, 1, "the mock client wishlists app 2")
+	assert.EqualValues(t, 2, resp.Games[0].Id)
+	assert.Equal(t, "wished", resp.Games[0].Name)
+	assert.NotEmpty(t, resp.Games[0].AddedAt)
+}

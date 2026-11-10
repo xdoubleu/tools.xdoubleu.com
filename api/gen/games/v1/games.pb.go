@@ -1022,6 +1022,164 @@ func (x *RefreshSteamGameResponse) GetData() *SteamGameResponse {
 	return nil
 }
 
+type WishlistGame struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Id       int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name     string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	ImageUrl string                 `protobuf:"bytes,3,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
+	// Steam's rank on the wishlist, 1 first; 0 when unranked.
+	Priority int32 `protobuf:"varint,4,opt,name=priority,proto3" json:"priority,omitempty"`
+	// RFC 3339; empty when Steam gave no date.
+	AddedAt       string `protobuf:"bytes,5,opt,name=added_at,json=addedAt,proto3" json:"added_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WishlistGame) Reset() {
+	*x = WishlistGame{}
+	mi := &file_games_v1_games_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WishlistGame) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WishlistGame) ProtoMessage() {}
+
+func (x *WishlistGame) ProtoReflect() protoreflect.Message {
+	mi := &file_games_v1_games_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WishlistGame.ProtoReflect.Descriptor instead.
+func (*WishlistGame) Descriptor() ([]byte, []int) {
+	return file_games_v1_games_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *WishlistGame) GetId() int32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *WishlistGame) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *WishlistGame) GetImageUrl() string {
+	if x != nil {
+		return x.ImageUrl
+	}
+	return ""
+}
+
+func (x *WishlistGame) GetPriority() int32 {
+	if x != nil {
+		return x.Priority
+	}
+	return 0
+}
+
+func (x *WishlistGame) GetAddedAt() string {
+	if x != nil {
+		return x.AddedAt
+	}
+	return ""
+}
+
+type GetWishlistRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetWishlistRequest) Reset() {
+	*x = GetWishlistRequest{}
+	mi := &file_games_v1_games_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetWishlistRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWishlistRequest) ProtoMessage() {}
+
+func (x *GetWishlistRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_games_v1_games_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWishlistRequest.ProtoReflect.Descriptor instead.
+func (*GetWishlistRequest) Descriptor() ([]byte, []int) {
+	return file_games_v1_games_proto_rawDescGZIP(), []int{18}
+}
+
+type GetWishlistResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Games         []*WishlistGame        `protobuf:"bytes,1,rep,name=games,proto3" json:"games,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetWishlistResponse) Reset() {
+	*x = GetWishlistResponse{}
+	mi := &file_games_v1_games_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetWishlistResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWishlistResponse) ProtoMessage() {}
+
+func (x *GetWishlistResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_games_v1_games_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWishlistResponse.ProtoReflect.Descriptor instead.
+func (*GetWishlistResponse) Descriptor() ([]byte, []int) {
+	return file_games_v1_games_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *GetWishlistResponse) GetGames() []*WishlistGame {
+	if x != nil {
+		return x.Games
+	}
+	return nil
+}
+
 type GetIntegrationsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1030,7 +1188,7 @@ type GetIntegrationsRequest struct {
 
 func (x *GetIntegrationsRequest) Reset() {
 	*x = GetIntegrationsRequest{}
-	mi := &file_games_v1_games_proto_msgTypes[17]
+	mi := &file_games_v1_games_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1042,7 +1200,7 @@ func (x *GetIntegrationsRequest) String() string {
 func (*GetIntegrationsRequest) ProtoMessage() {}
 
 func (x *GetIntegrationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_games_v1_games_proto_msgTypes[17]
+	mi := &file_games_v1_games_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1055,7 +1213,7 @@ func (x *GetIntegrationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIntegrationsRequest.ProtoReflect.Descriptor instead.
 func (*GetIntegrationsRequest) Descriptor() ([]byte, []int) {
-	return file_games_v1_games_proto_rawDescGZIP(), []int{17}
+	return file_games_v1_games_proto_rawDescGZIP(), []int{20}
 }
 
 type GetIntegrationsResponse struct {
@@ -1067,7 +1225,7 @@ type GetIntegrationsResponse struct {
 
 func (x *GetIntegrationsResponse) Reset() {
 	*x = GetIntegrationsResponse{}
-	mi := &file_games_v1_games_proto_msgTypes[18]
+	mi := &file_games_v1_games_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1079,7 +1237,7 @@ func (x *GetIntegrationsResponse) String() string {
 func (*GetIntegrationsResponse) ProtoMessage() {}
 
 func (x *GetIntegrationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_games_v1_games_proto_msgTypes[18]
+	mi := &file_games_v1_games_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1092,7 +1250,7 @@ func (x *GetIntegrationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetIntegrationsResponse.ProtoReflect.Descriptor instead.
 func (*GetIntegrationsResponse) Descriptor() ([]byte, []int) {
-	return file_games_v1_games_proto_rawDescGZIP(), []int{18}
+	return file_games_v1_games_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetIntegrationsResponse) GetIntegrations() *Integrations {
@@ -1111,7 +1269,7 @@ type SaveIntegrationsRequest struct {
 
 func (x *SaveIntegrationsRequest) Reset() {
 	*x = SaveIntegrationsRequest{}
-	mi := &file_games_v1_games_proto_msgTypes[19]
+	mi := &file_games_v1_games_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1123,7 +1281,7 @@ func (x *SaveIntegrationsRequest) String() string {
 func (*SaveIntegrationsRequest) ProtoMessage() {}
 
 func (x *SaveIntegrationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_games_v1_games_proto_msgTypes[19]
+	mi := &file_games_v1_games_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1136,7 +1294,7 @@ func (x *SaveIntegrationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveIntegrationsRequest.ProtoReflect.Descriptor instead.
 func (*SaveIntegrationsRequest) Descriptor() ([]byte, []int) {
-	return file_games_v1_games_proto_rawDescGZIP(), []int{19}
+	return file_games_v1_games_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *SaveIntegrationsRequest) GetIntegrations() *Integrations {
@@ -1154,7 +1312,7 @@ type SaveIntegrationsResponse struct {
 
 func (x *SaveIntegrationsResponse) Reset() {
 	*x = SaveIntegrationsResponse{}
-	mi := &file_games_v1_games_proto_msgTypes[20]
+	mi := &file_games_v1_games_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1166,7 +1324,7 @@ func (x *SaveIntegrationsResponse) String() string {
 func (*SaveIntegrationsResponse) ProtoMessage() {}
 
 func (x *SaveIntegrationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_games_v1_games_proto_msgTypes[20]
+	mi := &file_games_v1_games_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1179,7 +1337,7 @@ func (x *SaveIntegrationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveIntegrationsResponse.ProtoReflect.Descriptor instead.
 func (*SaveIntegrationsResponse) Descriptor() ([]byte, []int) {
-	return file_games_v1_games_proto_rawDescGZIP(), []int{20}
+	return file_games_v1_games_proto_rawDescGZIP(), []int{23}
 }
 
 type SetGameFavouriteRequest struct {
@@ -1192,7 +1350,7 @@ type SetGameFavouriteRequest struct {
 
 func (x *SetGameFavouriteRequest) Reset() {
 	*x = SetGameFavouriteRequest{}
-	mi := &file_games_v1_games_proto_msgTypes[21]
+	mi := &file_games_v1_games_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1204,7 +1362,7 @@ func (x *SetGameFavouriteRequest) String() string {
 func (*SetGameFavouriteRequest) ProtoMessage() {}
 
 func (x *SetGameFavouriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_games_v1_games_proto_msgTypes[21]
+	mi := &file_games_v1_games_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1217,7 +1375,7 @@ func (x *SetGameFavouriteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetGameFavouriteRequest.ProtoReflect.Descriptor instead.
 func (*SetGameFavouriteRequest) Descriptor() ([]byte, []int) {
-	return file_games_v1_games_proto_rawDescGZIP(), []int{21}
+	return file_games_v1_games_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *SetGameFavouriteRequest) GetGameId() int32 {
@@ -1243,7 +1401,7 @@ type SetGameFavouriteResponse struct {
 
 func (x *SetGameFavouriteResponse) Reset() {
 	*x = SetGameFavouriteResponse{}
-	mi := &file_games_v1_games_proto_msgTypes[22]
+	mi := &file_games_v1_games_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1255,7 +1413,7 @@ func (x *SetGameFavouriteResponse) String() string {
 func (*SetGameFavouriteResponse) ProtoMessage() {}
 
 func (x *SetGameFavouriteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_games_v1_games_proto_msgTypes[22]
+	mi := &file_games_v1_games_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1268,7 +1426,7 @@ func (x *SetGameFavouriteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetGameFavouriteResponse.ProtoReflect.Descriptor instead.
 func (*SetGameFavouriteResponse) Descriptor() ([]byte, []int) {
-	return file_games_v1_games_proto_rawDescGZIP(), []int{22}
+	return file_games_v1_games_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *SetGameFavouriteResponse) GetGame() *Game {
@@ -1355,7 +1513,16 @@ const file_games_v1_games_proto_rawDesc = "" +
 	"\x17RefreshSteamGameRequest\x12\x17\n" +
 	"\agame_id\x18\x01 \x01(\x05R\x06gameId\"K\n" +
 	"\x18RefreshSteamGameResponse\x12/\n" +
-	"\x04data\x18\x01 \x01(\v2\x1b.games.v1.SteamGameResponseR\x04data\"\x18\n" +
+	"\x04data\x18\x01 \x01(\v2\x1b.games.v1.SteamGameResponseR\x04data\"\x86\x01\n" +
+	"\fWishlistGame\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1b\n" +
+	"\timage_url\x18\x03 \x01(\tR\bimageUrl\x12\x1a\n" +
+	"\bpriority\x18\x04 \x01(\x05R\bpriority\x12\x19\n" +
+	"\badded_at\x18\x05 \x01(\tR\aaddedAt\"\x14\n" +
+	"\x12GetWishlistRequest\"C\n" +
+	"\x13GetWishlistResponse\x12,\n" +
+	"\x05games\x18\x01 \x03(\v2\x16.games.v1.WishlistGameR\x05games\"\x18\n" +
 	"\x16GetIntegrationsRequest\"U\n" +
 	"\x17GetIntegrationsResponse\x12:\n" +
 	"\fintegrations\x18\x01 \x01(\v2\x16.games.v1.IntegrationsR\fintegrations\"U\n" +
@@ -1366,13 +1533,14 @@ const file_games_v1_games_proto_rawDesc = "" +
 	"\agame_id\x18\x01 \x01(\x05R\x06gameId\x12\x1c\n" +
 	"\tfavourite\x18\x02 \x01(\bR\tfavourite\">\n" +
 	"\x18SetGameFavouriteResponse\x12\"\n" +
-	"\x04game\x18\x01 \x01(\v2\x0e.games.v1.GameR\x04game2\xdd\x05\n" +
+	"\x04game\x18\x01 \x01(\v2\x0e.games.v1.GameR\x04game2\xa9\x06\n" +
 	"\fGamesService\x12A\n" +
 	"\bGetSteam\x12\x19.games.v1.GetSteamRequest\x1a\x1a.games.v1.GetSteamResponse\x12M\n" +
 	"\fGetSteamGame\x12\x1d.games.v1.GetSteamGameRequest\x1a\x1e.games.v1.GetSteamGameResponse\x12e\n" +
 	"\x14GetSteamDistribution\x12%.games.v1.GetSteamDistributionRequest\x1a&.games.v1.GetSteamDistributionResponse\x12k\n" +
 	"\x16GetRecentlyActiveGames\x12'.games.v1.GetRecentlyActiveGamesRequest\x1a(.games.v1.GetRecentlyActiveGamesResponse\x12Y\n" +
-	"\x10RefreshSteamGame\x12!.games.v1.RefreshSteamGameRequest\x1a\".games.v1.RefreshSteamGameResponse\x12V\n" +
+	"\x10RefreshSteamGame\x12!.games.v1.RefreshSteamGameRequest\x1a\".games.v1.RefreshSteamGameResponse\x12J\n" +
+	"\vGetWishlist\x12\x1c.games.v1.GetWishlistRequest\x1a\x1d.games.v1.GetWishlistResponse\x12V\n" +
 	"\x0fGetIntegrations\x12 .games.v1.GetIntegrationsRequest\x1a!.games.v1.GetIntegrationsResponse\x12Y\n" +
 	"\x10SaveIntegrations\x12!.games.v1.SaveIntegrationsRequest\x1a\".games.v1.SaveIntegrationsResponse\x12Y\n" +
 	"\x10SetGameFavourite\x12!.games.v1.SetGameFavouriteRequest\x1a\".games.v1.SetGameFavouriteResponseB)Z'tools.xdoubleu.com/gen/games/v1;gamesv1b\x06proto3"
@@ -1389,7 +1557,7 @@ func file_games_v1_games_proto_rawDescGZIP() []byte {
 	return file_games_v1_games_proto_rawDescData
 }
 
-var file_games_v1_games_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_games_v1_games_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_games_v1_games_proto_goTypes = []any{
 	(*Game)(nil),                           // 0: games.v1.Game
 	(*Achievement)(nil),                    // 1: games.v1.Achievement
@@ -1408,12 +1576,15 @@ var file_games_v1_games_proto_goTypes = []any{
 	(*GetRecentlyActiveGamesResponse)(nil), // 14: games.v1.GetRecentlyActiveGamesResponse
 	(*RefreshSteamGameRequest)(nil),        // 15: games.v1.RefreshSteamGameRequest
 	(*RefreshSteamGameResponse)(nil),       // 16: games.v1.RefreshSteamGameResponse
-	(*GetIntegrationsRequest)(nil),         // 17: games.v1.GetIntegrationsRequest
-	(*GetIntegrationsResponse)(nil),        // 18: games.v1.GetIntegrationsResponse
-	(*SaveIntegrationsRequest)(nil),        // 19: games.v1.SaveIntegrationsRequest
-	(*SaveIntegrationsResponse)(nil),       // 20: games.v1.SaveIntegrationsResponse
-	(*SetGameFavouriteRequest)(nil),        // 21: games.v1.SetGameFavouriteRequest
-	(*SetGameFavouriteResponse)(nil),       // 22: games.v1.SetGameFavouriteResponse
+	(*WishlistGame)(nil),                   // 17: games.v1.WishlistGame
+	(*GetWishlistRequest)(nil),             // 18: games.v1.GetWishlistRequest
+	(*GetWishlistResponse)(nil),            // 19: games.v1.GetWishlistResponse
+	(*GetIntegrationsRequest)(nil),         // 20: games.v1.GetIntegrationsRequest
+	(*GetIntegrationsResponse)(nil),        // 21: games.v1.GetIntegrationsResponse
+	(*SaveIntegrationsRequest)(nil),        // 22: games.v1.SaveIntegrationsRequest
+	(*SaveIntegrationsResponse)(nil),       // 23: games.v1.SaveIntegrationsResponse
+	(*SetGameFavouriteRequest)(nil),        // 24: games.v1.SetGameFavouriteRequest
+	(*SetGameFavouriteResponse)(nil),       // 25: games.v1.SetGameFavouriteResponse
 }
 var file_games_v1_games_proto_depIdxs = []int32{
 	0,  // 0: games.v1.SteamResponse.not_started:type_name -> games.v1.Game
@@ -1428,30 +1599,33 @@ var file_games_v1_games_proto_depIdxs = []int32{
 	4,  // 9: games.v1.GetSteamDistributionResponse.data:type_name -> games.v1.SteamDistributionResponse
 	5,  // 10: games.v1.GetRecentlyActiveGamesResponse.games:type_name -> games.v1.RecentGame
 	3,  // 11: games.v1.RefreshSteamGameResponse.data:type_name -> games.v1.SteamGameResponse
-	6,  // 12: games.v1.GetIntegrationsResponse.integrations:type_name -> games.v1.Integrations
-	6,  // 13: games.v1.SaveIntegrationsRequest.integrations:type_name -> games.v1.Integrations
-	0,  // 14: games.v1.SetGameFavouriteResponse.game:type_name -> games.v1.Game
-	7,  // 15: games.v1.GamesService.GetSteam:input_type -> games.v1.GetSteamRequest
-	9,  // 16: games.v1.GamesService.GetSteamGame:input_type -> games.v1.GetSteamGameRequest
-	11, // 17: games.v1.GamesService.GetSteamDistribution:input_type -> games.v1.GetSteamDistributionRequest
-	13, // 18: games.v1.GamesService.GetRecentlyActiveGames:input_type -> games.v1.GetRecentlyActiveGamesRequest
-	15, // 19: games.v1.GamesService.RefreshSteamGame:input_type -> games.v1.RefreshSteamGameRequest
-	17, // 20: games.v1.GamesService.GetIntegrations:input_type -> games.v1.GetIntegrationsRequest
-	19, // 21: games.v1.GamesService.SaveIntegrations:input_type -> games.v1.SaveIntegrationsRequest
-	21, // 22: games.v1.GamesService.SetGameFavourite:input_type -> games.v1.SetGameFavouriteRequest
-	8,  // 23: games.v1.GamesService.GetSteam:output_type -> games.v1.GetSteamResponse
-	10, // 24: games.v1.GamesService.GetSteamGame:output_type -> games.v1.GetSteamGameResponse
-	12, // 25: games.v1.GamesService.GetSteamDistribution:output_type -> games.v1.GetSteamDistributionResponse
-	14, // 26: games.v1.GamesService.GetRecentlyActiveGames:output_type -> games.v1.GetRecentlyActiveGamesResponse
-	16, // 27: games.v1.GamesService.RefreshSteamGame:output_type -> games.v1.RefreshSteamGameResponse
-	18, // 28: games.v1.GamesService.GetIntegrations:output_type -> games.v1.GetIntegrationsResponse
-	20, // 29: games.v1.GamesService.SaveIntegrations:output_type -> games.v1.SaveIntegrationsResponse
-	22, // 30: games.v1.GamesService.SetGameFavourite:output_type -> games.v1.SetGameFavouriteResponse
-	23, // [23:31] is the sub-list for method output_type
-	15, // [15:23] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	17, // 12: games.v1.GetWishlistResponse.games:type_name -> games.v1.WishlistGame
+	6,  // 13: games.v1.GetIntegrationsResponse.integrations:type_name -> games.v1.Integrations
+	6,  // 14: games.v1.SaveIntegrationsRequest.integrations:type_name -> games.v1.Integrations
+	0,  // 15: games.v1.SetGameFavouriteResponse.game:type_name -> games.v1.Game
+	7,  // 16: games.v1.GamesService.GetSteam:input_type -> games.v1.GetSteamRequest
+	9,  // 17: games.v1.GamesService.GetSteamGame:input_type -> games.v1.GetSteamGameRequest
+	11, // 18: games.v1.GamesService.GetSteamDistribution:input_type -> games.v1.GetSteamDistributionRequest
+	13, // 19: games.v1.GamesService.GetRecentlyActiveGames:input_type -> games.v1.GetRecentlyActiveGamesRequest
+	15, // 20: games.v1.GamesService.RefreshSteamGame:input_type -> games.v1.RefreshSteamGameRequest
+	18, // 21: games.v1.GamesService.GetWishlist:input_type -> games.v1.GetWishlistRequest
+	20, // 22: games.v1.GamesService.GetIntegrations:input_type -> games.v1.GetIntegrationsRequest
+	22, // 23: games.v1.GamesService.SaveIntegrations:input_type -> games.v1.SaveIntegrationsRequest
+	24, // 24: games.v1.GamesService.SetGameFavourite:input_type -> games.v1.SetGameFavouriteRequest
+	8,  // 25: games.v1.GamesService.GetSteam:output_type -> games.v1.GetSteamResponse
+	10, // 26: games.v1.GamesService.GetSteamGame:output_type -> games.v1.GetSteamGameResponse
+	12, // 27: games.v1.GamesService.GetSteamDistribution:output_type -> games.v1.GetSteamDistributionResponse
+	14, // 28: games.v1.GamesService.GetRecentlyActiveGames:output_type -> games.v1.GetRecentlyActiveGamesResponse
+	16, // 29: games.v1.GamesService.RefreshSteamGame:output_type -> games.v1.RefreshSteamGameResponse
+	19, // 30: games.v1.GamesService.GetWishlist:output_type -> games.v1.GetWishlistResponse
+	21, // 31: games.v1.GamesService.GetIntegrations:output_type -> games.v1.GetIntegrationsResponse
+	23, // 32: games.v1.GamesService.SaveIntegrations:output_type -> games.v1.SaveIntegrationsResponse
+	25, // 33: games.v1.GamesService.SetGameFavourite:output_type -> games.v1.SetGameFavouriteResponse
+	25, // [25:34] is the sub-list for method output_type
+	16, // [16:25] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_games_v1_games_proto_init() }
@@ -1466,7 +1640,7 @@ func file_games_v1_games_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_games_v1_games_proto_rawDesc), len(file_games_v1_games_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   23,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file games/v1/games.proto.
  */
 export const file_games_v1_games: GenFile = /*@__PURE__*/
-  fileDesc("ChRnYW1lcy92MS9nYW1lcy5wcm90bxIIZ2FtZXMudjEi0wEKBEdhbWUSCgoCaWQYASABKAUSDAoEbmFtZRgCIAEoCRITCgtpc19kZWxpc3RlZBgDIAEoCBIdChVpbl9jb21wbGV0aW9uX2F2ZXJhZ2UYDCABKAgSFwoPY29tcGxldGlvbl9yYXRlGAQgASgJEhQKDGNvbnRyaWJ1dGlvbhgFIAEoCRIQCghwbGF5dGltZRgGIAEoBRIRCglpbWFnZV91cmwYByABKAkSFgoObGFzdF9zeW5jZWRfYXQYCCABKAkSEQoJZmF2b3VyaXRlGAkgASgIIpoBCgtBY2hpZXZlbWVudBIMCgRuYW1lGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIQCghpY29uX3VybBgEIAEoCRIQCghhY2hpZXZlZBgFIAEoCBIbCg5nbG9iYWxfcGVyY2VudBgGIAEoAUgAiAEBQhEKD19nbG9iYWxfcGVyY2VudCKnAgoNU3RlYW1SZXNwb25zZRIjCgtub3Rfc3RhcnRlZBgBIAMoCzIOLmdhbWVzLnYxLkdhbWUSIwoLaW5fcHJvZ3Jlc3MYAiADKAsyDi5nYW1lcy52MS5HYW1lEiEKCWNvbXBsZXRlZBgDIAMoCzIOLmdhbWVzLnYxLkdhbWUSFQoNdG90YWxfYmFja2xvZxgEIAEoBRIUCgxjdXJyZW50X3JhdGUYBSABKAkSFAoMZGlzdHJpYnV0aW9uGAYgAygFEg4KBmxhYmVscxgHIAMoCRIOCgZ2YWx1ZXMYCCADKAkSEgoKZGF0ZV9zdGFydBgJIAEoCRIQCghkYXRlX2VuZBgKIAEoCRIgCghkZWxpc3RlZBgLIAMoCzIOLmdhbWVzLnYxLkdhbWUiXgoRU3RlYW1HYW1lUmVzcG9uc2USHAoEZ2FtZRgBIAEoCzIOLmdhbWVzLnYxLkdhbWUSKwoMYWNoaWV2ZW1lbnRzGAIgAygLMhUuZ2FtZXMudjEuQWNoaWV2ZW1lbnQiSQoZU3RlYW1EaXN0cmlidXRpb25SZXNwb25zZRINCgVsYWJlbBgBIAEoCRIdCgVnYW1lcxgCIAMoCzIOLmdhbWVzLnYxLkdhbWUiqgEKClJlY2VudEdhbWUSCgoCaWQYASABKAUSDAoEbmFtZRgCIAEoCRIXCg9jb21wbGV0aW9uX3JhdGUYAyABKAkSEQoJaW1hZ2VfdXJsGAYgASgJEhYKDmxhc3RfcGxheWVkX2F0GAcgASgJEhAKCHBsYXl0aW1lGAggASgFSgQIBBAFSgQIBRAGUg5yZWNlbnRfdW5sb2Nrc1IQbGFzdF91bmxvY2tlZF9hdCJTCgxJbnRlZ3JhdGlvbnMSFQoNc3RlYW1fdXNlcl9pZBgCIAEoCUoECAEQAkoECAMQBFINc3RlYW1fYXBpX2tleVIRaGFyZGNvdmVyX2FwaV9rZXkiNwoPR2V0U3RlYW1SZXF1ZXN0EhIKCmRhdGVfc3RhcnQYASABKAkSEAoIZGF0ZV9lbmQYAiABKAkiOgoQR2V0U3RlYW1SZXNwb25zZRImCgVzdGVhbRgBIAEoCzIXLmdhbWVzLnYxLlN0ZWFtUmVzcG9uc2UiJgoTR2V0U3RlYW1HYW1lUmVxdWVzdBIPCgdnYW1lX2lkGAEgASgFIkEKFEdldFN0ZWFtR2FtZVJlc3BvbnNlEikKBGRhdGEYASABKAsyGy5nYW1lcy52MS5TdGVhbUdhbWVSZXNwb25zZSItChtHZXRTdGVhbURpc3RyaWJ1dGlvblJlcXVlc3QSDgoGYnVja2V0GAEgASgFIlEKHEdldFN0ZWFtRGlzdHJpYnV0aW9uUmVzcG9uc2USMQoEZGF0YRgBIAEoCzIjLmdhbWVzLnYxLlN0ZWFtRGlzdHJpYnV0aW9uUmVzcG9uc2UiHwodR2V0UmVjZW50bHlBY3RpdmVHYW1lc1JlcXVlc3QiRQoeR2V0UmVjZW50bHlBY3RpdmVHYW1lc1Jlc3BvbnNlEiMKBWdhbWVzGAEgAygLMhQuZ2FtZXMudjEuUmVjZW50R2FtZSIqChdSZWZyZXNoU3RlYW1HYW1lUmVxdWVzdBIPCgdnYW1lX2lkGAEgASgFIkUKGFJlZnJlc2hTdGVhbUdhbWVSZXNwb25zZRIpCgRkYXRhGAEgASgLMhsuZ2FtZXMudjEuU3RlYW1HYW1lUmVzcG9uc2UiGAoWR2V0SW50ZWdyYXRpb25zUmVxdWVzdCJHChdHZXRJbnRlZ3JhdGlvbnNSZXNwb25zZRIsCgxpbnRlZ3JhdGlvbnMYASABKAsyFi5nYW1lcy52MS5JbnRlZ3JhdGlvbnMiRwoXU2F2ZUludGVncmF0aW9uc1JlcXVlc3QSLAoMaW50ZWdyYXRpb25zGAEgASgLMhYuZ2FtZXMudjEuSW50ZWdyYXRpb25zIhoKGFNhdmVJbnRlZ3JhdGlvbnNSZXNwb25zZSI9ChdTZXRHYW1lRmF2b3VyaXRlUmVxdWVzdBIPCgdnYW1lX2lkGAEgASgFEhEKCWZhdm91cml0ZRgCIAEoCCI4ChhTZXRHYW1lRmF2b3VyaXRlUmVzcG9uc2USHAoEZ2FtZRgBIAEoCzIOLmdhbWVzLnYxLkdhbWUy3QUKDEdhbWVzU2VydmljZRJBCghHZXRTdGVhbRIZLmdhbWVzLnYxLkdldFN0ZWFtUmVxdWVzdBoaLmdhbWVzLnYxLkdldFN0ZWFtUmVzcG9uc2USTQoMR2V0U3RlYW1HYW1lEh0uZ2FtZXMudjEuR2V0U3RlYW1HYW1lUmVxdWVzdBoeLmdhbWVzLnYxLkdldFN0ZWFtR2FtZVJlc3BvbnNlEmUKFEdldFN0ZWFtRGlzdHJpYnV0aW9uEiUuZ2FtZXMudjEuR2V0U3RlYW1EaXN0cmlidXRpb25SZXF1ZXN0GiYuZ2FtZXMudjEuR2V0U3RlYW1EaXN0cmlidXRpb25SZXNwb25zZRJrChZHZXRSZWNlbnRseUFjdGl2ZUdhbWVzEicuZ2FtZXMudjEuR2V0UmVjZW50bHlBY3RpdmVHYW1lc1JlcXVlc3QaKC5nYW1lcy52MS5HZXRSZWNlbnRseUFjdGl2ZUdhbWVzUmVzcG9uc2USWQoQUmVmcmVzaFN0ZWFtR2FtZRIhLmdhbWVzLnYxLlJlZnJlc2hTdGVhbUdhbWVSZXF1ZXN0GiIuZ2FtZXMudjEuUmVmcmVzaFN0ZWFtR2FtZVJlc3BvbnNlElYKD0dldEludGVncmF0aW9ucxIgLmdhbWVzLnYxLkdldEludGVncmF0aW9uc1JlcXVlc3QaIS5nYW1lcy52MS5HZXRJbnRlZ3JhdGlvbnNSZXNwb25zZRJZChBTYXZlSW50ZWdyYXRpb25zEiEuZ2FtZXMudjEuU2F2ZUludGVncmF0aW9uc1JlcXVlc3QaIi5nYW1lcy52MS5TYXZlSW50ZWdyYXRpb25zUmVzcG9uc2USWQoQU2V0R2FtZUZhdm91cml0ZRIhLmdhbWVzLnYxLlNldEdhbWVGYXZvdXJpdGVSZXF1ZXN0GiIuZ2FtZXMudjEuU2V0R2FtZUZhdm91cml0ZVJlc3BvbnNlQilaJ3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vZ2FtZXMvdjE7Z2FtZXN2MWIGcHJvdG8z");
+  fileDesc("ChRnYW1lcy92MS9nYW1lcy5wcm90bxIIZ2FtZXMudjEi0wEKBEdhbWUSCgoCaWQYASABKAUSDAoEbmFtZRgCIAEoCRITCgtpc19kZWxpc3RlZBgDIAEoCBIdChVpbl9jb21wbGV0aW9uX2F2ZXJhZ2UYDCABKAgSFwoPY29tcGxldGlvbl9yYXRlGAQgASgJEhQKDGNvbnRyaWJ1dGlvbhgFIAEoCRIQCghwbGF5dGltZRgGIAEoBRIRCglpbWFnZV91cmwYByABKAkSFgoObGFzdF9zeW5jZWRfYXQYCCABKAkSEQoJZmF2b3VyaXRlGAkgASgIIpoBCgtBY2hpZXZlbWVudBIMCgRuYW1lGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIQCghpY29uX3VybBgEIAEoCRIQCghhY2hpZXZlZBgFIAEoCBIbCg5nbG9iYWxfcGVyY2VudBgGIAEoAUgAiAEBQhEKD19nbG9iYWxfcGVyY2VudCKnAgoNU3RlYW1SZXNwb25zZRIjCgtub3Rfc3RhcnRlZBgBIAMoCzIOLmdhbWVzLnYxLkdhbWUSIwoLaW5fcHJvZ3Jlc3MYAiADKAsyDi5nYW1lcy52MS5HYW1lEiEKCWNvbXBsZXRlZBgDIAMoCzIOLmdhbWVzLnYxLkdhbWUSFQoNdG90YWxfYmFja2xvZxgEIAEoBRIUCgxjdXJyZW50X3JhdGUYBSABKAkSFAoMZGlzdHJpYnV0aW9uGAYgAygFEg4KBmxhYmVscxgHIAMoCRIOCgZ2YWx1ZXMYCCADKAkSEgoKZGF0ZV9zdGFydBgJIAEoCRIQCghkYXRlX2VuZBgKIAEoCRIgCghkZWxpc3RlZBgLIAMoCzIOLmdhbWVzLnYxLkdhbWUiXgoRU3RlYW1HYW1lUmVzcG9uc2USHAoEZ2FtZRgBIAEoCzIOLmdhbWVzLnYxLkdhbWUSKwoMYWNoaWV2ZW1lbnRzGAIgAygLMhUuZ2FtZXMudjEuQWNoaWV2ZW1lbnQiSQoZU3RlYW1EaXN0cmlidXRpb25SZXNwb25zZRINCgVsYWJlbBgBIAEoCRIdCgVnYW1lcxgCIAMoCzIOLmdhbWVzLnYxLkdhbWUiqgEKClJlY2VudEdhbWUSCgoCaWQYASABKAUSDAoEbmFtZRgCIAEoCRIXCg9jb21wbGV0aW9uX3JhdGUYAyABKAkSEQoJaW1hZ2VfdXJsGAYgASgJEhYKDmxhc3RfcGxheWVkX2F0GAcgASgJEhAKCHBsYXl0aW1lGAggASgFSgQIBBAFSgQIBRAGUg5yZWNlbnRfdW5sb2Nrc1IQbGFzdF91bmxvY2tlZF9hdCJTCgxJbnRlZ3JhdGlvbnMSFQoNc3RlYW1fdXNlcl9pZBgCIAEoCUoECAEQAkoECAMQBFINc3RlYW1fYXBpX2tleVIRaGFyZGNvdmVyX2FwaV9rZXkiNwoPR2V0U3RlYW1SZXF1ZXN0EhIKCmRhdGVfc3RhcnQYASABKAkSEAoIZGF0ZV9lbmQYAiABKAkiOgoQR2V0U3RlYW1SZXNwb25zZRImCgVzdGVhbRgBIAEoCzIXLmdhbWVzLnYxLlN0ZWFtUmVzcG9uc2UiJgoTR2V0U3RlYW1HYW1lUmVxdWVzdBIPCgdnYW1lX2lkGAEgASgFIkEKFEdldFN0ZWFtR2FtZVJlc3BvbnNlEikKBGRhdGEYASABKAsyGy5nYW1lcy52MS5TdGVhbUdhbWVSZXNwb25zZSItChtHZXRTdGVhbURpc3RyaWJ1dGlvblJlcXVlc3QSDgoGYnVja2V0GAEgASgFIlEKHEdldFN0ZWFtRGlzdHJpYnV0aW9uUmVzcG9uc2USMQoEZGF0YRgBIAEoCzIjLmdhbWVzLnYxLlN0ZWFtRGlzdHJpYnV0aW9uUmVzcG9uc2UiHwodR2V0UmVjZW50bHlBY3RpdmVHYW1lc1JlcXVlc3QiRQoeR2V0UmVjZW50bHlBY3RpdmVHYW1lc1Jlc3BvbnNlEiMKBWdhbWVzGAEgAygLMhQuZ2FtZXMudjEuUmVjZW50R2FtZSIqChdSZWZyZXNoU3RlYW1HYW1lUmVxdWVzdBIPCgdnYW1lX2lkGAEgASgFIkUKGFJlZnJlc2hTdGVhbUdhbWVSZXNwb25zZRIpCgRkYXRhGAEgASgLMhsuZ2FtZXMudjEuU3RlYW1HYW1lUmVzcG9uc2UiXwoMV2lzaGxpc3RHYW1lEgoKAmlkGAEgASgFEgwKBG5hbWUYAiABKAkSEQoJaW1hZ2VfdXJsGAMgASgJEhAKCHByaW9yaXR5GAQgASgFEhAKCGFkZGVkX2F0GAUgASgJIhQKEkdldFdpc2hsaXN0UmVxdWVzdCI8ChNHZXRXaXNobGlzdFJlc3BvbnNlEiUKBWdhbWVzGAEgAygLMhYuZ2FtZXMudjEuV2lzaGxpc3RHYW1lIhgKFkdldEludGVncmF0aW9uc1JlcXVlc3QiRwoXR2V0SW50ZWdyYXRpb25zUmVzcG9uc2USLAoMaW50ZWdyYXRpb25zGAEgASgLMhYuZ2FtZXMudjEuSW50ZWdyYXRpb25zIkcKF1NhdmVJbnRlZ3JhdGlvbnNSZXF1ZXN0EiwKDGludGVncmF0aW9ucxgBIAEoCzIWLmdhbWVzLnYxLkludGVncmF0aW9ucyIaChhTYXZlSW50ZWdyYXRpb25zUmVzcG9uc2UiPQoXU2V0R2FtZUZhdm91cml0ZVJlcXVlc3QSDwoHZ2FtZV9pZBgBIAEoBRIRCglmYXZvdXJpdGUYAiABKAgiOAoYU2V0R2FtZUZhdm91cml0ZVJlc3BvbnNlEhwKBGdhbWUYASABKAsyDi5nYW1lcy52MS5HYW1lMqkGCgxHYW1lc1NlcnZpY2USQQoIR2V0U3RlYW0SGS5nYW1lcy52MS5HZXRTdGVhbVJlcXVlc3QaGi5nYW1lcy52MS5HZXRTdGVhbVJlc3BvbnNlEk0KDEdldFN0ZWFtR2FtZRIdLmdhbWVzLnYxLkdldFN0ZWFtR2FtZVJlcXVlc3QaHi5nYW1lcy52MS5HZXRTdGVhbUdhbWVSZXNwb25zZRJlChRHZXRTdGVhbURpc3RyaWJ1dGlvbhIlLmdhbWVzLnYxLkdldFN0ZWFtRGlzdHJpYnV0aW9uUmVxdWVzdBomLmdhbWVzLnYxLkdldFN0ZWFtRGlzdHJpYnV0aW9uUmVzcG9uc2USawoWR2V0UmVjZW50bHlBY3RpdmVHYW1lcxInLmdhbWVzLnYxLkdldFJlY2VudGx5QWN0aXZlR2FtZXNSZXF1ZXN0GiguZ2FtZXMudjEuR2V0UmVjZW50bHlBY3RpdmVHYW1lc1Jlc3BvbnNlElkKEFJlZnJlc2hTdGVhbUdhbWUSIS5nYW1lcy52MS5SZWZyZXNoU3RlYW1HYW1lUmVxdWVzdBoiLmdhbWVzLnYxLlJlZnJlc2hTdGVhbUdhbWVSZXNwb25zZRJKCgtHZXRXaXNobGlzdBIcLmdhbWVzLnYxLkdldFdpc2hsaXN0UmVxdWVzdBodLmdhbWVzLnYxLkdldFdpc2hsaXN0UmVzcG9uc2USVgoPR2V0SW50ZWdyYXRpb25zEiAuZ2FtZXMudjEuR2V0SW50ZWdyYXRpb25zUmVxdWVzdBohLmdhbWVzLnYxLkdldEludGVncmF0aW9uc1Jlc3BvbnNlElkKEFNhdmVJbnRlZ3JhdGlvbnMSIS5nYW1lcy52MS5TYXZlSW50ZWdyYXRpb25zUmVxdWVzdBoiLmdhbWVzLnYxLlNhdmVJbnRlZ3JhdGlvbnNSZXNwb25zZRJZChBTZXRHYW1lRmF2b3VyaXRlEiEuZ2FtZXMudjEuU2V0R2FtZUZhdm91cml0ZVJlcXVlc3QaIi5nYW1lcy52MS5TZXRHYW1lRmF2b3VyaXRlUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi9nYW1lcy92MTtnYW1lc3YxYgZwcm90bzM");
 
 /**
  * @generated from message games.v1.Game
@@ -466,6 +466,77 @@ export const RefreshSteamGameResponseSchema: GenMessage<RefreshSteamGameResponse
   messageDesc(file_games_v1_games, 16);
 
 /**
+ * @generated from message games.v1.WishlistGame
+ */
+export type WishlistGame = Message<"games.v1.WishlistGame"> & {
+  /**
+   * @generated from field: int32 id = 1;
+   */
+  id: number;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string image_url = 3;
+   */
+  imageUrl: string;
+
+  /**
+   * Steam's rank on the wishlist, 1 first; 0 when unranked.
+   *
+   * @generated from field: int32 priority = 4;
+   */
+  priority: number;
+
+  /**
+   * RFC 3339; empty when Steam gave no date.
+   *
+   * @generated from field: string added_at = 5;
+   */
+  addedAt: string;
+};
+
+/**
+ * Describes the message games.v1.WishlistGame.
+ * Use `create(WishlistGameSchema)` to create a new message.
+ */
+export const WishlistGameSchema: GenMessage<WishlistGame> = /*@__PURE__*/
+  messageDesc(file_games_v1_games, 17);
+
+/**
+ * @generated from message games.v1.GetWishlistRequest
+ */
+export type GetWishlistRequest = Message<"games.v1.GetWishlistRequest"> & {
+};
+
+/**
+ * Describes the message games.v1.GetWishlistRequest.
+ * Use `create(GetWishlistRequestSchema)` to create a new message.
+ */
+export const GetWishlistRequestSchema: GenMessage<GetWishlistRequest> = /*@__PURE__*/
+  messageDesc(file_games_v1_games, 18);
+
+/**
+ * @generated from message games.v1.GetWishlistResponse
+ */
+export type GetWishlistResponse = Message<"games.v1.GetWishlistResponse"> & {
+  /**
+   * @generated from field: repeated games.v1.WishlistGame games = 1;
+   */
+  games: WishlistGame[];
+};
+
+/**
+ * Describes the message games.v1.GetWishlistResponse.
+ * Use `create(GetWishlistResponseSchema)` to create a new message.
+ */
+export const GetWishlistResponseSchema: GenMessage<GetWishlistResponse> = /*@__PURE__*/
+  messageDesc(file_games_v1_games, 19);
+
+/**
  * @generated from message games.v1.GetIntegrationsRequest
  */
 export type GetIntegrationsRequest = Message<"games.v1.GetIntegrationsRequest"> & {
@@ -476,7 +547,7 @@ export type GetIntegrationsRequest = Message<"games.v1.GetIntegrationsRequest"> 
  * Use `create(GetIntegrationsRequestSchema)` to create a new message.
  */
 export const GetIntegrationsRequestSchema: GenMessage<GetIntegrationsRequest> = /*@__PURE__*/
-  messageDesc(file_games_v1_games, 17);
+  messageDesc(file_games_v1_games, 20);
 
 /**
  * @generated from message games.v1.GetIntegrationsResponse
@@ -493,7 +564,7 @@ export type GetIntegrationsResponse = Message<"games.v1.GetIntegrationsResponse"
  * Use `create(GetIntegrationsResponseSchema)` to create a new message.
  */
 export const GetIntegrationsResponseSchema: GenMessage<GetIntegrationsResponse> = /*@__PURE__*/
-  messageDesc(file_games_v1_games, 18);
+  messageDesc(file_games_v1_games, 21);
 
 /**
  * @generated from message games.v1.SaveIntegrationsRequest
@@ -510,7 +581,7 @@ export type SaveIntegrationsRequest = Message<"games.v1.SaveIntegrationsRequest"
  * Use `create(SaveIntegrationsRequestSchema)` to create a new message.
  */
 export const SaveIntegrationsRequestSchema: GenMessage<SaveIntegrationsRequest> = /*@__PURE__*/
-  messageDesc(file_games_v1_games, 19);
+  messageDesc(file_games_v1_games, 22);
 
 /**
  * @generated from message games.v1.SaveIntegrationsResponse
@@ -523,7 +594,7 @@ export type SaveIntegrationsResponse = Message<"games.v1.SaveIntegrationsRespons
  * Use `create(SaveIntegrationsResponseSchema)` to create a new message.
  */
 export const SaveIntegrationsResponseSchema: GenMessage<SaveIntegrationsResponse> = /*@__PURE__*/
-  messageDesc(file_games_v1_games, 20);
+  messageDesc(file_games_v1_games, 23);
 
 /**
  * @generated from message games.v1.SetGameFavouriteRequest
@@ -545,7 +616,7 @@ export type SetGameFavouriteRequest = Message<"games.v1.SetGameFavouriteRequest"
  * Use `create(SetGameFavouriteRequestSchema)` to create a new message.
  */
 export const SetGameFavouriteRequestSchema: GenMessage<SetGameFavouriteRequest> = /*@__PURE__*/
-  messageDesc(file_games_v1_games, 21);
+  messageDesc(file_games_v1_games, 24);
 
 /**
  * @generated from message games.v1.SetGameFavouriteResponse
@@ -562,7 +633,7 @@ export type SetGameFavouriteResponse = Message<"games.v1.SetGameFavouriteRespons
  * Use `create(SetGameFavouriteResponseSchema)` to create a new message.
  */
 export const SetGameFavouriteResponseSchema: GenMessage<SetGameFavouriteResponse> = /*@__PURE__*/
-  messageDesc(file_games_v1_games, 22);
+  messageDesc(file_games_v1_games, 25);
 
 /**
  * @generated from service games.v1.GamesService
@@ -607,6 +678,14 @@ export const GamesService: GenService<{
     methodKind: "unary";
     input: typeof RefreshSteamGameRequestSchema;
     output: typeof RefreshSteamGameResponseSchema;
+  },
+  /**
+   * @generated from rpc games.v1.GamesService.GetWishlist
+   */
+  getWishlist: {
+    methodKind: "unary";
+    input: typeof GetWishlistRequestSchema;
+    output: typeof GetWishlistResponseSchema;
   },
   /**
    * @generated from rpc games.v1.GamesService.GetIntegrations

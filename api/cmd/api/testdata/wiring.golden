@@ -190,6 +190,7 @@ POST /games.v1.GamesService/GetRecentlyActiveGames: 401, 403
 POST /games.v1.GamesService/GetSteam: 401, 403
 POST /games.v1.GamesService/GetSteamDistribution: 401, 403
 POST /games.v1.GamesService/GetSteamGame: 401, 403
+POST /games.v1.GamesService/GetWishlist: 401, 403
 POST /games.v1.GamesService/RefreshSteamGame: 401, 403
 POST /games.v1.GamesService/SaveIntegrations: 401, 403
 POST /games.v1.GamesService/SetGameFavourite: 401, 403
@@ -351,6 +352,7 @@ games_get_recently_active_games
 games_get_steam
 games_get_steam_distribution
 games_get_steam_game
+games_get_wishlist
 get_automated_actions
 get_database_stats
 get_failing_pull_requests

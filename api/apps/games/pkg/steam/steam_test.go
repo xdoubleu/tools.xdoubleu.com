@@ -172,3 +172,64 @@ func TestGetSchemaForGameInvalidJSON(t *testing.T) {
 	_, err := client.GetSchemaForGame(context.Background(), 440)
 	require.Error(t, err)
 }
+
+func TestGetWishlist(t *testing.T) {
+	defer mockSteamServer(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/IWishlistService/GetWishlist/v1", r.URL.Path)
+		assert.Equal(t, "42", r.URL.Query().Get("steamid"))
+		_, _ = w.Write([]byte(
+			`{"response":{"items":[{"appid":10,"priority":1,"date_added":5}]}}`))
+	})()
+
+	client := newWishlistClient(t)
+	resp, err := client.GetWishlist(context.Background(), "42")
+	require.NoError(t, err)
+	require.Len(t, resp.Response.Items, 1)
+	assert.Equal(t, 10, resp.Response.Items[0].AppID)
+	assert.EqualValues(t, 5, resp.Response.Items[0].DateAdded)
+}
+
+func TestGetWishlist_Error(t *testing.T) {
+	defer mockSteamServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	})()
+
+	client := newWishlistClient(t)
+	_, err := client.GetWishlist(context.Background(), "42")
+	require.Error(t, err)
+}
+
+func TestGetStoreItems(t *testing.T) {
+	defer mockSteamServer(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/IStoreBrowseService/GetItems/v1", r.URL.Path)
+		assert.Contains(t, r.URL.Query().Get("input_json"), `"appid":10`)
+		_, _ = w.Write([]byte(
+			`{"response":{"store_items":[{"appid":10,"name":"Ten"}]}}`))
+	})()
+
+	client := newWishlistClient(t)
+	apps, err := client.GetStoreItems(context.Background(), []int{10})
+	require.NoError(t, err)
+	assert.Equal(t, []steam.StoreApp{{AppID: 10, Name: "Ten"}}, apps)
+
+	apps, err = client.GetStoreItems(context.Background(), nil)
+	require.NoError(t, err)
+	assert.Empty(t, apps)
+}
+
+func TestGetStoreItems_Error(t *testing.T) {
+	defer mockSteamServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})()
+
+	client := newWishlistClient(t)
+	_, err := client.GetStoreItems(context.Background(), []int{10})
+	require.Error(t, err)
+}
+
+func newWishlistClient(t *testing.T) steam.WishlistClient {
+	t.Helper()
+	client, ok := steam.New(logging.NewNopLogger(), "k").(steam.WishlistClient)
+	require.True(t, ok)
+	return client
+}

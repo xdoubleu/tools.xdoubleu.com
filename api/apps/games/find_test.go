@@ -88,3 +88,26 @@ func TestFindGame(t *testing.T) {
 	_, err = testApp.FindGame(ctx, uid, "Outer Wilds")
 	require.ErrorContains(t, err, "store down")
 }
+
+func TestFindGame_Wishlisted(t *testing.T) {
+	ctx := context.Background()
+	const uid = "games-find-wishlist-user"
+	_, err := testDB.Exec(ctx, `INSERT INTO games.steam_wishlist (game_id, user_id, name)
+		VALUES (753640, $1, 'Outer Wilds')`, uid)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(ctx, "DELETE FROM games.steam_wishlist WHERE user_id = $1", uid)
+	})
+	testApp.TestSeeds().SetStore(t, fakeStore{
+		items: []steam.StoreItem{
+			{ID: 753640, Name: "Outer Wilds", Type: "app", ImageURL: ""},
+		},
+		err: nil, reviews: 1, reviewsErr: nil,
+	})
+
+	m, err := testApp.FindGame(ctx, uid, "Outer Wilds")
+	require.NoError(t, err)
+	require.NotNil(t, m)
+	assert.True(t, m.Known)
+	assert.Nil(t, m.Audience)
+}

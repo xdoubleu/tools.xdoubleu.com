@@ -63,6 +63,7 @@ export const swrKeys = {
   gamesProgress: (dateStart?: string, dateEnd?: string) =>
     ['/games/progress', dateStart, dateEnd] as const,
   gamesRecent: '/games/recent',
+  gamesWishlist: '/games/wishlist',
   gamesIntegrations: '/games/integrations',
 
   feeds: '/feeds',

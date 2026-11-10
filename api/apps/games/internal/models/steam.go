@@ -88,3 +88,12 @@ func CalculateAvgCompletionRate(percentageSum float64, totalGames int) string {
 		)/percentagePrecision,
 	)
 }
+
+// WishlistItem is a game on the user's Steam wishlist.
+type WishlistItem struct {
+	ID       int        `json:"id"`
+	Name     string     `json:"name"`
+	ImageURL string     `json:"imageUrl"`
+	Priority int        `json:"priority"`
+	AddedAt  *time.Time `json:"addedAt"`
+}

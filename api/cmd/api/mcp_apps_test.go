@@ -27,6 +27,7 @@ var appsToolNames = []string{
 	// games (5)
 	"games_get_steam", "games_get_steam_game", "games_get_steam_distribution",
 	"games_get_recently_active_games", "games_get_integrations",
+	"games_get_wishlist",
 	// books (16)
 	"books_get_library", "books_get_books_progress", "books_search_library",
 	"books_search_external", "books_get_external_book",

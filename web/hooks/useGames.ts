@@ -9,6 +9,7 @@ import type {
   GetSteamGameResponse,
   GetSteamDistributionResponse,
   GetRecentlyActiveGamesResponse,
+  GetWishlistResponse,
   GetIntegrationsResponse,
   Integrations
 } from '@/lib/gen/games/v1/games_pb'
@@ -44,6 +45,11 @@ export function useRecentlyActiveGames() {
   return useSWR<GetRecentlyActiveGamesResponse, Error>(swrKeys.gamesRecent, () =>
     client.getRecentlyActiveGames({})
   )
+}
+
+export function useWishlist() {
+  const client = createServiceClient(GamesService)
+  return useSWR<GetWishlistResponse, Error>(swrKeys.gamesWishlist, () => client.getWishlist({}))
 }
 
 export function useSetGameFavourite() {
