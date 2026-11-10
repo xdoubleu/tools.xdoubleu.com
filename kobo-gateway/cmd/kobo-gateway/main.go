@@ -283,7 +283,10 @@ func serve(
 			}
 		}
 
-		runUI(cfg.Release, stop, koboEvents, homeDir, execPath, firstLaunch)
+		runUI(
+			cfg.Release, stop, koboEvents, homeDir, execPath, firstLaunch,
+			gateway.CheckForUpdate,
+		)
 	}
 
 	shutdownCtx, cancel := context.WithTimeout(

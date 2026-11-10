@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"sync/atomic"
 	"time"
 )
 
@@ -94,13 +95,14 @@ func run(
 		}
 
 		started := clk.now()
-		err := hb.Heartbeat(ctx, token)
+		woken, err := beatOnce(ctx, hb, token, opts.Control)
 		switch {
+		case ctx.Err() == nil && woken:
+			// A check was asked for: cut the held heartbeat short, not a failure.
+			continue
 		case err == nil:
 			backoff = minLoop
-			if opts.Control != nil {
-				opts.Control.RecordBeat()
-			}
+			opts.Control.RecordBeat()
 			if wait := minLoop - clk.now().Sub(started); wait > 0 {
 				clk.sleep(ctx, wait)
 			}
@@ -117,11 +119,43 @@ func run(
 	return nil
 }
 
+// beatOnce makes one heartbeat call, cut short when the owner asks for an update
+// check; woken says whether it was.
+func beatOnce(
+	ctx context.Context,
+	hb Heartbeater,
+	token string,
+	c *Control,
+) (bool, error) {
+	hbCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var fired atomic.Bool
+	if c != nil {
+		go func() {
+			select {
+			case <-c.wake:
+				fired.Store(true)
+				cancel()
+			case <-hbCtx.Done():
+			}
+		}()
+	}
+	err := hb.Heartbeat(hbCtx, token)
+	return fired.Load(), err
+}
+
 func due(opts Options, now, lastCheck time.Time) bool {
-	if opts.Updater == nil || (opts.Control != nil && opts.Control.Paused()) {
+	if opts.Updater == nil {
+		return false
+	}
+	if opts.Control != nil && opts.Control.Paused() {
+		opts.Control.refuseCheck("not checked: the runner is stopped")
 		return false
 	}
 	if opts.Activity != nil && !opts.Activity.Idle() {
+		if opts.Control != nil {
+			opts.Control.deferCheck("waiting for the current job to finish")
+		}
 		return false
 	}
 	// A requested check is only consumed once it can run.
@@ -131,6 +165,9 @@ func due(opts Options, now, lastCheck time.Time) bool {
 
 func tryUpdate(ctx context.Context, opts Options, log *slog.Logger) bool {
 	idle := func() bool { return opts.Activity == nil || opts.Activity.Idle() }
+	if opts.Control != nil {
+		opts.Control.RecordUpdate("checking")
+	}
 	replaced, err := opts.Updater.Update(ctx, idle)
 	outcome := "no newer release"
 	switch {

@@ -20,9 +20,15 @@ import (
 const testOrigin = "https://tools.xdoubleu.com"
 
 type stubUpdater struct {
-	err    error
-	origin string
-	called bool
+	err     error
+	origin  string
+	called  bool
+	latest  string
+	latestE error
+}
+
+func (s *stubUpdater) LatestRelease(context.Context, string) (string, error) {
+	return s.latest, s.latestE
 }
 
 func (s *stubUpdater) SelfUpdate(_ context.Context, origin string) error {
@@ -34,7 +40,9 @@ func (s *stubUpdater) SelfUpdate(_ context.Context, origin string) error {
 
 func newTestServer(volumesRoot string, updater *stubUpdater) *kobogateway.Server {
 	if updater == nil {
-		updater = &stubUpdater{err: nil, origin: "", called: false}
+		updater = &stubUpdater{
+			err: nil, origin: "", called: false, latest: "", latestE: nil,
+		}
 	}
 
 	return kobogateway.NewServer(kobogateway.Config{
@@ -439,7 +447,9 @@ func TestRevertInvalidTargetEndpoint(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	updater := &stubUpdater{err: nil, origin: "", called: false}
+	updater := &stubUpdater{
+		err: nil, origin: "", called: false, latest: "", latestE: nil,
+	}
 	gateway := newTestServer(t.TempDir(), updater)
 
 	var notifications []string
@@ -465,9 +475,11 @@ func TestUpdate(t *testing.T) {
 
 func TestUpdateFailure(t *testing.T) {
 	updater := &stubUpdater{
-		err:    errors.New("download failed"),
-		origin: "",
-		called: false,
+		err:     errors.New("download failed"),
+		origin:  "",
+		called:  false,
+		latest:  "",
+		latestE: nil,
 	}
 	gateway := newTestServer(t.TempDir(), updater)
 
@@ -516,4 +528,71 @@ func TestDefaultAllowedOrigins_DevOriginOnlyInDevBuilds(t *testing.T) {
 		[]string{kobogateway.DefaultWebOrigin},
 		kobogateway.DefaultAllowedOrigins("abc1234"),
 	)
+}
+
+func TestCheckForUpdateInstallsANewerRelease(t *testing.T) {
+	updater := &stubUpdater{
+		err: nil, origin: "", called: false, latest: "newsha", latestE: nil,
+	}
+	gateway := newTestServer(t.TempDir(), updater)
+
+	updated, err := gateway.CheckForUpdate(context.Background())
+
+	require.NoError(t, err)
+	assert.True(t, updated)
+	assert.Equal(t, kobogateway.DefaultWebOrigin, updater.origin)
+	select {
+	case <-gateway.Restart():
+	default:
+		t.Fatal("expected a restart signal")
+	}
+}
+
+func TestCheckForUpdateSkipsTheCurrentRelease(t *testing.T) {
+	updater := &stubUpdater{
+		err: nil, origin: "", called: false, latest: "testsha", latestE: nil,
+	}
+	gateway := newTestServer(t.TempDir(), updater)
+
+	updated, err := gateway.CheckForUpdate(context.Background())
+
+	require.NoError(t, err)
+	assert.False(t, updated)
+	assert.False(t, updater.called)
+}
+
+func TestCheckForUpdateReportsFailures(t *testing.T) {
+	updater := &stubUpdater{
+		err: nil, origin: "", called: false, latest: "", latestE: errors.New("offline"),
+	}
+	gateway := newTestServer(t.TempDir(), updater)
+
+	updated, err := gateway.CheckForUpdate(context.Background())
+
+	require.Error(t, err)
+	assert.False(t, updated)
+
+	updater.latestE = nil
+	updater.latest = "newsha"
+	updater.err = errors.New("bad signature")
+	_, err = gateway.CheckForUpdate(context.Background())
+	require.Error(t, err)
+}
+
+func TestCheckForUpdateNeverUpdatesADevBuild(t *testing.T) {
+	updater := &stubUpdater{
+		err: nil, origin: "", called: false, latest: "newsha", latestE: nil,
+	}
+	gateway := kobogateway.NewServer(kobogateway.Config{
+		Port:           kobogateway.DefaultPort,
+		AllowedOrigins: nil,
+		VolumesRoot:    t.TempDir(),
+		Release:        "dev",
+	}, updater)
+
+	updated, err := gateway.CheckForUpdate(context.Background())
+
+	require.NoError(t, err)
+	assert.False(t, updated)
+	assert.False(t, updater.called)
 }

@@ -171,7 +171,7 @@ func (a *app) runDaemon(ctx context.Context) error {
 	beat := func(ctx context.Context) error {
 		return a.daemon(ctx, a.newBeat(cfg.Server), token, opts)
 	}
-	return a.withMenu(ctx, cfg, func(ctx context.Context) error {
+	return a.withMenu(ctx, func(ctx context.Context) error {
 		return a.serve(ctx, cfg, token, beat)
 	})
 }
@@ -179,20 +179,16 @@ func (a *app) runDaemon(ctx context.Context) error {
 // withMenu runs work beside the menu bar icon when there is one.
 func (a *app) withMenu(
 	ctx context.Context,
-	cfg runner.Config,
 	work func(context.Context) error,
 ) error {
 	if a.menu == nil || a.control == nil {
 		return work(ctx)
 	}
-	root, err := runner.Origin(cfg.Server)
-	if err != nil {
-		return work(ctx)
-	}
 	return a.menu(ctx, menuInfo{
 		Control:  a.control,
 		Release:  Release,
-		BoardURL: root + "/factory/runners",
+		Home:     a.home,
+		ExecPath: a.execPath,
 	}, work)
 }
 

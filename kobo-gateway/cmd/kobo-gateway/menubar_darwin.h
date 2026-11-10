@@ -9,7 +9,7 @@
 
 // Menu item tags passed to goMenuAction.
 enum {
-	KGActionOpenSite = 1,
+	KGActionCheckUpdates = 1,
 	KGActionToggleLoginItem = 2,
 };
 

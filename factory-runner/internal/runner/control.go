@@ -39,6 +39,8 @@ type Control struct {
 	beat   time.Time
 	update string
 	check  bool
+	// wake nudges the daemon loop out of a held heartbeat when a check is asked for.
+	wake chan struct{}
 }
 
 // NewControl reads the pause flag from pausePath.
@@ -54,6 +56,7 @@ func NewControl(pausePath, version string, activity *Activity) *Control {
 		beat:      time.Time{},
 		update:    "",
 		check:     false,
+		wake:      make(chan struct{}, 1),
 	}
 }
 
@@ -89,8 +92,11 @@ func (c *Control) Quiet() bool {
 	return c.Paused() && (c.activity == nil || c.activity.Idle())
 }
 
-// RecordBeat notes a successful heartbeat.
+// RecordBeat notes a successful heartbeat. A nil Control ignores it.
 func (c *Control) RecordBeat() {
+	if c == nil {
+		return
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.beat = c.now()
@@ -130,11 +136,36 @@ func (s Status) Line() string {
 	}
 }
 
-// RequestCheck asks for a self-update check now, instead of at the next hour.
+// RequestCheck asks for a self-update check now, instead of at the next hour,
+// and wakes the daemon loop so it doesn't wait out a held heartbeat.
 func (c *Control) RequestCheck() {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.check = true
+	c.update = "check requested"
+	c.mu.Unlock()
+	select {
+	case c.wake <- struct{}{}:
+	default:
+	}
+}
+
+// refuseCheck drops a pending check that can't run, saying why in the menu.
+func (c *Control) refuseCheck(reason string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.check {
+		c.check = false
+		c.update = reason
+	}
+}
+
+// deferCheck keeps a pending check for later, saying why it hasn't run.
+func (c *Control) deferCheck(reason string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.check {
+		c.update = reason
+	}
 }
 
 // takeCheck reports and clears a requested check.

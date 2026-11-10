@@ -16,6 +16,7 @@ static NSMenuItem *frStatus;
 static NSMenuItem *frBeat;
 static NSMenuItem *frUpdate;
 static NSMenuItem *frToggle;
+static NSMenuItem *frLogin;
 
 // stringWithUTF8String: returns nil for NULL or invalid UTF-8, which AppKit
 // setters reject.
@@ -124,8 +125,11 @@ void frBuildStatusItem(const void *icon, size_t iconLen, double iconSize) {
 
 		frToggle = frMenuItem(@"Stop runner", FRActionToggleRunner);
 		[menu addItem:frToggle];
-		[menu addItem:frMenuItem(@"Open board", FRActionOpenBoard)];
 		[menu addItem:frMenuItem(@"Check for updates", FRActionCheckUpdates)];
+		[menu addItem:[NSMenuItem separatorItem]];
+
+		frLogin = frMenuItem(@"Start at Login", FRActionToggleLogin);
+		[menu addItem:frLogin];
 		[menu addItem:[NSMenuItem separatorItem]];
 
 		// Quit unloads the LaunchAgent (see goMenuAction); a plain terminate:
@@ -139,13 +143,14 @@ void frBuildStatusItem(const void *icon, size_t iconLen, double iconSize) {
 }
 
 void frSetMenu(const char *header, const char *status, const char *beat,
-               const char *update, bool stopped) {
+               const char *update, bool stopped, bool loginOn) {
 	@autoreleasepool {
 		frHeader.title = frString(header);
 		frStatus.title = frString(status);
 		frBeat.title = frString(beat);
 		frUpdate.title = frString(update);
 		frToggle.title = stopped ? @"Start runner" : @"Stop runner";
+		frLogin.state = loginOn ? NSControlStateValueOn : NSControlStateValueOff;
 	}
 }
 
@@ -166,13 +171,4 @@ void frTerminate(void) {
 		                                      data2:0];
 		[NSApp postEvent:wake atStart:YES];
 	});
-}
-
-void frOpenURL(const char *url) {
-	@autoreleasepool {
-		NSURL *nsURL = [NSURL URLWithString:frString(url)];
-		if (nsURL != nil) {
-			[[NSWorkspace sharedWorkspace] openURL:nsURL];
-		}
-	}
 }

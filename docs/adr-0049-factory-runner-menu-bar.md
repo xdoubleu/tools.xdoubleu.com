@@ -29,6 +29,16 @@ newer release", and the LaunchAgent had no log path, so stderr went nowhere.
   start the runner again until the next login.
 - **Update checks are visible**: each logs its outcome and the menu shows the
   latest; "Check for updates" requests one now (still only when idle).
+- **Both menu bars match**: status lines, then actions, "Start at Login" and Quit;
+  neither opens a URL. kobo-gateway gained "Check for updates" (it compares the
+  published `kobo-gateway-release.txt` with its own release before downloading).
+- **Start at Login is the LaunchAgent plist**: on writes it, off removes it. The
+  running process and loaded agent are untouched, so the runner keeps going
+  until Quit or logout.
+- **"Check for updates" acts at once**: it wakes the loop out of the held
+  heartbeat, and the menu says when it was refused (stopped) or is waiting
+  (a job is running).
+- **A circle-and-play glyph**, distinct from kobo-gateway's e-reader.
 - **The LaunchAgent logs** to `~/Library/Logs/factory-runner.log`. An already
   installed agent gets the path on the next `install`.
 
@@ -36,4 +46,3 @@ newer release", and the LaunchAgent had no log path, so stderr went nowhere.
 
 - A paused runner is offline on the board but not distinguishable there from a
   crashed one; the menu is the only place that says "Stopped".
-- The icon is kobo-gateway's placeholder glyph until a designed one exists.

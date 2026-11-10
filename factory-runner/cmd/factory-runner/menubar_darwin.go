@@ -90,8 +90,6 @@ func goMenuWillOpen() {
 //export goMenuAction
 func goMenuAction(action C.int) {
 	switch action {
-	case C.FRActionOpenBoard:
-		openBoard(ui.BoardURL)
 	case C.FRActionToggleRunner:
 		if err := ui.Control.SetPaused(!ui.Control.Paused()); err != nil {
 			fmt.Fprintln(os.Stderr, "factory-runner: stop/start:", err)
@@ -99,6 +97,9 @@ func goMenuAction(action C.int) {
 		refreshMenu()
 	case C.FRActionCheckUpdates:
 		ui.Control.RequestCheck()
+	case C.FRActionToggleLogin:
+		toggleLoginItem()
+		refreshMenu()
 	case C.FRActionQuit:
 		quit()
 	}
@@ -112,6 +113,18 @@ func quit() {
 	err := exec.CommandContext(context.Background(), "launchctl", "bootout", target).Run()
 	if err != nil {
 		C.frTerminate()
+	}
+}
+
+func toggleLoginItem() {
+	var err error
+	if runner.LoginItemEnabled(ui.Home) {
+		err = runner.DisableLoginItem(ui.Home)
+	} else {
+		_, err = runner.InstallLaunchAgent(ui.Home, ui.ExecPath)
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "factory-runner: start at login:", err)
 	}
 }
 
@@ -137,12 +150,8 @@ func refreshMenu() {
 	update := C.CString(lines.Update)
 	defer C.free(unsafe.Pointer(update))
 
-	C.frSetMenu(header, status, beat, update, C.bool(s.Paused))
-}
-
-func openBoard(url string) {
-	cURL := C.CString(url)
-	defer C.free(unsafe.Pointer(cURL))
-
-	C.frOpenURL(cURL)
+	C.frSetMenu(
+		header, status, beat, update,
+		C.bool(s.Paused), C.bool(runner.LoginItemEnabled(ui.Home)),
+	)
 }
