@@ -21,6 +21,7 @@ import {
   useSteamDistribution,
   useSteamProgress,
   useRecentlyActiveGames,
+  useWishlist,
   useRefreshSteam,
   useRefreshSteamGame,
   useIntegrations,
@@ -59,6 +60,19 @@ describe('useRecentlyActiveGames', () => {
     const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockClient.getRecentlyActiveGames).toHaveBeenCalledWith({})
+  })
+})
+
+describe('useWishlist', () => {
+  it('uses /games/wishlist as key and calls client.getWishlist', async () => {
+    const mockClient = { getWishlist: vi.fn().mockResolvedValue({}) }
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce(mockClient)
+    renderHook(() => useWishlist())
+    expect(mockUseSWR).toHaveBeenCalledWith('/games/wishlist', expect.any(Function))
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
+    await fetcher()
+    expect(mockClient.getWishlist).toHaveBeenCalledWith({})
   })
 })
 

@@ -20,12 +20,16 @@ describe('GamesWishlist', () => {
     mockState({
       data: create(GetWishlistResponseSchema, {
         games: [
-          create(WishlistGameSchema, { id: 620, name: 'Portal 2', imageUrl: 'https://i/p.jpg' })
+          create(WishlistGameSchema, { id: 620, name: 'Portal 2', imageUrl: 'https://i/p.jpg' }),
+          create(WishlistGameSchema, { id: 10, name: 'No Art' })
         ]
       })
     })
-    render(<GamesWishlist />)
-    expect(screen.getByText('Wishlist (1)')).toBeInTheDocument()
+    const { container } = render(<GamesWishlist />)
+    const images = container.querySelectorAll('img')
+    expect(images).toHaveLength(1)
+    expect(images[0]).toHaveAttribute('src', 'https://i/p.jpg')
+    expect(screen.getByText('Wishlist (2)')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Portal 2' })).toHaveAttribute(
       'href',
       'https://store.steampowered.com/app/620'
