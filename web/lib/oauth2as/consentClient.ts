@@ -10,6 +10,8 @@ export interface ConsentInfo {
   scope: string
   // Binds an approval to this user and request; absent without a session.
   consentToken?: string
+  // An admin may authorize the client as an agent account instead.
+  canDelegate: boolean
 }
 
 interface ConsentInfoResponse {
@@ -17,6 +19,7 @@ interface ConsentInfoResponse {
   client_name: string
   scope: string
   consent_token?: string
+  can_delegate?: boolean
 }
 
 // GET /oauth2/consent-info with the full authorize request: the client name,
@@ -35,21 +38,24 @@ export async function getConsentInfo(query: URLSearchParams): Promise<ConsentInf
     clientId: data.client_id,
     clientName: data.client_name,
     scope: data.scope,
-    consentToken: data.consent_token
+    consentToken: data.consent_token,
+    canDelegate: data.can_delegate ?? false
   }
 }
 
 // POST /oauth2/authorize with the original params plus consent=allow|deny and,
-// to approve, the consent token. fosite answers with a redirect, which fetch
+// to approve, the consent token and the agent account it delegates to, if any. fosite answers with a redirect, which fetch
 // can't expose, so Accept: application/json makes the api return it as
 // {"location": ...} for the caller to navigate to.
 export async function decideAuthorization(
   query: URLSearchParams,
   decision: 'allow' | 'deny',
-  consentToken = ''
+  consentToken = '',
+  agentAccountId = ''
 ): Promise<string> {
   const params = new URLSearchParams(query)
   params.set('consent', decision)
+  if (agentAccountId) params.set('agent_account_id', agentAccountId)
 
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (consentToken) headers['X-OAuth-Consent-Token'] = consentToken

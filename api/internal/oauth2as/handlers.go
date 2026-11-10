@@ -1,6 +1,7 @@
 package oauth2as
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -18,14 +19,30 @@ import (
 // injected by cmd/api to avoid an auth <-> oauth2as import cycle.
 type SessionUserResolver func(r *http.Request) (user ResolvedUser, ok bool)
 
+// AgentAccountParam names the agent account an admin delegates the client to.
+const AgentAccountParam = "agent_account_id"
+
+// Delegator binds a client to an agent account, so its tokens act as the
+// agent rather than the admin who approved (adr-0048).
+type Delegator interface {
+	// Delegate returns the agent user the client is now authorized as.
+	Delegate(
+		ctx context.Context, admin ResolvedUser, clientID, accountID string,
+	) (ResolvedUser, error)
+	// Undelegate ends the client's delegation when it is authorized as a person.
+	Undelegate(ctx context.Context, clientID string) error
+}
+
 // AuthorizeHandler serves /oauth2/authorize. A GET, or a request without a
 // decision, redirects to the web consent page. A POST with consent=deny
 // returns access_denied; consent=allow completes only with the consent token
-// that page obtained for this user and request.
+// that page obtained for this user and request. An admin's approval with
+// AgentAccountParam authorizes the client as that agent account instead.
 func AuthorizeHandler(
 	provider fosite.Provider,
 	cfg config.Config,
 	resolveUser SessionUserResolver,
+	delegator Delegator,
 	signingKeyID string,
 	logger *slog.Logger,
 ) http.HandlerFunc {
@@ -79,6 +96,16 @@ func AuthorizeHandler(
 			return
 		}
 
+		subject, err := authorizeAs(
+			ctx, delegator, user, ar.GetClient().GetID(),
+			r.URL.Query().Get(AgentAccountParam),
+		)
+		if err != nil {
+			logOAuthError(ctx, logger, endpointAuthorize, ar, err)
+			provider.WriteAuthorizeError(ctx, w, ar, err)
+			return
+		}
+
 		// Grant the requested scopes: fosite only issues a refresh token when
 		// offline_access is granted, not merely requested.
 		for _, scope := range ar.GetRequestedScopes() {
@@ -86,7 +113,7 @@ func AuthorizeHandler(
 		}
 		grantOfflineAccess(ar)
 
-		session := newAuthorizeSession(user, signingKeyID, ar.GetGrantedScopes())
+		session := newAuthorizeSession(subject, signingKeyID, ar.GetGrantedScopes())
 		resp, err := provider.NewAuthorizeResponse(ctx, ar, session)
 		if err != nil {
 			logOAuthError(ctx, logger, endpointAuthorize, ar, err)
@@ -96,6 +123,36 @@ func AuthorizeHandler(
 
 		provider.WriteAuthorizeResponse(ctx, w, ar, resp)
 	}
+}
+
+// authorizeAs is who the approved client acts as: the agent account an admin
+// delegated it to, or the approving user.
+func authorizeAs(
+	ctx context.Context,
+	delegator Delegator,
+	user ResolvedUser,
+	clientID, accountID string,
+) (ResolvedUser, error) {
+	if accountID == "" {
+		if delegator == nil {
+			return user, nil
+		}
+		if err := delegator.Undelegate(ctx, clientID); err != nil {
+			return ResolvedUser{}, fosite.ErrServerError.WithWrap(err)
+		}
+		return user, nil
+	}
+	if delegator == nil || !user.IsAdmin {
+		return ResolvedUser{}, fosite.ErrAccessDenied.WithHint(
+			"Only an admin can delegate to an agent account.",
+		)
+	}
+	agent, err := delegator.Delegate(ctx, user, clientID, accountID)
+	if err != nil {
+		return ResolvedUser{}, fosite.ErrInvalidRequest.
+			WithHint("The agent account can't be delegated to.").WithWrap(err)
+	}
+	return agent, nil
 }
 
 // locationAsJSON replies to the redirect fosite writes with a 200 and
@@ -231,7 +288,7 @@ func RegisterHandler(store *Store, logger *slog.Logger) http.HandlerFunc {
 
 // ConsentInfoHandler serves GET /oauth2/consent-info: the pending request's
 // client name and the scope approval will grant, plus, for a signed-in caller,
-// the consent token that approving requires.
+// the consent token that approving requires and whether they may delegate.
 func ConsentInfoHandler(
 	store *Store,
 	cfg config.Config,
@@ -260,6 +317,7 @@ func ConsentInfoHandler(
 			info["consent_token"] = newConsentToken(
 				[]byte(cfg.OAuthHMACSecret), user.ID, r.URL.Query(), time.Now(),
 			)
+			info["can_delegate"] = user.IsAdmin
 		}
 
 		w.Header().Set("Content-Type", "application/json")

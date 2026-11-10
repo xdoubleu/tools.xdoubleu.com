@@ -49,11 +49,13 @@ const SHARED_HOOKS = [
 
 // The only cross-domain edges, importer → imported. Each follows the api:
 // shoppinglist reads mealplans, which reads recipes; learningpaths resolves
-// books and feeds; dashboard reaches every app (ADR-0007). Shared code
-// (outside any domain) may import every domain.
+// books and feeds; the oauth consent page delegates to agent accounts
+// (ADR-0048); dashboard reaches every app (ADR-0007). Shared code (outside any
+// domain) may import every domain.
 const ALLOWED_EDGES = {
   learningpaths: ['books', 'feeds'],
   mealplans: ['recipes'],
+  oauth: ['user-management'],
   shoppinglist: ['mealplans', 'recipes']
 }
 const UNRESTRICTED_IMPORTERS = ['dashboard']

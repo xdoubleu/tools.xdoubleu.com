@@ -55,6 +55,7 @@ export default function ConsentPage() {
         consentToken={info.consentToken ?? ''}
         clientName={info.clientName}
         scope={info.scope}
+        canDelegate={info.canDelegate}
       />
     </PageContainer>
   )

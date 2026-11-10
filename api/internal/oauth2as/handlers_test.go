@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -54,6 +55,35 @@ type oauth2asTestServer struct {
 	key      *rsa.PrivateKey
 	userID   string
 	logs     *recordCapture
+	// nonAdmin makes the signed-in user a person without the admin role.
+	nonAdmin  bool
+	delegator *fakeDelegator
+}
+
+// fakeDelegator delegates to agentUserID, or fails with err.
+type fakeDelegator struct {
+	agentUserID  string
+	err          error
+	delegated    []string
+	undelegated  []string
+	undelegateEr error
+}
+
+func (f *fakeDelegator) Delegate(
+	_ context.Context, _ oauth2as.ResolvedUser, clientID, accountID string,
+) (oauth2as.ResolvedUser, error) {
+	if f.err != nil {
+		return oauth2as.ResolvedUser{}, f.err
+	}
+	f.delegated = append(f.delegated, clientID+"="+accountID)
+	return oauth2as.ResolvedUser{
+		ID: f.agentUserID, Email: "agent@agent.invalid", DisplayName: "", IsAdmin: false,
+	}, nil
+}
+
+func (f *fakeDelegator) Undelegate(_ context.Context, clientID string) error {
+	f.undelegated = append(f.undelegated, clientID)
+	return f.undelegateEr
 }
 
 func newOAuth2asTestServer(t *testing.T) *oauth2asTestServer {
@@ -69,13 +99,20 @@ func newOAuth2asTestServerWithConfig(
 	key := testOIDCKey(t)
 	provider := oauth2as.NewProvider(cfg, store, key)
 	userID := uuid.NewString()
+	//nolint:exhaustruct // ts and logs are set once the mux is built
+	srv := &oauth2asTestServer{
+		store: store, db: db, provider: provider, key: key, userID: userID,
+		nonAdmin: false,
+		//nolint:exhaustruct // a fake that delegates until a test sets err
+		delegator: &fakeDelegator{agentUserID: uuid.NewString()},
+	}
 
 	resolveUser := func(_ *http.Request) (oauth2as.ResolvedUser, bool) {
 		return oauth2as.ResolvedUser{
 			ID:          userID,
 			Email:       "e2e-user@example.com",
 			DisplayName: "E2E User",
-			IsAdmin:     true,
+			IsAdmin:     !srv.nonAdmin,
 		}, true
 	}
 
@@ -86,7 +123,8 @@ func newOAuth2asTestServerWithConfig(
 	mux.HandleFunc(
 		"/oauth2/authorize",
 		oauth2as.AuthorizeHandler(
-			provider, cfg, resolveUser, oauth2as.OIDCKeyID(key), logger,
+			provider, cfg, resolveUser, srv.delegator, oauth2as.OIDCKeyID(key),
+			logger,
 		),
 	)
 	mux.HandleFunc(
@@ -100,13 +138,10 @@ func newOAuth2asTestServerWithConfig(
 	)
 	mux.HandleFunc("/oauth2/jwks", oauth2as.JWKSHandler(key))
 
-	ts := httptest.NewServer(mux)
-	t.Cleanup(ts.Close)
-
-	return &oauth2asTestServer{
-		ts: ts, store: store, db: db, provider: provider, key: key,
-		userID: userID, logs: logs,
-	}
+	srv.ts = httptest.NewServer(mux)
+	t.Cleanup(srv.ts.Close)
+	srv.logs = logs
+	return srv
 }
 
 // testClientRedirectURI is loopback (validateRedirectURI's dev exception) and
@@ -242,10 +277,12 @@ func (s *oauth2asTestServer) consentToken(t *testing.T, q url.Values) string {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
-	var out map[string]string
+	var out struct {
+		ConsentToken string `json:"consent_token"`
+	}
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&out))
-	require.NotEmpty(t, out["consent_token"])
-	return out["consent_token"]
+	require.NotEmpty(t, out.ConsentToken)
+	return out.ConsentToken
 }
 
 func (s *oauth2asTestServer) exchangeToken(
@@ -467,11 +504,169 @@ func TestConsentInfoHandler(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var out map[string]string
+	var out map[string]any
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&out))
 	assert.Equal(t, "e2e test client", out["client_name"])
 	assert.Equal(t, "offline_access", out["scope"])
 	assert.Equal(t, client.ID, out["client_id"])
+	assert.Equal(t, true, out["can_delegate"])
+}
+
+func TestConsentInfoHandler_PersonCantDelegate(t *testing.T) {
+	srv := newOAuth2asTestServer(t)
+	srv.nonAdmin = true
+	client := srv.registerClient(t)
+
+	resp, err := http.Get(srv.ts.URL + "/oauth2/consent-info?client_id=" + client.ID)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	var out map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&out))
+	assert.Equal(t, false, out["can_delegate"])
+}
+
+// approve posts an approval of a fresh request for client with extra params
+// and returns the response.
+func (s *oauth2asTestServer) approve(
+	t *testing.T, client *fosite.DefaultClient, challenge string, extra url.Values,
+) *http.Response {
+	t.Helper()
+	q := url.Values{
+		"response_type":         {"code"},
+		"client_id":             {client.ID},
+		"redirect_uri":          {client.RedirectURIs[0]},
+		"code_challenge":        {challenge},
+		"code_challenge_method": {"S256"},
+		"state":                 {"delegation-state-1"},
+	}
+	token := s.consentToken(t, q)
+	for k, v := range extra {
+		q[k] = v
+	}
+	q.Set("consent", "allow")
+	req, err := http.NewRequestWithContext(
+		context.Background(), http.MethodPost,
+		s.ts.URL+"/oauth2/authorize?"+q.Encode(), nil,
+	)
+	require.NoError(t, err)
+	req.Header.Set(oauth2as.ConsentTokenHeader, token)
+	resp, err := noRedirectClient().Do(req)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = resp.Body.Close() })
+	return resp
+}
+
+func TestAuthorize_DelegatedClientActsAsTheAgent(t *testing.T) {
+	srv := newOAuth2asTestServer(t)
+	client := srv.registerClient(t)
+	verifier, challenge := pkcePair(t)
+
+	code := srv.authorizeAndGetCodeWithParams(t, client, challenge, "delegate-state",
+		url.Values{oauth2as.AgentAccountParam: {"account-1"}})
+	resp, out := srv.exchangeToken(t, url.Values{
+		"grant_type":    {"authorization_code"},
+		"code":          {code},
+		"redirect_uri":  {client.RedirectURIs[0]},
+		"client_id":     {client.ID},
+		"code_verifier": {verifier},
+	})
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	subject, err := oauth2as.NewTokenResolver(srv.provider).
+		ResolveAccessToken(context.Background(), out.AccessToken)
+	require.NoError(t, err)
+	assert.Equal(t, srv.delegator.agentUserID, subject)
+	assert.Equal(t, []string{client.ID + "=account-1"}, srv.delegator.delegated)
+	assert.Empty(t, srv.delegator.undelegated)
+}
+
+func TestAuthorize_PersonalApprovalEndsDelegation(t *testing.T) {
+	srv := newOAuth2asTestServer(t)
+	client := srv.registerClient(t)
+	_, challenge := pkcePair(t)
+
+	srv.authorizeAndGetCode(t, client, challenge, "personal-state")
+	assert.Equal(t, []string{client.ID}, srv.delegator.undelegated)
+	assert.Empty(t, srv.delegator.delegated)
+}
+
+func TestAuthorize_DelegationRefused(t *testing.T) {
+	cases := map[string]struct {
+		setup func(*oauth2asTestServer)
+		error string
+	}{
+		"person": {
+			setup: func(s *oauth2asTestServer) { s.nonAdmin = true },
+			error: "access_denied",
+		},
+		"refused": {
+			setup: func(s *oauth2asTestServer) { s.delegator.err = errors.New("revoked") },
+			error: "invalid_request",
+		},
+		"undelegate fails": {
+			setup: func(s *oauth2asTestServer) {
+				s.delegator.undelegateEr = errors.New("db down")
+			},
+			error: "server_error",
+		},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			srv := newOAuth2asTestServer(t)
+			client := srv.registerClient(t)
+			_, challenge := pkcePair(t)
+			tc.setup(srv)
+
+			extra := url.Values{oauth2as.AgentAccountParam: {"account-1"}}
+			if name == "undelegate fails" {
+				extra = nil
+			}
+			resp := srv.approve(t, client, challenge, extra)
+			loc, err := url.Parse(resp.Header.Get("Location"))
+			require.NoError(t, err)
+			assert.Equal(t, tc.error, loc.Query().Get("error"))
+			assert.Empty(t, loc.Query().Get("code"))
+		})
+	}
+}
+
+func TestAuthorize_WithoutDelegatorSignsInAsTheUser(t *testing.T) {
+	cfg := testhelper.NewTestConfig()
+	store, _ := newTestStore(t)
+	key := testOIDCKey(t)
+	provider := oauth2as.NewProvider(cfg, store, key)
+	user := oauth2as.ResolvedUser{
+		ID: uuid.NewString(), Email: "", DisplayName: "", IsAdmin: true,
+	}
+	resolve := func(_ *http.Request) (oauth2as.ResolvedUser, bool) { return user, true }
+	handler := oauth2as.AuthorizeHandler(
+		provider, cfg, resolve, nil, oauth2as.OIDCKeyID(key), slog.New(newRecordCapture()),
+	)
+	//nolint:exhaustruct // only registerClient and approve are used
+	srv := &oauth2asTestServer{store: store}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/oauth2/authorize", handler)
+	mux.HandleFunc("/oauth2/register", oauth2as.RegisterHandler(store, slog.Default()))
+	mux.HandleFunc(
+		"/oauth2/consent-info",
+		oauth2as.ConsentInfoHandler(store, cfg, resolve),
+	)
+	srv.ts = httptest.NewServer(mux)
+	t.Cleanup(srv.ts.Close)
+	client := srv.registerClient(t)
+	_, challenge := pkcePair(t)
+
+	assert.Equal(t, http.StatusSeeOther, srv.approve(t, client, challenge, nil).StatusCode)
+	resp := srv.approve(
+		t,
+		client,
+		challenge,
+		url.Values{oauth2as.AgentAccountParam: {"a"}},
+	)
+	loc, err := url.Parse(resp.Header.Get("Location"))
+	require.NoError(t, err)
+	assert.Equal(t, "access_denied", loc.Query().Get("error"))
 }
 
 func TestConsentInfoHandler_UnknownClient(t *testing.T) {

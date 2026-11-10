@@ -432,3 +432,119 @@ func TestFamilyChangesRefuseRevokedJobAndUnknownAccounts(t *testing.T) {
 	_, err = store.LeaveFamily(ctx, uuid.New())
 	require.ErrorIs(t, err, database.ErrResourceNotFound)
 }
+
+// publicClient adds an authorization_code client, as dynamic registration does.
+func publicClient(t *testing.T, db postgres.DB) string {
+	t.Helper()
+	id := "dcr-" + uuid.NewString()
+	_, err := db.Exec(context.Background(), `
+		INSERT INTO auth.oauth2_clients (id, grant_types, public, client_name)
+		VALUES ($1, ARRAY['authorization_code', 'refresh_token'], TRUE, 'Claude')`, id)
+	require.NoError(t, err)
+	return id
+}
+
+func delegatedTo(t *testing.T, db postgres.DB, clientID string) *uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	err := db.QueryRow(context.Background(),
+		`SELECT account_id FROM global.agent_account_clients WHERE client_id = $1`,
+		clientID).Scan(&id)
+	if err != nil {
+		return nil
+	}
+	return &id
+}
+
+func TestDelegateBindsAClientAndALaterDelegationReplacesIt(t *testing.T) {
+	store, db := newStore(t, nil)
+	ctx := context.Background()
+	first, _, err := store.Create(ctx, "human:a", "first")
+	require.NoError(t, err)
+	second, _, err := store.Create(ctx, "human:a", "second")
+	require.NoError(t, err)
+	client := publicClient(t, db)
+
+	got, err := store.Delegate(ctx, first.ID, client, "human:a")
+	require.NoError(t, err)
+	assert.Equal(t, first.UserID, got.UserID)
+	assert.Equal(t, &first.ID, delegatedTo(t, db, client))
+
+	_, err = store.Delegate(ctx, second.ID, client, "human:a")
+	require.NoError(t, err)
+	assert.Equal(t, &second.ID, delegatedTo(t, db, client))
+
+	require.NoError(t, store.Undelegate(ctx, client))
+	assert.Nil(t, delegatedTo(t, db, client))
+	require.NoError(t, store.Undelegate(ctx, client), "nothing to end is fine")
+}
+
+func TestDelegateRefusesRevokedJobUnknownAccountsAndMachineClients(t *testing.T) {
+	store, db := newStore(t, nil)
+	ctx := context.Background()
+	active, _, err := store.Create(ctx, "human:a", "active")
+	require.NoError(t, err)
+	revoked, _, err := store.Create(ctx, "human:a", "revoked")
+	require.NoError(t, err)
+	_, err = store.Revoke(ctx, revoked.ID)
+	require.NoError(t, err)
+	job, _, err := store.CreateForJob(ctx, "system", "job", agentaccounts.Scope{
+		JobID: uuid.New(), TaskID: uuid.New(),
+	})
+	require.NoError(t, err)
+	client := publicClient(t, db)
+
+	for name, id := range map[string]uuid.UUID{
+		"revoked": revoked.ID, "job": job.ID, "unknown": uuid.New(),
+	} {
+		_, err = store.Delegate(ctx, id, client, "human:a")
+		assert.Error(t, err, name)
+	}
+	_, err = store.Delegate(ctx, active.ID, active.ClientID, "human:a")
+	assert.ErrorIs(t, err, database.ErrResourceConflict, "a client_credentials client")
+	_, err = store.Delegate(ctx, active.ID, "no-such-client", "human:a")
+	assert.ErrorIs(t, err, database.ErrResourceConflict)
+	assert.Nil(t, delegatedTo(t, db, client))
+}
+
+func TestRevokeEndsTheTokensOfDelegatedClients(t *testing.T) {
+	store, db := newStore(t, nil)
+	ctx := context.Background()
+	account, _, err := store.Create(ctx, "human:a", "delegated")
+	require.NoError(t, err)
+	client := publicClient(t, db)
+	_, err = store.Delegate(ctx, account.ID, client, "human:a")
+	require.NoError(t, err)
+
+	tables := []string{
+		"oauth2_auth_codes",
+		"oauth2_access_tokens",
+		"oauth2_refresh_tokens",
+	}
+	person := uuid.New()
+	for _, table := range tables {
+		for _, user := range []uuid.UUID{account.UserID, person} {
+			_, err = db.Exec(ctx, `
+				INSERT INTO auth.`+table+` (signature, request, client_id, user_id, expires_at)
+				VALUES ($1, '{}', $2, $3, now() + interval '1 hour')`,
+				uuid.NewString(), client, user)
+			require.NoError(t, err)
+		}
+	}
+
+	_, err = store.Revoke(ctx, account.ID)
+	require.NoError(t, err)
+
+	for _, table := range tables {
+		var agentRows, personRows int
+		require.NoError(t, db.QueryRow(ctx, `
+			SELECT count(*) FILTER (WHERE user_id = $1),
+			       count(*) FILTER (WHERE user_id = $2)
+			FROM auth.`+table+` WHERE client_id = $3`,
+			account.UserID, person, client).Scan(&agentRows, &personRows))
+		assert.Zero(t, agentRows, table)
+		assert.Equal(t, 1, personRows, table)
+	}
+	_, err = store.Delegate(ctx, account.ID, client, "human:a")
+	assert.Error(t, err, "a revoked account can't be delegated to again")
+}

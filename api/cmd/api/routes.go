@@ -62,14 +62,16 @@ func (app *Application) mux() *http.ServeMux {
 		"GET "+oauth2AuthorizePath,
 		oauth2as.AuthorizeHandler(
 			app.oauth2as.provider, app.config,
-			app.oauth2SessionUserResolver(), app.oauth2as.oidcKeyID(), app.logger,
+			app.oauth2SessionUserResolver(), app.agentDelegator(agents),
+			app.oauth2as.oidcKeyID(), app.logger,
 		),
 	)
 	mux.HandleFunc(
 		"POST "+oauth2AuthorizePath,
 		oauth2as.AuthorizeHandler(
 			app.oauth2as.provider, app.config,
-			app.oauth2SessionUserResolver(), app.oauth2as.oidcKeyID(), app.logger,
+			app.oauth2SessionUserResolver(), app.agentDelegator(agents),
+			app.oauth2as.oidcKeyID(), app.logger,
 		),
 	)
 	mux.HandleFunc(

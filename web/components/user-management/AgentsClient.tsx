@@ -3,33 +3,15 @@ import type { AgentAccount } from '@/lib/gen/factory/v1/agent_accounts_pb'
 import { useAgentActions, useAgents, type AgentLevel } from '@/hooks/useUserManagement'
 import AgentDialog from '@/components/user-management/AgentDialog'
 import AgentStepUpDialog from '@/components/user-management/AgentStepUpDialog'
+import { AgentGrants } from '@/components/user-management/AgentGrants'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Field } from '@/components/ui/field'
-import { Select } from '@/components/ui/select'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
-
-const AGENT_APPS = [
-  'factory',
-  'books',
-  'feeds',
-  'games',
-  'learningpaths',
-  'mealplans',
-  'movies',
-  'podcasts',
-  'recipes',
-  'shoppinglist',
-  'taste',
-  'trains'
-]
-
-const LEVELS: AgentLevel[] = ['none', 'read', 'write']
 
 function levelOf(account: AgentAccount, app: string): AgentLevel {
   if (account.writeAccess.includes(app)) return 'write'
@@ -52,31 +34,12 @@ function Grants({ account }: { account: AgentAccount }) {
 
   return (
     <div className="w-full space-y-2">
-      <div
-        role="group"
-        aria-label={`App access for ${account.name}`}
-        className="grid grid-cols-2 gap-2 sm:grid-cols-3"
-      >
-        {AGENT_APPS.map((app) => (
-          <Field key={app} label={app} htmlFor={`${account.id}-${app}`} className="capitalize">
-            <Select
-              id={`${account.id}-${app}`}
-              aria-label={`${app} access for ${account.name}`}
-              value={levelOf(account, app)}
-              onChange={(e) => {
-                const level = LEVELS.find((l) => l === e.target.value)
-                if (level) void change(app, level)
-              }}
-            >
-              {LEVELS.map((level) => (
-                <option key={level} value={level}>
-                  {level}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        ))}
-      </div>
+      <AgentGrants
+        name={account.name}
+        idPrefix={account.id}
+        levelOf={(app) => levelOf(account, app)}
+        onChange={(app, level) => void change(app, level)}
+      />
       {failed && <Alert tone="danger">Couldn&apos;t change the access. Try again.</Alert>}
     </div>
   )

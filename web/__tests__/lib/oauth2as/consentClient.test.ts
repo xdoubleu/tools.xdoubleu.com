@@ -30,7 +30,8 @@ describe('consentClient', () => {
           client_id: 'c1',
           client_name: 'Claude CLI',
           scope: 'openid email',
-          consent_token: 'tok'
+          consent_token: 'tok',
+          can_delegate: true
         })
       )
 
@@ -42,7 +43,8 @@ describe('consentClient', () => {
         clientId: 'c1',
         clientName: 'Claude CLI',
         scope: 'openid email',
-        consentToken: 'tok'
+        consentToken: 'tok',
+        canDelegate: true
       })
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/oauth2/consent-info?client_id=c1&scope=openid+email&state=s1'),
@@ -58,10 +60,20 @@ describe('consentClient', () => {
       const info = await getConsentInfo(new URLSearchParams('client_id=c1'))
 
       expect(info?.consentToken).toBeUndefined()
+      expect(info?.canDelegate).toBe(false)
     })
   })
 
   describe('decideAuthorization', () => {
+    it('names the agent account an approval delegates to', async () => {
+      global.fetch = vi.fn().mockResolvedValue(jsonResponse({ location: 'https://cb?code=1' }))
+
+      await decideAuthorization(new URLSearchParams('client_id=c1'), 'allow', 'tok', 'acct-1')
+
+      const [url] = vi.mocked(global.fetch).mock.calls[0]
+      expect(url).toContain('agent_account_id=acct-1')
+    })
+
     it('posts the decision and returns the redirect location', async () => {
       global.fetch = vi.fn().mockResolvedValue(jsonResponse({ location: 'https://cb?code=1' }))
 
