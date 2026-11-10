@@ -102,7 +102,7 @@ export default function FactoryClient() {
     }
   }
 
-  const visible = data ? filterByLabels(filterByRepo(data.tasks, repoFilter), labelFilter) : []
+  const filtered = data ? filterByLabels(filterByRepo(data.tasks, repoFilter), labelFilter) : []
   const lower = (l: string) => l.trim().toLowerCase()
   const picked = (inGroup: (l: string) => boolean) => labelFilter.find(inGroup) ?? ''
   const isOther = (l: string) => !isProductLabel(l) && !isEpicLabel(l)
@@ -136,6 +136,8 @@ export default function FactoryClient() {
   const epicLabel = picked(isEpicLabel)
   const parent = epicLabel === '' ? undefined : epicParent(epicLabel, allTasks)
   const progress = epicLabel === '' ? undefined : epicProgress(epicLabel, allTasks)
+  // The picked epic's parent is opened from the toolbar, not shown among its sub-tasks.
+  const visible = parent ? filtered.filter((t) => t.id !== parent.id) : filtered
   const closable = (task: Task) => canCloseEpic(task, allTasks)
 
   const closeEpic = async (task: Task) => {
@@ -278,6 +280,16 @@ export default function FactoryClient() {
           aria-label="Show done tasks"
           onClick={() => setShowDone(!showDone)}
         />
+        {parent && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="max-w-full truncate"
+            onClick={() => setOpenId(parent.id)}
+          >
+            Epic: {epicName(epicLabel)}
+          </Button>
+        )}
         {progress && progress.total > 0 && (
           <span className="flex items-center gap-2 text-sm text-muted">
             {progress.done} of {progress.total} done
