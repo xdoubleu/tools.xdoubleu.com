@@ -40,6 +40,12 @@ var jobIDPattern = regexp.MustCompile(
 	`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`,
 )
 
+// taskIDPattern is a task id: T-<number>, or the UUID of a task from before
+// numbers. It names a session directory.
+var taskIDPattern = regexp.MustCompile(
+	`^(T-[0-9]{1,18}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$`,
+)
+
 // sessionIDPattern is what a harness session id may look like: it goes into the
 // harness's argv, so nothing that could be read as a flag or a path.
 var sessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$`)
@@ -200,13 +206,14 @@ func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {
 }
 
 // check refuses a job the runner's own rules don't allow, whatever the server
-// says: its id must be a UUID (it names a directory), the harness one it can run,
-// and the repo, branch and base inside the local allowlist.
+// says: its id must be a UUID and its task id T-<number> or a UUID (both name
+// directories), the harness one it can run, and the repo, branch and base inside
+// the local allowlist.
 func (r *JobRunner) check(job *ClaimedJob) error {
 	if !jobIDPattern.MatchString(job.ID) {
 		return fmt.Errorf("%w: invalid job id", ErrRefused)
 	}
-	if !jobIDPattern.MatchString(job.TaskID) {
+	if !taskIDPattern.MatchString(job.TaskID) {
 		return fmt.Errorf("%w: invalid task id", ErrRefused)
 	}
 	if job.ResumeSessionID != "" && !sessionIDPattern.MatchString(job.ResumeSessionID) {

@@ -42,7 +42,7 @@ func protoJob(j *models.Job) *factoryv1.Job {
 	}
 	return &factoryv1.Job{
 		Id:        j.ID.String(),
-		TaskId:    j.TaskID.String(),
+		TaskId:    models.TaskRef(j.TaskNumber),
 		Status:    jobStatusToProto(j.Status),
 		Branch:    j.Branch,
 		CreatedAt: j.CreatedAt.Format(time.RFC3339),
@@ -66,7 +66,7 @@ func (h *taskConnectHandler) RunTask(
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.GetTaskId())
+	id, err := h.app.taskID(ctx, req.GetTaskId())
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (h *taskConnectHandler) ReplyTask(
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.GetTaskId())
+	id, err := h.app.taskID(ctx, req.GetTaskId())
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (h *taskConnectHandler) StopJob(
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.GetTaskId())
+	id, err := h.app.taskID(ctx, req.GetTaskId())
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func claimedJobToProto(c *services.ClaimedJob) *factoryv1.ClaimedJob {
 	timeLimit := int32(c.Repo.TimeLimitMinutes) //nolint:gosec // minutes, far below 2^31
 	return &factoryv1.ClaimedJob{
 		Id:               c.Job.ID.String(),
-		TaskId:           c.Job.TaskID.String(),
+		TaskId:           models.TaskRef(c.Job.TaskNumber),
 		RepoOwner:        c.Repo.Owner,
 		RepoName:         c.Repo.Name,
 		DefaultBranch:    c.Repo.DefaultBranch,
@@ -304,20 +304,23 @@ func (h *runnerHandler) ListFinishedTasks(
 		return nil, connect.NewError(connect.CodeInvalidArgument, "too many task ids")
 	}
 	ids := make([]uuid.UUID, len(req.GetTaskIds()))
+	asked := make(map[uuid.UUID]string, len(ids))
 	for i, raw := range req.GetTaskIds() {
-		id, err := parseID(raw)
+		id, err := h.app.taskID(ctx, raw)
 		if err != nil {
 			return nil, err
 		}
 		ids[i] = id
+		asked[id] = raw
 	}
 	done, err := h.app.services.Jobs.FinishedTasks(ctx, ids)
 	if err != nil {
 		return nil, mapError(err)
 	}
+	// Answer in the references the runner asked with.
 	out := make([]string, len(done))
 	for i, id := range done {
-		out[i] = id.String()
+		out[i] = asked[id]
 	}
 	return &factoryv1.ListFinishedTasksResponse{TaskIds: out}, nil
 }

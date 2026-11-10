@@ -51,7 +51,9 @@ func (s *JobService) PollPullRequests(ctx context.Context) (int, error) {
 
 // taskLine is the `Task: <title> (<id>)` line a pull request body links its task
 // with.
-var taskLine = regexp.MustCompile(`(?m)^Task: .*\(([0-9a-fA-F-]{36})\)\s*$`)
+// The id is T-<number>, or a UUID in pull requests opened before numbers.
+var taskLine = regexp.MustCompile(
+	`(?m)^Task: .*\((T-[0-9]+|[0-9a-fA-F-]{36})\)\s*$`)
 
 // mergedLinked moves to Testing the task of each recently merged pull request
 // that links one, whoever opened it. It leaves a task that has jobs (their own
@@ -84,13 +86,13 @@ func (s *JobService) mergedLinked(ctx context.Context) (int, error) {
 	return moved, errors.Join(failures...)
 }
 
-func linkedTask(body string) (uuid.UUID, bool) {
+// linkedTask is the reference (T-<number> or UUID) a pull request body links.
+func linkedTask(body string) (string, bool) {
 	m := taskLine.FindStringSubmatch(body)
 	if m == nil {
-		return uuid.Nil, false
+		return "", false
 	}
-	id, err := uuid.Parse(m[1])
-	return id, err == nil
+	return m[1], true
 }
 
 // TestingAfterMerge moves to Testing the task a merged pull request links in its
@@ -99,13 +101,17 @@ func (s *JobService) TestingAfterMerge(
 	ctx context.Context,
 	prBody, prURL string,
 ) (bool, error) {
-	id, ok := linkedTask(prBody)
+	ref, ok := linkedTask(prBody)
 	if !ok {
 		return false, nil
 	}
-	task, err := s.tasks.Get(ctx, id)
+	id, err := s.tasks.Resolve(ctx, ref)
 	if err != nil {
 		// A link to a task that is gone is not a failure.
+		return false, nil //nolint:nilerr // nothing to move
+	}
+	task, err := s.tasks.Get(ctx, id)
+	if err != nil {
 		return false, nil //nolint:nilerr // nothing to move
 	}
 	if err = s.linked.Upsert(ctx, models.LinkedPullRequest{
@@ -210,8 +216,12 @@ func (s *JobService) syncLinked(ctx context.Context) error {
 			continue
 		}
 		for _, p := range pulls {
-			id, ok := linkedTask(p.Body)
+			ref, ok := linkedTask(p.Body)
 			if !ok {
+				continue
+			}
+			id, resolveErr := s.tasks.Resolve(ctx, ref)
+			if resolveErr != nil {
 				continue
 			}
 			seen[p.URL] = true

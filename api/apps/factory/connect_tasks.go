@@ -135,7 +135,7 @@ func priorityFromProto(p factoryv1.TaskPriority) models.Priority {
 
 func protoTask(t *models.Task) *factoryv1.Task {
 	return &factoryv1.Task{
-		Id:                t.ID.String(),
+		Id:                models.TaskRef(t.Number),
 		RepoId:            t.RepoID.String(),
 		Title:             t.Title,
 		Body:              t.Body,
@@ -204,7 +204,7 @@ func (h *taskConnectHandler) GetTask(
 	if _, err := actorFrom(ctx); err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.Id)
+	id, err := h.app.taskID(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +275,7 @@ func (h *taskConnectHandler) UpdateTask(
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.Id)
+	id, err := h.app.taskID(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +299,7 @@ func (h *taskConnectHandler) MoveTask(
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.Id)
+	id, err := h.app.taskID(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -318,7 +318,7 @@ func (h *taskConnectHandler) AddComment(
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(req.TaskId)
+	id, err := h.app.taskID(ctx, req.TaskId)
 	if err != nil {
 		return nil, err
 	}
@@ -327,4 +327,13 @@ func (h *taskConnectHandler) AddComment(
 		return nil, mapError(err)
 	}
 	return &factoryv1.AddCommentResponse{Comment: protoComment(comment)}, nil
+}
+
+// taskID resolves a task reference from a request.
+func (f *Factory) taskID(ctx context.Context, ref string) (uuid.UUID, error) {
+	id, err := f.services.Tasks.Resolve(ctx, ref)
+	if err != nil {
+		return uuid.Nil, mapError(err)
+	}
+	return id, nil
 }

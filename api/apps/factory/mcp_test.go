@@ -162,7 +162,7 @@ func TestAgentUpdatesATaskKeepingWhatItLeavesOut(t *testing.T) {
 	// What a person approved by moving it to Ready can't be reworded, but the
 	// labels can still change.
 	_, err = testDB.Exec(context.Background(),
-		`UPDATE factory.tasks SET status = 'ready' WHERE id = $1`, id)
+		`UPDATE factory.tasks SET status = 'ready' WHERE id = $1`, taskKey(t, id))
 	require.NoError(t, err)
 	_, err = callTool(t, session, "factory_update_task",
 		map[string]any{"id": id, "body": "sneaky rewrite"})
@@ -230,7 +230,7 @@ func TestBulkMoveRefusesReadyAndBadInput(t *testing.T) {
 
 	var status string
 	require.NoError(t, testDB.QueryRow(context.Background(),
-		`SELECT status FROM factory.tasks WHERE id = $1`, id).Scan(&status))
+		`SELECT status FROM factory.tasks WHERE id = $1`, taskKey(t, id)).Scan(&status))
 	assert.Equal(t, "backlog", status)
 
 	// Exactly 200 ids is still accepted; each unknown one just fails.
@@ -278,6 +278,13 @@ func TestAgentFilesCommentsAndMovesATask(t *testing.T) {
 	assert.Len(t, at(t, got, "comments"), 1)
 	assert.Equal(t, "agent:"+agentUserID, str(t, got, "comments", 0, "author"))
 	assert.Equal(t, "On it", str(t, got, "comments", 0, "body"))
+	assert.Regexp(t, `^T-[0-9]+$`, id)
+
+	for _, ref := range []string{strings.TrimPrefix(id, "T-"), taskKey(t, id).String()} {
+		byRef, refErr := callTool(t, session, "factory_get_task", map[string]any{"id": ref})
+		require.NoError(t, refErr, ref)
+		assert.Equal(t, id, str(t, byRef, "task", "id"), ref)
+	}
 }
 
 func TestAgentCannotMarkATaskReady(t *testing.T) {
@@ -295,7 +302,7 @@ func TestAgentCannotMarkATaskReady(t *testing.T) {
 
 	var status string
 	require.NoError(t, testDB.QueryRow(context.Background(),
-		`SELECT status FROM factory.tasks WHERE id = $1`, id).Scan(&status))
+		`SELECT status FROM factory.tasks WHERE id = $1`, taskKey(t, id)).Scan(&status))
 	assert.Equal(t, "backlog", status)
 }
 
@@ -483,7 +490,7 @@ func TestPeopleAreRefusedTheAgentTools(t *testing.T) {
 	require.NoError(t, testDB.QueryRow(context.Background(), `
 		SELECT (SELECT count(*) FROM factory.tasks),
 		       (SELECT count(*) FROM factory.task_comments),
-		       (SELECT status FROM factory.tasks WHERE id = $1)`, id,
+		       (SELECT status FROM factory.tasks WHERE id = $1)`, taskKey(t, id),
 	).Scan(&tasks, &comments, &status))
 	assert.Equal(t, 1, tasks)
 	assert.Zero(t, comments)

@@ -71,3 +71,19 @@ func TestHarnessValid(t *testing.T) {
 	assert.False(t, models.Harness("").Valid())
 	assert.False(t, models.HarnessInvalid.Valid())
 }
+
+func TestTaskRefRoundTrips(t *testing.T) {
+	assert.Equal(t, "T-142", models.TaskRef(142))
+	for _, ref := range []string{"T-142", "t-142", "t142", " 142 "} {
+		n, ok := models.ParseTaskRef(ref)
+		assert.True(t, ok, ref)
+		assert.EqualValues(t, 142, n, ref)
+	}
+}
+
+func TestParseTaskRefRejectsNonNumbers(t *testing.T) {
+	for _, ref := range []string{"", "T-", "T-0", "T--1", "abc", "211de0a1"} {
+		_, ok := models.ParseTaskRef(ref)
+		assert.False(t, ok, ref)
+	}
+}

@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,12 +30,11 @@ func (r *recorder) Notify(
 }
 
 func TestATaskLinkEscapesItsTitleAndPointsAtTheBoard(t *testing.T) {
-	id := uuid.MustParse("11111111-2222-3333-4444-555555555555")
 	n := notices{out: nil, webURL: "https://tools.example.com"}
 	assert.Equal(
 		t,
-		"<https://tools.example.com/factory?task="+id.String()+"|Fix &lt;!here&gt;>",
-		n.taskLink(id, "Fix <!here>"),
+		"<https://tools.example.com/factory?task=T-142|Fix &lt;!here&gt;>",
+		n.taskLink(142, "Fix <!here>"),
 	)
 }
 

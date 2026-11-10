@@ -43,7 +43,7 @@ func (r *JobRunner) sessionTasks(root string) []string {
 	}
 	var ids []string
 	for _, entry := range entries {
-		if entry.IsDir() && jobIDPattern.MatchString(entry.Name()) {
+		if entry.IsDir() && taskIDPattern.MatchString(entry.Name()) {
 			ids = append(ids, entry.Name())
 		}
 	}

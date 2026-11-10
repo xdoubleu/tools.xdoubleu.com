@@ -10,9 +10,12 @@ import (
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/factory"
+	"tools.xdoubleu.com/apps/factory/internal/models"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/constants"
@@ -139,4 +142,15 @@ func code(err error) connect.Code {
 		return ce.Code()
 	}
 	return connect.CodeUnknown
+}
+
+// taskKey is the primary key of the task a response calls by its T-<number> id.
+func taskKey(t *testing.T, ref string) uuid.UUID {
+	t.Helper()
+	number, ok := models.ParseTaskRef(ref)
+	require.True(t, ok, ref)
+	var id uuid.UUID
+	require.NoError(t, testDB.QueryRow(context.Background(),
+		`SELECT id FROM factory.tasks WHERE number = $1`, number).Scan(&id))
+	return id
 }

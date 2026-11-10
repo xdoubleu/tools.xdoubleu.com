@@ -17,7 +17,8 @@ type JobsRepository struct {
 const jobColumns = `id, task_id, repo_id, harness, prompt, status, branch,
 	session_id, outcome, created_by, created_at, started_at, last_check_in,
 	finished_at, pr_url, runner_id, pr_state, pr_ci, pr_review, parent_job_id,
-	model, limited, limit_resets_at`
+	model, limited, limit_resets_at,
+	(SELECT number FROM factory.tasks WHERE id = task_id)`
 
 func scanJob(row rowScanner) (*models.Job, error) {
 	var j models.Job
@@ -26,7 +27,7 @@ func scanJob(row rowScanner) (*models.Job, error) {
 		&j.SessionID, &j.Outcome, &j.CreatedBy, &j.CreatedAt, &j.StartedAt,
 		&j.LastCheckIn, &j.FinishedAt, &j.PRURL,
 		&j.RunnerID, &j.PRState, &j.PRCI, &j.PRReview, &j.ParentJobID,
-		&j.Model, &j.Limited, &j.LimitResetsAt,
+		&j.Model, &j.Limited, &j.LimitResetsAt, &j.TaskNumber,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)

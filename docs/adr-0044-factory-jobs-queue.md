@@ -43,7 +43,7 @@ its own work ([ADR-0041](adr-0041-factory-runner-pairing.md)).
   lines every 2 seconds, secrets removed, to `AppendJobEvents`; `ListJobEvents`
   serves them to a human admin in a browser. A job keeps at most 5000 events, for
   30 days.
-- The branch is `agent/<task-id>-<slug>`, chosen by the server and checked again
+- The branch is `agent/t<number>-<slug>` (the task number, shown as T-<number>), chosen by the server and checked again
   by the runner.
 
 - **Reply** queues a child job (`parent_job_id`) with the reply as its prompt, the

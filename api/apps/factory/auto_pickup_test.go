@@ -147,7 +147,7 @@ func TestAReadyTaskFromBeforeTheSnapshotsExistedIsNotPickedUp(t *testing.T) {
 	env.ready(t, task.Id)
 	_, err := testDB.Exec(context.Background(),
 		`UPDATE factory.tasks SET ready_title = NULL, ready_body = NULL WHERE id = $1`,
-		task.Id)
+		taskKey(t, task.Id))
 	require.NoError(t, err)
 
 	assert.Nil(t, env.claim(t))

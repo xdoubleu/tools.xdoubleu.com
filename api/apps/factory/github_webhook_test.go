@@ -129,3 +129,17 @@ func TestTheWebhookIsOffWithoutASecret(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable,
 		deliver(t, env, "pull_request", body, sign("", body)))
 }
+
+func TestAMergeWebhookStillFollowsAPullRequestLinkedByUUID(t *testing.T) {
+	env := webhookEnv(t)
+	task := env.newTask(t, "legacy")
+	env.putInReview(t, task.Id)
+	key := taskKey(t, task.Id)
+	body := pullEvent(t, "closed", true, "Task: legacy ("+key.String()+")\n\nbody")
+
+	status := deliver(t, env, "pull_request", body, sign(webhookSecret, body))
+
+	assert.Equal(t, http.StatusNoContent, status)
+	got := env.task(t, task.Id)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_TESTING, got.Task.Status)
+}

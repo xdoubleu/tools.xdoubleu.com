@@ -5,8 +5,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/google/uuid"
-
+	"tools.xdoubleu.com/apps/factory/internal/models"
 	"tools.xdoubleu.com/internal/slack"
 )
 
@@ -36,8 +35,8 @@ func firstLine(text string) string {
 }
 
 // taskLink is a Slack link to the task on the board, labelled with its title.
-func (n notices) taskLink(id uuid.UUID, title string) string {
-	return "<" + n.webURL + "/factory?task=" + id.String() + "|" + slack.Escape(
+func (n notices) taskLink(number int64, title string) string {
+	return "<" + n.webURL + "/factory?task=" + models.TaskRef(number) + "|" + slack.Escape(
 		title,
 	) + ">"
 }

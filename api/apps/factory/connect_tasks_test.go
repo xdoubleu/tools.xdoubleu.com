@@ -161,7 +161,7 @@ func TestUpdateRecordsBodyEditorOnlyOnBodyChange(t *testing.T) {
 		var by, via string
 		require.NoError(t, testDB.QueryRow(context.Background(),
 			`SELECT body_edited_by, body_edited_channel
-			 FROM factory.tasks WHERE id = $1`, task.Id).Scan(&by, &via))
+			 FROM factory.tasks WHERE id = $1`, taskKey(t, task.Id)).Scan(&by, &via))
 		return by, via
 	}
 	by, via := read()
@@ -170,7 +170,7 @@ func TestUpdateRecordsBodyEditorOnlyOnBodyChange(t *testing.T) {
 
 	_, err := testDB.Exec(context.Background(),
 		`UPDATE factory.tasks SET body_edited_by = 'human:old',
-		 body_edited_channel = 'other' WHERE id = $1`, task.Id)
+		 body_edited_channel = 'other' WHERE id = $1`, taskKey(t, task.Id))
 	require.NoError(t, err)
 
 	_, err = c.UpdateTask(context.Background(), &factoryv1.UpdateTaskRequest{

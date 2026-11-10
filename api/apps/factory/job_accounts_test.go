@@ -125,7 +125,7 @@ func TestAClaimedJobGetsItsOwnAgentAccount(t *testing.T) {
 
 	acc := accounts.of(t, claimed.Id)
 	assert.Equal(t, claimed.McpClientId, acc.clientID)
-	assert.Equal(t, task.Id, acc.taskID.String())
+	assert.Equal(t, taskKey(t, task.Id), acc.taskID)
 	assert.True(t, acc.active)
 	assert.True(t, strings.HasPrefix(acc.name, "job #"+claimed.Id[:8]+" · "), acc.name)
 }

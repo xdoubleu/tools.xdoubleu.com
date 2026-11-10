@@ -89,18 +89,18 @@ describe('TaskDetail', () => {
     expect(screen.getByText('On it')).toBeInTheDocument()
   })
 
-  it('shows the short id and copies the full one', async () => {
+  it('shows the task id and copies it', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.assign(navigator, { clipboard: { writeText } })
     const long = create(GetTaskResponseSchema, {
-      task: create(TaskSchema, { id: '12345678-aaaa-bbbb-cccc-ddddeeeeffff', title: 'Long' })
+      task: create(TaskSchema, { id: 'T-142', title: 'Long' })
     })
     mockTask({ data: long })
-    render(<TaskDetail id="12345678-aaaa-bbbb-cccc-ddddeeeeffff" onClose={vi.fn()} />)
-    expect(screen.getByTestId('task-id')).toHaveTextContent('12345678')
+    render(<TaskDetail id="T-142" onClose={vi.fn()} />)
+    expect(screen.getByTestId('task-id')).toHaveTextContent('T-142')
     fireEvent.click(screen.getByRole('button', { name: 'Copy id' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument())
-    expect(writeText).toHaveBeenCalledWith('12345678-aaaa-bbbb-cccc-ddddeeeeffff')
+    expect(writeText).toHaveBeenCalledWith('T-142')
     await waitFor(
       () => expect(screen.getByRole('button', { name: 'Copy id' })).toBeInTheDocument(),
       {
