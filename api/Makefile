@@ -132,9 +132,13 @@ proto/generate: tools/proto
 proto/generate/local: tools/proto/local
 	buf generate --template buf.gen.local.yaml
 
-# Mirrors CI's proto-staleness check.
-proto/check: proto/generate
-	git diff --exit-code gen/ || (echo "api/gen/ is out of date — run 'make proto/generate' (api) and 'npm run generate' (web), then commit the results." && exit 1)
+# Mirrors CI's proto-staleness check. Compares gen/ before and after
+# regenerating, so freshly generated but uncommitted stubs pass.
+proto/check: tools/proto
+	@before=$$(find gen -type f | sort | xargs sha256sum); \
+	buf generate; \
+	after=$$(find gen -type f | sort | xargs sha256sum); \
+	[ "$$before" = "$$after" ] || { echo "api/gen/ is out of date — run 'make proto/generate' (api) and 'npm run generate' (web), then commit the results." >&2; exit 1; }
 
 build:
 	go build -o=./bin/api ./cmd/api
