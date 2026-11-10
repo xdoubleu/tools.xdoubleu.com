@@ -31,6 +31,12 @@ beforeEach(() => {
 })
 
 describe('TaskCard', () => {
+  it('shows the short task id', () => {
+    const long = create(TaskSchema, { ...task, id: '12345678-aaaa-bbbb-cccc-ddddeeeeffff' })
+    render(<TaskCard {...props} task={long} />)
+    expect(screen.getByTestId('task-id')).toHaveTextContent('12345678')
+  })
+
   it('shows title, priority, labels and comment count', () => {
     render(<TaskCard {...props} />)
     expect(screen.getByText('Fix login')).toBeInTheDocument()
@@ -160,5 +166,6 @@ describe('TaskCard', () => {
 
     rerender(<TaskCard {...props} repo={create(RepoSchema, { owner: 'octo', name: 'cat' })} />)
     expect(screen.getByText('octo/cat')).toBeInTheDocument()
+    expect(screen.getByTestId('task-id').parentElement).toHaveTextContent('t-1 · octo/cat')
   })
 })

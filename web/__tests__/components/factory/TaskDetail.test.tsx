@@ -88,6 +88,26 @@ describe('TaskDetail', () => {
     expect(screen.getByText('On it')).toBeInTheDocument()
   })
 
+  it('shows the short id and copies the full one', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, { clipboard: { writeText } })
+    const long = create(GetTaskResponseSchema, {
+      task: create(TaskSchema, { id: '12345678-aaaa-bbbb-cccc-ddddeeeeffff', title: 'Long' })
+    })
+    mockTask({ data: long })
+    render(<TaskDetail id="12345678-aaaa-bbbb-cccc-ddddeeeeffff" onClose={vi.fn()} />)
+    expect(screen.getByTestId('task-id')).toHaveTextContent('12345678')
+    fireEvent.click(screen.getByRole('button', { name: 'Copy id' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument())
+    expect(writeText).toHaveBeenCalledWith('12345678-aaaa-bbbb-cccc-ddddeeeeffff')
+    await waitFor(
+      () => expect(screen.getByRole('button', { name: 'Copy id' })).toBeInTheDocument(),
+      {
+        timeout: 3000
+      }
+    )
+  })
+
   it('says when there is no description or comment', () => {
     const bare = create(GetTaskResponseSchema, {
       task: create(TaskSchema, { id: 't-2', title: 'Bare' })
