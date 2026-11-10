@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
+	"tools.xdoubleu.com/selfupdate/appbundle"
 )
 
 // Release and UpdatePublicKey are set at build time. An empty key disables
@@ -66,6 +67,8 @@ type app struct {
 	jobs jobsFunc
 	// installedRelease reports the release stamped into the binary at path.
 	installedRelease func(path string) string
+	// sign seals the app bundle around an installed binary.
+	sign func(ctx context.Context, binary string) error
 }
 
 // jobLoop claims and runs jobs until its context ends.
@@ -98,7 +101,7 @@ func (a *app) run(ctx context.Context, args []string) int {
 	if len(args) == 0 {
 		// Double-clicking the installed app runs the binary with no args; that
 		// is the drag-to-Applications install, not a bare binary usage error.
-		if runner.AppBundlePath(a.execPath) != "" {
+		if appbundle.Path(a.execPath) != "" {
 			return a.installFromApp(ctx)
 		}
 		fmt.Fprint(a.stderr, usage)
@@ -111,7 +114,7 @@ func (a *app) run(ctx context.Context, args []string) int {
 	case "run":
 		err = a.runDaemon(ctx)
 	case "install":
-		err = a.install()
+		err = a.install(ctx)
 	case "config":
 		err = a.config(args[1:])
 	case "version":
@@ -273,8 +276,8 @@ func mostTelling(a, b error) error {
 	return cmp.Or(a, b)
 }
 
-func (a *app) install() error {
-	installed, err := runner.InstallBinary(a.home, a.execPath)
+func (a *app) install(ctx context.Context) error {
+	installed, err := a.installBinary(ctx)
 	if err != nil {
 		return err
 	}
@@ -289,6 +292,19 @@ func (a *app) install() error {
 	return nil
 }
 
+// installBinary installs this executable's app and seals it, so the LaunchAgent
+// runs from a bundle, which macOS notifications need.
+func (a *app) installBinary(ctx context.Context) (string, error) {
+	installed, err := runner.InstallBinary(a.home, a.execPath)
+	if err != nil {
+		return "", err
+	}
+	if err = a.sign(ctx, installed); err != nil {
+		return "", fmt.Errorf("sign installed app: %w", err)
+	}
+	return installed, nil
+}
+
 // installFromApp runs `install` as a double-clicked .app, then opens the board's
 // Runner page so the user can pair. Opening the page is best-effort: installing
 // and loading the LaunchAgent is the point, and a windowless app can't tell the
@@ -300,7 +316,7 @@ func (a *app) installFromApp(ctx context.Context) int {
 	installed := runner.InstalledBinaryPath(a.home)
 	if _, err := os.Stat(installed); errors.Is(err, os.ErrNotExist) ||
 		a.installedRelease(installed) != Release {
-		installed, err = runner.InstallBinary(a.home, a.execPath)
+		installed, err = a.installBinary(ctx)
 		if err != nil {
 			fmt.Fprintln(a.stderr, "factory-runner:", err)
 			return 1

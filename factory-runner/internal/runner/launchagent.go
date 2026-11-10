@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"tools.xdoubleu.com/selfupdate/appbundle"
 )
 
 // LaunchAgentLabel names the runner's LaunchAgent.
@@ -84,39 +86,90 @@ const (
 	installFilePerm      = 0o755
 )
 
+// InstallDir holds the installed app and the runner's local state.
+func InstallDir(homeDir string) string {
+	return filepath.Join(homeDir, "Library", "Application Support", "factory-runner")
+}
+
+// InstalledBundlePath is the app the LaunchAgent runs; macOS only shows
+// notifications from a process inside a bundle.
+func InstalledBundlePath(homeDir string) string {
+	return filepath.Join(InstallDir(homeDir), "FactoryRunner.app")
+}
+
 // InstalledBinaryPath is the stable place the LaunchAgent runs the runner from,
 // so a download in ~/Downloads can be deleted and self-update has one file to
 // replace.
 func InstalledBinaryPath(homeDir string) string {
 	return filepath.Join(
-		homeDir, "Library", "Application Support", "factory-runner", "factory-runner",
+		InstalledBundlePath(homeDir), "Contents", "MacOS", "factory-runner",
 	)
 }
 
-// InstallBinary copies the running executable to InstalledBinaryPath and
-// returns it. Running the installed copy already is a no-op.
+// InstallBinary installs src's app bundle at InstalledBundlePath (a bare binary
+// gets a minimal one) and returns the binary inside it. The caller seals the
+// result with ResignBundle. Running the installed copy already is a no-op.
 func InstallBinary(homeDir, src string) (string, error) {
 	dst := InstalledBinaryPath(homeDir)
 	if filepath.Clean(src) == dst {
 		return dst, nil
 	}
-	data, err := os.ReadFile(src)
-	if err != nil {
-		return "", fmt.Errorf("read executable: %w", err)
+	bundle := InstalledBundlePath(homeDir)
+	tmp := bundle + ".install"
+	if err := os.RemoveAll(tmp); err != nil {
+		return "", fmt.Errorf("clear stale install: %w", err)
 	}
-	if err = os.MkdirAll(filepath.Dir(dst), installDirPerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(bundle), installDirPerm); err != nil {
 		return "", fmt.Errorf("create install dir: %w", err)
 	}
-	tmp := dst + ".install"
-	//nolint:gosec // must be executable
-	if err = os.WriteFile(tmp, data, installFilePerm); err != nil {
-		return "", fmt.Errorf("write binary: %w", err)
+	var err error
+	if app := appbundle.Path(src); app != "" {
+		err = copyBundle(app, tmp)
+	} else {
+		err = writeBundle(src, tmp)
 	}
-	if err = os.Rename(tmp, dst); err != nil {
-		_ = os.Remove(tmp)
-		return "", fmt.Errorf("install binary: %w", err)
+	if err == nil {
+		err = os.RemoveAll(bundle)
+	}
+	if err == nil {
+		err = os.Rename(tmp, bundle)
+	}
+	if err != nil {
+		_ = os.RemoveAll(tmp)
+		return "", fmt.Errorf("install app: %w", err)
 	}
 	return dst, nil
+}
+
+func copyBundle(src, dst string) error {
+	out, err := exec.CommandContext(context.Background(), "ditto", src, dst).
+		CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("copy app: %w: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
+}
+
+func writeBundle(binary, bundle string) error {
+	data, err := os.ReadFile(binary)
+	if err != nil {
+		return fmt.Errorf("read executable: %w", err)
+	}
+	macOS := filepath.Join(bundle, "Contents", "MacOS")
+	if err = os.MkdirAll(macOS, installDirPerm); err != nil {
+		return fmt.Errorf("create app: %w", err)
+	}
+	//nolint:gosec // must be executable
+	err = os.WriteFile(filepath.Join(macOS, "factory-runner"), data, installFilePerm)
+	if err != nil {
+		return fmt.Errorf("write binary: %w", err)
+	}
+	plist := filepath.Join(bundle, "Contents", "Info.plist")
+	//nolint:gosec // an Info.plist is world-readable
+	if err = os.WriteFile(plist, []byte(bundleInfoPlist), 0o644); err != nil {
+		return fmt.Errorf("write Info.plist: %w", err)
+	}
+	return nil
 }
 
 // BinaryRelease asks the binary at path for its stamped release; an empty

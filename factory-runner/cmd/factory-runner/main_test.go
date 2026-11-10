@@ -89,6 +89,7 @@ func newEnv(t *testing.T) env {
 			menu:             nil,
 			jobs:             nil,
 			installedRelease: func(string) string { return Release },
+			sign:             func(context.Context, string) error { return nil },
 			open:             func(context.Context, string) error { return nil },
 		},
 		out: out, errs: errs, store: store, server: server, ran: &ran, loaded: &loaded,
@@ -222,8 +223,7 @@ func TestNoArgsInAnAppBundleReportsInstallFailures(t *testing.T) {
 		e := newEnv(t)
 		bundle := filepath.Join(t.TempDir(), "FactoryRunner.app", "Contents", "MacOS",
 			"factory-runner")
-		require.NoError(t, os.MkdirAll(filepath.Dir(bundle), 0o755))
-		e.app.execPath = bundle // missing file: InstallBinary fails
+		e.app.execPath = bundle // missing app: InstallBinary fails
 		assert.Equal(t, 1, e.do())
 		assert.Contains(t, e.errs.String(), "factory-runner:")
 	})

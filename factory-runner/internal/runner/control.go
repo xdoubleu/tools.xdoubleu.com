@@ -13,7 +13,7 @@ const pausePerm = 0o600
 // PausePath is the flag file whose presence means the owner stopped this runner.
 // It outlives the process, so launchd restarting the runner doesn't undo a Stop.
 func PausePath(homeDir string) string {
-	return filepath.Join(filepath.Dir(InstalledBinaryPath(homeDir)), "paused")
+	return filepath.Join(InstallDir(homeDir), "paused")
 }
 
 // Status is what the menu bar shows.
@@ -39,6 +39,7 @@ type Control struct {
 	beat   time.Time
 	update string
 	check  bool
+	notify func(title, body string)
 	// wake nudges the daemon loop out of a held heartbeat when a check is asked for.
 	wake chan struct{}
 }
@@ -56,7 +57,30 @@ func NewControl(pausePath, version string, activity *Activity) *Control {
 		beat:      time.Time{},
 		update:    "",
 		check:     false,
+		notify:    nil,
 		wake:      make(chan struct{}, 1),
+	}
+}
+
+// SetNotifier sets how Notify reaches the owner; the menu bar does, where the
+// platform allows.
+func (c *Control) SetNotifier(notify func(title, body string)) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.notify = notify
+}
+
+// Notify shows a best-effort notification. Without a notifier, or on a nil
+// Control, it does nothing.
+func (c *Control) Notify(body string) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	notify := c.notify
+	c.mu.Unlock()
+	if notify != nil {
+		notify("Factory Runner", body)
 	}
 }
 
@@ -143,6 +167,7 @@ func (c *Control) RequestCheck() {
 	c.check = true
 	c.update = "check requested"
 	c.mu.Unlock()
+	c.Notify("Checking for updates…")
 	select {
 	case c.wake <- struct{}{}:
 	default:
@@ -152,19 +177,28 @@ func (c *Control) RequestCheck() {
 // refuseCheck drops a pending check that can't run, saying why in the menu.
 func (c *Control) refuseCheck(reason string) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.check {
-		c.check = false
+	refused := c.check
+	c.check = false
+	if refused {
 		c.update = reason
+	}
+	c.mu.Unlock()
+	if refused {
+		c.Notify(reason)
 	}
 }
 
-// deferCheck keeps a pending check for later, saying why it hasn't run.
+// deferCheck keeps a pending check for later, saying why it hasn't run (once,
+// as the loop asks again every pass).
 func (c *Control) deferCheck(reason string) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.check {
+	changed := c.check && c.update != reason
+	if changed {
 		c.update = reason
+	}
+	c.mu.Unlock()
+	if changed {
+		c.Notify(reason)
 	}
 }
 

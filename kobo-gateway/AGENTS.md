@@ -9,13 +9,13 @@ cmd/kobo-gateway/
   main.go            # flags, Sentry, TLS bootstrap, self-update restart loop
   bundle.go          # runningInAppBundle(): .app vs raw dev binary
   menubar_darwin.go  # Go side of the menu bar: cgo calls, //export callbacks
-  menubar_darwin.m/.h  # AppKit/UserNotifications code; C bridge
+  menubar_darwin.m/.h  # AppKit code; C bridge
   menubar_other.go   # !darwin || !cgo no-op stub (keeps Linux/CI green)
   notify.go, recover.go
   assets/            # Info.plist, icons, package.sh (.app/.dmg)
 cmd/kobo-sign/       # self-update key generation and signing (CI)
 internal/kobogateway/  # loopback HTTPS server; no AppKit
-# self-update download, verify and swap, and updatesig, live in ../selfupdate
+# self-update, updatesig, appbundle and notification live in ../selfupdate
 ```
 
 `conf.go` is the only parser/serializer of `Kobo eReader.conf` — the browser never reads it (`web/lib/books/koboConf.ts` does only string checks).

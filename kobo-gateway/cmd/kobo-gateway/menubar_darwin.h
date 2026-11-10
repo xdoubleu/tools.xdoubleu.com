@@ -26,8 +26,6 @@ void kgOpenURL(const char *url);
 // Any thread.
 void kgDispatchMain(uintptr_t handle);
 void kgTerminate(void);
-void kgRequestNotificationAuth(void);
-void kgPostNotification(const char *title, const char *body);
 
 // Go callbacks (//export in menubar_darwin.go), called on the main thread.
 void goAppDidFinishLaunching(void);

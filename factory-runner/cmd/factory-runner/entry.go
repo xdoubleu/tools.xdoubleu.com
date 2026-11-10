@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
+	"tools.xdoubleu.com/selfupdate/appbundle"
 )
 
 func main() {
@@ -59,6 +60,7 @@ func main() {
 		open:             openURL,
 		jobs:             nil,
 		installedRelease: runner.BinaryRelease,
+		sign:             appbundle.Resign,
 	}
 	a.activity = runner.NewActivity(runner.NewCaffeinate())
 	a.control = runner.NewControl(runner.PausePath(home), Release, a.activity)

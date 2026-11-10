@@ -1,10 +1,8 @@
 //go:build darwin && cgo
 
-// AppKit status item and UserNotifications for menubar_darwin.go. Built with
-// -fobjc-arc; the strong statics below keep the status item and its menu
-// alive across Go calls.
+// AppKit status item for menubar_darwin.go. Built with -fobjc-arc; the strong
+// statics below keep the status item and its menu alive across Go calls.
 #import <Cocoa/Cocoa.h>
-#import <UserNotifications/UserNotifications.h>
 
 #include "menubar_darwin.h"
 
@@ -175,43 +173,3 @@ void kgTerminate(void) {
 	});
 }
 
-// UNUserNotificationCenter throws outside a .app bundle; an exception
-// escaping into Go would abort the process.
-void kgRequestNotificationAuth(void) {
-	@autoreleasepool {
-		@try {
-			[[UNUserNotificationCenter currentNotificationCenter]
-			    requestAuthorizationWithOptions:(UNAuthorizationOptionAlert |
-			                                     UNAuthorizationOptionSound)
-			                  completionHandler:^(BOOL granted, NSError *error){
-			                  }];
-		} @catch (NSException *e) {
-			NSLog(@"kobo-gateway: notification authorization: %@", e);
-		}
-	}
-}
-
-void kgPostNotification(const char *title, const char *body) {
-	@autoreleasepool {
-		@try {
-			UNMutableNotificationContent *content =
-			    [[UNMutableNotificationContent alloc] init];
-			content.title = kgString(title);
-			if (body != NULL && body[0] != '\0') {
-				content.body = kgString(body);
-			}
-			// A unique identifier stacks toasts instead of coalescing them.
-			NSString *identifier = [@"kobo-gateway-"
-			    stringByAppendingString:[[NSUUID UUID] UUIDString]];
-			UNNotificationRequest *request =
-			    [UNNotificationRequest requestWithIdentifier:identifier
-			                                         content:content
-			                                         trigger:nil];
-			[[UNUserNotificationCenter currentNotificationCenter]
-			    addNotificationRequest:request
-			     withCompletionHandler:nil];
-		} @catch (NSException *e) {
-			NSLog(@"kobo-gateway: post notification: %@", e);
-		}
-	}
-}

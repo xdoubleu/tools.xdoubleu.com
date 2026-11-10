@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/selfupdate"
+	"tools.xdoubleu.com/selfupdate/appbundle"
 )
 
 const (
@@ -78,5 +79,16 @@ func (u *Updater) Update(ctx context.Context, idle func() bool) (bool, error) {
 	if latest == "" || latest == u.current {
 		return false, nil
 	}
-	return u.inner.Install(ctx, u.origin, idle)
+	replaced, err := u.inner.Install(ctx, u.origin, idle)
+	if err != nil || !replaced {
+		return replaced, err
+	}
+	executable, err := u.inner.ExecutablePath()
+	if err != nil {
+		return true, fmt.Errorf("could not resolve executable path: %w", err)
+	}
+	if err = appbundle.Resign(ctx, executable); err != nil {
+		return true, fmt.Errorf("could not re-sign updated app: %w", err)
+	}
+	return true, nil
 }

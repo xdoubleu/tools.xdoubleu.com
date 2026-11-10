@@ -83,10 +83,12 @@ func run(
 			}
 		default:
 		}
-		if !updating && due(opts, clk.now(), lastCheck) {
-			lastCheck = clk.now()
-			updating = true
-			go func() { updated <- tryUpdate(ctx, opts, log) }()
+		if !updating {
+			if check, requested := due(opts, clk.now(), lastCheck); check {
+				lastCheck = clk.now()
+				updating = true
+				go func() { updated <- tryUpdate(ctx, opts, log, requested) }()
+			}
 		}
 
 		if opts.Control != nil && opts.Control.Quiet() {
@@ -144,26 +146,33 @@ func beatOnce(
 	return fired.Load(), err
 }
 
-func due(opts Options, now, lastCheck time.Time) bool {
+// due reports whether to check for an update now, and whether the owner asked
+// for it (whose outcome is notified, unlike the hourly check's).
+func due(opts Options, now, lastCheck time.Time) (bool, bool) {
 	if opts.Updater == nil {
-		return false
+		return false, false
 	}
 	if opts.Control != nil && opts.Control.Paused() {
 		opts.Control.refuseCheck("not checked: the runner is stopped")
-		return false
+		return false, false
 	}
 	if opts.Activity != nil && !opts.Activity.Idle() {
 		if opts.Control != nil {
 			opts.Control.deferCheck("waiting for the current job to finish")
 		}
-		return false
+		return false, false
 	}
 	// A requested check is only consumed once it can run.
 	requested := opts.Control != nil && opts.Control.takeCheck()
-	return requested || now.Sub(lastCheck) >= UpdateEvery
+	return requested || now.Sub(lastCheck) >= UpdateEvery, requested
 }
 
-func tryUpdate(ctx context.Context, opts Options, log *slog.Logger) bool {
+func tryUpdate(
+	ctx context.Context,
+	opts Options,
+	log *slog.Logger,
+	requested bool,
+) bool {
 	idle := func() bool { return opts.Activity == nil || opts.Activity.Idle() }
 	if opts.Control != nil {
 		opts.Control.RecordUpdate("checking")
@@ -185,6 +194,14 @@ func tryUpdate(ctx context.Context, opts Options, log *slog.Logger) bool {
 	}
 	if opts.Control != nil {
 		opts.Control.RecordUpdate(outcome)
+		switch {
+		case replaced:
+			opts.Control.Notify("Updated to a new release; restarting")
+		case requested && err != nil:
+			opts.Control.Notify("Update " + outcome)
+		case requested:
+			opts.Control.Notify("Factory Runner is up to date")
+		}
 	}
 	return replaced
 }

@@ -21,6 +21,7 @@ import (
 	"unsafe"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
+	"tools.xdoubleu.com/selfupdate/notification"
 )
 
 // iconTemplate is a monochrome template image; macOS tints it.
@@ -56,6 +57,7 @@ func runMenu(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	ui = info
+	info.Control.SetNotifier(notification.Post)
 
 	done := make(chan error, 1)
 	go func() {
@@ -73,6 +75,7 @@ func runMenu(
 //export goAppDidFinishLaunching
 func goAppDidFinishLaunching() {
 	buildStatusItem()
+	notification.RequestAuth()
 	refreshMenu()
 }
 

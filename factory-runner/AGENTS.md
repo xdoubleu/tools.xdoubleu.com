@@ -34,7 +34,7 @@ The server is untrusted; each claimed job is checked for UUID ids, the local rep
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
-`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature and release file into `/downloads/`. The dmg's app installs the LaunchAgent; `-X main.UpdatePublicKey` is the trusted key. Self-update is `../selfupdate`.
+`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature and release file into `/downloads/`. The dmg's app installs a bundle copy and LaunchAgent; `-X main.UpdatePublicKey` is the trusted key. Shared: `../selfupdate`.
 
 Menu bar Stop writes a `paused` flag; logs go to `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
 

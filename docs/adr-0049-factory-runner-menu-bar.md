@@ -18,7 +18,7 @@ newer release", and the LaunchAgent had no log path, so stderr went nowhere.
 - **Menu bar icon, as in kobo-gateway**: hand-written Objective-C behind cgo,
   main thread only, a stub for `!darwin || !cgo`; `make build` forces
   `CGO_ENABLED=1`. The status lines refresh whenever the menu opens.
-- **Stop is a pause flag file** (`paused` beside the installed binary), not an
+- **Stop is a pause flag file** (`paused` in the install directory), not an
   unloaded LaunchAgent. The process keeps running, so the icon stays and Start
   needs no terminal; the flag survives launchd restarts and reboots. While
   paused the loop claims no jobs, the heartbeat goes silent (the board shows the
@@ -29,6 +29,11 @@ newer release", and the LaunchAgent had no log path, so stderr went nowhere.
   start the runner again until the next login.
 - **Update checks are visible**: each logs its outcome and the menu shows the
   latest; "Check for updates" requests one now (still only when idle).
+- **Notifications, shared with kobo-gateway** (`selfupdate/notification`): a manual
+  update check toasts "Checking…" and its outcome, a refused or deferred check says
+  why, and an installed update always toasts; the hourly check is silent. Both apps
+  share `appbundle` and `notification` through `../selfupdate`; outside a bundle,
+  posting is a no-op.
 - **Both menu bars match**: status lines, then actions, "Start at Login" and Quit;
   neither opens a URL. kobo-gateway gained "Check for updates" (it compares the
   published `kobo-gateway-release.txt` with its own release before downloading).
