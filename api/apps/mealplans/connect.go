@@ -42,6 +42,7 @@ func protoPlanMeal(m *models.PlanMeal) *mealplansv1.PlanMeal {
 		CustomName:              m.CustomName,
 		Servings:                servings,
 		ExcludeFromShoppingList: m.ExcludeFromShoppingList,
+		CreatedAtMicros:         m.CreatedAt.UnixMicro(),
 	}
 	if m.RecipeID != nil && m.RecipeName != "" {
 		pb.RecipeRef = &mealplansv1.RecipeRef{

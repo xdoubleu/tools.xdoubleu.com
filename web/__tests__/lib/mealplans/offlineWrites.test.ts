@@ -73,6 +73,8 @@ describe('meal plan offline writes', () => {
       servings: 2,
       recipeRef: { id: 'r2', name: 'Stew' }
     })
+    // Stamped with the client time so it sorts after existing meals, as on the server.
+    expect(meals(result)?.[2].createdAtMicros).toBeGreaterThan(0n)
     // Re-applied over a refetch that already holds it, it stays one meal.
     expect(meals(run(createMealWrite, req, key, result, 'Stew'))).toHaveLength(3)
   })

@@ -7,7 +7,23 @@ import MealPlanCalendar from '@/components/mealplans/MealPlanCalendar'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader, PageHeaderLink } from '@/components/ui/page-header'
-import { ErrorState, LoadingState } from '@/components/ui/states'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ErrorState } from '@/components/ui/states'
+
+// Matches the loaded page: title row, week navigation, and a week of day cards.
+function MealPlanSkeleton() {
+  return (
+    <div role="status" aria-label="Loading meal plan" className="space-y-4">
+      <Skeleton className="h-10 w-1/2" />
+      <Skeleton className="h-9 w-full" />
+      <div className="space-y-3">
+        {Array.from({ length: 7 }, (_, i) => (
+          <Skeleton key={i} className="h-48" />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function MealPlanClient({ id }: { id: string }) {
   const [offset, setOffset] = useState(0)
@@ -26,7 +42,7 @@ export default function MealPlanClient({ id }: { id: string }) {
 
   return (
     <PageContainer>
-      {isLoading && <LoadingState placement="page" label="meal plan" />}
+      {isLoading && <MealPlanSkeleton />}
       {error && <ErrorState placement="page" what="meal plan" />}
 
       {plan && (

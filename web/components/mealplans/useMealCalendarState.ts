@@ -14,7 +14,7 @@ import type {
 } from '@/hooks/useMealPlans'
 import type { Plan, PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
-import { MEAL_SLOTS } from '@/lib/mealplans/mealPlanCalendar'
+import { MEAL_SLOTS, compareMeals } from '@/lib/mealplans/mealPlanCalendar'
 
 export interface MealSuggestion {
   recipe: Recipe
@@ -60,9 +60,10 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
 
   const recipeName = (id: string) => recipes.find((r) => r.id === id)?.name
 
-  // A slot can hold any number of meals.
+  // A slot can hold any number of meals, ordered like the server so an
+  // optimistic write and the refetch that follows agree.
   const getMealsForSlot = (date: string, slot: string) =>
-    (plan.meals || []).filter((m) => m.mealDate === date && m.mealSlot === slot)
+    (plan.meals || []).filter((m) => m.mealDate === date && m.mealSlot === slot).sort(compareMeals)
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {

@@ -255,7 +255,7 @@ func (r *PlansRepository) GetMealsInWindow(
 	const baseCols = `
 		SELECT pm.id, pm.plan_id, pm.meal_date, pm.meal_slot,
 		       pm.recipe_id, pm.custom_name, pm.servings,
-		       pm.exclude_from_shopping_list, r.name
+		       pm.exclude_from_shopping_list, r.name, pm.created_at
 		FROM mealplans.plan_meals pm
 		JOIN mealplans.plans p ON p.id = pm.plan_id
 		LEFT JOIN recipes.recipes r
@@ -296,6 +296,7 @@ func (r *PlansRepository) GetMealsInWindow(
 			&meal.Servings,
 			&meal.ExcludeFromShoppingList,
 			&recipeName,
+			&meal.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

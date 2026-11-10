@@ -21,3 +21,12 @@ export function formatMealDate(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
+
+/** Orders meals as the server does: creation time, then id. */
+export function compareMeals(
+  a: { createdAtMicros: bigint; id: string },
+  b: { createdAtMicros: bigint; id: string }
+): number {
+  if (a.createdAtMicros !== b.createdAtMicros) return a.createdAtMicros < b.createdAtMicros ? -1 : 1
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+}

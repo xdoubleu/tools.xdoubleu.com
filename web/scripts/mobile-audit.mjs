@@ -14,6 +14,7 @@ const MIN_TAP_GAP_PX = 8
 const MIN_INPUT_FONT_PX = 16 // Below this, iOS Safari zooms on focus.
 const OVERFLOW_TOLERANCE_PX = 1 // Sub-pixel layout rounding is not a finding.
 const NETWORK_SETTLE_MS = 5000 // Max wait for network idle before measuring.
+const MAX_CLS = 0.1 // Core Web Vitals "good" threshold.
 
 function parseArgs(argv) {
   const paths = []
@@ -211,6 +212,22 @@ for (const theme of opts.themes) {
   for (const path of paths) {
     const url = new URL(path, opts.baseUrl).toString()
     const page = await context.newPage()
+    // Record layout shifts from the first paint; read after the page settles.
+    await page.addInitScript(() => {
+      /* eslint-disable no-undef -- runs in the page. */
+      window.__shifts = []
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) {
+          if (e.hadRecentInput) continue
+          const node = e.sources?.[0]?.node
+          window.__shifts.push({
+            value: e.value,
+            node: node?.nodeType === 1 ? node.tagName.toLowerCase() : ''
+          })
+        }
+      }).observe({ type: 'layout-shift', buffered: true })
+      /* eslint-enable no-undef */
+    })
     try {
       const response = await page.goto(url, { waitUntil: 'load' })
       // Under `npm run dev` without the API, retried calls keep the network
@@ -242,6 +259,17 @@ for (const theme of opts.themes) {
         minInputFont: MIN_INPUT_FONT_PX,
         tolerance: OVERFLOW_TOLERANCE_PX
       })
+      const shifts = await page.evaluate(() => window.__shifts ?? []) // eslint-disable-line no-undef
+      const cls = shifts.reduce((sum, e) => sum + e.value, 0)
+      if (cls > MAX_CLS) {
+        const worst = [...shifts].sort((a, b) => b.value - a.value).slice(0, 5)
+        findings.push({
+          severity: 'degraded',
+          kind: 'layout-shift',
+          detail: `content moved ${shifts.length} time(s) while loading (CLS ${cls.toFixed(3)}, limit ${MAX_CLS}); reserve the final size with a skeleton`,
+          elements: worst.map((e) => `${e.node || 'unknown'} (${e.value.toFixed(3)})`)
+        })
+      }
       results.push({ path, theme, findings })
     } catch (err) {
       results.push({ path, theme, error: err.message })

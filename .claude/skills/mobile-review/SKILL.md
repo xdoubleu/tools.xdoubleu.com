@@ -39,7 +39,13 @@ pixel sizes:
   ≥44px tappable ancestor).
 - `crowded-tap-targets` — targets under 8px apart.
 - `ios-focus-zoom` — fields under 16px font-size.
+- `layout-shift` — content that moved while loading (CLS over 0.1), with the
+  worst shifting elements.
 - `no-viewport-meta`. Pinch-zoom is deliberately disabled.
+
+Shifts after a mutation aren't covered: add or move an item by hand with
+`PerformanceObserver({type: 'layout-shift'})` running, and check that only
+the changed item moved.
 
 Exits 1 on anything `broken`. Flags: `--json`, `--theme dark`, `--base-url`,
 `--width`, `--storage-state <file>` (most routes need login).
@@ -84,6 +90,18 @@ Greps are leads; confirm by reading the component and its container.
 - The on-screen keyboard hides bottom-pinned submits and `fixed bottom-0`
   bars.
 - Dialogs taller than 667px must scroll internally with reachable actions.
+
+**Stable layout**
+
+- Lists rendered from data need a deterministic order (a sort key or an
+  `ORDER BY` with a tiebreaker) and `key={item.id}`, never the index.
+- An optimistic update must sort like the server, or the refetch reorders.
+- A mutation that calls `mutate()` and swaps the whole list for a spinner
+  or `Loading…` makes everything jump; patch the cache and keep the list.
+- A `isLoading &&` block that renders text where a sized region will appear
+  needs a `Skeleton` with the final dimensions.
+- Content appearing above existing content after first paint (banners,
+  late-loaded badges) needs reserved space.
 
 **Visual**
 

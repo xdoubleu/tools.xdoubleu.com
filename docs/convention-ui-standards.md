@@ -3,7 +3,7 @@
 - Enforced by:
   - `npm run lint`, which runs the ESLint raw-control bans and the local `ui/*` rules in `web/eslint-rules/` (`mobile-first-classes`, `theme-tokens`, `no-classname-template`, `touch-targets`, `use-primitives`, `field-labels`, `dialog-description`, `control-overrides`, `card-padding`, `shared-patterns`), their RuleTester tests (`test:eslint-rules`) and `generate:ui-catalog:check`.
   - `npm run build`, for the production bundle.
-  - The `mobile-review` skill, whose `npm run mobile:audit` fails on overflow, sub-44px or crowded tap targets, and sub-16px inputs at 375x667.
+  - The `mobile-review` skill, whose `npm run mobile:audit` fails on overflow, sub-44px or crowded tap targets, and sub-16px inputs at 375x667, and reports layout shift while loading.
   - Review, for everything else.
 - Issues: #1412, #1626
 
@@ -19,6 +19,10 @@ The same job uses the same primitive everywhere. The inventory is [`web/componen
   - Settings pages stack `SettingsSection`s in `SettingsSections`, with no dividers.
   - `Toolbar` holds the search and filters between `PageHeader` and a list, with `aria-label`led `Select`s, `TogglePill`s or `SegmentedTabs`.
   - `SegmentedTabs` switches between views; with `router.push` it switches between sibling pages.
+- **Stable layout.** Only what the user changed moves.
+  - Lists have a deterministic order (a tiebreaker on the sort key) and stable `key`s; an optimistic update sorts like the server.
+  - A mutation patches the cached data and never replaces the list with a loading state.
+  - Loading states reserve the final size with `Skeleton`; nothing is inserted above existing content after first paint.
 - **Surfaces.** `Card`/`SectionCard`/`Card variant="inset"` take spacing from `padding` (`none`/`sm`/`md`), never `p-*` or `rounded-*` classes. `LinkCard` for cards that navigate, with controls in its `actions` footer.
 - **States.** `LoadingState`/`ErrorState`/`EmptyState` with `placement` (`page` for a whole page, `inline` inside a card, panel or dialog), never hand-rolled centred paragraphs or text-size classes.
 - **Shared patterns** (`ui/shared-patterns`): `ProgressBar`; `FieldError` for an error under a control (with `aria-describedby`), `Alert tone="danger"` for a form-level one; `RemoveButton` for an icon-only ×; `useCopyFeedback` (`web/hooks/`) for Copy → Copied.

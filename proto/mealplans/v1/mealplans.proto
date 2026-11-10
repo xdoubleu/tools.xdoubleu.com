@@ -23,6 +23,9 @@ message PlanMeal {
   bool exclude_from_shopping_list = 9;
   // Unset for custom entries.
   RecipeRef recipe_ref = 10;
+  // Creation time in Unix microseconds; with id it is the order of meals
+  // sharing a slot, which clients must reproduce for optimistic writes.
+  int64 created_at_micros = 11;
 }
 
 message Plan {

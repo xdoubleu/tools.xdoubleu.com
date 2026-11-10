@@ -1,6 +1,20 @@
-import { getWeekDates, formatMealDate, MEAL_SLOTS } from '@/lib/mealplans/mealPlanCalendar'
+import {
+  getWeekDates,
+  formatMealDate,
+  compareMeals,
+  MEAL_SLOTS
+} from '@/lib/mealplans/mealPlanCalendar'
 
 describe('mealPlanCalendar', () => {
+  describe('compareMeals', () => {
+    const meal = (id: string, createdAtMicros: bigint) => ({ id, createdAtMicros })
+
+    it('orders by creation time, then id, so a moved meal keeps its place', () => {
+      const meals = [meal('b', 2n), meal('z', 1n), meal('a', 2n)]
+      expect(meals.sort(compareMeals).map((m) => m.id)).toEqual(['z', 'a', 'b'])
+    })
+  })
+
   describe('MEAL_SLOTS', () => {
     it('should contain the three slots', () => {
       expect(MEAL_SLOTS).toEqual(['breakfast', 'noon', 'evening'])
