@@ -4,7 +4,7 @@ package main
 
 /*
 #cgo CFLAGS: -x objective-c -fobjc-arc
-#cgo LDFLAGS: -framework Cocoa -framework UserNotifications
+#cgo LDFLAGS: -framework Cocoa
 #include <stdlib.h>
 #include "menubar_darwin.h"
 */
@@ -18,12 +18,13 @@ import (
 	"os/exec"
 	"runtime"
 	"runtime/cgo"
-	"sync"
 	"syscall"
 	"time"
 	"unsafe"
 
 	"tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
+	"tools.xdoubleu.com/selfupdate/appbundle"
+	"tools.xdoubleu.com/selfupdate/notification"
 )
 
 // iconTemplate is a monochrome template image; macOS tints it.
@@ -57,20 +58,15 @@ var (
 	lastKoboEvent kobogateway.KoboEvent
 )
 
-// init wires notify.go's seam to UNUserNotificationCenter and keeps main on
+// init wires notify.go's seam to the shared notifications and keeps main on
 // the main OS thread, which AppKit requires (locking in main is too late).
 //
 //nolint:gochecknoinits //only way to lock the main thread before main runs
 func init() {
 	runtime.LockOSThread()
 
-	notify = postNotification
+	notify = notification.Post
 }
-
-// notifyAuthOnce requests notification authorization once per process.
-//
-//nolint:gochecknoglobals // one-shot guard, see requestNotificationAuth.
-var notifyAuthOnce sync.Once
 
 // runUI shows the menu-bar status item and blocks until the app quits. Must
 // run on the main OS thread.
@@ -101,7 +97,7 @@ func runUI(
 //export goAppDidFinishLaunching
 func goAppDidFinishLaunching() {
 	buildStatusItem()
-	requestNotificationAuth(ui.execPath)
+	notification.RequestAuth()
 
 	// The OS prompt can fail silently, so back it up with our own alert on
 	// first install.
@@ -172,7 +168,7 @@ func execUpdatedBinary() error {
 		return fmt.Errorf("could not resolve executable to restart: %w", err)
 	}
 
-	if appDir := kobogateway.AppBundlePath(executable); appDir != "" {
+	if appDir := appbundle.Path(executable); appDir != "" {
 		fmt.Fprintln(os.Stdout, "updated, relaunching app bundle…")
 
 		return exec.CommandContext(context.Background(), "open", "-n", appDir).Start()
@@ -302,42 +298,6 @@ func applyKoboEvent(ev kobogateway.KoboEvent, notify bool) {
 	C.kgSetStatus(tooltip, line)
 
 	if notify {
-		postNotification(kobogateway.KoboNotification(ev))
+		notification.Post(kobogateway.KoboNotification(ev))
 	}
-}
-
-// requestNotificationAuth asks once per process.
-func requestNotificationAuth(execPath string) {
-	if !runningInAppBundle(execPath) {
-		return
-	}
-
-	notifyAuthOnce.Do(func() {
-		C.kgRequestNotificationAuth()
-	})
-}
-
-// postNotification posts a best-effort UNUserNotificationCenter toast. Safe
-// from any goroutine; skipped outside a .app bundle, where it throws.
-func postNotification(title, body string) {
-	if !runningInAppBundle(currentExecPath()) {
-		return
-	}
-
-	cTitle := C.CString(title)
-	defer C.free(unsafe.Pointer(cTitle))
-	cBody := C.CString(body)
-	defer C.free(unsafe.Pointer(cBody))
-
-	C.kgPostNotification(cTitle, cBody)
-}
-
-// currentExecPath re-resolves the executable path for postNotification.
-func currentExecPath() string {
-	path, err := os.Executable()
-	if err != nil {
-		return ""
-	}
-
-	return path
 }

@@ -1,10 +1,9 @@
 package main
 
-import "tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
+import "tools.xdoubleu.com/selfupdate/appbundle"
 
 // runningInAppBundle reports whether execPath is inside a .app bundle rather
-// than a raw dev binary. UNUserNotificationCenter throws outside a bundle, so
-// check this before notifying.
+// than a raw dev binary.
 func runningInAppBundle(execPath string) bool {
-	return kobogateway.AppBundlePath(execPath) != ""
+	return appbundle.Path(execPath) != ""
 }

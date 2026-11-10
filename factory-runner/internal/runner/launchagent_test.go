@@ -58,6 +58,8 @@ func TestInstallBinaryCopiesTheExecutableToAStablePath(t *testing.T) {
 	info, err := os.Stat(dst)
 	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(0o755), info.Mode().Perm())
+	assert.FileExists(t,
+		filepath.Join(runner.InstalledBundlePath(home), "Contents", "Info.plist"))
 
 	// Installing again, from the installed copy, changes nothing.
 	again, err := runner.InstallBinary(home, dst)
@@ -77,13 +79,12 @@ func TestInstallBinaryFailures(t *testing.T) {
 	_, err = runner.InstallBinary(blocked, src)
 	require.Error(t, err, "install dir can't be created")
 
-	// A directory in the way makes the final rename fail and cleans up.
+	// An app that isn't there can't be copied, and leaves nothing behind.
 	other := t.TempDir()
-	require.NoError(t, os.MkdirAll(
-		filepath.Join(runner.InstalledBinaryPath(other), "child"), 0o755))
-	_, err = runner.InstallBinary(other, src)
+	gone := filepath.Join(t.TempDir(), "Gone.app", "Contents", "MacOS", "factory-runner")
+	_, err = runner.InstallBinary(other, gone)
 	require.Error(t, err)
-	assert.NoFileExists(t, runner.InstalledBinaryPath(other)+".install")
+	assert.NoDirExists(t, runner.InstalledBundlePath(other)+".install")
 }
 
 func TestLoginItemFollowsThePlist(t *testing.T) {

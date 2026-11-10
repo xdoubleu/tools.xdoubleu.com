@@ -36,9 +36,11 @@ without the server being able to push arbitrary code.
   exits so launchd restarts it. A failure leaves the old binary running. Every
   check logs its outcome (newer release installed, none, failed, or no key in
   the build) to the LaunchAgent log and the menu bar → [adr-0049](adr-0049-factory-runner-menu-bar.md).
-- **`install` copies the binary** to `~/Library/Application Support/factory-runner/`
-  and runs the LaunchAgent from there, so a download can be deleted and the update
-  has one file to replace.
+- **`install` copies the app** (a bare binary gets a minimal bundle) to
+  `~/Library/Application Support/factory-runner/FactoryRunner.app` and runs the
+  LaunchAgent from the binary inside, so a download can be deleted and the update has
+  one file to replace. It has to be a bundle for macOS to show the runner's
+  notifications, so install and self-update re-seal it with an ad-hoc signature.
 - **Awake only while a job runs.** `Activity` holds `caffeinate -is -w <pid>` while
   any job runs. A closed lid stays awake only on AC power with an external display.
 

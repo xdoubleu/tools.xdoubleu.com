@@ -3,11 +3,10 @@ package kobogateway
 import (
 	"context"
 	"fmt"
-	"os/exec"
-	"path/filepath"
 	"time"
 
 	"tools.xdoubleu.com/selfupdate"
+	"tools.xdoubleu.com/selfupdate/appbundle"
 )
 
 const (
@@ -55,30 +54,8 @@ func (u *Updater) SelfUpdate(ctx context.Context, origin string) error {
 	if err != nil {
 		return fmt.Errorf("could not resolve executable path: %w", err)
 	}
-	if err = resignBundle(ctx, executable); err != nil {
+	if err = appbundle.Resign(ctx, executable); err != nil {
 		return fmt.Errorf("could not re-sign updated app bundle: %w", err)
 	}
 	return nil
-}
-
-// resignBundle re-applies package.sh's ad-hoc signature, which covers the
-// binary just overwritten. A raw dev binary has nothing to re-sign.
-func resignBundle(ctx context.Context, executable string) error {
-	appDir := AppBundlePath(executable)
-	if appDir == "" {
-		return nil
-	}
-
-	return exec.CommandContext(ctx, "codesign", "--force", "--sign", "-", appDir).Run()
-}
-
-// AppBundlePath returns the .app bundle directory containing executable, or
-// "" for a raw dev binary.
-func AppBundlePath(executable string) string {
-	appDir := filepath.Dir(filepath.Dir(filepath.Dir(executable))) // .../KoboGateway.app
-	if filepath.Ext(appDir) != ".app" {
-		return ""
-	}
-
-	return appDir
 }
