@@ -32,7 +32,9 @@ const (
 	jwtSkew = time.Minute
 	// jwtLifetime is under GitHub's ten-minute cap.
 	jwtLifetime = 9 * time.Minute
-	maxBody     = 1 << 20
+	// maxBody fits a page of 100 closed pull requests with their bodies, which
+	// runs past 2 MiB on this repo.
+	maxBody = 16 << 20
 )
 
 // ErrNotConfigured is returned when the App's id or key is missing or invalid.
