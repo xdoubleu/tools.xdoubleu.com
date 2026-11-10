@@ -41,6 +41,9 @@ type Factory struct {
 	slackURL      string
 	webURL        string
 	models        openrouter.ModelLister
+	// webhookSecret signs the GitHub App's webhook deliveries; empty turns the
+	// endpoint off.
+	webhookSecret string
 }
 
 // WithJobAccounts makes every claimed job run as an agent account of its own,
@@ -114,6 +117,7 @@ func New(
 		slackURL:      "",
 		webURL:        "",
 		models:        nil,
+		webhookSecret: "",
 	}
 	for _, opt := range opts {
 		opt(a)

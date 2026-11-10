@@ -262,10 +262,11 @@ func TestATasksPullRequestStatusIsOnTheBoardAndTheTask(t *testing.T) {
 	assert.Equal(t, pullURL(7), env.task(t, task.Id).Task.PrUrl)
 }
 
-func (e jobEnv) moveTo(t *testing.T, id string, status factoryv1.TaskStatus) {
+func (e jobEnv) putInReview(t *testing.T, id string) {
 	t.Helper()
-	_, err := e.tasks.MoveTask(context.Background(),
-		&factoryv1.MoveTaskRequest{Id: id, Status: status})
+	_, err := e.tasks.MoveTask(context.Background(), &factoryv1.MoveTaskRequest{
+		Id: id, Status: factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW,
+	})
 	require.NoError(t, err)
 }
 
@@ -278,7 +279,7 @@ func (gh *fakeGitHub) merge(url, body string) {
 func TestAMergedPullRequestLinkingAJoblessTaskMovesItToTestingOnce(t *testing.T) {
 	env, gh := githubEnv(t)
 	task := env.newTask(t, "local")
-	env.moveTo(t, task.Id, factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW)
+	env.putInReview(t, task.Id)
 	gh.merge(pullURL(7), "Task: local ("+task.Id+")\n\nbody")
 
 	require.NoError(t, env.poll(t))
