@@ -2,10 +2,14 @@ package runner
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
 // LaunchAgentLabel names the runner's LaunchAgent.
@@ -75,8 +79,9 @@ func InstallLaunchAgent(homeDir, execPath string) (string, error) {
 }
 
 const (
-	installDirPerm  = 0o755
-	installFilePerm = 0o755
+	binaryReleaseTimeout = 5 * time.Second
+	installDirPerm       = 0o755
+	installFilePerm      = 0o755
 )
 
 // InstalledBinaryPath is the stable place the LaunchAgent runs the runner from,
@@ -112,6 +117,18 @@ func InstallBinary(homeDir, src string) (string, error) {
 		return "", fmt.Errorf("install binary: %w", err)
 	}
 	return dst, nil
+}
+
+// BinaryRelease asks the binary at path for its stamped release; an empty
+// string means it couldn't say (missing, not executable, or too old).
+func BinaryRelease(path string) string {
+	ctx, cancel := context.WithTimeout(context.Background(), binaryReleaseTimeout)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, path, "version").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
 // LoginItemEnabled reports whether the LaunchAgent plist exists, which is what

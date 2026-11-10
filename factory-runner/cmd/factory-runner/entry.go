@@ -52,12 +52,13 @@ func main() {
 			}
 			return runner.NewUpdater(origin, Release, UpdatePublicKey), nil
 		},
-		activity: nil,
-		control:  nil,
-		menu:     runMenu,
-		load:     loadLaunchAgent,
-		open:     openURL,
-		jobs:     nil,
+		activity:         nil,
+		control:          nil,
+		menu:             runMenu,
+		load:             loadLaunchAgent,
+		open:             openURL,
+		jobs:             nil,
+		installedRelease: runner.BinaryRelease,
 	}
 	a.activity = runner.NewActivity(runner.NewCaffeinate())
 	a.control = runner.NewControl(runner.PausePath(home), Release, a.activity)
