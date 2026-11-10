@@ -34,7 +34,7 @@
     "@radix-ui/react-dialog": "1.3.1",
     "@radix-ui/react-slot": "1.5.0",
     "@readium/navigator": "2.15.0",
-    "@readium/shared": "2.8.0",
+    "@readium/shared": "2.9.0",
     "@sentry/react": "11.11.0",
     "clsx": "2.1.1",
     "dompurify": "3.4.17",
@@ -83,7 +83,7 @@
     "vitest": "5.1.0"
   },
   "overrides": {
-    "@readium/shared": "2.8.0",
+    "@readium/shared": "2.9.0",
     "brace-expansion": "5.0.12",
     "@babel/core": "8.1.0",
     "@stryker-mutator/instrumenter": {
