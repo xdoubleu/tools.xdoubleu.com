@@ -230,10 +230,21 @@ func TestConnectGetWishlist(t *testing.T) {
 	ctx, info := connect.NewClientContext(ctx)
 	info.RequestHeader().Set("Cookie", accessToken.String())
 
+	_, err := testDB.Exec(context.Background(), `
+		INSERT INTO games.steam_wishlist (game_id, user_id, name, priority)
+		VALUES (3, $1, 'Undated', 0)`, userID)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM games.steam_wishlist WHERE user_id = $1 AND game_id = 3`, userID)
+	})
+
 	resp, err := client.GetWishlist(ctx, &gamesv1.GetWishlistRequest{})
 	require.NoError(t, err)
-	require.Len(t, resp.Games, 1, "the mock client wishlists app 2")
-	assert.EqualValues(t, 2, resp.Games[0].Id)
+	require.Len(t, resp.Games, 2, "the mock client wishlists app 2")
+	assert.EqualValues(t, 2, resp.Games[0].Id, "ranked before unranked")
 	assert.Equal(t, "wished", resp.Games[0].Name)
 	assert.NotEmpty(t, resp.Games[0].AddedAt)
+	assert.EqualValues(t, 3, resp.Games[1].Id)
+	assert.Empty(t, resp.Games[1].AddedAt)
 }
