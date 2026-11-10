@@ -85,7 +85,7 @@ func createAgent(
 ) *factoryv1.CreateAgentAccountResponse {
 	t.Helper()
 	resp, err := agentAccountClient(t).CreateAgentAccount(admin.ctx(),
-		&factoryv1.CreateAgentAccountRequest{Name: name, TotpCode: admin.nextCode()})
+		&factoryv1.CreateAgentAccountRequest{Name: name})
 	require.NoError(t, err)
 	return resp
 }
@@ -213,26 +213,17 @@ func TestAgentAccount_LifeCycle(t *testing.T) {
 	assert.Equal(t, revoked.Account.RevokedAt, again.Account.RevokedAt)
 }
 
-func TestAgentAccount_NeedsTheStepUpCode(t *testing.T) {
+func TestAgentAccount_CreateNeedsNoStepUpCode(t *testing.T) {
 	admin := newAgentAdmin(t, models.RoleAdmin)
 	client := agentAccountClient(t)
 
 	_, err := client.CreateAgentAccount(admin.ctx(),
-		&factoryv1.CreateAgentAccountRequest{Name: "x", TotpCode: "000000"})
-	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+		&factoryv1.CreateAgentAccountRequest{Name: "x"})
+	require.NoError(t, err)
 
 	_, err = client.CreateAgentAccount(context.Background(),
-		&factoryv1.CreateAgentAccountRequest{Name: "x", TotpCode: admin.recoveryCodes[0]})
+		&factoryv1.CreateAgentAccountRequest{Name: "x"})
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
-
-	// A used recovery code is spent.
-	spent := admin.nextCode()
-	_, err = client.CreateAgentAccount(admin.ctx(),
-		&factoryv1.CreateAgentAccountRequest{Name: "x", TotpCode: spent})
-	require.NoError(t, err)
-	_, err = client.CreateAgentAccount(admin.ctx(),
-		&factoryv1.CreateAgentAccountRequest{Name: "x", TotpCode: spent})
-	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 }
 
 func TestAgentAccount_OnlyAdminsManageThem(t *testing.T) {
@@ -242,7 +233,7 @@ func TestAgentAccount_OnlyAdminsManageThem(t *testing.T) {
 	_, err := client.ListAgentAccounts(user.ctx(), &factoryv1.ListAgentAccountsRequest{})
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 	_, err = client.CreateAgentAccount(user.ctx(),
-		&factoryv1.CreateAgentAccountRequest{Name: "x", TotpCode: user.nextCode()})
+		&factoryv1.CreateAgentAccountRequest{Name: "x"})
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 	_, err = client.RevokeAgentAccount(user.ctx(),
 		&factoryv1.RevokeAgentAccountRequest{Id: "00000000-0000-0000-0000-000000000000"})
@@ -255,7 +246,7 @@ func TestAgentAccount_InvalidInput(t *testing.T) {
 
 	for _, name := range []string{"", "   ", strings.Repeat("a", 81), "bad\nname"} {
 		_, err := client.CreateAgentAccount(admin.ctx(),
-			&factoryv1.CreateAgentAccountRequest{Name: name, TotpCode: admin.nextCode()})
+			&factoryv1.CreateAgentAccountRequest{Name: name})
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), name)
 	}
 

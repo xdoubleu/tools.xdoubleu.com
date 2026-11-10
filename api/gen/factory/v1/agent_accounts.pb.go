@@ -215,11 +215,9 @@ func (x *ListAgentAccountsResponse) GetAccounts() []*AgentAccount {
 	return nil
 }
 
-// totp_code is the step-up check: a current TOTP or an unused recovery code.
 type CreateAgentAccountRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	TotpCode      string                 `protobuf:"bytes,2,opt,name=totp_code,json=totpCode,proto3" json:"totp_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -257,13 +255,6 @@ func (*CreateAgentAccountRequest) Descriptor() ([]byte, []int) {
 func (x *CreateAgentAccountRequest) GetName() string {
 	if x != nil {
 		return x.Name
-	}
-	return ""
-}
-
-func (x *CreateAgentAccountRequest) GetTotpCode() string {
-	if x != nil {
-		return x.TotpCode
 	}
 	return ""
 }
@@ -730,10 +721,9 @@ const file_factory_v1_agent_accounts_proto_rawDesc = "" +
 	"\fwrite_access\x18\t \x03(\tR\vwriteAccess\"\x1a\n" +
 	"\x18ListAgentAccountsRequest\"Q\n" +
 	"\x19ListAgentAccountsResponse\x124\n" +
-	"\baccounts\x18\x01 \x03(\v2\x18.factory.v1.AgentAccountR\baccounts\"L\n" +
+	"\baccounts\x18\x01 \x03(\v2\x18.factory.v1.AgentAccountR\baccounts\"@\n" +
 	"\x19CreateAgentAccountRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1b\n" +
-	"\ttotp_code\x18\x02 \x01(\tR\btotpCode\"u\n" +
+	"\x04name\x18\x01 \x01(\tR\x04nameJ\x04\b\x02\x10\x03R\ttotp_code\"u\n" +
 	"\x1aCreateAgentAccountResponse\x122\n" +
 	"\aaccount\x18\x01 \x01(\v2\x18.factory.v1.AgentAccountR\aaccount\x12#\n" +
 	"\rclient_secret\x18\x02 \x01(\tR\fclientSecret\"+\n" +

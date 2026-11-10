@@ -121,8 +121,8 @@ describe('useAgentActions', () => {
   it('creates and rotates, returning the one-time secret', async () => {
     const { result } = renderHook(() => useAgentActions())
 
-    expect(await result.current.create('Reviewer', '123456')).toEqual({ clientSecret: 's3cret' })
-    expect(client.createAgentAccount).toHaveBeenCalledWith({ name: 'Reviewer', totpCode: '123456' })
+    expect(await result.current.create('Reviewer')).toEqual({ clientSecret: 's3cret' })
+    expect(client.createAgentAccount).toHaveBeenCalledWith({ name: 'Reviewer' })
 
     expect(await result.current.rotate('a-1', '654321')).toEqual({ clientSecret: 'n3w' })
     expect(client.rotateAgentAccountSecret).toHaveBeenCalledWith({ id: 'a-1', totpCode: '654321' })

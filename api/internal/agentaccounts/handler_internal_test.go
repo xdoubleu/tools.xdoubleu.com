@@ -146,19 +146,15 @@ func withToken(ctx context.Context) context.Context {
 	return ctx
 }
 
-func TestCreateChecksTheStepUpWithTheSessionToken(t *testing.T) {
+func TestCreateNeedsNoStepUp(t *testing.T) {
 	stepUp := stepUpReturning(nil)
 	c := agentClient(t, constants.ChannelBrowser, stepUp)
-	ctx := withToken(context.Background())
 
-	resp, err := c.CreateAgentAccount(ctx, &factoryv1.CreateAgentAccountRequest{
-		Name: " Reviewer ", TotpCode: "123456",
-	})
+	resp, err := c.CreateAgentAccount(context.Background(),
+		&factoryv1.CreateAgentAccountRequest{Name: " Reviewer "})
 	require.NoError(t, err)
 
-	assert.Equal(t, 1, stepUp.calls)
-	assert.Equal(t, "session-jwt", stepUp.token)
-	assert.Equal(t, "123456", stepUp.code)
+	assert.Zero(t, stepUp.calls)
 	assert.Equal(t, "Reviewer", resp.Account.Name)
 	assert.Equal(t, "human:u1", resp.Account.CreatedBy)
 	assert.Empty(t, resp.Account.RevokedAt)
@@ -172,60 +168,25 @@ func TestCreatingAnAccountIsPostedWithItsEscapedName(t *testing.T) {
 		func(_ context.Context, text string) { posted = append(posted, text) })
 
 	_, err := c.CreateAgentAccount(withToken(context.Background()),
-		&factoryv1.CreateAgentAccountRequest{Name: "<!channel> bot", TotpCode: "1"})
+		&factoryv1.CreateAgentAccountRequest{Name: "<!channel> bot"})
 	require.NoError(t, err)
 
 	assert.Equal(t,
 		[]string{":key: An agent account was created: &lt;!channel&gt; bot"}, posted)
 }
 
-func TestARefusedCreateIsNotPosted(t *testing.T) {
-	var posted []string
-	c := agentClientNotifying(t, constants.ChannelBrowser,
-		stepUpReturning(auth.ErrWrongCredential),
-		func(_ context.Context, text string) { posted = append(posted, text) })
-
-	_, err := c.CreateAgentAccount(withToken(context.Background()),
-		&factoryv1.CreateAgentAccountRequest{Name: "bot", TotpCode: "bad"})
-	require.Error(t, err)
-	assert.Empty(t, posted)
-}
-
-func TestCreateRefusesWithoutAPassingStepUp(t *testing.T) {
-	for name, tc := range map[string]struct {
-		err  error
-		want connect.Code
-	}{
-		"wrong code": {auth.ErrWrongCredential, connect.CodePermissionDenied},
-		"locked out": {auth.ErrTooManyAttempts, connect.CodeResourceExhausted},
-		"other":      {errors.New("db down"), connect.CodeInternal},
-	} {
-		stepUp := stepUpReturning(tc.err)
-		c := agentClient(t, constants.ChannelBrowser, stepUp)
-		_, err := c.CreateAgentAccount(withToken(context.Background()),
-			&factoryv1.CreateAgentAccountRequest{Name: "x", TotpCode: "1"})
-		assert.Equal(t, tc.want, connect.CodeOf(err), name)
-	}
-}
-
-func TestCreateNeedsASessionCookieAndAValidName(t *testing.T) {
-	stepUp := stepUpReturning(nil)
-	c := agentClient(t, constants.ChannelBrowser, stepUp)
+func TestCreateRefusesAnInvalidName(t *testing.T) {
+	c := agentClient(t, constants.ChannelBrowser, stepUpReturning(nil))
 
 	_, err := c.CreateAgentAccount(context.Background(),
-		&factoryv1.CreateAgentAccountRequest{Name: "x", TotpCode: "1"})
-	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
-
-	_, err = c.CreateAgentAccount(withToken(context.Background()),
-		&factoryv1.CreateAgentAccountRequest{Name: " ", TotpCode: "1"})
+		&factoryv1.CreateAgentAccountRequest{Name: " "})
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-	assert.Zero(t, stepUp.calls, "a bad name is refused before any code is spent")
 }
 
 func TestListAndRevokeThroughTheService(t *testing.T) {
 	c := agentClient(t, constants.ChannelBrowser, stepUpReturning(nil))
 	created, err := c.CreateAgentAccount(withToken(context.Background()),
-		&factoryv1.CreateAgentAccountRequest{Name: "listed", TotpCode: "1"})
+		&factoryv1.CreateAgentAccountRequest{Name: "listed"})
 	require.NoError(t, err)
 	id := created.Account.Id
 
@@ -256,7 +217,7 @@ func TestEveryRPCNeedsAnAdminInABrowser(t *testing.T) {
 	_, err := c.ListAgentAccounts(ctx, &factoryv1.ListAgentAccountsRequest{})
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 	_, err = c.CreateAgentAccount(ctx,
-		&factoryv1.CreateAgentAccountRequest{Name: "x", TotpCode: "1"})
+		&factoryv1.CreateAgentAccountRequest{Name: "x"})
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 	_, err = c.RevokeAgentAccount(ctx, &factoryv1.RevokeAgentAccountRequest{Id: "x"})
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
@@ -283,7 +244,7 @@ func TestAnAdminAddsAndRemovesAnAgentInTheirFamily(t *testing.T) {
 				SELECT family_id FROM global.family_members WHERE user_id = 'u1')`)
 	})
 	created, err := c.CreateAgentAccount(ctx,
-		&factoryv1.CreateAgentAccountRequest{Name: "family bot", TotpCode: "1"})
+		&factoryv1.CreateAgentAccountRequest{Name: "family bot"})
 	require.NoError(t, err)
 
 	added, err := c.AddAgentAccountToFamily(ctx,
@@ -320,7 +281,7 @@ func TestRotatingASecretNeedsTheStepUpAndReturnsANewOne(t *testing.T) {
 	c := agentClient(t, constants.ChannelBrowser, stepUp)
 	ctx := withToken(context.Background())
 	created, err := c.CreateAgentAccount(ctx,
-		&factoryv1.CreateAgentAccountRequest{Name: "rotating", TotpCode: "1"})
+		&factoryv1.CreateAgentAccountRequest{Name: "rotating"})
 	require.NoError(t, err)
 
 	rotated, err := c.RotateAgentAccountSecret(ctx,
@@ -356,21 +317,4 @@ func TestRevokeRejectsABadOrUnknownID(t *testing.T) {
 	_, err = c.RevokeAgentAccount(context.Background(),
 		&factoryv1.RevokeAgentAccountRequest{Id: "00000000-0000-0000-0000-000000000000"})
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
-}
-
-func TestCreateWithoutRequestInfoIsUnauthenticated(t *testing.T) {
-	pool := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
-	t.Cleanup(pool.Close)
-	stepUp := stepUpReturning(nil)
-	h := &handler{deps: &Deps{
-		Store: NewStore(pool, nil), StepUp: stepUp, Families: nil, Notify: nil,
-	}}
-
-	_, err := h.CreateAgentAccount(
-		userCtx(models.RoleAdmin, constants.ChannelBrowser),
-		&factoryv1.CreateAgentAccountRequest{Name: "x", TotpCode: "1"},
-	)
-
-	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
-	assert.Zero(t, stepUp.calls)
 }

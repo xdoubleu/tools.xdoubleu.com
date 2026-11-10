@@ -41,7 +41,6 @@ export default function ConsentForm({
     mode: 'self',
     name: clientName,
     grants: NEW_AGENT_GRANTS,
-    code: '',
     existingId: ''
   })
   // A new agent made by a failed attempt is reused on retry, not made twice.
@@ -49,7 +48,7 @@ export default function ConsentForm({
 
   const scopes = scope.split(' ').filter(Boolean)
   const incomplete =
-    (choice.mode === 'new' && !createdId && (!choice.name.trim() || !choice.code.trim())) ||
+    (choice.mode === 'new' && !createdId && !choice.name.trim()) ||
     (choice.mode === 'existing' && !choice.existingId)
 
   // The agent account an approval delegates to; '' signs in as the user.
@@ -59,7 +58,7 @@ export default function ConsentForm({
     if (createdId) return createdId
     let created
     try {
-      created = await create(choice.name.trim(), choice.code.trim())
+      created = await create(choice.name.trim())
     } catch (err) {
       throw new AgentSetupError(failureMessage(err, "Couldn't create the agent. Try again."))
     }

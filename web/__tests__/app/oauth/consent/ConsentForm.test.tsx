@@ -88,7 +88,7 @@ describe('ConsentForm', () => {
     renderDelegating()
     fireEvent.click(screen.getByLabelText('Delegate to a new agent'))
     expect(screen.getByLabelText('Agent name')).toHaveValue('Claude')
-    expect(screen.getByRole('button', { name: 'Approve' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeEnabled()
 
     fireEvent.change(screen.getByLabelText('books access for the new agent'), {
       target: { value: 'read' }
@@ -96,11 +96,10 @@ describe('ConsentForm', () => {
     fireEvent.change(screen.getByLabelText('factory access for the new agent'), {
       target: { value: 'none' }
     })
-    fireEvent.change(screen.getByLabelText('Authenticator code'), { target: { value: ' 123456 ' } })
     fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
 
     await waitFor(() => expect(leaveTo).toHaveBeenCalled())
-    expect(mockCreate).toHaveBeenCalledWith('Claude', '123456')
+    expect(mockCreate).toHaveBeenCalledWith('Claude')
     expect(mockSetAccess.mock.calls).toEqual([
       ['u-new', 'factory', 'none'],
       ['u-new', 'books', 'read']
@@ -115,11 +114,10 @@ describe('ConsentForm', () => {
     fireEvent.change(screen.getByLabelText('books access for the new agent'), {
       target: { value: 'admin' }
     })
-    fireEvent.change(screen.getByLabelText('Authenticator code'), { target: { value: '1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
 
     await waitFor(() => expect(leaveTo).toHaveBeenCalled())
-    expect(mockCreate).toHaveBeenCalledWith('Night shift', '1')
+    expect(mockCreate).toHaveBeenCalledWith('Night shift')
     expect(mockSetAccess).not.toHaveBeenCalled()
   })
 
@@ -132,13 +130,12 @@ describe('ConsentForm', () => {
   })
 
   it('shows why creating the agent failed', async () => {
-    mockCreate.mockRejectedValue(new ConnectError('bad code', Code.PermissionDenied))
+    mockCreate.mockRejectedValue(new ConnectError('nope', Code.ResourceExhausted))
     renderDelegating()
     fireEvent.click(screen.getByLabelText('Delegate to a new agent'))
-    fireEvent.change(screen.getByLabelText('Authenticator code'), { target: { value: '1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
 
-    await waitFor(() => expect(screen.getByText(/That code didn.t work/)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/Too many attempts/)).toBeInTheDocument())
     expect(decideAuthorization).not.toHaveBeenCalled()
   })
 
@@ -147,7 +144,6 @@ describe('ConsentForm', () => {
     mockCreate.mockResolvedValueOnce({ clientSecret: 's' })
     renderDelegating()
     fireEvent.click(screen.getByLabelText('Delegate to a new agent'))
-    fireEvent.change(screen.getByLabelText('Authenticator code'), { target: { value: '1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
     await waitFor(() =>
       expect(screen.getByText("Couldn't create the agent. Try again.")).toBeInTheDocument()

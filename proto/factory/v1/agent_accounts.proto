@@ -25,10 +25,10 @@ message ListAgentAccountsResponse {
   repeated AgentAccount accounts = 1;
 }
 
-// totp_code is the step-up check: a current TOTP or an unused recovery code.
 message CreateAgentAccountRequest {
+  reserved 2;
+  reserved "totp_code";
   string name = 1;
-  string totp_code = 2;
 }
 message CreateAgentAccountResponse {
   AgentAccount account = 1;
