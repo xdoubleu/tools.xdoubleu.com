@@ -88,6 +88,19 @@ message GetRecentlyActiveGamesResponse { repeated RecentGame games = 1; }
 message RefreshSteamGameRequest { int32 game_id = 1; }
 message RefreshSteamGameResponse { SteamGameResponse data = 1; }
 
+message WishlistGame {
+  int32 id = 1;
+  string name = 2;
+  string image_url = 3;
+  // Steam's rank on the wishlist, 1 first; 0 when unranked.
+  int32 priority = 4;
+  // RFC 3339; empty when Steam gave no date.
+  string added_at = 5;
+}
+
+message GetWishlistRequest {}
+message GetWishlistResponse { repeated WishlistGame games = 1; }
+
 message GetIntegrationsRequest {}
 message GetIntegrationsResponse { Integrations integrations = 1; }
 
@@ -106,6 +119,7 @@ service GamesService {
   rpc GetSteamDistribution(GetSteamDistributionRequest) returns (GetSteamDistributionResponse);
   rpc GetRecentlyActiveGames(GetRecentlyActiveGamesRequest) returns (GetRecentlyActiveGamesResponse);
   rpc RefreshSteamGame(RefreshSteamGameRequest) returns (RefreshSteamGameResponse);
+  rpc GetWishlist(GetWishlistRequest) returns (GetWishlistResponse);
   rpc GetIntegrations(GetIntegrationsRequest) returns (GetIntegrationsResponse);
   rpc SaveIntegrations(SaveIntegrationsRequest) returns (SaveIntegrationsResponse);
   rpc SetGameFavourite(SetGameFavouriteRequest) returns (SetGameFavouriteResponse);

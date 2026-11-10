@@ -45,6 +45,9 @@ func (a *Games) RegisterMCPTools(srv *mcp.Server) {
 	mcptools.AddReadTool(srv, mcpAppName, "games_get_recently_active_games",
 		"Games with recently unlocked achievements.",
 		h.mcpGetRecentlyActiveGames)
+	mcptools.AddReadTool(srv, mcpAppName, "games_get_wishlist",
+		"The user's synced Steam wishlist, highest priority first.",
+		h.mcpGetWishlist)
 	mcptools.AddReadTool(srv, mcpAppName, "games_get_integrations",
 		"The user's games-app integration settings (Steam user id).",
 		h.mcpGetIntegrations)
@@ -92,4 +95,10 @@ func (h *gamesConnectHandler) mcpGetIntegrations(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.GetIntegrations(ctx, &gamesv1.GetIntegrationsRequest{}))
+}
+
+func (h *gamesConnectHandler) mcpGetWishlist(
+	ctx context.Context, _ mcptools.NoArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.GetWishlist(ctx, &gamesv1.GetWishlistRequest{}))
 }

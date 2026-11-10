@@ -37,6 +37,8 @@ const (
 	// GamesServiceRefreshSteamGameProcedure is the procedure name of the GamesService's
 	// RefreshSteamGame RPC.
 	GamesServiceRefreshSteamGameProcedure = "/games.v1.GamesService/RefreshSteamGame"
+	// GamesServiceGetWishlistProcedure is the procedure name of the GamesService's GetWishlist RPC.
+	GamesServiceGetWishlistProcedure = "/games.v1.GamesService/GetWishlist"
 	// GamesServiceGetIntegrationsProcedure is the procedure name of the GamesService's GetIntegrations
 	// RPC.
 	GamesServiceGetIntegrationsProcedure = "/games.v1.GamesService/GetIntegrations"
@@ -84,6 +86,13 @@ var (
 			Procedure:  GamesServiceRefreshSteamGameProcedure,
 		}
 	})
+	gamesServiceGetWishlistSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_games_v1_games_proto.Services().ByName("GamesService").Methods().ByName("GetWishlist"),
+			Procedure:  GamesServiceGetWishlistProcedure,
+		}
+	})
 	gamesServiceGetIntegrationsSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -114,6 +123,7 @@ type GamesServiceClient interface {
 	GetSteamDistribution(context.Context, *v1.GetSteamDistributionRequest) (*v1.GetSteamDistributionResponse, error)
 	GetRecentlyActiveGames(context.Context, *v1.GetRecentlyActiveGamesRequest) (*v1.GetRecentlyActiveGamesResponse, error)
 	RefreshSteamGame(context.Context, *v1.RefreshSteamGameRequest) (*v1.RefreshSteamGameResponse, error)
+	GetWishlist(context.Context, *v1.GetWishlistRequest) (*v1.GetWishlistResponse, error)
 	GetIntegrations(context.Context, *v1.GetIntegrationsRequest) (*v1.GetIntegrationsResponse, error)
 	SaveIntegrations(context.Context, *v1.SaveIntegrationsRequest) (*v1.SaveIntegrationsResponse, error)
 	SetGameFavourite(context.Context, *v1.SetGameFavouriteRequest) (*v1.SetGameFavouriteResponse, error)
@@ -132,6 +142,7 @@ type GamesServiceHandler interface {
 	GetSteamDistribution(context.Context, *v1.GetSteamDistributionRequest) (*v1.GetSteamDistributionResponse, error)
 	GetRecentlyActiveGames(context.Context, *v1.GetRecentlyActiveGamesRequest) (*v1.GetRecentlyActiveGamesResponse, error)
 	RefreshSteamGame(context.Context, *v1.RefreshSteamGameRequest) (*v1.RefreshSteamGameResponse, error)
+	GetWishlist(context.Context, *v1.GetWishlistRequest) (*v1.GetWishlistResponse, error)
 	GetIntegrations(context.Context, *v1.GetIntegrationsRequest) (*v1.GetIntegrationsResponse, error)
 	SaveIntegrations(context.Context, *v1.SaveIntegrationsRequest) (*v1.SaveIntegrationsResponse, error)
 	SetGameFavourite(context.Context, *v1.SetGameFavouriteRequest) (*v1.SetGameFavouriteResponse, error)
@@ -146,6 +157,7 @@ func RegisterGamesServiceHandler(server *connect.Server, svc GamesServiceHandler
 		connect.Method{Spec: gamesServiceGetSteamDistributionSpec(), Handler: adapter.getSteamDistribution},
 		connect.Method{Spec: gamesServiceGetRecentlyActiveGamesSpec(), Handler: adapter.getRecentlyActiveGames},
 		connect.Method{Spec: gamesServiceRefreshSteamGameSpec(), Handler: adapter.refreshSteamGame},
+		connect.Method{Spec: gamesServiceGetWishlistSpec(), Handler: adapter.getWishlist},
 		connect.Method{Spec: gamesServiceGetIntegrationsSpec(), Handler: adapter.getIntegrations},
 		connect.Method{Spec: gamesServiceSaveIntegrationsSpec(), Handler: adapter.saveIntegrations},
 		connect.Method{Spec: gamesServiceSetGameFavouriteSpec(), Handler: adapter.setGameFavourite},
@@ -173,6 +185,10 @@ func (UnimplementedGamesServiceHandler) GetRecentlyActiveGames(context.Context, 
 
 func (UnimplementedGamesServiceHandler) RefreshSteamGame(context.Context, *v1.RefreshSteamGameRequest) (*v1.RefreshSteamGameResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "games.v1.GamesService.RefreshSteamGame is not implemented")
+}
+
+func (UnimplementedGamesServiceHandler) GetWishlist(context.Context, *v1.GetWishlistRequest) (*v1.GetWishlistResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "games.v1.GamesService.GetWishlist is not implemented")
 }
 
 func (UnimplementedGamesServiceHandler) GetIntegrations(context.Context, *v1.GetIntegrationsRequest) (*v1.GetIntegrationsResponse, error) {
@@ -226,6 +242,14 @@ func (c *gamesServiceClient) GetRecentlyActiveGames(ctx context.Context, req *v1
 func (c *gamesServiceClient) RefreshSteamGame(ctx context.Context, req *v1.RefreshSteamGameRequest) (*v1.RefreshSteamGameResponse, error) {
 	var res v1.RefreshSteamGameResponse
 	if err := c.client.CallUnary(ctx, gamesServiceRefreshSteamGameSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *gamesServiceClient) GetWishlist(ctx context.Context, req *v1.GetWishlistRequest) (*v1.GetWishlistResponse, error) {
+	var res v1.GetWishlistResponse
+	if err := c.client.CallUnary(ctx, gamesServiceGetWishlistSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -311,6 +335,18 @@ func (h gamesServiceHandler) refreshSteamGame(ctx context.Context, _ connect.Spe
 		return err
 	}
 	res, err := h.svc.RefreshSteamGame(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h gamesServiceHandler) getWishlist(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetWishlistRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetWishlist(ctx, &req)
 	if err != nil {
 		return err
 	}

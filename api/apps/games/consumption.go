@@ -16,9 +16,10 @@ const bouncedMinutes = 60
 // fullCompletion is models.Game.CompletionRate at every achievement.
 const fullCompletion = 100.0
 
-// ListConsumption returns userID's played Steam games as consumption events,
-// for the taste app. Playtime is judged against the user's own played games,
-// so a top-quartile game is one they spent unusually long on.
+// ListConsumption returns userID's played and wishlisted Steam games as
+// consumption events, for the taste app. Playtime is judged against the
+// user's own played games, so a top-quartile game is one they spent unusually
+// long on.
 func (a *Games) ListConsumption(
 	ctx context.Context,
 	userID string,
@@ -51,6 +52,27 @@ func (a *Games) ListConsumption(
 			At:      at,
 			Signal:  signal,
 			Reason:  reason,
+		})
+	}
+
+	wishlist, err := a.services.Steam.GetWishlist(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	for _, w := range wishlist {
+		var at time.Time
+		if w.AddedAt != nil {
+			at = *w.AddedAt
+		}
+		events = append(events, consumption.Event{
+			Domain:  consumption.DomainGames,
+			ItemID:  strconv.Itoa(w.ID),
+			Title:   w.Name,
+			Creator: "",
+			Tags:    nil,
+			At:      at,
+			Signal:  consumption.Positive,
+			Reason:  "on your wishlist",
 		})
 	}
 	return events, nil

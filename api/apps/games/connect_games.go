@@ -174,6 +174,39 @@ func (h *gamesConnectHandler) GetRecentlyActiveGames(
 	}, nil
 }
 
+func (h *gamesConnectHandler) GetWishlist(
+	ctx context.Context,
+	_ *gamesv1.GetWishlistRequest,
+) (*gamesv1.GetWishlistResponse, error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			"unauthorized",
+		)
+	}
+
+	items, err := h.app.services.Steam.GetWishlist(ctx, user.ID)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+
+	games := make([]*gamesv1.WishlistGame, len(items))
+	for i, it := range items {
+		games[i] = &gamesv1.WishlistGame{
+			Id:       int32(it.ID), //nolint:gosec // int32 safe for domain values
+			Name:     it.Name,
+			ImageUrl: it.ImageURL,
+			Priority: int32(it.Priority), //nolint:gosec // safe for domain values
+			AddedAt:  "",
+		}
+		if it.AddedAt != nil {
+			games[i].AddedAt = it.AddedAt.Format(time.RFC3339)
+		}
+	}
+	return &gamesv1.GetWishlistResponse{Games: games}, nil
+}
+
 func protoGame(g models.Game) *gamesv1.Game {
 	return &gamesv1.Game{
 		Id:                  int32(g.ID), //nolint:gosec // int32 safe for domain values

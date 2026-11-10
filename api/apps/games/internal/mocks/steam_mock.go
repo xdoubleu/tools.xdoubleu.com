@@ -7,7 +7,11 @@ import (
 	"tools.xdoubleu.com/apps/games/pkg/steam"
 )
 
-const mockGameName = "test"
+const (
+	mockGameName = "test"
+	// MockWishlistAppID is the one app the mock client wishlists.
+	MockWishlistAppID = 2
+)
 
 type MockSteamClient struct {
 }
@@ -86,4 +90,27 @@ func (client MockSteamClient) GetGlobalAchievementPercentagesForApp(
 		{Name: "TEST", Percent: "42.0"},
 	}
 	return &resp, nil
+}
+
+func (client MockSteamClient) GetWishlist(
+	_ context.Context,
+	_ string,
+) (*steam.WishlistResponse, error) {
+	//nolint:exhaustruct //anonymous inner struct initialised via field assignment
+	resp := steam.WishlistResponse{}
+	resp.Response.Items = []steam.WishlistItem{
+		{AppID: MockWishlistAppID, Priority: 1, DateAdded: time.Now().UTC().Unix()},
+	}
+	return &resp, nil
+}
+
+func (client MockSteamClient) GetStoreItems(
+	_ context.Context,
+	appIDs []int,
+) ([]steam.StoreApp, error) {
+	apps := make([]steam.StoreApp, len(appIDs))
+	for i, id := range appIDs {
+		apps[i] = steam.StoreApp{AppID: id, Name: "wished"}
+	}
+	return apps, nil
 }

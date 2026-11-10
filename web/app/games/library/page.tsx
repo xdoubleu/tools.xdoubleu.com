@@ -1,4 +1,5 @@
 import GamesLibrary from '@/components/games/GamesLibrary'
+import GamesWishlist from '@/components/games/GamesWishlist'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 
@@ -11,6 +12,7 @@ export default function BacklogGamesLibraryPage() {
       />
 
       <GamesLibrary />
+      <GamesWishlist />
     </PageContainer>
   )
 }

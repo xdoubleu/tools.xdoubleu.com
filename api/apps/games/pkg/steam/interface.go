@@ -15,3 +15,13 @@ type Client interface {
 		appID int,
 	) (*GlobalAchievementPercentagesResponse, error)
 }
+
+// WishlistClient is the wishlist half of the Steam API; the real client
+// implements it beside Client.
+type WishlistClient interface {
+	// GetWishlist returns the user's wishlisted apps; a private wishlist
+	// comes back empty.
+	GetWishlist(ctx context.Context, steamID string) (*WishlistResponse, error)
+	// GetStoreItems resolves app ids to their store names.
+	GetStoreItems(ctx context.Context, appIDs []int) ([]StoreApp, error)
+}

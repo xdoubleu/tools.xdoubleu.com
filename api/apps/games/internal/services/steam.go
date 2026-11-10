@@ -73,7 +73,7 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 
 	labels, values := buildProgress(averagedAchievements(complete, gamesMap))
 
-	return service.steam.WithTx(ctx, func(tx pgx.Tx) error {
+	err = service.steam.WithTx(ctx, func(tx pgx.Tx) error {
 		if errIn := service.steam.UpsertGames(ctx, tx, gamesMap, userID); errIn != nil {
 			return errIn
 		}
@@ -86,6 +86,12 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 		}
 		return service.progress.UpsertTx(ctx, tx, userID, labels, values)
 	})
+	if err != nil {
+		return err
+	}
+
+	service.syncWishlist(ctx, client, creds.SteamUserID, userID, gamesMap)
+	return nil
 }
 
 // completeAchievements returns fetched rows plus stored rows for games whose
@@ -631,4 +637,89 @@ func (service *SteamService) GetAchievementsForGame(
 		return nil, err
 	}
 	return achievementsMap[gameID], nil
+}
+
+// storeItemsBatch caps the app ids resolved per store request.
+const storeItemsBatch = 100
+
+// syncWishlist replaces userID's stored wishlist with Steam's, minus owned
+// games. It is best effort: a failure is logged and keeps the stored
+// wishlist, so it never fails the library sync.
+func (service *SteamService) syncWishlist(
+	ctx context.Context,
+	client steam.Client,
+	steamUserID, userID string,
+	games map[int]*models.Game,
+) {
+	wc, ok := client.(steam.WishlistClient)
+	if !ok {
+		return
+	}
+
+	items, err := service.fetchWishlist(ctx, wc, steamUserID, games)
+	if err == nil {
+		err = service.steam.ReplaceWishlist(ctx, userID, items)
+	}
+	if err != nil {
+		service.logger.WarnContext(ctx, "steam wishlist sync failed",
+			slog.String("userID", userID), slog.Any("error", err))
+	}
+}
+
+func (service *SteamService) fetchWishlist(
+	ctx context.Context,
+	wc steam.WishlistClient,
+	steamUserID string,
+	games map[int]*models.Game,
+) ([]models.WishlistItem, error) {
+	resp, err := wc.GetWishlist(ctx, steamUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	wished := make([]steam.WishlistItem, 0, len(resp.Response.Items))
+	ids := make([]int, 0, len(resp.Response.Items))
+	for _, it := range resp.Response.Items {
+		if g, owned := games[it.AppID]; owned && !g.IsDelisted {
+			continue
+		}
+		wished = append(wished, it)
+		ids = append(ids, it.AppID)
+	}
+
+	names := make(map[int]string, len(ids))
+	for start := 0; start < len(ids); start += storeItemsBatch {
+		end := min(start+storeItemsBatch, len(ids))
+		apps, errItems := wc.GetStoreItems(ctx, ids[start:end])
+		if errItems != nil {
+			return nil, errItems
+		}
+		for _, a := range apps {
+			names[a.AppID] = a.Name
+		}
+	}
+
+	items := make([]models.WishlistItem, 0, len(wished))
+	for _, it := range wished {
+		name := names[it.AppID]
+		if name == "" {
+			name = fmt.Sprintf("Steam app %d", it.AppID)
+		}
+		items = append(items, models.WishlistItem{
+			ID:       it.AppID,
+			Name:     name,
+			ImageURL: steam.StoreHeaderURL(it.AppID),
+			Priority: it.Priority,
+			AddedAt:  rtimeLastPlayedToTime(it.DateAdded),
+		})
+	}
+	return items, nil
+}
+
+// GetWishlist returns userID's synced wishlist.
+func (service *SteamService) GetWishlist(
+	ctx context.Context,
+	userID string,
+) ([]models.WishlistItem, error) {
+	return service.steam.GetWishlist(ctx, userID)
 }
