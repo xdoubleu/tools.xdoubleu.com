@@ -28,6 +28,15 @@ type fakeGitHub struct {
 	pulls  map[int]pullAnswer
 	polled []int
 	merged []githubapp.MergedPullRequest
+	open   []githubapp.OpenPullRequest
+}
+
+func (f *fakeGitHub) OpenPullRequests(
+	_ context.Context, _, _ string,
+) ([]githubapp.OpenPullRequest, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.open, nil
 }
 
 func (f *fakeGitHub) MergedPullRequests(
@@ -77,7 +86,7 @@ func githubEnv(t *testing.T) (jobEnv, *fakeGitHub) {
 	t.Helper()
 	gh := &fakeGitHub{
 		mu: sync.Mutex{}, asked: nil, err: nil, pulls: map[int]pullAnswer{},
-		polled: nil, merged: nil,
+		polled: nil, merged: nil, open: nil,
 	}
 	return newJobEnvWith(t, true, "browser", factory.WithGitHub(gh)), gh
 }

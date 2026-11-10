@@ -37,6 +37,7 @@ func New(
 			jobs: repos.Jobs, tasks: repos.Tasks, repos: repos.Repos,
 			events: repos.Events, accounts: accounts, github: github, now: time.Now,
 			say: say, runners: repos.Runners, settings: repos.Settings,
+			linked:    repos.Linked,
 			offlineMu: sync.Mutex{}, alertedOffline: uuid.Nil,
 		},
 	}

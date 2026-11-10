@@ -36,6 +36,11 @@ type PullRequestSource interface {
 		ctx context.Context,
 		owner, repo string,
 	) ([]githubapp.MergedPullRequest, error)
+	// OpenPullRequests lists the open pull requests of a repo.
+	OpenPullRequests(
+		ctx context.Context,
+		owner, repo string,
+	) ([]githubapp.OpenPullRequest, error)
 }
 
 // GitHub is everything the factory asks of the GitHub App.

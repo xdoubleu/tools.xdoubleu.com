@@ -263,8 +263,9 @@ type Task struct {
 	UpdatedAt    string `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	CommentCount int32  `protobuf:"varint,10,opt,name=comment_count,json=commentCount,proto3" json:"comment_count,omitempty"`
 	RepoId       string `protobuf:"bytes,11,opt,name=repo_id,json=repoId,proto3" json:"repo_id,omitempty"`
-	// The pull request of the task's newest job that opened one, as last read from
-	// GitHub; all empty when no job did. Same values as Job.pr_*.
+	// The task's open pull request, else its newest, among those its jobs opened and
+	// those linking it in their body, as last read from GitHub; all empty when it
+	// has none. Same values as Job.pr_*.
 	PrUrl    string `protobuf:"bytes,12,opt,name=pr_url,json=prUrl,proto3" json:"pr_url,omitempty"`
 	PrState  string `protobuf:"bytes,13,opt,name=pr_state,json=prState,proto3" json:"pr_state,omitempty"`
 	PrCi     string `protobuf:"bytes,14,opt,name=pr_ci,json=prCi,proto3" json:"pr_ci,omitempty"`
@@ -736,7 +737,10 @@ type GetTaskResponse struct {
 	Task     *Task                  `protobuf:"bytes,1,opt,name=task,proto3" json:"task,omitempty"`
 	Comments []*Comment             `protobuf:"bytes,2,rep,name=comments,proto3" json:"comments,omitempty"`
 	// The task's jobs, newest first. Left out by the MCP tool.
-	Jobs          []*Job `protobuf:"bytes,3,rep,name=jobs,proto3" json:"jobs,omitempty"`
+	Jobs []*Job `protobuf:"bytes,3,rep,name=jobs,proto3" json:"jobs,omitempty"`
+	// Every pull request that belongs to the task: those its jobs opened and those
+	// that link it in their body. Left out by the MCP tool.
+	PullRequests  []*PullRequest `protobuf:"bytes,4,rep,name=pull_requests,json=pullRequests,proto3" json:"pull_requests,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -792,6 +796,85 @@ func (x *GetTaskResponse) GetJobs() []*Job {
 	return nil
 }
 
+func (x *GetTaskResponse) GetPullRequests() []*PullRequest {
+	if x != nil {
+		return x.PullRequests
+	}
+	return nil
+}
+
+// A pull request of a task, as the server last read it from GitHub.
+type PullRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Url   string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	// "open", "merged" or "closed"; empty until it has been read.
+	State string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	// The head commit's checks while it is open: "pending", "passing" or "failing".
+	Ci string `protobuf:"bytes,3,opt,name=ci,proto3" json:"ci,omitempty"`
+	// The standing review while it is open: "approved" or "changes_requested".
+	Review        string `protobuf:"bytes,4,opt,name=review,proto3" json:"review,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PullRequest) Reset() {
+	*x = PullRequest{}
+	mi := &file_factory_v1_factory_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PullRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PullRequest) ProtoMessage() {}
+
+func (x *PullRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_factory_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PullRequest.ProtoReflect.Descriptor instead.
+func (*PullRequest) Descriptor() ([]byte, []int) {
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *PullRequest) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *PullRequest) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *PullRequest) GetCi() string {
+	if x != nil {
+		return x.Ci
+	}
+	return ""
+}
+
+func (x *PullRequest) GetReview() string {
+	if x != nil {
+		return x.Review
+	}
+	return ""
+}
+
 // New tasks always start in Backlog. The repo can't change afterwards.
 type CreateTaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -806,7 +889,7 @@ type CreateTaskRequest struct {
 
 func (x *CreateTaskRequest) Reset() {
 	*x = CreateTaskRequest{}
-	mi := &file_factory_v1_factory_proto_msgTypes[8]
+	mi := &file_factory_v1_factory_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -818,7 +901,7 @@ func (x *CreateTaskRequest) String() string {
 func (*CreateTaskRequest) ProtoMessage() {}
 
 func (x *CreateTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[8]
+	mi := &file_factory_v1_factory_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -831,7 +914,7 @@ func (x *CreateTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTaskRequest.ProtoReflect.Descriptor instead.
 func (*CreateTaskRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{8}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CreateTaskRequest) GetTitle() string {
@@ -878,7 +961,7 @@ type CreateTaskResponse struct {
 
 func (x *CreateTaskResponse) Reset() {
 	*x = CreateTaskResponse{}
-	mi := &file_factory_v1_factory_proto_msgTypes[9]
+	mi := &file_factory_v1_factory_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -890,7 +973,7 @@ func (x *CreateTaskResponse) String() string {
 func (*CreateTaskResponse) ProtoMessage() {}
 
 func (x *CreateTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[9]
+	mi := &file_factory_v1_factory_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -903,7 +986,7 @@ func (x *CreateTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTaskResponse.ProtoReflect.Descriptor instead.
 func (*CreateTaskResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{9}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CreateTaskResponse) GetTask() *Task {
@@ -928,7 +1011,7 @@ type UpdateTaskRequest struct {
 
 func (x *UpdateTaskRequest) Reset() {
 	*x = UpdateTaskRequest{}
-	mi := &file_factory_v1_factory_proto_msgTypes[10]
+	mi := &file_factory_v1_factory_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -940,7 +1023,7 @@ func (x *UpdateTaskRequest) String() string {
 func (*UpdateTaskRequest) ProtoMessage() {}
 
 func (x *UpdateTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[10]
+	mi := &file_factory_v1_factory_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -953,7 +1036,7 @@ func (x *UpdateTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateTaskRequest.ProtoReflect.Descriptor instead.
 func (*UpdateTaskRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{10}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateTaskRequest) GetId() string {
@@ -1000,7 +1083,7 @@ type UpdateTaskResponse struct {
 
 func (x *UpdateTaskResponse) Reset() {
 	*x = UpdateTaskResponse{}
-	mi := &file_factory_v1_factory_proto_msgTypes[11]
+	mi := &file_factory_v1_factory_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1012,7 +1095,7 @@ func (x *UpdateTaskResponse) String() string {
 func (*UpdateTaskResponse) ProtoMessage() {}
 
 func (x *UpdateTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[11]
+	mi := &file_factory_v1_factory_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1025,7 +1108,7 @@ func (x *UpdateTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateTaskResponse.ProtoReflect.Descriptor instead.
 func (*UpdateTaskResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{11}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *UpdateTaskResponse) GetTask() *Task {
@@ -1046,7 +1129,7 @@ type MoveTaskRequest struct {
 
 func (x *MoveTaskRequest) Reset() {
 	*x = MoveTaskRequest{}
-	mi := &file_factory_v1_factory_proto_msgTypes[12]
+	mi := &file_factory_v1_factory_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1058,7 +1141,7 @@ func (x *MoveTaskRequest) String() string {
 func (*MoveTaskRequest) ProtoMessage() {}
 
 func (x *MoveTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[12]
+	mi := &file_factory_v1_factory_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1071,7 +1154,7 @@ func (x *MoveTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MoveTaskRequest.ProtoReflect.Descriptor instead.
 func (*MoveTaskRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{12}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *MoveTaskRequest) GetId() string {
@@ -1097,7 +1180,7 @@ type MoveTaskResponse struct {
 
 func (x *MoveTaskResponse) Reset() {
 	*x = MoveTaskResponse{}
-	mi := &file_factory_v1_factory_proto_msgTypes[13]
+	mi := &file_factory_v1_factory_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1109,7 +1192,7 @@ func (x *MoveTaskResponse) String() string {
 func (*MoveTaskResponse) ProtoMessage() {}
 
 func (x *MoveTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[13]
+	mi := &file_factory_v1_factory_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1122,7 +1205,7 @@ func (x *MoveTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MoveTaskResponse.ProtoReflect.Descriptor instead.
 func (*MoveTaskResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{13}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *MoveTaskResponse) GetTask() *Task {
@@ -1142,7 +1225,7 @@ type AddCommentRequest struct {
 
 func (x *AddCommentRequest) Reset() {
 	*x = AddCommentRequest{}
-	mi := &file_factory_v1_factory_proto_msgTypes[14]
+	mi := &file_factory_v1_factory_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1154,7 +1237,7 @@ func (x *AddCommentRequest) String() string {
 func (*AddCommentRequest) ProtoMessage() {}
 
 func (x *AddCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[14]
+	mi := &file_factory_v1_factory_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1167,7 +1250,7 @@ func (x *AddCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddCommentRequest.ProtoReflect.Descriptor instead.
 func (*AddCommentRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{14}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *AddCommentRequest) GetTaskId() string {
@@ -1193,7 +1276,7 @@ type AddCommentResponse struct {
 
 func (x *AddCommentResponse) Reset() {
 	*x = AddCommentResponse{}
-	mi := &file_factory_v1_factory_proto_msgTypes[15]
+	mi := &file_factory_v1_factory_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1205,7 +1288,7 @@ func (x *AddCommentResponse) String() string {
 func (*AddCommentResponse) ProtoMessage() {}
 
 func (x *AddCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[15]
+	mi := &file_factory_v1_factory_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1218,7 +1301,7 @@ func (x *AddCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddCommentResponse.ProtoReflect.Descriptor instead.
 func (*AddCommentResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{15}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *AddCommentResponse) GetComment() *Comment {
@@ -1260,7 +1343,7 @@ type Job struct {
 
 func (x *Job) Reset() {
 	*x = Job{}
-	mi := &file_factory_v1_factory_proto_msgTypes[16]
+	mi := &file_factory_v1_factory_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1272,7 +1355,7 @@ func (x *Job) String() string {
 func (*Job) ProtoMessage() {}
 
 func (x *Job) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[16]
+	mi := &file_factory_v1_factory_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1285,7 +1368,7 @@ func (x *Job) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Job.ProtoReflect.Descriptor instead.
 func (*Job) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{16}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Job) GetId() string {
@@ -1396,7 +1479,7 @@ type JobEvent struct {
 
 func (x *JobEvent) Reset() {
 	*x = JobEvent{}
-	mi := &file_factory_v1_factory_proto_msgTypes[17]
+	mi := &file_factory_v1_factory_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1408,7 +1491,7 @@ func (x *JobEvent) String() string {
 func (*JobEvent) ProtoMessage() {}
 
 func (x *JobEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[17]
+	mi := &file_factory_v1_factory_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1421,7 +1504,7 @@ func (x *JobEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JobEvent.ProtoReflect.Descriptor instead.
 func (*JobEvent) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{17}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *JobEvent) GetSeq() int32 {
@@ -1464,7 +1547,7 @@ type ListJobEventsRequest struct {
 
 func (x *ListJobEventsRequest) Reset() {
 	*x = ListJobEventsRequest{}
-	mi := &file_factory_v1_factory_proto_msgTypes[18]
+	mi := &file_factory_v1_factory_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1476,7 +1559,7 @@ func (x *ListJobEventsRequest) String() string {
 func (*ListJobEventsRequest) ProtoMessage() {}
 
 func (x *ListJobEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[18]
+	mi := &file_factory_v1_factory_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1489,7 +1572,7 @@ func (x *ListJobEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListJobEventsRequest.ProtoReflect.Descriptor instead.
 func (*ListJobEventsRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{18}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListJobEventsRequest) GetJobId() string {
@@ -1515,7 +1598,7 @@ type ListJobEventsResponse struct {
 
 func (x *ListJobEventsResponse) Reset() {
 	*x = ListJobEventsResponse{}
-	mi := &file_factory_v1_factory_proto_msgTypes[19]
+	mi := &file_factory_v1_factory_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1527,7 +1610,7 @@ func (x *ListJobEventsResponse) String() string {
 func (*ListJobEventsResponse) ProtoMessage() {}
 
 func (x *ListJobEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[19]
+	mi := &file_factory_v1_factory_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1540,7 +1623,7 @@ func (x *ListJobEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListJobEventsResponse.ProtoReflect.Descriptor instead.
 func (*ListJobEventsResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{19}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListJobEventsResponse) GetEvents() []*JobEvent {
@@ -1567,7 +1650,7 @@ type RunTaskRequest struct {
 
 func (x *RunTaskRequest) Reset() {
 	*x = RunTaskRequest{}
-	mi := &file_factory_v1_factory_proto_msgTypes[20]
+	mi := &file_factory_v1_factory_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1579,7 +1662,7 @@ func (x *RunTaskRequest) String() string {
 func (*RunTaskRequest) ProtoMessage() {}
 
 func (x *RunTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[20]
+	mi := &file_factory_v1_factory_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1592,7 +1675,7 @@ func (x *RunTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunTaskRequest.ProtoReflect.Descriptor instead.
 func (*RunTaskRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{20}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *RunTaskRequest) GetTaskId() string {
@@ -1632,7 +1715,7 @@ type RunTaskResponse struct {
 
 func (x *RunTaskResponse) Reset() {
 	*x = RunTaskResponse{}
-	mi := &file_factory_v1_factory_proto_msgTypes[21]
+	mi := &file_factory_v1_factory_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1644,7 +1727,7 @@ func (x *RunTaskResponse) String() string {
 func (*RunTaskResponse) ProtoMessage() {}
 
 func (x *RunTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[21]
+	mi := &file_factory_v1_factory_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1657,7 +1740,7 @@ func (x *RunTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunTaskResponse.ProtoReflect.Descriptor instead.
 func (*RunTaskResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{21}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *RunTaskResponse) GetJob() *Job {
@@ -1678,7 +1761,7 @@ type ReplyTaskRequest struct {
 
 func (x *ReplyTaskRequest) Reset() {
 	*x = ReplyTaskRequest{}
-	mi := &file_factory_v1_factory_proto_msgTypes[22]
+	mi := &file_factory_v1_factory_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1690,7 +1773,7 @@ func (x *ReplyTaskRequest) String() string {
 func (*ReplyTaskRequest) ProtoMessage() {}
 
 func (x *ReplyTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[22]
+	mi := &file_factory_v1_factory_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1703,7 +1786,7 @@ func (x *ReplyTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplyTaskRequest.ProtoReflect.Descriptor instead.
 func (*ReplyTaskRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{22}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ReplyTaskRequest) GetTaskId() string {
@@ -1729,7 +1812,7 @@ type ReplyTaskResponse struct {
 
 func (x *ReplyTaskResponse) Reset() {
 	*x = ReplyTaskResponse{}
-	mi := &file_factory_v1_factory_proto_msgTypes[23]
+	mi := &file_factory_v1_factory_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1741,7 +1824,7 @@ func (x *ReplyTaskResponse) String() string {
 func (*ReplyTaskResponse) ProtoMessage() {}
 
 func (x *ReplyTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[23]
+	mi := &file_factory_v1_factory_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1754,7 +1837,7 @@ func (x *ReplyTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplyTaskResponse.ProtoReflect.Descriptor instead.
 func (*ReplyTaskResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{23}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ReplyTaskResponse) GetJob() *Job {
@@ -1775,7 +1858,7 @@ type StopJobRequest struct {
 
 func (x *StopJobRequest) Reset() {
 	*x = StopJobRequest{}
-	mi := &file_factory_v1_factory_proto_msgTypes[24]
+	mi := &file_factory_v1_factory_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1787,7 +1870,7 @@ func (x *StopJobRequest) String() string {
 func (*StopJobRequest) ProtoMessage() {}
 
 func (x *StopJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[24]
+	mi := &file_factory_v1_factory_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1800,7 +1883,7 @@ func (x *StopJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopJobRequest.ProtoReflect.Descriptor instead.
 func (*StopJobRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{24}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *StopJobRequest) GetTaskId() string {
@@ -1819,7 +1902,7 @@ type StopJobResponse struct {
 
 func (x *StopJobResponse) Reset() {
 	*x = StopJobResponse{}
-	mi := &file_factory_v1_factory_proto_msgTypes[25]
+	mi := &file_factory_v1_factory_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1831,7 +1914,7 @@ func (x *StopJobResponse) String() string {
 func (*StopJobResponse) ProtoMessage() {}
 
 func (x *StopJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[25]
+	mi := &file_factory_v1_factory_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1844,7 +1927,7 @@ func (x *StopJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopJobResponse.ProtoReflect.Descriptor instead.
 func (*StopJobResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{25}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *StopJobResponse) GetJob() *Job {
@@ -1878,7 +1961,7 @@ type Repo struct {
 
 func (x *Repo) Reset() {
 	*x = Repo{}
-	mi := &file_factory_v1_factory_proto_msgTypes[26]
+	mi := &file_factory_v1_factory_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1890,7 +1973,7 @@ func (x *Repo) String() string {
 func (*Repo) ProtoMessage() {}
 
 func (x *Repo) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[26]
+	mi := &file_factory_v1_factory_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1903,7 +1986,7 @@ func (x *Repo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Repo.ProtoReflect.Descriptor instead.
 func (*Repo) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{26}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *Repo) GetId() string {
@@ -1984,7 +2067,7 @@ type ListReposRequest struct {
 
 func (x *ListReposRequest) Reset() {
 	*x = ListReposRequest{}
-	mi := &file_factory_v1_factory_proto_msgTypes[27]
+	mi := &file_factory_v1_factory_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1996,7 +2079,7 @@ func (x *ListReposRequest) String() string {
 func (*ListReposRequest) ProtoMessage() {}
 
 func (x *ListReposRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[27]
+	mi := &file_factory_v1_factory_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2009,7 +2092,7 @@ func (x *ListReposRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReposRequest.ProtoReflect.Descriptor instead.
 func (*ListReposRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{27}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{28}
 }
 
 type ListReposResponse struct {
@@ -2021,7 +2104,7 @@ type ListReposResponse struct {
 
 func (x *ListReposResponse) Reset() {
 	*x = ListReposResponse{}
-	mi := &file_factory_v1_factory_proto_msgTypes[28]
+	mi := &file_factory_v1_factory_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2033,7 +2116,7 @@ func (x *ListReposResponse) String() string {
 func (*ListReposResponse) ProtoMessage() {}
 
 func (x *ListReposResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[28]
+	mi := &file_factory_v1_factory_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2046,7 +2129,7 @@ func (x *ListReposResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReposResponse.ProtoReflect.Descriptor instead.
 func (*ListReposResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{28}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ListReposResponse) GetRepos() []*Repo {
@@ -2066,7 +2149,7 @@ type CreateRepoRequest struct {
 
 func (x *CreateRepoRequest) Reset() {
 	*x = CreateRepoRequest{}
-	mi := &file_factory_v1_factory_proto_msgTypes[29]
+	mi := &file_factory_v1_factory_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2078,7 +2161,7 @@ func (x *CreateRepoRequest) String() string {
 func (*CreateRepoRequest) ProtoMessage() {}
 
 func (x *CreateRepoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[29]
+	mi := &file_factory_v1_factory_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2091,7 +2174,7 @@ func (x *CreateRepoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRepoRequest.ProtoReflect.Descriptor instead.
 func (*CreateRepoRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{29}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *CreateRepoRequest) GetRepo() *Repo {
@@ -2110,7 +2193,7 @@ type CreateRepoResponse struct {
 
 func (x *CreateRepoResponse) Reset() {
 	*x = CreateRepoResponse{}
-	mi := &file_factory_v1_factory_proto_msgTypes[30]
+	mi := &file_factory_v1_factory_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2122,7 +2205,7 @@ func (x *CreateRepoResponse) String() string {
 func (*CreateRepoResponse) ProtoMessage() {}
 
 func (x *CreateRepoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[30]
+	mi := &file_factory_v1_factory_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2135,7 +2218,7 @@ func (x *CreateRepoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRepoResponse.ProtoReflect.Descriptor instead.
 func (*CreateRepoResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{30}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *CreateRepoResponse) GetRepo() *Repo {
@@ -2155,7 +2238,7 @@ type UpdateRepoRequest struct {
 
 func (x *UpdateRepoRequest) Reset() {
 	*x = UpdateRepoRequest{}
-	mi := &file_factory_v1_factory_proto_msgTypes[31]
+	mi := &file_factory_v1_factory_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2167,7 +2250,7 @@ func (x *UpdateRepoRequest) String() string {
 func (*UpdateRepoRequest) ProtoMessage() {}
 
 func (x *UpdateRepoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[31]
+	mi := &file_factory_v1_factory_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2180,7 +2263,7 @@ func (x *UpdateRepoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRepoRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRepoRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{31}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *UpdateRepoRequest) GetRepo() *Repo {
@@ -2199,7 +2282,7 @@ type UpdateRepoResponse struct {
 
 func (x *UpdateRepoResponse) Reset() {
 	*x = UpdateRepoResponse{}
-	mi := &file_factory_v1_factory_proto_msgTypes[32]
+	mi := &file_factory_v1_factory_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2211,7 +2294,7 @@ func (x *UpdateRepoResponse) String() string {
 func (*UpdateRepoResponse) ProtoMessage() {}
 
 func (x *UpdateRepoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[32]
+	mi := &file_factory_v1_factory_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2224,7 +2307,7 @@ func (x *UpdateRepoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRepoResponse.ProtoReflect.Descriptor instead.
 func (*UpdateRepoResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{32}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *UpdateRepoResponse) GetRepo() *Repo {
@@ -2244,7 +2327,7 @@ type ListOpenRouterModelsRequest struct {
 
 func (x *ListOpenRouterModelsRequest) Reset() {
 	*x = ListOpenRouterModelsRequest{}
-	mi := &file_factory_v1_factory_proto_msgTypes[33]
+	mi := &file_factory_v1_factory_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2256,7 +2339,7 @@ func (x *ListOpenRouterModelsRequest) String() string {
 func (*ListOpenRouterModelsRequest) ProtoMessage() {}
 
 func (x *ListOpenRouterModelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[33]
+	mi := &file_factory_v1_factory_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2269,7 +2352,7 @@ func (x *ListOpenRouterModelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOpenRouterModelsRequest.ProtoReflect.Descriptor instead.
 func (*ListOpenRouterModelsRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{33}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{34}
 }
 
 type ListOpenRouterModelsResponse struct {
@@ -2282,7 +2365,7 @@ type ListOpenRouterModelsResponse struct {
 
 func (x *ListOpenRouterModelsResponse) Reset() {
 	*x = ListOpenRouterModelsResponse{}
-	mi := &file_factory_v1_factory_proto_msgTypes[34]
+	mi := &file_factory_v1_factory_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2294,7 +2377,7 @@ func (x *ListOpenRouterModelsResponse) String() string {
 func (*ListOpenRouterModelsResponse) ProtoMessage() {}
 
 func (x *ListOpenRouterModelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_factory_proto_msgTypes[34]
+	mi := &file_factory_v1_factory_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2307,7 +2390,7 @@ func (x *ListOpenRouterModelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOpenRouterModelsResponse.ProtoReflect.Descriptor instead.
 func (*ListOpenRouterModelsResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_factory_proto_rawDescGZIP(), []int{34}
+	return file_factory_v1_factory_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ListOpenRouterModelsResponse) GetModelIds() []string {
@@ -2361,11 +2444,17 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x17SetPickupPausedResponse\x12\x16\n" +
 	"\x06paused\x18\x01 \x01(\bR\x06paused\" \n" +
 	"\x0eGetTaskRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x8d\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xcb\x01\n" +
 	"\x0fGetTaskResponse\x12$\n" +
 	"\x04task\x18\x01 \x01(\v2\x10.factory.v1.TaskR\x04task\x12/\n" +
 	"\bcomments\x18\x02 \x03(\v2\x13.factory.v1.CommentR\bcomments\x12#\n" +
-	"\x04jobs\x18\x03 \x03(\v2\x0f.factory.v1.JobR\x04jobs\"\xa4\x01\n" +
+	"\x04jobs\x18\x03 \x03(\v2\x0f.factory.v1.JobR\x04jobs\x12<\n" +
+	"\rpull_requests\x18\x04 \x03(\v2\x17.factory.v1.PullRequestR\fpullRequests\"]\n" +
+	"\vPullRequest\x12\x10\n" +
+	"\x03url\x18\x01 \x01(\tR\x03url\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\x12\x0e\n" +
+	"\x02ci\x18\x03 \x01(\tR\x02ci\x12\x16\n" +
+	"\x06review\x18\x04 \x01(\tR\x06review\"\xa4\x01\n" +
 	"\x11CreateTaskRequest\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\x124\n" +
@@ -2525,7 +2614,7 @@ func file_factory_v1_factory_proto_rawDescGZIP() []byte {
 }
 
 var file_factory_v1_factory_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_factory_v1_factory_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
+var file_factory_v1_factory_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_factory_v1_factory_proto_goTypes = []any{
 	(TaskStatus)(0),                      // 0: factory.v1.TaskStatus
 	(TaskPriority)(0),                    // 1: factory.v1.TaskPriority
@@ -2539,33 +2628,34 @@ var file_factory_v1_factory_proto_goTypes = []any{
 	(*SetPickupPausedResponse)(nil),      // 9: factory.v1.SetPickupPausedResponse
 	(*GetTaskRequest)(nil),               // 10: factory.v1.GetTaskRequest
 	(*GetTaskResponse)(nil),              // 11: factory.v1.GetTaskResponse
-	(*CreateTaskRequest)(nil),            // 12: factory.v1.CreateTaskRequest
-	(*CreateTaskResponse)(nil),           // 13: factory.v1.CreateTaskResponse
-	(*UpdateTaskRequest)(nil),            // 14: factory.v1.UpdateTaskRequest
-	(*UpdateTaskResponse)(nil),           // 15: factory.v1.UpdateTaskResponse
-	(*MoveTaskRequest)(nil),              // 16: factory.v1.MoveTaskRequest
-	(*MoveTaskResponse)(nil),             // 17: factory.v1.MoveTaskResponse
-	(*AddCommentRequest)(nil),            // 18: factory.v1.AddCommentRequest
-	(*AddCommentResponse)(nil),           // 19: factory.v1.AddCommentResponse
-	(*Job)(nil),                          // 20: factory.v1.Job
-	(*JobEvent)(nil),                     // 21: factory.v1.JobEvent
-	(*ListJobEventsRequest)(nil),         // 22: factory.v1.ListJobEventsRequest
-	(*ListJobEventsResponse)(nil),        // 23: factory.v1.ListJobEventsResponse
-	(*RunTaskRequest)(nil),               // 24: factory.v1.RunTaskRequest
-	(*RunTaskResponse)(nil),              // 25: factory.v1.RunTaskResponse
-	(*ReplyTaskRequest)(nil),             // 26: factory.v1.ReplyTaskRequest
-	(*ReplyTaskResponse)(nil),            // 27: factory.v1.ReplyTaskResponse
-	(*StopJobRequest)(nil),               // 28: factory.v1.StopJobRequest
-	(*StopJobResponse)(nil),              // 29: factory.v1.StopJobResponse
-	(*Repo)(nil),                         // 30: factory.v1.Repo
-	(*ListReposRequest)(nil),             // 31: factory.v1.ListReposRequest
-	(*ListReposResponse)(nil),            // 32: factory.v1.ListReposResponse
-	(*CreateRepoRequest)(nil),            // 33: factory.v1.CreateRepoRequest
-	(*CreateRepoResponse)(nil),           // 34: factory.v1.CreateRepoResponse
-	(*UpdateRepoRequest)(nil),            // 35: factory.v1.UpdateRepoRequest
-	(*UpdateRepoResponse)(nil),           // 36: factory.v1.UpdateRepoResponse
-	(*ListOpenRouterModelsRequest)(nil),  // 37: factory.v1.ListOpenRouterModelsRequest
-	(*ListOpenRouterModelsResponse)(nil), // 38: factory.v1.ListOpenRouterModelsResponse
+	(*PullRequest)(nil),                  // 12: factory.v1.PullRequest
+	(*CreateTaskRequest)(nil),            // 13: factory.v1.CreateTaskRequest
+	(*CreateTaskResponse)(nil),           // 14: factory.v1.CreateTaskResponse
+	(*UpdateTaskRequest)(nil),            // 15: factory.v1.UpdateTaskRequest
+	(*UpdateTaskResponse)(nil),           // 16: factory.v1.UpdateTaskResponse
+	(*MoveTaskRequest)(nil),              // 17: factory.v1.MoveTaskRequest
+	(*MoveTaskResponse)(nil),             // 18: factory.v1.MoveTaskResponse
+	(*AddCommentRequest)(nil),            // 19: factory.v1.AddCommentRequest
+	(*AddCommentResponse)(nil),           // 20: factory.v1.AddCommentResponse
+	(*Job)(nil),                          // 21: factory.v1.Job
+	(*JobEvent)(nil),                     // 22: factory.v1.JobEvent
+	(*ListJobEventsRequest)(nil),         // 23: factory.v1.ListJobEventsRequest
+	(*ListJobEventsResponse)(nil),        // 24: factory.v1.ListJobEventsResponse
+	(*RunTaskRequest)(nil),               // 25: factory.v1.RunTaskRequest
+	(*RunTaskResponse)(nil),              // 26: factory.v1.RunTaskResponse
+	(*ReplyTaskRequest)(nil),             // 27: factory.v1.ReplyTaskRequest
+	(*ReplyTaskResponse)(nil),            // 28: factory.v1.ReplyTaskResponse
+	(*StopJobRequest)(nil),               // 29: factory.v1.StopJobRequest
+	(*StopJobResponse)(nil),              // 30: factory.v1.StopJobResponse
+	(*Repo)(nil),                         // 31: factory.v1.Repo
+	(*ListReposRequest)(nil),             // 32: factory.v1.ListReposRequest
+	(*ListReposResponse)(nil),            // 33: factory.v1.ListReposResponse
+	(*CreateRepoRequest)(nil),            // 34: factory.v1.CreateRepoRequest
+	(*CreateRepoResponse)(nil),           // 35: factory.v1.CreateRepoResponse
+	(*UpdateRepoRequest)(nil),            // 36: factory.v1.UpdateRepoRequest
+	(*UpdateRepoResponse)(nil),           // 37: factory.v1.UpdateRepoResponse
+	(*ListOpenRouterModelsRequest)(nil),  // 38: factory.v1.ListOpenRouterModelsRequest
+	(*ListOpenRouterModelsResponse)(nil), // 39: factory.v1.ListOpenRouterModelsResponse
 }
 var file_factory_v1_factory_proto_depIdxs = []int32{
 	0,  // 0: factory.v1.Task.status:type_name -> factory.v1.TaskStatus
@@ -2573,62 +2663,63 @@ var file_factory_v1_factory_proto_depIdxs = []int32{
 	4,  // 2: factory.v1.ListTasksResponse.tasks:type_name -> factory.v1.Task
 	4,  // 3: factory.v1.GetTaskResponse.task:type_name -> factory.v1.Task
 	5,  // 4: factory.v1.GetTaskResponse.comments:type_name -> factory.v1.Comment
-	20, // 5: factory.v1.GetTaskResponse.jobs:type_name -> factory.v1.Job
-	1,  // 6: factory.v1.CreateTaskRequest.priority:type_name -> factory.v1.TaskPriority
-	4,  // 7: factory.v1.CreateTaskResponse.task:type_name -> factory.v1.Task
-	1,  // 8: factory.v1.UpdateTaskRequest.priority:type_name -> factory.v1.TaskPriority
-	4,  // 9: factory.v1.UpdateTaskResponse.task:type_name -> factory.v1.Task
-	0,  // 10: factory.v1.MoveTaskRequest.status:type_name -> factory.v1.TaskStatus
-	4,  // 11: factory.v1.MoveTaskResponse.task:type_name -> factory.v1.Task
-	5,  // 12: factory.v1.AddCommentResponse.comment:type_name -> factory.v1.Comment
-	3,  // 13: factory.v1.Job.status:type_name -> factory.v1.JobStatus
-	2,  // 14: factory.v1.Job.harness:type_name -> factory.v1.Harness
-	21, // 15: factory.v1.ListJobEventsResponse.events:type_name -> factory.v1.JobEvent
-	2,  // 16: factory.v1.RunTaskRequest.harness:type_name -> factory.v1.Harness
-	20, // 17: factory.v1.RunTaskResponse.job:type_name -> factory.v1.Job
-	20, // 18: factory.v1.ReplyTaskResponse.job:type_name -> factory.v1.Job
-	20, // 19: factory.v1.StopJobResponse.job:type_name -> factory.v1.Job
-	2,  // 20: factory.v1.Repo.default_harness:type_name -> factory.v1.Harness
-	30, // 21: factory.v1.ListReposResponse.repos:type_name -> factory.v1.Repo
-	30, // 22: factory.v1.CreateRepoRequest.repo:type_name -> factory.v1.Repo
-	30, // 23: factory.v1.CreateRepoResponse.repo:type_name -> factory.v1.Repo
-	30, // 24: factory.v1.UpdateRepoRequest.repo:type_name -> factory.v1.Repo
-	30, // 25: factory.v1.UpdateRepoResponse.repo:type_name -> factory.v1.Repo
-	6,  // 26: factory.v1.TaskService.ListTasks:input_type -> factory.v1.ListTasksRequest
-	8,  // 27: factory.v1.TaskService.SetPickupPaused:input_type -> factory.v1.SetPickupPausedRequest
-	10, // 28: factory.v1.TaskService.GetTask:input_type -> factory.v1.GetTaskRequest
-	12, // 29: factory.v1.TaskService.CreateTask:input_type -> factory.v1.CreateTaskRequest
-	14, // 30: factory.v1.TaskService.UpdateTask:input_type -> factory.v1.UpdateTaskRequest
-	16, // 31: factory.v1.TaskService.MoveTask:input_type -> factory.v1.MoveTaskRequest
-	18, // 32: factory.v1.TaskService.AddComment:input_type -> factory.v1.AddCommentRequest
-	24, // 33: factory.v1.TaskService.RunTask:input_type -> factory.v1.RunTaskRequest
-	26, // 34: factory.v1.TaskService.ReplyTask:input_type -> factory.v1.ReplyTaskRequest
-	28, // 35: factory.v1.TaskService.StopJob:input_type -> factory.v1.StopJobRequest
-	22, // 36: factory.v1.TaskService.ListJobEvents:input_type -> factory.v1.ListJobEventsRequest
-	31, // 37: factory.v1.RepoService.ListRepos:input_type -> factory.v1.ListReposRequest
-	33, // 38: factory.v1.RepoService.CreateRepo:input_type -> factory.v1.CreateRepoRequest
-	35, // 39: factory.v1.RepoService.UpdateRepo:input_type -> factory.v1.UpdateRepoRequest
-	37, // 40: factory.v1.RepoService.ListOpenRouterModels:input_type -> factory.v1.ListOpenRouterModelsRequest
-	7,  // 41: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
-	9,  // 42: factory.v1.TaskService.SetPickupPaused:output_type -> factory.v1.SetPickupPausedResponse
-	11, // 43: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
-	13, // 44: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
-	15, // 45: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
-	17, // 46: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
-	19, // 47: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
-	25, // 48: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
-	27, // 49: factory.v1.TaskService.ReplyTask:output_type -> factory.v1.ReplyTaskResponse
-	29, // 50: factory.v1.TaskService.StopJob:output_type -> factory.v1.StopJobResponse
-	23, // 51: factory.v1.TaskService.ListJobEvents:output_type -> factory.v1.ListJobEventsResponse
-	32, // 52: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
-	34, // 53: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
-	36, // 54: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
-	38, // 55: factory.v1.RepoService.ListOpenRouterModels:output_type -> factory.v1.ListOpenRouterModelsResponse
-	41, // [41:56] is the sub-list for method output_type
-	26, // [26:41] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	21, // 5: factory.v1.GetTaskResponse.jobs:type_name -> factory.v1.Job
+	12, // 6: factory.v1.GetTaskResponse.pull_requests:type_name -> factory.v1.PullRequest
+	1,  // 7: factory.v1.CreateTaskRequest.priority:type_name -> factory.v1.TaskPriority
+	4,  // 8: factory.v1.CreateTaskResponse.task:type_name -> factory.v1.Task
+	1,  // 9: factory.v1.UpdateTaskRequest.priority:type_name -> factory.v1.TaskPriority
+	4,  // 10: factory.v1.UpdateTaskResponse.task:type_name -> factory.v1.Task
+	0,  // 11: factory.v1.MoveTaskRequest.status:type_name -> factory.v1.TaskStatus
+	4,  // 12: factory.v1.MoveTaskResponse.task:type_name -> factory.v1.Task
+	5,  // 13: factory.v1.AddCommentResponse.comment:type_name -> factory.v1.Comment
+	3,  // 14: factory.v1.Job.status:type_name -> factory.v1.JobStatus
+	2,  // 15: factory.v1.Job.harness:type_name -> factory.v1.Harness
+	22, // 16: factory.v1.ListJobEventsResponse.events:type_name -> factory.v1.JobEvent
+	2,  // 17: factory.v1.RunTaskRequest.harness:type_name -> factory.v1.Harness
+	21, // 18: factory.v1.RunTaskResponse.job:type_name -> factory.v1.Job
+	21, // 19: factory.v1.ReplyTaskResponse.job:type_name -> factory.v1.Job
+	21, // 20: factory.v1.StopJobResponse.job:type_name -> factory.v1.Job
+	2,  // 21: factory.v1.Repo.default_harness:type_name -> factory.v1.Harness
+	31, // 22: factory.v1.ListReposResponse.repos:type_name -> factory.v1.Repo
+	31, // 23: factory.v1.CreateRepoRequest.repo:type_name -> factory.v1.Repo
+	31, // 24: factory.v1.CreateRepoResponse.repo:type_name -> factory.v1.Repo
+	31, // 25: factory.v1.UpdateRepoRequest.repo:type_name -> factory.v1.Repo
+	31, // 26: factory.v1.UpdateRepoResponse.repo:type_name -> factory.v1.Repo
+	6,  // 27: factory.v1.TaskService.ListTasks:input_type -> factory.v1.ListTasksRequest
+	8,  // 28: factory.v1.TaskService.SetPickupPaused:input_type -> factory.v1.SetPickupPausedRequest
+	10, // 29: factory.v1.TaskService.GetTask:input_type -> factory.v1.GetTaskRequest
+	13, // 30: factory.v1.TaskService.CreateTask:input_type -> factory.v1.CreateTaskRequest
+	15, // 31: factory.v1.TaskService.UpdateTask:input_type -> factory.v1.UpdateTaskRequest
+	17, // 32: factory.v1.TaskService.MoveTask:input_type -> factory.v1.MoveTaskRequest
+	19, // 33: factory.v1.TaskService.AddComment:input_type -> factory.v1.AddCommentRequest
+	25, // 34: factory.v1.TaskService.RunTask:input_type -> factory.v1.RunTaskRequest
+	27, // 35: factory.v1.TaskService.ReplyTask:input_type -> factory.v1.ReplyTaskRequest
+	29, // 36: factory.v1.TaskService.StopJob:input_type -> factory.v1.StopJobRequest
+	23, // 37: factory.v1.TaskService.ListJobEvents:input_type -> factory.v1.ListJobEventsRequest
+	32, // 38: factory.v1.RepoService.ListRepos:input_type -> factory.v1.ListReposRequest
+	34, // 39: factory.v1.RepoService.CreateRepo:input_type -> factory.v1.CreateRepoRequest
+	36, // 40: factory.v1.RepoService.UpdateRepo:input_type -> factory.v1.UpdateRepoRequest
+	38, // 41: factory.v1.RepoService.ListOpenRouterModels:input_type -> factory.v1.ListOpenRouterModelsRequest
+	7,  // 42: factory.v1.TaskService.ListTasks:output_type -> factory.v1.ListTasksResponse
+	9,  // 43: factory.v1.TaskService.SetPickupPaused:output_type -> factory.v1.SetPickupPausedResponse
+	11, // 44: factory.v1.TaskService.GetTask:output_type -> factory.v1.GetTaskResponse
+	14, // 45: factory.v1.TaskService.CreateTask:output_type -> factory.v1.CreateTaskResponse
+	16, // 46: factory.v1.TaskService.UpdateTask:output_type -> factory.v1.UpdateTaskResponse
+	18, // 47: factory.v1.TaskService.MoveTask:output_type -> factory.v1.MoveTaskResponse
+	20, // 48: factory.v1.TaskService.AddComment:output_type -> factory.v1.AddCommentResponse
+	26, // 49: factory.v1.TaskService.RunTask:output_type -> factory.v1.RunTaskResponse
+	28, // 50: factory.v1.TaskService.ReplyTask:output_type -> factory.v1.ReplyTaskResponse
+	30, // 51: factory.v1.TaskService.StopJob:output_type -> factory.v1.StopJobResponse
+	24, // 52: factory.v1.TaskService.ListJobEvents:output_type -> factory.v1.ListJobEventsResponse
+	33, // 53: factory.v1.RepoService.ListRepos:output_type -> factory.v1.ListReposResponse
+	35, // 54: factory.v1.RepoService.CreateRepo:output_type -> factory.v1.CreateRepoResponse
+	37, // 55: factory.v1.RepoService.UpdateRepo:output_type -> factory.v1.UpdateRepoResponse
+	39, // 56: factory.v1.RepoService.ListOpenRouterModels:output_type -> factory.v1.ListOpenRouterModelsResponse
+	42, // [42:57] is the sub-list for method output_type
+	27, // [27:42] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_factory_v1_factory_proto_init() }
@@ -2642,7 +2733,7 @@ func file_factory_v1_factory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_factory_v1_factory_proto_rawDesc), len(file_factory_v1_factory_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   35,
+			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

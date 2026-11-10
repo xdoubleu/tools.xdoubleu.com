@@ -1,6 +1,13 @@
 import { useState, type DragEvent } from 'react'
 import { TaskPriority, TaskStatus, type Repo, type Task } from '@/lib/gen/factory/v1/factory_pb'
-import { isProductLabel, prBadge, priorityLabel, repoLabel, shortTaskId } from '@/lib/factory/board'
+import {
+  isProductLabel,
+  prBadge,
+  priorityLabel,
+  pullRequestLabel,
+  repoLabel,
+  shortTaskId
+} from '@/lib/factory/board'
 import { useFactoryActions } from '@/hooks/useFactory'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -89,6 +96,19 @@ export default function TaskCard({
           <Badge variant={pr.variant} data-testid="pr-badge">
             {pr.label}
           </Badge>
+        )}
+        {task.prUrl && (
+          <Button asChild variant="link" className="h-auto p-0 text-xs">
+            <a
+              href={task.prUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open pull request ${pullRequestLabel(task.prUrl)} on GitHub`}
+              data-testid="pr-link"
+            >
+              {pullRequestLabel(task.prUrl)} ↗
+            </a>
+          </Button>
         )}
         {task.labels.map((l) => (
           <Badge

@@ -227,8 +227,19 @@ func (h *taskConnectHandler) GetTask(
 	for i := range jobs {
 		jobOut[i] = protoJob(&jobs[i])
 	}
+	pulls, err := h.app.services.Jobs.PullRequestsOf(ctx, id)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	pullOut := make([]*factoryv1.PullRequest, len(pulls))
+	for i := range pulls {
+		pullOut[i] = &factoryv1.PullRequest{
+			Url: pulls[i].URL, State: pulls[i].State, Ci: pulls[i].CI,
+			Review: pulls[i].Review,
+		}
+	}
 	return &factoryv1.GetTaskResponse{
-		Task: protoTask(task), Comments: out, Jobs: jobOut,
+		Task: protoTask(task), Comments: out, Jobs: jobOut, PullRequests: pullOut,
 	}, nil
 }
 

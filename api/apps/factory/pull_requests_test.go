@@ -305,3 +305,54 @@ func TestAMergedLinkedPullRequestLeavesATaskNotInReview(t *testing.T) {
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG,
 		env.task(t, task.Id).Task.Status)
 }
+
+func (gh *fakeGitHub) openLinked(url string, number int, body string) {
+	gh.mu.Lock()
+	defer gh.mu.Unlock()
+	gh.open = append(gh.open,
+		githubapp.OpenPullRequest{URL: url, Number: number, Body: body})
+}
+
+func TestAnOpenPullRequestLinkingATaskIsListedWithItsChecks(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := env.newTask(t, "by hand")
+	gh.openLinked(pullURL(11), 11, "Task: by hand ("+task.Id+")")
+	gh.openLinked(pullURL(12), 12, "no link here")
+	gh.answer(11, githubapp.PullRequestStatus{
+		State: githubapp.StateOpen, CI: githubapp.CIPending, Review: "",
+	}, nil)
+
+	require.NoError(t, env.poll(t))
+
+	got := env.task(t, task.Id)
+	require.Len(t, got.PullRequests, 1)
+	assert.Equal(t, pullURL(11), got.PullRequests[0].Url)
+	assert.Equal(t, "pending", got.PullRequests[0].Ci)
+	assert.Equal(t, pullURL(11), got.Task.PrUrl, "the card links it too")
+
+	// It leaves the open list once merged: the next poll reads where it ended.
+	gh.mu.Lock()
+	gh.open = nil
+	gh.mu.Unlock()
+	gh.answer(11, ended(githubapp.StateMerged), nil)
+	require.NoError(t, env.poll(t))
+	got = env.task(t, task.Id)
+	require.Len(t, got.PullRequests, 1)
+	assert.Equal(t, "merged", got.PullRequests[0].State)
+}
+
+func TestATasksJobAndLinkedPullRequestsAreAllListed(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := inReview(t, env, "both", 42)
+	gh.openLinked(pullURL(43), 43, "Task: both ("+task.Id+")")
+	gh.openLinked(pullURL(42), 42, "Task: both ("+task.Id+")")
+
+	require.NoError(t, env.poll(t))
+
+	got := env.task(t, task.Id)
+	urls := []string{}
+	for _, p := range got.PullRequests {
+		urls = append(urls, p.Url)
+	}
+	assert.ElementsMatch(t, []string{pullURL(42), pullURL(43)}, urls)
+}

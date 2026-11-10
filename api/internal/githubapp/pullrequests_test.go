@@ -139,6 +139,26 @@ func TestOnlyMergedPullRequestsAreListedWithTheirBodies(t *testing.T) {
 	}, got)
 }
 
+func TestOpenPullRequestsAreListedWithTheirNumbersAndBodies(t *testing.T) {
+	key, pkcs1, _ := newKey(t)
+	f := newFake(t, key)
+	f.mux.HandleFunc("GET /repos/{o}/{r}/pulls",
+		func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "open", r.URL.Query().Get("state"))
+			_, _ = io.WriteString(w, `[
+				{"html_url":"u1","number":7,"body":"Task: a (x)"},
+				{"html_url":"u2","number":8,"body":null}]`)
+		})
+	c := newClient(t, f, pkcs1)
+
+	got, err := c.OpenPullRequests(t.Context(), "xdoubleu", "tools.xdoubleu.com")
+
+	require.NoError(t, err)
+	assert.Equal(t, []githubapp.OpenPullRequest{
+		{URL: "u1", Number: 7, Body: "Task: a (x)"}, {URL: "u2", Number: 8, Body: ""},
+	}, got)
+}
+
 func TestAPageOfMergedPullRequestsOverOneMebibyteIsRead(t *testing.T) {
 	key, pkcs1, _ := newKey(t)
 	f := newFake(t, key)

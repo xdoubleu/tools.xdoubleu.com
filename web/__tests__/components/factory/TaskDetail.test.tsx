@@ -43,6 +43,7 @@ import {
   GetTaskResponseSchema,
   Harness,
   JobSchema,
+  PullRequestSchema,
   JobStatus,
   TaskPriority,
   TaskSchema,
@@ -414,30 +415,33 @@ describe('TaskDetail', () => {
       expect(screen.getByRole('button', { name: 'Running…' })).toBeDisabled()
     })
 
-    it('links the job\u2019s pull request with its status', () => {
-      const job = create(JobSchema, {
-        id: 'j-1',
-        status: JobStatus.SUCCEEDED,
-        branch: 'agent/t-1-fix-login',
-        prUrl: 'https://github.com/o/n/pull/7',
-        prState: 'open',
-        prCi: 'failing',
-        prReview: 'changes_requested'
-      })
-      mockTask({ data: create(GetTaskResponseSchema, { ...detail, jobs: [job] }) })
+    it('lists every pull request of the task with its status', () => {
+      const pulls = [
+        create(PullRequestSchema, {
+          url: 'https://github.com/o/n/pull/7',
+          state: 'open',
+          ci: 'failing',
+          review: 'changes_requested'
+        }),
+        create(PullRequestSchema, { url: 'https://github.com/o/n/pull/5', state: 'merged' })
+      ]
+      mockTask({ data: create(GetTaskResponseSchema, { ...detail, pullRequests: pulls }) })
       render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      const line = screen.getByTestId('job-pr')
-      expect(line).toHaveTextContent('Pull request · PR open · CI failing · changes requested')
-      expect(screen.getByRole('link', { name: 'Pull request' })).toHaveAttribute(
+      const lines = screen.getAllByTestId('task-pr')
+      expect(lines[0]).toHaveTextContent(
+        'Pull request #7 · PR open · CI failing · changes requested'
+      )
+      expect(lines[1]).toHaveTextContent('Pull request #5 · PR merged')
+      expect(screen.getByRole('link', { name: 'Pull request #7' })).toHaveAttribute(
         'href',
         'https://github.com/o/n/pull/7'
       )
     })
 
-    it('shows no pull request line before the job has one', () => {
+    it('shows no pull request section while the task has none', () => {
       mockTask({ data: withJob(JobStatus.RUNNING) })
       render(<TaskDetail id="t-1" onClose={vi.fn()} />)
-      expect(screen.queryByTestId('job-pr')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('task-pr')).not.toBeInTheDocument()
     })
 
     it('says which harness and model the job ran on', () => {

@@ -44,6 +44,7 @@ type JobService struct {
 	say      notices
 	runners  *repositories.RunnersRepository
 	settings *repositories.SettingsRepository
+	linked   *repositories.LinkedPullRequestsRepository
 	// alertedOffline is the queued job the offline-runner notice was last sent for,
 	// so one waiting job is announced once.
 	offlineMu      sync.Mutex

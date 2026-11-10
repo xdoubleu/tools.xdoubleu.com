@@ -64,6 +64,16 @@ describe('TaskCard', () => {
     expect(screen.getByTestId('pr-badge')).toHaveTextContent('CI failing')
   })
 
+  it('links the pull request on GitHub, only when there is one', () => {
+    const { rerender } = render(<TaskCard {...props} />)
+    expect(screen.queryByTestId('pr-link')).not.toBeInTheDocument()
+
+    const withPr = create(TaskSchema, { ...task, prUrl: 'https://github.com/o/n/pull/7' })
+    rerender(<TaskCard {...props} task={withPr} />)
+    expect(screen.getByTestId('pr-link')).toHaveAttribute('href', 'https://github.com/o/n/pull/7')
+    expect(screen.getByTestId('pr-link')).toHaveTextContent('#7')
+  })
+
   it('says when a Ready task is waiting for its text to be approved', () => {
     const { rerender } = render(<TaskCard {...props} />)
     expect(screen.queryByTestId('approval-hint')).not.toBeInTheDocument()

@@ -40,8 +40,9 @@ message Task {
   string updated_at = 9;
   int32 comment_count = 10;
   string repo_id = 11;
-  // The pull request of the task's newest job that opened one, as last read from
-  // GitHub; all empty when no job did. Same values as Job.pr_*.
+  // The task's open pull request, else its newest, among those its jobs opened and
+  // those linking it in their body, as last read from GitHub; all empty when it
+  // has none. Same values as Job.pr_*.
   string pr_url = 12;
   string pr_state = 13;
   string pr_ci = 14;
@@ -90,6 +91,20 @@ message GetTaskResponse {
   repeated Comment comments = 2;
   // The task's jobs, newest first. Left out by the MCP tool.
   repeated Job jobs = 3;
+  // Every pull request that belongs to the task: those its jobs opened and those
+  // that link it in their body. Left out by the MCP tool.
+  repeated PullRequest pull_requests = 4;
+}
+
+// A pull request of a task, as the server last read it from GitHub.
+message PullRequest {
+  string url = 1;
+  // "open", "merged" or "closed"; empty until it has been read.
+  string state = 2;
+  // The head commit's checks while it is open: "pending", "passing" or "failing".
+  string ci = 3;
+  // The standing review while it is open: "approved" or "changes_requested".
+  string review = 4;
 }
 
 // New tasks always start in Backlog. The repo can't change afterwards.
