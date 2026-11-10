@@ -65,17 +65,48 @@ type Execer interface {
 	Exec(ctx context.Context, argv []string, stdin io.Reader, out io.Writer) (int, error)
 }
 
+// defaultBinDirs are where Homebrew and the installers put tools; launchd's minimal
+// PATH omits them, so the LaunchAgent cannot find `container` without them.
+//
+//nolint:gochecknoglobals // a constant table
+var defaultBinDirs = []string{"/opt/homebrew/bin", "/usr/local/bin"}
+
 // OSExecer runs commands with os/exec.
-type OSExecer struct{}
+type OSExecer struct {
+	// BinDirs are searched for a command that is not on PATH; empty means the
+	// Homebrew and /usr/local locations.
+	BinDirs []string
+}
+
+// resolve returns the command's path from PATH, else from BinDirs, else name as
+// given so the caller's error names it.
+func (e OSExecer) resolve(name string) string {
+	if p, err := exec.LookPath(name); err == nil || strings.Contains(name, "/") {
+		return cmp.Or(p, name)
+	}
+	dirs := e.BinDirs
+	if len(dirs) == 0 {
+		dirs = defaultBinDirs
+	}
+	for _, dir := range dirs {
+		p := filepath.Join(dir, name)
+		if info, err := os.Stat(p); err == nil && !info.IsDir() &&
+			info.Mode()&0o111 != 0 {
+			return p
+		}
+	}
+	return name
+}
 
 // Exec implements Execer.
-func (OSExecer) Exec(
+func (e OSExecer) Exec(
 	ctx context.Context,
 	argv []string,
 	stdin io.Reader,
 	out io.Writer,
 ) (int, error) {
-	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...) //nolint:gosec // fixed argv
+	//nolint:gosec // fixed argv
+	cmd := exec.CommandContext(ctx, e.resolve(argv[0]), argv[1:]...)
 	cmd.Stdin = stdin
 	cmd.Stdout = out
 	cmd.Stderr = out

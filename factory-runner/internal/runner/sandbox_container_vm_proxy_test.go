@@ -35,7 +35,7 @@ func TestRealVMReachesOnlyTheProxyAndTheProxyAddsTheKey(t *testing.T) {
 	require.NoError(t, err)
 
 	box := &runner.ContainerSandbox{
-		Image: "factory-job:dev", Exec: runner.OSExecer{}, GoModCache: "", NPMCache: "",
+		Image: "factory-job:dev", Exec: runner.OSExecer{BinDirs: nil}, GoModCache: "", NPMCache: "",
 		CPUs: "", Memory: "", TempDir: t.TempDir(), ProxyPort: runner.EgressProxyPort,
 		Proxy: proxy,
 	}

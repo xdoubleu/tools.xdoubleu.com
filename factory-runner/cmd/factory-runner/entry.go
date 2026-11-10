@@ -63,7 +63,7 @@ func main() {
 	a.activity = runner.NewActivity(runner.NewCaffeinate())
 	a.control = runner.NewControl(runner.PausePath(home), Release, a.activity)
 	a.jobs = func(ctx context.Context, cfg runner.Config, token string) (jobLoop, error) {
-		return newJobRunner(ctx, a, cfg, token, log, runner.OSExecer{})
+		return newJobRunner(ctx, a, cfg, token, log, runner.OSExecer{BinDirs: nil})
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
