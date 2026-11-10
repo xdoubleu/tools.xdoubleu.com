@@ -23,6 +23,9 @@ for friction. Every family member is an individual account (ADR-0008).
 - **Identify by `user_id`**: `GetCurrentUserResponse` gained `user_id`;
   `SWRProvider.tsx` calls `posthog.identify(currentUser.userId)` when it differs
   from the current `distinct_id`.
+- **Custom events** go through `web/lib/analytics.ts` `track()`. `web_vital_cls`
+  (`value`, `route`) carries each page's final CLS, so the UX routine can rank
+  routes by layout shift per `$device_type`.
 - **Runtime env via `window.__ENV__`** (like `getSentryDsn()`), not build-time
   `NEXT_PUBLIC_*`. `POSTHOG_KEY` is listed under `env.secret:` (like
   `SENTRY_DSN_WEB`); `POSTHOG_HOST` is `env.clear:`

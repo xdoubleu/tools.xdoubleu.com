@@ -87,9 +87,12 @@ type PlanMeal struct {
 	// Keeps a custom entry on the calendar/iCal but out of the shopping export.
 	ExcludeFromShoppingList bool `protobuf:"varint,9,opt,name=exclude_from_shopping_list,json=excludeFromShoppingList,proto3" json:"exclude_from_shopping_list,omitempty"`
 	// Unset for custom entries.
-	RecipeRef     *RecipeRef `protobuf:"bytes,10,opt,name=recipe_ref,json=recipeRef,proto3" json:"recipe_ref,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	RecipeRef *RecipeRef `protobuf:"bytes,10,opt,name=recipe_ref,json=recipeRef,proto3" json:"recipe_ref,omitempty"`
+	// Creation time in Unix microseconds; with id it is the order of meals
+	// sharing a slot, which clients must reproduce for optimistic writes.
+	CreatedAtMicros int64 `protobuf:"varint,11,opt,name=created_at_micros,json=createdAtMicros,proto3" json:"created_at_micros,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *PlanMeal) Reset() {
@@ -183,6 +186,13 @@ func (x *PlanMeal) GetRecipeRef() *RecipeRef {
 		return x.RecipeRef
 	}
 	return nil
+}
+
+func (x *PlanMeal) GetCreatedAtMicros() int64 {
+	if x != nil {
+		return x.CreatedAtMicros
+	}
+	return 0
 }
 
 type Plan struct {
@@ -1373,7 +1383,7 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\x1cmealplans/v1/mealplans.proto\x12\fmealplans.v1\"/\n" +
 	"\tRecipeRef\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"\xca\x02\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"\xf6\x02\n" +
 	"\bPlanMeal\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\aplan_id\x18\x02 \x01(\tR\x06planId\x12\x1b\n" +
@@ -1386,7 +1396,8 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\x1aexclude_from_shopping_list\x18\t \x01(\bR\x17excludeFromShoppingList\x126\n" +
 	"\n" +
 	"recipe_ref\x18\n" +
-	" \x01(\v2\x17.mealplans.v1.RecipeRefR\trecipeRefJ\x04\b\b\x10\tR\x06recipe\"\xc2\x02\n" +
+	" \x01(\v2\x17.mealplans.v1.RecipeRefR\trecipeRef\x12*\n" +
+	"\x11created_at_micros\x18\v \x01(\x03R\x0fcreatedAtMicrosJ\x04\b\b\x10\tR\x06recipe\"\xc2\x02\n" +
 	"\x04Plan\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\"\n" +
 	"\rowner_user_id\x18\x02 \x01(\tR\vownerUserId\x12\x12\n" +

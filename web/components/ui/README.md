@@ -523,6 +523,12 @@ One group on a settings page. Stack them in `SettingsSections`, which owns the s
 
 Vertical stack of `SettingsSection`s with the standard gap between them.
 
+### `skeleton.tsx`
+
+#### `Skeleton`
+
+Placeholder block that reserves a loading region's final size so content doesn't shift in.
+
 ### `stat.tsx`
 
 #### `StatTile`

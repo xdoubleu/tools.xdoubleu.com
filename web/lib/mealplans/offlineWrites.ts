@@ -60,7 +60,8 @@ export const createMealWrite = defineOfflineWrite({
         customName: req.customName,
         servings: servingsOrDefault(req.servings),
         recipeRef: recipeRef(req.recipeId, hint),
-        excludeFromShoppingList: req.excludeFromShoppingList
+        excludeFromShoppingList: req.excludeFromShoppingList,
+        createdAtMicros: BigInt(Date.now()) * 1000n
       })
       return [...meals.filter((m) => m.id !== req.id), meal]
     }),

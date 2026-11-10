@@ -1,6 +1,6 @@
 ---
 name: posthog-ux-discovery
-description: Mine PostHog product analytics + session replay for friction signals (rage/dead clicks, mis-navigation, funnel drop-off, mobile-vs-desktop completion gaps, unused features) and file proposed UX-improvement board tasks — never applying a UI change or opening a PR itself. Use whenever the user asks to "check PostHog for UX issues", "run the UX discovery routine", or "find friction signals" — also the skill the weekly scheduled routine (`.github/workflows/routine-posthog-ux-discovery.yml`) runs unattended.
+description: Mine PostHog product analytics + session replay for friction signals (rage/dead clicks, layout shift, mis-navigation, funnel drop-off, mobile-vs-desktop completion gaps, unused features) and file proposed UX-improvement board tasks — never applying a UI change or opening a PR itself. Use whenever the user asks to "check PostHog for UX issues", "run the UX discovery routine", or "find friction signals" — also the skill the weekly scheduled routine (`.github/workflows/routine-posthog-ux-discovery.yml`) runs unattended.
 ---
 
 # PostHog UX Discovery
@@ -35,6 +35,9 @@ create a PR, or edit a repo file.
      report it as a gap. Mention in the summary when the setting and the
      events disagree. Then `$rageclick` and `$dead_click` grouped by
      element/page by `elements_chain`.
+   - **Layout shift:** p75 of `web_vital_cls` per `route` (`layout-shift.sql`),
+     plus `$rageclick`s within 5s of a mutation on the same route. No
+     `web_vital_cls` events → report a gap.
    - **Mis-navigation:** a detail page (`$pageview`, SPA navigations
      included) reached from a list page, left within **8s** — the
      user tapped the wrong thing (`mis-navigation.sql`).
@@ -56,6 +59,9 @@ create a PR, or edit a repo file.
 3. **Genuine-finding thresholds:**
    - **Click cluster / mis-navigation:** same element or page pair, **≥2
      distinct users or ≥5 occurrences**.
+   - **Layout shift:** p75 CLS **above 0.1** on a route, **≥10 samples**
+     and ≥2 distinct users (post-mutation rage clicks: ≥5 occurrences).
+     The rule is the `mobile-audit` `layout-shift` check.
    - **Completion gap:** mobile rate **≥20 points** below desktop, **≥5
      mobile opens**.
    - **Session reconstruction:** the same friction in **≥2 sessions**; otherwise cite it

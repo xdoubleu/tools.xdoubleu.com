@@ -84,7 +84,7 @@ describe('MealPlanClient', () => {
       isLoading: true
     })
     render(<MealPlanClient id="plan-1" />)
-    expect(screen.getByText('Loading meal plan…')).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Loading meal plan' })).toBeInTheDocument()
     expect(screen.getByText('Failed to load meal plan.')).toBeInTheDocument()
   })
 

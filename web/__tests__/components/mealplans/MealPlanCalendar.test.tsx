@@ -13,13 +13,15 @@ vi.mock('@/hooks/useIngredientCatalog', () => ({
   useItemCategories: () => ({ data: undefined })
 }))
 vi.mock('@/lib/env', () => ({ getApiUrl: () => 'http://localhost' }))
-vi.mock('@/lib/mealplans/mealPlanCalendar', () => {
+vi.mock('@/lib/mealplans/mealPlanCalendar', async (importOriginal) => {
+  const { compareMeals } = await importOriginal<typeof import('@/lib/mealplans/mealPlanCalendar')>()
   const week = Array.from({ length: 7 }, (_, i) => {
     const d = new Date('2026-05-25')
     d.setDate(d.getDate() + i)
     return d
   })
   return {
+    compareMeals,
     MEAL_SLOTS: ['breakfast'],
     getWeekDates: () => week,
     formatMealDate: (d: Date) => d.toISOString().slice(0, 10)

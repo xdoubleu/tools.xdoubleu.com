@@ -43,4 +43,5 @@ type PlanMeal struct {
 	Servings                int
 	RecipeName              string
 	ExcludeFromShoppingList bool
+	CreatedAt               time.Time
 }

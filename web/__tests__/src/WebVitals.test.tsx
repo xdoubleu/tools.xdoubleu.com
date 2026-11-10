@@ -16,6 +16,9 @@ vi.mock('web-vitals', () => {
   }
 })
 
+const track = vi.fn()
+vi.mock('@/lib/analytics', () => ({ track: (...args: unknown[]) => track(...args) }))
+
 import { WebVitals } from '@/src/WebVitals'
 
 describe('WebVitals', () => {
@@ -57,5 +60,16 @@ describe('WebVitals', () => {
       '/web-vitals',
       expect.objectContaining({ method: 'POST', keepalive: true })
     )
+  })
+
+  it('sends CLS to PostHog with the route', () => {
+    Object.defineProperty(navigator, 'sendBeacon', { value: vi.fn(), configurable: true })
+
+    render(<WebVitals />)
+    handlers.CLS({ name: 'CLS', value: 0.3 })
+    handlers.TTFB({ name: 'TTFB', value: 120 })
+
+    expect(track).toHaveBeenCalledTimes(1)
+    expect(track).toHaveBeenCalledWith('web_vital_cls', { value: 0.3, route: '/' })
   })
 })
