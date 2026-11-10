@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useFactoryActions, useFactoryAgents, useFactoryTask } from '@/hooks/useFactory'
-import { Harness, TaskStatus, type Job } from '@/lib/gen/factory/v1/factory_pb'
+import { Harness, TaskStatus, type Job, type PullRequest } from '@/lib/gen/factory/v1/factory_pb'
 import {
   accountsOf,
   actorLabel,
@@ -11,8 +11,9 @@ import {
   jobLimitNote,
   jobRunner,
   jobStatusLabel,
-  prStatusLine,
   priorityLabel,
+  pullRequestLabel,
+  pullRequestLine,
   shortTaskId,
   statusLabel
 } from '@/lib/factory/board'
@@ -128,6 +129,29 @@ function ReplyForm({ taskId, latest }: { taskId: string; latest: Job }) {
   )
 }
 
+/** Every pull request of the task, each a link to GitHub with where its checks stand. */
+function PullRequests({ pulls }: { pulls: PullRequest[] }) {
+  if (pulls.length === 0) return null
+  return (
+    <section className="space-y-1" aria-label="Pull requests">
+      {pulls.map((pr) => (
+        <p
+          key={pr.url}
+          className="flex flex-wrap items-center break-words text-xs"
+          data-testid="task-pr"
+        >
+          <Button asChild variant="link" className="h-auto p-0 text-xs">
+            <a href={pr.url} target="_blank" rel="noopener noreferrer">
+              Pull request {pullRequestLabel(pr.url)}
+            </a>
+          </Button>
+          {pullRequestLine(pr) && <span className="text-muted"> · {pullRequestLine(pr)}</span>}
+        </p>
+      ))}
+    </section>
+  )
+}
+
 /** Run the task on the runner, and what its latest job is doing. */
 function RunSection({
   taskId,
@@ -180,16 +204,6 @@ function RunSection({
           Job {jobStatusLabel(latest.status).toLowerCase()} · {latest.branch}
           {jobRunner(latest) && ` · ${jobRunner(latest)}`}
           {jobLimitNote(latest) && ` · ${jobLimitNote(latest)}`}
-        </p>
-      )}
-      {latest?.prUrl && (
-        <p className="flex flex-wrap items-center break-words text-xs" data-testid="job-pr">
-          <Button asChild variant="link" className="h-auto p-0 text-xs">
-            <a href={latest.prUrl} target="_blank" rel="noopener noreferrer">
-              Pull request
-            </a>
-          </Button>
-          {prStatusLine(latest) && <span className="text-muted"> · {prStatusLine(latest)}</span>}
         </p>
       )}
       {latest && <JobLog jobId={latest.id} active={active} />}
@@ -315,6 +329,7 @@ export default function TaskDetail({ id, onClose }: TaskDetailProps) {
             <Button variant="secondary" onClick={() => setEditing(true)}>
               Edit
             </Button>
+            <PullRequests pulls={data.pullRequests} />
             <RunSection
               taskId={task.id}
               latest={data.jobs[0]}

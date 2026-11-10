@@ -54,6 +54,7 @@ import {
   JOB_POLL_MS,
   runnerUpdate,
   shortRelease,
+  pullRequestLabel,
   runnersOf,
   statusLabel
 } from '@/lib/factory/board'
@@ -426,5 +427,12 @@ describe('the Claude usage limit', () => {
     expect(jobLimitNote({ limited: true, limitResetsAt: '2030-01-02T14:30:00Z' })).toMatch(
       /^stopped by the Claude limit, resets \w{3},? /
     )
+  })
+})
+
+describe('pullRequestLabel', () => {
+  it('shortens a GitHub pull request address to its number', () => {
+    expect(pullRequestLabel('https://github.com/o/n/pull/7')).toBe('#7')
+    expect(pullRequestLabel('https://example.com/x')).toBe('https://example.com/x')
   })
 })

@@ -9,6 +9,7 @@ type Repositories struct {
 	Jobs     *JobsRepository
 	Events   *JobEventsRepository
 	Settings *SettingsRepository
+	Linked   *LinkedPullRequestsRepository
 }
 
 func New(db postgres.DB) *Repositories {
@@ -19,5 +20,6 @@ func New(db postgres.DB) *Repositories {
 		Jobs:     &JobsRepository{db: db},
 		Events:   &JobEventsRepository{db: db},
 		Settings: &SettingsRepository{db: db},
+		Linked:   &LinkedPullRequestsRepository{db: db},
 	}
 }

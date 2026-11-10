@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -40,6 +41,9 @@ func (s *JobService) PollPullRequests(ctx context.Context) (int, error) {
 	}
 	moved, err := s.mergedLinked(ctx)
 	if err != nil {
+		failures = append(failures, err)
+	}
+	if err = s.syncLinked(ctx); err != nil {
 		failures = append(failures, err)
 	}
 	return len(jobs) + moved, errors.Join(failures...)
@@ -103,6 +107,12 @@ func (s *JobService) TestingAfterMerge(
 	if err != nil {
 		// A link to a task that is gone is not a failure.
 		return false, nil //nolint:nilerr // nothing to move
+	}
+	if err = s.linked.Upsert(ctx, models.LinkedPullRequest{
+		URL: prURL, TaskID: id, State: githubapp.StateMerged,
+		CI: "", Review: "", CheckedAt: time.Time{},
+	}); err != nil {
+		return false, err
 	}
 	if task.Status != models.StatusInReview {
 		return false, nil
@@ -181,4 +191,124 @@ func (s *JobService) pullRequestEnded(
 	}
 	_, err = s.tasks.AddComment(ctx, job.TaskID, systemAuthor, body+job.PRURL)
 	return err
+}
+
+// syncLinked keeps the status of the open pull requests that link a task in their
+// body, whoever opened them: those open now, then any it knew as open that have
+// left the list (merged or closed since).
+func (s *JobService) syncLinked(ctx context.Context) error {
+	repos, err := s.repos.List(ctx)
+	if err != nil {
+		return err
+	}
+	var failures []error
+	seen := map[string]bool{}
+	for i := range repos {
+		pulls, listErr := s.github.OpenPullRequests(ctx, repos[i].Owner, repos[i].Name)
+		if listErr != nil {
+			failures = append(failures, fmt.Errorf("repo %s: %w", repos[i].Name, listErr))
+			continue
+		}
+		for _, p := range pulls {
+			id, ok := linkedTask(p.Body)
+			if !ok {
+				continue
+			}
+			seen[p.URL] = true
+			if err = s.recordLinked(ctx, repos[i], id, p.URL, p.Number); err != nil {
+				failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, err))
+			}
+		}
+	}
+	if err = s.refreshStale(ctx, seen); err != nil {
+		failures = append(failures, err)
+	}
+	return errors.Join(failures...)
+}
+
+// refreshStale re-reads the pull requests known as open that the open lists no
+// longer showed: they were merged or closed since.
+func (s *JobService) refreshStale(ctx context.Context, seen map[string]bool) error {
+	stale, err := s.linked.Open(ctx, pollBatch)
+	if err != nil {
+		return err
+	}
+	var failures []error
+	for _, p := range stale {
+		if seen[p.URL] {
+			continue
+		}
+		task, getErr := s.tasks.Get(ctx, p.TaskID)
+		if getErr != nil {
+			continue
+		}
+		repo, getErr := s.repos.Get(ctx, task.RepoID)
+		if getErr != nil {
+			failures = append(failures, getErr)
+			continue
+		}
+		number, ok := pullNumber(p.URL, repo)
+		if !ok {
+			continue
+		}
+		if err = s.recordLinked(ctx, *repo, p.TaskID, p.URL, number); err != nil {
+			failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, err))
+		}
+	}
+	return errors.Join(failures...)
+}
+
+func (s *JobService) recordLinked(
+	ctx context.Context,
+	repo models.Repo,
+	taskID uuid.UUID,
+	url string,
+	number int,
+) error {
+	if _, err := s.tasks.Get(ctx, taskID); err != nil {
+		// A link to a task that is gone is not a failure.
+		return nil //nolint:nilerr // nothing to record
+	}
+	status, err := s.github.PullRequest(ctx, repo.Owner, repo.Name, number)
+	if err != nil {
+		return err
+	}
+	return s.linked.Upsert(ctx, models.LinkedPullRequest{
+		URL: url, TaskID: taskID, State: status.State, CI: status.CI,
+		Review: status.Review, CheckedAt: time.Time{},
+	})
+}
+
+// PullRequestsOf lists every pull request of a task: those its jobs opened, then
+// the others that link it in their body.
+func (s *JobService) PullRequestsOf(
+	ctx context.Context,
+	taskID uuid.UUID,
+) ([]models.LinkedPullRequest, error) {
+	jobs, err := s.jobs.ByTask(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	out := []models.LinkedPullRequest{}
+	seen := map[string]bool{}
+	for i := range jobs {
+		if jobs[i].PRURL == "" || seen[jobs[i].PRURL] {
+			continue
+		}
+		seen[jobs[i].PRURL] = true
+		out = append(out, models.LinkedPullRequest{
+			URL: jobs[i].PRURL, TaskID: taskID, State: jobs[i].PRState,
+			CI: jobs[i].PRCI, Review: jobs[i].PRReview, CheckedAt: time.Time{},
+		})
+	}
+	linked, err := s.linked.ByTask(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range linked {
+		if !seen[p.URL] {
+			out = append(out, p)
+		}
+	}
+	return out, nil
 }

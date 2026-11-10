@@ -20,11 +20,17 @@ type rowScanner interface {
 	Scan(dest ...any) error
 }
 
-// prColumn is the pull request of the task's newest job that opened one, as
-// {url, state, ci, review}; null when no job did.
-const prColumn = `(SELECT ARRAY[j.pr_url, j.pr_state, j.pr_ci, j.pr_review]
+// prColumn is the task's pull request that is still open, else its newest, among
+// those its jobs opened and those linking it in their body, as
+// {url, state, ci, review}; null when it has none.
+const prColumn = `(SELECT ARRAY[u.url, u.state, u.ci, u.review] FROM (
+		SELECT j.pr_url AS url, j.pr_state AS state, j.pr_ci AS ci,
+			j.pr_review AS review, j.created_at AS ts
 		FROM factory.jobs j WHERE j.task_id = t.id AND j.pr_url <> ''
-		ORDER BY j.created_at DESC, j.id LIMIT 1)`
+		UNION ALL
+		SELECT l.url, l.state, l.ci, l.review, l.checked_at
+		FROM factory.linked_pull_requests l WHERE l.task_id = t.id) u
+		ORDER BY (u.state = 'open') DESC, u.ts DESC, u.url LIMIT 1)`
 
 // listColumns leaves out body: list rows never carry the wide column.
 const listColumns = `id, repo_id, title, '', status, priority, labels, created_by,

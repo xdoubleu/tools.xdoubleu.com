@@ -271,3 +271,42 @@ func (c *Client) MergedPullRequests(
 	}
 	return out, nil
 }
+
+// OpenPullRequest is an open pull request, with the body its task is linked from.
+type OpenPullRequest struct {
+	URL    string
+	Number int
+	Body   string
+}
+
+// OpenPullRequests lists the open pull requests of owner/repo with a read-only
+// token: one page, far more than are ever open at once.
+func (c *Client) OpenPullRequests(
+	ctx context.Context,
+	owner, repo string,
+) ([]OpenPullRequest, error) {
+	token, err := c.readToken(ctx, owner, repo)
+	if err != nil {
+		return nil, err
+	}
+	var pulls []struct {
+		URL    string  `json:"html_url"`
+		Number int     `json:"number"`
+		Body   *string `json:"body"`
+	}
+	_, err = c.do(ctx, http.MethodGet,
+		"/repos/"+owner+"/"+repo+"/pulls?state=open&per_page="+strconv.Itoa(pageSize),
+		token, nil, &pulls)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]OpenPullRequest, 0, len(pulls))
+	for _, p := range pulls {
+		body := ""
+		if p.Body != nil {
+			body = *p.Body
+		}
+		out = append(out, OpenPullRequest{URL: p.URL, Number: p.Number, Body: body})
+	}
+	return out, nil
+}

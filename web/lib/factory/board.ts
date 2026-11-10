@@ -5,6 +5,7 @@ import {
   TaskStatus,
   type Job,
   type ListReposResponse,
+  type PullRequest,
   type Repo,
   type Task
 } from '@/lib/gen/factory/v1/factory_pb'
@@ -319,6 +320,17 @@ export function prStatusLine(job: PullRequestFields | undefined): string {
     if (review) parts.push(review)
   }
   return parts.join(' · ')
+}
+
+/** A pull request of a task as a short line, "" while it has no status yet. */
+export function pullRequestLine(pr: PullRequest): string {
+  return prStatusLine({ prState: pr.state, prCi: pr.ci, prReview: pr.review })
+}
+
+/** "#7" for a GitHub pull request address, else the address itself. */
+export function pullRequestLabel(url: string): string {
+  const m = /\/pull\/(\d+)\/?$/.exec(url)
+  return m ? `#${m[1]}` : url
 }
 
 /** What "Reply: fix CI" sends. */
