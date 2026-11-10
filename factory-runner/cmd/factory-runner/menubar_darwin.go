@@ -17,7 +17,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"runtime/cgo"
 	"time"
 	"unsafe"
 
@@ -113,16 +112,6 @@ func quit() {
 	err := exec.CommandContext(context.Background(), "launchctl", "bootout", target).Run()
 	if err != nil {
 		C.frTerminate()
-	}
-}
-
-//export goRunHandle
-func goRunHandle(handle C.uintptr_t) {
-	h := cgo.Handle(handle)
-	defer h.Delete()
-
-	if fn, ok := h.Value().(func()); ok {
-		fn()
 	}
 }
 

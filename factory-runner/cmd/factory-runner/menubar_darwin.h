@@ -22,7 +22,6 @@ void frSetMenu(const char *header, const char *status, const char *beat,
                const char *update, bool stopped);
 
 // Any thread.
-void frDispatchMain(uintptr_t handle);
 void frTerminate(void);
 void frOpenURL(const char *url);
 
@@ -31,6 +30,5 @@ void goAppDidFinishLaunching(void);
 void goSystemDidWake(void);
 void goMenuWillOpen(void);
 void goMenuAction(int action);
-void goRunHandle(uintptr_t handle);
 
 #endif

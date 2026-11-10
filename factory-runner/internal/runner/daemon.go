@@ -118,17 +118,15 @@ func run(
 }
 
 func due(opts Options, now, lastCheck time.Time) bool {
-	if opts.Updater == nil {
+	if opts.Updater == nil || (opts.Control != nil && opts.Control.Paused()) {
 		return false
 	}
-	if opts.Control != nil && opts.Control.Paused() {
+	if opts.Activity != nil && !opts.Activity.Idle() {
 		return false
 	}
-	if now.Sub(lastCheck) < UpdateEvery &&
-		(opts.Control == nil || !opts.Control.takeCheck()) {
-		return false
-	}
-	return opts.Activity == nil || opts.Activity.Idle()
+	// A requested check is only consumed once it can run.
+	requested := opts.Control != nil && opts.Control.takeCheck()
+	return requested || now.Sub(lastCheck) >= UpdateEvery
 }
 
 func tryUpdate(ctx context.Context, opts Options, log *slog.Logger) bool {

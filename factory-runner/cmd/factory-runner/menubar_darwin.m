@@ -149,15 +149,22 @@ void frSetMenu(const char *header, const char *status, const char *beat,
 	}
 }
 
-void frDispatchMain(uintptr_t handle) {
-	dispatch_async(dispatch_get_main_queue(), ^{
-		goRunHandle(handle);
-	});
-}
-
+// frTerminate ends [NSApp run] without exiting the process, so runMenu can
+// return the work's error.
 void frTerminate(void) {
 	dispatch_async(dispatch_get_main_queue(), ^{
-		[NSApp terminate:nil];
+		[NSApp stop:nil];
+		// stop: only takes effect after the next event.
+		NSEvent *wake = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
+		                                   location:NSZeroPoint
+		                              modifierFlags:0
+		                                  timestamp:0
+		                               windowNumber:0
+		                                    context:nil
+		                                    subtype:0
+		                                      data1:0
+		                                      data2:0];
+		[NSApp postEvent:wake atStart:YES];
 	});
 }
 

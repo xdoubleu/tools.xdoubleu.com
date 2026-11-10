@@ -107,3 +107,28 @@ func status(set func(*runner.Status)) runner.Status {
 	set(&s)
 	return s
 }
+
+func TestARequestedCheckWaitsForAJobToEnd(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	control := runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
+	activity := runner.NewActivity(awakeStub())
+	require.NoError(t, activity.Begin())
+	upd := newFakeUpdater(false, nil)
+	now := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+	control.RequestCheck()
+	hb := newScripted(func(call int) error {
+		if call == 3 {
+			activity.End()
+		}
+		if call == 6 {
+			upd.waitCalled()
+			cancel()
+		}
+		return nil
+	}, cancel)
+	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
+		runner.Options{Updater: upd, Activity: activity, Control: control},
+		func(context.Context, time.Duration) { time.Sleep(time.Millisecond) },
+		func() time.Time { return now }))
+	assert.GreaterOrEqual(t, int(upd.calls.Load()), 1)
+}
