@@ -10,7 +10,8 @@ import (
 type menuInfo struct {
 	Control  *runner.Control
 	Release  string
-	BoardURL string
+	Home     string
+	ExecPath string
 }
 
 // menuFunc runs work beside the menu bar icon and returns work's error. It ends

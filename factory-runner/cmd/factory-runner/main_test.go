@@ -419,7 +419,7 @@ func TestOpenURL(t *testing.T) {
 	assert.Error(t, err, "without `open` on PATH openURL reports the failure")
 }
 
-func TestTheDaemonRunsBesideTheMenuBarWithTheBoardPage(t *testing.T) {
+func TestTheDaemonRunsBesideTheMenuBar(t *testing.T) {
 	e := newEnv(t)
 	e.app.control = runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
 	var got menuInfo
@@ -430,7 +430,7 @@ func TestTheDaemonRunsBesideTheMenuBarWithTheBoardPage(t *testing.T) {
 		return work(ctx)
 	}
 	assert.Equal(t, 0, e.do("run"))
-	assert.Equal(t, "https://tools.xdoubleu.com/factory/runners", got.BoardURL)
+	assert.Equal(t, e.app.home, got.Home)
 	assert.Same(t, e.app.control, got.Control)
 	assert.Equal(t, []string{"frt_stored"}, *e.ran)
 }

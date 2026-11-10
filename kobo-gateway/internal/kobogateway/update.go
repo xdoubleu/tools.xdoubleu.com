@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"tools.xdoubleu.com/kobo-gateway/internal/updatesig"
@@ -25,6 +26,9 @@ const (
 
 	// SignaturePath serves DownloadPath's base64 ed25519 signature.
 	SignaturePath = DownloadPath + ".sig"
+
+	// ReleasePath serves the release (commit) DownloadPath was built from.
+	ReleasePath = "/downloads/kobo-gateway-release.txt"
 
 	downloadTimeout = 60 * time.Second
 
@@ -63,6 +67,16 @@ func NewUpdater(publicKeyB64 string) *Updater {
 		executablePath: os.Executable,
 		publicKey:      publicKey,
 	}
+}
+
+// LatestRelease returns the release origin currently serves.
+func (u *Updater) LatestRelease(ctx context.Context, origin string) (string, error) {
+	raw, err := u.download(ctx, origin+ReleasePath, maxSignatureSize)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(raw)), nil
 }
 
 // SelfUpdate downloads origin+DownloadPath, verifies its signature, writes it

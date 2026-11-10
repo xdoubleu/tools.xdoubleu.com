@@ -3,6 +3,7 @@ package runner_test
 import (
 	"context"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -131,4 +132,57 @@ func TestARequestedCheckWaitsForAJobToEnd(t *testing.T) {
 		func(context.Context, time.Duration) { time.Sleep(time.Millisecond) },
 		func() time.Time { return now }))
 	assert.GreaterOrEqual(t, int(upd.calls.Load()), 1)
+}
+
+func TestARequestedCheckIsRefusedWhileStopped(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	control := runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
+	require.NoError(t, control.SetPaused(true))
+	control.RequestCheck()
+	upd := newFakeUpdater(false, nil)
+	now := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+	// A stopped idle runner never heartbeats, so the loop's sleep ends the test.
+	hb := newScripted(nil, cancel)
+	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
+		runner.Options{Updater: upd, Activity: nil, Control: control},
+		func(context.Context, time.Duration) { cancel() },
+		func() time.Time { return now }))
+	assert.Zero(t, upd.calls.Load())
+	assert.Contains(t, control.Snapshot().Update, "stopped")
+}
+
+func TestARequestedCheckCutsAHeldHeartbeatShort(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	control := runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
+	upd := newFakeUpdater(false, nil)
+	now := time.Date(2026, 11, 1, 12, 0, 0, 0, time.UTC)
+	held := make(chan struct{})
+	hb := &holdingBeat{held: held, once: sync.Once{}}
+	go func() {
+		<-held
+		control.RequestCheck()
+	}()
+	done := make(chan error, 1)
+	go func() {
+		done <- runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
+			runner.Options{Updater: upd, Activity: nil, Control: control},
+			func(context.Context, time.Duration) { time.Sleep(time.Millisecond) },
+			func() time.Time { return now })
+	}()
+	upd.waitCalled()
+	cancel()
+	require.NoError(t, <-done)
+}
+
+// holdingBeat blocks like the server's held heartbeat until its context ends.
+type holdingBeat struct {
+	held chan struct{}
+	once sync.Once
+}
+
+func (h *holdingBeat) Heartbeat(ctx context.Context, _ string) error {
+	h.once.Do(func() { close(h.held) })
+	<-ctx.Done()
+	return ctx.Err()
 }

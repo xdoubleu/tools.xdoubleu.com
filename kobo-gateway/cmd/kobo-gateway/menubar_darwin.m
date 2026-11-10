@@ -107,12 +107,13 @@ void kgBuildStatusItem(const char *header, const void *icon, size_t iconLen,
 		menu.autoenablesItems = NO;
 
 		[menu addItem:kgMenuItem(kgString(header), 0)];
-		[menu addItem:kgMenuItem(@"Open tools.xdoubleu.com", KGActionOpenSite)];
 		[menu addItem:[NSMenuItem separatorItem]];
 
 		kgStatusLine = kgMenuItem(@"No Kobo connected", 0);
 		[menu addItem:kgStatusLine];
 		[menu addItem:[NSMenuItem separatorItem]];
+
+		[menu addItem:kgMenuItem(@"Check for updates", KGActionCheckUpdates)];
 
 		kgLoginItem = kgMenuItem(@"Start at Login", KGActionToggleLoginItem);
 		kgLoginItem.state =

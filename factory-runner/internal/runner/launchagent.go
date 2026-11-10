@@ -113,3 +113,20 @@ func InstallBinary(homeDir, src string) (string, error) {
 	}
 	return dst, nil
 }
+
+// LoginItemEnabled reports whether the LaunchAgent plist exists, which is what
+// makes launchd start the runner at login.
+func LoginItemEnabled(homeDir string) bool {
+	_, err := os.Stat(LaunchAgentPath(homeDir))
+	return err == nil
+}
+
+// DisableLoginItem removes the plist so the runner isn't started at the next
+// login. The running process, and the loaded agent, are left alone.
+func DisableLoginItem(homeDir string) error {
+	err := os.Remove(LaunchAgentPath(homeDir))
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove LaunchAgent: %w", err)
+	}
+	return nil
+}

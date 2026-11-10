@@ -85,3 +85,19 @@ func TestInstallBinaryFailures(t *testing.T) {
 	require.Error(t, err)
 	assert.NoFileExists(t, runner.InstalledBinaryPath(other)+".install")
 }
+
+func TestLoginItemFollowsThePlist(t *testing.T) {
+	home := t.TempDir()
+	assert.False(t, runner.LoginItemEnabled(home))
+
+	_, err := runner.InstallLaunchAgent(home, "/usr/local/bin/factory-runner")
+	require.NoError(t, err)
+	assert.True(t, runner.LoginItemEnabled(home))
+
+	require.NoError(t, runner.DisableLoginItem(home))
+	assert.False(t, runner.LoginItemEnabled(home))
+}
+
+func TestDisableLoginItemWhenNeverEnabled(t *testing.T) {
+	require.NoError(t, runner.DisableLoginItem(t.TempDir()))
+}

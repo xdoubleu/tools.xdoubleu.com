@@ -44,6 +44,9 @@ func DefaultAllowedOrigins(release string) []string {
 // UpdateRunner downloads the latest gateway binary over the running one.
 type UpdateRunner interface {
 	SelfUpdate(ctx context.Context, origin string) error
+	// LatestRelease is the release the origin serves, for telling whether
+	// SelfUpdate would change anything.
+	LatestRelease(ctx context.Context, origin string) (string, error)
 }
 
 // Config configures a gateway Server.
@@ -272,6 +275,36 @@ func (s *Server) updateHandler(w http.ResponseWriter, r *http.Request) {
 	case s.restart <- struct{}{}:
 	default:
 	}
+}
+
+// CheckForUpdate installs the release DefaultWebOrigin serves when it differs
+// from the running one and signals a restart. It reports whether it updated.
+// A dev build never updates.
+func (s *Server) CheckForUpdate(ctx context.Context) (bool, error) {
+	if s.cfg.Release == "" || s.cfg.Release == "dev" {
+		return false, nil
+	}
+
+	latest, err := s.updater.LatestRelease(ctx, DefaultWebOrigin)
+	if err != nil {
+		return false, err
+	}
+	if latest == "" || latest == s.cfg.Release {
+		return false, nil
+	}
+
+	s.notify("Kobo Gateway", "Updating to the latest version…")
+
+	if err = s.updater.SelfUpdate(ctx, DefaultWebOrigin); err != nil {
+		return false, err
+	}
+
+	select {
+	case s.restart <- struct{}{}:
+	default:
+	}
+
+	return true, nil
 }
 
 // resolveKobo picks the Kobo to act on: an explicit volumePath must match a

@@ -9,9 +9,9 @@
 
 // Menu item tags passed to goMenuAction.
 enum {
-	FRActionOpenBoard = 1,
-	FRActionToggleRunner = 2,
-	FRActionCheckUpdates = 3,
+	FRActionToggleRunner = 1,
+	FRActionCheckUpdates = 2,
+	FRActionToggleLogin = 3,
 	FRActionQuit = 4,
 };
 
@@ -19,11 +19,10 @@ enum {
 bool frRunApp(void);
 void frBuildStatusItem(const void *icon, size_t iconLen, double iconSize);
 void frSetMenu(const char *header, const char *status, const char *beat,
-               const char *update, bool stopped);
+               const char *update, bool stopped, bool loginOn);
 
 // Any thread.
 void frTerminate(void);
-void frOpenURL(const char *url);
 
 // Go callbacks (//export in menubar_darwin.go), called on the main thread.
 void goAppDidFinishLaunching(void);

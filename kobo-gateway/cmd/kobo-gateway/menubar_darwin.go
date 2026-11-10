@@ -20,6 +20,7 @@ import (
 	"runtime/cgo"
 	"sync"
 	"syscall"
+	"time"
 	"unsafe"
 
 	"tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
@@ -34,11 +35,15 @@ var iconTemplate []byte
 // PNG at pixel size, far too large.
 const menubarIconSize = 18
 
+// updateCheckTimeout covers the release lookup plus the binary download.
+const updateCheckTimeout = 2 * time.Minute
+
 // uiState is runUI's arguments, for the //export callbacks.
 type uiState struct {
 	release, homeDir, execPath string
 	firstLaunch                bool
 	stop                       <-chan struct{}
+	checkUpdate                func(context.Context) (bool, error)
 	koboEvents                 <-chan kobogateway.KoboEvent
 }
 
@@ -75,8 +80,10 @@ func runUI(
 	koboEvents <-chan kobogateway.KoboEvent,
 	homeDir, execPath string,
 	firstLaunch bool,
+	checkUpdate func(context.Context) (bool, error),
 ) {
 	ui = uiState{
+		checkUpdate: checkUpdate,
 		release:     release,
 		homeDir:     homeDir,
 		execPath:    execPath,
@@ -131,8 +138,8 @@ func goMenuAction(action C.int) {
 	defer guard("menu-action")
 
 	switch action {
-	case C.KGActionOpenSite:
-		openURL(kobogateway.DefaultWebOrigin)
+	case C.KGActionCheckUpdates:
+		go checkForUpdates(ui.checkUpdate)
 	case C.KGActionToggleLoginItem:
 		toggleLoginItem(ui.homeDir, ui.execPath)
 	}
@@ -234,6 +241,26 @@ func openURL(url string) {
 	defer C.free(unsafe.Pointer(cURL))
 
 	C.kgOpenURL(cURL)
+}
+
+// checkForUpdates runs the menu's update check off the main thread and reports
+// the outcome as a notification. A successful update restarts the gateway.
+func checkForUpdates(check func(context.Context) (bool, error)) {
+	defer guard("check-updates")
+
+	notify("Kobo Gateway", "Checking for updates…")
+
+	ctx, cancel := context.WithTimeout(context.Background(), updateCheckTimeout)
+	defer cancel()
+
+	updated, err := check(ctx)
+
+	switch {
+	case err != nil:
+		notify("Kobo Gateway", fmt.Sprintf("Update failed: %v", err))
+	case !updated:
+		notify("Kobo Gateway", "Kobo Gateway is up to date")
+	}
 }
 
 func toggleLoginItem(homeDir, execPath string) {

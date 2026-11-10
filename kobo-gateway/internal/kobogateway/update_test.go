@@ -278,3 +278,26 @@ func TestSelfUpdateAcceptsFatBinary(t *testing.T) {
 
 	require.NoError(t, updater.SelfUpdate(context.Background(), downloads.URL))
 }
+
+func TestLatestRelease(t *testing.T) {
+	downloads := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != kobogateway.ReleasePath {
+				w.WriteHeader(http.StatusNotFound)
+
+				return
+			}
+			_, _ = w.Write([]byte("abc123\n"))
+		},
+	))
+	t.Cleanup(downloads.Close)
+	updater := kobogateway.NewUpdater("")
+
+	latest, err := updater.LatestRelease(context.Background(), downloads.URL)
+
+	require.NoError(t, err)
+	assert.Equal(t, "abc123", latest)
+
+	_, err = updater.LatestRelease(context.Background(), downloads.URL+"/missing")
+	require.Error(t, err)
+}
