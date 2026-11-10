@@ -119,6 +119,7 @@ func NewApps(
 	}
 	factoryOpts = append(factoryOpts, factoryGitHubOptions(cfg, logger)...)
 	factoryOpts = append(factoryOpts,
+		factory.WithGitHubWebhookSecret(cfg.FactoryGitHubWebhookSecret),
 		factory.WithSlack(cfg.FactorySlackWebhookURL, cfg.WebURL))
 	apps.addApp(factory.New(ctx, authService, logger, cfg, db, factoryOpts...))
 

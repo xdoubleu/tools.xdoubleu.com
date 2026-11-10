@@ -42,6 +42,12 @@ deploy key can push but can't open a pull request.
   The same poll also reads each repo's recently merged PRs and moves the In-review
   task named by a `Task: <title> (<id>)` body line to Testing, whoever opened the
   PR, unless the task has jobs of its own.
+- **Webhook:** the App also delivers `pull_request` events to
+  `POST /factory/github-webhook`, so a merge moves its task at once; the poll is
+  the backstop for a missed delivery. It needs the App subscribed to the
+  `Pull request` event, its webhook URL set to `https://tools.xdoubleu.com/api/factory/github-webhook`,
+  and the same secret in `FACTORY_GITHUB_WEBHOOK_SECRET`. The `X-Hub-Signature-256`
+  HMAC is the only authentication; unset, the endpoint answers 503.
 - **The App never merges.** It may open a PR but nothing here merges or arms one.
   `main`'s ruleset must not list the App as a bypass actor, so `ci-pass` still
   gates any merge.

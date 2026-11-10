@@ -10,6 +10,8 @@ import (
 )
 
 func (a *Factory) Routes(prefix string, mux *http.ServeMux) {
+	// GitHub signs its deliveries (githubWebhook checks it), so no cookie gate.
+	mux.HandleFunc("POST /"+prefix+"/github-webhook", a.githubWebhook)
 	iapp.MountConnect(
 		mux,
 		a.Logger,

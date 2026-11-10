@@ -86,6 +86,9 @@ type Config struct {
 	// PEM private key (adr-0045). Both empty turns pushing and PRs off.
 	FactoryGitHubAppID  string
 	FactoryGitHubAppKey string
+	// FactoryGitHubWebhookSecret signs the App's webhook deliveries. Empty turns
+	// the webhook endpoint off; the poll still moves merged tasks.
+	FactoryGitHubWebhookSecret string
 	// FactorySlackWebhookURL is the Slack incoming webhook the factory posts job
 	// outcomes to. Empty, or not https, turns the notifications off.
 	FactorySlackWebhookURL  string
@@ -149,6 +152,7 @@ const errorMessage = "can't convert env var '%s' with value '%s' to %s"
 func (c parser) factory(cfg *Config) {
 	cfg.FactoryGitHubAppID = c.envStr("FACTORY_GITHUB_APP_ID", "")
 	cfg.FactoryGitHubAppKey = c.envSecret("FACTORY_GITHUB_APP_PRIVATE_KEY", "")
+	cfg.FactoryGitHubWebhookSecret = c.envSecret("FACTORY_GITHUB_WEBHOOK_SECRET", "")
 	cfg.FactorySlackWebhookURL = c.envSecret("FACTORY_SLACK_WEBHOOK_URL", "")
 }
 

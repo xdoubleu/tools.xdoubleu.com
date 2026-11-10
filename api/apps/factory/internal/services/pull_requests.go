@@ -52,7 +52,8 @@ var taskLine = regexp.MustCompile(`(?m)^Task: .*\(([0-9a-fA-F-]{36})\)\s*$`)
 // mergedLinked moves to Testing the task of each recently merged pull request
 // that links one, whoever opened it. It leaves a task that has jobs (their own
 // pull requests are polled above), one a person has moved on, and one that is
-// not In review. A repeat does nothing, as the task has moved.
+// not In review. A repeat does nothing, as the task has moved. The App's webhook
+// does the same per merge; this catches a delivery that never arrived.
 func (s *JobService) mergedLinked(ctx context.Context) (int, error) {
 	repos, err := s.repos.List(ctx)
 	if err != nil {
@@ -67,13 +68,9 @@ func (s *JobService) mergedLinked(ctx context.Context) (int, error) {
 			continue
 		}
 		for _, p := range pulls {
-			id, ok := linkedTask(p.Body)
-			if !ok {
-				continue
-			}
-			done, moveErr := s.testingAfterMerge(ctx, id, p.URL)
+			done, moveErr := s.TestingAfterMerge(ctx, p.Body, p.URL)
 			if moveErr != nil {
-				failures = append(failures, fmt.Errorf("task %s: %w", id, moveErr))
+				failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, moveErr))
 			}
 			if done {
 				moved++
@@ -92,11 +89,16 @@ func linkedTask(body string) (uuid.UUID, bool) {
 	return id, err == nil
 }
 
-func (s *JobService) testingAfterMerge(
+// TestingAfterMerge moves to Testing the task a merged pull request links in its
+// body, under the same rules as the poll. It reports whether a task moved.
+func (s *JobService) TestingAfterMerge(
 	ctx context.Context,
-	id uuid.UUID,
-	prURL string,
+	prBody, prURL string,
 ) (bool, error) {
+	id, ok := linkedTask(prBody)
+	if !ok {
+		return false, nil
+	}
 	task, err := s.tasks.Get(ctx, id)
 	if err != nil {
 		// A link to a task that is gone is not a failure.
