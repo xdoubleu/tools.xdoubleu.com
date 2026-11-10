@@ -12,6 +12,9 @@ import {
 import { getServerSnapshot, getSnapshot, subscribe } from '@/lib/offline/status'
 
 const TICK_MS = 30_000
+// A write is queued before it is sent, so online it is pending for a moment; only a
+// write that stays pending is worth a warning.
+const PENDING_GRACE_MS = 2_000
 
 const changes = (n: number) => `${n} ${n === 1 ? 'change' : 'changes'}`
 
@@ -27,6 +30,17 @@ export default function OfflineBanner() {
     getOutboxServerSnapshot
   )
   const [age, setAge] = useState('')
+  const hasPending = pending > 0
+  const [pendingLingers, setPendingLingers] = useState(false)
+
+  useEffect(() => {
+    if (!hasPending) {
+      setPendingLingers(false)
+      return
+    }
+    const id = setTimeout(() => setPendingLingers(true), PENDING_GRACE_MS)
+    return () => clearTimeout(id)
+  }, [hasPending])
 
   useEffect(() => {
     if (servedFromCacheAt === null) return
@@ -38,7 +52,7 @@ export default function OfflineBanner() {
 
   const status = [
     offline ? 'Offline' : servedFromCacheAt !== null && 'Can’t reach the server',
-    pending > 0 && !authBlocked && `${changes(pending)} waiting to sync`,
+    pendingLingers && !authBlocked && `${changes(pending)} waiting to sync`,
     servedFromCacheAt !== null && `showing data saved ${age}`
   ].filter(Boolean)
 

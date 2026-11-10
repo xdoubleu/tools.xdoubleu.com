@@ -53,6 +53,7 @@ describe('OfflineBanner', () => {
       markServedFromCache(5 * 60_000)
       setOutbox({ pending: 2, failed: [], authBlocked: false })
     })
+    act(() => vi.advanceTimersByTime(2_000))
     expect(screen.getByRole('status')).toHaveTextContent(
       'Offline · 2 changes waiting to sync · showing data saved 5 min ago'
     )
@@ -71,10 +72,24 @@ describe('OfflineBanner', () => {
     )
   })
 
-  it('shows writes waiting to sync while online', () => {
+  it('stays quiet while a write is sent right away', () => {
+    vi.useFakeTimers()
+    const { container } = render(<OfflineBanner />)
+
+    act(() => setOutbox({ pending: 1, failed: [], authBlocked: false }))
+    act(() => vi.advanceTimersByTime(1_000))
+    act(() => setOutbox({ pending: 0, failed: [], authBlocked: false }))
+    act(() => vi.advanceTimersByTime(5_000))
+
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('shows writes still waiting to sync while online', () => {
+    vi.useFakeTimers()
     render(<OfflineBanner />)
 
     act(() => setOutbox({ pending: 1, failed: [], authBlocked: false }))
+    act(() => vi.advanceTimersByTime(2_000))
 
     expect(screen.getByRole('status')).toHaveTextContent('1 change waiting to sync')
   })
