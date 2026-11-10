@@ -226,3 +226,48 @@ func (c *Client) reviews(
 	}
 	return "", nil
 }
+
+// MergedPullRequest is a merged pull request, with the body its task is linked
+// from.
+type MergedPullRequest struct {
+	URL  string
+	Body string
+}
+
+// MergedPullRequests lists the most recently updated merged pull requests of
+// owner/repo with a read-only token: one page, enough to cover those merged
+// since the last poll.
+func (c *Client) MergedPullRequests(
+	ctx context.Context,
+	owner, repo string,
+) ([]MergedPullRequest, error) {
+	token, err := c.readToken(ctx, owner, repo)
+	if err != nil {
+		return nil, err
+	}
+	var pulls []struct {
+		URL      string  `json:"html_url"`
+		Body     *string `json:"body"`
+		MergedAt *string `json:"merged_at"`
+	}
+	_, err = c.do(ctx, http.MethodGet,
+		"/repos/"+owner+"/"+repo+
+			"/pulls?state=closed&sort=updated&direction=desc&per_page="+
+			strconv.Itoa(pageSize),
+		token, nil, &pulls)
+	if err != nil {
+		return nil, err
+	}
+	out := []MergedPullRequest{}
+	for _, p := range pulls {
+		if p.MergedAt == nil {
+			continue
+		}
+		body := ""
+		if p.Body != nil {
+			body = *p.Body
+		}
+		out = append(out, MergedPullRequest{URL: p.URL, Body: body})
+	}
+	return out, nil
+}

@@ -41,8 +41,7 @@ boundary.
 4. **Proto changed:** `make proto/check` (`api/`) and `npm run
    generate:check` (`web/`).
 5. **Non-draft PR** that links the task (`Task: <title> (<id>)`, no closing
-   keyword) and moves it to In review; auto-merge is armed so green CI merges it; after the merge the task goes to Testing (the runner
-   moves only its own PRs' tasks), and the owner checks it there and moves it to Done. Pushed without a
+   keyword) and moves it to In review; auto-merge is armed so green CI merges it; after the merge the factory moves the task to Testing, and the owner checks it there and moves it to Done. Pushed without a
    PR is not finished. Work started from a GitHub issue (the sweeps,
    until #2779) closes it with `Fixes #123` instead.
 6. **Never merge on red CI; never push to `main`.**

@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
+
+	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
 	"tools.xdoubleu.com/internal/githubapp"
@@ -35,7 +38,86 @@ func (s *JobService) PollPullRequests(ctx context.Context) (int, error) {
 			_ = s.jobs.MarkPullRequestPolled(ctx, jobs[i].ID)
 		}
 	}
-	return len(jobs), errors.Join(failures...)
+	moved, err := s.mergedLinked(ctx)
+	if err != nil {
+		failures = append(failures, err)
+	}
+	return len(jobs) + moved, errors.Join(failures...)
+}
+
+// taskLine is the `Task: <title> (<id>)` line a pull request body links its task
+// with.
+var taskLine = regexp.MustCompile(`(?m)^Task: .*\(([0-9a-fA-F-]{36})\)\s*$`)
+
+// mergedLinked moves to Testing the task of each recently merged pull request
+// that links one, whoever opened it. It leaves a task that has jobs (their own
+// pull requests are polled above), one a person has moved on, and one that is
+// not In review. A repeat does nothing, as the task has moved.
+func (s *JobService) mergedLinked(ctx context.Context) (int, error) {
+	repos, err := s.repos.List(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var failures []error
+	moved := 0
+	for i := range repos {
+		pulls, listErr := s.github.MergedPullRequests(ctx, repos[i].Owner, repos[i].Name)
+		if listErr != nil {
+			failures = append(failures, fmt.Errorf("repo %s: %w", repos[i].Name, listErr))
+			continue
+		}
+		for _, p := range pulls {
+			id, ok := linkedTask(p.Body)
+			if !ok {
+				continue
+			}
+			done, moveErr := s.testingAfterMerge(ctx, id, p.URL)
+			if moveErr != nil {
+				failures = append(failures, fmt.Errorf("task %s: %w", id, moveErr))
+			}
+			if done {
+				moved++
+			}
+		}
+	}
+	return moved, errors.Join(failures...)
+}
+
+func linkedTask(body string) (uuid.UUID, bool) {
+	m := taskLine.FindStringSubmatch(body)
+	if m == nil {
+		return uuid.Nil, false
+	}
+	id, err := uuid.Parse(m[1])
+	return id, err == nil
+}
+
+func (s *JobService) testingAfterMerge(
+	ctx context.Context,
+	id uuid.UUID,
+	prURL string,
+) (bool, error) {
+	task, err := s.tasks.Get(ctx, id)
+	if err != nil {
+		// A link to a task that is gone is not a failure.
+		return false, nil //nolint:nilerr // nothing to move
+	}
+	if task.Status != models.StatusInReview {
+		return false, nil
+	}
+	jobs, err := s.jobs.ByTask(ctx, id)
+	if err != nil {
+		return false, err
+	}
+	if len(jobs) > 0 {
+		return false, nil
+	}
+	if _, err = s.tasks.Move(ctx, id, models.StatusTesting); err != nil {
+		return false, err
+	}
+	body := "The pull request was merged: " + prURL
+	_, err = s.tasks.AddComment(ctx, id, systemAuthor, body)
+	return true, err
 }
 
 func (s *JobService) pollPullRequest(ctx context.Context, job *models.Job) error {
