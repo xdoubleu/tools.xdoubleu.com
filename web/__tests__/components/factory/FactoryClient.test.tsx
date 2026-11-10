@@ -624,6 +624,16 @@ describe('closing an epic', () => {
     await waitFor(() => expect(mockMove).toHaveBeenCalledWith('parent', TaskStatus.DONE))
   })
 
+  it('hides the parent from the epic-filtered board and opens it from the toolbar', () => {
+    mockQuery = '?label=epic:reader'
+    mockTasks({ data: epicBoard([TaskStatus.BACKLOG]) })
+    render(<FactoryClient />)
+    expect(document.querySelector('[data-task-id="parent"]')).toBeNull()
+    expect(document.querySelector('[data-task-id="child0"]')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Epic: reader' }))
+    expect(screen.getByTestId('detail')).toHaveTextContent('parent')
+  })
+
   it('closes the epic from its own card, with the board unfiltered', async () => {
     mockTasks({ data: epicBoard([TaskStatus.DONE]) })
     render(<FactoryClient />)
