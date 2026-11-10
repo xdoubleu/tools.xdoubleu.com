@@ -1,23 +1,18 @@
-import { useWishlist } from '@/hooks/useGames'
+import type { WishlistGame } from '@/lib/gen/games/v1/games_pb'
 import { Card } from '@/components/ui/card'
-import { EmptyState, ErrorState } from '@/components/ui/states'
+import { EmptyState } from '@/components/ui/states'
 import { SectionHeading } from '@/components/ui/section-heading'
 
 const storeUrl = (id: number) => `https://store.steampowered.com/app/${id}`
 
-// Steam wishlist, synced with the library; hidden while empty unless `showEmpty`.
+// Steam wishlist cards; hidden while empty unless `showEmpty`.
 export default function GamesWishlist({
-  search = '',
+  games,
   showEmpty = false
 }: {
-  search?: string
+  games: WishlistGame[]
   showEmpty?: boolean
 }) {
-  const { data, error } = useWishlist()
-
-  if (error) return <ErrorState what="Steam wishlist" placement="page" />
-  const q = search.trim().toLowerCase()
-  const games = (data?.games ?? []).filter((g) => g.name.toLowerCase().includes(q))
   if (games.length === 0) {
     return showEmpty ? <EmptyState placement="page">Nothing on your wishlist.</EmptyState> : null
   }

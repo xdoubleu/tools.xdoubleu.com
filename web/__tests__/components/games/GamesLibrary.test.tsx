@@ -6,6 +6,8 @@ const mockSetGameFavourite = vi.fn().mockResolvedValue({})
 
 const mockReplace = vi.fn()
 let mockShelf: string | null = null
+let mockWishlistError: Error | undefined
+let mockNoWishlistData = false
 let mockWishlist = [{ id: 5, name: 'Hollow Knight', imageUrl: '' }]
 vi.mock('@/hooks/navigation', () => ({
   useRouter: () => ({ replace: mockReplace }),
@@ -14,7 +16,10 @@ vi.mock('@/hooks/navigation', () => ({
 
 vi.mock('@/hooks/useGames', () => ({
   useSteam: vi.fn(),
-  useWishlist: () => ({ data: { games: mockWishlist }, error: undefined }),
+  useWishlist: () => ({
+    data: mockNoWishlistData ? undefined : { games: mockWishlist },
+    error: mockWishlistError
+  }),
   useSetGameFavourite: () => mockSetGameFavourite
 }))
 
@@ -91,6 +96,8 @@ describe('GamesLibrary', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockShelf = null
+    mockWishlistError = undefined
+    mockNoWishlistData = false
     mockWishlist = [{ id: 5, name: 'Hollow Knight', imageUrl: '' }]
     mockRefreshState()
   })
@@ -223,6 +230,95 @@ describe('GamesLibrary', () => {
     render(<GamesLibrary />)
     fireEvent.change(screen.getByPlaceholderText('Search games…'), { target: { value: '  ' } })
     expect(screen.getByText('No games on this shelf.')).toBeInTheDocument()
+  })
+
+  it('keeps tab counts stable while searching', () => {
+    mockSteam()
+    render(<GamesLibrary />)
+    fireEvent.change(screen.getByPlaceholderText('Search games…'), { target: { value: 'zz' } })
+    expect(screen.getByRole('tab', { name: 'All (2)' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Wishlist (1)' })).toBeInTheDocument()
+  })
+
+  it('does not report no matches when only the wishlist matches', () => {
+    mockSteam()
+    render(<GamesLibrary />)
+    fireEvent.change(screen.getByPlaceholderText('Search games…'), { target: { value: 'hollow' } })
+    expect(screen.queryByText(/No games/)).not.toBeInTheDocument()
+    expect(screen.getByText('Hollow Knight')).toBeInTheDocument()
+  })
+
+  it('keeps Steam library status off the wishlist shelf', () => {
+    mockSteam()
+    mockShelf = 'wishlist'
+    render(<GamesLibrary />)
+    expect(screen.queryByText(/Total backlog/)).not.toBeInTheDocument()
+  })
+
+  it('shows a wishlist error instead of the list', () => {
+    mockSteam()
+    mockShelf = 'wishlist'
+    mockWishlistError = new Error('boom')
+    render(<GamesLibrary />)
+    expect(screen.getByText('Failed to load Steam wishlist.')).toBeInTheDocument()
+    expect(screen.queryByText('Hollow Knight')).not.toBeInTheDocument()
+  })
+
+  it('shows every group with games and no empty message when only some are empty', () => {
+    mockSteam({ completed: [doneGame] })
+    mockWishlist = []
+    render(<GamesLibrary />)
+    expect(screen.queryByText(/No games/)).not.toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'All (3)' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Done (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Favourites (1)' })).toBeInTheDocument()
+  })
+
+  it('shows no empty message when only some groups are empty', () => {
+    mockSteam()
+    mockWishlist = []
+    render(<GamesLibrary />)
+    expect(screen.queryByText(/No games/)).not.toBeInTheDocument()
+  })
+
+  it('renders no wishlist section while the wishlist is loading', () => {
+    mockSteam()
+    mockNoWishlistData = true
+    render(<GamesLibrary />)
+    expect(screen.queryByRole('heading', { name: /^Wishlist \(/ })).not.toBeInTheDocument()
+  })
+
+  it('shows zero counts while Steam is loading', () => {
+    // @ts-expect-error -- partial SWRResponse
+    mockUseBacklogSteam.mockReturnValue({ data: undefined, error: undefined, isLoading: true })
+    render(<GamesLibrary />)
+    expect(screen.getByRole('tab', { name: 'All (0)' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Favourites (0)' })).toBeInTheDocument()
+  })
+
+  it('hides Steam loading and error states on the wishlist shelf only', () => {
+    // @ts-expect-error -- partial SWRResponse
+    mockUseBacklogSteam.mockReturnValue({ data: undefined, error: new Error('x'), isLoading: true })
+    mockShelf = 'wishlist'
+    const { unmount } = render(<GamesLibrary />)
+    expect(screen.queryByText('Loading Steam library…')).not.toBeInTheDocument()
+    expect(screen.queryByText('Failed to load Steam data.')).not.toBeInTheDocument()
+    unmount()
+    mockShelf = null
+    render(<GamesLibrary />)
+    expect(screen.getByText('Loading Steam library…')).toBeInTheDocument()
+    expect(screen.getByText('Failed to load Steam data.')).toBeInTheDocument()
+  })
+
+  it('shows a wishlist error on the all shelf but not on others', () => {
+    mockSteam()
+    mockWishlistError = new Error('boom')
+    const { unmount } = render(<GamesLibrary />)
+    expect(screen.getByText('Failed to load Steam wishlist.')).toBeInTheDocument()
+    unmount()
+    mockShelf = 'done'
+    render(<GamesLibrary />)
+    expect(screen.queryByText('Failed to load Steam wishlist.')).not.toBeInTheDocument()
   })
 
   it('writes the chosen shelf to the URL', () => {

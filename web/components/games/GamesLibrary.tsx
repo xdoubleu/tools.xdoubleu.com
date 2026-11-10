@@ -34,7 +34,7 @@ export default function GamesLibrary() {
     else params.set('shelf', value)
     router.replace(`/games/library${params.size ? `?${params}` : ''}`)
   }
-  const { data: wishlistData } = useWishlist()
+  const { data: wishlistData, error: wishlistError } = useWishlist()
 
   const { data: steamData, error: steamError, isLoading: steamLoading } = useSteam()
 
@@ -45,7 +45,7 @@ export default function GamesLibrary() {
 
   const steam = steamData?.steam
 
-  const filterGames = (games: Game[]) => {
+  const filterGames = <T extends { name: string }>(games: T[]) => {
     const q = search.trim().toLowerCase()
     if (!q) return games
     return games.filter((g) => g.name.toLowerCase().includes(q))
@@ -55,6 +55,7 @@ export default function GamesLibrary() {
   const notStarted = steam ? filterGames(steam.notStarted) : []
   const completed = steam ? filterGames(steam.completed) : []
   const favourites = [...inProgress, ...notStarted, ...completed].filter((g) => g.favourite)
+  const wishlist = filterGames(wishlistData?.games ?? [])
 
   const labels: Record<Shelf, string> = {
     all: 'All',
@@ -64,13 +65,15 @@ export default function GamesLibrary() {
     done: 'Done',
     favourites: 'Favourites'
   }
+  // Counts ignore the search so they stay stable while typing.
+  const owned = steam ? [...steam.inProgress, ...steam.notStarted, ...steam.completed] : []
   const counts: Record<Shelf, number> = {
-    all: inProgress.length + notStarted.length + completed.length,
+    all: owned.length,
     wishlist: wishlistData?.games.length ?? 0,
-    'not-started': notStarted.length,
-    'in-progress': inProgress.length,
-    done: completed.length,
-    favourites: favourites.length
+    'not-started': steam?.notStarted.length ?? 0,
+    'in-progress': steam?.inProgress.length ?? 0,
+    done: steam?.completed.length ?? 0,
+    favourites: owned.filter((g) => g.favourite).length
   }
   const groups = [
     { shelf: 'favourites', title: 'Favourites', games: favourites },
@@ -78,6 +81,7 @@ export default function GamesLibrary() {
     { shelf: 'not-started', title: 'Not Started', games: notStarted },
     { shelf: 'done', title: 'Completed', games: completed }
   ]
+  const onWishlist = shelf === 'wishlist'
   const visible = groups.filter((g) => shelf === 'all' || g.shelf === shelf)
 
   return (
@@ -117,9 +121,12 @@ export default function GamesLibrary() {
         }
       />
 
-      {steamLoading && <LoadingState label="Steam library" placement="page" />}
-      {steamError && <ErrorState what="Steam data" placement="page" />}
-      {steam && (
+      {(shelf === 'all' || onWishlist) && wishlistError && (
+        <ErrorState what="Steam wishlist" placement="page" />
+      )}
+      {!onWishlist && steamLoading && <LoadingState label="Steam library" placement="page" />}
+      {!onWishlist && steamError && <ErrorState what="Steam data" placement="page" />}
+      {!onWishlist && steam && (
         <>
           <p className="mb-4 text-muted text-sm">
             Total backlog: {steam.totalBacklog} games &mdash; Current rate: {steam.currentRate}
@@ -133,15 +140,16 @@ export default function GamesLibrary() {
               showFavourite
             />
           ))}
-          {shelf !== 'wishlist' && visible.every((g) => g.games.length === 0) && (
-            <EmptyState placement="page">
-              {search.trim() ? 'No games match your search.' : 'No games on this shelf.'}
-            </EmptyState>
-          )}
+          {visible.every((g) => g.games.length === 0) &&
+            (shelf !== 'all' || wishlist.length === 0) && (
+              <EmptyState placement="page">
+                {search.trim() ? 'No games match your search.' : 'No games on this shelf.'}
+              </EmptyState>
+            )}
         </>
       )}
-      {(shelf === 'all' || shelf === 'wishlist') && (
-        <GamesWishlist search={search} showEmpty={shelf === 'wishlist'} />
+      {(shelf === 'all' || onWishlist) && !wishlistError && (
+        <GamesWishlist games={wishlist} showEmpty={onWishlist} />
       )}
     </section>
   )
