@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -120,6 +121,7 @@ func (c *GitHubClient) OpenPullRequest(
 	base := "/repos/" + url.PathEscape(pr.Owner) + "/" + url.PathEscape(pr.Repo) + "/pulls"
 	var created struct {
 		HTMLURL string `json:"html_url"`
+		NodeID  string `json:"node_id"`
 	}
 	err := c.do(ctx, http.MethodPost, base, token, map[string]any{
 		"title": pr.Title, "head": pr.Head, "base": pr.Base, "body": pr.Body,
@@ -136,7 +138,31 @@ func (c *GitHubClient) OpenPullRequest(
 	if created.HTMLURL == "" {
 		return "", errors.New("open a pull request: no address in the answer")
 	}
+	c.armAutoMerge(ctx, token, created.NodeID)
 	return created.HTMLURL, nil
+}
+
+// armAutoMerge turns on squash auto-merge, so a green ci-pass merges the pull
+// request like any other. The pull request is open already, so a refusal (auto-merge
+// off for the repo, a missing permission) is logged, not a reason to fail the job.
+func (c *GitHubClient) armAutoMerge(ctx context.Context, token, nodeID string) {
+	if nodeID == "" {
+		return
+	}
+	var answer struct {
+		Errors []json.RawMessage `json:"errors"`
+	}
+	err := c.do(ctx, http.MethodPost, "/graphql", token, map[string]any{
+		"query": "mutation($id: ID!) { enablePullRequestAutoMerge(input: " +
+			"{pullRequestId: $id, mergeMethod: SQUASH}) { clientMutationId } }",
+		"variables": map[string]any{"id": nodeID},
+	}, &answer)
+	if err == nil && len(answer.Errors) > 0 {
+		err = errors.New("refused")
+	}
+	if err != nil {
+		slog.WarnContext(ctx, "could not arm auto-merge", "error", err)
+	}
 }
 
 func (c *GitHubClient) existing(
@@ -149,6 +175,7 @@ func (c *GitHubClient) existing(
 	}
 	var found []struct {
 		HTMLURL string `json:"html_url"`
+		NodeID  string `json:"node_id"`
 	}
 	path := base + "?" + query.Encode()
 	if err := c.do(ctx, http.MethodGet, path, token, nil, &found); err != nil {
@@ -157,6 +184,7 @@ func (c *GitHubClient) existing(
 	if len(found) == 0 || found[0].HTMLURL == "" {
 		return "", errors.New("find the open pull request: none found")
 	}
+	c.armAutoMerge(ctx, token, found[0].NodeID)
 	return found[0].HTMLURL, nil
 }
 
@@ -215,7 +243,7 @@ func pullRequestText(
 		body = string([]rune(body)[:maxBodyRunes]) + "…"
 	}
 	footer := "\n\n---\nOpened by the factory for task `" + job.TaskID + "` (job `" +
-		job.ID + "`). Review it like any other change: the factory never merges."
+		job.ID + "`). Review it like any other change."
 	if serverURL != "" {
 		footer += " Board: " + strings.TrimRight(serverURL, "/") + "/factory"
 	}

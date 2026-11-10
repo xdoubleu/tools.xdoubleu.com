@@ -52,9 +52,9 @@ deploy key can push but can't open a pull request.
   shows "Deployed" once GitHub's compare API says the running `RELEASE` is that
   commit or a descendant, "Deploying…" before, and nothing on a dev build, an
   error, or a task untouched for a week. Answers are cached 30 s; a live one stays.
-- **The App never merges.** It may open a PR but nothing here merges or arms one.
-  `main`'s ruleset must not list the App as a bypass actor, so `ci-pass` still
-  gates any merge.
+- **The App arms auto-merge, never merges directly.** The runner arms squash
+  auto-merge on each PR it opens, like every other PR. `main`'s ruleset must not
+  list the App as a bypass actor, so `ci-pass` still gates the merge.
 
 ## Consequences
 

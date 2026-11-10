@@ -309,7 +309,6 @@ func TestPullRequestTextTakesTheTitleFromTheFirstLine(t *testing.T) {
 	assert.Less(t, len([]rune(body)), 60500)
 	assert.Contains(t, body, "…")
 	assert.Contains(t, body, "Board: https://s/factory")
-	assert.Contains(t, body, "never merges")
 }
 
 func TestTheGitHubClientOpensAPullRequest(t *testing.T) {
@@ -368,6 +367,83 @@ func TestTheGitHubClientReusesTheOpenPullRequestOfABranch(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "https://github.com/o/r/pull/3", url)
 	assert.Equal(t, "head=o%3Aagent%2Fx&per_page=1&state=open", listed)
+}
+
+// graphQLServer answers pull request creation (or "already exists" plus a listing)
+// with a node id, and records the auto-merge mutation sent to /graphql.
+func graphQLServer(
+	t *testing.T,
+	exists bool,
+	graphQLAnswer string,
+) (*runner.GitHubClient, *string) {
+	t.Helper()
+	var mutation string
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case r.URL.Path == "/graphql":
+				assert.Equal(t, "Bearer t", r.Header.Get("Authorization"))
+				raw, _ := io.ReadAll(r.Body)
+				mutation = string(raw)
+				_, _ = io.WriteString(w, graphQLAnswer)
+			case r.Method == http.MethodPost && exists:
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				_, _ = io.WriteString(w, `{"errors":[{"message":"A pull request already exists"}]}`)
+			case r.Method == http.MethodPost:
+				w.WriteHeader(http.StatusCreated)
+				_, _ = io.WriteString(w,
+					`{"html_url":"https://github.com/o/r/pull/9","node_id":"PR_9"}`)
+			default:
+				_, _ = io.WriteString(w,
+					`[{"html_url":"https://github.com/o/r/pull/3","node_id":"PR_3"}]`)
+			}
+		}),
+	)
+	t.Cleanup(srv.Close)
+	return &runner.GitHubClient{BaseURL: srv.URL, HTTP: srv.Client()}, &mutation
+}
+
+func TestTheGitHubClientArmsSquashAutoMergeOnTheNewPullRequest(t *testing.T) {
+	c, mutation := graphQLServer(t, false, `{"data":{}}`)
+
+	url, err := c.OpenPullRequest(t.Context(), "t", runner.PullRequest{
+		Owner: "o", Repo: "r", Head: "agent/x", Base: "main", Title: "", Body: "",
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, "https://github.com/o/r/pull/9", url)
+	assert.Contains(t, *mutation, "enablePullRequestAutoMerge")
+	assert.Contains(t, *mutation, "SQUASH")
+	assert.Contains(t, *mutation, `"id":"PR_9"`)
+}
+
+func TestTheGitHubClientArmsAutoMergeOnTheExistingPullRequestToo(t *testing.T) {
+	c, mutation := graphQLServer(t, true, `{"data":{}}`)
+
+	url, err := c.OpenPullRequest(t.Context(), "t", runner.PullRequest{
+		Owner: "o", Repo: "r", Head: "agent/x", Base: "main", Title: "", Body: "",
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, "https://github.com/o/r/pull/3", url)
+	assert.Contains(t, *mutation, `"id":"PR_3"`)
+}
+
+func TestARefusedAutoMergeStillReturnsThePullRequest(t *testing.T) {
+	for name, answer := range map[string]string{
+		"graphql error": `{"errors":[{"message":"Auto merge is not allowed"}]}`,
+		"not json":      `nope`,
+	} {
+		c, mutation := graphQLServer(t, false, answer)
+
+		url, err := c.OpenPullRequest(t.Context(), "t", runner.PullRequest{
+			Owner: "o", Repo: "r", Head: "agent/x", Base: "main", Title: "", Body: "",
+		})
+
+		require.NoError(t, err, name)
+		assert.Equal(t, "https://github.com/o/r/pull/9", url, name)
+		assert.NotEmpty(t, *mutation, name)
+	}
 }
 
 func TestTheGitHubClientFailsWithoutLeakingGitHubsText(t *testing.T) {
