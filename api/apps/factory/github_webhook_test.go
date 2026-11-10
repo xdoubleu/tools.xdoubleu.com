@@ -32,6 +32,7 @@ func pullEvent(t *testing.T, action string, merged bool, body string) string {
 		"action": action,
 		"pull_request": map[string]any{
 			"html_url": pullURL(7), "body": body, "merged": merged,
+			"merge_commit_sha": "hooksha",
 		},
 	}
 	out, err := json.Marshal(payload)

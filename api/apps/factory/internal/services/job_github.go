@@ -41,6 +41,8 @@ type PullRequestSource interface {
 		ctx context.Context,
 		owner, repo string,
 	) ([]githubapp.OpenPullRequest, error)
+	// Deployed reports whether release contains the commit sha.
+	Deployed(ctx context.Context, owner, repo, sha, release string) (bool, error)
 }
 
 // GitHub is everything the factory asks of the GitHub App.

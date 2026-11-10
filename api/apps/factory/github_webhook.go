@@ -42,6 +42,7 @@ type pullRequestEvent struct {
 		URL    string  `json:"html_url"`
 		Body   *string `json:"body"`
 		Merged bool    `json:"merged"`
+		SHA    string  `json:"merge_commit_sha"`
 	} `json:"pull_request"`
 }
 
@@ -78,7 +79,7 @@ func (a *Factory) githubWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, err = a.services.Jobs.TestingAfterMerge(
-		r.Context(), *pr.Body, pr.URL)
+		r.Context(), *pr.Body, pr.URL, pr.SHA)
 	if err != nil {
 		// GitHub doesn't retry, so the poll is what recovers this.
 		a.Logger.ErrorContext(r.Context(), "github webhook: moving the task failed",

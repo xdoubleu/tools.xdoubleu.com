@@ -34,7 +34,7 @@ func testTask(id uuid.UUID, title, body string) *models.Task {
 		ID: id, Number: 0, RepoID: uuid.Nil, Title: title, Body: body, Status: "",
 		Priority: "", Labels: nil, CreatedBy: "", CreatedAt: time.Time{},
 		UpdatedAt: time.Time{}, CommentCount: 0, PRURL: "", PRState: "", PRCI: "",
-		PRReview: "", PickupApproved: false, PickupBlocked: "",
+		PRReview: "", PickupApproved: false, PickupBlocked: "", MergeSHA: "", Deploy: "",
 	}
 }
 

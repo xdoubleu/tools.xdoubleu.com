@@ -125,7 +125,8 @@ func TestOnlyMergedPullRequestsAreListedWithTheirBodies(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "closed", r.URL.Query().Get("state"))
 			_, _ = io.WriteString(w, `[
-				{"html_url":"u1","body":"Task: a (x)","merged_at":"2026-11-10T09:00:00Z"},
+				{"html_url":"u1","body":"Task: a (x)","merged_at":"2026-11-10T09:00:00Z",
+					"merge_commit_sha":"s1"},
 				{"html_url":"u2","body":"closed","merged_at":null},
 				{"html_url":"u3","body":null,"merged_at":"2026-11-10T09:01:00Z"}]`)
 		})
@@ -135,7 +136,7 @@ func TestOnlyMergedPullRequestsAreListedWithTheirBodies(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, []githubapp.MergedPullRequest{
-		{URL: "u1", Body: "Task: a (x)"}, {URL: "u3", Body: ""},
+		{URL: "u1", Body: "Task: a (x)", MergeSHA: "s1"}, {URL: "u3", Body: "", MergeSHA: ""},
 	}, got)
 }
 
@@ -157,6 +158,43 @@ func TestOpenPullRequestsAreListedWithTheirNumbersAndBodies(t *testing.T) {
 	assert.Equal(t, []githubapp.OpenPullRequest{
 		{URL: "u1", Number: 7, Body: "Task: a (x)"}, {URL: "u2", Number: 8, Body: ""},
 	}, got)
+}
+
+func TestACommitIsDeployedWhenTheReleaseIsAheadOfItOrTheSame(t *testing.T) {
+	for status, want := range map[string]bool{
+		"ahead": true, "identical": true, "behind": false, "diverged": false,
+	} {
+		t.Run(status, func(t *testing.T) {
+			key, pkcs1, _ := newKey(t)
+			f := newFake(t, key)
+			f.mux.HandleFunc("GET /repos/{o}/{r}/compare/{range}",
+				func(w http.ResponseWriter, r *http.Request) {
+					assert.Equal(t, "merge...release", r.PathValue("range"))
+					_, _ = io.WriteString(w, `{"status":"`+status+`"}`)
+				})
+			c := newClient(t, f, pkcs1)
+
+			got, err := c.Deployed(t.Context(), "xdoubleu", "tools.xdoubleu.com",
+				"merge", "release")
+
+			require.NoError(t, err)
+			assert.Equal(t, want, got)
+		})
+	}
+}
+
+func TestADeployCheckGitHubRefusesIsAnErrorNotAnAnswer(t *testing.T) {
+	key, pkcs1, _ := newKey(t)
+	f := newFake(t, key)
+	f.mux.HandleFunc("GET /repos/{o}/{r}/compare/{range}",
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+		})
+	c := newClient(t, f, pkcs1)
+
+	_, err := c.Deployed(t.Context(), "xdoubleu", "tools.xdoubleu.com", "gone", "release")
+
+	require.Error(t, err)
 }
 
 func TestAPageOfMergedPullRequestsOverOneMebibyteIsRead(t *testing.T) {
@@ -258,7 +296,8 @@ func TestThePullRequestIsReadWithAReadOnlyTokenForThatRepoOnly(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, []any{"tools.xdoubleu.com"}, f.lastMint["repositories"])
-	assert.Equal(t, map[string]any{"pull_requests": "read", "checks": "read"},
+	assert.Equal(t,
+		map[string]any{"pull_requests": "read", "checks": "read", "contents": "read"},
 		f.lastMint["permissions"], "reads only: no write permission is asked for")
 	for _, auth := range p.tokens {
 		assert.Equal(t, "Bearer ghs_minted", auth)

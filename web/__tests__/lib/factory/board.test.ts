@@ -47,6 +47,7 @@ import {
   limitNotice,
   jobLimitNote,
   awaitingPickupApproval,
+  deployBadge,
   jobStatusLabel,
   prBadge,
   prStatusLine,
@@ -325,6 +326,18 @@ describe('board', () => {
     expect(pr('merged', 'failing')).toBe(false)
     expect(pr('', 'failing')).toBe(false)
     expect(FIX_CI_REPLY).toContain('CI is red')
+  })
+
+  it('says whether a merged change is live, and nothing when unknown', () => {
+    expect(deployBadge({ deployState: 'deployed' })).toEqual({
+      label: 'Deployed',
+      variant: 'success'
+    })
+    expect(deployBadge({ deployState: 'pending' })).toEqual({
+      label: 'Deploying…',
+      variant: 'warn'
+    })
+    expect(deployBadge({ deployState: '' })).toBeUndefined()
   })
 
   it('picks the most pressing thing to say about a pull request', () => {

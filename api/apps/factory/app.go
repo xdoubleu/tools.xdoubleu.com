@@ -128,6 +128,7 @@ func New(
 	a.connectSlack(logger)
 	a.services = services.New(
 		repositories.New(db), authService, a.jobAccounts, a.github, a.notifier, a.webURL,
+		cfg.Release,
 	)
 	return a
 }

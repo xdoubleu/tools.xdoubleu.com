@@ -74,7 +74,7 @@ func (s *JobService) mergedLinked(ctx context.Context) (int, error) {
 			continue
 		}
 		for _, p := range pulls {
-			done, moveErr := s.TestingAfterMerge(ctx, p.Body, p.URL)
+			done, moveErr := s.TestingAfterMerge(ctx, p.Body, p.URL, p.MergeSHA)
 			if moveErr != nil {
 				failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, moveErr))
 			}
@@ -96,10 +96,11 @@ func linkedTask(body string) (string, bool) {
 }
 
 // TestingAfterMerge moves to Testing the task a merged pull request links in its
-// body, under the same rules as the poll. It reports whether a task moved.
+// body, under the same rules as the poll, and keeps the merge commit for the
+// deploy state. It reports whether a task moved.
 func (s *JobService) TestingAfterMerge(
 	ctx context.Context,
-	prBody, prURL string,
+	prBody, prURL, mergeSHA string,
 ) (bool, error) {
 	ref, ok := linkedTask(prBody)
 	if !ok {
@@ -129,6 +130,9 @@ func (s *JobService) TestingAfterMerge(
 	}
 	if len(jobs) > 0 {
 		return false, nil
+	}
+	if err = s.tasks.SetMergeSHA(ctx, id, mergeSHA); err != nil {
+		return false, err
 	}
 	if _, err = s.tasks.Move(ctx, id, models.StatusTesting); err != nil {
 		return false, err

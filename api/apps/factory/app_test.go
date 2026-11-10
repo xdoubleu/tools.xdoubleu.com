@@ -36,6 +36,7 @@ var (
 
 func TestMain(m *testing.M) {
 	testCfg = testhelper.NewTestConfig()
+	testCfg.Release = testRelease
 	pool := testhelper.ConnectTestDB(testCfg.DBDsn)
 	testDB = pool
 	testPool = pool

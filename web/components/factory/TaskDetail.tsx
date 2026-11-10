@@ -1,6 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { useFactoryActions, useFactoryAgents, useFactoryTask } from '@/hooks/useFactory'
-import { Harness, TaskStatus, type Job, type PullRequest } from '@/lib/gen/factory/v1/factory_pb'
+import {
+  Harness,
+  TaskStatus,
+  type Job,
+  type PullRequest,
+  type Task
+} from '@/lib/gen/factory/v1/factory_pb'
 import {
   accountsOf,
   actorLabel,
@@ -10,6 +16,7 @@ import {
   jobActive,
   jobLimitNote,
   jobRunner,
+  deployBadge,
   jobStatusLabel,
   priorityLabel,
   pullRequestLabel,
@@ -290,6 +297,16 @@ interface TaskDetailProps {
 }
 
 /** A task's description, comments and controls, in a sheet. */
+function DeployBadge({ task }: { task: Task }) {
+  const deploy = deployBadge(task)
+  if (!deploy) return null
+  return (
+    <Badge variant={deploy.variant} data-testid="deploy-badge">
+      {deploy.label}
+    </Badge>
+  )
+}
+
 export default function TaskDetail({ id, onClose }: TaskDetailProps) {
   const { data, error, isLoading } = useFactoryTask(id)
   const agents = accountsOf(useFactoryAgents().data)
@@ -315,6 +332,7 @@ export default function TaskDetail({ id, onClose }: TaskDetailProps) {
             <TaskId id={task.id} />
             <div className="flex flex-wrap items-center gap-2">
               <Badge>{priorityLabel(task.priority)}</Badge>
+              <DeployBadge task={task} />
               {task.labels.map((l) => (
                 <Badge key={l} variant="secondary">
                   {l}

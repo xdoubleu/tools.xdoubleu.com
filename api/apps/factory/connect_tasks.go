@@ -152,6 +152,7 @@ func protoTask(t *models.Task) *factoryv1.Task {
 		PrReview:          t.PRReview,
 		PickupApproved:    t.PickupApproved,
 		PickupBlockReason: t.PickupBlocked,
+		DeployState:       string(t.Deploy),
 	}
 }
 
@@ -178,6 +179,7 @@ func (h *taskConnectHandler) ListTasks(
 	if err != nil {
 		return nil, mapError(err)
 	}
+	h.app.services.Jobs.FillDeploy(ctx, tasks)
 	out := make([]*factoryv1.Task, len(tasks))
 	for i := range tasks {
 		out[i] = protoTask(&tasks[i])
@@ -219,6 +221,9 @@ func (h *taskConnectHandler) GetTask(
 	for i := range comments {
 		out[i] = protoComment(&comments[i])
 	}
+	filled := []models.Task{*task}
+	h.app.services.Jobs.FillDeploy(ctx, filled)
+	task = &filled[0]
 	jobs, err := h.app.services.Jobs.ByTask(ctx, id)
 	if err != nil {
 		return nil, mapError(err)
