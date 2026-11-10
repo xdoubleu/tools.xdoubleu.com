@@ -39,6 +39,9 @@ deploy key can push but can't open a pull request.
   rollup and the standing review on the job. No public webhook endpoint is needed.
   A merge moves a task that is still In review to Testing and a close without a merge
   to Needs you; a task a person has moved on, or one a newer job is on, is left.
+  The same poll also reads each repo's recently merged PRs and moves the In-review
+  task named by a `Task: <title> (<id>)` body line to Testing, whoever opened the
+  PR, unless the task has jobs of its own.
 - **The App never merges.** It may open a PR but nothing here merges or arms one.
   `main`'s ruleset must not list the App as a bypass actor, so `ci-pass` still
   gates any merge.

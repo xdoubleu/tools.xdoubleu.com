@@ -261,3 +261,46 @@ func TestATasksPullRequestStatusIsOnTheBoardAndTheTask(t *testing.T) {
 	env.run(t, task.Id, "")
 	assert.Equal(t, pullURL(7), env.task(t, task.Id).Task.PrUrl)
 }
+
+func (e jobEnv) moveTo(t *testing.T, id string, status factoryv1.TaskStatus) {
+	t.Helper()
+	_, err := e.tasks.MoveTask(context.Background(),
+		&factoryv1.MoveTaskRequest{Id: id, Status: status})
+	require.NoError(t, err)
+}
+
+func (gh *fakeGitHub) merge(url, body string) {
+	gh.mu.Lock()
+	defer gh.mu.Unlock()
+	gh.merged = append(gh.merged, githubapp.MergedPullRequest{URL: url, Body: body})
+}
+
+func TestAMergedPullRequestLinkingAJoblessTaskMovesItToTestingOnce(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := env.newTask(t, "local")
+	env.moveTo(t, task.Id, factoryv1.TaskStatus_TASK_STATUS_IN_REVIEW)
+	gh.merge(pullURL(7), "Task: local ("+task.Id+")\n\nbody")
+
+	require.NoError(t, env.poll(t))
+
+	got := env.task(t, task.Id)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_TESTING, got.Task.Status)
+	require.Len(t, got.Comments, 1)
+	assert.Contains(t, got.Comments[0].Body, "was merged: "+pullURL(7))
+
+	require.NoError(t, env.poll(t))
+	assert.Len(t, env.task(t, task.Id).Comments, 1)
+}
+
+func TestAMergedLinkedPullRequestLeavesATaskNotInReview(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := env.newTask(t, "moved on")
+	gh.merge(pullURL(8), "Task: moved on ("+task.Id+")")
+	gh.merge(pullURL(9), "no link here")
+	gh.merge(pullURL(10), "Task: gone (00000000-0000-0000-0000-000000000000)")
+
+	require.NoError(t, env.poll(t))
+
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG,
+		env.task(t, task.Id).Task.Status)
+}

@@ -118,6 +118,27 @@ func TestAMergedOrClosedPullRequestNeedsNoChecksOrReviews(t *testing.T) {
 	assert.Equal(t, ended("closed"), status(t, newPulls(closedPull, "", "")))
 }
 
+func TestOnlyMergedPullRequestsAreListedWithTheirBodies(t *testing.T) {
+	key, pkcs1, _ := newKey(t)
+	f := newFake(t, key)
+	f.mux.HandleFunc("GET /repos/{o}/{r}/pulls",
+		func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "closed", r.URL.Query().Get("state"))
+			_, _ = io.WriteString(w, `[
+				{"html_url":"u1","body":"Task: a (x)","merged_at":"2026-11-10T09:00:00Z"},
+				{"html_url":"u2","body":"closed","merged_at":null},
+				{"html_url":"u3","body":null,"merged_at":"2026-11-10T09:01:00Z"}]`)
+		})
+	c := newClient(t, f, pkcs1)
+
+	got, err := c.MergedPullRequests(t.Context(), "xdoubleu", "tools.xdoubleu.com")
+
+	require.NoError(t, err)
+	assert.Equal(t, []githubapp.MergedPullRequest{
+		{URL: "u1", Body: "Task: a (x)"}, {URL: "u3", Body: ""},
+	}, got)
+}
+
 func run(state, conclusion string) string {
 	return `{"status":"` + state + `","conclusion":"` + conclusion + `"}`
 }

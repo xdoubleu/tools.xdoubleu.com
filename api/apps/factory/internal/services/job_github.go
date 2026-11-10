@@ -31,6 +31,11 @@ type PullRequestSource interface {
 		owner, repo string,
 		number int,
 	) (githubapp.PullRequestStatus, error)
+	// MergedPullRequests lists the recently merged pull requests of a repo.
+	MergedPullRequests(
+		ctx context.Context,
+		owner, repo string,
+	) ([]githubapp.MergedPullRequest, error)
 }
 
 // GitHub is everything the factory asks of the GitHub App.

@@ -27,6 +27,15 @@ type fakeGitHub struct {
 	// pulls answers PullRequest by number; polled records which were asked.
 	pulls  map[int]pullAnswer
 	polled []int
+	merged []githubapp.MergedPullRequest
+}
+
+func (f *fakeGitHub) MergedPullRequests(
+	_ context.Context, _, _ string,
+) ([]githubapp.MergedPullRequest, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.merged, nil
 }
 
 // pullAnswer is what the fake says about a pull request.
@@ -67,7 +76,8 @@ var _ services.JobGitHub = (*fakeGitHub)(nil)
 func githubEnv(t *testing.T) (jobEnv, *fakeGitHub) {
 	t.Helper()
 	gh := &fakeGitHub{
-		mu: sync.Mutex{}, asked: nil, err: nil, pulls: map[int]pullAnswer{}, polled: nil,
+		mu: sync.Mutex{}, asked: nil, err: nil, pulls: map[int]pullAnswer{},
+		polled: nil, merged: nil,
 	}
 	return newJobEnvWith(t, true, "browser", factory.WithGitHub(gh)), gh
 }
