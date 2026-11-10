@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"crypto/rsa"
 	"encoding/json"
 	"net/http"
 
 	fosite "authelia.com/provider/oauth2"
+	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/internal/agentaccounts"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauth2as"
+	"tools.xdoubleu.com/internal/repositories"
 )
 
 // oauth2asWiring bundles the embedded OAuth 2.1 / OIDC authorization server.
@@ -96,4 +100,41 @@ func (app *Application) oauth2MetadataHandler() http.HandlerFunc {
 			},
 		})
 	}
+}
+
+// agentDelegator lets the consent page authorize a client as an agent account.
+type agentDelegator struct {
+	agents *agentaccounts.Store
+	users  *repositories.AppUsersRepository
+}
+
+func (app *Application) agentDelegator(agents *agentaccounts.Store) oauth2as.Delegator {
+	return agentDelegator{agents: agents, users: app.appUsersRepo}
+}
+
+func (d agentDelegator) Delegate(
+	ctx context.Context, admin oauth2as.ResolvedUser, clientID, accountID string,
+) (oauth2as.ResolvedUser, error) {
+	id, err := uuid.Parse(accountID)
+	if err != nil {
+		return oauth2as.ResolvedUser{}, err
+	}
+	account, err := d.agents.Delegate(ctx, id, clientID, "human:"+admin.ID)
+	if err != nil {
+		return oauth2as.ResolvedUser{}, err
+	}
+	user, err := d.users.GetByID(ctx, account.UserID.String())
+	if err != nil {
+		return oauth2as.ResolvedUser{}, err
+	}
+	return oauth2as.ResolvedUser{
+		ID:          user.ID,
+		Email:       user.Email,
+		DisplayName: user.DisplayName,
+		IsAdmin:     false,
+	}, nil
+}
+
+func (d agentDelegator) Undelegate(ctx context.Context, clientID string) error {
+	return d.agents.Undelegate(ctx, clientID)
 }

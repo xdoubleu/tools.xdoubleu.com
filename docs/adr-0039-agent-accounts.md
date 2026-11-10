@@ -56,6 +56,12 @@ machine identity, but only one, seeded by hand.
 
 ## Setup
 
+The simplest way: add the MCP server as usual
+(`claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/mcp`)
+and, on the consent page, delegate to an agent account
+([adr-0048](adr-0048-consent-delegates-to-agent-accounts.md)). For a headless
+agent, use a client secret:
+
 ```bash
 security add-generic-password -s factory-agent-<client id> -a agent -w
 claude mcp add-json tools-apps-agent '{"type":"http",

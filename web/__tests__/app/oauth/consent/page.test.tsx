@@ -8,8 +8,15 @@ import { getConsentInfo } from '@/lib/oauth2as/consentClient'
 vi.mock('@/hooks/useAuth', () => ({ useCurrentUser: vi.fn() }))
 vi.mock('@/lib/oauth2as/consentClient', () => ({ getConsentInfo: vi.fn() }))
 vi.mock('@/app/oauth/consent/ConsentForm', () => ({
-  default: (props: { requestQuery: string; consentToken: string; clientName: string }) => (
-    <div data-testid="form">{`${props.requestQuery}|${props.consentToken}|${props.clientName}`}</div>
+  default: (props: {
+    requestQuery: string
+    consentToken: string
+    clientName: string
+    canDelegate: boolean
+  }) => (
+    <div data-testid="form">
+      {`${props.requestQuery}|${props.consentToken}|${props.clientName}|${props.canDelegate}`}
+    </div>
   )
 }))
 
@@ -76,13 +83,14 @@ describe('ConsentPage', () => {
       clientId: 'c1',
       clientName: 'Claude CLI',
       scope: 'openid',
-      consentToken: 'tok'
+      consentToken: 'tok',
+      canDelegate: true
     })
     renderPage()
 
     await waitFor(() =>
       expect(screen.getByTestId('form')).toHaveTextContent(
-        'client_id=c1&scope=openid&state=s1|tok|Claude CLI'
+        'client_id=c1&scope=openid&state=s1|tok|Claude CLI|true'
       )
     )
   })

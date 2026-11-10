@@ -408,28 +408,7 @@ func (s *Store) Revoke(ctx context.Context, id uuid.UUID) (*Account, error) {
 		return nil, err
 	}
 	if account.RevokedAt == nil {
-		account, err = scanAccount(tx.QueryRow(ctx, `
-			UPDATE global.agent_accounts SET revoked_at = now()
-			WHERE id = $1
-			RETURNING `+accountColumns, id))
-		if err != nil {
-			return nil, err
-		}
-		if _, err = tx.Exec(ctx,
-			`DELETE FROM auth.oauth2_clients WHERE id = $1`, account.ClientID,
-		); err != nil {
-			return nil, err
-		}
-		if _, err = tx.Exec(ctx,
-			`DELETE FROM global.app_access WHERE user_id = $1`,
-			account.UserID.String(),
-		); err != nil {
-			return nil, err
-		}
-		if _, err = tx.Exec(ctx,
-			`DELETE FROM global.family_members WHERE user_id = $1`,
-			account.UserID.String(),
-		); err != nil {
+		if account, err = endAccess(ctx, tx, id); err != nil {
 			return nil, err
 		}
 	}
@@ -440,6 +419,92 @@ func (s *Store) Revoke(ctx context.Context, id uuid.UUID) (*Account, error) {
 		s.onRevoke()
 	}
 	return account, nil
+}
+
+// endAccess stamps the account revoked and removes its client, tokens, grants
+// and family membership.
+func endAccess(ctx context.Context, tx pgx.Tx, id uuid.UUID) (*Account, error) {
+	account, err := scanAccount(tx.QueryRow(ctx, `
+		UPDATE global.agent_accounts SET revoked_at = now()
+		WHERE id = $1
+		RETURNING `+accountColumns, id))
+	if err != nil {
+		return nil, err
+	}
+	if _, err = tx.Exec(ctx,
+		`DELETE FROM auth.oauth2_clients WHERE id = $1`, account.ClientID,
+	); err != nil {
+		return nil, err
+	}
+	// Delegated clients' tokens carry the agent as their subject.
+	if _, err = tx.Exec(ctx, `
+		WITH codes AS (DELETE FROM auth.oauth2_auth_codes WHERE user_id = $1),
+		access AS (DELETE FROM auth.oauth2_access_tokens WHERE user_id = $1)
+		DELETE FROM auth.oauth2_refresh_tokens WHERE user_id = $1`,
+		account.UserID,
+	); err != nil {
+		return nil, err
+	}
+	if _, err = tx.Exec(ctx,
+		`DELETE FROM global.app_access WHERE user_id = $1`,
+		account.UserID.String(),
+	); err != nil {
+		return nil, err
+	}
+	if _, err = tx.Exec(ctx,
+		`DELETE FROM global.family_members WHERE user_id = $1`,
+		account.UserID.String(),
+	); err != nil {
+		return nil, err
+	}
+	return account, nil
+}
+
+// Delegate makes clientID, an authorization_code client, act as the active
+// standing account id from its next authorization (adr-0048), replacing any
+// earlier delegation of that client.
+func (s *Store) Delegate(
+	ctx context.Context,
+	id uuid.UUID,
+	clientID, createdBy string,
+) (*Account, error) {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	account, err := standing(ctx, tx, id)
+	if err != nil {
+		return nil, err
+	}
+	tag, err := tx.Exec(ctx, `
+		INSERT INTO global.agent_account_clients (client_id, account_id, created_by)
+		SELECT id, $2, $3 FROM auth.oauth2_clients
+		WHERE id = $1 AND 'authorization_code' = ANY(grant_types)
+		ON CONFLICT (client_id) DO UPDATE
+		SET account_id = EXCLUDED.account_id,
+		    created_by = EXCLUDED.created_by,
+		    created_at = now()`,
+		clientID, account.ID, createdBy,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, fmt.Errorf(
+			"%w: the client can't be delegated", database.ErrResourceConflict,
+		)
+	}
+	return account, tx.Commit(ctx)
+}
+
+// Undelegate ends clientID's delegation, if it has one.
+func (s *Store) Undelegate(ctx context.Context, clientID string) error {
+	_, err := s.db.Exec(ctx,
+		`DELETE FROM global.agent_account_clients WHERE client_id = $1`, clientID,
+	)
+	return err
 }
 
 // ClientSubject returns the user an active account's client acts as; a client
