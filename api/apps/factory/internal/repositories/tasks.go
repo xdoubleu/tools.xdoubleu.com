@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 
@@ -33,14 +34,14 @@ const prColumn = `(SELECT ARRAY[u.url, u.state, u.ci, u.review] FROM (
 		ORDER BY (u.state = 'open') DESC, u.ts DESC, u.url LIMIT 1)`
 
 // listColumns leaves out body: list rows never carry the wide column.
-const listColumns = `id, repo_id, title, '', status, priority, labels, created_by,
-	created_at, updated_at,
+const listColumns = `id, number, repo_id, title, '', status, priority, labels,
+	created_by, created_at, updated_at,
 	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id),
 	` + prColumn + `,
 	ready_body IS NOT NULL, pickup_blocked`
 
-const getColumns = `id, repo_id, title, body, status, priority, labels, created_by,
-	created_at, updated_at,
+const getColumns = `id, number, repo_id, title, body, status, priority, labels,
+	created_by, created_at, updated_at,
 	(SELECT count(*) FROM factory.task_comments c WHERE c.task_id = t.id),
 	` + prColumn + `,
 	ready_body IS NOT NULL, pickup_blocked`
@@ -49,7 +50,7 @@ func scanTask(row rowScanner) (*models.Task, error) {
 	var t models.Task
 	var pr []string
 	err := row.Scan(
-		&t.ID, &t.RepoID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Labels,
+		&t.ID, &t.Number, &t.RepoID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Labels,
 		&t.CreatedBy, &t.CreatedAt, &t.UpdatedAt, &t.CommentCount, &pr,
 		&t.PickupApproved, &t.PickupBlocked,
 	)
@@ -117,6 +118,35 @@ func (r *TasksRepository) Statuses(
 func (r *TasksRepository) Get(ctx context.Context, id uuid.UUID) (*models.Task, error) {
 	return scanTask(r.db.QueryRow(ctx, `
 		SELECT `+getColumns+` FROM factory.tasks t WHERE id = $1`, id))
+}
+
+// ErrInvalidTaskRef is a task reference that is neither a number nor a UUID.
+var ErrInvalidTaskRef = errors.New("invalid task reference")
+
+// Resolve turns a task reference ("T-142", "142" or a legacy UUID) into its key.
+func (r *TasksRepository) Resolve(ctx context.Context, ref string) (uuid.UUID, error) {
+	if id, err := uuid.Parse(ref); err == nil {
+		return id, nil
+	}
+	number, ok := models.ParseTaskRef(ref)
+	if !ok {
+		return uuid.Nil, ErrInvalidTaskRef
+	}
+	return r.IDByNumber(ctx, number)
+}
+
+// IDByNumber is the key of the task with the given human-readable number.
+func (r *TasksRepository) IDByNumber(
+	ctx context.Context,
+	number int64,
+) (uuid.UUID, error) {
+	var id uuid.UUID
+	err := r.db.QueryRow(ctx,
+		`SELECT id FROM factory.tasks WHERE number = $1`, number).Scan(&id)
+	if err != nil {
+		return uuid.Nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return id, nil
 }
 
 // Create inserts a task in Backlog.

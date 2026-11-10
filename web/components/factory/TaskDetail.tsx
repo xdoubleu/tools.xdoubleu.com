@@ -14,7 +14,6 @@ import {
   priorityLabel,
   pullRequestLabel,
   pullRequestLine,
-  shortTaskId,
   statusLabel
 } from '@/lib/factory/board'
 import { MoveSelect } from '@/components/factory/MoveSelect'
@@ -261,7 +260,7 @@ function RunSection({
   )
 }
 
-/** The short id with a button that copies the full one. */
+/** The task id (T-142) with a button that copies it. */
 function TaskId({ id }: { id: string }) {
   const [copied, setCopied] = useState(false)
 
@@ -271,13 +270,13 @@ function TaskId({ id }: { id: string }) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // Clipboard access can be denied; the short id stays visible.
+      // Clipboard access can be denied; the id stays visible.
     }
   }
 
   return (
     <div className="flex items-center gap-2 text-xs text-muted">
-      <span data-testid="task-id">{shortTaskId(id)}</span>
+      <span data-testid="task-id">{id}</span>
       <Button variant="secondary" size="sm" onClick={() => void copy()}>
         {copied ? 'Copied' : 'Copy id'}
       </Button>

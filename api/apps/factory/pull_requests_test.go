@@ -134,14 +134,14 @@ func TestAFailingPullRequestTakesItsTurnAtTheBackOfTheBatch(t *testing.T) {
 	var checked bool
 	require.NoError(t, testDB.QueryRow(context.Background(),
 		`SELECT pr_checked_at IS NOT NULL FROM factory.jobs WHERE task_id = $1`,
-		task.Id).Scan(&checked))
+		taskKey(t, task.Id)).Scan(&checked))
 	require.False(t, checked, "never read")
 
 	require.Error(t, env.poll(t))
 
 	require.NoError(t, testDB.QueryRow(context.Background(),
 		`SELECT pr_checked_at IS NOT NULL FROM factory.jobs WHERE task_id = $1`,
-		task.Id).Scan(&checked))
+		taskKey(t, task.Id)).Scan(&checked))
 	assert.True(t, checked, "tried, so the ones not yet tried go first next time")
 }
 
@@ -224,7 +224,7 @@ func TestAStoredPullRequestAddressOfAnotherRepoIsNeverAsked(t *testing.T) {
 	task := inReview(t, env, "tampered", 42)
 	_, err := testDB.Exec(context.Background(), `
 		UPDATE factory.jobs SET pr_url = 'https://github.com/someone/else/pull/9'
-		WHERE task_id = $1`, task.Id)
+		WHERE task_id = $1`, taskKey(t, task.Id))
 	require.NoError(t, err)
 
 	err = env.poll(t)

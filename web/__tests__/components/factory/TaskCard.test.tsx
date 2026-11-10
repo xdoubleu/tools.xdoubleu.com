@@ -31,10 +31,10 @@ beforeEach(() => {
 })
 
 describe('TaskCard', () => {
-  it('shows the short task id', () => {
-    const long = create(TaskSchema, { ...task, id: '12345678-aaaa-bbbb-cccc-ddddeeeeffff' })
+  it('shows the task id', () => {
+    const long = create(TaskSchema, { ...task, id: 'T-142' })
     render(<TaskCard {...props} task={long} />)
-    expect(screen.getByTestId('task-id')).toHaveTextContent('12345678')
+    expect(screen.getByTestId('task-id')).toHaveTextContent('T-142')
   })
 
   it('shows title, priority, labels and comment count', () => {

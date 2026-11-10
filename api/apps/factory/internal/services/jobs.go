@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -87,9 +88,9 @@ func slug(title string) string {
 	return out
 }
 
-// branchFor is the agent/<task-id>-<slug> branch a task's jobs commit to.
+// branchFor is the agent/t<number>-<slug> branch a task's jobs commit to.
 func branchFor(task *models.Task) string {
-	return "agent/" + task.ID.String() + "-" + slug(task.Title)
+	return "agent/t" + strconv.FormatInt(task.Number, 10) + "-" + slug(task.Title)
 }
 
 // promptFor freezes what the agent is told: the repo's instructions, the task as
@@ -191,7 +192,8 @@ func (s *JobService) Run(
 	}
 
 	job, err := s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: taskID, RepoID: repo.ID, Harness: harness, Model: model,
+		ID: uuid.Nil, TaskID: taskID, TaskNumber: 0, RepoID: repo.ID, Harness: harness,
+		Model:  model,
 		Prompt: promptFor(repo, task, text), Status: "", Branch: branchFor(task),
 		SessionID: "", Outcome: "", ParentJobID: nil, PRURL: "", RunnerID: nil,
 		PRState: "", PRCI: "", PRReview: "", CreatedBy: actor.String(),
@@ -251,9 +253,10 @@ func (s *JobService) Reply(
 		return nil, conflict("the last job left no session to resume")
 	}
 	job, err := s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: taskID, RepoID: last.RepoID, Harness: last.Harness,
-		Model:  last.Model,
-		Prompt: text, Status: "", Branch: last.Branch, SessionID: "", Outcome: "",
+		ID: uuid.Nil, TaskID: taskID, TaskNumber: 0, RepoID: last.RepoID,
+		Harness: last.Harness,
+		Model:   last.Model,
+		Prompt:  text, Status: "", Branch: last.Branch, SessionID: "", Outcome: "",
 		ParentJobID: &last.ID, PRURL: "", RunnerID: nil, PRState: "", PRCI: "",
 		PRReview: "", CreatedBy: actor.String(), CreatedAt: time.Time{},
 		Limited: false, LimitResetsAt: nil,
@@ -511,7 +514,7 @@ func (s *JobService) taskLink(ctx context.Context, taskID uuid.UUID) string {
 	if err != nil {
 		return "a task"
 	}
-	return s.say.taskLink(task.ID, task.Title)
+	return s.say.taskLink(task.Number, task.Title)
 }
 
 // checkedPullRequest keeps a reported pull request only if it is the job repo's
@@ -599,8 +602,9 @@ func (s *JobService) pickUp(ctx context.Context) error {
 	}
 	approved := approvedTask(next)
 	_, err = s.jobs.Create(ctx, models.Job{
-		ID: uuid.Nil, TaskID: next.TaskID, RepoID: repo.ID, Harness: harness,
-		Model: model, Prompt: promptFor(repo, approved, ""), Status: "",
+		ID: uuid.Nil, TaskID: next.TaskID, TaskNumber: 0, RepoID: repo.ID,
+		Harness: harness,
+		Model:   model, Prompt: promptFor(repo, approved, ""), Status: "",
 		Branch: branchFor(approved), SessionID: "", Outcome: "", ParentJobID: nil,
 		PRURL: "", RunnerID: nil, PRState: "", PRCI: "", PRReview: "",
 		CreatedBy: autoPickupAuthor, CreatedAt: time.Time{}, StartedAt: nil,
@@ -635,7 +639,7 @@ func (s *JobService) cannotPickUp(
 // a prompt and a branch name are built from.
 func approvedTask(c *repositories.PickupCandidate) *models.Task {
 	return &models.Task{
-		ID: c.TaskID, RepoID: c.RepoID, Title: c.Title, Body: c.Body, Status: "",
+		ID: c.TaskID, Number: 0, RepoID: c.RepoID, Title: c.Title, Body: c.Body, Status: "",
 		Priority: "", Labels: nil, CreatedBy: "", CreatedAt: time.Time{},
 		UpdatedAt: time.Time{}, CommentCount: 0, PRURL: "", PRState: "", PRCI: "",
 		PRReview: "", PickupApproved: true, PickupBlocked: "",

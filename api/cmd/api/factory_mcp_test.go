@@ -103,7 +103,9 @@ func TestFactoryMCP_AgentWorksTheBoardButCannotMarkReady(t *testing.T) {
 
 	var author string
 	require.NoError(t, testApp.db.QueryRow(context.Background(),
-		`SELECT author FROM factory.task_comments WHERE task_id = $1`, id,
+		`SELECT c.author FROM factory.task_comments c
+		 JOIN factory.tasks t ON t.id = c.task_id
+		 WHERE 'T-' || t.number = $1`, id,
 	).Scan(&author))
 	assert.Equal(t, "agent:"+created.Account.UserId, author)
 }

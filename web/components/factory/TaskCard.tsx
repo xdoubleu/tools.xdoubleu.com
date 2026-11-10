@@ -5,8 +5,7 @@ import {
   prBadge,
   priorityLabel,
   pullRequestLabel,
-  repoLabel,
-  shortTaskId
+  repoLabel
 } from '@/lib/factory/board'
 import { useFactoryActions } from '@/hooks/useFactory'
 import { Badge } from '@/components/ui/badge'
@@ -80,7 +79,7 @@ export default function TaskCard({
         {task.title}
       </Button>
       <p className="break-words text-xs text-muted">
-        <span data-testid="task-id">{shortTaskId(task.id)}</span>
+        <span data-testid="task-id">{task.id}</span>
         {repo && (
           <>
             {' · '}

@@ -113,7 +113,8 @@ func TestRunQueuesAJobFreezesThePromptAndStartsTheTask(t *testing.T) {
 	job := env.run(t, task.Id, "  Mind the tests.  ")
 	assert.Equal(t, factoryv1.JobStatus_JOB_STATUS_QUEUED, job.Status)
 	assert.Equal(t, task.Id, job.TaskId)
-	assert.Equal(t, "agent/"+task.Id+"-fix-the-login-page", job.Branch)
+	branch := "agent/" + strings.ToLower(strings.ReplaceAll(task.Id, "-", ""))
+	assert.Equal(t, branch+"-fix-the-login-page", job.Branch)
 	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_IN_PROGRESS,
 		env.task(t, task.Id).Task.Status)
 
@@ -363,7 +364,7 @@ func TestTheDatabaseKeepsOneUnfinishedJobPerTask(t *testing.T) {
 	_, err := testDB.Exec(context.Background(), `
 		INSERT INTO factory.jobs (task_id, repo_id, harness, prompt, branch, created_by)
 		SELECT task_id, repo_id, harness, prompt, branch, created_by
-		FROM factory.jobs WHERE task_id = $1`, task.Id)
+		FROM factory.jobs WHERE task_id = $1`, taskKey(t, task.Id))
 	require.Error(t, err, "a second queued job for the task is refused")
 }
 

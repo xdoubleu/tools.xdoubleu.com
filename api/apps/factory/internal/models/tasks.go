@@ -2,6 +2,8 @@
 package models
 
 import (
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -83,7 +85,9 @@ func (a Actor) CanMoveToReady() bool {
 }
 
 type Task struct {
-	ID       uuid.UUID
+	ID uuid.UUID
+	// Number is the human-readable id, shown as T-<Number>.
+	Number   int64
 	RepoID   uuid.UUID
 	Title    string
 	Body     string
@@ -115,4 +119,17 @@ type Comment struct {
 	Author    string
 	Body      string
 	CreatedAt time.Time
+}
+
+// TaskRef formats a task number as its human-readable id.
+func TaskRef(number int64) string {
+	return "T-" + strconv.FormatInt(number, 10)
+}
+
+// ParseTaskRef reads "T-142", "t142" or "142" as a task number.
+func ParseTaskRef(ref string) (int64, bool) {
+	ref = strings.ToLower(strings.TrimSpace(ref))
+	ref = strings.TrimPrefix(strings.TrimPrefix(ref, "t"), "-")
+	n, err := strconv.ParseInt(ref, 10, 64)
+	return n, err == nil && n > 0
 }

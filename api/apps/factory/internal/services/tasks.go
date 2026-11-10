@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -97,6 +98,15 @@ func (s *TaskService) List(ctx context.Context, query string) ([]models.Task, er
 	return s.repo.List(ctx, query)
 }
 
+// Resolve turns a task reference ("T-142", "142" or a legacy UUID) into its key.
+func (s *TaskService) Resolve(ctx context.Context, ref string) (uuid.UUID, error) {
+	id, err := s.repo.Resolve(ctx, ref)
+	if errors.Is(err, repositories.ErrInvalidTaskRef) {
+		return uuid.Nil, badRequest("invalid task id")
+	}
+	return id, err
+}
+
 // Get returns a task with its comments.
 func (s *TaskService) Get(
 	ctx context.Context,
@@ -126,6 +136,7 @@ func (s *TaskService) Create(
 	}
 	return s.repo.Create(ctx, models.Task{
 		ID:             uuid.Nil,
+		Number:         0,
 		RepoID:         repoID,
 		Title:          in.Title,
 		Body:           in.Body,
@@ -158,6 +169,7 @@ func (s *TaskService) Update(
 	}
 	return s.repo.Update(ctx, models.Task{
 		ID:             id,
+		Number:         0,
 		RepoID:         uuid.Nil,
 		Title:          in.Title,
 		Body:           in.Body,

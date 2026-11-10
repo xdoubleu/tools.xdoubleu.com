@@ -18,7 +18,6 @@ import {
   accountsOf,
   activeRunner,
   actorLabel,
-  shortTaskId,
   HARNESSES,
   distinctLabels,
   canCloseEpic,
@@ -60,10 +59,6 @@ import {
 } from '@/lib/factory/board'
 
 describe('board', () => {
-  it('shortTaskId keeps the first 8 characters', () => {
-    expect(shortTaskId('12345678-aaaa-bbbb')).toBe('12345678')
-  })
-
   it('lists the six columns in board order', () => {
     expect(COLUMNS.map((c) => c.label)).toEqual([
       'Backlog',

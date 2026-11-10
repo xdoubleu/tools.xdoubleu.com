@@ -172,7 +172,7 @@ func TestAClaudeLimitInForceHoldsBackAutoPickupOfAClaudeTask(t *testing.T) {
 	_, err := testDB.Exec(context.Background(), `
 		UPDATE factory.jobs SET limited = true,
 			limit_resets_at = now() + interval '2 hours'
-		WHERE task_id = $1`, first.Id)
+		WHERE task_id = $1`, taskKey(t, first.Id))
 	require.NoError(t, err)
 
 	assert.Nil(t, env.claim(t), "a Claude job would only hit the same limit")

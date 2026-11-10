@@ -31,7 +31,7 @@ func TestSlug(t *testing.T) {
 
 func testTask(id uuid.UUID, title, body string) *models.Task {
 	return &models.Task{
-		ID: id, RepoID: uuid.Nil, Title: title, Body: body, Status: "",
+		ID: id, Number: 0, RepoID: uuid.Nil, Title: title, Body: body, Status: "",
 		Priority: "", Labels: nil, CreatedBy: "", CreatedAt: time.Time{},
 		UpdatedAt: time.Time{}, CommentCount: 0, PRURL: "", PRState: "", PRCI: "",
 		PRReview: "", PickupApproved: false, PickupBlocked: "",
@@ -48,10 +48,10 @@ func testRepo(instructions string) *models.Repo {
 	}
 }
 
-func TestBranchForIsAgentIDSlug(t *testing.T) {
-	id := uuid.MustParse("11111111-2222-3333-4444-555555555555")
-	got := branchFor(testTask(id, "Fix it", ""))
-	assert.Equal(t, "agent/11111111-2222-3333-4444-555555555555-fix-it", got)
+func TestBranchForIsAgentNumberSlug(t *testing.T) {
+	task := testTask(uuid.Nil, "Fix it", "")
+	task.Number = 142
+	assert.Equal(t, "agent/t142-fix-it", branchFor(task))
 }
 
 func TestPromptForJoinsInstructionsTaskAndRunText(t *testing.T) {
@@ -112,4 +112,15 @@ func TestKindOfIsTheLinesTypeOrRaw(t *testing.T) {
 	assert.Equal(t, "user", kindOf(`{"type":"user","message":{"content":"cut o`))
 	assert.Equal(t, rawKind, kindOf(`{"message":"cut`))
 	assert.Equal(t, rawKind, kindOf(`{"type":"`+strings.Repeat("k", maxKindLen+1)+`"}`))
+}
+
+func TestLinkedTaskReadsTheNumberOrALegacyUUID(t *testing.T) {
+	uuidRef := "11111111-2222-3333-4444-555555555555"
+	for _, ref := range []string{"T-142", uuidRef} {
+		got, ok := linkedTask("intro\nTask: Fix it (" + ref + ")\n")
+		assert.True(t, ok, ref)
+		assert.Equal(t, ref, got)
+	}
+	_, ok := linkedTask("Task: Fix it (142)")
+	assert.False(t, ok)
 }

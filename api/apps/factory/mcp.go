@@ -36,7 +36,7 @@ type mcpListTasksArgs struct {
 }
 
 type mcpTaskArgs struct {
-	ID string `json:"id" jsonschema:"task id"`
+	ID string `json:"id" jsonschema:"task id, such as T-142"`
 }
 
 //nolint:lll // struct tags can't wrap
@@ -49,19 +49,19 @@ type mcpCreateTaskArgs struct {
 }
 
 type mcpCommentArgs struct {
-	TaskID string `json:"task_id" jsonschema:"task id"`
+	TaskID string `json:"task_id" jsonschema:"task id, such as T-142"`
 	Body   string `json:"body"    jsonschema:"comment text"`
 }
 
 //nolint:lll // struct tags can't wrap
 type mcpMoveArgs struct {
-	ID     string `json:"id"     jsonschema:"task id"`
+	ID     string `json:"id"     jsonschema:"task id, such as T-142"`
 	Status string `json:"status" jsonschema:"target column: backlog, in_progress, in_review, needs_you, testing or done; ready is refused"`
 }
 
 //nolint:lll // struct tags can't wrap
 type mcpUpdateArgs struct {
-	ID           string   `json:"id"                      jsonschema:"task id"`
+	ID           string   `json:"id"                      jsonschema:"task id, such as T-142"`
 	Title        string   `json:"title,omitempty"         jsonschema:"new title; omit to keep it"`
 	Body         string   `json:"body,omitempty"          jsonschema:"new body in markdown, replacing the old one; omit to keep it"`
 	Priority     string   `json:"priority,omitempty"      jsonschema:"p0, p1 or p2; omit to keep it"`
@@ -71,7 +71,7 @@ type mcpUpdateArgs struct {
 
 //nolint:lll // struct tags can't wrap
 type mcpMoveManyArgs struct {
-	IDs    []string `json:"ids"    jsonschema:"task ids, at most 200"`
+	IDs    []string `json:"ids"    jsonschema:"task ids such as T-142, at most 200"`
 	Status string   `json:"status" jsonschema:"target column: backlog, in_progress, in_review, needs_you, testing or done; ready is refused"`
 }
 
@@ -241,7 +241,7 @@ func matchesLabel(task *models.Task, label string) bool {
 func (t *mcpTools) getTask(
 	ctx context.Context, args mcpTaskArgs,
 ) (proto.Message, error) {
-	id, err := parseID(args.ID)
+	id, err := t.app.taskID(ctx, args.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +289,7 @@ func (t *mcpTools) commentTask(
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(args.TaskID)
+	id, err := t.app.taskID(ctx, args.TaskID)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +310,7 @@ func (t *mcpTools) moveTask(
 	if err != nil {
 		return nil, err
 	}
-	id, err := parseID(args.ID)
+	id, err := t.app.taskID(ctx, args.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +339,7 @@ func (t *mcpTools) updateTask(
 	if err = t.refuseScoped(ctx, "edit tasks"); err != nil {
 		return nil, err
 	}
-	id, err := parseID(args.ID)
+	id, err := t.app.taskID(ctx, args.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +432,7 @@ func (t *mcpTools) moveTasks(
 	moved := make([]any, 0, len(args.IDs))
 	failed := []any{}
 	for _, raw := range slices.Compact(slices.Sorted(slices.Values(args.IDs))) {
-		id, perr := parseID(raw)
+		id, perr := t.app.taskID(ctx, raw)
 		if perr == nil {
 			_, perr = t.app.services.Tasks.Move(ctx, actor, id, status)
 		}
