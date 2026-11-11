@@ -34,9 +34,9 @@ Spinner inside a card's (relative) `<Link>` while its navigation is pending.
 
 Inline message banner. `danger` announces immediately (`role="alert"`); the other tones are polite (`role="status"`).
 
-| Prop   | Type                                        | Required | Notes |
-| ------ | ------------------------------------------- | -------- | ----- |
-| `tone` | `'danger' \| 'success' \| 'warn' \| 'info'` |          |       |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `tone` | `'danger' \| 'success' \| 'warn' \| 'info'` |  |  |
 
 Also accepts: `HTMLAttributes<HTMLDivElement>`
 
@@ -46,14 +46,14 @@ Also accepts: `HTMLAttributes<HTMLDivElement>`
 
 A cover, poster or artwork thumbnail that keeps its box, with a muted-initials fallback.
 
-| Prop        | Type                 | Required | Notes                                                                    |
-| ----------- | -------------------- | -------- | ------------------------------------------------------------------------ |
-| `src`       | `string`             | yes      | Hotlinked image; the fallback shows when empty or when it fails to load. |
-| `title`     | `string`             | yes      | What the artwork shows; the fallback is its initials.                    |
-| `size`      | `keyof typeof SIZES` | yes      | sm/md/lg are 2:3 covers and posters; square is 64px.                     |
-| `initials`  | `1 \| 2`             |          | Words the fallback takes an initial from.                                |
-| `alt`       | `string`             |          | Empty by default: a caption beside the artwork usually names it.         |
-| `className` | `string`             |          |                                                                          |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `src` | `string` | yes | Hotlinked image; the fallback shows when empty or when it fails to load. |
+| `title` | `string` | yes | What the artwork shows; the fallback is its initials. |
+| `size` | `keyof typeof SIZES` | yes | sm/md/lg are 2:3 covers and posters; square is 64px. |
+| `initials` | `1 \| 2` |  | Words the fallback takes an initial from. |
+| `alt` | `string` |  | Empty by default: a caption beside the artwork usually names it. |
+| `className` | `string` |  |  |
 
 ### `badge.tsx`
 
@@ -61,9 +61,9 @@ A cover, poster or artwork thumbnail that keeps its box, with a muted-initials f
 
 Small inline status pill. Pick the variant by meaning, not colour.
 
-| Prop      | Type                                                          | Required | Notes |
-| --------- | ------------------------------------------------------------- | -------- | ----- |
-| `variant` | `'default' \| 'secondary' \| 'success' \| 'warn' \| 'danger'` |          |       |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `variant` | `'default' \| 'secondary' \| 'success' \| 'warn' \| 'danger'` |  |  |
 
 Also accepts: `HTMLAttributes<HTMLSpanElement>`
 
@@ -77,11 +77,11 @@ Navigation trail; the last item is the current page. Use instead of one-off "bac
 
 #### `Button`
 
-| Prop      | Type                                                             | Required | Notes                                                                               |
-| --------- | ---------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------- |
-| `variant` | `'default' \| 'secondary' \| 'ghost' \| 'destructive' \| 'link'` |          |                                                                                     |
-| `size`    | `'sm' \| 'md' \| 'lg' \| 'icon' \| 'iconSm'`                     |          |                                                                                     |
-| `asChild` | `boolean`                                                        |          | Render the child element as the button (e.g. a `<Link>`), inheriting button styles. |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `variant` | `'default' \| 'secondary' \| 'ghost' \| 'destructive' \| 'link'` |  |  |
+| `size` | `'sm' \| 'md' \| 'lg' \| 'icon' \| 'iconSm'` |  |  |
+| `asChild` | `boolean` |  | Render the child element as the button (e.g. a `<Link>`), inheriting button styles. |
 
 Also accepts: `ButtonHTMLAttributes<HTMLButtonElement>`
 
@@ -91,10 +91,10 @@ Also accepts: `ButtonHTMLAttributes<HTMLButtonElement>`
 
 Static surface for grouped content. Use `LinkCard` when the card navigates, `interactiveCardClass` for other clickable cards.
 
-| Prop      | Type                        | Required | Notes                                                                                                                                                  |
-| --------- | --------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `variant` | `keyof typeof cardVariants` |          | `inset` is a flat panel nested inside a card or dialog (list rows, notes).                                                                             |
-| `padding` | `keyof typeof cardPadding`  |          | Inner padding; `md` by default, `sm` for `inset`. Use `none` when the card holds `CardHeader`/`CardContent` or edge-to-edge rows, never a `p-*` class. |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `variant` | `keyof typeof cardVariants` |  | `inset` is a flat panel nested inside a card or dialog (list rows, notes). |
+| `padding` | `keyof typeof cardPadding` |  | Inner padding; `md` by default, `sm` for `inset`. Use `none` when the card holds `CardHeader`/`CardContent` or edge-to-edge rows, never a `p-*` class. |
 
 Also accepts: `HTMLAttributes<HTMLDivElement>`
 
@@ -128,10 +128,10 @@ Hover/focus treatment for clickable cards. The accent ring shows at rest so card
 
 Styled native checkbox; pass `label` to get the wrapping `<label>` (a bare one is a 16px target).
 
-| Prop             | Type        | Required | Notes                                                                                   |
-| ---------------- | ----------- | -------- | --------------------------------------------------------------------------------------- |
-| `label`          | `ReactNode` |          | Rendered in a 44px-tall wrapping `<label>`; wrap text in `sr-only` to hide it visually. |
-| `labelClassName` | `string`    |          |                                                                                         |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `label` | `ReactNode` |  | Rendered in a 44px-tall wrapping `<label>`; wrap text in `sr-only` to hide it visually. |
+| `labelClassName` | `string` |  |  |
 
 Also accepts: `Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>`
 
@@ -141,32 +141,32 @@ Also accepts: `Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>`
 
 Disclosure section with a chevron trigger and its own open state.
 
-| Prop               | Type        | Required | Notes                                                  |
-| ------------------ | ----------- | -------- | ------------------------------------------------------ |
-| `title`            | `ReactNode` | yes      |                                                        |
-| `defaultCollapsed` | `boolean`   |          |                                                        |
-| `children`         | `ReactNode` | yes      |                                                        |
-| `className`        | `string`    |          |                                                        |
-| `triggerClassName` | `string`    |          | Applied to the trigger, e.g. to change its type scale. |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `title` | `ReactNode` | yes |  |
+| `defaultCollapsed` | `boolean` |  |  |
+| `children` | `ReactNode` | yes |  |
+| `className` | `string` |  |  |
+| `triggerClassName` | `string` |  | Applied to the trigger, e.g. to change its type scale. |
 
 ### `combobox.tsx`
 
 #### `Combobox`
 
-| Prop                | Type                                    | Required | Notes                                                                                                |
-| ------------------- | --------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
-| `value`             | `string`                                | yes      |                                                                                                      |
-| `onChange`          | `(value: string) => void`               | yes      |                                                                                                      |
-| `onSelect`          | `(value: string) => void`               |          | Called when the user picks a suggestion (click, keyboard, or blur snap).                             |
-| `suggestions`       | `string[]`                              | yes      |                                                                                                      |
-| `placeholder`       | `string`                                |          |                                                                                                      |
-| `className`         | `string`                                |          |                                                                                                      |
-| `id`                | `string`                                |          | The input's `id`, for a `Field` label.                                                               |
-| `autoFocus`         | `boolean`                               |          |                                                                                                      |
-| `onEnter`           | `() => void`                            |          | Called when Enter is pressed and no suggestion is highlighted.                                       |
-| `'aria-label'`      | `string`                                |          |                                                                                                      |
-| `filterSuggestions` | `boolean`                               |          | `false` shows `suggestions` as given, for results already filtered elsewhere (e.g. a server search). |
-| `inputProps`        | `InputHTMLAttributes<HTMLInputElement>` |          | Passed to the field's own input, e.g. `required` or autocomplete hints.                              |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `value` | `string` | yes |  |
+| `onChange` | `(value: string) => void` | yes |  |
+| `onSelect` | `(value: string) => void` |  | Called when the user picks a suggestion (click, keyboard, or blur snap). |
+| `suggestions` | `string[]` | yes |  |
+| `placeholder` | `string` |  |  |
+| `className` | `string` |  |  |
+| `id` | `string` |  | The input's `id`, for a `Field` label. |
+| `autoFocus` | `boolean` |  |  |
+| `onEnter` | `() => void` |  | Called when Enter is pressed and no suggestion is highlighted. |
+| `'aria-label'` | `string` |  |  |
+| `filterSuggestions` | `boolean` |  | `false` shows `suggestions` as given, for results already filtered elsewhere (e.g. a server search). |
+| `inputProps` | `InputHTMLAttributes<HTMLInputElement>` |  | Passed to the field's own input, e.g. `required` or autocomplete hints. |
 
 ### `connection-row.tsx`
 
@@ -174,13 +174,13 @@ Disclosure section with a chevron trigger and its own open state.
 
 One third-party integration with its connection status and controls.
 
-| Prop        | Type        | Required | Notes                                                                    |
-| ----------- | ----------- | -------- | ------------------------------------------------------------------------ |
-| `name`      | `ReactNode` | yes      | Provider name, e.g. "Todoist".                                           |
-| `connected` | `boolean`   | yes      |                                                                          |
-| `detail`    | `ReactNode` |          | Muted line under the name, e.g. when it was connected.                   |
-| `actions`   | `ReactNode` |          | Connect/disconnect controls; they wrap under the name on narrow screens. |
-| `className` | `string`    |          |                                                                          |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `name` | `ReactNode` | yes | Provider name, e.g. "Todoist". |
+| `connected` | `boolean` | yes |  |
+| `detail` | `ReactNode` |  | Muted line under the name, e.g. when it was connected. |
+| `actions` | `ReactNode` |  | Connect/disconnect controls; they wrap under the name on narrow screens. |
+| `className` | `string` |  |  |
 
 ### `date-input.tsx`
 
@@ -188,14 +188,14 @@ One third-party integration with its connection status and controls.
 
 Native date input on every viewport; its value is always 'YYYY-MM-DD' or ''.
 
-| Prop           | Type                      | Required | Notes              |
-| -------------- | ------------------------- | -------- | ------------------ |
-| `value`        | `string`                  | yes      | 'YYYY-MM-DD' or '' |
-| `onChange`     | `(value: string) => void` | yes      |                    |
-| `onBlur`       | `() => void`              |          |                    |
-| `id`           | `string`                  |          |                    |
-| `className`    | `string`                  |          |                    |
-| `'aria-label'` | `string`                  |          |                    |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `value` | `string` | yes | 'YYYY-MM-DD' or '' |
+| `onChange` | `(value: string) => void` | yes |  |
+| `onBlur` | `() => void` |  |  |
+| `id` | `string` |  |  |
+| `className` | `string` |  |  |
+| `'aria-label'` | `string` |  |  |
 
 ### `date-range-fields.tsx`
 
@@ -203,14 +203,14 @@ Native date input on every viewport; its value is always 'YYYY-MM-DD' or ''.
 
 Labelled From/To date pair: stacked on phones, side by side from `sm`.
 
-| Prop            | Type                      | Required | Notes                                                                           |
-| --------------- | ------------------------- | -------- | ------------------------------------------------------------------------------- |
-| `idPrefix`      | `string`                  | yes      | Prefix for the two input ids (`<prefix>-from`, `<prefix>-to`); unique per page. |
-| `start`         | `string`                  | yes      |                                                                                 |
-| `onStartChange` | `(value: string) => void` | yes      |                                                                                 |
-| `end`           | `string`                  | yes      |                                                                                 |
-| `onEndChange`   | `(value: string) => void` | yes      |                                                                                 |
-| `className`     | `string`                  |          |                                                                                 |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `idPrefix` | `string` | yes | Prefix for the two input ids (`<prefix>-from`, `<prefix>-to`); unique per page. |
+| `start` | `string` | yes |  |
+| `onStartChange` | `(value: string) => void` | yes |  |
+| `end` | `string` | yes |  |
+| `onEndChange` | `(value: string) => void` | yes |  |
+| `className` | `string` |  |  |
 
 ### `dialog.tsx`
 
@@ -218,29 +218,29 @@ Labelled From/To date pair: stacked on phones, side by side from `sm`.
 
 Confirmation prompt for an irreversible action. Prefer this over composing `Dialog` by hand so every confirm step reads and behaves the same.
 
-| Prop              | Type                      | Required | Notes                                                                            |
-| ----------------- | ------------------------- | -------- | -------------------------------------------------------------------------------- |
-| `open`            | `boolean`                 | yes      |                                                                                  |
-| `onOpenChange`    | `(open: boolean) => void` | yes      |                                                                                  |
-| `title`           | `ReactNode`               | yes      |                                                                                  |
-| `description`     | `ReactNode`               |          | Say what will happen, especially what cannot be undone.                          |
-| `confirmLabel`    | `string`                  |          |                                                                                  |
-| `pendingLabel`    | `string`                  |          | Shown on the confirm button while `pending` — a `…`-suffixed present participle. |
-| `cancelLabel`     | `string`                  |          |                                                                                  |
-| `destructive`     | `boolean`                 |          | Styles the confirm action as destructive.                                        |
-| `pending`         | `boolean`                 |          |                                                                                  |
-| `confirmDisabled` | `boolean`                 |          | Blocks confirming while required input in `children` is missing.                 |
-| `onConfirm`       | `() => void`              | yes      |                                                                                  |
-| `children`        | `ReactNode`               |          |                                                                                  |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `open` | `boolean` | yes |  |
+| `onOpenChange` | `(open: boolean) => void` | yes |  |
+| `title` | `ReactNode` | yes |  |
+| `description` | `ReactNode` |  | Say what will happen, especially what cannot be undone. |
+| `confirmLabel` | `string` |  |  |
+| `pendingLabel` | `string` |  | Shown on the confirm button while `pending` — a `…`-suffixed present participle. |
+| `cancelLabel` | `string` |  |  |
+| `destructive` | `boolean` |  | Styles the confirm action as destructive. |
+| `pending` | `boolean` |  |  |
+| `confirmDisabled` | `boolean` |  | Blocks confirming while required input in `children` is missing. |
+| `onConfirm` | `() => void` | yes |  |
+| `children` | `ReactNode` |  |  |
 
 #### `Dialog`
 
-| Prop           | Type                      | Required | Notes |
-| -------------- | ------------------------- | -------- | ----- |
-| `open`         | `boolean`                 | yes      |       |
-| `onOpenChange` | `(open: boolean) => void` | yes      |       |
-| `modal`        | `boolean`                 |          |       |
-| `children`     | `ReactNode`               | yes      |       |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `open` | `boolean` | yes |  |
+| `onOpenChange` | `(open: boolean) => void` | yes |  |
+| `modal` | `boolean` |  |  |
+| `children` | `ReactNode` | yes |  |
 
 #### `DialogClose`
 
@@ -248,11 +248,11 @@ Confirmation prompt for an irreversible action. Prefer this over composing `Dial
 
 #### `DialogContent`
 
-| Prop        | Type                                             | Required | Notes                                                                                        |
-| ----------- | ------------------------------------------------ | -------- | -------------------------------------------------------------------------------------------- |
-| `children`  | `ReactNode`                                      | yes      |                                                                                              |
-| `className` | `string`                                         |          |                                                                                              |
-| `side`      | `'center' \| 'right' \| 'fullscreen' \| 'sheet'` |          | `sheet` (default) docks to the bottom on phones and centers from `sm` up; `center` opts out. |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `children` | `ReactNode` | yes |  |
+| `className` | `string` |  |  |
+| `side` | `'center' \| 'right' \| 'fullscreen' \| 'sheet'` |  | `sheet` (default) docks to the bottom on phones and centers from `sm` up; `center` opts out. |
 
 #### `DialogDescription`
 
@@ -270,11 +270,11 @@ Right-aligned action row, pinned to the bottom of a scrolling dialog so its acti
 
 Small announced error line under a form control. Use `Alert tone="danger"` for a form-level error.
 
-| Prop        | Type        | Required | Notes                                                                  |
-| ----------- | ----------- | -------- | ---------------------------------------------------------------------- |
-| `id`        | `string`    |          | Point the control's `aria-describedby` at this.                        |
-| `children`  | `ReactNode` |          | Nothing renders while empty, so it can sit beside a field permanently. |
-| `className` | `string`    |          |                                                                        |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `id` | `string` |  | Point the control's `aria-describedby` at this. |
+| `children` | `ReactNode` |  | Nothing renders while empty, so it can sit beside a field permanently. |
+| `className` | `string` |  |  |
 
 ### `field.tsx`
 
@@ -282,14 +282,14 @@ Small announced error line under a form control. Use `Alert tone="danger"` for a
 
 A form control with its label and hint/error, stacked.
 
-| Prop        | Type        | Required | Notes                                                                                               |
-| ----------- | ----------- | -------- | --------------------------------------------------------------------------------------------------- |
-| `label`     | `ReactNode` | yes      |                                                                                                     |
-| `htmlFor`   | `string`    | yes      | The control's `id`, so tapping the label focuses it.                                                |
-| `hint`      | `ReactNode` |          | Muted help text under the control.                                                                  |
-| `error`     | `ReactNode` |          | Validation message; replaces `hint` while set. Its id is `{htmlFor}-error`, for `aria-describedby`. |
-| `children`  | `ReactNode` | yes      |                                                                                                     |
-| `className` | `string`    |          |                                                                                                     |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `label` | `ReactNode` | yes |  |
+| `htmlFor` | `string` | yes | The control's `id`, so tapping the label focuses it. |
+| `hint` | `ReactNode` |  | Muted help text under the control. |
+| `error` | `ReactNode` |  | Validation message; replaces `hint` while set. Its id is `{htmlFor}-error`, for `aria-describedby`. |
+| `children` | `ReactNode` | yes |  |
+| `className` | `string` |  |  |
 
 ### `input.tsx`
 
@@ -305,15 +305,15 @@ A form control with its label and hint/error, stacked.
 
 A card that navigates, with its controls kept out of the link area.
 
-| Prop            | Type        | Required | Notes                                                                                   |
-| --------------- | ----------- | -------- | --------------------------------------------------------------------------------------- |
-| `href`          | `string`    | yes      |                                                                                         |
-| `children`      | `ReactNode` | yes      | The navigating zone: cover, title, meta. Keep controls out of it.                       |
-| `actions`       | `ReactNode` |          | Controls in a separate footer that never navigates, so a near-miss can't open the page. |
-| `'aria-label'`  | `string`    |          | Accessible name for the link when `children` has no clear text.                         |
-| `external`      | `boolean`   |          | Full page load, for a same-origin path another service serves (e.g. `/grafana`).        |
-| `className`     | `string`    |          |                                                                                         |
-| `linkClassName` | `string`    |          |                                                                                         |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `href` | `string` | yes |  |
+| `children` | `ReactNode` | yes | The navigating zone: cover, title, meta. Keep controls out of it. |
+| `actions` | `ReactNode` |  | Controls in a separate footer that never navigates, so a near-miss can't open the page. |
+| `'aria-label'` | `string` |  | Accessible name for the link when `children` has no clear text. |
+| `external` | `boolean` |  | Full page load, for a same-origin path another service serves (e.g. `/grafana`). |
+| `className` | `string` |  |  |
+| `linkClassName` | `string` |  |  |
 
 ### `link.tsx`
 
@@ -333,9 +333,9 @@ True inside a `<Link>` while the navigation it started is still loading.
 
 #### `PageContainer`
 
-| Prop   | Type                 | Required | Notes |
-| ------ | -------------------- | -------- | ----- |
-| `size` | `keyof typeof sizes` |          |       |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `size` | `keyof typeof sizes` |  |  |
 
 Also accepts: `HTMLAttributes<HTMLDivElement>`
 
@@ -345,23 +345,23 @@ Also accepts: `HTMLAttributes<HTMLDivElement>`
 
 The page's `<h1>` row. Every page uses this instead of a hand-styled heading.
 
-| Prop          | Type               | Required | Notes                                                             |
-| ------------- | ------------------ | -------- | ----------------------------------------------------------------- |
-| `title`       | `ReactNode`        | yes      |                                                                   |
-| `breadcrumb`  | `BreadcrumbItem[]` |          | Trail above the title; the last item is the current page.         |
-| `description` | `ReactNode`        |          | Muted line under the title.                                       |
-| `actions`     | `ReactNode`        |          | Page-level controls; they wrap under the title on narrow screens. |
-| `className`   | `string`           |          |                                                                   |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `title` | `ReactNode` | yes |  |
+| `breadcrumb` | `BreadcrumbItem[]` |  | Trail above the title; the last item is the current page. |
+| `description` | `ReactNode` |  | Muted line under the title. |
+| `actions` | `ReactNode` |  | Page-level controls; they wrap under the title on narrow screens. |
+| `className` | `string` |  |  |
 
 #### `PageHeaderLink`
 
 Navigation to another page in `PageHeader` `actions`, bordered like the `secondary` command buttons beside it.
 
-| Prop       | Type        | Required | Notes                                |
-| ---------- | ----------- | -------- | ------------------------------------ |
-| `href`     | `string`    | yes      |                                      |
-| `children` | `ReactNode` | yes      |                                      |
-| `icon`     | `ReactNode` |          | Leading icon; mark it `aria-hidden`. |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `href` | `string` | yes |  |
+| `children` | `ReactNode` | yes |  |
+| `icon` | `ReactNode` |  | Leading icon; mark it `aria-hidden`. |
 
 #### `PageHeaderSettingsLink`
 
@@ -373,15 +373,15 @@ Navigation to another page in `PageHeader` `actions`, bordered like the `seconda
 
 Trigger plus a portalled fixed panel (never clipped by overflow ancestors) that closes on outside click and Escape, flips upward when space below is short, and caps its height to the viewport. Opening moves focus into the panel (its first `menuitem` for a menu, which arrow keys then move between); closing, or tabbing out, returns focus to the trigger.
 
-| Prop           | Type                                                           | Required | Notes                                                                        |
-| -------------- | -------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------- |
-| `trigger`      | `(props: { open: boolean; onClick: () => void }) => ReactNode` | yes      |                                                                              |
-| `children`     | `ReactNode`                                                    | yes      |                                                                              |
-| `className`    | `string`                                                       |          |                                                                              |
-| `align`        | `'left' \| 'right'`                                            |          | Alignment of the panel relative to the trigger. Defaults to "right".         |
-| `open`         | `boolean`                                                      |          | Controls the open state, e.g. to close the panel after a menu action.        |
-| `onOpenChange` | `(open: boolean) => void`                                      |          |                                                                              |
-| `'aria-label'` | `string`                                                       |          | Names the panel for screen readers; without it the trigger labels the panel. |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `trigger` | `(props: { open: boolean; onClick: () => void }) => ReactNode` | yes |  |
+| `children` | `ReactNode` | yes |  |
+| `className` | `string` |  |  |
+| `align` | `'left' \| 'right'` |  | Alignment of the panel relative to the trigger. Defaults to "right". |
+| `open` | `boolean` |  | Controls the open state, e.g. to close the panel after a menu action. |
+| `onOpenChange` | `(open: boolean) => void` |  |  |
+| `'aria-label'` | `string` |  | Names the panel for screen readers; without it the trigger labels the panel. |
 
 #### `PopoverTrigger`
 
@@ -393,14 +393,14 @@ A plain button styled for use as a popover trigger.
 
 Thin horizontal `role="progressbar"` track; `value` is clamped to `0…max`.
 
-| Prop           | Type                                          | Required | Notes                                                               |
-| -------------- | --------------------------------------------- | -------- | ------------------------------------------------------------------- |
-| `value`        | `number`                                      | yes      |                                                                     |
-| `max`          | `number`                                      |          | Defaults to 100, so `value` reads as a percentage.                  |
-| `'aria-label'` | `string`                                      | yes      | Names the bar for screen readers, e.g. "Reading progress".          |
-| `valueText`    | `string`                                      |          | Text read out instead of the bare number, e.g. "12 of 30 chapters". |
-| `tone`         | `'accent' \| 'success' \| 'warn' \| 'danger'` |          | Fill colour token; defaults to the accent.                          |
-| `className`    | `string`                                      |          |                                                                     |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `value` | `number` | yes |  |
+| `max` | `number` |  | Defaults to 100, so `value` reads as a percentage. |
+| `'aria-label'` | `string` | yes | Names the bar for screen readers, e.g. "Reading progress". |
+| `valueText` | `string` |  | Text read out instead of the bare number, e.g. "12 of 30 chapters". |
+| `tone` | `'accent' \| 'success' \| 'warn' \| 'danger'` |  | Fill colour token; defaults to the accent. |
+| `className` | `string` |  |  |
 
 ### `radio-group.tsx`
 
@@ -410,11 +410,11 @@ A bare styled radio for call sites that supply their own label and layout.
 
 #### `RadioGroup`
 
-| Prop       | Type                      | Required | Notes |
-| ---------- | ------------------------- | -------- | ----- |
-| `name`     | `string`                  | yes      |       |
-| `value`    | `string`                  | yes      |       |
-| `onChange` | `(value: string) => void` | yes      |       |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `name` | `string` | yes |  |
+| `value` | `string` | yes |  |
+| `onChange` | `(value: string) => void` | yes |  |
 
 Also accepts: `Omit<HTMLAttributes<HTMLDivElement>, 'onChange'>`
 
@@ -422,16 +422,15 @@ Also accepts: `Omit<HTMLAttributes<HTMLDivElement>, 'onChange'>`
 
 One labelled radio inside a `RadioGroup`. Use `Radio` for a custom layout.
 
-| Prop    | Type     | Required | Notes |
-| ------- | -------- | -------- | ----- |
-| `value` | `string` | yes      |       |
-| `label` | `string` | yes      |       |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `value` | `string` | yes |  |
+| `label` | `string` | yes |  |
 
 Also accepts: `Omit<
-InputHTMLAttributes<HTMLInputElement>,
-'type' | 'name' | 'checked' | 'onChange'
-
-> `
+  InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'name' | 'checked' | 'onChange'
+>`
 
 ### `rating-stars.tsx`
 
@@ -439,12 +438,12 @@ InputHTMLAttributes<HTMLInputElement>,
 
 Five-star rating; an image when read-only, star buttons otherwise.
 
-| Prop       | Type                      | Required | Notes                                                                                                      |
-| ---------- | ------------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `value`    | `number`                  | yes      | 1–5 stars; 0 is unrated.                                                                                   |
-| `onChange` | `(value: number) => void` |          | Omit for a read-only display. Clicking the current rating passes 0 (clear).                                |
-| `disabled` | `boolean`                 |          |                                                                                                            |
-| `size`     | `'sm' \| 'md'`            |          | Glyph size: "sm" (default) for cards, "md" for detail pages. Interactive stars are 44px targets on phones. |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `value` | `number` | yes | 1–5 stars; 0 is unrated. |
+| `onChange` | `(value: number) => void` |  | Omit for a read-only display. Clicking the current rating passes 0 (clear). |
+| `disabled` | `boolean` |  |  |
+| `size` | `'sm' \| 'md'` |  | Glyph size: "sm" (default) for cards, "md" for detail pages. Interactive stars are 44px targets on phones. |
 
 ### `remove-button.tsx`
 
@@ -452,9 +451,9 @@ Five-star rating; an image when read-only, star buttons otherwise.
 
 Icon-only × that removes a row, chip or attachment; turns danger on hover and focus.
 
-| Prop           | Type     | Required | Notes                                 |
-| -------------- | -------- | -------- | ------------------------------------- |
-| `'aria-label'` | `string` | yes      | Names what goes, e.g. "Remove Flour". |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `'aria-label'` | `string` | yes | Names what goes, e.g. "Remove Flour". |
 
 Also accepts: `Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'>`
 
@@ -464,14 +463,14 @@ Also accepts: `Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'>`
 
 A `Card` with the standard title/description/action header; don't hand-assemble one.
 
-| Prop               | Type        | Required | Notes                                                                          |
-| ------------------ | ----------- | -------- | ------------------------------------------------------------------------------ |
-| `title`            | `ReactNode` | yes      |                                                                                |
-| `description`      | `ReactNode` |          | Muted line under the title.                                                    |
-| `action`           | `ReactNode` |          | Right-aligned controls on the title row (a refresh button, a filter, a count). |
-| `children`         | `ReactNode` | yes      |                                                                                |
-| `className`        | `string`    |          |                                                                                |
-| `contentClassName` | `string`    |          | Applied to the body wrapper, not the card.                                     |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `title` | `ReactNode` | yes |  |
+| `description` | `ReactNode` |  | Muted line under the title. |
+| `action` | `ReactNode` |  | Right-aligned controls on the title row (a refresh button, a filter, a count). |
+| `children` | `ReactNode` | yes |  |
+| `className` | `string` |  |  |
+| `contentClassName` | `string` |  | Applied to the body wrapper, not the card. |
 
 ### `section-heading.tsx`
 
@@ -479,14 +478,14 @@ A `Card` with the standard title/description/action header; don't hand-assemble 
 
 Heading for a section of a page. Use it instead of a hand-styled `<h2>`/`<h3>`.
 
-| Prop        | Type                     | Required | Notes                                                                                   |
-| ----------- | ------------------------ | -------- | --------------------------------------------------------------------------------------- |
-| `children`  | `ReactNode`              | yes      |                                                                                         |
-| `level`     | `'section' \| 'eyebrow'` |          | `section` is the serif heading under `PageHeader`; `eyebrow` the small uppercase label. |
-| `as`        | `'h2' \| 'h3' \| 'h4'`   |          | Heading element; defaults to `h2` for `section`, `h3` for `eyebrow`.                    |
-| `actions`   | `ReactNode`              |          | Right-aligned controls on the heading row; they wrap under it on narrow screens.        |
-| `id`        | `string`                 |          |                                                                                         |
-| `className` | `string`                 |          |                                                                                         |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `children` | `ReactNode` | yes |  |
+| `level` | `'section' \| 'eyebrow'` |  | `section` is the serif heading under `PageHeader`; `eyebrow` the small uppercase label. |
+| `as` | `'h2' \| 'h3' \| 'h4'` |  | Heading element; defaults to `h2` for `section`, `h3` for `eyebrow`. |
+| `actions` | `ReactNode` |  | Right-aligned controls on the heading row; they wrap under it on narrow screens. |
+| `id` | `string` |  |  |
+| `className` | `string` |  |  |
 
 ### `segmented-tabs.tsx`
 
@@ -494,13 +493,13 @@ Heading for a section of a page. Use it instead of a hand-styled `<h2>`/`<h3>`.
 
 The one way to switch between a few views, sibling sections or a scope (Mine/Family): a single track whose selected segment slides to the tapped option. Segments share the track equally. Filters are `TogglePill`s and actions are `Button`s, never this.
 
-| Prop           | Type                       | Required | Notes                                 |
-| -------------- | -------------------------- | -------- | ------------------------------------- |
-| `value`        | `T \| null`                | yes      | `null` when no option is selected.    |
-| `onChange`     | `(value: T) => void`       | yes      |                                       |
-| `options`      | `SegmentedTabsOption<T>[]` | yes      |                                       |
-| `'aria-label'` | `string`                   | yes      | Names the tablist for screen readers. |
-| `className`    | `string`                   |          |                                       |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `value` | `T \| null` | yes | `null` when no option is selected. |
+| `onChange` | `(value: T) => void` | yes |  |
+| `options` | `SegmentedTabsOption<T>[]` | yes |  |
+| `'aria-label'` | `string` | yes | Names the tablist for screen readers. |
+| `className` | `string` |  |  |
 
 ### `select.tsx`
 
@@ -512,13 +511,13 @@ The one way to switch between a few views, sibling sections or a scope (Mine/Fam
 
 One group on a settings page. Stack them in `SettingsSections`, which owns the spacing between groups; don't add dividers.
 
-| Prop          | Type        | Required | Notes                       |
-| ------------- | ----------- | -------- | --------------------------- |
-| `title`       | `ReactNode` | yes      |                             |
-| `description` | `ReactNode` |          | Muted line under the title. |
-| `actions`     | `ReactNode` |          | Controls on the title row.  |
-| `children`    | `ReactNode` | yes      |                             |
-| `className`   | `string`    |          |                             |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `title` | `ReactNode` | yes |  |
+| `description` | `ReactNode` |  | Muted line under the title. |
+| `actions` | `ReactNode` |  | Controls on the title row. |
+| `children` | `ReactNode` | yes |  |
+| `className` | `string` |  |  |
 
 #### `SettingsSections`
 
@@ -528,16 +527,16 @@ Vertical stack of `SettingsSection`s with the standard gap between them.
 
 #### `ShelfSidebar`
 
-| Prop              | Type                    | Required | Notes                                                               |
-| ----------------- | ----------------------- | -------- | ------------------------------------------------------------------- |
-| `shelves`         | `SidebarShelf[]`        | yes      |                                                                     |
-| `allTags`         | `SidebarTag[]`          |          |                                                                     |
-| `selectedShelfId` | `string \| null`        | yes      |                                                                     |
-| `selectedTag`     | `string \| null`        | yes      |                                                                     |
-| `onSelectShelf`   | `(id: string) => void`  | yes      |                                                                     |
-| `onSelectTag`     | `(tag: string) => void` | yes      |                                                                     |
-| `onManage`        | `() => void`            |          | Omit on read-only views (public profile) to hide shelf/tag editing. |
-| `series`          | `SidebarSeries[]`       |          | Links to each series page; omit where those pages aren't reachable. |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `shelves` | `SidebarShelf[]` | yes |  |
+| `allTags` | `SidebarTag[]` |  |  |
+| `selectedShelfId` | `string \| null` | yes |  |
+| `selectedTag` | `string \| null` | yes |  |
+| `onSelectShelf` | `(id: string) => void` | yes |  |
+| `onSelectTag` | `(tag: string) => void` | yes |  |
+| `onManage` | `() => void` |  | Omit on read-only views (public profile) to hide shelf/tag editing. |
+| `series` | `SidebarSeries[]` |  | Links to each series page; omit where those pages aren't reachable. |
 
 ### `skeleton.tsx`
 
@@ -551,14 +550,14 @@ Placeholder block that reserves a loading region's final size so content doesn't
 
 One labelled number in a stats row; structured content belongs in a `SectionCard`.
 
-| Prop        | Type                                           | Required | Notes                                                                    |
-| ----------- | ---------------------------------------------- | -------- | ------------------------------------------------------------------------ |
-| `label`     | `string`                                       | yes      |                                                                          |
-| `value`     | `ReactNode`                                    | yes      |                                                                          |
-| `tone`      | `'default' \| 'success' \| 'warn' \| 'danger'` |          | Colours the value only — the label stays muted so tiles scan as one row. |
-| `hint`      | `ReactNode`                                    |          | Optional muted line under the value (a delta, a unit, a timestamp).      |
-| `href`      | `string`                                       |          | Renders the tile as a navigable card with a pending-navigation spinner.  |
-| `className` | `string`                                       |          |                                                                          |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `label` | `string` | yes |  |
+| `value` | `ReactNode` | yes |  |
+| `tone` | `'default' \| 'success' \| 'warn' \| 'danger'` |  | Colours the value only — the label stays muted so tiles scan as one row. |
+| `hint` | `ReactNode` |  | Optional muted line under the value (a delta, a unit, a timestamp). |
+| `href` | `string` |  | Renders the tile as a navigable card with a pending-navigation spinner. |
+| `className` | `string` |  |  |
 
 #### `StatTileGrid`
 
@@ -570,10 +569,10 @@ Responsive grid for a row of `StatTile`s — two up on mobile, four from `sm`.
 
 Message for a list or section with nothing in it yet. Centred (`page`) by default; `inline` for an empty list inside a field, dialog section or panel.
 
-| Prop       | Type        | Required | Notes                                                                  |
-| ---------- | ----------- | -------- | ---------------------------------------------------------------------- |
-| `children` | `ReactNode` | yes      |                                                                        |
-| `action`   | `ReactNode` |          | Optional call to action under the message, e.g. a "New recipe" button. |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `children` | `ReactNode` | yes |  |
+| `action` | `ReactNode` |  | Optional call to action under the message, e.g. a "New recipe" button. |
 
 Also accepts: `StateProps`
 
@@ -589,10 +588,10 @@ Loading placeholder; `label` names what is loading ("recipe" → "Loading recipe
 
 #### `SortableHeader`
 
-| Prop     | Type                      | Required | Notes |
-| -------- | ------------------------- | -------- | ----- |
-| `dir`    | `'asc' \| 'desc' \| null` | yes      |       |
-| `onSort` | `() => void`              | yes      |       |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `dir` | `'asc' \| 'desc' \| null` | yes |  |
+| `onSort` | `() => void` | yes |  |
 
 Also accepts: `Omit<ThHTMLAttributes<HTMLTableCellElement>, 'dir'>`
 
@@ -618,14 +617,14 @@ Also accepts: `Omit<ThHTMLAttributes<HTMLTableCellElement>, 'dir'>`
 
 On/off glyph button; `aria-pressed` makes it announce as a toggle.
 
-| Prop          | Type                                             | Required | Notes                                                          |
-| ------------- | ------------------------------------------------ | -------- | -------------------------------------------------------------- |
-| `active`      | `boolean`                                        | yes      | Current state — drives `aria-pressed` and the amber treatment. |
-| `onToggle`    | `(event: MouseEvent<HTMLButtonElement>) => void` | yes      |                                                                |
-| `label`       | `string`                                         | yes      | `aria-label` while off, e.g. "Add to favourites".              |
-| `activeLabel` | `string`                                         | yes      | `aria-label` while on, e.g. "Remove from favourites".          |
-| `children`    | `ReactNode`                                      | yes      |                                                                |
-| `className`   | `string`                                         |          |                                                                |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `active` | `boolean` | yes | Current state — drives `aria-pressed` and the amber treatment. |
+| `onToggle` | `(event: MouseEvent<HTMLButtonElement>) => void` | yes |  |
+| `label` | `string` | yes | `aria-label` while off, e.g. "Add to favourites". |
+| `activeLabel` | `string` | yes | `aria-label` while on, e.g. "Remove from favourites". |
+| `children` | `ReactNode` | yes |  |
+| `className` | `string` |  |  |
 
 #### `toggleGlyphClass`
 
@@ -637,11 +636,11 @@ Amber-when-on treatment shared by every glyph toggle.
 
 Filter chip for selectable attributes: a light outline when off, a tinted accent fill with a check when on (unlike a read-only `Badge`, and visibly lighter than a `Button`). Sets `aria-pressed`. Switching views is `SegmentedTabs`, not a row of these.
 
-| Prop        | Type        | Required | Notes                                                                                 |
-| ----------- | ----------- | -------- | ------------------------------------------------------------------------------------- |
-| `label`     | `ReactNode` | yes      | Pill contents. A plain string in the common case; a fragment when it carries a count. |
-| `active`    | `boolean`   | yes      |                                                                                       |
-| `className` | `string`    |          |                                                                                       |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `label` | `ReactNode` | yes | Pill contents. A plain string in the common case; a fragment when it carries a count. |
+| `active` | `boolean` | yes |  |
+| `className` | `string` |  |  |
 
 Also accepts: `Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'>`
 
@@ -651,10 +650,11 @@ Also accepts: `Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'>`
 
 The search-and-filter row between `PageHeader` and a list; every list page uses this one.
 
-| Prop           | Type        | Required | Notes                                                                                  |
-| -------------- | ----------- | -------- | -------------------------------------------------------------------------------------- |
-| `search`       | `ReactNode` |          | Leading search field; it takes the remaining width and wraps to its own row on phones. |
-| `children`     | `ReactNode` |          | Filter controls (`Select`, `TogglePill`s, `SegmentedTabs`) after the search.           |
-| `trailing`     | `ReactNode` |          | Right-aligned trailing slot: a result count or a view toggle.                          |
-| `'aria-label'` | `string`    |          | Names the toolbar for screen readers, e.g. "Filter books".                             |
-| `className`    | `string`    |          |                                                                                        |
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `search` | `ReactNode` |  | Leading search field; it takes the remaining width and wraps to its own row on phones. |
+| `children` | `ReactNode` |  | Filter controls (`Select`, `TogglePill`s, `SegmentedTabs`) after the search. |
+| `trailing` | `ReactNode` |  | Right-aligned trailing slot: a result count or a view toggle. |
+| `'aria-label'` | `string` |  | Names the toolbar for screen readers, e.g. "Filter books". |
+| `className` | `string` |  |  |
+
