@@ -10,10 +10,10 @@ Apps were reachable only through the home page, nothing showed which app you wer
 
 ## Decision
 
-- **One global bar, driven by the app registry** (`web/lib/apps.ts`): from `lg` a left sidebar (Today, then the apps the user can open grouped as in the registry, admin last, current app highlighted); on phones a bottom tab bar (Today, three pinned apps, Apps) once it ships. Until then a slim top bar shows the current app name.
+- **One global bar, driven by the app registry** (`web/lib/apps.ts`): from `lg` a left sidebar (Today, then the apps the user can open grouped as in the registry, admin last, current app highlighted); on phones a bottom tab bar (Today, three pinned apps, Apps) with `/apps` as the full launcher; a slim top bar shows the current app name and the account menu.
 - **One account menu** (sidebar foot, top-right below `lg`): account settings, family, appearance, sign out. Sign out flushes the offline outbox first. The footer is gone; the release hash lives on the account settings page.
 - **An app's sections are in-page tabs** (`SegmentedTabs`), not a second bar.
-- **Shared public dashboards and sign-in pages render without the shell.**
+- **Shared public dashboards and sign-in pages render without the shell**; the book reader and watch party presenter hide the tab bar.
 
 ## Rejected
 

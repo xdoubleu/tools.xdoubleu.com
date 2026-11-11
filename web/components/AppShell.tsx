@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import OfflineBooksSync from '@/components/books/OfflineBooksSync'
 import DeployNotification from '@/components/DeployNotification'
 import Navbar from '@/components/Navbar'
+import PhoneTabBar, { useTabBarVisible } from '@/components/PhoneTabBar'
 import OfflineBanner from '@/components/offline/OfflineBanner'
 import OutboxSync from '@/components/offline/OutboxSync'
 import ServiceWorkerRegistrar from '@/components/offline/ServiceWorkerRegistrar'
@@ -28,6 +29,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const { data: currentUser, error } = useCurrentUser()
   useSessionEffects(currentUser?.userId)
   const pathname = usePathname()
+  const tabBar = useTabBarVisible()
   const redirecting = useSignInRedirect(error)
 
   const booksAccess =
@@ -41,13 +43,19 @@ function Shell({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <div className={cn('flex flex-1 flex-col', signedIn && 'lg:pl-60')}>
         <Navbar />
-        <main className="flex-1 pl-[var(--inset-left)] pr-[var(--inset-right)] py-6">
+        <main
+          className={cn(
+            'flex-1 pl-[var(--inset-left)] pr-[var(--inset-right)] py-6',
+            tabBar && 'pb-[calc(var(--tab-bar-height)+env(safe-area-inset-bottom)+1.5rem)] lg:pb-6'
+          )}
+        >
           <div className="w-full">
             <OfflineBanner />
             {!redirecting && children}
           </div>
         </main>
       </div>
+      <PhoneTabBar />
       <DeployNotification />
       <ServiceWorkerRegistrar />
       <OutboxSync />

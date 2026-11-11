@@ -15,6 +15,13 @@ vi.mock('@/components/Navbar', () => ({
   default: () => <div data-testid="navbar" />
 }))
 
+const mockTabBarVisible = vi.hoisted(() => vi.fn(() => false))
+vi.mock('@/components/PhoneTabBar', () => ({
+  __esModule: true,
+  default: () => <div data-testid="tab-bar" />,
+  useTabBarVisible: mockTabBarVisible
+}))
+
 vi.mock('@/components/Sidebar', () => ({
   __esModule: true,
   default: () => <div data-testid="sidebar" />
@@ -146,6 +153,19 @@ describe('AppShell', () => {
     vi.mocked(usePathname).mockReturnValue('/dashboard/games/tok')
     const { container } = render(<AppShell>{null}</AppShell>)
     expect(container.querySelector('.lg\\:pl-60')).toBeNull()
+  })
+
+  it('renders the tab bar and leaves room for it only while it shows', () => {
+    signedInAs({ role: 'user', appAccess: [] })
+    mockTabBarVisible.mockReturnValue(true)
+    const { unmount } = render(<AppShell>{null}</AppShell>)
+    expect(screen.getByTestId('tab-bar')).toBeInTheDocument()
+    expect(screen.getByRole('main').className).toContain('var(--tab-bar-height)')
+    unmount()
+
+    mockTabBarVisible.mockReturnValue(false)
+    render(<AppShell>{null}</AppShell>)
+    expect(screen.getByRole('main').className).not.toContain('var(--tab-bar-height)')
   })
 
   it('passes the signed-in user to the session effects', () => {

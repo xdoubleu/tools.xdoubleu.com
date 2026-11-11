@@ -260,3 +260,12 @@ export function appForPath(pathname: string): AppEntry | undefined {
   })
   return matches.sort((a, b) => baseOf(b).length - baseOf(a).length)[0]
 }
+
+const DEFAULT_PINS = ['books', 'feeds', 'mealplans']
+
+/** The (up to three) apps in the phone tab bar: the preferred ones the user can open, then the rest. */
+export function defaultPins(user: AppViewer): AppEntry[] {
+  const open = visibleApps(user).filter((a) => !a.alwaysVisible && !a.adminOnly)
+  const preferred = DEFAULT_PINS.flatMap((id) => open.filter((a) => a.id === id))
+  return [...preferred, ...open.filter((a) => !preferred.includes(a))].slice(0, 3)
+}

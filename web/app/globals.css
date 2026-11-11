@@ -50,6 +50,9 @@
   --gutter: 1rem;
   --inset-left: max(var(--gutter), env(safe-area-inset-left));
   --inset-right: max(var(--gutter), env(safe-area-inset-right));
+
+  /* The phone tab bar, below the page content. */
+  --tab-bar-height: 3.5rem;
 }
 
 @media (min-width: 40rem) {
