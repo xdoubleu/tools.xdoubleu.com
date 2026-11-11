@@ -33,6 +33,8 @@ export interface AppEntry {
   /** Shown to every signed-in user, whatever their grants. */
   alwaysVisible?: boolean
   adminOnly?: boolean
+  /** Route prefix the app owns; defaults to the first segment of `href`. */
+  base?: string
   /** Has its own home-screen artwork (public/icons/<id>.svg and -apple.png). */
   artwork?: boolean
   /** Plain anchor instead of `<Link>`, for targets served by another container (e.g. `/grafana`). */
@@ -65,6 +67,7 @@ export const APPS: AppEntry[] = [
     label: 'Books',
     href: '/dashboard/reading',
     description: 'Search, library and reading progress.',
+    base: '/dashboard/reading',
     group: 'Media',
     icon: BookOpen,
     artwork: true
@@ -74,6 +77,7 @@ export const APPS: AppEntry[] = [
     label: 'Games',
     href: '/dashboard/games',
     description: 'Steam backlog, progress and distribution.',
+    base: '/dashboard/games',
     group: 'Media',
     icon: Gamepad2,
     artwork: true
@@ -187,6 +191,7 @@ export const APPS: AppEntry[] = [
     label: 'Monitoring',
     href: '/monitoring/connections',
     description: 'Observability',
+    base: '/monitoring',
     group: 'Admin',
     icon: Activity,
     adminOnly: true
@@ -196,6 +201,7 @@ export const APPS: AppEntry[] = [
     label: 'Automated actions',
     href: '/monitoring/observability',
     description: 'Self-healing routine run history',
+    base: '/monitoring/observability',
     group: 'Admin',
     icon: Bot,
     adminOnly: true
@@ -242,4 +248,15 @@ export function visibleSections(user: AppViewer): { title: AppGroup; apps: AppEn
 /** The app with home-screen artwork whose id is the route's first `segment`, if any. */
 export function artworkApp(segment: string): AppEntry | undefined {
   return APPS.find((a) => a.artwork && a.id === segment)
+}
+
+const baseOf = (app: AppEntry) => app.base ?? `/${app.href.split('/')[1]}`
+
+/** The app that owns `pathname` (longest matching route prefix), if any. */
+export function appForPath(pathname: string): AppEntry | undefined {
+  const matches = APPS.filter((app) => {
+    const base = baseOf(app)
+    return pathname === base || pathname.startsWith(`${base}/`)
+  })
+  return matches.sort((a, b) => baseOf(b).length - baseOf(a).length)[0]
 }

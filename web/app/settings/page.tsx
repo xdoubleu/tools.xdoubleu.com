@@ -15,6 +15,7 @@ import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { Field } from '@/components/ui/field'
+import { getRelease } from '@/lib/env'
 import { PageHeader } from '@/components/ui/page-header'
 import { SettingsSection, SettingsSections } from '@/components/ui/settings-section'
 import { ErrorState, LoadingState } from '@/components/ui/states'
@@ -201,6 +202,8 @@ export default function SettingsPage() {
     }
   }
 
+  const release = getRelease()
+
   return (
     <PageContainer size="narrow">
       <PageHeader title="Account settings" />
@@ -385,6 +388,12 @@ export default function SettingsPage() {
         </SettingsSection>
 
         <McpSetupSection />
+
+        {release && (
+          <SettingsSection title="About">
+            <p className="font-mono text-sm text-subtle">Release {release.substring(0, 7)}</p>
+          </SettingsSection>
+        )}
       </SettingsSections>
 
       {recoveryCodes && (

@@ -15,9 +15,9 @@ vi.mock('@/components/Navbar', () => ({
   default: () => <div data-testid="navbar" />
 }))
 
-vi.mock('@/components/Footer', () => ({
+vi.mock('@/components/Sidebar', () => ({
   __esModule: true,
-  default: () => <div data-testid="footer" />
+  default: () => <div data-testid="sidebar" />
 }))
 
 vi.mock('@/components/offline/OfflineBanner', () => ({
@@ -112,7 +112,7 @@ describe('AppShell', () => {
 
     expect(screen.getByTestId('swr-provider')).toBeInTheDocument()
     expect(screen.getByTestId('navbar')).toBeInTheDocument()
-    expect(screen.getByTestId('footer')).toBeInTheDocument()
+    expect(screen.getByTestId('sidebar')).toBeInTheDocument()
     expect(screen.getByTestId('deploy-notification')).toBeInTheDocument()
     expect(screen.getByTestId('offline-banner')).toBeInTheDocument()
     expect(screen.getByTestId('sw-registrar')).toBeInTheDocument()
@@ -127,6 +127,25 @@ describe('AppShell', () => {
     const main = screen.getByRole('main')
     expect(main).toHaveClass('pl-[var(--inset-left)]', 'pr-[var(--inset-right)]')
     expect(main.className).not.toMatch(/\bpx-|(sm|lg):px-/)
+  })
+
+  it('makes room for the sidebar only when signed in', () => {
+    signedInAs({ role: 'user', appAccess: [] })
+    vi.mocked(usePathname).mockReturnValue('/feeds')
+    const { container, unmount } = render(<AppShell>{null}</AppShell>)
+    expect(container.querySelector('.lg\\:pl-60')).not.toBeNull()
+    unmount()
+
+    signedInAs(undefined)
+    const out = render(<AppShell>{null}</AppShell>)
+    expect(out.container.querySelector('.lg\\:pl-60')).toBeNull()
+  })
+
+  it('does not make room for the sidebar on a shared dashboard', () => {
+    signedInAs({ role: 'user', appAccess: [] })
+    vi.mocked(usePathname).mockReturnValue('/dashboard/games/tok')
+    const { container } = render(<AppShell>{null}</AppShell>)
+    expect(container.querySelector('.lg\\:pl-60')).toBeNull()
   })
 
   it('passes the signed-in user to the session effects', () => {
