@@ -1,4 +1,13 @@
-import { APPS, appForPath, artworkApp, defaultPins, visibleApps, visibleSections } from '@/lib/apps'
+import {
+  APPS,
+  appForPath,
+  artworkApp,
+  defaultPins,
+  pinnableApps,
+  resolvePins,
+  visibleApps,
+  visibleSections
+} from '@/lib/apps'
 
 const ids = (apps: { id: string }[]) => apps.map((a) => a.id)
 
@@ -91,5 +100,61 @@ describe('defaultPins', () => {
   it('caps at three for an admin', () => {
     expect(defaultPins({ role: 'admin' })).toHaveLength(3)
     expect(defaultPins({ role: 'admin' }).every((a) => !a.adminOnly)).toBe(true)
+  })
+})
+
+describe('resolvePins', () => {
+  const books = { role: 'user', appAccess: ['books', 'feeds', 'mealplans', 'trains'] }
+
+  it('uses the default pins until the user chooses', () => {
+    expect(ids(resolvePins({ ...books, tabPins: ['trains'] }))).toEqual([
+      'books',
+      'feeds',
+      'mealplans'
+    ])
+  })
+
+  it('keeps a saved choice in its order', () => {
+    const user = { ...books, tabPins: ['trains', 'books'], tabPinsCustomised: true }
+    expect(ids(resolvePins(user))).toEqual(['trains', 'books'])
+  })
+
+  it('treats a chosen but missing list as none', () => {
+    expect(ids(resolvePins({ ...books, tabPinsCustomised: true }))).toEqual([])
+  })
+
+  it('honours a deliberate empty choice', () => {
+    expect(ids(resolvePins({ ...books, tabPins: [], tabPinsCustomised: true }))).toEqual([])
+  })
+
+  it('replaces a pin the user lost access to with the next default', () => {
+    const user = {
+      role: 'user',
+      appAccess: ['books', 'feeds'],
+      tabPins: ['movies', 'books'],
+      tabPinsCustomised: true
+    }
+    expect(ids(resolvePins(user))).toEqual(['books', 'feeds'])
+  })
+
+  it('ignores duplicates and never fills past the saved count', () => {
+    const user = { ...books, tabPins: ['books', 'books', 'ghost'], tabPinsCustomised: true }
+    expect(ids(resolvePins(user))).toEqual(['books', 'feeds'])
+  })
+
+  it('never pins the account entries', () => {
+    const user = { ...books, tabPins: ['settings'], tabPinsCustomised: true }
+    expect(ids(resolvePins(user))).toEqual(['books'])
+  })
+
+  it('lets an admin pin an admin app', () => {
+    const user = { role: 'admin', tabPins: ['factory'], tabPinsCustomised: true }
+    expect(ids(resolvePins(user))).toEqual(['factory'])
+  })
+})
+
+describe('pinnableApps', () => {
+  it('leaves out the account entries', () => {
+    expect(ids(pinnableApps({ role: 'user', appAccess: ['books'] }))).toEqual(['books'])
   })
 })

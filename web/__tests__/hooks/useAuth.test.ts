@@ -20,12 +20,18 @@ vi.mock('@/lib/client', () => ({
 vi.mock('@/lib/gen/auth/v1/auth_pb', () => ({
   AuthService: {}
 }))
+vi.mock('@/lib/account/offlineWrites', () => ({ setTabPinsWrite: { id: 'set-tab-pins' } }))
+vi.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: vi.fn(() => Promise.resolve('handle')),
+  sendWrite: vi.fn().mockResolvedValue('sent')
+}))
 vi.mock('@/lib/gen/dashboard/v1/dashboard_pb', () => ({
   DashboardService: {}
 }))
 
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
+import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
 import {
   useSignIn,
   useSignOut,
@@ -39,7 +45,8 @@ import {
   useMFAEnroll,
   useMFAEnrollVerify,
   useMFAUnenroll,
-  useCurrentUser
+  useCurrentUser,
+  useSetTabPins
 } from '@/hooks/useAuth'
 
 const mockUseSWR = vi.mocked(useSWR)
@@ -246,5 +253,23 @@ describe('useCurrentUser', () => {
     mockUseSWR.mockReturnValueOnce({ data: mockData, isLoading: false, error: undefined })
     const { result } = renderHook(() => useCurrentUser())
     expect(result.current.data).toEqual(mockData)
+  })
+})
+
+describe('useSetTabPins', () => {
+  it('queues the write and waits for it to be sent', async () => {
+    const { result } = renderHook(() => useSetTabPins())
+    await result.current(['books', 'feeds'])
+    expect(enqueueWrite).toHaveBeenCalledWith(
+      { id: 'set-tab-pins' },
+      { tabPins: ['books', 'feeds'] }
+    )
+    expect(sendWrite).toHaveBeenCalledTimes(1)
+  })
+
+  it('throws when the server refuses the write', async () => {
+    vi.mocked(sendWrite).mockRejectedValueOnce(new Error('refused'))
+    const { result } = renderHook(() => useSetTabPins())
+    await expect(result.current(['books'])).rejects.toThrow('refused')
   })
 })

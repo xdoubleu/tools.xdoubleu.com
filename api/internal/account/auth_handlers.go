@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"connectrpc.com/connect/v2"
 
@@ -253,6 +254,9 @@ func (h *authConnectHandler) GetCurrentUser(
 		role = enrichedUser.Role
 		appAccess = enrichedUser.AppAccess
 		displayName = enrichedUser.DisplayName
+		resp.TabPins, resp.TabPinsCustomised, _ = h.app.AppUsers.GetTabPins(
+			ctx, user.ID,
+		)
 	}
 
 	resp.Role = string(role)
@@ -261,6 +265,60 @@ func (h *authConnectHandler) GetCurrentUser(
 	resp.DisplayName = displayName
 	resp.UserId = user.ID
 	return resp, nil
+}
+
+// maxTabPins is how many apps fit the phone tab bar beside Today and Apps.
+const maxTabPins = 3
+
+// SetTabPins saves which apps the user pinned to the phone tab bar. A pin the
+// user can't open is rejected; one they later lose access to is dropped by the
+// web on read.
+func (h *authConnectHandler) SetTabPins(
+	ctx context.Context,
+	req *authv1.SetTabPinsRequest,
+) (*authv1.SetTabPinsResponse, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
+	accessToken, err := h.parseCookie(info.RequestHeader(), "accessToken")
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, "not signed in")
+	}
+	user, err := h.app.Auth.GetUser(ctx, accessToken.Value)
+	if err != nil || user == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, "not signed in")
+	}
+
+	if len(req.TabPins) > maxTabPins {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument, "at most 3 apps can be pinned",
+		)
+	}
+	enriched, err := h.app.AppUsers.GetByID(ctx, user.ID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	}
+	seen := map[string]bool{}
+	for _, pin := range req.TabPins {
+		if pin == "" || seen[pin] {
+			return nil, connect.NewError(
+				connect.CodeInvalidArgument, "pins must be distinct app ids",
+			)
+		}
+		seen[pin] = true
+		if enriched.Role != models.RoleAdmin && !slices.Contains(enriched.AppAccess, pin) {
+			return nil, connect.NewError(
+				connect.CodePermissionDenied, "no access to "+pin,
+			)
+		}
+	}
+
+	pins := req.TabPins
+	if pins == nil {
+		pins = []string{}
+	}
+	if err = h.app.AppUsers.SetTabPins(ctx, user.ID, pins); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	}
+	return &authv1.SetTabPinsResponse{}, nil
 }
 
 // tryRefreshToken rotates the session and sets new cookies; nil means the
