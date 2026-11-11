@@ -22,6 +22,11 @@ vi.mock('@/components/PhoneTabBar', () => ({
   useTabBarVisible: mockTabBarVisible
 }))
 
+vi.mock('@/components/AppOpenTracker', () => ({
+  __esModule: true,
+  default: () => <div data-testid="open-tracker" />
+}))
+
 vi.mock('@/components/Sidebar', () => ({
   __esModule: true,
   default: () => <div data-testid="sidebar" />
@@ -120,6 +125,7 @@ describe('AppShell', () => {
     expect(screen.getByTestId('swr-provider')).toBeInTheDocument()
     expect(screen.getByTestId('navbar')).toBeInTheDocument()
     expect(screen.getByTestId('sidebar')).toBeInTheDocument()
+    expect(screen.getByTestId('open-tracker')).toBeInTheDocument()
     expect(screen.getByTestId('deploy-notification')).toBeInTheDocument()
     expect(screen.getByTestId('offline-banner')).toBeInTheDocument()
     expect(screen.getByTestId('sw-registrar')).toBeInTheDocument()

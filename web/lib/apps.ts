@@ -226,6 +226,8 @@ interface AppViewer {
   /** Saved tab bar pins; only read when `tabPinsCustomised`. */
   tabPins?: string[]
   tabPinsCustomised?: boolean
+  /** The apps opened most over the last 30 whole days, most first. */
+  suggestedPins?: string[]
 }
 
 /** The apps `user` may open, in registry order. */
@@ -266,11 +268,17 @@ export function appForPath(pathname: string): AppEntry | undefined {
 
 const DEFAULT_PINS = ['books', 'feeds', 'mealplans']
 
-/** The (up to three) apps in the phone tab bar: the preferred ones the user can open, then the rest. */
+/**
+ * The (up to three) apps in the phone tab bar for someone who never chose: the
+ * ones they open most, then the fixed favourites, then the rest.
+ */
 export function defaultPins(user: AppViewer): AppEntry[] {
   const open = visibleApps(user).filter((a) => !a.alwaysVisible && !a.adminOnly)
-  const preferred = DEFAULT_PINS.flatMap((id) => open.filter((a) => a.id === id))
-  return [...preferred, ...open.filter((a) => !preferred.includes(a))].slice(0, 3)
+  const byId = (ids: string[]) => ids.flatMap((id) => open.filter((a) => a.id === id))
+  // Stryker disable next-line ArrayDeclaration: a filler id matches no app
+  const used = byId([...new Set(user.suggestedPins ?? [])])
+  const ranked = [...used, ...byId(DEFAULT_PINS), ...open]
+  return [...new Set(ranked)].slice(0, 3)
 }
 
 /** What the phone tab bar pins can be: apps the user can open, minus the account entries. */

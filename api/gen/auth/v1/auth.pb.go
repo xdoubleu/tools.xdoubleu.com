@@ -953,8 +953,12 @@ type GetCurrentUserResponse struct {
 	// tab_pins_customised is set; otherwise the web uses its default pins.
 	TabPins           []string `protobuf:"bytes,6,rep,name=tab_pins,json=tabPins,proto3" json:"tab_pins,omitempty"`
 	TabPinsCustomised bool     `protobuf:"varint,7,opt,name=tab_pins_customised,json=tabPinsCustomised,proto3" json:"tab_pins_customised,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Apps the user opened most over the last 30 whole days, most first: the
+	// default pins for someone who never chose, and "Reset to most used".
+	// Empty with no history.
+	SuggestedPins []string `protobuf:"bytes,8,rep,name=suggested_pins,json=suggestedPins,proto3" json:"suggested_pins,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetCurrentUserResponse) Reset() {
@@ -1036,6 +1040,93 @@ func (x *GetCurrentUserResponse) GetTabPinsCustomised() bool {
 	return false
 }
 
+func (x *GetCurrentUserResponse) GetSuggestedPins() []string {
+	if x != nil {
+		return x.SuggestedPins
+	}
+	return nil
+}
+
+type RecordAppOpenRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	App           string                 `protobuf:"bytes,1,opt,name=app,proto3" json:"app,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecordAppOpenRequest) Reset() {
+	*x = RecordAppOpenRequest{}
+	mi := &file_auth_v1_auth_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecordAppOpenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecordAppOpenRequest) ProtoMessage() {}
+
+func (x *RecordAppOpenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_v1_auth_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecordAppOpenRequest.ProtoReflect.Descriptor instead.
+func (*RecordAppOpenRequest) Descriptor() ([]byte, []int) {
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *RecordAppOpenRequest) GetApp() string {
+	if x != nil {
+		return x.App
+	}
+	return ""
+}
+
+type RecordAppOpenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecordAppOpenResponse) Reset() {
+	*x = RecordAppOpenResponse{}
+	mi := &file_auth_v1_auth_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecordAppOpenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecordAppOpenResponse) ProtoMessage() {}
+
+func (x *RecordAppOpenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_v1_auth_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecordAppOpenResponse.ProtoReflect.Descriptor instead.
+func (*RecordAppOpenResponse) Descriptor() ([]byte, []int) {
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{23}
+}
+
 type SetTabPinsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// At most three distinct app ids the user can open; empty means no pins.
@@ -1046,7 +1137,7 @@ type SetTabPinsRequest struct {
 
 func (x *SetTabPinsRequest) Reset() {
 	*x = SetTabPinsRequest{}
-	mi := &file_auth_v1_auth_proto_msgTypes[22]
+	mi := &file_auth_v1_auth_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1058,7 +1149,7 @@ func (x *SetTabPinsRequest) String() string {
 func (*SetTabPinsRequest) ProtoMessage() {}
 
 func (x *SetTabPinsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_v1_auth_proto_msgTypes[22]
+	mi := &file_auth_v1_auth_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1071,7 +1162,7 @@ func (x *SetTabPinsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetTabPinsRequest.ProtoReflect.Descriptor instead.
 func (*SetTabPinsRequest) Descriptor() ([]byte, []int) {
-	return file_auth_v1_auth_proto_rawDescGZIP(), []int{22}
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *SetTabPinsRequest) GetTabPins() []string {
@@ -1089,7 +1180,7 @@ type SetTabPinsResponse struct {
 
 func (x *SetTabPinsResponse) Reset() {
 	*x = SetTabPinsResponse{}
-	mi := &file_auth_v1_auth_proto_msgTypes[23]
+	mi := &file_auth_v1_auth_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1101,7 +1192,7 @@ func (x *SetTabPinsResponse) String() string {
 func (*SetTabPinsResponse) ProtoMessage() {}
 
 func (x *SetTabPinsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_v1_auth_proto_msgTypes[23]
+	mi := &file_auth_v1_auth_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1114,7 +1205,7 @@ func (x *SetTabPinsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetTabPinsResponse.ProtoReflect.Descriptor instead.
 func (*SetTabPinsResponse) Descriptor() ([]byte, []int) {
-	return file_auth_v1_auth_proto_rawDescGZIP(), []int{23}
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{25}
 }
 
 type ResetPasswordRequest struct {
@@ -1127,7 +1218,7 @@ type ResetPasswordRequest struct {
 
 func (x *ResetPasswordRequest) Reset() {
 	*x = ResetPasswordRequest{}
-	mi := &file_auth_v1_auth_proto_msgTypes[24]
+	mi := &file_auth_v1_auth_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1139,7 +1230,7 @@ func (x *ResetPasswordRequest) String() string {
 func (*ResetPasswordRequest) ProtoMessage() {}
 
 func (x *ResetPasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_v1_auth_proto_msgTypes[24]
+	mi := &file_auth_v1_auth_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1152,7 +1243,7 @@ func (x *ResetPasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetPasswordRequest.ProtoReflect.Descriptor instead.
 func (*ResetPasswordRequest) Descriptor() ([]byte, []int) {
-	return file_auth_v1_auth_proto_rawDescGZIP(), []int{24}
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ResetPasswordRequest) GetToken() string {
@@ -1177,7 +1268,7 @@ type ResetPasswordResponse struct {
 
 func (x *ResetPasswordResponse) Reset() {
 	*x = ResetPasswordResponse{}
-	mi := &file_auth_v1_auth_proto_msgTypes[25]
+	mi := &file_auth_v1_auth_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1189,7 +1280,7 @@ func (x *ResetPasswordResponse) String() string {
 func (*ResetPasswordResponse) ProtoMessage() {}
 
 func (x *ResetPasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_v1_auth_proto_msgTypes[25]
+	mi := &file_auth_v1_auth_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1202,7 +1293,7 @@ func (x *ResetPasswordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetPasswordResponse.ProtoReflect.Descriptor instead.
 func (*ResetPasswordResponse) Descriptor() ([]byte, []int) {
-	return file_auth_v1_auth_proto_rawDescGZIP(), []int{25}
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{27}
 }
 
 type RegenerateRecoveryCodesRequest struct {
@@ -1215,7 +1306,7 @@ type RegenerateRecoveryCodesRequest struct {
 
 func (x *RegenerateRecoveryCodesRequest) Reset() {
 	*x = RegenerateRecoveryCodesRequest{}
-	mi := &file_auth_v1_auth_proto_msgTypes[26]
+	mi := &file_auth_v1_auth_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1227,7 +1318,7 @@ func (x *RegenerateRecoveryCodesRequest) String() string {
 func (*RegenerateRecoveryCodesRequest) ProtoMessage() {}
 
 func (x *RegenerateRecoveryCodesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_v1_auth_proto_msgTypes[26]
+	mi := &file_auth_v1_auth_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1240,7 +1331,7 @@ func (x *RegenerateRecoveryCodesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegenerateRecoveryCodesRequest.ProtoReflect.Descriptor instead.
 func (*RegenerateRecoveryCodesRequest) Descriptor() ([]byte, []int) {
-	return file_auth_v1_auth_proto_rawDescGZIP(), []int{26}
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *RegenerateRecoveryCodesRequest) GetCode() string {
@@ -1259,7 +1350,7 @@ type RegenerateRecoveryCodesResponse struct {
 
 func (x *RegenerateRecoveryCodesResponse) Reset() {
 	*x = RegenerateRecoveryCodesResponse{}
-	mi := &file_auth_v1_auth_proto_msgTypes[27]
+	mi := &file_auth_v1_auth_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1271,7 +1362,7 @@ func (x *RegenerateRecoveryCodesResponse) String() string {
 func (*RegenerateRecoveryCodesResponse) ProtoMessage() {}
 
 func (x *RegenerateRecoveryCodesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_auth_v1_auth_proto_msgTypes[27]
+	mi := &file_auth_v1_auth_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1284,7 +1375,7 @@ func (x *RegenerateRecoveryCodesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegenerateRecoveryCodesResponse.ProtoReflect.Descriptor instead.
 func (*RegenerateRecoveryCodesResponse) Descriptor() ([]byte, []int) {
-	return file_auth_v1_auth_proto_rawDescGZIP(), []int{27}
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *RegenerateRecoveryCodesResponse) GetRecoveryCodes() []string {
@@ -1341,7 +1432,7 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\x16UpdatePasswordResponse\"\x10\n" +
 	"\x0eSignOutRequest\"\x11\n" +
 	"\x0fSignOutResponse\"\x17\n" +
-	"\x15GetCurrentUserRequest\"\xeb\x01\n" +
+	"\x15GetCurrentUserRequest\"\x92\x02\n" +
 	"\x16GetCurrentUserResponse\x12\x12\n" +
 	"\x04role\x18\x01 \x01(\tR\x04role\x12\x1d\n" +
 	"\n" +
@@ -1350,7 +1441,11 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12\x17\n" +
 	"\auser_id\x18\x05 \x01(\tR\x06userId\x12\x19\n" +
 	"\btab_pins\x18\x06 \x03(\tR\atabPins\x12.\n" +
-	"\x13tab_pins_customised\x18\a \x01(\bR\x11tabPinsCustomised\".\n" +
+	"\x13tab_pins_customised\x18\a \x01(\bR\x11tabPinsCustomised\x12%\n" +
+	"\x0esuggested_pins\x18\b \x03(\tR\rsuggestedPins\"(\n" +
+	"\x14RecordAppOpenRequest\x12\x10\n" +
+	"\x03app\x18\x01 \x01(\tR\x03app\"\x17\n" +
+	"\x15RecordAppOpenResponse\".\n" +
 	"\x11SetTabPinsRequest\x12\x19\n" +
 	"\btab_pins\x18\x01 \x03(\tR\atabPins\"\x14\n" +
 	"\x12SetTabPinsResponse\"O\n" +
@@ -1361,7 +1456,7 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\x1eRegenerateRecoveryCodesRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\"H\n" +
 	"\x1fRegenerateRecoveryCodesResponse\x12%\n" +
-	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes2\xd5\b\n" +
+	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes2\xa5\t\n" +
 	"\vAuthService\x129\n" +
 	"\x06SignIn\x12\x16.auth.v1.SignInRequest\x1a\x17.auth.v1.SignInResponse\x12B\n" +
 	"\tMFAEnroll\x12\x19.auth.v1.MFAEnrollRequest\x1a\x1a.auth.v1.MFAEnrollResponse\x12T\n" +
@@ -1377,7 +1472,8 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\rResetPassword\x12\x1d.auth.v1.ResetPasswordRequest\x1a\x1e.auth.v1.ResetPasswordResponse\x12l\n" +
 	"\x17RegenerateRecoveryCodes\x12'.auth.v1.RegenerateRecoveryCodesRequest\x1a(.auth.v1.RegenerateRecoveryCodesResponse\x12E\n" +
 	"\n" +
-	"SetTabPins\x12\x1a.auth.v1.SetTabPinsRequest\x1a\x1b.auth.v1.SetTabPinsResponseB'Z%tools.xdoubleu.com/gen/auth/v1;authv1b\x06proto3"
+	"SetTabPins\x12\x1a.auth.v1.SetTabPinsRequest\x1a\x1b.auth.v1.SetTabPinsResponse\x12N\n" +
+	"\rRecordAppOpen\x12\x1d.auth.v1.RecordAppOpenRequest\x1a\x1e.auth.v1.RecordAppOpenResponseB'Z%tools.xdoubleu.com/gen/auth/v1;authv1b\x06proto3"
 
 var (
 	file_auth_v1_auth_proto_rawDescOnce sync.Once
@@ -1391,7 +1487,7 @@ func file_auth_v1_auth_proto_rawDescGZIP() []byte {
 	return file_auth_v1_auth_proto_rawDescData
 }
 
-var file_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_auth_v1_auth_proto_goTypes = []any{
 	(*SignInRequest)(nil),                   // 0: auth.v1.SignInRequest
 	(*SignInResponse)(nil),                  // 1: auth.v1.SignInResponse
@@ -1415,12 +1511,14 @@ var file_auth_v1_auth_proto_goTypes = []any{
 	(*SignOutResponse)(nil),                 // 19: auth.v1.SignOutResponse
 	(*GetCurrentUserRequest)(nil),           // 20: auth.v1.GetCurrentUserRequest
 	(*GetCurrentUserResponse)(nil),          // 21: auth.v1.GetCurrentUserResponse
-	(*SetTabPinsRequest)(nil),               // 22: auth.v1.SetTabPinsRequest
-	(*SetTabPinsResponse)(nil),              // 23: auth.v1.SetTabPinsResponse
-	(*ResetPasswordRequest)(nil),            // 24: auth.v1.ResetPasswordRequest
-	(*ResetPasswordResponse)(nil),           // 25: auth.v1.ResetPasswordResponse
-	(*RegenerateRecoveryCodesRequest)(nil),  // 26: auth.v1.RegenerateRecoveryCodesRequest
-	(*RegenerateRecoveryCodesResponse)(nil), // 27: auth.v1.RegenerateRecoveryCodesResponse
+	(*RecordAppOpenRequest)(nil),            // 22: auth.v1.RecordAppOpenRequest
+	(*RecordAppOpenResponse)(nil),           // 23: auth.v1.RecordAppOpenResponse
+	(*SetTabPinsRequest)(nil),               // 24: auth.v1.SetTabPinsRequest
+	(*SetTabPinsResponse)(nil),              // 25: auth.v1.SetTabPinsResponse
+	(*ResetPasswordRequest)(nil),            // 26: auth.v1.ResetPasswordRequest
+	(*ResetPasswordResponse)(nil),           // 27: auth.v1.ResetPasswordResponse
+	(*RegenerateRecoveryCodesRequest)(nil),  // 28: auth.v1.RegenerateRecoveryCodesRequest
+	(*RegenerateRecoveryCodesResponse)(nil), // 29: auth.v1.RegenerateRecoveryCodesResponse
 }
 var file_auth_v1_auth_proto_depIdxs = []int32{
 	0,  // 0: auth.v1.AuthService.SignIn:input_type -> auth.v1.SignInRequest
@@ -1434,25 +1532,27 @@ var file_auth_v1_auth_proto_depIdxs = []int32{
 	16, // 8: auth.v1.AuthService.UpdatePassword:input_type -> auth.v1.UpdatePasswordRequest
 	18, // 9: auth.v1.AuthService.SignOut:input_type -> auth.v1.SignOutRequest
 	20, // 10: auth.v1.AuthService.GetCurrentUser:input_type -> auth.v1.GetCurrentUserRequest
-	24, // 11: auth.v1.AuthService.ResetPassword:input_type -> auth.v1.ResetPasswordRequest
-	26, // 12: auth.v1.AuthService.RegenerateRecoveryCodes:input_type -> auth.v1.RegenerateRecoveryCodesRequest
-	22, // 13: auth.v1.AuthService.SetTabPins:input_type -> auth.v1.SetTabPinsRequest
-	1,  // 14: auth.v1.AuthService.SignIn:output_type -> auth.v1.SignInResponse
-	3,  // 15: auth.v1.AuthService.MFAEnroll:output_type -> auth.v1.MFAEnrollResponse
-	5,  // 16: auth.v1.AuthService.MFAEnrollVerify:output_type -> auth.v1.MFAEnrollVerifyResponse
-	7,  // 17: auth.v1.AuthService.MFAEnrollSkip:output_type -> auth.v1.MFAEnrollSkipResponse
-	11, // 18: auth.v1.AuthService.MFAChallenge:output_type -> auth.v1.MFAChallengeResponse
-	9,  // 19: auth.v1.AuthService.MFAUnenroll:output_type -> auth.v1.MFAUnenrollResponse
-	13, // 20: auth.v1.AuthService.ForgotPassword:output_type -> auth.v1.ForgotPasswordResponse
-	15, // 21: auth.v1.AuthService.ExchangeToken:output_type -> auth.v1.ExchangeTokenResponse
-	17, // 22: auth.v1.AuthService.UpdatePassword:output_type -> auth.v1.UpdatePasswordResponse
-	19, // 23: auth.v1.AuthService.SignOut:output_type -> auth.v1.SignOutResponse
-	21, // 24: auth.v1.AuthService.GetCurrentUser:output_type -> auth.v1.GetCurrentUserResponse
-	25, // 25: auth.v1.AuthService.ResetPassword:output_type -> auth.v1.ResetPasswordResponse
-	27, // 26: auth.v1.AuthService.RegenerateRecoveryCodes:output_type -> auth.v1.RegenerateRecoveryCodesResponse
-	23, // 27: auth.v1.AuthService.SetTabPins:output_type -> auth.v1.SetTabPinsResponse
-	14, // [14:28] is the sub-list for method output_type
-	0,  // [0:14] is the sub-list for method input_type
+	26, // 11: auth.v1.AuthService.ResetPassword:input_type -> auth.v1.ResetPasswordRequest
+	28, // 12: auth.v1.AuthService.RegenerateRecoveryCodes:input_type -> auth.v1.RegenerateRecoveryCodesRequest
+	24, // 13: auth.v1.AuthService.SetTabPins:input_type -> auth.v1.SetTabPinsRequest
+	22, // 14: auth.v1.AuthService.RecordAppOpen:input_type -> auth.v1.RecordAppOpenRequest
+	1,  // 15: auth.v1.AuthService.SignIn:output_type -> auth.v1.SignInResponse
+	3,  // 16: auth.v1.AuthService.MFAEnroll:output_type -> auth.v1.MFAEnrollResponse
+	5,  // 17: auth.v1.AuthService.MFAEnrollVerify:output_type -> auth.v1.MFAEnrollVerifyResponse
+	7,  // 18: auth.v1.AuthService.MFAEnrollSkip:output_type -> auth.v1.MFAEnrollSkipResponse
+	11, // 19: auth.v1.AuthService.MFAChallenge:output_type -> auth.v1.MFAChallengeResponse
+	9,  // 20: auth.v1.AuthService.MFAUnenroll:output_type -> auth.v1.MFAUnenrollResponse
+	13, // 21: auth.v1.AuthService.ForgotPassword:output_type -> auth.v1.ForgotPasswordResponse
+	15, // 22: auth.v1.AuthService.ExchangeToken:output_type -> auth.v1.ExchangeTokenResponse
+	17, // 23: auth.v1.AuthService.UpdatePassword:output_type -> auth.v1.UpdatePasswordResponse
+	19, // 24: auth.v1.AuthService.SignOut:output_type -> auth.v1.SignOutResponse
+	21, // 25: auth.v1.AuthService.GetCurrentUser:output_type -> auth.v1.GetCurrentUserResponse
+	27, // 26: auth.v1.AuthService.ResetPassword:output_type -> auth.v1.ResetPasswordResponse
+	29, // 27: auth.v1.AuthService.RegenerateRecoveryCodes:output_type -> auth.v1.RegenerateRecoveryCodesResponse
+	25, // 28: auth.v1.AuthService.SetTabPins:output_type -> auth.v1.SetTabPinsResponse
+	23, // 29: auth.v1.AuthService.RecordAppOpen:output_type -> auth.v1.RecordAppOpenResponse
+	15, // [15:30] is the sub-list for method output_type
+	0,  // [0:15] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name
@@ -1469,7 +1569,7 @@ func file_auth_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_v1_auth_proto_rawDesc), len(file_auth_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   28,
+			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

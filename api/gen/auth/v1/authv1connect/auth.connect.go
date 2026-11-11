@@ -54,6 +54,8 @@ const (
 	AuthServiceRegenerateRecoveryCodesProcedure = "/auth.v1.AuthService/RegenerateRecoveryCodes"
 	// AuthServiceSetTabPinsProcedure is the procedure name of the AuthService's SetTabPins RPC.
 	AuthServiceSetTabPinsProcedure = "/auth.v1.AuthService/SetTabPins"
+	// AuthServiceRecordAppOpenProcedure is the procedure name of the AuthService's RecordAppOpen RPC.
+	AuthServiceRecordAppOpenProcedure = "/auth.v1.AuthService/RecordAppOpen"
 )
 
 var (
@@ -155,6 +157,13 @@ var (
 			Procedure:  AuthServiceSetTabPinsProcedure,
 		}
 	})
+	authServiceRecordAppOpenSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("RecordAppOpen"),
+			Procedure:  AuthServiceRecordAppOpenProcedure,
+		}
+	})
 )
 
 // AuthServiceClient is a client for the auth.v1.AuthService service.
@@ -173,6 +182,7 @@ type AuthServiceClient interface {
 	ResetPassword(context.Context, *v1.ResetPasswordRequest) (*v1.ResetPasswordResponse, error)
 	RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error)
 	SetTabPins(context.Context, *v1.SetTabPinsRequest) (*v1.SetTabPinsResponse, error)
+	RecordAppOpen(context.Context, *v1.RecordAppOpenRequest) (*v1.RecordAppOpenResponse, error)
 }
 
 // NewAuthServiceClient constructs a client for the auth.v1.AuthService service. Multiple service
@@ -197,6 +207,7 @@ type AuthServiceHandler interface {
 	ResetPassword(context.Context, *v1.ResetPasswordRequest) (*v1.ResetPasswordResponse, error)
 	RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error)
 	SetTabPins(context.Context, *v1.SetTabPinsRequest) (*v1.SetTabPinsResponse, error)
+	RecordAppOpen(context.Context, *v1.RecordAppOpenRequest) (*v1.RecordAppOpenResponse, error)
 }
 
 // RegisterAuthServiceHandler registers svc as the auth.v1.AuthService implementation on server.
@@ -217,6 +228,7 @@ func RegisterAuthServiceHandler(server *connect.Server, svc AuthServiceHandler) 
 		connect.Method{Spec: authServiceResetPasswordSpec(), Handler: adapter.resetPassword},
 		connect.Method{Spec: authServiceRegenerateRecoveryCodesSpec(), Handler: adapter.regenerateRecoveryCodes},
 		connect.Method{Spec: authServiceSetTabPinsSpec(), Handler: adapter.setTabPins},
+		connect.Method{Spec: authServiceRecordAppOpenSpec(), Handler: adapter.recordAppOpen},
 	)
 }
 
@@ -277,6 +289,10 @@ func (UnimplementedAuthServiceHandler) RegenerateRecoveryCodes(context.Context, 
 
 func (UnimplementedAuthServiceHandler) SetTabPins(context.Context, *v1.SetTabPinsRequest) (*v1.SetTabPinsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.SetTabPins is not implemented")
+}
+
+func (UnimplementedAuthServiceHandler) RecordAppOpen(context.Context, *v1.RecordAppOpenRequest) (*v1.RecordAppOpenResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.RecordAppOpen is not implemented")
 }
 
 type authServiceClient struct {
@@ -390,6 +406,14 @@ func (c *authServiceClient) RegenerateRecoveryCodes(ctx context.Context, req *v1
 func (c *authServiceClient) SetTabPins(ctx context.Context, req *v1.SetTabPinsRequest) (*v1.SetTabPinsResponse, error) {
 	var res v1.SetTabPinsResponse
 	if err := c.client.CallUnary(ctx, authServiceSetTabPinsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) RecordAppOpen(ctx context.Context, req *v1.RecordAppOpenRequest) (*v1.RecordAppOpenResponse, error) {
+	var res v1.RecordAppOpenResponse
+	if err := c.client.CallUnary(ctx, authServiceRecordAppOpenSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -559,6 +583,18 @@ func (h authServiceHandler) setTabPins(ctx context.Context, _ connect.Spec, stre
 		return err
 	}
 	res, err := h.svc.SetTabPins(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) recordAppOpen(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RecordAppOpenRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RecordAppOpen(ctx, &req)
 	if err != nil {
 		return err
 	}

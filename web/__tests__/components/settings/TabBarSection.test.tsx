@@ -11,7 +11,12 @@ vi.mock('@/hooks/useAuth', () => ({
 
 import { useCurrentUser } from '@/hooks/useAuth'
 
-function user(init: { appAccess: string[]; tabPins?: string[]; tabPinsCustomised?: boolean }) {
+function user(init: {
+  appAccess: string[]
+  tabPins?: string[]
+  tabPinsCustomised?: boolean
+  suggestedPins?: string[]
+}) {
   // @ts-expect-error -- mock returns partial hook response for test purposes
   vi.mocked(useCurrentUser).mockReturnValue({
     data: create(GetCurrentUserResponseSchema, { role: 'user', ...init })
@@ -101,6 +106,24 @@ describe('TabBarSection', () => {
     user({ appAccess: ['books'] })
     render(<TabBarSection />)
     expect(screen.queryByRole('list', { name: 'Other apps' })).not.toBeInTheDocument()
+  })
+
+  it('resets to the most used apps once the user has chosen', async () => {
+    user({
+      appAccess: ['books', 'feeds', 'recipes', 'trains'],
+      tabPins: ['books'],
+      tabPinsCustomised: true,
+      suggestedPins: ['recipes', 'trains', 'feeds']
+    })
+    render(<TabBarSection />)
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to most used' }))
+    await waitFor(() => expect(mockSetTabPins).toHaveBeenCalledWith(['recipes', 'trains', 'feeds']))
+  })
+
+  it('offers no reset before the user has chosen', () => {
+    user({ appAccess: ['books'], suggestedPins: ['books'] })
+    render(<TabBarSection />)
+    expect(screen.queryByRole('button', { name: 'Reset to most used' })).not.toBeInTheDocument()
   })
 
   it('says so when nothing is pinned', () => {
