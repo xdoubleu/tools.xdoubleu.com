@@ -17,7 +17,7 @@ beforeEach(() => vi.clearAllMocks())
 describe('WatchpartyPage', () => {
   it('renders the title and room actions', () => {
     render(<WatchpartyPage />)
-    expect(screen.getByRole('heading', { name: 'Watch Party' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Watch party' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Create Room' })).toBeInTheDocument()
   })
 

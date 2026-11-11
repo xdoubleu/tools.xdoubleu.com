@@ -8,8 +8,13 @@ describe('PageContainer', () => {
     expect(screen.getByText('Hello')).toBeInTheDocument()
   })
 
-  it('applies no max-width by default', () => {
+  it('caps reading and collection pages at max-w-5xl by default', () => {
     const { container } = render(<PageContainer>content</PageContainer>)
+    expect(container.firstChild).toHaveClass('max-w-5xl')
+  })
+
+  it('applies no max-width for size="wide"', () => {
+    const { container } = render(<PageContainer size="wide">content</PageContainer>)
     expect(container.innerHTML).not.toMatch(/max-w-/)
   })
 

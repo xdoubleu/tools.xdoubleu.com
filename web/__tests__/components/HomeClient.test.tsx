@@ -59,10 +59,10 @@ describe('HomeClient', () => {
       expect(screen.getByText('Games')).toBeInTheDocument()
       expect(screen.getByText('Books')).toBeInTheDocument()
       expect(screen.getByText('Feeds')).toBeInTheDocument()
-      expect(screen.getByText('Watch Party')).toBeInTheDocument()
+      expect(screen.getByText('Watch party')).toBeInTheDocument()
       expect(screen.getByText('Recipes')).toBeInTheDocument()
-      expect(screen.getByText('Meal Plans')).toBeInTheDocument()
-      expect(screen.getByText('Shopping List')).toBeInTheDocument()
+      expect(screen.getByText('Meal plans')).toBeInTheDocument()
+      expect(screen.getByText('Shopping list')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
       expect(screen.getByText('Family')).toBeInTheDocument()
     })
@@ -72,10 +72,10 @@ describe('HomeClient', () => {
       'href',
       '/dashboard/reading'
     )
-    expect(screen.getByRole('link', { name: /Watch Party/ })).toHaveAttribute('href', '/watchparty')
+    expect(screen.getByRole('link', { name: /Watch party/ })).toHaveAttribute('href', '/watchparty')
     expect(screen.getByRole('link', { name: /Recipes/ })).toHaveAttribute('href', '/recipes/list')
-    expect(screen.getByRole('link', { name: /Meal Plans/ })).toHaveAttribute('href', '/mealplans')
-    expect(screen.getByRole('link', { name: /Shopping List/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Meal plans/ })).toHaveAttribute('href', '/mealplans')
+    expect(screen.getByRole('link', { name: /Shopping list/ })).toHaveAttribute(
       'href',
       '/shoppinglist'
     )
@@ -309,7 +309,7 @@ describe('HomeClient', () => {
       expect(screen.getByText('Family')).toBeInTheDocument()
     })
 
-    expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
+    expect(screen.queryByText('Watch party')).not.toBeInTheDocument()
     expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
     expect(screen.queryByText('Grafana')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Tools' })).not.toBeInTheDocument()
@@ -414,10 +414,10 @@ describe('HomeClient', () => {
       expect(screen.getByText('Games')).toBeInTheDocument()
       expect(screen.getByText('Books')).toBeInTheDocument()
       expect(screen.getByText('Feeds')).toBeInTheDocument()
-      expect(screen.getByText('Watch Party')).toBeInTheDocument()
+      expect(screen.getByText('Watch party')).toBeInTheDocument()
       expect(screen.getByText('Recipes')).toBeInTheDocument()
-      expect(screen.getByText('Meal Plans')).toBeInTheDocument()
-      expect(screen.getByText('Shopping List')).toBeInTheDocument()
+      expect(screen.getByText('Meal plans')).toBeInTheDocument()
+      expect(screen.getByText('Shopping list')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
       expect(screen.getByText('Family')).toBeInTheDocument()
     })
@@ -441,7 +441,7 @@ describe('HomeClient', () => {
     expect(screen.queryByText('Games')).not.toBeInTheDocument()
     expect(screen.queryByText('Books')).not.toBeInTheDocument()
     expect(screen.queryByText('Feeds')).not.toBeInTheDocument()
-    expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
+    expect(screen.queryByText('Watch party')).not.toBeInTheDocument()
     expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
     expect(screen.queryByText('Admin')).not.toBeInTheDocument()
   })

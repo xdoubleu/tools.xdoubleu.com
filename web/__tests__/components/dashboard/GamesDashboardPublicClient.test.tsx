@@ -90,7 +90,7 @@ describe('GamesDashboardPublicClient', () => {
     expect(link).toHaveAttribute('href', '/dashboard/games/tok-1/library')
 
     expect(screen.queryByPlaceholderText('Search games…')).not.toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Not Started (1)' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Not started (1)' })).not.toBeInTheDocument()
   })
 
   it('links recent game cards to the public game pages', () => {

@@ -24,8 +24,8 @@ export default function QuizClient({ id, moduleId }: { id: string; moduleId: str
       <PageHeader
         title={quizModule ? `Quiz: ${quizModule.title}` : 'Quiz'}
         breadcrumb={[
-          { label: 'Learning Paths', href: '/learningpaths/list' },
-          { label: learningPath?.title ?? 'Learning Path', href: pathHref },
+          { label: 'Learning paths', href: '/learningpaths/list' },
+          { label: learningPath?.title ?? 'Learning path', href: pathHref },
           { label: 'Quiz' }
         ]}
       />

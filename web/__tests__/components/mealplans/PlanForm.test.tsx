@@ -37,7 +37,7 @@ beforeEach(() => {
 describe('PlanForm', () => {
   it('renders name input and iCal controls', () => {
     render(<PlanForm plan={existingPlan} onSave={vi.fn()} onCancel={vi.fn()} />)
-    expect(screen.getByLabelText(/Plan Name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Plan name/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Breakfast/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Noon/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Evening/i)).toBeInTheDocument()
@@ -46,7 +46,7 @@ describe('PlanForm', () => {
 
   it('pre-fills name from existing plan', () => {
     render(<PlanForm plan={existingPlan} onSave={vi.fn()} onCancel={vi.fn()} />)
-    expect(screen.getByLabelText(/Plan Name/i)).toHaveValue('Existing Plan')
+    expect(screen.getByLabelText(/Plan name/i)).toHaveValue('Existing Plan')
   })
 
   it('pre-checks hidden slots', () => {

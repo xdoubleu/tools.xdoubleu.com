@@ -9,7 +9,7 @@ export default function NewRecipePage() {
   return (
     <PageContainer size="form">
       <PageHeader
-        title="New Recipe"
+        title="New recipe"
         breadcrumb={[{ label: 'Recipes', href: '/recipes/list' }, { label: 'New' }]}
       />
       <RecipeForm

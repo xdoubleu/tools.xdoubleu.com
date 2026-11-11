@@ -119,7 +119,7 @@ export default function ExportDialog({ customItems, mealItems, onClose }: Export
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent side="sheet" className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Export Shopping List</DialogTitle>
+          <DialogTitle>Export shopping list</DialogTitle>
           <DialogClose aria-label="Close">×</DialogClose>
         </DialogHeader>
 

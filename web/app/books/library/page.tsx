@@ -6,10 +6,10 @@ import AddBookButton from '@/components/books/AddBookButton'
 
 export default function BacklogBooksLibraryPage() {
   return (
-    <PageContainer>
+    <PageContainer size="wide">
       <PageHeader
         breadcrumb={[{ label: 'Books', href: '/dashboard/reading' }, { label: 'Library' }]}
-        title="Library"
+        title="Books library"
         actions={
           <>
             <LibraryAdminButton />

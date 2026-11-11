@@ -19,11 +19,11 @@ export default function PlansListClient() {
   return (
     <PageContainer>
       <PageHeader
-        title="Meal Plan"
+        title="Meal plan"
         actions={
           // Listing creates the first plan, so a re-list fills an empty list.
           data?.plans.length === 0 && (
-            <Button onClick={() => void mutate()}>Create Meal Plan</Button>
+            <Button onClick={() => void mutate()}>Create meal plan</Button>
           )
         }
       />

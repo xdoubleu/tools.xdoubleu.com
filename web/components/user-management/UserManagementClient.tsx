@@ -105,7 +105,7 @@ export default function UserManagementClient() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer size="wide">
       <PageHeader
         title="User management"
         actions={<PageHeaderLink href="/user-management/agents">Agents</PageHeaderLink>}

@@ -239,3 +239,14 @@ button:not([disabled]) {
   height: 100%;
   border: 0;
 }
+
+/* Native <select> with the system picker kept: the arrow is drawn here so it matches the
+   control height scale and sits inside the padding in light and dark. */
+@utility select-chevron {
+  appearance: none;
+  padding-right: 2.25rem;
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%238e8e93' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+}

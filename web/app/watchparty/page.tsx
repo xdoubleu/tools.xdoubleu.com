@@ -45,7 +45,7 @@ export default function WatchpartyPage() {
 
   return (
     <PageContainer size="narrow">
-      <PageHeader title="Watch Party" />
+      <PageHeader title="Watch party" />
 
       <div className="mb-8">
         <Button size="lg" className="w-full" onClick={handleCreate} disabled={loading}>

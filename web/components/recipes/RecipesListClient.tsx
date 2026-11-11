@@ -48,7 +48,7 @@ export default function RecipesListClient() {
         title="Recipes"
         actions={
           <Button asChild>
-            <Link href="/recipes/new">New Recipe</Link>
+            <Link href="/recipes/new">New recipe</Link>
           </Button>
         }
       />

@@ -88,7 +88,7 @@ export default function ShoppingListPageClient() {
   return (
     <PageContainer>
       <PageHeader
-        title="Shopping List"
+        title="Shopping list"
         actions={<PageHeaderSettingsLink href="/shoppinglist/settings" />}
       />
 

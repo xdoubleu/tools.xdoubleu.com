@@ -80,25 +80,25 @@ const ALL_APPS: AppLink[] = [
   { name: 'recipes', label: 'Recipes', href: '/recipes/list', description: 'Recipe management' },
   {
     name: 'learningpaths',
-    label: 'Learning Paths',
+    label: 'Learning paths',
     href: '/learningpaths/list',
     description: 'Self-directed curricula with modules, items and progress tracking'
   },
   {
     name: 'mealplans',
-    label: 'Meal Plans',
+    label: 'Meal plans',
     href: '/mealplans',
     description: 'Weekly meal planning'
   },
   {
     name: 'shoppinglist',
-    label: 'Shopping List',
+    label: 'Shopping list',
     href: '/shoppinglist',
     description: 'Generate shopping lists from meal plans'
   },
   {
     name: 'watchparty',
-    label: 'Watch Party',
+    label: 'Watch party',
     href: '/watchparty',
     description: 'WebRTC screen sharing'
   },

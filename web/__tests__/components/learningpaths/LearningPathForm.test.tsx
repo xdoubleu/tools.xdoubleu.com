@@ -62,7 +62,7 @@ describe('LearningPathForm (new)', () => {
     expect(screen.getByText('Recurring routine')).toBeInTheDocument()
     expect(screen.getByText('Modules')).toBeInTheDocument()
     expect(screen.getByText('Resources')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Save Learning Path' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save learning path' })).toBeInTheDocument()
   })
 
   it('names the module, item and resource fields within their groups', () => {
@@ -79,7 +79,7 @@ describe('LearningPathForm (new)', () => {
     let resolve: (v: unknown) => void = () => {}
     mockCreateLearningPath.mockReturnValue(new Promise((r) => (resolve = r)))
     render(<LearningPathForm onSave={vi.fn()} onCancel={vi.fn()} />)
-    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+    fireEvent.submit(screen.getByRole('button', { name: 'Save learning path' }).closest('form')!)
     expect(await screen.findByRole('button', { name: 'Saving…' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
     resolve({ learningPath: { id: 'x' } })
@@ -124,7 +124,7 @@ describe('LearningPathForm (new)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mock link book' }))
     expect(screen.getByText('Linked book: Dune')).toBeInTheDocument()
 
-    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+    fireEvent.submit(screen.getByRole('button', { name: 'Save learning path' }).closest('form')!)
 
     await waitFor(() => {
       expect(mockCreateLearningPath).toHaveBeenCalledWith(
@@ -162,7 +162,7 @@ describe('LearningPathForm (new)', () => {
     render(<LearningPathForm onSave={vi.fn()} onCancel={vi.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Mock link book' }))
-    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+    fireEvent.submit(screen.getByRole('button', { name: 'Save learning path' }).closest('form')!)
 
     await waitFor(() => {
       expect(mockCreateLearningPath).toHaveBeenCalledWith(
@@ -187,7 +187,7 @@ describe('LearningPathForm (new)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Link book' }))
     fireEvent.click(screen.getByRole('button', { name: 'Mock pick item book' }))
 
-    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+    fireEvent.submit(screen.getByRole('button', { name: 'Save learning path' }).closest('form')!)
 
     await waitFor(() => {
       expect(mockCreateLearningPath).toHaveBeenCalledWith(
@@ -228,7 +228,7 @@ describe('LearningPathForm (new)', () => {
     fireEvent.change(screen.getByPlaceholderText('Description'), {
       target: { value: 'Read the tour of Go' }
     })
-    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+    fireEvent.submit(screen.getByRole('button', { name: 'Save learning path' }).closest('form')!)
 
     await waitFor(() => {
       expect(mockCreateLearningPath).toHaveBeenCalledWith(
@@ -307,7 +307,7 @@ describe('LearningPathForm (edit)', () => {
     mockUpdateLearningPath.mockResolvedValue({ learningPath: { id: 'lp-1' } })
     render(<LearningPathForm learningPath={learningPath} onSave={onSave} onCancel={vi.fn()} />)
 
-    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+    fireEvent.submit(screen.getByRole('button', { name: 'Save learning path' }).closest('form')!)
 
     await waitFor(() => {
       expect(mockUpdateLearningPath).toHaveBeenCalledWith(
@@ -346,7 +346,7 @@ describe('LearningPathForm (edit)', () => {
     mockUpdateLearningPath.mockResolvedValue({ learningPath: { id: 'lp-1' } })
     render(<LearningPathForm learningPath={withQuizAndDue} onSave={vi.fn()} onCancel={vi.fn()} />)
 
-    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+    fireEvent.submit(screen.getByRole('button', { name: 'Save learning path' }).closest('form')!)
 
     await waitFor(() => {
       expect(mockUpdateLearningPath).toHaveBeenCalledWith(
@@ -386,7 +386,7 @@ describe('LearningPathForm (edit)', () => {
     fireEvent.change(screen.getByLabelText('checkpoint'), {
       target: { value: 'every sun at 18:00' }
     })
-    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+    fireEvent.submit(screen.getByRole('button', { name: 'Save learning path' }).closest('form')!)
 
     await waitFor(() => {
       expect(mockUpdateLearningPath).toHaveBeenCalledWith(
@@ -404,7 +404,7 @@ describe('LearningPathForm (edit)', () => {
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Learn Go' } })
     fireEvent.change(screen.getByLabelText('Goal'), { target: { value: 'Ship it' } })
     fireEvent.change(screen.getByLabelText('Recurring routine'), { target: { value: 'Daily' } })
-    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+    fireEvent.submit(screen.getByRole('button', { name: 'Save learning path' }).closest('form')!)
 
     await waitFor(() =>
       expect(mockCreateLearningPath).toHaveBeenCalledWith(

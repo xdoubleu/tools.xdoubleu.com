@@ -78,8 +78,8 @@ export default function GamesLibrary() {
   }
   const groups = [
     { shelf: 'favourites', title: 'Favourites', games: favourites },
-    { shelf: 'in-progress', title: 'In Progress', games: inProgress },
-    { shelf: 'not-started', title: 'Not Started', games: notStarted },
+    { shelf: 'in-progress', title: 'In progress', games: inProgress },
+    { shelf: 'not-started', title: 'Not started', games: notStarted },
     { shelf: 'done', title: 'Completed', games: completed }
   ]
   const onWishlist = shelf === 'wishlist'
