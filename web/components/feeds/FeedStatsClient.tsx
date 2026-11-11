@@ -2,6 +2,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useFeedStats } from '@/hooks/useFeeds'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
+import { formatDate } from '@/lib/dates'
+import { formatNumber, formatPercent } from '@/lib/format'
 
 const tooltipContentStyle = {
   backgroundColor: 'var(--color-surface)',
@@ -14,7 +16,7 @@ const tooltipContentStyle = {
 function formatInterval(hours: number): string {
   if (hours <= 0) return 'not enough data yet'
   if (hours < 24) return `every ~${Math.round(hours)}h`
-  return `every ~${(hours / 24).toFixed(1)}d`
+  return `every ~${formatNumber(hours / 24)}d`
 }
 
 function formatPct(fraction: number): string {
@@ -31,7 +33,7 @@ export default function FeedStatsClient() {
   }
 
   const chartData = data.itemsPerDay.map((d) => ({
-    day: new Date(d.day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+    day: formatDate(d.day),
     count: d.count
   }))
 
@@ -85,7 +87,7 @@ export default function FeedStatsClient() {
               </div>
               <div className="flex justify-between">
                 <dt>Avg completion</dt>
-                <dd className="text-fg">{Math.round(s.avgReadProgressPct)}%</dd>
+                <dd className="text-fg">{formatPercent(s.avgReadProgressPct)}</dd>
               </div>
             </dl>
           </Card>

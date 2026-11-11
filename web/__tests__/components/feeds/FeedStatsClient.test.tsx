@@ -76,7 +76,7 @@ describe('FeedStatsClient', () => {
     expect(screen.getByText('12')).toBeInTheDocument()
     expect(screen.getByText('every ~1.5d')).toBeInTheDocument()
     expect(screen.getByText('75%')).toBeInTheDocument()
-    expect(screen.getByText('82%')).toBeInTheDocument()
+    expect(screen.getByText('82.4%')).toBeInTheDocument()
 
     expect(screen.getByText('Untitled feed')).toBeInTheDocument()
     expect(screen.getByText('not enough data yet')).toBeInTheDocument()

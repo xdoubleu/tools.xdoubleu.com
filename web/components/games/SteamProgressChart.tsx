@@ -7,6 +7,10 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts'
+import { axisDate } from '@/lib/dates'
+
+// Stryker disable next-line ObjectLiteral: chart styling.
+const AXIS_TICK = { fontSize: 11 }
 
 interface SteamProgressChartProps {
   data: { label: string; value: number }[]
@@ -17,7 +21,7 @@ export default function SteamProgressChart({ data }: SteamProgressChartProps) {
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+        <XAxis dataKey="label" tick={AXIS_TICK} tickFormatter={axisDate} />
         <YAxis />
         <Tooltip
           cursor={{ stroke: 'var(--color-border)' }}

@@ -335,8 +335,8 @@ describe('GamesLibrary', () => {
     expect(screen.getByText('Celeste')).toBeInTheDocument()
     expect(screen.getByText('In progress (1)')).toBeInTheDocument()
     expect(screen.getByText('Not started (1)')).toBeInTheDocument()
-    expect(screen.getByText('Completion: 60.00%')).toBeInTheDocument()
-    expect(screen.getByText('Completion: 0.00%')).toBeInTheDocument()
+    expect(screen.getByText('Completion: 60%')).toBeInTheDocument()
+    expect(screen.getByText('Completion: 0%')).toBeInTheDocument()
   })
 
   it('filters games by the search input', () => {

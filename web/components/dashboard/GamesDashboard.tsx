@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { useDashboardChartState } from '@/hooks/useDashboardChartState'
 import { swrKeys } from '@/lib/swrKeys'
+import { formatDateTime } from '@/lib/dates'
 
 export default function GamesDashboard() {
   const router = useRouter()
@@ -55,7 +56,7 @@ export default function GamesDashboard() {
         <>
           <GamesSearch className="basis-full sm:mr-auto sm:max-w-xs sm:flex-1 sm:basis-auto" />
           {lastRefresh && (
-            <span className="text-xs text-muted">Last: {lastRefresh.toLocaleString('en-GB')}</span>
+            <span className="text-xs text-muted">Last: {formatDateTime(lastRefresh)}</span>
           )}
           <Button variant="secondary" onClick={refresh} disabled={isRefreshing}>
             {isRefreshing ? 'Refreshing…' : 'Refresh'}

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { cn } from '@/lib/cn'
 import { oneYearAgo, today } from '@/lib/dates'
+import { formatPercent } from '@/lib/format'
 
 // ponytail: panel width mirrors dialog.tsx's rightContentClass (`w-[calc(100%-3rem)] max-w-md`)
 // so the close handle sits flush on the panel's left edge; keep the two in sync.
@@ -42,7 +43,7 @@ function GamesStatsPanelContent() {
         <div className="flex flex-col gap-6">
           <div className="grid grid-cols-2 gap-3">
             <StatTile label="Total backlog" value={steam.totalBacklog} />
-            <StatTile label="Current rate" value={`${steam.currentRate}%`} />
+            <StatTile label="Current rate" value={formatPercent(steam.currentRate)} />
             <StatTile label="In progress" value={steam.inProgress.length} />
             <StatTile label="Completed" value={steam.completed.length} />
           </div>

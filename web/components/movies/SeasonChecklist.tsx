@@ -9,11 +9,12 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible } from '@/components/ui/collapsible'
 import { FieldError } from '@/components/ui/field-error'
 import { SectionHeading } from '@/components/ui/section-heading'
+import { formatDate } from '@/lib/dates'
 
 function seasonMeta(season: Season): string {
   const parts = [
     season.episodeCount ? `${season.episodeCount} episodes` : '',
-    season.aired ? season.airDate : 'Not aired yet',
+    season.aired ? formatDate(season.airDate) : 'Not aired yet',
     season.number === 0 ? "doesn't count toward status" : ''
   ]
   return parts.filter(Boolean).join(' · ')

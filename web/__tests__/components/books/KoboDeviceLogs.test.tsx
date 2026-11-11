@@ -47,6 +47,16 @@ it('shows empty state when no entries', () => {
   expect(screen.getByText(/^No requests captured yet/)).toBeInTheDocument()
 })
 
+it('shows an unparseable timestamp as sent', () => {
+  mockUseKoboDeviceLogs.mockReturnValue({
+    data: { entries: [{ ...entry, time: 'not a time' }] },
+    isLoading: false,
+    mutate: mockMutate
+  })
+  render(<KoboDeviceLogs deviceId="dev-1" />)
+  expect(screen.getByText(/not a time/)).toBeInTheDocument()
+})
+
 it('renders captured entries with method, path, status and bodies', () => {
   mockUseKoboDeviceLogs.mockReturnValue({
     data: { entries: [entry] },

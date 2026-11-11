@@ -74,7 +74,7 @@ describe('GamesStatsPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open library stats' }))
 
     expect(screen.getByText('Total backlog')).toBeInTheDocument()
-    expect(screen.getByText('50.00%')).toBeInTheDocument()
+    expect(screen.getByText('50%')).toBeInTheDocument()
     expect(screen.getByTestId('distribution-chart')).toBeInTheDocument()
     expect(screen.getByTestId('progress-chart')).toBeInTheDocument()
   })
