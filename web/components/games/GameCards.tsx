@@ -2,6 +2,7 @@ import type { Game } from '@/lib/gen/games/v1/games_pb'
 import { LinkCard } from '@/components/ui/link-card'
 import GameFavouriteButton from '@/components/games/GameFavouriteButton'
 import { SectionHeading } from '@/components/ui/section-heading'
+import { formatPercent } from '@/lib/format'
 
 // Shared by the owner library and public profiles; the caller picks the link
 // target and whether the favourite is an interactive toggle.
@@ -39,7 +40,7 @@ export function GameCard({
           )}
         </h3>
         <p className="text-sm text-muted">Playtime: {Math.round(game.playtime / 60)} hrs</p>
-        <p className="text-sm text-muted">Completion: {game.completionRate}%</p>
+        <p className="text-sm text-muted">Completion: {formatPercent(game.completionRate)}</p>
       </div>
     </LinkCard>
   )

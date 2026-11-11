@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { formatCustomNameLabel } from '@/lib/customItems'
-import { formatDate } from '@/lib/dates'
+import { formatDate, formatDateRange } from '@/lib/dates'
 
 interface MealPlanCalendarProps {
   plan: Plan
@@ -88,7 +88,7 @@ export default function MealPlanCalendar({
           ← Prev
         </Button>
         <span className="text-sm font-semibold text-fg text-center">
-          {weekDates[0].toLocaleDateString('en-GB')} – {weekDates[6].toLocaleDateString('en-GB')}
+          {formatDateRange(weekDates[0], weekDates[6])}
         </span>
         <Button variant="secondary" size="sm" onClick={onNextWeek}>
           Next →

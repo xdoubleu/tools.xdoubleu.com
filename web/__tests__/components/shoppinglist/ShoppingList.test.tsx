@@ -29,8 +29,8 @@ describe('ShoppingList', () => {
 
   it('renders items', () => {
     render(<ShoppingList items={items} />)
-    expect(screen.getByText(/2 cups - flour/)).toBeInTheDocument()
-    expect(screen.getByText(/1 L - milk/)).toBeInTheDocument()
+    expect(screen.getByText(/2 cups flour/)).toBeInTheDocument()
+    expect(screen.getByText(/1 L milk/)).toBeInTheDocument()
   })
 
   it('toggles item checked state', () => {
@@ -181,7 +181,7 @@ describe('ShoppingList', () => {
       fireEvent.click(screen.getByRole('button', { name: /Edit milk/ }))
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
       expect(onEdit).not.toHaveBeenCalled()
-      expect(screen.getByText(/1 L - milk/)).toBeInTheDocument()
+      expect(screen.getByText(/1 L milk/)).toBeInTheDocument()
     })
   })
 

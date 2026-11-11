@@ -68,7 +68,7 @@ describe('GamesDashboardPublicClient', () => {
     render(<GamesDashboardPublicClient token="tok-1" />)
 
     expect(screen.getByText('Total backlog')).toBeInTheDocument()
-    expect(screen.getByText('42.00%')).toBeInTheDocument()
+    expect(screen.getByText('42%')).toBeInTheDocument()
     expect(screen.getByText(/Last synced:/)).toBeInTheDocument()
   })
 

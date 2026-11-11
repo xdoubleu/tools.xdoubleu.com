@@ -7,6 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts'
+import { axisDate } from '@/lib/dates'
 import { EmptyState } from '@/components/ui/states'
 
 export interface ProgressPoint {
@@ -28,7 +29,13 @@ export default function BooksProgressChart({ data }: BooksProgressChartProps) {
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-          <XAxis dataKey="label" width={80} tick={{ fill: 'var(--color-muted)' }} />
+          <XAxis
+            dataKey="label"
+            width={80}
+            // Stryker disable next-line ObjectLiteral,StringLiteral: chart styling.
+            tick={{ fill: 'var(--color-muted)' }}
+            tickFormatter={axisDate}
+          />
           <YAxis tick={{ fill: 'var(--color-muted)' }} />
           <Tooltip
             contentStyle={{

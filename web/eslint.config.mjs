@@ -43,6 +43,12 @@ export default [
     }
   },
   {
+    // Values print through lib/dates.ts and lib/format.ts, the only files allowed toLocale*.
+    files: ['**/*.{ts,tsx}'],
+    ignores: ['lib/dates.ts', 'lib/format.ts'],
+    rules: { 'ui/no-tolocale': 'error' }
+  },
+  {
     // Interactive controls go through components/ui/ primitives
     // (docs/convention-ui-standards.md).
     files: ['components/**/*.tsx', 'app/**/*.tsx', 'src/**/*.tsx'],

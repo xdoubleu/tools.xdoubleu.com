@@ -89,7 +89,7 @@ describe('FeedFilteredItemsClient', () => {
     expect(first).toHaveTextContent('Claude blog')
     expect(within(first).getByText('Product announcements', { selector: 'span' })).toBeVisible()
     expect(first).toHaveTextContent('Category is Product announcements · Claude blog')
-    expect(first).toHaveTextContent('Filtered 01/09/2026')
+    expect(first).toHaveTextContent(/Filtered 1 Sep( 2026)?/)
 
     const second = row('A sponsored post')
     expect(second).toHaveTextContent('https://example.com/feed.xml')

@@ -125,7 +125,7 @@ describe('GamesDashboard', () => {
     mockNoProgress()
     render(<GamesDashboard />)
     expect(screen.getByText('Total backlog')).toBeInTheDocument()
-    expect(screen.getByText('50.00%')).toBeInTheDocument()
+    expect(screen.getByText('50%')).toBeInTheDocument()
     expect(screen.getByText('In progress')).toBeInTheDocument()
     expect(screen.getByText('Completed')).toBeInTheDocument()
   })
@@ -135,7 +135,7 @@ describe('GamesDashboard', () => {
     mockRecent()
     mockNoProgress()
     render(<GamesDashboard />)
-    expect(screen.getByText('Completion: 60.00%')).toBeInTheDocument()
+    expect(screen.getByText('Completion: 60%')).toBeInTheDocument()
   })
 
   it('renders recently active games linking to their detail page', () => {
@@ -145,7 +145,7 @@ describe('GamesDashboard', () => {
     render(<GamesDashboard />)
     const card = screen.getAllByText('Hades')[0]!
     expect(card.closest('a')).toHaveAttribute('href', '/games/10')
-    expect(screen.getByText(/Last played 01\/06\/2026/)).toBeInTheDocument()
+    expect(screen.getByText(/Last played 1 Jun/)).toBeInTheDocument()
   })
 
   it('renders the recent game icon with a locked square aspect ratio', () => {

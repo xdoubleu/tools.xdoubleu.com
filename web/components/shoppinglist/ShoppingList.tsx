@@ -10,6 +10,7 @@ import { RemoveButton } from '@/components/ui/remove-button'
 import { cn } from '@/lib/cn'
 import { focusById } from '@/lib/focusById'
 import { EmptyState } from '@/components/ui/states'
+import { formatQuantity } from '@/lib/format'
 
 export interface ShoppingItemEdit {
   name: string
@@ -157,7 +158,7 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
                           isChecked ? 'text-muted line-through' : 'text-fg'
                         )}
                       >
-                        {item.amount} {item.unit} - {item.name}
+                        {formatQuantity(item.amount, item.unit, item.name)}
                       </span>
                     }
                   />

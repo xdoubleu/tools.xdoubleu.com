@@ -32,6 +32,7 @@ The same job uses the same primitive everywhere. The inventory is [`web/componen
 - **Labels.** `Field`/`Label` for labelled controls; a control without a visible label gets `aria-label` (a placeholder is not a label).
 - **Theme tokens only.** Colours, shadows and radii come from `app/globals.css` (`ui/theme-tokens`). No `dark:`. `rounded-full` only for square circles, never a pill.
 - **Type and motion.** The Fraunces display face appears only through `PageHeader`, `SectionHeading` and `StatTile`; body stays sans. Motion uses the `ease-spring`, `duration-press` and `duration-settle` tokens, with plain fades under `motion-reduce`.
+- **Values print through `lib/dates.ts` and `lib/format.ts`** (`ui/no-tolocale`): short dates ("11 Nov", year only outside the current one), times without seconds, numbers with at most one decimal, `formatQuantity` (no amount when zero), `pluralize`. No `toLocale*` elsewhere.
 - Class overrides go through `cn()`, never a template literal. Pending labels end in `…`, never `...`. A hidden `<input type="file">` may disable `no-restricted-syntax` with a reason.
 - **Pinch-zoom is disabled** (the viewport meta in `web/index.html`), which makes 16px fields and 44px targets mandatory.
 

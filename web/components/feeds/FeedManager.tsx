@@ -8,6 +8,7 @@ import AddFeedForm from '@/components/feeds/AddFeedForm'
 import FeedExpirySelect from '@/components/feeds/FeedExpirySelect'
 import { useFeeds, useDeleteFeed, useRefreshFeed } from '@/hooks/useFeeds'
 import type { Feed } from '@/lib/gen/feeds/v1/feeds_pb'
+import { formatDateTime } from '@/lib/dates'
 
 function FeedRow({ feed }: { feed: Feed }) {
   const deleteFeed = useDeleteFeed()
@@ -77,7 +78,7 @@ function FeedRow({ feed }: { feed: Feed }) {
           {feed.lastFetchedAt && !feed.lastError && (
             <p className="text-xs text-muted">
               {isEmailFeed ? 'Verified — last email received' : 'Last fetched'}{' '}
-              {new Date(feed.lastFetchedAt).toLocaleString()}
+              {formatDateTime(feed.lastFetchedAt)}
             </p>
           )}
           {isEmailFeed && !feed.lastFetchedAt && !feed.lastError && (

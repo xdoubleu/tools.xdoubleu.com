@@ -2,6 +2,7 @@ import { prepareForExport, formatOrigins } from '@/lib/shoppinglist/shoppingExpo
 import type { ShoppingItem } from '@/lib/shoppinglist/shoppingExport'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { LoadingState } from '@/components/ui/states'
+import { formatQuantity } from '@/lib/format'
 
 interface MealPlanItemsPreviewProps {
   mealItems: ShoppingItem[]
@@ -26,7 +27,7 @@ export default function MealPlanItemsPreview({ mealItems, isLoading }: MealPlanI
       <ul className="space-y-1">
         {items.map((item, i) => (
           <li key={i} className="text-sm text-subtle">
-            {item.amount} {item.unit} — {item.name}
+            {formatQuantity(item.amount, item.unit, item.name)}
             {item.origins && item.origins.length > 0 && (
               <span className="text-muted">{formatOrigins(item.origins)}</span>
             )}

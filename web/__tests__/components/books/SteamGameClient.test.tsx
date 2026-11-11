@@ -356,7 +356,7 @@ describe('SteamGameClient', () => {
     })
 
     render(<SteamGameClient id="123" />)
-    expect(screen.getByText('Completion: 85.00%')).toBeInTheDocument()
+    expect(screen.getByText('Completion: 85%')).toBeInTheDocument()
   })
 
   it('displays achieved count in achievements header', () => {

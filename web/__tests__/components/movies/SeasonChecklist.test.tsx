@@ -45,7 +45,7 @@ describe('SeasonChecklist', () => {
     expect(
       screen.getByText("9 episodes · Not aired yet · doesn't count toward status")
     ).toBeInTheDocument()
-    expect(screen.getByText('7 episodes · 2008-01-20')).toBeInTheDocument()
+    expect(screen.getByText('7 episodes · 20 Jan 2008')).toBeInTheDocument()
     expect(screen.getByText('Not aired yet')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Watch dates \(1\)/ })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /Watch dates/ })).toHaveLength(1)

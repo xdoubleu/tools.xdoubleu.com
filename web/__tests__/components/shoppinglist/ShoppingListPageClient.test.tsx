@@ -184,7 +184,7 @@ describe('ShoppingPage meal-plan section', () => {
     render(<ShoppingListPageClient />)
 
     expect(screen.getByText('From meal plans')).toBeInTheDocument()
-    expect(screen.getByText(/2 cloves — garlic/)).toBeInTheDocument()
+    expect(screen.getByText(/2 cloves garlic/)).toBeInTheDocument()
     // The custom item still has an Edit button; the meal-plan item never does.
     expect(screen.queryByRole('button', { name: /Edit garlic/ })).not.toBeInTheDocument()
   })
@@ -238,9 +238,9 @@ describe('ShoppingPage meal-plan section', () => {
     }
     render(<ShoppingListPageClient />)
 
-    expect(screen.getByText(/1 L - Milk/)).toBeInTheDocument()
+    expect(screen.getByText(/1 L Milk/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Export' }))
-    expect(screen.getByText(/3 L — melk/)).toBeInTheDocument()
+    expect(screen.getByText(/3 L melk/)).toBeInTheDocument()
   })
 })
 

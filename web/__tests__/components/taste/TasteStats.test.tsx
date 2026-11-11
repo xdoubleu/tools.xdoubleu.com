@@ -94,14 +94,14 @@ describe('TasteStats', () => {
     mockStats({ data: full, error: new Error('nope'), isLoading: true })
     render(<TasteStats />)
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    expect(screen.getByText('3 liked · 1 disliked · last 02/10/2026')).toBeInTheDocument()
+    expect(screen.getByText(/^3 liked · 1 disliked · last 2 Oct/)).toBeInTheDocument()
   })
 
   it('shows tiles, the stacked chart and the ranked lists', () => {
     mockStats({ data: full })
     render(<TasteStats />)
 
-    expect(screen.getByText('3 liked · 1 disliked · last 02/10/2026')).toBeInTheDocument()
+    expect(screen.getByText(/^3 liked · 1 disliked · last 2 Oct/)).toBeInTheDocument()
     expect(screen.getAllByText('0 liked · 0 disliked')).toHaveLength(5)
     expect(screen.getAllByTestId('bar').map((b) => b.textContent)).toContain(
       'Books:events:rgb(var(--series-1-rgb))'

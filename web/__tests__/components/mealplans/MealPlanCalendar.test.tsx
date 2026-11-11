@@ -589,7 +589,7 @@ describe('MealPlanCalendar', () => {
     press()
     expect(document.activeElement).toHaveAccessibleName('Deselect Eggs')
 
-    screen.getAllByRole('button', { name: 'Place here: Breakfast, 26/05/2026' })[0].focus()
+    screen.getAllByRole('button', { name: /Place here: Breakfast, 26 May/ })[0].focus()
     press()
     await waitFor(() => expect(mockMoveMeal).toHaveBeenCalledTimes(1))
     expect(mockMoveMeal.mock.calls[0][0]).toMatchObject({ mealId: 'm1', newDate: '2026-05-26' })
@@ -672,10 +672,10 @@ describe('MealPlanCalendar', () => {
     expect(mockOnNextWeek).toHaveBeenCalledTimes(1)
   })
 
-  it('shows week date range in dd/mm/yyyy format', () => {
+  it('shows the week date range as a short range', () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     // Mock week: 2026-05-25 to 2026-05-31
-    expect(screen.getByText('25/05/2026 – 31/05/2026')).toBeInTheDocument()
+    expect(screen.getByText(/^25–31 May/)).toBeInTheDocument()
   })
 
   it('shows edit button on meal card', () => {

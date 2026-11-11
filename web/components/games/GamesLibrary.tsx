@@ -13,6 +13,7 @@ import GamesWishlist from '@/components/games/GamesWishlist'
 import { ShelfSidebar } from '@/components/ui/shelf-sidebar'
 import { GameGroup } from '@/components/games/GameCards'
 import { swrKeys } from '@/lib/swrKeys'
+import { formatDateTime } from '@/lib/dates'
 
 const ownerGameHref = (game: Game) => `/games/${game.id}`
 
@@ -105,7 +106,7 @@ export default function GamesLibrary() {
         trailing={
           <>
             {lastRefresh && !isRefreshing && (
-              <span className="text-xs">Last: {lastRefresh.toLocaleString('en-GB')}</span>
+              <span className="text-xs">Last: {formatDateTime(lastRefresh)}</span>
             )}
             <Button variant="secondary" onClick={refresh} disabled={isRefreshing}>
               {isRefreshing ? 'Refreshing…' : 'Refresh'}
