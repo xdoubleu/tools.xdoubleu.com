@@ -1,4 +1,4 @@
-import { APPS, artworkApp, visibleApps, visibleSections } from '@/lib/apps'
+import { APPS, appForPath, artworkApp, visibleApps, visibleSections } from '@/lib/apps'
 
 const ids = (apps: { id: string }[]) => apps.map((a) => a.id)
 
@@ -50,5 +50,27 @@ describe('registry', () => {
   it('has unique ids and an icon on every app', () => {
     expect(new Set(ids(APPS)).size).toBe(APPS.length)
     expect(APPS.every((a) => a.icon)).toBe(true)
+  })
+})
+
+describe('appForPath', () => {
+  it.each([
+    ['/feeds', 'feeds'],
+    ['/recipes/list', 'recipes'],
+    ['/recipes/abc-123', 'recipes'],
+    ['/dashboard/reading', 'books'],
+    ['/dashboard/games/library', 'games'],
+    ['/monitoring/observability/runs', 'observability'],
+    ['/monitoring/connections', 'monitoring'],
+    ['/monitoring/issues', 'monitoring'],
+    ['/settings', 'settings']
+  ])('maps %s to %s', (path, id) => {
+    expect(appForPath(path)?.id).toBe(id)
+  })
+
+  it('does not match a longer sibling segment or the home page', () => {
+    expect(appForPath('/feedsfoo')).toBeUndefined()
+    expect(appForPath('/')).toBeUndefined()
+    expect(appForPath('/dashboard')).toBeUndefined()
   })
 })

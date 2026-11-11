@@ -23,7 +23,10 @@ vi.mock('@/hooks/useAuth', () => ({
   useRegenerateRecoveryCodes: () => mockRegenerateRecoveryCodes
 }))
 
+vi.mock('@/lib/env', () => ({ getRelease: vi.fn(() => '') }))
+
 import SettingsPage from '@/app/settings/page'
+import { getRelease } from '@/lib/env'
 
 const confirmInDialog = (name: string) =>
   fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name }))
@@ -36,6 +39,17 @@ describe('SettingsPage', () => {
       data: { role: 'user', appAccess: [], hasMfa: false, displayName: 'Alice' },
       isLoading: false
     })
+  })
+
+  it('shows the short release hash, or no About section without one', () => {
+    vi.mocked(getRelease).mockReturnValue('abcdef1234567890')
+    const { unmount } = render(<SettingsPage />)
+    expect(screen.getByText('Release abcdef1')).toBeInTheDocument()
+    unmount()
+
+    vi.mocked(getRelease).mockReturnValue('')
+    render(<SettingsPage />)
+    expect(screen.queryByText(/^Release /)).not.toBeInTheDocument()
   })
 
   it('prefills the display name field from the current user', () => {

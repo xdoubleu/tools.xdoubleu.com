@@ -13,6 +13,7 @@ The same job uses the same primitive everywhere. The inventory is [`web/componen
 
 - **One height scale** (`components/ui/control.ts`): every control is 44px below `sm` and 36px from `sm`, so a row of controls lines up. `Button size="sm"`/`iconSm` stay 44px on phones and compact only from `sm` (32px, 28px), for dense rows and tables. Don't resize a control with `h-*`, `py-*` or text-size classes; a multi-line button uses `h-auto`. Fields are ≥16px. No fixed pixel sizes, no `vh` (use `dvh`), no bare `grid-cols-N≥3`.
 - **Page structure.**
+  - The shell is global navigation → [adr-0050](adr-0050-global-navigation-model.md): a left sidebar from `lg` (Today, then apps by group from `web/lib/apps.ts`), a slim top bar with the account menu below it. Settings, family, appearance and sign out live in the account menu; pages add no bar of their own.
   - `PageContainer size` sets the width; settings pages are `narrow`. The shell owns padding.
   - `PageHeader` owns the `<h1>`, the `description` line, a `breadcrumb` on every detail and settings page, and the page's `actions`. Actions are bordered (`PageHeaderLink`, `PageHeaderSettingsLink`, `secondary` buttons) at the default size; only create (default) and delete (destructive) stand out. Titles are sentence case (`ui/sentence-case` checks `title` props and `SectionHeading` text; names like Kobo or Steam are allowed), and no two pages share a title.
   - `SectionHeading` for every heading under it: `section` (serif) or `eyebrow` (small uppercase).
