@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from '@/components/ui/link'
 import { useCurrentUser, useSignIn, useMFAChallenge } from '@/hooks/useAuth'
-import AppGrid, { type AppLink, type AppSection } from '@/components/AppGrid'
+import AppGrid from '@/components/AppGrid'
+import { visibleSections } from '@/lib/apps'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,133 +33,6 @@ export function safeNext(): string {
   }
   return '/'
 }
-
-const ALL_APPS: AppLink[] = [
-  {
-    name: 'games',
-    label: 'Games',
-    href: '/dashboard/games',
-    description: 'Steam backlog, progress and distribution.'
-  },
-  {
-    name: 'books',
-    label: 'Books',
-    href: '/dashboard/reading',
-    description: 'Search, library and reading progress.'
-  },
-  {
-    name: 'feeds',
-    label: 'Feeds',
-    href: '/feeds',
-    description: 'Unread RSS and newsletter articles.',
-    accessKey: 'feeds'
-  },
-  {
-    name: 'trains',
-    label: 'Trains',
-    href: '/trains',
-    description: 'SNCB/NMBS station pickers and route overview.'
-  },
-  {
-    name: 'movies',
-    label: 'Movies & series',
-    href: '/movies',
-    description: 'Watch backlog with TMDB search.'
-  },
-  {
-    name: 'podcasts',
-    label: 'Podcasts',
-    href: '/podcasts',
-    description: 'Favourite shows, found through iTunes.'
-  },
-  {
-    name: 'taste',
-    label: 'Taste',
-    href: '/taste',
-    description: 'What you read, play, watch and listen to, across every app.'
-  },
-  { name: 'recipes', label: 'Recipes', href: '/recipes/list', description: 'Recipe management' },
-  {
-    name: 'learningpaths',
-    label: 'Learning paths',
-    href: '/learningpaths/list',
-    description: 'Self-directed curricula with modules, items and progress tracking'
-  },
-  {
-    name: 'mealplans',
-    label: 'Meal plans',
-    href: '/mealplans',
-    description: 'Weekly meal planning'
-  },
-  {
-    name: 'shoppinglist',
-    label: 'Shopping list',
-    href: '/shoppinglist',
-    description: 'Generate shopping lists from meal plans'
-  },
-  {
-    name: 'watchparty',
-    label: 'Watch party',
-    href: '/watchparty',
-    description: 'WebRTC screen sharing'
-  },
-  { name: 'settings', label: 'Settings', href: '/settings', description: 'User preferences' },
-  {
-    name: 'family',
-    label: 'Family',
-    href: '/family',
-    description: 'Share one recipe book, meal plan and shopping list together'
-  },
-  {
-    name: 'user-management',
-    label: 'User management',
-    href: '/user-management',
-    description: 'Administration'
-  },
-  {
-    name: 'factory',
-    label: 'Factory',
-    href: '/factory',
-    description: 'Task board for the software factory.'
-  },
-  {
-    name: 'monitoring',
-    label: 'Monitoring',
-    href: '/monitoring/connections',
-    description: 'Observability'
-  },
-  {
-    name: 'observability',
-    label: 'Automated actions',
-    href: '/monitoring/observability',
-    description: 'Self-healing routine run history'
-  },
-  {
-    name: 'grafana',
-    label: 'Grafana',
-    href: '/grafana',
-    description: 'Metrics dashboards and alerting',
-    external: true
-  }
-]
-
-const APP_MAP = new Map(ALL_APPS.map((a) => [a.name, a]))
-
-const SECTION_DEFS: { title: string; names: string[] }[] = [
-  { title: 'Learning', names: ['feeds', 'learningpaths'] },
-  { title: 'Media', names: ['books', 'games', 'movies', 'podcasts', 'taste'] },
-  { title: 'Transit', names: ['trains'] },
-  { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
-  { title: 'Tools', names: ['watchparty'] },
-  { title: 'Account', names: ['settings', 'family'] },
-  {
-    title: 'Admin',
-    names: ['user-management', 'factory', 'monitoring', 'observability', 'grafana']
-  }
-]
-
-const ALWAYS_VISIBLE = new Set(['settings', 'family'])
-const ADMIN_ONLY = new Set(['user-management', 'factory', 'monitoring', 'observability', 'grafana'])
 
 export default function HomeClient() {
   const { data: lastUser, error, isLoading } = useCurrentUser()
@@ -249,16 +123,7 @@ export default function HomeClient() {
   }
 
   if (authState === 'authenticated' && data) {
-    const appAccess = new Set(data.appAccess ?? [])
-    const isVisible = (app: AppLink) => {
-      if (ALWAYS_VISIBLE.has(app.name)) return true
-      if (ADMIN_ONLY.has(app.name)) return data.role === 'admin'
-      return data.role === 'admin' || appAccess.has(app.accessKey ?? app.name)
-    }
-    const sections: AppSection[] = SECTION_DEFS.map(({ title, names }) => ({
-      title,
-      apps: names.map((n) => APP_MAP.get(n)!).filter((app) => isVisible(app))
-    }))
+    const sections = visibleSections(data)
 
     // The grid's section headings carry the page; the h1 is for screen readers.
     return (

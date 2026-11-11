@@ -7,7 +7,7 @@ Vite 8 SPA: React 19, React Router (data router), TypeScript strict, Vitest. The
 - `src/` — entry (`main.tsx`), `routes.tsx`, root layout, route error/not-found states, Sentry/PostHog init, Web Vitals.
 - `app/` — one route folder per app/domain; each `page.tsx` is a route (`[id]` → `:id`), loaded lazily by `import.meta.glob`. `dashboard/{games,reading}/` holds both owner and public (token-shared) dashboards → [`adr-0007`](../docs/adr-0007-dashboard-app-owns-public-sharing.md).
 - `components/` — shared components at the root, one subfolder per domain, primitives in `components/ui/`.
-- `lib/` — `client.ts` (browser transport), `swrKeys.ts`, `env.ts`, `cn.ts`, per-domain subfolders; `gen/` is generated (read the `.proto` instead).
+- `lib/` — `apps.ts` (registry), `client.ts` (browser transport), `swrKeys.ts`, `env.ts`, `cn.ts`, per-domain subfolders; `gen/` is generated (read the `.proto` instead).
 - `hooks/` — SWR hooks per domain, client-only WebSocket hooks, and `navigation.ts`.
 - `public/` — static files; `scripts/generate-icons.mjs` renders the gitignored PNG icons (dev/build run it).
 
