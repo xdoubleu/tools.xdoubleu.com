@@ -19,6 +19,8 @@ The same job uses the same primitive everywhere. The inventory is [`web/componen
   - Settings pages stack `SettingsSection`s in `SettingsSections`, with no dividers.
   - `Toolbar` holds the search and filters between `PageHeader` and a list, with `aria-label`led `Select`s, `TogglePill`s or `SegmentedTabs`.
   - `SegmentedTabs` switches between views; with `router.push` it switches between sibling pages.
+- **One control per job.** `SegmentedTabs` (a track with a sliding segment) switches views, sibling sections and scope (Mine/Family); `TogglePill` is a light filter chip with a check when on; `Button` is an action. A `Button` or `TogglePill` with `role="tab"` is rejected (`ui/shared-patterns`). `Select` keeps the native picker with a drawn chevron.
+- **Page width.** `PageContainer` caps at `max-w-5xl` by default; `size="wide"` is for tables, boards, week grids and full-height dashboards, `narrow` and `form` for forms.
 - **Stable layout.** Only what the user changed moves.
   - Lists have a deterministic order (a tiebreaker on the sort key) and stable `key`s; an optimistic update sorts like the server.
   - A mutation patches the cached data and never replaces the list with a loading state.

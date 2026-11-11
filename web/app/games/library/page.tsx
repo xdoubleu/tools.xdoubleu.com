@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/ui/page-header'
 
 export default function BacklogGamesLibraryPage() {
   return (
-    <PageContainer>
+    <PageContainer size="wide">
       <PageHeader
         title="Library"
         breadcrumb={[{ label: 'Games', href: '/dashboard/games' }, { label: 'Library' }]}

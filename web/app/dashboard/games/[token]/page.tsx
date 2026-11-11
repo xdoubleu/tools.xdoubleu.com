@@ -9,7 +9,10 @@ export default function GamesDashboardPublicPage() {
   const steam = useSharedSteam(token).data
 
   return (
-    <PageContainer className="lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden">
+    <PageContainer
+      size="wide"
+      className="lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden"
+    >
       <PageHeader
         title={steam?.displayName ? `${steam.displayName}'s games` : 'Shared games'}
         className="lg:mb-3"

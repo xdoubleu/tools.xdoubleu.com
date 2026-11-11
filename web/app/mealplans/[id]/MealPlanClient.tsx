@@ -41,7 +41,7 @@ export default function MealPlanClient({ id }: { id: string }) {
   const recipes = recipesData ?? []
 
   return (
-    <PageContainer>
+    <PageContainer size="wide">
       {isLoading && <MealPlanSkeleton />}
       {error && <ErrorState placement="page" what="meal plan" />}
 

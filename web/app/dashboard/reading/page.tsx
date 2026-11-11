@@ -5,7 +5,10 @@ import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
 
 export default function ReadingDashboardPage() {
   return (
-    <PageContainer className="lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden">
+    <PageContainer
+      size="wide"
+      className="lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden"
+    >
       <PageHeader
         title="Books"
         className="mb-4 lg:mb-3"
