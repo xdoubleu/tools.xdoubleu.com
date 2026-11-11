@@ -331,3 +331,116 @@ var mfaRefreshTokenCookie = http.Cookie{
 	Name:  "mfaRefreshToken",
 	Value: "refresh",
 }
+
+func grantPinApps(t *testing.T, apps ...string) {
+	t.Helper()
+	for _, app := range apps {
+		require.NoError(t, testApp.appUsersRepo.SetAppAccess(
+			context.Background(), testUserID, app, true,
+		))
+		t.Cleanup(func() {
+			_ = testApp.appUsersRepo.SetAppAccess(
+				context.Background(), testUserID, app, false,
+			)
+		})
+	}
+}
+
+func setTabPins(t *testing.T, pins []string) error {
+	t.Helper()
+	t.Cleanup(func() {
+		// A nil list is stored as NULL: the user never chose.
+		_ = testApp.appUsersRepo.SetTabPins(context.Background(), testUserID, nil)
+	})
+	_, err := authClient(t).SetTabPins(
+		withCookies(context.Background(), accessToken),
+		&authv1.SetTabPinsRequest{TabPins: pins},
+	)
+	return err
+}
+
+func currentUserPins(t *testing.T) *authv1.GetCurrentUserResponse {
+	t.Helper()
+	resp, err := authClient(t).GetCurrentUser(
+		withCookies(context.Background(), accessToken),
+		&authv1.GetCurrentUserRequest{},
+	)
+	require.NoError(t, err)
+	return resp
+}
+
+func TestSetTabPins_DefaultsToNotCustomised(t *testing.T) {
+	refresh := freshTestUserWithRefresh(t)
+
+	resp, err := authClient(t).GetCurrentUser(
+		withCookies(context.Background(), http.Cookie{Name: "refreshToken", Value: refresh}),
+		&authv1.GetCurrentUserRequest{},
+	)
+	require.NoError(t, err)
+	assert.False(t, resp.TabPinsCustomised)
+	assert.Empty(t, resp.TabPins)
+}
+
+func TestSetTabPins_SavesInOrderAndReadsBack(t *testing.T) {
+	grantPinApps(t, "books", "feeds")
+
+	require.NoError(t, setTabPins(t, []string{"feeds", "books"}))
+
+	resp := currentUserPins(t)
+	assert.True(t, resp.TabPinsCustomised)
+	assert.Equal(t, []string{"feeds", "books"}, resp.TabPins)
+}
+
+func TestSetTabPins_EmptyIsADeliberateNone(t *testing.T) {
+	require.NoError(t, setTabPins(t, nil))
+
+	resp := currentUserPins(t)
+	assert.True(t, resp.TabPinsCustomised)
+	assert.Empty(t, resp.TabPins)
+}
+
+func TestSetTabPins_Rejects(t *testing.T) {
+	grantPinApps(t, "books")
+	cases := map[string]struct {
+		pins []string
+		code connect.Code
+	}{
+		"more than three": {
+			[]string{"books", "feeds", "games", "trains"}, connect.CodeInvalidArgument,
+		},
+		"duplicate": {[]string{"books", "books"}, connect.CodeInvalidArgument},
+		"empty id":  {[]string{""}, connect.CodeInvalidArgument},
+		"no access": {[]string{"factory-not-granted"}, connect.CodePermissionDenied},
+		"mixed access": {
+			[]string{"books", "factory-not-granted"},
+			connect.CodePermissionDenied,
+		},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			err := setTabPins(t, tc.pins)
+			require.Error(t, err)
+			var connectErr *connect.Error
+			require.ErrorAs(t, err, &connectErr)
+			assert.Equal(t, tc.code, connectErr.Code())
+		})
+	}
+}
+
+func TestSetTabPins_AdminMayPinAnyApp(t *testing.T) {
+	promoteToAdmin(t)
+	defer demoteToUser(t)
+
+	require.NoError(t, setTabPins(t, []string{"trains"}))
+	assert.Equal(t, []string{"trains"}, currentUserPins(t).TabPins)
+}
+
+func TestSetTabPins_NoToken(t *testing.T) {
+	_, err := authClient(t).SetTabPins(
+		context.Background(), &authv1.SetTabPinsRequest{},
+	)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeUnauthenticated, connectErr.Code())
+}

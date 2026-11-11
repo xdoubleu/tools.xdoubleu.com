@@ -92,6 +92,36 @@ func (r *AppUsersRepository) SetDisplayName(
 	return err
 }
 
+// GetTabPins returns the apps pinned to the phone tab bar, in order. The bool is
+// false when the user never chose, so the web falls back to its defaults.
+func (r *AppUsersRepository) GetTabPins(
+	ctx context.Context,
+	userID string,
+) ([]string, bool, error) {
+	var pins []string
+	err := r.db.QueryRow(ctx,
+		`SELECT tab_pins FROM global.app_users WHERE id = $1`, userID,
+	).Scan(&pins)
+	if err != nil {
+		return nil, false, postgres.PgxErrorToHTTPError(err)
+	}
+	return pins, pins != nil, nil
+}
+
+// SetTabPins stores the apps pinned to the phone tab bar, replacing any earlier
+// choice. An empty (non-nil) list is a deliberate "none".
+func (r *AppUsersRepository) SetTabPins(
+	ctx context.Context,
+	userID string,
+	pins []string,
+) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE global.app_users SET tab_pins = $2 WHERE id = $1`,
+		userID, pins,
+	)
+	return err
+}
+
 func (r *AppUsersRepository) GetAllWithAccess(
 	ctx context.Context,
 ) ([]models.User, error) {

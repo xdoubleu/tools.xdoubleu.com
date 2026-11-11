@@ -52,6 +52,8 @@ const (
 	// AuthServiceRegenerateRecoveryCodesProcedure is the procedure name of the AuthService's
 	// RegenerateRecoveryCodes RPC.
 	AuthServiceRegenerateRecoveryCodesProcedure = "/auth.v1.AuthService/RegenerateRecoveryCodes"
+	// AuthServiceSetTabPinsProcedure is the procedure name of the AuthService's SetTabPins RPC.
+	AuthServiceSetTabPinsProcedure = "/auth.v1.AuthService/SetTabPins"
 )
 
 var (
@@ -146,6 +148,13 @@ var (
 			Procedure:  AuthServiceRegenerateRecoveryCodesProcedure,
 		}
 	})
+	authServiceSetTabPinsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("SetTabPins"),
+			Procedure:  AuthServiceSetTabPinsProcedure,
+		}
+	})
 )
 
 // AuthServiceClient is a client for the auth.v1.AuthService service.
@@ -163,6 +172,7 @@ type AuthServiceClient interface {
 	GetCurrentUser(context.Context, *v1.GetCurrentUserRequest) (*v1.GetCurrentUserResponse, error)
 	ResetPassword(context.Context, *v1.ResetPasswordRequest) (*v1.ResetPasswordResponse, error)
 	RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error)
+	SetTabPins(context.Context, *v1.SetTabPinsRequest) (*v1.SetTabPinsResponse, error)
 }
 
 // NewAuthServiceClient constructs a client for the auth.v1.AuthService service. Multiple service
@@ -186,6 +196,7 @@ type AuthServiceHandler interface {
 	GetCurrentUser(context.Context, *v1.GetCurrentUserRequest) (*v1.GetCurrentUserResponse, error)
 	ResetPassword(context.Context, *v1.ResetPasswordRequest) (*v1.ResetPasswordResponse, error)
 	RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error)
+	SetTabPins(context.Context, *v1.SetTabPinsRequest) (*v1.SetTabPinsResponse, error)
 }
 
 // RegisterAuthServiceHandler registers svc as the auth.v1.AuthService implementation on server.
@@ -205,6 +216,7 @@ func RegisterAuthServiceHandler(server *connect.Server, svc AuthServiceHandler) 
 		connect.Method{Spec: authServiceGetCurrentUserSpec(), Handler: adapter.getCurrentUser},
 		connect.Method{Spec: authServiceResetPasswordSpec(), Handler: adapter.resetPassword},
 		connect.Method{Spec: authServiceRegenerateRecoveryCodesSpec(), Handler: adapter.regenerateRecoveryCodes},
+		connect.Method{Spec: authServiceSetTabPinsSpec(), Handler: adapter.setTabPins},
 	)
 }
 
@@ -261,6 +273,10 @@ func (UnimplementedAuthServiceHandler) ResetPassword(context.Context, *v1.ResetP
 
 func (UnimplementedAuthServiceHandler) RegenerateRecoveryCodes(context.Context, *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.RegenerateRecoveryCodes is not implemented")
+}
+
+func (UnimplementedAuthServiceHandler) SetTabPins(context.Context, *v1.SetTabPinsRequest) (*v1.SetTabPinsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.SetTabPins is not implemented")
 }
 
 type authServiceClient struct {
@@ -366,6 +382,14 @@ func (c *authServiceClient) ResetPassword(ctx context.Context, req *v1.ResetPass
 func (c *authServiceClient) RegenerateRecoveryCodes(ctx context.Context, req *v1.RegenerateRecoveryCodesRequest) (*v1.RegenerateRecoveryCodesResponse, error) {
 	var res v1.RegenerateRecoveryCodesResponse
 	if err := c.client.CallUnary(ctx, authServiceRegenerateRecoveryCodesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) SetTabPins(ctx context.Context, req *v1.SetTabPinsRequest) (*v1.SetTabPinsResponse, error) {
+	var res v1.SetTabPinsResponse
+	if err := c.client.CallUnary(ctx, authServiceSetTabPinsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -523,6 +547,18 @@ func (h authServiceHandler) regenerateRecoveryCodes(ctx context.Context, _ conne
 		return err
 	}
 	res, err := h.svc.RegenerateRecoveryCodes(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) setTabPins(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetTabPinsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetTabPins(ctx, &req)
 	if err != nil {
 		return err
 	}

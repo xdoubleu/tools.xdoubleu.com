@@ -223,6 +223,9 @@ export const APPS: AppEntry[] = [
 interface AppViewer {
   role: string
   appAccess?: string[]
+  /** Saved tab bar pins; only read when `tabPinsCustomised`. */
+  tabPins?: string[]
+  tabPinsCustomised?: boolean
 }
 
 /** The apps `user` may open, in registry order. */
@@ -268,4 +271,23 @@ export function defaultPins(user: AppViewer): AppEntry[] {
   const open = visibleApps(user).filter((a) => !a.alwaysVisible && !a.adminOnly)
   const preferred = DEFAULT_PINS.flatMap((id) => open.filter((a) => a.id === id))
   return [...preferred, ...open.filter((a) => !preferred.includes(a))].slice(0, 3)
+}
+
+/** What the phone tab bar pins can be: apps the user can open, minus the account entries. */
+export function pinnableApps(user: AppViewer): AppEntry[] {
+  return visibleApps(user).filter((a) => !a.alwaysVisible)
+}
+
+/**
+ * The apps in the tab bar. A saved choice keeps its order; a pin the user can no
+ * longer open is replaced by the next default so no slot goes dead.
+ */
+export function resolvePins(user: AppViewer): AppEntry[] {
+  if (!user.tabPinsCustomised) return defaultPins(user)
+  const open = pinnableApps(user)
+  const wanted = [...new Set(user.tabPins ?? [])]
+  const saved = wanted.flatMap((id) => open.filter((a) => a.id === id))
+  const lost = wanted.length - saved.length
+  const fill = defaultPins(user).filter((a) => !saved.includes(a))
+  return [...saved, ...fill.slice(0, lost)]
 }

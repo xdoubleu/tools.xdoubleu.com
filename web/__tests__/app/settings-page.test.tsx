@@ -20,7 +20,8 @@ vi.mock('@/hooks/useAuth', () => ({
   useMFAEnroll: () => mockMFAEnroll,
   useMFAEnrollVerify: () => mockMFAEnrollVerify,
   useMFAUnenroll: () => mockMFAUnenroll,
-  useRegenerateRecoveryCodes: () => mockRegenerateRecoveryCodes
+  useRegenerateRecoveryCodes: () => mockRegenerateRecoveryCodes,
+  useSetTabPins: () => vi.fn()
 }))
 
 vi.mock('@/lib/env', () => ({ getRelease: vi.fn(() => '') }))
