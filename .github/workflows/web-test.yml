@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           cache: 'npm'
@@ -22,9 +24,8 @@ jobs:
         working-directory: './web'
       - run: npm run test:cov
         working-directory: './web'
-      - name: Upload coverage reports to Codecov
-        if: always()
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: web
+      - name: Patch coverage (changed lines >= 80%)
+        if: github.event_name == 'pull_request'
+        working-directory: './web'
+        run: |
+          python3 ../tools/diff_coverage_ts.py coverage/lcov.info

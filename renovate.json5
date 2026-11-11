@@ -47,7 +47,7 @@
       ],
       datasourceTemplate: 'go',
     },
-    // codecov-cli, sqlfluff (and sqlfluff's pip cache key).
+    // sqlfluff (and sqlfluff's pip cache key).
     {
       customType: 'regex',
       managerFilePatterns: [
