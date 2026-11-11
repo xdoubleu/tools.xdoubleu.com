@@ -13,6 +13,8 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: './kobo-gateway/go.mod'
@@ -21,9 +23,9 @@ jobs:
         working-directory: './kobo-gateway'
       - run: make test/cov/report
         working-directory: './selfupdate'
-      - name: Upload coverage reports to Codecov
-        if: always()
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: kobo_gateway
+      - name: Patch coverage (changed lines >= 80%)
+        if: github.event_name == 'pull_request'
+        run: |
+          for dir in kobo-gateway selfupdate; do
+            (cd "$dir" && python3 ../tools/diff_coverage_go.py coverage.out)
+          done
