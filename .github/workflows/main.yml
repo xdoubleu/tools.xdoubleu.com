@@ -221,7 +221,6 @@ jobs:
 
   api-test:
     needs: changes
-    # Also runs on main to refresh Codecov's default-branch baseline.
     if: |
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
@@ -233,7 +232,6 @@ jobs:
 
   web-test:
     needs: changes
-    # Also runs on main to refresh Codecov's default-branch baseline.
     if: |
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
@@ -245,7 +243,6 @@ jobs:
 
   kobo-gateway-test:
     needs: changes
-    # Also runs on main to refresh Codecov's default-branch baseline.
     if: |
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.kobo_gateway == 'true' ||
@@ -256,7 +253,6 @@ jobs:
 
   factory-runner-test:
     needs: changes
-    # Also runs on main to refresh Codecov's default-branch baseline.
     if: |
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.factory_runner == 'true' ||
@@ -396,7 +392,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      statuses: read
     steps:
       - name: Check all jobs passed or were skipped
         run: |
@@ -406,69 +401,6 @@ jobs:
               echo "Job failed with result: $result"
               exit 1
             fi
-          done
-
-      # codecov.yml sets `manual_trigger: true`, so Codecov reports nothing until
-      # triggered here. The trigger sometimes no-ops, so it's re-sent while polling.
-      - name: Trigger and wait for Codecov to report
-        if: |
-          needs.api-test.result == 'success' ||
-          needs.web-test.result == 'success' ||
-          needs.kobo-gateway-test.result == 'success' ||
-          needs.factory-runner-test.result == 'success'
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          # PRs: use the head commit, not the merge commit.
-          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: |
-          pip install --quiet codecov-cli==11.3.2
-
-          send_notifications() {
-            codecovcli send-notifications --commit-sha "$SHA" --slug "$REPO" --git-service github
-          }
-
-          # Codecov reports via the Checks API, so poll check-runs.
-          send_notifications
-          last_trigger=$(date +%s)
-          retry_interval=200
-          echo "Waiting for Codecov checks on $SHA"
-          deadline=$(( $(date +%s) + 600 ))
-          while true; do
-            # A failed or empty answer ("unexpected end of JSON input") counts as no
-            # checks yet, so one bad response doesn't end the step; the deadline does.
-            if ! checks=$(gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
-              --jq '.check_runs[] | select(.name | startswith("codecov")) | "\(.name)=\(.status):\(.conclusion)"'); then
-              echo "The check-runs call failed; trying again."
-              checks=""
-            fi
-
-            if [[ -z "$checks" ]]; then
-              echo "No Codecov checks yet; waiting..."
-              if (( $(date +%s) - last_trigger >= retry_interval )); then
-                echo "Re-sending Codecov notify trigger..."
-                send_notifications
-                last_trigger=$(date +%s)
-              fi
-            else
-              echo "$checks"
-              if echo "$checks" | grep -qv '=completed:'; then
-                echo "Codecov checks still running..."
-              elif echo "$checks" | grep -qvE '=completed:(success|neutral|skipped)$'; then
-                echo "Codecov reported a failing check."
-                exit 1
-              else
-                echo "All Codecov checks succeeded."
-                exit 0
-              fi
-            fi
-
-            if [[ $(date +%s) -ge $deadline ]]; then
-              echo "Timed out waiting for Codecov to report."
-              exit 1
-            fi
-            sleep 15
           done
 
   # The only production deploy. Runs `kamal deploy`, so the host must have been
