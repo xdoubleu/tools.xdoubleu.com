@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import OfflineBooksSync from '@/components/books/OfflineBooksSync'
 import DeployNotification from '@/components/DeployNotification'
+import AppOpenTracker from '@/components/AppOpenTracker'
 import Navbar from '@/components/Navbar'
 import PhoneTabBar, { useTabBarVisible } from '@/components/PhoneTabBar'
 import OfflineBanner from '@/components/offline/OfflineBanner'
@@ -56,6 +57,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <PhoneTabBar />
+      <AppOpenTracker />
       <DeployNotification />
       <ServiceWorkerRegistrar />
       <OutboxSync />

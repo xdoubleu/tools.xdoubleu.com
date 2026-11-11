@@ -4,7 +4,7 @@ import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { SettingsSection } from '@/components/ui/settings-section'
 import { useCurrentUser, useSetTabPins } from '@/hooks/useAuth'
-import { pinnableApps, resolvePins } from '@/lib/apps'
+import { defaultPins, pinnableApps, resolvePins } from '@/lib/apps'
 
 const MAX_PINS = 3
 
@@ -99,6 +99,17 @@ export function TabBarSection() {
             </li>
           ))}
         </ul>
+      )}
+
+      {data.tabPinsCustomised && (
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={saving}
+          onClick={() => save(defaultPins(data).map((a) => a.id))}
+        >
+          Reset to most used
+        </Button>
       )}
     </SettingsSection>
   )

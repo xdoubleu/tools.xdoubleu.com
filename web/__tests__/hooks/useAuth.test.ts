@@ -46,7 +46,8 @@ import {
   useMFAEnrollVerify,
   useMFAUnenroll,
   useCurrentUser,
-  useSetTabPins
+  useSetTabPins,
+  useRecordAppOpen
 } from '@/hooks/useAuth'
 
 const mockUseSWR = vi.mocked(useSWR)
@@ -271,5 +272,16 @@ describe('useSetTabPins', () => {
     vi.mocked(sendWrite).mockRejectedValueOnce(new Error('refused'))
     const { result } = renderHook(() => useSetTabPins())
     await expect(result.current(['books'])).rejects.toThrow('refused')
+  })
+})
+
+describe('useRecordAppOpen', () => {
+  it('calls client.recordAppOpen with the app id', () => {
+    const recordAppOpen = vi.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValue({ recordAppOpen })
+    const { result } = renderHook(() => useRecordAppOpen())
+    result.current('recipes')
+    expect(recordAppOpen).toHaveBeenCalledWith({ app: 'recipes' })
   })
 })

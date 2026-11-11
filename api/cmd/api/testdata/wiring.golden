@@ -47,6 +47,7 @@ POST /auth.v1.AuthService/MFAEnroll: 415, 415
 POST /auth.v1.AuthService/MFAEnrollSkip: 415, 415
 POST /auth.v1.AuthService/MFAEnrollVerify: 415, 415
 POST /auth.v1.AuthService/MFAUnenroll: 415, 415
+POST /auth.v1.AuthService/RecordAppOpen: 415, 415
 POST /auth.v1.AuthService/RegenerateRecoveryCodes: 415, 415
 POST /auth.v1.AuthService/ResetPassword: 415, 415
 POST /auth.v1.AuthService/SetTabPins: 415, 415

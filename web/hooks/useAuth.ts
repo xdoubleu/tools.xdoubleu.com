@@ -56,6 +56,12 @@ export function useSetTabPins() {
   }
 }
 
+/** Reports the user switching to an app; fire and forget, since it only ranks default pins. */
+export function useRecordAppOpen() {
+  const client = createServiceClient(AuthService)
+  return (app: string) => client.recordAppOpen({ app })
+}
+
 export function useMFAChallenge() {
   const client = createServiceClient(AuthService)
   return (code: string) => client.mFAChallenge({ code })

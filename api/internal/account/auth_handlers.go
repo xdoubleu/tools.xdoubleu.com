@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"errors"
+	"regexp"
 	"slices"
 
 	"connectrpc.com/connect/v2"
@@ -257,6 +258,7 @@ func (h *authConnectHandler) GetCurrentUser(
 		resp.TabPins, resp.TabPinsCustomised, _ = h.app.AppUsers.GetTabPins(
 			ctx, user.ID,
 		)
+		resp.SuggestedPins, _ = h.app.AppUsers.MostOpenedApps(ctx, user.ID)
 	}
 
 	resp.Role = string(role)
@@ -277,14 +279,9 @@ func (h *authConnectHandler) SetTabPins(
 	ctx context.Context,
 	req *authv1.SetTabPinsRequest,
 ) (*authv1.SetTabPinsResponse, error) {
-	info, _ := connect.CallInfoForServerContext(ctx)
-	accessToken, err := h.parseCookie(info.RequestHeader(), "accessToken")
+	user, err := h.signedInUser(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, "not signed in")
-	}
-	user, err := h.app.Auth.GetUser(ctx, accessToken.Value)
-	if err != nil || user == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, "not signed in")
+		return nil, err
 	}
 
 	if len(req.TabPins) > maxTabPins {
@@ -292,9 +289,9 @@ func (h *authConnectHandler) SetTabPins(
 			connect.CodeInvalidArgument, "at most 3 apps can be pinned",
 		)
 	}
-	enriched, err := h.app.AppUsers.GetByID(ctx, user.ID)
+	enriched, err := h.accessOf(ctx, user.ID)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+		return nil, err
 	}
 	seen := map[string]bool{}
 	for _, pin := range req.TabPins {
@@ -304,10 +301,8 @@ func (h *authConnectHandler) SetTabPins(
 			)
 		}
 		seen[pin] = true
-		if enriched.Role != models.RoleAdmin && !slices.Contains(enriched.AppAccess, pin) {
-			return nil, connect.NewError(
-				connect.CodePermissionDenied, "no access to "+pin,
-			)
+		if err = requireApp(enriched, pin); err != nil {
+			return nil, err
 		}
 	}
 
@@ -319,6 +314,68 @@ func (h *authConnectHandler) SetTabPins(
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	return &authv1.SetTabPinsResponse{}, nil
+}
+
+// signedInUser resolves the caller from the access token cookie.
+func (h *authConnectHandler) signedInUser(ctx context.Context) (*models.User, error) {
+	info, _ := connect.CallInfoForServerContext(ctx)
+	accessToken, err := h.parseCookie(info.RequestHeader(), "accessToken")
+	if err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, "not signed in")
+	}
+	user, err := h.app.Auth.GetUser(ctx, accessToken.Value)
+	if err != nil || user == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, "not signed in")
+	}
+	return user, nil
+}
+
+// accessOf loads the user's role and grants.
+func (h *authConnectHandler) accessOf(
+	ctx context.Context,
+	userID string,
+) (*models.User, error) {
+	enriched, err := h.app.AppUsers.GetByID(ctx, userID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	}
+	return enriched, nil
+}
+
+// requireApp refuses an app the user can't open; admins can open any.
+func requireApp(user *models.User, app string) error {
+	if user.Role != models.RoleAdmin && !slices.Contains(user.AppAccess, app) {
+		return connect.NewError(connect.CodePermissionDenied, "no access to "+app)
+	}
+	return nil
+}
+
+var appIDPattern = regexp.MustCompile(`^[a-z0-9-]{1,32}$`)
+
+// RecordAppOpen counts the user switching to an app. The counts only rank the
+// default tab bar pins of someone who never chose.
+func (h *authConnectHandler) RecordAppOpen(
+	ctx context.Context,
+	req *authv1.RecordAppOpenRequest,
+) (*authv1.RecordAppOpenResponse, error) {
+	user, err := h.signedInUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !appIDPattern.MatchString(req.App) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, "invalid app id")
+	}
+	enriched, err := h.accessOf(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err = requireApp(enriched, req.App); err != nil {
+		return nil, err
+	}
+	if err = h.app.AppUsers.RecordAppOpen(ctx, user.ID, req.App); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	}
+	return &authv1.RecordAppOpenResponse{}, nil
 }
 
 // tryRefreshToken rotates the session and sets new cookies; nil means the

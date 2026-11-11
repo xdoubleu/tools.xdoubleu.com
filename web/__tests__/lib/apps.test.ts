@@ -84,6 +84,47 @@ describe('appForPath', () => {
   })
 })
 
+describe('defaultPins with usage', () => {
+  const user = {
+    role: 'user',
+    appAccess: ['books', 'feeds', 'mealplans', 'recipes', 'trains']
+  }
+
+  it('puts the most opened apps first, then the fixed favourites', () => {
+    expect(ids(defaultPins({ ...user, suggestedPins: ['recipes', 'trains'] }))).toEqual([
+      'recipes',
+      'trains',
+      'books'
+    ])
+  })
+
+  it('takes the top three when there are that many', () => {
+    const pins = ['mealplans', 'recipes', 'trains', 'books']
+    expect(ids(defaultPins({ ...user, suggestedPins: pins }))).toEqual([
+      'mealplans',
+      'recipes',
+      'trains'
+    ])
+  })
+
+  it('skips suggestions the user can not pin or open, and duplicates', () => {
+    const pins = ['settings', 'factory', 'movies', 'recipes', 'recipes']
+    expect(ids(defaultPins({ ...user, suggestedPins: pins }))).toEqual([
+      'recipes',
+      'books',
+      'feeds'
+    ])
+  })
+
+  it('falls back to the fixed order without history', () => {
+    expect(ids(defaultPins({ ...user, suggestedPins: [] }))).toEqual([
+      'books',
+      'feeds',
+      'mealplans'
+    ])
+  })
+})
+
 describe('defaultPins', () => {
   it('prefers books, feeds and meal plans, in that order', () => {
     const user = { role: 'user', appAccess: ['mealplans', 'trains', 'feeds', 'books'] }
