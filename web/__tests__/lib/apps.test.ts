@@ -1,4 +1,4 @@
-import { APPS, appForPath, artworkApp, visibleApps, visibleSections } from '@/lib/apps'
+import { APPS, appForPath, artworkApp, defaultPins, visibleApps, visibleSections } from '@/lib/apps'
 
 const ids = (apps: { id: string }[]) => apps.map((a) => a.id)
 
@@ -72,5 +72,24 @@ describe('appForPath', () => {
     expect(appForPath('/feedsfoo')).toBeUndefined()
     expect(appForPath('/')).toBeUndefined()
     expect(appForPath('/dashboard')).toBeUndefined()
+  })
+})
+
+describe('defaultPins', () => {
+  it('prefers books, feeds and meal plans, in that order', () => {
+    const user = { role: 'user', appAccess: ['mealplans', 'trains', 'feeds', 'books'] }
+    expect(ids(defaultPins(user))).toEqual(['books', 'feeds', 'mealplans'])
+  })
+
+  it('fills the rest from other apps the user can open, never account or admin apps', () => {
+    expect(
+      ids(defaultPins({ role: 'user', appAccess: ['books', 'trains', 'movies', 'taste'] }))
+    ).toEqual(['books', 'movies', 'taste'])
+    expect(ids(defaultPins({ role: 'user', appAccess: [] }))).toEqual([])
+  })
+
+  it('caps at three for an admin', () => {
+    expect(defaultPins({ role: 'admin' })).toHaveLength(3)
+    expect(defaultPins({ role: 'admin' }).every((a) => !a.adminOnly)).toBe(true)
   })
 })

@@ -584,6 +584,18 @@ Fetch failure message: "Failed to load {what}."
 
 Loading placeholder; `label` names what is loading ("recipe" → "Loading recipe…").
 
+### `tab-bar.tsx`
+
+#### `TabBar`
+
+The global phone bar: equal slots, each an icon over a short label, fixed to the bottom edge above the home indicator. Hidden from `lg`, where the sidebar takes over. The shell reserves `--tab-bar-height` below the page so nothing sits underneath it.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `items` | `TabBarItem[]` | yes |  |
+| `'aria-label'` | `string` | yes | Names the landmark for screen readers. |
+| `className` | `string` |  |  |
+
 ### `table.tsx`
 
 #### `SortableHeader`
