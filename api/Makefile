@@ -210,12 +210,9 @@ test/cov/report:
 	TZ=UTC go test -p 1 -count=1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=$(COVERAGE).tmp
 	cat $(COVERAGE).tmp | grep -v "_mock.go" | grep -v "/gen/" > $(COVERAGE).filtered
 	echo "mode: set" > $(COVERAGE)
-	# -coverpkg makes other binaries emit count=0 duplicates that Codecov doesn't
-	# OR-merge; keep the highest count per line.
+	# -coverpkg makes other binaries emit count=0 duplicates of a block; keep the
+	# highest count per block.
 	tail -n +2 $(COVERAGE).filtered | sort -t' ' -k1,1 -k3,3rn | awk '!seen[$$1]++' >> $(COVERAGE)
-	# Wrapped signature lines belong to no coverage block; extend blocks back to
-	# `func` so Codecov doesn't count them as missed.
-	python3 ../tools/extend_signature_coverage.py $(COVERAGE)
 
 test/cov: test/cov/report
 	go tool cover -html=$(COVERAGE) -o=coverage.html
