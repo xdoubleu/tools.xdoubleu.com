@@ -67,10 +67,10 @@ export default function PathClient({ id }: { id: string }) {
     <PageContainer>
       <PageHeader
         className="mb-2"
-        title={learningPath?.title ?? 'Learning Path'}
+        title={learningPath?.title ?? 'Learning path'}
         breadcrumb={[
-          { label: 'Learning Paths', href: '/learningpaths/list' },
-          { label: learningPath?.title ?? 'Learning Path' }
+          { label: 'Learning paths', href: '/learningpaths/list' },
+          { label: learningPath?.title ?? 'Learning path' }
         ]}
         actions={
           learningPath && (

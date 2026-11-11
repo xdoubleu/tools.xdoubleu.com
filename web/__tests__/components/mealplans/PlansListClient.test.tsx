@@ -47,7 +47,7 @@ describe('PlansListClient', () => {
     mockUseMealPlans({ data: create(ListPlansResponseSchema, { plans: [] }), isLoading: false })
     render(<PlansListClient />)
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Create Meal Plan' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create meal plan' }))
     expect(mutate).toHaveBeenCalled()
     expect(replace).not.toHaveBeenCalled()
   })

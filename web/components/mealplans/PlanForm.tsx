@@ -69,7 +69,7 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="plan-name">Plan Name</Label>
+        <Label htmlFor="plan-name">Plan name</Label>
         <Input
           id="plan-name"
           type="text"

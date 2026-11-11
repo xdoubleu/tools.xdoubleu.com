@@ -330,7 +330,7 @@ describe('RecipeClient', () => {
     expect(screen.queryByRole('button', { name: 'Reset to 2' })).not.toBeInTheDocument()
   })
 
-  it('shows a Cooking Mode toggle when the Wake Lock API is supported', async () => {
+  it('shows a Cooking mode toggle when the Wake Lock API is supported', async () => {
     const recipe = create(RecipeSchema, { id: 'r1', name: 'Pasta', baseServings: 2 })
     vi.mocked(useRecipe).mockReturnValue({
       data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }),
@@ -341,7 +341,7 @@ describe('RecipeClient', () => {
     })
 
     render(<RecipeClient id="r1" />)
-    const button = screen.getByRole('button', { name: 'Cooking Mode' })
+    const button = screen.getByRole('button', { name: 'Cooking mode' })
     button.click()
     expect(mockToggleCookingMode).toHaveBeenCalled()
   })
@@ -362,10 +362,10 @@ describe('RecipeClient', () => {
     })
 
     render(<RecipeClient id="r1" />)
-    expect(screen.getByRole('button', { name: 'Cooking Mode: On' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cooking mode: On' })).toBeInTheDocument()
   })
 
-  it('hides the Cooking Mode toggle when the Wake Lock API is unsupported', () => {
+  it('hides the Cooking mode toggle when the Wake Lock API is unsupported', () => {
     vi.mocked(useWakeLock).mockReturnValue({
       isActive: false,
       isSupported: false,
@@ -381,7 +381,7 @@ describe('RecipeClient', () => {
     })
 
     render(<RecipeClient id="r1" />)
-    expect(screen.queryByRole('button', { name: /Cooking Mode/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Cooking mode/ })).not.toBeInTheDocument()
   })
 
   it('shows a Draft badge for a draft recipe', () => {

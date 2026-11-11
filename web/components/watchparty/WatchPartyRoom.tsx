@@ -63,9 +63,9 @@ export default function WatchPartyRoom({
   return (
     <div className="flex flex-col">
       {/* The video keeps the space; the h1 is for screen readers. */}
-      <PageHeader title={`Watch Party ${crumb}`} className="sr-only" />
+      <PageHeader title={`Watch party ${crumb}`} className="sr-only" />
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border pb-3">
-        <Breadcrumb items={[{ label: 'Watch Party', href: '/watchparty' }, { label: crumb }]} />
+        <Breadcrumb items={[{ label: 'Watch party', href: '/watchparty' }, { label: crumb }]} />
         <div className="ml-auto flex items-center gap-2">
           <span className={cn('h-2.5 w-2.5 rounded-full', STATUS_COLOR[status])} />
           <span className="text-sm text-muted">{STATUS_LABEL[status]}</span>

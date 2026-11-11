@@ -184,7 +184,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="recipe-name">Recipe Name</Label>
+        <Label htmlFor="recipe-name">Recipe name</Label>
         <Input
           id="recipe-name"
           type="text"
@@ -326,7 +326,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
           })}
         </div>
         <Button type="button" variant="secondary" onClick={addIngredient}>
-          Add Ingredient
+          Add ingredient
         </Button>
       </div>
 
