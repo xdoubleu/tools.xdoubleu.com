@@ -59,7 +59,6 @@
       "Bash(npm run generate)",
       "Bash(git fetch origin main)",
       "Bash(git fetch origin main *)",
-      "Bash(curl -s \"https://api.codecov.io/*\")",
       "mcp__tools-apps__get_deploy_logs",
       "mcp__tools-apps__get_deploy_status",
       "mcp__tools-apps__reading_list_feeds"

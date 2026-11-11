@@ -31,7 +31,7 @@ Pages render client components that fetch through SWR hooks over `lib/client.ts`
 ```bash
 npm ci                                  # first, in a fresh worktree
 npm run dev                             # Vite on :3000; set API_URL (e.g. http://localhost:8000) in .env.local
-npm run test:cov:diff                   # coverage on lines changed vs origin/main — run before pushing (matches codecov/patch)
+npm run test:cov:diff                   # coverage on lines changed vs origin/main — run before pushing
 npm run mobile:audit -- /trains /books  # 375x667 Playwright audit; needs `npm run dev` + `npx playwright install chromium`
 npm run generate:ui-catalog             # regenerate components/ui/README.md (lint fails if stale)
 rm -f tsconfig.tsbuildinfo              # before `npx tsc --noEmit` after a lockfile change

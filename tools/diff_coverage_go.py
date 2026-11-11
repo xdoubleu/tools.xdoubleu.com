@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """
-Report line coverage for api/ Go files changed vs origin/main, scoped to
-the changed lines only, from a `go tool cover` profile — a first
-approximation of what CI's codecov/patch check gates on. See
-diff_coverage_ts.py for the equivalent over web/'s lcov coverage reports.
+Report line coverage for the Go files of one module (api/, kobo-gateway/,
+factory-runner/, selfupdate/) changed vs origin/main, scoped to the changed
+lines only, from a `go tool cover` profile. This is the CI patch-coverage
+gate (docs/adr-0013-diff-scoped-coverage.md). See diff_coverage_ts.py for the
+equivalent over web/'s lcov coverage reports.
 
-Codecov's exact patch accounting cannot be replicated locally: it counts an
-unexplained subset of the diff's changed lines and marks lines partial
-whose every covering block was hit locally. Two numbers are therefore
-reported per file:
+Two numbers are reported per file:
 
 - the primary percentage — the pass/fail gate — counts a changed line
   covered when every block touching it was hit (go-cover line
@@ -16,17 +14,15 @@ reported per file:
 - a conservative secondary percentage counts a changed line covered
   only when it is the start or end line of a >0-count block with no
   0-count block touching it, treating interior lines of hit blocks as
-  misses. This boundary-only view has matched Codecov's hit attribution
-  in practice, so a big gap between the two numbers is a
-  hint the local result is optimistic — not a prediction of Codecov's
-  number.
+  misses. A big gap between the two numbers is a hint the primary
+  result is optimistic.
 
 Usage:
     python3 ../tools/diff_coverage_go.py coverage.out
 
-Run with cwd set to api/ (the profile's file paths are module-relative,
-e.g. tools.xdoubleu.com/internal/foo/bar.go), after `make test/cov/report`
-has produced that coverage.out file.
+Run with cwd set to the module directory (the profile's file paths are
+module-relative, e.g. tools.xdoubleu.com/internal/foo/bar.go), after
+`make test/cov/report` has produced that coverage.out file.
 """
 
 import os
@@ -35,7 +31,15 @@ import subprocess
 import sys
 
 THRESHOLD = 80
-MODULE_PREFIX = 'tools.xdoubleu.com/'
+
+
+def module_prefix(project_dir):
+    """The import-path prefix of the module in project_dir, from its go.mod."""
+    with open(os.path.join(project_dir, 'go.mod')) as f:
+        for line in f:
+            if line.startswith('module '):
+                return line.split()[1] + '/'
+    raise SystemExit('go.mod has no module line.')
 
 # coverage.out itself already excludes _mock.go and /gen/ (see api/Makefile's
 # test/cov/report), but is_relevant() below filters them too -- it's also
@@ -58,6 +62,10 @@ def is_relevant(path):
         return False
     if path.endswith('_mock.go') or '/gen/' in path or path.startswith('gen/'):
         return False
+    # AppKit/cgo status-bar code has no window server under go test, and
+    # entry.go is process wiring; both are exercised by hand.
+    if path.endswith('menubar_darwin.go') or path == 'cmd/factory-runner/entry.go':
+        return False
     return True
 
 
@@ -65,13 +73,13 @@ def is_relevant(path):
 # an untracked new file is new in its entirety, so there's no diff hunk to
 # scope to. git diff omits untracked files, so without this a `make
 # test/cov/diff` run before `git add` silently skips brand-new source files
-# and passes, while codecov/patch (which sees them) later fails.
+# and passes, while CI (which sees them) later fails.
 ALL_LINES = 'all'
 
 
 def get_changed_lines(repo_root, project_dir):
     """Returns {relative_path: set(changed_line_numbers) | ALL_LINES} for
-    api/*.go files changed vs origin/main, based on unified diff hunk
+    the module's .go files changed vs origin/main, based on unified diff hunk
     headers, plus untracked new .go files scored in full."""
     merge_base_out = run_git(['merge-base', 'origin/main', 'HEAD'], repo_root)
     base_ref = merge_base_out.strip() if merge_base_out else 'origin/main'
@@ -114,21 +122,18 @@ def get_changed_lines(repo_root, project_dir):
     return changed
 
 
-def parse_profile(profile_path):
+def parse_profile(profile_path, prefix):
     """Returns {relative_path: {line_number: (hit, miss, boundary)}}.
     hit/miss each report whether some block touching that line had
     count>0 / count==0 respectively. A physical line can host more than
     one Go coverage block (e.g. an `if err != nil {` condition plus its
-    body) that disagree on hit/miss -- Codecov's own patch check marks
-    that line "partial" and gives it no coverage credit, so callers must
-    require hit and not miss for a line to count as covered, rather than
+    body) that disagree on hit/miss -- such a line is "partial" and gets
+    no coverage credit, so callers must require hit and not miss for a line to count as covered, rather than
     a plain max(count).
 
     boundary reports whether some count>0 block starts or ends on the
-    line. Codecov has marked interior lines of fully-hit blocks partial
-    while counting block start/end lines as hits -- the conservative secondary
-    percentage in main() uses this to flag local results that look
-    better than Codecov's accounting would produce."""
+    line; the conservative secondary percentage in main() counts only
+    those lines."""
     files = {}
     block_re = re.compile(
         r'^(\S+):(\d+)\.\d+,(\d+)\.(\d+) \d+ (\d+)$'
@@ -141,9 +146,9 @@ def parse_profile(profile_path):
             if not match:
                 continue
             module_path, start_line, end_line, end_col, count = match.groups()
-            if not module_path.startswith(MODULE_PREFIX):
+            if not module_path.startswith(prefix):
                 continue
-            rel_path = module_path[len(MODULE_PREFIX):]
+            rel_path = module_path[len(prefix):]
             start_line, end_line, end_col, count = (
                 int(start_line), int(end_line), int(end_col), int(count)
             )
@@ -193,7 +198,7 @@ def main():
         print('No coverage-relevant files changed.')
         sys.exit(0)
 
-    profile = parse_profile(profile_arg)
+    profile = parse_profile(profile_arg, module_prefix(project_dir))
 
     flagged = 0
     print(
@@ -221,8 +226,8 @@ def main():
             continue
 
         # A line counts as covered only when every block touching it was
-        # hit -- a line with both a hit and a miss block is "partial" in
-        # Codecov's own accounting and gets no credit there either.
+        # hit -- a line with both a hit and a miss block is "partial" and
+        # gets no credit.
         covered = sum(
             1 for hit, miss, _ in instrumented.values() if hit and not miss
         )
@@ -249,10 +254,8 @@ def main():
     print()
     print(
         'The gate uses the primary percentage; the conservative percentage\n'
-        'counts only block start/end lines of hit blocks (issue #1868).\n'
-        'On validated PRs (#1869, #1863) Codecov\'s reported patch coverage\n'
-        'fell between the two, so a large gap between them means the local\n'
-        'result is optimistic -- but neither predicts Codecov\'s number.\n'
+        'counts only block start/end lines of hit blocks, so a large gap\n'
+        'between them means the primary result is optimistic.\n'
     )
     if flagged:
         print(f'{flagged} file(s) below {THRESHOLD}% threshold on changed lines.')
