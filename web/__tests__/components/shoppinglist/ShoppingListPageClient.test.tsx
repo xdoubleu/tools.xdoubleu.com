@@ -222,12 +222,12 @@ describe('ShoppingPage meal-plan section', () => {
     render(<ShoppingListPageClient />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Export' }))
-    expect(screen.getByText('Export Shopping List')).toBeInTheDocument()
+    expect(screen.getByText('Export shopping list')).toBeInTheDocument()
     expect(screen.getByText('Order by store (optional)')).toBeInTheDocument()
     expect(screen.queryByText('Include ingredient groups')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-    expect(screen.queryByText('Export Shopping List')).not.toBeInTheDocument()
+    expect(screen.queryByText('Export shopping list')).not.toBeInTheDocument()
   })
 
   it('exports a merged custom item under its canonical name, keeping the typed name in the list', () => {
@@ -247,7 +247,7 @@ describe('ShoppingPage meal-plan section', () => {
 describe('ShoppingPage header and loading', () => {
   it('links to settings from the page header', () => {
     render(<ShoppingListPageClient />)
-    expect(screen.getByRole('heading', { level: 1, name: 'Shopping List' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Shopping list' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
       'href',
       '/shoppinglist/settings'

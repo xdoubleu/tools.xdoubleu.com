@@ -6,7 +6,7 @@ export default function FeedStatsPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Feed Stats"
+        title="Feed stats"
         breadcrumb={[{ label: 'Feeds', href: '/feeds' }, { label: 'Stats' }]}
       />
 

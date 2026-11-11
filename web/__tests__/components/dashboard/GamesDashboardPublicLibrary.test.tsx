@@ -38,8 +38,8 @@ describe('GamesDashboardPublicLibrary', () => {
     render(<GamesDashboardPublicLibrary token="tok-1" />)
 
     expect(screen.getByRole('heading', { name: 'Favourites (1)' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'In Progress (1)' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Not Started (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'In progress (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Not started (1)' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Completed (1)' })).toBeInTheDocument()
   })
 
@@ -75,8 +75,8 @@ describe('GamesDashboardPublicLibrary', () => {
     fireEvent.change(screen.getByPlaceholderText('Search games…'), {
       target: { value: 'backlog' }
     })
-    expect(screen.getByRole('heading', { name: 'Not Started (1)' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'In Progress (1)' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Not started (1)' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'In progress (1)' })).not.toBeInTheDocument()
 
     fireEvent.change(screen.getByPlaceholderText('Search games…'), {
       target: { value: 'zzz-no-match' }

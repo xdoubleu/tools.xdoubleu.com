@@ -15,7 +15,7 @@ export default function EditPlanClient({ id }: { id: string }) {
       <PageHeader
         title="Edit plan"
         breadcrumb={[
-          { label: 'Meal Plans', href: '/mealplans' },
+          { label: 'Meal plans', href: '/mealplans' },
           { label: plan?.name ?? 'Plan', href: `/mealplans/${id}` },
           { label: 'Edit plan' }
         ]}

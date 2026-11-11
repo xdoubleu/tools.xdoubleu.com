@@ -24,7 +24,7 @@ beforeEach(() => vi.clearAllMocks())
 describe('NewLearningPathPage', () => {
   it('renders the heading and form', () => {
     render(<NewLearningPathPage />)
-    expect(screen.getByRole('heading', { name: 'New Learning Path' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'New learning path' })).toBeInTheDocument()
     expect(screen.getByTestId('learning-path-form')).toBeInTheDocument()
   })
 

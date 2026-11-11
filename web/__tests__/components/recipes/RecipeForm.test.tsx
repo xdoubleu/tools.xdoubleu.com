@@ -48,7 +48,7 @@ beforeEach(() => {
 describe('RecipeForm (new recipe)', () => {
   it('renders form fields for a new recipe', () => {
     render(<RecipeForm onSave={vi.fn()} onCancel={vi.fn()} />)
-    expect(screen.getByText('Recipe Name')).toBeInTheDocument()
+    expect(screen.getByText('Recipe name')).toBeInTheDocument()
     expect(screen.getByText('Servings')).toBeInTheDocument()
     expect(screen.getByText('Ingredients')).toBeInTheDocument()
     expect(screen.getByText('Steps')).toBeInTheDocument()
@@ -58,7 +58,7 @@ describe('RecipeForm (new recipe)', () => {
 
   it('names every field, with ingredient rows grouped under their heading', () => {
     render(<RecipeForm onSave={vi.fn()} onCancel={vi.fn()} />)
-    expect(screen.getByLabelText('Recipe Name')).toHaveAttribute('type', 'text')
+    expect(screen.getByLabelText('Recipe name')).toHaveAttribute('type', 'text')
     expect(screen.getByLabelText('Servings')).toHaveAttribute('type', 'number')
     expect(screen.getByLabelText('Batch prep servings')).toHaveAccessibleDescription(
       /shopping list buys for this many servings/
@@ -178,10 +178,10 @@ describe('RecipeForm (new recipe)', () => {
     })
   })
 
-  it('adds a new ingredient row when Add Ingredient clicked', () => {
+  it('adds a new ingredient row when Add ingredient clicked', () => {
     render(<RecipeForm onSave={vi.fn()} onCancel={vi.fn()} />)
     const initialRows = screen.getAllByPlaceholderText('Name')
-    fireEvent.click(screen.getByRole('button', { name: 'Add Ingredient' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add ingredient' }))
     const afterRows = screen.getAllByPlaceholderText('Name')
     expect(afterRows.length).toBe(initialRows.length + 1)
   })
@@ -189,7 +189,7 @@ describe('RecipeForm (new recipe)', () => {
   it('removes an ingredient row when Remove clicked', () => {
     render(<RecipeForm onSave={vi.fn()} onCancel={vi.fn()} />)
     // A second row makes Remove appear.
-    fireEvent.click(screen.getByRole('button', { name: 'Add Ingredient' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add ingredient' }))
     const removeButtons = screen.getAllByRole('button', { name: /^Remove ingredient/ })
     expect(removeButtons.length).toBe(2)
     fireEvent.click(removeButtons[0])

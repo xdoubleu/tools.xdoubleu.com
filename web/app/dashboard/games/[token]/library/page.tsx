@@ -11,7 +11,7 @@ export default function GamesDashboardPublicLibraryPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Library"
+        title="Shared games library"
         breadcrumb={[
           {
             label: steam?.displayName ? `${steam.displayName}'s games` : 'Games',

@@ -36,7 +36,7 @@ export default function GamesDashboardPublicGameClient({
   if (!game) {
     return (
       <PageContainer>
-        <PageHeader title="Game" breadcrumb={breadcrumbItems} />
+        <PageHeader title="Shared game" breadcrumb={breadcrumbItems} />
         {error && <ErrorState what="game" placement="page" />}
       </PageContainer>
     )

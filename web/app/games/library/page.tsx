@@ -6,7 +6,7 @@ export default function BacklogGamesLibraryPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Library"
+        title="Games library"
         breadcrumb={[{ label: 'Games', href: '/dashboard/games' }, { label: 'Library' }]}
       />
 

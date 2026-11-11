@@ -10,7 +10,7 @@ export default function ShoppingListSettingsPage() {
     <PageContainer size="narrow">
       <PageHeader
         title="Shopping list settings"
-        breadcrumb={[{ label: 'Shopping List', href: '/shoppinglist' }, { label: 'Settings' }]}
+        breadcrumb={[{ label: 'Shopping list', href: '/shoppinglist' }, { label: 'Settings' }]}
       />
 
       <SettingsSections>

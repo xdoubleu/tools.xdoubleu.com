@@ -65,12 +65,12 @@ export default function LearningPathsListClient() {
   return (
     <PageContainer>
       <PageHeader
-        title="Learning Paths"
+        title="Learning paths"
         actions={
           <>
             <PageHeaderSettingsLink href="/learningpaths/settings" />
             <Button asChild>
-              <Link href="/learningpaths/new">New Learning Path</Link>
+              <Link href="/learningpaths/new">New learning path</Link>
             </Button>
           </>
         }

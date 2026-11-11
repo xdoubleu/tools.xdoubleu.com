@@ -9,7 +9,7 @@ export default function BacklogBooksLibraryPage() {
     <PageContainer>
       <PageHeader
         breadcrumb={[{ label: 'Books', href: '/dashboard/reading' }, { label: 'Library' }]}
-        title="Library"
+        title="Books library"
         actions={
           <>
             <LibraryAdminButton />

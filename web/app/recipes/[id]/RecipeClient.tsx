@@ -169,7 +169,7 @@ export default function RecipeClient({ id }: { id: string }) {
                 onClick={toggleCookingMode}
                 className="ml-auto"
               >
-                {cookingModeActive ? 'Cooking Mode: On' : 'Cooking Mode'}
+                {cookingModeActive ? 'Cooking mode: On' : 'Cooking mode'}
               </Button>
             )}
           </div>

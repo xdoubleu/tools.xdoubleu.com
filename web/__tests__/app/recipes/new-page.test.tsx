@@ -29,7 +29,7 @@ import NewRecipePage from '@/app/recipes/new/page'
 describe('NewRecipePage', () => {
   it('renders the heading and form', () => {
     render(<NewRecipePage />)
-    expect(screen.getByRole('heading', { name: 'New Recipe' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'New recipe' })).toBeInTheDocument()
     expect(screen.getByTestId('recipe-form')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Recipes' })).toHaveAttribute('href', '/recipes/list')
     expect(screen.getByText('New')).toBeInTheDocument()

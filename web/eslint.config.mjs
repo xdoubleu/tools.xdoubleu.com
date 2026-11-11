@@ -8,7 +8,8 @@ import uiPlugin from './eslint-rules/index.mjs'
 const uiEverywhere = {
   'ui/mobile-first-classes': 'error',
   'ui/theme-tokens': 'error',
-  'ui/no-classname-template': 'error'
+  'ui/no-classname-template': 'error',
+  'ui/sentence-case': 'error'
 }
 const uiCallSites = {
   ...uiEverywhere,

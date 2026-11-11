@@ -40,7 +40,7 @@ export default function LearningPathsSettingsClient() {
       <PageHeader
         title="Learning paths settings"
         breadcrumb={[
-          { label: 'Learning Paths', href: '/learningpaths/list' },
+          { label: 'Learning paths', href: '/learningpaths/list' },
           { label: 'Settings' }
         ]}
       />
