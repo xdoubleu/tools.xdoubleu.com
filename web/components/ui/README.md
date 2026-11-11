@@ -491,7 +491,7 @@ Heading for a section of a page. Use it instead of a hand-styled `<h2>`/`<h3>`.
 
 #### `SegmentedTabs`
 
-Single-choice switch between a few views or modes, rendered as a tablist.
+The one way to switch between a few views, sibling sections or a scope (Mine/Family): a single track whose selected segment slides to the tapped option. Segments share the track equally. Filters are `TogglePill`s and actions are `Button`s, never this.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
@@ -634,7 +634,7 @@ Amber-when-on treatment shared by every glyph toggle.
 
 #### `TogglePill`
 
-Pill for selectable attributes and filter chips: filled when active, outlined when not (unlike a read-only `Badge`). Sets `aria-pressed`; pass `role="tab"`/`aria-selected` in a tablist.
+Filter chip for selectable attributes: a light outline when off, a tinted accent fill with a check when on (unlike a read-only `Badge`, and visibly lighter than a `Button`). Sets `aria-pressed`. Switching views is `SegmentedTabs`, not a row of these.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|

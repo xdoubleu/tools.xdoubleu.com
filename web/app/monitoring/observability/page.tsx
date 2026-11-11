@@ -4,7 +4,7 @@ import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
 
 export default function MonitoringObservabilityPage() {
   return (
-    <PageContainer>
+    <PageContainer size="wide">
       <PageHeader title="Observability" />
       <ObservabilityClient />
     </PageContainer>

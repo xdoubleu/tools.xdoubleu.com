@@ -4,7 +4,7 @@ import MonitoringSettingsClient from '@/components/monitoring/MonitoringSettings
 
 export default function MonitoringConnectionsPage() {
   return (
-    <PageContainer>
+    <PageContainer size="wide">
       <PageHeader title="Connections" />
       <MonitoringSettingsClient />
     </PageContainer>

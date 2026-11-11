@@ -13,7 +13,7 @@ const ownText = (opening) =>
     .join('')
     .trim()
 
-/** Hand-built versions of SectionHeading, FieldError, ProgressBar and RemoveButton (docs/convention-ui-standards.md). */
+/** Hand-built versions of SectionHeading, FieldError, ProgressBar, RemoveButton and SegmentedTabs (docs/convention-ui-standards.md). */
 export default {
   meta: {
     type: 'suggestion',
@@ -27,7 +27,8 @@ export default {
       fieldError:
         'Hand-styled error line. Use `FieldError` (@/components/ui/field-error) and point the control’s `aria-describedby` at its `id`.',
       progress: 'Hand-built progress bar. Use `ProgressBar` from @/components/ui/progress-bar.',
-      remove: 'Hand-built × button. Use `RemoveButton` from @/components/ui/remove-button.'
+      remove: 'Hand-built × button. Use `RemoveButton` from @/components/ui/remove-button.',
+      tabs: 'A `{{element}}` with role="tab" is a hand-built tab bar. Use `SegmentedTabs` from @/components/ui/segmented-tabs for switching views, sections or scope.'
     },
     schema: []
   },
@@ -36,6 +37,17 @@ export default {
       JSXOpeningElement(node) {
         if (node.name.type === 'JSXIdentifier' && node.name.name === 'Button') {
           if (/^[×✕✖]$/.test(ownText(node))) context.report({ node, messageId: 'remove' })
+        }
+        if (
+          node.name.type === 'JSXIdentifier' &&
+          ['Button', 'TogglePill'].includes(node.name.name)
+        ) {
+          const role = node.attributes.find(
+            (a) => a.type === 'JSXAttribute' && a.name.name === 'role'
+          )
+          if (role?.value?.type === 'Literal' && role.value.value === 'tab') {
+            context.report({ node, messageId: 'tabs', data: { element: node.name.name } })
+          }
         }
       },
       JSXAttribute(attr) {

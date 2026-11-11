@@ -9,9 +9,13 @@ ruleTester.run('ui/shared-patterns', rule, {
     '<p className="text-xs text-danger">{detail}</p>',
     '<ProgressBar value={3} aria-label="Progress" />',
     '<DialogClose>×</DialogClose>',
-    '<Button>Remove</Button>'
+    '<Button>Remove</Button>',
+    '<Button role="menuitem">Edit</Button>',
+    '<SegmentedTabs value="a" options={[]} />'
   ],
   invalid: [
+    { code: '<Button role="tab">Unread</Button>', errors: [{ messageId: 'tabs' }] },
+    { code: '<TogglePill role="tab" label="All" active />', errors: [{ messageId: 'tabs' }] },
     {
       code: '<h2 className="text-lg font-semibold">Stats</h2>',
       errors: [{ messageId: 'heading' }]

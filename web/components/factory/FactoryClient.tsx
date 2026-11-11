@@ -177,7 +177,7 @@ export default function FactoryClient() {
   }
 
   return (
-    <PageContainer className="flex h-dvh flex-col lg:h-[calc(100dvh-9rem)]">
+    <PageContainer size="wide" className="flex h-dvh flex-col lg:h-[calc(100dvh-9rem)]">
       <PageHeader
         title="Factory"
         actions={
