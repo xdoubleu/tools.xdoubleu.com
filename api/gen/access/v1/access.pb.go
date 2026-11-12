@@ -28,7 +28,9 @@ type AppUser struct {
 	Role      string                 `protobuf:"bytes,3,opt,name=role,proto3" json:"role,omitempty"`
 	AppAccess []string               `protobuf:"bytes,4,rep,name=app_access,json=appAccess,proto3" json:"app_access,omitempty"`
 	// write_access is the part of app_access granted at the write level.
-	WriteAccess   []string `protobuf:"bytes,5,rep,name=write_access,json=writeAccess,proto3" json:"write_access,omitempty"`
+	WriteAccess []string `protobuf:"bytes,5,rep,name=write_access,json=writeAccess,proto3" json:"write_access,omitempty"`
+	// Full name the user set in settings; empty when unset.
+	DisplayName   string `protobuf:"bytes,6,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -96,6 +98,13 @@ func (x *AppUser) GetWriteAccess() []string {
 		return x.WriteAccess
 	}
 	return nil
+}
+
+func (x *AppUser) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
 }
 
 type ListUsersRequest struct {
@@ -487,14 +496,15 @@ var File_access_v1_access_proto protoreflect.FileDescriptor
 
 const file_access_v1_access_proto_rawDesc = "" +
 	"\n" +
-	"\x16access/v1/access.proto\x12\taccess.v1\"\x85\x01\n" +
+	"\x16access/v1/access.proto\x12\taccess.v1\"\xa8\x01\n" +
 	"\aAppUser\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
 	"\x04role\x18\x03 \x01(\tR\x04role\x12\x1d\n" +
 	"\n" +
 	"app_access\x18\x04 \x03(\tR\tappAccess\x12!\n" +
-	"\fwrite_access\x18\x05 \x03(\tR\vwriteAccess\"\x12\n" +
+	"\fwrite_access\x18\x05 \x03(\tR\vwriteAccess\x12!\n" +
+	"\fdisplay_name\x18\x06 \x01(\tR\vdisplayName\"\x12\n" +
 	"\x10ListUsersRequest\"=\n" +
 	"\x11ListUsersResponse\x12(\n" +
 	"\x05users\x18\x01 \x03(\v2\x12.access.v1.AppUserR\x05users\"=\n" +

@@ -88,6 +88,18 @@ function useAccessChange(user: AppUser, appName: string) {
 }
 
 /** One app's access as a checkbox that shows the current state. Used in the table row. */
+/** The user's full name over their email; the email alone when no name is set. */
+function UserIdentity({ user }: { user: AppUser }) {
+  return (
+    <>
+      {user.displayName && <p className="text-sm font-medium text-fg">{user.displayName}</p>}
+      <p className={user.displayName ? 'text-xs text-muted' : 'text-sm font-medium text-fg'}>
+        {user.email}
+      </p>
+    </>
+  )
+}
+
 function AppAccessCheckbox({ user, appName }: { user: AppUser; appName: string }) {
   const { hasAccess, change, dialog } = useAccessChange(user, appName)
   return (
@@ -141,7 +153,7 @@ export default function UserManagementClient() {
         ) : (
           users.map((user) => (
             <Card key={user.id} className="space-y-3">
-              <p className="break-all text-sm font-medium text-fg">{user.email}</p>
+              <UserIdentity user={user} />
               <div className="flex flex-wrap items-center gap-2">
                 <RoleSelect user={user} />
               </div>
@@ -163,7 +175,7 @@ export default function UserManagementClient() {
         <Table className="text-left">
           <TableHeader>
             <TableRow>
-              <TableHead>Email</TableHead>
+              <TableHead>User</TableHead>
               <TableHead>Role</TableHead>
               {APP_NAMES.map((name) => (
                 <TableHead key={name} className="text-center capitalize">
@@ -182,7 +194,9 @@ export default function UserManagementClient() {
             ) : (
               users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell className="break-all text-fg">{user.email}</TableCell>
+                  <TableCell className="break-all text-fg">
+                    <UserIdentity user={user} />
+                  </TableCell>
                   <TableCell>
                     <RoleSelect user={user} />
                   </TableCell>
