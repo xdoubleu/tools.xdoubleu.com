@@ -37,6 +37,7 @@ POST /access.v1.AccessService/: 401, 404
 POST /access.v1.AccessService/ListUsers: 401, 415
 POST /access.v1.AccessService/SetAgentAppAccess: 401, 415
 POST /access.v1.AccessService/SetAppAccess: 401, 415
+POST /access.v1.AccessService/SetDisplayName: 401, 415
 POST /access.v1.AccessService/SetRole: 401, 415
 POST /auth.v1.AuthService/: 404, 404
 POST /auth.v1.AuthService/ExchangeToken: 415, 415
@@ -113,7 +114,6 @@ POST /dashboard.v1.DashboardService/: 401, 404
 POST /dashboard.v1.DashboardService/CreateDashboardShare: 401, 415
 POST /dashboard.v1.DashboardService/DeleteDashboardShare: 401, 415
 POST /dashboard.v1.DashboardService/GetDashboardShare: 401, 415
-POST /dashboard.v1.DashboardService/SetDisplayName: 401, 415
 POST /dashboard.v1.PublicGamesDashboardService/: 404, 404
 POST /dashboard.v1.PublicGamesDashboardService/GetSharedRecentlyActiveGames: 415, 415
 POST /dashboard.v1.PublicGamesDashboardService/GetSharedSteam: 415, 415

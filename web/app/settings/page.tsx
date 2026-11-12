@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { mutate } from 'swr'
 import { ConnectError } from '@connectrpc/connect'
 import {
   useCurrentUser,
   useUpdatePassword,
-  useUpdateDisplayName,
   useMFAEnroll,
   useMFAEnrollVerify,
   useMFAUnenroll,
@@ -32,20 +31,10 @@ export default function SettingsPage() {
   const { data, error, isLoading } = useCurrentUser()
 
   const updatePassword = useUpdatePassword()
-  const updateDisplayName = useUpdateDisplayName()
   const mfaEnroll = useMFAEnroll()
   const mfaEnrollVerify = useMFAEnrollVerify()
   const mfaUnenroll = useMFAUnenroll()
   const regenerateRecoveryCodes = useRegenerateRecoveryCodes()
-
-  const [displayName, setDisplayName] = useState('')
-  const [nameSaving, setNameSaving] = useState(false)
-  const [nameSaved, setNameSaved] = useState(false)
-  const [nameError, setNameError] = useState('')
-
-  useEffect(() => {
-    if (data) setDisplayName(data.displayName)
-  }, [data])
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -75,26 +64,6 @@ export default function SettingsPage() {
   }
 
   const hasMFA = data.hasMfa
-
-  async function handleDisplayNameSave(e: React.FormEvent) {
-    e.preventDefault()
-    setNameSaved(false)
-    setNameError('')
-    setNameSaving(true)
-    try {
-      await updateDisplayName(displayName.trim())
-      await mutate(swrKeys.currentUser)
-      setNameSaved(true)
-    } catch (err) {
-      if (err instanceof ConnectError) {
-        setNameError(err.message)
-      } else {
-        setNameError('Failed to update full name.')
-      }
-    } finally {
-      setNameSaving(false)
-    }
-  }
 
   async function handlePasswordSave(e: React.FormEvent) {
     e.preventDefault()
@@ -213,29 +182,6 @@ export default function SettingsPage() {
       <PageHeader title="Account settings" />
 
       <SettingsSections>
-        <SettingsSection
-          title="Full name"
-          description="Shown on your public profile when you share your books or games, and next to your email in user management. Required before you can create a share link."
-        >
-          {nameSaved && <Alert tone="success">Full name updated successfully.</Alert>}
-          {nameError && <Alert tone="danger">{nameError}</Alert>}
-
-          <form onSubmit={handleDisplayNameSave} className="space-y-3">
-            <Field label="Full name" htmlFor="display_name">
-              <Input
-                id="display_name"
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                required
-              />
-            </Field>
-            <Button type="submit" disabled={nameSaving || !displayName.trim()}>
-              {nameSaving ? 'Saving…' : 'Save full name'}
-            </Button>
-          </form>
-        </SettingsSection>
-
         <SettingsSection title="Change password">
           {pwSaved && <Alert tone="success">Password updated successfully.</Alert>}
           {pwError && <Alert tone="danger">{pwError}</Alert>}

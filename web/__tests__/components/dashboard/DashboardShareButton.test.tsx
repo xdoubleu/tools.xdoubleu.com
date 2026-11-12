@@ -50,7 +50,7 @@ describe('DashboardShareButton', () => {
     render(<DashboardShareButton kind="reading" />)
     openDialog()
 
-    expect(screen.getByText(/Set a display name in settings before sharing/)).toBeInTheDocument()
+    expect(screen.getByText(/Ask an admin to set your full name/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Create share link' })).not.toBeInTheDocument()
   })
 

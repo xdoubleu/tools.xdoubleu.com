@@ -1,4 +1,3 @@
-import { Link } from '@/components/ui/link'
 import { useState } from 'react'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { useCurrentUser } from '@/hooks/useAuth'
@@ -59,15 +58,10 @@ export default function DashboardShareButton({ kind }: { kind: DashboardShareKin
           </DialogHeader>
 
           {!hasDisplayName ? (
-            <div className="space-y-3">
-              <p className="text-sm text-muted">
-                Set a display name in settings before sharing your dashboard — visitors need to know
-                whose dashboard they&apos;re viewing.
-              </p>
-              <Button asChild variant="secondary" size="sm">
-                <Link href="/settings">Go to settings</Link>
-              </Button>
-            </div>
+            <p className="text-sm text-muted">
+              Ask an admin to set your full name in user management before sharing your dashboard —
+              visitors need to know whose dashboard they&apos;re viewing.
+            </p>
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-muted">

@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"connectrpc.com/connect/v2"
 
@@ -171,4 +172,35 @@ func (h *accessConnectHandler) SetAppAccess(
 	}
 
 	return &accessv1.SetAppAccessResponse{User: protoAppUser(*user)}, nil
+}
+
+func (h *accessConnectHandler) SetDisplayName(
+	ctx context.Context,
+	req *accessv1.SetDisplayNameRequest,
+) (*accessv1.SetDisplayNameResponse, error) {
+	if err := obs.RequireAdmin(ctx); err != nil {
+		return nil, err
+	}
+
+	name := strings.TrimSpace(req.DisplayName)
+	if name == "" {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			"display_name is required",
+		)
+	}
+
+	if err := h.refuseAgent(ctx, req.UserId); err != nil {
+		return nil, err
+	}
+	if err := h.app.AppUsers.SetDisplayName(ctx, req.UserId, name); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	}
+
+	user, err := h.app.AppUsers.GetByID(ctx, req.UserId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
+	}
+
+	return &accessv1.SetDisplayNameResponse{User: protoAppUser(*user)}, nil
 }

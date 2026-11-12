@@ -77,7 +77,7 @@ func (h *dashboardConnectHandler) CreateDashboardShare(
 	if user.DisplayName == "" {
 		return nil, connect.NewError(
 			connect.CodeFailedPrecondition,
-			"set a display name before sharing your dashboard",
+			"your full name must be set before sharing your dashboard",
 		)
 	}
 
@@ -110,22 +110,4 @@ func (h *dashboardConnectHandler) DeleteDashboardShare(
 		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	return &dashboardv1.DeleteDashboardShareResponse{}, nil
-}
-
-func (h *dashboardConnectHandler) SetDisplayName(
-	ctx context.Context,
-	req *dashboardv1.SetDisplayNameRequest,
-) (*dashboardv1.SetDisplayNameResponse, error) {
-	if req.DisplayName == "" {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			"display_name is required",
-		)
-	}
-
-	err := h.app.AppUsers.SetDisplayName(ctx, h.userID(ctx), req.DisplayName)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
-	}
-	return &dashboardv1.SetDisplayNameResponse{}, nil
 }
