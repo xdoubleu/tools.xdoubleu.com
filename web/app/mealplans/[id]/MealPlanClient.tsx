@@ -68,6 +68,7 @@ export default function MealPlanClient({ id }: { id: string }) {
             weekOffset={offset}
             onPrevWeek={() => setOffset(data?.prevOffset ?? offset - 1)}
             onNextWeek={() => setOffset(data?.nextOffset ?? offset + 1)}
+            onThisWeek={() => setOffset(0)}
             onMutate={() => mutate()}
           />
         </>

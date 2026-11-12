@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button'
 import { useMemo, useState } from 'react'
 import {
   useCustomList,
@@ -89,21 +90,23 @@ export default function ShoppingListPageClient() {
     <PageContainer>
       <PageHeader
         title="Shopping list"
-        actions={<PageHeaderSettingsLink href="/shoppinglist/settings" />}
+        actions={
+          <>
+            {data && (
+              <Button variant="secondary" onClick={() => setShowExport(true)}>
+                Export
+              </Button>
+            )}
+            <PageHeaderSettingsLink href="/shoppinglist/settings" />
+          </>
+        }
       />
 
       <AddItemForm categories={categories} />
 
       {isLoading && <LoadingState placement="page" />}
       {error && !data && <ErrorState placement="page" what="shopping list" />}
-      {data && (
-        <ShoppingList
-          items={items}
-          onDelete={handleDelete}
-          onEdit={handleEdit}
-          onExport={() => setShowExport(true)}
-        />
-      )}
+      {data && <ShoppingList items={items} onDelete={handleDelete} onEdit={handleEdit} />}
 
       <div className="mt-8 space-y-6">
         <MealPlanGroupFilter

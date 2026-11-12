@@ -70,10 +70,12 @@ function makePlanMeal(overrides: {
 
 const mockOnPrevWeek = vi.fn()
 const mockOnNextWeek = vi.fn()
+const mockOnThisWeek = vi.fn()
 const defaultNavProps = {
   weekOffset: 0,
   onPrevWeek: mockOnPrevWeek,
-  onNextWeek: mockOnNextWeek
+  onNextWeek: mockOnNextWeek,
+  onThisWeek: mockOnThisWeek
 }
 
 beforeEach(() => {
@@ -662,14 +664,26 @@ describe('MealPlanCalendar', () => {
 
   it('calls onPrevWeek when Previous Week button is clicked', () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    fireEvent.click(screen.getByRole('button', { name: /Prev/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Previous week' }))
     expect(mockOnPrevWeek).toHaveBeenCalledTimes(1)
   })
 
   it('calls onNextWeek when Next Week button is clicked', () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
-    fireEvent.click(screen.getByRole('button', { name: /Next/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Next week' }))
     expect(mockOnNextWeek).toHaveBeenCalledTimes(1)
+  })
+
+  it('jumps back to this week, and disables that on the current week', () => {
+    const { rerender } = render(
+      <MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />
+    )
+    expect(screen.getByRole('button', { name: 'This week' })).toBeDisabled()
+    rerender(
+      <MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} weekOffset={2} />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'This week' }))
+    expect(mockOnThisWeek).toHaveBeenCalledTimes(1)
   })
 
   it('shows the week date range as a short range', () => {

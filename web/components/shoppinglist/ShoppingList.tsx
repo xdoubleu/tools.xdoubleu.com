@@ -22,7 +22,6 @@ interface ShoppingListProps {
   items: ShoppingItem[]
   onDelete?: (itemId: string) => Promise<void>
   onEdit?: (itemId: string, values: ShoppingItemEdit) => Promise<void>
-  onExport?: () => void
 }
 
 // One list per family, so one key.
@@ -30,7 +29,7 @@ const TICKS_KEY = 'shoppinglist:ticks'
 
 const itemKey = (item: ShoppingItem, idx: number) => item.id ?? `item-${idx}-${item.name}`
 
-export default function ShoppingList({ items, onDelete, onEdit, onExport }: ShoppingListProps) {
+export default function ShoppingList({ items, onDelete, onEdit }: ShoppingListProps) {
   const [storedTicks, setStoredTicks] = useLocalStorage<string[]>(TICKS_KEY, [])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<ShoppingItemEdit>({ name: '', amount: '', unit: '' })
@@ -79,12 +78,6 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
 
   return (
     <div className="space-y-4">
-      {onExport && (
-        <Button variant="secondary" onClick={onExport}>
-          Export
-        </Button>
-      )}
-
       {items.length === 0 ? (
         <EmptyState
           placement="inline"

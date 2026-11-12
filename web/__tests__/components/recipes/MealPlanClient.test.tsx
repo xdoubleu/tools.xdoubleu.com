@@ -19,8 +19,20 @@ vi.mock('@/hooks/navigation', () => ({
 
 vi.mock('@/components/mealplans/MealPlanCalendar', () => {
   return {
-    default: function MockCalendar() {
-      return <div data-testid="meal-plan-calendar">calendar-mock</div>
+    default: function MockCalendar({
+      onNextWeek,
+      onThisWeek
+    }: {
+      onNextWeek: () => void
+      onThisWeek: () => void
+    }) {
+      return (
+        <div data-testid="meal-plan-calendar">
+          calendar-mock
+          <button onClick={onNextWeek}>Next week</button>
+          <button onClick={onThisWeek}>This week</button>
+        </div>
+      )
     }
   }
 })
@@ -86,6 +98,21 @@ describe('MealPlanClient', () => {
     render(<MealPlanClient id="plan-1" />)
     expect(screen.getByRole('status', { name: 'Loading meal plan' })).toBeInTheDocument()
     expect(screen.getByText('Failed to load meal plan.')).toBeInTheDocument()
+  })
+
+  it('steps weeks and jumps back to this week', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    vi.mocked(useMealPlan).mockReturnValue({
+      data: create(GetPlanResponseSchema, { plan: mockPlan, nextOffset: 3 }),
+      error: undefined,
+      isLoading: false
+    })
+    render(<MealPlanClient id="plan-1" />)
+    const reads = () => vi.mocked(useMealPlan).mock.calls.map((c) => c[1])
+    fireEvent.click(screen.getByRole('button', { name: 'Next week' }))
+    expect(reads().at(-1)).toBe(3)
+    fireEvent.click(screen.getByRole('button', { name: 'This week' }))
+    expect(reads().at(-1)).toBe(0)
   })
 
   it('shows a breadcrumb back to meal plans', () => {
