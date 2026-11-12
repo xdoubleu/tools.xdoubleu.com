@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from '@/components/ui/link'
 import { useCurrentUser, useSignIn, useMFAChallenge } from '@/hooks/useAuth'
-import AppGrid from '@/components/AppGrid'
-import { visibleSections } from '@/lib/apps'
+import TodayView from '@/components/today/TodayView'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -123,13 +122,10 @@ export default function HomeClient() {
   }
 
   if (authState === 'authenticated' && data) {
-    const sections = visibleSections(data)
-
-    // The grid's section headings carry the page; the h1 is for screen readers.
     return (
       <>
-        <PageHeader title="tools.xdoubleu.com" className="sr-only" />
-        <AppGrid sections={sections} />
+        <PageHeader title="Today" />
+        <TodayView />
       </>
     )
   }

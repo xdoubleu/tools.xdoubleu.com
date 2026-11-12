@@ -1,7 +1,7 @@
 import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { Code, ConnectError } from '@connectrpc/connect'
-import HomeClient, { safeNext } from '@/components/HomeClient'
+import HomeClient from '@/components/HomeClient'
 import { GetCurrentUserResponseSchema } from '@/lib/gen/auth/v1/auth_pb'
 
 vi.mock('@/hooks/useAuth', () => ({
@@ -11,6 +11,8 @@ vi.mock('@/hooks/useAuth', () => ({
 }))
 
 import { useCurrentUser, useSignIn, useMFAChallenge } from '@/hooks/useAuth'
+
+vi.mock('@/components/today/TodayView', () => ({ default: () => <p>today view</p> }))
 
 const mockUseSettings = vi.mocked(useCurrentUser)
 const mockUseSignIn = vi.mocked(useSignIn)
@@ -35,7 +37,7 @@ describe('HomeClient', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 
-  it('renders all app links when authenticated as admin', async () => {
+  it('renders the Today page when authenticated', async () => {
     // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({
       data: create(GetCurrentUserResponseSchema, { role: 'admin', appAccess: [] }),
@@ -46,53 +48,9 @@ describe('HomeClient', () => {
     render(<HomeClient />)
 
     await waitFor(() => {
-      expect(
-        screen.getByRole('heading', { level: 1, name: 'tools.xdoubleu.com' })
-      ).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Learning' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Media' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Transit' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Food' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Tools' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
-      expect(screen.getByText('Games')).toBeInTheDocument()
-      expect(screen.getByText('Books')).toBeInTheDocument()
-      expect(screen.getByText('Feeds')).toBeInTheDocument()
-      expect(screen.getByText('Watch party')).toBeInTheDocument()
-      expect(screen.getByText('Recipes')).toBeInTheDocument()
-      expect(screen.getByText('Meal plans')).toBeInTheDocument()
-      expect(screen.getByText('Shopping list')).toBeInTheDocument()
-      expect(screen.getByText('Settings')).toBeInTheDocument()
-      expect(screen.getByText('Family')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument()
     })
-
-    expect(screen.getByRole('link', { name: /Games/ })).toHaveAttribute('href', '/dashboard/games')
-    expect(screen.getByRole('link', { name: /Books/ })).toHaveAttribute(
-      'href',
-      '/dashboard/reading'
-    )
-    expect(screen.getByRole('link', { name: /Watch party/ })).toHaveAttribute('href', '/watchparty')
-    expect(screen.getByRole('link', { name: /Recipes/ })).toHaveAttribute('href', '/recipes/list')
-    expect(screen.getByRole('link', { name: /Meal plans/ })).toHaveAttribute('href', '/mealplans')
-    expect(screen.getByRole('link', { name: /Shopping list/ })).toHaveAttribute(
-      'href',
-      '/shoppinglist'
-    )
-    expect(screen.getByRole('link', { name: /Podcasts/ })).toHaveAttribute('href', '/podcasts')
-    expect(screen.getByText('Favourite shows, found through iTunes.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /^Taste/ })).toHaveAttribute('href', '/taste')
-    expect(
-      screen.getByText('What you read, play, watch and listen to, across every app.')
-    ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Settings/ })).toHaveAttribute('href', '/settings')
-    expect(screen.getByRole('link', { name: /Family/ })).toHaveAttribute('href', '/family')
-    expect(screen.getByRole('link', { name: /User management/ })).toHaveAttribute(
-      'href',
-      '/user-management'
-    )
-    expect(screen.getByRole('link', { name: /Grafana/ })).toHaveAttribute('href', '/grafana')
-
+    expect(screen.getByText('today view')).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /Email/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /Password/ })).not.toBeInTheDocument()
   })
@@ -262,212 +220,6 @@ describe('HomeClient', () => {
     resolveSignIn!()
   })
 
-  it('renders app descriptions', async () => {
-    // @ts-expect-error -- mock returns partial hook response for test purposes
-    mockUseSettings.mockReturnValue({
-      data: create(GetCurrentUserResponseSchema, { role: 'admin', appAccess: [] }),
-      isLoading: false,
-      error: undefined
-    })
-
-    render(<HomeClient />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Steam backlog, progress and distribution.')).toBeInTheDocument()
-      expect(screen.getByText('Search, library and reading progress.')).toBeInTheDocument()
-      expect(screen.getByText('Unread RSS and newsletter articles.')).toBeInTheDocument()
-      expect(screen.getByText('WebRTC screen sharing')).toBeInTheDocument()
-      expect(screen.getByText('Recipe management')).toBeInTheDocument()
-      expect(screen.getByText('User preferences')).toBeInTheDocument()
-      expect(
-        screen.getByText('Share one recipe book, meal plan and shopping list together')
-      ).toBeInTheDocument()
-    })
-  })
-
-  it('renders only granted apps plus always-visible apps for non-admin user', async () => {
-    // @ts-expect-error -- mock returns partial hook response for test purposes
-    mockUseSettings.mockReturnValue({
-      data: create(GetCurrentUserResponseSchema, {
-        role: 'user',
-        appAccess: ['games', 'books', 'feeds']
-      }),
-      isLoading: false,
-      error: undefined
-    })
-
-    render(<HomeClient />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Media' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Learning' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
-      expect(screen.getByText('Games')).toBeInTheDocument()
-      expect(screen.getByText('Books')).toBeInTheDocument()
-      expect(screen.getByText('Feeds')).toBeInTheDocument()
-      expect(screen.getByText('Settings')).toBeInTheDocument()
-      expect(screen.getByText('Family')).toBeInTheDocument()
-    })
-
-    expect(screen.queryByText('Watch party')).not.toBeInTheDocument()
-    expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
-    expect(screen.queryByText('Grafana')).not.toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Tools' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Food' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Admin' })).not.toBeInTheDocument()
-  })
-
-  it('shows the Factory card to admins only, even when access is granted', async () => {
-    // @ts-expect-error -- mock returns partial hook response for test purposes
-    mockUseSettings.mockReturnValue({
-      data: create(GetCurrentUserResponseSchema, { role: 'admin', appAccess: [] }),
-      isLoading: false,
-      error: undefined
-    })
-    const { unmount } = render(<HomeClient />)
-    const link = await screen.findByRole('link', { name: /Factory/ })
-    expect(link).toHaveAttribute('href', '/factory')
-    expect(screen.getByText('Task board for the software factory.')).toBeInTheDocument()
-    unmount()
-
-    // @ts-expect-error -- mock returns partial hook response for test purposes
-    mockUseSettings.mockReturnValue({
-      data: create(GetCurrentUserResponseSchema, {
-        role: 'user',
-        appAccess: ['factory', 'user-management', 'monitoring', 'observability', 'grafana']
-      }),
-      isLoading: false,
-      error: undefined
-    })
-    render(<HomeClient />)
-    await screen.findByText('Settings')
-    for (const name of [
-      'Factory',
-      'User management',
-      'Monitoring',
-      'Automated actions',
-      'Grafana'
-    ]) {
-      expect(screen.queryByText(name)).not.toBeInTheDocument()
-    }
-  })
-
-  it('hides Feeds for a non-admin user with only books access', async () => {
-    // @ts-expect-error -- mock returns partial hook response for test purposes
-    mockUseSettings.mockReturnValue({
-      data: create(GetCurrentUserResponseSchema, {
-        role: 'user',
-        appAccess: ['books']
-      }),
-      isLoading: false,
-      error: undefined
-    })
-
-    render(<HomeClient />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Books')).toBeInTheDocument()
-    })
-
-    expect(screen.queryByText('Feeds')).not.toBeInTheDocument()
-    expect(screen.queryByText('Games')).not.toBeInTheDocument()
-  })
-
-  it('shows Feeds for a non-admin user granted feeds access independently', async () => {
-    // @ts-expect-error -- mock returns partial hook response for test purposes
-    mockUseSettings.mockReturnValue({
-      data: create(GetCurrentUserResponseSchema, {
-        role: 'user',
-        appAccess: ['feeds']
-      }),
-      isLoading: false,
-      error: undefined
-    })
-
-    render(<HomeClient />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Feeds')).toBeInTheDocument()
-    })
-
-    expect(screen.queryByText('Books')).not.toBeInTheDocument()
-  })
-
-  it('renders all apps for admin user including admin-only and always-visible', async () => {
-    // @ts-expect-error -- mock returns partial hook response for test purposes
-    mockUseSettings.mockReturnValue({
-      data: create(GetCurrentUserResponseSchema, { role: 'admin', appAccess: [] }),
-      isLoading: false,
-      error: undefined
-    })
-
-    render(<HomeClient />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Learning' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Media' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Transit' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Food' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Tools' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
-      expect(screen.getByText('Games')).toBeInTheDocument()
-      expect(screen.getByText('Books')).toBeInTheDocument()
-      expect(screen.getByText('Feeds')).toBeInTheDocument()
-      expect(screen.getByText('Watch party')).toBeInTheDocument()
-      expect(screen.getByText('Recipes')).toBeInTheDocument()
-      expect(screen.getByText('Meal plans')).toBeInTheDocument()
-      expect(screen.getByText('Shopping list')).toBeInTheDocument()
-      expect(screen.getByText('Settings')).toBeInTheDocument()
-      expect(screen.getByText('Family')).toBeInTheDocument()
-    })
-  })
-
-  it('shows only always-visible apps when appAccess is empty for non-admin', async () => {
-    // @ts-expect-error -- mock returns partial hook response for test purposes
-    mockUseSettings.mockReturnValue({
-      data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: [] }),
-      isLoading: false,
-      error: undefined
-    })
-
-    render(<HomeClient />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Settings')).toBeInTheDocument()
-      expect(screen.getByText('Family')).toBeInTheDocument()
-    })
-
-    expect(screen.queryByText('Games')).not.toBeInTheDocument()
-    expect(screen.queryByText('Books')).not.toBeInTheDocument()
-    expect(screen.queryByText('Feeds')).not.toBeInTheDocument()
-    expect(screen.queryByText('Watch party')).not.toBeInTheDocument()
-    expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
-    expect(screen.queryByText('Admin')).not.toBeInTheDocument()
-  })
-
-  describe('safeNext (#446 next-redirect validation)', () => {
-    it('returns a same-origin next param unchanged', () => {
-      window.history.pushState({}, '', '/?next=%2Fbooks')
-      expect(safeNext()).toBe('/books')
-    })
-
-    it('rejects a protocol-relative //evil.com next param', () => {
-      window.history.pushState({}, '', '/?next=%2F%2Fevil.com')
-      expect(safeNext()).toBe('/')
-    })
-
-    it('rejects the backslash variant browsers normalize to protocol-relative', () => {
-      window.history.pushState({}, '', '/?next=%2F%5Cevil.com')
-      expect(safeNext()).toBe('/')
-    })
-
-    it('defaults to / when next is absent', () => {
-      window.history.pushState({}, '', '/')
-      expect(safeNext()).toBe('/')
-    })
-  })
-
   it('redirects via safeNext instead of rendering the app grid when session recovers passively with a next param present (#1009)', async () => {
     window.history.pushState({}, '', '/auth/sign-in?next=%2Fsettings')
 
@@ -518,7 +270,7 @@ describe('HomeClient', () => {
     window.history.pushState({}, '', '/')
   })
 
-  it('renders the app grid (not a redirect) when session recovers passively with no next param', async () => {
+  it('renders Today (not a redirect) when session recovers passively with no next param', async () => {
     window.history.pushState({}, '', '/')
 
     // @ts-expect-error -- mock returns partial hook response for test purposes
@@ -531,7 +283,7 @@ describe('HomeClient', () => {
     render(<HomeClient />)
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Today' })).toBeInTheDocument()
     })
   })
 

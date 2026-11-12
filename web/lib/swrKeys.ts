@@ -11,6 +11,7 @@ export const swrKeys = {
   monitoringNotificationSettings: '/monitoring/notification-settings',
   monitoringAutomatedActions: '/monitoring/automated-actions',
   family: '/family',
+  today: '/dashboard/today',
   // Not under /api: kamal-proxy routes that to the Go service.
   webRelease: '/release',
 
