@@ -6,6 +6,7 @@ import { ProgressBar } from '@/components/ui/progress-bar'
 import GameFavouriteButton from '@/components/games/GameFavouriteButton'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { formatPercent } from '@/lib/format'
+import { headerFallback } from '@/lib/games/artwork'
 
 // Shared by the owner library and public profiles; the caller picks the link
 // target and whether the favourite is an interactive toggle.
@@ -22,7 +23,14 @@ export function GameCard({
     <ItemCard
       href={href}
       title={game.name}
-      artwork={<Artwork src={game.imageUrl} title={game.name} size="square" />}
+      artwork={
+        <Artwork
+          src={game.imageUrl}
+          fallbackSrc={headerFallback(game.imageUrl)}
+          title={game.name}
+          size="wide"
+        />
+      }
       meta={
         <>
           {Math.round(game.playtime / 60)} hrs &middot; {formatPercent(game.completionRate)}{' '}

@@ -387,13 +387,13 @@ describe('GamesLibrary', () => {
     expect(mutate).toHaveBeenCalledWith('/games')
   })
 
-  it('shows the game artwork in a locked 64px square', () => {
+  it('shows the game artwork in a locked 16:9 box', () => {
     mockSteam()
     render(<GamesLibrary />)
     const link = screen.getByText('Hades').closest('a')!
     const img = link.querySelector('img')!
     expect(img).toHaveAttribute('src', expect.stringContaining('http'))
-    expect(img.parentElement).toHaveStyle({ width: '64px', height: '64px' })
+    expect(img.parentElement).toHaveStyle({ width: '112px', height: '64px' })
   })
 
   it('shows completion as a progress bar', () => {

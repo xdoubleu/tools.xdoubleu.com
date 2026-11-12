@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import type { RecentGame, SteamResponse } from '@/lib/gen/games/v1/games_pb'
+import { Artwork } from '@/components/ui/artwork'
 import { StatTile } from '@/components/ui/stat'
+import { headerFallback } from '@/lib/games/artwork'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import SteamProgressChart from '@/components/games/SteamProgressChart'
 import { DateRangeFields } from '@/components/ui/date-range-fields'
@@ -15,15 +17,12 @@ import { formatPercent } from '@/lib/format'
 function RecentGameCard({ game, href }: { game: RecentGame; href: string }) {
   return (
     <LinkCard href={href} linkClassName="flex gap-3 p-4">
-      {game.imageUrl && (
-        <img
-          src={game.imageUrl}
-          alt={game.name}
-          width={32}
-          height={32}
-          className="h-8 w-8 rounded-lg object-cover shrink-0"
-        />
-      )}
+      <Artwork
+        src={game.imageUrl}
+        fallbackSrc={headerFallback(game.imageUrl)}
+        title={game.name}
+        size="wide"
+      />
       <div className="min-w-0 flex-1">
         <h3 className="font-semibold truncate">{game.name}</h3>
         <p className="text-sm text-muted">Completion: {formatPercent(game.completionRate)}</p>
