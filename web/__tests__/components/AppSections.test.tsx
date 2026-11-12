@@ -33,6 +33,14 @@ describe('AppSections', () => {
     open.mockRestore()
   })
 
+  it('sits in its own block, apart from whatever follows, so two tab tracks never share a line', () => {
+    vi.mocked(usePathname).mockReturnValue('/books/library')
+    render(<AppSections app="books" />)
+    const wrapper = screen.getByRole('tablist').parentElement
+    expect(wrapper).toHaveClass('mb-4')
+    expect(wrapper?.tagName).toBe('DIV')
+  })
+
   it('prefers the longest matching section and rewrites hrefs', () => {
     vi.mocked(usePathname).mockReturnValue('/feeds/stats')
     const push = vi.fn()

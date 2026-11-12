@@ -21,6 +21,7 @@
     "generate:local": "command -v buf >/dev/null 2>&1 || { echo \"buf not found on PATH -- run 'make tools/proto/local' (api/) and add \\$(go env GOPATH)/bin to PATH\" >&2; exit 1; }; buf generate --template buf.gen.local.yaml",
     "generate:check": "before=$(find lib/gen -type f | sort | xargs sha256sum); buf generate && after=$(find lib/gen -type f | sort | xargs sha256sum); [ \"$before\" = \"$after\" ] || { echo \"lib/gen/ is out of date -- run 'npm run generate' (web) and 'make proto/generate' (api), then commit the results.\" >&2; exit 1; }",
     "mobile:audit": "node scripts/mobile-audit.mjs",
+    "mobile:audit:local": "node scripts/mobile-audit-local.mjs",
     "generate:ui-catalog": "node scripts/generate-ui-catalog.mjs",
     "generate:ui-catalog:check": "npm run generate:ui-catalog && (git diff --exit-code components/ui/README.md || (echo \"components/ui/README.md is out of date -- run 'npm run generate:ui-catalog' and commit the result.\" && exit 1))"
   },
