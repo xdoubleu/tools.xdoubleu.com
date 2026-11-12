@@ -25,7 +25,8 @@ import {
   useAgents,
   useUsers,
   useSetRole,
-  useSetAppAccess
+  useSetAppAccess,
+  useSetDisplayName
 } from '@/hooks/useUserManagement'
 
 const mockUseSWR = vi.mocked(useSWR)
@@ -81,6 +82,18 @@ describe('useSetAppAccess', () => {
       appName: 'backlog',
       grant: true
     })
+  })
+})
+
+describe('useSetDisplayName', () => {
+  it('returns a function that calls client.setDisplayName', () => {
+    const setDisplayName = vi.fn().mockResolvedValue({})
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValue({ setDisplayName })
+
+    const { result } = renderHook(() => useSetDisplayName())
+    result.current('user-1', 'Ada Lovelace')
+    expect(setDisplayName).toHaveBeenCalledWith({ userId: 'user-1', displayName: 'Ada Lovelace' })
   })
 })
 
