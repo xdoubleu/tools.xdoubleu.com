@@ -233,6 +233,25 @@ Labelled From/To date pair: stacked on phones, side by side from `sm`.
 | `onEndChange` | `(value: string) => void` | yes |  |
 | `className` | `string` |  |  |
 
+### `detail-header.tsx`
+
+#### `DetailHeader`
+
+The top of an item's page: breadcrumb, artwork, title, facts, one status control and the actions. Every item page (book, game, movie, recipe, learning path) uses it so artwork, status and delete sit in the same place.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `breadcrumb` | `BreadcrumbItem[]` | yes |  |
+| `title` | `string` | yes |  |
+| `subtitle` | `string` |  | Muted line under the title, e.g. an original title. |
+| `artwork` | `ReactNode` |  | An `Artwork`; beside the title from `sm`, above it on phones. |
+| `meta` | `ReactNode` |  | One muted line of facts. |
+| `status` | `ReactNode` |  | The item's one status control (`SegmentedTabs`, or a `Select` past five values). |
+| `favourite` | `ReactNode` |  | Favourite toggle, next to the title. |
+| `actions` | `ReactNode` |  | Bordered header actions such as Edit. |
+| `menu` | `DetailHeaderMenuItem[]` |  | Overflow menu for delete and remove. |
+| `className` | `string` |  |  |
+
 ### `dialog.tsx`
 
 #### `ConfirmDialog`
@@ -535,6 +554,7 @@ The one way to switch between a few views, sibling sections or a scope (Mine/Fam
 | `onChange` | `(value: T) => void` | yes |  |
 | `options` | `SegmentedTabsOption<T>[]` | yes |  |
 | `'aria-label'` | `string` | yes | Names the tablist for screen readers. |
+| `disabled` | `boolean` |  | Locks every segment, e.g. while a change saves. |
 | `className` | `string` |  |  |
 
 ### `select.tsx`
