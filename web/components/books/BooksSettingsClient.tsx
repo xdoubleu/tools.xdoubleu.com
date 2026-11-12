@@ -41,7 +41,7 @@ export default function BooksSettingsClient() {
   return (
     <PageContainer size="narrow">
       <PageHeader
-        breadcrumb={[{ label: 'Books', href: '/dashboard/reading' }, { label: 'Settings' }]}
+        breadcrumb={[{ label: 'Books', href: '/books/library' }, { label: 'Settings' }]}
         title="Books settings"
       />
 

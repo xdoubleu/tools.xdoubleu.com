@@ -55,12 +55,6 @@ describe('FeedsHeader', () => {
     )
   })
 
-  it('links to the feed stats page', () => {
-    render(<FeedsHeader />)
-    openMore()
-    expect(screen.getByRole('menuitem', { name: 'Stats' })).toHaveAttribute('href', '/feeds/stats')
-  })
-
   it('links to the feed settings page', () => {
     render(<FeedsHeader />)
     openMore()

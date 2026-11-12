@@ -16,7 +16,6 @@ import { Popover } from '@/components/ui/popover'
 
 function MoreMenu({ isAdmin }: { isAdmin: boolean }) {
   const links = [
-    { href: '/feeds/stats', label: 'Stats' },
     { href: '/feeds/settings', label: 'Settings' },
     { href: '/feeds/expired', label: 'Expired' },
     { href: '/feeds/filtered', label: 'Filtered' },

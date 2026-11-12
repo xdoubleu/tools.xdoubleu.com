@@ -354,7 +354,7 @@ describe('BookDetailClient', () => {
   it('renders breadcrumb with Books and Library links', () => {
     render(<BookDetailClient id="ub-1" />)
     const booksLink = screen.getByText('Books').closest('a')
-    expect(booksLink).toHaveAttribute('href', '/dashboard/reading')
+    expect(booksLink).toHaveAttribute('href', '/books/library')
     const libraryLink = screen.getByText('Library').closest('a')
     expect(libraryLink).toHaveAttribute('href', '/books/library')
   })

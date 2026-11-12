@@ -1,8 +1,9 @@
 import React from 'react'
 let mockListParam = ''
 const mockReplace = vi.fn()
+const mockPush = vi.fn()
 vi.mock('@/hooks/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: mockReplace }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
   usePathname: () => '/movies',
   useSearchParams: () => new URLSearchParams(mockListParam)
 }))
@@ -81,10 +82,13 @@ beforeEach(() => {
 })
 
 describe('MoviesClient backlog', () => {
-  it('links to the stats page', () => {
+  it('opens the stats section from the section tabs', () => {
     mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [], hasMore: false }) })
+    mockPush.mockClear()
     render(<MoviesClient />)
-    expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute('href', '/movies/stats')
+    expect(screen.getByRole('tab', { name: 'Backlog' })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }))
+    expect(mockPush).toHaveBeenCalledWith('/movies/stats')
   })
 
   it('lists entries with poster, type and release info', () => {
@@ -367,10 +371,8 @@ describe('MoviesClient lists', () => {
     mockListParam = 'list=shared'
     render(<MoviesClient />)
     expect(screen.getByRole('tab', { name: 'Family' })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute(
-      'href',
-      '/movies/stats?list=shared'
-    )
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }))
+    expect(mockPush).toHaveBeenCalledWith('/movies/stats?list=shared')
     fireEvent.click(screen.getByRole('tab', { name: 'Mine' }))
     expect(mockReplace).toHaveBeenCalledWith('/movies')
   })

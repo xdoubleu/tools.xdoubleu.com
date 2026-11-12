@@ -293,7 +293,7 @@ describe('SteamGameClient', () => {
 
     render(<SteamGameClient id="123" />)
     const backlogLink = screen.getByText(/Games/).closest('a')
-    expect(backlogLink).toHaveAttribute('href', '/dashboard/games')
+    expect(backlogLink).toHaveAttribute('href', '/games/library')
   })
 
   it('does not render a distribution breadcrumb without a bucket param', () => {
