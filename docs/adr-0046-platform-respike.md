@@ -1,7 +1,7 @@
 # ADR-0046: A self-hostable platform in one image, still deployed with Kamal
 
 - Status: Accepted
-- Issues: epic T-224, spike T-228, #2866
+- Issues: epic T-224, spike T-228, #2866, T-96
 - Affects: `api/cmd/api/apps.go`, `api/internal/`, `config/`, `infra/`, `.github/workflows/main.yml`
 - Changes: [adr-0001](adr-0001-two-service-kamal-deploy.md) (Kamal stays; no second service for the platform)
 
@@ -16,6 +16,7 @@ The apps should be self-hostable by anyone, choosing which apps to run, while th
 - **One image with an "enabled apps" switch**, not a deployable per app. Only enabled apps get routes, jobs, migrations, nav entries and MCP tools; an app's declared dependencies are enabled with it. The factory, MCP and observability are switches too.
 - **Identity is always on.** The api always owns users, roles, app grants, family, agent accounts and the MCP authorization server. People sign in through an OIDC provider ([adr-0051](adr-0051-zitadel-for-people-sign-in.md)).
 - **Two repos:** this public monorepo (platform, factory, apps, Compose file, chart), and a private repo for what is specific to the owner's server: Terraform, Kamal deploy configs, secret names, hostnames and the deploy workflow. No repo or Go module per app.
+- **The platform serves the owner's other repos from here.** A repo joins by being registered on the board and in monitoring's per-repo config, not by importing platform code. Each application keeps its own sign-in, so identity is not shared across repos. The platform stays in this repo and image; no platform module, repo or second deployment.
 - **Code tiers in `api/`:** `internal/kit` (domain-free toolkit), `internal/platform` (identity, IdP, MCP, observability, factory) and `apps/`, with `apps/internal` for code only apps share. `kit` imports no other tier, `platform` imports only `kit`, `apps` import both, `cmd/api` wires them. An import lint enforces it.
 - **A failing app migration disables that app, and boot continues.** Global and platform migrations stay fatal. A disabled app answers 503, starts no jobs and registers no MCP tools; `/health` reports degraded and names it; an `app_migration_failed{app}` gauge alerts. Its dependents are disabled too, from dependencies declared at registration. The factory becomes platform, so its migrations are fatal.
 - **One SPA**; disabled apps are hidden. No module federation.
@@ -35,4 +36,4 @@ The apps should be self-hostable by anyone, choosing which apps to run, while th
 
 ## Revisit when
 
-Production outgrows one VPS, or a second operator runs it.
+Production outgrows one VPS, a second operator runs it, or someone wants to install the platform without these apps.
