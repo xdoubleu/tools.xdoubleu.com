@@ -33,6 +33,18 @@ describe('ShoppingList', () => {
     expect(screen.getByText(/1 L milk/)).toBeInTheDocument()
   })
 
+  it('strikes through a ticked item and leaves the rest plain', () => {
+    render(<ShoppingList items={items} />)
+    const flour = screen.getByText(/2 cups flour/)
+    const milk = screen.getByText(/1 L milk/)
+    expect(flour).toHaveClass('min-w-0', 'break-words', 'text-sm', 'text-fg')
+    expect(flour).not.toHaveClass('line-through')
+    fireEvent.click(screen.getAllByRole('checkbox')[0])
+    expect(flour).toHaveClass('text-muted', 'line-through')
+    expect(flour).not.toHaveClass('text-fg')
+    expect(milk).toHaveClass('text-fg')
+  })
+
   it('toggles item checked state', () => {
     render(<ShoppingList items={items} />)
     const checkboxes = screen.getAllByRole('checkbox')
