@@ -33,7 +33,6 @@ The routines run on Actions with a GitHub App token in the agent's shell. The fa
 
 - The factory gains a task-less job type, and job accounts a routine scope beside `JobID`/`TaskID`.
 - The watchdog, transcript upload and `record_action` ledger of `agent-routine.yml` are replaced by job check-ins, job events and Slack notices, not ported.
-- A skill change no longer ships on green CI alone.
 
 ## Revisit when
 

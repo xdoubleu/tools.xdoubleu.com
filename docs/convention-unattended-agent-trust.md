@@ -35,8 +35,7 @@ a manual merge until the host arms them.
   its own, because a fork can use any name.
 - **Routines on the factory** ([ADR-0052](adr-0052-factory-scheduled-routines.md)):
   a human enabling a routine on the board is the approval, and its grants are
-  fixed there. A PR that changes `.claude/skills/` or `AGENTS.md` doesn't arm
-  auto-merge, since routine behaviour lives there.
+  fixed there.
 - **Unattended PRs auto-merge on green CI** like every other PR
   ([`convention-feature-review-policy`](convention-feature-review-policy.md)); the Ready
   move and the author checks above are the only human gates before they ship.
