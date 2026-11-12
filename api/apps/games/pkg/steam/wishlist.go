@@ -40,17 +40,32 @@ func (client client) GetWishlist(
 
 // StoreApp is an app resolved through the store browse API.
 type StoreApp struct {
-	AppID int    `json:"appid"`
-	Name  string `json:"name"`
+	AppID  int         `json:"appid"`
+	Name   string      `json:"name"`
+	Assets StoreAssets `json:"assets"`
 }
 
-// CapsuleURL is the 616x353 store capsule image of appID.
+// StoreAssets holds an app's image paths, relative to its asset directory.
+type StoreAssets struct {
+	// MainCapsule is "<hash>/capsule_616x353.jpg".
+	MainCapsule string `json:"main_capsule"`
+}
+
+const capsuleBase = "https://shared.cloudflare.steamstatic.com/" +
+	"store_item_assets/steam/apps/"
+
+// CapsuleURL is the 616x353 store capsule image of appID. Older apps serve it
+// at this unhashed path; newer ones only under a hash (see StoreApp.ImageURL).
 func CapsuleURL(appID int) string {
-	return fmt.Sprintf(
-		"https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/"+
-			"%d/capsule_616x353.jpg",
-		appID,
-	)
+	return fmt.Sprintf("%s%d/capsule_616x353.jpg", capsuleBase, appID)
+}
+
+// ImageURL is the app's capsule, hashed when the store reports a hash.
+func (a StoreApp) ImageURL() string {
+	if a.Assets.MainCapsule == "" {
+		return CapsuleURL(a.AppID)
+	}
+	return fmt.Sprintf("%s%d/%s", capsuleBase, a.AppID, a.Assets.MainCapsule)
 }
 
 type storeItemsResponse struct {
@@ -74,7 +89,7 @@ func (client client) GetStoreItems(
 	input, err := json.Marshal(map[string]any{
 		"ids":          ids,
 		"context":      map[string]string{"language": "english", "country_code": "BE"},
-		"data_request": map[string]any{},
+		"data_request": map[string]any{"include_assets": true},
 	})
 	if err != nil {
 		return nil, err

@@ -108,7 +108,11 @@ func (client MockSteamClient) GetStoreItems(
 ) ([]steam.StoreApp, error) {
 	apps := make([]steam.StoreApp, len(appIDs))
 	for i, id := range appIDs {
-		apps[i] = steam.StoreApp{AppID: id, Name: "wished"}
+		apps[i] = steam.StoreApp{
+			AppID:  id,
+			Name:   "wished",
+			Assets: steam.StoreAssets{MainCapsule: ""},
+		}
 	}
 	return apps, nil
 }

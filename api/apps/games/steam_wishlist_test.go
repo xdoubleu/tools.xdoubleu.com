@@ -3,6 +3,7 @@ package games_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -16,8 +17,9 @@ import (
 // wishlistFakeClient is a syncFakeClient with a controllable wishlist.
 type wishlistFakeClient struct {
 	syncFakeClient
-	wished []steam.WishlistItem
-	err    error
+	wished   []steam.WishlistItem
+	err      error
+	storeErr error
 }
 
 func (c *wishlistFakeClient) GetWishlist(
@@ -37,11 +39,23 @@ func (c *wishlistFakeClient) GetStoreItems(
 	_ context.Context,
 	ids []int,
 ) ([]steam.StoreApp, error) {
+	if c.storeErr != nil {
+		return nil, c.storeErr
+	}
 	apps := []steam.StoreApp{}
 	for _, id := range ids {
-		if id != 9003 { // 9003 stays unresolved
-			apps = append(apps, steam.StoreApp{AppID: id, Name: "Wished"})
+		if id == 9003 { // stays unresolved
+			continue
 		}
+		app := steam.StoreApp{
+			AppID:  id,
+			Name:   "Wished",
+			Assets: steam.StoreAssets{MainCapsule: ""},
+		}
+		if id == 9000 || id == 9001 { // newer apps: hashed assets only
+			app.Assets.MainCapsule = "hash/capsule_616x353.jpg"
+		}
+		apps = append(apps, app)
 	}
 	return apps, nil
 }
@@ -64,7 +78,8 @@ func TestSyncUser_Wishlist(t *testing.T) {
 			{AppID: 9003, Priority: 1, DateAdded: 0},
 			{AppID: 9000, Priority: 3, DateAdded: 0}, // owned: skipped
 		},
-		err: nil,
+		err:      nil,
+		storeErr: nil,
 	}
 	app := newSyncTestApp(t, user, client)
 	t.Cleanup(func() {
@@ -83,7 +98,17 @@ func TestSyncUser_Wishlist(t *testing.T) {
 	require.NotNil(t, items[1].AddedAt)
 	assert.True(t, added.Equal(*items[1].AddedAt))
 	assert.Equal(t, 9002, items[2].ID, "unranked last")
-	assert.Equal(t, steam.CapsuleURL(9001), items[1].ImageURL)
+	hashed := func(id int) string {
+		return fmt.Sprintf(
+			"https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/"+
+				"%d/hash/capsule_616x353.jpg", id)
+	}
+	assert.Equal(t, hashed(9001), items[1].ImageURL, "hashed capsule")
+	assert.Equal(t, steam.CapsuleURL(9002), items[2].ImageURL, "unhashed fallback")
+
+	owned, err := svc.GetGameByID(ctx, 9000, user)
+	require.NoError(t, err)
+	assert.Equal(t, hashed(9000), owned.ImageURL)
 
 	events, err := app.ListConsumption(ctx, user)
 	require.NoError(t, err)
@@ -102,6 +127,14 @@ func TestSyncUser_Wishlist(t *testing.T) {
 	items, err = svc.GetWishlist(ctx, user)
 	require.NoError(t, err)
 	assert.Len(t, items, 3)
+
+	// A failed artwork lookup keeps the stored hashed image of an owned game.
+	client.storeErr = errors.New("store down")
+	require.NoError(t, svc.SyncUser(ctx, user))
+	owned, err = svc.GetGameByID(ctx, 9000, user)
+	require.NoError(t, err)
+	assert.Equal(t, hashed(9000), owned.ImageURL)
+	client.storeErr = nil
 
 	// An entry that left the wishlist is removed.
 	client.err = nil

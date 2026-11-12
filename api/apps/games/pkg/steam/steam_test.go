@@ -196,14 +196,30 @@ func TestGetStoreItems(t *testing.T) {
 	defer mockSteamServer(t, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/IStoreBrowseService/GetItems/v1", r.URL.Path)
 		assert.Contains(t, r.URL.Query().Get("input_json"), `"appid":10`)
+		assert.Contains(t, r.URL.Query().Get("input_json"), `"include_assets":true`)
 		_, _ = w.Write([]byte(
-			`{"response":{"store_items":[{"appid":10,"name":"Ten"}]}}`))
+			`{"response":{"store_items":[{"appid":10,"name":"Ten",` +
+				`"assets":{"main_capsule":"abc/capsule_616x353.jpg"}}]}}`))
 	})()
 
 	client := newWishlistClient(t)
 	apps, err := client.GetStoreItems(context.Background(), []int{10})
 	require.NoError(t, err)
-	assert.Equal(t, []steam.StoreApp{{AppID: 10, Name: "Ten"}}, apps)
+	assert.Equal(t, []steam.StoreApp{{
+		AppID:  10,
+		Name:   "Ten",
+		Assets: steam.StoreAssets{MainCapsule: "abc/capsule_616x353.jpg"},
+	}}, apps)
+	assert.Equal(t,
+		"https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/"+
+			"10/abc/capsule_616x353.jpg",
+		apps[0].ImageURL())
+	unhashed := steam.StoreApp{
+		AppID:  11,
+		Name:   "",
+		Assets: steam.StoreAssets{MainCapsule: ""},
+	}
+	assert.Equal(t, steam.CapsuleURL(11), unhashed.ImageURL())
 
 	apps, err = client.GetStoreItems(context.Background(), nil)
 	require.NoError(t, err)

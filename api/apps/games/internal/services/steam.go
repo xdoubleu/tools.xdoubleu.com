@@ -155,8 +155,17 @@ func (service *SteamService) buildGamesMap(
 		existingByID[g.ID] = g
 	}
 
+	images := service.ownedImages(ctx, client, ownedResp.Response.Games)
+
 	gamesMap := map[int]*models.Game{}
 	for _, g := range ownedResp.Response.Games {
+		imageURL, resolved := images[g.AppID]
+		if !resolved {
+			imageURL = steam.CapsuleURL(g.AppID)
+			if prev, ok := existingByID[g.AppID]; ok && prev.ImageURL != "" {
+				imageURL = prev.ImageURL
+			}
+		}
 		game := models.Game{
 			ID:             g.AppID,
 			Name:           g.Name,
@@ -166,7 +175,7 @@ func (service *SteamService) buildGamesMap(
 			IsDelisted:     false,
 			// set by markCompletionAverageMembership before persisting
 			InCompletionAverage: false,
-			ImageURL:            steam.CapsuleURL(g.AppID),
+			ImageURL:            imageURL,
 			LastSyncedAt:        time.Time{}, // set by DB via now() in UpsertGames
 			Favourite:           false,       // user-set; never written by UpsertGames
 			LastPlayed:          rtimeLastPlayedToTime(g.RtimeLastPlayed),
@@ -642,6 +651,56 @@ func (service *SteamService) GetAchievementsForGame(
 // storeItemsBatch caps the app ids resolved per store request.
 const storeItemsBatch = 100
 
+// resolveStoreApps looks up ids in batches, keyed by app id.
+func resolveStoreApps(
+	ctx context.Context,
+	wc steam.WishlistClient,
+	ids []int,
+) (map[int]steam.StoreApp, error) {
+	apps := make(map[int]steam.StoreApp, len(ids))
+	for start := 0; start < len(ids); start += storeItemsBatch {
+		end := min(start+storeItemsBatch, len(ids))
+		batch, err := wc.GetStoreItems(ctx, ids[start:end])
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range batch {
+			apps[a.AppID] = a
+		}
+	}
+	return apps, nil
+}
+
+// ownedImages resolves the capsule of each owned game. It is best effort: on
+// failure the map is empty and games keep their stored or unhashed image.
+func (service *SteamService) ownedImages(
+	ctx context.Context,
+	client steam.Client,
+	owned []steam.Game,
+) map[int]string {
+	images := map[int]string{}
+	wc, ok := client.(steam.WishlistClient)
+	if !ok {
+		return images
+	}
+
+	ids := make([]int, len(owned))
+	for i, g := range owned {
+		ids[i] = g.AppID
+	}
+	apps, err := resolveStoreApps(ctx, wc, ids)
+	if err != nil {
+		service.logger.WarnContext(ctx, "steam artwork lookup failed",
+			slog.Any("error", err))
+		return images
+	}
+	for id, app := range apps {
+		app.AppID = id
+		images[id] = app.ImageURL()
+	}
+	return images
+}
+
 // syncWishlist replaces userID's stored wishlist with Steam's, minus owned
 // games. It is best effort: a failure is logged and keeps the stored
 // wishlist, so it never fails the library sync.
@@ -687,28 +746,23 @@ func (service *SteamService) fetchWishlist(
 		ids = append(ids, it.AppID)
 	}
 
-	names := make(map[int]string, len(ids))
-	for start := 0; start < len(ids); start += storeItemsBatch {
-		end := min(start+storeItemsBatch, len(ids))
-		apps, errItems := wc.GetStoreItems(ctx, ids[start:end])
-		if errItems != nil {
-			return nil, errItems
-		}
-		for _, a := range apps {
-			names[a.AppID] = a.Name
-		}
+	apps, err := resolveStoreApps(ctx, wc, ids)
+	if err != nil {
+		return nil, err
 	}
 
 	items := make([]models.WishlistItem, 0, len(wished))
 	for _, it := range wished {
-		name := names[it.AppID]
+		app := apps[it.AppID]
+		app.AppID = it.AppID
+		name := app.Name
 		if name == "" {
 			name = fmt.Sprintf("Steam app %d", it.AppID)
 		}
 		items = append(items, models.WishlistItem{
 			ID:       it.AppID,
 			Name:     name,
-			ImageURL: steam.CapsuleURL(it.AppID),
+			ImageURL: app.ImageURL(),
 			Priority: it.Priority,
 			AddedAt:  rtimeLastPlayedToTime(it.DateAdded),
 		})
