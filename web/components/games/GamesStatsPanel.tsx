@@ -93,13 +93,10 @@ export default function GamesStatsPanel() {
         <Button
           variant="secondary"
           size="sm"
-          className="sm:fixed sm:right-[env(safe-area-inset-right)] sm:top-1/2 sm:z-40 sm:min-w-11 sm:-translate-y-1/2 sm:rounded-l-xl sm:rounded-r-none"
           aria-label="Open library stats"
           onClick={() => setOpen(true)}
         >
-          {/* Inline in the page's button row on phones, where a fixed edge tab would cover content. */}
-          <span className="sm:hidden">Library stats</span>
-          <span className="hidden sm:inline">‹</span>
+          Library stats
         </Button>
       )}
       <Dialog open={open} onOpenChange={setOpen} modal={false}>
