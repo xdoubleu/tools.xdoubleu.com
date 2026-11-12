@@ -4,16 +4,17 @@ import { useMoviesActions } from '@/hooks/useMovies'
 import WatchDates from '@/components/movies/WatchDates'
 import { isNewSeason } from '@/lib/movies/format'
 import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible } from '@/components/ui/collapsible'
 import { FieldError } from '@/components/ui/field-error'
+import { GroupedList, GroupedListItem } from '@/components/ui/grouped-list'
 import { SectionHeading } from '@/components/ui/section-heading'
+import { formatDate } from '@/lib/dates'
 
 function seasonMeta(season: Season): string {
   const parts = [
     season.episodeCount ? `${season.episodeCount} episodes` : '',
-    season.aired ? season.airDate : 'Not aired yet',
+    season.aired ? formatDate(season.airDate) : 'Not aired yet',
     season.number === 0 ? "doesn't count toward status" : ''
   ]
   return parts.filter(Boolean).join(' · ')
@@ -46,7 +47,7 @@ function SeasonRow({
   }
 
   return (
-    <Card variant="inset" className="space-y-1">
+    <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-2">
         <Checkbox
           label={season.name || `Season ${season.number}`}
@@ -74,7 +75,7 @@ function SeasonRow({
           />
         </Collapsible>
       )}
-    </Card>
+    </div>
   )
 }
 
@@ -97,13 +98,13 @@ export default function SeasonChecklist({
       <SectionHeading level="eyebrow" as="h2">
         Seasons
       </SectionHeading>
-      <ul className="space-y-2">
+      <GroupedList>
         {seasons.map((s) => (
-          <li key={s.number}>
+          <GroupedListItem key={s.number} className="block py-2">
             <SeasonRow entryId={entryId} season={s} isNew={isNewSeason(status, s)} />
-          </li>
+          </GroupedListItem>
         ))}
-      </ul>
+      </GroupedList>
     </section>
   )
 }

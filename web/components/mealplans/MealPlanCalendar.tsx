@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { getWeekDates } from '@/lib/mealplans/mealPlanCalendar'
 import type { Plan, PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { formatCustomNameLabel } from '@/lib/customItems'
-import { formatDate } from '@/lib/dates'
+import { formatDate, formatDateRange } from '@/lib/dates'
 
 interface MealPlanCalendarProps {
   plan: Plan
@@ -17,6 +18,7 @@ interface MealPlanCalendarProps {
   weekOffset: number
   onPrevWeek: () => void
   onNextWeek: () => void
+  onThisWeek: () => void
   onMutate?: () => void
 }
 
@@ -26,6 +28,7 @@ export default function MealPlanCalendar({
   weekOffset,
   onPrevWeek,
   onNextWeek,
+  onThisWeek,
   onMutate
 }: MealPlanCalendarProps) {
   const {
@@ -84,14 +87,19 @@ export default function MealPlanCalendar({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <Button variant="secondary" size="sm" onClick={onPrevWeek}>
-          ← Prev
+        <Button variant="secondary" size="icon" aria-label="Previous week" onClick={onPrevWeek}>
+          <ChevronLeft aria-hidden className="size-4" />
         </Button>
-        <span className="text-sm font-semibold text-fg text-center">
-          {weekDates[0].toLocaleDateString('en-GB')} – {weekDates[6].toLocaleDateString('en-GB')}
-        </span>
-        <Button variant="secondary" size="sm" onClick={onNextWeek}>
-          Next →
+        <div className="flex flex-col items-center gap-1 sm:flex-row sm:gap-3">
+          <span className="text-center text-sm font-semibold text-fg">
+            {formatDateRange(weekDates[0], weekDates[6])}
+          </span>
+          <Button variant="secondary" disabled={weekOffset === 0} onClick={onThisWeek}>
+            This week
+          </Button>
+        </div>
+        <Button variant="secondary" size="icon" aria-label="Next week" onClick={onNextWeek}>
+          <ChevronRight aria-hidden className="size-4" />
         </Button>
       </div>
 

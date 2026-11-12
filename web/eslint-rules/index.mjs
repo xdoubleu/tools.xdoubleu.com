@@ -4,6 +4,8 @@ import dialogDescription from './dialog-description.mjs'
 import fieldLabels from './field-labels.mjs'
 import mobileFirstClasses from './mobile-first-classes.mjs'
 import noClassnameTemplate from './no-classname-template.mjs'
+import noToLocale from './no-tolocale.mjs'
+import sentenceCase from './sentence-case.mjs'
 import sharedPatterns from './shared-patterns.mjs'
 import themeTokens from './theme-tokens.mjs'
 import touchTargets from './touch-targets.mjs'
@@ -19,6 +21,8 @@ export default {
     'field-labels': fieldLabels,
     'mobile-first-classes': mobileFirstClasses,
     'no-classname-template': noClassnameTemplate,
+    'no-tolocale': noToLocale,
+    'sentence-case': sentenceCase,
     'shared-patterns': sharedPatterns,
     'theme-tokens': themeTokens,
     'touch-targets': touchTargets,

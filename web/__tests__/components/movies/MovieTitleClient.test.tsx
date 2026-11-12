@@ -56,6 +56,11 @@ beforeEach(() => {
   mockSearch = ''
 })
 
+function openRemove() {
+  fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Remove from backlog' }))
+}
+
 describe('MovieTitleClient', () => {
   it('shows the title details and watch dates', () => {
     mockTitle({ data: spirited })
@@ -69,7 +74,7 @@ describe('MovieTitleClient', () => {
     expect(screen.getByLabelText('Watch 1 date')).toHaveValue('2026-10-07')
     expect(screen.getByLabelText('Watch 2 date')).toHaveValue('')
     expect(screen.getByText('Date unknown')).toBeInTheDocument()
-    expect(screen.getByLabelText('Status')).toHaveValue('watched')
+    expect(screen.getByRole('tab', { name: 'Watched' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('region', { name: 'Rating' })).toBeInTheDocument()
   })
 
@@ -96,7 +101,7 @@ describe('MovieTitleClient', () => {
     mockTitle({ data: spirited })
     render(<MovieTitleClient id="e-1" />)
 
-    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'dropped' } })
+    fireEvent.click(screen.getByRole('tab', { name: 'Dropped' }))
     await waitFor(() => expect(mockSetStatus).toHaveBeenCalledWith('e-1', 'dropped', false))
   })
 
@@ -105,10 +110,35 @@ describe('MovieTitleClient', () => {
     mockTitle({ data: spirited })
     render(<MovieTitleClient id="e-1" />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Remove from backlog' }))
+    openRemove()
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Remove' })))
     expect(mockRemove).toHaveBeenCalledWith('e-1')
     expect(mockPush).toHaveBeenCalledWith('/movies')
+  })
+
+  it('shows the poster at card size and marks removal as destructive', () => {
+    mockTitle({
+      data: create(GetTitleResponseSchema, {
+        entry: create(BacklogEntrySchema, {
+          id: 'e-1',
+          title: 'Spirited Away',
+          posterPath: '/p.jpg',
+          status: 'want'
+        })
+      })
+    })
+    const { container } = render(<MovieTitleClient id="e-1" />)
+    expect(container.querySelector('img')?.getAttribute('src')).toContain('w342/p.jpg')
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    expect(screen.getByRole('menuitem', { name: 'Remove from backlog' })).toHaveClass('text-danger')
+  })
+
+  it('shows adding progress', async () => {
+    mockAdd.mockReturnValue(new Promise(() => {}))
+    mockTitle({ data: spirited })
+    render(<MovieTitleClient id="e-1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Add to family list' }))
+    expect(await screen.findByRole('button', { name: 'Adding…' })).toBeDisabled()
   })
 
   it('adds the title to the other list, keeping its status', async () => {
@@ -151,9 +181,7 @@ describe('MovieTitleClient', () => {
     mockTitle({ data: spirited })
     render(<MovieTitleClient id="e-1" />)
 
-    await act(async () =>
-      fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'dropped' } })
-    )
+    await act(async () => fireEvent.click(screen.getByRole('tab', { name: 'Dropped' })))
     expect(screen.getByText(/Couldn.t update status/)).toBeInTheDocument()
   })
 
@@ -162,7 +190,7 @@ describe('MovieTitleClient', () => {
     mockTitle({ data: spirited })
     render(<MovieTitleClient id="e-1" />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Remove from backlog' }))
+    openRemove()
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Remove' })))
     expect(screen.getByText(/Couldn.t remove/)).toBeInTheDocument()
     expect(mockPush).not.toHaveBeenCalled()
@@ -202,7 +230,7 @@ describe('MovieTitleClient', () => {
     expect(screen.getByRole('link', { name: 'Movies & series' })).toHaveAttribute('href', '/movies')
     expect(screen.getAllByText('Spirited Away')).toHaveLength(2)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Remove from backlog' }))
+    openRemove()
     expect(screen.getByText('Remove Spirited Away?')).toBeInTheDocument()
     expect(screen.queryByText(/Couldn.t remove/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Couldn.t update status/)).not.toBeInTheDocument()
@@ -225,24 +253,25 @@ describe('MovieTitleClient', () => {
     expect(screen.getByText('Series · 3 seasons')).toBeInTheDocument()
     // Heading and breadcrumb only: an identical original title isn't repeated.
     expect(screen.getAllByText('Dark')).toHaveLength(2)
-    expect(container.querySelector('div.flex-wrap.gap-2')).toBeNull()
+    // Only the header's action row wraps; an empty genre row would add a second.
+    expect(container.querySelectorAll('div.flex-wrap.gap-2')).toHaveLength(1)
     expect(container.querySelector('p.text-sm:empty')).toBeNull()
   })
 
   it('locks the status while saving and clears an old error on success', async () => {
     mockTitle({ data: spirited })
     render(<MovieTitleClient id="e-1" />)
-    const select = () => screen.getByLabelText('Status')
+    const select = () => screen.getByRole('tab', { name: 'Want' })
     expect(select()).toBeEnabled()
 
     mockSetStatus.mockRejectedValueOnce(new Error('nope'))
-    await act(async () => fireEvent.change(select(), { target: { value: 'want' } }))
+    await act(async () => fireEvent.click(select()))
     expect(screen.getByText(/Couldn.t update status/)).toBeInTheDocument()
     expect(select()).toBeEnabled()
 
     let resolve!: () => void
     mockSetStatus.mockReturnValueOnce(new Promise<void>((res) => (resolve = res)))
-    fireEvent.change(select(), { target: { value: 'want' } })
+    fireEvent.click(select())
     expect(select()).toBeDisabled()
     expect(screen.queryByText(/Couldn.t update status/)).not.toBeInTheDocument()
     await act(async () => resolve())
@@ -252,7 +281,7 @@ describe('MovieTitleClient', () => {
   it('shows removing progress and clears an old error on retry', async () => {
     mockTitle({ data: spirited })
     render(<MovieTitleClient id="e-1" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Remove from backlog' }))
+    openRemove()
 
     mockRemove.mockRejectedValueOnce(new Error('nope'))
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Remove' })))

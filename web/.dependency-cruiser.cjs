@@ -44,6 +44,7 @@ const SHARED_HOOKS = [
   'usePaginatedList',
   'useProgressSocket',
   'useSharedList',
+  'useToday',
   'useWakeLock'
 ]
 

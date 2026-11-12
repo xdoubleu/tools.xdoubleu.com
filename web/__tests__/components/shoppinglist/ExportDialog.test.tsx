@@ -71,7 +71,7 @@ describe('ExportDialog', () => {
 
   it('shows the passed-in meal plan items in the export preview', () => {
     renderDialog()
-    expect(screen.getByText(/2 cloves — garlic/)).toBeInTheDocument()
+    expect(screen.getByText(/2 cloves garlic/)).toBeInTheDocument()
   })
 
   it('no longer renders the ingredient-group exclusion controls', () => {
@@ -97,7 +97,7 @@ describe('ExportDialog', () => {
     })
     expect(screen.getByText('Grouped by store aisle')).toBeInTheDocument()
     expect(screen.getByText('Dairy')).toBeInTheDocument()
-    expect(screen.getByText(/1 L — milk/)).toBeInTheDocument()
+    expect(screen.getByText(/1 L milk/)).toBeInTheDocument()
   })
 
   it('warns when items have no category assigned for the selected store', () => {

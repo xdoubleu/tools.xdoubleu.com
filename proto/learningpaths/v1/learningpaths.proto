@@ -104,6 +104,10 @@ message LearningPath {
   // paused stops the path's Todoist reminders. Read-only: set it with
   // SetLearningPathPaused.
   bool paused = 11;
+  // Totals for list responses, which carry no modules.
+  int32 module_count = 12;
+  int32 item_count = 13;
+  int32 completed_item_count = 14;
 }
 
 message ListLearningPathsRequest {

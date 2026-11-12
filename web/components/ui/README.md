@@ -149,6 +149,27 @@ Disclosure section with a chevron trigger and its own open state.
 | `className` | `string` |  |  |
 | `triggerClassName` | `string` |  | Applied to the trigger, e.g. to change its type scale. |
 
+### `collection-grid.tsx`
+
+#### `CollectionGrid`
+
+The responsive grid of a collection's `ItemCard`s: one column on phones, two, then three.
+
+### `collection-toolbar.tsx`
+
+#### `CollectionToolbar`
+
+Search, facet chips and the result count above a collection. The search filters the list; adding from a catalogue is a separate control with its own label.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `noun` | `string` | yes | What the search looks through, e.g. "recipes": names the field "Search recipes". |
+| `query` | `string` | yes |  |
+| `onQueryChange` | `(query: string) => void` | yes |  |
+| `facets` | `CollectionFacet[]` |  |  |
+| `children` | `ReactNode` |  | Extra controls (selects, a sort) after the facets. |
+| `count` | `number` | yes | Items shown after search and filters. |
+
 ### `combobox.tsx`
 
 #### `Combobox`
@@ -210,6 +231,25 @@ Labelled From/To date pair: stacked on phones, side by side from `sm`.
 | `onStartChange` | `(value: string) => void` | yes |  |
 | `end` | `string` | yes |  |
 | `onEndChange` | `(value: string) => void` | yes |  |
+| `className` | `string` |  |  |
+
+### `detail-header.tsx`
+
+#### `DetailHeader`
+
+The top of an item's page: breadcrumb, artwork, title, facts, one status control and the actions. Every item page (book, game, movie, recipe, learning path) uses it so artwork, status and delete sit in the same place.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `breadcrumb` | `BreadcrumbItem[]` | yes |  |
+| `title` | `string` | yes |  |
+| `subtitle` | `string` |  | Muted line under the title, e.g. an original title. |
+| `artwork` | `ReactNode` |  | An `Artwork`; beside the title from `sm`, above it on phones. |
+| `meta` | `ReactNode` |  | One muted line of facts. |
+| `status` | `ReactNode` |  | The item's one status control (`SegmentedTabs`, or a `Select` past five values). |
+| `favourite` | `ReactNode` |  | Favourite toggle, next to the title. |
+| `actions` | `ReactNode` |  | Bordered header actions such as Edit. |
+| `menu` | `DetailHeaderMenuItem[]` |  | Overflow menu for delete and remove. |
 | `className` | `string` |  |  |
 
 ### `dialog.tsx`
@@ -291,9 +331,34 @@ A form control with its label and hint/error, stacked.
 | `children` | `ReactNode` | yes |  |
 | `className` | `string` |  |  |
 
+### `grouped-list.tsx`
+
+#### `GroupedList`
+
+A list of single-line items on one rounded surface with hairline dividers, instead of a stack of bordered cards. Rows are `GroupedListItem`s; give the list an `aria-label`.
+
+#### `GroupedListItem`
+
+One row of a `GroupedList`, at least a tap target tall.
+
 ### `input.tsx`
 
 #### `Input`
+
+### `item-card.tsx`
+
+#### `ItemCard`
+
+One entry of a collection: artwork, title, one meta line and an optional status.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `href` | `string` |  | Where the card navigates; without it the card is static. |
+| `title` | `string` | yes |  |
+| `artwork` | `ReactNode` |  | An `Artwork` or icon, left of the text. |
+| `meta` | `ReactNode` |  | One muted line under the title. |
+| `status` | `ReactNode` |  | A `Badge` or similar, under the meta line. |
+| `actions` | `ReactNode` |  | Controls in a footer that never navigates. |
 
 ### `label.tsx`
 
@@ -491,7 +556,7 @@ Heading for a section of a page. Use it instead of a hand-styled `<h2>`/`<h3>`.
 
 #### `SegmentedTabs`
 
-Single-choice switch between a few views or modes, rendered as a tablist.
+The one way to switch between a few views, sibling sections or a scope (Mine/Family): a single track whose selected segment slides to the tapped option. Segments share the track equally. Filters are `TogglePill`s and actions are `Button`s, never this.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
@@ -499,6 +564,7 @@ Single-choice switch between a few views or modes, rendered as a tablist.
 | `onChange` | `(value: T) => void` | yes |  |
 | `options` | `SegmentedTabsOption<T>[]` | yes |  |
 | `'aria-label'` | `string` | yes | Names the tablist for screen readers. |
+| `disabled` | `boolean` |  | Locks every segment, e.g. while a change saves. |
 | `className` | `string` |  |  |
 
 ### `select.tsx`
@@ -546,6 +612,28 @@ Placeholder block that reserves a loading region's final size so content doesn't
 
 ### `stat.tsx`
 
+#### `ChartCard`
+
+A titled card holding one chart: the second step of the stats layout (tiles, charts, lists).
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `title` | `string` | yes |  |
+| `children` | `ReactElement` | yes | One recharts chart; sized to the card. Style it from `lib/chartTheme`. |
+| `empty` | `string` |  | Shown instead of the chart when there is nothing to plot. |
+| `note` | `ReactNode` |  | Muted footnote under the chart, e.g. what is left out. |
+
+#### `RankedList`
+
+A titled card of label/value rows: the last step of the stats layout.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `title` | `string` | yes |  |
+| `items` | `RankedItem[]` | yes |  |
+| `empty` | `string` | yes | Shown when `items` is empty. |
+| `note` | `ReactNode` |  |  |
+
 #### `StatTile`
 
 One labelled number in a stats row; structured content belongs in a `SectionCard`.
@@ -561,7 +649,7 @@ One labelled number in a stats row; structured content belongs in a `SectionCard
 
 #### `StatTileGrid`
 
-Responsive grid for a row of `StatTile`s — two up on mobile, four from `sm`.
+Responsive grid for a row of `StatTile`s: two up on mobile, `columns` from `sm`.
 
 ### `states.tsx`
 
@@ -572,6 +660,7 @@ Message for a list or section with nothing in it yet. Centred (`page`) by defaul
 | Prop | Type | Required | Notes |
 |---|---|---|---|
 | `children` | `ReactNode` | yes |  |
+| `icon` | `LucideIcon` |  | Muted icon above the message; the empty state of a collection carries one. |
 | `action` | `ReactNode` |  | Optional call to action under the message, e.g. a "New recipe" button. |
 
 Also accepts: `StateProps`
@@ -583,6 +672,18 @@ Fetch failure message: "Failed to load {what}."
 #### `LoadingState`
 
 Loading placeholder; `label` names what is loading ("recipe" → "Loading recipe…").
+
+### `tab-bar.tsx`
+
+#### `TabBar`
+
+The global phone bar: equal slots, each an icon over a short label, fixed to the bottom edge above the home indicator. Hidden from `lg`, where the sidebar takes over. The shell reserves `--tab-bar-height` below the page so nothing sits underneath it.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `items` | `TabBarItem[]` | yes |  |
+| `'aria-label'` | `string` | yes | Names the landmark for screen readers. |
+| `className` | `string` |  |  |
 
 ### `table.tsx`
 
@@ -634,7 +735,7 @@ Amber-when-on treatment shared by every glyph toggle.
 
 #### `TogglePill`
 
-Pill for selectable attributes and filter chips: filled when active, outlined when not (unlike a read-only `Badge`). Sets `aria-pressed`; pass `role="tab"`/`aria-selected` in a tablist.
+Filter chip for selectable attributes: a light outline when off, a tinted accent fill with a check when on (unlike a read-only `Badge`, and visibly lighter than a `Button`). Sets `aria-pressed`. Switching views is `SegmentedTabs`, not a row of these.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|

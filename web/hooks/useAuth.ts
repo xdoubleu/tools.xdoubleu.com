@@ -1,7 +1,9 @@
 import useSWR from 'swr'
+import { setTabPinsWrite } from '@/lib/account/offlineWrites'
 import { createServiceClient } from '@/lib/client'
 import { AuthService } from '@/lib/gen/auth/v1/auth_pb'
 import { DashboardService } from '@/lib/gen/dashboard/v1/dashboard_pb'
+import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
 import { swrKeys } from '@/lib/swrKeys'
 
 export function useSignIn() {
@@ -45,6 +47,19 @@ export function useRegenerateRecoveryCodes() {
 export function useUpdateDisplayName() {
   const client = createServiceClient(DashboardService)
   return (displayName: string) => client.setDisplayName({ displayName })
+}
+
+/** Saves the tab bar apps; the cached user shows them at once, even offline. Throws if the server refuses. */
+export function useSetTabPins() {
+  return async (tabPins: string[]) => {
+    await sendWrite(enqueueWrite(setTabPinsWrite, { tabPins }))
+  }
+}
+
+/** Reports the user switching to an app; fire and forget, since it only ranks default pins. */
+export function useRecordAppOpen() {
+  const client = createServiceClient(AuthService)
+  return (app: string) => client.recordAppOpen({ app })
 }
 
 export function useMFAChallenge() {

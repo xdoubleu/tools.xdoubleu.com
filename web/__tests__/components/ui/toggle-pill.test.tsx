@@ -39,4 +39,18 @@ describe('TogglePill', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Physical' }))
     expect(onClick).toHaveBeenCalled()
   })
+
+  it('marks the on state with a check and an accent tint', () => {
+    render(<TogglePill label="Physical" active onClick={vi.fn()} />)
+    const pill = screen.getByRole('button', { name: /Physical/ })
+    expect(pill).toHaveTextContent('✓')
+    expect(pill).toHaveClass('border-accent', 'text-accent')
+  })
+
+  it('stays an outline with no check when off', () => {
+    render(<TogglePill label="Physical" active={false} onClick={vi.fn()} />)
+    const pill = screen.getByRole('button', { name: 'Physical' })
+    expect(pill).not.toHaveTextContent('✓')
+    expect(pill).toHaveClass('border-border')
+  })
 })

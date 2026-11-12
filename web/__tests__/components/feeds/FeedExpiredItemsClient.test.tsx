@@ -56,7 +56,7 @@ describe('FeedExpiredItemsClient', () => {
       'https://claude.com/blog/launch'
     )
     expect(first).toHaveTextContent('Claude blog')
-    expect(first).toHaveTextContent('Arrived 20/10/2026 · expired 27/10/2026')
+    expect(first).toHaveTextContent(/Arrived 20 Oct( 2026)? · expired 27 Oct( 2026)?/)
     expect(row('Older post')).toHaveTextContent('https://example.com/feed.xml')
   })
 

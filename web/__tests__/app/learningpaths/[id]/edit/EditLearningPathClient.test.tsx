@@ -94,6 +94,6 @@ describe('EditLearningPathClient', () => {
     })
 
     render(<EditLearningPathClient id="lp-1" />)
-    expect(screen.getByText('Edit Learning Path')).toBeInTheDocument()
+    expect(screen.getByText('Edit learning path')).toBeInTheDocument()
   })
 })

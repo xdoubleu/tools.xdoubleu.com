@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 
 const inviteToFamily = vi.fn().mockResolvedValue({})
 const acceptFamilyInvite = vi.fn().mockResolvedValue({})
@@ -70,6 +70,7 @@ describe('FamilyPageClient', () => {
 
   it('sends an invite by email', async () => {
     render(<FamilyPageClient />)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     fireEvent.change(screen.getByPlaceholderText('Email address'), {
       target: { value: 'friend@example.com' }
     })
@@ -124,6 +125,32 @@ describe('FamilyPageClient', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(setFamilyDisplayName).toHaveBeenCalledWith('New name'))
+  })
+
+  it('locks the name save until the name changed, and shows progress while saving', async () => {
+    mockData = { members: [], incomingInvite: undefined, selfDisplayName: 'Old' }
+    let resolve!: () => void
+    setFamilyDisplayName.mockReturnValueOnce(new Promise<void>((r) => (resolve = r)))
+    render(<FamilyPageClient />)
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    fireEvent.change(screen.getByPlaceholderText('Your name'), { target: { value: ' Old ' } })
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    fireEvent.change(screen.getByPlaceholderText('Your name'), { target: { value: 'New' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByRole('button', { name: 'Saving…' })).toBeDisabled()
+    await act(async () => resolve())
+  })
+
+  it('shows progress while an invite is sent', async () => {
+    let resolve!: () => void
+    inviteToFamily.mockReturnValueOnce(new Promise<void>((r) => (resolve = r)))
+    render(<FamilyPageClient />)
+    fireEvent.change(screen.getByPlaceholderText('Email address'), {
+      target: { value: 'friend@example.com' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Invite' }))
+    expect(await screen.findByRole('button', { name: 'Inviting…' })).toBeDisabled()
+    await act(async () => resolve())
   })
 
   it('shows a member display name in place of the email', () => {

@@ -14,7 +14,7 @@ describe('SettingsSection', () => {
         </SettingsSection>
       </SettingsSections>
     )
-    expect(screen.getByRole('heading', { level: 2, name: 'Privacy' })).toHaveClass('font-display')
+    expect(screen.getByRole('heading', { level: 2, name: 'Privacy' })).toHaveClass('font-semibold')
     expect(screen.getByText('What we collect.')).toHaveClass('text-muted')
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
     expect(screen.getByText('body').closest('section')?.parentElement).toHaveClass('space-y-10')

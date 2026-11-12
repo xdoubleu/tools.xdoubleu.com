@@ -461,7 +461,7 @@ export default function LearningPathForm({
 
       <div className="flex gap-2">
         <Button type="submit" disabled={saving} className="flex-1">
-          {saving ? 'Saving…' : 'Save Learning Path'}
+          {saving ? 'Saving…' : 'Save learning path'}
         </Button>
         <Button
           type="button"

@@ -1,3 +1,4 @@
+import AppSections from '@/components/AppSections'
 import BooksSection from '@/components/books/BooksSection'
 import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
 import { PageContainer } from '@/components/ui/page-container'
@@ -6,10 +7,9 @@ import AddBookButton from '@/components/books/AddBookButton'
 
 export default function BacklogBooksLibraryPage() {
   return (
-    <PageContainer>
+    <PageContainer size="wide">
       <PageHeader
-        breadcrumb={[{ label: 'Books', href: '/dashboard/reading' }, { label: 'Library' }]}
-        title="Library"
+        title="Books library"
         actions={
           <>
             <LibraryAdminButton />
@@ -18,6 +18,8 @@ export default function BacklogBooksLibraryPage() {
           </>
         }
       />
+
+      <AppSections app="books" />
 
       <BooksSection />
     </PageContainer>

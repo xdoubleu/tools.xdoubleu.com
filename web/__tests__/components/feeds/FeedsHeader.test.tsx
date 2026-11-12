@@ -55,14 +55,10 @@ describe('FeedsHeader', () => {
     )
   })
 
-  it('links to the feed stats page', () => {
-    render(<FeedsHeader />)
-    expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute('href', '/feeds/stats')
-  })
-
   it('links to the feed settings page', () => {
     render(<FeedsHeader />)
-    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+    openMore()
+    expect(screen.getByRole('menuitem', { name: 'Settings' })).toHaveAttribute(
       'href',
       '/feeds/settings'
     )
@@ -98,13 +94,9 @@ describe('FeedsHeader', () => {
     expect(screen.queryByTestId('feed-manager')).not.toBeInTheDocument()
   })
 
-  it('starts open when the user has no feeds yet, and stays closed once dismissed', () => {
+  it('does not open the manager on load when there are no feeds', () => {
     feedsData.data = { feeds: [] }
-    const { rerender } = render(<FeedsHeader />)
-    expect(screen.getByTestId('feed-manager')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-    feedsData.data = { feeds: [] }
-    rerender(<FeedsHeader />)
+    render(<FeedsHeader />)
     expect(screen.queryByTestId('feed-manager')).not.toBeInTheDocument()
   })
 })

@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import {
   UserBookSchema,
@@ -159,6 +159,12 @@ describe('AuthorBooksClient', () => {
   it('renders a breadcrumb back to library', () => {
     render(<AuthorBooksClient name="Frank Herbert" />)
     expect(screen.getByRole('link', { name: 'Library' })).toHaveAttribute('href', '/books/library')
+  })
+
+  it('links the Books crumb to the library and names the author last', () => {
+    render(<AuthorBooksClient name="Frank Herbert" />)
+    const crumbs = within(screen.getByRole('navigation', { name: 'Breadcrumb' }))
+    expect(crumbs.getByRole('link', { name: 'Books' })).toHaveAttribute('href', '/books/library')
   })
 
   it('does not render a dead /backlog breadcrumb link', () => {

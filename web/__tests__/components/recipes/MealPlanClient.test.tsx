@@ -19,8 +19,20 @@ vi.mock('@/hooks/navigation', () => ({
 
 vi.mock('@/components/mealplans/MealPlanCalendar', () => {
   return {
-    default: function MockCalendar() {
-      return <div data-testid="meal-plan-calendar">calendar-mock</div>
+    default: function MockCalendar({
+      onNextWeek,
+      onThisWeek
+    }: {
+      onNextWeek: () => void
+      onThisWeek: () => void
+    }) {
+      return (
+        <div data-testid="meal-plan-calendar">
+          calendar-mock
+          <button onClick={onNextWeek}>Next week</button>
+          <button onClick={onThisWeek}>This week</button>
+        </div>
+      )
     }
   }
 })
@@ -88,14 +100,29 @@ describe('MealPlanClient', () => {
     expect(screen.getByText('Failed to load meal plan.')).toBeInTheDocument()
   })
 
+  it('steps weeks and jumps back to this week', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    vi.mocked(useMealPlan).mockReturnValue({
+      data: create(GetPlanResponseSchema, { plan: mockPlan, nextOffset: 3 }),
+      error: undefined,
+      isLoading: false
+    })
+    render(<MealPlanClient id="plan-1" />)
+    const reads = () => vi.mocked(useMealPlan).mock.calls.map((c) => c[1])
+    fireEvent.click(screen.getByRole('button', { name: 'Next week' }))
+    expect(reads().at(-1)).toBe(3)
+    fireEvent.click(screen.getByRole('button', { name: 'This week' }))
+    expect(reads().at(-1)).toBe(0)
+  })
+
   it('shows a breadcrumb back to meal plans', () => {
     render(<MealPlanClient id="plan-1" />)
-    expect(screen.getByRole('link', { name: 'Meal Plans' })).toHaveAttribute('href', '/mealplans')
+    expect(screen.getByRole('link', { name: 'Meal plans' })).toHaveAttribute('href', '/mealplans')
   })
 
   it('does not render a shopping list toggle button', () => {
     render(<MealPlanClient id="plan-1" />)
-    expect(screen.queryByRole('button', { name: /Shopping List/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Shopping list/i })).not.toBeInTheDocument()
   })
 
   it('renders meal plan calendar', () => {
@@ -110,16 +137,16 @@ describe('MealPlanClient', () => {
     })
   })
 
-  it('shows iCal Link button when icalUrl is available', () => {
+  it('shows iCal link button when icalUrl is available', () => {
     render(<MealPlanClient id="plan-1" />)
-    expect(screen.getByRole('button', { name: 'iCal Link' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'iCal link' })).toBeInTheDocument()
   })
 
   it('copies the iCal link and confirms it', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
     render(<MealPlanClient id="plan-1" />)
-    fireEvent.click(screen.getByRole('button', { name: 'iCal Link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'iCal link' }))
     expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument()
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/'))
   })

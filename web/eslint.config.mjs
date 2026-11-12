@@ -8,7 +8,8 @@ import uiPlugin from './eslint-rules/index.mjs'
 const uiEverywhere = {
   'ui/mobile-first-classes': 'error',
   'ui/theme-tokens': 'error',
-  'ui/no-classname-template': 'error'
+  'ui/no-classname-template': 'error',
+  'ui/sentence-case': 'error'
 }
 const uiCallSites = {
   ...uiEverywhere,
@@ -41,6 +42,12 @@ export default [
         }
       ]
     }
+  },
+  {
+    // Values print through lib/dates.ts and lib/format.ts, the only files allowed toLocale*.
+    files: ['**/*.{ts,tsx}'],
+    ignores: ['lib/dates.ts', 'lib/format.ts'],
+    rules: { 'ui/no-tolocale': 'error' }
   },
   {
     // Interactive controls go through components/ui/ primitives

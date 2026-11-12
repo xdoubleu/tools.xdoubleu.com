@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 
 const mockImportBooks = vi.fn()
 
@@ -46,12 +46,16 @@ describe('BooksSettingsClient', () => {
     expect(screen.getByRole('heading', { name: 'Books settings' })).toBeInTheDocument()
   })
 
-  it('renders a breadcrumb link back to /dashboard/reading', () => {
+  it('names the page last in the breadcrumb', () => {
     render(<BooksSettingsClient />)
-    expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute(
-      'href',
-      '/dashboard/reading'
-    )
+    expect(
+      within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByText('Settings')
+    ).toBeInTheDocument()
+  })
+
+  it('renders a breadcrumb link back to /books/library', () => {
+    render(<BooksSettingsClient />)
+    expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute('href', '/books/library')
   })
 
   it('renders the Import books section', () => {

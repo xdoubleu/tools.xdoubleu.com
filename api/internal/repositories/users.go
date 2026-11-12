@@ -92,6 +92,94 @@ func (r *AppUsersRepository) SetDisplayName(
 	return err
 }
 
+// GetTabPins returns the apps pinned to the phone tab bar, in order. The bool is
+// false when the user never chose, so the web falls back to its defaults.
+func (r *AppUsersRepository) GetTabPins(
+	ctx context.Context,
+	userID string,
+) ([]string, bool, error) {
+	var pins []string
+	err := r.db.QueryRow(ctx,
+		`SELECT tab_pins FROM global.app_users WHERE id = $1`, userID,
+	).Scan(&pins)
+	if err != nil {
+		return nil, false, postgres.PgxErrorToHTTPError(err)
+	}
+	return pins, pins != nil, nil
+}
+
+// SetTabPins stores the apps pinned to the phone tab bar, replacing any earlier
+// choice. An empty (non-nil) list is a deliberate "none".
+func (r *AppUsersRepository) SetTabPins(
+	ctx context.Context,
+	userID string,
+	pins []string,
+) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE global.app_users SET tab_pins = $2 WHERE id = $1`,
+		userID, pins,
+	)
+	return err
+}
+
+const (
+	appOpenRetentionDays = 90
+	suggestedPinWindow   = 30
+	suggestedPinLimit    = 8
+)
+
+// RecordAppOpen counts one open of app for the user today and drops that user's
+// counts older than 90 days.
+func (r *AppUsersRepository) RecordAppOpen(
+	ctx context.Context,
+	userID, app string,
+) error {
+	if _, err := r.db.Exec(ctx, `
+		INSERT INTO global.app_opens (user_id, day, app, count)
+		VALUES ($1, CURRENT_DATE, $2, 1)
+		ON CONFLICT (user_id, day, app)
+		DO UPDATE SET count = app_opens.count + 1
+	`, userID, app); err != nil {
+		return err
+	}
+	_, err := r.db.Exec(ctx, `
+		DELETE FROM global.app_opens
+		WHERE user_id = $1 AND day < CURRENT_DATE - $2::int
+	`, userID, appOpenRetentionDays)
+	return err
+}
+
+// MostOpenedApps ranks the apps the user opened over the last 30 whole days,
+// most first. Today is left out so the ranking holds still for a day.
+func (r *AppUsersRepository) MostOpenedApps(
+	ctx context.Context,
+	userID string,
+) ([]string, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT app
+		FROM global.app_opens
+		WHERE user_id = $1
+		  AND day >= CURRENT_DATE - $2::int AND day < CURRENT_DATE
+		GROUP BY app
+		ORDER BY SUM(count) DESC, app
+		LIMIT $3
+	`, userID, suggestedPinWindow, suggestedPinLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	apps := []string{}
+	for rows.Next() {
+		var app string
+		if err = rows.Scan(&app); err != nil {
+			return nil, err
+		}
+		apps = append(apps, app)
+	}
+	return apps, rows.Err()
+}
+
 func (r *AppUsersRepository) GetAllWithAccess(
 	ctx context.Context,
 ) ([]models.User, error) {

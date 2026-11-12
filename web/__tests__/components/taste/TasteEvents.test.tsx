@@ -45,7 +45,7 @@ describe('TasteEvents', () => {
     mockEvents({ data: page([dune, bounced]) })
     render(<TasteEvents />)
     expect(screen.getByText('Dune')).toBeInTheDocument()
-    expect(screen.getByText('Books · Frank Herbert · 04/03/2026')).toBeInTheDocument()
+    expect(screen.getByText(/^Books · Frank Herbert · 4 Mar/)).toBeInTheDocument()
     expect(screen.getByText('rated 5★')).toBeInTheDocument()
     expect(screen.getByText('Loved')).toBeInTheDocument()
     const log = screen.getByRole('list', { name: 'Consumption log' })

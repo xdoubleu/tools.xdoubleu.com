@@ -11,8 +11,6 @@ import { useLearningPaths } from '@/hooks/useLearningPaths'
 import { create } from '@bufbuild/protobuf'
 import {
   LearningPathSchema,
-  ModuleSchema,
-  ItemSchema,
   ListLearningPathsResponseSchema
 } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
 import type { ListLearningPathsResponse } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
@@ -72,15 +70,9 @@ describe('LearningPathsListClient', () => {
             id: 'lp1',
             title: 'Learn Go',
             goal: 'Ship a backend service',
-            modules: [
-              create(ModuleSchema, {
-                title: 'Month 1',
-                items: [
-                  create(ItemSchema, { description: 'Read', completed: true }),
-                  create(ItemSchema, { description: 'Write', completed: false })
-                ]
-              })
-            ]
+            moduleCount: 1,
+            itemCount: 2,
+            completedItemCount: 1
           })
         ]
       }),
@@ -90,11 +82,51 @@ describe('LearningPathsListClient', () => {
     const link = screen.getByRole('link', { name: /Learn Go/ })
     expect(link).toHaveAttribute('href', '/learningpaths/lp1')
     expect(link).toHaveTextContent('Ship a backend service')
-    expect(link).toHaveTextContent('1 module')
-    expect(link).toHaveTextContent('1/2 done')
+    expect(link).toHaveTextContent('Ship a backend service · 1 module')
   })
 
-  it('links each card straight to its edit page', () => {
+  it('pluralises modules and omits progress for a path without items', () => {
+    mockLearningPaths({
+      data: create(ListLearningPathsResponseSchema, {
+        learningPaths: [
+          create(LearningPathSchema, {
+            id: 'lp2',
+            title: 'Empty plan',
+            moduleCount: 2
+          })
+        ]
+      }),
+      isLoading: false
+    })
+    render(<LearningPathsListClient />)
+    const link = screen.getByRole('link', { name: /Empty plan/ })
+    expect(link.textContent).toBe('Empty plan2 modules')
+  })
+
+  it('shows progress as a bar and leaves editing to the detail page', () => {
+    mockLearningPaths({
+      data: create(ListLearningPathsResponseSchema, {
+        learningPaths: [
+          create(LearningPathSchema, {
+            id: 'lp1',
+            title: 'Learn Go',
+            moduleCount: 1,
+            itemCount: 2,
+            completedItemCount: 1
+          })
+        ]
+      }),
+      isLoading: false
+    })
+    render(<LearningPathsListClient />)
+    expect(screen.getByRole('progressbar', { name: 'Learn Go progress' })).toHaveAttribute(
+      'aria-valuetext',
+      '1 of 2 done'
+    )
+    expect(screen.queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument()
+  })
+
+  it('shows no bar for a path without items', () => {
     mockLearningPaths({
       data: create(ListLearningPathsResponseSchema, {
         learningPaths: [create(LearningPathSchema, { id: 'lp1', title: 'Learn Go' })]
@@ -102,9 +134,6 @@ describe('LearningPathsListClient', () => {
       isLoading: false
     })
     render(<LearningPathsListClient />)
-    expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
-      'href',
-      '/learningpaths/lp1/edit'
-    )
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
   })
 })

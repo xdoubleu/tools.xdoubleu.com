@@ -66,6 +66,13 @@ describe('GamesStatsPanel', () => {
     expect(screen.queryByTestId('distribution-chart')).not.toBeInTheDocument()
   })
 
+  it('labels the open button and does not pin it to the window edge', () => {
+    render(<GamesStatsPanel />)
+    const button = screen.getByRole('button', { name: 'Open library stats' })
+    expect(button).toHaveTextContent('Library stats')
+    expect(button.className).not.toMatch(/fixed/)
+  })
+
   it('renders stats and both charts when opened', () => {
     mockSteam()
     mockProgress({ labels: ['Jan'], values: ['10'] })
@@ -74,7 +81,7 @@ describe('GamesStatsPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open library stats' }))
 
     expect(screen.getByText('Total backlog')).toBeInTheDocument()
-    expect(screen.getByText('50.00%')).toBeInTheDocument()
+    expect(screen.getByText('50%')).toBeInTheDocument()
     expect(screen.getByTestId('distribution-chart')).toBeInTheDocument()
     expect(screen.getByTestId('progress-chart')).toBeInTheDocument()
   })

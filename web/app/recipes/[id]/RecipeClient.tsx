@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { PageContainer } from '@/components/ui/page-container'
+import { DetailHeader } from '@/components/ui/detail-header'
 import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 
@@ -114,23 +115,20 @@ export default function RecipeClient({ id }: { id: string }) {
       )}
       {recipe && (
         <>
-          <PageHeader
-            className="mb-2"
+          <DetailHeader
             title={recipe.name}
             breadcrumb={[{ label: 'Recipes', href: '/recipes/list' }, { label: recipe.name }]}
             actions={
               canEdit && (
-                <>
-                  <Button asChild variant="secondary">
-                    <Link href={`/recipes/${recipe.id}/edit`}>Edit</Link>
-                  </Button>
-                  {isOwner && (
-                    <Button variant="destructive" onClick={() => setDeleteConfirm(true)}>
-                      Delete
-                    </Button>
-                  )}
-                </>
+                <Button asChild variant="secondary">
+                  <Link href={`/recipes/${recipe.id}/edit`}>Edit</Link>
+                </Button>
               )
+            }
+            menu={
+              canEdit && isOwner
+                ? [{ label: 'Delete', destructive: true, onSelect: () => setDeleteConfirm(true) }]
+                : []
             }
           />
           <ConfirmDialog
@@ -169,7 +167,7 @@ export default function RecipeClient({ id }: { id: string }) {
                 onClick={toggleCookingMode}
                 className="ml-auto"
               >
-                {cookingModeActive ? 'Cooking Mode: On' : 'Cooking Mode'}
+                {cookingModeActive ? 'Cooking mode: On' : 'Cooking mode'}
               </Button>
             )}
           </div>

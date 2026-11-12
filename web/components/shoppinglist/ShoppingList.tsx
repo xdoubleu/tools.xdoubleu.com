@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import type { ShoppingItem } from '@/lib/shoppinglist/shoppingExport'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { GroupedList, GroupedListItem } from '@/components/ui/grouped-list'
+import { SectionHeading } from '@/components/ui/section-heading'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ui/dialog'
@@ -10,6 +11,7 @@ import { RemoveButton } from '@/components/ui/remove-button'
 import { cn } from '@/lib/cn'
 import { focusById } from '@/lib/focusById'
 import { EmptyState } from '@/components/ui/states'
+import { formatQuantity } from '@/lib/format'
 
 export interface ShoppingItemEdit {
   name: string
@@ -21,7 +23,10 @@ interface ShoppingListProps {
   items: ShoppingItem[]
   onDelete?: (itemId: string) => Promise<void>
   onEdit?: (itemId: string, values: ShoppingItemEdit) => Promise<void>
-  onExport?: () => void
+  /** Category names in display order; items group under their category, the rest under "Other". */
+  categoryOrder?: string[]
+  /** An item's category name, or '' when it has none. */
+  categoryOf?: (item: ShoppingItem) => string
 }
 
 // One list per family, so one key.
@@ -29,7 +34,37 @@ const TICKS_KEY = 'shoppinglist:ticks'
 
 const itemKey = (item: ShoppingItem, idx: number) => item.id ?? `item-${idx}-${item.name}`
 
-export default function ShoppingList({ items, onDelete, onEdit, onExport }: ShoppingListProps) {
+interface ItemGroup {
+  /** '' for items without a category. */
+  label: string
+  entries: { item: ShoppingItem; idx: number }[]
+}
+
+// Uncategorised items sort last, so a list with no categories is one '' group.
+function groupByCategory(
+  items: ShoppingItem[],
+  order: string[],
+  categoryOf?: (item: ShoppingItem) => string
+): ItemGroup[] {
+  const byLabel = new Map<string, ItemGroup>()
+  items.forEach((item, idx) => {
+    const label = categoryOf?.(item) ?? ''
+    const group = byLabel.get(label) ?? { label, entries: [] }
+    group.entries.push({ item, idx })
+    byLabel.set(label, group)
+  })
+  const rank = (label: string) => (label === '' ? order.length : order.indexOf(label))
+  return [...byLabel.values()].sort((a, b) => rank(a.label) - rank(b.label))
+}
+
+export default function ShoppingList({
+  items,
+  onDelete,
+  onEdit,
+  // Stryker disable next-line ArrayDeclaration: unlisted categories sort before '' either way.
+  categoryOrder = [],
+  categoryOf
+}: ShoppingListProps) {
   const [storedTicks, setStoredTicks] = useLocalStorage<string[]>(TICKS_KEY, [])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<ShoppingItemEdit>({ name: '', amount: '', unit: '' })
@@ -76,14 +111,97 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
     }
   }
 
+  const groups = groupByCategory(items, categoryOrder, categoryOf)
+  const headed = groups[0]?.label !== ''
+
+  const renderItem = (item: ShoppingItem, idx: number) => {
+    const key = itemKey(item, idx)
+    const isChecked = checkedItems.has(key)
+    const isEditing = item.id === editingId
+
+    if (isEditing && item.id) {
+      return (
+        <GroupedListItem key={key} className="gap-2 py-3">
+          <Input
+            type="number"
+            inputMode="decimal"
+            aria-label="Amount"
+            placeholder="Amount"
+            value={draft.amount}
+            onChange={(e) => setDraft({ ...draft, amount: e.target.value })}
+            min="0"
+            step="any"
+            className="min-w-0 flex-1 sm:w-24 sm:flex-none"
+          />
+          <Input
+            type="text"
+            aria-label="Unit"
+            placeholder="Unit"
+            value={draft.unit}
+            onChange={(e) => setDraft({ ...draft, unit: e.target.value })}
+            className="min-w-0 flex-1 sm:w-24 sm:flex-none"
+          />
+          <Input
+            type="text"
+            aria-label="Item name"
+            placeholder="Item name"
+            value={draft.name}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+            className="min-w-0 flex-1 basis-full sm:basis-32"
+          />
+          <Button onClick={() => saveEdit(item.id!)} disabled={saving || !draft.name.trim()}>
+            Save
+          </Button>
+          <Button variant="ghost" onClick={cancelEdit} disabled={saving}>
+            Cancel
+          </Button>
+        </GroupedListItem>
+      )
+    }
+
+    return (
+      <GroupedListItem key={key} className="gap-x-3 py-0 pl-3 pr-1">
+        <Checkbox
+          checked={isChecked}
+          onChange={() => toggleItem(key)}
+          labelClassName="min-w-0 flex-1"
+          label={
+            <span
+              className={cn(
+                'min-w-0 break-words text-sm',
+                isChecked ? 'text-muted line-through' : 'text-fg'
+              )}
+            >
+              {formatQuantity(item.amount, item.unit, item.name)}
+            </span>
+          }
+        />
+        {item.id && onEdit && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => startEdit(item)}
+            aria-label={`Edit ${item.name}`}
+            className="text-muted hover:text-accent"
+          >
+            Edit
+          </Button>
+        )}
+        {item.id && onDelete && (
+          <RemoveButton
+            onClick={() => {
+              setRemoving(item)
+              setConfirmingRemove(true)
+            }}
+            aria-label={`Remove ${item.name}`}
+          />
+        )}
+      </GroupedListItem>
+    )
+  }
+
   return (
     <div className="space-y-4">
-      {onExport && (
-        <Button variant="secondary" onClick={onExport}>
-          Export
-        </Button>
-      )}
-
       {items.length === 0 ? (
         <EmptyState
           placement="inline"
@@ -94,97 +212,19 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
           No items yet.
         </EmptyState>
       ) : (
-        <div className="space-y-2">
-          {items.map((item, idx) => {
-            const key = itemKey(item, idx)
-            const isChecked = checkedItems.has(key)
-            const isEditing = editingId != null && item.id === editingId
-
-            if (isEditing && item.id) {
-              return (
-                <Card key={key} variant="inset" className="flex flex-wrap items-center gap-2">
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    aria-label="Amount"
-                    placeholder="Amount"
-                    value={draft.amount}
-                    onChange={(e) => setDraft({ ...draft, amount: e.target.value })}
-                    min="0"
-                    step="any"
-                    className="min-w-0 flex-1 sm:w-24 sm:flex-none"
-                  />
-                  <Input
-                    type="text"
-                    aria-label="Unit"
-                    placeholder="Unit"
-                    value={draft.unit}
-                    onChange={(e) => setDraft({ ...draft, unit: e.target.value })}
-                    className="min-w-0 flex-1 sm:w-24 sm:flex-none"
-                  />
-                  <Input
-                    type="text"
-                    aria-label="Item name"
-                    placeholder="Item name"
-                    value={draft.name}
-                    onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                    className="min-w-0 flex-1 basis-full sm:basis-32"
-                  />
-                  <Button
-                    onClick={() => saveEdit(item.id!)}
-                    disabled={saving || !draft.name.trim()}
-                  >
-                    Save
-                  </Button>
-                  <Button variant="ghost" onClick={cancelEdit} disabled={saving}>
-                    Cancel
-                  </Button>
-                </Card>
-              )
-            }
-
-            return (
-              <Card key={key} variant="inset" padding="none">
-                <div className="flex flex-wrap items-center gap-x-3 pl-3 pr-1">
-                  <Checkbox
-                    checked={isChecked}
-                    onChange={() => toggleItem(key)}
-                    labelClassName="min-w-0 flex-1"
-                    label={
-                      <span
-                        className={cn(
-                          'min-w-0 break-words text-sm',
-                          isChecked ? 'text-muted line-through' : 'text-fg'
-                        )}
-                      >
-                        {item.amount} {item.unit} - {item.name}
-                      </span>
-                    }
-                  />
-                  {item.id && onEdit && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => startEdit(item)}
-                      aria-label={`Edit ${item.name}`}
-                      className="text-muted hover:text-accent"
-                    >
-                      Edit
-                    </Button>
-                  )}
-                  {item.id && onDelete && (
-                    <RemoveButton
-                      onClick={() => {
-                        setRemoving(item)
-                        setConfirmingRemove(true)
-                      }}
-                      aria-label={`Remove ${item.name}`}
-                    />
-                  )}
-                </div>
-              </Card>
-            )
-          })}
+        <div className="space-y-4">
+          {groups.map((group) => (
+            <section
+              key={group.label}
+              className="space-y-2"
+              aria-label={headed ? group.label || 'Other' : undefined}
+            >
+              {headed && <SectionHeading level="eyebrow">{group.label || 'Other'}</SectionHeading>}
+              <GroupedList>
+                {group.entries.map(({ item, idx }) => renderItem(item, idx))}
+              </GroupedList>
+            </section>
+          ))}
         </div>
       )}
 

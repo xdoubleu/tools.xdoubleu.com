@@ -6,8 +6,8 @@ Vite 8 SPA: React 19, React Router (data router), TypeScript strict, Vitest. The
 
 - `src/` — entry (`main.tsx`), `routes.tsx`, root layout, route error/not-found states, Sentry/PostHog init, Web Vitals.
 - `app/` — one route folder per app/domain; each `page.tsx` is a route (`[id]` → `:id`), loaded lazily by `import.meta.glob`. `dashboard/{games,reading}/` holds both owner and public (token-shared) dashboards → [`adr-0007`](../docs/adr-0007-dashboard-app-owns-public-sharing.md).
-- `components/` — shared components at the root, one subfolder per domain, primitives in `components/ui/`.
-- `lib/` — `client.ts` (browser transport), `swrKeys.ts`, `env.ts`, `cn.ts`, per-domain subfolders; `gen/` is generated (read the `.proto` instead).
+- `components/` — shared at root, subfolder per domain, primitives in `components/ui/`; shell [`adr-0050`](../docs/adr-0050-global-navigation-model.md).
+- `lib/` — `apps.ts` (registry), `client.ts` (browser transport), `swrKeys.ts`, `env.ts`, `cn.ts`, per-domain subfolders; `gen/` is generated (read the `.proto` instead).
 - `hooks/` — SWR hooks per domain, client-only WebSocket hooks, and `navigation.ts`.
 - `public/` — static files; `scripts/generate-icons.mjs` renders the gitignored PNG icons (dev/build run it).
 
@@ -31,7 +31,7 @@ Pages render client components that fetch through SWR hooks over `lib/client.ts`
 ```bash
 npm ci                                  # first, in a fresh worktree
 npm run dev                             # Vite on :3000; set API_URL (e.g. http://localhost:8000) in .env.local
-npm run test:cov:diff                   # coverage on lines changed vs origin/main — run before pushing (matches codecov/patch)
+npm run test:cov:diff                   # coverage on lines changed vs origin/main — run before pushing
 npm run mobile:audit -- /trains /books  # 375x667 Playwright audit; needs `npm run dev` + `npx playwright install chromium`
 npm run generate:ui-catalog             # regenerate components/ui/README.md (lint fails if stale)
 rm -f tsconfig.tsbuildinfo              # before `npx tsc --noEmit` after a lockfile change

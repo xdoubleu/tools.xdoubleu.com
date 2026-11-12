@@ -1,20 +1,20 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts'
+import { axisTick, countAxisProps, gridProps, seriesColor, tooltipProps } from '@/lib/chartTheme'
 import { useFeedStats } from '@/hooks/useFeeds'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
+import { ChartCard, StatTile, StatTileGrid } from '@/components/ui/stat'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
+import { formatDate } from '@/lib/dates'
+import { formatNumber, formatPercent } from '@/lib/format'
 
-const tooltipContentStyle = {
-  backgroundColor: 'var(--color-surface)',
-  border: '1px solid var(--color-border)',
-  borderRadius: '0.75rem',
-  color: 'var(--color-fg)'
-}
+// Stryker disable next-line ArrayDeclaration: chart styling.
+const BAR_RADIUS: [number, number, number, number] = [4, 4, 0, 0]
 
 // 0 means fewer than 2 items, so no cadence yet.
 function formatInterval(hours: number): string {
   if (hours <= 0) return 'not enough data yet'
   if (hours < 24) return `every ~${Math.round(hours)}h`
-  return `every ~${(hours / 24).toFixed(1)}d`
+  return `every ~${formatNumber(hours / 24)}d`
 }
 
 function formatPct(fraction: number): string {
@@ -31,40 +31,33 @@ export default function FeedStatsClient() {
   }
 
   const chartData = data.itemsPerDay.map((d) => ({
-    day: new Date(d.day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+    day: formatDate(d.day),
     count: d.count
   }))
 
+  const totalItems = data.stats.reduce((sum, s) => sum + s.itemCount, 0)
+  const recentItems = data.itemsPerDay.reduce((sum, d) => sum + d.count, 0)
+
   return (
     <div className="flex flex-col gap-6">
-      <Card padding="none">
-        <CardHeader>
-          <CardTitle>New items per day (last 90 days)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {chartData.length === 0 ? (
-            <EmptyState placement="inline">No items ingested in the last 90 days.</EmptyState>
-          ) : (
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip
-                    formatter={(value) => [value, 'Items']}
-                    cursor={{ fill: 'rgb(var(--hover-rgb) / 0.5)' }}
-                    contentStyle={tooltipContentStyle}
-                    labelStyle={{ color: 'var(--color-fg)' }}
-                    itemStyle={{ color: 'var(--color-fg)' }}
-                  />
-                  <Bar dataKey="count" fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <StatTileGrid columns={3}>
+        <StatTile label="Feeds" value={data.stats.length} />
+        <StatTile label="Items" value={formatNumber(totalItems)} />
+        <StatTile label="Last 90 days" value={formatNumber(recentItems)} />
+      </StatTileGrid>
+
+      <ChartCard
+        title="New items per day (last 90 days)"
+        empty={chartData.length === 0 ? 'No items ingested in the last 90 days.' : undefined}
+      >
+        <BarChart data={chartData}>
+          <CartesianGrid {...gridProps} />
+          <XAxis dataKey="day" tick={axisTick} />
+          <YAxis {...countAxisProps} />
+          <Tooltip {...tooltipProps} />
+          <Bar dataKey="count" name="Items" fill={seriesColor(1)} radius={BAR_RADIUS} />
+        </BarChart>
+      </ChartCard>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {data.stats.map((s) => (
@@ -85,7 +78,7 @@ export default function FeedStatsClient() {
               </div>
               <div className="flex justify-between">
                 <dt>Avg completion</dt>
-                <dd className="text-fg">{Math.round(s.avgReadProgressPct)}%</dd>
+                <dd className="text-fg">{formatPercent(s.avgReadProgressPct)}</dd>
               </div>
             </dl>
           </Card>

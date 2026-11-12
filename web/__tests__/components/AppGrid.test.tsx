@@ -1,19 +1,53 @@
 import { render, screen } from '@testing-library/react'
-import AppGrid, { type AppLink, type AppSection } from '@/components/AppGrid'
+import AppGrid, { type AppSection } from '@/components/AppGrid'
+import { Settings, Star } from 'lucide-react'
+import type { AppEntry } from '@/lib/apps'
 
-const mockApps: AppLink[] = [
-  { name: 'backlog', label: 'Backlog', href: '/backlog', description: 'Goals tracker' },
-  { name: 'recipes', label: 'Recipes', href: '/recipes', description: 'Recipe management' }
+const mockApps: AppEntry[] = [
+  {
+    id: 'backlog',
+    group: 'Tools',
+    icon: Star,
+    label: 'Backlog',
+    href: '/backlog',
+    description: 'Goals tracker'
+  },
+  {
+    id: 'recipes',
+    group: 'Food',
+    icon: Star,
+    label: 'Recipes',
+    href: '/recipes',
+    description: 'Recipe management'
+  }
 ]
 
 const mockSections: AppSection[] = [
   {
     title: 'Productivity',
-    apps: [{ name: 'backlog', label: 'Backlog', href: '/backlog', description: 'Goals tracker' }]
+    apps: [
+      {
+        id: 'backlog',
+        group: 'Tools',
+        icon: Star,
+        label: 'Backlog',
+        href: '/backlog',
+        description: 'Goals tracker'
+      }
+    ]
   },
   {
     title: 'Account',
-    apps: [{ name: 'settings', label: 'Settings', href: '/settings', description: 'Preferences' }]
+    apps: [
+      {
+        id: 'settings',
+        group: 'Account',
+        icon: Settings,
+        label: 'Settings',
+        href: '/settings',
+        description: 'Preferences'
+      }
+    ]
   }
 ]
 
@@ -44,7 +78,9 @@ describe('AppGrid', () => {
       <AppGrid
         apps={[
           {
-            name: 'grafana',
+            id: 'grafana',
+            group: 'Admin',
+            icon: Star,
             label: 'Grafana',
             href: '/grafana',
             description: 'Metrics',
@@ -83,7 +119,14 @@ describe('AppGrid', () => {
         {
           title: 'Account',
           apps: [
-            { name: 'settings', label: 'Settings', href: '/settings', description: 'Preferences' }
+            {
+              id: 'settings',
+              group: 'Account',
+              icon: Settings,
+              label: 'Settings',
+              href: '/settings',
+              description: 'Preferences'
+            }
           ]
         }
       ]

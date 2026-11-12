@@ -44,8 +44,8 @@ export default function GamesDashboardPublicLibrary({ token }: { token: string }
         Total backlog: {steam.totalBacklog} games &mdash; Current rate: {steam.currentRate}
       </p>
       <GameGroup title="Favourites" games={favourites} hrefFor={gameHref} />
-      <GameGroup title="In Progress" games={inProgress} hrefFor={gameHref} />
-      <GameGroup title="Not Started" games={notStarted} hrefFor={gameHref} />
+      <GameGroup title="In progress" games={inProgress} hrefFor={gameHref} />
+      <GameGroup title="Not started" games={notStarted} hrefFor={gameHref} />
       <GameGroup title="Completed" games={completed} hrefFor={gameHref} />
       {search.trim() &&
         inProgress.length === 0 &&

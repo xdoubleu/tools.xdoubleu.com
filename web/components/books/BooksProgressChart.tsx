@@ -7,6 +7,8 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts'
+import { axisTick, gridProps, lineProps, lineTooltipProps, seriesColor } from '@/lib/chartTheme'
+import { axisDate } from '@/lib/dates'
 import { EmptyState } from '@/components/ui/states'
 
 export interface ProgressPoint {
@@ -27,24 +29,11 @@ export default function BooksProgressChart({ data }: BooksProgressChartProps) {
     <div className="h-72 w-full lg:h-full lg:min-h-0 lg:flex-1">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-          <XAxis dataKey="label" width={80} tick={{ fill: 'var(--color-muted)' }} />
-          <YAxis tick={{ fill: 'var(--color-muted)' }} />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: 'var(--color-card)',
-              borderColor: 'var(--color-border)',
-              borderRadius: '0.75rem',
-              color: 'var(--color-fg)'
-            }}
-          />
-          <Line
-            type="monotone"
-            dataKey="value"
-            stroke="var(--color-accent)"
-            strokeWidth={2}
-            dot={false}
-          />
+          <CartesianGrid {...gridProps} />
+          <XAxis dataKey="label" width={80} tick={axisTick} tickFormatter={axisDate} />
+          <YAxis tick={axisTick} />
+          <Tooltip {...lineTooltipProps} />
+          <Line dataKey="value" stroke={seriesColor(1)} {...lineProps} />
         </LineChart>
       </ResponsiveContainer>
     </div>

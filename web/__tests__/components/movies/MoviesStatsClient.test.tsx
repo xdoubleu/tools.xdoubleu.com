@@ -131,6 +131,19 @@ describe('MoviesStatsClient', () => {
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
   })
 
+  it('counts a star level missing from a short ratings list as zero', () => {
+    mockStats({ data: create(GetStatsResponseSchema, { ratings: [2], moviesWatched: 1 }) })
+    render(<MoviesStatsClient />)
+    const ratings = within(screen.getByRole('list', { name: 'Ratings' })).getAllByRole('listitem')
+    expect(ratings.map((li) => li.textContent?.replace(/★/g, ''))).toEqual([
+      '0',
+      '0',
+      '0',
+      '0',
+      '2'
+    ])
+  })
+
   it.each([
     ['seasons', { seasonsWatched: 1 }],
     ['a watched series', { seriesWatched: 1 }],

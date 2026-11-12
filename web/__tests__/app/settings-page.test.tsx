@@ -20,10 +20,14 @@ vi.mock('@/hooks/useAuth', () => ({
   useMFAEnroll: () => mockMFAEnroll,
   useMFAEnrollVerify: () => mockMFAEnrollVerify,
   useMFAUnenroll: () => mockMFAUnenroll,
-  useRegenerateRecoveryCodes: () => mockRegenerateRecoveryCodes
+  useRegenerateRecoveryCodes: () => mockRegenerateRecoveryCodes,
+  useSetTabPins: () => vi.fn()
 }))
 
+vi.mock('@/lib/env', () => ({ getRelease: vi.fn(() => '') }))
+
 import SettingsPage from '@/app/settings/page'
+import { getRelease } from '@/lib/env'
 
 const confirmInDialog = (name: string) =>
   fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name }))
@@ -36,6 +40,41 @@ describe('SettingsPage', () => {
       data: { role: 'user', appAccess: [], hasMfa: false, displayName: 'Alice' },
       isLoading: false
     })
+  })
+
+  it('shows the short release hash, or no About section without one', () => {
+    vi.mocked(getRelease).mockReturnValue('abcdef1234567890')
+    const { unmount } = render(<SettingsPage />)
+    expect(screen.getByText('Release abcdef1')).toBeInTheDocument()
+    unmount()
+
+    vi.mocked(getRelease).mockReturnValue('')
+    render(<SettingsPage />)
+    expect(screen.queryByText(/^Release /)).not.toBeInTheDocument()
+  })
+
+  it('keeps Save display name off for a blank name', () => {
+    render(<SettingsPage />)
+    const save = screen.getByRole('button', { name: 'Save display name' })
+    expect(save).toBeEnabled()
+    fireEvent.change(screen.getByLabelText('Display name'), { target: { value: '   ' } })
+    expect(save).toBeDisabled()
+  })
+
+  it('needs a full six-digit code to verify MFA, and cancels back to the start', async () => {
+    mockMFAEnroll.mockResolvedValue({ qrSvg: '<svg></svg>', secret: 'SECRET', factorId: 'f1' })
+    render(<SettingsPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Enable MFA' }))
+    await screen.findByLabelText('Authenticator code')
+
+    const verify = screen.getByRole('button', { name: 'Verify & enable' })
+    fireEvent.change(screen.getByLabelText('Authenticator code'), { target: { value: '12345' } })
+    expect(verify).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('Authenticator code'), { target: { value: '123456' } })
+    expect(verify).toBeEnabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument()
   })
 
   it('prefills the display name field from the current user', () => {
