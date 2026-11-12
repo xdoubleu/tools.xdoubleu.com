@@ -11,8 +11,6 @@ import { useLearningPaths } from '@/hooks/useLearningPaths'
 import { create } from '@bufbuild/protobuf'
 import {
   LearningPathSchema,
-  ModuleSchema,
-  ItemSchema,
   ListLearningPathsResponseSchema
 } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
 import type { ListLearningPathsResponse } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
@@ -72,15 +70,9 @@ describe('LearningPathsListClient', () => {
             id: 'lp1',
             title: 'Learn Go',
             goal: 'Ship a backend service',
-            modules: [
-              create(ModuleSchema, {
-                title: 'Month 1',
-                items: [
-                  create(ItemSchema, { description: 'Read', completed: true }),
-                  create(ItemSchema, { description: 'Write', completed: false })
-                ]
-              })
-            ]
+            moduleCount: 1,
+            itemCount: 2,
+            completedItemCount: 1
           })
         ]
       }),
@@ -100,7 +92,7 @@ describe('LearningPathsListClient', () => {
           create(LearningPathSchema, {
             id: 'lp2',
             title: 'Empty plan',
-            modules: [create(ModuleSchema, { title: 'A' }), create(ModuleSchema, { title: 'B' })]
+            moduleCount: 2
           })
         ]
       }),
@@ -118,14 +110,9 @@ describe('LearningPathsListClient', () => {
           create(LearningPathSchema, {
             id: 'lp1',
             title: 'Learn Go',
-            modules: [
-              create(ModuleSchema, {
-                items: [
-                  create(ItemSchema, { completed: true }),
-                  create(ItemSchema, { completed: false })
-                ]
-              })
-            ]
+            moduleCount: 1,
+            itemCount: 2,
+            completedItemCount: 1
           })
         ]
       }),

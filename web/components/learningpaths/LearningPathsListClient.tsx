@@ -12,18 +12,8 @@ import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
-function moduleAndItemCounts(path: LearningPath) {
-  const moduleCount = path.modules.length
-  const itemCount = path.modules.reduce((sum, m) => sum + m.items.length, 0)
-  const completedCount = path.modules.reduce(
-    (sum, m) => sum + m.items.filter((i) => i.completed).length,
-    0
-  )
-  return { moduleCount, itemCount, completedCount }
-}
-
 function LearningPathCard({ path }: { path: LearningPath }) {
-  const { moduleCount, itemCount, completedCount } = moduleAndItemCounts(path)
+  const { moduleCount, itemCount, completedItemCount: completedCount } = path
   return (
     <ItemCard
       href={`/learningpaths/${path.id}`}
