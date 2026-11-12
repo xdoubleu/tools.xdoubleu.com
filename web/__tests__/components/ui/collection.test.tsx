@@ -89,6 +89,15 @@ describe('CollectionToolbar', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/^2 results$/)
   })
 
+  it('renders extra controls between the facets and the count', () => {
+    render(
+      <CollectionToolbar noun="titles" query="" onQueryChange={vi.fn()} count={3}>
+        <span>extra control</span>
+      </CollectionToolbar>
+    )
+    expect(screen.getByText('extra control')).toBeInTheDocument()
+  })
+
   it('uses the singular for one result and needs no facets', () => {
     render(<CollectionToolbar noun="books" query="" onQueryChange={vi.fn()} count={1} />)
     expect(screen.getByRole('status')).toHaveTextContent(/^1 result$/)

@@ -16,6 +16,11 @@ export const DEFAULT_BACKLOG_FILTER: BacklogFilter = {
   onMyServices: false
 }
 
+/** Whether the filter narrows the backlog; the sort alone doesn't. */
+export function hasActiveFilter({ status, mediaType, onMyServices }: BacklogFilter): boolean {
+  return status !== '' || mediaType !== '' || onMyServices
+}
+
 /** Status tab for watched series with a new season; not a stored status. */
 export const NEW_SEASONS = 'new'
 
