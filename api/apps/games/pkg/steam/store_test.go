@@ -20,8 +20,7 @@ func TestSearchStore(t *testing.T) {
 			assert.Equal(t, "english", r.URL.Query().Get("l"))
 			assert.Equal(t, "BE", r.URL.Query().Get("cc"))
 			_, _ = w.Write([]byte(`{"total": 2, "items": [
-			{"type": "app", "name": "Outer Wilds", "id": 753640,
-			 "tiny_image": "https://img/ow.jpg"},
+			{"type": "app", "name": "Outer Wilds", "id": 753640},
 			{"type": "sub", "name": "Outer Wilds Bundle", "id": 1}
 		]}`))
 		}),
@@ -31,7 +30,7 @@ func TestSearchStore(t *testing.T) {
 	items, err := steam.NewStore(ts.URL).SearchStore(context.Background(), "outer wilds")
 	require.NoError(t, err)
 	assert.Equal(t, []steam.StoreItem{{
-		ID: 753640, Name: "Outer Wilds", Type: "app", ImageURL: "https://img/ow.jpg",
+		ID: 753640, Name: "Outer Wilds", Type: "app", ImageURL: steam.CapsuleURL(753640),
 	}}, items)
 }
 

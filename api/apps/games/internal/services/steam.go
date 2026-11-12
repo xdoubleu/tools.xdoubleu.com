@@ -166,7 +166,7 @@ func (service *SteamService) buildGamesMap(
 			IsDelisted:     false,
 			// set by markCompletionAverageMembership before persisting
 			InCompletionAverage: false,
-			ImageURL:            g.GetFullImgIconURL(),
+			ImageURL:            steam.CapsuleURL(g.AppID),
 			LastSyncedAt:        time.Time{}, // set by DB via now() in UpsertGames
 			Favourite:           false,       // user-set; never written by UpsertGames
 			LastPlayed:          rtimeLastPlayedToTime(g.RtimeLastPlayed),
@@ -708,7 +708,7 @@ func (service *SteamService) fetchWishlist(
 		items = append(items, models.WishlistItem{
 			ID:       it.AppID,
 			Name:     name,
-			ImageURL: steam.StoreHeaderURL(it.AppID),
+			ImageURL: steam.CapsuleURL(it.AppID),
 			Priority: it.Priority,
 			AddedAt:  rtimeLastPlayedToTime(it.DateAdded),
 		})

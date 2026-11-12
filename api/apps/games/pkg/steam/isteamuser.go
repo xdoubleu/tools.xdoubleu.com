@@ -6,8 +6,6 @@ import (
 	"fmt"
 )
 
-const BaseImgURL = "http://media.steampowered.com/steamcommunity/public/images/apps/"
-
 type Achievement struct {
 	APIName     string `json:"apiname"`
 	Achieved    int    `json:"achieved"`
@@ -19,20 +17,10 @@ type Achievement struct {
 type Game struct {
 	AppID                    int    `json:"appid"`
 	Name                     string `json:"name"`
-	ImgIconURL               string `json:"img_icon_url"`
-	ImgLogoURL               string `json:"img_logo_url"`
 	HasCommunityVisibleStats bool   `json:"has_community_visible_stats"`
 	PlaytimeForever          int    `json:"playtime_forever"`
 	// RtimeLastPlayed is the last session's Unix time, 0 if never played.
 	RtimeLastPlayed int64 `json:"rtime_last_played"`
-}
-
-func (game Game) GetFullImgIconURL() string {
-	return fmt.Sprintf("%s/%d/%s.jpg", BaseImgURL, game.AppID, game.ImgIconURL)
-}
-
-func (game Game) GetFullImgLogoURL() string {
-	return fmt.Sprintf("%s/%d/%s.jpg", BaseImgURL, game.AppID, game.ImgLogoURL)
 }
 
 type OwnedGamesResponse struct {

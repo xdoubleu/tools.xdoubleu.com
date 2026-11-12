@@ -31,8 +31,6 @@ func (client MockSteamClient) GetOwnedGames(
 				{
 					AppID:                    1,
 					Name:                     mockGameName,
-					ImgIconURL:               "",
-					ImgLogoURL:               "",
 					HasCommunityVisibleStats: true,
 					PlaytimeForever:          0,
 					RtimeLastPlayed:          time.Now().UTC().Unix(),

@@ -21,7 +21,7 @@ type StoreItem struct {
 	ID       int    `json:"id"`
 	Name     string `json:"name"`
 	Type     string `json:"type"`
-	ImageURL string `json:"tiny_image"`
+	ImageURL string `json:"-"`
 }
 
 // StoreSearcher reads the public Steam store catalog; it needs no key.
@@ -66,6 +66,7 @@ func (c storeClient) SearchStore(
 	apps := body.Items[:0]
 	for _, it := range body.Items {
 		if it.Type == "app" {
+			it.ImageURL = CapsuleURL(it.ID)
 			apps = append(apps, it)
 		}
 	}

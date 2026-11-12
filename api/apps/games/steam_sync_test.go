@@ -136,7 +136,6 @@ func TestSyncUser_SchemaFailurePreservesPriorCompletion(t *testing.T) {
 		{
 			AppID:                    gameA,
 			Name:                     "Game A",
-			ImgIconURL:               "iconhasha",
 			HasCommunityVisibleStats: true,
 		},
 		//nolint:exhaustruct //only required fields
@@ -163,9 +162,9 @@ func TestSyncUser_SchemaFailurePreservesPriorCompletion(t *testing.T) {
 	assert.Equal(t, "50.00", gA.CompletionRate)
 	assert.Equal(
 		t,
-		games[0].GetFullImgIconURL(),
+		steam.CapsuleURL(games[0].AppID),
 		gA.ImageURL,
-		"game image url is derived from the Steam icon and persisted",
+		"game image url is the persisted store capsule",
 	)
 	gB, err := app.TestSeeds().Services.Steam.GetGameByID(ctx, gameB, user)
 	require.NoError(t, err)
