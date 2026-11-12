@@ -151,7 +151,10 @@ func (app *Application) middleware() alice.Chain {
 	)
 	// usageMiddleware runs after domainMiddleware so custom-domain requests
 	// are already rewritten to /<app>/… before their labels are derived.
-	handlers = append(handlers, app.domainMiddleware, app.usageMiddleware)
+	handlers = append(
+		handlers, app.domainMiddleware, app.usageMiddleware,
+		app.disabledAppsMiddleware,
+	)
 	// Budget copies the request (WithContext), so RequestDuration must come
 	// after it and hand the mux that same copy: the mux sets Pattern on it, and
 	// RequestDuration labels with r.Pattern for Grafana's RequestP95High alert.

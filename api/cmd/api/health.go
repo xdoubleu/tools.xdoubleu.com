@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	httptools "tools.xdoubleu.com/internal/communication/httptools"
@@ -23,10 +24,20 @@ func (app *Application) healthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	body := map[string]string{"status": "ok"}
+	if len(app.disabledApps) > 0 {
+		names := make([]string, len(app.disabledApps))
+		for i, f := range app.disabledApps {
+			names[i] = f.App
+		}
+		body["status"] = "degraded"
+		body["disabled"] = strings.Join(names, ",")
+	}
+
 	if err := httptools.WriteJSON(
 		w,
 		http.StatusOK,
-		map[string]string{"status": "ok"},
+		body,
 		nil,
 	); err != nil {
 		httptools.HandleError(w, r, err)

@@ -283,6 +283,38 @@ groups:
                     type: gt
                     params: [0]
 
+      - uid: app-migration-failed
+        title: AppMigrationFailed
+        condition: C
+        for: 0s
+        labels:
+          severity: critical
+        annotations:
+          summary: An app's migration failed and the app is disabled
+          description: "{{ $labels.app }} is disabled until a fixed deploy ships."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: max by (app) (app_migration_failed) > 0
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
       - uid: job-p95-high
         title: JobP95High
         condition: C

@@ -188,16 +188,6 @@ func (apps *Apps) Shutdown(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-func (apps *Apps) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
-	for _, app := range *apps {
-		err := app.ApplyMigrations(ctx, db)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (apps *Apps) Routes(mux *http.ServeMux) http.Handler {
 	for _, app := range *apps {
 		app.Routes(app.GetName(), mux)

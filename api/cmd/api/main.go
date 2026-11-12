@@ -63,6 +63,7 @@ type Application struct {
 	oauth2as                      *oauth2asWiring
 	family                        family.Service
 	apps                          *Apps
+	disabledApps                  []AppFailure
 	booksApp                      storageScanRunner
 	feedsApp                      unhealthyFeedLister
 	appUsersRepo                  *repositories.AppUsersRepository
@@ -651,7 +652,8 @@ func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
 		return err
 	}
 
-	return app.apps.ApplyMigrations(app.ctx, db)
+	app.disabledApps = app.apps.ApplyMigrations(app.ctx, db, app.logger)
+	return nil
 }
 
 func (app *Application) applyGlobalMigrations(db *pgxpool.Pool) error {

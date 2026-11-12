@@ -20,7 +20,7 @@ make db/reset                      # recreate the Postgres volume — shared by 
 
 - `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after apps it reads; `trains`/`learningpaths`/`movies`/`podcasts`/`factory`, then `taste` (reads `books`/`feeds`/`games`/`movies`/`podcasts`).
 - `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool. Platform handlers: `internal/obs`, `internal/account` (each `Deps`/`Register`).
-- `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
+- `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`; failure is fatal), then each app's. A failing app migration, or one whose `appDependencies` entry (`cmd/api/app_isolation.go`) is disabled, swaps the app for a `disabledApp`: 503 on its routes, no jobs or MCP tools, `/health` reports `degraded` with the names, `app_migration_failed{app}` gauge (Grafana `AppMigrationFailed`) and Sentry. No retry; a fix ships as a deploy.
 - `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked PRs can merge migrations out of order; this self-heals.
 
 Per-app layout (`apps/<name>/`):
