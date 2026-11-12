@@ -3,7 +3,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 
 vi.mock('@/components/podcasts/Favourites', () => ({
   __esModule: true,
-  default: () => <div data-testid="favourites" />
+  default: ({ addAction }: { addAction?: React.ReactNode }) => (
+    <div data-testid="favourites">{addAction}</div>
+  )
 }))
 vi.mock('@/components/podcasts/ShowSearchResults', () => ({
   __esModule: true,
@@ -15,40 +17,46 @@ import PodcastsClient from '@/components/podcasts/PodcastsClient'
 beforeEach(() => vi.useFakeTimers())
 afterEach(() => vi.useRealTimers())
 
+function openDialog() {
+  fireEvent.click(screen.getAllByRole('button', { name: 'Add a show' })[0])
+}
+
 function type(value: string) {
-  fireEvent.change(screen.getByLabelText('Search podcasts'), { target: { value } })
+  fireEvent.change(screen.getByLabelText('Search iTunes'), { target: { value } })
   act(() => {
     vi.advanceTimersByTime(300)
   })
 }
 
 describe('PodcastsClient', () => {
-  it('shows favourites until a search of two characters', () => {
+  it('lists favourites, with adding a header action that opens the iTunes search', () => {
     render(<PodcastsClient />)
     expect(screen.getByTestId('favourites')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Search iTunes')).not.toBeInTheDocument()
 
+    openDialog()
+    expect(screen.getByRole('dialog', { name: 'Add a show' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Search iTunes')).toHaveValue('')
+  })
+
+  it('searches only from two characters', () => {
+    render(<PodcastsClient />)
+    openDialog()
     type('h')
-    expect(screen.getByTestId('favourites')).toBeInTheDocument()
+    expect(screen.queryByTestId('results')).not.toBeInTheDocument()
 
     type('hi')
     expect(screen.getByTestId('results')).toHaveTextContent('hi')
-    expect(screen.queryByTestId('favourites')).not.toBeInTheDocument()
-
-    type('')
-    expect(screen.getByTestId('favourites')).toBeInTheDocument()
   })
 
-  it('starts empty and waits for typing to pause before searching', () => {
+  it('waits for typing to pause before searching', () => {
     render(<PodcastsClient />)
-    const box = screen.getByLabelText('Search podcasts')
-    expect(box).toHaveValue('')
-
-    fireEvent.change(box, { target: { value: 'hi' } })
-    expect(screen.getByTestId('favourites')).toBeInTheDocument()
+    openDialog()
+    fireEvent.change(screen.getByLabelText('Search iTunes'), { target: { value: 'hi' } })
     act(() => {
       vi.advanceTimersByTime(299)
     })
-    expect(screen.getByTestId('favourites')).toBeInTheDocument()
+    expect(screen.queryByTestId('results')).not.toBeInTheDocument()
     act(() => {
       vi.advanceTimersByTime(1)
     })
@@ -57,7 +65,8 @@ describe('PodcastsClient', () => {
 
   it('restarts the wait on every keystroke', () => {
     render(<PodcastsClient />)
-    const box = screen.getByLabelText('Search podcasts')
+    openDialog()
+    const box = screen.getByLabelText('Search iTunes')
     fireEvent.change(box, { target: { value: 'hi' } })
     act(() => {
       vi.advanceTimersByTime(200)
@@ -66,7 +75,7 @@ describe('PodcastsClient', () => {
     act(() => {
       vi.advanceTimersByTime(200)
     })
-    expect(screen.getByTestId('favourites')).toBeInTheDocument()
+    expect(screen.queryByTestId('results')).not.toBeInTheDocument()
     act(() => {
       vi.advanceTimersByTime(100)
     })
@@ -75,25 +84,26 @@ describe('PodcastsClient', () => {
 
   it('judges the live and the settled query by their trimmed length', () => {
     render(<PodcastsClient />)
-    const box = screen.getByLabelText('Search podcasts')
+    openDialog()
+    const box = screen.getByLabelText('Search iTunes')
 
     // A settled ' h' is one character; typing on to 'hi' must not show it.
     type(' h')
     fireEvent.change(box, { target: { value: 'hi' } })
-    expect(screen.getByTestId('favourites')).toBeInTheDocument()
+    expect(screen.queryByTestId('results')).not.toBeInTheDocument()
 
     // A settled 'hi' is hidden once the live box is down to ' h'.
     type('hi')
     expect(screen.getByTestId('results')).toBeInTheDocument()
     fireEvent.change(box, { target: { value: ' h' } })
-    expect(screen.getByTestId('favourites')).toBeInTheDocument()
+    expect(screen.queryByTestId('results')).not.toBeInTheDocument()
   })
 
   it('hides stale results as soon as the box is cleared', () => {
     render(<PodcastsClient />)
+    openDialog()
     type('hi')
-    fireEvent.change(screen.getByLabelText('Search podcasts'), { target: { value: '' } })
-    expect(screen.getByTestId('favourites')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Search iTunes'), { target: { value: '' } })
     expect(screen.queryByTestId('results')).not.toBeInTheDocument()
   })
 })
