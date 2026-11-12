@@ -50,8 +50,7 @@ describe('ReposClient', () => {
     expect(screen.getByText('main · Claude Code · 60 min')).toBeInTheDocument()
     expect(screen.getByText('octo/dog')).toBeInTheDocument()
     expect(screen.getByText('dev · OpenCode · 15 min')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Factory' })).toHaveAttribute('href', '/factory')
-    expect(screen.getByText('Repos', { selector: '[aria-current="page"]' })).toBeInTheDocument()
+    expect(screen.getByRole('tablist', { name: 'Factory sections' })).toBeInTheDocument()
   })
 
   it('shows loading, error and empty states', () => {

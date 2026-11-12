@@ -17,6 +17,7 @@ import { Card } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { PageContainer } from '@/components/ui/page-container'
+import AppSections from '@/components/AppSections'
 import { PageHeader } from '@/components/ui/page-header'
 
 /** The runners: pair the Mac, see whether it is online, and revoke it. */
@@ -45,9 +46,9 @@ export default function RunnersClient() {
     <PageContainer size="narrow">
       <PageHeader
         title="Runner"
-        breadcrumb={[{ label: 'Factory', href: '/factory' }, { label: 'Runner' }]}
         actions={<Button onClick={() => setCreating(true)}>Pair a runner</Button>}
       />
+      <AppSections app="factory" />
       <Card variant="inset" padding="md" className="mb-4 space-y-2" data-testid="runner-install">
         <p className="text-sm font-medium">Install the runner</p>
         <p className="text-xs text-muted">

@@ -1,6 +1,5 @@
 import {
   Activity,
-  Bot,
   CalendarDays,
   ChartLine,
   ChefHat,
@@ -202,6 +201,11 @@ export const APPS: AppEntry[] = [
     label: 'Factory',
     href: '/factory',
     description: 'Task board for the software factory.',
+    sections: [
+      { label: 'Board', href: '/factory' },
+      { label: 'Runner', href: '/factory/runners' },
+      { label: 'Repos', href: '/factory/repos' }
+    ],
     group: 'Admin',
     icon: Factory,
     adminOnly: true
@@ -210,20 +214,14 @@ export const APPS: AppEntry[] = [
     id: 'monitoring',
     label: 'Monitoring',
     href: '/monitoring/connections',
-    description: 'Observability',
+    description: 'Connections and self-healing routine runs',
     base: '/monitoring',
+    sections: [
+      { label: 'Connections', href: '/monitoring/connections' },
+      { label: 'Automated actions', href: '/monitoring/observability' }
+    ],
     group: 'Admin',
     icon: Activity,
-    adminOnly: true
-  },
-  {
-    id: 'observability',
-    label: 'Automated actions',
-    href: '/monitoring/observability',
-    description: 'Self-healing routine run history',
-    base: '/monitoring/observability',
-    group: 'Admin',
-    icon: Bot,
     adminOnly: true
   },
   {

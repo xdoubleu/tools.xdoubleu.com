@@ -80,6 +80,15 @@ describe('sections', () => {
         { label: 'Library', href: '/games/library' },
         { label: 'Stats', href: '/dashboard/games' }
       ],
+      factory: [
+        { label: 'Board', href: '/factory' },
+        { label: 'Runner', href: '/factory/runners' },
+        { label: 'Repos', href: '/factory/repos' }
+      ],
+      monitoring: [
+        { label: 'Connections', href: '/monitoring/connections' },
+        { label: 'Automated actions', href: '/monitoring/observability' }
+      ],
       movies: [
         { label: 'Backlog', href: '/movies' },
         { label: 'Stats', href: '/movies/stats' }
@@ -97,7 +106,7 @@ describe('appForPath', () => {
     ['/books/library', 'books'],
     ['/games/123', 'games'],
     ['/dashboard/games/library', 'games'],
-    ['/monitoring/observability/runs', 'observability'],
+    ['/monitoring/observability/runs', 'monitoring'],
     ['/monitoring/connections', 'monitoring'],
     ['/monitoring/issues', 'monitoring'],
     ['/settings', 'settings']
