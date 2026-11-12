@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 
 const mockUseResyncRefresh = vi.fn().mockReturnValue({
   connected: true,
@@ -45,12 +45,16 @@ describe('BooksAdminClient', () => {
     expect(screen.getByRole('heading', { name: 'Books admin tools' })).toBeInTheDocument()
   })
 
-  it('renders a breadcrumb link back to /dashboard/reading', () => {
+  it('renders a breadcrumb link back to /books/library', () => {
     render(<BooksAdminClient />)
-    expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute(
-      'href',
-      '/dashboard/reading'
-    )
+    expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute('href', '/books/library')
+  })
+
+  it('names the page last in the breadcrumb', () => {
+    render(<BooksAdminClient />)
+    expect(
+      within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByText('Admin tools')
+    ).toBeInTheDocument()
   })
 
   it('renders the scan section with a start button', () => {

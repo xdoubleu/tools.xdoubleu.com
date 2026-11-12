@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 
 const mockSaveSettings = vi.fn()
 
@@ -44,9 +44,16 @@ describe('GamesSettingsClient', () => {
     expect(screen.getByRole('heading', { name: 'Games settings' })).toBeInTheDocument()
   })
 
-  it('renders a breadcrumb link back to /dashboard/games', () => {
+  it('names the page last in the breadcrumb', () => {
     render(<GamesSettingsClient />)
-    expect(screen.getByRole('link', { name: 'Games' })).toHaveAttribute('href', '/dashboard/games')
+    expect(
+      within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByText('Settings')
+    ).toBeInTheDocument()
+  })
+
+  it('renders a breadcrumb link back to /games/library', () => {
+    render(<GamesSettingsClient />)
+    expect(screen.getByRole('link', { name: 'Games' })).toHaveAttribute('href', '/games/library')
   })
 
   it('renders the Steam section', () => {

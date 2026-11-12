@@ -2,7 +2,10 @@ import { type HTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
 
 const sizes = {
-  default: '',
+  /** Reading and collection pages. */
+  default: 'max-w-5xl',
+  /** Tables, boards, week grids and full-height dashboards. */
+  wide: '',
   /** Settings and single-column forms. */
   narrow: 'max-w-xl',
   /** Longer create/edit forms. */

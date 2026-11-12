@@ -13,7 +13,7 @@ export default function SeriesBooksClient({ name }: { name: string }) {
   const { data, error, isLoading } = useBookSeries(name)
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: 'Books', href: '/dashboard/reading' },
+    { label: 'Books', href: '/books/library' },
     { label: 'Library', href: '/books/library' },
     { label: name }
   ]

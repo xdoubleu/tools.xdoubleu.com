@@ -2,7 +2,7 @@
 
 - Status: Accepted; since [ADR-0034](adr-0034-vite-spa-served-by-the-api.md) `web` ships inside the `api` image, so the SPA reads the api's runtime `RELEASE` through `/env.js`.
 - Issues: #1038
-- Affects: `api/internal/config`, `web/lib/env.ts`, `api/Dockerfile`, `.github/workflows/build-kobo-gateway.yml`, `build-api.yml`, `web/lib/books/gatewayClient.ts`, `web/components/Footer.tsx`
+- Affects: `api/internal/config`, `web/lib/env.ts`, `api/Dockerfile`, `.github/workflows/build-kobo-gateway.yml`, `build-api.yml`, `web/lib/books/gatewayClient.ts`, `web/app/settings/page.tsx`
 
 ## Context
 
@@ -27,7 +27,7 @@ environment; kobo-gateway runs on users' machines with none.
 
 ## Consequences
 
-- `Footer.tsx` shows the web and api releases, which now come from one image;
+- The account settings page shows the web and api releases, which now come from one image;
   the bundled gateway's release can lag them, which isn't a bug.
 - `REQUIRED_GATEWAY_VERSION` is a separate floor for protocol breaks only —
   bump it with `GatewayVersion` in Go.

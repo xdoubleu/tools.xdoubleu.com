@@ -25,7 +25,7 @@ import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { PageContainer } from '@/components/ui/page-container'
-import { PageHeader } from '@/components/ui/page-header'
+import { DetailHeader } from '@/components/ui/detail-header'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { seriesHref, seriesLabel } from '@/lib/books/series'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
@@ -66,7 +66,7 @@ export default function BookDetailClient({ id }: { id: string }) {
   }, [data])
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: 'Books', href: '/dashboard/reading' },
+    { label: 'Books', href: '/books/library' },
     {
       label: 'Library',
       href: query ? `/books/library?q=${encodeURIComponent(query)}` : '/books/library'
@@ -80,7 +80,7 @@ export default function BookDetailClient({ id }: { id: string }) {
 
   return (
     <PageContainer>
-      <Breadcrumb items={breadcrumbItems} />
+      {!book && <Breadcrumb items={breadcrumbItems} />}
 
       {isLoading && <LoadingState label="book" placement="page" />}
       {error && <ErrorState what="book" placement="page" />}
@@ -88,8 +88,11 @@ export default function BookDetailClient({ id }: { id: string }) {
 
       {book && userBook && (
         <>
-          <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start">
-            <div className="shrink-0">
+          <DetailHeader
+            breadcrumb={breadcrumbItems}
+            title={book.title}
+            subtitle={book.authors.join(', ') || undefined}
+            artwork={
               <Artwork
                 src={book.coverUrl}
                 title={book.title}
@@ -97,59 +100,65 @@ export default function BookDetailClient({ id }: { id: string }) {
                 initials={2}
                 size="lg"
               />
-            </div>
+            }
+            meta={book.pageCount > 0 ? `${book.pageCount} pages` : undefined}
+            favourite={
+              userBook.status === 'read' && (
+                <BookFavouriteButton userBook={userBook} onSaved={handleSaved} />
+              )
+            }
+            actions={
+              isAdmin && (
+                <Button type="button" variant="secondary" onClick={() => setEditOpen(true)}>
+                  Edit book
+                </Button>
+              )
+            }
+            menu={[
+              {
+                label: 'Remove from library',
+                destructive: true,
+                onSelect: () => setRemoveOpen(true)
+              }
+            ]}
+          />
+          <div className="space-y-3">
+            {book.seriesName && (
+              <p className="mt-1 text-sm">
+                <Button asChild variant="link" className="max-w-full">
+                  <Link href={seriesHref(book.seriesName)}>
+                    <span className="truncate">{seriesLabel(book)}</span>
+                  </Link>
+                </Button>
+              </p>
+            )}
 
-            <div className="flex-1 min-w-0">
-              <PageHeader
-                title={book.title}
-                description={book.authors.length > 0 ? book.authors.join(', ') : undefined}
-                className="mb-0"
+            {userBook.status === 'read' && (
+              <BookRatingStars userBook={userBook} size="md" onSaved={handleSaved} />
+            )}
+
+            {book.isbn13 && <p className="mt-2 text-xs text-muted">ISBN: {book.isbn13}</p>}
+            {book.sourceUrl && (
+              <p className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">
+                <Button type="button" variant="link" onClick={() => setReaderOpen(true)}>
+                  Read in app
+                </Button>
+                <Button asChild variant="link">
+                  <a href={book.sourceUrl} target="_blank" rel="noopener noreferrer">
+                    Open original ↗
+                  </a>
+                </Button>
+              </p>
+            )}
+
+            <div className="mt-4 space-y-4">
+              <BookShelfTagFields
+                userBook={userBook}
+                knownShelves={knownShelves}
+                knownTags={knownTags}
+                onSaved={handleSaved}
               />
-              {book.seriesName && (
-                <p className="mt-1 text-sm">
-                  <Button asChild variant="link" className="max-w-full">
-                    <Link href={seriesHref(book.seriesName)}>
-                      <span className="truncate">{seriesLabel(book)}</span>
-                    </Link>
-                  </Button>
-                </p>
-              )}
-
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                {userBook.status === 'read' && (
-                  <>
-                    <BookRatingStars userBook={userBook} size="md" onSaved={handleSaved} />
-                    <BookFavouriteButton userBook={userBook} onSaved={handleSaved} />
-                  </>
-                )}
-                {book.pageCount > 0 && (
-                  <span className="text-sm text-muted">{book.pageCount} pages</span>
-                )}
-              </div>
-
-              {book.isbn13 && <p className="mt-2 text-xs text-muted">ISBN: {book.isbn13}</p>}
-              {book.sourceUrl && (
-                <p className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">
-                  <Button type="button" variant="link" onClick={() => setReaderOpen(true)}>
-                    Read in app
-                  </Button>
-                  <Button asChild variant="link">
-                    <a href={book.sourceUrl} target="_blank" rel="noopener noreferrer">
-                      Open original ↗
-                    </a>
-                  </Button>
-                </p>
-              )}
-
-              <div className="mt-4 space-y-4">
-                <BookShelfTagFields
-                  userBook={userBook}
-                  knownShelves={knownShelves}
-                  knownTags={knownTags}
-                  onSaved={handleSaved}
-                />
-                <BookOwnershipToggles userBook={userBook} onSaved={handleSaved} />
-              </div>
+              <BookOwnershipToggles userBook={userBook} onSaved={handleSaved} />
             </div>
           </div>
 
@@ -165,21 +174,7 @@ export default function BookDetailClient({ id }: { id: string }) {
           {/* Admin: manual edit + live metadata source sync */}
           {isAdmin && (
             <section className="mt-8">
-              <SectionHeading
-                className="mb-3"
-                actions={
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setEditOpen(true)}
-                  >
-                    Edit book
-                  </Button>
-                }
-              >
-                Metadata source
-              </SectionHeading>
+              <SectionHeading className="mb-3">Metadata source</SectionHeading>
               <BookSourceSync bookId={userBook.bookId} />
             </section>
           )}
@@ -259,17 +254,6 @@ export default function BookDetailClient({ id }: { id: string }) {
               {userBook.addedAt && (
                 <p className="text-xs text-muted">Added {formatDate(userBook.addedAt)}</p>
               )}
-
-              <div>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setRemoveOpen(true)}
-                >
-                  Remove from library
-                </Button>
-              </div>
             </Card>
           </section>
         </>

@@ -29,8 +29,57 @@ describe('ShoppingList', () => {
 
   it('renders items', () => {
     render(<ShoppingList items={items} />)
-    expect(screen.getByText(/2 cups - flour/)).toBeInTheDocument()
-    expect(screen.getByText(/1 L - milk/)).toBeInTheDocument()
+    expect(screen.getByText(/2 cups flour/)).toBeInTheDocument()
+    expect(screen.getByText(/1 L milk/)).toBeInTheDocument()
+  })
+
+  it('strikes through a ticked item and leaves the rest plain', () => {
+    render(<ShoppingList items={items} />)
+    const flour = screen.getByText(/2 cups flour/)
+    const milk = screen.getByText(/1 L milk/)
+    expect(flour).toHaveClass('min-w-0', 'break-words', 'text-sm', 'text-fg')
+    expect(flour).not.toHaveClass('line-through')
+    fireEvent.click(screen.getAllByRole('checkbox')[0])
+    expect(flour).toHaveClass('text-muted', 'line-through')
+    expect(flour).not.toHaveClass('text-fg')
+    expect(milk).toHaveClass('text-fg')
+  })
+
+  it('groups items under their category, uncategorised last, with no headings otherwise', () => {
+    const { rerender } = render(<ShoppingList items={items} />)
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument()
+    rerender(
+      <ShoppingList
+        items={items}
+        categoryOrder={['Dairy', 'Baking']}
+        categoryOf={(i) => (i.name === 'milk' ? 'Dairy' : '')}
+      />
+    )
+    const headings = screen.getAllByRole('heading').map((h) => h.textContent)
+    expect(headings).toEqual(['Dairy', 'Other'])
+    expect(screen.getByRole('region', { name: 'Dairy' })).toHaveTextContent('milk')
+    expect(screen.getByRole('region', { name: 'Other' })).toHaveTextContent('flour')
+  })
+
+  it('shows a heading for a single named category', () => {
+    render(<ShoppingList items={items} categoryOf={() => 'Pantry'} />)
+    expect(screen.getAllByRole('heading').map((h) => h.textContent)).toEqual(['Pantry'])
+  })
+
+  it('does not open an edit row until Edit is pressed', () => {
+    render(<ShoppingList items={items} onEdit={async () => undefined} />)
+    expect(screen.queryByLabelText('Item name')).not.toBeInTheDocument()
+  })
+
+  it('orders categories by the catalog, not by item order', () => {
+    render(
+      <ShoppingList
+        items={items}
+        categoryOrder={['Baking', 'Dairy']}
+        categoryOf={(i) => (i.name === 'milk' ? 'Dairy' : 'Baking')}
+      />
+    )
+    expect(screen.getAllByRole('heading').map((h) => h.textContent)).toEqual(['Baking', 'Dairy'])
   })
 
   it('toggles item checked state', () => {
@@ -141,6 +190,33 @@ describe('ShoppingList', () => {
       expect(screen.getByRole('button', { name: /Edit milk/ })).toBeInTheDocument()
     })
 
+    it('opens the edit row for the chosen item only', () => {
+      const two: ShoppingItem[] = [
+        { id: 'a', amount: '1', unit: '', name: 'eggs' },
+        { id: 'b', amount: '1', unit: 'L', name: 'milk' }
+      ]
+      render(<ShoppingList items={two} onEdit={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /Edit milk/ }))
+      expect(screen.getAllByLabelText('Item name')).toHaveLength(1)
+      expect(screen.getByRole('button', { name: /Edit eggs/ })).toBeInTheDocument()
+    })
+
+    it('disables Save for a blank name and while saving', async () => {
+      let finish: () => void = () => undefined
+      const onEdit = vi.fn(() => new Promise<void>((r) => (finish = r)))
+      render(<ShoppingList items={items} onEdit={onEdit} />)
+      fireEvent.click(screen.getByRole('button', { name: /Edit milk/ }))
+      const save = screen.getByRole('button', { name: 'Save' })
+      expect(save).toBeEnabled()
+      fireEvent.change(screen.getByLabelText('Item name'), { target: { value: '   ' } })
+      expect(save).toBeDisabled()
+      fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'oat milk' } })
+      fireEvent.click(save)
+      await waitFor(() => expect(save).toBeDisabled())
+      finish()
+      await waitFor(() => expect(screen.queryByLabelText('Item name')).not.toBeInTheDocument())
+    })
+
     it('shows an inline edit form prefilled with the item values', () => {
       render(<ShoppingList items={items} onEdit={vi.fn()} />)
       fireEvent.click(screen.getByRole('button', { name: /Edit milk/ }))
@@ -181,31 +257,7 @@ describe('ShoppingList', () => {
       fireEvent.click(screen.getByRole('button', { name: /Edit milk/ }))
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
       expect(onEdit).not.toHaveBeenCalled()
-      expect(screen.getByText(/1 L - milk/)).toBeInTheDocument()
-    })
-  })
-
-  describe('export button', () => {
-    it('does not render export button when onExport is not provided', () => {
-      render(<ShoppingList items={items} />)
-      expect(screen.queryByRole('button', { name: /Export/ })).not.toBeInTheDocument()
-    })
-
-    it('renders export button when onExport is provided', () => {
-      render(<ShoppingList items={items} onExport={vi.fn()} />)
-      expect(screen.getByRole('button', { name: /Export/ })).toBeInTheDocument()
-    })
-
-    it('calls onExport when export button is clicked', () => {
-      const onExport = vi.fn()
-      render(<ShoppingList items={items} onExport={onExport} />)
-      fireEvent.click(screen.getByRole('button', { name: /Export/ }))
-      expect(onExport).toHaveBeenCalledTimes(1)
-    })
-
-    it('renders export button in empty state when onExport is provided', () => {
-      render(<ShoppingList items={[]} onExport={vi.fn()} />)
-      expect(screen.getByRole('button', { name: /Export/ })).toBeInTheDocument()
+      expect(screen.getByText(/1 L milk/)).toBeInTheDocument()
     })
   })
 })

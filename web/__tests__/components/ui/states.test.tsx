@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { ChefHat } from 'lucide-react'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 describe('LoadingState', () => {
@@ -33,6 +34,16 @@ describe('ErrorState', () => {
 })
 
 describe('EmptyState', () => {
+  it('draws a muted icon above the message when given one', () => {
+    const { container } = render(<EmptyState icon={ChefHat}>No recipes.</EmptyState>)
+    expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('draws no icon by default', () => {
+    const { container } = render(<EmptyState>No recipes.</EmptyState>)
+    expect(container.querySelector('svg')).toBeNull()
+  })
+
   it('renders the message and optional action', () => {
     render(<EmptyState action={<button>New</button>}>No recipes yet.</EmptyState>)
     expect(screen.getByText('No recipes yet.')).toBeInTheDocument()

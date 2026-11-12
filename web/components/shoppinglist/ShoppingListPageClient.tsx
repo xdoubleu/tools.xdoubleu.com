@@ -1,10 +1,11 @@
+import { Button } from '@/components/ui/button'
 import { useMemo, useState } from 'react'
 import {
   useCustomList,
   useAllMealPlanExportItems,
   useAllPlanIngredientGroups
 } from '@/hooks/useShoppingList'
-import { useCategories, useItemAliases } from '@/hooks/useIngredientCatalog'
+import { useCategories, useItemAliases, useItemCategories } from '@/hooks/useIngredientCatalog'
 import ShoppingList from '@/components/shoppinglist/ShoppingList'
 import ExportDialog from '@/components/shoppinglist/ExportDialog'
 import AddItemForm from '@/components/shoppinglist/AddItemForm'
@@ -34,6 +35,14 @@ export default function ShoppingListPageClient() {
   const { data, error, isLoading } = useCustomList()
   const { data: categoriesData } = useCategories()
   const categories = categoriesData?.categories ?? []
+  const { data: itemCategoriesData } = useItemCategories()
+  const categoryNameById = new Map(categories.map((c) => [c.id, c.name]))
+  const categoryByItem = new Map(
+    (itemCategoriesData?.items ?? []).map((ic) => [
+      ic.name.trim().toLowerCase(),
+      categoryNameById.get(ic.categoryId) ?? ''
+    ])
+  )
 
   const items = (data?.items ?? []).map(toExportItem)
   // The export shows merged names; the editable list keeps what was typed.
@@ -88,8 +97,17 @@ export default function ShoppingListPageClient() {
   return (
     <PageContainer>
       <PageHeader
-        title="Shopping List"
-        actions={<PageHeaderSettingsLink href="/shoppinglist/settings" />}
+        title="Shopping list"
+        actions={
+          <>
+            {data && (
+              <Button variant="secondary" onClick={() => setShowExport(true)}>
+                Export
+              </Button>
+            )}
+            <PageHeaderSettingsLink href="/shoppinglist/settings" />
+          </>
+        }
       />
 
       <AddItemForm categories={categories} />
@@ -101,7 +119,8 @@ export default function ShoppingListPageClient() {
           items={items}
           onDelete={handleDelete}
           onEdit={handleEdit}
-          onExport={() => setShowExport(true)}
+          categoryOrder={categories.map((c) => c.name)}
+          categoryOf={(item) => categoryByItem.get(item.name.trim().toLowerCase()) ?? ''}
         />
       )}
 

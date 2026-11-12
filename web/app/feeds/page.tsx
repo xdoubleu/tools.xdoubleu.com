@@ -1,3 +1,4 @@
+import AppSections from '@/components/AppSections'
 import FeedReaderClient from '@/components/feeds/FeedReaderClient'
 import FeedsHeader from '@/components/feeds/FeedsHeader'
 import FeedRuleSuggestionsCard from '@/components/feeds/FeedRuleSuggestionsCard'
@@ -7,6 +8,7 @@ export default function FeedsPage() {
   return (
     <PageContainer>
       <FeedsHeader />
+      <AppSections app="feeds" />
 
       <FeedRuleSuggestionsCard className="mb-6" />
 

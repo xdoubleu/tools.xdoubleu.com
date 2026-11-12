@@ -13,7 +13,7 @@ export default function EditRecipeClient({ id }: { id: string }) {
   return (
     <PageContainer size="form">
       <PageHeader
-        title="Edit Recipe"
+        title="Edit recipe"
         breadcrumb={[
           { label: 'Recipes', href: '/recipes/list' },
           { label: recipe?.name ?? 'Recipe', href: `/recipes/${id}` },

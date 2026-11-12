@@ -11,11 +11,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { swrKeys } from '@/lib/swrKeys'
+import { GroupedList, GroupedListItem } from '@/components/ui/grouped-list'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { Alert } from '@/components/ui/alert'
-import { Card } from '@/components/ui/card'
-import { SectionCard } from '@/components/ui/section-card'
+import { SettingsSection, SettingsSections } from '@/components/ui/settings-section'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
@@ -121,15 +121,14 @@ export default function FamilyPageClient() {
   }
 
   return (
-    <PageContainer size="narrow" className="space-y-6">
+    <PageContainer size="narrow">
       <PageHeader
         title="Family"
         description="A family shares one recipe book, one meal plan and one shopping list together — not separate lists cross-shared, but a single set everyone in it sees and edits."
-        className="mb-0"
       />
 
       {incomingInvite && (
-        <Alert tone="warn" className="space-y-3 p-4">
+        <Alert tone="warn" className="mb-6 space-y-3 p-4">
           <p className="break-all font-semibold">
             {incomingInvite.fromEmail} invited you to join their family
           </p>
@@ -144,88 +143,87 @@ export default function FamilyPageClient() {
         </Alert>
       )}
 
-      <SectionCard title="Invite to your family">
-        {inviteError && (
-          <Alert tone="danger" className="mb-2">
-            {inviteError}
-          </Alert>
-        )}
-        <form onSubmit={handleInvite} className="flex gap-2">
-          <Input
-            type="email"
-            required
-            autoComplete="off"
-            aria-label="Email address"
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="min-w-0 flex-1"
-          />
-          <Button type="submit" disabled={inviting}>
-            {inviting ? 'Inviting…' : 'Invite'}
-          </Button>
-        </form>
-      </SectionCard>
+      <SettingsSections>
+        <SettingsSection title="Invite to your family">
+          {inviteError && (
+            <Alert tone="danger" className="mb-2">
+              {inviteError}
+            </Alert>
+          )}
+          <form onSubmit={handleInvite} className="flex gap-2">
+            <Input
+              type="email"
+              required
+              autoComplete="off"
+              aria-label="Email address"
+              placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="min-w-0 flex-1"
+            />
+            <Button type="submit" disabled={inviting}>
+              {inviting ? 'Inviting…' : 'Invite'}
+            </Button>
+          </form>
+        </SettingsSection>
 
-      <SectionCard
-        title="Your name"
-        description="Shown to the rest of your family in place of your email."
-      >
-        <form onSubmit={handleSaveName} className="flex gap-2">
-          <Input
-            type="text"
-            aria-label="Your name"
-            placeholder="Your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="min-w-0 flex-1"
-          />
-          <Button type="submit" disabled={savingName || name.trim() === selfDisplayName}>
-            {savingName ? 'Saving…' : 'Save'}
-          </Button>
-        </form>
-      </SectionCard>
+        <SettingsSection
+          title="Your name"
+          description="Shown to the rest of your family in place of your email."
+        >
+          <form onSubmit={handleSaveName} className="flex gap-2">
+            <Input
+              type="text"
+              aria-label="Your name"
+              placeholder="Your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="min-w-0 flex-1"
+            />
+            <Button type="submit" disabled={savingName || name.trim() === selfDisplayName}>
+              {savingName ? 'Saving…' : 'Save'}
+            </Button>
+          </form>
+        </SettingsSection>
 
-      <SectionCard title="Members">
-        {members.length > 0 ? (
-          <ul className="mb-4 space-y-2">
-            {members.map((m) => (
-              <li key={m.userId}>
-                <Card variant="inset" className="break-all text-sm font-medium text-fg">
+        <SettingsSection title="Members">
+          {members.length > 0 ? (
+            <GroupedList aria-label="Members" className="mb-4">
+              {members.map((m) => (
+                <GroupedListItem key={m.userId} className="break-all text-sm font-medium text-fg">
                   {m.displayName || m.email}
-                </Card>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState placement="inline">
-            Just you for now. Invite someone by email to share your recipes, meal plans and shopping
-            list with them.
-          </EmptyState>
-        )}
+                </GroupedListItem>
+              ))}
+            </GroupedList>
+          ) : (
+            <EmptyState placement="inline">
+              Just you for now. Invite someone by email to share your recipes, meal plans and
+              shopping list with them.
+            </EmptyState>
+          )}
 
-        {members.length > 0 && (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setConfirmingLeave(true)}
-            disabled={leaving}
-          >
-            Leave family
-          </Button>
-        )}
-        <ConfirmDialog
-          open={confirmingLeave}
-          onOpenChange={setConfirmingLeave}
-          title="Leave your family?"
-          description="You stop seeing the shared recipe book, meal plan and shopping list. Someone in the family has to invite you again to rejoin."
-          confirmLabel="Leave family"
-          pendingLabel="Leaving…"
-          destructive
-          pending={leaving}
-          onConfirm={() => void handleLeave()}
-        />
-      </SectionCard>
+          {members.length > 0 && (
+            <Button
+              variant="destructive"
+              onClick={() => setConfirmingLeave(true)}
+              disabled={leaving}
+            >
+              Leave family
+            </Button>
+          )}
+          <ConfirmDialog
+            open={confirmingLeave}
+            onOpenChange={setConfirmingLeave}
+            title="Leave your family?"
+            description="You stop seeing the shared recipe book, meal plan and shopping list. Someone in the family has to invite you again to rejoin."
+            confirmLabel="Leave family"
+            pendingLabel="Leaving…"
+            destructive
+            pending={leaving}
+            onConfirm={() => void handleLeave()}
+          />
+        </SettingsSection>
+      </SettingsSections>
     </PageContainer>
   )
 }

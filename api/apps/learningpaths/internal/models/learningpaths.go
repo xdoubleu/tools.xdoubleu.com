@@ -29,6 +29,8 @@ type LearningPath struct {
 	ReminderSchedules map[string]string
 	// Paused stops the path's Todoist reminders; plan and progress are kept.
 	Paused bool
+	// Totals loaded by ListForUser, which leaves Modules empty.
+	ModuleCount, ItemCount, CompletedItemCount int32
 
 	// TodoistProjectID is the path's own Todoist project, created on first
 	// sync. Never sent over the wire.

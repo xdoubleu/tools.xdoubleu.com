@@ -73,7 +73,7 @@ describe('GamesDashboardView', () => {
       />
     )
     expect(screen.getByText('Total backlog')).toBeInTheDocument()
-    expect(screen.getByText('42.00%')).toBeInTheDocument()
+    expect(screen.getByText('42%')).toBeInTheDocument()
     expect(screen.getByText('In progress')).toBeInTheDocument()
     expect(screen.getByText('Completed')).toBeInTheDocument()
     const favourites = screen.getByText('Favourites').closest('a')

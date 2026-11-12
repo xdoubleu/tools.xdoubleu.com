@@ -8,18 +8,20 @@ import { GetSteamGameResponseSchema } from '@/lib/gen/games/v1/games_pb'
 import { swrKeys } from '@/lib/swrKeys'
 import { Alert } from '@/components/ui/alert'
 import type { BreadcrumbItem } from '@/components/ui/breadcrumb'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Artwork } from '@/components/ui/artwork'
+import { DetailHeader } from '@/components/ui/detail-header'
+import { TogglePill } from '@/components/ui/toggle-pill'
+import { Toolbar } from '@/components/ui/toolbar'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import GamesStatsPanel from '@/components/games/GamesStatsPanel'
 import GameFavouriteButton from '@/components/games/GameFavouriteButton'
-import {
-  GameAchievements,
-  SteamGameHeader,
-  countAchieved
-} from '@/components/games/SteamGameDetail'
+import { GameAchievements, countAchieved } from '@/components/games/SteamGameDetail'
 import { formatDateTime } from '@/lib/dates'
+import { formatPercent } from '@/lib/format'
 
 const REFRESH_INTERVAL_MS = 60_000
 
@@ -56,7 +58,7 @@ export default function SteamGameClient({ id }: { id: string }) {
   const bucket = searchParams.get('bucket')
   const bucketLabel = searchParams.get('label')
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: 'Games', href: '/dashboard/games' },
+    { label: 'Games', href: '/games/library' },
     ...(bucket
       ? [
           {
@@ -82,36 +84,51 @@ export default function SteamGameClient({ id }: { id: string }) {
 
   return (
     <PageContainer>
-      <SteamGameHeader
-        game={game}
+      <DetailHeader
         breadcrumb={breadcrumbItems}
-        actions={<GameFavouriteButton game={game} className="text-2xl" />}
-        meta={game.lastSyncedAt && <span>Last synced: {formatDateTime(game.lastSyncedAt)}</span>}
+        title={game.name}
+        artwork={<Artwork src={game.imageUrl} title={game.name} size="square" />}
+        meta={
+          <>
+            {[
+              `${Math.round(game.playtime / 60)} hrs played`,
+              `Completion: ${formatPercent(game.completionRate)}`,
+              game.lastSyncedAt && `Last synced: ${formatDateTime(game.lastSyncedAt)}`
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+            {game.isDelisted && (
+              <Badge variant="warn" className="ml-2">
+                Delisted
+              </Badge>
+            )}
+          </>
+        }
+        favourite={<GameFavouriteButton game={game} className="text-2xl" />}
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => void refetch()} disabled={isRefetching}>
+              {isRefetching ? 'Refreshing…' : 'Refresh'}
+            </Button>
+            <GamesStatsPanel />
+          </>
+        }
       />
 
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => void refetch()}
-          disabled={isRefetching}
-        >
-          {isRefetching ? 'Refreshing…' : 'Refresh'}
-        </Button>
-        <Button
-          variant={highPollMode ? 'default' : 'secondary'}
-          size="sm"
+      <Toolbar aria-label="Achievements">
+        <TogglePill
+          label="High poll"
+          active={highPollMode}
           onClick={() => setHighPollMode((prev) => !prev)}
-        >
-          {highPollMode ? 'High poll: on' : 'High poll: off'}
-        </Button>
+        />
         {achievedCount > 0 && (
-          <Button variant="secondary" size="sm" onClick={() => setShowCompleted((prev) => !prev)}>
-            {showCompleted ? 'Hide completed' : 'Show completed'}
-          </Button>
+          <TogglePill
+            label="Show completed"
+            active={showCompleted}
+            onClick={() => setShowCompleted((prev) => !prev)}
+          />
         )}
-        <GamesStatsPanel />
-      </div>
+      </Toolbar>
 
       {refreshError && (
         <Alert tone="danger" className="mb-6">

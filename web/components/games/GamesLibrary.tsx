@@ -13,6 +13,7 @@ import GamesWishlist from '@/components/games/GamesWishlist'
 import { ShelfSidebar } from '@/components/ui/shelf-sidebar'
 import { GameGroup } from '@/components/games/GameCards'
 import { swrKeys } from '@/lib/swrKeys'
+import { formatDateTime } from '@/lib/dates'
 
 const ownerGameHref = (game: Game) => `/games/${game.id}`
 
@@ -77,8 +78,8 @@ export default function GamesLibrary() {
   }
   const groups = [
     { shelf: 'favourites', title: 'Favourites', games: favourites },
-    { shelf: 'in-progress', title: 'In Progress', games: inProgress },
-    { shelf: 'not-started', title: 'Not Started', games: notStarted },
+    { shelf: 'in-progress', title: 'In progress', games: inProgress },
+    { shelf: 'not-started', title: 'Not started', games: notStarted },
     { shelf: 'done', title: 'Completed', games: completed }
   ]
   const onWishlist = shelf === 'wishlist'
@@ -105,7 +106,7 @@ export default function GamesLibrary() {
         trailing={
           <>
             {lastRefresh && !isRefreshing && (
-              <span className="text-xs">Last: {lastRefresh.toLocaleString('en-GB')}</span>
+              <span className="text-xs">Last: {formatDateTime(lastRefresh)}</span>
             )}
             <Button variant="secondary" onClick={refresh} disabled={isRefreshing}>
               {isRefreshing ? 'Refreshing…' : 'Refresh'}

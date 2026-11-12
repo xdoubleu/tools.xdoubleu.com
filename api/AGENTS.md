@@ -18,7 +18,7 @@ make db/reset                      # recreate the Postgres volume — shared by 
 
 ## Architecture
 
-- `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after `games`/`books`/`feeds` (reads them); `trains`/`learningpaths`/`movies`/`podcasts`/`factory`, then `taste` (reads `books`/`feeds`/`games`/`movies`/`podcasts`).
+- `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after apps it reads; `trains`/`learningpaths`/`movies`/`podcasts`/`factory`, then `taste` (reads `books`/`feeds`/`games`/`movies`/`podcasts`).
 - `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool. Platform handlers: `internal/obs`, `internal/account` (each `Deps`/`Register`).
 - `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
 - `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked PRs can merge migrations out of order; this self-heals.
@@ -71,7 +71,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - **feeds** — queries exclude `expired_at` items.
 - **watchparty** — no DB, own domain `watchparty.xdoubleu.com`.
 - **mealplans/shoppinglist/recipes** — family-scoped by `family_id`; shoppinglist stores stay per-user.
-- **dashboard** — public services (`apps/dashboard/connect_public.go`) run **without auth middleware**; they resolve an opaque share token (`global.profile_shares`) and **must never read the user-context key**, then delegate to exported methods on the live app structs. Token management is in `DashboardService` behind `Access`, not `dashboard`'s `AppAccess` → [`adr-0007`](../docs/adr-0007-dashboard-app-owns-public-sharing.md).
+- **dashboard** — public services (`apps/dashboard/connect_public.go`) run **without auth middleware**; they resolve an opaque share token (`global.profile_shares`) and **must never read the user-context key**, then delegate to exported methods on the live app structs. Token management is in `DashboardService` behind `Access`, not `dashboard`'s `AppAccess`. `GetToday` (and MCP `dashboard_get_today`) gives a block per usable app → [`adr-0007`](../docs/adr-0007-dashboard-app-owns-public-sharing.md).
 - **trains** → [`adr-0035`](../docs/adr-0035-trains-on-irail.md):
   - Everything goes through `pkg/irail` (rate-limited, 429 retried once, 20 s cache); handlers never call iRail directly.
   - **Keep a whole-train cancellation (`cancelled`) distinct from a skipped stop (`skipped`)** — conflating them fakes cancellations.
@@ -102,8 +102,7 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 ## Testing
 
 - No DB mocking: integration tests hit real Postgres (17, as in production); other mocks: `internal/mocks/`.
-- `make test/cov/diff` (`tools/diff_coverage_go.py`) prints a gate and a conservative number per file; Codecov's patch figure usually lands between them.
-- `make test/cov/report` runs `tools/extend_signature_coverage.py`, so wrapped signatures aren't missed → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md).
+- `make test/cov/diff` (`tools/diff_coverage_go.py`) prints a gate and a conservative number per file; CI runs the same script on PRs → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md).
 - **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions; never stop it. `relation ... does not exist` may be leftover state, a teardown (check `docker ps` uptime), or, in CI only, a `global.*` table a test assumed: `cmd/api` creates them and package order isn't fixed; fake the interface or create it (`feeds` does).
 - **`relation "X" already exists` panic** = another worktree's DDL ran without its `goose_db_version` row (in `global`; check via `docker exec api-db-1 psql`). If the schema matches, insert the row.
 - **Concurrent `go test` runs from two worktrees race on shared fixtures** (`-p 1` is per-invocation), e.g. `TestAppsMCPCallAllToolsAsAdmin`. Re-run in isolation first.

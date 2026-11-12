@@ -43,6 +43,11 @@ beforeEach(() => {
   vi.mocked(useRouter).mockReturnValue(mockRouter)
 })
 
+function openDelete() {
+  fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+}
+
 describe('PathClient', () => {
   it('shows loading state', () => {
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
@@ -54,6 +59,12 @@ describe('PathClient', () => {
     })
     render(<PathClient id="lp1" />)
     expect(screen.getByText('Loading learning path…')).toBeInTheDocument()
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(within(crumbs).getByRole('link', { name: 'Learning paths' })).toHaveAttribute(
+      'href',
+      '/learningpaths/list'
+    )
+    expect(within(crumbs).getByText('Learning path')).toBeInTheDocument()
   })
 
   it('shows error state', () => {
@@ -277,6 +288,26 @@ describe('PathClient', () => {
     })
   })
 
+  it('trails the breadcrumb to the list and marks Delete destructive', () => {
+    const learningPath = create(LearningPathSchema, { id: 'lp1', title: 'Learn Go' })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    vi.mocked(useLearningPath).mockReturnValue({
+      data: create(GetLearningPathResponseSchema, { learningPath }),
+      isLoading: false,
+      error: undefined,
+      mutate: mockMutate
+    })
+    render(<PathClient id="lp1" />)
+    const crumbs = screen.getByRole('navigation', { name: 'Breadcrumb' })
+    expect(within(crumbs).getByRole('link', { name: 'Learning paths' })).toHaveAttribute(
+      'href',
+      '/learningpaths/list'
+    )
+    expect(within(crumbs).getByText('Learn Go')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    expect(screen.getByRole('menuitem', { name: 'Delete' })).toHaveClass('text-danger')
+  })
+
   it('deletes the learning path after confirming and navigates back to the list', async () => {
     const learningPath = create(LearningPathSchema, { id: 'lp1', title: 'Learn Go' })
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
@@ -289,7 +320,7 @@ describe('PathClient', () => {
     mockDeleteLearningPath.mockResolvedValue({})
     render(<PathClient id="lp1" />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    openDelete()
     const dialog = screen.getByRole('dialog', { name: 'Delete Learn Go?' })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
 
@@ -310,7 +341,7 @@ describe('PathClient', () => {
     })
     render(<PathClient id="lp1" />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    openDelete()
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(mockDeleteLearningPath).not.toHaveBeenCalled()

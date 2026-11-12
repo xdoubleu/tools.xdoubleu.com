@@ -5,10 +5,11 @@ import { Code, ConnectError } from '@connectrpc/connect'
 
 let mockQuery = ''
 const mockReplace = vi.fn()
+const mockPush = vi.fn()
 vi.mock('@/hooks/navigation', () => ({
   useSearchParams: () => new URLSearchParams(mockQuery),
   usePathname: () => '/factory',
-  useRouter: () => ({ replace: mockReplace })
+  useRouter: () => ({ replace: mockReplace, push: mockPush })
 }))
 const mockSetPaused = vi.fn()
 const mockMove = vi.fn()
@@ -290,9 +291,11 @@ describe('FactoryClient', () => {
   it('shows whether the runner is online, and links to its page', () => {
     mockTasks({ data: board })
     const { unmount } = render(<FactoryClient />)
+    expect(screen.getByRole('tab', { name: 'Board' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('No runner')).toBeInTheDocument()
     expect(screen.getByText('No runner').className).toContain('text-subtle')
-    expect(screen.getByRole('link', { name: 'Runner' })).toHaveAttribute('href', '/factory/runners')
+    fireEvent.click(screen.getByRole('tab', { name: 'Runner' }))
+    expect(mockPush).toHaveBeenCalledWith('/factory/runners')
     unmount()
 
     mockRunners(
@@ -311,10 +314,11 @@ describe('FactoryClient', () => {
     expect(screen.queryByRole('link', { name: 'Agents' })).not.toBeInTheDocument()
   })
 
-  it('links to the repo settings', () => {
+  it('opens the repo settings from the section tabs', () => {
     mockTasks({ data: board })
     render(<FactoryClient />)
-    expect(screen.getByRole('link', { name: 'Repos' })).toHaveAttribute('href', '/factory/repos')
+    fireEvent.click(screen.getByRole('tab', { name: 'Repos' }))
+    expect(mockPush).toHaveBeenCalledWith('/factory/repos')
   })
 
   it('filters the board to one product', () => {

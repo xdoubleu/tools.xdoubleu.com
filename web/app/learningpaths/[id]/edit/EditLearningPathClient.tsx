@@ -13,9 +13,9 @@ export default function EditLearningPathClient({ id }: { id: string }) {
   return (
     <PageContainer size="form">
       <PageHeader
-        title="Edit Learning Path"
+        title="Edit learning path"
         breadcrumb={[
-          { label: 'Learning Paths', href: '/learningpaths/list' },
+          { label: 'Learning paths', href: '/learningpaths/list' },
           { label: learningPath?.title ?? 'Edit', href: `/learningpaths/${id}` },
           { label: 'Edit' }
         ]}

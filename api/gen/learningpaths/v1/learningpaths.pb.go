@@ -610,9 +610,13 @@ type LearningPath struct {
 	ReminderSchedules map[string]string `protobuf:"bytes,10,rep,name=reminder_schedules,json=reminderSchedules,proto3" json:"reminder_schedules,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// paused stops the path's Todoist reminders. Read-only: set it with
 	// SetLearningPathPaused.
-	Paused        bool `protobuf:"varint,11,opt,name=paused,proto3" json:"paused,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Paused bool `protobuf:"varint,11,opt,name=paused,proto3" json:"paused,omitempty"`
+	// Totals for list responses, which carry no modules.
+	ModuleCount        int32 `protobuf:"varint,12,opt,name=module_count,json=moduleCount,proto3" json:"module_count,omitempty"`
+	ItemCount          int32 `protobuf:"varint,13,opt,name=item_count,json=itemCount,proto3" json:"item_count,omitempty"`
+	CompletedItemCount int32 `protobuf:"varint,14,opt,name=completed_item_count,json=completedItemCount,proto3" json:"completed_item_count,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *LearningPath) Reset() {
@@ -720,6 +724,27 @@ func (x *LearningPath) GetPaused() bool {
 		return x.Paused
 	}
 	return false
+}
+
+func (x *LearningPath) GetModuleCount() int32 {
+	if x != nil {
+		return x.ModuleCount
+	}
+	return 0
+}
+
+func (x *LearningPath) GetItemCount() int32 {
+	if x != nil {
+		return x.ItemCount
+	}
+	return 0
+}
+
+func (x *LearningPath) GetCompletedItemCount() int32 {
+	if x != nil {
+		return x.CompletedItemCount
+	}
+	return 0
 }
 
 type ListLearningPathsRequest struct {
@@ -2173,7 +2198,7 @@ const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
 	"linkedBook\x12J\n" +
 	"\x10linked_feed_item\x18\b \x01(\v2 .learningpaths.v1.LinkedFeedItemR\x0elinkedFeedItemB\x11\n" +
 	"\x0f_linked_book_idB\x16\n" +
-	"\x14_linked_feed_item_id\"\xeb\x03\n" +
+	"\x14_linked_feed_item_id\"\xdf\x04\n" +
 	"\fLearningPath\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
@@ -2188,7 +2213,11 @@ const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
 	"\tresources\x18\t \x03(\v2\x1a.learningpaths.v1.ResourceR\tresources\x12d\n" +
 	"\x12reminder_schedules\x18\n" +
 	" \x03(\v25.learningpaths.v1.LearningPath.ReminderSchedulesEntryR\x11reminderSchedules\x12\x16\n" +
-	"\x06paused\x18\v \x01(\bR\x06paused\x1aD\n" +
+	"\x06paused\x18\v \x01(\bR\x06paused\x12!\n" +
+	"\fmodule_count\x18\f \x01(\x05R\vmoduleCount\x12\x1d\n" +
+	"\n" +
+	"item_count\x18\r \x01(\x05R\titemCount\x120\n" +
+	"\x14completed_item_count\x18\x0e \x01(\x05R\x12completedItemCount\x1aD\n" +
 	"\x16ReminderSchedulesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"H\n" +

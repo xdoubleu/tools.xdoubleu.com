@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
-import { StatTile, StatTileGrid } from '@/components/ui/stat'
+import { Bar, BarChart } from 'recharts'
+import { ChartCard, RankedList, StatTile, StatTileGrid } from '@/components/ui/stat'
 
 describe('StatTile', () => {
   it('renders its label and value', () => {
@@ -26,7 +27,7 @@ describe('StatTile', () => {
 
   it('defaults to the neutral tone', () => {
     render(<StatTile label="Total" value="9" />)
-    expect(screen.getByText('9')).toHaveClass('text-fg')
+    expect(screen.getByText('9')).toHaveClass('text-fg', 'text-2xl', 'font-semibold')
   })
 
   it('renders as a link when href is given', () => {
@@ -70,5 +71,70 @@ describe('StatTileGrid', () => {
       </StatTileGrid>
     )
     expect(container.firstChild).toHaveClass('sm:grid-cols-2')
+  })
+})
+
+describe('StatTileGrid columns', () => {
+  it('is four up from sm by default and three on request', () => {
+    const { container, rerender } = render(<StatTileGrid>x</StatTileGrid>)
+    expect(container.firstChild).toHaveClass('grid-cols-2', 'sm:grid-cols-4')
+    rerender(<StatTileGrid columns={3}>x</StatTileGrid>)
+    expect(container.firstChild).toHaveClass('grid-cols-2', 'sm:grid-cols-3')
+    expect(container.firstChild).not.toHaveClass('sm:grid-cols-4')
+  })
+})
+
+describe('ChartCard', () => {
+  it('titles a chart and adds its footnote', () => {
+    render(
+      <ChartCard title="Per month" note="Undated items aren’t charted.">
+        <BarChart data={[{ n: 1 }]}>
+          <Bar dataKey="n" />
+        </BarChart>
+      </ChartCard>
+    )
+    expect(screen.getByText('Per month')).toBeInTheDocument()
+    expect(screen.getByText('Undated items aren’t charted.')).toBeInTheDocument()
+  })
+
+  it('shows the empty message instead of the chart and its footnote', () => {
+    render(
+      <ChartCard title="Per month" empty="Nothing yet." note="A footnote">
+        <BarChart data={[]} />
+      </ChartCard>
+    )
+    expect(screen.getByText('Nothing yet.')).toBeInTheDocument()
+    expect(screen.queryByText('A footnote')).not.toBeInTheDocument()
+  })
+})
+
+describe('RankedList', () => {
+  it('lists label/value rows with an optional sub line, named by its title', () => {
+    render(
+      <RankedList
+        title="Top genres"
+        empty="None"
+        note="Counts titles"
+        items={[
+          { key: 'a', label: 'Drama', value: 3, sub: <em>tag</em> },
+          { key: 'b', label: 'Comedy', value: 1 }
+        ]}
+      />
+    )
+    const rows = screen.getAllByRole('listitem')
+    expect(screen.getByRole('list', { name: 'Top genres' })).toBeInTheDocument()
+    expect(rows[0]).toHaveTextContent('Drama')
+    expect(rows[0]).toHaveTextContent('tag')
+    expect(rows[0]).toHaveTextContent('3')
+    expect(rows[1]).not.toHaveTextContent('tag')
+    expect(rows[1].querySelector('span.flex')).toBeNull()
+    expect(screen.getByText('Counts titles')).toBeInTheDocument()
+  })
+
+  it('shows the empty message and no footnote without items', () => {
+    render(<RankedList title="Top genres" empty="No genres yet." note="Counts titles" items={[]} />)
+    expect(screen.getByText('No genres yet.')).toBeInTheDocument()
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
+    expect(screen.queryByText('Counts titles')).not.toBeInTheDocument()
   })
 })

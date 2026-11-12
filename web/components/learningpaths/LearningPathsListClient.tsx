@@ -4,46 +4,37 @@ import { useLearningPaths, useFetchLearningPathsPage } from '@/hooks/useLearning
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import type { LearningPath } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
 import { Button } from '@/components/ui/button'
-import { LinkCard } from '@/components/ui/link-card'
+import { ProgressBar } from '@/components/ui/progress-bar'
+import { CollectionGrid } from '@/components/ui/collection-grid'
+import { ItemCard } from '@/components/ui/item-card'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
-function moduleAndItemCounts(path: LearningPath) {
-  const moduleCount = path.modules.length
-  const itemCount = path.modules.reduce((sum, m) => sum + m.items.length, 0)
-  const completedCount = path.modules.reduce(
-    (sum, m) => sum + m.items.filter((i) => i.completed).length,
-    0
-  )
-  return { moduleCount, itemCount, completedCount }
-}
-
 function LearningPathCard({ path }: { path: LearningPath }) {
-  const { moduleCount, itemCount, completedCount } = moduleAndItemCounts(path)
+  const { moduleCount, itemCount, completedItemCount: completedCount } = path
   return (
-    <LinkCard
+    <ItemCard
       href={`/learningpaths/${path.id}`}
-      linkClassName="p-4"
-      actions={
-        <Button asChild variant="secondary" size="sm">
-          <Link href={`/learningpaths/${path.id}/edit`}>Edit</Link>
-        </Button>
+      title={path.title}
+      meta={
+        <>
+          {path.goal && <>{path.goal} &middot; </>}
+          {moduleCount} module{moduleCount === 1 ? '' : 's'}
+        </>
       }
-    >
-      <p className="break-words font-medium">{path.title}</p>
-      {path.goal && <p className="mt-1 break-words text-sm text-muted">{path.goal}</p>}
-      <p className="text-xs text-muted mt-2">
-        {moduleCount} module{moduleCount === 1 ? '' : 's'}
-        {itemCount > 0 && (
-          <>
-            {' '}
-            &middot; {completedCount}/{itemCount} done
-          </>
-        )}
-      </p>
-    </LinkCard>
+      status={
+        itemCount > 0 ? (
+          <ProgressBar
+            value={completedCount}
+            max={itemCount}
+            aria-label={`${path.title} progress`}
+            valueText={`${completedCount} of ${itemCount} done`}
+          />
+        ) : undefined
+      }
+    />
   )
 }
 
@@ -65,12 +56,12 @@ export default function LearningPathsListClient() {
   return (
     <PageContainer>
       <PageHeader
-        title="Learning Paths"
+        title="Learning paths"
         actions={
           <>
             <PageHeaderSettingsLink href="/learningpaths/settings" />
             <Button asChild>
-              <Link href="/learningpaths/new">New Learning Path</Link>
+              <Link href="/learningpaths/new">New learning path</Link>
             </Button>
           </>
         }
@@ -83,11 +74,11 @@ export default function LearningPathsListClient() {
       )}
       {data && learningPaths.length > 0 && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <CollectionGrid>
             {learningPaths.map((path) => (
               <LearningPathCard key={path.id} path={path} />
             ))}
-          </div>
+          </CollectionGrid>
           {hasMore && <LoadMoreButton onClick={loadMore} loading={loadingMore} />}
         </>
       )}

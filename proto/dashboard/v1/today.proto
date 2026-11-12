@@ -1,0 +1,69 @@
+syntax = "proto3";
+package dashboard.v1;
+option go_package = "tools.xdoubleu.com/gen/dashboard/v1;dashboardv1";
+
+// TodayService summarises what needs the caller's attention across apps. A
+// block is unset when the caller has no access to its app or it failed to load.
+service TodayService {
+  rpc GetToday(GetTodayRequest) returns (GetTodayResponse);
+}
+
+message GetTodayRequest {}
+
+message GetTodayResponse {
+  optional TodayReading reading = 1;
+  optional TodayFeeds feeds = 2;
+  optional TodayMeals meals = 3;
+  optional TodayShopping shopping = 4;
+  optional TodayWatching watching = 5;
+  optional TodayLearning learning = 6;
+  optional TodayFactory factory = 7;
+}
+
+message TodayBook {
+  string id = 1;
+  string title = 2;
+  repeated string authors = 3;
+  int32 progress_percent = 4;
+}
+message TodayReading { repeated TodayBook books = 1; }
+
+message TodayFeedItem {
+  string id = 1;
+  string title = 2;
+  string feed_title = 3;
+  string url = 4;
+}
+message TodayFeeds {
+  int32 unread_count = 1;
+  repeated TodayFeedItem items = 2;
+}
+
+message TodayMeal {
+  string date = 1;
+  string slot = 2;
+  string name = 3;
+}
+message TodayMeals { repeated TodayMeal meals = 1; }
+
+message TodayShopping { int32 item_count = 1; }
+
+message TodayTitle {
+  string id = 1;
+  string title = 2;
+  bool has_new_season = 3;
+}
+message TodayWatching { repeated TodayTitle titles = 1; }
+
+message TodayPath {
+  string id = 1;
+  string title = 2;
+}
+message TodayLearning { repeated TodayPath paths = 1; }
+
+message TodayTask {
+  string ref = 1;
+  string title = 2;
+  string status = 3;
+}
+message TodayFactory { repeated TodayTask tasks = 1; }

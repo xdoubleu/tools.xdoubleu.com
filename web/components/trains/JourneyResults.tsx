@@ -2,10 +2,7 @@ import { Card } from '@/components/ui/card'
 import { LinkCard } from '@/components/ui/link-card'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import type { Journey } from '@/lib/gen/trains/v1/trains_pb'
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
+import { formatTime } from '@/lib/dates'
 
 function formatDuration(departureIso: string, arrivalIso: string): string {
   const minutes = Math.round(

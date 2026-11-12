@@ -2,26 +2,36 @@ import { useEffect, useState } from 'react'
 import ListSwitch from '@/components/ListSwitch'
 import MovieSearchResults from '@/components/movies/MovieSearchResults'
 import MoviesBacklog from '@/components/movies/MoviesBacklog'
-import MoviesBacklogFilters from '@/components/movies/MoviesBacklogFilters'
 import TmdbAttribution from '@/components/movies/TmdbAttribution'
 import { useSharedList } from '@/hooks/useSharedList'
 import { listHref } from '@/lib/listScope'
 import { type BacklogFilter, DEFAULT_BACKLOG_FILTER } from '@/lib/movies/format'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { PageContainer } from '@/components/ui/page-container'
-import { PageHeader, PageHeaderLink, PageHeaderSettingsLink } from '@/components/ui/page-header'
-import { Toolbar } from '@/components/ui/toolbar'
+import AppSections from '@/components/AppSections'
+import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
 
 // Each search is a TMDB request; wait for typing to pause.
 const SEARCH_DEBOUNCE_MS = 300
 
-/** Backlog by default; a two-character search swaps in TMDB results. */
-export default function MoviesClient() {
+/** TMDB search in a sheet; a two-character query fetches results. */
+function AddTitleDialog({
+  open,
+  onOpenChange
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [filter, setFilter] = useState<BacklogFilter>(DEFAULT_BACKLOG_FILTER)
-  const [count, setCount] = useState<string | null>(null)
-  const shared = useSharedList()
   const searching = debouncedQuery.trim().length >= 2
 
   useEffect(() => {
@@ -30,39 +40,49 @@ export default function MoviesClient() {
   }, [query])
 
   return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add a title</DialogTitle>
+        </DialogHeader>
+        <DialogDescription>Search TMDB and add a movie or series.</DialogDescription>
+        <Input
+          id="movies-search"
+          type="search"
+          aria-label="Search TMDB"
+          placeholder="Movie or series name…"
+          autoComplete="off"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {searching && <MovieSearchResults query={debouncedQuery} />}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** The backlog; adding a title is a header action. */
+export default function MoviesClient() {
+  const [filter, setFilter] = useState<BacklogFilter>(DEFAULT_BACKLOG_FILTER)
+  const [adding, setAdding] = useState(false)
+  const shared = useSharedList()
+  const addButton = <Button onClick={() => setAdding(true)}>Add a title</Button>
+
+  return (
     <PageContainer>
       <PageHeader
         title="Movies & series"
         actions={
           <>
-            <PageHeaderLink href={listHref('/movies/stats', shared)}>Stats</PageHeaderLink>
             <PageHeaderSettingsLink href="/movies/settings" />
+            {addButton}
           </>
         }
       />
+      <AppSections app="movies" hrefFor={(href) => listHref(href, shared)} />
       <ListSwitch className="mb-4" />
-      <Toolbar
-        aria-label="Filter movies and series"
-        search={
-          <Input
-            id="movies-search"
-            type="search"
-            aria-label="Search TMDB"
-            placeholder="Search TMDB for a movie or series…"
-            autoComplete="off"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        }
-        trailing={count ?? undefined}
-      >
-        {!searching && <MoviesBacklogFilters filter={filter} onChange={setFilter} />}
-      </Toolbar>
-      {searching ? (
-        <MovieSearchResults query={debouncedQuery} onCount={setCount} />
-      ) : (
-        <MoviesBacklog filter={filter} onCount={setCount} />
-      )}
+      <MoviesBacklog filter={filter} onFilterChange={setFilter} addAction={addButton} />
+      <AddTitleDialog open={adding} onOpenChange={setAdding} />
       <TmdbAttribution />
     </PageContainer>
   )

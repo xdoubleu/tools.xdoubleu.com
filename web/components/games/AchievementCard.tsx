@@ -1,6 +1,7 @@
 import type { Achievement } from '@/lib/gen/games/v1/games_pb'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import { formatPercent } from '@/lib/format'
 
 // Shared by the owner's game detail page and the public profile game page.
 export default function AchievementCard({ achievement }: { achievement: Achievement }) {
@@ -30,7 +31,7 @@ export default function AchievementCard({ achievement }: { achievement: Achievem
         )}
         {achievement.globalPercent !== undefined && (
           <p className="text-xs text-muted mt-0.5">
-            {achievement.globalPercent.toFixed(1)}% of players
+            {formatPercent(achievement.globalPercent)} of players
           </p>
         )}
       </div>

@@ -95,6 +95,17 @@ describe('FeedReaderClient', () => {
     expect(screen.getByText('No unread feed items.')).toBeInTheDocument()
   })
 
+  it('points to Manage feeds when there are no feeds yet', () => {
+    mockUseFeeds.mockReturnValue({ data: { feeds: [] } })
+    mockUseFeedItems.mockReturnValue({
+      data: { items: [], hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+    expect(screen.getByText(/No feeds yet\. Use Manage feeds/)).toBeInTheDocument()
+  })
+
   it("shows an item's categories as chips", () => {
     mockUseFeedItems.mockReturnValue({
       data: {

@@ -15,7 +15,7 @@ export default function SteamDistributionClient({ bucket }: { bucket: string }) 
     <PageContainer>
       <PageHeader
         title={label}
-        breadcrumb={[{ label: 'Games', href: '/dashboard/games' }, { label }]}
+        breadcrumb={[{ label: 'Games', href: '/games/library' }, { label }]}
       />
 
       {isLoading && <LoadingState placement="page" />}

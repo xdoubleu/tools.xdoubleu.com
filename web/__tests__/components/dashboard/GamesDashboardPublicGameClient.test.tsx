@@ -53,7 +53,7 @@ describe('GamesDashboardPublicGameClient', () => {
     expect(screen.getByRole('heading', { name: /Public Game/ })).toBeInTheDocument()
     expect(screen.getByLabelText('Favourite')).toBeInTheDocument()
     expect(screen.getByText(/Last synced:/)).toBeInTheDocument()
-    expect(screen.getByText('Completion: 75.00%')).toBeInTheDocument()
+    expect(screen.getByText('Completion: 75%')).toBeInTheDocument()
   })
 
   it('shows unachieved achievements by default and can reveal completed ones', () => {

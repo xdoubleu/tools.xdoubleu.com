@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react'
+import { type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 type StatePlacement = 'page' | 'inline'
@@ -34,6 +35,8 @@ function ErrorState({ what, placement = 'inline', className }: StateProps & { wh
 
 interface EmptyStateProps extends StateProps {
   children: ReactNode
+  /** Muted icon above the message; the empty state of a collection carries one. */
+  icon?: LucideIcon
   /** Optional call to action under the message, e.g. a "New recipe" button. */
   action?: ReactNode
 }
@@ -42,10 +45,17 @@ interface EmptyStateProps extends StateProps {
  * Message for a list or section with nothing in it yet. Centred (`page`) by
  * default; `inline` for an empty list inside a field, dialog section or panel.
  */
-function EmptyState({ children, action, placement = 'page', className }: EmptyStateProps) {
+function EmptyState({
+  children,
+  icon: Icon,
+  action,
+  placement = 'page',
+  className
+}: EmptyStateProps) {
   const page = placement === 'page'
   return (
     <div className={cn(page ? 'space-y-3' : 'space-y-2', placementClasses[placement], className)}>
+      {Icon && <Icon aria-hidden className="mx-auto size-8 text-muted" />}
       <p className="text-sm text-muted">{children}</p>
       {action && <div className={cn('flex', page && 'justify-center')}>{action}</div>}
     </div>

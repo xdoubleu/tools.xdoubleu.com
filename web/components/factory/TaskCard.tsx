@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/cn'
+import { pluralize } from '@/lib/format'
 
 const PRIORITY_VARIANT: Partial<Record<TaskPriority, 'danger' | 'warn' | 'secondary'>> = {
   [TaskPriority.P0]: 'danger',
@@ -126,7 +127,7 @@ export default function TaskCard({
           </Badge>
         ))}
         {task.commentCount > 0 && (
-          <span className="text-xs text-muted">{task.commentCount} comments</span>
+          <span className="text-xs text-muted">{pluralize(task.commentCount, 'comment')}</span>
         )}
       </div>
       {onCloseEpic && (

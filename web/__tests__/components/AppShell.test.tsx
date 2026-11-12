@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 vi.mock('@/hooks/useAuth', () => ({ useCurrentUser: vi.fn() }))
 
@@ -15,9 +15,23 @@ vi.mock('@/components/Navbar', () => ({
   default: () => <div data-testid="navbar" />
 }))
 
-vi.mock('@/components/Footer', () => ({
+const mockTabBarVisible = vi.hoisted(() => vi.fn(() => false))
+vi.mock('@/components/PhoneTabBar', () => ({
   __esModule: true,
-  default: () => <div data-testid="footer" />
+  default: () => <div data-testid="tab-bar" />,
+  useTabBarVisible: mockTabBarVisible
+}))
+
+vi.mock('@/components/AppOpenTracker', () => ({
+  __esModule: true,
+  default: () => <div data-testid="open-tracker" />
+}))
+
+vi.mock('@/components/Sidebar', () => ({
+  __esModule: true,
+  default: ({ onToggle }: { onToggle: () => void }) => (
+    <button data-testid="sidebar" onClick={onToggle} />
+  )
 }))
 
 vi.mock('@/components/offline/OfflineBanner', () => ({
@@ -112,12 +126,29 @@ describe('AppShell', () => {
 
     expect(screen.getByTestId('swr-provider')).toBeInTheDocument()
     expect(screen.getByTestId('navbar')).toBeInTheDocument()
-    expect(screen.getByTestId('footer')).toBeInTheDocument()
+    expect(screen.getByTestId('sidebar')).toBeInTheDocument()
+    expect(screen.getByTestId('open-tracker')).toBeInTheDocument()
     expect(screen.getByTestId('deploy-notification')).toBeInTheDocument()
     expect(screen.getByTestId('offline-banner')).toBeInTheDocument()
     expect(screen.getByTestId('sw-registrar')).toBeInTheDocument()
     expect(screen.getByTestId('outbox-sync')).toBeInTheDocument()
     expect(screen.getByTestId('child')).toHaveTextContent('content')
+  })
+
+  it('narrows the content offset when the sidebar is collapsed, and remembers it', () => {
+    localStorage.clear()
+    signedInAs({ role: 'user', appAccess: [] })
+    const { unmount } = render(<AppShell>{null}</AppShell>)
+    const offset = () => screen.getByRole('main').parentElement
+    expect(offset()).toHaveClass('lg:pl-60')
+
+    fireEvent.click(screen.getByTestId('sidebar'))
+    expect(offset()).toHaveClass('lg:pl-16')
+
+    unmount()
+    render(<AppShell>{null}</AppShell>)
+    expect(offset()).toHaveClass('lg:pl-16')
+    localStorage.clear()
   })
 
   it('keeps the page clear of a landscape notch at every width', () => {
@@ -127,6 +158,38 @@ describe('AppShell', () => {
     const main = screen.getByRole('main')
     expect(main).toHaveClass('pl-[var(--inset-left)]', 'pr-[var(--inset-right)]')
     expect(main.className).not.toMatch(/\bpx-|(sm|lg):px-/)
+  })
+
+  it('makes room for the sidebar only when signed in', () => {
+    signedInAs({ role: 'user', appAccess: [] })
+    vi.mocked(usePathname).mockReturnValue('/feeds')
+    const { container, unmount } = render(<AppShell>{null}</AppShell>)
+    expect(container.querySelector('.lg\\:pl-60')).not.toBeNull()
+    unmount()
+
+    signedInAs(undefined)
+    const out = render(<AppShell>{null}</AppShell>)
+    expect(out.container.querySelector('.lg\\:pl-60')).toBeNull()
+  })
+
+  it('does not make room for the sidebar on a shared dashboard', () => {
+    signedInAs({ role: 'user', appAccess: [] })
+    vi.mocked(usePathname).mockReturnValue('/dashboard/games/tok')
+    const { container } = render(<AppShell>{null}</AppShell>)
+    expect(container.querySelector('.lg\\:pl-60')).toBeNull()
+  })
+
+  it('renders the tab bar and leaves room for it only while it shows', () => {
+    signedInAs({ role: 'user', appAccess: [] })
+    mockTabBarVisible.mockReturnValue(true)
+    const { unmount } = render(<AppShell>{null}</AppShell>)
+    expect(screen.getByTestId('tab-bar')).toBeInTheDocument()
+    expect(screen.getByRole('main').className).toContain('var(--tab-bar-height)')
+    unmount()
+
+    mockTabBarVisible.mockReturnValue(false)
+    render(<AppShell>{null}</AppShell>)
+    expect(screen.getByRole('main').className).not.toContain('var(--tab-bar-height)')
   })
 
   it('passes the signed-in user to the session effects', () => {

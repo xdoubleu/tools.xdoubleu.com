@@ -1,6 +1,8 @@
+import { formatNumber } from '@/lib/format'
+
 export function formatCount(count: number | bigint): string {
   const n = typeof count === 'bigint' ? Number(count) : count
-  return n.toLocaleString()
+  return formatNumber(n)
 }
 
 export function formatDuration(ms: number | bigint): string {

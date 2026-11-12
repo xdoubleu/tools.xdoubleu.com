@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 
 const mockSetGameFavourite = vi.fn().mockResolvedValue({})
 
@@ -55,6 +55,19 @@ describe('SteamDistributionClient', () => {
 
     render(<SteamDistributionClient bucket="8" />)
     expect(screen.getByText('Failed to load distribution.')).toBeInTheDocument()
+  })
+
+  it('trails the breadcrumb through the games library to the bucket', () => {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    vi.mocked(useSteamDistribution).mockReturnValue({
+      data: mockResponse,
+      isLoading: false,
+      error: undefined
+    })
+    render(<SteamDistributionClient bucket="8" />)
+    const crumbs = within(screen.getByRole('navigation', { name: 'Breadcrumb' }))
+    expect(crumbs.getByRole('link', { name: 'Games' })).toHaveAttribute('href', '/games/library')
+    expect(crumbs.getByText('80-89%')).toBeInTheDocument()
   })
 
   it('shows empty message when there are no games', () => {

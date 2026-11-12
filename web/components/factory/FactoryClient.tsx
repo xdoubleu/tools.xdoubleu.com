@@ -1,3 +1,4 @@
+import AppSections from '@/components/AppSections'
 import { useEffect, useState, type DragEvent } from 'react'
 import { usePathname, useRouter, useSearchParams } from '@/hooks/navigation'
 import {
@@ -39,7 +40,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { PageContainer } from '@/components/ui/page-container'
-import { PageHeader, PageHeaderLink } from '@/components/ui/page-header'
+import { PageHeader } from '@/components/ui/page-header'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { Select } from '@/components/ui/select'
 import { TogglePill } from '@/components/ui/toggle-pill'
@@ -177,17 +178,12 @@ export default function FactoryClient() {
   }
 
   return (
-    <PageContainer className="flex h-dvh flex-col lg:h-[calc(100dvh-9rem)]">
+    <PageContainer size="wide" className="flex h-dvh flex-col lg:h-[calc(100dvh-9rem)]">
       <PageHeader
         title="Factory"
-        actions={
-          <>
-            <PageHeaderLink href="/factory/runners">Runner</PageHeaderLink>
-            <PageHeaderLink href="/factory/repos">Repos</PageHeaderLink>
-            <Button onClick={() => setCreating(true)}>New task</Button>
-          </>
-        }
+        actions={<Button onClick={() => setCreating(true)}>New task</Button>}
       />
+      <AppSections app="factory" />
       <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
         <span className="flex items-center gap-2">
           Runner <Badge variant={runner.online ? 'success' : 'secondary'}>{runner.label}</Badge>

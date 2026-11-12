@@ -15,12 +15,14 @@ import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { Field } from '@/components/ui/field'
+import { getRelease } from '@/lib/env'
 import { PageHeader } from '@/components/ui/page-header'
 import { SettingsSection, SettingsSections } from '@/components/ui/settings-section'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
 import { McpSetupSection } from '@/components/settings/McpSetupSection'
+import { TabBarSection } from '@/components/settings/TabBarSection'
 import { AppearanceSection } from '@/components/settings/AppearanceSection'
 import RecoveryCodesDialog from '@/components/settings/RecoveryCodesDialog'
 
@@ -201,6 +203,11 @@ export default function SettingsPage() {
     }
   }
 
+  const release = getRelease()
+
+  // Stryker disable next-line StringLiteral: any non-enrolling state shows the start button
+  const cancelMfa = () => setMfaState('idle')
+
   return (
     <PageContainer size="narrow">
       <PageHeader title="Account settings" />
@@ -223,7 +230,7 @@ export default function SettingsPage() {
                 required
               />
             </Field>
-            <Button type="submit" size="sm" disabled={nameSaving || !displayName.trim()}>
+            <Button type="submit" disabled={nameSaving || !displayName.trim()}>
               {nameSaving ? 'Saving…' : 'Save display name'}
             </Button>
           </form>
@@ -264,7 +271,7 @@ export default function SettingsPage() {
                 required
               />
             </Field>
-            <Button type="submit" size="sm" disabled={pwSaving}>
+            <Button type="submit" disabled={pwSaving}>
               {pwSaving ? 'Updating…' : 'Update password'}
             </Button>
           </form>
@@ -295,7 +302,6 @@ export default function SettingsPage() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="secondary"
-                  size="sm"
                   onClick={handleRegenerateRecoveryCodes}
                   disabled={mfaBusy || !factorCode}
                 >
@@ -303,7 +309,6 @@ export default function SettingsPage() {
                 </Button>
                 <Button
                   variant="destructive"
-                  size="sm"
                   onClick={() => setConfirmingMfaDisable(true)}
                   disabled={mfaBusy || !factorCode}
                 >
@@ -349,15 +354,10 @@ export default function SettingsPage() {
                   />
                 </Field>
                 <div className="flex flex-wrap gap-2">
-                  <Button type="submit" size="sm" disabled={mfaBusy || mfaCode.length < 6}>
+                  <Button type="submit" disabled={mfaBusy || mfaCode.length < 6}>
                     {mfaBusy ? 'Verifying…' : 'Verify & enable'}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setMfaState('idle')}
-                  >
+                  <Button type="button" variant="ghost" onClick={cancelMfa}>
                     Cancel
                   </Button>
                 </div>
@@ -369,12 +369,14 @@ export default function SettingsPage() {
                 Two-factor authentication is <span className="font-medium text-fg">disabled</span>.
                 Enable it for additional security.
               </p>
-              <Button size="sm" onClick={handleMFAEnable} disabled={mfaBusy}>
+              <Button onClick={handleMFAEnable} disabled={mfaBusy}>
                 {mfaBusy ? 'Loading…' : 'Enable MFA'}
               </Button>
             </div>
           ) : null}
         </SettingsSection>
+
+        <TabBarSection />
 
         <AppearanceSection />
 
@@ -385,6 +387,12 @@ export default function SettingsPage() {
         </SettingsSection>
 
         <McpSetupSection />
+
+        {release && (
+          <SettingsSection title="About">
+            <p className="font-mono text-sm text-subtle">Release {release.substring(0, 7)}</p>
+          </SettingsSection>
+        )}
       </SettingsSections>
 
       {recoveryCodes && (

@@ -28,10 +28,19 @@ func (r *LearningPathsRepository) ListForUser(
 	safeLimit, sqlLimit := pagination.Clamp(limit)
 
 	rows, err := r.db.Query(ctx, `
-		SELECT id, user_id, title, goal, routine, created_at, updated_at, paused
-		FROM learningpaths.learning_paths
-		WHERE user_id = $1
-		ORDER BY title, id
+		SELECT lp.id, lp.user_id, lp.title, lp.goal, lp.routine,
+			lp.created_at, lp.updated_at, lp.paused,
+			(SELECT COUNT(*) FROM learningpaths.modules m
+				WHERE m.learning_path_id = lp.id),
+			(SELECT COUNT(*) FROM learningpaths.items i
+				JOIN learningpaths.modules m ON m.id = i.module_id
+				WHERE m.learning_path_id = lp.id),
+			(SELECT COUNT(*) FROM learningpaths.items i
+				JOIN learningpaths.modules m ON m.id = i.module_id
+				WHERE m.learning_path_id = lp.id AND i.completed)
+		FROM learningpaths.learning_paths lp
+		WHERE lp.user_id = $1
+		ORDER BY lp.title, lp.id
 		LIMIT $2 OFFSET $3`,
 		userID, sqlLimit, offset,
 	)
@@ -46,6 +55,7 @@ func (r *LearningPathsRepository) ListForUser(
 		if err = rows.Scan(
 			&lp.ID, &lp.UserID, &lp.Title, &lp.Goal, &lp.Routine,
 			&lp.CreatedAt, &lp.UpdatedAt, &lp.Paused,
+			&lp.ModuleCount, &lp.ItemCount, &lp.CompletedItemCount,
 		); err != nil {
 			return nil, false, postgres.PgxErrorToHTTPError(err)
 		}

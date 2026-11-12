@@ -12,7 +12,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(({ className, ...props
         'flex w-full rounded-xl border border-input-border bg-input px-3 py-2 sm:py-1',
         controlHeightClass,
         'text-base md:text-sm text-input-text',
-        'transition-colors',
+        'select-chevron transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:border-accent',
         'disabled:pointer-events-none disabled:opacity-50',
         className

@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import type { BacklogEntry, Season } from '@/lib/gen/movies/v1/movies_pb'
 import { useMoviesActions } from '@/hooks/useMovies'
-import { titleName } from '@/lib/movies/format'
-import StatusSelect from '@/components/movies/StatusSelect'
+import { STATUSES, STATUS_LABELS, titleName } from '@/lib/movies/format'
 import WatchedWhenDialog from '@/components/movies/WatchedWhenDialog'
-import { Field } from '@/components/ui/field'
+import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { FieldError } from '@/components/ui/field-error'
 
 /** How many seasons marking the series watched would date at once. */
@@ -48,18 +47,14 @@ export default function TitleStatus({
 
   return (
     <>
-      <Field label="Status" htmlFor="movie-status" className="max-w-xs">
-        <StatusSelect
-          id="movie-status"
-          value={entry.status}
-          disabled={pending}
-          onChange={select}
-          aria-describedby={failed ? 'movie-status-error' : undefined}
-        />
-      </Field>
-      <FieldError id="movie-status-error">
-        {failed && 'Couldn’t update status. Try again.'}
-      </FieldError>
+      <SegmentedTabs
+        aria-label="Status"
+        value={STATUSES.find((s) => s === entry.status) ?? null}
+        options={STATUSES.map((value) => ({ value, label: STATUS_LABELS[value] }))}
+        disabled={pending}
+        onChange={select}
+      />
+      <FieldError>{failed && 'Couldn’t update status. Try again.'}</FieldError>
       <WatchedWhenDialog
         open={asking}
         onOpenChange={setAsking}

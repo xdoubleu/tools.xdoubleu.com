@@ -36,7 +36,7 @@ describe('WatchPartyRoom', () => {
   it('renders the breadcrumb, status, and room code', () => {
     renderRoom({ crumb: 'Presenter', status: 'connecting' })
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Watch Party Presenter' })
+      screen.getByRole('heading', { level: 1, name: 'Watch party Presenter' })
     ).toBeInTheDocument()
     expect(screen.getByText('Presenter')).toBeInTheDocument()
     expect(screen.getByText('Connecting…')).toBeInTheDocument()
@@ -66,9 +66,9 @@ describe('WatchPartyRoom', () => {
 
   it('wires the media toggles', () => {
     const { props } = renderRoom()
-    fireEvent.click(screen.getByRole('button', { name: 'Mute Mic' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Disable Cam' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Hide Self' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mute mic' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Turn camera off' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hide yourself' }))
     expect(props.toggleMic).toHaveBeenCalled()
     expect(props.toggleCam).toHaveBeenCalled()
     expect(props.toggleSelfCam).toHaveBeenCalled()
@@ -76,9 +76,9 @@ describe('WatchPartyRoom', () => {
 
   it('labels the toggles for the off state', () => {
     renderRoom({ micEnabled: false, camEnabled: false, selfCamVisible: false })
-    expect(screen.getByRole('button', { name: 'Unmute Mic' })).toHaveClass('bg-warn')
-    expect(screen.getByRole('button', { name: 'Enable Cam' })).toHaveClass('bg-warn')
-    expect(screen.getByRole('button', { name: 'Show Self' })).toHaveClass('text-muted')
+    expect(screen.getByRole('button', { name: 'Unmute mic' })).toHaveClass('bg-warn')
+    expect(screen.getByRole('button', { name: 'Turn camera on' })).toHaveClass('bg-warn')
+    expect(screen.getByRole('button', { name: 'Show yourself' })).toHaveClass('text-muted')
   })
 
   it('renders extra controls', () => {

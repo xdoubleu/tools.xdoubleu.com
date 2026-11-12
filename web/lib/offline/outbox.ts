@@ -1,6 +1,7 @@
 import type { DescMessage, MessageInitShape } from '@bufbuild/protobuf'
 import { Code, ConnectError } from '@connectrpc/connect'
 import { mutate, type Arguments } from 'swr'
+import { accountWrites } from '@/lib/account/offlineWrites'
 import { bookWrites } from '@/lib/books/offlineWrites'
 import { feedWrites } from '@/lib/feeds/offlineWrites'
 import { learningPathWrites } from '@/lib/learningpaths/offlineWrites'
@@ -21,6 +22,7 @@ import {
 } from './store'
 
 const writes: OfflineWrite[] = [
+  ...accountWrites,
   ...shoppingListWrites,
   ...recipeWrites,
   ...mealPlanWrites,

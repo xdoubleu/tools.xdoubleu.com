@@ -1,4 +1,5 @@
 import React from 'react'
+import { CalendarPlus } from 'lucide-react'
 import { formatMealDate, MEAL_SLOTS } from '@/lib/mealplans/mealPlanCalendar'
 import type { PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
@@ -130,11 +131,12 @@ export default function MealPlanWeekGrid({
                   </div>
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
+                    aria-label="Fill day"
                     className="text-muted"
                     onClick={() => onFillDay(formattedDate)}
                   >
-                    Fill day
+                    <CalendarPlus className="h-4 w-4" aria-hidden />
                   </Button>
                 </div>
                 <div className="space-y-1">
@@ -172,11 +174,12 @@ export default function MealPlanWeekGrid({
                   {DAY_NAMES[date.getDay()]}
                   <Button
                     variant="ghost"
-                    size="sm"
-                    className="px-1.5 font-normal text-muted"
+                    size="icon"
+                    aria-label="Fill day"
+                    className="text-muted"
                     onClick={() => onFillDay(formattedDate)}
                   >
-                    Fill day
+                    <CalendarPlus className="h-4 w-4" aria-hidden />
                   </Button>
                 </div>
               )

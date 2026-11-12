@@ -7,7 +7,7 @@ export default function FeedHealthPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Feed Health"
+        title="Feed health"
         breadcrumb={[{ label: 'Feeds', href: '/feeds' }, { label: 'Health' }]}
       />
 
