@@ -73,12 +73,12 @@ describe('sections', () => {
         { label: 'Stats', href: '/feeds/stats' }
       ],
       books: [
-        { label: 'Library', href: '/books/library' },
-        { label: 'Stats', href: '/dashboard/reading' }
+        { label: 'Stats', href: '/dashboard/reading' },
+        { label: 'Library', href: '/books/library' }
       ],
       games: [
-        { label: 'Library', href: '/games/library' },
-        { label: 'Stats', href: '/dashboard/games' }
+        { label: 'Stats', href: '/dashboard/games' },
+        { label: 'Library', href: '/games/library' }
       ],
       factory: [
         { label: 'Board', href: '/factory' },

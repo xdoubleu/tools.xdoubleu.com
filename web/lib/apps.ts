@@ -72,12 +72,13 @@ export const APPS: AppEntry[] = [
   {
     id: 'books',
     label: 'Books',
-    href: '/books/library',
+    href: '/dashboard/reading',
     description: 'Search, library and reading progress.',
+    base: '/books',
     extraBases: ['/dashboard/reading'],
     sections: [
-      { label: 'Library', href: '/books/library' },
-      { label: 'Stats', href: '/dashboard/reading' }
+      { label: 'Stats', href: '/dashboard/reading' },
+      { label: 'Library', href: '/books/library' }
     ],
     group: 'Media',
     icon: BookOpen,
@@ -86,12 +87,13 @@ export const APPS: AppEntry[] = [
   {
     id: 'games',
     label: 'Games',
-    href: '/games/library',
+    href: '/dashboard/games',
     description: 'Steam backlog, progress and distribution.',
+    base: '/games',
     extraBases: ['/dashboard/games'],
     sections: [
-      { label: 'Library', href: '/games/library' },
-      { label: 'Stats', href: '/dashboard/games' }
+      { label: 'Stats', href: '/dashboard/games' },
+      { label: 'Library', href: '/games/library' }
     ],
     group: 'Media',
     icon: Gamepad2,
