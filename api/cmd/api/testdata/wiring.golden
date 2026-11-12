@@ -122,6 +122,8 @@ POST /dashboard.v1.PublicReadingDashboardService/: 404, 404
 POST /dashboard.v1.PublicReadingDashboardService/GetSharedBooksProgress: 415, 415
 POST /dashboard.v1.PublicReadingDashboardService/GetSharedFeedsSummary: 415, 415
 POST /dashboard.v1.PublicReadingDashboardService/GetSharedLibrary: 415, 415
+POST /dashboard.v1.TodayService/: 401, 404
+POST /dashboard.v1.TodayService/GetToday: 401, 415
 POST /factory.v1.AgentAccountService/: 401, 404
 POST /factory.v1.AgentAccountService/AddAgentAccountToFamily: 401, 415
 POST /factory.v1.AgentAccountService/CreateAgentAccount: 401, 415
@@ -343,6 +345,7 @@ books_list_kobo_store_books
 books_list_resync_proposals
 books_search_external
 books_search_library
+dashboard_get_today
 dismiss_security_alert
 feeds_get_filter_rule_suggestions
 feeds_get_item

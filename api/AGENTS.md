@@ -18,7 +18,7 @@ make db/reset                      # recreate the Postgres volume — shared by 
 
 ## Architecture
 
-- `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after `games`/`books`/`feeds` (reads them); `trains`/`learningpaths`/`movies`/`podcasts`/`factory`, then `taste` (reads `books`/`feeds`/`games`/`movies`/`podcasts`).
+- `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after apps it reads; `trains`/`learningpaths`/`movies`/`podcasts`/`factory`, then `taste` (reads `books`/`feeds`/`games`/`movies`/`podcasts`).
 - `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool. Platform handlers: `internal/obs`, `internal/account` (each `Deps`/`Register`).
 - `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
 - `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked PRs can merge migrations out of order; this self-heals.
@@ -71,7 +71,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - **feeds** — queries exclude `expired_at` items.
 - **watchparty** — no DB, own domain `watchparty.xdoubleu.com`.
 - **mealplans/shoppinglist/recipes** — family-scoped by `family_id`; shoppinglist stores stay per-user.
-- **dashboard** — public services (`apps/dashboard/connect_public.go`) run **without auth middleware**; they resolve an opaque share token (`global.profile_shares`) and **must never read the user-context key**, then delegate to exported methods on the live app structs. Token management is in `DashboardService` behind `Access`, not `dashboard`'s `AppAccess` → [`adr-0007`](../docs/adr-0007-dashboard-app-owns-public-sharing.md).
+- **dashboard** — public services (`apps/dashboard/connect_public.go`) run **without auth middleware**; they resolve an opaque share token (`global.profile_shares`) and **must never read the user-context key**, then delegate to exported methods on the live app structs. Token management is in `DashboardService` behind `Access`, not `dashboard`'s `AppAccess`. `GetToday` (and MCP `dashboard_get_today`) gives a block per usable app → [`adr-0007`](../docs/adr-0007-dashboard-app-owns-public-sharing.md).
 - **trains** → [`adr-0035`](../docs/adr-0035-trains-on-irail.md):
   - Everything goes through `pkg/irail` (rate-limited, 429 retried once, 20 s cache); handlers never call iRail directly.
   - **Keep a whole-train cancellation (`cancelled`) distinct from a skipped stop (`skipped`)** — conflating them fakes cancellations.
