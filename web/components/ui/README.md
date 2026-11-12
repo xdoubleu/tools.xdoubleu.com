@@ -612,6 +612,28 @@ Placeholder block that reserves a loading region's final size so content doesn't
 
 ### `stat.tsx`
 
+#### `ChartCard`
+
+A titled card holding one chart: the second step of the stats layout (tiles, charts, lists).
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `title` | `string` | yes |  |
+| `children` | `ReactElement` | yes | One recharts chart; sized to the card. Style it from `lib/chartTheme`. |
+| `empty` | `string` |  | Shown instead of the chart when there is nothing to plot. |
+| `note` | `ReactNode` |  | Muted footnote under the chart, e.g. what is left out. |
+
+#### `RankedList`
+
+A titled card of label/value rows: the last step of the stats layout.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `title` | `string` | yes |  |
+| `items` | `RankedItem[]` | yes |  |
+| `empty` | `string` | yes | Shown when `items` is empty. |
+| `note` | `ReactNode` |  |  |
+
 #### `StatTile`
 
 One labelled number in a stats row; structured content belongs in a `SectionCard`.
@@ -627,7 +649,7 @@ One labelled number in a stats row; structured content belongs in a `SectionCard
 
 #### `StatTileGrid`
 
-Responsive grid for a row of `StatTile`s — two up on mobile, four from `sm`.
+Responsive grid for a row of `StatTile`s: two up on mobile, `columns` from `sm`.
 
 ### `states.tsx`
 
