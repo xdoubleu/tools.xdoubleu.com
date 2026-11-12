@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { Alert } from '@/components/ui/alert'
+import { Card } from '@/components/ui/card'
+import { SectionHeading } from '@/components/ui/section-heading'
 
 export default function WatchpartyPage() {
   const [roomCode, setRoomCode] = useState('')
@@ -45,36 +47,32 @@ export default function WatchpartyPage() {
 
   return (
     <PageContainer size="narrow">
-      <PageHeader title="Watch party" />
+      <PageHeader
+        title="Watch party"
+        description="Share a screen with someone and talk over it."
+        actions={
+          <Button onClick={handleCreate} disabled={loading}>
+            {loading ? 'Creating…' : 'Create room'}
+          </Button>
+        }
+      />
 
-      <div className="mb-8">
-        <Button size="lg" className="w-full" onClick={handleCreate} disabled={loading}>
-          {loading ? 'Creating…' : 'Create Room'}
-        </Button>
-      </div>
-
-      <div className="relative mb-8">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="bg-bg px-2 text-muted">or join a room</span>
-        </div>
-      </div>
-
-      <form onSubmit={handleJoin} className="flex gap-2">
-        <Input
-          type="text"
-          value={roomCode}
-          onChange={(e) => setRoomCode(e.target.value)}
-          aria-label="Room code"
-          placeholder="Room code"
-          className="min-w-0 flex-1"
-        />
-        <Button type="submit" variant="secondary" disabled={loading || !roomCode.trim()}>
-          Join
-        </Button>
-      </form>
+      <Card className="space-y-3">
+        <SectionHeading level="eyebrow">Join a room</SectionHeading>
+        <form onSubmit={handleJoin} className="flex gap-2">
+          <Input
+            type="text"
+            value={roomCode}
+            onChange={(e) => setRoomCode(e.target.value)}
+            aria-label="Room code"
+            placeholder="Room code"
+            className="min-w-0 flex-1"
+          />
+          <Button type="submit" disabled={loading || !roomCode.trim()}>
+            Join
+          </Button>
+        </form>
+      </Card>
 
       {error && (
         <Alert tone="danger" className="mt-4">

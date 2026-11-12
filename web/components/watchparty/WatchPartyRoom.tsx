@@ -116,7 +116,7 @@ export default function WatchPartyRoom({
           onClick={toggleMic}
           className={cn(!micEnabled && offClass)}
         >
-          {micEnabled ? 'Mute Mic' : 'Unmute Mic'}
+          {micEnabled ? 'Mute mic' : 'Unmute mic'}
         </Button>
 
         <Button
@@ -125,7 +125,7 @@ export default function WatchPartyRoom({
           onClick={toggleCam}
           className={cn(!camEnabled && offClass)}
         >
-          {camEnabled ? 'Disable Cam' : 'Enable Cam'}
+          {camEnabled ? 'Turn camera off' : 'Turn camera on'}
         </Button>
 
         <Button
@@ -134,7 +134,7 @@ export default function WatchPartyRoom({
           onClick={toggleSelfCam}
           className={cn(!selfCamVisible && 'text-muted')}
         >
-          {selfCamVisible ? 'Hide Self' : 'Show Self'}
+          {selfCamVisible ? 'Hide yourself' : 'Show yourself'}
         </Button>
 
         <span className="ml-auto font-mono text-xs text-muted">Room: {id}</span>
