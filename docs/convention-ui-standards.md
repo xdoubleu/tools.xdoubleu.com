@@ -16,7 +16,7 @@ The same job uses the same primitive everywhere. The inventory is [`web/componen
   - The shell is global navigation → [adr-0050](adr-0050-global-navigation-model.md): a left sidebar from `lg` (Today, then apps by group from `web/lib/apps.ts`), below it a slim top bar with the account menu and a bottom `TabBar` (Today, three pinned apps, Apps); `--tab-bar-height` is reserved under the page, and full-screen pages (reader, presenter, shared dashboards) hide it. Settings, family, appearance and sign out live in the account menu; pages add no bar of their own.
   - `PageContainer size` sets the width; settings pages are `narrow`. The shell owns padding.
   - `PageHeader` owns the `<h1>`, the `description` line, a `breadcrumb` on every detail and settings page, and the page's `actions`. Actions are bordered (`PageHeaderLink`, `PageHeaderSettingsLink`, `secondary` buttons) at the default size; only create (default) and delete (destructive) stand out. Titles are sentence case (`ui/sentence-case` checks `title` props and `SectionHeading` text; names like Kobo or Steam are allowed), and no two pages share a title.
-  - `SectionHeading` for every heading under it: `section` (serif) or `eyebrow` (small uppercase).
+  - `SectionHeading` for every heading under it: `section` (semibold) or `eyebrow` (small uppercase).
   - Settings pages (`PageContainer size="narrow"`, family included) stack `SettingsSection`s in `SettingsSections`, with no dividers and default-size buttons; `ui/shared-patterns` rejects a settings page without it.
   - `Toolbar` holds the search and filters between `PageHeader` and a list, with `aria-label`led `Select`s, `TogglePill`s or `SegmentedTabs`.
   - `SegmentedTabs` switches between views; with `router.push` it switches between sibling pages.
@@ -37,7 +37,7 @@ The same job uses the same primitive everywhere. The inventory is [`web/componen
 - **`ConfirmDialog` before every destructive action**: delete, disconnect, disable, leave, clear.
 - **Labels.** `Field`/`Label` for labelled controls; a control without a visible label gets `aria-label` (a placeholder is not a label).
 - **Theme tokens only.** Colours, shadows and radii come from `app/globals.css` (`ui/theme-tokens`). No `dark:`. `rounded-full` only for square circles, never a pill.
-- **Type and motion.** One system-font stack throughout; headings differ by size and weight only (`PageHeader` bold large title, `SectionHeading`, `StatTile` semibold). Motion uses the `ease-spring`, `duration-press` and `duration-settle` tokens, with plain fades under `motion-reduce`.
+- **Type and motion.** One system-font stack throughout (`ui/theme-tokens` rejects `font-display`/`font-serif`); headings differ by size and weight only (`PageHeader` bold large title, `SectionHeading`, `StatTile` semibold). Motion uses the `ease-spring`, `duration-press` and `duration-settle` tokens, with plain fades under `motion-reduce`.
 - **Values print through `lib/dates.ts` and `lib/format.ts`** (`ui/no-tolocale`): short dates ("11 Nov", year only outside the current one), times without seconds, numbers with at most one decimal, `formatQuantity` (no amount when zero), `pluralize`. No `toLocale*` elsewhere.
 - Class overrides go through `cn()`, never a template literal. Pending labels end in `…`, never `...`. A hidden `<input type="file">` may disable `no-restricted-syntax` with a reason.
 - **Pinch-zoom is disabled** (the viewport meta in `web/index.html`), which makes 16px fields and 44px targets mandatory.

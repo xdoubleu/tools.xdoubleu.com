@@ -18,7 +18,8 @@ ruleTester.run('ui/theme-tokens', rule, {
     '<Bar fill="var(--color-accent)" />',
     '<span className="h-4 w-4 animate-spin rounded-full" />',
     '<span className="size-2 rounded-full" />',
-    '<div className="rounded-lg rounded-xl rounded-2xl" />'
+    '<div className="rounded-lg rounded-xl rounded-2xl" />',
+    '<code className="font-mono font-semibold font-sans" />'
   ],
   invalid: [
     { code: '<span className="text-amber-500" />', errors: [{ messageId: 'palette' }] },
@@ -36,6 +37,8 @@ ruleTester.run('ui/theme-tokens', rule, {
     { code: '<Button className="rounded-full px-3" />', errors: [{ messageId: 'pill' }] },
     { code: '<div className="h-2 w-full rounded-full" />', errors: [{ messageId: 'pill' }] },
     { code: '<div className="rounded-3xl" />', errors: [{ messageId: 'pill' }] },
-    { code: '<div className="rounded-t-full" />', errors: [{ messageId: 'pill' }] }
+    { code: '<div className="rounded-t-full" />', errors: [{ messageId: 'pill' }] },
+    { code: '<h1 className="font-display" />', errors: [{ messageId: 'font' }] },
+    { code: '<h1 className="sm:font-serif" />', errors: [{ messageId: 'font' }] }
   ]
 })
