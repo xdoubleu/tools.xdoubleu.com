@@ -44,17 +44,20 @@ func protoLearningPath(lp *models.LearningPath) *learningpathsv1.LearningPath {
 		resources[i] = protoResource(&r)
 	}
 	return &learningpathsv1.LearningPath{
-		Id:                lp.ID.String(),
-		UserId:            lp.UserID,
-		Title:             lp.Title,
-		Goal:              lp.Goal,
-		Routine:           lp.Routine,
-		CreatedAt:         lp.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:         lp.UpdatedAt.Format(time.RFC3339),
-		Modules:           modules,
-		Resources:         resources,
-		ReminderSchedules: lp.ReminderSchedules,
-		Paused:            lp.Paused,
+		Id:                 lp.ID.String(),
+		UserId:             lp.UserID,
+		Title:              lp.Title,
+		Goal:               lp.Goal,
+		Routine:            lp.Routine,
+		CreatedAt:          lp.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:          lp.UpdatedAt.Format(time.RFC3339),
+		Modules:            modules,
+		Resources:          resources,
+		ReminderSchedules:  lp.ReminderSchedules,
+		Paused:             lp.Paused,
+		ModuleCount:        lp.ModuleCount,
+		ItemCount:          lp.ItemCount,
+		CompletedItemCount: lp.CompletedItemCount,
 	}
 }
 
