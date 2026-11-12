@@ -11,7 +11,7 @@ describe('Select', () => {
       </Select>
     )
     const select = screen.getByLabelText('role')
-    expect(select).toHaveClass('rounded-xl', 'bg-input')
+    expect(select).toHaveClass('rounded-xl', 'bg-input', 'select-chevron')
     expect(screen.getByRole('option', { name: 'Admin' })).toBeInTheDocument()
   })
 

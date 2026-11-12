@@ -15,9 +15,14 @@ import ManageShelvesTagsDialog from '@/components/books/ManageShelvesTagsDialog'
 import { useSearchExternal } from '@/hooks/useBooks'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/books/bookShelves'
 import { buildSeriesSummaries } from '@/lib/books/series'
+import { CollectionGrid } from '@/components/ui/collection-grid'
+import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { EmptyState, LoadingState } from '@/components/ui/states'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { Toolbar } from '@/components/ui/toolbar'
+
+type LibraryView = 'cards' | 'table'
 
 type Selection = { kind: 'shelf'; id: ShelfId } | { kind: 'tag'; tag: string }
 
@@ -53,6 +58,8 @@ export default function BooksLibrary({
   const [selection, setSelection] = useState<Selection>({ kind: 'shelf', id: 'all' })
   const [manageOpen, setManageOpen] = useState(false)
   const table = useLibraryTableState()
+  // The view is a per-device choice; cards are the default.
+  const [view, setView] = useLocalStorage<LibraryView>('books:library:view', 'cards')
   const searchExternal = useSearchExternal()
   const [externalResults, setExternalResults] = useState<ExternalBookResult[]>([])
   const [isSearchingExternal, setIsSearchingExternal] = useState(false)
@@ -137,9 +144,12 @@ export default function BooksLibrary({
     : selection.kind === 'tag'
       ? selection.tag
       : (currentShelf?.label ?? '')
+  const tableView = view === 'table'
   const resultCount = isSearching
     ? filteredBooks.length + externalResults.length
-    : applyFilters(filteredBooks, table.filters).length
+    : tableView
+      ? applyFilters(filteredBooks, table.filters).length
+      : filteredBooks.length
 
   return (
     <>
@@ -148,7 +158,18 @@ export default function BooksLibrary({
         search={<BookSearchBar query={searchQuery} onChange={onSearchChange} />}
         trailing={`${resultCount} ${resultCount === 1 ? 'book' : 'books'}`}
       >
-        {!isSearching && <LibraryTableControls state={table} />}
+        {!isSearching && (
+          <SegmentedTabs
+            aria-label="Library view"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: 'cards', label: 'Cards' },
+              { value: 'table', label: 'Table' }
+            ]}
+          />
+        )}
+        {!isSearching && tableView && <LibraryTableControls state={table} />}
       </Toolbar>
 
       <div className="flex flex-col md:flex-row gap-6">
@@ -167,7 +188,7 @@ export default function BooksLibrary({
           <SectionHeading className="mb-3 truncate">{headerLabel}</SectionHeading>
 
           {isSearching ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <CollectionGrid>
               {filteredBooks.map((ub) => (
                 <BookCard key={ub.id} userBook={ub} onSaved={onSaved} query={searchQuery} />
               ))}
@@ -178,7 +199,17 @@ export default function BooksLibrary({
                 <EmptyState className="col-span-full">No results.</EmptyState>
               )}
               {isSearchingExternal && <LoadingState label="results" className="col-span-full" />}
-            </div>
+            </CollectionGrid>
+          ) : !tableView ? (
+            filteredBooks.length === 0 ? (
+              <EmptyState placement="inline">Nothing on this shelf yet.</EmptyState>
+            ) : (
+              <CollectionGrid>
+                {filteredBooks.map((ub) => (
+                  <BookCard key={ub.id} userBook={ub} onSaved={onSaved} />
+                ))}
+              </CollectionGrid>
+            )
           ) : (
             <BooksTable
               books={filteredBooks}

@@ -4,11 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { SectionHeading } from '@/components/ui/section-heading'
 import StopStatusBadge from '@/components/trains/StopStatusBadge'
 import type { LegDetail } from '@/lib/gen/trains/v1/trains_pb'
-
-function formatTime(iso: string): string {
-  if (!iso) return ''
-  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
+import { formatTime } from '@/lib/dates'
 
 function StopRow({ stop }: { stop: LegDetail['stops'][number] }) {
   return (

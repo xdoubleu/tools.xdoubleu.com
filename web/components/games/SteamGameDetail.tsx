@@ -6,6 +6,7 @@ import type { BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { PageHeader } from '@/components/ui/page-header'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { EmptyState } from '@/components/ui/states'
+import { formatPercent } from '@/lib/format'
 
 // Game detail pieces shared by the owner's page and the public dashboard page.
 
@@ -35,7 +36,7 @@ export function SteamGameHeader({
       description={
         <span className="flex flex-wrap items-center gap-x-6 gap-y-1">
           <span>{Math.round(game.playtime / 60)} hrs played</span>
-          <span>Completion: {game.completionRate}%</span>
+          <span>Completion: {formatPercent(game.completionRate)}</span>
           {game.isDelisted && <Badge variant="warn">Delisted</Badge>}
           {meta}
         </span>

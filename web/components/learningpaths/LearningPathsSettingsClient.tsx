@@ -40,7 +40,7 @@ export default function LearningPathsSettingsClient() {
       <PageHeader
         title="Learning paths settings"
         breadcrumb={[
-          { label: 'Learning Paths', href: '/learningpaths/list' },
+          { label: 'Learning paths', href: '/learningpaths/list' },
           { label: 'Settings' }
         ]}
       />
@@ -78,13 +78,13 @@ export default function LearningPathsSettingsClient() {
                 data?.connected ? (
                   <>
                     {data.needsReconnect && (
-                      <Button variant="secondary" size="sm" disabled={busy} onClick={handleConnect}>
+                      <Button variant="secondary" disabled={busy} onClick={handleConnect}>
                         Reconnect
                       </Button>
                     )}
                     <Button
                       variant="destructive"
-                      size="sm"
+
                       disabled={busy}
                       onClick={() => setConfirmingDisconnect(true)}
                     >
@@ -92,7 +92,7 @@ export default function LearningPathsSettingsClient() {
                     </Button>
                   </>
                 ) : (
-                  <Button variant="secondary" size="sm" disabled={busy} onClick={handleConnect}>
+                  <Button variant="secondary" disabled={busy} onClick={handleConnect}>
                     Connect
                   </Button>
                 )

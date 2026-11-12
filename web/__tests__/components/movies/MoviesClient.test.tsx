@@ -1,18 +1,18 @@
 import React from 'react'
 let mockListParam = ''
 const mockReplace = vi.fn()
+const mockPush = vi.fn()
 vi.mock('@/hooks/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: mockReplace }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
   usePathname: () => '/movies',
   useSearchParams: () => new URLSearchParams(mockListParam)
 }))
 
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import { Code, ConnectError } from '@connectrpc/connect'
 
 const mockAdd = vi.fn()
-const mockSetStatus = vi.fn()
 const mockFetchPage = vi.fn()
 
 vi.mock('@/hooks/useMovies', () => ({
@@ -21,7 +21,6 @@ vi.mock('@/hooks/useMovies', () => ({
   useMovieSearch: vi.fn(),
   useMoviesActions: vi.fn(() => ({
     add: mockAdd,
-    setStatus: mockSetStatus,
     remove: vi.fn()
   }))
 }))
@@ -63,7 +62,14 @@ function mockSearch(value: { data?: unknown; error?: Error; isLoading?: boolean 
   vi.mocked(useMovieSearch).mockReturnValue({ isLoading: false, ...value })
 }
 
+function openAdd() {
+  if (!screen.queryByLabelText('Search TMDB')) {
+    fireEvent.click(screen.getAllByRole('button', { name: 'Add a title' })[0])
+  }
+}
+
 function search(text: string) {
+  openAdd()
   fireEvent.change(screen.getByLabelText('Search TMDB'), { target: { value: text } })
   act(() => {
     vi.advanceTimersByTime(300)
@@ -76,10 +82,13 @@ beforeEach(() => {
 })
 
 describe('MoviesClient backlog', () => {
-  it('links to the stats page', () => {
+  it('opens the stats section from the section tabs', () => {
     mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [], hasMore: false }) })
+    mockPush.mockClear()
     render(<MoviesClient />)
-    expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute('href', '/movies/stats')
+    expect(screen.getByRole('tab', { name: 'Backlog' })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }))
+    expect(mockPush).toHaveBeenCalledWith('/movies/stats')
   })
 
   it('lists entries with poster, type and release info', () => {
@@ -108,37 +117,14 @@ describe('MoviesClient backlog', () => {
     expect(screen.getByText('T')).toBeInTheDocument()
   })
 
-  it('changes status inline', async () => {
-    mockSetStatus.mockResolvedValue(undefined)
+  it('shows each status as a badge', () => {
     mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [matrix] }) })
     render(<MoviesClient />)
-
-    fireEvent.change(screen.getByLabelText('Status of The Matrix'), {
-      target: { value: 'watched' }
-    })
-    await waitFor(() => expect(mockSetStatus).toHaveBeenCalledWith('e-1', 'watched', false))
-    // Held even though the (unrefetched) entry still says "want".
-    await waitFor(() =>
-      expect(screen.getByLabelText('Status of The Matrix')).toHaveValue('watched')
-    )
-  })
-
-  it('reports a failed status change', async () => {
-    mockSetStatus.mockRejectedValue(new Error('nope'))
-    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [matrix] }) })
-    render(<MoviesClient />)
-
-    await act(async () =>
-      fireEvent.change(screen.getByLabelText('Status of The Matrix'), {
-        target: { value: 'watched' }
-      })
-    )
-    expect(screen.getByText(/Couldn.t update status/)).toBeInTheDocument()
-    expect(screen.getByLabelText('Status of The Matrix')).toHaveValue('want')
+    expect(screen.getByRole('link', { name: /The Matrix/ })).toHaveTextContent('Want')
   })
 
   it('refetches with the chosen filters', () => {
-    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [] }) })
+    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [matrix] }) })
     render(<MoviesClient />)
 
     fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'watched' } })
@@ -151,12 +137,11 @@ describe('MoviesClient backlog', () => {
       sort: 'title',
       onMyServices: false
     })
-    expect(screen.getByText(/Nothing here yet/)).toBeInTheDocument()
-    expect(screen.getByRole('toolbar')).toHaveTextContent('0 titles')
+    expect(screen.getByRole('status')).toHaveTextContent('1 result')
   })
 
   it('offers every filter option, starting from all titles by recency', () => {
-    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [] }) })
+    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [matrix] }) })
     render(<MoviesClient />)
     const options = (label: string) =>
       Array.from((screen.getByLabelText(label) as HTMLSelectElement).options).map((o) => [
@@ -254,25 +239,37 @@ describe('MoviesClient search', () => {
   })
   afterEach(() => vi.useRealTimers())
 
-  it('waits for typing to pause before searching', () => {
+  it('keeps the TMDB search out of the page until adding a title', () => {
     render(<MoviesClient />)
-    fireEvent.change(screen.getByLabelText('Search TMDB'), { target: { value: 'br' } })
-    expect(screen.getByRole('region', { name: 'Backlog' })).toBeInTheDocument()
-    act(() => {
-      vi.advanceTimersByTime(300)
-    })
-    expect(screen.queryByRole('region', { name: 'Backlog' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Search TMDB')).not.toBeInTheDocument()
+    openAdd()
+    expect(screen.getByRole('dialog', { name: 'Add a title' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Search TMDB')).toHaveValue('')
   })
 
-  it('keeps the backlog for one-character queries, ignoring padding', () => {
+  it('waits for typing to pause before searching', () => {
     render(<MoviesClient />)
-    expect(screen.getByLabelText('Search TMDB')).toHaveValue('')
+    openAdd()
+    fireEvent.change(screen.getByLabelText('Search TMDB'), { target: { value: 'br' } })
+    act(() => {
+      vi.advanceTimersByTime(299)
+    })
+    expect(vi.mocked(useMovieSearch)).not.toHaveBeenCalled()
+    act(() => {
+      vi.advanceTimersByTime(1)
+    })
+    expect(vi.mocked(useMovieSearch)).toHaveBeenCalledWith('br')
+  })
+
+  it('ignores one-character queries, padding included', () => {
+    render(<MoviesClient />)
     search('  b  ')
-    expect(screen.getByRole('region', { name: 'Backlog' })).toBeInTheDocument()
+    expect(vi.mocked(useMovieSearch)).not.toHaveBeenCalled()
   })
 
   it('restarts the wait on every keystroke', () => {
     render(<MoviesClient />)
+    openAdd()
     const input = screen.getByLabelText('Search TMDB')
     fireEvent.change(input, { target: { value: 'ab' } })
     act(() => {
@@ -282,7 +279,7 @@ describe('MoviesClient search', () => {
     act(() => {
       vi.advanceTimersByTime(200)
     })
-    expect(screen.getByRole('region', { name: 'Backlog' })).toBeInTheDocument()
+    expect(vi.mocked(useMovieSearch)).not.toHaveBeenCalled()
     act(() => {
       vi.advanceTimersByTime(100)
     })
@@ -296,8 +293,6 @@ describe('MoviesClient search', () => {
 
     expect(screen.getByText('Breaking Bad')).toBeInTheDocument()
     expect(screen.getByText('2008')).toBeInTheDocument()
-    expect(screen.getByRole('toolbar')).toHaveTextContent('2 results')
-    expect(screen.queryByLabelText('Sort')).not.toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Want' })).toHaveLength(1)
     expect(screen.getByText('Watched', { selector: 'span' })).toBeInTheDocument()
   })
@@ -376,10 +371,8 @@ describe('MoviesClient lists', () => {
     mockListParam = 'list=shared'
     render(<MoviesClient />)
     expect(screen.getByRole('tab', { name: 'Family' })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute(
-      'href',
-      '/movies/stats?list=shared'
-    )
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }))
+    expect(mockPush).toHaveBeenCalledWith('/movies/stats?list=shared')
     fireEvent.click(screen.getByRole('tab', { name: 'Mine' }))
     expect(mockReplace).toHaveBeenCalledWith('/movies')
   })

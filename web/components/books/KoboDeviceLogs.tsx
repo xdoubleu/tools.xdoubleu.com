@@ -6,15 +6,14 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { EmptyState, LoadingState } from '@/components/ui/states'
+import { formatDateTime } from '@/lib/dates'
 
 interface KoboDeviceLogsProps {
   deviceId: string
 }
 
 function formatLogTime(time: string): string {
-  const d = new Date(time)
-  if (Number.isNaN(d.getTime())) return time
-  return d.toLocaleString()
+  return formatDateTime(time) || time
 }
 
 function HeaderSection({

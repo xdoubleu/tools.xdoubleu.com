@@ -100,12 +100,46 @@ function renderLibrary(
 
 describe('BooksLibrary', () => {
   beforeEach(() => {
+    // Most tests drive the table; the cards view has its own tests below.
+    localStorage.setItem('books:library:view', JSON.stringify('table'))
     mockSearchExternal.mockReset()
     mockSearchExternal.mockResolvedValue({ results: [] })
   })
 
   afterEach(() => {
     vi.clearAllTimers()
+    localStorage.clear()
+  })
+
+  describe('cards view', () => {
+    beforeEach(() => localStorage.clear())
+
+    it('shows book cards by default, without the table controls', () => {
+      renderLibrary(makeLibrary())
+      expect(screen.getByRole('tab', { name: 'Cards', selected: true })).toBeInTheDocument()
+      expect(screen.queryByRole('table')).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Columns' })).not.toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Dune' })).toHaveAttribute('href', '/books/1')
+    })
+
+    it('switches to the table and remembers the choice on this device', () => {
+      renderLibrary(makeLibrary())
+      fireEvent.click(screen.getByRole('tab', { name: 'Table' }))
+      expect(screen.getByRole('table')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Columns' })).toBeInTheDocument()
+      expect(localStorage.getItem('books:library:view')).toBe('"table"')
+    })
+
+    it('counts the shelf and says so when it is empty', () => {
+      renderLibrary(makeLibrary({ reading: [], wishlist: [], finished: [], shelves: [] }))
+      expect(screen.getByText('Nothing on this shelf yet.')).toBeInTheDocument()
+      expect(screen.getByText('0 books')).toBeInTheDocument()
+    })
+
+    it('hides the view switch while searching', () => {
+      renderLibrary(makeLibrary(), { searchQuery: 'a' })
+      expect(screen.queryByRole('tab', { name: 'Cards' })).not.toBeInTheDocument()
+    })
   })
 
   it('defaults to the All books shelf', () => {

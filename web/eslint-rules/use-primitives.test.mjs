@@ -53,12 +53,18 @@ ruleTester.run('ui/use-primitives', rule, {
       code: '<Link href="/x" className={cn(interactiveCardClass, "block p-4")} />',
       errors: [{ messageId: 'linkCard' }]
     },
-    { code: '<a href="/grafana" className={interactiveCardClass} />', errors: [{ messageId: 'linkCard' }] },
+    {
+      code: '<a href="/grafana" className={interactiveCardClass} />',
+      errors: [{ messageId: 'linkCard' }]
+    },
     {
       code: '<p className="text-danger">Failed to load books.</p>',
       errors: [{ messageId: 'state' }]
     },
-    { code: '<p className="text-sm text-danger">{error}</p>', errors: [{ messageId: 'dangerText' }] },
+    {
+      code: '<p className="text-sm text-danger">{error}</p>',
+      errors: [{ messageId: 'dangerText' }]
+    },
     {
       code: '<span className={cn("text-xs", failed ? "text-danger" : "text-muted")} />',
       errors: [{ messageId: 'dangerText' }]

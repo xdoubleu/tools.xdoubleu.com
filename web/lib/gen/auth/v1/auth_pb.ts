@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file auth/v1/auth.proto.
  */
 export const file_auth_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChJhdXRoL3YxL2F1dGgucHJvdG8SB2F1dGgudjEiVwoNU2lnbkluUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRITCgtyZW1lbWJlcl9tZRgDIAEoCBIQCghyZWRpcmVjdBgEIAEoCSI3Cg5TaWduSW5SZXNwb25zZRIRCgluZWVkc19tZmEYASABKAgSEgoKZW5yb2xsX21mYRgCIAEoCCISChBNRkFFbnJvbGxSZXF1ZXN0IkYKEU1GQUVucm9sbFJlc3BvbnNlEg4KBnFyX3N2ZxgBIAEoCRIOCgZzZWNyZXQYAiABKAkSEQoJZmFjdG9yX2lkGAMgASgJIjkKFk1GQUVucm9sbFZlcmlmeVJlcXVlc3QSEQoJZmFjdG9yX2lkGAEgASgJEgwKBGNvZGUYAiABKAkiMQoXTUZBRW5yb2xsVmVyaWZ5UmVzcG9uc2USFgoOcmVjb3ZlcnlfY29kZXMYASADKAkiFgoUTUZBRW5yb2xsU2tpcFJlcXVlc3QiFwoVTUZBRW5yb2xsU2tpcFJlc3BvbnNlIiIKEk1GQVVuZW5yb2xsUmVxdWVzdBIMCgRjb2RlGAEgASgJIhUKE01GQVVuZW5yb2xsUmVzcG9uc2UiIwoTTUZBQ2hhbGxlbmdlUmVxdWVzdBIMCgRjb2RlGAEgASgJIhYKFE1GQUNoYWxsZW5nZVJlc3BvbnNlIiYKFUZvcmdvdFBhc3N3b3JkUmVxdWVzdBINCgVlbWFpbBgBIAEoCSIYChZGb3Jnb3RQYXNzd29yZFJlc3BvbnNlIkMKFEV4Y2hhbmdlVG9rZW5SZXF1ZXN0EhQKDGFjY2Vzc190b2tlbhgBIAEoCRIVCg1yZWZyZXNoX3Rva2VuGAIgASgJIioKFUV4Y2hhbmdlVG9rZW5SZXNwb25zZRIRCgluZWVkc19tZmEYASABKAgiRwoVVXBkYXRlUGFzc3dvcmRSZXF1ZXN0EhQKDG5ld19wYXNzd29yZBgBIAEoCRIYChBjdXJyZW50X3Bhc3N3b3JkGAIgASgJIhgKFlVwZGF0ZVBhc3N3b3JkUmVzcG9uc2UiEAoOU2lnbk91dFJlcXVlc3QiEQoPU2lnbk91dFJlc3BvbnNlIhcKFUdldEN1cnJlbnRVc2VyUmVxdWVzdCJyChZHZXRDdXJyZW50VXNlclJlc3BvbnNlEgwKBHJvbGUYASABKAkSEgoKYXBwX2FjY2VzcxgCIAMoCRIPCgdoYXNfbWZhGAMgASgIEhQKDGRpc3BsYXlfbmFtZRgEIAEoCRIPCgd1c2VyX2lkGAUgASgJIjsKFFJlc2V0UGFzc3dvcmRSZXF1ZXN0Eg0KBXRva2VuGAEgASgJEhQKDG5ld19wYXNzd29yZBgCIAEoCSIXChVSZXNldFBhc3N3b3JkUmVzcG9uc2UiLgoeUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXF1ZXN0EgwKBGNvZGUYASABKAkiOQofUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZRIWCg5yZWNvdmVyeV9jb2RlcxgBIAMoCTKOCAoLQXV0aFNlcnZpY2USOQoGU2lnbkluEhYuYXV0aC52MS5TaWduSW5SZXF1ZXN0GhcuYXV0aC52MS5TaWduSW5SZXNwb25zZRJCCglNRkFFbnJvbGwSGS5hdXRoLnYxLk1GQUVucm9sbFJlcXVlc3QaGi5hdXRoLnYxLk1GQUVucm9sbFJlc3BvbnNlElQKD01GQUVucm9sbFZlcmlmeRIfLmF1dGgudjEuTUZBRW5yb2xsVmVyaWZ5UmVxdWVzdBogLmF1dGgudjEuTUZBRW5yb2xsVmVyaWZ5UmVzcG9uc2USTgoNTUZBRW5yb2xsU2tpcBIdLmF1dGgudjEuTUZBRW5yb2xsU2tpcFJlcXVlc3QaHi5hdXRoLnYxLk1GQUVucm9sbFNraXBSZXNwb25zZRJLCgxNRkFDaGFsbGVuZ2USHC5hdXRoLnYxLk1GQUNoYWxsZW5nZVJlcXVlc3QaHS5hdXRoLnYxLk1GQUNoYWxsZW5nZVJlc3BvbnNlEkgKC01GQVVuZW5yb2xsEhsuYXV0aC52MS5NRkFVbmVucm9sbFJlcXVlc3QaHC5hdXRoLnYxLk1GQVVuZW5yb2xsUmVzcG9uc2USUQoORm9yZ290UGFzc3dvcmQSHi5hdXRoLnYxLkZvcmdvdFBhc3N3b3JkUmVxdWVzdBofLmF1dGgudjEuRm9yZ290UGFzc3dvcmRSZXNwb25zZRJOCg1FeGNoYW5nZVRva2VuEh0uYXV0aC52MS5FeGNoYW5nZVRva2VuUmVxdWVzdBoeLmF1dGgudjEuRXhjaGFuZ2VUb2tlblJlc3BvbnNlElEKDlVwZGF0ZVBhc3N3b3JkEh4uYXV0aC52MS5VcGRhdGVQYXNzd29yZFJlcXVlc3QaHy5hdXRoLnYxLlVwZGF0ZVBhc3N3b3JkUmVzcG9uc2USPAoHU2lnbk91dBIXLmF1dGgudjEuU2lnbk91dFJlcXVlc3QaGC5hdXRoLnYxLlNpZ25PdXRSZXNwb25zZRJRCg5HZXRDdXJyZW50VXNlchIeLmF1dGgudjEuR2V0Q3VycmVudFVzZXJSZXF1ZXN0Gh8uYXV0aC52MS5HZXRDdXJyZW50VXNlclJlc3BvbnNlEk4KDVJlc2V0UGFzc3dvcmQSHS5hdXRoLnYxLlJlc2V0UGFzc3dvcmRSZXF1ZXN0Gh4uYXV0aC52MS5SZXNldFBhc3N3b3JkUmVzcG9uc2USbAoXUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXMSJy5hdXRoLnYxLlJlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVxdWVzdBooLmF1dGgudjEuUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZUInWiV0b29scy54ZG91YmxldS5jb20vZ2VuL2F1dGgvdjE7YXV0aHYxYgZwcm90bzM");
+  fileDesc("ChJhdXRoL3YxL2F1dGgucHJvdG8SB2F1dGgudjEiVwoNU2lnbkluUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRITCgtyZW1lbWJlcl9tZRgDIAEoCBIQCghyZWRpcmVjdBgEIAEoCSI3Cg5TaWduSW5SZXNwb25zZRIRCgluZWVkc19tZmEYASABKAgSEgoKZW5yb2xsX21mYRgCIAEoCCISChBNRkFFbnJvbGxSZXF1ZXN0IkYKEU1GQUVucm9sbFJlc3BvbnNlEg4KBnFyX3N2ZxgBIAEoCRIOCgZzZWNyZXQYAiABKAkSEQoJZmFjdG9yX2lkGAMgASgJIjkKFk1GQUVucm9sbFZlcmlmeVJlcXVlc3QSEQoJZmFjdG9yX2lkGAEgASgJEgwKBGNvZGUYAiABKAkiMQoXTUZBRW5yb2xsVmVyaWZ5UmVzcG9uc2USFgoOcmVjb3ZlcnlfY29kZXMYASADKAkiFgoUTUZBRW5yb2xsU2tpcFJlcXVlc3QiFwoVTUZBRW5yb2xsU2tpcFJlc3BvbnNlIiIKEk1GQVVuZW5yb2xsUmVxdWVzdBIMCgRjb2RlGAEgASgJIhUKE01GQVVuZW5yb2xsUmVzcG9uc2UiIwoTTUZBQ2hhbGxlbmdlUmVxdWVzdBIMCgRjb2RlGAEgASgJIhYKFE1GQUNoYWxsZW5nZVJlc3BvbnNlIiYKFUZvcmdvdFBhc3N3b3JkUmVxdWVzdBINCgVlbWFpbBgBIAEoCSIYChZGb3Jnb3RQYXNzd29yZFJlc3BvbnNlIkMKFEV4Y2hhbmdlVG9rZW5SZXF1ZXN0EhQKDGFjY2Vzc190b2tlbhgBIAEoCRIVCg1yZWZyZXNoX3Rva2VuGAIgASgJIioKFUV4Y2hhbmdlVG9rZW5SZXNwb25zZRIRCgluZWVkc19tZmEYASABKAgiRwoVVXBkYXRlUGFzc3dvcmRSZXF1ZXN0EhQKDG5ld19wYXNzd29yZBgBIAEoCRIYChBjdXJyZW50X3Bhc3N3b3JkGAIgASgJIhgKFlVwZGF0ZVBhc3N3b3JkUmVzcG9uc2UiEAoOU2lnbk91dFJlcXVlc3QiEQoPU2lnbk91dFJlc3BvbnNlIhcKFUdldEN1cnJlbnRVc2VyUmVxdWVzdCK5AQoWR2V0Q3VycmVudFVzZXJSZXNwb25zZRIMCgRyb2xlGAEgASgJEhIKCmFwcF9hY2Nlc3MYAiADKAkSDwoHaGFzX21mYRgDIAEoCBIUCgxkaXNwbGF5X25hbWUYBCABKAkSDwoHdXNlcl9pZBgFIAEoCRIQCgh0YWJfcGlucxgGIAMoCRIbChN0YWJfcGluc19jdXN0b21pc2VkGAcgASgIEhYKDnN1Z2dlc3RlZF9waW5zGAggAygJIiMKFFJlY29yZEFwcE9wZW5SZXF1ZXN0EgsKA2FwcBgBIAEoCSIXChVSZWNvcmRBcHBPcGVuUmVzcG9uc2UiJQoRU2V0VGFiUGluc1JlcXVlc3QSEAoIdGFiX3BpbnMYASADKAkiFAoSU2V0VGFiUGluc1Jlc3BvbnNlIjsKFFJlc2V0UGFzc3dvcmRSZXF1ZXN0Eg0KBXRva2VuGAEgASgJEhQKDG5ld19wYXNzd29yZBgCIAEoCSIXChVSZXNldFBhc3N3b3JkUmVzcG9uc2UiLgoeUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXF1ZXN0EgwKBGNvZGUYASABKAkiOQofUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZRIWCg5yZWNvdmVyeV9jb2RlcxgBIAMoCTKlCQoLQXV0aFNlcnZpY2USOQoGU2lnbkluEhYuYXV0aC52MS5TaWduSW5SZXF1ZXN0GhcuYXV0aC52MS5TaWduSW5SZXNwb25zZRJCCglNRkFFbnJvbGwSGS5hdXRoLnYxLk1GQUVucm9sbFJlcXVlc3QaGi5hdXRoLnYxLk1GQUVucm9sbFJlc3BvbnNlElQKD01GQUVucm9sbFZlcmlmeRIfLmF1dGgudjEuTUZBRW5yb2xsVmVyaWZ5UmVxdWVzdBogLmF1dGgudjEuTUZBRW5yb2xsVmVyaWZ5UmVzcG9uc2USTgoNTUZBRW5yb2xsU2tpcBIdLmF1dGgudjEuTUZBRW5yb2xsU2tpcFJlcXVlc3QaHi5hdXRoLnYxLk1GQUVucm9sbFNraXBSZXNwb25zZRJLCgxNRkFDaGFsbGVuZ2USHC5hdXRoLnYxLk1GQUNoYWxsZW5nZVJlcXVlc3QaHS5hdXRoLnYxLk1GQUNoYWxsZW5nZVJlc3BvbnNlEkgKC01GQVVuZW5yb2xsEhsuYXV0aC52MS5NRkFVbmVucm9sbFJlcXVlc3QaHC5hdXRoLnYxLk1GQVVuZW5yb2xsUmVzcG9uc2USUQoORm9yZ290UGFzc3dvcmQSHi5hdXRoLnYxLkZvcmdvdFBhc3N3b3JkUmVxdWVzdBofLmF1dGgudjEuRm9yZ290UGFzc3dvcmRSZXNwb25zZRJOCg1FeGNoYW5nZVRva2VuEh0uYXV0aC52MS5FeGNoYW5nZVRva2VuUmVxdWVzdBoeLmF1dGgudjEuRXhjaGFuZ2VUb2tlblJlc3BvbnNlElEKDlVwZGF0ZVBhc3N3b3JkEh4uYXV0aC52MS5VcGRhdGVQYXNzd29yZFJlcXVlc3QaHy5hdXRoLnYxLlVwZGF0ZVBhc3N3b3JkUmVzcG9uc2USPAoHU2lnbk91dBIXLmF1dGgudjEuU2lnbk91dFJlcXVlc3QaGC5hdXRoLnYxLlNpZ25PdXRSZXNwb25zZRJRCg5HZXRDdXJyZW50VXNlchIeLmF1dGgudjEuR2V0Q3VycmVudFVzZXJSZXF1ZXN0Gh8uYXV0aC52MS5HZXRDdXJyZW50VXNlclJlc3BvbnNlEk4KDVJlc2V0UGFzc3dvcmQSHS5hdXRoLnYxLlJlc2V0UGFzc3dvcmRSZXF1ZXN0Gh4uYXV0aC52MS5SZXNldFBhc3N3b3JkUmVzcG9uc2USbAoXUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXMSJy5hdXRoLnYxLlJlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVxdWVzdBooLmF1dGgudjEuUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZRJFCgpTZXRUYWJQaW5zEhouYXV0aC52MS5TZXRUYWJQaW5zUmVxdWVzdBobLmF1dGgudjEuU2V0VGFiUGluc1Jlc3BvbnNlEk4KDVJlY29yZEFwcE9wZW4SHS5hdXRoLnYxLlJlY29yZEFwcE9wZW5SZXF1ZXN0Gh4uYXV0aC52MS5SZWNvcmRBcHBPcGVuUmVzcG9uc2VCJ1oldG9vbHMueGRvdWJsZXUuY29tL2dlbi9hdXRoL3YxO2F1dGh2MWIGcHJvdG8z");
 
 /**
  * @generated from message auth.v1.SignInRequest
@@ -411,6 +411,28 @@ export type GetCurrentUserResponse = Message<"auth.v1.GetCurrentUserResponse"> &
    * @generated from field: string user_id = 5;
    */
   userId: string;
+
+  /**
+   * Apps pinned to the phone tab bar, in order. Only meaningful when
+   * tab_pins_customised is set; otherwise the web uses its default pins.
+   *
+   * @generated from field: repeated string tab_pins = 6;
+   */
+  tabPins: string[];
+
+  /**
+   * @generated from field: bool tab_pins_customised = 7;
+   */
+  tabPinsCustomised: boolean;
+
+  /**
+   * Apps the user opened most over the last 30 whole days, most first: the
+   * default pins for someone who never chose, and "Reset to most used".
+   * Empty with no history.
+   *
+   * @generated from field: repeated string suggested_pins = 8;
+   */
+  suggestedPins: string[];
 };
 
 /**
@@ -419,6 +441,68 @@ export type GetCurrentUserResponse = Message<"auth.v1.GetCurrentUserResponse"> &
  */
 export const GetCurrentUserResponseSchema: GenMessage<GetCurrentUserResponse> = /*@__PURE__*/
   messageDesc(file_auth_v1_auth, 21);
+
+/**
+ * @generated from message auth.v1.RecordAppOpenRequest
+ */
+export type RecordAppOpenRequest = Message<"auth.v1.RecordAppOpenRequest"> & {
+  /**
+   * @generated from field: string app = 1;
+   */
+  app: string;
+};
+
+/**
+ * Describes the message auth.v1.RecordAppOpenRequest.
+ * Use `create(RecordAppOpenRequestSchema)` to create a new message.
+ */
+export const RecordAppOpenRequestSchema: GenMessage<RecordAppOpenRequest> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 22);
+
+/**
+ * @generated from message auth.v1.RecordAppOpenResponse
+ */
+export type RecordAppOpenResponse = Message<"auth.v1.RecordAppOpenResponse"> & {
+};
+
+/**
+ * Describes the message auth.v1.RecordAppOpenResponse.
+ * Use `create(RecordAppOpenResponseSchema)` to create a new message.
+ */
+export const RecordAppOpenResponseSchema: GenMessage<RecordAppOpenResponse> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 23);
+
+/**
+ * @generated from message auth.v1.SetTabPinsRequest
+ */
+export type SetTabPinsRequest = Message<"auth.v1.SetTabPinsRequest"> & {
+  /**
+   * At most three distinct app ids the user can open; empty means no pins.
+   *
+   * @generated from field: repeated string tab_pins = 1;
+   */
+  tabPins: string[];
+};
+
+/**
+ * Describes the message auth.v1.SetTabPinsRequest.
+ * Use `create(SetTabPinsRequestSchema)` to create a new message.
+ */
+export const SetTabPinsRequestSchema: GenMessage<SetTabPinsRequest> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 24);
+
+/**
+ * @generated from message auth.v1.SetTabPinsResponse
+ */
+export type SetTabPinsResponse = Message<"auth.v1.SetTabPinsResponse"> & {
+};
+
+/**
+ * Describes the message auth.v1.SetTabPinsResponse.
+ * Use `create(SetTabPinsResponseSchema)` to create a new message.
+ */
+export const SetTabPinsResponseSchema: GenMessage<SetTabPinsResponse> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 25);
 
 /**
  * @generated from message auth.v1.ResetPasswordRequest
@@ -440,7 +524,7 @@ export type ResetPasswordRequest = Message<"auth.v1.ResetPasswordRequest"> & {
  * Use `create(ResetPasswordRequestSchema)` to create a new message.
  */
 export const ResetPasswordRequestSchema: GenMessage<ResetPasswordRequest> = /*@__PURE__*/
-  messageDesc(file_auth_v1_auth, 22);
+  messageDesc(file_auth_v1_auth, 26);
 
 /**
  * @generated from message auth.v1.ResetPasswordResponse
@@ -453,7 +537,7 @@ export type ResetPasswordResponse = Message<"auth.v1.ResetPasswordResponse"> & {
  * Use `create(ResetPasswordResponseSchema)` to create a new message.
  */
 export const ResetPasswordResponseSchema: GenMessage<ResetPasswordResponse> = /*@__PURE__*/
-  messageDesc(file_auth_v1_auth, 23);
+  messageDesc(file_auth_v1_auth, 27);
 
 /**
  * @generated from message auth.v1.RegenerateRecoveryCodesRequest
@@ -472,7 +556,7 @@ export type RegenerateRecoveryCodesRequest = Message<"auth.v1.RegenerateRecovery
  * Use `create(RegenerateRecoveryCodesRequestSchema)` to create a new message.
  */
 export const RegenerateRecoveryCodesRequestSchema: GenMessage<RegenerateRecoveryCodesRequest> = /*@__PURE__*/
-  messageDesc(file_auth_v1_auth, 24);
+  messageDesc(file_auth_v1_auth, 28);
 
 /**
  * @generated from message auth.v1.RegenerateRecoveryCodesResponse
@@ -489,7 +573,7 @@ export type RegenerateRecoveryCodesResponse = Message<"auth.v1.RegenerateRecover
  * Use `create(RegenerateRecoveryCodesResponseSchema)` to create a new message.
  */
 export const RegenerateRecoveryCodesResponseSchema: GenMessage<RegenerateRecoveryCodesResponse> = /*@__PURE__*/
-  messageDesc(file_auth_v1_auth, 25);
+  messageDesc(file_auth_v1_auth, 29);
 
 /**
  * @generated from service auth.v1.AuthService
@@ -598,6 +682,22 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof RegenerateRecoveryCodesRequestSchema;
     output: typeof RegenerateRecoveryCodesResponseSchema;
+  },
+  /**
+   * @generated from rpc auth.v1.AuthService.SetTabPins
+   */
+  setTabPins: {
+    methodKind: "unary";
+    input: typeof SetTabPinsRequestSchema;
+    output: typeof SetTabPinsResponseSchema;
+  },
+  /**
+   * @generated from rpc auth.v1.AuthService.RecordAppOpen
+   */
+  recordAppOpen: {
+    methodKind: "unary";
+    input: typeof RecordAppOpenRequestSchema;
+    output: typeof RecordAppOpenResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_auth_v1_auth, 0);

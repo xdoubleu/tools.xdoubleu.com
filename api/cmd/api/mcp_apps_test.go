@@ -45,6 +45,7 @@ var appsToolNames = []string{
 	"recipes_fetch_video",
 	// mealplans (3)
 	"mealplans_list_plans", "mealplans_get_plan", "mealplans_suggest_recipes",
+	"dashboard_get_today",
 	// shoppinglist (9)
 	"shoppinglist_get_custom_list", "shoppinglist_get_meal_plan_export_items",
 	"shoppinglist_get_plan_ingredient_groups", "shoppinglist_list_categories",

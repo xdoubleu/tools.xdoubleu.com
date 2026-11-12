@@ -1,32 +1,26 @@
+import { type AppEntry } from '@/lib/apps'
 import { LinkCard } from '@/components/ui/link-card'
 import { SectionHeading } from '@/components/ui/section-heading'
 
-export interface AppLink {
-  name: string
-  label: string
-  href: string
-  description: string
-  accessKey?: string
-  /** Plain anchor instead of `<Link>`, for targets served by another container (e.g. `/grafana`). */
-  external?: boolean
-}
-
 export interface AppSection {
   title: string
-  apps: AppLink[]
+  apps: AppEntry[]
 }
 
 interface AppGridProps {
-  apps?: AppLink[]
+  apps?: AppEntry[]
   sections?: AppSection[]
 }
 
-function AppCards({ apps }: { apps: AppLink[] }) {
+function AppCards({ apps }: { apps: AppEntry[] }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {apps.map((app) => (
-        <LinkCard key={app.name} href={app.href} external={app.external} linkClassName="p-4">
-          <div className="font-semibold text-fg">{app.label}</div>
+        <LinkCard key={app.id} href={app.href} external={app.external} linkClassName="p-4">
+          <div className="flex items-center gap-2 font-semibold text-fg">
+            <app.icon aria-hidden className="size-5 shrink-0 text-accent" />
+            {app.label}
+          </div>
           <div className="mt-1 text-sm text-muted">{app.description}</div>
         </LinkCard>
       ))}

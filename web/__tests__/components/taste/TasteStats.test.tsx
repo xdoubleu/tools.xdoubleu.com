@@ -94,14 +94,14 @@ describe('TasteStats', () => {
     mockStats({ data: full, error: new Error('nope'), isLoading: true })
     render(<TasteStats />)
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-    expect(screen.getByText('3 liked · 1 disliked · last 02/10/2026')).toBeInTheDocument()
+    expect(screen.getByText(/^3 liked · 1 disliked · last 2 Oct/)).toBeInTheDocument()
   })
 
   it('shows tiles, the stacked chart and the ranked lists', () => {
     mockStats({ data: full })
     render(<TasteStats />)
 
-    expect(screen.getByText('3 liked · 1 disliked · last 02/10/2026')).toBeInTheDocument()
+    expect(screen.getByText(/^3 liked · 1 disliked · last 2 Oct/)).toBeInTheDocument()
     expect(screen.getAllByText('0 liked · 0 disliked')).toHaveLength(5)
     expect(screen.getAllByTestId('bar').map((b) => b.textContent)).toContain(
       'Books:events:rgb(var(--series-1-rgb))'
@@ -131,7 +131,7 @@ describe('TasteStats', () => {
       })
     })
     render(<TasteStats />)
-    const list = screen.getByRole('list', { name: 'Hit rate per domain and track' })
+    const list = screen.getByRole('list', { name: 'Recommendation hit rate' })
     const [books, series] = within(list).getAllByRole('listitem')
     expect(books).toHaveTextContent('Books · More of what you like67% (2 of 3)')
     expect(series).toHaveTextContent('Series · Broaden your horizon0% (0 of 2)')

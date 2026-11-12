@@ -1,7 +1,9 @@
 import { mutate } from 'swr'
 import { useUsers, useSetRole, useSetAppAccess } from '@/hooks/useUserManagement'
 import type { AppUser } from '@/lib/gen/access/v1/access_pb'
-import { Button } from '@/components/ui/button'
+import { useState } from 'react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { Select } from '@/components/ui/select'
 import { Card } from '@/components/ui/card'
 import { PageContainer } from '@/components/ui/page-container'
@@ -65,30 +67,50 @@ function RoleSelect({ user }: { user: AppUser }) {
   )
 }
 
-/** One app's Grant/Revoke button. Shared by the mobile card and the table row. */
-function AppAccessButton({ user, appName }: { user: AppUser; appName: string }) {
+/** Grants at once; a revoke asks first. Returns the state and the dialog to render. */
+function useAccessChange(user: AppUser, appName: string) {
   const { handleAccessToggle } = useUserActions(user)
+  const [confirming, setConfirming] = useState(false)
   const hasAccess = user.appAccess.includes(appName)
+  const dialog = (
+    <ConfirmDialog
+      open={confirming}
+      onOpenChange={setConfirming}
+      title={`Revoke ${appName} from ${user.email}?`}
+      description="They lose access to the app straight away."
+      confirmLabel="Revoke"
+      destructive
+      onConfirm={() => void handleAccessToggle(appName)}
+    />
+  )
+  const change = () => (hasAccess ? setConfirming(true) : void handleAccessToggle(appName))
+  return { hasAccess, change, dialog }
+}
+
+/** One app's access as a checkbox that shows the current state. Used in the table row. */
+function AppAccessCheckbox({ user, appName }: { user: AppUser; appName: string }) {
+  const { hasAccess, change, dialog } = useAccessChange(user, appName)
   return (
-    <Button
-      size="sm"
-      variant={hasAccess ? 'default' : 'secondary'}
-      onClick={() => void handleAccessToggle(appName)}
-    >
-      {hasAccess ? 'Revoke' : 'Grant'}
-    </Button>
+    <>
+      <Checkbox
+        checked={hasAccess}
+        onChange={change}
+        label={<span className="sr-only">{`${appName} access for ${user.email}`}</span>}
+        labelClassName="justify-center"
+      />
+      {dialog}
+    </>
   )
 }
 
 /** One app's access as a pill named after the app, for the mobile card where no column header names it. */
 function AppAccessPill({ user, appName }: { user: AppUser; appName: string }) {
-  const { handleAccessToggle } = useUserActions(user)
+  const { hasAccess, change, dialog } = useAccessChange(user, appName)
   return (
-    <TogglePill
-      label={appName}
-      active={user.appAccess.includes(appName)}
-      onClick={() => void handleAccessToggle(appName)}
-    />
+    <>
+      <TogglePill label={appName} active={hasAccess} onClick={change} />
+      {dialog}
+    </>
   )
 }
 
@@ -105,7 +127,7 @@ export default function UserManagementClient() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer size="wide">
       <PageHeader
         title="User management"
         actions={<PageHeaderLink href="/user-management/agents">Agents</PageHeaderLink>}
@@ -166,7 +188,7 @@ export default function UserManagementClient() {
                   </TableCell>
                   {APP_NAMES.map((appName) => (
                     <TableCell key={appName} className="text-center">
-                      <AppAccessButton user={user} appName={appName} />
+                      <AppAccessCheckbox user={user} appName={appName} />
                     </TableCell>
                   ))}
                 </TableRow>

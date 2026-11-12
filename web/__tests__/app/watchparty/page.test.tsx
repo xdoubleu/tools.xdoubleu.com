@@ -17,14 +17,14 @@ beforeEach(() => vi.clearAllMocks())
 describe('WatchpartyPage', () => {
   it('renders the title and room actions', () => {
     render(<WatchpartyPage />)
-    expect(screen.getByRole('heading', { name: 'Watch Party' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Create Room' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Watch party' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create room' })).toBeInTheDocument()
   })
 
   it('opens the presenter view of a created room', async () => {
     createRoom.mockResolvedValue('ABC')
     render(<WatchpartyPage />)
-    fireEvent.click(screen.getByRole('button', { name: 'Create Room' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create room' }))
     await waitFor(() => expect(push).toHaveBeenCalledWith('/watchparty/ABC/presenter'))
   })
 
@@ -41,7 +41,7 @@ describe('WatchpartyPage', () => {
     createRoom.mockResolvedValue('')
     joinRoom.mockResolvedValue('')
     render(<WatchpartyPage />)
-    fireEvent.click(screen.getByRole('button', { name: 'Create Room' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create room' }))
     await waitFor(() => expect(createRoom).toHaveBeenCalled())
     fireEvent.change(screen.getByLabelText('Room code'), { target: { value: 'xyz' } })
     fireEvent.click(screen.getByRole('button', { name: 'Join' }))
@@ -56,5 +56,24 @@ describe('WatchpartyPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Join' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('room not found')
     expect(push).not.toHaveBeenCalled()
+  })
+
+  it('only enables Join for a non-blank room code', () => {
+    render(<WatchpartyPage />)
+    const join = screen.getByRole('button', { name: 'Join' })
+    expect(join).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('Room code'), { target: { value: '   ' } })
+    expect(join).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('Room code'), { target: { value: 'abc' } })
+    expect(join).toBeEnabled()
+  })
+
+  it('disables both buttons and says Creating… while a room is made', async () => {
+    createRoom.mockReturnValue(new Promise(() => undefined))
+    render(<WatchpartyPage />)
+    fireEvent.change(screen.getByLabelText('Room code'), { target: { value: 'abc' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create room' }))
+    expect(await screen.findByRole('button', { name: 'Creating…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Join' })).toBeDisabled()
   })
 })

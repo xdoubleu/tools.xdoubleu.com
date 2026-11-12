@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Code, ConnectError } from '@connectrpc/connect'
 import type { SearchResult } from '@/lib/gen/movies/v1/movies_pb'
 import { useMovieSearch, useMoviesActions } from '@/hooks/useMovies'
@@ -99,21 +99,9 @@ function SearchResultRow({ result, today }: { result: SearchResult; today: strin
   )
 }
 
-interface MovieSearchResultsProps {
-  query: string
-  /** Receives the result-count label for the toolbar. */
-  onCount?: (label: string | null) => void
-}
-
-export default function MovieSearchResults({ query, onCount }: MovieSearchResultsProps) {
+export default function MovieSearchResults({ query }: { query: string }) {
   const { data, error, isLoading } = useMovieSearch(query)
   const today = todayISO()
-  const n = data?.results.length
-  const countLabel = n === undefined ? null : `${n} ${n === 1 ? 'result' : 'results'}`
-
-  useEffect(() => {
-    onCount?.(countLabel)
-  }, [onCount, countLabel])
 
   if (error) return <Alert tone="danger">{errorMessage(error)}</Alert>
   if (isLoading && !data) return <LoadingState placement="page" label="results" />

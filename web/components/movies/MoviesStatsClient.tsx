@@ -1,19 +1,9 @@
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from 'recharts'
-import { axisTick, tooltipProps } from '@/lib/chartTheme'
+import { Bar, BarChart, CartesianGrid, Legend, Tooltip, XAxis, YAxis } from 'recharts'
+import { axisTick, countAxisProps, gridProps, seriesColor, tooltipProps } from '@/lib/chartTheme'
 import { useMovieStats } from '@/hooks/useMovies'
 import { monthLabel } from '@/lib/dates'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RatingStars } from '@/components/ui/rating-stars'
-import { StatTile } from '@/components/ui/stat'
+import { ChartCard, RankedList, StatTile, StatTileGrid } from '@/components/ui/stat'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 /** Watching totals, watches per month, top genres and ratings. */
@@ -40,74 +30,43 @@ export default function MoviesStatsClient() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <StatTileGrid columns={3}>
         <StatTile label="Movies watched" value={data.moviesWatched} />
         <StatTile label="Series watched" value={data.seriesWatched} />
         <StatTile label="Seasons watched" value={data.seasonsWatched} />
-      </div>
+      </StatTileGrid>
 
-      <Card padding="none">
-        <CardHeader>
-          <CardTitle>Watched per month</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={months}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                <XAxis dataKey="month" tick={axisTick} />
-                <YAxis allowDecimals={false} tick={axisTick} width={32} />
-                <Tooltip {...tooltipProps} />
-                <Legend />
-                <Bar dataKey="Movies" stackId="watches" fill="var(--color-accent)" />
-                <Bar dataKey="Seasons" stackId="watches" fill="var(--color-star)" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="mt-2 text-xs text-muted">Watches without a date aren&apos;t charted.</p>
-        </CardContent>
-      </Card>
+      <ChartCard title="Watched per month" note="Watches without a date aren’t charted.">
+        <BarChart data={months}>
+          <CartesianGrid {...gridProps} />
+          <XAxis dataKey="month" tick={axisTick} />
+          <YAxis {...countAxisProps} />
+          <Tooltip {...tooltipProps} />
+          <Legend />
+          <Bar dataKey="Movies" stackId="watches" fill={seriesColor(1)} />
+          <Bar dataKey="Seasons" stackId="watches" fill={seriesColor(2)} />
+        </BarChart>
+      </ChartCard>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <Card padding="none">
-          <CardHeader>
-            <CardTitle>Top genres</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.genres.length === 0 ? (
-              <EmptyState placement="inline">No genres yet.</EmptyState>
-            ) : (
-              <ol className="space-y-1 text-sm">
-                {data.genres.map((g) => (
-                  <li key={g.genre} className="flex justify-between gap-3">
-                    <span className="min-w-0 break-words">{g.genre}</span>
-                    <span className="text-muted">{g.count}</span>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card padding="none">
-          <CardHeader>
-            <CardTitle>Ratings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {rated ? (
-              <ul className="space-y-1 text-sm">
-                {[5, 4, 3, 2, 1].map((stars) => (
-                  <li key={stars} className="flex items-center justify-between gap-3">
-                    <RatingStars value={stars} />
-                    <span className="text-muted">{data.ratings[stars - 1] ?? 0}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyState placement="inline">No ratings yet.</EmptyState>
-            )}
-          </CardContent>
-        </Card>
+        <RankedList
+          title="Top genres"
+          empty="No genres yet."
+          items={data.genres.map((g) => ({ key: g.genre, label: g.genre, value: g.count }))}
+        />
+        <RankedList
+          title="Ratings"
+          empty="No ratings yet."
+          items={
+            rated
+              ? [5, 4, 3, 2, 1].map((stars) => ({
+                  key: String(stars),
+                  label: <RatingStars value={stars} />,
+                  value: data.ratings[stars - 1] ?? 0
+                }))
+              : []
+          }
+        />
       </div>
     </div>
   )

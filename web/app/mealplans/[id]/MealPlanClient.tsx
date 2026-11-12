@@ -41,7 +41,7 @@ export default function MealPlanClient({ id }: { id: string }) {
   const recipes = recipesData ?? []
 
   return (
-    <PageContainer>
+    <PageContainer size="wide">
       {isLoading && <MealPlanSkeleton />}
       {error && <ErrorState placement="page" what="meal plan" />}
 
@@ -49,12 +49,12 @@ export default function MealPlanClient({ id }: { id: string }) {
         <>
           <PageHeader
             title={plan.name}
-            breadcrumb={[{ label: 'Meal Plans', href: '/mealplans' }, { label: plan.name }]}
+            breadcrumb={[{ label: 'Meal plans', href: '/mealplans' }, { label: plan.name }]}
             actions={
               <>
                 {data?.icalUrl && (
                   <Button variant="secondary" onClick={handleCopyIcal}>
-                    {icalCopied ? 'Copied!' : 'iCal Link'}
+                    {icalCopied ? 'Copied!' : 'iCal link'}
                   </Button>
                 )}
                 <PageHeaderLink href={`/mealplans/${plan.id}/edit`}>Edit plan</PageHeaderLink>
@@ -68,6 +68,7 @@ export default function MealPlanClient({ id }: { id: string }) {
             weekOffset={offset}
             onPrevWeek={() => setOffset(data?.prevOffset ?? offset - 1)}
             onNextWeek={() => setOffset(data?.nextOffset ?? offset + 1)}
+            onThisWeek={() => setOffset(0)}
             onMutate={() => mutate()}
           />
         </>

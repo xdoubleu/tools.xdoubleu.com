@@ -84,22 +84,20 @@ func NewApps(
 	apps.addApp(gamesApp)
 	apps.addApp(watchparty.New(ctx, authService, logger, cfg))
 	apps.addApp(recipes.New(ctx, authService, logger, cfg, db, familyRepo))
-	apps.addApp(mealplans.New(ctx, authService, logger, cfg, db, familyRepo))
-	apps.addApp(shoppinglist.New(ctx, authService, logger, cfg, db, familyRepo))
-	apps.addApp(
-		dashboard.New(ctx, authService, logger, cfg, db, gamesApp, booksApp, feedsApp),
-	)
+	mealplansApp := mealplans.New(ctx, authService, logger, cfg, db, familyRepo)
+	apps.addApp(mealplansApp)
+	shoppinglistApp := shoppinglist.New(ctx, authService, logger, cfg, db, familyRepo)
+	apps.addApp(shoppinglistApp)
 	// trains has no schema dependencies, so its position is free.
 	apps.addApp(trains.New(ctx, authService, logger, cfg, db))
 	// learningpaths has no schema dependencies. It takes booksApp/feedsApp to
 	// resolve linked resources, and authSealer for its own per-user Todoist
 	// OAuth connections.
-	apps.addApp(
-		learningpaths.New(
-			ctx,
-			authService, logger, cfg, db, authSealer, booksApp, feedsApp,
-		),
+	learningpathsApp := learningpaths.New(
+		ctx,
+		authService, logger, cfg, db, authSealer, booksApp, feedsApp,
 	)
+	apps.addApp(learningpathsApp)
 	// movies has no schema dependencies.
 	moviesApp := movies.New(ctx, authService, logger, cfg, db, familyRepo)
 	apps.addApp(moviesApp)
@@ -121,7 +119,23 @@ func NewApps(
 	factoryOpts = append(factoryOpts,
 		factory.WithGitHubWebhookSecret(cfg.FactoryGitHubWebhookSecret),
 		factory.WithSlack(cfg.FactorySlackWebhookURL, cfg.WebURL))
-	apps.addApp(factory.New(ctx, authService, logger, cfg, db, factoryOpts...))
+	factoryApp := factory.New(ctx, authService, logger, cfg, db, factoryOpts...)
+	apps.addApp(factoryApp)
+
+	// dashboard has no migrations and summarises the apps above on its Today
+	// page, so it follows them.
+	apps.addApp(dashboard.New(
+		ctx, authService, logger, cfg, db, gamesApp, booksApp, feedsApp,
+		dashboard.TodayApps{
+			Books:         booksApp,
+			Feeds:         feedsApp,
+			MealPlans:     mealplansApp,
+			ShoppingList:  shoppinglistApp,
+			Movies:        moviesApp,
+			LearningPaths: learningpathsApp,
+			Factory:       factoryApp,
+		},
+	))
 
 	// taste reads every media app through its exported ListConsumption, so it
 	// follows them.

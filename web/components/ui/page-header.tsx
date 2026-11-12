@@ -23,7 +23,7 @@ function PageHeader({ title, breadcrumb, description, actions, className }: Page
       {breadcrumb && <Breadcrumb items={breadcrumb} />}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1 basis-60">
-          <h1 className="break-words font-display text-3xl font-medium leading-tight tracking-tight sm:text-4xl">
+          <h1 className="break-words text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
             {title}
           </h1>
           {description && <p className="mt-1 text-sm text-muted">{description}</p>}

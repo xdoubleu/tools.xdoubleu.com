@@ -16,6 +16,8 @@ service AuthService {
   rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
   rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
   rpc RegenerateRecoveryCodes(RegenerateRecoveryCodesRequest) returns (RegenerateRecoveryCodesResponse);
+  rpc SetTabPins(SetTabPinsRequest) returns (SetTabPinsResponse);
+  rpc RecordAppOpen(RecordAppOpenRequest) returns (RecordAppOpenResponse);
 }
 
 message SignInRequest {
@@ -102,7 +104,28 @@ message GetCurrentUserResponse {
   string display_name = 4;
   // Stable user id, used as the PostHog distinct_id.
   string user_id = 5;
+  // Apps pinned to the phone tab bar, in order. Only meaningful when
+  // tab_pins_customised is set; otherwise the web uses its default pins.
+  repeated string tab_pins = 6;
+  bool tab_pins_customised = 7;
+  // Apps the user opened most over the last 30 whole days, most first: the
+  // default pins for someone who never chose, and "Reset to most used".
+  // Empty with no history.
+  repeated string suggested_pins = 8;
 }
+
+message RecordAppOpenRequest {
+  string app = 1;
+}
+
+message RecordAppOpenResponse {}
+
+message SetTabPinsRequest {
+  // At most three distinct app ids the user can open; empty means no pins.
+  repeated string tab_pins = 1;
+}
+
+message SetTabPinsResponse {}
 
 message ResetPasswordRequest {
   string token = 1;

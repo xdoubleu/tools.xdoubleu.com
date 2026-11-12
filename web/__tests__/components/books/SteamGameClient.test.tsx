@@ -231,10 +231,11 @@ describe('SteamGameClient', () => {
     render(<SteamGameClient id="123" />)
     const toggle = screen.getByRole('button', { name: 'Show completed' })
     fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByText('Achievement 1')).toBeInTheDocument()
     expect(screen.getByText('Achievement 2')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Hide completed' }))
+    fireEvent.click(toggle)
     expect(screen.queryByText('Achievement 1')).not.toBeInTheDocument()
   })
 
@@ -292,7 +293,7 @@ describe('SteamGameClient', () => {
 
     render(<SteamGameClient id="123" />)
     const backlogLink = screen.getByText(/Games/).closest('a')
-    expect(backlogLink).toHaveAttribute('href', '/dashboard/games')
+    expect(backlogLink).toHaveAttribute('href', '/games/library')
   })
 
   it('does not render a distribution breadcrumb without a bucket param', () => {
@@ -356,7 +357,7 @@ describe('SteamGameClient', () => {
     })
 
     render(<SteamGameClient id="123" />)
-    expect(screen.getByText('Completion: 85.00%')).toBeInTheDocument()
+    expect(screen.getByText(/60 hrs played · Completion: 85%/)).toBeInTheDocument()
   })
 
   it('displays achieved count in achievements header', () => {
@@ -422,7 +423,7 @@ describe('SteamGameClient', () => {
 
     render(<SteamGameClient id="123" />)
     expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'High poll: off' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'High poll' })).toBeInTheDocument()
   })
 
   it('toggles high poll mode label', () => {
@@ -434,11 +435,11 @@ describe('SteamGameClient', () => {
     })
 
     render(<SteamGameClient id="123" />)
-    const toggle = screen.getByRole('button', { name: 'High poll: off' })
+    const toggle = screen.getByRole('button', { name: 'High poll' })
     fireEvent.click(toggle)
-    expect(screen.getByRole('button', { name: 'High poll: on' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'High poll: on' }))
-    expect(screen.getByRole('button', { name: 'High poll: off' })).toBeInTheDocument()
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
   })
 
   it('displays last synced timestamp', () => {
@@ -464,6 +465,21 @@ describe('SteamGameClient', () => {
 
     render(<SteamGameClient id="123" />)
     expect(screen.queryByText(/Last synced:/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Completion: 85%/).textContent).not.toMatch(/·\s*$/)
+  })
+
+  it('shows refreshing progress while a refresh runs', async () => {
+    mockRefreshSteamGame.mockReturnValue(new Promise(() => {}))
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    vi.mocked(useSteamGame).mockReturnValue({
+      data: mockSteamGameResponse(mockGame, []),
+      isLoading: false,
+      error: undefined,
+      mutate: vi.fn()
+    })
+    render(<SteamGameClient id="123" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    expect(await screen.findByRole('button', { name: 'Refreshing…' })).toBeDisabled()
   })
 
   it('calls refreshSteamGame when Refresh button is clicked', async () => {
@@ -559,7 +575,7 @@ describe('SteamGameClient', () => {
       render(<SteamGameClient id="123" />)
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'High poll: off' }))
+        fireEvent.click(screen.getByRole('button', { name: 'High poll' }))
       })
 
       expect(mockRefreshSteamGame).not.toHaveBeenCalled()
@@ -589,7 +605,7 @@ describe('SteamGameClient', () => {
       render(<SteamGameClient id="123" />)
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'High poll: off' }))
+        fireEvent.click(screen.getByRole('button', { name: 'High poll' }))
       })
 
       await act(async () => {
@@ -614,7 +630,7 @@ describe('SteamGameClient', () => {
       const { unmount } = render(<SteamGameClient id="123" />)
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'High poll: off' }))
+        fireEvent.click(screen.getByRole('button', { name: 'High poll' }))
       })
 
       unmount()
@@ -644,10 +660,10 @@ describe('SteamGameClient', () => {
       render(<SteamGameClient id="123" />)
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'High poll: off' }))
+        fireEvent.click(screen.getByRole('button', { name: 'High poll' }))
       })
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'High poll: on' }))
+        fireEvent.click(screen.getByRole('button', { name: 'High poll' }))
       })
 
       await act(async () => {
@@ -672,7 +688,7 @@ describe('SteamGameClient', () => {
       render(<SteamGameClient id="123" />)
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'High poll: off' }))
+        fireEvent.click(screen.getByRole('button', { name: 'High poll' }))
       })
 
       await act(async () => {

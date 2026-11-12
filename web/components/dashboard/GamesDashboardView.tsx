@@ -10,6 +10,7 @@ import { EmptyState, LoadingState } from '@/components/ui/states'
 import { LinkCard } from '@/components/ui/link-card'
 import { formatDate } from '@/lib/dates'
 import type { DashboardChartState } from '@/hooks/useDashboardChartState'
+import { formatPercent } from '@/lib/format'
 
 function RecentGameCard({ game, href }: { game: RecentGame; href: string }) {
   return (
@@ -25,7 +26,7 @@ function RecentGameCard({ game, href }: { game: RecentGame; href: string }) {
       )}
       <div className="min-w-0 flex-1">
         <h3 className="font-semibold truncate">{game.name}</h3>
-        <p className="text-sm text-muted">Completion: {game.completionRate}%</p>
+        <p className="text-sm text-muted">Completion: {formatPercent(game.completionRate)}</p>
         <p className="text-sm text-muted">
           Last played {formatDate(game.lastPlayedAt)} &mdash; {Math.round(game.playtime / 60)} hrs
         </p>
@@ -70,7 +71,7 @@ export default function GamesDashboardView({
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <StatTile label="Total backlog" value={steam.totalBacklog} />
-        <StatTile label="Current rate" value={`${steam.currentRate}%`} />
+        <StatTile label="Current rate" value={formatPercent(steam.currentRate)} />
         <StatTile label="In progress" value={steam.inProgress.length} />
         <StatTile label="Completed" value={steam.completed.length} />
         <StatTile label="Favourites" value={favouritesCount} href={favouritesHref} />

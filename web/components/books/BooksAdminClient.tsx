@@ -28,7 +28,7 @@ export default function BooksAdminClient() {
   return (
     <PageContainer size="form">
       <PageHeader
-        breadcrumb={[{ label: 'Books', href: '/dashboard/reading' }, { label: 'Admin tools' }]}
+        breadcrumb={[{ label: 'Books', href: '/books/library' }, { label: 'Admin tools' }]}
         title="Books admin tools"
       />
 

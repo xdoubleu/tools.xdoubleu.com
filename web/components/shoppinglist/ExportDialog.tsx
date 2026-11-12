@@ -28,6 +28,7 @@ import { SectionHeading } from '@/components/ui/section-heading'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { EmptyState } from '@/components/ui/states'
+import { formatQuantity } from '@/lib/format'
 
 interface ExportDialogProps {
   customItems: ShoppingItem[]
@@ -118,7 +119,7 @@ export default function ExportDialog({ customItems, mealItems, onClose }: Export
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent side="sheet" className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Export Shopping List</DialogTitle>
+          <DialogTitle>Export shopping list</DialogTitle>
           <DialogClose aria-label="Close">×</DialogClose>
         </DialogHeader>
 
@@ -176,7 +177,7 @@ export default function ExportDialog({ customItems, mealItems, onClose }: Export
                       <ul className="space-y-1">
                         {group.items.map((item, i) => (
                           <li key={i} className="text-sm text-subtle">
-                            {item.amount} {item.unit} — {item.name}
+                            {formatQuantity(item.amount, item.unit, item.name)}
                             {item.origins && item.origins.length > 0 && (
                               <span className="text-muted">{formatOrigins(item.origins)}</span>
                             )}
@@ -198,7 +199,7 @@ export default function ExportDialog({ customItems, mealItems, onClose }: Export
               <ul className="space-y-1">
                 {prepareForExport(customItems, mealItems).map((item, i) => (
                   <li key={i} className="text-sm text-subtle">
-                    {item.amount} {item.unit} — {item.name}
+                    {formatQuantity(item.amount, item.unit, item.name)}
                     {item.origins && item.origins.length > 0 && (
                       <span className="text-muted">{formatOrigins(item.origins)}</span>
                     )}

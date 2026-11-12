@@ -9,8 +9,8 @@ export default function NewLearningPathPage() {
   return (
     <PageContainer size="form">
       <PageHeader
-        title="New Learning Path"
-        breadcrumb={[{ label: 'Learning Paths', href: '/learningpaths/list' }, { label: 'New' }]}
+        title="New learning path"
+        breadcrumb={[{ label: 'Learning paths', href: '/learningpaths/list' }, { label: 'New' }]}
       />
       <LearningPathForm
         onSave={(id) => router.push(`/learningpaths/${id}`)}

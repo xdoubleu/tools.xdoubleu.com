@@ -11,7 +11,7 @@ export default function ReadingDashboardPublicLibraryPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Library"
+        title="Shared books library"
         breadcrumb={[
           {
             label: library?.displayName ? `${library.displayName}'s reading` : 'Reading',

@@ -103,6 +103,6 @@ describe('EditRecipeClient', () => {
     })
 
     render(<EditRecipeClient id="recipe-1" />)
-    expect(screen.getByText('Edit Recipe')).toBeInTheDocument()
+    expect(screen.getByText('Edit recipe')).toBeInTheDocument()
   })
 })

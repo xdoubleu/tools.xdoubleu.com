@@ -19,12 +19,19 @@ let mockListLoading = false
 let mockListError: Error | undefined
 let mockPlanGroups: { data: { groups: unknown[] } } = { data: { groups: [] } }
 let mockAliases: Record<string, string> = {}
+let mockItemCategories: { name: string; categoryId: string }[] = []
 
 vi.mock('@/hooks/useShoppingList', () => ({
   useCustomList: () => ({
     data: mockListError
       ? undefined
-      : { items: [{ id: 'i1', name: 'Milk', amount: '1', unit: 'L' }] },
+      : {
+          items: [
+            { id: 'i1', name: 'Milk', amount: '1', unit: 'L' },
+            { id: 'i2', name: 'Eggs ', amount: '6', unit: '' },
+            { id: 'i3', name: 'Salt', amount: '1', unit: '' }
+          ]
+        },
     error: mockListError,
     isLoading: mockListLoading
   }),
@@ -35,9 +42,14 @@ vi.mock('@/hooks/useShoppingList', () => ({
 }))
 vi.mock('@/hooks/useIngredientCatalog', () => ({
   useCategories: () => ({
-    data: { categories: [{ id: 'cat-produce', name: 'Produce' }] }
+    data: {
+      categories: [
+        { id: 'cat-produce', name: 'Produce' },
+        { id: 'cat-dairy', name: 'Dairy' }
+      ]
+    }
   }),
-  useItemCategories: () => ({ data: { items: [] }, isLoading: false }),
+  useItemCategories: () => ({ data: { items: mockItemCategories }, isLoading: false }),
   useItemAliases: () => mockAliases
 }))
 
@@ -57,6 +69,7 @@ beforeEach(() => {
   mockListLoading = false
   mockListError = undefined
   mockAliases = {}
+  mockItemCategories = []
 })
 
 describe('ShoppingListPageClient load states', () => {
@@ -68,13 +81,94 @@ describe('ShoppingListPageClient load states', () => {
   })
 })
 
+describe('ShoppingListPageClient grouping', () => {
+  it('groups by catalog order, trims item names and files the rest under Other', () => {
+    mockItemCategories = [
+      { name: ' MILK ', categoryId: 'cat-dairy' },
+      { name: 'eggs', categoryId: 'cat-produce' }
+    ]
+    render(<ShoppingListPageClient />)
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      'Produce',
+      'Dairy',
+      'Other'
+    ])
+    expect(screen.getByRole('region', { name: 'Produce' })).toHaveTextContent('6 Eggs')
+    expect(screen.getByRole('region', { name: 'Dairy' })).toHaveTextContent('1 L Milk')
+    expect(screen.getByRole('region', { name: 'Other' })).toHaveTextContent('Salt')
+  })
+
+  it('shows no headings while nothing is categorised', () => {
+    render(<ShoppingListPageClient />)
+    expect(screen.queryByRole('region', { name: 'Other' })).not.toBeInTheDocument()
+  })
+})
+
 describe('ShoppingPage add form', () => {
+  it('only enables Add for a non-blank name', () => {
+    render(<ShoppingListPageClient />)
+    const add = screen.getByRole('button', { name: 'Add' })
+    const name = screen.getByRole('textbox', { name: 'New item name' })
+    expect(add).toBeDisabled()
+    fireEvent.change(name, { target: { value: '   ' } })
+    expect(add).toBeDisabled()
+    fireEvent.change(name, { target: { value: 'Tea' } })
+    expect(add).toBeEnabled()
+  })
+
+  it('disables Add while the write is queued', async () => {
+    const gate = Promise.withResolvers<Awaited<ReturnType<typeof enqueueWrite>>>()
+    enqueue.mockReturnValueOnce(gate.promise)
+    render(<ShoppingListPageClient />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'New item name' }), {
+      target: { value: 'Tea' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled())
+    gate.resolve(Object.create(null))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled())
+  })
+
+  it('sends the amount and unit from Details', async () => {
+    render(<ShoppingListPageClient />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'New item name' }), {
+      target: { value: 'Rice' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }))
+    fireEvent.change(screen.getByLabelText('New item amount'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('New item unit'), { target: { value: 'kg' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await waitFor(() =>
+      expect(enqueue).toHaveBeenCalledWith(createShoppingItemWrite, {
+        id: uuid,
+        name: 'Rice',
+        amount: '2',
+        unit: 'kg'
+      })
+    )
+  })
+
+  it('keeps amount, unit and category behind Details', () => {
+    render(<ShoppingListPageClient />)
+    const details = screen.getByRole('button', { name: 'Details' })
+    expect(details).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByLabelText('New item amount')).not.toBeInTheDocument()
+    fireEvent.click(details)
+    expect(details).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByLabelText('New item amount')).toBeInTheDocument()
+    expect(screen.getByLabelText('New item unit')).toBeInTheDocument()
+    expect(screen.queryByLabelText('New category name')).not.toBeInTheDocument()
+    fireEvent.click(details)
+    expect(screen.queryByLabelText('New item unit')).not.toBeInTheDocument()
+  })
+
   it('assigns the chosen category to the catalog on add', async () => {
     render(<ShoppingListPageClient />)
 
     fireEvent.change(screen.getByRole('textbox', { name: 'New item name' }), {
       target: { value: 'Apples' }
     })
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }))
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'cat-produce' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
@@ -107,6 +201,7 @@ describe('ShoppingPage add form', () => {
     render(<ShoppingListPageClient />)
 
     fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Kiwi' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }))
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: '__new__' } })
     fireEvent.change(screen.getByLabelText('New category name'), { target: { value: 'Fruit' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
@@ -125,6 +220,7 @@ describe('ShoppingPage add form', () => {
     render(<ShoppingListPageClient />)
 
     fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Pear' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }))
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: '__new__' } })
     fireEvent.change(screen.getByLabelText('New category name'), { target: { value: 'produce' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
@@ -184,7 +280,7 @@ describe('ShoppingPage meal-plan section', () => {
     render(<ShoppingListPageClient />)
 
     expect(screen.getByText('From meal plans')).toBeInTheDocument()
-    expect(screen.getByText(/2 cloves — garlic/)).toBeInTheDocument()
+    expect(screen.getByText(/2 cloves garlic/)).toBeInTheDocument()
     // The custom item still has an Edit button; the meal-plan item never does.
     expect(screen.queryByRole('button', { name: /Edit garlic/ })).not.toBeInTheDocument()
   })
@@ -222,12 +318,12 @@ describe('ShoppingPage meal-plan section', () => {
     render(<ShoppingListPageClient />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Export' }))
-    expect(screen.getByText('Export Shopping List')).toBeInTheDocument()
+    expect(screen.getByText('Export shopping list')).toBeInTheDocument()
     expect(screen.getByText('Order by store (optional)')).toBeInTheDocument()
     expect(screen.queryByText('Include ingredient groups')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-    expect(screen.queryByText('Export Shopping List')).not.toBeInTheDocument()
+    expect(screen.queryByText('Export shopping list')).not.toBeInTheDocument()
   })
 
   it('exports a merged custom item under its canonical name, keeping the typed name in the list', () => {
@@ -238,16 +334,16 @@ describe('ShoppingPage meal-plan section', () => {
     }
     render(<ShoppingListPageClient />)
 
-    expect(screen.getByText(/1 L - Milk/)).toBeInTheDocument()
+    expect(screen.getByText(/1 L Milk/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Export' }))
-    expect(screen.getByText(/3 L — melk/)).toBeInTheDocument()
+    expect(screen.getByText(/3 L melk/)).toBeInTheDocument()
   })
 })
 
 describe('ShoppingPage header and loading', () => {
   it('links to settings from the page header', () => {
     render(<ShoppingListPageClient />)
-    expect(screen.getByRole('heading', { level: 1, name: 'Shopping List' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Shopping list' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
       'href',
       '/shoppinglist/settings'

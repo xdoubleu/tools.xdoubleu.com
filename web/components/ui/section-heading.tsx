@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn'
 type SectionHeadingLevel = 'section' | 'eyebrow'
 
 const levelClasses: Record<SectionHeadingLevel, string> = {
-  section: 'font-display text-xl font-medium leading-tight tracking-tight text-fg',
+  section: 'text-xl font-semibold leading-tight tracking-tight text-fg',
   eyebrow: 'text-xs font-semibold uppercase tracking-wide text-muted'
 }
 

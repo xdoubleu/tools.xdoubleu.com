@@ -84,6 +84,7 @@ export default {
       unknown: '`{{token}}` names no theme colour, so it does nothing. Use one of: {{tokens}}.',
       shadow: '`{{token}}`: use a theme shadow ({{shadows}}).',
       hex: '`{{attr}}="{{value}}"` hard-codes a colour. Use `var(--color-<token>)`.',
+      font: '`{{token}}`: the app has one system font stack. Differ by size and weight, not family.',
       pill: '`{{token}}` makes a pill next to squared corners. Use rounded-lg/rounded-xl, or keep it on a square (`size-*`) circle.'
     },
     schema: []
@@ -100,6 +101,10 @@ export default {
         const { variants, base } = parseToken(token)
         if (ROUNDED.test(base)) {
           if (!square) context.report({ node, messageId: 'pill', data: { token } })
+          continue
+        }
+        if (/^font-(display|serif)$/.test(base)) {
+          context.report({ node, messageId: 'font', data: { token } })
           continue
         }
         if (variants.includes('dark')) {

@@ -10,8 +10,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"tools.xdoubleu.com/apps/books"
+	"tools.xdoubleu.com/apps/factory"
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/games"
+	"tools.xdoubleu.com/apps/learningpaths"
+	"tools.xdoubleu.com/apps/mealplans"
+	"tools.xdoubleu.com/apps/movies"
+	"tools.xdoubleu.com/apps/shoppinglist"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -19,16 +24,29 @@ import (
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
 )
 
+// TodayApps are the apps the Today page summarises, reached only through their
+// exported methods.
+type TodayApps struct {
+	Books         *books.Books
+	Feeds         *feeds.Feeds
+	MealPlans     *mealplans.MealPlans
+	ShoppingList  *shoppinglist.ShoppingList
+	Movies        *movies.Movies
+	LearningPaths *learningpaths.LearningPaths
+	Factory       *factory.Factory
+}
+
 type Dashboard struct {
 	app.Base
 	games         *games.Games
 	books         *books.Books
 	feeds         *feeds.Feeds
+	today         TodayApps
 	profileShares *sharedrepos.ProfileSharesRepository
 }
 
-// New constructs the dashboard app. gamesApp/booksApp/feedsApp must already
-// be constructed (registration order in cmd/api/apps.go).
+// New constructs the dashboard app. gamesApp and every app in today must
+// already be constructed (registration order in cmd/api/apps.go).
 func New(
 	ctx context.Context,
 	authService auth.Service,
@@ -38,12 +56,14 @@ func New(
 	gamesApp *games.Games,
 	booksApp *books.Books,
 	feedsApp *feeds.Feeds,
+	today TodayApps,
 ) *Dashboard {
 	return &Dashboard{
 		Base:          app.NewBase(ctx, authService, logger, cfg),
 		games:         gamesApp,
 		books:         booksApp,
 		feeds:         feedsApp,
+		today:         today,
 		profileShares: sharedrepos.NewProfileSharesRepository(db),
 	}
 }

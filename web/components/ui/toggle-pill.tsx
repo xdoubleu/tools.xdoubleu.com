@@ -10,29 +10,34 @@ interface TogglePillProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
 }
 
 /**
- * Pill for selectable attributes and filter chips: filled when active,
- * outlined when not (unlike a read-only `Badge`). Sets `aria-pressed`; pass
- * `role="tab"`/`aria-selected` in a tablist.
+ * Filter chip for selectable attributes: a light outline when off, a tinted accent fill
+ * with a check when on (unlike a read-only `Badge`, and visibly lighter than a `Button`).
+ * Sets `aria-pressed`. Switching views is `SegmentedTabs`, not a row of these.
  */
+// Stryker disable StringLiteral: class names are presentation; the on/off tint is tested.
 function TogglePill({ label, active, className, ...props }: TogglePillProps) {
   return (
     <Button
       type="button"
-      variant={active ? 'default' : 'secondary'}
+      variant="ghost"
       className={cn(
         // A one-word label ("All") would otherwise fall under the 44px tap width.
-        'px-3 min-w-11 sm:min-w-9',
-        // The selected pill is inert: re-tapping it changes nothing, so don't advertise it.
-        active && 'cursor-default active:scale-100',
+        'gap-1.5 border px-3 min-w-11 sm:min-w-9',
+        active
+          ? 'border-accent bg-accent/10 text-accent hover:bg-accent/15'
+          : 'border-border text-muted hover:text-fg',
         className
       )}
       aria-pressed={active}
       {...props}
     >
+      {active && <span aria-hidden>✓</span>}
       {label}
     </Button>
   )
 }
+
+// Stryker restore StringLiteral
 
 export { TogglePill }
 export type { TogglePillProps }
