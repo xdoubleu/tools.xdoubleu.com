@@ -29,14 +29,30 @@ export default {
       progress: 'Hand-built progress bar. Use `ProgressBar` from @/components/ui/progress-bar.',
       remove: 'Hand-built × button. Use `RemoveButton` from @/components/ui/remove-button.',
       grid: 'Hand-written grid in a collection page. Use `CollectionGrid` (@/components/ui/collection-grid) with `ItemCard`s.',
+      settings:
+        'A settings page lays out its groups with `SettingsSections` (@/components/ui/settings-section), not cards or loose headings.',
       tabs: 'A `{{element}}` with role="tab" is a hand-built tab bar. Use `SegmentedTabs` from @/components/ui/segmented-tabs for switching views, sections or scope.'
     },
     schema: []
   },
   create(context) {
     const collectionPage = /ListClient\.tsx$/.test(context.filename)
+    const settingsPage =
+      /(SettingsClient|FamilyPageClient)\.tsx$|[\\/]settings[\\/]page\.tsx$/.test(context.filename)
+    let pageContainer = false
+    let settingsSections = false
     return {
+      'Program:exit'(program) {
+        // Thin wrappers that only render a client component have no container.
+        if (settingsPage && pageContainer && !settingsSections) {
+          context.report({ node: program, messageId: 'settings' })
+        }
+      },
       JSXOpeningElement(node) {
+        if (node.name.type === 'JSXIdentifier') {
+          if (node.name.name === 'PageContainer') pageContainer = true
+          if (node.name.name === 'SettingsSections') settingsSections = true
+        }
         if (node.name.type === 'JSXIdentifier' && node.name.name === 'Button') {
           if (/^[×✕✖]$/.test(ownText(node))) context.report({ node, messageId: 'remove' })
         }

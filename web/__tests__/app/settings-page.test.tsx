@@ -53,6 +53,30 @@ describe('SettingsPage', () => {
     expect(screen.queryByText(/^Release /)).not.toBeInTheDocument()
   })
 
+  it('keeps Save display name off for a blank name', () => {
+    render(<SettingsPage />)
+    const save = screen.getByRole('button', { name: 'Save display name' })
+    expect(save).toBeEnabled()
+    fireEvent.change(screen.getByLabelText('Display name'), { target: { value: '   ' } })
+    expect(save).toBeDisabled()
+  })
+
+  it('needs a full six-digit code to verify MFA, and cancels back to the start', async () => {
+    mockMFAEnroll.mockResolvedValue({ qrSvg: '<svg></svg>', secret: 'SECRET', factorId: 'f1' })
+    render(<SettingsPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Enable MFA' }))
+    await screen.findByLabelText('Authenticator code')
+
+    const verify = screen.getByRole('button', { name: 'Verify & enable' })
+    fireEvent.change(screen.getByLabelText('Authenticator code'), { target: { value: '12345' } })
+    expect(verify).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('Authenticator code'), { target: { value: '123456' } })
+    expect(verify).toBeEnabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument()
+  })
+
   it('prefills the display name field from the current user', () => {
     render(<SettingsPage />)
     expect(screen.getByLabelText('Display name')).toHaveValue('Alice')

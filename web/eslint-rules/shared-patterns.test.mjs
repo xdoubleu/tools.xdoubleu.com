@@ -13,6 +13,15 @@ ruleTester.run('ui/shared-patterns', rule, {
     '<Button role="menuitem">Edit</Button>',
     '<SegmentedTabs value="a" options={[]} />',
     {
+      code: '<PageContainer><SettingsSections /></PageContainer>',
+      filename: 'components/family/FamilyPageClient.tsx'
+    },
+    { code: '<GamesSettingsClient />', filename: 'app/games/settings/page.tsx' },
+    {
+      code: '<PageContainer><SectionCard /></PageContainer>',
+      filename: 'components/recipes/RecipeForm.tsx'
+    },
+    {
       code: '<div className="grid grid-cols-2 gap-2" />',
       filename: 'components/stats/Panel.tsx'
     },
@@ -22,6 +31,16 @@ ruleTester.run('ui/shared-patterns', rule, {
     }
   ],
   invalid: [
+    {
+      code: '<PageContainer><SectionCard title="Members" /></PageContainer>',
+      filename: 'components/family/FamilyPageClient.tsx',
+      errors: [{ messageId: 'settings' }]
+    },
+    {
+      code: '<PageContainer />',
+      filename: 'app/feeds/settings/page.tsx',
+      errors: [{ messageId: 'settings' }]
+    },
     {
       code: '<div className="grid grid-cols-1 sm:grid-cols-2 gap-3" />',
       filename: 'components/recipes/RecipesListClient.tsx',
