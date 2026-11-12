@@ -5,6 +5,8 @@ import (
 	"net/url"
 
 	"github.com/google/uuid"
+
+	"tools.xdoubleu.com/apps/feeds/internal/services"
 )
 
 // SharedFeed is one subscription in the reading dashboard's feeds widget.
@@ -74,4 +76,50 @@ func (a *Feeds) GetItemByID(
 		Read:       item.ReadAt != nil,
 		Bookmarked: item.Bookmarked,
 	}, nil
+}
+
+// TodayItem is an unread item for the Today page.
+type TodayItem struct {
+	ID        string
+	Title     string
+	FeedTitle string
+	URL       string
+}
+
+// BuildTodayUnread returns the user's unread count and their top unread items,
+// the Today page's only entry point into feeds.
+func (a *Feeds) BuildTodayUnread(
+	ctx context.Context,
+	userID string,
+	limit int32,
+) (int, []TodayItem, error) {
+	count, err := a.Services.Feeds.CountUnread(ctx, userID)
+	if err != nil {
+		return 0, nil, err
+	}
+	items, _, err := a.Services.Feeds.ListItems(
+		ctx, userID, limit, 0, true, nil, false, services.ViewInbox,
+	)
+	if err != nil {
+		return 0, nil, err
+	}
+	feeds, err := a.Services.Feeds.List(ctx, userID)
+	if err != nil {
+		return 0, nil, err
+	}
+	titles := make(map[uuid.UUID]string, len(feeds))
+	for _, f := range feeds {
+		titles[f.ID] = f.Title
+	}
+
+	today := make([]TodayItem, 0, len(items))
+	for _, it := range items {
+		today = append(today, TodayItem{
+			ID:        it.ID.String(),
+			Title:     it.Title,
+			FeedTitle: titles[it.FeedID],
+			URL:       it.SourceURL,
+		})
+	}
+	return count, today, nil
 }

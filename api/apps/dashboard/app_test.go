@@ -2,20 +2,29 @@ package dashboard_test
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 
 	"tools.xdoubleu.com/apps/books"
 	booksobjectstore "tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/dashboard"
+	"tools.xdoubleu.com/apps/factory"
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/games"
 	"tools.xdoubleu.com/apps/games/pkg/steam"
+	"tools.xdoubleu.com/apps/learningpaths"
+	"tools.xdoubleu.com/apps/mealplans"
+	"tools.xdoubleu.com/apps/movies"
+	"tools.xdoubleu.com/apps/shoppinglist"
+	sharedauth "tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
@@ -28,6 +37,7 @@ import (
 //nolint:gochecknoglobals //needed for tests
 var (
 	testApp   *dashboard.Dashboard
+	testToday dashboard.TodayApps
 	testGames *games.Games
 	testBooks *books.Books
 	testFeeds *feeds.Feeds
@@ -166,6 +176,8 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
+	testToday = newTodayApps(auth, logger, postgresDB)
+
 	testApp = dashboard.New(
 		context.Background(),
 		auth,
@@ -175,6 +187,7 @@ func TestMain(m *testing.M) {
 		testGames,
 		testBooks,
 		testFeeds,
+		testToday,
 	)
 	if err := testApp.ApplyMigrations(context.Background(), postgresDB); err != nil {
 		panic(err)
@@ -189,4 +202,41 @@ func getRoutes() http.Handler {
 
 func TestGetDisplayName(t *testing.T) {
 	assert.Equal(t, "Dashboards", testApp.GetDisplayName())
+}
+
+// newTodayApps builds the apps the Today page reads, with their schemas.
+func newTodayApps(
+	auth sharedauth.Service,
+	logger *slog.Logger,
+	db *pgxpool.Pool,
+) dashboard.TodayApps {
+	ctx := context.Background()
+	family := sharedrepos.NewFamilyRepository(db)
+	sealer, err := crypto.New(testCfg.EncryptionKey)
+	if err != nil {
+		panic(err)
+	}
+
+	today := dashboard.TodayApps{
+		Books:        testBooks,
+		Feeds:        testFeeds,
+		MealPlans:    mealplans.New(ctx, auth, logger, testCfg, db, family),
+		ShoppingList: shoppinglist.New(ctx, auth, logger, testCfg, db, family),
+		Movies:       movies.New(ctx, auth, logger, testCfg, db, family),
+		LearningPaths: learningpaths.New(
+			ctx, auth, logger, testCfg, db, sealer, testBooks, testFeeds,
+		),
+		Factory: factory.New(ctx, auth, logger, testCfg, db),
+	}
+	for _, a := range []interface {
+		ApplyMigrations(context.Context, *pgxpool.Pool) error
+	}{
+		today.MealPlans, today.ShoppingList, today.Movies,
+		today.LearningPaths, today.Factory,
+	} {
+		if err = a.ApplyMigrations(ctx, db); err != nil {
+			panic(err)
+		}
+	}
+	return today
 }
