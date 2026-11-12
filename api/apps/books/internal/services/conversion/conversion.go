@@ -11,7 +11,7 @@ import (
 	"os"
 
 	"github.com/google/uuid"
-	kepubpkg "github.com/pgaskin/kepubify/v4/kepub"
+	kepubpkg "github.com/pgaskin/kepubify/v5/kepub"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
@@ -403,12 +403,10 @@ const (
 	MaxConversionInputBytes = 2 * ebooks.MaxUploadBytes
 )
 
-type kepubifyConverter struct {
-	c *kepubpkg.Converter
-}
+type kepubifyConverter struct{}
 
 func NewKepubifyConverter() EPUBConverter {
-	return &kepubifyConverter{c: kepubpkg.NewConverter()}
+	return &kepubifyConverter{}
 }
 
 func (k *kepubifyConverter) Convert(
@@ -424,7 +422,7 @@ func (k *kepubifyConverter) Convert(
 	}
 
 	var buf bytes.Buffer
-	if err = k.c.Convert(ctx, &buf, zr); err != nil {
+	if err = kepubpkg.Convert(ctx, &buf, zr, kepubpkg.Options{}); err != nil {
 		return nil, fmt.Errorf("kepubify: %w", err)
 	}
 
