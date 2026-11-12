@@ -89,7 +89,7 @@ export default function SettingsPage() {
       if (err instanceof ConnectError) {
         setNameError(err.message)
       } else {
-        setNameError('Failed to update display name.')
+        setNameError('Failed to update full name.')
       }
     } finally {
       setNameSaving(false)
@@ -214,14 +214,14 @@ export default function SettingsPage() {
 
       <SettingsSections>
         <SettingsSection
-          title="Display name"
-          description="Shown on your public profile when you share your books or games. Required before you can create a share link."
+          title="Full name"
+          description="Shown on your public profile when you share your books or games, and next to your email in user management. Required before you can create a share link."
         >
-          {nameSaved && <Alert tone="success">Display name updated successfully.</Alert>}
+          {nameSaved && <Alert tone="success">Full name updated successfully.</Alert>}
           {nameError && <Alert tone="danger">{nameError}</Alert>}
 
           <form onSubmit={handleDisplayNameSave} className="space-y-3">
-            <Field label="Display name" htmlFor="display_name">
+            <Field label="Full name" htmlFor="display_name">
               <Input
                 id="display_name"
                 type="text"
@@ -231,7 +231,7 @@ export default function SettingsPage() {
               />
             </Field>
             <Button type="submit" disabled={nameSaving || !displayName.trim()}>
-              {nameSaving ? 'Saving…' : 'Save display name'}
+              {nameSaving ? 'Saving…' : 'Save full name'}
             </Button>
           </form>
         </SettingsSection>

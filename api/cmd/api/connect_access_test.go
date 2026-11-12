@@ -49,6 +49,28 @@ func TestAccessListUsers_AsAdmin(t *testing.T) {
 	assert.NotNil(t, resp.Users)
 }
 
+func TestAccessListUsers_IncludesDisplayName(t *testing.T) {
+	ctx := context.Background()
+	require.NoError(t, testApp.appUsersRepo.Upsert(ctx, testUserID, "user@example.com"))
+	require.NoError(
+		t,
+		testApp.appUsersRepo.SetDisplayName(ctx, testUserID, "Ada Lovelace"),
+	)
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	resp, err := accessClient(t).ListUsers(
+		withCookies(context.Background(), accessToken),
+		&accessv1.ListUsersRequest{},
+	)
+	require.NoError(t, err)
+	var names []string
+	for _, u := range resp.Users {
+		names = append(names, u.DisplayName)
+	}
+	assert.Contains(t, names, "Ada Lovelace")
+}
+
 func TestAccessListUsers_Unauthenticated(t *testing.T) {
 	client := accessClient(t)
 	_, err := client.ListUsers(

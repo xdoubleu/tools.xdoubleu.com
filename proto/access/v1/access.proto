@@ -17,6 +17,8 @@ message AppUser {
   repeated string app_access = 4;
   // write_access is the part of app_access granted at the write level.
   repeated string write_access = 5;
+  // Full name the user set in settings; empty when unset.
+  string display_name = 6;
 }
 
 message ListUsersRequest {}

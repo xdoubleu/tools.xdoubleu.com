@@ -53,11 +53,11 @@ describe('SettingsPage', () => {
     expect(screen.queryByText(/^Release /)).not.toBeInTheDocument()
   })
 
-  it('keeps Save display name off for a blank name', () => {
+  it('keeps Save full name off for a blank name', () => {
     render(<SettingsPage />)
-    const save = screen.getByRole('button', { name: 'Save display name' })
+    const save = screen.getByRole('button', { name: 'Save full name' })
     expect(save).toBeEnabled()
-    fireEvent.change(screen.getByLabelText('Display name'), { target: { value: '   ' } })
+    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: '   ' } })
     expect(save).toBeDisabled()
   })
 
@@ -77,19 +77,19 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument()
   })
 
-  it('prefills the display name field from the current user', () => {
+  it('prefills the full name field from the current user', () => {
     render(<SettingsPage />)
-    expect(screen.getByLabelText('Display name')).toHaveValue('Alice')
+    expect(screen.getByLabelText('Full name')).toHaveValue('Alice')
   })
 
-  it('saves a new display name', async () => {
+  it('saves a new full name', async () => {
     render(<SettingsPage />)
 
-    const input = screen.getByLabelText('Display name')
+    const input = screen.getByLabelText('Full name')
     fireEvent.change(input, { target: { value: 'Bob' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save display name' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save full name' }))
 
-    expect(await screen.findByText('Display name updated successfully.')).toBeInTheDocument()
+    expect(await screen.findByText('Full name updated successfully.')).toBeInTheDocument()
     expect(mockUpdateDisplayName).toHaveBeenCalledWith('Bob')
     expect(mockMutate).toHaveBeenCalledWith('/auth/current-user')
   })
@@ -98,10 +98,10 @@ describe('SettingsPage', () => {
     mockUpdateDisplayName.mockRejectedValue(new Error('boom'))
     render(<SettingsPage />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save display name' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save full name' }))
 
     await waitFor(() => {
-      expect(screen.getByText('Failed to update display name.')).toBeInTheDocument()
+      expect(screen.getByText('Failed to update full name.')).toBeInTheDocument()
     })
   })
 
@@ -111,7 +111,7 @@ describe('SettingsPage', () => {
     )
     render(<SettingsPage />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save display name' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save full name' }))
 
     expect(
       await screen.findByText(/set a display name before sharing your profile/)

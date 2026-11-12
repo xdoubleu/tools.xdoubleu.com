@@ -35,6 +35,7 @@ func protoAppUser(u models.User) *accessv1.AppUser {
 		Role:        string(u.Role),
 		AppAccess:   access,
 		WriteAccess: write,
+		DisplayName: u.DisplayName,
 	}
 }
 

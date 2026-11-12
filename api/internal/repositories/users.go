@@ -69,7 +69,7 @@ func (r *AppUsersRepository) GetByID(
 		FROM global.app_users u
 		LEFT JOIN global.app_access a ON a.user_id = u.id
 		WHERE u.id = $1
-		GROUP BY u.id, u.email, u.role
+		GROUP BY u.id, u.email, u.role, u.display_name
 	`, id).Scan(
 		&u.ID, &u.Email, &u.Role, &u.DisplayName, &u.AppAccess, &u.WriteAccess,
 	)
@@ -184,7 +184,7 @@ func (r *AppUsersRepository) GetAllWithAccess(
 	ctx context.Context,
 ) ([]models.User, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT u.id, u.email, u.role,
+		SELECT u.id, u.email, u.role, COALESCE(u.display_name, ''),
 		       COALESCE(array_agg(a.app_name) FILTER (WHERE a.app_name IS NOT NULL), '{}')
 		FROM global.app_users u
 		LEFT JOIN global.app_access a ON a.user_id = u.id
@@ -201,7 +201,8 @@ func (r *AppUsersRepository) GetAllWithAccess(
 	for rows.Next() {
 		var u models.User
 		u.AppAccess = []string{}
-		if err = rows.Scan(&u.ID, &u.Email, &u.Role, &u.AppAccess); err != nil {
+		err = rows.Scan(&u.ID, &u.Email, &u.Role, &u.DisplayName, &u.AppAccess)
+		if err != nil {
 			return nil, err
 		}
 		users = append(users, u)

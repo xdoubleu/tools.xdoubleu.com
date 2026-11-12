@@ -92,6 +92,21 @@ describe('UserManagementClient', () => {
     expect(mockMutate).toHaveBeenCalledWith('/user-management/users')
   })
 
+  it('shows the full name above the email when set', () => {
+    const users = [
+      create(AppUserSchema, {
+        id: '1',
+        email: 'a@b.com',
+        displayName: 'Ada Lovelace',
+        role: 'user'
+      })
+    ]
+    mockUseUsers.mockReturnValue({ data: { users }, isLoading: false, error: undefined })
+    render(<UserManagementClient />)
+    expect(screen.getAllByText('Ada Lovelace').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('a@b.com').length).toBeGreaterThan(0)
+  })
+
   it('grants from the table at once, and drops a revoke that is cancelled', async () => {
     const users = [
       create(AppUserSchema, { id: '1', email: 'a@b.com', role: 'user', appAccess: ['games'] })
