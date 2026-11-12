@@ -208,6 +208,9 @@ COVERAGE ?= coverage.out
 # -count=1: a cached package result would leave stale blocks in the profile.
 test/cov/report:
 	TZ=UTC go test -p 1 -count=1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=$(COVERAGE).tmp
+	$(MAKE) test/cov/merge
+
+test/cov/merge:
 	cat $(COVERAGE).tmp | grep -v "_mock.go" | grep -v "/gen/" > $(COVERAGE).filtered
 	echo "mode: set" > $(COVERAGE)
 	# -coverpkg makes other binaries emit count=0 duplicates of a block; keep the
@@ -218,8 +221,16 @@ test/cov: test/cov/report
 	go tool cover -html=$(COVERAGE) -o=coverage.html
 	make test/cov/open
 
-test/cov/diff: test/cov/report
-	python3 ../tools/diff_coverage_go.py $(COVERAGE)
+# Test output goes to $(COVERAGE).log (only failures are echoed) so the
+# changed-lines table is the last thing printed. COV_REUSE=1 re-reads the
+# existing profile without re-running the suite.
+test/cov/diff:
+ifndef COV_REUSE
+	@TZ=UTC go test -p 1 -count=1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=$(COVERAGE).tmp > $(COVERAGE).log 2>&1 \
+		|| { grep -v -e '^ok ' -e 'no test files' -e '^coverage:' $(COVERAGE).log; echo "tests failed (full log: $(COVERAGE).log)"; exit 1; }
+	@$(MAKE) --no-print-directory test/cov/merge > /dev/null
+endif
+	@python3 ../tools/diff_coverage_go.py $(COVERAGE)
 
 test/cov/open:
 	open ./coverage.html
