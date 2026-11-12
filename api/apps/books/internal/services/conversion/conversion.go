@@ -422,6 +422,7 @@ func (k *kepubifyConverter) Convert(
 	}
 
 	var buf bytes.Buffer
+	//nolint:exhaustruct // zero value applies only the mandatory changes
 	if err = kepubpkg.Convert(ctx, &buf, zr, kepubpkg.Options{}); err != nil {
 		return nil, fmt.Errorf("kepubify: %w", err)
 	}
