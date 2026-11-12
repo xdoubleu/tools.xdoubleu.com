@@ -18,7 +18,6 @@ The routines run on Actions with a GitHub App token in the agent's shell. The fa
 - **No GitHub access in the VM.** GitHub reads go through the MCP tools. Third-party keys (PostHog) get a proxy route that swaps in the real key, like OpenRouter's.
 - **Red-PR repair pushes through the host** (ADR-0045), narrowed: only to the head branch of an open, same-repo PR opened by Dependabot, Renovate, the owner or the factory App, never forced. Those PRs keep auto-merge. For a red `main` it opens a new PR **without** auto-merge and posts to Slack.
 - **The ready-issues executor retires.** Auto pickup already runs Ready tasks.
-- **PRs that change `.claude/skills/` or `AGENTS.md` don't arm auto-merge.** A routine's behaviour lives there, so an agent-written change to it waits for your merge.
 - **The Mac may sleep.** A due routine stays queued until a runner claims it; the existing "no runner for ten minutes" Slack notice covers it. A `pmset repeat wakeorpoweron` before the nightly run is optional. `AutomatedRoutineMissed` reads each routine's last job, alerting after 48 hours.
 - **Cut-over one routine at a time.** Each routine is enabled on exactly one side: the `ROUTINE_<NAME>_ENABLED` variable on Actions or the board toggle, never both. Flipping back to Actions is the fallback while the Mac is away; the Actions routines are deleted after 30 days without a fallback.
 - **Harness:** the runner's own setting decides (epic T-269). On Claude Code, routines spend the Pro window, so schedule them outside working hours.
