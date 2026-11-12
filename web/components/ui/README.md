@@ -149,6 +149,26 @@ Disclosure section with a chevron trigger and its own open state.
 | `className` | `string` |  |  |
 | `triggerClassName` | `string` |  | Applied to the trigger, e.g. to change its type scale. |
 
+### `collection-grid.tsx`
+
+#### `CollectionGrid`
+
+The responsive grid of a collection's `ItemCard`s: one column on phones, two, then three.
+
+### `collection-toolbar.tsx`
+
+#### `CollectionToolbar`
+
+Search, facet chips and the result count above a collection. The search filters the list; adding from a catalogue is a separate control with its own label.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `noun` | `string` | yes | What the search looks through, e.g. "recipes": names the field "Search recipes". |
+| `query` | `string` | yes |  |
+| `onQueryChange` | `(query: string) => void` | yes |  |
+| `facets` | `CollectionFacet[]` |  |  |
+| `count` | `number` | yes | Items shown after search and filters. |
+
 ### `combobox.tsx`
 
 #### `Combobox`
@@ -294,6 +314,21 @@ A form control with its label and hint/error, stacked.
 ### `input.tsx`
 
 #### `Input`
+
+### `item-card.tsx`
+
+#### `ItemCard`
+
+One entry of a collection: artwork, title, one meta line and an optional status.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `href` | `string` | yes |  |
+| `title` | `string` | yes |  |
+| `artwork` | `ReactNode` |  | An `Artwork` or icon, left of the text. |
+| `meta` | `ReactNode` |  | One muted line under the title. |
+| `status` | `ReactNode` |  | A `Badge` or similar, under the meta line. |
+| `actions` | `ReactNode` |  | Controls in a footer that never navigates. |
 
 ### `label.tsx`
 
@@ -572,6 +607,7 @@ Message for a list or section with nothing in it yet. Centred (`page`) by defaul
 | Prop | Type | Required | Notes |
 |---|---|---|---|
 | `children` | `ReactNode` | yes |  |
+| `icon` | `LucideIcon` |  | Muted icon above the message; the empty state of a collection carries one. |
 | `action` | `ReactNode` |  | Optional call to action under the message, e.g. a "New recipe" button. |
 
 Also accepts: `StateProps`
