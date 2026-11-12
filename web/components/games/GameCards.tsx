@@ -1,5 +1,8 @@
 import type { Game } from '@/lib/gen/games/v1/games_pb'
-import { LinkCard } from '@/components/ui/link-card'
+import { Artwork } from '@/components/ui/artwork'
+import { CollectionGrid } from '@/components/ui/collection-grid'
+import { ItemCard } from '@/components/ui/item-card'
+import { ProgressBar } from '@/components/ui/progress-bar'
 import GameFavouriteButton from '@/components/games/GameFavouriteButton'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { formatPercent } from '@/lib/format'
@@ -16,33 +19,30 @@ export function GameCard({
   showFavourite?: boolean
 }) {
   return (
-    <LinkCard
+    <ItemCard
       href={href}
-      linkClassName="flex gap-3 p-4"
-      actions={showFavourite && <GameFavouriteButton game={game} className="text-lg" />}
-    >
-      {game.imageUrl && (
-        <img
-          src={game.imageUrl}
-          alt={game.name}
-          width={32}
-          height={32}
-          className="h-8 w-8 rounded-lg object-cover shrink-0"
-        />
-      )}
-      <div className="min-w-0 flex-1">
-        <h3 className="break-words font-semibold">
-          {game.name}
+      title={game.name}
+      artwork={<Artwork src={game.imageUrl} title={game.name} size="square" />}
+      meta={
+        <>
+          {Math.round(game.playtime / 60)} hrs &middot; {formatPercent(game.completionRate)}{' '}
+          complete
           {!showFavourite && game.favourite && (
             <span className="ml-2 text-star" aria-label="Favourite">
               ♥
             </span>
           )}
-        </h3>
-        <p className="text-sm text-muted">Playtime: {Math.round(game.playtime / 60)} hrs</p>
-        <p className="text-sm text-muted">Completion: {formatPercent(game.completionRate)}</p>
-      </div>
-    </LinkCard>
+        </>
+      }
+      status={
+        <ProgressBar
+          value={Number(game.completionRate)}
+          aria-label={`${game.name} completion`}
+          valueText={formatPercent(game.completionRate)}
+        />
+      }
+      actions={showFavourite && <GameFavouriteButton game={game} className="text-lg" />}
+    />
   )
 }
 
@@ -60,14 +60,12 @@ export function GameGroup({
   if (games.length === 0) return null
   return (
     <div className="mb-6">
-      <SectionHeading className="mb-3">
-        {title} ({games.length})
-      </SectionHeading>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <SectionHeading className="mb-3">{title}</SectionHeading>
+      <CollectionGrid>
         {games.map((g) => (
           <GameCard key={g.id} game={g} href={hrefFor(g)} showFavourite={showFavourite} />
         ))}
-      </div>
+      </CollectionGrid>
     </div>
   )
 }
