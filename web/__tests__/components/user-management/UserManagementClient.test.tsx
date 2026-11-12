@@ -7,12 +7,14 @@ import { AppUserSchema } from '@/lib/gen/access/v1/access_pb'
 const mockUseUsers = vi.fn()
 const mockSetRole = vi.fn()
 const mockSetAppAccess = vi.fn()
+const mockSetDisplayName = vi.fn()
 const mockMutate = vi.fn()
 
 vi.mock('@/hooks/useUserManagement', () => ({
   useUsers: () => mockUseUsers(),
   useSetRole: () => mockSetRole,
-  useSetAppAccess: () => mockSetAppAccess
+  useSetAppAccess: () => mockSetAppAccess,
+  useSetDisplayName: () => mockSetDisplayName
 }))
 
 vi.mock('swr', () => ({
@@ -24,6 +26,7 @@ describe('UserManagementClient', () => {
     mockUseUsers.mockReset()
     mockSetRole.mockReset()
     mockSetAppAccess.mockReset()
+    mockSetDisplayName.mockReset()
     mockMutate.mockReset()
   })
 
@@ -92,7 +95,29 @@ describe('UserManagementClient', () => {
     expect(mockMutate).toHaveBeenCalledWith('/user-management/users')
   })
 
-  it('shows the full name above the email when set', () => {
+  it('shows the full name and saves an edit on blur', async () => {
+    const users = [
+      create(AppUserSchema, {
+        id: '1',
+        email: 'a@b.com',
+        displayName: 'Ada Lovelace',
+        role: 'user'
+      })
+    ]
+    mockUseUsers.mockReturnValue({ data: { users }, isLoading: false, error: undefined })
+    mockSetDisplayName.mockResolvedValue(undefined)
+    render(<UserManagementClient />)
+
+    const [input] = screen.getAllByLabelText('Full name for a@b.com')
+    expect(input).toHaveValue('Ada Lovelace')
+
+    fireEvent.change(input, { target: { value: ' Ada King ' } })
+    fireEvent.blur(input)
+    await waitFor(() => expect(mockSetDisplayName).toHaveBeenCalledWith('1', 'Ada King'))
+    expect(mockMutate).toHaveBeenCalledWith('/user-management/users')
+  })
+
+  it('restores the name instead of saving a blank or unchanged one', () => {
     const users = [
       create(AppUserSchema, {
         id: '1',
@@ -103,8 +128,24 @@ describe('UserManagementClient', () => {
     ]
     mockUseUsers.mockReturnValue({ data: { users }, isLoading: false, error: undefined })
     render(<UserManagementClient />)
-    expect(screen.getAllByText('Ada Lovelace').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('a@b.com').length).toBeGreaterThan(0)
+
+    const [input] = screen.getAllByLabelText('Full name for a@b.com')
+    fireEvent.change(input, { target: { value: '  ' } })
+    fireEvent.blur(input)
+    expect(input).toHaveValue('Ada Lovelace')
+    expect(mockSetDisplayName).not.toHaveBeenCalled()
+  })
+
+  it('shows an error when saving the name fails', async () => {
+    const users = [create(AppUserSchema, { id: '1', email: 'a@b.com', role: 'user' })]
+    mockUseUsers.mockReturnValue({ data: { users }, isLoading: false, error: undefined })
+    mockSetDisplayName.mockRejectedValue(new Error('boom'))
+    render(<UserManagementClient />)
+
+    const [input] = screen.getAllByLabelText('Full name for a@b.com')
+    fireEvent.change(input, { target: { value: 'Ada' } })
+    fireEvent.blur(input)
+    expect((await screen.findAllByText('Failed to save full name.')).length).toBeGreaterThan(0)
   })
 
   it('grants from the table at once, and drops a revoke that is cancelled', async () => {

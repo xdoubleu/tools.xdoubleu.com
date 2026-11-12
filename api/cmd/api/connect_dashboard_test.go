@@ -51,31 +51,6 @@ func TestCreateDashboardShare_RequiresDisplayName(t *testing.T) {
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
 
-func TestSetDisplayName(t *testing.T) {
-	ctx := context.Background()
-	client := dashboardClient(t)
-
-	require.NoError(t, testApp.appUsersRepo.Upsert(ctx, testUserID, "user@example.com"))
-
-	req := &dashboardv1.SetDisplayNameRequest{DisplayName: "Alice"}
-	_, err := client.SetDisplayName(withCookies(ctx, accessToken), req)
-	require.NoError(t, err)
-
-	user, err := testApp.appUsersRepo.GetByID(ctx, testUserID)
-	require.NoError(t, err)
-	assert.Equal(t, "Alice", user.DisplayName)
-}
-
-func TestSetDisplayName_Empty(t *testing.T) {
-	ctx := context.Background()
-	client := dashboardClient(t)
-
-	req := &dashboardv1.SetDisplayNameRequest{DisplayName: ""}
-	_, err := client.SetDisplayName(withCookies(ctx, accessToken), req)
-	require.Error(t, err)
-	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-}
-
 func TestDashboardShare_Lifecycle(t *testing.T) {
 	ctx := context.Background()
 	client := dashboardClient(t)

@@ -6,6 +6,8 @@ service AccessService {
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
   rpc SetRole(SetRoleRequest) returns (SetRoleResponse);
   rpc SetAppAccess(SetAppAccessRequest) returns (SetAppAccessResponse);
+  // SetDisplayName sets a person's full name; admin only.
+  rpc SetDisplayName(SetDisplayNameRequest) returns (SetDisplayNameResponse);
   // SetAgentAppAccess grants or revokes a standing agent's access to an app.
   rpc SetAgentAppAccess(SetAgentAppAccessRequest) returns (SetAgentAppAccessResponse);
 }
@@ -54,5 +56,14 @@ message SetAgentAppAccessRequest {
 }
 
 message SetAgentAppAccessResponse {
+  AppUser user = 1;
+}
+
+message SetDisplayNameRequest {
+  string user_id = 1;
+  string display_name = 2;
+}
+
+message SetDisplayNameResponse {
   AppUser user = 1;
 }

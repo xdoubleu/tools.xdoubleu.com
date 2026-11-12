@@ -40,7 +40,6 @@ import {
   useUpdatePassword,
   useResetPassword,
   useRegenerateRecoveryCodes,
-  useUpdateDisplayName,
   useMFAChallenge,
   useMFAEnroll,
   useMFAEnrollVerify,
@@ -159,20 +158,6 @@ describe('useRegenerateRecoveryCodes', () => {
     const { result } = renderHook(() => useRegenerateRecoveryCodes())
     result.current('123456')
     expect(mockRegenerateRecoveryCodes).toHaveBeenCalledWith({ code: '123456' })
-  })
-})
-
-describe('useUpdateDisplayName', () => {
-  it('returns a function that calls client.setDisplayName', () => {
-    const mockSetDisplayName = vi.fn().mockResolvedValue({})
-    mockCreateServiceClient.mockReturnValue({
-      // @ts-expect-error -- mock function assigned to typed client method
-      setDisplayName: mockSetDisplayName
-    })
-
-    const { result } = renderHook(() => useUpdateDisplayName())
-    result.current('Alice')
-    expect(mockSetDisplayName).toHaveBeenCalledWith({ displayName: 'Alice' })
   })
 })
 

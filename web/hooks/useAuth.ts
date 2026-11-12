@@ -2,7 +2,6 @@ import useSWR from 'swr'
 import { setTabPinsWrite } from '@/lib/account/offlineWrites'
 import { createServiceClient } from '@/lib/client'
 import { AuthService } from '@/lib/gen/auth/v1/auth_pb'
-import { DashboardService } from '@/lib/gen/dashboard/v1/dashboard_pb'
 import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -42,11 +41,6 @@ export function useResetPassword() {
 export function useRegenerateRecoveryCodes() {
   const client = createServiceClient(AuthService)
   return (code: string) => client.regenerateRecoveryCodes({ code })
-}
-
-export function useUpdateDisplayName() {
-  const client = createServiceClient(DashboardService)
-  return (displayName: string) => client.setDisplayName({ displayName })
 }
 
 /** Saves the tab bar apps; the cached user shows them at once, even offline. Throws if the server refuses. */

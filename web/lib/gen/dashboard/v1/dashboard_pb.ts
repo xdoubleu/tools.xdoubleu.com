@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file dashboard/v1/dashboard.proto.
  */
 export const file_dashboard_v1_dashboard: GenFile = /*@__PURE__*/
-  fileDesc("ChxkYXNoYm9hcmQvdjEvZGFzaGJvYXJkLnByb3RvEgxkYXNoYm9hcmQudjEiMwoORGFzaGJvYXJkU2hhcmUSDQoFdG9rZW4YASABKAkSEgoKY3JlYXRlZF9hdBgCIAEoCSJFChhHZXREYXNoYm9hcmRTaGFyZVJlcXVlc3QSKQoEa2luZBgBIAEoDjIbLmRhc2hib2FyZC52MS5EYXNoYm9hcmRLaW5kIlcKGUdldERhc2hib2FyZFNoYXJlUmVzcG9uc2USMAoFc2hhcmUYASABKAsyHC5kYXNoYm9hcmQudjEuRGFzaGJvYXJkU2hhcmVIAIgBAUIICgZfc2hhcmUiSAobQ3JlYXRlRGFzaGJvYXJkU2hhcmVSZXF1ZXN0EikKBGtpbmQYASABKA4yGy5kYXNoYm9hcmQudjEuRGFzaGJvYXJkS2luZCJLChxDcmVhdGVEYXNoYm9hcmRTaGFyZVJlc3BvbnNlEisKBXNoYXJlGAEgASgLMhwuZGFzaGJvYXJkLnYxLkRhc2hib2FyZFNoYXJlIkgKG0RlbGV0ZURhc2hib2FyZFNoYXJlUmVxdWVzdBIpCgRraW5kGAEgASgOMhsuZGFzaGJvYXJkLnYxLkRhc2hib2FyZEtpbmQiHgocRGVsZXRlRGFzaGJvYXJkU2hhcmVSZXNwb25zZSItChVTZXREaXNwbGF5TmFtZVJlcXVlc3QSFAoMZGlzcGxheV9uYW1lGAEgASgJIhgKFlNldERpc3BsYXlOYW1lUmVzcG9uc2UqZQoNRGFzaGJvYXJkS2luZBIeChpEQVNIQk9BUkRfS0lORF9VTlNQRUNJRklFRBAAEhgKFERBU0hCT0FSRF9LSU5EX0dBTUVTEAESGgoWREFTSEJPQVJEX0tJTkRfUkVBRElORxACMrMDChBEYXNoYm9hcmRTZXJ2aWNlEmQKEUdldERhc2hib2FyZFNoYXJlEiYuZGFzaGJvYXJkLnYxLkdldERhc2hib2FyZFNoYXJlUmVxdWVzdBonLmRhc2hib2FyZC52MS5HZXREYXNoYm9hcmRTaGFyZVJlc3BvbnNlEm0KFENyZWF0ZURhc2hib2FyZFNoYXJlEikuZGFzaGJvYXJkLnYxLkNyZWF0ZURhc2hib2FyZFNoYXJlUmVxdWVzdBoqLmRhc2hib2FyZC52MS5DcmVhdGVEYXNoYm9hcmRTaGFyZVJlc3BvbnNlEm0KFERlbGV0ZURhc2hib2FyZFNoYXJlEikuZGFzaGJvYXJkLnYxLkRlbGV0ZURhc2hib2FyZFNoYXJlUmVxdWVzdBoqLmRhc2hib2FyZC52MS5EZWxldGVEYXNoYm9hcmRTaGFyZVJlc3BvbnNlElsKDlNldERpc3BsYXlOYW1lEiMuZGFzaGJvYXJkLnYxLlNldERpc3BsYXlOYW1lUmVxdWVzdBokLmRhc2hib2FyZC52MS5TZXREaXNwbGF5TmFtZVJlc3BvbnNlQjFaL3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vZGFzaGJvYXJkL3YxO2Rhc2hib2FyZHYxYgZwcm90bzM");
+  fileDesc("ChxkYXNoYm9hcmQvdjEvZGFzaGJvYXJkLnByb3RvEgxkYXNoYm9hcmQudjEiMwoORGFzaGJvYXJkU2hhcmUSDQoFdG9rZW4YASABKAkSEgoKY3JlYXRlZF9hdBgCIAEoCSJFChhHZXREYXNoYm9hcmRTaGFyZVJlcXVlc3QSKQoEa2luZBgBIAEoDjIbLmRhc2hib2FyZC52MS5EYXNoYm9hcmRLaW5kIlcKGUdldERhc2hib2FyZFNoYXJlUmVzcG9uc2USMAoFc2hhcmUYASABKAsyHC5kYXNoYm9hcmQudjEuRGFzaGJvYXJkU2hhcmVIAIgBAUIICgZfc2hhcmUiSAobQ3JlYXRlRGFzaGJvYXJkU2hhcmVSZXF1ZXN0EikKBGtpbmQYASABKA4yGy5kYXNoYm9hcmQudjEuRGFzaGJvYXJkS2luZCJLChxDcmVhdGVEYXNoYm9hcmRTaGFyZVJlc3BvbnNlEisKBXNoYXJlGAEgASgLMhwuZGFzaGJvYXJkLnYxLkRhc2hib2FyZFNoYXJlIkgKG0RlbGV0ZURhc2hib2FyZFNoYXJlUmVxdWVzdBIpCgRraW5kGAEgASgOMhsuZGFzaGJvYXJkLnYxLkRhc2hib2FyZEtpbmQiHgocRGVsZXRlRGFzaGJvYXJkU2hhcmVSZXNwb25zZSplCg1EYXNoYm9hcmRLaW5kEh4KGkRBU0hCT0FSRF9LSU5EX1VOU1BFQ0lGSUVEEAASGAoUREFTSEJPQVJEX0tJTkRfR0FNRVMQARIaChZEQVNIQk9BUkRfS0lORF9SRUFESU5HEAIy1gIKEERhc2hib2FyZFNlcnZpY2USZAoRR2V0RGFzaGJvYXJkU2hhcmUSJi5kYXNoYm9hcmQudjEuR2V0RGFzaGJvYXJkU2hhcmVSZXF1ZXN0GicuZGFzaGJvYXJkLnYxLkdldERhc2hib2FyZFNoYXJlUmVzcG9uc2USbQoUQ3JlYXRlRGFzaGJvYXJkU2hhcmUSKS5kYXNoYm9hcmQudjEuQ3JlYXRlRGFzaGJvYXJkU2hhcmVSZXF1ZXN0GiouZGFzaGJvYXJkLnYxLkNyZWF0ZURhc2hib2FyZFNoYXJlUmVzcG9uc2USbQoURGVsZXRlRGFzaGJvYXJkU2hhcmUSKS5kYXNoYm9hcmQudjEuRGVsZXRlRGFzaGJvYXJkU2hhcmVSZXF1ZXN0GiouZGFzaGJvYXJkLnYxLkRlbGV0ZURhc2hib2FyZFNoYXJlUmVzcG9uc2VCMVovdG9vbHMueGRvdWJsZXUuY29tL2dlbi9kYXNoYm9hcmQvdjE7ZGFzaGJvYXJkdjFiBnByb3RvMw");
 
 /**
  * @generated from message dashboard.v1.DashboardShare
@@ -138,36 +138,6 @@ export const DeleteDashboardShareResponseSchema: GenMessage<DeleteDashboardShare
   messageDesc(file_dashboard_v1_dashboard, 6);
 
 /**
- * @generated from message dashboard.v1.SetDisplayNameRequest
- */
-export type SetDisplayNameRequest = Message<"dashboard.v1.SetDisplayNameRequest"> & {
-  /**
-   * @generated from field: string display_name = 1;
-   */
-  displayName: string;
-};
-
-/**
- * Describes the message dashboard.v1.SetDisplayNameRequest.
- * Use `create(SetDisplayNameRequestSchema)` to create a new message.
- */
-export const SetDisplayNameRequestSchema: GenMessage<SetDisplayNameRequest> = /*@__PURE__*/
-  messageDesc(file_dashboard_v1_dashboard, 7);
-
-/**
- * @generated from message dashboard.v1.SetDisplayNameResponse
- */
-export type SetDisplayNameResponse = Message<"dashboard.v1.SetDisplayNameResponse"> & {
-};
-
-/**
- * Describes the message dashboard.v1.SetDisplayNameResponse.
- * Use `create(SetDisplayNameResponseSchema)` to create a new message.
- */
-export const SetDisplayNameResponseSchema: GenMessage<SetDisplayNameResponse> = /*@__PURE__*/
-  messageDesc(file_dashboard_v1_dashboard, 8);
-
-/**
  * @generated from enum dashboard.v1.DashboardKind
  */
 export enum DashboardKind {
@@ -223,14 +193,6 @@ export const DashboardService: GenService<{
     methodKind: "unary";
     input: typeof DeleteDashboardShareRequestSchema;
     output: typeof DeleteDashboardShareResponseSchema;
-  },
-  /**
-   * @generated from rpc dashboard.v1.DashboardService.SetDisplayName
-   */
-  setDisplayName: {
-    methodKind: "unary";
-    input: typeof SetDisplayNameRequestSchema;
-    output: typeof SetDisplayNameResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_dashboard_v1_dashboard, 0);

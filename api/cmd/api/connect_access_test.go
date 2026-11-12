@@ -170,3 +170,35 @@ func TestAccessSetAppAccess_NonAdmin(t *testing.T) {
 	require.ErrorAs(t, err, &connectErr)
 	assert.Equal(t, connect.CodePermissionDenied, connectErr.Code())
 }
+
+func TestAccessSetDisplayName(t *testing.T) {
+	ctx := context.Background()
+	require.NoError(t, testApp.appUsersRepo.Upsert(ctx, testUserID, "user@example.com"))
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	resp, err := accessClient(t).SetDisplayName(
+		withCookies(ctx, accessToken),
+		&accessv1.SetDisplayNameRequest{UserId: testUserID, DisplayName: " Alice Doe "},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "Alice Doe", resp.User.DisplayName)
+
+	_, err = accessClient(t).SetDisplayName(
+		withCookies(ctx, accessToken),
+		&accessv1.SetDisplayNameRequest{UserId: testUserID, DisplayName: "  "},
+	)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestAccessSetDisplayName_NonAdmin(t *testing.T) {
+	ctx := context.Background()
+	require.NoError(t, testApp.appUsersRepo.Upsert(ctx, testUserID, "user@example.com"))
+	demoteToUser(t)
+
+	_, err := accessClient(t).SetDisplayName(
+		withCookies(ctx, accessToken),
+		&accessv1.SetDisplayNameRequest{UserId: testUserID, DisplayName: "Alice"},
+	)
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+}

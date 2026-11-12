@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { ConnectError, Code } from '@connectrpc/connect'
 
 const mockUseCurrentUser = vi.fn()
-const mockUpdateDisplayName = vi.fn()
 const mockUpdatePassword = vi.fn()
 const mockMFAEnroll = vi.fn()
 const mockMFAEnrollVerify = vi.fn()
@@ -16,7 +15,6 @@ vi.mock('swr', () => ({ mutate: (...args: unknown[]) => mockMutate(...args) }))
 vi.mock('@/hooks/useAuth', () => ({
   useCurrentUser: () => mockUseCurrentUser(),
   useUpdatePassword: () => mockUpdatePassword,
-  useUpdateDisplayName: () => mockUpdateDisplayName,
   useMFAEnroll: () => mockMFAEnroll,
   useMFAEnrollVerify: () => mockMFAEnrollVerify,
   useMFAUnenroll: () => mockMFAUnenroll,
@@ -35,7 +33,6 @@ const confirmInDialog = (name: string) =>
 describe('SettingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockUpdateDisplayName.mockResolvedValue({})
     mockUseCurrentUser.mockReturnValue({
       data: { role: 'user', appAccess: [], hasMfa: false, displayName: 'Alice' },
       isLoading: false
@@ -53,14 +50,6 @@ describe('SettingsPage', () => {
     expect(screen.queryByText(/^Release /)).not.toBeInTheDocument()
   })
 
-  it('keeps Save full name off for a blank name', () => {
-    render(<SettingsPage />)
-    const save = screen.getByRole('button', { name: 'Save full name' })
-    expect(save).toBeEnabled()
-    fireEvent.change(screen.getByLabelText('Full name'), { target: { value: '   ' } })
-    expect(save).toBeDisabled()
-  })
-
   it('needs a full six-digit code to verify MFA, and cancels back to the start', async () => {
     mockMFAEnroll.mockResolvedValue({ qrSvg: '<svg></svg>', secret: 'SECRET', factorId: 'f1' })
     render(<SettingsPage />)
@@ -75,47 +64,6 @@ describe('SettingsPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(screen.getByRole('button', { name: 'Enable MFA' })).toBeInTheDocument()
-  })
-
-  it('prefills the full name field from the current user', () => {
-    render(<SettingsPage />)
-    expect(screen.getByLabelText('Full name')).toHaveValue('Alice')
-  })
-
-  it('saves a new full name', async () => {
-    render(<SettingsPage />)
-
-    const input = screen.getByLabelText('Full name')
-    fireEvent.change(input, { target: { value: 'Bob' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save full name' }))
-
-    expect(await screen.findByText('Full name updated successfully.')).toBeInTheDocument()
-    expect(mockUpdateDisplayName).toHaveBeenCalledWith('Bob')
-    expect(mockMutate).toHaveBeenCalledWith('/auth/current-user')
-  })
-
-  it('shows an error when saving the display name fails', async () => {
-    mockUpdateDisplayName.mockRejectedValue(new Error('boom'))
-    render(<SettingsPage />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Save full name' }))
-
-    await waitFor(() => {
-      expect(screen.getByText('Failed to update full name.')).toBeInTheDocument()
-    })
-  })
-
-  it('shows the server message when saving the display name fails with a ConnectError', async () => {
-    mockUpdateDisplayName.mockRejectedValue(
-      new ConnectError('set a display name before sharing your profile', Code.FailedPrecondition)
-    )
-    render(<SettingsPage />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Save full name' }))
-
-    expect(
-      await screen.findByText(/set a display name before sharing your profile/)
-    ).toBeInTheDocument()
   })
 
   it('shows an error instead of loading forever when the current user fails to load', () => {

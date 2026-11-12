@@ -381,86 +381,6 @@ func (*DeleteDashboardShareResponse) Descriptor() ([]byte, []int) {
 	return file_dashboard_v1_dashboard_proto_rawDescGZIP(), []int{6}
 }
 
-type SetDisplayNameRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	DisplayName   string                 `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SetDisplayNameRequest) Reset() {
-	*x = SetDisplayNameRequest{}
-	mi := &file_dashboard_v1_dashboard_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SetDisplayNameRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SetDisplayNameRequest) ProtoMessage() {}
-
-func (x *SetDisplayNameRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_v1_dashboard_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SetDisplayNameRequest.ProtoReflect.Descriptor instead.
-func (*SetDisplayNameRequest) Descriptor() ([]byte, []int) {
-	return file_dashboard_v1_dashboard_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *SetDisplayNameRequest) GetDisplayName() string {
-	if x != nil {
-		return x.DisplayName
-	}
-	return ""
-}
-
-type SetDisplayNameResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SetDisplayNameResponse) Reset() {
-	*x = SetDisplayNameResponse{}
-	mi := &file_dashboard_v1_dashboard_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SetDisplayNameResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SetDisplayNameResponse) ProtoMessage() {}
-
-func (x *SetDisplayNameResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_v1_dashboard_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SetDisplayNameResponse.ProtoReflect.Descriptor instead.
-func (*SetDisplayNameResponse) Descriptor() ([]byte, []int) {
-	return file_dashboard_v1_dashboard_proto_rawDescGZIP(), []int{8}
-}
-
 var File_dashboard_v1_dashboard_proto protoreflect.FileDescriptor
 
 const file_dashboard_v1_dashboard_proto_rawDesc = "" +
@@ -481,19 +401,15 @@ const file_dashboard_v1_dashboard_proto_rawDesc = "" +
 	"\x05share\x18\x01 \x01(\v2\x1c.dashboard.v1.DashboardShareR\x05share\"N\n" +
 	"\x1bDeleteDashboardShareRequest\x12/\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x1b.dashboard.v1.DashboardKindR\x04kind\"\x1e\n" +
-	"\x1cDeleteDashboardShareResponse\":\n" +
-	"\x15SetDisplayNameRequest\x12!\n" +
-	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\"\x18\n" +
-	"\x16SetDisplayNameResponse*e\n" +
+	"\x1cDeleteDashboardShareResponse*e\n" +
 	"\rDashboardKind\x12\x1e\n" +
 	"\x1aDASHBOARD_KIND_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14DASHBOARD_KIND_GAMES\x10\x01\x12\x1a\n" +
-	"\x16DASHBOARD_KIND_READING\x10\x022\xb3\x03\n" +
+	"\x16DASHBOARD_KIND_READING\x10\x022\xd6\x02\n" +
 	"\x10DashboardService\x12d\n" +
 	"\x11GetDashboardShare\x12&.dashboard.v1.GetDashboardShareRequest\x1a'.dashboard.v1.GetDashboardShareResponse\x12m\n" +
 	"\x14CreateDashboardShare\x12).dashboard.v1.CreateDashboardShareRequest\x1a*.dashboard.v1.CreateDashboardShareResponse\x12m\n" +
-	"\x14DeleteDashboardShare\x12).dashboard.v1.DeleteDashboardShareRequest\x1a*.dashboard.v1.DeleteDashboardShareResponse\x12[\n" +
-	"\x0eSetDisplayName\x12#.dashboard.v1.SetDisplayNameRequest\x1a$.dashboard.v1.SetDisplayNameResponseB1Z/tools.xdoubleu.com/gen/dashboard/v1;dashboardv1b\x06proto3"
+	"\x14DeleteDashboardShare\x12).dashboard.v1.DeleteDashboardShareRequest\x1a*.dashboard.v1.DeleteDashboardShareResponseB1Z/tools.xdoubleu.com/gen/dashboard/v1;dashboardv1b\x06proto3"
 
 var (
 	file_dashboard_v1_dashboard_proto_rawDescOnce sync.Once
@@ -508,7 +424,7 @@ func file_dashboard_v1_dashboard_proto_rawDescGZIP() []byte {
 }
 
 var file_dashboard_v1_dashboard_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_dashboard_v1_dashboard_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_dashboard_v1_dashboard_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_dashboard_v1_dashboard_proto_goTypes = []any{
 	(DashboardKind)(0),                   // 0: dashboard.v1.DashboardKind
 	(*DashboardShare)(nil),               // 1: dashboard.v1.DashboardShare
@@ -518,8 +434,6 @@ var file_dashboard_v1_dashboard_proto_goTypes = []any{
 	(*CreateDashboardShareResponse)(nil), // 5: dashboard.v1.CreateDashboardShareResponse
 	(*DeleteDashboardShareRequest)(nil),  // 6: dashboard.v1.DeleteDashboardShareRequest
 	(*DeleteDashboardShareResponse)(nil), // 7: dashboard.v1.DeleteDashboardShareResponse
-	(*SetDisplayNameRequest)(nil),        // 8: dashboard.v1.SetDisplayNameRequest
-	(*SetDisplayNameResponse)(nil),       // 9: dashboard.v1.SetDisplayNameResponse
 }
 var file_dashboard_v1_dashboard_proto_depIdxs = []int32{
 	0, // 0: dashboard.v1.GetDashboardShareRequest.kind:type_name -> dashboard.v1.DashboardKind
@@ -530,13 +444,11 @@ var file_dashboard_v1_dashboard_proto_depIdxs = []int32{
 	2, // 5: dashboard.v1.DashboardService.GetDashboardShare:input_type -> dashboard.v1.GetDashboardShareRequest
 	4, // 6: dashboard.v1.DashboardService.CreateDashboardShare:input_type -> dashboard.v1.CreateDashboardShareRequest
 	6, // 7: dashboard.v1.DashboardService.DeleteDashboardShare:input_type -> dashboard.v1.DeleteDashboardShareRequest
-	8, // 8: dashboard.v1.DashboardService.SetDisplayName:input_type -> dashboard.v1.SetDisplayNameRequest
-	3, // 9: dashboard.v1.DashboardService.GetDashboardShare:output_type -> dashboard.v1.GetDashboardShareResponse
-	5, // 10: dashboard.v1.DashboardService.CreateDashboardShare:output_type -> dashboard.v1.CreateDashboardShareResponse
-	7, // 11: dashboard.v1.DashboardService.DeleteDashboardShare:output_type -> dashboard.v1.DeleteDashboardShareResponse
-	9, // 12: dashboard.v1.DashboardService.SetDisplayName:output_type -> dashboard.v1.SetDisplayNameResponse
-	9, // [9:13] is the sub-list for method output_type
-	5, // [5:9] is the sub-list for method input_type
+	3, // 8: dashboard.v1.DashboardService.GetDashboardShare:output_type -> dashboard.v1.GetDashboardShareResponse
+	5, // 9: dashboard.v1.DashboardService.CreateDashboardShare:output_type -> dashboard.v1.CreateDashboardShareResponse
+	7, // 10: dashboard.v1.DashboardService.DeleteDashboardShare:output_type -> dashboard.v1.DeleteDashboardShareResponse
+	8, // [8:11] is the sub-list for method output_type
+	5, // [5:8] is the sub-list for method input_type
 	5, // [5:5] is the sub-list for extension type_name
 	5, // [5:5] is the sub-list for extension extendee
 	0, // [0:5] is the sub-list for field type_name
@@ -554,7 +466,7 @@ func file_dashboard_v1_dashboard_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_dashboard_v1_dashboard_proto_rawDesc), len(file_dashboard_v1_dashboard_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   9,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

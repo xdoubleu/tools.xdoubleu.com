@@ -33,9 +33,6 @@ const (
 	// DashboardServiceDeleteDashboardShareProcedure is the procedure name of the DashboardService's
 	// DeleteDashboardShare RPC.
 	DashboardServiceDeleteDashboardShareProcedure = "/dashboard.v1.DashboardService/DeleteDashboardShare"
-	// DashboardServiceSetDisplayNameProcedure is the procedure name of the DashboardService's
-	// SetDisplayName RPC.
-	DashboardServiceSetDisplayNameProcedure = "/dashboard.v1.DashboardService/SetDisplayName"
 )
 
 var (
@@ -60,13 +57,6 @@ var (
 			Procedure:  DashboardServiceDeleteDashboardShareProcedure,
 		}
 	})
-	dashboardServiceSetDisplayNameSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_dashboard_v1_dashboard_proto.Services().ByName("DashboardService").Methods().ByName("SetDisplayName"),
-			Procedure:  DashboardServiceSetDisplayNameProcedure,
-		}
-	})
 )
 
 // DashboardServiceClient is a client for the dashboard.v1.DashboardService service.
@@ -74,7 +64,6 @@ type DashboardServiceClient interface {
 	GetDashboardShare(context.Context, *v1.GetDashboardShareRequest) (*v1.GetDashboardShareResponse, error)
 	CreateDashboardShare(context.Context, *v1.CreateDashboardShareRequest) (*v1.CreateDashboardShareResponse, error)
 	DeleteDashboardShare(context.Context, *v1.DeleteDashboardShareRequest) (*v1.DeleteDashboardShareResponse, error)
-	SetDisplayName(context.Context, *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error)
 }
 
 // NewDashboardServiceClient constructs a client for the dashboard.v1.DashboardService service.
@@ -88,7 +77,6 @@ type DashboardServiceHandler interface {
 	GetDashboardShare(context.Context, *v1.GetDashboardShareRequest) (*v1.GetDashboardShareResponse, error)
 	CreateDashboardShare(context.Context, *v1.CreateDashboardShareRequest) (*v1.CreateDashboardShareResponse, error)
 	DeleteDashboardShare(context.Context, *v1.DeleteDashboardShareRequest) (*v1.DeleteDashboardShareResponse, error)
-	SetDisplayName(context.Context, *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error)
 }
 
 // RegisterDashboardServiceHandler registers svc as the dashboard.v1.DashboardService implementation
@@ -99,7 +87,6 @@ func RegisterDashboardServiceHandler(server *connect.Server, svc DashboardServic
 		connect.Method{Spec: dashboardServiceGetDashboardShareSpec(), Handler: adapter.getDashboardShare},
 		connect.Method{Spec: dashboardServiceCreateDashboardShareSpec(), Handler: adapter.createDashboardShare},
 		connect.Method{Spec: dashboardServiceDeleteDashboardShareSpec(), Handler: adapter.deleteDashboardShare},
-		connect.Method{Spec: dashboardServiceSetDisplayNameSpec(), Handler: adapter.setDisplayName},
 	)
 }
 
@@ -116,10 +103,6 @@ func (UnimplementedDashboardServiceHandler) CreateDashboardShare(context.Context
 
 func (UnimplementedDashboardServiceHandler) DeleteDashboardShare(context.Context, *v1.DeleteDashboardShareRequest) (*v1.DeleteDashboardShareResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "dashboard.v1.DashboardService.DeleteDashboardShare is not implemented")
-}
-
-func (UnimplementedDashboardServiceHandler) SetDisplayName(context.Context, *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "dashboard.v1.DashboardService.SetDisplayName is not implemented")
 }
 
 type dashboardServiceClient struct {
@@ -145,14 +128,6 @@ func (c *dashboardServiceClient) CreateDashboardShare(ctx context.Context, req *
 func (c *dashboardServiceClient) DeleteDashboardShare(ctx context.Context, req *v1.DeleteDashboardShareRequest) (*v1.DeleteDashboardShareResponse, error) {
 	var res v1.DeleteDashboardShareResponse
 	if err := c.client.CallUnary(ctx, dashboardServiceDeleteDashboardShareSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *dashboardServiceClient) SetDisplayName(ctx context.Context, req *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error) {
-	var res v1.SetDisplayNameResponse
-	if err := c.client.CallUnary(ctx, dashboardServiceSetDisplayNameSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -190,18 +165,6 @@ func (h dashboardServiceHandler) deleteDashboardShare(ctx context.Context, _ con
 		return err
 	}
 	res, err := h.svc.DeleteDashboardShare(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h dashboardServiceHandler) setDisplayName(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.SetDisplayNameRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.SetDisplayName(ctx, &req)
 	if err != nil {
 		return err
 	}

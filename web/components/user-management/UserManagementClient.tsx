@@ -1,9 +1,11 @@
 import { mutate } from 'swr'
-import { useUsers, useSetRole, useSetAppAccess } from '@/hooks/useUserManagement'
+import { useUsers, useSetRole, useSetAppAccess, useSetDisplayName } from '@/hooks/useUserManagement'
 import type { AppUser } from '@/lib/gen/access/v1/access_pb'
 import { useState } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ui/dialog'
+import { FieldError } from '@/components/ui/field-error'
+import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Card } from '@/components/ui/card'
 import { PageContainer } from '@/components/ui/page-container'
@@ -87,19 +89,44 @@ function useAccessChange(user: AppUser, appName: string) {
   return { hasAccess, change, dialog }
 }
 
-/** One app's access as a checkbox that shows the current state. Used in the table row. */
-/** The user's full name over their email; the email alone when no name is set. */
+/** The user's email over a full-name field that saves on blur; a blank name is not saved. */
 function UserIdentity({ user }: { user: AppUser }) {
+  const setDisplayName = useSetDisplayName()
+  const [name, setName] = useState(user.displayName)
+  const [error, setError] = useState('')
+
+  async function save() {
+    const trimmed = name.trim()
+    if (!trimmed || trimmed === user.displayName) {
+      setName(user.displayName)
+      return
+    }
+    setError('')
+    try {
+      await setDisplayName(user.id, trimmed)
+      await mutate(swrKeys.userManagementUsers)
+    } catch {
+      setError('Failed to save full name.')
+    }
+  }
+
   return (
-    <>
-      {user.displayName && <p className="text-sm font-medium text-fg">{user.displayName}</p>}
-      <p className={user.displayName ? 'text-xs text-muted' : 'text-sm font-medium text-fg'}>
-        {user.email}
-      </p>
-    </>
+    <div className="space-y-1">
+      <p className="break-all text-sm font-medium text-fg">{user.email}</p>
+      <Input
+        aria-label={`Full name for ${user.email}`}
+        placeholder="Full name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onBlur={() => void save()}
+        aria-describedby={error ? `name-error-${user.id}` : undefined}
+      />
+      <FieldError id={`name-error-${user.id}`}>{error}</FieldError>
+    </div>
   )
 }
 
+/** One app's access as a checkbox that shows the current state. Used in the table row. */
 function AppAccessCheckbox({ user, appName }: { user: AppUser; appName: string }) {
   const { hasAccess, change, dialog } = useAccessChange(user, appName)
   return (

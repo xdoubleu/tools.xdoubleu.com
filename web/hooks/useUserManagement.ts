@@ -24,6 +24,11 @@ export function useSetAppAccess() {
     client.setAppAccess({ userId, appName, grant })
 }
 
+export function useSetDisplayName() {
+  const client = createServiceClient(AccessService)
+  return (userId: string, displayName: string) => client.setDisplayName({ userId, displayName })
+}
+
 export function useAgents() {
   const client = createServiceClient(AgentAccountService)
   return useSWR<ListAgentAccountsResponse, Error>(swrKeys.userManagementAgents, () =>

@@ -30,6 +30,9 @@ const (
 	AccessServiceSetRoleProcedure = "/access.v1.AccessService/SetRole"
 	// AccessServiceSetAppAccessProcedure is the procedure name of the AccessService's SetAppAccess RPC.
 	AccessServiceSetAppAccessProcedure = "/access.v1.AccessService/SetAppAccess"
+	// AccessServiceSetDisplayNameProcedure is the procedure name of the AccessService's SetDisplayName
+	// RPC.
+	AccessServiceSetDisplayNameProcedure = "/access.v1.AccessService/SetDisplayName"
 	// AccessServiceSetAgentAppAccessProcedure is the procedure name of the AccessService's
 	// SetAgentAppAccess RPC.
 	AccessServiceSetAgentAppAccessProcedure = "/access.v1.AccessService/SetAgentAppAccess"
@@ -57,6 +60,13 @@ var (
 			Procedure:  AccessServiceSetAppAccessProcedure,
 		}
 	})
+	accessServiceSetDisplayNameSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_access_v1_access_proto.Services().ByName("AccessService").Methods().ByName("SetDisplayName"),
+			Procedure:  AccessServiceSetDisplayNameProcedure,
+		}
+	})
 	accessServiceSetAgentAppAccessSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -71,6 +81,8 @@ type AccessServiceClient interface {
 	ListUsers(context.Context, *v1.ListUsersRequest) (*v1.ListUsersResponse, error)
 	SetRole(context.Context, *v1.SetRoleRequest) (*v1.SetRoleResponse, error)
 	SetAppAccess(context.Context, *v1.SetAppAccessRequest) (*v1.SetAppAccessResponse, error)
+	// SetDisplayName sets a person's full name; admin only.
+	SetDisplayName(context.Context, *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error)
 	// SetAgentAppAccess grants or revokes a standing agent's access to an app.
 	SetAgentAppAccess(context.Context, *v1.SetAgentAppAccessRequest) (*v1.SetAgentAppAccessResponse, error)
 }
@@ -86,6 +98,8 @@ type AccessServiceHandler interface {
 	ListUsers(context.Context, *v1.ListUsersRequest) (*v1.ListUsersResponse, error)
 	SetRole(context.Context, *v1.SetRoleRequest) (*v1.SetRoleResponse, error)
 	SetAppAccess(context.Context, *v1.SetAppAccessRequest) (*v1.SetAppAccessResponse, error)
+	// SetDisplayName sets a person's full name; admin only.
+	SetDisplayName(context.Context, *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error)
 	// SetAgentAppAccess grants or revokes a standing agent's access to an app.
 	SetAgentAppAccess(context.Context, *v1.SetAgentAppAccessRequest) (*v1.SetAgentAppAccessResponse, error)
 }
@@ -98,6 +112,7 @@ func RegisterAccessServiceHandler(server *connect.Server, svc AccessServiceHandl
 		connect.Method{Spec: accessServiceListUsersSpec(), Handler: adapter.listUsers},
 		connect.Method{Spec: accessServiceSetRoleSpec(), Handler: adapter.setRole},
 		connect.Method{Spec: accessServiceSetAppAccessSpec(), Handler: adapter.setAppAccess},
+		connect.Method{Spec: accessServiceSetDisplayNameSpec(), Handler: adapter.setDisplayName},
 		connect.Method{Spec: accessServiceSetAgentAppAccessSpec(), Handler: adapter.setAgentAppAccess},
 	)
 }
@@ -115,6 +130,10 @@ func (UnimplementedAccessServiceHandler) SetRole(context.Context, *v1.SetRoleReq
 
 func (UnimplementedAccessServiceHandler) SetAppAccess(context.Context, *v1.SetAppAccessRequest) (*v1.SetAppAccessResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "access.v1.AccessService.SetAppAccess is not implemented")
+}
+
+func (UnimplementedAccessServiceHandler) SetDisplayName(context.Context, *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "access.v1.AccessService.SetDisplayName is not implemented")
 }
 
 func (UnimplementedAccessServiceHandler) SetAgentAppAccess(context.Context, *v1.SetAgentAppAccessRequest) (*v1.SetAgentAppAccessResponse, error) {
@@ -144,6 +163,14 @@ func (c *accessServiceClient) SetRole(ctx context.Context, req *v1.SetRoleReques
 func (c *accessServiceClient) SetAppAccess(ctx context.Context, req *v1.SetAppAccessRequest) (*v1.SetAppAccessResponse, error) {
 	var res v1.SetAppAccessResponse
 	if err := c.client.CallUnary(ctx, accessServiceSetAppAccessSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *accessServiceClient) SetDisplayName(ctx context.Context, req *v1.SetDisplayNameRequest) (*v1.SetDisplayNameResponse, error) {
+	var res v1.SetDisplayNameResponse
+	if err := c.client.CallUnary(ctx, accessServiceSetDisplayNameSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -189,6 +216,18 @@ func (h accessServiceHandler) setAppAccess(ctx context.Context, _ connect.Spec, 
 		return err
 	}
 	res, err := h.svc.SetAppAccess(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h accessServiceHandler) setDisplayName(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SetDisplayNameRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SetDisplayName(ctx, &req)
 	if err != nil {
 		return err
 	}
