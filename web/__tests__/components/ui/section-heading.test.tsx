@@ -5,7 +5,7 @@ describe('SectionHeading', () => {
   it('renders a serif h2 by default', () => {
     render(<SectionHeading>Shelves</SectionHeading>)
     const heading = screen.getByRole('heading', { level: 2, name: 'Shelves' })
-    expect(heading).toHaveClass('font-display', 'text-xl')
+    expect(heading).toHaveClass('font-semibold', 'text-xl')
   })
 
   it('renders the eyebrow as a small uppercase h3', () => {

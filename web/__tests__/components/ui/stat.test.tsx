@@ -26,7 +26,7 @@ describe('StatTile', () => {
 
   it('defaults to the neutral tone', () => {
     render(<StatTile label="Total" value="9" />)
-    expect(screen.getByText('9')).toHaveClass('text-fg')
+    expect(screen.getByText('9')).toHaveClass('text-fg', 'text-2xl', 'font-semibold')
   })
 
   it('renders as a link when href is given', () => {
