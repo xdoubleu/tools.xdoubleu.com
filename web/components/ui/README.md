@@ -323,7 +323,7 @@ One entry of a collection: artwork, title, one meta line and an optional status.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
-| `href` | `string` | yes |  |
+| `href` | `string` |  | Where the card navigates; without it the card is static. |
 | `title` | `string` | yes |  |
 | `artwork` | `ReactNode` |  | An `Artwork` or icon, left of the text. |
 | `meta` | `ReactNode` |  | One muted line under the title. |

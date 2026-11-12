@@ -31,6 +31,21 @@ describe('ItemCard', () => {
   })
 })
 
+describe('ItemCard without a link', () => {
+  it('renders a static card with its actions', () => {
+    render(<ItemCard title="Show" meta="Host" actions={<button type="button">Remove</button>} />)
+    expect(document.querySelector('a')).toBeNull()
+    expect(screen.getByText('Show')).toBeInTheDocument()
+    expect(screen.getByText('Host')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument()
+  })
+
+  it('has no actions row without actions', () => {
+    const { container } = render(<ItemCard title="Show" />)
+    expect(container.querySelector('.flex-wrap')).toBeNull()
+  })
+})
+
 describe('CollectionGrid', () => {
   it('lays children out one, two then three columns wide', () => {
     render(

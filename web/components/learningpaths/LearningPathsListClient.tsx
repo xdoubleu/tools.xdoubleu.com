@@ -4,6 +4,7 @@ import { useLearningPaths, useFetchLearningPathsPage } from '@/hooks/useLearning
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import type { LearningPath } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
 import { Button } from '@/components/ui/button'
+import { ProgressBar } from '@/components/ui/progress-bar'
 import { CollectionGrid } from '@/components/ui/collection-grid'
 import { ItemCard } from '@/components/ui/item-card'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
@@ -27,22 +28,21 @@ function LearningPathCard({ path }: { path: LearningPath }) {
     <ItemCard
       href={`/learningpaths/${path.id}`}
       title={path.title}
-      meta={path.goal || undefined}
-      status={
-        <span className="text-xs text-muted">
+      meta={
+        <>
+          {path.goal && <>{path.goal} &middot; </>}
           {moduleCount} module{moduleCount === 1 ? '' : 's'}
-          {itemCount > 0 && (
-            <>
-              {' '}
-              &middot; {completedCount}/{itemCount} done
-            </>
-          )}
-        </span>
+        </>
       }
-      actions={
-        <Button asChild variant="secondary" size="sm">
-          <Link href={`/learningpaths/${path.id}/edit`}>Edit</Link>
-        </Button>
+      status={
+        itemCount > 0 ? (
+          <ProgressBar
+            value={completedCount}
+            max={itemCount}
+            aria-label={`${path.title} progress`}
+            valueText={`${completedCount} of ${itemCount} done`}
+          />
+        ) : undefined
       }
     />
   )

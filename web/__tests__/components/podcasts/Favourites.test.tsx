@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 
 const mockRemove = vi.fn()
@@ -51,32 +51,70 @@ describe('Favourites', () => {
     expect(screen.queryByText(/Loading favourites/)).not.toBeInTheDocument()
   })
 
-  it('removes a favourite', async () => {
+  const confirmRemove = () => {
+    fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
+  }
+
+  it('asks before removing a favourite, then removes it', async () => {
     mockFavourites({ data: list })
     render(<Favourites />)
     fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
+    expect(screen.getByRole('dialog', { name: 'Remove favourite?' })).toBeInTheDocument()
+    expect(
+      screen.getByText('Hardcore History leaves your favourites. You can add it again from search.')
+    ).toBeInTheDocument()
+    expect(mockRemove).not.toHaveBeenCalled()
+
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove' }))
     expect(screen.getByRole('button', { name: 'Removing…' })).toBeDisabled()
     await waitFor(() => expect(mockRemove).toHaveBeenCalledWith('f-1'))
     expect(screen.queryByText(/Couldn.t remove/)).not.toBeInTheDocument()
+  })
+
+  it('keeps the favourite when the confirmation is cancelled', () => {
+    mockFavourites({ data: list })
+    render(<Favourites />)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(mockRemove).not.toHaveBeenCalled()
   })
 
   it('clears an earlier failure when retrying', async () => {
     mockRemove.mockRejectedValueOnce(new Error('boom'))
     mockFavourites({ data: list })
     render(<Favourites />)
-    fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
+    confirmRemove()
     expect(await screen.findByText(/Couldn.t remove/)).toBeInTheDocument()
-    fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
+    confirmRemove()
     await waitFor(() => expect(screen.queryByText(/Couldn.t remove/)).not.toBeInTheDocument())
   })
 
-  it('reports a failed removal', async () => {
+  it('reports a failed removal and closes the confirmation', async () => {
     mockRemove.mockRejectedValue(new Error('boom'))
     mockFavourites({ data: list })
     render(<Favourites />)
-    fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0])
+    confirmRemove()
     expect(await screen.findByText(/Couldn.t remove/)).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: 'Remove' })).toHaveLength(2)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('filters by title or author and says so when nothing matches', () => {
+    mockFavourites({ data: list })
+    render(<Favourites />)
+    const search = screen.getByRole('searchbox', { name: 'Search shows' })
+
+    fireEvent.change(search, { target: { value: '  Carlin ' } })
+    expect(screen.getByText('Hardcore History')).toBeInTheDocument()
+    expect(screen.queryByText('History of Rome')).not.toBeInTheDocument()
+
+    fireEvent.change(search, { target: { value: 'rome' } })
+    expect(screen.getByText('History of Rome')).toBeInTheDocument()
+    expect(screen.queryByText('Hardcore History')).not.toBeInTheDocument()
+
+    fireEvent.change(search, { target: { value: 'zzz' } })
+    expect(screen.getByText('No shows match.')).toBeInTheDocument()
   })
 
   it('shows a loading state', () => {
@@ -85,10 +123,11 @@ describe('Favourites', () => {
     expect(screen.getByText(/Loading favourites/)).toBeInTheDocument()
   })
 
-  it('shows an empty state', () => {
+  it('shows an empty state with the add action', () => {
     mockFavourites({ data: create(ListFavouritesResponseSchema, { favourites: [] }) })
-    render(<Favourites />)
+    render(<Favourites addAction={<button>Add a show</button>} />)
     expect(screen.getByText(/No favourite podcasts yet/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add a show' })).toBeInTheDocument()
   })
 
   it('shows a load error', () => {

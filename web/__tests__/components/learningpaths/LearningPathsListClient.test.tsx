@@ -90,7 +90,7 @@ describe('LearningPathsListClient', () => {
     const link = screen.getByRole('link', { name: /Learn Go/ })
     expect(link).toHaveAttribute('href', '/learningpaths/lp1')
     expect(link).toHaveTextContent('Ship a backend service')
-    expect(link).toHaveTextContent(/1 module · 1\/2 done$/)
+    expect(link).toHaveTextContent('Ship a backend service · 1 module')
   })
 
   it('pluralises modules and omits progress for a path without items', () => {
@@ -111,7 +111,35 @@ describe('LearningPathsListClient', () => {
     expect(link.textContent).toBe('Empty plan2 modules')
   })
 
-  it('links each card straight to its edit page', () => {
+  it('shows progress as a bar and leaves editing to the detail page', () => {
+    mockLearningPaths({
+      data: create(ListLearningPathsResponseSchema, {
+        learningPaths: [
+          create(LearningPathSchema, {
+            id: 'lp1',
+            title: 'Learn Go',
+            modules: [
+              create(ModuleSchema, {
+                items: [
+                  create(ItemSchema, { completed: true }),
+                  create(ItemSchema, { completed: false })
+                ]
+              })
+            ]
+          })
+        ]
+      }),
+      isLoading: false
+    })
+    render(<LearningPathsListClient />)
+    expect(screen.getByRole('progressbar', { name: 'Learn Go progress' })).toHaveAttribute(
+      'aria-valuetext',
+      '1 of 2 done'
+    )
+    expect(screen.queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument()
+  })
+
+  it('shows no bar for a path without items', () => {
     mockLearningPaths({
       data: create(ListLearningPathsResponseSchema, {
         learningPaths: [create(LearningPathSchema, { id: 'lp1', title: 'Learn Go' })]
@@ -119,9 +147,6 @@ describe('LearningPathsListClient', () => {
       isLoading: false
     })
     render(<LearningPathsListClient />)
-    expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
-      'href',
-      '/learningpaths/lp1/edit'
-    )
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
   })
 })
