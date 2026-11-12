@@ -26,9 +26,18 @@ func (app *Application) healthHandler(w http.ResponseWriter, r *http.Request) {
 	if err := httptools.WriteJSON(
 		w,
 		http.StatusOK,
-		map[string]string{"status": "ok"},
+		healthBody(app.disabledApps),
 		nil,
 	); err != nil {
 		httptools.HandleError(w, r, err)
 	}
+}
+
+// healthBody reports degraded, still with a 200 so Kamal's healthcheck passes
+// and a deploy with one broken app goes out.
+func healthBody(disabled DisabledApps) map[string]any {
+	if len(disabled) == 0 {
+		return map[string]any{"status": "ok"}
+	}
+	return map[string]any{"status": "degraded", "disabled_apps": disabled.Names()}
 }

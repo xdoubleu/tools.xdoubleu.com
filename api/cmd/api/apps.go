@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -188,14 +189,72 @@ func (apps *Apps) Shutdown(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-func (apps *Apps) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
+// appDependsOn lists the apps whose schema an app's migration relies on; an
+// app is skipped when one of them failed. Registration order already respects
+// it.
+//
+//nolint:gochecknoglobals //static registration data
+var appDependsOn = map[string][]string{
+	"feeds":         {"books"},
+	"games":         {"books"},
+	"dashboard":     {"books", "feeds", "games"},
+	"learningpaths": {"books", "feeds"},
+	"mealplans":     {"recipes"},
+	"shoppinglist":  {"mealplans", "recipes"},
+}
+
+// DisabledApps maps an app's name to why it is disabled.
+type DisabledApps map[string]error
+
+// ApplyMigrations migrates each app in order. A failing app, or one whose
+// dependency failed, is returned as disabled instead of aborting the rest.
+func (apps *Apps) ApplyMigrations(
+	ctx context.Context,
+	db *pgxpool.Pool,
+) DisabledApps {
+	disabled := DisabledApps{}
 	for _, app := range *apps {
-		err := app.ApplyMigrations(ctx, db)
-		if err != nil {
-			return err
+		name := app.GetName()
+		skipped := false
+		for _, dep := range appDependsOn[name] {
+			if _, failed := disabled[dep]; failed {
+				disabled[name] = fmt.Errorf("dependency %s is disabled", dep)
+				skipped = true
+				break
+			}
+		}
+		if skipped {
+			continue
+		}
+		if err := app.ApplyMigrations(ctx, db); err != nil {
+			disabled[name] = err
 		}
 	}
-	return nil
+	return disabled
+}
+
+// Without returns the apps not in disabled.
+func (apps *Apps) Without(disabled DisabledApps) *Apps {
+	if len(disabled) == 0 {
+		return apps
+	}
+	enabled := make(Apps, 0, len(*apps))
+	for _, app := range *apps {
+		if _, off := disabled[app.GetName()]; !off {
+			enabled = append(enabled, app)
+		}
+	}
+	return &enabled
+}
+
+// Names returns the disabled app names, sorted.
+func (d DisabledApps) Names() []string {
+	names := make([]string, 0, len(d))
+	for name := range d {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
 }
 
 func (apps *Apps) Routes(mux *http.ServeMux) http.Handler {
