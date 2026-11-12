@@ -8,12 +8,15 @@ vi.mock('@/hooks/useAuth', () => ({
   useSignOut: vi.fn(() => vi.fn())
 }))
 
+vi.mock('@/hooks/useScrolledTitle', () => ({ useScrolledTitle: vi.fn(() => null) }))
+
 vi.mock('@/hooks/navigation', () => ({
   usePathname: vi.fn()
 }))
 
 import { useCurrentUser } from '@/hooks/useAuth'
 import { usePathname } from '@/hooks/navigation'
+import { useScrolledTitle } from '@/hooks/useScrolledTitle'
 
 const mockUseCurrentUser = vi.mocked(useCurrentUser)
 const mockUsePathname = vi.mocked(usePathname)
@@ -100,5 +103,14 @@ describe('Navbar', () => {
     mockUsePathname.mockReturnValue('/dashboard/reading')
     render(<Navbar />)
     expect(screen.getByRole('banner')).toBeInTheDocument()
+  })
+
+  it('shows the page title in place of the app name once its heading scrolls away', () => {
+    signedIn()
+    mockUsePathname.mockReturnValue('/feeds')
+    vi.mocked(useScrolledTitle).mockReturnValue('Unread articles')
+    render(<Navbar />)
+    expect(screen.getByRole('link', { name: 'Unread articles' })).toHaveAttribute('href', '/')
+    expect(useScrolledTitle).toHaveBeenCalledWith('/feeds')
   })
 })

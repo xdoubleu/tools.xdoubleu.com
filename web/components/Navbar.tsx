@@ -2,17 +2,19 @@ import AccountMenu from '@/components/AccountMenu'
 import { Link } from '@/components/ui/link'
 import { usePathname } from '@/hooks/navigation'
 import { useCurrentUser } from '@/hooks/useAuth'
+import { useScrolledTitle } from '@/hooks/useScrolledTitle'
 import { appForPath } from '@/lib/apps'
 import { isSharedDashboard } from '@/lib/signIn'
 
-/** Slim top bar below `lg`: where you are, and the account menu. The sidebar covers wider screens. */
+/** Slim top bar below `lg`: where you are (the page title once its heading scrolls away), and the account menu. The sidebar covers wider screens. */
 export default function Navbar() {
   const { data, isLoading } = useCurrentUser()
   const pathname = usePathname()
+  const scrolledTitle = useScrolledTitle(pathname)
 
   if (isLoading || !data || isSharedDashboard(pathname)) return null
 
-  const title = appForPath(pathname)?.label ?? 'tools.xdoubleu.com'
+  const title = scrolledTitle ?? appForPath(pathname)?.label ?? 'tools.xdoubleu.com'
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-glass pt-[var(--inset-top)] backdrop-blur-xl backdrop-saturate-150 shadow-glass lg:hidden">
