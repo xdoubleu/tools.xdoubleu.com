@@ -151,6 +151,26 @@ describe('AppShell', () => {
     localStorage.clear()
   })
 
+  it('toggles the sidebar with Ctrl/Cmd+B, but not while typing', () => {
+    localStorage.clear()
+    signedInAs({ role: 'user', appAccess: [] })
+    render(
+      <AppShell>
+        <input aria-label="field" />
+      </AppShell>
+    )
+    const offset = () => screen.getByRole('main').parentElement
+    fireEvent.keyDown(window, { key: 'b', metaKey: true })
+    expect(offset()).toHaveClass('lg:pl-16')
+    fireEvent.keyDown(screen.getByLabelText('field'), { key: 'b', ctrlKey: true })
+    expect(offset()).toHaveClass('lg:pl-16')
+    fireEvent.keyDown(window, { key: 'b', ctrlKey: true, shiftKey: true })
+    expect(offset()).toHaveClass('lg:pl-16')
+    fireEvent.keyDown(window, { key: 'b', ctrlKey: true })
+    expect(offset()).toHaveClass('lg:pl-60')
+    localStorage.clear()
+  })
+
   it('keeps the page clear of a landscape notch at every width', () => {
     signedInAs({ role: 'user', appAccess: [] })
     render(<AppShell>{null}</AppShell>)

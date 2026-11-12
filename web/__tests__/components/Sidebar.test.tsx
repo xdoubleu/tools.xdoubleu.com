@@ -90,7 +90,7 @@ describe('Sidebar', () => {
     expect(link.tagName).toBe('A')
   })
 
-  it('toggles collapse from the header button', () => {
+  it('toggles collapse from the footer button', () => {
     user('user', ['feeds'])
     const onToggle = vi.fn()
     renderSidebar(false, onToggle)

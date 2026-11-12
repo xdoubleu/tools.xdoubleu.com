@@ -1,21 +1,27 @@
 import { useState, useEffect } from 'react'
 
 /**
- * localStorage-backed state: renders initialValue first, applies the stored
- * value on mount. Key convention: `<area>:<name>`.
+ * localStorage-backed state, read synchronously on first render so stored
+ * layout choices don't flash. Key convention: `<area>:<name>`.
  */
-export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => void] {
-  const [storedValue, setStoredValue] = useState<T>(initialValue)
+function readStored<T>(key: string, fallback: T): T {
+  try {
+    const item = localStorage.getItem(key)
+    if (item === null) return fallback
+    const parsed: T = JSON.parse(item)
+    return parsed
+  } catch {
+    return fallback
+  }
+}
 
+export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => void] {
+  const [storedValue, setStoredValue] = useState<T>(() => readStored(key, initialValue))
+
+  // A changed key re-reads; the initial read happened above.
   useEffect(() => {
-    try {
-      const item = localStorage.getItem(key)
-      if (item !== null) {
-        setStoredValue(JSON.parse(item))
-      }
-    } catch {
-      // Ignore parse errors or missing localStorage.
-    }
+    const item = readStored<T | null>(key, null)
+    if (item !== null) setStoredValue(item)
   }, [key])
 
   const setValue = (value: T) => {
