@@ -92,7 +92,7 @@
     },
     "browserslist": "4.29.5",
     "baseline-browser-mapping": "2.11.35",
-    "postcss-selector-parser": "7.1.7",
+    "postcss-selector-parser": "7.2.0",
     "minimatch": "^11.0.1",
     "qs": "6.17.1"
   },
