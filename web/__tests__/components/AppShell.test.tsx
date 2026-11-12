@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 vi.mock('@/hooks/useAuth', () => ({ useCurrentUser: vi.fn() }))
 
@@ -29,7 +29,9 @@ vi.mock('@/components/AppOpenTracker', () => ({
 
 vi.mock('@/components/Sidebar', () => ({
   __esModule: true,
-  default: () => <div data-testid="sidebar" />
+  default: ({ onToggle }: { onToggle: () => void }) => (
+    <button data-testid="sidebar" onClick={onToggle} />
+  )
 }))
 
 vi.mock('@/components/offline/OfflineBanner', () => ({
@@ -131,6 +133,22 @@ describe('AppShell', () => {
     expect(screen.getByTestId('sw-registrar')).toBeInTheDocument()
     expect(screen.getByTestId('outbox-sync')).toBeInTheDocument()
     expect(screen.getByTestId('child')).toHaveTextContent('content')
+  })
+
+  it('narrows the content offset when the sidebar is collapsed, and remembers it', () => {
+    localStorage.clear()
+    signedInAs({ role: 'user', appAccess: [] })
+    const { unmount } = render(<AppShell>{null}</AppShell>)
+    const offset = () => screen.getByRole('main').parentElement
+    expect(offset()).toHaveClass('lg:pl-60')
+
+    fireEvent.click(screen.getByTestId('sidebar'))
+    expect(offset()).toHaveClass('lg:pl-16')
+
+    unmount()
+    render(<AppShell>{null}</AppShell>)
+    expect(offset()).toHaveClass('lg:pl-16')
+    localStorage.clear()
   })
 
   it('keeps the page clear of a landscape notch at every width', () => {

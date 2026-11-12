@@ -1,5 +1,5 @@
 import { create } from '@bufbuild/protobuf'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import Sidebar from '@/components/Sidebar'
 import { GetCurrentUserResponseSchema } from '@/lib/gen/auth/v1/auth_pb'
@@ -22,10 +22,10 @@ function user(role: string, appAccess: string[]) {
   })
 }
 
-const renderSidebar = () =>
+const renderSidebar = (collapsed = false, onToggle = vi.fn()) =>
   render(
     <MemoryRouter>
-      <Sidebar />
+      <Sidebar collapsed={collapsed} onToggle={onToggle} />
     </MemoryRouter>
   )
 
@@ -88,6 +88,28 @@ describe('Sidebar', () => {
     const link = screen.getByRole('link', { name: 'Grafana' })
     expect(link).toHaveAttribute('href', '/grafana')
     expect(link.tagName).toBe('A')
+  })
+
+  it('toggles collapse from the header button', () => {
+    user('user', ['feeds'])
+    const onToggle = vi.fn()
+    renderSidebar(false, onToggle)
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+    expect(onToggle).toHaveBeenCalledOnce()
+  })
+
+  it('collapses to an icon rail that keeps names and the highlight', () => {
+    user('user', ['feeds'])
+    vi.mocked(usePathname).mockReturnValue('/feeds')
+    renderSidebar(true)
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    )
+    const feeds = screen.getByRole('link', { name: 'Feeds' })
+    expect(feeds).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByText('Feeds')).toHaveClass('sr-only')
+    expect(screen.getByRole('complementary')).toHaveClass('w-16')
   })
 
   it('highlights Today on the home page only', () => {
