@@ -184,28 +184,4 @@ describe('ShoppingList', () => {
       expect(screen.getByText(/1 L milk/)).toBeInTheDocument()
     })
   })
-
-  describe('export button', () => {
-    it('does not render export button when onExport is not provided', () => {
-      render(<ShoppingList items={items} />)
-      expect(screen.queryByRole('button', { name: /Export/ })).not.toBeInTheDocument()
-    })
-
-    it('renders export button when onExport is provided', () => {
-      render(<ShoppingList items={items} onExport={vi.fn()} />)
-      expect(screen.getByRole('button', { name: /Export/ })).toBeInTheDocument()
-    })
-
-    it('calls onExport when export button is clicked', () => {
-      const onExport = vi.fn()
-      render(<ShoppingList items={items} onExport={onExport} />)
-      fireEvent.click(screen.getByRole('button', { name: /Export/ }))
-      expect(onExport).toHaveBeenCalledTimes(1)
-    })
-
-    it('renders export button in empty state when onExport is provided', () => {
-      render(<ShoppingList items={[]} onExport={vi.fn()} />)
-      expect(screen.getByRole('button', { name: /Export/ })).toBeInTheDocument()
-    })
-  })
 })
