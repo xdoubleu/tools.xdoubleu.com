@@ -45,6 +45,7 @@ const SHARED_HOOKS = [
   'useProgressSocket',
   'useSharedList',
   'useToday',
+  'useScrolledTitle',
   'useWakeLock'
 ]
 
