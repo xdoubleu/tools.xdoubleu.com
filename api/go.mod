@@ -22,7 +22,7 @@ require (
 	github.com/ledongthuc/pdf v0.0.0-20261020125853-5e46805f718e
 	github.com/mmcdole/gofeed v1.5.0
 	github.com/modelcontextprotocol/go-sdk v1.8.0
-	github.com/pgaskin/kepubify/v4 v4.0.4
+	github.com/pgaskin/kepubify/v5 v5.0.0
 	github.com/pgaskin/kepubify/v5 v5.0.0
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.29.0
