@@ -25,9 +25,13 @@ Reference viewport: **375 × 667, one thumb, no hover, no keyboard**. Add a
 ```bash
 cd web
 npx playwright install chromium      # once per machine
-npm run dev &
-npm run mobile:audit -- /trains /books/library
+npm run mobile:audit:local -- /trains /books/library
 ```
+
+`mobile:audit:local` needs no login or dev server: it builds `web/dist` if
+stale, runs the api on its own `mobile_audit` database (Postgres from
+`docker-compose up -d` in `api/`, Go, `psql`) and signs in as an admin.
+Pages show empty states; seed `mobile_audit` rows to see data. Your own stack: `npm run mobile:audit -- … --base-url … --storage-state …`.
 
 Add `--expand` to open collapsed groups before measuring.
 
@@ -48,7 +52,7 @@ Shifts after a mutation aren't covered: add or move an item by hand with
 the changed item moved.
 
 Exits 1 on anything `broken`. Flags: `--json`, `--theme dark`, `--base-url`,
-`--width`, `--storage-state <file>` (most routes need login).
+`--width`, `--storage-state <file>` (most routes need login; `:local` supplies it).
 `CHROMIUM_EXECUTABLE_PATH` reuses an installed Chromium.
 
 **Page needs live backend data** (renders only `Loading…`/error here): add a
