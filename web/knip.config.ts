@@ -17,7 +17,7 @@ const config: KnipConfig = {
     '@tailwindcss/typography',
     'tailwindcss'
   ],
-  ignoreBinaries: ['buf']
+  ignoreBinaries: ['buf', 'psql', 'go']
 }
 
 export default config
