@@ -37,7 +37,7 @@ export interface AppEntry {
   /** Further route prefixes the app owns, e.g. its dashboard. */
   extraBases?: string[]
   /** Pages the app's sections switch between (`AppSections`). */
-  sections?: { label: string; href: string }[]
+  sections?: { label: string; href: string; external?: boolean }[]
   /** Has its own home-screen artwork (public/icons/<id>.svg and -apple.png). */
   artwork?: boolean
   /** Plain anchor instead of `<Link>`, for targets served by another container (e.g. `/grafana`). */
@@ -218,7 +218,8 @@ export const APPS: AppEntry[] = [
     base: '/monitoring',
     sections: [
       { label: 'Connections', href: '/monitoring/connections' },
-      { label: 'Automated actions', href: '/monitoring/observability' }
+      { label: 'Automated actions', href: '/monitoring/observability' },
+      { label: 'Grafana', href: '/grafana', external: true }
     ],
     group: 'Admin',
     icon: Activity,
