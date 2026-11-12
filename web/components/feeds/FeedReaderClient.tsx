@@ -13,6 +13,7 @@ import FeedTopItems from '@/components/feeds/FeedTopItems'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { Select } from '@/components/ui/select'
+import { CollectionGrid } from '@/components/ui/collection-grid'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { Toolbar } from '@/components/ui/toolbar'
 import type { Feed, Item } from '@/lib/gen/feeds/v1/feeds_pb'
@@ -171,15 +172,17 @@ function FeedInbox({ bookmarkedOnly, showRead, selectedFeedId, feeds }: FeedInbo
 
       {gridItems.length === 0 && lastChance.length === 0 ? (
         <EmptyState placement="page">
-          {bookmarkedOnly
-            ? 'No bookmarked feed items.'
-            : showRead
-              ? 'No feed items.'
-              : 'No unread feed items.'}
+          {feeds.length === 0
+            ? 'No feeds yet. Use Manage feeds to subscribe to one.'
+            : bookmarkedOnly
+              ? 'No bookmarked feed items.'
+              : showRead
+                ? 'No feed items.'
+                : 'No unread feed items.'}
         </EmptyState>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <CollectionGrid>
             {gridItems.map((item) => (
               <FeedReaderCard
                 key={item.id}
@@ -191,7 +194,7 @@ function FeedInbox({ bookmarkedOnly, showRead, selectedFeedId, feeds }: FeedInbo
                 onSettled={handleSettled}
               />
             ))}
-          </div>
+          </CollectionGrid>
           {hasMore && <LoadMoreButton onClick={loadMore} loading={loadingMore} />}
         </>
       )}

@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react'
 import { Input } from '@/components/ui/input'
 import { TogglePill } from '@/components/ui/toggle-pill'
 
@@ -14,6 +15,8 @@ interface CollectionToolbarProps {
   query: string
   onQueryChange: (query: string) => void
   facets?: CollectionFacet[]
+  /** Extra controls (selects, a sort) after the facets. */
+  children?: ReactNode
   /** Items shown after search and filters. */
   count: number
 }
@@ -27,6 +30,7 @@ function CollectionToolbar({
   query,
   onQueryChange,
   facets = [],
+  children,
   count
 }: CollectionToolbarProps) {
   return (
@@ -47,6 +51,7 @@ function CollectionToolbar({
             onClick={facet.onToggle}
           />
         ))}
+        {children}
         <p className="ml-auto text-sm text-muted" role="status">
           {count} {count === 1 ? 'result' : 'results'}
         </p>

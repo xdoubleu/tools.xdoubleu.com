@@ -167,6 +167,7 @@ Search, facet chips and the result count above a collection. The search filters 
 | `query` | `string` | yes |  |
 | `onQueryChange` | `(query: string) => void` | yes |  |
 | `facets` | `CollectionFacet[]` |  |  |
+| `children` | `ReactNode` |  | Extra controls (selects, a sort) after the facets. |
 | `count` | `number` | yes | Items shown after search and filters. |
 
 ### `combobox.tsx`
