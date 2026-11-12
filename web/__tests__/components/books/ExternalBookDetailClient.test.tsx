@@ -107,7 +107,7 @@ describe('ExternalBookDetailClient', () => {
   it('renders breadcrumb with Books and Library links', () => {
     mockResult()
     render(<ExternalBookDetailClient provider="hardcover" providerId="9780134190440" />)
-    expect(screen.getByText('Books').closest('a')).toHaveAttribute('href', '/dashboard/reading')
+    expect(screen.getByText('Books').closest('a')).toHaveAttribute('href', '/books/library')
     expect(screen.getByText('Library').closest('a')).toHaveAttribute('href', '/books/library')
   })
 

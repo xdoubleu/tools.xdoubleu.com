@@ -66,7 +66,7 @@ export default function BookDetailClient({ id }: { id: string }) {
   }, [data])
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: 'Books', href: '/dashboard/reading' },
+    { label: 'Books', href: '/books/library' },
     {
       label: 'Library',
       href: query ? `/books/library?q=${encodeURIComponent(query)}` : '/books/library'

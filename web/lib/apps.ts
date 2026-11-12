@@ -35,6 +35,10 @@ export interface AppEntry {
   adminOnly?: boolean
   /** Route prefix the app owns; defaults to the first segment of `href`. */
   base?: string
+  /** Further route prefixes the app owns, e.g. its dashboard. */
+  extraBases?: string[]
+  /** Pages the app's sections switch between (`AppSections`). */
+  sections?: { label: string; href: string }[]
   /** Has its own home-screen artwork (public/icons/<id>.svg and -apple.png). */
   artwork?: boolean
   /** Plain anchor instead of `<Link>`, for targets served by another container (e.g. `/grafana`). */
@@ -50,6 +54,10 @@ export const APPS: AppEntry[] = [
     label: 'Feeds',
     href: '/feeds',
     description: 'Unread RSS and newsletter articles.',
+    sections: [
+      { label: 'Inbox', href: '/feeds' },
+      { label: 'Stats', href: '/feeds/stats' }
+    ],
     group: 'Learning',
     icon: Rss,
     artwork: true
@@ -65,9 +73,13 @@ export const APPS: AppEntry[] = [
   {
     id: 'books',
     label: 'Books',
-    href: '/dashboard/reading',
+    href: '/books/library',
     description: 'Search, library and reading progress.',
-    base: '/dashboard/reading',
+    extraBases: ['/dashboard/reading'],
+    sections: [
+      { label: 'Library', href: '/books/library' },
+      { label: 'Stats', href: '/dashboard/reading' }
+    ],
     group: 'Media',
     icon: BookOpen,
     artwork: true
@@ -75,9 +87,13 @@ export const APPS: AppEntry[] = [
   {
     id: 'games',
     label: 'Games',
-    href: '/dashboard/games',
+    href: '/games/library',
     description: 'Steam backlog, progress and distribution.',
-    base: '/dashboard/games',
+    extraBases: ['/dashboard/games'],
+    sections: [
+      { label: 'Library', href: '/games/library' },
+      { label: 'Stats', href: '/dashboard/games' }
+    ],
     group: 'Media',
     icon: Gamepad2,
     artwork: true
@@ -87,6 +103,10 @@ export const APPS: AppEntry[] = [
     label: 'Movies & series',
     href: '/movies',
     description: 'Watch backlog with TMDB search.',
+    sections: [
+      { label: 'Backlog', href: '/movies' },
+      { label: 'Stats', href: '/movies/stats' }
+    ],
     group: 'Media',
     icon: Clapperboard
   },
@@ -255,15 +275,25 @@ export function artworkApp(segment: string): AppEntry | undefined {
   return APPS.find((a) => a.artwork && a.id === segment)
 }
 
-const baseOf = (app: AppEntry) => app.base ?? `/${app.href.split('/')[1]}`
+const basesOf = (app: AppEntry) => [
+  app.base ?? `/${app.href.split('/')[1]}`,
+  // Stryker disable next-line ArrayDeclaration: an empty fallback adds no prefix
+  ...(app.extraBases ?? [])
+]
+
+const matchLength = (app: AppEntry, pathname: string) =>
+  Math.max(
+    0,
+    ...basesOf(app)
+      .filter((base) => pathname === base || pathname.startsWith(`${base}/`))
+      .map((base) => base.length)
+  )
 
 /** The app that owns `pathname` (longest matching route prefix), if any. */
 export function appForPath(pathname: string): AppEntry | undefined {
-  const matches = APPS.filter((app) => {
-    const base = baseOf(app)
-    return pathname === base || pathname.startsWith(`${base}/`)
-  })
-  return matches.sort((a, b) => baseOf(b).length - baseOf(a).length)[0]
+  return APPS.map((app) => ({ app, length: matchLength(app, pathname) }))
+    .filter((m) => m.length > 0)
+    .sort((a, b) => b.length - a.length)[0]?.app
 }
 
 const DEFAULT_PINS = ['books', 'feeds', 'mealplans']

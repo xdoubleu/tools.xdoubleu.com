@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { PageContainer } from '@/components/ui/page-container'
-import { PageHeader, PageHeaderLink, PageHeaderSettingsLink } from '@/components/ui/page-header'
+import AppSections from '@/components/AppSections'
+import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
 
 // Each search is a TMDB request; wait for typing to pause.
 const SEARCH_DEBOUNCE_MS = 300
@@ -73,12 +74,12 @@ export default function MoviesClient() {
         title="Movies & series"
         actions={
           <>
-            <PageHeaderLink href={listHref('/movies/stats', shared)}>Stats</PageHeaderLink>
             <PageHeaderSettingsLink href="/movies/settings" />
             {addButton}
           </>
         }
       />
+      <AppSections app="movies" hrefFor={(href) => listHref(href, shared)} />
       <ListSwitch className="mb-4" />
       <MoviesBacklog filter={filter} onFilterChange={setFilter} addAction={addButton} />
       <AddTitleDialog open={adding} onOpenChange={setAdding} />

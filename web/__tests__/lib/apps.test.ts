@@ -62,12 +62,40 @@ describe('registry', () => {
   })
 })
 
+describe('sections', () => {
+  it("lists each app's pages", () => {
+    const sections = Object.fromEntries(
+      APPS.filter((a) => a.sections).map((a) => [a.id, a.sections])
+    )
+    expect(sections).toEqual({
+      feeds: [
+        { label: 'Inbox', href: '/feeds' },
+        { label: 'Stats', href: '/feeds/stats' }
+      ],
+      books: [
+        { label: 'Library', href: '/books/library' },
+        { label: 'Stats', href: '/dashboard/reading' }
+      ],
+      games: [
+        { label: 'Library', href: '/games/library' },
+        { label: 'Stats', href: '/dashboard/games' }
+      ],
+      movies: [
+        { label: 'Backlog', href: '/movies' },
+        { label: 'Stats', href: '/movies/stats' }
+      ]
+    })
+  })
+})
+
 describe('appForPath', () => {
   it.each([
     ['/feeds', 'feeds'],
     ['/recipes/list', 'recipes'],
     ['/recipes/abc-123', 'recipes'],
     ['/dashboard/reading', 'books'],
+    ['/books/library', 'books'],
+    ['/games/123', 'games'],
     ['/dashboard/games/library', 'games'],
     ['/monitoring/observability/runs', 'observability'],
     ['/monitoring/connections', 'monitoring'],

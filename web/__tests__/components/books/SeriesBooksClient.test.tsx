@@ -62,10 +62,7 @@ describe('SeriesBooksClient', () => {
     render(<SeriesBooksClient name="Discworld" />)
 
     expect(mockUseBookSeries).toHaveBeenCalledWith('Discworld')
-    expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute(
-      'href',
-      '/dashboard/reading'
-    )
+    expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute('href', '/books/library')
     expect(screen.getByRole('link', { name: 'Library' })).toHaveAttribute('href', '/books/library')
     expect(within(screen.getByRole('navigation')).getByText('Discworld')).toBeInTheDocument()
     expect(screen.queryByText('No books in this series yet.')).toBeNull()

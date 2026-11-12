@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { useRouteParams, useSearchParams } from '@/hooks/navigation'
+import { usePathname, useRouteParams, useRouter, useSearchParams } from '@/hooks/navigation'
 import { useSharedLibrary, useSharedSteam } from '@/hooks/useDashboardShare'
 import { useSharedList } from '@/hooks/useSharedList'
 
@@ -169,13 +169,24 @@ describe('FeedExpiredPage', () => {
 })
 
 describe('MoviesStatsPage', () => {
+  it('shows the movies sections with Stats current', () => {
+    vi.mocked(useSharedList).mockReturnValue(false)
+    vi.mocked(usePathname).mockReturnValue('/movies/stats')
+    mount(<MoviesStatsPage />)
+
+    expect(screen.getByRole('tab', { name: 'Stats' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: 'Backlog' })).toHaveAttribute('aria-selected', 'false')
+  })
+
   it.each([
     [false, '/movies'],
     [true, '/movies?list=shared']
-  ])('keeps the shared list (%s) in the breadcrumb', (shared, href) => {
+  ])('keeps the shared list (%s) when switching section', (shared, href) => {
+    vi.mocked(usePathname).mockReturnValue('/movies/stats')
     vi.mocked(useSharedList).mockReturnValue(shared)
     mount(<MoviesStatsPage />)
 
-    expect(screen.getByRole('link', { name: 'Movies & series' })).toHaveAttribute('href', href)
+    fireEvent.click(screen.getByRole('tab', { name: 'Backlog' }))
+    expect(vi.mocked(useRouter)().push).toHaveBeenCalledWith(href)
   })
 })

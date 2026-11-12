@@ -59,7 +59,7 @@ export default function GamesSettingsClient() {
     <PageContainer size="narrow">
       <PageHeader
         title="Games settings"
-        breadcrumb={[{ label: 'Games', href: '/dashboard/games' }, { label: 'Settings' }]}
+        breadcrumb={[{ label: 'Games', href: '/games/library' }, { label: 'Settings' }]}
       />
 
       {saved && (
