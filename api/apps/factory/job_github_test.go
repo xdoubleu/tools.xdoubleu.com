@@ -14,7 +14,7 @@ import (
 	"tools.xdoubleu.com/apps/factory"
 	"tools.xdoubleu.com/apps/factory/internal/services"
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
-	"tools.xdoubleu.com/internal/githubapp"
+	"tools.xdoubleu.com/internal/platform/githubapp"
 )
 
 const ownPull = "https://github.com/xdoubleu/tools.xdoubleu.com/pull/42"

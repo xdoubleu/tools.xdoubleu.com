@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
-	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/platform/logging"
 )
 
 // routeByQuery answers each request with the body whose key occurs in the

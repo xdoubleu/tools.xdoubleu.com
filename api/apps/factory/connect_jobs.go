@@ -11,7 +11,7 @@ import (
 	"tools.xdoubleu.com/apps/factory/internal/models"
 	"tools.xdoubleu.com/apps/factory/internal/services"
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
-	"tools.xdoubleu.com/internal/githubapp"
+	"tools.xdoubleu.com/internal/platform/githubapp"
 )
 
 // claimPoll is how often a held ClaimJob looks for a queued job.

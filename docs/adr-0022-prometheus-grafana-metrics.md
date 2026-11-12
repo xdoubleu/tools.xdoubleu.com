@@ -2,11 +2,11 @@
 
 - Status: Accepted; [ADR-0034](adr-0034-vite-spa-served-by-the-api.md) moved `web_vitals_seconds` onto the api's `/metrics` (beacon: `POST /web-vitals`) and removed the `web` scrape job and its `TargetMissing`.
 - Issues: #1468, #1528, #1529, #1541, #1554, #1555, #1556, #1564, #1570, #1574, #1580, #1592, #1608, #1702, #1709, #1717, #1723
-- Affects: `api/internal/observability/`, `api/internal/middleware/metrics.go`, `api/cmd/api/metrics.go`, `api/internal/obs/mcp_prom.go`, `api/internal/obs/mcp_grafana.go`, `config/deploy.grafana.yml`, `infra/prometheus-compose.yml`, `infra/prometheus.yml`, `infra/grafana/`, `api/internal/spa/`
+- Affects: `api/internal/platform/observability/`, `api/internal/platform/middleware/metrics.go`, `api/internal/platform/observability/metrics.go`, `api/internal/platform/obs/mcp_prom.go`, `api/internal/platform/obs/mcp_grafana.go`, `config/deploy.grafana.yml`, `infra/prometheus-compose.yml`, `infra/prometheus.yml`, `infra/grafana/`, `api/internal/platform/spa/`
 
 ## Context
 
-`internal/observability/` hand-rolled a metrics pipeline: a node_exporter text
+`internal/platform/observability/` hand-rolled a metrics pipeline: a node_exporter text
 parser, four snapshot jobs writing samples to Postgres, and `ThresholdAlertJob`
 re-implementing rule evaluation, sustain windows, and breach state — ~2,500 Go
 lines plus ~700 lines of chart components, reinventing a TSDB and alerting.
@@ -113,7 +113,7 @@ Each of these was violated once; keep them.
 - **SMTP contact point** — shipped first; replaced by Slack for centralized
   delivery (#1592).
 - **Migrating GitHub signals onto the GitHub plugin** — its coverage is looser
-  than `internal/github`'s; deferred until validated against live data.
+  than `internal/platform/github`'s; deferred until validated against live data.
 
 ## Consequences
 

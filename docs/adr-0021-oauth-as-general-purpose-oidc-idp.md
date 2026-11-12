@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #1469 (follows #1468)
-- Affects: `api/internal/platform/oauth2as/`, `api/cmd/api/oauth2as.go`, `api/cmd/api/routes.go`, `api/cmd/api/migrations/00044_*`, `api/cmd/api/migrations/00045_*`
+- Affects: `api/internal/platform/oauth2as/`, `api/internal/platform/oauth2as/wiring.go`, `api/cmd/api/routes.go`, `api/cmd/api/migrations/00044_*`, `api/cmd/api/migrations/00045_*`
 
 ## Context
 

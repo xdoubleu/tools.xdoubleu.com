@@ -2,7 +2,7 @@
 
 - Status: Accepted; narrowed by #1597 (monitoring email removed)
 - Issues: #1014, #1253, #1355, #1214, #1597, #2799
-- Affects: `api/internal/observability/jobs/` (`WeeklyDigestJob`), `api/cmd/api/main.go`
+- Affects: `api/internal/platform/observability/jobs/` (`WeeklyDigestJob`), `api/cmd/api/main.go`
 
 ## Context
 

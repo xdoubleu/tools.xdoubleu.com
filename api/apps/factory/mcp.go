@@ -18,8 +18,8 @@ import (
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
 	"tools.xdoubleu.com/internal/kit/database"
-	"tools.xdoubleu.com/internal/mcptools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 // mcpAppName is the app whose grant the factory_ tools need.

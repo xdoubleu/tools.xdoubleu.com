@@ -14,10 +14,9 @@ import (
 	"tools.xdoubleu.com/apps/games/pkg/steam"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	"tools.xdoubleu.com/internal/observability"
-	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/jobqueue"
+	"tools.xdoubleu.com/internal/platform/observability"
 )
 
 //go:embed migrations/*.sql

@@ -15,7 +15,7 @@ repo didn't control.
 Auth is first-party in `internal/platform/auth` against `api`'s own `auth` schema
 (`00017_auth_schema.sql`, `00018_auth_oauth2.sql`):
 
-- **Passwords**: bcrypt in `auth.users`; reset links via `internal/mailer`
+- **Passwords**: bcrypt in `auth.users`; reset links via `internal/platform/mailer`
   (Resend), degrading with `ErrNotConfigured` like other mail.
 - **Sessions**: HS256 JWT access tokens (`JWT_SECRET`, verified locally) plus
   opaque refresh tokens stored SHA-256-hashed in `auth.refresh_tokens` and

@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/taste/internal/jobs"
-	"tools.xdoubleu.com/internal/kit/logging"
 	sharedmodels "tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/logging"
 )
 
 type fakeUsers struct {

@@ -14,7 +14,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/internal/kit/httpclient"
-	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/platform/logging"
 )
 
 const realBaseURL = "https://api.hardcover.app/v1/graphql"

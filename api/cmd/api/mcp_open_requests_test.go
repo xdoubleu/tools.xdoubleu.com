@@ -14,8 +14,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/kit/logging"
-	obs "tools.xdoubleu.com/internal/obs"
+	"tools.xdoubleu.com/internal/platform/logging"
+	platformmcp "tools.xdoubleu.com/internal/platform/mcp"
+	obs "tools.xdoubleu.com/internal/platform/obs"
 )
 
 // answerWithin is far below the 25s budget a held /apps/mcp POST runs into.
@@ -66,7 +67,7 @@ func TestAppsMCPLeavesNoRequestOpen(t *testing.T) {
 // Every kind of POST a client sends is answered and its response ended
 // promptly, whatever the protocol version.
 func TestMCPPostsEndPromptly(t *testing.T) {
-	srv := newMCPServer(logging.NewNopLogger())
+	srv := platformmcp.NewServer(logging.NewNopLogger(), appsMCPServerName)
 	//nolint:exhaustruct // the name is all the tool needs
 	mcp.AddTool(srv, &mcp.Tool{Name: "echo"}, func(
 		_ context.Context, _ *mcp.CallToolRequest, _ obs.NoArgs,
@@ -82,7 +83,7 @@ func TestMCPPostsEndPromptly(t *testing.T) {
 		return &mcp.ReadResourceResult{}, nil
 	})
 	mux := http.NewServeMux()
-	mux.Handle(appsMCPPath, streamableMCPHandler(logging.NewNopLogger(), srv))
+	mux.Handle(appsMCPPath, platformmcp.StreamableHandler(logging.NewNopLogger(), srv))
 	ts := httptest.NewServer(throttledApp(t).middleware().Then(mux))
 	t.Cleanup(ts.Close)
 

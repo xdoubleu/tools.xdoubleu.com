@@ -27,7 +27,7 @@ func routinesClientToken(t *testing.T) string {
 
 	ts := connectServer(t)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		ts.URL+oauth2TokenPath,
+		ts.URL+oauth2as.TokenPath,
 		strings.NewReader(url.Values{"grant_type": {"client_credentials"}}.Encode()),
 	)
 	require.NoError(t, err)

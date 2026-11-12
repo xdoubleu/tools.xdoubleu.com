@@ -14,10 +14,10 @@ import (
 	"github.com/coder/websocket/wsjson"
 
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
-	wstools "tools.xdoubleu.com/internal/communication/wstools"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
 	"tools.xdoubleu.com/internal/models"
+	wstools "tools.xdoubleu.com/internal/platform/communication/wstools"
 )
 
 const (

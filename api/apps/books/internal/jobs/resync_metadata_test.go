@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/jobs"
-	"tools.xdoubleu.com/internal/kit/logging"
-	"tools.xdoubleu.com/internal/observability"
+	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/platform/observability"
 )
 
 func TestResyncMetadataJob_ID(t *testing.T) {

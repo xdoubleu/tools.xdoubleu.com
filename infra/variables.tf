@@ -43,7 +43,7 @@ variable "release_check_email_to" {
 }
 
 variable "observability_ingest_secret" {
-  description = "Shared secret the `api` container requires as a bearer token on GET /metrics (api/cmd/api/metrics.go). null_resource.prometheus writes it to a file on the VPS that infra/prometheus.yml's `api` scrape job reads via credentials_file — host-level, not passed to any container by Tofu. Reuses the api's own OBSERVABILITY_INGEST_SECRET repo Secret (same value, one place to rotate); supplied in the infra-apply CI job as TF_VAR_observability_ingest_secret from that secret — see infra/README.md. Empty is allowed: the gate then fails open on the api side too."
+  description = "Shared secret the `api` container requires as a bearer token on GET /metrics (api/internal/platform/observability/metrics.go). null_resource.prometheus writes it to a file on the VPS that infra/prometheus.yml's `api` scrape job reads via credentials_file — host-level, not passed to any container by Tofu. Reuses the api's own OBSERVABILITY_INGEST_SECRET repo Secret (same value, one place to rotate); supplied in the infra-apply CI job as TF_VAR_observability_ingest_secret from that secret — see infra/README.md. Empty is allowed: the gate then fails open on the api side too."
   type        = string
   sensitive   = true
 }

@@ -43,7 +43,7 @@ func approveAs(
 	}
 	req, err := http.NewRequestWithContext(
 		context.Background(), http.MethodPost,
-		baseURL+oauth2AuthorizePath+"?"+q.Encode(), nil,
+		baseURL+oauth2as.AuthorizePath+"?"+q.Encode(), nil,
 	)
 	require.NoError(t, err)
 	req.AddCookie(&session)
@@ -80,7 +80,7 @@ func TestOAuth2Authorize_AdminDelegatesAClientToAnAgent(t *testing.T) {
 	code := loc.Query().Get("code")
 	require.NotEmpty(t, code, loc.String())
 
-	resp, err := http.PostForm(ts.URL+oauth2TokenPath, url.Values{
+	resp, err := http.PostForm(ts.URL+oauth2as.TokenPath, url.Values{
 		"grant_type":    {"authorization_code"},
 		"code":          {code},
 		"redirect_uri":  {redirectURI},

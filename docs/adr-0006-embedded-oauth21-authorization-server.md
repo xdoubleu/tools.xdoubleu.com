@@ -2,7 +2,7 @@
 
 - Status: Accepted — extended by ADR-0021 (OIDC + confidential clients); library replaced by ADR-0037
 - Issues: #1039, #1177, #1715
-- Affects: `api/internal/platform/oauth2as/`, `api/cmd/api/oauth2as.go`, `api/cmd/api/mcp.go`, `web/app/oauth/consent`
+- Affects: `api/internal/platform/oauth2as/`, `api/internal/platform/oauth2as/wiring.go`, `api/internal/platform/mcp/auth.go`, `web/app/oauth/consent`
 
 ## Context
 

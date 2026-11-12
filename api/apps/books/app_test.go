@@ -17,9 +17,9 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	"tools.xdoubleu.com/internal/kit/logging"
-	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 var testApp *books.Books //nolint:gochecknoglobals //needed for tests

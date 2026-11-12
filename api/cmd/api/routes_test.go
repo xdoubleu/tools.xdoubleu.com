@@ -16,7 +16,8 @@ import (
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/platform/oauth2as"
 )
 
 // TestDomainMiddleware_PathRewrite: a watchparty-domain Host rewrites onto a
@@ -126,7 +127,7 @@ func TestRoutes_RequestDurationLabelsMatchedRoute(t *testing.T) {
 		},
 		{
 			"plain route", http.MethodGet,
-			oauth2MetadataPath, "GET " + oauth2MetadataPath,
+			oauth2as.MetadataPath, "GET " + oauth2as.MetadataPath,
 		},
 		{"long-budget route", http.MethodPost, appsMCPPath, appsMCPPath},
 	} {

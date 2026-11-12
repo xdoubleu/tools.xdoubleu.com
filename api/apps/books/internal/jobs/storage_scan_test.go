@@ -12,8 +12,8 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/jobs"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/logging"
 )
 
 type fakeKeyLister struct {

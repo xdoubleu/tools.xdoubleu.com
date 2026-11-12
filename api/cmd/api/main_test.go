@@ -15,7 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"tools.xdoubleu.com/internal/kit/crypto"
-	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/platform/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 

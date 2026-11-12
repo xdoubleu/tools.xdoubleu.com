@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #1989 (part of epic #385)
-- Affects: `api/apps/recipes/mcp.go`, `api/apps/recipes/mcp_create_recipe.go`, `api/internal/mcptools/`
+- Affects: `api/apps/recipes/mcp.go`, `api/apps/recipes/mcp_create_recipe.go`, `api/internal/platform/mcptools/`
 
 ## Context
 

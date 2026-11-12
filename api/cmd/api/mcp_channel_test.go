@@ -27,7 +27,7 @@ func TestMCPBearerRouteRecordsMCPChannel(t *testing.T) {
 	)
 	req.Header.Set("Authorization", "Bearer "+freshTestUser(t))
 
-	testApp.mcpBearerRoute("", inner).ServeHTTP(httptest.NewRecorder(), req)
+	testApp.mcpResource().BearerRoute("", inner).ServeHTTP(httptest.NewRecorder(), req)
 
 	require.NotNil(t, channel)
 	assert.Equal(t, constants.ChannelMCP, *channel)

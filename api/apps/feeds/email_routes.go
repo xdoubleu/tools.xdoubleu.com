@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
-	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/platform/communication/httptools"
 )
 
 // emailUpstreamTimeout bounds the call to Resend's retrieve-received-email API.

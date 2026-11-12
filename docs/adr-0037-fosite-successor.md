@@ -2,7 +2,7 @@
 
 - Status: Accepted — the owner picked (c), 2026-10-26
 - Issues: #2612 (audit #2596)
-- Affects: `api/internal/platform/oauth2as/`, `api/cmd/api/oauth2as.go`, `api/go.mod`, `api/cmd/api/migrations/00058_oauth2_session_numeric_claim_times.sql`, `.github/workflows/api-vuln.yml`, `renovate.json5`; replaces the library chosen in [ADR-0006](adr-0006-embedded-oauth21-authorization-server.md)
+- Affects: `api/internal/platform/oauth2as/`, `api/internal/platform/oauth2as/wiring.go`, `api/go.mod`, `api/cmd/api/migrations/00058_oauth2_session_numeric_claim_times.sql`, `.github/workflows/api-vuln.yml`, `renovate.json5`; replaces the library chosen in [ADR-0006](adr-0006-embedded-oauth21-authorization-server.md)
 
 ## Context
 

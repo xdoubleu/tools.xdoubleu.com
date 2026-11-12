@@ -7,7 +7,7 @@ import (
 
 	"connectrpc.com/connect/v2"
 
-	essentialogger "tools.xdoubleu.com/internal/kit/logging"
+	essentialogger "tools.xdoubleu.com/internal/platform/logging"
 )
 
 // ScrubInternalErrors logs CodeInternal/CodeUnknown errors and replaces the

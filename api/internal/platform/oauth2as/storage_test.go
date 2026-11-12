@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/kit/testhelper"
 	"tools.xdoubleu.com/internal/platform/oauth2as"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 func newTestStore(t *testing.T) (*oauth2as.Store, *pgxpool.Pool) {

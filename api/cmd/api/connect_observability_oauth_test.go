@@ -12,10 +12,10 @@ import (
 	"golang.org/x/oauth2"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
-	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/models"
-	obs "tools.xdoubleu.com/internal/obs"
 	"tools.xdoubleu.com/internal/platform/oauthconn"
+	"tools.xdoubleu.com/internal/platform/github"
+	obs "tools.xdoubleu.com/internal/platform/obs"
 )
 
 // githubScopes is read from the real config so tests can't drift.

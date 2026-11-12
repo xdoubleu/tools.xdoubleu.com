@@ -15,9 +15,9 @@ import (
 	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/internal/kit/logging"
-	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 // hangingObjectStore blocks Exists until the context is cancelled.

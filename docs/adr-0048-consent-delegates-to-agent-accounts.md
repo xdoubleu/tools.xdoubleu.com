@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Affects: `api/internal/platform/oauth2as/handlers.go` (`Delegator`),
-  `api/internal/platform/agentaccounts/store.go`, `api/cmd/api/oauth2as.go`,
+  `api/internal/platform/agentaccounts/store.go`, `api/internal/platform/oauth2as/wiring.go`,
   `global.agent_account_clients` (migration 00064), `web/app/oauth/consent/`
 
 ## Context

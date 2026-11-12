@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 -- OpenID Connect explicit-flow session storage (issue #1469): the embedded
--- authorization server (internal/oauth2as) now issues ID tokens for clients
+-- authorization server (internal/platform/oauth2as) now issues ID tokens for clients
 -- that request the openid scope. fosite's OpenIDConnectExplicitHandler keeps
 -- the authorize-time request — with the fully-populated ID-token claims — in
 -- its own store keyed by the authorization code, separate from

@@ -2,7 +2,7 @@
 
 - Status: Superseded by #1530
 - Issues: #1482
-- Affects (historical): `api/internal/notifications/`, `api/internal/slack/`, `global.notification_channel_config`, `web/components/monitoring/NotificationChannelCard.tsx`
+- Affects (historical): `api/internal/platform/notifications/`, `api/internal/platform/slack/`, `global.notification_channel_config`, `web/components/monitoring/NotificationChannelCard.tsx`
 
 > **Superseded.** Alerting moved to Grafana (ADR-0022). With `ThresholdAlertJob`
 > and `IssueNotifierJob` retired, the Slack client, the

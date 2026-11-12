@@ -2,7 +2,7 @@ package testhelper
 
 import (
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/platform/logging"
 )
 
 // NewTestConfig returns the standard integration-test config; callers apply

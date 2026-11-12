@@ -9,7 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/platform/observability"
 )
 
 type roleApp struct {
@@ -52,7 +53,7 @@ func TestWorkersHandlerServesOnlyHealthAndMetrics(t *testing.T) {
 	h := app.handler()
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, metricsPath, nil))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, observability.MetricsPath, nil))
 	assert.Equal(t, http.StatusOK, rec.Code)
 
 	rec = httptest.NewRecorder()

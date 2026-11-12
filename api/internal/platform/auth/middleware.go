@@ -9,10 +9,10 @@ import (
 
 	"github.com/getsentry/sentry-go"
 
-	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/errortools"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/communication/httptools"
 )
 
 // Access resolves the user like TemplateAccess, refreshing via the refresh

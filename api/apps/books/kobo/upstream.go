@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"tools.xdoubleu.com/internal/communication/httptools"
+	"tools.xdoubleu.com/internal/platform/communication/httptools"
 )
 
 // upstreamTimeout caps upstream Kobo store calls so a stalled store still

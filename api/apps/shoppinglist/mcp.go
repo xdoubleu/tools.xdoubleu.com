@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	shoppinglistv1 "tools.xdoubleu.com/gen/shoppinglist/v1"
-	"tools.xdoubleu.com/internal/mcptools"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 const mcpAppName = "shoppinglist"

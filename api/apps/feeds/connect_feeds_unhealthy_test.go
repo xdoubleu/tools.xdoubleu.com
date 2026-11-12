@@ -14,10 +14,10 @@ import (
 	"tools.xdoubleu.com/apps/feeds"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/gen/feeds/v1/feedsv1connect"
-	"tools.xdoubleu.com/internal/kit/testhelper"
-	"tools.xdoubleu.com/internal/mailer"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/notifications"
+	"tools.xdoubleu.com/internal/platform/mailer"
+	"tools.xdoubleu.com/internal/platform/notifications"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 // newAdminFeedsClient returns a client authenticated as an admin.

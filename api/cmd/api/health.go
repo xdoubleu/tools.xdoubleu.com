@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	httptools "tools.xdoubleu.com/internal/communication/httptools"
+	httptools "tools.xdoubleu.com/internal/platform/communication/httptools"
 )
 
 const healthCheckTimeout = 5 * time.Second

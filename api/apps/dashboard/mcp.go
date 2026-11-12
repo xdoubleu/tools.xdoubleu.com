@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	dashboardv1 "tools.xdoubleu.com/gen/dashboard/v1"
-	"tools.xdoubleu.com/internal/mcptools"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 const mcpAppName = "dashboard"

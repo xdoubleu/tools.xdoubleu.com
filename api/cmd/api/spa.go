@@ -3,7 +3,8 @@ package main
 import (
 	"net/http"
 
-	"tools.xdoubleu.com/internal/spa"
+	"tools.xdoubleu.com/internal/platform/observability"
+	"tools.xdoubleu.com/internal/platform/spa"
 )
 
 // Handler is the whole server: the built web app in front of the API when
@@ -33,7 +34,7 @@ func (app *Application) Handler() (http.Handler, error) {
 		PostHogHost:        app.config.PostHogHost,
 		OfflineDisabled:    app.config.OfflineDisabled,
 		APIHosts:           customDomains,
-		Logs:               app.webLogsHandler(),
+		Logs:               observability.WebLogsHandler(app.logger, app.logsRepo),
 	}, app.logger)
 	if err != nil {
 		return nil, err

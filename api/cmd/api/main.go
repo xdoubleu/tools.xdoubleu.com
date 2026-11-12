@@ -16,27 +16,28 @@ import (
 	"github.com/pressly/goose/v3"
 
 	"tools.xdoubleu.com/apps/feeds"
-	"tools.xdoubleu.com/internal/communication/httptools"
-	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/github"
-	"tools.xdoubleu.com/internal/jobqueue"
-	"tools.xdoubleu.com/internal/kit/crypto"
-	"tools.xdoubleu.com/internal/kit/database/postgres"
-	essentialogger "tools.xdoubleu.com/internal/kit/logging"
-	"tools.xdoubleu.com/internal/kit/sentrytools"
-	"tools.xdoubleu.com/internal/mailer"
-	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/notifications"
-	"tools.xdoubleu.com/internal/obs"
-	"tools.xdoubleu.com/internal/observability"
-	"tools.xdoubleu.com/internal/observability/jobs"
 	"tools.xdoubleu.com/internal/platform/account"
 	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/kit/crypto"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/platform/family"
-	"tools.xdoubleu.com/internal/platform/oauth2as"
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/oauthconn"
+	"tools.xdoubleu.com/internal/platform/communication/httptools"
+	"tools.xdoubleu.com/internal/platform/github"
+	"tools.xdoubleu.com/internal/platform/jobqueue"
+	essentialogger "tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/platform/mailer"
+	"tools.xdoubleu.com/internal/platform/notifications"
+	"tools.xdoubleu.com/internal/platform/oauth2as"
+	"tools.xdoubleu.com/internal/platform/obs"
+	"tools.xdoubleu.com/internal/platform/observability"
+	"tools.xdoubleu.com/internal/platform/observability/jobs"
+	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
+	"tools.xdoubleu.com/internal/platform/sentryapi"
+	"tools.xdoubleu.com/internal/platform/sentrytools"
 	"tools.xdoubleu.com/internal/repositories"
-	"tools.xdoubleu.com/internal/sentryapi"
 )
 
 //go:embed migrations/*.sql
@@ -60,7 +61,8 @@ type Application struct {
 	db                            *pgxpool.Pool
 	auth                          *auth.LocalService
 	authSealer                    *crypto.Sealer
-	oauth2as                      *oauth2asWiring
+	oauth2as                      *oauth2as.Wiring
+	oauthConnect                  *oauth2as.ConnectFlow
 	family                        family.Service
 	apps                          *Apps
 	disabledApps                  DisabledApps
@@ -70,20 +72,20 @@ type Application struct {
 	profileSharesRepo             *account.ProfileSharesRepository
 	usage                         *observability.UsageRecorder
 	notifications                 *notifications.Service
-	jobRunsRepo                   *repositories.JobRunsRepository
-	usageRepo                     *repositories.UsageRepository
-	storageRepo                   *repositories.StorageSnapshotsRepository
-	dbStatsRepo                   *repositories.DBStatsRepository
-	automatedActionsRepo          *repositories.AutomatedActionsRepository
-	logsRepo                      *repositories.LogsRepository
-	notificationSettingsRepo      *repositories.NotificationSettingsRepository
+	jobRunsRepo                   *platformrepositories.JobRunsRepository
+	usageRepo                     *platformrepositories.UsageRepository
+	storageRepo                   *platformrepositories.StorageSnapshotsRepository
+	dbStatsRepo                   *platformrepositories.DBStatsRepository
+	automatedActionsRepo          *platformrepositories.AutomatedActionsRepository
+	logsRepo                      *platformrepositories.LogsRepository
+	notificationSettingsRepo      *platformrepositories.NotificationSettingsRepository
 	githubClient                  github.Client
 	sentryClient                  sentryapi.Client
 	oauthConnRepo                 *oauthconn.OAuthConnectionsRepository
 	oauthState                    *oauthconn.StateStore
 	issueSignalCollectorJob       *jobs.IssueSignalCollectorJob
 	automatedActionSweepJob       *jobs.AutomatedActionSweepJob
-	transactionLatencyRepo        *repositories.TransactionLatencyRepository
+	transactionLatencyRepo        *platformrepositories.TransactionLatencyRepository
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
 	weeklyDigestJob               *jobs.WeeklyDigestJob
 	logPruneJob                   *jobs.LogPruneJob
@@ -197,7 +199,7 @@ func main() {
 	// Built after the DB pool, which the log-teeing handler needs.
 	logHandler := observability.NewLogRepoHandler(
 		sentrytools.NewLogHandler(cfg.Env, slog.NewTextHandler(os.Stdout, nil)),
-		repositories.NewLogsRepository(db),
+		platformrepositories.NewLogsRepository(db),
 	)
 	// Deferred after db.Close, so it flushes first.
 	defer flushLogs(logHandler)
@@ -261,7 +263,10 @@ func (app *Application) handler() http.Handler {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET "+healthPath, app.healthHandler)
-	mux.Handle("GET "+metricsPath, metricsHandler(app.config.ObservabilityIngestSecret))
+	mux.Handle(
+		"GET "+observability.MetricsPath,
+		observability.MetricsHandler(app.config.ObservabilityIngestSecret),
+	)
 	return mux
 }
 
@@ -345,15 +350,15 @@ func newCrossAppJobs(
 	db *pgxpool.Pool,
 	sentryClient sentryapi.Client,
 	githubClient github.Client,
-	storageSnapshotsRepo *repositories.StorageSnapshotsRepository,
-	dbStatsRepo *repositories.DBStatsRepository,
-	automatedActionsRepo *repositories.AutomatedActionsRepository,
+	storageSnapshotsRepo *platformrepositories.StorageSnapshotsRepository,
+	dbStatsRepo *platformrepositories.DBStatsRepository,
+	automatedActionsRepo *platformrepositories.AutomatedActionsRepository,
 ) (
 	*jobs.IssueSignalCollectorJob,
-	*repositories.TransactionLatencyRepository,
+	*platformrepositories.TransactionLatencyRepository,
 	*jobs.TransactionLatencySnapshotJob,
 ) {
-	transactionLatencyRepo := repositories.NewTransactionLatencyRepository(db)
+	transactionLatencyRepo := platformrepositories.NewTransactionLatencyRepository(db)
 
 	issueSignalCollectorJob := jobs.NewIssueSignalCollectorJob(
 		githubClient, sentryClient, storageSnapshotsRepo, dbStatsRepo,
@@ -422,7 +427,7 @@ func (a feedsDigestAdapter) ListDigestItems(
 func newWeeklyDigestJob(
 	feedsApp *feeds.Feeds,
 	notificationsSvc *notifications.Service,
-	notificationSettingsRepo *repositories.NotificationSettingsRepository,
+	notificationSettingsRepo *platformrepositories.NotificationSettingsRepository,
 ) *jobs.WeeklyDigestJob {
 	return jobs.NewWeeklyDigestJob(
 		feedsHealthAdapter{feeds: feedsApp},
@@ -476,8 +481,8 @@ func NewApplication(
 		EnableTracing:         true,
 		TracesSampleRate:      config.SampleRate,
 		SampleRate:            config.SampleRate,
-		BeforeSend:            scrubSentryEvent,
-		BeforeSendTransaction: scrubSentryEvent,
+		BeforeSend:            observability.ScrubSentryEvent,
+		BeforeSendTransaction: observability.ScrubSentryEvent,
 	})
 	if err != nil {
 		panic(err)
@@ -516,10 +521,10 @@ func NewApplication(
 		logger, config, oauthConnRepo,
 	)
 
-	notificationSettingsRepo := repositories.NewNotificationSettingsRepository(db)
-	storageSnapshotsRepo := repositories.NewStorageSnapshotsRepository(db)
-	dbStatsRepo := repositories.NewDBStatsRepository(db)
-	automatedActionsRepo := repositories.NewAutomatedActionsRepository(db)
+	notificationSettingsRepo := platformrepositories.NewNotificationSettingsRepository(db)
+	storageSnapshotsRepo := platformrepositories.NewStorageSnapshotsRepository(db)
+	dbStatsRepo := platformrepositories.NewDBStatsRepository(db)
+	automatedActionsRepo := platformrepositories.NewAutomatedActionsRepository(db)
 	automatedActionSweepJob := jobs.NewAutomatedActionSweepJob(
 		automatedActionsRepo,
 	)
@@ -533,7 +538,8 @@ func NewApplication(
 		automatedActionsRepo,
 	)
 
-	logsRepo := repositories.NewLogsRepository(db)
+	logsRepo := platformrepositories.NewLogsRepository(db)
+	oauthState := oauthconn.NewStateStore()
 
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
 	app := &Application{
@@ -544,21 +550,24 @@ func NewApplication(
 		auth:       authSvc,
 		authSealer: authSealer,
 		// wired below, after migrations create the auth schema
-		oauth2as:                      nil,
-		family:                        familySvc,
-		appUsersRepo:                  appUsersRepo,
-		profileSharesRepo:             account.NewProfileSharesRepository(db),
-		usage:                         observability.NewUsageRecorder(logger, db),
-		notifications:                 notificationsSvc,
-		jobRunsRepo:                   repositories.NewJobRunsRepository(db),
-		usageRepo:                     repositories.NewUsageRepository(db),
-		storageRepo:                   storageSnapshotsRepo,
-		dbStatsRepo:                   dbStatsRepo,
-		automatedActionsRepo:          automatedActionsRepo,
-		logsRepo:                      logsRepo,
-		notificationSettingsRepo:      notificationSettingsRepo,
-		oauthConnRepo:                 oauthConnRepo,
-		oauthState:                    oauthconn.NewStateStore(),
+		oauth2as:                 nil,
+		family:                   familySvc,
+		appUsersRepo:             appUsersRepo,
+		profileSharesRepo:        repositories.NewProfileSharesRepository(db),
+		usage:                    observability.NewUsageRecorder(logger, db),
+		notifications:            notificationsSvc,
+		jobRunsRepo:              platformrepositories.NewJobRunsRepository(db),
+		usageRepo:                platformrepositories.NewUsageRepository(db),
+		storageRepo:              storageSnapshotsRepo,
+		dbStatsRepo:              dbStatsRepo,
+		automatedActionsRepo:     automatedActionsRepo,
+		logsRepo:                 logsRepo,
+		notificationSettingsRepo: notificationSettingsRepo,
+		oauthConnRepo:            oauthConnRepo,
+		oauthState:               oauthState,
+		oauthConnect: oauth2as.NewConnectFlow(
+			config, authSvc, oauthState, oauthConnRepo, logger,
+		),
 		githubClient:                  githubClient,
 		sentryClient:                  sentryClient,
 		issueSignalCollectorJob:       issueSignalCollectorJob,
@@ -592,8 +601,8 @@ func NewApplication(
 	oauth2Store := oauth2as.NewStore(spanDB)
 	oidcKey := oauth2as.LoadOIDCKeyOrDegrade(logger, config.OAuthOIDCPrivateKey)
 	oauth2Provider := oauth2as.NewProvider(config, oauth2Store, oidcKey)
-	app.oauth2as = &oauth2asWiring{
-		store: oauth2Store, provider: oauth2Provider, oidcKey: oidcKey,
+	app.oauth2as = &oauth2as.Wiring{
+		Store: oauth2Store, Provider: oauth2Provider, OIDCKey: oidcKey,
 	}
 	app.auth.OAuth2TokenResolver = oauth2as.NewTokenResolver(oauth2Provider)
 

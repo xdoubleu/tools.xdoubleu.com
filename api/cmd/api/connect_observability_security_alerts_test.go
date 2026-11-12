@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 
-	"tools.xdoubleu.com/internal/github"
-	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/github"
+	"tools.xdoubleu.com/internal/platform/logging"
 )
 
 // useDeniedGithub points the GitHub client at a server answering 403.

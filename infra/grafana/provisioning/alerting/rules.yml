@@ -5,10 +5,10 @@
 # condition: A returns a 1-valued series only while the condition holds and
 # an empty result otherwise, so noDataState=OK means "not breaching".
 #
-# p95 rules read http_request_duration_seconds (api/internal/middleware/metrics.go),
-# job_duration_seconds (api/internal/observability/trackedjob.go) and
-# web_vitals_seconds (api/internal/spa/vitals.go). The service-health group
-# reads gauges exported by api/internal/observability/jobs/issue_signal_collector.go.
+# p95 rules read http_request_duration_seconds (api/internal/platform/middleware/metrics.go),
+# job_duration_seconds (api/internal/platform/observability/trackedjob.go) and
+# web_vitals_seconds (api/internal/platform/spa/vitals.go). The service-health group
+# reads gauges exported by api/internal/platform/observability/jobs/issue_signal_collector.go.
 #
 # AutomatedActionStalled's 3h threshold: routines finish in minutes, so a
 # multi-hour open row is abnormal. AutomatedRoutineMissed catches a routine

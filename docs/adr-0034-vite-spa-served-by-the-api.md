@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #2555 (decided in #2553)
-- Affects: `web/`, `api/internal/spa`, `api/cmd/api/spa.go`, `api/Dockerfile`, `config/deploy.api.yml`, `.github/workflows/main.yml`, `build-api.yml`, `infra/prometheus.yml`
+- Affects: `web/`, `api/internal/platform/spa`, `api/cmd/api/spa.go`, `api/Dockerfile`, `config/deploy.api.yml`, `.github/workflows/main.yml`, `build-api.yml`, `infra/prometheus.yml`
 - Supersedes: [ADR-0001](adr-0001-two-service-kamal-deploy.md)
 
 ## Context
@@ -19,7 +19,7 @@ pages sit under dynamic routes whose IDs are known only at runtime.
 - **`web/` is a Vite SPA** with React Router (data router, lazy page modules
   from `app/**/page.tsx`) and Vitest. Pages render their client components;
   nothing prefetches on a server.
-- **The api serves the build** (`api/internal/spa`, enabled by `WEB_DIR`).
+- **The api serves the build** (`api/internal/platform/spa`, enabled by `WEB_DIR`).
   It sits in front of the API handler and leaves `/api/*`, `/.well-known/*`,
   `/health`, `/metrics` and custom domains to it. Everything else is a static
   file or the HTML shell. It lives outside the api's rate limiter, so the

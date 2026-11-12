@@ -23,12 +23,11 @@ import (
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/consumption"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	"tools.xdoubleu.com/internal/kit/logging"
-	"tools.xdoubleu.com/internal/kit/openrouter"
-	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/platform/auth"
-	"tools.xdoubleu.com/internal/platform/family"
+	"tools.xdoubleu.com/internal/kit/openrouter"
+	"tools.xdoubleu.com/internal/platform/logging"
+	sharedrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 const userID = "taste-test-user"

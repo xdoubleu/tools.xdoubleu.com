@@ -182,10 +182,7 @@ linters:
         repositories-domain-errors:
           files:
             - "**/internal/repositories/**"
-            - "**/internal/platform/family/repository.go"
-            - "**/internal/platform/oauthconn/repository.go"
-            - "**/internal/platform/account/users.go"
-            - "**/internal/platform/account/profile_shares.go"
+            - "**/internal/platform/repositories/**"
           deny:
             - pkg: net/http
               desc: repositories return domain errors, not HTTP errors

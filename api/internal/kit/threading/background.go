@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"tools.xdoubleu.com/internal/kit/logging"
-	"tools.xdoubleu.com/internal/kit/sentrytools"
+	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/platform/sentrytools"
 )
 
 // Background runs work a request starts but doesn't wait for. A task's panic

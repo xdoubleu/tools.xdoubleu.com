@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
-	"tools.xdoubleu.com/internal/githubapp"
+	"tools.xdoubleu.com/internal/platform/githubapp"
 )
 
 // pollBatch is how many open pull requests one poll reads, the longest unread

@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/shoppinglist"
-	"tools.xdoubleu.com/internal/kit/logging"
-	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 func TestCountCustomListItems(t *testing.T) {

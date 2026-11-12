@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	obs "tools.xdoubleu.com/internal/obs"
+	obs "tools.xdoubleu.com/internal/platform/obs"
 )
 
 const grafanaRulesJSON = `{"status":"success","data":{"groups":[` +
