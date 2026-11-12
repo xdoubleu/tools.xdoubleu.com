@@ -11,9 +11,22 @@ ruleTester.run('ui/shared-patterns', rule, {
     '<DialogClose>×</DialogClose>',
     '<Button>Remove</Button>',
     '<Button role="menuitem">Edit</Button>',
-    '<SegmentedTabs value="a" options={[]} />'
+    '<SegmentedTabs value="a" options={[]} />',
+    {
+      code: '<div className="grid grid-cols-2 gap-2" />',
+      filename: 'components/stats/Panel.tsx'
+    },
+    {
+      code: '<div className="flex gap-2" />',
+      filename: 'components/recipes/RecipesListClient.tsx'
+    }
   ],
   invalid: [
+    {
+      code: '<div className="grid grid-cols-1 sm:grid-cols-2 gap-3" />',
+      filename: 'components/recipes/RecipesListClient.tsx',
+      errors: [{ messageId: 'grid' }]
+    },
     { code: '<Button role="tab">Unread</Button>', errors: [{ messageId: 'tabs' }] },
     { code: '<TogglePill role="tab" label="All" active />', errors: [{ messageId: 'tabs' }] },
     {

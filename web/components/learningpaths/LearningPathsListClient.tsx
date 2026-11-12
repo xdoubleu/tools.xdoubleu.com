@@ -4,7 +4,8 @@ import { useLearningPaths, useFetchLearningPathsPage } from '@/hooks/useLearning
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import type { LearningPath } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
 import { Button } from '@/components/ui/button'
-import { LinkCard } from '@/components/ui/link-card'
+import { CollectionGrid } from '@/components/ui/collection-grid'
+import { ItemCard } from '@/components/ui/item-card'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
@@ -23,27 +24,27 @@ function moduleAndItemCounts(path: LearningPath) {
 function LearningPathCard({ path }: { path: LearningPath }) {
   const { moduleCount, itemCount, completedCount } = moduleAndItemCounts(path)
   return (
-    <LinkCard
+    <ItemCard
       href={`/learningpaths/${path.id}`}
-      linkClassName="p-4"
+      title={path.title}
+      meta={path.goal || undefined}
+      status={
+        <span className="text-xs text-muted">
+          {moduleCount} module{moduleCount === 1 ? '' : 's'}
+          {itemCount > 0 && (
+            <>
+              {' '}
+              &middot; {completedCount}/{itemCount} done
+            </>
+          )}
+        </span>
+      }
       actions={
         <Button asChild variant="secondary" size="sm">
           <Link href={`/learningpaths/${path.id}/edit`}>Edit</Link>
         </Button>
       }
-    >
-      <p className="break-words font-medium">{path.title}</p>
-      {path.goal && <p className="mt-1 break-words text-sm text-muted">{path.goal}</p>}
-      <p className="text-xs text-muted mt-2">
-        {moduleCount} module{moduleCount === 1 ? '' : 's'}
-        {itemCount > 0 && (
-          <>
-            {' '}
-            &middot; {completedCount}/{itemCount} done
-          </>
-        )}
-      </p>
-    </LinkCard>
+    />
   )
 }
 
@@ -83,11 +84,11 @@ export default function LearningPathsListClient() {
       )}
       {data && learningPaths.length > 0 && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <CollectionGrid>
             {learningPaths.map((path) => (
               <LearningPathCard key={path.id} path={path} />
             ))}
-          </div>
+          </CollectionGrid>
           {hasMore && <LoadMoreButton onClick={loadMore} loading={loadingMore} />}
         </>
       )}

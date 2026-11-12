@@ -13,7 +13,7 @@ const ownText = (opening) =>
     .join('')
     .trim()
 
-/** Hand-built versions of SectionHeading, FieldError, ProgressBar, RemoveButton and SegmentedTabs (docs/convention-ui-standards.md). */
+/** Hand-built versions of SectionHeading, FieldError, ProgressBar, RemoveButton, SegmentedTabs and CollectionGrid (docs/convention-ui-standards.md). */
 export default {
   meta: {
     type: 'suggestion',
@@ -28,11 +28,13 @@ export default {
         'Hand-styled error line. Use `FieldError` (@/components/ui/field-error) and point the control’s `aria-describedby` at its `id`.',
       progress: 'Hand-built progress bar. Use `ProgressBar` from @/components/ui/progress-bar.',
       remove: 'Hand-built × button. Use `RemoveButton` from @/components/ui/remove-button.',
+      grid: 'Hand-written grid in a collection page. Use `CollectionGrid` (@/components/ui/collection-grid) with `ItemCard`s.',
       tabs: 'A `{{element}}` with role="tab" is a hand-built tab bar. Use `SegmentedTabs` from @/components/ui/segmented-tabs for switching views, sections or scope.'
     },
     schema: []
   },
   create(context) {
+    const collectionPage = /ListClient\.tsx$/.test(context.filename)
     return {
       JSXOpeningElement(node) {
         if (node.name.type === 'JSXIdentifier' && node.name.name === 'Button') {
@@ -64,6 +66,15 @@ export default {
             .filter((t) => t.variants.length === 0)
             .map((t) => t.base)
         )
+        if (
+          collectionPage &&
+          element === 'div' &&
+          bases.has('grid') &&
+          [...bases].some((b) => b.startsWith('grid-cols-'))
+        ) {
+          context.report({ node: attr, messageId: 'grid' })
+          return
+        }
         if (element === 'h2' || (element === 'h3' && bases.has('uppercase'))) {
           context.report({ node: attr, messageId: 'heading', data: { element } })
         } else if (

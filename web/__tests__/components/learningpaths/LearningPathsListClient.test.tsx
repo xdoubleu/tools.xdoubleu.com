@@ -90,8 +90,25 @@ describe('LearningPathsListClient', () => {
     const link = screen.getByRole('link', { name: /Learn Go/ })
     expect(link).toHaveAttribute('href', '/learningpaths/lp1')
     expect(link).toHaveTextContent('Ship a backend service')
-    expect(link).toHaveTextContent('1 module')
-    expect(link).toHaveTextContent('1/2 done')
+    expect(link).toHaveTextContent(/1 module · 1\/2 done$/)
+  })
+
+  it('pluralises modules and omits progress for a path without items', () => {
+    mockLearningPaths({
+      data: create(ListLearningPathsResponseSchema, {
+        learningPaths: [
+          create(LearningPathSchema, {
+            id: 'lp2',
+            title: 'Empty plan',
+            modules: [create(ModuleSchema, { title: 'A' }), create(ModuleSchema, { title: 'B' })]
+          })
+        ]
+      }),
+      isLoading: false
+    })
+    render(<LearningPathsListClient />)
+    const link = screen.getByRole('link', { name: /Empty plan/ })
+    expect(link.textContent).toBe('Empty plan2 modules')
   })
 
   it('links each card straight to its edit page', () => {
