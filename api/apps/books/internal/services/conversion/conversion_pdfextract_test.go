@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	kepubpkg "github.com/pgaskin/kepubify/v4/kepub"
+	kepubpkg "github.com/pgaskin/kepubify/v5/kepub"
 	"github.com/stretchr/testify/require"
 )
 
@@ -165,7 +165,8 @@ func requireValidKEPUB(t *testing.T, epubPath string) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	err = kepubpkg.NewConverter().Convert(context.Background(), &buf, zr)
+	//nolint:exhaustruct // zero value applies only the mandatory changes
+	err = kepubpkg.Convert(context.Background(), &buf, zr, kepubpkg.Options{})
 	require.NoError(t, err)
 	require.NotEmpty(t, buf.Bytes())
 }

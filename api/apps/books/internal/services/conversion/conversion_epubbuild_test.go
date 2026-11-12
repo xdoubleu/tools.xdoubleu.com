@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	kepubpkg "github.com/pgaskin/kepubify/v4/kepub"
+	kepubpkg "github.com/pgaskin/kepubify/v5/kepub"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	xhtml "golang.org/x/net/html"
@@ -273,7 +273,8 @@ func TestGoHTMLConverter_MalformedHTMLStillValid(t *testing.T) {
 	)
 
 	var buf bytes.Buffer
-	err := kepubpkg.NewConverter().Convert(context.Background(), &buf, zr)
+	//nolint:exhaustruct // zero value applies only the mandatory changes
+	err := kepubpkg.Convert(context.Background(), &buf, zr, kepubpkg.Options{})
 	require.NoError(t, err)
 	assert.NotEmpty(t, buf.Bytes())
 }
@@ -292,7 +293,8 @@ func TestGoHTMLConverter_KepubifyAcceptsRealisticArticle(t *testing.T) {
 	})
 
 	var buf bytes.Buffer
-	err := kepubpkg.NewConverter().Convert(context.Background(), &buf, zr)
+	//nolint:exhaustruct // zero value applies only the mandatory changes
+	err := kepubpkg.Convert(context.Background(), &buf, zr, kepubpkg.Options{})
 	require.NoError(t, err)
 	assert.NotEmpty(t, buf.Bytes())
 }
