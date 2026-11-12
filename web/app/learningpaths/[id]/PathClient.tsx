@@ -15,6 +15,7 @@ import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { PageContainer } from '@/components/ui/page-container'
+import { DetailHeader } from '@/components/ui/detail-header'
 import { PageHeader, PageHeaderLink } from '@/components/ui/page-header'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { SectionHeading } from '@/components/ui/section-heading'
@@ -65,15 +66,15 @@ export default function PathClient({ id }: { id: string }) {
 
   return (
     <PageContainer>
-      <PageHeader
-        className="mb-2"
-        title={learningPath?.title ?? 'Learning path'}
-        breadcrumb={[
-          { label: 'Learning paths', href: '/learningpaths/list' },
-          { label: learningPath?.title ?? 'Learning path' }
-        ]}
-        actions={
-          learningPath && (
+      {learningPath ? (
+        <DetailHeader
+          title={learningPath.title}
+          breadcrumb={[
+            { label: 'Learning paths', href: '/learningpaths/list' },
+            { label: learningPath.title }
+          ]}
+          subtitle={learningPath.goal || undefined}
+          actions={
             <>
               {(!todoistStatus?.connected || todoistStatus.needsReconnect) && (
                 <PageHeaderLink href="/learningpaths/settings">
@@ -84,13 +85,19 @@ export default function PathClient({ id }: { id: string }) {
                 {learningPath.paused ? 'Resume' : 'Pause'}
               </Button>
               <PageHeaderLink href={`/learningpaths/${learningPath.id}/edit`}>Edit</PageHeaderLink>
-              <Button variant="destructive" onClick={() => setDeleteConfirm(true)}>
-                Delete
-              </Button>
             </>
-          )
-        }
-      />
+          }
+          menu={[{ label: 'Delete', destructive: true, onSelect: () => setDeleteConfirm(true) }]}
+        />
+      ) : (
+        <PageHeader
+          title="Learning path"
+          breadcrumb={[
+            { label: 'Learning paths', href: '/learningpaths/list' },
+            { label: 'Learning path' }
+          ]}
+        />
+      )}
       {learningPath && (
         <ConfirmDialog
           open={deleteConfirm}
@@ -107,7 +114,6 @@ export default function PathClient({ id }: { id: string }) {
       {error && <ErrorState placement="page" what="learning path" />}
       {learningPath && (
         <>
-          {learningPath.goal && <p className="text-subtle mb-2">{learningPath.goal}</p>}
           {learningPath.routine && (
             <p className="text-sm text-muted mb-4">Routine: {learningPath.routine}</p>
           )}
