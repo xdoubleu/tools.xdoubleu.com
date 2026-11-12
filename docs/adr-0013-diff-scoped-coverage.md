@@ -1,7 +1,7 @@
 # ADR-0013: Gate on coverage of changed lines, not whole-file percentages
 
 - Status: Accepted
-- Issues: #1301, #1364, #1376, #1632, #1868, T-300
+- Issues: #1301, #1364, #1376, #1632, #1868, T-300, T-301
 - Affects: `tools/diff_coverage_ts.py`, `tools/diff_coverage_go.py`, `tools/merge_coverage.py`, `api/Makefile`, `.github/workflows/*-test.yml`, `web/package.json`
 
 ## Context
@@ -27,13 +27,29 @@ Gate on **lines changed vs `origin/main`**, locally and in CI. The test workflow
   #1632) reuses the same diff scoping via `tools/diff_packages_go.py` /
   `tools/diff_files_ts.py`.
 
+The gate's logic moves into its own Go module, `xdoubleu/diff-coverage`, so
+other repos (`check-in` first) can drop Codecov too. Each repo pins it with a
+`tool` directive in `go.mod`, so `go tool diff-coverage` is the same version
+locally and in CI. Threshold, base ref and include/exclude globs are flags; the
+behaviour above is kept, and the Python scripts are deleted once this repo
+uses the module.
+
 ## Alternatives considered
 
 - **Whole-file thresholds** — misleading, as above.
 - **Codecov's `codecov/patch`** — duplicated this gate, and its outages and
   deactivation blocked every merge.
+- **octocov** — reads only lcov `SF`/`DA` records, so no branch coverage, and
+  computes patch coverage only inside a PR through the GitHub API (100%
+  elsewhere): no local gate, and a GitHub outage passes silently.
+- **diff-cover** — no Go profile support, skips changed files with no coverage
+  data, and folds branches into lines. Replaying a sidebar PR without its tests,
+  ours failed AppShell (50% lines, 75% branches) and Sidebar (100% lines, 58%
+  branches); diff-cover failed at 29% overall but could not have caught a
+  Sidebar-only branch gap.
 
 ## Consequences
 
 - A green local run is the CI verdict.
 - The project-coverage status and PR comment Codecov offered are gone.
+- Changing the gate means a release of `diff-coverage` and a version bump here.
