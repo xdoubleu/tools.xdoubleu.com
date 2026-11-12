@@ -201,6 +201,7 @@ def main():
     profile = parse_profile(profile_arg, module_prefix(project_dir))
 
     flagged = 0
+    failing = []
     print(
         f'Diff coverage check (changed lines vs origin/main, threshold {THRESHOLD}%)\n'
     )
@@ -245,6 +246,7 @@ def main():
         mark = '✗' if is_flagged else '✓'
         if is_flagged:
             flagged += 1
+            failing.append((path, line_pct, total))
 
         print(
             f'  {mark} {path:<60} {line_pct:5.1f}% of {total} changed lines'
@@ -258,6 +260,8 @@ def main():
         'between them means the primary result is optimistic.\n'
     )
     if flagged:
+        for p, pct, n in failing:
+            print(f'  ✗ {p}  {pct:.1f}% of {n} changed lines')
         print(f'{flagged} file(s) below {THRESHOLD}% threshold on changed lines.')
         sys.exit(1)
 
