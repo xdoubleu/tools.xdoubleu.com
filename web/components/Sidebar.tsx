@@ -57,7 +57,7 @@ export default function Sidebar({
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 z-40 hidden flex-col overflow-x-hidden border-r border-border/60 bg-glass pl-[var(--inset-left)] backdrop-blur-xl backdrop-saturate-150 transition-[width] duration-200 ease-out motion-reduce:transition-none lg:flex',
+        'fixed inset-y-0 left-0 z-40 hidden flex-col overflow-x-hidden border-r border-border/60 bg-glass pl-[env(safe-area-inset-left)] backdrop-blur-xl backdrop-saturate-150 transition-[width] duration-200 ease-out motion-reduce:transition-none lg:flex',
         collapsed ? 'w-16' : 'w-60'
       )}
     >
