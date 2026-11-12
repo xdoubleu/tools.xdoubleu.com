@@ -14,6 +14,8 @@ interface SegmentedTabsProps<T extends string> {
   options: SegmentedTabsOption<T>[]
   /** Names the tablist for screen readers. */
   'aria-label': string
+  /** Locks every segment, e.g. while a change saves. */
+  disabled?: boolean
   className?: string
 }
 
@@ -28,6 +30,7 @@ function SegmentedTabs<T extends string>({
   onChange,
   options,
   'aria-label': ariaLabel,
+  disabled,
   className
 }: SegmentedTabsProps<T>) {
   const selected = options.findIndex((option) => option.value === value)
@@ -56,11 +59,12 @@ function SegmentedTabs<T extends string>({
           type="button"
           role="tab"
           aria-selected={option.value === value}
+          disabled={disabled}
           onClick={() => onChange(option.value)}
           className={cn(
             'relative z-10 flex min-w-11 cursor-pointer items-center justify-center whitespace-nowrap px-3 text-sm font-medium',
             controlHeightClass,
-            'rounded-[10px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+            'rounded-[10px] transition-colors disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
             option.value === value ? 'cursor-default text-fg' : 'text-muted hover:text-fg'
           )}
         >

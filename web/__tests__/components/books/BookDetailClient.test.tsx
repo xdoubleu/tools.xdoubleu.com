@@ -214,6 +214,7 @@ describe('BookDetailClient', () => {
     })
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByText('Loading book…')).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeInTheDocument()
   })
 
   it('shows error state', () => {
@@ -252,6 +253,36 @@ describe('BookDetailClient', () => {
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument()
     expect(screen.queryByText('Frank Herbert')).not.toBeInTheDocument()
+  })
+
+  it('joins several authors with commas', () => {
+    const two = create(UserBookSchema, {
+      ...mockUserBook,
+      book: create(BookSchema, { ...mockBook, authors: ['Ann', 'Bob'] })
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    vi.mocked(useLibrary).mockReturnValue({
+      data: makeLibraryData([two]),
+      isLoading: false,
+      error: undefined
+    })
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.getByText('Ann, Bob')).toBeInTheDocument()
+  })
+
+  it('leaves out the page count when it is unknown', () => {
+    const noPages = create(UserBookSchema, {
+      ...mockUserBook,
+      book: create(BookSchema, { ...mockBook, pageCount: 0 })
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    vi.mocked(useLibrary).mockReturnValue({
+      data: makeLibraryData([noPages]),
+      isLoading: false,
+      error: undefined
+    })
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.queryByText(/pages$/)).not.toBeInTheDocument()
   })
 
   it('renders description', () => {
@@ -526,17 +557,27 @@ describe('BookDetailClient', () => {
     expect(screen.getByTestId('book-edit-dialog')).toBeInTheDocument()
   })
 
+  it('shows one breadcrumb, the authors and a destructive remove entry', () => {
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.getAllByRole('navigation', { name: /breadcrumb/i })).toHaveLength(1)
+    expect(screen.getByText('Frank Herbert')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    expect(screen.getByRole('menuitem', { name: 'Remove from library' })).toHaveClass('text-danger')
+  })
+
   it('opens the remove dialog when Remove from library is clicked', () => {
     render(<BookDetailClient id="ub-1" />)
     expect(screen.queryByTestId('remove-book-dialog')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Remove from library' }))
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Remove from library' }))
     expect(screen.getByTestId('remove-book-dialog')).toBeInTheDocument()
   })
 
   it('redirects to the library after a book is removed', () => {
     mockRouterPush.mockClear()
     render(<BookDetailClient id="ub-1" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Remove from library' }))
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Remove from library' }))
     fireEvent.click(screen.getByText('Confirm remove'))
     expect(mockRouterPush).toHaveBeenCalledWith('/books/library')
   })

@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { PageContainer } from '@/components/ui/page-container'
+import { DetailHeader } from '@/components/ui/detail-header'
 import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { Alert } from '@/components/ui/alert'
@@ -88,52 +89,48 @@ export default function MovieTitleClient({ id }: { id: string }) {
 
   return (
     <PageContainer>
-      <PageHeader
-        title={displayed}
+      <DetailHeader
         breadcrumb={[...breadcrumb, { label: displayed }]}
-        description={
-          entry.originalTitle !== displayed ? entry.originalTitle || undefined : undefined
-        }
+        title={displayed}
+        subtitle={entry.originalTitle !== displayed ? entry.originalTitle || undefined : undefined}
+        artwork={<Artwork src={posterUrl(entry.posterPath, 'w342')} title={displayed} size="lg" />}
+        meta={facts.join(' · ')}
+        status={<TitleStatus entry={entry} seasons={data.seasons} />}
+        menu={[
+          { label: 'Remove from backlog', destructive: true, onSelect: () => setConfirmOpen(true) }
+        ]}
       />
-      <div className="flex flex-col gap-6 sm:flex-row">
-        <Artwork src={posterUrl(entry.posterPath, 'w342')} title={displayed} size="lg" />
-        <div className="min-w-0 flex-1 space-y-4">
-          <p className="text-sm text-muted">{facts.join(' · ')}</p>
-          {entry.genres.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {entry.genres.map((g) => (
-                <Badge key={g} variant="secondary">
-                  {g}
-                </Badge>
-              ))}
-            </div>
-          )}
-          {data.overview && <p className="text-sm">{data.overview}</p>}
-          <TitleStatus entry={entry} seasons={data.seasons} />
-          <MovieRating entry={entry} />
-          {entry.mediaType === 'series' ? (
-            <SeasonChecklist entryId={entry.id} status={entry.status} seasons={data.seasons} />
-          ) : (
-            <MovieWatches entry={entry} />
-          )}
-          <WhereToWatch offers={data.offers ?? []} watchLink={data.watchLink} />
-          <div className="flex items-center gap-3">
-            <Button
-              variant="secondary"
-              disabled={copying || copied}
-              onClick={() => void copyToOtherList()}
-            >
-              {copied
-                ? `Added to ${shared ? 'my' : 'family'} list`
-                : copying
-                  ? 'Adding…'
-                  : `Add to ${shared ? 'my' : 'family'} list`}
-            </Button>
-            <FieldError>{copyFailed && 'Couldn’t add. Try again.'}</FieldError>
+      <div className="min-w-0 space-y-4">
+        {entry.genres.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {entry.genres.map((g) => (
+              <Badge key={g} variant="secondary">
+                {g}
+              </Badge>
+            ))}
           </div>
-          <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
-            Remove from backlog
+        )}
+        {data.overview && <p className="text-sm">{data.overview}</p>}
+        <MovieRating entry={entry} />
+        {entry.mediaType === 'series' ? (
+          <SeasonChecklist entryId={entry.id} status={entry.status} seasons={data.seasons} />
+        ) : (
+          <MovieWatches entry={entry} />
+        )}
+        <WhereToWatch offers={data.offers} watchLink={data.watchLink} />
+        <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
+            disabled={copying || copied}
+            onClick={() => void copyToOtherList()}
+          >
+            {copied
+              ? `Added to ${shared ? 'my' : 'family'} list`
+              : copying
+                ? 'Adding…'
+                : `Add to ${shared ? 'my' : 'family'} list`}
           </Button>
+          <FieldError>{copyFailed && 'Couldn’t add. Try again.'}</FieldError>
         </div>
       </div>
       <ConfirmDialog

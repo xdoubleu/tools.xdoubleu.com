@@ -8,6 +8,7 @@ vi.mock('@/hooks/useMovies', () => ({
   useMoviesActions: vi.fn(() => ({ setStatus: mockSetStatus }))
 }))
 
+import { STATUS_LABELS, type Status } from '@/lib/movies/format'
 import TitleStatus from '@/components/movies/TitleStatus'
 import { BacklogEntrySchema, SeasonSchema } from '@/lib/gen/movies/v1/movies_pb'
 
@@ -19,8 +20,8 @@ const series = create(BacklogEntrySchema, {
 })
 const season = (number: number, aired: boolean) => create(SeasonSchema, { number, aired })
 
-function choose(status: string) {
-  fireEvent.change(screen.getByLabelText('Status'), { target: { value: status } })
+function choose(status: Status) {
+  fireEvent.click(screen.getByRole('tab', { name: STATUS_LABELS[status] }))
 }
 
 beforeEach(() => {
@@ -29,6 +30,19 @@ beforeEach(() => {
 })
 
 describe('TitleStatus', () => {
+  it('selects nothing for an unknown status', () => {
+    const odd = create(BacklogEntrySchema, { id: 's-2', status: 'paused' })
+    render(<TitleStatus entry={odd} seasons={[]} />)
+    for (const tab of screen.getAllByRole('tab')) {
+      expect(tab).toHaveAttribute('aria-selected', 'false')
+    }
+  })
+
+  it('selects the entry status', () => {
+    render(<TitleStatus entry={series} seasons={[]} />)
+    expect(screen.getByRole('tab', { name: 'Want' })).toHaveAttribute('aria-selected', 'true')
+  })
+
   it('marks a single-season series watched today in one step', async () => {
     // Specials and unaired seasons don't count.
     const seasons = [season(0, true), season(1, true), season(2, false)]
@@ -58,13 +72,13 @@ describe('TitleStatus', () => {
 
   it('shows saving progress and reports a failure until the next success', async () => {
     render(<TitleStatus entry={series} seasons={[season(1, true), season(2, true)]} />)
-    expect(screen.getByLabelText('Status')).toBeEnabled()
+    expect(screen.getByRole('tab', { name: 'Watched' })).toBeEnabled()
     choose('watched')
     let resolve!: () => void
     mockSetStatus.mockReturnValueOnce(new Promise<void>((r) => (resolve = r)))
     fireEvent.click(screen.getByRole('button', { name: 'Today' }))
     expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled()
-    expect(screen.getByLabelText('Status')).toBeDisabled()
+    expect(screen.getByRole('tab', { name: 'Watched', hidden: true })).toBeDisabled()
     await act(async () => resolve())
 
     mockSetStatus.mockRejectedValueOnce(new Error('nope'))

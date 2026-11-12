@@ -17,6 +17,22 @@ describe('SegmentedTabs', () => {
     expect(screen.getByRole('tab', { name: 'Pages' })).not.toHaveAttribute('aria-pressed')
   })
 
+  it('locks every segment when disabled', () => {
+    const onChange = vi.fn()
+    render(
+      <SegmentedTabs
+        aria-label="Mode"
+        value="pages"
+        onChange={onChange}
+        options={[...options]}
+        disabled
+      />
+    )
+    fireEvent.click(screen.getByRole('tab', { name: 'Percent' }))
+    expect(screen.getByRole('tab', { name: 'Percent' })).toBeDisabled()
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
   it('reports the chosen value', () => {
     const onChange = vi.fn()
     render(
