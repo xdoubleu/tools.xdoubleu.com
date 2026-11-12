@@ -50,7 +50,8 @@ A cover, poster or artwork thumbnail that keeps its box, with a muted-initials f
 |---|---|---|---|
 | `src` | `string` | yes | Hotlinked image; the fallback shows when empty or when it fails to load. |
 | `title` | `string` | yes | What the artwork shows; the fallback is its initials. |
-| `size` | `keyof typeof SIZES` | yes | sm/md/lg are 2:3 covers and posters; square is 64px. |
+| `fallbackSrc` | `string` |  | Tried once when `src` fails to load, before the initials. |
+| `size` | `keyof typeof SIZES` | yes | sm/md/lg are 2:3 covers and posters; square is 64px; wide is 16:9. |
 | `initials` | `1 \| 2` |  | Words the fallback takes an initial from. |
 | `alt` | `string` |  | Empty by default: a caption beside the artwork usually names it. |
 | `className` | `string` |  |  |

@@ -6,7 +6,8 @@ const SIZES = {
   sm: { width: 40, height: 60, text: ['text-xs', 'text-[10px]'] },
   md: { width: 48, height: 72, text: ['text-sm', 'text-xs'] },
   lg: { width: 128, height: 192, text: ['text-2xl', 'text-base'] },
-  square: { width: 64, height: 64, text: ['text-sm', 'text-xs'] }
+  square: { width: 64, height: 64, text: ['text-sm', 'text-xs'] },
+  wide: { width: 112, height: 64, text: ['text-sm', 'text-xs'] }
 } as const
 
 interface ArtworkProps {
@@ -14,7 +15,9 @@ interface ArtworkProps {
   src: string
   /** What the artwork shows; the fallback is its initials. */
   title: string
-  /** sm/md/lg are 2:3 covers and posters; square is 64px. */
+  /** Tried once when `src` fails to load, before the initials. */
+  fallbackSrc?: string
+  /** sm/md/lg are 2:3 covers and posters; square is 64px; wide is 16:9. */
   size: keyof typeof SIZES
   /** Words the fallback takes an initial from. */
   initials?: 1 | 2
@@ -24,8 +27,17 @@ interface ArtworkProps {
 }
 
 /** A cover, poster or artwork thumbnail that keeps its box, with a muted-initials fallback. */
-export function Artwork({ src, title, size, initials = 1, alt = '', className }: ArtworkProps) {
-  const [errored, setErrored] = useState(false)
+export function Artwork({
+  src,
+  title,
+  size,
+  fallbackSrc,
+  initials = 1,
+  alt = '',
+  className
+}: ArtworkProps) {
+  const [failed, setFailed] = useState(0)
+  const shown = failed === 0 ? src : failed === 1 ? fallbackSrc : ''
   const { width, height, text } = SIZES[size]
   const letters = title
     .trim()
@@ -39,7 +51,7 @@ export function Artwork({ src, title, size, initials = 1, alt = '', className }:
       style={{ width, height, minWidth: width }}
       className={cn('relative shrink-0 overflow-hidden rounded-lg', className)}
     >
-      {!src || errored ? (
+      {!shown ? (
         <div
           className={cn(
             'flex h-full w-full select-none items-center justify-center rounded-lg bg-surface font-semibold text-muted',
@@ -51,13 +63,13 @@ export function Artwork({ src, title, size, initials = 1, alt = '', className }:
         </div>
       ) : (
         <img
-          src={src}
+          src={shown}
           alt={alt}
           width={width}
           height={height}
           className="h-full w-full rounded-lg object-cover"
           loading="lazy"
-          onError={() => setErrored(true)}
+          onError={() => setFailed((n) => n + 1)}
         />
       )}
     </div>

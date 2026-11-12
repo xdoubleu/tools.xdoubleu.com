@@ -22,6 +22,7 @@ import GameFavouriteButton from '@/components/games/GameFavouriteButton'
 import { GameAchievements, countAchieved } from '@/components/games/SteamGameDetail'
 import { formatDateTime } from '@/lib/dates'
 import { formatPercent } from '@/lib/format'
+import { headerFallback } from '@/lib/games/artwork'
 
 const REFRESH_INTERVAL_MS = 60_000
 
@@ -87,7 +88,14 @@ export default function SteamGameClient({ id }: { id: string }) {
       <DetailHeader
         breadcrumb={breadcrumbItems}
         title={game.name}
-        artwork={<Artwork src={game.imageUrl} title={game.name} size="square" />}
+        artwork={
+          <Artwork
+            src={game.imageUrl}
+            fallbackSrc={headerFallback(game.imageUrl)}
+            title={game.name}
+            size="wide"
+          />
+        }
         meta={
           <>
             {[

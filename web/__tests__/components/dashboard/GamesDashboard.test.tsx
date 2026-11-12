@@ -148,12 +148,14 @@ describe('GamesDashboard', () => {
     expect(screen.getByText(/Last played 1 Jun/)).toBeInTheDocument()
   })
 
-  it('renders the recent game icon with a locked square aspect ratio', () => {
+  it('renders the recent game art in a locked 16:9 box', () => {
     mockSteam()
     mockRecent()
     mockNoProgress()
-    render(<GamesDashboard />)
-    expect(screen.getByAltText('Hades')).toHaveClass('h-8', 'w-8', 'object-cover')
+    const { container } = render(<GamesDashboard />)
+    const img = container.querySelector('a img')!
+    expect(img).toHaveClass('object-cover')
+    expect(img.parentElement).toHaveStyle({ width: '112px', height: '64px' })
   })
 
   it('shows the playtime for a recently played game', () => {

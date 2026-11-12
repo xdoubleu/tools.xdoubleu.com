@@ -6,7 +6,8 @@ describe('Artwork', () => {
     ['sm', '40px', '60px'],
     ['md', '48px', '72px'],
     ['lg', '128px', '192px'],
-    ['square', '64px', '64px']
+    ['square', '64px', '64px'],
+    ['wide', '112px', '64px']
   ] as const)('reserves a %s box whether or not the image loads', (size, width, height) => {
     const { container } = render(<Artwork src="" title="Dune" size={size} />)
     expect(container.firstElementChild).toHaveStyle({ width, height, minWidth: width })
@@ -36,6 +37,21 @@ describe('Artwork', () => {
 
   it('falls back to the initial when the image fails', () => {
     render(<Artwork src="https://img.example/a.jpg" title="history" size="square" />)
+    fireEvent.error(screen.getByRole('presentation'))
+    expect(screen.getByText('H')).toBeInTheDocument()
+  })
+
+  it('tries the fallback image before the initials', () => {
+    render(
+      <Artwork
+        src="https://img.example/a.jpg"
+        fallbackSrc="https://img.example/b.jpg"
+        title="history"
+        size="wide"
+      />
+    )
+    fireEvent.error(screen.getByRole('presentation'))
+    expect(screen.getByRole('presentation')).toHaveAttribute('src', 'https://img.example/b.jpg')
     fireEvent.error(screen.getByRole('presentation'))
     expect(screen.getByText('H')).toBeInTheDocument()
   })
