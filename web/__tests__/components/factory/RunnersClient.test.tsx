@@ -67,8 +67,7 @@ describe('RunnersClient', () => {
     expect(screen.getByText('Online').className).toContain('text-success')
     expect(screen.getByText('Revoked').className).toContain('text-subtle')
     expect(screen.queryByText(/Couldn't revoke/)).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Factory' })).toHaveAttribute('href', '/factory')
-    expect(screen.getByText('Runner', { selector: '[aria-current="page"]' })).toBeInTheDocument()
+    expect(screen.getByRole('tablist', { name: 'Factory sections' })).toBeInTheDocument()
   })
 
   it('offers the download and the install steps', () => {
