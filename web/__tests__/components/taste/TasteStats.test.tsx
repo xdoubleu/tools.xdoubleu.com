@@ -131,7 +131,7 @@ describe('TasteStats', () => {
       })
     })
     render(<TasteStats />)
-    const list = screen.getByRole('list', { name: 'Hit rate per domain and track' })
+    const list = screen.getByRole('list', { name: 'Recommendation hit rate' })
     const [books, series] = within(list).getAllByRole('listitem')
     expect(books).toHaveTextContent('Books · More of what you like67% (2 of 3)')
     expect(series).toHaveTextContent('Series · Broaden your horizon0% (0 of 2)')

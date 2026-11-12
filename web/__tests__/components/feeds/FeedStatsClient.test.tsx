@@ -81,4 +81,36 @@ describe('FeedStatsClient', () => {
     expect(screen.getByText('Untitled feed')).toBeInTheDocument()
     expect(screen.getByText('not enough data yet')).toBeInTheDocument()
   })
+
+  const feed = (feedId: string, itemCount: number) => ({
+    feedId,
+    feedTitle: feedId,
+    itemCount,
+    avgIntervalHours: 0,
+    readRate: 0,
+    avgReadProgressPct: 0
+  })
+
+  it('totals the feeds, their items and the last 90 days in tiles', () => {
+    feedStatsData.data = {
+      stats: [feed('a', 100), feed('b', 20), feed('c', 3)],
+      itemsPerDay: [
+        { day: '2026-01-01T00:00:00Z', count: 4 },
+        { day: '2026-01-02T00:00:00Z', count: 5 }
+      ]
+    }
+    render(<FeedStatsClient />)
+    // Feed cards repeat the "Items" label; the tiles come first.
+    const tile = (label: string) => screen.getAllByText(label)[0].parentElement
+    expect(tile('Feeds')).toHaveTextContent(/^Feeds3$/)
+    expect(tile('Items')).toHaveTextContent(/^Items123$/)
+    expect(tile('Last 90 days')).toHaveTextContent(/^Last 90 days9$/)
+    expect(screen.queryByText('No items ingested in the last 90 days.')).not.toBeInTheDocument()
+  })
+
+  it('says so when nothing was ingested in the last 90 days', () => {
+    feedStatsData.data = { stats: [feed('a', 5)], itemsPerDay: [] }
+    render(<FeedStatsClient />)
+    expect(screen.getByText('No items ingested in the last 90 days.')).toBeInTheDocument()
+  })
 })

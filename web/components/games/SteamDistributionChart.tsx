@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts'
+import { axisTick, countAxisProps, gridProps, seriesColor, tooltipProps } from '@/lib/chartTheme'
 import { EmptyState } from '@/components/ui/states'
 
 const BUCKET_LABELS = [
@@ -23,13 +24,6 @@ const BUCKET_LABELS = [
   '90-99%',
   '100%'
 ]
-
-const tooltipContentStyle = {
-  backgroundColor: 'var(--color-surface)',
-  border: '1px solid var(--color-border)',
-  borderRadius: '0.75rem',
-  color: 'var(--color-fg)'
-}
 
 interface SteamDistributionChartProps {
   distribution: number[]
@@ -54,18 +48,13 @@ export default function SteamDistributionChart({
     <div className="h-full min-h-0 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} style={onBucketClick ? { cursor: 'pointer' } : undefined}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="range" tick={{ fontSize: 11 }} />
-          <YAxis allowDecimals={false} />
-          <Tooltip
-            formatter={(value) => [value, 'Games']}
-            cursor={{ fill: 'rgb(var(--hover-rgb) / 0.5)' }}
-            contentStyle={tooltipContentStyle}
-            labelStyle={{ color: 'var(--color-fg)' }}
-            itemStyle={{ color: 'var(--color-fg)' }}
-          />
+          <CartesianGrid {...gridProps} />
+          <XAxis dataKey="range" tick={axisTick} />
+          <YAxis {...countAxisProps} />
+          <Tooltip {...tooltipProps} />
           <Bar
             dataKey="count"
+            name="Games"
             onClick={
               onBucketClick
                 ? (entry: unknown) => {
@@ -80,7 +69,7 @@ export default function SteamDistributionChart({
             }
           >
             {chartData.map((entry) => (
-              <Cell key={entry.range} fill="var(--color-accent)" />
+              <Cell key={entry.range} fill={seriesColor(1)} />
             ))}
           </Bar>
         </BarChart>
