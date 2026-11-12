@@ -36,7 +36,7 @@ The server is untrusted; each claimed job is checked for UUID ids, the local rep
 
 `build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature and release file into `/downloads/`. The dmg's app installs a bundle copy and LaunchAgent; `-X main.UpdatePublicKey` is the trusted key. Shared: `../selfupdate`.
 
-Menu bar Stop writes a `paused` flag; logs go to `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
+`config mode off|claude` (default `off`) picks the harness whatever the board sends; `off` is the menu bar's Stop (one `paused` flag): nothing is claimed. A Reply resumes only a session of the harness this Mac runs. Logs go to `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
 
 ## Building
 

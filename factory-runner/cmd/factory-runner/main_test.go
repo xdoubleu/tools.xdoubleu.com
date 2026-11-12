@@ -461,3 +461,28 @@ func TestPausedFollowsTheControl(t *testing.T) {
 	require.NoError(t, e.app.control.SetPaused(true))
 	assert.True(t, e.app.paused())
 }
+
+func TestConfigModeSharesTheStopFlag(t *testing.T) {
+	e := newEnv(t)
+	e.app.control = runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
+	e.app.control.SetModeSource(e.app.mode)
+	assert.Equal(t, runner.ModeOff, e.app.mode(), "off by default")
+	assert.True(t, e.app.notClaiming())
+
+	require.Equal(t, 0, e.do("config", "mode", "claude"))
+	assert.Equal(t, runner.ModeClaude, e.app.mode())
+	assert.False(t, e.app.notClaiming())
+	assert.False(t, e.app.control.Paused())
+	assert.Equal(t, runner.ModeClaude, e.app.control.Snapshot().Mode)
+
+	require.NoError(t, e.app.control.SetPaused(true))
+	assert.Equal(t, runner.ModeOff, e.app.mode(), "the menu bar's Stop is mode off")
+
+	require.Equal(t, 0, e.do("config", "mode", "claude"))
+	require.Equal(t, 0, e.do("config", "mode", "off"))
+	assert.True(t, e.app.control.Paused())
+	assert.NotEqual(t, 0, e.do("config", "mode", "opencode"))
+	e.out.Reset()
+	require.Equal(t, 0, e.do("config", "show"))
+	assert.Contains(t, e.out.String(), "mode: off")
+}

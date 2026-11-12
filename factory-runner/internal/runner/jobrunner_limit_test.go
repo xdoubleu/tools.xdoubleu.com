@@ -116,6 +116,7 @@ func TestAnOpenCodeJobIsNeverReportedAsClaudeLimited(t *testing.T) {
 	env := newEnv(t, limitSandbox([]string{rejectedAt(time.Now().Add(time.Hour).Unix())},
 		"", 1), job)
 
+	env.runner.Harness = runner.OpenCode{Model: "vendor/model"}
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
 	assert.False(t, env.api.done()[0].limited)

@@ -45,6 +45,9 @@ type Config struct {
 	NPMCache   string `json:"npmCache,omitempty"`
 	// BotEmail is the author email of a job's commits; empty means DefaultBotEmail.
 	BotEmail string `json:"botEmail,omitempty"`
+	// Mode is the harness this Mac runs jobs on: ModeClaude, or ModeOff (also the
+	// empty default), which claims nothing.
+	Mode string `json:"mode,omitempty"`
 }
 
 // emailPattern is a plain address, nothing a commit header could be bent by. Brackets
@@ -142,6 +145,7 @@ func LoadConfig(path string) (Config, error) {
 		GoModCache: "",
 		NPMCache:   "",
 		BotEmail:   "",
+		Mode:       "",
 	}
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -219,4 +223,21 @@ func secureServer(raw string) bool {
 		}
 	}
 	return false
+}
+
+// EffectiveMode is ModeClaude or ModeOff; anything unset or unknown is off.
+func (c Config) EffectiveMode() string {
+	if c.Mode == ModeClaude {
+		return ModeClaude
+	}
+	return ModeOff
+}
+
+// SetMode chooses the harness this Mac runs jobs on.
+func (c *Config) SetMode(mode string) error {
+	if mode != ModeOff && mode != ModeClaude {
+		return fmt.Errorf("mode %q must be off or claude", mode)
+	}
+	c.Mode = mode
+	return nil
 }

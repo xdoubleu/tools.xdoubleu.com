@@ -104,6 +104,7 @@ func TestMenuLines(t *testing.T) {
 func status(set func(*runner.Status)) runner.Status {
 	s := runner.Status{
 		Version: "", Paused: false, Busy: false, LastHeartbeat: time.Time{}, Update: "",
+		Mode: "",
 	}
 	set(&s)
 	return s

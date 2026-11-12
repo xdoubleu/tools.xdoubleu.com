@@ -78,6 +78,9 @@ type JobRunner struct {
 	Git     *Git
 	Sandbox Sandbox
 	Harness Harness
+	// Mode reports this Mac's config mode (ModeClaude or ModeOff); nil means
+	// ModeClaude. The job's own harness and model are ignored.
+	Mode func() string
 	// Paused, when it reports true, stops the loop claiming new jobs.
 	Paused func() bool
 	// ClaudeToken returns the Claude setup-token a Claude Code job runs on; it is
@@ -232,7 +235,7 @@ func (r *JobRunner) check(job *ClaimedJob) error {
 	if job.ResumeSessionID != "" && !sessionIDPattern.MatchString(job.ResumeSessionID) {
 		return fmt.Errorf("%w: invalid session id", ErrRefused)
 	}
-	if err := checkHarness(job); err != nil {
+	if err := r.checkHarness(job); err != nil {
 		return err
 	}
 	allowed, err := r.Allowed()
@@ -246,29 +249,45 @@ func (r *JobRunner) check(job *ClaimedJob) error {
 	}, allowed)
 }
 
-// checkHarness refuses a harness the runner can't run, and a model that doesn't fit
-// it: Claude Code takes none, OpenCode needs a well-formed OpenRouter id.
-func checkHarness(job *ClaimedJob) error {
-	switch job.Harness {
-	case HarnessClaudeCode:
-		if job.Model != "" {
-			return fmt.Errorf("%w: Claude Code takes no model", ErrRefused)
-		}
-	case HarnessOpenCode:
-		if !validModel(job.Model) {
+// ModeClaude is the config mode that runs every job on Claude Code.
+const ModeClaude = "claude"
+
+// ModeOff is the config mode that claims nothing.
+const ModeOff = "off"
+
+// openCodeSessionPrefix starts every OpenCode session id; Claude Code's are UUIDs.
+const openCodeSessionPrefix = "ses_"
+
+// checkHarness applies this Mac's choice, whatever harness and model the job
+// carries: nothing runs when it is off, and a Reply resumes only a session of the
+// harness this Mac runs.
+func (r *JobRunner) checkHarness(job *ClaimedJob) error {
+	if r.Mode != nil && r.Mode() != ModeClaude {
+		return fmt.Errorf("%w: this Mac's mode is off", ErrRefused)
+	}
+	mine := HarnessClaudeCode
+	if oc, ok := r.Harness.(OpenCode); ok {
+		mine = HarnessOpenCode
+		if !validModel(oc.Model) {
 			return fmt.Errorf("%w: invalid model", ErrRefused)
 		}
-	default:
-		return fmt.Errorf("%w: harness %q is not supported yet", ErrRefused, job.Harness)
+	}
+	if job.ResumeSessionID == "" {
+		return nil
+	}
+	session := HarnessClaudeCode
+	if strings.HasPrefix(job.ResumeSessionID, openCodeSessionPrefix) {
+		session = HarnessOpenCode
+	}
+	if session != mine {
+		return fmt.Errorf("%w: the session was started on %s, but this Mac runs %s",
+			ErrRefused, session, mine)
 	}
 	return nil
 }
 
-// harnessFor is the harness a job runs on; the server's choice is already checked.
-func (r *JobRunner) harnessFor(job *ClaimedJob) Harness {
-	if job.Harness == HarnessOpenCode {
-		return OpenCode{Model: job.Model}
-	}
+// harnessFor is the harness a job runs on: this Mac's, not the job's.
+func (r *JobRunner) harnessFor(*ClaimedJob) Harness {
 	return r.Harness
 }
 

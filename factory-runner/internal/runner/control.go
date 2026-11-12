@@ -24,6 +24,8 @@ type Status struct {
 	LastHeartbeat time.Time
 	// Update is the outcome of the latest self-update check, empty before the first.
 	Update string
+	// Mode is the config mode ("claude" or "off"); empty when unknown.
+	Mode string
 }
 
 // Control is the runner's local state shared by the daemon, the claim loop and
@@ -40,6 +42,8 @@ type Control struct {
 	update string
 	check  bool
 	notify func(title, body string)
+	// mode reads the config mode for the menu; nil leaves it unshown.
+	mode func() string
 	// wake nudges the daemon loop out of a held heartbeat when a check is asked for.
 	wake chan struct{}
 }
@@ -58,6 +62,7 @@ func NewControl(pausePath, version string, activity *Activity) *Control {
 		update:    "",
 		check:     false,
 		notify:    nil,
+		mode:      nil,
 		wake:      make(chan struct{}, 1),
 	}
 }
@@ -136,14 +141,21 @@ func (c *Control) RecordUpdate(outcome string) {
 // Snapshot returns the current status.
 func (c *Control) Snapshot() Status {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-	return Status{
+	mode := c.mode
+	s := Status{
 		Version:       c.version,
 		Paused:        c.paused,
 		Busy:          c.activity != nil && !c.activity.Idle(),
 		LastHeartbeat: c.beat,
 		Update:        c.update,
+		Mode:          "",
 	}
+	c.mu.Unlock()
+	// Read outside the lock: the source may itself ask whether the runner is paused.
+	if mode != nil {
+		s.Mode = mode()
+	}
+	return s
 }
 
 // Line renders the status as one menu line.
@@ -237,8 +249,22 @@ func (s Status) MenuLines(release string, now time.Time) MenuLines {
 	}
 	return MenuLines{
 		Header:    "Factory Runner " + version,
-		Status:    s.Line(),
+		Status:    s.Line() + modeSuffix(s.Mode),
 		Heartbeat: beat,
 		Update:    update,
 	}
+}
+
+// SetModeSource sets how the status reads the config mode.
+func (c *Control) SetModeSource(mode func() string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.mode = mode
+}
+
+func modeSuffix(mode string) string {
+	if mode == "" {
+		return ""
+	}
+	return " (mode: " + mode + ")"
 }
