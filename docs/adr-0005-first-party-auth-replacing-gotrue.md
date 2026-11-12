@@ -1,6 +1,6 @@
 # ADR-0005: Replace Supabase GoTrue with first-party auth in `api`
 
-- Status: Accepted
+- Status: Accepted; passwords, TOTP, recovery codes and reset mail superseded by [ADR-0051](adr-0051-zitadel-for-people-sign-in.md)
 - Issues: #1039
 - Affects: `api/internal/auth/`, `api/cmd/api/migrations/` (00017–00019), `infra/`
 

@@ -1,6 +1,6 @@
 # ADR-0001: Deploy `api` and `web` as two independent Kamal services behind one proxy
 
-- Status: Superseded by [ADR-0034](adr-0034-vite-spa-served-by-the-api.md) (the `web` service is gone; `api` is the root service). Grafana still sits beside it at `/grafana`.
+- Status: Superseded by [ADR-0034](adr-0034-vite-spa-served-by-the-api.md) (the `web` service is gone; `api` is the root service). Grafana still sits beside it at `/grafana`. Kamal stays, with no separate platform service ([ADR-0046](adr-0046-platform-respike.md)).
 - Issues: #558, #904, #1038, #1029, #1034, #1113, #1132, #1106, #1111
 - Affects (historical): `config/deploy.api.yml`, `config/deploy.web.yml`, `.github/workflows/main.yml` (`deploy-kamal`), `api/cmd/api/kamal_proxy_shim.go`, `infra/`
 
