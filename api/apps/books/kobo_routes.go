@@ -12,7 +12,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
-	"tools.xdoubleu.com/apps/books/internal/services/kobo"
+	"tools.xdoubleu.com/apps/books/kobo"
 	"tools.xdoubleu.com/internal/database"
 )
 
@@ -20,7 +20,7 @@ import (
 // token is a bearer secret in the device's api_endpoint, SHA-256 hashed before
 // lookup; AppAccess is not used. Unhandled paths are proxied to the real Kobo
 // store so firmware updates, purchases and auth keep working. The protocol
-// itself lives in services/kobo; these handlers authenticate, parse and write.
+// itself lives in books/kobo; these handlers authenticate, parse and write.
 func (app *Books) koboRoutes(prefix string, mux *http.ServeMux) {
 	base := "/" + prefix + "/kobo/{token}"
 	// The device fetches initialization with GET; serving POST too is harmless.
