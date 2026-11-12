@@ -11,6 +11,7 @@ import Sidebar from '@/components/Sidebar'
 import SWRProvider, { useSessionEffects } from '@/components/SWRProvider'
 import { usePathname, useRouter, useSearchParams } from '@/hooks/navigation'
 import { useCurrentUser } from '@/hooks/useAuth'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { cn } from '@/lib/cn'
 import { isSharedDashboard, signInRedirect } from '@/lib/signIn'
 
@@ -32,6 +33,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const tabBar = useTabBarVisible()
   const redirecting = useSignInRedirect(error)
+  const [collapsed, setCollapsed] = useLocalStorage('shell:sidebar-collapsed', false)
 
   const booksAccess =
     currentUser !== undefined &&
@@ -41,8 +43,10 @@ function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <Sidebar />
-      <div className={cn('flex flex-1 flex-col', signedIn && 'lg:pl-60')}>
+      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+      <div
+        className={cn('flex flex-1 flex-col', signedIn && (collapsed ? 'lg:pl-16' : 'lg:pl-60'))}
+      >
         <Navbar />
         <main
           className={cn(
