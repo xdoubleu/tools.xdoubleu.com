@@ -47,20 +47,13 @@ func TestNew(t *testing.T) {
 	assert.NotNil(t, client)
 }
 
-func TestGetFullImgIconURL(t *testing.T) {
-	game := steam.Game{ //nolint:exhaustruct //only relevant fields needed
-		AppID:      12345,
-		ImgIconURL: "abc123",
-	}
-	assert.Equal(t, steam.BaseImgURL+"/12345/abc123.jpg", game.GetFullImgIconURL())
-}
-
-func TestGetFullImgLogoURL(t *testing.T) {
-	game := steam.Game{ //nolint:exhaustruct //only relevant fields needed
-		AppID:      12345,
-		ImgLogoURL: "def456",
-	}
-	assert.Equal(t, steam.BaseImgURL+"/12345/def456.jpg", game.GetFullImgLogoURL())
+func TestCapsuleURL(t *testing.T) {
+	assert.Equal(
+		t,
+		"https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/"+
+			"12345/capsule_616x353.jpg",
+		steam.CapsuleURL(12345),
+	)
 }
 
 func TestGetOwnedGames(t *testing.T) {

@@ -44,10 +44,11 @@ type StoreApp struct {
 	Name  string `json:"name"`
 }
 
-// StoreHeaderURL is the store header image of appID.
-func StoreHeaderURL(appID int) string {
+// CapsuleURL is the 616x353 store capsule image of appID.
+func CapsuleURL(appID int) string {
 	return fmt.Sprintf(
-		"https://cdn.cloudflare.steamstatic.com/steam/apps/%d/header.jpg",
+		"https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/"+
+			"%d/capsule_616x353.jpg",
 		appID,
 	)
 }

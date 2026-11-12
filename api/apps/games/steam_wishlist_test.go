@@ -83,7 +83,7 @@ func TestSyncUser_Wishlist(t *testing.T) {
 	require.NotNil(t, items[1].AddedAt)
 	assert.True(t, added.Equal(*items[1].AddedAt))
 	assert.Equal(t, 9002, items[2].ID, "unranked last")
-	assert.Equal(t, steam.StoreHeaderURL(9001), items[1].ImageURL)
+	assert.Equal(t, steam.CapsuleURL(9001), items[1].ImageURL)
 
 	events, err := app.ListConsumption(ctx, user)
 	require.NoError(t, err)
