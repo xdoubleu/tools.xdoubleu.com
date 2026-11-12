@@ -87,7 +87,8 @@ describe('sections', () => {
       ],
       monitoring: [
         { label: 'Connections', href: '/monitoring/connections' },
-        { label: 'Automated actions', href: '/monitoring/observability' }
+        { label: 'Automated actions', href: '/monitoring/observability' },
+        { label: 'Grafana', href: '/grafana', external: true }
       ],
       movies: [
         { label: 'Backlog', href: '/movies' },

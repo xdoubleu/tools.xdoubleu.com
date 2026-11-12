@@ -17,6 +17,22 @@ describe('AppSections', () => {
     expect(push).toHaveBeenCalledWith('/dashboard/reading')
   })
 
+  it('links out to another service with a full navigation, not the router', () => {
+    vi.mocked(usePathname).mockReturnValue('/monitoring/connections')
+    const push = vi.fn()
+    vi.mocked(useRouter).mockReturnValue({ push, replace: vi.fn(), back: vi.fn() })
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    render(<AppSections app="monitoring" />)
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Grafana' }))
+    expect(open).toHaveBeenCalledWith('/grafana', '_self')
+    expect(push).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('tab', { name: 'Automated actions' }))
+    expect(push).toHaveBeenCalledWith('/monitoring/observability')
+    expect(open).toHaveBeenCalledTimes(1)
+    open.mockRestore()
+  })
+
   it('prefers the longest matching section and rewrites hrefs', () => {
     vi.mocked(usePathname).mockReturnValue('/feeds/stats')
     const push = vi.fn()
