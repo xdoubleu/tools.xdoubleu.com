@@ -26,6 +26,22 @@ describe('useLocalStorage', () => {
     expect(result.current[0]).toBe('hello')
   })
 
+  it('returns the stored value on the first render, so layout does not flash', () => {
+    localStorage.setItem('test:key', JSON.stringify(true))
+    const seen: boolean[] = []
+    renderHook(() => {
+      const [v] = useLocalStorage('test:key', false)
+      seen.push(v)
+    })
+    expect(seen[0]).toBe(true)
+  })
+
+  it('falls back to the initial value on unparseable data', () => {
+    localStorage.setItem('test:key', '{bad')
+    const { result } = renderHook(() => useLocalStorage('test:key', 7))
+    expect(result.current[0]).toBe(7)
+  })
+
   it('works with array values', () => {
     const { result } = renderHook(() => useLocalStorage<string[]>('test:arr', []))
     act(() => {

@@ -26,6 +26,22 @@ function useSignInRedirect(error: unknown): boolean {
   return href !== null
 }
 
+// Ctrl/Cmd+B toggles the sidebar, unless typing in a field.
+function useSidebarShortcut(toggle: () => void) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'b' || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return
+      const t = e.target
+      if (t instanceof Element && t.closest('input, textarea, select, [contenteditable="true"]'))
+        return
+      e.preventDefault()
+      toggle()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [toggle])
+}
+
 // Stryker disable StringLiteral: layout classes; the sidebar offset is tested.
 function Shell({ children }: { children: React.ReactNode }) {
   const { data: currentUser, error } = useCurrentUser()
@@ -34,6 +50,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const tabBar = useTabBarVisible()
   const redirecting = useSignInRedirect(error)
   const [collapsed, setCollapsed] = useLocalStorage('shell:sidebar-collapsed', false)
+  useSidebarShortcut(() => setCollapsed(!collapsed))
 
   const booksAccess =
     currentUser !== undefined &&
@@ -45,7 +62,10 @@ function Shell({ children }: { children: React.ReactNode }) {
     <>
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
       <div
-        className={cn('flex flex-1 flex-col', signedIn && (collapsed ? 'lg:pl-16' : 'lg:pl-60'))}
+        className={cn(
+          'flex flex-1 flex-col transition-[padding] duration-200 ease-out motion-reduce:transition-none',
+          signedIn && (collapsed ? 'lg:pl-16' : 'lg:pl-60')
+        )}
       >
         <Navbar />
         <main
