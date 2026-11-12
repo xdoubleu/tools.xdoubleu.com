@@ -43,6 +43,12 @@ beforeEach(() => {
   })
 })
 
+function openDelete() {
+  fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+  expect(screen.getByRole('menuitem', { name: 'Delete' })).toHaveClass('text-danger')
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+}
+
 describe('RecipeClient', () => {
   it('shows loading state', () => {
     vi.mocked(useRecipe).mockReturnValue({
@@ -412,6 +418,27 @@ describe('RecipeClient', () => {
     expect(screen.queryByText('Draft')).not.toBeInTheDocument()
   })
 
+  it.each([
+    ['an editor who is not the owner can edit but not delete', false, true],
+    ['a viewer can neither edit nor delete', false, false]
+  ])('%s', (_name, isOwner, canEdit) => {
+    vi.mocked(useRecipe).mockReturnValue({
+      data: create(GetRecipeResponseSchema, {
+        recipe: create(RecipeSchema, { id: 'r1', name: 'Pasta', baseServings: 2 }),
+        isOwner,
+        canEdit,
+        scaledIngredients: []
+      }),
+      isLoading: false,
+      isValidating: false,
+      error: undefined,
+      mutate: vi.fn()
+    })
+    render(<RecipeClient id="r1" />)
+    expect(screen.queryByRole('link', { name: 'Edit' }) !== null).toBe(canEdit)
+    expect(screen.queryByRole('button', { name: 'More actions' })).not.toBeInTheDocument()
+  })
+
   it('lets an owner edit and confirm or cancel deletion from the header', async () => {
     const deleteRecipe = vi.fn().mockResolvedValue(undefined)
     vi.mocked(useDeleteRecipe).mockReturnValue(deleteRecipe)
@@ -439,12 +466,12 @@ describe('RecipeClient', () => {
     expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute('href', '/recipes/r1/edit')
     expect(screen.getByText('Batch prep: 10 servings')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    openDelete()
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(deleteRecipe).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    openDelete()
     const dialog = screen.getByRole('dialog', { name: 'Delete Pasta?' })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(deleteRecipe).toHaveBeenCalledWith({ id: 'r1' }))
@@ -470,7 +497,7 @@ describe('RecipeClient', () => {
 
   describe('when the delete is rejected', () => {
     const confirmDelete = () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+      openDelete()
       const dialog = screen.getByRole('dialog', { name: 'Delete Pasta?' })
       fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
     }
