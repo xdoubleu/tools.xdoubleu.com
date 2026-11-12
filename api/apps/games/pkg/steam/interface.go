@@ -22,6 +22,6 @@ type WishlistClient interface {
 	// GetWishlist returns the user's wishlisted apps; a private wishlist
 	// comes back empty.
 	GetWishlist(ctx context.Context, steamID string) (*WishlistResponse, error)
-	// GetStoreItems resolves app ids to their store names.
+	// GetStoreItems resolves app ids to their store names and image paths.
 	GetStoreItems(ctx context.Context, appIDs []int) ([]StoreApp, error)
 }
