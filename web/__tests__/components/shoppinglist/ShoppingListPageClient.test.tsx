@@ -69,12 +69,70 @@ describe('ShoppingListPageClient load states', () => {
 })
 
 describe('ShoppingPage add form', () => {
+  it('only enables Add for a non-blank name', () => {
+    render(<ShoppingListPageClient />)
+    const add = screen.getByRole('button', { name: 'Add' })
+    const name = screen.getByRole('textbox', { name: 'New item name' })
+    expect(add).toBeDisabled()
+    fireEvent.change(name, { target: { value: '   ' } })
+    expect(add).toBeDisabled()
+    fireEvent.change(name, { target: { value: 'Tea' } })
+    expect(add).toBeEnabled()
+  })
+
+  it('disables Add while the write is queued', async () => {
+    const gate = Promise.withResolvers<Awaited<ReturnType<typeof enqueueWrite>>>()
+    enqueue.mockReturnValueOnce(gate.promise)
+    render(<ShoppingListPageClient />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'New item name' }), {
+      target: { value: 'Tea' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled())
+    gate.resolve(Object.create(null))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled())
+  })
+
+  it('sends the amount and unit from Details', async () => {
+    render(<ShoppingListPageClient />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'New item name' }), {
+      target: { value: 'Rice' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }))
+    fireEvent.change(screen.getByLabelText('New item amount'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('New item unit'), { target: { value: 'kg' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    await waitFor(() =>
+      expect(enqueue).toHaveBeenCalledWith(createShoppingItemWrite, {
+        id: uuid,
+        name: 'Rice',
+        amount: '2',
+        unit: 'kg'
+      })
+    )
+  })
+
+  it('keeps amount, unit and category behind Details', () => {
+    render(<ShoppingListPageClient />)
+    const details = screen.getByRole('button', { name: 'Details' })
+    expect(details).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByLabelText('New item amount')).not.toBeInTheDocument()
+    fireEvent.click(details)
+    expect(details).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByLabelText('New item amount')).toBeInTheDocument()
+    expect(screen.getByLabelText('New item unit')).toBeInTheDocument()
+    expect(screen.queryByLabelText('New category name')).not.toBeInTheDocument()
+    fireEvent.click(details)
+    expect(screen.queryByLabelText('New item unit')).not.toBeInTheDocument()
+  })
+
   it('assigns the chosen category to the catalog on add', async () => {
     render(<ShoppingListPageClient />)
 
     fireEvent.change(screen.getByRole('textbox', { name: 'New item name' }), {
       target: { value: 'Apples' }
     })
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }))
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'cat-produce' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
@@ -107,6 +165,7 @@ describe('ShoppingPage add form', () => {
     render(<ShoppingListPageClient />)
 
     fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Kiwi' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }))
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: '__new__' } })
     fireEvent.change(screen.getByLabelText('New category name'), { target: { value: 'Fruit' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
@@ -125,6 +184,7 @@ describe('ShoppingPage add form', () => {
     render(<ShoppingListPageClient />)
 
     fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Pear' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }))
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: '__new__' } })
     fireEvent.change(screen.getByLabelText('New category name'), { target: { value: 'produce' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))

@@ -25,6 +25,7 @@ export default function AddItemForm({ categories }: AddItemFormProps) {
   const [newCategoryId, setNewCategoryId] = useState('')
   const [newCategoryName, setNewCategoryName] = useState('')
   const [adding, setAdding] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,63 +65,77 @@ export default function AddItemForm({ categories }: AddItemFormProps) {
   }
 
   return (
-    <form onSubmit={handleAdd} className="flex flex-wrap gap-2 mb-6">
-      <Input
-        type="number"
-        inputMode="decimal"
-        aria-label="New item amount"
-        placeholder="Amount"
-        value={newAmount}
-        onChange={(e) => setNewAmount(e.target.value)}
-        min="0"
-        step="any"
-        className="min-w-0 flex-1 sm:w-24 sm:flex-none"
-      />
-      <Input
-        type="text"
-        aria-label="New item unit"
-        placeholder="Unit"
-        value={newUnit}
-        onChange={(e) => setNewUnit(e.target.value)}
-        className="min-w-0 flex-1 sm:w-24 sm:flex-none"
-      />
-      <Input
-        id="shopping-item-name"
-        type="text"
-        aria-label="New item name"
-        placeholder="Item name"
-        value={newName}
-        onChange={(e) => setNewName(e.target.value)}
-        required
-        className="min-w-32 flex-1"
-      />
-      <Select
-        aria-label="Category"
-        value={newCategoryId}
-        onChange={(e) => setNewCategoryId(e.target.value)}
-        className="w-auto"
-      >
-        <option value="">-- Category --</option>
-        {categories.map((category) => (
-          <option key={category.id} value={category.id}>
-            {category.name}
-          </option>
-        ))}
-        <option value={NEW_CATEGORY}>+ New category</option>
-      </Select>
-      {newCategoryId === NEW_CATEGORY && (
+    <form onSubmit={handleAdd} className="mb-6 space-y-2">
+      <div className="flex gap-2">
         <Input
+          id="shopping-item-name"
           type="text"
-          placeholder="New category"
-          aria-label="New category name"
-          value={newCategoryName}
-          onChange={(e) => setNewCategoryName(e.target.value)}
-          className="w-full sm:w-32"
+          aria-label="New item name"
+          placeholder="Item name"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          required
+          className="min-w-0 flex-1"
         />
+        <Button
+          type="button"
+          variant="secondary"
+          aria-expanded={detailsOpen}
+          onClick={() => setDetailsOpen((open) => !open)}
+        >
+          Details
+        </Button>
+        <Button type="submit" disabled={adding || !newName.trim()}>
+          Add
+        </Button>
+      </div>
+      {detailsOpen && (
+        <div className="flex flex-wrap gap-2">
+          <Input
+            type="number"
+            inputMode="decimal"
+            aria-label="New item amount"
+            placeholder="Amount"
+            value={newAmount}
+            onChange={(e) => setNewAmount(e.target.value)}
+            min="0"
+            step="any"
+            className="min-w-0 flex-1 sm:w-24 sm:flex-none"
+          />
+          <Input
+            type="text"
+            aria-label="New item unit"
+            placeholder="Unit"
+            value={newUnit}
+            onChange={(e) => setNewUnit(e.target.value)}
+            className="min-w-0 flex-1 sm:w-24 sm:flex-none"
+          />
+          <Select
+            aria-label="Category"
+            value={newCategoryId}
+            onChange={(e) => setNewCategoryId(e.target.value)}
+            className="w-auto"
+          >
+            <option value="">-- Category --</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+            <option value={NEW_CATEGORY}>+ New category</option>
+          </Select>
+          {newCategoryId === NEW_CATEGORY && (
+            <Input
+              type="text"
+              placeholder="New category"
+              aria-label="New category name"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              className="w-full sm:w-32"
+            />
+          )}
+        </div>
       )}
-      <Button type="submit" disabled={adding || !newName.trim()}>
-        Add
-      </Button>
     </form>
   )
 }
