@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import type { ShoppingItem } from '@/lib/shoppinglist/shoppingExport'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { GroupedList, GroupedListItem } from '@/components/ui/grouped-list'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ui/dialog'
@@ -88,7 +88,7 @@ export default function ShoppingList({ items, onDelete, onEdit }: ShoppingListPr
           No items yet.
         </EmptyState>
       ) : (
-        <div className="space-y-2">
+        <GroupedList>
           {items.map((item, idx) => {
             const key = itemKey(item, idx)
             const isChecked = checkedItems.has(key)
@@ -96,7 +96,7 @@ export default function ShoppingList({ items, onDelete, onEdit }: ShoppingListPr
 
             if (isEditing && item.id) {
               return (
-                <Card key={key} variant="inset" className="flex flex-wrap items-center gap-2">
+                <GroupedListItem key={key} className="gap-2 py-3">
                   <Input
                     type="number"
                     inputMode="decimal"
@@ -133,53 +133,51 @@ export default function ShoppingList({ items, onDelete, onEdit }: ShoppingListPr
                   <Button variant="ghost" onClick={cancelEdit} disabled={saving}>
                     Cancel
                   </Button>
-                </Card>
+                </GroupedListItem>
               )
             }
 
             return (
-              <Card key={key} variant="inset" padding="none">
-                <div className="flex flex-wrap items-center gap-x-3 pl-3 pr-1">
-                  <Checkbox
-                    checked={isChecked}
-                    onChange={() => toggleItem(key)}
-                    labelClassName="min-w-0 flex-1"
-                    label={
-                      <span
-                        className={cn(
-                          'min-w-0 break-words text-sm',
-                          isChecked ? 'text-muted line-through' : 'text-fg'
-                        )}
-                      >
-                        {formatQuantity(item.amount, item.unit, item.name)}
-                      </span>
-                    }
-                  />
-                  {item.id && onEdit && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => startEdit(item)}
-                      aria-label={`Edit ${item.name}`}
-                      className="text-muted hover:text-accent"
+              <GroupedListItem key={key} className="gap-x-3 py-0 pl-3 pr-1">
+                <Checkbox
+                  checked={isChecked}
+                  onChange={() => toggleItem(key)}
+                  labelClassName="min-w-0 flex-1"
+                  label={
+                    <span
+                      className={cn(
+                        'min-w-0 break-words text-sm',
+                        isChecked ? 'text-muted line-through' : 'text-fg'
+                      )}
                     >
-                      Edit
-                    </Button>
-                  )}
-                  {item.id && onDelete && (
-                    <RemoveButton
-                      onClick={() => {
-                        setRemoving(item)
-                        setConfirmingRemove(true)
-                      }}
-                      aria-label={`Remove ${item.name}`}
-                    />
-                  )}
-                </div>
-              </Card>
+                      {formatQuantity(item.amount, item.unit, item.name)}
+                    </span>
+                  }
+                />
+                {item.id && onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => startEdit(item)}
+                    aria-label={`Edit ${item.name}`}
+                    className="text-muted hover:text-accent"
+                  >
+                    Edit
+                  </Button>
+                )}
+                {item.id && onDelete && (
+                  <RemoveButton
+                    onClick={() => {
+                      setRemoving(item)
+                      setConfirmingRemove(true)
+                    }}
+                    aria-label={`Remove ${item.name}`}
+                  />
+                )}
+              </GroupedListItem>
             )
           })}
-        </div>
+        </GroupedList>
       )}
 
       <ConfirmDialog
