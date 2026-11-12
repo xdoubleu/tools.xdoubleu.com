@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react'
-import { Card } from '@/components/ui/card'
+import { Card, interactiveCardClass } from '@/components/ui/card'
 
 describe('Card', () => {
   it('renders the raised surface by default', () => {
@@ -30,5 +30,11 @@ describe('Card', () => {
     )
     expect(container.firstChild).toHaveClass('p-4')
     expect(container.firstChild).not.toHaveClass('p-3')
+  })
+
+  it('gives clickable cards the surface and press treatment, without a border', () => {
+    const { container } = render(<div className={interactiveCardClass}>x</div>)
+    expect(container.firstChild).toHaveClass('bg-card', 'shadow-card', 'active:scale-[0.98]')
+    expect(container.firstChild).not.toHaveClass('border')
   })
 })
