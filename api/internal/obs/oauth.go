@@ -12,7 +12,7 @@ import (
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 // allOAuthProviders lists every provider the admin UI shows a card for.

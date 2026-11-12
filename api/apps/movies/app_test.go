@@ -22,7 +22,8 @@ import (
 	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	sharedrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/family"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 const (
@@ -34,7 +35,7 @@ const (
 var (
 	testDB     postgres.DB
 	testCfg    config.Config
-	testFamily *sharedrepositories.FamilyRepository
+	testFamily *family.FamilyRepository
 )
 
 // fakeTMDB serves a fixed catalog; unknown IDs are tmdb.ErrNotFound.
@@ -196,7 +197,7 @@ func TestMain(m *testing.M) {
 	testCfg = testhelper.NewTestConfig()
 	pool := testhelper.ConnectTestDB(testCfg.DBDsn)
 	testDB = pool
-	testFamily = sharedrepositories.NewFamilyRepository(pool)
+	testFamily = family.NewFamilyRepository(pool)
 
 	ctx := context.Background()
 	if _, err := testDB.Exec(ctx, "DROP SCHEMA IF EXISTS movies CASCADE"); err != nil {

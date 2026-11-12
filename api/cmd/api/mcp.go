@@ -11,11 +11,11 @@ import (
 
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/oauth2as"
+	"tools.xdoubleu.com/internal/platform/oauth2as"
 )
 
 // OAuth 2.1 plumbing shared by MCP endpoints: the api is both the resource
-// server and its own authorization server (internal/oauth2as). Server and tool
+// server and its own authorization server (internal/platform/oauth2as). Server and tool
 // registration live in mcp_apps.go.
 
 const (
@@ -31,7 +31,7 @@ const (
 	rootResourceMetadataPath = "/.well-known/oauth-protected-resource"
 )
 
-// mcpAuthServerIssuer is internal/oauth2as's issuer URL.
+// mcpAuthServerIssuer is internal/platform/oauth2as's issuer URL.
 func (app *Application) mcpAuthServerIssuer() string {
 	return app.config.AuthIssuer
 }

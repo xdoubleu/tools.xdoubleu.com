@@ -11,7 +11,7 @@ The repository contract for any coding agent. Harness mechanics live in `CLAUDE.
 
 Apps: games, books, feeds, watchparty, recipes, mealplans, shoppinglist, dashboard (no schema; owns public dashboards and share tokens, using other apps only through exported methods → [adr-0007](docs/adr-0007-dashboard-app-owns-public-sharing.md)), trains (iRail journeys and live delays), learningpaths (agent-authored curricula, per-user, no family sharing), movies (TMDB-backed movies & series backlog, per-user plus a family-shared list), podcasts (per-user favourite iTunes shows), taste (per-user stats, LLM profile and picks over apps' `ListConsumption`/`Find*`/`Want*`), factory (admin-only task board, imports no other app). All are registered in `api/cmd/api/apps.go`; **migrations run in registration order**, so schema dependencies dictate the order.
 
-Shared Go code: `api/internal/`. Each app: `api/apps/<name>/internal/{models,repositories,services,jobs,helper,mocks}`, `migrations/`, optional `pkg/`.
+Shared Go code: `api/internal/`; identity services (`auth`, `account`, `oauth2as`, `oauthconn`, `family`, `agentaccounts`) live in `api/internal/platform/`. Each app: `api/apps/<name>/internal/{models,repositories,services,jobs,helper,mocks}`, `migrations/`, optional `pkg/`.
 
 Read the `AGENTS.md` of `api/`, `web/`, `kobo-gateway/` or `factory-runner/` before working in it.
 

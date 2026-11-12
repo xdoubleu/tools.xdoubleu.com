@@ -13,8 +13,8 @@ import (
 
 	familyv1 "tools.xdoubleu.com/gen/family/v1"
 	"tools.xdoubleu.com/gen/family/v1/familyv1connect"
-	"tools.xdoubleu.com/internal/family"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/family"
 )
 
 // erroringFamilyService fails every method to reach CodeInternal branches.

@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"tools.xdoubleu.com/internal/auth"
 	internalmodels "tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 // SteamJobID identifies the Steam sync job, which users can force-run.

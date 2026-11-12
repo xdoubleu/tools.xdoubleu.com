@@ -15,7 +15,8 @@ import (
 	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	sharedrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/family"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 //nolint:gochecknoglobals //needed for tests
@@ -25,7 +26,7 @@ var testApp *mealplans.MealPlans
 var testDB postgres.DB
 
 //nolint:gochecknoglobals //needed for tests
-var familyRepo *sharedrepositories.FamilyRepository
+var familyRepo *family.FamilyRepository
 
 //nolint:gochecknoglobals //needed for tests
 var testCfg config.Config
@@ -38,7 +39,7 @@ func TestMain(m *testing.M) {
 
 	postgresDB := testhelper.ConnectTestDB(testCfg.DBDsn)
 	testDB = postgresDB
-	familyRepo = sharedrepositories.NewFamilyRepository(postgresDB)
+	familyRepo = family.NewFamilyRepository(postgresDB)
 
 	testApp = mealplans.New(
 		context.Background(),

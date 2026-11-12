@@ -10,7 +10,8 @@ import (
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/github"
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/platform/account"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
@@ -32,7 +33,7 @@ type StorageScanRunner interface {
 type Deps struct {
 	Logger                   *slog.Logger
 	Config                   config.Config
-	AppUsersRepo             *repositories.AppUsersRepository
+	AppUsersRepo             *account.AppUsersRepository
 	JobRunsRepo              *repositories.JobRunsRepository
 	UsageRepo                *repositories.UsageRepository
 	StorageRepo              *repositories.StorageSnapshotsRepository
@@ -40,7 +41,7 @@ type Deps struct {
 	AutomatedActionsRepo     *repositories.AutomatedActionsRepository
 	LogsRepo                 *repositories.LogsRepository
 	NotificationSettingsRepo *repositories.NotificationSettingsRepository
-	OAuthConnRepo            *repositories.OAuthConnectionsRepository
+	OAuthConnRepo            *oauthconn.OAuthConnectionsRepository
 	TransactionLatencyRepo   *repositories.TransactionLatencyRepository
 
 	OAuthState   *oauthconn.StateStore

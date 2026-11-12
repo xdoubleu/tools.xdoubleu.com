@@ -21,7 +21,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/httpclient"
 	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 const (

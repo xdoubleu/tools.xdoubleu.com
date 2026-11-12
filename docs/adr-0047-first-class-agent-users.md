@@ -2,8 +2,8 @@
 
 - Status: Accepted
 - Issues: epic `first-class-agents`, spike 453c1c64
-- Affects: `api/internal/agentaccounts/`, `api/internal/mcptools/`,
-  `api/internal/account/access.go`, `api/internal/oauth2as/seed.go`,
+- Affects: `api/internal/platform/agentaccounts/`, `api/internal/mcptools/`,
+  `api/internal/platform/account/access.go`, `api/internal/platform/oauth2as/seed.go`,
   `global.app_access`. Supersedes the "only `factory_*` tools" rule of
   [ADR-0039](adr-0039-agent-accounts.md) and [ADR-0040](adr-0040-factory-mcp-tools.md).
 

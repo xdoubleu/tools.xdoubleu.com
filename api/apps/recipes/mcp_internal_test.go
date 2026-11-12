@@ -14,7 +14,8 @@ import (
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-	sharedrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/family"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // TestMCPTools_CreateRecipeIsDraft: recipes_create_recipe persists through the
@@ -31,7 +32,7 @@ func TestMCPTools_CreateRecipeIsDraft(t *testing.T) {
 		logging.NewNopLogger(),
 		cfg,
 		pg,
-		sharedrepositories.NewFamilyRepository(pg),
+		family.NewFamilyRepository(pg),
 	)
 	h := &recipesConnectHandler{app: app}
 

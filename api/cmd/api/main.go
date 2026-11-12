@@ -16,11 +16,10 @@ import (
 	"github.com/pressly/goose/v3"
 
 	"tools.xdoubleu.com/apps/feeds"
-	"tools.xdoubleu.com/internal/account"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/family"
+	"tools.xdoubleu.com/internal/crypto"
+	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/kit/crypto"
@@ -30,11 +29,14 @@ import (
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/notifications"
-	"tools.xdoubleu.com/internal/oauth2as"
-	"tools.xdoubleu.com/internal/oauthconn"
 	"tools.xdoubleu.com/internal/obs"
 	"tools.xdoubleu.com/internal/observability"
 	"tools.xdoubleu.com/internal/observability/jobs"
+	"tools.xdoubleu.com/internal/platform/account"
+	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/family"
+	"tools.xdoubleu.com/internal/platform/oauth2as"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
@@ -66,8 +68,8 @@ type Application struct {
 	disabledApps                  DisabledApps
 	booksApp                      storageScanRunner
 	feedsApp                      unhealthyFeedLister
-	appUsersRepo                  *repositories.AppUsersRepository
-	profileSharesRepo             *repositories.ProfileSharesRepository
+	appUsersRepo                  *account.AppUsersRepository
+	profileSharesRepo             *account.ProfileSharesRepository
 	usage                         *observability.UsageRecorder
 	notifications                 *notifications.Service
 	jobRunsRepo                   *repositories.JobRunsRepository
@@ -79,7 +81,7 @@ type Application struct {
 	notificationSettingsRepo      *repositories.NotificationSettingsRepository
 	githubClient                  github.Client
 	sentryClient                  sentryapi.Client
-	oauthConnRepo                 *repositories.OAuthConnectionsRepository
+	oauthConnRepo                 *oauthconn.OAuthConnectionsRepository
 	oauthState                    *oauthconn.StateStore
 	issueSignalCollectorJob       *jobs.IssueSignalCollectorJob
 	automatedActionSweepJob       *jobs.AutomatedActionSweepJob
@@ -302,7 +304,7 @@ func newNotificationsService(
 func newObservabilityClients(
 	logger *slog.Logger,
 	config config.Config,
-	oauthConnRepo *repositories.OAuthConnectionsRepository,
+	oauthConnRepo *oauthconn.OAuthConnectionsRepository,
 ) (github.Client, sentryapi.Client) {
 	if config.GithubOAuthClientID == "" || config.GithubOAuthClientSecret == "" {
 		logger.Warn(
@@ -486,8 +488,8 @@ func NewApplication(
 		ctx = sentry.SetHubOnContext(ctx, sentryHub)
 	}
 
-	appUsersRepo := repositories.NewAppUsersRepository(db)
-	familyRepo := repositories.NewFamilyRepository(db)
+	appUsersRepo := account.NewAppUsersRepository(db)
+	familyRepo := family.NewFamilyRepository(db)
 	authSealer := newOAuthSealer(logger, config)
 	authRepo := auth.NewRepository(db)
 	authMailer := mailer.New(
@@ -511,7 +513,7 @@ func NewApplication(
 		logger,
 	)
 
-	oauthConnRepo := repositories.NewOAuthConnectionsRepository(db, authSealer)
+	oauthConnRepo := oauthconn.NewOAuthConnectionsRepository(db, authSealer)
 	githubClient, sentryClient := newObservabilityClients(
 		logger, config, oauthConnRepo,
 	)
@@ -547,7 +549,7 @@ func NewApplication(
 		oauth2as:                      nil,
 		family:                        familySvc,
 		appUsersRepo:                  appUsersRepo,
-		profileSharesRepo:             repositories.NewProfileSharesRepository(db),
+		profileSharesRepo:             account.NewProfileSharesRepository(db),
 		usage:                         observability.NewUsageRecorder(logger, db),
 		notifications:                 notificationsSvc,
 		jobRunsRepo:                   repositories.NewJobRunsRepository(db),

@@ -13,7 +13,7 @@ import (
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
 	"tools.xdoubleu.com/internal/kit/crypto"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-	sharedrepos "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 // TestOAuthConnectionsRepository_RoundTrip covers Upsert, Get (decrypt),
@@ -81,13 +81,13 @@ func TestOAuthConnectionsRepository_EncryptionNotConfigured(t *testing.T) {
 	repo := repositories.New(testDB, nil).OAuthConnections
 
 	err = repo.Upsert(ctx, user, provider, tok, "")
-	require.ErrorIs(t, err, sharedrepos.ErrEncryptionNotConfigured)
+	require.ErrorIs(t, err, oauthconn.ErrEncryptionNotConfigured)
 
 	err = repo.UpdateToken(ctx, user, provider, tok)
-	require.ErrorIs(t, err, sharedrepos.ErrEncryptionNotConfigured)
+	require.ErrorIs(t, err, oauthconn.ErrEncryptionNotConfigured)
 
 	_, _, err = repo.Get(ctx, user, provider)
-	require.ErrorIs(t, err, sharedrepos.ErrEncryptionNotConfigured)
+	require.ErrorIs(t, err, oauthconn.ErrEncryptionNotConfigured)
 }
 
 // TestOAuthConnectionsRepository_ReadsExistingCiphertext pins the on-disk

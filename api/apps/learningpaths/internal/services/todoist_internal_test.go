@@ -17,7 +17,7 @@ import (
 	"tools.xdoubleu.com/apps/learningpaths/internal/todoist"
 	"tools.xdoubleu.com/internal/kit/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 func newTestTodoistService(

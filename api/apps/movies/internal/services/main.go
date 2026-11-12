@@ -3,7 +3,7 @@ package services
 import (
 	"tools.xdoubleu.com/apps/movies/internal/repositories"
 	"tools.xdoubleu.com/apps/movies/pkg/tmdb"
-	"tools.xdoubleu.com/internal/auth"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 type Services struct {

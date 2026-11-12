@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 // ProjectIssue is an open issue on a Projects (v2) board with its Status value.

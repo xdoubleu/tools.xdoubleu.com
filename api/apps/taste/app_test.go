@@ -20,7 +20,6 @@ import (
 	"tools.xdoubleu.com/apps/taste"
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
 	"tools.xdoubleu.com/gen/taste/v1/tastev1connect"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/consumption"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
@@ -28,7 +27,10 @@ import (
 	"tools.xdoubleu.com/internal/kit/openrouter"
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	sharedrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/openrouter"
+	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/family"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 const userID = "taste-test-user"
@@ -37,14 +39,14 @@ const userID = "taste-test-user"
 var (
 	testDB     postgres.DB
 	testCfg    config.Config
-	testFamily *sharedrepositories.FamilyRepository
+	testFamily *family.FamilyRepository
 )
 
 func TestMain(m *testing.M) {
 	testCfg = testhelper.NewTestConfig()
 	pool := testhelper.ConnectTestDB(testCfg.DBDsn)
 	testDB = pool
-	testFamily = sharedrepositories.NewFamilyRepository(pool)
+	testFamily = family.NewFamilyRepository(pool)
 
 	ctx := context.Background()
 	if _, err := testDB.Exec(ctx, "DROP SCHEMA IF EXISTS taste CASCADE"); err != nil {

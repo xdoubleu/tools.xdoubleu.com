@@ -12,9 +12,9 @@ import (
 	"tools.xdoubleu.com/apps/factory/internal/services"
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/connecttools"
-	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 // StepUp checks a TOTP or recovery code for the signed-in user's session.

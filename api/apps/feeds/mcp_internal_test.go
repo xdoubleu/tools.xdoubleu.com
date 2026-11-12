@@ -16,7 +16,8 @@ import (
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/notifications"
-	sharedrepos "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/account"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // TestMCPTools_ListFeedsAndItems exercises both MCP tool wrappers against a
@@ -39,7 +40,7 @@ func TestMCPTools_ListFeedsAndItems(t *testing.T) {
 			logging.NewNopLogger(),
 			mailer.New("", "", ""),
 		),
-		sharedrepos.NewAppUsersRepository(db),
+		account.NewAppUsersRepository(db),
 	)
 
 	ctx := context.WithValue(

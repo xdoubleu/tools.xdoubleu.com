@@ -3,7 +3,7 @@
 - Status: Accepted; the "only `factory_*` tools" rule is superseded by
   [ADR-0047](adr-0047-first-class-agent-users.md)
 - Issues: #2776, #2701
-- Affects: `api/internal/agentaccounts/`, `api/internal/oauth2as/seed.go`
+- Affects: `api/internal/platform/agentaccounts/`, `api/internal/platform/oauth2as/seed.go`
   (`MachineSubjects`), `api/internal/mcptools/agent_grants.go`,
   `api/cmd/api/migrations/00059_*`, `scripts/factory_agent_headers.sh`,
   `scripts/opencode_agent.sh`, `opencode.json`

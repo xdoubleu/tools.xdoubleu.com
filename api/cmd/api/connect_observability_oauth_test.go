@@ -14,8 +14,8 @@ import (
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/oauthconn"
 	obs "tools.xdoubleu.com/internal/obs"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 // githubScopes is read from the real config so tests can't drift.

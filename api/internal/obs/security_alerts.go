@@ -7,7 +7,7 @@ import (
 
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 const securityEventsScope = "security_events"

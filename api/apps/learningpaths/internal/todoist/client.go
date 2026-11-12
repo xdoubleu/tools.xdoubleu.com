@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 //nolint:gochecknoglobals // overridable in tests

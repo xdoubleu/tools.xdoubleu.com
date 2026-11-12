@@ -10,8 +10,8 @@ import (
 
 	"tools.xdoubleu.com/apps/watchparty/internal/services"
 	"tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 type WatchParty struct {

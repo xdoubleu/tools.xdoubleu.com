@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 // Repo is a repository offered by the admin config picker.

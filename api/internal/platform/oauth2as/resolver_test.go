@@ -1,0 +1,259 @@
+package oauth2as_test
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	fosite "authelia.com/provider/oauth2"
+	fositeoauth2 "authelia.com/provider/oauth2/handler/oauth2"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/internal/platform/oauth2as"
+	"tools.xdoubleu.com/internal/testhelper"
+)
+
+// hmacStrategyFor mints access tokens directly, reaching states (expired,
+// no-subject) a real flow can't produce quickly.
+func hmacStrategyFor(t *testing.T) fositeoauth2.CoreStrategy {
+	t.Helper()
+	cfg := testhelper.NewTestConfig()
+	//nolint:exhaustruct //remaining Config fields use library defaults
+	fc := &fosite.Config{GlobalSecret: []byte(cfg.OAuthHMACSecret)}
+	return fositeoauth2.NewHMACCoreStrategy(fc, "ory_%s_")
+}
+
+func TestResolveAccessToken_ValidToken(t *testing.T) {
+	store, db := newTestStore(t)
+	cfg := testhelper.NewTestConfig()
+	provider := newTestProvider(t, cfg, store)
+	resolver := oauth2as.NewTokenResolver(provider)
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(
+		context.Background(),
+		db,
+		oauth2as.ClientMetadata{
+			RedirectURIs: []string{"https://example.com/callback"},
+		},
+	)
+	require.NoError(t, err)
+
+	userID := uuid.NewString()
+	//nolint:exhaustruct //Username/Extra are unused by this test
+	session := &fosite.DefaultSession{
+		Subject: userID,
+		//nolint:exhaustive //only AccessToken expiry matters for this test
+		ExpiresAt: map[fosite.TokenType]time.Time{
+			fosite.AccessToken: time.Now().Add(time.Hour),
+		},
+	}
+	//nolint:exhaustruct //other fosite.Request fields are optional for this test
+	request := &fosite.Request{
+		ID:          uuid.NewString(),
+		RequestedAt: time.Now(),
+		Client:      client,
+		Session:     session,
+	}
+
+	strategy := hmacStrategyFor(t)
+	token, signature, err := strategy.GenerateAccessToken(context.Background(), request)
+	require.NoError(t, err)
+	require.NoError(
+		t,
+		store.CreateAccessTokenSession(context.Background(), signature, request),
+	)
+
+	gotUserID, err := resolver.ResolveAccessToken(context.Background(), token)
+	require.NoError(t, err)
+	require.Equal(t, userID, gotUserID)
+}
+
+func TestResolveAccessToken_GarbageToken(t *testing.T) {
+	store, _ := newTestStore(t)
+	cfg := testhelper.NewTestConfig()
+	provider := newTestProvider(t, cfg, store)
+	resolver := oauth2as.NewTokenResolver(provider)
+
+	_, err := resolver.ResolveAccessToken(context.Background(), "not-a-real-token")
+	require.Error(t, err)
+}
+
+func TestResolveAccessToken_ExpiredToken(t *testing.T) {
+	store, db := newTestStore(t)
+	cfg := testhelper.NewTestConfig()
+	provider := newTestProvider(t, cfg, store)
+	resolver := oauth2as.NewTokenResolver(provider)
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(
+		context.Background(),
+		db,
+		oauth2as.ClientMetadata{
+			RedirectURIs: []string{"https://example.com/callback"},
+		},
+	)
+	require.NoError(t, err)
+
+	//nolint:exhaustruct //Username/Extra are unused by this test
+	session := &fosite.DefaultSession{
+		Subject: uuid.NewString(),
+		//nolint:exhaustive //only AccessToken expiry matters for this test
+		ExpiresAt: map[fosite.TokenType]time.Time{
+			fosite.AccessToken: time.Now().Add(-time.Hour),
+		},
+	}
+	//nolint:exhaustruct //other fosite.Request fields are optional for this test
+	request := &fosite.Request{
+		ID:          uuid.NewString(),
+		RequestedAt: time.Now(),
+		Client:      client,
+		Session:     session,
+	}
+
+	strategy := hmacStrategyFor(t)
+	token, signature, err := strategy.GenerateAccessToken(context.Background(), request)
+	require.NoError(t, err)
+	require.NoError(
+		t,
+		store.CreateAccessTokenSession(context.Background(), signature, request),
+	)
+
+	_, err = resolver.ResolveAccessToken(context.Background(), token)
+	require.Error(t, err)
+}
+
+func TestResolveAccessToken_NoSubject(t *testing.T) {
+	store, db := newTestStore(t)
+	cfg := testhelper.NewTestConfig()
+	provider := newTestProvider(t, cfg, store)
+	resolver := oauth2as.NewTokenResolver(provider)
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(
+		context.Background(),
+		db,
+		oauth2as.ClientMetadata{
+			RedirectURIs: []string{"https://example.com/callback"},
+		},
+	)
+	require.NoError(t, err)
+
+	//nolint:exhaustruct //Subject/Username/Extra are unused by this test
+	session := &fosite.DefaultSession{
+		//nolint:exhaustive //only AccessToken expiry matters for this test
+		ExpiresAt: map[fosite.TokenType]time.Time{
+			fosite.AccessToken: time.Now().Add(time.Hour),
+		},
+	}
+	//nolint:exhaustruct //other fosite.Request fields are optional for this test
+	request := &fosite.Request{
+		ID:          uuid.NewString(),
+		RequestedAt: time.Now(),
+		Client:      client,
+		Session:     session,
+	}
+
+	strategy := hmacStrategyFor(t)
+	token, signature, err := strategy.GenerateAccessToken(context.Background(), request)
+	require.NoError(t, err)
+	require.NoError(
+		t,
+		store.CreateAccessTokenSession(context.Background(), signature, request),
+	)
+
+	_, err = resolver.ResolveAccessToken(context.Background(), token)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "no subject")
+}
+
+func TestResolveAccessToken_RevokedToken(t *testing.T) {
+	store, db := newTestStore(t)
+	cfg := testhelper.NewTestConfig()
+	provider := newTestProvider(t, cfg, store)
+	resolver := oauth2as.NewTokenResolver(provider)
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(
+		context.Background(),
+		db,
+		oauth2as.ClientMetadata{
+			RedirectURIs: []string{"https://example.com/callback"},
+		},
+	)
+	require.NoError(t, err)
+
+	requestID := uuid.NewString()
+	//nolint:exhaustruct //Username/Extra are unused by this test
+	session := &fosite.DefaultSession{
+		Subject: uuid.NewString(),
+		//nolint:exhaustive //only AccessToken expiry matters for this test
+		ExpiresAt: map[fosite.TokenType]time.Time{
+			fosite.AccessToken: time.Now().Add(time.Hour),
+		},
+	}
+	//nolint:exhaustruct //other fosite.Request fields are optional for this test
+	request := &fosite.Request{
+		ID:          requestID,
+		RequestedAt: time.Now(),
+		Client:      client,
+		Session:     session,
+	}
+
+	strategy := hmacStrategyFor(t)
+	token, signature, err := strategy.GenerateAccessToken(context.Background(), request)
+	require.NoError(t, err)
+	require.NoError(
+		t,
+		store.CreateAccessTokenSession(context.Background(), signature, request),
+	)
+
+	_, err = resolver.ResolveAccessToken(context.Background(), token)
+	require.NoError(t, err)
+
+	require.NoError(t, store.RevokeAccessToken(context.Background(), requestID))
+
+	_, err = resolver.ResolveAccessToken(context.Background(), token)
+	require.Error(t, err)
+}
+
+// Grafana's SSO tokens don't grant MCP access.
+func TestResolveAccessToken_GrafanaClientToken_Rejected(t *testing.T) {
+	store, db := newTestStore(t)
+	cfg := testhelper.NewTestConfig()
+	provider := newTestProvider(t, cfg, store)
+	resolver := oauth2as.NewTokenResolver(provider)
+	require.NoError(t, oauth2as.EnsureGrafanaClientSecret(
+		context.Background(), db, "grafana-resolver-test-secret-0123456789", nil,
+	))
+	client, err := store.GetClient(context.Background(), oauth2as.GrafanaClientID)
+	require.NoError(t, err)
+
+	//nolint:exhaustruct //Username/Extra are unused by this test
+	session := &fosite.DefaultSession{
+		Subject: uuid.NewString(),
+		//nolint:exhaustive //only AccessToken expiry matters for this test
+		ExpiresAt: map[fosite.TokenType]time.Time{
+			fosite.AccessToken: time.Now().Add(time.Hour),
+		},
+	}
+	//nolint:exhaustruct //other fosite.Request fields are optional for this test
+	request := &fosite.Request{
+		ID:          uuid.NewString(),
+		RequestedAt: time.Now(),
+		Client:      client,
+		Session:     session,
+	}
+	token, signature, err := hmacStrategyFor(t).GenerateAccessToken(
+		context.Background(), request,
+	)
+	require.NoError(t, err)
+	require.NoError(
+		t,
+		store.CreateAccessTokenSession(context.Background(), signature, request),
+	)
+
+	_, err = resolver.ResolveAccessToken(context.Background(), token)
+	require.Error(t, err)
+}

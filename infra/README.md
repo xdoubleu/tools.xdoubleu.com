@@ -203,7 +203,7 @@ error plainly. The `TargetMissing` alert fires on this case.
 ## GoTrue is gone
 
 Auth (password sign-in, TOTP MFA, the MCP OAuth 2.1 authorization server) is
-first-party in `api` (`api/internal/auth`, `api/internal/oauth2as`) against its
+first-party in `api` (`api/internal/platform/auth`, `api/internal/platform/oauth2as`) against its
 own `auth` schema; there is no `gotrue` container. The one-time cutover was
 automatic (`api/cmd/api/migrations/00017_auth_schema.sql`), and the
 `auth_gotrue_legacy` fallback schema has since been dropped by

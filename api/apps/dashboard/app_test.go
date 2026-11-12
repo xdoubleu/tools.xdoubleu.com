@@ -23,7 +23,6 @@ import (
 	"tools.xdoubleu.com/apps/movies"
 	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/apps/shoppinglist"
-	sharedauth "tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/crypto"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
@@ -32,7 +31,10 @@ import (
 	"tools.xdoubleu.com/internal/mailer"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/notifications"
-	sharedrepos "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/account"
+	sharedauth "tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/family"
+	"tools.xdoubleu.com/internal/testhelper"
 )
 
 //nolint:gochecknoglobals //needed for tests
@@ -157,7 +159,7 @@ func TestMain(m *testing.M) {
 			logger,
 			mailer.New("", "", ""),
 		),
-		sharedrepos.NewAppUsersRepository(postgresDB),
+		account.NewAppUsersRepository(postgresDB),
 	)
 	if err := testFeeds.ApplyMigrations(context.Background(), postgresDB); err != nil {
 		panic(err)
@@ -210,7 +212,7 @@ func newTodayApps(
 	db *pgxpool.Pool,
 ) dashboard.TodayApps {
 	ctx := context.Background()
-	family := sharedrepos.NewFamilyRepository(db)
+	family := family.NewFamilyRepository(db)
 	sealer, err := crypto.New(testCfg.EncryptionKey)
 	if err != nil {
 		panic(err)

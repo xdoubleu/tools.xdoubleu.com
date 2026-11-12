@@ -13,9 +13,9 @@ import (
 	"tools.xdoubleu.com/apps/podcasts/internal/services"
 	"tools.xdoubleu.com/apps/podcasts/pkg/itunes"
 	"tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 //go:embed migrations/*.sql

@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/factory/internal/repositories"
-	"tools.xdoubleu.com/internal/auth"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 type Services struct {

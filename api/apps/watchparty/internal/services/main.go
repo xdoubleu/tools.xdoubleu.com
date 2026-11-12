@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"tools.xdoubleu.com/internal/auth"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 type Services struct {

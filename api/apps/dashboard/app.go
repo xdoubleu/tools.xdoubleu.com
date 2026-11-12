@@ -18,10 +18,10 @@ import (
 	"tools.xdoubleu.com/apps/movies"
 	"tools.xdoubleu.com/apps/shoppinglist"
 	"tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/kit/database/postgres"
-	sharedrepos "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/platform/account"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 // TodayApps are the apps the Today page summarises, reached only through their
@@ -42,7 +42,7 @@ type Dashboard struct {
 	books         *books.Books
 	feeds         *feeds.Feeds
 	today         TodayApps
-	profileShares *sharedrepos.ProfileSharesRepository
+	profileShares *account.ProfileSharesRepository
 }
 
 // New constructs the dashboard app. gamesApp and every app in today must
@@ -64,7 +64,7 @@ func New(
 		books:         booksApp,
 		feeds:         feedsApp,
 		today:         today,
-		profileShares: sharedrepos.NewProfileSharesRepository(db),
+		profileShares: account.NewProfileSharesRepository(db),
 	}
 }
 

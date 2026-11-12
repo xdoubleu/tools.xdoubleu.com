@@ -11,7 +11,7 @@ import (
 
 // Routes registers the two public dashboard RPCs, gated by share token rather
 // than auth, and the signed-in Today summary. The owner-facing token CRUD is
-// registered in internal/account behind auth.Access.
+// registered in internal/platform/account behind auth.Access.
 func (a *Dashboard) Routes(_ string, mux *http.ServeMux) {
 	iapp.MountConnect(mux, a.Logger, a.Auth.Access, func(s *connect.Server) {
 		dashboardv1connect.RegisterTodayServiceHandler(s, &todayConnectHandler{app: a})

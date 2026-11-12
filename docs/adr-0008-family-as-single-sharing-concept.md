@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #1349, #1403
-- Affects: `api/internal/family/`, `api/internal/repositories`, `apps/recipes`, `apps/mealplans`, `apps/shoppinglist`, `web/app/family`
+- Affects: `api/internal/platform/family/`, `api/internal/platform/family`, `apps/recipes`, `apps/mealplans`, `apps/shoppinglist`, `web/app/family`
 
 ## Context
 
@@ -11,7 +11,7 @@ each new app had to pick one and reimplement it.
 
 ## Decision
 
-`internal/family` is **the** sharing concept (`contacts` removed in #1403).
+`internal/platform/family` is **the** sharing concept (`contacts` removed in #1403).
 
 - `global.families`/`global.family_members`: at most one family per user, each
   member with a `display_name`. No row means an **implicit family-of-one**,

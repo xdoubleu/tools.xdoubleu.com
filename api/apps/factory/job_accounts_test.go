@@ -15,13 +15,13 @@ import (
 	"tools.xdoubleu.com/apps/factory"
 	"tools.xdoubleu.com/apps/factory/internal/services"
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
-	"tools.xdoubleu.com/internal/agentaccounts"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/agentaccounts"
 )
 
 // fakeAccounts stands in for the agent account store: the factory only knows it
 // through services.JobAccounts, and the store itself is tested against its own
-// tables in internal/agentaccounts.
+// tables in internal/platform/agentaccounts.
 type fakeAccounts struct {
 	mu       sync.Mutex
 	accounts map[uuid.UUID]*accountOf

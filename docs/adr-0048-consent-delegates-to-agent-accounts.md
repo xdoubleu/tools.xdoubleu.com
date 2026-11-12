@@ -1,8 +1,8 @@
 # ADR-0048: An admin delegates an MCP client to an agent account at consent
 
 - Status: Accepted
-- Affects: `api/internal/oauth2as/handlers.go` (`Delegator`),
-  `api/internal/agentaccounts/store.go`, `api/cmd/api/oauth2as.go`,
+- Affects: `api/internal/platform/oauth2as/handlers.go` (`Delegator`),
+  `api/internal/platform/agentaccounts/store.go`, `api/cmd/api/oauth2as.go`,
   `global.agent_account_clients` (migration 00064), `web/app/oauth/consent/`
 
 ## Context
