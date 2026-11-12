@@ -233,6 +233,7 @@ github.com/pgaskin/kepubify/_/html v0.0.0-20211223234002-6ee2cc632cdc h1:mJk4TIX
 github.com/pgaskin/kepubify/_/html v0.0.0-20211223234002-6ee2cc632cdc/go.mod h1:fxzoIpMFAReNKunZ+ttVbf3hNVrJGtrSZMI4olZizbs=
 github.com/pgaskin/kepubify/v4 v4.0.4 h1:8ePyepo4eRNSmeDs5MdJLJtit+zxmK36wILmGcvpccU=
 github.com/pgaskin/kepubify/v4 v4.0.4/go.mod h1:wzUdFNYW2uZh2xfHDuzNRRUO4WqV+y99UBxVd3rBTus=
+github.com/pgaskin/kepubify/v5 v5.0.0/go.mod h1:q7+SBozwDcZlAbjDW/nbz1Ptsk63oPzyWkXMWbahWyA=
 github.com/pgaskin/koboutils/v2 v2.1.2-0.20220306004009-a07e72ebae42/go.mod h1:wTzkDIlsxmUyfwfspGcm0Ap+HOxSUYV0S8kMYrf+0gM=
 github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4=
 github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=
