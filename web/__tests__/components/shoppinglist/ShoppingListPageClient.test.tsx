@@ -19,12 +19,19 @@ let mockListLoading = false
 let mockListError: Error | undefined
 let mockPlanGroups: { data: { groups: unknown[] } } = { data: { groups: [] } }
 let mockAliases: Record<string, string> = {}
+let mockItemCategories: { name: string; categoryId: string }[] = []
 
 vi.mock('@/hooks/useShoppingList', () => ({
   useCustomList: () => ({
     data: mockListError
       ? undefined
-      : { items: [{ id: 'i1', name: 'Milk', amount: '1', unit: 'L' }] },
+      : {
+          items: [
+            { id: 'i1', name: 'Milk', amount: '1', unit: 'L' },
+            { id: 'i2', name: 'Eggs ', amount: '6', unit: '' },
+            { id: 'i3', name: 'Salt', amount: '1', unit: '' }
+          ]
+        },
     error: mockListError,
     isLoading: mockListLoading
   }),
@@ -35,9 +42,14 @@ vi.mock('@/hooks/useShoppingList', () => ({
 }))
 vi.mock('@/hooks/useIngredientCatalog', () => ({
   useCategories: () => ({
-    data: { categories: [{ id: 'cat-produce', name: 'Produce' }] }
+    data: {
+      categories: [
+        { id: 'cat-produce', name: 'Produce' },
+        { id: 'cat-dairy', name: 'Dairy' }
+      ]
+    }
   }),
-  useItemCategories: () => ({ data: { items: [] }, isLoading: false }),
+  useItemCategories: () => ({ data: { items: mockItemCategories }, isLoading: false }),
   useItemAliases: () => mockAliases
 }))
 
@@ -57,6 +69,7 @@ beforeEach(() => {
   mockListLoading = false
   mockListError = undefined
   mockAliases = {}
+  mockItemCategories = []
 })
 
 describe('ShoppingListPageClient load states', () => {
@@ -65,6 +78,29 @@ describe('ShoppingListPageClient load states', () => {
     render(<ShoppingListPageClient />)
     expect(screen.getByRole('alert')).toHaveTextContent('Failed to load shopping list.')
     expect(screen.queryByText(/No items yet/)).not.toBeInTheDocument()
+  })
+})
+
+describe('ShoppingListPageClient grouping', () => {
+  it('groups by catalog order, trims item names and files the rest under Other', () => {
+    mockItemCategories = [
+      { name: ' MILK ', categoryId: 'cat-dairy' },
+      { name: 'eggs', categoryId: 'cat-produce' }
+    ]
+    render(<ShoppingListPageClient />)
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      'Produce',
+      'Dairy',
+      'Other'
+    ])
+    expect(screen.getByRole('region', { name: 'Produce' })).toHaveTextContent('6 Eggs')
+    expect(screen.getByRole('region', { name: 'Dairy' })).toHaveTextContent('1 L Milk')
+    expect(screen.getByRole('region', { name: 'Other' })).toHaveTextContent('Salt')
+  })
+
+  it('shows no headings while nothing is categorised', () => {
+    render(<ShoppingListPageClient />)
+    expect(screen.queryByRole('region', { name: 'Other' })).not.toBeInTheDocument()
   })
 })
 

@@ -45,6 +45,43 @@ describe('ShoppingList', () => {
     expect(milk).toHaveClass('text-fg')
   })
 
+  it('groups items under their category, uncategorised last, with no headings otherwise', () => {
+    const { rerender } = render(<ShoppingList items={items} />)
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument()
+    rerender(
+      <ShoppingList
+        items={items}
+        categoryOrder={['Dairy', 'Baking']}
+        categoryOf={(i) => (i.name === 'milk' ? 'Dairy' : '')}
+      />
+    )
+    const headings = screen.getAllByRole('heading').map((h) => h.textContent)
+    expect(headings).toEqual(['Dairy', 'Other'])
+    expect(screen.getByRole('region', { name: 'Dairy' })).toHaveTextContent('milk')
+    expect(screen.getByRole('region', { name: 'Other' })).toHaveTextContent('flour')
+  })
+
+  it('shows a heading for a single named category', () => {
+    render(<ShoppingList items={items} categoryOf={() => 'Pantry'} />)
+    expect(screen.getAllByRole('heading').map((h) => h.textContent)).toEqual(['Pantry'])
+  })
+
+  it('does not open an edit row until Edit is pressed', () => {
+    render(<ShoppingList items={items} onEdit={async () => undefined} />)
+    expect(screen.queryByLabelText('Item name')).not.toBeInTheDocument()
+  })
+
+  it('orders categories by the catalog, not by item order', () => {
+    render(
+      <ShoppingList
+        items={items}
+        categoryOrder={['Baking', 'Dairy']}
+        categoryOf={(i) => (i.name === 'milk' ? 'Dairy' : 'Baking')}
+      />
+    )
+    expect(screen.getAllByRole('heading').map((h) => h.textContent)).toEqual(['Baking', 'Dairy'])
+  })
+
   it('toggles item checked state', () => {
     render(<ShoppingList items={items} />)
     const checkboxes = screen.getAllByRole('checkbox')
@@ -151,6 +188,33 @@ describe('ShoppingList', () => {
       render(<ShoppingList items={items} onEdit={vi.fn()} />)
       expect(screen.queryByRole('button', { name: /Edit flour/ })).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: /Edit milk/ })).toBeInTheDocument()
+    })
+
+    it('opens the edit row for the chosen item only', () => {
+      const two: ShoppingItem[] = [
+        { id: 'a', amount: '1', unit: '', name: 'eggs' },
+        { id: 'b', amount: '1', unit: 'L', name: 'milk' }
+      ]
+      render(<ShoppingList items={two} onEdit={vi.fn()} />)
+      fireEvent.click(screen.getByRole('button', { name: /Edit milk/ }))
+      expect(screen.getAllByLabelText('Item name')).toHaveLength(1)
+      expect(screen.getByRole('button', { name: /Edit eggs/ })).toBeInTheDocument()
+    })
+
+    it('disables Save for a blank name and while saving', async () => {
+      let finish: () => void = () => undefined
+      const onEdit = vi.fn(() => new Promise<void>((r) => (finish = r)))
+      render(<ShoppingList items={items} onEdit={onEdit} />)
+      fireEvent.click(screen.getByRole('button', { name: /Edit milk/ }))
+      const save = screen.getByRole('button', { name: 'Save' })
+      expect(save).toBeEnabled()
+      fireEvent.change(screen.getByLabelText('Item name'), { target: { value: '   ' } })
+      expect(save).toBeDisabled()
+      fireEvent.change(screen.getByLabelText('Item name'), { target: { value: 'oat milk' } })
+      fireEvent.click(save)
+      await waitFor(() => expect(save).toBeDisabled())
+      finish()
+      await waitFor(() => expect(screen.queryByLabelText('Item name')).not.toBeInTheDocument())
     })
 
     it('shows an inline edit form prefilled with the item values', () => {
