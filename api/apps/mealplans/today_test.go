@@ -20,6 +20,10 @@ func TestListTodayMeals_TodayAndTomorrowEvening(t *testing.T) {
 			ID: userID,
 		},
 	)
+	// The page lists a user's newest plans only; start from a clean slate.
+	_, err := testDB.Exec(context.Background(),
+		"DELETE FROM mealplans.plans WHERE owner_user_id = $1", userID)
+	require.NoError(t, err)
 	planID := createPlanInDB(t, "Today Plan")
 
 	now := time.Now()
@@ -31,7 +35,7 @@ func TestListTodayMeals_TodayAndTomorrowEvening(t *testing.T) {
 		{now.AddDate(0, 0, 1), "evening", "tomorrow-dinner"},
 		{now.AddDate(0, 0, 1), "breakfast", "tomorrow-breakfast"},
 	} {
-		_, err := client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
+		_, err = client.CreateMeal(ctx, &mealplansv1.CreateMealRequest{
 			PlanId:     planID,
 			MealDate:   m.date.Format("2006-01-02"),
 			MealSlot:   m.slot,

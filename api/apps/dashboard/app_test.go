@@ -21,6 +21,7 @@ import (
 	"tools.xdoubleu.com/apps/learningpaths"
 	"tools.xdoubleu.com/apps/mealplans"
 	"tools.xdoubleu.com/apps/movies"
+	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/apps/shoppinglist"
 	sharedauth "tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -214,6 +215,12 @@ func newTodayApps(
 	family := sharedrepos.NewFamilyRepository(db)
 	sealer, err := crypto.New(testCfg.EncryptionKey)
 	if err != nil {
+		panic(err)
+	}
+
+	// mealplans adopts tables from recipes, so recipes migrates first.
+	if err = recipes.New(ctx, auth, logger, testCfg, db, family).
+		ApplyMigrations(ctx, db); err != nil {
 		panic(err)
 	}
 
