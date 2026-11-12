@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"tools.xdoubleu.com/apps/books/internal/services/kobo"
+	"tools.xdoubleu.com/apps/books/kobo"
 )
 
 // maxBodyCapture caps the captured copy of each body; the stream is untouched.

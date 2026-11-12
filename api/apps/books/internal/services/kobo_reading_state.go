@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/services/kobo"
+	"tools.xdoubleu.com/apps/books/kobo"
 )
 
 // UpdateKoboReadingProgress stores a Kobo device's position. When applied, the

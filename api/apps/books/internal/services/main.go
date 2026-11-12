@@ -8,9 +8,9 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/internal/services/conversion"
-	"tools.xdoubleu.com/apps/books/internal/services/kobo"
 	"tools.xdoubleu.com/apps/books/internal/services/positions"
 	"tools.xdoubleu.com/apps/books/internal/services/webpub"
+	"tools.xdoubleu.com/apps/books/kobo"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"

@@ -8,7 +8,7 @@ import (
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/apps/books/internal/services/kobo"
+	"tools.xdoubleu.com/apps/books/kobo"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"

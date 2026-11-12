@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"tools.xdoubleu.com/apps/books/internal/services/kobo"
+	"tools.xdoubleu.com/apps/books/kobo"
 )
 
 // koboGetStateHandler handles GET /v1/library/{revisionId}/state; a Kobo store
