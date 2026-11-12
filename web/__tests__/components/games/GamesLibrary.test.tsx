@@ -151,14 +151,14 @@ describe('GamesLibrary', () => {
     mockShelf = 'done'
     const done = render(<GamesLibrary />)
     expect(screen.getByText('Portal')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Completed (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Completed' })).toBeInTheDocument()
     expect(screen.queryByText('Celeste')).not.toBeInTheDocument()
     done.unmount()
     mockShelf = 'favourites'
     render(<GamesLibrary />)
     expect(screen.getByText('Portal')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Favourites (1)' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Completed (1)' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Favourites' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Completed' })).not.toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'All3' })).toBeInTheDocument()
     expect(screen.queryByText('Celeste')).not.toBeInTheDocument()
   })
@@ -333,10 +333,10 @@ describe('GamesLibrary', () => {
     render(<GamesLibrary />)
     expect(screen.getByText('Hades')).toBeInTheDocument()
     expect(screen.getByText('Celeste')).toBeInTheDocument()
-    expect(screen.getByText('In progress (1)')).toBeInTheDocument()
-    expect(screen.getByText('Not started (1)')).toBeInTheDocument()
-    expect(screen.getByText('Completion: 60%')).toBeInTheDocument()
-    expect(screen.getByText('Completion: 0%')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'In progress' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Not started' })).toBeInTheDocument()
+    expect(screen.getByText('20 hrs · 60% complete')).toBeInTheDocument()
+    expect(screen.getByText(/ 0% complete/)).toBeInTheDocument()
   })
 
   it('filters games by the search input', () => {
@@ -387,11 +387,22 @@ describe('GamesLibrary', () => {
     expect(mutate).toHaveBeenCalledWith('/games')
   })
 
-  it('renders the game icon with a locked square aspect ratio', () => {
+  it('shows the game artwork in a locked 64px square', () => {
     mockSteam()
     render(<GamesLibrary />)
-    const img = screen.getByAltText('Hades')
-    expect(img).toHaveClass('h-8', 'w-8', 'object-cover')
+    const link = screen.getByText('Hades').closest('a')!
+    const img = link.querySelector('img')!
+    expect(img).toHaveAttribute('src', expect.stringContaining('http'))
+    expect(img.parentElement).toHaveStyle({ width: '64px', height: '64px' })
+  })
+
+  it('shows completion as a progress bar', () => {
+    mockSteam()
+    render(<GamesLibrary />)
+    expect(screen.getByRole('progressbar', { name: 'Hades completion' })).toHaveAttribute(
+      'aria-valuetext',
+      '60%'
+    )
   })
 
   it('links a game card to its detail page', () => {
