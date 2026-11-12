@@ -4,7 +4,7 @@ import { harnessLabel, repoLabel } from '@/lib/factory/board'
 import { useFactoryRepos } from '@/hooks/useFactory'
 import RepoDialog from '@/components/factory/RepoDialog'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { GroupedList, GroupedListItem } from '@/components/ui/grouped-list'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 import { PageContainer } from '@/components/ui/page-container'
 import AppSections from '@/components/AppSections'
@@ -27,24 +27,22 @@ export default function ReposClient() {
       {isLoading && !data && <LoadingState label="repos" />}
       {data && data.repos.length === 0 && <EmptyState>No repos yet.</EmptyState>}
       {data && data.repos.length > 0 && (
-        <ul className="space-y-2" aria-label="Repos">
+        <GroupedList aria-label="Repos">
           {data.repos.map((repo) => (
-            <li key={repo.id}>
-              <Card variant="inset" className="flex flex-wrap items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="break-words font-medium">{repoLabel(repo)}</p>
-                  <p className="text-xs text-muted">
-                    {repo.defaultBranch} · {harnessLabel(repo.defaultHarness)} ·{' '}
-                    {repo.timeLimitMinutes} min
-                  </p>
-                </div>
-                <Button variant="secondary" onClick={() => setEditing(repo)}>
-                  Edit
-                </Button>
-              </Card>
-            </li>
+            <GroupedListItem key={repo.id}>
+              <div className="min-w-0 flex-1">
+                <p className="break-words font-medium">{repoLabel(repo)}</p>
+                <p className="text-xs text-muted">
+                  {repo.defaultBranch} · {harnessLabel(repo.defaultHarness)} ·{' '}
+                  {repo.timeLimitMinutes} min
+                </p>
+              </div>
+              <Button variant="secondary" onClick={() => setEditing(repo)}>
+                Edit
+              </Button>
+            </GroupedListItem>
           ))}
-        </ul>
+        </GroupedList>
       )}
       {editing !== null && <RepoDialog repo={editing} onClose={() => setEditing(null)} />}
     </PageContainer>

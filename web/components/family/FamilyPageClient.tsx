@@ -11,10 +11,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { swrKeys } from '@/lib/swrKeys'
+import { GroupedList, GroupedListItem } from '@/components/ui/grouped-list'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { Alert } from '@/components/ui/alert'
-import { Card } from '@/components/ui/card'
 import { SettingsSection, SettingsSections } from '@/components/ui/settings-section'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
@@ -188,15 +188,13 @@ export default function FamilyPageClient() {
 
         <SettingsSection title="Members">
           {members.length > 0 ? (
-            <ul className="mb-4 space-y-2">
+            <GroupedList aria-label="Members" className="mb-4">
               {members.map((m) => (
-                <li key={m.userId}>
-                  <Card variant="inset" className="break-all text-sm font-medium text-fg">
-                    {m.displayName || m.email}
-                  </Card>
-                </li>
+                <GroupedListItem key={m.userId} className="break-all text-sm font-medium text-fg">
+                  {m.displayName || m.email}
+                </GroupedListItem>
               ))}
-            </ul>
+            </GroupedList>
           ) : (
             <EmptyState placement="inline">
               Just you for now. Invite someone by email to share your recipes, meal plans and

@@ -331,6 +331,16 @@ A form control with its label and hint/error, stacked.
 | `children` | `ReactNode` | yes |  |
 | `className` | `string` |  |  |
 
+### `grouped-list.tsx`
+
+#### `GroupedList`
+
+A list of single-line items on one rounded surface with hairline dividers, instead of a stack of bordered cards. Rows are `GroupedListItem`s; give the list an `aria-label`.
+
+#### `GroupedListItem`
+
+One row of a `GroupedList`, at least a tap target tall.
+
 ### `input.tsx`
 
 #### `Input`
