@@ -17,7 +17,7 @@ The same job uses the same primitive everywhere. The inventory is [`web/componen
   - `PageContainer size` sets the width; settings pages are `narrow`. The shell owns padding.
   - `PageHeader` owns the `<h1>`, the `description` line, a `breadcrumb` on every detail and settings page, and the page's `actions`. Actions are bordered (`PageHeaderLink`, `PageHeaderSettingsLink`, `secondary` buttons) at the default size; only create (default) and delete (destructive) stand out. Titles are sentence case (`ui/sentence-case` checks `title` props and `SectionHeading` text; names like Kobo or Steam are allowed), and no two pages share a title.
   - `SectionHeading` for every heading under it: `section` (serif) or `eyebrow` (small uppercase).
-  - Settings pages stack `SettingsSection`s in `SettingsSections`, with no dividers.
+  - Settings pages (`PageContainer size="narrow"`, family included) stack `SettingsSection`s in `SettingsSections`, with no dividers and default-size buttons; `ui/shared-patterns` rejects a settings page without it.
   - `Toolbar` holds the search and filters between `PageHeader` and a list, with `aria-label`led `Select`s, `TogglePill`s or `SegmentedTabs`.
   - `SegmentedTabs` switches between views; with `router.push` it switches between sibling pages.
 - **One control per job.** `SegmentedTabs` (a track with a sliding segment) switches views, sibling sections and scope (Mine/Family); `TogglePill` is a light filter chip with a check when on; `Button` is an action. A `Button` or `TogglePill` with `role="tab"` is rejected (`ui/shared-patterns`). `Select` keeps the native picker with a drawn chevron.
