@@ -631,7 +631,8 @@ func (s *JobService) blockPickup(
 // a prompt and a branch name are built from.
 func approvedTask(c *repositories.PickupCandidate) *models.Task {
 	return &models.Task{
-		ID: c.TaskID, Number: c.Number, RepoID: c.RepoID, Title: c.Title, Body: c.Body, Status: "",
+		ID: c.TaskID, Number: c.Number, RepoID: c.RepoID, Title: c.Title,
+		Body: c.Body, Status: "",
 		Priority: "", Labels: nil, CreatedBy: "", CreatedAt: time.Time{},
 		UpdatedAt: time.Time{}, CommentCount: 0, PRURL: "", PRState: "", PRCI: "",
 		PRReview: "", PickupApproved: true, PickupBlocked: "", MergeSHA: "", Deploy: "",
