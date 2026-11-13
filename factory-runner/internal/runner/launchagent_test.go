@@ -115,3 +115,24 @@ func TestLegacyBinaryPathIsTheBareBinaryBesideTheBundle(t *testing.T) {
 		filepath.Join(runner.InstallDir("/h"), "factory-runner"),
 		runner.LegacyBinaryPath("/h"))
 }
+
+func TestInstallBinaryCopiesAnAppBundleWithSymlinks(t *testing.T) {
+	app := filepath.Join(t.TempDir(), "FactoryRunner.app")
+	macOS := filepath.Join(app, "Contents", "MacOS")
+	require.NoError(t, os.MkdirAll(macOS, 0o755))
+	src := filepath.Join(macOS, "factory-runner")
+	require.NoError(t, os.WriteFile(src, []byte("bin"), 0o755))
+	require.NoError(t, os.Symlink("factory-runner", filepath.Join(macOS, "alias")))
+
+	dst, err := runner.InstallBinary(t.TempDir(), src)
+	require.NoError(t, err)
+	data, err := os.ReadFile(dst)
+	require.NoError(t, err)
+	assert.Equal(t, "bin", string(data))
+	link, err := os.Readlink(filepath.Join(filepath.Dir(dst), "alias"))
+	require.NoError(t, err)
+	assert.Equal(t, "factory-runner", link)
+	info, err := os.Stat(dst)
+	require.NoError(t, err)
+	assert.NotZero(t, info.Mode()&0o100, "stays executable")
+}

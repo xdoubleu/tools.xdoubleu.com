@@ -591,7 +591,8 @@ func TestGitWithEnvironmentUsesTheHooksInOrderOfPreference(t *testing.T) {
 	assert.Equal(t, "a b", string(out))
 
 	actual := &runner.Git{Dir: "", RemoteURL: nil, Run: nil, RunWithEnv: nil}
-	out, err = actual.GitEnvForTest(ctx, t.TempDir(), []string{"GIT_AUTHOR_NAME=zed"},
+	ident := []string{"GIT_AUTHOR_NAME=zed", "GIT_AUTHOR_EMAIL=z@example.com"}
+	out, err = actual.GitEnvForTest(ctx, t.TempDir(), ident,
 		"var", "GIT_AUTHOR_IDENT")
 	require.NoError(t, err)
 	assert.Contains(t, string(out), "zed", "the environment reaches git")
