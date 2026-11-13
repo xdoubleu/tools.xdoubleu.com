@@ -33,7 +33,9 @@ jobs:
 
       # Built on ubuntu by build-factory-job-image in this run, always at this SHA.
       # Main only: PRs build no job image, so nothing is downloaded or staged here.
-      - if: github.event_name != 'pull_request'
+      # Mirrors the build's FACTORY_JOB_IMAGE_ENABLED gate so build-api doesn't fail
+      # on an artifact the (currently disabled) arm64 build doesn't produce.
+      - if: github.event_name != 'pull_request' && vars.FACTORY_JOB_IMAGE_ENABLED == 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: factory-runner-image-dist
