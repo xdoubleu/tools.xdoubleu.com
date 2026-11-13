@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -392,6 +393,23 @@ func TestADeployCheckThatFailsLeavesTheStateUnknown(t *testing.T) {
 	require.NoError(t, env.poll(t))
 
 	assert.Empty(t, env.task(t, task.Id).Task.DeployState)
+}
+
+func TestASlowDeployCheckDoesNotHoldUpTheBoard(t *testing.T) {
+	env, gh := githubEnv(t)
+	task := env.newTask(t, "slow")
+	env.putInReview(t, task.Id)
+	gh.merge(pullURL(7), "Task: slow ("+task.Id+")\n\nbody")
+	require.NoError(t, env.poll(t))
+	gh.mu.Lock()
+	gh.deployHangs = true
+	gh.mu.Unlock()
+
+	start := time.Now()
+	got := env.task(t, task.Id)
+
+	assert.Less(t, time.Since(start), 5*time.Second)
+	assert.Empty(t, got.Task.DeployState)
 }
 
 func TestATaskWithoutAMergeCommitHasNoDeployState(t *testing.T) {
