@@ -43,6 +43,7 @@ those and the related MCP tools.
   `r2_orphaned_objects`, `r2_storage_bytes`, `postgres_schema_size_bytes{schema}`,
   and `automated_action_seconds_since_last_open{routine}`. The factory app's
   `factory-collect-signals` job exports `factory_pull_requests_red`,
+  `factory_pull_requests_unmergeable`,
   `factory_merged_tasks_undeployed`, `factory_jobs_finished_without_pr` and
   `factory_jobs_unverified_outcome`, behind the `Factory*` rules.
 - **Alerting is Grafana-managed** (`infra/grafana/provisioning/alerting/`):

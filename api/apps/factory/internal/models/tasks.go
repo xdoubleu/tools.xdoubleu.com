@@ -105,6 +105,8 @@ type Task struct {
 	PRState  string
 	PRCI     string
 	PRReview string
+	// PRMergeable is the mergeable state of PRURL, see LinkedPullRequest.
+	PRMergeable string
 	// PickupApproved is whether a human approved this Ready task's text for auto
 	// pickup: it holds a snapshot made from a browser.
 	PickupApproved bool

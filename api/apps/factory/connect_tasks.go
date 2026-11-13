@@ -150,6 +150,7 @@ func protoTask(t *models.Task) *factoryv1.Task {
 		PrState:           t.PRState,
 		PrCi:              t.PRCI,
 		PrReview:          t.PRReview,
+		PrMergeable:       t.PRMergeable,
 		PickupApproved:    t.PickupApproved,
 		PickupBlockReason: t.PickupBlocked,
 		DeployState:       string(t.Deploy),
@@ -240,7 +241,7 @@ func (h *taskConnectHandler) GetTask(
 	for i := range pulls {
 		pullOut[i] = &factoryv1.PullRequest{
 			Url: pulls[i].URL, State: pulls[i].State, Ci: pulls[i].CI,
-			Review: pulls[i].Review,
+			Review: pulls[i].Review, Mergeable: pulls[i].Mergeable,
 		}
 	}
 	return &factoryv1.GetTaskResponse{

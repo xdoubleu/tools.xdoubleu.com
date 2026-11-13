@@ -14,7 +14,7 @@ import (
 )
 
 func ended(state string) githubapp.PullRequestStatus {
-	return githubapp.PullRequestStatus{State: state, CI: "", Review: ""}
+	return githubapp.PullRequestStatus{State: state, CI: "", Review: "", Mergeable: ""}
 }
 
 func pullURL(number int) string {
@@ -53,7 +53,7 @@ func TestAnOpenPullRequestsChecksAndReviewAreKeptOnItsJob(t *testing.T) {
 	task := inReview(t, env, "open", 42)
 	gh.answer(42, githubapp.PullRequestStatus{
 		State: githubapp.StateOpen, CI: githubapp.CIFailing,
-		Review: githubapp.ReviewChangesRequested,
+		Review: githubapp.ReviewChangesRequested, Mergeable: "",
 	}, nil)
 
 	require.NoError(t, env.poll(t))
@@ -69,6 +69,7 @@ func TestAnOpenPullRequestsChecksAndReviewAreKeptOnItsJob(t *testing.T) {
 	// It stays on the worklist, and the next read replaces the last.
 	gh.answer(42, githubapp.PullRequestStatus{
 		State: githubapp.StateOpen, CI: githubapp.CIPassing, Review: githubapp.ReviewApproved,
+		Mergeable: "",
 	}, nil)
 	require.NoError(t, env.poll(t))
 	job = env.task(t, task.Id).Jobs[0]
@@ -238,7 +239,7 @@ func TestATasksPullRequestStatusIsOnTheBoardAndTheTask(t *testing.T) {
 	task := inReview(t, env, "with one", 7)
 	gh.answer(7, githubapp.PullRequestStatus{
 		State: githubapp.StateOpen, CI: githubapp.CIFailing,
-		Review: githubapp.ReviewApproved,
+		Review: githubapp.ReviewApproved, Mergeable: "",
 	}, nil)
 	require.NoError(t, env.poll(t))
 
@@ -325,7 +326,7 @@ func TestAnOpenPullRequestLinkingATaskIsListedWithItsChecks(t *testing.T) {
 	gh.openLinked(pullURL(11), 11, "Task: by hand ("+task.Id+")")
 	gh.openLinked(pullURL(12), 12, "no link here")
 	gh.answer(11, githubapp.PullRequestStatus{
-		State: githubapp.StateOpen, CI: githubapp.CIPending, Review: "",
+		State: githubapp.StateOpen, CI: githubapp.CIPending, Review: "", Mergeable: "",
 	}, nil)
 
 	require.NoError(t, env.poll(t))
@@ -398,4 +399,40 @@ func TestATaskWithoutAMergeCommitHasNoDeployState(t *testing.T) {
 	task := env.newTask(t, "unmerged")
 
 	assert.Empty(t, env.task(t, task.Id).Task.DeployState)
+}
+
+func TestAnArmedPullRequestThatCannotMergeIsFlaggedOnItsTaskAndCounted(t *testing.T) {
+	env, gh := githubEnv(t)
+	ctx := context.Background()
+	task := env.newTask(t, "conflicting")
+	gh.openLinked(pullURL(61), 61, "Task: conflicting ("+task.Id+")")
+	gh.answer(61, githubapp.PullRequestStatus{
+		State: githubapp.StateOpen, CI: githubapp.CIPassing, Review: "",
+		Mergeable: githubapp.MergeConflicting,
+	}, nil)
+	before := gaugeValue(t, "factory_pull_requests_unmergeable")
+
+	require.NoError(t, env.poll(t))
+
+	got := env.task(t, task.Id)
+	assert.Equal(t, "conflicting", got.Task.PrMergeable)
+	require.Len(t, got.PullRequests, 1)
+	assert.Equal(t, "conflicting", got.PullRequests[0].Mergeable)
+
+	// Fresh, it is not yet counted; after an hour it is, and it stays counted.
+	require.NoError(t, env.app.CollectSignalsNow(ctx))
+	assert.InDelta(t, before, gaugeValue(t, "factory_pull_requests_unmergeable"), 0)
+	_, err := testDB.Exec(ctx, `UPDATE factory.linked_pull_requests
+		SET unmergeable_since = now() - interval '2 hours' WHERE url = $1`, pullURL(61))
+	require.NoError(t, err)
+	require.NoError(t, env.poll(t))
+	require.NoError(t, env.app.CollectSignalsNow(ctx))
+	assert.Greater(t, gaugeValue(t, "factory_pull_requests_unmergeable"), before)
+
+	// Once it can merge, the flag clears.
+	gh.answer(61, githubapp.PullRequestStatus{
+		State: githubapp.StateOpen, CI: githubapp.CIPassing, Review: "", Mergeable: "",
+	}, nil)
+	require.NoError(t, env.poll(t))
+	assert.Empty(t, env.task(t, task.Id).Task.PrMergeable)
 }

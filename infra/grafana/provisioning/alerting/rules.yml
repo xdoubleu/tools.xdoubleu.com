@@ -468,6 +468,40 @@ groups:
                     type: gt
                     params: [0]
 
+      - uid: factory-pr-unmergeable
+        title: FactoryPRUnmergeable
+        condition: C
+        labels:
+          severity: warning
+        annotations:
+          summary: An armed pull request has not been able to merge for over an hour
+          description: >-
+            {{ $values.A }} open task pull request(s) with auto-merge armed conflict
+            with or are behind main. red-pr-repair rebases them or moves the task
+            to Needs you.
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: max(factory_pull_requests_unmergeable)
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
       - uid: factory-merged-undeployed
         title: FactoryMergedUndeployed
         condition: C

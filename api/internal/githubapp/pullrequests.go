@@ -31,6 +31,9 @@ const (
 
 	ReviewApproved         = "approved"
 	ReviewChangesRequested = "changes_requested"
+
+	MergeConflicting = "conflicting"
+	MergeBehind      = "behind"
 )
 
 // PullRequestStatus is where a pull request stands. CI and Review are empty when
@@ -39,6 +42,9 @@ type PullRequestStatus struct {
 	State  string
 	CI     string
 	Review string
+	// Mergeable is MergeConflicting or MergeBehind when auto-merge is armed and the
+	// pull request still can't merge for that reason; empty otherwise.
+	Mergeable string
 }
 
 // ErrPullRequestGone is returned when GitHub has no such pull request.
@@ -92,6 +98,8 @@ func (c *Client) PullRequest(
 		Head   struct {
 			SHA string `json:"sha"`
 		} `json:"head"`
+		MergeableState string `json:"mergeable_state"`
+		AutoMerge      any    `json:"auto_merge"`
 	}
 	status, err := c.do(ctx, http.MethodGet, base+"/pulls/"+strconv.Itoa(number),
 		token, nil, &pull)
@@ -103,9 +111,9 @@ func (c *Client) PullRequest(
 	}
 	switch {
 	case pull.Merged:
-		return PullRequestStatus{State: StateMerged, CI: "", Review: ""}, nil
+		return PullRequestStatus{State: StateMerged, CI: "", Review: "", Mergeable: ""}, nil
 	case pull.State != "open":
-		return PullRequestStatus{State: StateClosed, CI: "", Review: ""}, nil
+		return PullRequestStatus{State: StateClosed, CI: "", Review: "", Mergeable: ""}, nil
 	}
 
 	ci, err := c.checks(ctx, base, pull.Head.SHA, token)
@@ -116,7 +124,25 @@ func (c *Client) PullRequest(
 	if err != nil {
 		return PullRequestStatus{}, err
 	}
-	return PullRequestStatus{State: StateOpen, CI: ci, Review: review}, nil
+	return PullRequestStatus{
+		State: StateOpen, CI: ci, Review: review,
+		Mergeable: stuck(pull.MergeableState, pull.AutoMerge != nil),
+	}, nil
+}
+
+// stuck maps GitHub's mergeable_state to what keeps an armed pull request from
+// merging: a conflict ("dirty") or a head behind main.
+func stuck(mergeableState string, armed bool) string {
+	if !armed {
+		return ""
+	}
+	switch mergeableState {
+	case "dirty":
+		return MergeConflicting
+	case "behind":
+		return MergeBehind
+	}
+	return ""
 }
 
 // failed reports whether a finished check run's conclusion is a failure.

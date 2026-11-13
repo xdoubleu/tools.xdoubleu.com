@@ -368,6 +368,17 @@ describe('board', () => {
     expect(badge('open')).toEqual({ label: 'PR open', variant: 'secondary' })
   })
 
+  it('says when an armed pull request cannot merge', () => {
+    const badge = (prMergeable: string, prState = 'open') =>
+      prBadge({ prState, prCi: 'passing', prReview: '', prMergeable })
+    expect(badge('conflicting')).toEqual({ label: 'Conflicting', variant: 'danger' })
+    expect(badge('behind')).toEqual({ label: 'Behind main', variant: 'warn' })
+    expect(badge('conflicting', 'merged')).toEqual({
+      label: 'PR merged',
+      variant: 'secondary'
+    })
+  })
+
   it('says what ran a job', () => {
     const ran = (harness: number, model = '') => jobRunner(create(JobSchema, { harness, model }))
     expect(ran(0)).toBe('')

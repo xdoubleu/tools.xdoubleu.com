@@ -15,6 +15,8 @@ const (
 	signalWindow = 24 * time.Hour
 	// undeployedAfter is how long a merged task may take to go live.
 	undeployedAfter = time.Hour
+	// unmergeableAfter is how long an armed pull request may be unable to merge.
+	unmergeableAfter = time.Hour
 )
 
 //nolint:gochecknoglobals //Prometheus collectors are process-wide by design
@@ -22,6 +24,11 @@ var (
 	factoryRedPRs = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "factory_pull_requests_red",
 		Help: "Open pull requests linking a task whose CI is failing.",
+	})
+	factoryUnmergeable = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "factory_pull_requests_unmergeable",
+		Help: "Armed pull requests that conflict with or are behind main and have " +
+			"been for over an hour.",
 	})
 	factoryUndeployed = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "factory_merged_tasks_undeployed",
@@ -50,6 +57,12 @@ func (s *JobService) CollectSignals(ctx context.Context) error {
 	factoryRedPRs.Set(float64(counts.RedPullRequests))
 	factoryJobsNoPR.Set(float64(counts.JobsWithoutPR))
 	factoryJobsUnverified.Set(float64(counts.UnverifiedOutcome))
+
+	stuck, err := s.linked.UnmergeableCount(ctx, now.Add(-unmergeableAfter))
+	if err != nil {
+		return err
+	}
+	factoryUnmergeable.Set(float64(stuck))
 
 	tasks, err := s.tasks.MergedBetween(
 		ctx, now.Add(-deployWindow), now.Add(-undeployedAfter))

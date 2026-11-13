@@ -117,7 +117,8 @@ func (s *JobService) TestingAfterMerge(
 	}
 	if err = s.linked.Upsert(ctx, models.LinkedPullRequest{
 		URL: prURL, TaskID: id, State: githubapp.StateMerged,
-		CI: "", Review: "", CheckedAt: time.Time{},
+		CI: "", Review: "", Mergeable: "", UnmergeableSince: nil,
+		CheckedAt: time.Time{},
 	}); err != nil {
 		return false, err
 	}
@@ -289,7 +290,8 @@ func (s *JobService) recordLinked(
 	}
 	return s.linked.Upsert(ctx, models.LinkedPullRequest{
 		URL: url, TaskID: taskID, State: status.State, CI: status.CI,
-		Review: status.Review, CheckedAt: time.Time{},
+		Review: status.Review, Mergeable: status.Mergeable, UnmergeableSince: nil,
+		CheckedAt: time.Time{},
 	})
 }
 
@@ -303,6 +305,16 @@ func (s *JobService) PullRequestsOf(
 	if err != nil {
 		return nil, err
 	}
+	linked, err := s.linked.ByTask(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	// A job's pull request is also read as a linked one: that read has its
+	// mergeable state.
+	mergeable := map[string]string{}
+	for _, p := range linked {
+		mergeable[p.URL] = p.Mergeable
+	}
 	out := []models.LinkedPullRequest{}
 	seen := map[string]bool{}
 	for i := range jobs {
@@ -312,12 +324,10 @@ func (s *JobService) PullRequestsOf(
 		seen[jobs[i].PRURL] = true
 		out = append(out, models.LinkedPullRequest{
 			URL: jobs[i].PRURL, TaskID: taskID, State: jobs[i].PRState,
-			CI: jobs[i].PRCI, Review: jobs[i].PRReview, CheckedAt: time.Time{},
+			CI: jobs[i].PRCI, Review: jobs[i].PRReview,
+			Mergeable:        mergeable[jobs[i].PRURL],
+			UnmergeableSince: nil, CheckedAt: time.Time{},
 		})
-	}
-	linked, err := s.linked.ByTask(ctx, taskID)
-	if err != nil {
-		return nil, err
 	}
 	for _, p := range linked {
 		if !seen[p.URL] {

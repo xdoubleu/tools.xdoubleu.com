@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -19,11 +20,16 @@ func (r *LinkedPullRequestsRepository) Upsert(
 	p models.LinkedPullRequest,
 ) error {
 	_, err := r.db.Exec(ctx, `
-		INSERT INTO factory.linked_pull_requests (url, task_id, state, ci, review)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO factory.linked_pull_requests
+			(url, task_id, state, ci, review, mergeable, unmergeable_since)
+		VALUES ($1, $2, $3, $4, $5, $6,
+			CASE WHEN $6 <> '' THEN now() END)
 		ON CONFLICT (url) DO UPDATE
-		SET task_id = $2, state = $3, ci = $4, review = $5, checked_at = now()`,
-		p.URL, p.TaskID, p.State, p.CI, p.Review)
+		SET task_id = $2, state = $3, ci = $4, review = $5, mergeable = $6,
+			unmergeable_since = CASE WHEN $6 = '' THEN NULL
+				ELSE COALESCE(factory.linked_pull_requests.unmergeable_since, now()) END,
+			checked_at = now()`,
+		p.URL, p.TaskID, p.State, p.CI, p.Review, p.Mergeable)
 	return postgres.PgxErrorToHTTPError(err)
 }
 
@@ -33,7 +39,7 @@ func (r *LinkedPullRequestsRepository) ByTask(
 	taskID uuid.UUID,
 ) ([]models.LinkedPullRequest, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT url, task_id, state, ci, review, checked_at
+		SELECT url, task_id, state, ci, review, checked_at, mergeable
 		FROM factory.linked_pull_requests
 		WHERE task_id = $1
 		ORDER BY checked_at DESC, url`, taskID)
@@ -46,12 +52,26 @@ func (r *LinkedPullRequestsRepository) ByTask(
 	for rows.Next() {
 		var p models.LinkedPullRequest
 		if err = rows.Scan(&p.URL, &p.TaskID, &p.State, &p.CI, &p.Review,
-			&p.CheckedAt); err != nil {
+			&p.CheckedAt, &p.Mergeable); err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
 		}
 		out = append(out, p)
 	}
 	return out, rows.Err()
+}
+
+// UnmergeableCount counts the open pull requests that have been armed but unable
+// to merge since before the given time.
+func (r *LinkedPullRequestsRepository) UnmergeableCount(
+	ctx context.Context,
+	before time.Time,
+) (int, error) {
+	var n int
+	err := r.db.QueryRow(ctx, `
+		SELECT count(*) FROM factory.linked_pull_requests
+		WHERE state = 'open' AND mergeable <> '' AND unmergeable_since < $1`,
+		before).Scan(&n)
+	return n, postgres.PgxErrorToHTTPError(err)
 }
 
 // Open lists the pull requests not yet merged or closed, the ones read longest
@@ -61,7 +81,7 @@ func (r *LinkedPullRequestsRepository) Open(
 	limit int,
 ) ([]models.LinkedPullRequest, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT url, task_id, state, ci, review, checked_at
+		SELECT url, task_id, state, ci, review, checked_at, mergeable
 		FROM factory.linked_pull_requests
 		WHERE state NOT IN ('merged', 'closed')
 		ORDER BY checked_at
@@ -75,7 +95,7 @@ func (r *LinkedPullRequestsRepository) Open(
 	for rows.Next() {
 		var p models.LinkedPullRequest
 		if err = rows.Scan(&p.URL, &p.TaskID, &p.State, &p.CI, &p.Review,
-			&p.CheckedAt); err != nil {
+			&p.CheckedAt, &p.Mergeable); err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
 		}
 		out = append(out, p)

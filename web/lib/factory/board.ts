@@ -339,7 +339,7 @@ export function canFixCi(job: PullRequestFields | undefined): boolean {
 
 /** What a board card says about the task's pull request, most pressing first. */
 export function prBadge(
-  task: PullRequestFields
+  task: PullRequestFields & Partial<Pick<Task, 'prMergeable'>>
 ): { label: string; variant: 'danger' | 'warn' | 'success' | 'secondary' } | undefined {
   switch (task.prState) {
     case 'merged':
@@ -351,7 +351,9 @@ export function prBadge(
     default:
       return undefined
   }
+  if (task.prMergeable === 'conflicting') return { label: 'Conflicting', variant: 'danger' }
   if (task.prCi === 'failing') return { label: 'CI failing', variant: 'danger' }
+  if (task.prMergeable === 'behind') return { label: 'Behind main', variant: 'warn' }
   if (task.prReview === 'changes_requested') {
     return { label: 'Changes requested', variant: 'warn' }
   }
