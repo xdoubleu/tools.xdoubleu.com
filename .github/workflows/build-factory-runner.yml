@@ -49,3 +49,53 @@ jobs:
           name: factory-runner-dist
           path: factory-runner/dist
           retention-days: 1
+
+  # Builds the job image (docs/adr-0043) the runner loads, tagged for this release,
+  # so an installed runner fetches exactly the image this release needs. Produces the
+  # OCI archive, a signed manifest naming the release and its sha256, and uploads
+  # both for build-api to stage into /downloads/. arm64: the runner Macs are Apple
+  # silicon. The manifest is signed on main with the runner key, like the binary, so
+  # an unverified archive can't be staged.
+  build-factory-job-image:
+    name: Build factory job image (arm64)
+    runs-on: ubuntu-latest
+    # Only a main release ships downloads; a per-PR arm64 QEMU build costs minutes
+    # and stage nothing. PRs validate the YAML via workflow-lint instead.
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Build the OCI archive
+        run: |
+          mkdir -p factory-runner/dist
+          docker buildx build \
+            --platform linux/arm64 \
+            --tag factory-job:${{ github.sha }} \
+            --output type=oci,dest=factory-runner/dist/factory-job-image.tar \
+            -f factory-runner/Containerfile .
+      - name: Write the manifest
+        run: |
+          sum=$(sha256sum factory-runner/dist/factory-job-image.tar | awk '{print $1}')
+          printf '%s %s\n' "${{ github.sha }}" "$sum" > factory-runner/dist/factory-job-image.txt
+      - name: Sign the job-image manifest
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          FACTORY_RUNNER_SIGNING_KEY: ${{ secrets.FACTORY_RUNNER_SIGNING_KEY }}
+        working-directory: './kobo-gateway'
+        run: |
+          if [ -z "$FACTORY_RUNNER_SIGNING_KEY" ]; then
+            echo "::warning::FACTORY_RUNNER_SIGNING_KEY is unset; the job image stays unsigned."
+            exit 0
+          fi
+          KOBO_GATEWAY_SIGNING_KEY="$FACTORY_RUNNER_SIGNING_KEY" \
+            go run ./cmd/kobo-sign sign ../factory-runner/dist/factory-job-image.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: factory-runner-image-dist
+          path: factory-runner/dist/factory-job-image.*
+          retention-days: 1

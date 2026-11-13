@@ -40,6 +40,24 @@ func TestAnImageReferenceThatCouldBeReadAsAFlagIsRefused(t *testing.T) {
 	assert.Empty(t, c.Image)
 }
 
+func TestJobImageResolvesPerRelease(t *testing.T) {
+	c := emptyConfig()
+	// With no release, an unconfigured config still uses the dev image.
+	assert.Equal(t, runner.DefaultImage, c.ReleaseImage(""))
+	assert.Equal(t, runner.DefaultImage, c.ReleaseImage(runner.DevRelease))
+	// A stamped release needs its own versioned image.
+	assert.Equal(t, "factory-job:abc123", c.ReleaseImage("abc123"))
+	// Only an implicit, non-dev image is fetched from the release server.
+	assert.False(t, c.JobImageAutoDownload(""))
+	assert.False(t, c.JobImageAutoDownload(runner.DevRelease))
+	assert.True(t, c.JobImageAutoDownload("abc123"))
+
+	// An explicit override wins and never triggers a fetch.
+	require.NoError(t, c.SetImage("registry.example/job:v3@sha256:abc"))
+	assert.Equal(t, "registry.example/job:v3@sha256:abc", c.ReleaseImage("abc123"))
+	assert.False(t, c.JobImageAutoDownload("abc123"))
+}
+
 func TestDirectoriesMustBeAbsoluteAndMountable(t *testing.T) {
 	c := emptyConfig()
 	require.NoError(t, c.SetDir("gocache", "/cache/go"))
