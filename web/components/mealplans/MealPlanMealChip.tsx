@@ -19,6 +19,8 @@ interface MealPlanMealChipProps {
   onMoveClick: (meal: PlanMeal) => void
   onSwapClick: (meal: PlanMeal) => void
   onEditClick: (meal: PlanMeal) => void
+  /** Adds another meal to this meal's slot. */
+  onAddClick: (meal: PlanMeal) => void
   onDeleteMeal: (mealId: string) => void
   /** Focus the chip, e.g. once it has been moved; `onFocusRestored` then clears the request. */
   restoreFocus?: boolean
@@ -35,6 +37,7 @@ export default function MealPlanMealChip({
   onMoveClick,
   onSwapClick,
   onEditClick,
+  onAddClick,
   onDeleteMeal,
   restoreFocus,
   onFocusRestored
@@ -89,7 +92,7 @@ export default function MealPlanMealChip({
     <div
       onClick={handleBodyClick}
       className={cn(
-        'flex min-w-0 cursor-pointer select-none items-start justify-between gap-1 rounded-xl px-1.5 py-1',
+        'flex min-w-0 cursor-pointer select-none items-center justify-between gap-1 rounded-xl px-1.5 py-0.5 sm:items-start sm:py-1',
         isSwapping
           ? 'bg-accent/20 ring-2 ring-accent'
           : excluded
@@ -108,7 +111,7 @@ export default function MealPlanMealChip({
             : undefined
         }
         className={cn(
-          'h-auto min-h-11 min-w-0 flex-1 items-start justify-between gap-1 rounded-lg p-0 text-left font-normal sm:min-h-0',
+          'h-auto min-h-11 min-w-0 flex-1 items-center justify-between gap-1 rounded-lg p-0 text-left font-normal sm:min-h-0 sm:items-start',
           'hover:bg-transparent active:bg-transparent active:scale-100 focus-visible:ring-accent'
         )}
       >
@@ -137,7 +140,7 @@ export default function MealPlanMealChip({
           </Badge>
         )}
         {!isCustom && meal.servings > 1 && (
-          <span className="shrink-0 pt-0.5 text-xs text-muted">×{meal.servings}</span>
+          <span className="shrink-0 text-xs text-muted sm:pt-0.5">×{meal.servings}</span>
         )}
       </Button>
       {inSwapMode ? (
@@ -148,7 +151,7 @@ export default function MealPlanMealChip({
           <Popover
             open={menuOpen}
             onOpenChange={setMenuOpen}
-            className="w-32 min-w-32 p-1"
+            className="w-36 min-w-36 p-1"
             trigger={({ open, onClick }) => (
               <Button
                 variant="ghost"
@@ -175,6 +178,9 @@ export default function MealPlanMealChip({
               </MenuItem>
               <MenuItem role="menuitem" onClick={runAction(() => onEditClick(meal))}>
                 Edit
+              </MenuItem>
+              <MenuItem role="menuitem" onClick={runAction(() => onAddClick(meal))}>
+                Add meal
               </MenuItem>
               <MenuItem
                 role="menuitem"

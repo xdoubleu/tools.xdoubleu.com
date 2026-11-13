@@ -151,6 +151,17 @@ describe('MealPlanClient', () => {
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/'))
   })
 
+  it('folds the actions into a menu for phones', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    render(<MealPlanClient id="plan-1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Plan actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'iCal link' }))
+    expect(await screen.findByRole('menuitem', { name: 'Copied!' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit plan' }))
+    expect(mockRouter.push).toHaveBeenCalledWith('/mealplans/plan-1/edit')
+  })
+
   it('links to the plan editor', () => {
     render(<MealPlanClient id="plan-1" />)
     expect(screen.getByRole('link', { name: 'Edit plan' })).toBeInTheDocument()

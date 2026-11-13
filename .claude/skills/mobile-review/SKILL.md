@@ -45,6 +45,7 @@ pixel sizes:
 - `ios-focus-zoom` — fields under 16px font-size.
 - `layout-shift` — content that moved while loading (CLS over 0.1), with the
   worst shifting elements.
+- `failed-requests` — error state measured.
 - `no-viewport-meta`. Pinch-zoom is deliberately disabled.
 
 Shifts after a mutation aren't covered: add or move an item by hand with

@@ -228,6 +228,14 @@ for (const theme of opts.themes) {
       }).observe({ type: 'layout-shift', buffered: true })
       /* eslint-enable no-undef */
     })
+    // A page whose calls fail is measured in its error state, which proves little.
+    const failedCalls = new Set()
+    page.on('response', (r) => {
+      const type = r.request().resourceType()
+      if (r.status() >= 400 && (type === 'fetch' || type === 'xhr')) {
+        failedCalls.add(`HTTP ${r.status()} ${new URL(r.url()).pathname}`)
+      }
+    })
     try {
       const response = await page.goto(url, { waitUntil: 'load' })
       // Under `npm run dev` without the API, retried calls keep the network
@@ -268,6 +276,14 @@ for (const theme of opts.themes) {
           kind: 'layout-shift',
           detail: `content moved ${shifts.length} time(s) while loading (CLS ${cls.toFixed(3)}, limit ${MAX_CLS}); reserve the final size with a skeleton`,
           elements: worst.map((e) => `${e.node || 'unknown'} (${e.value.toFixed(3)})`)
+        })
+      }
+      if (failedCalls.size > 0) {
+        findings.push({
+          severity: 'degraded',
+          kind: 'failed-requests',
+          detail: `${failedCalls.size} API call(s) failed, so this is the page's error state, not its content`,
+          elements: [...failedCalls].slice(0, 8)
         })
       }
       results.push({ path, theme, findings })

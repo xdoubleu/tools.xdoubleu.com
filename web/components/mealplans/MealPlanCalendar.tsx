@@ -90,7 +90,7 @@ export default function MealPlanCalendar({
         <Button variant="secondary" size="icon" aria-label="Previous week" onClick={onPrevWeek}>
           <ChevronLeft aria-hidden className="size-4" />
         </Button>
-        <div className="flex flex-col items-center gap-1 sm:flex-row sm:gap-3">
+        <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-3 gap-y-1">
           <span className="text-center text-sm font-semibold text-fg">
             {formatDateRange(weekDates[0], weekDates[6])}
           </span>
@@ -106,9 +106,9 @@ export default function MealPlanCalendar({
       {swappingMeal && (
         <Card
           padding="sm"
-          className="fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 mx-auto flex w-fit max-w-[calc(100vw-2rem)] items-center gap-3 border-accent/30 text-sm text-accent shadow-elevated"
+          className="fixed inset-x-0 bottom-[calc(var(--tab-bar-height)+1rem+env(safe-area-inset-bottom))] z-30 mx-auto lg:bottom-[calc(1rem+env(safe-area-inset-bottom))] flex w-fit max-w-[calc(100vw-2rem)] items-center gap-3 border-accent/30 text-sm text-accent shadow-elevated"
         >
-          <span className="min-w-0 truncate">
+          <span className="min-w-0">
             {pickMode === 'move' ? 'Moving' : 'Swapping'}{' '}
             <strong>
               {pickMode === 'move'
@@ -145,6 +145,9 @@ export default function MealPlanCalendar({
         focusMealId={focusMealId}
         onMealFocused={clearFocusMeal}
       />
+
+      {/* Room to scroll the last cells clear of the pick banner. */}
+      {swappingMeal && <div aria-hidden className="h-24" />}
 
       <MealPlanEntryForm
         key={
