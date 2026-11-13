@@ -85,6 +85,10 @@ func newEnv(t *testing.T) env {
 				loaded = append(loaded, p)
 				return nil
 			},
+			reload: func(p string) error {
+				loaded = append(loaded, p)
+				return nil
+			},
 			control:          nil,
 			menu:             nil,
 			jobs:             nil,
@@ -485,4 +489,44 @@ func TestConfigModeSharesTheStopFlag(t *testing.T) {
 	e.out.Reset()
 	require.Equal(t, 0, e.do("config", "show"))
 	assert.Contains(t, e.out.String(), "mode: off")
+}
+
+func TestRunMovesALegacyInstallIntoTheAppBundle(t *testing.T) {
+	e := newEnv(t)
+	legacy := runner.LegacyBinaryPath(e.app.home)
+	require.NoError(t, os.MkdirAll(filepath.Dir(legacy), 0o755))
+	require.NoError(t, os.WriteFile(legacy, []byte("b"), 0o755))
+	e.app.execPath = legacy
+
+	assert.Equal(t, 0, e.do("run"))
+	assert.Empty(t, *e.ran, "the daemon waits for the reload onto the bundle")
+	assert.Equal(t, []string{runner.LaunchAgentPath(e.app.home)}, *e.loaded)
+	assert.FileExists(t, runner.InstalledBinaryPath(e.app.home))
+	plist, err := os.ReadFile(runner.LaunchAgentPath(e.app.home))
+	require.NoError(t, err)
+	assert.Contains(t, string(plist), "FactoryRunner.app")
+}
+
+func TestRunKeepsGoingWhenTheBundleMoveFails(t *testing.T) {
+	e := newEnv(t)
+	legacy := runner.LegacyBinaryPath(e.app.home)
+	require.NoError(t, os.MkdirAll(filepath.Dir(legacy), 0o755))
+	require.NoError(t, os.WriteFile(legacy, []byte("b"), 0o755))
+	e.app.execPath = legacy
+	e.app.reload = func(string) error { return errors.New("launchctl: nope") }
+
+	e.do("run")
+	assert.Contains(t, e.errs.String(), "move into app bundle")
+	assert.NotContains(t, e.out.String(), "restarting")
+}
+
+func TestRunFromTheBundleRemovesTheLegacyBinary(t *testing.T) {
+	e := newEnv(t)
+	legacy := runner.LegacyBinaryPath(e.app.home)
+	require.NoError(t, os.MkdirAll(filepath.Dir(legacy), 0o755))
+	require.NoError(t, os.WriteFile(legacy, []byte("b"), 0o755))
+	e.app.execPath = runner.InstalledBinaryPath(e.app.home)
+
+	e.do("run")
+	assert.NoFileExists(t, legacy)
 }

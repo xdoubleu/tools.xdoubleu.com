@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
@@ -61,6 +62,9 @@ type app struct {
 	// menu runs work beside the menu bar icon; nil runs it bare.
 	menu menuFunc
 	load func(plistPath string) error
+	// reload reloads the LaunchAgent from a process that outlives this one, since
+	// unloading the running agent kills it.
+	reload func(plistPath string) error
 	// open launches a URL in the user's browser, for the app install's pairing step.
 	open func(ctx context.Context, url string) error
 	// jobs builds the claim loop; nil runs the heartbeat alone.
@@ -160,6 +164,9 @@ func (a *app) pair(ctx context.Context, args []string) error {
 }
 
 func (a *app) runDaemon(ctx context.Context) error {
+	if a.migrateLegacyInstall(ctx) {
+		return nil
+	}
 	cfg, _, err := a.loadConfig()
 	if err != nil {
 		return err
@@ -179,6 +186,36 @@ func (a *app) runDaemon(ctx context.Context) error {
 	return a.withMenu(ctx, func(ctx context.Context) error {
 		return a.serve(ctx, cfg, token, beat)
 	})
+}
+
+// migrateLegacyInstall moves an install that runs the bare binary under
+// InstallDir into the app bundle notifications need, and reports whether the
+// LaunchAgent is being reloaded onto it so this process should exit. Once
+// running from the bundle it removes the bare binary. Failures are logged and
+// the runner carries on unbundled.
+func (a *app) migrateLegacyInstall(ctx context.Context) bool {
+	legacy := runner.LegacyBinaryPath(a.home)
+	if filepath.Clean(a.execPath) != legacy {
+		if a.execPath == runner.InstalledBinaryPath(a.home) {
+			_ = os.Remove(legacy)
+		}
+		return false
+	}
+	installed, err := a.installBinary(ctx)
+	if err == nil {
+		var plist string
+		plist, err = runner.InstallLaunchAgent(a.home, installed)
+		if err == nil {
+			err = a.reload(plist)
+		}
+	}
+	if err != nil {
+		fmt.Fprintln(a.stderr, "factory-runner: move into app bundle:", err)
+		return false
+	}
+	bundle := runner.InstalledBundlePath(a.home)
+	fmt.Fprintln(a.stdout, "Moved into", bundle+"; restarting.")
+	return true
 }
 
 // withMenu runs work beside the menu bar icon when there is one.

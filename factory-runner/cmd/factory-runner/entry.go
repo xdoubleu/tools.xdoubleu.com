@@ -57,6 +57,7 @@ func main() {
 		control:          nil,
 		menu:             runMenu,
 		load:             loadLaunchAgent,
+		reload:           reloadLaunchAgentDetached,
 		open:             openURL,
 		jobs:             nil,
 		installedRelease: runner.BinaryRelease,
@@ -84,6 +85,22 @@ func isTerminal(f *os.File) bool {
 // openURL opens u in the user's default browser.
 func openURL(ctx context.Context, u string) error {
 	return exec.CommandContext(ctx, "open", u).Run()
+}
+
+// reloadLaunchAgentDetached reloads the agent from its own session, after this
+// process has had a moment to exit, so the bootout doesn't kill the reload.
+func reloadLaunchAgentDetached(plistPath string) error {
+	domain := fmt.Sprintf("gui/%d", os.Getuid())
+
+	cmd := exec.CommandContext(context.Background(), "/bin/sh", "-c",
+		`sleep 2; launchctl bootout "$1" "$2"; launchctl bootstrap "$1" "$2"`,
+		"sh", domain, plistPath)
+	//nolint:exhaustruct // only Setsid matters
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("start launchctl reload: %w", err)
+	}
+	return cmd.Process.Release()
 }
 
 func loadLaunchAgent(plistPath string) error {
