@@ -7,7 +7,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/internal/services"
-	"tools.xdoubleu.com/apps/books/internal/services/positions"
+	"tools.xdoubleu.com/apps/books/reader/positions"
 	booksv1connect "tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/kit/constants"
