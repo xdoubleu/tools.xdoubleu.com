@@ -59,7 +59,7 @@ jobs:
   build-factory-job-image:
     name: Build factory job image (arm64)
     # Native arm64: no QEMU, so it also builds on PRs to catch a broken image.
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     permissions:
       contents: read
     steps:
