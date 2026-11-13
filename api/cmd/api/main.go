@@ -627,10 +627,11 @@ func NewApplication(
 		}
 	}
 
-	if err = app.platform.Start(config.Role); err != nil {
-		panic(err)
+	err = app.platform.Start(config.Role)
+	if err == nil {
+		err = app.apps.Without(app.disabledApps).Start(config.Role)
 	}
-	if err = app.apps.Without(app.disabledApps).Start(config.Role); err != nil {
+	if err != nil {
 		panic(err)
 	}
 
@@ -666,12 +667,11 @@ func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
 		return err
 	}
 
-	if err = app.platform.ApplyMigrations(app.ctx, db); err != nil {
-		return err
+	err = app.platform.ApplyMigrations(app.ctx, db)
+	if err == nil {
+		app.disabledApps = app.apps.ApplyMigrations(app.ctx, db)
 	}
-
-	app.disabledApps = app.apps.ApplyMigrations(app.ctx, db)
-	return nil
+	return err
 }
 
 func (app *Application) applyGlobalMigrations(db *pgxpool.Pool) error {
