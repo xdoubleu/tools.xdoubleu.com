@@ -104,7 +104,8 @@ func (p *publishing) remoteBranch(t *testing.T) string {
 }
 
 func TestAJobThatPassesTheChecksIsPushedAndGetsItsPullRequest(t *testing.T) {
-	p := newPublishing(t, writes("Fix the login redirect\n\nChanged the handler.", 0))
+	p := newPublishing(t,
+		writes("Fix the login redirect\n\nChanged the handler."+allPass, 0))
 
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
@@ -131,7 +132,7 @@ func TestAJobThatPassesTheChecksIsPushedAndGetsItsPullRequest(t *testing.T) {
 }
 
 func TestThePushTokenIsInTheEnvironmentAndNeverInArgv(t *testing.T) {
-	p := newPublishing(t, writes("done", 0))
+	p := newPublishing(t, writes("done"+allPass, 0))
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
@@ -155,8 +156,28 @@ func TestThePushTokenIsInTheEnvironmentAndNeverInArgv(t *testing.T) {
 	assert.NotContains(t, p.logs.String(), pushToken)
 }
 
+const allPass = "\n\nChecks: lint=pass, test=pass, docs=pass"
+
+func TestNoPullRequestUnlessEveryCheckPassed(t *testing.T) {
+	for name, tc := range map[string]struct{ outcome, why string }{
+		"missing":   {"Did it.", "no `Checks:` line"},
+		"failed":    {"Did it.\n\nChecks: lint=pass, test=fail", "test fail"},
+		"not run":   {"Did it.\n\nChecks: lint=not run", "lint not run"},
+		"malformed": {"Did it.\n\nChecks: all good", "malformed"},
+	} {
+		p := newPublishing(t, writes(tc.outcome, 0))
+		_, err := p.runner.Next(context.Background())
+		require.NoError(t, err, name)
+		got := p.api.done()[0]
+		assert.Empty(t, got.prURL, name)
+		assert.Empty(t, p.gh.opened, name)
+		assert.Contains(t, got.outcome, "Not published: ", name)
+		assert.Contains(t, got.outcome, tc.why, name)
+	}
+}
+
 func TestWithoutAGitHubClientNothingIsAskedOrPushed(t *testing.T) {
-	env := newEnv(t, writes("done", 0), newJob())
+	env := newEnv(t, writes("done"+allPass, 0), newJob())
 	env.api.pushToken = pushToken
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
@@ -191,7 +212,7 @@ func TestAServerThatCannotPushLeavesTheWorkOnTheMac(t *testing.T) {
 		"no token": {err: nil, token: "", want: "could not get a push token"},
 	}
 	for name, tc := range cases {
-		p := newPublishing(t, writes("Did it.", 0))
+		p := newPublishing(t, writes("Did it."+allPass, 0))
 		p.api.pushToken, p.api.pushErr = tc.token, tc.err
 
 		_, err := p.runner.Next(context.Background())
@@ -208,7 +229,7 @@ func TestAServerThatCannotPushLeavesTheWorkOnTheMac(t *testing.T) {
 }
 
 func TestABranchThatAlreadyHoldsOtherWorkOnGitHubIsNeverOverwritten(t *testing.T) {
-	p := newPublishing(t, writes("Did it.", 0))
+	p := newPublishing(t, writes("Did it."+allPass, 0))
 	// Someone (an earlier job) already put different work on the branch.
 	other := filepath.Join(t.TempDir(), "other")
 	require.NoError(t, os.MkdirAll(other, 0o755))
@@ -236,7 +257,7 @@ func TestABranchThatAlreadyHoldsOtherWorkOnGitHubIsNeverOverwritten(t *testing.T
 }
 
 func TestAPullRequestThatCannotBeOpenedIsSaidSoAndTheTokenStaysOut(t *testing.T) {
-	p := newPublishing(t, writes("Did it.", 0))
+	p := newPublishing(t, writes("Did it."+allPass, 0))
 	p.gh.url, p.gh.err = "", errors.New("open a pull request: status 500 "+pushToken)
 
 	_, err := p.runner.Next(context.Background())
@@ -252,7 +273,7 @@ func TestAPullRequestThatCannotBeOpenedIsSaidSoAndTheTokenStaysOut(t *testing.T)
 }
 
 func TestPushOutputThatEchoesTheTokenIsScrubbed(t *testing.T) {
-	p := newPublishing(t, writes("Did it.", 0))
+	p := newPublishing(t, writes("Did it."+allPass, 0))
 	p.runner.Git.RunWithEnv = func(
 		context.Context, string, []string, ...string,
 	) ([]byte, error) {
@@ -524,7 +545,7 @@ func TestNewGitHubClientTalksToGitHub(t *testing.T) {
 
 func TestAJobIsPushedByTheRealGitToo(t *testing.T) {
 	// No test hook: the push runs git itself, with the token in its environment.
-	env := newEnv(t, writes("Real push", 0), newJob())
+	env := newEnv(t, writes("Real push"+allPass, 0), newJob())
 	gh := &fakeGitHub{
 		mu: sync.Mutex{}, opened: nil, tokens: nil, err: nil, failFirst: 0,
 		url: "https://github.com/xdoubleu/tools.xdoubleu.com/pull/8",
@@ -580,7 +601,7 @@ func joined(env []string) string { return strings.Join(env, "\n") }
 
 func TestATransientTokenFailureIsRetriedButAFinalOneIsNot(t *testing.T) {
 	// Fails twice, then the third try works.
-	p := newPublishing(t, writes("Did it.", 0))
+	p := newPublishing(t, writes("Did it."+allPass, 0))
 	calls := 0
 	p.api.pushHook = func() (string, error) {
 		calls++
@@ -595,7 +616,7 @@ func TestATransientTokenFailureIsRetriedButAFinalOneIsNot(t *testing.T) {
 	assert.NotEmpty(t, p.api.done()[0].prURL)
 
 	// Always unavailable: three tries, then the work stays on the Mac.
-	p = newPublishing(t, writes("Did it.", 0))
+	p = newPublishing(t, writes("Did it."+allPass, 0))
 	p.api.pushErr, p.api.pushToken = &runner.Error{Code: "unavailable", Message: "x"}, ""
 	_, err = p.runner.Next(context.Background())
 	require.NoError(t, err)
@@ -603,7 +624,7 @@ func TestATransientTokenFailureIsRetriedButAFinalOneIsNot(t *testing.T) {
 	assert.Contains(t, p.api.done()[0].outcome, "could not get a push token")
 
 	// Not set up is final: asked once.
-	p = newPublishing(t, writes("Did it.", 0))
+	p = newPublishing(t, writes("Did it."+allPass, 0))
 	p.api.pushErr = &runner.Error{Code: "failed_precondition", Message: "x"}
 	_, err = p.runner.Next(context.Background())
 	require.NoError(t, err)
@@ -611,7 +632,7 @@ func TestATransientTokenFailureIsRetriedButAFinalOneIsNot(t *testing.T) {
 }
 
 func TestATransientPullRequestFailureIsRetriedAfterThePush(t *testing.T) {
-	p := newPublishing(t, writes("Did it.", 0))
+	p := newPublishing(t, writes("Did it."+allPass, 0))
 	p.gh.err, p.gh.failFirst = errors.New("status 502"), 2
 
 	_, err := p.runner.Next(context.Background())
@@ -623,7 +644,7 @@ func TestATransientPullRequestFailureIsRetriedAfterThePush(t *testing.T) {
 }
 
 func TestAStoppedRunnerDoesNotWaitOutItsRetries(t *testing.T) {
-	p := newPublishing(t, writes("Did it.", 0))
+	p := newPublishing(t, writes("Did it."+allPass, 0))
 	p.runner.PublishRetry = time.Hour
 	p.api.pushErr = errors.New("down")
 	ctx, cancel := context.WithCancel(context.Background())
@@ -700,7 +721,7 @@ func TestAHostileGlobalGitConfigDoesNotRedirectThePush(t *testing.T) {
 	home := t.TempDir()
 	var remote string
 	sandbox := func(ctx context.Context, spec runner.SandboxSpec) (int, error) {
-		code, err := writes("Real push", 0)(ctx, spec)
+		code, err := writes("Real push"+allPass, 0)(ctx, spec)
 		rewrite := "[url \"/nonexistent-elsewhere/\"]\n\tinsteadOf = " + remote + "\n"
 		require.NoError(t,
 			os.WriteFile(filepath.Join(home, ".gitconfig"), []byte(rewrite), 0o600))
