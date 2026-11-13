@@ -53,7 +53,7 @@ RUN for m in api factory-runner kobo-gateway selfupdate; do \
     done \
     && (cd /deps/web && npm ci --ignore-scripts --no-audit --no-fund \
         --cache /opt/npmcache) \
-    && rm -rf /deps \
+    && rm -rf /deps/* \
     && chmod -R a+rX /opt/gomodcache /opt/npmcache
 
 WORKDIR /work
