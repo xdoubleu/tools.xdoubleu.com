@@ -41,7 +41,7 @@
     "dompurify": "3.4.17",
     "lucide-react": "1.72.0",
     "pdfjs-dist": "6.5.438",
-    "posthog-js": "1.447.5",
+    "posthog-js": "1.447.6",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-markdown": "10.1.0",
