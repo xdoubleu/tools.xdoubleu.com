@@ -13,7 +13,7 @@ ARG GOLANGCI_LINT_VERSION=v2.15.0
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        ca-certificates curl git jq make postgresql postgresql-client \
+        ca-certificates curl git jq make postgresql postgresql-client python3 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=go /usr/local/go /usr/local/go
@@ -37,5 +37,23 @@ RUN claude plugin marketplace add xdoubleu/skills \
     && claude plugin install mattpocock-skills@mattpocock
 RUN go install \
     "github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}"
+
+# Dependency caches for the offline VM (docs/adr-0043): every Go module's downloads
+# (used as a file:// GOPROXY) and web/'s npm cache, so lint and tests run on a fresh
+# clone. What changed since the build resolves through the egress proxy's read-only
+# registry routes. Build from the repo root: `make image`.
+COPY --chown=node:node selfupdate/go.mod selfupdate/go.sum* /deps/selfupdate/
+COPY --chown=node:node api/go.mod api/go.sum /deps/api/
+COPY --chown=node:node factory-runner/go.mod factory-runner/go.sum /deps/factory-runner/
+COPY --chown=node:node kobo-gateway/go.mod kobo-gateway/go.sum /deps/kobo-gateway/
+COPY --chown=node:node web/package.json web/package-lock.json /deps/web/
+RUN mkdir -p /opt/gomodcache /opt/npmcache \
+    && for m in api factory-runner kobo-gateway selfupdate; do \
+        (cd /deps/$m && GOMODCACHE=/opt/gomodcache go mod download) || exit 1; \
+    done \
+    && (cd /deps/web && npm ci --ignore-scripts --no-audit --no-fund \
+        --cache /opt/npmcache) \
+    && rm -rf /deps \
+    && chmod -R a+rX /opt/gomodcache /opt/npmcache
 
 WORKDIR /work

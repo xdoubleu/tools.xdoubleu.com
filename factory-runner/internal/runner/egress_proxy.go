@@ -21,6 +21,8 @@ const (
 
 	anthropicURL  = "https://api.anthropic.com"
 	openRouterURL = "https://openrouter.ai/api"
+	goProxyURL    = "https://proxy.golang.org"
+	npmURL        = "https://registry.npmjs.org"
 
 	maxProxyBody      = 64 << 20
 	proxyHeaderWait   = 15 * time.Second
@@ -45,6 +47,8 @@ type EgressConfig struct {
 	// Anthropic and OpenRouter override the upstream bases, for tests.
 	Anthropic  string
 	OpenRouter string
+	GoProxy    string
+	NPM        string
 	Log        *slog.Logger
 }
 
@@ -60,6 +64,8 @@ type route struct {
 	auth func(ctx context.Context) (string, error)
 	// rejected, when set, hears of a 401 from the upstream.
 	rejected func()
+	// readOnly refuses everything but GET and HEAD.
+	readOnly bool
 }
 
 // EgressProxy is the only way out of a job's VM (docs/adr-0043): a handful of fixed
@@ -88,7 +94,7 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		}
 		p.routes = append(p.routes, route{
 			name: name, prefix: prefix, exact: exact, target: target, auth: auth,
-			rejected: rejected,
+			rejected: rejected, readOnly: false,
 		})
 		return nil
 	}
@@ -118,6 +124,16 @@ func NewEgressProxy(cfg EgressConfig) (*EgressProxy, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+	// Dependency registries: public, unauthenticated, read-only.
+	for _, reg := range []struct{ name, prefix, base string }{
+		{"goproxy", "/goproxy/", orDefault(cfg.GoProxy, goProxyURL)},
+		{"npm", "/npm/", orDefault(cfg.NPM, npmURL)},
+	} {
+		if err := add(reg.name, reg.prefix, false, reg.base, nil, nil); err != nil {
+			return nil, err
+		}
+		p.routes[len(p.routes)-1].readOnly = true
 	}
 	transport := cfg.Transport
 	if transport == nil {
@@ -174,6 +190,10 @@ func (p *EgressProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if rt == nil {
 		p.log.Warn("egress refused", "method", r.Method, "path", safePath(r.URL.Path))
 		http.Error(w, "not allowed", http.StatusForbidden)
+		return
+	}
+	if rt.readOnly && r.Method != http.MethodGet && r.Method != http.MethodHead {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	ctx := r.Context()

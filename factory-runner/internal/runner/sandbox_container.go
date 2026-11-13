@@ -36,6 +36,11 @@ const (
 	sandboxGoCache  = "/gomodcache"
 	sandboxNPMCache = "/npmcache"
 
+	// imageGoDownloadCache and imageNPMCache are baked into the job image
+	// (Containerfile); the root is read-only, so GOMODCACHE lives on the tmpfs.
+	imageGoDownloadCache = "/opt/gomodcache/cache/download"
+	imageNPMCache        = "/opt/npmcache"
+
 	subnetFirst    = 7
 	subnetLast     = 250
 	subnetAttempts = 5
@@ -336,6 +341,37 @@ func execArgv(name, envFile string, spec SandboxSpec) []string {
 	return append(argv, spec.Command...)
 }
 
+// registryEnv points Go and npm at the caches baked into the image (or the host's
+// mounted ones), falling back to the egress proxy's read-only registry routes for
+// what changed since. Without a proxy the VM stays offline.
+func (s *ContainerSandbox) registryEnv(proxyURL string) map[string]string {
+	env := map[string]string{
+		"GOMODCACHE":       "/tmp/gomodcache",
+		"GOPROXY":          "file://" + imageGoDownloadCache,
+		"npm_config_cache": imageNPMCache,
+	}
+	if s.GoModCache != "" {
+		env["GOMODCACHE"] = sandboxGoCache
+		env["GOPROXY"] = "off"
+	}
+	if s.NPMCache != "" {
+		env["npm_config_cache"] = sandboxNPMCache
+	}
+	if proxyURL == "" {
+		env["GOPROXY"] = "off"
+		env["npm_config_offline"] = "true"
+		return env
+	}
+	if s.GoModCache == "" {
+		env["GOPROXY"] += "," + proxyURL + "/goproxy/"
+	} else {
+		env["GOPROXY"] = proxyURL + "/goproxy/"
+	}
+	env["npm_config_registry"] = proxyURL + "/npm/"
+	env["npm_config_prefer_offline"] = "true"
+	return env
+}
+
 // writeEnvFile writes the job's environment for `container exec --env-file`, with
 // the fixed variables of the sandbox. The file is gone again unless it was written
 // whole, so a failure leaves no half-written secrets behind.
@@ -354,13 +390,8 @@ func (s *ContainerSandbox) writeEnvFile(
 	if err != nil {
 		return "", fmt.Errorf("env file: %w", err)
 	}
-	fixed := map[string]string{
-		"HOME":               sandboxHome,
-		"GOMODCACHE":         sandboxGoCache,
-		"GOPROXY":            "off",
-		"npm_config_cache":   sandboxNPMCache,
-		"npm_config_offline": "true",
-	}
+	fixed := s.registryEnv(proxyURL)
+	fixed["HOME"] = sandboxHome
 	var b strings.Builder
 	for _, k := range slices.Sorted(maps.Keys(fixed)) {
 		if _, set := env[k]; !set {

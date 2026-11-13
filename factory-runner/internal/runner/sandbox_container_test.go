@@ -187,7 +187,9 @@ func TestTheSandboxStartsAPlaceholderVMOnItsOwnNetworkThenRunsTheJobInIt(t *test
 	assert.NotContains(t, run, "readonly", "no cache mounts unless configured")
 
 	assert.Contains(t, envBody, "FACTORY_JOB=0a1b2c3d-4e5f\n")
-	assert.Contains(t, envBody, "GOPROXY=off\n")
+	assert.Contains(t, envBody, "GOPROXY=file:///opt/gomodcache/cache/download,http://")
+	assert.Contains(t, envBody, "/goproxy/\n")
+	assert.Contains(t, envBody, "/npm/\n")
 	assert.Contains(t, envBody, "FACTORY_GATEWAY=10.231.7.1\n")
 	assert.NoFileExists(t, envFile, "the env file is removed afterwards")
 

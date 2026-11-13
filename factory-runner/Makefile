@@ -27,4 +27,4 @@ dist: build
 	RELEASE=$(RELEASE) ./cmd/factory-runner/assets/package.sh
 
 image:
-	container build -t factory-job:dev -f Containerfile .
+	container build -t factory-job:dev -f Containerfile ..
