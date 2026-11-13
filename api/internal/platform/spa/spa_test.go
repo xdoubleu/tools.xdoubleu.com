@@ -35,6 +35,8 @@ func writeBuild(t *testing.T) string {
 		"icon.svg":               "<svg/>",
 		"manifest.webmanifest":   `{"name":"tools"}`,
 		"downloads/gateway.zip":  "zip-bytes",
+		"downloads/big.tar.url":  "https://github.com/o/r/releases/download/t/big.tar\n",
+		"downloads/bad.tar.url":  "https://evil.example/x",
 		"assets/data.json":       `{"a":1}`,
 		"assets/nested/chunk.js": "chunk",
 	}
@@ -530,4 +532,17 @@ func TestWebVitals_OnlyPost(t *testing.T) {
 	rec := get(t, h, "/web-vitals")
 
 	assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
+}
+
+func TestDownloadPointerRedirects(t *testing.T) {
+	h, _ := newHandler(t, nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/downloads/big.tar", nil))
+	require.Equal(t, http.StatusFound, rec.Code)
+	require.Equal(t, "https://github.com/o/r/releases/download/t/big.tar",
+		rec.Header().Get("Location"))
+
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/downloads/bad.tar", nil))
+	require.NotEqual(t, http.StatusFound, rec.Code)
 }

@@ -31,7 +31,9 @@ jobs:
           name: factory-runner-dist
           path: factory-runner/dist
 
-      # Built on ubuntu by build-factory-job-image in this run, always at this SHA.
+      # Built on ubuntu by build-factory-job-image in this run: the signed manifest
+      # for this SHA and a .url pointer to the archive, a release asset kept out
+      # of the image.
       # Main only: a PR's image is built but not staged.
       - if: github.event_name != 'pull_request'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8

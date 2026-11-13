@@ -169,6 +169,9 @@ jobs:
       needs.changes.outputs.workflows == 'true')
     name: Build Factory Runner Workflow
     uses: ./.github/workflows/build-factory-runner.yml
+    # The job-image job publishes its archive as a release asset on main.
+    permissions:
+      contents: write
     secrets: inherit
 
   api-lint:
