@@ -270,6 +270,8 @@ type Task struct {
 	PrState  string `protobuf:"bytes,13,opt,name=pr_state,json=prState,proto3" json:"pr_state,omitempty"`
 	PrCi     string `protobuf:"bytes,14,opt,name=pr_ci,json=prCi,proto3" json:"pr_ci,omitempty"`
 	PrReview string `protobuf:"bytes,15,opt,name=pr_review,json=prReview,proto3" json:"pr_review,omitempty"`
+	// The pull request's mergeable state; same values as PullRequest.mergeable.
+	PrMergeable string `protobuf:"bytes,19,opt,name=pr_mergeable,json=prMergeable,proto3" json:"pr_mergeable,omitempty"`
 	// Whether a human approved this Ready task's text for auto pickup: set when it
 	// is moved to Ready (or saved while Ready) from a browser, so false for a Ready
 	// task whose body an agent last edited. Always false outside Ready.
@@ -415,6 +417,13 @@ func (x *Task) GetPrCi() string {
 func (x *Task) GetPrReview() string {
 	if x != nil {
 		return x.PrReview
+	}
+	return ""
+}
+
+func (x *Task) GetPrMergeable() string {
+	if x != nil {
+		return x.PrMergeable
 	}
 	return ""
 }
@@ -822,7 +831,10 @@ type PullRequest struct {
 	// The head commit's checks while it is open: "pending", "passing" or "failing".
 	Ci string `protobuf:"bytes,3,opt,name=ci,proto3" json:"ci,omitempty"`
 	// The standing review while it is open: "approved" or "changes_requested".
-	Review        string `protobuf:"bytes,4,opt,name=review,proto3" json:"review,omitempty"`
+	Review string `protobuf:"bytes,4,opt,name=review,proto3" json:"review,omitempty"`
+	// "conflicting" or "behind" while it is open and auto-merge is armed but it
+	// can't merge; empty otherwise.
+	Mergeable     string `protobuf:"bytes,5,opt,name=mergeable,proto3" json:"mergeable,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -881,6 +893,13 @@ func (x *PullRequest) GetCi() string {
 func (x *PullRequest) GetReview() string {
 	if x != nil {
 		return x.Review
+	}
+	return ""
+}
+
+func (x *PullRequest) GetMergeable() string {
+	if x != nil {
+		return x.Mergeable
 	}
 	return ""
 }
@@ -2415,7 +2434,7 @@ var File_factory_v1_factory_proto protoreflect.FileDescriptor
 const file_factory_v1_factory_proto_rawDesc = "" +
 	"\n" +
 	"\x18factory/v1/factory.proto\x12\n" +
-	"factory.v1\"\xb9\x04\n" +
+	"factory.v1\"\xdc\x04\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x12\n" +
@@ -2435,7 +2454,8 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x06pr_url\x18\f \x01(\tR\x05prUrl\x12\x19\n" +
 	"\bpr_state\x18\r \x01(\tR\aprState\x12\x13\n" +
 	"\x05pr_ci\x18\x0e \x01(\tR\x04prCi\x12\x1b\n" +
-	"\tpr_review\x18\x0f \x01(\tR\bprReview\x12'\n" +
+	"\tpr_review\x18\x0f \x01(\tR\bprReview\x12!\n" +
+	"\fpr_mergeable\x18\x13 \x01(\tR\vprMergeable\x12'\n" +
 	"\x0fpickup_approved\x18\x10 \x01(\bR\x0epickupApproved\x12.\n" +
 	"\x13pickup_block_reason\x18\x11 \x01(\tR\x11pickupBlockReason\x12!\n" +
 	"\fdeploy_state\x18\x12 \x01(\tR\vdeployState\"d\n" +
@@ -2460,12 +2480,13 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\x04task\x18\x01 \x01(\v2\x10.factory.v1.TaskR\x04task\x12/\n" +
 	"\bcomments\x18\x02 \x03(\v2\x13.factory.v1.CommentR\bcomments\x12#\n" +
 	"\x04jobs\x18\x03 \x03(\v2\x0f.factory.v1.JobR\x04jobs\x12<\n" +
-	"\rpull_requests\x18\x04 \x03(\v2\x17.factory.v1.PullRequestR\fpullRequests\"]\n" +
+	"\rpull_requests\x18\x04 \x03(\v2\x17.factory.v1.PullRequestR\fpullRequests\"{\n" +
 	"\vPullRequest\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12\x0e\n" +
 	"\x02ci\x18\x03 \x01(\tR\x02ci\x12\x16\n" +
-	"\x06review\x18\x04 \x01(\tR\x06review\"\xa4\x01\n" +
+	"\x06review\x18\x04 \x01(\tR\x06review\x12\x1c\n" +
+	"\tmergeable\x18\x05 \x01(\tR\tmergeable\"\xa4\x01\n" +
 	"\x11CreateTaskRequest\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\x124\n" +

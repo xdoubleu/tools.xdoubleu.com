@@ -11,7 +11,7 @@ import (
 )
 
 // prFields is how many values prColumn holds.
-const prFields = 4
+const prFields = 5
 
 type TasksRepository struct {
 	db postgres.DB
@@ -23,13 +23,15 @@ type rowScanner interface {
 
 // prColumn is the task's pull request that is still open, else its newest, among
 // those its jobs opened and those linking it in their body, as
-// {url, state, ci, review}; null when it has none.
-const prColumn = `(SELECT ARRAY[u.url, u.state, u.ci, u.review] FROM (
+// {url, state, ci, review, mergeable}; null when it has none.
+const prColumn = `(SELECT ARRAY[u.url, u.state, u.ci, u.review, u.mergeable] FROM (
 		SELECT j.pr_url AS url, j.pr_state AS state, j.pr_ci AS ci,
-			j.pr_review AS review, j.created_at AS ts
+			j.pr_review AS review, j.created_at AS ts,
+			COALESCE((SELECT m.mergeable FROM factory.linked_pull_requests m
+				WHERE m.url = j.pr_url), '') AS mergeable
 		FROM factory.jobs j WHERE j.task_id = t.id AND j.pr_url <> ''
 		UNION ALL
-		SELECT l.url, l.state, l.ci, l.review, l.checked_at
+		SELECT l.url, l.state, l.ci, l.review, l.checked_at, l.mergeable
 		FROM factory.linked_pull_requests l WHERE l.task_id = t.id) u
 		ORDER BY (u.state = 'open') DESC, u.ts DESC, u.url LIMIT 1)`
 
@@ -59,6 +61,7 @@ func scanTask(row rowScanner) (*models.Task, error) {
 	}
 	if len(pr) == prFields {
 		t.PRURL, t.PRState, t.PRCI, t.PRReview = pr[0], pr[1], pr[2], pr[3]
+		t.PRMergeable = pr[4]
 	}
 	return &t, nil
 }

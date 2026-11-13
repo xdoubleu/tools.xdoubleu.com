@@ -13,6 +13,7 @@ type FailureCounts struct {
 	RedPullRequests   int
 	JobsWithoutPR     int
 	UnverifiedOutcome int
+	StuckPullRequests int
 }
 
 // FailureCounts counts open pull requests with failing CI, and the jobs that
@@ -20,7 +21,7 @@ type FailureCounts struct {
 // admits the work was not checked.
 func (r *JobsRepository) FailureCounts(
 	ctx context.Context,
-	since time.Time,
+	since, stuckBefore time.Time,
 ) (FailureCounts, error) {
 	var c FailureCounts
 	err := r.db.QueryRow(ctx, `
@@ -31,8 +32,11 @@ func (r *JobsRepository) FailureCounts(
 				WHERE status = 'succeeded' AND pr_url = '' AND finished_at >= $1),
 			(SELECT count(*) FROM factory.jobs
 				WHERE finished_at >= $1
-				AND (outcome ILIKE '%not verified%' OR outcome ILIKE '%could not run%'))`,
-		since).Scan(&c.RedPullRequests, &c.JobsWithoutPR, &c.UnverifiedOutcome)
+				AND (outcome ILIKE '%not verified%' OR outcome ILIKE '%could not run%')),
+			(SELECT count(*) FROM factory.linked_pull_requests
+				WHERE state = 'open' AND mergeable <> '' AND unmergeable_since < $2)`,
+		since, stuckBefore).Scan(&c.RedPullRequests, &c.JobsWithoutPR,
+		&c.UnverifiedOutcome, &c.StuckPullRequests)
 	return c, postgres.PgxErrorToHTTPError(err)
 }
 

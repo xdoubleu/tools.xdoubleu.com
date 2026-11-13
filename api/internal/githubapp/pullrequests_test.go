@@ -107,7 +107,7 @@ func status(t *testing.T, p *pulls) githubapp.PullRequestStatus {
 }
 
 func ended(state string) githubapp.PullRequestStatus {
-	return githubapp.PullRequestStatus{State: state, CI: "", Review: ""}
+	return githubapp.PullRequestStatus{State: state, CI: "", Review: "", Mergeable: ""}
 }
 
 func TestAMergedOrClosedPullRequestNeedsNoChecksOrReviews(t *testing.T) {
@@ -486,4 +486,26 @@ func TestReadingStopsAtTheLastPageAndAtTheBound(t *testing.T) {
 	p.reviewPages = pages
 	assert.Equal(t, "approved", status(t, p).Review, "page five is read")
 	assert.EqualValues(t, 5, p.reviewAsked.Load(), "and not a sixth")
+}
+
+func TestOnlyAnArmedPullRequestThatCannotMergeReportsWhy(t *testing.T) {
+	armed := `"auto_merge":{"merge_method":"squash"}`
+	cases := map[string]struct {
+		extra string
+		want  string
+	}{
+		"conflict":    {`"mergeable_state":"dirty",` + armed, "conflicting"},
+		"behind":      {`"mergeable_state":"behind",` + armed, "behind"},
+		"clean":       {`"mergeable_state":"clean",` + armed, ""},
+		"blocked":     {`"mergeable_state":"blocked",` + armed, ""},
+		"not armed":   {`"mergeable_state":"dirty","auto_merge":null`, ""},
+		"unknown yet": {`"mergeable_state":"unknown",` + armed, ""},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			pull := `{"state":"open","merged":false,"head":{"sha":"abc123"},` + tc.extra + `}`
+			got := status(t, newPulls(pull, noChecks, `[]`))
+			assert.Equal(t, tc.want, got.Mergeable)
+		})
+	}
 }

@@ -47,6 +47,8 @@ message Task {
   string pr_state = 13;
   string pr_ci = 14;
   string pr_review = 15;
+  // The pull request's mergeable state; same values as PullRequest.mergeable.
+  string pr_mergeable = 19;
   // Whether a human approved this Ready task's text for auto pickup: set when it
   // is moved to Ready (or saved while Ready) from a browser, so false for a Ready
   // task whose body an agent last edited. Always false outside Ready.
@@ -108,6 +110,9 @@ message PullRequest {
   string ci = 3;
   // The standing review while it is open: "approved" or "changes_requested".
   string review = 4;
+  // "conflicting" or "behind" while it is open and auto-merge is armed but it
+  // can't merge; empty otherwise.
+  string mergeable = 5;
 }
 
 // New tasks always start in Backlog. The repo can't change afterwards.
