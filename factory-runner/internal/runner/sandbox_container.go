@@ -247,9 +247,11 @@ func (v *vmSession) Exec(
 	if v.ran {
 		spec.SetupCommands = ""
 	}
-	v.ran = true
 	argv := execArgv(v.name, v.envFile, v.s.npmCacheSource(), spec)
-	return v.s.Exec.Exec(ctx, argv, strings.NewReader(stdin), log)
+	code, err := v.s.Exec.Exec(ctx, argv, strings.NewReader(stdin), log)
+	// A first exec that never got going leaves setup to the next one.
+	v.ran = v.ran || (err == nil && code == 0)
+	return code, err
 }
 
 // Close implements SandboxSession.

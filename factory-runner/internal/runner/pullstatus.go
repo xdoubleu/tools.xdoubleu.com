@@ -2,7 +2,6 @@ package runner
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -181,12 +180,8 @@ func (c *GitHubClient) excerpt(
 	}
 	path := repo + "/check-runs/" + strconv.FormatInt(r.ID, 10) +
 		"/annotations?per_page=" + strconv.Itoa(maxAnnotations)
-	if err := c.do(ctx, http.MethodGet, path, token, nil, &notes); err != nil {
-		var status *githubStatusError
-		if !errors.As(err, &status) {
-			return strings.Join(parts, "\n")
-		}
-	}
+	// Annotations are a bonus: a failed read leaves the rest.
+	_ = c.do(ctx, http.MethodGet, path, token, nil, &notes)
 	for _, n := range notes {
 		if n.Level == "failure" || n.Level == "" {
 			parts = append(parts, fmt.Sprintf("%s:%d: %s", n.Path, n.Line, n.Message))

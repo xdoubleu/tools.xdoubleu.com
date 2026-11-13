@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -199,6 +200,13 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 		res.blocked = b
 	}
 	res = l.r.publishable(l.parent, l.job, l.dirs.clone, l.since, text, res, l.secrets)
+	if res.head == "" {
+		// Only an identity for spotting no progress, so the agent's own ref file
+		// will do where the host never got to review the branch.
+		ref, _ := os.ReadFile(filepath.Join(l.dirs.clone, ".git", "refs", "heads",
+			l.job.Branch))
+		res.head = strings.TrimSpace(string(ref))
+	}
 	switch {
 	case res.blocked != "":
 		return over(res)
@@ -227,6 +235,8 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 	attemptCtx, cancel := context.WithTimeout(l.ctx, l.limit)
 	defer cancel()
 	l.tap.resetLimit()
+	// An earlier attempt's outcome must not pass for this one's.
+	_ = os.Remove(filepath.Join(l.dirs.outcome, outcomeFile))
 	exit, runErr := l.session.Exec(attemptCtx, command, prompt,
 		io.MultiWriter(l.tap, l.events))
 	timedOut := errors.Is(attemptCtx.Err(), context.DeadlineExceeded) &&
