@@ -25,8 +25,8 @@ RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
 # Claude's config (marketplaces and the plugins .claude/settings.json enables) lives
 # here; the runner copies it into a new session directory, because CLAUDE_CONFIG_DIR
 # replaces the whole config directory.
-RUN mkdir -p /opt/claude-config /opt/gomodcache /opt/npmcache \
-    && chown node:node /opt/claude-config /opt/gomodcache /opt/npmcache
+RUN mkdir -p /opt/claude-config /opt/gomodcache /opt/npmcache /deps \
+    && chown node:node /opt/claude-config /opt/gomodcache /opt/npmcache /deps
 USER node
 ENV CLAUDE_CONFIG_DIR=/opt/claude-config
 RUN claude plugin marketplace add xdoubleu/skills \
