@@ -434,6 +434,133 @@ groups:
                     type: gt
                     params: [0]
 
+      # factory_* gauges come from the factory app's factory-collect-signals job
+      # (every 5m); the 30m/1h windows live in `for` and the gauge queries.
+      - uid: factory-pr-red
+        title: FactoryPRRed
+        condition: C
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: A factory pull request has had failing CI for over 30 minutes
+          description: "{{ $values.A }} open task pull request(s) with failing CI."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: max(factory_pull_requests_red)
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: factory-merged-undeployed
+        title: FactoryMergedUndeployed
+        condition: C
+        labels:
+          severity: warning
+        annotations:
+          summary: A merged task is still not deployed an hour later
+          description: "{{ $values.A }} task(s) merged over an hour ago are not live."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: max(factory_merged_tasks_undeployed)
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: factory-job-no-pr
+        title: FactoryJobNoPR
+        condition: C
+        labels:
+          severity: warning
+        annotations:
+          summary: A factory job finished without opening a pull request
+          description: "{{ $values.A }} job(s) succeeded in the last day with no PR."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: max(factory_jobs_finished_without_pr)
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: factory-job-unverified
+        title: FactoryJobUnverified
+        condition: C
+        labels:
+          severity: warning
+        annotations:
+          summary: A factory job says its work was not verified or could not run
+          description: "{{ $values.A }} job outcome(s) in the last day admit that."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: max(factory_jobs_unverified_outcome)
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
       # Uses the sentry_unresolved_issues gauge, not the sentry-datasource
       # plugin: its "issues" queryType returns long-format rows that Grafana's
       # SSE layer can't alert on ("input data must be a wide series",
