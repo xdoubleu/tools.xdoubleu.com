@@ -10,8 +10,8 @@ import (
 
 	"tools.xdoubleu.com/apps/games/internal/models"
 	"tools.xdoubleu.com/apps/games/internal/repositories"
+	"tools.xdoubleu.com/apps/internal/progresshistory"
 	"tools.xdoubleu.com/internal/kit/database"
-	"tools.xdoubleu.com/internal/progresshistory"
 )
 
 var ErrInvalidBucket = errors.New("invalid bucket index")

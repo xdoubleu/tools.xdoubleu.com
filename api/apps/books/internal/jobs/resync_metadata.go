@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/books/internal/services"
-	"tools.xdoubleu.com/internal/progressws"
+	"tools.xdoubleu.com/apps/internal/progressws"
 )
 
 // ResyncMetadataJob scans the catalog against UniCat and Hardcover and stores

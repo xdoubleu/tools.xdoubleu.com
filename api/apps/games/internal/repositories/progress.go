@@ -7,8 +7,8 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"tools.xdoubleu.com/apps/games/internal/models"
+	"tools.xdoubleu.com/apps/internal/progresshistory"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	"tools.xdoubleu.com/internal/progresshistory"
 )
 
 type ProgressRepository struct {

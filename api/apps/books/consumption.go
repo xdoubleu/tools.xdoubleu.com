@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/apps/internal/consumption"
 )
 
 // maxAuthors caps the creator credit of a multi-author book.

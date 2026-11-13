@@ -7,11 +7,11 @@ import (
 	"connectrpc.com/connect/v2"
 	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/apps/internal/consumption"
 	"tools.xdoubleu.com/apps/taste/internal/jobs"
 	"tools.xdoubleu.com/apps/taste/internal/models"
 	"tools.xdoubleu.com/apps/taste/internal/services"
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
-	"tools.xdoubleu.com/internal/consumption"
 )
 
 func (h *tasteConnectHandler) ListRecommendations(

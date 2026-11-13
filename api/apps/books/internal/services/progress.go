@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/books/internal/repositories"
-	"tools.xdoubleu.com/internal/progresshistory"
+	"tools.xdoubleu.com/apps/internal/progresshistory"
 )
 
 // ProgressService stores and reads the cumulative books-read progress graph.

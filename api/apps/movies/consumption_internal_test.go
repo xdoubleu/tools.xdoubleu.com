@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"tools.xdoubleu.com/apps/internal/consumption"
 	"tools.xdoubleu.com/apps/movies/internal/models"
-	"tools.xdoubleu.com/internal/consumption"
 )
 
 func TestEntrySignal(t *testing.T) {

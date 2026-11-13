@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/apps/internal/consumption"
 )
 
 const (

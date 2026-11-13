@@ -3,7 +3,7 @@ package podcasts
 import (
 	"context"
 
-	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/apps/internal/consumption"
 )
 
 // ListConsumption returns userID's favourite shows as consumption events, for

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/games/internal/models"
-	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/apps/internal/consumption"
 )
 
 // bouncedMinutes is the playtime under which a game counts as bounced off.

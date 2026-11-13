@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"tools.xdoubleu.com/apps/internal/consumption"
 	"tools.xdoubleu.com/apps/movies/internal/models"
-	"tools.xdoubleu.com/internal/consumption"
 	"tools.xdoubleu.com/internal/kit/pagination"
 )
 
