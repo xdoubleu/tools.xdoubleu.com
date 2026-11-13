@@ -61,7 +61,9 @@ jobs:
     runs-on: ubuntu-latest
     # Only a main release ships downloads; a per-PR arm64 QEMU build costs minutes
     # and stage nothing. PRs validate the YAML via workflow-lint instead.
-    if: github.ref == 'refs/heads/main'
+    # Off until the runner needs the image: set the FACTORY_JOB_IMAGE_ENABLED repo
+    # var to "true" to build and stage it on main again.
+    if: github.ref == 'refs/heads/main' && vars.FACTORY_JOB_IMAGE_ENABLED == 'true'
     permissions:
       contents: read
     steps:
