@@ -115,16 +115,15 @@ func (s *JobService) TestingAfterMerge(
 	if err != nil {
 		return false, nil //nolint:nilerr // nothing to move
 	}
-	if err = s.linked.Upsert(ctx, models.LinkedPullRequest{
-		URL: prURL, TaskID: id, State: githubapp.StateMerged,
-		CI: "", Review: "", Mergeable: "", UnmergeableSince: nil,
-		CheckedAt: time.Time{},
-	}); err != nil {
-		return false, err
-	}
 	// Also backfills a task that merged without its commit being recorded.
 	if task.MergeSHA == "" && mergeSHA != "" {
 		err = s.tasks.SetMergeSHA(ctx, id, mergeSHA)
+	}
+	if err == nil {
+		err = s.linked.Upsert(ctx, models.LinkedPullRequest{
+			URL: prURL, TaskID: id, State: githubapp.StateMerged,
+			CI: "", Review: "", CheckedAt: time.Time{},
+		})
 	}
 	if err != nil {
 		return false, err
@@ -198,13 +197,14 @@ func (s *JobService) pullRequestEnded(
 	to, body := models.StatusNeedsYou, "The pull request was closed without merging: "
 	if status.State == githubapp.StateMerged {
 		to, body = models.StatusTesting, "The pull request was merged: "
-		if err = s.tasks.SetMergeSHA(ctx, job.TaskID, status.MergeSHA); err != nil {
-			return err
-		}
+		err = s.tasks.SetMergeSHA(ctx, job.TaskID, status.MergeSHA)
 	}
 	// Move first: a failure after it loses a comment, where a failure before it
 	// would repeat the comment on every poll until the move worked.
-	if _, err = s.tasks.Move(ctx, job.TaskID, to); err != nil {
+	if err == nil {
+		_, err = s.tasks.Move(ctx, job.TaskID, to)
+	}
+	if err != nil {
 		return err
 	}
 	_, err = s.tasks.AddComment(ctx, job.TaskID, systemAuthor, body+job.PRURL)
