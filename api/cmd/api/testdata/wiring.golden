@@ -141,6 +141,7 @@ POST /factory.v1.RunnerAdminService/CreateRunner: 401, 403
 POST /factory.v1.RunnerAdminService/ListRunners: 401, 403
 POST /factory.v1.RunnerAdminService/RevokeRunner: 401, 403
 POST /factory.v1.RunnerService/: 404, 404
+POST /factory.v1.RunnerService/AddJobComment: 415, 415
 POST /factory.v1.RunnerService/AppendJobEvents: 415, 415
 POST /factory.v1.RunnerService/CheckIn: 415, 415
 POST /factory.v1.RunnerService/ClaimJob: 415, 415
