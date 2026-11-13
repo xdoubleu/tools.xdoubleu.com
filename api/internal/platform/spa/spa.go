@@ -31,6 +31,7 @@ const (
 	extJS               = ".js"
 	extMJS              = ".mjs"
 	extManifest         = ".webmanifest"
+	pointerPrefix       = "https://github.com/"
 	maxLogsBodyBytes    = 64 * 1024
 	maxVitalsBodyBytes  = 1024
 	logsPerMinute       = 60
@@ -247,6 +248,9 @@ func (h *Handler) serveStatic(w http.ResponseWriter, r *http.Request) {
 			h.serveFile(w, r, name, info.ModTime())
 			return
 		}
+		if h.redirectPointer(w, r, name) {
+			return
+		}
 		if strings.HasPrefix(clean, "/assets/") || missingAssetExts[path.Ext(clean)] {
 			http.NotFound(w, r)
 			return
@@ -254,6 +258,29 @@ func (h *Handler) serveStatic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.serveIndex(w, r, clean)
+}
+
+// redirectPointer sends a download that is hosted elsewhere to its location:
+// downloads/<file> is absent but downloads/<file>.url holds an https GitHub URL
+// (the factory job image, which is too big to bake into the api image).
+func (h *Handler) redirectPointer(
+	w http.ResponseWriter, r *http.Request, name string,
+) bool {
+	if !strings.HasPrefix(name, "downloads/") {
+		return false
+	}
+	raw, err := h.root.ReadFile(name + ".url")
+	if err != nil {
+		return false
+	}
+	target := strings.TrimSpace(string(raw))
+	if !strings.HasPrefix(target, pointerPrefix) {
+		return false
+	}
+	w.Header().Set("Cache-Control", revalidateCache)
+	//nolint:gosec // target comes from a CI-written file and must be a GitHub URL
+	http.Redirect(w, r, target, http.StatusFound)
+	return true
 }
 
 func (h *Handler) serveFile(

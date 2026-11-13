@@ -50,37 +50,78 @@ jobs:
           path: factory-runner/dist
           retention-days: 1
 
-  # Builds the job image (docs/adr-0043) the runner loads, tagged for this release,
-  # so an installed runner fetches exactly the image this release needs. Produces the
-  # OCI archive, a signed manifest naming the release and its sha256, and uploads
-  # both for build-api to stage into /downloads/. arm64: the runner Macs are Apple
-  # silicon. The manifest is signed on main with the runner key, like the binary, so
-  # an unverified archive can't be staged.
+  # The job image (adr-0043). Its ~1.6 GB archive is a release asset keyed by a
+  # hash of its inputs plus the ISO week (plugin marketplaces are unpinned),
+  # rebuilt only on a miss. Each commit gets a small signed manifest and a .url
+  # pointer that build-api stages; the api redirects the archive to it (adr-0042).
+  # arm64: the runner Macs are Apple silicon. Signed on main with the runner key.
   build-factory-job-image:
     name: Build factory job image (arm64)
     # Native arm64: no QEMU, so it also builds on PRs to catch a broken image.
     runs-on: ubuntu-26.04-arm
     permissions:
-      contents: read
+      # Main creates the release holding the archive; PRs only read.
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PUBLISH: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
-      - name: Build the OCI archive
+      - name: Key the image by its inputs
+        id: key
         run: |
-          mkdir -p factory-runner/dist
+          week=$(date -u +%G-%V)
+          key=$( (cat factory-runner/Containerfile \
+            selfupdate/go.mod selfupdate/go.sum api/go.mod api/go.sum \
+            factory-runner/go.mod factory-runner/go.sum \
+            kobo-gateway/go.mod kobo-gateway/go.sum \
+            web/package.json web/package-lock.json; echo "$week") \
+            | sha256sum | cut -c1-16)
+          echo "tag=factory-job-image-$key" >> "$GITHUB_OUTPUT"
+          if gh release view "factory-job-image-$key" >/dev/null 2>&1; then
+            echo "hit=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "hit=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+        if: steps.key.outputs.hit != 'true'
+      - name: Build the OCI archive
+        if: steps.key.outputs.hit != 'true'
+        run: |
+          mkdir -p factory-runner/image
           docker buildx build \
             --platform linux/arm64 \
             --tag factory-job:${{ github.sha }} \
-            --output type=oci,dest=factory-runner/dist/factory-job-image.tar \
+            --output type=oci,dest=factory-runner/image/factory-job-image.tar \
             -f factory-runner/Containerfile .
-      - name: Write the manifest
+          sha256sum factory-runner/image/factory-job-image.tar | awk '{print $1}' \
+            > factory-runner/image/factory-job-image.sha256
+      - name: Publish the archive
+        if: steps.key.outputs.hit != 'true' && env.PUBLISH == 'true'
         run: |
-          sum=$(sha256sum factory-runner/dist/factory-job-image.tar | awk '{print $1}')
+          gh release create "${{ steps.key.outputs.tag }}" \
+            factory-runner/image/factory-job-image.tar \
+            factory-runner/image/factory-job-image.sha256 \
+            --target "${{ github.sha }}" --latest=false \
+            --title "${{ steps.key.outputs.tag }}" \
+            --notes "Factory job image archive (docs/adr-0042). Built by build-factory-runner.yml."
+      - name: Fetch the published checksum
+        if: steps.key.outputs.hit == 'true'
+        run: |
+          mkdir -p factory-runner/image
+          gh release download "${{ steps.key.outputs.tag }}" \
+            -p factory-job-image.sha256 -D factory-runner/image
+      - name: Write the manifest and pointer
+        run: |
+          mkdir -p factory-runner/dist
+          sum=$(tr -d '[:space:]' < factory-runner/image/factory-job-image.sha256)
           printf '%s %s\n' "${{ github.sha }}" "$sum" > factory-runner/dist/factory-job-image.txt
+          echo "https://github.com/${{ github.repository }}/releases/download/${{ steps.key.outputs.tag }}/factory-job-image.tar" \
+            > factory-runner/dist/factory-job-image.tar.url
       - name: Sign the job-image manifest
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: env.PUBLISH == 'true'
         env:
           FACTORY_RUNNER_SIGNING_KEY: ${{ secrets.FACTORY_RUNNER_SIGNING_KEY }}
         working-directory: './kobo-gateway'
@@ -91,6 +132,7 @@ jobs:
           fi
           KOBO_GATEWAY_SIGNING_KEY="$FACTORY_RUNNER_SIGNING_KEY" \
             go run ./cmd/kobo-sign sign ../factory-runner/dist/factory-job-image.txt
+      # build-api stages these small files; the archive is not among them.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: factory-runner-image-dist
