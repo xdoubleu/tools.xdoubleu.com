@@ -90,21 +90,8 @@ export default function Sidebar({
         {visibleSections(data)
           .filter((s) => s.title !== 'Account')
           .map((section) => (
-            <section
-              key={section.title}
-              className={cn(
-                'transition-[margin] duration-200 motion-reduce:transition-none',
-                collapsed ? 'mt-2' : 'mt-5'
-              )}
-            >
-              <SectionHeading
-                level="eyebrow"
-                as="h2"
-                className={cn(
-                  'overflow-hidden whitespace-nowrap px-2.5 transition-[height,margin,opacity] duration-200 motion-reduce:transition-none',
-                  collapsed ? 'mb-0 h-0 opacity-0' : 'mb-1 h-4'
-                )}
-              >
+            <section key={section.title} className="mt-2 border-t border-border/60 pt-2">
+              <SectionHeading level="eyebrow" as="h2" className="sr-only">
                 {section.title}
               </SectionHeading>
               <ul className="space-y-0.5">
