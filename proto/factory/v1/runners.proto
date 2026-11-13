@@ -123,6 +123,14 @@ message AppendJobEventsRequest {
 }
 message AppendJobEventsResponse {}
 
+// A short progress note the runner adds to the job's task, one per retry attempt.
+// Only while the job is running; a long body is cut.
+message AddJobCommentRequest {
+  string job_id = 1;
+  string body = 2;
+}
+message AddJobCommentResponse {}
+
 message CompleteJobRequest {
   string job_id = 1;
   bool succeeded = 2;
@@ -181,6 +189,7 @@ service RunnerService {
   rpc CheckIn(CheckInRequest) returns (CheckInResponse);
   rpc AppendJobEvents(AppendJobEventsRequest) returns (AppendJobEventsResponse);
   rpc GetPushToken(GetPushTokenRequest) returns (GetPushTokenResponse);
+  rpc AddJobComment(AddJobCommentRequest) returns (AddJobCommentResponse);
   rpc CompleteJob(CompleteJobRequest) returns (CompleteJobResponse);
   rpc ListFinishedTasks(ListFinishedTasksRequest) returns (ListFinishedTasksResponse);
 }

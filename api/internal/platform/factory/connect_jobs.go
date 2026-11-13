@@ -352,3 +352,22 @@ func (h *runnerHandler) CompleteJob(
 	_ = h.app.services.Jobs.ReportBlocked(ctx, runner.ID, id, req.GetBlocked())
 	return &factoryv1.CompleteJobResponse{}, nil
 }
+
+func (h *runnerHandler) AddJobComment(
+	ctx context.Context,
+	req *factoryv1.AddJobCommentRequest,
+) (*factoryv1.AddJobCommentResponse, error) {
+	runner, err := h.runnerFrom(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := parseID(req.GetJobId())
+	if err != nil {
+		return nil, err
+	}
+	err = h.app.services.Jobs.AddProgressNote(ctx, runner.ID, id, req.GetBody())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &factoryv1.AddJobCommentResponse{}, nil
+}

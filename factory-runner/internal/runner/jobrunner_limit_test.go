@@ -45,9 +45,8 @@ func rejectedAt(secs int64) string {
 
 func TestAJobTheClaudeLimitStoppedIsReportedAsLimitedWithItsResetTime(t *testing.T) {
 	reset := time.Now().Add(2 * time.Hour).Unix()
-	env := newEnv(t, limitSandbox([]string{
-		`{"type":"system","subtype":"init","session_id":"sess-1"}`, rejectedAt(reset),
-	}, "", 1), newJob())
+	// Without a session there is nothing to resume, so the limit ends the job.
+	env := newEnv(t, limitSandbox([]string{rejectedAt(reset)}, "", 1), newJob())
 
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
@@ -58,7 +57,6 @@ func TestAJobTheClaudeLimitStoppedIsReportedAsLimitedWithItsResetTime(t *testing
 	assert.Equal(t, time.Unix(reset, 0).UTC(), got.resetsAt)
 	assert.Contains(t, got.outcome,
 		"Stopped: the Claude usage limit was reached; it resets at")
-	assert.Equal(t, "sess-1", got.session)
 	assert.Empty(t, got.prURL)
 }
 

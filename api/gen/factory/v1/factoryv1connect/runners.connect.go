@@ -48,6 +48,9 @@ const (
 	RunnerServiceAppendJobEventsProcedure = "/factory.v1.RunnerService/AppendJobEvents"
 	// RunnerServiceGetPushTokenProcedure is the procedure name of the RunnerService's GetPushToken RPC.
 	RunnerServiceGetPushTokenProcedure = "/factory.v1.RunnerService/GetPushToken"
+	// RunnerServiceAddJobCommentProcedure is the procedure name of the RunnerService's AddJobComment
+	// RPC.
+	RunnerServiceAddJobCommentProcedure = "/factory.v1.RunnerService/AddJobComment"
 	// RunnerServiceCompleteJobProcedure is the procedure name of the RunnerService's CompleteJob RPC.
 	RunnerServiceCompleteJobProcedure = "/factory.v1.RunnerService/CompleteJob"
 	// RunnerServiceListFinishedTasksProcedure is the procedure name of the RunnerService's
@@ -234,6 +237,13 @@ var (
 			Procedure:  RunnerServiceGetPushTokenProcedure,
 		}
 	})
+	runnerServiceAddJobCommentSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_runners_proto.Services().ByName("RunnerService").Methods().ByName("AddJobComment"),
+			Procedure:  RunnerServiceAddJobCommentProcedure,
+		}
+	})
 	runnerServiceCompleteJobSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -261,6 +271,7 @@ type RunnerServiceClient interface {
 	CheckIn(context.Context, *v1.CheckInRequest) (*v1.CheckInResponse, error)
 	AppendJobEvents(context.Context, *v1.AppendJobEventsRequest) (*v1.AppendJobEventsResponse, error)
 	GetPushToken(context.Context, *v1.GetPushTokenRequest) (*v1.GetPushTokenResponse, error)
+	AddJobComment(context.Context, *v1.AddJobCommentRequest) (*v1.AddJobCommentResponse, error)
 	CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error)
 	ListFinishedTasks(context.Context, *v1.ListFinishedTasksRequest) (*v1.ListFinishedTasksResponse, error)
 }
@@ -282,6 +293,7 @@ type RunnerServiceHandler interface {
 	CheckIn(context.Context, *v1.CheckInRequest) (*v1.CheckInResponse, error)
 	AppendJobEvents(context.Context, *v1.AppendJobEventsRequest) (*v1.AppendJobEventsResponse, error)
 	GetPushToken(context.Context, *v1.GetPushTokenRequest) (*v1.GetPushTokenResponse, error)
+	AddJobComment(context.Context, *v1.AddJobCommentRequest) (*v1.AddJobCommentResponse, error)
 	CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error)
 	ListFinishedTasks(context.Context, *v1.ListFinishedTasksRequest) (*v1.ListFinishedTasksResponse, error)
 }
@@ -297,6 +309,7 @@ func RegisterRunnerServiceHandler(server *connect.Server, svc RunnerServiceHandl
 		connect.Method{Spec: runnerServiceCheckInSpec(), Handler: adapter.checkIn},
 		connect.Method{Spec: runnerServiceAppendJobEventsSpec(), Handler: adapter.appendJobEvents},
 		connect.Method{Spec: runnerServiceGetPushTokenSpec(), Handler: adapter.getPushToken},
+		connect.Method{Spec: runnerServiceAddJobCommentSpec(), Handler: adapter.addJobComment},
 		connect.Method{Spec: runnerServiceCompleteJobSpec(), Handler: adapter.completeJob},
 		connect.Method{Spec: runnerServiceListFinishedTasksSpec(), Handler: adapter.listFinishedTasks},
 	)
@@ -327,6 +340,10 @@ func (UnimplementedRunnerServiceHandler) AppendJobEvents(context.Context, *v1.Ap
 
 func (UnimplementedRunnerServiceHandler) GetPushToken(context.Context, *v1.GetPushTokenRequest) (*v1.GetPushTokenResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RunnerService.GetPushToken is not implemented")
+}
+
+func (UnimplementedRunnerServiceHandler) AddJobComment(context.Context, *v1.AddJobCommentRequest) (*v1.AddJobCommentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.RunnerService.AddJobComment is not implemented")
 }
 
 func (UnimplementedRunnerServiceHandler) CompleteJob(context.Context, *v1.CompleteJobRequest) (*v1.CompleteJobResponse, error) {
@@ -384,6 +401,14 @@ func (c *runnerServiceClient) AppendJobEvents(ctx context.Context, req *v1.Appen
 func (c *runnerServiceClient) GetPushToken(ctx context.Context, req *v1.GetPushTokenRequest) (*v1.GetPushTokenResponse, error) {
 	var res v1.GetPushTokenResponse
 	if err := c.client.CallUnary(ctx, runnerServiceGetPushTokenSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *runnerServiceClient) AddJobComment(ctx context.Context, req *v1.AddJobCommentRequest) (*v1.AddJobCommentResponse, error) {
+	var res v1.AddJobCommentResponse
+	if err := c.client.CallUnary(ctx, runnerServiceAddJobCommentSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -473,6 +498,18 @@ func (h runnerServiceHandler) getPushToken(ctx context.Context, _ connect.Spec, 
 		return err
 	}
 	res, err := h.svc.GetPushToken(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h runnerServiceHandler) addJobComment(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AddJobCommentRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AddJobComment(ctx, &req)
 	if err != nil {
 		return err
 	}

@@ -9,9 +9,14 @@ import (
 // errChecks is why a finished job's quality gates don't allow a pull request.
 var errChecks = errors.New("checks")
 
+// ciCovered is the note that marks a gate the sandbox can't run but CI does, as in
+// `build=not run (CI checks it)`.
+const ciCovered = "ci checks it"
+
 // checksFailure is nil when the outcome has a `Checks:` line and every gate on
-// it passed. The line looks like `Checks: lint=pass, test=pass, docs=pass`; a
-// gate is pass, fail or "not run".
+// it passed or was not run because CI checks it. The line looks like
+// `Checks: lint=pass, test=pass, docs=pass`; a gate is pass, fail or "not run",
+// and a "not run" followed by "(CI checks it)" is left to CI.
 func checksFailure(outcome string) error {
 	line, ok := findLine(outcome, "Checks:")
 	if !ok {
@@ -19,21 +24,21 @@ func checksFailure(outcome string) error {
 	}
 	var bad []string
 	n := 0
-	for part := range strings.FieldsFuncSeq(dropNotes(line), func(r rune) bool {
-		return r == ',' || r == ';'
-	}) {
-		name, status, found := strings.Cut(strings.TrimSpace(part), "=")
+	for _, part := range splitGates(line) {
+		name, status, found := strings.Cut(part.text, "=")
 		name = strings.TrimSpace(name)
 		status = strings.ToLower(strings.Join(strings.Fields(status), " "))
 		if !found || name == "" {
 			return fmt.Errorf("%w: malformed `Checks:` line %q", errChecks, line)
 		}
 		n++
-		if status != "pass" {
-			if status != "fail" {
-				status = "not run"
-			}
-			bad = append(bad, name+" "+status)
+		switch {
+		case status == "pass":
+		case status != "fail" && strings.Contains(part.note, ciCovered):
+		case status == "fail":
+			bad = append(bad, name+" fail")
+		default:
+			bad = append(bad, name+" not run")
 		}
 	}
 	switch {
@@ -46,22 +51,46 @@ func checksFailure(outcome string) error {
 	return nil
 }
 
-// dropNotes removes parenthesized notes, such as "test=fail (web not run; see
-// above)", whose separators would otherwise split a gate.
-func dropNotes(line string) string {
-	var b strings.Builder
-	depth := 0
+// gate is one entry of a `Checks:` line: its text outside parentheses, and the
+// lowercased text of its parenthesized notes.
+type gate struct{ text, note string }
+
+// splitGates splits a `Checks:` line at top-level commas and semicolons, so a note
+// such as "test=fail (web not run; see above)" stays with its gate.
+func splitGates(line string) []gate {
+	var (
+		gates []gate
+		text  strings.Builder
+		note  strings.Builder
+		depth int
+	)
+	flush := func() {
+		if strings.TrimSpace(text.String()) != "" || note.Len() > 0 {
+			gates = append(gates, gate{
+				text: strings.TrimSpace(text.String()),
+				note: strings.ToLower(strings.Join(strings.Fields(note.String()), " ")),
+			})
+		}
+		text.Reset()
+		note.Reset()
+	}
 	for _, r := range line {
 		switch {
 		case r == '(':
 			depth++
 		case r == ')' && depth > 0:
 			depth--
-		case depth == 0:
-			b.WriteRune(r)
+			note.WriteRune(' ')
+		case depth > 0:
+			note.WriteRune(r)
+		case r == ',' || r == ';':
+			flush()
+		default:
+			text.WriteRune(r)
 		}
 	}
-	return b.String()
+	flush()
+	return gates
 }
 
 // findLine returns the text after the last line starting with prefix.

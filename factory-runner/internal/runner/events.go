@@ -128,6 +128,17 @@ func (t *eventTap) add(raw string) {
 	t.next++
 }
 
+// note queues a line of the runner's own, among the harness's.
+func (t *eventTap) note(text string) {
+	raw, err := json.Marshal(map[string]string{"type": "runner", "text": text})
+	if err != nil {
+		return
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.add(string(raw))
+}
+
 // take removes and returns up to maxEventsPerBatch queued lines.
 func (t *eventTap) take() []EventLine {
 	t.mu.Lock()

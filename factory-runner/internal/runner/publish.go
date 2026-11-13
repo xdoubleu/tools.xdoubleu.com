@@ -46,6 +46,8 @@ type GitHubAPI interface {
 	// OpenPullRequest returns the address of the new pull request, or of the open
 	// one the branch already has.
 	OpenPullRequest(ctx context.Context, token string, pr PullRequest) (string, error)
+	// PullRequestStatus reads a pull request's state and its CI verdict.
+	PullRequestStatus(ctx context.Context, token string, ref PullRef) (PullStatus, error)
 }
 
 // GitHubClient is the real GitHubAPI.

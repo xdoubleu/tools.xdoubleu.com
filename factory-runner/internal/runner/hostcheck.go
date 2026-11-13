@@ -31,6 +31,15 @@ type Reviewed struct {
 	branch string
 }
 
+// Head is the commit the reviewed branch is at, or "" when git can't say.
+func (r *Reviewed) Head(ctx context.Context) string {
+	out, err := r.g.git(ctx, r.dir, "rev-parse", "refs/heads/"+r.branch)
+	if err != nil {
+		return ""
+	}
+	return string(bytes.TrimSpace(out))
+}
+
 // Close removes the host's copy.
 func (r *Reviewed) Close() { _ = os.RemoveAll(r.dir) }
 
