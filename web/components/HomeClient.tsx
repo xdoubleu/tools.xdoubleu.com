@@ -132,7 +132,7 @@ export default function HomeClient() {
 
   if (authState === 'mfa-challenge') {
     return (
-      <PageContainer size="narrow">
+      <PageContainer size="centered">
         <PageHeader
           title="Two-factor authentication"
           description="Enter the code from your authenticator app."
@@ -161,7 +161,7 @@ export default function HomeClient() {
   }
 
   return (
-    <PageContainer size="narrow">
+    <PageContainer size="centered">
       <PageHeader title="Sign in" description="tools.xdoubleu.com" />
       <Card>
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -8,7 +8,7 @@ import { reloadPage } from '@/lib/navigate'
 
 export function NotFound() {
   return (
-    <PageContainer size="narrow">
+    <PageContainer size="centered">
       <PageHeader title="Page not found" description="This page does not exist." />
     </PageContainer>
   )
@@ -22,7 +22,7 @@ export function RouteError() {
   }, [error])
 
   return (
-    <PageContainer size="narrow">
+    <PageContainer size="centered">
       <PageHeader title="Something went wrong" description="An unexpected error occurred." />
       {/* A reload also recovers from a stale deploy's missing route chunk. */}
       <Button onClick={reloadPage}>Try again</Button>

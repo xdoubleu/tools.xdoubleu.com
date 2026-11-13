@@ -55,7 +55,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <PageContainer size="narrow">
+    <PageContainer size="centered">
       <PageHeader title="Set new password" />
       <Card>
         {state === 'invalid' && (

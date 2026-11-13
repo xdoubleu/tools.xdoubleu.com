@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <PageContainer size="narrow">
+    <PageContainer size="centered">
       <PageHeader title="Reset your password" />
       <Card>
         {sent ? (

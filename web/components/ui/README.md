@@ -399,6 +399,8 @@ True inside a `<Link>` while the navigation it started is still loading.
 
 #### `PageContainer`
 
+Every size but `centered` starts at the shell's left edge, so titles line up across pages.
+
 | Prop | Type | Required | Notes |
 |---|---|---|---|
 | `size` | `keyof typeof sizes` |  |  |

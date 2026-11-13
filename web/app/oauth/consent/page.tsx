@@ -42,14 +42,14 @@ export default function ConsentPage() {
   if (info === undefined) return <LoadingState className="p-6" />
   if (!info) {
     return (
-      <PageContainer size="narrow">
+      <PageContainer size="centered">
         <Alert tone="danger">This authorization request is invalid or has expired.</Alert>
       </PageContainer>
     )
   }
 
   return (
-    <PageContainer size="narrow">
+    <PageContainer size="centered">
       <ConsentForm
         requestQuery={query}
         consentToken={info.consentToken ?? ''}

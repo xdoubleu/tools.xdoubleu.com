@@ -60,7 +60,7 @@ export default {
       empty:
         'Hand-rolled empty state. Use `EmptyState` from @/components/ui/states (its `action` takes the call to action).',
       pageContainer:
-        '`{{token}}` on PageContainer: the shell already pads pages, and width comes from `size` (`narrow`, `form`).'
+        '`{{token}}` on PageContainer: the shell already pads pages, and width comes from `size`.'
     },
     schema: []
   },
