@@ -10,7 +10,7 @@ cmd/factory-runner/   main.go (the tested app type), config.go, entry.go, jobs.g
 internal/runner/
   client.go, jobs_client.go   the server calls
   daemon.go, control.go       heartbeat loop; pause flag, menu status
-  jobrunner.go                claim loop: validate, clone, sandbox, report
+  jobrunner.go                claim loop; Checks:/Blocked: lines
   gitclone.go                 host mirror and a standalone job clone
   hostcheck.go                host checks on finished work
   events.go                   redacted log lines to the board

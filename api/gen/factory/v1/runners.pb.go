@@ -1082,6 +1082,10 @@ type CompleteJobRequest struct {
 	// did not say) feeds the board's "Claude limited until" notice.
 	Limited       bool   `protobuf:"varint,6,opt,name=limited,proto3" json:"limited,omitempty"`
 	LimitResetsAt string `protobuf:"bytes,7,opt,name=limit_resets_at,json=limitResetsAt,proto3" json:"limit_resets_at,omitempty"`
+	// What stopped the job doing or checking its work in the sandbox. The server
+	// files it as a factory-sandbox task of the job's repo, or comments on the open
+	// one with the same title.
+	Blocked       string `protobuf:"bytes,8,opt,name=blocked,proto3" json:"blocked,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1161,6 +1165,13 @@ func (x *CompleteJobRequest) GetLimited() bool {
 func (x *CompleteJobRequest) GetLimitResetsAt() string {
 	if x != nil {
 		return x.LimitResetsAt
+	}
+	return ""
+}
+
+func (x *CompleteJobRequest) GetBlocked() string {
+	if x != nil {
+		return x.Blocked
 	}
 	return ""
 }
@@ -1465,7 +1476,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\x16AppendJobEventsRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12)\n" +
 	"\x05lines\x18\x02 \x03(\v2\x13.factory.v1.JobLineR\x05lines\"\x19\n" +
-	"\x17AppendJobEventsResponse\"\xdb\x01\n" +
+	"\x17AppendJobEventsResponse\"\xf5\x01\n" +
 	"\x12CompleteJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1c\n" +
 	"\tsucceeded\x18\x02 \x01(\bR\tsucceeded\x12\x18\n" +
@@ -1474,7 +1485,8 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"session_id\x18\x04 \x01(\tR\tsessionId\x12\x15\n" +
 	"\x06pr_url\x18\x05 \x01(\tR\x05prUrl\x12\x18\n" +
 	"\alimited\x18\x06 \x01(\bR\alimited\x12&\n" +
-	"\x0flimit_resets_at\x18\a \x01(\tR\rlimitResetsAt\"\x15\n" +
+	"\x0flimit_resets_at\x18\a \x01(\tR\rlimitResetsAt\x12\x18\n" +
+	"\ablocked\x18\b \x01(\tR\ablocked\"\x15\n" +
 	"\x13CompleteJobResponse\"5\n" +
 	"\x18ListFinishedTasksRequest\x12\x19\n" +
 	"\btask_ids\x18\x01 \x03(\tR\ataskIds\"6\n" +

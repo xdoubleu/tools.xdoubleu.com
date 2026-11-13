@@ -61,8 +61,14 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`run the repository's lint, test and documentation-budget gates (see its ` +
 	`AGENTS.md). End the outcome with one line listing each gate, for example ` +
 	`"Checks: lint=pass, test=pass, docs=pass"; a gate is pass, fail or ` +
-	`not run. No pull request is opened unless every gate passed. Nobody can ` +
-	`answer questions while you run.`
+	`not run. No pull request is opened unless every gate passed. If the ` +
+	`sandbox stops you doing or checking the work (a missing module cache, ` +
+	`blocked network, absent tool), search the board with factory_list_tasks ` +
+	`for the label factory-sandbox and add a comment with factory_comment_task ` +
+	`to an open task about the same problem, otherwise file one with ` +
+	`factory_create_task titled "Sandbox: <short problem>". Then carry on as ` +
+	`far as you can, and add one line "Blocked: <the problem>" to the outcome. ` +
+	`Nobody can answer questions while you run.`
 
 // JobRunner claims jobs from the server and runs each one in a sandbox.
 type JobRunner struct {
@@ -110,7 +116,7 @@ type JobRunner struct {
 func failed(outcome string) result {
 	return result{
 		succeeded: false, outcome: outcome, session: "", prURL: "",
-		limited: false, resetsAt: time.Time{},
+		limited: false, resetsAt: time.Time{}, blocked: "",
 	}
 }
 
@@ -137,6 +143,8 @@ type result struct {
 	// when that is known.
 	limited  bool
 	resetsAt time.Time
+	// blocked is what stopped the agent in the sandbox, for the board.
+	blocked string
 }
 
 // Next claims one job and runs it to the end, reporting whether there was one.
@@ -203,6 +211,7 @@ func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {
 	err := r.API.CompleteJob(done, r.Token, job.ID, JobEnd{
 		Succeeded: res.succeeded, Outcome: res.outcome, SessionID: res.session,
 		PRURL: res.prURL, Limited: res.limited, ResetsAt: res.resetsAt,
+		Blocked: res.blocked,
 	})
 	if err != nil {
 		r.Log.Warn("could not report the job", "job", job.ID, "error", err)
@@ -276,6 +285,7 @@ func (r *JobRunner) limitFor(job *ClaimedJob) time.Duration {
 	return time.Duration(min(job.TimeLimitMinutes, maxTimeLimitMinutes)) * r.minute()
 }
 
+//nolint:funlen // one pipeline: clone, run, then name how it ended
 func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	if err := r.check(job); err != nil {
 		return failed("Refused by the runner: " + err.Error())
@@ -328,7 +338,11 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	limited, resetsAt := tap.Limit()
 	res := result{
 		succeeded: false, outcome: "", session: tap.Session(), prURL: "",
-		limited: false, resetsAt: time.Time{},
+		limited: false, resetsAt: time.Time{}, blocked: "",
+	}
+	if b, ok := findLine(text, "Blocked:"); ok && !strings.EqualFold(b, "none") &&
+		!leaks(b, secrets) {
+		res.blocked = b
 	}
 	var reason string
 	switch {
@@ -340,19 +354,31 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		reason = "The runner shut down while the job ran."
 	case runErr != nil:
 		reason = "The sandbox could not run the job: " + runErr.Error()
+		res.blocked = noOutcomeBlock(text, reason, secrets, res.blocked)
 	case limited && (exit != 0 || text == ""):
 		// A rejection the agent worked past, to a finished outcome, is not a stop.
 		reason = limitReason(resetsAt)
 		res.limited, res.resetsAt = true, resetsAt
 	case exit != 0:
 		reason = fmt.Sprintf("The agent exited with status %d.", exit)
+		res.blocked = noOutcomeBlock(text, reason, secrets, res.blocked)
 	case text == "":
 		reason = "The agent exited cleanly but wrote no outcome file."
+		res.blocked = noOutcomeBlock(text, reason, secrets, res.blocked)
 	default:
 		return r.publishable(ctx, job, cloneDir, since, text, res, secrets)
 	}
 	res.outcome = strings.TrimSpace(reason + "\n\n" + text)
 	return res
+}
+
+// noOutcomeBlock is the report for a job that ended before the agent said
+// anything: the reason, unless the agent already named what blocked it.
+func noOutcomeBlock(text, reason string, secrets []string, have string) string {
+	if text != "" || have != "" || leaks(reason, secrets) {
+		return have
+	}
+	return reason
 }
 
 // jobDirs are a job's directories on the host.

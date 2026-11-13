@@ -86,6 +86,7 @@ type completion struct {
 	prURL     string
 	limited   bool
 	resetsAt  time.Time
+	blocked   string
 }
 
 func newFakeAPI(jobs ...*runner.ClaimedJob) *fakeAPI {
@@ -179,7 +180,7 @@ func (f *fakeAPI) CompleteJob(
 	f.completed = append(f.completed, completion{
 		jobID: id, succeeded: end.Succeeded, outcome: end.Outcome,
 		session: end.SessionID, prURL: end.PRURL, limited: end.Limited,
-		resetsAt: end.ResetsAt,
+		resetsAt: end.ResetsAt, blocked: end.Blocked,
 	})
 	f.completes <- struct{}{}
 	return nil

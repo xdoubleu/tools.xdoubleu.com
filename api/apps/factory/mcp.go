@@ -163,7 +163,10 @@ func (t *mcpTools) onlyOwnTask(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	if scoped && id != own {
-		return errTaskNotFound
+		task, _, getErr := t.app.services.Tasks.Get(ctx, id)
+		if getErr != nil || !services.IsSandboxTask(task) {
+			return errTaskNotFound
+		}
 	}
 	return nil
 }
@@ -211,7 +214,7 @@ func (t *mcpTools) listTasks(
 	}
 	out := []*factoryv1.Task{}
 	for i := range tasks {
-		if scoped && tasks[i].ID != own {
+		if scoped && tasks[i].ID != own && !services.IsSandboxTask(&tasks[i]) {
 			continue
 		}
 		if args.Status != "" && string(tasks[i].Status) != args.Status {
@@ -269,6 +272,20 @@ func (t *mcpTools) createTask(
 	repoID, err := parseID(args.RepoID)
 	if err != nil {
 		return nil, err
+	}
+	_, scoped, err := t.scopedTask(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if scoped {
+		// A job's account may only report a sandbox problem: the label, priority and
+		// column are fixed, and a repeat comments on the open task.
+		task, _, repErr := t.app.services.Tasks.ReportSandbox(
+			ctx, actor, repoID, args.Title, args.Body)
+		if repErr != nil {
+			return nil, connecttools.MapError(repErr)
+		}
+		return &factoryv1.CreateTaskResponse{Task: protoTask(task)}, nil
 	}
 	task, err := t.app.services.Tasks.Create(ctx, actor, repoID, services.TaskInput{
 		Title:    args.Title,

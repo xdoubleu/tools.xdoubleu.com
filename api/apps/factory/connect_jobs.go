@@ -348,5 +348,7 @@ func (h *runnerHandler) CompleteJob(
 	if err != nil {
 		return nil, mapError(err)
 	}
+	// The job is already over, so a report that fails must not fail the call.
+	_ = h.app.services.Jobs.ReportBlocked(ctx, runner.ID, id, req.GetBlocked())
 	return &factoryv1.CompleteJobResponse{}, nil
 }

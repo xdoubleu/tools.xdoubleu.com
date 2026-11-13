@@ -138,6 +138,10 @@ message CompleteJobRequest {
   // did not say) feeds the board's "Claude limited until" notice.
   bool limited = 6;
   string limit_resets_at = 7;
+  // What stopped the job doing or checking its work in the sandbox. The server
+  // files it as a factory-sandbox task of the job's repo, or comments on the open
+  // one with the same title.
+  string blocked = 8;
 }
 message CompleteJobResponse {}
 

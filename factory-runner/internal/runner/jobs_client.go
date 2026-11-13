@@ -82,6 +82,9 @@ type JobEnd struct {
 	// when it lifts, zero if the harness did not say.
 	Limited  bool
 	ResetsAt time.Time
+	// Blocked is what stopped the job doing or checking its work in the sandbox;
+	// the server files it as a factory-sandbox task. Empty when nothing did.
+	Blocked string
 }
 
 type completeJobRequest struct {
@@ -92,6 +95,7 @@ type completeJobRequest struct {
 	PRURL         string `json:"prUrl"`
 	Limited       bool   `json:"limited,omitempty"`
 	LimitResetsAt string `json:"limitResetsAt,omitempty"`
+	Blocked       string `json:"blocked,omitempty"`
 }
 
 type finishedTasksRequest struct {
@@ -181,7 +185,7 @@ func (c *Client) CompleteJob(
 	req := completeJobRequest{
 		JobID: jobID, Succeeded: end.Succeeded, Outcome: end.Outcome,
 		SessionID: end.SessionID, PRURL: end.PRURL, Limited: end.Limited,
-		LimitResetsAt: "",
+		LimitResetsAt: "", Blocked: end.Blocked,
 	}
 	if !end.ResetsAt.IsZero() {
 		req.LimitResetsAt = end.ResetsAt.UTC().Format(time.RFC3339)

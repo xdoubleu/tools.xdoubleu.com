@@ -88,7 +88,7 @@ func TestCompleteJobSendsTheResult(t *testing.T) {
 		t,
 		c.CompleteJob(context.Background(), "frt_x", "j1", runner.JobEnd{
 			Succeeded: true, Outcome: "done", SessionID: "s1", PRURL: "https://x/pr",
-			Limited: false, ResetsAt: time.Time{},
+			Limited: false, ResetsAt: time.Time{}, Blocked: "",
 		}),
 	)
 
@@ -102,7 +102,7 @@ func TestCompleteJobSendsTheResult(t *testing.T) {
 		t,
 		late.CompleteJob(context.Background(), "frt_x", "j1", runner.JobEnd{
 			Succeeded: true, Outcome: "", SessionID: "", PRURL: "",
-			Limited: false, ResetsAt: time.Time{},
+			Limited: false, ResetsAt: time.Time{}, Blocked: "",
 		}),
 	)
 }
