@@ -32,6 +32,7 @@ func TestValidateRefuses(t *testing.T) {
 		"repo with a url":            job("https://github.com/a/b", "agent/x", "main"),
 		"repo starting with dash":    job("-a/b", "agent/x", "main"),
 		"branch outside agent":       job(repoOK, "main", "main"),
+		"branch with task number 0":  job(repoOK, "agent/t0-fix", "main"),
 		"branch prefix only":         job(repoOK, "agent/", "main"),
 		"branch starting with dash":  job(repoOK, "--upload-pack=x", "main"),
 		"branch with dotdot":         job(repoOK, "agent/../main", "main"),

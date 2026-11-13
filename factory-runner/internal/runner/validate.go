@@ -68,6 +68,9 @@ func Validate(job Job, allowed []string) error {
 			BranchPrefix,
 		)
 	}
+	if strings.HasPrefix(job.Branch, "agent/t0-") {
+		return fmt.Errorf("%w: branch %q carries no task number", ErrRefused, job.Branch)
+	}
 	if !validRef(job.BaseBranch) {
 		return fmt.Errorf("%w: invalid base branch %q", ErrRefused, job.BaseBranch)
 	}
