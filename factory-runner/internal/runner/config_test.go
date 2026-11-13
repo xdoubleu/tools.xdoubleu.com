@@ -62,6 +62,7 @@ func TestBrokenOrUnreadableConfigIsAnError(t *testing.T) {
 		GoModCache: "",
 		NPMCache:   "",
 		BotEmail:   "",
+		Mode:       "",
 	}
 	blocker := filepath.Join(dir, "file")
 	require.NoError(t, os.WriteFile(blocker, nil, 0o600))
@@ -77,6 +78,7 @@ func TestAddAndRemoveRepos(t *testing.T) {
 		GoModCache: "",
 		NPMCache:   "",
 		BotEmail:   "",
+		Mode:       "",
 	}
 	require.Error(t, cfg.AddRepo("not-a-repo"))
 	require.Error(t, cfg.AddRepo("-a/b"))
@@ -95,6 +97,7 @@ func TestServerMustBeHTTPSOrLoopback(t *testing.T) {
 		GoModCache: "",
 		NPMCache:   "",
 		BotEmail:   "",
+		Mode:       "",
 	}
 	for _, ok := range []string{
 		"https://example.com/api/", "http://localhost:8080", "http://127.0.0.1",
@@ -109,4 +112,18 @@ func TestServerMustBeHTTPSOrLoopback(t *testing.T) {
 	} {
 		require.Error(t, cfg.SetServer(bad), bad)
 	}
+}
+
+func TestConfigModeDefaultsToOffAndRejectsUnknownValues(t *testing.T) {
+	var cfg runner.Config
+	assert.Equal(t, runner.ModeOff, cfg.EffectiveMode())
+
+	require.NoError(t, cfg.SetMode(runner.ModeClaude))
+	assert.Equal(t, runner.ModeClaude, cfg.EffectiveMode())
+
+	require.Error(t, cfg.SetMode("opencode"))
+	assert.Equal(t, runner.ModeClaude, cfg.EffectiveMode())
+
+	cfg.Mode = "bogus"
+	assert.Equal(t, runner.ModeOff, cfg.EffectiveMode())
 }

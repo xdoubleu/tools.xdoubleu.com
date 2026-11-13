@@ -266,7 +266,7 @@ func newEnv(
 	return &jobEnv{
 		api: api, sandbox: sb, dir: dir, remote: remote,
 		runner: &runner.JobRunner{
-			API: api, Token: "frt_x", Paused: nil,
+			API: api, Token: "frt_x", Paused: nil, Mode: nil,
 			Allowed: func() ([]string, error) {
 				return []string{"xdoubleu/tools.xdoubleu.com"}, nil
 			},
@@ -344,23 +344,8 @@ func TestTheRunnerRefusesWhatItsOwnRulesForbid(t *testing.T) {
 		"an option as the base":       func(j *runner.ClaimedJob) { j.DefaultBranch = "-x" },
 		"a job id that names a path":  func(j *runner.ClaimedJob) { j.ID = "../../etc" },
 		"a task id that names a path": func(j *runner.ClaimedJob) { j.TaskID = "../x" },
-		"claude code with a model": func(j *runner.ClaimedJob) {
-			j.Model = "vendor/model"
-		},
-		"opencode without a model": func(j *runner.ClaimedJob) {
-			j.Harness, j.Model = runner.HarnessOpenCode, ""
-		},
-		"opencode with a model that is an option": func(j *runner.ClaimedJob) {
-			j.Harness, j.Model = runner.HarnessOpenCode, "-x/model"
-		},
-		"opencode with a model that has a space": func(j *runner.ClaimedJob) {
-			j.Harness, j.Model = runner.HarnessOpenCode, "a/b c"
-		},
 		"a session id that is an option": func(j *runner.ClaimedJob) {
 			j.ResumeSessionID = "--dangerously-skip-permissions"
-		},
-		"a harness it can't run": func(j *runner.ClaimedJob) {
-			j.Harness = "HARNESS_AIDER"
 		},
 	}
 	for name, change := range mutate {
@@ -859,6 +844,7 @@ func writesOpenCode(
 
 func TestAnOpenCodeJobRunsTheOpenCodeCommandAndReportsItsSession(t *testing.T) {
 	env := newEnv(t, writesOpenCode("Did it."), openCodeJob())
+	env.runner.Harness = runner.OpenCode{Model: "vendor/model"}
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
 
@@ -890,6 +876,7 @@ func TestAnOpenCodeReplyResumesItsSession(t *testing.T) {
 		)
 		return 0, nil
 	}, openCodeJob())
+	env.runner.Harness = runner.OpenCode{Model: "vendor/model"}
 	ranFirstJob(t, env)
 
 	reply := replyJob()
@@ -936,4 +923,40 @@ func TestLoopClaimsNothingWhileStopped(t *testing.T) {
 		}, ticking()))
 	assert.Equal(t, 3, sleeps, "claimed only after the start")
 	assert.Len(t, env.api.done(), 1)
+}
+
+func TestTheMacsModeDecidesTheHarnessNotTheJob(t *testing.T) {
+	job := openCodeJob()
+	env := newEnv(t, writes("ok", 0), job)
+	env.runner.Mode = func() string { return runner.ModeClaude }
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, runner.ClaudeCode{}.Command(), env.sandbox.specs[0].Command)
+	assert.True(t, env.api.done()[0].succeeded, env.api.done()[0].outcome)
+}
+
+func TestModeOffRefusesEveryJob(t *testing.T) {
+	env := newEnv(t, writes("ok", 0), newJob())
+	env.runner.Mode = func() string { return runner.ModeOff }
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Empty(t, env.sandbox.specs)
+	assert.False(t, env.api.done()[0].succeeded)
+	assert.Contains(t, env.api.done()[0].outcome, "mode is off")
+}
+
+func TestAReplyOfAnotherHarnessIsRefusedWithAReason(t *testing.T) {
+	reply := replyJob()
+	reply.ResumeSessionID = "ses_42"
+	env := newEnv(t, writes("ok", 0), reply)
+	env.runner.Mode = func() string { return runner.ModeClaude }
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.Empty(t, env.sandbox.specs)
+	assert.Contains(
+		t, env.api.done()[0].outcome, "this Mac runs "+runner.HarnessClaudeCode,
+	)
 }

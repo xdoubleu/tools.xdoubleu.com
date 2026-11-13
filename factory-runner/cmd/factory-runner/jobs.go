@@ -56,7 +56,8 @@ func newJobRunner(
 			RunWithEnv: nil,
 		},
 		Sandbox: box,
-		Paused:  a.paused,
+		Paused:  a.notClaiming,
+		Mode:    a.mode,
 		Harness: runner.ClaudeCode{},
 		ClaudeToken: func() (string, error) {
 			return a.secrets.GetSecret(runner.SecretClaude)
@@ -81,4 +82,19 @@ func newJobRunner(
 // paused is whether the owner stopped this runner from the menu bar.
 func (a *app) paused() bool {
 	return a.control != nil && a.control.Paused()
+}
+
+// mode is this Mac's mode, read each time so `config mode` takes effect without a
+// restart. A read error counts as off.
+func (a *app) mode() string {
+	cfg, _, err := a.loadConfig()
+	if err != nil || a.paused() {
+		return runner.ModeOff
+	}
+	return cfg.EffectiveMode()
+}
+
+// notClaiming is whether the claim loop stays idle: Stop, or no harness chosen.
+func (a *app) notClaiming() bool {
+	return a.mode() == runner.ModeOff
 }

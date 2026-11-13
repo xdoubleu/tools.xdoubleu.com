@@ -104,6 +104,7 @@ func TestMenuLines(t *testing.T) {
 func status(set func(*runner.Status)) runner.Status {
 	s := runner.Status{
 		Version: "", Paused: false, Busy: false, LastHeartbeat: time.Time{}, Update: "",
+		Mode: "",
 	}
 	set(&s)
 	return s
@@ -185,4 +186,14 @@ func (h *holdingBeat) Heartbeat(ctx context.Context, _ string) error {
 	h.once.Do(func() { close(h.held) })
 	<-ctx.Done()
 	return ctx.Err()
+}
+
+func TestStatusShowsTheConfigMode(t *testing.T) {
+	c := runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v1", nil)
+	assert.Empty(t, c.Snapshot().Mode)
+
+	c.SetModeSource(func() string { return runner.ModeClaude })
+	s := c.Snapshot()
+	assert.Equal(t, runner.ModeClaude, s.Mode)
+	assert.Contains(t, s.MenuLines("v1", time.Now()).Status, "(mode: claude)")
 }

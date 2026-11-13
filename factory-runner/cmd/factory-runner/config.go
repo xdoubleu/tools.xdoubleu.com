@@ -12,7 +12,7 @@ import (
 )
 
 var errConfigUsage = errors.New(
-	"usage: factory-runner config show | server <url> | " +
+	"usage: factory-runner config show | mode off|claude | server <url> | " +
 		"repos add|remove <owner/name> | repos list | image <ref> | " +
 		"data|gocache|npmcache <dir> | bot-email <address> | secret claude|openrouter",
 )
@@ -30,9 +30,11 @@ func (a *app) config(args []string) error {
 	case verb == "show" && len(rest) == 0:
 		fmt.Fprintf(a.stdout, "server: %s\nrepos: %v\nimage: %s\ndata: %s\n",
 			cfg.Server, cfg.Repos, cfg.JobImage(), cfg.DataPath(a.home))
-		fmt.Fprintf(a.stdout, "gocache: %s\nnpmcache: %s\nbot-email: %s\n",
-			orNone(cfg.GoModCache), orNone(cfg.NPMCache), cfg.AuthorEmail())
+		fmt.Fprintf(a.stdout, "gocache: %s\nnpmcache: %s\nbot-email: %s\nmode: %s\n",
+			orNone(cfg.GoModCache), orNone(cfg.NPMCache), cfg.AuthorEmail(), cfg.EffectiveMode())
 		return nil
+	case verb == "mode" && len(rest) == 1:
+		err = a.setMode(&cfg, rest[0])
 	case verb == "server" && len(rest) == 1:
 		err = cfg.SetServer(rest[0])
 	case verb == "image" && len(rest) == 1:
@@ -133,4 +135,16 @@ func (a *app) listRepos() error {
 		fmt.Fprintln(a.stdout, r)
 	}
 	return nil
+}
+
+// setMode chooses the harness. Off is the menu bar's Stop: both write the same
+// paused flag, so a running runner follows without a restart.
+func (a *app) setMode(cfg *runner.Config, mode string) error {
+	if err := cfg.SetMode(mode); err != nil {
+		return err
+	}
+	if a.control == nil {
+		return nil
+	}
+	return a.control.SetPaused(cfg.EffectiveMode() == runner.ModeOff)
 }

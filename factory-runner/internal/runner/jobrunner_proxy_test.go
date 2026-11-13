@@ -60,6 +60,7 @@ func TestAnOpenCodeJobDoesNotGetTheClaudeToken(t *testing.T) {
 	job.Harness, job.Model = runner.HarnessOpenCode, "vendor/model"
 	env := newEnv(t, writesOpenCode("Done."), job)
 	env.runner.ClaudeToken = func() (string, error) { return claudeToken, nil }
+	env.runner.Harness = runner.OpenCode{Model: "vendor/model"}
 
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
