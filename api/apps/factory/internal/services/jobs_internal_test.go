@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
+	"tools.xdoubleu.com/apps/factory/internal/repositories"
 )
 
 func TestSlug(t *testing.T) {
@@ -123,4 +124,11 @@ func TestLinkedTaskReadsTheNumberOrALegacyUUID(t *testing.T) {
 	}
 	_, ok := linkedTask("Task: Fix it (142)")
 	assert.False(t, ok)
+}
+
+func TestApprovedTaskKeepsNumberForBranch(t *testing.T) {
+	c := &repositories.PickupCandidate{
+		TaskID: uuid.New(), Number: 175, RepoID: uuid.Nil, Title: "Fix it", Body: "",
+	}
+	assert.Equal(t, "agent/t175-fix-it", branchFor(approvedTask(c)))
 }

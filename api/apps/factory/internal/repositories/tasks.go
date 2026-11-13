@@ -306,6 +306,7 @@ func (r *TasksRepository) Comments(
 // PickupCandidate is a Ready task as a human approved it.
 type PickupCandidate struct {
 	TaskID uuid.UUID
+	Number int64
 	RepoID uuid.UUID
 	Title  string
 	Body   string
@@ -318,7 +319,7 @@ type PickupCandidate struct {
 func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, error) {
 	var c PickupCandidate
 	err := r.db.QueryRow(ctx, `
-		SELECT t.id, t.repo_id, t.ready_title, t.ready_body
+		SELECT t.id, t.number, t.repo_id, t.ready_title, t.ready_body
 		FROM factory.tasks t
 		JOIN factory.repos r ON r.id = t.repo_id
 		WHERE t.status = 'ready' AND r.auto_pickup AND t.ready_body IS NOT NULL
@@ -330,7 +331,7 @@ func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, erro
 				SELECT 1 FROM factory.jobs j WHERE j.status IN ('queued', 'running')
 			)
 		ORDER BY t.priority, t.created_at, t.id
-		LIMIT 1`).Scan(&c.TaskID, &c.RepoID, &c.Title, &c.Body)
+		LIMIT 1`).Scan(&c.TaskID, &c.Number, &c.RepoID, &c.Title, &c.Body)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
