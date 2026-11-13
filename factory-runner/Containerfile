@@ -25,7 +25,8 @@ RUN npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" \
 # Claude's config (marketplaces and the plugins .claude/settings.json enables) lives
 # here; the runner copies it into a new session directory, because CLAUDE_CONFIG_DIR
 # replaces the whole config directory.
-RUN mkdir -p /opt/claude-config && chown node:node /opt/claude-config
+RUN mkdir -p /opt/claude-config /opt/gomodcache /opt/npmcache /deps \
+    && chown node:node /opt/claude-config /opt/gomodcache /opt/npmcache /deps
 USER node
 ENV CLAUDE_CONFIG_DIR=/opt/claude-config
 RUN claude plugin marketplace add xdoubleu/skills \
@@ -47,13 +48,12 @@ COPY --chown=node:node api/go.mod api/go.sum /deps/api/
 COPY --chown=node:node factory-runner/go.mod factory-runner/go.sum /deps/factory-runner/
 COPY --chown=node:node kobo-gateway/go.mod kobo-gateway/go.sum /deps/kobo-gateway/
 COPY --chown=node:node web/package.json web/package-lock.json /deps/web/
-RUN mkdir -p /opt/gomodcache /opt/npmcache \
-    && for m in api factory-runner kobo-gateway selfupdate; do \
+RUN for m in api factory-runner kobo-gateway selfupdate; do \
         (cd /deps/$m && GOMODCACHE=/opt/gomodcache go mod download) || exit 1; \
     done \
     && (cd /deps/web && npm ci --ignore-scripts --no-audit --no-fund \
         --cache /opt/npmcache) \
-    && rm -rf /deps \
+    && rm -rf /deps/* \
     && chmod -R a+rX /opt/gomodcache /opt/npmcache
 
 WORKDIR /work
