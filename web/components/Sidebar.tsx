@@ -11,8 +11,9 @@ import { isSharedDashboard } from '@/lib/signIn'
 
 // Stryker disable StringLiteral: class names and menu copy are presentation; tests assert the labels.
 const itemClass =
-  'flex min-h-9 items-center gap-3 rounded-lg px-3 text-sm text-muted transition-colors hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
-const collapsedItemClass = 'justify-center gap-0 px-0'
+  'flex min-h-9 items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg px-2.5 text-sm text-muted transition-colors hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+// Icons keep their position in both states; only labels fade, so nothing jumps on toggle.
+const labelClass = 'truncate transition-opacity duration-200 motion-reduce:transition-none'
 const activeClass = 'bg-accent/10 font-medium text-accent hover:bg-accent/10 hover:text-accent'
 
 function NavLink({
@@ -27,11 +28,11 @@ function NavLink({
   const props = {
     href: app.href,
     'aria-current': active ? ('page' as const) : undefined,
-    className: cn(itemClass, collapsed && collapsedItemClass, active && activeClass),
+    className: cn(itemClass, active && activeClass),
     children: (
       <>
         <app.icon aria-hidden className="size-5 shrink-0" />
-        <span className={cn(collapsed && 'sr-only')}>{app.label}</span>
+        <span className={cn(labelClass, collapsed && 'opacity-0')}>{app.label}</span>
       </>
     )
   }
@@ -61,56 +62,7 @@ export default function Sidebar({
         collapsed ? 'w-16' : 'w-60'
       )}
     >
-      <nav
-        aria-label="Apps"
-        className={cn(
-          'flex-1 overflow-y-auto overflow-x-hidden px-3 py-4',
-          collapsed ? 'space-y-2' : 'space-y-5'
-        )}
-      >
-        <Link
-          href="/"
-          aria-current={pathname === '/' ? 'page' : undefined}
-          className={cn(
-            itemClass,
-            collapsed && collapsedItemClass,
-            pathname === '/' && activeClass
-          )}
-        >
-          <House aria-hidden className="size-5 shrink-0" />
-          <span className={cn(collapsed && 'sr-only')}>Today</span>
-        </Link>
-        {visibleSections(data)
-          .filter((s) => s.title !== 'Account')
-          .map((section) => (
-            <section
-              key={section.title}
-              className={cn(collapsed && 'border-t border-border/60 pt-2')}
-            >
-              <SectionHeading
-                level="eyebrow"
-                as="h2"
-                className={cn('mb-1 px-3', collapsed && 'sr-only')}
-              >
-                {section.title}
-              </SectionHeading>
-              <ul className="space-y-0.5">
-                {section.apps.map((app) => (
-                  <li key={app.id}>
-                    <NavLink app={app} active={current === app.id} collapsed={collapsed} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-      </nav>
-      <div
-        className={cn(
-          'flex gap-1 border-t border-border/60 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]',
-          collapsed ? 'flex-col items-center' : 'items-center justify-between'
-        )}
-      >
-        <AccountMenu align="left" />
+      <div className="p-3 pb-0">
         <Button
           variant="ghost"
           size="icon"
@@ -125,6 +77,46 @@ export default function Sidebar({
             <PanelLeftClose aria-hidden className="size-5 shrink-0" />
           )}
         </Button>
+      </div>
+      <nav
+        aria-label="Apps"
+        className="flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-4"
+      >
+        <Link
+          href="/"
+          aria-current={pathname === '/' ? 'page' : undefined}
+          className={cn(itemClass, pathname === '/' && activeClass)}
+        >
+          <House aria-hidden className="size-5 shrink-0" />
+          <span className={cn(labelClass, collapsed && 'opacity-0')}>Today</span>
+        </Link>
+        {visibleSections(data)
+          .filter((s) => s.title !== 'Account')
+          .map((section) => (
+            <section key={section.title}>
+              <SectionHeading
+                level="eyebrow"
+                as="h2"
+                className={cn(
+                  'mb-1 whitespace-nowrap px-2.5',
+                  labelClass,
+                  collapsed && 'opacity-0'
+                )}
+              >
+                {section.title}
+              </SectionHeading>
+              <ul className="space-y-0.5">
+                {section.apps.map((app) => (
+                  <li key={app.id}>
+                    <NavLink app={app} active={current === app.id} collapsed={collapsed} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+      </nav>
+      <div className="border-t border-border/60 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <AccountMenu align="left" />
       </div>
     </aside>
   )
