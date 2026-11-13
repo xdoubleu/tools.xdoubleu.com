@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
@@ -318,25 +319,68 @@ type PickupCandidate struct {
 // NextReady is the oldest highest-priority Ready task of a repo that has auto pickup
 // on, with its approved text. It finds none while the board is paused or any job is
 // queued or running, so it is the only query a quiet claim needs. A task from before
-// the Ready snapshots existed has no approved text and is skipped. None is not found.
+// the Ready snapshots existed has no approved text and is skipped, as is one that
+// pickupSkipReason rules out; that reason is stored in pickup_blocked and cleared
+// once the task is clear again. None is not found.
 func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, error) {
-	var c PickupCandidate
-	err := r.db.QueryRow(ctx, `
-		SELECT t.id, t.number, t.repo_id, t.ready_title, t.ready_body
+	rows, err := r.db.Query(ctx, `
+		SELECT t.id, t.number, t.repo_id, t.ready_title, t.ready_body, t.labels,
+			t.pickup_blocked
 		FROM factory.tasks t
 		JOIN factory.repos r ON r.id = t.repo_id
 		WHERE t.status = 'ready' AND r.auto_pickup AND t.ready_body IS NOT NULL
-			AND t.pickup_blocked = ''
+			AND (t.pickup_blocked = '' OR t.pickup_blocked LIKE $1 || '%')
 			AND NOT COALESCE(
 				(SELECT pickup_paused FROM factory.board_settings), false
 			)
 			AND NOT EXISTS (
 				SELECT 1 FROM factory.jobs j WHERE j.status IN ('queued', 'running')
 			)
-		ORDER BY t.priority, t.created_at, t.id
-		LIMIT 1`).Scan(&c.TaskID, &c.Number, &c.RepoID, &c.Title, &c.Body)
+		ORDER BY t.priority, t.created_at, t.id`, skipPrefix)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
-	return &c, nil
+	type row struct {
+		c       PickupCandidate
+		labels  []string
+		blocked string
+	}
+	var cands []row
+	for rows.Next() {
+		var x row
+		if err = rows.Scan(&x.c.TaskID, &x.c.Number, &x.c.RepoID, &x.c.Title,
+			&x.c.Body, &x.labels, &x.blocked); err != nil {
+			rows.Close()
+			return nil, postgres.PgxErrorToHTTPError(err)
+		}
+		cands = append(cands, x)
+	}
+	rows.Close()
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+
+	for i := range cands {
+		x := cands[i]
+		reason, reasonErr := r.pickupSkipReason(
+			ctx, x.c.TaskID, x.c.Number, x.labels, x.c.Body,
+		)
+		if reasonErr != nil {
+			return nil, reasonErr
+		}
+		if reason != "" {
+			if _, err = r.BlockPickup(ctx, x.c.TaskID, skipPrefix+reason); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		if x.blocked != "" {
+			if _, err = r.BlockPickup(ctx, x.c.TaskID, ""); err != nil {
+				return nil, err
+			}
+		}
+		c := x.c
+		return &c, nil
+	}
+	return nil, postgres.PgxErrorToHTTPError(pgx.ErrNoRows)
 }
