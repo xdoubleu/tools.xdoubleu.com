@@ -20,11 +20,11 @@ import (
 	"tools.xdoubleu.com/apps/feeds"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/gen/feeds/v1/feedsv1connect"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	"tools.xdoubleu.com/internal/mailer"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/notifications"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // capturingMailServer stands in for Resend and records every send.

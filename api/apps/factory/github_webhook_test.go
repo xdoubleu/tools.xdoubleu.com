@@ -15,7 +15,7 @@ import (
 
 	"tools.xdoubleu.com/apps/factory"
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 const webhookSecret = "hook-secret"

@@ -14,7 +14,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // uploadFileForOwner provides a (bookFile, bookID) pair for tests that need a

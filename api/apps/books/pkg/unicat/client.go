@@ -16,7 +16,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"tools.xdoubleu.com/apps/books/pkg/authorname"
-	"tools.xdoubleu.com/internal/httpclient"
+	"tools.xdoubleu.com/internal/kit/httpclient"
 )
 
 //nolint:gochecknoglobals // overridable in tests

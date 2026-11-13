@@ -18,11 +18,11 @@ import (
 	"tools.xdoubleu.com/apps/factory/internal/models"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 const adminID = "factory-test-admin"

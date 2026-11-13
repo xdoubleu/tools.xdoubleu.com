@@ -17,10 +17,10 @@ import (
 	"tools.xdoubleu.com/apps/podcasts/pkg/itunes"
 	"tools.xdoubleu.com/gen/podcasts/v1/podcastsv1connect"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 const (

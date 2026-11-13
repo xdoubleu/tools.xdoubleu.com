@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 func TestSecurityHeaders(t *testing.T) {

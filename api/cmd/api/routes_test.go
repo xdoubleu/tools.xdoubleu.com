@@ -15,8 +15,8 @@ import (
 
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 // TestDomainMiddleware_PathRewrite: a watchparty-domain Host rewrites onto a

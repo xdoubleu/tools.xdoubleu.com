@@ -21,7 +21,7 @@ Auth is first-party in `internal/auth` against `api`'s own `auth` schema
   opaque refresh tokens stored SHA-256-hashed in `auth.refresh_tokens` and
   **rotated on every use**, so sign-out, password change, and MFA unenroll can
   revoke a session.
-- **2FA**: TOTP via `pquerna/otp`, secrets sealed with `internal/crypto.Sealer`.
+- **2FA**: TOTP via `pquerna/otp`, secrets sealed with `internal/kit/crypto.Sealer`.
   `ChallengeMFA` returns a synthetic ID only to keep the two-step call shape;
   `totp.Validate` does the verification.
 - **Recovery codes**: bcrypt-hashed, single-use (`auth.recovery_codes`).

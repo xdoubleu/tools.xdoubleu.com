@@ -17,7 +17,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/repositories"
 	"tools.xdoubleu.com/apps/books/pkg/ebooks"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // EPUBConverter converts raw EPUB bytes into KEPUB bytes.

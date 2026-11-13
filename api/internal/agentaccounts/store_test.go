@@ -10,9 +10,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"tools.xdoubleu.com/internal/agentaccounts"
-	"tools.xdoubleu.com/internal/database"
-	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 func newStore(t *testing.T, onRevoke func()) (*agentaccounts.Store, postgres.DB) {

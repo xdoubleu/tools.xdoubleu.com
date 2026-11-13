@@ -10,10 +10,10 @@ import (
 
 	familyv1 "tools.xdoubleu.com/gen/family/v1"
 	"tools.xdoubleu.com/gen/family/v1/familyv1connect"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/family"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
+	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/models"
 )
 

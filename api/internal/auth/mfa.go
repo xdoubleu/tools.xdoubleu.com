@@ -18,7 +18,7 @@ import (
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 
-	"tools.xdoubleu.com/internal/errortools"
+	"tools.xdoubleu.com/internal/kit/errortools"
 )
 
 const (

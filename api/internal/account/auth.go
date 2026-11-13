@@ -11,7 +11,7 @@ import (
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/errortools"
+	"tools.xdoubleu.com/internal/kit/errortools"
 	"tools.xdoubleu.com/internal/models"
 )
 

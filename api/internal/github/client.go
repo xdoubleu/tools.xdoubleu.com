@@ -14,8 +14,8 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"tools.xdoubleu.com/internal/database"
-	"tools.xdoubleu.com/internal/httpclient"
+	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/kit/httpclient"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
 )

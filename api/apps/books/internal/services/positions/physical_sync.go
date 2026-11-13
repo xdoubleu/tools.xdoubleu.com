@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/internal/database"
-	"tools.xdoubleu.com/internal/threading"
+	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/kit/threading"
 )
 
 // Limits on a physical copy's details.

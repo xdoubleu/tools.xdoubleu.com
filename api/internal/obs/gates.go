@@ -5,8 +5,8 @@ import (
 
 	"connectrpc.com/connect/v2"
 
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
 	"tools.xdoubleu.com/internal/models"
 )
 

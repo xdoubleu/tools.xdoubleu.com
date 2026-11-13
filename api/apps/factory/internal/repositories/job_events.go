@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 )
 
 type JobEventsRepository struct {

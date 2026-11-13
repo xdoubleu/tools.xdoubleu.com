@@ -12,7 +12,7 @@ import (
 
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
-	"tools.xdoubleu.com/internal/crypto"
+	"tools.xdoubleu.com/internal/kit/crypto"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 

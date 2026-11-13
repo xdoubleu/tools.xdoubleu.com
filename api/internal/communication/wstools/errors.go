@@ -11,9 +11,9 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 
-	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/errortools"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/contexttools"
+	"tools.xdoubleu.com/internal/kit/errortools"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 // ErrorResponse is used to handle any kind of error that occurred on a WebSocket.

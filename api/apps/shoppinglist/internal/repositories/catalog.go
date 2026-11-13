@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // ItemName is a distinct normalized name known for a family with its category

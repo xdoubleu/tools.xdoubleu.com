@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/games/pkg/steam"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)

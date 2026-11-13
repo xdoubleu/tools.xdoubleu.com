@@ -12,7 +12,7 @@ import (
 
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/threading"
+	"tools.xdoubleu.com/internal/kit/threading"
 )
 
 // backgroundLimit caps an app's concurrently running request-started tasks;

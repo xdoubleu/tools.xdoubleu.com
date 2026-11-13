@@ -14,9 +14,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
-	"tools.xdoubleu.com/internal/crypto"
-	"tools.xdoubleu.com/internal/logging"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/crypto"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 var testApp *Application //nolint:gochecknoglobals //needed for tests

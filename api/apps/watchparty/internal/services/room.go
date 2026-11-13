@@ -13,7 +13,7 @@ import (
 
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 	"tools.xdoubleu.com/apps/watchparty/internal/models"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // ErrSeatTaken is returned when another viewer is connected to the room.

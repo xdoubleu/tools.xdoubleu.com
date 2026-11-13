@@ -18,7 +18,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/services/conversion"
 	"tools.xdoubleu.com/apps/books/pkg/ebookmeta"
 	"tools.xdoubleu.com/apps/books/pkg/ebooks"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // ErrInvalidFormat is returned when the magic bytes match no supported format.

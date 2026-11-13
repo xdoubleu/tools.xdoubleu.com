@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"tools.xdoubleu.com/apps/movies/internal/jobs"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 type refresher struct{ err error }

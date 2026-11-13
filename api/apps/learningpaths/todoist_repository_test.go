@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
-	"tools.xdoubleu.com/internal/crypto"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/crypto"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // seedPath adds a path with one module and one item for owner, returning the

@@ -19,8 +19,8 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/crypto"
-	"tools.xdoubleu.com/internal/errortools"
+	"tools.xdoubleu.com/internal/kit/crypto"
+	"tools.xdoubleu.com/internal/kit/errortools"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
 )

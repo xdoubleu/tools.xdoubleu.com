@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/auth"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // TestResolveToken_EnrichmentFailureNotCached: a transient DB failure while

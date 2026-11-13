@@ -15,7 +15,7 @@ import (
 
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
-	essentialogger "tools.xdoubleu.com/internal/logging"
+	essentialogger "tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/notifications"

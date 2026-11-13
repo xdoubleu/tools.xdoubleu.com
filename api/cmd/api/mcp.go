@@ -9,7 +9,7 @@ import (
 	mcpauth "github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/oauthex"
 
-	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauth2as"
 )

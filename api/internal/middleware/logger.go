@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/internal/communication/httptools"
-	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/kit/contexttools"
 )
 
 // Logger adds a logger to the context and logs each request with its duration.

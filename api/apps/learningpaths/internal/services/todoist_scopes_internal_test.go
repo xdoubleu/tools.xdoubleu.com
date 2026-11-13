@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 func TestSyncPath_StaleScopeIsNoOp(t *testing.T) {

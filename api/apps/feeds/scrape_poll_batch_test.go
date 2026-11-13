@@ -15,8 +15,8 @@ import (
 
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
 	"tools.xdoubleu.com/apps/feeds/internal/services"
-	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/mocks"
 )
 

@@ -12,7 +12,7 @@ import (
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/github"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 func TestObservabilityGetProjectIssuesByStatus_AsAdmin(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"tools.xdoubleu.com/apps/games/internal/jobs"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 	internalmodels "tools.xdoubleu.com/internal/models"
 )
 

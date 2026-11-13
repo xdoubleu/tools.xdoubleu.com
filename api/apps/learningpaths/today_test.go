@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/learningpaths"
-	"tools.xdoubleu.com/internal/crypto"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/crypto"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func TestListActivePaths(t *testing.T) {

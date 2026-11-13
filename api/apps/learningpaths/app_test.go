@@ -13,14 +13,14 @@ import (
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/learningpaths"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/crypto"
-	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/crypto"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	"tools.xdoubleu.com/internal/mailer"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/notifications"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 //nolint:gochecknoglobals //needed for tests

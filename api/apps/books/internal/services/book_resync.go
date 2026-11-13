@@ -17,7 +17,7 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/authorname"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // ErrProposalNotFound is returned when the book has no pending proposal.

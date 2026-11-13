@@ -1,6 +1,6 @@
 package repositories
 
-import "tools.xdoubleu.com/internal/database/postgres"
+import "tools.xdoubleu.com/internal/kit/database/postgres"
 
 type Repositories struct {
 	Shows *ShowsRepository

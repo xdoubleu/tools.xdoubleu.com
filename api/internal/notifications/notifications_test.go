@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/notifications"
 )

@@ -9,7 +9,7 @@ import (
 
 	accessv1 "tools.xdoubleu.com/gen/access/v1"
 	accessv1connect "tools.xdoubleu.com/gen/access/v1/accessv1connect"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/obs"
 	"tools.xdoubleu.com/internal/repositories"

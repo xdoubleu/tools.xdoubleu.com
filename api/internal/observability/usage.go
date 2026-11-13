@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"tools.xdoubleu.com/internal/database/postgres"
-	essentialogger "tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	essentialogger "tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/repositories"
 )

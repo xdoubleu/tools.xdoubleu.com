@@ -6,8 +6,8 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"tools.xdoubleu.com/internal/crypto"
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/crypto"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
 )

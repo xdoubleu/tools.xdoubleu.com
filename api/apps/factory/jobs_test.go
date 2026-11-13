@@ -16,8 +16,8 @@ import (
 	"tools.xdoubleu.com/apps/factory"
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 // jobEnv is a paired runner and an admin in a browser, on one app.

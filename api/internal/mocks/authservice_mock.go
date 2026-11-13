@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"tools.xdoubleu.com/internal/auth"
-	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/models"
 )
 

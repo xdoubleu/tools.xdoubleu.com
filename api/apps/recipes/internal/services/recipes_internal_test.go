@@ -12,7 +12,7 @@ import (
 
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // fakeRecipesStore implements recipesStore in memory for family-scoping tests.

@@ -10,7 +10,7 @@ import (
 
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
-	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/kit/constants"
 )
 
 // autoPickup turns auto pickup on or off for the seeded repo, with no Ready task

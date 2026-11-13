@@ -7,7 +7,7 @@ import (
 
 	"github.com/coder/websocket"
 
-	"tools.xdoubleu.com/internal/threading"
+	"tools.xdoubleu.com/internal/kit/threading"
 )
 
 // OnSubscribeCallback returns the initial data sent to a new subscriber.

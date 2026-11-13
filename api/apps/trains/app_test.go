@@ -15,10 +15,10 @@ import (
 	"tools.xdoubleu.com/apps/trains"
 	"tools.xdoubleu.com/apps/trains/internal/mocks"
 	"tools.xdoubleu.com/gen/trains/v1/trainsv1connect"
-	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 //nolint:gochecknoglobals //shared across tests

@@ -77,6 +77,24 @@ linters:
     # and api/AGENTS.md's learningpaths section.
     depguard:
       rules:
+        kit-tier:
+          files:
+            - "**/internal/kit/**"
+            - "!**/internal/kit/testhelper/**"
+          list-mode: lax
+          deny:
+            - pkg: tools.xdoubleu.com/internal
+              desc: kit is the domain-free toolkit and imports no other tier
+            - pkg: tools.xdoubleu.com/apps
+              desc: kit is the domain-free toolkit and imports no other tier
+          allow:
+            - tools.xdoubleu.com/internal/kit
+        platform-tier:
+          files:
+            - "**/internal/platform/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps
+              desc: platform may import only kit, never apps
         apps-books-internal:
           files:
             - "!**/apps/books/**"
@@ -197,7 +215,7 @@ linters:
         - ^google.golang.org/protobuf/.+Options$
         - ^gopkg.in/yaml.v3.Node$
         - ^tools\.xdoubleu\.com/gen/.+$
-        - ^tools\.xdoubleu\.com/internal/httpclient\.Config$
+        - ^tools\.xdoubleu\.com/internal/kit/httpclient\.Config$
         - ^crypto/tls.Config$
         - ^crypto/x509.Certificate$
         - ^crypto/x509/pkix.Name$

@@ -12,7 +12,7 @@ import (
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 	sharedrepositories "tools.xdoubleu.com/internal/repositories"
 )
 

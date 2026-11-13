@@ -8,7 +8,7 @@ import (
 
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
-	"tools.xdoubleu.com/internal/crypto"
+	"tools.xdoubleu.com/internal/kit/crypto"
 )
 
 func TestTodoistProjectAndDue_RoundTrip(t *testing.T) {

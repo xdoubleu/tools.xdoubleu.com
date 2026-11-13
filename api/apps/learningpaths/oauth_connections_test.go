@@ -11,7 +11,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
-	"tools.xdoubleu.com/internal/crypto"
+	"tools.xdoubleu.com/internal/kit/crypto"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
 )

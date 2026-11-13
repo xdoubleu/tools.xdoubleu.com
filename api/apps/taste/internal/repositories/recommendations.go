@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"tools.xdoubleu.com/apps/taste/internal/models"
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 )
 
 type RecommendationsRepository struct {

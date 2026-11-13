@@ -15,8 +15,8 @@ import (
 	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // isbnFromUUID derives a valid, per-run-unique ISBN-13 from a UUID.

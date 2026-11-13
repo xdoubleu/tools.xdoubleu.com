@@ -1,0 +1,153 @@
+package safedial_test
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/internal/kit/safedial"
+)
+
+func TestIsPublic(t *testing.T) {
+	tests := map[string]bool{
+		"1.1.1.1":                true,
+		"93.184.216.34":          true,
+		"2606:4700:4700::1111":   true,
+		"169.254.169.254":        false, // cloud metadata
+		"127.0.0.1":              false,
+		"::1":                    false,
+		"10.0.0.1":               false,
+		"192.168.1.1":            false,
+		"172.16.0.1":             false,
+		"fc00::1":                false,
+		"fe80::1":                false,
+		"100.64.0.1":             false, // CGNAT
+		"0.1.2.3":                false, // "this network"
+		"198.18.0.1":             false, // benchmarking
+		"240.0.0.1":              false, // reserved
+		"64:ff9b::a00:1":         false, // NAT64 of 10.0.0.1
+		"2002:a00:1::1":          false, // 6to4 of 10.0.0.1
+		"0.0.0.0":                false,
+		"255.255.255.255":        false,
+		"224.0.0.1":              false, // multicast
+		"::ffff:127.0.0.1":       false, // v4-mapped loopback
+		"not-an-ip":              false,
+		"":                       false,
+		"::ffff:169.254.169.254": false,
+		"2001:db8::1":            true,
+	}
+
+	for addr, want := range tests {
+		t.Run(addr, func(t *testing.T) {
+			assert.Equal(t, want, safedial.IsPublic(addr))
+		})
+	}
+}
+
+func TestClientBlocksLoopback(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		},
+	))
+	defer srv.Close()
+
+	client := safedial.Client(5*time.Second, 5, false)
+
+	req, err := http.NewRequestWithContext(
+		context.Background(), http.MethodGet, srv.URL, nil,
+	)
+	require.NoError(t, err)
+
+	_, err = client.Do(req)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, safedial.ErrBlockedAddress)
+}
+
+func TestClientAllowsPrivateWhenPermitted(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		},
+	))
+	defer srv.Close()
+
+	client := safedial.Client(5*time.Second, 5, true)
+
+	req, err := http.NewRequestWithContext(
+		context.Background(), http.MethodGet, srv.URL, nil,
+	)
+	require.NoError(t, err)
+
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+// The check runs per connection, so a redirect to loopback must fail.
+func TestClientBlocksRedirectToLoopback(t *testing.T) {
+	target := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		},
+	))
+	defer target.Close()
+
+	// allowPrivate client to reach the redirector, blocked client for the hop.
+	redirector := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, target.URL, http.StatusFound)
+		},
+	))
+	defer redirector.Close()
+
+	client := safedial.Client(5*time.Second, 5, false)
+
+	req, err := http.NewRequestWithContext(
+		context.Background(), http.MethodGet, redirector.URL, nil,
+	)
+	require.NoError(t, err)
+
+	_, err = client.Do(req)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, safedial.ErrBlockedAddress)
+}
+
+func TestClientStopsAfterMaxRedirects(t *testing.T) {
+	var requestCount atomic.Int32
+
+	var srv *httptest.Server
+	srv = httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			requestCount.Add(1)
+			http.Redirect(w, r, srv.URL, http.StatusFound)
+		},
+	))
+	defer srv.Close()
+
+	const maxRedirects = 2
+	client := safedial.Client(5*time.Second, maxRedirects, true)
+
+	req, err := http.NewRequestWithContext(
+		context.Background(), http.MethodGet, srv.URL, nil,
+	)
+	require.NoError(t, err)
+
+	_, err = client.Do(req)
+	require.ErrorContains(t, err, "stopped after 2 redirects")
+	assert.Equal(t, int32(maxRedirects), requestCount.Load())
+}
+
+func TestClientIgnoresEnvironmentProxy(t *testing.T) {
+	transport, ok := safedial.Client(time.Second, 1, false).Transport.(*http.Transport)
+	require.True(t, ok)
+	assert.Nil(t, transport.Proxy)
+}

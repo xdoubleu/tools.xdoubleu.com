@@ -11,7 +11,7 @@ import (
 
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
-	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/kit/constants"
 )
 
 func (e jobEnv) reply(t *testing.T, taskID, text string) (*factoryv1.Job, error) {

@@ -18,8 +18,8 @@ import (
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/connecttools"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/slack"
 )

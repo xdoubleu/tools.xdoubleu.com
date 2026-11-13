@@ -10,8 +10,8 @@ import (
 	watchpartyv1 "tools.xdoubleu.com/gen/watchparty/v1"
 	"tools.xdoubleu.com/gen/watchparty/v1/watchpartyv1connect"
 	"tools.xdoubleu.com/internal/connecttools"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
 	"tools.xdoubleu.com/internal/models"
 )
 

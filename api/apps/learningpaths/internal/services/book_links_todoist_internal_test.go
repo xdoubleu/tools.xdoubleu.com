@@ -16,7 +16,7 @@ import (
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	iapp "tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 func externalBookPath() models.LearningPath {

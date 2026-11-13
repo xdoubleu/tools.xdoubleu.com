@@ -9,7 +9,7 @@ import (
 
 	"tools.xdoubleu.com/apps/movies/internal/models"
 	"tools.xdoubleu.com/apps/movies/pkg/tmdb"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // loadSeasons fills a series' missing catalog seasons from TMDB. A TMDB

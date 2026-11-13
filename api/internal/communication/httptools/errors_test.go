@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/communication/httptools"
-	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/errortools"
+	"tools.xdoubleu.com/internal/kit/contexttools"
+	"tools.xdoubleu.com/internal/kit/errortools"
 )
 
 func do(

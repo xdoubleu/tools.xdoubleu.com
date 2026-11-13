@@ -18,8 +18,8 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/mocks"
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/internal/database"
-	"tools.xdoubleu.com/internal/threading"
+	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/kit/threading"
 )
 
 type fakePhysicalStore struct {

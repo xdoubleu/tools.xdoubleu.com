@@ -1,6 +1,6 @@
 package dtos
 
-import "tools.xdoubleu.com/internal/validate"
+import "tools.xdoubleu.com/internal/kit/validate"
 
 type JoinRoomDto struct {
 	RoomCode string `schema:"roomCode"`

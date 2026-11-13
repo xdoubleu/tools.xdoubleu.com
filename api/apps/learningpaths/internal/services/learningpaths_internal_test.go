@@ -15,8 +15,8 @@ import (
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
 	"tools.xdoubleu.com/apps/learningpaths/internal/todoist"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
-	"tools.xdoubleu.com/internal/database"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 

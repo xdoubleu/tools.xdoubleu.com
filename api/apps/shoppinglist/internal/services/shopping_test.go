@@ -13,7 +13,7 @@ import (
 	"tools.xdoubleu.com/apps/shoppinglist/internal/mocks"
 	"tools.xdoubleu.com/apps/shoppinglist/internal/repositories"
 	"tools.xdoubleu.com/apps/shoppinglist/internal/services"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 var errNotFound = database.ErrResourceNotFound

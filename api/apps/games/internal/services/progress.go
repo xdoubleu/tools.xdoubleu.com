@@ -10,7 +10,7 @@ import (
 
 	"tools.xdoubleu.com/apps/games/internal/models"
 	"tools.xdoubleu.com/apps/games/internal/repositories"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/progresshistory"
 )
 

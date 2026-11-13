@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 )
 
 // ListEngaged returns the user's read, bookmarked or dismissed items with

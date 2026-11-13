@@ -15,7 +15,7 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	booksv1connect "tools.xdoubleu.com/gen/books/v1/booksv1connect"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 func newBooksTestClient(t *testing.T) booksTestClient {

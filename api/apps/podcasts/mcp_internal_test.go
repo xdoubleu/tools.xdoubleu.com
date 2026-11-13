@@ -9,12 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	podcastsv1 "tools.xdoubleu.com/gen/podcasts/v1"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	"tools.xdoubleu.com/internal/mcptools"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func userCtx(uid string) context.Context {

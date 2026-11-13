@@ -10,7 +10,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/mocks"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 // pageTwoOffset is where page 2's anchor sits in PagedDocOne's KEPUB text.

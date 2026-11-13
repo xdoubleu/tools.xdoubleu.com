@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
 )
 
 // TestMCPBearerRouteRecordsMCPChannel: a bearer request carries the same

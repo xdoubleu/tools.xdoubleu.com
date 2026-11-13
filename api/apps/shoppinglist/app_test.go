@@ -11,11 +11,11 @@ import (
 	"tools.xdoubleu.com/apps/mealplans"
 	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/apps/shoppinglist"
-	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedrepositories "tools.xdoubleu.com/internal/repositories"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 //nolint:gochecknoglobals //needed for tests

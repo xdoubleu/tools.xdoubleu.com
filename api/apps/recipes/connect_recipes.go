@@ -13,8 +13,8 @@ import (
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
 	"tools.xdoubleu.com/gen/recipes/v1/recipesv1connect"
 	"tools.xdoubleu.com/internal/connecttools"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 

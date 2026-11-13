@@ -15,10 +15,10 @@ import (
 	"tools.xdoubleu.com/apps/movies"
 	dashboardv1 "tools.xdoubleu.com/gen/dashboard/v1"
 	"tools.xdoubleu.com/gen/dashboard/v1/dashboardv1connect"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 func newTodayClient(

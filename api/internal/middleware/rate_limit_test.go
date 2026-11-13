@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/errortools"
+	"tools.xdoubleu.com/internal/kit/errortools"
 	"tools.xdoubleu.com/internal/middleware"
 )
 

@@ -15,7 +15,7 @@ import (
 
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
 	"tools.xdoubleu.com/gen/learningpaths/v1/learningpathsv1connect"
-	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/kit/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
