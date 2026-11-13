@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/feeds"
-	"tools.xdoubleu.com/internal/observability/jobs"
+	"tools.xdoubleu.com/internal/platform/observability/jobs"
 )
 
 // findFeedsApp returns the *feeds.Feeds in testApp.apps.

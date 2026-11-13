@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
-	"tools.xdoubleu.com/internal/mcptools"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 const mcpAppName = "games"

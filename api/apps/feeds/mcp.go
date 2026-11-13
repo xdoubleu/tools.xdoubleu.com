@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
-	"tools.xdoubleu.com/internal/mcptools"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 const mcpAppName = "feeds"

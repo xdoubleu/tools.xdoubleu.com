@@ -46,7 +46,7 @@ rm -f tsconfig.tsbuildinfo              # before `npx tsc --noEmit` after a lock
 
 ## kobo-gateway client (`lib/books/gatewayClient.ts`)
 
-Talks to the local helper at `https://127.0.0.1:41132` (see `kobo-gateway/AGENTS.md`; the CSP's `connect-src` in `api/internal/spa/csp.go` allows it). The browser makes all authenticated API calls and hands the gateway only a sync URL.
+Talks to the local helper at `https://127.0.0.1:41132` (see `kobo-gateway/AGENTS.md`; the CSP's `connect-src` in `api/internal/platform/spa/csp.go` allows it). The browser makes all authenticated API calls and hands the gateway only a sync URL.
 
 - Bump `REQUIRED_GATEWAY_VERSION` (with Go's `GatewayVersion`) **only for protocol breaks**; routine updates flow through `gatewayNeedsUpdate` comparing against `getKoboGatewayRelease()` → [`adr-0004`](../docs/adr-0004-runtime-release-env-vs-compile-stamp.md).
 - `public/downloads/` is assembled in CI (`build-api.yml` stages the kobo-gateway artifacts), **so the download 404s under `npm run dev`** → [`adr-0002`](../docs/adr-0002-kobo-gateway-ci-cache-split.md).

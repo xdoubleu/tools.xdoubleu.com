@@ -1,0 +1,523 @@
+package jobs
+
+import (
+	"context"
+	"errors"
+	"log/slog"
+	"strings"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+
+	"tools.xdoubleu.com/internal/kit/database"
+	essentialogger "tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/github"
+	"tools.xdoubleu.com/internal/platform/sentryapi"
+)
+
+// Issue-signal gauges, refreshed on a timer (never at scrape time) because
+// the GitHub and Sentry APIs are rate-limited.
+//
+//nolint:gochecknoglobals //Prometheus collectors are process-wide by design
+var (
+	githubFailingPullRequests = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "github_failing_pull_requests",
+		Help: "Open pull requests with at least one failing CI check.",
+	})
+	githubWorkflowRunFailed = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "github_workflow_run_failed",
+		Help: "1 when the most recent completed workflow run on the main " +
+			"branch failed, else 0.",
+	}, []string{"branch"})
+	githubWorkflowRunDurationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "github_workflow_run_duration_seconds",
+		// Label is "workflow", not "job", which collides with the scrape job label.
+		Help: "Duration of the most recent completed run of each GitHub Actions " +
+			"workflow on the default branch, in seconds.",
+	}, []string{"workflow"})
+	r2OrphanedObjects = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "r2_orphaned_objects",
+		Help: "Orphaned R2 storage objects in the latest storage snapshot.",
+	})
+	r2StorageBytes = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "r2_storage_bytes",
+		Help: "Total R2 storage size in bytes from the latest storage snapshot.",
+	})
+	postgresSchemaSizeBytes = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "postgres_schema_size_bytes",
+		Help: "On-disk size of each database schema in bytes. postgres_exporter " +
+			"only exposes per-database size, so this is the per-schema breakdown.",
+	}, []string{"schema"})
+	sentryUnresolvedIssues = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "sentry_unresolved_issues",
+		Help: "Unresolved Sentry issues across every project the connected " +
+			"token can see.",
+	})
+	sentryUnresolvedFetchOK = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "sentry_unresolved_issues_fetch_ok",
+		Help: "1 when the last Sentry unresolved-issue fetch succeeded, 0 when " +
+			"Sentry isn't configured, the fetch failed, or none has run yet, so " +
+			"sentry_unresolved_issues is stale and its 0 can't be trusted.",
+	})
+	automatedActionOldestOpenAgeSeconds = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "automated_action_oldest_open_age_seconds",
+		Help: "Age in seconds of the longest-open global.automated_actions row " +
+			"(finished_at IS NULL) — a self-healing routine that fired but never " +
+			"closed out. 0 when none are open.",
+	})
+	automatedActionSecondsSinceLastOpen = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "automated_action_seconds_since_last_open",
+		Help: "Seconds since routine last opened a global.automated_actions row " +
+			"via record_action(mode=open), by routine name — detects a scheduled " +
+			"routine that never even started (e.g. its claude.ai trigger itself " +
+			"failed to fire), which a stalled-but-opened row can't catch. A " +
+			"routine that has never opened a row at all reports a very large " +
+			"value rather than 0, so it reads as overdue rather than healthy.",
+	}, []string{routineLabel})
+	automatedActionRoutinePaused = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "automated_action_routine_paused",
+		Help: "1 when a routine's ROUTINE_*_ENABLED repo variable isn't \"true\" " +
+			"(scheduled runs are skipped), 0 when enabled.",
+	}, []string{routineLabel})
+	automatedActionLastRun = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "automated_action_last_run",
+		Help: "The latest measured run of each routine in the last " +
+			"14 days, by metric: requests, input_tokens, output_tokens, " +
+			"reasoning_tokens, cache_read_tokens, cost_usd (the agent's " +
+			"estimate), duration_seconds, tool_calls, tool_errors, " +
+			"repeated_tool_calls.",
+	}, []string{routineLabel, "metric"})
+	transactionP95Seconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "transaction_p95_seconds",
+		Help: "Average daily p95 of each regressing Sentry transaction, by " +
+			"window: recent (last 7 days) or prior (the 7 before). Only " +
+			"transactions get_slow_transactions lists as trending are set.",
+	}, []string{"project", "transaction", "window"})
+)
+
+// runMetricsWindow bounds automated_action_last_run so a retired routine's
+// last run eventually drops out.
+const runMetricsWindow = 14 * 24 * time.Hour
+
+// routineLabel is the label named for both per-routine gauges.
+const routineLabel = "routine"
+
+// knownRoutines are the scheduled agent routines tracked by
+// automated_action_seconds_since_last_open. Keep in sync by hand with
+// .github/workflows/routine-*.yml and the AutomatedRoutineMissed thresholds.
+//
+//nolint:gochecknoglobals //small fixed list, read-only, mirrors the collectors above
+var knownRoutines = []string{
+	"nightly-maintenance-sweep",
+	"ready-issues-executor",
+	"red-pr-repair",
+}
+
+// neverOpenedSentinelSeconds is reported for a routine that never opened a
+// row; it's far past every threshold because "never started" is unhealthy.
+const neverOpenedSentinelSeconds = 1 << 30
+
+const mainBranch = "main"
+
+const millisPerSecond = 1000
+
+type failingPRLister interface {
+	ListFailingPullRequests(ctx context.Context) ([]github.PullRequest, error)
+}
+
+type securityAlertLister interface {
+	ListSecurityAlerts(ctx context.Context) ([]github.SecurityAlert, error)
+}
+
+type latestStorageSnapshotGetter interface {
+	Latest(ctx context.Context) (*models.StorageSnapshot, error)
+}
+
+type schemaSizer interface {
+	SchemaSizes(ctx context.Context) ([]models.SchemaStats, error)
+}
+
+type oldestOpenAutomatedActionGetter interface {
+	OldestOpenFiredAt(ctx context.Context) (time.Time, error)
+}
+
+type mostRecentOpenedAtGetter interface {
+	MostRecentOpenedAt(ctx context.Context, routineName string) (time.Time, error)
+}
+
+type latestRunMetricsGetter interface {
+	LatestRunMetrics(
+		ctx context.Context, since time.Time,
+	) (map[string]models.RunMetrics, error)
+}
+
+type automatedActionGetter interface {
+	oldestOpenAutomatedActionGetter
+	mostRecentOpenedAtGetter
+	latestRunMetricsGetter
+}
+
+type latencyTrendsGetter interface {
+	Trends(ctx context.Context) ([]models.TransactionTrend, error)
+}
+
+type workflowRunsLister interface {
+	ListWorkflowRuns(ctx context.Context) ([]github.WorkflowRun, error)
+}
+
+type issueSignalGithubClient interface {
+	failingPRLister
+	securityAlertLister
+	workflowRunsLister
+	repositoryVariablesLister
+}
+
+type repositoryVariablesLister interface {
+	ListRepositoryVariables(ctx context.Context) (map[string]string, error)
+}
+
+type unresolvedIssueLister interface {
+	ListUnresolvedIssues(ctx context.Context) ([]sentryapi.Issue, error)
+}
+
+// runEvery is the shared poll interval of this package's timer jobs.
+const runEvery = 5 * time.Minute
+
+// IssueSignalCollectorJob refreshes the issue-signal gauges. A disconnected
+// provider leaves its gauge untouched; other errors are logged. Run always
+// returns nil.
+type IssueSignalCollectorJob struct {
+	gh              issueSignalGithubClient
+	sentry          unresolvedIssueLister
+	storageSnapshot latestStorageSnapshotGetter
+	schemaSizes     schemaSizer
+	automatedAction automatedActionGetter
+	latencyTrends   latencyTrendsGetter
+}
+
+func NewIssueSignalCollectorJob(
+	gh issueSignalGithubClient,
+	sentry unresolvedIssueLister,
+	storageSnapshot latestStorageSnapshotGetter,
+	schemaSizes schemaSizer,
+	automatedAction automatedActionGetter,
+	latencyTrends latencyTrendsGetter,
+) *IssueSignalCollectorJob {
+	// Seed the fetch-ok gauge to 1: a fresh process has no fetch to have
+	// failed yet, and the gauge's zero value would otherwise pend
+	// SecurityAlertsUnreadable on every deploy until the first run.
+	githubSecurityAlertsFetchOK.Set(1)
+	return &IssueSignalCollectorJob{
+		gh:              gh,
+		sentry:          sentry,
+		storageSnapshot: storageSnapshot,
+		schemaSizes:     schemaSizes,
+		automatedAction: automatedAction,
+		latencyTrends:   latencyTrends,
+	}
+}
+
+func (j *IssueSignalCollectorJob) ID() string {
+	return "collect-issue-signals"
+}
+
+// RunEvery returns the shared runEvery.
+func (j *IssueSignalCollectorJob) RunEvery() time.Duration {
+	return runEvery
+}
+
+// logAPIErr logs transient errors at Warn and others at Error (Sentry).
+func logAPIErr(
+	ctx context.Context, logger *slog.Logger, msg string, err error, transient bool,
+) {
+	if transient {
+		logger.WarnContext(ctx, msg, essentialogger.ErrAttr(err))
+		return
+	}
+	logger.ErrorContext(ctx, msg, essentialogger.ErrAttr(err))
+}
+
+func (j *IssueSignalCollectorJob) Run(
+	ctx context.Context,
+	logger *slog.Logger,
+) error {
+	j.collectFailingPullRequests(ctx, logger)
+	j.collectWorkflowRuns(ctx, logger)
+	j.collectSecurityAlerts(ctx, logger)
+	j.collectSentryIssues(ctx, logger)
+	j.collectStorage(ctx, logger)
+	j.collectSchemaSizes(ctx, logger)
+	j.collectAutomatedActionAge(ctx, logger)
+	j.collectRoutinePaused(ctx, logger)
+	j.collectRoutineLiveness(ctx, logger)
+	j.collectRoutineRunMetrics(ctx, logger)
+	j.collectLatencyTrends(ctx, logger)
+	return nil
+}
+
+func (j *IssueSignalCollectorJob) collectFailingPullRequests(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	prs, err := j.gh.ListFailingPullRequests(ctx)
+	if errors.Is(err, github.ErrNotConfigured) {
+		return
+	}
+	if err != nil {
+		logAPIErr(ctx, logger,
+			"issue-signal-collector: failed to list failing pull requests",
+			err, github.IsTransientAPIError(err))
+		return
+	}
+	githubFailingPullRequests.Set(float64(len(prs)))
+}
+
+func (j *IssueSignalCollectorJob) collectWorkflowRuns(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	runs, err := j.gh.ListWorkflowRuns(ctx)
+	if errors.Is(err, github.ErrNotConfigured) {
+		return
+	}
+	if err != nil {
+		logAPIErr(ctx, logger,
+			"issue-signal-collector: failed to list workflow runs",
+			err, github.IsTransientAPIError(err))
+		return
+	}
+
+	// mainFailed is 1 iff the most recent completed run on main concluded
+	// failure. Counting every failure in ListWorkflowRuns' last-20-push window
+	// kept the gauge set for ~8h after a transient red push, so IssueMainCIRed
+	// fired while main was green.
+	mainFailed := 0.0
+	haveMainRun := false
+	var latestMain github.WorkflowRun
+	latestByWorkflow := make(map[string]github.WorkflowRun)
+	for _, run := range runs {
+		if run.Branch == mainBranch && run.Status == "completed" {
+			if !haveMainRun || run.StartedAt.After(latestMain.StartedAt) {
+				haveMainRun = true
+				latestMain = run
+			}
+		}
+		if run.Branch != mainBranch || run.Status != "completed" {
+			continue
+		}
+		if cur, ok := latestByWorkflow[run.Name]; !ok ||
+			run.StartedAt.After(cur.StartedAt) {
+			latestByWorkflow[run.Name] = run
+		}
+	}
+	if haveMainRun && latestMain.Conclusion == "failure" {
+		mainFailed = 1
+	}
+	githubWorkflowRunFailed.Reset()
+	githubWorkflowRunFailed.WithLabelValues(mainBranch).Set(mainFailed)
+
+	githubWorkflowRunDurationSeconds.Reset()
+	for name, run := range latestByWorkflow {
+		githubWorkflowRunDurationSeconds.WithLabelValues(name).
+			Set(float64(run.DurationMs) / millisPerSecond)
+	}
+}
+
+// collectSentryIssues sets sentry_unresolved_issues and records the fetch
+// outcome in sentry_unresolved_issues_fetch_ok; the count is left untouched on
+// failure, so consumers must read it only while fetch_ok is 1. It's a gauge
+// because Grafana can't alert on the grafana-sentry-datasource Issues query
+// directly.
+func (j *IssueSignalCollectorJob) collectSentryIssues(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	issues, err := j.sentry.ListUnresolvedIssues(ctx)
+	if errors.Is(err, sentryapi.ErrNotConfigured) {
+		sentryUnresolvedFetchOK.Set(0)
+		return
+	}
+	if err != nil {
+		sentryUnresolvedFetchOK.Set(0)
+		logAPIErr(ctx, logger,
+			"issue-signal-collector: failed to list unresolved Sentry issues",
+			err, sentryapi.IsTransientAPIError(err))
+		return
+	}
+	sentryUnresolvedIssues.Set(float64(len(issues)))
+	sentryUnresolvedFetchOK.Set(1)
+}
+
+func (j *IssueSignalCollectorJob) collectStorage(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	snap, err := j.storageSnapshot.Latest(ctx)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return
+	}
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"issue-signal-collector: failed to load storage snapshot",
+			essentialogger.ErrAttr(err))
+		return
+	}
+	r2OrphanedObjects.Set(float64(snap.OrphanCount))
+	r2StorageBytes.Set(float64(snap.TotalSizeBytes))
+}
+
+func (j *IssueSignalCollectorJob) collectSchemaSizes(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	sizes, err := j.schemaSizes.SchemaSizes(ctx)
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"issue-signal-collector: failed to load schema sizes",
+			essentialogger.ErrAttr(err))
+		return
+	}
+	postgresSchemaSizeBytes.Reset()
+	for _, s := range sizes {
+		postgresSchemaSizeBytes.WithLabelValues(s.Name).Set(float64(s.SizeBytes))
+	}
+}
+
+// collectAutomatedActionAge sets the gauge to 0 when no row is open.
+func (j *IssueSignalCollectorJob) collectAutomatedActionAge(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	firedAt, err := j.automatedAction.OldestOpenFiredAt(ctx)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		automatedActionOldestOpenAgeSeconds.Set(0)
+		return
+	}
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"issue-signal-collector: failed to load oldest open automated action",
+			essentialogger.ErrAttr(err))
+		return
+	}
+	automatedActionOldestOpenAgeSeconds.Set(time.Since(firedAt).Seconds())
+}
+
+// collectRoutineRunMetrics sets automated_action_last_run from each
+// routine's latest measured run.
+func (j *IssueSignalCollectorJob) collectRoutineRunMetrics(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	latest, err := j.automatedAction.LatestRunMetrics(
+		ctx, time.Now().Add(-runMetricsWindow),
+	)
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"issue-signal-collector: failed to load routine run metrics",
+			essentialogger.ErrAttr(err))
+		return
+	}
+	automatedActionLastRun.Reset()
+	for routine, m := range latest {
+		for metric, v := range map[string]float64{
+			"requests":            float64(m.Requests),
+			"input_tokens":        float64(m.InputTokens),
+			"output_tokens":       float64(m.OutputTokens),
+			"reasoning_tokens":    float64(m.ReasoningTokens),
+			"cache_read_tokens":   float64(m.CacheReadTokens),
+			"cost_usd":            m.CostUSD,
+			"duration_seconds":    m.DurationSeconds,
+			"tool_calls":          float64(m.ToolCalls),
+			"tool_errors":         float64(m.ToolErrors),
+			"repeated_tool_calls": float64(m.RepeatedToolCalls),
+		} {
+			automatedActionLastRun.WithLabelValues(routine, metric).Set(v)
+		}
+	}
+}
+
+// collectRoutinePaused marks routines whose ROUTINE_*_ENABLED repo variable
+// isn't "true", so AutomatedRoutineMissed can ignore a deliberately disabled
+// routine. A fetch error leaves the gauge untouched — the alert keeps firing
+// until the enabled state is known.
+func (j *IssueSignalCollectorJob) collectRoutinePaused(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	vars, err := j.gh.ListRepositoryVariables(ctx)
+	if errors.Is(err, github.ErrNotConfigured) {
+		return
+	}
+	if err != nil {
+		logAPIErr(ctx, logger,
+			"issue-signal-collector: failed to list repository variables",
+			err, github.IsTransientAPIError(err))
+		return
+	}
+
+	automatedActionRoutinePaused.Reset()
+	for _, routine := range knownRoutines {
+		paused := 0.0
+		if vars[routineEnabledVariable(routine)] != "true" {
+			paused = 1
+		}
+		automatedActionRoutinePaused.WithLabelValues(routine).Set(paused)
+	}
+}
+
+// routineEnabledVariable is the workflow gate variable for a routine; keep in
+// sync with the `vars.ROUTINE_*_ENABLED == 'true'` job conditions in
+// .github/workflows/routine-*.yml.
+func routineEnabledVariable(routine string) string {
+	return "ROUTINE_" +
+		strings.ToUpper(strings.ReplaceAll(routine, "-", "_")) + "_ENABLED"
+}
+
+// collectRoutineLiveness sets automated_action_seconds_since_last_open per
+// routine; neverOpenedSentinelSeconds when it never opened a row.
+func (j *IssueSignalCollectorJob) collectRoutineLiveness(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	for _, routine := range knownRoutines {
+		firedAt, err := j.automatedAction.MostRecentOpenedAt(ctx, routine)
+		if errors.Is(err, database.ErrResourceNotFound) {
+			automatedActionSecondsSinceLastOpen.
+				WithLabelValues(routine).Set(neverOpenedSentinelSeconds)
+			continue
+		}
+		if err != nil {
+			logger.ErrorContext(ctx,
+				"issue-signal-collector: failed to load most recent open "+
+					"automated action",
+				slog.String("routine", routine), essentialogger.ErrAttr(err))
+			continue
+		}
+		automatedActionSecondsSinceLastOpen.
+			WithLabelValues(routine).Set(time.Since(firedAt).Seconds())
+	}
+}
+
+// collectLatencyTrends sets transaction_p95_seconds, which feeds Grafana's
+// TransactionLatencyRegression. A fetch error leaves the gauge untouched.
+func (j *IssueSignalCollectorJob) collectLatencyTrends(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	trends, err := j.latencyTrends.Trends(ctx)
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"issue-signal-collector: failed to load transaction latency trends",
+			essentialogger.ErrAttr(err))
+		return
+	}
+	transactionP95Seconds.Reset()
+	for _, t := range trends {
+		transactionP95Seconds.WithLabelValues(t.Project, t.Transaction, "recent").
+			Set(t.RecentAvgP95Ms / millisPerSecond)
+		transactionP95Seconds.WithLabelValues(t.Project, t.Transaction, "prior").
+			Set(t.PriorAvgP95Ms / millisPerSecond)
+	}
+}

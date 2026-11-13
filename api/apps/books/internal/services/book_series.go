@@ -11,7 +11,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
-	"tools.xdoubleu.com/internal/communication/httptools"
+	"tools.xdoubleu.com/internal/platform/communication/httptools"
 )
 
 // seriesLookupTimeout leaves GetSeries time to degrade to the library when

@@ -14,7 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/kit/logging"
-	obs "tools.xdoubleu.com/internal/obs"
+	platformmcp "tools.xdoubleu.com/internal/platform/mcp"
+	obs "tools.xdoubleu.com/internal/platform/obs"
 )
 
 // requestCountsByStatus totals http_request_duration_seconds_count for a
@@ -46,7 +47,7 @@ func requestCountsByStatus(t *testing.T, method string) map[string]int {
 // WriteHeader, so net/http sends an implicit 200. The metric must record it
 // as 2xx, not 0xx, or dashboards can't tell MCP successes from failures.
 func TestMCPRequestsAreRecordedAs2xx(t *testing.T) {
-	srv := newMCPServer(logging.NewNopLogger())
+	srv := platformmcp.NewServer(logging.NewNopLogger(), appsMCPServerName)
 	//nolint:exhaustruct // the name is all the tool needs
 	mcp.AddTool(srv, &mcp.Tool{Name: "ping"}, func(
 		_ context.Context, _ *mcp.CallToolRequest, _ obs.NoArgs,
@@ -55,7 +56,7 @@ func TestMCPRequestsAreRecordedAs2xx(t *testing.T) {
 		return &mcp.CallToolResult{}, nil, nil
 	})
 	mux := http.NewServeMux()
-	mux.Handle(appsMCPPath, streamableMCPHandler(logging.NewNopLogger(), srv))
+	mux.Handle(appsMCPPath, platformmcp.StreamableHandler(logging.NewNopLogger(), srv))
 	ts := httptest.NewServer(throttledApp(t).middleware().Then(mux))
 	t.Cleanup(ts.Close)
 

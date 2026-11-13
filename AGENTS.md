@@ -4,7 +4,7 @@ The repository contract for any coding agent. Harness mechanics live in `CLAUDE.
 
 ## Monorepo Overview
 
-- `api/` — Go 1.27, one binary serving every app over ConnectRPC on a shared mux, plus the web build (`internal/spa`). Each app owns a PostgreSQL schema; protos live in `proto/`.
+- `api/` — Go 1.27, one binary serving every app over ConnectRPC on a shared mux, plus the web build (`internal/platform/spa`). Each app owns a PostgreSQL schema; protos live in `proto/`.
 - `web/` — Vite 8 / React 19 SPA served by the api.
 - `kobo-gateway/` — separate macOS-only Go module, a downloadable menu-bar helper.
 - `factory-runner/` — separate Go module, the Mac helper that pairs with the factory board and heartbeats.

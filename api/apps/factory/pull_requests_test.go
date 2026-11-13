@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
-	"tools.xdoubleu.com/internal/githubapp"
+	"tools.xdoubleu.com/internal/platform/githubapp"
 )
 
 func ended(state string) githubapp.PullRequestStatus {

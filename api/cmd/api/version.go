@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	httptools "tools.xdoubleu.com/internal/communication/httptools"
+	httptools "tools.xdoubleu.com/internal/platform/communication/httptools"
 )
 
 func (app *Application) versionHandler(w http.ResponseWriter, r *http.Request) {

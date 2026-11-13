@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	wstools "tools.xdoubleu.com/internal/communication/wstools"
-	"tools.xdoubleu.com/internal/jobqueue"
+	wstools "tools.xdoubleu.com/internal/platform/communication/wstools"
+	"tools.xdoubleu.com/internal/platform/jobqueue"
 )
 
 // SubscribeMessageDto names the job-ID topic to subscribe to.

@@ -10,15 +10,17 @@ import (
 
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
-	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/kit/constants"
-	"tools.xdoubleu.com/internal/middleware"
-	"tools.xdoubleu.com/internal/obs"
 	"tools.xdoubleu.com/internal/platform/account"
 	"tools.xdoubleu.com/internal/platform/agentaccounts"
+	"tools.xdoubleu.com/internal/platform/communication/httptools"
 	"tools.xdoubleu.com/internal/platform/family"
+	platformmcp "tools.xdoubleu.com/internal/platform/mcp"
+	"tools.xdoubleu.com/internal/platform/middleware"
 	"tools.xdoubleu.com/internal/platform/oauth2as"
-	"tools.xdoubleu.com/internal/slack"
+	"tools.xdoubleu.com/internal/platform/obs"
+	"tools.xdoubleu.com/internal/platform/observability"
+	"tools.xdoubleu.com/internal/platform/slack"
 )
 
 // maxRequestBodyBytes bounds every request body, e.g. inbound newsletter
@@ -46,10 +48,10 @@ func (app *Application) mux() *http.ServeMux {
 	// MCP behind OAuth 2.1 Bearer auth. The protected-resource metadata is public
 	// for discovery.
 	appsPRM := mcpauth.ProtectedResourceMetadataHandler(
-		app.mcpResourceMetadataFor(appsMCPPath, "tools.xdoubleu.com apps"),
+		app.mcpResource().ResourceMetadataFor(appsMCPPath, "tools.xdoubleu.com apps"),
 	)
 	mux.Handle(appsResourceMetadataPath, appsPRM)
-	mux.Handle(rootResourceMetadataPath, appsPRM)
+	mux.Handle(platformmcp.RootResourceMetadataPath, appsPRM)
 	mux.Handle(appsMCPPath, app.appsMCPRoute())
 	// RFC 9728 path-insertion alias: clients insert /.well-known/... before the
 	// resource path ("/api"), so register that URL too.
@@ -58,59 +60,67 @@ func (app *Application) mux() *http.ServeMux {
 	)
 
 	// Embedded OAuth 2.1 authorization server.
+	sessionUser := oauth2as.NewSessionUserResolver(app.auth, app.appUsersRepo)
+	delegator := oauth2as.NewAgentDelegator(agents, app.appUsersRepo)
+	metadata := oauth2as.MetadataHandler(app.config.AuthIssuer)
 	mux.HandleFunc(
-		"GET "+oauth2AuthorizePath,
+		"GET "+oauth2as.AuthorizePath,
 		oauth2as.AuthorizeHandler(
-			app.oauth2as.provider, app.config,
-			app.oauth2SessionUserResolver(), app.agentDelegator(agents),
-			app.oauth2as.oidcKeyID(), app.logger,
+			app.oauth2as.Provider, app.config,
+			sessionUser, delegator,
+			app.oauth2as.OIDCKeyID(), app.logger,
 		),
 	)
 	mux.HandleFunc(
-		"POST "+oauth2AuthorizePath,
+		"POST "+oauth2as.AuthorizePath,
 		oauth2as.AuthorizeHandler(
-			app.oauth2as.provider, app.config,
-			app.oauth2SessionUserResolver(), app.agentDelegator(agents),
-			app.oauth2as.oidcKeyID(), app.logger,
+			app.oauth2as.Provider, app.config,
+			sessionUser, delegator,
+			app.oauth2as.OIDCKeyID(), app.logger,
 		),
 	)
 	mux.HandleFunc(
-		"POST "+oauth2TokenPath,
+		"POST "+oauth2as.TokenPath,
 		oauth2as.TokenHandler(
-			app.oauth2as.provider,
+			app.oauth2as.Provider,
 			oauth2as.NewMachineSubjects(agents.ClientSubject),
 			app.logger,
 		),
 	)
 	mux.HandleFunc(
-		"POST "+oauth2RegisterPath,
-		oauth2as.RegisterHandler(app.oauth2as.store, app.logger),
+		"POST "+oauth2as.RegisterPath,
+		oauth2as.RegisterHandler(app.oauth2as.Store, app.logger),
 	)
 	mux.HandleFunc(
-		"GET "+oauth2ConsentInfoPath, oauth2as.ConsentInfoHandler(
-			app.oauth2as.store, app.config, app.oauth2SessionUserResolver(),
+		"GET "+oauth2as.ConsentInfoPath, oauth2as.ConsentInfoHandler(
+			app.oauth2as.Store, app.config, sessionUser,
 		),
 	)
-	mux.HandleFunc("GET "+oauth2MetadataPath, app.oauth2MetadataHandler())
+	mux.HandleFunc("GET "+oauth2as.MetadataPath, metadata)
 	// Same path-insertion alias for AuthIssuer's path.
 	mux.HandleFunc(
-		"GET "+oauth2MetadataPath+"/api", app.oauth2MetadataHandler(),
+		"GET "+oauth2as.MetadataPath+"/api", metadata,
 	)
 	// OIDC discovery and the JWKS Grafana uses to verify ID tokens.
-	mux.HandleFunc("GET "+openIDConfigurationPath, app.oauth2MetadataHandler())
-	mux.HandleFunc("GET "+openIDConfigurationPath+"/api", app.oauth2MetadataHandler())
+	mux.HandleFunc("GET "+oauth2as.OpenIDConfigurationPath, metadata)
+	mux.HandleFunc("GET "+oauth2as.OpenIDConfigurationPath+"/api", metadata)
 	mux.HandleFunc(
-		"GET "+oauth2JWKSPath, oauth2as.JWKSHandler(app.oauth2as.oidcKey),
+		"GET "+oauth2as.JWKSPath, oauth2as.JWKSHandler(app.oauth2as.OIDCKey),
 	)
 
 	// OAuth connect flow for observability integrations; plain HTTP,
 	// admin-cookie-gated.
-	mux.HandleFunc("GET /admin/oauth/{provider}/start", app.oauthStartRoute())
-	mux.HandleFunc("GET /admin/oauth/{provider}/callback", app.oauthCallbackRoute())
+	mux.HandleFunc("GET /admin/oauth/{provider}/start", app.oauthConnect.StartRoute())
+	mux.HandleFunc(
+		"GET /admin/oauth/{provider}/callback", app.oauthConnect.CallbackRoute(),
+	)
 
 	mux.HandleFunc("GET /api/version", app.versionHandler)
 	mux.HandleFunc("GET "+healthPath, app.healthHandler)
-	mux.Handle("GET "+metricsPath, metricsHandler(app.config.ObservabilityIngestSecret))
+	mux.Handle(
+		"GET "+observability.MetricsPath,
+		observability.MetricsHandler(app.config.ObservabilityIngestSecret),
+	)
 
 	app.apps.Without(app.disabledApps).Routes(mux)
 	app.disabledApps.Mount(mux)

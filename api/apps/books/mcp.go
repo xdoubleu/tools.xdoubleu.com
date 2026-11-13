@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
-	"tools.xdoubleu.com/internal/mcptools"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 const mcpAppName = "books"

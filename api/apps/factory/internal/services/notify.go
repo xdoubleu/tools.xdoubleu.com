@@ -6,7 +6,7 @@ import (
 	"unicode/utf8"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
-	"tools.xdoubleu.com/internal/slack"
+	"tools.xdoubleu.com/internal/platform/slack"
 )
 
 // maxNotifyDetail caps the outcome quoted in a notification.

@@ -28,12 +28,12 @@ import (
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
-	"tools.xdoubleu.com/internal/mailer"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/platform/account"
 	sharedauth "tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/family"
+	"tools.xdoubleu.com/internal/platform/mailer"
+	"tools.xdoubleu.com/internal/platform/notifications"
 )
 
 //nolint:gochecknoglobals //needed for tests

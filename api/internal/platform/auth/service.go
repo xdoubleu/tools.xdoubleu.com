@@ -21,8 +21,8 @@ import (
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/crypto"
 	"tools.xdoubleu.com/internal/kit/errortools"
-	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/mailer"
 )
 
 // SignInRenderFunc renders the sign-in page for TemplateAccess.
@@ -36,7 +36,7 @@ type appUsersStore interface {
 }
 
 // OAuth2TokenResolver resolves a fosite opaque access token to a user ID. It is
-// set by cmd/api to avoid an import cycle with internal/oauth2as.
+// set by cmd/api to avoid an import cycle with internal/platform/oauth2as.
 type OAuth2TokenResolver interface {
 	ResolveAccessToken(ctx context.Context, token string) (userID string, err error)
 }

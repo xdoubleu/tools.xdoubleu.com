@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
-	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/platform/github"
 )
 
 func TestObservabilityGetProjectIssuesByStatus_AsAdmin(t *testing.T) {

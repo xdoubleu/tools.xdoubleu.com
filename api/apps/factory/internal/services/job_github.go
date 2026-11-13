@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
-	"tools.xdoubleu.com/internal/githubapp"
+	"tools.xdoubleu.com/internal/platform/githubapp"
 )
 
 // ErrPushNotConfigured is returned when no GitHub App is set up, so a job's work

@@ -9,18 +9,21 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 
+	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/oauth2as"
 )
 
 // withStubProvider points "sentry" at conf until cleanup.
 func withStubProvider(t *testing.T, conf *oauth2.Config) {
 	t.Helper()
-	original := oauthProviders["sentry"]
-	oauthProviders["sentry"] = oauthProviderDef{
-		provider: original.provider,
-		conf:     func(*Application) *oauth2.Config { return conf },
+	providers := testApp.oauthConnect.Providers
+	original := providers["sentry"]
+	providers["sentry"] = oauth2as.ConnectProvider{
+		Provider: original.Provider,
+		Conf:     func(config.Config) *oauth2.Config { return conf },
 	}
-	t.Cleanup(func() { oauthProviders["sentry"] = original })
+	t.Cleanup(func() { providers["sentry"] = original })
 }
 
 func TestOAuthStartRoute_UnknownProvider(t *testing.T) {

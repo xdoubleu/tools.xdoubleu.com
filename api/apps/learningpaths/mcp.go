@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
-	"tools.xdoubleu.com/internal/mcptools"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 const mcpAppName = "learningpaths"

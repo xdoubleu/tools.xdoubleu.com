@@ -2,7 +2,7 @@
 
 - Status: Superseded by #1597 (classification removed)
 - Issues: #1310, #1320, #1528, #1597
-- Affects (historical): `api/internal/observability/jobs/slow_transactions.go`, `api/internal/communication/wstools/websocket.go`
+- Affects (historical): `api/internal/platform/observability/jobs/slow_transactions.go`, `api/internal/platform/communication/wstools/websocket.go`
 
 ## Context
 

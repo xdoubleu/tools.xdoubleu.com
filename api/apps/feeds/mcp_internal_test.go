@@ -11,12 +11,12 @@ import (
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
-	"tools.xdoubleu.com/internal/mailer"
-	"tools.xdoubleu.com/internal/mcptools"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/platform/account"
+	"tools.xdoubleu.com/internal/platform/mailer"
+	"tools.xdoubleu.com/internal/platform/mcptools"
+	"tools.xdoubleu.com/internal/platform/notifications"
 )
 
 // TestMCPTools_ListFeedsAndItems exercises both MCP tool wrappers against a

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/middleware"
+	"tools.xdoubleu.com/internal/platform/middleware"
 )
 
 func TestUsageLabels(t *testing.T) {

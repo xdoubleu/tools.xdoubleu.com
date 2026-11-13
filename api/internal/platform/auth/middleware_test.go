@@ -17,8 +17,8 @@ import (
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
 	"tools.xdoubleu.com/internal/kit/testhelper"
-	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/mailer"
 )
 
 const testPassword = "password"

@@ -3,7 +3,7 @@
 - Status: Accepted; the `AgentToolsOnly` gate is superseded by
   [ADR-0047](adr-0047-first-class-agent-users.md)
 - Issues: #2714, #2701
-- Affects: `api/apps/factory/mcp.go`, `api/internal/mcptools/` (`RequireAgent`,
+- Affects: `api/apps/factory/mcp.go`, `api/internal/platform/mcptools/` (`RequireAgent`,
   `AddAgentReadTool`, `AddAgentWriteTool`, `AgentGrants`)
 
 ## Context

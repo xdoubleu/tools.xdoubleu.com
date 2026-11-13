@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
-	"tools.xdoubleu.com/internal/communication/wstools"
+	"tools.xdoubleu.com/internal/platform/communication/wstools"
 )
 
 // journeyDetailFetcher is the slice of JourneyDetailService JourneyWSService

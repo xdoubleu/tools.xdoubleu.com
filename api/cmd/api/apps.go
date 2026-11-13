@@ -26,14 +26,14 @@ import (
 	"tools.xdoubleu.com/apps/trains"
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/githubapp"
 	"tools.xdoubleu.com/internal/kit/crypto"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/platform/account"
 	"tools.xdoubleu.com/internal/platform/agentaccounts"
 	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/family"
+	"tools.xdoubleu.com/internal/platform/githubapp"
+	"tools.xdoubleu.com/internal/platform/notifications"
 )
 
 type Apps []App

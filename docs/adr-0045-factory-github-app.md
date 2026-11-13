@@ -2,7 +2,7 @@
 
 - Status: Accepted (the plan of #2775, decision 13 of #2701)
 - Issues: #2775, #2701
-- Affects: `api/internal/githubapp/`, `RunnerService.GetPushToken`,
+- Affects: `api/internal/platform/githubapp/`, `RunnerService.GetPushToken`,
   `CompleteJobRequest.pr_url`, `factory-runner`
 
 ## Context

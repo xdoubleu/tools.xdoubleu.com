@@ -18,9 +18,10 @@ import (
 
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
-	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/kit/logging"
-	obs "tools.xdoubleu.com/internal/obs"
+	"tools.xdoubleu.com/internal/platform/communication/httptools"
+	platformmcp "tools.xdoubleu.com/internal/platform/mcp"
+	obs "tools.xdoubleu.com/internal/platform/obs"
 )
 
 // kamalDefaultResponseTimeout is Kamal's proxy.response_timeout when unset.
@@ -94,7 +95,7 @@ func TestMiddlewareLongRouteOutlivesWriteTimeout(t *testing.T) {
 func TestMCPToolCallGetsLongBudget(t *testing.T) {
 	const writeTimeout = 100 * time.Millisecond
 	budgets := make(chan time.Duration, 1)
-	srv := newMCPServer(logging.NewNopLogger())
+	srv := platformmcp.NewServer(logging.NewNopLogger(), appsMCPServerName)
 	//nolint:exhaustruct // the name is all the tool needs
 	mcp.AddTool(srv, &mcp.Tool{Name: "slow"}, func(
 		ctx context.Context, _ *mcp.CallToolRequest, _ obs.NoArgs,
@@ -106,7 +107,7 @@ func TestMCPToolCallGetsLongBudget(t *testing.T) {
 		return &mcp.CallToolResult{}, nil, nil
 	})
 	mux := http.NewServeMux()
-	mux.Handle(appsMCPPath, streamableMCPHandler(logging.NewNopLogger(), srv))
+	mux.Handle(appsMCPPath, platformmcp.StreamableHandler(logging.NewNopLogger(), srv))
 	ts := httptest.NewUnstartedServer(throttledApp(t).middleware().Then(mux))
 	ts.Config.WriteTimeout = writeTimeout
 	ts.Start()

@@ -7,7 +7,7 @@ import (
 	fosite "authelia.com/provider/oauth2"
 )
 
-// TokenResolver implements auth.OAuth2TokenResolver so internal/auth never
+// TokenResolver implements auth.OAuth2TokenResolver so internal/platform/auth never
 // imports fosite.
 type TokenResolver struct {
 	provider fosite.Provider

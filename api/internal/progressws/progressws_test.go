@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/platform/jobqueue"
 	"tools.xdoubleu.com/internal/progressws"
 )
 

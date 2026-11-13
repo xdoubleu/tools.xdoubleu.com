@@ -21,7 +21,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/contexttools"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/auth"
-	"tools.xdoubleu.com/internal/slack"
+	"tools.xdoubleu.com/internal/platform/slack"
 )
 
 const maxNameLen = 80

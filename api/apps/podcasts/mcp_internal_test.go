@@ -12,9 +12,9 @@ import (
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
-	"tools.xdoubleu.com/internal/mcptools"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 func userCtx(uid string) context.Context {

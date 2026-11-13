@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"time"
 
-	httptools "tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/kit/httpclient"
+	httptools "tools.xdoubleu.com/internal/platform/communication/httptools"
 )
 
 const BaseURLRESTAPI = "http://api.steampowered.com"

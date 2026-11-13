@@ -3,6 +3,8 @@ package main
 import (
 	"net/http"
 	"strings"
+
+	"tools.xdoubleu.com/internal/platform/observability"
 )
 
 // stripAPIPathPrefix strips /api in-process. kamal-proxy routes
@@ -13,7 +15,7 @@ import (
 func stripAPIPathPrefix(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if p, ok := strings.CutPrefix(r.URL.Path, "/api"); ok {
-			if p == metricsPath {
+			if p == observability.MetricsPath {
 				http.NotFound(w, r)
 				return
 			}

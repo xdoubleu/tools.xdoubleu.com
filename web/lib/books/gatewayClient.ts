@@ -7,7 +7,7 @@
 import { getKoboGatewayRelease } from '@/lib/env'
 
 const GATEWAY_PORT = 41132
-// api/internal/spa/csp.go allows this in the CSP connect-src.
+// api/internal/platform/spa/csp.go allows this in the CSP connect-src.
 const GATEWAY_URL = `https://127.0.0.1:${GATEWAY_PORT}`
 
 /**

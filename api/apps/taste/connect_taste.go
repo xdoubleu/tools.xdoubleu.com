@@ -14,8 +14,8 @@ import (
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
 	"tools.xdoubleu.com/internal/kit/pagination"
-	"tools.xdoubleu.com/internal/mcptools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 // sharedApp is the only app the family-wide taste reads.

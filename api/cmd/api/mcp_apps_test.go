@@ -14,9 +14,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/kit/logging"
-	"tools.xdoubleu.com/internal/sentryapi"
+	"tools.xdoubleu.com/internal/platform/github"
+	"tools.xdoubleu.com/internal/platform/sentryapi"
 )
 
 // appsToolNames lists every tool /apps/mcp registers. Keep in sync with each
@@ -180,7 +180,7 @@ func TestAppsMCPProtectedResourceMetadata(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&md))
 	assert.Equal(t, testApp.config.APIURL+appsMCPPath, md.Resource)
 	require.Len(t, md.AuthorizationServers, 1)
-	assert.Equal(t, testApp.mcpAuthServerIssuer(), md.AuthorizationServers[0])
+	assert.Equal(t, testApp.config.AuthIssuer, md.AuthorizationServers[0])
 }
 
 func TestAppsMCPUnauthenticated(t *testing.T) {

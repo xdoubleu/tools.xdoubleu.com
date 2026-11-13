@@ -1,0 +1,202 @@
+package httptools_test
+
+import (
+	"bufio"
+	"errors"
+	"io"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/internal/platform/communication/httptools"
+)
+
+type hijackableRecorder struct {
+	*httptest.ResponseRecorder
+	hijacked bool
+	readFrom bool
+}
+
+func (h *hijackableRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h.hijacked = true
+	server, _ := net.Pipe()
+	rw := bufio.NewReadWriter(bufio.NewReader(server), bufio.NewWriter(server))
+	return server, rw, nil
+}
+
+func (h *hijackableRecorder) ReadFrom(r io.Reader) (int64, error) {
+	h.readFrom = true
+	buf := make([]byte, 512)
+	n, _ := r.Read(buf)
+	return int64(n), nil
+}
+
+func TestResponseWriterHijack(t *testing.T) {
+	t.Parallel()
+
+	//nolint:exhaustruct //hijacked/readFrom are zero-value, set by the calls under test
+	inner := &hijackableRecorder{ResponseRecorder: httptest.NewRecorder()}
+	rw := httptools.NewResponseWriter(inner)
+
+	hijacker, ok := rw.(http.Hijacker)
+	require.True(t, ok)
+
+	_, _, err := hijacker.Hijack()
+	require.NoError(t, err)
+	assert.True(t, inner.hijacked)
+}
+
+func TestResponseWriterHijackUnsupported(t *testing.T) {
+	t.Parallel()
+
+	rw := httptools.NewResponseWriter(httptest.NewRecorder())
+	hijacker, ok := rw.(http.Hijacker)
+	require.True(t, ok)
+
+	_, _, err := hijacker.Hijack()
+	assert.True(t, errors.Is(err, err))
+	require.Error(t, err)
+}
+
+func TestResponseWriterFlush(t *testing.T) {
+	t.Parallel()
+
+	inner := httptest.NewRecorder()
+	rw := httptools.NewResponseWriter(inner)
+	//nolint:forcetypeassert,errcheck //we control the type; recorder Flush never errors
+	rw.(http.Flusher).Flush()
+
+	assert.True(t, inner.Flushed)
+}
+
+func TestResponseWriterStatusAndWriteHeaderOnce(t *testing.T) {
+	t.Parallel()
+
+	inner := httptest.NewRecorder()
+	rw := httptools.NewResponseWriter(inner)
+
+	rw.WriteHeader(http.StatusTeapot)
+	rw.WriteHeader(http.StatusOK) // ignored, status already set
+	assert.Equal(t, http.StatusTeapot, rw.Status())
+	assert.Equal(t, http.StatusTeapot, inner.Code)
+}
+
+// A handler that writes no header gets net/http's implicit 200, so Status
+// never reports an unset value.
+func TestResponseWriterStatusDefaultsToOK(t *testing.T) {
+	t.Parallel()
+
+	rw := httptools.NewResponseWriter(httptest.NewRecorder())
+
+	assert.Equal(t, http.StatusOK, rw.Status())
+}
+
+// The MCP SDK writes a successful body without WriteHeader; net/http sends an
+// implicit 200, which a later WriteHeader can no longer change.
+func TestResponseWriterWriteRecordsImplicitOK(t *testing.T) {
+	t.Parallel()
+
+	inner := httptest.NewRecorder()
+	rw := httptools.NewResponseWriter(inner)
+
+	_, err := rw.Write([]byte("body"))
+	require.NoError(t, err)
+	rw.WriteHeader(http.StatusTeapot) // too late, ignored
+
+	assert.Equal(t, http.StatusOK, rw.Status())
+	assert.Equal(t, http.StatusOK, inner.Code)
+	assert.Equal(t, "body", inner.Body.String())
+}
+
+func TestResponseWriterWriteKeepsExplicitStatus(t *testing.T) {
+	t.Parallel()
+
+	rw := httptools.NewResponseWriter(httptest.NewRecorder())
+
+	rw.WriteHeader(http.StatusNotFound)
+	_, err := rw.Write([]byte("missing"))
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusNotFound, rw.Status())
+}
+
+func TestResponseWriterFlushRecordsImplicitOK(t *testing.T) {
+	t.Parallel()
+
+	rw := httptools.NewResponseWriter(httptest.NewRecorder())
+	//nolint:forcetypeassert,errcheck //we control the type; recorder Flush never errors
+	rw.(http.Flusher).Flush()
+	rw.WriteHeader(http.StatusTeapot) // too late, ignored
+
+	assert.Equal(t, http.StatusOK, rw.Status())
+}
+
+// ReadFrom bypasses Write, e.g. io.Copy and http.ServeContent.
+func TestResponseWriterReadFromRecordsImplicitOK(t *testing.T) {
+	t.Parallel()
+
+	for name, inner := range map[string]http.ResponseWriter{
+		//nolint:exhaustruct //hijacked/readFrom are zero-value
+		"inner has ReadFrom": &hijackableRecorder{
+			ResponseRecorder: httptest.NewRecorder(),
+		},
+		"inner lacks ReadFrom": writeOnly{httptest.NewRecorder()},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			rw := httptools.NewResponseWriter(inner)
+			_, err := rw.ReadFrom(strings.NewReader("hello"))
+			require.NoError(t, err)
+			rw.WriteHeader(http.StatusTeapot) // too late, ignored
+
+			assert.Equal(t, http.StatusOK, rw.Status())
+		})
+	}
+}
+
+func TestResponseWriterReadFrom(t *testing.T) {
+	t.Parallel()
+
+	//nolint:exhaustruct //hijacked/readFrom are zero-value, set by the calls under test
+	inner := &hijackableRecorder{ResponseRecorder: httptest.NewRecorder()}
+	rw := httptools.NewResponseWriter(inner)
+
+	n, err := rw.ReadFrom(strings.NewReader("hello"))
+	require.NoError(t, err)
+	assert.Positive(t, n)
+	assert.True(t, inner.readFrom)
+}
+
+// writeOnly hides the recorder's optional interfaces.
+type writeOnly struct{ http.ResponseWriter }
+
+func TestResponseWriterReadFromWithoutInnerReaderFrom(t *testing.T) {
+	t.Parallel()
+
+	inner := httptest.NewRecorder()
+	rw := httptools.NewResponseWriter(writeOnly{inner})
+
+	n, err := io.Copy(rw, io.LimitReader(strings.NewReader("hello"), 5))
+	require.NoError(t, err)
+	assert.Equal(t, int64(5), n)
+	assert.Equal(t, "hello", inner.Body.String())
+}
+
+// Unwrap lets http.ResponseController reach the connection, e.g. to move a
+// long route's write deadline.
+func TestResponseWriterUnwrap(t *testing.T) {
+	t.Parallel()
+
+	inner := httptest.NewRecorder()
+	rw := httptools.NewResponseWriter(inner)
+
+	u, ok := rw.(interface{ Unwrap() http.ResponseWriter })
+	require.True(t, ok)
+	assert.Same(t, inner, u.Unwrap())
+}

@@ -16,7 +16,7 @@ import (
 	"tools.xdoubleu.com/apps/factory/internal/models"
 	"tools.xdoubleu.com/apps/factory/internal/repositories"
 	"tools.xdoubleu.com/internal/kit/database"
-	"tools.xdoubleu.com/internal/slack"
+	"tools.xdoubleu.com/internal/platform/slack"
 )
 
 const (

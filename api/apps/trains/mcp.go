@@ -12,7 +12,7 @@ import (
 
 	"tools.xdoubleu.com/apps/trains/pkg/irail"
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
-	"tools.xdoubleu.com/internal/mcptools"
+	"tools.xdoubleu.com/internal/platform/mcptools"
 )
 
 const mcpAppName = "trains"

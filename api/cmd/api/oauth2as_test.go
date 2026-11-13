@@ -37,9 +37,9 @@ func TestOAuth2MetadataHandler(t *testing.T) {
 
 	issuer, _ := out["issuer"].(string)
 	assert.NotEmpty(t, issuer)
-	assert.Equal(t, issuer+oauth2AuthorizePath, out["authorization_endpoint"])
-	assert.Equal(t, issuer+oauth2TokenPath, out["token_endpoint"])
-	assert.Equal(t, issuer+oauth2RegisterPath, out["registration_endpoint"])
+	assert.Equal(t, issuer+oauth2as.AuthorizePath, out["authorization_endpoint"])
+	assert.Equal(t, issuer+oauth2as.TokenPath, out["token_endpoint"])
+	assert.Equal(t, issuer+oauth2as.RegisterPath, out["registration_endpoint"])
 	assert.Equal(t, []any{oauth2asTestResponseType}, out["response_types_supported"])
 	assert.Equal(
 		t, []any{oauth2asTestCodeChallengeMethod},
@@ -52,7 +52,7 @@ func TestOAuth2MetadataHandler(t *testing.T) {
 	assert.Equal(t, []any{"openid", "profile", "email", "offline_access"},
 		out["scopes_supported"])
 
-	assert.Equal(t, issuer+oauth2JWKSPath, out["jwks_uri"])
+	assert.Equal(t, issuer+oauth2as.JWKSPath, out["jwks_uri"])
 	assert.Equal(t, []any{"RS256"}, out["id_token_signing_alg_values_supported"])
 	assert.Equal(t, []any{"public"}, out["subject_types_supported"])
 }
@@ -70,7 +70,7 @@ func TestOIDCDiscoveryAndJWKS(t *testing.T) {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&cfg))
 	assert.NotEmpty(t, cfg["issuer"])
 
-	jwksResp, err := http.Get(ts.URL + oauth2JWKSPath)
+	jwksResp, err := http.Get(ts.URL + oauth2as.JWKSPath)
 	require.NoError(t, err)
 	defer jwksResp.Body.Close()
 	require.Equal(t, http.StatusOK, jwksResp.StatusCode)
@@ -117,7 +117,7 @@ func oauth2asRegisterTestClient(
 	require.NoError(t, err)
 
 	resp, err := http.Post(
-		ts+oauth2RegisterPath, "application/json", strings.NewReader(string(body)),
+		ts+oauth2as.RegisterPath, "application/json", strings.NewReader(string(body)),
 	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -147,7 +147,7 @@ func oauth2asConsentToken(
 	t.Helper()
 	req, err := http.NewRequestWithContext(
 		context.Background(), http.MethodGet,
-		baseURL+oauth2ConsentInfoPath+"?"+q.Encode(), nil,
+		baseURL+oauth2as.ConsentInfoPath+"?"+q.Encode(), nil,
 	)
 	require.NoError(t, err)
 	req.AddCookie(&cookie)
@@ -186,7 +186,7 @@ func TestOAuth2Authorize_GetWithConsentAllow_RedirectsToConsentPage(t *testing.T
 	}
 	req, err := http.NewRequestWithContext(
 		context.Background(), http.MethodGet,
-		ts.URL+oauth2AuthorizePath+"?"+q.Encode(), nil,
+		ts.URL+oauth2as.AuthorizePath+"?"+q.Encode(), nil,
 	)
 	require.NoError(t, err)
 	req.AddCookie(&accessToken)
@@ -223,7 +223,7 @@ func TestOAuth2Authorize_PostWithoutConsentToken_Unauthorized(t *testing.T) {
 	}
 	req, err := http.NewRequestWithContext(
 		context.Background(), http.MethodPost,
-		ts.URL+oauth2AuthorizePath+"?"+q.Encode(), nil,
+		ts.URL+oauth2as.AuthorizePath+"?"+q.Encode(), nil,
 	)
 	require.NoError(t, err)
 	req.AddCookie(&accessToken)
@@ -261,7 +261,7 @@ func TestOAuth2Authorize_SessionResolver_NoCookie(t *testing.T) {
 		"consent":               {"allow"},
 	}
 
-	resp, err := client.Post(ts.URL+oauth2AuthorizePath+"?"+q.Encode(), "", nil)
+	resp, err := client.Post(ts.URL+oauth2as.AuthorizePath+"?"+q.Encode(), "", nil)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
@@ -297,7 +297,7 @@ func TestOAuth2Authorize_SessionResolver_ValidCookie_IssuesCode(t *testing.T) {
 
 	req, err := http.NewRequestWithContext(
 		context.Background(), http.MethodPost,
-		ts.URL+oauth2AuthorizePath+"?"+q.Encode(), nil,
+		ts.URL+oauth2as.AuthorizePath+"?"+q.Encode(), nil,
 	)
 	require.NoError(t, err)
 	req.AddCookie(&accessToken)
@@ -339,7 +339,7 @@ func TestOAuth2Authorize_SessionResolver_InvalidCookie(t *testing.T) {
 
 	req, err := http.NewRequestWithContext(
 		context.Background(), http.MethodPost,
-		ts.URL+oauth2AuthorizePath+"?"+q.Encode(), nil,
+		ts.URL+oauth2as.AuthorizePath+"?"+q.Encode(), nil,
 	)
 	require.NoError(t, err)
 	req.AddCookie(&http.Cookie{Name: "accessToken", Value: "not-a-real-token"})
@@ -376,7 +376,7 @@ func TestOAuth2Authorize_NoConsentYet_RedirectsToWebConsentPage(t *testing.T) {
 		"state":                 {uuid.NewString()},
 	}
 
-	resp, err := client.Get(ts.URL + oauth2AuthorizePath + "?" + q.Encode())
+	resp, err := client.Get(ts.URL + oauth2as.AuthorizePath + "?" + q.Encode())
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusFound, resp.StatusCode)

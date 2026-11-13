@@ -10,8 +10,8 @@ import (
 
 	"tools.xdoubleu.com/apps/taste/internal/models"
 	"tools.xdoubleu.com/internal/kit/logging"
-	"tools.xdoubleu.com/internal/mailer"
-	"tools.xdoubleu.com/internal/notifications"
+	"tools.xdoubleu.com/internal/platform/mailer"
+	"tools.xdoubleu.com/internal/platform/notifications"
 )
 
 type sentMail struct{ to, subject, body string }

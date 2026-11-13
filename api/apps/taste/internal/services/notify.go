@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"tools.xdoubleu.com/apps/taste/internal/models"
-	"tools.xdoubleu.com/internal/mailer"
-	"tools.xdoubleu.com/internal/notifications"
+	"tools.xdoubleu.com/internal/platform/mailer"
+	"tools.xdoubleu.com/internal/platform/notifications"
 )
 
 // maxEmailedPicks is how many of the best picks an email names.

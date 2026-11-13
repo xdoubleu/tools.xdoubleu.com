@@ -1,0 +1,224 @@
+package notifications_test
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"log/slog"
+	"strconv"
+	"sync"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/platform/mailer"
+	"tools.xdoubleu.com/internal/platform/notifications"
+)
+
+type sentMail struct {
+	to, subject, body string
+}
+
+type fakeMailer struct {
+	mu   sync.Mutex
+	sent []sentMail
+	err  error
+}
+
+func (f *fakeMailer) Send(ctx context.Context, subject, body string) error {
+	return f.record(ctx, "", subject, body)
+}
+
+func (f *fakeMailer) SendTo(ctx context.Context, to, subject, body string) error {
+	return f.record(ctx, to, subject, body)
+}
+
+// record fails on a cancelled ctx, as the real HTTP client would.
+func (f *fakeMailer) record(ctx context.Context, to, subject, body string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if f.err != nil {
+		return f.err
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.sent = append(f.sent, sentMail{to: to, subject: subject, body: body})
+	return nil
+}
+
+func (f *fakeMailer) sentMails() []sentMail {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]sentMail(nil), f.sent...)
+}
+
+//nolint:exhaustruct // mu is a zero-value sync.Mutex
+func newFakeMailer(err error) *fakeMailer {
+	return &fakeMailer{err: err}
+}
+
+func TestEnqueueDeliversAndReportsSuccess(t *testing.T) {
+	t.Parallel()
+
+	mail := newFakeMailer(nil)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+
+	var gotErr error
+	called := make(chan struct{})
+	svc.EnqueueEmail("subject", "body", func(_ context.Context, err error) error {
+		gotErr = err
+		close(called)
+		return nil
+	})
+
+	<-called
+	svc.WaitUntilDone()
+
+	require.NoError(t, gotErr)
+	require.Len(t, mail.sentMails(), 1)
+	assert.Equal(t, "subject", mail.sentMails()[0].subject)
+}
+
+func TestEnqueueToDeliversToRecipient(t *testing.T) {
+	t.Parallel()
+
+	mail := newFakeMailer(nil)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+
+	called := make(chan struct{})
+	svc.EnqueueTo(
+		"to@example.com",
+		"subject",
+		"body",
+		func(_ context.Context, _ error) error {
+			close(called)
+			return nil
+		},
+	)
+
+	<-called
+	svc.WaitUntilDone()
+
+	require.Len(t, mail.sentMails(), 1)
+	assert.Equal(t, "to@example.com", mail.sentMails()[0].to)
+}
+
+func TestEnqueuePassesThroughErrNotConfigured(t *testing.T) {
+	t.Parallel()
+
+	mail := newFakeMailer(mailer.ErrNotConfigured)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+
+	var gotErr error
+	called := make(chan struct{})
+	svc.EnqueueEmail("subject", "body", func(_ context.Context, err error) error {
+		gotErr = err
+		close(called)
+		return nil
+	})
+
+	<-called
+	svc.WaitUntilDone()
+
+	assert.ErrorIs(t, gotErr, mailer.ErrNotConfigured)
+}
+
+func TestEnqueuePassesThroughRealError(t *testing.T) {
+	t.Parallel()
+
+	mail := newFakeMailer(assert.AnError)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+
+	var gotErr error
+	called := make(chan struct{})
+	svc.EnqueueEmail("subject", "body", func(_ context.Context, err error) error {
+		gotErr = err
+		close(called)
+		return nil
+	})
+
+	<-called
+	svc.WaitUntilDone()
+
+	assert.ErrorIs(t, gotErr, assert.AnError)
+}
+
+func TestEnqueueNilOnResultDoesNotPanic(t *testing.T) {
+	t.Parallel()
+
+	mail := newFakeMailer(nil)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+
+	svc.EnqueueEmail("subject", "body", nil)
+	svc.WaitUntilDone()
+
+	require.Len(t, mail.sentMails(), 1)
+}
+
+func TestEnqueueLogsOnResultError(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	mail := newFakeMailer(nil)
+	logger := slog.New(logging.NewBufLogHandler(&buf, nil))
+	svc := notifications.New(t.Context(), logger, mail)
+
+	svc.EnqueueEmail("subject", "body", func(_ context.Context, _ error) error {
+		return errors.New("onResult failed")
+	})
+	svc.WaitUntilDone()
+
+	assert.Contains(t, buf.String(), "onResult failed")
+}
+
+func TestEnqueueDeliversStrictlyInOrder(t *testing.T) {
+	t.Parallel()
+
+	mail := newFakeMailer(nil)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+
+	const n = 20
+	for i := range n {
+		svc.EnqueueEmail(strconv.Itoa(i), "body", nil)
+	}
+	svc.WaitUntilDone()
+
+	sent := mail.sentMails()
+	require.Len(t, sent, n)
+	for i := range n {
+		assert.Equal(t, strconv.Itoa(i), sent[i].subject)
+	}
+}
+
+func TestShutdownDeliversMailQueuedBeforeTheAppContextWasCancelled(t *testing.T) {
+	t.Parallel()
+
+	mail := newFakeMailer(nil)
+	ctx, cancel := context.WithCancel(t.Context())
+	svc := notifications.New(ctx, logging.NewNopLogger(), mail)
+	cancel()
+
+	svc.EnqueueEmail("subject", "body", nil)
+	require.NoError(t, svc.Shutdown(t.Context()))
+
+	require.Len(t, mail.sentMails(), 1)
+}
+
+func TestEnqueueSurvivesAPanickingOnResult(t *testing.T) {
+	t.Parallel()
+
+	mail := newFakeMailer(nil)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+
+	svc.EnqueueEmail("first", "body", func(context.Context, error) error {
+		panic("boom")
+	})
+	svc.EnqueueEmail("second", "body", nil)
+	require.NoError(t, svc.Shutdown(t.Context()))
+
+	require.Len(t, mail.sentMails(), 2)
+	assert.Equal(t, "second", mail.sentMails()[1].subject)
+}

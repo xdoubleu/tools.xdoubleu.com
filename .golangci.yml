@@ -181,7 +181,7 @@ linters:
               desc: services return domain errors; handlers map them with connecttools.MapError
         repositories-domain-errors:
           files:
-            - "**/internal/repositories/**"
+            - "**/internal/platform/repositories/**"
             - "**/internal/platform/family/repository.go"
             - "**/internal/platform/oauthconn/repository.go"
             - "**/internal/platform/account/users.go"

@@ -20,6 +20,7 @@ import (
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/oauth2as"
 )
 
 // agentAdmin is a signed-in admin with a verified TOTP factor, so it can pass
@@ -97,7 +98,7 @@ func agentToken(t *testing.T, clientID, secret string) (string, int) {
 	form := url.Values{"grant_type": {"client_credentials"}}
 	req, err := http.NewRequestWithContext(
 		context.Background(), http.MethodPost,
-		connectServer(t).URL+oauth2TokenPath, strings.NewReader(form.Encode()),
+		connectServer(t).URL+oauth2as.TokenPath, strings.NewReader(form.Encode()),
 	)
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")

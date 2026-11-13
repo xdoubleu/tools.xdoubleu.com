@@ -11,9 +11,9 @@ import (
 
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/testhelper"
-	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/mailer"
 )
 
 // TestAuthCacheServesAndInvalidates: a cached role survives a DB change until

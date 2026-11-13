@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #672, #1113, #2599, #2656
-- Affects: `api/internal/communication/httptools/budget.go`, `api/cmd/api/routes.go`, `api/cmd/api/main.go`, `api/internal/mcptools/tool_calls.go`, `config/deploy.api.yml`
+- Affects: `api/internal/platform/communication/httptools/budget.go`, `api/cmd/api/routes.go`, `api/cmd/api/main.go`, `api/internal/platform/mcptools/tool_calls.go`, `config/deploy.api.yml`
 
 ## Context
 
