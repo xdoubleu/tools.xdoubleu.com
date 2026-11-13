@@ -18,6 +18,10 @@ const (
 	// deploy state: older ones are long live, and checking them all would cost a
 	// GitHub call each after a restart.
 	deployWindow = 7 * 24 * time.Hour
+	// deployBudget caps the GitHub lookups of one board load; deployConcurrency
+	// is how many run at once.
+	deployBudget      = 2 * time.Second
+	deployConcurrency = 8
 	// devRelease is what a build without a deploy reports as its release.
 	devRelease = "dev"
 )
@@ -57,12 +61,20 @@ func (c *deployCache) put(k deployKey, state models.DeployState, now time.Time) 
 
 // FillDeploy sets Deploy on each merged task from whether the running release
 // contains its merge commit. It leaves a task unknown without a GitHub App, on a
-// dev build, and whenever GitHub can't answer: a board must load without it.
+// dev build, and whenever GitHub can't answer in time: a board must load
+// without it. The lookups run concurrently under deployBudget.
 func (s *JobService) FillDeploy(ctx context.Context, tasks []models.Task) {
 	if s.github == nil || s.release == "" || s.release == devRelease {
 		return
 	}
-	var repos map[uuid.UUID]models.Repo
+	ctx, cancel := context.WithTimeout(ctx, deployBudget)
+	defer cancel()
+	var (
+		repos map[uuid.UUID]models.Repo
+		wg    sync.WaitGroup
+		sem   = make(chan struct{}, deployConcurrency)
+	)
+	defer wg.Wait()
 	now := s.now()
 	for i := range tasks {
 		t := &tasks[i]
@@ -86,7 +98,13 @@ func (s *JobService) FillDeploy(ctx context.Context, tasks []models.Task) {
 		if !ok {
 			continue
 		}
-		t.Deploy = s.deployState(ctx, repo, t.MergeSHA, now)
+		sem <- struct{}{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }()
+			t.Deploy = s.deployState(ctx, repo, t.MergeSHA, now)
+		}()
 	}
 }
 
@@ -104,6 +122,9 @@ func (s *JobService) deployState(
 	state := models.DeployUnknown
 	switch {
 	case err != nil:
+		if ctx.Err() != nil {
+			return state // cut off by the deadline: not GitHub's answer, don't cache
+		}
 	case live:
 		state = models.DeployLive
 	default:

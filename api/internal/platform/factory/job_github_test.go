@@ -32,6 +32,8 @@ type fakeGitHub struct {
 	// live is the set of merge commits the release contains; deployErr fails the check.
 	live      map[string]bool
 	deployErr error
+	// deployHangs makes the deploy check wait until its context ends.
+	deployHangs bool
 }
 
 // testRelease is the release the factory under test says it runs.
@@ -46,8 +48,15 @@ func (f *fakeGitHub) OpenPullRequests(
 }
 
 func (f *fakeGitHub) Deployed(
-	_ context.Context, _, _, sha, release string,
+	ctx context.Context, _, _, sha, release string,
 ) (bool, error) {
+	f.mu.Lock()
+	hangs := f.deployHangs
+	f.mu.Unlock()
+	if hangs {
+		<-ctx.Done()
+		return false, ctx.Err()
+	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if release != testRelease {
@@ -104,6 +113,7 @@ func githubEnv(t *testing.T) (jobEnv, *fakeGitHub) {
 	gh := &fakeGitHub{
 		mu: sync.Mutex{}, asked: nil, err: nil, pulls: map[int]pullAnswer{},
 		polled: nil, merged: nil, open: nil, live: map[string]bool{}, deployErr: nil,
+		deployHangs: false,
 	}
 	return newJobEnvWith(t, true, "browser", factory.WithGitHub(gh)), gh
 }
