@@ -266,7 +266,7 @@ func newEnv(
 	return &jobEnv{
 		api: api, sandbox: sb, dir: dir, remote: remote,
 		runner: &runner.JobRunner{
-			API: api, Token: "frt_x", Paused: nil,
+			API: api, Token: "frt_x", Paused: nil, Mode: nil,
 			Allowed: func() ([]string, error) {
 				return []string{"xdoubleu/tools.xdoubleu.com"}, nil
 			},
@@ -956,5 +956,7 @@ func TestAReplyOfAnotherHarnessIsRefusedWithAReason(t *testing.T) {
 	_, err := env.runner.Next(context.Background())
 	require.NoError(t, err)
 	assert.Empty(t, env.sandbox.specs)
-	assert.Contains(t, env.api.done()[0].outcome, "this Mac runs "+runner.HarnessClaudeCode)
+	assert.Contains(
+		t, env.api.done()[0].outcome, "this Mac runs "+runner.HarnessClaudeCode,
+	)
 }

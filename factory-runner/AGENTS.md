@@ -5,7 +5,7 @@ Pairs this Mac with the board; runs jobs → [`adr-0041`](../docs/adr-0041-facto
 ## Structure
 
 ```text
-cmd/factory-runner/   main.go (the tested app type), config.go, entry.go, jobs.go, jobproxy.go (claim loop, job proxy)
+cmd/factory-runner/   main.go, config.go, entry.go, jobs.go, jobproxy.go
                       menubar_*.go|m|h (menu bar; stub without cgo)
 internal/runner/
   client.go, jobs_client.go   the server calls
@@ -34,9 +34,9 @@ The server is untrusted; each claimed job is checked for UUID ids, the local rep
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
-`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature and release file into `/downloads/`. The dmg's app installs a bundle copy and LaunchAgent; `-X main.UpdatePublicKey` is the trusted key. Shared: `../selfupdate`.
+`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature and release file into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key. Shared: `../selfupdate`.
 
-`config mode off|claude` (default `off`) picks the harness whatever the board sends; `off` is the menu bar's Stop (one `paused` flag): nothing is claimed. A Reply resumes only a session of the harness this Mac runs. Logs go to `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
+`config mode off|claude` (default `off`, the menu bar Stop's `paused` flag) picks the harness, ignoring the job's; a Reply resumes only that harness's session. Logs go to `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
 
 ## Building
 
