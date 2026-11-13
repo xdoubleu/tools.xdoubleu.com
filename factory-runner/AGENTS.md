@@ -34,7 +34,7 @@ The server is untrusted; each claimed job is checked for UUID ids, the local rep
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
-`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature and release file into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key. Shared: `../selfupdate`.
+`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature, release file and job image into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key. Shared: `../selfupdate`.
 
 `config mode off|claude` (default `off`, the menu bar Stop's `paused` flag) picks the harness, ignoring the job's; a Reply resumes only that harness's session. Logs go to `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
 

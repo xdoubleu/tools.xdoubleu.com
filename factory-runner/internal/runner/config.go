@@ -73,12 +73,30 @@ func (c *Config) SetBotEmail(email string) error {
 	return nil
 }
 
-// JobImage is the image jobs run in.
+// JobImage is the image jobs run in: an explicit config override, else the dev
+// image (documents and the `config show` display).
 func (c Config) JobImage() string {
-	if c.Image == "" {
+	return c.ReleaseImage(DevRelease)
+}
+
+// ReleaseImage is the image a job runs for a release: an explicit config
+// override wins; otherwise the versioned factory-job:<release>, or the dev image
+// for a dev build (no release).
+func (c Config) ReleaseImage(release string) string {
+	if c.Image != "" {
+		return c.Image
+	}
+	if release == "" || release == DevRelease {
 		return DefaultImage
 	}
-	return c.Image
+	return "factory-job:" + release
+}
+
+// JobImageAutoDownload reports whether the implicit image a release needs should
+// be fetched from the release server: never for an explicit config override or a
+// dev build, which need a local `make image` instead.
+func (c Config) JobImageAutoDownload(release string) bool {
+	return c.Image == "" && release != "" && release != DevRelease
 }
 
 // DefaultDataDir is where job data lives under homeDir.

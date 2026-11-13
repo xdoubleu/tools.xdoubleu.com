@@ -51,6 +51,10 @@ tool and reads anywhere by default.
 - **Image:** git, Go, Node, Postgres, the `claude` CLI and `opencode`, the repo's
   marketplace plugins, built with `container build` from a pinned `Containerfile`
   and rebuilt on a schedule or when it changes; the job runs as a non-root user.
+  In practice the image is versioned per release (adr-0042): CI builds
+  `factory-job:<release>` from that `Containerfile` on `main`, and the runner loads
+  the signed, sha256-checked OCI archive it ships, so a job never runs a stale or
+  missing image. `container build` / `make image` stays available for local dev.
   `ContainerSandbox` starts the VM idle on a per-job `--internal` network, lets the
   proxy bind the gateway, then runs the job in it with `container exec` and its
   environment in a 0600 file, never argv. Claude's config sits in `/opt/claude-config`

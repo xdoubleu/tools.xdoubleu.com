@@ -31,11 +31,22 @@ jobs:
           name: factory-runner-dist
           path: factory-runner/dist
 
+      # Built on ubuntu by build-factory-job-image in this run, always at this SHA.
+      # Main only: PRs build no job image, so nothing is downloaded or staged here.
+      - if: github.event_name != 'pull_request'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: factory-runner-image-dist
+          path: factory-runner/image-dist
+
       - name: Arrange downloads for the Docker build context
         run: |
           mkdir -p web/public/downloads
           cp -r kobo-gateway/dist/kobo-gateway/. web/public/downloads/
           cp -r factory-runner/dist/. web/public/downloads/
+          if [ -d factory-runner/image-dist ]; then
+            cp -r factory-runner/image-dist/. web/public/downloads/
+          fi
 
       - name: Read kobo-gateway's bundled release
         id: kobo-gateway-release
