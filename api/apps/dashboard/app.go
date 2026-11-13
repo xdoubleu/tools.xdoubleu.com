@@ -10,7 +10,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"tools.xdoubleu.com/apps/books"
-	"tools.xdoubleu.com/apps/factory"
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/games"
 	"tools.xdoubleu.com/apps/learningpaths"
@@ -22,6 +21,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/platform/account"
 	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/factory"
 )
 
 // TodayApps are the apps the Today page summarises, reached only through their

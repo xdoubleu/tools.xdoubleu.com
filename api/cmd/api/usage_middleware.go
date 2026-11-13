@@ -21,7 +21,7 @@ const (
 // domainMiddleware.
 func (app *Application) usageMiddleware(next http.Handler) http.Handler {
 	appNames := make(map[string]bool)
-	for _, a := range *app.apps {
+	for _, a := range app.services() {
 		appNames[a.GetName()] = true
 	}
 

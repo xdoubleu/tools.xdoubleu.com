@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.."
 
 status=0
 
-for dir in cmd/api/migrations apps/*/migrations; do
+for dir in cmd/api/migrations apps/*/migrations internal/platform/*/migrations; do
 	[ -d "$dir" ] || continue
 
 	duplicates=$(
@@ -47,7 +47,7 @@ repo_prefix=$(git rev-parse --show-prefix)
 if merge_base=$(git merge-base "$base_ref" HEAD 2>/dev/null); then
 	out_of_order=0
 
-	for dir in cmd/api/migrations apps/*/migrations; do
+	for dir in cmd/api/migrations apps/*/migrations internal/platform/*/migrations; do
 		[ -d "$dir" ] || continue
 
 		# A brand-new app has no base migrations/ tree: base max is 0, and

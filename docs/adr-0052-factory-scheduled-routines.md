@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: T-4, epic T-3
-- Affects: `api/apps/factory/`, `factory-runner/`, `api/internal/platform/agentaccounts/`, `.github/workflows/routine-*.yml`, `docs/convention-unattended-agent-trust.md`
+- Affects: `api/internal/platform/factory/`, `factory-runner/`, `api/internal/platform/agentaccounts/`, `.github/workflows/routine-*.yml`, `docs/convention-unattended-agent-trust.md`
 - Changes: [adr-0025](adr-0025-machine-client-credentials-service-role.md) (routines stop using the `service` client), [spec-agent-routines-on-actions](spec-agent-routines-on-actions.md) (retired per routine at cut-over)
 
 ## Context

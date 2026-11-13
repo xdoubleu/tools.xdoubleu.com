@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #2705, #2701
-- Affects: `api/apps/factory/` (`connect_runners.go`, `internal/services/runners.go`,
+- Affects: `api/internal/platform/factory/` (`connect_runners.go`, `internal/services/runners.go`,
   migration `00003`), `api/cmd/api/routes.go` (`isLongRequest`)
 
 ## Context

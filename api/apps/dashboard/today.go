@@ -9,7 +9,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"tools.xdoubleu.com/apps/books"
-	"tools.xdoubleu.com/apps/factory"
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/learningpaths"
 	"tools.xdoubleu.com/apps/mealplans"
@@ -20,6 +19,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/factory"
 )
 
 // todayLimit caps each list on the Today page.

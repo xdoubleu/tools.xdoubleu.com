@@ -33,7 +33,9 @@ func (app *Application) Shutdown(ctx context.Context) error {
 	drainCtx, cancel := context.WithTimeout(ctx, drainTimeout)
 	defer cancel()
 
-	appsErr := app.apps.Shutdown(drainCtx)
+	appsErr := errors.Join(
+		app.apps.Shutdown(drainCtx), app.platform.Shutdown(drainCtx),
+	)
 	jobsErr := app.globalJobQueue.Wait(drainCtx)
 	mailErr := app.notifications.Shutdown(drainCtx)
 
