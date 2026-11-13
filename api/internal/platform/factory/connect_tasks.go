@@ -154,6 +154,7 @@ func protoTask(t *models.Task) *factoryv1.Task {
 		PickupApproved:    t.PickupApproved,
 		PickupBlockReason: t.PickupBlocked,
 		DeployState:       string(t.Deploy),
+		DeployReason:      t.DeployReason,
 	}
 }
 

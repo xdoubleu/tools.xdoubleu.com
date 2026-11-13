@@ -381,15 +381,21 @@ export function prBadge(
   return { label: 'PR open', variant: 'secondary' }
 }
 
-/** Whether a merged task's change is live; nothing when the server couldn't say. */
+/** Whether a merged task's change is live, or why that is unknown; nothing when not merged. */
 export function deployBadge(task: {
   deployState: string
+  deployReason?: string
 }): { label: string; variant: 'success' | 'warn' } | undefined {
   switch (task.deployState) {
     case 'deployed':
       return { label: 'Deployed', variant: 'success' }
     case 'pending':
       return { label: 'Deploying…', variant: 'warn' }
+    case 'unknown':
+      return {
+        label: task.deployReason ? `Unknown: ${task.deployReason}` : 'Unknown',
+        variant: 'warn'
+      }
     default:
       return undefined
   }

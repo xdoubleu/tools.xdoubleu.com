@@ -122,6 +122,12 @@ func (s *JobService) TestingAfterMerge(
 	}); err != nil {
 		return false, err
 	}
+	// Also backfills a task that merged without its commit being recorded.
+	if task.MergeSHA == "" && mergeSHA != "" {
+		if err = s.tasks.SetMergeSHA(ctx, id, mergeSHA); err != nil {
+			return false, err
+		}
+	}
 	if task.Status != models.StatusInReview {
 		return false, nil
 	}
@@ -131,9 +137,6 @@ func (s *JobService) TestingAfterMerge(
 	}
 	if len(jobs) > 0 {
 		return false, nil
-	}
-	if err = s.tasks.SetMergeSHA(ctx, id, mergeSHA); err != nil {
-		return false, err
 	}
 	if _, err = s.tasks.Move(ctx, id, models.StatusTesting); err != nil {
 		return false, err
@@ -162,8 +165,13 @@ func (s *JobService) pollPullRequest(ctx context.Context, job *models.Job) error
 	if status.State != job.PRState && status.State != githubapp.StateOpen {
 		// First the task, then the record: a failure in between repeats this step
 		// on the next poll, and the task's own status keeps it from happening twice.
-		if err = s.pullRequestEnded(ctx, job, status.State); err != nil {
+		if err = s.pullRequestEnded(ctx, job, status); err != nil {
 			return err
+		}
+		if status.State == githubapp.StateMerged && status.MergeSHA != "" {
+			if err = s.tasks.SetMergeSHA(ctx, job.TaskID, status.MergeSHA); err != nil {
+				return err
+			}
 		}
 	}
 	return s.jobs.SetPullRequestStatus(ctx, job.ID, status.State, status.CI, status.Review)
@@ -175,7 +183,7 @@ func (s *JobService) pollPullRequest(ctx context.Context, job *models.Job) error
 func (s *JobService) pullRequestEnded(
 	ctx context.Context,
 	job *models.Job,
-	state string,
+	status githubapp.PullRequestStatus,
 ) error {
 	task, err := s.tasks.Get(ctx, job.TaskID)
 	if err != nil {
@@ -192,8 +200,11 @@ func (s *JobService) pullRequestEnded(
 		return nil
 	}
 	to, body := models.StatusNeedsYou, "The pull request was closed without merging: "
-	if state == githubapp.StateMerged {
+	if status.State == githubapp.StateMerged {
 		to, body = models.StatusTesting, "The pull request was merged: "
+		if err = s.tasks.SetMergeSHA(ctx, job.TaskID, status.MergeSHA); err != nil {
+			return err
+		}
 	}
 	// Move first: a failure after it loses a comment, where a failure before it
 	// would repeat the comment on every poll until the move worked.

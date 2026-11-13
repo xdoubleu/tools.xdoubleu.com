@@ -117,14 +117,19 @@ type Task struct {
 	MergeSHA string
 	// Deploy is whether that commit is live, filled for the board and never stored.
 	Deploy DeployState
+	// DeployReason says why Deploy is DeployUnknown; empty otherwise.
+	DeployReason string
 }
 
 // DeployState is whether a merged change is live in production.
 type DeployState string
 
 const (
-	// DeployUnknown is the zero value: not merged, too old, or GitHub couldn't say.
-	DeployUnknown DeployState = ""
+	// DeployNone is the zero value: not merged or too old to check.
+	DeployNone DeployState = ""
+	// DeployUnknown is a merged task whose state couldn't be determined; the
+	// task's DeployReason says why.
+	DeployUnknown DeployState = "unknown"
 	DeployPending DeployState = "pending"
 	DeployLive    DeployState = "deployed"
 )

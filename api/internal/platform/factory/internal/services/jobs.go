@@ -637,6 +637,7 @@ func approvedTask(c *repositories.PickupCandidate) *models.Task {
 		UpdatedAt: time.Time{}, CommentCount: 0, PRURL: "", PRState: "", PRCI: "",
 		PRReview: "", PRMergeable: "",
 		PickupApproved: true, PickupBlocked: "", MergeSHA: "", Deploy: "",
+		DeployReason: "",
 	}
 }
 

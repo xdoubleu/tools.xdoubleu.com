@@ -280,8 +280,11 @@ type Task struct {
 	// can be picked up. It stays in Ready, not "needs you", while this is set.
 	PickupBlockReason string `protobuf:"bytes,17,opt,name=pickup_block_reason,json=pickupBlockReason,proto3" json:"pickup_block_reason,omitempty"`
 	// Whether the merged change is live: "deployed", or "pending" while the running
-	// release lacks the merge commit; empty when unmerged, old, or unknown.
-	DeployState   string `protobuf:"bytes,18,opt,name=deploy_state,json=deployState,proto3" json:"deploy_state,omitempty"`
+	// release lacks the merge commit, "unknown" when it can't be told; empty when
+	// unmerged or old.
+	DeployState string `protobuf:"bytes,18,opt,name=deploy_state,json=deployState,proto3" json:"deploy_state,omitempty"`
+	// Why deploy_state is "unknown" (it is then the only state with a reason).
+	DeployReason  string `protobuf:"bytes,20,opt,name=deploy_reason,json=deployReason,proto3" json:"deploy_reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -445,6 +448,13 @@ func (x *Task) GetPickupBlockReason() string {
 func (x *Task) GetDeployState() string {
 	if x != nil {
 		return x.DeployState
+	}
+	return ""
+}
+
+func (x *Task) GetDeployReason() string {
+	if x != nil {
+		return x.DeployReason
 	}
 	return ""
 }
@@ -2434,7 +2444,7 @@ var File_factory_v1_factory_proto protoreflect.FileDescriptor
 const file_factory_v1_factory_proto_rawDesc = "" +
 	"\n" +
 	"\x18factory/v1/factory.proto\x12\n" +
-	"factory.v1\"\xdc\x04\n" +
+	"factory.v1\"\x81\x05\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x12\n" +
@@ -2458,7 +2468,8 @@ const file_factory_v1_factory_proto_rawDesc = "" +
 	"\fpr_mergeable\x18\x13 \x01(\tR\vprMergeable\x12'\n" +
 	"\x0fpickup_approved\x18\x10 \x01(\bR\x0epickupApproved\x12.\n" +
 	"\x13pickup_block_reason\x18\x11 \x01(\tR\x11pickupBlockReason\x12!\n" +
-	"\fdeploy_state\x18\x12 \x01(\tR\vdeployState\"d\n" +
+	"\fdeploy_state\x18\x12 \x01(\tR\vdeployState\x12#\n" +
+	"\rdeploy_reason\x18\x14 \x01(\tR\fdeployReason\"d\n" +
 	"\aComment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06author\x18\x02 \x01(\tR\x06author\x12\x12\n" +
