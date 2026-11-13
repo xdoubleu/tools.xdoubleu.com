@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
 	"tools.xdoubleu.com/internal/kit/threading"
+	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
 )
 
 // tickInterval is how often the scheduler checks for due jobs; every RunEvery

@@ -16,8 +16,8 @@ import (
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
 	"tools.xdoubleu.com/apps/feeds/internal/services"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/platform/logging"
 )
 
 // itemInsertCountingDB counts item-insert statements, so a test can assert a

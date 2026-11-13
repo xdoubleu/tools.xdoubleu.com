@@ -518,7 +518,9 @@ func (h *obsConnectHandler) GetLogs(
 const maxLogEntries = 1000
 
 // logsFilter parses req's timestamps; since defaults to defaultWindowDays ago.
-func logsFilter(req *observabilityv1.GetLogsRequest) (platformrepositories.LogsFilter, error) {
+func logsFilter(
+	req *observabilityv1.GetLogsRequest,
+) (platformrepositories.LogsFilter, error) {
 	filter := platformrepositories.LogsFilter{
 		Since:    time.Now().Add(-defaultWindowDays * 24 * time.Hour),
 		Until:    time.Time{},

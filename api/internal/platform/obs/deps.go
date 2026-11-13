@@ -10,11 +10,11 @@ import (
 	"tools.xdoubleu.com/gen/observability/v1/observabilityv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/platform/oauthconn"
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/github"
-	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
+	"tools.xdoubleu.com/internal/platform/repositories"
 	"tools.xdoubleu.com/internal/platform/sentryapi"
-	"tools.xdoubleu.com/internal/repositories"
 )
 
 type obsConnectHandler struct {
@@ -39,16 +39,16 @@ type UserLookup interface {
 type Deps struct {
 	Logger                   *slog.Logger
 	Config                   config.Config
-	AppUsersRepo             *repositories.AppUsersRepository
-	JobRunsRepo              *platformrepositories.JobRunsRepository
-	UsageRepo                *platformrepositories.UsageRepository
-	StorageRepo              *platformrepositories.StorageSnapshotsRepository
-	DBStatsRepo              *platformrepositories.DBStatsRepository
-	AutomatedActionsRepo     *platformrepositories.AutomatedActionsRepository
-	LogsRepo                 *platformrepositories.LogsRepository
-	NotificationSettingsRepo *platformrepositories.NotificationSettingsRepository
-	OAuthConnRepo            *repositories.OAuthConnectionsRepository
-	TransactionLatencyRepo   *platformrepositories.TransactionLatencyRepository
+	AppUsersRepo             UserLookup
+	JobRunsRepo              *repositories.JobRunsRepository
+	UsageRepo                *repositories.UsageRepository
+	StorageRepo              *repositories.StorageSnapshotsRepository
+	DBStatsRepo              *repositories.DBStatsRepository
+	AutomatedActionsRepo     *repositories.AutomatedActionsRepository
+	LogsRepo                 *repositories.LogsRepository
+	NotificationSettingsRepo *repositories.NotificationSettingsRepository
+	OAuthConnRepo            *oauthconn.OAuthConnectionsRepository
+	TransactionLatencyRepo   *repositories.TransactionLatencyRepository
 
 	OAuthState   *oauthconn.StateStore
 	GithubClient github.Client

@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	essentialogger "tools.xdoubleu.com/internal/platform/logging"
+	essentialogger "tools.xdoubleu.com/internal/kit/logging"
 )
 
 // staleActionMaxAge is how long an automated_actions row may stay open before

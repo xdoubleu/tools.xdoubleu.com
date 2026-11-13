@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 // TestCacheCoverFromURL_SlowSourceFailsFast is a regression test for #769: a

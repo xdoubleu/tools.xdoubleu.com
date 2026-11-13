@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/platform/oauthconn"
 	"tools.xdoubleu.com/internal/platform/github"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 const securityEventsScope = "security_events"

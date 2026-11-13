@@ -9,9 +9,9 @@ import (
 	fosite "authelia.com/provider/oauth2"
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/internal/platform/agentaccounts"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/account"
+	"tools.xdoubleu.com/internal/platform/agentaccounts"
 )
 
 // Wiring bundles the embedded OAuth 2.1 / OIDC authorization server.
@@ -118,13 +118,13 @@ func MetadataHandler(issuer string) http.HandlerFunc {
 // agentDelegator lets the consent page authorize a client as an agent account.
 type agentDelegator struct {
 	agents *agentaccounts.Store
-	users  *repositories.AppUsersRepository
+	users  *account.AppUsersRepository
 }
 
 // NewAgentDelegator delegates consent to agent accounts held by agents.
 func NewAgentDelegator(
 	agents *agentaccounts.Store,
-	users *repositories.AppUsersRepository,
+	users *account.AppUsersRepository,
 ) Delegator {
 	return agentDelegator{agents: agents, users: users}
 }

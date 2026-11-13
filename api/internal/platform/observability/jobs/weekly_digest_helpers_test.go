@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/platform/notifications"
 	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
 )

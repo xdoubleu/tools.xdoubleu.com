@@ -15,6 +15,9 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/kit/threading"
+	"tools.xdoubleu.com/internal/kit/webfetch"
+	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/jobqueue"
 	"tools.xdoubleu.com/internal/progressws"
 )

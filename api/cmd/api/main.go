@@ -16,28 +16,27 @@ import (
 	"github.com/pressly/goose/v3"
 
 	"tools.xdoubleu.com/apps/feeds"
-	"tools.xdoubleu.com/internal/platform/account"
-	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/crypto"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	"tools.xdoubleu.com/internal/platform/family"
+	essentialogger "tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/sentrytools"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/platform/oauthconn"
+	"tools.xdoubleu.com/internal/platform/account"
+	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/communication/httptools"
+	"tools.xdoubleu.com/internal/platform/family"
 	"tools.xdoubleu.com/internal/platform/github"
 	"tools.xdoubleu.com/internal/platform/jobqueue"
-	essentialogger "tools.xdoubleu.com/internal/platform/logging"
 	"tools.xdoubleu.com/internal/platform/mailer"
 	"tools.xdoubleu.com/internal/platform/notifications"
 	"tools.xdoubleu.com/internal/platform/oauth2as"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 	"tools.xdoubleu.com/internal/platform/obs"
 	"tools.xdoubleu.com/internal/platform/observability"
 	"tools.xdoubleu.com/internal/platform/observability/jobs"
 	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
 	"tools.xdoubleu.com/internal/platform/sentryapi"
-	"tools.xdoubleu.com/internal/platform/sentrytools"
-	"tools.xdoubleu.com/internal/repositories"
 )
 
 //go:embed migrations/*.sql
@@ -553,7 +552,7 @@ func NewApplication(
 		oauth2as:                 nil,
 		family:                   familySvc,
 		appUsersRepo:             appUsersRepo,
-		profileSharesRepo:        repositories.NewProfileSharesRepository(db),
+		profileSharesRepo:        account.NewProfileSharesRepository(db),
 		usage:                    observability.NewUsageRecorder(logger, db),
 		notifications:            notificationsSvc,
 		jobRunsRepo:              platformrepositories.NewJobRunsRepository(db),

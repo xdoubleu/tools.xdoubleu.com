@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/platform/oauthconn"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/platform/github"
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 func TestListRepos_ReturnsRepos(t *testing.T) {

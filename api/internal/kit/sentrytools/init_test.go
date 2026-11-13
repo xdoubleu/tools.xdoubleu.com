@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/platform/sentrytools"
+	"tools.xdoubleu.com/internal/kit/sentrytools"
 )
 
 func TestInit_SkippedForTestEnv(t *testing.T) {

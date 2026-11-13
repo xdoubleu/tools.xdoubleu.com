@@ -10,10 +10,9 @@ import (
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/contexttools"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/platform/oauthconn"
 	"tools.xdoubleu.com/internal/platform/github"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 	"tools.xdoubleu.com/internal/platform/sentryapi"
-	"tools.xdoubleu.com/internal/repositories"
 )
 
 // Browser-facing OAuth connect flow for GitHub/Sentry. Plain HTTP, not
@@ -38,7 +37,7 @@ type ConnectFlow struct {
 	Config    config.Config
 	Admin     AdminGate
 	State     *oauthconn.StateStore
-	Conns     *repositories.OAuthConnectionsRepository
+	Conns     *oauthconn.OAuthConnectionsRepository
 	Logger    *slog.Logger
 }
 
@@ -47,7 +46,7 @@ func NewConnectFlow(
 	cfg config.Config,
 	admin AdminGate,
 	state *oauthconn.StateStore,
-	conns *repositories.OAuthConnectionsRepository,
+	conns *oauthconn.OAuthConnectionsRepository,
 	logger *slog.Logger,
 ) *ConnectFlow {
 	return &ConnectFlow{
@@ -122,7 +121,7 @@ func (f *ConnectFlow) CallbackRoute() http.HandlerFunc {
 		if err != nil {
 			f.Logger.ErrorContext(r.Context(), "oauth exchange failed",
 				slog.String("provider", name), slog.Any("error", err))
-			http.Redirect(
+			http.Redirect( //nolint:gosec // WebURL is config; name is a known provider
 				w, r, f.Config.WebURL+"/monitoring/connections?oauth_error="+name,
 				http.StatusFound,
 			)
@@ -138,7 +137,7 @@ func (f *ConnectFlow) CallbackRoute() http.HandlerFunc {
 			return
 		}
 
-		http.Redirect(
+		http.Redirect( //nolint:gosec // WebURL is config; name is a known provider
 			w, r, f.Config.WebURL+"/monitoring/connections?oauth_connected="+name,
 			http.StatusFound,
 		)

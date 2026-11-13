@@ -13,7 +13,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
 	"tools.xdoubleu.com/internal/kit/httpclient"
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 // Real UniCat MARCXML response for ISBN 9789463107389 (condensed to essential fields).

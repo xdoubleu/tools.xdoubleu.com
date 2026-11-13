@@ -47,8 +47,6 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 
 ### Shared packages (`internal/`)
 
-The platform tier is `internal/platform/` (sentrytools, github, githubapp, sentryapi, mailer, notifications, communication, jobqueue, mcptools, mcp, oauth2as, obs, observability, slack, spa, logging, middleware, and `repositories` for the logs, job runs, usage, automated actions, DB/storage stats, transaction latency and notification settings tables) → [`adr-0046`](../docs/adr-0046-platform-respike.md). `cmd/api` only wires: OAuth server and connect flow in `platform/oauth2as`, MCP resource server in `platform/mcp`, metrics, log ingest and Sentry scrubbing in `platform/observability`.
-
 - **`app`** — `Base`, `HTTPError`, `ScrubInternalErrors` (every `New*ServiceHandler` call must pass it). Unawaited request work uses `Base.Background.Go`, never a bare `go`.
 - **`connecttools`** — `MapError`: DB/`HTTPError` errors → Connect codes.
 - **`sentrytools`** — Sentry hub middleware, `GoRoutineWrapper`, slog→Sentry `Init`/`LogHandler` → [`adr-0009`](../docs/adr-0009-sentrytools-extracted-module.md).
@@ -60,7 +58,7 @@ The platform tier is `internal/platform/` (sentrytools, github, githubapp, sentr
 - **`observability`** — `TrackedJob` (→ `global.job_runs`, `job_duration_seconds`; cancels a run's ctx after `DefaultRunDeadline` unless the job implements `Deadlined`, so jobs must honour ctx), `ObserveJobPhase`, `UsageRecorder` (→ `global.usage_daily`; `countingResponseWriter` in `cmd/api/usage_middleware.go` **must forward `Flush`/`Hijack`** or WebSocket upgrades break), and the cross-app jobs: weekly digest (feed sections only, each gated by `global.notification_settings`), transaction-latency snapshot, issue-signal collector (Prometheus gauges; Sentry via `sentryapi` because Grafana's Sentry datasource can't be alerted on). Never imports `apps/*` — `main.go` adapters bridge. Alerting is Grafana's → [`adr-0022`](../docs/adr-0022-prometheus-grafana-metrics.md), [`adr-0010`](../docs/adr-0010-two-weekly-digest-emails.md), [`adr-0012`](../docs/adr-0012-ubuntu-release-check-on-vps.md).
 - **`notifications`** — email-only: `EnqueueEmail` (fixed recipient), `EnqueueTo` (arbitrary).
 - **`progressws`** / **`progresshistory`** — job-progress WebSocket topics; cumulative progress with carry-forward reads.
-- **`repositories`** — shared repos over the `global` schema (users, family, OAuth connections, profile shares); the ops tables live in `platform/repositories`.
+- **`repositories`** — shared repos over the `global` schema.
 - **`safedial`** — `Client(timeout, maxRedirects, allowPrivate)` blocks non-public IPs at dial time (survives redirects and DNS rebinding); `allowPrivate` is on outside prod. `webfetch` (user-supplied URLs) also dials through it.
 - **`httpclient`** — retrying client behind github, sentryapi, hardcover, unicat, steam; `SetBackoffBase` speeds up tests.
 - **`mcptools`** — `RequireAppAccess`, `AddReadTool`/`AddWriteTool`, `Unwrap`/`Result`, `KeepRequestDeadline`/`BoundToolCalls`/`LogSlowRequests` (tool calls keep their deadline, feed `mcp_tool_duration_seconds`).

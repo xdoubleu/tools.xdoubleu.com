@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"tools.xdoubleu.com/apps/watchparty/internal/models"
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 func newBareRoomService() *RoomService {

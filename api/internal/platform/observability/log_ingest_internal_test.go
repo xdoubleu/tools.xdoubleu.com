@@ -14,9 +14,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	"tools.xdoubleu.com/internal/platform/logging"
-	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
+	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
 )
 
 func newIngestDB(t *testing.T) postgres.DB {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"tools.xdoubleu.com/internal/platform/sentrytools"
+	"tools.xdoubleu.com/internal/kit/sentrytools"
 )
 
 // DoWork describes the interface for work executed by the workers.

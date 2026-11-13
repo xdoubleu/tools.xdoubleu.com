@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/kit/httpclient"
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 // fastConfig retries within milliseconds; tests change what they exercise.

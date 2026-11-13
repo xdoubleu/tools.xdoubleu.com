@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 func TestConnectRetriesThenFailsOnBadDSN(t *testing.T) {

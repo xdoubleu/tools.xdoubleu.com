@@ -7,6 +7,7 @@ import (
 	"tools.xdoubleu.com/apps/games/internal/repositories"
 	"tools.xdoubleu.com/apps/games/pkg/steam"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/jobqueue"
 	"tools.xdoubleu.com/internal/progressws"
 )

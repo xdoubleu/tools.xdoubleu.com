@@ -5,7 +5,7 @@ import (
 	"context"
 	"log/slog"
 
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 // Key is the type used for specifying context keys.

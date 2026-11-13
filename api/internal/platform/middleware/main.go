@@ -7,7 +7,7 @@ import (
 
 	"github.com/justinas/alice"
 
-	"tools.xdoubleu.com/internal/platform/sentrytools"
+	"tools.xdoubleu.com/internal/kit/sentrytools"
 )
 
 // Minimal is [Logger] and [Recover].

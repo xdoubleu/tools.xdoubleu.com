@@ -18,8 +18,8 @@ import (
 
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/platform/communication/httptools"
-	"tools.xdoubleu.com/internal/platform/logging"
 	platformmcp "tools.xdoubleu.com/internal/platform/mcp"
 	obs "tools.xdoubleu.com/internal/platform/obs"
 )

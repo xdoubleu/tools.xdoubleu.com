@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/platform/logging"
 )
 
 // ctxInserter fails on a cancelled ctx, as the real repository would.

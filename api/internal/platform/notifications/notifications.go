@@ -6,8 +6,8 @@ import (
 	"context"
 	"log/slog"
 
-	"tools.xdoubleu.com/internal/platform/mailer"
 	"tools.xdoubleu.com/internal/kit/threading"
+	"tools.xdoubleu.com/internal/platform/mailer"
 )
 
 // singleWorker keeps delivery FIFO.

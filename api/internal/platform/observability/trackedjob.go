@@ -15,10 +15,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	"tools.xdoubleu.com/internal/models"
-	essentialogger "tools.xdoubleu.com/internal/platform/logging"
-	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
+	essentialogger "tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/threading"
+	"tools.xdoubleu.com/internal/models"
+	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
 )
 
 // jobDuration backs Grafana's JobP95High alert.

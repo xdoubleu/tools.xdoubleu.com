@@ -9,9 +9,9 @@ import (
 
 	"tools.xdoubleu.com/apps/movies"
 	moviesv1 "tools.xdoubleu.com/gen/movies/v1"
-	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
+	sharedmocks "tools.xdoubleu.com/internal/mocks"
 )
 
 func TestListWatching(t *testing.T) {

@@ -11,9 +11,9 @@ import (
 	"golang.org/x/oauth2"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/github"
-	"tools.xdoubleu.com/internal/platform/logging"
 	obs "tools.xdoubleu.com/internal/platform/obs"
 	"tools.xdoubleu.com/internal/platform/sentryapi"
 )

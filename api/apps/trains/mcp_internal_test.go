@@ -14,11 +14,11 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/services"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/platform/logging"
 	"tools.xdoubleu.com/internal/platform/mcptools"
-	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 // TestMCPTools exercises the tool wrappers over the recorded iRail responses.

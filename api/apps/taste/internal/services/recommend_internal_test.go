@@ -14,8 +14,8 @@ import (
 
 	"tools.xdoubleu.com/apps/taste/internal/models"
 	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/openrouter"
-	"tools.xdoubleu.com/internal/platform/logging"
 )
 
 // scriptLLM answers each schema with its scripted content or error.

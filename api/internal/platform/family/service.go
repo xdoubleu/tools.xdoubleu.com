@@ -14,12 +14,11 @@ import (
 	"github.com/google/uuid"
 
 	iapp "tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/platform/auth"
+	essentialogger "tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/models"
-	essentialogger "tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/mailer"
 	"tools.xdoubleu.com/internal/platform/notifications"
-	"tools.xdoubleu.com/internal/repositories"
 )
 
 // Membership is the caller's family: the other members' IDs and their display

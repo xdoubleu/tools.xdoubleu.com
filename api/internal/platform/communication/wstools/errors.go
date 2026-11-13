@@ -13,7 +13,7 @@ import (
 
 	"tools.xdoubleu.com/internal/kit/contexttools"
 	"tools.xdoubleu.com/internal/kit/errortools"
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 // ErrorResponse is used to handle any kind of error that occurred on a WebSocket.

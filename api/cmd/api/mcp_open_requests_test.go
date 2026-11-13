@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 	platformmcp "tools.xdoubleu.com/internal/platform/mcp"
 	obs "tools.xdoubleu.com/internal/platform/obs"
 )

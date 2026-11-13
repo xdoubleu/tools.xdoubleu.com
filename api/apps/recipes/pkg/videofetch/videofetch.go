@@ -15,8 +15,8 @@ import (
 	"regexp"
 	"strings"
 
-	"tools.xdoubleu.com/internal/platform/communication/httptools"
 	"tools.xdoubleu.com/internal/kit/safedial"
+	"tools.xdoubleu.com/internal/platform/communication/httptools"
 )
 
 var (

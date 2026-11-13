@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/platform/oauth2as"
 	"tools.xdoubleu.com/internal/kit/testhelper"
+	"tools.xdoubleu.com/internal/platform/oauth2as"
 )
 
 func newV049TestServer(t *testing.T) *oauth2asTestServer {

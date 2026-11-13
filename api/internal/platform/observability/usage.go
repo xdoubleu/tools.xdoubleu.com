@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/internal/kit/database/postgres"
+	essentialogger "tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/models"
-	essentialogger "tools.xdoubleu.com/internal/platform/logging"
 	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
 )
 

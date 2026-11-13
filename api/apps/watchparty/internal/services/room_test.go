@@ -15,7 +15,7 @@ import (
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 	"tools.xdoubleu.com/apps/watchparty/internal/services"
 	"tools.xdoubleu.com/internal/kit/database"
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 // closedWSConn returns a closed server-side connection whose writes fail.

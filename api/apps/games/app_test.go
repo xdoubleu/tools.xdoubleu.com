@@ -13,9 +13,9 @@ import (
 	"tools.xdoubleu.com/apps/games/pkg/steam"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
+	sharedmocks "tools.xdoubleu.com/internal/mocks"
 )
 
 var testApp *games.Games //nolint:gochecknoglobals //needed for tests

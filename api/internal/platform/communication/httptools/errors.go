@@ -7,7 +7,7 @@ import (
 
 	"tools.xdoubleu.com/internal/kit/contexttools"
 	"tools.xdoubleu.com/internal/kit/errortools"
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 // HandleError is used to translate errors to the right HTTP response.

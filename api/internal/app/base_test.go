@@ -10,8 +10,8 @@ import (
 
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/platform/logging"
 )
 
 func newTestBase(parentCtx context.Context) app.Base {

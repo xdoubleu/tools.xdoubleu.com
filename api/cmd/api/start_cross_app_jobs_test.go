@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/platform/jobqueue"
-	"tools.xdoubleu.com/internal/platform/logging"
 )
 
 // duplicateSweepJob collides with the sweep job's ID to reach its AddJob

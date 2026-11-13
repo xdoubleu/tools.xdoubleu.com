@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/platform/communication/httptools"
-	"tools.xdoubleu.com/internal/platform/logging"
 )
 
 func freeAddr(t *testing.T) string {

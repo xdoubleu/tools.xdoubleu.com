@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
-	"tools.xdoubleu.com/internal/platform/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 // A caller with a deadline (a request) gets fewer attempts, so a 5xx streak
