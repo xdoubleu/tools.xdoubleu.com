@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/apps/internal/consumption"
 )
 
 // topN caps the ranked tags and creators.

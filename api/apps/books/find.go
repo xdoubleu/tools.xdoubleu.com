@@ -8,8 +8,8 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/internal/consumption"
 	iapp "tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/consumption"
 )
 
 // librarySearchLimit bounds the library lookup that marks a match known.

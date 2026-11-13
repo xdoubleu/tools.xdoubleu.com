@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
-	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/apps/internal/consumption"
 )
 
 // readInFullPct is the scroll depth from which a read counts as read in full.

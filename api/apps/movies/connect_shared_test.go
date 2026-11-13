@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/internal/consumption"
 	moviesv1 "tools.xdoubleu.com/gen/movies/v1"
 	"tools.xdoubleu.com/gen/movies/v1/moviesv1connect"
-	"tools.xdoubleu.com/internal/consumption"
 )
 
 // joinFamily puts the users in one new family and returns its id.

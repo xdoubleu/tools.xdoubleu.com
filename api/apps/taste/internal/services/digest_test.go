@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"tools.xdoubleu.com/apps/internal/consumption"
 	"tools.xdoubleu.com/apps/taste/internal/services"
-	"tools.xdoubleu.com/internal/consumption"
 )
 
 func TestDigest(t *testing.T) {

@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
+	"tools.xdoubleu.com/apps/internal/consumption"
 	"tools.xdoubleu.com/apps/movies/internal/models"
 	iapp "tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/consumption"
 )
 
 const posterBaseURL = "https://image.tmdb.org/t/p/w185"

@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/apps/internal/consumption"
 )
 
 // FindSource confirms a recommended site exists by fetching it, for the taste

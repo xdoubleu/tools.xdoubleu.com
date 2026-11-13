@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/apps/internal/consumption"
 )
 
 // Digest limits keep the prompt small whatever the history's size.

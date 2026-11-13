@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #2474
-- Affects: `api/apps/movies`, `api/apps/taste`, `api/internal/consumption`, `web/app/movies`, `web/app/taste`
+- Affects: `api/apps/movies`, `api/apps/taste`, `api/apps/internal/consumption`, `web/app/movies`, `web/app/taste`
 
 ## Context
 

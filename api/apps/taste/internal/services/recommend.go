@@ -14,8 +14,8 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"tools.xdoubleu.com/apps/internal/consumption"
 	"tools.xdoubleu.com/apps/taste/internal/models"
-	"tools.xdoubleu.com/internal/consumption"
 	"tools.xdoubleu.com/internal/kit/openrouter"
 )
 

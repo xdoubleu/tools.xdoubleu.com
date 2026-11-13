@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"tools.xdoubleu.com/apps/internal/consumption"
 	"tools.xdoubleu.com/apps/taste/internal/models"
-	"tools.xdoubleu.com/internal/consumption"
 )
 
 const (

@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/apps/internal/consumption"
 )
 
 // Source is an app exporting its consumed items.

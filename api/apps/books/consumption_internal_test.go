@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/apps/internal/consumption"
 )
 
 // userBook builds a UserBook with only what bookSignal reads.

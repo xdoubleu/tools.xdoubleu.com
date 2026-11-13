@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/apps/internal/consumption"
 )
 
 // FindShow looks a recommended show up on iTunes, for the taste app; nil when

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
-	"tools.xdoubleu.com/internal/consumption"
+	"tools.xdoubleu.com/apps/internal/consumption"
 )
 
 // engaged builds an item with only what itemSignal reads.
