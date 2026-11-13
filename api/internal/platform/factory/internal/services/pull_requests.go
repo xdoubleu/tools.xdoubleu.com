@@ -124,9 +124,10 @@ func (s *JobService) TestingAfterMerge(
 	}
 	// Also backfills a task that merged without its commit being recorded.
 	if task.MergeSHA == "" && mergeSHA != "" {
-		if err = s.tasks.SetMergeSHA(ctx, id, mergeSHA); err != nil {
-			return false, err
-		}
+		err = s.tasks.SetMergeSHA(ctx, id, mergeSHA)
+	}
+	if err != nil {
+		return false, err
 	}
 	if task.Status != models.StatusInReview {
 		return false, nil
@@ -167,11 +168,6 @@ func (s *JobService) pollPullRequest(ctx context.Context, job *models.Job) error
 		// on the next poll, and the task's own status keeps it from happening twice.
 		if err = s.pullRequestEnded(ctx, job, status); err != nil {
 			return err
-		}
-		if status.State == githubapp.StateMerged && status.MergeSHA != "" {
-			if err = s.tasks.SetMergeSHA(ctx, job.TaskID, status.MergeSHA); err != nil {
-				return err
-			}
 		}
 	}
 	return s.jobs.SetPullRequestStatus(ctx, job.ID, status.State, status.CI, status.Review)
