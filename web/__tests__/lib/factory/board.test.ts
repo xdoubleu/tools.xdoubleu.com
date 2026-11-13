@@ -15,6 +15,7 @@ import {
 } from '@/lib/gen/factory/v1/agent_accounts_pb'
 import {
   COLUMNS,
+  cardLabels,
   accountsOf,
   activeRunner,
   actorLabel,
@@ -453,5 +454,19 @@ describe('pullRequestLabel', () => {
   it('shortens a GitHub pull request address to its number', () => {
     expect(pullRequestLabel('https://github.com/o/n/pull/7')).toBe('#7')
     expect(pullRequestLabel('https://example.com/x')).toBe('https://example.com/x')
+  })
+})
+
+describe('cardLabels', () => {
+  it('keeps type, product and epic in that order and drops the rest', () => {
+    const task = create(TaskSchema, {
+      labels: ['github-import', 'epic:x', 'books', 'Bug', 'needs-priority-review']
+    })
+    expect(cardLabels(task)).toEqual(['Bug', 'books', 'epic:x'])
+  })
+
+  it('shows a label once however it is cased', () => {
+    const task = create(TaskSchema, { labels: ['bug', 'Bug', 'books'] })
+    expect(cardLabels(task)).toEqual(['bug', 'books'])
   })
 })

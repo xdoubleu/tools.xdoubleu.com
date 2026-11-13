@@ -1,8 +1,12 @@
 import { useState, type DragEvent } from 'react'
 import { TaskPriority, TaskStatus, type Repo, type Task } from '@/lib/gen/factory/v1/factory_pb'
 import {
+  cardLabels,
   deployBadge,
+  epicName,
+  isEpicLabel,
   isProductLabel,
+  isTypeLabel,
   prBadge,
   priorityLabel,
   pullRequestLabel,
@@ -20,6 +24,11 @@ const PRIORITY_VARIANT: Partial<Record<TaskPriority, 'danger' | 'warn' | 'second
   [TaskPriority.P0]: 'danger',
   [TaskPriority.P1]: 'warn',
   [TaskPriority.P2]: 'secondary'
+}
+
+const TYPE_VARIANT: Record<string, 'danger' | 'success' | 'default'> = {
+  bug: 'danger',
+  feature: 'success'
 }
 
 interface TaskCardProps {
@@ -117,13 +126,15 @@ export default function TaskCard({
             {deploy.label}
           </Badge>
         )}
-        {task.labels.map((l) => (
+        {cardLabels(task).map((l) => (
           <Badge
             key={l}
-            variant={isProductLabel(l) ? 'secondary' : 'default'}
-            data-testid={isProductLabel(l) ? 'product-label' : undefined}
+            variant={isTypeLabel(l) ? TYPE_VARIANT[l.toLowerCase()] : 'secondary'}
+            data-testid={
+              isTypeLabel(l) ? 'type-label' : isProductLabel(l) ? 'product-label' : 'epic-label'
+            }
           >
-            {l}
+            {isEpicLabel(l) ? `Epic: ${epicName(l)}` : l}
           </Badge>
         ))}
         {task.commentCount > 0 && (

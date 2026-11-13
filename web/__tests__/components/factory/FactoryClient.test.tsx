@@ -359,9 +359,9 @@ describe('FactoryClient', () => {
       mockTasks({
         data: create(ListTasksResponseSchema, {
           tasks: [
-            labelled('a', ['books', 'epic:reader', 'bug']),
+            labelled('a', ['books', 'epic:reader', 'urgent']),
             labelled('b', ['books', 'epic:shelf']),
-            labelled('c', ['feeds', 'epic:reader', 'bug'])
+            labelled('c', ['feeds', 'epic:reader', 'urgent'])
           ]
         })
       })
@@ -395,31 +395,49 @@ describe('FactoryClient', () => {
       fireEvent.change(screen.getByLabelText('Product'), { target: { value: 'books' } })
       expect(shown()).toEqual(['a'])
 
-      fireEvent.change(screen.getByLabelText('Add label filter'), { target: { value: 'bug' } })
+      fireEvent.change(screen.getByLabelText('Add label filter'), { target: { value: 'urgent' } })
       expect(shown()).toEqual(['a'])
       expect(mockReplace).toHaveBeenLastCalledWith(
-        '/factory?label=epic%3Areader&label=books&label=bug'
+        '/factory?label=epic%3Areader&label=books&label=urgent'
       )
 
-      fireEvent.click(screen.getByRole('button', { name: 'Remove label filter bug' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Remove label filter urgent' }))
       expect(shown()).toEqual(['a'])
       fireEvent.change(screen.getByLabelText('Epic'), { target: { value: '' } })
       expect(shown()).toEqual(['a', 'b'])
       expect(mockReplace).toHaveBeenLastCalledWith('/factory?label=books')
     })
 
+    it('filters by type', () => {
+      board()
+      render(<FactoryClient />)
+      expect(
+        within(screen.getByLabelText('Type'))
+          .getAllByRole('option')
+          .map((o) => o.textContent)
+      ).toEqual(['All types', 'feature (0)', 'bug (0)', 'chore (0)', 'documentation (0)'])
+      // Product, epic and type labels have their own selects, so only free-form ones are addable.
+      expect(
+        within(screen.getByLabelText('Add label filter'))
+          .getAllByRole('option')
+          .map((o) => o.textContent)
+      ).toEqual(['Add label…', 'urgent'])
+      fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'bug' } })
+      expect(mockReplace).toHaveBeenLastCalledWith('/factory?label=bug')
+    })
+
     it('restores the filter from the URL and keeps an open task link', () => {
       board()
-      mockQuery = '?task=a&label=epic:reader&label=bug'
+      mockQuery = '?task=a&label=epic:reader&label=urgent'
       render(<FactoryClient />)
       expect(shown()).toEqual(['a', 'c'])
       expect(screen.getByLabelText('Epic')).toHaveValue('epic:reader')
-      expect(screen.getByRole('button', { name: 'Remove label filter bug' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Remove label filter urgent' })).toBeInTheDocument()
 
       fireEvent.change(screen.getByLabelText('Product'), { target: { value: 'feeds' } })
       expect(shown()).toEqual(['c'])
       expect(mockReplace).toHaveBeenLastCalledWith(
-        '/factory?task=a&label=epic%3Areader&label=bug&label=feeds'
+        '/factory?task=a&label=epic%3Areader&label=urgent&label=feeds'
       )
     })
 

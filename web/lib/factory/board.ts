@@ -114,6 +114,14 @@ export function isProductLabel(label: string): boolean {
 
 const normLabel = (label: string) => label.trim().toLowerCase()
 
+/** What kind of work a task is, from a fixed set so cards and the filter read the same. */
+export const TYPE_LABELS: string[] = ['feature', 'bug', 'chore', 'documentation']
+
+/** Whether a label is one of the predefined task types. */
+export function isTypeLabel(label: string): boolean {
+  return TYPE_LABELS.includes(normLabel(label))
+}
+
 /** The tasks that carry every one of the labels (AND, ignoring case); none keeps them all. */
 export function filterByLabels(tasks: Task[], labels: string[]): Task[] {
   const wanted = labels.map(normLabel).filter((l) => l !== '')
@@ -171,6 +179,16 @@ export function canCloseEpic(
   if (label === undefined || parent.status === TaskStatus.DONE) return false
   const { done, total } = epicProgress(label, tasks)
   return total > 0 && done === total
+}
+
+/**
+ * The labels a card shows: its type, product and epic, in that order. Free-form
+ * labels stay on the task (detail view, filter) but would drown these three.
+ */
+export function cardLabels(task: Task): string[] {
+  const pick = (inGroup: (l: string) => boolean) => task.labels.filter(inGroup)
+  const all = [...pick(isTypeLabel), ...pick(isProductLabel), ...pick(isEpicLabel)]
+  return all.filter((l, i) => all.findIndex((o) => normLabel(o) === normLabel(l)) === i)
 }
 
 /** The filter labels with one group's pick swapped: the group's labels go, `next` ("" for none) comes. */

@@ -31,6 +31,29 @@ beforeEach(() => {
 })
 
 describe('TaskCard', () => {
+  it('shows only type, product and epic labels', () => {
+    const t = create(TaskSchema, {
+      ...task,
+      labels: ['github-import', 'epic:reader', 'books', 'feature']
+    })
+    render(<TaskCard {...props} task={t} />)
+    expect(screen.getByTestId('type-label')).toHaveTextContent('feature')
+    expect(screen.getByTestId('product-label')).toHaveTextContent('books')
+    expect(screen.getByTestId('epic-label')).toHaveTextContent('Epic: reader')
+    expect(screen.queryByText('github-import')).not.toBeInTheDocument()
+    expect(screen.getByTestId('type-label')).toHaveClass('text-success')
+    expect(screen.getByTestId('product-label')).toHaveClass('text-subtle')
+  })
+
+  it('styles bug and chore types by meaning', () => {
+    const { rerender } = render(
+      <TaskCard {...props} task={create(TaskSchema, { ...task, labels: ['Bug'] })} />
+    )
+    expect(screen.getByTestId('type-label')).toHaveClass('text-danger')
+    rerender(<TaskCard {...props} task={create(TaskSchema, { ...task, labels: ['chore'] })} />)
+    expect(screen.getByTestId('type-label')).toHaveClass('text-accent')
+  })
+
   it('shows the task id', () => {
     const long = create(TaskSchema, { ...task, id: 'T-142' })
     render(<TaskCard {...props} task={long} />)
