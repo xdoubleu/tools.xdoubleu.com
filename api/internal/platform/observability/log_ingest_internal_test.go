@@ -163,3 +163,18 @@ func TestTruncateUTF8(t *testing.T) {
 	// "é" is two bytes; cutting inside it drops the whole rune.
 	assert.Equal(t, "a", truncateUTF8("aé", 2))
 }
+
+func TestWebLogsHandler_StoreFails_InternalServerError(t *testing.T) {
+	pool := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	pool.Close()
+	body, err := json.Marshal(ingestLogsRequest{
+		Entries: []ingestLogEntry{
+			{OccurredAt: "", Level: "info", Message: "x", Attrs: nil},
+		},
+	})
+	require.NoError(t, err)
+
+	rec := postLogs(t, pool, body)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+}
