@@ -8,14 +8,6 @@
     "tools-apps": {
       "type": "remote",
       "url": "https://tools.xdoubleu.com/api/apps/mcp"
-    },
-    "tools-apps-agent": {
-      "type": "remote",
-      "url": "https://tools.xdoubleu.com/api/apps/mcp",
-      "headers": {
-        "Authorization": "Bearer {env:FACTORY_MCP_TOKEN}"
-      },
-      "oauth": false
     }
   }
 }

@@ -54,8 +54,9 @@ re-point, apply changes there with `git apply` from the current session.
 ## 3. Claim (or create) the board task
 
 The board is the tracker ([#2701](https://github.com/xdoubleu/tools.xdoubleu.com/issues/2701)).
-The `factory_*` tools come from your agent account's MCP server
-(`tools-apps-agent`, [adr-0039](../../../docs/adr-0039-agent-accounts.md) Setup).
+The `factory_*` tools come from the `tools-apps` MCP connection, delegated to
+your agent account on the consent page
+([adr-0048](../../../docs/adr-0048-consent-delegates-to-agent-accounts.md)).
 **Without them stop and tell the user**; never fall back to a GitHub issue
 unless they say to proceed without a task.
 

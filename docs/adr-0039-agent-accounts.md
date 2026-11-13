@@ -5,8 +5,7 @@
 - Issues: #2776, #2701
 - Affects: `api/internal/platform/agentaccounts/`, `api/internal/platform/oauth2as/seed.go`
   (`MachineSubjects`), `api/internal/platform/mcptools/agent_grants.go`,
-  `api/cmd/api/migrations/00059_*`, `scripts/factory_agent_headers.sh`,
-  `scripts/opencode_agent.sh`, `opencode.json`
+  `api/cmd/api/migrations/00059_*`
 
 ## Context
 
@@ -49,51 +48,31 @@ machine identity, but only one, seeded by hand.
   out of the admin's list, and a revoked one keeps its scope, so a request in
   flight when the job ends is never widened. A job that can't get an account is
   failed, not run without one.
-- An agent connects through a `headersHelper`
-  (`scripts/factory_agent_headers.sh`): it reads the secret from the macOS
-  Keychain item `factory-agent-<client id>`, mints a token and prints the
-  `Authorization` header. Claude Code re-runs it on a 401, so no token is
-  stored.
+- An agent connects through OAuth: interactive clients run the normal flow and
+  an admin delegates the client to an agent account on the consent page
+  ([adr-0048](adr-0048-consent-delegates-to-agent-accounts.md)); headless
+  clients use a client_credentials token for a standing agent account, so
+  rotating that secret gives a headless credential.
 
 ## Setup
 
-The simplest way: add the MCP server as usual
-(`claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/mcp`)
-and, on the consent page, delegate to an agent account
-([adr-0048](adr-0048-consent-delegates-to-agent-accounts.md)). For a headless
-agent, use a client secret:
+Interactive clients need no token: add the MCP server as usual
+(`opencode mcp add tools-apps --url https://tools.xdoubleu.com/api/apps/mcp`)
+and, on the consent page, delegate the client to an agent account
+([adr-0048](adr-0048-consent-delegates-to-agent-accounts.md)). The committed
+`opencode.json` already declares that server. A person session lists user
+tools while a delegated session lists only `factory_*`, so the tools you see
+tell you which identity the connection has.
 
-```bash
-security add-generic-password -s factory-agent-<client id> -a agent -w
-claude mcp add-json tools-apps-agent '{"type":"http",
-  "url":"https://tools.xdoubleu.com/api/apps/mcp",
-  "headersHelper":"FACTORY_AGENT_CLIENT_ID=<client id> /path/to/scripts/factory_agent_headers.sh"}'
-```
-
-To rotate the secret, an admin calls `RotateAgentAccountSecret` (TOTP step-up,
-as for create). The old secret keeps working for 24 hours (a second rotation waits until then; revoke to end a leaked secret), so replace the
-Keychain item (`security add-generic-password -U …`) inside that window
+Headless clients (the Actions routines) can't run the consent flow: they mint
+a client_credentials token for a standing agent account
+(`FACTORY_ROUTINES_AGENT_CLIENT_ID`/`…_SECRET` in
+`.github/workflows/agent-routine.yml`) and send it in an `Authorization` header
+with `oauth: false`. To rotate that secret, an admin calls
+`RotateAgentAccountSecret` (TOTP step-up, as for create). The old secret keeps
+working for 24 hours (a second rotation waits until then; revoke to end a
+leaked secret), so replace it inside that window
 ([adr-0047](adr-0047-first-class-agent-users.md)).
-
-OpenCode takes a static `{env:…}` header, resolved from the service's process
-env at launch. The committed `opencode.json` already declares a `tools-apps-agent`
-server with `"oauth": false` and a `{env:FACTORY_MCP_TOKEN}` header — no token in
-the file. Mint a token before launching, and export it:
-
-```bash
-eval "$(FACTORY_AGENT_CLIENT_ID=<client id> scripts/opencode_agent.sh)"
-```
-
-`oauth: false` is required: without it a remote MCP server defaults to the OAuth
-flow and signs the session in as the person, silently ignoring the header, so the
-session looks connected but lists the owner's user tools instead of `factory_*`.
-If that happens the header was dropped (or the token expired); the server answers
-identically either way. A person session lists user tools while an agent session
-lists only `factory_*`, so a fresh, correctly-exported token is the check. For a
-one-shot static-token session, `opencode_agent.sh --static` bakes the fresh token
-into `opencode.json` and marks it skip-worktree, so the committed skeleton never
-hardcodes one. `scripts/opencode_agent.sh` wraps
-`scripts/factory_agent_headers.sh`; see `make opencode/agent`.
 
 ## Alternatives considered
 

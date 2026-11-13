@@ -13,8 +13,9 @@ description: >-
 
 The board is the tracker ([#2701](https://github.com/xdoubleu/tools.xdoubleu.com/issues/2701)
 decision 3); this is the one way to put work on it. It replaces `refine-issue`
-for the routines. The tools come from the agent account's MCP server
-(`tools-apps-agent`), not the service client's `tools-apps`.
+for the routines. The tools come from the `tools-apps` MCP connection, delegated to the agent
+account at consent ([adr-0048](../../../docs/adr-0048-consent-delegates-to-agent-accounts.md)):
+a person session lists the user tools, a delegated one the `factory_*` ones.
 
 Labels, scopes and the priority rule live in `.claude/github-triage.config.json`
 (`labels`, `priorityRule`); read them, don't restate them.
