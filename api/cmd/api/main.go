@@ -63,6 +63,7 @@ type Application struct {
 	oauth2as                      *oauth2asWiring
 	family                        family.Service
 	apps                          *Apps
+	disabledApps                  DisabledApps
 	booksApp                      storageScanRunner
 	feedsApp                      unhealthyFeedLister
 	appUsersRepo                  *repositories.AppUsersRepository
@@ -586,6 +587,7 @@ func NewApplication(
 	if err != nil {
 		panic(err)
 	}
+	app.reportDisabledApps()
 
 	oauth2Store := oauth2as.NewStore(spanDB)
 	oidcKey := oauth2as.LoadOIDCKeyOrDegrade(logger, config.OAuthOIDCPrivateKey)
@@ -615,7 +617,7 @@ func NewApplication(
 		}
 	}
 
-	if err = app.apps.Start(config.Role); err != nil {
+	if err = app.apps.Without(app.disabledApps).Start(config.Role); err != nil {
 		panic(err)
 	}
 
@@ -651,7 +653,8 @@ func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
 		return err
 	}
 
-	return app.apps.ApplyMigrations(app.ctx, db)
+	app.disabledApps = app.apps.ApplyMigrations(app.ctx, db)
+	return nil
 }
 
 func (app *Application) applyGlobalMigrations(db *pgxpool.Pool) error {

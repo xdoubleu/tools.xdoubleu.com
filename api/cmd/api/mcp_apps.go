@@ -39,7 +39,7 @@ func (app *Application) appsMCPHandler() http.Handler {
 // observability tools.
 func (app *Application) newAppsMCPServer() *mcp.Server {
 	srv := newMCPServer(app.logger)
-	for _, a := range *app.apps {
+	for _, a := range *app.apps.Without(app.disabledApps) {
 		if provider, ok := a.(MCPToolProvider); ok {
 			provider.RegisterMCPTools(srv)
 		}

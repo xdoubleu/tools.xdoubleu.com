@@ -837,6 +837,38 @@ groups:
                     type: gt
                     params: [0]
 
+      - uid: app-migration-failed
+        title: AppMigrationFailed
+        condition: C
+        labels:
+          severity: critical
+          notify: slack
+        annotations:
+          summary: An app is disabled because its migration failed
+          description: "An app failed to migrate at boot and serves 503; see app_migration_failed."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: app_migration_failed > 0
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
       - uid: automated-action-stalled
         title: AutomatedActionStalled
         condition: C
