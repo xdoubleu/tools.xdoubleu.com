@@ -100,8 +100,11 @@ func TestAJobProxyReplacesTheSandboxsOwnAndTheEnvFileIsInAStableOrder(t *testing
 	assert.Equal(t, "10.231.7.1", jobGateway)
 	assert.Empty(t, sandboxGateway, "the job's proxy is used, not the sandbox's")
 	assert.Equal(t, strings.Join([]string{
-		"GOMODCACHE=/gomodcache", "GOPROXY=off", "HOME=/tmp/home",
-		"npm_config_cache=/npmcache", "npm_config_offline=true",
+		"GOMODCACHE=/tmp/gomodcache",
+		"GOPROXY=file:///opt/gomodcache/cache/download,http://10.231.7.1:8118/goproxy/",
+		"HOME=/tmp/home", "npm_config_cache=/opt/npmcache",
+		"npm_config_prefer_offline=true",
+		"npm_config_registry=http://10.231.7.1:8118/npm/",
 		"FACTORY_GATEWAY=10.231.7.1", "FACTORY_PROXY=http://10.231.7.1:8118",
 		"FACTORY_JOB=0a1b2c3d-4e5f", "SECRET=s3cret", "",
 	}, "\n"), envBody)

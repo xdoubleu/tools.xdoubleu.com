@@ -125,7 +125,11 @@ agent can read it and send it to Anthropic, the conservative route above.
 ## Consequences
 
 - One more daemon-side component: the Go proxy, with its own tests and allowlist.
-- Jobs can't install dependencies the lockfiles don't name.
+- The image bakes in every Go module's downloads (a `file://` `GOPROXY`, with
+  `GOMODCACHE` on the tmpfs), web/'s npm cache and python3. Dependencies that changed
+  since the build resolve through two more fixed proxy routes, `/goproxy/` and
+  `/npm/`: public registries, GET/HEAD only, no credentials. `GOSUMDB` and the
+  lockfiles still verify what comes back. Without a proxy the VM stays offline.
 - The sandbox depends on macOS 26 and a young Apple tool.
 
 ## Revisit when

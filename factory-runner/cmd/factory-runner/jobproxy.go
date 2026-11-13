@@ -45,8 +45,8 @@ func newJobProxy(
 		MCPToken:      nil,
 		MCPRejected:   nil,
 		Anthropic:     "",
-		OpenRouter:    "",
-		Log:           log,
+		OpenRouter:    "", GoProxy: "", NPM: "",
+		Log: log,
 	}
 	if job.MCPClientID != "" && job.MCPClientSecret != "" {
 		source := &runner.MCPTokenSource{

@@ -52,8 +52,8 @@ func proxyFor(
 		MCPRejected:   nil,
 		Transport:     nil,
 		Anthropic:     up.srv.URL,
-		OpenRouter:    up.srv.URL + "/api",
-		Log:           nil,
+		OpenRouter:    up.srv.URL + "/api", GoProxy: "", NPM: "",
+		Log: nil,
 	}
 	if mutate != nil {
 		mutate(&cfg)
@@ -227,7 +227,7 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 	defer up.Close()
 	p, err := runner.NewEgressProxy(runner.EgressConfig{
 		Server: "", MCPToken: nil, OpenRouterKey: nil, MCPRejected: nil,
-		Transport: nil, Anthropic: up.URL, OpenRouter: "", Log: nil,
+		Transport: nil, Anthropic: up.URL, OpenRouter: "", GoProxy: "", NPM: "", Log: nil,
 	})
 	require.NoError(t, err)
 	front := httptest.NewServer(p)
@@ -249,7 +249,8 @@ func TestResponsesStreamAsTheyArrive(t *testing.T) {
 func TestABadUpstreamBaseIsRejectedWhenBuildingTheProxy(t *testing.T) {
 	_, err := runner.NewEgressProxy(runner.EgressConfig{
 		Server: "", MCPToken: nil, OpenRouterKey: nil, MCPRejected: nil,
-		Transport: nil, Anthropic: "not a url", OpenRouter: "", Log: nil,
+		Transport: nil, Anthropic: "not a url", OpenRouter: "", GoProxy: "",
+		NPM: "", Log: nil,
 	})
 	require.ErrorContains(t, err, "bad upstream")
 }
@@ -316,4 +317,29 @@ func TestTheHostInARequestNeverChoosesTheDestination(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, "/v1/models", up.got.URL.Path)
 	assert.NotContains(t, up.got.Host, "evil")
+}
+
+func TestRegistriesAreReadOnlyRoutesToTheirFixedUpstreams(t *testing.T) {
+	p, up := proxyFor(t, func(c *runner.EgressConfig) {
+		c.GoProxy = c.Anthropic + "/gomod"
+		c.NPM = c.Anthropic + "/npmreg"
+	})
+
+	for _, tc := range []struct{ target, upstream string }{
+		{"/goproxy/github.com/x/@v/list", "/gomod/github.com/x/@v/list"},
+		{"/npm/left-pad", "/npmreg/left-pad"},
+	} {
+		for _, m := range []string{http.MethodGet, http.MethodHead} {
+			up.got = nil
+			rec := do(t, p, m, tc.target, "", map[string]string{"Authorization": "Bearer x"})
+			require.Equal(t, http.StatusOK, rec.Code, tc.target)
+			assert.Equal(t, tc.upstream, up.got.URL.Path)
+		}
+		up.got = nil
+		for _, m := range []string{http.MethodPost, http.MethodDelete} {
+			rec := do(t, p, m, tc.target, "{}", nil)
+			assert.Equal(t, http.StatusMethodNotAllowed, rec.Code, m+tc.target)
+		}
+		assert.Nil(t, up.got, "a write never reaches a registry")
+	}
 }
