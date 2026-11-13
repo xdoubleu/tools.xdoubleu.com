@@ -3,8 +3,10 @@ package runner_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -389,6 +391,24 @@ func TestTheVMIsKeptForTheWholeJobWhenTheSandboxCanKeepIt(t *testing.T) {
 	execs := exec.find("exec")
 	assert.Contains(t, strings.Join(execs[0], " "), "npm ci", "setup runs first")
 	assert.NotContains(t, strings.Join(execs[1], " "), "npm ci", "and once")
+}
+
+func TestAnUnreadableBranchTipDoesNotStopAPublishedJob(t *testing.T) {
+	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
+	p.runner.Git.Run = func(
+		ctx context.Context, dir string, args ...string,
+	) ([]byte, error) {
+		if len(args) > 0 && args[0] == "rev-parse" {
+			return nil, errors.New("no")
+		}
+		cmd := exec.CommandContext(ctx, "git", args...)
+		cmd.Dir = dir
+		return cmd.CombinedOutput()
+	}
+
+	_, err := p.runner.Next(context.Background())
+	require.NoError(t, err)
+	assert.NotEmpty(t, p.api.done()[0].prURL)
 }
 
 func countOf(steps []string, name string) int {
