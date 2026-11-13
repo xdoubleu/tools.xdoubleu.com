@@ -2,7 +2,7 @@
 
 - Status: Accepted — the owner picked (c), 2026-10-26
 - Issues: #2612 (audit #2596)
-- Affects: `api/internal/oauth2as/`, `api/cmd/api/oauth2as.go`, `api/go.mod`, `api/cmd/api/migrations/00058_oauth2_session_numeric_claim_times.sql`, `.github/workflows/api-vuln.yml`, `renovate.json5`; replaces the library chosen in [ADR-0006](adr-0006-embedded-oauth21-authorization-server.md)
+- Affects: `api/internal/platform/oauth2as/`, `api/cmd/api/oauth2as.go`, `api/go.mod`, `api/cmd/api/migrations/00058_oauth2_session_numeric_claim_times.sql`, `.github/workflows/api-vuln.yml`, `renovate.json5`; replaces the library chosen in [ADR-0006](adr-0006-embedded-oauth21-authorization-server.md)
 
 ## Context
 
@@ -25,7 +25,7 @@ State of fosite on 2026-10-25:
 
 ## Options
 
-(a) and (c) were prototyped on a scratch copy of `api`, then run against the `internal/oauth2as` suite (57 tests) and `cmd/api`'s OAuth/MCP tests on Postgres.
+(a) and (c) were prototyped on a scratch copy of `api`, then run against the `internal/platform/oauth2as` suite (57 tests) and `cmd/api`'s OAuth/MCP tests on Postgres.
 
 | | today: fosite v0.49.0 | (a) Hydra v26.2.0 | (c) Authelia v0.3.3 |
 |---|---|---|---|
@@ -53,10 +53,10 @@ State of fosite on 2026-10-25:
 
 (c), Authelia's fork: it is maintained and Renovate-trackable, drops every flagged dependency, keeps issued token strings valid, and passed both suites. Migration as shipped:
 
-1. **Fixtures**: `api/internal/oauth2as/testdata/fosite-v0.49.0.json` holds tokens and `auth.oauth2_*` rows written by v0.49.0, captured before the swap.
+1. **Fixtures**: `api/internal/platform/oauth2as/testdata/fosite-v0.49.0.json` holds tokens and `auth.oauth2_*` rows written by v0.49.0, captured before the swap.
 2. **Swap**: the root package is aliased as `fosite`, with the adaptations above and `NewHMACCoreStrategy(cfg, "ory_%s_")`. `api/go.sum` went from 1070 to 294 lines, `cmd/api` from 955 to 784 packages, the stripped binary from 54.2 to 50.5 MB.
 3. **Backfill** (migration 00058): v0.49 stored ID-token claim times as RFC 3339 strings and absent claims as `null`. The fork rejects both, including the `"ext": null` every scope-less MCP session carries. Claim times become Unix seconds, and zero times and `null` claims are dropped. Unmigrated rows still introspect, but refresh and code exchange fail. The Down block restores RFC 3339, so a rollback runs it before the old binary starts.
-4. **Compatibility test** (`api/internal/oauth2as/v049_compat_test.go`): on the backfilled fixture, pre-switch access tokens introspect, refresh tokens rotate, a pending PKCE code exchanges, and reuse past the grace period revokes the chain.
+4. **Compatibility test** (`api/internal/platform/oauth2as/v049_compat_test.go`): on the backfilled fixture, pre-switch access tokens introspect, refresh tokens rotate, a pending PKCE code exchanges, and reuse past the grace period revokes the chain.
 5. **Monitoring**: `make lint/vuln` runs govulncheck, and `api-vuln.yml` runs it daily rather than per PR.
 6. **After deploy**: one MCP connect and refresh, one Grafana SSO login, and the `oauth2 request rejected` logs.
 

@@ -23,7 +23,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/webfetch"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/notifications"
-	globalrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/account"
 )
 
 // ErrInvalidFeed is returned when a subscribed URL does not parse as RSS/Atom.
@@ -68,7 +68,7 @@ type FeedService struct {
 	webFetch      webfetch.Client
 	inboundDomain string
 	notifications *notifications.Service
-	users         *globalrepositories.AppUsersRepository
+	users         *account.AppUsersRepository
 	webURL        string
 }
 
@@ -83,7 +83,7 @@ func NewFeedService(
 	webFetchClient webfetch.Client,
 	inboundDomain string,
 	notifications *notifications.Service,
-	users *globalrepositories.AppUsersRepository,
+	users *account.AppUsersRepository,
 	webURL string,
 ) *FeedService {
 	return &FeedService{

@@ -13,14 +13,14 @@ import (
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
 	"tools.xdoubleu.com/apps/feeds/internal/services"
 	"tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/kit/webfetch"
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/observability"
-	globalrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/account"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 //go:embed migrations/*.sql
@@ -46,7 +46,7 @@ func New(
 	cfg config.Config,
 	db postgres.DB,
 	notifications *notifications.Service,
-	appUsersRepo *globalrepositories.AppUsersRepository,
+	appUsersRepo *account.AppUsersRepository,
 ) *Feeds {
 	return NewInner(
 		ctx,
@@ -69,7 +69,7 @@ func NewInner(
 	db postgres.DB,
 	webFetchClient webfetch.Client,
 	notifications *notifications.Service,
-	appUsersRepo *globalrepositories.AppUsersRepository,
+	appUsersRepo *account.AppUsersRepository,
 ) *Feeds {
 	//nolint:exhaustruct // jobQueue/Services/feedPollJob initialised below
 	a := &Feeds{

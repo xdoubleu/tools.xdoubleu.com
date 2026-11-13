@@ -18,7 +18,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	sharedrepos "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/family"
 )
 
 func newTodayClient(
@@ -85,7 +85,7 @@ func TestGetToday_FailedBlockIsLeftUnset(t *testing.T) {
 		logging.NewNopLogger(),
 		testCfg,
 		closed,
-		sharedrepos.NewFamilyRepository(closed),
+		family.NewFamilyRepository(closed),
 	)
 	app := dashboard.New(
 		context.Background(),

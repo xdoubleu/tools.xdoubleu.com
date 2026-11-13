@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/shoppinglist/internal/repositories"
-	"tools.xdoubleu.com/internal/auth"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 const (

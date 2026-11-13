@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
-	"tools.xdoubleu.com/internal/agentaccounts"
+	"tools.xdoubleu.com/internal/platform/agentaccounts"
 )
 
 const shortJobIDLen = 8

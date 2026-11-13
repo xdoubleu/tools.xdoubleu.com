@@ -4,7 +4,7 @@ import (
 	"log/slog"
 
 	"tools.xdoubleu.com/apps/mealplans/internal/repositories"
-	"tools.xdoubleu.com/internal/auth"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 type Services struct {

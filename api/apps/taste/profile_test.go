@@ -16,11 +16,11 @@ import (
 	"tools.xdoubleu.com/apps/taste"
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
 	"tools.xdoubleu.com/gen/taste/v1/tastev1connect"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/consumption"
 	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 const profileJSON = `{

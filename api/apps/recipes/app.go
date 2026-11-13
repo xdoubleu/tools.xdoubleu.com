@@ -11,10 +11,10 @@ import (
 	"tools.xdoubleu.com/apps/recipes/internal/services"
 	"tools.xdoubleu.com/apps/recipes/pkg/videofetch"
 	"tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	sharedrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/family"
 )
 
 //go:embed migrations/*.sql
@@ -32,7 +32,7 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	familyRepo *sharedrepositories.FamilyRepository,
+	familyRepo *family.Repository,
 ) *Recipes {
 	//nolint:exhaustruct //services initialised below
 	a := &Recipes{

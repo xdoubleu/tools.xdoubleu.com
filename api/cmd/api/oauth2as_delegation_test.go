@@ -16,7 +16,7 @@ import (
 
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/oauth2as"
+	"tools.xdoubleu.com/internal/platform/oauth2as"
 )
 
 // approveAs approves a fresh authorization of clientID with the admin's session,

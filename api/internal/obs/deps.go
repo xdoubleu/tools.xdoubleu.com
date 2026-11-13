@@ -1,6 +1,7 @@
 package obs
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
@@ -10,7 +11,8 @@ import (
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/github"
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
@@ -26,13 +28,18 @@ type StorageScanRunner interface {
 	StartStorageScan()
 }
 
+// UserLookup resolves a user for display.
+type UserLookup interface {
+	GetByID(ctx context.Context, id string) (*models.User, error)
+}
+
 // Deps is the observability module's slice of the Application: the
 // repositories, clients, logger and config its RPCs, MCP tools and admin OAuth
 // routes need. main builds it from the wiring it already holds.
 type Deps struct {
 	Logger                   *slog.Logger
 	Config                   config.Config
-	AppUsersRepo             *repositories.AppUsersRepository
+	AppUsersRepo             UserLookup
 	JobRunsRepo              *repositories.JobRunsRepository
 	UsageRepo                *repositories.UsageRepository
 	StorageRepo              *repositories.StorageSnapshotsRepository
@@ -40,7 +47,7 @@ type Deps struct {
 	AutomatedActionsRepo     *repositories.AutomatedActionsRepository
 	LogsRepo                 *repositories.LogsRepository
 	NotificationSettingsRepo *repositories.NotificationSettingsRepository
-	OAuthConnRepo            *repositories.OAuthConnectionsRepository
+	OAuthConnRepo            *oauthconn.OAuthConnectionsRepository
 	TransactionLatencyRepo   *repositories.TransactionLatencyRepository
 
 	OAuthState   *oauthconn.StateStore

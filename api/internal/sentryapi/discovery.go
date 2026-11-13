@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 // Org is a Sentry organization offered by the admin config picker.

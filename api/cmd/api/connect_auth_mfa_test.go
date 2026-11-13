@@ -14,7 +14,7 @@ import (
 
 	authv1 "tools.xdoubleu.com/gen/auth/v1"
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
-	account "tools.xdoubleu.com/internal/account"
+	account "tools.xdoubleu.com/internal/platform/account"
 )
 
 func mfaClient(t *testing.T) authv1connect.AuthServiceClient {

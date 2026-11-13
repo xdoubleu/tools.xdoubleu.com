@@ -1,0 +1,295 @@
+package oauthconn
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
+	"golang.org/x/oauth2"
+
+	"tools.xdoubleu.com/internal/kit/crypto"
+	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/models"
+)
+
+// ErrEncryptionNotConfigured means ENCRYPTION_KEY is unset.
+var ErrEncryptionNotConfigured = errors.New(
+	"repositories: ENCRYPTION_KEY not configured",
+)
+
+// ErrInvalidConfig is returned by SetConfig for invalid JSON, instead of a raw
+// Postgres 22P02 surfacing as an unscrubbed CodeInternal.
+var ErrInvalidConfig = errors.New("repositories: config is not valid JSON")
+
+// OAuthConnectionsRepository stores one connection per provider in
+// global.oauth_connections, with tokens encrypted at rest via sealer.
+type OAuthConnectionsRepository struct {
+	db     postgres.DB
+	sealer *crypto.Sealer
+}
+
+func NewOAuthConnectionsRepository(
+	db postgres.DB, sealer *crypto.Sealer,
+) *OAuthConnectionsRepository {
+	return &OAuthConnectionsRepository{db: db, sealer: sealer}
+}
+
+type oauthConnectionRow struct {
+	accessToken    []byte
+	refreshToken   []byte
+	expiresAt      *time.Time
+	connectedBy    string
+	connectedAt    time.Time
+	updatedAt      time.Time
+	config         []byte
+	scope          *string
+	requestedScope *string
+}
+
+// Get returns the decrypted token and metadata, or
+// database.ErrResourceNotFound.
+func (r *OAuthConnectionsRepository) Get(
+	ctx context.Context, provider models.OAuthProvider,
+) (*oauth2.Token, *models.OAuthConnection, error) {
+	var row oauthConnectionRow
+	err := r.db.QueryRow(ctx, `
+		SELECT access_token, refresh_token, expires_at, connected_by,
+		       connected_at, updated_at, config, scope, requested_scope
+		FROM global.oauth_connections
+		WHERE provider = $1
+	`, provider).Scan(
+		&row.accessToken, &row.refreshToken, &row.expiresAt,
+		&row.connectedBy, &row.connectedAt, &row.updatedAt, &row.config,
+		&row.scope, &row.requestedScope,
+	)
+	if err != nil {
+		return nil, nil, postgres.PgxErrorToHTTPError(err)
+	}
+
+	tok, err := UnsealToken(
+		r.sealer, row.accessToken, row.refreshToken, row.expiresAt,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return tok, rowToConnection(provider, row), nil
+}
+
+// Upsert replaces provider's connection. requestedScopes is stored verbatim
+// because the provider's echoed scope is normalized.
+func (r *OAuthConnectionsRepository) Upsert(
+	ctx context.Context,
+	provider models.OAuthProvider,
+	tok *oauth2.Token,
+	connectedBy string,
+	requestedScopes []string,
+) error {
+	access, refresh, err := SealToken(r.sealer, tok)
+	if err != nil {
+		return err
+	}
+
+	scope, _ := tok.Extra("scope").(string)
+
+	_, err = r.db.Exec(ctx, `
+		INSERT INTO global.oauth_connections
+			(provider, access_token, refresh_token, expires_at, connected_by,
+			 scope, requested_scope)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (provider) DO UPDATE SET
+			access_token    = EXCLUDED.access_token,
+			refresh_token   = EXCLUDED.refresh_token,
+			expires_at      = EXCLUDED.expires_at,
+			connected_by    = EXCLUDED.connected_by,
+			connected_at    = now(),
+			updated_at      = now(),
+			scope           = EXCLUDED.scope,
+			requested_scope = EXCLUDED.requested_scope
+	`, provider, access, refresh, expiryPtr(tok), connectedBy,
+		nullIfEmpty(scope), nullIfEmpty(strings.Join(requestedScopes, " ")))
+	return err
+}
+
+// UpdateToken stores a refreshed token, keeping connected_by/connected_at.
+func (r *OAuthConnectionsRepository) UpdateToken(
+	ctx context.Context, provider models.OAuthProvider, tok *oauth2.Token,
+) error {
+	access, refresh, err := SealToken(r.sealer, tok)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.db.Exec(ctx, `
+		UPDATE global.oauth_connections
+		SET access_token = $2, refresh_token = $3, expires_at = $4,
+		    updated_at = now()
+		WHERE provider = $1
+	`, provider, access, refresh, expiryPtr(tok))
+	return err
+}
+
+// SetConfig replaces provider's config; database.ErrResourceNotFound if it
+// isn't connected.
+func (r *OAuthConnectionsRepository) SetConfig(
+	ctx context.Context, provider models.OAuthProvider, config []byte,
+) error {
+	if !json.Valid(config) {
+		return ErrInvalidConfig
+	}
+
+	// Bind as string: under the simple protocol (pooler) []byte is sent as bytea
+	// hex, which JSONB rejects.
+	tag, err := r.db.Exec(ctx, `
+		UPDATE global.oauth_connections
+		SET config = $2, updated_at = now()
+		WHERE provider = $1
+	`, provider, string(config))
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return database.ErrResourceNotFound
+	}
+	return nil
+}
+
+func (r *OAuthConnectionsRepository) Delete(
+	ctx context.Context, provider models.OAuthProvider,
+) error {
+	_, err := r.db.Exec(ctx, `
+		DELETE FROM global.oauth_connections WHERE provider = $1
+	`, provider)
+	return err
+}
+
+// List returns every connected provider's status, without tokens.
+func (r *OAuthConnectionsRepository) List(
+	ctx context.Context,
+) ([]models.OAuthConnection, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT provider, expires_at, connected_by, connected_at, updated_at,
+		       config, scope, requested_scope
+		FROM global.oauth_connections
+		ORDER BY provider
+	`)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var connections []models.OAuthConnection
+	for rows.Next() {
+		var (
+			provider models.OAuthProvider
+			row      oauthConnectionRow
+		)
+		if scanErr := rows.Scan(
+			&provider, &row.expiresAt, &row.connectedBy,
+			&row.connectedAt, &row.updatedAt, &row.config, &row.scope,
+			&row.requestedScope,
+		); scanErr != nil {
+			return nil, scanErr
+		}
+		connections = append(connections, *rowToConnection(provider, row))
+	}
+	return connections, rows.Err()
+}
+
+// SealToken encrypts tok's access and refresh tokens for storage; refresh is
+// nil when tok has none. ErrEncryptionNotConfigured if sealer is nil.
+func SealToken(sealer *crypto.Sealer, tok *oauth2.Token) ([]byte, []byte, error) {
+	if sealer == nil {
+		return nil, nil, ErrEncryptionNotConfigured
+	}
+
+	access, err := sealer.Encrypt([]byte(tok.AccessToken))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var refresh []byte
+	if tok.RefreshToken != "" {
+		refresh, err = sealer.Encrypt([]byte(tok.RefreshToken))
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	return access, refresh, nil
+}
+
+// UnsealToken reverses SealToken. ErrEncryptionNotConfigured if sealer is nil;
+// models.ErrDecryptFailed if the ciphertext doesn't open under sealer's key.
+func UnsealToken(
+	sealer *crypto.Sealer, access, refresh []byte, expiresAt *time.Time,
+) (*oauth2.Token, error) {
+	if sealer == nil {
+		return nil, ErrEncryptionNotConfigured
+	}
+
+	accessBytes, err := sealer.Decrypt(access)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", models.ErrDecryptFailed, err)
+	}
+
+	var refreshToken string
+	if len(refresh) > 0 {
+		refreshBytes, decErr := sealer.Decrypt(refresh)
+		if decErr != nil {
+			return nil, fmt.Errorf("%w: %w", models.ErrDecryptFailed, decErr)
+		}
+		refreshToken = string(refreshBytes)
+	}
+
+	tok := &oauth2.Token{ //nolint:exhaustruct // token type/raw fields unused
+		AccessToken:  string(accessBytes),
+		RefreshToken: refreshToken,
+	}
+	if expiresAt != nil {
+		tok.Expiry = *expiresAt
+	}
+	return tok, nil
+}
+
+func rowToConnection(
+	provider models.OAuthProvider, row oauthConnectionRow,
+) *models.OAuthConnection {
+	var scope string
+	if row.scope != nil {
+		scope = *row.scope
+	}
+
+	var requestedScope string
+	if row.requestedScope != nil {
+		requestedScope = *row.requestedScope
+	}
+
+	return &models.OAuthConnection{
+		Provider:       provider,
+		ConnectedBy:    row.connectedBy,
+		ConnectedAt:    row.connectedAt,
+		UpdatedAt:      row.updatedAt,
+		ExpiresAt:      row.expiresAt,
+		Config:         row.config,
+		GrantedScope:   scope,
+		RequestedScope: requestedScope,
+	}
+}
+
+func expiryPtr(tok *oauth2.Token) *time.Time {
+	if tok.Expiry.IsZero() {
+		return nil
+	}
+	return &tok.Expiry
+}
+
+func nullIfEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}

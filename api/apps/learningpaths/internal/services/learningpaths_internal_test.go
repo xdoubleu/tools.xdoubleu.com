@@ -17,7 +17,7 @@ import (
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/kit/logging"
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 // fakeLearningPathsStore is an in-memory learningPathsStore.

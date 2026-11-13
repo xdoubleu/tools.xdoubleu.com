@@ -17,7 +17,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/kit/httpclient"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 //nolint:gochecknoglobals // overridable in tests

@@ -60,7 +60,7 @@ claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/m
 
 OpenCode connects through `opencode.json`'s `mcp.servers` block. Auth is
 first-party MCP OAuth 2.1: the api is both resource server and authorization
-server (`api/internal/oauth2as`, dynamic client registration + PKCE; the web
+server (`api/internal/platform/oauth2as`, dynamic client registration + PKCE; the web
 `/oauth/consent` page shows approval) → [ADR-0006](docs/adr-0006-embedded-oauth21-authorization-server.md).
 The same AS is an OIDC provider for Grafana SSO (admin-only) →
 [ADR-0021](docs/adr-0021-oauth-as-general-purpose-oidc-idp.md).

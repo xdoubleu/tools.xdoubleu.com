@@ -6,8 +6,8 @@ import (
 	"golang.org/x/oauth2"
 
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
-	"tools.xdoubleu.com/internal/auth"
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 type Services struct {

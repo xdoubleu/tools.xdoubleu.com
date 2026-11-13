@@ -2,12 +2,12 @@
 
 - Status: Accepted
 - Issues: spike T-254, epic T-224
-- Affects: `api/internal/auth/`, `web/app/auth/`, `infra/`, `config/deploy.api.yml`
+- Affects: `api/internal/platform/auth/`, `web/app/auth/`, `infra/`, `config/deploy.api.yml`
 - Supersedes in part: [adr-0005](adr-0005-first-party-auth-replacing-gotrue.md) (passwords, TOTP, recovery codes, reset mail)
 
 ## Context
 
-Auth is first-party. `internal/auth` holds passwords, TOTP, recovery codes and lockout; `internal/oauth2as` and `internal/agentaccounts` are the MCP authorization server with dynamic client registration, client_credentials for agents and delegation at consent ([adr-0048](adr-0048-consent-delegates-to-agent-accounts.md)). The owner would rather not own password and MFA code, and wants a free provider.
+Auth is first-party. `internal/platform/auth` holds passwords, TOTP, recovery codes and lockout; `internal/platform/oauth2as` and `internal/platform/agentaccounts` are the MCP authorization server with dynamic client registration, client_credentials for agents and delegation at consent ([adr-0048](adr-0048-consent-delegates-to-agent-accounts.md)). The owner would rather not own password and MFA code, and wants a free provider.
 
 No provider covers the second half: none of the hosted free tiers (Auth0, WorkOS, Stytch, Clerk, Zitadel Cloud) lets an admin switch an MCP client's subject to an agent account at consent, and Clerk has no standard client_credentials grant. Self-hosted, only Ory Hydra fits delegation by design, at the cost of writing its login and consent UI. The full evaluation is in T-254.
 
@@ -31,7 +31,7 @@ No provider covers the second half: none of the hosted free tiers (Auth0, WorkOS
 
 - Sign-in depends on Zitadel being up; the box carries about 512 MB more.
 - Zitadel has had several account-takeover advisories in its login UI since 2025, so its patch cadence becomes ours.
-- `internal/auth` shrinks to sessions issued after OIDC sign-in.
+- `internal/platform/auth` shrinks to sessions issued after OIDC sign-in.
 
 ## Revisit when
 

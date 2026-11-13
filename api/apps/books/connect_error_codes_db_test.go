@@ -13,10 +13,10 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/mocks"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 // newBrokenDBClient serves books over a DB where every books-schema

@@ -15,7 +15,7 @@ import (
 	"tools.xdoubleu.com/internal/mailer"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/notifications"
-	sharedrepos "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/account"
 )
 
 //nolint:gochecknoglobals //needed for tests
@@ -35,7 +35,7 @@ var mockWebFetch *sharedmocks.MockWebFetchClient
 // appUsersRepo lets tests seed users for the problem-email lookup.
 //
 //nolint:gochecknoglobals //needed for tests
-var appUsersRepo *sharedrepos.AppUsersRepository
+var appUsersRepo *account.AppUsersRepository
 
 // userEmail is userID's address, seeded by ensureGlobalAppUsers.
 const userEmail = "feeds-test-user@example.com"
@@ -51,7 +51,7 @@ func TestMain(m *testing.M) {
 	auth := sharedmocks.NewMockedAuthService(userID)
 
 	ensureGlobalAppUsers(postgresDB)
-	appUsersRepo = sharedrepos.NewAppUsersRepository(postgresDB)
+	appUsersRepo = account.NewAppUsersRepository(postgresDB)
 
 	mockWebFetch = sharedmocks.NewMockWebFetchClient()
 	// Not-configured mailer; notify tests build their own FeedService.

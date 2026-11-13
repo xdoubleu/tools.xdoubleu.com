@@ -16,7 +16,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-	sharedrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/family"
 )
 
 type staticSource []consumption.Event
@@ -36,7 +36,7 @@ func TestMCPTools(t *testing.T) {
 	a := New(
 		context.Background(),
 		sharedmocks.NewMockedAuthService(uid), logging.NewNopLogger(), cfg, db,
-		sharedrepositories.NewFamilyRepository(db), nil,
+		family.NewFamilyRepository(db), nil,
 		Catalogs{
 			Books: nil, Movies: nil, Games: nil, Podcasts: nil, Feeds: nil,
 			WantBook: nil, WantTitle: nil,

@@ -19,7 +19,7 @@ make db/reset                      # recreate the Postgres volume — shared by 
 ## Architecture
 
 - `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after apps it reads; `trains`/`learningpaths`/`movies`/`podcasts`/`factory`, then `taste` (reads `books`/`feeds`/`games`/`movies`/`podcasts`).
-- `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool. Platform handlers: `internal/obs`, `internal/account` (each `Deps`/`Register`).
+- `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool. Platform handlers: `internal/obs`, `internal/platform/account` (each `Deps`/`Register`).
 - `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
 - `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked PRs can merge migrations out of order; this self-heals.
 
@@ -34,14 +34,14 @@ internal/{dtos,models,repositories,services,jobs,mocks}/
 migrations/    # Goose SQL, own schema only
 ```
 
-### Auth (`internal/auth`)
+### Auth (`internal/platform/auth`)
 
 First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA + recovery codes → [`adr-0005`](../docs/adr-0005-first-party-auth-replacing-gotrue.md).
 
 - A per-token TTL cache (`AUTH_CACHE_TTL`, default 60s, `0` disables; tests use 0) fronts every resolution — **role/app-access changes lag up to the TTL**.
 - SignOut/UpdatePassword/VerifyMFA/UnenrollTOTP evict the token. **Admin `SetRole`/`SetAppAccess` must call `InvalidateUserCache()`.**
 - `enrichUser` overlays DB `Role`/`AppAccess`; **a DB failure is returned, never swallowed** — the unenriched user looks like "no access" and would be cached for the TTL.
-- `GetCurrentUser` (`internal/account/auth_handlers.go`) is the pattern for handlers needing DB-enriched attributes: `auth.GetUser`, then `appUsersRepo.GetByID`, preferring DB values when found.
+- `GetCurrentUser` (`internal/platform/account/auth_handlers.go`) is the pattern for handlers needing DB-enriched attributes: `auth.GetUser`, then `appUsersRepo.GetByID`, preferring DB values when found.
 - `constants.AuthChannelContextKey` is `browser` (cookies) or `mcp` (bearer); both yield the same `models.User`. A missing channel is not a browser.
 - `ResolveToken` verifies session JWTs locally, then falls back to an injected `OAuth2TokenResolver` for `oauth2as` tokens → [`adr-0006`](../docs/adr-0006-embedded-oauth21-authorization-server.md).
 
@@ -50,11 +50,11 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - **`app`** — `Base`, `HTTPError`, `ScrubInternalErrors` (every `New*ServiceHandler` call must pass it). Unawaited request work uses `Base.Background.Go`, never a bare `go`.
 - **`connecttools`** — `MapError`: DB/`HTTPError` errors → Connect codes.
 - **`sentrytools`** — Sentry hub middleware, `GoRoutineWrapper`, slog→Sentry `Init`/`LogHandler` → [`adr-0009`](../docs/adr-0009-sentrytools-extracted-module.md).
-- **`family`** — the one sharing model; a user with no row is an implicit family-of-one (`EnsureFamily`). `InviteByEmail` requires a registered invitee and emails off the request path. **Leaving cannot un-merge family-scoped data** → [`adr-0008`](../docs/adr-0008-family-as-single-sharing-concept.md).
+- **`platform/family`** — the one sharing model; a user with no row is an implicit family-of-one (`EnsureFamily`). `InviteByEmail` requires a registered invitee and emails off the request path. **Leaving cannot un-merge family-scoped data** → [`adr-0008`](../docs/adr-0008-family-as-single-sharing-concept.md).
 - **`crypto`** — AES-256-GCM `Sealer` for OAuth tokens at rest.
 - **`mailer`** — Resend HTTP client; `Send`/`SendTo` return `ErrNotConfigured` when unset.
 - **`github`, `sentryapi`** — read-only observability clients; resolve config from `global.oauth_connections` per call; return `ErrNotConfigured`/`ErrNotConnected` instead of failing.
-- **`oauthconn`** — token refresh + single-use CSRF `StateStore`. A `NULL` `config` means "connected, not configured".
+- **`platform/oauthconn`** — token refresh + single-use CSRF `StateStore`. A `NULL` `config` means "connected, not configured".
 - **`observability`** — `TrackedJob` (→ `global.job_runs`, `job_duration_seconds`; cancels a run's ctx after `DefaultRunDeadline` unless the job implements `Deadlined`, so jobs must honour ctx), `ObserveJobPhase`, `UsageRecorder` (→ `global.usage_daily`; `countingResponseWriter` in `cmd/api/usage_middleware.go` **must forward `Flush`/`Hijack`** or WebSocket upgrades break), and the cross-app jobs: weekly digest (feed sections only, each gated by `global.notification_settings`), transaction-latency snapshot, issue-signal collector (Prometheus gauges; Sentry via `sentryapi` because Grafana's Sentry datasource can't be alerted on). Never imports `apps/*` — `main.go` adapters bridge. Alerting is Grafana's → [`adr-0022`](../docs/adr-0022-prometheus-grafana-metrics.md), [`adr-0010`](../docs/adr-0010-two-weekly-digest-emails.md), [`adr-0012`](../docs/adr-0012-ubuntu-release-check-on-vps.md).
 - **`notifications`** — email-only: `EnqueueEmail` (fixed recipient), `EnqueueTo` (arbitrary).
 - **`progressws`** / **`progresshistory`** — job-progress WebSocket topics; cumulative progress with carry-forward reads.

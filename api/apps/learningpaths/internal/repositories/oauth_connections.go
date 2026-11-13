@@ -9,7 +9,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/crypto"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-	sharedrepos "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 // OAuthConnectionsRepository stores one encrypted OAuth connection per
@@ -54,7 +54,7 @@ func (r *OAuthConnectionsRepository) Get(
 		return nil, nil, postgres.PgxErrorToHTTPError(err)
 	}
 
-	tok, err := sharedrepos.UnsealToken(
+	tok, err := oauthconn.UnsealToken(
 		r.sealer, row.accessToken, row.refreshToken, row.expiresAt,
 	)
 	if err != nil {
@@ -73,7 +73,7 @@ func (r *OAuthConnectionsRepository) Upsert(
 	tok *oauth2.Token,
 	requestedScope string,
 ) error {
-	access, refresh, err := sharedrepos.SealToken(r.sealer, tok)
+	access, refresh, err := oauthconn.SealToken(r.sealer, tok)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (r *OAuthConnectionsRepository) UpdateToken(
 	provider sharedmodels.OAuthProvider,
 	tok *oauth2.Token,
 ) error {
-	access, refresh, err := sharedrepos.SealToken(r.sealer, tok)
+	access, refresh, err := oauthconn.SealToken(r.sealer, tok)
 	if err != nil {
 		return err
 	}

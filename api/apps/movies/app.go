@@ -16,12 +16,12 @@ import (
 	"tools.xdoubleu.com/apps/movies/internal/services"
 	"tools.xdoubleu.com/apps/movies/pkg/tmdb"
 	"tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/observability"
-	sharedrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/family"
 )
 
 //go:embed migrations/*.sql
@@ -30,7 +30,7 @@ var embedMigrations embed.FS
 type Movies struct {
 	app.Base
 	db         postgres.DB
-	family     *sharedrepositories.FamilyRepository
+	family     *family.Repository
 	services   *services.Services
 	jobQueue   *jobqueue.JobQueue
 	refreshJob jobs.RefreshMetadataJob
@@ -42,7 +42,7 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	familyRepo *sharedrepositories.FamilyRepository,
+	familyRepo *family.Repository,
 ) *Movies {
 	return NewWithTMDB(
 		ctx, authService, logger, cfg, db, familyRepo, newTMDBClient(logger, cfg),
@@ -57,7 +57,7 @@ func NewWithTMDB(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	familyRepo *sharedrepositories.FamilyRepository,
+	familyRepo *family.Repository,
 	tmdbClient tmdb.Client,
 ) *Movies {
 	//nolint:exhaustruct //services, jobs initialised below

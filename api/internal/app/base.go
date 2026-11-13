@@ -10,9 +10,9 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/threading"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 // backgroundLimit caps an app's concurrently running request-started tasks;

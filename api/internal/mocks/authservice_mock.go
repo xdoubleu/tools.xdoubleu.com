@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 const mockUserEmail = "user@example.com"

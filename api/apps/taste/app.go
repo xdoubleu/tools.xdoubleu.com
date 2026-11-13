@@ -19,14 +19,14 @@ import (
 	"tools.xdoubleu.com/apps/taste/internal/repositories"
 	"tools.xdoubleu.com/apps/taste/internal/services"
 	"tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/kit/openrouter"
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/observability"
-	sharedrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/family"
 )
 
 //go:embed migrations/*.sql
@@ -45,7 +45,7 @@ type Taste struct {
 	app.Base
 	db       postgres.DB
 	auth     auth.Service
-	family   *sharedrepositories.FamilyRepository
+	family   *family.Repository
 	log      *services.LogService
 	profiles *services.ProfileService
 	picks    *services.RecommendService
@@ -62,7 +62,7 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	familyRepo *sharedrepositories.FamilyRepository,
+	familyRepo *family.Repository,
 	mail *notifications.Service,
 	catalogs Catalogs,
 	sources ...Source,
@@ -87,7 +87,7 @@ func NewInner(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	familyRepo *sharedrepositories.FamilyRepository,
+	familyRepo *family.Repository,
 	llm openrouter.Client,
 	mail EmailSender,
 	catalogs Catalogs,

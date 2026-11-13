@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/oauth2as"
+	"tools.xdoubleu.com/internal/platform/oauth2as"
 )
 
 const routinesTestSecret = "routines-test-client-secret-0123456789"

@@ -1,0 +1,161 @@
+package family_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/platform/family"
+)
+
+func clearFamily(t *testing.T, userIDs ...string) {
+	t.Helper()
+	for _, id := range userIDs {
+		_, err := testDB.Exec(t.Context(),
+			"DELETE FROM global.family_invites WHERE to_user_id = $1", id)
+		require.NoError(t, err)
+		_, err = testDB.Exec(t.Context(),
+			"DELETE FROM global.family_members WHERE user_id = $1", id)
+		require.NoError(t, err)
+	}
+}
+
+func TestFamilyRepository_EnsureFamilyIsIdempotent(t *testing.T) {
+	const userID = "family-repo-user-1"
+	clearFamily(t, userID)
+	repo := family.NewFamilyRepository(testDB)
+
+	_, ok, err := repo.GetFamilyID(t.Context(), userID)
+	require.NoError(t, err)
+	assert.False(t, ok, "no membership row should exist yet")
+
+	familyID, err := repo.EnsureFamily(t.Context(), userID)
+	require.NoError(t, err)
+
+	again, err := repo.EnsureFamily(t.Context(), userID)
+	require.NoError(t, err)
+	assert.Equal(t, familyID, again, "EnsureFamily should be idempotent")
+}
+
+func TestFamilyRepository_InviteAcceptRoundTrip(t *testing.T) {
+	const ownerID = "family-repo-owner-1"
+	const inviteeID = "family-repo-invitee-1"
+	clearFamily(t, ownerID, inviteeID)
+	repo := family.NewFamilyRepository(testDB)
+
+	_, ok, err := repo.GetInvite(t.Context(), inviteeID)
+	require.NoError(t, err)
+	assert.False(t, ok)
+
+	require.NoError(t, repo.Invite(t.Context(), ownerID, inviteeID))
+
+	invite, ok, err := repo.GetInvite(t.Context(), inviteeID)
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.Equal(t, ownerID, invite.FromUserID)
+
+	joinedFamilyID, err := repo.AcceptInvite(t.Context(), inviteeID, invite.ID)
+	require.NoError(t, err)
+
+	ownerFamilyID, ok, err := repo.GetFamilyID(t.Context(), ownerID)
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.Equal(t, ownerFamilyID, joinedFamilyID)
+
+	members, err := repo.ListMembers(t.Context(), joinedFamilyID)
+	require.NoError(t, err)
+	assert.Contains(t, members, inviteeID)
+	assert.Contains(t, members, ownerID)
+
+	require.NoError(t, repo.Leave(t.Context(), inviteeID))
+	_, ok, err = repo.GetFamilyID(t.Context(), inviteeID)
+	require.NoError(t, err)
+	assert.False(t, ok, "leaving should remove the membership row")
+}
+
+// TestFamilyRepository_AcceptReplacedInvite: an invite replaced by another
+// sender gets a new id, so accepting the old id joins nobody.
+func TestFamilyRepository_AcceptReplacedInvite(t *testing.T) {
+	const ownerID = "family-repo-owner-3"
+	const otherID = "family-repo-other-3"
+	const inviteeID = "family-repo-invitee-3"
+	clearFamily(t, ownerID, otherID, inviteeID)
+	repo := family.NewFamilyRepository(testDB)
+
+	require.NoError(t, repo.Invite(t.Context(), ownerID, inviteeID))
+	seen, _, err := repo.GetInvite(t.Context(), inviteeID)
+	require.NoError(t, err)
+
+	require.NoError(t, repo.Invite(t.Context(), otherID, inviteeID))
+	replaced, _, err := repo.GetInvite(t.Context(), inviteeID)
+	require.NoError(t, err)
+	assert.NotEqual(t, seen.ID, replaced.ID)
+
+	_, err = repo.AcceptInvite(t.Context(), inviteeID, seen.ID)
+	require.ErrorIs(t, err, database.ErrResourceNotFound)
+	_, ok, err := repo.GetFamilyID(t.Context(), inviteeID)
+	require.NoError(t, err)
+	assert.False(t, ok, "a stale invite id must not create a membership")
+}
+
+func TestFamilyRepository_DeclineInvite(t *testing.T) {
+	const ownerID = "family-repo-owner-2"
+	const inviteeID = "family-repo-invitee-2"
+	clearFamily(t, ownerID, inviteeID)
+	repo := family.NewFamilyRepository(testDB)
+
+	require.NoError(t, repo.Invite(t.Context(), ownerID, inviteeID))
+	require.NoError(t, repo.DeclineInvite(t.Context(), inviteeID))
+
+	_, ok, err := repo.GetInvite(t.Context(), inviteeID)
+	require.NoError(t, err)
+	assert.False(t, ok)
+}
+
+func TestFamilyRepository_ErrorsOnCanceledContext(t *testing.T) {
+	const userID = "family-repo-canceled-ctx"
+	clearFamily(t, userID)
+	repo := family.NewFamilyRepository(testDB)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	_, _, err := repo.GetFamilyID(ctx, userID)
+	require.Error(t, err)
+
+	_, err = repo.EnsureFamily(ctx, userID)
+	require.Error(t, err)
+
+	err = repo.Invite(ctx, userID, "someone-else")
+	require.Error(t, err)
+}
+
+func TestFamilyRepository_DisplayName(t *testing.T) {
+	const ownerID = "family-repo-dn-owner"
+	const inviteeID = "family-repo-dn-invitee"
+	clearFamily(t, ownerID, inviteeID)
+	repo := family.NewFamilyRepository(testDB)
+
+	require.NoError(t, repo.Invite(t.Context(), ownerID, inviteeID))
+	invite, _, err := repo.GetInvite(t.Context(), inviteeID)
+	require.NoError(t, err)
+	familyID, err := repo.AcceptInvite(t.Context(), inviteeID, invite.ID)
+	require.NoError(t, err)
+
+	names, err := repo.MemberDisplayNames(t.Context(), familyID)
+	require.NoError(t, err)
+	assert.Equal(t, "", names[ownerID])
+	assert.Equal(t, "", names[inviteeID])
+
+	require.NoError(t, repo.SetDisplayName(t.Context(), inviteeID, "Robin"))
+
+	names, err = repo.MemberDisplayNames(t.Context(), familyID)
+	require.NoError(t, err)
+	assert.Equal(t, "Robin", names[inviteeID])
+	assert.Equal(t, "", names[ownerID])
+
+	require.NoError(t, repo.Leave(t.Context(), inviteeID))
+}

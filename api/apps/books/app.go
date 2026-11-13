@@ -18,12 +18,12 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
 	"tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/kit/webfetch"
 	"tools.xdoubleu.com/internal/observability"
+	"tools.xdoubleu.com/internal/platform/auth"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
 )
 

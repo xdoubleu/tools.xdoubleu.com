@@ -15,7 +15,7 @@ import (
 	dashboardv1 "tools.xdoubleu.com/gen/dashboard/v1"
 	"tools.xdoubleu.com/gen/dashboard/v1/dashboardv1connect"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-	sharedrepos "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/account"
 )
 
 // Distinct owners per dashboard so their seeded data never collide.
@@ -63,7 +63,7 @@ func ensureProfileShare(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	repo := sharedrepos.NewProfileSharesRepository(testDB)
+	repo := account.NewProfileSharesRepository(testDB)
 	_, err := repo.Upsert(
 		ctx,
 		publicGamesUserID,

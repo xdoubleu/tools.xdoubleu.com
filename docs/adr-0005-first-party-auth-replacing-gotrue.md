@@ -2,7 +2,7 @@
 
 - Status: Accepted; passwords, TOTP, recovery codes and reset mail superseded by [ADR-0051](adr-0051-zitadel-for-people-sign-in.md)
 - Issues: #1039
-- Affects: `api/internal/auth/`, `api/cmd/api/migrations/` (00017–00019), `infra/`
+- Affects: `api/internal/platform/auth/`, `api/cmd/api/migrations/` (00017–00019), `infra/`
 
 ## Context
 
@@ -12,7 +12,7 @@ repo didn't control.
 
 ## Decision
 
-Auth is first-party in `internal/auth` against `api`'s own `auth` schema
+Auth is first-party in `internal/platform/auth` against `api`'s own `auth` schema
 (`00017_auth_schema.sql`, `00018_auth_oauth2.sql`):
 
 - **Passwords**: bcrypt in `auth.users`; reset links via `internal/mailer`

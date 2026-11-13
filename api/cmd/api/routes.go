@@ -10,14 +10,14 @@ import (
 
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
-	"tools.xdoubleu.com/internal/account"
-	"tools.xdoubleu.com/internal/agentaccounts"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/middleware"
-	"tools.xdoubleu.com/internal/oauth2as"
 	"tools.xdoubleu.com/internal/obs"
-	"tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/account"
+	"tools.xdoubleu.com/internal/platform/agentaccounts"
+	"tools.xdoubleu.com/internal/platform/family"
+	"tools.xdoubleu.com/internal/platform/oauth2as"
 	"tools.xdoubleu.com/internal/slack"
 )
 
@@ -38,7 +38,7 @@ func (app *Application) mux() *http.ServeMux {
 	agentaccounts.Register(mux, app.logger, app.auth.Access, &agentaccounts.Deps{
 		Store:    agents,
 		StepUp:   app.auth,
-		Families: repositories.NewFamilyRepository(app.db),
+		Families: family.NewFamilyRepository(app.db),
 		Notify:   app.slackNotify(),
 	})
 	obs.Register(mux, app.logger, app.auth.Access, app.obsDeps())

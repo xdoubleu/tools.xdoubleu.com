@@ -10,7 +10,7 @@ import (
 
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/kit/logging"
-	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/platform/oauthconn"
 )
 
 func TestListRepos_ReturnsRepos(t *testing.T) {

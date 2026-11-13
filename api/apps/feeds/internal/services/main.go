@@ -4,11 +4,11 @@ import (
 	"log/slog"
 
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
-	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/kit/threading"
 	"tools.xdoubleu.com/internal/kit/webfetch"
 	"tools.xdoubleu.com/internal/notifications"
-	globalrepositories "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/account"
+	"tools.xdoubleu.com/internal/platform/auth"
 )
 
 type Services struct {
@@ -24,7 +24,7 @@ func New(
 	inboundDomain string,
 	authService auth.Service,
 	notifications *notifications.Service,
-	appUsersRepo *globalrepositories.AppUsersRepository,
+	appUsersRepo *account.AppUsersRepository,
 	webURL string,
 ) *Services {
 	return &Services{

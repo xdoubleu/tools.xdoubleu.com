@@ -20,7 +20,7 @@ import (
 	"tools.xdoubleu.com/internal/mailer"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/notifications"
-	sharedrepos "tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/platform/account"
 )
 
 //nolint:gochecknoglobals //needed for tests
@@ -79,7 +79,7 @@ func TestMain(m *testing.M) {
 			logger,
 			mailer.New("", "", ""),
 		),
-		sharedrepos.NewAppUsersRepository(postgresDB),
+		account.NewAppUsersRepository(postgresDB),
 	)
 	if err = testFeeds.ApplyMigrations(context.Background(), postgresDB); err != nil {
 		panic(err)
