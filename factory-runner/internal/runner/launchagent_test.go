@@ -109,3 +109,9 @@ func TestBinaryReleaseReadsTheVersionOutput(t *testing.T) {
 	assert.Equal(t, "abc123", runner.BinaryRelease(bin))
 	assert.Empty(t, runner.BinaryRelease(filepath.Join(t.TempDir(), "missing")))
 }
+
+func TestLegacyBinaryPathIsTheBareBinaryBesideTheBundle(t *testing.T) {
+	assert.Equal(t,
+		filepath.Join(runner.InstallDir("/h"), "factory-runner"),
+		runner.LegacyBinaryPath("/h"))
+}

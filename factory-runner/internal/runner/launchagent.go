@@ -97,6 +97,11 @@ func InstalledBundlePath(homeDir string) string {
 	return filepath.Join(InstallDir(homeDir), "FactoryRunner.app")
 }
 
+// LegacyBinaryPath is where installs before the app bundle kept the binary.
+func LegacyBinaryPath(homeDir string) string {
+	return filepath.Join(InstallDir(homeDir), "factory-runner")
+}
+
 // InstalledBinaryPath is the stable place the LaunchAgent runs the runner from,
 // so a download in ~/Downloads can be deleted and self-update has one file to
 // replace.
