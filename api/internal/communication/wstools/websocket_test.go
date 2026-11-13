@@ -16,10 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/communication/wstools"
-	"tools.xdoubleu.com/internal/errortools"
-	"tools.xdoubleu.com/internal/logging"
-	"tools.xdoubleu.com/internal/sentrytools"
-	"tools.xdoubleu.com/internal/validate"
+	"tools.xdoubleu.com/internal/kit/errortools"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/sentrytools"
+	"tools.xdoubleu.com/internal/kit/validate"
 )
 
 // newTracingSentryHub captures finished transactions. TracesSampleRate and

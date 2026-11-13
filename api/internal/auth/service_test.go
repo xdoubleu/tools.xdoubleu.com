@@ -15,10 +15,10 @@ import (
 
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/crypto"
+	"tools.xdoubleu.com/internal/kit/crypto"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // capturingMailer records the last email so tests can extract the reset token.

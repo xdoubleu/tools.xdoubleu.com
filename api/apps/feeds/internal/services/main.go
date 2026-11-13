@@ -5,10 +5,10 @@ import (
 
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
 	"tools.xdoubleu.com/internal/auth"
+	"tools.xdoubleu.com/internal/kit/threading"
+	"tools.xdoubleu.com/internal/kit/webfetch"
 	"tools.xdoubleu.com/internal/notifications"
 	globalrepositories "tools.xdoubleu.com/internal/repositories"
-	"tools.xdoubleu.com/internal/threading"
-	"tools.xdoubleu.com/internal/webfetch"
 )
 
 type Services struct {

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/factory/internal/models"
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 )
 
 // FailureCounts are the counts behind the factory failure gauges.

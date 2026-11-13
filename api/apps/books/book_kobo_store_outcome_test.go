@@ -15,7 +15,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 // putStoreState PUTs a store book's Reading state at percent.

@@ -16,7 +16,7 @@ import (
 	"strings"
 
 	"tools.xdoubleu.com/internal/communication/httptools"
-	"tools.xdoubleu.com/internal/safedial"
+	"tools.xdoubleu.com/internal/kit/safedial"
 )
 
 var (

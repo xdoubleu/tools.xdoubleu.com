@@ -16,8 +16,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 
-	"tools.xdoubleu.com/internal/database"
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 )
 
 // secretBytes of randomness make a 43-character URL-safe client secret.

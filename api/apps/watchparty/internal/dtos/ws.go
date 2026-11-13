@@ -3,7 +3,7 @@ package dtos
 import (
 	"encoding/json"
 
-	"tools.xdoubleu.com/internal/validate"
+	"tools.xdoubleu.com/internal/kit/validate"
 )
 
 type SubscribeMessageDto struct {

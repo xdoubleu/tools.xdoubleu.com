@@ -13,7 +13,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"tools.xdoubleu.com/internal/communication/httptools"
-	"tools.xdoubleu.com/internal/errortools"
+	"tools.xdoubleu.com/internal/kit/errortools"
 )
 
 var errWriter = connecthttp.NewErrorWriter() //nolint: gochecknoglobals //need this

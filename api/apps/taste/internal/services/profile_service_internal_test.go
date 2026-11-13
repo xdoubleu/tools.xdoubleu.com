@@ -11,7 +11,7 @@ import (
 
 	"tools.xdoubleu.com/apps/taste/internal/models"
 	"tools.xdoubleu.com/internal/consumption"
-	"tools.xdoubleu.com/internal/openrouter"
+	"tools.xdoubleu.com/internal/kit/openrouter"
 )
 
 // memStore records what the service saved.

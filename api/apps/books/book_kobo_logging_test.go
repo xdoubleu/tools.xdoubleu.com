@@ -17,7 +17,7 @@ import (
 	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/books/kobo"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 // registerDeviceReturningID returns a new device's raw token and ID.

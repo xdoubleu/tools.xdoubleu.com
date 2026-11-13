@@ -8,7 +8,7 @@ import (
 	"connectrpc.com/connect/v2"
 
 	iapp "tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // ErrorCode maps an app's own domain error to a Connect code.

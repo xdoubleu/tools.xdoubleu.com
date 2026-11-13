@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 )
 
 // GrafanaClientID is the static Grafana SSO client seeded by migration 00045.

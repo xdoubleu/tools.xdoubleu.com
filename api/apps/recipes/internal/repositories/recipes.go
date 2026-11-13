@@ -10,8 +10,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"tools.xdoubleu.com/apps/recipes/internal/models"
-	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/pagination"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/pagination"
 )
 
 // ErrRecipeOnMealPlan is returned when Delete is blocked by a meal plan that

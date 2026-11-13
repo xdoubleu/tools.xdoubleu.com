@@ -13,7 +13,7 @@ import (
 
 	watchpartyv1 "tools.xdoubleu.com/gen/watchparty/v1"
 	"tools.xdoubleu.com/gen/watchparty/v1/watchpartyv1connect"
-	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/models"
 )
 

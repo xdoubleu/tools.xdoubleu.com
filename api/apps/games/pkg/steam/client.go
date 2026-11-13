@@ -10,7 +10,7 @@ import (
 	"time"
 
 	httptools "tools.xdoubleu.com/internal/communication/httptools"
-	"tools.xdoubleu.com/internal/httpclient"
+	"tools.xdoubleu.com/internal/kit/httpclient"
 )
 
 const BaseURLRESTAPI = "http://api.steampowered.com"

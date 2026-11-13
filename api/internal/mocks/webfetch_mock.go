@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"tools.xdoubleu.com/internal/webfetch"
+	"tools.xdoubleu.com/internal/kit/webfetch"
 )
 
 // MockWebFetchClient is a configurable in-memory webfetch.Client keyed by

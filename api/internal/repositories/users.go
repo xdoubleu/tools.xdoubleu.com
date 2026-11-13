@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/models"
 )
 

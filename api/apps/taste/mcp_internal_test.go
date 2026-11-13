@@ -10,13 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
-	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/consumption"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	sharedrepositories "tools.xdoubleu.com/internal/repositories"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 type staticSource []consumption.Event

@@ -15,8 +15,8 @@ import (
 
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 	wstools "tools.xdoubleu.com/internal/communication/wstools"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
 	"tools.xdoubleu.com/internal/models"
 )
 

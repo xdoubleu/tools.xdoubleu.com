@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #2423, #2424 (epic #2233)
-- Affects: `api/internal/openrouter/`, `api/apps/taste/`, `OPENROUTER_API_KEY`
+- Affects: `api/internal/kit/openrouter/`, `api/apps/taste/`, `OPENROUTER_API_KEY`
 
 ## Context
 
@@ -14,7 +14,7 @@ tens of seconds, which is longer than a request may run (ADR-0017).
 ## Decision
 
 - **OpenRouter as the only LLM provider**, reached through a minimal
-  chat-completions client (`internal/openrouter`). It asks for strict JSON
+  chat-completions client (`internal/kit/openrouter`). It asks for strict JSON
   schema answers and logs token usage and cost on every call.
 - **One model, `TASTE_GENERATOR_MODEL`** (default `mistralai/mistral-medium-3-5`).
   It writes the profile, proposes candidates and gives each a 0-100 score in

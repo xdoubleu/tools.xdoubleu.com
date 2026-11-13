@@ -16,12 +16,12 @@ import (
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/jobqueue"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/openrouter"
+	"tools.xdoubleu.com/internal/kit/threading"
 	"tools.xdoubleu.com/internal/observability"
-	"tools.xdoubleu.com/internal/openrouter"
 	"tools.xdoubleu.com/internal/slack"
-	"tools.xdoubleu.com/internal/threading"
 )
 
 //go:embed migrations/*.sql

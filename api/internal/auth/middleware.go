@@ -10,8 +10,8 @@ import (
 	"github.com/getsentry/sentry-go"
 
 	"tools.xdoubleu.com/internal/communication/httptools"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/errortools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/errortools"
 	"tools.xdoubleu.com/internal/models"
 )
 

@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/sentrytools"
+	"tools.xdoubleu.com/internal/kit/threading"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/sentrytools"
-	"tools.xdoubleu.com/internal/threading"
 )
 
 // newSentryTestCtx captures finished transactions. TracesSampleRate and

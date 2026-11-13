@@ -14,7 +14,7 @@ import (
 	"github.com/coder/websocket/wsjson"
 	"github.com/getsentry/sentry-go"
 
-	"tools.xdoubleu.com/internal/validate"
+	"tools.xdoubleu.com/internal/kit/validate"
 )
 
 // SubscribeMessageDto is implemented by messages that subscribe to a topic.

@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/internal/threading"
+	"tools.xdoubleu.com/internal/kit/threading"
 )
 
 // SyncRequest is one device's /v1/library/sync call.

@@ -9,7 +9,7 @@ import (
 
 	readability "codeberg.org/readeck/go-readability/v2"
 
-	"tools.xdoubleu.com/internal/webfetch"
+	"tools.xdoubleu.com/internal/kit/webfetch"
 )
 
 // ErrUnsupportedURL is returned for URLs that are not http/https.

@@ -1,0 +1,91 @@
+package postgres
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+
+	"tools.xdoubleu.com/internal/kit/database"
+)
+
+// SpanDB wraps database calls in [sentry.Span]s.
+type SpanDB struct {
+	DB     DB
+	dbName string
+}
+
+// NewSpanDB creates a new [*SpanDB].
+func NewSpanDB(db DB) *SpanDB {
+	return &SpanDB{
+		DB:     db,
+		dbName: "postgresql",
+	}
+}
+
+// Exec wraps Exec in a span.
+func (db *SpanDB) Exec(
+	ctx context.Context,
+	sql string,
+	arguments ...any,
+) (pgconn.CommandTag, error) {
+	return database.WrapWithSpan(ctx, db.dbName, db.DB.Exec, sql, arguments...)
+}
+
+// Query wraps Query in a span.
+func (db *SpanDB) Query(
+	ctx context.Context,
+	sql string,
+	optionsAndArgs ...any,
+) (pgx.Rows, error) {
+	return database.WrapWithSpan(ctx, db.dbName, db.DB.Query, sql, optionsAndArgs...)
+}
+
+// QueryRow wraps QueryRow in a span.
+func (db *SpanDB) QueryRow(
+	ctx context.Context,
+	sql string,
+	optionsAndArgs ...any,
+) pgx.Row {
+	return database.WrapWithSpanNoError(
+		ctx,
+		db.dbName,
+		db.DB.QueryRow,
+		sql,
+		optionsAndArgs...)
+}
+
+// SendBatch wraps SendBatch in a span.
+func (db *SpanDB) SendBatch(
+	ctx context.Context,
+	b *pgx.Batch,
+) pgx.BatchResults {
+	sql := ""
+	for i, query := range b.QueuedQueries {
+		sql += fmt.Sprintf("query %d: %s\n", i, query.SQL)
+	}
+
+	span := database.StartSpan(ctx, db.dbName, sql)
+	defer span.Finish()
+
+	return db.DB.SendBatch(ctx, b)
+}
+
+// Begin is not traced.
+func (db *SpanDB) Begin(ctx context.Context) (pgx.Tx, error) {
+	return db.DB.Begin(ctx)
+}
+
+// BeginTx is not traced.
+func (db *SpanDB) BeginTx(
+	ctx context.Context,
+	txOptions pgx.TxOptions,
+) (pgx.Tx, error) {
+	return db.DB.BeginTx(ctx, txOptions)
+}
+
+// Ping is not traced.
+func (db *SpanDB) Ping(ctx context.Context) error {
+	return db.DB.Ping(ctx)
+}

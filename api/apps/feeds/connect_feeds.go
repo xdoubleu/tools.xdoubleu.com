@@ -13,9 +13,9 @@ import (
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/gen/feeds/v1/feedsv1connect"
 	"tools.xdoubleu.com/internal/connecttools"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
+	"tools.xdoubleu.com/internal/kit/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 

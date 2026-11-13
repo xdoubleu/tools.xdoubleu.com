@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 func getSourceStats(

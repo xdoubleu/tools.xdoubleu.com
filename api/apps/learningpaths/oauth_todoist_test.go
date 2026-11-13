@@ -12,7 +12,7 @@ import (
 
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
 	"tools.xdoubleu.com/apps/learningpaths/internal/todoist"
-	"tools.xdoubleu.com/internal/crypto"
+	"tools.xdoubleu.com/internal/kit/crypto"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 

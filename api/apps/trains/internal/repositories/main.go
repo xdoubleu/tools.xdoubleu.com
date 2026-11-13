@@ -1,7 +1,7 @@
 // Package repositories is the trains app's DB access layer.
 package repositories
 
-import "tools.xdoubleu.com/internal/database/postgres"
+import "tools.xdoubleu.com/internal/kit/database/postgres"
 
 type Repositories struct {
 	SavedCommutes *SavedCommutesRepository

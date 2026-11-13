@@ -12,7 +12,7 @@ import (
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
 	"tools.xdoubleu.com/apps/trains/internal/services"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 // fakeDetailFetcher lets JourneyWSService be tested without a database.

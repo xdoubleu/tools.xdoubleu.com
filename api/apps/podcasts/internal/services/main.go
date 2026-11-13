@@ -16,7 +16,7 @@ import (
 	"tools.xdoubleu.com/apps/podcasts/pkg/itunes"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // ErrUpstream is returned when iTunes can't be reached or answers badly.

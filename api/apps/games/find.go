@@ -10,7 +10,7 @@ import (
 
 	"tools.xdoubleu.com/apps/games/internal/models"
 	"tools.xdoubleu.com/internal/consumption"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // FindGame looks a recommended game up in the Steam store, for the taste

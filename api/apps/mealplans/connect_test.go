@@ -16,7 +16,7 @@ import (
 
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
 	"tools.xdoubleu.com/gen/mealplans/v1/mealplansv1connect"
-	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/kit/constants"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 

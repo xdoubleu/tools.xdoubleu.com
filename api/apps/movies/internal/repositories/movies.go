@@ -7,9 +7,9 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"tools.xdoubleu.com/apps/movies/internal/models"
-	"tools.xdoubleu.com/internal/database"
-	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/pagination"
+	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/pagination"
 )
 
 type MoviesRepository struct {

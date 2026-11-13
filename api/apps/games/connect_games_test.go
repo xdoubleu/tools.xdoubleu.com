@@ -16,7 +16,7 @@ import (
 	"tools.xdoubleu.com/apps/games/pkg/steam"
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
 	gamesv1connect "tools.xdoubleu.com/gen/games/v1/gamesv1connect"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 func newGamesTestClient(t *testing.T) gamesv1connect.GamesServiceClient {

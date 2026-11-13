@@ -9,12 +9,12 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	sharedrepositories "tools.xdoubleu.com/internal/repositories"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // TestMCPTools_CreateRecipeIsDraft: recipes_create_recipe persists through the

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 type codeCase struct {

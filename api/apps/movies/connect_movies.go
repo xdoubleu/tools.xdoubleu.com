@@ -12,9 +12,9 @@ import (
 	moviesv1 "tools.xdoubleu.com/gen/movies/v1"
 	"tools.xdoubleu.com/gen/movies/v1/moviesv1connect"
 	"tools.xdoubleu.com/internal/connecttools"
-	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/consumption"
-	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 

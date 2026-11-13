@@ -11,9 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/threading"
 	"tools.xdoubleu.com/internal/repositories"
-	"tools.xdoubleu.com/internal/threading"
 )
 
 // tickInterval is how often the scheduler checks for due jobs; every RunEvery

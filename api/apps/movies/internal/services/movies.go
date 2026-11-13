@@ -13,7 +13,7 @@ import (
 	"tools.xdoubleu.com/apps/movies/internal/models"
 	"tools.xdoubleu.com/apps/movies/pkg/tmdb"
 	"tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // ErrNotConfigured is returned by TMDB-backed calls when no API key is set.

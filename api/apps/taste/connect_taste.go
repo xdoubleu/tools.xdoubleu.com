@@ -10,12 +10,12 @@ import (
 	tastev1 "tools.xdoubleu.com/gen/taste/v1"
 	"tools.xdoubleu.com/gen/taste/v1/tastev1connect"
 	"tools.xdoubleu.com/internal/connecttools"
-	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/consumption"
-	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
+	"tools.xdoubleu.com/internal/kit/pagination"
 	"tools.xdoubleu.com/internal/mcptools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/pagination"
 )
 
 // sharedApp is the only app the family-wide taste reads.

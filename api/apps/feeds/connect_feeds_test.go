@@ -17,8 +17,8 @@ import (
 
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/gen/feeds/v1/feedsv1connect"
-	"tools.xdoubleu.com/internal/pagination"
-	"tools.xdoubleu.com/internal/webfetch"
+	"tools.xdoubleu.com/internal/kit/pagination"
+	"tools.xdoubleu.com/internal/kit/webfetch"
 )
 
 func newFeedsClient(t *testing.T) feedsv1connect.FeedServiceClient {

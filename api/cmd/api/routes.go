@@ -13,7 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/account"
 	"tools.xdoubleu.com/internal/agentaccounts"
 	"tools.xdoubleu.com/internal/communication/httptools"
-	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/middleware"
 	"tools.xdoubleu.com/internal/oauth2as"
 	"tools.xdoubleu.com/internal/obs"

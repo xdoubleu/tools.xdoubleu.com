@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"tools.xdoubleu.com/internal/httpclient"
+	"tools.xdoubleu.com/internal/kit/httpclient"
 )
 
 // StoreURL is the public Steam store.

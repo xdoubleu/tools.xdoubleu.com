@@ -15,7 +15,7 @@ import (
 	"authelia.com/provider/oauth2/handler/pkce"
 	"github.com/jackc/pgx/v5"
 
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 )
 
 // Row lifespans only size expires_at for bookkeeping; fosite enforces the real

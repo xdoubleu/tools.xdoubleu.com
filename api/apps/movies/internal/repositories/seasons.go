@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"tools.xdoubleu.com/apps/movies/internal/models"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // UpsertSeasons makes a series' catalog seasons match seasons, deleting the

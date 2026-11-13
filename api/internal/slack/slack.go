@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"tools.xdoubleu.com/internal/httpclient"
+	"tools.xdoubleu.com/internal/kit/httpclient"
 )
 
 // postTimeout bounds one notification, retries included.

@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/communication/wstools"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 )
 
 func TestTopicEnqueueEventDeliversAndUnsubscribesOnClose(t *testing.T) {

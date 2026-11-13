@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/safedial"
+	"tools.xdoubleu.com/internal/kit/safedial"
 )
 
 // ErrCoverNotFound is returned when no cover is cached for the book.

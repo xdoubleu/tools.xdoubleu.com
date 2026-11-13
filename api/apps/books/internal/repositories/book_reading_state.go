@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/internal/database"
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 )
 
 const readingStateColumns = `user_id, book_id, source, percent, location,

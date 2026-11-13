@@ -10,7 +10,7 @@ import (
 
 	fosite "authelia.com/provider/oauth2"
 
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 )
 
 // ClientMetadata is the accepted subset of RFC 7591 registration fields.

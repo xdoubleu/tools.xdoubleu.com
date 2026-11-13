@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
-	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/pagination"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/pagination"
 )
 
 // ItemsRepository stores ingested feed entries and each feed's seen set.

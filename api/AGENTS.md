@@ -63,7 +63,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - **`httpclient`** — retrying client behind github, sentryapi, hardcover, unicat, steam; `SetBackoffBase` speeds up tests.
 - **`mcptools`** — `RequireAppAccess`, `AddReadTool`/`AddWriteTool`, `Unwrap`/`Result`, `KeepRequestDeadline`/`BoundToolCalls`/`LogSlowRequests` (tool calls keep their deadline, feed `mcp_tool_duration_seconds`).
 - **`testhelper`** — `ConnectTestDB`, `NewTestConfig`, `BuildMux`, `CreateRequestTester`.
-- Job queue: `internal/threading` + `internal/jobqueue`.
+- Job queue: `internal/kit/threading` + `internal/jobqueue`.
 
 ### Apps — non-obvious rules
 

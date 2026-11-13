@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 func TestSetGameFavourite_UnknownGame(t *testing.T) {

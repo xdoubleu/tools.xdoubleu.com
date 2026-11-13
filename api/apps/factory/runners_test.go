@@ -18,8 +18,8 @@ import (
 	factoryv1 "tools.xdoubleu.com/gen/factory/v1"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
 	"tools.xdoubleu.com/internal/auth"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 // fakeStepUp passes or fails the step-up check and remembers what it was given.

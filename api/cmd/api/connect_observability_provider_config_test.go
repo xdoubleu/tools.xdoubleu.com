@@ -12,7 +12,7 @@ import (
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/github"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/models"
 	obs "tools.xdoubleu.com/internal/obs"
 	"tools.xdoubleu.com/internal/sentryapi"

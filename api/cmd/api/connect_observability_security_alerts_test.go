@@ -10,7 +10,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"tools.xdoubleu.com/internal/github"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/models"
 )
 

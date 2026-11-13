@@ -10,9 +10,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/github"
-	essentialogger "tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/database"
+	essentialogger "tools.xdoubleu.com/internal/kit/logging"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/sentryapi"
 )

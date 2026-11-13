@@ -9,13 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	moviesv1 "tools.xdoubleu.com/gen/movies/v1"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	"tools.xdoubleu.com/internal/mcptools"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	sharedrepositories "tools.xdoubleu.com/internal/repositories"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // TestMCPTools: the read tools go through the Connect handlers, scoped to the

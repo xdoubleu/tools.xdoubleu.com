@@ -7,16 +7,16 @@ import (
 	"github.com/stretchr/testify/require"
 
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/logging"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/mcptools"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/notifications"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // TestMCPTools_ListFeedsAndItems exercises both MCP tool wrappers against a

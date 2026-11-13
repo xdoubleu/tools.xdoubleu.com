@@ -15,8 +15,8 @@ import (
 	"tools.xdoubleu.com/apps/games/pkg/steam"
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
 	gamesv1connect "tools.xdoubleu.com/gen/games/v1/gamesv1connect"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // zeroAchievementsSteamClient returns one unachieved achievement, landing the

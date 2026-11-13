@@ -7,8 +7,8 @@ import (
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
 	"tools.xdoubleu.com/gen/mealplans/v1/mealplansv1connect"
-	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/kit/constants"
+	"tools.xdoubleu.com/internal/kit/contexttools"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 

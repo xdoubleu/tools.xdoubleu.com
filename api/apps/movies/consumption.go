@@ -7,7 +7,7 @@ import (
 
 	"tools.xdoubleu.com/apps/movies/internal/models"
 	"tools.xdoubleu.com/internal/consumption"
-	"tools.xdoubleu.com/internal/pagination"
+	"tools.xdoubleu.com/internal/kit/pagination"
 )
 
 // ListConsumption returns userID's watching, watched and dropped titles as

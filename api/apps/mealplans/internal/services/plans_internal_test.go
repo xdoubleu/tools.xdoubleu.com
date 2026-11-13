@@ -13,7 +13,7 @@ import (
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
 	"tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // fakePlansStore implements plansStore in memory for family-scoping tests.

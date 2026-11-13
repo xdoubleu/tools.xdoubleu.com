@@ -15,7 +15,7 @@ import (
 	"golang.org/x/net/html"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
-	"tools.xdoubleu.com/internal/webfetch"
+	"tools.xdoubleu.com/internal/kit/webfetch"
 )
 
 // ErrNoPostsFound is returned when discoverPostLinks finds no plausible post

@@ -20,11 +20,11 @@ import (
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/jobqueue"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/webfetch"
 	"tools.xdoubleu.com/internal/observability"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
-	"tools.xdoubleu.com/internal/webfetch"
 )
 
 //go:embed migrations/*.sql

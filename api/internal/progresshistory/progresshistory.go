@@ -7,7 +7,7 @@ import (
 	"errors"
 	"time"
 
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 )
 
 // DateFormat is the wire format for progress dates.
