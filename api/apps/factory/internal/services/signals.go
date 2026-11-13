@@ -50,19 +50,15 @@ var (
 // admit the work was unchecked. Red-for-30-minutes is the alert rule's `for`.
 func (s *JobService) CollectSignals(ctx context.Context) error {
 	now := s.now()
-	counts, err := s.jobs.FailureCounts(ctx, now.Add(-signalWindow))
+	counts, err := s.jobs.FailureCounts(
+		ctx, now.Add(-signalWindow), now.Add(-unmergeableAfter))
 	if err != nil {
 		return err
 	}
 	factoryRedPRs.Set(float64(counts.RedPullRequests))
+	factoryUnmergeable.Set(float64(counts.StuckPullRequests))
 	factoryJobsNoPR.Set(float64(counts.JobsWithoutPR))
 	factoryJobsUnverified.Set(float64(counts.UnverifiedOutcome))
-
-	stuck, err := s.linked.UnmergeableCount(ctx, now.Add(-unmergeableAfter))
-	if err != nil {
-		return err
-	}
-	factoryUnmergeable.Set(float64(stuck))
 
 	tasks, err := s.tasks.MergedBetween(
 		ctx, now.Add(-deployWindow), now.Add(-undeployedAfter))

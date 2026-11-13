@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -58,20 +57,6 @@ func (r *LinkedPullRequestsRepository) ByTask(
 		out = append(out, p)
 	}
 	return out, rows.Err()
-}
-
-// UnmergeableCount counts the open pull requests that have been armed but unable
-// to merge since before the given time.
-func (r *LinkedPullRequestsRepository) UnmergeableCount(
-	ctx context.Context,
-	before time.Time,
-) (int, error) {
-	var n int
-	err := r.db.QueryRow(ctx, `
-		SELECT count(*) FROM factory.linked_pull_requests
-		WHERE state = 'open' AND mergeable <> '' AND unmergeable_since < $1`,
-		before).Scan(&n)
-	return n, postgres.PgxErrorToHTTPError(err)
 }
 
 // Open lists the pull requests not yet merged or closed, the ones read longest
