@@ -78,10 +78,7 @@ export default function Sidebar({
           )}
         </Button>
       </div>
-      <nav
-        aria-label="Apps"
-        className="flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-4"
-      >
+      <nav aria-label="Apps" className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
         <Link
           href="/"
           aria-current={pathname === '/' ? 'page' : undefined}
@@ -93,14 +90,19 @@ export default function Sidebar({
         {visibleSections(data)
           .filter((s) => s.title !== 'Account')
           .map((section) => (
-            <section key={section.title}>
+            <section
+              key={section.title}
+              className={cn(
+                'transition-[margin] duration-200 motion-reduce:transition-none',
+                collapsed ? 'mt-2' : 'mt-5'
+              )}
+            >
               <SectionHeading
                 level="eyebrow"
                 as="h2"
                 className={cn(
-                  'mb-1 whitespace-nowrap px-2.5',
-                  labelClass,
-                  collapsed && 'opacity-0'
+                  'overflow-hidden whitespace-nowrap px-2.5 transition-[height,margin,opacity] duration-200 motion-reduce:transition-none',
+                  collapsed ? 'mb-0 h-0 opacity-0' : 'mb-1 h-4'
                 )}
               >
                 {section.title}
