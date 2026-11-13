@@ -2,14 +2,9 @@ package runner_test
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
-	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -21,10 +16,11 @@ import (
 	"tools.xdoubleu.com/selfupdate/updatesig"
 )
 
-// imageServer signs and serves a job-image manifest and archive, counting hits.
+const testDigest = "abababababababababababababababababababababababababababababababab"
+
+// imageServer signs and serves a job-image manifest, counting hits.
 type imageServer struct {
 	manifest []byte
-	archive  []byte
 	seedB64  string
 	hits     map[string]int
 	mu       sync.Mutex
@@ -43,9 +39,7 @@ func (s *imageServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		_, _ = io.WriteString(w, sig)
-	case "/downloads/" + runner.JobImageArchive:
-		_, _ = w.Write(s.archive)
+		_, _ = w.Write([]byte(sig))
 	default:
 		http.NotFound(w, r)
 	}
@@ -57,52 +51,43 @@ func (s *imageServer) count(path string) int {
 	return s.hits[path]
 }
 
-// newImageServer returns a server plus the public key matching the seed it signs
-// with, and a manifest for the release holding the archive's real sha256.
-func newImageServer(release string, archive []byte) (*imageServer, string) {
-	sum := sha256.Sum256(archive)
-	return newImageServerManifest(
-		fmt.Sprintf("%s %s\n", release, hex.EncodeToString(sum[:])), archive,
-	)
-}
-
-// newImageServerManifest serves an arbitrary manifest and archive, and returns a
-// public key matching the seed that signs the manifest.
-func newImageServerManifest(manifest string, archive []byte) (*imageServer, string) {
+// newImageServer serves a signed manifest and returns the matching public key.
+func newImageServer(manifest string) (*imageServer, string) {
 	pubB64, seedB64, err := updatesig.GenerateKey()
 	if err != nil {
 		panic(err)
 	}
 	return &imageServer{
 		manifest: []byte(manifest),
-		archive:  archive,
 		hits:     map[string]int{},
 		mu:       sync.Mutex{},
 		seedB64:  seedB64,
 	}, pubB64
 }
 
-// imageAnswerScript scripts `container image inspect` (absent the first
-// absentChecks times, present after) and counts `container image load` calls.
-func imageAnswerScript(absentChecks int, onLoad func()) func(
+// imageAnswerScript scripts `container image inspect`: the local tag is absent
+// the first absentChecks times; the digest ref reports inspectOut. Pull and tag
+// calls are counted.
+func imageAnswerScript(absentChecks int, inspectOut string, pulls, tags *[]string) func(
 	[]string,
 ) (int, string, error) {
-	var inspects, loads int
+	var inspects int
 	return func(argv []string) (int, string, error) {
-		if len(argv) >= 3 && argv[0] == "container" && argv[1] == "image" {
+		if len(argv) >= 4 && argv[0] == "container" && argv[1] == "image" {
 			switch argv[2] {
 			case "inspect":
+				if strings.Contains(argv[3], "@sha256:") {
+					return 0, inspectOut, nil
+				}
 				inspects++
 				if inspects > absentChecks {
 					return 0, "", nil
 				}
 				return 1, "no such image", nil
-			case "load":
-				loads++
-				if onLoad != nil {
-					onLoad()
-				}
-				return 0, "", nil
+			case "pull":
+				*pulls = append(*pulls, argv[3])
+			case "tag":
+				*tags = append(*tags, argv[4])
 			}
 		}
 		return 0, "", nil
@@ -125,105 +110,85 @@ func newImageEnsurer(
 		Image:     "factory-job:abc123",
 		PublicKey: publicKey,
 		Exec:      newExecScript(answer),
-		TempDir:   t.TempDir(),
 	}
 }
 
-func TestEnsureImageArchivePublicUnavailable(t *testing.T) {
-	// Manifest and signature serve, but the archive 404s.
-	archive := []byte("x")
-	srv, pubB64 := newImageServer("abc123", archive)
-	ts := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/downloads/"+runner.JobImageArchive {
-				http.NotFound(w, r)
-				return
-			}
-			srv.ServeHTTP(w, r)
-		}))
-	defer ts.Close()
-
-	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, nil))
-	err := e.Ensure(context.Background())
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "download")
-}
-
-func TestEnsureImageCannotStageTheArchive(t *testing.T) {
-	archive := []byte("x")
-	srv, pubB64 := newImageServer("abc123", archive)
+func TestEnsureImagePullsByDigestAndTags(t *testing.T) {
+	srv, pubB64 := newImageServer("abc123 " + testDigest + "\n")
 	ts := httptest.NewServer(srv)
 	defer ts.Close()
 
-	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, nil))
-	e.TempDir = filepath.Join(t.TempDir(), "does", "not", "exist")
-	err := e.Ensure(context.Background())
-	require.Error(t, err)
+	var pulls, tags []string
+	e := newImageEnsurer(t, ts, pubB64,
+		imageAnswerScript(1, `[{"digest":"sha256:`+testDigest+`"}]`, &pulls, &tags))
+	require.NoError(t, e.Ensure(context.Background()))
+	assert.Equal(t, []string{runner.JobImageRepo + "@sha256:" + testDigest}, pulls)
+	assert.Equal(t, []string{"factory-job:abc123"}, tags)
 }
 
 func TestEnsureImageAlreadyPresent(t *testing.T) {
-	srv, pubB64 := newImageServer("abc123", []byte("archive"))
+	srv, pubB64 := newImageServer("abc123 " + testDigest + "\n")
 	ts := httptest.NewServer(srv)
 	defer ts.Close()
 
-	e := newImageEnsurer(t, ts, pubB64,
-		imageAnswerScript(0, nil))
+	var pulls, tags []string
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(0, "", &pulls, &tags))
 	require.NoError(t, e.Ensure(context.Background()))
 	assert.Zero(t, srv.count("/downloads/"+runner.JobImageManifest),
 		"an already-present image is not fetched")
-}
-
-func TestEnsureImageFetchesAndLoads(t *testing.T) {
-	srv, pubB64 := newImageServer("abc123", []byte("the oci archive"))
-	ts := httptest.NewServer(srv)
-	defer ts.Close()
-
-	var loads int
-	e := newImageEnsurer(t, ts, pubB64,
-		imageAnswerScript(1, func() { loads++ }))
-	require.NoError(t, e.Ensure(context.Background()))
-	assert.Equal(t, 1, loads, "the archive is loaded once")
-	assert.Equal(t, 1, srv.count("/downloads/"+runner.JobImageManifest))
-	assert.Equal(t, 1, srv.count("/downloads/"+runner.JobImageArchive))
+	assert.Empty(t, pulls)
 }
 
 func TestEnsureImageRejectsWrongRelease(t *testing.T) {
-	srv, pubB64 := newImageServer("def456", []byte("x"))
+	srv, pubB64 := newImageServer("def456 " + testDigest + "\n")
 	ts := httptest.NewServer(srv)
 	defer ts.Close()
 
-	e := newImageEnsurer(t, ts, pubB64,
-		imageAnswerScript(1, nil))
+	var pulls, tags []string
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, "", &pulls, &tags))
 	err := e.Ensure(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not release")
+	assert.Empty(t, pulls)
 }
 
 func TestEnsureImageRejectsBadSignature(t *testing.T) {
-	srv, _ := newImageServer("abc123", []byte("x"))
-	// A public key that is not the server's signing key fails verification.
-	_, other, _ := updatesig.GenerateKey() // pubB64, seedB64
+	srv, _ := newImageServer("abc123 " + testDigest + "\n")
+	_, other, _ := updatesig.GenerateKey()
 	ts := httptest.NewServer(srv)
 	defer ts.Close()
-	e := newImageEnsurer(t, ts, other,
-		imageAnswerScript(1, nil))
+	var pulls, tags []string
+	e := newImageEnsurer(t, ts, other, imageAnswerScript(1, "", &pulls, &tags))
 	err := e.Ensure(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "manifest")
+	assert.Empty(t, pulls)
 }
 
-func TestEnsureImageRejectsChecksumMismatch(t *testing.T) {
-	// The manifest promises a sha256 that the served archive does not have.
-	srv, pubB64 := newImageServerManifest(
-		"abc123 "+strings.Repeat("0", 64)+"\n", []byte("the real archive"))
+func TestEnsureImageRejectsBadDigest(t *testing.T) {
+	srv, pubB64 := newImageServer("abc123 nothex\n")
 	ts := httptest.NewServer(srv)
 	defer ts.Close()
 
-	e := newImageEnsurer(t, ts, pubB64,
-		imageAnswerScript(1, nil))
+	var pulls, tags []string
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, "", &pulls, &tags))
 	err := e.Ensure(context.Background())
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "does not match")
+	assert.Contains(t, err.Error(), "bad digest")
+}
+
+func TestEnsureImageRejectsPulledDigestMismatch(t *testing.T) {
+	srv, pubB64 := newImageServer("abc123 " + testDigest + "\n")
+	ts := httptest.NewServer(srv)
+	defer ts.Close()
+
+	var pulls, tags []string
+	e := newImageEnsurer(t, ts, pubB64,
+		imageAnswerScript(1, `[{"digest":"sha256:other"}]`, &pulls, &tags))
+	err := e.Ensure(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not report digest")
+	assert.Empty(t, tags)
 }
 
 func TestEnsureImageRequiresSigningKey(t *testing.T) {
@@ -234,7 +199,6 @@ func TestEnsureImageRequiresSigningKey(t *testing.T) {
 		Image:     "factory-job:abc123",
 		PublicKey: nil,
 		Exec:      newExecScript(nil),
-		TempDir:   "",
 	}
 	err := e.Ensure(context.Background())
 	require.Error(t, err)
@@ -242,11 +206,10 @@ func TestEnsureImageRequiresSigningKey(t *testing.T) {
 }
 
 func TestEnsureImagePresentFails(t *testing.T) {
-	srv, pubB64 := newImageServer("abc123", []byte("x"))
+	srv, pubB64 := newImageServer("abc123 " + testDigest + "\n")
 	ts := httptest.NewServer(srv)
 	defer ts.Close()
 
-	// The container CLI is unusable; Present reports the failure.
 	answer := func([]string) (int, string, error) {
 		return -1, "container: not found", errors.New("container: not found")
 	}
@@ -256,58 +219,44 @@ func TestEnsureImagePresentFails(t *testing.T) {
 	assert.False(t, present)
 }
 
-func TestEnsureImageLoadFails(t *testing.T) {
-	archive := []byte("x")
-	srv, pubB64 := newImageServer("abc123", archive)
+func TestEnsureImagePullFails(t *testing.T) {
+	srv, pubB64 := newImageServer("abc123 " + testDigest + "\n")
 	ts := httptest.NewServer(srv)
 	defer ts.Close()
 
+	var pulls, tags []string
+	base := imageAnswerScript(1, "", &pulls, &tags)
 	answer := func(argv []string) (int, string, error) {
-		if len(argv) >= 3 && argv[0] == "container" && argv[1] == "image" &&
-			argv[2] == "load" {
-			return 1, "load refused", nil
+		if len(argv) >= 3 && argv[2] == "pull" {
+			return 1, "pull refused", nil
 		}
-		return imageAnswerScript(1, nil)(argv)
+		return base(argv)
 	}
 	e := newImageEnsurer(t, ts, pubB64, answer)
 	err := e.Ensure(context.Background())
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "image load failed")
+	assert.Contains(t, err.Error(), "image pull failed")
 }
 
 func TestEnsureImageManifestUnavailable(t *testing.T) {
-	// Nothing is served, so the first download fails with a clear error.
 	ts := httptest.NewServer(http.NotFoundHandler())
 	defer ts.Close()
 	pubB64, _, _ := updatesig.GenerateKey()
-	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, nil))
+	var pulls, tags []string
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, "", &pulls, &tags))
 	err := e.Ensure(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "download")
 }
 
-func TestEnsureImageArchiveChecksumStreamed(t *testing.T) {
-	// A larger archive exercises the whole streaming/checksum path end to end.
-	archive := make([]byte, 1<<20)
-	for i := range archive {
-		archive[i] = byte(i)
-	}
-	srv, pubB64 := newImageServer("abc123", archive)
+func TestEnsureImageErrorsWhenTagNotPresent(t *testing.T) {
+	srv, pubB64 := newImageServer("abc123 " + testDigest + "\n")
 	ts := httptest.NewServer(srv)
 	defer ts.Close()
 
-	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, nil))
-	require.NoError(t, e.Ensure(context.Background()))
-}
-
-func TestEnsureImageErrorsWhenLoadNotPresent(t *testing.T) {
-	srv, pubB64 := newImageServer("abc123", []byte("x"))
-	ts := httptest.NewServer(srv)
-	defer ts.Close()
-
-	// The archive loads but never appears as the expected tag.
+	var pulls, tags []string
 	e := newImageEnsurer(t, ts, pubB64,
-		imageAnswerScript(2, nil))
+		imageAnswerScript(2, "sha256:"+testDigest, &pulls, &tags))
 	err := e.Ensure(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "did not appear")

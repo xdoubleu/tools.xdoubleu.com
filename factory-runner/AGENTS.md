@@ -34,7 +34,7 @@ The server is untrusted: each job needs UUID ids, an allowlisted repo, an `agent
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
-`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature and job image into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key. Shared: `../selfupdate`.
+`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature and job-image manifest into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key. Shared: `../selfupdate`.
 
 `config mode off|claude` (default `off`) picks the harness. Logs: `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
 

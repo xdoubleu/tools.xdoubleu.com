@@ -169,9 +169,10 @@ jobs:
       needs.changes.outputs.workflows == 'true')
     name: Build Factory Runner Workflow
     uses: ./.github/workflows/build-factory-runner.yml
-    # The job-image job publishes its archive as a release asset on main.
+    # The job-image job pushes the image to GHCR on main.
     permissions:
-      contents: write
+      contents: read
+      packages: write
     secrets: inherit
 
   api-lint:

@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -17,34 +16,33 @@ import (
 )
 
 // imageEnsureExec scripts the container CLI the ImageEnsurer drives: inspect
-// reports the image absent then present, load succeeds.
+// reports the image absent then present and echoes the digest for a digest ref.
 type imageEnsureExec struct{ inspects int }
 
 func (e *imageEnsureExec) Exec(
 	_ context.Context,
 	argv []string,
 	_ io.Reader,
-	_ io.Writer,
+	out io.Writer,
 ) (int, error) {
-	if len(argv) >= 3 && argv[0] == "container" && argv[1] == "image" {
-		switch argv[2] {
-		case "inspect":
-			e.inspects++
-			if e.inspects > 1 {
-				return 0, nil
-			}
-			return 1, nil
-		case "load":
+	if len(argv) >= 4 && argv[0] == "container" && argv[1] == "image" &&
+		argv[2] == "inspect" {
+		if strings.Contains(argv[3], "@sha256:") {
+			_, _ = io.WriteString(out, argv[3])
 			return 0, nil
 		}
+		e.inspects++
+		if e.inspects > 1 {
+			return 0, nil
+		}
+		return 1, nil
 	}
 	return 0, nil
 }
 
-// imageEnsureIndex serves the signed manifest, its signature and the archive.
+// imageEnsureIndex serves the signed manifest and its signature.
 type imageEnsureIndex struct {
 	manifest []byte
-	archive  []byte
 	seedB64  string
 }
 
@@ -55,21 +53,18 @@ func (s *imageEnsureIndex) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/downloads/" + runner.JobImageManifest + ".sig":
 		sig, _ := updatesig.Sign(s.seedB64, s.manifest)
 		_, _ = io.WriteString(w, sig)
-	case "/downloads/" + runner.JobImageArchive:
-		_, _ = w.Write(s.archive)
 	default:
 		http.NotFound(w, r)
 	}
 }
 
-func ensureServer(t *testing.T, archive []byte) (*httptest.Server, string, string) {
+func ensureServer(t *testing.T) (*httptest.Server, string, string) {
 	t.Helper()
 	pubB64, seedB64, err := updatesig.GenerateKey()
 	require.NoError(t, err)
-	sum := sha256.Sum256(archive)
-	manifest := []byte(fmt.Sprintf("abc123 %s\n", hex.EncodeToString(sum[:])))
+	manifest := []byte(fmt.Sprintf("abc123 %s\n", strings.Repeat("cd", 32)))
 	ts := httptest.NewServer(&imageEnsureIndex{
-		manifest: manifest, archive: archive, seedB64: seedB64,
+		manifest: manifest, seedB64: seedB64,
 	})
 	return ts, pubB64, seedB64
 }
@@ -95,7 +90,7 @@ func testConfig(server, image string) runner.Config {
 }
 
 func TestEnsureImageFetchesForARelease(t *testing.T) {
-	ts, pubB64, _ := ensureServer(t, []byte("archive"))
+	ts, pubB64, _ := ensureServer(t)
 	defer ts.Close()
 	testEnsureEnv(t)
 	UpdatePublicKey = pubB64
