@@ -122,6 +122,7 @@ func (app *Application) mux() *http.ServeMux {
 		observability.MetricsHandler(app.config.ObservabilityIngestSecret),
 	)
 
+	app.platform.Routes(mux)
 	app.apps.Without(app.disabledApps).Routes(mux)
 	app.disabledApps.Mount(mux)
 
@@ -131,7 +132,7 @@ func (app *Application) mux() *http.ServeMux {
 // middleware is the chain in front of every route.
 func (app *Application) middleware() alice.Chain {
 	allowedOrigins := []string{app.config.WebURL}
-	for _, a := range *app.apps {
+	for _, a := range app.services() {
 		if d := a.GetDomain(); d != "" {
 			allowedOrigins = append(allowedOrigins, "https://"+d)
 		}
@@ -185,7 +186,7 @@ func isLongRequest(r *http.Request) bool {
 
 func (app *Application) domainMiddleware(next http.Handler) http.Handler {
 	domainToApp := make(map[string]App)
-	for _, a := range *app.apps {
+	for _, a := range app.services() {
 		if d := a.GetDomain(); d != "" {
 			domainToApp[d] = a
 		}

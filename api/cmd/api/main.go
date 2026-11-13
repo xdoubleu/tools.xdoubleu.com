@@ -63,6 +63,7 @@ type Application struct {
 	oauth2as                      *oauth2as.Wiring
 	oauthConnect                  *oauth2as.ConnectFlow
 	family                        family.Service
+	platform                      *Platform
 	apps                          *Apps
 	disabledApps                  DisabledApps
 	booksApp                      storageScanRunner
@@ -107,8 +108,9 @@ func (app *Application) accountDeps() *account.Deps {
 // already holds. booksApp is set after construction, so this is a method, not
 // a struct field.
 func (app *Application) obsDeps() *obs.Deps {
-	appNames := make([]string, 0, len(*app.apps))
-	for _, a := range *app.apps {
+	services := app.services()
+	appNames := make([]string, 0, len(services))
+	for _, a := range services {
 		appNames = append(appNames, a.GetName())
 	}
 
@@ -581,7 +583,7 @@ func NewApplication(
 	// One tracing wrapper for every app's queries; migrations keep the raw pool.
 	spanDB := postgres.NewSpanDB(db)
 	var feedsApp *feeds.Feeds
-	app.apps, app.booksApp, feedsApp = NewApps(
+	app.platform, app.apps, app.booksApp, feedsApp = NewApps(
 		ctx, app.auth, logger, config, spanDB, notificationsSvc, appUsersRepo,
 		familyRepo, authSealer,
 	)
@@ -625,6 +627,9 @@ func NewApplication(
 		}
 	}
 
+	if err = app.platform.Start(config.Role); err != nil {
+		panic(err)
+	}
 	if err = app.apps.Without(app.disabledApps).Start(config.Role); err != nil {
 		panic(err)
 	}
@@ -658,6 +663,10 @@ func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
 	}()
 
 	if err = app.applyGlobalMigrations(db); err != nil {
+		return err
+	}
+
+	if err = app.platform.ApplyMigrations(app.ctx, db); err != nil {
 		return err
 	}
 

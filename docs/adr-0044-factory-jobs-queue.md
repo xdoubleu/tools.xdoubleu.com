@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #2706, #2701 (decisions 5, 7, 10, 15)
-- Affects: `api/apps/factory/` (`internal/services/jobs.go`, `connect_jobs.go`,
+- Affects: `api/internal/platform/factory/` (`internal/services/jobs.go`, `connect_jobs.go`,
   migration `00004`), `proto/factory/v1`, `api/cmd/api/routes.go` (`isLongRequest`)
 
 ## Context

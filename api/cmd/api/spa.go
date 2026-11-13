@@ -18,7 +18,7 @@ func (app *Application) Handler() (http.Handler, error) {
 	}
 
 	var customDomains []string
-	for _, a := range *app.apps {
+	for _, a := range app.services() {
 		if d := a.GetDomain(); d != "" {
 			customDomains = append(customDomains, d)
 		}

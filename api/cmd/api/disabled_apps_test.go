@@ -80,3 +80,26 @@ func TestReportDisabledApps(t *testing.T) {
 		t, 1, testutil.ToFloat64(appMigrationFailed.WithLabelValues("books")), 0,
 	)
 }
+
+func TestPlatformMigrationFailureIsFatal(t *testing.T) {
+	ok := Platform{&migrationApp{App: nil, name: "factory", err: nil}}
+	require.NoError(t, ok.ApplyMigrations(context.Background(), nil))
+
+	bad := Platform{&migrationApp{App: nil, name: "factory", err: errors.New("boom")}}
+	require.ErrorContains(
+		t, bad.ApplyMigrations(context.Background(), nil), "factory: boom",
+	)
+}
+
+func TestPlatformRoutesAndServices(t *testing.T) {
+	platform := Platform{&migrationApp{App: nil, name: "factory", err: nil}}
+	mux := http.NewServeMux()
+	platform.Routes(mux)
+
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/factory/x", nil))
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	apps := Apps{&migrationApp{App: nil, name: "books", err: nil}}
+	assert.Len(t, joinServices(platform, apps), 2)
+}

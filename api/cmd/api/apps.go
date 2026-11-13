@@ -13,7 +13,6 @@ import (
 
 	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/dashboard"
-	"tools.xdoubleu.com/apps/factory"
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/games"
 	"tools.xdoubleu.com/apps/learningpaths"
@@ -31,12 +30,17 @@ import (
 	"tools.xdoubleu.com/internal/platform/account"
 	"tools.xdoubleu.com/internal/platform/agentaccounts"
 	"tools.xdoubleu.com/internal/platform/auth"
+	"tools.xdoubleu.com/internal/platform/factory"
 	"tools.xdoubleu.com/internal/platform/family"
 	"tools.xdoubleu.com/internal/platform/githubapp"
 	"tools.xdoubleu.com/internal/platform/notifications"
 )
 
 type Apps []App
+
+// Platform holds the services every deployment needs, such as the factory
+// board. They sit outside Apps: their migrations run first and stay fatal.
+type Platform []App
 
 type App interface {
 	Routes(prefix string, mux *http.ServeMux)
@@ -71,7 +75,8 @@ func NewApps(
 	appUsersRepo *account.AppUsersRepository,
 	familyRepo *family.Repository,
 	authSealer *crypto.Sealer,
-) (*Apps, *books.Books, *feeds.Feeds) {
+) (*Platform, *Apps, *books.Books, *feeds.Feeds) {
+	var platform Platform = []App{}
 	var apps Apps = []App{}
 
 	// Migrations run in registration order. books adopts tables from the backlog
@@ -108,7 +113,8 @@ func NewApps(
 	podcastsApp := podcasts.New(ctx, authService, logger, cfg, db)
 	apps.addApp(podcastsApp)
 
-	// factory has no schema dependencies and imports no other app.
+	// factory is platform: no schema dependencies, and it imports no app
+	// (depguard).
 	var factoryOpts []factory.Option
 	if stepUp, ok := authService.(factory.StepUp); ok {
 		factoryOpts = append(factoryOpts, factory.WithStepUp(stepUp))
@@ -122,7 +128,7 @@ func NewApps(
 		factory.WithGitHubWebhookSecret(cfg.FactoryGitHubWebhookSecret),
 		factory.WithSlack(cfg.FactorySlackWebhookURL, cfg.WebURL))
 	factoryApp := factory.New(ctx, authService, logger, cfg, db, factoryOpts...)
-	apps.addApp(factoryApp)
+	platform = append(platform, factoryApp)
 
 	// dashboard has no migrations and summarises the apps above on its Today
 	// page, so it follows them.
@@ -157,7 +163,7 @@ func NewApps(
 		booksApp, feedsApp, gamesApp, moviesApp, podcastsApp,
 	))
 
-	return &apps, booksApp, feedsApp
+	return &platform, &apps, booksApp, feedsApp
 }
 
 // Start runs each app's jobs for the role: every app's Start for web, only
@@ -285,4 +291,38 @@ func factoryGitHubOptions(cfg config.Config, logger *slog.Logger) []factory.Opti
 		logger.Warn("factory GitHub App is not usable; jobs will not push", "error", err)
 	}
 	return nil
+}
+
+// Start runs the platform services' jobs for the role.
+func (p *Platform) Start(role string) error { return (*Apps)(p).Start(role) }
+
+// Shutdown drains every platform service in turn.
+func (p *Platform) Shutdown(ctx context.Context) error {
+	return (*Apps)(p).Shutdown(ctx)
+}
+
+// ApplyMigrations migrates the platform services; any failure is fatal.
+func (p *Platform) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
+	for _, svc := range *p {
+		if err := svc.ApplyMigrations(ctx, db); err != nil {
+			return fmt.Errorf("%s: %w", svc.GetName(), err)
+		}
+	}
+	return nil
+}
+
+func (p *Platform) Routes(mux *http.ServeMux) {
+	(*Apps)(p).Routes(mux)
+}
+
+// services is every platform service followed by every app.
+func (app *Application) services() []App {
+	return joinServices(*app.platform, *app.apps)
+}
+
+func joinServices(platform Platform, apps Apps) []App {
+	all := make([]App, 0, len(platform)+len(apps))
+	all = append(all, platform...)
+
+	return append(all, apps...)
 }
