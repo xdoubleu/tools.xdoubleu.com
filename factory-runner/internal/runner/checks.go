@@ -19,7 +19,7 @@ func checksFailure(outcome string) error {
 	}
 	var bad []string
 	n := 0
-	for part := range strings.FieldsFuncSeq(line, func(r rune) bool {
+	for part := range strings.FieldsFuncSeq(dropNotes(line), func(r rune) bool {
 		return r == ',' || r == ';'
 	}) {
 		name, status, found := strings.Cut(strings.TrimSpace(part), "=")
@@ -44,6 +44,24 @@ func checksFailure(outcome string) error {
 			errChecks, strings.Join(bad, ", "))
 	}
 	return nil
+}
+
+// dropNotes removes parenthesized notes, such as "test=fail (web not run; see
+// above)", whose separators would otherwise split a gate.
+func dropNotes(line string) string {
+	var b strings.Builder
+	depth := 0
+	for _, r := range line {
+		switch {
+		case r == '(':
+			depth++
+		case r == ')' && depth > 0:
+			depth--
+		case depth == 0:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // findLine returns the text after the last line starting with prefix.

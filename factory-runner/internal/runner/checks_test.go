@@ -14,6 +14,8 @@ func TestChecksFailure(t *testing.T) {
 		"Checks: lint=pass, test=not run":                    "test not run",
 		"Checks: lint=PASS, test=maybe":                      "test not run",
 		"Title\nno gates":                                    "no `Checks:` line",
+		"Checks: lint=pass (go), test=pass (a, b; c)":        "",
+		"Checks: lint=pass (go; web not run), test=fail (x)": "test fail",
 		"Checks: lint pass":                                  "malformed",
 		"Checks:   ":                                         "lists no gate",
 	}
