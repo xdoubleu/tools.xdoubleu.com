@@ -113,9 +113,7 @@ func (app *Application) mux() *http.ServeMux {
 	mux.Handle("GET "+metricsPath, metricsHandler(app.config.ObservabilityIngestSecret))
 
 	app.apps.Without(app.disabledApps).Routes(mux)
-	for name := range app.disabledApps {
-		mux.Handle("/"+name+"/", disabledAppHandler(name))
-	}
+	app.disabledApps.Mount(mux)
 
 	return mux
 }

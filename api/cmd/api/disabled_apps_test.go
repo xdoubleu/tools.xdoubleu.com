@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,9 +46,7 @@ func TestApplyMigrationsDisablesFailedAppAndDependents(t *testing.T) {
 
 	mux := http.NewServeMux()
 	apps.Without(disabled).Routes(mux)
-	for name := range disabled {
-		mux.Handle("/"+name+"/", disabledAppHandler(name))
-	}
+	disabled.Mount(mux)
 
 	for path, want := range map[string]int{
 		"/books/x":  http.StatusServiceUnavailable,
@@ -65,4 +65,18 @@ func TestHealthBodyDegraded(t *testing.T) {
 	body := healthBody(DisabledApps{"books": errors.New("boom")})
 	assert.Equal(t, "degraded", body["status"])
 	assert.Equal(t, []string{"books"}, body["disabled_apps"])
+}
+
+func TestReportDisabledApps(t *testing.T) {
+	apps := Apps{&migrationApp{App: nil, name: "books", err: nil}}
+
+	reportDisabledApps(
+		slog.New(slog.DiscardHandler),
+		apps,
+		DisabledApps{"books": errors.New("boom")},
+	)
+
+	assert.InDelta(
+		t, 1, testutil.ToFloat64(appMigrationFailed.WithLabelValues("books")), 0,
+	)
 }
