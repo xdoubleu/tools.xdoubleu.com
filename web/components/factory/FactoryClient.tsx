@@ -14,8 +14,10 @@ import {
   groupByStatus,
   isEpicLabel,
   isProductLabel,
+  isTypeLabel,
   limitNotice,
   PRODUCT_LABELS,
+  TYPE_LABELS,
   repoLabel,
   reposOf,
   runnersOf,
@@ -110,7 +112,7 @@ export default function FactoryClient() {
   const filtered = data ? filterByLabels(filterByRepo(data.tasks, repoFilter), labelFilter) : []
   const lower = (l: string) => l.trim().toLowerCase()
   const picked = (inGroup: (l: string) => boolean) => labelFilter.find(inGroup) ?? ''
-  const isOther = (l: string) => !isProductLabel(l) && !isEpicLabel(l)
+  const isOther = (l: string) => !isProductLabel(l) && !isEpicLabel(l) && !isTypeLabel(l)
   const allTasks = data?.tasks ?? []
   const allLabels = distinctLabels(allTasks)
   // An epic drops out of the select unless Done is shown once every task in it is
@@ -221,6 +223,21 @@ export default function FactoryClient() {
           {PRODUCT_LABELS.map((p) => (
             <option key={p} value={p}>
               {p} ({countWith(isProductLabel, p)})
+            </option>
+          ))}
+        </Select>
+        <Select
+          aria-label="Type"
+          value={picked(isTypeLabel)}
+          onChange={(e) =>
+            applyFilter(repoFilter, withGroupLabel(labelFilter, isTypeLabel, e.target.value))
+          }
+          className="w-full sm:w-auto"
+        >
+          <option value="">All types</option>
+          {TYPE_LABELS.map((t) => (
+            <option key={t} value={t}>
+              {t} ({countWith(isTypeLabel, t)})
             </option>
           ))}
         </Select>
