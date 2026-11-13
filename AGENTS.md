@@ -57,7 +57,7 @@ make build | dist | test | lint/fix
 make build | test | lint/fix
 
 # repo root
-make lint/docs | lint/skills | lint/workflows | lint/infra | lint/grafana | grafana/verify | hooks/test | routines/test | lint/deploy-version | lint/agent-headers
+make lint/docs | lint/skills | lint/workflows | lint/infra | lint/grafana | grafana/verify | hooks/test | routines/test | lint/deploy-version
 
 # proto changes: run BOTH generators (…/local variants avoid buf.build)
 cd api && make proto/generate    # check: make proto/check
