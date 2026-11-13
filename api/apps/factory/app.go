@@ -164,6 +164,7 @@ func (a *Factory) Start() error {
 		a.jobQueue.AddJob(a.pruneJob(), noop),
 		a.jobQueue.AddJob(a.pollJob(), noop),
 		a.jobQueue.AddJob(a.checkRunnerJob(), noop),
+		a.jobQueue.AddJob(a.signalsJob(), noop),
 	)
 }
 
@@ -177,7 +178,17 @@ func (a *Factory) checkRunnerJob() threading.Job {
 	return observability.NewTrackedJob(check, a.db)
 }
 
-// CheckRunnerNow looks for a job waiting on an offline runner once, outside the
+func (a *Factory) signalsJob() threading.Job {
+	collect := jobs.NewCollectSignalsJob(a.services.Jobs)
+	return observability.NewTrackedJob(collect, a.db)
+}
+
+// CollectSignalsNow refreshes the failure gauges once, outside the schedule.
+func (a *Factory) CollectSignalsNow(ctx context.Context) error {
+	return a.signalsJob().Run(ctx, a.Logger)
+}
+
+// CheckRunnerNowlooks for a job waiting on an offline runner once, outside the
 // schedule.
 func (a *Factory) CheckRunnerNow(ctx context.Context) error {
 	return a.checkRunnerJob().Run(ctx, a.Logger)

@@ -41,7 +41,10 @@ those and the related MCP tools.
   `github_open_security_alerts{severity}`, `github_security_alerts_fetch_ok`,
   `github_workflow_run_duration_seconds{workflow}`, `sentry_unresolved_issues`, `sentry_unresolved_issues_fetch_ok`,
   `r2_orphaned_objects`, `r2_storage_bytes`, `postgres_schema_size_bytes{schema}`,
-  and `automated_action_seconds_since_last_open{routine}`.
+  and `automated_action_seconds_since_last_open{routine}`. The factory app's
+  `factory-collect-signals` job exports `factory_pull_requests_red`,
+  `factory_merged_tasks_undeployed`, `factory_jobs_finished_without_pr` and
+  `factory_jobs_unverified_outcome`, behind the `Factory*` rules.
 - **Alerting is Grafana-managed** (`infra/grafana/provisioning/alerting/`):
   host rules (CPU/memory 80%/85% for 15m, disk 85% instant), p95 rules
   (`RequestP95High`/`JobP95High`/`FrontendP95High`), the `service-health` group
