@@ -243,6 +243,22 @@ func secureServer(raw string) bool {
 	return false
 }
 
+// MigrateMode turns on a paired Mac whose config predates the mode setting. An
+// existing config with no mode was never asked, and reading it as off would stop a
+// working runner after a self-update; an explicit off is kept. It reports whether it
+// changed the file. Call it only once the Mac is paired.
+func MigrateMode(path string) (bool, error) {
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	cfg, err := LoadConfig(path)
+	if err != nil || cfg.Mode != "" {
+		return false, err
+	}
+	cfg.Mode = ModeClaude
+	return true, cfg.Save(path)
+}
+
 // EffectiveMode is ModeClaude or ModeOff; anything unset or unknown is off.
 func (c Config) EffectiveMode() string {
 	if c.Mode == ModeClaude {

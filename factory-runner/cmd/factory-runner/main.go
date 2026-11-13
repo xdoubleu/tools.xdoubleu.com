@@ -167,11 +167,14 @@ func (a *app) runDaemon(ctx context.Context) error {
 	if a.migrateLegacyInstall(ctx) {
 		return nil
 	}
-	cfg, _, err := a.loadConfig()
+	token, err := a.store.Get()
 	if err != nil {
 		return err
 	}
-	token, err := a.store.Get()
+	if _, err = runner.MigrateMode(runner.ConfigPath(a.home)); err != nil {
+		return err
+	}
+	cfg, _, err := a.loadConfig()
 	if err != nil {
 		return err
 	}
