@@ -108,7 +108,7 @@ describe('Sidebar', () => {
     )
     const feeds = screen.getByRole('link', { name: 'Feeds' })
     expect(feeds).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByText('Feeds')).toHaveClass('sr-only')
+    expect(screen.getByText('Feeds')).toHaveClass('opacity-0')
     expect(screen.getByRole('complementary')).toHaveClass('w-16')
     // The page gutter would leave the 64px rail too narrow for its icons; only a notch pads it.
     expect(screen.getByRole('complementary')).toHaveClass('pl-[env(safe-area-inset-left)]')
