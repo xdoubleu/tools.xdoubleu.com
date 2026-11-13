@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Validate SKILL.md frontmatter in .claude/skills, .agents/skills and
 # .opencode/skills: must parse as YAML with `name` and a non-empty
-# `description`, or harnesses silently drop the skill.
+# `description`, or harnesses silently drop the skill. Ruby's stdlib Psych is
+# used because it ships with Ruby on macOS and the CI runners, where python3
+# doesn't always have PyYAML.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -12,25 +14,33 @@ for dir in "$repo_root/.claude/skills" "$repo_root/.agents/skills" "$repo_root/.
 	[ -d "$dir" ] || continue
 	while IFS= read -r file; do
 		checked=$((checked + 1))
-		if ! error=$(python3 -c "
-import sys, yaml
-
-path = sys.argv[1]
-text = open(path, encoding='utf-8').read()
-parts = text.split('---', 2)
-if len(parts) < 3 or parts[0].strip():
-    sys.exit('missing YAML frontmatter (file must start with a --- fence)')
-try:
-    fm = yaml.safe_load(parts[1])
-except yaml.YAMLError as e:
-    sys.exit(f'frontmatter is not valid YAML: {e}')
-if not isinstance(fm, dict):
-    sys.exit('frontmatter is not a YAML mapping')
-if not fm.get('name'):
-    sys.exit('frontmatter has no non-empty name')
-if not fm.get('description'):
-    sys.exit('frontmatter has no non-empty description (skill would never be advertised)')
-" "$file" 2>&1); then
+		if ! error=$(ruby -ryaml -e '
+path = ARGV[0]
+text = File.read(path, encoding: "UTF-8")
+parts = text.split("---", 3)
+if parts.length < 3 or not parts[0].strip.empty?
+  warn "missing YAML frontmatter (file must start with a --- fence)"
+  exit 1
+end
+begin
+  fm = YAML.safe_load(parts[1])
+rescue Psych::SyntaxError => e
+  warn "frontmatter is not valid YAML: #{e.message}"
+  exit 1
+end
+unless fm.is_a?(Hash)
+  warn "frontmatter is not a YAML mapping"
+  exit 1
+end
+if fm["name"].to_s.empty?
+  warn "frontmatter has no non-empty name"
+  exit 1
+end
+if fm["description"].to_s.empty?
+  warn "frontmatter has no non-empty description (skill would never be advertised)"
+  exit 1
+end
+' "$file" 2>&1); then
 			echo "invalid skill: ${file#"$repo_root"/}" >&2
 			echo "  $error" >&2
 			status=1
