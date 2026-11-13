@@ -74,6 +74,8 @@ type fakeAPI struct {
 	// finished answers ListFinishedTasks with the asked ids it contains (or an
 	// error); asked records each call's ids.
 	finished    []string
+	comments    []string
+	sleeps      []time.Duration
 	finishedErr error
 	asked       [][]string
 }
@@ -95,7 +97,8 @@ func newFakeAPI(jobs ...*runner.ClaimedJob) *fakeAPI {
 		completed: nil, completes: make(chan struct{}, 10),
 		events: nil, appendErr: nil, batches: 0,
 		pushToken: "", pushErr: nil, tokenAsks: 0, pushHook: nil,
-		finished: nil, finishedErr: nil, asked: nil,
+		finished: nil, finishedErr: nil, asked: nil, comments: nil,
+		sleeps: nil,
 	}
 }
 
@@ -170,6 +173,31 @@ func (f *fakeAPI) ListFinishedTasks(
 	defer f.mu.Unlock()
 	f.asked = append(f.asked, append([]string(nil), ids...))
 	return f.finished, f.finishedErr
+}
+
+func (f *fakeAPI) AddJobComment(_ context.Context, _, _, body string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.comments = append(f.comments, body)
+	return nil
+}
+
+func (f *fakeAPI) slept(d time.Duration) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.sleeps = append(f.sleeps, d)
+}
+
+func (f *fakeAPI) waits() []time.Duration {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]time.Duration(nil), f.sleeps...)
+}
+
+func (f *fakeAPI) noted() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]string(nil), f.comments...)
 }
 
 func (f *fakeAPI) CompleteJob(
@@ -278,6 +306,16 @@ func newEnv(
 			Proxy: nil, Activity: nil, DataDir: dir, Secrets: nil,
 			GitHub: nil, ServerURL: "", PublishRetry: 0,
 			CheckInEvery: 10 * time.Millisecond, Minute: time.Second, EventsEvery: 0,
+			PollEvery: time.Millisecond, MaxWatch: 5 * time.Second,
+			// Waits are recorded, not slept, so a test never idles for an hour.
+			Sleep: func(ctx context.Context, d time.Duration) {
+				api.slept(d)
+				select {
+				case <-ctx.Done():
+				case <-time.After(time.Millisecond):
+				}
+			},
+			Now: nil,
 			Log: slog.New(slog.NewTextHandler(io.Discard, nil)),
 		},
 	}

@@ -32,6 +32,42 @@ type fakeGitHub struct {
 	err    error
 	// failFirst makes the first calls fail with err, then succeed.
 	failFirst int
+	// statuses answer PullRequestStatus in turn, the last one repeating; none
+	// means the pull request is merged at once.
+	statuses []runner.PullStatus
+	reads    int
+	// head fills in the HeadSHA of a status that has none; onRead runs on each read.
+	head       func() string
+	onRead     func()
+	statusErrs int
+}
+
+func (f *fakeGitHub) PullRequestStatus(
+	context.Context, string, runner.PullRef,
+) (runner.PullStatus, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.reads++
+	if f.onRead != nil {
+		f.onRead()
+	}
+	if f.statusErrs > 0 {
+		f.statusErrs--
+		return runner.PullStatus{}, errors.New("status 502")
+	}
+	if len(f.statuses) == 0 {
+		return runner.PullStatus{
+			State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil,
+		}, nil
+	}
+	st := f.statuses[0]
+	if len(f.statuses) > 1 {
+		f.statuses = f.statuses[1:]
+	}
+	if st.HeadSHA == "" && f.head != nil {
+		st.HeadSHA = f.head()
+	}
+	return st, nil
 }
 
 func (f *fakeGitHub) OpenPullRequest(
@@ -70,6 +106,7 @@ func newPublishing(
 		jobEnv: env, logs: &bytes.Buffer{}, mu: sync.Mutex{}, args: nil, envs: nil,
 		gh: &fakeGitHub{
 			mu: sync.Mutex{}, opened: nil, tokens: nil, err: nil, failFirst: 0,
+			statuses: nil, reads: 0, head: nil, onRead: nil, statusErrs: 0,
 			url: "https://github.com/xdoubleu/tools.xdoubleu.com/pull/7",
 		},
 	}
@@ -548,6 +585,7 @@ func TestAJobIsPushedByTheRealGitToo(t *testing.T) {
 	env := newEnv(t, writes("Real push"+allPass, 0), newJob())
 	gh := &fakeGitHub{
 		mu: sync.Mutex{}, opened: nil, tokens: nil, err: nil, failFirst: 0,
+		statuses: nil, reads: 0, head: nil, onRead: nil, statusErrs: 0,
 		url: "https://github.com/xdoubleu/tools.xdoubleu.com/pull/8",
 	}
 	env.api.pushToken = pushToken
@@ -613,15 +651,16 @@ func TestATransientTokenFailureIsRetriedButAFinalOneIsNot(t *testing.T) {
 	}
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
-	assert.Equal(t, 3, calls)
+	assert.GreaterOrEqual(t, calls, 3)
 	assert.NotEmpty(t, p.api.done()[0].prURL)
 
-	// Always unavailable: three tries, then the work stays on the Mac.
+	// Always unavailable: three tries on each of two attempts (the second fails
+	// the same way with no new commit), then the work stays on the Mac.
 	p = newPublishing(t, writes("Did it."+allPass, 0))
 	p.api.pushErr, p.api.pushToken = &runner.Error{Code: "unavailable", Message: "x"}, ""
 	_, err = p.runner.Next(context.Background())
 	require.NoError(t, err)
-	assert.Equal(t, 3, p.api.tokenAsks)
+	assert.Equal(t, 6, p.api.tokenAsks)
 	assert.Contains(t, p.api.done()[0].outcome, "could not get a push token")
 
 	// Not set up is final: asked once.
@@ -734,6 +773,7 @@ func TestAHostileGlobalGitConfigDoesNotRedirectThePush(t *testing.T) {
 	env.api.pushToken = pushToken
 	env.runner.GitHub = &fakeGitHub{
 		mu: sync.Mutex{}, opened: nil, tokens: nil, err: nil, failFirst: 0,
+		statuses: nil, reads: 0, head: nil, onRead: nil, statusErrs: 0,
 		url: "https://github.com/xdoubleu/tools.xdoubleu.com/pull/8",
 	}
 

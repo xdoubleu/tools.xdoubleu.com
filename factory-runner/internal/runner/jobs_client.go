@@ -50,6 +50,8 @@ type JobAPI interface {
 		token string,
 		taskIDs []string,
 	) ([]string, error)
+	// AddJobComment adds a progress note to the job's task.
+	AddJobComment(ctx context.Context, token, jobID, body string) error
 	CompleteJob(ctx context.Context, token, jobID string, end JobEnd) error
 }
 
@@ -174,6 +176,20 @@ func (c *Client) AppendJobEvents(
 ) error {
 	return c.call(ctx, "AppendJobEvents", token, pairTimeout,
 		appendJobEventsRequest{JobID: jobID, Lines: lines}, &struct{}{})
+}
+
+type addJobCommentRequest struct {
+	JobID string `json:"jobId"`
+	Body  string `json:"body"`
+}
+
+// AddJobComment implements JobAPI.
+func (c *Client) AddJobComment(
+	ctx context.Context,
+	token, jobID, body string,
+) error {
+	return c.call(ctx, "AddJobComment", token, pairTimeout,
+		addJobCommentRequest{JobID: jobID, Body: body}, &struct{}{})
 }
 
 // CompleteJob implements JobAPI.

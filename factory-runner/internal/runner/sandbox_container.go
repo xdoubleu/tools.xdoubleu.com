@@ -174,17 +174,44 @@ func (s *ContainerSandbox) Check(ctx context.Context) error {
 
 // Run implements Sandbox.
 func (s *ContainerSandbox) Run(ctx context.Context, spec SandboxSpec) (int, error) {
-	if err := checkSpec(spec); err != nil {
+	session, err := s.Open(ctx, spec)
+	if err != nil {
 		return -1, err
+	}
+	defer session.Close()
+	return session.Exec(ctx, spec.Command, spec.Stdin, spec.Log)
+}
+
+// vmSession is a running job VM with its network, proxy and env file.
+type vmSession struct {
+	s       *ContainerSandbox
+	name    string
+	envFile string
+	spec    SandboxSpec
+	// cleanups run in reverse on Close.
+	cleanups []func()
+	ran      bool
+}
+
+// Open implements SessionSandbox: it starts the VM, its network and egress
+// proxy, and leaves the command to Exec.
+func (s *ContainerSandbox) Open(
+	ctx context.Context,
+	spec SandboxSpec,
+) (SandboxSession, error) {
+	if err := checkSpec(spec); err != nil {
+		return nil, err
 	}
 	name := "factory-job-" + shortID(spec.Env["FACTORY_JOB"])
 	// A crashed runner may have left these behind.
 	s.cleanup(name)
-	defer s.cleanup(name)
+	v := &vmSession{s: s, name: name, envFile: "", spec: spec, cleanups: nil, ran: false}
+	v.cleanups = append(v.cleanups, func() { s.cleanup(name) })
 
 	subnet, err := s.provision(ctx, name, spec)
 	if err != nil {
-		return -1, err
+		v.Close()
+		return nil, err
 	}
 	gateway := gatewayOf(subnet)
 
@@ -192,20 +219,45 @@ func (s *ContainerSandbox) Run(ctx context.Context, spec SandboxSpec) (int, erro
 	if proxy := cmp.Or(spec.Proxy, s.Proxy); proxy != nil {
 		stop, addr, listenErr := proxy.Listen(gateway, s.ProxyPort)
 		if listenErr != nil {
-			return -1, fmt.Errorf("starting the egress proxy: %w", listenErr)
+			v.Close()
+			return nil, fmt.Errorf("starting the egress proxy: %w", listenErr)
 		}
-		defer stop()
+		v.cleanups = append(v.cleanups, stop)
 		proxyURL = "http://" + addr
 	}
 
-	envFile, err := s.writeEnvFile(spec.Env, gateway, proxyURL)
+	v.envFile, err = s.writeEnvFile(spec.Env, gateway, proxyURL)
 	if err != nil {
-		return -1, err
+		v.Close()
+		return nil, err
 	}
-	defer os.Remove(envFile)
+	v.cleanups = append(v.cleanups, func() { _ = os.Remove(v.envFile) })
+	return v, nil
+}
 
-	argv := execArgv(name, envFile, s.npmCacheSource(), spec)
-	return s.Exec.Exec(ctx, argv, strings.NewReader(spec.Stdin), spec.Log)
+// Exec implements SandboxSession. Setup runs once, in the first Exec.
+func (v *vmSession) Exec(
+	ctx context.Context,
+	command []string,
+	stdin string,
+	log io.Writer,
+) (int, error) {
+	spec := v.spec
+	spec.Command, spec.Stdin, spec.Log = command, stdin, log
+	if v.ran {
+		spec.SetupCommands = ""
+	}
+	v.ran = true
+	argv := execArgv(v.name, v.envFile, v.s.npmCacheSource(), spec)
+	return v.s.Exec.Exec(ctx, argv, strings.NewReader(stdin), log)
+}
+
+// Close implements SandboxSession.
+func (v *vmSession) Close() {
+	for i := len(v.cleanups) - 1; i >= 0; i-- {
+		v.cleanups[i]()
+	}
+	v.cleanups = nil
 }
 
 // checkSpec refuses a spec the VM's command line or env file could not carry

@@ -61,13 +61,21 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`run the repository's lint, test and documentation-budget gates (see its ` +
 	`AGENTS.md). End the outcome with one line listing each gate, for example ` +
 	`"Checks: lint=pass, test=pass, docs=pass"; a gate is pass, fail or ` +
-	`not run. No pull request is opened unless every gate passed. If the ` +
-	`sandbox stops you doing or checking the work (a missing module cache, ` +
-	`blocked network, absent tool), search the board with factory_list_tasks ` +
-	`for the label factory-sandbox and add a comment with factory_comment_task ` +
-	`to an open task about the same problem, otherwise file one with ` +
-	`factory_create_task titled "Sandbox: <short problem>". Then carry on as ` +
-	`far as you can, and add one line "Blocked: <the problem>" to the outcome. ` +
+	`not run. No pull request is opened unless every gate passed or was not ` +
+	`run because CI checks it. Code the sandbox cannot build or test, such as ` +
+	`darwin or cgo code, is not a blocker: CI's macOS jobs check it, so mark ` +
+	`that gate "not run (CI checks it)", for example "build-mac=not run (CI ` +
+	`checks it)". Your work continues until its pull request merges: the ` +
+	`runner opens the pull request, and when a gate, the push or CI fails it ` +
+	`resumes this session with what failed. Fix it, commit, and write the ` +
+	`outcome again. A line "Blocked:" in the outcome stops that loop for good, ` +
+	`so use it only for a problem outside your reach: if the sandbox stops ` +
+	`you doing or checking the work (a missing module cache, blocked network, ` +
+	`absent tool), search the board with factory_list_tasks for the label ` +
+	`factory-sandbox and add a comment with factory_comment_task to an open ` +
+	`task about the same problem, otherwise file one with factory_create_task ` +
+	`titled "Sandbox: <short problem>". Then carry on as far as you can, and ` +
+	`add one line "Blocked: <the problem>" to the outcome. ` +
 	`Nobody can answer questions while you run.`
 
 // JobRunner claims jobs from the server and runs each one in a sandbox.
@@ -112,7 +120,16 @@ type JobRunner struct {
 	Minute       time.Duration
 	// EventsEvery is how often the job's log is forwarded; zero means EventsEvery.
 	EventsEvery time.Duration
-	Log         *slog.Logger
+	// PollEvery is how often a job's open pull request is read, and MaxWatch how
+	// long it may stay unmerged before the job gives up; zero means PollEvery
+	// (a minute) and MaxWatch (six hours).
+	PollEvery time.Duration
+	MaxWatch  time.Duration
+	// Sleep and Now are the clock a job's waits use; nil means sleepCtx and
+	// time.Now. Tests replace them.
+	Sleep func(context.Context, time.Duration)
+	Now   func() time.Time
+	Log   *slog.Logger
 }
 
 // failed is a result for a job that never reached the agent.
@@ -120,6 +137,7 @@ func failed(outcome string) result {
 	return result{
 		succeeded: false, outcome: outcome, session: "", prURL: "",
 		limited: false, resetsAt: time.Time{}, blocked: "",
+		failure: "", retry: false, head: "",
 	}
 }
 
@@ -148,6 +166,12 @@ type result struct {
 	resetsAt time.Time
 	// blocked is what stopped the agent in the sandbox, for the board.
 	blocked string
+	// failure is why a finished attempt did not publish, for the agent's next
+	// attempt; retry says another attempt may fix it. head is the branch tip the
+	// host reviewed, "" when it never got that far.
+	failure string
+	retry   bool
+	head    string
 }
 
 // Next claims one job and runs it to the end, reporting whether there was one.
@@ -304,7 +328,9 @@ func (r *JobRunner) limitFor(job *ClaimedJob) time.Duration {
 	return time.Duration(min(job.TimeLimitMinutes, maxTimeLimitMinutes)) * r.minute()
 }
 
-//nolint:funlen // one pipeline: clone, run, then name how it ended
+// execute runs one job to its end: its attempts and then its pull request, in one
+// VM (jobLoop.run). It touches nothing shared but the runner's configuration, so
+// several can run side by side.
 func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	if err := r.check(job); err != nil {
 		return failed("Refused by the runner: " + err.Error())
@@ -314,14 +340,12 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	if err != nil {
 		return failed("Could not " + err.Error())
 	}
-	cloneDir, outcomeDir, sessionDir := dirs.clone, dirs.outcome, dirs.session
 	launch, err := r.launchOf(job)
 	if err != nil {
 		return failed("Could not " + err.Error())
 	}
 
-	limit := r.limitFor(job)
-	runCtx, cancel := context.WithTimeout(ctx, limit)
+	jobCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	tap := &sessionTap{
@@ -334,60 +358,18 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 	secrets := append(r.secrets(), launch.secrets...)
 	events := newEventTap(secrets)
 	var stopped atomic.Bool
-	wait := r.watch(runCtx, cancel, job.ID, tap, events, &stopped)
+	wait := r.watch(jobCtx, cancel, job.ID, tap, events, &stopped)
 
-	exit, runErr := r.Sandbox.Run(runCtx, SandboxSpec{
-		CloneDir:      cloneDir,
-		OutcomeDir:    outcomeDir,
-		SessionDir:    sessionDir,
-		Env:           launch.env,
-		SetupCommands: job.SetupCommands,
-		Command:       launch.command,
-		Proxy:         launch.proxy,
-		Stdin:         fmt.Sprintf(preamble, job.Branch) + "\n\n" + job.Prompt,
-		Log:           io.MultiWriter(tap, events),
-	})
-	timedOut := errors.Is(runCtx.Err(), context.DeadlineExceeded)
+	loop := &jobLoop{
+		r: r, job: job, dirs: dirs, since: since, launch: launch, secrets: secrets,
+		ctx: jobCtx, parent: ctx, tap: tap, events: events, stopped: &stopped,
+		session: nil, limit: r.limitFor(job), token: "", tokenAt: time.Time{},
+	}
+	res := loop.run()
 	cancel()
 	wait()
 	// What the agent said last is what you most want to read.
 	r.flush(ctx, job.ID, events)
-
-	text := readOutcome(filepath.Join(outcomeDir, outcomeFile))
-	limited, resetsAt := tap.Limit()
-	res := result{
-		succeeded: false, outcome: "", session: tap.Session(), prURL: "",
-		limited: false, resetsAt: time.Time{}, blocked: "",
-	}
-	if b, ok := findLine(text, "Blocked:"); ok && !strings.EqualFold(b, "none") &&
-		!leaks(b, secrets) {
-		res.blocked = b
-	}
-	var reason string
-	switch {
-	case stopped.Load():
-		reason = "Stopped: the server no longer counts this job as running."
-	case timedOut:
-		reason = fmt.Sprintf("Timed out after %d minutes.", limit/r.minute())
-	case ctx.Err() != nil:
-		reason = "The runner shut down while the job ran."
-	case runErr != nil:
-		reason = "The sandbox could not run the job: " + runErr.Error()
-		res.blocked = noOutcomeBlock(text, reason, secrets, res.blocked)
-	case limited && (exit != 0 || text == ""):
-		// A rejection the agent worked past, to a finished outcome, is not a stop.
-		reason = limitReason(resetsAt)
-		res.limited, res.resetsAt = true, resetsAt
-	case exit != 0:
-		reason = fmt.Sprintf("The agent exited with status %d.", exit)
-		res.blocked = noOutcomeBlock(text, reason, secrets, res.blocked)
-	case text == "":
-		reason = "The agent exited cleanly but wrote no outcome file."
-		res.blocked = noOutcomeBlock(text, reason, secrets, res.blocked)
-	default:
-		return r.publishable(ctx, job, cloneDir, since, text, res, secrets)
-	}
-	res.outcome = strings.TrimSpace(reason + "\n\n" + text)
 	return res
 }
 
@@ -536,11 +518,12 @@ func (r *JobRunner) publishable(
 		err = fmt.Errorf("%w: the outcome contains a credential value", ErrHostCheck)
 	}
 	if err != nil {
-		res.outcome = "Not published: " + strings.TrimPrefix(
-			err.Error(), ErrHostCheck.Error()+": ")
+		why := strings.TrimPrefix(err.Error(), ErrHostCheck.Error()+": ")
+		res.outcome = "Not published: " + why
 		if !leaks(text, secrets) {
 			res.outcome += "\n\n" + text
 		}
+		res.failure, res.retry = why, true
 		return res
 	}
 	defer reviewed.Close()
@@ -550,16 +533,19 @@ func (r *JobRunner) publishable(
 	if r.GitHub == nil {
 		return res
 	}
+	res.head = reviewed.Head(ctx)
 	if err = checksFailure(text); err != nil {
-		res.outcome = "Not published: " + strings.TrimPrefix(
-			err.Error(), errChecks.Error()+": ") + "\n\n" + text
+		why := strings.TrimPrefix(err.Error(), errChecks.Error()+": ")
+		res.outcome = "Not published: " + why + "\n\n" + text
+		res.failure, res.retry = why, true
 		return res
 	}
-	prURL, why := r.publish(ctx, job, reviewed, text)
+	prURL, why, final := r.publish(ctx, job, reviewed, text)
 	if why != "" {
 		// The agent's work is fine, so the job still succeeded; the task just goes
 		// to Needs you with the branch on the Mac, and the reason ahead of the text.
 		res.outcome = "Not published: " + why + "\n\n" + text
+		res.failure, res.retry = why, !final
 		return res
 	}
 	res.prURL = prURL
@@ -568,30 +554,32 @@ func (r *JobRunner) publishable(
 
 // publish pushes the reviewed branch and opens its pull request. It returns the
 // pull request's address, or why that didn't happen: no secret is ever in it.
+// final says another attempt cannot change that.
 func (r *JobRunner) publish(
 	ctx context.Context,
 	job *ClaimedJob,
 	reviewed *Reviewed,
 	text string,
-) (string, string) {
+) (string, string, bool) {
 	ctx, cancel := context.WithTimeout(ctx, publishTimeout)
 	defer cancel()
 
 	token, err := r.pushToken(ctx, job.ID)
 	if PushUnavailable(err) {
 		return "", "pushing is not set up for this repo, so the work stays in the " +
-			"Mac's clone."
+			"Mac's clone.", true
 	}
 	if err != nil || token == "" {
 		r.Log.Warn("could not get a push token", "job", job.ID, "error", err)
 		return "", "could not get a push token from the server, so the work stays " +
-			"in the Mac's clone."
+			"in the Mac's clone.", false
 	}
 	remote := r.Git.RemoteURL(job.RepoOwner, job.RepoName)
 	if err = reviewed.Push(ctx, remote, token); err != nil {
 		r.Log.Warn("push failed", "job", job.ID, "error", scrub(err.Error(), token))
 		return "", "the branch could not be pushed (it may already hold other work " +
-			"on GitHub, which is never overwritten), so the work stays in the Mac's clone."
+				"on GitHub, which is never overwritten), so the work stays in the Mac's clone.",
+			false
 	}
 	title, body := pullRequestText(text, job, r.ServerURL)
 	prURL, err := r.openPullRequest(ctx, token, PullRequest{
@@ -600,9 +588,9 @@ func (r *JobRunner) publish(
 	})
 	if err != nil {
 		r.Log.Warn("pull request failed", "job", job.ID, "error", scrub(err.Error(), token))
-		return "", "the branch was pushed, but its pull request could not be opened."
+		return "", "the branch was pushed, but its pull request could not be opened.", false
 	}
-	return prURL, ""
+	return prURL, "", false
 }
 
 // secrets are the values that must not leave the Mac in a log, commit or outcome.
@@ -749,6 +737,13 @@ func (t *sessionTap) Limit() (bool, time.Time) {
 		}
 	}
 	return limited, resetsAt
+}
+
+// resetLimit forgets a usage limit seen, for the next attempt.
+func (t *sessionTap) resetLimit() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.limited, t.resetsAt, t.partial = false, time.Time{}, nil
 }
 
 // Session is the session id seen so far, or "".

@@ -80,6 +80,10 @@ func newJobRunner(
 		CheckInEvery: 0,
 		Minute:       0,
 		EventsEvery:  0,
+		PollEvery:    0,
+		MaxWatch:     0,
+		Sleep:        nil,
+		Now:          nil,
 		Log:          log,
 	}, nil
 }

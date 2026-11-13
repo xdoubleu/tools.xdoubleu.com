@@ -10,33 +10,33 @@ cmd/factory-runner/   main.go, config.go, entry.go, jobs.go, jobproxy.go
 internal/runner/
   client.go, jobs_client.go   the server calls
   daemon.go, control.go       heartbeat loop; pause flag, menu status
-  jobrunner.go                claim loop; Checks:/Blocked: lines
-  gitclone.go                 host mirror and a standalone job clone
-  hostcheck.go                host checks on finished work
-  events.go                   redacted log lines to the board
-  publish.go                  push the reviewed branch, open its PR
+  jobrunner.go                claim loop; the prompt; Checks:/Blocked: lines
+  jobloop.go, pullstatus.go   one job's attempts until its PR merges; CI verdict
+  gitclone.go, hostcheck.go   host mirror and job clone; host checks
+  events.go, publish.go       log lines to the board; push and open the PR
   harness.go, sandbox.go      Claude Code and OpenCode commands; Sandbox
   sandbox_container.go        one Apple `container` VM per job
   egress_proxy.go, mcp_token.go  the VM's only way out; the job's board token
-  validate.go, config.go      job validator; server URL and repo allowlist
-  token.go, launchagent.go    keychain; plist
-  update.go, activity.go      signed self-update; caffeinate
+  validate.go, config.go      job validator; server URL, repo allowlist
+  token.go, launchagent.go, update.go, activity.go  keychain; plist; self-update; caffeinate
 ```
 
 ## Trust
 
-The server is untrusted; each claimed job is checked for UUID ids, the local repo allowlist, an `agent/*` branch, no value starting with `-`, a harness it can run.
+The server is untrusted: each job needs UUID ids, an allowlisted repo, an `agent/*` branch, no value starting with `-`, a harness this Mac runs.
 
 - A Reply's job restores the task's pushed branch and resumes its session; only new commits are host-checked.
-- A job's clone is the agent's once the sandbox starts: it can write `.git/hooks` and `.git/config`, so the host runs git there only with `-c core.hooksPath=/dev/null` and a clean config.
-- A finished job is host-checked: real commits, no workflow change, no secret in commits or outcome. A pass is pushed and opened as a PR → [`adr-0045`](../docs/adr-0045-factory-github-app.md).
+- The agent owns the clone (it can write `.git/hooks` and `.git/config`), so the host runs git there only with `-c core.hooksPath=/dev/null` and a clean config.
+- Each attempt is host-checked: real commits, no workflow change, no secret. A pass is pushed and opened as a PR → [`adr-0045`](../docs/adr-0045-factory-github-app.md).
 - The device token lives only in the keychain.
+
+`jobLoop` resumes the agent's session in one VM with each failure (gate, push, CI) until the PR merges, sharing no state with other jobs → [`adr-0044`](../docs/adr-0044-factory-jobs-queue.md).
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
-`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature, release file and job image into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key. Shared: `../selfupdate`.
+`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature and job image into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key. Shared: `../selfupdate`.
 
-`config mode off|claude` (default `off`, the menu bar Stop's `paused` flag) picks the harness, ignoring the job's; a Reply resumes only that harness's session. Logs go to `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
+`config mode off|claude` (default `off`) picks the harness. Logs: `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
 
 ## Building
 
