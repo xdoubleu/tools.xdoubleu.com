@@ -218,6 +218,32 @@ func TestTheSandboxMountsTheRegistryCachesReadOnlyWhenConfigured(t *testing.T) {
 	assert.Contains(t, run, "type=bind,source=/cache/go,target=/gomodcache,readonly")
 	assert.Contains(t, run, "type=bind,source=/cache/npm,target=/npmcache,readonly")
 	assert.Contains(t, run, "--cpus 2 --memory 4G")
+	execLine := strings.Join(exec.find("exec")[0], " ")
+	assert.Contains(t, execLine, "cp -R /npmcache /tmp/npmcache")
+}
+
+func TestAJobWithoutAProxyStillUsesTheBakedCachesAndALocalPostgres(t *testing.T) {
+	var envBody string
+	exec := newExecScript(routesAnswer)
+	exec.onExec = func(argv []string, _ string) {
+		for i, a := range argv {
+			if a == "--env-file" {
+				body, err := os.ReadFile(argv[i+1])
+				require.NoError(t, err)
+				envBody = string(body)
+			}
+		}
+	}
+
+	_, err := sandboxWith(t, exec).Run(context.Background(), spec(t, io.Discard))
+	require.NoError(t, err)
+
+	assert.Contains(t, envBody, "GOPROXY=file:///opt/gomodcache/cache/download\n")
+	assert.Contains(t, envBody, "npm_config_cache=/tmp/npmcache\n")
+	assert.Contains(t, envBody, "npm_config_offline=true\n")
+	execLine := strings.Join(exec.find("exec")[0], " ")
+	assert.Contains(t, execLine, "cp -R /opt/npmcache /tmp/npmcache")
+	assert.Contains(t, execLine, `initdb" -D /tmp/pgdata -U postgres --auth=trust`)
 }
 
 func TestTheJobsExitCodeIsReturnedAndTheVMStillCleanedUp(t *testing.T) {

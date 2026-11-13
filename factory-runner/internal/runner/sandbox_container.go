@@ -35,6 +35,9 @@ const (
 	// sandboxGoCache and sandboxNPMCache are the read-only registry caches.
 	sandboxGoCache  = "/gomodcache"
 	sandboxNPMCache = "/npmcache"
+	// jobNPMCache is the writable copy npm uses: npm writes to its cache, and both
+	// sources are read-only.
+	jobNPMCache = "/tmp/npmcache"
 
 	// imageGoDownloadCache and imageNPMCache are baked into the job image
 	// (Containerfile); the root is read-only, so GOMODCACHE lives on the tmpfs.
@@ -201,8 +204,8 @@ func (s *ContainerSandbox) Run(ctx context.Context, spec SandboxSpec) (int, erro
 	}
 	defer os.Remove(envFile)
 
-	return s.Exec.Exec(ctx, execArgv(name, envFile, spec), strings.NewReader(spec.Stdin),
-		spec.Log)
+	argv := execArgv(name, envFile, s.npmCacheSource(), spec)
+	return s.Exec.Exec(ctx, argv, strings.NewReader(spec.Stdin), spec.Log)
 }
 
 // checkSpec refuses a spec the VM's command line or env file could not carry
@@ -325,10 +328,12 @@ func (s *ContainerSandbox) start(
 // execArgv runs the job's setup commands and then its command in the VM. The
 // environment goes in a file, never argv, which any process on the Mac can read.
 // Setup reads no stdin, so it cannot swallow the prompt meant for the command.
-func execArgv(name, envFile string, spec SandboxSpec) []string {
+func execArgv(name, envFile, npmCache string, spec SandboxSpec) []string {
 	// The clone belongs to another uid on the host, so git must be told to trust it.
 	script := "set -e\nmkdir -p \"$HOME\"\n" +
-		"git config --global --add safe.directory " + SandboxCloneDir + "\n"
+		"git config --global --add safe.directory " + SandboxCloneDir + "\n" +
+		"[ -d " + jobNPMCache + " ] || cp -R " + npmCache + " " + jobNPMCache +
+		" 2>/dev/null || mkdir -p " + jobNPMCache + "\n" + postgresScript
 	if strings.TrimSpace(spec.SetupCommands) != "" {
 		script += "(\n" + spec.SetupCommands + "\n) </dev/null\n"
 	}
@@ -341,6 +346,26 @@ func execArgv(name, envFile string, spec SandboxSpec) []string {
 	return append(argv, spec.Command...)
 }
 
+// postgresScript starts a throwaway trust-auth cluster on the tmpfs, reachable as
+// postgres@localhost:5432, when the image has Postgres. A failure is reported, not
+// fatal.
+const postgresScript = `pgbin=$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | tail -n 1)
+if [ -n "$pgbin" ] && [ ! -d /tmp/pgdata ]; then
+  { "$pgbin/initdb" -D /tmp/pgdata -U postgres --auth=trust >/dev/null &&
+    "$pgbin/pg_ctl" -D /tmp/pgdata -l /tmp/pgdata.log -w \
+      -o "-k /tmp -c listen_addresses=localhost" start >/dev/null; } ||
+    echo "factory: postgres did not start, see /tmp/pgdata.log" >&2
+fi
+`
+
+// npmCacheSource is the read-only npm cache the job's writable copy starts from.
+func (s *ContainerSandbox) npmCacheSource() string {
+	if s.NPMCache != "" {
+		return sandboxNPMCache
+	}
+	return imageNPMCache
+}
+
 // registryEnv points Go and npm at the caches baked into the image (or the host's
 // mounted ones), falling back to the egress proxy's read-only registry routes for
 // what changed since. Without a proxy the VM stays offline.
@@ -348,17 +373,13 @@ func (s *ContainerSandbox) registryEnv(proxyURL string) map[string]string {
 	env := map[string]string{
 		"GOMODCACHE":       "/tmp/gomodcache",
 		"GOPROXY":          "file://" + imageGoDownloadCache,
-		"npm_config_cache": imageNPMCache,
+		"npm_config_cache": jobNPMCache,
 	}
 	if s.GoModCache != "" {
 		env["GOMODCACHE"] = sandboxGoCache
 		env["GOPROXY"] = "off"
 	}
-	if s.NPMCache != "" {
-		env["npm_config_cache"] = sandboxNPMCache
-	}
 	if proxyURL == "" {
-		env["GOPROXY"] = "off"
 		env["npm_config_offline"] = "true"
 		return env
 	}
