@@ -362,7 +362,9 @@ func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, erro
 
 	for i := range cands {
 		x := cands[i]
-		reason, reasonErr := r.pickupSkipReason(ctx, x.c.TaskID, x.c.Number, x.labels, x.c.Body)
+		reason, reasonErr := r.pickupSkipReason(
+			ctx, x.c.TaskID, x.c.Number, x.labels, x.c.Body,
+		)
 		if reasonErr != nil {
 			return nil, reasonErr
 		}

@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"tools.xdoubleu.com/internal/database"
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 )
 
 // skipPrefix marks a pickup_blocked reason NextReady set itself, so it can
