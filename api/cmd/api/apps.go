@@ -189,16 +189,21 @@ func (apps *Apps) Shutdown(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
+const (
+	appBooks = "books"
+	appFeeds = "feeds"
+)
+
 // appDependsOn lists the apps whose schema an app's migration relies on; an
 // app is skipped when one of them failed. Registration order already respects
 // it.
 //
 //nolint:gochecknoglobals //static registration data
 var appDependsOn = map[string][]string{
-	"feeds":         {"books"},
-	"games":         {"books"},
-	"dashboard":     {"books", "feeds", "games"},
-	"learningpaths": {"books", "feeds"},
+	appFeeds:        {appBooks},
+	"games":         {appBooks},
+	"dashboard":     {appBooks, appFeeds, "games"},
+	"learningpaths": {appBooks, appFeeds},
 	"mealplans":     {"recipes"},
 	"shoppinglist":  {"mealplans", "recipes"},
 }
@@ -257,11 +262,10 @@ func (d DisabledApps) Names() []string {
 	return names
 }
 
-func (apps *Apps) Routes(mux *http.ServeMux) http.Handler {
+func (apps *Apps) Routes(mux *http.ServeMux) {
 	for _, app := range *apps {
 		app.Routes(app.GetName(), mux)
 	}
-	return mux
 }
 
 func (apps *Apps) addApp(app App) {
