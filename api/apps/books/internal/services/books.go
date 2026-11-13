@@ -16,12 +16,12 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
-	"tools.xdoubleu.com/apps/books/internal/services/positions"
 	"tools.xdoubleu.com/apps/books/pkg/authorname"
 	"tools.xdoubleu.com/apps/books/pkg/books"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
+	"tools.xdoubleu.com/apps/books/reader/positions"
 	"tools.xdoubleu.com/internal/kit/database"
 )
 
