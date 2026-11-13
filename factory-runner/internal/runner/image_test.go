@@ -4,10 +4,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -127,6 +129,38 @@ func newImageEnsurer(
 	}
 }
 
+func TestEnsureImageArchivePublicUnavailable(t *testing.T) {
+	// Manifest and signature serve, but the archive 404s.
+	archive := []byte("x")
+	srv, pubB64 := newImageServer("abc123", archive)
+	ts := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/downloads/"+runner.JobImageArchive {
+				http.NotFound(w, r)
+				return
+			}
+			srv.ServeHTTP(w, r)
+		}))
+	defer ts.Close()
+
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, nil))
+	err := e.Ensure(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "download")
+}
+
+func TestEnsureImageCannotStageTheArchive(t *testing.T) {
+	archive := []byte("x")
+	srv, pubB64 := newImageServer("abc123", archive)
+	ts := httptest.NewServer(srv)
+	defer ts.Close()
+
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, nil))
+	e.TempDir = filepath.Join(t.TempDir(), "does", "not", "exist")
+	err := e.Ensure(context.Background())
+	require.Error(t, err)
+}
+
 func TestEnsureImageAlreadyPresent(t *testing.T) {
 	srv, pubB64 := newImageServer("abc123", []byte("archive"))
 	ts := httptest.NewServer(srv)
@@ -205,6 +239,65 @@ func TestEnsureImageRequiresSigningKey(t *testing.T) {
 	err := e.Ensure(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "signing key")
+}
+
+func TestEnsureImagePresentFails(t *testing.T) {
+	srv, pubB64 := newImageServer("abc123", []byte("x"))
+	ts := httptest.NewServer(srv)
+	defer ts.Close()
+
+	// The container CLI is unusable; Present reports the failure.
+	answer := func([]string) (int, string, error) {
+		return -1, "container: not found", errors.New("container: not found")
+	}
+	e := newImageEnsurer(t, ts, pubB64, answer)
+	present, err := e.Present(context.Background())
+	require.Error(t, err)
+	assert.False(t, present)
+}
+
+func TestEnsureImageLoadFails(t *testing.T) {
+	archive := []byte("x")
+	srv, pubB64 := newImageServer("abc123", archive)
+	ts := httptest.NewServer(srv)
+	defer ts.Close()
+
+	answer := func(argv []string) (int, string, error) {
+		if len(argv) >= 3 && argv[0] == "container" && argv[1] == "image" &&
+			argv[2] == "load" {
+			return 1, "load refused", nil
+		}
+		return imageAnswerScript(1, nil)(argv)
+	}
+	e := newImageEnsurer(t, ts, pubB64, answer)
+	err := e.Ensure(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "image load failed")
+}
+
+func TestEnsureImageManifestUnavailable(t *testing.T) {
+	// Nothing is served, so the first download fails with a clear error.
+	ts := httptest.NewServer(http.NotFoundHandler())
+	defer ts.Close()
+	pubB64, _, _ := updatesig.GenerateKey()
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, nil))
+	err := e.Ensure(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "download")
+}
+
+func TestEnsureImageArchiveChecksumStreamed(t *testing.T) {
+	// A larger archive exercises the whole streaming/checksum path end to end.
+	archive := make([]byte, 1<<20)
+	for i := range archive {
+		archive[i] = byte(i)
+	}
+	srv, pubB64 := newImageServer("abc123", archive)
+	ts := httptest.NewServer(srv)
+	defer ts.Close()
+
+	e := newImageEnsurer(t, ts, pubB64, imageAnswerScript(1, nil))
+	require.NoError(t, e.Ensure(context.Background()))
 }
 
 func TestEnsureImageErrorsWhenLoadNotPresent(t *testing.T) {
