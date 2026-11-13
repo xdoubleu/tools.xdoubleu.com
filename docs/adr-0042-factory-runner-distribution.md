@@ -30,16 +30,16 @@ without the server being able to push arbitrary code.
   so no proto, config or image variable carries the version. It is always this
   commit: no build cache, because a pure-Go build takes seconds.
 - **A versioned job image rides the same release.** The job image (adr-0043) is
-  tagged `factory-job:<release>`. Its ~1.6 GB OCI archive is a GitHub release asset
-  (`factory-job-image-<input hash>`), rebuilt only when the Containerfile, dependency
-  manifests or ISO week change, so it stays out of the api image and deploy path.
-  Each release stages only a small signed manifest and a `.url` pointer into
-  `downloads/`; the api redirects `/downloads/factory-job-image.tar` to the pointer
-  (assets cap at 2 GiB). The runner ensures it is
-  present — fetching, verifying the ed25519 signature against its compiled-in key,
-  checking the release and a sha256, and `container image load`-ing it — at start and
-  after each self-update, so the image's pinned tool versions change only with a
-  runner release.
+  tagged `factory-job:<release>` locally. The ~1.6 GB image is pushed to the public
+  GHCR package `ghcr.io/xdoubleu/tools.xdoubleu.com/factory-job-image:<input hash>`
+  (and `:latest`), rebuilt only when the Containerfile, dependency manifests or ISO
+  week change, with a registry layer cache; the newest 10 hash tags are kept. Each
+  release stages only a small signed manifest (`<release> <image digest>`) into
+  `downloads/`. The runner ensures the image is present — verifying the ed25519
+  signature against its compiled-in key, checking the release, `container image
+  pull`-ing `…@sha256:<digest>`, checking the pulled digest and tagging it — at
+  start and after each self-update, so only changed layers transfer and the image's
+  pinned tool versions change only with a runner release.
 - **Update only when idle.** Hourly, if no job runs, the runner reads the release
   file; if it differs it downloads the binary and signature beside the heartbeat
   loop (so a slow download never makes it look offline), verifies, checks it is

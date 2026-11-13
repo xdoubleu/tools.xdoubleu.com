@@ -138,7 +138,6 @@ func ensureImage(ctx context.Context, cfg runner.Config, exec runner.Execer) err
 		Image:     cfg.ReleaseImage(Release),
 		PublicKey: publicKey,
 		Exec:      exec,
-		TempDir:   "",
 	}
 	if err = ensurer.Ensure(ctx); err != nil {
 		return fmt.Errorf("job image %s: %w", ensurer.Image, err)
