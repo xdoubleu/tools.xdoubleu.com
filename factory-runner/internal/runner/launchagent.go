@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -154,31 +155,21 @@ func copyBundle(src, dst string) error {
 		if err != nil {
 			return err
 		}
-		rel, relErr := filepath.Rel(src, p)
-		if relErr != nil {
-			return relErr
-		}
+		rel, _ := filepath.Rel(src, p)
 		target := filepath.Join(dst, rel)
-		info, infoErr := d.Info()
-		if infoErr != nil {
-			return infoErr
-		}
 		switch {
 		case d.IsDir():
-			return os.MkdirAll(target, info.Mode().Perm()|0o700)
-		case info.Mode()&os.ModeSymlink != 0:
-			link, linkErr := os.Readlink(p)
-			if linkErr != nil {
-				return linkErr
-			}
+			return os.MkdirAll(target, installDirPerm)
+		case d.Type()&os.ModeSymlink != 0:
+			link, _ := os.Readlink(p)
 			return os.Symlink(link, target)
-		default:
-			data, readErr := os.ReadFile(p)
-			if readErr != nil {
-				return readErr
-			}
-			return os.WriteFile(target, data, info.Mode().Perm())
 		}
+		data, readErr := os.ReadFile(p)
+		info, statErr := os.Stat(p)
+		if readErr != nil || statErr != nil {
+			return errors.Join(readErr, statErr)
+		}
+		return os.WriteFile(target, data, info.Mode().Perm())
 	})
 	if err != nil {
 		return fmt.Errorf("copy app: %w", err)
