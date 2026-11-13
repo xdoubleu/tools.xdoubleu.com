@@ -57,8 +57,12 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`There is no GitHub: do not try to push or open a pull request. Commit your ` +
 	`work locally on the current branch (%s). When you are done, write a short ` +
 	`outcome to the file named by $FACTORY_OUTCOME_PATH: its first line is the ` +
-	`pull request title, then what you did and what is left. Nobody can answer ` +
-	`questions while you run.`
+	`pull request title, then what you did and what is left. Before you commit, ` +
+	`run the repository's lint, test and documentation-budget gates (see its ` +
+	`AGENTS.md). End the outcome with one line listing each gate, for example ` +
+	`"Checks: lint=pass, test=pass, docs=pass"; a gate is pass, fail or ` +
+	`not run. No pull request is opened unless every gate passed. Nobody can ` +
+	`answer questions while you run.`
 
 // JobRunner claims jobs from the server and runs each one in a sandbox.
 type JobRunner struct {
@@ -499,6 +503,11 @@ func (r *JobRunner) publishable(
 	res.succeeded = true
 	res.outcome = text
 	if r.GitHub == nil {
+		return res
+	}
+	if err = checksFailure(text); err != nil {
+		res.outcome = "Not published: " + strings.TrimPrefix(
+			err.Error(), errChecks.Error()+": ") + "\n\n" + text
 		return res
 	}
 	prURL, why := r.publish(ctx, job, reviewed, text)

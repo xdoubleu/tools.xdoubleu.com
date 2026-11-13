@@ -92,3 +92,6 @@ func FreeSubnets(routes string, n int) []string {
 	}
 	return out
 }
+
+// ChecksFailureForTest exposes checksFailure.
+func ChecksFailureForTest(outcome string) error { return checksFailure(outcome) }
