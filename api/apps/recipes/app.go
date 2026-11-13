@@ -12,7 +12,7 @@ import (
 	"tools.xdoubleu.com/apps/recipes/pkg/videofetch"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/family"
 )
@@ -32,7 +32,7 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	familyRepo *family.FamilyRepository,
+	familyRepo *family.Repository,
 ) *Recipes {
 	//nolint:exhaustruct //services initialised below
 	a := &Recipes{

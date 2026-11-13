@@ -25,7 +25,6 @@ import (
 	"tools.xdoubleu.com/internal/kit/openrouter"
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/observability"
-	"tools.xdoubleu.com/internal/openrouter"
 	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/family"
 )
@@ -46,7 +45,7 @@ type Taste struct {
 	app.Base
 	db       postgres.DB
 	auth     auth.Service
-	family   *family.FamilyRepository
+	family   *family.Repository
 	log      *services.LogService
 	profiles *services.ProfileService
 	picks    *services.RecommendService
@@ -63,7 +62,7 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	familyRepo *family.FamilyRepository,
+	familyRepo *family.Repository,
 	mail *notifications.Service,
 	catalogs Catalogs,
 	sources ...Source,
@@ -88,7 +87,7 @@ func NewInner(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	familyRepo *family.FamilyRepository,
+	familyRepo *family.Repository,
 	llm openrouter.Client,
 	mail EmailSender,
 	catalogs Catalogs,

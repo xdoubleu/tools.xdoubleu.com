@@ -21,7 +21,6 @@ import (
 	"tools.xdoubleu.com/internal/observability"
 	"tools.xdoubleu.com/internal/platform/account"
 	"tools.xdoubleu.com/internal/platform/auth"
-	"tools.xdoubleu.com/internal/webfetch"
 )
 
 //go:embed migrations/*.sql

@@ -11,7 +11,6 @@ import (
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/account"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // seedAgentUser adds a user with the agent role.

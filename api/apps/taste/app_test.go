@@ -27,10 +27,8 @@ import (
 	"tools.xdoubleu.com/internal/kit/openrouter"
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
-	"tools.xdoubleu.com/internal/openrouter"
 	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/family"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 const userID = "taste-test-user"
@@ -39,7 +37,7 @@ const userID = "taste-test-user"
 var (
 	testDB     postgres.DB
 	testCfg    config.Config
-	testFamily *family.FamilyRepository
+	testFamily *family.Repository
 )
 
 func TestMain(m *testing.M) {

@@ -15,8 +15,8 @@ import (
 	"tools.xdoubleu.com/apps/learningpaths/internal/todoist"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/crypto"
-	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/kit/crypto"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/platform/auth"
 )
 

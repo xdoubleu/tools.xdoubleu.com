@@ -23,7 +23,6 @@ import (
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/platform/family"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 const (
@@ -35,7 +34,7 @@ const (
 var (
 	testDB     postgres.DB
 	testCfg    config.Config
-	testFamily *family.FamilyRepository
+	testFamily *family.Repository
 )
 
 // fakeTMDB serves a fixed catalog; unknown IDs are tmdb.ErrNotFound.

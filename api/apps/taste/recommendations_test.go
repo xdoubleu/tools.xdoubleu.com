@@ -22,9 +22,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/notifications"
-	"tools.xdoubleu.com/internal/openrouter"
 	"tools.xdoubleu.com/internal/platform/auth"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // pickLLM writes the profile and proposes two scored picks.

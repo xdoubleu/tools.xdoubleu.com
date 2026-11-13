@@ -17,7 +17,6 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/platform/account"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // TestMCPTools_ListFeedsAndItems exercises both MCP tool wrappers against a

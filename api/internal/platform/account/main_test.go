@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/testhelper"
+	"tools.xdoubleu.com/internal/kit/database/postgres"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 )
 
 //nolint:gochecknoglobals //needed for tests

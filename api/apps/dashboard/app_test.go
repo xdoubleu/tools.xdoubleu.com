@@ -34,7 +34,6 @@ import (
 	"tools.xdoubleu.com/internal/platform/account"
 	sharedauth "tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/family"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 //nolint:gochecknoglobals //needed for tests

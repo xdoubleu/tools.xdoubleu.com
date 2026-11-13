@@ -15,7 +15,7 @@ import (
 	"tools.xdoubleu.com/apps/podcasts/internal/repositories"
 	"tools.xdoubleu.com/apps/podcasts/pkg/itunes"
 	"tools.xdoubleu.com/internal/app"
-	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/platform/auth"
 )
 

@@ -24,8 +24,6 @@ import (
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/platform/account"
-	"tools.xdoubleu.com/internal/threading"
-	"tools.xdoubleu.com/internal/webfetch"
 )
 
 // ErrInvalidFeed is returned when a subscribed URL does not parse as RSS/Atom.

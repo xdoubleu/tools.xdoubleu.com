@@ -11,16 +11,16 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-type FamilyRepository struct {
+type Repository struct {
 	db postgres.DB
 }
 
-func NewFamilyRepository(db postgres.DB) *FamilyRepository {
-	return &FamilyRepository{db: db}
+func NewFamilyRepository(db postgres.DB) *Repository {
+	return &Repository{db: db}
 }
 
 // GetFamilyID returns the user's family; ok is false for a family-of-one.
-func (r *FamilyRepository) GetFamilyID(
+func (r *Repository) GetFamilyID(
 	ctx context.Context,
 	userID string,
 ) (uuid.UUID, bool, error) {
@@ -39,7 +39,7 @@ func (r *FamilyRepository) GetFamilyID(
 }
 
 // ListMembers returns the user IDs belonging to familyID.
-func (r *FamilyRepository) ListMembers(
+func (r *Repository) ListMembers(
 	ctx context.Context,
 	familyID uuid.UUID,
 ) ([]string, error) {
@@ -66,7 +66,7 @@ func (r *FamilyRepository) ListMembers(
 }
 
 // MemberDisplayNames maps each member to their display name ("" if unset).
-func (r *FamilyRepository) MemberDisplayNames(
+func (r *Repository) MemberDisplayNames(
 	ctx context.Context,
 	familyID uuid.UUID,
 ) (map[string]string, error) {
@@ -92,7 +92,7 @@ func (r *FamilyRepository) MemberDisplayNames(
 }
 
 // SetDisplayName sets userID's display name; a no-op without a membership row.
-func (r *FamilyRepository) SetDisplayName(
+func (r *Repository) SetDisplayName(
 	ctx context.Context,
 	userID, displayName string,
 ) error {
@@ -105,7 +105,7 @@ func (r *FamilyRepository) SetDisplayName(
 
 // EnsureFamily returns userID's family, creating a solo one if needed, so
 // callers always have a family_id.
-func (r *FamilyRepository) EnsureFamily(
+func (r *Repository) EnsureFamily(
 	ctx context.Context,
 	userID string,
 ) (uuid.UUID, error) {
@@ -156,7 +156,7 @@ func (r *FamilyRepository) EnsureFamily(
 // Invite creates or replaces an invite from fromUserID's family (created if
 // needed) to toUserID. A replaced invite gets a new id, so accepting by the old
 // id fails.
-func (r *FamilyRepository) Invite(
+func (r *Repository) Invite(
 	ctx context.Context,
 	fromUserID, toUserID string,
 ) error {
@@ -179,7 +179,7 @@ func (r *FamilyRepository) Invite(
 }
 
 // GetInvite returns the pending invite addressed to userID, if any.
-func (r *FamilyRepository) GetInvite(
+func (r *Repository) GetInvite(
 	ctx context.Context,
 	userID string,
 ) (models.FamilyInvite, bool, error) {
@@ -200,7 +200,7 @@ func (r *FamilyRepository) GetInvite(
 }
 
 // DeclineInvite deletes the pending invite addressed to userID.
-func (r *FamilyRepository) DeclineInvite(ctx context.Context, userID string) error {
+func (r *Repository) DeclineInvite(ctx context.Context, userID string) error {
 	_, err := r.db.Exec(ctx,
 		`DELETE FROM global.family_invites WHERE to_user_id = $1`,
 		userID,
@@ -211,7 +211,7 @@ func (r *FamilyRepository) DeclineInvite(ctx context.Context, userID string) err
 // AcceptInvite deletes invite inviteID addressed to userID, upserts the
 // membership and returns the family_id. It returns ErrResourceNotFound when
 // that invite is no longer pending.
-func (r *FamilyRepository) AcceptInvite(
+func (r *Repository) AcceptInvite(
 	ctx context.Context,
 	userID string,
 	inviteID uuid.UUID,
@@ -251,7 +251,7 @@ func (r *FamilyRepository) AcceptInvite(
 }
 
 // Leave removes userID's membership; family data stays with the family.
-func (r *FamilyRepository) Leave(ctx context.Context, userID string) error {
+func (r *Repository) Leave(ctx context.Context, userID string) error {
 	_, err := r.db.Exec(ctx,
 		`DELETE FROM global.family_members WHERE user_id = $1`,
 		userID,

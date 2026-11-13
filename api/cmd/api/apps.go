@@ -69,7 +69,7 @@ func NewApps(
 	db postgres.DB,
 	notifications *notifications.Service,
 	appUsersRepo *account.AppUsersRepository,
-	familyRepo *family.FamilyRepository,
+	familyRepo *family.Repository,
 	authSealer *crypto.Sealer,
 ) (*Apps, *books.Books, *feeds.Feeds) {
 	var apps Apps = []App{}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/platform/auth"
 )

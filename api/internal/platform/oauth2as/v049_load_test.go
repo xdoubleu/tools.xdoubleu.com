@@ -81,7 +81,7 @@ func shiftTimes(v any, shift time.Duration) any {
 func backfillSQL(t *testing.T, up bool) string {
 	t.Helper()
 	paths, err := filepath.Glob(
-		"../../cmd/api/migrations/*_oauth2_session_numeric_claim_times.sql",
+		"../../../cmd/api/migrations/*_oauth2_session_numeric_claim_times.sql",
 	)
 	require.NoError(t, err)
 	require.Len(t, paths, 1)

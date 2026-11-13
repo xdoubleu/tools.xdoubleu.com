@@ -18,8 +18,6 @@ import (
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/crypto"
-	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/kit/crypto"

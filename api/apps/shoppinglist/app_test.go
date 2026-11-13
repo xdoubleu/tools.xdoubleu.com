@@ -16,7 +16,6 @@ import (
 	"tools.xdoubleu.com/internal/kit/testhelper"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/platform/family"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 //nolint:gochecknoglobals //needed for tests
@@ -26,7 +25,7 @@ var testApp *shoppinglist.ShoppingList
 var testDB postgres.DB
 
 //nolint:gochecknoglobals //needed for tests
-var familyRepo *family.FamilyRepository
+var familyRepo *family.Repository
 
 //nolint:gochecknoglobals //needed for tests
 var userID = "4001e9cf-3fbe-4b09-863f-bd1654cfbf76"

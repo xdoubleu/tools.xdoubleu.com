@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	"tools.xdoubleu.com/internal/platform/auth"
-	"tools.xdoubleu.com/internal/testhelper"
 )
 
 // CreateUser isn't reachable through LocalService (no sign-up flow).

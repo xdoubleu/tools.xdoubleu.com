@@ -11,8 +11,8 @@ import (
 	"github.com/pressly/goose/v3"
 
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/kit/threading"
 	"tools.xdoubleu.com/internal/platform/auth"
-	"tools.xdoubleu.com/internal/threading"
 )
 
 // backgroundLimit caps an app's concurrently running request-started tasks;
