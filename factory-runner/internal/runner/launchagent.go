@@ -146,11 +146,42 @@ func InstallBinary(homeDir, src string) (string, error) {
 	return dst, nil
 }
 
+// copyBundle copies an app bundle, keeping modes and symlinks.
+//
+//nolint:gosec // copies the runner's own bundle into its install dir
 func copyBundle(src, dst string) error {
-	out, err := exec.CommandContext(context.Background(), "ditto", src, dst).
-		CombinedOutput()
+	err := filepath.WalkDir(src, func(p string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, relErr := filepath.Rel(src, p)
+		if relErr != nil {
+			return relErr
+		}
+		target := filepath.Join(dst, rel)
+		info, infoErr := d.Info()
+		if infoErr != nil {
+			return infoErr
+		}
+		switch {
+		case d.IsDir():
+			return os.MkdirAll(target, info.Mode().Perm()|0o700)
+		case info.Mode()&os.ModeSymlink != 0:
+			link, linkErr := os.Readlink(p)
+			if linkErr != nil {
+				return linkErr
+			}
+			return os.Symlink(link, target)
+		default:
+			data, readErr := os.ReadFile(p)
+			if readErr != nil {
+				return readErr
+			}
+			return os.WriteFile(target, data, info.Mode().Perm())
+		}
+	})
 	if err != nil {
-		return fmt.Errorf("copy app: %w: %s", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("copy app: %w", err)
 	}
 	return nil
 }
