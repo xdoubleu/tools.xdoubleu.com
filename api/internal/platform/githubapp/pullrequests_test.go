@@ -107,7 +107,8 @@ func status(t *testing.T, p *pulls) githubapp.PullRequestStatus {
 }
 
 func ended(state string) githubapp.PullRequestStatus {
-	return githubapp.PullRequestStatus{State: state, CI: "", Review: "", Mergeable: ""}
+	return githubapp.PullRequestStatus{State: state, CI: "", Review: "", Mergeable: "",
+		MergeSHA: ""}
 }
 
 func TestAMergedOrClosedPullRequestNeedsNoChecksOrReviews(t *testing.T) {
@@ -136,7 +137,8 @@ func TestOnlyMergedPullRequestsAreListedWithTheirBodies(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, []githubapp.MergedPullRequest{
-		{URL: "u1", Body: "Task: a (x)", MergeSHA: "s1"}, {URL: "u3", Body: "", MergeSHA: ""},
+		{URL: "u1", Body: "Task: a (x)", MergeSHA: "s1"}, {URL: "u3", Body: "",
+			MergeSHA: ""},
 	}, got)
 }
 

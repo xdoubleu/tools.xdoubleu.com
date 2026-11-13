@@ -156,6 +156,7 @@ func (s *TaskService) Create(
 		PickupBlocked:  "",
 		MergeSHA:       "",
 		Deploy:         "",
+		DeployReason:   "",
 	}, actor)
 }
 
@@ -192,6 +193,7 @@ func (s *TaskService) Update(
 		PickupBlocked:  "",
 		MergeSHA:       "",
 		Deploy:         "",
+		DeployReason:   "",
 	}, actor)
 }
 

@@ -115,11 +115,18 @@ func (s *JobService) TestingAfterMerge(
 	if err != nil {
 		return false, nil //nolint:nilerr // nothing to move
 	}
-	if err = s.linked.Upsert(ctx, models.LinkedPullRequest{
-		URL: prURL, TaskID: id, State: githubapp.StateMerged,
-		CI: "", Review: "", Mergeable: "", UnmergeableSince: nil,
-		CheckedAt: time.Time{},
-	}); err != nil {
+	// Also backfills a task that merged without its commit being recorded.
+	if task.MergeSHA == "" && mergeSHA != "" {
+		err = s.tasks.SetMergeSHA(ctx, id, mergeSHA)
+	}
+	if err == nil {
+		err = s.linked.Upsert(ctx, models.LinkedPullRequest{
+			URL: prURL, TaskID: id, State: githubapp.StateMerged,
+			CI: "", Review: "", Mergeable: "", UnmergeableSince: nil,
+			CheckedAt: time.Time{},
+		})
+	}
+	if err != nil {
 		return false, err
 	}
 	if task.Status != models.StatusInReview {
@@ -131,9 +138,6 @@ func (s *JobService) TestingAfterMerge(
 	}
 	if len(jobs) > 0 {
 		return false, nil
-	}
-	if err = s.tasks.SetMergeSHA(ctx, id, mergeSHA); err != nil {
-		return false, err
 	}
 	if _, err = s.tasks.Move(ctx, id, models.StatusTesting); err != nil {
 		return false, err
@@ -162,7 +166,7 @@ func (s *JobService) pollPullRequest(ctx context.Context, job *models.Job) error
 	if status.State != job.PRState && status.State != githubapp.StateOpen {
 		// First the task, then the record: a failure in between repeats this step
 		// on the next poll, and the task's own status keeps it from happening twice.
-		if err = s.pullRequestEnded(ctx, job, status.State); err != nil {
+		if err = s.pullRequestEnded(ctx, job, status); err != nil {
 			return err
 		}
 	}
@@ -175,7 +179,7 @@ func (s *JobService) pollPullRequest(ctx context.Context, job *models.Job) error
 func (s *JobService) pullRequestEnded(
 	ctx context.Context,
 	job *models.Job,
-	state string,
+	status githubapp.PullRequestStatus,
 ) error {
 	task, err := s.tasks.Get(ctx, job.TaskID)
 	if err != nil {
@@ -192,12 +196,16 @@ func (s *JobService) pullRequestEnded(
 		return nil
 	}
 	to, body := models.StatusNeedsYou, "The pull request was closed without merging: "
-	if state == githubapp.StateMerged {
+	if status.State == githubapp.StateMerged {
 		to, body = models.StatusTesting, "The pull request was merged: "
+		err = s.tasks.SetMergeSHA(ctx, job.TaskID, status.MergeSHA)
 	}
 	// Move first: a failure after it loses a comment, where a failure before it
 	// would repeat the comment on every poll until the move worked.
-	if _, err = s.tasks.Move(ctx, job.TaskID, to); err != nil {
+	if err == nil {
+		_, err = s.tasks.Move(ctx, job.TaskID, to)
+	}
+	if err != nil {
 		return err
 	}
 	_, err = s.tasks.AddComment(ctx, job.TaskID, systemAuthor, body+job.PRURL)

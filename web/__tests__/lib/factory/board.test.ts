@@ -339,6 +339,10 @@ describe('board', () => {
       variant: 'warn'
     })
     expect(deployBadge({ deployState: '' })).toBeUndefined()
+    expect(
+      deployBadge({ deployState: 'unknown', deployReason: 'no merge commit recorded' })
+    ).toEqual({ label: 'Unknown: no merge commit recorded', variant: 'warn' })
+    expect(deployBadge({ deployState: 'unknown' })?.label).toBe('Unknown')
   })
 
   it('picks the most pressing thing to say about a pull request', () => {

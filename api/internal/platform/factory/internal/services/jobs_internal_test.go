@@ -37,6 +37,7 @@ func testTask(id uuid.UUID, title, body string) *models.Task {
 		UpdatedAt: time.Time{}, CommentCount: 0, PRURL: "", PRState: "", PRCI: "",
 		PRReview: "", PRMergeable: "",
 		PickupApproved: false, PickupBlocked: "", MergeSHA: "", Deploy: "",
+		DeployReason: "",
 	}
 }
 

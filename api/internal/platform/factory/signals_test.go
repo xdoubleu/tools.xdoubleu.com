@@ -45,6 +45,7 @@ func TestTheFailureGaugesCountWhatNobodyPointsAt(t *testing.T) {
 	inReview(t, env, "red signal", 51)
 	gh.answer(51, githubapp.PullRequestStatus{
 		State: githubapp.StateOpen, CI: githubapp.CIFailing, Review: "", Mergeable: "",
+		MergeSHA: "",
 	}, nil)
 
 	// A job that finished with no pull request, and one that was not verified.

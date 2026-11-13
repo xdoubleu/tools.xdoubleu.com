@@ -57,8 +57,11 @@ message Task {
   // can be picked up. It stays in Ready, not "needs you", while this is set.
   string pickup_block_reason = 17;
   // Whether the merged change is live: "deployed", or "pending" while the running
-  // release lacks the merge commit; empty when unmerged, old, or unknown.
+  // release lacks the merge commit, "unknown" when it can't be told; empty when
+  // unmerged or old.
   string deploy_state = 18;
+  // Why deploy_state is "unknown" (it is then the only state with a reason).
+  string deploy_reason = 20;
 }
 
 message Comment {

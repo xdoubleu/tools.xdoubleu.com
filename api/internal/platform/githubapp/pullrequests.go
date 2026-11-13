@@ -45,6 +45,8 @@ type PullRequestStatus struct {
 	// Mergeable is MergeConflicting or MergeBehind when auto-merge is armed and the
 	// pull request still can't merge for that reason; empty otherwise.
 	Mergeable string
+	// MergeSHA is the commit a merged pull request produced; empty otherwise.
+	MergeSHA string
 }
 
 // ErrPullRequestGone is returned when GitHub has no such pull request.
@@ -95,6 +97,7 @@ func (c *Client) PullRequest(
 	var pull struct {
 		State  string `json:"state"`
 		Merged bool   `json:"merged"`
+		SHA    string `json:"merge_commit_sha"`
 		Head   struct {
 			SHA string `json:"sha"`
 		} `json:"head"`
@@ -111,9 +114,13 @@ func (c *Client) PullRequest(
 	}
 	switch {
 	case pull.Merged:
-		return PullRequestStatus{State: StateMerged, CI: "", Review: "", Mergeable: ""}, nil
+		return PullRequestStatus{
+			State: StateMerged, CI: "", Review: "", Mergeable: "",
+			MergeSHA: pull.SHA,
+		}, nil
 	case pull.State != "open":
-		return PullRequestStatus{State: StateClosed, CI: "", Review: "", Mergeable: ""}, nil
+		return PullRequestStatus{State: StateClosed, CI: "", Review: "", Mergeable: "",
+			MergeSHA: ""}, nil
 	}
 
 	ci, err := c.checks(ctx, base, pull.Head.SHA, token)
@@ -127,6 +134,7 @@ func (c *Client) PullRequest(
 	return PullRequestStatus{
 		State: StateOpen, CI: ci, Review: review,
 		Mergeable: stuck(pull.MergeableState, pull.AutoMerge != nil),
+		MergeSHA:  "",
 	}, nil
 }
 

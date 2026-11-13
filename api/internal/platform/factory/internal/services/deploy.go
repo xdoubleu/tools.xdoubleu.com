@@ -26,11 +26,20 @@ const (
 	devRelease = "dev"
 )
 
+// Why a merged task's deploy state is unknown, shown on the board.
+const (
+	ReasonNoMergeCommit = "no merge commit recorded"
+	ReasonNoGitHub      = "GitHub App not configured"
+	ReasonNoRelease     = "running release unknown (dev build)"
+	ReasonCompareFailed = "GitHub compare failed"
+)
+
 type deployKey struct{ repo, sha string }
 
 type deployAnswer struct {
-	state models.DeployState
-	at    time.Time
+	state  models.DeployState
+	reason string
+	at     time.Time
 }
 
 // deployCache remembers answers; a live one is final, anything else expires.
@@ -43,30 +52,28 @@ func newDeployCache() *deployCache {
 	return &deployCache{mu: sync.Mutex{}, answers: map[deployKey]deployAnswer{}}
 }
 
-func (c *deployCache) get(k deployKey, now time.Time) (models.DeployState, bool) {
+func (c *deployCache) get(k deployKey, now time.Time) (deployAnswer, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	a, ok := c.answers[k]
 	if !ok || (a.state != models.DeployLive && now.Sub(a.at) > deployRetry) {
-		return "", false
+		return deployAnswer{state: "", reason: "", at: time.Time{}}, false
 	}
-	return a.state, true
+	return a, true
 }
 
-func (c *deployCache) put(k deployKey, state models.DeployState, now time.Time) {
+func (c *deployCache) put(k deployKey, a deployAnswer) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.answers[k] = deployAnswer{state: state, at: now}
+	c.answers[k] = a
 }
 
-// FillDeploy sets Deploy on each merged task from whether the running release
-// contains its merge commit. It leaves a task unknown without a GitHub App, on a
-// dev build, and whenever GitHub can't answer in time: a board must load
-// without it. The lookups run concurrently under deployBudget.
+// FillDeploy sets Deploy on each task that merged recently from whether the
+// running release contains its merge commit. When it can't tell (no GitHub App, a
+// dev build, no recorded merge commit, GitHub failing or too slow) the state is
+// unknown with a reason: a board must load without it. The lookups run
+// concurrently under deployBudget.
 func (s *JobService) FillDeploy(ctx context.Context, tasks []models.Task) {
-	if s.github == nil || s.release == "" || s.release == devRelease {
-		return
-	}
 	ctx, cancel := context.WithTimeout(ctx, deployBudget)
 	defer cancel()
 	var (
@@ -78,10 +85,10 @@ func (s *JobService) FillDeploy(ctx context.Context, tasks []models.Task) {
 	now := s.now()
 	for i := range tasks {
 		t := &tasks[i]
-		if t.MergeSHA == "" || now.Sub(t.UpdatedAt) > deployWindow {
-			continue
-		}
-		if t.Status != models.StatusTesting && t.Status != models.StatusDone {
+		if reason := unknownReason(s, t, now); reason != "" {
+			if reason != reasonSilent {
+				t.Deploy, t.DeployReason = models.DeployUnknown, reason
+			}
 			continue
 		}
 		if repos == nil {
@@ -103,9 +110,33 @@ func (s *JobService) FillDeploy(ctx context.Context, tasks []models.Task) {
 		go func() {
 			defer wg.Done()
 			defer func() { <-sem }()
-			t.Deploy = s.deployState(ctx, repo, t.MergeSHA, now)
+			a := s.deployState(ctx, repo, t.MergeSHA, now)
+			t.Deploy, t.DeployReason = a.state, a.reason
 		}()
 	}
+}
+
+// reasonSilent marks a task that has no deploy state and nothing to say about it.
+const reasonSilent = "-"
+
+// unknownReason is why a task's deploy state can't be told without asking
+// GitHub, "" when it can be asked.
+func unknownReason(s *JobService, t *models.Task, now time.Time) string {
+	switch {
+	case now.Sub(t.UpdatedAt) > deployWindow,
+		t.Status != models.StatusTesting && t.Status != models.StatusDone:
+		return reasonSilent
+	case t.MergeSHA == "" && t.Status == models.StatusTesting:
+		// Only a task in Testing is known to have arrived through a merge.
+		return ReasonNoMergeCommit
+	case t.MergeSHA == "":
+		return reasonSilent
+	case s.github == nil:
+		return ReasonNoGitHub
+	case s.release == "" || s.release == devRelease:
+		return ReasonNoRelease
+	}
+	return ""
 }
 
 func (s *JobService) deployState(
@@ -113,23 +144,22 @@ func (s *JobService) deployState(
 	repo models.Repo,
 	sha string,
 	now time.Time,
-) models.DeployState {
+) deployAnswer {
 	key := deployKey{repo: repo.Owner + "/" + repo.Name, sha: sha}
-	if state, ok := s.deploys.get(key, now); ok {
-		return state
+	if a, ok := s.deploys.get(key, now); ok {
+		return a
 	}
 	live, err := s.github.Deployed(ctx, repo.Owner, repo.Name, sha, s.release)
-	state := models.DeployUnknown
+	a := deployAnswer{state: models.DeployPending, reason: "", at: now}
 	switch {
 	case err != nil:
+		a.state, a.reason = models.DeployUnknown, ReasonCompareFailed
 		if ctx.Err() != nil {
-			return state // cut off by the deadline: not GitHub's answer, don't cache
+			return a // cut off by the deadline: not GitHub's answer, don't cache
 		}
 	case live:
-		state = models.DeployLive
-	default:
-		state = models.DeployPending
+		a.state = models.DeployLive
 	}
-	s.deploys.put(key, state, now)
-	return state
+	s.deploys.put(key, a)
+	return a
 }
