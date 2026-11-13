@@ -24,6 +24,7 @@ function renderChip(props: Partial<React.ComponentProps<typeof MealPlanMealChip>
     onMoveClick: vi.fn(),
     onSwapClick: vi.fn(),
     onEditClick: vi.fn(),
+    onAddClick: vi.fn(),
     onDeleteMeal: vi.fn()
   }
   render(
@@ -62,6 +63,7 @@ describe('MealPlanMealChip', () => {
         onMoveClick={vi.fn()}
         onSwapClick={vi.fn()}
         onEditClick={vi.fn()}
+        onAddClick={vi.fn()}
         onDeleteMeal={vi.fn()}
       />
     )
@@ -156,6 +158,14 @@ describe('MealPlanMealChip', () => {
     fireEvent.click(screen.getByRole('button', { name: /Meal actions/i }))
     expect(screen.getByRole('menu')).toBeInTheDocument()
     fireEvent.mouseDown(document.body)
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('adds another meal to the slot from the menu', () => {
+    const { onAddClick } = renderChip()
+    fireEvent.click(screen.getByRole('button', { name: /Meal actions/i }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Add meal' }))
+    expect(onAddClick).toHaveBeenCalledWith(expect.objectContaining({ id: makeMeal().id }))
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 

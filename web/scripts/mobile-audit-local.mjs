@@ -113,7 +113,7 @@ function startApi() {
     ENV: 'development',
     PORT,
     THROTTLE: 'false',
-    API_URL: BASE_URL,
+    API_URL: `${BASE_URL}/api`,
     WEB_URL: BASE_URL,
     DB_DSN,
     JWT_SECRET: 'mobile-audit-jwt-secret-0123456789abcdef',

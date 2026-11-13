@@ -855,7 +855,7 @@ describe('MealPlanCalendar', () => {
     expect(screen.queryByText(/Swapping/i)).not.toBeInTheDocument()
   })
 
-  it('keeps an add button on an occupied slot so a second meal can be added', async () => {
+  it('adds a second meal to an occupied slot from its menu', async () => {
     const onMutate = vi.fn()
     const planWithMeal = {
       ...basePlan,
@@ -879,11 +879,11 @@ describe('MealPlanCalendar', () => {
         onMutate={onMutate}
       />
     )
-    // 7 days × 1 slot, all with a "+" (occupied slot included), mobile + desktop.
-    const addButtons = screen.getAllByRole('button', { name: /^Add (another )?meal$/ })
-    expect(addButtons.length).toBe(14)
+    // Only the 6 empty slots show a "+" (mobile + desktop); the occupied one adds from its menu.
+    expect(screen.getAllByRole('button', { name: 'Add meal' })).toHaveLength(12)
 
-    fireEvent.click(addButtons[0])
+    openMealMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Add meal' }))
     fireEvent.click(screen.getByRole('tab', { name: 'Custom' }))
     fireEvent.change(screen.getByPlaceholderText('Item 1'), { target: { value: 'Bacon' } })
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
