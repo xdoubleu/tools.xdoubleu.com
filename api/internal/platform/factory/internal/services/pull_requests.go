@@ -122,7 +122,8 @@ func (s *JobService) TestingAfterMerge(
 	if err == nil {
 		err = s.linked.Upsert(ctx, models.LinkedPullRequest{
 			URL: prURL, TaskID: id, State: githubapp.StateMerged,
-			CI: "", Review: "", CheckedAt: time.Time{},
+			CI: "", Review: "", Mergeable: "", UnmergeableSince: nil,
+			CheckedAt: time.Time{},
 		})
 	}
 	if err != nil {

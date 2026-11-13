@@ -119,7 +119,8 @@ func (c *Client) PullRequest(
 			MergeSHA: pull.SHA,
 		}, nil
 	case pull.State != "open":
-		return PullRequestStatus{State: StateClosed, CI: "", Review: "", Mergeable: "", MergeSHA: ""}, nil
+		return PullRequestStatus{State: StateClosed, CI: "", Review: "", Mergeable: "",
+			MergeSHA: ""}, nil
 	}
 
 	ci, err := c.checks(ctx, base, pull.Head.SHA, token)
