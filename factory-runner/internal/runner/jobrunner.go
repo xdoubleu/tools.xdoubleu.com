@@ -68,7 +68,8 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`checks it)". Your work continues until its pull request merges: the ` +
 	`runner opens the pull request, and when a gate, the push or CI fails it ` +
 	`resumes this session with what failed. Fix it, commit, and write the ` +
-	`outcome again. A line "Blocked:" in the outcome stops that loop for good, ` +
+	`outcome again. A line "Blocked:" in the outcome stops that loop for good ` +
+	`unless a pull request opened, ` +
 	`so use it only for a problem outside your reach: if the sandbox stops ` +
 	`you doing or checking the work (a missing module cache, blocked network, ` +
 	`absent tool), search the board with factory_list_tasks for the label ` +

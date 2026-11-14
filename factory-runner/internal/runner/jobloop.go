@@ -207,11 +207,13 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 			l.job.Branch))
 		res.head = strings.TrimSpace(string(ref))
 	}
+	// An open pull request is watched even when blocked: CI checks what the
+	// sandbox could not, and its failures go back to the agent.
 	switch {
-	case res.blocked != "":
-		return over(res)
 	case res.prURL != "":
 		return l.watch(res, text)
+	case res.blocked != "":
+		return over(res)
 	case res.retry:
 		return again(res, "not published: "+short(res.failure),
 			"publish:"+res.failure, res.head,

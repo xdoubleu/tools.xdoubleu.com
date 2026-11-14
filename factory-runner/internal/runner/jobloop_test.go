@@ -200,6 +200,27 @@ func TestABlockedLineStopsTheLoopAtOnce(t *testing.T) {
 	assert.Empty(t, p.api.noted())
 }
 
+func TestABlockedJobWhosePullRequestOpenedStillGetsItsRedCI(t *testing.T) {
+	blocked := "Did it\n\nBlocked: no node_modules\nChecks: lint=pass, " +
+		"test=not run (CI checks it), docs=pass"
+	p := newPublishing(t, attempts(
+		agentRuns(blocked, true),
+		agentRuns("Fixed CI"+passAll, true),
+	))
+	p.gh.head = cloneHead(t, p)
+	p.gh.statuses = []runner.PullStatus{
+		ciRed("web-test"),
+		{State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil},
+	}
+
+	_, err := p.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	require.Len(t, p.sandbox.specs, 2)
+	assert.Contains(t, p.sandbox.specs[1].Stdin, "CI failed on web-test")
+	assert.True(t, p.api.done()[0].succeeded)
+}
+
 func TestAPullRequestClosedWithoutMergingEndsTheJob(t *testing.T) {
 	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
 	p.gh.statuses = []runner.PullStatus{{
