@@ -198,6 +198,39 @@ func TestAFailedJobCloneRebuildsTheMirrorAndRetriesOnce(t *testing.T) {
 		[]string{"remote", "clone", "clone", "clone", "remote", "rev-parse"}, calls)
 }
 
+func TestARebuildThatFailsIsReturnedAndAnUnopenableLockFails(t *testing.T) {
+	dir := t.TempDir()
+	mirror := filepath.Join(dir, "mirrors", "o", "n.git")
+	require.NoError(t, os.MkdirAll(mirror, 0o755))
+	n := 0
+	g := &runner.Git{
+		Dir:       dir,
+		RemoteURL: func(string, string) string { return "x" },
+		Run: func(context.Context, string, ...string) ([]byte, error) {
+			n++
+			if n >= 2 { // the job clone, then the mirror's re-clone
+				return []byte("nope"), errors.New("exit 128")
+			}
+			return nil, nil
+		},
+		RunWithEnv: nil,
+	}
+	err := g.Clone(context.Background(), "o", "n", "main", "agent/x",
+		filepath.Join(t.TempDir(), "d"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "nope")
+
+	// The lock path is a directory, so it can't be opened.
+	require.NoError(t, os.RemoveAll(mirror+".lock"))
+	require.NoError(t, os.MkdirAll(mirror+".lock", 0o755))
+	err = g.Clone(context.Background(), "o", "n", "main", "agent/x",
+		filepath.Join(t.TempDir(), "d"))
+	require.ErrorContains(t, err, "mirror lock")
+	_, err = g.Restore(context.Background(), "o", "n", "agent/x",
+		filepath.Join(t.TempDir(), "d"))
+	require.ErrorContains(t, err, "mirror lock")
+}
+
 func TestCloneRepairsAMirrorWhoseRefPointsAtAMissingObject(t *testing.T) {
 	origin := filepath.Join(t.TempDir(), "origin")
 	require.NoError(t, os.MkdirAll(origin, 0o755))
