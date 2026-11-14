@@ -114,7 +114,23 @@ func (s *JobService) park(
 		body += " Waiting on sandbox task T-" +
 			strconv.FormatInt(sandbox.Number, 10) + "."
 	}
-	return s.finishTask(ctx, task.ID, systemAuthor, body, models.StatusInProgress)
+	if err = s.finishTask(
+		ctx, task.ID, systemAuthor, body, models.StatusInProgress); err != nil {
+		return err
+	}
+	s.recordFirstDigest(ctx)
+	return nil
+}
+
+// recordFirstDigest stores the current digest when none is known, so the next
+// image resumes a task parked before the periodic job first ran. Best effort.
+func (s *JobService) recordFirstDigest(ctx context.Context) {
+	if seen, err := s.settings.ImageDigest(ctx); err != nil || seen != "" {
+		return
+	}
+	if digest, err := s.imageDigest(ctx); err == nil {
+		_ = s.settings.SetImageDigest(ctx, digest)
+	}
 }
 
 // ResumeParked queues a job resuming the session of every parked task once the
@@ -173,20 +189,22 @@ func (s *JobService) resume(ctx context.Context, t *models.Task) error {
 	unparked := slices.DeleteFunc(slices.Clone(t.Labels), func(l string) bool {
 		return l == ParkedLabel
 	})
-	if err = s.tasks.SetLabels(ctx, t.ID, unparked); err != nil {
-		return err
-	}
 	if slices.ContainsFunc(jobs, func(j models.Job) bool {
 		return !j.Status.Finished()
 	}) {
-		return nil
+		return s.tasks.SetLabels(ctx, t.ID, unparked)
 	}
-	if len(jobs) == 0 || jobs[0].SessionID == "" {
+	// Jobs are newest first: resume the newest session there is.
+	i := slices.IndexFunc(jobs, func(j models.Job) bool { return j.SessionID != "" })
+	if i < 0 {
+		if err = s.tasks.SetLabels(ctx, t.ID, unparked); err != nil {
+			return err
+		}
 		return s.finishTask(ctx, t.ID, systemAuthor,
 			"A new job image is published, but there is no session to resume.",
 			models.StatusNeedsYou)
 	}
-	last := jobs[0]
+	last := jobs[i]
 	if _, err = s.jobs.Create(ctx, models.Job{
 		ID: uuid.Nil, TaskID: t.ID, TaskNumber: 0, RepoID: last.RepoID,
 		Harness: last.Harness, Model: last.Model, Prompt: imageResumePrompt,
@@ -196,6 +214,10 @@ func (s *JobService) resume(ctx context.Context, t *models.Task) error {
 		Limited: false, LimitResetsAt: nil,
 		StartedAt: nil, LastCheckIn: nil, FinishedAt: nil,
 	}); err != nil {
+		return err
+	}
+	// The label goes last, so a failure above leaves the task to retry.
+	if err = s.tasks.SetLabels(ctx, t.ID, unparked); err != nil {
 		return err
 	}
 	_, err = s.tasks.AddComment(ctx, t.ID, systemAuthor,
