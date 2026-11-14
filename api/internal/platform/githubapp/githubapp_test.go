@@ -48,6 +48,7 @@ type fakeGitHub struct {
 	installStatus int
 	mintStatus    int
 	mintBody      string
+	noActions     bool
 	lastMint      map[string]any
 	server        *httptest.Server
 	mux           *http.ServeMux
@@ -59,7 +60,8 @@ func newFake(t *testing.T, key *rsa.PrivateKey) *fakeGitHub {
 		t: t, pub: &key.PublicKey, appID: "12345",
 		installStatus: http.StatusOK, mintStatus: http.StatusCreated,
 		installations: atomic.Int32{}, mints: atomic.Int32{}, mintBody: "",
-		lastMint: nil, server: nil, mux: nil,
+		noActions: false,
+		lastMint:  nil, server: nil, mux: nil,
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc(
@@ -85,6 +87,11 @@ func newFake(t *testing.T, key *rsa.PrivateKey) *fakeGitHub {
 			assert.Equal(t, "777", r.PathValue("id"))
 			body, _ := io.ReadAll(r.Body)
 			require.NoError(t, json.Unmarshal(body, &f.lastMint))
+			perms, _ := f.lastMint["permissions"].(map[string]any)
+			if _, asked := perms["actions"]; asked && f.noActions {
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				return
+			}
 			if f.mintStatus != http.StatusCreated {
 				w.WriteHeader(f.mintStatus)
 				_, _ = io.WriteString(w, `{"message":"secret detail"}`)
@@ -163,10 +170,26 @@ func TestMintsATokenNarrowedToOneRepoAndWhatAJobNeeds(t *testing.T) {
 		assert.Equal(t, []any{"tools.xdoubleu.com"}, f.lastMint["repositories"])
 		assert.Equal(t, map[string]any{
 			"contents": "write", "pull_requests": "write", "workflows": "write",
-			"checks": "read",
+			"checks": "read", "actions": "read",
 		},
-			f.lastMint["permissions"], "no workflows, issues or administration")
+			f.lastMint["permissions"], "no issues or administration")
 	}
+}
+
+func TestATokenIsMintedWithoutActionsWhileTheAppLacksThePermission(t *testing.T) {
+	key, pkcs1, _ := newKey(t)
+	f := newFake(t, key)
+	f.noActions = true
+	c := newClient(t, f, pkcs1)
+
+	token, err := c.InstallationToken(t.Context(), "o", "r")
+	require.NoError(t, err)
+	assert.Equal(t, "ghs_minted", token.Value)
+	assert.EqualValues(t, 2, f.mints.Load())
+	assert.Equal(t, map[string]any{
+		"contents": "write", "pull_requests": "write", "workflows": "write",
+		"checks": "read",
+	}, f.lastMint["permissions"])
 }
 
 func TestTheInstallationIsRememberedUntilItGoesStale(t *testing.T) {
@@ -309,7 +332,8 @@ func TestAStaleInstallationIsForgottenWhateverGitHubAnswers(t *testing.T) {
 		f.mintStatus = http.StatusCreated
 		_, err = c.InstallationToken(t.Context(), "o", "r")
 		require.NoError(t, err)
-		assert.EqualValues(t, 2, f.installations.Load(), "looked up again after %d", status)
+		// The failed mint is retried without actions, which looks the id up again.
+		assert.EqualValues(t, 3, f.installations.Load(), "looked up again after %d", status)
 	}
 }
 

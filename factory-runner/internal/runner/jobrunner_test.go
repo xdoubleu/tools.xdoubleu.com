@@ -81,6 +81,7 @@ type fakeAPI struct {
 }
 
 type completion struct {
+	end       runner.JobEnd
 	jobID     string
 	succeeded bool
 	outcome   string
@@ -202,7 +203,7 @@ func (f *fakeAPI) CompleteJob(
 	f.completed = append(f.completed, completion{
 		jobID: id, succeeded: end.Succeeded, outcome: end.Outcome,
 		session: end.SessionID, prURL: end.PRURL, limited: end.Limited,
-		resetsAt: end.ResetsAt, blocked: end.Blocked,
+		resetsAt: end.ResetsAt, blocked: end.Blocked, end: end,
 	})
 	f.completes <- struct{}{}
 	return nil
@@ -304,7 +305,7 @@ func newEnv(
 			Proxy: nil, Activity: nil, DataDir: dir, Secrets: nil,
 			GitHub: nil, ServerURL: "", PublishRetry: 0,
 			CheckInEvery: 10 * time.Millisecond, Minute: time.Second, EventsEvery: 0,
-			PollEvery: time.Millisecond, MaxWatch: 5 * time.Second,
+			PollEvery: time.Millisecond, RunningPollEvery: 0, MaxWatch: 5 * time.Second,
 			// Waits are recorded, not slept, so a test never idles for an hour.
 			Sleep: func(ctx context.Context, d time.Duration) {
 				api.slept(d)
@@ -995,4 +996,36 @@ func TestAReplyOfAnotherHarnessIsRefusedWithAReason(t *testing.T) {
 	assert.Contains(
 		t, env.api.done()[0].outcome, "this Mac runs "+runner.HarnessClaudeCode,
 	)
+}
+
+func TestARerunTaskWithAPushedBranchContinuesFromIt(t *testing.T) {
+	var runs int
+	env := newEnv(t, func(
+		ctx context.Context, spec runner.SandboxSpec,
+	) (int, error) {
+		runs++
+		if runs == 1 {
+			return writes("First.", 0)(ctx, spec)
+		}
+		commitFile(spec.CloneDir, "more.txt", "more")
+		_ = os.WriteFile(
+			filepath.Join(spec.OutcomeDir, "outcome.md"), []byte("More."), 0o644,
+		)
+		return 0, nil
+	}, newJob())
+	ranFirstJob(t, env)
+	rerun := replyJob()
+	rerun.ResumeSessionID = ""
+	env.api.jobs = append(env.api.jobs, rerun)
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	second := env.sandbox.specs[1]
+	assert.Equal(t, runner.ClaudeCode{}.Command(), second.Command, "no session to resume")
+	assert.Contains(t, second.Stdin, "continuing earlier work")
+	assert.Contains(t, second.Stdin, "Merge origin/main")
+	assert.FileExists(t, filepath.Join(second.CloneDir, "agent.txt"), "the earlier work")
+	got := env.api.done()[1]
+	assert.True(t, got.succeeded, got.outcome)
 }

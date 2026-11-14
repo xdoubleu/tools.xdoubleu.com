@@ -1,0 +1,7 @@
+# gremlins config for `make test/mutation/diff`. The cgo menu bar is not
+# mutation-testable (no UI in tests).
+unleash:
+  exclude-files:
+    - "(^|/)menubar[^/]*\\.(go|m|h)$"
+  # Each mutant recompiles and relinks; the default coefficient turns that into TIMED OUT.
+  timeout-coefficient: 10

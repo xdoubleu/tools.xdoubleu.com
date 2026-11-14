@@ -9,6 +9,7 @@ declare global {
       KOBO_GATEWAY_RELEASE: string
       POSTHOG_KEY: string
       POSTHOG_HOST: string
+      ACCOUNT_URL?: string
     }
   }
 }
@@ -39,4 +40,10 @@ export function getPostHogKey(): string {
 
 export function getPostHogHost(): string {
   return window.__ENV__?.POSTHOG_HOST ?? ''
+}
+
+// The identity provider's page for a person's own password and second
+// factors; empty while people sign in by password.
+export function getAccountUrl(): string {
+  return window.__ENV__?.ACCOUNT_URL ?? ''
 }

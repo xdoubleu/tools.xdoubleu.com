@@ -16,6 +16,8 @@ import (
 const (
 	// DefaultPollEvery is how often a job's open pull request is read.
 	DefaultPollEvery = time.Minute
+	// DefaultRunningPollEvery is how often it is read while checks are still running.
+	DefaultRunningPollEvery = 20 * time.Second
 	// DefaultMaxWatch is how long a pull request may stay unmerged before the job
 	// gives up on it.
 	DefaultMaxWatch = 6 * time.Hour
@@ -28,7 +30,9 @@ const (
 	// tokenLife is how long a push token is reused for reading the pull request.
 	tokenLife   = 20 * time.Minute
 	noteTimeout = 15 * time.Second
-	maxWhy      = 300
+	// retroMinutes bounds the closing retro, in runner minutes.
+	retroMinutes = 5
+	maxWhy       = 300
 )
 
 // jobLoop is one job's whole run in one VM: agent attempts (the first on the
@@ -36,10 +40,12 @@ const (
 // after each, and the pull request watched until it merges. It holds no state
 // shared with another job, so several can run side by side.
 type jobLoop struct {
-	r    *JobRunner
-	job  *ClaimedJob
-	dirs jobDirs
-	// since is where a Reply's host checks start.
+	// sandboxFixed is set once the outcome's Sandbox-fix branch was handled.
+	sandboxFixed bool
+	r            *JobRunner
+	job          *ClaimedJob
+	dirs         jobDirs
+	// since is where host checks start on an existing branch.
 	since   string
 	launch  launch
 	secrets []string
@@ -55,6 +61,12 @@ type jobLoop struct {
 	limit   time.Duration
 	token   string
 	tokenAt time.Time
+	times   phaseTimes
+	// greenAt is when CI first passed in the current watch.
+	greenAt time.Time
+	// began is when the job started; causes is why each retry was needed.
+	began  time.Time
+	causes []string
 }
 
 // step is how an attempt ended: the job's result when that is the end, or what
@@ -118,15 +130,38 @@ func (l *jobLoop) open() *result {
 	return nil
 }
 
-// run is the job from its first prompt to its end.
+// run is the job from its first prompt to its end; its phase times go to the
+// board's log last once a pull request was opened.
 func (l *jobLoop) run() result {
+	start := l.now()
+	l.began = start
+	res := l.loop()
+	res.total = l.now().Sub(start)
+	times := l.times
+	res.times = &times
+	if res.prURL != "" {
+		l.events.note(l.times.summary(res.total))
+	}
+	return res
+}
+
+func (l *jobLoop) loop() result {
 	if res := l.open(); res != nil {
 		return *res
 	}
 	defer l.session.Close()
+	res := l.attempts()
+	l.retro(res)
+	return res
+}
 
+func (l *jobLoop) attempts() result {
 	command := l.launch.command
-	prompt := fmt.Sprintf(preamble, l.job.Branch) + "\n\n" + l.job.Prompt
+	prompt := fmt.Sprintf(preamble, l.job.Branch) + "\n\n"
+	if l.since != "" && l.job.ResumeSessionID == "" {
+		prompt += fmt.Sprintf(continuePrompt, l.job.DefaultBranch) + "\n\n"
+	}
+	prompt += l.job.Prompt
 	var last *step
 	for attempt := 1; ; attempt++ {
 		s := l.attempt(command, prompt)
@@ -145,6 +180,8 @@ func (l *jobLoop) run() result {
 		if sid == "" {
 			return l.stop(s, "Stopped: the agent has no session to resume.")
 		}
+		l.causes = append(l.causes, redact(short(s.why), l.events.redactions))
+		l.times.retry(s.res.cause)
 		l.note(fmt.Sprintf("Attempt %d: %s, retrying", attempt+1, s.why))
 		command, prompt = l.r.harnessFor(l.job).Resume(sid), s.feedback
 	}
@@ -198,7 +235,9 @@ func (l *jobLoop) ended() string {
 // attempt runs the agent once, then checks and publishes what it left, and, once
 // the pull request is open, watches it.
 func (l *jobLoop) attempt(command []string, prompt string) step {
+	began := l.now()
 	text, end := l.agent(command, prompt)
+	l.times.agent += l.now().Sub(began)
 	if end != nil {
 		return *end
 	}
@@ -207,7 +246,25 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 		!leaks(b, l.secrets) {
 		res.blocked = b
 	}
+	if res.blocked == "" {
+		if fb := l.runGates(); fb != "" {
+			ref, _ := os.ReadFile(filepath.Join(l.dirs.clone, ".git", "refs", "heads",
+				l.job.Branch))
+			return again(res, "gate failed: "+short(fb), "gate:"+short(fb),
+				strings.TrimSpace(string(ref)), fb)
+		}
+	}
+	began = l.now()
 	res = l.r.publishable(l.parent, l.job, l.dirs.clone, l.since, text, res, l.secrets)
+	if _, ok := findLine(text, "Sandbox-fix:"); ok && l.r.GitHub != nil &&
+		!l.sandboxFixed {
+		l.sandboxFixed = true
+		n := l.r.publishSandboxFix(l.parent, l.job, l.dirs.clone, text, l.secrets)
+		if n != "" {
+			l.note(n)
+		}
+	}
+	l.times.publish += l.now().Sub(began)
 	if res.head == "" {
 		// Only an identity for spotting no progress, so the agent's own ref file
 		// will do where the host never got to review the branch.
@@ -219,7 +276,11 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 	// sandbox could not, and its failures go back to the agent.
 	switch {
 	case res.prURL != "":
-		return l.watch(res, text)
+		began = l.now()
+		l.greenAt = time.Time{}
+		st := l.watch(res, text)
+		l.times.addWatch(began, l.greenAt, l.now())
+		return st
 	case res.blocked != "":
 		return over(res)
 	case res.retry:
@@ -239,6 +300,10 @@ func (l *jobLoop) baseResult() result {
 	return res
 }
 
+const noOutcomeNudge = "You finished without writing the outcome file. Write it now " +
+	"to the path in $FACTORY_OUTCOME_PATH (first line the pull request title, " +
+	"last line the Checks: line), then stop. Do not redo the work."
+
 // agent runs the agent once. It returns the outcome the agent wrote, or the step
 // that ends or pauses the job when there is none worth publishing.
 func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
@@ -252,10 +317,23 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 	timedOut := errors.Is(attemptCtx.Err(), context.DeadlineExceeded) &&
 		l.ctx.Err() == nil
 	cancel()
+	outPath := filepath.Join(l.dirs.outcome, outcomeFile)
+	// A clean exit with no outcome is usually an agent that forgot the last step:
+	// ask once, in the same session, before failing the attempt.
+	if sid := l.tap.Session(); runErr == nil && exit == 0 && !timedOut &&
+		sid != "" && l.ended() == "" && readOutcome(outPath) == "" {
+		l.note("The agent wrote no outcome file, asking once more")
+		nudgeCtx, stop := context.WithTimeout(l.ctx, l.limit)
+		exit, runErr = l.session.Exec(nudgeCtx, l.r.harnessFor(l.job).Resume(sid),
+			noOutcomeNudge, io.MultiWriter(l.tap, l.events))
+		timedOut = errors.Is(nudgeCtx.Err(), context.DeadlineExceeded) &&
+			l.ctx.Err() == nil
+		stop()
+	}
 	// What the agent said last is what you most want to read.
 	l.r.flush(l.parent, l.job.ID, l.events)
 
-	text := readOutcome(filepath.Join(l.dirs.outcome, outcomeFile))
+	text := readOutcome(outPath)
 	limited, resetsAt := l.tap.Limit()
 	res := l.baseResult()
 	if b, ok := findLine(text, "Blocked:"); ok && !strings.EqualFold(b, "none") &&
@@ -332,7 +410,8 @@ func (l *jobLoop) watch(res result, text string) step {
 		if why := l.ended(); why != "" {
 			return l.finish(res, why, text)
 		}
-		if st, err := l.status(ref); err != nil {
+		st, err := l.status(ref)
+		if err != nil {
 			l.r.Log.Warn("could not read the pull request", "job", l.job.ID,
 				"error", scrub(err.Error(), l.token))
 		} else if s, over := l.judge(res, text, st); over {
@@ -342,8 +421,16 @@ func (l *jobLoop) watch(res result, text string) step {
 			return l.finish(res, "The pull request was not merged within "+
 				cmp.Or(l.r.MaxWatch, DefaultMaxWatch).String()+".", text)
 		}
-		l.sleep(cmp.Or(l.r.PollEvery, DefaultPollEvery))
+		l.sleep(l.pollEvery(st))
 	}
+}
+
+// pollEvery polls fast while checks run and slowly once they are green.
+func (l *jobLoop) pollEvery(st PullStatus) time.Duration {
+	if st.State == PullOpen && st.CI == CIPending {
+		return cmp.Or(l.r.RunningPollEvery, DefaultRunningPollEvery)
+	}
+	return cmp.Or(l.r.PollEvery, DefaultPollEvery)
 }
 
 // judge is what a pull request's status means for the job; over says it does.
@@ -364,6 +451,7 @@ func (l *jobLoop) judge(res result, text string, st PullStatus) (step, bool) {
 		detail.WriteString("\n\n" + f.Name + ":\n" + f.Excerpt)
 	}
 	joined := strings.Join(names, ", ")
+	res.cause = "ci"
 	return again(res, "CI failed on "+short(joined), "ci:"+joined, st.HeadSHA,
 		"The pull request "+res.prURL+" is open, but CI failed on "+joined+"."+
 			detail.String()+"\n\nFix it, run those gates yourself where the sandbox "+
@@ -391,7 +479,11 @@ func (l *jobLoop) status(ref PullRef) (PullStatus, error) {
 	}
 	ctx, cancel := context.WithTimeout(l.ctx, publishTimeout)
 	defer cancel()
-	return l.r.GitHub.PullRequestStatus(ctx, l.token, ref)
+	st, err := l.r.GitHub.PullRequestStatus(ctx, l.token, ref)
+	if err == nil && st.CI == CISuccess && l.greenAt.IsZero() {
+		l.greenAt = l.now()
+	}
+	return st, err
 }
 
 // note tells the board an attempt is starting: a line in the job's log and a
@@ -413,4 +505,23 @@ func short(s string) string {
 		s = strings.ToValidUTF8(s[:maxWhy], "") + "..."
 	}
 	return s
+}
+
+// retro resumes the agent's session once more when the job needed retries, to
+// file what slowed it as factory-retro tasks. It is bounded, pushes nothing (the
+// runner alone publishes) and its failure changes nothing about the job's result.
+func (l *jobLoop) retro(res result) {
+	sid := l.tap.Session()
+	if len(l.causes) == 0 || res.limited || sid == "" || l.ended() != "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(l.ctx, retroMinutes*l.r.minute())
+	defer cancel()
+	prompt := fmt.Sprintf(retroPrompt, l.times.summary(l.now().Sub(l.began)),
+		"- "+strings.Join(l.causes, "\n- "))
+	_, err := l.session.Exec(ctx, l.r.harnessFor(l.job).Resume(sid), prompt, l.events)
+	if err != nil {
+		l.r.Log.Warn("the retro did not run", "job", l.job.ID, "error", err)
+	}
+	l.r.flush(l.parent, l.job.ID, l.events)
 }

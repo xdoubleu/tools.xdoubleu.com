@@ -508,6 +508,9 @@ func NewApplication(
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 	}
 
+	authSvc.OIDC = newOIDCProvider(config)
+	authSvc.Directory = newDirectory(config)
+
 	notificationsSvc := newNotificationsService(ctx, logger, config)
 	familySvc := family.New(
 		familyRepo,

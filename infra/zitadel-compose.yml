@@ -1,0 +1,50 @@
+services:
+  zitadel:
+    # Tag only until Renovate (docker:pinDigests) adds the digest.
+    image: ghcr.io/zitadel/zitadel:v4.0.0
+    restart: unless-stopped
+    # About 512 MiB resident; the cap leaves headroom so a cgroup OOM stays
+    # inside this container.
+    mem_limit: 768m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # `start-from-setup` skips the init step that needs Postgres admin
+    # credentials: the database and role are created by zitadel-setup.sh.
+    command: start-from-setup --masterkeyFromEnv
+    env_file: .env
+    environment:
+      ZITADEL_EXTERNALDOMAIN: ${ZITADEL_HOST}
+      ZITADEL_EXTERNALPORT: "443"
+      ZITADEL_EXTERNALSECURE: "true"
+      # kamal-proxy terminates TLS and speaks h2c to the container.
+      ZITADEL_TLS_ENABLED: "false"
+      ZITADEL_DATABASE_POSTGRES_HOST: postgres
+      ZITADEL_DATABASE_POSTGRES_PORT: "5432"
+      ZITADEL_DATABASE_POSTGRES_DATABASE: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: zitadel
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+      # Resend's SMTP relay takes the API key as the password.
+      ZITADEL_DEFAULTINSTANCE_SMTPCONFIGURATION_SMTP_HOST: smtp.resend.com:465
+      ZITADEL_DEFAULTINSTANCE_SMTPCONFIGURATION_SMTP_USER: resend
+      ZITADEL_DEFAULTINSTANCE_SMTPCONFIGURATION_TLS: "true"
+      ZITADEL_DEFAULTINSTANCE_SMTPCONFIGURATION_FROM: ${ZITADEL_SMTP_FROM}
+      ZITADEL_DEFAULTINSTANCE_SMTPCONFIGURATION_FROMNAME: tools.xdoubleu.com
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: zitadel-admin@${ZITADEL_HOST}
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: "false"
+    healthcheck:
+      test: ["CMD", "/app/zitadel", "ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks:
+      # Reaches `postgres:5432`; kamal-proxy reaches `zitadel:8080`. No host port.
+      - kamal
+
+networks:
+  # Pre-created (infra/README.md); external because Kamal also uses it.
+  kamal:
+    external: true

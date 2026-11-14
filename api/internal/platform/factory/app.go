@@ -6,6 +6,7 @@ import (
 	"embed"
 	"errors"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -44,6 +45,7 @@ type Factory struct {
 	// webhookSecret signs the GitHub App's webhook deliveries; empty turns the
 	// endpoint off.
 	webhookSecret string
+	digests       services.DigestSource
 }
 
 // WithJobAccounts makes every claimed job run as an agent account of its own,
@@ -75,6 +77,13 @@ func WithSlack(webhookURL, webURL string) Option {
 // Without it a lister is built from OPENROUTER_API_KEY.
 func WithModels(models openrouter.ModelLister) Option {
 	return func(a *Factory) { a.models = models }
+}
+
+// WithImageDigestSource sets where the published job image digest is read, which
+// resumes tasks parked on the sandbox when it changes. Without it the manifest
+// under the web URL is read.
+func WithImageDigestSource(src func(context.Context) (string, error)) Option {
+	return func(a *Factory) { a.digests = src }
 }
 
 // Option adjusts a Factory.
@@ -118,6 +127,7 @@ func New(
 		webURL:        "",
 		models:        nil,
 		webhookSecret: "",
+		digests:       nil,
 	}
 	for _, opt := range opts {
 		opt(a)
@@ -130,6 +140,11 @@ func New(
 		repositories.New(db), authService, a.jobAccounts, a.github, a.notifier, a.webURL,
 		cfg.Release,
 	)
+	if a.digests == nil && cfg.WebURL != "" {
+		a.digests = services.ManifestDigest(
+			cfg.WebURL, &http.Client{Timeout: services.ManifestTimeout})
+	}
+	a.services.Jobs.SetImageDigestSource(a.digests)
 	return a
 }
 
@@ -166,7 +181,18 @@ func (a *Factory) Start() error {
 		a.jobQueue.AddJob(a.checkRunnerJob(), noop),
 		a.jobQueue.AddJob(a.signalsJob(), noop),
 		a.jobQueue.AddJob(a.routinesJob(), noop),
+		a.jobQueue.AddJob(a.resumeParkedJob(), noop),
 	)
+}
+
+func (a *Factory) resumeParkedJob() threading.Job {
+	resume := jobs.NewResumeParkedJob(a.services.Jobs)
+	return observability.NewTrackedJob(resume, a.db)
+}
+
+// ResumeParkedNow resumes parked tasks once, outside the schedule.
+func (a *Factory) ResumeParkedNow(ctx context.Context) error {
+	return a.resumeParkedJob().Run(ctx, a.Logger)
 }
 
 func (a *Factory) pollJob() threading.Job {

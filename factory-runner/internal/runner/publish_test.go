@@ -265,8 +265,13 @@ func TestAServerThatCannotPushLeavesTheWorkOnTheMac(t *testing.T) {
 	}
 }
 
-func TestABranchThatAlreadyHoldsOtherWorkOnGitHubIsNeverOverwritten(t *testing.T) {
-	p := newPublishing(t, writes("Did it."+allPass, 0))
+func TestABranchThatAlreadyHoldsEarlierWorkOnGitHubIsFastForwarded(t *testing.T) {
+	p := newPublishing(t, func(
+		ctx context.Context, spec runner.SandboxSpec,
+	) (int, error) {
+		commitFile(spec.CloneDir, "mine.txt", "y")
+		return writes("Did it."+allPass, 0)(ctx, spec)
+	})
 	// Someone (an earlier job) already put different work on the branch.
 	other := filepath.Join(t.TempDir(), "other")
 	require.NoError(t, os.MkdirAll(other, 0o755))
@@ -286,11 +291,12 @@ func TestABranchThatAlreadyHoldsOtherWorkOnGitHubIsNeverOverwritten(t *testing.T
 	require.NoError(t, err)
 
 	got := p.api.done()[0]
-	assert.True(t, got.succeeded)
-	assert.Empty(t, got.prURL)
-	assert.Contains(t, got.outcome, "never overwritten")
-	assert.Equal(t, before, p.remoteBranch(t), "their work is untouched")
-	assert.Empty(t, p.gh.opened)
+	assert.True(t, got.succeeded, got.outcome)
+	assert.NotEmpty(t, got.prURL)
+	assert.NotEqual(t, before, p.remoteBranch(t))
+	assert.Equal(t, before, gitIn(t, p.remote, "merge-base", before, p.remoteBranch(t)),
+		"the push built on the earlier work")
+	require.Len(t, p.gh.opened, 1)
 }
 
 func TestAPullRequestThatCannotBeOpenedIsSaidSoAndTheTokenStaysOut(t *testing.T) {

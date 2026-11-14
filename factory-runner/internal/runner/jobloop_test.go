@@ -74,7 +74,7 @@ func TestAFailedGateIsRetriedInTheSameSessionUntilThePullRequestMerges(t *testin
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	require.Len(t, p.sandbox.specs, 2)
+	require.Len(t, p.sandbox.specs, 3)
 	second := p.sandbox.specs[1]
 	assert.Equal(t, runner.ClaudeCode{}.Resume("sess-9"), second.Command)
 	assert.Contains(t, second.Stdin, "test fail")
@@ -85,6 +85,7 @@ func TestAFailedGateIsRetriedInTheSameSessionUntilThePullRequestMerges(t *testin
 	assert.True(t, got[0].succeeded)
 	assert.NotEmpty(t, got[0].prURL)
 	assert.Equal(t, "Second try"+passAll, got[0].outcome)
+	assert.Equal(t, map[string]int{"gate": 1}, runner.RetriesOf(got[0].end))
 
 	assert.Equal(t, []string{
 		"Attempt 2: not published: not every check passed (test fail), retrying",
@@ -108,7 +109,7 @@ func TestRedCIAfterThePullRequestOpensIsFedBackAndPushedAgain(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	require.Len(t, p.sandbox.specs, 2)
+	require.Len(t, p.sandbox.specs, 3)
 	feedback := p.sandbox.specs[1].Stdin
 	assert.Contains(t, feedback, "CI failed on api-test, web-lint")
 	assert.Contains(t, feedback, "api-test broke")
@@ -118,6 +119,7 @@ func TestRedCIAfterThePullRequestOpensIsFedBackAndPushedAgain(t *testing.T) {
 
 	got := p.api.done()[0]
 	assert.True(t, got.succeeded)
+	assert.Equal(t, map[string]int{"ci": 1}, runner.RetriesOf(got.end))
 	assert.Equal(t, "Fixed CI"+passAll, got.outcome)
 	assert.NotEmpty(t, p.remoteBranch(t))
 }
@@ -148,7 +150,7 @@ func TestTheSameFailureTwiceWithNoNewCommitStopsTheLoop(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	assert.Len(t, p.sandbox.specs, 2)
+	assert.Len(t, p.sandbox.specs, 3)
 	got := p.api.done()[0]
 	assert.False(t, got.succeeded)
 	assert.Contains(t, got.outcome, "Stopped: no progress")
@@ -165,7 +167,7 @@ func TestARepeatedGateFailureWithNoNewCommitStopsTheLoop(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	assert.Len(t, p.sandbox.specs, 2)
+	assert.Len(t, p.sandbox.specs, 3)
 	got := p.api.done()[0]
 	assert.Contains(t, got.outcome, "Stopped: no progress")
 	assert.Empty(t, got.prURL)
@@ -182,7 +184,7 @@ func TestADifferentFailureIsNotNoProgress(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	assert.Len(t, p.sandbox.specs, 3)
+	assert.Len(t, p.sandbox.specs, 4)
 	assert.True(t, p.api.done()[0].succeeded)
 	assert.NotEmpty(t, p.api.done()[0].prURL)
 }
@@ -216,7 +218,7 @@ func TestABlockedJobWhosePullRequestOpenedStillGetsItsRedCI(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	require.Len(t, p.sandbox.specs, 2)
+	require.Len(t, p.sandbox.specs, 3)
 	assert.Contains(t, p.sandbox.specs[1].Stdin, "CI failed on web-test")
 	assert.True(t, p.api.done()[0].succeeded)
 }
@@ -348,7 +350,7 @@ func TestTheAttemptLimitEndsALoopThatNeverGetsAnywhere(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	assert.Len(t, p.sandbox.specs, 20)
+	assert.Len(t, p.sandbox.specs, 21)
 	assert.Contains(t, p.api.done()[0].outcome, "Stopped after 20 attempts")
 }
 
@@ -396,7 +398,7 @@ func TestAnUnreadableBranchTipDoesNotStopAPublishedJob(t *testing.T) {
 	p.runner.Git.Run = func(
 		ctx context.Context, dir string, args ...string,
 	) ([]byte, error) {
-		if len(args) > 0 && args[0] == "rev-parse" {
+		if len(args) > 0 && args[0] == "rev-parse" && args[1] != "--verify" {
 			return nil, errors.New("no")
 		}
 		cmd := exec.CommandContext(ctx, "git", args...)
@@ -417,4 +419,27 @@ func countOf(steps []string, name string) int {
 		}
 	}
 	return n
+}
+
+func TestWatchPollsFastWhileChecksRunAndSlowerOnceGreen(t *testing.T) {
+	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
+	p.runner.PollEvery = 7 * time.Millisecond
+	p.runner.RunningPollEvery = 3 * time.Millisecond
+	p.gh.head = cloneHead(t, p)
+	p.gh.statuses = []runner.PullStatus{
+		{State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil},
+		{State: runner.PullOpen, HeadSHA: "", CI: runner.CISuccess, Failed: nil},
+		{State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil},
+	}
+
+	_, err := p.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	var polls []time.Duration
+	for _, d := range p.api.sleeps {
+		if d == 3*time.Millisecond || d == 7*time.Millisecond {
+			polls = append(polls, d)
+		}
+	}
+	assert.Equal(t, []time.Duration{3 * time.Millisecond, 7 * time.Millisecond}, polls)
 }

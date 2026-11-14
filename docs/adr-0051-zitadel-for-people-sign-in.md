@@ -14,6 +14,7 @@ No provider covers the second half: none of the hosted free tiers (Auth0, WorkOS
 ## Decision
 
 - **Zitadel, self-hosted, signs people in**: passwords, TOTP, recovery, passkeys and reset mail. In production it runs beside the api on the same host with its own database in the existing Postgres; the Compose file and Helm chart ([adr-0046](adr-0046-platform-respike.md)) ship it as the default provider.
+- **Deploy**: a Tofu-managed Compose container (like Prometheus) on the `kamal` network, routed by kamal-proxy at its own host, because Zitadel doesn't serve from a sub path and a Kamal service would need a wrapper image and build job.
 - **The api is an OIDC relying party for people.** Sign-in redirects to Zitadel; the api issues its own session from the ID token. `auth.users` links each user to the Zitadel subject. Any OIDC provider can replace Zitadel by configuration.
 - **The api keeps** users, roles, app grants, family, agent accounts, delegation and the MCP authorization server. MCP tokens, agent credentials and Grafana's OIDC sign-in ([adr-0021](adr-0021-oauth-as-general-purpose-oidc-idp.md)) are unaffected.
 - **User management calls Zitadel's user API** to create, invite and deactivate people; grants stay in the api.

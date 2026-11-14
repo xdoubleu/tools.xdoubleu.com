@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file factory/v1/runners.proto.
  */
 export const file_factory_v1_runners: GenFile = /*@__PURE__*/
-  fileDesc("ChhmYWN0b3J5L3YxL3J1bm5lcnMucHJvdG8SCmZhY3RvcnkudjEimQEKBlJ1bm5lchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCXBhaXJlZF9hdBgDIAEoCRIRCglsYXN0X3NlZW4YBCABKAkSDwoHdmVyc2lvbhgFIAEoCRISCgpyZXZva2VkX2F0GAYgASgJEhoKEnBhaXJpbmdfZXhwaXJlc19hdBgHIAEoCRIOCgZvbmxpbmUYCCABKAgiFAoSTGlzdFJ1bm5lcnNSZXF1ZXN0IjoKE0xpc3RSdW5uZXJzUmVzcG9uc2USIwoHcnVubmVycxgBIAMoCzISLmZhY3RvcnkudjEuUnVubmVyIjYKE0NyZWF0ZVJ1bm5lclJlcXVlc3QSDAoEbmFtZRgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiUAoUQ3JlYXRlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXISFAoMcGFpcmluZ19jb2RlGAIgASgJIiEKE1Jldm9rZVJ1bm5lclJlcXVlc3QSCgoCaWQYASABKAkiOgoUUmV2b2tlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXIiLAoLUGFpclJlcXVlc3QSDAoEY29kZRgBIAEoCRIPCgd2ZXJzaW9uGAIgASgJIjkKDFBhaXJSZXNwb25zZRIUCgxkZXZpY2VfdG9rZW4YASABKAkSEwoLcnVubmVyX25hbWUYAiABKAkiIwoQSGVhcnRiZWF0UmVxdWVzdBIPCgd2ZXJzaW9uGAEgASgJIhMKEUhlYXJ0YmVhdFJlc3BvbnNlIs8CCgpDbGFpbWVkSm9iEgoKAmlkGAEgASgJEg8KB3Rhc2tfaWQYAiABKAkSEgoKcmVwb19vd25lchgDIAEoCRIRCglyZXBvX25hbWUYBCABKAkSFgoOZGVmYXVsdF9icmFuY2gYBSABKAkSJAoHaGFybmVzcxgGIAEoDjITLmZhY3RvcnkudjEuSGFybmVzcxIOCgZwcm9tcHQYByABKAkSDgoGYnJhbmNoGAggASgJEhYKDnNldHVwX2NvbW1hbmRzGAkgASgJEhoKEnRpbWVfbGltaXRfbWludXRlcxgKIAEoBRIVCg1tY3BfY2xpZW50X2lkGAsgASgJEhkKEW1jcF9jbGllbnRfc2VjcmV0GAwgASgJEhkKEXJlc3VtZV9zZXNzaW9uX2lkGA0gASgJEg0KBW1vZGVsGA4gASgJEg8KB3JvdXRpbmUYDyABKAkiIwoPQ2xhaW1Kb2JSZXF1ZXN0EhAKCG1heF9qb2JzGAEgASgFIjcKEENsYWltSm9iUmVzcG9uc2USIwoDam9iGAEgASgLMhYuZmFjdG9yeS52MS5DbGFpbWVkSm9iIjQKDkNoZWNrSW5SZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCRISCgpzZXNzaW9uX2lkGAIgASgJIh8KD0NoZWNrSW5SZXNwb25zZRIMCgRzdG9wGAEgASgIIiQKB0pvYkxpbmUSCwoDc2VxGAEgASgFEgwKBGxpbmUYAiABKAkiTAoWQXBwZW5kSm9iRXZlbnRzUmVxdWVzdBIOCgZqb2JfaWQYASABKAkSIgoFbGluZXMYAiADKAsyEy5mYWN0b3J5LnYxLkpvYkxpbmUiGQoXQXBwZW5kSm9iRXZlbnRzUmVzcG9uc2UiNAoUQWRkSm9iQ29tbWVudFJlcXVlc3QSDgoGam9iX2lkGAEgASgJEgwKBGJvZHkYAiABKAkiFwoVQWRkSm9iQ29tbWVudFJlc3BvbnNlIqcBChJDb21wbGV0ZUpvYlJlcXVlc3QSDgoGam9iX2lkGAEgASgJEhEKCXN1Y2NlZWRlZBgCIAEoCBIPCgdvdXRjb21lGAMgASgJEhIKCnNlc3Npb25faWQYBCABKAkSDgoGcHJfdXJsGAUgASgJEg8KB2xpbWl0ZWQYBiABKAgSFwoPbGltaXRfcmVzZXRzX2F0GAcgASgJEg8KB2Jsb2NrZWQYCCABKAkiFQoTQ29tcGxldGVKb2JSZXNwb25zZSIsChhMaXN0RmluaXNoZWRUYXNrc1JlcXVlc3QSEAoIdGFza19pZHMYASADKAkiLQoZTGlzdEZpbmlzaGVkVGFza3NSZXNwb25zZRIQCgh0YXNrX2lkcxgBIAMoCSIlChNHZXRQdXNoVG9rZW5SZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCSI5ChRHZXRQdXNoVG9rZW5SZXNwb25zZRINCgV0b2tlbhgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgJMooCChJSdW5uZXJBZG1pblNlcnZpY2USTgoLTGlzdFJ1bm5lcnMSHi5mYWN0b3J5LnYxLkxpc3RSdW5uZXJzUmVxdWVzdBofLmZhY3RvcnkudjEuTGlzdFJ1bm5lcnNSZXNwb25zZRJRCgxDcmVhdGVSdW5uZXISHy5mYWN0b3J5LnYxLkNyZWF0ZVJ1bm5lclJlcXVlc3QaIC5mYWN0b3J5LnYxLkNyZWF0ZVJ1bm5lclJlc3BvbnNlElEKDFJldm9rZVJ1bm5lchIfLmZhY3RvcnkudjEuUmV2b2tlUnVubmVyUmVxdWVzdBogLmZhY3RvcnkudjEuUmV2b2tlUnVubmVyUmVzcG9uc2Uy1gUKDVJ1bm5lclNlcnZpY2USOQoEUGFpchIXLmZhY3RvcnkudjEuUGFpclJlcXVlc3QaGC5mYWN0b3J5LnYxLlBhaXJSZXNwb25zZRJICglIZWFydGJlYXQSHC5mYWN0b3J5LnYxLkhlYXJ0YmVhdFJlcXVlc3QaHS5mYWN0b3J5LnYxLkhlYXJ0YmVhdFJlc3BvbnNlEkUKCENsYWltSm9iEhsuZmFjdG9yeS52MS5DbGFpbUpvYlJlcXVlc3QaHC5mYWN0b3J5LnYxLkNsYWltSm9iUmVzcG9uc2USQgoHQ2hlY2tJbhIaLmZhY3RvcnkudjEuQ2hlY2tJblJlcXVlc3QaGy5mYWN0b3J5LnYxLkNoZWNrSW5SZXNwb25zZRJaCg9BcHBlbmRKb2JFdmVudHMSIi5mYWN0b3J5LnYxLkFwcGVuZEpvYkV2ZW50c1JlcXVlc3QaIy5mYWN0b3J5LnYxLkFwcGVuZEpvYkV2ZW50c1Jlc3BvbnNlElEKDEdldFB1c2hUb2tlbhIfLmZhY3RvcnkudjEuR2V0UHVzaFRva2VuUmVxdWVzdBogLmZhY3RvcnkudjEuR2V0UHVzaFRva2VuUmVzcG9uc2USVAoNQWRkSm9iQ29tbWVudBIgLmZhY3RvcnkudjEuQWRkSm9iQ29tbWVudFJlcXVlc3QaIS5mYWN0b3J5LnYxLkFkZEpvYkNvbW1lbnRSZXNwb25zZRJOCgtDb21wbGV0ZUpvYhIeLmZhY3RvcnkudjEuQ29tcGxldGVKb2JSZXF1ZXN0Gh8uZmFjdG9yeS52MS5Db21wbGV0ZUpvYlJlc3BvbnNlEmAKEUxpc3RGaW5pc2hlZFRhc2tzEiQuZmFjdG9yeS52MS5MaXN0RmluaXNoZWRUYXNrc1JlcXVlc3QaJS5mYWN0b3J5LnYxLkxpc3RGaW5pc2hlZFRhc2tzUmVzcG9uc2VCLVordG9vbHMueGRvdWJsZXUuY29tL2dlbi9mYWN0b3J5L3YxO2ZhY3Rvcnl2MWIGcHJvdG8z", [file_factory_v1_factory]);
+  fileDesc("ChhmYWN0b3J5L3YxL3J1bm5lcnMucHJvdG8SCmZhY3RvcnkudjEimQEKBlJ1bm5lchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCXBhaXJlZF9hdBgDIAEoCRIRCglsYXN0X3NlZW4YBCABKAkSDwoHdmVyc2lvbhgFIAEoCRISCgpyZXZva2VkX2F0GAYgASgJEhoKEnBhaXJpbmdfZXhwaXJlc19hdBgHIAEoCRIOCgZvbmxpbmUYCCABKAgiFAoSTGlzdFJ1bm5lcnNSZXF1ZXN0IjoKE0xpc3RSdW5uZXJzUmVzcG9uc2USIwoHcnVubmVycxgBIAMoCzISLmZhY3RvcnkudjEuUnVubmVyIjYKE0NyZWF0ZVJ1bm5lclJlcXVlc3QSDAoEbmFtZRgBIAEoCRIRCgl0b3RwX2NvZGUYAiABKAkiUAoUQ3JlYXRlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXISFAoMcGFpcmluZ19jb2RlGAIgASgJIiEKE1Jldm9rZVJ1bm5lclJlcXVlc3QSCgoCaWQYASABKAkiOgoUUmV2b2tlUnVubmVyUmVzcG9uc2USIgoGcnVubmVyGAEgASgLMhIuZmFjdG9yeS52MS5SdW5uZXIiLAoLUGFpclJlcXVlc3QSDAoEY29kZRgBIAEoCRIPCgd2ZXJzaW9uGAIgASgJIjkKDFBhaXJSZXNwb25zZRIUCgxkZXZpY2VfdG9rZW4YASABKAkSEwoLcnVubmVyX25hbWUYAiABKAkiIwoQSGVhcnRiZWF0UmVxdWVzdBIPCgd2ZXJzaW9uGAEgASgJIhMKEUhlYXJ0YmVhdFJlc3BvbnNlIs8CCgpDbGFpbWVkSm9iEgoKAmlkGAEgASgJEg8KB3Rhc2tfaWQYAiABKAkSEgoKcmVwb19vd25lchgDIAEoCRIRCglyZXBvX25hbWUYBCABKAkSFgoOZGVmYXVsdF9icmFuY2gYBSABKAkSJAoHaGFybmVzcxgGIAEoDjITLmZhY3RvcnkudjEuSGFybmVzcxIOCgZwcm9tcHQYByABKAkSDgoGYnJhbmNoGAggASgJEhYKDnNldHVwX2NvbW1hbmRzGAkgASgJEhoKEnRpbWVfbGltaXRfbWludXRlcxgKIAEoBRIVCg1tY3BfY2xpZW50X2lkGAsgASgJEhkKEW1jcF9jbGllbnRfc2VjcmV0GAwgASgJEhkKEXJlc3VtZV9zZXNzaW9uX2lkGA0gASgJEg0KBW1vZGVsGA4gASgJEg8KB3JvdXRpbmUYDyABKAkiIwoPQ2xhaW1Kb2JSZXF1ZXN0EhAKCG1heF9qb2JzGAEgASgFIjcKEENsYWltSm9iUmVzcG9uc2USIwoDam9iGAEgASgLMhYuZmFjdG9yeS52MS5DbGFpbWVkSm9iIjQKDkNoZWNrSW5SZXF1ZXN0Eg4KBmpvYl9pZBgBIAEoCRISCgpzZXNzaW9uX2lkGAIgASgJIh8KD0NoZWNrSW5SZXNwb25zZRIMCgRzdG9wGAEgASgIIiQKB0pvYkxpbmUSCwoDc2VxGAEgASgFEgwKBGxpbmUYAiABKAkiTAoWQXBwZW5kSm9iRXZlbnRzUmVxdWVzdBIOCgZqb2JfaWQYASABKAkSIgoFbGluZXMYAiADKAsyEy5mYWN0b3J5LnYxLkpvYkxpbmUiGQoXQXBwZW5kSm9iRXZlbnRzUmVzcG9uc2UiNAoUQWRkSm9iQ29tbWVudFJlcXVlc3QSDgoGam9iX2lkGAEgASgJEgwKBGJvZHkYAiABKAkiFwoVQWRkSm9iQ29tbWVudFJlc3BvbnNlItABChJDb21wbGV0ZUpvYlJlcXVlc3QSDgoGam9iX2lkGAEgASgJEhEKCXN1Y2NlZWRlZBgCIAEoCBIPCgdvdXRjb21lGAMgASgJEhIKCnNlc3Npb25faWQYBCABKAkSDgoGcHJfdXJsGAUgASgJEg8KB2xpbWl0ZWQYBiABKAgSFwoPbGltaXRfcmVzZXRzX2F0GAcgASgJEg8KB2Jsb2NrZWQYCCABKAkSJwoHdGltaW5ncxgJIAEoCzIWLmZhY3RvcnkudjEuSm9iVGltaW5ncyLVAQoKSm9iVGltaW5ncxIVCg1hZ2VudF9zZWNvbmRzGAEgASgBEhcKD3B1Ymxpc2hfc2Vjb25kcxgCIAEoARISCgpjaV9zZWNvbmRzGAMgASgBEhUKDW1lcmdlX3NlY29uZHMYBCABKAESFQoNdG90YWxfc2Vjb25kcxgFIAEoARIUCgxnYXRlX3JldHJpZXMYBiABKAUSFAoMcHVzaF9yZXRyaWVzGAcgASgFEhIKCmNpX3JldHJpZXMYCCABKAUSFQoNZ2F0ZXNfc2Vjb25kcxgJIAEoASIVChNDb21wbGV0ZUpvYlJlc3BvbnNlIiwKGExpc3RGaW5pc2hlZFRhc2tzUmVxdWVzdBIQCgh0YXNrX2lkcxgBIAMoCSItChlMaXN0RmluaXNoZWRUYXNrc1Jlc3BvbnNlEhAKCHRhc2tfaWRzGAEgAygJIiUKE0dldFB1c2hUb2tlblJlcXVlc3QSDgoGam9iX2lkGAEgASgJIjkKFEdldFB1c2hUb2tlblJlc3BvbnNlEg0KBXRva2VuGAEgASgJEhIKCmV4cGlyZXNfYXQYAiABKAkyigIKElJ1bm5lckFkbWluU2VydmljZRJOCgtMaXN0UnVubmVycxIeLmZhY3RvcnkudjEuTGlzdFJ1bm5lcnNSZXF1ZXN0Gh8uZmFjdG9yeS52MS5MaXN0UnVubmVyc1Jlc3BvbnNlElEKDENyZWF0ZVJ1bm5lchIfLmZhY3RvcnkudjEuQ3JlYXRlUnVubmVyUmVxdWVzdBogLmZhY3RvcnkudjEuQ3JlYXRlUnVubmVyUmVzcG9uc2USUQoMUmV2b2tlUnVubmVyEh8uZmFjdG9yeS52MS5SZXZva2VSdW5uZXJSZXF1ZXN0GiAuZmFjdG9yeS52MS5SZXZva2VSdW5uZXJSZXNwb25zZTLWBQoNUnVubmVyU2VydmljZRI5CgRQYWlyEhcuZmFjdG9yeS52MS5QYWlyUmVxdWVzdBoYLmZhY3RvcnkudjEuUGFpclJlc3BvbnNlEkgKCUhlYXJ0YmVhdBIcLmZhY3RvcnkudjEuSGVhcnRiZWF0UmVxdWVzdBodLmZhY3RvcnkudjEuSGVhcnRiZWF0UmVzcG9uc2USRQoIQ2xhaW1Kb2ISGy5mYWN0b3J5LnYxLkNsYWltSm9iUmVxdWVzdBocLmZhY3RvcnkudjEuQ2xhaW1Kb2JSZXNwb25zZRJCCgdDaGVja0luEhouZmFjdG9yeS52MS5DaGVja0luUmVxdWVzdBobLmZhY3RvcnkudjEuQ2hlY2tJblJlc3BvbnNlEloKD0FwcGVuZEpvYkV2ZW50cxIiLmZhY3RvcnkudjEuQXBwZW5kSm9iRXZlbnRzUmVxdWVzdBojLmZhY3RvcnkudjEuQXBwZW5kSm9iRXZlbnRzUmVzcG9uc2USUQoMR2V0UHVzaFRva2VuEh8uZmFjdG9yeS52MS5HZXRQdXNoVG9rZW5SZXF1ZXN0GiAuZmFjdG9yeS52MS5HZXRQdXNoVG9rZW5SZXNwb25zZRJUCg1BZGRKb2JDb21tZW50EiAuZmFjdG9yeS52MS5BZGRKb2JDb21tZW50UmVxdWVzdBohLmZhY3RvcnkudjEuQWRkSm9iQ29tbWVudFJlc3BvbnNlEk4KC0NvbXBsZXRlSm9iEh4uZmFjdG9yeS52MS5Db21wbGV0ZUpvYlJlcXVlc3QaHy5mYWN0b3J5LnYxLkNvbXBsZXRlSm9iUmVzcG9uc2USYAoRTGlzdEZpbmlzaGVkVGFza3MSJC5mYWN0b3J5LnYxLkxpc3RGaW5pc2hlZFRhc2tzUmVxdWVzdBolLmZhY3RvcnkudjEuTGlzdEZpbmlzaGVkVGFza3NSZXNwb25zZUItWit0b29scy54ZG91YmxldS5jb20vZ2VuL2ZhY3RvcnkvdjE7ZmFjdG9yeXYxYgZwcm90bzM", [file_factory_v1_factory]);
 
 /**
  * @generated from message factory.v1.Runner
@@ -610,6 +610,13 @@ export type CompleteJobRequest = Message<"factory.v1.CompleteJobRequest"> & {
    * @generated from field: string blocked = 8;
    */
   blocked: string;
+
+  /**
+   * Where the job's time went; unset when the job never ran an attempt.
+   *
+   * @generated from field: factory.v1.JobTimings timings = 9;
+   */
+  timings?: JobTimings | undefined;
 };
 
 /**
@@ -618,6 +625,66 @@ export type CompleteJobRequest = Message<"factory.v1.CompleteJobRequest"> & {
  */
 export const CompleteJobRequestSchema: GenMessage<CompleteJobRequest> = /*@__PURE__*/
   messageDesc(file_factory_v1_runners, 21);
+
+/**
+ * JobTimings are a job's phase durations in seconds and how many attempts were
+ * repeated, by the stage that failed.
+ *
+ * @generated from message factory.v1.JobTimings
+ */
+export type JobTimings = Message<"factory.v1.JobTimings"> & {
+  /**
+   * @generated from field: double agent_seconds = 1;
+   */
+  agentSeconds: number;
+
+  /**
+   * @generated from field: double publish_seconds = 2;
+   */
+  publishSeconds: number;
+
+  /**
+   * @generated from field: double ci_seconds = 3;
+   */
+  ciSeconds: number;
+
+  /**
+   * @generated from field: double merge_seconds = 4;
+   */
+  mergeSeconds: number;
+
+  /**
+   * @generated from field: double total_seconds = 5;
+   */
+  totalSeconds: number;
+
+  /**
+   * @generated from field: int32 gate_retries = 6;
+   */
+  gateRetries: number;
+
+  /**
+   * @generated from field: int32 push_retries = 7;
+   */
+  pushRetries: number;
+
+  /**
+   * @generated from field: int32 ci_retries = 8;
+   */
+  ciRetries: number;
+
+  /**
+   * @generated from field: double gates_seconds = 9;
+   */
+  gatesSeconds: number;
+};
+
+/**
+ * Describes the message factory.v1.JobTimings.
+ * Use `create(JobTimingsSchema)` to create a new message.
+ */
+export const JobTimingsSchema: GenMessage<JobTimings> = /*@__PURE__*/
+  messageDesc(file_factory_v1_runners, 22);
 
 /**
  * @generated from message factory.v1.CompleteJobResponse
@@ -630,7 +697,7 @@ export type CompleteJobResponse = Message<"factory.v1.CompleteJobResponse"> & {
  * Use `create(CompleteJobResponseSchema)` to create a new message.
  */
 export const CompleteJobResponseSchema: GenMessage<CompleteJobResponse> = /*@__PURE__*/
-  messageDesc(file_factory_v1_runners, 22);
+  messageDesc(file_factory_v1_runners, 23);
 
 /**
  * Of the tasks the runner keeps session state for, the ones that are Done or no
@@ -651,7 +718,7 @@ export type ListFinishedTasksRequest = Message<"factory.v1.ListFinishedTasksRequ
  * Use `create(ListFinishedTasksRequestSchema)` to create a new message.
  */
 export const ListFinishedTasksRequestSchema: GenMessage<ListFinishedTasksRequest> = /*@__PURE__*/
-  messageDesc(file_factory_v1_runners, 23);
+  messageDesc(file_factory_v1_runners, 24);
 
 /**
  * @generated from message factory.v1.ListFinishedTasksResponse
@@ -668,7 +735,7 @@ export type ListFinishedTasksResponse = Message<"factory.v1.ListFinishedTasksRes
  * Use `create(ListFinishedTasksResponseSchema)` to create a new message.
  */
 export const ListFinishedTasksResponseSchema: GenMessage<ListFinishedTasksResponse> = /*@__PURE__*/
-  messageDesc(file_factory_v1_runners, 24);
+  messageDesc(file_factory_v1_runners, 25);
 
 /**
  * A short-lived GitHub token for the job's repo alone (contents and pull requests
@@ -690,7 +757,7 @@ export type GetPushTokenRequest = Message<"factory.v1.GetPushTokenRequest"> & {
  * Use `create(GetPushTokenRequestSchema)` to create a new message.
  */
 export const GetPushTokenRequestSchema: GenMessage<GetPushTokenRequest> = /*@__PURE__*/
-  messageDesc(file_factory_v1_runners, 25);
+  messageDesc(file_factory_v1_runners, 26);
 
 /**
  * @generated from message factory.v1.GetPushTokenResponse
@@ -714,7 +781,7 @@ export type GetPushTokenResponse = Message<"factory.v1.GetPushTokenResponse"> & 
  * Use `create(GetPushTokenResponseSchema)` to create a new message.
  */
 export const GetPushTokenResponseSchema: GenMessage<GetPushTokenResponse> = /*@__PURE__*/
-  messageDesc(file_factory_v1_runners, 26);
+  messageDesc(file_factory_v1_runners, 27);
 
 /**
  * Admin side of pairing, behind the browser session.

@@ -100,6 +100,11 @@ env:
     - OAUTH_GRAFANA_CLIENT_SECRET
     # The "routines" machine client's secret, reconciled the same way.
     - OAUTH_ROUTINES_CLIENT_SECRET
+    # The client secret of the OIDC provider people sign in through (adr-0051).
+    - OIDC_CLIENT_SECRET
+    # Access token of the Zitadel service user that creates and deactivates
+    # people; it may manage only human users (adr-0051).
+    - ZITADEL_SERVICE_TOKEN
     # Repo Secrets read by main.yml's deploy-kamal job, not tfvars: Tofu
     # provisions the host, it doesn't deploy the app.
     - STEAM_API_KEY

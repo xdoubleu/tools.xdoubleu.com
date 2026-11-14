@@ -157,6 +157,21 @@ message CompleteJobRequest {
   // files it as a factory-sandbox task of the job's repo, or comments on the open
   // one with the same title.
   string blocked = 8;
+  // Where the job's time went; unset when the job never ran an attempt.
+  JobTimings timings = 9;
+}
+// JobTimings are a job's phase durations in seconds and how many attempts were
+// repeated, by the stage that failed.
+message JobTimings {
+  double agent_seconds = 1;
+  double publish_seconds = 2;
+  double ci_seconds = 3;
+  double merge_seconds = 4;
+  double total_seconds = 5;
+  int32 gate_retries = 6;
+  int32 push_retries = 7;
+  int32 ci_retries = 8;
+  double gates_seconds = 9;
 }
 message CompleteJobResponse {}
 

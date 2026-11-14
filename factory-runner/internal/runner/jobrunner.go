@@ -50,6 +50,28 @@ var taskIDPattern = regexp.MustCompile(
 // harness's argv, so nothing that could be read as a flag or a path.
 var sessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$`)
 
+// retroPrompt ends a job that needed retries; its arguments are the phase times
+// and the cause of each retry.
+const retroPrompt = `The job is over. Do not touch the repository, commit or ` +
+	`push, and write no outcome file. Look back on it: %s.
+
+Why it needed more than one attempt:
+%s
+
+List repeatable friction (a missing tool, a gate you could not run, a CI ` +
+	`failure the local gates missed, slow steps). For each, search ` +
+	`factory_list_tasks (label factory-retro, open columns) and comment on a ` +
+	`match with factory_comment_task, or file one with factory_create_task, ` +
+	`label factory-retro, naming the cause. File nothing when nothing is ` +
+	`repeatable. Reply in one line.`
+
+// continuePrompt is added when a job without a session starts on a branch that
+// already holds earlier work (a task re-run from Ready). %s is the default branch.
+const continuePrompt = `You are continuing earlier work on this branch: its ` +
+	`commits are already here. Merge origin/%s (the host fetched it into ` +
+	`this clone) if it moved, then add commits on top. Never rebase or rewrite ` +
+	`existing commits: the push is a fast-forward.`
+
 // preamble is the runner's own, repo-agnostic part of every prompt; the server
 // can't change it. %s is the job's branch.
 const preamble = `You are running unattended in a sandbox with no network ` +
@@ -79,6 +101,13 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`otherwise file one with factory_create_task ` +
 	`titled "Sandbox: <short problem>". Then carry on as far as you can, and ` +
 	`add one line "Blocked: <the problem>" to the outcome. ` +
+	`If the gap is a missing tool, also fix it: on a separate local branch ` +
+	`agent/sandbox-<slug> off the repository's default branch, commit a change ` +
+	`to factory-runner/Containerfile only, pinning every install to an ` +
+	`explicit version (apt pkg=ver, npm name@x.y.z, pip name==x.y.z, or a ` +
+	`versioned download URL), switch back to your job branch, and add the ` +
+	`line "Sandbox-fix: agent/sandbox-<slug>" to the outcome. The runner ` +
+	`opens that as its own pull request and refuses any other change. ` +
 	`For a task labelled feature, also run the feature-review gate ` +
 	`(docs/convention-feature-review-policy.md): diff-scoped mutation tests ` +
 	`and a code review with findings applied, then add the line ` +
@@ -136,7 +165,9 @@ type JobRunner struct {
 	// long it may stay unmerged before the job gives up; zero means PollEvery
 	// (a minute) and MaxWatch (six hours).
 	PollEvery time.Duration
-	MaxWatch  time.Duration
+	// RunningPollEvery is the read interval while checks run; zero means 20s.
+	RunningPollEvery time.Duration
+	MaxWatch         time.Duration
 	// Sleep and Now are the clock a job's waits use; nil means sleepCtx and
 	// time.Now. Tests replace them.
 	Sleep func(context.Context, time.Duration)
@@ -153,7 +184,7 @@ func failed(outcome string) result {
 	return result{
 		succeeded: false, outcome: outcome, session: "", prURL: "",
 		limited: false, resetsAt: time.Time{}, blocked: "",
-		failure: "", retry: false, head: "",
+		failure: "", retry: false, head: "", cause: "", times: nil, total: 0,
 	}
 }
 
@@ -188,6 +219,11 @@ type result struct {
 	failure string
 	retry   bool
 	head    string
+	// cause says which stage failed a retryable attempt: gate, push or ci.
+	cause string
+	// times and total are the job's phase times, set when its loop ends.
+	times *phaseTimes
+	total time.Duration
 }
 
 // maxJobs is how many jobs may run at once.
@@ -320,7 +356,7 @@ func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {
 	err := r.API.CompleteJob(done, r.Token, job.ID, JobEnd{
 		Succeeded: res.succeeded, Outcome: res.outcome, SessionID: res.session,
 		PRURL: res.prURL, Limited: res.limited, ResetsAt: res.resetsAt,
-		Blocked: res.blocked,
+		Blocked: res.blocked, Times: res.times, Total: res.total,
 	})
 	if err != nil {
 		r.Log.Warn("could not report the job", "job", job.ID, "error", err)
@@ -450,6 +486,9 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		r: r, job: job, dirs: dirs, since: since, launch: launch, secrets: secrets,
 		ctx: jobCtx, parent: ctx, tap: tap, events: events, stopped: &stopped,
 		session: nil, limit: r.limitFor(job), token: "", tokenAt: time.Time{},
+		times:   phaseTimes{agent: 0, gates: 0, publish: 0, ci: 0, merge: 0, retries: nil},
+		greenAt: time.Time{}, began: time.Time{}, causes: nil,
+		sandboxFixed: false,
 	}
 	var res result
 	if prompt, ok := routinePrompt(job.Routine); ok {
@@ -572,9 +611,10 @@ func (r *JobRunner) invocation(
 	return command, env, nil
 }
 
-// prepareClone makes the job's clone: a new branch off the base, or for a Reply's
-// job the task's existing branch. It also returns the commit a Reply began at ("" for
-// a new branch), where the host's checks start.
+// prepareClone makes the job's clone: the task's existing branch for a Reply's job
+// or a re-run whose branch was already pushed, else a new branch off the base. It
+// also returns the commit an existing branch began at ("" for a new one), where the
+// host's checks start.
 func (r *JobRunner) prepareClone(
 	ctx context.Context,
 	job *ClaimedJob,
@@ -584,12 +624,16 @@ func (r *JobRunner) prepareClone(
 		return "", nil
 	}
 	if job.ResumeSessionID == "" {
-		err := r.Git.Clone(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
-			job.Branch, cloneDir)
+		tip, found, err := r.Git.RestoreIfPushed(
+			ctx, job.RepoOwner, job.RepoName, job.Branch, cloneDir)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("restore the branch %s: %w", job.Branch, err)
 		}
-		return "", nil
+		if found {
+			return tip, nil
+		}
+		return "", r.Git.Clone(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
+			job.Branch, cloneDir)
 	}
 	tip, err := r.Git.Restore(ctx, job.RepoOwner, job.RepoName, job.Branch, cloneDir)
 	if err != nil {
@@ -660,7 +704,7 @@ func (r *JobRunner) publishable(
 		if !leaks(text, secrets) {
 			res.outcome += "\n\n" + text
 		}
-		res.failure, res.retry = why, true
+		res.failure, res.retry, res.cause = why, true, "gate"
 		return res
 	}
 	defer reviewed.Close()
@@ -674,7 +718,7 @@ func (r *JobRunner) publishable(
 	if err = checksFailure(text); err != nil {
 		why := strings.TrimPrefix(err.Error(), errChecks.Error()+": ")
 		res.outcome = "Not published: " + why + "\n\n" + text
-		res.failure, res.retry = why, true
+		res.failure, res.retry, res.cause = why, true, "gate"
 		return res
 	}
 	prURL, why, final := r.publish(ctx, job, reviewed, text)
@@ -682,7 +726,7 @@ func (r *JobRunner) publishable(
 		// The agent's work is fine, so the job still succeeded; the task just goes
 		// to Needs you with the branch on the Mac, and the reason ahead of the text.
 		res.outcome = "Not published: " + why + "\n\n" + text
-		res.failure, res.retry = why, !final
+		res.failure, res.retry, res.cause = why, !final, "push"
 		return res
 	}
 	res.prURL = prURL

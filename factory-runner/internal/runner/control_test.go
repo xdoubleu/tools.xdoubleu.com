@@ -53,6 +53,8 @@ func TestStatusLines(t *testing.T) {
 	assert.Equal(t, "Idle", status(func(*runner.Status) {}).Line())
 	busy := status(func(s *runner.Status) { s.Busy = true })
 	assert.Equal(t, "Running a job", busy.Line())
+	draining := status(func(s *runner.Status) { s.Busy, s.Draining = true, true })
+	assert.Equal(t, "Updating after current jobs", draining.Line())
 }
 
 func TestARequestedCheckSkipsTheHourlyWait(t *testing.T) {
@@ -105,7 +107,7 @@ func status(set func(*runner.Status)) runner.Status {
 	s := runner.Status{
 		Version: "", Paused: false, Busy: false, LastHeartbeat: time.Time{}, Update: "",
 		Mode:     "",
-		Unpaired: false,
+		Draining: false, Unpaired: false,
 	}
 	set(&s)
 	return s

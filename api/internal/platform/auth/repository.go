@@ -17,6 +17,9 @@ type User struct {
 	Email        string
 	PasswordHash string
 	CreatedAt    time.Time
+	// OIDCSubject is empty until the user is linked to the provider.
+	OIDCSubject string
+	Deactivated bool
 }
 
 // TOTPFactor is a row from auth.totp_factors.
@@ -56,6 +59,12 @@ type usersStore interface {
 	GetUserByID(ctx context.Context, id string) (*User, error)
 	CreateUser(ctx context.Context, email, passwordHash string) (*User, error)
 	SetPasswordHash(ctx context.Context, userID, hash string) error
+	GetUserByOIDCSubject(ctx context.Context, subject string) (*User, error)
+	SetOIDCSubject(ctx context.Context, userID, subject string) error
+	// CreateOIDCUser adds a user that signs in only through the provider.
+	CreateOIDCUser(ctx context.Context, email, subject string) (*User, error)
+	DeleteUser(ctx context.Context, userID string) error
+	SetDeactivated(ctx context.Context, userID string) error
 
 	CreateTOTPFactor(
 		ctx context.Context, userID, secret string,
@@ -110,6 +119,15 @@ var _ usersStore = (*Repository)(nil)
 
 var errNotFound = errors.New("auth: not found")
 
+const userColumns = `id, email, password_hash, created_at,
+	COALESCE(oidc_subject, ''), deactivated_at IS NOT NULL`
+
+func (u *User) scanDest() []any {
+	return []any{
+		&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt, &u.OIDCSubject, &u.Deactivated,
+	}
+}
+
 func wrapNotFound(err error) error {
 	if errors.Is(err, pgx.ErrNoRows) {
 		return errNotFound
@@ -123,9 +141,9 @@ func (r *Repository) GetUserByEmail(
 ) (*User, error) {
 	var u User
 	err := r.db.QueryRow(ctx, `
-		SELECT id, email, password_hash, created_at
+		SELECT `+userColumns+`
 		FROM auth.users WHERE email = $1
-	`, email).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt)
+	`, email).Scan(u.scanDest()...)
 	if err != nil {
 		return nil, wrapNotFound(err)
 	}
@@ -138,9 +156,9 @@ func (r *Repository) GetUserByID(
 ) (*User, error) {
 	var u User
 	err := r.db.QueryRow(ctx, `
-		SELECT id, email, password_hash, created_at
+		SELECT `+userColumns+`
 		FROM auth.users WHERE id = $1
-	`, id).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt)
+	`, id).Scan(u.scanDest()...)
 	if err != nil {
 		return nil, wrapNotFound(err)
 	}
@@ -427,4 +445,67 @@ func (r *Repository) MarkPasswordResetTokenUsed(
 		WHERE id = $1 AND used_at IS NULL
 	`, id)
 	return tag.RowsAffected() == 1, err
+}
+
+// GetUserByOIDCSubject finds the user linked to an OIDC provider subject.
+func (r *Repository) GetUserByOIDCSubject(
+	ctx context.Context,
+	subject string,
+) (*User, error) {
+	var u User
+	err := r.db.QueryRow(ctx, `
+		SELECT `+userColumns+`
+		FROM auth.users WHERE oidc_subject = $1
+	`, subject).Scan(u.scanDest()...)
+	if err != nil {
+		return nil, wrapNotFound(err)
+	}
+	return &u, nil
+}
+
+// SetOIDCSubject links a user to an OIDC provider subject.
+func (r *Repository) SetOIDCSubject(
+	ctx context.Context,
+	userID, subject string,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE auth.users SET oidc_subject = $2 WHERE id = $1
+	`, userID, subject)
+	return err
+}
+
+// oidcOnlyHash can never match a bcrypt comparison, so the password sign-in
+// refuses a user created through the provider.
+const oidcOnlyHash = "!"
+
+// CreateOIDCUser adds a user linked to subject with no usable password.
+func (r *Repository) CreateOIDCUser(
+	ctx context.Context,
+	email, subject string,
+) (*User, error) {
+	var u User
+	err := r.db.QueryRow(ctx, `
+		INSERT INTO auth.users (email, password_hash, oidc_subject)
+		VALUES ($1, $2, $3)
+		RETURNING `+userColumns, email, oidcOnlyHash, subject,
+	).Scan(u.scanDest()...)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+// DeleteUser removes a user and, by cascade, its factors and tokens.
+func (r *Repository) DeleteUser(ctx context.Context, userID string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM auth.users WHERE id = $1`, userID)
+	return err
+}
+
+// SetDeactivated blocks every sign-in of the user.
+func (r *Repository) SetDeactivated(ctx context.Context, userID string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE auth.users SET deactivated_at = COALESCE(deactivated_at, now())
+		WHERE id = $1
+	`, userID)
+	return err
 }

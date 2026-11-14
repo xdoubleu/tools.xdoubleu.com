@@ -76,6 +76,12 @@ scrape_configs:
     static_configs:
       - targets: ["postgres-exporter:9187"]
 
+  # Zitadel (ADR-0051); TargetDown alerts when it stops answering.
+  - job_name: zitadel
+    metrics_path: /debug/metrics
+    static_configs:
+      - targets: ["zitadel:8080"]
+
   # Prometheus's own self-monitoring.
   - job_name: prometheus
     static_configs:

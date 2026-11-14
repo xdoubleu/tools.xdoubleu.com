@@ -14,7 +14,7 @@ import { ConfirmDialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { Field } from '@/components/ui/field'
-import { getRelease } from '@/lib/env'
+import { getAccountUrl, getRelease } from '@/lib/env'
 import { PageHeader } from '@/components/ui/page-header'
 import { SettingsSection, SettingsSections } from '@/components/ui/settings-section'
 import { ErrorState, LoadingState } from '@/components/ui/states'
@@ -182,6 +182,18 @@ export default function SettingsPage() {
       <PageHeader title="Account settings" />
 
       <SettingsSections>
+        {getAccountUrl() && (
+          <SettingsSection
+            title="Sign-in and security"
+            description="Your password, authenticator app and passkeys are managed on your account page."
+          >
+            <Button asChild variant="secondary">
+              <a href={getAccountUrl()} target="_blank" rel="noreferrer">
+                Manage your account
+              </a>
+            </Button>
+          </SettingsSection>
+        )}
         <SettingsSection title="Change password">
           {pwSaved && <Alert tone="success">Password updated successfully.</Alert>}
           {pwError && <Alert tone="danger">{pwError}</Alert>}

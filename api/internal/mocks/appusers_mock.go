@@ -31,3 +31,9 @@ func (f *FakeAppUsersStore) GetByID(_ context.Context, _ string) (*models.User, 
 func (f *FakeAppUsersStore) GetAll(_ context.Context) ([]models.User, error) {
 	return []models.User{f.User}, nil
 }
+
+func (f *FakeAppUsersStore) SetDisplayName(_ context.Context, _, _ string) error {
+	return nil
+}
+
+func (f *FakeAppUsersStore) Delete(_ context.Context, _ string) error { return nil }

@@ -197,20 +197,20 @@ func (s *TaskService) Update(
 	}, actor)
 }
 
-// checkMove rejects an unknown column, and Ready for anyone but a human admin
-// in a browser session.
+// checkMove rejects an unknown column, and Ready for anyone but an agent
+// account or a human admin in a browser session.
 func checkMove(actor models.Actor, status models.Status) error {
 	if !status.Valid() {
 		return badRequest("invalid status")
 	}
-	if status == models.StatusReady && !actor.CanMoveToReady() {
-		return forbidden("only a human in a browser session can mark a task Ready")
+	if status == models.StatusReady &&
+		actor.Kind != models.ActorAgent && !actor.CanMoveToReady() {
+		return forbidden("only an agent or a browser admin can mark a task Ready")
 	}
 	return nil
 }
 
-// Move changes a task's column. Only a human admin in a browser session may
-// move a task into Ready.
+// Move changes a task's column, recording the actor.
 func (s *TaskService) Move(
 	ctx context.Context,
 	actor models.Actor,
@@ -229,7 +229,17 @@ func (s *TaskService) Move(
 			return nil, err
 		}
 	}
-	return s.repo.Move(ctx, id, status)
+	task, err := s.repo.Move(ctx, id, status)
+	if err != nil || status != models.StatusReady || actor.Kind != models.ActorAgent {
+		return task, err
+	}
+	// Ready is the approval to start work, so the board shows which agent gave it.
+	if _, err = s.repo.AddComment(
+		ctx, id, actor.String(), "Moved to Ready by "+actor.String(),
+	); err != nil {
+		return nil, err
+	}
+	return task, nil
 }
 
 // Comment adds a comment to a task.

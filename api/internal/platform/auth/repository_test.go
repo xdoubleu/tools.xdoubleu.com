@@ -48,3 +48,52 @@ func TestRepository_GetUnusedRecoveryCodes_Empty(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, codes)
 }
+
+func TestRepository_OIDCSubject(t *testing.T) {
+	db := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	t.Cleanup(db.Close)
+	repo := auth.NewRepository(db)
+	ctx := context.Background()
+
+	user, err := repo.CreateUser(ctx, uuid.NewString()+"@example.com", "hash")
+	require.NoError(t, err)
+	subject := uuid.NewString()
+
+	_, err = repo.GetUserByOIDCSubject(ctx, subject)
+	require.Error(t, err)
+
+	require.NoError(t, repo.SetOIDCSubject(ctx, user.ID, subject))
+	got, err := repo.GetUserByOIDCSubject(ctx, subject)
+	require.NoError(t, err)
+	assert.Equal(t, user.ID, got.ID)
+
+	other, err := repo.CreateUser(ctx, uuid.NewString()+"@example.com", "hash")
+	require.NoError(t, err)
+	require.Error(t, repo.SetOIDCSubject(ctx, other.ID, subject), "subjects are unique")
+}
+
+func TestRepository_OIDCUserLifecycle(t *testing.T) {
+	db := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	t.Cleanup(db.Close)
+	repo := auth.NewRepository(db)
+	ctx := context.Background()
+
+	subject := uuid.NewString()
+	user, err := repo.CreateOIDCUser(ctx, uuid.NewString()+"@example.com", subject)
+	require.NoError(t, err)
+	assert.Equal(t, subject, user.OIDCSubject)
+	assert.False(t, user.Deactivated)
+
+	_, err = repo.CreateOIDCUser(ctx, user.Email, uuid.NewString())
+	require.Error(t, err, "emails are unique")
+
+	require.NoError(t, repo.SetDeactivated(ctx, user.ID))
+	require.NoError(t, repo.SetDeactivated(ctx, user.ID), "repeatable")
+	got, err := repo.GetUserByOIDCSubject(ctx, subject)
+	require.NoError(t, err)
+	assert.True(t, got.Deactivated)
+
+	require.NoError(t, repo.DeleteUser(ctx, user.ID))
+	_, err = repo.GetUserByID(ctx, user.ID)
+	require.Error(t, err)
+}

@@ -1195,7 +1195,9 @@ type CompleteJobRequest struct {
 	// What stopped the job doing or checking its work in the sandbox. The server
 	// files it as a factory-sandbox task of the job's repo, or comments on the open
 	// one with the same title.
-	Blocked       string `protobuf:"bytes,8,opt,name=blocked,proto3" json:"blocked,omitempty"`
+	Blocked string `protobuf:"bytes,8,opt,name=blocked,proto3" json:"blocked,omitempty"`
+	// Where the job's time went; unset when the job never ran an attempt.
+	Timings       *JobTimings `protobuf:"bytes,9,opt,name=timings,proto3" json:"timings,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1286,6 +1288,123 @@ func (x *CompleteJobRequest) GetBlocked() string {
 	return ""
 }
 
+func (x *CompleteJobRequest) GetTimings() *JobTimings {
+	if x != nil {
+		return x.Timings
+	}
+	return nil
+}
+
+// JobTimings are a job's phase durations in seconds and how many attempts were
+// repeated, by the stage that failed.
+type JobTimings struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AgentSeconds   float64                `protobuf:"fixed64,1,opt,name=agent_seconds,json=agentSeconds,proto3" json:"agent_seconds,omitempty"`
+	PublishSeconds float64                `protobuf:"fixed64,2,opt,name=publish_seconds,json=publishSeconds,proto3" json:"publish_seconds,omitempty"`
+	CiSeconds      float64                `protobuf:"fixed64,3,opt,name=ci_seconds,json=ciSeconds,proto3" json:"ci_seconds,omitempty"`
+	MergeSeconds   float64                `protobuf:"fixed64,4,opt,name=merge_seconds,json=mergeSeconds,proto3" json:"merge_seconds,omitempty"`
+	TotalSeconds   float64                `protobuf:"fixed64,5,opt,name=total_seconds,json=totalSeconds,proto3" json:"total_seconds,omitempty"`
+	GateRetries    int32                  `protobuf:"varint,6,opt,name=gate_retries,json=gateRetries,proto3" json:"gate_retries,omitempty"`
+	PushRetries    int32                  `protobuf:"varint,7,opt,name=push_retries,json=pushRetries,proto3" json:"push_retries,omitempty"`
+	CiRetries      int32                  `protobuf:"varint,8,opt,name=ci_retries,json=ciRetries,proto3" json:"ci_retries,omitempty"`
+	GatesSeconds   float64                `protobuf:"fixed64,9,opt,name=gates_seconds,json=gatesSeconds,proto3" json:"gates_seconds,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *JobTimings) Reset() {
+	*x = JobTimings{}
+	mi := &file_factory_v1_runners_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JobTimings) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JobTimings) ProtoMessage() {}
+
+func (x *JobTimings) ProtoReflect() protoreflect.Message {
+	mi := &file_factory_v1_runners_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JobTimings.ProtoReflect.Descriptor instead.
+func (*JobTimings) Descriptor() ([]byte, []int) {
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *JobTimings) GetAgentSeconds() float64 {
+	if x != nil {
+		return x.AgentSeconds
+	}
+	return 0
+}
+
+func (x *JobTimings) GetPublishSeconds() float64 {
+	if x != nil {
+		return x.PublishSeconds
+	}
+	return 0
+}
+
+func (x *JobTimings) GetCiSeconds() float64 {
+	if x != nil {
+		return x.CiSeconds
+	}
+	return 0
+}
+
+func (x *JobTimings) GetMergeSeconds() float64 {
+	if x != nil {
+		return x.MergeSeconds
+	}
+	return 0
+}
+
+func (x *JobTimings) GetTotalSeconds() float64 {
+	if x != nil {
+		return x.TotalSeconds
+	}
+	return 0
+}
+
+func (x *JobTimings) GetGateRetries() int32 {
+	if x != nil {
+		return x.GateRetries
+	}
+	return 0
+}
+
+func (x *JobTimings) GetPushRetries() int32 {
+	if x != nil {
+		return x.PushRetries
+	}
+	return 0
+}
+
+func (x *JobTimings) GetCiRetries() int32 {
+	if x != nil {
+		return x.CiRetries
+	}
+	return 0
+}
+
+func (x *JobTimings) GetGatesSeconds() float64 {
+	if x != nil {
+		return x.GatesSeconds
+	}
+	return 0
+}
+
 type CompleteJobResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1294,7 +1413,7 @@ type CompleteJobResponse struct {
 
 func (x *CompleteJobResponse) Reset() {
 	*x = CompleteJobResponse{}
-	mi := &file_factory_v1_runners_proto_msgTypes[22]
+	mi := &file_factory_v1_runners_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1306,7 +1425,7 @@ func (x *CompleteJobResponse) String() string {
 func (*CompleteJobResponse) ProtoMessage() {}
 
 func (x *CompleteJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_runners_proto_msgTypes[22]
+	mi := &file_factory_v1_runners_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1319,7 +1438,7 @@ func (x *CompleteJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteJobResponse.ProtoReflect.Descriptor instead.
 func (*CompleteJobResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_runners_proto_rawDescGZIP(), []int{22}
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{23}
 }
 
 // Of the tasks the runner keeps session state for, the ones that are Done or no
@@ -1334,7 +1453,7 @@ type ListFinishedTasksRequest struct {
 
 func (x *ListFinishedTasksRequest) Reset() {
 	*x = ListFinishedTasksRequest{}
-	mi := &file_factory_v1_runners_proto_msgTypes[23]
+	mi := &file_factory_v1_runners_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1346,7 +1465,7 @@ func (x *ListFinishedTasksRequest) String() string {
 func (*ListFinishedTasksRequest) ProtoMessage() {}
 
 func (x *ListFinishedTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_runners_proto_msgTypes[23]
+	mi := &file_factory_v1_runners_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1359,7 +1478,7 @@ func (x *ListFinishedTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFinishedTasksRequest.ProtoReflect.Descriptor instead.
 func (*ListFinishedTasksRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_runners_proto_rawDescGZIP(), []int{23}
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ListFinishedTasksRequest) GetTaskIds() []string {
@@ -1378,7 +1497,7 @@ type ListFinishedTasksResponse struct {
 
 func (x *ListFinishedTasksResponse) Reset() {
 	*x = ListFinishedTasksResponse{}
-	mi := &file_factory_v1_runners_proto_msgTypes[24]
+	mi := &file_factory_v1_runners_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1390,7 +1509,7 @@ func (x *ListFinishedTasksResponse) String() string {
 func (*ListFinishedTasksResponse) ProtoMessage() {}
 
 func (x *ListFinishedTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_runners_proto_msgTypes[24]
+	mi := &file_factory_v1_runners_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1403,7 +1522,7 @@ func (x *ListFinishedTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFinishedTasksResponse.ProtoReflect.Descriptor instead.
 func (*ListFinishedTasksResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_runners_proto_rawDescGZIP(), []int{24}
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ListFinishedTasksResponse) GetTaskIds() []string {
@@ -1426,7 +1545,7 @@ type GetPushTokenRequest struct {
 
 func (x *GetPushTokenRequest) Reset() {
 	*x = GetPushTokenRequest{}
-	mi := &file_factory_v1_runners_proto_msgTypes[25]
+	mi := &file_factory_v1_runners_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1438,7 +1557,7 @@ func (x *GetPushTokenRequest) String() string {
 func (*GetPushTokenRequest) ProtoMessage() {}
 
 func (x *GetPushTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_runners_proto_msgTypes[25]
+	mi := &file_factory_v1_runners_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1451,7 +1570,7 @@ func (x *GetPushTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPushTokenRequest.ProtoReflect.Descriptor instead.
 func (*GetPushTokenRequest) Descriptor() ([]byte, []int) {
-	return file_factory_v1_runners_proto_rawDescGZIP(), []int{25}
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetPushTokenRequest) GetJobId() string {
@@ -1472,7 +1591,7 @@ type GetPushTokenResponse struct {
 
 func (x *GetPushTokenResponse) Reset() {
 	*x = GetPushTokenResponse{}
-	mi := &file_factory_v1_runners_proto_msgTypes[26]
+	mi := &file_factory_v1_runners_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1484,7 +1603,7 @@ func (x *GetPushTokenResponse) String() string {
 func (*GetPushTokenResponse) ProtoMessage() {}
 
 func (x *GetPushTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_factory_v1_runners_proto_msgTypes[26]
+	mi := &file_factory_v1_runners_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1497,7 +1616,7 @@ func (x *GetPushTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPushTokenResponse.ProtoReflect.Descriptor instead.
 func (*GetPushTokenResponse) Descriptor() ([]byte, []int) {
-	return file_factory_v1_runners_proto_rawDescGZIP(), []int{26}
+	return file_factory_v1_runners_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetPushTokenResponse) GetToken() string {
@@ -1592,7 +1711,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\x14AddJobCommentRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\"\x17\n" +
-	"\x15AddJobCommentResponse\"\xf5\x01\n" +
+	"\x15AddJobCommentResponse\"\xa7\x02\n" +
 	"\x12CompleteJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1c\n" +
 	"\tsucceeded\x18\x02 \x01(\bR\tsucceeded\x12\x18\n" +
@@ -1602,7 +1721,21 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\x06pr_url\x18\x05 \x01(\tR\x05prUrl\x12\x18\n" +
 	"\alimited\x18\x06 \x01(\bR\alimited\x12&\n" +
 	"\x0flimit_resets_at\x18\a \x01(\tR\rlimitResetsAt\x12\x18\n" +
-	"\ablocked\x18\b \x01(\tR\ablocked\"\x15\n" +
+	"\ablocked\x18\b \x01(\tR\ablocked\x120\n" +
+	"\atimings\x18\t \x01(\v2\x16.factory.v1.JobTimingsR\atimings\"\xcd\x02\n" +
+	"\n" +
+	"JobTimings\x12#\n" +
+	"\ragent_seconds\x18\x01 \x01(\x01R\fagentSeconds\x12'\n" +
+	"\x0fpublish_seconds\x18\x02 \x01(\x01R\x0epublishSeconds\x12\x1d\n" +
+	"\n" +
+	"ci_seconds\x18\x03 \x01(\x01R\tciSeconds\x12#\n" +
+	"\rmerge_seconds\x18\x04 \x01(\x01R\fmergeSeconds\x12#\n" +
+	"\rtotal_seconds\x18\x05 \x01(\x01R\ftotalSeconds\x12!\n" +
+	"\fgate_retries\x18\x06 \x01(\x05R\vgateRetries\x12!\n" +
+	"\fpush_retries\x18\a \x01(\x05R\vpushRetries\x12\x1d\n" +
+	"\n" +
+	"ci_retries\x18\b \x01(\x05R\tciRetries\x12#\n" +
+	"\rgates_seconds\x18\t \x01(\x01R\fgatesSeconds\"\x15\n" +
 	"\x13CompleteJobResponse\"5\n" +
 	"\x18ListFinishedTasksRequest\x12\x19\n" +
 	"\btask_ids\x18\x01 \x03(\tR\ataskIds\"6\n" +
@@ -1641,7 +1774,7 @@ func file_factory_v1_runners_proto_rawDescGZIP() []byte {
 	return file_factory_v1_runners_proto_rawDescData
 }
 
-var file_factory_v1_runners_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_factory_v1_runners_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_factory_v1_runners_proto_goTypes = []any{
 	(*Runner)(nil),                    // 0: factory.v1.Runner
 	(*ListRunnersRequest)(nil),        // 1: factory.v1.ListRunnersRequest
@@ -1665,49 +1798,51 @@ var file_factory_v1_runners_proto_goTypes = []any{
 	(*AddJobCommentRequest)(nil),      // 19: factory.v1.AddJobCommentRequest
 	(*AddJobCommentResponse)(nil),     // 20: factory.v1.AddJobCommentResponse
 	(*CompleteJobRequest)(nil),        // 21: factory.v1.CompleteJobRequest
-	(*CompleteJobResponse)(nil),       // 22: factory.v1.CompleteJobResponse
-	(*ListFinishedTasksRequest)(nil),  // 23: factory.v1.ListFinishedTasksRequest
-	(*ListFinishedTasksResponse)(nil), // 24: factory.v1.ListFinishedTasksResponse
-	(*GetPushTokenRequest)(nil),       // 25: factory.v1.GetPushTokenRequest
-	(*GetPushTokenResponse)(nil),      // 26: factory.v1.GetPushTokenResponse
-	(Harness)(0),                      // 27: factory.v1.Harness
+	(*JobTimings)(nil),                // 22: factory.v1.JobTimings
+	(*CompleteJobResponse)(nil),       // 23: factory.v1.CompleteJobResponse
+	(*ListFinishedTasksRequest)(nil),  // 24: factory.v1.ListFinishedTasksRequest
+	(*ListFinishedTasksResponse)(nil), // 25: factory.v1.ListFinishedTasksResponse
+	(*GetPushTokenRequest)(nil),       // 26: factory.v1.GetPushTokenRequest
+	(*GetPushTokenResponse)(nil),      // 27: factory.v1.GetPushTokenResponse
+	(Harness)(0),                      // 28: factory.v1.Harness
 }
 var file_factory_v1_runners_proto_depIdxs = []int32{
 	0,  // 0: factory.v1.ListRunnersResponse.runners:type_name -> factory.v1.Runner
 	0,  // 1: factory.v1.CreateRunnerResponse.runner:type_name -> factory.v1.Runner
 	0,  // 2: factory.v1.RevokeRunnerResponse.runner:type_name -> factory.v1.Runner
-	27, // 3: factory.v1.ClaimedJob.harness:type_name -> factory.v1.Harness
+	28, // 3: factory.v1.ClaimedJob.harness:type_name -> factory.v1.Harness
 	11, // 4: factory.v1.ClaimJobResponse.job:type_name -> factory.v1.ClaimedJob
 	16, // 5: factory.v1.AppendJobEventsRequest.lines:type_name -> factory.v1.JobLine
-	1,  // 6: factory.v1.RunnerAdminService.ListRunners:input_type -> factory.v1.ListRunnersRequest
-	3,  // 7: factory.v1.RunnerAdminService.CreateRunner:input_type -> factory.v1.CreateRunnerRequest
-	5,  // 8: factory.v1.RunnerAdminService.RevokeRunner:input_type -> factory.v1.RevokeRunnerRequest
-	7,  // 9: factory.v1.RunnerService.Pair:input_type -> factory.v1.PairRequest
-	9,  // 10: factory.v1.RunnerService.Heartbeat:input_type -> factory.v1.HeartbeatRequest
-	12, // 11: factory.v1.RunnerService.ClaimJob:input_type -> factory.v1.ClaimJobRequest
-	14, // 12: factory.v1.RunnerService.CheckIn:input_type -> factory.v1.CheckInRequest
-	17, // 13: factory.v1.RunnerService.AppendJobEvents:input_type -> factory.v1.AppendJobEventsRequest
-	25, // 14: factory.v1.RunnerService.GetPushToken:input_type -> factory.v1.GetPushTokenRequest
-	19, // 15: factory.v1.RunnerService.AddJobComment:input_type -> factory.v1.AddJobCommentRequest
-	21, // 16: factory.v1.RunnerService.CompleteJob:input_type -> factory.v1.CompleteJobRequest
-	23, // 17: factory.v1.RunnerService.ListFinishedTasks:input_type -> factory.v1.ListFinishedTasksRequest
-	2,  // 18: factory.v1.RunnerAdminService.ListRunners:output_type -> factory.v1.ListRunnersResponse
-	4,  // 19: factory.v1.RunnerAdminService.CreateRunner:output_type -> factory.v1.CreateRunnerResponse
-	6,  // 20: factory.v1.RunnerAdminService.RevokeRunner:output_type -> factory.v1.RevokeRunnerResponse
-	8,  // 21: factory.v1.RunnerService.Pair:output_type -> factory.v1.PairResponse
-	10, // 22: factory.v1.RunnerService.Heartbeat:output_type -> factory.v1.HeartbeatResponse
-	13, // 23: factory.v1.RunnerService.ClaimJob:output_type -> factory.v1.ClaimJobResponse
-	15, // 24: factory.v1.RunnerService.CheckIn:output_type -> factory.v1.CheckInResponse
-	18, // 25: factory.v1.RunnerService.AppendJobEvents:output_type -> factory.v1.AppendJobEventsResponse
-	26, // 26: factory.v1.RunnerService.GetPushToken:output_type -> factory.v1.GetPushTokenResponse
-	20, // 27: factory.v1.RunnerService.AddJobComment:output_type -> factory.v1.AddJobCommentResponse
-	22, // 28: factory.v1.RunnerService.CompleteJob:output_type -> factory.v1.CompleteJobResponse
-	24, // 29: factory.v1.RunnerService.ListFinishedTasks:output_type -> factory.v1.ListFinishedTasksResponse
-	18, // [18:30] is the sub-list for method output_type
-	6,  // [6:18] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	22, // 6: factory.v1.CompleteJobRequest.timings:type_name -> factory.v1.JobTimings
+	1,  // 7: factory.v1.RunnerAdminService.ListRunners:input_type -> factory.v1.ListRunnersRequest
+	3,  // 8: factory.v1.RunnerAdminService.CreateRunner:input_type -> factory.v1.CreateRunnerRequest
+	5,  // 9: factory.v1.RunnerAdminService.RevokeRunner:input_type -> factory.v1.RevokeRunnerRequest
+	7,  // 10: factory.v1.RunnerService.Pair:input_type -> factory.v1.PairRequest
+	9,  // 11: factory.v1.RunnerService.Heartbeat:input_type -> factory.v1.HeartbeatRequest
+	12, // 12: factory.v1.RunnerService.ClaimJob:input_type -> factory.v1.ClaimJobRequest
+	14, // 13: factory.v1.RunnerService.CheckIn:input_type -> factory.v1.CheckInRequest
+	17, // 14: factory.v1.RunnerService.AppendJobEvents:input_type -> factory.v1.AppendJobEventsRequest
+	26, // 15: factory.v1.RunnerService.GetPushToken:input_type -> factory.v1.GetPushTokenRequest
+	19, // 16: factory.v1.RunnerService.AddJobComment:input_type -> factory.v1.AddJobCommentRequest
+	21, // 17: factory.v1.RunnerService.CompleteJob:input_type -> factory.v1.CompleteJobRequest
+	24, // 18: factory.v1.RunnerService.ListFinishedTasks:input_type -> factory.v1.ListFinishedTasksRequest
+	2,  // 19: factory.v1.RunnerAdminService.ListRunners:output_type -> factory.v1.ListRunnersResponse
+	4,  // 20: factory.v1.RunnerAdminService.CreateRunner:output_type -> factory.v1.CreateRunnerResponse
+	6,  // 21: factory.v1.RunnerAdminService.RevokeRunner:output_type -> factory.v1.RevokeRunnerResponse
+	8,  // 22: factory.v1.RunnerService.Pair:output_type -> factory.v1.PairResponse
+	10, // 23: factory.v1.RunnerService.Heartbeat:output_type -> factory.v1.HeartbeatResponse
+	13, // 24: factory.v1.RunnerService.ClaimJob:output_type -> factory.v1.ClaimJobResponse
+	15, // 25: factory.v1.RunnerService.CheckIn:output_type -> factory.v1.CheckInResponse
+	18, // 26: factory.v1.RunnerService.AppendJobEvents:output_type -> factory.v1.AppendJobEventsResponse
+	27, // 27: factory.v1.RunnerService.GetPushToken:output_type -> factory.v1.GetPushTokenResponse
+	20, // 28: factory.v1.RunnerService.AddJobComment:output_type -> factory.v1.AddJobCommentResponse
+	23, // 29: factory.v1.RunnerService.CompleteJob:output_type -> factory.v1.CompleteJobResponse
+	25, // 30: factory.v1.RunnerService.ListFinishedTasks:output_type -> factory.v1.ListFinishedTasksResponse
+	19, // [19:31] is the sub-list for method output_type
+	7,  // [7:19] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_factory_v1_runners_proto_init() }
@@ -1722,7 +1857,7 @@ func file_factory_v1_runners_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_factory_v1_runners_proto_rawDesc), len(file_factory_v1_runners_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   27,
+			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

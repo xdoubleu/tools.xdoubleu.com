@@ -96,3 +96,10 @@ type JobLine struct {
 	Seq  int
 	Line string
 }
+
+// JobTimings is where a job's time went, in seconds, and how many attempts were
+// repeated by the stage that failed.
+type JobTimings struct {
+	Agent, Gates, Publish, CI, Merge, Total float64
+	GateRetries, PushRetries, CIRetries     int
+}

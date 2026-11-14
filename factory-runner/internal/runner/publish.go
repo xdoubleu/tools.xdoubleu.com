@@ -66,17 +66,36 @@ func (c *GitHubClient) do(
 	method, path, token string,
 	in, out any,
 ) error {
+	data, err := c.fetch(ctx, method, path, token, in, maxGitHubBody)
+	if err != nil {
+		return err
+	}
+	if out != nil {
+		if err = json.Unmarshal(data, out); err != nil {
+			return errors.New("unreadable answer")
+		}
+	}
+	return nil
+}
+
+// fetch is one GitHub call whose answer, up to limit bytes, is returned as is.
+func (c *GitHubClient) fetch(
+	ctx context.Context,
+	method, path, token string,
+	in any,
+	limit int64,
+) ([]byte, error) {
 	var body io.Reader
 	if in != nil {
 		raw, err := json.Marshal(in)
 		if err != nil {
-			return err //nolint:wrapcheck // plain data
+			return nil, err //nolint:wrapcheck // plain data
 		}
 		body = bytes.NewReader(raw)
 	}
 	req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, body)
 	if err != nil {
-		return err //nolint:wrapcheck // the caller names it
+		return nil, err //nolint:wrapcheck // the caller names it
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Accept", "application/vnd.github+json")
@@ -86,22 +105,19 @@ func (c *GitHubClient) do(
 	}
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return err //nolint:wrapcheck // the caller names it
+		return nil, err //nolint:wrapcheck // the caller names it
 	}
 	defer resp.Body.Close()
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxGitHubBody))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, limit))
 	if err != nil {
-		return err //nolint:wrapcheck // the caller names it
+		return nil, err //nolint:wrapcheck // the caller names it
 	}
 	if resp.StatusCode >= http.StatusMultipleChoices {
-		return &githubStatusError{status: resp.StatusCode, body: data}
-	}
-	if out != nil {
-		if err = json.Unmarshal(data, out); err != nil {
-			return errors.New("unreadable answer")
+		return nil, &githubStatusError{
+			status: resp.StatusCode, body: data[:min(len(data), maxGitHubBody)],
 		}
 	}
-	return nil
+	return data, nil
 }
 
 // githubStatusError keeps GitHub's answer for inspection but reports only the

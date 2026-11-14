@@ -3,6 +3,7 @@ package runner
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -135,35 +136,65 @@ func (g *Git) updateMirror(ctx context.Context, remote, mirror string) error {
 
 // Restore makes a standalone clone of owner/name at dest on the existing branch,
 // as a Reply's job continues it, and returns the commit the branch is at. The
-// branch comes from the mirror, so it must have been pushed.
+// branch comes from the mirror, so it must have been pushed. The clone's
+// origin/<base> is the mirror's fresh copy of the base branch.
 func (g *Git) Restore(
 	ctx context.Context,
 	owner, name, branch, dest string,
 ) (string, error) {
+	tip, _, err := g.restore(ctx, owner, name, branch, dest, true)
+	return tip, err
+}
+
+// RestoreIfPushed is Restore for a job that may be a re-run: found is false, and
+// nothing is cloned, when the branch was never pushed.
+func (g *Git) RestoreIfPushed(
+	ctx context.Context,
+	owner, name, branch, dest string,
+) (string, bool, error) {
+	return g.restore(ctx, owner, name, branch, dest, false)
+}
+
+func (g *Git) restore(
+	ctx context.Context,
+	owner, name, branch, dest string,
+	mustExist bool,
+) (string, bool, error) {
 	remote := g.RemoteURL(owner, name)
 	mirror := filepath.Join(g.Dir, "mirrors", owner, name+".git")
 	unlock, err := lockMirror(mirror)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	defer unlock()
 	if err = g.updateMirror(ctx, remote, mirror); err != nil {
-		return "", err
+		return "", false, err
+	}
+	if !mustExist {
+		if _, err = g.git(
+			ctx, mirror, "rev-parse", "--verify", "--quiet", "refs/heads/"+branch,
+		); err != nil {
+			var exit *exec.ExitError
+			if errors.As(err, &exit) && exit.ExitCode() == 1 {
+				return "", false, nil
+			}
+			return "", false, fmt.Errorf("look for the branch %s: %w", branch, err)
+		}
 	}
 	if err = os.MkdirAll(filepath.Dir(dest), gitDirPerm); err != nil {
-		return "", fmt.Errorf("create job dir: %w", err)
+		return "", false, fmt.Errorf("create job dir: %w", err)
 	}
 	if err = g.cloneFromMirror(ctx, remote, mirror, branch, dest); err != nil {
-		return "", err
+		return "", false, err
 	}
 	if err = g.mustGit(ctx, dest, "remote", "set-url", "origin", remote); err != nil {
-		return "", err
+		return "", false, err
 	}
 	out, err := g.git(ctx, dest, "rev-parse", "HEAD")
 	if err != nil {
-		return "", fmt.Errorf("git rev-parse: %w: %s", err, bytes.TrimSpace(out))
+		return "", false, fmt.Errorf("git rev-parse: %w: %s", err, bytes.TrimSpace(out))
 	}
-	return string(bytes.TrimSpace(out)), nil
+	return string(bytes.TrimSpace(out)), true, nil
 }
 
 // Clone makes a standalone clone of owner/name at dest, on a new branch off base.

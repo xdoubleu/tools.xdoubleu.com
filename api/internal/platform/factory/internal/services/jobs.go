@@ -48,6 +48,8 @@ type JobService struct {
 	settings *repositories.SettingsRepository
 	linked   *repositories.LinkedPullRequestsRepository
 	routines *repositories.RoutinesRepository
+	// imageDigest is nil when parked tasks are never resumed.
+	imageDigest DigestSource
 	// alertedOffline is the queued job the offline-runner notice was last sent for,
 	// so one waiting job is announced once.
 	offlineMu      sync.Mutex

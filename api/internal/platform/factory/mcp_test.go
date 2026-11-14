@@ -210,7 +210,7 @@ func TestAgentMovesManyTasksAndHearsWhichFailed(t *testing.T) {
 	assert.Equal(t, 2, done)
 }
 
-func TestBulkMoveRefusesReadyAndBadInput(t *testing.T) {
+func TestBulkMoveRefusesBadInput(t *testing.T) {
 	browserClient(t)
 	session := mcpSessionAs(t, asUser(models.RoleAgent))
 	created, err := callTool(t, session, "factory_create_task",
@@ -219,7 +219,6 @@ func TestBulkMoveRefusesReadyAndBadInput(t *testing.T) {
 	id := str(t, created, "task", "id")
 
 	for name, args := range map[string]map[string]any{
-		"ready":     {"ids": []string{id}, "status": "ready"},
 		"no ids":    {"ids": []string{}, "status": "done"},
 		"too many":  {"ids": make([]string, 201), "status": "done"},
 		"bad state": {"ids": []string{id}, "status": "later"},
@@ -287,23 +286,27 @@ func TestAgentFilesCommentsAndMovesATask(t *testing.T) {
 	}
 }
 
-func TestAgentCannotMarkATaskReady(t *testing.T) {
+func TestAgentMovesATaskToReadyAndIsRecorded(t *testing.T) {
 	browserClient(t)
 	session := mcpSessionAs(t, asUser(models.RoleAgent))
 	created, err := callTool(t, session, "factory_create_task", map[string]any{
-		"repo_id": seededRepoID(t), "title": "needs a human",
+		"repo_id": seededRepoID(t), "title": "agent approved",
 	})
 	require.NoError(t, err)
 	id := str(t, created, "task", "id")
 
 	_, err = callTool(t, session, "factory_move_task",
 		map[string]any{"id": id, "status": "ready"})
-	require.Error(t, err)
+	require.NoError(t, err)
 
-	var status string
+	var status, comment string
 	require.NoError(t, testDB.QueryRow(context.Background(),
 		`SELECT status FROM factory.tasks WHERE id = $1`, taskKey(t, id)).Scan(&status))
-	assert.Equal(t, "backlog", status)
+	assert.Equal(t, "ready", status)
+	require.NoError(t, testDB.QueryRow(context.Background(),
+		`SELECT body FROM factory.task_comments WHERE task_id = $1`,
+		taskKey(t, id)).Scan(&comment))
+	assert.Contains(t, comment, "Moved to Ready by agent:")
 }
 
 func TestListTasksFiltersAndOmitsBodies(t *testing.T) {

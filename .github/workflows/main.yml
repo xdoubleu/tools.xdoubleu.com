@@ -548,6 +548,8 @@ jobs:
           OAUTH_OIDC_PRIVATE_KEY: ${{ secrets.OAUTH_OIDC_PRIVATE_KEY }}
           OAUTH_GRAFANA_CLIENT_SECRET: ${{ secrets.OAUTH_GRAFANA_CLIENT_SECRET }}
           OAUTH_ROUTINES_CLIENT_SECRET: ${{ secrets.OAUTH_ROUTINES_CLIENT_SECRET }}
+          OIDC_CLIENT_SECRET: ${{ secrets.OIDC_CLIENT_SECRET }}
+          ZITADEL_SERVICE_TOKEN: ${{ secrets.ZITADEL_SERVICE_TOKEN }}
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
           HARDCOVER_API_KEY: ${{ secrets.HARDCOVER_API_KEY }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
@@ -721,6 +723,7 @@ jobs:
           TF_VAR_release_check_email_to: ${{ secrets.NOTIFY_EMAIL_TO }}
           # Lets infra/prometheus.yml's `web` job authenticate GET /metrics.
           TF_VAR_observability_ingest_secret: ${{ secrets.OBSERVABILITY_INGEST_SECRET }}
+          TF_VAR_zitadel_smtp_password: ${{ secrets.RESEND_API_KEY }}
         run: tofu apply -auto-approve -input=false
 
       # The job stays failed; this only restores the box.
