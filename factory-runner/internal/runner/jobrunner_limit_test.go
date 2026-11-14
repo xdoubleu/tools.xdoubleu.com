@@ -132,14 +132,14 @@ func TestTheServerIsToldAboutALimitInTheRequestBody(t *testing.T) {
 
 	require.NoError(t, c.CompleteJob(context.Background(), "frt_x", "j1", runner.JobEnd{
 		Succeeded: false, Outcome: "stopped", SessionID: "", PRURL: "",
-		Limited: true, ResetsAt: at, Blocked: "",
+		Limited: true, ResetsAt: at, Blocked: "", Times: nil, Total: 0,
 	}))
 	assert.Equal(t, true, body["limited"])
 	assert.Equal(t, "2030-01-02T02:04:05Z", body["limitResetsAt"], "UTC, RFC3339")
 
 	require.NoError(t, c.CompleteJob(context.Background(), "frt_x", "j1", runner.JobEnd{
 		Succeeded: true, Outcome: "done", SessionID: "", PRURL: "",
-		Limited: false, ResetsAt: time.Time{}, Blocked: "",
+		Limited: false, ResetsAt: time.Time{}, Blocked: "", Times: nil, Total: 0,
 	}))
 	assert.NotContains(t, body, "limited", "absent when not limited")
 	assert.NotContains(t, body, "limitResetsAt")

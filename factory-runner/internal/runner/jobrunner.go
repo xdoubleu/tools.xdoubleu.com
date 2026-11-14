@@ -177,7 +177,7 @@ func failed(outcome string) result {
 	return result{
 		succeeded: false, outcome: outcome, session: "", prURL: "",
 		limited: false, resetsAt: time.Time{}, blocked: "",
-		failure: "", retry: false, head: "",
+		failure: "", retry: false, head: "", cause: "", times: nil, total: 0,
 	}
 }
 
@@ -475,8 +475,8 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		r: r, job: job, dirs: dirs, since: since, launch: launch, secrets: secrets,
 		ctx: jobCtx, parent: ctx, tap: tap, events: events, stopped: &stopped,
 		session: nil, limit: r.limitFor(job), token: "", tokenAt: time.Time{},
-		times: phaseTimes{agent: 0, publish: 0, ci: 0, merge: 0}, greenAt: time.Time{},
-		began: time.Time{}, causes: nil,
+		times:   phaseTimes{agent: 0, publish: 0, ci: 0, merge: 0, retries: nil},
+		greenAt: time.Time{}, began: time.Time{}, causes: nil,
 		sandboxFixed: false,
 	}
 	res := loop.run()

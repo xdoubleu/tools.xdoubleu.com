@@ -119,6 +119,11 @@ func ContainerfileProblemForTest(files []string, oldText, newText string) error 
 func RetriesOf(e JobEnd) map[string]int { return e.Times.retries }
 
 // NewPhaseTimings builds phase times for tests.
-func NewPhaseTimings(agent, publish, ci, merge time.Duration, retries map[string]int) *phaseTimes {
-	return &phaseTimes{agent: agent, publish: publish, ci: ci, merge: merge, retries: retries}
+func NewPhaseTimings(
+	agent, publish, ci, merge time.Duration,
+	retries map[string]int,
+) *phaseTimes {
+	return &phaseTimes{
+		agent: agent, publish: publish, ci: ci, merge: merge, retries: retries,
+	}
 }

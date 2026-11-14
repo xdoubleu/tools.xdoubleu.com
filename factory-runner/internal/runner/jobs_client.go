@@ -113,9 +113,9 @@ type timingsJSON struct {
 	CISeconds      float64 `json:"ciSeconds"`
 	MergeSeconds   float64 `json:"mergeSeconds"`
 	TotalSeconds   float64 `json:"totalSeconds"`
-	GateRetries    int32   `json:"gateRetries,omitempty"`
-	PushRetries    int32   `json:"pushRetries,omitempty"`
-	CIRetries      int32   `json:"ciRetries,omitempty"`
+	GateRetries    int     `json:"gateRetries,omitempty"`
+	PushRetries    int     `json:"pushRetries,omitempty"`
+	CIRetries      int     `json:"ciRetries,omitempty"`
 }
 
 func (p *phaseTimes) json(total time.Duration) *timingsJSON {
@@ -125,8 +125,8 @@ func (p *phaseTimes) json(total time.Duration) *timingsJSON {
 	return &timingsJSON{
 		AgentSeconds: p.agent.Seconds(), PublishSeconds: p.publish.Seconds(),
 		CISeconds: p.ci.Seconds(), MergeSeconds: p.merge.Seconds(),
-		TotalSeconds: total.Seconds(), GateRetries: int32(p.retries["gate"]),
-		PushRetries: int32(p.retries["push"]), CIRetries: int32(p.retries["ci"]),
+		TotalSeconds: total.Seconds(), GateRetries: p.retries["gate"],
+		PushRetries: p.retries["push"], CIRetries: p.retries["ci"],
 	}
 }
 
