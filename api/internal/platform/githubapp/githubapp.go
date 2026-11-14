@@ -233,18 +233,24 @@ func (c *Client) installationID(
 }
 
 // InstallationToken mints a token for owner/repo alone, with just what a job
-// needs: contents write (the push), pull requests write (the PR) and checks
-// read (CI status). It expires within the hour and can't touch workflows,
-// issues or any other repository.
+// needs: contents write (the push), pull requests write (the PR), checks read
+// (CI status) and actions read (the log of a failed job). It expires within the
+// hour and can't touch issues or any other repository. While the App lacks
+// actions read GitHub refuses that permission, so the token is minted without it.
 func (c *Client) InstallationToken(
 	ctx context.Context,
 	owner, repo string,
 ) (Token, error) {
-	return c.mint(ctx, owner, repo,
-		map[string]string{
-			"contents": permWrite, "pull_requests": permWrite, "workflows": permWrite,
-			"checks": "read",
-		})
+	perms := map[string]string{
+		"contents": permWrite, "pull_requests": permWrite, "workflows": permWrite,
+		"checks": "read", "actions": "read",
+	}
+	token, err := c.mint(ctx, owner, repo, perms)
+	if err != nil && !errors.Is(err, ErrNotInstalled) && ctx.Err() == nil {
+		delete(perms, "actions")
+		return c.mint(ctx, owner, repo, perms)
+	}
+	return token, err
 }
 
 // mint asks for an installation token limited to owner/repo and the permissions.

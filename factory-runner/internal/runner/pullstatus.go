@@ -26,6 +26,16 @@ const (
 	// maxAnnotations is how many annotations of a failed check are read.
 	maxAnnotations = 10
 	maxExcerpt     = 800
+	// maxLogTail is how much of an Actions job log is kept, ending at its first error.
+	maxLogTail = 4096
+	// maxLogBody is how much of a job log is read.
+	maxLogBody = 16 << 20
+)
+
+var (
+	jobURLPattern = regexp.MustCompile(`/actions/runs/[0-9]+/job/([0-9]+)(?:[?#].*)?$`)
+	logPrefix     = regexp.MustCompile(`(?m)^(?:\x{FEFF})?\d{4}-\d\d-\d\dT[0-9:.]+Z `)
+	ansiPattern   = regexp.MustCompile(`\x1b\[[0-9;]*[A-Za-z]`)
 )
 
 var pullURLPattern = regexp.MustCompile(`/pull/([0-9]{1,9})/?$`)
@@ -70,6 +80,7 @@ type checkRun struct {
 	Name       string `json:"name"`
 	Status     string `json:"status"`
 	Conclusion string `json:"conclusion"`
+	DetailsURL string `json:"details_url"`
 	Output     struct {
 		Title   string `json:"title"`
 		Summary string `json:"summary"`
@@ -201,5 +212,49 @@ func (c *GitHubClient) excerpt(
 	if len(text) > maxExcerpt {
 		text = strings.ToValidUTF8(text[:maxExcerpt], "") + "..."
 	}
+	if tail := c.logTail(ctx, repo, token, r); tail != "" {
+		text = strings.TrimSpace(text + "\n" + tail)
+	}
 	return text
+}
+
+// logTail is the end of a failed Actions job's log up to its first error, where a
+// failing test's name and assertion are. It is empty for a check that is not an
+// Actions job or whose log can't be read (the App may lack actions:read).
+func (c *GitHubClient) logTail(
+	ctx context.Context,
+	repo, token string,
+	r checkRun,
+) string {
+	m := jobURLPattern.FindStringSubmatch(r.DetailsURL)
+	if m == nil {
+		return ""
+	}
+	raw, err := c.fetch(ctx, http.MethodGet, repo+"/actions/jobs/"+m[1]+"/logs",
+		token, nil, maxLogBody)
+	if err != nil {
+		return ""
+	}
+	return scrub(tailAroundError(string(raw)), token)
+}
+
+// tailAroundError cleans a job log of timestamps and colour codes and keeps the
+// last maxLogTail bytes up to and including its first ##[error] line (or the end
+// of the log without one).
+func tailAroundError(log string) string {
+	log = ansiPattern.ReplaceAllString(logPrefix.ReplaceAllString(log, ""), "")
+	log = strings.TrimRight(log, "\r\n")
+	if i := strings.Index(log, "##[error]"); i >= 0 {
+		if end := strings.IndexByte(log[i:], '\n'); end >= 0 {
+			log = log[:i+end]
+		}
+	}
+	if len(log) > maxLogTail {
+		log = log[len(log)-maxLogTail:]
+		if nl := strings.IndexByte(log, '\n'); nl >= 0 {
+			log = log[nl+1:]
+		}
+		log = strings.ToValidUTF8(log, "")
+	}
+	return strings.TrimSpace(log)
 }
