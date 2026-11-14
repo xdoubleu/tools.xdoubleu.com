@@ -63,7 +63,7 @@ func claudeLimitedUntil(t *testing.T, env jobEnv) string {
 	return board.ClaudeLimitedUntil
 }
 
-func TestAJobTheClaudeLimitStoppedRequeuesItsTaskAndShowsWhenTheLimitLifts(t *testing.T) {
+func TestALimitedJobRequeuesItsTaskAndShowsWhenTheLimitLifts(t *testing.T) {
 	env := limitedBoard(t)
 	task := env.newTask(t, "hits the limit")
 	env.run(t, task.Id, "")

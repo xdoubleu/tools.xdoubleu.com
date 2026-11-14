@@ -466,7 +466,10 @@ const limitContinuation = "The usage limit has lifted. Carry on where you stoppe
 // resuming its session when it has one, so the task waits out the limit in the
 // queue. It reports false, leaving the task for the owner, when the task has been
 // limited too many times in a row or its state can't continue.
-func (s *JobService) requeueLimited(ctx context.Context, job *models.Job) (bool, error) {
+func (s *JobService) requeueLimited(
+	ctx context.Context,
+	job *models.Job,
+) (bool, error) {
 	jobs, err := s.jobs.ByTask(ctx, job.TaskID)
 	if err != nil {
 		return false, err

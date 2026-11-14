@@ -192,3 +192,17 @@ func TestMaxJobsDefaultsToTwoAndIsBounded(t *testing.T) {
 	cfg.MaxJobs = 99
 	assert.Equal(t, runner.MaxJobsLimit, cfg.EffectiveMaxJobs())
 }
+
+func TestOnLimitDefaultsToWaitAndAcceptsOnlyKnownChoices(t *testing.T) {
+	var cfg runner.Config
+	assert.Equal(t, runner.OnLimitWait, cfg.EffectiveOnLimit())
+
+	require.NoError(t, cfg.SetOnLimit(runner.OnLimitFallback))
+	assert.Equal(t, runner.OnLimitFallback, cfg.EffectiveOnLimit())
+
+	require.Error(t, cfg.SetOnLimit("never"))
+	assert.Equal(t, runner.OnLimitFallback, cfg.EffectiveOnLimit())
+
+	cfg.OnLimit = "garbage"
+	assert.Equal(t, runner.OnLimitWait, cfg.EffectiveOnLimit())
+}
