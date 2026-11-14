@@ -247,7 +247,7 @@ func (v *vmSession) Exec(
 	if v.ran {
 		spec.SetupCommands = ""
 	}
-	argv := execArgv(v.name, v.envFile, v.s.npmCacheSource(), spec)
+	argv := execArgv(v.name, v.envFile, v.s.npmCacheSource(), !v.ran, spec)
 	code, err := v.s.Exec.Exec(ctx, argv, strings.NewReader(stdin), log)
 	// A first exec that never got going leaves setup to the next one.
 	v.ran = v.ran || (err == nil && code == 0)
@@ -382,12 +382,15 @@ func (s *ContainerSandbox) start(
 // execArgv runs the job's setup commands and then its command in the VM. The
 // environment goes in a file, never argv, which any process on the Mac can read.
 // Setup reads no stdin, so it cannot swallow the prompt meant for the command.
-func execArgv(name, envFile, npmCache string, spec SandboxSpec) []string {
+func execArgv(name, envFile, npmCache string, first bool, spec SandboxSpec) []string {
 	// The clone belongs to another uid on the host, so git must be told to trust it.
 	script := "set -e\nmkdir -p \"$HOME\"\n" +
 		"git config --global --add safe.directory " + SandboxCloneDir + "\n" +
 		"[ -d " + jobNPMCache + " ] || cp -R " + npmCache + " " + jobNPMCache +
 		" 2>/dev/null || mkdir -p " + jobNPMCache + "\n" + postgresScript
+	if first {
+		script += npmInstallScript
+	}
 	if strings.TrimSpace(spec.SetupCommands) != "" {
 		script += "(\n" + spec.SetupCommands + "\n) </dev/null\n"
 	}
@@ -410,6 +413,20 @@ if [ -n "$pgbin" ] && [ ! -d /tmp/pgdata ]; then
       -o "-k /tmp -c listen_addresses=localhost" start >/dev/null; } ||
     echo "factory: postgres did not start, see /tmp/pgdata.log" >&2
 fi
+`
+
+// npmInstallScript installs node_modules from the job's npm cache for each
+// lockfile at the clone's root or one level down, so the agent's gates find them.
+// One that already has node_modules is left alone; a failure is reported, not
+// fatal.
+const npmInstallScript = `for lock in package-lock.json */package-lock.json; do
+  [ -f "$lock" ] || continue
+  dir=$(dirname "$lock")
+  [ -d "$dir/node_modules" ] && continue
+  (cd "$dir" && npm ci --prefer-offline --ignore-scripts --no-audit --no-fund \
+    >>/tmp/npm-ci.log 2>&1) ||
+    echo "factory: npm ci failed in $dir, see /tmp/npm-ci.log" >&2
+done
 `
 
 // npmCacheSource is the read-only npm cache the job's writable copy starts from.
