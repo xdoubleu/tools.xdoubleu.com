@@ -74,7 +74,7 @@ func TestAFailedGateIsRetriedInTheSameSessionUntilThePullRequestMerges(t *testin
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	require.Len(t, p.sandbox.specs, 2)
+	require.Len(t, p.sandbox.specs, 3)
 	second := p.sandbox.specs[1]
 	assert.Equal(t, runner.ClaudeCode{}.Resume("sess-9"), second.Command)
 	assert.Contains(t, second.Stdin, "test fail")
@@ -108,7 +108,7 @@ func TestRedCIAfterThePullRequestOpensIsFedBackAndPushedAgain(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	require.Len(t, p.sandbox.specs, 2)
+	require.Len(t, p.sandbox.specs, 3)
 	feedback := p.sandbox.specs[1].Stdin
 	assert.Contains(t, feedback, "CI failed on api-test, web-lint")
 	assert.Contains(t, feedback, "api-test broke")
@@ -148,7 +148,7 @@ func TestTheSameFailureTwiceWithNoNewCommitStopsTheLoop(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	assert.Len(t, p.sandbox.specs, 2)
+	assert.Len(t, p.sandbox.specs, 3)
 	got := p.api.done()[0]
 	assert.False(t, got.succeeded)
 	assert.Contains(t, got.outcome, "Stopped: no progress")
@@ -165,7 +165,7 @@ func TestARepeatedGateFailureWithNoNewCommitStopsTheLoop(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	assert.Len(t, p.sandbox.specs, 2)
+	assert.Len(t, p.sandbox.specs, 3)
 	got := p.api.done()[0]
 	assert.Contains(t, got.outcome, "Stopped: no progress")
 	assert.Empty(t, got.prURL)
@@ -182,7 +182,7 @@ func TestADifferentFailureIsNotNoProgress(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	assert.Len(t, p.sandbox.specs, 3)
+	assert.Len(t, p.sandbox.specs, 4)
 	assert.True(t, p.api.done()[0].succeeded)
 	assert.NotEmpty(t, p.api.done()[0].prURL)
 }
@@ -216,7 +216,7 @@ func TestABlockedJobWhosePullRequestOpenedStillGetsItsRedCI(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	require.Len(t, p.sandbox.specs, 2)
+	require.Len(t, p.sandbox.specs, 3)
 	assert.Contains(t, p.sandbox.specs[1].Stdin, "CI failed on web-test")
 	assert.True(t, p.api.done()[0].succeeded)
 }
@@ -348,7 +348,7 @@ func TestTheAttemptLimitEndsALoopThatNeverGetsAnywhere(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	assert.Len(t, p.sandbox.specs, 20)
+	assert.Len(t, p.sandbox.specs, 21)
 	assert.Contains(t, p.api.done()[0].outcome, "Stopped after 20 attempts")
 }
 
