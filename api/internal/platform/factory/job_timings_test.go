@@ -43,14 +43,14 @@ func TestAFinishedJobsTimingsAreExported(t *testing.T) {
 	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
 		JobId: job.Id, Succeeded: true,
 		Timings: &factoryv1.JobTimings{
-			AgentSeconds: 120, PublishSeconds: 5, CiSeconds: 300,
+			AgentSeconds: 120, GatesSeconds: 30, PublishSeconds: 5, CiSeconds: 300,
 			MergeSeconds: 60, TotalSeconds: 430, GateRetries: 1, CiRetries: 2,
 			PushRetries: 1000,
 		},
 	})
 	require.NoError(t, err)
 
-	assert.InDelta(t, 4, sampleCount(t, "factory_job_phase_seconds")-phases, 0)
+	assert.InDelta(t, 5, sampleCount(t, "factory_job_phase_seconds")-phases, 0)
 	assert.InDelta(t, 103, sampleCount(t, "factory_job_attempts_total")-attempts, 0,
 		"a runner's retry count is capped at 100")
 	assert.InDelta(t, 1, sampleCount(t, "factory_job_time_to_merge_seconds")-merges, 0)

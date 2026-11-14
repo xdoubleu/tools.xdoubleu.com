@@ -1297,6 +1297,7 @@ type JobTimings struct {
 	GateRetries    int32                  `protobuf:"varint,6,opt,name=gate_retries,json=gateRetries,proto3" json:"gate_retries,omitempty"`
 	PushRetries    int32                  `protobuf:"varint,7,opt,name=push_retries,json=pushRetries,proto3" json:"push_retries,omitempty"`
 	CiRetries      int32                  `protobuf:"varint,8,opt,name=ci_retries,json=ciRetries,proto3" json:"ci_retries,omitempty"`
+	GatesSeconds   float64                `protobuf:"fixed64,9,opt,name=gates_seconds,json=gatesSeconds,proto3" json:"gates_seconds,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1383,6 +1384,13 @@ func (x *JobTimings) GetPushRetries() int32 {
 func (x *JobTimings) GetCiRetries() int32 {
 	if x != nil {
 		return x.CiRetries
+	}
+	return 0
+}
+
+func (x *JobTimings) GetGatesSeconds() float64 {
+	if x != nil {
+		return x.GatesSeconds
 	}
 	return 0
 }
@@ -1703,7 +1711,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\alimited\x18\x06 \x01(\bR\alimited\x12&\n" +
 	"\x0flimit_resets_at\x18\a \x01(\tR\rlimitResetsAt\x12\x18\n" +
 	"\ablocked\x18\b \x01(\tR\ablocked\x120\n" +
-	"\atimings\x18\t \x01(\v2\x16.factory.v1.JobTimingsR\atimings\"\xa8\x02\n" +
+	"\atimings\x18\t \x01(\v2\x16.factory.v1.JobTimingsR\atimings\"\xcd\x02\n" +
 	"\n" +
 	"JobTimings\x12#\n" +
 	"\ragent_seconds\x18\x01 \x01(\x01R\fagentSeconds\x12'\n" +
@@ -1715,7 +1723,8 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\fgate_retries\x18\x06 \x01(\x05R\vgateRetries\x12!\n" +
 	"\fpush_retries\x18\a \x01(\x05R\vpushRetries\x12\x1d\n" +
 	"\n" +
-	"ci_retries\x18\b \x01(\x05R\tciRetries\"\x15\n" +
+	"ci_retries\x18\b \x01(\x05R\tciRetries\x12#\n" +
+	"\rgates_seconds\x18\t \x01(\x01R\fgatesSeconds\"\x15\n" +
 	"\x13CompleteJobResponse\"5\n" +
 	"\x18ListFinishedTasksRequest\x12\x19\n" +
 	"\btask_ids\x18\x01 \x03(\tR\ataskIds\"6\n" +

@@ -168,6 +168,7 @@ message JobTimings {
   int32 gate_retries = 6;
   int32 push_retries = 7;
   int32 ci_retries = 8;
+  double gates_seconds = 9;
 }
 message CompleteJobResponse {}
 
