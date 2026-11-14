@@ -44,7 +44,8 @@ func TestAFinishedJobsTimingsAreExported(t *testing.T) {
 		JobId: job.Id, Succeeded: true,
 		Timings: &factoryv1.JobTimings{
 			AgentSeconds: 120, PublishSeconds: 5, CiSeconds: 300,
-			MergeSeconds: 60, TotalSeconds: 430, GateRetries: 1, CiRetries: 2, PushRetries: 1000,
+			MergeSeconds: 60, TotalSeconds: 430, GateRetries: 1, CiRetries: 2,
+			PushRetries: 1000,
 		},
 	})
 	require.NoError(t, err)
