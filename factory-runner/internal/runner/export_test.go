@@ -6,6 +6,9 @@ import (
 	"time"
 )
 
+// BundleInfoPlistForTest returns the minimal Info.plist of a made-up bundle.
+func BundleInfoPlistForTest() string { return bundleInfoPlist }
+
 // NewKeychainWith returns a Keychain whose `security` calls go to run.
 func NewKeychainWith(run func(args ...string) ([]byte, int, error)) *Keychain {
 	return &Keychain{run: run}

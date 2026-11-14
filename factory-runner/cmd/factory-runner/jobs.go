@@ -42,6 +42,7 @@ func newJobRunner(
 	if err := ensureImage(ctx, cfg, exec); err != nil {
 		return nil, err
 	}
+	pruneImages(ctx, cfg, exec, log)
 	dataDir := cfg.DataPath(a.home)
 	if err := os.MkdirAll(dataDir, dataDirPerm); err != nil {
 		return nil, fmt.Errorf("data directory: %w", err)
@@ -129,6 +130,17 @@ func (a *app) setMaxJobsTo(n int) error {
 // notClaiming is whether the claim loop stays idle: Stop, or no harness chosen.
 func (a *app) notClaiming() bool {
 	return a.mode() == runner.ModeOff
+}
+
+// pruneImages drops job images of other releases once this one is in place. It
+// runs at start, so also after every self-update.
+func pruneImages(
+	ctx context.Context, cfg runner.Config, exec runner.Execer, log *slog.Logger,
+) {
+	if !cfg.JobImageAutoDownload(Release) {
+		return
+	}
+	runner.PruneJobImages(ctx, exec, cfg.ReleaseImage(Release), log)
 }
 
 // ensureImage makes sure the versioned job image this release needs is present,

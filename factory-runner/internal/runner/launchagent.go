@@ -92,10 +92,67 @@ func InstallDir(homeDir string) string {
 	return filepath.Join(homeDir, "Library", "Application Support", "factory-runner")
 }
 
-// InstalledBundlePath is the app the LaunchAgent runs; macOS only shows
+// ApplicationsDir returns the folder holding the one installed app. Tests point it
+// somewhere temporary.
+//
+//nolint:gochecknoglobals // swapped by tests
+var ApplicationsDir = func(string) string { return "/Applications" }
+
+const bundleName = "FactoryRunner.app"
+
+// SupportBundlePath is where earlier installs kept the app, and where the
+// install falls back when ApplicationsDir isn't writable.
+func SupportBundlePath(homeDir string) string {
+	return filepath.Join(InstallDir(homeDir), bundleName)
+}
+
+// SupportBinaryPath is the binary inside the Application Support copy.
+func SupportBinaryPath(homeDir string) string {
+	return filepath.Join(
+		SupportBundlePath(homeDir), "Contents", "MacOS", "factory-runner",
+	)
+}
+
+// InstalledBundlePath is the app the LaunchAgent runs and self-update replaces
+// in place: /Applications/FactoryRunner.app, or the Application Support copy
+// when /Applications isn't writable and holds no install. macOS only shows
 // notifications from a process inside a bundle.
 func InstalledBundlePath(homeDir string) string {
-	return filepath.Join(InstallDir(homeDir), "FactoryRunner.app")
+	dir := ApplicationsDir(homeDir)
+	app := filepath.Join(dir, bundleName)
+	if _, err := os.Stat(app); err == nil || writable(dir) {
+		return app
+	}
+	return SupportBundlePath(homeDir)
+}
+
+// writable reports whether files can be created in dir (creating it if needed).
+func writable(dir string) bool {
+	if err := os.MkdirAll(dir, installDirPerm); err != nil {
+		return false
+	}
+	f, err := os.CreateTemp(dir, ".factory-runner-probe-")
+	if err != nil {
+		return false
+	}
+	_ = f.Close()
+	_ = os.Remove(f.Name())
+	return true
+}
+
+// LaunchAgentRuns reports whether the LaunchAgent plist runs binary.
+func LaunchAgentRuns(homeDir, binary string) bool {
+	data, err := os.ReadFile(LaunchAgentPath(homeDir))
+	return err == nil && strings.Contains(string(data), xmlEscape(binary))
+}
+
+// RemoveSupportBundle deletes the Application Support copy, which only an older
+// install ran. Config and data beside it stay.
+func RemoveSupportBundle(homeDir string) error {
+	if err := os.RemoveAll(SupportBundlePath(homeDir)); err != nil {
+		return fmt.Errorf("remove old app copy: %w", err)
+	}
+	return nil
 }
 
 // LegacyBinaryPath is where installs before the app bundle kept the binary.
