@@ -47,6 +47,10 @@ routines/test:
 	./scripts/test_routine_record.sh
 	./scripts/test_routine_finish.sh
 
+# Wait for a PR's CI, then its merge: make pr/wait PR=<n> [MODE=mergeable].
+pr/wait:
+	./scripts/pr_wait.sh $(PR) $(MODE)
+
 # Fail on invalid SKILL.md frontmatter (harnesses silently drop the skill).
 lint/skills:
 	./scripts/lint_skills.sh

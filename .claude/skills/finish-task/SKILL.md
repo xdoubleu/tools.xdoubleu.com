@@ -14,8 +14,7 @@ Closing half of every task (pairs with `start-task`); implements
 [`docs/convention-task-lifecycle.md`](../../../docs/convention-task-lifecycle.md).
 **Factory job (`FACTORY_JOB` set):** follow [Factory jobs](../../../docs/convention-task-lifecycle.md) instead.
 
-Run the steps in order. Opening the PR is pre-authorized; a pushed branch
-without a PR, or running CI, isn't done.
+Run the steps in order. Opening the PR is pre-authorized; a branch without a PR isn't done.
 
 ## 1. Lint
 
@@ -26,9 +25,7 @@ without a PR, or running CI, isn't done.
 - sentrytools: `cd sentrytools && make lint/fix`; if its public API changed,
   re-run `go mod tidy` in `api`.
 - `infra/grafana` changed: `make lint/grafana` and `make grafana/verify`.
-- Always: `make lint/docs` from the repo root must pass (rule:
-  [`docs/convention-concise-docs-and-comments.md`](../../../docs/convention-concise-docs-and-comments.md)).
-- Cut comment/doc text that restates the code.
+- Always: `make lint/docs` from the repo root must pass.
 - `.proto` changed: `cd api && make proto/check` and `cd web && npm run
   generate:check`, commit the result.
 
@@ -40,8 +37,8 @@ without a PR, or running CI, isn't done.
 
 **Sandboxed (routine) runs:** `routine-sandbox` points `GOLANGCI_LINT_CACHE`
 and the coverage profile at the sandbox home; run lint read-only and
-hand-apply golines/gci diffs. `make grafana/verify` needs Docker: skip it,
-rely on CI's Build Grafana job, and say so in the PR body.
+hand-apply golines/gci diffs. Skip `make grafana/verify` (needs Docker; CI's
+Build Grafana job covers it) and say so in the PR body.
 
 ## 3. Build (web changes)
 
@@ -71,7 +68,7 @@ mode; unattended, leave Status as-is.
 ## 4b. Check for supersession
 
 Before pushing: `git fetch origin main`, diff the touched files, re-run the PR
-search. If deleted or already resolved, close as superseded.
+search. If already resolved, close as superseded.
 
 ## 5. Ship via `ship-pr`
 
@@ -79,6 +76,7 @@ search. If deleted or already resolved, close as superseded.
 auto-merge** (`gh pr merge --auto --squash`) on a PR targeting `main`: green `ci-pass` merges it
 ([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md),
 [`docs/convention-unattended-agent-trust.md`](../../../docs/convention-unattended-agent-trust.md)).
+**Waits:** run `scripts/pr_wait.sh <n> [mergeable]` in the background instead of `ship-pr` step 3's loops (refused in a worktree session). Exit 0 done, 1 check failed, 2 closed/conflicting.
 This overrides `ship-pr`'s "larger or tooling changes: don't arm" default: arm every PR right after creating it, whatever its size. Reference the task as in step 4.
 
 **A — `feature` label: run the quality gate first.** No
@@ -90,9 +88,6 @@ of these turns up, for whichever side changed:
    (dependency-cruiser).
 3. `cd api && make test/mutation/diff` / `cd web && npm run
    test:mutation:diff`; kill every surviving mutant.
-
-Nothing else checks the diff before it merges
-([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md)).
 
 **B — no `feature` label: flag what needs a closer look.** Append (never
 overwrite: `gh pr view --json body -q .body`, then `gh pr edit <n> --body
@@ -125,5 +120,5 @@ Check both (`command -v gh`); the web has neither. Say what's missing:
 - **`ship-pr` loaded, no `gh`**: follow its "When `gh` isn't available"
   section. Arm auto-merge as in step 5; never merge early.
 - **No `ship-pr`**: rebase on `origin/main`, push, open the PR, watch CI
-  (via `mcp__github__*` if no `gh`); apply step 5 yourself.
+  (`mcp__github__*` if no `gh`); apply step 5.
 - **No `session-retro`**: analyse by hand.
