@@ -187,9 +187,12 @@ func claimedJobToProto(c *services.ClaimedJob) *factoryv1.ClaimedJob {
 	}
 }
 
+// maxRunnerJobs bounds what a runner may ask for.
+const maxRunnerJobs = 8
+
 func (h *runnerHandler) ClaimJob(
 	ctx context.Context,
-	_ *factoryv1.ClaimJobRequest,
+	req *factoryv1.ClaimJobRequest,
 ) (*factoryv1.ClaimJobResponse, error) {
 	runner, err := h.runnerFrom(ctx)
 	if err != nil {
@@ -203,7 +206,9 @@ func (h *runnerHandler) ClaimJob(
 	// second of it being queued; answered empty when the hold ends.
 	deadline := time.Now().Add(h.app.heartbeatHold)
 	for {
-		claimed, claimErr := h.app.services.Jobs.Claim(ctx, runner.ID)
+		claimed, claimErr := h.app.services.Jobs.Claim(
+			ctx, runner.ID, int(min(req.GetMaxJobs(), maxRunnerJobs)),
+		)
 		if claimErr != nil {
 			return nil, mapError(claimErr)
 		}

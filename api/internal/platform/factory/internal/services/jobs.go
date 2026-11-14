@@ -321,11 +321,13 @@ func (s *JobService) Stop(
 	return job, nil
 }
 
-// Claim starts the oldest queued job, or returns nil when there is none or one is
-// already running. It first marks jobs that stopped checking in as lost.
+// Claim starts the oldest queued job, or returns nil when there is none or the
+// runner already runs maxJobs (below 1 means 1). It first marks jobs that
+// stopped checking in as lost.
 func (s *JobService) Claim(
 	ctx context.Context,
 	runnerID uuid.UUID,
+	maxJobs int,
 ) (*ClaimedJob, error) {
 	if err := s.ExpireLost(ctx); err != nil {
 		return nil, err
@@ -333,7 +335,7 @@ func (s *JobService) Claim(
 	// Best effort: a failure here leaves the queue as it was, and the next claim
 	// looks again.
 	_ = s.pickUp(ctx)
-	job, err := s.jobs.Claim(ctx, runnerID)
+	job, err := s.jobs.Claim(ctx, runnerID, max(maxJobs, 1))
 	if errors.Is(err, database.ErrResourceNotFound) ||
 		errors.Is(err, database.ErrResourceConflict) {
 		return nil, nil //nolint:nilnil // no job is an answer, not an error

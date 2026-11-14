@@ -63,6 +63,7 @@ func TestBrokenOrUnreadableConfigIsAnError(t *testing.T) {
 		NPMCache:   "",
 		BotEmail:   "",
 		Mode:       "",
+		MaxJobs:    0,
 	}
 	blocker := filepath.Join(dir, "file")
 	require.NoError(t, os.WriteFile(blocker, nil, 0o600))
@@ -79,6 +80,7 @@ func TestAddAndRemoveRepos(t *testing.T) {
 		NPMCache:   "",
 		BotEmail:   "",
 		Mode:       "",
+		MaxJobs:    0,
 	}
 	require.Error(t, cfg.AddRepo("not-a-repo"))
 	require.Error(t, cfg.AddRepo("-a/b"))
@@ -98,6 +100,7 @@ func TestServerMustBeHTTPSOrLoopback(t *testing.T) {
 		NPMCache:   "",
 		BotEmail:   "",
 		Mode:       "",
+		MaxJobs:    0,
 	}
 	for _, ok := range []string{
 		"https://example.com/api/", "http://localhost:8080", "http://127.0.0.1",
@@ -172,4 +175,17 @@ func TestMigrateModeReportsAnUnreadableConfig(t *testing.T) {
 	require.NoError(t, os.WriteFile(path, []byte("{"), 0o600))
 	_, err := runner.MigrateMode(path)
 	require.Error(t, err)
+}
+
+func TestMaxJobsDefaultsToTwoAndIsBounded(t *testing.T) {
+	var cfg runner.Config
+	assert.Equal(t, runner.DefaultMaxJobs, cfg.EffectiveMaxJobs())
+
+	require.NoError(t, cfg.SetMaxJobs(3))
+	assert.Equal(t, 3, cfg.EffectiveMaxJobs())
+	require.Error(t, cfg.SetMaxJobs(0))
+	require.Error(t, cfg.SetMaxJobs(runner.MaxJobsLimit+1))
+
+	cfg.MaxJobs = 99
+	assert.Equal(t, runner.MaxJobsLimit, cfg.EffectiveMaxJobs())
 }

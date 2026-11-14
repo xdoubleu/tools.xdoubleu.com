@@ -105,6 +105,13 @@ func goMenuAction(action C.int) {
 		refreshMenu()
 	case C.FRActionQuit:
 		quit()
+	default:
+		if n := int(action) - C.FRActionMaxJobs; n >= 1 && n <= C.FR_MAX_JOBS_CHOICES {
+			if err := ui.SetMaxJobs(n); err != nil {
+				fmt.Fprintln(os.Stderr, "factory-runner: jobs at once:", err)
+			}
+			refreshMenu()
+		}
 	}
 }
 
@@ -156,5 +163,6 @@ func refreshMenu() {
 	C.frSetMenu(
 		header, status, beat, update,
 		C.bool(s.Paused), C.bool(runner.LoginItemEnabled(ui.Home)),
+		C.int(ui.MaxJobs()),
 	)
 }

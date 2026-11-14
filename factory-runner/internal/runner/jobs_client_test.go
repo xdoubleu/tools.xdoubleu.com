@@ -26,7 +26,7 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 				`"resumeSessionId":"sess-1","model":"vendor/model"}}`),
 		)
 	})
-	job, err := c.ClaimJob(context.Background(), "frt_x")
+	job, err := c.ClaimJob(context.Background(), "frt_x", 2)
 	require.NoError(t, err)
 	assert.Equal(t, &runner.ClaimedJob{
 		ID: "j1", TaskID: "t1", RepoOwner: "o", RepoName: "n", DefaultBranch: "main",
@@ -40,7 +40,7 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 		t,
 		func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(`{}`)) },
 	)
-	job, err = none.ClaimJob(context.Background(), "frt_x")
+	job, err = none.ClaimJob(context.Background(), "frt_x", 2)
 	require.NoError(t, err)
 	assert.Nil(t, job)
 
@@ -48,7 +48,7 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_, _ = w.Write([]byte(`{"code":"unauthenticated","message":"x"}`))
 	})
-	_, err = revoked.ClaimJob(context.Background(), "frt_x")
+	_, err = revoked.ClaimJob(context.Background(), "frt_x", 2)
 	assert.True(t, runner.Unauthenticated(err))
 }
 

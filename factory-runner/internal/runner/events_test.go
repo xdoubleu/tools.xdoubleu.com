@@ -168,7 +168,12 @@ func TestLinesAreNotNumberedPastTheJobCap(t *testing.T) {
 	require.NoError(t, err)
 	got := env.api.numbered()
 	require.NotEmpty(t, got)
-	assert.Equal(t, 5000, got[len(got)-1].Seq, "numbering stops at the job cap")
+	// The periodic and the final flush can overlap, so batches arrive in any order.
+	highest := 0
+	for _, e := range got {
+		highest = max(highest, e.Seq)
+	}
+	assert.Equal(t, 5000, highest, "numbering stops at the job cap")
 }
 
 func TestTheJobsOwnAccountSecretNeverLeavesTheMac(t *testing.T) {

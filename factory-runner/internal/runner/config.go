@@ -22,6 +22,11 @@ const (
 	// DefaultImage is the job image `make image` builds.
 	DefaultImage = "factory-job:dev"
 
+	// DefaultMaxJobs is how many jobs run at once until `config max-jobs` says
+	// otherwise; MaxJobsLimit is the most it allows.
+	DefaultMaxJobs = 2
+	MaxJobsLimit   = 8
+
 	dirPerm  = 0o700
 	filePerm = 0o600
 )
@@ -48,6 +53,8 @@ type Config struct {
 	// Mode is the harness this Mac runs jobs on: ModeClaude, or ModeOff (also the
 	// empty default), which claims nothing.
 	Mode string `json:"mode,omitempty"`
+	// MaxJobs is how many jobs run at once, one VM each; 0 means DefaultMaxJobs.
+	MaxJobs int `json:"maxJobs,omitempty"`
 }
 
 // emailPattern is a plain address, nothing a commit header could be bent by. Brackets
@@ -164,6 +171,7 @@ func LoadConfig(path string) (Config, error) {
 		NPMCache:   "",
 		BotEmail:   "",
 		Mode:       "",
+		MaxJobs:    0,
 	}
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -265,6 +273,23 @@ func (c Config) EffectiveMode() string {
 		return ModeClaude
 	}
 	return ModeOff
+}
+
+// EffectiveMaxJobs is how many jobs run at once.
+func (c Config) EffectiveMaxJobs() int {
+	if c.MaxJobs < 1 {
+		return DefaultMaxJobs
+	}
+	return min(c.MaxJobs, MaxJobsLimit)
+}
+
+// SetMaxJobs sets how many jobs run at once.
+func (c *Config) SetMaxJobs(n int) error {
+	if n < 1 || n > MaxJobsLimit {
+		return fmt.Errorf("max-jobs %d must be from 1 to %d", n, MaxJobsLimit)
+	}
+	c.MaxJobs = n
+	return nil
 }
 
 // SetMode chooses the harness this Mac runs jobs on.

@@ -36,7 +36,8 @@ type ClaimedJob struct {
 // JobAPI is the server side of running jobs.
 type JobAPI interface {
 	// ClaimJob waits for the oldest queued job; nil means none came in the hold.
-	ClaimJob(ctx context.Context, token string) (*ClaimedJob, error)
+	// maxJobs is how many jobs this runner may have running at once.
+	ClaimJob(ctx context.Context, token string, maxJobs int) (*ClaimedJob, error)
 	// CheckIn reports a running job alive and says whether to stop it.
 	CheckIn(ctx context.Context, token, jobID, sessionID string) (bool, error)
 	// AppendJobEvents sends a batch of the harness's output lines, already redacted.
@@ -147,10 +148,19 @@ func (c *Client) ListFinishedTasks(
 	return resp.TaskIDs, err
 }
 
+type claimJobRequest struct {
+	MaxJobs int `json:"maxJobs"`
+}
+
 // ClaimJob implements JobAPI.
-func (c *Client) ClaimJob(ctx context.Context, token string) (*ClaimedJob, error) {
+func (c *Client) ClaimJob(
+	ctx context.Context,
+	token string,
+	maxJobs int,
+) (*ClaimedJob, error) {
 	var resp claimJobResponse
-	err := c.call(ctx, "ClaimJob", token, claimTimeout, struct{}{}, &resp)
+	err := c.call(ctx, "ClaimJob", token, claimTimeout,
+		claimJobRequest{MaxJobs: maxJobs}, &resp)
 	if err != nil {
 		return nil, err
 	}

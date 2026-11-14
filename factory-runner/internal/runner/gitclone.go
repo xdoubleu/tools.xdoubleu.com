@@ -7,9 +7,24 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 )
 
 const gitDirPerm = 0o700
+
+// mirrorLocks has one mutex per mirror: jobs on one repo, run side by side, must
+// not update the mirror while another clones from it.
+//
+//nolint:gochecknoglobals // the mirrors on disk are shared by every Git
+var mirrorLocks sync.Map
+
+// lockMirror takes the mirror's lock and returns its release.
+func lockMirror(mirror string) func() {
+	mu, _ := mirrorLocks.LoadOrStore(mirror, &sync.Mutex{})
+	m, _ := mu.(*sync.Mutex)
+	m.Lock()
+	return m.Unlock
+}
 
 // Git prepares a job's clone on the host before the sandbox starts. After that
 // the clone belongs to the agent: it can write .git/hooks and .git/config, which
@@ -82,6 +97,7 @@ func (g *Git) Restore(
 ) (string, error) {
 	remote := g.RemoteURL(owner, name)
 	mirror := filepath.Join(g.Dir, "mirrors", owner, name+".git")
+	defer lockMirror(mirror)()
 	if err := g.updateMirror(ctx, remote, mirror); err != nil {
 		return "", err
 	}
@@ -111,6 +127,7 @@ func (g *Git) Restore(
 func (g *Git) Clone(ctx context.Context, owner, name, base, branch, dest string) error {
 	remote := g.RemoteURL(owner, name)
 	mirror := filepath.Join(g.Dir, "mirrors", owner, name+".git")
+	defer lockMirror(mirror)()
 
 	if err := g.updateMirror(ctx, remote, mirror); err != nil {
 		return err

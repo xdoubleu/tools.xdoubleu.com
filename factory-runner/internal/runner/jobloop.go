@@ -265,6 +265,8 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 		// A rejection the agent worked past, to a finished outcome, is not a stop.
 		reason = limitReason(resetsAt)
 		res.limited, res.resetsAt = true, resetsAt
+		// The limit is the account's: no other job claims until it lifts.
+		l.r.holdClaims(l.limitEnd(resetsAt))
 		res.outcome = strings.TrimSpace(reason + "\n\n" + text)
 		wait := again(res, "usage limit reached", "", "", limitLifted)
 		// With no session there is nothing to resume: the limit ends the job.

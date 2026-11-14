@@ -234,6 +234,7 @@ func (a *app) withMenu(
 		Release:  Release,
 		Home:     a.home,
 		ExecPath: a.execPath,
+		MaxJobs:  a.maxJobs, SetMaxJobs: a.setMaxJobsTo,
 	}, work)
 }
 
