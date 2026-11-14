@@ -68,8 +68,8 @@ the map has titles; ids go in a closing comment (step 5).
 - **Add the `feature` label to the parent and every sub-task**, alongside
   `refine-task`'s labels. Without it `finish-task` falls through to the
   maintenance track.
-- Everything lands in Backlog; you can't make a task Ready, so say that the
-  owner moves them.
+- Everything lands in Backlog; don't make a task Ready unless the owner
+  said to; otherwise say that the owner moves them.
 - If slices later merge into one PR, comment on each child then, naming the PR
   and its parent; `finish-task` closes them with the PR.
 

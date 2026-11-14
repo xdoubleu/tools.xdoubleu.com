@@ -1,4 +1,4 @@
-# ADR-0040: The board's MCP tools are for agent accounts and can't mark a task Ready
+# ADR-0040: The board's MCP tools are for agent accounts, which may mark a task Ready
 
 - Status: Accepted; the `AgentToolsOnly` gate is superseded by
   [ADR-0047](adr-0047-first-class-agent-users.md)
@@ -9,8 +9,9 @@
 ## Context
 
 Agents file and discuss tasks on the factory board, but a person alone decides
-that work may start: only a human admin in a browser moves a task into Ready
-([ADR-0039](adr-0039-agent-accounts.md), #2701 decision 5). The existing tool
+that work may start. Originally only a human admin in a browser could move a
+task into Ready ([ADR-0039](adr-0039-agent-accounts.md), #2701 decision 5); the
+owner later let agents do it too (T-424). The existing tool
 registrars gate on per-app access, which admits an admin and refuses an agent,
 the opposite of what the board needs.
 
@@ -29,9 +30,8 @@ the opposite of what the board needs.
   error, and `AgentGrants` leaves the `factory_` tools out of every non-agent's
   tool list.
 - The tools call the services as an agent actor (`agent:<user id>`), which is
-  neither a browser nor an admin. A move into Ready is refused by
-  `TaskService.Move`, the same guard as the web UI, not by the tool, so no tool
-  can forget it.
+  neither a browser nor an admin. `TaskService.Move` lets an agent or a human admin in a browser move a task into
+  Ready (not other channels) and records the actor in a comment.
 - `factory_list_tasks` filters by status, repo, label (any case) and `query`,
   a case-insensitive search of titles and bodies run in SQL, so a routine finds
   the task it filed earlier by a stable key (a Sentry permalink) without
