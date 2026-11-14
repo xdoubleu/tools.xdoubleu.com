@@ -5,7 +5,7 @@ description: >-
   comment on it or create a new one in Backlog with labels, priority and a
   complete body, through the factory_* MCP tools. Use whenever a routine or
   skill would have filed a GitHub issue (sentry-triage, monitoring-sweep,
-  dependabot-triage, posthog-ux-discovery), and when the user asks to "file a
+  dependabot-triage, posthog-ux-discovery, factory-retro), and when the user asks to "file a
   task", "add this to the board" or "refine this task".
 ---
 
