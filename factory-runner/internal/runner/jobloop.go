@@ -40,9 +40,11 @@ const (
 // after each, and the pull request watched until it merges. It holds no state
 // shared with another job, so several can run side by side.
 type jobLoop struct {
-	r    *JobRunner
-	job  *ClaimedJob
-	dirs jobDirs
+	// sandboxFixed is set once the outcome's Sandbox-fix branch was handled.
+	sandboxFixed bool
+	r            *JobRunner
+	job          *ClaimedJob
+	dirs         jobDirs
 	// since is where a Reply's host checks start.
 	since   string
 	launch  launch
@@ -206,6 +208,14 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 	}
 	began = l.now()
 	res = l.r.publishable(l.parent, l.job, l.dirs.clone, l.since, text, res, l.secrets)
+	if _, ok := findLine(text, "Sandbox-fix:"); ok && l.r.GitHub != nil &&
+		!l.sandboxFixed {
+		l.sandboxFixed = true
+		n := l.r.publishSandboxFix(l.parent, l.job, l.dirs.clone, text, l.secrets)
+		if n != "" {
+			l.note(n)
+		}
+	}
 	l.times.publish += l.now().Sub(began)
 	if res.head == "" {
 		// Only an identity for spotting no progress, so the agent's own ref file
