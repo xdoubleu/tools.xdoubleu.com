@@ -322,7 +322,8 @@ func (r *JobsRepository) SetPullRequestStatus(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// RecordTimings stores a finished job's phase times, for the runner that ran it.
+// RecordTimings stores a finished job's phase times, for the runner that ran it,
+// once (a repeated report is not found).
 func (r *JobsRepository) RecordTimings(
 	ctx context.Context,
 	id, runnerID uuid.UUID,
@@ -334,7 +335,7 @@ func (r *JobsRepository) RecordTimings(
 			merge_seconds = $6, total_seconds = $7, gate_retries = $8,
 			push_retries = $9, ci_retries = $10
 		WHERE id = $1 AND status NOT IN ('queued', 'running')
-			AND (runner_id IS NULL OR runner_id = $2)`,
+			AND runner_id = $2 AND total_seconds IS NULL`,
 		id, runnerID, t.Agent, t.Publish, t.CI, t.Merge, t.Total,
 		t.GateRetries, t.PushRetries, t.CIRetries)
 	if err != nil {

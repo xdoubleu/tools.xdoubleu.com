@@ -356,7 +356,7 @@
         { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.9, sum by (le) (increase(factory_job_time_to_merge_seconds_bucket[7d])))", "legendFormat": "time to merge p90" },
         { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (cause) (increase(factory_job_attempts_total[7d]))", "legendFormat": "retries: {{cause}}" }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [ { "matcher": { "id": "byFrameRefID", "options": "C" }, "properties": [ { "id": "unit", "value": "none" } ] } ] },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
     }
   ]

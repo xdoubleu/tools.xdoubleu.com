@@ -31,7 +31,7 @@ var (
 	}, []string{"cause"})
 	jobTimeToMerge = promauto.NewHistogram(prometheus.HistogramOpts{
 		Name:    "factory_job_time_to_merge_seconds",
-		Help:    "Time from a succeeded job's first prompt to its merge.",
+		Help:    "Time from a merged job's first prompt to its merge.",
 		Buckets: []float64{60, 300, 600, 1200, 1800, 3600, 7200, 14400},
 	})
 )
@@ -53,14 +53,19 @@ func (s *JobService) RecordTimings(
 	if err := s.jobs.RecordTimings(ctx, jobID, runnerID, t); err != nil {
 		return err
 	}
-	jobPhaseSeconds.WithLabelValues("agent").Observe(t.Agent)
-	jobPhaseSeconds.WithLabelValues("publish").Observe(t.Publish)
-	jobPhaseSeconds.WithLabelValues("ci").Observe(t.CI)
-	jobPhaseSeconds.WithLabelValues("merge").Observe(t.Merge)
+	// A phase the job never reached would only pile up in the lowest bucket.
+	for phase, seconds := range map[string]float64{
+		"agent": t.Agent, "publish": t.Publish, "ci": t.CI, "merge": t.Merge,
+	} {
+		if seconds > 0 {
+			jobPhaseSeconds.WithLabelValues(phase).Observe(seconds)
+		}
+	}
 	jobAttempts.WithLabelValues("gate").Add(float64(t.GateRetries))
 	jobAttempts.WithLabelValues("push").Add(float64(t.PushRetries))
 	jobAttempts.WithLabelValues("ci").Add(float64(t.CIRetries))
-	if succeeded {
+	// Only a job that waited on a merge got that far.
+	if succeeded && t.Merge > 0 {
 		jobTimeToMerge.Observe(t.Total)
 	}
 	return nil
