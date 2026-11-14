@@ -81,6 +81,7 @@ type fakeAPI struct {
 }
 
 type completion struct {
+	end       runner.JobEnd
 	jobID     string
 	succeeded bool
 	outcome   string
@@ -202,7 +203,7 @@ func (f *fakeAPI) CompleteJob(
 	f.completed = append(f.completed, completion{
 		jobID: id, succeeded: end.Succeeded, outcome: end.Outcome,
 		session: end.SessionID, prURL: end.PRURL, limited: end.Limited,
-		resetsAt: end.ResetsAt, blocked: end.Blocked,
+		resetsAt: end.ResetsAt, blocked: end.Blocked, end: end,
 	})
 	f.completes <- struct{}{}
 	return nil

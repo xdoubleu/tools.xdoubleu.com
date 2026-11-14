@@ -117,8 +117,11 @@ func (l *jobLoop) run() result {
 	start := l.now()
 	l.began = start
 	res := l.loop()
+	res.total = l.now().Sub(start)
+	times := l.times
+	res.times = &times
 	if res.prURL != "" {
-		l.events.note(l.times.summary(l.now().Sub(start)))
+		l.events.note(l.times.summary(res.total))
 	}
 	return res
 }
@@ -166,6 +169,7 @@ func (l *jobLoop) attempts() result {
 			return l.stop(s, "Stopped: the agent has no session to resume.")
 		}
 		l.causes = append(l.causes, redact(short(s.why), l.events.redactions))
+		l.times.retry(s.res.cause)
 		l.note(fmt.Sprintf("Attempt %d: %s, retrying", attempt+1, s.why))
 		command, prompt = l.r.harnessFor(l.job).Resume(sid), s.feedback
 	}
@@ -403,6 +407,7 @@ func (l *jobLoop) judge(res result, text string, st PullStatus) (step, bool) {
 		detail.WriteString("\n\n" + f.Name + ":\n" + f.Excerpt)
 	}
 	joined := strings.Join(names, ", ")
+	res.cause = "ci"
 	return again(res, "CI failed on "+short(joined), "ci:"+joined, st.HeadSHA,
 		"The pull request "+res.prURL+" is open, but CI failed on "+joined+"."+
 			detail.String()+"\n\nFix it, run those gates yourself where the sandbox "+
