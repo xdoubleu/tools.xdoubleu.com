@@ -163,7 +163,7 @@ func (l *jobLoop) attempts() result {
 		if sid == "" {
 			return l.stop(s, "Stopped: the agent has no session to resume.")
 		}
-		l.causes = append(l.causes, s.why)
+		l.causes = append(l.causes, redact(short(s.why), l.events.redactions))
 		l.note(fmt.Sprintf("Attempt %d: %s, retrying", attempt+1, s.why))
 		command, prompt = l.r.harnessFor(l.job).Resume(sid), s.feedback
 	}
