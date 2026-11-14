@@ -285,7 +285,9 @@ func (h *runnerHandler) GetPushToken(
 		return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error())
 	case errors.Is(err, services.ErrGitHubFailed):
 		// Retryable, and none of GitHub's own text goes to the runner.
-		return nil, connect.NewError(connect.CodeUnavailable, err.Error())
+		h.app.Logger.WarnContext(ctx, "could not mint a push token", "error", err)
+		return nil, connect.NewError(connect.CodeUnavailable,
+			services.ErrGitHubFailed.Error())
 	case err != nil:
 		return nil, mapError(err)
 	}
