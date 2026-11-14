@@ -55,6 +55,9 @@ type jobLoop struct {
 	limit   time.Duration
 	token   string
 	tokenAt time.Time
+	times   phaseTimes
+	// greenAt is when CI first passed in the current watch.
+	greenAt time.Time
 }
 
 // step is how an attempt ended: the job's result when that is the end, or what
@@ -99,8 +102,18 @@ func (l *jobLoop) sleep(d time.Duration) {
 	sleepCtx(l.ctx, d)
 }
 
-// run is the job from its first prompt to its end.
+// run is the job from its first prompt to its end; its phase times go to the
+// board's log last once a pull request was opened.
 func (l *jobLoop) run() result {
+	start := l.now()
+	res := l.loop()
+	if res.prURL != "" {
+		l.events.note(l.times.summary(l.now().Sub(start)))
+	}
+	return res
+}
+
+func (l *jobLoop) loop() result {
 	spec := SandboxSpec{
 		CloneDir: l.dirs.clone, OutcomeDir: l.dirs.outcome, SessionDir: l.dirs.session,
 		Env: l.launch.env, SetupCommands: l.job.SetupCommands, Command: nil,
@@ -166,7 +179,9 @@ func (l *jobLoop) ended() string {
 // attempt runs the agent once, then checks and publishes what it left, and, once
 // the pull request is open, watches it.
 func (l *jobLoop) attempt(command []string, prompt string) step {
+	began := l.now()
 	text, end := l.agent(command, prompt)
+	l.times.agent += l.now().Sub(began)
 	if end != nil {
 		return *end
 	}
@@ -175,7 +190,9 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 		!leaks(b, l.secrets) {
 		res.blocked = b
 	}
+	began = l.now()
 	res = l.r.publishable(l.parent, l.job, l.dirs.clone, l.since, text, res, l.secrets)
+	l.times.publish += l.now().Sub(began)
 	if res.head == "" {
 		// Only an identity for spotting no progress, so the agent's own ref file
 		// will do where the host never got to review the branch.
@@ -187,7 +204,11 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 	// sandbox could not, and its failures go back to the agent.
 	switch {
 	case res.prURL != "":
-		return l.watch(res, text)
+		began = l.now()
+		l.greenAt = time.Time{}
+		st := l.watch(res, text)
+		l.times.addWatch(began, l.greenAt, l.now())
+		return st
 	case res.blocked != "":
 		return over(res)
 	case res.retry:
@@ -359,7 +380,11 @@ func (l *jobLoop) status(ref PullRef) (PullStatus, error) {
 	}
 	ctx, cancel := context.WithTimeout(l.ctx, publishTimeout)
 	defer cancel()
-	return l.r.GitHub.PullRequestStatus(ctx, l.token, ref)
+	st, err := l.r.GitHub.PullRequestStatus(ctx, l.token, ref)
+	if err == nil && st.CI == CISuccess && l.greenAt.IsZero() {
+		l.greenAt = l.now()
+	}
+	return st, err
 }
 
 // note tells the board an attempt is starting: a line in the job's log and a

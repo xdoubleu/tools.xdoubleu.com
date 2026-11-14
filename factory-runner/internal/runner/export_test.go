@@ -101,3 +101,11 @@ func FreeSubnets(routes string, n int) []string {
 
 // ChecksFailureForTest exposes checksFailure.
 func ChecksFailureForTest(outcome string) error { return checksFailure(outcome) }
+
+// PhaseTimes is phaseTimes, for tests.
+type PhaseTimes struct{ phaseTimes }
+
+// Agent sets the agent time; AddWatch and Summary forward.
+func (p *PhaseTimes) AddWatch(b, g, e time.Time)     { p.addWatch(b, g, e) }
+func (p *PhaseTimes) Summary(d time.Duration) string { return p.summary(d) }
+func (p *PhaseTimes) SetAgent(d time.Duration)       { p.agent = d }
