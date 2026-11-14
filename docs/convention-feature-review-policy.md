@@ -47,6 +47,15 @@ as a manual aid):
    run: keep branching logic in pure functions unit-tested in their own
    package.
 
+## Enforcement
+
+CI's `feature-gate` job (`scripts/check_feature_gate.sh`, a `ci-pass`
+dependency) fails a `feature`-labelled PR unless its body has a line
+`Feature gate: mutation=pass, review=pass`. Factory jobs write that line in
+their outcome (it becomes the PR body), or `mutation=skipped` when the sandbox
+can't run the gate, which blocks auto-merge until the owner runs the gate and
+edits the body. Label and body edits re-run the check.
+
 ## Why
 
 Merges deploy with no human in the chain: the owner chose speed over a

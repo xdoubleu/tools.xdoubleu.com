@@ -60,3 +60,4 @@ lint/docs:
 # Exercise scripts/lint_doc_paths.sh against a synthetic repo.
 lint/docs/test:
 	./scripts/test_lint_doc_paths.sh
+	./scripts/test_check_feature_gate.sh

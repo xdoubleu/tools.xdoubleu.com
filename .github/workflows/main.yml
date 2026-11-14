@@ -8,7 +8,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+  # labeled/edited re-run the feature-gate check when evidence or the label changes.
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, edited]
 
 jobs:
   changes:
@@ -368,6 +370,23 @@ jobs:
         env:
           BASE_REF: HEAD
 
+  # A feature PR must carry the gate's evidence in its body → docs/convention-feature-review-policy.md
+  feature-gate:
+    name: Feature Gate Evidence
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Check evidence
+        run: ./scripts/check_feature_gate.sh
+        env:
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+      - name: Test the check
+        run: ./scripts/test_check_feature_gate.sh
+
   ci-pass:
     needs:
       [
@@ -389,6 +408,7 @@ jobs:
         workflow-lint,
         skills-lint,
         docs-lint,
+        feature-gate,
       ]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest
