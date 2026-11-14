@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -73,14 +74,21 @@ func newFakeIssuer(t *testing.T) *fakeIssuer {
 			"jwks_uri":               issuer.ts.URL + "/keys",
 		})
 	})
+	ecPriv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
 	mux.HandleFunc("/keys", func(w http.ResponseWriter, _ *http.Request) {
-		_ = json.NewEncoder(w).Encode(map[string]any{"keys": []map[string]string{{
-			"kty": "RSA", "kid": "k1",
-			"n": base64.RawURLEncoding.EncodeToString(key.N.Bytes()),
-			"e": base64.RawURLEncoding.EncodeToString(
-				big.NewInt(int64(key.E)).Bytes(),
-			),
-		}}})
+		enc := base64.RawURLEncoding.EncodeToString
+		_ = json.NewEncoder(w).Encode(map[string]any{"keys": []map[string]string{
+			{
+				"kty": "EC", "kid": "ec1", "crv": "P-256",
+				"x": enc(ecPriv.X.Bytes()), "y": enc(ecPriv.Y.Bytes()),
+			},
+			{
+				"kty": "RSA", "kid": "k1",
+				"n": enc(key.N.Bytes()),
+				"e": enc(big.NewInt(int64(key.E)).Bytes()),
+			},
+		}})
 	})
 	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
 		_ = r.ParseForm()
@@ -455,9 +463,30 @@ func TestOIDCComplete_UnknownSigningKey(t *testing.T) {
 	issuer.kid = "rotated-away"
 	issuer.mu.Unlock()
 
-	subject, _, err := issuer.login(t, issuer.provider(t), nil)
+	provider := issuer.provider(t)
+	subject, _, err := issuer.login(t, provider, nil)
 	require.Error(t, err)
 	assert.Empty(t, subject)
+
+	// The key set isn't refetched for every unknown kid.
+	_, _, err = issuer.login(t, provider, nil)
+	require.Error(t, err)
+}
+
+func TestOIDCProvider_LookupKeyWithoutKid(t *testing.T) {
+	var provider OIDCProvider
+	_, ok := provider.lookupKey("")
+	assert.False(t, ok)
+
+	only := &rsa.PublicKey{N: big.NewInt(1), E: 3}
+	provider.keys = map[string]crypto.PublicKey{"only": only}
+	key, ok := provider.lookupKey("")
+	require.True(t, ok)
+	assert.Equal(t, only, key)
+
+	provider.keys["second"] = only
+	_, ok = provider.lookupKey("")
+	assert.False(t, ok)
 }
 
 func TestOIDCProvider_DiscoveryFailures(t *testing.T) {
