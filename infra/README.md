@@ -200,6 +200,26 @@ the `kamal` network, and Docker-socket access — the image runs as `nobody`, so
 `group_add`. `docker logs prometheus | grep docker_sd` shows a permission
 error plainly. The `TargetMissing` alert fires on this case.
 
+## Zitadel
+
+[ADR-0051](../docs/adr-0051-zitadel-for-people-sign-in.md): `null_resource.zitadel`
+uploads `zitadel-compose.yml` and a generated `.env` to `/home/deploy/zitadel/`
+and runs `zitadel-setup.sh`, which creates the `zitadel` database and role in
+Postgres, starts the container (768 MiB cap, no host port) and registers
+`zitadel:8080` in kamal-proxy for `var.zitadel_host`
+(default `auth.tools.xdoubleu.com`; **create its DNS A record first**). The
+route is skipped until kamal-proxy exists, so the next apply adds it. It is
+Tofu-managed like Prometheus, not a Kamal service, so it adds no Kamal deploy
+secret (`make lint/kamal-secrets` is unaffected): the masterkey, database and
+first-admin passwords are `random_password`s in Tofu state, and the SMTP
+password is `TF_VAR_zitadel_smtp_password` from `RESEND_API_KEY`. Read the
+admin login with `tofu output -raw zitadel_admin_password`; back up the
+masterkey, since losing it loses every encrypted secret.
+Prometheus scrapes `zitadel:8080/debug/metrics`, so `TargetDown` alerts when it
+is down. Renovate tracks the image; check `HostMemoryHigh` stays quiet after
+the first apply. Nothing signs in through it yet. Locally:
+`docker-compose --profile zitadel up -d` in `api/`.
+
 ## GoTrue is gone
 
 Auth (password sign-in, TOTP MFA, the MCP OAuth 2.1 authorization server) is

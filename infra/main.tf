@@ -214,6 +214,85 @@ resource "null_resource" "postgres" {
   }
 }
 
+# Zitadel (ADR-0051): own database and role in the Postgres above, routed
+# through kamal-proxy at var.zitadel_host. Not yet used for sign-in.
+resource "random_password" "zitadel_db" {
+  length  = 32
+  special = false # lands in .env and a SQL string
+}
+
+# Zitadel requires exactly 32 characters; losing it loses every encrypted secret.
+resource "random_password" "zitadel_masterkey" {
+  length  = 32
+  special = false
+}
+
+resource "random_password" "zitadel_admin" {
+  length      = 24
+  special     = false
+  min_upper   = 1
+  min_lower   = 1
+  min_numeric = 1
+}
+
+output "zitadel_admin_password" {
+  value     = random_password.zitadel_admin.result
+  sensitive = true
+}
+
+resource "null_resource" "zitadel" {
+  depends_on = [null_resource.harden, null_resource.kamal_network, null_resource.postgres]
+
+  triggers = {
+    compose_hash   = filesha256("${path.module}/zitadel-compose.yml")
+    setup_hash     = filesha256("${path.module}/zitadel-setup.sh")
+    host           = var.zitadel_host
+    smtp_from      = var.release_check_email_from
+    secrets_hash   = sha256("${random_password.zitadel_db.result}${random_password.zitadel_masterkey.result}${random_password.zitadel_admin.result}${var.zitadel_smtp_password}")
+    postgres_reset = null_resource.postgres.id
+  }
+
+  connection {
+    type  = "ssh"
+    host  = var.server_ip
+    user  = "deploy"
+    agent = true
+  }
+
+  provisioner "remote-exec" {
+    inline = ["mkdir -p /home/deploy/zitadel"]
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/zitadel-compose.yml"
+    destination = "/home/deploy/zitadel/docker-compose.yml"
+  }
+
+  provisioner "file" {
+    content     = <<-EOT
+      ZITADEL_HOST=${var.zitadel_host}
+      ZITADEL_SMTP_FROM=${var.release_check_email_from}
+      ZITADEL_MASTERKEY=${random_password.zitadel_masterkey.result}
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD=${random_password.zitadel_db.result}
+      ZITADEL_DEFAULTINSTANCE_SMTPCONFIGURATION_SMTP_PASSWORD=${var.zitadel_smtp_password}
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD=${random_password.zitadel_admin.result}
+    EOT
+    destination = "/home/deploy/zitadel/.env"
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/zitadel-setup.sh"
+    destination = "/home/deploy/zitadel/zitadel-setup.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod 600 /home/deploy/zitadel/.env",
+      "cd /home/deploy/zitadel && bash zitadel-setup.sh",
+    ]
+  }
+}
+
 # Host metrics exporter; no secrets, so no .env file.
 resource "null_resource" "node_exporter" {
   depends_on = [null_resource.harden, null_resource.kamal_network]

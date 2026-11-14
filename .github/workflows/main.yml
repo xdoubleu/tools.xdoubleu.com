@@ -721,6 +721,7 @@ jobs:
           TF_VAR_release_check_email_to: ${{ secrets.NOTIFY_EMAIL_TO }}
           # Lets infra/prometheus.yml's `web` job authenticate GET /metrics.
           TF_VAR_observability_ingest_secret: ${{ secrets.OBSERVABILITY_INGEST_SECRET }}
+          TF_VAR_zitadel_smtp_password: ${{ secrets.RESEND_API_KEY }}
         run: tofu apply -auto-approve -input=false
 
       # The job stays failed; this only restores the box.
