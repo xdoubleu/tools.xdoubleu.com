@@ -338,3 +338,25 @@ func (a *memAppUsers) GetAll(context.Context) ([]models.User, error) { return ni
 func (s *memStore) GetVerifiedTOTPFactor(context.Context, string) (*TOTPFactor, error) {
 	return nil, errNotFound
 }
+
+func (s *memStore) GetUserByOIDCSubject(
+	_ context.Context,
+	subject string,
+) (*User, error) {
+	for _, u := range s.users {
+		if u.OIDCSubject == subject {
+			return u, nil
+		}
+	}
+	return nil, errNotFound
+}
+
+func TestDeactivatedUserCannotSignInWithOIDC(t *testing.T) {
+	store := newMemStore()
+	store.users["u"] = &User{ID: "u", OIDCSubject: "sub", Deactivated: true}
+	svc := provisioningService(nil, store, nil)
+
+	_, _, err := svc.SignInWithOIDC(context.Background(), "sub")
+
+	require.Error(t, err)
+}

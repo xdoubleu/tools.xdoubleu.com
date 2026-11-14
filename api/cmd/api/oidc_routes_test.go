@@ -73,3 +73,11 @@ func TestAccountURL(t *testing.T) {
 	cfg.OIDCSignIn, cfg.OIDCIssuer = true, "https://id.example.com/"
 	assert.Equal(t, "https://id.example.com/ui/console/users/me", accountURL(cfg))
 }
+
+func TestNewDirectory(t *testing.T) {
+	cfg := testhelper.NewTestConfig()
+	assert.Nil(t, newDirectory(cfg))
+
+	cfg.OIDCIssuer, cfg.ZitadelServiceToken = "https://id.example.com", "pat"
+	assert.NotNil(t, newDirectory(cfg))
+}
