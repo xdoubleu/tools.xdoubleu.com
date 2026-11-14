@@ -94,7 +94,10 @@ func (s *JobService) ReportBlocked(
 		Kind: models.ActorAgent, ID: "runner:" + runnerID.String(),
 		Browser: false, Admin: false,
 	}
-	_, _, err = (&TaskService{repo: s.tasks}).ReportSandbox(
+	sandbox, _, err := (&TaskService{repo: s.tasks}).ReportSandbox(
 		ctx, actor, job.RepoID, title, body)
+	if err == nil {
+		err = s.park(ctx, job, sandbox)
+	}
 	return err
 }
