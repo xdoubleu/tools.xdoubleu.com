@@ -109,3 +109,29 @@ func TestARoutineWhoseSandboxCannotStartFails(t *testing.T) {
 	assert.False(t, got.succeeded)
 	assert.Contains(t, got.outcome, "no vm")
 }
+
+// noVM is a session sandbox that cannot start a VM.
+type noVM struct{ *fakeSandbox }
+
+func (noVM) Open(context.Context, runner.SandboxSpec) (runner.SandboxSession, error) {
+	return nil, errors.New("no vm")
+}
+
+func TestAJobWhoseVMCannotOpenFailsWithTheReason(t *testing.T) {
+	for name, job := range map[string]*runner.ClaimedJob{
+		"a routine": newRoutineJob(),
+		"a task":    newJob(),
+	} {
+		env := newEnv(t, outcomeOnly("x"), job)
+		sb, ok := env.runner.Sandbox.(*fakeSandbox)
+		require.True(t, ok, name)
+		env.runner.Sandbox = noVM{sb}
+
+		_, err := env.runner.Next(context.Background())
+		require.NoError(t, err, name)
+
+		got := env.api.done()[0]
+		assert.False(t, got.succeeded, name)
+		assert.Contains(t, got.outcome, "The sandbox could not run the job: no vm", name)
+	}
+}
