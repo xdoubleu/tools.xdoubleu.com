@@ -104,7 +104,8 @@ func TestMenuLines(t *testing.T) {
 func status(set func(*runner.Status)) runner.Status {
 	s := runner.Status{
 		Version: "", Paused: false, Busy: false, LastHeartbeat: time.Time{}, Update: "",
-		Mode: "",
+		Mode:     "",
+		Unpaired: false,
 	}
 	set(&s)
 	return s
@@ -195,5 +196,19 @@ func TestStatusShowsTheConfigMode(t *testing.T) {
 	c.SetModeSource(func() string { return runner.ModeClaude })
 	s := c.Snapshot()
 	assert.Equal(t, runner.ModeClaude, s.Mode)
-	assert.Contains(t, s.MenuLines("v1", time.Now()).Status, "(mode: claude)")
+	assert.Equal(t, "Idle", s.MenuLines("v1", time.Now()).Status)
+
+	c.SetModeSource(func() string { return runner.ModeOff })
+	assert.Equal(t, "Not claiming: mode is off",
+		c.Snapshot().MenuLines("v1", time.Now()).Status)
+
+	c.SetUnpaired()
+	assert.Equal(t, "Not paired", c.Snapshot().MenuLines("v1", time.Now()).Status)
+	c.MarkPaired()
+	select {
+	case <-c.AwaitPaired():
+	default:
+		t.Fatal("MarkPaired did not signal")
+	}
+	assert.False(t, c.Snapshot().Unpaired)
 }

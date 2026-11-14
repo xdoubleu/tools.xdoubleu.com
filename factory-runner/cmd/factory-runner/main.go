@@ -144,15 +144,8 @@ func (a *app) pair(ctx context.Context, args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("usage: factory-runner pair <code>")
 	}
-	cfg, _, err := a.loadConfig()
+	name, err := a.pairWith(ctx, args[0], "")
 	if err != nil {
-		return err
-	}
-	token, name, err := a.newBeat(cfg.Server).Pair(ctx, args[0])
-	if err != nil {
-		return err
-	}
-	if err = a.store.Set(token); err != nil {
 		return err
 	}
 	fmt.Fprintf(
@@ -168,10 +161,27 @@ func (a *app) runDaemon(ctx context.Context) error {
 		return nil
 	}
 	token, err := a.store.Get()
-	if err != nil {
+	// With a menu bar the owner can pair from it; without, there is no way to.
+	unpaired := errors.Is(err, runner.ErrNoToken) && a.menu != nil && a.control != nil
+	if err != nil && !unpaired {
 		return err
 	}
-	if _, err = runner.MigrateMode(runner.ConfigPath(a.home)); err != nil {
+	if unpaired {
+		a.control.SetUnpaired()
+	}
+	return a.withMenu(ctx, func(ctx context.Context) error {
+		if unpaired {
+			if token, err = a.awaitPairing(ctx); err != nil {
+				return err
+			}
+		}
+		return a.start(ctx, token)
+	})
+}
+
+// start heartbeats and runs jobs once this Mac is paired.
+func (a *app) start(ctx context.Context, token string) error {
+	if _, err := runner.MigrateMode(runner.ConfigPath(a.home)); err != nil {
 		return err
 	}
 	cfg, _, err := a.loadConfig()
@@ -186,9 +196,7 @@ func (a *app) runDaemon(ctx context.Context) error {
 	beat := func(ctx context.Context) error {
 		return a.daemon(ctx, a.newBeat(cfg.Server), token, opts)
 	}
-	return a.withMenu(ctx, func(ctx context.Context) error {
-		return a.serve(ctx, cfg, token, beat)
-	})
+	return a.serve(ctx, cfg, token, beat)
 }
 
 // migrateLegacyInstall moves an older install (the bare binary, or the app under
@@ -255,6 +263,13 @@ func (a *app) withMenu(
 		Home:     a.home,
 		ExecPath: a.execPath,
 		MaxJobs:  a.maxJobs, SetMaxJobs: a.setMaxJobsTo,
+		Mode: a.configMode, SetMode: a.chooseMode,
+		Repos: a.repos, AddRepo: a.addRepo, RemoveRepo: a.removeRepo,
+		Server: a.serverURL,
+		Pair: func(ctx context.Context, code, server string) error {
+			_, err := a.pairWith(ctx, code, server)
+			return err
+		},
 	}, work)
 }
 

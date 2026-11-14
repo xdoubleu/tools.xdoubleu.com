@@ -9,21 +9,21 @@ cmd/factory-runner/   main.go, config.go, entry.go, jobs.go, jobproxy.go
                       menubar_*.go|m|h (menu bar; stub without cgo)
 internal/runner/
   client.go, jobs_client.go   the server calls
-  daemon.go, control.go       heartbeat loop; pause flag, menu status
-  jobrunner.go                claim loop, `max_jobs` at once; the prompt; Checks:/Blocked: lines
-  jobloop.go, pullstatus.go   one job's attempts until its PR merges; CI verdict
-  gitclone.go, hostcheck.go   host mirror and job clone; host checks
-  events.go, publish.go       log lines to the board; push and open the PR
-  harness.go, sandbox.go      Claude Code and OpenCode commands; Sandbox
+  daemon.go, control.go       heartbeat loop; pause flag, status
+  jobrunner.go                claim loop, `max_jobs` at once; prompt; Checks:/Blocked: lines
+  jobloop.go, pullstatus.go   a job's attempts until merge; CI verdict
+  gitclone.go, hostcheck.go   mirror, clone; host checks
+  events.go, publish.go       board log lines; push, open the PR
+  harness.go, sandbox.go      Claude Code/OpenCode commands; Sandbox
   sandbox_container.go        one Apple `container` VM per job
-  egress_proxy.go, mcp_token.go  the VM's only way out; the job's board token
+  egress_proxy.go, mcp_token.go  the VM's way out; board token
   validate.go, config.go      job validator; server URL, repo allowlist
-  token.go, launchagent.go, update.go, activity.go  keychain; plist; self-update; caffeinate
+  token.go, launchagent.go, update.go, activity.go  keychain; plist; update; caffeinate
 ```
 
 ## Trust
 
-The server is untrusted: each job needs UUID ids, an allowlisted repo, an `agent/*` branch, no value starting with `-`, a harness this Mac runs.
+The server is untrusted; each job needs UUID ids, an allowlisted repo, an `agent/*` branch, no value starting with `-`, a harness this Mac runs.
 
 - A Reply's job restores the task's pushed branch and resumes its session; only new commits are host-checked.
 - The agent owns the clone (it can write `.git/hooks` and `.git/config`), so the host runs git there only with `-c core.hooksPath=/dev/null` and a clean config.
@@ -34,9 +34,9 @@ The server is untrusted: each job needs UUID ids, an allowlisted repo, an `agent
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
-`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature and job-image manifest into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key. Installs to `/Applications`.
+`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the dmg, binary, signature and image manifest into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key. 
 
-`config mode off|claude` (default `off`) picks the harness; logs: `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
+Settings live in the menu bar; `config …` is for scripting. A fresh pairing is `off`; an older paired config without a mode becomes `claude`. Logs: `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
 
 ## Building
 

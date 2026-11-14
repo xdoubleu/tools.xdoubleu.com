@@ -15,6 +15,17 @@ type menuInfo struct {
 	// MaxJobs reads how many jobs run at once; SetMaxJobs saves the owner's choice.
 	MaxJobs    func() int
 	SetMaxJobs func(int) error
+	// Mode reads the configured mode; SetMode saves the owner's choice.
+	Mode    func() string
+	SetMode func(string) error
+	// Repos reads the allowlist; AddRepo and RemoveRepo edit it.
+	Repos      func() []string
+	AddRepo    func(string) error
+	RemoveRepo func(string) error
+	// Server reads the API root; Pair swaps a pairing code for a device token,
+	// first pointing the runner at server when it is not empty.
+	Server func() string
+	Pair   func(ctx context.Context, code, server string) error
 }
 
 // menuFunc runs work beside the menu bar icon and returns work's error. It ends

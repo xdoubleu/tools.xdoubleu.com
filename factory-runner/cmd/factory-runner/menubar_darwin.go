@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 	"unsafe"
 
@@ -32,6 +33,9 @@ var iconTemplate []byte
 // menubarIconSize is the glyph's point size; without it AppKit draws the 2x
 // PNG at pixel size, far too large.
 const menubarIconSize = 18
+
+// pairTimeout bounds the pairing request.
+const pairTimeout = 30 * time.Second
 
 // ui is runMenu's argument, for the //export callbacks. Only touched on the
 // main thread after runMenu sets it.
@@ -105,7 +109,22 @@ func goMenuAction(action C.int) {
 		refreshMenu()
 	case C.FRActionQuit:
 		quit()
+	case C.FRActionModeOff:
+		chooseMode(runner.ModeOff)
+	case C.FRActionModeClaude:
+		chooseMode(runner.ModeClaude)
+	case C.FRActionAddRepo:
+		addRepo()
+	case C.FRActionPair:
+		pair()
 	default:
+		if i := int(action) - C.FRActionRemoveRepo; i >= 0 && i < len(ui.Repos()) {
+			if err := ui.RemoveRepo(ui.Repos()[i]); err != nil {
+				report("remove repo", err)
+			}
+			refreshMenu()
+			return
+		}
 		if n := int(action) - C.FRActionMaxJobs; n >= 1 && n <= C.FR_MAX_JOBS_CHOICES {
 			if err := ui.SetMaxJobs(n); err != nil {
 				fmt.Fprintln(os.Stderr, "factory-runner: jobs at once:", err)
@@ -113,6 +132,67 @@ func goMenuAction(action C.int) {
 			refreshMenu()
 		}
 	}
+}
+
+// report logs a failed menu action and tells the owner, who has no terminal.
+func report(what string, err error) {
+	fmt.Fprintf(os.Stderr, "factory-runner: %s: %v\n", what, err)
+	ui.Control.Notify(what + ": " + err.Error())
+}
+
+func chooseMode(mode string) {
+	if err := ui.SetMode(mode); err != nil {
+		report("mode", err)
+	}
+	refreshMenu()
+}
+
+// prompt asks for a line of text; ok is false when the owner cancelled.
+func prompt(title, message, initial string) (text string, ok bool) {
+	t, m, i := C.CString(title), C.CString(message), C.CString(initial)
+	defer C.free(unsafe.Pointer(t))
+	defer C.free(unsafe.Pointer(m))
+	defer C.free(unsafe.Pointer(i))
+	out := C.frPrompt(t, m, i)
+	if out == nil {
+		return "", false
+	}
+	defer C.free(unsafe.Pointer(out))
+	return C.GoString(out), true
+}
+
+func addRepo() {
+	repo, ok := prompt("Add repo", "Allow jobs on this repo (owner/name).", "")
+	if !ok {
+		return
+	}
+	if err := ui.AddRepo(strings.TrimSpace(repo)); err != nil {
+		report("add repo", err)
+	}
+	refreshMenu()
+}
+
+// pair asks for the code and server, then pairs off the main thread so the menu
+// stays responsive; the outcome is a notification.
+func pair() {
+	code, ok := prompt("Pair this Mac",
+		"Pairing code from the board's Runners page.", "")
+	if !ok || strings.TrimSpace(code) == "" {
+		return
+	}
+	server, ok := prompt("Server", "API root to pair with.", ui.Server())
+	if !ok {
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), pairTimeout)
+		defer cancel()
+		if err := ui.Pair(ctx, strings.TrimSpace(code), strings.TrimSpace(server)); err != nil {
+			report("pair", err)
+			return
+		}
+		ui.Control.Notify("Paired. Choose a mode in the menu to start claiming jobs.")
+	}()
 }
 
 // quit unloads the LaunchAgent, which stops this process and keeps launchd from
@@ -164,5 +244,22 @@ func refreshMenu() {
 		header, status, beat, update,
 		C.bool(s.Paused), C.bool(runner.LoginItemEnabled(ui.Home)),
 		C.int(ui.MaxJobs()),
+		C.bool(ui.Mode() == runner.ModeClaude), C.bool(s.Unpaired),
 	)
+
+	repos := ui.Repos()
+	cRepos := make([]*C.char, len(repos))
+	for i, r := range repos {
+		cRepos[i] = C.CString(r)
+	}
+	defer func() {
+		for _, p := range cRepos {
+			C.free(unsafe.Pointer(p))
+		}
+	}()
+	var first **C.char
+	if len(cRepos) > 0 {
+		first = &cRepos[0]
+	}
+	C.frSetRepos(first, C.int(len(cRepos)))
 }

@@ -54,7 +54,8 @@ export default function RunnersClient() {
         <p className="text-sm font-medium">Install the runner</p>
         <p className="text-xs text-muted">
           Apple Silicon Mac. Download the dmg, drag FactoryRunner.app to Applications, then open it
-          once: it installs the runner and opens this page to pair.
+          once: it installs the runner and opens this page. Then use the menu bar icon to pair,
+          choose a mode and add repos.
         </p>
         <Button asChild>
           <a href={RUNNER_DOWNLOAD_PATH} download>

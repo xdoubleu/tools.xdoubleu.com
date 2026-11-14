@@ -26,6 +26,8 @@ type Status struct {
 	Update string
 	// Mode is the config mode ("claude" or "off"); empty when unknown.
 	Mode string
+	// Unpaired is true until this Mac has a device token.
+	Unpaired bool
 }
 
 // Control is the runner's local state shared by the daemon, the claim loop and
@@ -43,7 +45,10 @@ type Control struct {
 	check  bool
 	notify func(title, body string)
 	// mode reads the config mode for the menu; nil leaves it unshown.
-	mode func() string
+	mode     func() string
+	unpaired bool
+	// paired is signalled by MarkPaired, for a runner waiting to be paired.
+	paired chan struct{}
 	// wake nudges the daemon loop out of a held heartbeat when a check is asked for.
 	wake chan struct{}
 }
@@ -63,8 +68,33 @@ func NewControl(pausePath, version string, activity *Activity) *Control {
 		check:     false,
 		notify:    nil,
 		mode:      nil,
+		unpaired:  false,
+		paired:    make(chan struct{}, 1),
 		wake:      make(chan struct{}, 1),
 	}
+}
+
+// SetUnpaired marks this Mac as not yet paired, which the menu shows.
+func (c *Control) SetUnpaired() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.unpaired = true
+}
+
+// MarkPaired records that a device token is now stored and wakes AwaitPaired.
+func (c *Control) MarkPaired() {
+	c.mu.Lock()
+	c.unpaired = false
+	c.mu.Unlock()
+	select {
+	case c.paired <- struct{}{}:
+	default:
+	}
+}
+
+// AwaitPaired is signalled when MarkPaired runs.
+func (c *Control) AwaitPaired() <-chan struct{} {
+	return c.paired
 }
 
 // SetNotifier sets how Notify reaches the owner; the menu bar does, where the
@@ -149,6 +179,7 @@ func (c *Control) Snapshot() Status {
 		LastHeartbeat: c.beat,
 		Update:        c.update,
 		Mode:          "",
+		Unpaired:      c.unpaired,
 	}
 	c.mu.Unlock()
 	// Read outside the lock: the source may itself ask whether the runner is paused.
@@ -161,12 +192,16 @@ func (c *Control) Snapshot() Status {
 // Line renders the status as one menu line.
 func (s Status) Line() string {
 	switch {
+	case s.Unpaired:
+		return "Not paired"
 	case s.Paused && s.Busy:
 		return "Stopping after the current job"
 	case s.Paused:
 		return "Stopped"
 	case s.Busy:
 		return "Running a job"
+	case s.Mode == ModeOff:
+		return "Not claiming: mode is off"
 	default:
 		return "Idle"
 	}
@@ -249,7 +284,7 @@ func (s Status) MenuLines(release string, now time.Time) MenuLines {
 	}
 	return MenuLines{
 		Header:    "Factory Runner " + version,
-		Status:    s.Line() + modeSuffix(s.Mode),
+		Status:    s.Line(),
 		Heartbeat: beat,
 		Update:    update,
 	}
@@ -260,11 +295,4 @@ func (c *Control) SetModeSource(mode func() string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.mode = mode
-}
-
-func modeSuffix(mode string) string {
-	if mode == "" {
-		return ""
-	}
-	return " (mode: " + mode + ")"
 }
