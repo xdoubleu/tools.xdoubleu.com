@@ -79,6 +79,12 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`otherwise file one with factory_create_task ` +
 	`titled "Sandbox: <short problem>". Then carry on as far as you can, and ` +
 	`add one line "Blocked: <the problem>" to the outcome. ` +
+	`For a task labelled feature, also run the feature-review gate ` +
+	`(docs/convention-feature-review-policy.md): diff-scoped mutation tests ` +
+	`and a code review with findings applied, then add the line ` +
+	`"Feature gate: mutation=pass, review=pass". If the sandbox cannot run ` +
+	`it, write "Feature gate: mutation=skipped, review=skipped (<why>)"; CI ` +
+	`then blocks the merge for the owner. ` +
 	`Nobody can answer questions while you run.`
 
 // JobRunner claims jobs from the server and runs each one in a sandbox.
