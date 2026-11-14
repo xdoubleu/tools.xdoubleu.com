@@ -138,11 +138,11 @@ describe('MealPlanCalendar', () => {
         onMutate={onMutate}
       />
     )
-    openAddDialogCustom()
-    fireEvent.change(screen.getByPlaceholderText('Item 1'), {
+    openAddDialog()
+    fireEvent.click(screen.getByRole('tab', { name: 'Event' }))
+    fireEvent.change(screen.getByPlaceholderText('Event name'), {
       target: { value: 'Birthday dinner' }
     })
-    fireEvent.click(screen.getByLabelText(/keep off the shopping list/i))
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
     await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
     const req = mockAddMeal.mock.calls[0][0]
@@ -153,7 +153,7 @@ describe('MealPlanCalendar', () => {
     expect(onMutate).toHaveBeenCalled()
   })
 
-  it('opens the edit dialog on the Custom tab pre-populated for an excluded meal', () => {
+  it('opens the edit dialog on the Event tab pre-populated for an excluded meal', () => {
     const planWithExcluded = {
       ...basePlan,
       meals: [
@@ -172,12 +172,10 @@ describe('MealPlanCalendar', () => {
     render(<MealPlanCalendar plan={planWithExcluded} recipes={baseRecipes} {...defaultNavProps} />)
     openMealMenu()
     fireEvent.click(screen.getAllByRole('menuitem', { name: /Edit/i })[0])
-    const input = screen.getByPlaceholderText('Item 1')
+    expect(screen.getByRole('tab', { name: 'Event' })).toHaveAttribute('aria-selected', 'true')
+    const input = screen.getByPlaceholderText('Event name')
     if (!(input instanceof HTMLInputElement)) throw new Error('expected input')
     expect(input.value).toBe('Eating out')
-    const checkbox = screen.getByLabelText(/keep off the shopping list/i)
-    if (!(checkbox instanceof HTMLInputElement)) throw new Error('expected checkbox')
-    expect(checkbox.checked).toBe(true)
   })
 
   it('shows recipe combobox when Recipe tab is selected', () => {
