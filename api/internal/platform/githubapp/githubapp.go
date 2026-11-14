@@ -232,14 +232,16 @@ func (c *Client) installationID(
 }
 
 // InstallationToken mints a token for owner/repo alone, with just what a job
-// needs: contents write (the push) and pull requests write (the PR). It expires
+// needs: contents write (the push) and pull requests write (the PR) and checks read (CI status). It expires
 // within the hour and can't touch workflows, issues or any other repository.
 func (c *Client) InstallationToken(
 	ctx context.Context,
 	owner, repo string,
 ) (Token, error) {
 	return c.mint(ctx, owner, repo,
-		map[string]string{"contents": "write", "pull_requests": "write"})
+		map[string]string{
+			"contents": "write", "pull_requests": "write", "checks": "read",
+		})
 }
 
 // mint asks for an installation token limited to owner/repo and the permissions.
