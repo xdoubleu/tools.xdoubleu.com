@@ -36,6 +36,17 @@ type fakeIssuer struct {
 	mu    sync.Mutex
 	nonce string
 	claim func(nonce string) jwt.MapClaims
+	// kid overrides the key ID the token names; empty means the real one.
+	kid string
+}
+
+func (f *fakeIssuer) tokenKid() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.kid != "" {
+		return f.kid
+	}
+	return "k1"
 }
 
 func (f *fakeIssuer) idClaims() jwt.MapClaims {
@@ -79,7 +90,7 @@ func newFakeIssuer(t *testing.T) *fakeIssuer {
 			return
 		}
 		tok := jwt.NewWithClaims(jwt.SigningMethodRS256, issuer.idClaims())
-		tok.Header["kid"] = "k1"
+		tok.Header["kid"] = issuer.tokenKid()
 		signed, signErr := tok.SignedString(key)
 		if signErr != nil {
 			http.Error(w, signErr.Error(), http.StatusInternalServerError)
@@ -436,4 +447,39 @@ func TestECKey(t *testing.T) {
 	assert.False(t, ok)
 	_, ok = ecKey("P-256", enc([]byte{1}), enc([]byte{1}))
 	assert.False(t, ok, "a point off the curve")
+}
+
+func TestOIDCComplete_UnknownSigningKey(t *testing.T) {
+	issuer := newFakeIssuer(t)
+	issuer.mu.Lock()
+	issuer.kid = "rotated-away"
+	issuer.mu.Unlock()
+
+	subject, _, err := issuer.login(t, issuer.provider(t), nil)
+	require.Error(t, err)
+	assert.Empty(t, subject)
+}
+
+func TestOIDCProvider_DiscoveryFailures(t *testing.T) {
+	notFound := httptest.NewServer(http.NotFoundHandler())
+	t.Cleanup(notFound.Close)
+	//nolint:exhaustruct // only the OIDC settings matter
+	provider, err := NewOIDCProvider(config.Config{
+		OIDCIssuer: notFound.URL, OIDCClientID: testClientID,
+		OIDCClientSecret: "secret", JWTSecret: "s",
+	})
+	require.NoError(t, err)
+	_, _, err = provider.Start(context.Background(), "/")
+	require.Error(t, err)
+
+	// A document naming another issuer is refused.
+	mismatch := httptest.NewServer(http.HandlerFunc(func(
+		w http.ResponseWriter, _ *http.Request,
+	) {
+		_, _ = w.Write([]byte(`{"issuer":"https://other.test"}`))
+	}))
+	t.Cleanup(mismatch.Close)
+	provider.issuer = mismatch.URL
+	_, _, err = provider.Start(context.Background(), "/")
+	require.Error(t, err)
 }
