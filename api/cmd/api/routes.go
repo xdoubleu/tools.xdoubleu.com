@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/platform/account"
 	"tools.xdoubleu.com/internal/platform/agentaccounts"
+	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/communication/httptools"
 	"tools.xdoubleu.com/internal/platform/family"
 	platformmcp "tools.xdoubleu.com/internal/platform/mcp"
@@ -63,22 +64,25 @@ func (app *Application) mux() *http.ServeMux {
 	sessionUser := oauth2as.NewSessionUserResolver(app.auth, app.appUsersRepo)
 	delegator := oauth2as.NewAgentDelegator(agents, app.appUsersRepo)
 	metadata := oauth2as.MetadataHandler(app.config.AuthIssuer)
+	authorize := oauth2as.AuthorizeHandler(
+		app.oauth2as.Provider, app.config,
+		sessionUser, delegator,
+		app.oauth2as.OIDCKeyID(), app.logger,
+	)
+	var signIn oauth2as.SignInURL
+	if oidc := app.auth.OIDC; oidc != nil {
+		signIn = oidc.SignInURL
+		mux.HandleFunc("GET "+auth.OIDCLoginPath, auth.OIDCLoginHandler(oidc))
+		mux.HandleFunc(
+			"GET "+auth.OIDCCallbackPath,
+			app.auth.OIDCCallbackHandler(oidc, app.config.AuthIssuer),
+		)
+	}
 	mux.HandleFunc(
 		"GET "+oauth2as.AuthorizePath,
-		oauth2as.AuthorizeHandler(
-			app.oauth2as.Provider, app.config,
-			sessionUser, delegator,
-			app.oauth2as.OIDCKeyID(), app.logger,
-		),
+		oauth2as.RequireSignIn(signIn, sessionUser, authorize),
 	)
-	mux.HandleFunc(
-		"POST "+oauth2as.AuthorizePath,
-		oauth2as.AuthorizeHandler(
-			app.oauth2as.Provider, app.config,
-			sessionUser, delegator,
-			app.oauth2as.OIDCKeyID(), app.logger,
-		),
-	)
+	mux.HandleFunc("POST "+oauth2as.AuthorizePath, authorize)
 	mux.HandleFunc(
 		"POST "+oauth2as.TokenPath,
 		oauth2as.TokenHandler(

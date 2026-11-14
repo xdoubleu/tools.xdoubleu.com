@@ -56,6 +56,8 @@ type usersStore interface {
 	GetUserByID(ctx context.Context, id string) (*User, error)
 	CreateUser(ctx context.Context, email, passwordHash string) (*User, error)
 	SetPasswordHash(ctx context.Context, userID, hash string) error
+	GetUserByOIDCSubject(ctx context.Context, subject string) (*User, error)
+	SetOIDCSubject(ctx context.Context, userID, subject string) error
 
 	CreateTOTPFactor(
 		ctx context.Context, userID, secret string,
@@ -427,4 +429,31 @@ func (r *Repository) MarkPasswordResetTokenUsed(
 		WHERE id = $1 AND used_at IS NULL
 	`, id)
 	return tag.RowsAffected() == 1, err
+}
+
+// GetUserByOIDCSubject finds the user linked to an OIDC provider subject.
+func (r *Repository) GetUserByOIDCSubject(
+	ctx context.Context,
+	subject string,
+) (*User, error) {
+	var u User
+	err := r.db.QueryRow(ctx, `
+		SELECT id, email, password_hash, created_at
+		FROM auth.users WHERE oidc_subject = $1
+	`, subject).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt)
+	if err != nil {
+		return nil, wrapNotFound(err)
+	}
+	return &u, nil
+}
+
+// SetOIDCSubject links a user to an OIDC provider subject.
+func (r *Repository) SetOIDCSubject(
+	ctx context.Context,
+	userID, subject string,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE auth.users SET oidc_subject = $2 WHERE id = $1
+	`, userID, subject)
+	return err
 }

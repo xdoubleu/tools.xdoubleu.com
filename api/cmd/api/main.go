@@ -508,6 +508,12 @@ func NewApplication(
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 	}
 
+	if config.OIDCSignIn {
+		if authSvc.OIDC, err = auth.NewOIDCProvider(config); err != nil {
+			panic(err)
+		}
+	}
+
 	notificationsSvc := newNotificationsService(ctx, logger, config)
 	familySvc := family.New(
 		familyRepo,
