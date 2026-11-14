@@ -72,8 +72,10 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`so use it only for a problem outside your reach: if the sandbox stops ` +
 	`you doing or checking the work (a missing module cache, blocked network, ` +
 	`absent tool), search the board with factory_list_tasks for the label ` +
-	`factory-sandbox and add a comment with factory_comment_task to an open ` +
-	`task about the same problem, otherwise file one with factory_create_task ` +
+	`factory-sandbox among open and In review tasks, matching on the missing ` +
+	`tool or cache name (node_modules, go mod, ruby, postgres), not the whole ` +
+	`title, and add a comment with factory_comment_task to any match, ` +
+	`otherwise file one with factory_create_task ` +
 	`titled "Sandbox: <short problem>". Then carry on as far as you can, and ` +
 	`add one line "Blocked: <the problem>" to the outcome. ` +
 	`Nobody can answer questions while you run.`

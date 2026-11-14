@@ -117,15 +117,18 @@ func TestKindOfIsTheLinesTypeOrRaw(t *testing.T) {
 	assert.Equal(t, rawKind, kindOf(`{"type":"`+strings.Repeat("k", maxKindLen+1)+`"}`))
 }
 
-func TestLinkedTaskReadsTheNumberOrALegacyUUID(t *testing.T) {
+func TestLinkedTasksReadsTheNumberOrALegacyUUID(t *testing.T) {
 	uuidRef := "11111111-2222-3333-4444-555555555555"
 	for _, ref := range []string{"T-142", uuidRef} {
-		got, ok := linkedTask("intro\nTask: Fix it (" + ref + ")\n")
-		assert.True(t, ok, ref)
-		assert.Equal(t, ref, got)
+		got := linkedTasks("intro\nTask: Fix it (" + ref + ")\n")
+		assert.Equal(t, []string{ref}, got)
 	}
-	_, ok := linkedTask("Task: Fix it (142)")
-	assert.False(t, ok)
+	assert.Empty(t, linkedTasks("Task: Fix it (142)"))
+}
+
+func TestLinkedTasksReadsEveryRefOnce(t *testing.T) {
+	body := "Task: One (T-1)\nTask: Two (T-2)\nTask: One again (T-1)\n"
+	assert.Equal(t, []string{"T-1", "T-2"}, linkedTasks(body))
 }
 
 func TestApprovedTaskKeepsNumberForBranch(t *testing.T) {

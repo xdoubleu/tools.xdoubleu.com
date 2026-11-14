@@ -23,8 +23,8 @@ func (r *LinkedPullRequestsRepository) Upsert(
 			(url, task_id, state, ci, review, mergeable, unmergeable_since)
 		VALUES ($1, $2, $3, $4, $5, $6,
 			CASE WHEN $6 <> '' THEN now() END)
-		ON CONFLICT (url) DO UPDATE
-		SET task_id = $2, state = $3, ci = $4, review = $5, mergeable = $6,
+		ON CONFLICT (url, task_id) DO UPDATE
+		SET state = $3, ci = $4, review = $5, mergeable = $6,
 			unmergeable_since = CASE WHEN $6 = '' THEN NULL
 				ELSE COALESCE(factory.linked_pull_requests.unmergeable_since, now()) END,
 			checked_at = now()`,

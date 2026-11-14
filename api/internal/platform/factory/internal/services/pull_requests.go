@@ -86,26 +86,43 @@ func (s *JobService) mergedLinked(ctx context.Context) (int, error) {
 	return moved, errors.Join(failures...)
 }
 
-// linkedTask is the reference (T-<number> or UUID) a pull request body links.
-func linkedTask(body string) (string, bool) {
-	m := taskLine.FindStringSubmatch(body)
-	if m == nil {
-		return "", false
+// linkedTasks is every reference (T-<number> or UUID) a pull request body
+// links, each once, in order.
+func linkedTasks(body string) []string {
+	var refs []string
+	seen := map[string]bool{}
+	for _, m := range taskLine.FindAllStringSubmatch(body, -1) {
+		if !seen[m[1]] {
+			seen[m[1]] = true
+			refs = append(refs, m[1])
+		}
 	}
-	return m[1], true
+	return refs
 }
 
-// TestingAfterMerge moves to Testing the task a merged pull request links in its
+// TestingAfterMerge moves to Testing each task a merged pull request links in its
 // body, under the same rules as the poll, and keeps the merge commit for the
 // deploy state. It reports whether a task moved.
 func (s *JobService) TestingAfterMerge(
 	ctx context.Context,
 	prBody, prURL, mergeSHA string,
 ) (bool, error) {
-	ref, ok := linkedTask(prBody)
-	if !ok {
-		return false, nil
+	var failures []error
+	moved := false
+	for _, ref := range linkedTasks(prBody) {
+		done, err := s.testingAfterMerge(ctx, ref, prURL, mergeSHA)
+		if err != nil {
+			failures = append(failures, err)
+		}
+		moved = moved || done
 	}
+	return moved, errors.Join(failures...)
+}
+
+func (s *JobService) testingAfterMerge(
+	ctx context.Context,
+	ref, prURL, mergeSHA string,
+) (bool, error) {
 	id, err := s.tasks.Resolve(ctx, ref)
 	if err != nil {
 		// A link to a task that is gone is not a failure.
@@ -229,17 +246,15 @@ func (s *JobService) syncLinked(ctx context.Context) error {
 			continue
 		}
 		for _, p := range pulls {
-			ref, ok := linkedTask(p.Body)
-			if !ok {
-				continue
-			}
-			id, resolveErr := s.tasks.Resolve(ctx, ref)
-			if resolveErr != nil {
-				continue
-			}
-			seen[p.URL] = true
-			if err = s.recordLinked(ctx, repos[i], id, p.URL, p.Number); err != nil {
-				failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, err))
+			for _, ref := range linkedTasks(p.Body) {
+				id, resolveErr := s.tasks.Resolve(ctx, ref)
+				if resolveErr != nil {
+					continue
+				}
+				seen[p.URL] = true
+				if err = s.recordLinked(ctx, repos[i], id, p.URL, p.Number); err != nil {
+					failures = append(failures, fmt.Errorf("pull request %s: %w", p.URL, err))
+				}
 			}
 		}
 	}

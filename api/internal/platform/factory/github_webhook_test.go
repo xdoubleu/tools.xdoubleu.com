@@ -79,6 +79,24 @@ func TestAMergeWebhookMovesTheLinkedTaskToTesting(t *testing.T) {
 	assert.Contains(t, got.Comments[0].Body, "was merged: "+pullURL(7))
 }
 
+func TestAMergeWebhookMovesEveryLinkedTaskToTesting(t *testing.T) {
+	env := webhookEnv(t)
+	first := env.newTask(t, "hooked one")
+	second := env.newTask(t, "hooked two")
+	env.putInReview(t, first.Id)
+	env.putInReview(t, second.Id)
+	body := pullEvent(t, "closed", true,
+		"Task: one ("+first.Id+")\nTask: two ("+second.Id+")\n\nbody")
+
+	status := deliver(t, env, "pull_request", body, sign(webhookSecret, body))
+
+	assert.Equal(t, http.StatusNoContent, status)
+	for _, id := range []string{first.Id, second.Id} {
+		got := env.task(t, id)
+		assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_TESTING, got.Task.Status)
+	}
+}
+
 func TestAWebhookWithABadSignatureChangesNothing(t *testing.T) {
 	env := webhookEnv(t)
 	task := env.newTask(t, "forged")
