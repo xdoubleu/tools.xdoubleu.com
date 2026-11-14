@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
@@ -413,4 +415,22 @@ func TestIsLocalPath(t *testing.T) {
 	assert.False(t, isLocalPath("//evil.test"))
 	assert.False(t, isLocalPath("/\\evil.test"))
 	assert.False(t, isLocalPath("https://evil.test"))
+}
+
+func TestECKey(t *testing.T) {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+	enc := base64.RawURLEncoding.EncodeToString
+
+	//nolint:staticcheck // the coordinates are what a JWK carries
+	key, ok := ecKey("P-256", enc(priv.X.Bytes()), enc(priv.Y.Bytes()))
+	require.True(t, ok)
+	assert.True(t, key.Equal(&priv.PublicKey))
+
+	_, ok = ecKey("P-384", enc(priv.X.Bytes()), enc(priv.Y.Bytes()))
+	assert.False(t, ok)
+	_, ok = ecKey("P-256", "!", "!")
+	assert.False(t, ok)
+	_, ok = ecKey("P-256", enc([]byte{1}), enc([]byte{1}))
+	assert.False(t, ok, "a point off the curve")
 }

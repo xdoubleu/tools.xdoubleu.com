@@ -70,7 +70,7 @@ func (app *Application) mux() *http.ServeMux {
 		app.oauth2as.OIDCKeyID(), app.logger,
 	)
 	var signIn oauth2as.SignInURL
-	if oidc := app.auth.OIDC; oidc != nil {
+	if oidc := app.oidc(); oidc != nil {
 		signIn = oidc.SignInURL
 		mux.HandleFunc("GET "+auth.OIDCLoginPath, auth.OIDCLoginHandler(oidc))
 		mux.HandleFunc(
@@ -231,4 +231,12 @@ func (app *Application) slackNotify() func(ctx context.Context, text string) {
 		return nil
 	}
 	return sender.Notify
+}
+
+// oidc is the OIDC sign-in provider, nil when people sign in by password.
+func (app *Application) oidc() *auth.OIDCProvider {
+	if app.auth == nil {
+		return nil
+	}
+	return app.auth.OIDC
 }

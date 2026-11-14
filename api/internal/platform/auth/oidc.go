@@ -347,9 +347,8 @@ func (p *OIDCProvider) signingKey(
 				keys[k.Kid] = &rsa.PublicKey{N: n, E: int(e.Int64())}
 			}
 		case "EC":
-			x, y, ok := decodeInts(k.X, k.Y)
-			if ok && k.Crv == "P-256" {
-				keys[k.Kid] = &ecdsa.PublicKey{Curve: elliptic.P256(), X: x, Y: y}
+			if key, ok := ecKey(k.Crv, k.X, k.Y); ok {
+				keys[k.Kid] = key
 			}
 		}
 	}
@@ -380,4 +379,21 @@ func decodeInts(a, b string) (*big.Int, *big.Int, bool) {
 		return nil, nil, false
 	}
 	return new(big.Int).SetBytes(ab), new(big.Int).SetBytes(bb), true
+}
+
+// ecKey builds a P-256 key from its JWK coordinates.
+func ecKey(curve, x, y string) (*ecdsa.PublicKey, bool) {
+	xb, errX := base64.RawURLEncoding.DecodeString(x)
+	yb, errY := base64.RawURLEncoding.DecodeString(y)
+	const coordLen = 32
+	if curve != "P-256" || errX != nil || errY != nil ||
+		len(xb) > coordLen || len(yb) > coordLen {
+		return nil, false
+	}
+	point := make([]byte, 1+2*coordLen)
+	point[0] = 4 // uncompressed
+	copy(point[1+coordLen-len(xb):], xb)
+	copy(point[1+2*coordLen-len(yb):], yb)
+	key, err := ecdsa.ParseUncompressedPublicKey(elliptic.P256(), point)
+	return key, err == nil
 }
