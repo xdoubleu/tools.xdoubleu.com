@@ -337,9 +337,9 @@ func TestScrubRemovesTheTokenAndItsBasicAuthForm(t *testing.T) {
 func TestPullRequestTextTakesTheTitleFromTheFirstLine(t *testing.T) {
 	job := &runner.ClaimedJob{
 		ID: "job-1", TaskID: "task-1", Branch: "agent/x",
-		RepoOwner: "", RepoName: "", DefaultBranch: "", Harness: "", Prompt: "",
+		RepoOwner: "", RepoName: "", DefaultBranch: "", Prompt: "",
 		SetupCommands: "", TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
-		ResumeSessionID: "", Model: "",
+		ResumeSessionID: "",
 	}
 	for name, tc := range map[string]struct{ outcome, title string }{
 		"plain":            {"Fix it\n\nbody", "Fix it"},
@@ -705,9 +705,9 @@ func TestAStoppedRunnerDoesNotWaitOutItsRetries(t *testing.T) {
 func TestAPullRequestTitleLabelWinsWhereverItIs(t *testing.T) {
 	job := &runner.ClaimedJob{
 		ID: "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
-		DefaultBranch: "", Harness: "", Prompt: "", SetupCommands: "",
+		DefaultBranch: "", Prompt: "", SetupCommands: "",
 		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
-		ResumeSessionID: "", Model: "",
+		ResumeSessionID: "",
 	}
 	title, _ := runner.PullRequestTextForTest(
 		"Summary of the work\n\nI did a lot.\n\nPR title: Fix the redirect\nmore", job, "")
@@ -745,9 +745,9 @@ func TestMentionsAndClosingKeywordsInAgentTextAreDefused(t *testing.T) {
 	// And it reaches the pull request's body.
 	job := &runner.ClaimedJob{
 		ID: "j", TaskID: "t", Branch: "agent/x", RepoOwner: "", RepoName: "",
-		DefaultBranch: "", Harness: "", Prompt: "", SetupCommands: "",
+		DefaultBranch: "", Prompt: "", SetupCommands: "",
 		TimeLimitMinutes: 0, MCPClientID: "", MCPClientSecret: "",
-		ResumeSessionID: "", Model: "",
+		ResumeSessionID: "",
 	}
 	_, body := runner.PullRequestTextForTest("Title\n\nFixes #1, cc @bob", job, "")
 	assert.NotContains(t, body, "Fixes #1")

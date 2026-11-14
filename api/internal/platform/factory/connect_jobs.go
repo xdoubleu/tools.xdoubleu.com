@@ -75,10 +75,6 @@ func (h *taskConnectHandler) RunTask(
 		actor,
 		id,
 		req.GetText(),
-		services.HarnessPick{
-			Harness: harnessFromProtoOptional(req.GetHarness()),
-			Model:   req.GetModel(),
-		},
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -175,7 +171,6 @@ func claimedJobToProto(c *services.ClaimedJob) *factoryv1.ClaimedJob {
 		RepoOwner:        c.Repo.Owner,
 		RepoName:         c.Repo.Name,
 		DefaultBranch:    c.Repo.DefaultBranch,
-		Harness:          harnessToProto(c.Job.Harness),
 		Prompt:           c.Job.Prompt,
 		Branch:           c.Job.Branch,
 		SetupCommands:    c.Repo.SetupCommands,
@@ -183,7 +178,6 @@ func claimedJobToProto(c *services.ClaimedJob) *factoryv1.ClaimedJob {
 		McpClientId:      c.MCPClientID,
 		McpClientSecret:  c.MCPClientSecret,
 		ResumeSessionId:  c.ResumeSessionID,
-		Model:            c.Job.Model,
 	}
 }
 
@@ -208,6 +202,7 @@ func (h *runnerHandler) ClaimJob(
 	for {
 		claimed, claimErr := h.app.services.Jobs.Claim(
 			ctx, runner.ID, int(min(req.GetMaxJobs(), maxRunnerJobs)),
+			harnessFromProto(req.GetHarness()), req.GetModel(),
 		)
 		if claimErr != nil {
 			return nil, mapError(claimErr)

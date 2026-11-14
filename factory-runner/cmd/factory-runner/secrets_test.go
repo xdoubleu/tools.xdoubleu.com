@@ -47,8 +47,8 @@ func (m *memSecrets) SetSecret(name, value string) error {
 func claimedJob(clientID, secret string) *runner.ClaimedJob {
 	return &runner.ClaimedJob{
 		ID: "", TaskID: "", RepoOwner: "", RepoName: "", DefaultBranch: "",
-		Harness: "", Prompt: "", Branch: "", SetupCommands: "", TimeLimitMinutes: 0,
-		MCPClientID: clientID, MCPClientSecret: secret, ResumeSessionID: "", Model: "",
+		Prompt: "", Branch: "", SetupCommands: "", TimeLimitMinutes: 0,
+		MCPClientID: clientID, MCPClientSecret: secret, ResumeSessionID: "",
 	}
 }
 

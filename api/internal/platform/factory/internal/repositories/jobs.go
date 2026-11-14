@@ -37,19 +37,18 @@ func scanJob(row rowScanner) (*models.Job, error) {
 	return &j, nil
 }
 
-// Create queues a job.
+// Create queues a job, which has no harness or model until a runner claims it.
 func (r *JobsRepository) Create(
 	ctx context.Context,
 	j models.Job,
 ) (*models.Job, error) {
 	return scanJob(r.db.QueryRow(ctx, `
 		INSERT INTO factory.jobs (
-			task_id, repo_id, harness, prompt, branch, created_by, parent_job_id, model
+			task_id, repo_id, prompt, branch, created_by, parent_job_id
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING `+jobColumns,
-		j.TaskID, j.RepoID, j.Harness, j.Prompt, j.Branch, j.CreatedBy, j.ParentJobID,
-		j.Model))
+		j.TaskID, j.RepoID, j.Prompt, j.Branch, j.CreatedBy, j.ParentJobID))
 }
 
 // Get returns one job.
@@ -83,15 +82,21 @@ func (r *JobsRepository) ByTask(
 }
 
 // Claim starts the oldest queued job unless the runner already runs maxJobs;
-// both are not found. With skipClaude, a Claude Code job stays queued. The
-// runner's row is locked meanwhile, so its concurrent claims count one another,
-// and SKIP LOCKED keeps any two from taking one job.
+// both are not found. The job takes the harness and model the runner runs on, and
+// with skipClaude a Claude Code runner finds none. The runner's row is locked
+// meanwhile, so its concurrent claims count one another, and SKIP LOCKED keeps
+// any two from taking one job.
 func (r *JobsRepository) Claim(
 	ctx context.Context,
 	runnerID uuid.UUID,
 	maxJobs int,
+	harness models.Harness,
+	model string,
 	skipClaude bool,
 ) (*models.Job, error) {
+	if skipClaude && harness == models.HarnessClaudeCode {
+		return nil, database.ErrResourceNotFound
+	}
 	// A held claim polls: a runner already at its cap is turned away before it
 	// takes the row lock.
 	var running int
@@ -129,13 +134,12 @@ func (r *JobsRepository) Claim(
 	job, err := scanJob(tx.QueryRow(ctx, `
 		UPDATE factory.jobs SET
 			status = 'running', started_at = now(), last_check_in = now(),
-			runner_id = $1
+			runner_id = $1, harness = $2, model = $3
 		WHERE id = (
 			SELECT id FROM factory.jobs WHERE status = 'queued'
-			AND NOT ($2 AND harness = 'claude_code')
 			ORDER BY created_at, id LIMIT 1 FOR UPDATE SKIP LOCKED
 		)
-		RETURNING `+jobColumns, runnerID, skipClaude))
+		RETURNING `+jobColumns, runnerID, harness, model))
 	if err != nil {
 		return nil, err
 	}

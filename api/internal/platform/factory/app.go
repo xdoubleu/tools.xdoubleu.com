@@ -14,7 +14,6 @@ import (
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
-	"tools.xdoubleu.com/internal/kit/openrouter"
 	"tools.xdoubleu.com/internal/kit/threading"
 	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/factory/internal/jobs"
@@ -41,7 +40,6 @@ type Factory struct {
 	notifier      services.Notifier
 	slackURL      string
 	webURL        string
-	models        openrouter.ModelLister
 	// webhookSecret signs the GitHub App's webhook deliveries; empty turns the
 	// endpoint off.
 	webhookSecret string
@@ -71,12 +69,6 @@ func WithNotifier(notifier services.Notifier, webURL string) Option {
 // https is refused with a warning.
 func WithSlack(webhookURL, webURL string) Option {
 	return func(a *Factory) { a.slackURL, a.webURL = webhookURL, webURL }
-}
-
-// WithModels sets how the board lists OpenRouter models for the model picker.
-// Without it a lister is built from OPENROUTER_API_KEY.
-func WithModels(models openrouter.ModelLister) Option {
-	return func(a *Factory) { a.models = models }
 }
 
 // WithImageDigestSource sets where the published job image digest is read, which
@@ -125,15 +117,11 @@ func New(
 		notifier:      nil,
 		slackURL:      "",
 		webURL:        "",
-		models:        nil,
 		webhookSecret: "",
 		digests:       nil,
 	}
 	for _, opt := range opts {
 		opt(a)
-	}
-	if a.models == nil && cfg.OpenRouterAPIKey != "" {
-		a.models = openrouter.NewLister(cfg.OpenRouterAPIKey, cfg.WebURL, a.Logger)
 	}
 	a.connectSlack(logger)
 	a.services = services.New(

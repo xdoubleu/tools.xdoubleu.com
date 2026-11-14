@@ -18,29 +18,36 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 	c := serve(t, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/factory.v1.RunnerService/ClaimJob", r.URL.Path)
 		assert.Equal(t, "Bearer frt_x", r.Header.Get("Authorization"))
+		body, _ := io.ReadAll(r.Body)
+		assert.JSONEq(t,
+			`{"maxJobs":2,"harness":"HARNESS_OPENCODE","model":"vendor/model"}`, string(body))
 		_, _ = w.Write(
 			[]byte(`{"job":{"id":"j1","taskId":"t1","repoOwner":"o","repoName":"n",` +
-				`"defaultBranch":"main","harness":"HARNESS_CLAUDE_CODE","prompt":"p",` +
+				`"defaultBranch":"main","prompt":"p",` +
 				`"branch":"agent/x","setupCommands":"make","timeLimitMinutes":45,` +
 				`"mcpClientId":"agent-1","mcpClientSecret":"s3cret-value",` +
-				`"resumeSessionId":"sess-1","model":"vendor/model"}}`),
+				`"resumeSessionId":"sess-1"}}`),
 		)
 	})
-	job, err := c.ClaimJob(context.Background(), "frt_x", 2)
+	job, err := c.ClaimJob(
+		context.Background(), "frt_x", 2, runner.HarnessOpenCode, "vendor/model",
+	)
 	require.NoError(t, err)
 	assert.Equal(t, &runner.ClaimedJob{
 		ID: "j1", TaskID: "t1", RepoOwner: "o", RepoName: "n", DefaultBranch: "main",
-		Harness: runner.HarnessClaudeCode, Prompt: "p", Branch: "agent/x",
+		Prompt: "p", Branch: "agent/x",
 		SetupCommands: "make", TimeLimitMinutes: 45,
 		MCPClientID: "agent-1", MCPClientSecret: "s3cret-value",
-		ResumeSessionID: "sess-1", Model: "vendor/model",
+		ResumeSessionID: "sess-1",
 	}, job)
 
 	none := serve(
 		t,
 		func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(`{}`)) },
 	)
-	job, err = none.ClaimJob(context.Background(), "frt_x", 2)
+	job, err = none.ClaimJob(
+		context.Background(), "frt_x", 2, runner.HarnessClaudeCode, "",
+	)
 	require.NoError(t, err)
 	assert.Nil(t, job)
 
@@ -48,7 +55,9 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_, _ = w.Write([]byte(`{"code":"unauthenticated","message":"x"}`))
 	})
-	_, err = revoked.ClaimJob(context.Background(), "frt_x", 2)
+	_, err = revoked.ClaimJob(
+		context.Background(), "frt_x", 2, runner.HarnessClaudeCode, "",
+	)
 	assert.True(t, runner.Unauthenticated(err))
 }
 

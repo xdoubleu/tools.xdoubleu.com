@@ -29,7 +29,6 @@ const mockClient = {
   stopJob: vi.fn().mockResolvedValue({}),
   setPickupPaused: vi.fn().mockResolvedValue({}),
   listRepos: vi.fn().mockResolvedValue({ repos: [] }),
-  listOpenRouterModels: vi.fn().mockResolvedValue({ modelIds: [] }),
   createRepo: vi.fn().mockResolvedValue({}),
   updateRepo: vi.fn().mockResolvedValue({}),
   listAgentAccounts: vi.fn().mockResolvedValue({ accounts: [] }),
@@ -52,7 +51,6 @@ import useSWR from 'swr'
 import {
   useFactoryActions,
   useFactoryAgents,
-  useFactoryModels,
   useFactoryRepos,
   useFactoryRunners,
   useRunnerRelease,
@@ -104,17 +102,6 @@ describe('useFactoryRepos', () => {
     renderHook(() => useFactoryRepos())
     expect(mockUseSWR).toHaveBeenCalledWith('/factory/repos', expect.any(Function))
     expect(mockClient.listRepos).toHaveBeenCalledWith({})
-  })
-})
-
-describe('useFactoryModels', () => {
-  it('fetches the OpenRouter model ids', () => {
-    mockClient.listOpenRouterModels.mockResolvedValueOnce({
-      modelIds: ['vendor/alpha', 'vendor/zeta']
-    })
-    renderHook(() => useFactoryModels())
-    expect(mockUseSWR).toHaveBeenCalledWith('/factory/openrouter-models', expect.any(Function))
-    expect(mockClient.listOpenRouterModels).toHaveBeenCalledWith({})
   })
 })
 
@@ -226,17 +213,6 @@ describe('useFactoryActions', () => {
     expect(mockClient.addComment).toHaveBeenCalledWith({ taskId: 't-1', body: 'hi' })
 
     expect(mockMutate).toHaveBeenCalledTimes(3)
-  })
-
-  it('runs a task on a picked harness', async () => {
-    const { result } = renderHook(() => useFactoryActions())
-    await result.current.run('t-1', 'go', { harness: 2, model: 'vendor/model' })
-    expect(mockClient.runTask).toHaveBeenCalledWith({
-      taskId: 't-1',
-      text: 'go',
-      harness: 2,
-      model: 'vendor/model'
-    })
   })
 
   it('runs a task and revalidates', async () => {
