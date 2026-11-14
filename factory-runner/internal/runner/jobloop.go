@@ -45,7 +45,7 @@ type jobLoop struct {
 	r            *JobRunner
 	job          *ClaimedJob
 	dirs         jobDirs
-	// since is where a Reply's host checks start.
+	// since is where host checks start on an existing branch.
 	since   string
 	launch  launch
 	secrets []string
@@ -149,7 +149,11 @@ func (l *jobLoop) loop() result {
 
 func (l *jobLoop) attempts() result {
 	command := l.launch.command
-	prompt := fmt.Sprintf(preamble, l.job.Branch) + "\n\n" + l.job.Prompt
+	prompt := fmt.Sprintf(preamble, l.job.Branch) + "\n\n"
+	if l.since != "" && l.job.ResumeSessionID == "" {
+		prompt += fmt.Sprintf(continuePrompt, l.job.DefaultBranch) + "\n\n"
+	}
+	prompt += l.job.Prompt
 	var last *step
 	for attempt := 1; ; attempt++ {
 		s := l.attempt(command, prompt)

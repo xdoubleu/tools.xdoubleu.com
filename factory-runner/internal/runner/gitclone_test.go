@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -103,6 +104,9 @@ func TestAJobWhoseOutcomeDirectoryCannotBeMadeFails(t *testing.T) {
 	env.runner.Git.Run = func(
 		_ context.Context, _ string, args ...string,
 	) ([]byte, error) {
+		if args[0] == "rev-parse" {
+			return nil, exec.Command("false").Run()
+		}
 		if args[0] == "checkout" {
 			path := filepath.Join(env.dir, "jobs", jobID, "outcome")
 			if err := os.WriteFile(path, nil, 0o600); err != nil {
