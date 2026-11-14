@@ -441,7 +441,11 @@ func (l *jobLoop) judge(res result, text string, st PullStatus) (step, bool) {
 		return over(res), true
 	case st.State == PullClosed:
 		return l.finish(res, "The pull request was closed without merging.", text), true
-	case st.CI != CIFailure || (res.head != "" && st.HeadSHA != res.head):
+	case res.head != "" && st.HeadSHA != res.head:
+		return over(res), false
+	case st.Conflict:
+		return l.conflict(res, st)
+	case st.CI != CIFailure:
 		return over(res), false
 	}
 	names := make([]string, len(st.Failed))
@@ -458,6 +462,28 @@ func (l *jobLoop) judge(res result, text string, st PullStatus) (step, bool) {
 			"allows, commit on the current branch (the runner pushes it to the same "+
 			"pull request), and write the outcome again. Your work continues until "+
 			"the pull request merges."), true
+}
+
+// conflict hands a pull request that conflicts with its base back to the agent,
+// once the host has fetched the base into the clone. A failed fetch keeps the
+// watch going: the next poll tries again.
+func (l *jobLoop) conflict(res result, st PullStatus) (step, bool) {
+	err := l.r.Git.FetchBase(l.ctx, l.job.RepoOwner, l.job.RepoName,
+		l.job.DefaultBranch, l.dirs.clone)
+	if err != nil {
+		l.r.Log.Warn("could not fetch the base branch", "job", l.job.ID,
+			"error", scrub(err.Error(), l.token))
+		return over(res), false
+	}
+	base := l.job.DefaultBranch
+	res.cause = "conflict"
+	return again(res, "the pull request conflicts with "+base, "conflict:"+st.HeadSHA,
+		st.HeadSHA, "The pull request "+res.prURL+" conflicts with "+base+
+			". The host fetched origin/"+base+" into the clone. Merge origin/"+base+
+			" into the current branch (a merge, not a rebase: the runner pushes a "+
+			"fast-forward), resolve the conflicts (re-run generators and renumber "+
+			"migrations as needed), run the gates, commit, and write the outcome "+
+			"again. Your work continues until the pull request merges."), true
 }
 
 // finish ends the job on a pull request that will not merge, keeping its link.

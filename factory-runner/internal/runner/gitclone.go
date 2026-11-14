@@ -227,3 +227,29 @@ func (g *Git) Clone(ctx context.Context, owner, name, base, branch, dest string)
 	}
 	return g.mustGit(ctx, dest, "checkout", "-b", branch)
 }
+
+// FetchBase brings the base branch up to date in the job's clone as origin/<base>,
+// through the mirror, so a conflict with it can be merged. The agent owns the
+// clone, so git runs there with hooks off, fetching from the mirror's path and not
+// from the clone's own config.
+func (g *Git) FetchBase(
+	ctx context.Context,
+	owner, name, base, cloneDir string,
+) error {
+	if err := plainGitDir(cloneDir); err != nil {
+		return err
+	}
+	remote := g.RemoteURL(owner, name)
+	mirror := filepath.Join(g.Dir, "mirrors", owner, name+".git")
+	unlock, err := lockMirror(mirror)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	if err = g.updateMirror(ctx, remote, mirror); err != nil {
+		return err
+	}
+	return g.mustGit(ctx, cloneDir, "-c", "core.hooksPath=/dev/null", "fetch",
+		"--no-tags", "--no-recurse-submodules", mirror,
+		"+refs/heads/"+base+":refs/remotes/origin/"+base)
+}

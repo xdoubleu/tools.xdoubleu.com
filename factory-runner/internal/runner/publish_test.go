@@ -57,7 +57,7 @@ func (f *fakeGitHub) PullRequestStatus(
 	}
 	if len(f.statuses) == 0 {
 		return runner.PullStatus{
-			State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil,
+			State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil, Conflict: false,
 		}, nil
 	}
 	st := f.statuses[0]
