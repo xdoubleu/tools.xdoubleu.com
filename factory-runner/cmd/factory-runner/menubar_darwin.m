@@ -18,6 +18,10 @@ static NSMenuItem *frUpdate;
 static NSMenuItem *frToggle;
 static NSMenuItem *frLogin;
 static NSMenuItem *frJobs[FR_MAX_JOBS_CHOICES + 1];
+static NSMenuItem *frModeOff;
+static NSMenuItem *frModeClaude;
+static NSMenuItem *frPair;
+static NSMenu *frReposMenu;
 
 // stringWithUTF8String: returns nil for NULL or invalid UTF-8, which AppKit
 // setters reject.
@@ -141,6 +145,28 @@ void frBuildStatusItem(const void *icon, size_t iconLen, double iconSize) {
 		jobs.submenu = jobsMenu;
 		[menu addItem:jobs];
 
+		NSMenuItem *mode = frMenuItem(@"Mode", 0);
+		mode.enabled = YES;
+		NSMenu *modeMenu = [[NSMenu alloc] init];
+		modeMenu.autoenablesItems = NO;
+		frModeOff = frMenuItem(@"Off", FRActionModeOff);
+		frModeClaude = frMenuItem(@"Claude", FRActionModeClaude);
+		[modeMenu addItem:frModeOff];
+		[modeMenu addItem:frModeClaude];
+		mode.submenu = modeMenu;
+		[menu addItem:mode];
+
+		NSMenuItem *repos = frMenuItem(@"Repos", 0);
+		repos.enabled = YES;
+		frReposMenu = [[NSMenu alloc] init];
+		frReposMenu.autoenablesItems = NO;
+		[frReposMenu addItem:frMenuItem(@"Add…", FRActionAddRepo)];
+		repos.submenu = frReposMenu;
+		[menu addItem:repos];
+
+		frPair = frMenuItem(@"Pair…", FRActionPair);
+		[menu addItem:frPair];
+
 		frLogin = frMenuItem(@"Start at Login", FRActionToggleLogin);
 		[menu addItem:frLogin];
 		[menu addItem:[NSMenuItem separatorItem]];
@@ -156,7 +182,8 @@ void frBuildStatusItem(const void *icon, size_t iconLen, double iconSize) {
 }
 
 void frSetMenu(const char *header, const char *status, const char *beat,
-               const char *update, bool stopped, bool loginOn, int maxJobs) {
+               const char *update, bool stopped, bool loginOn, int maxJobs,
+               bool modeClaude, bool unpaired) {
 	@autoreleasepool {
 		frHeader.title = frString(header);
 		frStatus.title = frString(status);
@@ -167,7 +194,46 @@ void frSetMenu(const char *header, const char *status, const char *beat,
 			frJobs[n].state =
 			    n == maxJobs ? NSControlStateValueOn : NSControlStateValueOff;
 		}
+		frModeOff.state =
+		    modeClaude ? NSControlStateValueOff : NSControlStateValueOn;
+		frModeClaude.state =
+		    modeClaude ? NSControlStateValueOn : NSControlStateValueOff;
+		frPair.hidden = !unpaired;
 		frLogin.state = loginOn ? NSControlStateValueOn : NSControlStateValueOff;
+	}
+}
+
+void frSetRepos(const char *const *repos, int n) {
+	@autoreleasepool {
+		// Keep the leading Add… item; the rest are per-repo Remove items.
+		while (frReposMenu.numberOfItems > 1) {
+			[frReposMenu removeItemAtIndex:1];
+		}
+		for (int i = 0; i < n; i++) {
+			NSString *title =
+			    [NSString stringWithFormat:@"Remove %@", frString(repos[i])];
+			[frReposMenu addItem:frMenuItem(title, FRActionRemoveRepo + i)];
+		}
+	}
+}
+
+char *frPrompt(const char *title, const char *message, const char *initial) {
+	@autoreleasepool {
+		[NSApp activateIgnoringOtherApps:YES];
+		NSAlert *alert = [[NSAlert alloc] init];
+		alert.messageText = frString(title);
+		alert.informativeText = frString(message);
+		[alert addButtonWithTitle:@"OK"];
+		[alert addButtonWithTitle:@"Cancel"];
+		NSTextField *field =
+		    [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 280, 24)];
+		field.stringValue = frString(initial);
+		alert.accessoryView = field;
+		alert.window.initialFirstResponder = field;
+		if ([alert runModal] != NSAlertFirstButtonReturn) {
+			return NULL;
+		}
+		return strdup(field.stringValue.UTF8String);
 	}
 }
 

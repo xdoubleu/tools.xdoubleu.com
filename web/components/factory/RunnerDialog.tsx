@@ -41,7 +41,8 @@ function PairingCode({ created, onDone }: { created: CreateRunnerResponse; onDon
         <Input id="runner-pairing-code" readOnly value={created.pairingCode} />
       </Field>
       <p className="break-words text-sm text-muted">
-        On the Mac, run <code>factory-runner pair {created.pairingCode}</code>.
+        On the Mac, choose <code>Pair…</code> in the Factory Runner menu bar icon and enter this
+        code.
       </p>
       <DialogFooter>
         <Button type="button" onClick={onDone}>

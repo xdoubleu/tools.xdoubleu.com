@@ -16,7 +16,7 @@ const (
 )
 
 // ErrNoToken means the runner isn't paired on this Mac.
-var ErrNoToken = errors.New("not paired: run `factory-runner pair <code>`")
+var ErrNoToken = errors.New("not paired: choose Pair… in the menu bar")
 
 // TokenStore keeps the device token.
 type TokenStore interface {

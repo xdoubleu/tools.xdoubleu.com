@@ -27,6 +27,12 @@ newer release", and the LaunchAgent had no log path, so stderr went nowhere.
   job ends; the menu reads "Stopping after the current job".
 - **Quit unloads the LaunchAgent** (`launchctl bootout`), so launchd doesn't
   start the runner again until the next login.
+- **Settings live in the menu**: Mode (Off/Claude), Repos (Add…, Remove per repo),
+  Pair… (code and server, shown while unpaired) and jobs at once write the config
+  that the loops read each pass, so no restart. An unpaired runner still shows the
+  menu and waits for Pair…. The status line says why nothing is claimed: "Not
+  paired", "Stopped" or "Not claiming: mode is off". The `config` CLI remains for
+  scripting.
 - **Update checks are visible**: each logs its outcome and the menu shows the
   latest; "Check for updates" requests one now (still only when idle).
 - **Notifications, shared with kobo-gateway** (`selfupdate/notification`): a manual
