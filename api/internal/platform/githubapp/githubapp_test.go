@@ -161,7 +161,9 @@ func TestMintsATokenNarrowedToOneRepoAndWhatAJobNeeds(t *testing.T) {
 		assert.Equal(t, time.Date(2026, 11, 4, 10, 0, 0, 0, time.UTC), token.ExpiresAt)
 
 		assert.Equal(t, []any{"tools.xdoubleu.com"}, f.lastMint["repositories"])
-		assert.Equal(t, map[string]any{"contents": "write", "pull_requests": "write"},
+		assert.Equal(t, map[string]any{
+			"contents": "write", "pull_requests": "write", "checks": "read",
+		},
 			f.lastMint["permissions"], "no workflows, issues or administration")
 	}
 }
