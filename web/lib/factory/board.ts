@@ -301,6 +301,27 @@ export function jobActive(job: Job | undefined): boolean {
   return job?.status === JobStatus.QUEUED || job?.status === JobStatus.RUNNING
 }
 
+/** The badge a routine's newest job gets; none until it has run. */
+export function jobStatusVariant(status: JobStatus): 'success' | 'danger' | 'warn' | 'secondary' {
+  if (status === JobStatus.SUCCEEDED) return 'success'
+  if (status === JobStatus.FAILED || status === JobStatus.LOST) return 'danger'
+  if (status === JobStatus.QUEUED || status === JobStatus.RUNNING) return 'warn'
+  return 'secondary'
+}
+
+/** The schedules a routine can be given, in minutes between runs. */
+export const ROUTINE_INTERVALS = [
+  { minutes: 0, label: 'Manual only' },
+  { minutes: 60, label: 'Hourly' },
+  { minutes: 1440, label: 'Daily' },
+  { minutes: 10080, label: 'Weekly' }
+] as const
+
+/** A routine's schedule in words; an interval off the presets reads as minutes. */
+export function routineIntervalLabel(minutes: number): string {
+  return ROUTINE_INTERVALS.find((i) => i.minutes === minutes)?.label ?? `Every ${minutes} minutes`
+}
+
 /** The pull request status a Job or a Task carries. */
 type PullRequestFields = Pick<Job, 'prState' | 'prCi' | 'prReview'>
 

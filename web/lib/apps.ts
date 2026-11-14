@@ -206,6 +206,7 @@ export const APPS: AppEntry[] = [
     sections: [
       { label: 'Board', href: '/factory' },
       { label: 'Runner', href: '/factory/runners' },
+      { label: 'Routines', href: '/factory/routines' },
       { label: 'Repos', href: '/factory/repos' }
     ],
     group: 'Admin',

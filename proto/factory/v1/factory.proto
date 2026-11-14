@@ -196,6 +196,8 @@ message Job {
   // The provider's usage limit stopped it; RFC3339 reset time, empty if unknown.
   bool limited = 12;
   string limit_resets_at = 13;
+  // The routine a task-less job runs; empty for a task's job, which sets task_id.
+  string routine = 14;
 }
 
 // One event of a job's log: a line of the harness's stream-json output.
@@ -253,6 +255,50 @@ message StopJobResponse {
   Job job = 1;
 }
 
+// A named job the server queues on a schedule, with no task. Only a human admin in
+// a browser session changes one: enabling it is the approval for it to run.
+message Routine {
+  string name = 1;
+  string repo_id = 2;
+  bool enabled = 3;
+  // Minutes between scheduled runs; 0 runs it by hand only.
+  int32 interval_minutes = 4;
+  // The routine's newest job; unset until it has run.
+  Job last_job = 5;
+}
+
+message ListRoutinesRequest {}
+message ListRoutinesResponse {
+  repeated Routine routines = 1;
+}
+
+// Creates the routine or changes its repo, flag and interval.
+message SaveRoutineRequest {
+  string name = 1;
+  string repo_id = 2;
+  bool enabled = 3;
+  int32 interval_minutes = 4;
+}
+message SaveRoutineResponse {
+  Routine routine = 1;
+}
+
+// Queues a job for the routine now, even when it is disabled.
+message RunRoutineRequest {
+  string name = 1;
+}
+message RunRoutineResponse {
+  Job job = 1;
+}
+
+// Stops the routine's queued or running job.
+message StopRoutineRequest {
+  string name = 1;
+}
+message StopRoutineResponse {
+  Job job = 1;
+}
+
 service TaskService {
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
   rpc SetPickupPaused(SetPickupPausedRequest) returns (SetPickupPausedResponse);
@@ -265,6 +311,10 @@ service TaskService {
   rpc ReplyTask(ReplyTaskRequest) returns (ReplyTaskResponse);
   rpc StopJob(StopJobRequest) returns (StopJobResponse);
   rpc ListJobEvents(ListJobEventsRequest) returns (ListJobEventsResponse);
+  rpc ListRoutines(ListRoutinesRequest) returns (ListRoutinesResponse);
+  rpc SaveRoutine(SaveRoutineRequest) returns (SaveRoutineResponse);
+  rpc RunRoutine(RunRoutineRequest) returns (RunRoutineResponse);
+  rpc StopRoutine(StopRoutineRequest) returns (StopRoutineResponse);
 }
 
 message Repo {

@@ -309,7 +309,7 @@ func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {
 	}
 
 	res := r.execute(ctx, job)
-	if res.limited {
+	if res.limited && job.Routine == "" {
 		r.keepClone(job)
 	}
 
@@ -335,7 +335,11 @@ func (r *JobRunner) check(job *ClaimedJob) error {
 	if !jobIDPattern.MatchString(job.ID) {
 		return fmt.Errorf("%w: invalid job id", ErrRefused)
 	}
-	if !taskIDPattern.MatchString(job.TaskID) {
+	if job.Routine != "" {
+		if err := checkRoutine(job); err != nil {
+			return err
+		}
+	} else if !taskIDPattern.MatchString(job.TaskID) {
 		return fmt.Errorf("%w: invalid task id", ErrRefused)
 	}
 	if job.ResumeSessionID != "" && !sessionIDPattern.MatchString(job.ResumeSessionID) {
@@ -447,7 +451,12 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		ctx: jobCtx, parent: ctx, tap: tap, events: events, stopped: &stopped,
 		session: nil, limit: r.limitFor(job), token: "", tokenAt: time.Time{},
 	}
-	res := loop.run()
+	var res result
+	if prompt, ok := routinePrompt(job.Routine); ok {
+		res = loop.runRoutine(prompt)
+	} else {
+		res = loop.run()
+	}
 	cancel()
 	wait()
 	// What the agent said last is what you most want to read.
@@ -480,6 +489,10 @@ func (r *JobRunner) prepareDirs(
 		outcome: filepath.Join(dir, "outcome"),
 		// The session state belongs to the task, not the job: a Reply resumes it.
 		session: filepath.Join(r.DataDir, "sessions", job.TaskID),
+	}
+	if job.Routine != "" {
+		// A routine has no task, and nothing to resume.
+		dirs.session = filepath.Join(dir, "session")
 	}
 	// A job claimed again (after a restart) starts from a clean directory.
 	if err := os.RemoveAll(dir); err != nil {

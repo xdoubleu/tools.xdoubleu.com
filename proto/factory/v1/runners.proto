@@ -90,6 +90,9 @@ message ClaimedJob {
   string resume_session_id = 13;
   // The OpenRouter model, "vendor/model", when the harness is OpenCode.
   string model = 14;
+  // Set for a routine's job, which has no task (task_id is empty). The runner
+  // runs only a routine it knows by name and builds the prompt itself.
+  string routine = 15;
 }
 
 message ClaimJobRequest {

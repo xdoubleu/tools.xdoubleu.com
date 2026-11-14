@@ -2,6 +2,7 @@ import { create } from '@bufbuild/protobuf'
 import {
   Harness,
   JobSchema,
+  JobStatus,
   ListReposResponseSchema,
   RepoSchema,
   TaskPriority,
@@ -14,6 +15,8 @@ import {
   ListAgentAccountsResponseSchema
 } from '@/lib/gen/factory/v1/agent_accounts_pb'
 import {
+  jobStatusVariant,
+  routineIntervalLabel,
   COLUMNS,
   cardLabels,
   accountsOf,
@@ -472,5 +475,22 @@ describe('cardLabels', () => {
   it('shows a label once however it is cased', () => {
     const task = create(TaskSchema, { labels: ['bug', 'Bug', 'books'] })
     expect(cardLabels(task)).toEqual(['bug', 'books'])
+  })
+})
+
+describe('routines', () => {
+  it('colours the last run by how it ended', () => {
+    expect(jobStatusVariant(JobStatus.SUCCEEDED)).toBe('success')
+    expect(jobStatusVariant(JobStatus.FAILED)).toBe('danger')
+    expect(jobStatusVariant(JobStatus.LOST)).toBe('danger')
+    expect(jobStatusVariant(JobStatus.QUEUED)).toBe('warn')
+    expect(jobStatusVariant(JobStatus.RUNNING)).toBe('warn')
+    expect(jobStatusVariant(JobStatus.CANCELLED)).toBe('secondary')
+  })
+
+  it('names a schedule, or counts minutes off the presets', () => {
+    expect(routineIntervalLabel(0)).toBe('Manual only')
+    expect(routineIntervalLabel(1440)).toBe('Daily')
+    expect(routineIntervalLabel(45)).toBe('Every 45 minutes')
   })
 })

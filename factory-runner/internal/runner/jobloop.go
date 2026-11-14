@@ -99,8 +99,8 @@ func (l *jobLoop) sleep(d time.Duration) {
 	sleepCtx(l.ctx, d)
 }
 
-// run is the job from its first prompt to its end.
-func (l *jobLoop) run() result {
+// open starts the job's VM; a failure is the job's result.
+func (l *jobLoop) open() *result {
 	spec := SandboxSpec{
 		CloneDir: l.dirs.clone, OutcomeDir: l.dirs.outcome, SessionDir: l.dirs.session,
 		Env: l.launch.env, SetupCommands: l.job.SetupCommands, Command: nil,
@@ -112,10 +112,18 @@ func (l *jobLoop) run() result {
 		res := failed(reason)
 		res.session = l.tap.Session()
 		res.blocked = noOutcomeBlock("", reason, l.secrets, "")
-		return res
+		return &res
 	}
-	defer session.Close()
 	l.session = session
+	return nil
+}
+
+// run is the job from its first prompt to its end.
+func (l *jobLoop) run() result {
+	if res := l.open(); res != nil {
+		return *res
+	}
+	defer l.session.Close()
 
 	command := l.launch.command
 	prompt := fmt.Sprintf(preamble, l.job.Branch) + "\n\n" + l.job.Prompt
@@ -140,6 +148,30 @@ func (l *jobLoop) run() result {
 		l.note(fmt.Sprintf("Attempt %d: %s, retrying", attempt+1, s.why))
 		command, prompt = l.r.harnessFor(l.job).Resume(sid), s.feedback
 	}
+}
+
+// runRoutine is a routine's job: one agent run on the runner's own prompt for it,
+// with nothing to check, push or watch. It succeeds when the agent wrote an
+// outcome and named no blocker.
+func (l *jobLoop) runRoutine(prompt string) result {
+	if res := l.open(); res != nil {
+		return *res
+	}
+	defer l.session.Close()
+
+	text, end := l.agent(l.launch.command, prompt)
+	if end != nil {
+		return end.res
+	}
+	res := l.baseResult()
+	res.outcome = text
+	if b, ok := findLine(text, "Blocked:"); ok && !strings.EqualFold(b, "none") &&
+		!leaks(b, l.secrets) {
+		res.blocked = b
+		return res
+	}
+	res.succeeded = true
+	return res
 }
 
 // stop ends the job on a failed attempt, with the reason ahead of the agent's text.

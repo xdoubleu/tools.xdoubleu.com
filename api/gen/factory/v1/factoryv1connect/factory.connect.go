@@ -49,6 +49,14 @@ const (
 	TaskServiceStopJobProcedure = "/factory.v1.TaskService/StopJob"
 	// TaskServiceListJobEventsProcedure is the procedure name of the TaskService's ListJobEvents RPC.
 	TaskServiceListJobEventsProcedure = "/factory.v1.TaskService/ListJobEvents"
+	// TaskServiceListRoutinesProcedure is the procedure name of the TaskService's ListRoutines RPC.
+	TaskServiceListRoutinesProcedure = "/factory.v1.TaskService/ListRoutines"
+	// TaskServiceSaveRoutineProcedure is the procedure name of the TaskService's SaveRoutine RPC.
+	TaskServiceSaveRoutineProcedure = "/factory.v1.TaskService/SaveRoutine"
+	// TaskServiceRunRoutineProcedure is the procedure name of the TaskService's RunRoutine RPC.
+	TaskServiceRunRoutineProcedure = "/factory.v1.TaskService/RunRoutine"
+	// TaskServiceStopRoutineProcedure is the procedure name of the TaskService's StopRoutine RPC.
+	TaskServiceStopRoutineProcedure = "/factory.v1.TaskService/StopRoutine"
 	// RepoServiceListReposProcedure is the procedure name of the RepoService's ListRepos RPC.
 	RepoServiceListReposProcedure = "/factory.v1.RepoService/ListRepos"
 	// RepoServiceCreateRepoProcedure is the procedure name of the RepoService's CreateRepo RPC.
@@ -138,6 +146,34 @@ var (
 			Procedure:  TaskServiceListJobEventsProcedure,
 		}
 	})
+	taskServiceListRoutinesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("TaskService").Methods().ByName("ListRoutines"),
+			Procedure:  TaskServiceListRoutinesProcedure,
+		}
+	})
+	taskServiceSaveRoutineSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("TaskService").Methods().ByName("SaveRoutine"),
+			Procedure:  TaskServiceSaveRoutineProcedure,
+		}
+	})
+	taskServiceRunRoutineSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("TaskService").Methods().ByName("RunRoutine"),
+			Procedure:  TaskServiceRunRoutineProcedure,
+		}
+	})
+	taskServiceStopRoutineSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_factory_v1_factory_proto.Services().ByName("TaskService").Methods().ByName("StopRoutine"),
+			Procedure:  TaskServiceStopRoutineProcedure,
+		}
+	})
 )
 
 // TaskServiceClient is a client for the factory.v1.TaskService service.
@@ -153,6 +189,10 @@ type TaskServiceClient interface {
 	ReplyTask(context.Context, *v1.ReplyTaskRequest) (*v1.ReplyTaskResponse, error)
 	StopJob(context.Context, *v1.StopJobRequest) (*v1.StopJobResponse, error)
 	ListJobEvents(context.Context, *v1.ListJobEventsRequest) (*v1.ListJobEventsResponse, error)
+	ListRoutines(context.Context, *v1.ListRoutinesRequest) (*v1.ListRoutinesResponse, error)
+	SaveRoutine(context.Context, *v1.SaveRoutineRequest) (*v1.SaveRoutineResponse, error)
+	RunRoutine(context.Context, *v1.RunRoutineRequest) (*v1.RunRoutineResponse, error)
+	StopRoutine(context.Context, *v1.StopRoutineRequest) (*v1.StopRoutineResponse, error)
 }
 
 // NewTaskServiceClient constructs a client for the factory.v1.TaskService service. Multiple service
@@ -174,6 +214,10 @@ type TaskServiceHandler interface {
 	ReplyTask(context.Context, *v1.ReplyTaskRequest) (*v1.ReplyTaskResponse, error)
 	StopJob(context.Context, *v1.StopJobRequest) (*v1.StopJobResponse, error)
 	ListJobEvents(context.Context, *v1.ListJobEventsRequest) (*v1.ListJobEventsResponse, error)
+	ListRoutines(context.Context, *v1.ListRoutinesRequest) (*v1.ListRoutinesResponse, error)
+	SaveRoutine(context.Context, *v1.SaveRoutineRequest) (*v1.SaveRoutineResponse, error)
+	RunRoutine(context.Context, *v1.RunRoutineRequest) (*v1.RunRoutineResponse, error)
+	StopRoutine(context.Context, *v1.StopRoutineRequest) (*v1.StopRoutineResponse, error)
 }
 
 // RegisterTaskServiceHandler registers svc as the factory.v1.TaskService implementation on server.
@@ -191,6 +235,10 @@ func RegisterTaskServiceHandler(server *connect.Server, svc TaskServiceHandler) 
 		connect.Method{Spec: taskServiceReplyTaskSpec(), Handler: adapter.replyTask},
 		connect.Method{Spec: taskServiceStopJobSpec(), Handler: adapter.stopJob},
 		connect.Method{Spec: taskServiceListJobEventsSpec(), Handler: adapter.listJobEvents},
+		connect.Method{Spec: taskServiceListRoutinesSpec(), Handler: adapter.listRoutines},
+		connect.Method{Spec: taskServiceSaveRoutineSpec(), Handler: adapter.saveRoutine},
+		connect.Method{Spec: taskServiceRunRoutineSpec(), Handler: adapter.runRoutine},
+		connect.Method{Spec: taskServiceStopRoutineSpec(), Handler: adapter.stopRoutine},
 	)
 }
 
@@ -239,6 +287,22 @@ func (UnimplementedTaskServiceHandler) StopJob(context.Context, *v1.StopJobReque
 
 func (UnimplementedTaskServiceHandler) ListJobEvents(context.Context, *v1.ListJobEventsRequest) (*v1.ListJobEventsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.ListJobEvents is not implemented")
+}
+
+func (UnimplementedTaskServiceHandler) ListRoutines(context.Context, *v1.ListRoutinesRequest) (*v1.ListRoutinesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.ListRoutines is not implemented")
+}
+
+func (UnimplementedTaskServiceHandler) SaveRoutine(context.Context, *v1.SaveRoutineRequest) (*v1.SaveRoutineResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.SaveRoutine is not implemented")
+}
+
+func (UnimplementedTaskServiceHandler) RunRoutine(context.Context, *v1.RunRoutineRequest) (*v1.RunRoutineResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.RunRoutine is not implemented")
+}
+
+func (UnimplementedTaskServiceHandler) StopRoutine(context.Context, *v1.StopRoutineRequest) (*v1.StopRoutineResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "factory.v1.TaskService.StopRoutine is not implemented")
 }
 
 type taskServiceClient struct {
@@ -328,6 +392,38 @@ func (c *taskServiceClient) StopJob(ctx context.Context, req *v1.StopJobRequest)
 func (c *taskServiceClient) ListJobEvents(ctx context.Context, req *v1.ListJobEventsRequest) (*v1.ListJobEventsResponse, error) {
 	var res v1.ListJobEventsResponse
 	if err := c.client.CallUnary(ctx, taskServiceListJobEventsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *taskServiceClient) ListRoutines(ctx context.Context, req *v1.ListRoutinesRequest) (*v1.ListRoutinesResponse, error) {
+	var res v1.ListRoutinesResponse
+	if err := c.client.CallUnary(ctx, taskServiceListRoutinesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *taskServiceClient) SaveRoutine(ctx context.Context, req *v1.SaveRoutineRequest) (*v1.SaveRoutineResponse, error) {
+	var res v1.SaveRoutineResponse
+	if err := c.client.CallUnary(ctx, taskServiceSaveRoutineSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *taskServiceClient) RunRoutine(ctx context.Context, req *v1.RunRoutineRequest) (*v1.RunRoutineResponse, error) {
+	var res v1.RunRoutineResponse
+	if err := c.client.CallUnary(ctx, taskServiceRunRoutineSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *taskServiceClient) StopRoutine(ctx context.Context, req *v1.StopRoutineRequest) (*v1.StopRoutineResponse, error) {
+	var res v1.StopRoutineResponse
+	if err := c.client.CallUnary(ctx, taskServiceStopRoutineSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -461,6 +557,54 @@ func (h taskServiceHandler) listJobEvents(ctx context.Context, _ connect.Spec, s
 		return err
 	}
 	res, err := h.svc.ListJobEvents(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h taskServiceHandler) listRoutines(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListRoutinesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListRoutines(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h taskServiceHandler) saveRoutine(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SaveRoutineRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SaveRoutine(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h taskServiceHandler) runRoutine(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RunRoutineRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RunRoutine(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h taskServiceHandler) stopRoutine(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StopRoutineRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.StopRoutine(ctx, &req)
 	if err != nil {
 		return err
 	}
