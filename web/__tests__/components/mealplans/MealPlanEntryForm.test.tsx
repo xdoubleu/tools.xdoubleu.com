@@ -48,6 +48,50 @@ function renderForm(initialCustomName: string) {
 
 beforeEach(() => vi.clearAllMocks())
 
+describe('recipe tab save', () => {
+  const renderRecipes = () =>
+    render(
+      <MealPlanEntryForm
+        open
+        title="Add"
+        recipes={[recipe('r1', 'Soep')]}
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    )
+
+  it('saves a typed exact recipe name on the first tap of Add', () => {
+    renderRecipes()
+    fireEvent.change(screen.getByRole('combobox', { name: 'Recipe' }), {
+      target: { value: 'soep' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(onSave).toHaveBeenCalledWith('r1', '', 1, false)
+  })
+
+  it('shows an error when the typed name matches no recipe', () => {
+    renderRecipes()
+    fireEvent.change(screen.getByRole('combobox', { name: 'Recipe' }), {
+      target: { value: 'Pizza' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(onSave).not.toHaveBeenCalled()
+    expect(screen.getByText(/No recipe with that name/)).toBeInTheDocument()
+  })
+
+  it('keeps the last valid servings when the field is cleared', () => {
+    renderRecipes()
+    const servings = screen.getByLabelText('Servings')
+    fireEvent.change(servings, { target: { value: '4' } })
+    fireEvent.change(servings, { target: { value: '' } })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Recipe' }), {
+      target: { value: 'Soep' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(onSave).toHaveBeenCalledWith('r1', '', 4, false)
+  })
+})
+
 describe('MealPlanEntryForm category picker', () => {
   it('pre-fills a row category from the name->category catalog', () => {
     renderForm('milk')
@@ -85,7 +129,7 @@ describe('MealPlanEntryForm category picker', () => {
 
   it('defaults to the recipe tab for a new entry', () => {
     render(<MealPlanEntryForm open title="Add" recipes={[]} onSave={onSave} onCancel={onCancel} />)
-    expect(screen.getByPlaceholderText('Servings')).toBeInTheDocument()
+    expect(screen.getByLabelText('Servings')).toBeInTheDocument()
     expect(screen.queryByText('+ Add item')).not.toBeInTheDocument()
   })
 
@@ -118,7 +162,7 @@ describe('MealPlanEntryForm category picker', () => {
       />
     )
     fireEvent.click(screen.getByRole('button', { name: 'Pasta' }))
-    const servingsInput = screen.getByPlaceholderText('Servings')
+    const servingsInput = screen.getByLabelText('Servings')
     if (!(servingsInput instanceof HTMLInputElement)) throw new Error('expected input')
     expect(servingsInput.value).toBe('4')
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))

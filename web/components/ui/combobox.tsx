@@ -19,6 +19,8 @@ interface ComboboxProps {
   'aria-label'?: string
   /** `false` shows `suggestions` as given, for results already filtered elsewhere (e.g. a server search). */
   filterSuggestions?: boolean
+  /** Renders the list in the flow instead of floating, so it isn't clipped inside a scrolling sheet. */
+  listInFlow?: boolean
   /** Passed to the field's own input, e.g. `required` or autocomplete hints. */
   inputProps?: InputHTMLAttributes<HTMLInputElement>
 }
@@ -35,6 +37,7 @@ export function Combobox({
   onEnter,
   'aria-label': ariaLabel,
   filterSuggestions = true,
+  listInFlow = false,
   inputProps
 }: ComboboxProps) {
   const [open, setOpen] = useState(false)
@@ -130,7 +133,10 @@ export function Combobox({
           id={listboxId}
           role="listbox"
           aria-label={ariaLabel ?? 'Suggestions'}
-          className="absolute z-10 w-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-48 overflow-y-auto"
+          className={cn(
+            'w-full mt-1 bg-card border border-border rounded-2xl shadow-elevated max-h-48 overflow-y-auto',
+            !listInFlow && 'absolute z-10'
+          )}
         >
           {filtered.map((s, i) => (
             <li

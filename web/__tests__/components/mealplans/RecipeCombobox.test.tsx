@@ -13,7 +13,7 @@ const recipes = [
 describe('RecipeCombobox', () => {
   it('renders the text input', () => {
     render(<RecipeCombobox recipes={recipes} onSelect={vi.fn()} />)
-    expect(screen.getByPlaceholderText(/recipe name or custom meal/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/recipe name/i)).toBeInTheDocument()
   })
 
   it('shows filtered recipe list when typing', () => {
