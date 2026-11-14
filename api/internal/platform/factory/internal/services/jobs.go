@@ -335,7 +335,12 @@ func (s *JobService) Claim(
 	// Best effort: a failure here leaves the queue as it was, and the next claim
 	// looks again.
 	_ = s.pickUp(ctx)
-	job, err := s.jobs.Claim(ctx, runnerID, max(maxJobs, 1))
+	// A Claude job claimed in a limit would only fail the same way.
+	until, limitErr := s.jobs.ActiveLimit(ctx)
+	if limitErr != nil {
+		return nil, limitErr
+	}
+	job, err := s.jobs.Claim(ctx, runnerID, max(maxJobs, 1), until != nil)
 	if errors.Is(err, database.ErrResourceNotFound) ||
 		errors.Is(err, database.ErrResourceConflict) {
 		return nil, nil //nolint:nilnil // no job is an answer, not an error
@@ -423,6 +428,17 @@ func (s *JobService) Complete(
 		body = "Job stopped by Claude's usage limit on branch `" + job.Branch + "`"
 	}
 	next := models.StatusNeedsYou
+	if limited && prURL == "" {
+		requeued, requeueErr := s.requeueLimited(ctx, job)
+		if requeueErr != nil {
+			return nil, requeueErr
+		}
+		if requeued {
+			next = models.StatusInProgress
+			body += "\n\nThe task is queued again and continues by itself once the " +
+				"limit lifts" + limitUntil(job.LimitResetsAt) + "."
+		}
+	}
 	if prURL != "" {
 		body += ", pull request: " + prURL
 		if succeeded {
@@ -436,6 +452,51 @@ func (s *JobService) Complete(
 	}
 	s.announceEnd(ctx, job, succeeded, prURL, outcome)
 	return job, nil
+}
+
+// maxLimitRequeues is how many limited jobs in a row a task may have before it
+// stops waiting and goes to Needs you.
+const maxLimitRequeues = 10
+
+// limitContinuation is a continuing job's prompt: its session has the rest.
+const limitContinuation = "The usage limit has lifted. Carry on where you stopped, " +
+	"and write the outcome when you are done."
+
+// requeueLimited queues a job that continues the limited one on the same branch,
+// resuming its session when it has one, so the task waits out the limit in the
+// queue. It reports false, leaving the task for the owner, when the task has been
+// limited too many times in a row or its state can't continue.
+func (s *JobService) requeueLimited(
+	ctx context.Context,
+	job *models.Job,
+) (bool, error) {
+	jobs, err := s.jobs.ByTask(ctx, job.TaskID)
+	if err != nil {
+		return false, err
+	}
+	streak := 0
+	for i := range jobs {
+		if !jobs[i].Limited {
+			break
+		}
+		streak++
+	}
+	if streak >= maxLimitRequeues {
+		return false, nil
+	}
+	prompt, parent := job.Prompt, (*uuid.UUID)(nil)
+	if job.SessionID != "" {
+		prompt, parent = limitContinuation, &job.ID
+	}
+	_, err = s.jobs.Create(ctx, models.Job{
+		ID: uuid.Nil, TaskID: job.TaskID, TaskNumber: 0, RepoID: job.RepoID,
+		Harness: job.Harness, Model: job.Model, Prompt: prompt, Status: "",
+		Branch: job.Branch, SessionID: "", Outcome: "", ParentJobID: parent,
+		PRURL: "", RunnerID: nil, PRState: "", PRCI: "", PRReview: "",
+		CreatedBy: systemAuthor, CreatedAt: time.Time{}, StartedAt: nil,
+		Limited: false, LimitResetsAt: nil, LastCheckIn: nil, FinishedAt: nil,
+	})
+	return err == nil, err
 }
 
 // maxLimitAhead bounds a reset time worth keeping: weekly caps are the longest.

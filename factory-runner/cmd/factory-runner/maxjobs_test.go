@@ -25,3 +25,16 @@ func TestConfigMaxJobsIsSavedAndBounded(t *testing.T) {
 	require.Equal(t, 0, e.do("config", "show"))
 	assert.Contains(t, e.out.String(), "max-jobs: 4")
 }
+
+func TestConfigOnLimitDefaultsToWaitAndIsSaved(t *testing.T) {
+	e := newEnv(t)
+	e.out.Reset()
+	require.Equal(t, 0, e.do("config", "show"))
+	assert.Contains(t, e.out.String(), "on-limit: wait")
+
+	require.Equal(t, 0, e.do("config", "on-limit", "fallback"))
+	assert.Equal(t, 1, e.do("config", "on-limit", "never"))
+	e.out.Reset()
+	require.Equal(t, 0, e.do("config", "show"))
+	assert.Contains(t, e.out.String(), "on-limit: fallback")
+}

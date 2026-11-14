@@ -174,3 +174,32 @@ func TestASandboxFailureIsNotHiddenBehindAnEarlierRejection(t *testing.T) {
 	assert.False(t, got.limited, "the real error is what the owner needs to see")
 	assert.Contains(t, got.outcome, "The sandbox could not run the job: the VM died")
 }
+
+func TestAJobContinuingALimitedOneTakesOverItsUnpushedClone(t *testing.T) {
+	const firstID = "99999999-8888-7777-6666-555555555555"
+	first := newJob()
+	first.ID = firstID
+	second := newJob()
+	second.ResumeSessionID = "sess-9"
+	var sawWork bool
+	env := newEnv(t, func(ctx context.Context, spec runner.SandboxSpec) (int, error) {
+		if _, err := os.Stat(filepath.Join(spec.CloneDir, "agent.txt")); err == nil {
+			sawWork = true
+			return 0, nil
+		}
+		// The first attempt commits before the limit hits.
+		commitFile(spec.CloneDir, "agent.txt", "work")
+		return limitSandbox([]string{
+			`{"type":"system","session_id":"sess-9"}`,
+			rejectedAt(time.Now().Add(time.Hour).Unix()),
+		}, "", 1)(ctx, spec)
+	}, first, second)
+
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+	_, err = env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	assert.True(t, env.api.done()[0].limited)
+	assert.True(t, sawWork, "the continuing job found the earlier work in its clone")
+}

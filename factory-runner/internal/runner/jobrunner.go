@@ -303,6 +303,9 @@ func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {
 	}
 
 	res := r.execute(ctx, job)
+	if res.limited {
+		r.keepClone(job)
+	}
 
 	// Told even when the runner is shutting down: the server would otherwise wait
 	// five minutes to call the job lost.
@@ -558,6 +561,9 @@ func (r *JobRunner) prepareClone(
 	job *ClaimedJob,
 	cloneDir string,
 ) (string, error) {
+	if r.takeClone(job, cloneDir) {
+		return "", nil
+	}
 	if job.ResumeSessionID == "" {
 		err := r.Git.Clone(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
 			job.Branch, cloneDir)
@@ -572,6 +578,45 @@ func (r *JobRunner) prepareClone(
 			"pushed to GitHub): %w", job.Branch, err)
 	}
 	return tip, nil
+}
+
+// limitMarker names the file recording which job's clone a limited task left behind.
+func (r *JobRunner) limitMarker(taskID string) string {
+	return filepath.Join(r.DataDir, "limited", taskID)
+}
+
+// keepClone records the clone of a job a usage limit stopped, so the job that
+// continues the task takes its unpushed work over.
+func (r *JobRunner) keepClone(job *ClaimedJob) {
+	marker := r.limitMarker(job.TaskID)
+	if err := os.MkdirAll(filepath.Dir(marker), 0o700); err != nil {
+		return
+	}
+	_ = os.WriteFile(marker, []byte(job.ID), 0o600)
+}
+
+// takeClone moves the clone a limited job of the same task left to cloneDir, so the
+// work it never pushed carries on; false when there is none to take.
+func (r *JobRunner) takeClone(job *ClaimedJob, cloneDir string) bool {
+	marker := r.limitMarker(job.TaskID)
+	data, err := os.ReadFile(marker)
+	if err != nil {
+		return false
+	}
+	_ = os.Remove(marker)
+	prevID := strings.TrimSpace(string(data))
+	if !jobIDPattern.MatchString(prevID) || prevID == job.ID {
+		return false
+	}
+	prev := filepath.Join(r.DataDir, "jobs", prevID, "clone")
+	//nolint:gosec // prevID is a UUID
+	if _, err = os.Stat(filepath.Join(prev, ".git")); err != nil {
+		return false
+	}
+	if err = os.MkdirAll(filepath.Dir(cloneDir), 0o700); err != nil {
+		return false
+	}
+	return os.Rename(prev, cloneDir) == nil //nolint:gosec // prevID is a UUID
 }
 
 // publishable runs the host's checks on a job the agent says it finished. A job

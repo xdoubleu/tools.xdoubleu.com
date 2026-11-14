@@ -44,6 +44,7 @@ func TestTheJobRunnerIsBuiltFromTheConfigOnAMacThatCanRunJobs(t *testing.T) {
 		BotEmail: "",
 		Mode:     "",
 		MaxJobs:  0,
+		OnLimit:  "",
 	}
 	require.NoError(t, cfg.Save(runner.ConfigPath(e.app.home)))
 
@@ -81,6 +82,7 @@ func TestAMacWithoutTheRightContainerCLICannotBuildTheJobRunner(t *testing.T) {
 		BotEmail: "",
 		Mode:     "",
 		MaxJobs:  0,
+		OnLimit:  "",
 	}
 	for name, exec := range map[string]versionExec{
 		"missing":      {out: "", err: errors.New("container: not found")},
@@ -102,6 +104,7 @@ func TestADataDirectoryThatCannotBeCreatedFailsTheBuild(t *testing.T) {
 		BotEmail: "",
 		Mode:     "",
 		MaxJobs:  0,
+		OnLimit:  "",
 	}
 
 	_, err := newJobRunner(context.Background(), e.app, cfg, "t", quietLog(),

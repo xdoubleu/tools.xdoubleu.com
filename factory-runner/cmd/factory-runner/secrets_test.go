@@ -135,6 +135,7 @@ func TestTheJobRunnerReadsItsCredentialsFromTheKeychainWhenAJobNeedsThem(t *test
 		GoModCache: "", NPMCache: "", BotEmail: "bot@example.com",
 		Mode:    "",
 		MaxJobs: 0,
+		OnLimit: "",
 	}
 	jr, err := newJobRunner(context.Background(), e.app, cfg, "frt_tok", quietLog(),
 		versionExec{out: "container CLI version 1.6.1", err: nil})
@@ -169,6 +170,7 @@ func TestAJobProxyOffersTheBoardOnlyToAJobWithItsOwnAccount(t *testing.T) {
 		GoModCache: "", NPMCache: "", BotEmail: "",
 		Mode:    "",
 		MaxJobs: 0,
+		OnLimit: "",
 	}
 	secrets := newMemSecrets()
 	log := quietLog()
@@ -191,6 +193,7 @@ func TestAJobProxyReadsTheOpenRouterKeyOnlyWhenTheRouteIsUsed(t *testing.T) {
 		GoModCache: "", NPMCache: "", BotEmail: "",
 		Mode:    "",
 		MaxJobs: 0,
+		OnLimit: "",
 	}
 	p, err := newJobProxy(cfg, claimedJob("", ""), newMemSecrets(), quietLog())
 	require.NoError(t, err)
