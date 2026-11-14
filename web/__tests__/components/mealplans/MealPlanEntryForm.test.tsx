@@ -79,6 +79,33 @@ describe('recipe tab save', () => {
     expect(screen.getByText(/No recipe with that name/)).toBeInTheDocument()
   })
 
+  it('asks for a recipe when nothing is typed, and clears the error on typing', () => {
+    renderRecipes()
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(screen.getByText('Pick a recipe.')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('combobox', { name: 'Recipe' }), {
+      target: { value: 'S' }
+    })
+    expect(screen.queryByText('Pick a recipe.')).not.toBeInTheDocument()
+  })
+
+  it('restores the last valid servings on blur', () => {
+    renderRecipes()
+    const servings = screen.getByLabelText('Servings')
+    fireEvent.change(servings, { target: { value: '3' } })
+    fireEvent.change(servings, { target: { value: '' } })
+    fireEvent.blur(servings)
+    expect(servings).toHaveValue(3)
+  })
+
+  it('lists recipe options in the flow, not floating', () => {
+    renderRecipes()
+    fireEvent.change(screen.getByRole('combobox', { name: 'Recipe' }), {
+      target: { value: 'oe' }
+    })
+    expect(screen.getByRole('listbox')).not.toHaveClass('absolute')
+  })
+
   it('keeps the last valid servings when the field is cleared', () => {
     renderRecipes()
     const servings = screen.getByLabelText('Servings')
