@@ -261,3 +261,23 @@ func TestCloneRepairsAMirrorWhoseRefPointsAtAMissingObject(t *testing.T) {
 	require.NoError(t, g.Clone(context.Background(), "o", "n", "main", "agent/x", dest))
 	assert.Equal(t, tip, gitIn(t, dest, "rev-parse", "HEAD"))
 }
+
+func TestFetchBaseBringsTheMirrorsBaseIntoTheCloneAsOrigin(t *testing.T) {
+	origin := filepath.Join(t.TempDir(), "origin")
+	require.NoError(t, os.MkdirAll(origin, 0o755))
+	gitIn(t, origin, "init", "-b", "main")
+	gitIn(t, origin, "commit", "--allow-empty", "-m", "one")
+	g := &runner.Git{
+		Dir:        t.TempDir(),
+		RemoteURL:  func(string, string) string { return origin },
+		Run:        nil,
+		RunWithEnv: nil,
+	}
+	dest := filepath.Join(t.TempDir(), "d")
+	require.NoError(t, g.Clone(context.Background(), "o", "n", "main", "agent/x", dest))
+
+	gitIn(t, origin, "commit", "--allow-empty", "-m", "two")
+	tip := gitIn(t, origin, "rev-parse", "HEAD")
+	require.NoError(t, g.FetchBase(context.Background(), "o", "n", "main", dest))
+	assert.Equal(t, tip, gitIn(t, dest, "rev-parse", "origin/main"))
+}
