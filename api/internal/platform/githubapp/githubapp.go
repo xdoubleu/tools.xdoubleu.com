@@ -232,8 +232,9 @@ func (c *Client) installationID(
 }
 
 // InstallationToken mints a token for owner/repo alone, with just what a job
-// needs: contents write (the push) and pull requests write (the PR) and checks read (CI status). It expires
-// within the hour and can't touch workflows, issues or any other repository.
+// needs: contents write (the push), pull requests write (the PR) and checks
+// read (CI status). It expires within the hour and can't touch workflows,
+// issues or any other repository.
 func (c *Client) InstallationToken(
 	ctx context.Context,
 	owner, repo string,
