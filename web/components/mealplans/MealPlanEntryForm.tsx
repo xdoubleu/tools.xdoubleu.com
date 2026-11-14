@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Card } from '@/components/ui/card'
 import { RemoveButton } from '@/components/ui/remove-button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { cn } from '@/lib/cn'
 import { parseCustomItems, encodeCustomItems, type CustomItem } from '@/lib/customItems'
@@ -24,7 +23,7 @@ import {
   DialogFooter
 } from '@/components/ui/dialog'
 
-type Tab = 'recipe' | 'custom'
+type Tab = 'recipe' | 'custom' | 'event'
 
 interface MealPlanEntryFormProps {
   open: boolean
@@ -58,7 +57,11 @@ export default function MealPlanEntryForm({
   onSave,
   onCancel
 }: MealPlanEntryFormProps) {
-  const initialTab: Tab = initialCustomName ? 'custom' : 'recipe'
+  const initialTab: Tab = !initialCustomName
+    ? 'recipe'
+    : initialExcludeFromShoppingList
+      ? 'event'
+      : 'custom'
   const [tab, setTab] = useState<Tab>(initialTab)
   const [recipeId, setRecipeId] = useState(initialRecipeId)
   const [servings, setServings] = useState(initialServings)
@@ -68,9 +71,6 @@ export default function MealPlanEntryForm({
     const parsed = initialCustomName ? parseCustomItems(initialCustomName) : []
     return parsed.length > 0 ? parsed : [{ name: '', amount: '', unit: '' }]
   })
-  const [excludeFromShoppingList, setExcludeFromShoppingList] = useState(
-    initialExcludeFromShoppingList
-  )
   const [saving, setSaving] = useState(false)
 
   const { data: categoriesData } = useCategories()
@@ -114,7 +114,7 @@ export default function MealPlanEntryForm({
       setSaving(true)
       try {
         await persistCategories()
-        onSave('', joined, 1, excludeFromShoppingList)
+        onSave('', joined, 1, tab === 'event')
       } finally {
         setSaving(false)
       }
@@ -156,7 +156,8 @@ export default function MealPlanEntryForm({
           onChange={setTab}
           options={[
             { value: 'recipe', label: 'Recipe' },
-            { value: 'custom', label: 'Custom' }
+            { value: 'custom', label: 'Custom' },
+            { value: 'event', label: 'Event' }
           ]}
         />
 
@@ -230,7 +231,7 @@ export default function MealPlanEntryForm({
             {customItems.map((item, i) => (
               <Card key={i} variant="inset" className="space-y-2">
                 <div className="grid grid-cols-2 gap-2 sm:flex">
-                  {!excludeFromShoppingList && (
+                  {tab !== 'event' && (
                     <>
                       <Input
                         type="number"
@@ -275,7 +276,7 @@ export default function MealPlanEntryForm({
                         if (i === customItems.length - 1) addCustomItem()
                       }
                     }}
-                    placeholder={`Item ${i + 1}`}
+                    placeholder={tab === 'event' ? 'Event name' : `Item ${i + 1}`}
                     aria-label={`Name for item ${i + 1}`}
                     autoFocus={i === 0}
                     className={cn('col-span-2 min-w-0 sm:flex-1')}
@@ -288,7 +289,7 @@ export default function MealPlanEntryForm({
                     />
                   )}
                 </div>
-                {categories.length > 0 && !excludeFromShoppingList && (
+                {categories.length > 0 && tab !== 'event' && (
                   <Select
                     aria-label={`Category for item ${i + 1}`}
                     value={effectiveCategoryId(item)}
@@ -307,11 +308,9 @@ export default function MealPlanEntryForm({
             <Button variant="link" size="sm" className="self-start" onClick={addCustomItem}>
               + Add item
             </Button>
-            <Checkbox
-              checked={excludeFromShoppingList}
-              onChange={(e) => setExcludeFromShoppingList(e.target.checked)}
-              label={<span className="text-xs text-muted">Keep off the shopping list</span>}
-            />
+            {tab === 'event' && (
+              <p className="text-xs text-muted">Events stay off the shopping list.</p>
+            )}
           </div>
         )}
 

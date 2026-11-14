@@ -221,42 +221,37 @@ describe('MealPlanEntryForm category picker', () => {
     expect(screen.queryByText('Suggestions')).not.toBeInTheDocument()
   })
 
-  it('hides the category selector when keep off shopping list is checked', async () => {
-    render(
-      <MealPlanEntryForm
-        open
-        title="Add"
-        recipes={[]}
-        initialCustomName="apple"
-        onSave={onSave}
-        onCancel={onCancel}
-      />
-    )
+  it('hides category, amount and unit on the event tab', () => {
+    renderForm('apple')
     expect(screen.getByLabelText('Category for item 1')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('checkbox'))
-    expect(screen.queryByLabelText('Category for item 1')).not.toBeInTheDocument()
-  })
-
-  it('hides amount and unit when keep off shopping list is checked', async () => {
-    render(
-      <MealPlanEntryForm
-        open
-        title="Add"
-        recipes={[]}
-        initialCustomName="apple"
-        onSave={onSave}
-        onCancel={onCancel}
-      />
-    )
     expect(screen.getByLabelText('Amount for item 1')).toBeInTheDocument()
-    expect(screen.getByLabelText('Unit for item 1')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('tab', { name: 'Event' }))
+    expect(screen.queryByLabelText('Category for item 1')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Amount for item 1')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Unit for item 1')).not.toBeInTheDocument()
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+  })
 
-    fireEvent.click(screen.getByRole('checkbox'))
-    expect(screen.getByLabelText('Amount for item 1')).toBeInTheDocument()
-    expect(screen.getByLabelText('Unit for item 1')).toBeInTheDocument()
+  it('saves an event with the exclude flag set', async () => {
+    renderForm('')
+    fireEvent.click(screen.getByRole('tab', { name: 'Event' }))
+    fireEvent.change(screen.getByLabelText('Name for item 1'), { target: { value: 'Party' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith('', 'Party', 1, true))
+  })
+
+  it('opens an excluded entry as the event tab', () => {
+    render(
+      <MealPlanEntryForm
+        open
+        title="Edit"
+        recipes={[]}
+        initialCustomName="Party"
+        initialExcludeFromShoppingList
+        onSave={onSave}
+        onCancel={onCancel}
+      />
+    )
+    expect(screen.getByRole('tab', { name: 'Event' })).toHaveAttribute('aria-selected', 'true')
   })
 })
