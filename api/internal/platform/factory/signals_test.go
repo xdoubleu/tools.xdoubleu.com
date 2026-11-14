@@ -68,7 +68,7 @@ func TestTheFailureGaugesCountWhatNobodyPointsAt(t *testing.T) {
 		INSERT INTO factory.linked_pull_requests (url, task_id, state, ci)
 		SELECT $1, id, 'open', 'failing' FROM factory.tasks
 		WHERE title = 'red signal'
-		ON CONFLICT (url) DO UPDATE SET state = 'open', ci = 'failing'`, pullURL(51))
+		ON CONFLICT (url, task_id) DO UPDATE SET state = 'open', ci = 'failing'`, pullURL(51))
 	require.NoError(t, err)
 	_, err = testDB.Exec(ctx,
 		`UPDATE factory.tasks SET updated_at = now() - interval '2 hours'

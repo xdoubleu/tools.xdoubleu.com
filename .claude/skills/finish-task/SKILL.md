@@ -49,7 +49,7 @@ rely on CI's Build Grafana job, and say so in the PR body.
 
 ## 4. Link the task
 
-The PR links the board task with **no closing keyword**. Put `Task: <title> (<id>)` at the top of the PR body, and after
+The PR links the board task with **no closing keyword**. Put `Task: <title> (<id>)` at the top of the PR body (one line per task), and after
 `ship-pr` opens it `factory_move_task(id, "in_review")`. The factory moves it to
 `testing` once the PR merges; the owner checks it there and moves it to Done.
 
