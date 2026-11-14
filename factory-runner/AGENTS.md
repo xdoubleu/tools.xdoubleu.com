@@ -40,4 +40,4 @@ Settings live in the menu bar; `config …` is for scripting. A fresh pairing is
 
 ## Building
 
-`make build | dist | test | lint | lint/fix | image`. Tests need no keychain, network, VM or launchd; `-tags container` runs real VMs.
+`make build | dist | test | test/mutation/diff | lint | lint/fix | image`. Tests need no keychain, network, VM or launchd; `-tags container` runs real VMs.

@@ -3,6 +3,32 @@ RELEASE ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 test:
 	go test ./...
 
+tools/mutation:
+	go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
+
+# Mirrors api/'s target: gremlins on Go packages changed vs origin/main, mutants
+# scoped to changed lines; fails if a changed line's mutant is SKIPPED.
+test/mutation/diff: tools/mutation
+	@pkgs=$$(python3 ../tools/diff_packages_go.py); \
+	if [ -z "$$pkgs" ]; then \
+		echo "No changed Go packages vs origin/main -- nothing to mutation-test."; \
+	else \
+		status=0; \
+		report=$$(mktemp); \
+		for pkg in $$pkgs; do \
+			echo "Diff-scoped mutation testing: $$pkg"; \
+			(cd "$$pkg" && \
+				GOFLAGS="$$GOFLAGS -p=1 -count=1" GIT_CONFIG_COUNT=2 \
+				GIT_CONFIG_KEY_0=diff.relative GIT_CONFIG_VALUE_0=true \
+				GIT_CONFIG_KEY_1=diff.context GIT_CONFIG_VALUE_1=0 \
+				gremlins unleash --diff origin/main --workers 1 \
+					--output "$$report" "$$PWD") && \
+			python3 ../tools/check_mutation_report_go.py "$$pkg" "$$report" || status=1; \
+		done; \
+		rm -f "$$report"; \
+		exit $$status; \
+	fi
+
 test/cov/report:
 	go test ./... -covermode=set -coverprofile=coverage.out
 	go tool cover -func=coverage.out | tail -1

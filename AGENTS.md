@@ -54,7 +54,7 @@ npx vitest run path/to/file.test.ts -t "test name"
 make build | dist | test | lint/fix
 
 # factory-runner/
-make build | test | lint/fix
+make build | test | test/mutation/diff | lint/fix
 
 # repo root
 make lint/docs | lint/skills | lint/workflows | lint/infra | lint/grafana | grafana/verify | hooks/test | routines/test | lint/deploy-version
