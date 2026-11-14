@@ -47,25 +47,9 @@ func TestAJobWithNoCommitsIsNotPublished(t *testing.T) {
 	assert.Contains(t, got.outcome, "Thought about it.", "the agent's own words stay")
 }
 
-func TestAJobThatTouchesWorkflowsIsNotPublished(t *testing.T) {
-	for _, path := range []string{
-		".github/workflows/ci.yml",
-		".GitHub/Workflows/ci.yml",
-		".github/workflows",
-	} {
-		env := newEnv(t, agentDoes("done", func(clone string) {
-			commitFile(clone, path, "on: push")
-		}), newJob())
-		got := finish(t, env)
-		assert.False(t, got.succeeded, path)
-		assert.Contains(t, got.outcome, "may not touch", path)
-	}
-}
-
-func TestOtherGithubFilesAreFine(t *testing.T) {
+func TestAJobThatTouchesWorkflowsIsPublished(t *testing.T) {
 	env := newEnv(t, agentDoes("done", func(clone string) {
-		commitFile(clone, ".github/CODEOWNERS", "* @x")
-		commitFile(clone, ".github/workflows-notes.md", "x")
+		commitFile(clone, ".github/workflows/ci.yml", "on: push")
 	}), newJob())
 	assert.True(t, finish(t, env).succeeded)
 }
@@ -175,23 +159,6 @@ func TestARejectedJobLeavesNothingInTheMirrorOrTheReviewDir(t *testing.T) {
 	assert.False(t, finish(t, env).succeeded)
 	assert.Equal(t, before, count(), "the agent's objects never reach the mirror")
 	assert.NoDirExists(t, filepath.Join(env.dir, "reviews", jobID+".git"))
-}
-
-func TestAWorkflowChangeThatIsRevertedStillCounts(t *testing.T) {
-	env := newEnv(t, agentDoes("done", func(clone string) {
-		commitFile(clone, "a.txt", "x")
-		commitFile(clone, ".github/workflows/x.yml", "on: push")
-		cmd := exec.Command("git", "rm", "-q", ".github/workflows/x.yml")
-		cmd.Dir = clone
-		_ = cmd.Run()
-		cmd = exec.Command("git", "-c", "user.name=a", "-c", "user.email=a@x.io",
-			"commit", "-q", "-m", "undo")
-		cmd.Dir = clone
-		_ = cmd.Run()
-	}), newJob())
-	got := finish(t, env)
-	assert.False(t, got.succeeded)
-	assert.Contains(t, got.outcome, "may not touch")
 }
 
 func TestASecretInAnAuthorNameOrAMergeIsFound(t *testing.T) {

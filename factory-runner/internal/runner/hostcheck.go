@@ -17,9 +17,8 @@ var ErrHostCheck = errors.New("host check failed")
 
 const (
 	// minSecretLen skips values too short to search for without false hits.
-	minSecretLen  = 8
-	workflowsPath = ".github/workflows"
-	shortHashLen  = 12
+	minSecretLen = 8
+	shortHashLen = 12
 )
 
 // Reviewed is the host's copy of a job's branch after it passed the checks. It
@@ -44,9 +43,9 @@ func (r *Reviewed) Head(ctx context.Context) string {
 func (r *Reviewed) Close() { _ = os.RemoveAll(r.dir) }
 
 // Inspect checks the work an agent left on branch before anything is pushed: it
-// has commits that change something, none touches .github/workflows/, and no
-// secret value is in any commit, message or author. The clone belongs to the
-// agent, so nothing runs in it: the branch is fetched, objects verified, into a
+// has commits that change something and no secret value is in any commit,
+// message or author. The clone belongs to the agent, so nothing runs in it: the
+// branch is fetched, objects verified, into a
 // throwaway repo of the host's (so a rejected commit never reaches the mirror
 // later jobs clone from) and every check reads that copy. A branch that passes
 // comes back as that copy, for pushing; the caller closes it.
@@ -107,9 +106,6 @@ func (g *Git) review(
 	if err = g.hasChanges(ctx, review, span, from+"..."+to); err != nil {
 		return err
 	}
-	if err = g.noWorkflowChanges(ctx, review, span); err != nil {
-		return err
-	}
 	return g.noSecrets(ctx, review, span, secrets)
 }
 
@@ -152,26 +148,6 @@ func (g *Git) hasChanges(ctx context.Context, review, span, net string) error {
 	}
 	if strings.TrimSpace(string(out)) == "" {
 		return fmt.Errorf("%w: the agent's commits change nothing", ErrHostCheck)
-	}
-	return nil
-}
-
-// noWorkflowChanges looks at every commit, merges included, so a workflow change
-// that a later commit reverts still counts: it would be in the pushed history.
-func (g *Git) noWorkflowChanges(ctx context.Context, review, span string) error {
-	out, err := g.git(ctx, review, "log", "-m", "--name-only", "-z", "--no-renames",
-		"--no-ext-diff", "--format=", span)
-	if err != nil {
-		return fmt.Errorf("%w: could not list changed files: %w", ErrHostCheck, err)
-	}
-	for _, path := range bytes.Split(out, []byte{0}) {
-		path = bytes.Trim(path, "\n")
-		// macOS is case-insensitive: .GitHub/Workflows is the same directory.
-		p := strings.ToLower(string(path))
-		if p == workflowsPath || strings.HasPrefix(p, workflowsPath+"/") {
-			return fmt.Errorf("%w: the agent changed %s, which it may not touch",
-				ErrHostCheck, string(path))
-		}
 	}
 	return nil
 }

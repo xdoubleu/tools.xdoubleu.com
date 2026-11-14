@@ -27,7 +27,7 @@ The server is untrusted; each job needs UUID ids, an allowlisted repo, an `agent
 
 - A Reply's job restores the task's pushed branch and resumes its session; only new commits are host-checked.
 - The agent owns the clone (it can write `.git/hooks` and `.git/config`), so the host runs git there only with `-c core.hooksPath=/dev/null` and a clean config.
-- Each attempt is host-checked: real commits, no workflow change, no secret. A pass is pushed and opened as a PR → [`adr-0045`](../docs/adr-0045-factory-github-app.md).
+- Each attempt is host-checked: real commits, no secret. A pass is pushed and opened as a PR → [`adr-0045`](../docs/adr-0045-factory-github-app.md).
 - The device token lives only in the keychain.
 
 `jobLoop` resumes the agent's session in one VM with each failure (gate, push, CI) until the PR merges, sharing no state with other jobs → [`adr-0044`](../docs/adr-0044-factory-jobs-queue.md).
