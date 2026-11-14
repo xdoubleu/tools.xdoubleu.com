@@ -30,7 +30,9 @@ const (
 	// tokenLife is how long a push token is reused for reading the pull request.
 	tokenLife   = 20 * time.Minute
 	noteTimeout = 15 * time.Second
-	maxWhy      = 300
+	// retroMinutes bounds the closing retro, in runner minutes.
+	retroMinutes = 5
+	maxWhy       = 300
 )
 
 // jobLoop is one job's whole run in one VM: agent attempts (the first on the
@@ -60,6 +62,9 @@ type jobLoop struct {
 	times   phaseTimes
 	// greenAt is when CI first passed in the current watch.
 	greenAt time.Time
+	// began is when the job started; causes is why each retry was needed.
+	began  time.Time
+	causes []string
 }
 
 // step is how an attempt ended: the job's result when that is the end, or what
@@ -108,6 +113,7 @@ func (l *jobLoop) sleep(d time.Duration) {
 // board's log last once a pull request was opened.
 func (l *jobLoop) run() result {
 	start := l.now()
+	l.began = start
 	res := l.loop()
 	if res.prURL != "" {
 		l.events.note(l.times.summary(l.now().Sub(start)))
@@ -131,7 +137,12 @@ func (l *jobLoop) loop() result {
 	}
 	defer session.Close()
 	l.session = session
+	res := l.attempts()
+	l.retro(res)
+	return res
+}
 
+func (l *jobLoop) attempts() result {
 	command := l.launch.command
 	prompt := fmt.Sprintf(preamble, l.job.Branch) + "\n\n" + l.job.Prompt
 	var last *step
@@ -152,6 +163,7 @@ func (l *jobLoop) loop() result {
 		if sid == "" {
 			return l.stop(s, "Stopped: the agent has no session to resume.")
 		}
+		l.causes = append(l.causes, s.why)
 		l.note(fmt.Sprintf("Attempt %d: %s, retrying", attempt+1, s.why))
 		command, prompt = l.r.harnessFor(l.job).Resume(sid), s.feedback
 	}
@@ -434,4 +446,23 @@ func short(s string) string {
 		s = strings.ToValidUTF8(s[:maxWhy], "") + "..."
 	}
 	return s
+}
+
+// retro resumes the agent's session once more when the job needed retries, to
+// file what slowed it as factory-retro tasks. It is bounded, pushes nothing (the
+// runner alone publishes) and its failure changes nothing about the job's result.
+func (l *jobLoop) retro(res result) {
+	sid := l.tap.Session()
+	if len(l.causes) == 0 || res.limited || sid == "" || l.ended() != "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(l.ctx, retroMinutes*l.r.minute())
+	defer cancel()
+	prompt := fmt.Sprintf(retroPrompt, l.times.summary(l.now().Sub(l.began)),
+		"- "+strings.Join(l.causes, "\n- "))
+	_, err := l.session.Exec(ctx, l.r.harnessFor(l.job).Resume(sid), prompt, l.events)
+	if err != nil {
+		l.r.Log.Warn("the retro did not run", "job", l.job.ID, "error", err)
+	}
+	l.r.flush(l.parent, l.job.ID, l.events)
 }

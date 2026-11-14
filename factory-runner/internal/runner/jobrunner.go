@@ -50,6 +50,21 @@ var taskIDPattern = regexp.MustCompile(
 // harness's argv, so nothing that could be read as a flag or a path.
 var sessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$`)
 
+// retroPrompt ends a job that needed retries; its arguments are the phase times
+// and the cause of each retry.
+const retroPrompt = `The job is over. Do not touch the repository, commit or ` +
+	`push, and write no outcome file. Look back on it: %s.
+
+Why it needed more than one attempt:
+%s
+
+List repeatable friction (a missing tool, a gate you could not run, a CI ` +
+	`failure the local gates missed, slow steps). For each, search ` +
+	`factory_list_tasks (label factory-retro, open columns) and comment on a ` +
+	`match with factory_comment_task, or file one with factory_create_task, ` +
+	`label factory-retro, naming the cause. File nothing when nothing is ` +
+	`repeatable. Reply in one line.`
+
 // preamble is the runner's own, repo-agnostic part of every prompt; the server
 // can't change it. %s is the job's branch.
 const preamble = `You are running unattended in a sandbox with no network ` +
@@ -449,6 +464,7 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		ctx: jobCtx, parent: ctx, tap: tap, events: events, stopped: &stopped,
 		session: nil, limit: r.limitFor(job), token: "", tokenAt: time.Time{},
 		times: phaseTimes{agent: 0, publish: 0, ci: 0, merge: 0}, greenAt: time.Time{},
+		began: time.Time{}, causes: nil,
 	}
 	res := loop.run()
 	cancel()
