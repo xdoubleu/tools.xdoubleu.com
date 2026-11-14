@@ -6,6 +6,8 @@ import (
 	"errors"
 	"io"
 	"os"
+	osexec "os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -244,6 +246,35 @@ func TestAJobWithoutAProxyStillUsesTheBakedCachesAndALocalPostgres(t *testing.T)
 	execLine := strings.Join(exec.find("exec")[0], " ")
 	assert.Contains(t, execLine, "cp -R /opt/npmcache /tmp/npmcache")
 	assert.Contains(t, execLine, `initdb" -D /tmp/pgdata -U postgres --auth=trust`)
+}
+
+func TestSetupInstallsNodeModulesForEachLockfileThatLacksThem(t *testing.T) {
+	clone, bin := t.TempDir(), t.TempDir()
+	for _, dir := range []string{"web", "done", "docs"} {
+		require.NoError(t, os.MkdirAll(filepath.Join(clone, dir), 0o755))
+	}
+	for _, lock := range []string{
+		"package-lock.json", "web/package-lock.json", "done/package-lock.json",
+	} {
+		require.NoError(t, os.WriteFile(filepath.Join(clone, lock), []byte("{}"), 0o600))
+	}
+	require.NoError(t, os.Mkdir(filepath.Join(clone, "done", "node_modules"), 0o755))
+	npm := "#!/bin/sh\npwd >> \"$CALLS\"\n[ \"$(basename \"$PWD\")\" != web ]\n"
+	require.NoError(t, os.WriteFile(filepath.Join(bin, "npm"), []byte(npm), 0o700))
+	calls := filepath.Join(t.TempDir(), "calls")
+
+	cmd := osexec.Command("sh", "-c", runner.NPMInstallScriptForTest())
+	cmd.Dir = clone
+	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"), "CALLS="+calls)
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err, "a failed install is not fatal")
+
+	got, err := os.ReadFile(calls)
+	require.NoError(t, err)
+	root, err := filepath.EvalSymlinks(clone)
+	require.NoError(t, err)
+	assert.Equal(t, root+"\n"+filepath.Join(root, "web")+"\n", string(got))
+	assert.Contains(t, string(out), "npm ci failed in web")
 }
 
 func TestTheJobsExitCodeIsReturnedAndTheVMStillCleanedUp(t *testing.T) {

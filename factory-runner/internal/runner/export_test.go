@@ -28,6 +28,9 @@ func RunForTest(
 	return run(ctx, hb, token, log, opts, clock{sleep: sleep, now: clk})
 }
 
+// NPMInstallScriptForTest is the VM setup step that installs node_modules.
+func NPMInstallScriptForTest() string { return npmInstallScript }
+
 // NewCaffeinateWith returns a Caffeinate with its process starter replaced.
 func NewCaffeinateWith(start func(pid int) (func(), error)) *Caffeinate {
 	return &Caffeinate{start: start}
