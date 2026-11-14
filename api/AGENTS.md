@@ -42,8 +42,8 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - SignOut/UpdatePassword/VerifyMFA/UnenrollTOTP evict the token. **Admin `SetRole`/`SetAppAccess` must call `InvalidateUserCache()`.**
 - `enrichUser` overlays DB `Role`/`AppAccess`; **a DB failure is returned, never swallowed** — the unenriched user looks like "no access" and would be cached for the TTL.
 - `GetCurrentUser` (`internal/platform/account/auth_handlers.go`) is the pattern for handlers needing DB-enriched attributes: `auth.GetUser`, then `appUsersRepo.GetByID`.
-- `constants.AuthChannelContextKey` is `browser` (cookies) or `mcp` (bearer); both yield the same `models.User`. A missing channel is not a browser.
-- `OIDC_SIGN_IN`: OIDC sign-in (`oidc.go`) → [`adr-0051`](../docs/adr-0051-zitadel-for-people-sign-in.md).
+- `constants.AuthChannelContextKey` is `browser` (cookies) or `mcp` (bearer); both yield the same `models.User`; none is not a browser.
+- `OIDC_SIGN_IN`: OIDC sign-in, provisioning (`oidc.go`, `provisioning.go`) → [`adr-0051`](../docs/adr-0051-zitadel-for-people-sign-in.md).
 - `ResolveToken` verifies session JWTs locally, then falls back to an injected `OAuth2TokenResolver` for `oauth2as` tokens → [`adr-0006`](../docs/adr-0006-embedded-oauth21-authorization-server.md).
 
 ### Shared packages (`internal/`)

@@ -22,10 +22,10 @@ vi.mock('@/hooks/useAuth', () => ({
   useSetTabPins: () => vi.fn()
 }))
 
-vi.mock('@/lib/env', () => ({ getRelease: vi.fn(() => '') }))
+vi.mock('@/lib/env', () => ({ getRelease: vi.fn(() => ''), getAccountUrl: vi.fn(() => '') }))
 
 import SettingsPage from '@/app/settings/page'
-import { getRelease } from '@/lib/env'
+import { getAccountUrl, getRelease } from '@/lib/env'
 
 const confirmInDialog = (name: string) =>
   fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name }))
@@ -37,6 +37,20 @@ describe('SettingsPage', () => {
       data: { role: 'user', appAccess: [], hasMfa: false, displayName: 'Alice' },
       isLoading: false
     })
+  })
+
+  it('links to the provider account page only when one is configured', () => {
+    const { unmount } = render(<SettingsPage />)
+    expect(screen.queryByRole('link', { name: 'Manage your account' })).not.toBeInTheDocument()
+    unmount()
+
+    vi.mocked(getAccountUrl).mockReturnValue('https://id.example/ui/console/users/me')
+    render(<SettingsPage />)
+    expect(screen.getByRole('link', { name: 'Manage your account' })).toHaveAttribute(
+      'href',
+      'https://id.example/ui/console/users/me'
+    )
+    vi.mocked(getAccountUrl).mockReturnValue('')
   })
 
   it('shows the short release hash, or no About section without one', () => {

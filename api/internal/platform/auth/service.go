@@ -33,6 +33,8 @@ type appUsersStore interface {
 	Upsert(ctx context.Context, id, email string) error
 	GetByID(ctx context.Context, id string) (*models.User, error)
 	GetAll(ctx context.Context) ([]models.User, error)
+	SetDisplayName(ctx context.Context, id, displayName string) error
+	Delete(ctx context.Context, id string) error
 }
 
 // OAuth2TokenResolver resolves a fosite opaque access token to a user ID. It is
@@ -78,6 +80,9 @@ type LocalService struct {
 	// OIDC is set by cmd/api when people sign in through an OIDC provider
 	// (adr-0051); nil keeps the password sign-in.
 	OIDC *OIDCProvider
+	// Directory is the provider's user API for creating and deactivating
+	// people; nil when none is configured.
+	Directory Directory
 }
 
 var _ Service = (*LocalService)(nil)
@@ -111,6 +116,7 @@ func NewService(
 		SignInRenderer:      nil,
 		OAuth2TokenResolver: nil,
 		OIDC:                nil,
+		Directory:           nil,
 	}
 }
 
@@ -295,7 +301,7 @@ func (service *LocalService) SignInWithEmail(
 		return nil, nil, invalidCreds
 	}
 
-	if bcrypt.CompareHashAndPassword(
+	if user.Deactivated || bcrypt.CompareHashAndPassword(
 		[]byte(user.PasswordHash), []byte(password),
 	) != nil {
 		service.attempts.fail(attemptKey)
@@ -327,6 +333,9 @@ func (service *LocalService) GetUser(
 	row, err := service.usersStore.GetUserByID(ctx, c.Subject)
 	if err != nil {
 		return nil, err
+	}
+	if row.Deactivated {
+		return nil, errortools.NewUnauthorizedError(errors.New("account is deactivated"))
 	}
 
 	return &models.User{

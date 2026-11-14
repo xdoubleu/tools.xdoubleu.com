@@ -509,6 +509,7 @@ func NewApplication(
 	}
 
 	authSvc.OIDC = newOIDCProvider(config)
+	authSvc.Directory = newDirectory(config)
 
 	notificationsSvc := newNotificationsService(ctx, logger, config)
 	familySvc := family.New(

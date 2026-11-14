@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/kit/testhelper"
 	"tools.xdoubleu.com/internal/platform/auth"
 )
 
@@ -63,4 +64,12 @@ func TestNewOIDCProvider(t *testing.T) {
 		OIDCClientSecret: "s", JWTSecret: "secret",
 	})
 	assert.NotNil(t, provider)
+}
+
+func TestAccountURL(t *testing.T) {
+	cfg := testhelper.NewTestConfig()
+	assert.Empty(t, accountURL(cfg))
+
+	cfg.OIDCSignIn, cfg.OIDCIssuer = true, "https://id.example.com/"
+	assert.Equal(t, "https://id.example.com/ui/console/users/me", accountURL(cfg))
 }

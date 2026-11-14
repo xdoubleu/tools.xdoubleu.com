@@ -370,6 +370,10 @@ OAUTH_ROUTINES_CLIENT_SECRET (static "routines" machine client secret for the
                               Also an Actions secret in the agents environment)
 OIDC_CLIENT_SECRET           (client secret at the OIDC provider, Zitadel by
                               default; only read when OIDC_SIGN_IN=true)
+ZITADEL_SERVICE_TOKEN        (personal access token of a Zitadel service user whose
+                              only role is org user manager, so it can manage
+                              human users and nothing else; unset ⇒ user
+                              management can't create people)
 GRAFANA_ADMIN_PASSWORD       (Grafana break-glass admin, GF_SECURITY_ADMIN_PASSWORD;
                               also given to api for get_grafana_alerts)
 STEAM_API_KEY

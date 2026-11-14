@@ -30,6 +30,11 @@ func (service *LocalService) SignInWithOIDC(
 	if err != nil {
 		return nil, nil, err
 	}
+	if user.Deactivated {
+		return nil, nil, errortools.NewUnauthorizedError(
+			errors.New("account is deactivated"),
+		)
+	}
 
 	accessToken, err := service.mintAccessToken(user.ID, aal2)
 	if err != nil {
