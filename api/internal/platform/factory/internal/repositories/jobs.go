@@ -16,11 +16,13 @@ type JobsRepository struct {
 	db postgres.DB
 }
 
-const jobColumns = `id, task_id, repo_id, harness, prompt, status, branch,
+const jobColumns = `id,
+	COALESCE(task_id, '00000000-0000-0000-0000-000000000000'), repo_id, harness,
+	prompt, status, branch,
 	session_id, outcome, created_by, created_at, started_at, last_check_in,
 	finished_at, pr_url, runner_id, pr_state, pr_ci, pr_review, parent_job_id,
 	model, limited, limit_resets_at,
-	(SELECT number FROM factory.tasks WHERE id = task_id)`
+	COALESCE((SELECT number FROM factory.tasks WHERE id = task_id), 0), routine`
 
 func scanJob(row rowScanner) (*models.Job, error) {
 	var j models.Job
@@ -29,7 +31,7 @@ func scanJob(row rowScanner) (*models.Job, error) {
 		&j.SessionID, &j.Outcome, &j.CreatedBy, &j.CreatedAt, &j.StartedAt,
 		&j.LastCheckIn, &j.FinishedAt, &j.PRURL,
 		&j.RunnerID, &j.PRState, &j.PRCI, &j.PRReview, &j.ParentJobID,
-		&j.Model, &j.Limited, &j.LimitResetsAt, &j.TaskNumber,
+		&j.Model, &j.Limited, &j.LimitResetsAt, &j.TaskNumber, &j.Routine,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -44,12 +46,14 @@ func (r *JobsRepository) Create(
 ) (*models.Job, error) {
 	return scanJob(r.db.QueryRow(ctx, `
 		INSERT INTO factory.jobs (
-			task_id, repo_id, harness, prompt, branch, created_by, parent_job_id, model
+			task_id, repo_id, harness, prompt, branch, created_by, parent_job_id, model,
+			routine
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		VALUES (NULLIF($1, '00000000-0000-0000-0000-000000000000'::uuid),
+			$2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING `+jobColumns,
 		j.TaskID, j.RepoID, j.Harness, j.Prompt, j.Branch, j.CreatedBy, j.ParentJobID,
-		j.Model))
+		j.Model, j.Routine))
 }
 
 // Get returns one job.
@@ -320,4 +324,26 @@ func (r *JobsRepository) SetPullRequestStatus(
 		SET pr_state = $2, pr_ci = $3, pr_review = $4, pr_checked_at = now()
 		WHERE id = $1`, id, state, ci, review)
 	return postgres.PgxErrorToHTTPError(err)
+}
+
+// LastForRoutine returns the routine's newest job; none is not found.
+func (r *JobsRepository) LastForRoutine(
+	ctx context.Context,
+	routine string,
+) (*models.Job, error) {
+	return scanJob(r.db.QueryRow(ctx, `
+		SELECT `+jobColumns+` FROM factory.jobs WHERE routine = $1
+		ORDER BY created_at DESC, id LIMIT 1`, routine))
+}
+
+// CancelRoutine ends the routine's queued or running job (it has at most one).
+// A routine with none is not found.
+func (r *JobsRepository) CancelRoutine(
+	ctx context.Context,
+	routine string,
+) (*models.Job, error) {
+	return scanJob(r.db.QueryRow(ctx, `
+		UPDATE factory.jobs SET status = 'cancelled', finished_at = now()
+		WHERE routine = $1 AND status IN ('queued', 'running')
+		RETURNING `+jobColumns, routine))
 }

@@ -124,6 +124,7 @@ export const swrKeys = {
   factoryRepos: '/factory/repos',
   factoryOpenRouterModels: '/factory/openrouter-models',
   factoryRunners: '/factory/runners',
+  factoryRoutines: '/factory/routines',
   factoryRunnerRelease: '/downloads/factory-runner-release.txt',
   factoryTask: (id: string) => ['/factory/task', id] as const,
   factoryJobEvents: (jobId: string) => ['/factory/job-events', jobId] as const,

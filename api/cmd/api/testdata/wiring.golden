@@ -155,12 +155,16 @@ POST /factory.v1.TaskService/AddComment: 401, 403
 POST /factory.v1.TaskService/CreateTask: 401, 403
 POST /factory.v1.TaskService/GetTask: 401, 403
 POST /factory.v1.TaskService/ListJobEvents: 401, 403
+POST /factory.v1.TaskService/ListRoutines: 401, 403
 POST /factory.v1.TaskService/ListTasks: 401, 403
 POST /factory.v1.TaskService/MoveTask: 401, 403
 POST /factory.v1.TaskService/ReplyTask: 401, 403
+POST /factory.v1.TaskService/RunRoutine: 401, 403
 POST /factory.v1.TaskService/RunTask: 401, 403
+POST /factory.v1.TaskService/SaveRoutine: 401, 403
 POST /factory.v1.TaskService/SetPickupPaused: 401, 403
 POST /factory.v1.TaskService/StopJob: 401, 403
+POST /factory.v1.TaskService/StopRoutine: 401, 403
 POST /factory.v1.TaskService/UpdateTask: 401, 403
 POST /factory/github-webhook: 503, 503
 POST /family.v1.FamilyService/: 401, 404

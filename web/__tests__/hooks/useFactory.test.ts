@@ -27,6 +27,10 @@ const mockClient = {
   addComment: vi.fn().mockResolvedValue({}),
   runTask: vi.fn().mockResolvedValue({}),
   stopJob: vi.fn().mockResolvedValue({}),
+  listRoutines: vi.fn().mockResolvedValue({ routines: [] }),
+  saveRoutine: vi.fn().mockResolvedValue({}),
+  runRoutine: vi.fn().mockResolvedValue({}),
+  stopRoutine: vi.fn().mockResolvedValue({}),
   setPickupPaused: vi.fn().mockResolvedValue({}),
   listRepos: vi.fn().mockResolvedValue({ repos: [] }),
   listOpenRouterModels: vi.fn().mockResolvedValue({ modelIds: [] }),
@@ -54,6 +58,7 @@ import {
   useFactoryAgents,
   useFactoryModels,
   useFactoryRepos,
+  useFactoryRoutines,
   useFactoryRunners,
   useRunnerRelease,
   RUNNER_POLL_MS,
@@ -62,7 +67,13 @@ import {
   useJobLog
 } from '@/hooks/useFactory'
 import { create } from '@bufbuild/protobuf'
-import { GetTaskResponseSchema, JobEventSchema, JobSchema } from '@/lib/gen/factory/v1/factory_pb'
+import {
+  GetTaskResponseSchema,
+  JobEventSchema,
+  JobSchema,
+  JobStatus,
+  ListRoutinesResponseSchema
+} from '@/lib/gen/factory/v1/factory_pb'
 import { JOB_POLL_MS } from '@/lib/factory/board'
 import { LOG_POLL_MS } from '@/lib/factory/joblog'
 
@@ -123,6 +134,26 @@ describe('useFactoryAgents', () => {
     renderHook(() => useFactoryAgents())
     expect(mockUseSWR).toHaveBeenCalledWith('/user-management/agents', expect.any(Function))
     expect(mockClient.listAgentAccounts).toHaveBeenCalledWith({})
+  })
+})
+
+describe('useFactoryRoutines', () => {
+  it('fetches the routines and polls only while a job is on the way', () => {
+    renderHook(() => useFactoryRoutines())
+    expect(mockUseSWR).toHaveBeenCalledWith('/factory/routines', expect.any(Function), {
+      refreshInterval: expect.any(Function)
+    })
+    expect(mockClient.listRoutines).toHaveBeenCalledWith({})
+
+    const refresh = mockUseSWR.mock.calls[0][2]?.refreshInterval
+    if (typeof refresh !== 'function') throw new Error('refreshInterval is not a function')
+    const withJob = (status: JobStatus) =>
+      create(ListRoutinesResponseSchema, {
+        routines: [{ name: 'r', lastJob: create(JobSchema, { status }) }, { name: 'none' }]
+      })
+    expect(refresh(withJob(JobStatus.RUNNING))).toBe(JOB_POLL_MS)
+    expect(refresh(withJob(JobStatus.SUCCEEDED))).toBe(0)
+    expect(refresh(undefined)).toBe(0)
   })
 })
 
@@ -266,6 +297,25 @@ describe('useFactoryActions', () => {
     const { result } = renderHook(() => useFactoryActions())
     await result.current.stop('t-1')
     expect(mockClient.stopJob).toHaveBeenCalledWith({ taskId: 't-1' })
+    expect(mockMutate).toHaveBeenCalledTimes(1)
+  })
+
+  it('saves, runs and stops a routine, revalidating each time', async () => {
+    const { result } = renderHook(() => useFactoryActions())
+    const fields = { name: 'noop', repoId: 'r1', enabled: true, intervalMinutes: 60 }
+    await result.current.saveRoutine(fields)
+    expect(mockClient.saveRoutine).toHaveBeenCalledWith(fields)
+    await result.current.runRoutine('noop')
+    expect(mockClient.runRoutine).toHaveBeenCalledWith({ name: 'noop' })
+    await result.current.stopRoutine('noop')
+    expect(mockClient.stopRoutine).toHaveBeenCalledWith({ name: 'noop' })
+    expect(mockMutate).toHaveBeenCalledTimes(3)
+  })
+
+  it('revalidates a refused routine run too', async () => {
+    mockClient.runRoutine.mockRejectedValueOnce(new Error('refused'))
+    const { result } = renderHook(() => useFactoryActions())
+    await expect(result.current.runRoutine('noop')).rejects.toThrow('refused')
     expect(mockMutate).toHaveBeenCalledTimes(1)
   })
 

@@ -165,6 +165,7 @@ func (a *Factory) Start() error {
 		a.jobQueue.AddJob(a.pollJob(), noop),
 		a.jobQueue.AddJob(a.checkRunnerJob(), noop),
 		a.jobQueue.AddJob(a.signalsJob(), noop),
+		a.jobQueue.AddJob(a.routinesJob(), noop),
 	)
 }
 
@@ -176,6 +177,16 @@ func (a *Factory) pollJob() threading.Job {
 func (a *Factory) checkRunnerJob() threading.Job {
 	check := jobs.NewCheckRunnerJob(a.services.Jobs)
 	return observability.NewTrackedJob(check, a.db)
+}
+
+func (a *Factory) routinesJob() threading.Job {
+	enqueue := jobs.NewEnqueueRoutinesJob(a.services.Jobs)
+	return observability.NewTrackedJob(enqueue, a.db)
+}
+
+// EnqueueRoutinesNow queues the routines that are due once, outside the schedule.
+func (a *Factory) EnqueueRoutinesNow(ctx context.Context) error {
+	return a.routinesJob().Run(ctx, a.Logger)
 }
 
 func (a *Factory) signalsJob() threading.Job {

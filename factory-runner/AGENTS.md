@@ -12,6 +12,7 @@ internal/runner/
   daemon.go, control.go       heartbeat loop; pause flag, status
   jobrunner.go                claim loop, `max_jobs` at once; prompt; Checks:/Blocked: lines
   jobloop.go, pullstatus.go   a job's attempts until merge; CI verdict
+  routines.go                 routine allowlist (adr-0052)
   gitclone.go, hostcheck.go   mirror, clone; host checks
   events.go, publish.go       board log lines; push, open the PR
   harness.go, sandbox.go      Claude Code/OpenCode commands; Sandbox

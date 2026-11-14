@@ -31,7 +31,7 @@ The routines run on Actions with a GitHub App token in the agent's shell. The fa
 
 ## Consequences
 
-- The factory gains a task-less job type, and job accounts a routine scope beside `JobID`/`TaskID`.
+- The factory gains a task-less job type, and job accounts a routine scope beside `JobID`/`TaskID`. Until the standing routine account lands, a routine's job gets no agent account.
 - The watchdog, transcript upload and `record_action` ledger of `agent-routine.yml` are replaced by job check-ins, job events and Slack notices, not ported.
 
 ## Revisit when

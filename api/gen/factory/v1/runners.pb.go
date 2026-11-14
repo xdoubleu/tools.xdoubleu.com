@@ -610,7 +610,10 @@ type ClaimedJob struct {
 	// Set for a Reply's job: the harness session to resume on the existing branch.
 	ResumeSessionId string `protobuf:"bytes,13,opt,name=resume_session_id,json=resumeSessionId,proto3" json:"resume_session_id,omitempty"`
 	// The OpenRouter model, "vendor/model", when the harness is OpenCode.
-	Model         string `protobuf:"bytes,14,opt,name=model,proto3" json:"model,omitempty"`
+	Model string `protobuf:"bytes,14,opt,name=model,proto3" json:"model,omitempty"`
+	// Set for a routine's job, which has no task (task_id is empty). The runner
+	// runs only a routine it knows by name and builds the prompt itself.
+	Routine       string `protobuf:"bytes,15,opt,name=routine,proto3" json:"routine,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -739,6 +742,13 @@ func (x *ClaimedJob) GetResumeSessionId() string {
 func (x *ClaimedJob) GetModel() string {
 	if x != nil {
 		return x.Model
+	}
+	return ""
+}
+
+func (x *ClaimedJob) GetRoutine() string {
+	if x != nil {
+		return x.Routine
 	}
 	return ""
 }
@@ -1542,7 +1552,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"runnerName\",\n" +
 	"\x10HeartbeatRequest\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\"\x13\n" +
-	"\x11HeartbeatResponse\"\xde\x03\n" +
+	"\x11HeartbeatResponse\"\xf8\x03\n" +
 	"\n" +
 	"ClaimedJob\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
@@ -1560,7 +1570,8 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\rmcp_client_id\x18\v \x01(\tR\vmcpClientId\x12*\n" +
 	"\x11mcp_client_secret\x18\f \x01(\tR\x0fmcpClientSecret\x12*\n" +
 	"\x11resume_session_id\x18\r \x01(\tR\x0fresumeSessionId\x12\x14\n" +
-	"\x05model\x18\x0e \x01(\tR\x05model\",\n" +
+	"\x05model\x18\x0e \x01(\tR\x05model\x12\x18\n" +
+	"\aroutine\x18\x0f \x01(\tR\aroutine\",\n" +
 	"\x0fClaimJobRequest\x12\x19\n" +
 	"\bmax_jobs\x18\x01 \x01(\x05R\amaxJobs\"<\n" +
 	"\x10ClaimJobResponse\x12(\n" +

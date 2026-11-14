@@ -46,7 +46,8 @@ func (m *memSecrets) SetSecret(name, value string) error {
 // claimedJob is a job with only its board account filled in.
 func claimedJob(clientID, secret string) *runner.ClaimedJob {
 	return &runner.ClaimedJob{
-		ID: "", TaskID: "", RepoOwner: "", RepoName: "", DefaultBranch: "",
+		Routine: "",
+		ID:      "", TaskID: "", RepoOwner: "", RepoName: "", DefaultBranch: "",
 		Harness: "", Prompt: "", Branch: "", SetupCommands: "", TimeLimitMinutes: 0,
 		MCPClientID: clientID, MCPClientSecret: secret, ResumeSessionID: "", Model: "",
 	}
