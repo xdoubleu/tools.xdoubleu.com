@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS factory.routines (
 INSERT INTO factory.routines (repo_id, name)
 SELECT
     id,
-    'noop'
+    'noop' AS name
 FROM factory.repos
 WHERE owner = 'xdoubleu' AND name = 'tools.xdoubleu.com'
 ON CONFLICT DO NOTHING;
@@ -33,14 +33,16 @@ ON factory.jobs (routine)
 WHERE routine <> '' AND status IN ('queued', 'running');
 
 CREATE INDEX IF NOT EXISTS idx_jobs_routine
-ON factory.jobs (routine, created_at DESC) WHERE routine <> '';
+ON factory.jobs (routine, created_at DESC)
+WHERE routine <> '';
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
 DROP INDEX IF EXISTS factory.idx_jobs_routine;
 DROP INDEX IF EXISTS factory.idx_jobs_one_active_per_routine;
-DELETE FROM factory.jobs WHERE routine <> '';
+DELETE FROM factory.jobs
+WHERE routine <> '';
 ALTER TABLE factory.jobs
 DROP COLUMN IF EXISTS routine;
 ALTER TABLE factory.jobs
