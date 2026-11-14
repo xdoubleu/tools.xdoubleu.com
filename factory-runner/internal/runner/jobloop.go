@@ -210,6 +210,14 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 		!leaks(b, l.secrets) {
 		res.blocked = b
 	}
+	if res.blocked == "" {
+		if fb := l.runGates(); fb != "" {
+			ref, _ := os.ReadFile(filepath.Join(l.dirs.clone, ".git", "refs", "heads",
+				l.job.Branch))
+			return again(res, "gate failed: "+short(fb), "gate:"+short(fb),
+				strings.TrimSpace(string(ref)), fb)
+		}
+	}
 	began = l.now()
 	res = l.r.publishable(l.parent, l.job, l.dirs.clone, l.since, text, res, l.secrets)
 	if _, ok := findLine(text, "Sandbox-fix:"); ok && l.r.GitHub != nil &&
