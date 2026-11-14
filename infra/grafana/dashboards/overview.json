@@ -329,6 +329,35 @@
       ],
       "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Factory job phase time (median / p90, 7d)",
+      "description": "Where a job's time goes, by phase, over the last 7 days.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.5, sum by (le, phase) (increase(factory_job_phase_seconds_bucket[7d])))", "legendFormat": "{{phase}} p50" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.9, sum by (le, phase) (increase(factory_job_phase_seconds_bucket[7d])))", "legendFormat": "{{phase}} p90" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Factory time to merge and retries (7d)",
+      "description": "Median and p90 time from first prompt to merge for succeeded jobs, and repeated attempts by the stage that failed.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.5, sum by (le) (increase(factory_job_time_to_merge_seconds_bucket[7d])))", "legendFormat": "time to merge p50" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.9, sum by (le) (increase(factory_job_time_to_merge_seconds_bucket[7d])))", "legendFormat": "time to merge p90" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (cause) (increase(factory_job_attempts_total[7d]))", "legendFormat": "retries: {{cause}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
     }
   ]
 }

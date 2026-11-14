@@ -88,6 +88,9 @@ type JobEnd struct {
 	// Blocked is what stopped the job doing or checking its work in the sandbox;
 	// the server files it as a factory-sandbox task. Empty when nothing did.
 	Blocked string
+	// Times and Total are where the job's time went; nil when it never ran.
+	Times *phaseTimes
+	Total time.Duration
 }
 
 type completeJobRequest struct {
@@ -99,6 +102,32 @@ type completeJobRequest struct {
 	Limited       bool   `json:"limited,omitempty"`
 	LimitResetsAt string `json:"limitResetsAt,omitempty"`
 	Blocked       string `json:"blocked,omitempty"`
+
+	Timings *timingsJSON `json:"timings,omitempty"`
+}
+
+// timingsJSON is a job's phase times and retries, in seconds and counts.
+type timingsJSON struct {
+	AgentSeconds   float64 `json:"agentSeconds"`
+	PublishSeconds float64 `json:"publishSeconds"`
+	CISeconds      float64 `json:"ciSeconds"`
+	MergeSeconds   float64 `json:"mergeSeconds"`
+	TotalSeconds   float64 `json:"totalSeconds"`
+	GateRetries    int32   `json:"gateRetries,omitempty"`
+	PushRetries    int32   `json:"pushRetries,omitempty"`
+	CIRetries      int32   `json:"ciRetries,omitempty"`
+}
+
+func (p *phaseTimes) json(total time.Duration) *timingsJSON {
+	if p == nil {
+		return nil
+	}
+	return &timingsJSON{
+		AgentSeconds: p.agent.Seconds(), PublishSeconds: p.publish.Seconds(),
+		CISeconds: p.ci.Seconds(), MergeSeconds: p.merge.Seconds(),
+		TotalSeconds: total.Seconds(), GateRetries: int32(p.retries["gate"]),
+		PushRetries: int32(p.retries["push"]), CIRetries: int32(p.retries["ci"]),
+	}
 }
 
 type finishedTasksRequest struct {
@@ -211,7 +240,7 @@ func (c *Client) CompleteJob(
 	req := completeJobRequest{
 		JobID: jobID, Succeeded: end.Succeeded, Outcome: end.Outcome,
 		SessionID: end.SessionID, PRURL: end.PRURL, Limited: end.Limited,
-		LimitResetsAt: "", Blocked: end.Blocked,
+		LimitResetsAt: "", Blocked: end.Blocked, Timings: end.Times.json(end.Total),
 	}
 	if !end.ResetsAt.IsZero() {
 		req.LimitResetsAt = end.ResetsAt.UTC().Format(time.RFC3339)

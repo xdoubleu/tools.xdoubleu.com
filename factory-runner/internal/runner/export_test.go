@@ -114,3 +114,11 @@ func (p *PhaseTimes) SetAgent(d time.Duration)       { p.agent = d }
 func ContainerfileProblemForTest(files []string, oldText, newText string) error {
 	return containerfileProblem(files, oldText, newText)
 }
+
+// RetriesOf is a finished job's repeated attempts by cause.
+func RetriesOf(e JobEnd) map[string]int { return e.Times.retries }
+
+// NewPhaseTimings builds phase times for tests.
+func NewPhaseTimings(agent, publish, ci, merge time.Duration, retries map[string]int) *phaseTimes {
+	return &phaseTimes{agent: agent, publish: publish, ci: ci, merge: merge, retries: retries}
+}

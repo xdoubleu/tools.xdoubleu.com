@@ -212,6 +212,11 @@ type result struct {
 	failure string
 	retry   bool
 	head    string
+	// cause says which stage failed a retryable attempt: gate, push or ci.
+	cause string
+	// times and total are the job's phase times, set when its loop ends.
+	times *phaseTimes
+	total time.Duration
 }
 
 // maxJobs is how many jobs may run at once.
@@ -344,7 +349,7 @@ func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {
 	err := r.API.CompleteJob(done, r.Token, job.ID, JobEnd{
 		Succeeded: res.succeeded, Outcome: res.outcome, SessionID: res.session,
 		PRURL: res.prURL, Limited: res.limited, ResetsAt: res.resetsAt,
-		Blocked: res.blocked,
+		Blocked: res.blocked, Times: res.times, Total: res.total,
 	})
 	if err != nil {
 		r.Log.Warn("could not report the job", "job", job.ID, "error", err)
@@ -674,7 +679,7 @@ func (r *JobRunner) publishable(
 		if !leaks(text, secrets) {
 			res.outcome += "\n\n" + text
 		}
-		res.failure, res.retry = why, true
+		res.failure, res.retry, res.cause = why, true, "gate"
 		return res
 	}
 	defer reviewed.Close()
@@ -688,7 +693,7 @@ func (r *JobRunner) publishable(
 	if err = checksFailure(text); err != nil {
 		why := strings.TrimPrefix(err.Error(), errChecks.Error()+": ")
 		res.outcome = "Not published: " + why + "\n\n" + text
-		res.failure, res.retry = why, true
+		res.failure, res.retry, res.cause = why, true, "gate"
 		return res
 	}
 	prURL, why, final := r.publish(ctx, job, reviewed, text)
@@ -696,7 +701,7 @@ func (r *JobRunner) publishable(
 		// The agent's work is fine, so the job still succeeded; the task just goes
 		// to Needs you with the branch on the Mac, and the reason ahead of the text.
 		res.outcome = "Not published: " + why + "\n\n" + text
-		res.failure, res.retry = why, !final
+		res.failure, res.retry, res.cause = why, !final, "push"
 		return res
 	}
 	res.prURL = prURL

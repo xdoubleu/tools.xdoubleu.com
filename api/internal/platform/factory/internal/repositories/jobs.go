@@ -321,3 +321,27 @@ func (r *JobsRepository) SetPullRequestStatus(
 		WHERE id = $1`, id, state, ci, review)
 	return postgres.PgxErrorToHTTPError(err)
 }
+
+// RecordTimings stores a finished job's phase times, for the runner that ran it.
+func (r *JobsRepository) RecordTimings(
+	ctx context.Context,
+	id, runnerID uuid.UUID,
+	t models.JobTimings,
+) error {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE factory.jobs SET
+			agent_seconds = $3, publish_seconds = $4, ci_seconds = $5,
+			merge_seconds = $6, total_seconds = $7, gate_retries = $8,
+			push_retries = $9, ci_retries = $10
+		WHERE id = $1 AND status NOT IN ('queued', 'running')
+			AND (runner_id IS NULL OR runner_id = $2)`,
+		id, runnerID, t.Agent, t.Publish, t.CI, t.Merge, t.Total,
+		t.GateRetries, t.PushRetries, t.CIRetries)
+	if err != nil {
+		return postgres.PgxErrorToHTTPError(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return database.ErrResourceNotFound
+	}
+	return nil
+}

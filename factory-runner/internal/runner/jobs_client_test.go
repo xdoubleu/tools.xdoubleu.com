@@ -107,6 +107,22 @@ func TestCompleteJobSendsTheResult(t *testing.T) {
 	)
 }
 
+func TestCompleteJobSendsThePhaseTimings(t *testing.T) {
+	var body string
+	c := serve(t, func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		body = string(raw)
+		_, _ = w.Write([]byte(`{}`))
+	})
+	p := runner.NewPhaseTimings(2*time.Second, 3*time.Second, 4*time.Second,
+		5*time.Second, map[string]int{"gate": 1, "ci": 2})
+	require.NoError(t, c.CompleteJob(context.Background(), "frt_x", "j1",
+		runner.JobEnd{Times: p, Total: 20 * time.Second}))
+	assert.Contains(t, body, `"timings":{"agentSeconds":2,"publishSeconds":3,`+
+		`"ciSeconds":4,"mergeSeconds":5,"totalSeconds":20,"gateRetries":1,`+
+		`"ciRetries":2}`)
+}
+
 func TestClaudeCodeRunsPrintModeWithoutTheAgentSDKOrAPromptInArgv(t *testing.T) {
 	cmd := runner.ClaudeCode{}.Command()
 	assert.Equal(t, []string{"claude", "claude", "-p"}, cmd[3:6])

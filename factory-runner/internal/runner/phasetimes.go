@@ -8,6 +8,16 @@ import (
 // phaseTimes adds up where a job's time goes across its attempts.
 type phaseTimes struct {
 	agent, publish, ci, merge time.Duration
+	// retries counts the attempts that had to be repeated, by cause: gate, push
+	// or ci.
+	retries map[string]int
+}
+
+func (p *phaseTimes) retry(cause string) {
+	if p.retries == nil {
+		p.retries = map[string]int{}
+	}
+	p.retries[cause]++
 }
 
 // addWatch splits one watch into the wait for CI and the wait for the merge

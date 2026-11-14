@@ -85,6 +85,7 @@ func TestAFailedGateIsRetriedInTheSameSessionUntilThePullRequestMerges(t *testin
 	assert.True(t, got[0].succeeded)
 	assert.NotEmpty(t, got[0].prURL)
 	assert.Equal(t, "Second try"+passAll, got[0].outcome)
+	assert.Equal(t, map[string]int{"gate": 1}, runner.RetriesOf(got[0].end))
 
 	assert.Equal(t, []string{
 		"Attempt 2: not published: not every check passed (test fail), retrying",
@@ -118,6 +119,7 @@ func TestRedCIAfterThePullRequestOpensIsFedBackAndPushedAgain(t *testing.T) {
 
 	got := p.api.done()[0]
 	assert.True(t, got.succeeded)
+	assert.Equal(t, map[string]int{"ci": 1}, runner.RetriesOf(got.end))
 	assert.Equal(t, "Fixed CI"+passAll, got.outcome)
 	assert.NotEmpty(t, p.remoteBranch(t))
 }
