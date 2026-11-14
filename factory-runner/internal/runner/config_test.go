@@ -64,6 +64,7 @@ func TestBrokenOrUnreadableConfigIsAnError(t *testing.T) {
 		BotEmail:   "",
 		Mode:       "",
 		MaxJobs:    0,
+		OnLimit:    "",
 	}
 	blocker := filepath.Join(dir, "file")
 	require.NoError(t, os.WriteFile(blocker, nil, 0o600))
@@ -81,6 +82,7 @@ func TestAddAndRemoveRepos(t *testing.T) {
 		BotEmail:   "",
 		Mode:       "",
 		MaxJobs:    0,
+		OnLimit:    "",
 	}
 	require.Error(t, cfg.AddRepo("not-a-repo"))
 	require.Error(t, cfg.AddRepo("-a/b"))
@@ -101,6 +103,7 @@ func TestServerMustBeHTTPSOrLoopback(t *testing.T) {
 		BotEmail:   "",
 		Mode:       "",
 		MaxJobs:    0,
+		OnLimit:    "",
 	}
 	for _, ok := range []string{
 		"https://example.com/api/", "http://localhost:8080", "http://127.0.0.1",

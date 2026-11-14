@@ -53,6 +53,10 @@ type Config struct {
 	// Mode is the harness this Mac runs jobs on: ModeClaude, or ModeOff (also the
 	// empty default), which claims nothing.
 	Mode string `json:"mode,omitempty"`
+	// OnLimit is what a Claude usage limit does: OnLimitWait (also the empty
+	// default) holds claims until it resets; OnLimitFallback is accepted but inert
+	// until a fallback harness exists.
+	OnLimit string `json:"onLimit,omitempty"`
 	// MaxJobs is how many jobs run at once, one VM each; 0 means DefaultMaxJobs.
 	MaxJobs int `json:"maxJobs,omitempty"`
 }
@@ -172,6 +176,7 @@ func LoadConfig(path string) (Config, error) {
 		BotEmail:   "",
 		Mode:       "",
 		MaxJobs:    0,
+		OnLimit:    "",
 	}
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -273,6 +278,29 @@ func (c Config) EffectiveMode() string {
 		return ModeClaude
 	}
 	return ModeOff
+}
+
+// On-limit choices.
+const (
+	OnLimitWait     = "wait"
+	OnLimitFallback = "fallback"
+)
+
+// EffectiveOnLimit is OnLimitFallback or, for anything else, OnLimitWait.
+func (c Config) EffectiveOnLimit() string {
+	if c.OnLimit == OnLimitFallback {
+		return OnLimitFallback
+	}
+	return OnLimitWait
+}
+
+// SetOnLimit chooses what a usage limit does.
+func (c *Config) SetOnLimit(v string) error {
+	if v != OnLimitWait && v != OnLimitFallback {
+		return fmt.Errorf("on-limit %q must be wait or fallback", v)
+	}
+	c.OnLimit = v
+	return nil
 }
 
 // EffectiveMaxJobs is how many jobs run at once.

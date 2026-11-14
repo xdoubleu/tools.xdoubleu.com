@@ -307,7 +307,7 @@ func TestAGateOnlyCIChecksStillOpensThePullRequest(t *testing.T) {
 	assert.NotEmpty(t, p.api.done()[0].prURL)
 }
 
-func TestAUsageLimitWaitsInTheSessionUntilTheResetThenResumes(t *testing.T) {
+func TestAUsageLimitEndsTheJobLimitedWithItsSessionForTheServerToRequeue(t *testing.T) {
 	reset := time.Now().Add(2 * time.Hour)
 	p := newPublishing(t, attempts(
 		func(_ int, spec runner.SandboxSpec) int {
@@ -321,35 +321,12 @@ func TestAUsageLimitWaitsInTheSessionUntilTheResetThenResumes(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	require.Len(t, p.sandbox.specs, 2)
-	assert.Equal(t, runner.ClaudeCode{}.Resume("sess-9"), p.sandbox.specs[1].Command)
-	assert.Contains(t, p.sandbox.specs[1].Stdin, "usage limit has lifted")
-
-	waits := p.api.waits()
-	require.NotEmpty(t, waits)
-	assert.InDelta(t, float64(2*time.Hour), float64(waits[0]), float64(time.Minute))
-
+	assert.Len(t, p.sandbox.specs, 1, "the VM is not kept through the wait")
 	got := p.api.done()[0]
-	assert.True(t, got.succeeded)
-	assert.False(t, got.limited)
-	assert.Contains(t, strings.Join(p.api.noted(), "\n"), "usage limit reached")
-}
-
-func TestAUsageLimitWithoutAResetTimeWaitsAnHour(t *testing.T) {
-	p := newPublishing(t, attempts(
-		func(_ int, spec runner.SandboxSpec) int {
-			_, _ = fmt.Fprintln(spec.Log, `{"type":"system","session_id":"sess-9"}`)
-			_, _ = fmt.Fprintln(spec.Log,
-				`{"type":"result","is_error":true,"result":"Claude AI usage limit reached"}`)
-			return 1
-		},
-		agentRuns("Done"+passAll, true),
-	))
-
-	_, err := p.runner.Next(context.Background())
-	require.NoError(t, err)
-	assert.InDelta(t, float64(time.Hour), float64(p.api.waits()[0]), float64(time.Minute))
-	assert.True(t, p.api.done()[0].succeeded)
+	assert.True(t, got.limited)
+	assert.False(t, got.succeeded)
+	assert.Equal(t, "sess-9", got.session)
+	assert.Equal(t, time.Unix(reset.Unix(), 0).UTC(), got.resetsAt)
 }
 
 func TestAJobWithoutAPublisherStillEndsAfterOneAttempt(t *testing.T) {

@@ -188,12 +188,6 @@ func (f *fakeAPI) slept(d time.Duration) {
 	f.sleeps = append(f.sleeps, d)
 }
 
-func (f *fakeAPI) waits() []time.Duration {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return append([]time.Duration(nil), f.sleeps...)
-}
-
 func (f *fakeAPI) noted() []string {
 	f.mu.Lock()
 	defer f.mu.Unlock()

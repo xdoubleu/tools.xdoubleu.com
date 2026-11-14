@@ -15,6 +15,7 @@ import (
 var errConfigUsage = errors.New(
 	"usage: factory-runner config show | mode off|claude | server <url> | " +
 		"repos add|remove <owner/name> | repos list | image <ref> | max-jobs <n> | " +
+		"on-limit wait|fallback | " +
 		"data|gocache|npmcache <dir> | bot-email <address> | secret claude|openrouter",
 )
 
@@ -33,10 +34,13 @@ func (a *app) config(args []string) error {
 			cfg.Server, cfg.Repos, cfg.JobImage(), cfg.DataPath(a.home))
 		fmt.Fprintf(a.stdout, "gocache: %s\nnpmcache: %s\nbot-email: %s\nmode: %s\n",
 			orNone(cfg.GoModCache), orNone(cfg.NPMCache), cfg.AuthorEmail(), cfg.EffectiveMode())
-		fmt.Fprintf(a.stdout, "max-jobs: %d\n", cfg.EffectiveMaxJobs())
+		fmt.Fprintf(a.stdout, "max-jobs: %d\non-limit: %s\n", cfg.EffectiveMaxJobs(),
+			cfg.EffectiveOnLimit())
 		return nil
 	case verb == "mode" && len(rest) == 1:
 		err = a.setMode(&cfg, rest[0])
+	case verb == "on-limit" && len(rest) == 1:
+		err = cfg.SetOnLimit(rest[0])
 	case verb == "max-jobs" && len(rest) == 1:
 		err = a.setMaxJobs(&cfg, rest[0])
 	case verb == "server" && len(rest) == 1:

@@ -83,12 +83,14 @@ func (r *JobsRepository) ByTask(
 }
 
 // Claim starts the oldest queued job unless the runner already runs maxJobs;
-// both are not found. The runner's row is locked meanwhile, so its concurrent
-// claims count one another, and SKIP LOCKED keeps any two from taking one job.
+// both are not found. With skipClaude, a Claude Code job stays queued. The
+// runner's row is locked meanwhile, so its concurrent claims count one another,
+// and SKIP LOCKED keeps any two from taking one job.
 func (r *JobsRepository) Claim(
 	ctx context.Context,
 	runnerID uuid.UUID,
 	maxJobs int,
+	skipClaude bool,
 ) (*models.Job, error) {
 	// A held claim polls: a runner already at its cap is turned away before it
 	// takes the row lock.
@@ -130,9 +132,10 @@ func (r *JobsRepository) Claim(
 			runner_id = $1
 		WHERE id = (
 			SELECT id FROM factory.jobs WHERE status = 'queued'
+			AND NOT ($2 AND harness = 'claude_code')
 			ORDER BY created_at, id LIMIT 1 FOR UPDATE SKIP LOCKED
 		)
-		RETURNING `+jobColumns, runnerID))
+		RETURNING `+jobColumns, runnerID, skipClaude))
 	if err != nil {
 		return nil, err
 	}

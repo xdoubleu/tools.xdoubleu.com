@@ -94,6 +94,10 @@ its own work ([ADR-0041](adr-0041-factory-runner-pairing.md)).
   are out of scope here.
 - Reading CI needs the GitHub App to hold `checks: read`; without it the runner
   can't see a red `ci-pass`, and the job ends at six hours unmerged.
+- A Claude usage limit ends the job as limited; the server queues a continuing
+  job (the same session, branch and unpushed clone) and holds Claude claims until
+  the reset, so the task resumes without the owner. Ten limits in a row go to
+  Needs you. `config on-limit wait|fallback`: `fallback` is inert for now.
 
 ## Revisit when
 

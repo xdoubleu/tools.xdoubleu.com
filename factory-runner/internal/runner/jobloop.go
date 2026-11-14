@@ -29,9 +29,6 @@ const (
 	tokenLife   = 20 * time.Minute
 	noteTimeout = 15 * time.Second
 	maxWhy      = 300
-
-	limitLifted = "The usage limit has lifted. Carry on where you stopped, and " +
-		"write the outcome when you are done."
 )
 
 // jobLoop is one job's whole run in one VM: agent attempts (the first on the
@@ -71,16 +68,12 @@ type step struct {
 	why      string
 	sig      string
 	head     string
-	// waitUntil is set when a usage limit stopped the attempt.
-	limited   bool
-	waitUntil time.Time
 }
 
 // over is a step that ends the job with res.
 func over(res result) step {
 	return step{
 		done: true, res: res, feedback: "", why: "", sig: "", head: "",
-		limited: false, waitUntil: time.Time{},
 	}
 }
 
@@ -88,7 +81,6 @@ func over(res result) step {
 func again(res result, why, sig, head, feedback string) step {
 	return step{
 		done: false, res: res, feedback: feedback, why: why, sig: sig, head: head,
-		limited: false, waitUntil: time.Time{},
 	}
 }
 
@@ -136,28 +128,16 @@ func (l *jobLoop) run() result {
 		if attempt >= maxAttempts {
 			return l.stop(s, fmt.Sprintf("Stopped after %d attempts.", attempt))
 		}
-		if !s.limited {
-			if last != nil && last.sig == s.sig && last.head == s.head {
-				return l.stop(s, "Stopped: no progress. The same failure came back with "+
-					"no new commit ("+s.why+").")
-			}
-			last = &s
+		if last != nil && last.sig == s.sig && last.head == s.head {
+			return l.stop(s, "Stopped: no progress. The same failure came back with "+
+				"no new commit ("+s.why+").")
 		}
+		last = &s
 		sid := l.tap.Session()
 		if sid == "" {
 			return l.stop(s, "Stopped: the agent has no session to resume.")
 		}
-		if !s.limited {
-			l.note(fmt.Sprintf("Attempt %d: %s, retrying", attempt+1, s.why))
-		} else {
-			end := l.limitEnd(s.waitUntil)
-			l.note(fmt.Sprintf("Attempt %d: %s, waiting until %s, then resuming",
-				attempt+1, s.why, end.UTC().Format("2006-01-02 15:04 MST")))
-			l.waitOutLimit(end)
-			if why := l.ended(); why != "" {
-				return l.stop(s, why)
-			}
-		}
+		l.note(fmt.Sprintf("Attempt %d: %s, retrying", attempt+1, s.why))
 		command, prompt = l.r.harnessFor(l.job).Resume(sid), s.feedback
 	}
 }
@@ -168,10 +148,6 @@ func (l *jobLoop) stop(s step, reason string) result {
 	// An open pull request that cannot go on is not a success, whatever the
 	// agent's work was; without one, the host's verdict on the work stands.
 	res.succeeded = res.succeeded && res.prURL == ""
-	res.limited = s.limited
-	if s.limited {
-		res.resetsAt = s.waitUntil
-	}
 	res.outcome = strings.TrimSpace(reason + "\n\n" + res.outcome)
 	return res
 }
@@ -270,11 +246,10 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 		// The limit is the account's: no other job claims until it lifts.
 		l.r.holdClaims(l.limitEnd(resetsAt))
 		res.outcome = strings.TrimSpace(reason + "\n\n" + text)
-		wait := again(res, "usage limit reached", "", "", limitLifted)
-		// With no session there is nothing to resume: the limit ends the job.
-		wait.done = l.tap.Session() == ""
-		wait.limited, wait.waitUntil = true, resetsAt
-		return "", &wait
+		// The job ends and the server requeues the task: it continues in this
+		// clone, on this session, once the limit lifts.
+		end := over(res)
+		return "", &end
 	case exit != 0:
 		reason = fmt.Sprintf("The agent exited with status %d.", exit)
 		res.blocked = noOutcomeBlock(text, reason, l.secrets, res.blocked)
@@ -289,13 +264,7 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 	return "", &end
 }
 
-// waitOutLimit keeps the VM until a usage limit lifts. The check-ins go on
-// meanwhile, so the server doesn't call the job lost.
-func (l *jobLoop) waitOutLimit(end time.Time) {
-	l.sleep(end.Sub(l.now()))
-}
-
-// limitEnd is when to resume after a limit: the time the harness gave, within
+// limitEnd is when claims resume after a limit: the time the harness gave, within
 // reason, or an hour from now when it gave none.
 func (l *jobLoop) limitEnd(until time.Time) time.Time {
 	now := l.now()
