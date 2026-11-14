@@ -201,21 +201,39 @@ func TestDaemonKeepsRunningWhenAnUpdateFails(t *testing.T) {
 	assert.Equal(t, 2, hb.calls)
 }
 
-func TestDaemonDoesNotUpdateWhileAJobRuns(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	hb := newScripted(func(call int) error {
-		if call == 3 {
-			cancel()
-		}
-		return nil
-	}, cancel)
-	upd := newFakeUpdater(true, nil)
+// busyAwareUpdater finds a newer release but only installs it when idle.
+type busyAwareUpdater struct{ calls atomic.Int32 }
+
+func (b *busyAwareUpdater) Update(_ context.Context, idle func() bool) (bool, error) {
+	b.calls.Add(1)
+	if !idle() {
+		return false, runner.ErrUpdatePending
+	}
+	return true, nil
+}
+
+func TestDaemonDrainsForANewerReleaseWhileAJobRuns(t *testing.T) {
+	control := runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
 	activity := runner.NewActivity(awakeStub())
 	require.NoError(t, activity.Begin())
-	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: activity, Control: nil},
-		func(context.Context, time.Duration) {}, ticking()))
-	assert.Equal(t, 0, int(upd.calls.Load()))
+	upd := &busyAwareUpdater{calls: atomic.Int32{}}
+	sawDraining := false
+	hb := newScripted(func(call int) error {
+		time.Sleep(5 * time.Millisecond) // lets the update goroutine run
+		if control.Draining() {
+			sawDraining = true
+		}
+		if sawDraining && call > 5 {
+			activity.End()
+		}
+		return nil
+	}, nil)
+	err := runner.RunForTest(context.Background(), hb, "frt_x", newQuiet(),
+		runner.Options{Updater: upd, Activity: activity, Control: control},
+		func(context.Context, time.Duration) {}, ticking())
+	require.ErrorIs(t, err, runner.ErrRestart)
+	assert.True(t, sawDraining, "claims are held while the job runs")
+	assert.Equal(t, 2, int(upd.calls.Load()), "a check while busy, then the install")
 }
 
 // syncBuffer is a log sink the update goroutine and the test can share.

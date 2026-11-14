@@ -5,6 +5,7 @@ import (
 	"errors"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -119,7 +120,7 @@ func TestARefusedCheckSaysWhy(t *testing.T) {
 	}, n.all())
 }
 
-func TestADeferredCheckSaysWhyOnce(t *testing.T) {
+func TestACheckDuringAJobSaysItUpdatesAfterwards(t *testing.T) {
 	control, n := notifyingControl(t)
 	activity := runner.NewActivity(awakeStub())
 	require.NoError(t, activity.Begin())
@@ -134,11 +135,13 @@ func TestADeferredCheckSaysWhyOnce(t *testing.T) {
 	}, cancel)
 	_ = runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
 		runner.Options{
-			Updater: newFakeUpdater(false, nil), Activity: activity, Control: control,
+			Updater:  &busyAwareUpdater{calls: atomic.Int32{}},
+			Activity: activity, Control: control,
 		},
 		func(context.Context, time.Duration) { time.Sleep(time.Millisecond) },
 		func() time.Time { return now })
 	assert.Equal(t, []string{
-		"Checking for updates…", "waiting for the current job to finish",
+		"Checking for updates…",
+		"Newer release found: updating after current jobs",
 	}, n.all())
 }

@@ -26,6 +26,8 @@ type Status struct {
 	Update string
 	// Mode is the config mode ("claude" or "off"); empty when unknown.
 	Mode string
+	// Draining is true while a newer release waits for running jobs to end.
+	Draining bool
 	// Unpaired is true until this Mac has a device token.
 	Unpaired bool
 }
@@ -43,7 +45,9 @@ type Control struct {
 	beat   time.Time
 	update string
 	check  bool
-	notify func(title, body string)
+	// draining stops new claims until the pending update has run.
+	draining bool
+	notify   func(title, body string)
 	// mode reads the config mode for the menu; nil leaves it unshown.
 	mode     func() string
 	unpaired bool
@@ -66,6 +70,7 @@ func NewControl(pausePath, version string, activity *Activity) *Control {
 		beat:      time.Time{},
 		update:    "",
 		check:     false,
+		draining:  false,
 		notify:    nil,
 		mode:      nil,
 		unpaired:  false,
@@ -179,6 +184,7 @@ func (c *Control) Snapshot() Status {
 		LastHeartbeat: c.beat,
 		Update:        c.update,
 		Mode:          "",
+		Draining:      c.draining,
 		Unpaired:      c.unpaired,
 	}
 	c.mu.Unlock()
@@ -198,6 +204,8 @@ func (s Status) Line() string {
 		return "Stopping after the current job"
 	case s.Paused:
 		return "Stopped"
+	case s.Draining && s.Busy:
+		return "Updating after current jobs"
 	case s.Busy:
 		return "Running a job"
 	case s.Mode == ModeOff:
@@ -235,18 +243,18 @@ func (c *Control) refuseCheck(reason string) {
 	}
 }
 
-// deferCheck keeps a pending check for later, saying why it hasn't run (once,
-// as the loop asks again every pass).
-func (c *Control) deferCheck(reason string) {
+// SetDraining records whether a newer release is waiting for running jobs.
+func (c *Control) SetDraining(draining bool) {
 	c.mu.Lock()
-	changed := c.check && c.update != reason
-	if changed {
-		c.update = reason
-	}
-	c.mu.Unlock()
-	if changed {
-		c.Notify(reason)
-	}
+	defer c.mu.Unlock()
+	c.draining = draining
+}
+
+// Draining reports whether claims are held for a pending update.
+func (c *Control) Draining() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.draining
 }
 
 // takeCheck reports and clears a requested check.

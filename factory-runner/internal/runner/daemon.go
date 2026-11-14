@@ -12,7 +12,7 @@ const (
 	minLoop       = time.Second
 	maxBackoff    = 30 * time.Second
 	backoffFactor = 2
-	// UpdateEvery is how often an idle runner looks for a newer release.
+	// UpdateEvery is how often the runner looks for a newer release.
 	UpdateEvery = time.Hour
 )
 
@@ -48,8 +48,8 @@ type clock struct {
 // Run heartbeats until ctx ends, the token is revoked or a self-update replaced
 // the binary. The server holds each call open, so a healthy loop makes one call
 // per hold; a failing one backs off up to 30 seconds, and a fast answer is never
-// repeated faster than once a second. While idle it checks for a newer release
-// every UpdateEvery.
+// repeated faster than once a second. It checks for a newer release every
+// UpdateEvery, busy or not; a newer one stops new claims until the update runs.
 func Run(
 	ctx context.Context,
 	hb Heartbeater,
@@ -156,10 +156,10 @@ func due(opts Options, now, lastCheck time.Time) (bool, bool) {
 		opts.Control.refuseCheck("not checked: the runner is stopped")
 		return false, false
 	}
-	if opts.Activity != nil && !opts.Activity.Idle() {
-		if opts.Control != nil {
-			opts.Control.deferCheck("waiting for the current job to finish")
-		}
+	// Draining: the newer release is known, so the next check is the install,
+	// once the running jobs have ended.
+	if opts.Control != nil && opts.Control.Draining() &&
+		opts.Activity != nil && !opts.Activity.Idle() {
 		return false, false
 	}
 	// A requested check is only consumed once it can run.
@@ -179,7 +179,14 @@ func tryUpdate(
 	}
 	replaced, err := opts.Updater.Update(ctx, idle)
 	outcome := "no newer release"
+	pending := errors.Is(err, ErrUpdatePending)
+	if opts.Control != nil {
+		opts.Control.SetDraining(pending)
+	}
 	switch {
+	case pending:
+		outcome = "updating after current jobs"
+		log.Info("newer release found, draining", "result", outcome)
 	case errors.Is(err, ErrUpdateSigningUnset):
 		outcome = "disabled: this build has no signing key"
 		log.Warn("self-update skipped", "reason", outcome)
@@ -197,6 +204,8 @@ func tryUpdate(
 		switch {
 		case replaced:
 			opts.Control.Notify("Updated to a new release; restarting")
+		case pending:
+			opts.Control.Notify("Newer release found: updating after current jobs")
 		case requested && err != nil:
 			opts.Control.Notify("Update " + outcome)
 		case requested:
