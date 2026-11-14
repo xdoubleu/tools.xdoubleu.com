@@ -281,3 +281,20 @@ func TestFetchBaseBringsTheMirrorsBaseIntoTheCloneAsOrigin(t *testing.T) {
 	require.NoError(t, g.FetchBase(context.Background(), "o", "n", "main", dest))
 	assert.Equal(t, tip, gitIn(t, dest, "rev-parse", "origin/main"))
 }
+
+func TestFetchBaseFailsOnANonRepoAndOnAFailedGit(t *testing.T) {
+	g := &runner.Git{
+		Dir:       t.TempDir(),
+		RemoteURL: func(string, string) string { return "https://example.com/o/n.git" },
+		Run: func(context.Context, string, ...string) ([]byte, error) {
+			return nil, errors.New("down")
+		},
+		RunWithEnv: nil,
+	}
+	require.Error(t, g.FetchBase(context.Background(), "o", "n", "main", t.TempDir()))
+
+	clone := t.TempDir()
+	gitIn(t, clone, "init", "-b", "main")
+	require.ErrorContains(t,
+		g.FetchBase(context.Background(), "o", "n", "main", clone), "git")
+}
