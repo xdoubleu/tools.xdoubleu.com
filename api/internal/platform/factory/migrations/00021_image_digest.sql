@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
--- The job image digest last seen on the served manifest, so a new one resumes the
--- tasks parked on the sandbox. NULL until first seen; nothing to backfill.
+-- The job image digest last seen on the served manifest, so a new one
+-- resumes the tasks parked on the sandbox. NULL until first seen; no backfill.
 ALTER TABLE factory.board_settings ADD COLUMN IF NOT EXISTS image_digest TEXT;
 -- +goose StatementEnd
 
