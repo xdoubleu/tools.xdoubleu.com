@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -29,45 +30,76 @@ var (
 )
 
 // containerfileProblem is why a sandbox-fix diff may not be published, or nil
-// when it changes only the Containerfile and every install it adds is pinned.
-func containerfileProblem(files, added []string) error {
-	if len(files) == 0 || len(files) > 1 || files[0] != sandboxContainerfile {
+// when it changes only the Containerfile and every instruction it adds or
+// changes (whole instructions, so a package added to an existing install list
+// is checked with the rest of it) is allowed and pinned.
+func containerfileProblem(files []string, oldText, newText string) error {
+	if len(files) != 1 || files[0] != sandboxContainerfile {
 		return fmt.Errorf("it must change only %s, not %s", sandboxContainerfile,
 			strings.Join(files, ", "))
 	}
-	var cur strings.Builder
-	flush := func() error {
-		cmd := strings.TrimSpace(cur.String())
-		cur.Reset()
-		return pinnedCommand(cmd)
+	had := map[string]bool{}
+	for _, in := range instructions(oldText) {
+		had[in] = true
 	}
-	for _, line := range added {
-		line = strings.TrimSpace(line)
-		if strings.HasSuffix(line, "\\") {
-			cur.WriteString(strings.TrimSuffix(line, "\\") + " ")
+	for _, in := range instructions(newText) {
+		if had[in] {
 			continue
 		}
-		cur.WriteString(line)
-		if err := flush(); err != nil {
+		if err := pinnedCommand(in); err != nil {
 			return err
 		}
 	}
-	return flush()
+	return nil
+}
+
+// instructions splits a Containerfile into logical instructions: continuation
+// lines joined, comments and blank lines dropped, whitespace collapsed.
+func instructions(text string) []string {
+	var out []string
+	var cur []string
+	for line := range strings.SplitSeq(text, "\n") {
+		line = strings.TrimSpace(line)
+		if len(cur) == 0 && (line == "" || strings.HasPrefix(line, "#")) {
+			continue
+		}
+		if rest, more := strings.CutSuffix(line, "\\"); more {
+			cur = append(cur, rest)
+			continue
+		}
+		cur = append(cur, line)
+		out = append(out, strings.Join(strings.Fields(strings.Join(cur, " ")), " "))
+		cur = nil
+	}
+	if len(cur) > 0 {
+		out = append(out, strings.Join(strings.Fields(strings.Join(cur, " ")), " "))
+	}
+	return out
 }
 
 // pinnedCommand checks one logical Containerfile instruction.
 func pinnedCommand(cmd string) error {
-	if cmd == "" || strings.HasPrefix(cmd, "#") {
-		return nil
-	}
-	if strings.HasPrefix(strings.ToUpper(cmd), "FROM ") {
-		if !fromPinned.MatchString(cmd) {
+	word, rest, _ := strings.Cut(cmd, " ")
+	switch strings.ToUpper(word) {
+	case "FROM":
+		if !fromPinned.MatchString("FROM " + rest) {
 			return fmt.Errorf("base image is not pinned to a version: %q", cmd)
 		}
 		return nil
+	case "ARG", "ENV", "LABEL", "WORKDIR", "USER", "EXPOSE", "CMD", "ENTRYPOINT":
+		return nil
+	case "RUN":
+	default:
+		return fmt.Errorf("instruction %q is not allowed", word)
 	}
-	cmd = strings.TrimSpace(strings.TrimPrefix(cmd, "RUN "))
-	for _, seg := range segmentSplt.Split(cmd, -1) {
+	if strings.Contains(rest, "$(") || strings.Contains(rest, "`") {
+		return errors.New("command substitution is not allowed")
+	}
+	words := strings.Fields(rest)
+	for len(words) > 0 && strings.HasPrefix(words[0], "--") {
+		words = words[1:]
+	}
+	for _, seg := range segmentSplt.Split(strings.Join(words, " "), -1) {
 		if err := pinnedSegment(strings.Fields(seg)); err != nil {
 			return err
 		}
@@ -79,13 +111,20 @@ func pinnedSegment(words []string) error {
 	if len(words) == 0 {
 		return nil
 	}
+	for len(words) > 0 && (words[0] == "sudo" || words[0] == "env") {
+		words = words[1:]
+	}
+	if len(words) == 0 {
+		return nil
+	}
 	switch words[0] {
-	case "sh", "bash", "zsh":
-		return errors.New("piping into a shell is not allowed")
+	case "sh", "bash", "zsh", "eval", "xargs", "source", ".":
+		return fmt.Errorf("%s is not allowed", words[0])
 	}
 	for _, w := range words {
 		if strings.HasPrefix(w, "http://") || strings.HasPrefix(w, "https://") {
-			if !semver.MatchString(w) {
+			path, _, _ := strings.Cut(w, "?")
+			if !semver.MatchString(path) {
 				return fmt.Errorf("download %q has no explicit version", w)
 			}
 		}
@@ -157,21 +196,18 @@ func (r *Reviewed) CheckSandboxFix(ctx context.Context, base string) error {
 			files = append(files, f)
 		}
 	}
+	var oldText, newText string
 	if len(files) == 1 && files[0] == sandboxContainerfile {
-		out, err = r.g.git(ctx, r.dir, "diff", "-U0", "--no-renames", "--no-ext-diff", net)
-		if err != nil {
-			return fmt.Errorf("%w: could not read the diff: %w", ErrHostCheck, err)
+		o, _ := r.g.git(ctx, r.dir, "show",
+			"refs/heads/"+base+":"+sandboxContainerfile)
+		n, nerr := r.g.git(ctx, r.dir, "show",
+			"refs/heads/"+r.branch+":"+sandboxContainerfile)
+		if nerr != nil {
+			return fmt.Errorf("%w: could not read the Containerfile", ErrHostCheck)
 		}
-	} else {
-		out = nil
+		oldText, newText = string(o), string(n)
 	}
-	var added []string
-	for l := range strings.SplitSeq(string(out), "\n") {
-		if strings.HasPrefix(l, "+") && !strings.HasPrefix(l, "+++") {
-			added = append(added, l[1:])
-		}
-	}
-	if perr := containerfileProblem(files, added); perr != nil {
+	if perr := containerfileProblem(files, oldText, newText); perr != nil {
 		return fmt.Errorf("%w: %w", ErrHostCheck, perr)
 	}
 	return nil
@@ -221,9 +257,10 @@ func (r *JobRunner) publishSandboxFix(
 	}
 	problem, _ := findLine(text, "Blocked:")
 	body := neutralize("The sandbox lacked a tool while running task `" + job.TaskID +
-		"` (job `" + job.ID + "`): " + problem + "\n\nThis changes only `" +
-		sandboxContainerfile + "` and pins every install. Linked board task: the " +
-		"`factory-sandbox` task named in that job's outcome.")
+		"` (job `" + job.ID + "`): " +
+		cmp.Or(problem, "see the job outcome") + "\n\nThis changes only `" +
+		sandboxContainerfile + "` and pins every install. Its " +
+		"`factory-sandbox` board task is named in the job's outcome.")
 	url, err := r.openPullRequest(ctx, token, PullRequest{
 		Owner: job.RepoOwner, Repo: job.RepoName, Head: name, Base: job.DefaultBranch,
 		Title: "Sandbox: " + strings.ReplaceAll(

@@ -208,7 +208,8 @@ func (l *jobLoop) attempt(command []string, prompt string) step {
 	}
 	began = l.now()
 	res = l.r.publishable(l.parent, l.job, l.dirs.clone, l.since, text, res, l.secrets)
-	if res.prURL != "" && !l.sandboxFixed {
+	if _, ok := findLine(text, "Sandbox-fix:"); ok && l.r.GitHub != nil &&
+		!l.sandboxFixed {
 		l.sandboxFixed = true
 		n := l.r.publishSandboxFix(l.parent, l.job, l.dirs.clone, text, l.secrets)
 		if n != "" {

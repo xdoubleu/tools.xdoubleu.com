@@ -111,6 +111,6 @@ func (p *PhaseTimes) Summary(d time.Duration) string { return p.summary(d) }
 func (p *PhaseTimes) SetAgent(d time.Duration)       { p.agent = d }
 
 // ContainerfileProblemForTest runs the sandbox-fix diff check.
-func ContainerfileProblemForTest(files, added []string) error {
-	return containerfileProblem(files, added)
+func ContainerfileProblemForTest(files []string, oldText, newText string) error {
+	return containerfileProblem(files, oldText, newText)
 }

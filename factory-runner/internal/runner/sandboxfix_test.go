@@ -15,8 +15,7 @@ import (
 const containerfile = "factory-runner/Containerfile"
 
 func problem(line string) error {
-	return runner.ContainerfileProblemForTest(
-		[]string{containerfile}, strings.Split(line, "\n"))
+	return runner.ContainerfileProblemForTest([]string{containerfile}, "", line)
 }
 
 func TestOnlyPinnedInstallsInTheContainerfileAreAllowed(t *testing.T) {
@@ -49,18 +48,36 @@ func TestOnlyPinnedInstallsInTheContainerfileAreAllowed(t *testing.T) {
 		"unknown manager": "RUN gem install rails",
 		"from latest":     "FROM ubuntu:latest",
 		"from untagged":   "FROM ubuntu",
+		"lowercase run":   "run apt-get install foo",
+		"mount flag":      "RUN --mount=type=cache,target=/c apt-get install foo",
+		"add url":         "ADD https://example.com/v1.2.3/x /x",
+		"subst":           "RUN apt-get install $(cat pkgs)",
+		"sudo":            "RUN sudo apt-get install foo",
+		"query version":   "RUN curl https://e.com/latest?v=1.2",
 	}
 	for name, line := range bad {
 		assert.Error(t, problem(line), name)
 	}
 }
 
+func TestAPackageAddedToAnExistingInstallIsChecked(t *testing.T) {
+	old := "FROM ubuntu:24.04\nRUN apt-get install -y \\\n  jq=1.7 \\\n  git=2.4\n"
+	files := []string{containerfile}
+	assert.NoError(t, runner.ContainerfileProblemForTest(files, old, old))
+	unpinned := "FROM ubuntu:24.04\nRUN apt-get install -y \\\n  jq=1.7 \\\n" +
+		"  curl \\\n  git=2.4\n"
+	assert.Error(t, runner.ContainerfileProblemForTest(files, old, unpinned))
+	pinned := "FROM ubuntu:24.04\nRUN apt-get install -y \\\n  jq=1.7 \\\n" +
+		"  curl=8.5 \\\n  git=2.4\n"
+	assert.NoError(t, runner.ContainerfileProblemForTest(files, old, pinned))
+}
+
 func TestOnlyTheContainerfileMayChange(t *testing.T) {
-	assert.Error(t, runner.ContainerfileProblemForTest(nil, nil))
+	assert.Error(t, runner.ContainerfileProblemForTest(nil, "", ""))
 	assert.Error(t, runner.ContainerfileProblemForTest(
-		[]string{containerfile, "api/main.go"}, nil))
-	assert.Error(t, runner.ContainerfileProblemForTest([]string{"Containerfile"}, nil))
-	assert.NoError(t, runner.ContainerfileProblemForTest([]string{containerfile}, nil))
+		[]string{containerfile, "api/main.go"}, "", ""))
+	assert.Error(t, runner.ContainerfileProblemForTest([]string{"Containerfile"}, "", ""))
+	assert.NoError(t, runner.ContainerfileProblemForTest([]string{containerfile}, "", ""))
 }
 
 // sandboxJob has the agent commit its work, then a second branch off main.
