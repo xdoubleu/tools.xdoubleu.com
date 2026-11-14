@@ -8,9 +8,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+	"syscall"
 )
 
-const gitDirPerm = 0o700
+const (
+	gitDirPerm  = 0o700
+	gitFilePerm = 0o600
+)
 
 // mirrorLocks has one mutex per mirror: jobs on one repo, run side by side, must
 // not update the mirror while another clones from it.
@@ -18,12 +22,53 @@ const gitDirPerm = 0o700
 //nolint:gochecknoglobals // the mirrors on disk are shared by every Git
 var mirrorLocks sync.Map
 
-// lockMirror takes the mirror's lock and returns its release.
-func lockMirror(mirror string) func() {
+// lockMirror takes the mirror's lock, in-process and across runner processes
+// (a flock on <mirror>.lock), and returns its release.
+func lockMirror(mirror string) (func(), error) {
 	mu, _ := mirrorLocks.LoadOrStore(mirror, &sync.Mutex{})
 	m, _ := mu.(*sync.Mutex)
 	m.Lock()
-	return m.Unlock
+	if err := os.MkdirAll(filepath.Dir(mirror), gitDirPerm); err != nil {
+		m.Unlock()
+		return nil, fmt.Errorf("create mirror dir: %w", err)
+	}
+	f, err := os.OpenFile(mirror+".lock", os.O_CREATE|os.O_RDWR, gitFilePerm)
+	if err != nil {
+		m.Unlock()
+		return nil, fmt.Errorf("open mirror lock: %w", err)
+	}
+	if err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
+		_ = f.Close()
+		m.Unlock()
+		return nil, fmt.Errorf("lock mirror: %w", err)
+	}
+	return func() {
+		_ = f.Close() // closing drops the flock
+		m.Unlock()
+	}, nil
+}
+
+// cloneFromMirror clones the mirror to dest on branch. A mirror whose refs got
+// ahead of its objects updates fine but can't be cloned from, so a failure
+// removes the mirror and the partial dest, re-clones the mirror and retries once.
+func (g *Git) cloneFromMirror(
+	ctx context.Context,
+	remote, mirror, branch, dest string,
+) error {
+	args := []string{"clone", "--no-hardlinks", "--branch", branch, "--", mirror, dest}
+	if g.mustGit(ctx, "", args...) == nil {
+		return nil
+	}
+	if err := os.RemoveAll(dest); err != nil {
+		return fmt.Errorf("remove a partial clone: %w", err)
+	}
+	if err := os.RemoveAll(mirror); err != nil {
+		return fmt.Errorf("remove a broken mirror: %w", err)
+	}
+	if err := g.mustGit(ctx, "", "clone", "--mirror", "--", remote, mirror); err != nil {
+		return err
+	}
+	return g.mustGit(ctx, "", args...)
 }
 
 // Git prepares a job's clone on the host before the sandbox starts. After that
@@ -97,16 +142,18 @@ func (g *Git) Restore(
 ) (string, error) {
 	remote := g.RemoteURL(owner, name)
 	mirror := filepath.Join(g.Dir, "mirrors", owner, name+".git")
-	defer lockMirror(mirror)()
-	if err := g.updateMirror(ctx, remote, mirror); err != nil {
+	unlock, err := lockMirror(mirror)
+	if err != nil {
 		return "", err
 	}
-	if err := os.MkdirAll(filepath.Dir(dest), gitDirPerm); err != nil {
+	defer unlock()
+	if err = g.updateMirror(ctx, remote, mirror); err != nil {
+		return "", err
+	}
+	if err = os.MkdirAll(filepath.Dir(dest), gitDirPerm); err != nil {
 		return "", fmt.Errorf("create job dir: %w", err)
 	}
-	err := g.mustGit(ctx, "", "clone", "--no-hardlinks", "--branch", branch,
-		"--", mirror, dest)
-	if err != nil {
+	if err = g.cloneFromMirror(ctx, remote, mirror, branch, dest); err != nil {
 		return "", err
 	}
 	if err = g.mustGit(ctx, dest, "remote", "set-url", "origin", remote); err != nil {
@@ -127,27 +174,20 @@ func (g *Git) Restore(
 func (g *Git) Clone(ctx context.Context, owner, name, base, branch, dest string) error {
 	remote := g.RemoteURL(owner, name)
 	mirror := filepath.Join(g.Dir, "mirrors", owner, name+".git")
-	defer lockMirror(mirror)()
+	unlock, err := lockMirror(mirror)
+	if err != nil {
+		return err
+	}
+	defer unlock()
 
-	if err := g.updateMirror(ctx, remote, mirror); err != nil {
+	if err = g.updateMirror(ctx, remote, mirror); err != nil {
 		return err
 	}
 
-	if err := os.MkdirAll(filepath.Dir(dest), gitDirPerm); err != nil {
+	if err = os.MkdirAll(filepath.Dir(dest), gitDirPerm); err != nil {
 		return fmt.Errorf("create job dir: %w", err)
 	}
-	err := g.mustGit(
-		ctx,
-		"",
-		"clone",
-		"--no-hardlinks",
-		"--branch",
-		base,
-		"--",
-		mirror,
-		dest,
-	)
-	if err != nil {
+	if err = g.cloneFromMirror(ctx, remote, mirror, base, dest); err != nil {
 		return err
 	}
 	// The clone points at the real remote, not the mirror's path.
