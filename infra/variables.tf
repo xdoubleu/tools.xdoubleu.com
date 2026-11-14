@@ -50,3 +50,15 @@ variable "observability_ingest_secret" {
 
 # No app secrets: Tofu provisions the host; main.yml's deploy-kamal job
 # deploys the app with repo Secrets.
+
+variable "zitadel_host" {
+  description = "Public hostname kamal-proxy routes to Zitadel (ADR-0051). Needs a DNS A record to the VPS; the Let's Encrypt cert is issued on first request."
+  type        = string
+  default     = "auth.tools.xdoubleu.com"
+}
+
+variable "zitadel_smtp_password" {
+  description = "Resend API key Zitadel uses as its SMTP password. Reuses the RESEND_API_KEY repo Secret; supplied in the infra-apply CI job as TF_VAR_zitadel_smtp_password."
+  type        = string
+  sensitive   = true
+}
