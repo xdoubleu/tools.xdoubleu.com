@@ -19,18 +19,13 @@ SELECT
     'noop'
 FROM factory.repos
 WHERE owner = 'xdoubleu' AND name = 'tools.xdoubleu.com'
-ON CONFLICT (name) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- A routine's job has no task. No backfill: every existing job has a task.
 ALTER TABLE factory.jobs
 ALTER COLUMN task_id DROP NOT NULL;
 ALTER TABLE factory.jobs
 ADD COLUMN IF NOT EXISTS routine TEXT NOT NULL DEFAULT '';
-ALTER TABLE factory.jobs
-ADD CONSTRAINT jobs_task_xor_routine CHECK (
-    (task_id IS NOT NULL AND routine = '')
-    OR (task_id IS NULL AND routine <> '')
-);
 
 -- A routine has at most one unfinished job, so missed runs coalesce.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_one_active_per_routine
@@ -46,8 +41,6 @@ ON factory.jobs (routine, created_at DESC) WHERE routine <> '';
 DROP INDEX IF EXISTS factory.idx_jobs_routine;
 DROP INDEX IF EXISTS factory.idx_jobs_one_active_per_routine;
 DELETE FROM factory.jobs WHERE routine <> '';
-ALTER TABLE factory.jobs
-DROP CONSTRAINT IF EXISTS jobs_task_xor_routine;
 ALTER TABLE factory.jobs
 DROP COLUMN IF EXISTS routine;
 ALTER TABLE factory.jobs
