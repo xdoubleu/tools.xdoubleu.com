@@ -75,7 +75,7 @@
     "fake-indexeddb": "6.2.8",
     "jsdom": "31.0.0",
     "knip": "6.45.1",
-    "prettier": "3.9.10",
+    "prettier": "3.10.0",
     "sharp": "0.35.5",
     "syncpack": "15.3.3",
     "tailwindcss": "4.3.5",
