@@ -2,11 +2,11 @@
 -- +goose StatementBegin
 -- A routine is a named, scheduled job with no task. Only a human admin in a
 -- browser changes a row (adr-0052); its prompt lives in the repo, not here.
+-- interval_minutes is the time between scheduled runs; 0 means manual only.
 CREATE TABLE IF NOT EXISTS factory.routines (
     name TEXT PRIMARY KEY,
     repo_id UUID NOT NULL REFERENCES factory.repos (id),
     enabled BOOLEAN NOT NULL DEFAULT false,
-    -- Minutes between scheduled runs; 0 means manual runs only.
     interval_minutes INT NOT NULL DEFAULT 0 CHECK (interval_minutes >= 0),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
