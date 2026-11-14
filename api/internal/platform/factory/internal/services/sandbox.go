@@ -96,8 +96,8 @@ func (s *JobService) ReportBlocked(
 	}
 	sandbox, _, err := (&TaskService{repo: s.tasks}).ReportSandbox(
 		ctx, actor, job.RepoID, title, body)
-	if err != nil {
-		return err
+	if err == nil {
+		err = s.park(ctx, job, sandbox)
 	}
-	return s.park(ctx, job, sandbox)
+	return err
 }
