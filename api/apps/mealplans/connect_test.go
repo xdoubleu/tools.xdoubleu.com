@@ -3,6 +3,7 @@ package mealplans_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -1200,4 +1201,47 @@ func TestRotateICalToken_InvalidAndUnknownPlan(t *testing.T) {
 	)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
+}
+
+func TestSuggestRecipes_FreshVariesAcrossCellsAndIsStable(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	for i := range 12 {
+		createRecipeInDB(t, fmt.Sprintf("Fresh Vary %d", i))
+	}
+	planID := createPlanInDB(t, "Fresh Vary Plan")
+
+	fresh := func(date, slot string) []string {
+		resp, err := client.SuggestRecipes(ctx, &mealplansv1.SuggestRecipesRequest{
+			PlanId: planID, MealDate: date, MealSlot: slot,
+		})
+		require.NoError(t, err)
+		var ids []string
+		for _, s := range resp.Suggestions {
+			if s.Fresh {
+				ids = append(ids, s.RecipeId)
+			}
+		}
+		return ids
+	}
+
+	first := fresh("2024-02-05", "noon")
+	assert.Equal(t, first, fresh("2024-02-05", "noon"), "stable for the same cell")
+
+	distinct := map[string]bool{}
+	for _, cell := range [][2]string{
+		{"2024-02-05", "noon"}, {"2024-02-05", "evening"},
+		{"2024-02-06", "noon"}, {"2024-02-07", "noon"}, {"2024-02-08", "evening"},
+	} {
+		for _, id := range fresh(cell[0], cell[1]) {
+			distinct[id] = true
+		}
+	}
+	assert.Greater(t, len(distinct), len(first), "cells offer different recipes")
 }

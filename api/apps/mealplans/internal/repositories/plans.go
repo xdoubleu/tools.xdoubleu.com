@@ -333,7 +333,9 @@ func (r *PlansRepository) SuggestRecipes(
 	for i, s := range familiar {
 		exclude[i] = s.RecipeID
 	}
-	fresh, err := r.freshSuggestions(ctx, planID, mealDate, exclude, limit-len(familiar))
+	fresh, err := r.freshSuggestions(
+		ctx, planID, mealDate, slot, exclude, limit-len(familiar),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -378,11 +380,13 @@ func (r *PlansRepository) familiarSuggestions(
 
 // freshSuggestions orders the plan family's recipes by how often this plan used
 // them, then by how long ago, skipping the excluded ones and any already
-// planned in mealDate's week.
+// planned in mealDate's week. Ties break on a hash seeded by the cell, so
+// cells differ from each other but a cell's result is stable across reloads.
 func (r *PlansRepository) freshSuggestions(
 	ctx context.Context,
 	planID uuid.UUID,
 	mealDate time.Time,
+	slot string,
 	exclude []uuid.UUID,
 	limit int,
 ) ([]models.RecipeSuggestion, error) {
@@ -403,9 +407,11 @@ func (r *PlansRepository) freshSuggestions(
 		      AND date_trunc('week', w.meal_date) = date_trunc('week', $2::date)
 		  )
 		GROUP BY r.id, r.base_servings
-		ORDER BY COUNT(m.id), MAX(m.meal_date) NULLS FIRST, r.id
+		ORDER BY COUNT(m.id), MAX(m.meal_date) NULLS FIRST,
+		         md5(r.id::text || $5::text), r.id
 		LIMIT $4`,
 		planID, mealDate, exclude, limit,
+		planID.String()+mealDate.Format(time.DateOnly)+slot,
 	)
 	if err != nil {
 		return nil, err
