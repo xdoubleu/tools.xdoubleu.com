@@ -28,6 +28,7 @@ import (
 const (
 	defaultBaseURL = "https://api.github.com"
 	requestTimeout = 15 * time.Second
+	permWrite      = "write"
 	// jwtSkew backdates the JWT's issue time: GitHub rejects one from its future.
 	jwtSkew = time.Minute
 	// jwtLifetime is under GitHub's ten-minute cap.
@@ -241,7 +242,8 @@ func (c *Client) InstallationToken(
 ) (Token, error) {
 	return c.mint(ctx, owner, repo,
 		map[string]string{
-			"contents": "write", "pull_requests": "write", "checks": "read",
+			"contents": permWrite, "pull_requests": permWrite, "workflows": permWrite,
+			"checks": "read",
 		})
 }
 

@@ -22,8 +22,8 @@ deploy key can push but can't open a pull request.
   Mac, as before.
 - **A token per job, narrowed.** The server signs a short App JWT, finds the
   installation of the job's repo and asks for an installation token limited to
-  that repo, with `contents` and `pull_requests` write, `checks` read and nothing else: no
-  workflows, issues or administration. It lives under an hour.
+  that repo, with `contents`, `pull_requests` and `workflows` write, `checks` read and
+  nothing else: no issues or administration. Workflow changes need no human. It lives under an hour.
 - **The runner asks for it, only for its own running job.** `GetPushToken` needs
   the device token, a job in `running` and that the runner claimed it (a job
   records its runner; so does `CompleteJob`). The runner calls it after its own

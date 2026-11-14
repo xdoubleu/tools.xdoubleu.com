@@ -162,7 +162,8 @@ func TestMintsATokenNarrowedToOneRepoAndWhatAJobNeeds(t *testing.T) {
 
 		assert.Equal(t, []any{"tools.xdoubleu.com"}, f.lastMint["repositories"])
 		assert.Equal(t, map[string]any{
-			"contents": "write", "pull_requests": "write", "checks": "read",
+			"contents": "write", "pull_requests": "write", "workflows": "write",
+			"checks": "read",
 		},
 			f.lastMint["permissions"], "no workflows, issues or administration")
 	}
