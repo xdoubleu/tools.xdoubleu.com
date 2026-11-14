@@ -45,7 +45,8 @@ as a manual aid):
    don't assert anything. gremlins only runs a package's own tests, so code
    reached solely by app-root integration tests is listed NOT COVERED, never
    run: keep branching logic in pure functions unit-tested in their own
-   package.
+   package. Run `make test/mutation/diff` in `api/` or `factory-runner/`,
+   `npm run test:mutation:diff` in `web/`.
 
 ## Enforcement
 
