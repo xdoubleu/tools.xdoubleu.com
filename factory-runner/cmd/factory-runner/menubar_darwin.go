@@ -148,7 +148,7 @@ func chooseMode(mode string) {
 }
 
 // prompt asks for a line of text; ok is false when the owner cancelled.
-func prompt(title, message, initial string) (text string, ok bool) {
+func prompt(title, message, initial string) (string, bool) {
 	t, m, i := C.CString(title), C.CString(message), C.CString(initial)
 	defer C.free(unsafe.Pointer(t))
 	defer C.free(unsafe.Pointer(m))
@@ -187,7 +187,8 @@ func pair() {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), pairTimeout)
 		defer cancel()
-		if err := ui.Pair(ctx, strings.TrimSpace(code), strings.TrimSpace(server)); err != nil {
+		code, server := strings.TrimSpace(code), strings.TrimSpace(server)
+		if err := ui.Pair(ctx, code, server); err != nil {
 			report("pair", err)
 			return
 		}

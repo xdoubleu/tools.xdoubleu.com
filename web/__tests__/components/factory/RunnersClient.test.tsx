@@ -78,7 +78,7 @@ describe('RunnersClient', () => {
       '/downloads/factory-runner.dmg'
     )
     expect(screen.getByText(/drag FactoryRunner.app to Applications/)).toBeInTheDocument()
-    expect(screen.getByText(/opens this page to pair/)).toBeInTheDocument()
+    expect(screen.getByText(/use the menu bar icon to pair/)).toBeInTheDocument()
     expect(screen.getByText(/closed lid only stays awake on AC power/)).toBeInTheDocument()
     expect(screen.queryByTestId('runner-version')).not.toBeInTheDocument()
   })
