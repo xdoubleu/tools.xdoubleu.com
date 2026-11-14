@@ -221,14 +221,14 @@ func TestOrigin(t *testing.T) {
 	}
 }
 
-func TestUpdateWaitsIfAJobStartedDuringTheDownload(t *testing.T) {
+func TestUpdateWaitsWhileAJobRuns(t *testing.T) {
 	key := newSigner(t)
 	srv := serveRelease(t, newRelease("new", machO("new"), key, false))
 	exe := fakeExecutable(t)
 
 	updated, err := newUpdater(srv, "old", key.pubB64, exe).
 		Update(context.Background(), func() bool { return false })
-	require.NoError(t, err)
+	require.ErrorIs(t, err, runner.ErrUpdatePending)
 	assert.False(t, updated)
 	got, _ := os.ReadFile(exe)
 	assert.Equal(t, machO("old"), got, "the binary is untouched")
