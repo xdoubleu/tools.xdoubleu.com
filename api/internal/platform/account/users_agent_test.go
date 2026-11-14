@@ -173,3 +173,18 @@ func TestAgentAccessIsRefusedForAPerson(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, got.AppAccess)
 }
+
+func TestAppUsersRepository_Delete(t *testing.T) {
+	db := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	t.Cleanup(db.Close)
+	repo := account.NewAppUsersRepository(db)
+	ctx := context.Background()
+	id := uuid.NewString()
+
+	require.NoError(t, repo.Upsert(ctx, id, id+"@example.com"))
+	require.NoError(t, repo.SetAppAccess(ctx, id, "books", true))
+	require.NoError(t, repo.Delete(ctx, id))
+
+	_, err := repo.GetByID(ctx, id)
+	require.Error(t, err)
+}

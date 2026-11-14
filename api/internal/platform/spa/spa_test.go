@@ -69,6 +69,7 @@ func newHandler(t *testing.T, mutate func(*spa.Config)) (http.Handler, *logsReco
 		SentryDSN:          "https://key@sentry.example/1",
 		PostHogKey:         "phc_key",
 		PostHogHost:        "https://eu.i.posthog.com",
+		AccountURL:         "https://id.example/ui/console/users/me",
 		OfflineDisabled:    false,
 		APIHosts:           []string{"watchparty.example"},
 		Logs:               logs,
@@ -360,7 +361,9 @@ func TestEnvJS_CarriesRuntimeConfigUncached(t *testing.T) {
 	for _, want := range []string{
 		`"API_URL":"https://tools.example/api"`, `"RELEASE":"abc123"`,
 		`"KOBO_GATEWAY_RELEASE":"def456"`, `"SENTRY_DSN_WEB":"https://key@sentry.example/1"`,
-		`"POSTHOG_KEY":"phc_key"`, `"POSTHOG_HOST":"https://eu.i.posthog.com"`,
+		`"POSTHOG_KEY":"phc_key"`,
+		`"ACCOUNT_URL":"https://id.example/ui/console/users/me"`,
+		`"POSTHOG_HOST":"https://eu.i.posthog.com"`,
 	} {
 		assert.Contains(t, body, want)
 	}

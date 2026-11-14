@@ -92,6 +92,17 @@ func (r *AppUsersRepository) SetDisplayName(
 	return err
 }
 
+// Delete removes a person's app user and grants, undoing a failed create.
+func (r *AppUsersRepository) Delete(ctx context.Context, id string) error {
+	if _, err := r.db.Exec(ctx,
+		`DELETE FROM global.app_access WHERE user_id = $1`, id,
+	); err != nil {
+		return err
+	}
+	_, err := r.db.Exec(ctx, `DELETE FROM global.app_users WHERE id = $1`, id)
+	return err
+}
+
 // GetTabPins returns the apps pinned to the phone tab bar, in order. The bool is
 // false when the user never chose, so the web falls back to its defaults.
 func (r *AppUsersRepository) GetTabPins(
@@ -189,6 +200,10 @@ func (r *AppUsersRepository) GetAllWithAccess(
 		FROM global.app_users u
 		LEFT JOIN global.app_access a ON a.user_id = u.id
 		WHERE u.role <> 'agent'
+		  AND NOT EXISTS (
+			SELECT 1 FROM auth.users a2
+			WHERE a2.id::text = u.id AND a2.deactivated_at IS NOT NULL
+		  )
 		GROUP BY u.id, u.email, u.role
 		ORDER BY u.email
 	`)

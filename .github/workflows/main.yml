@@ -549,6 +549,7 @@ jobs:
           OAUTH_GRAFANA_CLIENT_SECRET: ${{ secrets.OAUTH_GRAFANA_CLIENT_SECRET }}
           OAUTH_ROUTINES_CLIENT_SECRET: ${{ secrets.OAUTH_ROUTINES_CLIENT_SECRET }}
           OIDC_CLIENT_SECRET: ${{ secrets.OIDC_CLIENT_SECRET }}
+          ZITADEL_SERVICE_TOKEN: ${{ secrets.ZITADEL_SERVICE_TOKEN }}
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
           HARDCOVER_API_KEY: ${{ secrets.HARDCOVER_API_KEY }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}

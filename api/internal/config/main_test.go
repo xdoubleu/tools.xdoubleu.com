@@ -102,9 +102,11 @@ func TestNewReadsOIDCSignIn(t *testing.T) {
 	t.Setenv("OIDC_ISSUER", "https://id.example.com")
 	t.Setenv("OIDC_CLIENT_ID", "api")
 	t.Setenv("OIDC_CLIENT_SECRET", "shh")
+	t.Setenv("ZITADEL_SERVICE_TOKEN", "pat")
 	cfg = config.New(logging.NewNopLogger())
 	assert.True(t, cfg.OIDCSignIn)
 	assert.Equal(t, "https://id.example.com", cfg.OIDCIssuer)
 	assert.Equal(t, "api", cfg.OIDCClientID)
 	assert.Equal(t, "shh", cfg.OIDCClientSecret)
+	assert.Equal(t, "pat", cfg.ZitadelServiceToken)
 }

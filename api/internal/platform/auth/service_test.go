@@ -358,6 +358,12 @@ func (f *fakeAppUsersStore) GetByID(_ context.Context, _ string) (*models.User, 
 	return nil, errors.New("fakeAppUsersStore: GetByID not implemented")
 }
 
+func (f *fakeAppUsersStore) SetDisplayName(context.Context, string, string) error {
+	return nil
+}
+
+func (f *fakeAppUsersStore) Delete(context.Context, string) error { return nil }
+
 func (f *fakeAppUsersStore) GetAll(_ context.Context) ([]models.User, error) {
 	return f.users, f.err
 }

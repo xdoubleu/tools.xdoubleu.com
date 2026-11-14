@@ -1,5 +1,15 @@
 import { mutate } from 'swr'
-import { useUsers, useSetRole, useSetAppAccess, useSetDisplayName } from '@/hooks/useUserManagement'
+import {
+  useUsers,
+  useSetRole,
+  useSetAppAccess,
+  useSetDisplayName,
+  useCreateUser,
+  useDeactivateUser
+} from '@/hooks/useUserManagement'
+import { Code, ConnectError } from '@connectrpc/connect'
+import { Alert } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import type { AppUser } from '@/lib/gen/access/v1/access_pb'
 import { useState } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -153,6 +163,111 @@ function AppAccessPill({ user, appName }: { user: AppUser; appName: string }) {
   )
 }
 
+/** Why an invite or deactivation failed, in the admin's words. */
+function failureText(err: unknown, fallback: string): string {
+  const error = ConnectError.from(err)
+  if (error.code === Code.AlreadyExists) return 'A user with this email already exists.'
+  if (error.code === Code.InvalidArgument) return error.rawMessage
+  if (error.code === Code.FailedPrecondition) return 'Inviting people is not set up.'
+  return fallback
+}
+
+/** Adds a person: the identity provider mails them an invite. */
+function InviteForm() {
+  const createUser = useCreateUser()
+  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
+  const [error, setError] = useState('')
+  const [invited, setInvited] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setInvited('')
+    setBusy(true)
+    try {
+      const created = await createUser(email.trim(), name.trim())
+      setInvited(created.user?.email ?? email)
+      setEmail('')
+      setName('')
+      await mutate(swrKeys.userManagementUsers)
+    } catch (err) {
+      setError(failureText(err, 'Failed to invite this person.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card className="space-y-3">
+      <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-2 sm:flex-row">
+        <Input
+          type="email"
+          aria-label="Email of the person to invite"
+          placeholder="Email"
+          autoComplete="off"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <Input
+          aria-label="Full name of the person to invite"
+          placeholder="Full name"
+          autoComplete="off"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <Button type="submit" disabled={busy} className="shrink-0">
+          Invite
+        </Button>
+      </form>
+      {invited && <Alert tone="success">{`Invite sent to ${invited}.`}</Alert>}
+      {error && <Alert tone="danger">{error}</Alert>}
+    </Card>
+  )
+}
+
+/** Deactivates a person at the identity provider and here, after asking. */
+function DeactivateButton({ user }: { user: AppUser }) {
+  const deactivate = useDeactivateUser()
+  const [confirming, setConfirming] = useState(false)
+  const [error, setError] = useState('')
+
+  async function run() {
+    setError('')
+    try {
+      await deactivate(user.id)
+      await mutate(swrKeys.userManagementUsers)
+    } catch (err) {
+      setError(failureText(err, 'Failed to deactivate.'))
+    }
+  }
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-label={`Deactivate ${user.email}`}
+        onClick={() => setConfirming(true)}
+      >
+        Deactivate
+      </Button>
+      <FieldError id={`deactivate-error-${user.id}`}>{error}</FieldError>
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={`Deactivate ${user.email}?`}
+        description="They are signed out everywhere and can no longer sign in."
+        confirmLabel="Deactivate"
+        destructive
+        onConfirm={() => void run()}
+      />
+    </>
+  )
+}
+
 export default function UserManagementClient() {
   const { data, isLoading, error } = useUsers()
   const users = data?.users ?? []
@@ -172,6 +287,8 @@ export default function UserManagementClient() {
         actions={<PageHeaderLink href="/user-management/agents">Agents</PageHeaderLink>}
       />
 
+      <InviteForm />
+
       {/* Mobile-first card-per-row view; the 9-column table would force a
           wide sideways scroll below `sm`. */}
       <div className="space-y-3 sm:hidden">
@@ -183,6 +300,7 @@ export default function UserManagementClient() {
               <UserIdentity user={user} />
               <div className="flex flex-wrap items-center gap-2">
                 <RoleSelect user={user} />
+                <DeactivateButton user={user} />
               </div>
               <div
                 role="group"
@@ -204,6 +322,9 @@ export default function UserManagementClient() {
             <TableRow>
               <TableHead>User</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>
+                <span className="sr-only">Actions</span>
+              </TableHead>
               {APP_NAMES.map((name) => (
                 <TableHead key={name} className="text-center capitalize">
                   {name}
@@ -214,7 +335,7 @@ export default function UserManagementClient() {
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={2 + APP_NAMES.length} className="py-6 text-center text-muted">
+                <TableCell colSpan={3 + APP_NAMES.length} className="py-6 text-center text-muted">
                   No users found.
                 </TableCell>
               </TableRow>
@@ -226,6 +347,9 @@ export default function UserManagementClient() {
                   </TableCell>
                   <TableCell>
                     <RoleSelect user={user} />
+                  </TableCell>
+                  <TableCell>
+                    <DeactivateButton user={user} />
                   </TableCell>
                   {APP_NAMES.map((appName) => (
                     <TableCell key={appName} className="text-center">

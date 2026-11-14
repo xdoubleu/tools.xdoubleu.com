@@ -23,6 +23,7 @@ import (
 	"tools.xdoubleu.com/internal/platform/obs"
 	"tools.xdoubleu.com/internal/platform/observability"
 	"tools.xdoubleu.com/internal/platform/slack"
+	"tools.xdoubleu.com/internal/platform/zitadel"
 )
 
 // maxRequestBodyBytes bounds every request body, e.g. inbound newsletter
@@ -253,4 +254,13 @@ func newOIDCProvider(cfg config.Config) *auth.OIDCProvider {
 		panic(err)
 	}
 	return provider
+}
+
+// newDirectory is the provider's user API when a service token is configured,
+// else nil (an explicit nil, not a typed one).
+func newDirectory(cfg config.Config) auth.Directory {
+	if client := zitadel.New(cfg); client != nil {
+		return client
+	}
+	return nil
 }

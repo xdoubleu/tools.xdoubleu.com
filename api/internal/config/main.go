@@ -69,6 +69,10 @@ type Config struct {
 	OIDCIssuer       string
 	OIDCClientID     string
 	OIDCClientSecret string
+	// ZitadelServiceToken is the access token of the Zitadel service user that
+	// user management calls with; it may manage only human users. Empty turns
+	// creating people off. The API is reached at OIDCIssuer.
+	ZitadelServiceToken string
 	// AuthIssuer is this api's OAuth 2.1 issuer URL. Defaults to APIURL.
 	AuthIssuer      string
 	SteamAPIKey     string
@@ -268,6 +272,7 @@ func (c parser) loadOIDC(cfg *Config) {
 	cfg.OIDCIssuer = c.envStr("OIDC_ISSUER", "")
 	cfg.OIDCClientID = c.envStr("OIDC_CLIENT_ID", "")
 	cfg.OIDCClientSecret = c.envSecret("OIDC_CLIENT_SECRET", "")
+	cfg.ZitadelServiceToken = c.envSecret("ZITADEL_SERVICE_TOKEN", "")
 }
 
 // loadMonitoring reads the Prometheus and Grafana settings.
