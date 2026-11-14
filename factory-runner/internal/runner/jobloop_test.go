@@ -398,7 +398,7 @@ func TestAnUnreadableBranchTipDoesNotStopAPublishedJob(t *testing.T) {
 	p.runner.Git.Run = func(
 		ctx context.Context, dir string, args ...string,
 	) ([]byte, error) {
-		if len(args) > 0 && args[0] == "rev-parse" {
+		if len(args) > 0 && args[0] == "rev-parse" && args[1] != "--verify" {
 			return nil, errors.New("no")
 		}
 		cmd := exec.CommandContext(ctx, "git", args...)

@@ -65,6 +65,13 @@ List repeatable friction (a missing tool, a gate you could not run, a CI ` +
 	`label factory-retro, naming the cause. File nothing when nothing is ` +
 	`repeatable. Reply in one line.`
 
+// continuePrompt is added when a job without a session starts on a branch that
+// already holds earlier work (a task re-run from Ready). %s is the default branch.
+const continuePrompt = `You are continuing earlier work on this branch: its ` +
+	`commits are already here. Merge origin/%s (the host fetched it into ` +
+	`this clone) if it moved, then add commits on top. Never rebase or rewrite ` +
+	`existing commits: the push is a fast-forward.`
+
 // preamble is the runner's own, repo-agnostic part of every prompt; the server
 // can't change it. %s is the job's branch.
 const preamble = `You are running unattended in a sandbox with no network ` +
@@ -591,9 +598,10 @@ func (r *JobRunner) invocation(
 	return command, env, nil
 }
 
-// prepareClone makes the job's clone: a new branch off the base, or for a Reply's
-// job the task's existing branch. It also returns the commit a Reply began at ("" for
-// a new branch), where the host's checks start.
+// prepareClone makes the job's clone: the task's existing branch for a Reply's job
+// or a re-run whose branch was already pushed, else a new branch off the base. It
+// also returns the commit an existing branch began at ("" for a new one), where the
+// host's checks start.
 func (r *JobRunner) prepareClone(
 	ctx context.Context,
 	job *ClaimedJob,
@@ -603,12 +611,16 @@ func (r *JobRunner) prepareClone(
 		return "", nil
 	}
 	if job.ResumeSessionID == "" {
-		err := r.Git.Clone(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
-			job.Branch, cloneDir)
+		tip, found, err := r.Git.RestoreIfPushed(
+			ctx, job.RepoOwner, job.RepoName, job.Branch, cloneDir)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("restore the branch %s: %w", job.Branch, err)
 		}
-		return "", nil
+		if found {
+			return tip, nil
+		}
+		return "", r.Git.Clone(ctx, job.RepoOwner, job.RepoName, job.DefaultBranch,
+			job.Branch, cloneDir)
 	}
 	tip, err := r.Git.Restore(ctx, job.RepoOwner, job.RepoName, job.Branch, cloneDir)
 	if err != nil {
