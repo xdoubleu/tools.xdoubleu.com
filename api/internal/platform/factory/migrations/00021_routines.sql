@@ -14,19 +14,26 @@ CREATE TABLE IF NOT EXISTS factory.routines (
 -- The no-op routine proves the path end to end: manual runs only, off until a
 -- human enables it.
 INSERT INTO factory.routines (name, repo_id)
-SELECT 'noop', id FROM factory.repos
+SELECT
+    'noop',
+    id
+FROM factory.repos
 WHERE owner = 'xdoubleu' AND name = 'tools.xdoubleu.com'
 ON CONFLICT (name) DO NOTHING;
 
 -- A routine's job has no task. No backfill: every existing job has a task.
 ALTER TABLE factory.jobs ALTER COLUMN task_id DROP NOT NULL;
-ALTER TABLE factory.jobs ADD COLUMN IF NOT EXISTS routine TEXT NOT NULL DEFAULT '';
-ALTER TABLE factory.jobs ADD CONSTRAINT jobs_task_xor_routine
-CHECK ((task_id IS NULL) = (routine <> ''));
+ALTER TABLE factory.jobs
+ADD COLUMN IF NOT EXISTS routine TEXT NOT NULL DEFAULT '';
+ALTER TABLE factory.jobs
+ADD CONSTRAINT jobs_task_xor_routine CHECK (
+    (task_id IS NULL) = (routine <> '')
+);
 
 -- A routine has at most one unfinished job, so missed runs coalesce.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_one_active_per_routine
-ON factory.jobs (routine) WHERE routine <> '' AND status IN ('queued', 'running');
+ON factory.jobs (routine)
+WHERE routine <> '' AND status IN ('queued', 'running');
 
 CREATE INDEX IF NOT EXISTS idx_jobs_routine
 ON factory.jobs (routine, created_at DESC) WHERE routine <> '';

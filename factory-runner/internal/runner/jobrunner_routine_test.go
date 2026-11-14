@@ -2,6 +2,7 @@ package runner_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -84,4 +85,27 @@ func TestTheRunnerRefusesARoutineItDoesNotKnow(t *testing.T) {
 		assert.Contains(t, env.api.done()[0].outcome, "Refused by the runner", name)
 		assert.Empty(t, env.sandbox.specs, name+": nothing started")
 	}
+}
+
+func TestARoutineFailsWhenTheAgentExitsWithoutAnOutcome(t *testing.T) {
+	env := newEnv(t, outcomeOnly(""), newRoutineJob())
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	got := env.api.done()[0]
+	assert.False(t, got.succeeded)
+	assert.Contains(t, got.outcome, "wrote no outcome file")
+}
+
+func TestARoutineWhoseSandboxCannotStartFails(t *testing.T) {
+	env := newEnv(t, outcomeOnly("x"), newRoutineJob())
+	env.sandbox.run = func(context.Context, runner.SandboxSpec) (int, error) {
+		return 0, errors.New("no vm")
+	}
+	_, err := env.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	got := env.api.done()[0]
+	assert.False(t, got.succeeded)
+	assert.Contains(t, got.outcome, "no vm")
 }
