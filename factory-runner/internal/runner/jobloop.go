@@ -230,6 +230,10 @@ func (l *jobLoop) baseResult() result {
 	return res
 }
 
+const noOutcomeNudge = "You finished without writing the outcome file. Write it now " +
+	"to the path in $FACTORY_OUTCOME_PATH (first line the pull request title, " +
+	"last line the Checks: line), then stop. Do not redo the work."
+
 // agent runs the agent once. It returns the outcome the agent wrote, or the step
 // that ends or pauses the job when there is none worth publishing.
 func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
@@ -243,10 +247,23 @@ func (l *jobLoop) agent(command []string, prompt string) (string, *step) {
 	timedOut := errors.Is(attemptCtx.Err(), context.DeadlineExceeded) &&
 		l.ctx.Err() == nil
 	cancel()
+	outPath := filepath.Join(l.dirs.outcome, outcomeFile)
+	// A clean exit with no outcome is usually an agent that forgot the last step:
+	// ask once, in the same session, before failing the attempt.
+	if sid := l.tap.Session(); runErr == nil && exit == 0 && !timedOut &&
+		sid != "" && l.ended() == "" && readOutcome(outPath) == "" {
+		l.note("The agent wrote no outcome file, asking once more")
+		nudgeCtx, stop := context.WithTimeout(l.ctx, l.limit)
+		exit, runErr = l.session.Exec(nudgeCtx, l.r.harnessFor(l.job).Resume(sid),
+			noOutcomeNudge, io.MultiWriter(l.tap, l.events))
+		timedOut = errors.Is(nudgeCtx.Err(), context.DeadlineExceeded) &&
+			l.ctx.Err() == nil
+		stop()
+	}
 	// What the agent said last is what you most want to read.
 	l.r.flush(l.parent, l.job.ID, l.events)
 
-	text := readOutcome(filepath.Join(l.dirs.outcome, outcomeFile))
+	text := readOutcome(outPath)
 	limited, resetsAt := l.tap.Limit()
 	res := l.baseResult()
 	if b, ok := findLine(text, "Blocked:"); ok && !strings.EqualFold(b, "none") &&

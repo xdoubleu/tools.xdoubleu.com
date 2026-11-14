@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -27,7 +29,7 @@ func TestTheHarnessLogIsForwardedWithSecretsRemoved(t *testing.T) {
 		_, _ = io.WriteString(spec.Log,
 			eventSecret[10:]+` and device tok-device-12345"}`+"\n")
 		commitFile(spec.CloneDir, "a.txt", "x")
-		_ = writes("done", 0)
+		_ = os.WriteFile(filepath.Join(spec.OutcomeDir, "outcome.md"), []byte("done"), 0o644)
 		return 0, nil
 	}, newJob())
 	env.runner.Secrets = []string{eventSecret}
