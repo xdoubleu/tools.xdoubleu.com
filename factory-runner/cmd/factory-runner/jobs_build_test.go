@@ -43,6 +43,7 @@ func TestTheJobRunnerIsBuiltFromTheConfigOnAMacThatCanRunJobs(t *testing.T) {
 		DataDir: filepath.Join(e.app.home, "data"), GoModCache: "/c/go", NPMCache: "/c/npm",
 		BotEmail: "",
 		Mode:     "",
+		MaxJobs:  0,
 	}
 	require.NoError(t, cfg.Save(runner.ConfigPath(e.app.home)))
 
@@ -79,6 +80,7 @@ func TestAMacWithoutTheRightContainerCLICannotBuildTheJobRunner(t *testing.T) {
 		GoModCache: "", NPMCache: "",
 		BotEmail: "",
 		Mode:     "",
+		MaxJobs:  0,
 	}
 	for name, exec := range map[string]versionExec{
 		"missing":      {out: "", err: errors.New("container: not found")},
@@ -99,6 +101,7 @@ func TestADataDirectoryThatCannotBeCreatedFailsTheBuild(t *testing.T) {
 		DataDir:  filepath.Join(blocker, "d"),
 		BotEmail: "",
 		Mode:     "",
+		MaxJobs:  0,
 	}
 
 	_, err := newJobRunner(context.Background(), e.app, cfg, "t", quietLog(),

@@ -12,6 +12,9 @@ type menuInfo struct {
 	Release  string
 	Home     string
 	ExecPath string
+	// MaxJobs reads how many jobs run at once; SetMaxJobs saves the owner's choice.
+	MaxJobs    func() int
+	SetMaxJobs func(int) error
 }
 
 // menuFunc runs work beside the menu bar icon and returns work's error. It ends

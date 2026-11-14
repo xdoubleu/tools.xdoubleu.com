@@ -15,6 +15,7 @@ func emptyConfig() runner.Config {
 		Server: "", Repos: nil, Image: "", DataDir: "", GoModCache: "", NPMCache: "",
 		BotEmail: "",
 		Mode:     "",
+		MaxJobs:  0,
 	}
 }
 

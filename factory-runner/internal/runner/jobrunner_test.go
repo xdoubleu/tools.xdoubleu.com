@@ -102,7 +102,7 @@ func newFakeAPI(jobs ...*runner.ClaimedJob) *fakeAPI {
 	}
 }
 
-func (f *fakeAPI) ClaimJob(context.Context, string) (*runner.ClaimedJob, error) {
+func (f *fakeAPI) ClaimJob(context.Context, string, int) (*runner.ClaimedJob, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.claimErr != nil {
@@ -222,11 +222,14 @@ func (f *fakeAPI) done() []completion {
 
 type fakeSandbox struct {
 	run   func(ctx context.Context, spec runner.SandboxSpec) (int, error)
+	mu    sync.Mutex
 	specs []runner.SandboxSpec
 }
 
 func (f *fakeSandbox) Run(ctx context.Context, spec runner.SandboxSpec) (int, error) {
+	f.mu.Lock()
 	f.specs = append(f.specs, spec)
+	f.mu.Unlock()
 	return f.run(ctx, spec)
 }
 
@@ -290,11 +293,11 @@ func newEnv(
 	remote := newRemote(t)
 	dir := t.TempDir()
 	api := newFakeAPI(jobs...)
-	sb := &fakeSandbox{run: sandbox, specs: nil}
+	sb := &fakeSandbox{run: sandbox, mu: sync.Mutex{}, specs: nil}
 	return &jobEnv{
 		api: api, sandbox: sb, dir: dir, remote: remote,
 		runner: &runner.JobRunner{
-			API: api, Token: "frt_x", Paused: nil, Mode: nil,
+			API: api, Token: "frt_x", Paused: nil, MaxJobs: nil, Mode: nil,
 			Allowed: func() ([]string, error) {
 				return []string{"xdoubleu/tools.xdoubleu.com"}, nil
 			},

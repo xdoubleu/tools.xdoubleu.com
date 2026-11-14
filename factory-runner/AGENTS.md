@@ -10,7 +10,7 @@ cmd/factory-runner/   main.go, config.go, entry.go, jobs.go, jobproxy.go
 internal/runner/
   client.go, jobs_client.go   the server calls
   daemon.go, control.go       heartbeat loop; pause flag, menu status
-  jobrunner.go                claim loop; the prompt; Checks:/Blocked: lines
+  jobrunner.go                claim loop, `max_jobs` at once; the prompt; Checks:/Blocked: lines
   jobloop.go, pullstatus.go   one job's attempts until its PR merges; CI verdict
   gitclone.go, hostcheck.go   host mirror and job clone; host checks
   events.go, publish.go       log lines to the board; push and open the PR

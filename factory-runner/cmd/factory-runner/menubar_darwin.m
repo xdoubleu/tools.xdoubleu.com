@@ -17,6 +17,7 @@ static NSMenuItem *frBeat;
 static NSMenuItem *frUpdate;
 static NSMenuItem *frToggle;
 static NSMenuItem *frLogin;
+static NSMenuItem *frJobs[FR_MAX_JOBS_CHOICES + 1];
 
 // stringWithUTF8String: returns nil for NULL or invalid UTF-8, which AppKit
 // setters reject.
@@ -128,6 +129,18 @@ void frBuildStatusItem(const void *icon, size_t iconLen, double iconSize) {
 		[menu addItem:frMenuItem(@"Check for updates", FRActionCheckUpdates)];
 		[menu addItem:[NSMenuItem separatorItem]];
 
+		NSMenuItem *jobs = frMenuItem(@"Jobs at once", 0);
+		jobs.enabled = YES;
+		NSMenu *jobsMenu = [[NSMenu alloc] init];
+		jobsMenu.autoenablesItems = NO;
+		for (int n = 1; n <= FR_MAX_JOBS_CHOICES; n++) {
+			frJobs[n] = frMenuItem([NSString stringWithFormat:@"%d", n],
+			                       FRActionMaxJobs + n);
+			[jobsMenu addItem:frJobs[n]];
+		}
+		jobs.submenu = jobsMenu;
+		[menu addItem:jobs];
+
 		frLogin = frMenuItem(@"Start at Login", FRActionToggleLogin);
 		[menu addItem:frLogin];
 		[menu addItem:[NSMenuItem separatorItem]];
@@ -143,13 +156,17 @@ void frBuildStatusItem(const void *icon, size_t iconLen, double iconSize) {
 }
 
 void frSetMenu(const char *header, const char *status, const char *beat,
-               const char *update, bool stopped, bool loginOn) {
+               const char *update, bool stopped, bool loginOn, int maxJobs) {
 	@autoreleasepool {
 		frHeader.title = frString(header);
 		frStatus.title = frString(status);
 		frBeat.title = frString(beat);
 		frUpdate.title = frString(update);
 		frToggle.title = stopped ? @"Start runner" : @"Stop runner";
+		for (int n = 1; n <= FR_MAX_JOBS_CHOICES; n++) {
+			frJobs[n].state =
+			    n == maxJobs ? NSControlStateValueOn : NSControlStateValueOff;
+		}
 		frLogin.state = loginOn ? NSControlStateValueOn : NSControlStateValueOff;
 	}
 }

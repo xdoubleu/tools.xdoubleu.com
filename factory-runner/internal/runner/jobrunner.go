@@ -91,6 +91,9 @@ type JobRunner struct {
 	Mode func() string
 	// Paused, when it reports true, stops the loop claiming new jobs.
 	Paused func() bool
+	// MaxJobs is how many jobs run at once, read at each claim; nil or below 1
+	// means one.
+	MaxJobs func() int
 	// ClaudeToken returns the Claude setup-token a Claude Code job runs on; it is
 	// put in the VM's environment (adr-0043's conservative route) and kept out of
 	// commits and the outcome like any secret. Nil sets none.
@@ -130,6 +133,10 @@ type JobRunner struct {
 	Sleep func(context.Context, time.Duration)
 	Now   func() time.Time
 	Log   *slog.Logger
+
+	// limitUntil is the unix time in nanoseconds a usage limit holds back new
+	// claims until, shared by every running job.
+	limitUntil atomic.Int64
 }
 
 // failed is a result for a job that never reached the agent.
@@ -174,9 +181,34 @@ type result struct {
 	head    string
 }
 
+// maxJobs is how many jobs may run at once.
+func (r *JobRunner) maxJobs() int {
+	if r.MaxJobs == nil {
+		return 1
+	}
+	return max(r.MaxJobs(), 1)
+}
+
+// holdClaims stops new claims until t: a usage limit is the account's, so every
+// job would meet it. A later time wins.
+func (r *JobRunner) holdClaims(t time.Time) {
+	n := t.UnixNano()
+	for {
+		cur := r.limitUntil.Load()
+		if n <= cur || r.limitUntil.CompareAndSwap(cur, n) {
+			return
+		}
+	}
+}
+
+// claimsHeld says whether a usage limit still holds back new claims.
+func (r *JobRunner) claimsHeld(now time.Time) bool {
+	return now.UnixNano() < r.limitUntil.Load()
+}
+
 // Next claims one job and runs it to the end, reporting whether there was one.
 func (r *JobRunner) Next(ctx context.Context) (bool, error) {
-	job, err := r.API.ClaimJob(ctx, r.Token)
+	job, err := r.API.ClaimJob(ctx, r.Token, r.maxJobs())
 	if err != nil || job == nil {
 		return false, err
 	}
@@ -185,30 +217,50 @@ func (r *JobRunner) Next(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-// Loop claims and runs jobs until ctx ends or the token is revoked. The server
-// holds an empty claim open, so a healthy loop makes one call per hold.
+// Loop claims and runs up to MaxJobs jobs at once until ctx ends or the token is
+// revoked, then waits for the running ones. The server holds an empty claim open,
+// so a healthy loop makes one call per hold.
 func (r *JobRunner) Loop(ctx context.Context) error {
 	return r.loop(ctx, clock{sleep: sleepCtx, now: time.Now})
 }
 
 func (r *JobRunner) loop(ctx context.Context, clk clock) error {
 	r.CleanSessions(ctx)
-	backoff := minLoop
+	var (
+		wg      sync.WaitGroup
+		running atomic.Int32
+		// freed wakes the loop when a job ends and a slot opens.
+		freed   = make(chan struct{}, 1)
+		backoff = minLoop
+	)
+	defer wg.Wait()
 	for ctx.Err() == nil {
-		if r.Paused != nil && r.Paused() {
+		limit := r.maxJobs()
+		if (r.Paused != nil && r.Paused()) || r.claimsHeld(clk.now()) {
 			clk.sleep(ctx, minLoop)
 			continue
 		}
+		if int(running.Load()) >= limit {
+			select {
+			case <-freed:
+			case <-time.After(minLoop):
+			case <-ctx.Done():
+			}
+			continue
+		}
 		started := clk.now()
-		ran, err := r.Next(ctx)
+		job, err := r.API.ClaimJob(ctx, r.Token, limit)
 		switch {
 		case err == nil:
 			backoff = minLoop
-			if wait := minLoop - clk.now().Sub(started); !ran && wait > 0 {
+			if job != nil {
+				running.Add(1)
+				wg.Go(func() { r.runClaimed(ctx, job, &running, freed) })
+			} else if wait := minLoop - clk.now().Sub(started); wait > 0 {
 				clk.sleep(ctx, wait)
 			}
 		case ctx.Err() != nil:
-			return nil //nolint:nilerr // a stop is not a failure
+			return nil
 		case Unauthenticated(err):
 			return ErrRevoked
 		default:
@@ -218,6 +270,24 @@ func (r *JobRunner) loop(ctx context.Context, clk clock) error {
 		}
 	}
 	return nil
+}
+
+// runClaimed runs a claimed job beside the others, then frees its slot.
+func (r *JobRunner) runClaimed(
+	ctx context.Context,
+	job *ClaimedJob,
+	running *atomic.Int32,
+	freed chan<- struct{},
+) {
+	defer func() {
+		running.Add(-1)
+		select {
+		case freed <- struct{}{}:
+		default:
+		}
+	}()
+	r.run(ctx, job)
+	r.CleanSessions(ctx)
 }
 
 func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {

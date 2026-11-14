@@ -62,6 +62,7 @@ func newJobRunner(
 		},
 		Sandbox: box,
 		Paused:  a.notClaiming,
+		MaxJobs: a.maxJobs,
 		Mode:    a.mode,
 		Harness: runner.ClaudeCode{},
 		ClaudeToken: func() (string, error) {
@@ -101,6 +102,28 @@ func (a *app) mode() string {
 		return runner.ModeOff
 	}
 	return cfg.EffectiveMode()
+}
+
+// maxJobs is how many jobs run at once, read each time so the menu bar's choice
+// takes effect without a restart.
+func (a *app) maxJobs() int {
+	cfg, _, err := a.loadConfig()
+	if err != nil {
+		return 1
+	}
+	return cfg.EffectiveMaxJobs()
+}
+
+// setMaxJobsTo is the menu bar's choice, saved to the config.
+func (a *app) setMaxJobsTo(n int) error {
+	cfg, path, err := a.loadConfig()
+	if err != nil {
+		return err
+	}
+	if err = cfg.SetMaxJobs(n); err != nil {
+		return err
+	}
+	return cfg.Save(path)
 }
 
 // notClaiming is whether the claim loop stays idle: Stop, or no harness chosen.

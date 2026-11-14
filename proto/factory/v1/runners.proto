@@ -92,7 +92,11 @@ message ClaimedJob {
   string model = 14;
 }
 
-message ClaimJobRequest {}
+message ClaimJobRequest {
+  // How many jobs this runner may run at once; the server hands out a job only
+  // while fewer run. Unset or 0 means 1.
+  int32 max_jobs = 1;
+}
 message ClaimJobResponse {
   // Unset when no job was queued within the hold.
   ClaimedJob job = 1;

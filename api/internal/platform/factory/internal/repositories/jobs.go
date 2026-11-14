@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
+	"tools.xdoubleu.com/internal/kit/database"
 	"tools.xdoubleu.com/internal/kit/database/postgres"
 	"tools.xdoubleu.com/internal/platform/factory/internal/models"
 )
@@ -80,13 +82,49 @@ func (r *JobsRepository) ByTask(
 	return out, rows.Err()
 }
 
-// Claim starts the oldest queued job. Nothing queued, or a job already running
-// (the one-running index), is not found.
+// Claim starts the oldest queued job unless the runner already runs maxJobs;
+// both are not found. The runner's row is locked meanwhile, so its concurrent
+// claims count one another, and SKIP LOCKED keeps any two from taking one job.
 func (r *JobsRepository) Claim(
 	ctx context.Context,
 	runnerID uuid.UUID,
+	maxJobs int,
 ) (*models.Job, error) {
-	return scanJob(r.db.QueryRow(ctx, `
+	// A held claim polls: a runner already at its cap is turned away before it
+	// takes the row lock.
+	var running int
+	if err := r.db.QueryRow(ctx, `
+		SELECT count(*) FROM factory.jobs
+		WHERE status = 'running' AND runner_id = $1`, runnerID).Scan(&running); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	if running >= maxJobs {
+		return nil, database.ErrResourceNotFound
+	}
+
+	//nolint:exhaustruct // default tx options
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	// A lock taken in its own statement, so the count that follows sees the claim
+	// that held it.
+	if _, err = tx.Exec(ctx,
+		`SELECT 1 FROM factory.runners WHERE id = $1 FOR UPDATE`, runnerID,
+	); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	if err = tx.QueryRow(ctx, `
+		SELECT count(*) FROM factory.jobs
+		WHERE status = 'running' AND runner_id = $1`, runnerID).Scan(&running); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	if running >= maxJobs {
+		return nil, database.ErrResourceNotFound
+	}
+	job, err := scanJob(tx.QueryRow(ctx, `
 		UPDATE factory.jobs SET
 			status = 'running', started_at = now(), last_check_in = now(),
 			runner_id = $1
@@ -94,8 +132,14 @@ func (r *JobsRepository) Claim(
 			SELECT id FROM factory.jobs WHERE status = 'queued'
 			ORDER BY created_at, id LIMIT 1 FOR UPDATE SKIP LOCKED
 		)
-		AND NOT EXISTS (SELECT 1 FROM factory.jobs WHERE status = 'running')
 		RETURNING `+jobColumns, runnerID))
+	if err != nil {
+		return nil, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return job, nil
 }
 
 // OldestQueued returns the job that has waited longest for a runner; none queued

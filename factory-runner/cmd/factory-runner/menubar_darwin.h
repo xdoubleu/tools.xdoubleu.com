@@ -13,13 +13,18 @@ enum {
 	FRActionCheckUpdates = 2,
 	FRActionToggleLogin = 3,
 	FRActionQuit = 4,
+	// FRActionMaxJobs + n picks n jobs at once.
+	FRActionMaxJobs = 100,
 };
+
+// Most jobs the menu offers at once.
+#define FR_MAX_JOBS_CHOICES 8
 
 // Main thread only.
 bool frRunApp(void);
 void frBuildStatusItem(const void *icon, size_t iconLen, double iconSize);
 void frSetMenu(const char *header, const char *status, const char *beat,
-               const char *update, bool stopped, bool loginOn);
+               const char *update, bool stopped, bool loginOn, int maxJobs);
 
 // Any thread.
 void frTerminate(void);

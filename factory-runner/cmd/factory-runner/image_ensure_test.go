@@ -85,7 +85,7 @@ func testEnsureEnv(t *testing.T) {
 func testConfig(server, image string) runner.Config {
 	return runner.Config{
 		Server: server, Repos: nil, Image: image,
-		DataDir: "", GoModCache: "", NPMCache: "", BotEmail: "", Mode: "",
+		DataDir: "", GoModCache: "", NPMCache: "", BotEmail: "", Mode: "", MaxJobs: 0,
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"tools.xdoubleu.com/factory-runner/internal/runner"
@@ -13,7 +14,7 @@ import (
 
 var errConfigUsage = errors.New(
 	"usage: factory-runner config show | mode off|claude | server <url> | " +
-		"repos add|remove <owner/name> | repos list | image <ref> | " +
+		"repos add|remove <owner/name> | repos list | image <ref> | max-jobs <n> | " +
 		"data|gocache|npmcache <dir> | bot-email <address> | secret claude|openrouter",
 )
 
@@ -32,9 +33,12 @@ func (a *app) config(args []string) error {
 			cfg.Server, cfg.Repos, cfg.JobImage(), cfg.DataPath(a.home))
 		fmt.Fprintf(a.stdout, "gocache: %s\nnpmcache: %s\nbot-email: %s\nmode: %s\n",
 			orNone(cfg.GoModCache), orNone(cfg.NPMCache), cfg.AuthorEmail(), cfg.EffectiveMode())
+		fmt.Fprintf(a.stdout, "max-jobs: %d\n", cfg.EffectiveMaxJobs())
 		return nil
 	case verb == "mode" && len(rest) == 1:
 		err = a.setMode(&cfg, rest[0])
+	case verb == "max-jobs" && len(rest) == 1:
+		err = a.setMaxJobs(&cfg, rest[0])
 	case verb == "server" && len(rest) == 1:
 		err = cfg.SetServer(rest[0])
 	case verb == "image" && len(rest) == 1:
@@ -147,4 +151,14 @@ func (a *app) setMode(cfg *runner.Config, mode string) error {
 		return nil
 	}
 	return a.control.SetPaused(cfg.EffectiveMode() == runner.ModeOff)
+}
+
+// setMaxJobs sets how many jobs run at once; a running runner reads it at its
+// next claim.
+func (a *app) setMaxJobs(cfg *runner.Config, raw string) error {
+	n, err := strconv.Atoi(raw)
+	if err != nil {
+		return fmt.Errorf("max-jobs %q is not a number", raw)
+	}
+	return cfg.SetMaxJobs(n)
 }

@@ -744,7 +744,10 @@ func (x *ClaimedJob) GetModel() string {
 }
 
 type ClaimJobRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// How many jobs this runner may run at once; the server hands out a job only
+	// while fewer run. Unset or 0 means 1.
+	MaxJobs       int32 `protobuf:"varint,1,opt,name=max_jobs,json=maxJobs,proto3" json:"max_jobs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -777,6 +780,13 @@ func (x *ClaimJobRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ClaimJobRequest.ProtoReflect.Descriptor instead.
 func (*ClaimJobRequest) Descriptor() ([]byte, []int) {
 	return file_factory_v1_runners_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ClaimJobRequest) GetMaxJobs() int32 {
+	if x != nil {
+		return x.MaxJobs
+	}
+	return 0
 }
 
 type ClaimJobResponse struct {
@@ -1550,8 +1560,9 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\rmcp_client_id\x18\v \x01(\tR\vmcpClientId\x12*\n" +
 	"\x11mcp_client_secret\x18\f \x01(\tR\x0fmcpClientSecret\x12*\n" +
 	"\x11resume_session_id\x18\r \x01(\tR\x0fresumeSessionId\x12\x14\n" +
-	"\x05model\x18\x0e \x01(\tR\x05model\"\x11\n" +
-	"\x0fClaimJobRequest\"<\n" +
+	"\x05model\x18\x0e \x01(\tR\x05model\",\n" +
+	"\x0fClaimJobRequest\x12\x19\n" +
+	"\bmax_jobs\x18\x01 \x01(\x05R\amaxJobs\"<\n" +
 	"\x10ClaimJobResponse\x12(\n" +
 	"\x03job\x18\x01 \x01(\v2\x16.factory.v1.ClaimedJobR\x03job\"F\n" +
 	"\x0eCheckInRequest\x12\x15\n" +
