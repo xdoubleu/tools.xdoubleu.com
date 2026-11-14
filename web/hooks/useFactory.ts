@@ -10,6 +10,7 @@ import type {
   JobEvent,
   Harness,
   ListReposResponse,
+  ListRoutinesResponse,
   ListTasksResponse,
   TaskPriority,
   TaskStatus
@@ -43,6 +44,19 @@ export function useFactoryAgents() {
   const client = createServiceClient(AgentAccountService)
   return useSWR<ListAgentAccountsResponse, Error>(swrKeys.userManagementAgents, () =>
     client.listAgentAccounts({})
+  )
+}
+
+/** The routines with their newest job, refreshed while any job is on the way. */
+export function useFactoryRoutines() {
+  const client = createServiceClient(TaskService)
+  return useSWR<ListRoutinesResponse, Error>(
+    swrKeys.factoryRoutines,
+    () => client.listRoutines({}),
+    {
+      refreshInterval: (data) =>
+        data?.routines.some((r) => jobActive(r.lastJob)) ? JOB_POLL_MS : 0
+    }
   )
 }
 
@@ -136,6 +150,13 @@ export interface HarnessPick {
   model: string
 }
 
+export interface RoutineFields {
+  name: string
+  repoId: string
+  enabled: boolean
+  intervalMinutes: number
+}
+
 export interface RepoFields {
   owner: string
   name: string
@@ -204,6 +225,24 @@ export function useFactoryActions() {
     /** Cancels the task's queued or running job; the runner stops on its next check-in. */
     stop: async (taskId: string) => {
       await client.stopJob({ taskId })
+      await refresh()
+    },
+    /** Creates the routine or changes its flag and interval; a human in a browser only. */
+    saveRoutine: async (fields: RoutineFields) => {
+      await client.saveRoutine(fields)
+      await refresh()
+    },
+    /** Queues the routine's job now, even when it is disabled. */
+    runRoutine: async (name: string) => {
+      try {
+        await client.runRoutine({ name })
+      } finally {
+        await refresh()
+      }
+    },
+    /** Cancels the routine's queued or running job. */
+    stopRoutine: async (name: string) => {
+      await client.stopRoutine({ name })
       await refresh()
     },
     createRepo: async (repo: RepoFields) => {

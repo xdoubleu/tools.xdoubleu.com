@@ -29,7 +29,8 @@ func TestClaimJobReadsAJobOrNone(t *testing.T) {
 	job, err := c.ClaimJob(context.Background(), "frt_x", 2)
 	require.NoError(t, err)
 	assert.Equal(t, &runner.ClaimedJob{
-		ID: "j1", TaskID: "t1", RepoOwner: "o", RepoName: "n", DefaultBranch: "main",
+		Routine: "",
+		ID:      "j1", TaskID: "t1", RepoOwner: "o", RepoName: "n", DefaultBranch: "main",
 		Harness: runner.HarnessClaudeCode, Prompt: "p", Branch: "agent/x",
 		SetupCommands: "make", TimeLimitMinutes: 45,
 		MCPClientID: "agent-1", MCPClientSecret: "s3cret-value",

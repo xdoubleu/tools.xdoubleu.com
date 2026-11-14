@@ -31,6 +31,8 @@ type ClaimedJob struct {
 	ResumeSessionID string `json:"resumeSessionId"`
 	// Model is the OpenRouter model of an OpenCode job; empty for Claude Code.
 	Model string `json:"model"`
+	// Routine names the routine of a task-less job; TaskID is then empty.
+	Routine string `json:"routine"`
 }
 
 // JobAPI is the server side of running jobs.

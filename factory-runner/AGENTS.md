@@ -11,7 +11,7 @@ internal/runner/
   client.go, jobs_client.go   the server calls
   daemon.go, control.go       heartbeat loop; pause flag, status
   jobrunner.go                claim loop, `max_jobs`; prompt; Checks:/Blocked:
-  jobloop.go, pullstatus.go, gates.go  a job's attempts until merge; CI verdict
+  jobloop.go, pullstatus.go, gates.go, routines.go  attempts until merge; CI verdict; routines
   gitclone.go, hostcheck.go   mirror, clone; host checks
   events.go, publish.go       board log lines; push, open the PR
   harness.go, sandbox.go      Claude Code/OpenCode commands; Sandbox

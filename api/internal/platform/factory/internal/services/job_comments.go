@@ -30,6 +30,10 @@ func (s *JobService) AddProgressNote(
 	if job.RunnerID == nil || *job.RunnerID != runnerID {
 		return forbidden("the job was claimed by another runner")
 	}
+	if job.IsRoutine() {
+		// A routine has no task to comment on; the job's log has it.
+		return nil
+	}
 	body = strings.TrimSpace(strings.ReplaceAll(body, "\x00", ""))
 	if body == "" {
 		return badRequest("the note is empty")
