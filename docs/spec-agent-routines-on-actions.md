@@ -56,7 +56,7 @@ run with over 3x its 14-day average requests.
 
 The agent ends each run with a retro. It reports blockers and concrete waste
 from that run as `routine-feedback` board tasks, commenting on an open match
-instead of duplicating, at most 2 per run. An agent can't mark a task Ready, so
+instead of duplicating, at most 2 per run. Agents leave them in Backlog, so
 the owner triages them like any Backlog task. They hold no log excerpts or
 copied input text, since the inputs are untrusted.
 

@@ -64,9 +64,9 @@ func toolNames(t *testing.T, session *mcp.ClientSession) []string {
 	return names
 }
 
-// TestFactoryMCP_AgentWorksTheBoardButCannotMarkReady drives the tools through
+// TestFactoryMCP_AgentWorksTheBoardAndMarksReady drives the tools through
 // a real agent account: the token endpoint, /apps/mcp and the board.
-func TestFactoryMCP_AgentWorksTheBoardButCannotMarkReady(t *testing.T) {
+func TestFactoryMCP_AgentWorksTheBoardAndMarksReady(t *testing.T) {
 	admin := newAgentAdmin(t, models.RoleAdmin)
 	created := createAgent(t, admin, "board agent")
 	token, status := agentToken(t, created.Account.ClientId, created.ClientSecret)
@@ -94,7 +94,7 @@ func TestFactoryMCP_AgentWorksTheBoardButCannotMarkReady(t *testing.T) {
 
 	_, err = callAgentTool(t, session, "factory_move_task",
 		map[string]any{"id": id, "status": "ready"})
-	require.Error(t, err, "only a person in a browser marks a task Ready")
+	require.NoError(t, err)
 
 	moved, err := callAgentTool(t, session, "factory_move_task",
 		map[string]any{"id": id, "status": "in_review"})

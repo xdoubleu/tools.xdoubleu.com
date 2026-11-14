@@ -72,8 +72,8 @@ unless they say to proceed without a task.
   people and this session; the sandbox runner's prompt is the body only
   ([#2701](https://github.com/xdoubleu/tools.xdoubleu.com/issues/2701) decision
   15), so a plan it must follow belongs in the body.
-- **Claim:** `factory_move_task(id, "in_progress")`. You can't move a task
-  into Ready; that is the human's approval.
+- **Claim:** `factory_move_task(id, "in_progress")`. Moving a task
+  into Ready is the approval to start work; do it only when the owner said so.
 
 **GitHub-issue mode (until #2779 retires it):** `ready-issues-sweep`,
 `subissue-sweep` and `red-pr-repair` still work from GitHub issues. When the

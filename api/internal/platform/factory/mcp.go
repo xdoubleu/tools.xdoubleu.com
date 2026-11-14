@@ -56,7 +56,7 @@ type mcpCommentArgs struct {
 //nolint:lll // struct tags can't wrap
 type mcpMoveArgs struct {
 	ID     string `json:"id"     jsonschema:"task id, such as T-142"`
-	Status string `json:"status" jsonschema:"target column: backlog, in_progress, in_review, needs_you, testing or done; ready is refused"`
+	Status string `json:"status" jsonschema:"target column: backlog, in_progress, in_review, needs_you, testing or done"`
 }
 
 //nolint:lll // struct tags can't wrap
@@ -72,15 +72,15 @@ type mcpUpdateArgs struct {
 //nolint:lll // struct tags can't wrap
 type mcpMoveManyArgs struct {
 	IDs    []string `json:"ids"    jsonschema:"task ids such as T-142, at most 200"`
-	Status string   `json:"status" jsonschema:"target column: backlog, in_progress, in_review, needs_you, testing or done; ready is refused"`
+	Status string   `json:"status" jsonschema:"target column: backlog, in_progress, in_review, needs_you, testing or done"`
 }
 
 // maxBulkMove bounds one factory_move_tasks call.
 const maxBulkMove = 200
 
 // RegisterMCPTools exposes the board to agent accounts (docs/adr-0040). The
-// tools act as the agent; moving a task into Ready is refused by the service,
-// which only lets a human in a browser do that.
+// tools act as the agent, which may move a task into Ready; the move is
+// recorded as a comment.
 func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
 	t := &mcpTools{app: a}
 
@@ -108,7 +108,7 @@ func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
 			"the column.", t.updateTask)
 	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_move_tasks",
 		"Move many tasks to one column ("+statusNames+") and get back only the "+
-			"ids moved and the ones that failed. Moving into ready is refused.",
+			"ids moved and the ones that failed.",
 		t.moveTasks)
 }
 
@@ -117,7 +117,7 @@ type mcpTools struct {
 }
 
 // agentActor is the calling agent account as a board actor. It is never a
-// browser or an admin, so it can't pass the Ready guard.
+// browser or an admin.
 func agentActor(ctx context.Context) (models.Actor, error) {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil || user.Role != sharedmodels.RoleAgent {
@@ -442,9 +442,6 @@ func (t *mcpTools) moveTasks(
 	status := models.Status(args.Status)
 	if !status.Valid() {
 		return nil, errors.New("status must be one of " + statusNames)
-	}
-	if status == models.StatusReady {
-		return nil, errors.New("only a person in a browser can move a task to ready")
 	}
 	moved := make([]any, 0, len(args.IDs))
 	failed := []any{}
