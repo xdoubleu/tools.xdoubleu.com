@@ -47,3 +47,20 @@ func TestMux_OIDCSignIn(t *testing.T) {
 	))
 	assert.Equal(t, http.StatusFound, rec.Code)
 }
+
+func TestNewOIDCProvider(t *testing.T) {
+	//nolint:exhaustruct // only the OIDC settings matter
+	assert.Nil(t, newOIDCProvider(config.Config{OIDCSignIn: false}))
+
+	assert.Panics(t, func() {
+		//nolint:exhaustruct // only the OIDC settings matter
+		newOIDCProvider(config.Config{OIDCSignIn: true})
+	}, "on without an issuer and client")
+
+	//nolint:exhaustruct // only the OIDC settings matter
+	provider := newOIDCProvider(config.Config{
+		OIDCSignIn: true, OIDCIssuer: "https://id.test", OIDCClientID: "c",
+		OIDCClientSecret: "s", JWTSecret: "secret",
+	})
+	assert.NotNil(t, provider)
+}

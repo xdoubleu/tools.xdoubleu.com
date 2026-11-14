@@ -10,6 +10,7 @@ import (
 
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
+	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/platform/account"
 	"tools.xdoubleu.com/internal/platform/agentaccounts"
@@ -239,4 +240,17 @@ func (app *Application) oidc() *auth.OIDCProvider {
 		return nil
 	}
 	return app.auth.OIDC
+}
+
+// newOIDCProvider is the sign-in provider when OIDC_SIGN_IN is on, else nil.
+// A half-configured provider fails the boot rather than locking people out.
+func newOIDCProvider(cfg config.Config) *auth.OIDCProvider {
+	if !cfg.OIDCSignIn {
+		return nil
+	}
+	provider, err := auth.NewOIDCProvider(cfg)
+	if err != nil {
+		panic(err)
+	}
+	return provider
 }
