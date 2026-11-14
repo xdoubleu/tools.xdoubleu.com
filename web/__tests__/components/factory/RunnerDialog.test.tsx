@@ -59,7 +59,7 @@ describe('RunnerDialog', () => {
     expect(await screen.findByText('Runner created')).toBeInTheDocument()
     expect(screen.getByText('Pair the Mac with this code.')).toBeInTheDocument()
     expect(screen.getByLabelText('Pairing code')).toHaveValue('ABCDE-FGHJK')
-    expect(screen.getByText(/choose Pair… in the Factory Runner menu bar icon/)).toBeInTheDocument()
+    expect(screen.getByText(/in the Factory Runner menu bar icon and enter this code/)).toBeInTheDocument()
     expect(screen.getByText(/works once and expires in 10 minutes/)).toBeInTheDocument()
     expect(onClose).not.toHaveBeenCalled()
 

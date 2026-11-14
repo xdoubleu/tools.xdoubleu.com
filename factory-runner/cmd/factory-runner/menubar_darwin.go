@@ -187,8 +187,8 @@ func pair() {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), pairTimeout)
 		defer cancel()
-		code, server := strings.TrimSpace(code), strings.TrimSpace(server)
-		if err := ui.Pair(ctx, code, server); err != nil {
+		if err := ui.Pair(ctx, strings.TrimSpace(code),
+			strings.TrimSpace(server)); err != nil {
 			report("pair", err)
 			return
 		}
