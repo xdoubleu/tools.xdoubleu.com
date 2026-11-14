@@ -137,7 +137,7 @@ func (f *ConnectFlow) CallbackRoute() http.HandlerFunc {
 			return
 		}
 
-		http.Redirect( //nolint:gosec // WebURL is config; name is a known provider
+		http.Redirect(
 			w, r, f.Config.WebURL+"/monitoring/connections?oauth_connected="+name,
 			http.StatusFound,
 		)

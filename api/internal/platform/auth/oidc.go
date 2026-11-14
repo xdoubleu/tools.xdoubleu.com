@@ -170,7 +170,7 @@ func (p *OIDCProvider) Start(
 		oauth2.S256ChallengeOption(verifier),
 		oauth2.SetAuthURLParam("nonce", nonce),
 	)
-	//nolint:gosec,exhaustruct // Secure follows the environment
+	//nolint:gosec // Secure follows the environment
 	cookie := &http.Cookie{
 		Name:     oidcStateCookie,
 		Value:    signed,

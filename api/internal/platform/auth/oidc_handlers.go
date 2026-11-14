@@ -105,7 +105,7 @@ func (service *LocalService) OIDCCallbackHandler(
 		http.SetCookie(w, access)
 		http.SetCookie(w, refresh)
 		// The state cookie is single-use.
-		//nolint:gosec,exhaustruct // Secure follows the environment; expiry only
+		//nolint:gosec // Secure follows the environment
 		http.SetCookie(w, &http.Cookie{
 			Name: oidcStateCookie, MaxAge: -1, Path: "/",
 			HttpOnly: true, Secure: secure, SameSite: http.SameSiteLaxMode,

@@ -345,7 +345,9 @@ func TestOIDCCallbackHandler_UnlinkedSubjectGoesBackToSignIn(t *testing.T) {
 	rec := httptest.NewRecorder()
 	service.OIDCCallbackHandler(provider, "http://api.test")(rec, callback)
 
-	assert.Equal(t, "http://web.test/auth/sign-in?error=oidc", rec.Header().Get("Location"))
+	assert.Equal(
+		t, "http://web.test/auth/sign-in?error=oidc", rec.Header().Get("Location"),
+	)
 	assert.Empty(t, rec.Result().Cookies())
 }
 
@@ -406,7 +408,9 @@ func TestOIDCCallbackHandler_ProviderErrorGoesBackToSignIn(t *testing.T) {
 		rec,
 		httptest.NewRequest(http.MethodGet, OIDCCallbackPath+"?error=access_denied", nil),
 	)
-	assert.Equal(t, "http://web.test/auth/sign-in?error=oidc", rec.Header().Get("Location"))
+	assert.Equal(
+		t, "http://web.test/auth/sign-in?error=oidc", rec.Header().Get("Location"),
+	)
 }
 
 func TestIsLocalPath(t *testing.T) {
@@ -422,7 +426,6 @@ func TestECKey(t *testing.T) {
 	require.NoError(t, err)
 	enc := base64.RawURLEncoding.EncodeToString
 
-	//nolint:staticcheck // the coordinates are what a JWK carries
 	key, ok := ecKey("P-256", enc(priv.X.Bytes()), enc(priv.Y.Bytes()))
 	require.True(t, ok)
 	assert.True(t, key.Equal(&priv.PublicKey))
