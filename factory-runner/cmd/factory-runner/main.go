@@ -191,19 +191,39 @@ func (a *app) runDaemon(ctx context.Context) error {
 	})
 }
 
-// migrateLegacyInstall moves an install that runs the bare binary under
-// InstallDir into the app bundle notifications need, and reports whether the
-// LaunchAgent is being reloaded onto it so this process should exit. Once
-// running from the bundle it removes the bare binary. Failures are logged and
-// the runner carries on unbundled.
+// migrateLegacyInstall moves an older install (the bare binary, or the app under
+// InstallDir) into the one app in /Applications, and reports whether the
+// LaunchAgent is being reloaded onto it so this process should exit. Once the
+// LaunchAgent runs the installed app it removes the old copies; config and data
+// stay. When /Applications isn't writable it warns and carries on from where it
+// is.
 func (a *app) migrateLegacyInstall(ctx context.Context) bool {
 	legacy := runner.LegacyBinaryPath(a.home)
-	if filepath.Clean(a.execPath) != legacy {
-		if a.execPath == runner.InstalledBinaryPath(a.home) {
-			_ = os.Remove(legacy)
+	installed := runner.InstalledBinaryPath(a.home)
+	support := runner.SupportBinaryPath(a.home)
+	running := filepath.Clean(a.execPath)
+	switch {
+	case running == installed:
+		_ = os.Remove(legacy)
+		switch {
+		case installed == support:
+			fmt.Fprintln(a.stderr, "factory-runner: warning: /Applications is not "+
+				"writable; staying in "+runner.SupportBundlePath(a.home))
+		case runner.LaunchAgentRuns(a.home, installed):
+			if err := runner.RemoveSupportBundle(a.home); err != nil {
+				fmt.Fprintln(a.stderr, "factory-runner:", err)
+			}
 		}
 		return false
+	case running != support && running != legacy:
+		return false
 	}
+	return a.moveInto(ctx)
+}
+
+// moveInto installs this executable's app, repoints the LaunchAgent at it and
+// reloads, reporting whether the process should exit for the restart.
+func (a *app) moveInto(ctx context.Context) bool {
 	installed, err := a.installBinary(ctx)
 	if err == nil {
 		var plist string

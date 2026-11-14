@@ -48,9 +48,15 @@ without the server being able to push arbitrary code.
   check logs its outcome (newer release installed, none, failed, or no key in
   the build) to the LaunchAgent log and the menu bar → [adr-0049](adr-0049-factory-runner-menu-bar.md).
 - **`install` copies the app** (a bare binary gets a minimal bundle) to
-  `~/Library/Application Support/factory-runner/FactoryRunner.app` and runs the
-  LaunchAgent from the binary inside, so a download can be deleted and the update has
-  one file to replace. It has to be a bundle for macOS to show the runner's
+  `/Applications/FactoryRunner.app`, the only install, and runs the LaunchAgent from
+  the binary inside, so a download can be deleted and the update has one file to
+  replace. On start a copy under `~/Library/Application Support/factory-runner/`
+  (config and data stay there) is moved to `/Applications`, the LaunchAgent
+  repointed and reloaded, and the old copy removed once it runs from the new one.
+  If `/Applications` isn't writable the runner warns and keeps the old path.
+- **Old job images are pruned** at start (so after each self-update): every other
+  `factory-job:*` tag goes, except the current release's and any a container uses,
+  since several jobs run at once. Failures are logged, never fatal. It has to be a bundle for macOS to show the runner's
   notifications, so install and self-update re-seal it with an ad-hoc signature.
 - **Awake only while a job runs.** `Activity` holds `caffeinate -is -w <pid>` while
   any job runs. A closed lid stays awake only on AC power with an external display.
