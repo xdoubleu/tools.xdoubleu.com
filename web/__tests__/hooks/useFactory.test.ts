@@ -70,8 +70,6 @@ const repoFields = {
   owner: 'o',
   name: 'n',
   defaultBranch: 'main',
-  defaultHarness: 1,
-  defaultModel: '',
   autoPickup: false,
   setupCommands: 'make',
   agentInstructions: 'be nice',
