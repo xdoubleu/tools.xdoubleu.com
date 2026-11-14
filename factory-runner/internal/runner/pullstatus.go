@@ -58,7 +58,8 @@ type PullStatus struct {
 	State string
 	// HeadSHA is the commit the pull request is at.
 	HeadSHA string
-	// CI is CIPending until RequiredCheck has finished, then CISuccess or CIFailure.
+	// CI is CIPending until a check has failed or RequiredCheck has finished,
+	// then CISuccess or CIFailure.
 	CI string
 	// Failed lists the failed checks of a CIFailure.
 	Failed []CheckFailure
@@ -124,7 +125,8 @@ func (c *GitHubClient) PullRequestStatus(
 	return status, nil
 }
 
-// judge sets the CI state from ci-pass and lists what failed.
+// judge sets the CI state and lists what failed: a red check fails it at once while
+// ci-pass is unfinished, then ci-pass decides.
 func (c *GitHubClient) judge(
 	ctx context.Context,
 	repo, token string,
@@ -141,13 +143,15 @@ func (c *GitHubClient) judge(
 			red = append(red, r)
 		}
 	}
+	gateDone := gate != nil && gate.Status == "completed"
 	switch {
-	case gate == nil || gate.Status != "completed":
-		return
-	case !gate.failing():
+	case gateDone && !gate.failing():
 		status.CI = CISuccess
 		return
+	case len(red) == 0 && !gateDone:
+		return
 	}
+	// One red check is enough: the verdict does not wait for the rest to finish.
 	status.CI = CIFailure
 	if len(red) == 0 {
 		// ci-pass only says that something failed; with no other red check, it is

@@ -65,8 +65,8 @@ func TestCIIsPendingUntilCiPassHasFinished(t *testing.T) {
 		"no checks yet": `{"check_runs":[]}`,
 		"ci-pass queued": `{"check_runs":[{"id":1,"name":"ci-pass","status":"queued",` +
 			`"conclusion":null}]}`,
-		"others red, ci-pass not done": `{"check_runs":[{"id":2,"name":"api-test",` +
-			`"status":"completed","conclusion":"failure"}]}`,
+		"others green, ci-pass not done": `{"check_runs":[{"id":2,"name":"api-test",` +
+			`"status":"completed","conclusion":"success"}]}`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			c := githubServing(t, openPull, runs, "[]")
@@ -146,4 +146,18 @@ func TestAddJobCommentPostsTheNote(t *testing.T) {
 	})
 	require.NoError(t, c.AddJobComment(context.Background(), "frt_x", "j1", "Attempt 2"))
 	assert.JSONEq(t, `{"jobId":"j1","body":"Attempt 2"}`, body)
+}
+
+func TestOneRedCheckFailsCIWhileOthersAndCiPassArePending(t *testing.T) {
+	runs := `{"check_runs":[` +
+		`{"id":1,"name":"ci-pass","status":"queued","conclusion":null},` +
+		`{"id":2,"name":"web-test","status":"in_progress","conclusion":null},` +
+		`{"id":3,"name":"web-lint","status":"completed","conclusion":"failure",` +
+		`"output":{"title":"lint broke","summary":""}}]}`
+	c := githubServing(t, openPull, runs, "[]")
+	st, err := c.PullRequestStatus(context.Background(), "tok", pullRefOf())
+	require.NoError(t, err)
+	assert.Equal(t, runner.CIFailure, st.CI)
+	require.Len(t, st.Failed, 1)
+	assert.Equal(t, "web-lint", st.Failed[0].Name)
 }
