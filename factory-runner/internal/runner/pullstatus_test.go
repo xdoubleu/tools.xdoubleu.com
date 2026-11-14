@@ -161,3 +161,13 @@ func TestOneRedCheckFailsCIWhileOthersAndCiPassArePending(t *testing.T) {
 	require.Len(t, st.Failed, 1)
 	assert.Equal(t, "web-lint", st.Failed[0].Name)
 }
+
+func TestACancelledCheckIsNoEarlyVerdictWhileCiPassIsPending(t *testing.T) {
+	runs := `{"check_runs":[` +
+		`{"id":1,"name":"ci-pass","status":"in_progress","conclusion":null},` +
+		`{"id":2,"name":"web-test","status":"completed","conclusion":"cancelled"}]}`
+	c := githubServing(t, openPull, runs, "[]")
+	st, err := c.PullRequestStatus(context.Background(), "tok", pullRefOf())
+	require.NoError(t, err)
+	assert.Equal(t, runner.CIPending, st.CI)
+}

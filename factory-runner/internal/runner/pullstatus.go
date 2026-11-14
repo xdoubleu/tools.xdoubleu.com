@@ -144,6 +144,12 @@ func (c *GitHubClient) judge(
 		}
 	}
 	gateDone := gate != nil && gate.Status == "completed"
+	if !gateDone {
+		// A cancelled run may be replaced by a newer one, so it is no early verdict.
+		red = slices.DeleteFunc(red, func(r checkRun) bool {
+			return r.Conclusion == "cancelled"
+		})
+	}
 	switch {
 	case gateDone && !gate.failing():
 		status.CI = CISuccess
