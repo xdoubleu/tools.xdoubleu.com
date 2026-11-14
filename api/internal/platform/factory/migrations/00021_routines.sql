@@ -28,7 +28,8 @@ ALTER TABLE factory.jobs
 ADD COLUMN IF NOT EXISTS routine TEXT NOT NULL DEFAULT '';
 ALTER TABLE factory.jobs
 ADD CONSTRAINT jobs_task_xor_routine CHECK (
-    (task_id IS NULL) = (routine <> '')
+    (task_id IS NOT NULL AND routine = '')
+    OR (task_id IS NULL AND routine <> '')
 );
 
 -- A routine has at most one unfinished job, so missed runs coalesce.
