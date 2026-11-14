@@ -121,7 +121,8 @@ func TestCompleteJobSendsThePhaseTimings(t *testing.T) {
 			Succeeded: false, Outcome: "", SessionID: "", PRURL: "", Limited: false,
 			ResetsAt: time.Time{}, Blocked: "", Times: p, Total: 20 * time.Second,
 		}))
-	assert.Contains(t, body, `"timings":{"agentSeconds":2,"publishSeconds":3,`+
+	assert.Contains(t, body, `"timings":{"agentSeconds":2,"gatesSeconds":0,`+
+		`"publishSeconds":3,`+
 		`"ciSeconds":4,"mergeSeconds":5,"totalSeconds":20,"gateRetries":1,`+
 		`"ciRetries":2}`)
 }

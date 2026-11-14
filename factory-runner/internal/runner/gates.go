@@ -13,6 +13,7 @@ const (
 	gatesFile = ".factory/gates"
 	gateLimit = 20 * time.Minute
 	gateTail  = 3000
+	bashCmd   = "bash"
 )
 
 type hostGate struct{ prefix, command string }
@@ -64,7 +65,7 @@ func (l *jobLoop) runGates() string {
 		return ""
 	}
 	var diff bytes.Buffer
-	code, err := l.session.Exec(l.ctx, []string{"bash", "-c",
+	code, err := l.session.Exec(l.ctx, []string{bashCmd, "-c",
 		"git diff --name-only origin/main...HEAD || git ls-files"}, "", &diff)
 	changed := strings.Fields(diff.String())
 	if err != nil || code != 0 {
@@ -73,7 +74,7 @@ func (l *jobLoop) runGates() string {
 	for _, g := range gatesFor(gates, changed) {
 		ctx, cancel := context.WithTimeout(l.ctx, gateLimit)
 		var out bytes.Buffer
-		gateCode, runErr := l.session.Exec(ctx, []string{"bash", "-lc", g.command}, "", &out)
+		gateCode, runErr := l.session.Exec(ctx, []string{bashCmd, "-lc", g.command}, "", &out)
 		cancel()
 		if runErr == nil && gateCode == 0 {
 			continue

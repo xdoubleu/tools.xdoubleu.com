@@ -22,7 +22,7 @@ const (
 var (
 	jobPhaseSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "factory_job_phase_seconds",
-		Help:    "Time a finished job spent per phase (agent, publish, ci, merge).",
+		Help:    "Time a finished job spent per phase (agent, gates, publish, ci, merge).",
 		Buckets: []float64{10, 30, 60, 120, 300, 600, 1200, 1800, 3600, 7200},
 	}, []string{"phase"})
 	jobAttempts = promauto.NewCounterVec(prometheus.CounterOpts{
@@ -44,7 +44,8 @@ func (s *JobService) RecordTimings(
 	t models.JobTimings,
 	succeeded bool,
 ) error {
-	t.Agent, t.Publish = clampSeconds(t.Agent), clampSeconds(t.Publish)
+	t.Agent, t.Gates = clampSeconds(t.Agent), clampSeconds(t.Gates)
+	t.Publish = clampSeconds(t.Publish)
 	t.CI, t.Merge = clampSeconds(t.CI), clampSeconds(t.Merge)
 	t.Total = clampSeconds(t.Total)
 	t.GateRetries = clampRetries(t.GateRetries)
@@ -55,7 +56,8 @@ func (s *JobService) RecordTimings(
 	}
 	// A phase the job never reached would only pile up in the lowest bucket.
 	for phase, seconds := range map[string]float64{
-		"agent": t.Agent, "publish": t.Publish, "ci": t.CI, "merge": t.Merge,
+		"agent": t.Agent, "gates": t.Gates, "publish": t.Publish, "ci": t.CI,
+		"merge": t.Merge,
 	} {
 		if seconds > 0 {
 			jobPhaseSeconds.WithLabelValues(phase).Observe(seconds)

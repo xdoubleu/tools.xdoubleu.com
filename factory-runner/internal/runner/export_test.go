@@ -124,6 +124,7 @@ func NewPhaseTimings(
 	retries map[string]int,
 ) *phaseTimes {
 	return &phaseTimes{
-		agent: agent, publish: publish, ci: ci, merge: merge, retries: retries,
+		agent: agent, gates: 0, publish: publish, ci: ci, merge: merge,
+		retries: retries,
 	}
 }
