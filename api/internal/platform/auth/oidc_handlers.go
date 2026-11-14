@@ -63,6 +63,7 @@ func OIDCLoginHandler(provider *OIDCProvider) http.HandlerFunc {
 			return
 		}
 		http.SetCookie(w, cookie)
+		//nolint:gosec // authURL is the configured issuer's authorization endpoint
 		http.Redirect(w, r, authURL, http.StatusFound)
 	}
 }

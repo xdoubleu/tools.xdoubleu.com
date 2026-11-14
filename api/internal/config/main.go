@@ -262,6 +262,14 @@ func (c parser) envBool(key string, defaultValue bool) bool {
 	return value
 }
 
+// loadOIDC reads the settings of the provider people sign in through.
+func (c parser) loadOIDC(cfg *Config) {
+	cfg.OIDCSignIn = c.envBool("OIDC_SIGN_IN", false)
+	cfg.OIDCIssuer = c.envStr("OIDC_ISSUER", "")
+	cfg.OIDCClientID = c.envStr("OIDC_CLIENT_ID", "")
+	cfg.OIDCClientSecret = c.envSecret("OIDC_CLIENT_SECRET", "")
+}
+
 // loadMonitoring reads the Prometheus and Grafana settings.
 func (c parser) loadMonitoring(cfg *Config) {
 	cfg.PrometheusURL = c.envStr(
@@ -327,10 +335,7 @@ func New(logger *slog.Logger) Config {
 	cfg.OAuthOIDCPrivateKey = p.envSecret("OAUTH_OIDC_PRIVATE_KEY", "")
 	cfg.OAuthGrafanaClientSecret = p.envSecret("OAUTH_GRAFANA_CLIENT_SECRET", "")
 	cfg.OAuthRoutinesClientSecret = p.envSecret("OAUTH_ROUTINES_CLIENT_SECRET", "")
-	cfg.OIDCSignIn = p.envBool("OIDC_SIGN_IN", false)
-	cfg.OIDCIssuer = p.envStr("OIDC_ISSUER", "")
-	cfg.OIDCClientID = p.envStr("OIDC_CLIENT_ID", "")
-	cfg.OIDCClientSecret = p.envSecret("OIDC_CLIENT_SECRET", "")
+	p.loadOIDC(&cfg)
 	cfg.AuthIssuer = p.envStr("AUTH_ISSUER", "")
 	if cfg.AuthIssuer == "" {
 		cfg.AuthIssuer = cfg.APIURL

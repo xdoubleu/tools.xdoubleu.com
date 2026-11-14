@@ -48,3 +48,26 @@ func TestRepository_GetUnusedRecoveryCodes_Empty(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, codes)
 }
+
+func TestRepository_OIDCSubject(t *testing.T) {
+	db := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	t.Cleanup(db.Close)
+	repo := auth.NewRepository(db)
+	ctx := context.Background()
+
+	user, err := repo.CreateUser(ctx, uuid.NewString()+"@example.com", "hash")
+	require.NoError(t, err)
+	subject := uuid.NewString()
+
+	_, err = repo.GetUserByOIDCSubject(ctx, subject)
+	require.Error(t, err)
+
+	require.NoError(t, repo.SetOIDCSubject(ctx, user.ID, subject))
+	got, err := repo.GetUserByOIDCSubject(ctx, subject)
+	require.NoError(t, err)
+	assert.Equal(t, user.ID, got.ID)
+
+	other, err := repo.CreateUser(ctx, uuid.NewString()+"@example.com", "hash")
+	require.NoError(t, err)
+	require.Error(t, repo.SetOIDCSubject(ctx, other.ID, subject), "subjects are unique")
+}

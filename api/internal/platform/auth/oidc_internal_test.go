@@ -78,9 +78,9 @@ func newFakeIssuer(t *testing.T) *fakeIssuer {
 		}
 		tok := jwt.NewWithClaims(jwt.SigningMethodRS256, issuer.idClaims())
 		tok.Header["kid"] = "k1"
-		signed, err := tok.SignedString(key)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		signed, signErr := tok.SignedString(key)
+		if signErr != nil {
+			http.Error(w, signErr.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -195,8 +195,8 @@ func TestOIDCComplete_BadStateOrCode(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, target, nil)
 			req.AddCookie(cookie)
-			_, _, err := provider.Complete(req)
-			require.Error(t, err)
+			_, _, completeErr := provider.Complete(req)
+			require.Error(t, completeErr)
 		})
 	}
 
@@ -204,8 +204,8 @@ func TestOIDCComplete_BadStateOrCode(t *testing.T) {
 		req := httptest.NewRequest(
 			http.MethodGet, OIDCCallbackPath+"?code=good-code&state=x", nil,
 		)
-		_, _, err := provider.Complete(req)
-		require.Error(t, err)
+		_, _, completeErr := provider.Complete(req)
+		require.Error(t, completeErr)
 	})
 }
 
@@ -247,7 +247,7 @@ func newLinkedService(store usersStore) *LocalService {
 }
 
 func TestSignInWithOIDC(t *testing.T) {
-	store := &linkedStore{}
+	store := &linkedStore{usersStore: nil, refreshIssued: false}
 	service := newLinkedService(store)
 
 	access, refresh, err := service.SignInWithOIDC(context.Background(), testSubject)
@@ -261,7 +261,7 @@ func TestSignInWithOIDC(t *testing.T) {
 }
 
 func TestSignInWithOIDC_UnknownSubjectIsRefused(t *testing.T) {
-	store := &linkedStore{}
+	store := &linkedStore{usersStore: nil, refreshIssued: false}
 	service := newLinkedService(store)
 
 	access, refresh, err := service.SignInWithOIDC(context.Background(), "stranger")
@@ -277,7 +277,7 @@ func TestSignInWithOIDC_UnknownSubjectIsRefused(t *testing.T) {
 func TestOIDCHandlers_SignInRedirectsAndSetsSession(t *testing.T) {
 	issuer := newFakeIssuer(t)
 	provider := issuer.provider(t)
-	service := newLinkedService(&linkedStore{})
+	service := newLinkedService(&linkedStore{usersStore: nil, refreshIssued: false})
 
 	// Login redirects to the provider and sets the state cookie; an off-site
 	// return path falls back to the web home.
@@ -319,7 +319,7 @@ func TestOIDCHandlers_SignInRedirectsAndSetsSession(t *testing.T) {
 func TestOIDCCallbackHandler_UnlinkedSubjectGoesBackToSignIn(t *testing.T) {
 	issuer := newFakeIssuer(t)
 	provider := issuer.provider(t)
-	service := newLinkedService(&linkedStore{})
+	service := newLinkedService(&linkedStore{usersStore: nil, refreshIssued: false})
 
 	authURL, cookie, err := provider.Start(context.Background(), "/")
 	require.NoError(t, err)
@@ -350,7 +350,7 @@ func TestOIDCCallbackHandler_UnlinkedSubjectGoesBackToSignIn(t *testing.T) {
 func TestOIDCCallbackHandler_ReturnsToTheAuthorizeRequest(t *testing.T) {
 	issuer := newFakeIssuer(t)
 	provider := issuer.provider(t)
-	service := newLinkedService(&linkedStore{})
+	service := newLinkedService(&linkedStore{usersStore: nil, refreshIssued: false})
 
 	returnTo := "/oauth2/authorize?client_id=c&state=s"
 	authURL, cookie, err := provider.Start(context.Background(), returnTo)
@@ -381,4 +381,36 @@ func TestOIDCProvider_SignInURL(t *testing.T) {
 		OIDCLoginPath+"?redirect=%2Foauth2%2Fauthorize%3Fa%3Db",
 		provider.SignInURL("/oauth2/authorize?a=b"),
 	)
+}
+
+func TestOIDCLoginHandler_IssuerDown(t *testing.T) {
+	issuer := newFakeIssuer(t)
+	provider := issuer.provider(t)
+	issuer.ts.Close()
+
+	rec := httptest.NewRecorder()
+	OIDCLoginHandler(provider)(rec, httptest.NewRequest(
+		http.MethodGet, OIDCLoginPath+"?redirect=/books", nil,
+	))
+	assert.Equal(t, http.StatusBadGateway, rec.Code)
+}
+
+func TestOIDCCallbackHandler_ProviderErrorGoesBackToSignIn(t *testing.T) {
+	provider := newFakeIssuer(t).provider(t)
+	service := newLinkedService(&linkedStore{usersStore: nil, refreshIssued: false})
+
+	rec := httptest.NewRecorder()
+	service.OIDCCallbackHandler(provider, "http://api.test")(
+		rec,
+		httptest.NewRequest(http.MethodGet, OIDCCallbackPath+"?error=access_denied", nil),
+	)
+	assert.Equal(t, "http://web.test/auth/sign-in?error=oidc", rec.Header().Get("Location"))
+}
+
+func TestIsLocalPath(t *testing.T) {
+	assert.True(t, isLocalPath("/books"))
+	assert.False(t, isLocalPath(""))
+	assert.False(t, isLocalPath("//evil.test"))
+	assert.False(t, isLocalPath("/\\evil.test"))
+	assert.False(t, isLocalPath("https://evil.test"))
 }
