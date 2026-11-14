@@ -257,7 +257,7 @@ describe('MealPlanCalendar', () => {
     const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
     fireEvent.change(input, { target: { value: 'Past' } })
     fireEvent.mouseDown(screen.getByText('Pasta'))
-    fireEvent.change(screen.getByPlaceholderText('Servings'), {
+    fireEvent.change(screen.getByLabelText('Servings'), {
       target: { value: '4' }
     })
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
@@ -1039,7 +1039,7 @@ describe('MealPlanCalendar', () => {
       render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
       openAddDialog()
       fireEvent.click(screen.getByRole('button', { name: 'Pasta' }))
-      const servingsInput = screen.getByPlaceholderText('Servings')
+      const servingsInput = screen.getByLabelText('Servings')
       if (!(servingsInput instanceof HTMLInputElement)) throw new Error('expected input')
       expect(servingsInput.value).toBe('5')
     } finally {
