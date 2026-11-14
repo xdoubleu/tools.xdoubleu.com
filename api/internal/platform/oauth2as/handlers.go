@@ -324,3 +324,29 @@ func ConsentInfoHandler(
 		_ = json.NewEncoder(w).Encode(info)
 	}
 }
+
+// SignInURL is where a person without a session signs in, returning to
+// returnTo (a path on this api) afterwards.
+type SignInURL func(returnTo string) string
+
+// RequireSignIn sends an authorize request without a web session to signIn,
+// which returns to the same request, so consent starts from a signed-in
+// person. A nil signIn leaves next untouched: the web consent page then
+// handles sign-in itself.
+func RequireSignIn(
+	signIn SignInURL,
+	resolveUser SessionUserResolver,
+	next http.HandlerFunc,
+) http.HandlerFunc {
+	if signIn == nil {
+		return next
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := resolveUser(r); ok {
+			next(w, r)
+			return
+		}
+		returnTo := AuthorizePath + "?" + r.URL.RawQuery
+		http.Redirect(w, r, signIn(returnTo), http.StatusFound)
+	}
+}

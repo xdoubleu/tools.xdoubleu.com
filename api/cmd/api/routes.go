@@ -10,9 +10,11 @@ import (
 
 	"tools.xdoubleu.com/gen/books/v1/booksv1connect"
 	"tools.xdoubleu.com/gen/factory/v1/factoryv1connect"
+	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/kit/constants"
 	"tools.xdoubleu.com/internal/platform/account"
 	"tools.xdoubleu.com/internal/platform/agentaccounts"
+	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/communication/httptools"
 	"tools.xdoubleu.com/internal/platform/family"
 	platformmcp "tools.xdoubleu.com/internal/platform/mcp"
@@ -63,22 +65,25 @@ func (app *Application) mux() *http.ServeMux {
 	sessionUser := oauth2as.NewSessionUserResolver(app.auth, app.appUsersRepo)
 	delegator := oauth2as.NewAgentDelegator(agents, app.appUsersRepo)
 	metadata := oauth2as.MetadataHandler(app.config.AuthIssuer)
+	authorize := oauth2as.AuthorizeHandler(
+		app.oauth2as.Provider, app.config,
+		sessionUser, delegator,
+		app.oauth2as.OIDCKeyID(), app.logger,
+	)
+	var signIn oauth2as.SignInURL
+	if oidc := app.oidc(); oidc != nil {
+		signIn = oidc.SignInURL
+		mux.HandleFunc("GET "+auth.OIDCLoginPath, auth.OIDCLoginHandler(oidc))
+		mux.HandleFunc(
+			"GET "+auth.OIDCCallbackPath,
+			app.auth.OIDCCallbackHandler(oidc, app.config.AuthIssuer),
+		)
+	}
 	mux.HandleFunc(
 		"GET "+oauth2as.AuthorizePath,
-		oauth2as.AuthorizeHandler(
-			app.oauth2as.Provider, app.config,
-			sessionUser, delegator,
-			app.oauth2as.OIDCKeyID(), app.logger,
-		),
+		oauth2as.RequireSignIn(signIn, sessionUser, authorize),
 	)
-	mux.HandleFunc(
-		"POST "+oauth2as.AuthorizePath,
-		oauth2as.AuthorizeHandler(
-			app.oauth2as.Provider, app.config,
-			sessionUser, delegator,
-			app.oauth2as.OIDCKeyID(), app.logger,
-		),
-	)
+	mux.HandleFunc("POST "+oauth2as.AuthorizePath, authorize)
 	mux.HandleFunc(
 		"POST "+oauth2as.TokenPath,
 		oauth2as.TokenHandler(
@@ -227,4 +232,25 @@ func (app *Application) slackNotify() func(ctx context.Context, text string) {
 		return nil
 	}
 	return sender.Notify
+}
+
+// oidc is the OIDC sign-in provider, nil when people sign in by password.
+func (app *Application) oidc() *auth.OIDCProvider {
+	if app.auth == nil {
+		return nil
+	}
+	return app.auth.OIDC
+}
+
+// newOIDCProvider is the sign-in provider when OIDC_SIGN_IN is on, else nil.
+// A half-configured provider fails the boot rather than locking people out.
+func newOIDCProvider(cfg config.Config) *auth.OIDCProvider {
+	if !cfg.OIDCSignIn {
+		return nil
+	}
+	provider, err := auth.NewOIDCProvider(cfg)
+	if err != nil {
+		panic(err)
+	}
+	return provider
 }

@@ -797,3 +797,50 @@ func TestOAuth2Authorize_AcceptJSONLeavesUnredirectableErrorsAlone(t *testing.T)
 	assert.GreaterOrEqual(t, resp.StatusCode, http.StatusBadRequest)
 	assert.Empty(t, resp.Header.Get("Location"))
 }
+
+func TestRequireSignIn(t *testing.T) {
+	var reached bool
+	next := func(w http.ResponseWriter, _ *http.Request) {
+		reached = true
+		w.WriteHeader(http.StatusNoContent)
+	}
+	signIn := func(returnTo string) string {
+		return "/auth/oidc/login?redirect=" + url.QueryEscape(returnTo)
+	}
+	signedOut := func(_ *http.Request) (oauth2as.ResolvedUser, bool) {
+		return oauth2as.ResolvedUser{}, false //nolint:exhaustruct // not signed in
+	}
+	signedIn := func(_ *http.Request) (oauth2as.ResolvedUser, bool) {
+		return oauth2as.ResolvedUser{}, true //nolint:exhaustruct // any user
+	}
+	target := "/oauth2/authorize?client_id=c&state=s"
+
+	t.Run("no session goes through the OIDC sign-in", func(t *testing.T) {
+		reached = false
+		rec := httptest.NewRecorder()
+		oauth2as.RequireSignIn(signIn, signedOut, next)(
+			rec, httptest.NewRequest(http.MethodGet, target, nil),
+		)
+		assert.False(t, reached)
+		assert.Equal(t, http.StatusFound, rec.Code)
+		assert.Equal(t, signIn(target), rec.Header().Get("Location"))
+	})
+
+	t.Run("a session continues to consent", func(t *testing.T) {
+		reached = false
+		rec := httptest.NewRecorder()
+		oauth2as.RequireSignIn(signIn, signedIn, next)(
+			rec, httptest.NewRequest(http.MethodGet, target, nil),
+		)
+		assert.True(t, reached)
+	})
+
+	t.Run("OIDC off leaves the handler alone", func(t *testing.T) {
+		reached = false
+		rec := httptest.NewRecorder()
+		oauth2as.RequireSignIn(nil, signedOut, next)(
+			rec, httptest.NewRequest(http.MethodGet, target, nil),
+		)
+		assert.True(t, reached)
+	})
+}

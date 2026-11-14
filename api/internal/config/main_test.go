@@ -93,3 +93,18 @@ func TestNewHonorsOverrides(t *testing.T) {
 	require.Equal(t, 9001, cfg.Port)
 	assert.False(t, cfg.Throttle)
 }
+
+func TestNewReadsOIDCSignIn(t *testing.T) {
+	cfg := config.New(logging.NewNopLogger())
+	assert.False(t, cfg.OIDCSignIn)
+
+	t.Setenv("OIDC_SIGN_IN", "true")
+	t.Setenv("OIDC_ISSUER", "https://id.example.com")
+	t.Setenv("OIDC_CLIENT_ID", "api")
+	t.Setenv("OIDC_CLIENT_SECRET", "shh")
+	cfg = config.New(logging.NewNopLogger())
+	assert.True(t, cfg.OIDCSignIn)
+	assert.Equal(t, "https://id.example.com", cfg.OIDCIssuer)
+	assert.Equal(t, "api", cfg.OIDCClientID)
+	assert.Equal(t, "shh", cfg.OIDCClientSecret)
+}

@@ -368,6 +368,8 @@ OAUTH_ROUTINES_CLIENT_SECRET (static "routines" machine client secret for the
                               scheduled agent routines' client_credentials
                               grant; unset ⇒ that client can't authenticate.
                               Also an Actions secret in the agents environment)
+OIDC_CLIENT_SECRET           (client secret at the OIDC provider, Zitadel by
+                              default; only read when OIDC_SIGN_IN=true)
 GRAFANA_ADMIN_PASSWORD       (Grafana break-glass admin, GF_SECURITY_ADMIN_PASSWORD;
                               also given to api for get_grafana_alerts)
 STEAM_API_KEY

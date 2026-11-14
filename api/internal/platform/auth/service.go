@@ -75,6 +75,9 @@ type LocalService struct {
 	SignInRenderer SignInRenderFunc
 	// OAuth2TokenResolver may be nil: then only local session JWTs resolve.
 	OAuth2TokenResolver OAuth2TokenResolver
+	// OIDC is set by cmd/api when people sign in through an OIDC provider
+	// (adr-0051); nil keeps the password sign-in.
+	OIDC *OIDCProvider
 }
 
 var _ Service = (*LocalService)(nil)
@@ -107,6 +110,7 @@ func NewService(
 		resolveGroup:        singleflight.Group{},
 		SignInRenderer:      nil,
 		OAuth2TokenResolver: nil,
+		OIDC:                nil,
 	}
 }
 
