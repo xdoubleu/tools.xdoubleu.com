@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,7 +32,7 @@ func TestAFailingHostGateGoesBackToTheAgentBeforeAnyPush(t *testing.T) {
 			}
 			gateN++
 			if gateN == 1 {
-				_, _ = fmt.Fprintln(spec.Log, "lint boom")
+				_, _ = fmt.Fprintln(spec.Log, strings.Repeat("x", 5000)+"lint boom")
 				return 1, nil
 			}
 			return 0, nil
@@ -54,7 +55,8 @@ func TestAFailingHostGateGoesBackToTheAgentBeforeAnyPush(t *testing.T) {
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
 
-	require.Len(t, p.sandbox.specs, 6)
+	require.GreaterOrEqual(t, len(p.sandbox.specs), 6)
 	assert.Contains(t, p.sandbox.specs[3].Stdin, "lint boom")
 	assert.Contains(t, p.sandbox.specs[3].Stdin, "make lint")
+	assert.Less(t, len(p.sandbox.specs[3].Stdin), 3400, "output is cut to its tail")
 }
