@@ -94,6 +94,13 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`otherwise file one with factory_create_task ` +
 	`titled "Sandbox: <short problem>". Then carry on as far as you can, and ` +
 	`add one line "Blocked: <the problem>" to the outcome. ` +
+	`If the gap is a missing tool, also fix it: on a separate local branch ` +
+	`agent/sandbox-<slug> off the repository's default branch, commit a change ` +
+	`to factory-runner/Containerfile only, pinning every install to an ` +
+	`explicit version (apt pkg=ver, npm name@x.y.z, pip name==x.y.z, or a ` +
+	`versioned download URL), switch back to your job branch, and add the ` +
+	`line "Sandbox-fix: agent/sandbox-<slug>" to the outcome. The runner ` +
+	`opens that as its own pull request and refuses any other change. ` +
 	`For a task labelled feature, also run the feature-review gate ` +
 	`(docs/convention-feature-review-policy.md): diff-scoped mutation tests ` +
 	`and a code review with findings applied, then add the line ` +
@@ -465,6 +472,7 @@ func (r *JobRunner) execute(ctx context.Context, job *ClaimedJob) result {
 		session: nil, limit: r.limitFor(job), token: "", tokenAt: time.Time{},
 		times: phaseTimes{agent: 0, publish: 0, ci: 0, merge: 0}, greenAt: time.Time{},
 		began: time.Time{}, causes: nil,
+		sandboxFixed: false,
 	}
 	res := loop.run()
 	cancel()

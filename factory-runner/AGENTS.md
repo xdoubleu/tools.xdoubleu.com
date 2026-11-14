@@ -27,6 +27,7 @@ The server is untrusted; each job needs UUID ids, an allowlisted repo, an `agent
 
 - A Reply's job restores the task's pushed branch and resumes its session; only new commits are host-checked.
 - The agent owns the clone (it can write `.git/hooks` and `.git/config`), so the host runs git there only with `-c core.hooksPath=/dev/null` and a clean config.
+- A `Sandbox-fix: agent/sandbox-<slug>` outcome line names a second branch; the host publishes it as its own auto-merging PR only if it changes just `factory-runner/Containerfile` with every install pinned (`sandboxfix.go`), else notes why. Standing exception in [`convention-unattended-agent-trust`](../docs/convention-unattended-agent-trust.md).
 - Each attempt is host-checked: real commits, no secret. A pass is pushed and opened as a PR → [`adr-0045`](../docs/adr-0045-factory-github-app.md).
 - The device token lives only in the keychain.
 
