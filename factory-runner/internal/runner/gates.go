@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -25,7 +23,8 @@ func parseGates(text string) []hostGate {
 	for _, line := range strings.Split(text, "\n") {
 		line = strings.TrimSpace(line)
 		prefix, command, ok := strings.Cut(line, "|")
-		if line == "" || strings.HasPrefix(line, "#") || !ok {
+		if line == "" || strings.HasPrefix(line, "#") || !ok ||
+			strings.TrimSpace(prefix) == "" {
 			continue
 		}
 		gates = append(gates, hostGate{prefix: strings.TrimSpace(prefix),
@@ -52,7 +51,11 @@ func gatesFor(gates []hostGate, changed []string) []hostGate {
 // runGates runs the repo's matching gates in the job VM, returning the first
 // failure's feedback for the agent, or "" when all pass or none are defined.
 func (l *jobLoop) runGates() string {
-	raw, err := os.ReadFile(filepath.Join(l.dirs.clone, gatesFile))
+	began := l.now()
+	defer func() { l.times.gates += l.now().Sub(began) }()
+	// The base branch's list, so the agent cannot edit its own gates away.
+	raw, err := l.r.Git.git(l.ctx, l.dirs.clone, "cat-file", "blob",
+		"origin/main:"+gatesFile)
 	if err != nil {
 		return ""
 	}
@@ -60,8 +63,6 @@ func (l *jobLoop) runGates() string {
 	if len(gates) == 0 {
 		return ""
 	}
-	began := l.now()
-	defer func() { l.times.gates += l.now().Sub(began) }()
 	var diff bytes.Buffer
 	code, err := l.session.Exec(l.ctx, []string{"bash", "-c",
 		"git diff --name-only origin/main...HEAD || git ls-files"}, "", &diff)
@@ -76,6 +77,9 @@ func (l *jobLoop) runGates() string {
 		cancel()
 		if runErr == nil && gateCode == 0 {
 			continue
+		}
+		if l.ended() != "" {
+			return ""
 		}
 		tail := strings.ToValidUTF8(out.String(), "")
 		if len(tail) > gateTail {

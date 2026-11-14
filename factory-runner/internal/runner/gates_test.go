@@ -3,6 +3,7 @@ package runner_test
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -36,9 +37,19 @@ func TestAFailingHostGateGoesBackToTheAgentBeforeAnyPush(t *testing.T) {
 			return 0, nil
 		}
 		agentN++
-		commitFile(spec.CloneDir, ".factory/gates", "api/ | make lint\n")
 		return agentRuns("Try"+passAll, true)(agentN, spec), nil
 	})
+
+	p.runner.Git.Run = func(
+		ctx context.Context, dir string, args ...string,
+	) ([]byte, error) {
+		if len(args) > 0 && args[0] == "cat-file" {
+			return []byte("api/ | make lint\n"), nil
+		}
+		cmd := exec.CommandContext(ctx, "git", args...)
+		cmd.Dir = dir
+		return cmd.CombinedOutput()
+	}
 
 	_, err := p.runner.Next(context.Background())
 	require.NoError(t, err)
