@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -84,7 +85,7 @@ func (s *JobService) PushToken(
 		return githubapp.Token{}, err
 	}
 	if err != nil {
-		return githubapp.Token{}, ErrGitHubFailed
+		return githubapp.Token{}, fmt.Errorf("%w: %w", ErrGitHubFailed, err)
 	}
 	return token, nil
 }
