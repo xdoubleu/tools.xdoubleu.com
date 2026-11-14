@@ -184,7 +184,7 @@ describe('MealPlanCalendar', () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     openAddDialog()
     fireEvent.click(screen.getByRole('tab', { name: 'Recipe' }))
-    expect(screen.getByPlaceholderText(/recipe name or custom meal/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/recipe name/i)).toBeInTheDocument()
   })
 
   it('adds meal with recipeId when recipe selected from combobox', async () => {
@@ -199,7 +199,7 @@ describe('MealPlanCalendar', () => {
     )
     openAddDialog()
     fireEvent.click(screen.getByRole('tab', { name: 'Recipe' }))
-    const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
+    const input = screen.getByPlaceholderText(/recipe name/i)
     fireEvent.change(input, { target: { value: 'Past' } })
     fireEvent.mouseDown(screen.getByText('Pasta'))
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
@@ -254,10 +254,10 @@ describe('MealPlanCalendar', () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     openAddDialog()
     fireEvent.click(screen.getByRole('tab', { name: 'Recipe' }))
-    const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
+    const input = screen.getByPlaceholderText(/recipe name/i)
     fireEvent.change(input, { target: { value: 'Past' } })
     fireEvent.mouseDown(screen.getByText('Pasta'))
-    fireEvent.change(screen.getByPlaceholderText('Servings'), {
+    fireEvent.change(screen.getByLabelText('Servings'), {
       target: { value: '4' }
     })
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
@@ -284,7 +284,7 @@ describe('MealPlanCalendar', () => {
     )
     openAddDialog()
     fireEvent.click(screen.getByRole('tab', { name: 'Recipe' }))
-    const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
+    const input = screen.getByPlaceholderText(/recipe name/i)
     fireEvent.change(input, { target: { value: 'Past' } })
     fireEvent.mouseDown(screen.getByText('Pasta'))
     fireEvent.keyDown(input, { key: 'Enter' })
@@ -1039,7 +1039,7 @@ describe('MealPlanCalendar', () => {
       render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
       openAddDialog()
       fireEvent.click(screen.getByRole('button', { name: 'Pasta' }))
-      const servingsInput = screen.getByPlaceholderText('Servings')
+      const servingsInput = screen.getByLabelText('Servings')
       if (!(servingsInput instanceof HTMLInputElement)) throw new Error('expected input')
       expect(servingsInput.value).toBe('5')
     } finally {

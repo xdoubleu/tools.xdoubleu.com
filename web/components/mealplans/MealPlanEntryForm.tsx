@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/components/ui/link'
 import { Input } from '@/components/ui/input'
+import { Field } from '@/components/ui/field'
 import { Select } from '@/components/ui/select'
 import { Card } from '@/components/ui/card'
 import { RemoveButton } from '@/components/ui/remove-button'
@@ -62,6 +63,12 @@ export default function MealPlanEntryForm({
   const [tab, setTab] = useState<Tab>(initialTab)
   const [recipeId, setRecipeId] = useState(initialRecipeId)
   const [servings, setServings] = useState(initialServings)
+  // Draft text so the field can be cleared while typing; `servings` keeps the last valid value.
+  const [servingsText, setServingsText] = useState(String(initialServings))
+  const [typedName, setTypedName] = useState(
+    () => recipes.find((r) => r.id === initialRecipeId)?.name ?? ''
+  )
+  const [recipeError, setRecipeError] = useState('')
   // Remounts RecipeCombobox so a suggestion chip's name shows in the input.
   const [comboboxKey, setComboboxKey] = useState(0)
   const [customItems, setCustomItems] = useState<CustomItem[]>(() => {
@@ -106,8 +113,19 @@ export default function MealPlanEntryForm({
   const handleSave = async () => {
     if (saving) return
     if (tab === 'recipe') {
-      if (!recipeId) return
-      onSave(recipeId, '', servings, false)
+      // A tap on Add can land before the combobox's blur snap, so resolve the typed name here.
+      const name = typedName.trim().toLowerCase()
+      const resolvedId =
+        recipeId || recipes.find((r) => r.name.trim().toLowerCase() === name)?.id || ''
+      if (!resolvedId) {
+        setRecipeError(
+          name
+            ? 'No recipe with that name. Pick one from the list, or use the Custom tab.'
+            : 'Pick a recipe.'
+        )
+        return
+      }
+      onSave(resolvedId, '', servings, false)
     } else {
       const joined = encodeCustomItems(customItems)
       if (!joined) return
@@ -126,6 +144,9 @@ export default function MealPlanEntryForm({
   const selectSuggestion = (suggestion: MealSuggestion) => {
     setRecipeId(suggestion.recipe.id)
     setServings(suggestion.servings)
+    setServingsText(String(suggestion.servings))
+    setTypedName(suggestion.recipe.name)
+    setRecipeError('')
     setComboboxKey((k) => k + 1)
   }
 
@@ -196,20 +217,35 @@ export default function MealPlanEntryForm({
               key={comboboxKey}
               recipes={recipes}
               initialValue={recipes.find((r) => r.id === recipeId)?.name || ''}
-              onSelect={(id) => setRecipeId(id)}
-              autoFocus
+              onSelect={(id) => {
+                setRecipeId(id)
+                setRecipeError('')
+              }}
+              onTextChange={(text) => {
+                setTypedName(text)
+                setRecipeError('')
+              }}
+              error={recipeError}
+              // Suggestion chips are the quick path; don't open the keyboard over them.
+              autoFocus={suggestedRecipes.length === 0}
               onEnter={handleSave}
             />
-            <Input
-              type="number"
-              inputMode="numeric"
-              min="1"
-              value={servings}
-              onChange={(e) => setServings(parseInt(e.target.value, 10))}
-              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-              aria-label="Servings"
-              placeholder="Servings"
-            />
+            <Field label="Servings" htmlFor="meal-entry-servings">
+              <Input
+                id="meal-entry-servings"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                value={servingsText}
+                onChange={(e) => {
+                  setServingsText(e.target.value)
+                  const n = parseInt(e.target.value, 10)
+                  if (n >= 1) setServings(n)
+                }}
+                onBlur={() => setServingsText(String(servings))}
+                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              />
+            </Field>
             {draftRecipe && (
               <Alert tone="warn">
                 {draftRecipe.name} is a draft. Double-check its ingredients and steps before
