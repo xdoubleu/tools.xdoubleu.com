@@ -38,8 +38,9 @@ func New(
 			events: repos.Events, accounts: accounts, github: github, release: release,
 			deploys: newDeployCache(), now: time.Now,
 			say: say, runners: repos.Runners, settings: repos.Settings,
-			linked:    repos.Linked,
-			offlineMu: sync.Mutex{}, alertedOffline: uuid.Nil,
+			linked:      repos.Linked,
+			imageDigest: nil,
+			offlineMu:   sync.Mutex{}, alertedOffline: uuid.Nil,
 		},
 	}
 }

@@ -229,6 +229,18 @@ func (r *TasksRepository) Move(
 		SELECT `+getColumns+` FROM t`, id, status))
 }
 
+// SetLabels replaces a task's labels without touching anything else.
+func (r *TasksRepository) SetLabels(
+	ctx context.Context,
+	id uuid.UUID,
+	labels []string,
+) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE factory.tasks SET labels = $2, updated_at = now() WHERE id = $1`,
+		id, labels)
+	return err
+}
+
 // SetMergeSHA records the commit a task's pull request merged as.
 func (r *TasksRepository) SetMergeSHA(
 	ctx context.Context,
