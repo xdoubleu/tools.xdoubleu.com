@@ -5,7 +5,7 @@
 CREATE TABLE IF NOT EXISTS factory.routines (
     name TEXT PRIMARY KEY,
     repo_id UUID NOT NULL REFERENCES factory.repos (id),
-    enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    enabled BOOLEAN NOT NULL DEFAULT false,
     -- Minutes between scheduled runs; 0 means manual runs only.
     interval_minutes INT NOT NULL DEFAULT 0 CHECK (interval_minutes >= 0),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -13,10 +13,10 @@ CREATE TABLE IF NOT EXISTS factory.routines (
 
 -- The no-op routine proves the path end to end: manual runs only, off until a
 -- human enables it.
-INSERT INTO factory.routines (name, repo_id)
+INSERT INTO factory.routines (repo_id, name)
 SELECT
-    'noop',
-    id
+    id,
+    'noop'
 FROM factory.repos
 WHERE owner = 'xdoubleu' AND name = 'tools.xdoubleu.com'
 ON CONFLICT (name) DO NOTHING;
