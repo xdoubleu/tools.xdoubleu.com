@@ -16,6 +16,8 @@ import (
 const (
 	// DefaultPollEvery is how often a job's open pull request is read.
 	DefaultPollEvery = time.Minute
+	// DefaultRunningPollEvery is how often it is read while checks are still running.
+	DefaultRunningPollEvery = 20 * time.Second
 	// DefaultMaxWatch is how long a pull request may stay unmerged before the job
 	// gives up on it.
 	DefaultMaxWatch = 6 * time.Hour
@@ -321,7 +323,8 @@ func (l *jobLoop) watch(res result, text string) step {
 		if why := l.ended(); why != "" {
 			return l.finish(res, why, text)
 		}
-		if st, err := l.status(ref); err != nil {
+		st, err := l.status(ref)
+		if err != nil {
 			l.r.Log.Warn("could not read the pull request", "job", l.job.ID,
 				"error", scrub(err.Error(), l.token))
 		} else if s, over := l.judge(res, text, st); over {
@@ -331,8 +334,16 @@ func (l *jobLoop) watch(res result, text string) step {
 			return l.finish(res, "The pull request was not merged within "+
 				cmp.Or(l.r.MaxWatch, DefaultMaxWatch).String()+".", text)
 		}
-		l.sleep(cmp.Or(l.r.PollEvery, DefaultPollEvery))
+		l.sleep(l.pollEvery(st))
 	}
+}
+
+// pollEvery polls fast while checks run and slowly once they are green.
+func (l *jobLoop) pollEvery(st PullStatus) time.Duration {
+	if st.State == PullOpen && st.CI == CIPending {
+		return cmp.Or(l.r.RunningPollEvery, DefaultRunningPollEvery)
+	}
+	return cmp.Or(l.r.PollEvery, DefaultPollEvery)
 }
 
 // judge is what a pull request's status means for the job; over says it does.

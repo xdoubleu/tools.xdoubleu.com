@@ -418,3 +418,26 @@ func countOf(steps []string, name string) int {
 	}
 	return n
 }
+
+func TestWatchPollsFastWhileChecksRunAndSlowerOnceGreen(t *testing.T) {
+	p := newPublishing(t, attempts(agentRuns("Did it"+passAll, true)))
+	p.runner.PollEvery = 7 * time.Millisecond
+	p.runner.RunningPollEvery = 3 * time.Millisecond
+	p.gh.head = cloneHead(t, p)
+	p.gh.statuses = []runner.PullStatus{
+		{State: runner.PullOpen, HeadSHA: "", CI: runner.CIPending, Failed: nil},
+		{State: runner.PullOpen, HeadSHA: "", CI: runner.CISuccess, Failed: nil},
+		{State: runner.PullMerged, HeadSHA: "", CI: "", Failed: nil},
+	}
+
+	_, err := p.runner.Next(context.Background())
+	require.NoError(t, err)
+
+	var polls []time.Duration
+	for _, d := range p.api.sleeps {
+		if d == 3*time.Millisecond || d == 7*time.Millisecond {
+			polls = append(polls, d)
+		}
+	}
+	assert.Equal(t, []time.Duration{3 * time.Millisecond, 7 * time.Millisecond}, polls)
+}

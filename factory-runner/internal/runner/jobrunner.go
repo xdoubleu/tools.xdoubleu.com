@@ -136,7 +136,9 @@ type JobRunner struct {
 	// long it may stay unmerged before the job gives up; zero means PollEvery
 	// (a minute) and MaxWatch (six hours).
 	PollEvery time.Duration
-	MaxWatch  time.Duration
+	// RunningPollEvery is the read interval while checks run; zero means 20s.
+	RunningPollEvery time.Duration
+	MaxWatch         time.Duration
 	// Sleep and Now are the clock a job's waits use; nil means sleepCtx and
 	// time.Now. Tests replace them.
 	Sleep func(context.Context, time.Duration)
