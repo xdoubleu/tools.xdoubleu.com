@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #1301, #1364, #1376, #1632, #1868, T-300, T-301
-- Affects: `tools/diff_coverage_ts.py`, `tools/diff_coverage_go.py`, `tools/merge_coverage.py`, `api/Makefile`, `.github/workflows/*-test.yml`, `web/package.json`
+- Affects: `diff-coverage/` (staged module), `tools/diff_coverage_ts.py`, `tools/diff_coverage_go.py`, `tools/merge_coverage.py`, `api/Makefile`, `.github/workflows/*-test.yml`, `web/package.json`
 
 ## Context
 
