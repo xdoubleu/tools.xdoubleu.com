@@ -80,6 +80,10 @@ lint/cross-schema:
 	./scripts/test_check_cross_schema.sh
 	./scripts/check_cross_schema.sh
 
+lint/scalar-subqueries:
+	./scripts/test_check_scalar_subqueries.sh
+	./scripts/check_scalar_subqueries.sh
+
 lint/proto-local-versions:
 	./scripts/check_proto_local_versions.sh
 
@@ -102,6 +106,7 @@ lint: tools/lint
 	make lint/migrations
 	make lint/kamal-secrets
 	make lint/cross-schema
+	make lint/scalar-subqueries
 	make lint/proto-local-versions
 
 lint/pkg: tools/lint
@@ -169,6 +174,11 @@ test:
 
 test/v:
 	TZ=UTC go test -p 1 ./... -v
+
+# Every read of an app on production-shaped data (one PR on several tasks, ...):
+# fails on any error. The seed lives in internal/platform/factory/messyseed.
+test/reads:
+	TZ=UTC go test -p 1 -count=1 -run TestMessyReads ./...
 
 test/race:
 	TZ=UTC go test -p 1 ./... -race -v
