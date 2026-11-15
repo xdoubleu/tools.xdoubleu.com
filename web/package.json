@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:cov": "vitest run --coverage",
     "test:eslint-rules": "node --test 'eslint-rules/*.test.mjs'",
-    "test:cov:diff": "vitest run --coverage && python3 ../tools/diff_coverage_ts.py coverage/lcov.info",
+    "test:cov:diff": "vitest run --coverage && ../scripts/diff_coverage.sh lcov coverage/lcov.info",
     "test:single": "vitest run",
     "test:mutation": "stryker run",
     "test:mutation:diff": "bash scripts/test-mutation-diff.sh",

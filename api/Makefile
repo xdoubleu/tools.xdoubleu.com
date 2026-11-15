@@ -230,7 +230,7 @@ ifndef COV_REUSE
 		|| { grep -v -e '^ok ' -e 'no test files' -e '^coverage:' $(COVERAGE).log; echo "tests failed (full log: $(COVERAGE).log)"; exit 1; }
 	@$(MAKE) --no-print-directory test/cov/merge > /dev/null
 endif
-	@python3 ../tools/diff_coverage_go.py $(COVERAGE)
+	@../scripts/diff_coverage.sh go $(COVERAGE)
 
 test/cov/open:
 	open ./coverage.html
@@ -275,7 +275,7 @@ test/cov/per-pkg:
 	go test ./internal/contacts \
 		-coverpkg=./internal/contacts \
 		-covermode=set -count=1 -coverprofile=cov_internal_contacts.out
-	python3 ../tools/merge_coverage.py \
+	../scripts/diff_coverage.sh merge \
 		cov_todos_pkg.out cov_todos_internal.out \
 		cov_games_pkg.out cov_games_internal.out \
 		cov_books_pkg.out cov_books_internal.out \

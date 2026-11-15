@@ -27,5 +27,5 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           for dir in factory-runner selfupdate; do
-            (cd "$dir" && python3 ../tools/diff_coverage_go.py coverage.out)
+            (cd "$dir" && ../scripts/diff_coverage.sh go coverage.out)
           done
