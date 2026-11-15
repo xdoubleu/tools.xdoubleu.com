@@ -120,3 +120,32 @@ func (c countBeat) Heartbeat(context.Context, string) error {
 func (countBeat) Pair(context.Context, string) (string, string, error) {
 	return "", "", nil
 }
+
+type failBeat struct{ n *atomic.Int32 }
+
+func (f failBeat) Heartbeat(context.Context, string) error {
+	f.n.Add(1)
+	return errors.New("offline")
+}
+
+func (failBeat) Pair(context.Context, string) (string, string, error) {
+	return "", "", nil
+}
+
+func TestAwaitRestartStopsWithItsContextAfterAFailedHeartbeat(t *testing.T) {
+	e := newEnv(t)
+	var beats atomic.Int32
+	e.app.newBeat = func(string) pairHeartbeater { return failBeat{&beats} }
+	ctx, stop := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		e.app.awaitRestart(ctx, "s", "tok")
+		close(done)
+	}()
+	for beats.Load() == 0 {
+		time.Sleep(time.Millisecond)
+	}
+	stop()
+	<-done
+	assert.Positive(t, beats.Load())
+}
