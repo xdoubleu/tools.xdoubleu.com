@@ -44,6 +44,10 @@ func (f *fakeZitadel) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"message":"nope"}`))
 		return
 	}
+	if key == "POST /v2/users" {
+		_, _ = w.Write([]byte(`{"result":[{"userId":"zid-existing"}]}`))
+		return
+	}
 	if key == "POST /v2/users/human" {
 		_, _ = w.Write([]byte(`{"userId":"zid-1"}`))
 		return
@@ -181,4 +185,67 @@ func TestUnreachable(t *testing.T) {
 	client := zitadel.New(cfgFor(srv.URL, "pat"))
 
 	require.Error(t, client.SendInvite(context.Background(), "x"))
+}
+
+func TestImportHumanCarriesCredentials(t *testing.T) {
+	client, fake := newClient(t)
+
+	id, err := client.ImportHuman(
+		context.Background(), "ada@example.com", "Ada L", "$2a$10$hash", "BASE32",
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, "zid-1", id)
+	body := fake.bodies["POST /v2/users/human"]
+	assert.Equal(t, "BASE32", body["totpSecret"])
+	assert.Equal(t, map[string]any{
+		"hashedPassword": map[string]any{"hash": "$2a$10$hash"},
+	}, body["password"])
+}
+
+func TestImportHumanWithoutTOTP(t *testing.T) {
+	client, fake := newClient(t)
+
+	_, err := client.ImportHuman(
+		context.Background(), "ada@example.com", "", "$2a$10$hash", "",
+	)
+
+	require.NoError(t, err)
+	assert.NotContains(t, fake.bodies["POST /v2/users/human"], "totpSecret")
+}
+
+func TestImportHumanLinksExistingUser(t *testing.T) {
+	client, fake := newClient(t)
+	fake.status["POST /v2/users/human"] = http.StatusConflict
+	delete(fake.status, "POST /v2/users")
+
+	id, err := client.ImportHuman(
+		context.Background(), "ada@example.com", "", "$2a$10$hash", "",
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, "zid-existing", id)
+}
+
+func TestImportHumanFailure(t *testing.T) {
+	client, fake := newClient(t)
+	fake.status["POST /v2/users/human"] = http.StatusBadRequest
+
+	_, err := client.ImportHuman(
+		context.Background(), "ada@example.com", "", "bad", "",
+	)
+
+	require.Error(t, err)
+}
+
+func TestImportHumanConflictWithoutMatch(t *testing.T) {
+	client, fake := newClient(t)
+	fake.status["POST /v2/users/human"] = http.StatusConflict
+	fake.status["POST /v2/users"] = http.StatusInternalServerError
+
+	_, err := client.ImportHuman(
+		context.Background(), "ada@example.com", "", "h", "",
+	)
+
+	require.Error(t, err)
 }

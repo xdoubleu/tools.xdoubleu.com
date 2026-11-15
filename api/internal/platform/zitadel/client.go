@@ -50,14 +50,43 @@ func (c *Client) CreateHuman(
 	ctx context.Context,
 	email, displayName string,
 ) (string, error) {
+	return c.create(ctx, humanBody(email, displayName))
+}
+
+// ImportHuman creates a verified human user that keeps their bcrypt password
+// hash and TOTP secret (base32, optional), so they sign in as before. When the
+// user already exists, it returns their ID, so a retried import links them.
+func (c *Client) ImportHuman(
+	ctx context.Context,
+	email, displayName, passwordHash, totpSecret string,
+) (string, error) {
+	body := humanBody(email, displayName)
+	body["password"] = map[string]any{
+		"hashedPassword": map[string]string{"hash": passwordHash},
+	}
+	if totpSecret != "" {
+		body["totpSecret"] = totpSecret
+	}
+	id, err := c.create(ctx, body)
+	var status *StatusError
+	if errors.As(err, &status) && status.Code == http.StatusConflict {
+		return c.findByLoginName(ctx, email)
+	}
+	return id, err
+}
+
+func humanBody(email, displayName string) map[string]any {
 	given, family := splitName(displayName, email)
-	body := map[string]any{
+	return map[string]any{
 		"username": email,
 		"profile": map[string]string{
 			"givenName": given, "familyName": family, "displayName": displayName,
 		},
 		"email": map[string]any{"email": email, "isVerified": true},
 	}
+}
+
+func (c *Client) create(ctx context.Context, body map[string]any) (string, error) {
 	var out struct {
 		UserID string `json:"userId"`
 	}
@@ -68,6 +97,26 @@ func (c *Client) CreateHuman(
 		return "", errors.New("zitadel: create user returned no id")
 	}
 	return out.UserID, nil
+}
+
+func (c *Client) findByLoginName(ctx context.Context, loginName string) (string, error) {
+	body := map[string]any{"queries": []any{map[string]any{
+		"loginNameQuery": map[string]string{
+			"loginName": loginName, "method": "TEXT_QUERY_METHOD_EQUALS",
+		},
+	}}}
+	var out struct {
+		Result []struct {
+			UserID string `json:"userId"`
+		} `json:"result"`
+	}
+	if err := c.do(ctx, http.MethodPost, "/v2/users", body, &out); err != nil {
+		return "", err
+	}
+	if len(out.Result) != 1 || out.Result[0].UserID == "" {
+		return "", errors.New("zitadel: existing user not found by login name")
+	}
+	return out.Result[0].UserID, nil
 }
 
 // SendInvite has Zitadel mail the person a link to set their credentials.

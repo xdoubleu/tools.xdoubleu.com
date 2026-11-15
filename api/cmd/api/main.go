@@ -37,6 +37,7 @@ import (
 	"tools.xdoubleu.com/internal/platform/observability/jobs"
 	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
 	"tools.xdoubleu.com/internal/platform/sentryapi"
+	"tools.xdoubleu.com/internal/platform/zitadel"
 )
 
 //go:embed migrations/*.sql
@@ -89,7 +90,9 @@ type Application struct {
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
 	weeklyDigestJob               *jobs.WeeklyDigestJob
 	logPruneJob                   *jobs.LogPruneJob
-	globalJobQueue                *jobqueue.JobQueue
+	// importJob is nil unless the provider's user API is configured.
+	importJob      *auth.ImportJob
+	globalJobQueue *jobqueue.JobQueue
 }
 
 // accountDeps builds the account module's Deps from the wiring Application
@@ -463,6 +466,13 @@ func startCrossAppJobs(app *Application) error {
 	); err != nil {
 		return err
 	}
+	if app.importJob != nil {
+		if err := app.globalJobQueue.AddJob(
+			observability.NewTrackedJob(app.importJob, app.db), noopCallback,
+		); err != nil {
+			return err
+		}
+	}
 	return app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.logPruneJob, app.db), noopCallback,
 	)
@@ -595,6 +605,9 @@ func NewApplication(
 		feedsApp, notificationsSvc, notificationSettingsRepo,
 	)
 	app.logPruneJob = jobs.NewLogPruneJob(logsRepo)
+	if client := zitadel.New(config); client != nil {
+		app.importJob = auth.NewImportJob(authRepo, client, authSealer)
+	}
 
 	err = app.ApplyMigrations(db)
 	if err != nil {

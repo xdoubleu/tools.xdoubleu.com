@@ -97,3 +97,44 @@ func TestRepository_OIDCUserLifecycle(t *testing.T) {
 	_, err = repo.GetUserByID(ctx, user.ID)
 	require.Error(t, err)
 }
+
+func TestRepository_ListImportCandidates(t *testing.T) {
+	db := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	t.Cleanup(db.Close)
+	repo := auth.NewRepository(db)
+	ctx := context.Background()
+
+	add := func(role string, subject bool) *auth.User {
+		user, err := repo.CreateUser(ctx, uuid.NewString()+"@example.com", "hash")
+		require.NoError(t, err)
+		_, err = db.Exec(ctx, `
+			INSERT INTO global.app_users (id, email, role, display_name)
+			VALUES ($1, $2, $3, 'Name')`, user.ID, user.Email, role)
+		require.NoError(t, err)
+		if subject {
+			require.NoError(t, repo.SetOIDCSubject(ctx, user.ID, uuid.NewString()))
+		}
+		return user
+	}
+	person := add("user", false)
+	agent := add("agent", false)
+	linked := add("user", true)
+	withTOTP := add("admin", false)
+	factor, err := repo.CreateTOTPFactor(ctx, withTOTP.ID, "sealed")
+	require.NoError(t, err)
+	require.NoError(t, repo.VerifyTOTPFactor(ctx, factor))
+
+	got, err := repo.ListImportCandidates(ctx)
+	require.NoError(t, err)
+
+	byID := map[string]auth.ImportCandidate{}
+	for _, c := range got {
+		byID[c.UserID] = c
+	}
+	assert.Contains(t, byID, person.ID)
+	assert.Equal(t, "Name", byID[person.ID].DisplayName)
+	assert.Empty(t, byID[person.ID].SealedTOTP)
+	assert.NotContains(t, byID, agent.ID)
+	assert.NotContains(t, byID, linked.ID)
+	assert.Equal(t, "sealed", byID[withTOTP.ID].SealedTOTP)
+}
