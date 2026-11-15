@@ -64,6 +64,9 @@ func (l *jobLoop) runGates() string {
 	if len(gates) == 0 {
 		return ""
 	}
+	if c := l.syncBase(); c != "" {
+		return c
+	}
 	var diff bytes.Buffer
 	code, err := l.session.Exec(l.ctx, []string{bashCmd, "-c",
 		"git diff --name-only origin/main...HEAD || git ls-files"}, "", &diff)
