@@ -239,5 +239,10 @@ func (h *runnerHandler) Heartbeat(
 	if err = runners.Heartbeat(ctx, runner.ID, req.GetVersion()); err != nil {
 		return nil, mapError(err)
 	}
-	return &factoryv1.HeartbeatResponse{}, nil
+	queued, err := h.app.services.Jobs.QueuedCount(ctx)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	//nolint:gosec // a count of jobs fits an int32
+	return &factoryv1.HeartbeatResponse{QueuedJobs: int32(queued)}, nil
 }

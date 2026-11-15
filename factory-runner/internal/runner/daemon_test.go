@@ -115,7 +115,7 @@ func TestRealRunReturnsOnCancel(t *testing.T) {
 }
 
 func noOpts() runner.Options {
-	return runner.Options{Updater: nil, Activity: nil, Control: nil}
+	return options(nil, nil, nil)
 }
 
 func newFakeUpdater(updated bool, err error) *fakeUpdater {
@@ -159,7 +159,7 @@ func TestDaemonRestartsAfterASelfUpdate(t *testing.T) {
 	hb := newScripted(func(int) error { return nil }, nil)
 	upd := newFakeUpdater(true, nil)
 	err := runner.RunForTest(context.Background(), hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: nil, Control: nil},
+		options(upd, nil, nil),
 		func(context.Context, time.Duration) {}, ticking())
 	require.ErrorIs(t, err, runner.ErrRestart)
 	assert.Equal(t, 1, int(upd.calls.Load()))
@@ -177,7 +177,7 @@ func TestDaemonChecksForUpdatesOncePerInterval(t *testing.T) {
 	}, cancel)
 	upd := newFakeUpdater(false, nil)
 	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: nil, Control: nil},
+		options(upd, nil, nil),
 		func(context.Context, time.Duration) {}, ticking()))
 	// The clock moves 3-4 minutes per loop: about 130 loops is 6 to 8 hours.
 	assert.Greater(t, int(upd.calls.Load()), 2)
@@ -195,7 +195,7 @@ func TestDaemonKeepsRunningWhenAnUpdateFails(t *testing.T) {
 		return nil
 	}, cancel)
 	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: nil, Control: nil},
+		options(upd, nil, nil),
 		func(context.Context, time.Duration) {}, ticking()))
 	assert.Equal(t, 1, int(upd.calls.Load()))
 	assert.Equal(t, 2, hb.calls)
@@ -229,7 +229,7 @@ func TestDaemonDrainsForANewerReleaseWhileAJobRuns(t *testing.T) {
 		return nil
 	}, nil)
 	err := runner.RunForTest(context.Background(), hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: activity, Control: control},
+		options(upd, activity, control),
 		func(context.Context, time.Duration) {}, ticking())
 	require.ErrorIs(t, err, runner.ErrRestart)
 	assert.True(t, sawDraining, "claims are held while the job runs")
@@ -276,7 +276,7 @@ func TestDaemonLogsEveryUpdateOutcomeAndRecordsIt(t *testing.T) {
 		}, cancel)
 		control := runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v", nil)
 		require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", log,
-			runner.Options{Updater: upd, Activity: nil, Control: control},
+			options(upd, nil, control),
 			func(context.Context, time.Duration) {}, ticking()))
 		assert.Contains(t, sink.String(), "self-update", name)
 		assert.Contains(t, control.Snapshot().Update, tc.note, name)
@@ -292,7 +292,7 @@ func TestDaemonStaysSilentWhileStoppedAndIdle(t *testing.T) {
 	upd := newFakeUpdater(true, nil)
 	sleeps := 0
 	require.NoError(t, runner.RunForTest(ctx, hb, "frt_x", newQuiet(),
-		runner.Options{Updater: upd, Activity: nil, Control: control},
+		options(upd, nil, control),
 		func(context.Context, time.Duration) {
 			if sleeps++; sleeps == 3 {
 				cancel()
@@ -300,4 +300,14 @@ func TestDaemonStaysSilentWhileStoppedAndIdle(t *testing.T) {
 		}, ticking()))
 	assert.Zero(t, hb.calls)
 	assert.Zero(t, int(upd.calls.Load()))
+}
+
+// options is Options with the test-only knobs unset.
+func options(
+	upd runner.SelfUpdater, activity *runner.Activity, control *runner.Control,
+) runner.Options {
+	return runner.Options{
+		Updater: upd, Activity: activity, Control: control,
+		UpdateEvery: 0, Sleep: nil,
+	}
 }

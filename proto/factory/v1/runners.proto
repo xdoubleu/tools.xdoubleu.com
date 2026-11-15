@@ -66,7 +66,11 @@ message PairResponse {
 message HeartbeatRequest {
   string version = 1;
 }
-message HeartbeatResponse {}
+message HeartbeatResponse {
+  // Jobs queued and unclaimed when the hold ended: work a runner with a free slot
+  // would take, for its stall watchdog.
+  int32 queued_jobs = 1;
+}
 
 // What the runner needs to run one job. The prompt is the frozen task part; the
 // runner adds its own preamble, and validates repo, branch and base itself.

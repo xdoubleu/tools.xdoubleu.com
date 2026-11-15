@@ -197,6 +197,55 @@ type JobRunner struct {
 	// running holds the ids of the jobs in flight, whose directories the sweep
 	// leaves alone.
 	running sync.Map
+	// slots counts the claimed jobs whose goroutines have not ended: the loop's
+	// own idea of how full it is.
+	slots atomic.Int32
+}
+
+// RunningJobs are the ids of the jobs in flight.
+func (r *JobRunner) RunningJobs() []string {
+	var ids []string
+	r.running.Range(func(k, _ any) bool {
+		if id, ok := k.(string); ok {
+			ids = append(ids, id)
+		}
+		return true
+	})
+	return ids
+}
+
+// LimitUntil is when the usage limit holding claims lifts; zero when none does.
+func (r *JobRunner) LimitUntil() time.Time {
+	n := r.limitUntil.Load()
+	if n == 0 {
+		return time.Time{}
+	}
+	return time.Unix(0, n)
+}
+
+// MaxJobsNow is how many jobs may run at once.
+func (r *JobRunner) MaxJobsNow() int { return r.maxJobs() }
+
+// Reconcile frees job slots that outlived their job: the slot count and the
+// Mac's busy count must not exceed the jobs actually in flight, or the loop and
+// a pending update wait on jobs that are gone. It reports how many it freed.
+func (r *JobRunner) Reconcile() int {
+	live := int32(len(r.RunningJobs())) //nolint:gosec // a handful
+	freed := 0
+	for {
+		cur := r.slots.Load()
+		if cur <= live {
+			break
+		}
+		if r.slots.CompareAndSwap(cur, live) {
+			freed += int(cur - live)
+			break
+		}
+	}
+	if r.Activity != nil {
+		freed += r.Activity.Reconcile(int(live))
+	}
+	return freed
 }
 
 // failed is a result for a job that never reached the agent.
@@ -296,7 +345,7 @@ func (r *JobRunner) loop(ctx context.Context, clk clock) error {
 	swept := clk.now()
 	var (
 		wg      sync.WaitGroup
-		running atomic.Int32
+		running = &r.slots
 		// freed wakes the loop when a job ends and a slot opens.
 		freed   = make(chan struct{}, 1)
 		backoff = minLoop
@@ -328,7 +377,7 @@ func (r *JobRunner) loop(ctx context.Context, clk clock) error {
 			backoff = minLoop
 			if job != nil {
 				running.Add(1)
-				wg.Go(func() { r.runClaimed(ctx, job, &running, freed) })
+				wg.Go(func() { r.runClaimed(ctx, job, running, freed) })
 			} else if wait := minLoop - clk.now().Sub(started); wait > 0 {
 				clk.sleep(ctx, wait)
 			}

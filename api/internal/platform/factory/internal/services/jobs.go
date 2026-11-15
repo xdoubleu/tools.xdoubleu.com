@@ -699,6 +699,12 @@ func (s *JobService) SetPickupPaused(
 	return s.settings.SetPickupPaused(ctx, paused)
 }
 
+// QueuedCount is how many jobs wait for a runner, which a runner's watchdog
+// compares with its own claims.
+func (s *JobService) QueuedCount(ctx context.Context) (int, error) {
+	return s.jobs.CountQueued(ctx)
+}
+
 // OfflineAfter is how long a job may wait with no runner online before Slack hears
 // of it.
 const OfflineAfter = 10 * time.Minute

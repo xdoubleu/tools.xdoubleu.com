@@ -97,3 +97,20 @@ func (a *Activity) Idle() bool {
 	defer a.mu.Unlock()
 	return a.n == 0
 }
+
+// Reconcile lowers the count to n when it is higher, which a job that never
+// called End would leave stuck, and reports how many it dropped.
+func (a *Activity) Reconcile(n int) int {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.n <= n {
+		return 0
+	}
+	dropped := a.n - n
+	a.n = n
+	if a.n == 0 && a.stop != nil {
+		a.stop()
+		a.stop = nil
+	}
+	return dropped
+}

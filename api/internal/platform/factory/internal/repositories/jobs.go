@@ -160,6 +160,17 @@ func (r *JobsRepository) OldestQueued(ctx context.Context) (*models.Job, error) 
 		ORDER BY created_at, id LIMIT 1`))
 }
 
+// CountQueued is how many jobs wait for a runner.
+func (r *JobsRepository) CountQueued(ctx context.Context) (int, error) {
+	var n int
+	err := r.db.QueryRow(ctx,
+		`SELECT count(*) FROM factory.jobs WHERE status = 'queued'`).Scan(&n)
+	if err != nil {
+		return 0, postgres.PgxErrorToHTTPError(err)
+	}
+	return n, nil
+}
+
 // CheckIn records that a running job is alive and keeps its session id. A job
 // that isn't running (lost, cancelled) is not found, which tells the runner to
 // stop.
