@@ -74,7 +74,8 @@ func (l *jobLoop) runGates() string {
 	for _, g := range gatesFor(gates, changed) {
 		ctx, cancel := context.WithTimeout(l.ctx, gateLimit)
 		var out bytes.Buffer
-		gateCode, runErr := l.session.Exec(ctx, []string{bashCmd, "-lc", g.command}, "", &out)
+		// Not a login shell: /etc/profile would reset the image's PATH (go).
+		gateCode, runErr := l.session.Exec(ctx, []string{bashCmd, "-c", g.command}, "", &out)
 		cancel()
 		if runErr == nil && gateCode == 0 {
 			continue
