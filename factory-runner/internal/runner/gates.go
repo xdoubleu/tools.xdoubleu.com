@@ -86,10 +86,7 @@ func (l *jobLoop) runGates() string {
 		if l.ended() != "" {
 			return ""
 		}
-		tail := strings.ToValidUTF8(out.String(), "")
-		if len(tail) > gateTail {
-			tail = tail[len(tail)-gateTail:]
-		}
+		tail := gateExcerpt(out.String(), gateTail)
 		return fmt.Sprintf("The gate `%s` before pushing and it failed:"+
 			"\n\n%s\n\nFix it, run it yourself, commit, and write the outcome again.",
 			g.command, redact(tail, l.events.redactions))
@@ -142,7 +139,9 @@ func gateExcerpt(output string, limit int) string {
 		}
 	}
 	text := joinKept(lines, keep)
-	if len(text) <= limit {
+	if text == "" {
+		text = strings.Join(lines, "\n")
+	} else if len(text) <= limit {
 		withTail := append([]bool(nil), keep...)
 		for i := max(len(lines)-excerptTail, 0); i < len(lines); i++ {
 			withTail[i] = true
