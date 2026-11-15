@@ -490,7 +490,8 @@ func TestAHeartbeatOutageDoesNotStopClaimsAndTheBeatComesBack(t *testing.T) {
 func TestTwoSlotsTakeTheFirstTwoOfThreeTasksAndThenTheThird(t *testing.T) {
 	e := newLife(t)
 	e.maxJobs = 2
-	var running, peak atomic.Int32
+	var running, peak, arrived atomic.Int32
+	both := make(chan struct{})
 	e.sandbox.agent = func(ctx context.Context, spec runner.SandboxSpec) (int, error) {
 		n := running.Add(1)
 		defer running.Add(-1)
@@ -499,7 +500,18 @@ func TestTwoSlotsTakeTheFirstTwoOfThreeTasksAndThenTheThird(t *testing.T) {
 				break
 			}
 		}
-		time.Sleep(300 * time.Millisecond)
+		// The first two jobs wait for each other, however slowly a loaded
+		// machine gets the second one going; the third runs alone.
+		if arrived.Add(1) == 2 {
+			close(both)
+		}
+		if arrived.Load() <= 2 {
+			select {
+			case <-both:
+			case <-time.After(10 * time.Second):
+				return 1, errors.New("the other slot never started")
+			}
+		}
 		return e.agentWrites(ctx, spec)
 	}
 	jobs := []*runner.ClaimedJob{lifeJob(1), lifeJob(2), lifeJob(3)}
