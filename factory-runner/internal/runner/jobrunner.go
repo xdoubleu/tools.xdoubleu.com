@@ -89,7 +89,8 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`with "Checks:": put no text after it and no prefix before it, and when ` +
 	`you rewrite the outcome keep exactly one. Where the repository gates the ` +
 	`coverage of changed lines (see its AGENTS.md), run that check locally ` +
-	`too, not only the tests. No pull request is opened unless every gate passed or was not ` +
+	`too, not only the tests. No pull request is opened unless every gate ` +
+	`passed or was not ` +
 	`run because CI checks it. Code the sandbox cannot build or test, such as ` +
 	`darwin or cgo code, is not a blocker: CI's macOS jobs check it, so mark ` +
 	`that gate "not run (CI checks it)", for example "build-mac=not run (CI ` +

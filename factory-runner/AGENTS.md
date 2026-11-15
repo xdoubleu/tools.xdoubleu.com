@@ -36,10 +36,10 @@ The server is untrusted; each job needs UUID ids, an allowlisted repo, an `agent
 
 ## Distribution → [`adr-0042`](../docs/adr-0042-factory-runner-distribution.md)
 
-`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the release files into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key. 
+`build-factory-runner.yml` signs on `main`; `build-api.yml` stages the release files into `/downloads/`. `-X main.UpdatePublicKey` is the trusted key.
 
-Settings live in the menu bar; `config …` is for scripting. A fresh pairing is `off`; an older config without a mode becomes `claude`. Log: `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
+Settings live in the menu bar; `config …` scripts them. A fresh pairing is `off`; an older config without a mode becomes `claude`. Log: `~/Library/Logs/factory-runner.log` → [`adr-0049`](../docs/adr-0049-factory-runner-menu-bar.md).
 
 ## Building
 
-`make build | dist | test | test/cov/diff | test/mutation/diff | lint | lint/fix | image`. `test/cov/diff` is CI's changed-line gate. Tests need no keychain, network, VM or launchd; `-tags container` runs VMs.
+`make build | dist | test | test/cov/diff (CI's diff gate) | test/mutation/diff | lint | lint/fix | image`. Tests need no keychain, network, VM or launchd; `-tags container` runs VMs.
