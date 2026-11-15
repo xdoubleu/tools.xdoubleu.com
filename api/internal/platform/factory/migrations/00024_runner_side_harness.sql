@@ -17,7 +17,8 @@ ALTER TABLE factory.jobs ALTER COLUMN harness SET DEFAULT '';
 -- +goose Down
 -- +goose StatementBegin
 ALTER TABLE factory.jobs ALTER COLUMN harness DROP DEFAULT;
-UPDATE factory.jobs SET harness = 'claude_code' WHERE harness = '';
+UPDATE factory.jobs SET harness = 'claude_code'
+WHERE harness = '';
 ALTER TABLE factory.jobs DROP CONSTRAINT IF EXISTS jobs_harness_check;
 ALTER TABLE factory.jobs
 ADD CONSTRAINT jobs_harness_check CHECK (
