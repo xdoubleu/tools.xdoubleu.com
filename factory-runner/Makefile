@@ -34,7 +34,7 @@ test/cov/report:
 	go tool cover -func=coverage.out | tail -1
 
 tools/lint:
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+	../api/scripts/ensure_go_tool.sh golangci-lint github.com/golangci/golangci-lint/v2 github.com/golangci/golangci-lint/v2/cmd/golangci-lint 2.15.0
 
 lint: tools/lint
 	golangci-lint run

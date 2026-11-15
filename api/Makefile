@@ -21,12 +21,12 @@ tools: tools/lint tools/proto
 tools/lint: tools/lint/go tools/lint/sql
 
 tools/lint/go: tools/lint/golines
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
-	go install github.com/daixiang0/gci@v0.14.0
-	go install github.com/securego/gosec/v2/cmd/gosec@v2.30.0
+	./scripts/ensure_go_tool.sh golangci-lint github.com/golangci/golangci-lint/v2 github.com/golangci/golangci-lint/v2/cmd/golangci-lint 2.15.0
+	./scripts/ensure_go_tool.sh gci github.com/daixiang0/gci github.com/daixiang0/gci 0.14.0
+	./scripts/ensure_go_tool.sh gosec github.com/securego/gosec/v2 github.com/securego/gosec/v2/cmd/gosec 2.30.0
 
 tools/lint/golines:
-	go install github.com/segmentio/golines@v0.13.0
+	./scripts/ensure_go_tool.sh golines github.com/segmentio/golines github.com/segmentio/golines 0.13.0
 
 # --tab-len 1 matches lll, which counts a tab as one column.
 GOLINES = golines -m 88 --tab-len 1 --ignore-generated
@@ -35,10 +35,10 @@ GOLINES = golines -m 88 --tab-len 1 --ignore-generated
 # agent-routine.yml: LT01's `TEXT[]` rule differs between 3.x and 4.x.
 tools/lint/sql:
 ifeq ($(UNAME_S),Darwin)
-	brew install sqlfluff
+	command -v sqlfluff >/dev/null || brew install sqlfluff
 endif
 ifeq ($(UNAME_S),Linux)
-	command -v sqlfluff >/dev/null || pip install sqlfluff==4.5.0
+	sqlfluff --version 2>/dev/null | grep -q 'version 4.5.0$$' || pip install sqlfluff==4.5.0
 endif
 
 lint/sql: tools/lint/sql
