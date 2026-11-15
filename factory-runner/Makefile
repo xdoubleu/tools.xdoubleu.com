@@ -39,6 +39,10 @@ tools/lint:
 lint: tools/lint
 	golangci-lint run
 
+# CI lints on macOS; syscall field types differ per OS, so nolint directives can be unused there.
+lint/darwin: tools/lint
+	GOOS=darwin CGO_ENABLED=0 golangci-lint run
+
 lint/fix: tools/lint
 	golangci-lint run --fix
 

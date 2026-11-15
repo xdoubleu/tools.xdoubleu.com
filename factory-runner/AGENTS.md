@@ -42,4 +42,4 @@ Settings live in the menu bar; `config …` is for scripting. A fresh pairing is
 
 ## Building
 
-`make build | dist | test | test/mutation/diff | lint | lint/fix | image`. Tests need no keychain, network, VM or launchd; `-tags container` runs VMs.
+`make build | dist | test | test/mutation/diff | lint | lint/darwin | lint/fix | image`. CI lints on macOS: run `lint/darwin` too, and for `syscall` fields whose type differs per OS write `//nolint:gosec,nolintlint` or avoid the conversion. Tests need no keychain, network, VM or launchd; `-tags container` runs VMs.
