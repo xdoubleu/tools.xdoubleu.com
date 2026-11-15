@@ -32,7 +32,8 @@ Run the steps in order. Opening the PR is pre-authorized; a branch without a PR 
 ## 2. Coverage (≥80% on changed code)
 
 - API: `cd api && docker-compose up -d && make test/cov/report`. **Never
-  `docker-compose down`** — every worktree shares that Postgres container.
+  `docker-compose down`** — worktrees share that Postgres.
+  Repositories: also `make test/reads`.
 - Web: `cd web && npm run test:cov`.
 
 **Sandboxed (routine) runs:** `routine-sandbox` points `GOLANGCI_LINT_CACHE`

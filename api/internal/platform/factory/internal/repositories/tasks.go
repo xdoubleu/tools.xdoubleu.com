@@ -344,7 +344,8 @@ func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, erro
 		WHERE t.status = 'ready' AND r.auto_pickup AND t.ready_body IS NOT NULL
 			AND (t.pickup_blocked = '' OR t.pickup_blocked LIKE $1 || '%')
 			AND NOT COALESCE(
-				(SELECT pickup_paused FROM factory.board_settings), false
+				(SELECT pickup_paused FROM factory.board_settings -- single-row
+				), false
 			)
 			AND NOT EXISTS (SELECT 1 FROM factory.jobs j WHERE j.status = 'queued')
 			AND (SELECT count(*) FROM factory.jobs j WHERE j.status = 'running') < (
