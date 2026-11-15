@@ -625,11 +625,6 @@ func TestIssueSignalCollectorRoutineLivenessMixedStates(t *testing.T) {
 					err:       nil,
 					byRoutine: nil,
 				},
-				"ready-issues-executor": {
-					firedAt:   time.Time{},
-					err:       database.ErrResourceNotFound,
-					byRoutine: nil,
-				},
 				// "red-pr-repair" is omitted to exercise byRoutine's not-found fallback.
 			},
 		},
@@ -641,9 +636,6 @@ func TestIssueSignalCollectorRoutineLivenessMixedStates(t *testing.T) {
 	assert.InDelta(t, 1800.0, testutil.ToFloat64(
 		automatedActionSecondsSinceLastOpen.
 			WithLabelValues("nightly-maintenance-sweep")), 5)
-	assert.InDelta(t, float64(neverOpenedSentinelSeconds), testutil.ToFloat64(
-		automatedActionSecondsSinceLastOpen.
-			WithLabelValues("ready-issues-executor")), 0)
 	assert.InDelta(t, float64(neverOpenedSentinelSeconds), testutil.ToFloat64(
 		automatedActionSecondsSinceLastOpen.
 			WithLabelValues("red-pr-repair")), 0)
@@ -682,7 +674,6 @@ func TestIssueSignalCollectorRoutinePausedStates(t *testing.T) {
 			alerts: nil, alertsErr: nil,
 			vars: map[string]string{
 				"ROUTINE_NIGHTLY_MAINTENANCE_SWEEP_ENABLED": "true",
-				"ROUTINE_READY_ISSUES_EXECUTOR_ENABLED":     "false",
 				// "red-pr-repair" has no variable at all — paused like "false".
 			},
 			varsErr: nil,
@@ -699,9 +690,6 @@ func TestIssueSignalCollectorRoutinePausedStates(t *testing.T) {
 	assert.InDelta(t, 0.0, testutil.ToFloat64(
 		automatedActionRoutinePaused.
 			WithLabelValues("nightly-maintenance-sweep")), 0)
-	assert.InDelta(t, 1.0, testutil.ToFloat64(
-		automatedActionRoutinePaused.
-			WithLabelValues("ready-issues-executor")), 0)
 	assert.InDelta(t, 1.0, testutil.ToFloat64(
 		automatedActionRoutinePaused.
 			WithLabelValues("red-pr-repair")), 0)
