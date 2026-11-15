@@ -179,6 +179,9 @@ type JobRunner struct {
 	// limitUntil is the unix time in nanoseconds a usage limit holds back new
 	// claims until, shared by every running job.
 	limitUntil atomic.Int64
+	// running holds the ids of the jobs in flight, whose directories the sweep
+	// leaves alone.
+	running sync.Map
 }
 
 // failed is a result for a job that never reached the agent.
@@ -261,6 +264,7 @@ func (r *JobRunner) Next(ctx context.Context) (bool, error) {
 	}
 	r.run(ctx, job)
 	r.CleanSessions(ctx)
+	r.CleanJobs(ctx)
 	return true, nil
 }
 
@@ -273,6 +277,8 @@ func (r *JobRunner) Loop(ctx context.Context) error {
 
 func (r *JobRunner) loop(ctx context.Context, clk clock) error {
 	r.CleanSessions(ctx)
+	r.CleanJobs(ctx)
+	swept := clk.now()
 	var (
 		wg      sync.WaitGroup
 		running atomic.Int32
@@ -282,6 +288,11 @@ func (r *JobRunner) loop(ctx context.Context, clk clock) error {
 	)
 	defer wg.Wait()
 	for ctx.Err() == nil {
+		if clk.now().Sub(swept) >= sweepEvery {
+			swept = clk.now()
+			r.CleanSessions(ctx)
+			r.CleanJobs(ctx)
+		}
 		limit := r.maxJobs()
 		if (r.Paused != nil && r.Paused()) || r.claimsHeld(clk.now()) {
 			clk.sleep(ctx, minLoop)
@@ -335,6 +346,7 @@ func (r *JobRunner) runClaimed(
 	}()
 	r.run(ctx, job)
 	r.CleanSessions(ctx)
+	r.CleanJobs(ctx)
 }
 
 func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {
@@ -346,9 +358,15 @@ func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {
 		defer r.Activity.End()
 	}
 
+	r.running.Store(job.ID, struct{}{})
 	res := r.execute(ctx, job)
+	r.running.Delete(job.ID)
 	if res.limited && job.Routine == "" {
 		r.keepClone(job)
+	}
+	if job.Routine != "" {
+		// A routine has no task to resume.
+		r.removeJobDir(job.ID)
 	}
 
 	// Told even when the runner is shutting down: the server would otherwise wait
@@ -542,6 +560,14 @@ func (r *JobRunner) prepareDirs(
 	since, err := r.prepareClone(ctx, job, dirs.clone)
 	if err != nil {
 		return jobDirs{}, "", fmt.Errorf("prepare the clone: %w", err)
+	}
+	if job.Routine == "" {
+		// Lets the sweep ask whether the job's task is done.
+		if err = os.WriteFile(
+			filepath.Join(dir, taskMarker), []byte(job.TaskID), 0o600,
+		); err != nil {
+			return jobDirs{}, "", fmt.Errorf("record the task: %w", err)
+		}
 	}
 	named := map[string]string{"outcome": dirs.outcome, "session": dirs.session}
 	for name, d := range named {
