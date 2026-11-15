@@ -17,7 +17,7 @@ const (
 	maxSetupLen        = 10000
 	maxInstructionsLen = 20000
 	maxBranchLen       = 255
-	maxLabelLen        = 50
+	maxRepoLabelLen    = 50
 	minTimeLimit       = 1
 	maxTimeLimit       = 1440
 )
@@ -103,7 +103,7 @@ func normaliseRepo(in RepoInput) (RepoInput, error) {
 	switch {
 	case in.SentryProject != "" && !sentryProjectPattern.MatchString(in.SentryProject):
 		return in, badRequest("invalid Sentry project slug")
-	case utf8.RuneCountInString(in.RedPRLabel) > maxLabelLen:
+	case utf8.RuneCountInString(in.RedPRLabel) > maxRepoLabelLen:
 		return in, badRequest("red PR label is too long")
 	case in.RedPRBranchPrefix != "" && (len(in.RedPRBranchPrefix) > maxBranchLen ||
 		!branchPattern.MatchString(in.RedPRBranchPrefix)):
