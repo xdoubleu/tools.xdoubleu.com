@@ -9,7 +9,8 @@ make test/cov/per-pkg              # per-package coverage, merged
 make lint/pkg PKG=apps/recipes     # lint one package
 make lint/fix/pkg PKG=apps/recipes # auto-fix one package
 make lint/golines                  # fails if golines would rewrite anything (CI runs it)
-make lint/migrations               # duplicate version (goose silently skips it) or a new one numbered below the dir's max
+make migration/new app=<app> name=<name>  # app=<name>|platform/<name>|global
+make lint/migrations               # duplicate version, or a new migration that isn't timestamp-versioned
 make lint/kamal-secrets            # deploy-secret lists agree; deploy.grafana.yml env names must be GF_-prefixed (Grafana ignores others)
 make lint/cross-schema             # SQL schema direction, adr-0038
 make lint/proto-local-versions     # proto/generate/local plugin versions match buf.gen.yaml's `remote:` pins
@@ -21,7 +22,7 @@ make db/reset                      # recreate the Postgres volume — shared by 
 - `NewApps` (`cmd/api/apps.go`) registration order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after apps it reads; `trains`/`learningpaths`/`movies`/`podcasts`, then `taste` (reads `books`/`feeds`/`games`/`movies`/`podcasts`).
 - `main.go` wraps the pgx pool in `postgres.NewSpanDB` (tracing); migrations use the raw pool. Platform handlers: `internal/platform/obs`, `internal/platform/account` (each `Deps`/`Register`).
 - `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
-- `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked PRs can merge migrations out of order; this self-heals.
+- `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`, so out-of-order merges self-heal.
 
 Per-app layout (`apps/<name>/`):
 
@@ -85,7 +86,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 
 ### Database
 
-- Migrations: `apps/<name>/migrations/`; `global` schema in `cmd/api/migrations/`.
+- Migrations: `apps/<name>/migrations/`; `global` schema in `cmd/api/migrations/`. **New files are UTC-timestamp versioned, via `make migration/new`** (parallel branches never collide); never add `000NN`.
 - **No wide TEXT column in list queries or `RETURNING`** — select `<col> IS NOT NULL AND <col> <> ''`; only single-row reads fetch it → [`convention-database-queries`](../docs/convention-database-queries.md).
 - Cross-schema SQL: `recipes ← mealplans ← shoppinglist` only → [`adr-0038`](../docs/adr-0038-downstream-cross-schema-reads.md).
 
