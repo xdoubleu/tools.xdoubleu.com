@@ -196,8 +196,11 @@ func (h *taskConnectHandler) ListTasks(
 	if until != nil {
 		limited = until.UTC().Format(time.RFC3339)
 	}
+	// Also a hint, like the limit notice.
+	stalled, _ := h.app.services.Jobs.Stalled(ctx)
 	return &factoryv1.ListTasksResponse{
 		Tasks: out, PickupPaused: paused, ClaudeLimitedUntil: limited,
+		QueueStalled: stalled,
 	}, nil
 }
 

@@ -205,6 +205,11 @@ export default function FactoryClient() {
           </span>
         )}
       </div>
+      {data?.queueStalled && (
+        <Alert tone="warn" className="mb-4">
+          Work is waiting but nothing is running. Check the runner.
+        </Alert>
+      )}
       {pickupError && (
         <Alert tone="danger" className="mb-4">
           {pickupError}
