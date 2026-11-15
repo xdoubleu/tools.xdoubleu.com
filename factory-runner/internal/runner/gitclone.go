@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sync"
 	"syscall"
 )
@@ -252,4 +253,27 @@ func (g *Git) FetchBase(
 	return g.mustGit(ctx, cloneDir, "-c", "core.hooksPath=/dev/null", "fetch",
 		"--no-tags", "--no-recurse-submodules", mirror,
 		"+refs/heads/"+base+":refs/remotes/origin/"+base)
+}
+
+// CommitTracked commits uncommitted edits to tracked files in a taken-over
+// clone, so merging the base later is a real merge and not a refusal the agent
+// works around by stashing, which can put a stale copy into the merge commit.
+// Untracked files stay as they are.
+func (g *Git) CommitTracked(ctx context.Context, cloneDir string) error {
+	if err := plainGitDir(cloneDir); err != nil {
+		return err
+	}
+	safe := []string{"-c", "core.hooksPath=/dev/null"}
+	if _, err := g.git(ctx, cloneDir,
+		slices.Concat(safe, []string{"diff", "--quiet", "HEAD"})...); err == nil {
+		return nil
+	}
+	if err := g.mustGit(ctx, cloneDir,
+		slices.Concat(safe, []string{"add", "-u"})...); err != nil {
+		return err
+	}
+	return g.mustGit(ctx, cloneDir, slices.Concat(safe, []string{
+		"-c", "user.name=factory-runner", "-c", "user.email=factory-runner@localhost",
+		"commit", "--no-verify", "-m", "WIP: uncommitted edits from an earlier job",
+	})...)
 }
