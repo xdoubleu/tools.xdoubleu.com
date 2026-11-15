@@ -441,6 +441,19 @@ func newWeeklyDigestJob(
 	)
 }
 
+// newImportJob is nil unless the provider's user API is configured.
+func newImportJob(
+	cfg config.Config,
+	repo *auth.Repository,
+	sealer *crypto.Sealer,
+) *auth.ImportJob {
+	client := zitadel.New(cfg)
+	if client == nil {
+		return nil
+	}
+	return auth.NewImportJob(repo, client, sealer)
+}
+
 // startCrossAppJobs registers the jobs on app.globalJobQueue.
 func startCrossAppJobs(app *Application) error {
 	noopCallback := func(_ string, _ bool, _ *time.Time) {}
@@ -605,9 +618,7 @@ func NewApplication(
 		feedsApp, notificationsSvc, notificationSettingsRepo,
 	)
 	app.logPruneJob = jobs.NewLogPruneJob(logsRepo)
-	if client := zitadel.New(config); client != nil {
-		app.importJob = auth.NewImportJob(authRepo, client, authSealer)
-	}
+	app.importJob = newImportJob(config, authRepo, authSealer)
 
 	err = app.ApplyMigrations(db)
 	if err != nil {
