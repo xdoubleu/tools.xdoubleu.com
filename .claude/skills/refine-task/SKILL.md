@@ -2,7 +2,7 @@
 name: refine-task
 description: >-
   File or refine one task on the factory board: look for an existing task first,
-  comment on it or create a new one in Backlog with labels, priority and a
+  comment on it or create a new one in Backlog (Ready for labels `bug` or `factory-retro`) with labels, priority and a
   complete body, through the factory_* MCP tools. Use whenever a routine or
   skill would have filed a GitHub issue (sentry-triage, monitoring-sweep,
   dependabot-triage, posthog-ux-discovery, factory-retro), and when the user asks to "file a
@@ -47,7 +47,7 @@ Labels, scopes and the priority rule live in `.claude/github-triage.config.json`
      ambiguous take the lower one and add the label `needs-priority-review`.
    - `labels`: one type, one scope (the config's `fallbackScope` if unsure), plus
      any the caller names (`routine-feedback`, `posthog-provisional`). At most 10.
-5. **Don't move a task into Ready** unless the owner told you to; agents may, and the actor is recorded ([convention-unattended-agent-trust](../../../docs/convention-unattended-agent-trust.md)).
+5. **Don't move a task into Ready** unless the owner told you to (`bug` and `factory-retro` tasks start there already); agents may, and the actor is recorded ([convention-unattended-agent-trust](../../../docs/convention-unattended-agent-trust.md)).
    Don't move one out of Backlog either unless your skill says so.
 6. **Report** the task title and id, and whether it was created or commented on.
 

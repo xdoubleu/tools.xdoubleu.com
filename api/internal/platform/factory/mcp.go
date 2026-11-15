@@ -95,8 +95,8 @@ func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
 	mcptools.AddAgentReadTool(srv, mcpAppName, "factory_get_task",
 		"A task with its body and comments.", t.getTask)
 	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_create_task",
-		"Create a task for a repo. It always starts in Backlog; only a person "+
-			"can mark it Ready.", t.createTask)
+		"Create a task for a repo. It starts in Backlog, except a task labelled "+
+			"bug or factory-retro, which starts in Ready.", t.createTask)
 	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_comment_task",
 		"Add a comment to a task, as this agent.", t.commentTask)
 	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_move_task",
