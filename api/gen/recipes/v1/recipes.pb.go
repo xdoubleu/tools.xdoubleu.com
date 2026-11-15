@@ -185,6 +185,10 @@ type Recipe struct {
 	Ingredients   []*Ingredient          `protobuf:"bytes,8,rep,name=ingredients,proto3" json:"ingredients,omitempty"`
 	BatchServings *int32                 `protobuf:"varint,10,opt,name=batch_servings,json=batchServings,proto3,oneof" json:"batch_servings,omitempty"`
 	IsDraft       bool                   `protobuf:"varint,11,opt,name=is_draft,json=isDraft,proto3" json:"is_draft,omitempty"`
+	// Empty, "light_meal" or "main_meal".
+	MealType string `protobuf:"bytes,12,opt,name=meal_type,json=mealType,proto3" json:"meal_type,omitempty"`
+	// Empty, "low" or "high".
+	Effort        string `protobuf:"bytes,13,opt,name=effort,proto3" json:"effort,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -289,10 +293,27 @@ func (x *Recipe) GetIsDraft() bool {
 	return false
 }
 
+func (x *Recipe) GetMealType() string {
+	if x != nil {
+		return x.MealType
+	}
+	return ""
+}
+
+func (x *Recipe) GetEffort() string {
+	if x != nil {
+		return x.Effort
+	}
+	return ""
+}
+
 type ListRecipesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
-	Offset        int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Limit  int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+	// Optional exact-match filters; empty matches every recipe.
+	MealType      string `protobuf:"bytes,3,opt,name=meal_type,json=mealType,proto3" json:"meal_type,omitempty"`
+	Effort        string `protobuf:"bytes,4,opt,name=effort,proto3" json:"effort,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -339,6 +360,20 @@ func (x *ListRecipesRequest) GetOffset() int32 {
 		return x.Offset
 	}
 	return 0
+}
+
+func (x *ListRecipesRequest) GetMealType() string {
+	if x != nil {
+		return x.MealType
+	}
+	return ""
+}
+
+func (x *ListRecipesRequest) GetEffort() string {
+	if x != nil {
+		return x.Effort
+	}
+	return ""
 }
 
 type ListRecipesResponse struct {
@@ -537,6 +572,8 @@ type CreateRecipeRequest struct {
 	// Optional client-generated UUID: repeating the call with it updates
 	// nothing and returns the existing recipe (offline replay).
 	Id            string `protobuf:"bytes,10,opt,name=id,proto3" json:"id,omitempty"`
+	MealType      string `protobuf:"bytes,11,opt,name=meal_type,json=mealType,proto3" json:"meal_type,omitempty"`
+	Effort        string `protobuf:"bytes,12,opt,name=effort,proto3" json:"effort,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -641,6 +678,20 @@ func (x *CreateRecipeRequest) GetId() string {
 	return ""
 }
 
+func (x *CreateRecipeRequest) GetMealType() string {
+	if x != nil {
+		return x.MealType
+	}
+	return ""
+}
+
+func (x *CreateRecipeRequest) GetEffort() string {
+	if x != nil {
+		return x.Effort
+	}
+	return ""
+}
+
 type CreateRecipeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Recipe        *Recipe                `protobuf:"bytes,1,opt,name=recipe,proto3" json:"recipe,omitempty"`
@@ -697,6 +748,8 @@ type UpdateRecipeRequest struct {
 	BatchServings        *int32                 `protobuf:"varint,8,opt,name=batch_servings,json=batchServings,proto3,oneof" json:"batch_servings,omitempty"`
 	IngredientGroupNames []string               `protobuf:"bytes,9,rep,name=ingredient_group_names,json=ingredientGroupNames,proto3" json:"ingredient_group_names,omitempty"`
 	IsDraft              bool                   `protobuf:"varint,10,opt,name=is_draft,json=isDraft,proto3" json:"is_draft,omitempty"`
+	MealType             string                 `protobuf:"bytes,11,opt,name=meal_type,json=mealType,proto3" json:"meal_type,omitempty"`
+	Effort               string                 `protobuf:"bytes,12,opt,name=effort,proto3" json:"effort,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -799,6 +852,20 @@ func (x *UpdateRecipeRequest) GetIsDraft() bool {
 		return x.IsDraft
 	}
 	return false
+}
+
+func (x *UpdateRecipeRequest) GetMealType() string {
+	if x != nil {
+		return x.MealType
+	}
+	return ""
+}
+
+func (x *UpdateRecipeRequest) GetEffort() string {
+	if x != nil {
+		return x.Effort
+	}
+	return ""
 }
 
 type UpdateRecipeResponse struct {
@@ -938,7 +1005,7 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\x10ScaledIngredient\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\tR\x06amount\x12\x12\n" +
-	"\x04unit\x18\x03 \x01(\tR\x04unit\"\xe6\x02\n" +
+	"\x04unit\x18\x03 \x01(\tR\x04unit\"\x9b\x03\n" +
 	"\x06Recipe\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
@@ -952,12 +1019,16 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\vingredients\x18\b \x03(\v2\x16.recipes.v1.IngredientR\vingredients\x12*\n" +
 	"\x0ebatch_servings\x18\n" +
 	" \x01(\x05H\x00R\rbatchServings\x88\x01\x01\x12\x19\n" +
-	"\bis_draft\x18\v \x01(\bR\aisDraftB\x11\n" +
+	"\bis_draft\x18\v \x01(\bR\aisDraft\x12\x1b\n" +
+	"\tmeal_type\x18\f \x01(\tR\bmealType\x12\x16\n" +
+	"\x06effort\x18\r \x01(\tR\x06effortB\x11\n" +
 	"\x0f_batch_servingsJ\x04\b\t\x10\n" +
-	"\"B\n" +
+	"\"w\n" +
 	"\x12ListRecipesRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
-	"\x06offset\x18\x02 \x01(\x05R\x06offset\"^\n" +
+	"\x06offset\x18\x02 \x01(\x05R\x06offset\x12\x1b\n" +
+	"\tmeal_type\x18\x03 \x01(\tR\bmealType\x12\x16\n" +
+	"\x06effort\x18\x04 \x01(\tR\x06effort\"^\n" +
 	"\x13ListRecipesResponse\x12,\n" +
 	"\arecipes\x18\x01 \x03(\v2\x12.recipes.v1.RecipeR\arecipes\x12\x19\n" +
 	"\bhas_more\x18\x02 \x01(\bR\ahasMore\">\n" +
@@ -969,7 +1040,7 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\bservings\x18\x02 \x01(\x05R\bservings\x12\x19\n" +
 	"\bis_owner\x18\x03 \x01(\bR\aisOwner\x12K\n" +
 	"\x12scaled_ingredients\x18\x04 \x03(\v2\x1c.recipes.v1.ScaledIngredientR\x11scaledIngredients\x12\x19\n" +
-	"\bcan_edit\x18\x05 \x01(\bR\acanEdit\"\x89\x03\n" +
+	"\bcan_edit\x18\x05 \x01(\bR\acanEdit\"\xbe\x03\n" +
 	"\x13CreateRecipeRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05steps\x18\x02 \x03(\tR\x05steps\x12#\n" +
@@ -981,10 +1052,12 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\x16ingredient_group_names\x18\b \x03(\tR\x14ingredientGroupNames\x12\x19\n" +
 	"\bis_draft\x18\t \x01(\bR\aisDraft\x12\x0e\n" +
 	"\x02id\x18\n" +
-	" \x01(\tR\x02idB\x11\n" +
+	" \x01(\tR\x02id\x12\x1b\n" +
+	"\tmeal_type\x18\v \x01(\tR\bmealType\x12\x16\n" +
+	"\x06effort\x18\f \x01(\tR\x06effortB\x11\n" +
 	"\x0f_batch_servings\"B\n" +
 	"\x14CreateRecipeResponse\x12*\n" +
-	"\x06recipe\x18\x01 \x01(\v2\x12.recipes.v1.RecipeR\x06recipe\"\x89\x03\n" +
+	"\x06recipe\x18\x01 \x01(\v2\x12.recipes.v1.RecipeR\x06recipe\"\xbe\x03\n" +
 	"\x13UpdateRecipeRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -996,7 +1069,9 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\x0ebatch_servings\x18\b \x01(\x05H\x00R\rbatchServings\x88\x01\x01\x124\n" +
 	"\x16ingredient_group_names\x18\t \x03(\tR\x14ingredientGroupNames\x12\x19\n" +
 	"\bis_draft\x18\n" +
-	" \x01(\bR\aisDraftB\x11\n" +
+	" \x01(\bR\aisDraft\x12\x1b\n" +
+	"\tmeal_type\x18\v \x01(\tR\bmealType\x12\x16\n" +
+	"\x06effort\x18\f \x01(\tR\x06effortB\x11\n" +
 	"\x0f_batch_servings\"\x16\n" +
 	"\x14UpdateRecipeResponse\"%\n" +
 	"\x13DeleteRecipeRequest\x12\x0e\n" +

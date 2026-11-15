@@ -27,7 +27,7 @@ type fakeRecipesStore struct {
 }
 
 func (f *fakeRecipesStore) ListForFamily(
-	_ context.Context, _ uuid.UUID, _, _ int32,
+	_ context.Context, _ uuid.UUID, _, _ string, _, _ int32,
 ) ([]models.Recipe, bool, error) {
 	return nil, false, nil
 }
@@ -243,7 +243,7 @@ func TestRecipeList_ScopesToUsersFamily(t *testing.T) {
 	store := &fakeRecipesStore{}
 	svc := &RecipeService{repo: store, family: newFamilyStore()}
 
-	_, _, err := svc.List(t.Context(), "member", 10, 0)
+	_, _, err := svc.List(t.Context(), "member", "", "", 10, 0)
 	require.NoError(t, err)
 }
 
@@ -257,7 +257,7 @@ func TestFamilyResolutionErrors_Propagate(t *testing.T) {
 	svc := &RecipeService{repo: store, family: family}
 	ctx := t.Context()
 
-	_, _, err := svc.List(ctx, "member", 10, 0)
+	_, _, err := svc.List(ctx, "member", "", "", 10, 0)
 	assert.ErrorIs(t, err, familyErr)
 
 	_, _, err = svc.Get(ctx, uuid.New(), "member")
@@ -325,4 +325,26 @@ func TestRecipeCreate_LookupErrorIsReturned(t *testing.T) {
 	//nolint:exhaustruct //only the ID matters
 	_, err := svc.Create(t.Context(), "owner", models.Recipe{ID: uuid.New()})
 	assert.ErrorIs(t, err, lookupErr)
+}
+
+func TestCategories_RejectUnknownValues(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{recipe: newRecipeFixture()}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
+	ctx := t.Context()
+
+	_, _, err := svc.List(ctx, "member", "dessert", "", 10, 0)
+	assert.Error(t, err)
+	_, _, err = svc.List(ctx, "member", "", "medium", 10, 0)
+	assert.Error(t, err)
+
+	//nolint:exhaustruct //only categories matter
+	_, err = svc.Create(ctx, "member", models.Recipe{MealType: "dessert"})
+	assert.Error(t, err)
+	//nolint:exhaustruct //only categories matter
+	err = svc.Update(ctx, "member", models.Recipe{Effort: "medium"})
+	assert.Error(t, err)
+
+	_, _, err = svc.List(ctx, "member", models.MealTypeLight, models.EffortLow, 10, 0)
+	assert.NoError(t, err)
 }

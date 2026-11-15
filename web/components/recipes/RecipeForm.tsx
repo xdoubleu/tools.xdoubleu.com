@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
 import { Checkbox } from '@/components/ui/checkbox'
+import { EFFORTS, MEAL_TYPES } from '@/lib/recipes/categories'
 
 interface RecipeFormProps {
   recipe?: Recipe
@@ -47,6 +48,8 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
   const [servings, setServings] = useState(recipe?.baseServings?.toString() || '1')
   const [batchServings, setBatchServings] = useState(recipe?.batchServings?.toString() || '')
   const [isDraft, setIsDraft] = useState(recipe?.isDraft ?? false)
+  const [mealType, setMealType] = useState(recipe?.mealType ?? '')
+  const [effort, setEffort] = useState(recipe?.effort ?? '')
   const [steps, setSteps] = useState(recipe?.instructions || '')
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
     recipe?.ingredients?.map((ing) => ({
@@ -159,6 +162,8 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
         baseServings: parseInt(servings, 10),
         batchServings: parsedBatchServings,
         isDraft,
+        mealType,
+        effort,
         steps: steps.split('\n').filter((s) => s.trim()),
         ...ingredientPayload
       }
@@ -224,6 +229,35 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
           placeholder="e.g. 10"
           className="max-w-24"
         />
+      </div>
+
+      <div className="flex flex-wrap gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="recipe-meal-type">Meal type</Label>
+          <Select
+            id="recipe-meal-type"
+            value={mealType}
+            onChange={(e) => setMealType(e.target.value)}
+          >
+            <option value="">None</option>
+            {MEAL_TYPES.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="recipe-effort">Effort</Label>
+          <Select id="recipe-effort" value={effort} onChange={(e) => setEffort(e.target.value)}>
+            <option value="">None</option>
+            {EFFORTS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
 
       <div className="space-y-1.5">

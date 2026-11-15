@@ -17,7 +17,7 @@ const errNotInFamily = "You do not have access to this recipe"
 // recipesStore is the storage surface RecipeService needs.
 type recipesStore interface {
 	ListForFamily(
-		ctx context.Context, familyID uuid.UUID, limit, offset int32,
+		ctx context.Context, familyID uuid.UUID, mealType, effort string, limit, offset int32,
 	) ([]models.Recipe, bool, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Recipe, error)
 	GetIngredients(ctx context.Context, id uuid.UUID) ([]models.Ingredient, error)
@@ -41,17 +41,32 @@ type RecipeService struct {
 	family familyStore
 }
 
+func validateCategories(mealType, effort string) error {
+	if !models.ValidMealType(mealType) || !models.ValidEffort(effort) {
+		return &app.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "Unknown meal type or effort",
+		}
+	}
+	return nil
+}
+
 func (s *RecipeService) List(
 	ctx context.Context,
 	userID string,
+	mealType string,
+	effort string,
 	limit int32,
 	offset int32,
 ) ([]models.Recipe, bool, error) {
+	if err := validateCategories(mealType, effort); err != nil {
+		return nil, false, err
+	}
 	familyID, err := s.family.EnsureFamily(ctx, userID)
 	if err != nil {
 		return nil, false, err
 	}
-	return s.repo.ListForFamily(ctx, familyID, limit, offset)
+	return s.repo.ListForFamily(ctx, familyID, mealType, effort, limit, offset)
 }
 
 // Get returns a recipe in the user's family. All members may edit, so canEdit
@@ -118,6 +133,9 @@ func (s *RecipeService) Create(
 	userID string,
 	recipe models.Recipe,
 ) (*models.Recipe, error) {
+	if err := validateCategories(recipe.MealType, recipe.Effort); err != nil {
+		return nil, err
+	}
 	familyID, err := s.family.EnsureFamily(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -159,6 +177,9 @@ func (s *RecipeService) Update(
 	userID string,
 	recipe models.Recipe,
 ) error {
+	if err := validateCategories(recipe.MealType, recipe.Effort); err != nil {
+		return err
+	}
 	existing, err := s.repo.GetByID(ctx, recipe.ID)
 	if err != nil {
 		return err

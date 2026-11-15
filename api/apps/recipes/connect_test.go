@@ -714,3 +714,66 @@ func TestDeleteRecipe_InvalidID(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
+
+func TestRecipeCategories_CreateUpdateFilter(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ID: userID}, //nolint:exhaustruct // only ID needed
+	)
+
+	created, err := client.CreateRecipe(ctx, &recipesv1.CreateRecipeRequest{
+		Name: "Cat Soup", Steps: []string{"boil"}, BaseServings: 2,
+		MealType: "light_meal", Effort: "low",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "light_meal", created.Recipe.MealType)
+	assert.Equal(t, "low", created.Recipe.Effort)
+
+	filtered, err := client.ListRecipes(ctx, &recipesv1.ListRecipesRequest{
+		Limit: 1000, MealType: "light_meal", Effort: "low",
+	})
+	require.NoError(t, err)
+	var found bool
+	for _, r := range filtered.Recipes {
+		assert.Equal(t, "light_meal", r.MealType)
+		assert.Equal(t, "low", r.Effort)
+		found = found || r.Id == created.Recipe.Id
+	}
+	assert.True(t, found)
+
+	_, err = client.UpdateRecipe(ctx, &recipesv1.UpdateRecipeRequest{
+		Id: created.Recipe.Id, Name: "Cat Soup", Steps: []string{"boil"},
+		BaseServings: 2, MealType: "main_meal", Effort: "high",
+	})
+	require.NoError(t, err)
+
+	got, err := client.GetRecipe(ctx, &recipesv1.GetRecipeRequest{Id: created.Recipe.Id})
+	require.NoError(t, err)
+	assert.Equal(t, "main_meal", got.Recipe.MealType)
+	assert.Equal(t, "high", got.Recipe.Effort)
+
+	stale, err := client.ListRecipes(ctx, &recipesv1.ListRecipesRequest{
+		Limit: 1000, MealType: "light_meal",
+	})
+	require.NoError(t, err)
+	for _, r := range stale.Recipes {
+		assert.NotEqual(t, created.Recipe.Id, r.Id)
+	}
+}
+
+func TestRecipeCategories_InvalidValues(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ID: userID}, //nolint:exhaustruct // only ID needed
+	)
+
+	_, err := client.CreateRecipe(ctx, &recipesv1.CreateRecipeRequest{
+		Name: "Bad", BaseServings: 2, MealType: "dessert",
+	})
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
+
+	_, err = client.ListRecipes(ctx, &recipesv1.ListRecipesRequest{Effort: "medium"})
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
+}
