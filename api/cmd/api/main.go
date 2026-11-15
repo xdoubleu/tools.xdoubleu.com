@@ -25,6 +25,7 @@ import (
 	"tools.xdoubleu.com/internal/platform/account"
 	"tools.xdoubleu.com/internal/platform/auth"
 	"tools.xdoubleu.com/internal/platform/communication/httptools"
+	"tools.xdoubleu.com/internal/platform/factory"
 	"tools.xdoubleu.com/internal/platform/family"
 	"tools.xdoubleu.com/internal/platform/github"
 	"tools.xdoubleu.com/internal/platform/jobqueue"
@@ -35,6 +36,7 @@ import (
 	"tools.xdoubleu.com/internal/platform/obs"
 	"tools.xdoubleu.com/internal/platform/observability"
 	"tools.xdoubleu.com/internal/platform/observability/jobs"
+	"tools.xdoubleu.com/internal/platform/reposignals"
 	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
 	"tools.xdoubleu.com/internal/platform/sentryapi"
 )
@@ -84,6 +86,7 @@ type Application struct {
 	oauthConnRepo                 *oauthconn.OAuthConnectionsRepository
 	oauthState                    *oauthconn.StateStore
 	issueSignalCollectorJob       *jobs.IssueSignalCollectorJob
+	repoSignals                   reposignals.Source
 	automatedActionSweepJob       *jobs.AutomatedActionSweepJob
 	transactionLatencyRepo        *platformrepositories.TransactionLatencyRepository
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
@@ -130,6 +133,7 @@ func (app *Application) obsDeps() *obs.Deps {
 		OAuthState:               app.oauthState,
 		GithubClient:             app.githubClient,
 		SentryClient:             app.sentryClient,
+		Repos:                    app.repoSignals,
 		StorageScan:              app.booksApp,
 		AppNames:                 appNames,
 	}
@@ -542,6 +546,9 @@ func NewApplication(
 		automatedActionsRepo,
 	)
 
+	repoSignals := factory.NewRepoSignals(db)
+	issueSignalCollectorJob.WithRepos(repoSignals)
+
 	logsRepo := platformrepositories.NewLogsRepository(db)
 	oauthState := oauthconn.NewStateStore()
 
@@ -575,6 +582,7 @@ func NewApplication(
 		githubClient:                  githubClient,
 		sentryClient:                  sentryClient,
 		issueSignalCollectorJob:       issueSignalCollectorJob,
+		repoSignals:                   repoSignals,
 		automatedActionSweepJob:       automatedActionSweepJob,
 		transactionLatencyRepo:        transactionLatencyRepo,
 		transactionLatencySnapshotJob: transactionLatencySnapshotJob,

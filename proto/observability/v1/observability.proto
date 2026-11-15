@@ -156,9 +156,14 @@ message FailingPullRequest {
   string author = 4;
   string updated_at = 5;  // RFC3339
   repeated FailingCheck failing_checks = 6;
+  string repo = 7;  // "owner/name" of the repo the PR belongs to
 }
 
-message GetFailingPullRequestsRequest {}
+// GetFailingPullRequestsRequest: repo ("owner/name") limits the result to one
+// registered repo; empty covers every registered repo.
+message GetFailingPullRequestsRequest {
+  string repo = 1;
+}
 
 // GetFailingPullRequestsResponse: configured is false without a GitHub
 // token/repo (degraded, not failed).
@@ -272,6 +277,9 @@ message SentryIssue {
   string last_seen = 6;  // RFC3339
   string level = 7;
   string project = 8;  // which configured project this issue came from
+  // "owner/name" of the registered repo whose sentry_project this is; empty
+  // when no repo claims the project.
+  string repo = 9;
 }
 
 // DismissSecurityAlertRequest dismisses one alert. reason must be a value
@@ -287,7 +295,11 @@ message DismissSecurityAlertRequest {
 
 message DismissSecurityAlertResponse {}
 
-message GetSentryIssuesRequest {}
+// GetSentryIssuesRequest: repo ("owner/name") limits the result to the issues of
+// that repo's Sentry project; empty returns every project's issues.
+message GetSentryIssuesRequest {
+  string repo = 1;
+}
 
 // GetSentryIssuesResponse: configured is false without Sentry settings.
 message GetSentryIssuesResponse {

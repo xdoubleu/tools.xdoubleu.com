@@ -47,7 +47,8 @@ func testRepo(instructions string) *models.Repo {
 		DefaultModel: "", AutoPickup: false, SetupCommands: "",
 		AgentInstructions: instructions,
 		TimeLimitMinutes:  0,
-		CreatedAt:         time.Time{}, UpdatedAt: time.Time{},
+		SentryProject:     "", RedPRLabel: "", RedPRBranchPrefix: "",
+		CreatedAt: time.Time{}, UpdatedAt: time.Time{},
 	}
 }
 

@@ -1061,6 +1061,7 @@ type FailingPullRequest struct {
 	Author        string                 `protobuf:"bytes,4,opt,name=author,proto3" json:"author,omitempty"`
 	UpdatedAt     string                 `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"` // RFC3339
 	FailingChecks []*FailingCheck        `protobuf:"bytes,6,rep,name=failing_checks,json=failingChecks,proto3" json:"failing_checks,omitempty"`
+	Repo          string                 `protobuf:"bytes,7,opt,name=repo,proto3" json:"repo,omitempty"` // "owner/name" of the repo the PR belongs to
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1137,8 +1138,18 @@ func (x *FailingPullRequest) GetFailingChecks() []*FailingCheck {
 	return nil
 }
 
+func (x *FailingPullRequest) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
+}
+
+// GetFailingPullRequestsRequest: repo ("owner/name") limits the result to one
+// registered repo; empty covers every registered repo.
 type GetFailingPullRequestsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Repo          string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1171,6 +1182,13 @@ func (x *GetFailingPullRequestsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetFailingPullRequestsRequest.ProtoReflect.Descriptor instead.
 func (*GetFailingPullRequestsRequest) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *GetFailingPullRequestsRequest) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
 }
 
 // GetFailingPullRequestsResponse: configured is false without a GitHub
@@ -1931,15 +1949,18 @@ func (x *GetSecurityAlertsResponse) GetError() string {
 
 // SentryIssue is an unresolved issue on a configured project.
 type SentryIssue struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Culprit       string                 `protobuf:"bytes,3,opt,name=culprit,proto3" json:"culprit,omitempty"`
-	Permalink     string                 `protobuf:"bytes,4,opt,name=permalink,proto3" json:"permalink,omitempty"`
-	Count         int64                  `protobuf:"varint,5,opt,name=count,proto3" json:"count,omitempty"`                      // number of events
-	LastSeen      string                 `protobuf:"bytes,6,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"` // RFC3339
-	Level         string                 `protobuf:"bytes,7,opt,name=level,proto3" json:"level,omitempty"`
-	Project       string                 `protobuf:"bytes,8,opt,name=project,proto3" json:"project,omitempty"` // which configured project this issue came from
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title     string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Culprit   string                 `protobuf:"bytes,3,opt,name=culprit,proto3" json:"culprit,omitempty"`
+	Permalink string                 `protobuf:"bytes,4,opt,name=permalink,proto3" json:"permalink,omitempty"`
+	Count     int64                  `protobuf:"varint,5,opt,name=count,proto3" json:"count,omitempty"`                      // number of events
+	LastSeen  string                 `protobuf:"bytes,6,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"` // RFC3339
+	Level     string                 `protobuf:"bytes,7,opt,name=level,proto3" json:"level,omitempty"`
+	Project   string                 `protobuf:"bytes,8,opt,name=project,proto3" json:"project,omitempty"` // which configured project this issue came from
+	// "owner/name" of the registered repo whose sentry_project this is; empty
+	// when no repo claims the project.
+	Repo          string `protobuf:"bytes,9,opt,name=repo,proto3" json:"repo,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2026,6 +2047,13 @@ func (x *SentryIssue) GetLevel() string {
 func (x *SentryIssue) GetProject() string {
 	if x != nil {
 		return x.Project
+	}
+	return ""
+}
+
+func (x *SentryIssue) GetRepo() string {
+	if x != nil {
+		return x.Repo
 	}
 	return ""
 }
@@ -2131,8 +2159,11 @@ func (*DismissSecurityAlertResponse) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{31}
 }
 
+// GetSentryIssuesRequest: repo ("owner/name") limits the result to the issues of
+// that repo's Sentry project; empty returns every project's issues.
 type GetSentryIssuesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Repo          string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2165,6 +2196,13 @@ func (x *GetSentryIssuesRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetSentryIssuesRequest.ProtoReflect.Descriptor instead.
 func (*GetSentryIssuesRequest) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *GetSentryIssuesRequest) GetRepo() string {
+	if x != nil {
+		return x.Repo
+	}
+	return ""
 }
 
 // GetSentryIssuesResponse: configured is false without Sentry settings.
@@ -4529,7 +4567,7 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\n" +
 	"conclusion\x18\x02 \x01(\tR\n" +
 	"conclusion\x12\x10\n" +
-	"\x03url\x18\x03 \x01(\tR\x03url\"\xd2\x01\n" +
+	"\x03url\x18\x03 \x01(\tR\x03url\"\xe6\x01\n" +
 	"\x12FailingPullRequest\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x03R\x06number\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x10\n" +
@@ -4537,8 +4575,10 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x06author\x18\x04 \x01(\tR\x06author\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\x05 \x01(\tR\tupdatedAt\x12E\n" +
-	"\x0efailing_checks\x18\x06 \x03(\v2\x1e.observability.v1.FailingCheckR\rfailingChecks\"\x1f\n" +
-	"\x1dGetFailingPullRequestsRequest\"\xb0\x01\n" +
+	"\x0efailing_checks\x18\x06 \x03(\v2\x1e.observability.v1.FailingCheckR\rfailingChecks\x12\x12\n" +
+	"\x04repo\x18\a \x01(\tR\x04repo\"3\n" +
+	"\x1dGetFailingPullRequestsRequest\x12\x12\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\"\xb0\x01\n" +
 	"\x1eGetFailingPullRequestsResponse\x12I\n" +
 	"\rpull_requests\x18\x01 \x03(\v2$.observability.v1.FailingPullRequestR\fpullRequests\x12\x1e\n" +
 	"\n" +
@@ -4616,7 +4656,7 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"configured\x12\x1f\n" +
 	"\valert_count\x18\x03 \x01(\x05R\n" +
 	"alertCount\x12\x14\n" +
-	"\x05error\x18\x04 \x01(\tR\x05error\"\xce\x01\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\"\xe2\x01\n" +
 	"\vSentryIssue\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
@@ -4625,14 +4665,16 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x05count\x18\x05 \x01(\x03R\x05count\x12\x1b\n" +
 	"\tlast_seen\x18\x06 \x01(\tR\blastSeen\x12\x14\n" +
 	"\x05level\x18\a \x01(\tR\x05level\x12\x18\n" +
-	"\aproject\x18\b \x01(\tR\aproject\"\x9c\x01\n" +
+	"\aproject\x18\b \x01(\tR\aproject\x12\x12\n" +
+	"\x04repo\x18\t \x01(\tR\x04repo\"\x9c\x01\n" +
 	"\x1bDismissSecurityAlertRequest\x12B\n" +
 	"\n" +
 	"alert_type\x18\x01 \x01(\x0e2#.observability.v1.SecurityAlertTypeR\talertType\x12!\n" +
 	"\falert_number\x18\x02 \x01(\x03R\valertNumber\x12\x16\n" +
 	"\x06reason\x18\x03 \x01(\tR\x06reason\"\x1e\n" +
-	"\x1cDismissSecurityAlertResponse\"\x18\n" +
-	"\x16GetSentryIssuesRequest\"\x9b\x01\n" +
+	"\x1cDismissSecurityAlertResponse\",\n" +
+	"\x16GetSentryIssuesRequest\x12\x12\n" +
+	"\x04repo\x18\x01 \x01(\tR\x04repo\"\x9b\x01\n" +
 	"\x17GetSentryIssuesResponse\x125\n" +
 	"\x06issues\x18\x01 \x03(\v2\x1d.observability.v1.SentryIssueR\x06issues\x12\x1e\n" +
 	"\n" +

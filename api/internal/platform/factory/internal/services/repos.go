@@ -17,6 +17,7 @@ const (
 	maxSetupLen        = 10000
 	maxInstructionsLen = 20000
 	maxBranchLen       = 255
+	maxLabelLen        = 50
 	minTimeLimit       = 1
 	maxTimeLimit       = 1440
 )
@@ -25,6 +26,8 @@ var (
 	ownerPattern  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9-]{0,38}$`)
 	namePattern   = regexp.MustCompile(`^[A-Za-z0-9._-]{1,100}$`)
 	branchPattern = regexp.MustCompile(`^[A-Za-z0-9._/-]+$`)
+	// sentryProjectPattern is a Sentry project slug.
+	sentryProjectPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,99}$`)
 )
 
 type RepoService struct {
@@ -42,6 +45,9 @@ type RepoInput struct {
 	AgentInstructions string
 	TimeLimitMinutes  int
 	AutoPickup        bool
+	SentryProject     string
+	RedPRLabel        string
+	RedPRBranchPrefix string
 }
 
 // validBranch accepts the characters git allows in the common cases, and
@@ -91,6 +97,18 @@ func normaliseRepo(in RepoInput) (RepoInput, error) {
 	if err := checkModel(in.DefaultHarness, in.DefaultModel); err != nil {
 		return in, err
 	}
+	in.SentryProject = strings.TrimSpace(in.SentryProject)
+	in.RedPRLabel = strings.TrimSpace(in.RedPRLabel)
+	in.RedPRBranchPrefix = strings.TrimSpace(in.RedPRBranchPrefix)
+	switch {
+	case in.SentryProject != "" && !sentryProjectPattern.MatchString(in.SentryProject):
+		return in, badRequest("invalid Sentry project slug")
+	case utf8.RuneCountInString(in.RedPRLabel) > maxLabelLen:
+		return in, badRequest("red PR label is too long")
+	case in.RedPRBranchPrefix != "" && (len(in.RedPRBranchPrefix) > maxBranchLen ||
+		!branchPattern.MatchString(in.RedPRBranchPrefix)):
+		return in, badRequest("invalid red PR branch prefix")
+	}
 	switch {
 	case !in.DefaultHarness.Valid():
 		return in, badRequest("invalid harness")
@@ -122,6 +140,9 @@ func repoFrom(id uuid.UUID, in RepoInput) models.Repo {
 		AgentInstructions: in.AgentInstructions,
 		TimeLimitMinutes:  in.TimeLimitMinutes,
 		AutoPickup:        in.AutoPickup,
+		SentryProject:     in.SentryProject,
+		RedPRLabel:        in.RedPRLabel,
+		RedPRBranchPrefix: in.RedPRBranchPrefix,
 		CreatedAt:         time.Time{},
 		UpdatedAt:         time.Time{},
 	}

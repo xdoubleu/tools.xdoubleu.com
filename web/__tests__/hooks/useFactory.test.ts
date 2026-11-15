@@ -88,7 +88,10 @@ const repoFields = {
   autoPickup: false,
   setupCommands: 'make',
   agentInstructions: 'be nice',
-  timeLimitMinutes: 30
+  timeLimitMinutes: 30,
+  sentryProject: 'check-in',
+  redPrLabel: 'deps',
+  redPrBranchPrefix: 'agent/'
 }
 
 beforeEach(() => {

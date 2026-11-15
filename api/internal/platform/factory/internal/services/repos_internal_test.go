@@ -25,6 +25,9 @@ func repoInput(mod func(*RepoInput)) RepoInput {
 		AgentInstructions: "",
 		TimeLimitMinutes:  60,
 		AutoPickup:        false,
+		SentryProject:     "",
+		RedPRLabel:        "",
+		RedPRBranchPrefix: "",
 	}
 	mod(&in)
 	return in
@@ -148,4 +151,147 @@ func TestUpdateRequiresEverySetting(t *testing.T) {
 		_, err := svc.Update(context.Background(), uuid.New(), repoInput(mod))
 		assert.Equal(t, http.StatusBadRequest, status(t, err), name)
 	}
+}
+
+func TestNormaliseRepoSignalSettings(t *testing.T) {
+	got, err := normaliseRepo(repoInput(func(r *RepoInput) {
+		r.SentryProject = " check-in "
+		r.RedPRLabel = " deps "
+		r.RedPRBranchPrefix = " agent/ "
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, "check-in", got.SentryProject)
+	assert.Equal(t, "deps", got.RedPRLabel)
+	assert.Equal(t, "agent/", got.RedPRBranchPrefix)
+
+	for name, mod := range map[string]func(*RepoInput){
+		"sentry slug upper": func(r *RepoInput) { r.SentryProject = "Check-In" },
+		"sentry slug space": func(r *RepoInput) { r.SentryProject = "a b" },
+		"sentry slug dash":  func(r *RepoInput) { r.SentryProject = "-a" },
+		"label too long": func(r *RepoInput) {
+			r.RedPRLabel = strings.Repeat("a", maxLabelLen+1)
+		},
+		"prefix has space": func(r *RepoInput) { r.RedPRBranchPrefix = "a b/" },
+		"prefix has tilde": func(r *RepoInput) { r.RedPRBranchPrefix = "a~/" },
+		"prefix too long": func(r *RepoInput) {
+			r.RedPRBranchPrefix = strings.Repeat("a", maxBranchLen+1)
+		},
+	} {
+		_, err = normaliseRepo(repoInput(mod))
+		assert.Equal(t, http.StatusBadRequest, status(t, err), name)
+	}
+
+	_, err = normaliseRepo(repoInput(func(r *RepoInput) {
+		r.Owner = strings.Repeat("a", 39)
+		r.Name = strings.Repeat("b", 100)
+	}))
+	assert.NoError(t, err, "limits are inclusive")
+}
+
+func TestNormaliseRepoTrimsAndDefaults(t *testing.T) {
+	got, err := normaliseRepo(repoInput(func(r *RepoInput) {
+		r.Owner = " octo "
+		r.Name = " repo "
+		r.DefaultBranch = ""
+		r.DefaultHarness = ""
+		r.TimeLimitMinutes = 0
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, "octo", got.Owner)
+	assert.Equal(t, "repo", got.Name)
+	assert.Equal(t, "main", got.DefaultBranch)
+	assert.Equal(t, models.HarnessClaudeCode, got.DefaultHarness)
+	assert.Equal(t, defaultTimeLimit, got.TimeLimitMinutes)
+
+	got, err = normaliseRepo(repoInput(func(r *RepoInput) { r.DefaultBranch = " dev " }))
+	require.NoError(t, err)
+	assert.Equal(t, "dev", got.DefaultBranch)
+}
+
+func TestNormaliseRepoBounds(t *testing.T) {
+	ok := func(mod func(*RepoInput)) {
+		t.Helper()
+		_, err := normaliseRepo(repoInput(mod))
+		assert.NoError(t, err)
+	}
+	bad := func(mod func(*RepoInput)) {
+		t.Helper()
+		_, err := normaliseRepo(repoInput(mod))
+		assert.Equal(t, http.StatusBadRequest, status(t, err))
+	}
+
+	ok(func(r *RepoInput) { r.TimeLimitMinutes = minTimeLimit })
+	ok(func(r *RepoInput) { r.TimeLimitMinutes = maxTimeLimit })
+	bad(func(r *RepoInput) { r.TimeLimitMinutes = -1 })
+	bad(func(r *RepoInput) { r.TimeLimitMinutes = maxTimeLimit + 1 })
+
+	ok(func(r *RepoInput) { r.SetupCommands = strings.Repeat("a", maxSetupLen) })
+	bad(func(r *RepoInput) { r.SetupCommands = strings.Repeat("a", maxSetupLen+1) })
+	ok(
+		func(r *RepoInput) { r.AgentInstructions = strings.Repeat("a", maxInstructionsLen) },
+	)
+	bad(func(r *RepoInput) {
+		r.AgentInstructions = strings.Repeat("a", maxInstructionsLen+1)
+	})
+
+	ok(func(r *RepoInput) {
+		r.DefaultHarness, r.DefaultModel = models.HarnessOpenCode, "vendor/model"
+	})
+	ok(func(r *RepoInput) {
+		r.DefaultHarness, r.DefaultModel = models.HarnessOpenCode, " vendor/model:free "
+	})
+	bad(func(r *RepoInput) { r.DefaultHarness = models.HarnessOpenCode })
+	bad(func(r *RepoInput) {
+		r.DefaultHarness, r.DefaultModel = models.HarnessOpenCode, "no-vendor"
+	})
+	bad(func(r *RepoInput) {
+		r.DefaultHarness, r.DefaultModel = models.HarnessOpenCode, "-x/model"
+	})
+	bad(func(r *RepoInput) {
+		r.DefaultHarness = models.HarnessOpenCode
+		r.DefaultModel = "vendor/" + strings.Repeat("m", maxModelLen)
+	})
+	bad(func(r *RepoInput) { r.DefaultModel = "vendor/model" })
+	bad(func(r *RepoInput) { r.DefaultHarness = models.HarnessInvalid })
+	bad(func(r *RepoInput) { r.DefaultBranch = "-x" })
+}
+
+func TestUpdateRequiresEverySetting(t *testing.T) {
+	svc := &RepoService{repo: nil}
+	for name, mod := range map[string]func(*RepoInput){
+		"no branch":     func(r *RepoInput) { r.DefaultBranch = "  " },
+		"no harness":    func(r *RepoInput) { r.DefaultHarness = "" },
+		"no time limit": func(r *RepoInput) { r.TimeLimitMinutes = 0 },
+	} {
+		_, err := svc.Update(context.Background(), uuid.New(), repoInput(mod))
+		assert.Equal(t, http.StatusBadRequest, status(t, err), name)
+	}
+}
+
+func TestNormaliseRepoSignalSettings(t *testing.T) {
+	got, err := normaliseRepo(repoInput(func(r *RepoInput) {
+		r.SentryProject = " check-in "
+		r.RedPRLabel = " deps "
+		r.RedPRBranchPrefix = " agent/ "
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, "check-in", got.SentryProject)
+	assert.Equal(t, "deps", got.RedPRLabel)
+	assert.Equal(t, "agent/", got.RedPRBranchPrefix)
+
+	for name, mod := range map[string]func(*RepoInput){
+		"sentry slug upper": func(r *RepoInput) { r.SentryProject = "Check-In" },
+		"sentry slug space": func(r *RepoInput) { r.SentryProject = "a b" },
+		"sentry slug dash":  func(r *RepoInput) { r.SentryProject = "-a" },
+		"label too long":    func(r *RepoInput) { r.RedPRLabel = strings.Repeat("a", maxLabelLen+1) },
+		"prefix has space":  func(r *RepoInput) { r.RedPRBranchPrefix = "a b/" },
+		"prefix has tilde":  func(r *RepoInput) { r.RedPRBranchPrefix = "a~/" },
+		"prefix too long":   func(r *RepoInput) { r.RedPRBranchPrefix = strings.Repeat("a", maxBranchLen+1) },
+	} {
+		_, err = normaliseRepo(repoInput(mod))
+		require.Error(t, err, name)
+	}
+
+	_, err = normaliseRepo(repoInput(func(*RepoInput) {}))
+	require.NoError(t, err, "every signal setting may be empty")
 }

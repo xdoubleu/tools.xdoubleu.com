@@ -334,6 +334,14 @@ message Repo {
   // Lets the runner take this repo's Ready tasks without a press of Run, as the
   // human approved them at the Ready move. Off by default.
   bool auto_pickup = 10;
+  // The Sentry project slug whose issues belong to this repo, shown on
+  // /monitoring; empty for none.
+  string sentry_project = 11;
+  // Which open PRs count as red for this repo: those with this label or whose
+  // head branch starts with the prefix. Empty turns a rule off. Create and
+  // update store what is sent, so a client that omits them clears both.
+  string red_pr_label = 12;
+  string red_pr_branch_prefix = 13;
 }
 
 message ListReposRequest {}

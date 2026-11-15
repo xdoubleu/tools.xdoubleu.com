@@ -14,15 +14,15 @@ type ReposRepository struct {
 }
 
 const repoColumns = `id, owner, name, default_branch, default_harness, default_model,
-	setup_commands, agent_instructions, time_limit_minutes, auto_pickup, created_at,
-	updated_at`
+	setup_commands, agent_instructions, time_limit_minutes, auto_pickup,
+	sentry_project, red_pr_label, red_pr_branch_prefix, created_at, updated_at`
 
 func scanRepo(row rowScanner) (*models.Repo, error) {
 	var r models.Repo
 	err := row.Scan(
 		&r.ID, &r.Owner, &r.Name, &r.DefaultBranch, &r.DefaultHarness, &r.DefaultModel,
 		&r.SetupCommands, &r.AgentInstructions, &r.TimeLimitMinutes, &r.AutoPickup,
-		&r.CreatedAt, &r.UpdatedAt,
+		&r.SentryProject, &r.RedPRLabel, &r.RedPRBranchPrefix, &r.CreatedAt, &r.UpdatedAt,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -58,12 +58,13 @@ func (r *ReposRepository) Create(
 	return scanRepo(r.db.QueryRow(ctx, `
 		INSERT INTO factory.repos
 			(owner, name, default_branch, default_harness, default_model,
-			 setup_commands, agent_instructions, time_limit_minutes, auto_pickup)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			 setup_commands, agent_instructions, time_limit_minutes, auto_pickup,
+			 sentry_project, red_pr_label, red_pr_branch_prefix)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING `+repoColumns,
 		repo.Owner, repo.Name, repo.DefaultBranch, repo.DefaultHarness,
 		repo.DefaultModel, repo.SetupCommands, repo.AgentInstructions, repo.TimeLimitMinutes,
-		repo.AutoPickup,
+		repo.AutoPickup, repo.SentryProject, repo.RedPRLabel, repo.RedPRBranchPrefix,
 	))
 }
 
@@ -76,12 +77,13 @@ func (r *ReposRepository) Update(
 		UPDATE factory.repos SET
 			owner = $2, name = $3, default_branch = $4, default_harness = $5,
 			default_model = $6, setup_commands = $7, agent_instructions = $8,
-			time_limit_minutes = $9, auto_pickup = $10, updated_at = now()
+			time_limit_minutes = $9, auto_pickup = $10, sentry_project = $11,
+			red_pr_label = $12, red_pr_branch_prefix = $13, updated_at = now()
 		WHERE id = $1
 		RETURNING `+repoColumns,
 		repo.ID, repo.Owner, repo.Name, repo.DefaultBranch, repo.DefaultHarness,
 		repo.DefaultModel, repo.SetupCommands, repo.AgentInstructions, repo.TimeLimitMinutes,
-		repo.AutoPickup,
+		repo.AutoPickup, repo.SentryProject, repo.RedPRLabel, repo.RedPRBranchPrefix,
 	))
 }
 

@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect/v2"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/platform/github"
+	"tools.xdoubleu.com/internal/platform/reposignals"
 	platformrepositories "tools.xdoubleu.com/internal/platform/repositories"
 	"tools.xdoubleu.com/internal/platform/sentryapi"
 )
@@ -25,12 +27,12 @@ const currentSlowTransactionsLimit = 20
 
 func (h *obsConnectHandler) GetFailingPullRequests(
 	ctx context.Context,
-	_ *observabilityv1.GetFailingPullRequestsRequest,
+	req *observabilityv1.GetFailingPullRequestsRequest,
 ) (*observabilityv1.GetFailingPullRequestsResponse, error) {
 	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
-	resp, err := h.failingPullRequests(ctx)
+	resp, err := h.failingPullRequests(ctx, req.GetRepo())
 	if err != nil {
 		h.deps.Logger.WarnContext(ctx, "failing pull requests unavailable",
 			slog.Any("error", err))
@@ -38,10 +40,25 @@ func (h *obsConnectHandler) GetFailingPullRequests(
 	return resp, nil
 }
 
+// monitoredRepos lists the registered repos, none when unwired or unreadable.
+func (h *obsConnectHandler) monitoredRepos(ctx context.Context) []reposignals.Repo {
+	if h.deps.Repos == nil {
+		return nil
+	}
+	repos, err := h.deps.Repos.MonitoredRepos(ctx)
+	if err != nil {
+		h.deps.Logger.WarnContext(ctx, "monitored repos unavailable",
+			slog.Any("error", err))
+		return nil
+	}
+	return repos
+}
+
 // failingPullRequests returns an upstream failure alongside the empty
-// section, so the MCP tool can report it instead of an empty list.
+// section, so the MCP tool can report it instead of an empty list. repo
+// ("owner/name") limits it to one registered repo.
 func (h *obsConnectHandler) failingPullRequests(
-	ctx context.Context,
+	ctx context.Context, repo string,
 ) (*observabilityv1.GetFailingPullRequestsResponse, error) {
 	resp := &observabilityv1.GetFailingPullRequestsResponse{
 		PullRequests: []*observabilityv1.FailingPullRequest{},
@@ -49,6 +66,49 @@ func (h *obsConnectHandler) failingPullRequests(
 		FailingCount: 0,
 	}
 
+	repos := h.monitoredRepos(ctx)
+	if len(repos) == 0 {
+		return h.failingPullRequestsOfPickedRepo(ctx, repo, resp)
+	}
+	if repo != "" {
+		r, ok := reposignals.Find(repos, repo)
+		if !ok {
+			return resp, fmt.Errorf("unknown repo %q", repo)
+		}
+		repos = []reposignals.Repo{r}
+	}
+
+	var errs []error
+	for _, r := range repos {
+		prs, err := h.deps.GithubClient.ListFailingPullRequestsIn(
+			ctx, r.Slug, github.PRScope{
+				Label:        r.RedPRLabel,
+				BranchPrefix: r.RedPRBranchPrefix,
+			})
+		if errors.Is(err, github.ErrNotConfigured) {
+			resp.Configured = false
+			return resp, nil
+		}
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", r.Slug, err))
+			continue
+		}
+		resp.PullRequests = append(resp.PullRequests, protoFailingPRs(prs, r.Slug)...)
+	}
+	resp.FailingCount = int32(len(resp.PullRequests)) //nolint:gosec // fits int32
+	return resp, errors.Join(errs...)
+}
+
+// failingPullRequestsOfPickedRepo is the fallback while no repo is registered:
+// the admin-picked GitHub repo under the default scope.
+func (h *obsConnectHandler) failingPullRequestsOfPickedRepo(
+	ctx context.Context,
+	repo string,
+	resp *observabilityv1.GetFailingPullRequestsResponse,
+) (*observabilityv1.GetFailingPullRequestsResponse, error) {
+	if repo != "" {
+		return resp, fmt.Errorf("unknown repo %q", repo)
+	}
 	prs, err := h.deps.GithubClient.ListFailingPullRequests(ctx)
 	if errors.Is(err, github.ErrNotConfigured) {
 		resp.Configured = false
@@ -57,8 +117,15 @@ func (h *obsConnectHandler) failingPullRequests(
 	if err != nil {
 		return resp, err
 	}
+	resp.PullRequests = protoFailingPRs(prs, "")
+	resp.FailingCount = int32(len(prs)) //nolint:gosec // count fits int32
+	return resp, nil
+}
 
-	protoPRs := make([]*observabilityv1.FailingPullRequest, len(prs))
+func protoFailingPRs(
+	prs []github.PullRequest, repo string,
+) []*observabilityv1.FailingPullRequest {
+	out := make([]*observabilityv1.FailingPullRequest, len(prs))
 	for i, pr := range prs {
 		checks := make([]*observabilityv1.FailingCheck, len(pr.FailingChecks))
 		for j, chk := range pr.FailingChecks {
@@ -68,18 +135,17 @@ func (h *obsConnectHandler) failingPullRequests(
 				Url:        chk.URL,
 			}
 		}
-		protoPRs[i] = &observabilityv1.FailingPullRequest{
+		out[i] = &observabilityv1.FailingPullRequest{
 			Number:        pr.Number,
 			Title:         pr.Title,
 			Url:           pr.URL,
 			Author:        pr.Author,
 			UpdatedAt:     pr.UpdatedAt.Format(time.RFC3339),
 			FailingChecks: checks,
+			Repo:          repo,
 		}
 	}
-	resp.PullRequests = protoPRs
-	resp.FailingCount = int32(len(prs)) //nolint:gosec // count fits int32
-	return resp, nil
+	return out
 }
 
 func (h *obsConnectHandler) GetWorkflowRuns(
@@ -295,16 +361,18 @@ func securityAlertTypeFromProto(
 
 func (h *obsConnectHandler) GetSentryIssues(
 	ctx context.Context,
-	_ *observabilityv1.GetSentryIssuesRequest,
+	req *observabilityv1.GetSentryIssuesRequest,
 ) (*observabilityv1.GetSentryIssuesResponse, error) {
 	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
-	return h.sentryIssues(ctx), nil
+	return h.sentryIssues(ctx, req.GetRepo()), nil
 }
 
+// sentryIssues tags each issue with the repo that owns its project; repo
+// ("owner/name") limits the result to that repo's issues.
 func (h *obsConnectHandler) sentryIssues(
-	ctx context.Context,
+	ctx context.Context, repo string,
 ) *observabilityv1.GetSentryIssuesResponse {
 	resp := &observabilityv1.GetSentryIssuesResponse{
 		Issues:          []*observabilityv1.SentryIssue{},
@@ -323,9 +391,14 @@ func (h *obsConnectHandler) sentryIssues(
 		return resp
 	}
 
-	protoIssues := make([]*observabilityv1.SentryIssue, len(issues))
-	for i, is := range issues {
-		protoIssues[i] = &observabilityv1.SentryIssue{
+	repos := h.monitoredRepos(ctx)
+	protoIssues := make([]*observabilityv1.SentryIssue, 0, len(issues))
+	for _, is := range issues {
+		owner := reposignals.RepoForSentryProject(repos, is.Project)
+		if repo != "" && !strings.EqualFold(owner, repo) {
+			continue
+		}
+		protoIssues = append(protoIssues, &observabilityv1.SentryIssue{
 			Id:        is.ID,
 			Title:     is.Title,
 			Culprit:   is.Culprit,
@@ -334,10 +407,11 @@ func (h *obsConnectHandler) sentryIssues(
 			LastSeen:  is.LastSeen.Format(time.RFC3339),
 			Level:     is.Level,
 			Project:   is.Project,
-		}
+			Repo:      owner,
+		})
 	}
 	resp.Issues = protoIssues
-	resp.UnresolvedCount = int32(len(issues)) //nolint:gosec // count fits int32
+	resp.UnresolvedCount = int32(len(protoIssues)) //nolint:gosec // count fits int32
 	return resp
 }
 
@@ -581,6 +655,6 @@ func (h *obsConnectHandler) GetHealthOverview(
 	}
 
 	return &observabilityv1.GetHealthOverviewResponse{
-		Sentry: h.sentryIssues(ctx),
+		Sentry: h.sentryIssues(ctx, ""),
 	}, nil
 }

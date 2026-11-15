@@ -37,9 +37,9 @@ those and the related MCP tools.
   `http_request_duration_seconds` and `job_duration_seconds` histograms, plus
   `web_vitals_seconds` from the browser beacon.
   `IssueSignalCollectorJob` exports issue signals as gauges every 5 minutes:
-  `github_failing_pull_requests`, `github_workflow_run_failed{branch}`,
+  `github_failing_pull_requests`, `github_failing_pull_requests_by_repo{repo}`, `github_workflow_run_failed{branch}`,
   `github_open_security_alerts{severity}`, `github_security_alerts_fetch_ok`,
-  `github_workflow_run_duration_seconds{workflow}`, `sentry_unresolved_issues`, `sentry_unresolved_issues_fetch_ok`,
+  `github_workflow_run_duration_seconds{workflow}`, `sentry_unresolved_issues`, `sentry_unresolved_issues_by_repo{repo}`, `sentry_unresolved_issues_fetch_ok`,
   `r2_orphaned_objects`, `r2_storage_bytes`, `postgres_schema_size_bytes{schema}`,
   and `automated_action_seconds_since_last_open{routine}`. The factory app's
   `factory-collect-signals` job exports `factory_pull_requests_red`,

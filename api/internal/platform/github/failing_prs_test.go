@@ -9,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/internal/platform/github"
 )
 
 const failingCheckRun = `{"check_runs":[{"name":"ci-pass","status":"completed",` +
@@ -89,4 +91,64 @@ func TestListFailingPullRequests_PagesThroughPullsAndCheckRuns(t *testing.T) {
 	assert.Equal(t, int64(1), prs[0].Number)
 	require.Len(t, prs[0].FailingChecks, 1)
 	assert.Equal(t, "ci-pass", prs[0].FailingChecks[0].Name)
+}
+
+func TestListFailingPullRequestsIn_UsesTheReposOwnScope(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			switch r.URL.Path {
+			case "/repos/o/other/pulls":
+				_, _ = w.Write([]byte(`[
+					{"number":1,"title":"Agent","html_url":"u",
+					 "updated_at":"2026-07-01T10:00:00Z","user":{"login":"bot"},
+					 "head":{"sha":"sha1","ref":"agent/fix"}},
+					{"number":2,"title":"Legacy","html_url":"u",
+					 "updated_at":"2026-07-01T10:00:00Z","user":{"login":"bot"},
+					 "head":{"sha":"sha2","ref":"claude/old"}},
+					{"number":3,"title":"Labelled","html_url":"u",
+					 "updated_at":"2026-07-01T10:00:00Z","user":{"login":"bot"},
+					 "head":{"sha":"sha3","ref":"deps/x"},
+					 "labels":[{"name":"deps"}]}
+				]`))
+			case "/repos/o/other/commits/sha1/check-runs",
+				"/repos/o/other/commits/sha2/check-runs",
+				"/repos/o/other/commits/sha3/check-runs":
+				_, _ = w.Write([]byte(failingCheckRun))
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+	defer cleanup()
+
+	prs, err := newClient().ListFailingPullRequestsIn(
+		context.Background(), "o/other",
+		github.PRScope{Label: "deps", BranchPrefix: "agent/"},
+	)
+	require.NoError(t, err)
+	require.Len(t, prs, 2)
+	assert.Equal(t, int64(1), prs[0].Number)
+	assert.Equal(t, int64(3), prs[1].Number)
+}
+
+func TestListFailingPullRequestsIn_EmptyScopeMatchesNothing(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"number":1,"head":{"sha":"s","ref":""}}]`))
+		}))
+	defer cleanup()
+
+	prs, err := newClient().ListFailingPullRequestsIn(
+		context.Background(), "o/other", github.PRScope{},
+	)
+	require.NoError(t, err)
+	assert.Empty(t, prs)
+}
+
+func TestListFailingPullRequestsIn_NoRepoIsNotConfigured(t *testing.T) {
+	_, err := newClient().ListFailingPullRequestsIn(
+		context.Background(), "", github.DefaultPRScope(),
+	)
+	require.ErrorIs(t, err, github.ErrNotConfigured)
 }
