@@ -50,8 +50,7 @@ describe('registry', () => {
       'games',
       'recipes',
       'mealplans',
-      'shoppinglist',
-      'watchparty'
+      'shoppinglist'
     ])
     expect(ids(APPS.filter((a) => a.external))).toEqual(['grafana'])
   })

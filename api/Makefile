@@ -266,12 +266,6 @@ test/cov/per-pkg:
 	go test ./apps/shoppinglist/internal/services \
 		-coverpkg=./apps/shoppinglist/internal/services \
 		-covermode=set -count=1 -coverprofile=cov_shoppinglist_svc.out
-	go test ./apps/watchparty \
-		-coverpkg=./apps/watchparty,./apps/watchparty/internal/... \
-		-covermode=set -count=1 -coverprofile=cov_watchparty_pkg.out
-	go test ./apps/watchparty/internal/... \
-		-coverpkg=./apps/watchparty,./apps/watchparty/internal/... \
-		-covermode=set -count=1 -coverprofile=cov_watchparty_internal.out
 	go test ./cmd/api \
 		-coverpkg=./cmd/api,./internal/... \
 		-covermode=set -count=1 -coverprofile=cov_api_pkg.out
@@ -288,6 +282,5 @@ test/cov/per-pkg:
 		cov_recipes_pkg.out \
 		cov_mealplans_pkg.out \
 		cov_shoppinglist_pkg.out cov_shoppinglist_svc.out \
-		cov_watchparty_pkg.out cov_watchparty_internal.out \
 		cov_api_pkg.out \
 		cov_internal_app.out cov_internal_contacts.out
