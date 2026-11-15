@@ -221,9 +221,27 @@ type fakeSandbox struct {
 	run   func(ctx context.Context, spec runner.SandboxSpec) (int, error)
 	mu    sync.Mutex
 	specs []runner.SandboxSpec
+	// realSync runs the host's base-sync script for real instead of skipping it.
+	// Either way it is not recorded in specs.
+	realSync bool
 }
 
 func (f *fakeSandbox) Run(ctx context.Context, spec runner.SandboxSpec) (int, error) {
+	if len(spec.Command) == 5 && spec.Command[3] == "sync" {
+		if !f.realSync {
+			return 0, nil
+		}
+		cmd := exec.CommandContext(ctx, spec.Command[0], spec.Command[1:]...)
+		cmd.Dir = spec.CloneDir
+		if err := cmd.Run(); err != nil {
+			var ee *exec.ExitError
+			if errors.As(err, &ee) {
+				return ee.ExitCode(), nil
+			}
+			return 1, err
+		}
+		return 0, nil
+	}
 	f.mu.Lock()
 	f.specs = append(f.specs, spec)
 	f.mu.Unlock()
@@ -291,7 +309,7 @@ func newEnv(
 	remote := newRemote(t)
 	dir := t.TempDir()
 	api := newFakeAPI(jobs...)
-	sb := &fakeSandbox{run: sandbox, mu: sync.Mutex{}, specs: nil}
+	sb := &fakeSandbox{run: sandbox, mu: sync.Mutex{}, specs: nil, realSync: false}
 	return &jobEnv{
 		api: api, sandbox: sb, dir: dir, remote: remote,
 		runner: &runner.JobRunner{

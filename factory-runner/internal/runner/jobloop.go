@@ -165,6 +165,11 @@ func (l *jobLoop) attempts() result {
 		prompt += l.dirs.note + "\n\n"
 		l.note(l.dirs.note)
 	}
+	if l.since != "" || l.dirs.taken {
+		if c := l.syncBase(); c != "" {
+			prompt += c + "\n\n"
+		}
+	}
 	prompt += l.job.Prompt
 	var last *step
 	for attempt := 1; ; attempt++ {
