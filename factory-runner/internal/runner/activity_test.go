@@ -3,6 +3,7 @@ package runner_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -91,4 +92,24 @@ func TestActivityRetriesTheHoldOnTheNextJob(t *testing.T) {
 	assert.Equal(t, 0, awake.stops)
 	a.End()
 	assert.Equal(t, 1, awake.stops)
+}
+
+func TestActivityDrainIdle(t *testing.T) {
+	now := time.Unix(1000, 0)
+	a := runner.NewActivity(awakeStub()).WithClock(func() time.Time { return now })
+	require.NoError(t, a.Begin())
+	a.SetDraining(true)
+	assert.False(t, a.DrainIdle())
+
+	now = now.Add(runner.DrainTimeout)
+	assert.True(t, a.DrainIdle(), "a leaked count must not hold the update")
+
+	a.BeginVM()
+	assert.False(t, a.DrainIdle(), "a running VM holds it")
+	a.EndVM()
+	assert.True(t, a.DrainIdle())
+
+	a.SetDraining(false)
+	assert.False(t, a.DrainIdle())
+	assert.Contains(t, a.Busy(), "1 jobs")
 }

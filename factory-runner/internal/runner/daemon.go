@@ -159,7 +159,7 @@ func due(opts Options, now, lastCheck time.Time) (bool, bool) {
 	// Draining: the newer release is known, so the next check is the install,
 	// once the running jobs have ended.
 	if opts.Control != nil && opts.Control.Draining() &&
-		opts.Activity != nil && !opts.Activity.Idle() {
+		opts.Activity != nil && !opts.Activity.DrainIdle() {
 		return false, false
 	}
 	// A requested check is only consumed once it can run.
@@ -173,7 +173,17 @@ func tryUpdate(
 	log *slog.Logger,
 	requested bool,
 ) bool {
-	idle := func() bool { return opts.Activity == nil || opts.Activity.Idle() }
+	idle := func() bool {
+		if opts.Activity == nil || opts.Activity.Idle() {
+			return true
+		}
+		if !opts.Activity.DrainIdle() {
+			return false
+		}
+		log.Warn("drain timed out with no VM running, updating anyway",
+			"busy", opts.Activity.Busy())
+		return true
+	}
 	if opts.Control != nil {
 		opts.Control.RecordUpdate("checking")
 	}
@@ -182,6 +192,9 @@ func tryUpdate(
 	pending := errors.Is(err, ErrUpdatePending)
 	if opts.Control != nil {
 		opts.Control.SetDraining(pending)
+	}
+	if opts.Activity != nil {
+		opts.Activity.SetDraining(pending)
 	}
 	switch {
 	case pending:
