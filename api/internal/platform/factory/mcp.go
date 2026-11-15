@@ -75,6 +75,18 @@ type mcpMoveManyArgs struct {
 	Status string   `json:"status" jsonschema:"target column: backlog, in_progress, in_review, needs_you, testing or done"`
 }
 
+//nolint:lll // struct tags can't wrap
+type mcpSetRoutineArgs struct {
+	Name            string `json:"name"             jsonschema:"routine name: lower-case letters, digits and dashes; the runner only runs names it knows"`
+	RepoID          string `json:"repo_id"          jsonschema:"repo id, from factory_list_repos"`
+	Enabled         bool   `json:"enabled"          jsonschema:"whether the schedule queues it; enabling is the approval to run unattended"`
+	IntervalMinutes int    `json:"interval_minutes" jsonschema:"minutes between runs, 0 for manual only, at most a month"`
+}
+
+type mcpRunRoutineArgs struct {
+	Name string `json:"name" jsonschema:"routine name, from factory_list_routines"`
+}
+
 // maxBulkMove bounds one factory_move_tasks call.
 const maxBulkMove = 200
 
@@ -110,6 +122,16 @@ func (a *Factory) RegisterMCPTools(srv *mcp.Server) {
 		"Move many tasks to one column ("+statusNames+") and get back only the "+
 			"ids moved and the ones that failed.",
 		t.moveTasks)
+	mcptools.AddAgentReadTool(srv, mcpAppName, "factory_list_routines",
+		"Every routine with its repo, enabled flag, interval and newest job.",
+		t.listRoutines)
+	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_set_routine",
+		"Create or change a routine: repo, enabled flag and interval. The change "+
+			"is announced as made by this agent. What a routine does is decided "+
+			"by the runner's own list, not here.", t.setRoutine)
+	mcptools.AddAgentWriteTool(srv, mcpAppName, "factory_run_routine",
+		"Queue a job for a routine now, even when it is disabled. One already "+
+			"queued or running is a conflict.", t.runRoutine)
 }
 
 type mcpTools struct {
@@ -457,4 +479,62 @@ func (t *mcpTools) moveTasks(
 		moved = append(moved, raw)
 	}
 	return structpb.NewStruct(map[string]any{"moved": moved, "failed": failed})
+}
+
+func (t *mcpTools) listRoutines(
+	ctx context.Context, _ mcptools.NoArgs,
+) (proto.Message, error) {
+	if err := t.refuseScoped(ctx, "read routines"); err != nil {
+		return nil, err
+	}
+	list, err := t.app.services.Jobs.ListRoutines(ctx)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	out := make([]*factoryv1.Routine, len(list))
+	for i := range list {
+		out[i] = protoRoutine(&list[i])
+	}
+	return &factoryv1.ListRoutinesResponse{Routines: out}, nil
+}
+
+func (t *mcpTools) setRoutine(
+	ctx context.Context, args mcpSetRoutineArgs,
+) (proto.Message, error) {
+	actor, err := agentActor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err = t.refuseScoped(ctx, "change routines"); err != nil {
+		return nil, err
+	}
+	repoID, err := parseID(args.RepoID)
+	if err != nil {
+		return nil, err
+	}
+	routine, err := t.app.services.Jobs.SaveRoutine(ctx, actor, services.RoutineInput{
+		Name: args.Name, RepoID: repoID, Enabled: args.Enabled,
+		IntervalMinutes: args.IntervalMinutes,
+	})
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return &factoryv1.SaveRoutineResponse{Routine: protoRoutine(routine)}, nil
+}
+
+func (t *mcpTools) runRoutine(
+	ctx context.Context, args mcpRunRoutineArgs,
+) (proto.Message, error) {
+	actor, err := agentActor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err = t.refuseScoped(ctx, "run routines"); err != nil {
+		return nil, err
+	}
+	job, err := t.app.services.Jobs.RunRoutine(ctx, actor, args.Name)
+	if err != nil {
+		return nil, connecttools.MapError(err)
+	}
+	return &factoryv1.RunRoutineResponse{Job: protoJob(job)}, nil
 }

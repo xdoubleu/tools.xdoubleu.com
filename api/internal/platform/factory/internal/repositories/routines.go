@@ -11,11 +11,12 @@ type RoutinesRepository struct {
 	db postgres.DB
 }
 
-const routineColumns = `name, repo_id, enabled, interval_minutes, created_at`
+const routineColumns = `name, repo_id, enabled, interval_minutes, created_at, updated_by`
 
 func scanRoutine(row rowScanner) (*models.Routine, error) {
 	var r models.Routine
-	err := row.Scan(&r.Name, &r.RepoID, &r.Enabled, &r.IntervalMinutes, &r.CreatedAt)
+	err := row.Scan(&r.Name, &r.RepoID, &r.Enabled, &r.IntervalMinutes, &r.CreatedAt,
+		&r.UpdatedBy)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
@@ -64,13 +65,15 @@ func (r *RoutinesRepository) Save(
 	routine models.Routine,
 ) (*models.Routine, error) {
 	return scanRoutine(r.db.QueryRow(ctx, `
-		INSERT INTO factory.routines (name, repo_id, enabled, interval_minutes)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO factory.routines (name, repo_id, enabled, interval_minutes, updated_by)
+		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (name) DO UPDATE SET
 			repo_id = EXCLUDED.repo_id, enabled = EXCLUDED.enabled,
-			interval_minutes = EXCLUDED.interval_minutes
+			interval_minutes = EXCLUDED.interval_minutes,
+			updated_by = EXCLUDED.updated_by
 		RETURNING `+routineColumns,
-		routine.Name, routine.RepoID, routine.Enabled, routine.IntervalMinutes))
+		routine.Name, routine.RepoID, routine.Enabled, routine.IntervalMinutes,
+		routine.UpdatedBy))
 }
 
 // Due returns the enabled scheduled routines with no job queued or running and

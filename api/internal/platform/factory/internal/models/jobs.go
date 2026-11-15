@@ -78,6 +78,8 @@ type Routine struct {
 	// IntervalMinutes is the time between scheduled runs; 0 runs it by hand only.
 	IntervalMinutes int
 	CreatedAt       time.Time
+	// UpdatedBy is who last saved it, as "<kind>:<id>".
+	UpdatedBy string
 	// LastJob is the routine's newest job; nil until it has run.
 	LastJob *Job
 }

@@ -65,6 +65,19 @@ func TestCanMoveToReadyNeedsHumanAdminInBrowser(t *testing.T) {
 	assert.False(t, otherKind.CanMoveToReady())
 }
 
+func TestCanManageRoutinesAddsAgentsToWhoMayMoveToReady(t *testing.T) {
+	admin := models.Actor{Kind: models.ActorHuman, ID: "u", Browser: true, Admin: true}
+	assert.True(t, admin.CanManageRoutines())
+
+	agent := models.Actor{Kind: models.ActorAgent, ID: "a", Browser: false, Admin: false}
+	assert.True(t, agent.CanManageRoutines())
+	assert.False(t, agent.CanMoveToReady())
+
+	noBrowser := admin
+	noBrowser.Browser = false
+	assert.False(t, noBrowser.CanManageRoutines())
+}
+
 func TestHarnessValid(t *testing.T) {
 	assert.True(t, models.HarnessClaudeCode.Valid())
 	assert.True(t, models.HarnessOpenCode.Valid())
