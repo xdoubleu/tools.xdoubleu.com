@@ -60,10 +60,12 @@ Why it needed more than one attempt:
 
 List repeatable friction (a missing tool, a gate you could not run, a CI ` +
 	`failure the local gates missed, slow steps). For each, search ` +
-	`factory_list_tasks (label factory-retro, open columns) and comment on a ` +
-	`match with factory_comment_task, or file one with factory_create_task, ` +
-	`label factory-retro, naming the cause. File nothing when nothing is ` +
-	`repeatable. Reply in one line.`
+	`factory_list_tasks (open columns, label factory-retro and again label ` +
+	`factory-sandbox) and comment on a task with the same cause using ` +
+	`factory_comment_task, also when the job's Blocked line already names ` +
+	`one. Only when none matches, file one with factory_create_task, label ` +
+	`factory-retro (never factory-sandbox), naming the cause. File nothing ` +
+	`when nothing is repeatable. Reply in one line.`
 
 // continuePrompt is added when a job without a session starts on a branch that
 // already holds earlier work (a task re-run from Ready). %s is the default branch.
