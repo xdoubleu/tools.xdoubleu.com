@@ -305,6 +305,31 @@ func (r *JobsRepository) WithOpenPullRequest(
 	return out, rows.Err()
 }
 
+// WithPullRequest returns which of the given tasks have a job that opened a pull
+// request.
+func (r *JobsRepository) WithPullRequest(
+	ctx context.Context,
+	ids []uuid.UUID,
+) (map[uuid.UUID]bool, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT DISTINCT task_id FROM factory.jobs
+		WHERE task_id = ANY($1) AND pr_url <> ''`, ids)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	out := map[uuid.UUID]bool{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err = rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out[id] = true
+	}
+	return out, rows.Err()
+}
+
 // MarkPullRequestPolled notes that the poller tried the job, so one that keeps
 // failing takes its turn at the back instead of holding the front of every batch.
 func (r *JobsRepository) MarkPullRequestPolled(

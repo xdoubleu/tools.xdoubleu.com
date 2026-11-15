@@ -11,6 +11,9 @@ import (
 	"tools.xdoubleu.com/selfupdate/updatesig"
 )
 
+// diskFree reads a volume's free bytes; tests replace it.
+var diskFree = runner.FreeBytes //nolint:gochecknoglobals // tests replace it
+
 // dataDirPerm keeps job data to this user.
 const dataDirPerm = 0o700
 
@@ -39,15 +42,11 @@ func newJobRunner(
 	if err := box.Check(ctx); err != nil {
 		return nil, fmt.Errorf("jobs cannot run on this Mac: %w", err)
 	}
-	if err := ensureImage(ctx, cfg, exec); err != nil {
-		return nil, err
-	}
-	pruneImages(ctx, cfg, exec, log)
 	dataDir := cfg.DataPath(a.home)
 	if err := os.MkdirAll(dataDir, dataDirPerm); err != nil {
 		return nil, fmt.Errorf("data directory: %w", err)
 	}
-	return &runner.JobRunner{
+	jobs := &runner.JobRunner{
 		API:   runner.NewClient(cfg.Server, Release),
 		Token: token,
 		// Read each time, so `config repos add` takes effect without a restart.
@@ -75,6 +74,7 @@ func newJobRunner(
 		},
 		Activity:         a.activity,
 		DataDir:          dataDir,
+		DiskFree:         func() (uint64, error) { return diskFree(dataDir) },
 		Secrets:          []string{token},
 		GitHub:           runner.NewGitHubClient(),
 		ServerURL:        cfg.Server,
@@ -88,7 +88,15 @@ func newJobRunner(
 		Sleep:            nil,
 		Now:              nil,
 		Log:              log,
-	}, nil
+	}
+	// Before a pull, which needs room, and on every retry of a failed one: a
+	// runner whose jobs are off still sweeps.
+	jobs.MakeRoom(ctx, func(ctx context.Context) { pruneImages(ctx, cfg, exec, log) })
+	if err := ensureImage(ctx, cfg, exec); err != nil {
+		return nil, err
+	}
+	pruneImages(ctx, cfg, exec, log)
+	return jobs, nil
 }
 
 // paused is whether the owner stopped this runner from the menu bar.

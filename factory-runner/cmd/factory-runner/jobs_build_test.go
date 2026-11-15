@@ -111,3 +111,23 @@ func TestADataDirectoryThatCannotBeCreatedFailsTheBuild(t *testing.T) {
 		versionExec{out: "container CLI version 1.6.2", err: nil})
 	require.ErrorContains(t, err, "data directory")
 }
+
+func TestALowDiskCleansUpBeforeThePullAndReportsTheFreeSpace(t *testing.T) {
+	e := newEnv(t)
+	old := diskFree
+	diskFree = func(string) (uint64, error) { return 1 << 30, nil }
+	t.Cleanup(func() { diskFree = old })
+	cfg := runner.Config{
+		Server: "https://example.com/api", Repos: nil, Image: "job:v2", GoModCache: "",
+		NPMCache: "", DataDir: filepath.Join(e.app.home, "data"), BotEmail: "",
+		Mode: "", MaxJobs: 0, OnLimit: "",
+	}
+
+	jr, err := newJobRunner(context.Background(), e.app, cfg, "t", quietLog(),
+		versionExec{out: "container CLI version 1.6.1", err: nil})
+	require.NoError(t, err)
+
+	free, err := jr.DiskFree()
+	require.NoError(t, err)
+	assert.EqualValues(t, 1<<30, free)
+}

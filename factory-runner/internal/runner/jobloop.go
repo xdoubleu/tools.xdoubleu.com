@@ -150,6 +150,7 @@ func (l *jobLoop) loop() result {
 		return *res
 	}
 	defer l.session.Close()
+	l.warnLowDisk()
 	res := l.attempts()
 	l.retro(res)
 	return res

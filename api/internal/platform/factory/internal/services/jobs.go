@@ -230,8 +230,10 @@ func (s *JobService) Reply(
 	return job, nil
 }
 
-// FinishedTasks returns those of the given tasks that are Done or no longer exist:
-// the runner's session state for them can go.
+// FinishedTasks returns those of the given tasks whose job directories on the
+// runner can go: Done or gone ones, and Testing ones that opened a pull request
+// (a Testing task's PR has merged). A task without a PR keeps its directory until
+// Done.
 func (s *JobService) FinishedTasks(
 	ctx context.Context,
 	ids []uuid.UUID,
@@ -240,9 +242,15 @@ func (s *JobService) FinishedTasks(
 	if err != nil {
 		return nil, err
 	}
+	withPR, err := s.jobs.WithPullRequest(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
 	out := []uuid.UUID{}
 	for _, id := range ids {
-		if status, ok := statuses[id]; !ok || status == models.StatusDone {
+		status, ok := statuses[id]
+		if !ok || status == models.StatusDone ||
+			(status == models.StatusTesting && withPR[id]) {
 			out = append(out, id)
 		}
 	}
