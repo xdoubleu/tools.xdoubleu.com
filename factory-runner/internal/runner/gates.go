@@ -86,7 +86,7 @@ func (l *jobLoop) runGates() string {
 		if len(tail) > gateTail {
 			tail = tail[len(tail)-gateTail:]
 		}
-		return fmt.Sprintf("The host ran the gate `%s` before pushing and it failed:"+
+		return fmt.Sprintf("The gate `%s` before pushing and it failed:"+
 			"\n\n%s\n\nFix it, run it yourself, commit, and write the outcome again.",
 			g.command, redact(tail, l.events.redactions))
 	}
