@@ -102,9 +102,13 @@ const preamble = `You are running unattended in a sandbox with no network ` +
 	`checks it)". Your work continues until its pull request merges: the ` +
 	`runner opens the pull request, and when a gate, the push or CI fails it ` +
 	`resumes this session with what failed. Fix it, commit, and write the ` +
-	`outcome again. A line "Blocked:" in the outcome stops that loop for good ` +
+	`outcome again. If the task depends on other tasks that are not done yet, ` +
+	`add one line "Waiting-on: T-6, T-8" naming them and nothing else: the ` +
+	`task goes back to Backlog and no sandbox task is filed. A line ` +
+	`"Blocked:" in the outcome stops that loop for good ` +
 	`unless a pull request opened, ` +
-	`so use it only for a problem outside your reach: if the sandbox stops ` +
+	`so use it only for a sandbox or tool gap, never for a dependency on ` +
+	`other tasks: if the sandbox stops ` +
 	`you doing or checking the work (a missing module cache, blocked network, ` +
 	`absent tool), search the board with factory_list_tasks for the label ` +
 	`factory-sandbox among open and In review tasks, matching on the missing ` +
@@ -203,7 +207,7 @@ type JobRunner struct {
 func failed(outcome string) result {
 	return result{
 		succeeded: false, outcome: outcome, session: "", prURL: "",
-		limited: false, resetsAt: time.Time{}, blocked: "",
+		limited: false, resetsAt: time.Time{}, blocked: "", waitingOn: nil,
 		failure: "", retry: false, head: "", cause: "", times: nil, total: 0,
 	}
 }
@@ -233,6 +237,8 @@ type result struct {
 	resetsAt time.Time
 	// blocked is what stopped the agent in the sandbox, for the board.
 	blocked string
+	// waitingOn is the tasks this one depends on, from the agent's Waiting-on line.
+	waitingOn []string
 	// failure is why a finished attempt did not publish, for the agent's next
 	// attempt; retry says another attempt may fix it. head is the branch tip the
 	// host reviewed, "" when it never got that far.
@@ -391,7 +397,7 @@ func (r *JobRunner) run(ctx context.Context, job *ClaimedJob) {
 	err := r.API.CompleteJob(done, r.Token, job.ID, JobEnd{
 		Succeeded: res.succeeded, Outcome: res.outcome, SessionID: res.session,
 		PRURL: res.prURL, Limited: res.limited, ResetsAt: res.resetsAt,
-		Blocked: res.blocked, Times: res.times, Total: res.total,
+		Blocked: res.blocked, WaitingOn: res.waitingOn, Times: res.times, Total: res.total,
 	})
 	if err != nil {
 		r.Log.Warn("could not report the job", "job", job.ID, "error", err)

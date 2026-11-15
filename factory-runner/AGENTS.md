@@ -10,7 +10,7 @@ cmd/factory-runner/   main.go, config.go, entry.go, jobs.go, jobproxy.go
 internal/runner/
   client.go, jobs_client.go   the server calls
   daemon.go, control.go       heartbeat loop; pause flag, status
-  jobrunner.go                claim loop, `max_jobs`; prompt; Checks:/Blocked:
+  jobrunner.go                claim loop, `max_jobs`; prompt; Checks:/Blocked:/Waiting-on:
   sessions.go, jobsweep.go    hourly dir sweep
   jobloop.go, pullstatus.go, gates.go, routines.go  attempts until merge; CI verdict; routines
   gitclone.go, hostcheck.go   clone; host checks

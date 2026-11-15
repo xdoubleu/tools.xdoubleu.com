@@ -1198,7 +1198,10 @@ type CompleteJobRequest struct {
 	// one with the same title.
 	Blocked string `protobuf:"bytes,8,opt,name=blocked,proto3" json:"blocked,omitempty"`
 	// Where the job's time went; unset when the job never ran an attempt.
-	Timings       *JobTimings `protobuf:"bytes,9,opt,name=timings,proto3" json:"timings,omitempty"`
+	Timings *JobTimings `protobuf:"bytes,9,opt,name=timings,proto3" json:"timings,omitempty"`
+	// Tasks (T-n) the job's task waits for, from the agent's Waiting-on line. The
+	// server moves the task to Backlog with a comment naming them and files nothing.
+	WaitingOn     []string `protobuf:"bytes,10,rep,name=waiting_on,json=waitingOn,proto3" json:"waiting_on,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1292,6 +1295,13 @@ func (x *CompleteJobRequest) GetBlocked() string {
 func (x *CompleteJobRequest) GetTimings() *JobTimings {
 	if x != nil {
 		return x.Timings
+	}
+	return nil
+}
+
+func (x *CompleteJobRequest) GetWaitingOn() []string {
+	if x != nil {
+		return x.WaitingOn
 	}
 	return nil
 }
@@ -1712,7 +1722,7 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\x14AddJobCommentRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x12\n" +
 	"\x04body\x18\x02 \x01(\tR\x04body\"\x17\n" +
-	"\x15AddJobCommentResponse\"\xa7\x02\n" +
+	"\x15AddJobCommentResponse\"\xc6\x02\n" +
 	"\x12CompleteJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x1c\n" +
 	"\tsucceeded\x18\x02 \x01(\bR\tsucceeded\x12\x18\n" +
@@ -1723,7 +1733,10 @@ const file_factory_v1_runners_proto_rawDesc = "" +
 	"\alimited\x18\x06 \x01(\bR\alimited\x12&\n" +
 	"\x0flimit_resets_at\x18\a \x01(\tR\rlimitResetsAt\x12\x18\n" +
 	"\ablocked\x18\b \x01(\tR\ablocked\x120\n" +
-	"\atimings\x18\t \x01(\v2\x16.factory.v1.JobTimingsR\atimings\"\xcd\x02\n" +
+	"\atimings\x18\t \x01(\v2\x16.factory.v1.JobTimingsR\atimings\x12\x1d\n" +
+	"\n" +
+	"waiting_on\x18\n" +
+	" \x03(\tR\twaitingOn\"\xcd\x02\n" +
 	"\n" +
 	"JobTimings\x12#\n" +
 	"\ragent_seconds\x18\x01 \x01(\x01R\fagentSeconds\x12'\n" +

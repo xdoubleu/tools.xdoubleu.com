@@ -163,6 +163,9 @@ message CompleteJobRequest {
   string blocked = 8;
   // Where the job's time went; unset when the job never ran an attempt.
   JobTimings timings = 9;
+  // Tasks (T-n) the job's task waits for, from the agent's Waiting-on line. The
+  // server moves the task to Backlog with a comment naming them and files nothing.
+  repeated string waiting_on = 10;
 }
 // JobTimings are a job's phase durations in seconds and how many attempts were
 // repeated, by the stage that failed.
