@@ -14,10 +14,23 @@ interface ItemCardProps {
   status?: ReactNode
   /** Controls in a footer that never navigates. */
   actions?: ReactNode
+  /** A full-width, stacked region in the footer for richer controls (e.g. ratings, progress). */
+  details?: ReactNode
+  /** Accessible name for the link when the body has more than the title. */
+  'aria-label'?: string
 }
 
 /** One entry of a collection: artwork, title, one meta line and an optional status. */
-function ItemCard({ href, title, artwork, meta, status, actions }: ItemCardProps) {
+function ItemCard({
+  href,
+  title,
+  artwork,
+  meta,
+  status,
+  actions,
+  details,
+  'aria-label': ariaLabel
+}: ItemCardProps) {
   const body = (
     <div className="flex items-start gap-3">
       {artwork}
@@ -28,16 +41,25 @@ function ItemCard({ href, title, artwork, meta, status, actions }: ItemCardProps
       </div>
     </div>
   )
+  const footer =
+    details === undefined ? (
+      actions
+    ) : (
+      <div className="w-full min-w-0 space-y-2">
+        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+        {details}
+      </div>
+    )
   if (href === undefined) {
     return (
       <Card className="space-y-3">
         {body}
-        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+        {footer && <div className="flex flex-wrap items-center gap-2">{footer}</div>}
       </Card>
     )
   }
   return (
-    <LinkCard href={href} actions={actions} linkClassName="p-4">
+    <LinkCard href={href} aria-label={ariaLabel} actions={footer} linkClassName="p-4">
       {body}
     </LinkCard>
   )
