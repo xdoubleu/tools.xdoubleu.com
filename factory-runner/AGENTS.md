@@ -11,7 +11,7 @@ internal/runner/
   client.go, jobs_client.go   the server calls
   daemon.go, control.go       heartbeat loop; pause flag, status
   claimstate.go, watchdog.go  why claims hold (`status`); stall watchdog
-  jobrunner.go                claim loop, `max_jobs`; prompt; Checks:/Blocked:/Waiting-on:
+  jobrunner.go                claim loop, `max_jobs`; prompt; Checks:/Blocked:/Waiting-on:/Already-fixed:
   sessions.go, jobsweep.go    hourly dir sweep
   jobloop.go, pullstatus.go, gates.go, routines.go  attempts until merge; CI verdict; routines
   gitclone.go, hostcheck.go   clone; host checks
