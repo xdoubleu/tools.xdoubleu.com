@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -134,7 +135,7 @@ func (s *TaskService) Create(
 	if err != nil {
 		return nil, err
 	}
-	return s.repo.Create(ctx, models.Task{
+	task, err := s.repo.Create(ctx, models.Task{
 		ID:             uuid.Nil,
 		Number:         0,
 		RepoID:         repoID,
@@ -158,6 +159,25 @@ func (s *TaskService) Create(
 		Deploy:         "",
 		DeployReason:   "",
 	}, actor)
+	if err != nil || !startsReady(actor, in) {
+		return task, err
+	}
+	return s.Move(ctx, actor, task.ID, models.StatusReady)
+}
+
+// readyLabels are the labels whose tasks an agent files straight into Ready.
+var readyLabels = []string{"bug", "factory-retro"}
+
+// startsReady reports whether an agent's new task skips Backlog: it carries a
+// bug or retro label and its text is renderable (else it waits in Backlog).
+func startsReady(actor models.Actor, in TaskInput) bool {
+	if actor.Kind != models.ActorAgent {
+		return false
+	}
+	has := slices.ContainsFunc(in.Labels, func(l string) bool {
+		return slices.Contains(readyLabels, strings.ToLower(l))
+	})
+	return has && checkRenderable(in.Title, in.Body) == nil
 }
 
 // Update replaces a task's title, body, priority and labels.
