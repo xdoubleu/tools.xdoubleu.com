@@ -1,6 +1,6 @@
 module tools.xdoubleu.com
 
-go 1.27.3
+go 1.27.4
 
 require (
 	authelia.com/provider/oauth2 v0.3.3
