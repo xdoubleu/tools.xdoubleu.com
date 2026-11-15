@@ -80,6 +80,8 @@ message ListTasksResponse {
   bool pickup_paused = 2;
   // While a job's Claude usage limit is still to lift: when (RFC3339); else empty.
   string claude_limited_until = 3;
+  // Whether a job has been queued for 15 minutes with no job running.
+  bool queue_stalled = 4;
 }
 
 // Pauses or resumes auto pickup for the whole board. A human admin in a browser

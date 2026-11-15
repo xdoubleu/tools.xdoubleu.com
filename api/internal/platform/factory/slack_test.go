@@ -201,6 +201,9 @@ func TestAYoungJobOrAnEmptyQueueIsNotPosted(t *testing.T) {
 
 func TestAnOnlineRunnerMeansNothingIsOffline(t *testing.T) {
 	env, slack := slackEnv(t)
+	busy := env.newTask(t, "Running")
+	env.run(t, busy.Id, "")
+	env.claim(t)
 	before := slack.count()
 	env.waiting(t, "Waits its turn", 30)
 	_, err := env.runner.Heartbeat(bearer(env.token), &factoryv1.HeartbeatRequest{})
@@ -225,4 +228,43 @@ func TestAnotherWaitingJobIsAnnouncedAfterTheFirstIsTaken(t *testing.T) {
 	require.NoError(t, env.app.CheckRunnerNow(context.Background()))
 	assert.Equal(t, before+2, slack.count())
 	assert.Contains(t, slack.last(), "Second")
+}
+
+func TestAnOnlineRunnerRunningNothingIsPostedOnceAndBannered(t *testing.T) {
+	env, slack := slackEnv(t)
+	before := slack.count()
+	taskID := env.waiting(t, "Ignored", 16)
+	_, err := env.runner.Heartbeat(bearer(env.token), &factoryv1.HeartbeatRequest{})
+	require.NoError(t, err)
+
+	list, err := env.tasks.ListTasks(context.Background(), &factoryv1.ListTasksRequest{})
+	require.NoError(t, err)
+	assert.True(t, list.QueueStalled)
+
+	require.NoError(t, env.app.CheckRunnerNow(context.Background()))
+	assert.Equal(t, before+1, slack.count())
+	assert.Contains(t, slack.last(), ":warning: A runner is online but nothing is "+
+		"running, and <"+boardURL+"/factory?task="+taskID+
+		"|Ignored> has waited 16 minutes.")
+	require.NoError(t, env.app.CheckRunnerNow(context.Background()))
+	assert.Equal(t, before+1, slack.count(), "announced once")
+
+	env.claim(t)
+	list, err = env.tasks.ListTasks(context.Background(), &factoryv1.ListTasksRequest{})
+	require.NoError(t, err)
+	assert.False(t, list.QueueStalled, "a running job clears the banner")
+}
+
+func TestAYoungQueuedJobIsNotAStall(t *testing.T) {
+	env, slack := slackEnv(t)
+	before := slack.count()
+	env.waiting(t, "Fresh", 14)
+	_, err := env.runner.Heartbeat(bearer(env.token), &factoryv1.HeartbeatRequest{})
+	require.NoError(t, err)
+
+	list, err := env.tasks.ListTasks(context.Background(), &factoryv1.ListTasksRequest{})
+	require.NoError(t, err)
+	assert.False(t, list.QueueStalled)
+	require.NoError(t, env.app.CheckRunnerNow(context.Background()))
+	assert.Equal(t, before, slack.count())
 }

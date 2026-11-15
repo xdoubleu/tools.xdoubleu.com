@@ -200,6 +200,16 @@ describe('FactoryClient', () => {
     expect(screen.queryByText(/Limited until/)).not.toBeInTheDocument()
   })
 
+  it('shows a banner while queued work waits with nothing running', () => {
+    mockTasks({ data: create(ListTasksResponseSchema, { tasks: [], queueStalled: true }) })
+    const { rerender } = render(<FactoryClient />)
+    expect(screen.getByText(/nothing is running/)).toBeInTheDocument()
+
+    mockTasks({ data: create(ListTasksResponseSchema, { tasks: [], queueStalled: false }) })
+    rerender(<FactoryClient />)
+    expect(screen.queryByText(/nothing is running/)).not.toBeInTheDocument()
+  })
+
   it('takes the notice down by itself once the limit has lifted', () => {
     vi.useFakeTimers()
     try {

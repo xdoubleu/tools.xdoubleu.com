@@ -41,7 +41,7 @@ func New(
 			linked:      repos.Linked,
 			routines:    repos.Routines,
 			imageDigest: nil,
-			offlineMu:   sync.Mutex{}, alertedOffline: uuid.Nil,
+			offlineMu:   sync.Mutex{}, alertedOffline: uuid.Nil, alertedStalled: uuid.Nil,
 		},
 	}
 }
