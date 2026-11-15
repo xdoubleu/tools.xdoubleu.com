@@ -78,7 +78,7 @@ Fresh branch off up-to-date `main`, board task before the first edit, lint/cover
 
 ## CI
 
-`.github/workflows/main.yml` runs reusable build/lint/test workflows behind a `changes` path filter (`**/*.md` excluded); kobo-gateway and factory-runner jobs run on macOS. **`ci-pass` is the required check.** Pushes to `main` rebuild and deploy but skip lint, except docs budgets. Test jobs gate coverage of changed lines at 80% on PRs (`tools/diff_coverage_{go,ts}.py`) → [adr-0013](docs/adr-0013-diff-scoped-coverage.md).
+`.github/workflows/main.yml` runs reusable build/lint/test workflows behind a `changes` path filter (`**/*.md` excluded); kobo-gateway and factory-runner jobs run on macOS. **`ci-pass` is the required check.** Pushes to `main` rebuild and deploy but skip lint, except docs budgets. Test jobs gate coverage of changed lines at 80% on PRs (`scripts/diff_coverage.sh`) → [adr-0013](docs/adr-0013-diff-scoped-coverage.md).
 
 ## Docs
 

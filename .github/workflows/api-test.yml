@@ -47,4 +47,4 @@ jobs:
         if: github.event_name == 'pull_request'
         working-directory: './api'
         run: |
-          python3 ../tools/diff_coverage_go.py coverage.out
+          ../scripts/diff_coverage.sh go coverage.out
