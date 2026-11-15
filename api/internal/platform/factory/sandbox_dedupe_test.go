@@ -21,17 +21,37 @@ func blockWith(t *testing.T, env jobEnv, blocked string) {
 	require.NoError(t, err)
 }
 
-func TestABlockedLineNamingAnOpenTaskCommentsOnThatTask(t *testing.T) {
+func TestABlockedLineNamingATaskBacklogsTheTaskAndFilesNothing(t *testing.T) {
 	env, _ := accountsEnv(t)
 	known := env.newTask(t, "host gate has no go")
-	blocked := "host gate has no go (" + known.Id + ")"
-	blockWith(t, env, blocked)
+	blocked := "needs the filing routines (" + known.Id + ") " + uuid.NewString()
 	blockWith(t, env, blocked)
 
 	assert.Empty(t, sandboxTasks(t, env, "Sandbox: "+blocked))
-	got := env.task(t, known.Id)
-	require.Len(t, got.Comments, 2)
-	assert.Contains(t, got.Comments[0].Body, "host gate has no go")
+}
+
+func TestAWaitingOnJobMovesItsTaskToBacklogNamingTheDependencies(t *testing.T) {
+	env, _ := accountsEnv(t)
+	task := env.newTask(t, "work "+uuid.NewString())
+	env.run(t, task.Id, "")
+	claimed := env.claim(t)
+	_, err := env.runner.CompleteJob(bearer(env.token), &factoryv1.CompleteJobRequest{
+		JobId: claimed.Id, WaitingOn: []string{"T-6", "see T-8 and T-6"},
+	})
+	require.NoError(t, err)
+
+	got := env.task(t, task.Id)
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_BACKLOG, got.Task.Status)
+	require.NotEmpty(t, got.Comments)
+	assert.Contains(t, got.Comments[len(got.Comments)-1].Body, "Waiting on T-6, T-8;")
+}
+
+func TestABlockedLineForWorkThatDoesNotExistYetFilesNothing(t *testing.T) {
+	env, _ := accountsEnv(t)
+	blocked := "the repair path doesn't exist yet " + uuid.NewString()
+	blockWith(t, env, blocked)
+
+	assert.Empty(t, sandboxTasks(t, env, "Sandbox: "+blocked))
 }
 
 func TestABlockedLineWithTheSameCauseReusesTheOpenSandboxTask(t *testing.T) {

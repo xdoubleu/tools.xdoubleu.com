@@ -3,6 +3,8 @@ package runner
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -105,4 +107,25 @@ func findLine(text, prefix string) (string, bool) {
 		}
 	}
 	return found, ok
+}
+
+var taskRefPattern = regexp.MustCompile(`\bT-\d{1,18}\b`)
+
+// waitingOn returns the tasks named on the outcome's last Waiting-on: or
+// Blocked-by: line, in order and without repeats; nil when it has neither.
+func waitingOn(text string) []string {
+	line, ok := findLine(text, "Waiting-on:")
+	if by, has := findLine(text, "Blocked-by:"); has && !ok {
+		line, ok = by, true
+	}
+	if !ok {
+		return nil
+	}
+	var out []string
+	for _, ref := range taskRefPattern.FindAllString(line, -1) {
+		if !slices.Contains(out, ref) {
+			out = append(out, ref)
+		}
+	}
+	return out
 }

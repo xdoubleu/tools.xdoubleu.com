@@ -98,7 +98,8 @@ func TestCompleteJobSendsTheResult(t *testing.T) {
 		t,
 		c.CompleteJob(context.Background(), "frt_x", "j1", runner.JobEnd{
 			Succeeded: true, Outcome: "done", SessionID: "s1", PRURL: "https://x/pr",
-			Limited: false, ResetsAt: time.Time{}, Blocked: "", Times: nil, Total: 0,
+			Limited: false, ResetsAt: time.Time{}, Blocked: "", WaitingOn: nil,
+			Times: nil, Total: 0,
 		}),
 	)
 
@@ -112,7 +113,8 @@ func TestCompleteJobSendsTheResult(t *testing.T) {
 		t,
 		late.CompleteJob(context.Background(), "frt_x", "j1", runner.JobEnd{
 			Succeeded: true, Outcome: "", SessionID: "", PRURL: "",
-			Limited: false, ResetsAt: time.Time{}, Blocked: "", Times: nil, Total: 0,
+			Limited: false, ResetsAt: time.Time{}, Blocked: "", WaitingOn: nil,
+			Times: nil, Total: 0,
 		}),
 	)
 }
@@ -129,7 +131,8 @@ func TestCompleteJobSendsThePhaseTimings(t *testing.T) {
 	require.NoError(t, c.CompleteJob(context.Background(), "frt_x", "j1",
 		runner.JobEnd{
 			Succeeded: false, Outcome: "", SessionID: "", PRURL: "", Limited: false,
-			ResetsAt: time.Time{}, Blocked: "", Times: p, Total: 20 * time.Second,
+			ResetsAt: time.Time{}, Blocked: "", WaitingOn: nil,
+			Times: p, Total: 20 * time.Second,
 		}))
 	assert.Contains(t, body, `"timings":{"agentSeconds":2,"gatesSeconds":0,`+
 		`"publishSeconds":3,`+
