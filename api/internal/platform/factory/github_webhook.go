@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"tools.xdoubleu.com/internal/platform/factory/internal/services"
 )
 
 // webhookMaxBody caps a delivery; the fields read here sit in a pull request
@@ -40,14 +42,20 @@ type pullRequestEvent struct {
 	Action      string `json:"action"`
 	PullRequest struct {
 		URL    string  `json:"html_url"`
+		Title  string  `json:"title"`
 		Body   *string `json:"body"`
+		State  string  `json:"state"`
 		Merged bool    `json:"merged"`
 		SHA    string  `json:"merge_commit_sha"`
+		Head   struct {
+			Ref string `json:"ref"`
+		} `json:"head"`
 	} `json:"pull_request"`
 }
 
-// githubWebhook moves the task a merged pull request links to Testing. The
-// signature is the only authentication; every event but a merge is
+// githubWebhook links the tasks a pull request names and moves them: In review
+// while it is open, Testing once it merges; a close without a merge only leaves a
+// comment. The signature is the only authentication; other events are
 // acknowledged and ignored.
 func (a *Factory) githubWebhook(w http.ResponseWriter, r *http.Request) {
 	if a.webhookSecret == "" {
@@ -74,12 +82,23 @@ func (a *Factory) githubWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pr := event.PullRequest
-	if event.Action != "closed" || !pr.Merged || pr.Body == nil {
+	ref := services.PullRequestRef{
+		URL: pr.URL, Title: pr.Title, Branch: pr.Head.Ref, Body: "", MergeSHA: pr.SHA,
+	}
+	if pr.Body != nil {
+		ref.Body = *pr.Body
+	}
+	switch {
+	case event.Action == "closed" && pr.Merged:
+		_, err = a.services.Jobs.TestingAfterMerge(r.Context(), ref)
+	case event.Action == "closed":
+		err = a.services.Jobs.PullRequestClosed(r.Context(), ref)
+	case pr.State == "open" && opensOrEdits(event.Action):
+		err = a.services.Jobs.PullRequestOpened(r.Context(), ref)
+	default:
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	_, err = a.services.Jobs.TestingAfterMerge(
-		r.Context(), *pr.Body, pr.URL, pr.SHA)
 	if err != nil {
 		// GitHub doesn't retry, so the poll is what recovers this.
 		a.Logger.ErrorContext(r.Context(), "github webhook: moving the task failed",
@@ -88,4 +107,14 @@ func (a *Factory) githubWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// opensOrEdits are the events after which a pull request is open and may name
+// tasks it did not before.
+func opensOrEdits(action string) bool {
+	switch action {
+	case "opened", "reopened", "edited", "ready_for_review":
+		return true
+	}
+	return false
 }

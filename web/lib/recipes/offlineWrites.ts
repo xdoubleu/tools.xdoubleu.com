@@ -31,6 +31,7 @@ type RecipeFields = Pick<
   | 'ingredientAmounts'
   | 'ingredientUnits'
   | 'ingredientGroupNames'
+  | 'ingredientAlternativeGroups'
 >
 
 /** Builds the recipe the API would store for these fields (dtoToRecipe). */
@@ -38,6 +39,7 @@ function toRecipe(id: string, req: RecipeFields, base?: Recipe): Recipe {
   const ingredients = req.ingredientNames.flatMap((name, i) => {
     if (!name) return []
     const group = req.ingredientGroupNames[i]?.trim()
+    const alternativeGroup = req.ingredientAlternativeGroups[i]?.trim()
     return [
       create(IngredientSchema, {
         id: `${id}-${i}`,
@@ -46,7 +48,8 @@ function toRecipe(id: string, req: RecipeFields, base?: Recipe): Recipe {
         amount: req.ingredientAmounts[i] ?? 0,
         unit: req.ingredientUnits[i]?.trim() ?? '',
         sortOrder: i,
-        groupName: group || undefined
+        groupName: group || undefined,
+        alternativeGroup: alternativeGroup || undefined
       })
     ]
   })

@@ -53,9 +53,18 @@ func TestMCPTools_CreateRecipeIsDraft(t *testing.T) {
 		BaseServings:  4,
 		BatchServings: &batch,
 		Ingredients: []mcpIngredientArg{
-			{Name: "pasta", Amount: 400, Unit: "g", GroupName: ""},
-			{Name: "basilicum", Amount: 1, Unit: "pot", GroupName: "pesto"},
-			{Name: "ui", Amount: 2, Unit: "", GroupName: ""},
+			{
+				Name: "pasta", Amount: 400, Unit: "g",
+				GroupName: "", AlternativeGroup: "",
+			},
+			{
+				Name: "basilicum", Amount: 1, Unit: "pot",
+				GroupName: "pesto", AlternativeGroup: "",
+			},
+			{
+				Name: "ui", Amount: 2, Unit: "",
+				GroupName: "", AlternativeGroup: "",
+			},
 		},
 	})
 	require.NoError(t, err)

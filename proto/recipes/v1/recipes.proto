@@ -10,6 +10,9 @@ message Ingredient {
   string unit = 5;
   int32 sort_order = 6;
   optional string group_name = 7;
+  // Ingredients of one recipe sharing a label are interchangeable options;
+  // the first by sort_order is the default.
+  optional string alternative_group = 8;
 }
 
 message ScaledIngredient {
@@ -75,8 +78,9 @@ message CreateRecipeRequest {
   // Optional client-generated UUID: repeating the call with it updates
   // nothing and returns the existing recipe (offline replay).
   string id = 10;
-  string meal_type = 11;
-  string effort = 12;
+  repeated string ingredient_alternative_groups = 11;
+  string meal_type = 12;
+  string effort = 13;
 }
 message CreateRecipeResponse { Recipe recipe = 1; }
 
@@ -91,8 +95,9 @@ message UpdateRecipeRequest {
   optional int32 batch_servings = 8;
   repeated string ingredient_group_names = 9;
   bool is_draft = 10;
-  string meal_type = 11;
-  string effort = 12;
+  repeated string ingredient_alternative_groups = 11;
+  string meal_type = 12;
+  string effort = 13;
 }
 message UpdateRecipeResponse {}
 

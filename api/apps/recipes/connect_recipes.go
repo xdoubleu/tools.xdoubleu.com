@@ -92,13 +92,14 @@ func protoIngredient(ing *models.Ingredient) *recipesv1.Ingredient {
 		return nil
 	}
 	return &recipesv1.Ingredient{
-		Id:        ing.ID.String(),
-		RecipeId:  ing.RecipeID.String(),
-		Name:      ing.Name,
-		Amount:    ing.Amount,
-		Unit:      ing.Unit,
-		SortOrder: int32(ing.SortOrder), //nolint:gosec // int32 safe for domain values
-		GroupName: ing.GroupName,
+		Id:               ing.ID.String(),
+		RecipeId:         ing.RecipeID.String(),
+		Name:             ing.Name,
+		Amount:           ing.Amount,
+		Unit:             ing.Unit,
+		SortOrder:        int32(ing.SortOrder), //nolint:gosec // int32 safe for domain values
+		GroupName:        ing.GroupName,
+		AlternativeGroup: ing.AlternativeGroup,
 	}
 }
 
@@ -114,6 +115,18 @@ func protoScaledIngredient(
 	}
 }
 
+// optionalTrimmed returns values[i] trimmed, or nil when absent or blank.
+func optionalTrimmed(values []string, i int) *string {
+	if i >= len(values) {
+		return nil
+	}
+	v := strings.TrimSpace(values[i])
+	if v == "" {
+		return nil
+	}
+	return &v
+}
+
 // dtoToRecipe converts request fields to domain models.
 func dtoToRecipe(
 	name string,
@@ -123,6 +136,7 @@ func dtoToRecipe(
 	ingredientAmounts []float64,
 	ingredientUnits []string,
 	ingredientGroupNames []string,
+	ingredientAlternativeGroups []string,
 ) (models.Recipe, []models.Ingredient) {
 	var nonEmpty []string
 	for _, s := range steps {
@@ -157,20 +171,16 @@ func dtoToRecipe(
 		if i < len(ingredientUnits) {
 			unit = strings.TrimSpace(ingredientUnits[i])
 		}
-		var groupName *string
-		if i < len(ingredientGroupNames) && ingredientGroupNames[i] != "" {
-			g := strings.TrimSpace(ingredientGroupNames[i])
-			if g != "" {
-				groupName = &g
-			}
-		}
+		groupName := optionalTrimmed(ingredientGroupNames, i)
+		alternativeGroup := optionalTrimmed(ingredientAlternativeGroups, i)
 		//nolint:exhaustruct // other fields optional
 		ingredients = append(ingredients, models.Ingredient{
-			Name:      ingredientName,
-			Amount:    amount,
-			Unit:      unit,
-			SortOrder: i,
-			GroupName: groupName,
+			Name:             ingredientName,
+			Amount:           amount,
+			Unit:             unit,
+			SortOrder:        i,
+			GroupName:        groupName,
+			AlternativeGroup: alternativeGroup,
 		})
 	}
 	return recipe, ingredients

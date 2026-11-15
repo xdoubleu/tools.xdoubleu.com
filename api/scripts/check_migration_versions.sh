@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Fails if two migration files in the same directory share a version number,
-# or if a migration added on this branch isn't numbered above every migration
-# that already existed in its directory at the branch point.
+# or if a migration added on this branch isn't a 14-digit UTC timestamp
+# (YYYYMMDDHHMMSS_name.sql, from `make migration/new`).
 #
 # goose.Up refuses a duplicate version before applying anything, so the API
-# fails at startup. An out-of-order insert doesn't collide but silently
-# changes run order relative to what the author tested.
+# fails at startup. Sequential numbers (000NN) let two parallel branches pick
+# the same next number without a git conflict; timestamps never collide.
+# Existing 000NN files stay as they are.
 set -euo pipefail
 
 # The globs below are relative to api/; elsewhere they match nothing and pass.
@@ -34,59 +35,45 @@ done
 
 if [ "$status" -ne 0 ]; then
 	echo
-	echo "goose refuses duplicate versions and the API won't start — renumber the newer file."
+	echo "goose refuses duplicate versions and the API won't start — rename the newer file."
 fi
 
-# Out-of-order check: any migration added since the branch point must have a
-# higher version than every migration that already existed in its directory.
-# Requires enough git history to resolve BASE_REF (default origin/main) — a
-# shallow local clone without that remote-tracking ref just skips this part.
+# Format check: any migration added since the branch point must use a
+# timestamp version. Requires enough git history to resolve BASE_REF (default
+# origin/main) — a shallow local clone without that remote-tracking ref just
+# skips this part.
 base_ref="${BASE_REF:-origin/main}"
-repo_prefix=$(git rev-parse --show-prefix)
 
 if merge_base=$(git merge-base "$base_ref" HEAD 2>/dev/null); then
-	out_of_order=0
+	bad_format=0
 
 	for dir in cmd/api/migrations apps/*/migrations internal/platform/*/migrations; do
 		[ -d "$dir" ] || continue
 
-		# A brand-new app has no base migrations/ tree: base max is 0, and
-		# `|| true` keeps the failing `git show` from aborting under set -e.
-		base_tree=$(git show "$merge_base:${repo_prefix}${dir}" 2>/dev/null || true)
-		base_max=$(
-			printf '%s\n' "$base_tree" |
-				{ grep -o '^[0-9]\{1,\}_[^[:space:]]*\.sql$' || true; } |
-				cut -d_ -f1 |
-				sort -n |
-				tail -1
-		)
-		[ -n "$base_max" ] || base_max=0
-
 		added_files=$(
-			git diff --name-only --diff-filter=A "$merge_base" HEAD -- "${repo_prefix}${dir}" |
+			git diff --name-only --diff-filter=A "$merge_base" HEAD -- "$dir" |
 				xargs -r -n1 basename
 		)
 
 		for file in $added_files; do
-			version=$(echo "$file" | cut -d_ -f1)
-			# base 10 avoids octal misparse of zero-padded versions like 00008
-			if [ "$((10#$version))" -le "$((10#$base_max))" ]; then
-				echo "migration $file in $dir is numbered $version," \
-					"which is not above the existing max $base_max"
-				out_of_order=1
+			if ! printf '%s\n' "$file" | grep -qE '^[0-9]{14}_[^[:space:]]+\.sql$'; then
+				echo "migration $file in $dir is not timestamp-versioned" \
+					"(YYYYMMDDHHMMSS_name.sql)"
+				bad_format=1
 			fi
 		done
 	done
 
-	if [ "$out_of_order" -ne 0 ]; then
+	if [ "$bad_format" -ne 0 ]; then
 		status=1
 		echo
-		echo "A new migration must be numbered higher than every migration" \
-			"already in its directory — renumber it."
+		echo "New migrations use a 14-digit UTC timestamp so parallel branches" \
+			"never collide — rename it, or create it with:" \
+			"make migration/new app=<app> name=<name>"
 	fi
 else
-	echo "warning: could not resolve $base_ref — skipping out-of-order" \
-		"migration check" >&2
+	echo "warning: could not resolve $base_ref — skipping migration" \
+		"format check" >&2
 fi
 
 exit "$status"

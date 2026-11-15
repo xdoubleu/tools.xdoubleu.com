@@ -21,12 +21,12 @@ tools: tools/lint tools/proto
 tools/lint: tools/lint/go tools/lint/sql
 
 tools/lint/go: tools/lint/golines
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
-	go install github.com/daixiang0/gci@v0.14.0
-	go install github.com/securego/gosec/v2/cmd/gosec@v2.30.0
+	./scripts/ensure_go_tool.sh golangci-lint github.com/golangci/golangci-lint/v2 github.com/golangci/golangci-lint/v2/cmd/golangci-lint 2.15.0
+	./scripts/ensure_go_tool.sh gci github.com/daixiang0/gci github.com/daixiang0/gci 0.14.0
+	./scripts/ensure_go_tool.sh gosec github.com/securego/gosec/v2 github.com/securego/gosec/v2/cmd/gosec 2.30.0
 
 tools/lint/golines:
-	go install github.com/segmentio/golines@v0.13.0
+	./scripts/ensure_go_tool.sh golines github.com/segmentio/golines github.com/segmentio/golines 0.13.0
 
 # --tab-len 1 matches lll, which counts a tab as one column.
 GOLINES = golines -m 88 --tab-len 1 --ignore-generated
@@ -35,10 +35,10 @@ GOLINES = golines -m 88 --tab-len 1 --ignore-generated
 # agent-routine.yml: LT01's `TEXT[]` rule differs between 3.x and 4.x.
 tools/lint/sql:
 ifeq ($(UNAME_S),Darwin)
-	brew install sqlfluff
+	command -v sqlfluff >/dev/null || brew install sqlfluff
 endif
 ifeq ($(UNAME_S),Linux)
-	@sqlfluff --version 2>/dev/null | grep -q '4\.5\.0' || pip install sqlfluff==4.5.0
+	sqlfluff --version 2>/dev/null | grep -q 'version 4.5.0$$' || pip install sqlfluff==4.5.0
 endif
 
 lint/sql: tools/lint/sql
@@ -56,6 +56,19 @@ tools/proto/local: tools/proto
 lint/proto: tools/proto
 	cd ../proto && buf lint
 
+# New migration with a UTC timestamp version, so parallel branches never collide.
+# app=<name> (apps/<name>) | platform/<name> (internal/platform/<name>) | global
+migration/new:
+	@test -n "$(app)" -a -n "$(name)" || { echo "usage: make migration/new app=<app> name=<name>"; exit 1; }
+	@case "$(app)" in \
+		global) dir=cmd/api/migrations ;; \
+		platform/*) dir=internal/$(app)/migrations ;; \
+		*) dir=apps/$(app)/migrations ;; \
+	esac; \
+	test -d "$$dir" || { echo "no migrations dir $$dir"; exit 1; }; \
+	f="$$dir/$$(date -u +%Y%m%d%H%M%S)_$(name).sql"; \
+	printf -- '-- +goose Up\n\n-- +goose Down\n' > "$$f"; echo "$$f"
+
 lint/migrations:
 	./scripts/check_migration_versions.sh
 	sqlfluff lint --dialect postgres apps/*/migrations internal/platform/*/migrations
@@ -66,6 +79,10 @@ lint/kamal-secrets:
 lint/cross-schema:
 	./scripts/test_check_cross_schema.sh
 	./scripts/check_cross_schema.sh
+
+lint/scalar-subqueries:
+	./scripts/test_check_scalar_subqueries.sh
+	./scripts/check_scalar_subqueries.sh
 
 lint/proto-local-versions:
 	./scripts/check_proto_local_versions.sh
@@ -89,6 +106,7 @@ lint: tools/lint
 	make lint/migrations
 	make lint/kamal-secrets
 	make lint/cross-schema
+	make lint/scalar-subqueries
 	make lint/proto-local-versions
 
 lint/pkg: tools/lint
@@ -156,6 +174,11 @@ test:
 
 test/v:
 	TZ=UTC go test -p 1 ./... -v
+
+# Every read of an app on production-shaped data (one PR on several tasks, ...):
+# fails on any error. The seed lives in internal/platform/factory/messyseed.
+test/reads:
+	TZ=UTC go test -p 1 -count=1 -run TestMessyReads ./...
 
 test/race:
 	TZ=UTC go test -p 1 ./... -race -v

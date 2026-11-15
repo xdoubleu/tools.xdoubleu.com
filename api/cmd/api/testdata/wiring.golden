@@ -134,7 +134,6 @@ POST /factory.v1.AgentAccountService/RevokeAgentAccount: 401, 415
 POST /factory.v1.AgentAccountService/RotateAgentAccountSecret: 401, 415
 POST /factory.v1.RepoService/: 401, 403
 POST /factory.v1.RepoService/CreateRepo: 401, 403
-POST /factory.v1.RepoService/ListOpenRouterModels: 401, 403
 POST /factory.v1.RepoService/ListRepos: 401, 403
 POST /factory.v1.RepoService/UpdateRepo: 401, 403
 POST /factory.v1.RunnerAdminService/: 401, 403
@@ -274,11 +273,6 @@ POST /observability.v1.ObservabilityService/ResolveSentryIssue: 401, 415
 POST /observability.v1.ObservabilityService/SetProviderConfig: 401, 415
 POST /observability.v1.ObservabilityService/TriggerStorageScan: 401, 415
 POST /observability.v1.ObservabilityService/UpdateNotificationSettings: 401, 415
-POST /podcasts.v1.PodcastsService/: 401, 403
-POST /podcasts.v1.PodcastsService/AddFavourite: 401, 403
-POST /podcasts.v1.PodcastsService/ListFavourites: 401, 403
-POST /podcasts.v1.PodcastsService/RemoveFavourite: 401, 403
-POST /podcasts.v1.PodcastsService/SearchShows: 401, 403
 POST /recipes.v1.RecipesService/: 401, 403
 POST /recipes.v1.RecipesService/CreateRecipe: 401, 403
 POST /recipes.v1.RecipesService/DeleteRecipe: 401, 403
@@ -310,12 +304,16 @@ POST /shoppinglist.v1.ShoppingListService/SetStoreCategories: 401, 403
 POST /shoppinglist.v1.ShoppingListService/UpdateShoppingItem: 401, 403
 POST /taste.v1.TasteService/: 401, 403
 POST /taste.v1.TasteService/AcceptRecommendation: 401, 403
+POST /taste.v1.TasteService/AddFavouriteShow: 401, 403
 POST /taste.v1.TasteService/GetProfile: 401, 403
 POST /taste.v1.TasteService/GetStats: 401, 403
 POST /taste.v1.TasteService/ListEvents: 401, 403
+POST /taste.v1.TasteService/ListFavouriteShows: 401, 403
 POST /taste.v1.TasteService/ListRecommendations: 401, 403
 POST /taste.v1.TasteService/RefreshProfile: 401, 403
 POST /taste.v1.TasteService/RefreshRecommendations: 401, 403
+POST /taste.v1.TasteService/RemoveFavouriteShow: 401, 403
+POST /taste.v1.TasteService/SearchShows: 401, 403
 POST /taste.v1.TasteService/SetEmailNewPicks: 401, 403
 POST /taste.v1.TasteService/SetFeedback: 401, 403
 POST /taste.v1.TasteService/SetSaved: 401, 403
@@ -390,7 +388,6 @@ movies_get_stats
 movies_get_title
 movies_list_backlog
 movies_search_titles
-podcasts_list_favourites
 prom_query
 recipes_create_recipe
 recipes_fetch_video
@@ -407,10 +404,13 @@ shoppinglist_list_ingredient_units
 shoppinglist_list_item_categories
 shoppinglist_list_item_names
 shoppinglist_list_stores
+taste_add_favourite_show
 taste_get_profile
 taste_get_stats
 taste_list_events
+taste_list_favourite_shows
 taste_list_recommendations
+taste_remove_favourite_show
 trains_get_irail_diagnostic
 trains_get_journey_detail
 trains_search_journeys

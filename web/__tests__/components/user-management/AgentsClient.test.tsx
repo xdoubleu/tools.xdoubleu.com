@@ -207,7 +207,6 @@ describe('AgentsClient', () => {
       'learningpaths',
       'mealplans',
       'movies',
-      'podcasts',
       'recipes',
       'shoppinglist',
       'taste',

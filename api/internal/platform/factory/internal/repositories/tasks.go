@@ -29,7 +29,7 @@ const prColumn = `(SELECT ARRAY[u.url, u.state, u.ci, u.review, u.mergeable] FRO
 		SELECT j.pr_url AS url, j.pr_state AS state, j.pr_ci AS ci,
 			j.pr_review AS review, j.created_at AS ts,
 			COALESCE((SELECT m.mergeable FROM factory.linked_pull_requests m
-				WHERE m.url = j.pr_url), '') AS mergeable
+				WHERE m.url = j.pr_url LIMIT 1), '') AS mergeable
 		FROM factory.jobs j WHERE j.task_id = t.id AND j.pr_url <> ''
 		UNION ALL
 		SELECT l.url, l.state, l.ci, l.review, l.checked_at, l.mergeable
@@ -329,8 +329,9 @@ type PickupCandidate struct {
 }
 
 // NextReady is the oldest highest-priority Ready task of a repo that has auto pickup
-// on, with its approved text. It finds none while the board is paused or any job is
-// queued or running, so it is the only query a quiet claim needs. A task from before
+// on, with its approved text. It finds none while the board is paused, a job is
+// queued, or the running jobs fill the max_jobs slots of the online runners, so it
+// is the only query a quiet claim needs. A task from before
 // the Ready snapshots existed has no approved text and is skipped, as is one that
 // pickupSkipReason rules out; that reason is stored in pickup_blocked and cleared
 // once the task is clear again. None is not found.
@@ -343,12 +344,17 @@ func (r *TasksRepository) NextReady(ctx context.Context) (*PickupCandidate, erro
 		WHERE t.status = 'ready' AND r.auto_pickup AND t.ready_body IS NOT NULL
 			AND (t.pickup_blocked = '' OR t.pickup_blocked LIKE $1 || '%')
 			AND NOT COALESCE(
-				(SELECT pickup_paused FROM factory.board_settings), false
+				(SELECT pickup_paused FROM factory.board_settings -- single-row
+				), false
 			)
-			AND NOT EXISTS (
-				SELECT 1 FROM factory.jobs j WHERE j.status IN ('queued', 'running')
+			AND NOT EXISTS (SELECT 1 FROM factory.jobs j WHERE j.status = 'queued')
+			AND (SELECT count(*) FROM factory.jobs j WHERE j.status = 'running') < (
+				SELECT COALESCE(sum(max_jobs), 0) FROM factory.runners
+				WHERE paired_at IS NOT NULL AND revoked_at IS NULL
+					AND last_seen > now() - make_interval(secs => $2)
 			)
-		ORDER BY t.priority, t.created_at, t.id`, skipPrefix)
+		ORDER BY t.priority, t.created_at, t.id`, skipPrefix,
+		models.OnlineWindow.Seconds())
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}

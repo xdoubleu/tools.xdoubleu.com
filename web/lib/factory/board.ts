@@ -99,7 +99,6 @@ export const PRODUCT_LABELS: string[] = [
   'trains',
   'learningpaths',
   'movies',
-  'podcasts',
   'taste',
   'factory',
   'platform'

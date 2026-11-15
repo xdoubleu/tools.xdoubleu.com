@@ -291,6 +291,31 @@ describe('RecipeForm (edit recipe)', () => {
     expect(screen.getByLabelText('Draft')).toBeChecked()
   })
 
+  it('pre-fills and sends the or-group of an ingredient', async () => {
+    mockUpdateRecipe.mockResolvedValue({})
+    const recipe = create(RecipeSchema, {
+      id: 'r2',
+      name: 'Bowl',
+      baseServings: 2,
+      ingredients: [
+        create(IngredientSchema, { name: 'rice', amount: 200, unit: 'g', alternativeGroup: 'base' })
+      ]
+    })
+    render(<RecipeForm recipe={recipe} onSave={vi.fn()} onCancel={vi.fn()} />)
+
+    expect(screen.getByRole('textbox', { name: 'Alternative group' })).toHaveValue('base')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Alternative group' }), {
+      target: { value: 'carb' }
+    })
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockUpdateRecipe).toHaveBeenCalledWith(
+        expect.objectContaining({ ingredientAlternativeGroups: ['carb'] })
+      )
+    })
+  })
+
   it('sends updated isDraft on submit', async () => {
     mockUpdateRecipe.mockResolvedValue({})
     render(<RecipeForm recipe={existingRecipe} onSave={vi.fn()} onCancel={vi.fn()} />)

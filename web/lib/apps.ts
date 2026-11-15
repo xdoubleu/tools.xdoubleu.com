@@ -9,7 +9,6 @@ import {
   GraduationCap,
   BookOpen,
   type LucideIcon,
-  Podcast,
   Rss,
   Settings,
   ShieldCheck,
@@ -109,14 +108,6 @@ export const APPS: AppEntry[] = [
     ],
     group: 'Media',
     icon: Clapperboard
-  },
-  {
-    id: 'podcasts',
-    label: 'Podcasts',
-    href: '/podcasts',
-    description: 'Favourite shows, found through iTunes.',
-    group: 'Media',
-    icon: Podcast
   },
   {
     id: 'taste',

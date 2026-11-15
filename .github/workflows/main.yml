@@ -468,7 +468,7 @@ jobs:
         run: |
           eval "$(ssh-agent -s)"
           if ! printf '%s\n' "$KAMAL_SSH_KEY" | tr -d '\r' | ssh-add -; then
-            echo "::error::KAMAL_SSH_KEY is not a loadable unencrypted private key. Re-set it with: gh secret set KAMAL_SSH_KEY < ~/.ssh/kamal_ci_deploy"
+            echo "::error::KAMAL_SSH_KEY is not a loadable unencrypted private key. Re-set it with: gh secret set KAMAL_SSH_KEY --env production < ~/.ssh/kamal_ci_deploy"
             exit 1
           fi
           {
@@ -496,6 +496,23 @@ jobs:
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
           KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
         run: ./scripts/resolve_deploy_version.sh api grafana
+
+      # Kamal's own pull error on a missing tag names no cause; this tells a
+      # never-published image from a registry login problem on the VPS.
+      - name: Check the images are published
+        env:
+          API: ${{ steps.version.outputs.api }}
+          GRAFANA: ${{ steps.version.outputs.grafana }}
+        run: |
+          repo=${GITHUB_REPOSITORY,,}
+          for pair in "api:$API" "grafana:$GRAFANA"; do
+            svc=${pair%%:*} version=${pair#*:}
+            [ "$version" = skip ] && continue
+            if ! docker manifest inspect "ghcr.io/$repo/$svc:$version" >/dev/null 2>&1; then
+              echo "::error::ghcr.io/$repo/$svc:$version is not published: its build job did not push it. Re-run the build for that commit, or dispatch main.yml."
+              exit 1
+            fi
+          done
 
       # Before either deploy, so a bad key never ships half a release; api
       # itself only logs one and falls back to an ephemeral key.

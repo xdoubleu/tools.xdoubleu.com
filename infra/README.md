@@ -373,7 +373,8 @@ OIDC_CLIENT_SECRET           (client secret at the OIDC provider, Zitadel by
 ZITADEL_SERVICE_TOKEN        (personal access token of a Zitadel service user whose
                               only role is org user manager, so it can manage
                               human users and nothing else; unset ⇒ user
-                              management can't create people)
+                              management can't create people and the import
+                              job doesn't run)
 GRAFANA_ADMIN_PASSWORD       (Grafana break-glass admin, GF_SECURITY_ADMIN_PASSWORD;
                               also given to api for get_grafana_alerts)
 STEAM_API_KEY

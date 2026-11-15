@@ -75,6 +75,7 @@ func TestStorageSnapshotsInsertSimpleProtocol(t *testing.T) {
 	pgxCfg, err := pgxpool.ParseConfig(cfg.DBDsn)
 	require.NoError(t, err)
 	pgxCfg.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+	pgxCfg.ConnConfig.RuntimeParams["client_encoding"] = "UTF8"
 
 	pool, err := pgxpool.NewWithConfig(t.Context(), pgxCfg)
 	require.NoError(t, err)

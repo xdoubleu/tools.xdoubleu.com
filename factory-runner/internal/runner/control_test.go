@@ -214,3 +214,10 @@ func TestStatusShowsTheConfigMode(t *testing.T) {
 	}
 	assert.False(t, c.Snapshot().Unpaired)
 }
+
+func TestRestartingHoldsUntilSet(t *testing.T) {
+	c := runner.NewControl(filepath.Join(t.TempDir(), "paused"), "v1", nil)
+	assert.False(t, c.Restarting())
+	c.SetRestarting()
+	assert.True(t, c.Restarting())
+}

@@ -71,12 +71,14 @@ message HeartbeatResponse {}
 // What the runner needs to run one job. The prompt is the frozen task part; the
 // runner adds its own preamble, and validates repo, branch and base itself.
 message ClaimedJob {
+  // The runner's Mac picks the harness and model; the claim reports them instead.
+  reserved 6, 14;
+  reserved "harness", "model";
   string id = 1;
   string task_id = 2;
   string repo_owner = 3;
   string repo_name = 4;
   string default_branch = 5;
-  Harness harness = 6;
   string prompt = 7;
   string branch = 8;
   // Free text, run in the sandbox before the agent.
@@ -88,8 +90,6 @@ message ClaimedJob {
   string mcp_client_secret = 12;
   // Set for a Reply's job: the harness session to resume on the existing branch.
   string resume_session_id = 13;
-  // The OpenRouter model, "vendor/model", when the harness is OpenCode.
-  string model = 14;
   // Set for a routine's job, which has no task (task_id is empty). The runner
   // runs only a routine it knows by name and builds the prompt itself.
   string routine = 15;
@@ -99,6 +99,10 @@ message ClaimJobRequest {
   // How many jobs this runner may run at once; the server hands out a job only
   // while fewer run. Unset or 0 means 1.
   int32 max_jobs = 1;
+  // What this runner's Mac runs jobs on; recorded on the claimed job. Unspecified
+  // is read as Claude Code. model is "vendor/model" for OpenCode, else empty.
+  Harness harness = 2;
+  string model = 3;
 }
 message ClaimJobResponse {
   // Unset when no job was queued within the hold.

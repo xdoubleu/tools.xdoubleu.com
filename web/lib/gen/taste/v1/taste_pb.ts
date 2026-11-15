@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file taste/v1/taste.proto.
  */
 export const file_taste_v1_taste: GenFile = /*@__PURE__*/
-  fileDesc("ChR0YXN0ZS92MS90YXN0ZS5wcm90bxIIdGFzdGUudjEiggEKBUV2ZW50Eg4KBmRvbWFpbhgBIAEoCRIPCgdpdGVtX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2NyZWF0b3IYBCABKAkSDAoEdGFncxgFIAMoCRIKCgJhdBgGIAEoCRIOCgZzaWduYWwYByABKAUSDgoGcmVhc29uGAggASgJImQKC0RvbWFpblN0YXRzEg4KBmRvbWFpbhgBIAEoCRIQCghjb25zdW1lZBgCIAEoBRIQCghwb3NpdGl2ZRgDIAEoBRIQCghuZWdhdGl2ZRgEIAEoBRIPCgdsYXN0X2F0GAUgASgJIiwKC0RvbWFpbkNvdW50Eg4KBmRvbWFpbhgBIAEoCRINCgVjb3VudBgCIAEoBSJDCgtNb250aENvdW50cxINCgVtb250aBgBIAEoCRIlCgZjb3VudHMYAiADKAsyFS50YXN0ZS52MS5Eb21haW5Db3VudCI9CgpSYW5rZWROYW1lEgwKBG5hbWUYASABKAkSEAoIcG9zaXRpdmUYAiABKAUSDwoHZG9tYWlucxgDIAMoCSIhCg9HZXRTdGF0c1JlcXVlc3QSDgoGc2hhcmVkGAEgASgIItsBChBHZXRTdGF0c1Jlc3BvbnNlEiYKB2RvbWFpbnMYASADKAsyFS50YXN0ZS52MS5Eb21haW5TdGF0cxIlCgZtb250aHMYAiADKAsyFS50YXN0ZS52MS5Nb250aENvdW50cxImCgh0b3BfdGFncxgDIAMoCzIULnRhc3RlLnYxLlJhbmtlZE5hbWUSKgoMdG9wX2NyZWF0b3JzGAQgAygLMhQudGFzdGUudjEuUmFua2VkTmFtZRIkCgloaXRfcmF0ZXMYBSADKAsyES50YXN0ZS52MS5IaXRSYXRlIkYKB0hpdFJhdGUSDgoGZG9tYWluGAEgASgJEg0KBXRyYWNrGAIgASgJEgwKBGhpdHMYAyABKAUSDgoGbWlzc2VzGAQgASgFIlIKEUxpc3RFdmVudHNSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgVsaW1pdBgCIAEoBRIOCgZvZmZzZXQYAyABKAUSDgoGc2hhcmVkGAQgASgIIkcKEkxpc3RFdmVudHNSZXNwb25zZRIfCgZldmVudHMYASADKAsyDy50YXN0ZS52MS5FdmVudBIQCghoYXNfbW9yZRgCIAEoCCJgCg9Qcm9maWxlU2VjdGlvbnMSDwoHc3VtbWFyeRgBIAEoCRIMCgRrbm93GAIgAygJEgwKBGxpa2UYAyADKAkSEAoIZHJpZnRpbmcYBCADKAkSDgoGYm91bmNlGAUgAygJIiMKEUdldFByb2ZpbGVSZXF1ZXN0Eg4KBnNoYXJlZBgBIAEoCCK4AQoSR2V0UHJvZmlsZVJlc3BvbnNlEhIKCmNvbmZpZ3VyZWQYASABKAgSKwoIc2VjdGlvbnMYAiABKAsyGS50YXN0ZS52MS5Qcm9maWxlU2VjdGlvbnMSDQoFbW9kZWwYAyABKAkSFAoMZ2VuZXJhdGVkX2F0GAQgASgJEg8KB3BlbmRpbmcYBSABKAgSEgoKbGFzdF9lcnJvchgGIAEoCRIXCg9uZXh0X3JlZnJlc2hfYXQYByABKAkiJwoVUmVmcmVzaFByb2ZpbGVSZXF1ZXN0Eg4KBnNoYXJlZBgBIAEoCCIYChZSZWZyZXNoUHJvZmlsZVJlc3BvbnNlIiQKBlNvdXJjZRILCgN1cmwYASABKAkSDQoFdGl0bGUYAiABKAkivQIKDlJlY29tbWVuZGF0aW9uEgoKAmlkGAEgASgJEg4KBmRvbWFpbhgCIAEoCRINCgV0cmFjaxgDIAEoCRINCgV0aXRsZRgEIAEoCRIPCgdjcmVhdG9yGAUgASgJEgwKBHllYXIYBiABKAUSCwoDdXJsGAcgASgJEhEKCWltYWdlX3VybBgIIAEoCRILCgN3aHkYCSABKAkSIQoHc291cmNlcxgKIAMoCzIQLnRhc3RlLnYxLlNvdXJjZRINCgVzY29yZRgLIAEoBRIQCghmZWVkYmFjaxgMIAEoCRINCgVzYXZlZBgNIAEoCBIQCghhY2NlcHRlZBgOIAEoCBIWCg5vbl9teV9zZXJ2aWNlcxgPIAEoCBIUCgxnZW5lcmF0ZWRfYXQYECABKAkSEgoKY2FuX2FjY2VwdBgRIAEoCCJfChpMaXN0UmVjb21tZW5kYXRpb25zUmVxdWVzdBIOCgZkb21haW4YASABKAkSDQoFdHJhY2sYAiABKAkSEgoKc2F2ZWRfb25seRgDIAEoCBIOCgZzaGFyZWQYBCABKAgivQEKG0xpc3RSZWNvbW1lbmRhdGlvbnNSZXNwb25zZRIxCg9yZWNvbW1lbmRhdGlvbnMYASADKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbhIUCgxnZW5lcmF0ZWRfYXQYAiABKAkSEgoKbGFzdF9lcnJvchgDIAEoCRIXCg9lbWFpbF9uZXdfcGlja3MYBCABKAgSDwoHcGVuZGluZxgFIAEoCBIXCg9uZXh0X3JlZnJlc2hfYXQYBiABKAkiLwodUmVmcmVzaFJlY29tbWVuZGF0aW9uc1JlcXVlc3QSDgoGc2hhcmVkGAEgASgIIiAKHlJlZnJlc2hSZWNvbW1lbmRhdGlvbnNSZXNwb25zZSJCChJTZXRGZWVkYmFja1JlcXVlc3QSCgoCaWQYASABKAkSEAoIZmVlZGJhY2sYAiABKAkSDgoGc2hhcmVkGAMgASgIIkcKE1NldEZlZWRiYWNrUmVzcG9uc2USMAoOcmVjb21tZW5kYXRpb24YASABKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbiI8Cg9TZXRTYXZlZFJlcXVlc3QSCgoCaWQYASABKAkSDQoFc2F2ZWQYAiABKAgSDgoGc2hhcmVkGAMgASgIIkQKEFNldFNhdmVkUmVzcG9uc2USMAoOcmVjb21tZW5kYXRpb24YASABKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbiIqChdTZXRFbWFpbE5ld1BpY2tzUmVxdWVzdBIPCgdlbmFibGVkGAEgASgIIhoKGFNldEVtYWlsTmV3UGlja3NSZXNwb25zZSI5ChtBY2NlcHRSZWNvbW1lbmRhdGlvblJlcXVlc3QSCgoCaWQYASABKAkSDgoGc2hhcmVkGAIgASgIIlAKHEFjY2VwdFJlY29tbWVuZGF0aW9uUmVzcG9uc2USMAoOcmVjb21tZW5kYXRpb24YASABKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbjLaBgoMVGFzdGVTZXJ2aWNlEkEKCEdldFN0YXRzEhkudGFzdGUudjEuR2V0U3RhdHNSZXF1ZXN0GhoudGFzdGUudjEuR2V0U3RhdHNSZXNwb25zZRJHCgpMaXN0RXZlbnRzEhsudGFzdGUudjEuTGlzdEV2ZW50c1JlcXVlc3QaHC50YXN0ZS52MS5MaXN0RXZlbnRzUmVzcG9uc2USRwoKR2V0UHJvZmlsZRIbLnRhc3RlLnYxLkdldFByb2ZpbGVSZXF1ZXN0GhwudGFzdGUudjEuR2V0UHJvZmlsZVJlc3BvbnNlElMKDlJlZnJlc2hQcm9maWxlEh8udGFzdGUudjEuUmVmcmVzaFByb2ZpbGVSZXF1ZXN0GiAudGFzdGUudjEuUmVmcmVzaFByb2ZpbGVSZXNwb25zZRJiChNMaXN0UmVjb21tZW5kYXRpb25zEiQudGFzdGUudjEuTGlzdFJlY29tbWVuZGF0aW9uc1JlcXVlc3QaJS50YXN0ZS52MS5MaXN0UmVjb21tZW5kYXRpb25zUmVzcG9uc2USawoWUmVmcmVzaFJlY29tbWVuZGF0aW9ucxInLnRhc3RlLnYxLlJlZnJlc2hSZWNvbW1lbmRhdGlvbnNSZXF1ZXN0GigudGFzdGUudjEuUmVmcmVzaFJlY29tbWVuZGF0aW9uc1Jlc3BvbnNlEkoKC1NldEZlZWRiYWNrEhwudGFzdGUudjEuU2V0RmVlZGJhY2tSZXF1ZXN0Gh0udGFzdGUudjEuU2V0RmVlZGJhY2tSZXNwb25zZRJBCghTZXRTYXZlZBIZLnRhc3RlLnYxLlNldFNhdmVkUmVxdWVzdBoaLnRhc3RlLnYxLlNldFNhdmVkUmVzcG9uc2USZQoUQWNjZXB0UmVjb21tZW5kYXRpb24SJS50YXN0ZS52MS5BY2NlcHRSZWNvbW1lbmRhdGlvblJlcXVlc3QaJi50YXN0ZS52MS5BY2NlcHRSZWNvbW1lbmRhdGlvblJlc3BvbnNlElkKEFNldEVtYWlsTmV3UGlja3MSIS50YXN0ZS52MS5TZXRFbWFpbE5ld1BpY2tzUmVxdWVzdBoiLnRhc3RlLnYxLlNldEVtYWlsTmV3UGlja3NSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL3Rhc3RlL3YxO3Rhc3RldjFiBnByb3RvMw");
+  fileDesc("ChR0YXN0ZS92MS90YXN0ZS5wcm90bxIIdGFzdGUudjEiggEKBUV2ZW50Eg4KBmRvbWFpbhgBIAEoCRIPCgdpdGVtX2lkGAIgASgJEg0KBXRpdGxlGAMgASgJEg8KB2NyZWF0b3IYBCABKAkSDAoEdGFncxgFIAMoCRIKCgJhdBgGIAEoCRIOCgZzaWduYWwYByABKAUSDgoGcmVhc29uGAggASgJImQKC0RvbWFpblN0YXRzEg4KBmRvbWFpbhgBIAEoCRIQCghjb25zdW1lZBgCIAEoBRIQCghwb3NpdGl2ZRgDIAEoBRIQCghuZWdhdGl2ZRgEIAEoBRIPCgdsYXN0X2F0GAUgASgJIiwKC0RvbWFpbkNvdW50Eg4KBmRvbWFpbhgBIAEoCRINCgVjb3VudBgCIAEoBSJDCgtNb250aENvdW50cxINCgVtb250aBgBIAEoCRIlCgZjb3VudHMYAiADKAsyFS50YXN0ZS52MS5Eb21haW5Db3VudCI9CgpSYW5rZWROYW1lEgwKBG5hbWUYASABKAkSEAoIcG9zaXRpdmUYAiABKAUSDwoHZG9tYWlucxgDIAMoCSIhCg9HZXRTdGF0c1JlcXVlc3QSDgoGc2hhcmVkGAEgASgIItsBChBHZXRTdGF0c1Jlc3BvbnNlEiYKB2RvbWFpbnMYASADKAsyFS50YXN0ZS52MS5Eb21haW5TdGF0cxIlCgZtb250aHMYAiADKAsyFS50YXN0ZS52MS5Nb250aENvdW50cxImCgh0b3BfdGFncxgDIAMoCzIULnRhc3RlLnYxLlJhbmtlZE5hbWUSKgoMdG9wX2NyZWF0b3JzGAQgAygLMhQudGFzdGUudjEuUmFua2VkTmFtZRIkCgloaXRfcmF0ZXMYBSADKAsyES50YXN0ZS52MS5IaXRSYXRlIkYKB0hpdFJhdGUSDgoGZG9tYWluGAEgASgJEg0KBXRyYWNrGAIgASgJEgwKBGhpdHMYAyABKAUSDgoGbWlzc2VzGAQgASgFIlIKEUxpc3RFdmVudHNSZXF1ZXN0Eg4KBmRvbWFpbhgBIAEoCRINCgVsaW1pdBgCIAEoBRIOCgZvZmZzZXQYAyABKAUSDgoGc2hhcmVkGAQgASgIIkcKEkxpc3RFdmVudHNSZXNwb25zZRIfCgZldmVudHMYASADKAsyDy50YXN0ZS52MS5FdmVudBIQCghoYXNfbW9yZRgCIAEoCCJgCg9Qcm9maWxlU2VjdGlvbnMSDwoHc3VtbWFyeRgBIAEoCRIMCgRrbm93GAIgAygJEgwKBGxpa2UYAyADKAkSEAoIZHJpZnRpbmcYBCADKAkSDgoGYm91bmNlGAUgAygJIiMKEUdldFByb2ZpbGVSZXF1ZXN0Eg4KBnNoYXJlZBgBIAEoCCK4AQoSR2V0UHJvZmlsZVJlc3BvbnNlEhIKCmNvbmZpZ3VyZWQYASABKAgSKwoIc2VjdGlvbnMYAiABKAsyGS50YXN0ZS52MS5Qcm9maWxlU2VjdGlvbnMSDQoFbW9kZWwYAyABKAkSFAoMZ2VuZXJhdGVkX2F0GAQgASgJEg8KB3BlbmRpbmcYBSABKAgSEgoKbGFzdF9lcnJvchgGIAEoCRIXCg9uZXh0X3JlZnJlc2hfYXQYByABKAkiJwoVUmVmcmVzaFByb2ZpbGVSZXF1ZXN0Eg4KBnNoYXJlZBgBIAEoCCIYChZSZWZyZXNoUHJvZmlsZVJlc3BvbnNlIiQKBlNvdXJjZRILCgN1cmwYASABKAkSDQoFdGl0bGUYAiABKAkivQIKDlJlY29tbWVuZGF0aW9uEgoKAmlkGAEgASgJEg4KBmRvbWFpbhgCIAEoCRINCgV0cmFjaxgDIAEoCRINCgV0aXRsZRgEIAEoCRIPCgdjcmVhdG9yGAUgASgJEgwKBHllYXIYBiABKAUSCwoDdXJsGAcgASgJEhEKCWltYWdlX3VybBgIIAEoCRILCgN3aHkYCSABKAkSIQoHc291cmNlcxgKIAMoCzIQLnRhc3RlLnYxLlNvdXJjZRINCgVzY29yZRgLIAEoBRIQCghmZWVkYmFjaxgMIAEoCRINCgVzYXZlZBgNIAEoCBIQCghhY2NlcHRlZBgOIAEoCBIWCg5vbl9teV9zZXJ2aWNlcxgPIAEoCBIUCgxnZW5lcmF0ZWRfYXQYECABKAkSEgoKY2FuX2FjY2VwdBgRIAEoCCJfChpMaXN0UmVjb21tZW5kYXRpb25zUmVxdWVzdBIOCgZkb21haW4YASABKAkSDQoFdHJhY2sYAiABKAkSEgoKc2F2ZWRfb25seRgDIAEoCBIOCgZzaGFyZWQYBCABKAgivQEKG0xpc3RSZWNvbW1lbmRhdGlvbnNSZXNwb25zZRIxCg9yZWNvbW1lbmRhdGlvbnMYASADKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbhIUCgxnZW5lcmF0ZWRfYXQYAiABKAkSEgoKbGFzdF9lcnJvchgDIAEoCRIXCg9lbWFpbF9uZXdfcGlja3MYBCABKAgSDwoHcGVuZGluZxgFIAEoCBIXCg9uZXh0X3JlZnJlc2hfYXQYBiABKAkiLwodUmVmcmVzaFJlY29tbWVuZGF0aW9uc1JlcXVlc3QSDgoGc2hhcmVkGAEgASgIIiAKHlJlZnJlc2hSZWNvbW1lbmRhdGlvbnNSZXNwb25zZSJCChJTZXRGZWVkYmFja1JlcXVlc3QSCgoCaWQYASABKAkSEAoIZmVlZGJhY2sYAiABKAkSDgoGc2hhcmVkGAMgASgIIkcKE1NldEZlZWRiYWNrUmVzcG9uc2USMAoOcmVjb21tZW5kYXRpb24YASABKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbiI8Cg9TZXRTYXZlZFJlcXVlc3QSCgoCaWQYASABKAkSDQoFc2F2ZWQYAiABKAgSDgoGc2hhcmVkGAMgASgIIkQKEFNldFNhdmVkUmVzcG9uc2USMAoOcmVjb21tZW5kYXRpb24YASABKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbiIqChdTZXRFbWFpbE5ld1BpY2tzUmVxdWVzdBIPCgdlbmFibGVkGAEgASgIIhoKGFNldEVtYWlsTmV3UGlja3NSZXNwb25zZSI5ChtBY2NlcHRSZWNvbW1lbmRhdGlvblJlcXVlc3QSCgoCaWQYASABKAkSDgoGc2hhcmVkGAIgASgIIlAKHEFjY2VwdFJlY29tbWVuZGF0aW9uUmVzcG9uc2USMAoOcmVjb21tZW5kYXRpb24YASABKAsyGC50YXN0ZS52MS5SZWNvbW1lbmRhdGlvbiJoCgxTZWFyY2hSZXN1bHQSEQoJaXR1bmVzX2lkGAEgASgDEg0KBXRpdGxlGAIgASgJEg4KBmF1dGhvchgDIAEoCRITCgthcnR3b3JrX3VybBgEIAEoCRIRCglmYXZvdXJpdGUYBSABKAgihwEKDUZhdm91cml0ZVNob3cSCgoCaWQYASABKAkSEQoJaXR1bmVzX2lkGAIgASgDEg0KBXRpdGxlGAMgASgJEg4KBmF1dGhvchgEIAEoCRITCgthcnR3b3JrX3VybBgFIAEoCRIRCglhcHBsZV91cmwYBiABKAkSEAoIYWRkZWRfYXQYByABKAkiIwoSU2VhcmNoU2hvd3NSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJIj4KE1NlYXJjaFNob3dzUmVzcG9uc2USJwoHcmVzdWx0cxgBIAMoCzIWLnRhc3RlLnYxLlNlYXJjaFJlc3VsdCIbChlMaXN0RmF2b3VyaXRlU2hvd3NSZXF1ZXN0IkkKGkxpc3RGYXZvdXJpdGVTaG93c1Jlc3BvbnNlEisKCmZhdm91cml0ZXMYASADKAsyFy50YXN0ZS52MS5GYXZvdXJpdGVTaG93IiwKF0FkZEZhdm91cml0ZVNob3dSZXF1ZXN0EhEKCWl0dW5lc19pZBgBIAEoAyJGChhBZGRGYXZvdXJpdGVTaG93UmVzcG9uc2USKgoJZmF2b3VyaXRlGAEgASgLMhcudGFzdGUudjEuRmF2b3VyaXRlU2hvdyIoChpSZW1vdmVGYXZvdXJpdGVTaG93UmVxdWVzdBIKCgJpZBgBIAEoCSIdChtSZW1vdmVGYXZvdXJpdGVTaG93UmVzcG9uc2UyxgkKDFRhc3RlU2VydmljZRJBCghHZXRTdGF0cxIZLnRhc3RlLnYxLkdldFN0YXRzUmVxdWVzdBoaLnRhc3RlLnYxLkdldFN0YXRzUmVzcG9uc2USRwoKTGlzdEV2ZW50cxIbLnRhc3RlLnYxLkxpc3RFdmVudHNSZXF1ZXN0GhwudGFzdGUudjEuTGlzdEV2ZW50c1Jlc3BvbnNlEkcKCkdldFByb2ZpbGUSGy50YXN0ZS52MS5HZXRQcm9maWxlUmVxdWVzdBocLnRhc3RlLnYxLkdldFByb2ZpbGVSZXNwb25zZRJTCg5SZWZyZXNoUHJvZmlsZRIfLnRhc3RlLnYxLlJlZnJlc2hQcm9maWxlUmVxdWVzdBogLnRhc3RlLnYxLlJlZnJlc2hQcm9maWxlUmVzcG9uc2USYgoTTGlzdFJlY29tbWVuZGF0aW9ucxIkLnRhc3RlLnYxLkxpc3RSZWNvbW1lbmRhdGlvbnNSZXF1ZXN0GiUudGFzdGUudjEuTGlzdFJlY29tbWVuZGF0aW9uc1Jlc3BvbnNlEmsKFlJlZnJlc2hSZWNvbW1lbmRhdGlvbnMSJy50YXN0ZS52MS5SZWZyZXNoUmVjb21tZW5kYXRpb25zUmVxdWVzdBooLnRhc3RlLnYxLlJlZnJlc2hSZWNvbW1lbmRhdGlvbnNSZXNwb25zZRJKCgtTZXRGZWVkYmFjaxIcLnRhc3RlLnYxLlNldEZlZWRiYWNrUmVxdWVzdBodLnRhc3RlLnYxLlNldEZlZWRiYWNrUmVzcG9uc2USQQoIU2V0U2F2ZWQSGS50YXN0ZS52MS5TZXRTYXZlZFJlcXVlc3QaGi50YXN0ZS52MS5TZXRTYXZlZFJlc3BvbnNlEmUKFEFjY2VwdFJlY29tbWVuZGF0aW9uEiUudGFzdGUudjEuQWNjZXB0UmVjb21tZW5kYXRpb25SZXF1ZXN0GiYudGFzdGUudjEuQWNjZXB0UmVjb21tZW5kYXRpb25SZXNwb25zZRJZChBTZXRFbWFpbE5ld1BpY2tzEiEudGFzdGUudjEuU2V0RW1haWxOZXdQaWNrc1JlcXVlc3QaIi50YXN0ZS52MS5TZXRFbWFpbE5ld1BpY2tzUmVzcG9uc2USSgoLU2VhcmNoU2hvd3MSHC50YXN0ZS52MS5TZWFyY2hTaG93c1JlcXVlc3QaHS50YXN0ZS52MS5TZWFyY2hTaG93c1Jlc3BvbnNlEl8KEkxpc3RGYXZvdXJpdGVTaG93cxIjLnRhc3RlLnYxLkxpc3RGYXZvdXJpdGVTaG93c1JlcXVlc3QaJC50YXN0ZS52MS5MaXN0RmF2b3VyaXRlU2hvd3NSZXNwb25zZRJZChBBZGRGYXZvdXJpdGVTaG93EiEudGFzdGUudjEuQWRkRmF2b3VyaXRlU2hvd1JlcXVlc3QaIi50YXN0ZS52MS5BZGRGYXZvdXJpdGVTaG93UmVzcG9uc2USYgoTUmVtb3ZlRmF2b3VyaXRlU2hvdxIkLnRhc3RlLnYxLlJlbW92ZUZhdm91cml0ZVNob3dSZXF1ZXN0GiUudGFzdGUudjEuUmVtb3ZlRmF2b3VyaXRlU2hvd1Jlc3BvbnNlQilaJ3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vdGFzdGUvdjE7dGFzdGV2MWIGcHJvdG8z");
 
 /**
  * One consumed item. Signal is engagement normalized within its domain, from
@@ -969,6 +969,226 @@ export const AcceptRecommendationResponseSchema: GenMessage<AcceptRecommendation
   messageDesc(file_taste_v1_taste, 28);
 
 /**
+ * @generated from message taste.v1.SearchResult
+ */
+export type SearchResult = Message<"taste.v1.SearchResult"> & {
+  /**
+   * iTunes collection ID.
+   *
+   * @generated from field: int64 itunes_id = 1;
+   */
+  itunesId: bigint;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * @generated from field: string author = 3;
+   */
+  author: string;
+
+  /**
+   * @generated from field: string artwork_url = 4;
+   */
+  artworkUrl: string;
+
+  /**
+   * Already in the caller's favourite shows.
+   *
+   * @generated from field: bool favourite = 5;
+   */
+  favourite: boolean;
+};
+
+/**
+ * Describes the message taste.v1.SearchResult.
+ * Use `create(SearchResultSchema)` to create a new message.
+ */
+export const SearchResultSchema: GenMessage<SearchResult> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 29);
+
+/**
+ * @generated from message taste.v1.FavouriteShow
+ */
+export type FavouriteShow = Message<"taste.v1.FavouriteShow"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: int64 itunes_id = 2;
+   */
+  itunesId: bigint;
+
+  /**
+   * @generated from field: string title = 3;
+   */
+  title: string;
+
+  /**
+   * @generated from field: string author = 4;
+   */
+  author: string;
+
+  /**
+   * @generated from field: string artwork_url = 5;
+   */
+  artworkUrl: string;
+
+  /**
+   * @generated from field: string apple_url = 6;
+   */
+  appleUrl: string;
+
+  /**
+   * RFC3339.
+   *
+   * @generated from field: string added_at = 7;
+   */
+  addedAt: string;
+};
+
+/**
+ * Describes the message taste.v1.FavouriteShow.
+ * Use `create(FavouriteShowSchema)` to create a new message.
+ */
+export const FavouriteShowSchema: GenMessage<FavouriteShow> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 30);
+
+/**
+ * @generated from message taste.v1.SearchShowsRequest
+ */
+export type SearchShowsRequest = Message<"taste.v1.SearchShowsRequest"> & {
+  /**
+   * @generated from field: string query = 1;
+   */
+  query: string;
+};
+
+/**
+ * Describes the message taste.v1.SearchShowsRequest.
+ * Use `create(SearchShowsRequestSchema)` to create a new message.
+ */
+export const SearchShowsRequestSchema: GenMessage<SearchShowsRequest> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 31);
+
+/**
+ * @generated from message taste.v1.SearchShowsResponse
+ */
+export type SearchShowsResponse = Message<"taste.v1.SearchShowsResponse"> & {
+  /**
+   * @generated from field: repeated taste.v1.SearchResult results = 1;
+   */
+  results: SearchResult[];
+};
+
+/**
+ * Describes the message taste.v1.SearchShowsResponse.
+ * Use `create(SearchShowsResponseSchema)` to create a new message.
+ */
+export const SearchShowsResponseSchema: GenMessage<SearchShowsResponse> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 32);
+
+/**
+ * @generated from message taste.v1.ListFavouriteShowsRequest
+ */
+export type ListFavouriteShowsRequest = Message<"taste.v1.ListFavouriteShowsRequest"> & {
+};
+
+/**
+ * Describes the message taste.v1.ListFavouriteShowsRequest.
+ * Use `create(ListFavouriteShowsRequestSchema)` to create a new message.
+ */
+export const ListFavouriteShowsRequestSchema: GenMessage<ListFavouriteShowsRequest> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 33);
+
+/**
+ * @generated from message taste.v1.ListFavouriteShowsResponse
+ */
+export type ListFavouriteShowsResponse = Message<"taste.v1.ListFavouriteShowsResponse"> & {
+  /**
+   * @generated from field: repeated taste.v1.FavouriteShow favourites = 1;
+   */
+  favourites: FavouriteShow[];
+};
+
+/**
+ * Describes the message taste.v1.ListFavouriteShowsResponse.
+ * Use `create(ListFavouriteShowsResponseSchema)` to create a new message.
+ */
+export const ListFavouriteShowsResponseSchema: GenMessage<ListFavouriteShowsResponse> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 34);
+
+/**
+ * Adding an already-favourite show returns the existing favourite.
+ *
+ * @generated from message taste.v1.AddFavouriteShowRequest
+ */
+export type AddFavouriteShowRequest = Message<"taste.v1.AddFavouriteShowRequest"> & {
+  /**
+   * @generated from field: int64 itunes_id = 1;
+   */
+  itunesId: bigint;
+};
+
+/**
+ * Describes the message taste.v1.AddFavouriteShowRequest.
+ * Use `create(AddFavouriteShowRequestSchema)` to create a new message.
+ */
+export const AddFavouriteShowRequestSchema: GenMessage<AddFavouriteShowRequest> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 35);
+
+/**
+ * @generated from message taste.v1.AddFavouriteShowResponse
+ */
+export type AddFavouriteShowResponse = Message<"taste.v1.AddFavouriteShowResponse"> & {
+  /**
+   * @generated from field: taste.v1.FavouriteShow favourite = 1;
+   */
+  favourite?: FavouriteShow | undefined;
+};
+
+/**
+ * Describes the message taste.v1.AddFavouriteShowResponse.
+ * Use `create(AddFavouriteShowResponseSchema)` to create a new message.
+ */
+export const AddFavouriteShowResponseSchema: GenMessage<AddFavouriteShowResponse> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 36);
+
+/**
+ * @generated from message taste.v1.RemoveFavouriteShowRequest
+ */
+export type RemoveFavouriteShowRequest = Message<"taste.v1.RemoveFavouriteShowRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message taste.v1.RemoveFavouriteShowRequest.
+ * Use `create(RemoveFavouriteShowRequestSchema)` to create a new message.
+ */
+export const RemoveFavouriteShowRequestSchema: GenMessage<RemoveFavouriteShowRequest> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 37);
+
+/**
+ * @generated from message taste.v1.RemoveFavouriteShowResponse
+ */
+export type RemoveFavouriteShowResponse = Message<"taste.v1.RemoveFavouriteShowResponse"> & {
+};
+
+/**
+ * Describes the message taste.v1.RemoveFavouriteShowResponse.
+ * Use `create(RemoveFavouriteShowResponseSchema)` to create a new message.
+ */
+export const RemoveFavouriteShowResponseSchema: GenMessage<RemoveFavouriteShowResponse> = /*@__PURE__*/
+  messageDesc(file_taste_v1_taste, 38);
+
+/**
  * The caller's consumption log across every app; per user. Requests with
  * shared set cover instead the family's shared movies & series list, treating
  * the family as one person.
@@ -1055,6 +1275,41 @@ export const TasteService: GenService<{
     methodKind: "unary";
     input: typeof SetEmailNewPicksRequestSchema;
     output: typeof SetEmailNewPicksResponseSchema;
+  },
+  /**
+   * Favourite podcast shows (found through iTunes) are the podcasts domain's
+   * only signal.
+   *
+   * @generated from rpc taste.v1.TasteService.SearchShows
+   */
+  searchShows: {
+    methodKind: "unary";
+    input: typeof SearchShowsRequestSchema;
+    output: typeof SearchShowsResponseSchema;
+  },
+  /**
+   * @generated from rpc taste.v1.TasteService.ListFavouriteShows
+   */
+  listFavouriteShows: {
+    methodKind: "unary";
+    input: typeof ListFavouriteShowsRequestSchema;
+    output: typeof ListFavouriteShowsResponseSchema;
+  },
+  /**
+   * @generated from rpc taste.v1.TasteService.AddFavouriteShow
+   */
+  addFavouriteShow: {
+    methodKind: "unary";
+    input: typeof AddFavouriteShowRequestSchema;
+    output: typeof AddFavouriteShowResponseSchema;
+  },
+  /**
+   * @generated from rpc taste.v1.TasteService.RemoveFavouriteShow
+   */
+  removeFavouriteShow: {
+    methodKind: "unary";
+    input: typeof RemoveFavouriteShowRequestSchema;
+    output: typeof RemoveFavouriteShowResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_taste_v1_taste, 0);

@@ -126,7 +126,8 @@ func TestOnlyMergedPullRequestsAreListedWithTheirBodies(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "closed", r.URL.Query().Get("state"))
 			_, _ = io.WriteString(w, `[
-				{"html_url":"u1","body":"Task: a (x)","merged_at":"2026-11-10T09:00:00Z",
+				{"html_url":"u1","title":"A (T-1)","head":{"ref":"b1"},"body":"Task: a (x)",
+					"merged_at":"2026-11-10T09:00:00Z",
 					"merge_commit_sha":"s1"},
 				{"html_url":"u2","body":"closed","merged_at":null},
 				{"html_url":"u3","body":null,"merged_at":"2026-11-10T09:01:00Z"}]`)
@@ -137,8 +138,8 @@ func TestOnlyMergedPullRequestsAreListedWithTheirBodies(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, []githubapp.MergedPullRequest{
-		{URL: "u1", Body: "Task: a (x)", MergeSHA: "s1"}, {URL: "u3", Body: "",
-			MergeSHA: ""},
+		{URL: "u1", Title: "A (T-1)", Branch: "b1", Body: "Task: a (x)", MergeSHA: "s1"},
+		{URL: "u3", Title: "", Branch: "", Body: "", MergeSHA: ""},
 	}, got)
 }
 
@@ -149,7 +150,7 @@ func TestOpenPullRequestsAreListedWithTheirNumbersAndBodies(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "open", r.URL.Query().Get("state"))
 			_, _ = io.WriteString(w, `[
-				{"html_url":"u1","number":7,"body":"Task: a (x)"},
+				{"html_url":"u1","number":7,"title":"A","head":{"ref":"b1"},"body":"Task: a (x)"},
 				{"html_url":"u2","number":8,"body":null}]`)
 		})
 	c := newClient(t, f, pkcs1)
@@ -158,7 +159,8 @@ func TestOpenPullRequestsAreListedWithTheirNumbersAndBodies(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, []githubapp.OpenPullRequest{
-		{URL: "u1", Number: 7, Body: "Task: a (x)"}, {URL: "u2", Number: 8, Body: ""},
+		{URL: "u1", Number: 7, Title: "A", Branch: "b1", Body: "Task: a (x)"},
+		{URL: "u2", Number: 8, Title: "", Branch: "", Body: ""},
 	}, got)
 }
 

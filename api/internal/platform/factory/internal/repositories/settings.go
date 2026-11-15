@@ -15,7 +15,8 @@ type SettingsRepository struct {
 func (r *SettingsRepository) PickupPaused(ctx context.Context) (bool, error) {
 	var paused bool
 	err := r.db.QueryRow(ctx, `
-		SELECT COALESCE((SELECT pickup_paused FROM factory.board_settings), false)`,
+		SELECT COALESCE((SELECT pickup_paused FROM factory.board_settings -- single-row
+		), false)`,
 	).Scan(&paused)
 	if err != nil {
 		return false, postgres.PgxErrorToHTTPError(err)
@@ -27,7 +28,8 @@ func (r *SettingsRepository) PickupPaused(ctx context.Context) (bool, error) {
 func (r *SettingsRepository) ImageDigest(ctx context.Context) (string, error) {
 	var digest string
 	err := r.db.QueryRow(ctx, `
-		SELECT COALESCE((SELECT image_digest FROM factory.board_settings), '')`,
+		SELECT COALESCE((SELECT image_digest FROM factory.board_settings -- single-row
+		), '')`,
 	).Scan(&digest)
 	if err != nil {
 		return "", postgres.PgxErrorToHTTPError(err)

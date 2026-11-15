@@ -34,6 +34,7 @@ interface IngredientRow {
   amount: string
   unit: string
   group: string
+  alternativeGroup: string
   categoryId: string
   newCategoryName: string
 }
@@ -57,9 +58,20 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
       amount: ing.amount.toString(),
       unit: ing.unit,
       group: ing.groupName ?? '',
+      alternativeGroup: ing.alternativeGroup ?? '',
       categoryId: '',
       newCategoryName: ''
-    })) || [{ name: '', amount: '', unit: '', group: '', categoryId: '', newCategoryName: '' }]
+    })) || [
+      {
+        name: '',
+        amount: '',
+        unit: '',
+        group: '',
+        alternativeGroup: '',
+        categoryId: '',
+        newCategoryName: ''
+      }
+    ]
   )
 
   const createRecipe = useCreateRecipe()
@@ -103,7 +115,15 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
   const addIngredient = () =>
     setIngredients([
       ...ingredients,
-      { amount: '', unit: '', name: '', group: '', categoryId: '', newCategoryName: '' }
+      {
+        amount: '',
+        unit: '',
+        name: '',
+        group: '',
+        alternativeGroup: '',
+        categoryId: '',
+        newCategoryName: ''
+      }
     ])
   const removeIngredient = (index: number) =>
     setIngredients(ingredients.filter((_, i) => i !== index))
@@ -155,7 +175,8 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
         ingredientNames: ingredients.map((ing) => ing.name),
         ingredientAmounts: ingredients.map((ing) => parseFraction(ing.amount)),
         ingredientUnits: ingredients.map((ing) => ing.unit),
-        ingredientGroupNames: ingredients.map((ing) => ing.group)
+        ingredientGroupNames: ingredients.map((ing) => ing.group),
+        ingredientAlternativeGroups: ingredients.map((ing) => ing.alternativeGroup)
       }
       const base = {
         name,
@@ -314,6 +335,14 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
                   value={ing.group}
                   onChange={(e) => updateIngredient(idx, 'group', e.target.value)}
                   className="w-full sm:w-28"
+                />
+                <Input
+                  type="text"
+                  aria-label="Alternative group"
+                  placeholder="Or-group (optional)"
+                  value={ing.alternativeGroup}
+                  onChange={(e) => updateIngredient(idx, 'alternativeGroup', e.target.value)}
+                  className="w-full sm:w-32"
                 />
                 <Select
                   aria-label="Category"
