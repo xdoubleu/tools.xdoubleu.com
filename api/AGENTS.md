@@ -107,7 +107,7 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; s
 - **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions; never stop it. `relation ... does not exist` may be leftover state, a teardown (check `docker ps` uptime), or, in CI only, a `global.*` table a test assumed: `cmd/api` creates them and package order isn't fixed; fake the interface or create it (`feeds` does).
 - **`relation "X" already exists` panic** = another worktree's DDL ran without its `goose_db_version` row (in `global`; check via `docker exec api-db-1 psql`). If the schema matches, insert the row.
 - **Concurrent `go test` runs from two worktrees race on shared fixtures** (`-p 1` is per-invocation), e.g. `TestAppsMCPCallAllToolsAsAdmin`. Re-run in isolation first.
-- No Docker? `.claude/hooks/session-start.sh` has a `pg_ctlcluster` fallback; try it first.
+- No Docker? Try `.claude/hooks/session-start.sh` (`pg_ctlcluster`), or in a job sandbox `scripts/sandbox_postgres.sh`.
 - Bug fixes: failing test first. Reproduce production state via the MCP read tools; commit external input's **real bytes** as gzipped `testdata/` from the app's own client (example: `apps/feeds/internal/services/scrape_live_internal_test.go`).
 - A bug closes on a production observation or user confirmation, not a green suite.
 - `git stash` is repo-global: never blind-`pop`.
