@@ -187,6 +187,42 @@ func TestThePausedBoardPicksNothingUpUntilItIsResumed(t *testing.T) {
 	require.NotNil(t, env.claim(t))
 }
 
+func TestTwoFreeSlotsRunTwoReadyTasksAtOnce(t *testing.T) {
+	env := browserJobEnv(t)
+	autoPickup(t, true)
+	first := env.newTask(t, "first")
+	second := env.newTask(t, "second")
+	third := env.newTask(t, "third")
+	env.ready(t, first.Id)
+	env.ready(t, second.Id)
+	env.ready(t, third.Id)
+
+	a := env.claimUpTo(t, 2)
+	require.NotNil(t, a)
+	// The claim already queued the next task, so the second slot fills at once.
+	b := env.claimUpTo(t, 2)
+	require.NotNil(t, b)
+	assert.NotEqual(t, a.TaskId, b.TaskId)
+
+	assert.Nil(t, env.claimUpTo(t, 2), "both slots are full")
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY,
+		env.task(t, third.Id).Task.Status)
+}
+
+func TestAFullSlotQueuesNothingMore(t *testing.T) {
+	env := browserJobEnv(t)
+	autoPickup(t, true)
+	first := env.newTask(t, "first")
+	second := env.newTask(t, "second")
+	env.ready(t, first.Id)
+	env.ready(t, second.Id)
+
+	require.NotNil(t, env.claimUpTo(t, 1))
+	assert.Nil(t, env.claimUpTo(t, 1))
+	assert.Equal(t, factoryv1.TaskStatus_TASK_STATUS_READY,
+		env.task(t, second.Id).Task.Status)
+}
+
 func TestAnAdminOverAnyChannelMayPauseButOnlyAHumanInABrowserResumes(t *testing.T) {
 	autoPickup(t, true)
 	human := browserJobEnv(t).tasks
