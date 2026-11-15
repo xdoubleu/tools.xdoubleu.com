@@ -19,6 +19,7 @@ func FreeBytes(dir string) (uint64, error) {
 	if err := syscall.Statfs(dir, &st); err != nil {
 		return 0, fmt.Errorf("free space of %s: %w", dir, err)
 	}
+	//nolint:gosec,nolintlint // Bsize is signed on linux only
 	return st.Bavail * uint64(st.Bsize), nil
 }
 
